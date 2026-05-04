@@ -62,15 +62,15 @@ function setSyncStatus(status, label) {
 }
 
 function handleSyncPillClick() {
-  if (!_supabaseUser) { signInWithSupabase(); }
+  if (!_supabaseUser) { if (typeof openAuthModal === 'function') openAuthModal(); else signInWithSupabase(); }
   else { signOutSupabase(); }
 }
 
 // ── T-202605-482c: Supabase Auth — Google OAuth (founder único, multidispositivo) ──
 // SUPABASE_URL y SUPABASE_ANON_KEY se inyectan como variables de entorno en Vercel.
 // En desarrollo local, definir en un archivo .env.local (no commitear).
-const SUPABASE_URL  = (typeof window !== 'undefined' && window.SUPABASE_URL)  ? window.SUPABASE_URL  : null;
-const SUPABASE_KEY  = (typeof window !== 'undefined' && window.SUPABASE_ANON_KEY) ? window.SUPABASE_ANON_KEY : null;
+const SUPABASE_URL  = (typeof window !== 'undefined') ? (window.__ENV?.SUPABASE_URL       || window.SUPABASE_URL)       : null;
+const SUPABASE_KEY  = (typeof window !== 'undefined') ? (window.__ENV?.SUPABASE_ANON_KEY  || window.SUPABASE_ANON_KEY)  : null;
 
 let _supabase      = null;   // cliente Supabase
 let _supabaseUser  = null;   // sesión activa del founder
@@ -78,13 +78,20 @@ let _supabaseReady = null;   // promesa: resuelve cuando onAuthStateChange dispa
 
 if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
   try {
-    _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: { detectSessionInUrl: true, persistSession: true }
+    });
 
     _supabaseReady = new Promise(resolve => {
       _supabase.auth.onAuthStateChange((event, session) => {
         _supabaseUser = session ? session.user : null;
         if (_supabaseUser) {
           setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
+          if (event === 'SIGNED_IN') {
+            if (typeof closeAuthModal === 'function') closeAuthModal();
+            if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
+            if (typeof render === 'function') render();
+          }
         } else {
           setSyncStatus('local', '☁ conectar');
         }
@@ -191,7 +198,37 @@ function signInWithSupabase() {
   if (!_supabase) { setSyncStatus('offline', '✕ sin conexión'); return; }
   _supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin }
+    options: { redirectTo: window.location.origin, skipBrowserRedirect: true }
+  }).then(({ data, error }) => {
+    if (error) {
+      console.warn('Supabase Google sign-in error:', error);
+      showToast('error', 'Error al conectar: ' + (error.message || error));
+      return;
+    }
+    if (data?.url) {
+      // Abrir en pestaña nueva — compatible con Safari en localhost
+      const popup = window.open(data.url, '_blank');
+      if (!popup) {
+        // Fallback si Safari bloquea la pestaña — redirigir en misma ventana
+        window.location.href = data.url;
+        return;
+      }
+      // Polling: detectar cuando la pestaña nueva completó el OAuth
+      const poll = setInterval(async () => {
+        try {
+          const { data: { session } } = await _supabase.auth.getSession();
+          if (session) {
+            clearInterval(poll);
+            _supabaseUser = session.user;
+            setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
+            if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
+            if (typeof render === 'function') render();
+          }
+        } catch (e) { clearInterval(poll); }
+      }, 1500);
+      // Parar polling después de 3 minutos
+      setTimeout(() => clearInterval(poll), 180000);
+    }
   }).catch(err => {
     console.warn('Supabase Google sign-in error:', err);
     showToast('error', 'Error al conectar: ' + (err.message || err));
@@ -208,6 +245,56 @@ function signOutSupabase() {
       showToast('info', 'Sesión cerrada');
     });
   });
+}
+
+// openAuthModal / closeAuthModal — R[tmp:magic-link-auth]
+function openAuthModal() {
+  const overlay = document.getElementById('auth-modal-overlay');
+  if (!overlay) return;
+  const emailForm = document.getElementById('auth-email-form');
+  const sentState = document.getElementById('auth-sent-state');
+  const emailInput = document.getElementById('auth-email-input');
+  if (emailForm) emailForm.classList.remove('hidden');
+  if (sentState) sentState.classList.add('hidden');
+  if (emailInput) emailInput.value = '';
+  overlay.classList.add('open');
+  setTimeout(() => { if (emailInput) emailInput.focus(); }, 80);
+}
+
+function closeAuthModal() {
+  const overlay = document.getElementById('auth-modal-overlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+// signInWithMagicLink — Supabase OTP por email — R[tmp:magic-link-auth]
+async function signInWithMagicLink(resend = false) {
+  if (!_supabase) { setSyncStatus('offline', '✕ sin conexión'); return; }
+  const emailInput = document.getElementById('auth-email-input');
+  const email = emailInput ? emailInput.value.trim() : '';
+  if (!email || !email.includes('@')) {
+    showToast('error', 'Ingresa un email válido');
+    if (emailInput) emailInput.focus();
+    return;
+  }
+  const btn = document.getElementById('auth-btn-magic');
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
+  const { error } = await _supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true, emailRedirectTo: window.location.origin }
+  });
+  if (btn) { btn.disabled = false; btn.textContent = 'Enviar magic link'; }
+  if (error) {
+    console.warn('Magic link error:', error);
+    showToast('error', 'Error al enviar: ' + (error.message || error));
+    return;
+  }
+  const emailForm = document.getElementById('auth-email-form');
+  const sentState = document.getElementById('auth-sent-state');
+  if (!resend) {
+    if (emailForm) emailForm.classList.add('hidden');
+    if (sentState) sentState.classList.remove('hidden');
+  }
+  showToast('info', resend ? 'Link reenviado a ' + email : 'Magic link enviado a ' + email);
 }
 
 // getSupabaseUserId — user_id del founder para queries Supabase

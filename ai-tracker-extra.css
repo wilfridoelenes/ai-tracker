@@ -16277,18 +16277,16 @@ body.body--focus-mode::after {
 
 /* END R-202605-116 */
 
-/* ── B-202605-268: tracker-view-header sticky ─────────────────────────────── */
-/* El header con botones Por IA / Historial debe permanecer visible al hacer   */
-/* scroll dentro de la columna del tracker. Requiere que el contenedor padre   */
-/* tenga overflow-y: auto y altura definida (garantizado por tracker-3col).    */
+/* ── B-202605-268: tracker-view-header fijo como segundo header ──────────── */
+/* #tab-tracker es flex-column con overflow:hidden — .tracker-view-header con */
+/* flex-shrink:0 queda anclado arriba y nunca scrollea. .tracker-3col con     */
+/* flex:1 y min-height:0 absorbe todo el scroll. position:sticky no funciona  */
+/* aquí porque el padre tiene overflow:hidden, no overflow-y:auto.            */
 
 .tracker-view-header {
-  position: sticky;
-  top: 0;
-  z-index: var(--z-sticky, 100);
+  flex-shrink: 0;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
 }
 
 /* ── END B-202605-268 ─────────────────────────────────────────────────────── */
