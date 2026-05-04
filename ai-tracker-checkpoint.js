@@ -45,23 +45,7 @@ const AVATAR_LOGOS = {
 document.title = 'AI Tracker ' + _effectiveVersion; // v3.0.0.9.6
 document.getElementById('version-pill').textContent = _effectiveVersion;
 
-// ── R-202604-004: Firebase config ──
-// Config activa para ai-tracker-a6149
-const FB_CONFIG_KEY = 'fb-onboarding-config';
-const _fbSavedConfig = (() => { try { return JSON.parse(localStorage.getItem(FB_CONFIG_KEY) || 'null'); } catch { return null; } })();
-const FIREBASE_CONFIG = Object.assign({
-  apiKey:            'AIzaSyC84QQO9dTAdEettKslM0lmXeDbcw5_lbY',
-  authDomain:        'ai-tracker-a6149.firebaseapp.com',
-  projectId:         'ai-tracker-a6149',
-  storageBucket:     'ai-tracker-a6149.firebasestorage.app',
-  messagingSenderId: '939603571121',
-  appId:             '1:939603571121:web:efc3012afbd8bdfb908d90',
-  userId:            'alex'
-}, (_fbSavedConfig && _fbSavedConfig.apiKey && _fbSavedConfig.apiKey !== 'YOUR_API_KEY') ? _fbSavedConfig : {});
-
-const FB_MODE = FIREBASE_CONFIG.apiKey !== 'YOUR_API_KEY';
-let _db = null;
-let _uid = null;   // uid anónimo de Firebase Auth (solo para reglas de seguridad)
+// AC-8: Firebase eliminado — Supabase es el único backend de sync
 
 // Sync pill helper
 // T-202604-312: color semántico — verde/neutro cuando conectado, rojo solo en error real de sync
@@ -77,93 +61,9 @@ function setSyncStatus(status, label) {
   if (gfSync) { gfSync.className = 'gf-sync gf-sync--' + status; gfSync.textContent = label; }
 }
 
-// ── Google Auth + Firebase init ──
-let _googleUser = null; // usuario Google autenticado
-
-// ── R-202604-035: arquitectura multi-documento ──
-// Reemplaza _fbDoc() — un documento único causaba invalid-argument por >1MB
-// Estructura: users/{uid}/{collection}/{docId}
-function _fbUid() {
-  return (_googleUser && _googleUser.uid) ? _googleUser.uid : FIREBASE_CONFIG.userId;
-}
-function _fbRef(collection, docId) {
-  if (!_db) return null;
-  return _db.collection('users').doc(_fbUid()).collection(collection).doc(docId);
-}
-// Colección de sesiones — acceso directo
-function _fbSessionsCol() {
-  if (!_db) return null;
-  return _db.collection('users').doc(_fbUid()).collection('sessions');
-}
-// Compatibilidad: doc legado (migración one-shot)
-function _fbLegacyDoc() {
-  if (!_db) return null;
-  return _db.collection('aitracker').doc(_fbUid());
-}
-
 function handleSyncPillClick() {
-  if (!FB_MODE) { openFbOnboarding(); return; }
-  if (!_googleUser) { signInWithGoogle(); }
-}
-
-function signInWithGoogle() {
-  if (!_db) return;
-  const provider = new firebase.auth.GoogleAuthProvider();
-  firebase.auth().signInWithPopup(provider)
-    .then(result => {
-      if (result && result.user) {
-        _googleUser = result.user;
-        setSyncStatus('synced', '✓ ' + (_googleUser.displayName || _googleUser.email || 'ok').split(' ')[0]);
-        render(); renderHoy();
-        showToast('success', '✓ Conectado como ' + (_googleUser.displayName || _googleUser.email));
-      }
-    })
-    .catch(err => {
-      console.warn('Google sign-in error:', err);
-      showToast('error', 'Error al conectar: ' + (err.code || err.message || err));
-    });
-}
-
-function signOutGoogle() {
-  if (!FB_MODE) return;
-  // T-202604-299: flush pendientes antes de cerrar sesión
-  saveImmediate().finally(() => {
-    firebase.auth().signOut().then(() => {
-      _googleUser = null;
-      setSyncStatus('local', '☁ conectar');
-      showToast('info', 'Sesión de Google cerrada');
-    });
-  });
-}
-
-// B-202604-125: promesa que resuelve cuando onAuthStateChanged dispara por primera vez
-// _loadFromFirebase() la espera para evitar permission-denied por uid no resuelto
-let _fbAuthReady = null;
-
-if (FB_MODE) {
-  try {
-    firebase.initializeApp(FIREBASE_CONFIG);
-    _db = firebase.firestore();
-    setSyncStatus('syncing', '⟳ sincronizando');
-    _fbAuthReady = new Promise(resolve => {
-      firebase.auth().onAuthStateChanged(user => {
-        if (user) {
-          _googleUser = user;
-          setSyncStatus('synced', '\u2713 ' + (user.displayName || user.email || 'ok').split(' ')[0]);
-        } else {
-          setSyncStatus('local', '\u2601 conectar');
-        }
-        resolve(user);
-      });
-    });
-  } catch(e) {
-    console.warn('Firebase init error:', e);
-    setSyncStatus('offline', '\u2715 sin conexi\u00f3n');
-    _fbAuthReady = Promise.resolve(null);
-  }
-} else {
-  setSyncStatus('local', 'local');
-  _fbAuthReady = Promise.resolve(null);
+  if (!_supabaseUser) { signInWithSupabase(); }
+  else { signOutSupabase(); }
 }
 
 // ── T-202605-482c: Supabase Auth — Google OAuth (founder único, multidispositivo) ──
@@ -189,6 +89,7 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
           setSyncStatus('local', '☁ conectar');
         }
         resolve(_supabaseUser);
+        if (typeof _refreshMigrationBtnVisibility === 'function') _refreshMigrationBtnVisibility();
       });
     });
 
@@ -207,9 +108,87 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
   _supabaseReady = Promise.resolve(null);
 }
 
-// signInWithSupabase — reemplaza signInWithGoogle() cuando Supabase está activo
+// ── T-202605-483: Fallback offline — cola de pendientes + listeners de red ──
+// Cola persistida en localStorage para sobrevivir recargas
+const _OFFLINE_QUEUE_KEY = 'ai-tracker-offline-queue';
+let _offlineQueue = (() => {
+  try { return JSON.parse(localStorage.getItem(_OFFLINE_QUEUE_KEY) || '[]'); } catch { return []; }
+})();
+let _isOnline = navigator.onLine;
+
+function _offlineQueueSave() {
+  try { localStorage.setItem(_OFFLINE_QUEUE_KEY, JSON.stringify(_offlineQueue)); } catch(e) {}
+}
+
+// Encola un write pendiente con timestamp — last-write-wins por tipo de entrada
+function _offlineQueuePush(entry) {
+  // Deduplicar: si ya hay una entrada del mismo tipo, reemplazar (solo el último write importa)
+  const idx = _offlineQueue.findIndex(e => e.type === entry.type);
+  if (idx !== -1) _offlineQueue.splice(idx, 1);
+  _offlineQueue.push({ ...entry, queuedAt: Date.now() });
+  _offlineQueueSave();
+}
+
+// Flush la cola al reconectar — last-write-wins
+async function _offlineQueueFlush() {
+  if (!_offlineQueue.length) return;
+  const queue = [..._offlineQueue];
+  _offlineQueue = [];
+  _offlineQueueSave();
+
+  setSyncStatus('syncing', '⟳ sincronizando');
+  let failed = false;
+
+  for (const entry of queue) {
+    try {
+      if (entry.type === 'state') {
+        _stateDirty = true;
+        await _saveFlush();
+      }
+    } catch(e) {
+      console.warn('[AI Tracker] Offline queue flush error:', e);
+      // Re-encolar si falla de nuevo
+      _offlineQueue.push(entry);
+      failed = true;
+    }
+  }
+
+  _offlineQueueSave();
+  if (!failed) {
+    setSyncStatus('synced', '✓ sincronizado');
+    showToast('success', '✓ Datos sincronizados al reconectar');
+  }
+}
+
+// Listeners de red — actualizan indicador y disparan flush
+window.addEventListener('online', () => {
+  _isOnline = true;
+  if (_supabase) {
+    setSyncStatus('syncing', '⟳ reconectando');
+    _offlineQueueFlush();
+  } else {
+    setSyncStatus('local', 'local');
+  }
+});
+
+window.addEventListener('offline', () => {
+  _isOnline = false;
+  setSyncStatus('offline', '✕ sin conexión');
+});
+
+window.addEventListener('offline', () => {
+  _isOnline = false;
+  setSyncStatus('offline', '✕ sin conexión');
+});
+
+// AC-8 Fase B: _refreshMigrationBtnVisibility — botón de migración FB→SB eliminado en Fase B
+function _refreshMigrationBtnVisibility() {
+  const btn = document.getElementById('btn-migrate-fb-sb');
+  if (btn) btn.classList.add('hidden');
+}
+
 function signInWithSupabase() {
-  if (!_supabase) { signInWithGoogle(); return; }  // fallback Firebase mientras migra
+  if (!_supabase) { setSyncStatus('offline', '✕ sin conexión'); return; }
   _supabase.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.origin }
@@ -221,7 +200,7 @@ function signInWithSupabase() {
 
 // signOutSupabase — cierra sesión Supabase
 function signOutSupabase() {
-  if (!_supabase) { signOutGoogle(); return; }  // fallback Firebase mientras migra
+  if (!_supabase) { setSyncStatus('local', '☁ conectar'); return; }
   saveImmediate().finally(() => {
     _supabase.auth.signOut().then(() => {
       _supabaseUser = null;
@@ -1048,8 +1027,7 @@ async function _saveFlush() {
         showToast('warning', '⚠️ Cuota crítica — se limpió historial automáticamente');
       } catch (err2) {
         console.error('[AI Tracker] save() failed after cleanup:', err2);
-        showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas o usa Firebase.');
-        if (FB_MODE && _db) setSyncStatus('offline', '✕ almacenamiento lleno');
+        showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas.');
         _stateDirty = false;
         return;
       }
@@ -1058,41 +1036,44 @@ async function _saveFlush() {
     }
   }
 
-  // Firebase — solo si dirty y disponible
-  if (FB_MODE && _db && _stateDirty) {
-    _stateDirty = false; // optimistic clear antes del await para no re-encolar
+  // T-202605-482: Supabase — prioridad cuando disponible
+  if (_supabase && _supabaseUser && _stateDirty) {
+    _stateDirty = false;
     setSyncStatus('syncing', '⟳ sincronizando');
-    const ref = _fbRef('state', 'main');
-    if (ref) {
-      try {
-        // Strip sessions de cada proyecto — se persisten por separado en /sessions/{sessId}
-        const stateWithoutSessions = {
-          ...state,
-          projects: (state.projects || []).map(p => {
-            const { sessions, ...rest } = p;
-            return rest;
-          })
-        };
-        await ref.set({ data: JSON.stringify(stateWithoutSessions), updatedAt: Date.now() }, { merge: true });
+    try {
+      const stateWithoutSessions = {
+        ...state,
+        projects: (state.projects || []).map(p => { const { sessions, ...rest } = p; return rest; })
+      };
+      const { error } = await _supabase.from('tracker_state').upsert({
+        user_id: _supabaseUser.id,
+        key: 'main',
+        value: stateWithoutSessions,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'user_id,key' });
+      if (error) throw error;
 
-        // Escribir sesiones de todos los proyectos en paralelo
-        const sessionWrites = [];
-        for (const proj of (state.projects || [])) {
-          if (proj.sessions && proj.sessions.length > 0) {
-            sessionWrites.push(_saveSessions(proj));
-          }
+      // Sesiones — upsert en paralelo por proyecto
+      const sessionWrites = [];
+      for (const proj of (state.projects || [])) {
+        if (proj.sessions && proj.sessions.length > 0) {
+          sessionWrites.push(_saveSessions(proj));
         }
-        if (sessionWrites.length > 0) await Promise.all(sessionWrites);
-
-        setSyncStatus('synced', '✓ sincronizado');
-      } catch (err) {
-        console.error('[AI Tracker] Firebase save() failed:', err);
-        _stateDirty = true; // revertir — el estado no se escribió
-        setSyncStatus('offline', '✕ sin conexión');
-        showToast('warning', '⚠️ No se sincronizó con Firebase — datos guardados localmente');
       }
+      if (sessionWrites.length > 0) await Promise.all(sessionWrites);
+
+      setSyncStatus('synced', '✓ sincronizado');
+    } catch (err) {
+      console.error('[AI Tracker] Supabase save() failed:', err);
+      _stateDirty = true;
+      setSyncStatus('offline', '✕ sin conexión');
+      showToast('warning', '⚠️ No se sincronizó con Supabase — datos guardados localmente');
+      // T-202605-483: encolar para reintento al reconectar
+      _offlineQueuePush({ type: 'state' });
     }
+    return;
   }
+
 }
 
 // R-202604-035 / T-202604-299: save() — debounced
@@ -1112,8 +1093,7 @@ function save() {
         showToast('warning', '⚠️ Cuota crítica — se limpió historial automáticamente');
       } catch (err2) {
         console.error('[AI Tracker] save() failed after cleanup:', err2);
-        showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas o usa Firebase.');
-        if (FB_MODE && _db) setSyncStatus('offline', '✕ almacenamiento lleno');
+        showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas.');
         return;
       }
     } else {
@@ -1124,39 +1104,42 @@ function save() {
   if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
   // R-202604-073: actualización reactiva del dot Pulso
   if (typeof renderPulsoDot === 'function') renderPulsoDot();
-  // Firebase: debounce — agrupa calls frecuentes en un solo write
-  if (FB_MODE && _db) {
+  // T-202605-482: Supabase — encolar debounce
+  if (_supabase) {
     clearTimeout(_saveDebounceTimer);
     _saveDebounceTimer = setTimeout(() => _saveFlush(), _SAVE_DEBOUNCE_MS);
   }
 }
 
 // T-202604-299: saveImmediate() — bypasa debounce para eventos críticos
-// Usar en: saveSession(), signOutGoogle(), beforeunload
+// Usar en: saveSession(), signOutSupabase(), beforeunload
 async function saveImmediate() {
   _stateDirty = true;
   clearTimeout(_saveDebounceTimer);
   await _saveFlush();
 }
 
-// R-202604-035: escribe sesiones de un proyecto en /sessions/{sessId}
-// Usa batch write con chunks de 400 (bajo el límite de 500 ops/batch)
+// R-202604-035: escribe sesiones de un proyecto
+// T-202605-482: Supabase upsert en tracker_sessions; Firebase batch como fallback
 async function _saveSessions(proj) {
-  const col = _fbSessionsCol();
-  if (!col || !proj || !proj.sessions || !proj.sessions.length) return;
-
+  if (!proj || !proj.sessions || !proj.sessions.length) return;
   const sessions = proj.sessions;
-  const BATCH_SIZE = 400;
 
-  for (let i = 0; i < sessions.length; i += BATCH_SIZE) {
-    const chunk = sessions.slice(i, i + BATCH_SIZE);
-    const batch = _db.batch();
-    chunk.forEach(sess => {
-      if (!sess.id) return;
-      const docRef = col.doc(sess.id);
-      batch.set(docRef, { ...sess, projectId: proj.id }, { merge: true });
-    });
-    await batch.commit();
+  // Supabase — upsert por lotes de 400
+  if (_supabase && _supabaseUser) {
+    const BATCH = 400;
+    for (let i = 0; i < sessions.length; i += BATCH) {
+      const chunk = sessions.slice(i, i + BATCH).map(sess => ({
+        user_id:    _supabaseUser.id,
+        project_id: proj.id,
+        session_id: sess.id,
+        data:       sess,
+        updated_at: new Date().toISOString()
+      }));
+      const { error } = await _supabase.from('tracker_sessions').upsert(chunk, { onConflict: 'user_id,session_id' });
+      if (error) { console.error('[AI Tracker] Supabase _saveSessions failed:', error); break; }
+    }
+    return;
   }
 }
 
@@ -1211,55 +1194,55 @@ async function saveBacklog() {
   const meta = JSON.parse(localStorage.getItem(metaKey) || '{}');
   const suffix = projId ? '-' + projId : '-global';
 
-  if (FB_MODE && _db) {
+  // T-202605-482: Supabase — prioridad cuando disponible
+  if (_supabase && _supabaseUser) {
     try {
-      const itemsRef = _fbRef('backlog', 'items' + suffix);
-      const metaRef  = _fbRef('backlog', 'meta'  + suffix);
-      if (itemsRef && metaRef) {
-        await Promise.all([
-          itemsRef.set({ data: JSON.stringify(items), updatedAt: Date.now() }, { merge: true }),
-          metaRef.set({ data: JSON.stringify(meta),  updatedAt: Date.now() }, { merge: true })
-        ]);
-        setSyncStatus('synced', '✓ sincronizado');
-      }
+      const { error } = await _supabase.from('tracker_backlog').upsert([
+        { user_id: _supabaseUser.id, key: 'items' + suffix, value: items, updated_at: new Date().toISOString() },
+        { user_id: _supabaseUser.id, key: 'meta'  + suffix, value: meta,  updated_at: new Date().toISOString() }
+      ], { onConflict: 'user_id,key' });
+      if (error) throw error;
+      setSyncStatus('synced', '✓ sincronizado');
     } catch (err) {
-      console.error('[AI Tracker] Firebase saveBacklog() failed:', err);
+      console.error('[AI Tracker] Supabase saveBacklog() failed:', err);
       setSyncStatus('offline', '✕ sin conexión');
-      showToast('warning', '⚠️ Backlog no sincronizado con Firebase — guardado localmente');
+      showToast('warning', '⚠️ Backlog no sincronizado con Supabase — guardado localmente');
     }
+    return;
   }
+
 }
 
-// R-202604-035: saveContextDocs() — escribe en /docs/context-{suffix} y /docs/htmlmap-{suffix}
+// R-202604-035: saveContextDocs() — escribe en tracker_docs
 async function saveContextDocs() {
-  if (!FB_MODE || !_db) return;
-  try {
-    const projId = _getActiveProjectFilter();
-    const suffix = projId ? '-' + projId : '-global';
+  if (!_supabase) return;
 
-    const contextRef  = _fbRef('docs', 'context'  + suffix);
-    const htmlmapRef  = _fbRef('docs', 'htmlmap'  + suffix);
+  const projId = _getActiveProjectFilter();
+  const suffix = projId ? '-' + projId : '-global';
 
-    if (!contextRef || !htmlmapRef) return;
+  const ctxPayload = {
+    raw:      localStorage.getItem(_tplKey('context-raw'))      || '',
+    sections: localStorage.getItem(_tplKey('context-sections')) || '[]',
+    meta:     localStorage.getItem(_tplKey('context-meta'))     || '{}'
+  };
+  const hmPayload = {
+    raw:      localStorage.getItem(_tplKey('html-map-raw'))      || '',
+    sections: localStorage.getItem(_tplKey('html-map-sections')) || '[]',
+    meta:     localStorage.getItem(_tplKey('html-map-meta'))     || '{}'
+  };
 
-    await Promise.all([
-      contextRef.set({
-        raw:      localStorage.getItem(_tplKey('context-raw'))      || '',
-        sections: localStorage.getItem(_tplKey('context-sections')) || '[]',
-        meta:     localStorage.getItem(_tplKey('context-meta'))     || '{}',
-        updatedAt: Date.now()
-      }, { merge: true }),
-      htmlmapRef.set({
-        raw:      localStorage.getItem(_tplKey('html-map-raw'))      || '',
-        sections: localStorage.getItem(_tplKey('html-map-sections')) || '[]',
-        meta:     localStorage.getItem(_tplKey('html-map-meta'))     || '{}',
-        updatedAt: Date.now()
-      }, { merge: true })
-    ]);
-  } catch (err) {
-    console.error('[AI Tracker] Firebase saveContextDocs() failed:', err);
-    setSyncStatus('offline', '✕ sin conexión');
-    showToast('warning', '⚠️ Context/HTML-MAP no sincronizado con Firebase — guardado localmente');
+  if (_supabase && _supabaseUser) {
+    try {
+      const { error } = await _supabase.from('tracker_docs').upsert([
+        { user_id: _supabaseUser.id, key: 'context' + suffix, value: ctxPayload, updated_at: new Date().toISOString() },
+        { user_id: _supabaseUser.id, key: 'htmlmap' + suffix, value: hmPayload,  updated_at: new Date().toISOString() }
+      ], { onConflict: 'user_id,key' });
+      if (error) throw error;
+    } catch (err) {
+      console.error('[AI Tracker] Supabase saveContextDocs() failed:', err);
+      setSyncStatus('offline', '✕ sin conexión');
+      showToast('warning', '⚠️ Context/HTML-MAP no sincronizado con Supabase — guardado localmente');
+    }
   }
 }
 
@@ -1531,9 +1514,173 @@ function load() {
   // T-084: verificar umbral de sesiones al cargar
   setTimeout(checkStorageWarn, 500);
 
-  // R-202604-035: cargar desde arquitectura multi-documento
-  if (FB_MODE && _db) {
-    _loadFromFirebase();
+  // T-202605-482: cargar desde Supabase
+  if (_supabase) {
+    _loadFromSupabase();
+  }
+}
+
+// T-202605-482: carga Supabase multi-tabla en segundo plano
+async function _loadFromSupabase() {
+  const authUser = await (_supabaseReady || Promise.resolve(null));
+  if (!authUser) {
+    setSyncStatus('local', '☁ conectar');
+    return;
+  }
+  try {
+    setSyncStatus('syncing', '⟳ sincronizando');
+
+    // ── 1. Cargar state/main ──────────────────────────────────────────────
+    const { data: stateRows, error: stateErr } = await _supabase
+      .from('tracker_state')
+      .select('value')
+      .eq('user_id', _supabaseUser.id)
+      .eq('key', 'main')
+      .maybeSingle();
+    if (stateErr) throw stateErr;
+
+    if (stateRows && stateRows.value) {
+      const remote = stateRows.value;
+
+      // ── 2. Merge IAs — local gana en status volátil ───────────────────
+      const localAIMap  = new Map((state.ais || []).map(a => [a.id, a]));
+      const remoteAIMap = new Map((remote.ais || []).map(a => [a.id, a]));
+      remoteAIMap.forEach((remoteAI, id) => {
+        remoteAI.sessions = [];
+        const localAI = localAIMap.get(id);
+        if (localAI) {
+          remoteAI.status      = localAI.status;
+          remoteAI.resetTime   = localAI.resetTime;
+          remoteAI.resetEpoch  = localAI.resetEpoch;
+          remoteAI.interrupted = localAI.interrupted;
+        }
+      });
+      localAIMap.forEach((localAI, id) => {
+        if (!remoteAIMap.has(id)) { if (!remote.ais) remote.ais = []; remote.ais.push({ ...localAI, sessions: [] }); }
+      });
+
+      // ── 3. Merge proyectos ────────────────────────────────────────────
+      const localProjMap = new Map((state.projects || []).map(p => [p.id, p]));
+      if (!remote.projects) remote.projects = [];
+      remote.projects.forEach(rp => {
+        const lp = localProjMap.get(rp.id);
+        rp.sessions = lp ? (lp.sessions || []) : [];
+        if (lp && lp.sprints && lp.sprints.length) {
+          const localSprintMap = new Map(lp.sprints.map(s => [s.id, s]));
+          rp.sprints = (rp.sprints || []).map(rs => {
+            const ls = localSprintMap.get(rs.id);
+            return ls ? { ...rs, status: ls.status, ...(ls.closedAt ? { closedAt: ls.closedAt } : {}) } : rs;
+          });
+          lp.sprints.forEach(ls => { if (!rp.sprints.some(rs => rs.id === ls.id)) rp.sprints.push({ ...ls }); });
+        }
+      });
+      localProjMap.forEach((lp, id) => {
+        if (!remote.projects.some(p => p.id === id)) remote.projects.push({ ...lp });
+      });
+
+      _applyStateData(remote);
+      state.ais.forEach(ai => {
+        if (ai.status === 'exhausted' && ai.resetTime && _resetExpired(ai.resetTime, ai.resetEpoch)) {
+          ai.status = 'available'; ai.resetTime = ''; ai.resetEpoch = null;
+        }
+      });
+    }
+
+    // ── 4. Cargar sesiones ───────────────────────────────────────────────
+    try {
+      const { data: sessRows, error: sessErr } = await _supabase
+        .from('tracker_sessions')
+        .select('project_id, session_id, data')
+        .eq('user_id', _supabaseUser.id);
+      if (sessErr) throw sessErr;
+      if (sessRows && sessRows.length) {
+        const remoteSessMap = {};
+        sessRows.forEach(row => {
+          if (!remoteSessMap[row.project_id]) remoteSessMap[row.project_id] = [];
+          remoteSessMap[row.project_id].push(row.data);
+        });
+        state.projects.forEach(proj => {
+          const remoteSessions = remoteSessMap[proj.id] || [];
+          if (!remoteSessions.length) return;
+          if (!proj.sessions) proj.sessions = [];
+          const localIds = new Set(proj.sessions.map(s => s.id));
+          remoteSessions.forEach(s => { if (!localIds.has(s.id)) { proj.sessions.push(s); localIds.add(s.id); } });
+        });
+        try { localStorage.setItem('ai-tracker-v4', JSON.stringify(state)); } catch {}
+      }
+    } catch (sessErr) {
+      console.warn('[AI Tracker] Error cargando sesiones desde Supabase:', sessErr);
+    }
+
+    // ── 5. Cargar backlog ────────────────────────────────────────────────
+    try {
+      const projId = _getActiveProjectFilter();
+      const suffix = projId ? '-' + projId : '-global';
+      const { data: blRows, error: blErr } = await _supabase
+        .from('tracker_backlog')
+        .select('key, value')
+        .eq('user_id', _supabaseUser.id)
+        .in('key', ['items' + suffix, 'meta' + suffix]);
+      if (blErr) throw blErr;
+      if (blRows && blRows.length) {
+        const blMap = Object.fromEntries(blRows.map(r => [r.key, r.value]));
+        const remoteItems = blMap['items' + suffix] || [];
+        const remoteMeta  = blMap['meta'  + suffix] || {};
+        const localMeta   = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
+        const localTs     = localMeta.updated  ? new Date(localMeta.updated).getTime()  : 0;
+        const remoteTs    = remoteMeta.updated ? new Date(remoteMeta.updated).getTime() : 0;
+        if (remoteItems.length && remoteTs > localTs) {
+          const localCodes = new Set(ITEMS.map(i => i.code));
+          let added = 0;
+          remoteItems.forEach(ri => { if (!localCodes.has(ri.code)) { ITEMS.push(ri); added++; } });
+          if (added > 0) {
+            localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(ITEMS));
+            localStorage.setItem(_tplKey('backlog-meta'),  JSON.stringify(remoteMeta));
+          }
+        }
+      }
+    } catch (blErr) {
+      console.warn('[AI Tracker] Error cargando backlog desde Supabase:', blErr);
+    }
+
+    // ── 6. Hidratar docs vivos si localStorage vacío ─────────────────────
+    try {
+      const projId = _getActiveProjectFilter();
+      const suffix = projId ? '-' + projId : '-global';
+      const { data: docRows, error: docErr } = await _supabase
+        .from('tracker_docs')
+        .select('key, value')
+        .eq('user_id', _supabaseUser.id)
+        .in('key', ['context' + suffix, 'htmlmap' + suffix]);
+      if (docErr) throw docErr;
+      if (docRows && docRows.length) {
+        const docMap = Object.fromEntries(docRows.map(r => [r.key, r.value]));
+        const ctx = docMap['context' + suffix];
+        const hm  = docMap['htmlmap'  + suffix];
+        if (ctx) {
+          if (ctx.raw      && !localStorage.getItem(_tplKey('context-raw')))      try { localStorage.setItem(_tplKey('context-raw'),      ctx.raw);      } catch {}
+          if (ctx.sections && !localStorage.getItem(_tplKey('context-sections'))) try { localStorage.setItem(_tplKey('context-sections'), ctx.sections); } catch {}
+          if (ctx.meta     && !localStorage.getItem(_tplKey('context-meta')))     try { localStorage.setItem(_tplKey('context-meta'),     ctx.meta);     } catch {}
+        }
+        if (hm) {
+          if (hm.raw      && !localStorage.getItem(_tplKey('html-map-raw')))      try { localStorage.setItem(_tplKey('html-map-raw'),      hm.raw);      } catch {}
+          if (hm.sections && !localStorage.getItem(_tplKey('html-map-sections'))) try { localStorage.setItem(_tplKey('html-map-sections'), hm.sections); } catch {}
+          if (hm.meta     && !localStorage.getItem(_tplKey('html-map-meta')))     try { localStorage.setItem(_tplKey('html-map-meta'),     hm.meta);     } catch {}
+        }
+      }
+    } catch (docsErr) {
+      console.warn('[AI Tracker] Error cargando docs desde Supabase:', docsErr);
+    }
+
+    // ── 7. Re-render final ────────────────────────────────────────────────
+    render(); renderHoy(); updateStats();
+    if (typeof renderBacklogList === 'function') renderBacklogList();
+    setSyncStatus('synced', '✓ sincronizado');
+
+  } catch (err) {
+    console.error('[AI Tracker] _loadFromSupabase() failed:', err);
+    setSyncStatus('offline', '✕ sin conexión');
+    showToast('warning', '⚠️ No se pudo cargar desde Supabase — operando en modo local', null, 6000);
   }
 }
 
@@ -1813,25 +1960,7 @@ function checkStorageWarn() {
   const banner = document.getElementById('storage-warn');
   if (!banner) return;
   const overThreshold = total > STORAGE_WARN_THRESHOLD;
-  // T-202604-310: si Firebase activo y conectado (_db existe, no en error) → indicador sutil en lugar de banner amarillo
-  const fbActive = !!(FB_MODE && typeof _db !== 'undefined' && _db);
-  const syncErrored = (() => {
-    const dot = document.getElementById('sync-status-dot');
-    return dot ? dot.classList.contains('sync-status-dot--offline') : false;
-  })();
-  if (overThreshold && fbActive && !syncErrored) {
-    // Firebase activo y sin error de sync — ocultar banner, indicar sutil en label de sync
-    banner.classList.remove('storage-warning-banner--visible');
-    const lbl = document.getElementById('sync-status-label');
-    if (lbl && !lbl.textContent.includes('sincronizando')) {
-      lbl.title = `Storage local: ${total} sesiones (respaldado en Firebase)`;
-    }
-  } else {
-    // Sin Firebase, o Firebase con error de sync — comportamiento original
-    banner.classList.toggle('storage-warning-banner--visible', overThreshold);
-    const lbl = document.getElementById('sync-status-label');
-    if (lbl) lbl.title = '';
-  }
+  banner.classList.toggle('storage-warning-banner--visible', overThreshold);
 }
 function getAI(id) { return state.ais.find(a => a.id === id); }
 
@@ -6071,9 +6200,9 @@ function _qnNavToItem(code) {
   }, 220);
 }
 
-// T-202604-299: beforeunload — flush Firebase si hay cambios pendientes
+// T-202604-299: beforeunload — flush Supabase si hay cambios pendientes
 window.addEventListener('beforeunload', () => {
-  if (_stateDirty && FB_MODE && _db) {
+  if (_stateDirty && _supabase && _supabaseUser) {
     clearTimeout(_saveDebounceTimer);
     _saveFlush(); // best-effort; browser puede no esperar la promesa
   }
@@ -7124,5 +7253,236 @@ function _trackerSwitchCol(col) {
 
 // ══ END R-202604-059 ══
 
-// T-202605-446: bridge para que ai-tracker-session.js pueda detener el cronómetro al guardar
-window._stopSessionTimer = stopSessionTimer;
+// ── R-migración: Firebase → Supabase one-shot migration ──────────────────────
+// AC: solo lectura de Firebase · last-write-wins por updated_at · resumen post-migración
+// · no modifica Firebase · ejecutable desde UI · rollback seguro si falla
+
+function openMigrateFirebaseModal() {
+  const overlay = document.getElementById('migrate-fb-overlay');
+  if (!overlay) return;
+  // Reset al estado idle
+  _migrateFbSetState('idle');
+  document.getElementById('migrate-fb-run-btn').classList.remove('hidden');
+  document.getElementById('migrate-fb-cancel-btn').textContent = 'Cancelar';
+  overlay.classList.remove('hidden');
+  overlay.classList.add('open');
+}
+
+function closeMigrateFirebaseModal() {
+  const overlay = document.getElementById('migrate-fb-overlay');
+  if (overlay) { overlay.classList.remove('open'); overlay.classList.add('hidden'); }
+}
+
+function _migrateFbSetState(state) {
+  ['idle', 'running', 'done', 'error'].forEach(s => {
+    const el = document.getElementById('migrate-fb-' + s);
+    if (el) el.classList.toggle('hidden', s !== state);
+  });
+}
+
+function _migrateFbSetStatus(msg, progress) {
+  const statusEl = document.getElementById('migrate-fb-status');
+  if (statusEl) statusEl.textContent = msg;
+  const bar = document.getElementById('migrate-fb-progress-bar');
+  if (bar) bar.style.setProperty('--migrate-progress', (progress || 0) + '%');
+}
+
+async function runFirebaseToSupabaseMigration() {
+  // Precondiciones
+  if (!_db) {
+    _migrateFbSetState('error');
+    document.getElementById('migrate-fb-error-msg').textContent = '✕ Firebase no está configurado. Configura sync primero.';
+    return;
+  }
+  if (!_supabase || !_supabaseUser) {
+    _migrateFbSetState('error');
+    document.getElementById('migrate-fb-error-msg').textContent = '✕ Supabase no está autenticado. Conecta tu cuenta primero.';
+    return;
+  }
+
+  _migrateFbSetState('running');
+  document.getElementById('migrate-fb-run-btn').classList.add('hidden');
+
+  const stats = { state: 0, sessions: 0, backlog: 0, docs: 0, skipped: 0, errors: [] };
+
+  try {
+    // ── 1. Esperar auth Firebase ──────────────────────────────────────────
+    _migrateFbSetStatus('Verificando autenticación Firebase…', 5);
+    const fbUser = await (_fbAuthReady || Promise.resolve(null));
+    if (!fbUser) throw new Error('Firebase no tiene sesión activa. Inicia sesión con Google primero.');
+
+    // ── 2. Leer state/main desde Firebase ────────────────────────────────
+    _migrateFbSetStatus('Leyendo estado principal desde Firebase…', 15);
+    const stateRef = _fbRef('state', 'main');
+    if (!stateRef) throw new Error('No se pudo acceder a Firebase state/main.');
+
+    const stateDoc = await stateRef.get();
+    if (stateDoc.exists && stateDoc.data().data) {
+      const fbState = JSON.parse(stateDoc.data().data);
+      const fbUpdatedAt = stateDoc.data().updatedAt
+        ? new Date(stateDoc.data().updatedAt).toISOString()
+        : new Date(0).toISOString();
+
+      // Verificar last-write-wins: solo escribir si Firebase es más reciente
+      const { data: existingState } = await _supabase
+        .from('tracker_state')
+        .select('updated_at')
+        .eq('user_id', _supabaseUser.id)
+        .eq('key', 'main')
+        .maybeSingle();
+
+      const supaTs = existingState ? new Date(existingState.updated_at).getTime() : 0;
+      const fbTs   = new Date(fbUpdatedAt).getTime();
+
+      if (fbTs >= supaTs) {
+        const stateWithoutSessions = {
+          ...fbState,
+          projects: (fbState.projects || []).map(p => { const { sessions, ...rest } = p; return rest; })
+        };
+        const { error: stateErr } = await _supabase.from('tracker_state').upsert({
+          user_id:    _supabaseUser.id,
+          key:        'main',
+          value:      stateWithoutSessions,
+          updated_at: fbUpdatedAt
+        }, { onConflict: 'user_id,key' });
+        if (stateErr) throw stateErr;
+        stats.state = 1;
+      } else {
+        stats.skipped++;
+      }
+    }
+
+    // ── 3. Leer y migrar sesiones ─────────────────────────────────────────
+    _migrateFbSetStatus('Leyendo sesiones desde Firebase…', 35);
+    const sessCol = _fbSessionsCol();
+    if (sessCol) {
+      try {
+        const sessSnapshot = await sessCol.get();
+        if (!sessSnapshot.empty) {
+          const sessBatches = [];
+          const BATCH_SIZE = 400;
+          let currentBatch = [];
+
+          sessSnapshot.forEach(doc => {
+            const data = doc.data();
+            currentBatch.push({
+              user_id:    _supabaseUser.id,
+              project_id: data.projectId || data.project_id || 'unknown',
+              session_id: doc.id,
+              data:       data.data || data,
+              updated_at: data.updatedAt ? new Date(data.updatedAt).toISOString() : new Date().toISOString()
+            });
+            if (currentBatch.length >= BATCH_SIZE) {
+              sessBatches.push([...currentBatch]);
+              currentBatch = [];
+            }
+          });
+          if (currentBatch.length) sessBatches.push(currentBatch);
+
+          _migrateFbSetStatus(`Escribiendo ${sessSnapshot.size} sesiones a Supabase…`, 55);
+          for (const batch of sessBatches) {
+            const { error: sessErr } = await _supabase
+              .from('tracker_sessions')
+              .upsert(batch, { onConflict: 'user_id,project_id,session_id', ignoreDuplicates: false });
+            if (sessErr) { stats.errors.push('sessions: ' + sessErr.message); }
+            else { stats.sessions += batch.length; }
+          }
+        }
+      } catch(e) {
+        stats.errors.push('sessions: ' + e.message);
+      }
+    }
+
+    // ── 4. Leer y migrar backlog ──────────────────────────────────────────
+    _migrateFbSetStatus('Leyendo backlog desde Firebase…', 70);
+    try {
+      const backlogRef = _fbRef('backlog', 'main');
+      if (backlogRef) {
+        const backlogDoc = await backlogRef.get();
+        if (backlogDoc.exists) {
+          const fbBacklog  = backlogDoc.data();
+          const fbUpdated  = fbBacklog.updatedAt ? new Date(fbBacklog.updatedAt).toISOString() : new Date(0).toISOString();
+          const projId     = _getActiveProjectFilter();
+          const suffix     = projId ? '-' + projId : '-global';
+
+          const { data: existingBl } = await _supabase
+            .from('tracker_backlog')
+            .select('updated_at')
+            .eq('user_id', _supabaseUser.id)
+            .eq('key', 'items' + suffix)
+            .maybeSingle();
+
+          const supaBlTs = existingBl ? new Date(existingBl.updated_at).getTime() : 0;
+          const fbBlTs   = new Date(fbUpdated).getTime();
+
+          if (fbBlTs >= supaBlTs) {
+            const { error: blErr } = await _supabase.from('tracker_backlog').upsert([
+              { user_id: _supabaseUser.id, key: 'items' + suffix, value: fbBacklog.items || [], updated_at: fbUpdated },
+              { user_id: _supabaseUser.id, key: 'meta'  + suffix, value: fbBacklog.meta  || {}, updated_at: fbUpdated }
+            ], { onConflict: 'user_id,key' });
+            if (blErr) stats.errors.push('backlog: ' + blErr.message);
+            else stats.backlog = (fbBacklog.items || []).length;
+          } else {
+            stats.skipped++;
+          }
+        }
+      }
+    } catch(e) {
+      stats.errors.push('backlog: ' + e.message);
+    }
+
+    // ── 5. Verificación de integridad ─────────────────────────────────────
+    _migrateFbSetStatus('Verificando integridad…', 88);
+    let integrityOk = true;
+    try {
+      const { count: supaCount } = await _supabase
+        .from('tracker_sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', _supabaseUser.id);
+
+      const sessCol2 = _fbSessionsCol();
+      if (sessCol2) {
+        const fbCount = (await sessCol2.get()).size;
+        if (supaCount < fbCount) {
+          integrityOk = false;
+          stats.errors.push(`Integridad: Firebase ${fbCount} sesiones, Supabase ${supaCount} — diferencia detectada`);
+        }
+      }
+    } catch(e) {
+      // No bloqueante — integridad es verificación adicional
+    }
+
+    // ── 6. Resultado final ────────────────────────────────────────────────
+    _migrateFbSetStatus('Completado', 100);
+    _migrateFbSetState('done');
+
+    const resultEl = document.getElementById('migrate-fb-result');
+    const hasErrors = stats.errors.length > 0;
+    resultEl.innerHTML =
+      `<div class="migrate-fb-result-icon">${hasErrors ? '⚠️' : '✓'}</div>` +
+      `<div class="migrate-fb-result-title">${hasErrors ? 'Migración completada con advertencias' : 'Migración completada'}</div>` +
+      `<ul class="migrate-fb-result-list">` +
+      `<li>Estado principal: ${stats.state ? 'migrado' : 'omitido (Supabase más reciente)'}</li>` +
+      `<li>Sesiones migradas: ${stats.sessions}</li>` +
+      `<li>Ítems de backlog: ${stats.backlog}</li>` +
+      `<li>Registros omitidos (Supabase más reciente): ${stats.skipped}</li>` +
+      (hasErrors ? `<li class="migrate-fb-result-error">Advertencias: ${stats.errors.join(' · ')}</li>` : '') +
+      `<li>Integridad: ${integrityOk ? '✓ verificada' : '⚠ revisar advertencias'}</li>` +
+      `</ul>`;
+
+    document.getElementById('migrate-fb-cancel-btn').textContent = 'Cerrar';
+    showToast(hasErrors ? 'warning' : 'success',
+      hasErrors ? '⚠️ Migración completada con advertencias' : '✓ Migración Firebase → Supabase completada');
+
+  } catch(err) {
+    console.error('[AI Tracker] Migración Firebase→Supabase falló:', err);
+    _migrateFbSetState('error');
+    document.getElementById('migrate-fb-error-msg').textContent = '✕ ' + (err.message || 'Error inesperado. Revisa la consola para más detalles.');
+    document.getElementById('migrate-fb-cancel-btn').textContent = 'Cerrar';
+    document.getElementById('migrate-fb-run-btn').classList.remove('hidden');
+    document.getElementById('migrate-fb-run-btn').textContent = 'Reintentar';
+    showToast('error', '✕ Migración fallida — datos locales intactos');
+  }
+}
+
+// ── FIN R-migración ───────────────────────────────────────────────────────────
