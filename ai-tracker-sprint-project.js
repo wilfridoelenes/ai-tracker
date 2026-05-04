@@ -898,143 +898,7 @@ function _dismissOnboarding() {
   document.getElementById('onboarding-overlay').classList.remove('open');
 }
 
-// ── T-075: Firebase Onboarding ──
-function openFbOnboarding() {
-  const saved = (() => { try { return JSON.parse(localStorage.getItem(FB_CONFIG_KEY) || 'null'); } catch { return null; } })();
-  if (saved) {
-    ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId','userId'].forEach(k => {
-      const el = document.getElementById('fbo-' + k);
-      if (el && saved[k]) el.value = saved[k];
-    });
-  }
-  fbWizardStep(0);
-  document.getElementById('fb-onboarding-overlay').classList.add('open');
-}
-
-function closeFbOnboarding() {
-  document.getElementById('fb-onboarding-overlay').classList.remove('open');
-  localStorage.setItem('fb-onboarding-seen', '1');
-}
-
-// T-013: Parser para Firebase Config textbox
-function parseFirebaseConfig() {
-  const textarea = document.getElementById('fb-config-paste');
-  const text = textarea.value.trim();
-  
-  console.log('[AI Tracker] parseFirebaseConfig: iniciando, longitud:', text.length);
-  
-  if (!text) {
-    console.error('[AI Tracker] parseFirebaseConfig: textarea vacío');
-    showToast('error', '❌ Pega el firebaseConfig en el textarea');
-    return;
-  }
-  
-  try {
-    // Extraer JSON del texto — extractor robusto por balanceo de llaves
-    let config = null;
-    const firstBrace = text.indexOf('{');
-    if (firstBrace === -1) {
-      console.error('[AI Tracker] parseFirebaseConfig: no encontré objeto JSON');
-      showToast('error', '❌ No se encontró un objeto válido en el texto');
-      return;
-    }
-    let depth = 0, start = firstBrace, end = -1;
-    for (let i = firstBrace; i < text.length; i++) {
-      if (text[i] === '{') depth++;
-      else if (text[i] === '}') { depth--; if (depth === 0) { end = i; break; } }
-    }
-    if (end === -1) {
-      console.error('[AI Tracker] parseFirebaseConfig: objeto JSON no cerrado');
-      showToast('error', '❌ El objeto no está cerrado correctamente — revisa el texto pegado');
-      return;
-    }
-    const jsonStr = text.slice(start, end + 1);
-    console.log('[AI Tracker] parseFirebaseConfig: objeto encontrado, parseando...');
-    config = JSON.parse(jsonStr);
-    console.log('[AI Tracker] parseFirebaseConfig: objeto parseado:', Object.keys(config));
-    
-    // Validar campos obligatorios
-    const required = ['apiKey', 'authDomain', 'projectId', 'storageBucket', 'messagingSenderId', 'appId'];
-    const missing = required.filter(k => !config[k]);
-    
-    if (missing.length > 0) {
-      console.error('[AI Tracker] parseFirebaseConfig: faltan campos:', missing);
-      showToast('error', `❌ Faltan campos: ${missing.join(', ')}`);
-      return;
-    }
-    
-    console.log('[AI Tracker] parseFirebaseConfig: todos los campos presentes');
-    
-    // Rellenar formulario Step 1 campos (que van al Step 2)
-    const fields = {
-      'fbo-apiKey': config.apiKey,
-      'fbo-authDomain': config.authDomain,
-      'fbo-projectId': config.projectId,
-      'fbo-storageBucket': config.storageBucket,
-      'fbo-messagingSenderId': config.messagingSenderId,
-      'fbo-appId': config.appId
-    };
-    
-    Object.entries(fields).forEach(([id, value]) => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.value = value;
-        console.log('[AI Tracker] parseFirebaseConfig: rellenado', id);
-      } else {
-        console.warn('[AI Tracker] parseFirebaseConfig: elemento no encontrado:', id);
-      }
-    });
-    
-    console.log('[AI Tracker] parseFirebaseConfig: ✓ config parseada y rellenada');
-    showToast('success', '✓ Config parseada correctamente');
-    
-    // Pasar a Step 2 para confirmación
-    console.log('[AI Tracker] parseFirebaseConfig: yendo a fbWizardStep(1)...');
-    fbWizardStep(1);
-    
-  } catch (err) {
-    console.error('[AI Tracker] parseFirebaseConfig error:', err.name, err.message);
-    showToast('error', '❌ Error al parsear JSON: ' + err.message);
-  }
-}
-
-function fbWizardStep(n) {
-  [0,1,2].forEach(i => {
-    document.getElementById('fb-panel-' + i).classList.toggle('active', i === n);
-    const dot = document.getElementById('fb-dot-' + i);
-    dot.classList.remove('active','done');
-    if (i < n) dot.classList.add('done');
-    else if (i === n) dot.classList.add('active');
-  });
-}
-
-function fbWizardConfirm() {
-  const fields = ['apiKey','authDomain','projectId','storageBucket','messagingSenderId','appId','userId'];
-  let valid = true;
-  fields.forEach(k => {
-    const el = document.getElementById('fbo-' + k);
-    el.classList.remove('error');
-    if (!el.value.trim()) { el.classList.add('error'); valid = false; }
-  });
-  if (!valid) { showToast('warning', 'Completa todos los campos'); return; }
-  const cfg = {};
-  fields.forEach(k => cfg[k] = document.getElementById('fbo-' + k).value.trim());
-  localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(cfg));
-  const msg = document.getElementById('fb-status-msg');
-  msg.className = 'fb-status-msg ok';
-  msg.textContent = '✓ Configuración guardada. Recarga para activar sync.';
-  fbWizardStep(2);
-}
-
-function fbWizardApply() {
-  localStorage.setItem('fb-onboarding-seen', '1');
-  location.reload();
-}
-
-// T-075: mostrar wizard en primera visita si apiKey sigue siendo YOUR_API_KEY
-if (FIREBASE_CONFIG.apiKey === 'YOUR_API_KEY' && !localStorage.getItem('fb-onboarding-seen')) {
-  setTimeout(openFbOnboarding, 600);
-}
+// T-202605-491: Firebase wizard removido — Firebase deprecado, Supabase es el provider activo.
 
 // T-047: inicializar botón de rango activo al cargar
 (function() {
@@ -1106,7 +970,7 @@ function cleanupLocalStorage() {
   const toRemove = [
     'ai-tracker-changelog',      // changelog pesado
     'ai-tracker-disc-tips',      // tooltips vistos
-    'fb-onboarding-seen',        // flags vistos
+    // 'fb-onboarding-seen' — T-202605-491: removido junto con wizard Firebase
     'tracker-view-mode',         // modo vista
     'analytics-range',           // rango analytics
     'current-project-filter',    // filtro proyecto

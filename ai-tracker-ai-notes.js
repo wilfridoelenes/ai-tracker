@@ -3096,7 +3096,7 @@ function _runDigestToasts() {
 
   // Emitir hasta _DIGEST_MAX toasts con stagger de 600 ms
   toasts.slice(0, _DIGEST_MAX).forEach((t, i) => {
-    setTimeout(() => showToast(t.msg, t.type, 7000), i * 600);
+    setTimeout(() => showToast(t.type, t.msg, null, 7000), i * 600);
   });
 }
 

@@ -100,7 +100,7 @@
           <!-- Tema y Sync -->
           <button onclick="toggleTheme();toggleMoreMenu()" id="more-menu-theme"><span class="mm-icon">🌙</span> Cambiar tema</button>
           <button onclick="handleSyncPillClick();toggleMoreMenu()"><span class="mm-icon sync-status-dot" id="sync-status-dot">●</span> <span id="sync-status-label">Sync: local</span></button>
-          <button onclick="openFbOnboarding();toggleMoreMenu()"><span class="mm-icon">🔥</span> Configurar sync</button>
+          <!-- B-202605: openFbOnboarding removido — Firebase deprecado, migración a Supabase completa -->
           <!-- R-migración: visible solo cuando Firebase y Supabase están disponibles -->
           <button id="btn-migrate-fb-sb" onclick="openMigrateFirebaseModal();toggleMoreMenu()" class="hidden"><span class="mm-icon">🔄</span> Migrar Firebase → Supabase</button>
           <!-- B-259: Destructivas — separadas con hr explícito -->
@@ -722,95 +722,7 @@
   </div>
 </div>
 
-<div class="fb-onboarding-overlay" id="fb-onboarding-overlay">
-  <div class="fb-wizard">
-    <div class="fb-wizard-header">
-      <div class="fb-wizard-icon">🔥</div>
-      <div>
-        <div class="fb-wizard-title">Configurar sincronización Firebase</div>
-        <div class="fb-wizard-subtitle">Sync cross-browser · opcional</div>
-      </div>
-    </div>
-    <div class="fb-steps">
-      <div class="fb-step-dot active" id="fb-dot-0"></div>
-      <div class="fb-step-dot" id="fb-dot-1"></div>
-      <div class="fb-step-dot" id="fb-dot-2"></div>
-    </div>
-
-    <!-- Paso 1: explicación + parser -->
-    <div class="fb-step-panel active" id="fb-panel-0">
-      <div class="fb-step-desc fb-step-desc-mb">
-        <strong>Opción A: Pegar Config Completa</strong>
-      </div>
-      <textarea 
-        id="fb-config-paste"
-        placeholder="Pega aquí tu firebaseConfig completo:
-const firebaseConfig = {
-  apiKey: 'AIza...',
-  authDomain: 'tu-proyecto.firebaseapp.com',
-  projectId: 'tu-proyecto',
-  storageBucket: 'tu-proyecto.appspot.com',
-  messagingSenderId: '123...',
-  appId: '1:123:web:...'
-};"
-        class="fb-textarea">
-      </textarea>
-      <button class="btn-primary fb-btn-full-mb" onclick="parseFirebaseConfig()">
-        📋 Parsear Config
-      </button>
-      
-      <div class="fb-step-desc fb-separator-hint">
-        O
-      </div>
-      
-      <div class="fb-step-desc fb-step-desc-mb">
-        <strong>Opción B: Conectar con Google</strong>
-      </div>
-      <button class="btn-google fb-btn-full-mb" class="justify-center" onclick="closeFbOnboarding();signInWithGoogle()">
-        <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path></svg>
-        Conectar con Google
-      </button>
-      
-      <div class="fb-actions">
-        <button class="fb-skip" onclick="closeFbOnboarding()">Continuar sin sync</button>
-        <div class="fb-actions-right">
-          <button class="btn-ghost fb-manual-link" onclick="fbWizardStep(1)">Config manual →</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Paso 2: campos de config -->
-    <div class="fb-step-panel" id="fb-panel-1">
-      <div class="fb-step-desc">Pega los valores de tu proyecto Firebase (los encuentras en Configuración del proyecto → Tus apps → SDK).</div>
-      <div class="fb-field"><label>API Key</label><input id="fbo-apiKey" placeholder="AIza..."></div>
-      <div class="fb-field"><label>Auth Domain</label><input id="fbo-authDomain" placeholder="tu-proyecto.firebaseapp.com"></div>
-      <div class="fb-field"><label>Project ID</label><input id="fbo-projectId" placeholder="tu-proyecto-id"></div>
-      <div class="fb-field"><label>Storage Bucket</label><input id="fbo-storageBucket" placeholder="tu-proyecto.appspot.com"></div>
-      <div class="fb-field"><label>Messaging Sender ID</label><input id="fbo-messagingSenderId" placeholder="123456789"></div>
-      <div class="fb-field"><label>App ID</label><input id="fbo-appId" placeholder="1:123:web:abc..."></div>
-      <div class="fb-field"><label>User ID (tu identificador único)</label><input id="fbo-userId" placeholder="alex" value="alex"></div>
-      <div class="fb-actions">
-        <button class="fb-skip" onclick="fbWizardStep(0)">← Atrás</button>
-        <div class="fb-actions-right">
-          <button class="btn-ghost" onclick="closeFbOnboarding()">Cancelar</button>
-          <button class="btn-primary" onclick="fbWizardConfirm()">Guardar y conectar →</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Paso 3: confirmación -->
-    <div class="fb-step-panel" id="fb-panel-2">
-      <div class="fb-step-desc">Configuración guardada en localStorage. La app intentará conectar con Firebase al recargar.</div>
-      <div id="fb-status-msg" class="fb-status-msg"></div>
-      <div class="fb-actions fb-actions-mt">
-        <span></span>
-        <div class="fb-actions-right">
-          <button class="btn-primary" onclick="fbWizardApply()">Recargar y conectar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+<!-- T-202605-491: Firebase wizard removido — Firebase deprecado, Supabase es el provider activo -->
 
 <!-- T-077: Panel lateral proyectos -->
 <div class="proj-panel-overlay" id="proj-panel-overlay" onclick="if(event.target===this)closeProjPanel()">
