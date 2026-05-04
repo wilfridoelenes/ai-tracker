@@ -53,6 +53,10 @@
   --bp-wide:       1920px;   /* monitor estándar */
   --bp-ultrawide:  2560px;   /* monitor ultrawide — max-width de contenido */
   --bp-ipad:       1024px;   /* iPad / tablet landscape */
+
+  /* ── Layout global — altura real del header principal ── */
+  /* .header-inner: 52px + border-bottom 1px = 53px total  */
+  --header-h: 53px;
 }
 
 :root[data-theme="dark"] {
@@ -245,6 +249,7 @@ header {
 }
 .logo-name em { font-style: normal; color: var(--accent); }
 .logo-by { font-size: var(--text-sm); font-weight: 500; color: var(--hint); margin-left: 2px; letter-spacing: 0.01em; }
+.header-logo-img { height: 32px; width: auto; display: block; }
 .header-sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
 
 /* Splash screen Pepe */
@@ -7604,3 +7609,38 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 /* ══ END R-202605-099 ══ */
+
+/* ══ R[tmp:magic-link-auth]: Auth modal — Google + Magic link ══ */
+.modal--auth { max-width: 340px; }
+.auth-modal-desc { font-size: 12px; color: var(--hint); margin: -4px 0 14px; }
+
+.btn-auth-google {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 9px 12px;
+  font-family: var(--font-sans); font-size: 13px; font-weight: 500;
+  color: var(--text); background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: 8px;
+  cursor: pointer; transition: background 0.15s, border-color 0.15s;
+}
+.btn-auth-google:hover { background: var(--surface3, var(--surface2)); border-color: var(--accent); }
+
+.auth-divider {
+  display: flex; align-items: center; gap: 8px;
+  margin: 14px 0; color: var(--hint); font-size: 11px;
+}
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border2);
+}
+
+.auth-btn-email { width: 100%; justify-content: center; }
+
+.auth-sent-state { text-align: center; padding: 8px 0 4px; }
+.auth-sent-icon { font-size: 28px; margin-bottom: 8px; }
+.auth-sent-msg { font-size: 13px; color: var(--text); margin-bottom: 10px; line-height: 1.4; }
+.auth-resend-btn {
+  font-family: var(--font-sans); font-size: 12px; color: var(--accent);
+  background: none; border: none; cursor: pointer; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.auth-resend-btn:hover { opacity: 0.8; }
+/* ══ END R[tmp:magic-link-auth] ══ */
