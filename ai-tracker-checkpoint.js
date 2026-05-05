@@ -180,6 +180,20 @@ async function _offlineQueueFlush() {
         await saveBacklog();
       } else if (entry.type === 'docs') {
         await saveContextDocs();
+      } else if (entry.type === 'plan' && entry.projId) {
+        // R-202605-120: flush plan desde localStorage a Supabase al reconectar
+        const planRaw = localStorage.getItem('ai-tracker-plan-' + entry.projId);
+        if (planRaw && _supabase && _supabaseUser) {
+          const suffix = '-' + entry.projId;
+          const payload = (() => { try { return JSON.parse(planRaw); } catch { return null; } })();
+          if (payload) {
+            const { error: planErr } = await _supabase.from('tracker_docs').upsert(
+              [{ user_id: _supabaseUser.id, key: 'plan' + suffix, value: payload, updated_at: new Date().toISOString() }],
+              { onConflict: 'user_id,key' }
+            );
+            if (planErr) throw planErr;
+          }
+        }
       } else if (entry.type === 'sessions' && entry.projId) {
         const proj = (state.projects || []).find(p => p.id === entry.projId);
         if (proj) await _saveSessions(proj);
@@ -1812,29 +1826,56 @@ async function _loadFromSupabase() {
       console.warn('[AI Tracker] Error cargando backlog desde Supabase:', blErr);
     }
 
-    // ── 6. Hidratar docs vivos si localStorage vacío ─────────────────────
+    // ── 6. Cargar docs vivos (context, htmlmap, plan) — R-202605-120: Supabase es fuente de verdad ─────────────────────
+    // Patrón idéntico al backlog: Supabase gana si es más nuevo o localStorage vacío
     try {
       const projId = _getActiveProjectFilter();
       const suffix = projId ? '-' + projId : '-global';
       const { data: docRows, error: docErr } = await _supabase
         .from('tracker_docs')
-        .select('key, value')
+        .select('key, value, updated_at')
         .eq('user_id', _supabaseUser.id)
-        .in('key', ['context' + suffix, 'htmlmap' + suffix]);
+        .in('key', ['context' + suffix, 'htmlmap' + suffix, 'plan' + suffix]);
       if (docErr) throw docErr;
       if (docRows && docRows.length) {
-        const docMap = Object.fromEntries(docRows.map(r => [r.key, r.value]));
-        const ctx = docMap['context' + suffix];
-        const hm  = docMap['htmlmap'  + suffix];
-        if (ctx) {
-          if (ctx.raw      && !localStorage.getItem(_tplKey('context-raw')))      try { localStorage.setItem(_tplKey('context-raw'),      ctx.raw);      } catch {}
-          if (ctx.sections && !localStorage.getItem(_tplKey('context-sections'))) try { localStorage.setItem(_tplKey('context-sections'), ctx.sections); } catch {}
-          if (ctx.meta     && !localStorage.getItem(_tplKey('context-meta')))     try { localStorage.setItem(_tplKey('context-meta'),     ctx.meta);     } catch {}
-        }
-        if (hm) {
-          if (hm.raw      && !localStorage.getItem(_tplKey('html-map-raw')))      try { localStorage.setItem(_tplKey('html-map-raw'),      hm.raw);      } catch {}
-          if (hm.sections && !localStorage.getItem(_tplKey('html-map-sections'))) try { localStorage.setItem(_tplKey('html-map-sections'), hm.sections); } catch {}
-          if (hm.meta     && !localStorage.getItem(_tplKey('html-map-meta')))     try { localStorage.setItem(_tplKey('html-map-meta'),     hm.meta);     } catch {}
+        const docMap = Object.fromEntries(docRows.map(r => [r.key, r]));
+
+        // Helper: aplica doc remoto si Supabase es más nuevo o local está vacío
+        const _applyDocIfNewer = (remoteRow, localRawKey, applyFn) => {
+          if (!remoteRow || !remoteRow.value) return;
+          const localVal  = localStorage.getItem(_tplKey(localRawKey));
+          const remoteTs  = remoteRow.updated_at ? new Date(remoteRow.updated_at).getTime() : 0;
+          const remoteMeta = remoteRow.value.meta;
+          const localMeta  = (() => { try { return JSON.parse(localStorage.getItem(_tplKey(localRawKey + '-meta')) || '{}'); } catch { return {}; } })();
+          const localTs    = localMeta.importedAt ? new Date(localMeta.importedAt).getTime() : 0;
+          const shouldLoad = !localVal || localTs === 0 || remoteTs > localTs;
+          if (shouldLoad) applyFn(remoteRow.value);
+        };
+
+        // Context
+        _applyDocIfNewer(docMap['context' + suffix], 'context-raw', (ctx) => {
+          if (ctx.raw)      try { localStorage.setItem(_tplKey('context-raw'),      ctx.raw);      } catch {}
+          if (ctx.sections) try { localStorage.setItem(_tplKey('context-sections'), ctx.sections); } catch {}
+          if (ctx.meta)     try { localStorage.setItem(_tplKey('context-meta'),     ctx.meta);     } catch {}
+        });
+
+        // HTML-MAP
+        _applyDocIfNewer(docMap['htmlmap' + suffix], 'html-map-raw', (hm) => {
+          if (hm.raw)      try { localStorage.setItem(_tplKey('html-map-raw'),      hm.raw);      } catch {}
+          if (hm.sections) try { localStorage.setItem(_tplKey('html-map-sections'), hm.sections); } catch {}
+          if (hm.meta)     try { localStorage.setItem(_tplKey('html-map-meta'),     hm.meta);     } catch {}
+        });
+
+        // Plan — R-202605-120: plan persiste en Supabase
+        const planRow = docMap['plan' + suffix];
+        if (planRow && planRow.value && planRow.value.data) {
+          const localPlanRaw = projId ? localStorage.getItem('ai-tracker-plan-' + projId) : null;
+          const remoteTs     = planRow.updated_at ? new Date(planRow.updated_at).getTime() : 0;
+          const localTs      = (() => { try { const p = JSON.parse(localPlanRaw || 'null'); return p && p._savedAt ? p._savedAt : 0; } catch { return 0; } })();
+          if (!localPlanRaw || localTs === 0 || remoteTs > localTs) {
+            const planKey = projId ? 'ai-tracker-plan-' + projId : null;
+            if (planKey) try { localStorage.setItem(planKey, JSON.stringify(planRow.value.data)); } catch {}
+          }
         }
       }
     } catch (docsErr) {

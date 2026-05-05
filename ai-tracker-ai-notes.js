@@ -6809,16 +6809,42 @@ function renderContextInline(text) {
 // Storage key para planes por proyecto
 function _planKey(projId) { return `ai-tracker-plan-${projId}`; }
 
-// Guardar plan para un proyecto — reemplaza el anterior
+// R-202605-120: savePlan — localStorage inmediato + Supabase async (tracker_docs, key plan-{suffix})
+// El objeto plan se envuelve en { data, _savedAt } para comparación de timestamps en _loadFromSupabase
 function savePlan(projId, plan) {
-  try { localStorage.setItem(_planKey(projId), JSON.stringify(plan)); } catch(e) {}
+  // localStorage inmediato
+  const payload = { data: plan, _savedAt: Date.now() };
+  try { localStorage.setItem(_planKey(projId), JSON.stringify(payload)); } catch(e) {}
+
+  // Supabase async — no bloquea el caller
+  if (typeof _supabase !== 'undefined' && _supabase &&
+      typeof _supabaseUser !== 'undefined' && _supabaseUser) {
+    const suffix = '-' + projId;
+    const nowIso = new Date().toISOString();
+    _supabase.from('tracker_docs').upsert(
+      [{ user_id: _supabaseUser.id, key: 'plan' + suffix, value: payload, updated_at: nowIso }],
+      { onConflict: 'user_id,key' }
+    ).then(({ error }) => {
+      if (error) {
+        console.warn('[AI Tracker] savePlan Supabase failed:', error);
+        if (typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'plan', projId });
+      }
+    });
+  }
 }
 
-// Cargar plan de un proyecto
+// R-202605-120: loadPlan — lee desde localStorage (caché)
+// La hidratación desde Supabase ocurre en _loadFromSupabase() paso 6
 function loadPlan(projId) {
   try {
     const raw = localStorage.getItem(_planKey(projId));
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    // Soporte legacy: si el valor es array directo (antes de R-202605-120) — devolver tal cual
+    // Si es el nuevo wrapper { data, _savedAt } — devolver solo data
+    return (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.data !== undefined)
+      ? parsed.data
+      : parsed;
   } catch(e) { return null; }
 }
 

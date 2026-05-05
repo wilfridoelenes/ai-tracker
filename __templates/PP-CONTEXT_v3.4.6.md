@@ -1,14 +1,14 @@
 # CONTEXT — AI Tracker
 # CONTEXT.md
 <!--
-  Versión: v3.3
-  Última actualización: 2026-05-03 00:02 UTC-6
+  Versión: v3.4.6
+  Última actualización: 2026-05-05 04:53 UTC-6
   Reglas generales: nombre archivo + numeración oficial + CHECKPOINT acumulativo
 -->
 
-Versión: v3.3
-Última actualización: 2026-05-03 00:02 UTC-6
-Archivo principal: `AI-Tracker-v3.2.6.html`
+Versión: v3.4.6
+Última actualización: 2026-05-05 04:53 UTC-6
+Archivo principal: `index.html`
 
 ---
 
@@ -16,10 +16,10 @@ Archivo principal: `AI-Tracker-v3.2.6.html`
 
 | Campo | Valor |
 |---|---|
-| Archivo principal | `AI-Tracker-v3.2.6.html` |
-| Sprint activo | S-18 |
-| Sprint cerrado más reciente | S-17 |
-| Contadores | P=227 · T=454 · R=103 · B=207 |
+| Archivo principal | `index.html` |
+| Sprint activo | S-22 |
+| Sprint cerrado más reciente | S-20 |
+| Contadores | P=227 · T=486 · R=119 · B=257 |
 
 
 ---
@@ -31,7 +31,7 @@ Archivo principal: `AI-Tracker-v3.2.6.html`
 | UI | HTML + CSS custom (CSS vars, dark/light theme) |
 | Lógica | Vanilla JS ES6 (sin frameworks, sin build step) |
 | Persistencia | `localStorage` — clave `ai-tracker-v4` + `backlog-items` + `backlog-meta` |
-| Sync | Firebase Firestore (opcional) — SDK vía CDN, modo offline automático |
+| Sync | Supabase (activo)
 
 
 ---
@@ -40,10 +40,10 @@ Archivo principal: `AI-Tracker-v3.2.6.html`
 
 | Proyecto | Estado | Sprints | Sesiones | Ítems |
 |---|---|---|---|---|
-| AI Tracker | active | 20 | 1289 | 509 |
-| Content Manager | active | 3 | 198 | 131 |
-| ASVAB APP | active | 1 | 94 | 28 |
-| Obsidiana Holding | active | 0 | 50 | 10 |
+| AI Tracker | active | 23 | 1766 | 536 |
+| Content Manager | active | 3 | 0 | 131 |
+| ASVAB APP | active | 1 | 0 | 28 |
+| Obsidiana Holding | active | 0 | 0 | 10 |
 
 
 ---
@@ -90,14 +90,22 @@ Keys con sufijo `-{projId}` cuando hay proyecto activo (via `_tplKey(base)`).
 
 ---
 
+
 ## Decisiones técnicas registradas
+
+_Sin decisiones técnicas registradas._
+
 
 _Sin decisiones técnicas registradas en el proyecto activo._
 
 
 ---
 
+
 ## Gaps / pendientes sprint activo
+
+_Sin ítems pendientes en el sprint activo._
+
 
 _Sin ítems pendientes en el sprint activo._
 
@@ -106,6 +114,6 @@ _Sin ítems pendientes en el sprint activo._
 
 ## Notas
 
-Documento generado automáticamente desde AI Tracker vv3.3.
+Documento generado automáticamente desde AI Tracker vv3.4.6.
 Importa este archivo en la siguiente sesión.
 
