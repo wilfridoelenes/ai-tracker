@@ -943,7 +943,7 @@ function _mgShowPreview(docs) {
   const prefix = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
 
   const items = [
-    { key: 'map',     label: 'MAP',          filename: `${prefix}-MAP_${version}.json` },
+    { key: 'map',     label: 'MAP',          filename: `${prefix}-MAP_${version}.md` },
     { key: 'context', label: 'CONTEXT',       filename: `${prefix}-CONTEXT_${version}.md` },
     { key: 'backlog', label: 'BACKLOG',        filename: `${prefix}-BACKLOG_${version}.md` },
     { key: 'review',  label: 'Sprint Review', filename: `${prefix}-SPRINT-REVIEW_${version}.md` },

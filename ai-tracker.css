@@ -7751,3 +7751,29 @@ body.radar-sb-open .tracker-sidebar {
   background: var(--surface2);
 }
 /* ══ END Bloqueo ciego ══ */
+
+/* R-[pendiente-ID]: Separador de zona — ARCHIVO HISTÓRICO
+   Señal visual de frontera entre backlog accionable y archivo read-only.
+   Nova V2.1 · 2026-05-05 */
+
+.arch-zone-divider {
+  height: 14px;
+  background: var(--surface2, rgba(0,0,0,0.04));
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  margin: 8px 0 0;
+}
+
+/* Override margin-top de .arch-historico — el espacio lo maneja .arch-zone-divider */
+.arch-historico {
+  margin-top: 0;
+}
+
+/* Tipografía reforzada — .arch-historico-title */
+#arch-historico .arch-historico-title {
+  letter-spacing: 0.08em;
+  color: var(--hint);
+  font-size: 0.7rem;
+}
+
+/* END R-[pendiente-ID]: Separador de zona */

@@ -4253,6 +4253,130 @@ function renderAnalytics() {
       </div>
     </div>`;
 
+  // ── R-202605-128: Forecast — sprints estimados para vaciar el backlog ──
+  function _buildForecastData() {
+    // Recolectar sprints cerrados con effort_done calculado desde ítems
+    const closedSprintEffort = {};
+
+    (state.projects || []).forEach(p => {
+      try {
+        const raw = localStorage.getItem(`backlog-items-${p.id}`);
+        if (!raw) return;
+        JSON.parse(raw).forEach(item => {
+          if (item.status !== 'done') return;
+          if (!item.sprint) return;
+          const type = (item.code || item.type || '')[0];
+          if (type === 'P') return; // excluir tipo P
+          const e = parseInt(item.effort) || 0;
+          if (!e) return; // excluir sin effort
+          if (!closedSprintEffort[item.sprint]) closedSprintEffort[item.sprint] = 0;
+          closedSprintEffort[item.sprint] += e;
+        });
+      } catch {}
+    });
+
+    // Obtener IDs de sprints cerrados desde state
+    const closedSprintIds = new Set(
+      (state.projects || [])
+        .flatMap(p => (p.sprints || []))
+        .filter(s => s.status === 'closed')
+        .map(s => s.id)
+    );
+
+    // Solo sprints cerrados con effort > 0
+    const closedWithData = Object.entries(closedSprintEffort)
+      .filter(([id, eff]) => closedSprintIds.has(id) && eff > 0)
+      .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }));
+
+    if (closedWithData.length < 2) {
+      return { insufficient: true, closedCount: closedWithData.length };
+    }
+
+    // Últimos 3 sprints cerrados con datos
+    const last3 = closedWithData.slice(-3);
+    const avgVelocity = Math.round(
+      last3.reduce((sum, [, e]) => sum + e, 0) / last3.length
+    );
+
+    // Backlog pendiente: T + R + B con effort, sin sprint cerrado, sin descartado
+    let pendingEffort = 0;
+    (state.projects || []).forEach(p => {
+      try {
+        const raw = localStorage.getItem(`backlog-items-${p.id}`);
+        if (!raw) return;
+        JSON.parse(raw).forEach(item => {
+          if (item.status === 'done' || item.status === 'descartado') return;
+          const type = (item.code || item.type || '')[0];
+          if (type === 'P') return;
+          const e = parseInt(item.effort) || 0;
+          if (!e) return;
+          pendingEffort += e;
+        });
+      } catch {}
+    });
+
+    if (avgVelocity <= 0) return { insufficient: true, closedCount: closedWithData.length };
+
+    const sprintsNeeded = Math.ceil(pendingEffort / avgVelocity);
+
+    return {
+      insufficient: false,
+      avgVelocity,
+      pendingEffort,
+      sprintsNeeded,
+      sprintsUsed: last3.map(([id]) => id),
+      closedCount: closedWithData.length,
+    };
+  }
+
+  const _fcData = _buildForecastData();
+
+  const _forecastHtml = (() => {
+    if (_fcData.insufficient) {
+      const msg = _fcData.closedCount < 2
+        ? `Datos insuficientes para forecast — se necesitan al menos 2 sprints cerrados con effort registrado (actualmente ${_fcData.closedCount || 0})`
+        : 'Datos insuficientes para calcular forecast';
+      return `
+    <div class="fcst-section analytics-section">
+      <div class="analytics-section-header">
+        <div class="analytics-section-title">🔭 Forecast de backlog</div>
+        <div class="analytics-section-sub">Sprints estimados al ritmo actual</div>
+      </div>
+      <div class="fcst-insufficient">${msg}</div>
+    </div>`;
+    }
+
+    const sprintLabel = _fcData.sprintsNeeded === 1 ? 'sprint' : 'sprints';
+    const effortLabel = `${_fcData.pendingEffort} effort pendiente`;
+    const velocityLabel = `ritmo: ${_fcData.avgVelocity} effort / sprint`;
+    const sprintsRef = _fcData.sprintsUsed.join(', ');
+
+    return `
+    <div class="fcst-section analytics-section">
+      <div class="analytics-section-header">
+        <div class="analytics-section-title">🔭 Forecast de backlog</div>
+        <div class="analytics-section-sub">Basado en ${_fcData.sprintsUsed.length} sprint${_fcData.sprintsUsed.length !== 1 ? 's' : ''} cerrado${_fcData.sprintsUsed.length !== 1 ? 's' : ''} · ${sprintsRef}</div>
+      </div>
+      <div class="fcst-main-row">
+        <div class="fcst-number-block">
+          <span class="fcst-number">${_fcData.sprintsNeeded}</span>
+          <span class="fcst-number-unit">${sprintLabel}</span>
+        </div>
+        <div class="fcst-detail-block">
+          <div class="fcst-detail-line">
+            <span class="fcst-detail-label">Backlog pendiente</span>
+            <span class="fcst-detail-val">${effortLabel}</span>
+          </div>
+          <div class="fcst-detail-line">
+            <span class="fcst-detail-label">Velocidad promedio</span>
+            <span class="fcst-detail-val">${velocityLabel}</span>
+          </div>
+          <div class="fcst-hint">A tu ritmo actual, el backlog se vaciaría en ~${_fcData.sprintsNeeded} ${sprintLabel}</div>
+        </div>
+      </div>
+    </div>`;
+  })();
+
   // ── Render principal ──
   const periodLabel = _periodLabel();
   const prevLabel   = _prevPeriodLabel();
@@ -4292,6 +4416,9 @@ function renderAnalytics() {
 
       <!-- T-202605-453: Tiempo promedio pendiente → done -->
       ${_ctHtml}
+
+      <!-- R-202605-128: Forecast de backlog -->
+      ${_forecastHtml}
 
       <!-- Proyecto dominante -->
       <div class="analytics-section">

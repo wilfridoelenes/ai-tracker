@@ -4221,6 +4221,138 @@ body.radar-sb-collapsed #global-footer {
 }
 /* ══ END T-202604-265 ══ */
 
+/* R-202605-127: Burndown por effort — barra segmentada en Sprint Health Panel */
+.sh-burndown {
+  margin: 6px 0 4px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border, rgba(255,255,255,0.07));
+}
+.sh-burndown-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.sh-burndown-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-muted, #5a6380);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+.sh-burndown-count {
+  font-size: 0.73rem;
+  color: var(--text-secondary, #9ba3bf);
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.sh-burndown-count strong {
+  color: var(--text-primary, #e8eaf0);
+  font-weight: 700;
+}
+.sh-burndown-desc-inline {
+  color: rgba(232,85,85,0.75);
+  font-size: 0.68rem;
+}
+/* Badge advertencia — N ítems sin effort */
+.sh-burndown-no-effort {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.63rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(245,158,11,0.12);
+  color: var(--amber, #f59e0b);
+  border: 1px solid rgba(245,158,11,0.3);
+  white-space: nowrap;
+  cursor: default;
+  letter-spacing: 0.01em;
+}
+/* Barra segmentada */
+.sh-burndown-track {
+  display: flex;
+  height: 8px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--bg-card, rgba(255,255,255,0.06));
+  gap: 1px;
+}
+.sh-burndown-seg {
+  height: 100%;
+  width: var(--bd-w, 0%);
+  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0;
+  min-width: 0;
+}
+.sh-burndown-seg:first-child { border-radius: 5px 0 0 5px; }
+.sh-burndown-seg:last-child  { border-radius: 0 5px 5px 0; }
+.sh-burndown-seg:only-child  { border-radius: 5px; }
+/* Segmento done — verde sólido */
+.sh-burndown-seg--done {
+  background: var(--green, #2ecc78);
+}
+/* Segmento scope added — accent con borde punteado simulado via stripes */
+.sh-burndown-seg--scope {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent, #7c6af7) 0px,
+    var(--accent, #7c6af7) 5px,
+    rgba(99,102,241,0.35) 5px,
+    rgba(99,102,241,0.35) 8px
+  );
+}
+/* Segmento pendiente — gris neutro */
+.sh-burndown-seg--pend {
+  background: var(--bg-card, rgba(255,255,255,0.12));
+}
+/* Segmento descartado — rojo tenue al final */
+.sh-burndown-seg--desc {
+  background: rgba(232,85,85,0.28);
+}
+/* Leyenda */
+.sh-burndown-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+.sh-burndown-legend-item {
+  font-size: 0.63rem;
+  color: var(--text-muted, #5a6380);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.sh-burndown-legend-item::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.sh-burndown-legend-item--done::before  { background: var(--green, #2ecc78); }
+.sh-burndown-legend-item--scope::before {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent, #7c6af7) 0px,
+    var(--accent, #7c6af7) 3px,
+    rgba(99,102,241,0.35) 3px,
+    rgba(99,102,241,0.35) 5px
+  );
+}
+.sh-burndown-legend-item--pend::before  { background: var(--bg-card, rgba(255,255,255,0.12)); border: 1px solid var(--border, rgba(255,255,255,0.15)); }
+.sh-burndown-legend-item--desc::before  { background: rgba(232,85,85,0.28); }
+/* END R-202605-127 */
+
 /* R-202605-126: Velocidad por sprint — columna vel/día + encabezado de sección */
 .sh-velocity-section-title {
   font-size: 0.7rem;
@@ -8097,6 +8229,95 @@ body.radar-sb-collapsed #global-footer {
 }
 
 /* ══ END T-202605-453 ══ */
+
+/* ══ R-202605-128: Forecast de backlog ══ */
+.fcst-section { padding: 0; }
+
+.fcst-main-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 16px 20px;
+  background: var(--card-bg, var(--bg2));
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.fcst-number-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 8px 12px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.fcst-number {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.fcst-number-unit {
+  font-size: 11px;
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 3px;
+}
+
+.fcst-detail-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.fcst-detail-line {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.fcst-detail-label {
+  color: var(--hint);
+  flex-shrink: 0;
+}
+
+.fcst-detail-val {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.fcst-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--hint);
+  font-style: italic;
+}
+
+.fcst-insufficient {
+  padding: 14px 20px;
+  font-size: 13px;
+  color: var(--hint);
+  background: var(--card-bg, var(--bg2));
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+@media (max-width: 600px) {
+  .fcst-main-row { flex-direction: column; gap: 12px; }
+  .fcst-number-block { flex-direction: row; gap: 6px; align-items: baseline; min-width: unset; width: 100%; justify-content: flex-start; }
+  .fcst-number { font-size: 26px; }
+}
+/* ══ END R-202605-128 ══ */
 
 /* ══ T-202604-187: Backlog Styles ══ */
     .r-children-list { overflow: hidden; transition: max-height 0.25s ease, opacity 0.2s ease; }
@@ -14841,6 +15062,215 @@ textarea[id^="ta-"]:focus {
 
 /* ── END T-202604-417 · Complementos ── */
 
+/* ══ R-202605-129: Retro enriquecida — paso 3 del modal de cierre de sprint ══ */
+
+/* Panel contenedor */
+.scm-retro3-panel {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  margin-bottom: 16px;
+  overflow: hidden;
+}
+
+/* Header del panel */
+.scm-retro3-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: var(--surface3);
+  border-bottom: 1px solid var(--border);
+}
+.scm-retro3-title {
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: .02em;
+}
+
+/* Botón descargar MD */
+.scm-retro3-dl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  color: var(--text2);
+  font-size: .73rem;
+  cursor: pointer;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.scm-retro3-dl-btn:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+/* Body del panel */
+.scm-retro3-body {
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Fila clave-valor */
+.scm-retro3-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: .78rem;
+}
+.scm-retro3-key {
+  flex-shrink: 0;
+  width: 72px;
+  font-size: .7rem;
+  color: var(--text2);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.scm-retro3-val {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  color: var(--text);
+  font-size: .78rem;
+}
+
+/* Effort inline */
+.scm-retro3-effort-done {
+  font-weight: 700;
+  color: var(--green);
+}
+.scm-retro3-effort-sep {
+  color: var(--text2);
+}
+.scm-retro3-effort-sa {
+  font-size: .72rem;
+  color: var(--amber);
+}
+.scm-retro3-effort-nd {
+  font-size: .72rem;
+  color: var(--red);
+}
+
+/* Porcentaje de entrega */
+.scm-retro3-pct {
+  font-weight: 700;
+  font-size: .78rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.scm-retro3-pct--good { color: var(--green);  background: var(--green-dim); }
+.scm-retro3-pct--warn { color: var(--amber);  background: rgba(245,200,66,.1); }
+.scm-retro3-pct--bad  { color: var(--red);    background: var(--red-dim); }
+
+/* Fila comparativa sprint anterior */
+.scm-retro3-delta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .78rem;
+}
+.scm-retro3-delta-label {
+  flex-shrink: 0;
+  width: 72px;
+  font-size: .7rem;
+  color: var(--text2);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.scm-retro3-delta {
+  font-size: .75rem;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+.scm-retro3-delta--up   { color: var(--green); background: var(--green-dim); }
+.scm-retro3-delta--down { color: var(--red);   background: var(--red-dim); }
+.scm-retro3-delta--flat { color: var(--text2); background: var(--surface3); }
+.scm-retro3-delta--none { color: var(--hint);  background: transparent; font-weight: 400; font-size: .72rem; }
+
+/* Release tags inline */
+.scm-release-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .03em;
+}
+.scm-release-version {
+  background: var(--surface3);
+  color: var(--text);
+  border: 1px solid var(--border2);
+}
+.scm-release-type--major { background: rgba(240,86,106,.15); color: var(--red); }
+.scm-release-type--minor { background: var(--accent-dim);    color: var(--accent); }
+.scm-release-type--patch { background: var(--surface3);      color: var(--text2); }
+
+/* Listas mini de ítems */
+.scm-retro3-list-wrap {
+  border-top: 1px solid var(--border);
+  padding-top: 7px;
+  margin-top: 2px;
+}
+.scm-retro3-list-wrap--disc .scm-retro3-list-label { color: var(--red); }
+.scm-retro3-list-label {
+  display: block;
+  font-size: .7rem;
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 4px;
+  letter-spacing: .03em;
+}
+.scm-retro3-mini-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 120px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.scm-retro3-mini-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .73rem;
+  line-height: 1.4;
+}
+.scm-retro3-mini-title {
+  color: var(--text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Zona de notas en el panel */
+.scm-retro3-notes {
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+}
+
+/* Título de sección movimientos */
+.scm-confirm-movements-title {
+  font-size: .73rem;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin: 12px 0 6px;
+}
+
+/* ══ END R-202605-129 ══ */
+
 /* ══ T-202605-440: CSS — modal--retro · bl-sprint-retro-btn · sprint-action-retro · is-hidden retro overlay ══ */
 
 /* is-hidden: utilitaria de visibilidad para overlay de retro — toggle via classList, sin style.display en JS */
@@ -16951,3 +17381,176 @@ body.body--focus-mode::after {
   color: var(--accent, var(--hint));
 }
 /* END R-[pendiente-ID] */
+
+/* ══ R-[pendiente-ID]: Rediseño visual Col 2 — lista de sesiones ══ */
+
+/* — Separador temporal — */
+.sess-group-sep {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--hint);
+  padding: 10px 8px 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.sess-group-sep::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  opacity: 0.6;
+}
+
+/* — Card base — */
+.sess-row {
+  display: flex;
+  flex-direction: column;
+  padding: 7px 9px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.12s var(--ease-out), border-color 0.12s var(--ease-out);
+  border: 1px solid transparent;
+  border-left: 2px solid transparent;
+  gap: 3px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+}
+
+/* — Estado hover — */
+.sess-row:hover {
+  background: var(--surface2);
+  border-color: var(--border);
+  border-bottom-color: var(--border);
+  border-left-color: transparent;
+}
+
+/* — Estado seleccionada/activa — */
+.sess-row.is-selected,
+.sess-row.active {
+  background: var(--surface2);
+  border-color: var(--border2);
+  border-bottom-color: var(--border2);
+  border-left: 2px solid var(--border2);
+}
+
+/* — Estado sesión EN CURSO — borde izquierdo de acento — */
+.sess-row--in-progress {
+  border-left: 2px solid var(--accent) !important;
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  border-bottom-color: var(--accent-border);
+}
+.sess-row--in-progress:hover {
+  background: var(--accent-dim);
+  filter: brightness(1.06);
+}
+
+/* — Línea 1: título + badge — */
+.sess-row-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.sess-row-title {
+  font-size: var(--text-md);
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+  line-height: 1.3;
+}
+.sess-row--in-progress .sess-row-title {
+  font-weight: 600;
+}
+
+/* — Badge ítems relacionados — */
+.sess-items-badge {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text2);
+  background: var(--surface3);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-pill);
+  padding: 1px 6px;
+  line-height: 1.5;
+  transition: var(--trans-color);
+}
+.sess-row:hover .sess-items-badge {
+  color: var(--text);
+  border-color: var(--border2);
+}
+.sess-row--in-progress .sess-items-badge {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+/* — Línea 2: proyecto + timestamp — */
+.sess-row-bottom {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 16px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+/* — Pill proyecto — */
+.sess-proj-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 90px;
+  flex-shrink: 0;
+  transition: var(--trans-color);
+}
+.sess-row:hover .sess-proj-pill {
+  border-color: var(--border2);
+  color: var(--text);
+}
+
+/* — Separador meta — */
+.sess-meta-sep {
+  font-size: 9px;
+  color: var(--hint);
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+/* — Timestamp relativo — */
+.sess-timestamp {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+/* — Starred compatible — */
+.sess-row-starred {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+.sess-row-starred:hover {
+  background: var(--accent-dim);
+  filter: brightness(1.08);
+}
+
+/* ══ END R-[pendiente-ID] ══ */

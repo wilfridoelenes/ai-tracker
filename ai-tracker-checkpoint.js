@@ -3442,48 +3442,102 @@ function _trackerRenderMiniHist(aiId) {
 
   const projTracker = typeof getActiveTracker === 'function' ? getActiveTracker() : { items: [] };
 
-  listEl.innerHTML = sorted.map(s => {
-    const proj = s.projectId ? (typeof getProjectById === 'function' ? getProjectById(s.projectId) : null) : null;
-    const dateLabel = (typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || '');
-    const isActive = s.id === _trackerHistSelectedSessId;
+  // T-202605-488: helper — timestamp relativo de alta precisión
+  const _sessRelTs = (s) => {
+    const ts = s.updatedAt || s.createdAt || 0;
+    if (!ts) return (typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || '');
+    const diffMs  = Date.now() - ts;
+    const diffMin = Math.floor(diffMs / 60000);
+    const diffH   = Math.floor(diffMs / 3600000);
+    const diffD   = Math.floor(diffMs / 86400000);
+    if (diffMin < 60)  return diffMin <= 1 ? 'ahora' : `hace ${diffMin}min`;
+    if (diffH   < 24)  return `hace ${diffH}h`;
+    if (diffD   === 1) return 'ayer';
+    if (diffD   < 7) {
+      try {
+        return new Date(ts).toLocaleDateString('es', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
+      } catch(_) { return `hace ${diffD}d`; }
+    }
+    try {
+      return new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'short' });
+    } catch(_) { return (typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || ''); }
+  };
 
-    // indicadores de ítems vinculados
+  // T-202605-488: agrupar en Hoy / Esta semana / Anteriores
+  const _nowMs    = Date.now();
+  const _todayKey = new Date().toISOString().slice(0, 10);
+  const _weekAgo  = _nowMs - 7 * 86400000;
+  const _sessGroup = (s) => {
+    const ts = s.updatedAt || s.createdAt || 0;
+    if (!ts) return 'anteriores';
+    const dateKey = new Date(ts).toISOString().slice(0, 10);
+    if (dateKey === _todayKey) return 'hoy';
+    if (ts >= _weekAgo)       return 'semana';
+    return 'anteriores';
+  };
+  const _groupLabel = { hoy: 'Hoy', semana: 'Esta semana', anteriores: 'Anteriores' };
+  const _groupOrder = ['hoy', 'semana', 'anteriores'];
+
+  const _grouped = { hoy: [], semana: [], anteriores: [] };
+  sorted.forEach(s => _grouped[_sessGroup(s)].push(s));
+
+  // sesión en curso — para marcar in-progress
+  const _inProgressSess = (typeof _getCurrentSession === 'function') ? _getCurrentSession(aiId) : null;
+
+  const _renderRow = (s) => {
+    const proj     = s.projectId ? (typeof getProjectById === 'function' ? getProjectById(s.projectId) : null) : null;
+    const isActive = s.id === _trackerHistSelectedSessId;
+    const isInProg = _inProgressSess && s.id === _inProgressSess.id;
+
+    // badge de ítems vinculados — T-202605-488
     const linkedItems = projTracker.items.filter(x => x.sessionId === s.id);
     const badgeHtml = linkedItems.length
-      ? `<span class="tracker-mini-hist-badge">${linkedItems.length}</span>`
+      ? `<span class="sess-items-badge">${linkedItems.length}</span>`
       : '';
 
-    // pill de proyecto
+    // pill de proyecto con nombre — T-202605-488
     const projPill = proj
-      ? `<span class="tracker-mini-hist-proj" title="${esc(proj.name)}">${esc(proj.icon || '📁')}</span>`
+      ? `<span class="sess-proj-pill">${esc(proj.name || proj.icon || '📁')}</span>`
       : '';
 
-    // indicadores rápidos: starred, quickCapture
-    const starInd  = s.starred       ? `<span class="tracker-mini-hist-ind" title="Destacada">⭐</span>` : '';
-    const quickInd = s.quickCapture  ? `<span class="tracker-mini-hist-ind" title="Captura rápida">⚡</span>` : '';
+    // timestamp relativo de alta precisión — T-202605-488
+    const tsHtml = `<span class="sess-timestamp">${_sessRelTs(s)}</span>`;
+
+    // separador meta (·) solo si hay proyecto
+    const metaSep = proj ? `<span class="sess-meta-sep">·</span>` : '';
+
+    // indicadores secundarios (sin cambio)
+    const starInd   = s.starred      ? `<span class="tracker-mini-hist-ind" title="Destacada">⭐</span>` : '';
     const reviewInd = s.inReview     ? `<span class="tracker-mini-hist-ind" title="En revisión">🔍</span>` : '';
 
-    // T-202605-471: pill de tipo de sesión
-    const typePill = s.notes
-      ? `<span class="tracker-mini-hist-type-pill" title="Con resumen">📝</span>`
-      : (s.quickCapture ? '' : `<span class="tracker-mini-hist-type-pill tracker-mini-hist-type-pill--quick" title="Sesión rápida">⚡</span>`);
+    const rowCls = [
+      'tracker-mini-hist-row',
+      'sess-row',
+      isActive  ? 'active'            : '',
+      isInProg  ? 'sess-row--in-progress' : ''
+    ].filter(Boolean).join(' ');
 
-    return `<div class="tracker-mini-hist-row${isActive ? ' active' : ''}"
+    return `<div class="${rowCls}"
         data-sess-id="${s.id}"
         data-ai-id="${s.aiId}"
         onclick="_trackerMiniHistSelect('${s.id}','${s.aiId}')">
-      <div class="tracker-mini-hist-row-top">
-        <span class="tracker-mini-hist-row-title" title="${esc(s.title)}">${esc(s.title)}</span>
-        <span class="tracker-mini-hist-row-date">${dateLabel}</span>
-      </div>
-      <div class="tracker-mini-hist-row-meta">
-        ${projPill}
-        ${starInd}${quickInd}${reviewInd}
-        ${typePill}
+      <div class="sess-row-top">
+        <span class="sess-row-title" title="${esc(s.title)}">${esc(s.title)}</span>
         ${badgeHtml}
       </div>
+      <div class="sess-row-bottom">
+        ${projPill}${metaSep}${tsHtml}
+        ${starInd}${reviewInd}
+      </div>
     </div>`;
-  }).join('');
+  };
+
+  listEl.innerHTML = _groupOrder
+    .filter(g => _grouped[g].length > 0)
+    .map(g =>
+      `<div class="sess-group-sep">${_groupLabel[g]}</div>` +
+      _grouped[g].map(_renderRow).join('')
+    ).join('');
 
   // Auto-seleccionar la sesión más reciente si no hay ninguna seleccionada —
   // Col3 nunca queda vacío al cambiar de IA

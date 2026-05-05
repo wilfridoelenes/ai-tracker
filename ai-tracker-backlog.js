@@ -343,6 +343,9 @@ let _miViewRoleIndex = 0; // índice del rol activo en la rotación
 // T-202604-258: modo Focus — top 10 por score descendente
 let _backlogFocusMode = false;
 
+// R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente
+let _backlogPlanningMode = false;
+
 // T-202604-187: toggle vista árbol (R con hijos colapsables) vs plana
 // B-202604-122: leer desde localStorage para persistir entre recargas
 // T-202604-287: backlog-view-mode extiende a 3 valores: 'true' | 'false' | 'kanban'
@@ -1332,6 +1335,7 @@ function clearAllFilters() {
   backlogSortMode = 'priority'; // T-202604-424: sprint eliminado como opción de sort
   backlogSortDir = 'desc'; // T-072 — default desc
   _backlogFocusMode = false; // T-202604-258
+  _backlogPlanningMode = false; // R-202605-130
   const sortDirBtn = document.getElementById('fbar-sort-dir-btn');
   if (sortDirBtn) sortDirBtn.textContent = '↓';
   const searchEl = document.getElementById('search-global');
@@ -1621,6 +1625,29 @@ function toggleBacklogNoAcMode() {
   renderBacklogList();
 }
 
+// R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente
+function toggleBacklogPlanningMode() {
+  _backlogPlanningMode = !_backlogPlanningMode;
+  // Al activar planning, desactivar otros modos de vista exclusivos
+  if (_backlogPlanningMode) {
+    _backlogKanbanMode = false;
+    _backlogFocusMode = false;
+  }
+  const btn = document.getElementById('fbar-planning-btn');
+  if (btn) {
+    btn.classList.toggle('active', _backlogPlanningMode);
+    btn.title = _backlogPlanningMode
+      ? 'Vista Planificación activa — click para volver al backlog'
+      : 'Vista Planificación — asignar ítems al siguiente sprint';
+  }
+  const kanbanBtn = document.getElementById('fbar-kanban-btn');
+  if (kanbanBtn) kanbanBtn.classList.toggle('active', _backlogKanbanMode);
+  const focusBtn = document.getElementById('fbar-focus-btn');
+  if (focusBtn) focusBtn.classList.toggle('active', _backlogFocusMode);
+  updateClearFilterBtn();
+  renderBacklogList();
+}
+
 // T-202604-187: colapsar/expandir bloque de hijos de un R
 function toggleChildrenBlock(rCode) {
   if (_collapsedChildren.has(rCode)) {
@@ -1798,6 +1825,25 @@ function _buildSprintHealthPanel() {
                                   .reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
   const pctEffort    = totalEffort > 0 ? Math.round((doneEffort / totalEffort) * 100) : 0;
 
+  // R-202605-127: burndown por effort — segmentos: done · scope added · descartado · pendiente
+  // Ítems descartados del sprint (excluidos del sprintItems normal — query separada)
+  const _allSprintItems   = ITEMS.filter(i => i.sprint === displaySprint.id);
+  const _descartedItems   = _allSprintItems.filter(i => i.status === 'descartado');
+  const descartedEffort   = _descartedItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+  // Effort scope added (subconjunto de pendiente)
+  const _scopeAddedPend   = sprintItems.filter(i => i.scope_added && i.status !== 'done');
+  const scopeAddedEffortPend = _scopeAddedPend.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+  // Pendiente puro (sin contar done)
+  const pendEffort        = totalEffort - doneEffort;
+  // Total incluyendo descartados para barra
+  const totalEffortFull   = totalEffort + descartedEffort;
+  // Ítems sin effort (excluye P e históricos) — badge de advertencia AC-7
+  const noEffortItems     = _allSprintItems.filter(i =>
+    i.status !== 'historico' &&
+    itemType(i.code) !== 'P' &&
+    !i.effort
+  ).length;
+
   // Días transcurridos desde creación del sprint
   const createdAt    = displaySprint.createdAt || null;
   const daysElapsed  = createdAt ? Math.floor((Date.now() - createdAt) / 86400000) : null;
@@ -1815,6 +1861,37 @@ function _buildSprintHealthPanel() {
   const _sprintStatusBadge = _isOpenFallback
     ? ' <span class="sh-sprint-status-badge sh-sprint-status-badge--open">abierto</span>'
     : ' <span class="sh-sprint-status-badge sh-sprint-status-badge--active">★</span>';
+
+  // R-202605-127: burndown effort — barra segmentada + número + badge sin effort
+  const _bTotal = totalEffortFull > 0 ? totalEffortFull : 1; // evitar /0
+  const _pDone      = Math.round((doneEffort / _bTotal) * 100);
+  const _pDescarted = Math.round((descartedEffort / _bTotal) * 100);
+  const _pScopeAdd  = totalEffort > 0 ? Math.round((scopeAddedEffortPend / _bTotal) * 100) : 0;
+  // pendiente puro = lo que queda fuera de done y scope added (ambos ya en barra)
+  const _pPend      = Math.max(0, 100 - _pDone - _pDescarted - _pScopeAdd);
+
+  const _noEffortBadge = noEffortItems > 0
+    ? `<span class="sh-burndown-no-effort" title="${noEffortItems} ítem${noEffortItems !== 1 ? 's' : ''} sin effort — burndown incompleto">⚠ ${noEffortItems} sin effort</span>`
+    : '';
+
+  const burndownHtml = `<div class="sh-burndown">
+    <div class="sh-burndown-header">
+      <span class="sh-burndown-label">Burndown effort</span>
+      <span class="sh-burndown-count"><strong>${doneEffort}</strong> de ${totalEffort} effort completado${descartedEffort > 0 ? ` · <span class="sh-burndown-desc-inline">${descartedEffort} desc.</span>` : ''}${_noEffortBadge}</span>
+    </div>
+    <div class="sh-burndown-track" title="${doneEffort} done · ${pendEffort} pendiente${scopeAddedEffortPend > 0 ? ' · ' + scopeAddedEffortPend + ' scope added' : ''}${descartedEffort > 0 ? ' · ' + descartedEffort + ' descartado' : ''}">
+      <div class="sh-burndown-seg sh-burndown-seg--done"    style="--bd-w:${_pDone}%"></div>
+      <div class="sh-burndown-seg sh-burndown-seg--scope"   style="--bd-w:${_pScopeAdd}%"></div>
+      <div class="sh-burndown-seg sh-burndown-seg--pend"    style="--bd-w:${_pPend}%"></div>
+      <div class="sh-burndown-seg sh-burndown-seg--desc"    style="--bd-w:${_pDescarted}%"></div>
+    </div>
+    <div class="sh-burndown-legend">
+      <span class="sh-burndown-legend-item sh-burndown-legend-item--done">done</span>
+      ${scopeAddedEffortPend > 0 ? '<span class="sh-burndown-legend-item sh-burndown-legend-item--scope">scope added</span>' : ''}
+      <span class="sh-burndown-legend-item sh-burndown-legend-item--pend">pendiente</span>
+      ${descartedEffort > 0 ? '<span class="sh-burndown-legend-item sh-burndown-legend-item--desc">descartado</span>' : ''}
+    </div>
+  </div>`;
 
   // R-202605-123: goal del sprint — mostrar o hint de edición si vacío
   const sprintGoal = displaySprint.goal ? displaySprint.goal.trim() : '';
@@ -1896,6 +1973,8 @@ function _buildSprintHealthPanel() {
     </div>
     <div id="sprint-health-body" class="${isOpen ? 'sh-body' : 'sh-body hidden'}">
       ${goalHtml}
+      <!-- R-202605-127: burndown por effort -->
+      ${burndownHtml}
       <div class="sh-grid">
         <!-- Ítems -->
         <div class="sh-col sh-col--border">
@@ -2195,8 +2274,214 @@ function _renderSprintRoadmap() {
 
 // alias legacy — roadmapGoToSprint sigue funcionando igual
 
+// R-202605-130: vista Planificación — layout dos columnas con drag & drop
+function _renderPlanningView(listEl) {
+  const activeSprint = _getActiveSprint();
+  const allSprints   = getActiveSprints();
+  // Determinar sprint destino: siguiente abierto no activo, o null si no hay
+  const openSprints  = allSprints.filter(s => s.status === 'open' || s.status === 'active');
+  // Sprint destino = primer sprint open (no active), o activo si no hay otro
+  const targetSprint = allSprints.find(s => s.status === 'open' && s.id !== (activeSprint && activeSprint.id))
+                    || activeSprint
+                    || null;
 
-function renderBacklogList() {
+  // Columna izquierda: ítems pendientes sin sprint (no done, no descartado, no historico)
+  const unassigned = ITEMS.filter(i =>
+    !i.sprint &&
+    i.status !== 'done' &&
+    i.status !== 'descartado' &&
+    i.status !== 'historico'
+  ).sort((a, b) => {
+    const prioOrder = { high: 0, medium: 1, low: 2 };
+    const pa = prioOrder[a.priority] ?? 1;
+    const pb = prioOrder[b.priority] ?? 1;
+    if (pa !== pb) return pa - pb;
+    return (parseInt(b.effort) || 1) - (parseInt(a.effort) || 1);
+  });
+
+  // Columna derecha: ítems ya en el sprint destino (pendientes)
+  const inTarget = targetSprint
+    ? ITEMS.filter(i =>
+        i.sprint === targetSprint.id &&
+        i.status !== 'done' &&
+        i.status !== 'descartado' &&
+        i.status !== 'historico'
+      )
+    : [];
+
+  // Calcular effort acumulado en sprint destino
+  const targetEffort = inTarget.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+
+  // Velocidad promedio — AC-6/AC-7: _calcEstimatedVelocity disponible
+  const velocityData  = _calcEstimatedVelocity();
+  const velocityAvg   = velocityData ? velocityData.avg : null;
+  const isOverloaded  = velocityAvg !== null && targetEffort > velocityAvg * 1.3;
+  const pct           = velocityAvg !== null && velocityAvg > 0
+    ? Math.min(Math.round((targetEffort / velocityAvg) * 100), 999)
+    : null;
+
+  // Barra de esfuerzo acumulado
+  const effortBarWidth = velocityAvg
+    ? Math.min((targetEffort / (velocityAvg * 1.3)) * 100, 100)
+    : 0;
+
+  // Meter HTML
+  const meterHtml = velocityAvg !== null ? `
+    <div class="bl-plan-meter">
+      <div class="bl-plan-meter-bar">
+        <div class="bl-plan-meter-fill ${isOverloaded ? 'bl-plan-meter-fill--over' : ''}"
+             style="--plan-meter-pct: ${effortBarWidth}%"></div>
+        <div class="bl-plan-meter-threshold" title="Velocidad promedio (${velocityAvg} effort)"></div>
+      </div>
+      <span class="bl-plan-meter-label ${isOverloaded ? 'bl-plan-meter-label--over' : ''}">
+        ${targetEffort} / ${velocityAvg} effort${pct !== null ? ` (${pct}%)` : ''}
+        ${isOverloaded ? ' · ⚠ Sobrecarga' : ''}
+      </span>
+    </div>` : `
+    <div class="bl-plan-meter">
+      <span class="bl-plan-meter-label">Effort acumulado: <strong>${targetEffort}</strong> — sin velocidad histórica</span>
+    </div>`;
+
+  // Helper: card compacta de ítem
+  function _planCard(item, draggable, col) {
+    const type  = itemType(item.code) || '';
+    const typeColors = { T: '#2ecc78', R: '#38bdf8', B: '#e85555', P: '#7c6af7' };
+    const tc    = typeColors[type] || 'var(--hint)';
+    const eff   = parseInt(item.effort) || 1;
+    const dots  = Array.from({length: 3}, (_, i) =>
+      `<span class="bl-plan-dot${i < eff ? ' on' : ''}"></span>`).join('');
+    const prioClass = item.priority === 'high' ? 'bl-plan-prio--high' : item.priority === 'low' ? 'bl-plan-prio--low' : '';
+    return `<div class="bl-plan-card${draggable ? ' bl-plan-card--draggable' : ''}"
+         draggable="${draggable ? 'true' : 'false'}"
+         data-code="${esc(item.code)}"
+         data-col="${col}"
+         ondragstart="_planDragStart(event)"
+         ondragend="_planDragEnd(event)">
+      <div class="bl-plan-card-header">
+        <span class="bl-plan-card-type" style="color:${tc}">${type}</span>
+        <span class="bl-plan-card-code">${esc(item.code)}</span>
+        ${prioClass ? `<span class="bl-plan-card-prio ${prioClass}">${item.priority === 'high' ? '↑' : '↓'}</span>` : ''}
+        <span class="bl-plan-dots">${dots}</span>
+      </div>
+      <div class="bl-plan-card-title">${esc(item.title || item.desc || '')}</div>
+    </div>`;
+  }
+
+  // Construir columnas
+  const leftCards  = unassigned.map(i => _planCard(i, true, 'left')).join('') ||
+    `<div class="bl-plan-empty">Sin ítems sin sprint</div>`;
+  const rightCards = inTarget.map(i => _planCard(i, false, 'right')).join('') ||
+    `<div class="bl-plan-empty">Sprint vacío — arrastra ítems aquí</div>`;
+
+  const targetLabel = targetSprint ? (targetSprint.label || targetSprint.id) : 'Sin sprint destino';
+
+  listEl.innerHTML = `
+    <div class="bl-planning-view" id="bl-planning-view">
+      <div class="bl-plan-header">
+        <div class="bl-plan-header-title">
+          <span class="bl-plan-header-icon">📋</span>
+          Planificación
+        </div>
+        <button class="bl-plan-close-btn" onclick="toggleBacklogPlanningMode()" title="Volver al backlog">✕ Cerrar planificación</button>
+      </div>
+
+      <div class="bl-plan-columns">
+        <!-- Columna izquierda: sin sprint -->
+        <div class="bl-plan-col bl-plan-col--left"
+             id="bl-plan-col-left"
+             ondragover="_planDragOver(event)"
+             ondragleave="_planDragLeave(event)"
+             ondrop="_planDrop(event,'left')">
+          <div class="bl-plan-col-header">
+            <span class="bl-plan-col-title">Sin sprint</span>
+            <span class="bl-plan-col-count">${unassigned.length} ítems</span>
+          </div>
+          <div class="bl-plan-col-body" id="bl-plan-left-body">
+            ${leftCards}
+          </div>
+        </div>
+
+        <!-- Separador -->
+        <div class="bl-plan-sep">
+          <div class="bl-plan-sep-arrow">→</div>
+        </div>
+
+        <!-- Columna derecha: sprint destino -->
+        <div class="bl-plan-col bl-plan-col--right ${!targetSprint ? 'bl-plan-col--disabled' : ''}"
+             id="bl-plan-col-right"
+             ondragover="_planDragOver(event)"
+             ondragleave="_planDragLeave(event)"
+             ondrop="_planDrop(event,'right')">
+          <div class="bl-plan-col-header">
+            <span class="bl-plan-col-title">${esc(targetLabel)}</span>
+            <span class="bl-plan-col-count">${inTarget.length} ítems</span>
+          </div>
+          ${meterHtml}
+          <div class="bl-plan-col-body" id="bl-plan-right-body">
+            ${rightCards}
+          </div>
+        </div>
+      </div>
+
+      ${!targetSprint ? '<div class="bl-plan-no-sprint">No hay sprint destino disponible. Crea un sprint para empezar a planificar.</div>' : ''}
+    </div>`;
+}
+
+// R-202605-130: drag & drop handlers para vista planificación
+let _planDragCode = null;
+
+function _planDragStart(e) {
+  const card = e.currentTarget;
+  _planDragCode = card.dataset.code;
+  card.classList.add('bl-plan-card--dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function _planDragEnd(e) {
+  e.currentTarget.classList.remove('bl-plan-card--dragging');
+  document.querySelectorAll('.bl-plan-col').forEach(c => c.classList.remove('bl-plan-col--over'));
+  _planDragCode = null;
+}
+
+function _planDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const col = e.currentTarget;
+  col.classList.add('bl-plan-col--over');
+}
+
+function _planDragLeave(e) {
+  e.currentTarget.classList.remove('bl-plan-col--over');
+}
+
+function _planDrop(e, targetCol) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('bl-plan-col--over');
+  if (!_planDragCode) return;
+
+  const item = ITEMS.find(i => i.code === _planDragCode);
+  if (!item) return;
+
+  if (targetCol === 'right') {
+    // Asignar al sprint destino
+    const allSprints  = getActiveSprints();
+    const activeSprint = _getActiveSprint();
+    const targetSprint = allSprints.find(s => s.status === 'open' && s.id !== (activeSprint && activeSprint.id))
+                      || activeSprint
+                      || null;
+    if (!targetSprint) return;
+    if (item.sprint === targetSprint.id) return; // ya está asignado
+    setItemSprint(item.code, targetSprint.id);
+    // setItemSprint llama renderBacklogList() → dispatch a _renderPlanningView automático
+  } else if (targetCol === 'left') {
+    // Desasignar del sprint (solo si venía de la derecha)
+    if (!item.sprint) return;
+    setItemSprint(item.code, '');
+    // setItemSprint llama renderBacklogList() → dispatch a _renderPlanningView automático
+  }
+}
+
+
   const listEl = document.getElementById('backlog-list');
   _skelShow(listEl, 5);
   const q = backlogSearchQuery;
@@ -2235,11 +2520,25 @@ function renderBacklogList() {
         mikeBtn.textContent = _backlogMikeMode ? _getMiViewLabel() : 'Mi vista';
       }
     }
+    // R-202605-130: inyectar botón Planificación si no existe aún
+    const viewsDiv = document.querySelector('.bl-toolbar-views');
+    if (viewsDiv && !document.getElementById('fbar-planning-btn')) {
+      const planningBtn = document.createElement('button');
+      planningBtn.className = 'bl-toolbar-view-btn';
+      planningBtn.id = 'fbar-planning-btn';
+      planningBtn.title = 'Vista Planificación — asignar ítems al siguiente sprint';
+      planningBtn.textContent = '📅 Planificar';
+      planningBtn.onclick = toggleBacklogPlanningMode;
+      viewsDiv.appendChild(planningBtn);
+    }
     // Sin AC y bloqueados
     const noAcBtn = document.getElementById('fbar-no-ac-btn');
     if (noAcBtn) noAcBtn.classList.toggle('active', _backlogNoAcMode);
     const blockerBtn = document.getElementById('fbar-blocker-btn');
     if (blockerBtn) blockerBtn.classList.toggle('active', _backlogBlockerFilter);
+    // R-202605-130: botón planificación (inyectado via JS)
+    const planBtn = document.getElementById('fbar-planning-btn');
+    if (planBtn) planBtn.classList.toggle('active', _backlogPlanningMode);
   })();
 
   // Guard: backlog requiere proyecto activo
@@ -2275,6 +2574,14 @@ function renderBacklogList() {
         <div class="empty-state-title">Backlog vacío</div>
         <div class="empty-state-hint">El Backlog se actualiza automáticamente vía CHECKPOINT.</div>
       </div>`;
+    _skelHide(listEl);
+    return;
+  }
+
+  // R-202605-130: desviar a vista Planificación si está activa
+  if (_backlogPlanningMode) {
+    _renderPlanningView(listEl);
+    _updateDocLogCount('backlog');
     _skelHide(listEl);
     return;
   }
@@ -2863,6 +3170,9 @@ function renderArchivoHistorico(listEl) {
          id="arch-historico-body" role="region" aria-label="Archivo histórico">
     </div>`;
 
+  const zoneDivider = document.createElement('div');
+  zoneDivider.className = 'arch-zone-divider';
+  listEl.appendChild(zoneDivider);
   listEl.appendChild(section);
 
   if (isOpen) {
@@ -3132,7 +3442,7 @@ function _renderKanban(listEl) {
     let roleOk = true;
     if (activeRoleFilter === '__none__') roleOk = !i.role || !i.role.trim();
     else if (activeRoleFilter !== null) roleOk = (i.role || '').trim() === activeRoleFilter;
-    return typeOk && effortOk && roleOk;
+    return typeOk && effortOk && roleOk && i.status !== 'historico'; // B-202605-266
   });
   if (q) {
     allFiltered = allFiltered.filter(i =>
@@ -5202,6 +5512,8 @@ function createSprint(raw, goal, versionTarget, releaseType) {
 
 // T-202604-262: generar MD de retrospectiva del sprint cerrado
 // T-202604-417: acepta parámetro notes (string) para notas manuales editadas antes de confirmar
+// R-202605-129: generar MD de retrospectiva enriquecida del sprint
+// T-202604-417: acepta parámetro notes (string) para notas manuales editadas antes de confirmar
 function _generateSprintRetroMd(id, notes) {
   const sp = _getSprintById(id);
   const sprintLabel = sp ? (sp.label || sp.id) : id;
@@ -5293,6 +5605,28 @@ function _generateSprintRetroMd(id, notes) {
 
   const pfx = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
 
+  // R-202605-129: comparativa sprint anterior para el MD
+  const prevMd = (() => {
+    if (typeof getActiveSprints !== 'function') return null;
+    const closed = getActiveSprints()
+      .filter(s => s.status === 'closed' && s.deliveryMetrics && s.id !== id)
+      .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
+    const prev = closed[0];
+    if (!prev) return null;
+    const dm = prev.deliveryMetrics;
+    const prevDn   = dm.effortDone    || 0;
+    const prevDnom = (dm.effortPlanned || 0) + (dm.effortScopeAdded || 0);
+    const prevPct  = prevDnom > 0 ? Math.round(prevDn / prevDnom * 100) : 0;
+    const delta    = pctEffort - prevPct;
+    return { label: prev.label || prev.id, prevPct, pctDel: pctEffort, delta, sign: delta > 0 ? '+' : '' };
+  })();
+
+  // R-202605-129: sección de descartados en el MD
+  const discardedMdItems = sprintItems.filter(i => i.status === 'descartado');
+  const discardedMdSection = discardedMdItems.length
+    ? `## 🗑 Descartados (${discardedMdItems.length})\n\n| Código | Título | Effort |\n|--------|--------|--------|\n${discardedMdItems.map(_itemRow).join('\n')}\n`
+    : '';
+
   return `# ${pfx}-Retrospectiva-${id}-${closedStr}.md
 <!-- Sprint: ${sprintLabel} | Cerrado: ${closedStr} | Generado: ${dateStr} -->
 
@@ -5322,6 +5656,7 @@ ${daysElapsed !== null ? `| Duración | ${daysElapsed} día${daysElapsed !== 1 ?
 | Effort total estimado | ${totalEffort} |
 | Effort completado | ${doneEffort} (${pctEffort}%) |
 | Effort pendiente | ${pendEffort} |
+${prevMd ? `| Vs sprint anterior | ${prevMd.label}: ${prevMd.prevPct}% effort → este sprint ${prevMd.pctDel}% (${prevMd.sign}${prevMd.delta}%) |` : '| Vs sprint anterior | Primer sprint con datos completos |'}
 
 ---
 
@@ -5331,7 +5666,7 @@ ${doneSection}
 ${pendSection}
 ---
 
-${scopeAddedRetroSection ? scopeAddedRetroSection + '\n---\n\n' : ''}${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por AI Tracker ${(typeof _effectiveVersion === 'function') ? _effectiveVersion() : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '')} · ${dateStr}_
+${discardedMdSection ? discardedMdSection + '\n---\n\n' : ''}${scopeAddedRetroSection ? scopeAddedRetroSection + '\n---\n\n' : ''}${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por AI Tracker ${(typeof _effectiveVersion === 'function') ? _effectiveVersion() : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '')} · ${dateStr}_
 `;
 }
 
@@ -5931,8 +6266,9 @@ function _scmStep2Html(pendingItems, migrations, currentId) {
   `;
 }
 
+// R-202605-129: Retro automática enriquecida al cerrar sprint — Paso 3 del modal
 function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
-  const doneCount = doneItems.filter(i => i.status === 'done').length;
+  const doneCount      = doneItems.filter(i => i.status === 'done').length;
   const discardedCount = doneItems.filter(i => i.status === 'descartado').length;
 
   // agrupar pendientes por destino
@@ -5950,22 +6286,142 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
 
   const spLabel = id => { const s = _getSprintById(id); return s ? (s.label || s.id) : id; };
 
-  let html = `<div class="scm-confirm-intro">Revisa las decisiones antes de cerrar el sprint. Esta acción no se puede deshacer.</div>`;
+  // ── R-202605-129: datos para retro enriquecida ──
+  const st    = _scmState || {};
+  const spObj = _getSprintById(st.id || '');
+
+  const goal          = spObj && spObj.goal          ? spObj.goal          : '';
+  const versionTarget = spObj && spObj.version_target ? spObj.version_target : '';
+  const releaseType   = spObj && spObj.release_type   ? spObj.release_type   : '';
+
+  const effortPl  = st.effortPlanned    || 0;
+  const effortDn  = st.effortDone       || 0;
+  const effortSA  = st.effortScopeAdded || 0;
+  const effortND  = st.effortNotDone    || 0;
+  const denomPct  = effortPl + effortSA;
+  const pctDel    = denomPct > 0 ? Math.round(effortDn / denomPct * 100) : 0;
+  const pctCls    = pctDel >= 70 ? 'scm-retro3-pct--good' : pctDel >= 40 ? 'scm-retro3-pct--warn' : 'scm-retro3-pct--bad';
+
+  // Comparativa sprint anterior — último cerrado con deliveryMetrics
+  const _prevSp = (() => {
+    const closed = getActiveSprints()
+      .filter(s => s.status === 'closed' && s.deliveryMetrics && s.id !== (st.id || ''))
+      .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
+    return closed[0] || null;
+  })();
+
+  let deltaHtml;
+  if (_prevSp) {
+    const dm       = _prevSp.deliveryMetrics;
+    const prevDn   = dm.effortDone       || 0;
+    const prevDnom = (dm.effortPlanned   || 0) + (dm.effortScopeAdded || 0);
+    const prevPct  = prevDnom > 0 ? Math.round(prevDn / prevDnom * 100) : 0;
+    const delta    = pctDel - prevPct;
+    const sign     = delta > 0 ? '+' : '';
+    const dCls     = delta > 0 ? 'scm-retro3-delta--up' : delta < 0 ? 'scm-retro3-delta--down' : 'scm-retro3-delta--flat';
+    const dIcon    = delta > 0 ? '▲' : delta < 0 ? '▼' : '→';
+    deltaHtml = `<div class="scm-retro3-delta-row">
+      <span class="scm-retro3-delta-label">vs ${esc(_prevSp.label || _prevSp.id)}</span>
+      <span class="scm-retro3-delta ${dCls}">${dIcon} ${sign}${delta}% · prev ${prevPct}% (${prevDn} effort)</span>
+    </div>`;
+  } else {
+    deltaHtml = `<div class="scm-retro3-delta-row">
+      <span class="scm-retro3-delta-label">Comparativa</span>
+      <span class="scm-retro3-delta scm-retro3-delta--none">Primer sprint con datos completos</span>
+    </div>`;
+  }
+
+  // Listas compactas de ítems para la retro preview
+  const _miniRow = i =>
+    `<div class="scm-retro3-mini-row">
+       <span class="scm-item-code">${esc(i.code)}</span>
+       <span class="scm-retro3-mini-title">${esc(i.title || i.desc || '—')}</span>
+     </div>`;
+
+  const completadosMini  = doneItems.filter(i => i.status === 'done').map(_miniRow).join('');
+  const migradosMini     = [...toSprint, ...toUnassign].map(_miniRow).join('');
+  const descartadosMini  = [...doneItems.filter(i => i.status === 'descartado'), ...toDiscard].map(_miniRow).join('');
+
+  // release type badge
+  const rtBadge = releaseType
+    ? `<span class="scm-release-tag scm-release-type scm-release-type--${releaseType.toLowerCase()}">${esc(releaseType)}</span>`
+    : '';
+  const vtHtml = versionTarget
+    ? `<span class="scm-release-tag scm-release-version">${esc(versionTarget)}</span> ${rtBadge}`
+    : rtBadge;
+
+  // Bloque retro preview (visible antes de confirmar)
+  const retroPreview = `
+    <div class="scm-retro3-panel">
+      <div class="scm-retro3-header">
+        <span class="scm-retro3-title">📄 Retrospectiva del sprint</span>
+        <button class="scm-retro3-dl-btn" type="button"
+          onclick="(function(){
+            const ta = document.getElementById('scm-retro-notes-ta');
+            const notes = ta ? ta.value : '';
+            if (_scmState) _scmState.retroNotes = notes;
+            const md = _generateSprintRetroMd('${esc(st.id || '')}', notes);
+            const now = new Date();
+            const pad = n => String(n).padStart(2,'0');
+            const ds = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
+            const pfx = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+            const fname = pfx+'-Retrospectiva-${esc(st.id || '')}-'+ds+'.md';
+            const blob = new Blob([md], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url; a.download = fname; a.click();
+            URL.revokeObjectURL(url);
+            if (typeof showToast === 'function') showToast('download', 'Retro descargada', fname);
+          })()">⬇ Descargar MD</button>
+      </div>
+      <div class="scm-retro3-body">
+        ${goal ? `<div class="scm-retro3-row"><span class="scm-retro3-key">Goal</span><span class="scm-retro3-val">${esc(goal)}</span></div>` : ''}
+        ${(versionTarget || releaseType) ? `<div class="scm-retro3-row"><span class="scm-retro3-key">Release</span><span class="scm-retro3-val">${vtHtml}</span></div>` : ''}
+        <div class="scm-retro3-row">
+          <span class="scm-retro3-key">Effort</span>
+          <span class="scm-retro3-val">
+            <span class="scm-retro3-effort-done">${effortDn}</span>
+            <span class="scm-retro3-effort-sep"> / ${effortPl} plan.</span>
+            ${effortSA > 0 ? `<span class="scm-retro3-effort-sa"> +${effortSA} scope added</span>` : ''}
+            <span class="scm-retro3-pct ${pctCls}"> ${pctDel}%</span>
+            ${effortND > 0 ? `<span class="scm-retro3-effort-nd"> · ${effortND} no ent.</span>` : ''}
+          </span>
+        </div>
+        ${deltaHtml}
+        ${completadosMini  ? `<div class="scm-retro3-list-wrap"><span class="scm-retro3-list-label">✅ Completados (${doneCount})</span><div class="scm-retro3-mini-list">${completadosMini}</div></div>` : ''}
+        ${migradosMini     ? `<div class="scm-retro3-list-wrap"><span class="scm-retro3-list-label">⏭ Migrados (${toSprint.length + toUnassign.length})</span><div class="scm-retro3-mini-list">${migradosMini}</div></div>` : ''}
+        ${descartadosMini  ? `<div class="scm-retro3-list-wrap scm-retro3-list-wrap--disc"><span class="scm-retro3-list-label">🗑 Descartados (${discardedCount + toDiscard.length})</span><div class="scm-retro3-mini-list">${descartadosMini}</div></div>` : ''}
+      </div>
+      <div class="scm-retro3-notes">
+        <div class="scm-retro-notes-label">📝 Notas <span class="scm-retro-notes-hint">(opcional — se guardan con el sprint)</span></div>
+        <textarea
+          class="scm-retro-notes-ta"
+          id="scm-retro-notes-ta"
+          rows="3"
+          placeholder="¿Qué salió bien? ¿Qué mejorar? ¿Algún aprendizaje para el próximo sprint?"
+          oninput="if (_scmState) _scmState.retroNotes = this.value"
+        >${esc(st.retroNotes || '')}</textarea>
+      </div>
+    </div>`;
+
+  // ── Confirmación de movimientos ──
+  let html = `<div class="scm-confirm-intro">Revisa la retro y los movimientos. <strong>Esta acción no se puede deshacer.</strong></div>`;
+  html += retroPreview;
+  html += `<div class="scm-confirm-movements-title">Movimientos de ítems</div>`;
 
   if (doneCount) html += `
     <div class="scm-confirm-group">
       <div class="scm-confirm-group-title">Completados (${doneCount}) → histórico</div>
-      ${doneItems.filter(i=>i.status==='done').map(i => itemRow(i, 'histórico', '')).join('')}
+      ${doneItems.filter(i => i.status === 'done').map(i => itemRow(i, 'histórico', '')).join('')}
     </div>`;
 
   if (discardedCount) html += `
     <div class="scm-confirm-group">
       <div class="scm-confirm-group-title">Descartados (${discardedCount}) → histórico</div>
-      ${doneItems.filter(i=>i.status==='descartado').map(i => itemRow(i, 'histórico', '')).join('')}
+      ${doneItems.filter(i => i.status === 'descartado').map(i => itemRow(i, 'histórico', '')).join('')}
     </div>`;
 
   if (!skipStep2) {
-    // group by destination sprint
     const byDest = {};
     toSprint.forEach(i => {
       const d = migrations[i.code];
@@ -5993,30 +6449,14 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
   }
 
   if (!doneCount && !discardedCount && pendingItems.length === 0) {
-    html += '<div style="color:var(--text2);font-size:.83rem">Sprint sin ítems — se cerrará como vacío.</div>';
+    html += '<div class="scm-empty-hint">Sprint sin ítems — se cerrará como vacío.</div>';
   }
 
   html += `
     <div class="scm-backup-hint">
       💾 Backup opcional:
       <button class="scm-docgen-btn" onclick="exportFullHistoryMd()" type="button">Descargar historial completo</button>
-    </div>
-  `;
-
-  // T-202604-417: campo de notas editable para la retrospectiva
-  const currentNotes = _scmState ? (_scmState.retroNotes || '') : '';
-  html += `
-    <div class="scm-retro-notes-block">
-      <div class="scm-retro-notes-label">📝 Notas de retrospectiva <span class="scm-retro-notes-hint">(opcional — se guardan con el sprint)</span></div>
-      <textarea
-        class="scm-retro-notes-ta"
-        id="scm-retro-notes-ta"
-        rows="4"
-        placeholder="¿Qué salió bien? ¿Qué mejorar? ¿Algún aprendizaje para el próximo sprint?"
-        oninput="if(_scmState)_scmState.retroNotes=this.value"
-      >${esc(currentNotes)}</textarea>
-    </div>
-  `;
+    </div>`;
 
   return html;
 }
@@ -7061,5 +7501,23 @@ function toggleTmplTriggerPanel(btn) {
       if (typeof toggleFocusMode === 'function') toggleFocusMode();
     }
   });
+})();
+
+// B-[pendiente-ID]: export-backlog-btn — handler adjuntado una sola vez al iniciar
+(function _initExportBacklogBtn() {
+  function _attach() {
+    const btn = document.getElementById('export-backlog-btn');
+    if (btn && !btn._exportHandlerAttached) {
+      btn.addEventListener('click', function() {
+        if (typeof exportBacklogMd === 'function') exportBacklogMd();
+      });
+      btn._exportHandlerAttached = true;
+    }
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _attach);
+  } else {
+    _attach();
+  }
 })();
 
