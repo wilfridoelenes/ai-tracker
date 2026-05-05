@@ -72,9 +72,11 @@ function handleSyncPillClick() {
 const SUPABASE_URL  = (typeof window !== 'undefined') ? (window.__ENV?.SUPABASE_URL       || window.SUPABASE_URL)       : null;
 const SUPABASE_KEY  = (typeof window !== 'undefined') ? (window.__ENV?.SUPABASE_ANON_KEY  || window.SUPABASE_ANON_KEY)  : null;
 
-let _supabase      = null;   // cliente Supabase
-let _supabaseUser  = null;   // sesión activa del founder
-let _supabaseReady = null;   // promesa: resuelve cuando onAuthStateChange dispara
+let _supabase           = null;   // cliente Supabase
+let _supabaseUser       = null;   // sesión activa del founder
+let _supabaseReady      = null;   // promesa: resuelve cuando onAuthStateChange dispara
+let _realtimeChannel    = null;   // T-202605-XXX: canal Realtime para sync multidispositivo
+let _realtimeLastTs     = null;   // timestamp del último update remoto procesado
 
 if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
   try {
@@ -91,9 +93,17 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
             if (typeof closeAuthModal === 'function') closeAuthModal();
             if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
             if (typeof render === 'function') render();
+            // T-202605-XXX: activar sync Realtime al iniciar sesión
+            _subscribeRealtime();
+          }
+          // T-202605-XXX: si la sesión ya existía al cargar (INITIAL_SESSION), también suscribir
+          if (event === 'INITIAL_SESSION') {
+            _subscribeRealtime();
           }
         } else {
           setSyncStatus('local', '☁ conectar');
+          // T-202605-XXX: limpiar canal al cerrar sesión
+          _unsubscribeRealtime();
         }
         resolve(_supabaseUser);
         if (typeof _refreshMigrationBtnVisibility === 'function') _refreshMigrationBtnVisibility();
@@ -1132,13 +1142,17 @@ async function _saveFlush() {
         ...state,
         projects: (state.projects || []).map(p => { const { sessions, ...rest } = p; return rest; })
       };
+      const _nowTs = new Date().toISOString();
       const { error } = await _supabase.from('tracker_state').upsert({
         user_id: _supabaseUser.id,
         key: 'main',
         value: stateWithoutSessions,
-        updated_at: new Date().toISOString()
+        updated_at: _nowTs
       }, { onConflict: 'user_id,key' });
       if (error) throw error;
+      // T-202605-XXX: registrar el ts que acabamos de escribir
+      // para que el listener Realtime lo ignore (evita reload-loop)
+      _realtimeLastTs = _nowTs;
 
       // Sesiones — upsert en paralelo por proyecto
       const sessionWrites = [];
@@ -1608,6 +1622,47 @@ function load() {
 }
 
 // T-202605-482: carga Supabase multi-tabla en segundo plano
+// T-202605-XXX: Realtime sync — multidispositivo
+// Escucha cambios en tracker_state para el user activo.
+// Cuando otro cliente guarda, el updated_at cambia → este cliente recarga.
+// Throttle: no recarga si el cambio vino de este mismo cliente (_realtimeLastTs).
+function _subscribeRealtime() {
+  if (!_supabase || !_supabaseUser) return;
+  _unsubscribeRealtime(); // limpiar canal previo si existe
+
+  _realtimeChannel = _supabase
+    .channel('tracker-state-' + _supabaseUser.id)
+    .on(
+      'postgres_changes',
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'tracker_state',
+        filter: 'user_id=eq.' + _supabaseUser.id
+      },
+      (payload) => {
+        const remoteTs = payload.new?.updated_at;
+        if (!remoteTs) return;
+
+        // Ignorar si el timestamp es el mismo que el último que guardamos nosotros
+        // (evita reload-loop: yo guardo → Supabase notifica → yo recargo → guardo → ...)
+        if (_realtimeLastTs && remoteTs === _realtimeLastTs) return;
+
+        // Otro cliente guardó algo — recargar estado remoto
+        console.log('[AI Tracker] Realtime: cambio remoto detectado —', remoteTs);
+        if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
+      }
+    )
+    .subscribe();
+}
+
+function _unsubscribeRealtime() {
+  if (_realtimeChannel) {
+    try { _supabase.removeChannel(_realtimeChannel); } catch(e) {}
+    _realtimeChannel = null;
+  }
+}
+
 async function _loadFromSupabase() {
   const authUser = await (_supabaseReady || Promise.resolve(null));
   if (!authUser) {
