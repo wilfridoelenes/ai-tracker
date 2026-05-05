@@ -1116,7 +1116,7 @@ function applyTheme(t) {
 }
 
 // T-202604-299: debounce config + dirty flag
-const _SAVE_DEBOUNCE_MS = 5000; // acumula calls; Firebase solo escribe si dirty
+const _SAVE_DEBOUNCE_MS = 5000; // acumula calls; Supabase solo escribe si dirty
 let _saveDebounceTimer = null;
 let _stateDirty = false;
 
@@ -1192,7 +1192,7 @@ async function _saveFlush() {
 }
 
 // R-202604-035 / T-202604-299: save() — debounced
-// Escribe localStorage inmediatamente (sync); Firebase se acumula hasta _SAVE_DEBOUNCE_MS
+// Escribe localStorage inmediatamente (sync); Supabase se acumula hasta _SAVE_DEBOUNCE_MS
 // Para eventos críticos usar saveImmediate()
 function save() {
   _stateDirty = true;
@@ -1235,7 +1235,7 @@ async function saveImmediate() {
 }
 
 // R-202604-035: escribe sesiones de un proyecto
-// T-202605-482: Supabase upsert en tracker_sessions; Firebase batch como fallback
+// R-202604-035: escribe sesiones de un proyecto — Supabase upsert por lotes de 400
 async function _saveSessions(proj) {
   if (!proj || !proj.sessions || !proj.sessions.length) return;
   const sessions = proj.sessions;
@@ -1295,7 +1295,7 @@ async function saveBacklog() {
         showToast('warning', '⚠️ Cuota de almacenamiento crítica — se limpió historial');
       } catch (err2) {
         console.error('[AI Tracker] saveBacklog failed after cleanup:', err2);
-        showToast('error', '❌ Almacenamiento lleno. Limpia datos o usa Firebase sync.');
+        showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas o exporta un backup.');
         return;
       }
     } else {
@@ -1597,9 +1597,9 @@ function load() {
   // Carga síncrona desde localStorage (arranque inmediato)
   const s = localStorage.getItem('ai-tracker-v4');
   let _migrated = false;
-  if (s) { try { _migrated = _applyStateData(JSON.parse(s)); } catch (e) { console.error('[AI Tracker] Estado corrupto en localStorage — restaurando defaults:', e); _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]}); showToast('error', '❌ Estado corrupto detectado — se restauraron los valores por defecto. Tus datos en Firebase no fueron afectados.', null, 10000); } }
+  if (s) { try { _migrated = _applyStateData(JSON.parse(s)); } catch (e) { console.error('[AI Tracker] Estado corrupto en localStorage — restaurando defaults:', e); _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]}); showToast('error', '❌ Estado corrupto detectado — se restauraron los valores por defecto. Tus datos en Supabase no fueron afectados.', null, 10000); } }
   else { _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]}); }
-  // Normalización: si había sesiones en ai.sessions[], persistir inmediatamente sin esperar Firebase
+  // Normalización: si había sesiones en ai.sessions[], persistir inmediatamente sin esperar Supabase
   if (_migrated) {
     try { localStorage.setItem('ai-tracker-v4', JSON.stringify(state)); } catch {}
     console.log('[AI Tracker] Normalización ai.sessions→project.sessions persistida');
@@ -1785,11 +1785,13 @@ async function _loadFromSupabase() {
         const localMeta   = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
         const localTs     = localMeta.updated  ? new Date(localMeta.updated).getTime()  : 0;
         const remoteTs    = remoteMeta.updated ? new Date(remoteMeta.updated).getTime() : 0;
-        if (remoteItems.length && remoteTs > localTs) {
+        // Cargar si: browser limpio (ITEMS vacío o localTs=0) O remoto es más reciente
+        const shouldLoad  = remoteItems.length && (ITEMS.length === 0 || localTs === 0 || remoteTs > localTs);
+        if (shouldLoad) {
           const localCodes = new Set(ITEMS.map(i => i.code));
           let added = 0;
           remoteItems.forEach(ri => { if (!localCodes.has(ri.code)) { ITEMS.push(ri); added++; } });
-          if (added > 0) {
+          if (added > 0 || ITEMS.length === 0) {
             localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(ITEMS));
             localStorage.setItem(_tplKey('backlog-meta'),  JSON.stringify(remoteMeta));
           }
@@ -1840,274 +1842,8 @@ async function _loadFromSupabase() {
   }
 }
 
-// R-202604-035: carga Firebase multi-documento en segundo plano
-async function _loadFromFirebase() {
-  // B-202604-125: esperar a que onAuthStateChanged resuelva antes de leer Firestore
-  // Evita permission-denied cuando _googleUser aún es null al cargar la app
-  const authUser = await (_fbAuthReady || Promise.resolve(null));
-  if (!authUser) {
-    // Sin sesión activa — no cargar desde Firebase, datos locales son suficientes
-    setSyncStatus('local', '\u2601 conectar');
-    return;
-  }
-  try {
-    // ── 1. Migración one-shot desde documento legado ──────────────────────
-    try {
-      const legacyDoc = await _fbLegacyDoc().get();
-      if (legacyDoc.exists) {
-        console.log('[AI Tracker] Documento legado detectado — iniciando migración a multi-documento...');
-        await _migrateLegacyFirebaseDoc(legacyDoc);
-        await _fbLegacyDoc().delete();
-        console.log('[AI Tracker] Migración Firebase completada. Documento legado eliminado.');
-      }
-    } catch (legacyErr) {
-      console.warn('[AI Tracker] Migración legado falló (no bloqueante):', legacyErr);
-    }
-
-    // ── 2. Cargar state/main ──────────────────────────────────────────────
-    const stateRef = _fbRef('state', 'main');
-    if (!stateRef) { setSyncStatus('offline', '✕ sin conexión'); return; }
-
-    const stateDoc = await stateRef.get();
-    if (!stateDoc.exists || !stateDoc.data().data) {
-      setSyncStatus('synced', '✓ sincronizado');
-      return;
-    }
-
-    const remote = JSON.parse(stateDoc.data().data);
-
-    // ── 3. Merge IAs: local gana en status volátil ────────────────────────
-    const localAIMap = new Map((state.ais || []).map(a => [a.id, a]));
-    const remoteAIMap = new Map((remote.ais || []).map(a => [a.id, a]));
-
-    remoteAIMap.forEach((remoteAI, id) => {
-      remoteAI.sessions = [];
-      const localAI = localAIMap.get(id);
-      if (localAI) {
-        remoteAI.status      = localAI.status;
-        remoteAI.resetTime   = localAI.resetTime;
-        remoteAI.resetEpoch  = localAI.resetEpoch;
-        remoteAI.interrupted = localAI.interrupted;
-      }
-    });
-    localAIMap.forEach((localAI, id) => {
-      if (!remoteAIMap.has(id)) {
-        if (!remote.ais) remote.ais = [];
-        remote.ais.push({ ...localAI, sessions: [] });
-      }
-    });
-
-    // ── 4. Merge proyectos: preservar sesiones locales ────────────────────
-    const localProjMap = new Map((state.projects || []).map(p => [p.id, p]));
-    if (!remote.projects) remote.projects = [];
-
-    remote.projects.forEach(rp => {
-      const lp = localProjMap.get(rp.id);
-      rp.sessions = lp ? (lp.sessions || []) : [];
-      // B-fix: preservar sprints del local — el remote puede tener status obsoleto
-      // (ej: sprint cerrado localmente aparece como 'open' en Firebase si el save
-      // anterior no llegó a sincronizar el status actualizado)
-      if (lp && lp.sprints && lp.sprints.length) {
-        const remoteSprints = rp.sprints || [];
-        const localSprintMap = new Map(lp.sprints.map(s => [s.id, s]));
-        rp.sprints = remoteSprints.map(rs => {
-          const ls = localSprintMap.get(rs.id);
-          if (!ls) return rs;
-          // local gana en status y closedAt — son los campos mutables críticos
-          return { ...rs, status: ls.status, ...(ls.closedAt ? { closedAt: ls.closedAt } : {}) };
-        });
-        // sprints que existen en local pero no en remote — agregarlos
-        lp.sprints.forEach(ls => {
-          if (!rp.sprints.some(rs => rs.id === ls.id)) rp.sprints.push({ ...ls });
-        });
-      }
-    });
-    localProjMap.forEach((lp, id) => {
-      if (!remote.projects.some(p => p.id === id)) remote.projects.push({ ...lp });
-    });
-
-    _applyStateData(remote);
-
-    state.ais.forEach(ai => {
-      if (ai.status === 'exhausted' && ai.resetTime && _resetExpired(ai.resetTime, ai.resetEpoch)) {
-        ai.status = 'available'; ai.resetTime = ''; ai.resetEpoch = null;
-      }
-    });
-
-    // ── 5. Cargar sesiones desde /sessions/* ─────────────────────────────
-    try {
-      const sessionsSnap = await _fbSessionsCol().get();
-      if (!sessionsSnap.empty) {
-        const remoteSessMap = {};
-        sessionsSnap.forEach(doc => {
-          const sess = doc.data();
-          const projId = sess.projectId;
-          if (!projId) return;
-          if (!remoteSessMap[projId]) remoteSessMap[projId] = [];
-          const { projectId: _, ...sessData } = sess;
-          remoteSessMap[projId].push(sessData);
-        });
-
-        state.projects.forEach(proj => {
-          const remoteSessions = remoteSessMap[proj.id] || [];
-          if (!remoteSessions.length) return;
-          if (!proj.sessions) proj.sessions = [];
-          const localIds = new Set(proj.sessions.map(s => s.id));
-          remoteSessions.forEach(s => {
-            if (!localIds.has(s.id)) { proj.sessions.push(s); localIds.add(s.id); }
-          });
-        });
-
-        try { localStorage.setItem('ai-tracker-v4', JSON.stringify(state)); } catch {}
-      }
-    } catch (sessErr) {
-      console.warn('[AI Tracker] Error cargando sesiones desde Firebase:', sessErr);
-    }
-
-    // ── 6. Cargar backlog ────────────────────────────────────────────────
-    try {
-      const projId = _getActiveProjectFilter();
-      const suffix = projId ? '-' + projId : '-global';
-      const [itemsDoc, metaDoc] = await Promise.all([
-        _fbRef('backlog', 'items' + suffix).get(),
-        _fbRef('backlog', 'meta'  + suffix).get()
-      ]);
-
-      const remoteItems = (itemsDoc.exists && itemsDoc.data().data) ? JSON.parse(itemsDoc.data().data) : [];
-      const remoteMeta  = (metaDoc.exists  && metaDoc.data().data)  ? JSON.parse(metaDoc.data().data)  : {};
-      const localMeta   = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
-      const localTs     = localMeta.updated  ? new Date(localMeta.updated).getTime()  : 0;
-      const remoteTs    = remoteMeta.updated ? new Date(remoteMeta.updated).getTime() : 0;
-      const remoteHasBacklog = remoteItems && remoteItems.length > 0;
-
-      if (remoteHasBacklog && remoteTs > localTs) {
-        const localCodes = new Set(ITEMS.map(i => i.code));
-        let added = 0;
-        remoteItems.forEach(ri => { if (!localCodes.has(ri.code)) { ITEMS.push(ri); added++; } });
-        if (added > 0) {
-          localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(ITEMS));
-          localStorage.setItem(_tplKey('backlog-meta'),  JSON.stringify(remoteMeta));
-        }
-      } else if (!remoteHasBacklog && ITEMS.length > 0) {
-        console.log('[AI Tracker] Backlog remoto vacío, preservando local');
-      }
-    } catch (backlogErr) {
-      console.warn('[AI Tracker] Error cargando backlog desde Firebase:', backlogErr);
-    }
-
-    // ── 7. Hidratar docs vivos si localStorage vacío ─────────────────────
-    try {
-      const projId = _getActiveProjectFilter();
-      const suffix = projId ? '-' + projId : '-global';
-      const [ctxDoc, hmDoc] = await Promise.all([
-        _fbRef('docs', 'context' + suffix).get(),
-        _fbRef('docs', 'htmlmap' + suffix).get()
-      ]);
-      if (ctxDoc.exists) {
-        const d = ctxDoc.data();
-        if (d.raw      && !localStorage.getItem(_tplKey('context-raw')))      try { localStorage.setItem(_tplKey('context-raw'),      d.raw);      } catch {}
-        if (d.sections && !localStorage.getItem(_tplKey('context-sections'))) try { localStorage.setItem(_tplKey('context-sections'), d.sections); } catch {}
-        if (d.meta     && !localStorage.getItem(_tplKey('context-meta')))     try { localStorage.setItem(_tplKey('context-meta'),     d.meta);     } catch {}
-      }
-      if (hmDoc.exists) {
-        const d = hmDoc.data();
-        if (d.raw      && !localStorage.getItem(_tplKey('html-map-raw')))      try { localStorage.setItem(_tplKey('html-map-raw'),      d.raw);      } catch {}
-        if (d.sections && !localStorage.getItem(_tplKey('html-map-sections'))) try { localStorage.setItem(_tplKey('html-map-sections'), d.sections); } catch {}
-        if (d.meta     && !localStorage.getItem(_tplKey('html-map-meta')))     try { localStorage.setItem(_tplKey('html-map-meta'),     d.meta);     } catch {}
-      }
-    } catch (docsErr) {
-      console.warn('[AI Tracker] Error cargando docs vivos desde Firebase:', docsErr);
-    }
-
-    // ── 8. Re-render final ────────────────────────────────────────────────
-    render();
-    renderHoy();
-    updateStats();
-    if (typeof renderBacklogList === 'function') renderBacklogList();
-    setSyncStatus('synced', '✓ sincronizado');
-
-  } catch (err) {
-    console.error('[AI Tracker] _loadFromFirebase() failed:', err);
-    setSyncStatus('offline', '✕ sin conexión');
-    showToast('warning', '⚠️ No se pudo cargar desde Firebase — operando en modo local', null, 6000);
-  }
-}
-
-// R-202604-035: migración one-shot desde documento legado aitracker/{uid}
-async function _migrateLegacyFirebaseDoc(legacyDoc) {
-  const d = legacyDoc.data();
-  if (!d) return;
-
-  // 1. state → state/main (sin sesiones)
-  if (d.state) {
-    try {
-      const legacyState = JSON.parse(d.state);
-      const stateWithoutSessions = {
-        ...legacyState,
-        projects: (legacyState.projects || []).map(p => { const { sessions, ...rest } = p; return rest; })
-      };
-      const stateRef = _fbRef('state', 'main');
-      if (stateRef) await stateRef.set({ data: JSON.stringify(stateWithoutSessions), updatedAt: Date.now() });
-
-      // 2. sesiones → /sessions/{sessId}
-      const col = _fbSessionsCol();
-      if (col) {
-        for (const proj of (legacyState.projects || [])) {
-          if (!proj.sessions || !proj.sessions.length) continue;
-          const BATCH_SIZE = 400;
-          for (let i = 0; i < proj.sessions.length; i += BATCH_SIZE) {
-            const chunk = proj.sessions.slice(i, i + BATCH_SIZE);
-            const batch = _db.batch();
-            chunk.forEach(sess => {
-              if (!sess.id) return;
-              batch.set(col.doc(sess.id), { ...sess, projectId: proj.id }, { merge: true });
-            });
-            await batch.commit();
-          }
-        }
-      }
-    } catch (e) { console.warn('[AI Tracker] Legacy state migration error:', e); }
-  }
-
-  // 3. backlog → /backlog/items-{suffix}
-  const projId = _getActiveProjectFilter();
-  const suffix = projId ? '-' + projId : '-global';
-  if (d.backlogItems) {
-    try {
-      const ref = _fbRef('backlog', 'items' + suffix);
-      if (ref) await ref.set({ data: d.backlogItems, updatedAt: Date.now() });
-    } catch (e) { console.warn('[AI Tracker] Legacy backlog migration error:', e); }
-  }
-  const bkMetaKey = 'backlogMeta' + (projId ? '-' + projId : '');
-  if (d[bkMetaKey]) {
-    try {
-      const ref = _fbRef('backlog', 'meta' + suffix);
-      if (ref) await ref.set({ data: d[bkMetaKey], updatedAt: Date.now() });
-    } catch (e) { console.warn('[AI Tracker] Legacy backlogMeta migration error:', e); }
-  }
-
-  // 4. docs vivos → /docs/context-{suffix} y /docs/htmlmap-{suffix}
-  const sfx = projId ? '-' + projId : '';
-  const ctxRaw  = d['contextRaw'      + sfx];
-  const ctxSec  = d['contextSections' + sfx];
-  const ctxMeta = d['contextMeta'     + sfx];
-  const hmRaw   = d['htmlMapRaw'      + sfx];
-  const hmSec   = d['htmlMapSections' + sfx];
-  const hmMeta  = d['htmlMapMeta'     + sfx];
-
-  if (ctxRaw || ctxSec || ctxMeta) {
-    try {
-      const ref = _fbRef('docs', 'context' + suffix);
-      if (ref) await ref.set({ raw: ctxRaw || '', sections: ctxSec || '[]', meta: ctxMeta || '{}', updatedAt: Date.now() });
-    } catch (e) { console.warn('[AI Tracker] Legacy context migration error:', e); }
-  }
-  if (hmRaw || hmSec || hmMeta) {
-    try {
-      const ref = _fbRef('docs', 'htmlmap' + suffix);
-      if (ref) await ref.set({ raw: hmRaw || '', sections: hmSec || '[]', meta: hmMeta || '{}', updatedAt: Date.now() });
-    } catch (e) { console.warn('[AI Tracker] Legacy htmlmap migration error:', e); }
-  }
-}
+// R-202604-035: _loadFromFirebase eliminado — AC-8: Firebase eliminado, Supabase es el único backend
+// _migrateLegacyFirebaseDoc eliminado — migración one-shot completada
 
 // T-084: Muestra banner de advertencia si totalSessions supera el umbral
 const STORAGE_WARN_THRESHOLD = 300;
@@ -4738,7 +4474,7 @@ function confirmQuickCapture() {
 
   document.getElementById('quick-modal-overlay').classList.remove('open');
   _quickAIId = null;
-  // B-202605-XXX: usar saveImmediate() para garantizar escritura en Firebase antes de
+  // B-202605-XXX: usar saveImmediate() para garantizar escritura en Supabase antes de
   // cualquier recarga. save() con debounce de 5s podía perder resetTime/resetEpoch/status
   // si el usuario recargaba la tab antes de que el timer disparara.
   saveImmediate().then(() => { render(); if (currentTab === 'hoy') renderHoy(); });
@@ -7409,236 +7145,4 @@ function _trackerSwitchCol(col) {
 
 // ══ END R-202604-059 ══
 
-// ── R-migración: Firebase → Supabase one-shot migration ──────────────────────
-// AC: solo lectura de Firebase · last-write-wins por updated_at · resumen post-migración
-// · no modifica Firebase · ejecutable desde UI · rollback seguro si falla
-
-function openMigrateFirebaseModal() {
-  const overlay = document.getElementById('migrate-fb-overlay');
-  if (!overlay) return;
-  // Reset al estado idle
-  _migrateFbSetState('idle');
-  document.getElementById('migrate-fb-run-btn').classList.remove('hidden');
-  document.getElementById('migrate-fb-cancel-btn').textContent = 'Cancelar';
-  overlay.classList.remove('hidden');
-  overlay.classList.add('open');
-}
-
-function closeMigrateFirebaseModal() {
-  const overlay = document.getElementById('migrate-fb-overlay');
-  if (overlay) { overlay.classList.remove('open'); overlay.classList.add('hidden'); }
-}
-
-function _migrateFbSetState(state) {
-  ['idle', 'running', 'done', 'error'].forEach(s => {
-    const el = document.getElementById('migrate-fb-' + s);
-    if (el) el.classList.toggle('hidden', s !== state);
-  });
-}
-
-function _migrateFbSetStatus(msg, progress) {
-  const statusEl = document.getElementById('migrate-fb-status');
-  if (statusEl) statusEl.textContent = msg;
-  const bar = document.getElementById('migrate-fb-progress-bar');
-  if (bar) bar.style.setProperty('--migrate-progress', (progress || 0) + '%');
-}
-
-async function runFirebaseToSupabaseMigration() {
-  // Precondiciones
-  if (!_db) {
-    _migrateFbSetState('error');
-    document.getElementById('migrate-fb-error-msg').textContent = '✕ Firebase no está configurado. Configura sync primero.';
-    return;
-  }
-  if (!_supabase || !_supabaseUser) {
-    _migrateFbSetState('error');
-    document.getElementById('migrate-fb-error-msg').textContent = '✕ Supabase no está autenticado. Conecta tu cuenta primero.';
-    return;
-  }
-
-  _migrateFbSetState('running');
-  document.getElementById('migrate-fb-run-btn').classList.add('hidden');
-
-  const stats = { state: 0, sessions: 0, backlog: 0, docs: 0, skipped: 0, errors: [] };
-
-  try {
-    // ── 1. Esperar auth Firebase ──────────────────────────────────────────
-    _migrateFbSetStatus('Verificando autenticación Firebase…', 5);
-    const fbUser = await (_fbAuthReady || Promise.resolve(null));
-    if (!fbUser) throw new Error('Firebase no tiene sesión activa. Inicia sesión con Google primero.');
-
-    // ── 2. Leer state/main desde Firebase ────────────────────────────────
-    _migrateFbSetStatus('Leyendo estado principal desde Firebase…', 15);
-    const stateRef = _fbRef('state', 'main');
-    if (!stateRef) throw new Error('No se pudo acceder a Firebase state/main.');
-
-    const stateDoc = await stateRef.get();
-    if (stateDoc.exists && stateDoc.data().data) {
-      const fbState = JSON.parse(stateDoc.data().data);
-      const fbUpdatedAt = stateDoc.data().updatedAt
-        ? new Date(stateDoc.data().updatedAt).toISOString()
-        : new Date(0).toISOString();
-
-      // Verificar last-write-wins: solo escribir si Firebase es más reciente
-      const { data: existingState } = await _supabase
-        .from('tracker_state')
-        .select('updated_at')
-        .eq('user_id', _supabaseUser.id)
-        .eq('key', 'main')
-        .maybeSingle();
-
-      const supaTs = existingState ? new Date(existingState.updated_at).getTime() : 0;
-      const fbTs   = new Date(fbUpdatedAt).getTime();
-
-      if (fbTs >= supaTs) {
-        const stateWithoutSessions = {
-          ...fbState,
-          projects: (fbState.projects || []).map(p => { const { sessions, ...rest } = p; return rest; })
-        };
-        const { error: stateErr } = await _supabase.from('tracker_state').upsert({
-          user_id:    _supabaseUser.id,
-          key:        'main',
-          value:      stateWithoutSessions,
-          updated_at: fbUpdatedAt
-        }, { onConflict: 'user_id,key' });
-        if (stateErr) throw stateErr;
-        stats.state = 1;
-      } else {
-        stats.skipped++;
-      }
-    }
-
-    // ── 3. Leer y migrar sesiones ─────────────────────────────────────────
-    _migrateFbSetStatus('Leyendo sesiones desde Firebase…', 35);
-    const sessCol = _fbSessionsCol();
-    if (sessCol) {
-      try {
-        const sessSnapshot = await sessCol.get();
-        if (!sessSnapshot.empty) {
-          const sessBatches = [];
-          const BATCH_SIZE = 400;
-          let currentBatch = [];
-
-          sessSnapshot.forEach(doc => {
-            const data = doc.data();
-            currentBatch.push({
-              user_id:    _supabaseUser.id,
-              project_id: data.projectId || data.project_id || 'unknown',
-              session_id: doc.id,
-              data:       data.data || data,
-              updated_at: data.updatedAt ? new Date(data.updatedAt).toISOString() : new Date().toISOString()
-            });
-            if (currentBatch.length >= BATCH_SIZE) {
-              sessBatches.push([...currentBatch]);
-              currentBatch = [];
-            }
-          });
-          if (currentBatch.length) sessBatches.push(currentBatch);
-
-          _migrateFbSetStatus(`Escribiendo ${sessSnapshot.size} sesiones a Supabase…`, 55);
-          for (const batch of sessBatches) {
-            const { error: sessErr } = await _supabase
-              .from('tracker_sessions')
-              .upsert(batch, { onConflict: 'user_id,project_id,session_id', ignoreDuplicates: false });
-            if (sessErr) { stats.errors.push('sessions: ' + sessErr.message); }
-            else { stats.sessions += batch.length; }
-          }
-        }
-      } catch(e) {
-        stats.errors.push('sessions: ' + e.message);
-      }
-    }
-
-    // ── 4. Leer y migrar backlog ──────────────────────────────────────────
-    _migrateFbSetStatus('Leyendo backlog desde Firebase…', 70);
-    try {
-      const backlogRef = _fbRef('backlog', 'main');
-      if (backlogRef) {
-        const backlogDoc = await backlogRef.get();
-        if (backlogDoc.exists) {
-          const fbBacklog  = backlogDoc.data();
-          const fbUpdated  = fbBacklog.updatedAt ? new Date(fbBacklog.updatedAt).toISOString() : new Date(0).toISOString();
-          const projId     = _getActiveProjectFilter();
-          const suffix     = projId ? '-' + projId : '-global';
-
-          const { data: existingBl } = await _supabase
-            .from('tracker_backlog')
-            .select('updated_at')
-            .eq('user_id', _supabaseUser.id)
-            .eq('key', 'items' + suffix)
-            .maybeSingle();
-
-          const supaBlTs = existingBl ? new Date(existingBl.updated_at).getTime() : 0;
-          const fbBlTs   = new Date(fbUpdated).getTime();
-
-          if (fbBlTs >= supaBlTs) {
-            const { error: blErr } = await _supabase.from('tracker_backlog').upsert([
-              { user_id: _supabaseUser.id, key: 'items' + suffix, value: fbBacklog.items || [], updated_at: fbUpdated },
-              { user_id: _supabaseUser.id, key: 'meta'  + suffix, value: fbBacklog.meta  || {}, updated_at: fbUpdated }
-            ], { onConflict: 'user_id,key' });
-            if (blErr) stats.errors.push('backlog: ' + blErr.message);
-            else stats.backlog = (fbBacklog.items || []).length;
-          } else {
-            stats.skipped++;
-          }
-        }
-      }
-    } catch(e) {
-      stats.errors.push('backlog: ' + e.message);
-    }
-
-    // ── 5. Verificación de integridad ─────────────────────────────────────
-    _migrateFbSetStatus('Verificando integridad…', 88);
-    let integrityOk = true;
-    try {
-      const { count: supaCount } = await _supabase
-        .from('tracker_sessions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', _supabaseUser.id);
-
-      const sessCol2 = _fbSessionsCol();
-      if (sessCol2) {
-        const fbCount = (await sessCol2.get()).size;
-        if (supaCount < fbCount) {
-          integrityOk = false;
-          stats.errors.push(`Integridad: Firebase ${fbCount} sesiones, Supabase ${supaCount} — diferencia detectada`);
-        }
-      }
-    } catch(e) {
-      // No bloqueante — integridad es verificación adicional
-    }
-
-    // ── 6. Resultado final ────────────────────────────────────────────────
-    _migrateFbSetStatus('Completado', 100);
-    _migrateFbSetState('done');
-
-    const resultEl = document.getElementById('migrate-fb-result');
-    const hasErrors = stats.errors.length > 0;
-    resultEl.innerHTML =
-      `<div class="migrate-fb-result-icon">${hasErrors ? '⚠️' : '✓'}</div>` +
-      `<div class="migrate-fb-result-title">${hasErrors ? 'Migración completada con advertencias' : 'Migración completada'}</div>` +
-      `<ul class="migrate-fb-result-list">` +
-      `<li>Estado principal: ${stats.state ? 'migrado' : 'omitido (Supabase más reciente)'}</li>` +
-      `<li>Sesiones migradas: ${stats.sessions}</li>` +
-      `<li>Ítems de backlog: ${stats.backlog}</li>` +
-      `<li>Registros omitidos (Supabase más reciente): ${stats.skipped}</li>` +
-      (hasErrors ? `<li class="migrate-fb-result-error">Advertencias: ${stats.errors.join(' · ')}</li>` : '') +
-      `<li>Integridad: ${integrityOk ? '✓ verificada' : '⚠ revisar advertencias'}</li>` +
-      `</ul>`;
-
-    document.getElementById('migrate-fb-cancel-btn').textContent = 'Cerrar';
-    showToast(hasErrors ? 'warning' : 'success',
-      hasErrors ? '⚠️ Migración completada con advertencias' : '✓ Migración Firebase → Supabase completada');
-
-  } catch(err) {
-    console.error('[AI Tracker] Migración Firebase→Supabase falló:', err);
-    _migrateFbSetState('error');
-    document.getElementById('migrate-fb-error-msg').textContent = '✕ ' + (err.message || 'Error inesperado. Revisa la consola para más detalles.');
-    document.getElementById('migrate-fb-cancel-btn').textContent = 'Cerrar';
-    document.getElementById('migrate-fb-run-btn').classList.remove('hidden');
-    document.getElementById('migrate-fb-run-btn').textContent = 'Reintentar';
-    showToast('error', '✕ Migración fallida — datos locales intactos');
-  }
-}
-
-// ── FIN R-migración ───────────────────────────────────────────────────────────
+// R-migración Firebase→Supabase eliminada — AC-8: migración completada

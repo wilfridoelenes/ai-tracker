@@ -324,10 +324,9 @@ document.querySelectorAll('.modal-overlay,.popup-overlay').forEach(el => {
 });
 
 function exportData() {
-  // Bundlear claves de localStorage por proyecto — backlog, context, html-map
-  // Estas NO viven en state{} y se perderían en un backup sin este bloque
+  // Bundlear claves de localStorage por proyecto — context, html-map
+  // backlog viene de ITEMS en memoria (Supabase) + localStorage como fallback
   const _DOC_KEYS = [
-    'backlog-items', 'backlog-meta',
     'context-raw', 'context-sections', 'context-meta',
     'html-map-raw', 'html-map-sections', 'html-map-meta'
   ];
@@ -339,17 +338,27 @@ function exportData() {
       const val = localStorage.getItem(key + '-' + p.id);
       if (val) projDocs[key] = val;
     });
-    if (Object.keys(projDocs).length) {
-      // Inyectar _exportedAt en backlog-meta para comparación timestamp en import
-      if (projDocs['backlog-meta']) {
-        try {
-          const meta = JSON.parse(projDocs['backlog-meta']);
-          meta._exportedAt = exportedAt;
-          projDocs['backlog-meta'] = JSON.stringify(meta);
-        } catch(e) {}
+    // Backlog: serializar ITEMS en memoria si corresponden a este proyecto
+    // Con Supabase activo el backlog no siempre vive en localStorage
+    const activeProjId = _getActiveProjectFilter ? _getActiveProjectFilter() : null;
+    if (activeProjId === p.id || (!activeProjId && p === (state.projects || [])[0])) {
+      if (typeof ITEMS !== 'undefined' && ITEMS.length > 0) {
+        const meta = JSON.parse(localStorage.getItem('backlog-meta-' + p.id) || '{}');
+        meta._exportedAt = exportedAt;
+        projDocs['backlog-items'] = JSON.stringify(ITEMS);
+        projDocs['backlog-meta']  = JSON.stringify(meta);
       }
-      docs[p.id] = projDocs;
+    } else {
+      // Proyecto no activo — leer desde localStorage si existe
+      const blItems = localStorage.getItem('backlog-items-' + p.id);
+      if (blItems) {
+        const meta = JSON.parse(localStorage.getItem('backlog-meta-' + p.id) || '{}');
+        meta._exportedAt = exportedAt;
+        projDocs['backlog-items'] = blItems;
+        projDocs['backlog-meta']  = JSON.stringify(meta);
+      }
     }
+    if (Object.keys(projDocs).length) docs[p.id] = projDocs;
   });
   const exportObj = { ...state, _exportedAt: exportedAt };
   if (Object.keys(docs).length) exportObj._docs = docs;
@@ -772,6 +781,8 @@ function confirmImport() {
   };
 
   save(); render(); applyTheme(state.theme || 'dark');
+  // Hidratar ITEMS desde localStorage restaurado
+  if (typeof loadBacklog === 'function') loadBacklog();
 
   const totalSess = mergedProjects.reduce((a, p) => a + (p.sessions || []).length, 0);
   const docsMsg = docsRestored > 0 ? ` · ${docsRestored} doc${docsRestored > 1 ? 's' : ''} restaurado${docsRestored > 1 ? 's' : ''}` : '';
