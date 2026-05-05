@@ -829,6 +829,40 @@ function showCheckpointPanel(result) {
     </div>`);
   }
 
+  // R-202605-140: sección informativa — Próximo paso y Decisión cuando no hay ítems (Caso B)
+  // o como complemento cuando sí los hay (Caso A, sidebar derecho lo renderiza por separado)
+  const _isInfoOnly = (v) => !v || v.trim().toLowerCase() === 'n/a';
+  const _proximoPaso = result.proximoPaso || '';
+  const _decision    = result.decision    || '';
+  const _hasProximo  = !_isInfoOnly(_proximoPaso);
+  const _hasDecision = !_isInfoOnly(_decision);
+  if (!sections.length && (_hasProximo || _hasDecision)) {
+    // Caso B: CHECKPOINT sin ítems — solo campos informativos
+    const _proximoHtml = _hasProximo
+      ? `<div class="ckpt-info-proximo">
+           <span class="ckpt-info-label ckpt-info-label--proximo">→ Próximo paso</span>
+           <span class="ckpt-info-text">${esc(_proximoPaso)}</span>
+         </div>`
+      : '';
+    const _decisionHtml = _hasDecision
+      ? `<div class="ckpt-info-decision">
+           <span class="ckpt-info-label ckpt-info-label--decision">Decisión</span>
+           <span class="ckpt-info-text">${esc(_decision)}</span>
+         </div>`
+      : '';
+    sections.push(`<div class="ckpt-section ckpt-section--info">${_proximoHtml}${_decisionHtml}</div>`);
+  } else if (sections.length && (_hasProximo || _hasDecision)) {
+    // Caso A: hay ítems — inyectar proximoPaso en el objeto result para que el sidebar lo muestre
+    // El HTML del sidebar se renderiza en index.html; aquí anotamos en el panel body como footer
+    const _proximoHtml = _hasProximo
+      ? `<div class="ckpt-info-proximo ckpt-info-proximo--inline">
+           <span class="ckpt-info-label ckpt-info-label--proximo">→ Próximo paso</span>
+           <span class="ckpt-info-text">${esc(_proximoPaso)}</span>
+         </div>`
+      : '';
+    if (_proximoHtml) sections.push(`<div class="ckpt-section ckpt-section--info-footer">${_proximoHtml}</div>`);
+  }
+
   if (!sections.length) return; // nada que mostrar
 
   body.innerHTML = sections.join('');
@@ -851,6 +885,41 @@ function togglePasteHelp(id) {
   const box = document.getElementById('paste-help-' + id);
   if (!box) return;
   box.classList.toggle('hidden');
+}
+
+// R-202605-XXX: Botones accionables textarea paste — Limpiar y Pegar
+function clearPasteTa(id) {
+  const ta = document.getElementById('ta-' + id);
+  if (!ta || !ta.value) return;
+  ta.value = '';
+  ta.dispatchEvent(new Event('input', { bubbles: true }));
+  ta.focus();
+  _updatePasteTaActions(id);
+}
+
+async function pasteFromClipboard(id) {
+  const ta = document.getElementById('ta-' + id);
+  if (!ta) return;
+  try {
+    const text = await navigator.clipboard.readText();
+    if (!text) return;
+    ta.value = text;
+    ta.dispatchEvent(new Event('paste', { bubbles: true }));
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    ta.focus();
+    _updatePasteTaActions(id);
+  } catch (e) {
+    showToast('No se pudo acceder al portapapeles', 'error');
+  }
+}
+
+function _updatePasteTaActions(id) {
+  const ta    = document.getElementById('ta-' + id);
+  const btn   = document.getElementById('pta-clear-' + id);
+  if (!ta || !btn) return;
+  const hasVal = ta.value.length > 0;
+  btn.disabled = !hasVal;
+  btn.classList.toggle('paste-ta-btn--disabled', !hasVal);
 }
 
 function _updateCkptReopenBtn() {
@@ -2059,11 +2128,18 @@ function _isInSession(ai) {
 function renderStatusBar() {
   // R-202604-060: tracker-status-bar DEPRECATED — lógica migrada a tracker-grid-header + global-footer
 
-  // ── Grid header: botón colapsar/expandir todo + T-202604-416: sprint progress ──
+  // ── Grid header: vacío — pill migrado a tracker-view-header (R-202605-139) ──
   const gridHeader = document.getElementById('tracker-grid-header');
   if (gridHeader) {
-    const active = state.ais.filter(a => !a.archived);
-    // T-202604-416: sprint activo — indicador clickeable que abre sprint health panel
+    gridHeader.innerHTML = '';
+    gridHeader.classList.remove('tgh-visible');
+  }
+
+  // ── R-202605-139: sprint pill en tracker-view-header ──────────────────────────────────
+  // El sprint pertenece al proyecto activo, no a un AI individual.
+  // El pill vive a la izquierda del selector de vista, siempre visible en el tab Tracker.
+  const viewHeader = document.getElementById('tracker-view-header');
+  if (viewHeader) {
     let sprintPillHtml = '';
     try {
       const proj = getActiveProject();
@@ -2074,7 +2150,7 @@ function renderStatusBar() {
         const spTotal = spItems.length;
         const spPct   = spTotal > 0 ? Math.round((spDone / spTotal) * 100) : 0;
         const spLabel = sp.label || sp.id;
-        sprintPillHtml = `<button class="tgh-sprint-pill" onclick="if(typeof switchTab==='function')switchTab('backlog');if(typeof toggleSprintHealthPanel==='function')setTimeout(toggleSprintHealthPanel,80);" title="Ver sprint health">` +
+        sprintPillHtml = `<button class="tgh-sprint-pill tvh-sprint-pill" onclick="if(typeof toggleSprintHealthPanel==='function')toggleSprintHealthPanel();" title="Ver sprint health">` +
           `<span class="tgh-sprint-name">${spLabel}</span>` +
           `<span class="tgh-sprint-sep">·</span>` +
           `<span class="tgh-sprint-progress">${spDone}/${spTotal}</span>` +
@@ -2085,12 +2161,15 @@ function renderStatusBar() {
       }
     } catch(e) {}
 
-    if (active.length || sprintPillHtml) {
-      gridHeader.innerHTML = sprintPillHtml;
-      gridHeader.classList.toggle('tgh-visible', !!sprintPillHtml);
-    } else {
-      gridHeader.innerHTML = '';
-      gridHeader.classList.remove('tgh-visible');
+    const existingPill = viewHeader.querySelector('.tvh-sprint-pill');
+    if (existingPill) {
+      if (sprintPillHtml) {
+        existingPill.outerHTML = sprintPillHtml;
+      } else {
+        existingPill.remove();
+      }
+    } else if (sprintPillHtml) {
+      viewHeader.insertAdjacentHTML('afterbegin', sprintPillHtml);
     }
   }
 
@@ -2488,7 +2567,7 @@ function updateTabNotifBadges() {
         badge.className = 'tab-notif-badge';
         btn.appendChild(badge);
       }
-      badge.textContent = counts[tab];
+      badge.textContent = counts[tab] > 9 ? '9+' : counts[tab];
       badge.classList.remove('hidden');
     } else {
       if (badge) badge.classList.add('hidden');
@@ -2772,7 +2851,7 @@ function renderGlobalRadarSidebar() {
         ? `<span class="rsb-session-elapsed${warnClass}" id="rsb-elapsed-${ai.id}">${elapsed.label}</span>`
         : '';
       const titleHtml = sessionTitle
-        ? `<span class="rsb-session-title">${esc(sessionTitle.substring(0, 28))}${sessionTitle.length > 28 ? '…' : ''}</span>`
+        ? `<span class="rsb-session-title" id="rsb-session-title-${ai.id}">${esc(sessionTitle.substring(0, 28))}${sessionTitle.length > 28 ? '…' : ''}</span>`
         : '';
       sessionInfo = `<div class="rsb-card-session-info">${titleHtml}${elapsedHtml}</div>`;
     } else {
@@ -3717,6 +3796,17 @@ function _renderTimerInCard(aiId) {
   const elapsed = d.elapsed + (d.running ? (Date.now() - d.startEpoch) : 0);
   timerEl.textContent = _formatTimer(elapsed);
   dotEl.className = 'session-timer-dot' + (d.running ? ' session-timer-dot--active' : ' session-timer-dot--paused');
+  // Actualizar título de sesión activa en tiempo real
+  const titleEl = document.getElementById('rsb-session-title-' + aiId);
+  if (titleEl) {
+    const ai = state.ais && state.ais.find(a => a.id === aiId);
+    if (ai) {
+      const sessions = getAISessions(aiId);
+      const last = sessions.length ? sessions[sessions.length - 1] : null;
+      const t = (last && last.title) ? last.title : '';
+      titleEl.textContent = t.length > 28 ? t.substring(0, 28) + '\u2026' : t;
+    }
+  }
 }
 
 function _refreshTimerTick() {
@@ -4329,11 +4419,17 @@ function buildCard(ai) {
         <div class="phase-bar-step" id="phase-confirm-${ai.id}"><span class="phase-bar-dot"></span>Confirmar</div>
         <div class="phase-bar-step" id="phase-save-${ai.id}"><span class="phase-bar-dot"></span>Guardar</div>
       </div>
-      <textarea class="paste-ta" id="ta-${ai.id}" rows="3"
-        placeholder="Pega aquí el resumen del prompt...&#10;&#10;**Título:** ...&#10;**Resumen:** ...&#10;**Archivos:** ..."
-        onpaste="handlePaste('${ai.id}')"
-        oninput="handleInput('${ai.id}')"
-        onfocus="enterFocusMode('${ai.id}')"></textarea>
+      <div class="paste-ta-wrap">
+        <textarea class="paste-ta" id="ta-${ai.id}" rows="3"
+          placeholder="Pega aquí el resumen del prompt...&#10;&#10;**Título:** ...&#10;**Resumen:** ...&#10;**Archivos:** ..."
+          onpaste="handlePaste('${ai.id}')"
+          oninput="handleInput('${ai.id}'); _updatePasteTaActions('${ai.id}')"
+          onfocus="enterFocusMode('${ai.id}')"></textarea>
+        <div class="paste-ta-actions" id="pta-${ai.id}">
+          <button class="paste-ta-btn paste-ta-btn--paste" onclick="pasteFromClipboard('${ai.id}')" aria-label="Pegar desde portapapeles" title="Pegar">📋</button>
+          <button class="paste-ta-btn paste-ta-btn--clear paste-ta-btn--disabled" id="pta-clear-${ai.id}" onclick="clearPasteTa('${ai.id}')" aria-label="Limpiar textarea" title="Limpiar" disabled>✕</button>
+        </div>
+      </div>
       <div class="char-counter" id="cc-${ai.id}"></div>
     </div>
     <div class="preview" id="prev-${ai.id}"></div>

@@ -7371,6 +7371,18 @@ body.radar-sb-open .tracker-sidebar {
 /* Mi vista — oculto por defecto */
 .bl-view-btn.hidden { display: none; }
 
+/* frole-bar fusionada dentro de bl-filter-strip — R[tmp:frole-into-filter-strip] */
+.frole-bar--inline {
+  width: 100%;
+  border-top: 1px solid var(--border);
+  padding-top: 5px;
+  margin-top: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+
 /* ── Capa 3: Sprint Bar ── */
 #bl-sprint-bar {
   position: relative;

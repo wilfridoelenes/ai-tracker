@@ -6317,8 +6317,74 @@ function exportHtmlMapMd() {
 
 // ── T-202604-102: Context vivo — import/store/export ──
 
+// R-202605-136: detectar si el texto es JSON de CONTEXT (no Markdown)
+function _isContextJson(text) {
+  if (!text || !text.trim()) return false;
+  try {
+    const o = JSON.parse(text.trim());
+    return typeof o === 'object' && o !== null && 'version' in o;
+  } catch(e) { return false; }
+}
+
+// R-202605-136: parsear CONTEXT en formato JSON a estructura de secciones para renderContext
+function parseContextJson(text) {
+  let obj;
+  try { obj = JSON.parse(text.trim()); }
+  catch(e) { return { version: '—', sections: [], raw: text, isJson: true, error: e.message }; }
+
+  const version = obj.version || '—';
+  const sections = [];
+
+  // Stack
+  if (Array.isArray(obj.stack) && obj.stack.length) {
+    const rows = obj.stack.map(s => `| ${s.layer||''} | ${s.tech||''} |`).join('\n');
+    sections.push({ name: 'Stack', content: `| Capa | Tecnología |\n|------|------------|\n${rows}` });
+  }
+
+  // Estado / sprint
+  if (obj.sprints) {
+    const sp = obj.sprints;
+    const sprintLines = [
+      sp.active       ? `Sprint activo: ${sp.active}`              : null,
+      sp.goal         ? `Goal: ${sp.goal}`                         : null,
+      sp.version_target ? `Version target: ${sp.version_target}`   : null,
+      sp.release_type ? `Release type: ${sp.release_type}`         : null
+    ].filter(Boolean);
+    sections.push({ name: 'Estado actual', content: sprintLines.join('\n') });
+  }
+
+  // Contadores
+  if (obj.counters) {
+    const c = obj.counters;
+    sections.push({ name: 'Contadores', content: `P=${c.P||0} · T=${c.T||0} · R=${c.R||0} · B=${c.B||0}` });
+  }
+
+  // Decisiones técnicas
+  if (Array.isArray(obj.decisions) && obj.decisions.length) {
+    const rows = obj.decisions.map(d => `| ${d.date||'—'} | ${(d.text||'').replace(/\|/g,'\\|')} |`).join('\n');
+    sections.push({ name: 'Decisiones técnicas registradas', content: `| Fecha | Decisión |\n|-------|----------|\n${rows}` });
+  } else {
+    sections.push({ name: 'Decisiones técnicas registradas', content: '_Sin decisiones técnicas registradas._' });
+  }
+
+  // Gaps
+  if (Array.isArray(obj.gaps) && obj.gaps.length) {
+    const rows = obj.gaps.map(g => `| ${g.code||'—'} | ${(g.title||'').replace(/\|/g,'\\|')} | ${g.priority||'—'} |`).join('\n');
+    sections.push({ name: 'Gaps / pendientes sprint activo', content: `| Código | Título | Priority |\n|--------|--------|----------|\n${rows}` });
+  } else {
+    sections.push({ name: 'Gaps / pendientes sprint activo', content: '_Sin ítems pendientes en el sprint activo._' });
+  }
+
+  // Notas / Memoria operativa
+  if (obj.notes && obj.notes.trim()) {
+    sections.push({ name: 'Notas / Memoria operativa', content: obj.notes });
+  }
+
+  return { version, sections, raw: text, isJson: true };
+}
+
 function parseContextMd(text) {
-  // Extrae versión y secciones del CONTEXT.md
+  // Extrae versión y secciones del CONTEXT.md — read-only para CONTEXTs históricos en Markdown
   const versionMatch = text.match(/[Vv]ersi[oó]n:\s*([\d.]+)/);
   const version = versionMatch ? versionMatch[1] : '—';
   
@@ -6359,17 +6425,33 @@ function importContextMd() {
 
 function _importContextMdFromText(text) {
   if (!text || !text.trim()) { showToast('warning', '⚠ Archivo vacío o inválido'); return; }
-  const parsed = parseContextMd(text);
+
+  // R-202605-136: detectar formato JSON vs Markdown
+  const looksJson = text.trim().startsWith('{');
+  let parsed;
+  if (looksJson) {
+    // Validar JSON explícitamente antes de proceder
+    try { JSON.parse(text.trim()); }
+    catch(e) {
+      showToast('error', `✗ JSON inválido: ${e.message}`);
+      return;
+    }
+    parsed = parseContextJson(text);
+  } else {
+    parsed = parseContextMd(text);
+  }
+
   const now = new Date().toLocaleString('es-MX', {
     day:'2-digit', month:'2-digit', year:'numeric',
     hour:'2-digit', minute:'2-digit'
   });
-  
+
   const meta = {
     version: parsed.version,
     importedAt: now,
     sectionCount: parsed.sections.length,
-    lastModified: null
+    lastModified: null,
+    format: parsed.isJson ? 'json' : 'markdown'
   };
   localStorage.setItem(_tplKey('context-raw'), text);
   localStorage.setItem(_tplKey('context-meta'), JSON.stringify(meta));
@@ -6378,7 +6460,8 @@ function _importContextMdFromText(text) {
   _updateSubTabButtons('context');
   _blogLog('importado', `v${parsed.version}`, `${parsed.sections.length} secciones`, 'context');
   _updateDocLogCount('context');
-  showToast('success', `✓ CONTEXT v${parsed.version} importado (${parsed.sections.length} secciones)`);
+  const fmtLabel = parsed.isJson ? ' · JSON' : '';
+  showToast('success', `✓ CONTEXT v${parsed.version} importado (${parsed.sections.length} secciones${fmtLabel})`);
 }
 
 function updateContextBanner() {
@@ -6386,12 +6469,14 @@ function updateContextBanner() {
   const vEl = document.getElementById('cmeta-version');
   const iEl = document.getElementById('cmeta-imported');
   const cEl = document.getElementById('cmeta-section-count');
+  const fEl = document.getElementById('cmeta-format'); // opcional — graceful si no existe
   if (vEl) vEl.textContent = meta.version ? 'v' + meta.version : '—';
   if (iEl) iEl.textContent = meta.importedAt || '—';
   if (cEl) {
     const n = meta.sectionCount || 0;
     cEl.textContent = n ? n + ' secciones' : '';
   }
+  if (fEl) fEl.textContent = meta.format ? meta.format.toUpperCase() : '';
 }
 
 // renderContextStatus — legacy stub (llamado desde código externo)
@@ -6664,19 +6749,29 @@ function renderContext() {
   // Actualizar banner
   updateContextBanner();
 
-  // Parsear secciones por ## headers
-  const lines = raw.split('\n');
-  const sections = [];
-  let current = null;
-  for (const line of lines) {
-    if (/^## /.test(line)) {
-      if (current) sections.push(current);
-      current = { title: line.replace(/^## /, '').trim(), lines: [] };
-    } else if (current) {
-      current.lines.push(line);
+  let sections;
+  if (_isContextJson(raw)) {
+    // R-202605-136: formato JSON — convertir a {title, lines} para _renderContextSections
+    const parsed = parseContextJson(raw);
+    sections = parsed.sections.map(s => ({
+      title: s.name,
+      lines: (s.content || '').split('\n')
+    }));
+  } else {
+    // Markdown legacy — read-only: parsear por ## headers
+    const lines = raw.split('\n');
+    sections = [];
+    let current = null;
+    for (const line of lines) {
+      if (/^## /.test(line)) {
+        if (current) sections.push(current);
+        current = { title: line.replace(/^## /, '').trim(), lines: [] };
+      } else if (current) {
+        current.lines.push(line);
+      }
     }
+    if (current) sections.push(current);
   }
-  if (current) sections.push(current);
 
   _ctxSections = sections; // cache para búsqueda
   _renderContextSections(sections, '');

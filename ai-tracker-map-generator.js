@@ -663,106 +663,49 @@ function _generateMap() {
 // ─── Generador CONTEXT ───────────────────────────────────────────────────────
 
 function _generateContext() {
-  const _ctxVersion = _mgGetVersion();
+  // R-202605-136: produce JSON puro — parseable sin regex
+  const _activeSp   = _mgActiveSprint();
+  const _ctxVersion = (_activeSp && _activeSp.version_target && _activeSp.version_target !== 'undefined')
+    ? _activeSp.version_target
+    : _mgGetVersion();
   const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
 
-  // B-190: preferir contexto almacenado del proyecto (acumula entre sprints)
-  // B-202605-227: si storedCtx vacío → buildContextMd como base; Memoria operativa se inyecta igualmente
-  const storedCtx = (proj && typeof getProjContext === 'function') ? getProjContext(proj.id) : null;
-  let base = storedCtx && storedCtx.trim()
-    ? storedCtx
-    : (typeof buildContextMd === 'function'
-        ? buildContextMd(_ctxVersion)
-        : `# CONTEXT generado — buildContextMd no disponible\n`);
+  // Timestamp
+  const _now = new Date();
+  const _pad = n => String(n).padStart(2, '0');
+  const updated = `${_now.getFullYear()}-${_pad(_now.getMonth()+1)}-${_pad(_now.getDate())} ` +
+                  `${_pad(_now.getHours())}:${_pad(_now.getMinutes())} UTC-6`;
 
-  // Guard: base nunca undefined
-  if (!base || !base.trim()) {
-    base = `# CONTEXT — AI Tracker\nVersión: ${_ctxVersion}\n`;
+  // Stack — leer del contexto almacenado si existe; priorizar JSON > Markdown > default
+  let stack = [];
+  const storedRaw = (proj && typeof getProjContext === 'function') ? getProjContext(proj.id) : null;
+  if (storedRaw && storedRaw.trim()) {
+    let isJson = false;
+    try { const o = JSON.parse(storedRaw.trim()); isJson = typeof o === 'object' && o !== null && 'version' in o; } catch(e) {}
+    if (isJson) {
+      try { stack = JSON.parse(storedRaw.trim()).stack || []; } catch(e) { stack = []; }
+    } else {
+      // Extraer tabla Stack del Markdown almacenado
+      const stackMatch = storedRaw.match(/## Stack[\s\S]*?\n([\s\S]*?)(?=\n## |\n---\s*$|$)/m);
+      if (stackMatch) {
+        stack = stackMatch[1].split('\n')
+          .filter(l => l.startsWith('|') && !/^\|\s*-/.test(l) && !/Capa/.test(l))
+          .map(l => {
+            const cells = l.split('|').map(c => c.trim()).filter(Boolean);
+            return cells.length >= 2 ? { layer: cells[0], tech: cells[1] } : null;
+          }).filter(Boolean);
+      }
+    }
   }
+  // Normalizar: Firebase → Supabase (activo)
+  stack = stack.map(s => ({
+    ...s,
+    tech: (s.tech || '')
+      .replace(/Firebase Firestore\s*\(opcional\)[^\n]*/g, 'Supabase (activo)')
+      .replace(/Firebase Firestore[^\n]*/g, 'Supabase (activo)')
+  }));
 
-  // T-202605-002: normalizar Archivo principal — eliminar versiones legacy del nombre del archivo HTML
-  base = base.replace(/\bAI-Tracker-v[\d.]+\.html\b/g, 'index.html');
-
-  // T-202605-003: actualizar stack — Firebase Firestore → Supabase (activo)
-  base = base.replace(/Firebase Firestore\s*\(opcional\)[^\n]*/g, 'Supabase (activo)');
-  base = base.replace(/Firebase Firestore[^\n]*/g, 'Supabase (activo)');
-
-  const activeSprint = _mgActiveSprint();
-  const sprintLabel = activeSprint ? activeSprint.id : 'S-??';
-
-  // Memoria operativa — extraer de sesiones del sprint
-  const sessions = proj && Array.isArray(proj.sessions) ? proj.sessions : [];
-  const sprintSessions = activeSprint
-    ? sessions.filter(s => _mgSessionInSprint(s, activeSprint.id))
-    : sessions.slice(-20);
-
-  // B-202605-226: log si 0 sesiones matchean con sprint activo
-  if (activeSprint && !sprintSessions.length && sessions.length) {
-    console.warn(`[MapGen] _generateContext: 0 sesiones matchearon sprint ${activeSprint.id}`);
-  }
-
-  // Extraer entradas previas de ## Memoria operativa del base para preservarlas
-  // B-202605-227: regex más permisivo — acepta sección al final del documento sin \n## posterior
-  const memMatch = base.match(/^## Memoria operativa\n([\s\S]*?)(?=\n## |\n---\s*$|$)/m);
-  const existingLines = memMatch
-    ? memMatch[1].split('\n').map(l => l.trim()).filter(l => l.startsWith('['))
-    : [];
-  const seenMemoria = new Set(existingLines.map(l => l.toLowerCase()));
-
-  // Nuevas entradas del sprint — decisiones (key corregido post B-225)
-  const newDecisions = sprintSessions
-    .filter(s => s.decision && s.decision.trim())
-    .map(s => `[${sprintLabel}] Decisión: ${s.decision.trim()}`)
-    .filter(entry => {
-      const key = entry.toLowerCase();
-      if (seenMemoria.has(key)) return false;
-      seenMemoria.add(key);
-      return true;
-    });
-
-  // Nuevas entradas del sprint — aprendizajes
-  const newLearnings = sprintSessions
-    .filter(s => (s.aprendizaje || s.learning || '').trim())
-    .map(s => `[${sprintLabel}] Aprendizaje: ${(s.aprendizaje || s.learning || '').trim()}`)
-    .filter(entry => {
-      const key = entry.toLowerCase();
-      if (seenMemoria.has(key)) return false;
-      seenMemoria.add(key);
-      return true;
-    });
-
-  const newEntries = [...newDecisions, ...newLearnings];
-
-  // Remover ## Memoria operativa existente del base para reinyectar acumulada
-  // B-202605-227: regex más permisivo — cubre caso sección al final sin delimitador posterior
-  base = base.replace(/\n## Memoria operativa[\s\S]*?(?=\n## |\n---\s*$|$)/m, '');
-
-  // Reconstruir sección acumulada — B-202605-227: inyectar aunque newEntries esté vacío si hay existingLines
-  const allLines = [...existingLines, ...newEntries];
-  if (allLines.length) {
-    const memoriaSection = `\n\n## Memoria operativa\n\n${allLines.join('\n')}\n`;
-    base = base.trimEnd() + memoriaSection;
-  }
-
-  // T-202605-006: inyectar Decisiones técnicas registradas desde proj.decisions
-  const _injectSection = (base, header, content) => {
-    const re = new RegExp(`\\n## ${header.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?(?=\\n## |\\n---\\s*$|$)`, 'm');
-    const block = `\n\n## ${header}\n\n${content}`;
-    return re.test(base) ? base.replace(re, block) : base.trimEnd() + block;
-  };
-
-  if (proj && Array.isArray(proj.decisions) && proj.decisions.length) {
-    const sortedDec = [...proj.decisions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
-    const decRows = sortedDec
-      .map(d => `| ${d.date || '—'} | ${(d.text || '').replace(/\|/g, '\\|')} |`)
-      .join('\n');
-    const decContent = `| Fecha | Decisión |\n|-------|----------|\n${decRows}\n`;
-    base = _injectSection(base, 'Decisiones técnicas registradas', decContent);
-  } else {
-    base = _injectSection(base, 'Decisiones técnicas registradas', '_Sin decisiones técnicas registradas._\n');
-  }
-
-  // T-202605-006: inyectar Gaps / pendientes sprint activo desde backlog
+  // Contadores desde backlog items
   let _blItems = [];
   try {
     if (typeof _tplKey === 'function') {
@@ -773,22 +716,97 @@ function _generateContext() {
     }
   } catch(e) { _blItems = []; }
 
-  if (activeSprint && _blItems.length) {
-    const gaps = _blItems.filter(it => it.sprint === activeSprint.id && it.status === 'pendiente');
-    if (gaps.length) {
-      const gapRows = gaps
-        .map(it => `| ${it.code || '—'} | ${(it.title || it.desc || '').replace(/\|/g, '\\|')} | ${it.priority || '—'} |`)
-        .join('\n');
-      const gapsContent = `| Código | Título | Priority |\n|--------|--------|----------|\n${gapRows}\n`;
-      base = _injectSection(base, 'Gaps / pendientes sprint activo', gapsContent);
-    } else {
-      base = _injectSection(base, 'Gaps / pendientes sprint activo', '_Sin ítems pendientes en el sprint activo._\n');
-    }
-  } else {
-    base = _injectSection(base, 'Gaps / pendientes sprint activo', '_Sin sprint activo o backlog no disponible._\n');
+  const counters = {
+    P: _blItems.filter(i => i.type === 'P').length,
+    T: _blItems.filter(i => i.type === 'T').length,
+    R: _blItems.filter(i => i.type === 'R').length,
+    B: _blItems.filter(i => i.type === 'B').length
+  };
+
+  // Sprint activo
+  const sprintInfo = _activeSp ? {
+    active: _activeSp.id,
+    name: _activeSp.name || '',
+    goal: _activeSp.goal || '',
+    version_target: _activeSp.version_target || '',
+    release_type: _activeSp.release_type || ''
+  } : null;
+
+  // Decisiones registradas del proyecto
+  const decisions = (proj && Array.isArray(proj.decisions) && proj.decisions.length)
+    ? [...proj.decisions].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+        .map(d => ({ date: d.date || '—', text: d.text || '' }))
+    : [];
+
+  // Gaps — ítems pendientes del sprint activo
+  const gaps = (_activeSp && _blItems.length)
+    ? _blItems
+        .filter(it => it.sprint === _activeSp.id && it.status === 'pendiente')
+        .map(it => ({ code: it.code || '—', title: it.title || it.desc || '', priority: it.priority || '—' }))
+    : [];
+
+  // Notas / Memoria operativa — extraer de sesiones del sprint + sesiones previas almacenadas
+  const sessions = proj && Array.isArray(proj.sessions) ? proj.sessions : [];
+  const spLabel   = _activeSp ? _activeSp.id : 'S-??';
+  const sprintSessions = _activeSp
+    ? sessions.filter(s => _mgSessionInSprint(s, _activeSp.id))
+    : sessions.slice(-20);
+
+  // B-202605-226: log si 0 sesiones matchean
+  if (_activeSp && !sprintSessions.length && sessions.length) {
+    console.warn(`[MapGen] _generateContext: 0 sesiones matchearon sprint ${_activeSp.id}`);
   }
 
-  return base;
+  // Preservar entradas previas de notas (si el stored era JSON)
+  let existingNoteLines = [];
+  if (storedRaw && storedRaw.trim()) {
+    let isJson = false;
+    try { const o = JSON.parse(storedRaw.trim()); isJson = typeof o === 'object' && o !== null && 'version' in o; } catch(e) {}
+    if (isJson) {
+      try {
+        const prev = JSON.parse(storedRaw.trim());
+        existingNoteLines = (prev.notes || '').split('\n').map(l => l.trim()).filter(l => l.startsWith('['));
+      } catch(e) {}
+    } else {
+      const memMatch = storedRaw.match(/^## Memoria operativa\n([\s\S]*?)(?=\n## |\n---\s*$|$)/m);
+      if (memMatch) {
+        existingNoteLines = memMatch[1].split('\n').map(l => l.trim()).filter(l => l.startsWith('['));
+      }
+    }
+  }
+
+  const seenNotes = new Set(existingNoteLines.map(l => l.toLowerCase()));
+  const newNoteEntries = [];
+
+  for (const s of sprintSessions) {
+    if (s.decision && s.decision.trim()) {
+      const entry = `[${spLabel}] Decisión: ${s.decision.trim()}`;
+      if (!seenNotes.has(entry.toLowerCase())) { newNoteEntries.push(entry); seenNotes.add(entry.toLowerCase()); }
+    }
+    const learning = (s.aprendizaje || s.learning || '').trim();
+    if (learning) {
+      const entry = `[${spLabel}] Aprendizaje: ${learning}`;
+      if (!seenNotes.has(entry.toLowerCase())) { newNoteEntries.push(entry); seenNotes.add(entry.toLowerCase()); }
+    }
+  }
+
+  const allNotes = [...existingNoteLines, ...newNoteEntries].join('\n');
+
+  // Construir objeto JSON
+  const ctx = {
+    version: _ctxVersion,
+    updated,
+    project: proj ? (proj.name || 'AI Tracker') : 'AI Tracker',
+    main_file: 'index.html',
+    stack,
+    sprints: sprintInfo,
+    counters,
+    decisions,
+    gaps,
+    notes: allNotes
+  };
+
+  return JSON.stringify(ctx, null, 2);
 }
 
 // ─── Generador BACKLOG ───────────────────────────────────────────────────────

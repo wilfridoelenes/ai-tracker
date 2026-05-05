@@ -17,13 +17,21 @@ function exportContextMd() {
   const _ctxVer = (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
     ? _effectiveVersion
     : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
-  _showExportConfirmModal('CONTEXT', `${_docPrefix()}-CONTEXT_${_ctxVer}.md`, () => {
-    const b = new Blob([raw], { type: 'text/markdown' });
+
+  // R-202605-136: detectar formato JSON para extensión y MIME correctos
+  let isJson = false;
+  try { const o = JSON.parse(raw.trim()); isJson = typeof o === 'object' && o !== null && 'version' in o; } catch(e) {}
+  const ext      = isJson ? 'json' : 'md';
+  const mime     = isJson ? 'application/json' : 'text/markdown';
+  const fileName = `${_docPrefix()}-CONTEXT_${_ctxVer}.${ext}`;
+
+  _showExportConfirmModal('CONTEXT', fileName, () => {
+    const b = new Blob([raw], { type: mime });
     const u = URL.createObjectURL(b);
     const a = document.createElement('a');
-    a.href = u; a.download = `${_docPrefix()}-CONTEXT_${_ctxVer}.md`;
+    a.href = u; a.download = fileName;
     a.click(); URL.revokeObjectURL(u);
-    _blogLog('exportado', `${_docPrefix()}-CONTEXT_${_ctxVer}.md`, '', 'context');
+    _blogLog('exportado', fileName, '', 'context');
     showToast('success', 'CONTEXT exportado');
   });
 }
@@ -2878,65 +2886,130 @@ function _renderArchivoBody(view) {
   }
 }
 
+// R-202605-124: número de sprint como entero para comparar con la frontera S-23
+function _sprintNum(id) {
+  const m = (id || '').match(/^S-(\d+)$/i);
+  return m ? parseInt(m[1], 10) : 0;
+}
+
+// R-202605-124: fila compacta de ítem para el Archivo Histórico
+// muestra: tipo · código · título · effort · status final
+function _archItemRow(i) {
+  const type   = esc(i.type || 'T');
+  const code   = esc(i.code || '—');
+  const title  = esc(i.title || i.desc || '—');
+  const effort = parseInt(i.effort) || 0;
+  const effortHtml = effort
+    ? `<span class="arch-row-effort" title="Effort ${effort}">${'●'.repeat(effort)}</span>`
+    : '';
+  const statusLabel = i.status === 'historico'
+    ? (i.doneAt ? 'done' : i.discardReason ? 'descartado' : 'historico')
+    : esc(i.status || '');
+  return `<div class="arch-item-row">
+    <span class="arch-row-type arch-row-type--${type.toLowerCase()}">${type}</span>
+    <span class="arch-row-code">${code}</span>
+    <span class="arch-row-title">${title}</span>
+    ${effortHtml}
+    <span class="arch-row-status">${statusLabel}</span>
+  </div>`;
+}
+
+// R-202605-124: header HTML de una entrada de sprint con datos completos
+function _archSprintEntryHtml(sp, spItems, entryId, entryKey, entryOpen) {
+  const dateStr = sp.closedAt
+    ? new Date(sp.closedAt).toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'})
+    : '—';
+  const effortDone = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 0), 0);
+  const effortHtml = effortDone
+    ? `<span class="arch-se-effort" title="Effort entregado">${effortDone} effort</span>`
+    : '';
+  const goalHtml = sp.goal
+    ? `<span class="arch-se-goal" title="${esc(sp.goal)}">${esc(sp.goal)}</span>`
+    : '';
+  const nameDisplay = sp.label
+    ? esc(sp.label.replace(/^S-\d+\s*·?\s*/i, ''))
+    : esc(sp.id || 'Sprint sin nombre');
+
+  return `<div class="arch-sprint-entry">
+    <div class="arch-sprint-entry-header" tabindex="0"
+         onclick="_toggleArchSprintEntry('${esc(entryId)}','${esc(entryKey)}')"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleArchSprintEntry('${esc(entryId)}','${esc(entryKey)}')}">
+      <span class="arch-se-arrow${entryOpen ? ' arch-se-arrow--open' : ''}" aria-hidden="true">&#9658;</span>
+      <span class="arch-se-id">${esc(sp.id)}</span>
+      <span class="arch-se-name">${nameDisplay}</span>
+      ${goalHtml}
+      <span class="arch-se-date">${esc(dateStr)}</span>
+      ${effortHtml}
+      <span class="arch-se-count">${spItems.length} ítem${spItems.length !== 1 ? 's' : ''}</span>
+    </div>
+    <div class="arch-sprint-items${entryOpen ? '' : ' arch-sprint-items--collapsed'}" id="${esc(entryId)}">
+      ${entryOpen ? `<div class="arch-items-list">${spItems.map(_archItemRow).join('')}</div>` : ''}
+    </div>
+  </div>`;
+}
+
 // Vista Por sprint — accordion de sprints cerrados
+// R-202605-124: sprints ≥ S-23 con datos completos · pre-S-23 agrupados como bloque único
 function _renderArchivoViewSprint(body) {
   const historicos    = ITEMS.filter(i => i.status === 'historico');
   const closedSprints = getActiveSprints()
     .filter(s => s.status === 'closed')
     .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0)); // más reciente primero
 
-  // Históricos sin sprint asignado
-  const noSprint = historicos.filter(i => !i.sprint);
+  // R-202605-124: frontera S-23 — sprints con datos completos vs. legado
+  const BOUNDARY = 23;
+  const recentSprints = closedSprints.filter(s => _sprintNum(s.id) >= BOUNDARY);
+  const legacySprints = closedSprints.filter(s => _sprintNum(s.id) > 0 && _sprintNum(s.id) < BOUNDARY);
 
-  if (!closedSprints.length && !noSprint.length) {
+  // Ítems huérfanos (sin sprint registrado o sprint que ya no existe en catálogo)
+  const registeredIds = new Set(closedSprints.map(s => s.id));
+  const noSprint = historicos.filter(i => !i.sprint || !registeredIds.has(i.sprint));
+
+  // Ítems de sprints legado (sprint id < S-23 que sí está en catálogo)
+  const legacySprintIds = new Set(legacySprints.map(s => s.id));
+  const legacyItems = historicos.filter(i => legacySprintIds.has(i.sprint));
+
+  // Total de ítems sin agrupación moderna
+  const preLegacyItems = [...legacyItems, ...noSprint];
+
+  const hasData = recentSprints.some(s => historicos.filter(i => i.sprint === s.id).length > 0)
+               || preLegacyItems.length > 0;
+
+  if (!hasData) {
     body.innerHTML = `<div class="arch-view"><div class="arch-empty">Sin sprints cerrados con ítems históricos.</div></div>`;
     return;
   }
 
   let html = `<div class="arch-view" id="arch-view-sprint">`;
 
-  closedSprints.forEach(sp => {
+  // ── Sprints ≥ S-23 con datos completos ──────────────────────────────
+  recentSprints.forEach(sp => {
     const spItems = historicos.filter(i => i.sprint === sp.id);
     if (!spItems.length) return;
 
     const entryKey  = 'arch-se-' + sp.id;
     const entryOpen = (() => { try { return localStorage.getItem(entryKey) === '1'; } catch { return false; } })();
-    const dateStr   = sp.closedAt
-      ? new Date(sp.closedAt).toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'})
-      : '—';
     const entryId   = 'arch-se-body-' + sp.id.toLowerCase().replace(/[^a-z0-9]/g, '-');
 
-    html += `<div class="arch-sprint-entry">
-      <div class="arch-sprint-entry-header" tabindex="0"
-           onclick="_toggleArchSprintEntry('${esc(entryId)}','${esc(entryKey)}')"
-           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleArchSprintEntry('${esc(entryId)}','${esc(entryKey)}')}">
-        <span class="arch-se-arrow${entryOpen ? ' arch-se-arrow--open' : ''}" aria-hidden="true">&#9658;</span>
-        <span class="arch-se-id">${esc(sp.id)}</span>
-        <span class="arch-se-name">${esc(sp.label || sp.id || 'Sprint sin nombre')}</span>
-        ${sp.goal ? `<span class="arch-se-goal" title="${esc(sp.goal)}">${esc(sp.goal)}</span>` : ''}
-        <span class="arch-se-date">${esc(dateStr)}</span>
-        <span class="arch-se-count">${spItems.length} ítem${spItems.length !== 1 ? 's' : ''}</span>
-      </div>
-      <div class="arch-sprint-items${entryOpen ? '' : ' arch-sprint-items--collapsed'}" id="${esc(entryId)}">
-        ${entryOpen ? spItems.map(i => buildBacklogItem(i)).join('') : ''}
-      </div>
-    </div>`;
+    html += _archSprintEntryHtml(sp, spItems, entryId, entryKey, entryOpen);
   });
 
-  if (noSprint.length) {
-    const nsKey  = 'arch-se-nosprint';
-    const nsOpen = (() => { try { return localStorage.getItem(nsKey) === '1'; } catch { return false; } })();
-    html += `<div class="arch-sprint-entry">
+  // ── Histórico pre-S-23 — bloque único colapsable ─────────────────────
+  if (preLegacyItems.length) {
+    const legKey  = 'arch-se-legacy';
+    const legOpen = (() => { try { return localStorage.getItem(legKey) === '1'; } catch { return false; } })();
+    const legId   = 'arch-se-body-legacy';
+    html += `<div class="arch-sprint-entry arch-sprint-entry--legacy">
       <div class="arch-sprint-entry-header" tabindex="0"
-           onclick="_toggleArchSprintEntry('arch-se-body-nosprint','${nsKey}')"
-           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleArchSprintEntry('arch-se-body-nosprint','${nsKey}')}">
-        <span class="arch-se-arrow${nsOpen ? ' arch-se-arrow--open' : ''}" aria-hidden="true">▸</span>
-        <span class="arch-se-id">—</span>
-        <span class="arch-se-name">Sin sprint asignado</span>
-        <span class="arch-se-count">${noSprint.length} ítem${noSprint.length !== 1 ? 's' : ''}</span>
+           onclick="_toggleArchSprintEntry('${legId}','${legKey}')"
+           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleArchSprintEntry('${legId}','${legKey}')}">
+        <span class="arch-se-arrow${legOpen ? ' arch-se-arrow--open' : ''}" aria-hidden="true">&#9658;</span>
+        <span class="arch-se-id arch-se-id--legacy">pre-S-23</span>
+        <span class="arch-se-name">Histórico pre-S-23 (sin datos de sprint)</span>
+        <span class="arch-se-count">${preLegacyItems.length} ítem${preLegacyItems.length !== 1 ? 's' : ''}</span>
       </div>
-      <div class="arch-sprint-items${nsOpen ? '' : ' arch-sprint-items--collapsed'}" id="arch-se-body-nosprint">
-        ${nsOpen ? noSprint.map(i => buildBacklogItem(i)).join('') : ''}
+      <div class="arch-sprint-items${legOpen ? '' : ' arch-sprint-items--collapsed'}" id="${legId}">
+        ${legOpen ? `<div class="arch-items-list">${preLegacyItems.map(_archItemRow).join('')}</div>` : ''}
       </div>
     </div>`;
   }
@@ -2961,6 +3034,7 @@ function _renderArchivoViewFlat(body) {
 }
 
 // Toggle individual sprint entry dentro del archivo histórico
+// R-202605-124: lazy render con _archItemRow (filas compactas) en lugar de buildBacklogItem
 function _toggleArchSprintEntry(bodyId, storageKey) {
   const el = document.getElementById(bodyId);
   if (!el) return;
@@ -2975,13 +3049,21 @@ function _toggleArchSprintEntry(bodyId, storageKey) {
   if (arrow) arrow.classList.toggle('arch-se-arrow--open', nowOpen);
 
   if (nowOpen) {
-    // Lazy render de ítems al abrir
-    if (!el.innerHTML.trim()) {
-      const spId     = storageKey.replace('arch-se-', '');
-      const spItems  = spId === 'nosprint'
-        ? ITEMS.filter(i => i.status === 'historico' && !i.sprint)
-        : ITEMS.filter(i => i.status === 'historico' && i.sprint === spId);
-      el.innerHTML = spItems.map(i => buildBacklogItem(i)).join('');
+    // R-202605-124: lazy render de filas compactas al abrir
+    if (!el.querySelector('.arch-items-list')) {
+      let spItems;
+      if (bodyId === 'arch-se-body-legacy') {
+        // Bloque legado: históricos sin sprint en catálogo o sprint < S-23
+        const BOUNDARY = 23;
+        const closedSprints = getActiveSprints().filter(s => s.status === 'closed');
+        const registeredIds = new Set(closedSprints.map(s => s.id));
+        const legacyIds     = new Set(closedSprints.filter(s => _sprintNum(s.id) > 0 && _sprintNum(s.id) < BOUNDARY).map(s => s.id));
+        spItems = ITEMS.filter(i => i.status === 'historico' && (!i.sprint || !registeredIds.has(i.sprint) || legacyIds.has(i.sprint)));
+      } else {
+        const spId = storageKey.replace(/^arch-se-/, '');
+        spItems = ITEMS.filter(i => i.status === 'historico' && i.sprint === spId);
+      }
+      el.innerHTML = `<div class="arch-items-list">${spItems.map(_archItemRow).join('')}</div>`;
     }
     el.classList.remove('arch-sprint-items--collapsed');
   } else {
@@ -5012,8 +5094,43 @@ function _isValidSprintName(label) {
   return /^S-\d+\s+·\s+.+/.test(label.trim());
 }
 
+// R-202605-134: sugerir release_type basado en el contenido del sprint
+// Solo Bs/Ts → Patch · Rs features/UX → Minor · Rs arquitectura/refactor → Major · mezcla Rs+Bs → Minor
+function _suggestReleaseType(sprintItems) {
+  if (!sprintItems || !sprintItems.length) return 'Patch';
+  const hasR = sprintItems.some(i => i.type === 'R');
+  const hasB = sprintItems.some(i => i.type === 'B');
+  const hasT = sprintItems.some(i => i.type === 'T');
+  if (!hasR) return 'Patch';
+  // Rs arquitectura/refactor → Major (keywords heurísticos)
+  const archKeywords = /migra|refactor|arquitectura|core|parser|schema|json/i;
+  const hasArch = sprintItems.some(i => i.type === 'R' && archKeywords.test(i.title || i.desc || ''));
+  if (hasArch) return 'Major';
+  // mezcla Rs+Bs → Minor
+  if (hasR && hasB) return 'Minor';
+  // Rs features/UX → Minor
+  return 'Minor';
+}
+
+// R-202605-134: sugerir version_target basado en última versión registrada
+// Incrementa el segmento correcto según release_type
+function _suggestVersionTarget(releaseType) {
+  try {
+    const vStr = (typeof _effectiveVersion === 'function' ? _effectiveVersion() : _effectiveVersion) || '0.0.0';
+    const clean = vStr.replace(/^v/i, '');
+    const parts = clean.split('.').map(Number);
+    const major = parts[0] || 0;
+    const minor = parts[1] || 0;
+    const patch = parts[2] || 0;
+    if (releaseType === 'Major') return `v${major + 1}.0.0`;
+    if (releaseType === 'Minor') return `v${major}.${minor + 1}.0`;
+    return `v${major}.${minor}.${patch + 1}`;
+  } catch { return 'futura'; }
+}
+
 // R-202605-123: createSprint acepta goal opcional (máx 120 chars)
-function createSprint(raw, goal) {
+// R-202605-134: acepta version_target y release_type — se calculan con sugerencia automática si no se pasan
+function createSprint(raw, goal, versionTarget, releaseType) {
   const _activeProjForSprint = getActiveProject();
   if (!_activeProjForSprint) { showToast('warning', 'Selecciona un proyecto primero'); return; }
   if (!_activeProjForSprint.sprints) _activeProjForSprint.sprints = [];
@@ -5035,7 +5152,14 @@ function createSprint(raw, goal) {
   }
   if (_getSprintById(id)) { showToast('warning', 'Ya existe ' + id); return id; }
   const goalTrimmed = (goal || '').trim().slice(0, 120);
-  _activeProjForSprint.sprints.push({ id, label: displayLabel, goal: goalTrimmed, status: 'open', createdAt: Date.now() });
+  // R-202605-134: version_target y release_type — usar sugerencia si no se pasan explícitamente
+  const rt  = (releaseType   || '').trim() || null;
+  const vt  = (versionTarget || '').trim() || null;
+  _activeProjForSprint.sprints.push({
+    id, label: displayLabel, goal: goalTrimmed,
+    version_target: vt, release_type: rt,
+    status: 'open', createdAt: Date.now()
+  });
   save();
   return id;
 }
@@ -5139,6 +5263,8 @@ function _generateSprintRetroMd(id, notes) {
 | ID | ${id} |
 | Nombre | ${sprintLabel} |
 ${sp && sp.goal ? `| Goal | ${sp.goal} |` : ''}
+${sp && sp.version_target ? `| Versión | ${sp.version_target} |` : ''}
+${sp && sp.release_type   ? `| Release  | ${sp.release_type} |` : ''}
 | Cerrado | ${closedStr} |
 ${daysElapsed !== null ? `| Duración | ${daysElapsed} día${daysElapsed !== 1 ? 's' : ''} |` : ''}
 
@@ -5349,6 +5475,9 @@ function openNewSprintInline(code) {
   const suggestHtml = velocityData !== null
     ? `<span class="sprint-inline-hint">Velocidad real promedio: <strong>${velocityData.avg}</strong> effort</span>`
     : '';
+  // R-202605-134: sugerencia automática de release_type y version_target
+  const suggestedRt  = _suggestReleaseType(ITEMS.filter(i => i.sprint === code));
+  const suggestedVt  = _suggestVersionTarget(suggestedRt);
   // R-202605-123: campo goal opcional bajo el nombre del sprint
   wrap.innerHTML = `<div class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal">
     <input id="new-sprint-inp-${esc(code)}" type="text" placeholder="S-01 o nombre..."
@@ -5361,6 +5490,19 @@ function openNewSprintInline(code) {
       class="sprint-inline-goal-input"
       maxlength="120"
       onkeydown="if(event.key==='Enter')confirmNewSprint('${esc(code)}');if(event.key==='Escape')renderBacklogList();">
+    <div class="sprint-inline-release-row">
+      <label class="sprint-inline-release-label">Versión:</label>
+      <input id="new-sprint-vt-${esc(code)}" type="text" value="${esc(suggestedVt)}"
+        class="sprint-inline-vt-input" placeholder="v3.5"
+        onkeydown="if(event.key==='Enter')confirmNewSprint('${esc(code)}');if(event.key==='Escape')renderBacklogList();">
+      <label class="sprint-inline-release-label">Tipo:</label>
+      <select id="new-sprint-rt-${esc(code)}" class="sprint-inline-rt-select">
+        <option value="Patch"${suggestedRt==='Patch'?' selected':''}>Patch</option>
+        <option value="Minor"${suggestedRt==='Minor'?' selected':''}>Minor</option>
+        <option value="Major"${suggestedRt==='Major'?' selected':''}>Major</option>
+      </select>
+      <span class="sprint-inline-release-hint">sugerido: ${esc(suggestedRt)}</span>
+    </div>
   </div>`;
   setTimeout(() => { const inp = document.getElementById('new-sprint-inp-' + code); if (inp) inp.focus(); }, 30);
 }
@@ -5372,7 +5514,12 @@ function confirmNewSprint(code) {
   // R-202605-123: leer goal si está presente
   const goalInp = document.getElementById('new-sprint-goal-' + code);
   const goal = goalInp ? goalInp.value.trim() : '';
-  const id = createSprint(raw, goal);
+  // R-202605-134: leer version_target y release_type
+  const vtInp = document.getElementById('new-sprint-vt-' + code);
+  const rtSel = document.getElementById('new-sprint-rt-' + code);
+  const vt = vtInp ? vtInp.value.trim() : '';
+  const rt = rtSel ? rtSel.value : '';
+  const id = createSprint(raw, goal, vt, rt);
   if (!id) { renderBacklogList(); return; } // sin proyecto activo — createSprint ya mostró toast
   setItemSprint(code, id);
 }
@@ -5386,8 +5533,14 @@ function editSprintInline(sprintId) {
   if (!sp) return;
   const current = sp.label || sp.id;
   const currentGoal = sp.goal || '';
+  // R-202605-134: leer o sugerir version_target y release_type
+  const spItems   = ITEMS.filter(i => i.sprint === sprintId);
+  const suggestRt = sp.release_type  || _suggestReleaseType(spItems);
+  const suggestVt = sp.version_target || _suggestVersionTarget(suggestRt);
   const inputId = 'edit-sprint-inp-' + sprintId;
   const goalId  = 'edit-sprint-goal-' + sprintId;
+  const vtId    = 'edit-sprint-vt-'   + sprintId;
+  const rtId    = 'edit-sprint-rt-'   + sprintId;
   wrap.innerHTML = `<div class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal" onclick="event.stopPropagation()">
     <input id="${esc(inputId)}" type="text" value="${esc(current)}"
       class="sprint-inline-input sprint-inline-input--wide"
@@ -5399,6 +5552,18 @@ function editSprintInline(sprintId) {
       class="sprint-inline-goal-input"
       maxlength="120"
       onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')renderBacklogList();">
+    <div class="sprint-inline-release-row">
+      <label class="sprint-inline-release-label">Versión:</label>
+      <input id="${esc(vtId)}" type="text" value="${esc(suggestVt)}"
+        class="sprint-inline-vt-input" placeholder="v3.5"
+        onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')renderBacklogList();">
+      <label class="sprint-inline-release-label">Tipo:</label>
+      <select id="${esc(rtId)}" class="sprint-inline-rt-select">
+        <option value="Patch"${suggestRt==='Patch'?' selected':''}>Patch</option>
+        <option value="Minor"${suggestRt==='Minor'?' selected':''}>Minor</option>
+        <option value="Major"${suggestRt==='Major'?' selected':''}>Major</option>
+      </select>
+    </div>
   </div>`;
   setTimeout(() => {
     const inp = document.getElementById(inputId);
@@ -5408,9 +5573,12 @@ function editSprintInline(sprintId) {
 
 // AC-3: guardar persiste en state.sprints y re-renderiza
 // R-202605-123: también persiste el goal editado
+// R-202605-134: persiste version_target y release_type
 function confirmEditSprint(sprintId) {
   const inputId = 'edit-sprint-inp-' + sprintId;
   const goalId  = 'edit-sprint-goal-' + sprintId;
+  const vtId    = 'edit-sprint-vt-'   + sprintId;
+  const rtId    = 'edit-sprint-rt-'   + sprintId;
   const inp = document.getElementById(inputId);
   const raw = inp ? inp.value.trim() : '';
   if (!raw) { renderBacklogList(); return; } // AC-4: cancelar si vacío — no modifica
@@ -5429,6 +5597,11 @@ function confirmEditSprint(sprintId) {
   if (goalInp !== null) {
     sp.goal = goalInp.value.trim().slice(0, 120);
   }
+  // R-202605-134: persistir version_target y release_type
+  const vtInp = document.getElementById(vtId);
+  const rtSel = document.getElementById(rtId);
+  if (vtInp !== null) sp.version_target = vtInp.value.trim();
+  if (rtSel !== null) sp.release_type   = rtSel.value;
   save();
   renderBacklogList();
   showToast('success', '✓ Sprint actualizado: ' + raw);
@@ -5445,6 +5618,14 @@ function confirmCloseSprint(id) {
   const doneItems    = ITEMS.filter(i => i.sprint === id && (i.status === 'done' || i.status === 'descartado'));
   const skipStep2    = pendingItems.length === 0;
 
+  // R-202605-125: snapshot de effort al abrir modal de cierre
+  const allSprintItems     = ITEMS.filter(i => i.sprint === id && itemType(i.code) !== 'P');
+  const effortPlanned      = allSprintItems.reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
+  const effortDone         = doneItems.filter(i => i.status === 'done').reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
+  const effortScopeAdded   = allSprintItems.filter(i => i.scope_added).reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
+  const effortNotDone      = pendingItems.reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
+  const hasItemsWithoutEffort = allSprintItems.some(i => !i.effort || parseInt(i.effort) === 0);
+
   _scmState = {
     id,
     step: 1,
@@ -5452,7 +5633,12 @@ function confirmCloseSprint(id) {
     pendingItems,
     doneItems,
     migrations: {},
-    retroNotes: ''
+    retroNotes: '',
+    effortPlanned,
+    effortDone,
+    effortScopeAdded,
+    effortNotDone,
+    hasItemsWithoutEffort,
   };
   // default: todos los pendientes van a sin asignar
   pendingItems.forEach(i => { _scmState.migrations[i.code] = ''; });
@@ -5557,13 +5743,20 @@ function _scmRender() {
 }
 
 function _scmStep1Html(sp, spLabel, pendingItems, doneItems) {
-  const totalItems = ITEMS.filter(i => i.sprint === (sp ? sp.id : '')).length;
   const doneCount  = doneItems.filter(i => i.status === 'done').length;
   const pendCount  = pendingItems.length;
-  // T-202605-444: excluir descartados del denominador — solo done + pendiente cuentan
-  const totalEffort = ITEMS.filter(i => i.sprint === (sp ? sp.id : '') && i.effort && i.status !== 'descartado').reduce((s,i) => s + (i.effort||0), 0);
-  const doneEffort  = doneItems.filter(i => i.status === 'done' && i.effort).reduce((s,i) => s + (i.effort||0), 0);
-  const pct = totalEffort ? Math.round(doneEffort / totalEffort * 100) : (doneCount ? 100 : 0);
+
+  // R-202605-125: métricas de entrega desde _scmState (snapshot al abrir modal)
+  const effortPlanned    = _scmState ? (_scmState.effortPlanned    || 0) : 0;
+  const effortDone       = _scmState ? (_scmState.effortDone       || 0) : 0;
+  const effortScopeAdded = _scmState ? (_scmState.effortScopeAdded || 0) : 0;
+  const effortNotDone    = _scmState ? (_scmState.effortNotDone    || 0) : 0;
+  const hasNoEffort      = _scmState ? (_scmState.hasItemsWithoutEffort || false) : false;
+  // % entrega = done / (planeado + scope added). Si todo es 0, usar conteo de ítems.
+  const denominator = effortPlanned + effortScopeAdded;
+  const pct = denominator
+    ? Math.round(effortDone / denominator * 100)
+    : (doneCount ? 100 : 0);
 
   const doneRows = doneItems.filter(i => i.status === 'done').map(i =>
     `<div class="scm-item-row">
@@ -5580,7 +5773,22 @@ function _scmStep1Html(sp, spLabel, pendingItems, doneItems) {
     </div>`
   ).join('');
 
+  // R-202605-134: mostrar version_target y release_type en el resumen del paso 1
+  const vt = sp && sp.version_target ? sp.version_target : null;
+  const rt = sp && sp.release_type   ? sp.release_type   : null;
+  const releaseRow = (vt || rt) ? `
+    <div class="scm-release-meta">
+      ${vt ? `<span class="scm-release-tag scm-release-version">${esc(vt)}</span>` : ''}
+      ${rt ? `<span class="scm-release-tag scm-release-type scm-release-type--${(rt||'').toLowerCase()}">${esc(rt)}</span>` : ''}
+    </div>` : '';
+
+  // R-202605-125: advertencia si hay ítems sin effort
+  const effortWarn = hasNoEffort
+    ? `<div class="scm-effort-warn">⚠ Algunos ítems no tienen effort asignado — % de entrega puede ser inexacto.</div>`
+    : '';
+
   return `
+    ${releaseRow}
     <div class="scm-summary-grid">
       <div class="scm-kpi scm-kpi--good">
         <div class="scm-kpi-value">${doneCount}</div>
@@ -5592,9 +5800,30 @@ function _scmStep1Html(sp, spLabel, pendingItems, doneItems) {
       </div>
       <div class="scm-kpi">
         <div class="scm-kpi-value">${pct}%</div>
-        <div class="scm-kpi-label">effort done</div>
+        <div class="scm-kpi-label">% entrega</div>
       </div>
     </div>
+    <table class="scm-effort-table">
+      <tbody>
+        <tr>
+          <td class="scm-effort-label">Effort planeado</td>
+          <td class="scm-effort-val">${effortPlanned}</td>
+        </tr>
+        <tr>
+          <td class="scm-effort-label">Effort completado (done)</td>
+          <td class="scm-effort-val scm-effort-val--done">${effortDone}</td>
+        </tr>
+        <tr class="${effortScopeAdded ? '' : 'scm-effort-row--muted'}">
+          <td class="scm-effort-label">Scope added durante sprint</td>
+          <td class="scm-effort-val">${effortScopeAdded || '—'}</td>
+        </tr>
+        <tr class="${effortNotDone ? 'scm-effort-row--warn' : 'scm-effort-row--muted'}">
+          <td class="scm-effort-label">No completados (migran o se descartan)</td>
+          <td class="scm-effort-val">${effortNotDone || '—'}</td>
+        </tr>
+      </tbody>
+    </table>
+    ${effortWarn}
     ${doneRows ? `<div class="scm-section-title">Completados</div><div class="scm-items-list">${doneRows}</div>` : ''}
     ${pendRows ? `<div class="scm-section-title">Pendientes</div><div class="scm-items-list">${pendRows}</div>` : ''}
     ${!doneRows && !pendRows ? '<div class="scm-empty-hint">Sprint sin ítems registrados.</div>' : ''}
@@ -5740,7 +5969,8 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
 
 function _scmExecuteClose() {
   if (!_scmState) return;
-  const { id, pendingItems, migrations, retroNotes } = _scmState;
+  const { id, pendingItems, migrations, retroNotes,
+          effortPlanned, effortDone, effortScopeAdded, effortNotDone } = _scmState;
 
   // aplicar migraciones de pendientes
   const closeTs = Date.now();
@@ -5760,10 +5990,16 @@ function _scmExecuteClose() {
   // B-[tmp:sprint-revive]: excluir ítems ya procesados por el loop de migraciones
   // (pendientes con __discard__ ya quedan como historico arriba — processedCodes los excluye)
   const processedCodes = new Set(pendingItems.map(i => i.code));
+  // R-202605-134: resolver version_target del sprint antes de iterar
+  const spForClose = _getSprintById(id);
+  const versionTarget = spForClose && spForClose.version_target ? spForClose.version_target : null;
   ITEMS.forEach(i => {
     if (i.sprint === id && !processedCodes.has(i.code) && (i.status === 'done' || i.status === 'descartado')) {
+      const wasDone = i.status === 'done';
       i.status = 'historico';
       i.archivedAt = closeTs;
+      // R-202605-134: aplicar version_target como version en ítems que estaban done
+      if (wasDone && versionTarget) i.version = versionTarget;
     }
   });
 
@@ -5777,10 +6013,21 @@ function _scmExecuteClose() {
   setSprintStatus(id, 'closed');
 
   // T-202604-417: guardar retro como documento en el sprint — accesible desde vista de sprints cerrados
+  // R-202605-125: persistir métricas de entrega con el sprint cerrado
   const sp = _getSprintById(id);
   if (sp) {
     sp.retroNotes = retroNotes || '';
     sp.retroDoc   = _generateSprintRetroMd(id, retroNotes || '');
+    // R-202605-125: métricas de entrega para Analytics (Nivel 2)
+    const denominator = (effortPlanned || 0) + (effortScopeAdded || 0);
+    sp.deliveryMetrics = {
+      effortPlanned:    effortPlanned    || 0,
+      effortDone:       effortDone       || 0,
+      effortScopeAdded: effortScopeAdded || 0,
+      effortNotDone:    effortNotDone    || 0,
+      pctDelivery:      denominator ? Math.round((effortDone || 0) / denominator * 100) : 0,
+      recordedAt:       Date.now(),
+    };
     save();
   }
 

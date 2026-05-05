@@ -80,7 +80,133 @@ function exportFullHistoryMd() {
   if (!ITEMS.length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
   const pfx = _docPrefix();
   const ver = _backlogVersion();
-  _showExportConfirmModal('Historial completo', `${pfx}-BACKLOG-FULL_${ver}.md`, () => _generateBacklogMd(ver, { fullHistory: true }));
+  _showExportConfirmModal('Historial completo', `${pfx}-BACKLOG-FULL_${ver}.md`, () => _generateFullHistoryBySprintMd(ver));
+}
+
+// B-202605-261 / R-202605-124: Export histórico agrupado por sprint
+// AC-1: secciones por sprint cerrado con nombre, goal, fecha cierre, effort done, lista de ítems
+// AC-2: bloque pre-S-23 (sprints sin datos de effort) al final como sección única lista plana
+// AC-3: ítems sin sprint en sección 'Sin sprint asignado' si existen
+function _generateFullHistoryBySprintMd(newVersion) {
+  const now = new Date();
+  const utcM6 = new Date(now.getTime() - 6 * 3600000);
+  const pad = n => String(n).padStart(2, '0');
+  const dateStr = `${utcM6.getUTCFullYear()}-${pad(utcM6.getUTCMonth()+1)}-${pad(utcM6.getUTCDate())} ${pad(utcM6.getUTCHours())}:${pad(utcM6.getUTCMinutes())} UTC-6`;
+  const pfx = _docPrefix();
+  const _activeProj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+  const _projName = _activeProj ? (_activeProj.name || 'Sin proyecto') : 'Sin proyecto';
+
+  // Sprint threshold: S-23 es el primer sprint con datos completos de effort
+  // Sprints anteriores van al bloque histórico plano
+  const SPRINT_DATA_THRESHOLD = 23;
+  const _sprintNum = id => {
+    if (!id) return null;
+    const m = String(id).match(/S-(\d+)/i);
+    return m ? parseInt(m[1], 10) : null;
+  };
+
+  const allSprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+  const closedSprints = allSprints
+    .filter(s => s.status === 'closed')
+    .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
+
+  // Sprints con datos completos (>= S-23)
+  const sprintsWithData = closedSprints.filter(s => (_sprintNum(s.id) || 0) >= SPRINT_DATA_THRESHOLD);
+  // Sprints sin datos de effort (< S-23) — sus IDs para agrupar ítems históricos
+  const legacySprintIds = new Set(
+    closedSprints
+      .filter(s => (_sprintNum(s.id) || 0) < SPRINT_DATA_THRESHOLD)
+      .map(s => s.id)
+  );
+
+  const _itemRow = i => {
+    const effortN = parseInt(i.effort) || 1;
+    const effortDots = '●'.repeat(effortN) + '○'.repeat(3 - effortN);
+    const typeLabel = i.code ? i.code[0] : '?';
+    return `| \`${i.code}\` | ${i.title || i.desc || '—'} | ${typeLabel} | ${effortDots} (${effortN}) | ${i.status || '—'} |`;
+  };
+
+  const _itemRowHeader = () =>
+    `| Código | Título | Tipo | Effort | Status |\n|--------|--------|------|--------|--------|`;
+
+  // Secciones por sprint con datos
+  let sprintSections = '';
+  sprintsWithData.forEach(sp => {
+    const spItems = ITEMS.filter(i => i.sprint === sp.id);
+    const doneItems = spItems.filter(i => i.status === 'done' || i.status === 'historico');
+    const doneEffort = doneItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+    const totalEffort = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+    const closedDate = sp.closedAt
+      ? (() => { const d = new Date(sp.closedAt); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; })()
+      : '—';
+
+    const metaRows = [
+      `| ID | ${sp.id} |`,
+      `| Nombre | ${sp.label || sp.id} |`,
+      sp.goal ? `| Goal | ${sp.goal} |` : '',
+      sp.version_target ? `| Versión | ${sp.version_target} |` : '',
+      sp.release_type ? `| Release | ${sp.release_type} |` : '',
+      `| Cerrado | ${closedDate} |`,
+      `| Effort done | ${doneEffort} / ${totalEffort} |`,
+    ].filter(Boolean).join('\n');
+
+    const itemsBlock = spItems.length
+      ? `${_itemRowHeader()}\n${spItems.map(_itemRow).join('\n')}`
+      : '_Sin ítems registrados._';
+
+    sprintSections += `\n### ${sp.label || sp.id}\n\n| Campo | Valor |\n|---|---|\n${metaRows}\n\n${itemsBlock}\n\n---\n`;
+  });
+
+  // Bloque histórico pre-S-23 — ítems de sprints sin datos de effort
+  const legacyItems = ITEMS.filter(i => i.sprint && legacySprintIds.has(i.sprint));
+  let legacySection = '';
+  if (legacyItems.length) {
+    legacySection = `\n### Histórico pre-S-${SPRINT_DATA_THRESHOLD} (sin datos de sprint)\n\n_Ítems de sprints anteriores sin datos de effort registrados._\n\n${_itemRowHeader()}\n${legacyItems.map(_itemRow).join('\n')}\n\n---\n`;
+  }
+
+  // Ítems sin sprint asignado
+  const noSprintItems = ITEMS.filter(i => !i.sprint);
+  let noSprintSection = '';
+  if (noSprintItems.length) {
+    noSprintSection = `\n### Sin sprint asignado\n\n${_itemRowHeader()}\n${noSprintItems.map(_itemRow).join('\n')}\n\n---\n`;
+  }
+
+  const md = `# ${pfx}-BACKLOG-FULL_${newVersion}.md
+<!-- Versión: ${newVersion} | Última actualización: ${dateStr} | Historial completo agrupado por sprint -->
+
+---
+
+## Meta
+
+| Campo | Valor |
+|---|---|
+| Proyecto | ${_projName} |
+| Versión del backlog | ${newVersion} |
+| Última actualización | ${dateStr} |
+| Generado por | TL — export historial completo |
+
+---
+
+## Sprints cerrados
+${sprintsWithData.length ? sprintSections : '\n_Sin sprints cerrados con datos completos._\n\n---\n'}
+${legacySection}${noSprintSection}
+## Estadísticas
+
+| Métrica | Valor |
+|---------|-------|
+| Total ítems | ${ITEMS.length} |
+| Sprints cerrados con datos | ${sprintsWithData.length} |
+| Sprints históricos (pre-S-${SPRINT_DATA_THRESHOLD}) | ${legacySprintIds.size} |
+`;
+
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${pfx}-BACKLOG-FULL_${newVersion}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('download', `📥 ${pfx}-BACKLOG-FULL_${newVersion}.md descargado`);
 }
 
 function _showExportConfirmModal(label, filename, onConfirm) {
@@ -115,17 +241,24 @@ function _generateBacklogMd(newVersion, opts = {}) {
 
   // R-202604-052: filtro generacional — solo pendiente (todos) + done del sprint cerrado actual
   // fullHistory: true → sin filtro (exportFullHistoryMd)
+  // B-202605-262: done y descartado del sprint activo se incluyen — son parte del sprint vivo,
+  //               no histórico. El cierre formal es el trigger para migrarlos al Histórico.
   let exportItems;
   if (opts.fullHistory) {
     exportItems = ITEMS;
   } else {
     const lastClosed = _lastClosedSprint();
     const lastClosedId = lastClosed ? lastClosed.id : null;
+    const activeSprint = (state.sprints || []).find(s => s.status === 'active');
+    const activeSprintId = activeSprint ? activeSprint.id : null;
     exportItems = ITEMS.filter(i => {
       if (i.status === 'historico') return false; // B-202604-193: histórico nunca en export activo
       if (i.status === 'pendiente' || i.status === 'en curso') return true; // AC-3: sin sprint se arrastra
       if (i.status === 'done' && lastClosedId && i.sprint === lastClosedId) return true; // AC-1: done del sprint cerrado actual
-      return false; // AC-2: done de sprints anteriores + descartado → excluidos
+      // B-202605-262: done y descartado del sprint activo — parte del sprint vivo, no histórico
+      if (activeSprintId && i.sprint === activeSprintId &&
+          (i.status === 'done' || i.status === 'descartado')) return true;
+      return false; // AC-2: done/descartado de sprints anteriores → excluidos
     });
   }
 

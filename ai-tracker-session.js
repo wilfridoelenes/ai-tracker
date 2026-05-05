@@ -1910,9 +1910,14 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   if (parsed.isCheckpoint && parsed.estado) _addChangelogEntry(parsed);
 
   // T-202604-121: super toast con detalle del merge
-  const hasMergeData = mergeResult.created.length || mergeResult.advanced.length || mergeResult.retroceso.length || mergeResult.discarded.length || mergeResult.updated.length || mergeResult.ignored.length || mergedCtxNames.length;
+  // R-202605-140: proximoPaso y decision abren el panel aunque no haya ítems
+  const _ckptProximoPaso = parsed.nextStep  || '';
+  const _ckptDecision    = parsed.decision  || '';
+  const _isInfoOnly = (v) => !v || v.trim().toLowerCase() === 'n/a';
+  const _hasInfoFields = !_isInfoOnly(_ckptProximoPaso) || !_isInfoOnly(_ckptDecision);
+  const hasMergeData = mergeResult.created.length || mergeResult.advanced.length || mergeResult.retroceso.length || mergeResult.discarded.length || mergeResult.updated.length || mergeResult.ignored.length || mergedCtxNames.length || _hasInfoFields;
   if (hasMergeData) {
-    showCheckpointPanel({ ...mergeResult, contextSections: mergedCtxNames });
+    showCheckpointPanel({ ...mergeResult, contextSections: mergedCtxNames, proximoPaso: _ckptProximoPaso, decision: _ckptDecision });
   }
   const _hasPending = mergeResult.retroceso?.length || mergeResult.discarded?.length;
   const _baseMsg = horaResult ? `Sesión guardada · desbloquea a las ${horaResult.label}` : 'Sesión guardada';

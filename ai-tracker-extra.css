@@ -13502,6 +13502,30 @@ textarea[id^="ta-"]:focus {
 /* ══ END T-202604-416 ══ */
 
 /* ══════════════════════════════════════════════════════════════════
+   R-202605-139: Sprint pill — reubicado en tracker-view-header
+   El pill es contexto del proyecto activo, no del AI individual.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Pill en tracker-view-header: orden visual correcto — queda antes del toggle Checkpoint/Historial */
+.tvh-sprint-pill {
+  order: -1;
+  flex-shrink: 0;
+  margin-right: 4px;
+}
+
+/* Mobile (<600px): ocultar barra de progreso para no comprimir el header */
+@media (max-width: 600px) {
+  .tvh-sprint-pill .tgh-sprint-bar-wrap {
+    display: none;
+  }
+  .tvh-sprint-pill .tgh-sprint-name {
+    max-width: 80px;
+  }
+}
+
+/* ══ END R-202605-139 ══ */
+
+/* ══════════════════════════════════════════════════════════════════
    T-202604-426: .bitem-focus-rank — badge de posición en Focus mode
    ══════════════════════════════════════════════════════════════════ */
 
@@ -15400,6 +15424,128 @@ textarea[id^="ta-"]:focus {
   }
 }
 
+/* ── R-202605-124: effort entregado en header de sprint ─────────────── */
+
+.arch-se-effort {
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--accent, #38bdf8);
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  padding: 1px 7px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+/* ── R-202605-124: bloque legado pre-S-23 ───────────────────────────── */
+
+.arch-sprint-entry--legacy .arch-se-id--legacy {
+  font-size: 0.7rem;
+  color: var(--hint);
+  opacity: 0.7;
+}
+
+.arch-sprint-entry--legacy .arch-se-name {
+  color: var(--hint);
+  font-style: italic;
+}
+
+/* ── R-202605-124: lista compacta de ítems en el Archivo Histórico ──── */
+
+.arch-items-list {
+  padding: 4px 0;
+}
+
+.arch-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-bottom: 1px solid var(--border);
+  min-height: 30px;
+  transition: background 0.1s;
+}
+
+.arch-item-row:last-child {
+  border-bottom: none;
+}
+
+.arch-item-row:hover {
+  background: var(--surface, rgba(0,0,0,0.03));
+}
+
+.arch-row-type {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.arch-row-type--r {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+}
+
+.arch-row-type--t {
+  background: rgba(46, 204, 120, 0.12);
+  color: #2ecc78;
+}
+
+.arch-row-type--b {
+  background: rgba(232, 85, 85, 0.12);
+  color: #e85555;
+}
+
+.arch-row-type--p {
+  background: rgba(124, 106, 247, 0.12);
+  color: #7c6af7;
+}
+
+.arch-row-code {
+  font-size: 0.66rem;
+  font-family: var(--font-mono, monospace);
+  color: var(--hint);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.arch-row-title {
+  font-size: 0.74rem;
+  color: var(--text2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arch-row-effort {
+  font-size: 0.55rem;
+  color: var(--hint);
+  flex-shrink: 0;
+  letter-spacing: 1px;
+  opacity: 0.6;
+}
+
+.arch-row-status {
+  font-size: 0.62rem;
+  color: var(--hint);
+  flex-shrink: 0;
+  text-transform: lowercase;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
+@media (max-width: 600px) {
+  .arch-row-code { display: none; }
+  .arch-row-effort { display: none; }
+}
+
 /* ══ FIN HISTÓRICO UNIFICADO ══════════════════════════════════════════ */
 
 /* ══ T-202605-452: Flujo acumulativo — ítems entrando vs saliendo ══════ */
@@ -16625,3 +16771,108 @@ body.body--focus-mode::after {
 }
 
 /* ══ END macOS FIDELITY ══ */
+
+/* R-202605-140: DIFF panel — sección informativa Próximo paso + Decisión */
+.ckpt-section--info {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px;
+}
+.ckpt-section--info-footer {
+  padding: 10px 16px 12px;
+  border-top: 1px solid var(--border);
+}
+.ckpt-info-proximo,
+.ckpt-info-decision {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 12px;
+  border-radius: 0;
+}
+.ckpt-info-proximo {
+  border-left: 2px solid var(--accent);
+}
+.ckpt-info-decision {
+  border-left: 2px solid var(--border);
+}
+.ckpt-info-proximo--inline {
+  border-left: 2px solid var(--accent);
+}
+.ckpt-info-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+.ckpt-info-label--proximo {
+  color: var(--accent);
+}
+.ckpt-info-label--decision {
+  color: var(--text-muted);
+}
+.ckpt-info-text {
+  font-size: 12.5px;
+  color: var(--text);
+  line-height: 1.5;
+}
+/* END R-202605-140 */
+
+/* R-[pendiente-ID]: Botones accionables textarea paste — Limpiar y Pegar */
+.paste-ta-wrap {
+  position: relative;
+}
+
+.paste-ta-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  z-index: 2;
+}
+
+.paste-ta-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--hint);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  outline: none;
+}
+
+.paste-ta-btn:hover {
+  background: var(--surface3, var(--surface2));
+  border-color: var(--fg);
+  color: var(--fg);
+}
+
+.paste-ta-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.paste-ta-btn:active {
+  transform: scale(0.93);
+}
+
+.paste-ta-btn--disabled,
+.paste-ta-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.paste-ta-btn--paste {
+  color: var(--accent, var(--hint));
+}
+/* END R-[pendiente-ID] */
