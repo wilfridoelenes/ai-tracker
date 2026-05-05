@@ -52,9 +52,9 @@ function _buildCurrentStateMd() {
 // R-202604-052: extraer MAJOR.MINOR.PATCH de versión canónica para naming generacional
 // B-202605-260: usa _effectiveVersion (post-Generator) — no APP_VERSION hardcodeada
 function _backlogVersion() {
-  const _src = (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
+  const _src = (typeof _effectiveVersion === 'string' && _effectiveVersion)
     ? _effectiveVersion
-    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
+    : (typeof APP_VERSION === 'string' && APP_VERSION ? APP_VERSION : 'v0');
   const m = _src.replace(/^v/, '').match(/^(\d+\.\d+(?:\.\d+)?)/);
   return m ? `v${m[1]}` : _src;
 }
@@ -465,9 +465,9 @@ function _generateBacklogMd(newVersion, opts = {}) {
   const currentStateMd = _buildCurrentStateMd();
 
   // B-202605-260: versión canónica para campos de metadata del export
-  const _appVerStr = (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
+  const _appVerStr = (typeof _effectiveVersion === 'string' && _effectiveVersion)
     ? _effectiveVersion
-    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
+    : (typeof APP_VERSION === 'string' && APP_VERSION ? APP_VERSION : 'v0');
 
   const pfx = _docPrefix();
   const md = `# ${pfx}-BACKLOG_${newVersion}.md
