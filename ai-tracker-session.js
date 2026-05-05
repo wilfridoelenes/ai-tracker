@@ -3,7 +3,72 @@
 // Base Rules §3: string canónico del holding es 'Obsidiana Labs' — 'Obsidiana' deprecado.
 const CANONICAL_PROJECTS = ['Obsidiana Labs', 'Obsidiana', 'ASVAB App', 'Content Manager', 'AI Tracker'];
 
+// R-202605-133: parseCheckpoint — path primario JSON puro + path legacy regex
+// Path primario: bloque ```json { ... } ``` con schema completo
+// Path legacy:   formato Markdown ---CHECKPOINT--- (read-only — CHECKPOINTs históricos)
 function parseCheckpoint(text) {
+  // ── Path primario: JSON puro ──────────────────────────────────────────────────
+  // Detectar bloque ```json ... ``` que contiene el objeto CHECKPOINT
+  const _jsonFenceMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+  if (_jsonFenceMatch) {
+    let _parsed = null;
+    let _jsonErr = null;
+    try {
+      _parsed = JSON.parse(_jsonFenceMatch[1].trim());
+    } catch (e) {
+      _jsonErr = e.message || 'JSON inválido';
+    }
+    if (_jsonErr || !_parsed || typeof _parsed !== 'object' || Array.isArray(_parsed)) {
+      // JSON detectado pero inválido — devolver resultado con error marcado
+      return {
+        titulo: '', proyecto: '', rol: '', resumen: '', archivos: '',
+        pItems: '', tItems: '', rItems: '', bItems: '',
+        estado: '', decision: '', proximoPaso: '',
+        contexto: '', bloqueantes: '', aprendizaje: '',
+        isCheckpoint: true,
+        _jsonParseError: _jsonErr || 'El bloque ```json no contiene un objeto válido',
+        rawCounts: { P: 0, T: 0, R: 0, B: 0 }
+      };
+    }
+    // JSON válido — extraer campos del schema R-202605-133
+    const items = Array.isArray(_parsed.items) ? _parsed.items : [];
+    // Clasificar ítems por tipo para rawCounts (compatibilidad con preview)
+    const _countByType = (t) => items.filter(i => i.type === t).length;
+    // Serializar items de vuelta a texto para compatibilidad con buildTGPreview
+    // pItems/tItems/rItems/bItems no se usan como fuente de datos — solo para display
+    const _typedLines = (t) => items
+      .filter(i => i.type === t)
+      .map(i => `${i.code}: ${i.title || i.desc || ''}`)
+      .join('\n');
+    return {
+      titulo:       _parsed.title        || '',
+      proyecto:     _parsed.project      || '',
+      rol:          _parsed.role         || '',
+      resumen:      _parsed.summary      || '',
+      archivos:     _parsed.files        || '',
+      pItems:       _typedLines('P'),
+      tItems:       _typedLines('T'),
+      rItems:       _typedLines('R'),
+      bItems:       _typedLines('B'),
+      estado:       '',
+      decision:     _parsed.decision     || '',
+      proximoPaso:  _parsed.next_step    || '',
+      contexto:     _parsed.context      || '',
+      bloqueantes:  _parsed.blockers     || '',
+      aprendizaje:  _parsed.learning     || '',
+      isCheckpoint: true,
+      _isJsonFormat: true,
+      _rawItems:    items,   // ítems ya parseados — parsePaste los usa directamente
+      rawCounts: {
+        P: _countByType('P'),
+        T: _countByType('T'),
+        R: _countByType('R'),
+        B: _countByType('B'),
+      }
+    };
+  }
+
+  // ── Path legacy: formato Markdown ---CHECKPOINT--- (read-only) ───────────────
   // Extrae campos del bloque CHECKPOINT en formato:
   // Título: ...
   // Resumen: ... | Archivos: ...
@@ -101,7 +166,8 @@ function _setPhase(id, phase) {
 function parsePaste(id) {
   const ta = document.getElementById('ta-' + id);
   const text = ta ? ta.value : '';
-  const isCheckpoint = text.includes('---CHECKPOINT---');
+  // R-202605-133: detectar CHECKPOINT en formato JSON puro (```json) o Markdown legacy
+  const isCheckpoint = text.includes('---CHECKPOINT---') || /```json\s*\{/.test(text);
 
   let title = '', summary = '', files = '', nextStep = '', bloqueantesRaw = '', tgItems = [], ckpt = null;
   if (isCheckpoint) {
@@ -111,6 +177,60 @@ function parsePaste(id) {
     files = ckpt.archivos;
     nextStep = ckpt.proximoPaso;
     bloqueantesRaw = ckpt.bloqueantes || '';
+
+    // R-202605-133: si parseCheckpoint detectó error en el bloque ```json, marcar error bloqueante
+    if (ckpt._jsonParseError) {
+      window[`_itemsJsonError_${id}`] = ckpt._jsonParseError;
+    }
+    // R-202605-133: si el CHECKPOINT es JSON puro, los ítems ya están en ckpt._rawItems — no buscar ---ITEMS---
+    else if (ckpt._isJsonFormat) {
+      delete window[`_itemsJsonError_${id}`];
+      const _rawItems = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
+      const _validTypes    = ['P', 'T', 'R', 'B'];
+      const _validStatuses = ['done', 'pendiente', 'descartado'];
+      const ckptHeaderRole = ckpt.rol || '';
+      let _itemError = null;
+      for (let _i = 0; _i < _rawItems.length; _i++) {
+        const _it = _rawItems[_i];
+        if (!_it.type || !_it.code || !_it.status) {
+          _itemError = `Ítem [${_i}]: faltan campos obligatorios (type, code, status). Recibido: ${JSON.stringify(_it)}`;
+          break;
+        }
+        if (!_validTypes.includes(_it.type)) {
+          _itemError = `Ítem [${_i}]: type inválido "${_it.type}". Valores válidos: P · T · R · B`;
+          break;
+        }
+        if (!_validStatuses.includes(_it.status)) {
+          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado`;
+          break;
+        }
+        tgItems.push({
+          type:          _it.type,
+          code:          _it.code,
+          desc:          _it.title  || _it.desc  || '',
+          status:        normStatus(_it.status),
+          _noStatus:     false,
+          effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
+          area:          _it.area   || '',
+          sprint:        _it.sprint || '',
+          ac:            Array.isArray(_it.ac) ? _it.ac : [],
+          role:          _it.role   || ckptHeaderRole,
+          discardReason: _it.reason || '',
+          discardRef:    _it.ref    || '',
+          blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : []
+        });
+      }
+      if (_itemError) {
+        window[`_itemsJsonError_${id}`] = _itemError;
+        tgItems = [];
+      } else {
+        if (typeof _ctrMergeFromItem === 'function') {
+          _rawItems.forEach(it => { if (it.contract) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract); });
+        }
+      }
+    }
+    // Path legacy: ---ITEMS--- / ---ITEMS-END---
+    else {
     // R-202604-038: parser JSON estructurado — bloque ---ITEMS--- / ---ITEMS-END---
     // El parser regex de texto libre fue eliminado. Los ítems P/T/R/B se ingresan
     // exclusivamente via bloque JSON. parseCheckpoint() conserva pItems/tItems/rItems/bItems
@@ -187,6 +307,7 @@ function parsePaste(id) {
     } else {
       delete window[`_itemsJsonError_${id}`];
     }
+    } // end path legacy else
   }
 
   const ai = getAI(id);
@@ -255,15 +376,17 @@ function parsePaste(id) {
   const btn = document.getElementById('sbtn-' + id);
   const prev = document.getElementById('prev-' + id);
   if (text.trim()) {
-    const hasFin = text.includes('---FIN-CHECKPOINT---');
+    // R-202605-133: en formato JSON puro no existe ---FIN-CHECKPOINT--- ni ---ITEMS---
+    const _isJsonFmt = !!(ckpt && ckpt._isJsonFormat);
+    const hasFin = _isJsonFmt ? true : text.includes('---FIN-CHECKPOINT---');
     // T-202605-435: CHECKPOINT de transición — si campo WIP: presente y Resumen: ausente,
     // inferir summary como 'WIP' para no bloquear la validación.
     const hasWip = /^\s*WIP\s*:/mi.test(text);
     const effectiveSummary = summary || (hasWip ? 'WIP' : '');
     const checks = [
-      { test: !isCheckpoint,      msg: 'Falta el bloque de apertura <code>---CHECKPOINT---</code>.' },
-      { test: !title,             msg: 'Falta el campo <code>T\xEDtulo:</code> dentro del bloque.' },
-      { test: !effectiveSummary,  msg: 'Falta el campo <code>Resumen:</code> dentro del bloque.' },
+      { test: !isCheckpoint,      msg: 'Falta el bloque de apertura <code>---CHECKPOINT---</code> o el bloque <code>```json</code>.' },
+      { test: !title,             msg: 'Falta el campo <code>T\xEDtulo:</code> / <code>title</code> dentro del bloque.' },
+      { test: !effectiveSummary,  msg: 'Falta el campo <code>Resumen:</code> / <code>summary</code> dentro del bloque.' },
       { test: !hasFin,            msg: 'Falta el cierre <code>---FIN-CHECKPOINT---</code>.' },
     ];
     const failed = checks.find(c => c.test);
@@ -274,17 +397,17 @@ function parsePaste(id) {
       return;
     }
 
-    // R-202604-038: validar resultado del parser JSON de ---ITEMS---
+    // R-202604-038 / R-202605-133: validar resultado del parser JSON de ---ITEMS--- o ```json
     // AC-2: JSON inválido → error bloqueante antes de procesar cualquier otra cosa
     const _itemsJsonErr = window[`_itemsJsonError_${id}`];
     if (_itemsJsonErr) {
       prev.className = 'preview show';
-      prev.innerHTML = `<div class="paste-error">⛔ Bloque <code>---ITEMS---</code> inválido — ${esc(_itemsJsonErr)}.<br><span class="paste-hint">Corrige el JSON antes de procesar. El bloque debe ser un array de objetos con al menos <code>type</code>, <code>code</code> y <code>status</code>.</span></div>`;
+      prev.innerHTML = `<div class="paste-error">&#9940; Bloque de ítems inválido — ${esc(_itemsJsonErr)}.<br><span class="paste-hint">Corrige el JSON antes de procesar. El bloque debe ser un array de objetos con al menos <code>type</code>, <code>code</code> y <code>status</code>.</span></div>`;
       if (btn) { btn.disabled = true; btn.className = 'save-btn'; }
       return;
     }
-    // AC-3: no hay bloque ---ITEMS--- → aviso no bloqueante
-    const _hasItemsBlock = text.includes('---ITEMS---');
+    // AC-3: no hay bloque ---ITEMS--- → aviso no bloqueante (solo en formato legacy)
+    const _hasItemsBlock = _isJsonFmt ? true : text.includes('---ITEMS---');
     const _noItemsWarnKey = `_noItemsWarnSeen_${id}`;
     if (isCheckpoint && !_hasItemsBlock && !window[_noItemsWarnKey]) {
       prev.className = 'preview show';
@@ -502,39 +625,52 @@ function parsePasteStandalone() {
   }
 
   // Reutilizar parseCheckpoint para extraer campos y validar estructura
+  // R-202605-133: parseCheckpoint detecta JSON puro o Markdown legacy automáticamente
   const ckpt = parseCheckpoint(text);
 
-  // Validación: bloque de apertura
+  // Validación: bloque de apertura (cualquier formato)
   if (!ckpt || !ckpt.isCheckpoint || !ckpt.titulo) {
-    prev.innerHTML = '<div class="paste-error">⚠ Falta el bloque <code>---CHECKPOINT---</code> o el campo <code>Título:</code>.</div>';
+    prev.innerHTML = '<div class="paste-error">⚠ Falta el bloque <code>---CHECKPOINT---</code> o el bloque <code>```json</code>, o falta el campo <code>Título:</code> / <code>title</code>.</div>';
     btn.disabled = true;
     return;
   }
 
-  // Validación: cierre
-  if (!text.includes('---FIN-CHECKPOINT---')) {
+  // R-202605-133: error de parseo JSON — bloqueante
+  if (ckpt._jsonParseError) {
+    prev.innerHTML = `<div class="paste-error">&#9940; Bloque <code>\`\`\`json</code> inválido — ${esc(ckpt._jsonParseError)}.<br><span class="paste-hint">Corrige el JSON antes de aplicar.</span></div>`;
+    btn.disabled = true;
+    return;
+  }
+
+  // Validación: cierre (solo formato legacy)
+  const _isJsonFmt = !!ckpt._isJsonFormat;
+  if (!_isJsonFmt && !text.includes('---FIN-CHECKPOINT---')) {
     prev.innerHTML = '<div class="paste-error">⚠ Falta el cierre <code>---FIN-CHECKPOINT---</code>.</div>';
     btn.disabled = true;
     return;
   }
 
-  // Parsear bloque ---ITEMS---
-  const _itemsBlockMatch = text.match(/---ITEMS---\s*([\s\S]*?)\s*---ITEMS-END---/);
-  if (!_itemsBlockMatch) {
-    prev.innerHTML = '<div class="paste-error" class="paste-error paste-warn">⚠ No se detectó bloque <code>---ITEMS---</code>.<br><span class="paste-hint">El bloque es obligatorio en el flujo standalone.</span></div>';
-    btn.disabled = true;
-    return;
-  }
-
+  // R-202605-133: en formato JSON puro, ítems ya están en ckpt._rawItems
   let parsedJSON = null;
   let jsonError  = null;
-  try {
-    const raw = _itemsBlockMatch[1].replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    parsedJSON = JSON.parse(raw);
-  } catch (e) {
-    jsonError = e.message || 'JSON inválido';
-  }
 
+  if (_isJsonFmt) {
+    parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
+  } else {
+    // Parsear bloque ---ITEMS---
+    const _itemsBlockMatch = text.match(/---ITEMS---\s*([\s\S]*?)\s*---ITEMS-END---/);
+    if (!_itemsBlockMatch) {
+      prev.innerHTML = '<div class="paste-error" class="paste-error paste-warn">⚠ No se detectó bloque <code>---ITEMS---</code>.<br><span class="paste-hint">El bloque es obligatorio en el flujo standalone.</span></div>';
+      btn.disabled = true;
+      return;
+    }
+    try {
+      const raw = _itemsBlockMatch[1].replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+      parsedJSON = JSON.parse(raw);
+    } catch (e) {
+      jsonError = e.message || 'JSON inválido';
+    }
+  }
   if (jsonError || !Array.isArray(parsedJSON)) {
     prev.innerHTML = `<div class="paste-error">⛔ Bloque <code>---ITEMS---</code> inválido — ${esc(jsonError || 'no es un array JSON válido')}.<br><span class="paste-hint">Corrige el JSON antes de aplicar.</span></div>`;
     btn.disabled = true;

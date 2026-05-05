@@ -3063,18 +3063,23 @@ body.ai-sb-active {
 .rsb-status-interrupted { color: var(--amber); background: rgba(240,180,41,0.1); }
 .rsb-status-session     { color: #a78bfa; background: rgba(167,139,250,0.1); }
 
-/* Header counts */
+/* Header counts — R-202605-138: contadores en fila 2 */
 .rsb-hdr-counts {
   display: flex;
-  gap: 3px;
+  gap: 6px;
   align-items: center;
 }
 .rsb-hdr-count {
-  font-size: 9px;
-  font-weight: 700;
-  border-radius: 3px;
-  padding: 0 3px;
-  line-height: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  opacity: 0.85;
+}
+.rsb-hdr-dot {
+  font-size: 7px;
+  line-height: 1;
 }
 .rsb-hdr-available   { color: var(--green); }
 .rsb-hdr-exhausted   { color: var(--red); }
@@ -4215,6 +4220,69 @@ body.radar-sb-collapsed #global-footer {
   font-weight: 600;
 }
 /* ══ END T-202604-265 ══ */
+
+/* ══ R-202605-123: Sprint Goal ══ */
+
+/* Goal en Sprint Health Panel */
+.sh-goal {
+  font-size: 0.74rem;
+  color: var(--text-secondary, #9ba3bf);
+  padding: 4px 0 6px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.07));
+  margin-bottom: 6px;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sh-goal--empty {
+  color: var(--text-muted, #5a6380);
+  font-style: italic;
+  cursor: pointer;
+}
+.sh-goal--empty:hover {
+  color: var(--text-secondary, #9ba3bf);
+}
+
+/* Input de goal en formulario inline de creación/edición de sprint */
+.sprint-inline-edit-wrap--with-goal {
+  flex-wrap: wrap;
+  row-gap: 4px;
+}
+.sprint-inline-goal-input {
+  width: 100%;
+  font-size: 0.78rem;
+  padding: 3px 6px;
+  border: 1px solid var(--border2, rgba(255,255,255,0.12));
+  border-radius: 4px;
+  background: var(--bg-input, var(--surface2));
+  color: var(--text, #e8eaf0);
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+.sprint-inline-goal-input:focus {
+  border-color: var(--accent, var(--purple));
+}
+.sprint-inline-goal-input::placeholder {
+  color: var(--hint, #5a6380);
+  font-style: italic;
+}
+
+/* Goal en Archivo Histórico — header del sprint cerrado */
+.arch-se-goal {
+  font-size: 0.68rem;
+  color: var(--hint, #5a6380);
+  font-style: italic;
+  flex: 2;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding-left: 4px;
+}
+
+/* ══ END R-202605-123 ══ */
 
 /* ══ T-202604-263: ÚLTIMA SESIÓN EN CARD DE PROYECTO ══ */
 .proy2-last-sess {

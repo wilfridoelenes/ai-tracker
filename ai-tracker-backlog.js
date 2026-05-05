@@ -611,6 +611,11 @@ function loadBacklog() {
     }
     // B-202604-194: _acReplacedInSession eliminado de items — ahora vive en _acReplacedSet (memoria)
     // No se necesita delete aquí.
+    // R-202605-135: schema_version — ítems sin campo se tratan como versión 0 y se migran
+    if (item.schema_version === undefined) {
+      item.schema_version = 1;
+      migrated = true;
+    }
   });
   if (migrated) console.log('[AI Tracker] Status migration: legacy values normalized (historico preserved)');
   // B-202605-210: sanear pendientes en sprints cerrados (migración retroactiva)
@@ -1182,6 +1187,8 @@ function renderStats() {
   // Por effort (sobre visibles)
   const byEffort = {1:0, 2:0, 3:0};
   visible.forEach(i => { const e = parseInt(i.effort)||1; if (byEffort[e] !== undefined) byEffort[e]++; });
+  // R-202605-122 AC5: contador de ítems sin effort (excluye P e históricos)
+  const noEffortCount = countableItems.filter(i => !i.effort && itemType(i.code) !== 'P' && i.status !== 'historico').length;
 
   // Nivel 1: totales globales — P (ideas) excluidas de todos los contadores de trabajo activo
   const backlogCount = countableItems.filter(i => i.status === 'pendiente').length;
@@ -1244,7 +1251,7 @@ function renderStats() {
           </div>
         </div>
         <div class="stat-meta-block">
-          <div class="stat-meta-label">Esfuerzo · filtrables</div>
+          <div class="stat-meta-label">Esfuerzo · filtrables${noEffortCount > 0 ? ` <span class="stat-effort-missing" title="Ítems sin effort asignado — requerido para burndown" onclick="toggleBacklogBlockerFilter && toggleEffortFilter(0)">${noEffortCount} sin effort</span>` : ''}</div>
           <div class="stat-meta-row">
             <span class="stat-effort-card${activeEfforts.has(1) ? ' active' : ''}" id="feff-1" onclick="toggleEffortFilter(1)" title="Filtrar effort 1"><span class="sec-count">${byEffort[1]}</span><span class="eff-label">● simple</span></span>
             <span class="stat-effort-card${activeEfforts.has(2) ? ' active' : ''}" id="feff-2" onclick="toggleEffortFilter(2)" title="Filtrar effort 2"><span class="sec-count">${byEffort[2]}</span><span class="eff-label">●● medio</span></span>
@@ -1333,6 +1340,22 @@ function clearAllFilters() {
   updateRoleFilterUI();   // T-202604-245
   updateClearFilterBtn();
   renderBacklogList();
+}
+
+// R-202605-122 AC3: asignación rápida de effort desde badge sin abrir editor completo
+function _quickAssignEffort(codeOrId) {
+  const item = ITEMS.find(i => i.code === codeOrId || i.id === codeOrId);
+  if (!item) return;
+  const val = prompt('Asignar effort a ' + (item.code || item.id) + ' (1 = simple · 2 = medio · 3 = complejo):', '1');
+  const n = parseInt(val);
+  if (!val || isNaN(n) || n < 1 || n > 3) { showToast('warning', '⚠ Valor no válido — ingresa 1, 2 o 3'); return; }
+  item.effort = n;
+  if (item._needsEffortReview) delete item._needsEffortReview;
+  _undoSnapshot();
+  saveBacklog();
+  renderBacklogList();
+  renderStats();
+  showToast('success', '✓ Effort ' + n + ' asignado a ' + (item.code || item.id));
 }
 
 // T-071: toggle filtro por esfuerzo
@@ -1776,6 +1799,12 @@ function _buildSprintHealthPanel() {
     ? ' <span class="sh-sprint-status-badge sh-sprint-status-badge--open">abierto</span>'
     : ' <span class="sh-sprint-status-badge sh-sprint-status-badge--active">★</span>';
 
+  // R-202605-123: goal del sprint — mostrar o hint de edición si vacío
+  const sprintGoal = displaySprint.goal ? displaySprint.goal.trim() : '';
+  const goalHtml = sprintGoal
+    ? `<div class="sh-goal">${esc(sprintGoal)}</div>`
+    : `<div class="sh-goal sh-goal--empty" ondblclick="editSprintInline('${esc(displaySprint.id)}')" title="Doble click para agregar goal">Sin goal — ¿qué quieres lograr?</div>`;
+
   // T-202604-290 · T-202605-450: velocidad planificada vs real + tendencia
   const velocityData = _calcEstimatedVelocity();
   let velocityFooter;
@@ -1829,6 +1858,7 @@ function _buildSprintHealthPanel() {
       </span>
     </div>
     <div id="sprint-health-body" class="${isOpen ? 'sh-body' : 'sh-body hidden'}">
+      ${goalHtml}
       <div class="sh-grid">
         <!-- Ítems -->
         <div class="sh-col sh-col--border">
@@ -2880,9 +2910,10 @@ function _renderArchivoViewSprint(body) {
       <div class="arch-sprint-entry-header" tabindex="0"
            onclick="_toggleArchSprintEntry('${esc(entryId)}','${esc(entryKey)}')"
            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleArchSprintEntry('${esc(entryId)}','${esc(entryKey)}')}">
-        <span class="arch-se-arrow${entryOpen ? ' arch-se-arrow--open' : ''}" aria-hidden="true">▸</span>
+        <span class="arch-se-arrow${entryOpen ? ' arch-se-arrow--open' : ''}" aria-hidden="true">&#9658;</span>
         <span class="arch-se-id">${esc(sp.id)}</span>
-        <span class="arch-se-name">${esc(sp.label || sp.id)}</span>
+        <span class="arch-se-name">${esc(sp.label || sp.id || 'Sprint sin nombre')}</span>
+        ${sp.goal ? `<span class="arch-se-goal" title="${esc(sp.goal)}">${esc(sp.goal)}</span>` : ''}
         <span class="arch-se-date">${esc(dateStr)}</span>
         <span class="arch-se-count">${spItems.length} ítem${spItems.length !== 1 ? 's' : ''}</span>
       </div>
@@ -3362,8 +3393,14 @@ function buildBacklogItem(item) {
     if (!item.area)   missingFields.push('area');
     if (!isIdea && (!item.ac || !item.ac.length)) missingFields.push('ac');
   }
-  const missingAlert = missingFields.length
-    ? `<div class="bitem-missing-row">${missingFields.map(f => `<span class="badge-missing">⚠ falta ${f}</span>`).join(' ')}</div>`
+  // R-202605-122 AC2/AC3: badge 'sin effort' con acción rápida de asignación
+  const _missingEffort = !isDiscarded && !isIdea && !item.effort;
+  const _effortQuickBadge = _missingEffort
+    ? `<span class="badge-missing badge-missing--effort" title="Esfuerzo no declarado — requerido para burndown">⚠ sin effort <button class="badge-effort-quick" onclick="event.stopPropagation();_quickAssignEffort('${esc(item.code || item.id)}')" title="Asignar effort rápidamente">Asignar</button></span>`
+    : '';
+  const _otherMissing = missingFields.filter(f => f !== 'effort');
+  const missingAlert = (_missingEffort || _otherMissing.length)
+    ? `<div class="bitem-missing-row">${_effortQuickBadge}${_otherMissing.map(f => `<span class="badge-missing">⚠ falta ${f}</span>`).join(' ')}</div>`
     : '';
 
   // AC list
@@ -4975,7 +5012,8 @@ function _isValidSprintName(label) {
   return /^S-\d+\s+·\s+.+/.test(label.trim());
 }
 
-function createSprint(raw) {
+// R-202605-123: createSprint acepta goal opcional (máx 120 chars)
+function createSprint(raw, goal) {
   const _activeProjForSprint = getActiveProject();
   if (!_activeProjForSprint) { showToast('warning', 'Selecciona un proyecto primero'); return; }
   if (!_activeProjForSprint.sprints) _activeProjForSprint.sprints = [];
@@ -4996,7 +5034,8 @@ function createSprint(raw) {
     return;
   }
   if (_getSprintById(id)) { showToast('warning', 'Ya existe ' + id); return id; }
-  _activeProjForSprint.sprints.push({ id, label: displayLabel, status: 'open', createdAt: Date.now() });
+  const goalTrimmed = (goal || '').trim().slice(0, 120);
+  _activeProjForSprint.sprints.push({ id, label: displayLabel, goal: goalTrimmed, status: 'open', createdAt: Date.now() });
   save();
   return id;
 }
@@ -5099,6 +5138,7 @@ function _generateSprintRetroMd(id, notes) {
 |---|---|
 | ID | ${id} |
 | Nombre | ${sprintLabel} |
+${sp && sp.goal ? `| Goal | ${sp.goal} |` : ''}
 | Cerrado | ${closedStr} |
 ${daysElapsed !== null ? `| Duración | ${daysElapsed} día${daysElapsed !== 1 ? 's' : ''} |` : ''}
 
@@ -5309,13 +5349,18 @@ function openNewSprintInline(code) {
   const suggestHtml = velocityData !== null
     ? `<span class="sprint-inline-hint">Velocidad real promedio: <strong>${velocityData.avg}</strong> effort</span>`
     : '';
-  wrap.innerHTML = `<div class="sprint-inline-edit-wrap">
+  // R-202605-123: campo goal opcional bajo el nombre del sprint
+  wrap.innerHTML = `<div class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal">
     <input id="new-sprint-inp-${esc(code)}" type="text" placeholder="S-01 o nombre..."
       class="sprint-inline-input"
       onkeydown="if(event.key==='Enter')confirmNewSprint('${esc(code)}');if(event.key==='Escape')renderBacklogList();">
-    <button onclick="confirmNewSprint('${esc(code)}')" class="sprint-inline-confirm">✓</button>
-    <button onclick="renderBacklogList()" class="sprint-inline-cancel">✕</button>
+    <button onclick="confirmNewSprint('${esc(code)}')" class="sprint-inline-confirm">&#10003;</button>
+    <button onclick="renderBacklogList()" class="sprint-inline-cancel">&#10005;</button>
     ${suggestHtml}
+    <input id="new-sprint-goal-${esc(code)}" type="text" placeholder="Goal del sprint (opcional, max 120)"
+      class="sprint-inline-goal-input"
+      maxlength="120"
+      onkeydown="if(event.key==='Enter')confirmNewSprint('${esc(code)}');if(event.key==='Escape')renderBacklogList();">
   </div>`;
   setTimeout(() => { const inp = document.getElementById('new-sprint-inp-' + code); if (inp) inp.focus(); }, 30);
 }
@@ -5324,25 +5369,36 @@ function confirmNewSprint(code) {
   const inp = document.getElementById('new-sprint-inp-' + code);
   const raw = inp ? inp.value.trim() : '';
   if (!raw) { renderBacklogList(); return; }
-  const id = createSprint(raw);
+  // R-202605-123: leer goal si está presente
+  const goalInp = document.getElementById('new-sprint-goal-' + code);
+  const goal = goalInp ? goalInp.value.trim() : '';
+  const id = createSprint(raw, goal);
   if (!id) { renderBacklogList(); return; } // sin proyecto activo — createSprint ya mostró toast
   setItemSprint(code, id);
 }
 
 // T-202604-246: edición inline del nombre de sprint desde el header del grupo
+// R-202605-123: incluye campo goal editable
 function editSprintInline(sprintId) {
   const wrap = document.getElementById('sprint-label-wrap-' + CSS.escape(sprintId));
   if (!wrap) return;
   const sp = _getSprintById(sprintId);
   if (!sp) return;
   const current = sp.label || sp.id;
+  const currentGoal = sp.goal || '';
   const inputId = 'edit-sprint-inp-' + sprintId;
-  wrap.innerHTML = `<div class="sprint-inline-edit-wrap" onclick="event.stopPropagation()">
+  const goalId  = 'edit-sprint-goal-' + sprintId;
+  wrap.innerHTML = `<div class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal" onclick="event.stopPropagation()">
     <input id="${esc(inputId)}" type="text" value="${esc(current)}"
       class="sprint-inline-input sprint-inline-input--wide"
       onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')renderBacklogList();">
-    <button onclick="confirmEditSprint('${esc(sprintId)}')" class="sprint-inline-confirm">✓</button>
-    <button onclick="renderBacklogList()" class="sprint-inline-cancel">✕</button>
+    <button onclick="confirmEditSprint('${esc(sprintId)}')" class="sprint-inline-confirm">&#10003;</button>
+    <button onclick="renderBacklogList()" class="sprint-inline-cancel">&#10005;</button>
+    <input id="${esc(goalId)}" type="text" value="${esc(currentGoal)}"
+      placeholder="Goal del sprint (opcional, max 120)"
+      class="sprint-inline-goal-input"
+      maxlength="120"
+      onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')renderBacklogList();">
   </div>`;
   setTimeout(() => {
     const inp = document.getElementById(inputId);
@@ -5351,8 +5407,10 @@ function editSprintInline(sprintId) {
 }
 
 // AC-3: guardar persiste en state.sprints y re-renderiza
+// R-202605-123: también persiste el goal editado
 function confirmEditSprint(sprintId) {
   const inputId = 'edit-sprint-inp-' + sprintId;
+  const goalId  = 'edit-sprint-goal-' + sprintId;
   const inp = document.getElementById(inputId);
   const raw = inp ? inp.value.trim() : '';
   if (!raw) { renderBacklogList(); return; } // AC-4: cancelar si vacío — no modifica
@@ -5366,9 +5424,14 @@ function confirmEditSprint(sprintId) {
   const sp = _getSprintById(sprintId);
   if (!sp) { renderBacklogList(); return; }
   sp.label = raw;
+  // R-202605-123: persistir goal si el campo existe
+  const goalInp = document.getElementById(goalId);
+  if (goalInp !== null) {
+    sp.goal = goalInp.value.trim().slice(0, 120);
+  }
   save();
   renderBacklogList();
-  showToast('success', '✓ Sprint renombrado: ' + raw);
+  showToast('success', '✓ Sprint actualizado: ' + raw);
 }
 
 // R-202604-089: estado del modal de cierre de sprint

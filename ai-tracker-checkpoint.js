@@ -1581,6 +1581,32 @@ function _applyStateData(raw) {
     delete proj.backlog;
     delete proj.aiIds;
     delete proj.sessionsCount;
+
+    // R-202605-135: schema_version — ítems en tracker.items sin campo se tratan como v0 → migrar a v1
+    if (proj.tracker && proj.tracker.items) {
+      proj.tracker.items.forEach(item => {
+        if (item.schema_version === undefined) item.schema_version = 1;
+      });
+    }
+
+    // R-202605-121: seed de nombres canónicos para sprints S-01–S-20 sin label
+    // Sprints creados antes de S-23 no tienen label guardado — se usa el ID como label.
+    // S-07b y S-16b se preservan tal cual (formato no estándar, no se normalizan).
+    if (proj.sprints && proj.sprints.length) {
+      const _HISTORICAL_SPRINT_IDS = new Set([
+        'S-01','S-02','S-03','S-04','S-05','S-06','S-07','S-07b',
+        'S-08','S-09','S-10','S-11','S-12','S-13','S-14','S-15',
+        'S-16','S-16b','S-17','S-18','S-19','S-20'
+      ]);
+      let _sprintSeeded = false;
+      proj.sprints.forEach(sp => {
+        if (_HISTORICAL_SPRINT_IDS.has(sp.id) && !sp.label) {
+          sp.label = sp.id; // ID como label canónico — nunca se sobreescribe si ya existe
+          _sprintSeeded = true;
+        }
+      });
+      if (_sprintSeeded) console.log('[AI Tracker] R-202605-121: labels canónicos aplicados a sprints históricos sin nombre.');
+    }
   });
 
   // v3: IAs son globales — sin sessions, sin project
@@ -2885,21 +2911,24 @@ function renderGlobalRadarSidebar() {
 
   container.innerHTML = html;
 
-  // Header — contadores
-  const titleEl = sidebar.querySelector('.radar-sidebar-title');
+  // Header — contadores — R-202605-138: contadores migrados a fila 2
+  const titleEl  = sidebar.querySelector('.radar-sidebar-title');
+  const row2El   = sidebar.querySelector('.rsb-header-row2');
   if (titleEl) {
     const unseen = _computeNotifications().filter(n => !_notifReadSet().has(n.id)).length;
     const notifBadge = unseen ? ` <span class="rsb-notif-hdr-badge">${unseen}</span>` : '';
-    if (active.length >= 5) {
-      const counts = [
-        (interrupted.length + inSession.length) ? `<span class="rsb-hdr-count rsb-hdr-session">${interrupted.length + inSession.length}●</span>` : '',
-        available.length ? `<span class="rsb-hdr-count rsb-hdr-available">${available.length}🟢</span>` : '',
-        exhausted.length ? `<span class="rsb-hdr-count rsb-hdr-exhausted">${exhausted.length}🔴</span>` : '',
-      ].filter(Boolean).join('');
-      titleEl.innerHTML = `Centro de notificaciones${notifBadge}` + (counts ? ` <span class="rsb-hdr-counts">${counts}</span>` : '');
-    } else {
-      titleEl.innerHTML = `Centro de notificaciones${notifBadge}`;
-    }
+    // Fila 1: solo título + badge de notificaciones — sin contadores
+    titleEl.innerHTML = `Centro de notificaciones${notifBadge}`;
+  }
+  if (row2El) {
+    // Fila 2: contadores de disponibilidad — se ocultan si valor es 0
+    const sessionCount  = interrupted.length + inSession.length;
+    const counts = [
+      sessionCount   ? `<span class="rsb-hdr-count rsb-hdr-session">${sessionCount}<span class="rsb-hdr-dot">●</span></span>`   : '',
+      available.length  ? `<span class="rsb-hdr-count rsb-hdr-available">${available.length}<span class="rsb-hdr-dot">●</span></span>`  : '',
+      exhausted.length  ? `<span class="rsb-hdr-count rsb-hdr-exhausted">${exhausted.length}<span class="rsb-hdr-dot">●</span></span>`  : '',
+    ].filter(Boolean).join('');
+    row2El.innerHTML = counts ? `<span class="rsb-hdr-counts">${counts}</span>` : '';
   }
 
   // CSS Purity: sprint bar pct via custom property
