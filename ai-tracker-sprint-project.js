@@ -235,7 +235,7 @@ function _buildIndexLines(statusMap) {
     const chunks = [];
     for (let i = 0; i < groups[t].length; i += 8) chunks.push(groups[t].slice(i, i+8));
     chunks.forEach(chunk => {
-      lines.push(t + ': ' + chunk.map(x => `${x.code.split('-')[2]} ${x.status}`).join(' | '));
+      lines.push(t + ': ' + chunk.map(x => `${x.code} ${x.status}`).join(' | '));
     });
   });
   return lines.join('\n');

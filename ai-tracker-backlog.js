@@ -5646,6 +5646,13 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
     html += '<div style="color:var(--text2);font-size:.83rem">Sprint sin ítems — se cerrará como vacío.</div>';
   }
 
+  html += `
+    <div class="scm-backup-hint">
+      💾 Backup opcional:
+      <button class="scm-docgen-btn" onclick="exportFullHistoryMd()" type="button">Descargar historial completo</button>
+    </div>
+  `;
+
   // T-202604-417: campo de notas editable para la retrospectiva
   const currentNotes = _scmState ? (_scmState.retroNotes || '') : '';
   html += `
