@@ -59,6 +59,20 @@ function setSyncStatus(status, label) {
   // R-202604-060: mirror en global footer
   const gfSync = document.getElementById('gf-sync');
   if (gfSync) { gfSync.className = 'gf-sync gf-sync--' + status; gfSync.textContent = label; }
+  // T-202605-USR: chip de usuario en header
+  const chip = document.getElementById('user-chip');
+  const chipDot = document.getElementById('user-chip-dot');
+  const chipName = document.getElementById('user-chip-name');
+  if (chip && chipDot && chipName) {
+    if (_supabaseUser) {
+      const name = (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || '').split(' ')[0];
+      chipName.textContent = name;
+      chipDot.className = 'user-chip-dot user-chip-dot--' + status;
+      chip.classList.remove('hidden');
+    } else {
+      chip.classList.add('hidden');
+    }
+  }
 }
 
 function handleSyncPillClick() {

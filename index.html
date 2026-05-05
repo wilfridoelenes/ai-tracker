@@ -71,6 +71,12 @@
       <!-- B-202604-012: botón reabrir último CHECKPOINT -->
       <button class="btn-ghost btn-ckpt-reopen hidden" id="ckpt-reopen-btn" onclick="showCheckpointPanel(_lastCheckpointResult)" title="Ver último CHECKPOINT">📋</button>
 
+      <!-- T-202605-USR: chip de usuario conectado — visible cuando hay sesión activa -->
+      <div class="user-chip hidden" id="user-chip" onclick="handleSyncPillClick()" title="Sesión activa · click para cerrar sesión">
+        <span class="user-chip-dot" id="user-chip-dot">●</span>
+        <span class="user-chip-name" id="user-chip-name"></span>
+      </div>
+
       <!-- Menú ⋯ — acciones frecuentes arriba · destructivas abajo · backup/tema/sync migrados aquí -->
       <div class="more-menu-wrap" id="more-menu-wrap">
         <button class="btn-ghost btn-icon" onclick="toggleMoreMenu()" title="Más opciones" id="more-menu-btn">⋯</button>
@@ -1937,5 +1943,46 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="srp-body" id="srp-body"></div>
   </div>
 </div>
+<!-- T-202605-USR: user chip styles -->
+<style>
+.user-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px 3px 6px;
+  border-radius: 20px;
+  background: var(--color-surface, #1e1e2e);
+  border: 1px solid var(--color-border, #333);
+  cursor: pointer;
+  font-size: 0.75rem;
+  color: var(--color-text-secondary, #aaa);
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  user-select: none;
+}
+.user-chip:hover {
+  background: var(--color-surface-hover, #252535);
+  border-color: var(--color-border-hover, #555);
+  color: var(--color-text, #ddd);
+}
+.user-chip-dot {
+  font-size: 0.55rem;
+  line-height: 1;
+  color: #888;
+  transition: color 0.3s;
+}
+.user-chip-dot--synced  { color: #2ecc78; }
+.user-chip-dot--syncing { color: #f0a500; }
+.user-chip-dot--offline { color: #e85555; }
+.user-chip-dot--local   { color: #888; }
+.user-chip-name {
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+@media (max-width: 600px) {
+  .user-chip-name { display: none; }
+  .user-chip { padding: 3px 5px; }
+}
+</style>
 
 </body></html>
