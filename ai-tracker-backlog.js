@@ -353,8 +353,15 @@ const VERSION_LABELS = {
   'futura':'Versión futura — sin fecha'
 };
 
-// T-049: colapso por versión
-const collapsedVersions = new Set();
+// T-049: colapso por versión — persiste en localStorage
+const _CV_KEY = 'backlog-collapsed-versions';
+function _cvLoad() {
+  try { return new Set(JSON.parse(localStorage.getItem(_CV_KEY) || '[]')); } catch { return new Set(); }
+}
+function _cvSave() {
+  try { localStorage.setItem(_CV_KEY, JSON.stringify([...collapsedVersions])); } catch {}
+}
+const collapsedVersions = _cvLoad();
 
 // R-[tmp:toolbar-backlog-redesign]: collapse all — volátil, no persiste entre sesiones
 function toggleCollapseAll() {
@@ -370,6 +377,7 @@ function toggleCollapseAll() {
     b.classList.toggle('collapsed', anyExpanded);
     if (id) anyExpanded ? collapsedVersions.add(id) : collapsedVersions.delete(id);
   });
+  _cvSave();
   arrows.forEach(a => { a.textContent = anyExpanded ? '▸' : '▾'; });
   if (btn) btn.classList.toggle('is-collapsed', anyExpanded);
   if (label) label.textContent = anyExpanded ? 'Expandir' : 'Colapsar';
@@ -713,6 +721,7 @@ function updateStatusFilterUI() {
 function toggleVersionCollapse(v) {
   if (collapsedVersions.has(v)) collapsedVersions.delete(v);
   else collapsedVersions.add(v);
+  _cvSave();
   const body = document.getElementById('vbody-' + v);
   const arrow = document.getElementById('varrow-' + v);
   if (body) body.classList.toggle('collapsed', collapsedVersions.has(v));
