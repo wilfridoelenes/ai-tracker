@@ -2613,11 +2613,28 @@ body.ai-sb-active {
 /* ── Header ── */
 .radar-sidebar-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 13px 12px 11px 20px;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 12px 8px 20px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--radar-section-divider, rgba(255,255,255,0.05));
+}
+
+/* Fila 1: título + botones */
+.rsb-header-row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* Fila 2: pills de estado (inyectados por JS en #rsb-hdr-counts) */
+.rsb-header-row2 {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-height: 18px;
 }
 
 .radar-sidebar-title {
@@ -3048,10 +3065,9 @@ body.ai-sb-active {
 
 /* Header counts */
 .rsb-hdr-counts {
-  display: inline-flex;
+  display: flex;
   gap: 3px;
-  margin-left: 4px;
-  vertical-align: middle;
+  align-items: center;
 }
 .rsb-hdr-count {
   font-size: 9px;
@@ -8111,8 +8127,8 @@ body.radar-sb-collapsed #global-footer {
 /* ── Panel ── */
 .mg-panel,
 .mg-panel--docgen {
-  background: var(--color-background-primary);
-  border: 0.5px solid var(--color-border-secondary);
+  background: var(--color-background-primary, var(--bg));
+  border: 0.5px solid var(--color-border-secondary, var(--border));
   border-radius: var(--mg-radius-lg);
   width: 100%;
   max-width: 680px;
@@ -8135,7 +8151,7 @@ body.radar-sb-collapsed #global-footer {
   align-items: center;
   justify-content: space-between;
   padding: 13px 18px;
-  border-bottom: 0.5px solid var(--color-border-tertiary);
+  border-bottom: 0.5px solid var(--color-border-tertiary, var(--border));
   flex-shrink: 0;
   gap: 10px;
 }
@@ -8170,7 +8186,7 @@ body.radar-sb-collapsed #global-footer {
 
 .mg-close-btn {
   background: none;
-  border: 0.5px solid var(--color-border-secondary);
+  border: 0.5px solid var(--color-border-secondary, var(--border));
   border-radius: var(--mg-radius);
   width: 28px;
   height: 28px;
@@ -8200,7 +8216,7 @@ body.radar-sb-collapsed #global-footer {
   display: flex;
   align-items: center;
   padding: 12px 18px;
-  border-bottom: 0.5px solid var(--color-border-tertiary);
+  border-bottom: 0.5px solid var(--color-border-tertiary, var(--border));
   background: var(--color-background-secondary);
   flex-shrink: 0;
   gap: 0;
@@ -8224,8 +8240,8 @@ body.radar-sb-collapsed #global-footer {
   font-size: 11px;
   font-weight: 500;
   flex-shrink: 0;
-  border: 1.5px solid var(--color-border-secondary);
-  background: var(--color-background-primary);
+  border: 1.5px solid var(--color-border-secondary, var(--border));
+  background: var(--color-background-primary, var(--bg));
   color: var(--color-text-secondary);
   transition: background var(--mg-transition), border-color var(--mg-transition), color var(--mg-transition);
 }
@@ -8262,7 +8278,7 @@ body.radar-sb-collapsed #global-footer {
   flex: none;
   width: 20px;
   height: 1px;
-  background: var(--color-border-secondary);
+  background: var(--color-border-secondary, var(--border));
   margin: 0 4px;
 }
 
@@ -8305,7 +8321,7 @@ body.radar-sb-collapsed #global-footer {
   gap: 14px;
   align-items: start;
   padding: 14px;
-  border: 0.5px solid var(--color-border-tertiary);
+  border: 0.5px solid var(--color-border-tertiary, var(--border));
   border-radius: var(--mg-radius);
   background: var(--color-background-secondary);
 }
@@ -8353,7 +8369,7 @@ body.radar-sb-collapsed #global-footer {
 
 /* ── Sprint Review — tabs ── */
 .mg-section--review {
-  border: 0.5px solid var(--color-border-tertiary);
+  border: 0.5px solid var(--color-border-tertiary, var(--border));
   border-radius: var(--mg-radius);
   overflow: hidden;
   gap: 0;
@@ -8372,7 +8388,7 @@ body.radar-sb-collapsed #global-footer {
   font-weight: 400;
   color: var(--color-text-tertiary);
   padding: 2px 7px;
-  border: 0.5px solid var(--color-border-tertiary);
+  border: 0.5px solid var(--color-border-tertiary, var(--border));
   border-radius: 999px;
   background: var(--color-background-secondary);
 }
@@ -8382,7 +8398,7 @@ body.radar-sb-collapsed #global-footer {
   gap: 0;
   padding: 0 14px;
   margin-top: 8px;
-  border-bottom: 0.5px solid var(--color-border-tertiary);
+  border-bottom: 0.5px solid var(--color-border-tertiary, var(--border));
 }
 
 .mg-review-tab {
@@ -8429,14 +8445,14 @@ body.radar-sb-collapsed #global-footer {
   font-size: 11px;
   font-weight: 500;
   color: var(--color-text-secondary);
-  border-bottom: 0.5px solid var(--color-border-tertiary);
+  border-bottom: 0.5px solid var(--color-border-tertiary, var(--border));
   background: var(--color-background-secondary);
 }
 
 .mg-review-table td {
   padding: 8px 14px;
   color: var(--color-text-primary);
-  border-bottom: 0.5px solid var(--color-border-tertiary);
+  border-bottom: 0.5px solid var(--color-border-tertiary, var(--border));
   vertical-align: top;
 }
 
@@ -8458,7 +8474,7 @@ body.radar-sb-collapsed #global-footer {
 
 /* ── Dropzone ── */
 .mg-dropzone {
-  border: 1.5px dashed var(--color-border-secondary);
+  border: 1.5px dashed var(--color-border-secondary, var(--border));
   border-radius: var(--mg-radius);
   padding: 24px 16px;
   text-align: center;
@@ -8502,8 +8518,8 @@ body.radar-sb-collapsed #global-footer {
 .mg-dropzone-label code {
   font-family: var(--font-mono, monospace);
   font-size: 11px;
-  background: var(--color-background-primary);
-  border: 0.5px solid var(--color-border-tertiary);
+  background: var(--color-background-primary, var(--bg));
+  border: 0.5px solid var(--color-border-tertiary, var(--border));
   border-radius: 3px;
   padding: 1px 5px;
 }
@@ -8533,9 +8549,9 @@ body.radar-sb-collapsed #global-footer {
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  border: 0.5px solid var(--color-border-tertiary);
+  border: 0.5px solid var(--color-border-tertiary, var(--border));
   border-radius: var(--mg-radius);
-  background: var(--color-background-primary);
+  background: var(--color-background-primary, var(--bg));
 }
 
 .mg-file-item-name {
@@ -8587,7 +8603,7 @@ body.radar-sb-collapsed #global-footer {
 /* ── Preview area ── */
 .mg-preview-area {
   min-height: 80px;
-  border: 0.5px solid var(--color-border-tertiary);
+  border: 0.5px solid var(--color-border-tertiary, var(--border));
   border-radius: var(--mg-radius);
   padding: 12px 14px;
   background: var(--color-background-secondary);
@@ -8612,7 +8628,7 @@ body.radar-sb-collapsed #global-footer {
   gap: 8px;
   padding: 10px 18px;
   background: var(--mg-accent-bg);
-  border-top: 0.5px solid var(--color-border-tertiary);
+  border-top: 0.5px solid var(--color-border-tertiary, var(--border));
   flex-shrink: 0;
 }
 
@@ -8638,7 +8654,7 @@ body.radar-sb-collapsed #global-footer {
   align-items: center;
   justify-content: space-between;
   padding: 12px 18px;
-  border-top: 0.5px solid var(--color-border-tertiary);
+  border-top: 0.5px solid var(--color-border-tertiary, var(--border));
   background: var(--color-background-secondary);
   flex-shrink: 0;
   gap: 10px;

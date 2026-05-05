@@ -680,6 +680,13 @@ function _generateContext() {
     base = `# CONTEXT — AI Tracker\nVersión: ${_ctxVersion}\n`;
   }
 
+  // T-202605-002: normalizar Archivo principal — eliminar versiones legacy del nombre del archivo HTML
+  base = base.replace(/\bAI-Tracker-v[\d.]+\.html\b/g, 'index.html');
+
+  // T-202605-003: actualizar stack — Firebase Firestore → Supabase (activo)
+  base = base.replace(/Firebase Firestore\s*\(opcional\)[^\n]*/g, 'Supabase (activo)');
+  base = base.replace(/Firebase Firestore[^\n]*/g, 'Supabase (activo)');
+
   const activeSprint = _mgActiveSprint();
   const sprintLabel = activeSprint ? activeSprint.id : 'S-??';
 
@@ -735,6 +742,50 @@ function _generateContext() {
   if (allLines.length) {
     const memoriaSection = `\n\n## Memoria operativa\n\n${allLines.join('\n')}\n`;
     base = base.trimEnd() + memoriaSection;
+  }
+
+  // T-202605-006: inyectar Decisiones técnicas registradas desde proj.decisions
+  const _injectSection = (base, header, content) => {
+    const re = new RegExp(`\\n## ${header.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[\\s\\S]*?(?=\\n## |\\n---\\s*$|$)`, 'm');
+    const block = `\n\n## ${header}\n\n${content}`;
+    return re.test(base) ? base.replace(re, block) : base.trimEnd() + block;
+  };
+
+  if (proj && Array.isArray(proj.decisions) && proj.decisions.length) {
+    const sortedDec = [...proj.decisions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    const decRows = sortedDec
+      .map(d => `| ${d.date || '—'} | ${(d.text || '').replace(/\|/g, '\\|')} |`)
+      .join('\n');
+    const decContent = `| Fecha | Decisión |\n|-------|----------|\n${decRows}\n`;
+    base = _injectSection(base, 'Decisiones técnicas registradas', decContent);
+  } else {
+    base = _injectSection(base, 'Decisiones técnicas registradas', '_Sin decisiones técnicas registradas._\n');
+  }
+
+  // T-202605-006: inyectar Gaps / pendientes sprint activo desde backlog
+  let _blItems = [];
+  try {
+    if (typeof _tplKey === 'function') {
+      const raw = localStorage.getItem(_tplKey('backlog-items'));
+      _blItems = raw ? JSON.parse(raw) : [];
+    } else if (typeof ITEMS !== 'undefined') {
+      _blItems = ITEMS;
+    }
+  } catch(e) { _blItems = []; }
+
+  if (activeSprint && _blItems.length) {
+    const gaps = _blItems.filter(it => it.sprint === activeSprint.id && it.status === 'pendiente');
+    if (gaps.length) {
+      const gapRows = gaps
+        .map(it => `| ${it.code || '—'} | ${(it.title || it.desc || '').replace(/\|/g, '\\|')} | ${it.priority || '—'} |`)
+        .join('\n');
+      const gapsContent = `| Código | Título | Priority |\n|--------|--------|----------|\n${gapRows}\n`;
+      base = _injectSection(base, 'Gaps / pendientes sprint activo', gapsContent);
+    } else {
+      base = _injectSection(base, 'Gaps / pendientes sprint activo', '_Sin ítems pendientes en el sprint activo._\n');
+    }
+  } else {
+    base = _injectSection(base, 'Gaps / pendientes sprint activo', '_Sin sprint activo o backlog no disponible._\n');
   }
 
   return base;
