@@ -6167,30 +6167,43 @@ let HTML_MAP_SECTIONS = [];
 let htmlMapFilter = 'all';
 
 function importHtmlMap(event) {
+  // R-202605-137: acepta JSON (nuevo) o Markdown (legado read-only)
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     const text = e.target.result;
-    const sections = parseHtmlMapMd(text);
+    const isJson = _isMapJson(text);
+    const sections = isJson ? _parseMapJson(text) : parseHtmlMapMd(text);
+    if (isJson && sections === null) {
+      showToast('error', 'MAP JSON inválido — verifica el formato del archivo');
+      return;
+    }
     HTML_MAP_SECTIONS = sections;
     localStorage.setItem(_tplKey('html-map-raw'), text);
     localStorage.setItem(_tplKey('html-map-sections'), JSON.stringify(sections));
-    // Extraer meta del archivo
-    const versionMatch = text.match(/Versión:\s*([\d.]+)/);
-    const fileMatch = text.match(/^#\s+(.+)/m);
+    // Meta
+    let version = '—';
+    let fileName = file.name;
+    if (isJson) {
+      try { const obj = JSON.parse(_extractMapJson(text)); version = obj.version || '—'; fileName = obj.project ? `${obj.project}-MAP_${version}` : file.name; } catch(e) {}
+    } else {
+      const vm = text.match(/Versión:\s*([\d.]+)/); if (vm) version = vm[1];
+      const fm = text.match(/^#\s+(.+)/m); if (fm) fileName = fm[1].trim();
+    }
     const meta = {
-      file: fileMatch ? fileMatch[1].trim() : file.name,
-      version: versionMatch ? versionMatch[1] : '—',
+      file: fileName,
+      version,
       importedAt: new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }),
-      total: sections.length
+      total: sections.length,
+      format: isJson ? 'json' : 'markdown'
     };
     localStorage.setItem(_tplKey('html-map-meta'), JSON.stringify(meta));
     updateHtmlMapBanner();
     updateHtmlMapModificationBadge();
     renderHtmlMap();
     _setHtmlMapModified();
-    _blogLog('importado', meta.file, `v${meta.version} · ${sections.length} secciones`, 'htmlmap');
+    _blogLog('importado', meta.file, `v${meta.version} · ${sections.length} secciones${isJson ? ' (JSON)' : ''}`, 'htmlmap');
     _updateDocLogCount('htmlmap');
     document.getElementById('htmlmap-filter-bar').classList.remove('hidden');
     showToast('success', `Module Map importado — ${sections.length} secciones`);
@@ -6199,6 +6212,52 @@ function importHtmlMap(event) {
   event.target.value = '';
 }
 
+// R-202605-137: detectar si el texto es un MAP en formato JSON
+function _isMapJson(text) {
+  if (!text || !text.trim()) return false;
+  const raw = _extractMapJson(text);
+  if (!raw) return false;
+  try {
+    const obj = JSON.parse(raw);
+    return typeof obj === 'object' && obj !== null && Array.isArray(obj.files);
+  } catch(e) { return false; }
+}
+
+// R-202605-137: extraer JSON crudo del bloque ```json ... ``` o del texto directo
+function _extractMapJson(text) {
+  const fenced = text.match(/```json\s*([\s\S]*?)\s*```/);
+  if (fenced) return fenced[1].trim();
+  const t = text.trim();
+  if (t.startsWith('{')) return t;
+  return null;
+}
+
+// R-202605-137: parsear MAP JSON al schema {type, file, name, line, area} que usa renderHtmlMap
+function _parseMapJson(text) {
+  const raw = _extractMapJson(text);
+  if (!raw) return null;
+  let obj;
+  try { obj = JSON.parse(raw); } catch(e) { return null; }
+  if (!Array.isArray(obj.files)) return null;
+  const sections = [];
+  obj.files.forEach(f => {
+    const ext = (f.type || f.name.split('.').pop() || 'js').toLowerCase();
+    (f.functions || []).forEach(fn => {
+      sections.push({
+        type: ext,
+        file: f.name,
+        name: fn.name || '',
+        line: fn.line != null ? String(fn.line) : '',
+        area: fn.area || '',
+        comment: fn.area || '',
+        lines: fn.line != null ? String(fn.line) : ''
+      });
+    });
+  });
+  return sections;
+}
+
+// R-202605-137: Markdown legacy — read-only, sin cambios al parser original
 function parseHtmlMapMd(text) {
   const sections = [];
   const lines = text.split('\n');
@@ -6214,7 +6273,6 @@ function parseHtmlMapMd(text) {
     if (line.startsWith('## ')) {
       const header = line.slice(3).trim();
       if (isModular) {
-        // Formato modular: "## ai-tracker-checkpoint.js (2,193 líneas)"
         const fileMatch = header.match(/^(\S+\.(js|css|html))/i);
         if (fileMatch) {
           currentFile = fileMatch[1];
@@ -6223,7 +6281,6 @@ function parseHtmlMapMd(text) {
           currentFile = null;
         }
       } else {
-        // Formato legacy
         if (/CSS/i.test(header)) { currentType = 'css'; currentFile = null; }
         else if (/HTML/i.test(header)) { currentType = 'html'; currentFile = null; }
         else if (/JS/i.test(header)) { currentType = 'js'; currentFile = null; }
@@ -6240,8 +6297,6 @@ function parseHtmlMapMd(text) {
     if (cols[0].startsWith('---') || cols[0].startsWith('===')) continue;
 
     if (isModular && currentFile) {
-      // Columnas modular: Línea | Función / Constante | Área  (o variantes)
-      // cols[0]=línea, cols[1]=función, cols[2]=área
       const lineNum = cols[0];
       const fnName = cols[1] || '';
       const area = cols[2] || '';
@@ -6251,12 +6306,10 @@ function parseHtmlMapMd(text) {
         name: fnName,
         line: lineNum,
         area: area,
-        // compat campos legacy
         comment: area,
         lines: lineNum
       });
     } else {
-      // Formato legacy
       sections.push({
         type: currentType || 'js',
         file: null,
@@ -6280,37 +6333,49 @@ function loadHtmlMap() {
 function exportHtmlMapMd() {
   const raw = localStorage.getItem(_tplKey('html-map-raw'));
   if (!raw) { showToast('warning', 'Sin datos — importa primero'); return; }
-  // R-202604-047: shell estático htmlmap-export-overlay en index.html
   const overlay = document.getElementById('htmlmap-export-overlay');
   if (!overlay) return;
-  // B-202605-260: versión canónica (post-Generator) — no APP_VERSION hardcodeada
   const _hmVer = (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
     ? _effectiveVersion
     : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
-  // Inject valores dinámicos
+  const isJson = _isMapJson(raw);
+  const ext = isJson ? 'json' : 'md';
   const versionInput = document.getElementById('hmexport-version-input');
   const preview = document.getElementById('hmexport-filename-preview');
   if (versionInput) versionInput.value = _hmVer;
-  if (preview) preview.textContent = `${_docPrefix()}-MAP_${_hmVer}.md`;
+  if (preview) preview.textContent = `${_docPrefix()}-MAP_${_hmVer}.${ext}`;
   overlay.classList.add('open');
-  // Limpiar handler previo y agregar nuevo (evita acumulación)
   const btn = document.getElementById('hmexport-confirm-btn');
   if (btn) {
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
     newBtn.addEventListener('click', () => {
       const ver = document.getElementById('hmexport-version-input').value.trim() || _hmVer;
-      let updated = raw.replace(/Versi[oó]n:\s*[\d.]+/, `Versión: ${ver}`);
+      let updated = raw;
+      if (isJson) {
+        // Actualizar version en el JSON
+        try {
+          const jsonRaw = _extractMapJson(raw);
+          const obj = JSON.parse(jsonRaw);
+          obj.version = ver;
+          const newJson = JSON.stringify(obj, null, 2);
+          updated = raw.includes('```json') ? raw.replace(/```json\s*[\s\S]*?\s*```/, '```json\n' + newJson + '\n```') : newJson;
+        } catch(e) {}
+      } else {
+        updated = raw.replace(/Versi[oó]n:\s*[\d.]+/, `Versión: ${ver}`);
+      }
       overlay.classList.remove('open');
       _clearHtmlMapModifiedBadge();
-      const b = new Blob([updated], { type: 'text/markdown' });
+      const fname = `${_docPrefix()}-MAP_${ver}.${ext}`;
+      const mtype = isJson ? 'application/json' : 'text/markdown';
+      const b = new Blob([updated], { type: mtype });
       const u = URL.createObjectURL(b);
       const a = document.createElement('a');
-      a.href = u; a.download = `${_docPrefix()}-MAP_${ver}.md`;
+      a.href = u; a.download = fname;
       a.click(); URL.revokeObjectURL(u);
-      _blogLog('exportado', `${_docPrefix()}-MAP_${ver}.md`, '', 'htmlmap');
+      _blogLog('exportado', fname, '', 'htmlmap');
       _updateDocLogCount('htmlmap');
-      showToast('download', `${_docPrefix()}-MAP_${ver}.md exportado`);
+      showToast('download', `${fname} exportado`);
     });
   }
 }

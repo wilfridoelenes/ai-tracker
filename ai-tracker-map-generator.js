@@ -615,6 +615,7 @@ function generateMap() { generateDocuments(); }
 // ─── Generador MAP ───────────────────────────────────────────────────────────
 
 function _generateMap() {
+  // R-202605-137: produce JSON puro — parseable con JSON.parse sin regex
   const order = { js: 0, css: 1, html: 2 };
   const sorted = [..._mapGen.files].sort((a, b) => {
     const ea = a.name.split('.').pop().toLowerCase();
@@ -624,42 +625,29 @@ function _generateMap() {
 
   const version = _mgGetVersion();
   const now = _mgNow();
-  const prefix = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+  const project = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
   const parsed = sorted.map(f => _mgParseFile(f.name, f.text));
-  const totalLines = parsed.reduce((s, p) => s + p.total, 0);
 
-  let md = `# ${prefix}-MAP_${version}.md\n`;
-  md += `<!-- Versión: ${version} | Última actualización: ${now} UTC-6 | Generado automáticamente -->\n\n`;
-  md += `# MODULE-MAP — AI-Tracker ${version}\n\n`;
-  md += `Arquitectura modular — ${parsed.length} archivos independientes.\n`;
-  md += `Generado: ${now} UTC-6\n\n---\n\n`;
+  const files = parsed.map(p => ({
+    name: p.name,
+    type: p.ext,
+    lines: p.total,
+    functions: p.entries.map(e => ({
+      line: e.line,
+      name: e.fn,
+      area: e.area || ''
+    }))
+  }));
 
-  md += `## Índice de archivos\n\n`;
-  md += `| Archivo | Tipo | Líneas | Descripción |\n`;
-  md += `|---------|------|--------|-------------|\n`;
-  parsed.forEach(p => {
-    const tipo = p.ext.toUpperCase();
-    const desc = p.ext === 'js' ? `${p.entries.length} funciones` : `${p.entries.length} secciones`;
-    md += `| \`${p.name}\` | ${tipo} | ${p.total.toLocaleString()} | ${desc} |\n`;
-  });
-  md += `\n**Total líneas:** ${totalLines.toLocaleString()}\n\n---\n\n`;
+  const mapObj = {
+    version,
+    updated: `${now} UTC-6`,
+    project,
+    files
+  };
 
-  parsed.forEach(p => {
-    md += `## ${p.name} (${p.total.toLocaleString()} líneas)\n\n`;
-    if (!p.entries.length) { md += `_Sin elementos detectados._\n\n`; return; }
-    if (p.ext === 'js') {
-      md += `| Línea | Función / Constante | Área |\n|-------|---------------------|------|\n`;
-      p.entries.forEach(e => { md += `| ${e.line} | \`${e.fn}\` | ${e.area} |\n`; });
-    } else {
-      md += `| Líneas | Sección |\n|--------|---------|\n`;
-      p.entries.forEach(e => { md += `| ${e.line} | ${e.fn} |\n`; });
-    }
-    md += `\n`;
-  });
-
-  return md;
+  return '```json\n' + JSON.stringify(mapObj, null, 2) + '\n```';
 }
-
 // ─── Generador CONTEXT ───────────────────────────────────────────────────────
 
 function _generateContext() {
@@ -955,7 +943,7 @@ function _mgShowPreview(docs) {
   const prefix = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
 
   const items = [
-    { key: 'map',     label: 'MAP',          filename: `${prefix}-MAP_${version}.md` },
+    { key: 'map',     label: 'MAP',          filename: `${prefix}-MAP_${version}.json` },
     { key: 'context', label: 'CONTEXT',       filename: `${prefix}-CONTEXT_${version}.md` },
     { key: 'backlog', label: 'BACKLOG',        filename: `${prefix}-BACKLOG_${version}.md` },
     { key: 'review',  label: 'Sprint Review', filename: `${prefix}-SPRINT-REVIEW_${version}.md` },
@@ -970,19 +958,22 @@ function _mgShowPreview(docs) {
   });
   html += `</div>`;
 
-  // Si hay MAP, mostrar tabla de archivos
+  // R-202605-137: Si hay MAP en JSON, mostrar tabla de archivos parseando el JSON
   if (docs.map) {
-    const mapLines = docs.map.split('\n');
-    const tableStart = mapLines.findIndex(l => l.startsWith('| Archivo'));
-    const tableEnd   = mapLines.findIndex((l, i) => i > tableStart && l.trim() === '');
-    const tableRows  = tableStart >= 0 ? mapLines.slice(tableStart, tableEnd) : [];
-    if (tableRows.length > 2) {
-      html += `<table class="mg-preview-table"><thead><tr><th>Archivo</th><th>Tipo</th><th>Líneas</th><th>Entradas</th></tr></thead><tbody>`;
-      tableRows.slice(2).forEach(row => {
-        const cols = row.split('|').map(c => c.trim()).filter(Boolean);
-        if (cols.length >= 3) html += `<tr><td>${cols[0]}</td><td>${cols[1]}</td><td>${cols[2]}</td><td>${cols[3] || ''}</td></tr>`;
-      });
-      html += `</tbody></table>`;
+    try {
+      const jsonMatch = docs.map.match(/```json\n([\s\S]*?)\n```/);
+      if (jsonMatch) {
+        const mapObj = JSON.parse(jsonMatch[1]);
+        if (Array.isArray(mapObj.files) && mapObj.files.length) {
+          html += `<table class="mg-preview-table"><thead><tr><th>Archivo</th><th>Tipo</th><th>Líneas</th><th>Entradas</th></tr></thead><tbody>`;
+          mapObj.files.forEach(f => {
+            html += `<tr><td>${f.name}</td><td>${(f.type||'').toUpperCase()}</td><td>${(f.lines||0).toLocaleString()}</td><td>${(f.functions||[]).length}</td></tr>`;
+          });
+          html += `</tbody></table>`;
+        }
+      }
+    } catch(e) {
+      html += `<div class="mg-preview-error">⚠ Error al parsear MAP JSON: ${e.message}</div>`;
     }
   }
 
@@ -990,8 +981,6 @@ function _mgShowPreview(docs) {
   const confirmBtn = document.getElementById('mg-confirm-btn');
   if (confirmBtn) confirmBtn.disabled = false;
 }
-
-// ─── Confirmar: aplicar al DOM + descargar ZIP ───────────────────────────────
 
 function confirmMapGenerator() {
   const docs = _mapGen.generatedDocs;
