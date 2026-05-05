@@ -2443,7 +2443,7 @@ function renderBacklogRefs(s) {
   if (refs.length) {
     refs.forEach(code => {
       const type = code[0] || '';
-      const item = ITEMS.find(i => i.code === code);
+      const item = typeof ITEMS !== 'undefined' ? ITEMS.find(i => i.code === code) : null;
       const desc = item ? item.title : '—';
       const status = item ? item.status : '';
       const statusLabel = {'pendiente':'Pendiente','done':'Hecho'}[status] || status;
@@ -2460,7 +2460,7 @@ function renderBacklogRefs(s) {
   }
 
   // Selector — vacío si no hay backlog importado
-  if (!ITEMS.length) {
+  if (typeof ITEMS === 'undefined' || !ITEMS.length) {
     html += `<div class="popup-ref-empty">Importa tu <code>Backlog.md</code> para vincular ítems.</div>`;
   } else {
     html += `<input class="popup-ref-search" id="pop-ref-input" type="text" placeholder="Buscar por código o título..." oninput="onPopupRefSearch()" autocomplete="off">`;
@@ -2498,6 +2498,7 @@ function onPopupRefSearch() {
 
   if (!q) { sugEl.innerHTML = ''; return; }
 
+  if (typeof ITEMS === 'undefined') { sugEl.innerHTML = ''; return; }
   const matches = ITEMS.filter(i =>
     !refs.includes(i.code) && (
       i.code.toLowerCase().includes(q) ||

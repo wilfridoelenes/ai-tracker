@@ -2481,7 +2481,7 @@ function _planDrop(e, targetCol) {
   }
 }
 
-
+function renderBacklogList() {
   const listEl = document.getElementById('backlog-list');
   _skelShow(listEl, 5);
   const q = backlogSearchQuery;
