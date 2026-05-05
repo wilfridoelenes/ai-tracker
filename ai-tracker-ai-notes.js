@@ -324,7 +324,23 @@ document.querySelectorAll('.modal-overlay,.popup-overlay').forEach(el => {
 });
 
 function exportData() {
-  const b = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  // Sesiones viven en projects[].sessions en state — el importador las espera en ais[].sessions
+  const sessById = {};
+  (state.projects || []).forEach(p => {
+    (p.sessions || []).forEach(s => {
+      if (s.aiId) {
+        if (!sessById[s.aiId]) sessById[s.aiId] = [];
+        sessById[s.aiId].push(s);
+      }
+    });
+  });
+  const exportAis = state.ais.map(ai => ({
+    ...ai,
+    sessions: sessById[ai.id] || ai.sessions || []
+  }));
+  const exportProjects = (state.projects || []).map(({ sessions: _omit, ...rest }) => rest);
+  const exportState = { ...state, ais: exportAis, projects: exportProjects };
+  const b = new Blob([JSON.stringify(exportState, null, 2)], {type:'application/json'});
   const u = URL.createObjectURL(b); const a = document.createElement('a');
   a.href = u; a.download = 'ai-tracker-' + new Date().toISOString().slice(0, 10) + '.json';
   a.click(); URL.revokeObjectURL(u); showToast('download', 'Backup exportado');
