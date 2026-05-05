@@ -7656,3 +7656,98 @@ body.radar-sb-open .tracker-sidebar {
 }
 .auth-resend-btn:hover { opacity: 0.8; }
 /* ══ END R[tmp:magic-link-auth] ══ */
+
+/* ══ Bloqueo ciego — agotar IA sin sesión ══ */
+.card-footer-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.card-footer-actions-row .save-btn {
+  flex: 1;
+}
+.blind-exhaust-btn {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--hint);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: var(--trans-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.blind-exhaust-btn:hover {
+  color: var(--red);
+  border-color: var(--red);
+  background: var(--red-dim);
+}
+/* modo inline activo — bloquear campos normales */
+.card-footer--blind-exhaust-mode .hora-row,
+.card-footer--blind-exhaust-mode .card-footer-actions-row {
+  opacity: 0.3;
+  pointer-events: none;
+  user-select: none;
+}
+.blind-exhaust-inline {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.blind-exhaust-inline.hidden {
+  display: none;
+}
+.blind-exhaust-hora-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.blind-exhaust-hora-input {
+  width: 70px;
+  flex-shrink: 0;
+}
+.blind-exhaust-confirm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.blind-exhaust-confirm-btn {
+  flex: 1;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--red-dim);
+  color: var(--red);
+  border: 1px solid var(--red);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--trans-fast);
+}
+.blind-exhaust-confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.blind-exhaust-confirm-btn:not(:disabled):hover {
+  background: var(--red);
+  color: #fff;
+}
+.blind-exhaust-cancel-btn {
+  font-size: 11px;
+  color: var(--hint);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: var(--trans-fast);
+}
+.blind-exhaust-cancel-btn:hover {
+  color: var(--text2);
+  border-color: var(--border2);
+  background: var(--surface2);
+}
+/* ══ END Bloqueo ciego ══ */

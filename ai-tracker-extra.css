@@ -4221,6 +4221,81 @@ body.radar-sb-collapsed #global-footer {
 }
 /* ══ END T-202604-265 ══ */
 
+/* R-202605-126: Velocidad por sprint — columna vel/día + encabezado de sección */
+.sh-velocity-section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #5a6380);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.06));
+  margin-bottom: 4px;
+}
+.sh-trend-header--5col,
+.sh-trend-row--5col {
+  grid-template-columns: 44px 1fr 60px 32px 38px;
+}
+.sh-trend-col-vel {
+  font-size: 0.64rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #5a6380);
+  text-align: right;
+}
+.sh-trend-vel {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent, var(--purple));
+  text-align: right;
+}
+.sh-trend-vel--na {
+  color: var(--text-muted, #5a6380);
+  font-weight: 400;
+}
+/* END R-202605-126 */
+
+/* R-202605-131: Scope added — badge en ítem + contador en Sprint Health Panel */
+.badge-scope-added {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--accent, #7c6af7);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+.sh-scope-added-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 4px 0;
+  border-top: 1px solid var(--border, rgba(255,255,255,0.05));
+}
+.sh-scope-added-label {
+  font-size: 0.7rem;
+  color: var(--text-muted, #5a6380);
+}
+.sh-scope-added-val {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent, #7c6af7);
+}
+.sh-scope-added-effort {
+  font-size: 0.68rem;
+  font-weight: 400;
+  color: var(--text-muted, #5a6380);
+}
+/* END R-202605-131 */
+
 /* ══ R-202605-123: Sprint Goal ══ */
 
 /* Goal en Sprint Health Panel */

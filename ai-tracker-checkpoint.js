@@ -7,12 +7,13 @@ const APP_VERSION = 'v3.4';
 // Se escribe desde _mgApplyBumpedVersion() en ai-tracker-map-generator.js al confirmar el generador.
 // APP_VERSION es el fallback de primer arranque; el generador es la fuente de verdad post-bump.
 const _APP_VERSION_KEY = 'app-version-override';
-const _effectiveVersion = (() => {
+// B-202605-263: función getter — lee localStorage en cada invocación para reflejar bumps post-carga
+function _effectiveVersion() {
   try {
     const stored = localStorage.getItem(_APP_VERSION_KEY);
     return (stored && stored.trim() && stored !== 'undefined') ? stored : APP_VERSION;
   } catch(e) { return APP_VERSION; }
-})();
+}
 
 // T-074: umbral de días sin sesión para sugerencia contextual
 const STALE_DAYS_THRESHOLD = 3;
@@ -42,8 +43,8 @@ const AVATAR_LOGOS = {
   anthropic: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 7v10M8 11h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="15.5" cy="9" r="1" fill="currentColor"/></svg>',
   default: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 9a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" fill="currentColor"/><path d="M7 15c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>'
 };
-document.title = 'AI Tracker ' + _effectiveVersion; // v3.0.0.9.6
-document.getElementById('version-pill').textContent = _effectiveVersion;
+document.title = 'AI Tracker ' + _effectiveVersion(); // v3.0.0.9.6
+document.getElementById('version-pill').textContent = _effectiveVersion();
 
 // AC-8: Firebase eliminado — Supabase es el único backend de sync
 
@@ -2202,7 +2203,7 @@ function renderStatusBar() {
 
   // gf-version
   if (gfVersion) {
-    gfVersion.textContent = (typeof _effectiveVersion !== 'undefined') ? _effectiveVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '');
+    gfVersion.textContent = (typeof _effectiveVersion === 'function') ? _effectiveVersion() : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '');
     gfVersion.classList.remove('gf-hidden');
   }
 
@@ -4257,6 +4258,76 @@ function _hoyMarkExhausted(id) {
   render();
 }
 
+// ── Bloqueo ciego — agotar IA sin crear sesión ni log ──
+function openBlindExhaustMode(id) {
+  const ai = getAI(id);
+  if (!ai || ai.status !== 'available' || _isInSession(ai)) return;
+  const footer = document.getElementById('footer-' + id);
+  if (!footer) return;
+  footer.classList.add('card-footer--blind-exhaust-mode');
+  const inline = document.getElementById('bexhaust-inline-' + id);
+  if (inline) inline.classList.remove('hidden');
+  setTimeout(() => {
+    const inp = document.getElementById('bexhaust-hora-' + id);
+    if (inp) { inp.focus(); inp.select(); }
+  }, 30);
+}
+
+function cancelBlindExhaustMode(id) {
+  const footer = document.getElementById('footer-' + id);
+  if (footer) footer.classList.remove('card-footer--blind-exhaust-mode');
+  const inline = document.getElementById('bexhaust-inline-' + id);
+  if (inline) inline.classList.add('hidden');
+  const inp = document.getElementById('bexhaust-hora-' + id);
+  if (inp) inp.value = '';
+  const disp = document.getElementById('bexhaust-disp-' + id);
+  if (disp) { disp.textContent = '—'; disp.className = 'hora-parsed'; }
+  const btn = document.getElementById('bexhaust-confirm-' + id);
+  if (btn) btn.disabled = true;
+}
+
+function blindExhaustHoraInput(id) {
+  const inp = document.getElementById('bexhaust-hora-' + id);
+  const disp = document.getElementById('bexhaust-disp-' + id);
+  const btn = document.getElementById('bexhaust-confirm-' + id);
+  if (!inp) return;
+  const raw = inp.value.replace(/\D/g, '');
+  const result = interpretHora(raw);
+  if (disp) {
+    disp.textContent = result ? result.label : (raw.length >= 3 ? 'hora inválida' : (raw.length ? '...' : '—'));
+    disp.className = 'hora-parsed' + (result ? ' hora-disp--valid' : (raw.length >= 3 ? ' hora-disp--error' : ''));
+  }
+  if (btn) btn.disabled = !result;
+}
+
+function blindExhaustHoraKey(event, id) {
+  if (event.key === 'Escape') { event.preventDefault(); cancelBlindExhaustMode(id); return; }
+  if (event.key === 'Enter') { event.preventDefault(); confirmBlindExhaust(id); }
+}
+
+function confirmBlindExhaust(id) {
+  const ai = getAI(id);
+  if (!ai || ai.status !== 'available') return;
+  const inp = document.getElementById('bexhaust-hora-' + id);
+  if (!inp) return;
+  const raw = inp.value.replace(/\D/g, '');
+  const result = interpretHora(raw);
+  if (!result) {
+    showToast('error', 'Hora inválida — ingresa formato HHMM (ej: 2100)');
+    return;
+  }
+  ai.status = 'exhausted';
+  ai.resetTime = result.hhmm;
+  ai.resetEpoch = result.epoch;
+  // AC: no crea sesión, no toca resetAt de sesiones existentes, no emite log
+  cancelBlindExhaustMode(id);
+  saveImmediate().then(() => {
+    render();
+    if (typeof renderHoy === 'function' && currentTab === 'hoy') renderHoy();
+  });
+  showToast('info', `${ai.name} — agotada sin sesión · desbloqueo a las ${result.label}`);
+}
+
 function avgBetweenSessions(ai) {
   const dated = getAISessions(ai.id)
     .map(s => new Date(s.date).getTime())
@@ -4452,7 +4523,7 @@ function buildCard(ai) {
 
   // T-202604-203: footer fijo — acciones primarias siempre en la misma posición
   const footerHTML = ai.status === 'available' ? `
-    <div class="card-footer">
+    <div class="card-footer" id="footer-${ai.id}">
       <div class="hora-row">
         <input class="hora-input" id="hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
           oninput="parseHora('${ai.id}')"
@@ -4462,7 +4533,26 @@ function buildCard(ai) {
           <div class="hora-hint-txt">hora de desbloqueo (opcional) · Enter para guardar</div>
         </div>
       </div>
-      <button class="save-btn" id="sbtn-${ai.id}" onclick="confirmSave('${ai.id}')" disabled>Guardar sesión</button>
+      <div class="card-footer-actions-row">
+        <button class="save-btn" id="sbtn-${ai.id}" onclick="confirmSave('${ai.id}')" disabled>Guardar sesión</button>
+        <button class="blind-exhaust-btn" id="bexhaust-btn-${ai.id}" onclick="openBlindExhaustMode('${ai.id}')" title="Agotar sin registrar sesión" aria-label="Agotar sin registrar sesión">🔴 Agotar</button>
+      </div>
+      <div class="blind-exhaust-inline hidden" id="bexhaust-inline-${ai.id}">
+        <div class="blind-exhaust-hora-row">
+          <input class="hora-input blind-exhaust-hora-input" id="bexhaust-hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
+            oninput="blindExhaustHoraInput('${ai.id}')"
+            onkeydown="blindExhaustHoraKey(event,'${ai.id}')"
+            aria-label="Hora de desbloqueo para agotamiento ciego">
+          <div>
+            <div class="hora-parsed" id="bexhaust-disp-${ai.id}">—</div>
+            <div class="hora-hint-txt">hora de desbloqueo · Enter para agotar</div>
+          </div>
+        </div>
+        <div class="blind-exhaust-confirm-row">
+          <button class="blind-exhaust-confirm-btn" id="bexhaust-confirm-${ai.id}" onclick="confirmBlindExhaust('${ai.id}')" disabled aria-label="Confirmar agotamiento ciego">🔴 Agotar</button>
+          <button class="blind-exhaust-cancel-btn" onclick="cancelBlindExhaustMode('${ai.id}')">Cancelar</button>
+        </div>
+      </div>
     </div>
   ` : `
     <div class="card-footer card-footer--exhausted">
@@ -5917,7 +6007,7 @@ function renderHoy() {
     html += `<div class="radar-footer">
       <span>${today}</span>
       <span>${nextLabel ? `⏳ próxima IA en ${nextLabel} (${esc(nextExh.name)})` : '✓ todas las IAs disponibles'}</span>
-      <span class="radar-footer-version">${_effectiveVersion}</span>
+      <span class="radar-footer-version">${_effectiveVersion()}</span>
     </div>`;
   }
 

@@ -14,8 +14,8 @@ function exportContextMd() {
   const raw = localStorage.getItem(_tplKey('context-raw'));
   if (!raw) { showToast('warning', 'Sin datos — importa primero'); return; }
   // B-202605-260: usar versión canónica (post-Generator) — no APP_VERSION hardcodeada
-  const _ctxVer = (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
-    ? _effectiveVersion
+  const _ctxVer = (typeof _effectiveVersion === 'function')
+    ? _effectiveVersion()
     : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
 
   // R-202605-136: detectar formato JSON para extensión y MIME correctos
@@ -1086,7 +1086,7 @@ function setItemStatus(code, newStatus) {
   if (newStatus === 'done' && !item.doneAt) item.doneAt = Date.now();
   // B-[tmp:closed-version]: persistir versión activa al cerrar ítem
   if (newStatus === 'done' || newStatus === 'descartado') {
-    item.closedInVersion = (typeof _effectiveVersion !== 'undefined') ? _effectiveVersion : '';
+    item.closedInVersion = (typeof _effectiveVersion === 'function') ? _effectiveVersion() : '';
   }
   // R-202604-015: registrar cambio en history[]
   if (!item.history) item.history = [];
@@ -1744,14 +1744,23 @@ function toggleClosedSprintsBody() { toggleArchivoHistorico(); }
 function _calcEstimatedVelocity() {
   const closedSprints = getActiveSprints()
     .filter(s => s.status === 'closed')
-    .slice(-3); // últimos 3 cerrados
+    .slice(-5); // R-202605-126: últimos 5 cerrados (antes: 3)
   if (closedSprints.length < 2) return null;
   const sprintData = closedSprints.map(sp => {
     const spItems = ITEMS.filter(i => i.sprint === sp.id && i.status !== 'descartado');
     const planned = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
     const real    = spItems.filter(i => i.status === 'done' || i.status === 'historico')
                            .reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
-    return { id: sp.id, label: sp.label || sp.id, planned, real };
+    // R-202605-126: días activos del sprint para velocidad/día
+    const tsStart  = sp.startedAt || sp.createdAt || null;
+    const tsEnd    = sp.closedAt  || null;
+    const daysActive = (tsStart && tsEnd)
+      ? Math.max(1, Math.floor((tsEnd - tsStart) / 86400000))
+      : null;
+    const velPerDay = (daysActive !== null && real > 0)
+      ? Math.round((real / daysActive) * 10) / 10
+      : (daysActive !== null ? 0 : null);
+    return { id: sp.id, label: sp.label || sp.id, planned, real, daysActive, velPerDay };
   });
   const reals = sprintData.map(d => d.real);
   const avg = Math.round((reals.reduce((a, b) => a + b, 0) / reals.length) * 10) / 10;
@@ -1815,6 +1824,18 @@ function _buildSprintHealthPanel() {
 
   // T-202604-290 · T-202605-450: velocidad planificada vs real + tendencia
   const velocityData = _calcEstimatedVelocity();
+
+  // R-202605-131: contador de ítems scope added en sprint activo
+  const scopeAddedItems  = sprintItems.filter(i => i.scope_added);
+  const scopeAddedCount  = scopeAddedItems.length;
+  const scopeAddedEffort = scopeAddedItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+  const scopeAddedHtml   = scopeAddedCount > 0
+    ? `<div class="sh-scope-added-row">
+        <span class="sh-scope-added-label">Scope añadido durante el sprint</span>
+        <span class="sh-scope-added-val">${scopeAddedCount} ítem${scopeAddedCount !== 1 ? 's' : ''} <span class="sh-scope-added-effort">(${scopeAddedEffort} effort)</span></span>
+       </div>`
+    : '';
+
   let velocityFooter;
   if (velocityData === null) {
     velocityFooter = `<div class="sh-footer">
@@ -1828,28 +1849,36 @@ function _buildSprintHealthPanel() {
     const prevAvg  = vSprints.slice(0, -1).reduce((a, d) => a + d.real, 0) / (vSprints.length - 1);
     const trendClass = lastReal >= prevAvg * 1.1 ? 'sh-trend--up' : lastReal <= prevAvg * 0.9 ? 'sh-trend--down' : 'sh-trend--flat';
     const trendIcon  = lastReal >= prevAvg * 1.1 ? '▲' : lastReal <= prevAvg * 0.9 ? '▼' : '→';
+    // R-202605-126: columna vel/día en cada fila
     const trendRows  = vSprints.map(d => {
       const pct = d.planned > 0 ? Math.round((d.real / d.planned) * 100) : 0;
       const barColor = pct >= 80 ? 'var(--green)' : pct >= 50 ? '#f59e0b' : 'var(--red,#e85555)';
-      return `<div class="sh-trend-row">
+      const velHtml = d.velPerDay === null
+        ? `<span class="sh-trend-vel sh-trend-vel--na" title="Sin timestamps de inicio/cierre">—</span>`
+        : `<span class="sh-trend-vel">${d.velPerDay}</span>`;
+      return `<div class="sh-trend-row sh-trend-row--5col">
           <span class="sh-trend-label" title="${esc(d.label)}">${esc(d.id)}</span>
           <span class="sh-trend-nums"><span class="sh-trend-real">${d.real}</span><span class="sh-trend-sep">/</span><span class="sh-trend-plan">${d.planned}</span></span>
           <div class="sh-bar-track sh-bar-track--sm">
             <div class="sh-bar-fill" style="--sh-bar-w:${Math.min(pct,100)}%;--sh-bar-color:${barColor}"></div>
           </div>
           <span class="sh-trend-pct">${pct}%</span>
+          ${velHtml}
         </div>`;
     }).join('');
+    // R-202605-126: sección con encabezado visible + header 5 columnas
     velocityFooter = `<div class="sh-footer sh-footer--trend">
+        <div class="sh-velocity-section-title">Velocidad por sprint</div>
         <div class="sh-footer-top">
           <span class="sh-footer-label">Velocidad real promedio</span>
           <span class="sh-footer-val">${avg} <span class="sh-trend-badge ${trendClass}">${trendIcon}</span></span>
         </div>
-        <div class="sh-trend-header">
+        <div class="sh-trend-header sh-trend-header--5col">
           <span class="sh-trend-col-sprint">Sprint</span>
           <span class="sh-trend-col-nums">Real / Plan.</span>
           <span class="sh-trend-col-bar"></span>
           <span class="sh-trend-col-pct">%</span>
+          <span class="sh-trend-col-vel">vel/día</span>
         </div>
         <div class="sh-trend-rows">${trendRows}</div>
         <div class="sh-footer-suggest">Effort máx. sugerido próximo sprint: <strong>${avg}</strong></div>
@@ -1907,6 +1936,8 @@ function _buildSprintHealthPanel() {
         </div>
       </div>
       <!-- T-202604-290 · T-202605-450: velocidad planificada vs real -->
+      <!-- R-202605-131: scope added counter -->
+      ${scopeAddedHtml}
       ${velocityFooter}
     </div>
   </div>`;
@@ -3555,6 +3586,11 @@ function buildBacklogItem(item) {
   // R-202604-091: decorador de actividad reciente — sesión vinculada en los últimos 7 días
   const isActive = (!isDone && !isDiscarded) ? _isActiveRecently(item) : false;
 
+  // R-202605-131: badge scope added — ítem añadido durante el sprint activo
+  const scopeAddedBadge = (!isDone && !isDiscarded && item.scope_added)
+    ? '<span class="badge-scope-added" title="Añadido al sprint después de su apertura">＋ scope</span>'
+    : '';
+
   // Header right slot
   // R-202605-098: para P pendiente — acciones inline en header sin necesidad de expandir
   const _ideaQuickActions = (isIdea && !isDiscarded && !isDone)
@@ -3569,7 +3605,7 @@ function buildBacklogItem(item) {
       ? `<span class="bitem-done-check">✓</span>`
       : isIdea
         ? `<div class="bitem-header-right">${_ideaQuickActions}</div>`
-        : `<div class="bitem-header-right">${noAcBadge}${acReplacedBadge}${blockingBadge}${blockedBadge}${blockedByBadge}${noSessionBadge}${childBadge}${prioBadgeHtml}${effortDotsHtml}</div>`;
+        : `<div class="bitem-header-right">${scopeAddedBadge}${noAcBadge}${acReplacedBadge}${blockingBadge}${blockedBadge}${blockedByBadge}${noSessionBadge}${childBadge}${prioBadgeHtml}${effortDotsHtml}</div>`;
 
   // R-202605-098: subline discard reason diferenciado para P
   // P descartado por promoción → chip con ref; P descartado manual → razón libre
@@ -5249,6 +5285,12 @@ function _generateSprintRetroMd(id, notes) {
     ? `## 📝 Notas\n\n${notes.trim()}\n`
     : '';
 
+  // R-202605-131: sección de scope added en retro
+  const scopeAddedRetroItems = sprintItems.filter(i => i.scope_added);
+  const scopeAddedRetroSection = scopeAddedRetroItems.length
+    ? `## ➕ Scope añadido durante el sprint (${scopeAddedRetroItems.length})\n\n| Código | Título | Effort |\n|--------|--------|--------|\n${scopeAddedRetroItems.map(_itemRow).join('\n')}\n`
+    : '';
+
   const pfx = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
 
   return `# ${pfx}-Retrospectiva-${id}-${closedStr}.md
@@ -5289,7 +5331,7 @@ ${doneSection}
 ${pendSection}
 ---
 
-${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por AI Tracker ${(typeof _effectiveVersion !== 'undefined' && _effectiveVersion) ? _effectiveVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '')} · ${dateStr}_
+${scopeAddedRetroSection ? scopeAddedRetroSection + '\n---\n\n' : ''}${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por AI Tracker ${(typeof _effectiveVersion === 'function') ? _effectiveVersion() : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '')} · ${dateStr}_
 `;
 }
 
@@ -5457,6 +5499,18 @@ function setItemSprint(code, sprintId) {
   const prevSprint = item.sprint || '';
   item.sprint = sprintId || '';
   item.priority = _calcPriority(item); // T-202604-297
+  // R-202605-131: marcar scope_added si el sprint destino está activo al momento de asignar
+  if (sprintId) {
+    const targetSprint = _getSprintById(sprintId);
+    if (targetSprint && targetSprint.status === 'active' && targetSprint.startedAt) {
+      item.scope_added = true;
+    } else if (!sprintId || prevSprint === sprintId) {
+      // No marcar si se desasigna o se mueve al mismo sprint
+    }
+  } else {
+    // Al desasignar de sprint, limpiar el flag
+    delete item.scope_added;
+  }
   if (!item.history) item.history = [];
   item.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: prevSprint || null, to: item.sprint || null } });
   _undoSnapshot();
