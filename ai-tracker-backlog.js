@@ -2105,10 +2105,19 @@ function _blSprintToggleClosed() {
 function _renderSprintRoadmap() {
   const bar = document.getElementById('bl-sprint-bar');
   if (!bar) return;
-  // si el dropdown está abierto, no re-render el trigger (evita colapso mid-interaction)
   if (document.getElementById('bl-sprint-dropdown')) return;
+  const prevClosedList = document.getElementById('bl-sprint-closed-list');
+  const closedWasOpen = prevClosedList ? !prevClosedList.classList.contains('is-hidden') : false;
   const html = _buildSprintSelector();
   bar.innerHTML = html;
+  if (closedWasOpen) {
+    const newList   = document.getElementById('bl-sprint-closed-list');
+    const newToggle = document.getElementById('bl-sprint-closed-toggle');
+    const newArrow  = newToggle ? newToggle.querySelector('.bl-sprint-closed-toggle-arrow') : null;
+    if (newList)   newList.classList.remove('is-hidden');
+    if (newToggle) newToggle.classList.add('is-open');
+    if (newArrow)  newArrow.textContent = '▴';
+  }
 }
 
 // alias legacy — roadmapGoToSprint sigue funcionando igual

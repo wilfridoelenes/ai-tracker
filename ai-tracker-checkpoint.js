@@ -163,6 +163,7 @@ function _offlineQueuePush(entry) {
 // Flush la cola al reconectar — last-write-wins
 async function _offlineQueueFlush() {
   if (!_offlineQueue.length) return;
+  if (!_supabase || !_supabaseUser) return;
   const queue = [..._offlineQueue];
   _offlineQueue = [];
   _offlineQueueSave();
@@ -175,10 +176,16 @@ async function _offlineQueueFlush() {
       if (entry.type === 'state') {
         _stateDirty = true;
         await _saveFlush();
+      } else if (entry.type === 'backlog') {
+        await saveBacklog();
+      } else if (entry.type === 'docs') {
+        await saveContextDocs();
+      } else if (entry.type === 'sessions' && entry.projId) {
+        const proj = (state.projects || []).find(p => p.id === entry.projId);
+        if (proj) await _saveSessions(proj);
       }
     } catch(e) {
       console.warn('[AI Tracker] Offline queue flush error:', e);
-      // Re-encolar si falla de nuevo
       _offlineQueue.push(entry);
       failed = true;
     }
@@ -200,11 +207,6 @@ window.addEventListener('online', () => {
   } else {
     setSyncStatus('local', 'local');
   }
-});
-
-window.addEventListener('offline', () => {
-  _isOnline = false;
-  setSyncStatus('offline', '✕ sin conexión');
 });
 
 window.addEventListener('offline', () => {
@@ -1219,10 +1221,15 @@ function save() {
   if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
   // R-202604-073: actualización reactiva del dot Pulso
   if (typeof renderPulsoDot === 'function') renderPulsoDot();
-  // T-202605-482: Supabase — encolar debounce
+  // T-202605-482: Supabase — encolar debounce o encolar offline directo
   if (_supabase) {
-    clearTimeout(_saveDebounceTimer);
-    _saveDebounceTimer = setTimeout(() => _saveFlush(), _SAVE_DEBOUNCE_MS);
+    if (!_isOnline) {
+      // offline — encolar sin intentar red
+      _offlineQueuePush({ type: 'state' });
+    } else {
+      clearTimeout(_saveDebounceTimer);
+      _saveDebounceTimer = setTimeout(() => _saveFlush(), _SAVE_DEBOUNCE_MS);
+    }
   }
 }
 
@@ -1252,7 +1259,11 @@ async function _saveSessions(proj) {
         updated_at: new Date().toISOString()
       }));
       const { error } = await _supabase.from('tracker_sessions').upsert(chunk, { onConflict: 'user_id,session_id' });
-      if (error) { console.error('[AI Tracker] Supabase _saveSessions failed:', error); break; }
+      if (error) {
+        console.error('[AI Tracker] Supabase _saveSessions failed:', error);
+        _offlineQueuePush({ type: 'sessions', projId: proj.id });
+        break;
+      }
     }
     return;
   }
@@ -1322,6 +1333,7 @@ async function saveBacklog() {
       console.error('[AI Tracker] Supabase saveBacklog() failed:', err);
       setSyncStatus('offline', '✕ sin conexión');
       showToast('warning', '⚠️ Backlog no sincronizado con Supabase — guardado localmente');
+      _offlineQueuePush({ type: 'backlog' });
     }
     return;
   }
@@ -1357,6 +1369,7 @@ async function saveContextDocs() {
       console.error('[AI Tracker] Supabase saveContextDocs() failed:', err);
       setSyncStatus('offline', '✕ sin conexión');
       showToast('warning', '⚠️ Context/HTML-MAP no sincronizado con Supabase — guardado localmente');
+      _offlineQueuePush({ type: 'docs' });
     }
   }
 }
@@ -1785,16 +1798,14 @@ async function _loadFromSupabase() {
         const localMeta   = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
         const localTs     = localMeta.updated  ? new Date(localMeta.updated).getTime()  : 0;
         const remoteTs    = remoteMeta.updated ? new Date(remoteMeta.updated).getTime() : 0;
-        // Cargar si: browser limpio (ITEMS vacío o localTs=0) O remoto es más reciente
+        // Supabase es fuente de verdad — remoto gana si es más nuevo o local está vacío
         const shouldLoad  = remoteItems.length && (ITEMS.length === 0 || localTs === 0 || remoteTs > localTs);
         if (shouldLoad) {
-          const localCodes = new Set(ITEMS.map(i => i.code));
-          let added = 0;
-          remoteItems.forEach(ri => { if (!localCodes.has(ri.code)) { ITEMS.push(ri); added++; } });
-          if (added > 0 || ITEMS.length === 0) {
-            localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(ITEMS));
-            localStorage.setItem(_tplKey('backlog-meta'),  JSON.stringify(remoteMeta));
-          }
+          // Reemplazar completo — no merge aditivo
+          ITEMS.length = 0;
+          remoteItems.forEach(ri => ITEMS.push(ri));
+          localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(ITEMS));
+          localStorage.setItem(_tplKey('backlog-meta'),  JSON.stringify(remoteMeta));
         }
       }
     } catch (blErr) {
