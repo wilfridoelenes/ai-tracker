@@ -747,12 +747,12 @@ function parseBacklogMd(text) {
 
   itemBlocks.forEach((block, blockIdx) => {
     try {
-      let headerMatch = block.match(/^###\s+([A-Z]-\d{6}-\d{3}(?:-[A-Za-z]+)?)\s+·\s+(.+)/);
+      let headerMatch = block.match(/^###\s+([A-Z]-\d{6}-\d{3}(?:-[A-Za-z]+)?)\s+·\s*(.*)/);
       let code, title, needsAutoAssign = false;
       
       if (headerMatch) {
         code = headerMatch[1].trim();
-        title = headerMatch[2].trim();
+        title = (headerMatch[2] || '').trim() || '(sin título)';
       } else {
         headerMatch = block.match(/^###\s+\[pendiente-ID\]\s+·\s+(.+)/);
         if (!headerMatch) return;

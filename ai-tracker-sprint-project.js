@@ -245,7 +245,7 @@ function _buildIndexLines(statusMap) {
 function _buildItemsMd(items) {
   const src = items || ITEMS;
   return src.map(item => {
-    let md = `### ${item.code} · ${item.title}\n`;
+    let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}\n`;
     md += `**Priority:** ${item.priority || 'medium'}\n`;
     const _area = (item.area || '').includes('**') ? '' : (item.area || '').trim();
     md += `**Area:** ${_area}\n`;
