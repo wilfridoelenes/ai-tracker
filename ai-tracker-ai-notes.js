@@ -6265,11 +6265,15 @@ function exportHtmlMapMd() {
   // R-202604-047: shell estático htmlmap-export-overlay en index.html
   const overlay = document.getElementById('htmlmap-export-overlay');
   if (!overlay) return;
+  // B-202605-260: versión canónica (post-Generator) — no APP_VERSION hardcodeada
+  const _hmVer = (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
+    ? _effectiveVersion
+    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
   // Inject valores dinámicos
   const versionInput = document.getElementById('hmexport-version-input');
   const preview = document.getElementById('hmexport-filename-preview');
-  if (versionInput) versionInput.value = APP_VERSION;
-  if (preview) preview.textContent = `${_docPrefix()}-MAP_${APP_VERSION}.md`;
+  if (versionInput) versionInput.value = _hmVer;
+  if (preview) preview.textContent = `${_docPrefix()}-MAP_${_hmVer}.md`;
   overlay.classList.add('open');
   // Limpiar handler previo y agregar nuevo (evita acumulación)
   const btn = document.getElementById('hmexport-confirm-btn');
@@ -6277,7 +6281,7 @@ function exportHtmlMapMd() {
     const newBtn = btn.cloneNode(true);
     btn.parentNode.replaceChild(newBtn, btn);
     newBtn.addEventListener('click', () => {
-      const ver = document.getElementById('hmexport-version-input').value.trim() || APP_VERSION;
+      const ver = document.getElementById('hmexport-version-input').value.trim() || _hmVer;
       let updated = raw.replace(/Versi[oó]n:\s*[\d.]+/, `Versión: ${ver}`);
       overlay.classList.remove('open');
       _clearHtmlMapModifiedBadge();

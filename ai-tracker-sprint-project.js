@@ -49,10 +49,14 @@ function _buildCurrentStateMd() {
   return hasContent ? lines.join('\n') : '';
 }
 
-// R-202604-052: extraer MAJOR.MINOR.PATCH de APP_VERSION para naming generacional
+// R-202604-052: extraer MAJOR.MINOR.PATCH de versión canónica para naming generacional
+// B-202605-260: usa _effectiveVersion (post-Generator) — no APP_VERSION hardcodeada
 function _backlogVersion() {
-  const m = APP_VERSION.replace(/^v/, '').match(/^(\d+\.\d+(?:\.\d+)?)/);
-  return m ? `v${m[1]}` : APP_VERSION;
+  const _src = (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
+    ? _effectiveVersion
+    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
+  const m = _src.replace(/^v/, '').match(/^(\d+\.\d+(?:\.\d+)?)/);
+  return m ? `v${m[1]}` : _src;
 }
 
 // R-202604-052: sprint cerrado más reciente del proyecto activo
@@ -156,6 +160,11 @@ function _generateBacklogMd(newVersion, opts = {}) {
   // R-202604-040: bloque de estado actual — sprint activo, pendientes, último bloqueante
   const currentStateMd = _buildCurrentStateMd();
 
+  // B-202605-260: versión canónica para campos de metadata del export
+  const _appVerStr = (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
+    ? _effectiveVersion
+    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
+
   const pfx = _docPrefix();
   const md = `# ${pfx}-BACKLOG_${newVersion}.md
 <!-- Versión: ${newVersion} | Última actualización: ${dateStr} | App: AI-Tracker-${newVersion} -->
@@ -178,7 +187,7 @@ ${currentStateMd}## Índice de estado
 \`\`\`
 ${indexLines}
 Contadores: ${counterStr}
-App: ${APP_VERSION} — exportado desde tracker
+App: ${_appVerStr} — exportado desde tracker
 \`\`\`
 
 ---
@@ -198,7 +207,7 @@ ${itemsMd}
 | Ítems totales | ${totalItems} |
 | Done | ${doneCount} |
 | Backlog | ${backlogCount} |
-| App version actual | ${APP_VERSION} |
+| App version actual | ${_appVerStr} |
 | Próxima versión | ${newVersion} |
 `;
 

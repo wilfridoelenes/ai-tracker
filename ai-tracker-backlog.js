@@ -13,13 +13,17 @@ function _skelHide(el) { if (el) el.classList.remove('is-loading'); }
 function exportContextMd() {
   const raw = localStorage.getItem(_tplKey('context-raw'));
   if (!raw) { showToast('warning', 'Sin datos — importa primero'); return; }
-  _showExportConfirmModal('CONTEXT', `${_docPrefix()}-CONTEXT_${APP_VERSION}.md`, () => {
+  // B-202605-260: usar versión canónica (post-Generator) — no APP_VERSION hardcodeada
+  const _ctxVer = (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
+    ? _effectiveVersion
+    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
+  _showExportConfirmModal('CONTEXT', `${_docPrefix()}-CONTEXT_${_ctxVer}.md`, () => {
     const b = new Blob([raw], { type: 'text/markdown' });
     const u = URL.createObjectURL(b);
     const a = document.createElement('a');
-    a.href = u; a.download = `${_docPrefix()}-CONTEXT_${APP_VERSION}.md`;
+    a.href = u; a.download = `${_docPrefix()}-CONTEXT_${_ctxVer}.md`;
     a.click(); URL.revokeObjectURL(u);
-    _blogLog('exportado', `${_docPrefix()}-CONTEXT_${APP_VERSION}.md`, '', 'context');
+    _blogLog('exportado', `${_docPrefix()}-CONTEXT_${_ctxVer}.md`, '', 'context');
     showToast('success', 'CONTEXT exportado');
   });
 }
@@ -5119,7 +5123,7 @@ ${doneSection}
 ${pendSection}
 ---
 
-${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por AI Tracker ${typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''} · ${dateStr}_
+${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por AI Tracker ${(typeof _effectiveVersion !== 'undefined' && _effectiveVersion) ? _effectiveVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '')} · ${dateStr}_
 `;
 }
 
