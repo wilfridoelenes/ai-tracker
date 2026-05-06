@@ -6866,6 +6866,10 @@ function _openMigrateItem(code) {
     return;
   }
 
+  const projOptions = destProjects.map(p =>
+    `<label class="migrate-modal-option"><input type="radio" name="migrate-dest" value="${esc(p.id)}"> ${esc(p.name)}</label>`
+  ).join('');
+
   // R-202604-047: shell estático en index.html — inject content + classList
   const overlay = document.getElementById('migrate-item-overlay');
   if (!overlay) return;
