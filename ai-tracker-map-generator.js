@@ -50,7 +50,8 @@ function openMapGenerator() {
   const vInput = document.getElementById('mg-version-input');
   const fPreview = document.getElementById('mg-filename-preview');
   const prefix = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
-  const ver = typeof _effectiveVersion !== 'undefined' ? _effectiveVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v3.1.0.0');
+  // B-202605-272: _effectiveVersion es función — invocarla, no referenciarla como variable
+  const ver = (typeof _effectiveVersion === 'function') ? _effectiveVersion() : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v3.1.0.0');
   if (vInput) vInput.value = ver;
   if (fPreview) fPreview.textContent = `${prefix}-MAP_${ver}.md`;
 
