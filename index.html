@@ -36,9 +36,13 @@
 <!-- ═══ HEADER COMPARTIDO ═══ -->
 <header>
   <div class="header-inner">
-    <div class="logo cursor-pointer" onclick="switchTab('tracker')" id="logo-btn" title="Ir a Tracker · ver changelog">
+    <div class="logo cursor-pointer" onclick="switchTab('tracker')" id="logo-btn" title="Ir a Tracker">
       <img id="pepe-logo" src="/img/logo.png" alt="Pepe" class="logo-img">
-      <div class="logo-name cursor-pointer" id="version-pill" onclick="openChangelog()" title="v3.0.0.10.0 · Ver changelog"><img src="/img/logo.png" alt="AI Tracker by Pepe" id="header-logo" class="header-logo-img"></div>
+      <div class="logo-project-label" id="header-project-label">
+        <span class="logo-project-prefix" id="header-project-prefix">AI</span>
+        <span class="logo-project-separator">·</span>
+        <span class="logo-project-name" id="header-project-name">AI Tracker</span>
+      </div>
     </div>
 
     <!-- T-202604-324: mini progress dots del ecosistema — color por proyecto, fill proporcional al progreso -->
@@ -769,6 +773,10 @@
             <input class="proj-emoji-input" id="proj-emoji" maxlength="2" placeholder="📁" title="Emoji del proyecto">
             <input class="proj-form-input" id="proj-name-input" placeholder="Nombre del proyecto..." maxlength="40" onkeydown="if(event.key==='Enter')confirmProjForm()">
           </div>
+        </div>
+        <div>
+          <label class="proj-form-label">Prefijo <span class="proj-form-label-hint">(máx. 3 caracteres — aparece en header y documentos)</span></label>
+          <input class="proj-form-input proj-prefix-input" id="proj-prefix-input" placeholder="Ej: OL, AS, CM..." maxlength="3">
         </div>
         <div>
           <label class="proj-form-label">Color</label>

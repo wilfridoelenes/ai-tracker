@@ -4802,7 +4802,8 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   if (total === 0 && !_hasCriticalIgnored) { onApply(); return; }
 
   // ── Helpers de renderizado ──
-  const _typeName  = { P: 'Posibilidad', T: 'Task', R: 'Req', B: 'Bug' };
+  // R-202605-148: pill corto B/T/R/P — letra única con color semántico en .mdiff-type-badge
+  const _typeName  = { B: 'B', T: 'T', R: 'R', P: 'P' };
   // R-202605-148: clase CSS por tipo — hex fijos de identidad del backlog
   const _typeClass = { B: 'mdiff-type--b', T: 'mdiff-type--t', R: 'mdiff-type--r', P: 'mdiff-type--p' };
   // R-202605-148: orden canónico B → R → T → P para sort dentro de sección
@@ -4817,7 +4818,10 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
       ? getActiveSprints().filter(s => s.status !== 'closed')
       : [];
     const item = ITEMS.find(i => i.code === code);
-    const currentSprint = item ? (item.sprint || '') : '';
+    const rawSprint = item ? (item.sprint || '') : '';
+    // R-202605-148 AC: si el sprint asignado ya no existe, mostrar 'Sin sprint' como fallback
+    const sprintExists = rawSprint && openSprints.some(s => s.id === rawSprint);
+    const currentSprint = sprintExists ? rawSprint : '';
     const options = openSprints.map(s =>
       `<option value="${esc(s.id)}" ${currentSprint === s.id ? 'selected' : ''}>${esc(s.label || s.id)}</option>`
     ).join('');
@@ -4833,7 +4837,8 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   const _card = (code, desc, accentClass, pillsHtml, extraHtml = '') => {
     const typeChar  = (code || '?')[0].toUpperCase();
     const typeCls   = _typeClass[typeChar] || 'mdiff-type--unknown';
-    const typeName  = _typeName[typeChar]  || typeChar;
+    // R-202605-148: ítem sin tipo declarado muestra '?' — no rompe el render
+    const typeName  = _typeName[typeChar]  || '?';
     return `
     <div class="mdiff-card mdiff-card--${accentClass} ${typeCls}">
       <div class="mdiff-card-accent"></div>
@@ -4854,7 +4859,8 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   const _retrocedoRow = (i, idx) => {
     const typeChar = (i.code || '?')[0].toUpperCase();
     const typeCls  = _typeClass[typeChar] || 'mdiff-type--unknown';
-    const typeName = _typeName[typeChar]  || typeChar;
+    // R-202605-148: ítem sin tipo declarado muestra '?'
+    const typeName = _typeName[typeChar]  || '?';
     return `
     <div class="mdiff-card mdiff-card--warn mdiff-card--retroceso ${typeCls}" data-retroceso-idx="${idx}">
       <div class="mdiff-card-accent"></div>
@@ -4875,7 +4881,8 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   const _discardRow = (i, idx) => {
     const typeChar  = (i.code || '?')[0].toUpperCase();
     const typeCls   = _typeClass[typeChar] || 'mdiff-type--unknown';
-    const typeName  = _typeName[typeChar]  || typeChar;
+    // R-202605-148: ítem sin tipo declarado muestra '?'
+    const typeName  = _typeName[typeChar]  || '?';
     const hasReason = !!(i.reason);
     const reasonHtml = hasReason
       ? `<span class="mdiff-discard-reason-pill">${esc(i.reason)}${i.ref ? ' · ' + esc(i.ref) : ''}</span>`

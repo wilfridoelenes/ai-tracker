@@ -7,9 +7,26 @@ const _PREFIX_MAP = {
 };
 function _docPrefix() {
   const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
-  const name = proj ? (proj.name || '') : '';
+  if (!proj) return 'XX';
+  if (proj.prefix) return proj.prefix;
+  const name = proj.name || '';
   return _PREFIX_MAP[name] || (name.slice(0, 2).toUpperCase() || 'XX');
 }
+
+// R-1: actualiza el header con prefix + nombre del proyecto activo
+window._updateHeaderProjectLabel = function() {
+  const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+  const prefixEl = document.getElementById('header-project-prefix');
+  const nameEl   = document.getElementById('header-project-name');
+  if (!proj) {
+    if (prefixEl) prefixEl.textContent = 'AI';
+    if (nameEl)   nameEl.textContent   = 'AI Tracker';
+    return;
+  }
+  const prefix = proj.prefix || _PREFIX_MAP[proj.name] || (proj.name || '').slice(0, 2).toUpperCase() || 'AI';
+  if (prefixEl) prefixEl.textContent = prefix;
+  if (nameEl)   nameEl.textContent   = proj.name || 'AI Tracker';
+};
 
 // R-202604-040: genera bloque ## Estado actual para el Backlog exportado
 function _buildCurrentStateMd() {
@@ -652,6 +669,7 @@ function _setActiveProjectFilter(projId) {
   else localStorage.removeItem('current-project-filter');
   _updateProjBreadcrumb();
   _updateProjFilterBtn();
+  if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
 }
 
 function _updateProjBreadcrumb() {
@@ -782,6 +800,8 @@ function openProjModal(editMode, projId) {
       if (heading) heading.textContent = '✎ Editar proyecto';
       if (nameInput) nameInput.value = proj.name;
       if (emojiInput) emojiInput.value = proj.icon || '';
+      const prefixInput = document.getElementById('proj-prefix-input');
+      if (prefixInput) prefixInput.value = proj.prefix || '';
       const notesInput = document.getElementById('proj-notes-input');
       if (notesInput) notesInput.value = proj.notes || '';
       _projSelectedColor = PROJ_COLORS.indexOf(proj.color);
@@ -808,9 +828,11 @@ function cancelProjForm() {
   const heading = document.getElementById('proj-form-heading');
   const nameInput = document.getElementById('proj-name-input');
   const emojiInput = document.getElementById('proj-emoji');
+  const prefixInput = document.getElementById('proj-prefix-input');
   if (heading) heading.textContent = '+ Nuevo proyecto';
   if (nameInput) nameInput.value = '';
   if (emojiInput) emojiInput.value = '';
+  if (prefixInput) prefixInput.value = '';
   const notesInput = document.getElementById('proj-notes-input');
   if (notesInput) notesInput.value = '';
   _projSelectedColor = 0;
@@ -849,12 +871,21 @@ function confirmProjForm() {
       proj.name = name;
       proj.color = color;
       proj.icon = emoji;
+      proj.prefix = (document.getElementById('proj-prefix-input') || {value:''}).value.trim().toUpperCase().slice(0, 3);
       proj.notes = notes;
       showToast('success', `Proyecto "${name}" actualizado`);
     }
+    save();
+    closeProjModal();
+    _renderProjList();
+    _updateProjBreadcrumb();
+    _updateProjFilterBtn();
+    if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
+    return;
   } else {
     const id = 'proj-' + Math.random().toString(36).slice(2, 8);
-    state.projects.push({ id, name, color, icon: emoji, notes, status: 'active', context: '', contextVersion: '', backlog: [], backlogVersion: '' });
+    const prefix = (document.getElementById('proj-prefix-input') || {value:''}).value.trim().toUpperCase().slice(0, 3);
+    state.projects.push({ id, name, color, icon: emoji, prefix, notes, status: 'active', context: '', contextVersion: '', backlog: [], backlogVersion: '' });
     showToast('success', `Proyecto "${name}" creado`);
   }
 
@@ -888,7 +919,11 @@ function _renderProjList() {
       ondragleave="projDragLeave(event)"
       ondrop="projDrop(event,'${proj.id}')">
       <span class="proj-list-drag">${isArchived ? '' : '⠿'}</span>
-      ${proj.icon ? `<span class="proj-list-icon">${esc(proj.icon)}</span>` : `<span class="proj-list-dot" style="--proj-color:${proj.color || '#7c6af7'}"></span>`}
+      ${proj.icon
+        ? `<span class="proj-list-icon">${esc(proj.icon)}</span>`
+        : proj.prefix
+          ? `<span class="proj-list-prefix" style="--proj-color:${proj.color || '#7c6af7'}">${esc(proj.prefix)}</span>`
+          : `<span class="proj-list-dot" style="--proj-color:${proj.color || '#7c6af7'}"></span>`}
       <span class="proj-list-name">${esc(proj.name)}${proj.notes ? `<br><span class="proj-list-notes">${esc(proj.notes)}</span>` : ''}</span>
       <span class="proj-list-meta">${sessCount} ses.</span>
       <div class="proj-list-actions">
@@ -1158,6 +1193,7 @@ setTimeout(_checkOnboarding, 300);
 // T-077: inicializar estado visual de filtro proyectos
 _updateProjBreadcrumb();
 _updateProjFilterBtn();
+if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
 
 // ── T-202604-009: Onboarding primer uso ──
 function _checkOnboarding() {

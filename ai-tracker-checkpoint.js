@@ -44,7 +44,35 @@ const AVATAR_LOGOS = {
   default: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 9a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" fill="currentColor"/><path d="M7 15c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>'
 };
 document.title = 'AI Tracker ' + _effectiveVersion(); // v3.0.0.9.6
-document.getElementById('version-pill').textContent = _effectiveVersion();
+
+// Header project label — muestra Prefijo · Nombre canónico del proyecto activo
+function _updateHeaderProjectLabel() {
+  const prefixEl = document.getElementById('header-project-prefix');
+  const nameEl   = document.getElementById('header-project-name');
+  if (!prefixEl || !nameEl) return;
+
+  // Mapa canónico: id de proyecto → { prefix, name }
+  const CANONICAL = {
+    // Fallback por nombre si no hay id limpio
+  };
+
+  const filterId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : '';
+  const proj = filterId && (typeof getProjectById === 'function') ? getProjectById(filterId) : null;
+
+  if (proj) {
+    // Derivar prefijo: primeras 2-3 letras en mayúsculas, o usar icono si existe
+    const prefix = proj.prefix || (proj.name || 'PP').slice(0, 2).toUpperCase();
+    const name   = proj.name || 'Proyecto';
+    prefixEl.textContent = prefix;
+    nameEl.textContent   = name;
+  } else {
+    // Sin proyecto activo → mostrar identidad del tracker
+    prefixEl.textContent = 'AI';
+    nameEl.textContent   = 'AI Tracker';
+  }
+}
+// Exponer para que sprint-project.js lo llame al cambiar proyecto
+window._updateHeaderProjectLabel = _updateHeaderProjectLabel;
 
 // AC-8: Firebase eliminado — Supabase es el único backend de sync
 
