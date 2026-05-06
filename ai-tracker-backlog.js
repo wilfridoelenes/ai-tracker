@@ -346,6 +346,10 @@ let _backlogFocusMode = false;
 // R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente
 let _backlogPlanningMode = false;
 
+// R-[tmp:sprint-group-toggle]: agrupación por sprint en backlog activo — activo por defecto
+const _backlogSprintGroupRaw = localStorage.getItem('backlog-sprint-group-mode');
+let _backlogSprintGroupMode = _backlogSprintGroupRaw !== null ? _backlogSprintGroupRaw !== 'false' : true;
+
 // T-202604-187: toggle vista árbol (R con hijos colapsables) vs plana
 // B-202604-122: leer desde localStorage para persistir entre recargas
 // T-202604-287: backlog-view-mode extiende a 3 valores: 'true' | 'false' | 'kanban'
@@ -1613,6 +1617,18 @@ function toggleBacklogFocusMode() {
   renderBacklogList();
 }
 
+// R-[tmp:sprint-group-toggle]: toggle agrupación por sprint en backlog activo
+function toggleBacklogSprintGroupMode() {
+  _backlogSprintGroupMode = !_backlogSprintGroupMode;
+  localStorage.setItem('backlog-sprint-group-mode', String(_backlogSprintGroupMode));
+  const btn = document.getElementById('fbar-sprint-btn');
+  if (btn) {
+    btn.classList.toggle('active', _backlogSprintGroupMode);
+    btn.title = _backlogSprintGroupMode ? 'Agrupación por sprint activa — click para vista plana' : 'Vista plana activa — click para agrupar por sprint';
+  }
+  renderBacklogList();
+}
+
 // T-202604-363: toggle filtro Sin AC — pendientes sin criterios de aceptación
 function toggleBacklogNoAcMode() {
   _backlogNoAcMode = !_backlogNoAcMode;
@@ -2537,6 +2553,12 @@ function renderBacklogList() {
     if (noAcBtn) noAcBtn.classList.toggle('active', _backlogNoAcMode);
     const blockerBtn = document.getElementById('fbar-blocker-btn');
     if (blockerBtn) blockerBtn.classList.toggle('active', _backlogBlockerFilter);
+    // R-[tmp:sprint-group-toggle]: botón agrupación por sprint
+    const sprintBtn = document.getElementById('fbar-sprint-btn');
+    if (sprintBtn) {
+      sprintBtn.classList.toggle('active', _backlogSprintGroupMode);
+      sprintBtn.title = _backlogSprintGroupMode ? 'Agrupación por sprint activa — click para vista plana' : 'Vista plana activa — click para agrupar por sprint';
+    }
     // R-202605-130: botón planificación (inyectado via JS)
     const planBtn = document.getElementById('fbar-planning-btn');
     if (planBtn) planBtn.classList.toggle('active', _backlogPlanningMode);
@@ -2795,7 +2817,7 @@ function renderBacklogList() {
   // T-202604-424 eliminó 'sprint' como opción del selector de sort, pero la condición de entrada
   // quedó atada a backlogSortMode === 'sprint' — inalcanzable. Fix: agrupar siempre que no haya
   // un modo exclusivo activo que tome control del rendering (kanban, focus, mike, noAc).
-  const _useSprintGroups = !_backlogKanbanMode && !_backlogFocusMode && !_backlogMikeMode && !_backlogNoAcMode;
+  const _useSprintGroups = _backlogSprintGroupMode && !_backlogKanbanMode && !_backlogFocusMode && !_backlogMikeMode && !_backlogNoAcMode;
 
   if (_useSprintGroups) {
     // ── Modo Sprint: agrupar pendientes por sprint ──

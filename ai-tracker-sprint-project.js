@@ -419,7 +419,8 @@ function _generateBacklogMd(newVersion, opts = {}) {
   } else {
     const lastClosed = _lastClosedSprint();
     const lastClosedId = lastClosed ? lastClosed.id : null;
-    const activeSprint = (state.sprints || []).find(s => s.status === 'active');
+    // R-202605-144: incluir 'open' además de 'active' — sprint en curso puede tener cualquiera de los dos estados
+    const activeSprint = (state.sprints || []).find(s => s.status === 'active' || s.status === 'open');
     const activeSprintId = activeSprint ? activeSprint.id : null;
     exportItems = ITEMS.filter(i => {
       if (i.status === 'historico') return false; // B-202604-193: histórico nunca en export activo
