@@ -3061,9 +3061,9 @@ function renderGlobalRadarSidebar() {
     // Fila 2: contadores de disponibilidad — se ocultan si valor es 0
     const sessionCount  = interrupted.length + inSession.length;
     const counts = [
-      sessionCount   ? `<span class="rsb-hdr-count rsb-hdr-session">${sessionCount}<span class="rsb-hdr-dot">●</span></span>`   : '',
-      available.length  ? `<span class="rsb-hdr-count rsb-hdr-available">${available.length}<span class="rsb-hdr-dot">●</span></span>`  : '',
-      exhausted.length  ? `<span class="rsb-hdr-count rsb-hdr-exhausted">${exhausted.length}<span class="rsb-hdr-dot">●</span></span>`  : '',
+      sessionCount   ? `<span class="rsb-hdr-count rsb-hdr-session"><span class="rsb-hdr-dot"></span>${sessionCount}</span>`   : '',
+      available.length  ? `<span class="rsb-hdr-count rsb-hdr-available"><span class="rsb-hdr-dot"></span>${available.length}</span>`  : '',
+      exhausted.length  ? `<span class="rsb-hdr-count rsb-hdr-exhausted"><span class="rsb-hdr-dot"></span>${exhausted.length}</span>`  : '',
     ].filter(Boolean).join('');
     row2El.innerHTML = counts ? `<span class="rsb-hdr-counts">${counts}</span>` : '';
   }
