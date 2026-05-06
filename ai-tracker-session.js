@@ -565,7 +565,7 @@ function handlePaste(id) {
           const horaEl = document.getElementById('hora-' + id);
           if (horaEl) horaEl.focus();
         }
-        if (ta && ta.value.includes('---PLAN---')) _tryIngestPlan(ta.value);
+        if (ta && (ta.value.includes('---PLAN---') || ta.value.includes('---EXECUTION-PLAN---'))) _tryIngestPlan(ta.value);
       }, 150);
       return;
     }
@@ -575,8 +575,8 @@ function handlePaste(id) {
       const horaEl = document.getElementById('hora-' + id);
       if (horaEl) horaEl.focus();
     }
-    // R-202604-085: detectar ---PLAN--- embebido en el CHECKPOINT pegado
-    if (ta && ta.value.includes('---PLAN---')) _tryIngestPlan(ta.value);
+    // R-202604-085 + R-B: detectar ---PLAN--- o ---EXECUTION-PLAN--- embebido en el CHECKPOINT pegado
+    if (ta && (ta.value.includes('---PLAN---') || ta.value.includes('---EXECUTION-PLAN---'))) _tryIngestPlan(ta.value);
   };
   setTimeout(_doParse, 150);
 }
@@ -587,16 +587,22 @@ function handleInput(id) {
   parsePaste(id);
 }
 
-// R-202604-085: ingesta de bloque ---PLAN--- desde cualquier texto (CHECKPOINT o standalone)
+// R-202604-085 + R-B: ingesta de ---PLAN--- o ---EXECUTION-PLAN--- desde cualquier texto
 function _tryIngestPlan(text) {
-  if (!text || !text.includes('---PLAN---')) return false;
+  const hasLegacy = text && text.includes('---PLAN---');
+  const hasNew    = text && text.includes('---EXECUTION-PLAN---');
+  if (!hasLegacy && !hasNew) return false;
   if (typeof parsePlanBlock !== 'function' || typeof savePlan !== 'function') return false;
   const sprints = parsePlanBlock(text);
   if (!sprints || !sprints.length) return false;
   const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
   if (!proj) return false;
   savePlan(proj.id, sprints);
-  if (typeof showToast === 'function') showToast('success', '✓ Plan importado — ' + sprints.length + ' sprint(s)');
+  const hasSesion = sprints.some(sp => sp.scope === 'sesion');
+  const label = hasNew
+    ? (hasSesion ? '✓ Execution Plan importado — sesión activa actualizada' : '✓ Execution Plan importado — plan de sprint actualizado')
+    : '✓ Plan importado — ' + sprints.length + ' sprint(s)';
+  if (typeof showToast === 'function') showToast('success', label);
   if (typeof renderPlan === 'function') renderPlan();
   return true;
 }
@@ -726,8 +732,8 @@ function parsePasteStandalone() {
     });
   }
 
-  // R-202604-085: detectar ---PLAN--- embebido en el CHECKPOINT standalone
-  if (text.includes('---PLAN---')) _tryIngestPlan(text);
+  // R-202604-085 + R-B: detectar ---PLAN--- o ---EXECUTION-PLAN--- embebido en el CHECKPOINT standalone
+  if (text.includes('---PLAN---') || text.includes('---EXECUTION-PLAN---')) _tryIngestPlan(text);
 
   // Éxito — guardar parsed y habilitar botón
   _standaloneLastParsed = { ckpt, tgItems, raw: text };
@@ -738,7 +744,7 @@ function parsePasteStandalone() {
     <div class="ckpt-pill ckpt-pill--ok ckpt-pill--mb">✓ CHECKPOINT · ${tgItems.length} ítem${tgItems.length !== 1 ? 's' : ''}</div>
     <div class="sa-ckpt-desc">${esc(ckpt.titulo)}</div>
     ${previewHtml}`;
-  btn.disabled = tgItems.length === 0 && !text.includes('---PLAN---');
+  btn.disabled = tgItems.length === 0 && !text.includes('---PLAN---') && !text.includes('---EXECUTION-PLAN---');
 }
 
 function saveStandaloneCheckpoint() {
@@ -779,8 +785,8 @@ function saveStandaloneCheckpoint() {
         mergeHtmlMapSections(mapSections, activeProj.id);
       }
     }
-    // R-202604-076: plan block
-    if (raw.includes('---PLAN---') && typeof parsePlanBlock === 'function' && typeof savePlan === 'function') {
+    // R-202604-076 + R-B: plan block — PLAN legacy y EXECUTION-PLAN nuevo
+    if ((raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) && typeof parsePlanBlock === 'function' && typeof savePlan === 'function') {
       const _plan = parsePlanBlock(raw);
       if (_plan) {
         savePlan(activeProj.id, _plan);
@@ -819,41 +825,59 @@ function saveStandaloneCheckpoint() {
 
 
 
-// R-202604-076: parser de bloque ---PLAN--- (v2 — formato canónico)
-// Formato canónico:
-// ---PLAN---
-// sprint: S-XX
+// R-202604-076 + R-B: parser de bloque ---PLAN--- / ---EXECUTION-PLAN---
+// Backward compatible: ---PLAN--- se trata como scope 'sprint' implícito
+// Nuevo: ---EXECUTION-PLAN--- agrega campo scope por sección (sprint | sesion)
+//
+// Formato ---EXECUTION-PLAN--- (nuevo):
+// ---EXECUTION-PLAN---
+// scope: sprint
+// sprint: S-24
 // sesiones:
 //   - id: slug-unico
 //     rol: FS · Rune
-//     items: R-202604-054, T-202604-347
-//     archivos: ai-tracker-session.js, ai-tracker-checkpoint.js
+//     items: [R-202605-XXX]
+//     archivos: [ai-tracker-session.js]
 //     depende_de: []
-// sprint: S-YY
+// scope: sesion
 // sesiones:
-//   - id: otro-slug
-//     rol: UX · Nova
-//     items: R-202604-051
+//   - id: sesion-activa
+//     rol: FS · Rune
+//     items: [R-202605-XXX]
 //     archivos: []
-//     depende_de: [slug-unico]
-// sin-sprint:
+//     depende_de: []
+// ---EXECUTION-PLAN-END---
+//
+// Formato ---PLAN--- legacy (backward compat — scope 'sprint' implícito):
+// ---PLAN---
+// sprint: S-XX · Nombre
 // sesiones:
-//   - id: sin-asignar
-//     rol: PO · Cael
-//     items: P-202604-001
+//   - id: slug
+//     rol: FS · Rune
+//     items: [R-202604-054]
 //     archivos: []
 //     depende_de: []
 // ---PLAN-END---
 function parsePlanBlock(text) {
-  const match = text.match(/---PLAN---\s*([\s\S]*?)\s*---PLAN-END---/);
+  // Detectar formato nuevo o legacy
+  const isNew    = /---EXECUTION-PLAN---/.test(text);
+  const startTag = isNew ? '---EXECUTION-PLAN---' : '---PLAN---';
+  const endTag   = isNew ? '---EXECUTION-PLAN-END---' : '---PLAN-END---';
+
+  const reBody = new RegExp(
+    startTag.replace(/[-]/g, '\\-') + '\\s*([\\s\\S]*?)\\s*' + endTag.replace(/[-]/g, '\\-')
+  );
+  const match = text.match(reBody);
   if (!match) return null;
-  const body = match[1];
+
+  const body  = match[1];
   const lines = body.split('\n');
 
-  const sprints = [];
-  let currentSprint = null; // { id: string|null, sessions: [] }
-  let currentSess   = null; // { id, rol, items, archivos, depende_de }
+  const sprints     = [];
+  let currentSprint = null;
+  let currentSess   = null;
   let inSesiones    = false;
+  let pendingScope  = 'sprint'; // scope del próximo sprint — default backward compat
 
   const _flushSess = () => {
     if (currentSess && currentSprint) currentSprint.sessions.push(currentSess);
@@ -863,7 +887,7 @@ function parsePlanBlock(text) {
     _flushSess();
     if (currentSprint) sprints.push(currentSprint);
     currentSprint = null;
-    inSesiones = false;
+    inSesiones    = false;
   };
 
   const _parseList = str => {
@@ -877,22 +901,43 @@ function parsePlanBlock(text) {
     const trimmed = line.trim();
     if (!trimmed) continue;
 
-    // Nueva sección sprint: o sin-sprint:
+    // scope: sprint | sesion — solo en formato nuevo
+    if (isNew) {
+      const scopeM = trimmed.match(/^scope\s*:\s*(sprint|sesion)$/i);
+      if (scopeM) {
+        if (currentSprint) _flushSprint();
+        pendingScope = scopeM[1].toLowerCase();
+        continue;
+      }
+    }
+
+    // sprint: S-XX  o  sin-sprint:
     const sprintM    = trimmed.match(/^sprint\s*:\s*(.+)$/i);
     const sinSprintM = trimmed.match(/^sin-sprint\s*:$/i);
     if (sprintM || sinSprintM) {
       _flushSprint();
-      currentSprint = { id: sprintM ? sprintM[1].trim() : null, sessions: [] };
+      currentSprint = {
+        id:       sprintM ? sprintM[1].trim() : null,
+        scope:    isNew ? pendingScope : 'sprint',
+        sessions: []
+      };
       inSesiones = false;
       continue;
     }
 
-    // Bloque sesiones:
-    if (/^sesiones\s*:$/i.test(trimmed)) { inSesiones = true; continue; }
+    // sesiones: — puede aparecer sin sprint declarado (scope sesion directo)
+    if (/^sesiones\s*:$/i.test(trimmed)) {
+      if (!currentSprint) {
+        _flushSprint();
+        currentSprint = { id: null, scope: isNew ? pendingScope : 'sprint', sessions: [] };
+      }
+      inSesiones = true;
+      continue;
+    }
 
     if (!inSesiones || !currentSprint) continue;
 
-    // Nueva sesión — línea con guion
+    // Nueva sesión
     if (/^-\s+id\s*:/.test(trimmed)) {
       _flushSess();
       const idM = trimmed.match(/^-\s+id\s*:\s*(.+)$/i);
@@ -902,15 +947,15 @@ function parsePlanBlock(text) {
 
     if (!currentSess) continue;
 
-    const rolM       = trimmed.match(/^rol\s*:\s*(.+)$/i);
-    const itemsM     = trimmed.match(/^items?\s*:\s*(.*)$/i);
-    const archivosM  = trimmed.match(/^archivos?\s*:\s*(.*)$/i);
-    const dependeM   = trimmed.match(/^depende_de\s*:\s*(.*)$/i);
+    const rolM      = trimmed.match(/^rol\s*:\s*(.+)$/i);
+    const itemsM    = trimmed.match(/^items?\s*:\s*(.*)$/i);
+    const archivosM = trimmed.match(/^archivos?\s*:\s*(.*)$/i);
+    const dependeM  = trimmed.match(/^depende_de\s*:\s*(.*)$/i);
 
-    if (rolM)      { currentSess.rol       = rolM[1].trim();            continue; }
-    if (itemsM)    { currentSess.items     = _parseList(itemsM[1]);     continue; }
-    if (archivosM) { currentSess.archivos  = _parseList(archivosM[1]);  continue; }
-    if (dependeM)  { currentSess.depende_de = _parseList(dependeM[1]); continue; }
+    if (rolM)      { currentSess.rol        = rolM[1].trim();           continue; }
+    if (itemsM)    { currentSess.items      = _parseList(itemsM[1]);    continue; }
+    if (archivosM) { currentSess.archivos   = _parseList(archivosM[1]); continue; }
+    if (dependeM)  { currentSess.depende_de = _parseList(dependeM[1]);  continue; }
   }
   _flushSprint();
 
@@ -1703,8 +1748,8 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
         if (contextSections2.length) mergeContextSections(contextSections2, activeProj.id);
         const mapSections2 = extractHtmlMapSections(raw);
         if (mapSections2.length) mergeHtmlMapSections(mapSections2, activeProj.id);
-        // R-202604-076: plan block
-        if (raw.includes('---PLAN---') && typeof parsePlanBlock === 'function' && typeof savePlan === 'function') {
+        // R-202604-076 + R-B: plan block — PLAN legacy y EXECUTION-PLAN nuevo
+        if ((raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) && typeof parsePlanBlock === 'function' && typeof savePlan === 'function') {
           const _plan2 = parsePlanBlock(raw);
           if (_plan2) { savePlan(activeProj.id, _plan2); if (typeof renderPlan === 'function') renderPlan(); }
         }
@@ -1826,8 +1871,8 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   const mapSections = extractHtmlMapSections(raw);
   if (mapSections.length) mergeHtmlMapSections(mapSections, activeProj.id);
 
-  // R-202604-076: parsear y guardar bloque ---PLAN--- si existe
-  if (raw.includes('---PLAN---') && typeof parsePlanBlock === 'function' && typeof savePlan === 'function') {
+  // R-202604-076 + R-B: parsear y guardar bloque ---PLAN--- / ---EXECUTION-PLAN--- si existe
+  if ((raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) && typeof parsePlanBlock === 'function' && typeof savePlan === 'function') {
     const _plan = parsePlanBlock(raw);
     if (_plan) {
       savePlan(activeProj.id, _plan);

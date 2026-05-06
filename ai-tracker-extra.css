@@ -17964,3 +17964,104 @@ body.body--focus-mode::after {
 }
 /* ══ END R-202605-146 ══ */
 
+/* ════════════════════════════════════════════════════════════════════
+   R-B: EXECUTION-PLAN — Dos scopes en sub-tab Plan
+   Agregar al final de ai-tracker-extra.css
+   Última actualización: 2026-05-06
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Contenedor de scope — sección sesion y sección sprint ── */
+.plan-scope-section {
+  margin-bottom: 0;
+}
+
+.plan-scope-section + .plan-scope-section {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+
+/* ── Header de scope ── */
+.plan-scope-header {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 16px 6px;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 2;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.plan-scope-label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text2);
+}
+
+/* Sesión activa — label con acento visual */
+.plan-scope-section--sesion .plan-scope-label {
+  color: var(--accent, #38bdf8);
+}
+
+.plan-scope-section--sesion .plan-scope-header {
+  border-left: 2px solid var(--accent, #38bdf8);
+  padding-left: 14px;
+}
+
+/* Sprint — label neutro */
+.plan-scope-section--sprint .plan-scope-label {
+  color: var(--text2);
+}
+
+.plan-scope-hint {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  font-weight: 400;
+}
+
+/* ── Empty states por scope ── */
+.plan-scope-empty {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  padding: 12px 16px 16px;
+  font-style: italic;
+}
+
+/* ── Badge de truncamiento de sesión ── */
+.plan-scope-truncated-badge {
+  font-size: var(--text-xs);
+  color: var(--amber, #f59e0b);
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  margin: 0 16px 8px;
+  display: inline-block;
+}
+
+/* ── Responsive mobile ── */
+@media (max-width: 600px) {
+  .plan-scope-header {
+    padding: 8px 12px 6px;
+    position: relative; /* sin sticky en mobile — evita doble header */
+  }
+
+  .plan-scope-section--sesion .plan-scope-header {
+    padding-left: 10px;
+  }
+
+  .plan-scope-empty {
+    padding: 10px 12px 14px;
+  }
+
+  .plan-scope-truncated-badge {
+    margin: 0 12px 8px;
+  }
+}
+
+/* END R-B: EXECUTION-PLAN */

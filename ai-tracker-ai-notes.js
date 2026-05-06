@@ -7158,8 +7158,8 @@ function loadPlan(projId) {
 }
 
 // Renderizar el sub-tab Plan para el proyecto activo
-// R-202604-085: zona "Disponible ahora" + columnas paralelas + conectores SVG + pills de archivos
-// Formato: plan = sprints[] — [ { id: string|null, sessions: [ { id, rol, items: string[], archivos: string[], depende_de: string[] } ] } ]
+// R-202604-085 + R-B: dos scopes diferenciados — sesion (superior) y sprint (inferior)
+// Backward compatible: planes legacy (sin campo scope) se muestran en sección sprint
 function renderPlan() {
   const panel = document.getElementById('sspanel-plan');
   if (!panel) return;
@@ -7172,7 +7172,7 @@ function renderPlan() {
 
   const sprints = loadPlan(proj.id);
   if (!sprints || !sprints.length) {
-    panel.innerHTML = `<div class="plan-empty">Sin plan activo — pega un CHECKPOINT con bloque <code>---PLAN---</code> para ver el plan del sprint.</div>`;
+    panel.innerHTML = `<div class="plan-empty">Sin plan activo — pega un CHECKPOINT con bloque <code>---EXECUTION-PLAN---</code> para ver el plan.</div>`;
     return;
   }
 
@@ -7199,11 +7199,11 @@ function renderPlan() {
   const _itemByCode = {};
   backlog.forEach(it => { if (it.code) _itemByCode[it.code] = it; });
 
-  const _statusClass = st => st === 'done' ? 'plan-item--done' : st === 'descartado' ? 'plan-item--discarded' : '';
-  const _statusLabel = st => st === 'done' ? '✓' : st === 'descartado' ? '—' : '○';
-  const _liveStatus  = code => { const it = _itemByCode[code]; return it ? (it.status || 'pendiente') : 'pendiente'; };
-  const _liveTitle   = code => { const it = _itemByCode[code]; return it ? (it.title || it.desc || '') : ''; };
-  const _sessIsDone  = sess => {
+  const _statusClass   = st => st === 'done' ? 'plan-item--done' : st === 'descartado' ? 'plan-item--discarded' : '';
+  const _statusLabel   = st => st === 'done' ? '✓' : st === 'descartado' ? '—' : '○';
+  const _liveStatus    = code => { const it = _itemByCode[code]; return it ? (it.status || 'pendiente') : 'pendiente'; };
+  const _liveTitle     = code => { const it = _itemByCode[code]; return it ? (it.title || it.desc || '') : ''; };
+  const _sessIsDone    = sess => {
     const codes = sess.items || [];
     return codes.length > 0 && codes.every(c => { const s = _liveStatus(c); return s === 'done' || s === 'descartado'; });
   };
@@ -7211,8 +7211,10 @@ function renderPlan() {
     const deps = (sess.depende_de || []).filter(Boolean);
     return deps.length > 0 && !deps.every(d => doneIds.has(d));
   };
-  // Mapa id → sesión para resolver etiquetas de bloqueo
+
+  // Pre-poblar mapa id→sesión para etiquetas de bloqueo
   const _allSessionsById = {};
+  sprints.forEach(sp => { (sp.sessions || []).forEach(sess => { if (sess.id) _allSessionsById[sess.id] = sess; }); });
 
   // SVG conector vertical entre sesiones secuenciales
   const _connector = () => `<div class="plan-connector">
@@ -7222,28 +7224,22 @@ function renderPlan() {
     </svg>
   </div>`;
 
-  // Render de un card de sesión
+  // Card de sesión
   const _sessCard = (sess, idx, extraClass) => {
-    const codes = sess.items || [];
-    const resolvedItems = codes.map(code => ({
-      code,
-      status: _liveStatus(code),
-      title:  _liveTitle(code)
-    }));
-    const allDone   = _sessIsDone(sess);
-    const archivos  = (sess.archivos  || []).filter(Boolean);
-    const dependeDe = (sess.depende_de || []).filter(Boolean);
-    const badgeHtml = allDone
+    const codes         = sess.items || [];
+    const resolvedItems = codes.map(code => ({ code, status: _liveStatus(code), title: _liveTitle(code) }));
+    const allDone       = _sessIsDone(sess);
+    const archivos      = (sess.archivos   || []).filter(Boolean);
+    const dependeDe     = (sess.depende_de || []).filter(Boolean);
+    const badgeHtml     = allDone
       ? `<span class="plan-session-badge plan-session-badge--done">✓ Completa</span>`
       : extraClass === 'plan-session--blocked'
         ? `<span class="plan-session-badge plan-session-badge--blocked">⛔ Bloqueada</span>`
         : '';
-
-    // Dependencias visibles: "Bloqueada por [rol] · [id]"
     const depsHtml = (extraClass === 'plan-session--blocked' && dependeDe.length)
       ? dependeDe.map(depId => {
           const depSess = _allSessionsById[depId];
-          const label = depSess && depSess.rol ? `${depSess.rol} · ${depId}` : depId;
+          const label   = depSess && depSess.rol ? `${depSess.rol} · ${depId}` : depId;
           return `<span class="plan-file-pill">Bloqueada por ${esc(label)}</span>`;
         }).join('')
       : '';
@@ -7269,89 +7265,105 @@ function renderPlan() {
     </div>`;
   };
 
-  let html = '';
-  let globalSessIdx = 0;
+  // Render de un grupo de sprints — reutilizable para ambos scopes
+  const _renderSprintGroup = group => {
+    let html = '';
+    let globalSessIdx = 0;
 
-  // Pre-poblar mapa id→sesión para resolver etiquetas de bloqueo
-  sprints.forEach(sprint => {
-    (sprint.sessions || []).forEach(sess => {
-      if (sess.id) _allSessionsById[sess.id] = sess;
+    group.forEach(sprint => {
+      const sprintLabel  = sprint.id ? sprint.id : 'Sin sprint';
+      const sessions     = sprint.sessions || [];
+      const doneIds      = new Set(sessions.filter(s => _sessIsDone(s)).map(s => s.id).filter(Boolean));
+      const doneSessions = sessions.filter(s =>  _sessIsDone(s));
+      const available    = sessions.filter(s => !_sessIsDone(s) && !_sessIsBlocked(s, doneIds));
+      const blocked      = sessions.filter(s => !_sessIsDone(s) &&  _sessIsBlocked(s, doneIds));
+      const allCodes     = sessions.flatMap(s => s.items || []);
+      const totalItems   = allCodes.length;
+      const doneItems    = allCodes.filter(c => { const st = _liveStatus(c); return st === 'done' || st === 'descartado'; }).length;
+      const pct          = totalItems ? Math.round((doneItems / totalItems) * 100) : 0;
+
+      html += `<div class="plan-sprint-block">
+        <div class="plan-sprint-header">
+          <span class="plan-sprint-id">${esc(sprintLabel)}</span>
+          ${totalItems ? `<div class="plan-sprint-progress-bar-wrap">
+            <div class="plan-sprint-progress-bar" style="--plan-pct:${pct}%"></div>
+            <span class="plan-sprint-progress-label">${doneItems}/${totalItems} ítems (${pct}%)</span>
+          </div>` : ''}
+        </div>`;
+
+      if (!sessions.length) {
+        html += `<div class="plan-empty plan-empty--inline">Sin sesiones declaradas.</div>`;
+      }
+
+      if (available.length) {
+        html += `<div class="plan-zone plan-zone--available"><div class="plan-zone-label">Pendientes</div><div class="plan-sessions-row">`;
+        available.forEach(sess => { globalSessIdx++; html += _sessCard(sess, globalSessIdx, ''); });
+        html += `</div></div>`;
+      }
+      if (blocked.length) {
+        html += `<div class="plan-zone plan-zone--sequential"><div class="plan-zone-label">Bloqueadas</div><div class="plan-sessions-row">`;
+        blocked.forEach((sess, i) => { globalSessIdx++; if (i > 0) html += _connector(); html += _sessCard(sess, globalSessIdx, 'plan-session--blocked'); });
+        html += `</div></div>`;
+      }
+      if (doneSessions.length) {
+        html += `<div class="plan-zone plan-zone--done"><div class="plan-zone-label">Completadas</div><div class="plan-sessions-row">`;
+        doneSessions.forEach(sess => { globalSessIdx++; html += _sessCard(sess, globalSessIdx, 'plan-session--done'); });
+        html += `</div></div>`;
+      }
+
+      html += `</div>`; // /plan-sprint-block
     });
-  });
 
-  sprints.forEach(sprint => {
-    const sprintLabel = sprint.id ? sprint.id : 'Sin sprint';
-    const sessions    = sprint.sessions || [];
+    return html;
+  };
 
-    // IDs de sesiones done — para calcular desbloqueos
-    const doneIds = new Set(
-      sessions.filter(s => _sessIsDone(s)).map(s => s.id).filter(Boolean)
-    );
+  // Separar sprints por scope — sesion vs sprint (legacy sin scope → sprint)
+  const sprintsSesion = sprints.filter(sp => sp.scope === 'sesion');
+  const sprintsSprint = sprints.filter(sp => sp.scope !== 'sesion');
 
-    const doneSessions    = sessions.filter(s => _sessIsDone(s));
-    const available       = sessions.filter(s => !_sessIsDone(s) && !_sessIsBlocked(s, doneIds));
-    const blocked         = sessions.filter(s => !_sessIsDone(s) &&  _sessIsBlocked(s, doneIds));
+  // Construir HTML — sección sesion primero (AC de Nova)
+  let html = autoChipHtml;
 
-    // Barra de progreso: ítems done vs total derivados del Backlog
-    const allCodes   = sessions.flatMap(s => s.items || []);
-    const totalItems = allCodes.length;
-    const doneItems  = allCodes.filter(c => { const st = _liveStatus(c); return st === 'done' || st === 'descartado'; }).length;
-    const pct        = totalItems ? Math.round((doneItems / totalItems) * 100) : 0;
+  // SECCIÓN SESIÓN
+  html += `<div class="plan-scope-section plan-scope-section--sesion">
+    <div class="plan-scope-header">
+      <span class="plan-scope-label">Sesión activa</span>
+      <span class="plan-scope-hint">Ítems en curso esta sesión</span>
+    </div>`;
 
-    html += `<div class="plan-sprint-block">
-      <div class="plan-sprint-header">
-        <span class="plan-sprint-id">${esc(sprintLabel)}</span>
-        ${totalItems ? `<div class="plan-sprint-progress-bar-wrap">
-          <div class="plan-sprint-progress-bar" style="--plan-pct:${pct}%"></div>
-          <span class="plan-sprint-progress-label">${doneItems}/${totalItems} ítems (${pct}%)</span>
-        </div>` : ''}
-      </div>`;
-
-    if (!sessions.length) {
-      html += `<div class="plan-empty plan-empty--inline">Sin sesiones declaradas.</div>`;
-    }
-
-    // Zona Pendientes — sesiones desbloqueadas con ítems activos
-    if (available.length) {
-      html += `<div class="plan-zone plan-zone--available">
-        <div class="plan-zone-label">Pendientes</div>
-        <div class="plan-sessions-row">`;
-      available.forEach(sess => {
-        globalSessIdx++;
-        html += _sessCard(sess, globalSessIdx, '');
+  if (sprintsSesion.length) {
+    // Truncar a 3 ítems si scope sesion los supera — AC R-B
+    const totalItemsSesion = sprintsSesion.flatMap(sp => (sp.sessions || []).flatMap(s => s.items || [])).length;
+    if (totalItemsSesion > 3) {
+      html += `<div class="plan-scope-truncated-badge">⚠ Plan de sesión tiene ${totalItemsSesion} ítems — mostrando primeros 3</div>`;
+      let itemCount = 0;
+      sprintsSesion.forEach(sp => {
+        (sp.sessions || []).forEach(sess => { sess.items = (sess.items || []).filter(() => itemCount++ < 3); });
       });
-      html += `</div></div>`;
     }
+    html += _renderSprintGroup(sprintsSesion);
+  } else {
+    html += `<div class="plan-scope-empty">Sin sesión activa — el plan se actualiza al pegar el próximo CHECKPOINT</div>`;
+  }
 
-    // Zona Bloqueadas — sesiones con dependencias sin resolver
-    if (blocked.length) {
-      html += `<div class="plan-zone plan-zone--sequential">
-        <div class="plan-zone-label">Bloqueadas</div>
-        <div class="plan-sessions-row">`;
-      blocked.forEach((sess, i) => {
-        globalSessIdx++;
-        if (i > 0) html += _connector();
-        html += _sessCard(sess, globalSessIdx, 'plan-session--blocked');
-      });
-      html += `</div></div>`;
-    }
+  html += `</div>`; // /plan-scope-section--sesion
 
-    // Zona Completadas — sesiones con todos los ítems done/descartados
-    if (doneSessions.length) {
-      html += `<div class="plan-zone plan-zone--done">
-        <div class="plan-zone-label">Completadas</div>
-        <div class="plan-sessions-row">`;
-      doneSessions.forEach(sess => {
-        globalSessIdx++;
-        html += _sessCard(sess, globalSessIdx, 'plan-session--done');
-      });
-      html += `</div></div>`;
-    }
+  // SECCIÓN SPRINT
+  html += `<div class="plan-scope-section plan-scope-section--sprint">
+    <div class="plan-scope-header">
+      <span class="plan-scope-label">Plan de sprint</span>
+      <span class="plan-scope-hint">Referencia del ciclo completo</span>
+    </div>`;
 
-    html += `</div>`; // /plan-sprint-block
-  });
+  if (sprintsSprint.length) {
+    html += _renderSprintGroup(sprintsSprint);
+  } else {
+    html += `<div class="plan-scope-empty">Sin plan de sprint — abre sprint para generar</div>`;
+  }
 
-  panel.innerHTML = autoChipHtml + html;
+  html += `</div>`; // /plan-scope-section--sprint
+
+  panel.innerHTML = html;
 }
 
 // ════════════════════════════════════════════════════════════════════
