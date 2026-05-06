@@ -586,12 +586,19 @@ function generateDocuments() {
   const btn = document.getElementById('mg-generate-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Generando…'; }
 
+  // B-202605-XXX: calcular versión bumpeada una sola vez antes de generar
+  // — los generadores reciben bumpedVer para que preview y archivos sean consistentes
+  const currentVer = _mgGetVersion();
+  const input = document.getElementById('mg-version-input');
+  const userDeclared = input && input.value.trim() && input.value.trim() !== 'undefined';
+  const bumpedVer = userDeclared ? currentVer : _mgBumpMinor(currentVer);
+
   _mapGen.generatedDocs = {};
 
-  if (mapChecked)     _mapGen.generatedDocs.map     = _generateMap();
-  if (contextChecked) _mapGen.generatedDocs.context  = _generateContext();
-  if (backlogChecked) _mapGen.generatedDocs.backlog   = _generateBacklog();
-  if (reviewChecked)  _mapGen.generatedDocs.review    = _generateSprintReview();
+  if (mapChecked)     _mapGen.generatedDocs.map     = _generateMap(bumpedVer);
+  if (contextChecked) _mapGen.generatedDocs.context  = _generateContext(bumpedVer);
+  if (backlogChecked) _mapGen.generatedDocs.backlog   = _generateBacklog(bumpedVer);
+  if (reviewChecked)  _mapGen.generatedDocs.review    = _generateSprintReview(bumpedVer);
   if (planChecked) {
     const planResult = _mgBuildPlan();
     if (planResult.warning) {
