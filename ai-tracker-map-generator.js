@@ -50,10 +50,43 @@ function openMapGenerator() {
   const vInput = document.getElementById('mg-version-input');
   const fPreview = document.getElementById('mg-filename-preview');
   const prefix = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
-  // B-202605-272: _effectiveVersion es función — invocarla, no referenciarla como variable
   const ver = (typeof _effectiveVersion === 'function') ? _effectiveVersion() : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v3.1.0.0');
   if (vInput) vInput.value = ver;
   if (fPreview) fPreview.textContent = `${prefix}-MAP_${ver}.md`;
+
+  // R-202605-147: inferir status al abrir — calculado una sola vez
+  let _blItemsForStatus = [];
+  try {
+    if (typeof _tplKey === 'function') {
+      const raw = localStorage.getItem(_tplKey('backlog-items'));
+      _blItemsForStatus = raw ? JSON.parse(raw) : [];
+    } else if (typeof ITEMS !== 'undefined') {
+      _blItemsForStatus = ITEMS;
+    }
+  } catch(e) {}
+  const _activeSp = _mgActiveSprint();
+  const inferredStatus = _mgInferStatus(_activeSp, _blItemsForStatus);
+  const _now2 = new Date();
+  const _pad2 = n => String(n).padStart(2, '0');
+  const tsLabel = `${_now2.getFullYear()}-${_pad2(_now2.getMonth()+1)}-${_pad2(_now2.getDate())} ${_pad2(_now2.getHours())}:${_pad2(_now2.getMinutes())}`;
+  const spLabel = _activeSp ? _activeSp.id : ((() => {
+    const allSp = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
+    const last = allSp.filter(s => s.status === 'closed').sort((a,b)=>(b.closedAt||0)-(a.closedAt||0))[0];
+    return last ? last.id : '—';
+  })());
+
+  const previewStatusEl = document.getElementById('mg-status-preview');
+  const generateBtn = document.getElementById('mg-generate-btn');
+  if (previewStatusEl) {
+    if (inferredStatus === 'closing') {
+      previewStatusEl.textContent = 'Sprint en proceso de cierre. Confirma el cierre antes de generar el CONTEXT.';
+      previewStatusEl.className = 'mg-status-preview mg-status-closing';
+      if (generateBtn) generateBtn.disabled = true;
+    } else {
+      previewStatusEl.textContent = `Estado inferido: ${inferredStatus} · Sprint: ${spLabel} · Calculado: ${tsLabel}`;
+      previewStatusEl.className = `mg-status-preview mg-status-${inferredStatus}`;
+    }
+  }
 
   // Cargar Sprint Review
   _mgLoadSprintReview();
@@ -70,6 +103,7 @@ function closeMapGenerator() {
   const el = document.getElementById('mg-overlay');
   if (el) el.classList.remove('mg-visible');
   document.body.classList.remove('mg-body-lock');
+  _mgDropzoneInited = false; // B-202605-274: permitir re-inicialización en próxima apertura
 }
 
 // ─── Sprint Review — carga de datos ─────────────────────────────────────────
@@ -624,6 +658,7 @@ function generateMap() { generateDocuments(); }
 
 function _generateMap() {
   // R-202605-137: produce JSON puro — parseable con JSON.parse sin regex
+  // T-202605-491: incluye campo status en objeto raíz — coherencia con CONTEXT
   const order = { js: 0, css: 1, html: 2 };
   const sorted = [..._mapGen.files].sort((a, b) => {
     const ea = a.name.split('.').pop().toLowerCase();
@@ -635,6 +670,21 @@ function _generateMap() {
   const now = _mgNow();
   const project = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
   const parsed = sorted.map(f => _mgParseFile(f.name, f.text));
+
+  // T-202605-491: inferir status — reutiliza _mgInferStatus() de R-202605-147
+  let _blItemsForMap = [];
+  try {
+    if (typeof _tplKey === 'function') {
+      const raw = localStorage.getItem(_tplKey('backlog-items'));
+      _blItemsForMap = raw ? JSON.parse(raw) : [];
+    } else if (typeof ITEMS !== 'undefined') {
+      _blItemsForMap = ITEMS;
+    }
+  } catch(e) {}
+  const _activeSpForMap = _mgActiveSprint();
+  const mapStatus = (typeof _mgInferStatus === 'function')
+    ? _mgInferStatus(_activeSpForMap, _blItemsForMap)
+    : 'between_sprints'; // fallback si _mgInferStatus no está disponible
 
   const files = parsed.map(p => ({
     name: p.name,
@@ -651,6 +701,7 @@ function _generateMap() {
     version,
     updated: `${now} UTC-6`,
     project,
+    status: mapStatus,
     files
   };
 
@@ -658,8 +709,27 @@ function _generateMap() {
 }
 // ─── Generador CONTEXT ───────────────────────────────────────────────────────
 
+// R-202605-147: inferir status operativo del proyecto
+// Tabla: SCM modal activo → closing · sprint abierto (con o sin ítems) → active
+//        sin sprint + ítems sin asignar → planning · sin sprint + backlog vacío → between_sprints
+function _mgInferStatus(activeSp, blItems) {
+  // closing: SCM modal visible
+  const scmModal = document.getElementById('close-sprint-modal');
+  if (scmModal && (scmModal.classList.contains('modal--open') || scmModal.style.display === 'flex' || scmModal.getAttribute('aria-hidden') === 'false')) {
+    return 'closing';
+  }
+  if (activeSp && (activeSp.status === 'active' || activeSp.status === 'open')) return 'active';
+  // Sin sprint activo — decidir por backlog
+  const unassigned = (blItems || []).filter(i =>
+    i.status === 'pendiente' && (!i.sprint || i.sprint === '' || i.sprint === 'n/a' || i.sprint === 'futura')
+  );
+  if (unassigned.length > 0) return 'planning';
+  return 'between_sprints';
+}
+
 function _generateContext() {
   // R-202605-136: produce JSON puro — parseable sin regex
+  // R-202605-147: enriquecido con status, sprint completo, velocity, backlog snapshot, tech_debt
   const _activeSp   = _mgActiveSprint();
   const _ctxVersion = (_activeSp && _activeSp.version_target && _activeSp.version_target !== 'undefined')
     ? _activeSp.version_target
@@ -671,6 +741,7 @@ function _generateContext() {
   const _pad = n => String(n).padStart(2, '0');
   const updated = `${_now.getFullYear()}-${_pad(_now.getMonth()+1)}-${_pad(_now.getDate())} ` +
                   `${_pad(_now.getHours())}:${_pad(_now.getMinutes())} UTC-6`;
+  const generated_at = updated;
 
   // Stack — leer del contexto almacenado si existe; priorizar JSON > Markdown > default
   let stack = [];
@@ -681,7 +752,6 @@ function _generateContext() {
     if (isJson) {
       try { stack = JSON.parse(storedRaw.trim()).stack || []; } catch(e) { stack = []; }
     } else {
-      // Extraer tabla Stack del Markdown almacenado
       const stackMatch = storedRaw.match(/## Stack[\s\S]*?\n([\s\S]*?)(?=\n## |\n---\s*$|$)/m);
       if (stackMatch) {
         stack = stackMatch[1].split('\n')
@@ -693,7 +763,6 @@ function _generateContext() {
       }
     }
   }
-  // Normalizar: Firebase → Supabase (activo)
   stack = stack.map(s => ({
     ...s,
     tech: (s.tech || '')
@@ -701,7 +770,7 @@ function _generateContext() {
       .replace(/Firebase Firestore[^\n]*/g, 'Supabase (activo)')
   }));
 
-  // Contadores desde backlog items
+  // Backlog items
   let _blItems = [];
   try {
     if (typeof _tplKey === 'function') {
@@ -712,6 +781,10 @@ function _generateContext() {
     }
   } catch(e) { _blItems = []; }
 
+  // R-202605-147: status inferido — calculado una sola vez al abrir
+  const status = _mgInferStatus(_activeSp, _blItems);
+
+  // Contadores legacy
   const counters = {
     P: _blItems.filter(i => i.type === 'P').length,
     T: _blItems.filter(i => i.type === 'T').length,
@@ -719,41 +792,98 @@ function _generateContext() {
     B: _blItems.filter(i => i.type === 'B').length
   };
 
-  // Sprint activo
-  const sprintInfo = _activeSp ? {
-    active: _activeSp.id,
-    name: _activeSp.name || '',
-    goal: _activeSp.goal || '',
-    version_target: _activeSp.version_target || '',
-    release_type: _activeSp.release_type || ''
-  } : null;
+  // R-202605-147: sprint enriquecido
+  const allSprints = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
+  const closedSprints = allSprints
+    .filter(s => s.status === 'closed')
+    .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
+  const lastClosed = closedSprints[0] || null;
 
-  // Decisiones registradas del proyecto
-  const decisions = (proj && Array.isArray(proj.decisions) && proj.decisions.length)
-    ? [...proj.decisions].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
-        .map(d => ({ date: d.date || '—', text: d.text || '' }))
+  const sprintActiveItems = _activeSp
+    ? _blItems.filter(i => i.sprint === _activeSp.id)
     : [];
+  const sprintDoneItems = sprintActiveItems.filter(i => i.status === 'done');
+  const effortTotal = sprintActiveItems.reduce((s, i) => s + (parseInt(i.effort, 10) || 0), 0);
+  const effortDone  = sprintDoneItems.reduce((s, i) => s + (parseInt(i.effort, 10) || 0), 0);
+  const scopeAdded  = sprintActiveItems.filter(i => i.scope_added).length;
 
-  // Gaps — ítems pendientes del sprint activo
-  const gaps = (_activeSp && _blItems.length)
-    ? _blItems
-        .filter(it => it.sprint === _activeSp.id && it.status === 'pendiente')
-        .map(it => ({ code: it.code || '—', title: it.title || it.desc || '', priority: it.priority || '—' }))
-    : [];
+  const sprintInfo = {
+    active: _activeSp ? _activeSp.id : null,
+    name: _activeSp ? (_activeSp.name || '') : null,
+    goal: _activeSp ? (_activeSp.goal || null) : null,
+    version_target: _activeSp ? (_activeSp.version_target || null) : null,
+    release_type: _activeSp ? (_activeSp.release_type || null) : null,
+    opened_date: _activeSp ? (_activeSp.openedAt ? new Date(_activeSp.openedAt).toISOString().slice(0,10) : null) : null,
+    items_total: _activeSp ? sprintActiveItems.length : 0,
+    items_done: _activeSp ? sprintDoneItems.length : 0,
+    effort_total: _activeSp ? effortTotal : 0,
+    effort_done: _activeSp ? effortDone : 0,
+    scope_added: _activeSp ? scopeAdded : 0,
+    last_closed: lastClosed ? {
+      id: lastClosed.id || null,
+      closed_date: lastClosed.closedAt ? new Date(lastClosed.closedAt).toISOString().slice(0,10) : null,
+      items_done: lastClosed.itemsDone ?? null,
+      effort_done: lastClosed.effortDone ?? null,
+      version_delivered: lastClosed.version_target || null
+    } : {
+      id: null, closed_date: null, items_done: null, effort_done: null, version_delivered: null
+    }
+  };
 
-  // Notas / Memoria operativa — extraer de sesiones del sprint + sesiones previas almacenadas
+  // R-202605-147: velocity — últimos 3 sprints cerrados con effort_done > 0
+  const validClosed = closedSprints
+    .filter(s => (s.effortDone || 0) > 0)
+    .slice(0, 3);
+  const last3 = validClosed.map(s => ({
+    sprint: s.id,
+    effort_done: s.effortDone || 0,
+    items_done: s.itemsDone || 0
+  }));
+  let avgEffort = null;
+  let trend = null;
+  if (last3.length > 0) {
+    avgEffort = Math.round((last3.reduce((s, x) => s + x.effort_done, 0) / last3.length) * 100) / 100;
+  }
+  if (last3.length >= 2) {
+    const latest = last3[0].effort_done;
+    const prevAvg = last3.slice(1).reduce((s, x) => s + x.effort_done, 0) / (last3.length - 1);
+    if (latest > prevAvg * 1.1) trend = 'acelerando';
+    else if (latest < prevAvg * 0.9) trend = 'desacelerando';
+    else trend = 'estable';
+  }
+  const velocity = { last_3_sprints: last3, avg_effort: avgEffort, trend };
+
+  // R-202605-147: backlog snapshot
+  const pendingItems = _blItems.filter(i => i.status === 'pendiente');
+  const backlogSnapshot = {
+    total: _blItems.length,
+    pending: pendingItems.length,
+    high_priority: pendingItems.filter(i => i.priority === 'high').length
+  };
+
+  // R-202605-147: tech_debt — Bs y Ts de priority high sin sprint asignado
+  const noSprintValues = [null, undefined, '', 'n/a', 'futura'];
+  const tech_debt = _blItems
+    .filter(i => (i.type === 'B' || i.type === 'T') && i.priority === 'high' && noSprintValues.includes(i.sprint))
+    .map(i => ({ code: i.code || '—', title: i.title || i.desc || '', type: i.type }));
+
+  // Decisiones — [] en este R, acumulación futura desde CHECKPOINTs
+  const decisions = [];
+
+  // Gaps — [] en este R, semántica de no vaciarse es scope futuro
+  const gaps = [];
+
+  // Notas / Memoria operativa
   const sessions = proj && Array.isArray(proj.sessions) ? proj.sessions : [];
   const spLabel   = _activeSp ? _activeSp.id : 'S-??';
   const sprintSessions = _activeSp
     ? sessions.filter(s => _mgSessionInSprint(s, _activeSp.id))
     : sessions.slice(-20);
 
-  // B-202605-226: log si 0 sesiones matchean
   if (_activeSp && !sprintSessions.length && sessions.length) {
     console.warn(`[MapGen] _generateContext: 0 sesiones matchearon sprint ${_activeSp.id}`);
   }
 
-  // Preservar entradas previas de notas (si el stored era JSON)
   let existingNoteLines = [];
   if (storedRaw && storedRaw.trim()) {
     let isJson = false;
@@ -773,7 +903,6 @@ function _generateContext() {
 
   const seenNotes = new Set(existingNoteLines.map(l => l.toLowerCase()));
   const newNoteEntries = [];
-
   for (const s of sprintSessions) {
     if (s.decision && s.decision.trim()) {
       const entry = `[${spLabel}] Decisión: ${s.decision.trim()}`;
@@ -785,17 +914,21 @@ function _generateContext() {
       if (!seenNotes.has(entry.toLowerCase())) { newNoteEntries.push(entry); seenNotes.add(entry.toLowerCase()); }
     }
   }
-
   const allNotes = [...existingNoteLines, ...newNoteEntries].join('\n');
 
   // Construir objeto JSON
   const ctx = {
     version: _ctxVersion,
     updated,
+    generated_at,
     project: proj ? (proj.name || 'AI Tracker') : 'AI Tracker',
     main_file: 'index.html',
+    status,
     stack,
-    sprints: sprintInfo,
+    sprint: sprintInfo,
+    velocity,
+    backlog: backlogSnapshot,
+    tech_debt,
     counters,
     decisions,
     gaps,
@@ -808,9 +941,10 @@ function _generateContext() {
 // ─── Generador BACKLOG ───────────────────────────────────────────────────────
 
 // B-202605-224: pasar _mgGetVersion() como argumento — sin esto version es undefined en el MD exportado
-function _generateBacklog() {
-  const version = _mgGetVersion();
-  if (typeof buildBacklogMd === 'function') return buildBacklogMd(version);
+// T-202605-489: acepta version como parámetro; fallback a _mgGetVersion() si no se pasa
+function _generateBacklog(version) {
+  const ver = (version && version !== 'undefined') ? version : _mgGetVersion();
+  if (typeof buildBacklogMd === 'function') return buildBacklogMd(ver);
   return `# BACKLOG generado — buildBacklogMd no disponible\n`;
 }
 
@@ -1048,14 +1182,17 @@ function confirmMapGenerator() {
     fileDefs.push({ filename: `${prefix}-PLAN_${bumpedVer}.md`, content: docs.plan });
   }
 
-  // Aplicar efectos de DOM antes de generar ZIP
-  fileDefs.forEach(d => { if (d.apply) d.apply(); });
+  // R-202604-086 + B-[tmp:closed-version]: side effects previos a ZIP (no tocan DOM externo)
+  _mgApplyBumpedVersion(bumpedVer);
+  if (typeof archiveClosedItems === 'function') archiveClosedItems();
 
-  // T-202605-488: ingerir Plan generado automáticamente
+  // T-202605-488: ingerir Plan generado automáticamente (no es efecto DOM externo — es parse interno)
   if (docs.plan) {
     const ingested = (typeof _tryIngestPlan === 'function') ? _tryIngestPlan(docs.plan) : false;
+    if (!ingested && typeof showToast === 'function') {
+      showToast('warning', 'Plan generado pero no pudo ingresarse automáticamente — copia el bloque manualmente');
+    }
     if (ingested) {
-      // Guardar metadata de origen automático para chip en renderPlan
       try {
         const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
         if (proj) {
@@ -1063,44 +1200,46 @@ function confirmMapGenerator() {
           localStorage.setItem(metaKey, JSON.stringify({ ts: Date.now(), sprintId: docs._planSprintId || '?' }));
         }
       } catch(e) {}
-    } else if (typeof showToast === 'function') {
-      showToast('warning', 'Plan generado pero no pudo ingresarse automáticamente — copia el bloque manualmente');
     }
   }
 
-  // R-202604-086: reflejar versión bumped en header de PP
-  _mgApplyBumpedVersion(bumpedVer);
-
-  // B-[tmp:closed-version]: mover done/descartados al histórico al confirmar bump de versión
-  if (typeof archiveClosedItems === 'function') archiveClosedItems();
-
-  // Generar ZIP — usa JSZip si está disponible; fallback a descargas individuales
+  // B-202605-275: efectos DOM (importContextMd, importHtmlMap) se aplican DESPUÉS de confirmar generación exitosa
   const zipName = `${prefix}-SPRINT-PACKAGE_${sprintId}_${bumpedVer}.zip`;
 
   if (typeof JSZip !== 'undefined') {
     const zip = new JSZip();
     fileDefs.forEach(d => zip.file(d.filename, d.content));
     zip.generateAsync({ type: 'blob' }).then(blob => {
+      // ZIP generado exitosamente — ahora aplicar efectos DOM
+      fileDefs.forEach(d => { if (d.apply) d.apply(); });
+
       const url = URL.createObjectURL(blob);
       const a   = document.createElement('a');
       a.href     = url;
       a.download = zipName;
       a.click();
       URL.revokeObjectURL(url);
+
+      closeMapGenerator();
+      if (typeof showToast === 'function') {
+        showToast('success', `Paquete generado — ${fileDefs.length} documento${fileDefs.length !== 1 ? 's' : ''} · v${bumpedVer}`);
+      }
+    }).catch(() => {
+      // ZIP falló — no aplicar efectos DOM
+      if (typeof showToast === 'function') showToast('error', 'Error al generar el ZIP — no se aplicaron cambios');
     });
   } else {
-    // Fallback: descargas individuales
+    // Fallback: descargas individuales — aplicar efectos DOM después de iniciarlas
     fileDefs.forEach(d => _mgDownload(d.content, d.filename));
+    fileDefs.forEach(d => { if (d.apply) d.apply(); });
     if (typeof showToast === 'function') showToast('warning', 'JSZip no disponible — descargando archivos por separado');
-  }
 
-  closeMapGenerator();
-  if (typeof showToast === 'function') {
-    showToast('success', `Paquete generado — ${fileDefs.length} documento${fileDefs.length !== 1 ? 's' : ''} · v${bumpedVer}`);
+    closeMapGenerator();
+    if (typeof showToast === 'function') {
+      showToast('success', `Paquete generado — ${fileDefs.length} documento${fileDefs.length !== 1 ? 's' : ''} · v${bumpedVer}`);
+    }
   }
 }
-
-// R-202604-086: reflejar versión bumped en el DOM de PP + persistir en localStorage
 // Fuente de verdad única: localStorage key 'app-version-override' (declarada en ai-tracker-checkpoint.js).
 // ai-tracker-checkpoint.js la lee al arrancar y la usa sobre APP_VERSION.
 function _mgApplyBumpedVersion(ver) {
@@ -1146,8 +1285,10 @@ function _mgExportAllZip() {
   if (typeof exportFullHistoryMd === 'function') {
     // exportFullHistoryMd descarga directamente — la llamamos en fallback
   }
-  if (typeof buildContextMd === 'function') {
-    fileDefs.push({ filename: `${prefix}-CONTEXT.md`, fn: () => buildContextMd() });
+  if (typeof _generateContext === 'function') {
+    const version = _mgGetVersion();
+    const prefix2 = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+    fileDefs.push({ filename: `${prefix2}-CONTEXT_${version}.md`, fn: () => _generateContext() }); // B-202605-276
   }
   if (typeof exportHtmlMapContent === 'function') {
     fileDefs.push({ filename: `${prefix}-MAP.md`, fn: () => exportHtmlMapContent() });

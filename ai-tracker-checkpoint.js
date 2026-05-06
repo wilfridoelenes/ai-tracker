@@ -895,7 +895,7 @@ function clearPasteTa(id) {
   // B-202605: bloquear limpieza si hay borrador guardado en localStorage
   const hasDraft = !!localStorage.getItem('draft-' + id);
   if (hasDraft) {
-    showToast('Hay un borrador guardado — guarda o descarta la sesión antes de limpiar', 'warn');
+    showToast('warning', 'Hay un borrador guardado — guarda o descarta la sesión antes de limpiar');
     return;
   }
   ta.value = '';
@@ -919,7 +919,7 @@ async function pasteFromClipboard(id) {
   } catch (e) {
     // Sin permiso de clipboard: enfocar el textarea para que el usuario pegue con Ctrl+V
     ta.focus();
-    showToast('Pega con Ctrl+V — el navegador no permite acceso directo al portapapeles', 'info');
+    showToast('info', 'Pega con Ctrl+V — el navegador no permite acceso directo al portapapeles');
   }
 }
 
@@ -1154,11 +1154,22 @@ function toast(msg) { showToast('info', msg); }
 // T-202604-221: showToastInline — toast anclado al elemento que detona la acción
 // Acciones sobre ítems: marcar done, copiar código, cambio de status
 // En mobile (<600px) delega a showToast global.
-// Uso: showToastInline(anchorEl, type, title, { position: 'above'|'below' })
-function showToastInline(anchorEl, type, title, opts = {}) {
+//
+// Firma original:   showToastInline(anchorEl, type, title, opts)
+// Firma con acción: showToastInline(anchorEl, actions, title, opts)
+//   donde actions es Array<{ label, cls, cb }> — detectado por Array.isArray(actionsOrType)
+//
+// R-202605-151: modo acción — renderiza título + botones. Al ejecutar cb() cierra el toast.
+//   Click fuera del anchor cierra sin ejecutar ningún callback (cancelar implícito).
+//   Mobile (≤600px): delega a showToast con el título — sin botones.
+function showToastInline(anchorEl, actionsOrType, title, opts = {}) {
+  const isActionMode = Array.isArray(actionsOrType);
+  const type = isActionMode ? 'info' : actionsOrType;
+  const actions = isActionMode ? actionsOrType : null;
+
   if (!anchorEl) { showToast(type, title); return; }
 
-  // Mobile: delegar al sistema global
+  // Mobile: delegar al sistema global (sin botones de acción)
   if (window.innerWidth <= 600) {
     showToast(type, title);
     return;
@@ -1178,21 +1189,58 @@ function showToastInline(anchorEl, type, title, opts = {}) {
   el.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   el.setAttribute('role', type === 'error' ? 'alert' : 'status');
 
-  const icon = _TOAST_ICONS[type] || 'ℹ';
-  el.textContent = `${icon} ${title}`;
-
-  anchorEl.appendChild(el);
-  el.getBoundingClientRect(); // forzar reflow
-  el.classList.add('show');
-
   const _hideInline = () => {
     if (el._inlineDismissed) return;
     el._inlineDismissed = true;
+    clearTimeout(el._inlineTimer);
     el.classList.add('toast-hide');
     setTimeout(() => el.remove(), 200);
   };
 
-  el._inlineTimer = setTimeout(_hideInline, 2000);
+  if (isActionMode && actions.length) {
+    // Modo acción: texto + botones
+    const msgSpan = document.createElement('span');
+    msgSpan.className = 'toast-inline-msg';
+    msgSpan.textContent = title;
+    el.appendChild(msgSpan);
+
+    const btnWrap = document.createElement('span');
+    btnWrap.className = 'toast-inline-actions';
+    actions.forEach(({ label, cls, cb }) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `toast-inline-btn${cls ? ' ' + cls : ''}`;
+      btn.textContent = label;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _hideInline();
+        if (typeof cb === 'function') cb();
+      });
+      btnWrap.appendChild(btn);
+    });
+    el.appendChild(btnWrap);
+
+    // Click fuera del anchor — cancelar implícito (sin ejecutar cb)
+    const _outsideHandler = (e) => {
+      if (!anchorEl.contains(e.target)) {
+        _hideInline();
+        document.removeEventListener('click', _outsideHandler, true);
+      }
+    };
+    // Diferir para no capturar el click que abrió el toast
+    setTimeout(() => document.addEventListener('click', _outsideHandler, true), 0);
+    el._outsideHandler = _outsideHandler;
+
+  } else {
+    // Modo informativo original
+    const icon = _TOAST_ICONS[type] || 'ℹ';
+    el.textContent = `${icon} ${title}`;
+    el._inlineTimer = setTimeout(_hideInline, 2000);
+  }
+
+  anchorEl.appendChild(el);
+  el.getBoundingClientRect(); // forzar reflow
+  el.classList.add('show');
 }
 
 function toggleTheme() {

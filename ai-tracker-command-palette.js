@@ -685,7 +685,7 @@ function _cpOnListMouseover(e) {
 
 function _cpShowToast(msg) {
   if (typeof showToast === 'function') {
-    showToast(msg);
+    showToast('info', msg);
   } else {
     console.info('[CP]', msg);
   }
