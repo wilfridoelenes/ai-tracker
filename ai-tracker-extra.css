@@ -18065,3 +18065,207 @@ body.body--focus-mode::after {
 }
 
 /* END R-B: EXECUTION-PLAN */
+
+/* ══ R-202605-148: DIFF — diferenciación visual de tipo de ítem + sprint editable inline ══ */
+
+/* ── Variables por tipo ── */
+.mdiff-card.mdiff-type--b       { --_type-color: #e85555; --_type-bg: rgba(232,85,85,0.08); }
+.mdiff-card.mdiff-type--t       { --_type-color: #2ecc78; --_type-bg: rgba(46,204,120,0.08); }
+.mdiff-card.mdiff-type--r       { --_type-color: #38bdf8; --_type-bg: rgba(56,189,248,0.08); }
+.mdiff-card.mdiff-type--p       { --_type-color: #7c6af7; --_type-bg: rgba(124,106,247,0.08); }
+.mdiff-card.mdiff-type--unknown { --_type-color: var(--text2); --_type-bg: transparent; }
+
+/* Borde izquierdo por tipo + tinte de fondo */
+.mdiff-card.mdiff-type--b,
+.mdiff-card.mdiff-type--t,
+.mdiff-card.mdiff-type--r,
+.mdiff-card.mdiff-type--p,
+.mdiff-card.mdiff-type--unknown {
+  border-left: 3px solid var(--_type-color);
+  background-color: var(--_type-bg);
+  /* border-left va en el contenedor flex — .mdiff-card-body conserva padding:10px 14px sin verse afectado.
+     .mdiff-card-accent (display:none) ya no ocupa espacio — el borde no desplaza el contenido. */
+}
+
+/* Neutralizar .mdiff-card-accent cuando el tipo controla el borde */
+.mdiff-card.mdiff-type--b .mdiff-card-accent,
+.mdiff-card.mdiff-type--t .mdiff-card-accent,
+.mdiff-card.mdiff-type--r .mdiff-card-accent,
+.mdiff-card.mdiff-type--p .mdiff-card-accent,
+.mdiff-card.mdiff-type--unknown .mdiff-card-accent {
+  display: none;
+}
+
+/* ── Pill de tipo ── */
+.mdiff-type-badge {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--_type-color, var(--border));
+  color: var(--_type-color, var(--text2));
+  background: transparent;
+  flex-shrink: 0;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* ── Layout de fila: [Pill] [Título flexible] [Select sprint] ── */
+.mdiff-card-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: nowrap;
+}
+
+.mdiff-card-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Select de sprint inline ── */
+.mdiff-sprint-select {
+  flex-shrink: 0;
+  max-width: 160px;
+  height: 24px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 6px center;
+  padding-right: 20px;
+  transition: border-color 0.15s;
+}
+
+.mdiff-sprint-select:hover {
+  border-color: var(--text2);
+}
+
+.mdiff-sprint-select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+/* ── Mobile (<600px): select baja a línea secundaria ── */
+@media (max-width: 600px) {
+  .mdiff-card-top {
+    flex-wrap: wrap;
+  }
+
+  .mdiff-sprint-select {
+    margin-left: auto;
+    max-width: 100%;
+    width: auto;
+    flex-basis: 100%;
+    margin-top: 4px;
+  }
+}
+
+/* ── Mini-formulario inline de nuevo sprint dentro del DIFF ── */
+.mdiff-new-sprint-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 300px;
+}
+
+.mdiff-new-sprint-inp,
+.mdiff-new-sprint-goal,
+.mdiff-new-sprint-vt {
+  height: 24px;
+  padding: 0 7px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.mdiff-new-sprint-inp:focus,
+.mdiff-new-sprint-goal:focus,
+.mdiff-new-sprint-vt:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
+.mdiff-new-sprint-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mdiff-new-sprint-row .mdiff-new-sprint-vt {
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.mdiff-new-sprint-rt {
+  height: 24px;
+  padding: 0 4px;
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text2);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  flex-shrink: 0;
+}
+
+.mdiff-new-sprint-confirm,
+.mdiff-new-sprint-cancel {
+  height: 24px;
+  padding: 0 7px;
+  font-size: 11px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s;
+}
+
+.mdiff-new-sprint-confirm {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+.mdiff-new-sprint-confirm:hover { opacity: 0.85; }
+
+.mdiff-new-sprint-cancel {
+  background: var(--surface);
+  color: var(--text2);
+}
+
+.mdiff-new-sprint-cancel:hover { background: var(--surface2); }
+
+@media (max-width: 600px) {
+  .mdiff-new-sprint-form {
+    max-width: 100%;
+    margin-top: 4px;
+  }
+}
+
+/* ══ END R-202605-148 ══ */

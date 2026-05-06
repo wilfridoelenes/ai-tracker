@@ -468,8 +468,14 @@ function _mgBuildPlan() {
   } catch(e) { backlogItems = []; }
 
   // Filtrar ítems del sprint objetivo con rol asignado y status pendiente
+  // B-202605-497: it.sprint puede ser string canónico completo "S-25 · Nombre" o solo ID "S-25"
+  const _sprintMatches = (itSprint, spId) => {
+    if (!itSprint || !spId) return false;
+    const s = itSprint.trim();
+    return s === spId || s.startsWith(spId + ' ·');
+  };
   const sprintItems = backlogItems.filter(it =>
-    it.sprint === (targetSprint ? targetSprint.id : null) &&
+    _sprintMatches(it.sprint, targetSprint ? targetSprint.id : null) &&
     it.role && it.role.trim() &&
     it.status === 'pendiente'
   );
@@ -628,6 +634,7 @@ function generateDocuments() {
   const bumpedVer = userDeclared ? currentVer : _mgBumpMinor(currentVer);
 
   _mapGen.generatedDocs = {};
+  _mapGen.generatedDocs._bumpedVer = bumpedVer; // B-202605-496: fuente de verdad para confirmMapGenerator()
 
   if (mapChecked)     _mapGen.generatedDocs.map     = _generateMap(bumpedVer);
   if (contextChecked) _mapGen.generatedDocs.context  = _generateContext(bumpedVer);
@@ -656,9 +663,10 @@ function generateMap() { generateDocuments(); }
 
 // ─── Generador MAP ───────────────────────────────────────────────────────────
 
-function _generateMap() {
+function _generateMap(ver) {
   // R-202605-137: produce JSON puro — parseable con JSON.parse sin regex
   // T-202605-491: incluye campo status en objeto raíz — coherencia con CONTEXT
+  // B-202605-494: acepta ver como parámetro; fallback a _mgGetVersion() si no se pasa
   const order = { js: 0, css: 1, html: 2 };
   const sorted = [..._mapGen.files].sort((a, b) => {
     const ea = a.name.split('.').pop().toLowerCase();
@@ -666,7 +674,7 @@ function _generateMap() {
     return (order[ea] ?? 9) - (order[eb] ?? 9);
   });
 
-  const version = _mgGetVersion();
+  const version = (ver && ver !== 'undefined') ? ver : _mgGetVersion();
   const now = _mgNow();
   const project = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
   const parsed = sorted.map(f => _mgParseFile(f.name, f.text));
@@ -950,13 +958,14 @@ function _generateBacklog(version) {
 
 // ─── Generador SPRINT-REVIEW ─────────────────────────────────────────────────
 
-function _generateSprintReview() {
+function _generateSprintReview(ver) {
+  // B-202605-495: acepta ver como parámetro; fallback a _mgGetVersion() si no se pasa
   const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
   const activeSprint = _mgActiveSprint();
 
   const sprintId   = activeSprint ? activeSprint.id : 'sin-sprint';
   const sprintName = activeSprint ? (activeSprint.label || activeSprint.id) : '—';
-  const version    = _mgGetVersion();
+  const version    = (ver && ver !== 'undefined') ? ver : _mgGetVersion();
   const now        = _mgNow();
   const prefix     = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
 
@@ -1138,11 +1147,12 @@ function confirmMapGenerator() {
     return;
   }
 
-  const version   = _mgGetVersion();
   const prefix    = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
-  const input = document.getElementById('mg-version-input'); 
-  const userDeclared = input && input.value.trim() && input.value.trim() !== 'undefined';
-  const bumpedVer = userDeclared ? version : _mgBumpMinor(version);
+  // B-202605-496: usar bumpedVer de generateDocuments() — evita recálculo independiente
+  // Si no está disponible (flujo inesperado) — fallback al comportamiento anterior
+  const bumpedVer = (docs._bumpedVer && docs._bumpedVer !== 'undefined')
+    ? docs._bumpedVer
+    : _mgBumpMinor(_mgGetVersion());
   // Construir tabla de archivos: { filename, content, applyFn? }
   const activeSprint = _mgActiveSprint();
   const sprintId     = activeSprint ? activeSprint.id : 'sin-sprint';
@@ -1182,10 +1192,6 @@ function confirmMapGenerator() {
     fileDefs.push({ filename: `${prefix}-PLAN_${bumpedVer}.md`, content: docs.plan });
   }
 
-  // R-202604-086 + B-[tmp:closed-version]: side effects previos a ZIP (no tocan DOM externo)
-  _mgApplyBumpedVersion(bumpedVer);
-  if (typeof archiveClosedItems === 'function') archiveClosedItems();
-
   // T-202605-488: ingerir Plan generado automáticamente (no es efecto DOM externo — es parse interno)
   if (docs.plan) {
     const ingested = (typeof _tryIngestPlan === 'function') ? _tryIngestPlan(docs.plan) : false;
@@ -1204,14 +1210,17 @@ function confirmMapGenerator() {
   }
 
   // B-202605-275: efectos DOM (importContextMd, importHtmlMap) se aplican DESPUÉS de confirmar generación exitosa
+  // B-202605-493: _mgApplyBumpedVersion y archiveClosedItems también se difieren — sin mutación de estado si ZIP falla
   const zipName = `${prefix}-SPRINT-PACKAGE_${sprintId}_${bumpedVer}.zip`;
 
   if (typeof JSZip !== 'undefined') {
     const zip = new JSZip();
     fileDefs.forEach(d => zip.file(d.filename, d.content));
     zip.generateAsync({ type: 'blob' }).then(blob => {
-      // ZIP generado exitosamente — ahora aplicar efectos DOM
+      // ZIP generado exitosamente — aplicar efectos en orden: DOM → versión → archivo
       fileDefs.forEach(d => { if (d.apply) d.apply(); });
+      _mgApplyBumpedVersion(bumpedVer); // B-202605-493: diferido post-confirmación
+      if (typeof archiveClosedItems === 'function') archiveClosedItems(); // B-202605-493: diferido post-confirmación
 
       const url = URL.createObjectURL(blob);
       const a   = document.createElement('a');
@@ -1225,13 +1234,15 @@ function confirmMapGenerator() {
         showToast('success', `Paquete generado — ${fileDefs.length} documento${fileDefs.length !== 1 ? 's' : ''} · v${bumpedVer}`);
       }
     }).catch(() => {
-      // ZIP falló — no aplicar efectos DOM
+      // ZIP falló — no aplicar ningún efecto de estado
       if (typeof showToast === 'function') showToast('error', 'Error al generar el ZIP — no se aplicaron cambios');
     });
   } else {
-    // Fallback: descargas individuales — aplicar efectos DOM después de iniciarlas
+    // Fallback: descargas individuales — aplicar efectos después de iniciar descargas
     fileDefs.forEach(d => _mgDownload(d.content, d.filename));
     fileDefs.forEach(d => { if (d.apply) d.apply(); });
+    _mgApplyBumpedVersion(bumpedVer); // B-202605-493: diferido post-descarga
+    if (typeof archiveClosedItems === 'function') archiveClosedItems(); // B-202605-493: diferido post-descarga
     if (typeof showToast === 'function') showToast('warning', 'JSZip no disponible — descargando archivos por separado');
 
     closeMapGenerator();

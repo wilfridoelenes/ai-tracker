@@ -4802,24 +4802,47 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   if (total === 0 && !_hasCriticalIgnored) { onApply(); return; }
 
   // ── Helpers de renderizado ──
-  const _typeColor = { P: 'var(--c-low-text)', T: 'var(--green)', R: '#38bdf8', B: 'var(--red)' };
   const _typeName  = { P: 'Posibilidad', T: 'Task', R: 'Req', B: 'Bug' };
+  // R-202605-148: clase CSS por tipo — hex fijos de identidad del backlog
+  const _typeClass = { B: 'mdiff-type--b', T: 'mdiff-type--t', R: 'mdiff-type--r', P: 'mdiff-type--p' };
+  // R-202605-148: orden canónico B → R → T → P para sort dentro de sección
+  const _typeOrder = { B: 0, R: 1, T: 2, P: 3 };
 
   const _pill = (cls, label) =>
     `<span class="mdiff-pill mdiff-pill--${cls}">${label}</span>`;
 
+  // R-202605-148: select de sprint inline — persiste via _mdiffSetItemSprint sin re-render del DIFF
+  const _sprintSelect = (code) => {
+    const openSprints = (typeof getActiveSprints === 'function')
+      ? getActiveSprints().filter(s => s.status !== 'closed')
+      : [];
+    const item = ITEMS.find(i => i.code === code);
+    const currentSprint = item ? (item.sprint || '') : '';
+    const options = openSprints.map(s =>
+      `<option value="${esc(s.id)}" ${currentSprint === s.id ? 'selected' : ''}>${esc(s.label || s.id)}</option>`
+    ).join('');
+    return `<select class="mdiff-sprint-select" data-item-code="${esc(code)}"
+      onchange="_mdiffSetItemSprint(this)"
+      onclick="event.stopPropagation()">
+      <option value="" ${!currentSprint ? 'selected' : ''}>Sin sprint</option>
+      ${options}
+      <option value="__new__">＋ Nuevo sprint...</option>
+    </select>`;
+  };
+
   const _card = (code, desc, accentClass, pillsHtml, extraHtml = '') => {
-    const typeChar = code[0];
-    const typeColor = _typeColor[typeChar] || 'var(--text2)';
+    const typeChar  = (code || '?')[0].toUpperCase();
+    const typeCls   = _typeClass[typeChar] || 'mdiff-type--unknown';
     const typeName  = _typeName[typeChar]  || typeChar;
     return `
-    <div class="mdiff-card mdiff-card--${accentClass}">
+    <div class="mdiff-card mdiff-card--${accentClass} ${typeCls}">
       <div class="mdiff-card-accent"></div>
       <div class="mdiff-card-body">
         <div class="mdiff-card-top">
-          <span class="mdiff-type-badge" style="--mdiff-type-color:${typeColor}">${typeName}</span>
-          <span class="mdiff-code">${esc(code)}</span>
+          <span class="mdiff-type-badge">${typeName}</span>
+          <span class="mdiff-code mdiff-card-title">${esc(code)}</span>
           ${pillsHtml}
+          ${_sprintSelect(code)}
         </div>
         <div class="mdiff-desc">${esc(desc || '')}</div>
         ${extraHtml}
@@ -4828,40 +4851,57 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   };
 
   // ── Fila de retroceso ──
-  const _retrocedoRow = (i, idx) => `
-    <div class="mdiff-card mdiff-card--warn mdiff-card--retroceso" data-retroceso-idx="${idx}">
-      <div class="mdiff-card-accent"></div>
-      <div class="mdiff-card-body">
-        <div class="mdiff-card-top">
-          <span class="mdiff-type-badge" style="--mdiff-type-color:var(--amber)">${_typeName[i.code[0]] || i.code[0]}</span>
-          <span class="mdiff-code">${esc(i.code)}</span>
-          ${_pill('retroceso', `${esc(i.from)} → ${esc(i.to)}`)}
-        </div>
-        <div class="mdiff-desc">${esc(i.desc || '')}</div>
-      </div>
-    </div>`;
-
-  // ── Fila de descarte ──
-  const _DISCARD_REASONS = ['duplicado', 'fuera de alcance', 'reemplazado', 'obsoleto'];
-  const _discardRow = (i, idx) => {
-    const hasReason = !!(i.reason);
-    const reasonHtml = hasReason
-      ? `<span class="mdiff-discard-reason-pill">${esc(i.reason)}${i.ref ? ' · ' + esc(i.ref) : ''}</span>`
-      : '';
+  const _retrocedoRow = (i, idx) => {
+    const typeChar = (i.code || '?')[0].toUpperCase();
+    const typeCls  = _typeClass[typeChar] || 'mdiff-type--unknown';
+    const typeName = _typeName[typeChar]  || typeChar;
     return `
-    <div class="mdiff-card mdiff-card--red mdiff-card--discard" data-discard-idx="${idx}">
+    <div class="mdiff-card mdiff-card--warn mdiff-card--retroceso ${typeCls}" data-retroceso-idx="${idx}">
       <div class="mdiff-card-accent"></div>
       <div class="mdiff-card-body">
         <div class="mdiff-card-top">
-          <span class="mdiff-type-badge" style="--mdiff-type-color:var(--red)">${_typeName[i.code[0]] || i.code[0]}</span>
-          <span class="mdiff-code">${esc(i.code)}</span>
-          ${_pill('discarded', 'descartado')}
-          ${reasonHtml}
+          <span class="mdiff-type-badge">${typeName}</span>
+          <span class="mdiff-code mdiff-card-title">${esc(i.code)}</span>
+          ${_pill('retroceso', `${esc(i.from)} → ${esc(i.to)}`)}
+          ${_sprintSelect(i.code)}
         </div>
         <div class="mdiff-desc">${esc(i.desc || '')}</div>
       </div>
     </div>`;
   };
+
+  // ── Fila de descarte ──
+  const _DISCARD_REASONS = ['duplicado', 'fuera de alcance', 'reemplazado', 'obsoleto'];
+  const _discardRow = (i, idx) => {
+    const typeChar  = (i.code || '?')[0].toUpperCase();
+    const typeCls   = _typeClass[typeChar] || 'mdiff-type--unknown';
+    const typeName  = _typeName[typeChar]  || typeChar;
+    const hasReason = !!(i.reason);
+    const reasonHtml = hasReason
+      ? `<span class="mdiff-discard-reason-pill">${esc(i.reason)}${i.ref ? ' · ' + esc(i.ref) : ''}</span>`
+      : '';
+    return `
+    <div class="mdiff-card mdiff-card--red mdiff-card--discard ${typeCls}" data-discard-idx="${idx}">
+      <div class="mdiff-card-accent"></div>
+      <div class="mdiff-card-body">
+        <div class="mdiff-card-top">
+          <span class="mdiff-type-badge">${typeName}</span>
+          <span class="mdiff-code mdiff-card-title">${esc(i.code)}</span>
+          ${_pill('discarded', 'descartado')}
+          ${reasonHtml}
+          ${_sprintSelect(i.code)}
+        </div>
+        <div class="mdiff-desc">${esc(i.desc || '')}</div>
+      </div>
+    </div>`;
+  };
+
+  // R-202605-148: sort B→R→T→P dentro de un array de ítems del DIFF
+  const _sortByType = arr => [...arr].sort((a, b) => {
+    const ca = (a.code || '?')[0].toUpperCase();
+    const cb = (b.code || '?')[0].toUpperCase();
+    return (_typeOrder[ca] ?? 99) - (_typeOrder[cb] ?? 99);
+  });
 
   // ── Construir secciones con IDs para jump ──
   const _section = (id, accentClass, titleHtml, rows, collapsed = false) => `
@@ -4877,12 +4917,12 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   let sectionsHtml = '';
 
   if (diff.created.length) {
-    const rows = diff.created.map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'))).join('');
+    const rows = _sortByType(diff.created).map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'))).join('');
     sectionsHtml += _section('created', 'green', `Creados <span class="mdiff-sec-count">${diff.created.length}</span>`, rows);
   }
   // B-202604-198: ítems que nacen y cierran en el mismo CHECKPOINT — grupo diferenciado
   if (diff.createdAndClosed.length) {
-    const rows = diff.createdAndClosed.map(i => _card(
+    const rows = _sortByType(diff.createdAndClosed).map(i => _card(
       i.code, i.desc, 'green',
       _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'),
       `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>`
@@ -4891,7 +4931,7 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   }
   // B-202604-198: sugerencias de match [tmp:slug] → ID real existente
   if (diff.tmpSuggestions.length) {
-    const rows = diff.tmpSuggestions.map(i => _card(
+    const rows = _sortByType(diff.tmpSuggestions).map(i => _card(
       i.tmpCode, i.desc, 'warn',
       _pill('warn', '⚠ tmp sin match aplicado'),
       `<div class="mdiff-change-hint">Posible coincidencia: <strong>${esc(i.suggestedCode)}</strong> — ${esc(i.suggestedTitle)}</div>
@@ -4900,29 +4940,29 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     sectionsHtml += _section('tmp-suggestions', 'warn', `⚠ TMP sin match confirmado <span class="mdiff-sec-count">${diff.tmpSuggestions.length}</span>`, rows);
   }
   if (diff.advanced.length) {
-    const rows = diff.advanced.map(i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`))).join('');
+    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`))).join('');
     sectionsHtml += _section('advanced', 'blue', `Avance de status <span class="mdiff-sec-count">${diff.advanced.length}</span>`, rows);
   }
   if (diff.updated.length) {
-    const rows = diff.updated.map(i => _card(i.code, i.desc, 'accent',
+    const rows = _sortByType(diff.updated).map(i => _card(i.code, i.desc, 'accent',
       _pill('updated', '✎ actualizado'),
       `<div class="mdiff-change-hint">${esc(i.change)}</div>`
     )).join('');
     sectionsHtml += _section('updated', 'accent', `Campos actualizados <span class="mdiff-sec-count">${diff.updated.length}</span>`, rows);
   }
   if (diff.retroceso.length) {
-    const rows = diff.retroceso.map((i, idx) => _retrocedoRow(i, idx)).join('');
+    const rows = _sortByType(diff.retroceso).map((i, idx) => _retrocedoRow(i, idx)).join('');
     sectionsHtml += _section('retroceso', 'warn', `⚠ Retrocesos <span class="mdiff-sec-count">${diff.retroceso.length}</span>`, rows);
   }
   if (diff.discarded.length) {
-    const rows = diff.discarded.map((i, idx) => _discardRow(i, idx)).join('');
+    const rows = _sortByType(diff.discarded).map((i, idx) => _discardRow(i, idx)).join('');
     sectionsHtml += _section('discarded', 'red', `🗑 Descartes <span class="mdiff-sec-count">${diff.discarded.length}</span>`, rows);
   }
   if (diff.ignored.length) {
     const ignoredCritical = diff.ignored.filter(i => _criticalReasons.includes(i.reason));
     const ignoredOk       = diff.ignored.filter(i => !_criticalReasons.includes(i.reason));
     if (ignoredCritical.length) {
-      const rows = ignoredCritical.map(i => {
+      const rows = _sortByType(ignoredCritical).map(i => {
         let pill, hint = '';
         if (i.reason === 'duplicado')     { pill = _pill('warn', '⚠ duplicado'); hint = i.existingCode ? `<div class="mdiff-change-hint">existe como ${esc(i.existingCode)}</div>` : ''; }
         else if (i.reason === 'sin-status')    { pill = _pill('warn', '⚠ sin status'); }
@@ -4932,7 +4972,7 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
       sectionsHtml += _section('attention', 'warn', `⚠ Requieren atención <span class="mdiff-sec-count">${ignoredCritical.length}</span>`, rows);
     }
     if (ignoredOk.length) {
-      const rows = ignoredOk.map(i => _card(i.code, i.desc, 'muted', _pill('ignored', 'sin cambios'))).join('');
+      const rows = _sortByType(ignoredOk).map(i => _card(i.code, i.desc, 'muted', _pill('ignored', 'sin cambios'))).join('');
       // Sin cambios colapsado por defecto
       sectionsHtml += _section('unchanged', 'muted', `Sin cambios <span class="mdiff-sec-count">${ignoredOk.length}</span>`, rows, true);
     }
@@ -5008,6 +5048,154 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     }
     el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
+
+  // R-202605-148: persistir sprint desde select inline del DIFF sin re-render del panel
+  window._mdiffSetItemSprint = function(sel) {
+    const code = sel.dataset.itemCode;
+    if (!code) return;
+    const val = sel.value;
+    if (val === '__new__') {
+      // Revertir select a valor actual antes de reemplazarlo con el mini-form
+      sel.value = (ITEMS.find(i => i.code === code) || {}).sprint || '';
+      _mdiffOpenNewSprintForm(sel, code);
+      return;
+    }
+    _mdiffPersistSprint(code, val);
+  };
+
+  // R-202605-148: mini-formulario inline — reemplaza el select en la card
+  // Campos: nombre, goal (opcional), version_target, release_type
+  function _mdiffOpenNewSprintForm(sel, code) {
+    const suggestedRt = _suggestReleaseType(ITEMS.filter(i => i.sprint === code));
+    const suggestedVt = _suggestVersionTarget(suggestedRt);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'mdiff-new-sprint-form';
+    wrap.innerHTML = `
+      <input type="text" class="mdiff-new-sprint-inp" placeholder="S-XX · Nombre descriptivo"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();_mdiffConfirmNewSprintForm(this,'${esc(code)}');}if(event.key==='Escape'){event.preventDefault();_mdiffCancelNewSprintForm(this);}">
+      <input type="text" class="mdiff-new-sprint-goal" placeholder="Goal (opcional)"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();_mdiffConfirmNewSprintForm(this,'${esc(code)}');}if(event.key==='Escape'){event.preventDefault();_mdiffCancelNewSprintForm(this);}">
+      <div class="mdiff-new-sprint-row">
+        <input type="text" class="mdiff-new-sprint-vt" value="${esc(suggestedVt)}" placeholder="v3.5"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();_mdiffConfirmNewSprintForm(this,'${esc(code)}');}if(event.key==='Escape'){event.preventDefault();_mdiffCancelNewSprintForm(this);}">
+        <select class="mdiff-new-sprint-rt">
+          <option value="Patch"${suggestedRt==='Patch'?' selected':''}>Patch</option>
+          <option value="Minor"${suggestedRt==='Minor'?' selected':''}>Minor</option>
+          <option value="Major"${suggestedRt==='Major'?' selected':''}>Major</option>
+        </select>
+        <button type="button" class="mdiff-new-sprint-confirm"
+          onclick="_mdiffConfirmNewSprintForm(this,'${esc(code)}')">✓</button>
+        <button type="button" class="mdiff-new-sprint-cancel"
+          onclick="_mdiffCancelNewSprintForm(this)">✕</button>
+      </div>`;
+
+    // Guardar referencia al select original para restaurar si se cancela
+    wrap._originalSelect = sel;
+    sel.parentNode.replaceChild(wrap, sel);
+    wrap.querySelector('.mdiff-new-sprint-inp').focus();
+  }
+
+  window._mdiffConfirmNewSprintForm = function(el, code) {
+    const wrap = el.closest('.mdiff-new-sprint-form');
+    if (!wrap) return;
+    const name = wrap.querySelector('.mdiff-new-sprint-inp').value.trim();
+    const goal = wrap.querySelector('.mdiff-new-sprint-goal').value.trim();
+    const vt   = wrap.querySelector('.mdiff-new-sprint-vt').value.trim();
+    const rt   = wrap.querySelector('.mdiff-new-sprint-rt').value;
+
+    if (!name) { wrap.querySelector('.mdiff-new-sprint-inp').focus(); return; }
+
+    const newId = createSprint(name, goal, vt, rt);
+    if (!newId) { wrap.querySelector('.mdiff-new-sprint-inp').focus(); return; }
+
+    // Persistir sprint en el ítem
+    _mdiffPersistSprint(code, newId);
+
+    // Restaurar select con el nuevo sprint seleccionado + añadirlo a todos los selects del DIFF
+    const restoredSel = _mdiffRestoreSelect(wrap, code, newId);
+
+    // Añadir la nueva opción a todos los demás selects del DIFF
+    document.querySelectorAll(`.mdiff-sprint-select[data-item-code]`).forEach(s => {
+      if (s === restoredSel) return;
+      const newOpt = s.querySelector('option[value="__new__"]');
+      const opt = document.createElement('option');
+      opt.value = newId;
+      opt.textContent = name;
+      if (newOpt) s.insertBefore(opt, newOpt);
+      else s.appendChild(opt);
+    });
+  };
+
+  window._mdiffCancelNewSprintForm = function(el) {
+    const wrap = el.closest('.mdiff-new-sprint-form');
+    if (!wrap) return;
+    const code = wrap.querySelector('.mdiff-new-sprint-inp')
+      ? wrap.querySelector('[data-item-code]') : null;
+    // Restaurar select original sin cambios
+    _mdiffRestoreSelect(wrap, null, null);
+  };
+
+  // Reemplaza el mini-form con un select reconstruido
+  function _mdiffRestoreSelect(wrap, code, selectedId) {
+    const openSprints = (typeof getActiveSprints === 'function')
+      ? getActiveSprints().filter(s => s.status !== 'closed')
+      : [];
+    const currentSprint = code
+      ? ((ITEMS.find(i => i.code === code) || {}).sprint || '')
+      : '';
+    const effectiveSelected = selectedId || currentSprint;
+
+    const sel = document.createElement('select');
+    sel.className = 'mdiff-sprint-select';
+    if (code) sel.dataset.itemCode = code;
+    sel.setAttribute('onchange', '_mdiffSetItemSprint(this)');
+    sel.setAttribute('onclick', 'event.stopPropagation()');
+
+    const noSprint = document.createElement('option');
+    noSprint.value = '';
+    noSprint.textContent = 'Sin sprint';
+    if (!effectiveSelected) noSprint.selected = true;
+    sel.appendChild(noSprint);
+
+    openSprints.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = s.label || s.id;
+      if (s.id === effectiveSelected) opt.selected = true;
+      sel.appendChild(opt);
+    });
+
+    const newOpt = document.createElement('option');
+    newOpt.value = '__new__';
+    newOpt.textContent = '＋ Nuevo sprint...';
+    sel.appendChild(newOpt);
+
+    wrap.parentNode.replaceChild(sel, wrap);
+    return sel;
+  }
+
+  // R-202605-148: persistir sprint en ITEMS + saveBacklog sin re-render del backlog ni del DIFF
+  function _mdiffPersistSprint(code, sprintId) {
+    const item = ITEMS.find(i => i.code === code);
+    if (!item) return;
+    const prevSprint = item.sprint || '';
+    item.sprint = sprintId || '';
+    item.priority = _calcPriority(item);
+    if (sprintId) {
+      const targetSprint = _getSprintById(sprintId);
+      if (targetSprint && targetSprint.status === 'active' && targetSprint.startedAt) {
+        item.scope_added = true;
+      }
+    } else {
+      delete item.scope_added;
+    }
+    if (!item.history) item.history = [];
+    item.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: prevSprint || null, to: item.sprint || null } });
+    saveBacklog();
+    _setBacklogModified();
+    // No llama renderBacklogList() — el DIFF permanece intacto
+  }
 
   // Helper: validar pendientes y actualizar panel derecho
   window._mdiffUpdateConfirmBtn = function() {

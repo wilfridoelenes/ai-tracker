@@ -4646,7 +4646,6 @@ function buildCard(ai) {
       </div>
       <div class="card-footer-actions-row">
         <button class="save-btn" id="sbtn-${ai.id}" onclick="confirmSave('${ai.id}')" disabled>Guardar sesión</button>
-        <button class="blind-exhaust-btn" id="bexhaust-btn-${ai.id}" onclick="openBlindExhaustMode('${ai.id}')" title="Agotar sin registrar sesión" aria-label="Agotar sin registrar sesión">🔴 Agotar</button>
       </div>
       <div class="blind-exhaust-inline hidden" id="bexhaust-inline-${ai.id}">
         <div class="blind-exhaust-hora-row">
@@ -4737,6 +4736,7 @@ function buildCard(ai) {
           <div class="card-dot-dropdown" id="dotmenu-${ai.id}">
             <button class="card-dot-item" onclick="closeCardMenu('${ai.id}');startRename('${ai.id}')"><span class="dot-item-icon">✎</span> Renombrar</button>
             ${_isAvail ? `<button class="card-dot-item" onclick="confirmInterruptInline('${ai.id}',this)"><span class="dot-item-icon">⛓️‍💥</span> Interrumpir sesión</button>` : ''}
+            ${_isAvail ? `<button class="card-dot-item" onclick="closeCardMenu('${ai.id}');openBlindExhaustMode('${ai.id}')"><span class="dot-item-icon">🔴</span> Agotar</button>` : ''}
             ${!_isAvail ? `<button class="card-dot-item" onclick="closeCardMenu('${ai.id}');openCorrectHora('${ai.id}')"><span class="dot-item-icon">⏰</span> Corregir hora de desbloqueo</button>` : ''}
             <button class="card-dot-item${sessTotal < 2 ? ' disabled' : ''}" onclick="closeCardMenu('${ai.id}');${sessTotal >= 2 ? `downloadReport('${ai.id}')` : ''}" title="${sessTotal < 2 ? 'Necesitas al menos 2 sesiones' : 'Descargar reporte markdown'}"${sessTotal < 2 ? ' disabled' : ''}><span class="dot-item-icon">📥</span> Descargar reporte</button>
             <hr class="card-dot-divider">
