@@ -1124,3 +1124,48 @@ function _mgDownload(content, filename) {
   a.click();
   URL.revokeObjectURL(url);
 }
+
+// R-202605-146: Descargar todos los documentos exportables en un ZIP
+// Usa JSZip si está disponible; fallback a descargas individuales
+function _mgExportAllZip() {
+  const prefix = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+
+  const fileDefs = [];
+
+  if (typeof buildBacklogMd === 'function') {
+    fileDefs.push({ filename: `${prefix}-BACKLOG.md`, fn: () => buildBacklogMd() });
+  }
+  if (typeof exportFullHistoryMd === 'function') {
+    // exportFullHistoryMd descarga directamente — la llamamos en fallback
+  }
+  if (typeof buildContextMd === 'function') {
+    fileDefs.push({ filename: `${prefix}-CONTEXT.md`, fn: () => buildContextMd() });
+  }
+  if (typeof exportHtmlMapContent === 'function') {
+    fileDefs.push({ filename: `${prefix}-MAP.md`, fn: () => exportHtmlMapContent() });
+  }
+
+  // Si podemos construir contenido — intentar ZIP
+  if (fileDefs.length > 0 && typeof JSZip !== 'undefined') {
+    const zip = new JSZip();
+    fileDefs.forEach(d => {
+      try { zip.file(d.filename, d.fn()); } catch(e) { /* silenciar error de contenido individual */ }
+    });
+    zip.generateAsync({ type: 'blob' }).then(blob => {
+      const url = URL.createObjectURL(blob);
+      const a   = document.createElement('a');
+      a.href     = url;
+      a.download = `${prefix}-DOCUMENTOS.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      if (typeof showToast === 'function') showToast('success', 'ZIP descargado — todos los documentos');
+    });
+  } else {
+    // Fallback: descargas individuales usando las funciones de exportación existentes
+    if (typeof exportBacklogMd === 'function') exportBacklogMd();
+    if (typeof exportFullHistoryMd === 'function') exportFullHistoryMd();
+    if (typeof exportHtmlMapMd === 'function') exportHtmlMapMd();
+    if (typeof exportContextMd === 'function') exportContextMd();
+    if (typeof showToast === 'function') showToast('info', 'Documentos descargados individualmente');
+  }
+}

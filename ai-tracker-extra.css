@@ -17906,4 +17906,61 @@ body.body--focus-mode::after {
   }
 }
 
-/* ══ END R-202605-130 ══ */
+
+/* ══ R-202605-146: Export strip — sección fija al pie del Document Generator ══ */
+.mg-export-strip {
+  border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+  padding: 10px 20px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mg-export-strip-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted, rgba(255,255,255,0.35));
+}
+
+.mg-export-strip-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mg-export-btn {
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid var(--border, rgba(255,255,255,0.12));
+  background: transparent;
+  color: var(--text-secondary, rgba(255,255,255,0.55));
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.mg-export-btn:hover {
+  border-color: var(--border-hover, rgba(255,255,255,0.28));
+  color: var(--text-primary, rgba(255,255,255,0.85));
+}
+
+.mg-export-all-btn {
+  align-self: center;
+  font-size: 0.72rem;
+  background: none;
+  border: none;
+  color: var(--text-muted, rgba(255,255,255,0.28));
+  cursor: pointer;
+  padding: 2px 4px;
+  opacity: 0.4;
+  transition: opacity 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.mg-export-all-btn:hover {
+  opacity: 0.75;
+}
+/* ══ END R-202605-146 ══ */
+

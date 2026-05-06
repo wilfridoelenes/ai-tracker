@@ -347,17 +347,14 @@
       <div class="tpl-sidebar-action-list" id="tpl-toolbar">
         <!-- R-202604-052: import manual eliminado — único punto de entrada es ---ITEMS--- via CHECKPOINT -->
         <button class="tpl-action-btn hidden" id="btn-import-backlog" onclick="" title="Import deshabilitado — usar ---ITEMS--- en CHECKPOINT" disabled style="display:none">↑ Importar Backlog</button>
-        <button class="tpl-action-btn hidden" id="export-backlog-btn" onclick="exportBacklogMd()" title="Exportar Backlog.md actualizado">⬇ Exportar Backlog</button>
-        <button class="tpl-action-btn hidden" id="btn-export-backlog-full" onclick="exportFullHistoryMd()" title="Exportar historial completo — todos los ítems sin filtro generacional">📦 Historial completo</button>
+
         <!-- T-202604-359: btn-new-item eliminado — CHECKPOINT es el único punto de entrada para ítems nuevos -->
         <div class="tpl-action-row hidden" id="tpl-undo-row">
           <button class="tpl-action-btn tpl-action-icon" id="btn-undo-backlog" onclick="undoBacklog()" title="Deshacer" disabled>↩</button>
           <button class="tpl-action-btn tpl-action-icon" id="btn-redo-backlog" onclick="redoBacklog()" title="Rehacer" disabled>↪</button>
         </div>
         <button class="tpl-action-btn hidden" id="btn-import-htmlmap" onclick="document.getElementById('htmlmap-file-input').click()" title="Importar archivo MODULE-MAP.md">↑ Importar Module Map</button>
-        <button class="tpl-action-btn hidden" id="btn-export-htmlmap" onclick="exportHtmlMapMd()" title="Exportar MODULE-MAP.md">⬇ Exportar Module Map</button>
-        <button class="tpl-action-btn tpl-action-primary hidden" id="btn-generate-map" onclick="openMapGenerator()" title="Generar MAP desde archivos reales">⚙ Generar MAP</button>
-        <button class="tpl-action-btn hidden" id="btn-export-context" onclick="exportContextMd()" title="Exportar CONTEXT.md actualizado">⬇ Exportar Context</button>
+        <button class="tpl-action-btn tpl-action-primary hidden" id="btn-generate-map" onclick="openMapGenerator()" title="Generar documentos">⚙ Generar documentos</button>
         <button class="tpl-action-btn hidden" id="btn-export-contratos" onclick="exportContratosMd()" title="Exportar Contratos.md">⬇ Exportar Contratos</button>
       </div>
     </div>
@@ -1606,6 +1603,19 @@ document.addEventListener('DOMContentLoaded', function() {
       <span class="mg-ritual-icon" aria-hidden="true"></span>
       <span class="mg-ritual-text"><strong>Ritual de cierre de sprint:</strong> genera MAP + CONTEXT + BACKLOG + Sprint Review al cerrar. El paquete se descarga con versión bumpeada (semver minor) y la versión se actualiza en PP automáticamente.</span>
     </div>
+
+    <!-- R-202605-146: Exportar individual — sección fija al pie del overlay -->
+    <div class="mg-export-strip">
+      <div class="mg-export-strip-label">Exportar</div>
+      <div class="mg-export-strip-btns">
+        <button class="mg-export-btn" onclick="exportBacklogMd()">Backlog activo</button>
+        <button class="mg-export-btn" onclick="exportFullHistoryMd()">Backlog archivado</button>
+        <button class="mg-export-btn" onclick="exportHtmlMapMd()">Module Map</button>
+        <button class="mg-export-btn" onclick="exportContextMd()">Context</button>
+      </div>
+      <button class="mg-export-all-btn" onclick="_mgExportAllZip()">descargar todo ↓</button>
+    </div>
+    <!-- /R-202605-146 -->
 
     <!-- Footer -->
     <div class="mg-footer">

@@ -6290,6 +6290,32 @@ function _scmStep2Html(pendingItems, migrations, currentId) {
 }
 
 // R-202605-129: Retro automática enriquecida al cerrar sprint — Paso 3 del modal
+// B-202605-270: función nombrada para descarga de retro desde paso 3 del SCM
+// Extrae la lógica del IIFE inline para evitar problemas de parsing de atributos HTML
+// y adjunta el anchor al body antes del click para garantizar descarga en todos los browsers
+function _scmDownloadRetro() {
+  if (!_scmState) return;
+  const ta = document.getElementById('scm-retro-notes-ta');
+  const notes = ta ? ta.value : '';
+  _scmState.retroNotes = notes;
+  const md = _generateSprintRetroMd(_scmState.id || '', notes);
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const ds = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+  const pfx = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+  const fname = pfx + '-Retrospectiva-' + (_scmState.id || '') + '-' + ds + '.md';
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fname;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  if (typeof showToast === 'function') showToast('download', 'Retro descargada', fname);
+}
+
 function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
   const doneCount      = doneItems.filter(i => i.status === 'done').length;
   const discardedCount = doneItems.filter(i => i.status === 'descartado').length;
@@ -6379,23 +6405,7 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
       <div class="scm-retro3-header">
         <span class="scm-retro3-title">📄 Retrospectiva del sprint</span>
         <button class="scm-retro3-dl-btn" type="button"
-          onclick="(function(){
-            const ta = document.getElementById('scm-retro-notes-ta');
-            const notes = ta ? ta.value : '';
-            if (_scmState) _scmState.retroNotes = notes;
-            const md = _generateSprintRetroMd('${esc(st.id || '')}', notes);
-            const now = new Date();
-            const pad = n => String(n).padStart(2,'0');
-            const ds = now.getFullYear()+'-'+pad(now.getMonth()+1)+'-'+pad(now.getDate());
-            const pfx = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
-            const fname = pfx+'-Retrospectiva-${esc(st.id || '')}-'+ds+'.md';
-            const blob = new Blob([md], { type: 'text/markdown' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url; a.download = fname; a.click();
-            URL.revokeObjectURL(url);
-            if (typeof showToast === 'function') showToast('download', 'Retro descargada', fname);
-          })()">⬇ Descargar MD</button>
+          onclick="_scmDownloadRetro()">⬇ Descargar MD</button>
       </div>
       <div class="scm-retro3-body">
         ${goal ? `<div class="scm-retro3-row"><span class="scm-retro3-key">Goal</span><span class="scm-retro3-val">${esc(goal)}</span></div>` : ''}
@@ -6528,6 +6538,7 @@ function _scmExecuteClose() {
   try { localStorage.setItem(_HISTORICO_KEY, '1'); } catch {}
   closeCloseSprintModal();
   setSprintStatus(id, 'closed');
+  renderStats(); // B-202605-269: refrescar contadores del backlog inmediatamente post-cierre
 
   // T-202604-417: guardar retro como documento en el sprint — accesible desde vista de sprints cerrados
   // R-202605-125: persistir métricas de entrega con el sprint cerrado

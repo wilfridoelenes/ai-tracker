@@ -892,6 +892,12 @@ function togglePasteHelp(id) {
 function clearPasteTa(id) {
   const ta = document.getElementById('ta-' + id);
   if (!ta || !ta.value) return;
+  // B-202605: bloquear limpieza si hay borrador guardado en localStorage
+  const hasDraft = !!localStorage.getItem('draft-' + id);
+  if (hasDraft) {
+    showToast('Hay un borrador guardado — guarda o descarta la sesión antes de limpiar', 'warn');
+    return;
+  }
   ta.value = '';
   ta.dispatchEvent(new Event('input', { bubbles: true }));
   ta.focus();
@@ -901,16 +907,19 @@ function clearPasteTa(id) {
 async function pasteFromClipboard(id) {
   const ta = document.getElementById('ta-' + id);
   if (!ta) return;
+  // Un solo click: intentar clipboard API, si falla enfocar textarea para paste manual
   try {
     const text = await navigator.clipboard.readText();
-    if (!text) return;
+    if (!text) { ta.focus(); return; }
     ta.value = text;
     ta.dispatchEvent(new Event('paste', { bubbles: true }));
     ta.dispatchEvent(new Event('input', { bubbles: true }));
     ta.focus();
     _updatePasteTaActions(id);
   } catch (e) {
-    showToast('No se pudo acceder al portapapeles', 'error');
+    // Sin permiso de clipboard: enfocar el textarea para que el usuario pegue con Ctrl+V
+    ta.focus();
+    showToast('Pega con Ctrl+V — el navegador no permite acceso directo al portapapeles', 'info');
   }
 }
 
