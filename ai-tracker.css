@@ -7668,22 +7668,23 @@ body.radar-sb-open .tracker-sidebar {
   flex: 1;
 }
 .blind-exhaust-btn {
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--hint);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--red);
+  background: var(--red-dim);
+  border: 1px solid var(--red);
+  border-radius: 8px;
+  padding: 8px 10px;
   cursor: pointer;
   transition: var(--trans-fast);
   white-space: nowrap;
   flex-shrink: 0;
+  text-align: center;
 }
 .blind-exhaust-btn:hover {
-  color: var(--red);
+  background: var(--red);
+  color: #fff;
   border-color: var(--red);
-  background: var(--red-dim);
 }
 /* modo inline activo — bloquear campos normales */
 .card-footer--blind-exhaust-mode .hora-row,

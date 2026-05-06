@@ -2355,10 +2355,11 @@ function _renderPlanningView(listEl) {
          draggable="${draggable ? 'true' : 'false'}"
          data-code="${esc(item.code)}"
          data-col="${col}"
+         style="--item-type-color:${tc}"
          ondragstart="_planDragStart(event)"
          ondragend="_planDragEnd(event)">
       <div class="bl-plan-card-header">
-        <span class="bl-plan-card-type" style="color:${tc}">${type}</span>
+        <span class="bl-plan-card-type">${type}</span>
         <span class="bl-plan-card-code">${esc(item.code)}</span>
         ${prioClass ? `<span class="bl-plan-card-prio ${prioClass}">${item.priority === 'high' ? '↑' : '↓'}</span>` : ''}
         <span class="bl-plan-dots">${dots}</span>
