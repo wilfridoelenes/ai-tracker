@@ -124,7 +124,7 @@ let _realtimeLastTs     = null;   // timestamp del último update remoto procesa
 if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
   try {
     _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { detectSessionInUrl: true, persistSession: true }
+      auth: { detectSessionInUrl: true, persistSession: true, storageKey: 'ai-tracker-auth' }
     });
 
     _supabaseReady = new Promise(resolve => {
