@@ -18067,6 +18067,12 @@ body.body--focus-mode::after {
   font-style: italic;
 }
 
+/* Estado de error aislado por sección — bloque malformado */
+.plan-scope-empty--error {
+  color: var(--red, #e85555);
+  font-style: normal;
+}
+
 /* ── Badge de truncamiento de sesión ── */
 .plan-scope-truncated-badge {
   font-size: var(--text-xs);

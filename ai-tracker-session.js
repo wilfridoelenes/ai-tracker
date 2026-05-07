@@ -593,15 +593,41 @@ function _tryIngestPlan(text) {
   const hasNew    = text && text.includes('---EXECUTION-PLAN---');
   if (!hasLegacy && !hasNew) return false;
   if (typeof parsePlanBlock !== 'function' || typeof savePlan !== 'function') return false;
-  const sprints = parsePlanBlock(text);
-  if (!sprints || !sprints.length) return false;
+  const incoming = parsePlanBlock(text);
+  if (!incoming || !incoming.length) return false;
   const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
   if (!proj) return false;
-  savePlan(proj.id, sprints);
-  const hasSesion = sprints.some(sp => sp.scope === 'sesion');
+
+  // R-202605-153: merge por scope — preservar sprints del otro scope en localStorage
+  // Si el CHECKPOINT trae solo scope:sesion → conservar los scope:sprint existentes, y viceversa.
+  // Planes legacy (---PLAN--- sin scope) se tratan como scope:sprint.
+  const incomingHasSesion = incoming.some(sp => sp.scope === 'sesion');
+  const incomingHasSprint = incoming.some(sp => sp.scope !== 'sesion');
+
+  let merged = incoming;
+  if (typeof loadPlan === 'function') {
+    const existing = loadPlan(proj.id) || [];
+    if (incomingHasSesion && !incomingHasSprint) {
+      // Solo scope:sesion entrante — conservar scope:sprint existente
+      const keepSprint = existing.filter(sp => sp.scope !== 'sesion');
+      merged = [...incoming, ...keepSprint];
+    } else if (incomingHasSprint && !incomingHasSesion) {
+      // Solo scope:sprint entrante — conservar scope:sesion existente
+      const keepSesion = existing.filter(sp => sp.scope === 'sesion');
+      merged = [...keepSesion, ...incoming];
+    }
+    // Si trae ambos scopes → reemplazar completo (el CHECKPOINT es fuente de verdad total)
+  }
+
+  savePlan(proj.id, merged);
+  const hasSesion = merged.some(sp => sp.scope === 'sesion');
   const label = hasNew
-    ? (hasSesion ? '✓ Execution Plan importado — sesión activa actualizada' : '✓ Execution Plan importado — plan de sprint actualizado')
-    : '✓ Plan importado — ' + sprints.length + ' sprint(s)';
+    ? (incomingHasSesion && !incomingHasSprint
+        ? '✓ Execution Plan importado — sesión activa actualizada'
+        : incomingHasSprint && !incomingHasSesion
+          ? '✓ Execution Plan importado — plan de sprint actualizado'
+          : '✓ Execution Plan importado — plan completo actualizado')
+    : '✓ Plan importado — ' + incoming.length + ' sprint(s)';
   if (typeof showToast === 'function') showToast('success', label);
   if (typeof renderPlan === 'function') renderPlan();
   return true;
@@ -705,7 +731,7 @@ function parsePasteStandalone() {
     tgItems.push({
       type:          it.type,
       code:          it.code,
-      desc:          it.desc   || '',
+      desc:          it.title  || it.desc   || '',
       status:        (typeof normStatus === 'function') ? normStatus(it.status) : it.status,
       _noStatus:     false,
       effort:        it.effort != null ? (parseInt(it.effort) || null) : null,

@@ -1,6 +1,6 @@
 /**
  * ai-tracker-map-generator.js
- * Versión: v1.3.0 | Última actualización: 2026-05-02 UTC-6
+ * Versión: v1.3.1 | Última actualización: 2026-05-06 UTC-6
  * Módulo: Document Generator — MAP + CONTEXT + BACKLOG + Sprint Review + ZIP
  * Proyecto: AI Tracker
  * R-202604-053 | R-202604-086 | R-202605-101
@@ -924,6 +924,43 @@ function _generateContext() {
   }
   const allNotes = [...existingNoteLines, ...newNoteEntries].join('\n');
 
+  // T-202605-498: commands — instrucciones de arranque por rol, construidas desde OL-CONTEXT §17
+  // Mapa canónico: sigla · nombre → archivos requeridos en sesión
+  // Fuente de verdad: Base Rules §2 + OL-CONTEXT §17
+  const _commandsMap = {
+    'ST · Vera':   'Base Rules + Role-Vera + OL-CONTEXT',
+    'GW · Lena':   'Base Rules + Role-Lena + OL-CONTEXT',
+    'CPO · Noa':   'Base Rules + Role-Noa + OL-CONTEXT',
+    'CMO · Maya':  'Base Rules + Role-Maya + OL-CONTEXT',
+    'PO · Cael':   'Base Rules + Role-Cael + OL-CONTEXT + CONTEXT-[proyecto] + Backlog-[proyecto]',
+    'FS · Rune':   'Base Rules + Role-Rune + OL-CONTEXT + CONTEXT-[proyecto] + Backlog-[proyecto] + MAP-[proyecto]',
+    'UX · Nova':   'Base Rules + Role-Nova + OL-CONTEXT + CONTEXT-[proyecto] + Brief-Noa (si existe)',
+    'CC · Flux':   'Base Rules + Role-Flux + OL-CONTEXT + Brief-Maya (si existe)',
+    'ET · Eden':   'Base Rules + Role-Eden + CONTEXT-CM + Arquitectura-Curricular-[sección activa]',
+    'GC · Sage':   'Base Rules + Role-Sage + CONTEXT-CM + Arquitectura-Curricular-[sección activa]',
+    'QA · Finn':   'Base Rules + Role-Finn + OL-CONTEXT + CONTEXT-[proyecto] + Backlog-[proyecto]',
+    'DA · Iris':   'Base Rules + Role-Iris + OL-CONTEXT + Dashboard-métricas (si existe)'
+  };
+
+  // Filtrar por roles asignados al proyecto activo; fallback a {} si no hay roles mapeados
+  let commands = {};
+  try {
+    const projAIs = (proj && typeof getAISessions === 'function')
+      ? (getAISessions() || []).filter(ai => !ai.archived)
+      : [];
+    const activeRoles = projAIs
+      .map(ai => ai.name || '')
+      .filter(name => name && _commandsMap[name]);
+    if (activeRoles.length > 0) {
+      activeRoles.forEach(role => { commands[role] = _commandsMap[role]; });
+    } else {
+      // Sin roles mapeados al proyecto: emitir tabla completa del ecosistema
+      commands = { ..._commandsMap };
+    }
+  } catch(e) {
+    commands = {};
+  }
+
   // Construir objeto JSON
   const ctx = {
     version: _ctxVersion,
@@ -940,7 +977,8 @@ function _generateContext() {
     counters,
     decisions,
     gaps,
-    notes: allNotes
+    notes: allNotes,
+    commands
   };
 
   return JSON.stringify(ctx, null, 2);

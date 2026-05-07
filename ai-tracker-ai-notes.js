@@ -7332,16 +7332,25 @@ function renderPlan() {
     </div>`;
 
   if (sprintsSesion.length) {
-    // Truncar a 3 ítems si scope sesion los supera — AC R-B
-    const totalItemsSesion = sprintsSesion.flatMap(sp => (sp.sessions || []).flatMap(s => s.items || [])).length;
-    if (totalItemsSesion > 3) {
-      html += `<div class="plan-scope-truncated-badge">⚠ Plan de sesión tiene ${totalItemsSesion} ítems — mostrando primeros 3</div>`;
-      let itemCount = 0;
-      sprintsSesion.forEach(sp => {
-        (sp.sessions || []).forEach(sess => { sess.items = (sess.items || []).filter(() => itemCount++ < 3); });
-      });
+    try {
+      // R-202605-153: clonar sesiones antes de truncar — no mutar datos en memoria
+      const sesionCloned = sprintsSesion.map(sp => ({
+        ...sp,
+        sessions: (sp.sessions || []).map(sess => ({ ...sess, items: [...(sess.items || [])] }))
+      }));
+      const totalItemsSesion = sesionCloned.flatMap(sp => sp.sessions.flatMap(s => s.items)).length;
+      if (totalItemsSesion > 3) {
+        html += `<div class="plan-scope-truncated-badge">⚠ Plan de sesión tiene ${totalItemsSesion} ítems — mostrando primeros 3</div>`;
+        let itemCount = 0;
+        sesionCloned.forEach(sp => {
+          sp.sessions.forEach(sess => { sess.items = sess.items.filter(() => itemCount++ < 3); });
+        });
+      }
+      html += _renderSprintGroup(sesionCloned);
+    } catch(e) {
+      console.warn('[AI Tracker] renderPlan sesion error:', e);
+      html += `<div class="plan-scope-empty plan-scope-empty--error">Error al renderizar sesión activa — el bloque puede estar malformado.</div>`;
     }
-    html += _renderSprintGroup(sprintsSesion);
   } else {
     html += `<div class="plan-scope-empty">Sin sesión activa — el plan se actualiza al pegar el próximo CHECKPOINT</div>`;
   }
@@ -7356,7 +7365,12 @@ function renderPlan() {
     </div>`;
 
   if (sprintsSprint.length) {
-    html += _renderSprintGroup(sprintsSprint);
+    try {
+      html += _renderSprintGroup(sprintsSprint);
+    } catch(e) {
+      console.warn('[AI Tracker] renderPlan sprint error:', e);
+      html += `<div class="plan-scope-empty plan-scope-empty--error">Error al renderizar plan de sprint — el bloque puede estar malformado.</div>`;
+    }
   } else {
     html += `<div class="plan-scope-empty">Sin plan de sprint — abre sprint para generar</div>`;
   }

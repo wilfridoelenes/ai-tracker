@@ -2753,15 +2753,15 @@ function renderBacklogList() {
   const _typeOrder = { B: 0, T: 1, R: 2, I: 3 };
   const _dir = backlogSortDir === 'desc' ? -1 : 1;
 
-  // T-202604-424: sort interno dentro de cada grupo de sprint — siempre priority desc → effort asc
-  // Independiente del modo de sort global del selector
+  // T-202604-424: sort interno dentro de cada grupo de sprint — priority desc → effort asc
+  // B-[pendiente-ID]: aplicar _dir para respetar backlogSortDir — el botón ↑↓ ahora funciona en modo sprint group
   function _sortGroup(arr) {
     return [...arr].sort((a, b) => {
       const pa = _priOrder[a.priority] ?? 1, pb = _priOrder[b.priority] ?? 1;
-      if (pa !== pb) return pa - pb; // priority asc en _priOrder = desc en valor (0=high)
+      if (pa !== pb) return (pa - pb) * _dir;
       const ea = parseInt(a.effort) || 1, eb = parseInt(b.effort) || 1;
-      if (ea !== eb) return ea - eb; // effort asc (simples primero)
-      return a.code.localeCompare(b.code);
+      if (ea !== eb) return (ea - eb) * _dir;
+      return a.code.localeCompare(b.code) * _dir;
     });
   }
 
@@ -5112,6 +5112,23 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     const rt   = wrap.querySelector('.mdiff-new-sprint-rt').value;
 
     if (!name) { wrap.querySelector('.mdiff-new-sprint-inp').focus(); return; }
+
+    // B-202605-499: input parcial S-XX (sin nombre descriptivo) — bifurcar sin mostrar toast de error
+    const bareSprintMatch = /^S-\d+$/i.test(name);
+    if (bareSprintMatch) {
+      const existingSprint = _getSprintById(name.toUpperCase());
+      if (existingSprint) {
+        // Sprint ya existe → asignar directamente
+        _mdiffPersistSprint(code, existingSprint.id);
+        _mdiffRestoreSelect(wrap, code, existingSprint.id);
+        return;
+      } else {
+        // Sprint no existe → restaurar select y abrir modal de nuevo sprint para completar nombre
+        _mdiffRestoreSelect(wrap, code, null);
+        if (typeof openNewSprintInline === 'function') openNewSprintInline(code);
+        return;
+      }
+    }
 
     const newId = createSprint(name, goal, vt, rt);
     if (!newId) { wrap.querySelector('.mdiff-new-sprint-inp').focus(); return; }
