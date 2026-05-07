@@ -1462,6 +1462,16 @@ function _relTs(ts) {
 
 // R-202604-035: saveBacklog() — escribe en /backlog/items-{suffix} y /backlog/meta-{suffix}
 async function saveBacklog() {
+  // T-[pendiente-ID]: purga inteligente — si localStorage supera el 80% de capacidad,
+  // purgar ítems done/descartado >90 días del caché local antes de intentar escribir.
+  // Los ítems purgados siguen existiendo en Supabase — solo se elimina el caché local.
+  if (typeof _localStorageUsageRatio === 'function' && _localStorageUsageRatio() > 0.8) {
+    if (typeof _purgeStaleBacklogCache === 'function') {
+      const purged = _purgeStaleBacklogCache();
+      if (purged > 0) showToast('warning', `⚠️ Caché local compacto — ${purged} ítem${purged > 1 ? 's' : ''} archivado${purged > 1 ? 's' : ''} (disponibles en Supabase)`);
+    }
+  }
+
   const items = (typeof ITEMS !== 'undefined') ? ITEMS : [];
   const key = _tplKey('backlog-items');
   try {
@@ -1475,7 +1485,31 @@ async function saveBacklog() {
         showToast('warning', '⚠️ Cuota de almacenamiento crítica — se limpió historial');
       } catch (err2) {
         console.error('[AI Tracker] saveBacklog failed after cleanup:', err2);
-        showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas o exporta un backup.');
+        // B-[pendiente-ID]: toast bloqueante con CTAs — Exportar y Limpiar y reintentar
+        const _quotaBody =
+          `<span class="toast-quota-actions">` +
+            `<button class="toast-quota-btn" id="toast-quota-export">Exportar backlog</button>` +
+            `<button class="toast-quota-btn" id="toast-quota-clean">Limpiar y reintentar</button>` +
+          `</span>`;
+        showToast('error', '❌ Almacenamiento lleno — el backlog no se guardó', _quotaBody);
+        // Registrar handlers tras render (el toast se inserta en el stack sincrónicamente)
+        requestAnimationFrame(() => {
+          const btnExport = document.getElementById('toast-quota-export');
+          const btnClean  = document.getElementById('toast-quota-clean');
+          if (btnExport) {
+            btnExport.addEventListener('click', () => {
+              if (typeof exportBacklogMd === 'function') exportBacklogMd();
+            }, { once: true });
+          }
+          if (btnClean) {
+            btnClean.addEventListener('click', async () => {
+              // Purgar claves no críticas para liberar espacio y reintentar
+              const purgeable = ['ai-tracker-changelog', 'ai-tracker-notif-history', 'ai-tracker-log-filters'];
+              purgeable.forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
+              await saveBacklog();
+            }, { once: true });
+          }
+        });
         return;
       }
     } else {

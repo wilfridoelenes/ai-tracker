@@ -18339,3 +18339,27 @@ body.body--focus-mode::after {
   flex-shrink: 0;
 }
 /* ══ END T-202605-499 ══ */
+
+/* B-[pendiente-ID]: Toast bloqueante QuotaExceededError — botones de acción */
+.toast-quota-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.toast-quota-btn {
+  padding: 4px 10px;
+  border-radius: 5px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(255,255,255,0.10);
+  color: inherit;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.toast-quota-btn:hover {
+  background: rgba(255,255,255,0.20);
+}
+/* END B-[pendiente-ID] */

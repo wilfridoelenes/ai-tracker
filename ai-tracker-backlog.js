@@ -606,6 +606,40 @@ function _sanitizePendingInClosedSprints() {
   return count;
 }
 
+// T-[pendiente-ID]: Purga inteligente de localStorage — ítems done/descartado >90 días
+// Retorna el número de ítems purgados del caché local (no se eliminan de Supabase).
+function _localStorageUsageRatio() {
+  try {
+    let total = 0;
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      total += (localStorage.getItem(k) || '').length;
+    }
+    // Límite conservador: 4.5MB (localStorage típico es 5MB por origen)
+    return total / (4.5 * 1024 * 1024);
+  } catch (_) { return 0; }
+}
+
+function _purgeStaleBacklogCache() {
+  const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
+  const cutoff = Date.now() - NINETY_DAYS_MS;
+  const purgeable = ['done', 'descartado'];
+  const before = ITEMS.length;
+
+  // Filtrar del array en memoria — Supabase conserva el registro completo
+  ITEMS = ITEMS.filter(item => {
+    if (!purgeable.includes(item.status)) return true; // nunca purgar pendientes/en-curso
+    const ts = item.statusChangedAt || item.doneAt || 0;
+    return ts > cutoff; // conservar si fue cerrado hace menos de 90 días
+  });
+
+  const purged = before - ITEMS.length;
+  if (purged > 0) {
+    console.log(`[AI Tracker] _purgeStaleBacklogCache: ${purged} ítem(s) purgado(s) del caché local (>90 días done/descartado)`);
+  }
+  return purged;
+}
+
 function loadBacklog() {
   const s = localStorage.getItem(_tplKey('backlog-items'));
   if (s) { try { ITEMS = JSON.parse(s); } catch { ITEMS = []; } } else { ITEMS = []; }
@@ -5076,10 +5110,13 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     const suggestedRt = _suggestReleaseType(ITEMS.filter(i => i.sprint === code));
     const suggestedVt = _suggestVersionTarget(suggestedRt);
 
+    // T-202605-500: mostrar ID auto-generado como prefijo no editable
+    const _mdiffPreviewId = _nextSprintId();
     const wrap = document.createElement('div');
     wrap.className = 'mdiff-new-sprint-form';
     wrap.innerHTML = `
-      <input type="text" class="mdiff-new-sprint-inp" placeholder="S-XX · Nombre descriptivo"
+      <span class="sprint-inline-id-preview">${esc(_mdiffPreviewId)} ·</span>
+      <input type="text" class="mdiff-new-sprint-inp" placeholder="Nombre descriptivo"
         onkeydown="if(event.key==='Enter'){event.preventDefault();_mdiffConfirmNewSprintForm(this,'${esc(code)}');}if(event.key==='Escape'){event.preventDefault();_mdiffCancelNewSprintForm(this);}">
       <input type="text" class="mdiff-new-sprint-goal" placeholder="Goal (opcional)"
         onkeydown="if(event.key==='Enter'){event.preventDefault();_mdiffConfirmNewSprintForm(this,'${esc(code)}');}if(event.key==='Escape'){event.preventDefault();_mdiffCancelNewSprintForm(this);}">
@@ -5140,12 +5177,15 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     const restoredSel = _mdiffRestoreSelect(wrap, code, newId);
 
     // Añadir la nueva opción a todos los demás selects del DIFF
+    // T-202605-500: label canónico generado por createSprint — leer desde state
+    const _newSp = _getSprintById(newId);
+    const _newSpLabel = _newSp ? (_newSp.label || newId) : newId;
     document.querySelectorAll(`.mdiff-sprint-select[data-item-code]`).forEach(s => {
       if (s === restoredSel) return;
       const newOpt = s.querySelector('option[value="__new__"]');
       const opt = document.createElement('option');
       opt.value = newId;
-      opt.textContent = name;
+      opt.textContent = _newSpLabel;
       if (newOpt) s.insertBefore(opt, newOpt);
       else s.appendChild(opt);
     });
@@ -5661,18 +5701,20 @@ function _getSprintById(id) {
   return getActiveSprints().find(s => s.id === id) || null;
 }
 
+// T-202605-500: ID con prefijo de proyecto — [PREFIJO]-S[NN], consecutivo por proyecto
 function _nextSprintId() {
+  const prefix = (typeof _docPrefix === 'function') ? _docPrefix() : 'XX';
+  const re = new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-S(\\d+)$', 'i');
   const nums = getActiveSprints()
-    .map(s => parseInt((s.id || '').replace(/\D/g, '')))
+    .map(s => { const m = (s.id || '').match(re); return m ? parseInt(m[1], 10) : NaN; })
     .filter(n => !isNaN(n));
   const max = nums.length ? Math.max(...nums) : 0;
-  return 'S-' + String(max + 1).padStart(2, '0');
+  return prefix + '-S' + String(max + 1).padStart(2, '0');
 }
 
-// R-088: validar naming de sprint — formato canónico: "S-XX · [Nombre descriptivo]"
+// T-202605-500: validar que el nombre descriptivo no esté vacío — el ID lo genera PP automáticamente
 function _isValidSprintName(label) {
-  if (!label || !label.trim()) return false;
-  return /^S-\d+\s+·\s+.+/.test(label.trim());
+  return !!(label && label.trim());
 }
 
 // R-202605-134: sugerir release_type basado en el contenido del sprint
@@ -5711,24 +5753,17 @@ function _suggestVersionTarget(releaseType) {
 
 // R-202605-123: createSprint acepta goal opcional (máx 120 chars)
 // R-202605-134: acepta version_target y release_type — se calculan con sugerencia automática si no se pasan
+// T-202605-500: ID generado internamente con prefijo de proyecto — founder solo pasa nombre descriptivo
 function createSprint(raw, goal, versionTarget, releaseType) {
   const _activeProjForSprint = getActiveProject();
   if (!_activeProjForSprint) { showToast('warning', 'Selecciona un proyecto primero'); return; }
   if (!_activeProjForSprint.sprints) _activeProjForSprint.sprints = [];
   raw = (raw || '').trim();
-  // Separar id y label: "S-01 Backlog" → id="S-01", label="S-01 Backlog"
-  const prefixMatch = raw.match(/^(S-\d+)\s*(.*)/i);
-  let id, displayLabel;
-  if (prefixMatch) {
-    id = prefixMatch[1].toUpperCase();
-    displayLabel = raw;
-  } else {
-    id = _nextSprintId();
-    displayLabel = raw || id;
-  }
-  // R-088: naming enforcement — advertir si no cumple formato S-XX · [Nombre]
+  // T-202605-500: ID siempre auto-generado — el founder solo ingresa el nombre descriptivo
+  const id = _nextSprintId();
+  const displayLabel = raw || id;
   if (!_isValidSprintName(displayLabel)) {
-    showToast('warning', '⚠ Nombre de sprint no válido — formato esperado: S-XX · Nombre descriptivo');
+    showToast('warning', '⚠ Nombre de sprint no puede estar vacío');
     return;
   }
   if (_getSprintById(id)) { showToast('warning', 'Ya existe ' + id); return id; }
@@ -5736,8 +5771,10 @@ function createSprint(raw, goal, versionTarget, releaseType) {
   // R-202605-134: version_target y release_type — usar sugerencia si no se pasan explícitamente
   const rt  = (releaseType   || '').trim() || null;
   const vt  = (versionTarget || '').trim() || null;
+  // T-202605-500: label canónico = '[ID] · [Nombre descriptivo]'
+  const canonicalLabel = displayLabel ? id + ' · ' + displayLabel : id;
   _activeProjForSprint.sprints.push({
-    id, label: displayLabel, goal: goalTrimmed,
+    id, label: canonicalLabel, goal: goalTrimmed,
     version_target: vt, release_type: rt,
     status: 'open', createdAt: Date.now()
   });
@@ -6102,9 +6139,12 @@ function openNewSprintInline(code) {
   // R-202605-134: sugerencia automática de release_type y version_target
   const suggestedRt  = _suggestReleaseType(ITEMS.filter(i => i.sprint === code));
   const suggestedVt  = _suggestVersionTarget(suggestedRt);
+  // T-202605-500: mostrar ID auto-generado como prefijo no editable
+  const previewId = _nextSprintId();
   // R-202605-123: campo goal opcional bajo el nombre del sprint
   wrap.innerHTML = `<div class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal">
-    <input id="new-sprint-inp-${esc(code)}" type="text" placeholder="S-01 o nombre..."
+    <span class="sprint-inline-id-preview">${esc(previewId)} ·</span>
+    <input id="new-sprint-inp-${esc(code)}" type="text" placeholder="Nombre descriptivo"
       class="sprint-inline-input"
       onkeydown="if(event.key==='Enter')confirmNewSprint('${esc(code)}');if(event.key==='Escape')renderBacklogList();">
     <button onclick="confirmNewSprint('${esc(code)}')" class="sprint-inline-confirm">&#10003;</button>
@@ -6155,7 +6195,8 @@ function editSprintInline(sprintId) {
   if (!wrap) return;
   const sp = _getSprintById(sprintId);
   if (!sp) return;
-  const current = sp.label || sp.id;
+  // T-202605-500: separar ID fijo del nombre descriptivo editable
+  const currentDescriptive = (sp.label || sp.id).replace(/^[A-Z]+-S\d+\s*·?\s*/i, '').trim() || (sp.label || sp.id);
   const currentGoal = sp.goal || '';
   // R-202605-134: leer o sugerir version_target y release_type
   const spItems   = ITEMS.filter(i => i.sprint === sprintId);
@@ -6166,7 +6207,8 @@ function editSprintInline(sprintId) {
   const vtId    = 'edit-sprint-vt-'   + sprintId;
   const rtId    = 'edit-sprint-rt-'   + sprintId;
   wrap.innerHTML = `<div class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal" onclick="event.stopPropagation()">
-    <input id="${esc(inputId)}" type="text" value="${esc(current)}"
+    <span class="sprint-inline-id-preview">${esc(sprintId)} ·</span>
+    <input id="${esc(inputId)}" type="text" value="${esc(currentDescriptive)}"
       class="sprint-inline-input sprint-inline-input--wide"
       onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')renderBacklogList();">
     <button onclick="confirmEditSprint('${esc(sprintId)}')" class="sprint-inline-confirm">&#10003;</button>
@@ -6206,16 +6248,17 @@ function confirmEditSprint(sprintId) {
   const inp = document.getElementById(inputId);
   const raw = inp ? inp.value.trim() : '';
   if (!raw) { renderBacklogList(); return; } // AC-4: cancelar si vacío — no modifica
-  // R-088: naming enforcement — advertir si no cumple formato S-XX · [Nombre]
+  // T-202605-500: raw es el nombre descriptivo — el ID no cambia
   if (!_isValidSprintName(raw)) {
-    if (inp) { inp.classList.add('sprint-inline-input--warn'); inp.title = 'Formato esperado: S-XX · Nombre descriptivo'; }
-    showToast('warning', '⚠ Nombre de sprint no válido — formato esperado: S-XX · Nombre descriptivo');
+    if (inp) { inp.classList.add('sprint-inline-input--warn'); inp.title = 'El nombre descriptivo no puede estar vacío'; }
+    showToast('warning', '⚠ El nombre descriptivo no puede estar vacío');
     return;
   }
   if (inp) inp.classList.remove('sprint-inline-input--warn');
   const sp = _getSprintById(sprintId);
   if (!sp) { renderBacklogList(); return; }
-  sp.label = raw;
+  // T-202605-500: reconstruir label canónico = 'ID · Nombre descriptivo'
+  sp.label = sprintId + ' · ' + raw;
   // R-202605-123: persistir goal si el campo existe
   const goalInp = document.getElementById(goalId);
   if (goalInp !== null) {
@@ -6228,7 +6271,7 @@ function confirmEditSprint(sprintId) {
   if (rtSel !== null) sp.release_type   = rtSel.value;
   save();
   renderBacklogList();
-  showToast('success', '✓ Sprint actualizado: ' + raw);
+  showToast('success', '✓ Sprint actualizado: ' + sp.label);
 }
 
 // R-202604-089: estado del modal de cierre de sprint
