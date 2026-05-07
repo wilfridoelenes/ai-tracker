@@ -279,20 +279,41 @@ function _refreshMigrationBtnVisibility() {
 }
 
 function signInWithSupabase() {
-  // B-fix: redirigir en la misma pestaña — el flujo skipBrowserRedirect+popup
-  // causaba que la pestaña nueva procesara el token y la original nunca recibía sesión.
-  // Con redirect estándar: Google → Supabase → misma pestaña → onAuthStateChange dispara.
+  // B-202605-504: Safari usa popup (skipBrowserRedirect:true) porque ITP borra el hash
+  // en redirects cross-origin — el token nunca llega a la app via redirect.
+  // Chrome y resto usan redirect estándar en la misma pestaña.
   if (!_supabase) { setSyncStatus('offline', '✕ sin conexión'); return; }
-  _supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: window.location.origin,
-      skipBrowserRedirect: false  // B-202605-504: redirect en misma pestaña — PKCE flow estándar
-    }
-  }).catch(err => {
-    console.warn('Supabase Google sign-in error:', err);
-    showToast('error', 'Error al conectar: ' + (err.message || err));
-  });
+  const _isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  if (_isSafari) {
+    // Safari: popup flow — abre ventana de Google, al cerrar onAuthStateChange dispara en la pestaña original
+    _supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+        skipBrowserRedirect: true
+      }
+    }).then(({ data }) => {
+      if (data?.url) {
+        const popup = window.open(data.url, '_blank', 'width=500,height=600');
+        if (!popup) showToast('error', 'Permite popups para iniciar sesión');
+      }
+    }).catch(err => {
+      console.warn('Supabase Google sign-in error:', err);
+      showToast('error', 'Error al conectar: ' + (err.message || err));
+    });
+  } else {
+    // Chrome y resto: redirect estándar en misma pestaña
+    _supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: window.location.origin,
+        skipBrowserRedirect: false
+      }
+    }).catch(err => {
+      console.warn('Supabase Google sign-in error:', err);
+      showToast('error', 'Error al conectar: ' + (err.message || err));
+    });
+  }
 }
 
 // signOutSupabase — cierra sesión Supabase
