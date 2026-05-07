@@ -264,40 +264,13 @@ function _refreshMigrationBtnVisibility() {
 }
 
 function signInWithSupabase() {
+  // B-fix: redirigir en la misma pestaña — el flujo skipBrowserRedirect+popup
+  // causaba que la pestaña nueva procesara el token y la original nunca recibía sesión.
+  // Con redirect estándar: Google → Supabase → misma pestaña → onAuthStateChange dispara.
   if (!_supabase) { setSyncStatus('offline', '✕ sin conexión'); return; }
   _supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin, skipBrowserRedirect: true }
-  }).then(({ data, error }) => {
-    if (error) {
-      console.warn('Supabase Google sign-in error:', error);
-      showToast('error', 'Error al conectar: ' + (error.message || error));
-      return;
-    }
-    if (data?.url) {
-      // Abrir en pestaña nueva — compatible con Safari en localhost
-      const popup = window.open(data.url, '_blank');
-      if (!popup) {
-        // Fallback si Safari bloquea la pestaña — redirigir en misma ventana
-        window.location.href = data.url;
-        return;
-      }
-      // Polling: detectar cuando la pestaña nueva completó el OAuth
-      const poll = setInterval(async () => {
-        try {
-          const { data: { session } } = await _supabase.auth.getSession();
-          if (session) {
-            clearInterval(poll);
-            _supabaseUser = session.user;
-            setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
-            if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
-            if (typeof render === 'function') render();
-          }
-        } catch (e) { clearInterval(poll); }
-      }, 1500);
-      // Parar polling después de 3 minutos
-      setTimeout(() => clearInterval(poll), 180000);
-    }
+    options: { redirectTo: window.location.origin }
   }).catch(err => {
     console.warn('Supabase Google sign-in error:', err);
     showToast('error', 'Error al conectar: ' + (err.message || err));
