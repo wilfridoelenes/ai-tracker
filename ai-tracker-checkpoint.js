@@ -123,11 +123,15 @@ let _realtimeLastTs     = null;   // timestamp del último update remoto procesa
 
 if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
   try {
+    // B-202605-504: Safari bloquea localStorage en redirects OAuth via ITP —
+    // usa implicit flow en Safari, PKCE con localStorage en Chrome y resto.
+    const _isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: {
         detectSessionInUrl: true,
         persistSession: true,
-        storage: localStorage  // B-202605-504: code_verifier PKCE en localStorage — sobrevive redirects de Vercel
+        storage: localStorage,
+        flowType: _isSafari ? 'implicit' : 'pkce'
       }
     });
 
