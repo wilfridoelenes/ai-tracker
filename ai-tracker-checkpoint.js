@@ -157,11 +157,18 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
       });
     });
 
-    // Restaurar sesión existente al cargar
+    // B-202605-504: getSession explícito post-listener — cubre el caso donde INITIAL_SESSION
+    // disparó antes de que el listener estuviera registrado (flujo PKCE post-redirect en Vercel).
     _supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
+      if (session && !_supabaseUser) {
+        // El listener no capturó la sesión — aplicar manualmente
         _supabaseUser = session.user;
         setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
+        if (typeof closeAuthModal === 'function') closeAuthModal();
+        if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
+        if (typeof render === 'function') render();
+        _subscribeRealtime();
+        if (typeof _refreshMigrationBtnVisibility === 'function') _refreshMigrationBtnVisibility();
       }
     });
   } catch(e) {
