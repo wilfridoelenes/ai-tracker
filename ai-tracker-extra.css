@@ -18378,3 +18378,7 @@ body.body--focus-mode::after {
   line-height: 1.3;
 }
 /* END R-202605-162 */
+/* B-202605-269: ocultar selector de proyecto en Tracker cuando hay ≤1 proyecto */
+.tvh-proj-single {
+  display: none;
+}
