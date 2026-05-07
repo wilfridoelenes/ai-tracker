@@ -1092,6 +1092,19 @@ function _saveNotes(projId, notes) {
   try {
     localStorage.setItem(_notesKey(projId), JSON.stringify(notes));
   } catch (e) { console.warn('[AI Tracker] _saveNotes error:', e); }
+  // R-2: persistir notas en Supabase para sobrevivir cambio de dispositivo
+  if (typeof _supabase !== 'undefined' && _supabase && typeof _supabaseUser !== 'undefined' && _supabaseUser) {
+    const sbKey = projId ? 'notes-' + projId : 'notes-global';
+    _supabase.from('tracker_docs').upsert(
+      [{ user_id: _supabaseUser.id, key: sbKey, value: { notes, updatedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
+      { onConflict: 'user_id,key' }
+    ).then(({ error }) => {
+      if (error) {
+        console.warn('[AI Tracker] _saveNotes Supabase error:', error);
+        if (typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'notes', projId: projId || null });
+      }
+    });
+  }
 }
 
 function _noteId() {
@@ -1256,6 +1269,8 @@ function _onboardingStepAction(idx) {
 function _dismissOnboarding() {
   localStorage.setItem('onboarding-seen', '1');
   document.getElementById('onboarding-overlay').classList.remove('open');
+  // R-4: sincronizar onboardingSeen a Supabase
+  if (typeof _saveUserPrefs === 'function') _saveUserPrefs();
 }
 
 // T-202605-491: Firebase wizard removido — Firebase deprecado, Supabase es el provider activo.

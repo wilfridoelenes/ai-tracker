@@ -241,6 +241,47 @@ async function _offlineQueueFlush() {
       } else if (entry.type === 'sessions' && entry.projId) {
         const proj = (state.projects || []).find(p => p.id === entry.projId);
         if (proj) await _saveSessions(proj);
+      } else if (entry.type === 'tmp-id-map') {
+        // R-1: flush tmp-id-map desde localStorage a Supabase al reconectar
+        const raw = localStorage.getItem('tmp-id-map');
+        if (raw && _supabase && _supabaseUser) {
+          const map = (() => { try { return JSON.parse(raw); } catch { return null; } })();
+          if (map) {
+            const { error: mapErr } = await _supabase.from('tracker_docs').upsert(
+              [{ user_id: _supabaseUser.id, key: 'tmp-id-map', value: { map, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
+              { onConflict: 'user_id,key' }
+            );
+            if (mapErr) throw mapErr;
+          }
+        }
+      } else if (entry.type === 'notes' && entry.projId !== undefined) {
+        // R-2: flush notas desde localStorage a Supabase al reconectar
+        const notesKey = entry.projId ? 'notes-' + entry.projId : 'notes';
+        const notesRaw = localStorage.getItem(notesKey);
+        if (notesRaw && _supabase && _supabaseUser) {
+          const notes = (() => { try { return JSON.parse(notesRaw); } catch { return null; } })();
+          if (notes) {
+            const sbKey = entry.projId ? 'notes-' + entry.projId : 'notes-global';
+            const { error: notesErr } = await _supabase.from('tracker_docs').upsert(
+              [{ user_id: _supabaseUser.id, key: sbKey, value: { notes, updatedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
+              { onConflict: 'user_id,key' }
+            );
+            if (notesErr) throw notesErr;
+          }
+        }
+      } else if (entry.type === 'draft' && entry.aiId) {
+        // R-3: flush borrador desde localStorage a Supabase al reconectar
+        const draftRaw = localStorage.getItem('draft-' + entry.aiId);
+        if (draftRaw && _supabase && _supabaseUser) {
+          const { error: draftErr } = await _supabase.from('tracker_docs').upsert(
+            [{ user_id: _supabaseUser.id, key: 'draft-' + entry.aiId, value: { text: draftRaw, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
+            { onConflict: 'user_id,key' }
+          );
+          if (draftErr) throw draftErr;
+        }
+      } else if (entry.type === 'user-prefs') {
+        // R-4: flush preferencias de usuario desde localStorage a Supabase al reconectar
+        await _saveUserPrefs();
       }
     } catch(e) {
       console.warn('[AI Tracker] Offline queue flush error:', e);
@@ -494,6 +535,18 @@ function _loadTmpIdMap() {
 
 function _saveTmpIdMap(map) {
   try { localStorage.setItem('tmp-id-map', JSON.stringify(map)); } catch(e) {}
+  // R-1: persistir tmp-id-map en Supabase para sobrevivir cambio de dispositivo
+  if (_supabase && _supabaseUser) {
+    _supabase.from('tracker_docs').upsert(
+      [{ user_id: _supabaseUser.id, key: 'tmp-id-map', value: { map, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
+      { onConflict: 'user_id,key' }
+    ).then(({ error }) => {
+      if (error) {
+        console.warn('[AI Tracker] _saveTmpIdMap Supabase error:', error);
+        _offlineQueuePush({ type: 'tmp-id-map' });
+      }
+    });
+  }
 }
 
 function _assignPendingIds(tgItems) {
@@ -2109,7 +2162,127 @@ async function _loadFromSupabase() {
       console.warn('[AI Tracker] Error cargando docs desde Supabase:', docsErr);
     }
 
-    // ── 7. Re-render final ────────────────────────────────────────────────
+    // ── 6b. tmp-id-map — R-1 ─────────────────────────────────────────────
+    try {
+      const { data: mapRows } = await _supabase
+        .from('tracker_docs')
+        .select('key, value, updated_at')
+        .eq('user_id', _supabaseUser.id)
+        .eq('key', 'tmp-id-map');
+      if (mapRows && mapRows.length) {
+        const remoteRow = mapRows[0];
+        const remoteTs  = remoteRow.updated_at ? new Date(remoteRow.updated_at).getTime() : 0;
+        const localRaw  = localStorage.getItem('tmp-id-map');
+        // Supabase gana si local está vacío o remoto es más reciente
+        if (!localRaw || remoteTs > 0) {
+          const localMap  = (() => { try { return JSON.parse(localRaw || '{}'); } catch { return {}; } })();
+          // Comparar por cantidad de entradas + timestamp de la entrada más reciente
+          const localMaxTs = Object.values(localMap).reduce((m, v) => Math.max(m, v.createdAt || 0), 0);
+          if (!localRaw || remoteTs > localMaxTs) {
+            const merged = { ...localMap, ...(remoteRow.value && remoteRow.value.map ? remoteRow.value.map : {}) };
+            try { localStorage.setItem('tmp-id-map', JSON.stringify(merged)); } catch(_) {}
+          }
+        }
+      }
+    } catch (mapErr) {
+      console.warn('[AI Tracker] Error cargando tmp-id-map desde Supabase:', mapErr);
+    }
+
+    // ── 6c. Notas de proyecto — R-2 ──────────────────────────────────────
+    try {
+      const projId  = _getActiveProjectFilter();
+      const sbKey   = projId ? 'notes-' + projId : 'notes-global';
+      const localKey = projId ? 'notes-' + projId : 'notes';
+      const { data: noteRows } = await _supabase
+        .from('tracker_docs')
+        .select('key, value, updated_at')
+        .eq('user_id', _supabaseUser.id)
+        .eq('key', sbKey);
+      if (noteRows && noteRows.length) {
+        const remoteRow   = noteRows[0];
+        const remoteNotes = remoteRow.value && Array.isArray(remoteRow.value.notes) ? remoteRow.value.notes : null;
+        if (remoteNotes) {
+          const remoteTs  = remoteRow.updated_at ? new Date(remoteRow.updated_at).getTime() : 0;
+          const localRaw  = localStorage.getItem(localKey);
+          const localNotes = (() => { try { return JSON.parse(localRaw || '[]'); } catch { return []; } })();
+          // Solo aplicar si local está vacío o Supabase es más reciente
+          const shouldLoad = !localRaw || localNotes.length === 0 || remoteTs > 0;
+          if (shouldLoad && remoteNotes.length > 0) {
+            try { localStorage.setItem(localKey, JSON.stringify(remoteNotes)); } catch(_) {}
+          }
+        }
+      }
+    } catch (notesErr) {
+      console.warn('[AI Tracker] Error cargando notas desde Supabase:', notesErr);
+    }
+
+    // ── 6d. Borradores de CHECKPOINT — R-3 ───────────────────────────────
+    try {
+      const { data: draftRows } = await _supabase
+        .from('tracker_docs')
+        .select('key, value, updated_at')
+        .eq('user_id', _supabaseUser.id)
+        .like('key', 'draft-%');
+      if (draftRows && draftRows.length) {
+        for (const row of draftRows) {
+          if (!row.value || !row.value.text) continue;
+          // Extraer aiId de la key 'draft-{aiId}'
+          const aiId = row.key.replace(/^draft-/, '');
+          // Verificar que la AI existe en el state local
+          const aiExists = (state.ais || []).some(a => a.id === aiId);
+          if (!aiExists) continue;
+          const remoteTs  = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+          const localRaw  = localStorage.getItem('draft-' + aiId);
+          // Aplicar solo si no hay borrador local o remoto es más reciente
+          if (!localRaw || remoteTs > 0) {
+            const localTs = localRaw ? (localStorage.getItem('draft-' + aiId + '-ts') || 0) : 0;
+            if (!localRaw || remoteTs > Number(localTs)) {
+              try { localStorage.setItem('draft-' + aiId, row.value.text); } catch(_) {}
+              // Actualizar dot visual si el card está renderizado
+              const dot = document.getElementById('draft-' + aiId);
+              if (dot) dot.className = 'draft-dot visible';
+            }
+          }
+        }
+      }
+    } catch (draftErr) {
+      console.warn('[AI Tracker] Error cargando borradores desde Supabase:', draftErr);
+    }
+
+    // ── 6e. Preferencias de usuario — R-4 ────────────────────────────────
+    try {
+      const { data: prefsRows } = await _supabase
+        .from('tracker_docs')
+        .select('key, value, updated_at')
+        .eq('user_id', _supabaseUser.id)
+        .eq('key', 'user-prefs');
+      if (prefsRows && prefsRows.length) {
+        const remoteRow = prefsRows[0];
+        const prefs     = remoteRow.value;
+        if (prefs) {
+          const remoteTs = remoteRow.updated_at ? new Date(remoteRow.updated_at).getTime() : 0;
+          const localTs  = (() => { try { return new Date(localStorage.getItem(_USER_PREFS_TS_KEY) || 0).getTime(); } catch { return 0; } })();
+          if (remoteTs > localTs) {
+            // Shortcuts
+            if (prefs.shortcuts && typeof prefs.shortcuts === 'object') {
+              try { localStorage.setItem(_SHORTCUTS_KEY, JSON.stringify(prefs.shortcuts)); } catch(_) {}
+            }
+            // Template trigger
+            if (prefs.templateTrigger) {
+              try { localStorage.setItem(_TPL_TRIGGER_KEY, prefs.templateTrigger); _updateAutoDownloadLabel(); } catch(_) {}
+            }
+            // Onboarding
+            if (prefs.onboardingSeen) {
+              try { localStorage.setItem('onboarding-seen', '1'); } catch(_) {}
+            }
+            // Marcar timestamp local
+            try { localStorage.setItem(_USER_PREFS_TS_KEY, remoteRow.updated_at || new Date().toISOString()); } catch(_) {}
+          }
+        }
+      }
+    } catch (prefsErr) {
+      console.warn('[AI Tracker] Error cargando preferencias desde Supabase:', prefsErr);
+    }
     render(); renderHoy(); updateStats();
     if (typeof renderBacklogList === 'function') renderBacklogList();
     setSyncStatus('synced', '✓ sincronizado');
@@ -5544,6 +5717,28 @@ function _cpInput(e) {
 // ── T-202605-442: Atajos de teclado configurables ────────────────────────
 
 const _SHORTCUTS_KEY = 'user-shortcuts';
+const _USER_PREFS_TS_KEY = 'user-prefs-ts'; // R-4: timestamp del último user-prefs aplicado desde Supabase
+
+// R-4: guarda preferencias de usuario unificadas en Supabase (shortcuts + templateTrigger + onboardingSeen)
+async function _saveUserPrefs() {
+  const shortcuts     = _shortcutsLoad();
+  const templateTrigger = localStorage.getItem(_TPL_TRIGGER_KEY) || 'session';
+  const onboardingSeen  = !!localStorage.getItem('onboarding-seen');
+  const updatedAt       = new Date().toISOString();
+  if (_supabase && _supabaseUser) {
+    try {
+      const { error } = await _supabase.from('tracker_docs').upsert(
+        [{ user_id: _supabaseUser.id, key: 'user-prefs', value: { shortcuts, templateTrigger, onboardingSeen, updatedAt }, updated_at: updatedAt }],
+        { onConflict: 'user_id,key' }
+      );
+      if (error) throw error;
+      try { localStorage.setItem(_USER_PREFS_TS_KEY, updatedAt); } catch(_) {}
+    } catch(err) {
+      console.warn('[AI Tracker] _saveUserPrefs Supabase error:', err);
+      _offlineQueuePush({ type: 'user-prefs' });
+    }
+  }
+}
 
 // Definición canónica — id, label, grupo, default key, si es chord G+key
 const _SHORTCUT_DEFS = [
@@ -5574,6 +5769,7 @@ function _shortcutsLoad() {
 
 function _shortcutsSave(map) {
   localStorage.setItem(_SHORTCUTS_KEY, JSON.stringify(map));
+  _saveUserPrefs(); // R-4: persistir en Supabase
 }
 
 // Resuelve la tecla activa de un shortcut (override o default)
@@ -5716,6 +5912,7 @@ function _shortcutsResetOne(id) {
 
 function restoreDefaultShortcuts() {
   localStorage.removeItem(_SHORTCUTS_KEY);
+  _saveUserPrefs(); // R-4: sincronizar reset a Supabase
   _shortcutsRender();
 }
 
@@ -5824,6 +6021,7 @@ function _autoDownloadOn() {
 function toggleAutoDownload() {
   const next = _templateTrigger() === 'session' ? 'sprint' : 'session';
   localStorage.setItem(_TPL_TRIGGER_KEY, next);
+  _saveUserPrefs(); // R-4: sincronizar preferencia a Supabase
   _updateAutoDownloadLabel();
 }
 function _updateAutoDownloadLabel() {

@@ -348,6 +348,21 @@ function parsePaste(id) {
       // pero el render del preview continúa sin interrupciones.
       if (typeof _checkStorageQuota === 'function') _checkStorageQuota();
     }
+    // R-3: persistir borrador en Supabase con debounce para no saturar en cada keystroke
+    clearTimeout(window['_draftSbTimer_' + id]);
+    window['_draftSbTimer_' + id] = setTimeout(() => {
+      if (typeof _supabase !== 'undefined' && _supabase && typeof _supabaseUser !== 'undefined' && _supabaseUser) {
+        const savedText = localStorage.getItem(draftKey);
+        if (savedText) {
+          _supabase.from('tracker_docs').upsert(
+            [{ user_id: _supabaseUser.id, key: draftKey, value: { text: savedText, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
+            { onConflict: 'user_id,key' }
+          ).then(({ error }) => {
+            if (error && typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'draft', aiId: id });
+          });
+        }
+      }
+    }, 3000); // 3s debounce — no escribe en cada keystroke
     const dot = document.getElementById('draft-' + id);
     if (dot) dot.className = 'draft-dot visible';
   } else {
@@ -1759,6 +1774,12 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
       ai._parsed = {};
       if (_confirmTimers[id]) { clearTimeout(_confirmTimers[id]); delete _confirmTimers[id]; }
       localStorage.removeItem('draft-' + id);
+      // R-3: eliminar borrador de Supabase al guardar sesión
+      clearTimeout(window['_draftSbTimer_' + id]);
+      if (typeof _supabase !== 'undefined' && _supabase && typeof _supabaseUser !== 'undefined' && _supabaseUser) {
+        _supabase.from('tracker_docs').delete().eq('user_id', _supabaseUser.id).eq('key', 'draft-' + id)
+          .then(({ error }) => { if (error) console.warn('[AI Tracker] draft delete Supabase error:', error); });
+      }
       const _taClearC = document.getElementById('ta-' + id);
       if (_taClearC) { _taClearC.value = ''; parsePaste(id); }
       exitFocusMode();
@@ -1911,6 +1932,12 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // T-202604-103: limpiar timer de confirmación si quedó activo
   if (_confirmTimers[id]) { clearTimeout(_confirmTimers[id]); delete _confirmTimers[id]; }
   localStorage.removeItem('draft-' + id);
+  // R-3: eliminar borrador de Supabase al guardar sesión
+  clearTimeout(window['_draftSbTimer_' + id]);
+  if (typeof _supabase !== 'undefined' && _supabase && typeof _supabaseUser !== 'undefined' && _supabaseUser) {
+    _supabase.from('tracker_docs').delete().eq('user_id', _supabaseUser.id).eq('key', 'draft-' + id)
+      .then(({ error }) => { if (error) console.warn('[AI Tracker] draft delete Supabase error:', error); });
+  }
   const _taClear = document.getElementById('ta-' + id);
   if (_taClear) { _taClear.value = ''; _taClear.classList.remove('ta-has-items'); parsePaste(id); }
   exitFocusMode();

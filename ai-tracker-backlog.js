@@ -2924,7 +2924,7 @@ function renderBacklogList() {
       html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}">
         <div onclick="toggleVersionCollapse('${groupId}')" class="version-collapse-trigger">
           <div class="version-header">
-            <span id="sprint-label-wrap-${esc(s.id)}"><span class="version-tag">${esc(s.id)}${sprintBadge}</span>${(s.label && s.label !== s.id) ? `<span class="sprint-name-label">${esc(s.label.replace(/^S-\d+\s*·?\s*/i, ''))}</span>` : ''}</span>${sprintStatusLabel}
+            <span id="sprint-label-wrap-${esc(s.id)}"><span class="version-tag">${esc(s.id)}${sprintBadge}</span>${(s.label && s.label !== s.id) ? `<span class="sprint-name-label">${esc(s.label.replace(/^[A-Za-z]+-S\d+\s*·?\s*/i, ''))}</span>` : ''}</span>${sprintStatusLabel}
             ${progressBar}
             ${_sprintPills ? `<span class="sprint-pills-secondary">${_sprintPills}</span>` : ''}
             ${sprintActions}
@@ -2984,7 +2984,7 @@ function renderBacklogList() {
       html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}">
         <div onclick="toggleVersionCollapse('${groupId}')" class="version-collapse-trigger">
           <div class="version-header">
-            ${!isSinAsignar ? `<span id="sprint-label-wrap-${esc(key)}"${sprintObj && !isClosed ? ` ondblclick="event.stopPropagation();editSprintInline('${esc(key)}')" title="Doble click para editar"` : ''}><span class="version-tag">${esc(key)}${sprintBadge}</span>${(label && label !== key) ? `<span class="sprint-name-label">${esc(label.replace(/^S-\d+\s*[·]?\s*/i, ''))}</span>` : ''}</span>${sprintStatusLabel}` : ''}
+            ${!isSinAsignar ? `<span id="sprint-label-wrap-${esc(key)}"${sprintObj && !isClosed ? ` ondblclick="event.stopPropagation();editSprintInline('${esc(key)}')" title="Doble click para editar"` : ''}><span class="version-tag">${esc(key)}${sprintBadge}</span>${(label && label !== key) ? `<span class="sprint-name-label">${esc(label.replace(/^[A-Za-z]+-S\d+\s*[·]?\s*/i, ''))}</span>` : ''}</span>${sprintStatusLabel}` : ''}
             ${_pendPill}
             ${isSinAsignar ? `<span class="version-label">Sin asignar</span>` : ''}
             ${progressBar}
@@ -3340,7 +3340,7 @@ function _archSprintEntryHtml(sp, spItems, entryId, entryKey, entryOpen) {
     ? `<span class="arch-se-goal" title="${esc(sp.goal)}">${esc(sp.goal)}</span>`
     : '';
   const nameDisplay = sp.label
-    ? esc(sp.label.replace(/^S-\d+\s*·?\s*/i, ''))
+    ? esc(sp.label.replace(/^[A-Za-z]+-S\d+\s*·?\s*/i, ''))
     : esc(sp.id || 'Sprint sin nombre');
 
   return `<div class="arch-sprint-entry">
