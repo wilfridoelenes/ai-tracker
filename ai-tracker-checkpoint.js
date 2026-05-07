@@ -124,7 +124,11 @@ let _realtimeLastTs     = null;   // timestamp del último update remoto procesa
 if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
   try {
     _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: { detectSessionInUrl: true, persistSession: true, flowType: 'implicit' }
+      auth: {
+        detectSessionInUrl: true,
+        persistSession: true,
+        storage: localStorage  // B-202605-504: code_verifier PKCE en localStorage — sobrevive redirects de Vercel
+      }
     });
 
     _supabaseReady = new Promise(resolve => {
@@ -270,7 +274,10 @@ function signInWithSupabase() {
   if (!_supabase) { setSyncStatus('offline', '✕ sin conexión'); return; }
   _supabase.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: window.location.origin }
+    options: {
+      redirectTo: window.location.origin,
+      skipBrowserRedirect: false  // B-202605-504: redirect en misma pestaña — PKCE flow estándar
+    }
   }).catch(err => {
     console.warn('Supabase Google sign-in error:', err);
     showToast('error', 'Error al conectar: ' + (err.message || err));
