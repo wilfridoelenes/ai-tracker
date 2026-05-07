@@ -641,8 +641,23 @@ function _purgeStaleBacklogCache() {
 }
 
 function loadBacklog() {
-  const s = localStorage.getItem(_tplKey('backlog-items'));
-  if (s) { try { ITEMS = JSON.parse(s); } catch { ITEMS = []; } } else { ITEMS = []; }
+  // R-[pendiente-ID]: Supabase-first — si el usuario está autenticado, delegar a
+  // _loadFromSupabase() que implementa lógica timestamp-first en su paso 5.
+  // Migración one-shot (founder only): si localStorage tiene datos y Supabase está
+  // vacío, _loadFromSupabase detecta ITEMS.length === 0 post-carga y no sobreescribe;
+  // saveBacklog() al final del flujo empuja los datos locales a Supabase.
+  if (typeof _supabase !== 'undefined' && _supabase &&
+      typeof _supabaseUser !== 'undefined' && _supabaseUser) {
+    // Cargar localStorage como base inmediata (evita flash de backlog vacío)
+    const s = localStorage.getItem(_tplKey('backlog-items'));
+    if (s) { try { ITEMS = JSON.parse(s); } catch { ITEMS = []; } } else { ITEMS = []; }
+    // Lanzar carga remota en background — _loadFromSupabase re-renderiza al terminar
+    if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
+    // Ejecutar migraciones locales sobre los datos inmediatos mientras Supabase responde
+  } else {
+    const s = localStorage.getItem(_tplKey('backlog-items'));
+    if (s) { try { ITEMS = JSON.parse(s); } catch { ITEMS = []; } } else { ITEMS = []; }
+  }
   // Migración: normalizar status legacy (⏳ Backlog, in-progress, en-progreso, etc.)
   let migrated = false;
   ITEMS.forEach(item => {
