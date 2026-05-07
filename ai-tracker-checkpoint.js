@@ -3629,12 +3629,16 @@ function _trackerHistDayRender() {
       const ai = (state.ais || []).find(a => a.id === s.aiId);
       const aiName = ai ? esc(ai.name) : '—';
       const isActive = s.id === _trackerHistSelectedSessId;
+      // R-202605-162: timestamp relativo bajo el título — usa helper compartido
+      const tsLabel = _sessRelTsShared(s);
+      const tsHtml = tsLabel ? `<span class="tvh-hist-day-row-ts">${esc(tsLabel)}</span>` : '';
       return `<div class="tvh-hist-day-row${isActive ? ' active' : ''}"
           data-sess-id="${s.id}"
           data-ai-id="${s.aiId}"
           onclick="_trackerHistDaySelect('${s.id}','${s.aiId}')">
         <span class="tvh-hist-day-row-title" title="${esc(s.title)}">${esc(s.title)}</span>
         <span class="tvh-hist-day-row-ai">${aiName}</span>
+        ${tsHtml}
       </div>`;
     }).join('');
 
@@ -3671,6 +3675,34 @@ function _trackerHistDaySelect(sessId, aiId) {
 }
 
 // ── END R-202604-078 Entrega 2 ──────────────────────────────────────────
+
+// ── R-202605-162: Helper compartido — timestamp relativo para filas de sesión ─
+// Usado por _trackerRenderMiniHist, _trackerHistDayRender y _buildLogRow
+// Formato: mismo día → 'Hoy · HH:MM' | ayer → 'Ayer · HH:MM' |
+//          2–6 días → 'Hace N días' | 7–13 días → 'Hace 1 semana' |
+//          14–29 días → 'Hace N semanas' | 30+ días → 'DD mmm'
+function _sessRelTsShared(s) {
+  const ts = s.updatedAt || s.createdAt || 0;
+  if (!ts) return (typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || '');
+  const diffMs = Date.now() - ts;
+  const diffD  = Math.floor(diffMs / 86400000);
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const dateKey  = new Date(ts).toISOString().slice(0, 10);
+  try {
+    const hhmm = new Date(ts).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
+    if (dateKey === todayKey)      return `Hoy · ${hhmm}`;
+    if (diffD === 1)               return `Ayer · ${hhmm}`;
+  } catch(_) { /* fallthrough */ }
+  if (diffD >= 2  && diffD <= 6)  return `Hace ${diffD} días`;
+  if (diffD >= 7  && diffD <= 13) return 'Hace 1 semana';
+  if (diffD >= 14 && diffD <= 29) return `Hace ${Math.floor(diffD / 7)} semanas`;
+  try {
+    return new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'short' });
+  } catch(_) {
+    return (typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || '');
+  }
+}
+// ── END R-202605-162 helper ──────────────────────────────────────────────
 
 // ── R-202604-078 Fase 2: Mini-historial de IA en Col2 (modo Por IA) ─────
 
@@ -3746,26 +3778,8 @@ function _trackerRenderMiniHist(aiId) {
 
   const projTracker = typeof getActiveTracker === 'function' ? getActiveTracker() : { items: [] };
 
-  // T-202605-488: helper — timestamp relativo de alta precisión
-  const _sessRelTs = (s) => {
-    const ts = s.updatedAt || s.createdAt || 0;
-    if (!ts) return (typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || '');
-    const diffMs  = Date.now() - ts;
-    const diffMin = Math.floor(diffMs / 60000);
-    const diffH   = Math.floor(diffMs / 3600000);
-    const diffD   = Math.floor(diffMs / 86400000);
-    if (diffMin < 60)  return diffMin <= 1 ? 'ahora' : `hace ${diffMin}min`;
-    if (diffH   < 24)  return `hace ${diffH}h`;
-    if (diffD   === 1) return 'ayer';
-    if (diffD   < 7) {
-      try {
-        return new Date(ts).toLocaleDateString('es', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-      } catch(_) { return `hace ${diffD}d`; }
-    }
-    try {
-      return new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'short' });
-    } catch(_) { return (typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || ''); }
-  };
+  // R-202605-162: usa helper compartido — _sessRelTsShared definida antes de esta función
+  const _sessRelTs = _sessRelTsShared;
 
   // T-202605-488: agrupar en Hoy / Esta semana / Anteriores
   const _nowMs    = Date.now();

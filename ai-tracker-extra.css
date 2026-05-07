@@ -6583,6 +6583,9 @@ body.radar-sb-collapsed #global-footer {
 .log-row-date { font-size: 10px; color: var(--hint); margin-left: auto; white-space: nowrap; }
 .log-row-title { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .log-row-summary { font-size: 11px; color: var(--text2); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* R-202605-162: timestamp relativo bajo el título en log-row */
+.log-row-ts-line { display: flex; align-items: center; margin-top: 1px; }
+.log-row-ts { font-size: 11px; color: var(--hint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .log-pill {
   display: inline-block;
   font-size: 9px;
@@ -18363,3 +18366,15 @@ body.body--focus-mode::after {
   background: rgba(255,255,255,0.20);
 }
 /* END B-[pendiente-ID] */
+
+/* ── R-202605-162: Timestamp relativo en fila de historial por día ── */
+.tvh-hist-day-row-ts {
+  font-size: 11px;
+  color: var(--hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+  line-height: 1.3;
+}
+/* END R-202605-162 */

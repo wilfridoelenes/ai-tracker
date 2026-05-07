@@ -61,7 +61,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </button>
       <div class="search-expand-wrap open" id="search-expand-wrap">
-        <input class="search-input" id="search-global" type="text" placeholder="Buscar · IAs, sesiones, notas…" oninput="onSearchDispatch()" autocomplete="off" onblur="onSearchBlur()">
+        <input class="search-input" id="search-global" type="text" placeholder="Buscar · Workers, sesiones, notas…" oninput="onSearchDispatch()" autocomplete="off" onblur="onSearchBlur()">
         <div class="search-results-count" id="search-count"></div>
       </div>
     </div>
@@ -146,7 +146,7 @@
       </button>
       <span class="radar-sidebar-title">Notificaciones</span>
       <div class="rsb-header-actions">
-        <button class="rsb-add-ia-btn" onclick="openAddAI()" title="Nueva IA">+</button>
+        <button class="rsb-add-ia-btn" onclick="openAddAI()" title="Nuevo Worker">+</button>
         <button class="radar-sidebar-collapse-btn" id="radar-sidebar-toggle" onclick="toggleRadarSidebar()" title="Colapsar">&#x2039;</button>
       </div>
     </div>
@@ -164,7 +164,7 @@
       class="rsb-search-input"
       id="rsb-search-input"
       type="text"
-      placeholder="Buscar IA…"
+      placeholder="Buscar Worker…"
       autocomplete="off"
       oninput="rsbFilterAIs(this.value)"
     />
@@ -244,8 +244,8 @@
       <div class="tracker-detail tracker-detail--full" id="tracker-detail">
         <div class="tracker-detail-empty" id="tracker-detail-empty">
           <div class="tracker-detail-empty-icon">←</div>
-          <div class="tracker-detail-empty-text">Selecciona una IA</div>
-          <div class="tracker-detail-empty-hint">Elige una IA del panel derecho para abrir su tarjeta de sesión.</div>
+          <div class="tracker-detail-empty-text">Selecciona un Worker</div>
+          <div class="tracker-detail-empty-hint">Elige un Worker del panel derecho para abrir su tarjeta de sesión.</div>
         </div>
         <!-- R-202604-060: tracker-grid-header -->
         <div id="tracker-grid-header"></div>
@@ -268,7 +268,7 @@
         <div class="tracker-mini-hist-list" id="tracker-mini-hist-list">
           <div class="tracker-mini-hist-empty" id="tracker-mini-hist-empty">
             <span class="tracker-mini-hist-empty-icon">📋</span>
-            <span>Selecciona una IA</span>
+            <span>Selecciona un Worker</span>
           </div>
         </div>
       </div>
@@ -652,7 +652,7 @@
 <!-- Add AI modal -->
 <div class="modal-overlay" id="add-modal">
   <div class="modal">
-    <div class="modal-title">Nueva IA</div>
+    <div class="modal-title">Nuevo Worker</div>
     <div class="field"><label>Nombre</label><input type="text" id="new-name" placeholder="Ej: Firefox Claude..." maxlength="40" onkeydown="if(event.key==='Enter')confirmAddAI()"></div>
     <div class="modal-actions">
       <button onclick="closeModal('add-modal')">Cancelar</button>
@@ -728,7 +728,7 @@
     <div class="onboarding-header">
       <span class="onboarding-mascot">🤖</span>
       <div class="onboarding-title">Bienvenido a AI Tracker</div>
-      <div class="onboarding-subtitle">Registra tus sesiones con IAs, gestiona tu backlog y mantén el contexto entre conversaciones.</div>
+      <div class="onboarding-subtitle">Registra tus sesiones con Workers, gestiona tu backlog y mantén el contexto entre conversaciones.</div>
     </div>
     <div class="onboarding-steps" id="onboarding-steps"></div>
     <div class="onboarding-footer">
@@ -1065,7 +1065,7 @@
   <div class="modal modal--standalone-ckpt">
     <div class="modal-title">📋 Pegar CHECKPOINT — solo ítems</div>
     <div class="standalone-ckpt-desc">
-      Pega un CHECKPOINT para actualizar ítems del backlog <strong>sin crear una sesión de IA</strong>.
+      Pega un CHECKPOINT para actualizar ítems del backlog <strong>sin crear una sesión de Worker</strong>.
       Requiere bloque <code>---ITEMS---</code>.
     </div>
     <textarea id="standalone-ckpt-ta" rows="12"
@@ -1182,7 +1182,7 @@
 <!-- ai-quick-select-modal -->
 <div class="modal-overlay" id="ai-quick-select-modal">
   <div class="modal modal--narrow">
-    <div class="modal-title">Seleccionar IA para captura rápida</div>
+    <div class="modal-title">Seleccionar Worker para captura rápida</div>
     <div class="ai-quick-select-list" id="ai-quick-select-list"></div>
     <div class="modal-actions">
       <button onclick="document.getElementById('ai-quick-select-modal').classList.remove('open')">Cancelar</button>
@@ -1421,7 +1421,7 @@
       <div class="weekly-stat-row"><span class="weekly-stat-label">Sesiones registradas</span><span class="weekly-stat-value" id="wsum-sessions">—</span></div>
       <div class="weekly-stat-row"><span class="weekly-stat-label">Ítems cerrados</span><span class="weekly-stat-value" id="wsum-done">—</span></div>
       <div class="weekly-stat-row"><span class="weekly-stat-label">Ítems abiertos</span><span class="weekly-stat-value" id="wsum-pending">—</span></div>
-      <div class="weekly-stat-row"><span class="weekly-stat-label">IAs más activas</span><span class="weekly-stat-value" id="wsum-ais">—</span></div>
+      <div class="weekly-stat-row"><span class="weekly-stat-label">Workers más activos</span><span class="weekly-stat-value" id="wsum-ais">—</span></div>
       <div class="weekly-stat-row"><span class="weekly-stat-label">Sprint progress</span><span class="weekly-stat-value" id="wsum-sprint">—</span></div>
     </div>
     <div class="weekly-modal-footer">

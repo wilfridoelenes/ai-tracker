@@ -2979,6 +2979,10 @@ function _buildLogRow({ sess, proj, ai }) {
   // quickCapture indicator
   const qcBadge = sess.quickCapture ? '<span class="log-qc-badge" title="Quick capture">⚡</span>' : '';
 
+  // R-202605-162: timestamp relativo bajo el título — usa helper compartido
+  const tsLabel = (typeof _sessRelTsShared === 'function') ? _sessRelTsShared(sess) : (sess.dateShort || '');
+  const tsMeta = tsLabel ? `<span class="log-row-ts">${esc(tsLabel)}</span>` : '';
+
   return `
     <div class="log-row" id="log-row-${esc(sess.id)}" onclick="openDetail('${esc(ai.id)}','${esc(sess.id)}')" title="Ver detalle">
       <div class="log-row-left">
@@ -2993,6 +2997,7 @@ function _buildLogRow({ sess, proj, ai }) {
           <span class="log-row-date">${esc(sess.dateShort || '')}</span>
         </div>
         <div class="log-row-title">${esc(sess.title)}</div>
+        ${tsMeta ? `<div class="log-row-ts-line">${tsMeta}</div>` : ''}
         ${summarySnippet ? `<div class="log-row-summary">${summarySnippet}</div>` : ''}
         ${refPills ? `<div class="log-row-refs">${refPills}</div>` : ''}
       </div>
