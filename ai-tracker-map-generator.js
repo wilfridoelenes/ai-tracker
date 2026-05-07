@@ -942,7 +942,9 @@ function _generateContext() {
     'DA · Iris':   'Base Rules + Role-Iris + OL-CONTEXT + Dashboard-métricas (si existe)'
   };
 
-  // Filtrar por roles asignados al proyecto activo; fallback a {} si no hay roles mapeados
+  // T-202605-498: commands — filtrar por roles asignados al proyecto activo
+  // Fallback 1: sin roles mapeados → tabla completa del ecosistema
+  // Fallback 2: error en getAISessions → placeholder explícito (no objeto vacío silencioso)
   let commands = {};
   try {
     const projAIs = (proj && typeof getAISessions === 'function')
@@ -954,11 +956,14 @@ function _generateContext() {
     if (activeRoles.length > 0) {
       activeRoles.forEach(role => { commands[role] = _commandsMap[role]; });
     } else {
-      // Sin roles mapeados al proyecto: emitir tabla completa del ecosistema
+      // Sin roles mapeados al proyecto activo: emitir tabla completa del ecosistema
       commands = { ..._commandsMap };
     }
   } catch(e) {
-    commands = {};
+    // Error al leer roles — placeholder explícito para que el CONTEXT no quede silenciosamente vacío
+    commands = {
+      '_placeholder': 'No se pudieron leer los roles del proyecto. Adjuntar Base Rules + Role-[Rol] + OL-CONTEXT + CONTEXT-[proyecto] + Backlog-[proyecto]'
+    };
   }
 
   // Construir objeto JSON
