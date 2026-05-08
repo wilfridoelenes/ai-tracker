@@ -3647,7 +3647,9 @@ function _kbCardClick(event, code) {
 
 // T-202604-076: DnD para reordenar ítems dentro de grupo sprint (no aplica a done/descartado ni a modo plano)
 function _attachBacklogDnD() {
-  if (backlogSortMode !== 'sprint') return; // T-202604-082: DnD solo en modo sprint
+  // B-202605-013: T-202604-424 eliminó 'sprint' como valor de backlogSortMode — guard era inalcanzable.
+  // DnD activo cuando la agrupación por sprint está activa y no hay modo exclusivo que tome el rendering.
+  if (!_backlogSprintGroupMode || _backlogKanbanMode || _backlogFocusMode || _backlogMikeMode || _backlogNoAcMode) return;
   // Solo grupos sprint: vbody-{groupId} — excluye sgbody-done, sgbody-discarded y vbody-flat
   const sprintBodies = document.querySelectorAll('[id^="vbody-"]:not(#vbody-flat)');
   sprintBodies.forEach(body => {

@@ -1,5 +1,5 @@
 // ai-tracker-command-palette.js
-// Versión: 1.0.2 | Última actualización: 2026-05-02 | B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto
+// Versión: 1.0.3 | Última actualización: 2026-05-08 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto
 
 'use strict';
 
@@ -155,7 +155,7 @@ function _buildCommandRegistry() {
       keywords: ['buscar', 'contexto', 'context', 'search', 'proyecto'],
       group: 'Acciones',
       action: () => {
-        if (typeof switchTab === 'function') switchTab('backlog');
+        if (typeof switchTab === 'function') switchTab('tab-backlog');
         setTimeout(() => { if (typeof switchSubTab === 'function') switchSubTab('context'); }, 80);
       },
     },
@@ -207,7 +207,7 @@ function _buildDynamicCommands(query) {
           keywords: ['nueva', 'sesion', ai.name.toLowerCase(), ai.id],
           group: 'Acciones',
           action: () => {
-            if (typeof switchTab === 'function') switchTab('tracker');
+            if (typeof switchTab === 'function') switchTab('tab-tracker');
             setTimeout(() => {
               const card = document.getElementById('card-' + ai.id);
               if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -307,7 +307,7 @@ function _cpSearchContext(query) {
             group: 'Contexto',
             sub: currentSection,
             action: () => {
-              if (typeof switchTab === 'function') switchTab('backlog');
+              if (typeof switchTab === 'function') switchTab('tab-backlog');
               setTimeout(() => {
                 if (typeof switchSubTab === 'function') switchSubTab('context');
               }, 80);
@@ -632,6 +632,10 @@ function _cpGlobalKeydown(e) {
   const modifier = isMac ? e.metaKey : e.ctrlKey;
 
   if (modifier && e.key === 'k') {
+    // B-202605-032: stopPropagation antes de preventDefault — impide que otros listeners
+    // en la misma fase bubble reciban el evento, pero permite que este handler sea el único.
+    // Registrado en bubble (no capture) para no bloquear listeners de capture de SP.
+    e.stopPropagation();
     e.preventDefault();
     if (_cp.open) {
       closeCommandPalette();
@@ -710,7 +714,9 @@ function _escHtml(str) {
 
 function initCommandPalette() {
   // Global Cmd+K listener
-  document.addEventListener('keydown', _cpGlobalKeydown, true);
+  // B-202605-032: registrado en fase bubble (false) — SP listener también en bubble puede ejecutar.
+  // stopPropagation en el handler evita conflicto con otros listeners bubble en el mismo evento.
+  document.addEventListener('keydown', _cpGlobalKeydown, false);
 
   // Overlay click to close
   const overlay = _cpOverlay();

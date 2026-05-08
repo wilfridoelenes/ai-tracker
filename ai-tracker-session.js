@@ -1863,28 +1863,10 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     durationMs: (typeof window._stopSessionTimer === 'function') ? window._stopSessionTimer(id) : 0,
     dateShort, date: dateFull
   };
-  // B-202605-004: newSess NO se persiste aquí. El push ocurre en _doApplyMergeAndFinish,
-  // después de que el usuario confirma el panel MergeDiff (o en el fallback directo).
-  // Si el usuario cancela el panel, activeProj.sessions no contiene la sesión nueva.
+  // B-202605-004: newSess NO se persiste aquí. El push de sessions[] y el populate de
+  // tracker.items ocurren en _doApplyMergeAndFinish, después de confirmación del panel.
+  // Si el usuario cancela, ni sessions[] ni tracker.items quedan con entradas huérfanas.
   const sessId = newSess.id;
-  let newCount = 0, updCount = 0;
-
-  // v3.0.0: tracker del proyecto activo
-  if (!activeProj.tracker) activeProj.tracker = { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
-  const tracker = activeProj.tracker;
-  tgItems.forEach(item => {
-    const existing = tracker.items.find(x => x.code === item.code);
-    if (existing) {
-      existing.desc = item.desc; existing.status = item.status; existing.sessionId = sessId;
-      updCount++;
-    } else {
-      const c = tracker.counters;
-      const numMatch = item.code.match(/[PTRB]-\d{6}-(\d{3})/);
-      if (numMatch) { const num = parseInt(numMatch[1]); if (num >= (c[item.type] || 0)) c[item.type] = num; }
-      tracker.items.push({id:'tgi-'+Date.now()+'-'+Math.random().toString(36).slice(2,6), code:item.code, desc:item.desc, status:item.status, sessionId:sessId});
-      newCount++;
-    }
-  });
 
   // T-098: merge del TRACKER-GLOBAL al Backlog en memoria (acumulable)
   // T-202604-121: recoger resultado detallado para super toast
@@ -1909,6 +1891,25 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   if (newSess && !activeProj.sessions.find(s => s.id === newSess.id)) {
     activeProj.sessions.push(newSess);
   }
+
+  // v3.0.0: tracker del proyecto activo — también aquí para atomicidad con sessions[].
+  // Sin esto, tracker.items quedaría con sessionId huérfano si el usuario cancela el panel.
+  if (!activeProj.tracker) activeProj.tracker = { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
+  const tracker = activeProj.tracker;
+  let newCount = 0, updCount = 0;
+  tgItems.forEach(item => {
+    const existing = tracker.items.find(x => x.code === item.code);
+    if (existing) {
+      existing.desc = item.desc; existing.status = item.status; existing.sessionId = sessId;
+      updCount++;
+    } else {
+      const c = tracker.counters;
+      const numMatch = item.code.match(/[PTRB]-\d{6}-(\d{3})/);
+      if (numMatch) { const num = parseInt(numMatch[1]); if (num >= (c[item.type] || 0)) c[item.type] = num; }
+      tracker.items.push({id:'tgi-'+Date.now()+'-'+Math.random().toString(36).slice(2,6), code:item.code, desc:item.desc, status:item.status, sessionId:sessId});
+      newCount++;
+    }
+  });
 
   const raw = (document.getElementById('ta-' + id) || {}).value || '';
   const mergeResult = _mergeBacklogWithProject(tgItems, sessId, activeProj.id);

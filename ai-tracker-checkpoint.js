@@ -5236,6 +5236,74 @@ function exitFocusMode() {
   focusActiveId = null;
 }
 
+// B-202605-014: Backlog Focus Mode — Top-10 · Cmd+F con tab Backlog activo sin panel abierto
+let _backlogFocusMode = false;
+
+function toggleBacklogFocusMode() {
+  _backlogFocusMode = !_backlogFocusMode;
+
+  // Indicador visual — botón #fbar-focus-btn en bl-toolbar (patrón canónico .active)
+  const focusBtn = document.getElementById('fbar-focus-btn');
+  if (focusBtn) focusBtn.classList.toggle('active', _backlogFocusMode);
+
+  // Obtener todos los .backlog-item del DOM
+  const allItems = document.querySelectorAll('.backlog-item');
+  if (!allItems.length) return;
+
+  if (!_backlogFocusMode) {
+    // Desactivar — restaurar todos los ítems
+    allItems.forEach(el => {
+      el.classList.remove('blf-hidden');
+      el.removeAttribute('aria-hidden');
+    });
+    return;
+  }
+
+  // Calcular Top-10 desde tracker items del proyecto activo
+  const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+  const tracker = (typeof getActiveTracker === 'function') ? getActiveTracker() : { items: [] };
+  const trackerItems = tracker.items || [];
+
+  // Sprint activo — sin depender de getActiveSprints() (B-202605-026 pendiente)
+  const activeSprint = proj && proj.sprints
+    ? proj.sprints.find(s => s.status === 'active')
+    : null;
+
+  // Filtro: pendientes del sprint activo, o todos los pendientes si no hay sprint
+  const pool = trackerItems.filter(i =>
+    i.status === 'pendiente' &&
+    (!activeSprint || i.sprint === activeSprint.id)
+  );
+
+  // Orden: high → medium → low
+  const PRIORITY_ORDER = { high: 0, medium: 1, low: 2 };
+  const sorted = [...pool].sort((a, b) => {
+    const pa = PRIORITY_ORDER[a.priority] ?? 3;
+    const pb = PRIORITY_ORDER[b.priority] ?? 3;
+    return pa - pb;
+  });
+
+  // Top-10 — si pool vacío (sin sprint activo con ítems), usar todos los pendientes
+  const top10Pool = sorted.length > 0 ? sorted : trackerItems
+    .filter(i => i.status === 'pendiente')
+    .sort((a, b) => (PRIORITY_ORDER[a.priority] ?? 3) - (PRIORITY_ORDER[b.priority] ?? 3));
+
+  const top10Codes = new Set(top10Pool.slice(0, 10).map(i => i.code).filter(Boolean));
+
+  // Aplicar .blf-hidden a ítems fuera del Top-10
+  allItems.forEach(el => {
+    // data-code es el atributo canónico en .backlog-item — fallback a data-id
+    const code = el.dataset.code || el.dataset.id || '';
+    const inTop10 = top10Codes.has(code);
+    el.classList.toggle('blf-hidden', !inTop10);
+    if (!inTop10) {
+      el.setAttribute('aria-hidden', 'true');
+    } else {
+      el.removeAttribute('aria-hidden');
+    }
+  });
+}
+
 // ESC para salir del modo registro
 // ── T-202604-418: Atajos de teclado globales ─────────────────────────────
 
@@ -5294,8 +5362,19 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // T-202604-208: Ctrl+F / Cmd+F → focus búsqueda global
+  // B-202605-014: Ctrl+F / Cmd+F — contextual según tab activo y estado de panel
+  // Con tab Backlog activo y sin panel abierto → activa Top-10 backlog focus
+  // Con panel abierto → activa focus del panel (comportamiento previo)
+  // Otros casos → focus búsqueda global (comportamiento previo)
   if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
+    const _isBacklogTab = currentTab === 'backlog' || currentTab === 'tab-backlog';
+    const _itemPanel = document.getElementById('item-detail-panel');
+    const _panelOpen = _itemPanel && _itemPanel.classList.contains('open');
+    if (_isBacklogTab && !_panelOpen) {
+      e.preventDefault();
+      if (typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode();
+      return;
+    }
     const si = document.getElementById('search-global');
     if (!si) return;
     e.preventDefault();

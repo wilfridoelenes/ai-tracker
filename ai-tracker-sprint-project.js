@@ -32,7 +32,8 @@ window._updateHeaderProjectLabel = function() {
 function _buildCurrentStateMd() {
   const lines = ['## Estado actual', ''];
 
-  // Sprint activo
+  // Sprint activo — B-202605-031: solo status === 'active' (sprint con ★).
+  // El filtro generacional usa active || open por diseño (R-202605-144) — criterios distintos, no unificar.
   const activeSprint = (state.sprints || []).find(s => s.status === 'active');
   if (activeSprint) {
     lines.push(`**Sprint activo:** ${activeSprint.name || activeSprint.id}`);

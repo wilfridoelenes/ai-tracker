@@ -768,7 +768,8 @@ function _generateMap(ver) {
 function _mgInferStatus(activeSp, blItems) {
   // closing: SCM modal visible
   const scmModal = document.getElementById('close-sprint-modal');
-  if (scmModal && (scmModal.classList.contains('modal--open') || scmModal.style.display === 'flex' || scmModal.getAttribute('aria-hidden') === 'false')) {
+  // B-202605-035: criterio canónico de visibilidad — clase modal--open. Eliminados: style.display y aria-hidden.
+  if (scmModal && scmModal.classList.contains('modal--open')) {
     return 'closing';
   }
   if (activeSp && (activeSp.status === 'active' || activeSp.status === 'open')) return 'active';
