@@ -6129,7 +6129,7 @@ function _updateSubTabButtons(sub) {
   if (undoRow) undoRow.classList.toggle('hidden', sub !== 'backlog');
   if (btnUndo) btnUndo.classList.toggle('hidden', sub !== 'backlog');
   if (btnRedo) btnRedo.classList.toggle('hidden', sub !== 'backlog');
-  if (sub === 'backlog') _updateUndoUI();
+  if (sub === 'backlog' && typeof _updateUndoUI === 'function') _updateUndoUI();
   // T-202604-123 / T-202604-006: bootstrap único por proyecto
   const mapBootstrapped = !!localStorage.getItem(_tplKey('html-map-raw'));
   if (btnM) btnM.classList.toggle('hidden', !(sub === 'htmlmap' && !mapBootstrapped));

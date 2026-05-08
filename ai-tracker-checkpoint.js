@@ -2115,12 +2115,13 @@ async function _loadFromSupabase() {
         const localTs     = localMeta.updated  ? new Date(localMeta.updated).getTime()  : 0;
         const remoteTs    = remoteMeta.updated ? new Date(remoteMeta.updated).getTime() : 0;
         // Supabase es fuente de verdad — remoto gana si es más nuevo o local está vacío
-        const shouldLoad  = remoteItems.length && (ITEMS.length === 0 || localTs === 0 || remoteTs > localTs);
-        if (shouldLoad) {
+        const _itemsRef = (typeof ITEMS !== 'undefined') ? ITEMS : null;
+        const shouldLoad  = remoteItems.length && (!_itemsRef || _itemsRef.length === 0 || localTs === 0 || remoteTs > localTs);
+        if (shouldLoad && _itemsRef) {
           // Reemplazar completo — no merge aditivo
-          ITEMS.length = 0;
-          remoteItems.forEach(ri => ITEMS.push(ri));
-          localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(ITEMS));
+          _itemsRef.length = 0;
+          remoteItems.forEach(ri => _itemsRef.push(ri));
+          localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(_itemsRef));
           localStorage.setItem(_tplKey('backlog-meta'),  JSON.stringify(remoteMeta));
         }
       }
@@ -5237,7 +5238,7 @@ function exitFocusMode() {
 }
 
 // B-202605-014: Backlog Focus Mode — Top-10 · Cmd+F con tab Backlog activo sin panel abierto
-let _backlogFocusMode = false;
+// _backlogFocusMode declarada en ai-tracker-backlog.js — no redeclarar aquí (SyntaxError duplicate var)
 
 function toggleBacklogFocusMode() {
   _backlogFocusMode = !_backlogFocusMode;
