@@ -1623,7 +1623,13 @@ function _checkStorageQuota() {
 }
 
 function saveSession(id) {
+  // B-202605-054: getAI(id) puede devolver null si el worker fue eliminado entre el inicio
+  // de la sesión y el guardado (ej: purge concurrente). Sin guard, ai._parsed explota.
   const ai = getAI(id);
+  if (!ai) {
+    showToast('error', '⚠ No se encontró el worker — recarga la página');
+    return;
+  }
   const parsed = ai._parsed || {};
   const ta = document.getElementById('ta-' + id);
   const raw = ta ? ta.value.trim() : '';
@@ -1857,9 +1863,9 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     durationMs: (typeof window._stopSessionTimer === 'function') ? window._stopSessionTimer(id) : 0,
     dateShort, date: dateFull
   };
-  if (!activeProj.sessions) activeProj.sessions = [];
-  activeProj.sessions.push(newSess);
-
+  // B-202605-004: newSess NO se persiste aquí. El push ocurre en _doApplyMergeAndFinish,
+  // después de que el usuario confirma el panel MergeDiff (o en el fallback directo).
+  // Si el usuario cancela el panel, activeProj.sessions no contiene la sesión nueva.
   const sessId = newSess.id;
   let newCount = 0, updCount = 0;
 
@@ -1896,6 +1902,14 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
 
 // T-202604-201: segunda mitad de _doSaveSession — ejecutada tras confirmación del panel de diff
 async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, sessId, tgItems, newSess) {
+  // B-202605-004: push atómico — la sesión entra en activeProj.sessions solo aquí,
+  // después de que el usuario confirmó el panel MergeDiff (o en el fallback directo).
+  // Garantiza que cancelar el panel no deja sesiones huérfanas en el array.
+  if (!activeProj.sessions) activeProj.sessions = [];
+  if (newSess && !activeProj.sessions.find(s => s.id === newSess.id)) {
+    activeProj.sessions.push(newSess);
+  }
+
   const raw = (document.getElementById('ta-' + id) || {}).value || '';
   const mergeResult = _mergeBacklogWithProject(tgItems, sessId, activeProj.id);
 
