@@ -1926,15 +1926,23 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   ai._parsed = {};
   // T-202604-103: limpiar timer de confirmación si quedó activo
   if (_confirmTimers[id]) { clearTimeout(_confirmTimers[id]); delete _confirmTimers[id]; }
-  localStorage.removeItem('draft-' + id);
-  // R-3: eliminar borrador de Supabase al guardar sesión
+  // B-202605-NNN: clearTimeout antes de removeItem — evita que un timer completado justo antes
+  // del save haga upsert en Supabase después de que el draft ya fue eliminado de localStorage.
+  // El orden incorrecto (removeItem → clearTimeout) dejaba una ventana donde el timer podía
+  // leer el draft de localStorage si se disparaba entre ambas líneas.
   clearTimeout(window['_draftSbTimer_' + id]);
+  localStorage.removeItem('draft-' + id);
+  localStorage.removeItem('draft-' + id + '-ts');
+  // R-3: eliminar borrador de Supabase al guardar sesión
   if (typeof _supabase !== 'undefined' && _supabase && typeof _supabaseUser !== 'undefined' && _supabaseUser) {
     _supabase.from('tracker_docs').delete().eq('user_id', _supabaseUser.id).eq('key', 'draft-' + id)
       .then(({ error }) => { if (error) console.warn('[AI Tracker] draft delete Supabase error:', error); });
   }
   const _taClear = document.getElementById('ta-' + id);
-  if (_taClear) { _taClear.value = ''; _taClear.classList.remove('ta-has-items'); parsePaste(id); }
+  // B-202605-NNN: no llamar parsePaste(id) aquí — parsePaste con ta.value='' puede re-disparar
+  // el debounce path y reescribir el draft si hay un oninput pendiente en la cola del browser.
+  // El rAF post-render ya limpia el textarea y valida el estado final.
+  if (_taClear) { _taClear.value = ''; _taClear.classList.remove('ta-has-items'); }
   exitFocusMode();
   await saveImmediate(); render();
   // R-202604-022: alerta de cuota tras guardar
