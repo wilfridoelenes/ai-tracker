@@ -286,6 +286,17 @@ let _redoStack = [];
 // Se limpia automáticamente al recargar la página (nueva sesión).
 const _acReplacedSet = new Set();
 
+// B-202605-012: wrapper con guardia typeof para llamadas inline a openItemEditor
+// Evita falla silenciosa cuando el módulo externo no carga
+function _openItemEditorSafe(id, code) {
+  if (typeof openItemEditor === 'function') {
+    openItemEditor(id, code);
+  } else {
+    if (typeof showToast === 'function') showToast({ title: 'No se pudo abrir el editor', body: 'Recarga la página.', type: 'error' });
+    console.error('[AI Tracker] openItemEditor no disponible — módulo externo no cargado');
+  }
+}
+
 function _undoSnapshot() {
   _undoStack.push(JSON.stringify(ITEMS));
   if (_undoStack.length > UNDO_MAX) _undoStack.shift();
@@ -487,7 +498,7 @@ function _applyAllPriorities() {
 
 // T-202604-257: score de relevancia por ítem — retorna 0–100
 // Señales: antigüedad, tipo, effort, sprint asignado, última mención en sesión, AC definidos
-function _calcRelevanceScore(item) {
+function _calcRelevanceScore(item, allSessionsCache) { // B-202605-009: allSessionsCache evita O(n×m)
   if (!item || item.status !== 'pendiente') return 0;
 
   let score = 0;
@@ -521,10 +532,10 @@ function _calcRelevanceScore(item) {
 
   // 5. ÚLTIMA MENCIÓN EN SESIÓN — reciente baja relevancia (evita doble trabajo), antigua sube (olvidado)
   // Rango: -10 a +10
-  if (typeof getAllSessions === 'function') {
-    const allSessions = getAllSessions();
+  // B-202605-009: allSessionsCache ya calculado en _recalcAllScores — una llamada por ciclo, no una por ítem
+  if (allSessionsCache && allSessionsCache.length) {
     let lastMentionTs = 0;
-    allSessions.forEach(s => {
+    allSessionsCache.forEach(s => {
       if ((s.backlogRefs || s.trackerRefs || []).includes(item.code)) {
         const ts = s.savedAt || s.createdAt || 0;
         if (ts > lastMentionTs) lastMentionTs = ts;
@@ -550,8 +561,10 @@ function _calcRelevanceScore(item) {
 
 // T-202604-257: recalcular score en todos los ITEMS pendientes y estamparlo en item._score
 function _recalcAllScores() {
+  // B-202605-009: una sola llamada a getAllSessions() por ciclo — no O(n×m)
+  const _sessCache = typeof getAllSessions === 'function' ? getAllSessions() : [];
   ITEMS.forEach(item => {
-    item._score = (item.status === 'pendiente') ? _calcRelevanceScore(item) : 0;
+    item._score = (item.status === 'pendiente') ? _calcRelevanceScore(item, _sessCache) : 0;
   });
 }
 
@@ -588,9 +601,11 @@ function _sanitizePendingInClosedSprints() {
   // Segunda pasada: ítems con doneAt populado pero status pendiente
   // Causa: merge desde CHECKPOINT sobrescribió status sin respetar doneAt existente
   // B-202604-[pendiente-ID]: si el ítem tiene discardReason, el status correcto es 'descartado', no 'done'
+  // B-202605-008: snapshot antes de mutar — resultado deshacible via undoBacklog()
+  const pendingWithDoneAt = ITEMS.filter(item => item.status === 'pendiente' && item.doneAt);
+  if (pendingWithDoneAt.length > 0) _undoSnapshot();
   let revived = 0;
-  ITEMS.forEach(item => {
-    if (item.status === 'pendiente' && item.doneAt) {
+  pendingWithDoneAt.forEach(item => {
       const targetStatus = item.discardReason ? 'descartado' : 'done';
       item.status = targetStatus;
       if (!item.history) item.history = [];
@@ -600,8 +615,7 @@ function _sanitizePendingInClosedSprints() {
         data: { from: 'pendiente', to: targetStatus, reason: 'sanitize-doneat-mismatch' }
       });
       revived++;
-    }
-  });
+    });
   if (revived > 0) console.log(`[AI Tracker] sanitize-doneat-mismatch: ${revived} ítem(s) con doneAt populado restaurados a status correcto`);
   return count;
 }
@@ -626,6 +640,9 @@ function _purgeStaleBacklogCache() {
   const purgeable = ['done', 'descartado'];
   const before = ITEMS.length;
 
+  // B-202605-045: snapshot antes de mutar para que la purga sea deshacible
+  if (typeof _undoSnapshot === 'function') _undoSnapshot();
+
   // Filtrar del array en memoria — Supabase conserva el registro completo
   ITEMS = ITEMS.filter(item => {
     if (!purgeable.includes(item.status)) return true; // nunca purgar pendientes/en-curso
@@ -636,6 +653,8 @@ function _purgeStaleBacklogCache() {
   const purged = before - ITEMS.length;
   if (purged > 0) {
     console.log(`[AI Tracker] _purgeStaleBacklogCache: ${purged} ítem(s) purgado(s) del caché local (>90 días done/descartado)`);
+    // B-202605-045: persistir tras mutación para que el estado sea consistente
+    if (typeof saveBacklog === 'function') saveBacklog();
   }
   return purged;
 }
@@ -659,6 +678,12 @@ function loadBacklog() {
     if (s) { try { ITEMS = JSON.parse(s); } catch { ITEMS = []; } } else { ITEMS = []; }
   }
   // Migración: normalizar status legacy (⏳ Backlog, in-progress, en-progreso, etc.)
+  // B-202605-006: guardia explícita — _normalizeStatus debe estar disponible antes de continuar
+  if (typeof _normalizeStatus !== 'function') {
+    console.error('[AI Tracker] loadBacklog: _normalizeStatus no disponible — migración de status abortada. Verificar orden de carga de módulos.');
+    if (typeof showToast === 'function') showToast({ title: 'Error de carga', body: '_normalizeStatus no disponible. Recarga la página.', type: 'error' });
+    return;
+  }
   let migrated = false;
   ITEMS.forEach(item => {
     const norm = _normalizeStatus(item.status);
@@ -3617,7 +3642,7 @@ function _kbCardClick(event, code) {
   if (event.defaultPrevented) return;
   const item = ITEMS.find(i => i.code === code);
   if (!item) return;
-  openItemEditor(item.id || null, code);
+  _openItemEditorSafe(item.id || null, code); // B-202605-012
 }
 
 // T-202604-076: DnD para reordenar ítems dentro de grupo sprint (no aplica a done/descartado ni a modo plano)
@@ -3634,7 +3659,8 @@ function _attachBacklogDnD() {
       handle.addEventListener('mousedown', () => { handle.classList.add('cursor-grabbing'); });
       handle.addEventListener('mouseup', () => { handle.classList.remove('cursor-grabbing'); });
       el.addEventListener('dragstart', e => {
-        if (!e.target.classList.contains('item-drag-handle')) { e.preventDefault(); return; }
+        // B-202605-013: eliminado guard e.target === handle — dragstart dispara en el (.item), no en el handle
+        // La activación ya está acotada: solo ítems con .item-drag-handle llegan aquí (guard L3650)
         e.dataTransfer.setData('text/plain', el.dataset.code);
         el.classList.add('item-dragging');
       });
@@ -3727,17 +3753,18 @@ function _buildChildrenBlock(rCode) {
   const isCollapsed = _collapsedChildren.has(rCode);
 
   const childRows = children.map(child => {
-    const cIdx = ITEMS.indexOf(child);
+    // B-202605-011: IDs de DOM desde item.code — estables ante mutaciones de ITEMS
+    const cSafeId = child.code.replace(/[^a-zA-Z0-9-_]/g, '_');
     const cType = itemType(child.code) || '';
     const isDoneC = child.status === 'done';
     return `<div class="child-item${isDoneC ? ' is-done' : ''}">
-      <span class="child-collapse-arrow" id="ciarrow-${cIdx}" onclick="(function(){toggleItemExpand(${cIdx});var a=document.getElementById('ciarrow-${cIdx}');var b=document.getElementById('ibody-${cIdx}');if(a&&b)a.textContent=b.classList.contains('open')?'▾':'▸';event.stopPropagation();})()">&#x25B8;</span>
+      <span class="child-collapse-arrow" id="ciarrow-${cSafeId}" onclick="(function(){var _ci=ITEMS.findIndex(function(x){return x.code==='${esc(child.code)}'});if(_ci>=0)toggleItemExpand(_ci);var a=document.getElementById('ciarrow-${cSafeId}');var b=document.getElementById('ibody-${cSafeId}');if(a&&b)a.textContent=b.classList.contains('open')?'▾':'▸';event.stopPropagation();})()">&#x25B8;</span>
       <span class="item-type-pill ${cType} item-type-pill--sm">${cType}</span>
-      <span class="child-title" onclick="toggleItemExpand(${cIdx});(function(){var a=document.getElementById('ciarrow-${cIdx}');var b=document.getElementById('ibody-${cIdx}');if(a&&b)a.textContent=b.classList.contains('open')?'▾':'▸';})()}">${esc(child.title)}</span>
+      <span class="child-title" onclick="(function(){var _ci=ITEMS.findIndex(function(x){return x.code==='${esc(child.code)}'});if(_ci>=0)toggleItemExpand(_ci);var a=document.getElementById('ciarrow-${cSafeId}');var b=document.getElementById('ibody-${cSafeId}');if(a&&b)a.textContent=b.classList.contains('open')?'▾':'▸';})()}">${esc(child.title)}</span>
       <span class="badge ${statusClass(child.status)} badge--sm">${statusLabel(child.status)}</span>
     </div>
-    <div class="item-body item-body--child" id="ibody-${cIdx}">
-      <div id="code-badge-${cIdx}" onclick="copyItemCode(event,'${esc(child.code)}',${cIdx})" title="Click para copiar ID" class="item-code-badge">${esc(child.code)}</div>
+    <div class="item-body item-body--child" id="ibody-${cSafeId}">
+      <div id="code-badge-${cSafeId}" onclick="copyItemCode(event,'${esc(child.code)}',-1)" title="Click para copiar ID" class="item-code-badge">${esc(child.code)}</div>
       ${child.desc ? `<div class="item-desc item-desc--child">${esc(child.desc)}</div>` : ''}
       <div class="child-meta-row">
         <span class="badge ${badgeClass(child.priority)} badge--sm">${badgeLabel(child.priority)}</span>
@@ -3746,7 +3773,7 @@ function _buildChildrenBlock(rCode) {
       </div>
       ${child.ac && child.ac.length ? `<ul class="ac-list open ac-list--child">${child.ac.map(c => `<li class="ac-list-item--sm">${esc(c)}</li>`).join('')}</ul>` : ''}
       <div class="child-actions">
-        <button onclick="event.stopPropagation();openItemEditor(null,'${esc(child.code)}')" class="btn-ghost btn-ghost--sm" title="Editar ítem">✎ Editar</button>
+        <button onclick="event.stopPropagation();_openItemEditorSafe(null,'${esc(child.code)}')" class="btn-ghost btn-ghost--sm" title="Editar ítem">✎ Editar</button>
         <button onclick="event.stopPropagation();_confirmUnlinkChild('${esc(child.code)}','${esc(rCode)}')" class="btn-ghost btn-ghost--sm btn-ghost--muted" title="Desvincular del R padre">⊠ Desvincular</button>
       </div>
     </div>`;
@@ -4111,7 +4138,7 @@ function buildBacklogItem(item) {
             </button>
             <div class="acv-body acv-body--hidden">
               <p class="acv-empty-msg">Este ítem no tiene AC — agrega criterios antes de implementar.</p>
-              <button class="acv-confirm-btn" onclick="event.stopPropagation();openItemEditor(null,'${esc(item.code)}')" title="Abrir editor de ítem">✎ Ir a Item Editor</button>
+              <button class="acv-confirm-btn" onclick="event.stopPropagation();_openItemEditorSafe(null,'${esc(item.code)}')" title="Abrir editor de ítem">✎ Ir a Item Editor</button>
             </div>
           </div>`;
         }
@@ -4168,7 +4195,7 @@ function buildBacklogItem(item) {
       ${item.migratedFrom ? _buildItemMigratedBlock(item) : ''}
       ${_buildItemMentionedIn(item)}
       <div class="bitem-footer">
-        ${isHistorico ? '' : `<button onclick="openItemEditor(null,'${esc(item.code)}')" class="bitem-edit-btn" title="Editar ítem">✎ Editar</button>`}
+        ${isHistorico ? '' : `<button onclick="_openItemEditorSafe(null,'${esc(item.code)}')" class="bitem-edit-btn" title="Editar ítem">✎ Editar</button>`}
         ${(!isHistorico && isIdea && !isDone && !isDiscarded) ? `<button onclick="event.stopPropagation();_promoteItem('${esc(item.code)}')" class="bitem-promote-btn" title="Promover esta posibilidad a Ticket o Requerimiento">⬆ Promover</button>` : ''}
         ${(!isHistorico && type === 'T' && !isDone && !isDiscarded) ? `<button onclick="event.stopPropagation();_promoteTtoR('${esc(item.code)}')" class="bitem-promote-btn" title="Promover Ticket a Requerimiento">⬆ → R</button>` : ''}
         ${(!isHistorico && !isDone && !isDiscarded) ? `<button onclick="event.stopPropagation();_openMigrateItem('${esc(item.code)}')" class="bitem-promote-btn" title="Mover item a otro proyecto">&#x21C4; Mover</button>` : ''}
@@ -4583,6 +4610,9 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // Orden de avance: pendiente < done < descartado (descartado solo vía confirmación)
   const _statusRank = { pendiente: 0, done: 1, descartado: 2 };
 
+  // B-202605-007: snapshot antes de cualquier mutación — incluye cierre automático de P padre
+  if (!_dryRun) _undoSnapshot();
+
   tgItems.forEach(item => {
     if (!item.code) return;
     if (item._invalidType) { ignored.push({ code: item.code || '[sin-código]', reason: 'tipo-invalido', desc: item.desc }); return; }
@@ -4720,7 +4750,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
         }
       } else if (!advanced.find(a => a.code === item.code) && !retroceso.find(r => r.code === item.code) && !discarded.find(d => d.code === item.code)) {
         // Distinguir: ya tenía ese status (ok) vs no hubo cambio de status porque no llegó uno válido
-        const noStatusIncoming = !item.status || item.status === '📤 Pendiente';
+        const noStatusIncoming = !item.status || _normalizeStatus(item.status) === 'pendiente'; // B-202605-042: comparación canónica — normStatus() retorna 'pendiente', no '📤 Pendiente'
         const alreadyInStatus = newStatus === oldStatus;
         if (alreadyInStatus && !noStatusIncoming) {
           ignored.push({ code: item.code, reason: 'ya-en-status', desc: existing.title, status: oldStatus });
@@ -4804,8 +4834,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
   });
 
   if (!_dryRun && changed) {
-    _undoSnapshot();
-    saveBacklog();
+    saveBacklog(); // B-202605-007: _undoSnapshot() movido antes del forEach
     _setBacklogModified();
     renderStats(); // siempre actualizar stat bar aunque no estemos en tab Backlog
     if (currentTab === 'backlog') { renderBacklogList(); updateBacklogBanner(); }
@@ -4835,9 +4864,15 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     diff = mergeBacklogFromTG(tgItems, sessId, { dryRun: true });
   } finally {
     if (_filterChanged) {
+      // B-202605-010: restaurar filter antes de loadBacklog — si loadBacklog lanza, el filter ya está restaurado
       if (_prevFilter) localStorage.setItem('current-project-filter', _prevFilter);
       else localStorage.removeItem('current-project-filter');
-      if (typeof loadBacklog === 'function') loadBacklog();
+      try {
+        if (typeof loadBacklog === 'function') loadBacklog();
+      } catch (e) {
+        console.error('[AI Tracker] showMergeDiffPanel: loadBacklog falló en finally — filter restaurado, backlog puede estar desactualizado.', e);
+        if (typeof showToast === 'function') showToast({ title: 'Error al restaurar backlog', body: 'Recarga la página.', type: 'error' });
+      }
     }
   }
 
@@ -5467,9 +5502,13 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
     overlay.classList.remove('open');
     document.removeEventListener('keydown', _mdiffKeyHandler);
+    // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
     delete window._mdiffUpdateConfirmBtn;
     delete window._mdiffToggleSection;
     delete window._mdiffJumpTo;
+    delete window._mdiffSetItemSprint;
+    delete window._mdiffConfirmNewSprintForm;
+    delete window._mdiffCancelNewSprintForm;
 
     if (typeof showToast === 'function' && appliedCount > 0) {
       showToast('success', `Sesión guardada — ${appliedCount} ítem${appliedCount !== 1 ? 's' : ''} aplicado${appliedCount !== 1 ? 's' : ''}`);
@@ -5513,9 +5552,13 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   overlay.querySelector('#mdiff-cancel-btn').addEventListener('click', () => {
     overlay.classList.remove('open');
     document.removeEventListener('keydown', _mdiffKeyHandler);
+    // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
     delete window._mdiffUpdateConfirmBtn;
     delete window._mdiffToggleSection;
     delete window._mdiffJumpTo;
+    delete window._mdiffSetItemSprint;
+    delete window._mdiffConfirmNewSprintForm;
+    delete window._mdiffCancelNewSprintForm;
     // Sin toast — el usuario canceló deliberadamente
   });
 
@@ -5542,9 +5585,13 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     } else if (e.key === 'Escape') {
       document.removeEventListener('keydown', _mdiffKeyHandler);
       overlay.classList.remove('open');
+      // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
       delete window._mdiffUpdateConfirmBtn;
       delete window._mdiffToggleSection;
       delete window._mdiffJumpTo;
+      delete window._mdiffSetItemSprint;
+      delete window._mdiffConfirmNewSprintForm;
+      delete window._mdiffCancelNewSprintForm;
     }
   }
   document.addEventListener('keydown', _mdiffKeyHandler);
@@ -6433,7 +6480,7 @@ function _scmRender() {
   const backBtn = document.getElementById('sprint-close-back-btn');
   const nextBtn = document.getElementById('sprint-close-next-btn');
   const isFirst = step === 1;
-  const isLast  = step === (skipStep2 ? 3 : 3);
+  const isLast  = step === (skipStep2 ? 2 : 3); // B-202605-001: skipStep2=true → último paso efectivo es 2
 
   if (backBtn) {
     backBtn.hidden = isFirst;
@@ -6455,7 +6502,8 @@ function _scmRender() {
 
   if (step === 1) body.innerHTML = _scmStep1Html(sp, spLabel, pendingItems, doneItems);
   else if (step === 2 && !skipStep2) body.innerHTML = _scmStep2Html(pendingItems, migrations, id);
-  else if (step === 3 || (step === 3 && skipStep2)) body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep2);
+  else if (step === 2 && skipStep2) body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep2); // B-202605-001: skipStep2=true → paso 2 es el último, renderiza resumen
+  else if (step === 3 && !skipStep2) body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep2);
 }
 
 function _scmStep1Html(sp, spLabel, pendingItems, doneItems) {
@@ -7248,7 +7296,7 @@ function _renderItemPanel(item) {
     </div>
     <div class="idp-actions-bar">
       <button class="idp-action-btn" onclick="_idpCopyCode('${esc(item.code)}')" title="Copiar código">⎘ ${esc(item.code)}</button>
-      <button class="idp-action-btn" onclick="openItemEditor(null,'${esc(item.code)}')" title="Abrir editor completo">✎ Editar</button>
+      <button class="idp-action-btn" onclick="_openItemEditorSafe(null,'${esc(item.code)}')" title="Abrir editor completo">✎ Editar</button>
       ${doneBtn}
       <button class="idp-action-btn${_focusModeActive ? ' idp-action-btn--active' : ''}" id="idp-focus-btn" onclick="toggleFocusMode()" title="${_focusModeActive ? 'Salir del Modo Focus (Esc)' : 'Activar Modo Focus'}">${_focusModeActive ? '⛶ Salir focus' : '⛶ Focus'}</button>
     </div>`;
@@ -7840,7 +7888,13 @@ function toggleTmplTriggerPanel(btn) {
       const tag = document.activeElement && document.activeElement.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
       e.preventDefault();
-      if (typeof toggleFocusMode === 'function') toggleFocusMode();
+      // B-202605-014: con panel abierto → focus mode del panel; sin panel → Backlog Top-10
+      const panelOpen = document.getElementById('item-detail-panel')?.classList.contains('open');
+      if (panelOpen) {
+        if (typeof toggleFocusMode === 'function') toggleFocusMode();
+      } else {
+        if (typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode();
+      }
     }
   });
 })();

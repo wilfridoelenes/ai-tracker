@@ -1,7 +1,7 @@
 // R-202604-037: tabla canónica de proyectos del ecosistema — editar aquí para agregar nuevos
 // La validación en parsePaste() es case-sensitive: 'Locus' es válido, 'locus' no.
-// Base Rules §3: string canónico del holding es 'Obsidian Labs' — 'Obsidiana' y 'Obsidiana Labs' deprecados.
-const CANONICAL_PROJECTS = ['Obsidian Labs', 'ASVAB App', 'Content Manager', 'Locus'];
+// OL-CONTEXT §7: strings canónicos — 'Obsidiana'/'Obsidiana Labs' deprecados · 'ASVAB App' deprecado (→ 'Alisto') · 'AI Tracker' deprecado (→ 'Locus')
+const CANONICAL_PROJECTS = ['Obsidian Labs', 'Alisto', 'Content Manager', 'Locus'];
 
 // R-202605-133: parseCheckpoint — path primario JSON puro + path legacy regex
 // Path primario: bloque ```json { ... } ``` con schema completo
@@ -507,7 +507,7 @@ function parsePaste(id) {
     let _projPillHTML = '';
     if (isCheckpoint) {
       if (_ckptProj) {
-        const _match = _cardProjName && _cardProjName.trim().toLowerCase() === _ckptProj.trim().toLowerCase();
+        const _match = _cardProjName && _cardProjName.trim() === _ckptProj.trim();
         const _pillColor = _match ? 'var(--green)' : 'var(--accent)';
         const _pillBg = _match ? 'rgba(46,204,120,0.12)' : 'rgba(248,113,50,0.12)';
         const _pillBorder = _match ? 'rgba(46,204,120,0.3)' : 'rgba(248,113,50,0.3)';
@@ -1666,7 +1666,7 @@ function saveSession(id) {
   if (parsed.isCheckpoint) {
     const _ckptProj = (parsed.ckptProyecto || '').trim();
     const _cardProjName = (activeProj.name || '').trim();
-    const _projMatch = _ckptProj && _cardProjName.toLowerCase() === _ckptProj.toLowerCase();
+    const _projMatch = _ckptProj && _cardProjName === _ckptProj;
     const _projMismatch = _ckptProj && !_projMatch;
     const _projMissing = !_ckptProj;
 
@@ -1811,6 +1811,13 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
           // segundo render garantiza sidebar y card con state final estabilizado
           render();
           if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+          // B-202605-XXX: re-limpiar draft después del segundo render() — mismo fix que flujo principal
+          localStorage.removeItem('draft-' + id);
+          localStorage.removeItem('draft-' + id + '-ts');
+          const _dotRaf2 = document.getElementById('draft-' + id);
+          if (_dotRaf2) _dotRaf2.className = 'draft-dot';
+          const _taRaf2 = document.getElementById('ta-' + id);
+          if (_taRaf2 && _taRaf2.value.trim()) { _taRaf2.value = ''; parsePaste(id); }
           const card2 = document.getElementById('card-' + id);
           if (card2) {
             card2.classList.remove('card-flash'); void card2.offsetWidth; card2.classList.add('card-flash');
@@ -1873,7 +1880,7 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
       updCount++;
     } else {
       const c = tracker.counters;
-      const numMatch = item.code.match(/[PITRB]-\d{6}-(\d{3})/);
+      const numMatch = item.code.match(/[PTRB]-\d{6}-(\d{3})/);
       if (numMatch) { const num = parseInt(numMatch[1]); if (num >= (c[item.type] || 0)) c[item.type] = num; }
       tracker.items.push({id:'tgi-'+Date.now()+'-'+Math.random().toString(36).slice(2,6), code:item.code, desc:item.desc, status:item.status, sessionId:sessId});
       newCount++;
@@ -1959,6 +1966,15 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     _setPhase(id, 3);
     render();
     if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+    // B-202605-XXX: re-limpiar draft después del segundo render() — restoreDrafts() corre
+    // al final de render() y puede repoblar el textarea si el draft sobrevivió en localStorage
+    // (race entre parsePaste con ta.value='' y un oninput/debounce timer previo).
+    localStorage.removeItem('draft-' + id);
+    localStorage.removeItem('draft-' + id + '-ts');
+    const _dotRaf = document.getElementById('draft-' + id);
+    if (_dotRaf) _dotRaf.className = 'draft-dot';
+    const _taRaf = document.getElementById('ta-' + id);
+    if (_taRaf && _taRaf.value.trim()) { _taRaf.value = ''; parsePaste(id); }
     const card = document.getElementById('card-' + id);
     if (card) {
       const firstRow = card.querySelector('.sess-row');
@@ -2915,7 +2931,9 @@ function _buildLogHeader(total, filtered) {
   const aiPills = aiList.map(ai => {
     const active = _logFilterAI === ai.id ? ' log-ai-pill--active' : '';
     const color = ai.color ? ai.color : '';
-    return `<button class="log-ai-pill${active}" ${color} onclick="setLogFilterAI('${ai.id}')" title="${esc(ai.name)}">${esc(ai.name)}</button>`;
+    // B-202605-020: color aplicado como data-color — nunca interpolado como atributo sin nombre
+    const colorAttr = color ? `data-color="${esc(color)}" style="--ai-pill-color:${esc(color)}"` : '';
+    return `<button class="log-ai-pill${active}" ${colorAttr} onclick="setLogFilterAI('${ai.id}')" title="${esc(ai.name)}">${esc(ai.name)}</button>`;
   }).join('');
 
   const typePills = [

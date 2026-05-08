@@ -1,9 +1,9 @@
-// T-202604-243: prefijo de documento vivo según proyecto activo
+// T-202604-243: prefijo de documento vivo según proyecto activo — OL-CONTEXT §7
 const _PREFIX_MAP = {
-  'Obsidiana':       'OB',
-  'ASVAB App':       'AS',
+  'Obsidian Labs':   'OL',
+  'Alisto':          'AS',
   'Content Manager': 'CM',
-  'AI Tracker':      'PP',
+  'Locus':           'PP',
 };
 function _docPrefix() {
   const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
@@ -43,6 +43,7 @@ function _buildCurrentStateMd() {
   if (pendientes.length) {
     const byType = {};
     pendientes.forEach(i => {
+      if (!i.code) return; // B-202605-030: guard contra code null
       const t = i.code[0];
       byType[t] = (byType[t] || 0) + 1;
     });
@@ -453,8 +454,8 @@ function _generateBacklogMd(newVersion, opts = {}) {
   // Contadores — máximos de ITEMS completo + state.tracker.counters (no del subconjunto)
   const counters = { P:0, T:0, R:0, B:0 };
   ITEMS.forEach(i => {
+    if (!i.code) return; // B-202605-030: guard contra code null
     const t = i.code[0];
-    if (!'PITRB'.includes(t)) return;
     const m = i.code.match(/[PITRB]-\d{6}-(\d{3})/);
     if (m) { const n = parseInt(m[1]); if (n > counters[t]) counters[t] = n; }
   });
@@ -554,14 +555,18 @@ ${itemsMd}
 // Construye las líneas del índice de estado agrupadas por tipo
 // AC-6 (R-202605-132): itemMap acepta {status, sprint?} — refleja sprint de cada ítem en el índice
 function _buildIndexLines(itemMap) {
-  const groups = { T: [], R: [], B: [], P: [] };
+  const groups = { T: [], R: [], B: [], P: [], '?': [] }; // B-202605-019: bucket '?' para [pendiente-ID]
   Object.keys(itemMap).forEach(code => {
     const t = code[0];
     const entry = itemMap[code];
     // Compatibilidad: acepta string (status) o {status, sprint}
     const status = typeof entry === 'string' ? entry : (entry.status || '—');
     const sprint = typeof entry === 'object' ? (entry.sprint || '') : '';
-    if (groups[t]) groups[t].push({ code, status, sprint });
+    if (groups[t]) {
+      groups[t].push({ code, status, sprint });
+    } else {
+      groups['?'].push({ code, status, sprint }); // B-202605-019: code[0] fuera de PTRB → Sin código asignado
+    }
   });
   const lines = [];
   Object.keys(groups).forEach(t => {
@@ -570,8 +575,9 @@ function _buildIndexLines(itemMap) {
     // Agrupar en líneas de 6 para legibilidad (sprint amplía el token)
     const chunks = [];
     for (let i = 0; i < groups[t].length; i += 6) chunks.push(groups[t].slice(i, i+6));
+    const label = t === '?' ? 'Sin código asignado' : t; // B-202605-019
     chunks.forEach(chunk => {
-      lines.push(t + ': ' + chunk.map(x => {
+      lines.push(label + ': ' + chunk.map(x => {
         const sprintTag = x.sprint ? ` [${x.sprint}]` : '';
         return `${x.code} ${x.status}${sprintTag}`;
       }).join(' | '));

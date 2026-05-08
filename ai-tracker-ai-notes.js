@@ -84,7 +84,7 @@ function confirmAddAI() {
     inp.focus(); inp.select();
     return;
   }
-  state.ais.push({id:'ai-'+Date.now(), name, status:'available', resetTime:'', sessions:[], showAll:false, notes:'', avatar:AVATAR_LOGOS.default});
+  state.ais.push({id:'ai-'+Date.now()+'-'+Math.random().toString(36).slice(2), name, status:'available', resetTime:'', sessions:[], showAll:false, notes:'', avatar:AVATAR_LOGOS.default}); // B-202605-079: componente random evita colisión en mismo ms
   save(); closeModal('add-modal');
   if (currentTab !== 'tracker') switchTab('tracker'); else render();
   showToast('success', 'IA agregada');
@@ -98,7 +98,11 @@ function confirmClear(id) {
 }
 function deleteAI(id) {
   // T-202604-212: confirmar solo si tiene sesiones — sin historial, borrar directo
-  const hasSessions = (state.projects || []).some(p => (p.sessions || []).some(s => s.aiId === id));
+  // B-202605-023: verificar sesiones en state.projects Y en ai.sessions (formato legacy v2)
+  const ai = getAI(id);
+  const hasSessionsInProjects = (state.projects || []).some(p => (p.sessions || []).some(s => s.aiId === id));
+  const hasSessionsLegacy = ai && (ai.sessions || []).length > 0;
+  const hasSessions = hasSessionsInProjects || hasSessionsLegacy;
   if (hasSessions) {
     showInlineConfirm(id, 'delete', '¿Eliminar esta IA y todo su historial?');
   } else {
@@ -852,11 +856,11 @@ function piDrop(e) {
 
 function _piDetectType(line) {
   // Detecta tipo desde título "### [pendiente-ID] · ..." o "### T-202604-xxx · ..."
-  const m = line.match(/^###\s+(?:\[pendiente-ID\]|([PITRB])-\d{6}-\d{3})\s+·\s+(.+)$/i);
+  const m = line.match(/^###\s+(?:\[pendiente-ID\]|([PTRB])-\d{6}-\d{3})\s+·\s+(.+)$/i);
   if (!m) return null;
   // Si tiene código real, extraer tipo y código completo
   if (m[1]) {
-    const codeMatch = line.match(/([PITRB]-\d{6}-\d{3})/i);
+    const codeMatch = line.match(/([PTRB]-\d{6}-\d{3})/i);
     return { type: m[1].toUpperCase(), title: m[2].trim(), code: codeMatch ? codeMatch[1].toUpperCase() : null };
   }
   return { type: 'T', title: m[2].trim(), code: null };
@@ -1245,7 +1249,7 @@ function _ieAutofillFromPaste(text) {
 
   // ── Formato 1: línea CHECKPOINT ───────────────────────────────────────────
   // [PTRBI]: ([código]|[pendiente-ID]|[tmp:slug]): desc | effort:N | area:X | ac: c1 / c2
-  const cpRe = /^([PTRBI])\s*:\s*(?:\[pendiente-ID\]|\[tmp:[^\]]+\]|[PTRBI]-\d{6}-\d{3}(?:-[A-Z]+)?)\s*:\s*(.+?)(?:\s*\|(.+))?$/i;
+  const cpRe = /^([PTRB])\s*:\s*(?:\[pendiente-ID\]|\[tmp:[^\]]+\]|[PTRB]-\d{6}-\d{3}(?:-[A-Z]+)?)\s*:\s*(.+?)(?:\s*\|(.+))?$/i;
   const cpMatch = t.match(cpRe);
   if (cpMatch) {
     const typeChar = cpMatch[1].toUpperCase() === 'I' ? 'I' : cpMatch[1].toUpperCase();
@@ -1286,7 +1290,7 @@ function _ieAutofillFromPaste(text) {
 
   // ── Formato 2: bloque Markdown ────────────────────────────────────────────
   // ### [CODE|pendiente-ID] · Título
-  const mdHeaderRe = /^###\s+(?:(\[pendiente-ID\]|\[tmp:[^\]]+\]|([PTRBI])-\d{6}-\d{3}(?:-[A-Za-z]+)?))\s+·\s+(.+)/im;
+  const mdHeaderRe = /^###\s+(?:(\[pendiente-ID\]|\[tmp:[^\]]+\]|([PTRB])-\d{6}-\d{3}(?:-[A-Za-z]+)?))\s+·\s+(.+)/im;
   // También acepta header sin código: ### Título (menos preciso — solo si hay campos **field:**)
   const mdHeaderSimple = /^###\s+(.+)/im;
   let mdMatch = t.match(mdHeaderRe);
@@ -1332,7 +1336,7 @@ function _ieAutofillFromPaste(text) {
     }
 
     // Código real si viene
-    const isRealCode = !mdSimple && codeRaw && /[PTRBI]-\d{6}-\d{3}/i.test(codeRaw);
+    const isRealCode = !mdSimple && codeRaw && /[PTRB]-\d{6}-\d{3}/i.test(codeRaw);
 
     // Poblar
     if (typeChar) document.getElementById('item-type').value  = typeChar;

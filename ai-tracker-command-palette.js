@@ -391,10 +391,10 @@ const _cp = {
 
 function _el(id) { return document.getElementById(id); }
 
-function _cpInput()       { return _el('cp-input'); }
-function _cpList()        { return _el('cp-results'); }
-function _cpOverlay()     { return _el('cp-overlay'); }
-function _cpRecent()      { return _el('cp-recent'); }
+function _cpInput()       { return _el('cmd-palette-input'); }  // B-202605-002: ID canónico
+function _cpList()        { return _el('cmd-palette-list'); }    // B-202605-002: ID canónico
+function _cpOverlay()     { return _el('cmd-palette-overlay'); } // B-202605-002: ID canónico
+function _cpRecent()      { return _el('cp-recent'); }           // cp-recent: no existe en HTML canónico — funciones guardan con if(!el)
 
 /* ────────────────────────────────────────────────────────────────
    OPEN / CLOSE
@@ -410,7 +410,7 @@ function openCommandPalette() {
   const overlay = _cpOverlay();
   if (!overlay) return;
 
-  overlay.classList.add('cp-visible');
+  overlay.classList.remove('hidden'); // B-202605-002: sistema canónico usa 'hidden', no 'cp-visible'
   document.body.classList.add('cp-body-lock');
 
   const input = _cpInput();
@@ -428,7 +428,7 @@ function closeCommandPalette() {
   _cp.open = false;
 
   const overlay = _cpOverlay();
-  if (overlay) overlay.classList.remove('cp-visible');
+  if (overlay) overlay.classList.add('hidden'); // B-202605-002: sistema canónico usa 'hidden', no 'cp-visible'
   document.body.classList.remove('cp-body-lock');
 }
 

@@ -18,7 +18,7 @@ function _effectiveVersion() {
 // T-074: umbral de días sin sesión para sugerencia contextual
 const STALE_DAYS_THRESHOLD = 3;
 
-// T-074: true si la IA lleva >STALE_DAYS_THRESHOLD días sin sesión Y tiene ítems en-progreso
+// T-074: true si la IA lleva >STALE_DAYS_THRESHOLD días sin sesión Y tiene ítems pendientes
 function _hasStaleSuggestion(ai) {
   if (ai.status === 'exhausted') return false;
   const aiSessions = getAISessions(ai.id);
@@ -28,7 +28,7 @@ function _hasStaleSuggestion(ai) {
   if (isNaN(lastDate)) return false;
   const diffDays = (Date.now() - lastDate.getTime()) / 86400000;
   if (diffDays <= STALE_DAYS_THRESHOLD) return false;
-  const hasInProgress = ITEMS.some(i => i.status === 'en-progreso');
+  const hasInProgress = ITEMS.some(i => i.status === 'pendiente'); // B-202605-046: 'en-progreso' es valor legacy — schema canónico usa 'pendiente'
   return hasInProgress;
 }
 
@@ -51,18 +51,20 @@ function _updateHeaderProjectLabel() {
   const nameEl   = document.getElementById('header-project-name');
   if (!prefixEl || !nameEl) return;
 
-  // Mapa canónico: id de proyecto → { prefix, name }
+  // Mapa canónico: nombre de proyecto → prefijo (fuente de verdad única — OL-CONTEXT §7)
   const CANONICAL = {
-    // Fallback por nombre si no hay id limpio
+    'Obsidian Labs':   'OL',
+    'Alisto':          'AS',
+    'Content Manager': 'CM',
+    'Locus':           'PP',
   };
 
   const filterId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : '';
   const proj = filterId && (typeof getProjectById === 'function') ? getProjectById(filterId) : null;
 
   if (proj) {
-    // Derivar prefijo: primeras 2-3 letras en mayúsculas, o usar icono si existe
-    const prefix = proj.prefix || (proj.name || 'PP').slice(0, 2).toUpperCase();
     const name   = proj.name || 'Proyecto';
+    const prefix = CANONICAL[name] || name.slice(0, 2).toUpperCase();
     prefixEl.textContent = prefix;
     nameEl.textContent   = name;
   } else {
@@ -402,7 +404,7 @@ async function signInWithMagicLink(resend = false) {
   if (btn) { btn.disabled = true; btn.textContent = 'Enviando…'; }
   const { error } = await _supabase.auth.signInWithOtp({
     email,
-    options: { shouldCreateUser: true, emailRedirectTo: window.location.origin }
+    options: { shouldCreateUser: false, emailRedirectTo: window.location.origin } // B-202605-044: solo emails pre-registrados pueden autenticarse
   });
   if (btn) { btn.disabled = false; btn.textContent = 'Enviar magic link'; }
   if (error) {
@@ -794,10 +796,16 @@ function showCheckpointPanel(result) {
       const appliedDiscard = pending.discarded.filter(i => i.confirmed && (i.reason || i.selectedReason)).length;
       const total = appliedRetro + appliedDiscard;
       if (total) showToast('info', `✓ ${total} cambio${total > 1 ? 's' : ''} aplicado${total > 1 ? 's' : ''}`);
-      // Descarga diferida si estaba pendiente
+      // B-202605-024: typeof guard — downloadTemplates puede no estar disponible si el módulo no cargó
       if (window._pendingTemplateDownload) {
         window._pendingTemplateDownload = false;
-        if (_templateTrigger() === 'session') downloadTemplates();
+        if (_templateTrigger() === 'session') {
+          if (typeof downloadTemplates === 'function') {
+            downloadTemplates();
+          } else {
+            showToast('warning', '⚠️ Descarga no disponible — módulo de plantillas no cargado');
+          }
+        }
       }
       _ckptDiffCleanup();
     };
@@ -1610,8 +1618,6 @@ async function saveBacklog() {
 
 // R-202604-035: saveContextDocs() — escribe en tracker_docs
 async function saveContextDocs() {
-  if (!_supabase) return;
-
   const projId = _getActiveProjectFilter();
   const suffix = projId ? '-' + projId : '-global';
 
@@ -1626,19 +1632,28 @@ async function saveContextDocs() {
     meta:     localStorage.getItem(_tplKey('html-map-meta'))     || '{}'
   };
 
-  if (_supabase && _supabaseUser) {
-    try {
-      const { error } = await _supabase.from('tracker_docs').upsert([
-        { user_id: _supabaseUser.id, key: 'context' + suffix, value: ctxPayload, updated_at: new Date().toISOString() },
-        { user_id: _supabaseUser.id, key: 'htmlmap' + suffix, value: hmPayload,  updated_at: new Date().toISOString() }
-      ], { onConflict: 'user_id,key' });
-      if (error) throw error;
-    } catch (err) {
-      console.error('[AI Tracker] Supabase saveContextDocs() failed:', err);
-      setSyncStatus('offline', '✕ sin conexión');
-      showToast('warning', '⚠️ Context/HTML-MAP no sincronizado con Supabase — guardado localmente');
-      _offlineQueuePush({ type: 'docs' });
-    }
+  // B-202605-041: persistir en localStorage ANTES de intentar Supabase —
+  // garantiza que los datos sobreviven un fallo o ausencia de Supabase.
+  try {
+    localStorage.setItem('tracker-ctx-docs' + suffix, JSON.stringify(ctxPayload));
+    localStorage.setItem('tracker-hm-docs'  + suffix, JSON.stringify(hmPayload));
+  } catch (lsErr) {
+    console.warn('[AI Tracker] saveContextDocs: fallo al escribir en localStorage', lsErr);
+  }
+
+  if (!_supabase || !_supabaseUser) return;
+
+  try {
+    const { error } = await _supabase.from('tracker_docs').upsert([
+      { user_id: _supabaseUser.id, key: 'context' + suffix, value: ctxPayload, updated_at: new Date().toISOString() },
+      { user_id: _supabaseUser.id, key: 'htmlmap' + suffix, value: hmPayload,  updated_at: new Date().toISOString() }
+    ], { onConflict: 'user_id,key' });
+    if (error) throw error;
+  } catch (err) {
+    console.error('[AI Tracker] Supabase saveContextDocs() failed:', err);
+    setSyncStatus('offline', '✕ sin conexión');
+    showToast('warning', '⚠️ Context/HTML-MAP no sincronizado con Supabase — guardado localmente');
+    _offlineQueuePush({ type: 'docs' });
   }
 }
 
@@ -4865,8 +4880,8 @@ function buildCard(ai) {
       <div class="paste-ta-wrap">
         <textarea class="paste-ta" id="ta-${ai.id}" rows="3"
           placeholder="Pega aquí el resumen del prompt...&#10;&#10;**Título:** ...&#10;**Resumen:** ...&#10;**Archivos:** ..."
-          onpaste="handlePaste('${ai.id}')"
-          oninput="handleInput('${ai.id}'); _updatePasteTaActions('${ai.id}')"
+          onpaste="if(typeof handlePaste==='function'){handlePaste('${ai.id}')}else{showToast('error','Módulo de ingesta no disponible')}"
+          oninput="if(typeof handleInput==='function'){handleInput('${ai.id}');}; _updatePasteTaActions('${ai.id}')"
           onfocus="enterFocusMode('${ai.id}')"></textarea>
         <div class="paste-ta-actions" id="pta-${ai.id}">
           <button class="paste-ta-btn paste-ta-btn--paste" onclick="pasteFromClipboard('${ai.id}')" aria-label="Pegar desde portapapeles" title="Pegar">📋</button>
@@ -6504,7 +6519,7 @@ function buildTGPreview(items, discrepancy) {
     html += `<div class="preview-tg-row">
       <span class="preview-tg-badge ${item.type}">${item.type}</span>
       <span class="preview-tg-code">${esc(item.code)}</span>
-      <span class="preview-tg-desc">${esc(item.desc)}${tag}${noAcTag}</span>
+      <span class="preview-tg-desc">${esc(item.title || item.desc)}${tag}${noAcTag}</span>
       <span class="preview-tg-status">${esc(item.status)}</span>
     </div>`;
   });
@@ -6653,6 +6668,8 @@ function openQuickNote(editId) {
   modal.classList.add('open');
   setTimeout(() => document.getElementById('qn-text').focus(), 80);
 }
+// B-202605-005: exponer en window para que módulos de búsqueda y panel de proyecto puedan invocarla vía onclick inline
+window.openQuickNote = openQuickNote;
 
 function closeQuickNote() {
   const modal = document.getElementById('quick-note-modal');
