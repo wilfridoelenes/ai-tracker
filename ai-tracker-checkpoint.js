@@ -509,14 +509,15 @@ function esc(s) { return s ? (s + '').replace(/&/g, '&amp;').replace(/</g, '&lt;
 // T-202604-TMP: [tmp:slug] mantiene identidad entre CHECKPOINTs de la misma sesión
 function _slugify(desc) {
   // Deriva slug de las primeras 3 palabras del desc normalizado
-  if (!desc) return 'item';
+  // B-202605-027: retorna '' cuando desc vacío — el caller asigna slug único por posición/timestamp
+  if (!desc) return '';
   return desc.toLowerCase()
     .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar acentos
     .replace(/[^a-z0-9\s]/g, '')
     .trim()
     .split(/\s+/)
     .slice(0, 3)
-    .join('-') || 'item';
+    .join('-') || '';
 }
 
 function _loadTmpIdMap() {
@@ -602,9 +603,15 @@ function _assignPendingIds(tgItems) {
         assigned.push(item);
         return;
       }
-      // T-202604-TMP: derivar slug del desc y buscar en tmpMap antes de crear código nuevo
-      const slug = _slugify(item.desc || item.title);
-      if (slug && tmpMap[slug]) {
+      // T-202604-TMP: derivar slug del desc/title y buscar en tmpMap antes de crear código nuevo
+      // B-202605-027: si title y desc vacíos, generar slug único por posición+timestamp para evitar colisión
+      const _rawSlug = _slugify(item.desc || item.title);
+      const _fallbackSlug = _rawSlug || `item-${Date.now()}-${assigned.length}`;
+      // B-202605-027: deduplicar slug en tmpMap — si ya existe, agregar sufijo numérico
+      let slug = _fallbackSlug;
+      if (!_rawSlug) {
+        // slug sintético: siempre único, no buscar en tmpMap (no hay title que persista)
+      } else if (tmpMap[slug]) {
         item.code = tmpMap[slug].code;
         item._tmpResolved = true;
         assigned.push(item);
@@ -616,7 +623,7 @@ function _assignPendingIds(tgItems) {
       const num = String(meta.counters[t]).padStart(3, '0');
       item.code = `${t}-${yyyymm}-${num}`;
       item._wasAssigned = true;
-      if (slug) { tmpMap[slug] = { code: item.code, createdAt: Date.now() }; tmpMapDirty = true; }
+      if (_rawSlug) { tmpMap[slug] = { code: item.code, createdAt: Date.now() }; tmpMapDirty = true; }
     }
 
     assigned.push(item);
@@ -7078,6 +7085,23 @@ function _itemVizRender() {
   });
 }
 
+// B-202605-505: helper de copia segura — garantiza que el ghost textarea recibe el foco
+// antes de execCommand('copy') para evitar que el portapapeles del usuario quede
+// sobreescrito con el contenido del textarea activo (ej: CHECKPOINT en edición).
+function _copyTextSafe(text) {
+  const prev = document.activeElement;
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.className = 'clipboard-ghost';
+  document.body.appendChild(ta);
+  if (prev && typeof prev.blur === 'function') prev.blur();
+  ta.focus();
+  ta.select();
+  try { document.execCommand('copy'); } catch (_) {}
+  document.body.removeChild(ta);
+  if (prev && typeof prev.focus === 'function') prev.focus();
+}
+
 // T-202605-428: copy helper para códigos en el panel DIFF
 function _vizCopyCode(e, el) {
   e.stopPropagation();
@@ -7091,16 +7115,10 @@ function _vizCopyCode(e, el) {
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(code).then(_doFlash).catch(() => {
-      const ta = document.createElement('textarea');
-      ta.value = code; ta.className = 'clipboard-ghost';
-      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-      document.body.removeChild(ta); _doFlash();
+      _copyTextSafe(code); _doFlash();
     });
   } else {
-    const ta = document.createElement('textarea');
-    ta.value = code; ta.className = 'clipboard-ghost';
-    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
-    document.body.removeChild(ta); _doFlash();
+    _copyTextSafe(code); _doFlash();
   }
 }
 
@@ -7451,15 +7469,8 @@ function _showArranquePanel() {
           _copyBtn.textContent = 'Copiar prompt de arranque';
         }, 2000);
       }).catch(() => {
-        // Fallback para entornos sin clipboard API
-        const ta = document.createElement('textarea');
-        ta.value = _planPromptText;
-        ta.style.setProperty('position', 'fixed');
-        ta.style.setProperty('opacity', '0');
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        document.body.removeChild(ta);
+        // B-202605-505: usar _copyTextSafe para evitar sobreescribir clipboard del usuario
+        _copyTextSafe(_planPromptText);
         _copyBtn.classList.add('arr-plan-copy-btn--copied');
         _copyBtn.textContent = '✓ Copiado';
         setTimeout(() => {
