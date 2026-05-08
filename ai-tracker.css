@@ -246,12 +246,13 @@ header {
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   padding: 0 2rem;
+  overflow: hidden;
 }
 .logo-name em { font-style: normal; color: var(--accent); }
 .logo-by { font-size: var(--text-sm); font-weight: 500; color: var(--hint); margin-left: 2px; letter-spacing: 0.01em; }
 .header-logo-img { height: 32px; width: auto; display: block; }
-/* R [pendiente-ID]: logo ocupa el alto útil del header — height 100% relativo a .header-inner (52px) con padding óptico simétrico */
-#pepe-logo { height: calc(100% - 12px); width: auto; display: block; object-fit: contain; }
+/* R [pendiente-ID]: grillo ocupa exactamente el alto del header — height 100% de .header-inner (52px), overflow:hidden en header lo contiene */
+#pepe-logo { height: 100%; width: auto; display: block; object-fit: contain; }
 .header-sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
 
 /* Splash screen Pepe */
