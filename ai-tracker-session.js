@@ -827,13 +827,8 @@ function saveStandaloneCheckpoint() {
       }
     }
     // R-202604-076 + R-B: plan block — PLAN legacy y EXECUTION-PLAN nuevo
-    if ((raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) && typeof parsePlanBlock === 'function' && typeof savePlan === 'function') {
-      const _plan = parsePlanBlock(raw);
-      if (_plan) {
-        savePlan(activeProj.id, _plan);
-        if (typeof renderPlan === 'function') renderPlan();
-      }
-    }
+    // B-202605-XXX: usar _tryIngestPlan en lugar de savePlan directo — preserva scope:sprint al guardar scope:sesion
+    if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
 
     closeStandaloneCheckpoint();
 
@@ -1796,10 +1791,8 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
         const mapSections2 = extractHtmlMapSections(raw);
         if (mapSections2.length) mergeHtmlMapSections(mapSections2, activeProj.id);
         // R-202604-076 + R-B: plan block — PLAN legacy y EXECUTION-PLAN nuevo
-        if ((raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) && typeof parsePlanBlock === 'function' && typeof savePlan === 'function') {
-          const _plan2 = parsePlanBlock(raw);
-          if (_plan2) { savePlan(activeProj.id, _plan2); if (typeof renderPlan === 'function') renderPlan(); }
-        }
+        // B-202605-XXX: usar _tryIngestPlan en lugar de savePlan directo — preserva scope:sprint al guardar scope:sesion
+        if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
         await saveImmediate(); render(); renderStats();
         if (currentTab === 'backlog') renderBacklogList();
         _rebuildLogBody();
@@ -1926,13 +1919,8 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   if (mapSections.length) mergeHtmlMapSections(mapSections, activeProj.id);
 
   // R-202604-076 + R-B: parsear y guardar bloque ---PLAN--- / ---EXECUTION-PLAN--- si existe
-  if ((raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) && typeof parsePlanBlock === 'function' && typeof savePlan === 'function') {
-    const _plan = parsePlanBlock(raw);
-    if (_plan) {
-      savePlan(activeProj.id, _plan);
-      if (typeof renderPlan === 'function') renderPlan();
-    }
-  }
+  // B-202605-XXX: usar _tryIngestPlan en lugar de savePlan directo — preserva scope:sprint al guardar scope:sesion
+  if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
 
   if (horaResult) { ai.status = 'exhausted'; ai.resetTime = horaResult.hhmm; ai.resetEpoch = horaResult.epoch; }
   ai._parsed = {};
