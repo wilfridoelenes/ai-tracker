@@ -448,8 +448,32 @@ function confirmResetBacklog() {
   localStorage.removeItem(_tplKey('backlog-items'));
   localStorage.removeItem(_tplKey('backlog-meta'));
   localStorage.removeItem('backlog-raw');
-  // saveBacklog persiste ITEMS=[] para que el reload no restaure datos
+  // saveBacklog persiste ITEMS=[] — también sincroniza a Supabase si el usuario está autenticado
   saveBacklog();
+
+  // AC-9: borrar backlog en Supabase cuando el usuario está autenticado
+  if (typeof _supabase !== 'undefined' && _supabase &&
+      typeof _supabaseUser !== 'undefined' && _supabaseUser) {
+    (async () => {
+      try {
+        const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : null;
+        const suffix = projId ? '-' + projId : '-global';
+        const { error } = await _supabase
+          .from('tracker_backlog')
+          .delete()
+          .eq('user_id', _supabaseUser.id)
+          .in('key', ['items' + suffix, 'meta' + suffix]);
+        if (error) throw error;
+        if (typeof setSyncStatus === 'function') setSyncStatus('synced', '✓ sincronizado');
+      } catch (err) {
+        console.error('[AI Tracker] confirmResetBacklog: Supabase sync error:', err);
+        if (typeof setSyncStatus === 'function') setSyncStatus('offline', '✕ sin conexión');
+        if (typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'backlog' });
+        showToast('warning', '⚠️ Reset local aplicado — Supabase se sincronizará al reconectar');
+      }
+    })();
+  }
+
   closeResetBacklogModal();
   _updateSubTabButtons('backlog');
   renderBacklogList();
@@ -7772,12 +7796,52 @@ function confirmResetSessions() {
     });
   }
 
-  // Persistir state limpio
+  // Persistir state limpio en localStorage
   try {
     localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
   } catch (e) {
     showToast('error', '❌ Error al guardar — intenta de nuevo');
     return;
+  }
+
+  // AC-9: sincronizar reset a Supabase cuando el usuario está autenticado
+  if (typeof _supabase !== 'undefined' && _supabase &&
+      typeof _supabaseUser !== 'undefined' && _supabaseUser) {
+    (async () => {
+      try {
+        // Borrar sesiones en tracker_sessions para todos los proyectos
+        const { error: sessErr } = await _supabase
+          .from('tracker_sessions')
+          .delete()
+          .eq('user_id', _supabaseUser.id);
+        if (sessErr) throw sessErr;
+
+        // Sobrescribir state en tracker_state con sesiones y sprints vacíos
+        const stateWithoutSessions = {
+          ...state,
+          projects: (state.projects || []).map(p => {
+            const { sessions, ...rest } = p;
+            return { ...rest, sprints: [] };
+          })
+        };
+        const { error: stateErr } = await _supabase
+          .from('tracker_state')
+          .upsert({
+            user_id: _supabaseUser.id,
+            key: 'main',
+            value: stateWithoutSessions,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id,key' });
+        if (stateErr) throw stateErr;
+
+        if (typeof setSyncStatus === 'function') setSyncStatus('synced', '✓ sincronizado');
+      } catch (err) {
+        console.error('[AI Tracker] confirmResetSessions: Supabase sync error:', err);
+        if (typeof setSyncStatus === 'function') setSyncStatus('offline', '✕ sin conexión');
+        if (typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'state' });
+        showToast('warning', '⚠️ Reset local aplicado — Supabase se sincronizará al reconectar');
+      }
+    })();
   }
 
   closeResetSessionsModal();

@@ -1,7 +1,7 @@
 // R-202604-037: tabla canónica de proyectos del ecosistema — editar aquí para agregar nuevos
 // La validación en parsePaste() es case-sensitive: 'AI Tracker' es válido, 'ai tracker' no.
-// Base Rules §3: string canónico del holding es 'Obsidiana Labs' — 'Obsidiana' deprecado.
-const CANONICAL_PROJECTS = ['Obsidiana Labs', 'Obsidiana', 'ASVAB App', 'Content Manager', 'AI Tracker'];
+// Base Rules §3: string canónico del holding es 'Obsidian Labs' — 'Obsidiana' y 'Obsidiana Labs' deprecados.
+const CANONICAL_PROJECTS = ['Obsidian Labs', 'ASVAB App', 'Content Manager', 'AI Tracker'];
 
 // R-202605-133: parseCheckpoint — path primario JSON puro + path legacy regex
 // Path primario: bloque ```json { ... } ``` con schema completo
