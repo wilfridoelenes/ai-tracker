@@ -16677,7 +16677,6 @@ textarea[id^="ta-"]:focus {
 /* Ocultar chrome cuando modo focus activo */
 body.body--focus-mode header,
 body.body--focus-mode #global-radar-sidebar,
-body.body--focus-mode #radar-sidebar-expand,
 body.body--focus-mode #global-footer {
   display: none !important;
 }

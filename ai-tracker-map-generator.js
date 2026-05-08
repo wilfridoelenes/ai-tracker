@@ -623,6 +623,51 @@ function generateDocuments() {
     return;
   }
 
+  // T-202605-504: validar campos obligatorios del CONTEXT antes de generar
+  if (contextChecked) {
+    const _valSp = _mgActiveSprint();
+    if (_valSp) {
+      // AC1: sprint.name vacío — bloqueante
+      if (!_valSp.name || !_valSp.name.trim()) {
+        if (typeof showToast === 'function') showToast('error', 'El sprint activo no tiene nombre — define el nombre del sprint antes de exportar el CONTEXT.');
+        return;
+      }
+      // AC2: sprint.goal null/vacío — bloqueante
+      if (!_valSp.goal || !String(_valSp.goal).trim()) {
+        if (typeof showToast === 'function') showToast('error', 'El sprint activo no tiene goal — define el goal del sprint antes de exportar el CONTEXT.');
+        return;
+      }
+      // AC3: status active + backlog.pending = 0 con backlog.total > 0 — advertencia con opción continuar
+      const _valStatus = _mgInferStatus(_valSp, (() => {
+        try {
+          if (typeof _tplKey === 'function') {
+            const raw = localStorage.getItem(_tplKey('backlog-items'));
+            return raw ? JSON.parse(raw) : [];
+          }
+          return typeof ITEMS !== 'undefined' ? ITEMS : [];
+        } catch(e) { return []; }
+      })());
+      if (_valStatus === 'active') {
+        const _valItems = (() => {
+          try {
+            if (typeof _tplKey === 'function') {
+              const raw = localStorage.getItem(_tplKey('backlog-items'));
+              return raw ? JSON.parse(raw) : [];
+            }
+            return typeof ITEMS !== 'undefined' ? ITEMS : [];
+          } catch(e) { return []; }
+        })();
+        const _valTotal   = _valItems.length;
+        const _valPending = _valItems.filter(i => i.status === 'pendiente').length;
+        if (_valTotal > 0 && _valPending === 0) {
+          // eslint-disable-next-line no-alert
+          const ok = window.confirm('⚠ El backlog no tiene ítems pendientes pero el sprint está activo.\n¿Continuar con la exportación del CONTEXT?');
+          if (!ok) return;
+        }
+      }
+    }
+  }
+
   const btn = document.getElementById('mg-generate-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Generando…'; }
 
@@ -735,13 +780,16 @@ function _mgInferStatus(activeSp, blItems) {
   return 'between_sprints';
 }
 
-function _generateContext() {
+function _generateContext(ver) {
   // R-202605-136: produce JSON puro — parseable sin regex
   // R-202605-147: enriquecido con status, sprint completo, velocity, backlog snapshot, tech_debt
+  // B-202605-XXX: acepta ver como parámetro (bumpedVer desde generateDocuments) — prioridad sobre version_target del sprint
   const _activeSp   = _mgActiveSprint();
-  const _ctxVersion = (_activeSp && _activeSp.version_target && _activeSp.version_target !== 'undefined')
-    ? _activeSp.version_target
-    : _mgGetVersion();
+  const _ctxVersion = (ver && ver !== 'undefined')
+    ? ver
+    : (_activeSp && _activeSp.version_target && _activeSp.version_target !== 'undefined')
+      ? _activeSp.version_target
+      : _mgGetVersion();
   const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
 
   // Timestamp
@@ -1196,6 +1244,25 @@ function confirmMapGenerator() {
   const bumpedVer = (docs._bumpedVer && docs._bumpedVer !== 'undefined')
     ? docs._bumpedVer
     : _mgBumpMinor(_mgGetVersion());
+
+  // T-202605-504 AC4: versión en nombre de archivo debe coincidir con version interno del CONTEXT
+  if (docs.context) {
+    try {
+      const ctxObj = JSON.parse(docs.context);
+      const ctxVer = ctxObj.version || '';
+      // Normalizar: quitar 'v' inicial para comparación insensible al prefijo
+      const normalize = v => String(v || '').replace(/^v/, '').trim();
+      if (normalize(ctxVer) !== normalize(bumpedVer)) {
+        if (typeof showToast === 'function') {
+          showToast('error', `Versión interna del CONTEXT (${ctxVer}) no coincide con el nombre del archivo (${bumpedVer}) — regenera los documentos antes de confirmar.`);
+        }
+        return;
+      }
+    } catch(e) {
+      // CONTEXT no parseable como JSON — no bloquear; el error de parsing es otro problema
+    }
+  }
+
   // Construir tabla de archivos: { filename, content, applyFn? }
   const activeSprint = _mgActiveSprint();
   const sprintId     = activeSprint ? activeSprint.id : 'sin-sprint';

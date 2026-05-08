@@ -4848,6 +4848,9 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   const _criticalReasons = ['duplicado', 'sin-status', 'tipo-invalido'];
   const _hasCriticalIgnored = (diff.ignored || []).some(i => _criticalReasons.includes(i.reason));
 
+  // B-202605-500: sprints asignados desde el DIFF a ítems nuevos (aún no existen en ITEMS durante dryRun)
+  const _mdiffPendingSprints = {}; // { [code]: sprintId }
+
   if (total === 0 && !_hasCriticalIgnored) { onApply(); return; }
 
   // ── Helpers de renderizado ──
@@ -5257,7 +5260,11 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   // R-202605-148: persistir sprint en ITEMS + saveBacklog sin re-render del backlog ni del DIFF
   function _mdiffPersistSprint(code, sprintId) {
     const item = ITEMS.find(i => i.code === code);
-    if (!item) return;
+    if (!item) {
+      // B-202605-500: ítem nuevo aún no existe en ITEMS durante dryRun — guardar para aplicar en _mdiffDoApply
+      _mdiffPendingSprints[code] = sprintId || '';
+      return;
+    }
     const prevSprint = item.sprint || '';
     item.sprint = sprintId || '';
     item.priority = _calcPriority(item);
@@ -5469,6 +5476,33 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     }
 
     onApply();
+
+    // B-202605-500: aplicar sprints pendientes sobre ítems nuevos (ya existen en ITEMS tras onApply)
+    const pendingEntries = Object.entries(_mdiffPendingSprints);
+    if (pendingEntries.length) {
+      let changed = false;
+      pendingEntries.forEach(([code, sprintId]) => {
+        const item = ITEMS.find(i => i.code === code);
+        if (!item) return;
+        item.sprint = sprintId || '';
+        item.priority = _calcPriority(item);
+        if (sprintId) {
+          const targetSprint = _getSprintById(sprintId);
+          if (targetSprint && targetSprint.status === 'active' && targetSprint.startedAt) {
+            item.scope_added = true;
+          }
+        } else {
+          delete item.scope_added;
+        }
+        if (!item.history) item.history = [];
+        item.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: null, to: sprintId || null } });
+        changed = true;
+      });
+      if (changed) {
+        saveBacklog();
+        _setBacklogModified();
+      }
+    }
 
     if (andThenGoBacklog) {
       if (typeof switchTab === 'function') switchTab('backlog');

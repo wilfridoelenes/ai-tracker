@@ -7742,3 +7742,49 @@ function searchContratos(q) {
   });
   return results;
 }
+
+// Resetear Sesiones — preserva Workers y Proyectos
+function openResetSessionsModal() {
+  const input = document.getElementById('reset-sessions-input');
+  if (input) { input.value = ''; }
+  const btn = document.getElementById('reset-sessions-confirm-btn');
+  if (btn) btn.disabled = true;
+  const hint = document.getElementById('reset-sessions-hint');
+  if (hint) hint.classList.add('hidden');
+  document.getElementById('reset-sessions-overlay').classList.add('open');
+  if (typeof _focusFirstInteractive === 'function') _focusFirstInteractive('reset-sessions-overlay');
+}
+
+function closeResetSessionsModal() {
+  document.getElementById('reset-sessions-overlay').classList.remove('open');
+  if (typeof _restoreModalFocus === 'function') _restoreModalFocus('reset-sessions-overlay');
+}
+
+function confirmResetSessions() {
+  const input = document.getElementById('reset-sessions-input');
+  if (!input || input.value.trim() !== 'RESET') return;
+
+  // Vaciar sesiones y sprints de todos los proyectos — preservar workers, proyectos, theme, tags
+  if (typeof state !== 'undefined' && Array.isArray(state.projects)) {
+    state.projects.forEach(proj => {
+      proj.sessions = [];
+      proj.sprints = [];
+    });
+  }
+
+  // Persistir state limpio
+  try {
+    localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+  } catch (e) {
+    showToast('error', '❌ Error al guardar — intenta de nuevo');
+    return;
+  }
+
+  closeResetSessionsModal();
+
+  // Re-render
+  if (typeof renderSessionList === 'function') renderSessionList();
+  if (typeof renderStats === 'function') renderStats();
+
+  showToast('success', 'Sesiones y sprints reseteados — Workers y Proyectos conservados');
+}
