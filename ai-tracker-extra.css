@@ -17208,12 +17208,9 @@ body.body--focus-mode::after {
 }
 
 /* ── Fix #3 · Font stack — system font macOS ────────────────────── */
-/*    Aplicado sobre :root — DM Sans queda como fallback web          */
-
-:root {
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'DM Sans', sans-serif !important;
-  --font-display: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', 'DM Sans', sans-serif !important;
-}
+/*    B-202605-039: re-declaración eliminada — aplicaba globalmente con !important sin scope de plataforma.
+      La declaración base en ai-tracker.css (DM Sans) aplica en Windows/Chrome.
+      Para scope macOS se requiere selector de plataforma vía JS (pendiente). */
 
 /* ── Fix #4 · Sombras de cards — valores nativos macOS ─────────── */
 

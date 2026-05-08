@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="light"><head>
+<html lang="es"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- B-036: aplicar tema guardado antes del primer render para evitar flash -->
-<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<!-- B-202605-036: tema establecido desde localStorage antes del primer paint — sin hardcode en <html> -->
+<script>(function(){var t=localStorage.getItem('theme');document.documentElement.setAttribute('data-theme',(t==='dark'||t==='light')?t:'light');})();</script>
 <title>AI Tracker v1.0.0</title>
 <link rel="icon" type="image/png" href="/img/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -857,14 +857,7 @@
     </div>
     <input type="text" id="reset-backlog-input" placeholder="Escribe RESET para confirmar"
       class="purge-input-field"
-      oninput="
-        const v = this.value.trim();
-        const ok = v === 'RESET';
-        document.getElementById('reset-backlog-confirm-btn').disabled = !ok;
-        const hint = document.getElementById('reset-backlog-hint');
-        if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('hidden'); }
-        else { hint.classList.add('hidden'); }
-      ">
+      oninput="_validateResetBacklogInput(this)">
     <div id="reset-backlog-hint" class="hidden">Debe ser exactamente: RESET (mayúsculas)</div>
     <div class="modal-actions">
       <button onclick="closeResetBacklogModal()">Cancelar</button>
@@ -1502,6 +1495,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof _maybeShowWeeklySummary === 'function') _maybeShowWeeklySummary();
   }, 1200);
 });
+// B-202605-037: validación de reset-backlog-input — lógica extraída de oninput inline a función nombrada
+// TODO: migrar a ai-tracker-backlog.js cuando se refactorice el módulo de modales
+function _validateResetBacklogInput(el) {
+  const v = el.value.trim();
+  const ok = v === 'RESET';
+  document.getElementById('reset-backlog-confirm-btn').disabled = !ok;
+  const hint = document.getElementById('reset-backlog-hint');
+  if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('hidden'); }
+  else { hint.classList.add('hidden'); }
+}
 </script>
 <!-- ═══ DOCUMENT GENERATOR OVERLAY — R-202604-053 · UX R-202605-102 ═══ -->
 <div class="mg-overlay" id="mg-overlay" role="dialog" aria-modal="true" aria-label="Generador de documentos">
@@ -1708,7 +1711,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <span id="gf-total" class="gf-total gf-hidden"></span>
   <span id="gf-done" class="gf-done gf-hidden"></span>
   <span id="gf-ckpt" class="gf-ckpt gf-hidden"></span>
-  <span id="gf-pulso" class="gf-pulso gf-hidden" onclick="openPulsoPanel()" title="Pulso del Ecosistema" style="cursor:pointer"><span class="pulso-dot pulso-dot--green" id="pulso-dot"></span></span>
+  <span id="gf-pulso" class="gf-pulso gf-hidden" onclick="openPulsoPanel()" title="Pulso del Ecosistema"><span class="pulso-dot pulso-dot--green" id="pulso-dot"></span></span>
   <span id="gf-fecha" class="gf-fecha gf-hidden"></span>
   <span id="gf-sync" class="gf-sync gf-hidden"></span>
 </footer>
