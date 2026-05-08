@@ -2,7 +2,9 @@
 <html lang="es" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AI Tracker v3.2.6</title>
+<!-- B-036: aplicar tema guardado antes del primer render para evitar flash -->
+<script>(function(){var t=localStorage.getItem('theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);})();</script>
+<title>AI Tracker v1.0.0</title>
 <link rel="icon" type="image/png" href="/img/logo.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,9 +25,9 @@
 <!-- ═══ SPLASH PEPE ═══ -->
 <div id="pepe-splash">
   <div id="pepe-splash-container">
-    <img id="pepe-splash-img" src="img/logo-splash.png" alt="AI Tracker by Pepe" class="loading">
+    <img id="pepe-splash-img" src="img/logo-splash.png" alt="AI Tracker — Obsidian Labs" class="loading">
     <div class="splash-name splash-name--hidden"><em>AI Tracker</em></div>
-    <div class="splash-sub" id="splash-status">Iniciando...</div>
+    <div class="splash-sub" id="splash-status">Obsidian Labs · Gestión de sesiones y backlog</div>
     <div class="splash-version" id="splash-version"></div>
     <div id="pepe-progress-bar">
       <div id="pepe-progress-fill" class="indeterminate"></div>
@@ -51,7 +53,7 @@
     <div class="tabs">
       <button class="tab-btn" id="tab-btn-tracker" onclick="switchTab('tracker')" title="Ver Tracker de sesiones">🗂 Sesiones<span class="tab-notif-badge hidden" id="tab-notif-badge-tracker"></span></button>
       <button class="tab-btn" id="tab-btn-proyectos" onclick="switchTab('proyectos')" title="Dashboard estratégico de proyectos">📁 Proyectos<span class="tab-notif-badge hidden" id="tab-notif-badge-proyectos"></span></button>
-      <button class="tab-btn" id="tab-btn-backlog" onclick="switchTab('backlog')" title="Documentos de sesión — Backlog, Module Map y Context">🗃 Documentos<span class="tab-notif-badge hidden" id="tab-notif-badge-backlog"></span></button>
+      <button class="tab-btn" id="tab-btn-backlog" onclick="switchTab('backlog')" title="Backlog — ítems, sprints y estado del ecosistema">🗃 Backlog<span class="tab-notif-badge hidden" id="tab-notif-badge-backlog"></span></button>
       <button class="tab-btn" id="tab-btn-analytics" onclick="switchTab('analytics')" title="Analytics — sesiones por mes">📊 Analytics<span class="tab-notif-badge hidden" id="tab-notif-badge-analytics"></span></button>
     </div>
 
@@ -144,7 +146,7 @@
       <button class="rsb-pin-btn" id="rsb-pin-btn" onclick="rsbTogglePin()" title="Fijar sidebar">
         <svg width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M8.5 1.5L11.5 4.5L7.5 8.5L6.5 11.5L4.5 9.5L1.5 12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M4.5 8.5L1.5 5.5L5.5 4.5L8.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <span class="radar-sidebar-title">Notificaciones</span>
+      <span class="radar-sidebar-title">Workers</span>
       <div class="rsb-header-actions">
         <button class="rsb-add-ia-btn" onclick="openAddAI()" title="Nuevo Worker">+</button>
         <button class="radar-sidebar-collapse-btn" id="radar-sidebar-toggle" onclick="toggleRadarSidebar()" title="Colapsar">&#x2039;</button>
@@ -350,7 +352,7 @@
       <div class="tpl-sidebar-label">Acciones</div>
       <div class="tpl-sidebar-action-list" id="tpl-toolbar">
         <!-- R-202604-052: import manual eliminado — único punto de entrada es ---ITEMS--- via CHECKPOINT -->
-        <button class="tpl-action-btn hidden" id="btn-import-backlog" onclick="" title="Import deshabilitado — usar ---ITEMS--- en CHECKPOINT" disabled style="display:none">↑ Importar Backlog</button>
+        <button class="tpl-action-btn hidden" id="btn-import-backlog" onclick="" title="Import deshabilitado — usar ---ITEMS--- en CHECKPOINT" disabled>↑ Importar Backlog</button>
 
         <!-- T-202604-359: btn-new-item eliminado — CHECKPOINT es el único punto de entrada para ítems nuevos -->
         <div class="tpl-action-row hidden" id="tpl-undo-row">
@@ -449,7 +451,7 @@
     <div class="bl-sprint-bar" id="bl-sprint-bar"></div>
 
     <!-- toolbar vieja — oculta, mantenida por compatibilidad con JS que la referencia -->
-    <div class="toolbar" id="toolbar" style="display:none"></div>
+    <div class="toolbar hidden" id="toolbar"></div>
     <!-- R-202604-047: wrapper estático para two-col layout con item-detail-panel -->
     <div id="backlog-two-col-wrap">
       <div id="backlog-list"></div>
@@ -727,9 +729,9 @@
 <div class="onboarding-overlay" id="onboarding-overlay">
   <div class="onboarding-modal">
     <div class="onboarding-header">
-      <span class="onboarding-mascot">🤖</span>
+      <span class="onboarding-mascot">🪨</span>
       <div class="onboarding-title">Bienvenido a AI Tracker</div>
-      <div class="onboarding-subtitle">Registra tus sesiones con Workers, gestiona tu backlog y mantén el contexto entre conversaciones.</div>
+      <div class="onboarding-subtitle">Registra tus sesiones con Workers, gestiona tu backlog y mantén el contexto de Obsidian Labs entre conversaciones.</div>
     </div>
     <div class="onboarding-steps" id="onboarding-steps"></div>
     <div class="onboarding-footer">
@@ -921,7 +923,6 @@
         <div class="ie-field">
           <label>Tipo</label>
           <select id="item-type">
-            <option value="I">I — Idea</option>
             <option value="P">P — Idea</option>
             <option value="T">T — Ticket</option>
             <option value="R">R — Requerimiento</option>
@@ -1345,19 +1346,7 @@
 
 <!-- ═══ FIN R-202604-047 STATIC MODAL SHELLS ═══ -->
 
-<!-- ═══ T-202604-419: COMMAND PALETTE ═══ -->
-<div class="cp-overlay" id="cp-overlay" role="dialog" aria-modal="true" aria-label="Paleta de comandos">
-  <div class="cp-panel">
-    <div class="cp-search-row">
-      <span class="cp-search-icon">🔍</span>
-      <input class="cp-input" id="cp-input" type="text" placeholder="Buscar acción, ítem, sesión…" autocomplete="off" spellcheck="false" aria-label="Buscar comando">
-      <kbd class="cp-esc-hint">esc</kbd>
-    </div>
-    <div class="cp-recent" id="cp-recent"></div>
-    <div class="cp-results" id="cp-results" role="listbox"></div>
-  </div>
-</div>
-<!-- ═══ FIN T-202604-419 COMMAND PALETTE ═══ -->
+<!-- T-202604-419: cp-overlay legacy eliminado — B-002 fix. Activo: #cmd-palette-overlay (T-202604-418) -->
 
 <!-- B-202605-240: Configuración de notificaciones -->
 <div class="modal-overlay hidden" id="notif-config-overlay" onclick="if(event.target===this)closeNotifConfig()">
