@@ -1038,6 +1038,9 @@ function _updatePasteTaActions(id) {
   const hasVal = ta.value.length > 0;
   btn.disabled = !hasVal;
   btn.classList.toggle('paste-ta-btn--disabled', !hasVal);
+  // R-202605-003: ocultar hint cuando el textarea tiene contenido
+  const hint = document.getElementById('pta-hint-' + id);
+  if (hint) hint.classList.toggle('hidden', hasVal);
 }
 
 function _updateCkptReopenBtn() {
@@ -1113,8 +1116,11 @@ function _toastRender(type, title, body, base, onClick) {
   el.setAttribute('role', type === 'error' ? 'alert' : 'status');
 
   const icon = _TOAST_ICONS[type] || 'ℹ';
-  const titleHtml = /<[a-z][\s\S]*>/i.test(title) ? title : esc(title);
-  const bodyHtml  = body ? (/<[a-z][\s\S]*>/i.test(body) ? body : esc(body)) : null;
+  // B-202605-043: regex estricto — requiere nombre de tag HTML válido seguido de espacio, '/' o '>'
+  // Evita falsos positivos con expresiones como '<3', '<3 items', etc.
+  const _isHtml = s => /<[a-z][a-z0-9]*[\s/>]/i.test(s) || /<\/[a-z][a-z0-9]*>/i.test(s);
+  const titleHtml = _isHtml(title) ? title : esc(title);
+  const bodyHtml  = body ? (_isHtml(body) ? body : esc(body)) : null;
   const progressHtml = base !== null ? `<div class="toast-progress"></div>` : '';
 
   el.innerHTML =
@@ -4891,6 +4897,7 @@ function buildCard(ai) {
           onpaste="if(typeof handlePaste==='function'){handlePaste('${ai.id}')}else{showToast('error','Módulo de ingesta no disponible')}"
           oninput="if(typeof handleInput==='function'){handleInput('${ai.id}');}; _updatePasteTaActions('${ai.id}')"
           onfocus="enterFocusMode('${ai.id}')"></textarea>
+        <div class="paste-ta-hint" id="pta-hint-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el rol al cerrar sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
         <div class="paste-ta-actions" id="pta-${ai.id}">
           <button class="paste-ta-btn paste-ta-btn--paste" onclick="pasteFromClipboard('${ai.id}')" aria-label="Pegar desde portapapeles" title="Pegar">📋</button>
           <button class="paste-ta-btn paste-ta-btn--clear paste-ta-btn--disabled" id="pta-clear-${ai.id}" onclick="clearPasteTa('${ai.id}')" aria-label="Limpiar textarea" title="Limpiar" disabled>✕</button>

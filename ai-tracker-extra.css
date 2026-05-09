@@ -18400,3 +18400,24 @@ body.body--focus-mode::after {
 }
 
 /* END [pendiente-ID] */
+
+/* R-202605-003: hint contextual bajo textarea de CHECKPOINT */
+.paste-ta-hint {
+  font-size: 9px;
+  color: var(--hint);
+  line-height: 1.5;
+  margin-top: 5px;
+  margin-bottom: 2px;
+  padding: 0 2px;
+}
+.paste-ta-hint code {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  background: var(--surface2);
+  border-radius: 3px;
+  padding: 0 3px;
+}
+.paste-ta-hint.hidden {
+  display: none;
+}
+/* END R-202605-003 */

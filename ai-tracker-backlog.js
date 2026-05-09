@@ -2785,26 +2785,38 @@ function renderBacklogList() {
 
   updateClearFilterBtn();
 
-  // T-202604-421: Focus mode — top 10 pendientes por score descendente
-  // AC: no-pendientes excluidos · ≤10 muestra todos · rank visual · label dinámico en botón
+  // R-202605-165: Focus mode — Top-10 sprint-aware con .blf-hidden + aria-hidden (CSS collapse 150ms)
+  // AC: sprint activo + high→medium primero · sin sprint activo: score global · ≤10 = todos visibles
+  // AC: NO filtra filtered — aplica _blfHidden en ítems fuera del Top-10 → buildBacklogItem añade clase
+  filtered.forEach(item => { delete item._blfHidden; delete item._focusRank; });
   if (_backlogFocusMode) {
     const pendienteFiltered = filtered.filter(i => i.status === 'pendiente');
-    // AC: no-pendientes nunca aparecen en focus
-    const sorted = [...pendienteFiltered].sort((a, b) => (b._score || 0) - (a._score || 0));
+    const _focusActiveSprint = _getActiveSprint();
+    let sorted;
+    if (_focusActiveSprint) {
+      // Sprint activo: high→medium en sprint activo primero, luego resto por score
+      const _priVal = p => { const v = p || 'medium'; return (v === 'high' || v === 'important' || v === 'critical' || v === 'importante') ? 0 : (v === 'medium') ? 1 : 2; };
+      const inSprint  = pendienteFiltered.filter(i => (i.sprint || '').trim() === _focusActiveSprint.id && _priVal(i.priority) <= 1);
+      const outSprint = pendienteFiltered.filter(i => !((i.sprint || '').trim() === _focusActiveSprint.id && _priVal(i.priority) <= 1));
+      inSprint.sort((a, b) => _priVal(a.priority) - _priVal(b.priority) || (b._score || 0) - (a._score || 0));
+      outSprint.sort((a, b) => (b._score || 0) - (a._score || 0));
+      sorted = [...inSprint, ...outSprint];
+    } else {
+      sorted = [...pendienteFiltered].sort((a, b) => (b._score || 0) - (a._score || 0));
+    }
     const showAll = sorted.length <= 10;
-    const focusResult = showAll ? sorted : sorted.slice(0, 10);
-    // Estampar rank visual en cada ítem (usado por buildBacklogItem)
-    focusResult.forEach((item, idx) => { item._focusRank = idx + 1; });
-    filtered = focusResult;
-    // AC: actualizar label del botón con conteo real
+    const top10Codes = new Set(sorted.slice(0, 10).map(i => i.code));
+    // Estampar rank y flag oculto — buildBacklogItem aplica .blf-hidden + aria-hidden
+    sorted.slice(0, 10).forEach((item, idx) => { item._focusRank = idx + 1; });
+    filtered.forEach(item => {
+      if (item.status !== 'pendiente' || !top10Codes.has(item.code)) item._blfHidden = true;
+    });
+    // AC: label dinámico en botón con conteo real
     const focusBtn = document.getElementById('fbar-focus-btn');
     if (focusBtn) {
-      const countLabel = showAll ? 'todos' : String(focusResult.length);
-      focusBtn.textContent = `🎯 Focus (${countLabel})`;
+      const visibleCount = Math.min(sorted.length, 10);
+      focusBtn.textContent = `🎯 Focus (${showAll ? 'todos' : visibleCount})`;
     }
-  } else {
-    // Limpiar ranks cuando focus está inactivo
-    filtered.forEach(item => { delete item._focusRank; });
   }
 
   // T-202604-313/366: Mi vista — T's pendientes del rol activo en sprint activo
@@ -4049,7 +4061,10 @@ function buildBacklogItem(item) {
 
   // R-202605-098: isPromoted — P descartado por promoción (tiene discardRef)
   const isPromoted = isIdea && isDiscarded && !!item.discardRef;
-  return `<div class="item bitem${isDone ? ' is-done' : ''}${isDiscarded ? ' is-discarded' : ''}${isActive ? ' bitem--active' : ''}${isIdea ? ' bitem--idea' : ''}${isPromoted ? ' bitem--promoted' : ''}" data-type="${type}" data-code="${esc(item.code)}">
+  // R-202605-165: .blf-hidden colapsa ítems fuera del Top-10 con transición 150ms ease-out
+  const _blfHiddenClass = item._blfHidden ? ' blf-hidden' : '';
+  const _blfAriaHidden  = item._blfHidden ? ' aria-hidden="true"' : '';
+  return `<div class="item bitem${isDone ? ' is-done' : ''}${isDiscarded ? ' is-discarded' : ''}${isActive ? ' bitem--active' : ''}${isIdea ? ' bitem--idea' : ''}${isPromoted ? ' bitem--promoted' : ''}${_blfHiddenClass}" data-type="${type}" data-code="${esc(item.code)}"${_blfAriaHidden}>
     <div class="item-header bitem-header" onclick="toggleItemExpand(${globalIdx})">
       ${(!isDone && !isDiscarded && item.sprint) ? `<span class="item-drag-handle" title="Arrastrar para reordenar en sprint" ondragstart="event.stopPropagation()" onclick="event.stopPropagation()">⠿</span>` : ''}
       ${isActive ? '<span class="bitem-activity-dot" title="Actividad reciente — sesión vinculada en los últimos 7 días"></span>' : ''}

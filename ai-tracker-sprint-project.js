@@ -79,8 +79,9 @@ function _backlogVersion() {
 }
 
 // R-202604-052: sprint cerrado más reciente del proyecto activo
+// B-202605-026: accede a state.sprints directamente — no usa getActiveSprints() que retorna solo 'active'
 function _lastClosedSprint() {
-  const sprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+  const sprints = (state && Array.isArray(state.sprints)) ? state.sprints : [];
   const closed = sprints.filter(s => s.status === 'closed');
   if (!closed.length) return null;
   // El más reciente por closedAt o por posición en array
@@ -124,7 +125,8 @@ function _generateSprintsExportMd(newVersion) {
   const _activeProj = typeof getActiveProject === 'function' ? getActiveProject() : null;
   const _projName = _activeProj ? (_activeProj.name || 'Sin proyecto') : 'Sin proyecto';
 
-  const allSprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+  // B-202605-026: state.sprints directo — getActiveSprints() retorna solo 'active' post-fix
+  const allSprints = (state && Array.isArray(state.sprints)) ? state.sprints : [];
   // Todos los sprints — cerrados primero (desc), luego activo, luego abiertos
   const closedSprints = allSprints
     .filter(s => s.status === 'closed')
@@ -280,7 +282,8 @@ function _generateFullHistoryBySprintMd(newVersion) {
     return m ? parseInt(m[1], 10) : null;
   };
 
-  const allSprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+  // B-202605-026: state.sprints directo — getActiveSprints() retorna solo 'active' post-fix
+  const allSprints = (state && Array.isArray(state.sprints)) ? state.sprints : [];
   const closedSprints = allSprints
     .filter(s => s.status === 'closed')
     .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));

@@ -102,8 +102,10 @@ function _buildCommandRegistry() {
       group: 'Acciones',
       action: () => {
         if (typeof confirmCloseSprint === 'function') {
-          const active = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
-          if (active && active.length > 0) confirmCloseSprint(active[0].id);
+          // B-202605-026: filtrar por status === 'active' — getActiveSprints() retorna todos los sprints del proyecto
+          const allSprints = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
+          const active = allSprints.filter(s => s.status === 'active');
+          if (active.length > 0) confirmCloseSprint(active[0].id);
           else _cpShowToast('No hay sprint activo para cerrar');
         }
       },

@@ -27,7 +27,7 @@
   <div id="pepe-splash-container">
     <img id="pepe-splash-img" src="img/logo-splash.png" alt="AI Tracker — Obsidian Labs" class="loading">
     <div class="splash-name splash-name--hidden"><em>AI Tracker</em></div>
-    <div class="splash-sub" id="splash-status">Obsidian Labs · Gestión de sesiones y backlog</div>
+    <div class="splash-sub" id="splash-status">Registra sesiones, gestiona tu backlog y mantén el contexto del equipo.</div>
     <div class="splash-version" id="splash-version"></div>
     <div id="pepe-progress-bar">
       <div id="pepe-progress-fill" class="indeterminate"></div>
@@ -245,7 +245,7 @@
 
       <div class="tracker-detail tracker-detail--full" id="tracker-detail">
         <div class="tracker-detail-empty" id="tracker-detail-empty">
-          <div class="tracker-detail-empty-icon">←</div>
+          <div class="tracker-detail-empty-icon">→</div>
           <div class="tracker-detail-empty-text">Selecciona un Worker</div>
           <div class="tracker-detail-empty-hint">Elige un Worker del panel derecho para abrir su tarjeta de sesión.</div>
         </div>
@@ -323,7 +323,7 @@
 
     <!-- Navegación — T-202604-048 -->
     <div class="tpl-sidebar-section">
-      <div class="tpl-sidebar-label">Documentos</div>
+      <div class="tpl-sidebar-label">Backlog</div>
       <div class="tpl-sidebar-nav">
         <button class="tpl-nav-btn active" id="sstab-btn-backlog" onclick="switchSubTab('backlog')">
           <span class="tpl-nav-icon">📋</span><span class="tpl-nav-text">Backlog</span>
@@ -415,6 +415,7 @@
         <span class="bl-collapse-btn-icon">⊟</span>
         <span class="bl-collapse-btn-label">Colapsar</span>
       </button>
+      <button class="bl-toolbar-new-item-btn" id="btn-new-backlog-item" onclick="_openItemEditorSafe(null, null)" title="Crear nuevo ítem">+ Nuevo ítem</button>
       <div class="bl-toolbar-spacer"></div>
       <div class="fbar-search-wrap">
         <input class="fbar-search-input" id="backlog-search-input" type="text" placeholder="🔍 Buscar…" oninput="onBacklogSearch()" autocomplete="off">
@@ -2026,6 +2027,22 @@ function _validateResetBacklogInput(el) {
 @media (max-width: 600px) {
   .user-chip-name { display: none; }
   .user-chip { padding: 3px 5px; }
+}
+</style>
+
+<style>
+/* R-202605-165: Focus Mode — colapso visual de ítems fuera del Top-10 */
+.blf-hidden{
+  overflow:hidden;
+  max-height:0;
+  opacity:0;
+  margin-top:0;
+  margin-bottom:0;
+  padding-top:0;
+  padding-bottom:0;
+  border-width:0;
+  pointer-events:none;
+  transition:max-height 150ms ease-out, opacity 150ms ease-out, margin 150ms ease-out, padding 150ms ease-out;
 }
 </style>
 

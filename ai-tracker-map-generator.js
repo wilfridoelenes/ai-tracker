@@ -233,11 +233,11 @@ let _mgDropzoneInited = false;
 
 function _mgInitDropzone() {
   if (_mgDropzoneInited) return;
-  _mgDropzoneInited = true;
 
   const zone = document.getElementById('mg-dropzone');
   const input = document.getElementById('mg-file-input');
   if (!zone || !input) return;
+  _mgDropzoneInited = true;
 
   zone.addEventListener('dragover', e => {
     e.preventDefault();
@@ -583,10 +583,11 @@ function _mgBuildPlan() {
     });
   });
 
-  // Emitir bloque ---PLAN---
+  // B-202605-034: emitir bloque ---EXECUTION-PLAN--- (scope: sprint) — formato activo del parser de PP
   const sprintId = targetSprint ? targetSprint.id : 'sin-sprint';
 
-  let md = `---PLAN---\n`;
+  let md = `---EXECUTION-PLAN---\n`;
+  md += `scope: sprint\n`;
   md += `sprint: ${sprintId}\n`;
   md += `sesiones:\n`;
 
@@ -600,7 +601,7 @@ function _mgBuildPlan() {
     md += `    depende_de: ${depArr.length ? depArr.join(', ') : '[]'}\n`;
   });
 
-  md += `---PLAN-END---`;
+  md += `---EXECUTION-PLAN-END---`;
 
   return { planMd: md, warning: null, sprintId };
 }

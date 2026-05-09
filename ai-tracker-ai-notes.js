@@ -2045,10 +2045,13 @@ function onSearch() {
   const sessSlice = sessMatches.slice(0, 30);
 
   // ── 3. Notas rápidas coincidentes ──
-  const noteMatches = (state.quickNotes || []).filter(n =>
-    (n.text || '').toLowerCase().includes(q) ||
-    (n.itemRef || '').toLowerCase().includes(q)
-  );
+  // B-202605-022: respetar scope de proyecto activo — filtrar por projectId cuando aplica
+  const noteMatches = (state.quickNotes || []).filter(n => {
+    const textHit = (n.text || '').toLowerCase().includes(q) || (n.itemRef || '').toLowerCase().includes(q);
+    if (!textHit) return false;
+    if (_activeProjId && n.projectId && n.projectId !== _activeProjId) return false;
+    return true;
+  });
 
   // ── 4. T-202604-420: Ítems de backlog coincidentes ──
   const backlogMatches = (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(item => {
@@ -3201,6 +3204,11 @@ function exportWeeklySummary() {
   const start = new Date(now); start.setDate(now.getDate() - 6); start.setHours(0,0,0,0);
   const range = { start, end };
 
+  // B-202605-040: guard typeof — getAllSessions puede no estar disponible si el módulo no cargó
+  if (typeof getAllSessions !== 'function') {
+    showToast('error', 'Error al exportar — módulo de sesiones no disponible');
+    return;
+  }
   const allSess  = getAllSessions();
   const weekSess = _sessInRange(allSess, range);
 
