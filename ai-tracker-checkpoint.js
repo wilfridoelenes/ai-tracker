@@ -996,52 +996,6 @@ function togglePasteHelp(id) {
   box.classList.toggle('hidden');
 }
 
-// R-202605-XXX: Botones accionables textarea paste — Limpiar y Pegar
-function clearPasteTa(id) {
-  const ta = document.getElementById('ta-' + id);
-  if (!ta || !ta.value) return;
-  // B-202605: bloquear limpieza si hay borrador guardado en localStorage
-  const hasDraft = !!localStorage.getItem('draft-' + id);
-  if (hasDraft) {
-    showToast('warning', 'Hay un borrador guardado — guarda o descarta la sesión antes de limpiar');
-    return;
-  }
-  ta.value = '';
-  ta.dispatchEvent(new Event('input', { bubbles: true }));
-  ta.focus();
-  _updatePasteTaActions(id);
-}
-
-async function pasteFromClipboard(id) {
-  const ta = document.getElementById('ta-' + id);
-  if (!ta) return;
-  // Un solo click: intentar clipboard API, si falla enfocar textarea para paste manual
-  try {
-    const text = await navigator.clipboard.readText();
-    if (!text) { ta.focus(); return; }
-    ta.value = text;
-    ta.dispatchEvent(new Event('paste', { bubbles: true }));
-    ta.dispatchEvent(new Event('input', { bubbles: true }));
-    ta.focus();
-    _updatePasteTaActions(id);
-  } catch (e) {
-    // Sin permiso de clipboard: enfocar el textarea para que el usuario pegue con Ctrl+V
-    ta.focus();
-    showToast('info', 'Pega con Ctrl+V — el navegador no permite acceso directo al portapapeles');
-  }
-}
-
-function _updatePasteTaActions(id) {
-  const ta    = document.getElementById('ta-' + id);
-  const btn   = document.getElementById('pta-clear-' + id);
-  if (!ta || !btn) return;
-  const hasVal = ta.value.length > 0;
-  btn.disabled = !hasVal;
-  btn.classList.toggle('paste-ta-btn--disabled', !hasVal);
-  // R-202605-003: ocultar hint cuando el textarea tiene contenido
-  const hint = document.getElementById('pta-hint-' + id);
-  if (hint) hint.classList.toggle('hidden', hasVal);
-}
 
 function _updateCkptReopenBtn() {
   const btn = document.getElementById('ckpt-reopen-btn');
@@ -4942,15 +4896,10 @@ function buildCard(ai) {
       </div>
       <div class="paste-ta-wrap">
         <textarea class="paste-ta" id="ta-${ai.id}" rows="3"
-          placeholder="Pega aquí el resumen del prompt...&#10;&#10;**Título:** ...&#10;**Resumen:** ...&#10;**Archivos:** ..."
           onpaste="if(typeof handlePaste==='function'){handlePaste('${ai.id}')}else{showToast('error','Módulo de ingesta no disponible')}"
-          oninput="if(typeof handleInput==='function'){handleInput('${ai.id}');}; _updatePasteTaActions('${ai.id}')"
+          oninput="if(typeof handleInput==='function'){handleInput('${ai.id}');}"
           onfocus="enterFocusMode('${ai.id}')"></textarea>
         <div class="paste-ta-hint" id="pta-hint-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el rol al cerrar sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
-        <div class="paste-ta-actions" id="pta-${ai.id}">
-          <button class="paste-ta-btn paste-ta-btn--paste" onclick="pasteFromClipboard('${ai.id}')" aria-label="Pegar desde portapapeles" title="Pegar">📋</button>
-          <button class="paste-ta-btn paste-ta-btn--clear paste-ta-btn--disabled" id="pta-clear-${ai.id}" onclick="clearPasteTa('${ai.id}')" aria-label="Limpiar textarea" title="Limpiar" disabled>✕</button>
-        </div>
       </div>
       <div class="char-counter" id="cc-${ai.id}"></div>
     </div>

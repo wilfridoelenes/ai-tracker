@@ -5183,6 +5183,16 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
     // T-202605-500: mostrar ID auto-generado como prefijo no editable
     const _mdiffPreviewId = _nextSprintId();
+    const _mdiffConfirmId = 'mdiff-sprint-confirm-' + code;
+    // R-202605-009: radio buttons para release_type con label visible
+    const rtRadios = ['Major', 'Minor', 'Patch'].map(v =>
+      `<label class="sprint-inline-release-label">
+        <input type="radio" name="mdiff-sprint-rt-${esc(code)}" value="${v}"
+          ${suggestedRt === v ? 'checked' : ''}
+          onchange="_mdiffSyncConfirmBtn('${esc(code)}');_clearSprintFieldErr('mdiff-sprint-rt-err-${esc(code)}')">
+        ${v}
+      </label>`
+    ).join('');
     const wrap = document.createElement('div');
     wrap.className = 'mdiff-new-sprint-form';
     wrap.innerHTML = `
@@ -5192,14 +5202,15 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
       <input type="text" class="mdiff-new-sprint-goal" placeholder="Goal (opcional)"
         onkeydown="if(event.key==='Enter'){event.preventDefault();_mdiffConfirmNewSprintForm(this,'${esc(code)}');}if(event.key==='Escape'){event.preventDefault();_mdiffCancelNewSprintForm(this);}">
       <div class="mdiff-new-sprint-row">
-        <input type="text" class="mdiff-new-sprint-vt" value="${esc(suggestedVt)}" placeholder="v3.5"
+        <label class="sprint-inline-release-label">Versión:</label>
+        <input type="text" class="mdiff-new-sprint-vt" value="${esc(suggestedVt)}" placeholder="ej: v1.1.0"
+          oninput="_mdiffSyncConfirmBtn('${esc(code)}');_clearSprintFieldErr('mdiff-sprint-vt-err-${esc(code)}')"
           onkeydown="if(event.key==='Enter'){event.preventDefault();_mdiffConfirmNewSprintForm(this,'${esc(code)}');}if(event.key==='Escape'){event.preventDefault();_mdiffCancelNewSprintForm(this);}">
-        <select class="mdiff-new-sprint-rt">
-          <option value="Patch"${suggestedRt==='Patch'?' selected':''}>Patch</option>
-          <option value="Minor"${suggestedRt==='Minor'?' selected':''}>Minor</option>
-          <option value="Major"${suggestedRt==='Major'?' selected':''}>Major</option>
-        </select>
-        <button type="button" class="mdiff-new-sprint-confirm"
+        <span id="mdiff-sprint-vt-err-${esc(code)}" class="sprint-field-err hidden"></span>
+        <label class="sprint-inline-release-label">Tipo de release:</label>
+        <div class="sprint-inline-release-radios">${rtRadios}</div>
+        <span id="mdiff-sprint-rt-err-${esc(code)}" class="sprint-field-err hidden"></span>
+        <button type="button" id="${esc(_mdiffConfirmId)}" class="mdiff-new-sprint-confirm"
           onclick="_mdiffConfirmNewSprintForm(this,'${esc(code)}')">✓</button>
         <button type="button" class="mdiff-new-sprint-cancel"
           onclick="_mdiffCancelNewSprintForm(this)">✕</button>
@@ -5208,18 +5219,50 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     // Guardar referencia al select original para restaurar si se cancela
     wrap._originalSelect = sel;
     sel.parentNode.replaceChild(wrap, sel);
-    wrap.querySelector('.mdiff-new-sprint-inp').focus();
+    // R-202605-009: sync inicial del botón confirm
+    setTimeout(() => {
+      _mdiffSyncConfirmBtn(code);
+      wrap.querySelector('.mdiff-new-sprint-inp').focus();
+    }, 10);
   }
+
+  // R-202605-009: sync estado del botón confirm en el mini-form del diff
+  window._mdiffSyncConfirmBtn = function(code) {
+    const btn  = document.getElementById('mdiff-sprint-confirm-' + code);
+    const vtEl = btn ? btn.closest('.mdiff-new-sprint-form').querySelector('.mdiff-new-sprint-vt') : null;
+    const rtEls = document.querySelectorAll(`input[name="mdiff-sprint-rt-${CSS.escape(code)}"]`);
+    if (!btn) return;
+    const vtOk = vtEl && vtEl.value.trim().length > 0;
+    const rtOk = Array.from(rtEls).some(r => r.checked);
+    btn.disabled = !(vtOk && rtOk);
+  };
 
   window._mdiffConfirmNewSprintForm = function(el, code) {
     const wrap = el.closest('.mdiff-new-sprint-form');
     if (!wrap) return;
     const name = wrap.querySelector('.mdiff-new-sprint-inp').value.trim();
     const goal = wrap.querySelector('.mdiff-new-sprint-goal').value.trim();
-    const vt   = wrap.querySelector('.mdiff-new-sprint-vt').value.trim();
-    const rt   = wrap.querySelector('.mdiff-new-sprint-rt').value;
+    const vtEl = wrap.querySelector('.mdiff-new-sprint-vt');
+    const vt   = vtEl ? vtEl.value.trim() : '';
+    const rtEls = document.querySelectorAll(`input[name="mdiff-sprint-rt-${CSS.escape(code)}"]`);
+    const rt   = (Array.from(rtEls).find(r => r.checked) || {}).value || '';
 
     if (!name) { wrap.querySelector('.mdiff-new-sprint-inp').focus(); return; }
+
+    // R-202605-009: validación obligatoria de vt y rt — no confirma hasta que sean válidos
+    let valid = true;
+    if (!vt) {
+      valid = false;
+      const errEl = document.getElementById('mdiff-sprint-vt-err-' + code);
+      if (vtEl) vtEl.classList.add('input-outline-error');
+      if (errEl) { errEl.textContent = 'Ingresa una versión (ej: v1.0.0)'; errEl.classList.remove('hidden'); }
+    }
+    if (!rt) {
+      valid = false;
+      const errEl = document.getElementById('mdiff-sprint-rt-err-' + code);
+      if (errEl) { errEl.textContent = 'Selecciona el tipo de release'; errEl.classList.remove('hidden'); }
+    }
+    if (!valid) return;
 
     // B-202605-499: input parcial S-XX (sin nombre descriptivo) — bifurcar sin mostrar toast de error
     const bareSprintMatch = /^S-\d+$/i.test(name);
@@ -6241,6 +6284,17 @@ function setItemSprint(code, sprintId) {
   renderStats();
 }
 
+// R-202605-009: sync estado de botón confirm — disabled hasta que vt y rt tengan valor
+function _syncSprintConfirmBtn(code) {
+  const btn  = document.getElementById('new-sprint-confirm-' + code);
+  const vtEl = document.getElementById('new-sprint-vt-' + code);
+  const rtEls = document.querySelectorAll(`input[name="new-sprint-rt-${CSS.escape(code)}"]`);
+  if (!btn) return;
+  const vtOk = vtEl && vtEl.value.trim().length > 0;
+  const rtOk = Array.from(rtEls).some(r => r.checked);
+  btn.disabled = !(vtOk && rtOk);
+}
+
 function openNewSprintInline(code) {
   // Muestra input inline en el select de sprint del ítem
   const wrap = document.getElementById('sprint-select-wrap-' + CSS.escape(code));
@@ -6255,13 +6309,22 @@ function openNewSprintInline(code) {
   const suggestedVt  = _suggestVersionTarget(suggestedRt);
   // T-202605-500: mostrar ID auto-generado como prefijo no editable
   const previewId = _nextSprintId();
+  // R-202605-009: radio buttons para release_type — Major / Minor / Patch con label visible
+  const rtRadios = ['Major', 'Minor', 'Patch'].map(v =>
+    `<label class="sprint-inline-release-label">
+      <input type="radio" name="new-sprint-rt-${esc(code)}" value="${v}"
+        ${suggestedRt === v ? 'checked' : ''}
+        onchange="_syncSprintConfirmBtn('${esc(code)}');_clearSprintFieldErr('new-sprint-rt-err-${esc(code)}')">
+      ${v}
+    </label>`
+  ).join('');
   // R-202605-123: campo goal opcional bajo el nombre del sprint
   wrap.innerHTML = `<div class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal">
     <span class="sprint-inline-id-preview">${esc(previewId)} ·</span>
     <input id="new-sprint-inp-${esc(code)}" type="text" placeholder="Nombre descriptivo"
       class="sprint-inline-input"
       onkeydown="if(event.key==='Enter')confirmNewSprint('${esc(code)}');if(event.key==='Escape')renderBacklogList();">
-    <button onclick="confirmNewSprint('${esc(code)}')" class="sprint-inline-confirm">&#10003;</button>
+    <button id="new-sprint-confirm-${esc(code)}" onclick="confirmNewSprint('${esc(code)}')" class="sprint-inline-confirm">&#10003;</button>
     <button onclick="renderBacklogList()" class="sprint-inline-cancel">&#10005;</button>
     ${suggestHtml}
     <input id="new-sprint-goal-${esc(code)}" type="text" placeholder="Goal del sprint (opcional, max 120)"
@@ -6271,18 +6334,32 @@ function openNewSprintInline(code) {
     <div class="sprint-inline-release-row">
       <label class="sprint-inline-release-label">Versión:</label>
       <input id="new-sprint-vt-${esc(code)}" type="text" value="${esc(suggestedVt)}"
-        class="sprint-inline-vt-input" placeholder="v3.5"
+        class="sprint-inline-vt-input" placeholder="ej: v1.1.0"
+        oninput="_syncSprintConfirmBtn('${esc(code)}');_clearSprintFieldErr('new-sprint-vt-err-${esc(code)}')"
         onkeydown="if(event.key==='Enter')confirmNewSprint('${esc(code)}');if(event.key==='Escape')renderBacklogList();">
-      <label class="sprint-inline-release-label">Tipo:</label>
-      <select id="new-sprint-rt-${esc(code)}" class="sprint-inline-rt-select">
-        <option value="Patch"${suggestedRt==='Patch'?' selected':''}>Patch</option>
-        <option value="Minor"${suggestedRt==='Minor'?' selected':''}>Minor</option>
-        <option value="Major"${suggestedRt==='Major'?' selected':''}>Major</option>
-      </select>
-      <span class="sprint-inline-release-hint">sugerido: ${esc(suggestedRt)}</span>
+      <span id="new-sprint-vt-err-${esc(code)}" class="sprint-field-err hidden"></span>
+      <label class="sprint-inline-release-label">Tipo de release:</label>
+      <div class="sprint-inline-release-radios">${rtRadios}</div>
+      <span id="new-sprint-rt-err-${esc(code)}" class="sprint-field-err hidden"></span>
     </div>
   </div>`;
-  setTimeout(() => { const inp = document.getElementById('new-sprint-inp-' + code); if (inp) inp.focus(); }, 30);
+  // R-202605-009: sync inicial — con sugerencias pre-pobladas el botón puede arrancar habilitado
+  setTimeout(() => {
+    _syncSprintConfirmBtn(code);
+    const inp = document.getElementById('new-sprint-inp-' + code);
+    if (inp) inp.focus();
+  }, 30);
+}
+
+// R-202605-009: limpiar mensaje de error de campo
+function _clearSprintFieldErr(errId) {
+  const el = document.getElementById(errId);
+  if (!el) return;
+  el.textContent = '';
+  el.classList.add('hidden');
+  // B-202605-506: quitar borde de error del input asociado (hermano anterior al span)
+  const prev = el.previousElementSibling;
+  if (prev && prev.tagName === 'INPUT') prev.classList.remove('input-outline-error');
 }
 
 function confirmNewSprint(code) {
@@ -6294,9 +6371,26 @@ function confirmNewSprint(code) {
   const goal = goalInp ? goalInp.value.trim() : '';
   // R-202605-134: leer version_target y release_type
   const vtInp = document.getElementById('new-sprint-vt-' + code);
-  const rtSel = document.getElementById('new-sprint-rt-' + code);
+  const rtEls = document.querySelectorAll(`input[name="new-sprint-rt-${CSS.escape(code)}"]`);
+  const rtSel = document.getElementById('new-sprint-rt-' + code); // select fallback (mdiff)
   const vt = vtInp ? vtInp.value.trim() : '';
-  const rt = rtSel ? rtSel.value : '';
+  const rt = rtEls.length > 0
+    ? (Array.from(rtEls).find(r => r.checked) || {}).value || ''
+    : (rtSel ? rtSel.value : '');
+  // R-202605-009: validación obligatoria de vt y rt — modal no cierra hasta que sean válidos
+  let valid = true;
+  if (!vt) {
+    valid = false;
+    const errEl = document.getElementById('new-sprint-vt-err-' + code);
+    if (vtInp) vtInp.classList.add('input-outline-error');
+    if (errEl) { errEl.textContent = 'Ingresa una versión (ej: v1.0.0)'; errEl.classList.remove('hidden'); }
+  }
+  if (!rt) {
+    valid = false;
+    const errEl = document.getElementById('new-sprint-rt-err-' + code);
+    if (errEl) { errEl.textContent = 'Selecciona el tipo de release'; errEl.classList.remove('hidden'); }
+  }
+  if (!valid) return;
   const id = createSprint(raw, goal, vt, rt);
   if (!id) { renderBacklogList(); return; } // sin proyecto activo — createSprint ya mostró toast
   setItemSprint(code, id);
