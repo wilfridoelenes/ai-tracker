@@ -1846,7 +1846,7 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // v3.0.0: sesión va al proyecto activo con aiId
   // R-202604-017 AC-3: ckptProyecto registrado en sesión para trazabilidad en log
   const newSess = {
-    id: Date.now().toString(),
+    id: Date.now().toString() + '-' + Math.random().toString(36).slice(2, 7),
     aiId: ai.id,
     title, summary: parsed.summary || '', files: parsed.files || '',
     pending: parsed.pending || '', tags: [],

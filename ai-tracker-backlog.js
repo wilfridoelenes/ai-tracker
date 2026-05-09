@@ -716,9 +716,13 @@ function loadBacklog() {
   });
   // B-202605-061: migración desc→title — 'desc' no es campo canónico del schema v1
   // Si el ítem tiene desc y title está vacío, copiar desc a title (silencioso)
+  // T-202605-507: delete item.desc en todo ítem con desc definido tras la copia — localStorage queda limpio
   ITEMS.forEach(item => {
-    if (item.desc && (!item.title || item.title.trim() === '')) {
-      item.title = item.desc;
+    if (item.desc !== undefined) {
+      if (!item.title || item.title.trim() === '') {
+        item.title = item.desc;
+      }
+      delete item.desc;
       migrated = true;
     }
   });
@@ -731,7 +735,8 @@ function loadBacklog() {
   }
   _applyAllPriorities(); // T-202604-297: recalcular prioridad automática al cargar
   _recalcAllScores(); // T-202604-257: estampar score en memoria tras cargar
-  saveBacklog(); // Persistir cambios en storage
+  // B-202605-048: saveBacklog() solo si hubo migraciones o saneamiento — carga limpia no escribe
+  if (migrated || sanitized > 0) saveBacklog();
 }
 
 // T-049: derivar tipo del código
@@ -1213,8 +1218,8 @@ function setItemStatus(code, newStatus) {
       setTimeout(() => showToast('success', label, null, 4000), 400);
     }
   }
-  _blogLog('status →', code, _prevStatus + ' → ' + newStatus, 'backlog');
   _undoSnapshot();
+  _blogLog('status →', code, _prevStatus + ' → ' + newStatus, 'backlog');
   saveBacklog();
   // C8: animación salida si el ítem va a desaparecer del filtro activo
   if (newStatus === 'done' && !activeStatuses.has('done')) {
@@ -1512,8 +1517,8 @@ function setItemRole(code, role) {
   const item = ITEMS.find(i => i.code === code);
   if (!item) return;
   item.role = role || '';
-  _blogLog('rol →', code, role || '(vacío)', 'backlog');
   _undoSnapshot();
+  _blogLog('rol →', code, role || '(vacío)', 'backlog');
   saveBacklog();
   _setBacklogModified();
   renderBacklogList();
@@ -2176,6 +2181,39 @@ function roadmapGoToSprint(sprintId) {
 
 // T-202604-284: construir HTML del roadmap de sprints
 // R-[tmp:toolbar-backlog-redesign]: sprint selector — trigger colapsado + dropdown on-demand
+
+// B-202605-058: función de módulo única — elimina duplicación verbatim en _buildSprintSelector y _blSprintOpen
+function _buildSprintOption(sp) {
+  const id = sp.id;
+  const label = sp.label || sp.id;
+  const status = sp.status || 'open';
+  const isActive = status === 'active';
+  const isClosed = status === 'closed';
+  const isSelected = _roadmapSprintFilter === id;
+  const total = ITEMS.filter(i => (i.sprint || '').trim() === id).length;
+  const done  = ITEMS.filter(i => (i.sprint || '').trim() === id && i.status === 'done').length;
+  const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
+  const mark  = isActive ? '★' : isClosed ? '·' : '○';
+  const badgeCls = isActive ? 'bl-sprint-badge--active' : isClosed ? 'bl-sprint-badge--closed' : 'bl-sprint-badge--open';
+  const badgeTxt = isActive ? 'activo' : isClosed ? 'cerrado' : 'abierto';
+  const activeCls = isActive ? ' is-active-sprint' : '';
+  const selectedCls = isSelected ? ' is-selected' : '';
+  // T-202604-417: botón "Ver retro" para sprints cerrados con retroDoc guardado
+  const retroBtn = isClosed && sp.retroDoc
+    ? `<button class="bl-sprint-retro-btn" onclick="event.stopPropagation();openSprintRetroView('${esc(id)}')" title="Ver retrospectiva" type="button">retro</button>`
+    : '';
+  return `<button class="bl-sprint-option${activeCls}${selectedCls}" onclick="_blSprintSelect('${esc(id)}')" type="button">
+    <span class="bl-sprint-option-mark">${mark}</span>
+    <span class="bl-sprint-option-name">${esc(label)}</span>
+    <div class="bl-sprint-option-meta">
+      <div class="bl-sprint-option-bar-wrap"><div class="bl-sprint-option-bar-fill" style="width:${pct}%"></div></div>
+      <span class="bl-sprint-option-pct">${pct}%</span>
+      <span class="bl-sprint-option-badge ${badgeCls}">${badgeTxt}</span>
+      ${retroBtn}
+    </div>
+  </button>`;
+}
+
 function _buildSprintSelector() {
   const allSprints = getActiveSprints() || [];
   if (!allSprints.length) return '';
@@ -2209,38 +2247,8 @@ function _buildSprintSelector() {
       <span class="bl-sprint-trigger-pct">${triggerPct}%</span>
     </div>` : '';
 
-  // builder de opción individual
-  const _buildOption = (sp) => {
-    const id = sp.id;
-    const label = sp.label || sp.id;
-    const status = sp.status || 'open';
-    const isActive = status === 'active';
-    const isClosed = status === 'closed';
-    const isSelected = _roadmapSprintFilter === id;
-    const total = ITEMS.filter(i => (i.sprint || '').trim() === id).length;
-    const done  = ITEMS.filter(i => (i.sprint || '').trim() === id && i.status === 'done').length;
-    const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
-    const mark  = isActive ? '★' : isClosed ? '·' : '○';
-    const badgeCls = isActive ? 'bl-sprint-badge--active' : isClosed ? 'bl-sprint-badge--closed' : 'bl-sprint-badge--open';
-    const badgeTxt = isActive ? 'activo' : isClosed ? 'cerrado' : 'abierto';
-    const activeCls = isActive ? ' is-active-sprint' : '';
-    const selectedCls = isSelected ? ' is-selected' : '';
-    // T-202604-417: botón "Ver retro" para sprints cerrados con retroDoc guardado
-    const retroBtn = isClosed && sp.retroDoc
-      ? `<button class="bl-sprint-retro-btn" onclick="event.stopPropagation();openSprintRetroView('${esc(id)}')" title="Ver retrospectiva" type="button">retro</button>`
-      : '';
-    return `<button class="bl-sprint-option${activeCls}${selectedCls}" onclick="_blSprintSelect('${esc(id)}')" type="button">
-      <span class="bl-sprint-option-mark">${mark}</span>
-      <span class="bl-sprint-option-name">${esc(label)}</span>
-      <div class="bl-sprint-option-meta">
-        <div class="bl-sprint-option-bar-wrap"><div class="bl-sprint-option-bar-fill" style="width:${pct}%"></div></div>
-        <span class="bl-sprint-option-pct">${pct}%</span>
-        <span class="bl-sprint-option-badge ${badgeCls}">${badgeTxt}</span>
-        ${retroBtn}
-      </div>
-    </button>`;
-  };
-  const closedOptionsHtml = closedSprints.map(_buildOption).join('');
+  // builder de opción individual — B-202605-058: referencia a función de módulo _buildSprintOption
+  const closedOptionsHtml = closedSprints.map(_buildSprintOption).join('');
   const closedSection = closedSprints.length ? `
     <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" onclick="_blSprintToggleClosed()" type="button">
       <span class="bl-sprint-closed-toggle-label">Cerrados</span>
@@ -2274,39 +2282,9 @@ function _blSprintOpen() {
   const openSprints  = allSprints.filter(s => s.status !== 'closed' && s.status !== 'active');
   const closedSprints = allSprints.filter(s => s.status === 'closed');
 
-  const _buildOption = (sp) => {
-    const id = sp.id;
-    const label = sp.label || sp.id;
-    const status = sp.status || 'open';
-    const isActive = status === 'active';
-    const isClosed = status === 'closed';
-    const isSelected = _roadmapSprintFilter === id;
-    const total = ITEMS.filter(i => (i.sprint || '').trim() === id).length;
-    const done  = ITEMS.filter(i => (i.sprint || '').trim() === id && i.status === 'done').length;
-    const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
-    const mark  = isActive ? '★' : isClosed ? '·' : '○';
-    const badgeCls = isActive ? 'bl-sprint-badge--active' : isClosed ? 'bl-sprint-badge--closed' : 'bl-sprint-badge--open';
-    const badgeTxt = isActive ? 'activo' : isClosed ? 'cerrado' : 'abierto';
-    const activeCls = isActive ? ' is-active-sprint' : '';
-    const selectedCls = isSelected ? ' is-selected' : '';
-    // T-202604-417: botón "Ver retro" para sprints cerrados con retroDoc guardado
-    const retroBtn = isClosed && sp.retroDoc
-      ? `<button class="bl-sprint-retro-btn" onclick="event.stopPropagation();openSprintRetroView('${esc(id)}')" title="Ver retrospectiva" type="button">retro</button>`
-      : '';
-    return `<button class="bl-sprint-option${activeCls}${selectedCls}" onclick="_blSprintSelect('${esc(id)}')" type="button">
-      <span class="bl-sprint-option-mark">${mark}</span>
-      <span class="bl-sprint-option-name">${esc(label)}</span>
-      <div class="bl-sprint-option-meta">
-        <div class="bl-sprint-option-bar-wrap"><div class="bl-sprint-option-bar-fill" style="width:${pct}%"></div></div>
-        <span class="bl-sprint-option-pct">${pct}%</span>
-        <span class="bl-sprint-option-badge ${badgeCls}">${badgeTxt}</span>
-        ${retroBtn}
-      </div>
-    </button>`;
-  };
-
-  const openOptionsHtml   = [activeSprint, ...openSprints].filter(Boolean).map(_buildOption).join('');
-  const closedOptionsHtml = closedSprints.map(_buildOption).join('');
+  // B-202605-058: referencia a función de módulo _buildSprintOption — elimina duplicación
+  const openOptionsHtml   = [activeSprint, ...openSprints].filter(Boolean).map(_buildSprintOption).join('');
+  const closedOptionsHtml = closedSprints.map(_buildSprintOption).join('');
   const closedSection = closedSprints.length ? `
     <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" onclick="_blSprintToggleClosed()" type="button">
       <span class="bl-sprint-closed-toggle-label">Cerrados</span>
@@ -4083,6 +4061,7 @@ function buildBacklogItem(item) {
     : '';
 
   // Children count + progreso para R type (T-188)
+  // B-202605-052: usar ITEMS sin filtrar como denominador — los filtros activos no afectan el porcentaje
   const childCount = type === 'R' ? ITEMS.filter(i => i.parentId === item.code).length : 0;
   const childDoneCount = type === 'R' ? ITEMS.filter(i => i.parentId === item.code && i.status === 'done').length : 0;
   const childBadge = (type === 'R' && childCount > 0 && !isDone && !isDiscarded)
@@ -7481,6 +7460,8 @@ function _itemPanelEscHandler(e) {
     // B-244: si modo focus activo, salir primero sin cerrar el panel
     if (_focusModeActive) {
       exitFocusMode();
+      // B-202605-051: si _backlogFocusMode también está activo, desactivarlo en el mismo Esc
+      if (_backlogFocusMode && typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode();
       return;
     }
     // Colapsar el ítem expandido también
