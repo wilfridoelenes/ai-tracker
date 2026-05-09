@@ -8984,7 +8984,12 @@ body.radar-sb-collapsed #global-footer {
 }
 
 .mg-hidden-input {
-  display: none;
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+  overflow: hidden;
 }
 
 /* ── File list ── */
@@ -11406,7 +11411,7 @@ body.radar-sb-collapsed #global-footer {
 .mg-outputs-checks { display: flex; gap: .75rem; flex-wrap: wrap; }
 .mg-output-check { display: flex; align-items: center; gap: .35rem; font-size: .85rem; cursor: pointer; user-select: none; }
 .mg-generate-col { display: flex; align-items: flex-end; }
-.mg-hidden-input { display: none; }
+.mg-hidden-input { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; overflow: hidden; }
 .mg-section--review { border: 1px solid var(--border); border-radius: 8px; padding: 1rem; }
 .mg-review-sprint-label { font-size: .75rem; font-weight: 400; color: var(--text2); margin-left: .5rem; text-transform: none; }
 .mg-review-tabs { display: flex; gap: .5rem; margin-bottom: .75rem; }
@@ -18736,7 +18741,8 @@ body.body--focus-mode::after {
   border-color: var(--c-high-border);
 }
 
-.plan-file-pill--broken::before {
+.plan-file-pill--broken::before,
+.plan-session-deps .plan-file-pill--broken::before {
   content: '⚠️';
 }
 /* END T-202605-513 */

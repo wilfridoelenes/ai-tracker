@@ -344,7 +344,7 @@
           <span class="tpl-nav-badge" id="tpl-badge-backlog"></span>
         </button>
         <button class="tpl-nav-btn" id="sstab-btn-htmlmap" onclick="switchSubTab('htmlmap')">
-          <span class="tpl-nav-icon">🗺</span><span class="tpl-nav-text">Module Map</span>
+          <span class="tpl-nav-text">Documentos</span>
           <span class="tpl-nav-badge" id="tpl-badge-htmlmap"></span>
         </button>
         <button class="tpl-nav-btn" id="sstab-btn-context" onclick="switchSubTab('context')">
@@ -373,7 +373,7 @@
           <button class="tpl-action-btn tpl-action-icon" id="btn-undo-backlog" onclick="undoBacklog()" title="Deshacer" disabled>↩</button>
           <button class="tpl-action-btn tpl-action-icon" id="btn-redo-backlog" onclick="redoBacklog()" title="Rehacer" disabled>↪</button>
         </div>
-        <button class="tpl-action-btn hidden" id="btn-import-htmlmap" onclick="document.getElementById('htmlmap-file-input').click()" title="Importar archivo MODULE-MAP.md">↑ Importar Module Map</button>
+        <button class="tpl-action-btn hidden" id="btn-import-htmlmap" onclick="document.getElementById('htmlmap-file-input').click()" title="Importar archivo MODULE-MAP.md">↑ Importar MAP</button>
         <button class="tpl-action-btn tpl-action-primary hidden" id="btn-generate-map" onclick="openMapGenerator()" title="Generar documentos">⚙ Generar documentos</button>
         <button class="tpl-action-btn hidden" id="btn-export-contratos" onclick="exportContratosMd()" title="Exportar Contratos.md">⬇ Exportar Contratos</button>
       </div>
@@ -386,7 +386,7 @@
         <div class="tpl-danger-label">Zona de peligro — irreversible</div>
         <button class="btn-danger hidden" id="sidebar-danger-btn-backlog" onclick="openResetBacklogModal()">🗑 Resetear Backlog</button>
         <button class="btn-danger hidden" id="sidebar-danger-btn-context" onclick="resetContextData()">🗑 Resetear Context</button>
-        <button class="btn-danger hidden" id="sidebar-danger-btn-htmlmap" onclick="resetHtmlMapData()">🗑 Resetear Module Map</button>
+        <button class="btn-danger hidden" id="sidebar-danger-btn-htmlmap" onclick="resetHtmlMapData()">🗑 Resetear MAP</button>
         <button class="btn-danger hidden" id="sidebar-danger-btn-contratos" onclick="resetContratosData()">🗑 Resetear Contratos</button>
         <button class="btn-danger" id="sidebar-danger-btn-sessions" onclick="openResetSessionsModal()">🗑 Resetear Sesiones</button>
       </div>
@@ -501,7 +501,7 @@
         <button class="htmlmap-filter-btn" id="hmfilter-html" onclick="setHtmlMapFilter('html')">HTML</button>
         <button class="htmlmap-filter-btn" id="hmfilter-js" onclick="setHtmlMapFilter('js')">JS</button>
         <div class="flex-1"></div>
-        <button class="doc-log-btn" id="doc-log-btn-htmlmap" onclick="openDocLog('htmlmap')" title="Historial de acciones del Module Map">🕐<span class="doc-log-count"></span></button>
+        <button class="doc-log-btn" id="doc-log-btn-htmlmap" onclick="openDocLog('htmlmap')" title="Historial de acciones del MAP">🕐<span class="doc-log-count"></span></button>
       </div>
       <div id="htmlmap-content"></div>
       <input type="file" id="htmlmap-file-input" accept=".md,text/markdown,text/plain" class="hidden" onchange="importHtmlMap(event)">
@@ -1128,7 +1128,7 @@
 <!-- htmlmap-export-overlay (HTML-MAP export con input de versión) -->
 <div class="modal-overlay" id="htmlmap-export-overlay">
   <div class="modal modal--sm">
-    <div class="modal-title">⬇ Exportar Module Map</div>
+    <div class="modal-title">⬇ Exportar MAP</div>
     <div class="hmexport-field-wrap">
       <label class="hmexport-label">Versión</label>
       <input id="hmexport-version-input" type="text" class="hmexport-input"
@@ -1560,7 +1560,7 @@ function _validateResetBacklogInput(el) {
       <!-- Sección 1: Archivos fuente -->
       <div class="mg-section">
         <div class="mg-section-title">Archivos del módulo</div>
-        <div class="mg-section-sub">Arrastra los archivos del proyecto para calcular el MAP actualizado.</div>
+        <div class="mg-section-sub">Arrastra los archivos del proyecto para generar los documentos actualizados.</div>
         <div class="mg-dropzone" id="mg-dropzone" role="button" tabindex="0"
           aria-label="Área de carga. Arrastra archivos .js, .css o .html, o presiona Enter para abrir el selector.">
           <span class="mg-dropzone-icon" aria-hidden="true"></span>
@@ -1657,7 +1657,7 @@ function _validateResetBacklogInput(el) {
       <div class="mg-export-strip-btns">
         <button class="mg-export-btn" onclick="exportBacklogMd()">Backlog activo</button>
         <button class="mg-export-btn" onclick="exportFullHistoryMd()">Backlog archivado</button>
-        <button class="mg-export-btn" onclick="exportHtmlMapMd()">Module Map</button>
+        <button class="mg-export-btn" onclick="exportHtmlMapMd()">MAP</button>
         <button class="mg-export-btn" onclick="exportContextMd()">Context</button>
       </div>
       <button class="mg-export-all-btn" onclick="_mgExportAllZip()">descargar todo ↓</button>
