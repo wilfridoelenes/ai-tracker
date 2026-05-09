@@ -133,6 +133,13 @@ body {
   background-attachment: fixed;
 }
 
+/* B-202605-057: background-attachment: fixed causa scroll jank en iOS/Android */
+@media (max-width: 768px) {
+  [data-theme="dark"] body {
+    background-attachment: scroll;
+  }
+}
+
 /* ── HEADER REDESIGN ── */
 header {
   position: sticky;
@@ -5875,6 +5882,10 @@ body.radar-sb-collapsed #global-footer {
   border: 1px solid;
   letter-spacing: .02em;
   margin-top: 1px;
+  /* B-202605-055: custom properties para colores dinámicos de tipo */
+  background: var(--viz-type-bg, transparent);
+  color: var(--viz-type-color, var(--text));
+  border-color: var(--viz-type-border, var(--border));
 }
 
 /* Content area */
@@ -6903,6 +6914,10 @@ body.radar-sb-collapsed #global-footer {
   border: 1px solid;
   margin-top: 1px;
   letter-spacing: 0.03em;
+  /* B-202605-055: custom properties para colores dinámicos de tipo */
+  background: var(--viz-type-bg, transparent);
+  color: var(--viz-type-color, var(--text));
+  border-color: var(--viz-type-border, var(--border));
 }
 .viz-content { flex: 1; min-width: 0; }
 .viz-row-top {

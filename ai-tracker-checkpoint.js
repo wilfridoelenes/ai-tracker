@@ -7157,15 +7157,15 @@ function _itemVizRender() {
 
   body.innerHTML = summary + `<div class="viz-rows">${activeRows}</div>` + sinCambioGroup;
 
-  // CSS Purity: colores de tipo calculados en runtime → setProperty post-render
+  // CSS Purity: colores de tipo calculados en runtime → custom properties CSS (B-202605-055)
   body.querySelectorAll('[data-type-color]').forEach(el => {
     const color = el.dataset.typeColor;
     if (el.classList.contains('viz-type-badge')) {
-      el.style.setProperty('background', color + '22');
-      el.style.setProperty('color', color);
-      el.style.setProperty('border-color', color + '44');
+      el.style.setProperty('--viz-type-bg', color + '22');
+      el.style.setProperty('--viz-type-color', color);
+      el.style.setProperty('--viz-type-border', color + '44');
     } else {
-      el.style.setProperty('color', color);
+      el.style.setProperty('--viz-type-color', color);
     }
   });
 }

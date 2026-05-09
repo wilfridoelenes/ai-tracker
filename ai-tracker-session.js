@@ -2888,6 +2888,7 @@ let _logFilterType    = 'all';  // 'all' | 'session' | 'quick' | 'interrupted'
 let _logFilterProj    = '';     // projId activo o ''
 let _logFilterStarred = false;  // solo starred
 let _logSearch        = '';
+let _logScrollHandler = null;   // B-202605-053: referencia de módulo — sobrevive card.innerHTML
 
 // Recopila todas las sesiones de todos los proyectos, cronológicas inversas
 function _getAllSessionsChron() {
@@ -3112,12 +3113,19 @@ function _rebuildLogBody() {
   card.innerHTML = `${headerWithWarn}<div class="log-card-body" id="log-body">${body}</div>${scrollTopBtn}`;
 
   // Scroll-to-top button visibility
+  // B-202605-053: variable de módulo _logScrollHandler — card.innerHTML destruye #log-body en cada
+  // render, por lo que guardar la referencia en el elemento DOM deja el handler huérfano.
   const logBody = document.getElementById('log-body');
   const scrollBtn = document.getElementById('log-scroll-top');
   if (logBody && scrollBtn) {
-    logBody.addEventListener('scroll', () => {
-      scrollBtn.classList.toggle('hidden', logBody.scrollTop <= 120); scrollBtn.classList.toggle('d-flex', logBody.scrollTop > 120);
-    }, { passive: true });
+    if (_logScrollHandler) {
+      logBody.removeEventListener('scroll', _logScrollHandler);
+    }
+    _logScrollHandler = () => {
+      scrollBtn.classList.toggle('hidden', logBody.scrollTop <= 120);
+      scrollBtn.classList.toggle('d-flex', logBody.scrollTop > 120);
+    };
+    logBody.addEventListener('scroll', _logScrollHandler, { passive: true });
   }
 }
 
