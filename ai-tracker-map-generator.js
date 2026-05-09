@@ -1449,7 +1449,8 @@ function _mgExportAllZip() {
   const fileDefs = [];
 
   if (typeof buildBacklogMd === 'function') {
-    fileDefs.push({ filename: `${prefix}-BACKLOG.md`, fn: () => buildBacklogMd() });
+    const _blVer = _mgGetVersion();
+    fileDefs.push({ filename: `${prefix}-BACKLOG_${_blVer}.md`, fn: () => buildBacklogMd(_blVer) }); // B-202605-513: versión en nombre de archivo + argumento a buildBacklogMd
   }
   if (typeof exportFullHistoryMd === 'function') {
     // exportFullHistoryMd descarga directamente — la llamamos en fallback

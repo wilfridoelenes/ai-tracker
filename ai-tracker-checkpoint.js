@@ -1909,6 +1909,8 @@ function load() {
   // B-202604-010: render inicial desde estado real — el HTML estático es un snapshot,
   // sin este render el DOM no refleja localStorage al refrescar
   render();
+  // B-202605-508: garantizar badges visibles al arranque, incluyendo early-return paths de render()
+  updateTabNotifBadges();
   // R-202604-072: panel de contexto diario — diferido para que ITEMS esté cargado
   setTimeout(_showArranquePanel, 400);
   // R-202604-073: dot Pulso — inicializar desde localStorage si existe, recalcular en 600ms
@@ -4565,6 +4567,8 @@ function render() {
   renderSuggestionBanner();
   // R-202605-008: actualizar checklist de setup tras cada render
   renderSetupChecklist();
+  // B-202605-508: actualizar badges de tabs al final de cada render
+  updateTabNotifBadges();
 }
 
 const TG_TYPE_NAMES = {I:'Idea', P:'Pendiente', T:'Ticket', R:'Requerimiento', B:'Bug'};
