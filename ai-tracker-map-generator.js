@@ -1241,6 +1241,38 @@ function confirmMapGenerator() {
     return;
   }
 
+  // B-202605-071: warning no bloqueante si hay sprints sin cerrar
+  // El MAP puede generarse con sprint abierto (snapshot del estado actual), pero el usuario
+  // debe confirmar explícitamente que entiende que el sprint no está cerrado.
+  const openSprints = allSprints.filter(s => s.status === 'active' || s.status === 'open');
+  if (openSprints.length > 0) {
+    const area = document.getElementById('mg-preview-area');
+    if (area) {
+      const sprintList = openSprints.map(s => `<span class="mg-warn-sprint-id">${s.id}</span>`).join(', ');
+      const sprintLabel = openSprints.length === 1
+        ? `El sprint ${sprintList} no está cerrado.`
+        : `Los sprints ${sprintList} no están cerrados.`;
+      area.innerHTML = `
+        <div class="mg-open-sprint-warning">
+          <p class="mg-warn-title">⚠ Sprint sin cerrar</p>
+          <p class="mg-warn-body">${sprintLabel} El MAP reflejará el estado actual, no el estado final del sprint.</p>
+          <div class="mg-warn-actions">
+            <button class="mg-warn-btn mg-warn-btn--confirm" onclick="_doConfirmGenerate()">Generar de todos modos</button>
+            <button class="mg-warn-btn mg-warn-btn--cancel" onclick="_mgResetPreview()">Cancelar</button>
+          </div>
+        </div>`;
+      return;
+    }
+    // Sin área de preview disponible — continuar igualmente (fallback silencioso mejor que bloqueo)
+  }
+
+  _doConfirmGenerate();
+}
+
+function _doConfirmGenerate() {
+  const docs = _mapGen.generatedDocs;
+  if (!Object.keys(docs).length) return;
+
   const prefix    = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
   // B-202605-496: usar bumpedVer de generateDocuments() — evita recálculo independiente
   // Si no está disponible (flujo inesperado) — fallback al comportamiento anterior

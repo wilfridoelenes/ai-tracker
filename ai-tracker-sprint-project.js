@@ -1353,8 +1353,11 @@ const SplashController = {
   }
 };
 
-// Debug: limpiar datos innecesarios (llamar desde console: cleanupLocalStorage())
-function cleanupLocalStorage() {
+// B-202605-077: funciones de debug en namespace _debug — no expuestas en window
+// Acceso desde consola: _debug.cleanupLocalStorage() / _debug.testLocalStorageQuota()
+window._debug = window._debug || {};
+
+window._debug.cleanupLocalStorage = function() {
   console.log('[AI Tracker Debug] === Cleaning localStorage ===');
   const toRemove = [
     'ai-tracker-changelog',      // changelog pesado
@@ -1371,7 +1374,7 @@ function cleanupLocalStorage() {
     'html-map-log',              // log de acciones Module Map
     'tracker-filter-status'      // filtro Tracker Global (eliminado en v3.0.0.9.7)
   ];
-  
+
   let freed = 0;
   toRemove.forEach(key => {
     const val = localStorage.getItem(key);
@@ -1381,9 +1384,10 @@ function cleanupLocalStorage() {
       console.log(`  Removed ${key} (${(val.length / 1024).toFixed(2)} KB)`);
     }
   });
-  
+
   console.log(`[AI Tracker Debug] ✓ Liberados ${(freed / 1024).toFixed(2)} KB`);
-}
+};
+
 // R-202604-022: calcula uso actual de localStorage como porcentaje
 // Asume límite estándar de 5MB (5 * 1024 * 1024 chars)
 function _getLocalStorageUsage() {
@@ -1397,11 +1401,11 @@ function _getLocalStorageUsage() {
   return { usedKB: (used / 1024).toFixed(1), totalKB: (LIMIT / 1024).toFixed(0), pct: used / LIMIT };
 }
 
-function testLocalStorageQuota() {
+window._debug.testLocalStorageQuota = function() {
   console.log('[AI Tracker Debug] === localStorage Quota Test ===');
   let totalSize = 0;
   const items = {};
-  
+
   for (let key in localStorage) {
     if (localStorage.hasOwnProperty(key)) {
       const value = localStorage.getItem(key);
@@ -1410,7 +1414,7 @@ function testLocalStorageQuota() {
       totalSize += size;
     }
   }
-  
+
   console.log('Total localStorage:', (totalSize / 1024).toFixed(2), 'KB');
   console.log('Items by size:');
   Object.entries(items)
@@ -1418,8 +1422,8 @@ function testLocalStorageQuota() {
     .forEach(([key, info]) => {
       console.log(`  ${key}: ${info.sizeKB} KB`);
     });
-  
-  // Intenta escribir 1MB de prueba
+
+  // Intenta escribir 1KB de prueba
   try {
     const testKey = 'test-1mb-' + Date.now();
     const testData = new Array(1024).fill('x').join('');
@@ -1429,7 +1433,7 @@ function testLocalStorageQuota() {
   } catch (err) {
     console.error('[AI Tracker Debug] ✗ Escritura falló:', err.name);
   }
-}
+};
 (function() {
   const PEPE_URI = document.querySelector('link[rel="icon"]').href;
   

@@ -972,7 +972,10 @@ function showCheckpointPanel(result) {
     if (_proximoHtml) sections.push(`<div class="ckpt-section ckpt-section--info-footer">${_proximoHtml}</div>`);
   }
 
-  if (!sections.length) return; // nada que mostrar
+  if (!sections.length) {
+    showToast('info', 'Este CHECKPOINT no tiene ítems ni próximo paso — nada que mostrar.');
+    return;
+  }
 
   body.innerHTML = sections.join('');
   clearTimeout(_ckptTimer);
