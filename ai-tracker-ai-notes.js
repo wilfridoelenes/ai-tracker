@@ -1408,7 +1408,11 @@ function confirmItemEditor() {
   const ac = acText ? acText.split('\n').map(l => l.replace(/^[-*]\s*(\[[ x]\]\s*)?/, '').trim()).filter(Boolean) : [];
   const parentId = (document.getElementById('item-parentid').value || '').trim() || null;
   const notesEl2 = document.getElementById('item-notes');
-  const notes = notesEl2 ? notesEl2.value.trim() : '';
+  // B-202605-068: si #item-notes no existe, emitir warning y preservar notes existentes
+  if (!notesEl2) {
+    console.warn('[AI Tracker] confirmItemEditor: #item-notes no encontrado en el DOM — notes no se actualizará');
+  }
+  const notes = notesEl2 ? notesEl2.value.trim() : null;
   const bbEl2 = document.getElementById('item-blocked-by');
   const blockedBy = bbEl2
     ? bbEl2.value.split(',').map(s => s.trim()).filter(Boolean)
@@ -1447,7 +1451,8 @@ function confirmItemEditor() {
     item.area = area;
     item.desc = desc;
     item.ac = ac;
-    item.notes = notes || '';
+    // B-202605-068: si notes es null (#item-notes ausente del DOM), preservar valor existente
+    if (notes !== null) item.notes = notes;
     item.blockedBy = blockedBy;
     item.archivos = archivos;
     item.parentId = parentId || null;
@@ -7275,7 +7280,10 @@ function renderPlan() {
     const depsHtml = (extraClass === 'plan-session--blocked' && dependeDe.length)
       ? dependeDe.map(depId => {
           const depSess = _allSessionsById[depId];
-          const label   = depSess && depSess.rol ? `${depSess.rol} · ${depId}` : depId;
+          if (!depSess) {
+            return `<span class="plan-file-pill plan-file-pill--broken">⚠ dep no encontrada: ${esc(depId)}</span>`;
+          }
+          const label = depSess.rol ? `${depSess.rol} · ${depId}` : depId;
           return `<span class="plan-file-pill">Bloqueada por ${esc(label)}</span>`;
         }).join('')
       : '';

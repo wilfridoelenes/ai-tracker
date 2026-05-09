@@ -7473,7 +7473,7 @@ function _showArranquePanel() {
             : '';
 
           const incompleteWarningHtml = _promptIncomplete
-            ? `<div class="arr-plan-warning">⚠ Faltan campos en el plan: ${_missingFields.join(', ')} — edita el bloque ---PLAN--- antes de copiar</div>`
+            ? `<div class="arr-plan-warning">⚠ Faltan campos en el plan: ${_missingFields.join(', ')} — edita el bloque ---EXECUTION-PLAN--- antes de copiar</div>`
             : '';
 
           recHtml = `<div class="arr-plan-card arr-plan-card--recommended">

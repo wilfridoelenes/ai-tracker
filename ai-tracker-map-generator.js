@@ -265,14 +265,15 @@ function _mgLoadFiles(fileList) {
   let pending = valid.length;
 
   valid.forEach(file => {
-    if (_mapGen.files.find(f => f.name === file.name)) {
-      pending--;
-      if (pending === 0) { _mgRenderFileList(); _mgUpdateBtn(); }
-      return;
-    }
+    const existingIdx = _mapGen.files.findIndex(f => f.name === file.name);
     const reader = new FileReader();
     reader.onload = e => {
-      _mapGen.files.push({ name: file.name, size: file.size, text: e.target.result });
+      if (existingIdx !== -1) {
+        _mapGen.files[existingIdx] = { name: file.name, size: file.size, text: e.target.result };
+        if (typeof showToast === 'function') showToast('info', `${file.name} reemplazado — versión anterior descartada`);
+      } else {
+        _mapGen.files.push({ name: file.name, size: file.size, text: e.target.result });
+      }
       pending--;
       if (pending === 0) { _mgRenderFileList(); _mgUpdateBtn(); }
     };

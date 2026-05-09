@@ -667,6 +667,7 @@ header {
   border: 1.5px solid var(--border2);
   box-shadow: 0 12px 40px rgba(0,0,0,0.35);
   backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   display: flex;
   flex-direction: column;
   max-height: min(80vh, 560px);
@@ -1699,8 +1700,6 @@ header {
 .proj-modal-overlay,
 .status-confirm-overlay,
 .item-viz-overlay {
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   transition: opacity 0.22s ease;
 }
 
@@ -3727,6 +3726,7 @@ body.radar-sb-collapsed #global-footer {
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
 }
 .quick-note-overlay.open { display: flex; }
 
@@ -9825,6 +9825,7 @@ body.radar-sb-collapsed #global-footer {
   inset: 0;
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   z-index: 1200;
   display: flex;
   align-items: center;
@@ -17265,7 +17266,7 @@ body.body--focus-mode::after {
 
 /* ══════════════════════════════════════════════════════════════════
    macOS FIDELITY — 7 fixes · AI Tracker v3.4.1
-   Última actualización: 2026-05-03
+   Última actualización: 2026-05-09
    ══════════════════════════════════════════════════════════════════ */
 
 /* ── Fix #1 · Backdrop blur overlays — macOS sheet material ─────── */
@@ -17283,8 +17284,8 @@ body.body--focus-mode::after {
 .proj-modal-overlay,
 .status-confirm-overlay,
 .item-viz-overlay {
-  backdrop-filter: blur(20px) saturate(1.8) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(1.8) !important;
+  backdrop-filter: blur(20px) saturate(1.8);
+  -webkit-backdrop-filter: blur(20px) saturate(1.8);
   background: rgba(0, 0, 0, 0.3) !important;
 }
 
@@ -17301,8 +17302,8 @@ body.body--focus-mode::after {
 :root[data-theme="light"] .proj-modal-overlay,
 :root[data-theme="light"] .status-confirm-overlay,
 :root[data-theme="light"] .item-viz-overlay {
-  backdrop-filter: blur(20px) saturate(1.6) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(1.6) !important;
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
   background: rgba(0, 0, 0, 0.18) !important;
 }
 

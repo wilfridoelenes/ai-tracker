@@ -824,12 +824,14 @@ function openProjModal(editMode, projId) {
     if (emojiInput) emojiInput.value = '';
   }
 
-  document.getElementById('proj-modal-overlay').classList.add('open');
+  const projModalOverlay = document.getElementById('proj-modal-overlay');
+  if (projModalOverlay) projModalOverlay.classList.add('open');
   setTimeout(() => { if (nameInput) nameInput.focus(); }, 80);
 }
 
 function closeProjModal() {
-  document.getElementById('proj-modal-overlay').classList.remove('open');
+  const projModalOverlay = document.getElementById('proj-modal-overlay');
+  if (projModalOverlay) projModalOverlay.classList.remove('open');
   _projEditId = null;
 }
 
@@ -906,6 +908,13 @@ function confirmProjForm() {
   _updateProjFilterBtn();
 }
 
+function _toggleProjArchivedSection() {
+  var k = 'proj-modal-archived-open';
+  var now = localStorage.getItem(k) !== '0';
+  localStorage.setItem(k, now ? '0' : '1');
+  _renderProjList();
+}
+
 function _renderProjList() {
   const list = document.getElementById('proj-list');
   if (!list) return;
@@ -950,12 +959,7 @@ function _renderProjList() {
   let html = activeProjs.map(_projRow).join('');
   if (archivedProjs.length) {
     html += `<div class="proj-archived-section">
-      <button class="proj-archived-toggle" onclick="
-        var k='proj-modal-archived-open';
-        var now=localStorage.getItem(k)!=='0';
-        localStorage.setItem(k,now?'0':'1');
-        _renderProjList();
-      ">
+      <button class="proj-archived-toggle" onclick="_toggleProjArchivedSection()">
         <span class="proj-archived-arrow">${archivedOpen ? '▾' : '▸'}</span>
         <span>Archivados (${archivedProjs.length})</span>
       </button>
@@ -1251,7 +1255,7 @@ function _renderOnboardingSteps() {
     },
     {
       title: 'Registra tu primera sesión',
-      hint: 'Al terminar una sesión, pega el bloque CHECKPOINT en el card de la IA.',
+      hint: 'Al terminar una sesión, pega el bloque <abbr title="Resumen estructurado que el rol emite al cerrar cada sesión de trabajo — incluye qué se hizo, archivos entregados, ítems nuevos y próximo paso.">CHECKPOINT</abbr> en el card de la IA.',
       done: hasSessions,
       action: null
     }
