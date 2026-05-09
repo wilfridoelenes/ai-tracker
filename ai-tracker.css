@@ -7977,3 +7977,151 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 /* ══ END R-202605-008 ══ */
+
+/* ══ R-202605-167: Breadcrumb interactivo en logo area — proyecto › sprint › ítem ══ */
+
+/* La estructura de tres segmentos siempre está en el DOM;
+   visibilidad controlada por .breadcrumb-seg--hidden. */
+.logo-project-label {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.breadcrumb-sep {
+  font-size: 10px;
+  color: var(--hint);
+  flex-shrink: 0;
+  line-height: 1;
+  user-select: none;
+}
+
+.breadcrumb-seg {
+  /* Reset button */
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  margin: 0;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+  /* Foco visible — no suprimir outline */
+  outline-offset: 2px;
+}
+.breadcrumb-seg:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Segmento 1 — proyecto: text-primary weight 500 */
+.breadcrumb-seg--proj {
+  color: var(--text);
+  font-weight: 500;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.breadcrumb-seg--proj:not(:disabled):hover { color: var(--accent); }
+
+/* Segmento 2 — sprint: text-secondary weight 400 */
+.breadcrumb-seg--sprint {
+  color: var(--text2);
+  font-weight: 400;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.breadcrumb-seg--sprint:hover { color: var(--accent); }
+
+/* Segmento 3 — ítem: text-tertiary weight 400, overflow ellipsis */
+.breadcrumb-seg--item {
+  color: var(--hint);
+  font-weight: 400;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.breadcrumb-seg--item:hover { color: var(--accent); }
+
+/* Clase de visibilidad — aplicada por JS */
+.breadcrumb-seg--hidden { display: none !important; }
+
+/* Mobile: segmentos sprint e ítem ocultos */
+@media (max-width: 600px) {
+  .breadcrumb-seg--hide-mobile { display: none !important; }
+}
+
+/* ══ END R-202605-167 ══ */
+
+/* ══ R-202605-168: Sprint progress bar — segunda fila del header ══ */
+
+#header-sprint-row {
+  display: none; /* oculto por defecto — hsr-visible lo activa */
+  align-items: center;
+  gap: 8px;
+  height: 0;
+  overflow: hidden;
+  padding: 0 2rem;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: height 0.18s ease;
+}
+
+#header-sprint-row.hsr-visible {
+  display: flex;
+  height: 28px;
+}
+
+/* Mobile: oculto */
+@media (max-width: 600px) {
+  #header-sprint-row { display: none !important; }
+}
+
+.hsr-label {
+  font-size: 10px;
+  font-family: var(--mono, monospace);
+  color: var(--hint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.hsr-bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--border);
+  overflow: hidden;
+  min-width: 40px;
+}
+
+.hsr-bar-fill {
+  height: 100%;
+  width: var(--hsr-pct, 0%);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Color semántico via clase — sin style= inline para color */
+.hsr-bar-fill--accent   { background: var(--accent); }
+.hsr-bar-fill--success  { background: var(--green, #2ecc78); }
+
+.hsr-text {
+  font-size: 11px;
+  color: var(--text2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Hover sutil en la fila — no distrae pero confirma interactividad */
+#header-sprint-row:hover .hsr-label,
+#header-sprint-row:hover .hsr-text {
+  color: var(--text);
+}
+
+/* ══ END R-202605-168 ══ */

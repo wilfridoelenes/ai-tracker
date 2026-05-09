@@ -46,31 +46,91 @@ const AVATAR_LOGOS = {
 document.title = 'AI Tracker ' + _effectiveVersion(); // v3.0.0.9.6
 
 // Header project label — muestra Prefijo · Nombre canónico del proyecto activo
+// R-202605-167: Breadcrumb interactivo — proyecto › sprint › ítem activo
+// Extiende _updateHeaderProjectLabel — no crea función nueva.
+// La estructura de tres <button> siempre está en el DOM; visibilidad por clase.
 function _updateHeaderProjectLabel() {
-  const prefixEl = document.getElementById('header-project-prefix');
-  const nameEl   = document.getElementById('header-project-name');
-  if (!prefixEl || !nameEl) return;
-
-  // Mapa canónico: nombre de proyecto → prefijo (fuente de verdad única — OL-CONTEXT §7)
-  const CANONICAL = {
-    'Obsidian Labs':   'OL',
-    'Alisto':          'AS',
-    'Content Manager': 'CM',
-    'Locus':           'PP',
-  };
+  // ── Segmento 1: proyecto ──────────────────────────────────────────────────
+  const projBtn    = document.getElementById('breadcrumb-proj');
+  const firstSep   = document.querySelector('.breadcrumb-sep--first');
+  const sprintBtn  = document.getElementById('breadcrumb-sprint');
+  const sprintSep  = document.querySelector('.breadcrumb-sep--sprint');
+  const itemBtn    = document.getElementById('breadcrumb-item');
+  if (!projBtn) return;
 
   const filterId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : '';
   const proj = filterId && (typeof getProjectById === 'function') ? getProjectById(filterId) : null;
 
   if (proj) {
-    const name   = proj.name || 'Proyecto';
-    const prefix = CANONICAL[name] || name.slice(0, 2).toUpperCase();
-    prefixEl.textContent = prefix;
-    nameEl.textContent   = name;
+    projBtn.textContent = proj.name || 'Proyecto';
+    projBtn.removeAttribute('disabled');
   } else {
-    // Sin proyecto activo → mostrar identidad del tracker
-    prefixEl.textContent = 'AI';
-    nameEl.textContent   = 'AI Tracker';
+    // Sin proyecto activo → texto plano sin interacción
+    projBtn.textContent = 'AI Tracker';
+    projBtn.setAttribute('disabled', '');
+  }
+
+  // ── Segmento 2: sprint ────────────────────────────────────────────────────
+  if (sprintBtn && sprintSep) {
+    const sp = proj && proj.sprints
+      ? proj.sprints.find(s => s.status === 'active')
+      : null;
+
+    if (sp) {
+      sprintBtn.textContent = sp.label || sp.id || 'Sprint';
+      sprintBtn.title = 'Ver sprint health';
+      sprintBtn.classList.remove('breadcrumb-seg--hidden');
+      sprintSep.classList.remove('breadcrumb-seg--hidden');
+      if (firstSep) firstSep.classList.remove('breadcrumb-seg--hidden');
+    } else {
+      sprintBtn.classList.add('breadcrumb-seg--hidden');
+      sprintSep.classList.add('breadcrumb-seg--hidden');
+      if (firstSep) firstSep.classList.add('breadcrumb-seg--hidden');
+    }
+  }
+
+  // ── Segmento 3: ítem activo del Worker seleccionado ───────────────────────
+  if (itemBtn) {
+    let activeItem = null;
+    try {
+      if (typeof _trackerSelectedId !== 'undefined' && _trackerSelectedId) {
+        const tracker = (typeof getActiveTracker === 'function') ? getActiveTracker() : { items: [] };
+        const items = tracker.items || [];
+        // Ítems pendientes/en-curso vinculados a sesiones del AI seleccionado
+        const aiSessions = (typeof getAllSessions === 'function')
+          ? getAllSessions().filter(s => s.aiId === _trackerSelectedId)
+          : [];
+        const sessIds = new Set(aiSessions.map(s => s.id));
+        const linked = items.filter(i =>
+          i.status !== 'done' &&
+          i.status !== 'descartado' &&
+          i.sessionId && sessIds.has(i.sessionId)
+        );
+        if (linked.length > 0) {
+          // Preferir el de mayor prioridad
+          const PRI = { high: 0, medium: 1, low: 2 };
+          linked.sort((a, b) => (PRI[a.priority] ?? 3) - (PRI[b.priority] ?? 3));
+          activeItem = linked[0];
+        }
+      }
+    } catch (e) {}
+
+    if (activeItem) {
+      const code = activeItem.code || '';
+      const title = activeItem.title || activeItem.desc || code;
+      const label = code ? code + (title ? ' ' + title : '') : title;
+      itemBtn.textContent = label;
+      itemBtn.title = 'Ver ítem ' + code;
+      itemBtn.onclick = function () {
+        if (typeof navigateToItem === 'function') navigateToItem(code);
+      };
+      itemBtn.classList.remove('breadcrumb-seg--hidden');
+    } else {
+      itemBtn.textContent = '';
+      itemBtn.title = '';
+      itemBtn.onclick = null;
+      itemBtn.classList.add('breadcrumb-seg--hidden');
+    }
   }
 }
 // Exponer para que sprint-project.js lo llame al cambiar proyecto
@@ -2458,6 +2518,43 @@ function _isInSession(ai) {
 function renderStatusBar() {
   // R-202604-060: tracker-status-bar DEPRECATED — lógica migrada a tracker-grid-header + global-footer
 
+  // ── R-202605-168: Sprint progress bar — segunda fila del header ───────────
+  // Reutiliza el cálculo de sprint activo; no duplica lógica.
+  try {
+    const _hsrRow    = document.getElementById('header-sprint-row');
+    const _hsrLabel  = document.getElementById('hsr-label');
+    const _hsrFill   = document.getElementById('hsr-bar-fill');
+    const _hsrText   = document.getElementById('hsr-text');
+    if (_hsrRow) {
+      const _hsprProj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+      const _hsprSp   = _hsprProj && _hsprProj.sprints
+        ? _hsprProj.sprints.find(s => s.status === 'active')
+        : null;
+
+      if (_hsprSp) {
+        const _hsprItems = (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(i => i.sprint === _hsprSp.id);
+        const _hsprDone  = _hsprItems.filter(i => i.status === 'done').length;
+        const _hsprTotal = _hsprItems.length;
+        const _hsprPct   = _hsprTotal > 0 ? Math.round((_hsprDone / _hsprTotal) * 100) : 0;
+
+        if (_hsrLabel) _hsrLabel.textContent = _hsprSp.label || _hsprSp.id || '';
+        if (_hsrFill) {
+          _hsrFill.style.setProperty('--hsr-pct', _hsprPct + '%');
+          _hsrFill.classList.toggle('hsr-bar-fill--success', _hsprPct >= 70);
+          _hsrFill.classList.toggle('hsr-bar-fill--accent',  _hsprPct < 70);
+        }
+        if (_hsrText) _hsrText.textContent = _hsprPct + '% · ' + _hsprDone + '/' + _hsprTotal;
+        _hsrRow.setAttribute('aria-valuenow', _hsprPct);
+        _hsrRow.classList.add('hsr-visible');
+      } else {
+        _hsrRow.classList.remove('hsr-visible');
+      }
+    }
+  } catch (e) {}
+
+  // Sincronizar breadcrumb con el estado actual de sprint/proyecto
+  if (typeof _updateHeaderProjectLabel === 'function') _updateHeaderProjectLabel();
+
   // ── Grid header: vacío — pill migrado a tracker-view-header (R-202605-139) ──
   const gridHeader = document.getElementById('tracker-grid-header');
   if (gridHeader) {
@@ -4039,6 +4136,8 @@ function selectTrackerAI(aiId) {
   _scrollToCard(aiId);
   // T-202605-446: iniciar/retomar cronómetro al seleccionar IA
   startSessionTimer(aiId);
+  // R-202605-167: actualizar segmento 3 del breadcrumb al cambiar Worker seleccionado
+  if (typeof _updateHeaderProjectLabel === 'function') _updateHeaderProjectLabel();
   // focus textarea si disponible
   setTimeout(() => {
     const ta = document.getElementById('ta-' + aiId);
@@ -4165,6 +4264,7 @@ function stopSessionTimer(aiId) {
   const elapsed = d.elapsed + (d.running ? (Date.now() - d.startEpoch) : 0);
   _setTimerData(aiId, { running: false, elapsed, startEpoch: null });
   _refreshTimerTick();
+  _renderActiveWorkerChip(); // R-202605-170: ocultar chip inmediatamente
   return elapsed;
 }
 
@@ -4211,6 +4311,8 @@ function _refreshTimerTick() {
   clearInterval(_timerIntervalId);
   _timerIntervalId = setInterval(() => {
     state.ais.forEach(ai => _renderTimerInCard(ai.id));
+    // R-202605-170: actualizar chip de header cada tick (60s para hwc via su propio intervalo)
+    _renderActiveWorkerChip();
   }, 1000);
 }
 
@@ -4223,6 +4325,55 @@ function _timerWidgetHtml(aiId) {
     `<span class="session-timer-dot ${dotCls}" id="session-timer-dot-${aiId}"></span>` +
     `<span class="session-timer-display" id="session-timer-${aiId}">${_formatTimer(elapsed)}</span>` +
     `</div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// R-202605-170: Worker activo chip en header — nombre y cronómetro
+// ══════════════════════════════════════════════════════════════════════════════
+
+function _renderActiveWorkerChip() {
+  const chip = document.getElementById('header-active-worker');
+  if (!chip) return;
+
+  // Encontrar worker con timer activo — si hay varios, el de mayor elapsed
+  const active = (state.ais || []).filter(ai => _timerIsActive(ai.id));
+  if (!active.length) {
+    chip.classList.add('hidden');
+    return;
+  }
+  const ai = active.reduce((best, cur) => {
+    const dBest = _getTimerData(best.id);
+    const dCur  = _getTimerData(cur.id);
+    const eBest = dBest ? dBest.elapsed + (dBest.running ? Date.now() - dBest.startEpoch : 0) : 0;
+    const eCur  = dCur  ? dCur.elapsed  + (dCur.running  ? Date.now() - dCur.startEpoch  : 0) : 0;
+    return eCur > eBest ? cur : best;
+  });
+
+  const d = _getTimerData(ai.id);
+  const elapsed = d ? d.elapsed + (d.running ? Date.now() - d.startEpoch : 0) : 0;
+  // Formato HH:MM (sin segundos)
+  const totalSec = Math.floor(elapsed / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const hhmm = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+
+  const nameEl = chip.querySelector('.hwc-name');
+  const timeEl = chip.querySelector('.hwc-time');
+  if (nameEl) nameEl.textContent = ai.name || '';
+  if (timeEl) timeEl.textContent = hhmm;
+
+  chip.dataset.hwcAiId = ai.id;
+  chip.classList.remove('hidden');
+}
+
+function _hwcClick() {
+  const chip = document.getElementById('header-active-worker');
+  const aiId = chip && chip.dataset.hwcAiId;
+  if (!aiId) return;
+  if (typeof selectTrackerAI === 'function') selectTrackerAI(aiId);
+  if (typeof currentTab !== 'undefined' && currentTab !== 'tracker') {
+    if (typeof switchTab === 'function') switchTab('tracker');
+  }
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -4569,6 +4720,8 @@ function render() {
   renderSetupChecklist();
   // B-202605-508: actualizar badges de tabs al final de cada render
   updateTabNotifBadges();
+  // R-202605-170: actualizar chip de worker activo en header
+  _renderActiveWorkerChip();
 }
 
 const TG_TYPE_NAMES = {I:'Idea', P:'Pendiente', T:'Ticket', R:'Requerimiento', B:'Bug'};
@@ -7669,6 +7822,14 @@ function renderPulsoDot() {
   dot.className = `pulso-dot pulso-dot--${s.dotColor}`;
   const labels = { green: 'Ecosistema activo ✓', yellow: '⚠ Actividad baja — algún proyecto inactivo 4-7d', red: '⛔ Alerta — proyectos parados o bloqueantes activos' };
   dot.title = labels[s.dotColor] || '';
+  // R-202605-169: Pulso dot en header
+  const hdot = document.getElementById('header-pulso-dot');
+  if (hdot) {
+    hdot.className = `pulso-dot pulso-dot--${s.dotColor}`;
+    const label = labels[s.dotColor] || '';
+    hdot.setAttribute('aria-label', label);
+    hdot.title = label;
+  }
   try { localStorage.setItem(_PULSO_KEY, JSON.stringify({ color: s.dotColor, ts: Date.now() })); } catch(e) {}
 }
 

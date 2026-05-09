@@ -11010,6 +11010,16 @@ body.radar-sb-collapsed #global-footer {
   color: var(--accent);
 }
 
+/* T-202605-511: chip 'activo' — sprint con status === active en state.sprints */
+.plan-sprint-badge--active {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: transparent;
+  font-size: 0.68rem;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+}
+
 /* plan-sprint-progress — legacy span (sesiones) — mantenido por compat */
 .plan-sprint-progress {
   font-size: 0.72rem;
@@ -11326,6 +11336,40 @@ body.radar-sb-collapsed #global-footer {
   font-style: italic;
 }
 
+/* T-202605-512: Micro-barra de progreso X/N por sesión */
+.plan-session-prog {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+}
+
+.plan-session-prog-bar {
+  flex: 1;
+  height: 3px;
+  background: var(--border, rgba(255,255,255,0.1));
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.plan-session-prog-bar::after {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 0;
+  width: var(--sess-prog-pct, 0%);
+  background: var(--green, #2ecc78);
+  border-radius: 999px;
+}
+
+.plan-session-prog-label {
+  font-size: 0.68rem;
+  color: var(--text2, var(--text-muted));
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 /* ── Empty states ── */
 .plan-empty {
   color: var(--text2, var(--text-muted));
@@ -11353,6 +11397,14 @@ body.radar-sb-collapsed #global-footer {
   padding: 0.2rem 0.65rem;
   margin: 0.6rem 1rem 0;
   letter-spacing: 0.02em;
+}
+
+/* T-202605-510: timestamp de última actualización del plan */
+.plan-saved-ts {
+  font-size: 0.7rem;
+  color: var(--text3, var(--text-muted));
+  margin: 0.2rem 1rem 0.4rem;
+  letter-spacing: 0.01em;
 }
 
 /* pls-plan-row — CSS Purity fix (B-[tmp:b-pls-cursor]) */
@@ -18159,6 +18211,31 @@ body.body--focus-mode::after {
 }
 
 
+/* ══ T-202605-509: Toggle colapso/expansión zona --done en Plan ══ */
+/* .is-hidden como utilitaria global — toggle via classList, sin style.display en JS */
+.plan-sessions-row.is-hidden { display: none; }
+
+.plan-zone-toggle {
+  background: none;
+  border: none;
+  padding: 0 4px;
+  margin-left: 6px;
+  cursor: pointer;
+  font-size: 0.7rem;
+  line-height: 1;
+  color: var(--text-muted, #8a8a8a);
+  vertical-align: middle;
+  opacity: 0.7;
+  transition: opacity 0.15s ease;
+}
+.plan-zone-toggle:hover { opacity: 1; }
+.plan-zone-toggle:focus-visible {
+  outline: 2px solid var(--color-primary, #4F46E5);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+/* ══ END T-202605-509 ══ */
+
 /* ══ R-202605-146: Export strip — sección fija al pie del Document Generator ══ */
 .mg-export-strip {
   border-top: 1px solid var(--border, rgba(255,255,255,0.08));
@@ -18758,3 +18835,112 @@ body.body--focus-mode::after {
   content: '⚠️';
 }
 /* END T-202605-513 */
+
+/* ══ R-202605-169: Pulso dot en header — estado rápido sin scroll ══ */
+#header-pulso-dot {
+  /* hit area 24×24 */
+  width: 24px;
+  height: 24px;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+#header-pulso-dot:hover {
+  background: var(--surface2);
+}
+/* Dot visual 8px vía ::after */
+#header-pulso-dot::after {
+  content: '';
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text3, #888);
+  transition: transform 0.15s ease, background 0.3s ease;
+}
+#header-pulso-dot:hover::after {
+  transform: scale(1.25);
+}
+#header-pulso-dot.pulso-dot--green::after  { background: var(--green); box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 20%, transparent); }
+#header-pulso-dot.pulso-dot--yellow::after { background: #e8a832; box-shadow: 0 0 0 2px color-mix(in srgb, #e8a832 20%, transparent); }
+#header-pulso-dot.pulso-dot--red::after    { background: var(--red); box-shadow: 0 0 0 2px color-mix(in srgb, var(--red) 20%, transparent); }
+/* Cancelar animación pulso heredada — fuera de scope en header */
+#header-pulso-dot.pulso-dot--yellow,
+#header-pulso-dot.pulso-dot--red { animation: none; }
+/* Cancelar cualquier background/box-shadow de pulso-dot--* aplicado al botón directamente */
+#header-pulso-dot.pulso-dot--green,
+#header-pulso-dot.pulso-dot--yellow,
+#header-pulso-dot.pulso-dot--red,
+#header-pulso-dot.pulso-dot--neutral { background: transparent; box-shadow: none; }
+/* END R-202605-169 */
+
+/* R-202605-170: Worker activo chip en header — nombre y cronómetro */
+#header-active-worker {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: var(--bg2, #f8fafc);
+  color: var(--text1, #1e293b);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  /* Sin style= inline — layout via CSS */
+}
+#header-active-worker:hover {
+  border-color: var(--color-accent, #4F46E5);
+  background: var(--bg3, #f1f5f9);
+}
+#header-active-worker.hidden {
+  display: none;
+}
+.hwc-dot {
+  flex-shrink: 0;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green, #2ecc78);
+  animation: hwc-pulse 2s ease-in-out infinite;
+}
+@keyframes hwc-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+.hwc-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hwc-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--text2, #64748b);
+  font-size: 11px;
+  flex-shrink: 0;
+}
+/* Mobile (<600px): ocultar nombre y tiempo — solo dot */
+@media (max-width: 600px) {
+  .hwc-name,
+  .hwc-time {
+    display: none;
+  }
+  #header-active-worker {
+    padding: 3px 5px;
+    max-width: unset;
+  }
+}
+/* END R-202605-170 */

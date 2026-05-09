@@ -36,10 +36,13 @@
   <div class="header-inner">
     <div class="logo cursor-pointer" onclick="switchTab('tracker')" id="logo-btn" title="Ir a Tracker">
       <img id="pepe-logo" src="/img/logo.png" alt="Pepe" class="logo-img">
+      <!-- R-202605-167: Breadcrumb interactivo — proyecto › sprint › ítem activo -->
       <div class="logo-project-label" id="header-project-label">
-        <span class="logo-project-prefix" id="header-project-prefix">AI</span>
-        <span class="logo-project-separator">·</span>
-        <span class="logo-project-name" id="header-project-name">AI Tracker</span>
+        <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" onclick="if(typeof openProjPanel==='function')openProjPanel()">AI Tracker</button>
+        <span class="breadcrumb-sep breadcrumb-sep--first breadcrumb-seg--hidden" aria-hidden="true">›</span>
+        <button class="breadcrumb-seg breadcrumb-seg--sprint breadcrumb-seg--hidden" id="breadcrumb-sprint" title="Ver sprint health" onclick="if(typeof toggleSprintHealthPanel==='function')toggleSprintHealthPanel()"></button>
+        <span class="breadcrumb-sep breadcrumb-sep--sprint breadcrumb-seg--hidden" aria-hidden="true">›</span>
+        <button class="breadcrumb-seg breadcrumb-seg--item breadcrumb-seg--hidden breadcrumb-seg--hide-mobile" id="breadcrumb-item" title=""></button>
       </div>
     </div>
 
@@ -66,6 +69,16 @@
 
     <div class="header-actions">
       <!-- Orden AC: búsqueda (en header-search) · nota rápida · menú ⋯ -->
+
+      <!-- R-202605-169: Pulso dot en header — estado rápido del ecosistema -->
+      <button class="pulso-dot pulso-dot--neutral" id="header-pulso-dot" onclick="openPulsoPanel()" aria-label="Sin datos" title="Sin datos"></button>
+
+      <!-- R-202605-170: Worker activo chip — nombre y cronómetro visible sin abrir sidebar -->
+      <button class="header-worker-chip hidden" id="header-active-worker" onclick="_hwcClick()" title="Worker en sesión">
+        <span class="hwc-dot session-timer-dot--active"></span>
+        <span class="hwc-name"></span>
+        <span class="hwc-time"></span>
+      </button>
 
       <!-- T-202604-268: Quick Note — visible en todos los tabs -->
       <button class="btn-quick-note" id="btn-quick-note" onclick="openQuickNote()" title="Nueva nota rápida">✏️</button>
@@ -135,6 +148,13 @@
     </div>
   </div>
 </header>
+
+<!-- R-202605-168: Sprint progress bar — segunda fila del header -->
+<div id="header-sprint-row" role="button" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" onclick="if(typeof toggleSprintHealthPanel==='function')toggleSprintHealthPanel()" title="Ver sprint health">
+  <span class="hsr-label" id="hsr-label"></span>
+  <div class="hsr-bar"><div class="hsr-bar-fill" id="hsr-bar-fill"></div></div>
+  <span class="hsr-text" id="hsr-text"></span>
+</div>
 
 <!-- T-084: Storage warning banner — visible solo si totalSessions > 300 -->
 <div id="storage-warn" class="hidden">

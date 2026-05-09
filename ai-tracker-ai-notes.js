@@ -7214,6 +7214,43 @@ function loadPlan(projId) {
   } catch(e) { return null; }
 }
 
+// T-202605-510: leer _savedAt del wrapper sin exponer data al caller
+function _planSavedAt(projId) {
+  try {
+    const raw = localStorage.getItem(_planKey(projId));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed._savedAt)
+      ? parsed._savedAt
+      : null;
+  } catch(e) { return null; }
+}
+
+// T-202605-509: helpers para toggle colapso zona --done
+const _PLAN_ZONE_DONE_KEY = 'locus-plan-zone-done-collapsed';
+
+function _planZoneDoneCollapsed() {
+  try {
+    const val = localStorage.getItem(_PLAN_ZONE_DONE_KEY);
+    if (val === null) return false;
+    const parsed = JSON.parse(val);
+    return parsed === true || parsed === false ? parsed : false;
+  } catch(e) { return false; }
+}
+
+function togglePlanZoneDone() {
+  const next = !_planZoneDoneCollapsed();
+  try { localStorage.setItem(_PLAN_ZONE_DONE_KEY, JSON.stringify(next)); } catch(e) {}
+  const row = document.querySelector('.plan-zone--done .plan-sessions-row');
+  const btn = document.querySelector('.plan-zone--done .plan-zone-toggle');
+  if (row) { row.classList.toggle('is-hidden', next); }
+  if (btn) {
+    btn.innerHTML        = next ? '&#x25b2;' : '&#x25be;';
+    btn.title            = next ? 'Expandir' : 'Colapsar';
+    btn.setAttribute('aria-label', next ? 'Expandir completadas' : 'Colapsar completadas');
+  }
+}
+
 // Renderizar el sub-tab Plan para el proyecto activo
 // R-202604-085 + R-B: dos scopes diferenciados — sesion (superior) y sprint (inferior)
 // Backward compatible: planes legacy (sin campo scope) se muestran en sección sprint
@@ -7243,6 +7280,18 @@ function renderPlan() {
       const d = new Date(meta.ts);
       const label = `${d.getDate().toString().padStart(2,'0')}/${(d.getMonth()+1).toString().padStart(2,'0')} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
       autoChipHtml = `<div class="plan-auto-chip">⚙ Generado automáticamente · ${label}</div>`;
+    }
+  } catch(e) {}
+
+  // T-202605-510: timestamp de última actualización del plan
+  let savedTsHtml = '';
+  try {
+    const savedAt = _planSavedAt(proj.id);
+    if (savedAt) {
+      const d = new Date(savedAt);
+      const hh = d.getHours().toString().padStart(2, '0');
+      const mm = d.getMinutes().toString().padStart(2, '0');
+      savedTsHtml = `<div class="plan-saved-ts">Actualizado: ${hh}:${mm}</div>`;
     }
   } catch(e) {}
 
@@ -7304,6 +7353,17 @@ function renderPlan() {
         }).join('')
       : '';
 
+    // T-202605-512: micro-barra de progreso X/N por sesión
+    const _sessDone  = resolvedItems.filter(it => it.status === 'done' || it.status === 'descartado').length;
+    const _sessTotal = resolvedItems.length;
+    const _sessPct   = _sessTotal ? Math.round((_sessDone / _sessTotal) * 100) : 0;
+    const _sessProgHtml = _sessTotal
+      ? `<div class="plan-session-prog">
+          <div class="plan-session-prog-bar" style="--sess-prog-pct:${_sessPct}%"></div>
+          <span class="plan-session-prog-label">${_sessDone}/${_sessTotal}</span>
+        </div>`
+      : '';
+
     return `<div class="plan-session ${allDone ? 'plan-session--done' : extraClass}">
       <div class="plan-session-header">
         <span class="plan-session-num">Sesión ${idx}</span>
@@ -7317,13 +7377,26 @@ function renderPlan() {
         ${resolvedItems.map(it => `
           <div class="plan-item ${_statusClass(it.status)}">
             <span class="plan-item-status" title="${esc(it.status)}">${_statusLabel(it.status)}</span>
-            <span class="plan-item-code plan-item-code--link" title="Ver en backlog" onclick="if(typeof navigateToItem==='function')navigateToItem(${JSON.stringify(it.code)})">${esc(it.code)}</span>
+            <span class="plan-item-code">${esc(it.code)}</span>
             <span class="plan-item-title">${esc(it.title)}</span>
           </div>`).join('')}
         ${resolvedItems.length === 0 ? `<div class="plan-item-empty">Sin ítems declarados</div>` : ''}
       </div>
+      ${_sessProgHtml}
     </div>`;
   };
+
+  // T-202605-511: lookup de sprints activos para chip 'activo'
+  const _activeSprintIds = (() => {
+    try {
+      if (typeof getActiveSprints !== 'function') return new Set();
+      return new Set(
+        getActiveSprints()
+          .filter(sp => sp.status === 'active')
+          .map(sp => sp.id)
+      );
+    } catch(e) { return new Set(); }
+  })();
 
   // Render de un grupo de sprints — reutilizable para ambos scopes
   const _renderSprintGroup = group => {
@@ -7341,10 +7414,11 @@ function renderPlan() {
       const totalItems   = allCodes.length;
       const doneItems    = allCodes.filter(c => { const st = _liveStatus(c); return st === 'done' || st === 'descartado'; }).length;
       const pct          = totalItems ? Math.round((doneItems / totalItems) * 100) : 0;
+      const isActive     = sprint.id && _activeSprintIds.has(sprint.id);
 
       html += `<div class="plan-sprint-block">
         <div class="plan-sprint-header">
-          <span class="plan-sprint-id">${esc(sprintLabel)}</span>
+          <span class="plan-sprint-id">${esc(sprintLabel)}</span>${isActive ? `<span class="plan-sprint-badge--active">activo</span>` : ''}
           ${totalItems ? `<div class="plan-sprint-progress-bar-wrap">
             <div class="plan-sprint-progress-bar" style="--plan-pct:${pct}%"></div>
             <span class="plan-sprint-progress-label">${doneItems}/${totalItems} ítems (${pct}%)</span>
@@ -7366,7 +7440,13 @@ function renderPlan() {
         html += `</div></div>`;
       }
       if (doneSessions.length) {
-        html += `<div class="plan-zone plan-zone--done"><div class="plan-zone-label">Completadas</div><div class="plan-sessions-row">`;
+        const _doneCollapsed = _planZoneDoneCollapsed();
+        const _doneAriaLabel = _doneCollapsed ? 'Expandir completadas' : 'Colapsar completadas';
+        const _doneTitleAttr = _doneCollapsed ? 'Expandir' : 'Colapsar';
+        const _doneChevron   = _doneCollapsed ? '&#x25b2;' : '&#x25be;';
+        html += `<div class="plan-zone plan-zone--done">`;
+        html += `<div class="plan-zone-label">Completadas<button class="plan-zone-toggle" onclick="togglePlanZoneDone()" aria-label="${_doneAriaLabel}" title="${_doneTitleAttr}">${_doneChevron}</button></div>`;
+        html += `<div class="plan-sessions-row${_doneCollapsed ? ' is-hidden' : ''}">`;
         doneSessions.forEach(sess => { globalSessIdx++; html += _sessCard(sess, globalSessIdx, 'plan-session--done'); });
         html += `</div></div>`;
       }
@@ -7382,7 +7462,7 @@ function renderPlan() {
   const sprintsSprint = sprints.filter(sp => sp.scope !== 'sesion');
 
   // Construir HTML — sección sesion primero (AC de Nova)
-  let html = autoChipHtml;
+  let html = autoChipHtml + savedTsHtml;
 
   // SECCIÓN SESIÓN
   html += `<div class="plan-scope-section plan-scope-section--sesion">
