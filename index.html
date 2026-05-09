@@ -180,6 +180,17 @@
 <!-- ═══ TAB TRACKER ═══ -->
 <div class="tab-panel active" id="tab-tracker">
 
+  <!-- R-202605-008: checklist de setup — banner sticky, mutuamente excluyente con empty state -->
+  <div class="setup-checklist-banner" id="setup-checklist-banner" role="status" aria-label="Progreso de configuración inicial">
+    <div class="scb-steps" id="scb-steps">
+      <div class="scb-step" id="scb-step-worker"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Worker</span></div>
+      <div class="scb-step" id="scb-step-project"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Proyecto</span></div>
+      <div class="scb-step" id="scb-step-item"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Ítem</span></div>
+      <div class="scb-step" id="scb-step-session"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Sesión</span></div>
+    </div>
+    <button class="scb-dismiss" onclick="_scbDismiss()" aria-label="Cerrar checklist de configuración">✕</button>
+  </div>
+
   <!-- R-202604-078: header de vista — toggle Por IA / Historial + selector proyecto + colapsar -->
   <div class="tracker-view-header" id="tracker-view-header">
     <div class="tracker-view-toggle" id="tracker-view-toggle" role="group" aria-label="Vista del Tracker">

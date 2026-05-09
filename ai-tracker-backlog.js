@@ -2665,7 +2665,8 @@ function renderBacklogList() {
         <div class="doc-dropzone-title">Importar Backlog.md</div>
         <div class="doc-dropzone-hint">Arrastra el archivo aquí o haz click para seleccionar</div>
         <div class="doc-dropzone-badge">.md</div>
-      </div>` : `
+      </div>
+      <div class="es-escape-link">¿Sin archivo? Crea tu primer ítem →<button class="es-escape-btn" onclick="if(typeof openItemEditor==='function')openItemEditor(null)">Crear ítem</button></div>` : `
       <div class="empty-state">
         <div class="empty-state-icon">📋</div>
         <div class="empty-state-title">Backlog vacío</div>

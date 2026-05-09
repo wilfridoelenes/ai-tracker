@@ -2433,6 +2433,43 @@ function _findSessionByAI(aiId, sessId) {
   return null;
 }
 
+// ── R-202605-008: Setup checklist banner ──────────────────────────────────────
+function _scbDismissed() {
+  return localStorage.getItem('setup-checklist-dismissed') === '1';
+}
+function _scbDismiss() {
+  localStorage.setItem('setup-checklist-dismissed', '1');
+  const banner = document.getElementById('setup-checklist-banner');
+  if (banner) banner.classList.add('scb-hidden');
+}
+function _scbStep(id, done) {
+  const el = document.getElementById('scb-step-' + id);
+  if (!el) return;
+  const icon = el.querySelector('.scb-icon');
+  const wasDone = el.classList.contains('scb-done');
+  el.classList.toggle('scb-done', done);
+  if (icon) icon.textContent = done ? '✓' : '○';
+  // opacity fade ○→✓ 150ms (CSS handles transition)
+  if (!wasDone && done) el.classList.add('scb-just-done');
+}
+function renderSetupChecklist() {
+  const banner = document.getElementById('setup-checklist-banner');
+  if (!banner) return;
+  if (_scbDismissed()) { banner.classList.add('scb-hidden'); return; }
+  const workerDone  = (state.ais || []).length > 0;
+  const projectDone = (state.projects || []).length > 0;
+  const itemDone    = (typeof ITEMS !== 'undefined' ? ITEMS : []).length > 0;
+  const sessionDone = (typeof getAllSessions === 'function') ? getAllSessions().length > 0 : false;
+  const allDone = workerDone && projectDone && itemDone && sessionDone;
+  if (allDone) { banner.classList.add('scb-hidden'); return; }
+  banner.classList.remove('scb-hidden');
+  _scbStep('worker',  workerDone);
+  _scbStep('project', projectDone);
+  _scbStep('item',    itemDone);
+  _scbStep('session', sessionDone);
+}
+// ── END R-202605-008 ──────────────────────────────────────────────────────────
+
 function updateStats() {
   // v3: contar sesiones desde proyectos
   const tot = getAllSessions().length;
@@ -4457,20 +4494,30 @@ function render() {
 
   if (!state.ais.length) {
     if (grid) grid.innerHTML = '';
-    // R-202604-068 AC-1: empty state con pasos y acción primaria visible
+    // R-202605-007 AC: sin workers — CTA primario + secundario en fila
     if (emptyEl) { emptyEl.classList.remove('hidden'); emptyEl.classList.add('visible'); emptyEl.innerHTML = `
       <div class="empty-state-icon">🤖</div>
-      <div class="empty-state-title">Sin IAs registradas</div>
-      <div class="empty-state-hint">Registra las IAs que usas (Claude, GPT, Gemini…) para hacer seguimiento de cada sesión de trabajo.</div>
-      <button class="empty-state-btn" onclick="openAddAI()">＋ Agregar primera IA</button>
-      <div class="empty-state-steps">
-        <div class="empty-step"><span class="empty-step-n">1</span><span>Agrega una IA</span></div>
-        <div class="empty-step-sep">→</div>
-        <div class="empty-step"><span class="empty-step-n">2</span><span>Pega el CHECKPOINT al terminar</span></div>
-        <div class="empty-step-sep">→</div>
-        <div class="empty-step"><span class="empty-step-n">3</span><span>El backlog se actualiza solo</span></div>
+      <div class="empty-state-title">Sin Workers registrados</div>
+      <div class="empty-state-hint">Registra las IAs que usas para hacer seguimiento de cada sesión de trabajo.</div>
+      <div class="es-cta-row">
+        <button class="empty-state-btn" onclick="openAddAI()">＋ Nuevo Worker</button>
+        <button class="btn-ghost" onclick="if(typeof openProjModal==='function')openProjModal(false)">Nuevo Proyecto</button>
       </div>`; }
-    updateStats(); renderStatusBar(); return;
+    updateStats(); renderStatusBar(); renderSetupChecklist(); return;
+  }
+
+  // R-202605-007 AC: con workers pero sin proyecto activo — solo CTA "Nuevo Proyecto"
+  const _hasActiveProj = typeof getActiveProject === 'function' && !!getActiveProject();
+  if (!_hasActiveProj && (state.projects || []).length === 0) {
+    if (grid) grid.innerHTML = '';
+    if (emptyEl) { emptyEl.classList.remove('hidden'); emptyEl.classList.add('visible'); emptyEl.innerHTML = `
+      <div class="empty-state-icon">🗂</div>
+      <div class="empty-state-title">Sin proyecto activo</div>
+      <div class="empty-state-hint">Crea un proyecto para empezar a registrar sesiones y gestionar tu backlog.</div>
+      <div class="es-cta-row">
+        <button class="empty-state-btn" onclick="if(typeof openProjModal==='function')openProjModal(false)">＋ Nuevo Proyecto</button>
+      </div>`; }
+    updateStats(); renderStatusBar(); renderSetupChecklist(); return;
   }
 
   // auto-select: preferir disponible/en-sesión sobre agotada
@@ -4483,7 +4530,7 @@ function render() {
   if (!_trackerSelectedId) {
     if (grid) grid.innerHTML = '';
     if (emptyEl) { emptyEl.classList.remove('hidden'); emptyEl.classList.add('visible'); }
-    updateStats(); renderStatusBar(); return;
+    updateStats(); renderStatusBar(); renderSetupChecklist(); return;
   }
 
   if (emptyEl) emptyEl.classList.remove('visible');
@@ -4559,6 +4606,8 @@ function render() {
   if (typeof _trackerHistAttachDropTargets === 'function') _trackerHistAttachDropTargets();
   // T-202605-447: actualizar banner de sesión sugerida tras cada render
   renderSuggestionBanner();
+  // R-202605-008: actualizar checklist de setup tras cada render
+  renderSetupChecklist();
 }
 
 const TG_TYPE_NAMES = {I:'Idea', P:'Pendiente', T:'Ticket', R:'Requerimiento', B:'Bug'};
