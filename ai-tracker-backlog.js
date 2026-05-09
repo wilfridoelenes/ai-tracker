@@ -2653,24 +2653,16 @@ function renderBacklogList() {
   }
 
   if (!ITEMS.length) {
-   // T-202604-124: mostrar dropzone si no hay ítems (incluso post-reset)
-    const _backlogHasData = !!localStorage.getItem(_tplKey('backlog-items')) && ITEMS.length > 0;
-    listEl.innerHTML = !_backlogHasData ? `
-      <div class="doc-dropzone" id="backlog-dropzone"
-        ondragover="event.preventDefault();this.classList.add('doc-dropzone--over')"
-        ondragleave="this.classList.remove('doc-dropzone--over')"
-        ondrop="this.classList.remove('doc-dropzone--over');_dropzoneHandle(event,'backlog')"
-        onclick="document.getElementById('backlog-file-input').click()">
-        <div class="doc-dropzone-icon">📋</div>
-        <div class="doc-dropzone-title">Importar Backlog.md</div>
-        <div class="doc-dropzone-hint">Arrastra el archivo aquí o haz click para seleccionar</div>
-        <div class="doc-dropzone-badge">.md</div>
-      </div>
-      <div class="es-escape-link">¿Sin archivo? Crea tu primer ítem →<button class="es-escape-btn" onclick="if(typeof openItemEditor==='function')openItemEditor(null)">Crear ítem</button></div>` : `
+    // R-202605-166: empty state unificado — CTA Importar + escape Crear ítem
+    listEl.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">📋</div>
         <div class="empty-state-title">Backlog vacío</div>
-        <div class="empty-state-hint">El Backlog se actualiza automáticamente vía CHECKPOINT.</div>
+        <div class="empty-state-hint">Importa tu Backlog.md o crea tu primer ítem para empezar.</div>
+        <div class="es-cta-row">
+          <button class="empty-state-btn" onclick="document.getElementById('backlog-file-input').click()">Importar backlog</button>
+        </div>
+        <div class="es-escape-link">¿Sin archivo? Crea tu primer ítem →<button class="es-escape-btn" onclick="if(typeof openItemEditor==='function')openItemEditor(null)">Crear ítem</button></div>
       </div>`;
     _skelHide(listEl);
     return;
@@ -3911,6 +3903,81 @@ function _buildItemOriginBlock(item) {
   </div>`;
 }
 
+// R-202605-010: status chip popover — un solo popover activo a la vez
+let _statusPopoverCode = null;
+function _openStatusPopover(e, code) {
+  e.stopPropagation();
+  // Cerrar popover previo
+  const prev = document.getElementById('status-popover');
+  if (prev) prev.remove();
+  if (_statusPopoverCode === code) { _statusPopoverCode = null; return; }
+  _statusPopoverCode = code;
+
+  const item = ITEMS.find(i => i.code === code);
+  if (!item) { _statusPopoverCode = null; return; }
+
+  const isIdea = (itemType(code) || '') === 'P';
+  const options = [
+    { val: 'pendiente', label: 'Pendiente' },
+    ...(!isIdea ? [{ val: 'done', label: 'Hecho' }] : []),
+    { val: 'descartado', label: 'Descartado' }
+  ];
+
+  const pop = document.createElement('div');
+  pop.id = 'status-popover';
+  pop.className = 'bitem-status-popover';
+  pop.setAttribute('role', 'menu');
+  pop.onclick = e2 => e2.stopPropagation();
+
+  pop.innerHTML = options.map(o =>
+    `<button class="bitem-status-popover-btn${item.status === o.val ? ' is-current' : ''}" data-val="${o.val}">${o.label}</button>`
+  ).join('');
+
+  pop.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      const newVal = btn.dataset.val;
+      pop.remove();
+      _statusPopoverCode = null;
+      if (newVal !== item.status) {
+        try {
+          setItemStatus(code, newVal);
+        } catch(err) {
+          showToast('error', 'Error al cambiar status', null, 3000);
+          // chip revierte automáticamente tras el re-render de renderBacklogList
+        }
+      }
+    });
+  });
+
+  document.body.appendChild(pop);
+
+  // Posicionar bajo el chip trigger
+  const trigger = e.currentTarget;
+  const rect = trigger.getBoundingClientRect();
+  const popW = 120;
+  let left = rect.left + window.scrollX;
+  if (left + popW > window.innerWidth) left = window.innerWidth - popW - 8;
+  pop.style.setProperty('--sp-top', (rect.bottom + window.scrollY + 4) + 'px');
+  pop.style.setProperty('--sp-left', left + 'px');
+
+  // Cerrar con Escape
+  const _escHandler = ev => {
+    if (ev.key === 'Escape') { pop.remove(); _statusPopoverCode = null; document.removeEventListener('keydown', _escHandler); }
+  };
+  document.addEventListener('keydown', _escHandler);
+
+  // Cerrar al click fuera
+  const _outsideHandler = ev => {
+    if (!pop.contains(ev.target) && ev.target !== trigger) {
+      pop.remove();
+      _statusPopoverCode = null;
+      document.removeEventListener('click', _outsideHandler, true);
+    }
+  };
+  setTimeout(() => document.addEventListener('click', _outsideHandler, true), 0);
+}
+
 // T-108: construir un ítem colapsado
 function buildBacklogItem(item) {
   const globalIdx = ITEMS.indexOf(item);
@@ -4023,13 +4090,17 @@ function buildBacklogItem(item) {
         <button class="btn-discard-idea" onclick="event.stopPropagation();setItemStatus('${esc(item.code)}','descartado')" title="Descartar esta idea">✕ Descartar</button>
        </div>`
     : '';
+  // R-202605-010: status chip inline clickeable — solo para ítems pendientes (no P, no done, no descartado)
+  const _statusChipHtml = (!isDone && !isDiscarded && !isIdea)
+    ? `<button class="bitem-status-chip bitem-status-chip--${esc(item.status || 'pendiente')}" onclick="_openStatusPopover(event,'${esc(item.code)}')" title="Cambiar status" type="button">${statusLabel(item.status || 'pendiente')}</button>`
+    : '';
   const headerRight = isDiscarded
     ? `<span class="bitem-discarded-icon">🗑</span>`
     : isDone
       ? `<span class="bitem-done-check">✓</span>`
       : isIdea
         ? `<div class="bitem-header-right">${_ideaQuickActions}</div>`
-        : `<div class="bitem-header-right">${scopeAddedBadge}${noAcBadge}${acReplacedBadge}${blockingBadge}${blockedBadge}${blockedByBadge}${noSessionBadge}${childBadge}${prioBadgeHtml}${effortDotsHtml}</div>`;
+        : `<div class="bitem-header-right">${_statusChipHtml}${scopeAddedBadge}${noAcBadge}${acReplacedBadge}${blockingBadge}${blockedBadge}${blockedByBadge}${noSessionBadge}${childBadge}${prioBadgeHtml}${effortDotsHtml}</div>`;
 
   // R-202605-098: subline discard reason diferenciado para P
   // P descartado por promoción → chip con ref; P descartado manual → razón libre

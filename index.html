@@ -83,11 +83,12 @@
         <span class="user-chip-name" id="user-chip-name"></span>
       </div>
 
-      <!-- Menú ⋯ — acciones frecuentes arriba · destructivas abajo · backup/tema/sync migrados aquí -->
+      <!-- Menú ⋯ — R-202605-012: grupos semánticos con separadores — Datos · Navegación · Configuración · Zona peligrosa -->
       <div class="more-menu-wrap" id="more-menu-wrap">
         <button class="btn-ghost btn-icon" onclick="toggleMoreMenu()" title="Más opciones" id="more-menu-btn">⋯</button>
         <div class="more-menu hidden" id="more-menu">
-          <!-- Frecuentes -->
+          <!-- Grupo: Datos -->
+          <div class="mm-group-label">Datos</div>
           <button onclick="exportData();toggleMoreMenu()"><span class="mm-icon">⬇</span> Backup</button>
           <button onclick="document.getElementById('imp').click();toggleMoreMenu()"><span class="mm-icon">⬆</span> Importar backup</button>
           <button onclick="downloadGlobalReport();toggleMoreMenu()"><span class="mm-icon">📄</span> Reporte global</button>
@@ -109,18 +110,24 @@
               </label>
             </div>
           </div>
+          <!-- Grupo: Navegación -->
+          <hr class="mm-separator">
+          <div class="mm-group-label">Navegación</div>
           <button onclick="openCommandPalette();toggleMoreMenu()"><span class="mm-icon">⌘</span> Command palette</button>
           <button onclick="openShortcuts();toggleMoreMenu()"><span class="mm-icon">⌨</span> Atajos de teclado</button>
           <button onclick="openChangelog();toggleMoreMenu()"><span class="mm-icon">📋</span> Changelog</button>
+          <!-- Grupo: Configuración -->
+          <hr class="mm-separator">
+          <div class="mm-group-label">Configuración</div>
           <button onclick="openNotifConfig();toggleMoreMenu()"><span class="mm-icon">🔔</span> Configurar notificaciones</button>
-          <!-- Tema y Sync -->
           <button onclick="toggleTheme();toggleMoreMenu()" id="more-menu-theme"><span class="mm-icon">🌙</span> Cambiar tema</button>
           <button onclick="handleSyncPillClick();toggleMoreMenu()"><span class="mm-icon sync-status-dot" id="sync-status-dot">●</span> <span id="sync-status-label">Sync: local</span></button>
           <!-- B-202605: openFbOnboarding removido — Firebase deprecado, migración a Supabase completa -->
           <!-- R-migración: visible solo cuando Firebase y Supabase están disponibles -->
           <button id="btn-migrate-fb-sb" onclick="openMigrateFirebaseModal();toggleMoreMenu()" class="hidden"><span class="mm-icon">🔄</span> Migrar Firebase → Supabase</button>
-          <!-- B-259: Destructivas — separadas con hr explícito -->
+          <!-- Grupo: Zona peligrosa -->
           <hr class="mm-separator">
+          <div class="mm-group-label mm-group-label--danger">Zona peligrosa</div>
           <button onclick="purgeOldSessions();toggleMoreMenu()" class="mm-danger"><span class="mm-icon">🗑</span> Purgar sesiones antiguas</button>
         </div>
       </div>
@@ -148,7 +155,7 @@
       </button>
       <span class="radar-sidebar-title">Workers</span>
       <div class="rsb-header-actions">
-        <button class="rsb-add-ia-btn" onclick="openAddAI()" title="Nuevo Worker">+</button>
+        <button class="rsb-add-ia-btn" onclick="openAddAI()" title="Nuevo Worker">+ Worker</button>
         <button class="radar-sidebar-collapse-btn" id="radar-sidebar-toggle" onclick="toggleRadarSidebar()" title="Colapsar">&#x2039;</button>
       </div>
     </div>

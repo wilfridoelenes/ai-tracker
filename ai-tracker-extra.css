@@ -18421,3 +18421,107 @@ body.body--focus-mode::after {
   display: none;
 }
 /* END R-202605-003 */
+
+/* R-202605-010: Status chip inline clickeable en fila colapsada */
+.bitem-status-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  transition: opacity 0.12s ease, background 0.12s ease;
+  flex-shrink: 0;
+  line-height: 1.6;
+}
+.bitem-status-chip:hover { opacity: 0.75; }
+
+.bitem-status-chip--pendiente {
+  background: var(--blue-dim);
+  color: var(--blue);
+  border-color: var(--blue-border);
+}
+.bitem-status-chip--done {
+  background: var(--c-done-bg);
+  color: var(--c-done-text);
+  border-color: var(--c-done-border);
+}
+.bitem-status-chip--descartado {
+  background: var(--surface3);
+  color: var(--hint);
+  border-color: var(--border2);
+}
+
+/* Popover flotante de status */
+.bitem-status-popover {
+  position: fixed;
+  top: var(--sp-top, 0px);
+  left: var(--sp-left, 0px);
+  z-index: 9999;
+  background: var(--surface2);
+  border: 1.5px solid var(--border2);
+  border-radius: 9px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 112px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+}
+.bitem-status-popover-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: var(--text2);
+  transition: background 0.1s ease, color 0.1s ease;
+  font-family: var(--font-sans);
+}
+.bitem-status-popover-btn:hover {
+  background: var(--surface3);
+  color: var(--text);
+}
+.bitem-status-popover-btn.is-current {
+  font-weight: 700;
+  color: var(--blue);
+}
+/* END R-202605-010 */
+
+/* R-202605-011: rsb-add-ia-btn — label visible sin hover */
+.rsb-add-ia-btn {
+  width: auto;
+  height: auto;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  letter-spacing: 0.01em;
+}
+/* END R-202605-011 */
+
+/* R-202605-012: mm-group-label — separadores semánticos en menú ⋯ */
+.mm-group-label {
+  padding: 5px 12px 3px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--hint);
+  user-select: none;
+  pointer-events: none;
+  display: block;
+}
+.mm-group-label--danger {
+  color: var(--c-critical-text, #f87171);
+  opacity: 0.8;
+}
+/* END R-202605-012 */
