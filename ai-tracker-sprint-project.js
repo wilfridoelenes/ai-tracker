@@ -264,7 +264,9 @@ ${noSprintSection}`;
 // AC-3: ítems sin sprint en sección 'Sin sprint asignado' si existen
 // AC-4 (R-202605-132): scope_added flag — ítems creados durante el sprint
 // AC-5 (R-202605-132): retro de sprint cerrado incluida si existe
-function _generateFullHistoryBySprintMd(newVersion) {
+// B-202605-515: _generateFullHistoryContent — función pura que retorna el string Markdown
+// sin blob download ni toast. _generateFullHistoryBySprintMd delega aquí.
+function _generateFullHistoryContent(newVersion) {
   const now = new Date();
   const utcM6 = new Date(now.getTime() - 6 * 3600000);
   const pad = n => String(n).padStart(2, '0');
@@ -391,6 +393,16 @@ ${legacySection}${noSprintSection}
 | Sprints históricos (pre-S-${SPRINT_DATA_THRESHOLD}) | ${legacySprintIds.size} |
 `;
 
+  // B-202605-515: retornar string puro — el download lo hace _generateFullHistoryBySprintMd
+  return md;
+}
+
+// B-202605-515: wrapper que mantiene el comportamiento visible existente
+// exportFullHistoryMd() llama a este wrapper — sin cambios para el usuario
+function _generateFullHistoryBySprintMd(newVersion) {
+  const md = _generateFullHistoryContent(newVersion);
+  if (!md) return;
+  const pfx = _docPrefix();
   const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

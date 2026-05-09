@@ -6497,6 +6497,33 @@ function loadHtmlMap() {
   if (stored) { try { HTML_MAP_SECTIONS = JSON.parse(stored); } catch { HTML_MAP_SECTIONS = []; } } else { HTML_MAP_SECTIONS = []; }
 }
 
+// ── B-202605-514: _getMapContent() — retorna string del MAP con versión aplicada ──
+// Retorna null si no hay datos en localStorage.
+// exportHtmlMapMd() y _mgExportAllZip() consumen esta función.
+function _getMapContent(ver) {
+  const raw = localStorage.getItem(_tplKey('html-map-raw'));
+  if (!raw) return null;
+  const resolvedVer = ver || (typeof _effectiveVersion !== 'undefined' && _effectiveVersion
+    ? _effectiveVersion
+    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0'));
+  const isJson = (typeof _isMapJson === 'function') ? _isMapJson(raw) : false;
+  let updated = raw;
+  if (isJson) {
+    try {
+      const jsonRaw = (typeof _extractMapJson === 'function') ? _extractMapJson(raw) : raw;
+      const obj = JSON.parse(jsonRaw);
+      obj.version = resolvedVer;
+      const newJson = JSON.stringify(obj, null, 2);
+      updated = raw.includes('```json')
+        ? raw.replace(/```json\s*[\s\S]*?\s*```/, '```json\n' + newJson + '\n```')
+        : newJson;
+    } catch(e) { /* retornar raw sin modificar si el JSON es inválido */ }
+  } else {
+    updated = raw.replace(/Versi[oó]n:\s*[\d.]+/, `Versión: ${resolvedVer}`);
+  }
+  return updated;
+}
+
 // ── T-103 / T-202604-123: Exportar HTML-MAP con versión editable ──
 function exportHtmlMapMd() {
   const raw = localStorage.getItem(_tplKey('html-map-raw'));
@@ -6519,19 +6546,8 @@ function exportHtmlMapMd() {
     btn.parentNode.replaceChild(newBtn, btn);
     newBtn.addEventListener('click', () => {
       const ver = document.getElementById('hmexport-version-input').value.trim() || _hmVer;
-      let updated = raw;
-      if (isJson) {
-        // Actualizar version en el JSON
-        try {
-          const jsonRaw = _extractMapJson(raw);
-          const obj = JSON.parse(jsonRaw);
-          obj.version = ver;
-          const newJson = JSON.stringify(obj, null, 2);
-          updated = raw.includes('```json') ? raw.replace(/```json\s*[\s\S]*?\s*```/, '```json\n' + newJson + '\n```') : newJson;
-        } catch(e) {}
-      } else {
-        updated = raw.replace(/Versi[oó]n:\s*[\d.]+/, `Versión: ${ver}`);
-      }
+      // B-202605-514: usar _getMapContent() — lógica de versioning centralizada
+      const updated = _getMapContent(ver) || raw;
       overlay.classList.remove('open');
       _clearHtmlMapModifiedBadge();
       const fname = `${_docPrefix()}-MAP_${ver}.${ext}`;

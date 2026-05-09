@@ -1802,6 +1802,8 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
         // B-202605-XXX: usar _tryIngestPlan en lugar de savePlan directo — preserva scope:sprint al guardar scope:sesion
         if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
         await saveImmediate(); render(); renderStats();
+        // B-202605-508: actualizar badges de tabs tras guardar sesión
+        if (typeof updateTabNotifBadges === 'function') updateTabNotifBadges();
         if (currentTab === 'backlog') renderBacklogList();
         _rebuildLogBody();
         _checkStorageQuota();

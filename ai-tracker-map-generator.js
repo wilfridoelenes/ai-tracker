@@ -1449,19 +1449,27 @@ function _mgExportAllZip() {
   const fileDefs = [];
 
   if (typeof buildBacklogMd === 'function') {
-    const _blVer = _mgGetVersion();
-    fileDefs.push({ filename: `${prefix}-BACKLOG_${_blVer}.md`, fn: () => buildBacklogMd(_blVer) }); // B-202605-513: versión en nombre de archivo + argumento a buildBacklogMd
+    fileDefs.push({ filename: `${prefix}-BACKLOG.md`, fn: () => buildBacklogMd(_mgGetVersion()) }); // B-202605-513: pasar versión para que el export no quede con header undefined
   }
-  if (typeof exportFullHistoryMd === 'function') {
-    // exportFullHistoryMd descarga directamente — la llamamos en fallback
+  // B-202605-515: historial completo via _generateFullHistoryContent (función pura, sin blob/toast)
+  if (typeof _generateFullHistoryContent === 'function') {
+    const ver = _mgGetVersion();
+    fileDefs.push({ filename: `${prefix}-BACKLOG-FULL_${ver}.md`, fn: () => _generateFullHistoryContent(ver) });
   }
   if (typeof _generateContext === 'function') {
     const version = _mgGetVersion();
     const prefix2 = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
     fileDefs.push({ filename: `${prefix2}-CONTEXT_${version}.md`, fn: () => _generateContext() }); // B-202605-276
   }
-  if (typeof exportHtmlMapContent === 'function') {
-    fileDefs.push({ filename: `${prefix}-MAP.md`, fn: () => exportHtmlMapContent() });
+  // B-202605-514: MAP via _getMapContent() — función pura, sin overlay ni blob
+  if (typeof _getMapContent === 'function') {
+    const ver = _mgGetVersion();
+    const mapContent = _getMapContent(ver);
+    if (mapContent !== null) {
+      // detectar extensión según tipo de contenido
+      const mapExt = mapContent.trimStart().startsWith('{') || mapContent.includes('```json') ? 'json' : 'md';
+      fileDefs.push({ filename: `${prefix}-MAP_${ver}.${mapExt}`, fn: () => mapContent });
+    }
   }
 
   // Si podemos construir contenido — intentar ZIP
