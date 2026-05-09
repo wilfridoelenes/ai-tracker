@@ -104,6 +104,7 @@ function closeMapGenerator() {
   if (el) el.classList.remove('mg-visible');
   document.body.classList.remove('mg-body-lock');
   _mgDropzoneInited = false; // B-202605-274: permitir re-inicialización en próxima apertura
+  if (_mgDropzoneAC) { _mgDropzoneAC.abort(); _mgDropzoneAC = null; } // R2 — limpiar listeners
 }
 
 // ─── Sprint Review — carga de datos ─────────────────────────────────────────
@@ -230,6 +231,7 @@ function _mgSwitchReviewTab(tab, btn) {
 // ─── Dropzone ────────────────────────────────────────────────────────────────
 
 let _mgDropzoneInited = false;
+let _mgDropzoneAC = null; // AbortController — limpia listeners al cerrar
 
 function _mgInitDropzone() {
   if (_mgDropzoneInited) return;
@@ -239,22 +241,27 @@ function _mgInitDropzone() {
   if (!zone || !input) return;
   _mgDropzoneInited = true;
 
+  // R2 — AbortController: garantiza listeners limpios en reaperturas sucesivas
+  if (_mgDropzoneAC) _mgDropzoneAC.abort();
+  _mgDropzoneAC = new AbortController();
+  const sig = { signal: _mgDropzoneAC.signal };
+
   zone.addEventListener('dragover', e => {
     e.preventDefault();
     zone.classList.add('mg-drag-over');
-  });
-  zone.addEventListener('dragleave', () => zone.classList.remove('mg-drag-over'));
+  }, sig);
+  zone.addEventListener('dragleave', () => zone.classList.remove('mg-drag-over'), sig);
   zone.addEventListener('drop', e => {
     e.preventDefault();
     zone.classList.remove('mg-drag-over');
     _mgLoadFiles([...e.dataTransfer.files]);
-  });
-  zone.addEventListener('click', () => input.click());
+  }, sig);
+  zone.addEventListener('click', () => input.click(), sig);
 
   input.addEventListener('change', () => {
     _mgLoadFiles([...input.files]);
     input.value = '';
-  });
+  }, sig);
 }
 
 function _mgLoadFiles(fileList) {
@@ -626,17 +633,23 @@ function generateDocuments() {
   }
 
   // T-202605-504: validar campos obligatorios del CONTEXT antes de generar
+  // R1 — desmarca CONTEXT + avisa con link a editar sprint si faltan name/goal
   if (contextChecked) {
     const _valSp = _mgActiveSprint();
     if (_valSp) {
-      // AC1: sprint.name vacío — bloqueante
-      if (!_valSp.name || !_valSp.name.trim()) {
-        if (typeof showToast === 'function') showToast('error', 'El sprint activo no tiene nombre — define el nombre del sprint antes de exportar el CONTEXT.');
-        return;
-      }
-      // AC2: sprint.goal null/vacío — bloqueante
-      if (!_valSp.goal || !String(_valSp.goal).trim()) {
-        if (typeof showToast === 'function') showToast('error', 'El sprint activo no tiene goal — define el goal del sprint antes de exportar el CONTEXT.');
+      const _missingName = !_valSp.name || !_valSp.name.trim();
+      const _missingGoal = !_valSp.goal || !String(_valSp.goal).trim();
+      if (_missingName || _missingGoal) {
+        // Desmarcar CONTEXT automáticamente
+        const _ctxChk = document.getElementById('mg-out-context');
+        if (_ctxChk) _ctxChk.checked = false;
+        // Toast warning con acción de editar sprint
+        const _campo = _missingName ? 'nombre' : 'goal';
+        if (typeof showToastInline === 'function') {
+          showToastInline('warning', `El sprint no tiene ${_campo}. CONTEXT desmarcado. <a href="#" onclick="closeMapGenerator();setTimeout(()=>editSprintInline && editSprintInline('${_valSp.id}'),100);return false;">Editar sprint →</a>`);
+        } else if (typeof showToast === 'function') {
+          showToast('warning', `El sprint no tiene ${_campo}. CONTEXT desmarcado — edita el sprint y vuelve a marcar CONTEXT.`);
+        }
         return;
       }
       // AC3: status active + backlog.pending = 0 con backlog.total > 0 — advertencia con opción continuar
