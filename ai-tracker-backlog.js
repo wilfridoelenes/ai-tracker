@@ -254,6 +254,11 @@ let ITEMS = (() => {
   const _initProjId = localStorage.getItem('current-project-filter') || '';
   const _initKey = _initProjId ? 'backlog-items-' + _initProjId : null;
   const stored = _initKey ? localStorage.getItem(_initKey) : null;
+  if (!stored && _initProjId) {
+    // B-202605-062: proyecto activo sin datos — feedback explícito
+    console.warn('[AI Tracker] ITEMS IIFE: proyecto activo "' + _initProjId + '" no tiene datos en localStorage.');
+    // El empty state visual se muestra en renderBacklogList cuando ITEMS queda vacío
+  }
   if (stored) {
     try {
       const items = JSON.parse(stored);
@@ -480,8 +485,11 @@ function _calcPriority(item) {
   if (type === 'B') return 'high';
   if (item.sprint) {
     const sp = _getSprintById(item.sprint);
-    if (sp && sp.status === 'active') return 'high';
-    if (parseInt(item.effort) === 1) return 'high';
+    const sprintIsOpen = sp && (sp.status === 'active' || sp.status === 'open');
+    // B-202605-059: effort 1 → high solo si el sprint está activo u open — nunca en sprints cerrados
+    if (sprintIsOpen) return 'high';
+    if (sp && !sprintIsOpen && parseInt(item.effort) === 1) { /* sprint cerrado — no elevar */ }
+    else if (!sp && parseInt(item.effort) === 1) return 'high'; // sprint sin registro → comportamiento previo conservado
   }
   if (!item.sprint && parseInt(item.effort) === 3) return 'low';
   return 'medium';
@@ -703,6 +711,14 @@ function loadBacklog() {
     // R-202605-135: schema_version — ítems sin campo se tratan como versión 0 y se migran
     if (item.schema_version === undefined) {
       item.schema_version = 1;
+      migrated = true;
+    }
+  });
+  // B-202605-061: migración desc→title — 'desc' no es campo canónico del schema v1
+  // Si el ítem tiene desc y title está vacío, copiar desc a title (silencioso)
+  ITEMS.forEach(item => {
+    if (item.desc && (!item.title || item.title.trim() === '')) {
+      item.title = item.desc;
       migrated = true;
     }
   });
@@ -2653,6 +2669,25 @@ function renderBacklogList() {
   }
 
   if (!ITEMS.length) {
+    // B-202605-062: diferenciar backlog vacío real vs proyecto sin datos en localStorage
+    const _activeFilter = _getActiveProjectFilter();
+    const _projKey = _activeFilter ? 'backlog-items-' + _activeFilter : null;
+    const _hasStoredData = _projKey ? !!localStorage.getItem(_projKey) : false;
+    if (_activeFilter && !_hasStoredData) {
+      // Proyecto seleccionado pero sin datos en localStorage
+      listEl.innerHTML = `
+      <div class=\"empty-state\">
+        <div class=\"empty-state-icon\">📂</div>
+        <div class=\"empty-state-title\">Sin ítems — selecciona un proyecto con datos</div>
+        <div class=\"empty-state-hint\">El proyecto activo no tiene backlog guardado. Importa un Backlog.md o selecciona otro proyecto.</div>
+        <div class=\"es-cta-row\">
+          <button class=\"empty-state-btn\" onclick=\"document.getElementById('backlog-file-input').click()\">Importar backlog</button>
+          <button class=\"empty-state-btn\" onclick=\"openProjPanel()\">Cambiar proyecto</button>
+        </div>
+      </div>`;
+      _skelHide(listEl);
+      return;
+    }
     // R-202605-166: empty state unificado — CTA Importar + escape Crear ítem
     listEl.innerHTML = `
       <div class="empty-state">
@@ -4151,7 +4186,6 @@ function buildBacklogItem(item) {
       ${headerRight}
     </div>
     <div class="item-body bitem-body" id="ibody-${globalIdx}">
-      ${item.desc ? `<p class="bitem-desc">${esc(item.desc)}</p>` : ''}
       ${item.notes ? `<div class="bitem-notes-block"><span class="bitem-notes-label">Notas</span><span class="bitem-notes-text">${esc(item.notes)}</span></div>` : ''}
       ${_isBlocked(item) ? `<div class="bitem-missing-row"><span class="badge-missing badge-missing--blocked">⛔ bloqueado — sin cambio de status en más de ${_BLOCKED_DAYS} días</span></div>` : ''}
       ${(!isDone && !isDiscarded && item.sprint && !_hasRecentSession(item)) ? `<div class="bitem-missing-row"><span class="badge-missing badge-missing--idle">💤 sin sesión — sin mención en los últimos ${_NO_SESSION_DAYS} días</span></div>` : ''}
@@ -6683,22 +6717,33 @@ function _scmRender() {
   const body = document.getElementById('sprint-close-body');
   if (!body) return;
 
-  if (step === 1) body.innerHTML = _scmStep1Html(sp, spLabel, pendingItems, doneItems);
+  // B-202605-067: extraer métricas de _scmState antes de llamar a _scmStep1Html
+  // para eliminar la referencia directa al global dentro de la función
+  const _step1Metrics = {
+    effortPlanned:         _scmState.effortPlanned          || 0,
+    effortDone:            _scmState.effortDone             || 0,
+    effortScopeAdded:      _scmState.effortScopeAdded       || 0,
+    effortNotDone:         _scmState.effortNotDone          || 0,
+    hasItemsWithoutEffort: _scmState.hasItemsWithoutEffort  || false,
+  };
+  if (step === 1) body.innerHTML = _scmStep1Html(sp, spLabel, pendingItems, doneItems, _step1Metrics);
   else if (step === 2 && !skipStep2) body.innerHTML = _scmStep2Html(pendingItems, migrations, id);
   else if (step === 2 && skipStep2) body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep2); // B-202605-001: skipStep2=true → paso 2 es el último, renderiza resumen
   else if (step === 3 && !skipStep2) body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep2);
 }
 
-function _scmStep1Html(sp, spLabel, pendingItems, doneItems) {
+// B-202605-067: métricas de entrega recibidas como parámetro — sin acceso a _scmState global
+function _scmStep1Html(sp, spLabel, pendingItems, doneItems, metrics) {
   const doneCount  = doneItems.filter(i => i.status === 'done').length;
   const pendCount  = pendingItems.length;
 
-  // R-202605-125: métricas de entrega desde _scmState (snapshot al abrir modal)
-  const effortPlanned    = _scmState ? (_scmState.effortPlanned    || 0) : 0;
-  const effortDone       = _scmState ? (_scmState.effortDone       || 0) : 0;
-  const effortScopeAdded = _scmState ? (_scmState.effortScopeAdded || 0) : 0;
-  const effortNotDone    = _scmState ? (_scmState.effortNotDone    || 0) : 0;
-  const hasNoEffort      = _scmState ? (_scmState.hasItemsWithoutEffort || false) : false;
+  // R-202605-125: métricas de entrega desde snapshot pasado por _scmRender
+  const m = metrics || {};
+  const effortPlanned    = m.effortPlanned          || 0;
+  const effortDone       = m.effortDone             || 0;
+  const effortScopeAdded = m.effortScopeAdded       || 0;
+  const effortNotDone    = m.effortNotDone          || 0;
+  const hasNoEffort      = m.hasItemsWithoutEffort  || false;
   // % entrega = done / (planeado + scope added). Si todo es 0, usar conteo de ítems.
   const denominator = effortPlanned + effortScopeAdded;
   const pct = denominator
