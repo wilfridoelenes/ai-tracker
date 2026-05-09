@@ -116,7 +116,7 @@ function exportSprintsMd() {
 }
 
 // R-202605-132: genera Markdown por sprint con todos los campos estructurados
-function _generateSprintsExportMd(newVersion) {
+function _generateSprintsContent(newVersion) {
   const now = new Date();
   const utcM6 = new Date(now.getTime() - 6 * 3600000);
   const pad = n => String(n).padStart(2, '0');
@@ -248,6 +248,12 @@ ${velocityRows || '_Sin sprints cerrados._'}
 ${orderedSprints.length ? sprintSections : '\n_Sin sprints registrados._\n'}
 ${noSprintSection}`;
 
+  return md;
+}
+
+function _generateSprintsExportMd(newVersion) {
+  const pfx = _docPrefix();
+  const md = _generateSprintsContent(newVersion);
   const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -434,7 +440,7 @@ function _showExportConfirmModal(label, filename, onConfirm) {
   }
 }
 
-function _generateBacklogMd(newVersion, opts = {}) {
+function _generateBacklogContent(newVersion, opts = {}) {
   const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
   const _activeProj = typeof getActiveProject === 'function' ? getActiveProject() : null;
   const _projName = _activeProj ? (_activeProj.name || 'Sin proyecto') : 'Sin proyecto';
@@ -550,6 +556,12 @@ ${itemsMd}
 | Próxima versión | ${newVersion} |
 `;
 
+  return { md, meta, counters, dateStr };
+}
+
+function _generateBacklogMd(newVersion, opts = {}) {
+  const pfx = _docPrefix();
+  const { md, meta, counters, dateStr } = _generateBacklogContent(newVersion, opts);
   const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

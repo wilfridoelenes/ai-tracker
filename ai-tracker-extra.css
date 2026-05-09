@@ -11299,6 +11299,18 @@ body.radar-sb-collapsed #global-footer {
   flex-shrink: 0;
 }
 
+/* T-202605-508: plan-item-code clickeable → navigateToItem */
+.plan-item-code--link {
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+.plan-item-code--link:hover {
+  color: var(--accent-hover, var(--accent));
+  text-decoration-style: solid;
+}
+
 .plan-item-title {
   color: var(--text2, var(--text-muted));
   overflow: hidden;

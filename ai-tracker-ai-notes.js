@@ -7317,7 +7317,7 @@ function renderPlan() {
         ${resolvedItems.map(it => `
           <div class="plan-item ${_statusClass(it.status)}">
             <span class="plan-item-status" title="${esc(it.status)}">${_statusLabel(it.status)}</span>
-            <span class="plan-item-code">${esc(it.code)}</span>
+            <span class="plan-item-code plan-item-code--link" title="Ver en backlog" onclick="if(typeof navigateToItem==='function')navigateToItem(${JSON.stringify(it.code)})">${esc(it.code)}</span>
             <span class="plan-item-title">${esc(it.title)}</span>
           </div>`).join('')}
         ${resolvedItems.length === 0 ? `<div class="plan-item-empty">Sin ítems declarados</div>` : ''}
