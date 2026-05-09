@@ -1598,7 +1598,7 @@ Contadores: P=${counters.P} | T=${counters.T} | R=${counters.R} | B=${counters.B
   
   ['I', 'P', 'T', 'R', 'B'].forEach(type => {
     byType[type].forEach(item => {
-      md += `\n### ${item.code} · ${item.desc}\n`;
+      md += `\n### ${item.code} · ${item.title || item.desc}\n`;
       md += `**Status:** ${item.status}\n`;
       md += `\n---\n`;
     });

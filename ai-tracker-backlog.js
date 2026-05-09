@@ -10,9 +10,9 @@ function _skelShow(el, variant) {
 }
 function _skelHide(el) { if (el) el.classList.remove('is-loading'); }
 
-function exportContextMd() {
+function _generateContextContent() {
   const raw = localStorage.getItem(_tplKey('context-raw'));
-  if (!raw) { showToast('warning', 'Sin datos — importa primero'); return; }
+  if (!raw) return null;
   // B-202605-260: usar versión canónica (post-Generator) — no APP_VERSION hardcodeada
   const _ctxVer = (typeof _effectiveVersion === 'function')
     ? _effectiveVersion()
@@ -24,6 +24,13 @@ function exportContextMd() {
   const ext      = isJson ? 'json' : 'md';
   const mime     = isJson ? 'application/json' : 'text/markdown';
   const fileName = `${_docPrefix()}-CONTEXT_${_ctxVer}.${ext}`;
+  return { raw, ext, mime, fileName };
+}
+
+function exportContextMd() {
+  const ctx = _generateContextContent();
+  if (!ctx) { showToast('warning', 'Sin datos — importa primero'); return; }
+  const { raw, mime, fileName } = ctx;
 
   _showExportConfirmModal('CONTEXT', fileName, () => {
     const b = new Blob([raw], { type: mime });
