@@ -7345,8 +7345,12 @@ function _backlogSetSelected(el) {
 
 // AC-1: keydown handler — Space cambia status a done si hay ítem seleccionado
 // AC-2: sin conflicto con textarea, input, select, contenteditable
+// B-202605-060: cleanup antes de registrar — evita acumulación en hot reload
 (function _initBacklogSpaceKey() {
-  document.addEventListener('keydown', function _backlogSpaceHandler(e) {
+  if (document._backlogSpaceHandler) {
+    document.removeEventListener('keydown', document._backlogSpaceHandler);
+  }
+  function _backlogSpaceHandler(e) {
     if (e.key !== ' ' && e.code !== 'Space') return;
     // AC-2: ignorar si el foco está en un campo de texto
     const tag = document.activeElement ? document.activeElement.tagName : '';
@@ -7375,7 +7379,9 @@ function _backlogSetSelected(el) {
         null, 4000
       );
     }
-  });
+  }
+  document._backlogSpaceHandler = _backlogSpaceHandler;
+  document.addEventListener('keydown', _backlogSpaceHandler);
 })();
 
 // Deseleccionar al hacer clic fuera de ítems del backlog
@@ -8106,7 +8112,11 @@ function toggleTmplTriggerPanel(btn) {
 // ═══════════════════════════════════════════════════════════════
 
 (function _initFocusShortcut() {
-  document.addEventListener('keydown', function(e) {
+  // B-202605-060: cleanup antes de registrar — evita acumulación de listeners en hot reload
+  if (document._focusShortcutHandler) {
+    document.removeEventListener('keydown', document._focusShortcutHandler);
+  }
+  function _focusShortcutHandler(e) {
     // Solo si tab backlog activo
     const backlogPanel = document.getElementById('tab-backlog');
     if (!backlogPanel || !backlogPanel.classList.contains('active')) return;
@@ -8124,7 +8134,9 @@ function toggleTmplTriggerPanel(btn) {
         if (typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode();
       }
     }
-  });
+  }
+  document._focusShortcutHandler = _focusShortcutHandler;
+  document.addEventListener('keydown', _focusShortcutHandler);
 })();
 
 // B-[pendiente-ID]: export-backlog-btn — handler adjuntado una sola vez al iniciar
