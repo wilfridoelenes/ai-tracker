@@ -1728,10 +1728,12 @@ body.radar-sb-open .tracker-sidebar {
 .hoy-exh-reset { font-family: var(--mono); font-size: 10px; color: var(--hint); }
 .hoy-exh-countdown.soon {
   color: var(--amber);
+  text-shadow: 0 0 18px rgba(245,158,11,0.45);
   text-shadow: 0 0 18px color-mix(in srgb, var(--amber) 45%, transparent);
 }
 .hoy-exh-row.next-up .hoy-exh-countdown {
   color: var(--accent);
+  text-shadow: 0 0 18px rgba(99,102,241,0.45);
   text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 .hoy-exh-tag-next { font-size: 9px; font-weight: 600; padding: 2px 7px; border-radius: 10px; background: var(--accent-glow); color: var(--accent); border: 1px solid var(--accent-border); }
@@ -2403,6 +2405,7 @@ body.radar-sb-open .tracker-sidebar {
   border-color: var(--accent);
   color: #fff;
   font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 0 0 2px rgba(99,102,241,0.25);
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
   padding-left: 8px;
 }
@@ -2417,11 +2420,13 @@ body.radar-sb-open .tracker-sidebar {
 
 /* R-202604-046: 'Todos' pill — distinct active style (global scope, not file-type color) */
 .hmfilter-pill--all.active {
+  background: var(--surface2);
   background: color-mix(in srgb, var(--accent) 18%, var(--surface));
   border-color: var(--accent);
   border-width: 2px;
   color: var(--accent);
   font-weight: 700;
+  box-shadow: 0 0 0 2px rgba(99,102,241,0.20);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 20%, transparent);
   padding-left: 8px;
 }
@@ -3921,9 +3926,9 @@ body.radar-sb-open .tracker-sidebar {
 }
 .heatmap-cell:hover { opacity: 0.72 !important; transform: scale(1.25); transition: transform 0.12s, opacity 0.12s; }
 .heatmap-cell.empty { background: var(--surface3); }
-.heatmap-cell.l1 { background: color-mix(in srgb, var(--accent) 30%, transparent); }
-.heatmap-cell.l2 { background: color-mix(in srgb, var(--accent) 55%, transparent); }
-.heatmap-cell.l3 { background: color-mix(in srgb, var(--accent) 80%, transparent); }
+.heatmap-cell.l1 { background: rgba(99,102,241,0.30); background: color-mix(in srgb, var(--accent) 30%, transparent); }
+.heatmap-cell.l2 { background: rgba(99,102,241,0.55); background: color-mix(in srgb, var(--accent) 55%, transparent); }
+.heatmap-cell.l3 { background: rgba(99,102,241,0.80); background: color-mix(in srgb, var(--accent) 80%, transparent); }
 .heatmap-cell.l4 { background: var(--accent); }
 @keyframes heatReveal {
   from { opacity: 0; transform: scale(0.6); }
@@ -5980,8 +5985,10 @@ body.radar-sb-open .tracker-sidebar {
   font-size: 14px;
   font-weight: 900;
   flex-shrink: 0;
+  background: rgba(99,102,241,0.15);
   background: color-mix(in srgb, var(--tc) 15%, transparent);
   color: var(--tc);
+  border: 1px solid rgba(99,102,241,0.30);
   border: 1px solid color-mix(in srgb, var(--tc) 30%, transparent);
 }
 
@@ -6041,7 +6048,9 @@ body.radar-sb-open .tracker-sidebar {
   font-weight: 600;
   padding: 2px 8px;
   border-radius: 20px;
+  border: 1px solid rgba(99,102,241,0.35);
   border: 1px solid color-mix(in srgb, var(--pc) 35%, transparent);
+  background: rgba(99,102,241,0.12);
   background: color-mix(in srgb, var(--pc) 12%, transparent);
   color: var(--pc);
   white-space: nowrap;
@@ -7050,8 +7059,10 @@ body.radar-sb-open .tracker-sidebar {
   font-weight: 600;
   padding: 1px 6px;
   border-radius: 4px;
+  background: rgba(136,136,136,0.15);
   background: color-mix(in srgb, var(--toast-type-color, #888) 15%, transparent);
   color: var(--toast-type-color, var(--text2));
+  border: 1px solid rgba(136,136,136,0.30);
   border: 1px solid color-mix(in srgb, var(--toast-type-color, #888) 30%, transparent);
 }
 .toast-sprint-pill {
