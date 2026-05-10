@@ -1733,9 +1733,13 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
       if (horaResult) { ai.status = 'exhausted'; ai.resetTime = horaResult.hhmm; ai.resetEpoch = horaResult.epoch; }
       ai._parsed = {};
       if (_confirmTimers[id]) { clearTimeout(_confirmTimers[id]); delete _confirmTimers[id]; }
-      localStorage.removeItem('draft-' + id);
-      // R-3: eliminar borrador de Supabase al guardar sesión
+      // B-202605-NNN: clearTimeout antes de removeItem — mismo orden que _doApplyMergeAndFinish.
+      // Evita que el timer Supabase pendiente lea el draft de localStorage si se dispara
+      // en la ventana entre removeItem y clearTimeout.
       clearTimeout(window['_draftSbTimer_' + id]);
+      localStorage.removeItem('draft-' + id);
+      localStorage.removeItem('draft-' + id + '-ts');
+      // R-3: eliminar borrador de Supabase al guardar sesión
       if (typeof _supabase !== 'undefined' && _supabase && typeof _supabaseUser !== 'undefined' && _supabaseUser) {
         _supabase.from('tracker_docs').delete().eq('user_id', _supabaseUser.id).eq('key', 'draft-' + id)
           .then(({ error }) => { if (error) console.warn('[AI Tracker] draft delete Supabase error:', error); });
@@ -1834,6 +1838,10 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // B-202604-116: usar proyecto del card, no filtro global activo
   // T-202604-201: panel de confirmación diff antes de aplicar el merge
   if (typeof showMergeDiffPanel === 'function' && tgItems.length) {
+    // B-202605-NNN: cancelar timer Supabase de draft antes de abrir el panel diff.
+    // Si el usuario tarda >3s en confirmar, el timer se dispara y hace upsert del draft.
+    // Ese upsert puede llegar por realtime DESPUÉS del delete post-confirm → restoreDrafts restaura el textarea.
+    clearTimeout(window['_draftSbTimer_' + id]);
     showMergeDiffPanel(tgItems, sessId, activeProj.id, () => {
       _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, sessId, tgItems, newSess);
     });
