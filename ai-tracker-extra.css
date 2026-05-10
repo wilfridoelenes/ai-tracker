@@ -18990,3 +18990,38 @@ body.body--focus-mode::after {
   }
 }
 /* END R-202605-170 */
+
+/* T-521: session-timer-wrap — cronómetro de sesión en cards de Worker */
+.session-timer-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.session-timer-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background-color 0.3s ease;
+}
+.session-timer-dot--active {
+  background-color: var(--color-correct, #22c55e);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-correct, #22c55e) 25%, transparent);
+  animation: session-timer-pulse 2s ease-in-out infinite;
+}
+.session-timer-dot--paused {
+  background-color: var(--hint, #94a3b8);
+}
+.session-timer-display {
+  font-size: var(--text-xs, 11px);
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, monospace);
+  color: var(--text2, #64748b);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+@keyframes session-timer-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+/* END T-521 */

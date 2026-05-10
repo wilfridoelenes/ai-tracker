@@ -1149,6 +1149,11 @@ function _activeSprint() {
 function openItemEditor(itemId = null, itemCode = null) {
   if (typeof _saveModalTrigger === 'function') _saveModalTrigger('item-editor-overlay');
   const overlay = document.getElementById('item-editor-overlay');
+  // T-522: guard — si el overlay no existe el módulo externo no cargó correctamente
+  if (!overlay) {
+    console.warn('[openItemEditor] item-editor-overlay no encontrado — módulo externo no cargado');
+    return;
+  }
   const title = document.getElementById('item-editor-title');
   const typeSelect = document.getElementById('item-type');
   // T-202605-451: reset save-as panel on open

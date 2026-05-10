@@ -259,8 +259,11 @@ function _offlineQueueSave() {
 
 // Encola un write pendiente con timestamp — last-write-wins por tipo de entrada
 function _offlineQueuePush(entry) {
-  // Deduplicar: si ya hay una entrada del mismo tipo, reemplazar (solo el último write importa)
-  const idx = _offlineQueue.findIndex(e => e.type === entry.type);
+  // T-525: deduplicar por type+projId — evita pérdida silenciosa de writes en multi-proyecto
+  // Antes deduplicaba solo por type: dos proyectos distintos con type 'sessions' colisionaban
+  const idx = _offlineQueue.findIndex(e =>
+    e.type === entry.type && (e.projId || null) === (entry.projId || null)
+  );
   if (idx !== -1) _offlineQueue.splice(idx, 1);
   _offlineQueue.push({ ...entry, queuedAt: Date.now() });
   _offlineQueueSave();
@@ -835,36 +838,57 @@ function showCheckpointPanel(result) {
       _ckptDiffCleanup();
     };
     window._ckptDiffApplyAll = () => {
+      // AC-2: deshabilitar botón inmediatamente — no doble-apply
+      const applyBtn = document.querySelector('[onclick="_ckptDiffApplyAll()"], [onclick="window._ckptDiffApplyAll()"]');
+      if (applyBtn) applyBtn.disabled = true;
+
       const pending = window._ckptPendingConfirm;
-      // Aplicar retrocesos confirmados
-      pending.retroceso.filter(i => i.confirmed).forEach(i => {
-        const item = ITEMS.find(b => b.code === i.code);
-        if (!item) return;
-        const from = item.status;
-        item.status = i.to;
-        item.statusChangedAt = Date.now();
-        _blogLog('retroceso', i.code, from + ' → ' + i.to, 'backlog');
-      });
-      // Aplicar descartes confirmados con razón
-      pending.discarded.filter(i => i.confirmed && (i.reason || i.selectedReason)).forEach(i => {
-        const item = ITEMS.find(b => b.code === i.code);
-        if (!item) return;
-        item.status = 'descartado';
-        item.discardReason = i.selectedReason || i.reason || '';
-        item.discardRef = i.ref || '';
-        item.statusChangedAt = Date.now();
-        _blogLog('ckpt-descarte', i.code, item.discardReason, 'backlog');
-      });
-      _undoSnapshot();
-      saveBacklog();
-      _setBacklogModified();
-      renderBacklogList(); updateBacklogBanner(); renderStats();
-      const appliedRetro = pending.retroceso.filter(i => i.confirmed).length;
-      const appliedDiscard = pending.discarded.filter(i => i.confirmed && (i.reason || i.selectedReason)).length;
-      const total = appliedRetro + appliedDiscard;
-      if (total) showToast('info', `✓ ${total} cambio${total > 1 ? 's' : ''} aplicado${total > 1 ? 's' : ''}`);
+      let applyError = false;
+      try {
+        // Aplicar retrocesos confirmados
+        pending.retroceso.filter(i => i.confirmed).forEach(i => {
+          const item = ITEMS.find(b => b.code === i.code);
+          if (!item) return;
+          const from = item.status;
+          item.status = i.to;
+          item.statusChangedAt = Date.now();
+          _blogLog('retroceso', i.code, from + ' → ' + i.to, 'backlog');
+        });
+        // Aplicar descartes confirmados con razón
+        pending.discarded.filter(i => i.confirmed && (i.reason || i.selectedReason)).forEach(i => {
+          const item = ITEMS.find(b => b.code === i.code);
+          if (!item) return;
+          item.status = 'descartado';
+          item.discardReason = i.selectedReason || i.reason || '';
+          item.discardRef = i.ref || '';
+          item.statusChangedAt = Date.now();
+          _blogLog('ckpt-descarte', i.code, item.discardReason, 'backlog');
+        });
+        _undoSnapshot();
+        saveBacklog();
+        _setBacklogModified();
+        renderBacklogList(); updateBacklogBanner(); renderStats();
+      } catch (e) {
+        // AC-7: si la operación lanza error, no mostrar confirmación — dejar panel en su estado
+        applyError = true;
+        if (applyBtn) applyBtn.disabled = false;
+      }
+
+      if (!applyError) {
+        // AC-1: mostrar "✓ Cambios aplicados" dentro del panel — sin toast
+        const sec = document.getElementById('ckpt-diff-unified');
+        if (sec) {
+          sec.innerHTML = '<div class="ckpt-diff-applied">✓ Cambios aplicados</div>';
+        }
+        // AC-3: cerrar panel automáticamente a los 1.5s — timer cancelable (AC-8)
+        window._ckptDiffAutoCloseTimer = setTimeout(() => {
+          window._ckptDiffAutoCloseTimer = null;
+          _ckptDiffCleanup();
+        }, 1500);
+      }
+
       // B-202605-024: typeof guard — downloadTemplates puede no estar disponible si el módulo no cargó
-      if (window._pendingTemplateDownload) {
+      if (!applyError && window._pendingTemplateDownload) {
         window._pendingTemplateDownload = false;
         if (_templateTrigger() === 'session') {
           if (typeof downloadTemplates === 'function') {
@@ -874,10 +898,14 @@ function showCheckpointPanel(result) {
           }
         }
       }
-      _ckptDiffCleanup();
     };
 
     const _ckptDiffCleanup = () => {
+      // AC-8: cancelar timer de cierre automático si el panel se cierra manualmente antes
+      if (window._ckptDiffAutoCloseTimer) {
+        clearTimeout(window._ckptDiffAutoCloseTimer);
+        window._ckptDiffAutoCloseTimer = null;
+      }
       delete window._ckptPendingConfirm;
       delete window._ckptDiffToggleRetro;
       delete window._ckptDiffToggleDiscard;
@@ -5591,7 +5619,7 @@ function _escCascade() {
     // Prioridad alta — modales de confirmación / editing
     () => { const el = document.getElementById('shortcuts-ref-overlay'); if (el && !el.classList.contains('hidden')) { closeShortcutsRef(); return true; } },
     () => { const el = document.getElementById('shortcuts-overlay'); if (el && !el.classList.contains('hidden')) { closeShortcuts(); return true; } },
-    () => { const el = document.getElementById('cmd-palette-overlay'); if (el && !el.classList.contains('hidden')) { closeCommandPalette(); return true; } },
+    () => { const el = document.getElementById('cp-overlay') || document.getElementById('cmd-palette-overlay'); if (el && (el.classList.contains('cp-visible') || !el.classList.contains('hidden'))) { closeCommandPalette(); return true; } },
     () => { const el = document.getElementById('quick-note-modal'); if (el && el.offsetParent !== null) { if (typeof closeQuickNote === 'function') closeQuickNote(); return true; } },
     () => { const el = document.getElementById('quick-modal-overlay'); if (el && el.classList.contains('open')) { closeQuickModal(); return true; } },
     () => { const el = document.getElementById('item-detail-panel'); if (el && el.classList.contains('open')) { if (typeof closeItemPanel === 'function') closeItemPanel(); return true; } },
@@ -5986,6 +6014,16 @@ function _cpItemCommands(query) {
 let _cpSelectedIdx = 0;
 
 function openCommandPalette() {
+  // T-526: delegar al módulo externo (command-palette.js, #cp-overlay) si está disponible
+  // Evita DOM duplicado entre implementación legacy (#cmd-palette-overlay) y módulo activo
+  const cpOverlay = document.getElementById('cp-overlay');
+  if (cpOverlay) {
+    if (typeof window._cpOpen === 'function') { window._cpOpen(); return; }
+    // AC-5: módulo no inicializado — no abrir estado inoperable, warn y salir
+    console.warn('[openCommandPalette] #cp-overlay presente pero window._cpOpen no disponible — módulo no inicializado');
+    return;
+  }
+  // Fallback legacy — #cmd-palette-overlay
   const overlay = document.getElementById('cmd-palette-overlay');
   if (!overlay) return;
   overlay.classList.remove('hidden');
@@ -5996,6 +6034,14 @@ function openCommandPalette() {
 }
 
 function closeCommandPalette() {
+  // T-526: cerrar módulo externo si está activo, si no cerrar legacy
+  const cpOverlay = document.getElementById('cp-overlay');
+  if (cpOverlay && cpOverlay.classList.contains('cp-visible')) {
+    if (typeof window._cpClose === 'function') { window._cpClose(); return; }
+    // AC-6: window._cpClose no definido — cierre directo seguro (cerrar siempre es menos riesgoso)
+    cpOverlay.classList.remove('cp-visible');
+    return;
+  }
   const overlay = document.getElementById('cmd-palette-overlay');
   if (overlay) overlay.classList.add('hidden');
 }
