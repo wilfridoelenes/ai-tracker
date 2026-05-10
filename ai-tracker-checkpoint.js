@@ -4264,7 +4264,7 @@ function stopSessionTimer(aiId) {
   const elapsed = d.elapsed + (d.running ? (Date.now() - d.startEpoch) : 0);
   _setTimerData(aiId, { running: false, elapsed, startEpoch: null });
   _refreshTimerTick();
-  _renderActiveWorkerChip(); // R-202605-170: ocultar chip inmediatamente
+  _renderActiveWorkerChip();
   return elapsed;
 }
 
@@ -4311,9 +4311,11 @@ function _refreshTimerTick() {
   clearInterval(_timerIntervalId);
   _timerIntervalId = setInterval(() => {
     state.ais.forEach(ai => _renderTimerInCard(ai.id));
-    // R-202605-170: actualizar chip de header cada tick (60s para hwc via su propio intervalo)
     _renderActiveWorkerChip();
-  }, 1000);
+  }, 60000);
+  // Actualización inmediata al arrancar el tick
+  state.ais.forEach(ai => _renderTimerInCard(ai.id));
+  _renderActiveWorkerChip();
 }
 
 // HTML del widget cronómetro — insertado en buildCard()
@@ -4328,41 +4330,35 @@ function _timerWidgetHtml(aiId) {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// R-202605-170: Worker activo chip en header — nombre y cronómetro
+// R-202605-170: Worker activo chip — nombre y cronómetro en header
 // ══════════════════════════════════════════════════════════════════════════════
 
 function _renderActiveWorkerChip() {
   const chip = document.getElementById('header-active-worker');
   if (!chip) return;
 
-  // Encontrar worker con timer activo — si hay varios, el de mayor elapsed
-  const active = (state.ais || []).filter(ai => _timerIsActive(ai.id));
-  if (!active.length) {
+  // Buscar el Worker con timer activo — si hay más de uno, el de mayor elapsed
+  let best = null;
+  let bestElapsed = -1;
+  (state.ais || []).forEach(ai => {
+    const d = _getTimerData(ai.id);
+    if (!d || !d.running) return;
+    const elapsed = d.elapsed + (Date.now() - d.startEpoch);
+    if (elapsed > bestElapsed) { best = ai; bestElapsed = elapsed; }
+  });
+
+  if (!best) {
     chip.classList.add('hidden');
     return;
   }
-  const ai = active.reduce((best, cur) => {
-    const dBest = _getTimerData(best.id);
-    const dCur  = _getTimerData(cur.id);
-    const eBest = dBest ? dBest.elapsed + (dBest.running ? Date.now() - dBest.startEpoch : 0) : 0;
-    const eCur  = dCur  ? dCur.elapsed  + (dCur.running  ? Date.now() - dCur.startEpoch  : 0) : 0;
-    return eCur > eBest ? cur : best;
-  });
 
-  const d = _getTimerData(ai.id);
-  const elapsed = d ? d.elapsed + (d.running ? Date.now() - d.startEpoch : 0) : 0;
-  // Formato HH:MM (sin segundos)
-  const totalSec = Math.floor(elapsed / 1000);
-  const h = Math.floor(totalSec / 3600);
-  const m = Math.floor((totalSec % 3600) / 60);
-  const hhmm = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  const h = Math.floor(bestElapsed / 3600000);
+  const m = Math.floor((bestElapsed % 3600000) / 60000);
+  const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
 
-  const nameEl = chip.querySelector('.hwc-name');
-  const timeEl = chip.querySelector('.hwc-time');
-  if (nameEl) nameEl.textContent = ai.name || '';
-  if (timeEl) timeEl.textContent = hhmm;
-
-  chip.dataset.hwcAiId = ai.id;
+  chip.querySelector('.hwc-name').textContent = best.name || best.id;
+  chip.querySelector('.hwc-time').textContent = timeStr;
+  chip.dataset.hwcAiId = best.id;
   chip.classList.remove('hidden');
 }
 
@@ -4371,8 +4367,8 @@ function _hwcClick() {
   const aiId = chip && chip.dataset.hwcAiId;
   if (!aiId) return;
   if (typeof selectTrackerAI === 'function') selectTrackerAI(aiId);
-  if (typeof currentTab !== 'undefined' && currentTab !== 'tracker') {
-    if (typeof switchTab === 'function') switchTab('tracker');
+  if (typeof switchTab === 'function' && document.querySelector('.tab-btn.active')?.dataset.tab !== 'tracker') {
+    switchTab('tracker');
   }
 }
 
@@ -4720,7 +4716,7 @@ function render() {
   renderSetupChecklist();
   // B-202605-508: actualizar badges de tabs al final de cada render
   updateTabNotifBadges();
-  // R-202605-170: actualizar chip de worker activo en header
+  // R-202605-170: sincronizar chip de worker activo en header
   _renderActiveWorkerChip();
 }
 
@@ -7808,25 +7804,32 @@ function _calcPulsoDotState() {
   const totalLastWeek = allItems.filter(i => i.status === 'done' && i.doneAt && (now - i.doneAt) > WEEK && (now - i.doneAt) <= 2 * WEEK).length;
 
   // Color dot
-  const hasRed    = projData.some(p => p.daysSince >= 7) || blockerCount > 0;
-  const hasYellow = !hasRed && projData.some(p => p.daysSince >= 4);
+  const hasData   = activeProjects.length > 0;
+  const hasRed    = hasData && (projData.some(p => p.daysSince >= 7) || blockerCount > 0);
+  const hasYellow = hasData && !hasRed && projData.some(p => p.daysSince >= 4);
   const dotColor  = hasRed ? 'red' : hasYellow ? 'yellow' : 'green';
 
-  return { dotColor, projData, blockerCount, staleSprints, totalThisWeek, totalLastWeek };
+  // B-202605-521: hasData expuesto para que renderPulsoDot aplique --neutral al header dot sin afectar el footer
+  return { dotColor, hasData, projData, blockerCount, staleSprints, totalThisWeek, totalLastWeek };
 }
 
 function renderPulsoDot() {
-  const dot = document.getElementById('pulso-dot');
-  if (!dot) return;
+  // B-202605-522: cálculo de estado ocurre antes de cualquier guard de elemento
   const s = _calcPulsoDotState();
-  dot.className = `pulso-dot pulso-dot--${s.dotColor}`;
   const labels = { green: 'Ecosistema activo ✓', yellow: '⚠ Actividad baja — algún proyecto inactivo 4-7d', red: '⛔ Alerta — proyectos parados o bloqueantes activos' };
-  dot.title = labels[s.dotColor] || '';
-  // R-202605-169: Pulso dot en header
+  // Footer dot — guard independiente: si no existe, solo el footer no se actualiza
+  const dot = document.getElementById('pulso-dot');
+  if (dot) {
+    dot.className = `pulso-dot pulso-dot--${s.dotColor}`;
+    dot.title = labels[s.dotColor] || '';
+  }
+  // R-202605-169: Header dot — guard independiente del footer
   const hdot = document.getElementById('header-pulso-dot');
   if (hdot) {
-    hdot.className = `pulso-dot pulso-dot--${s.dotColor}`;
-    const label = labels[s.dotColor] || '';
+    // B-202605-521: sin datos → neutral (gris); con datos → color del ecosistema
+    const headerColor = s.hasData ? s.dotColor : 'neutral';
+    const label = s.hasData ? (labels[s.dotColor] || '') : 'Sin datos';
+    hdot.className = `pulso-dot pulso-dot--${headerColor}`;
     hdot.setAttribute('aria-label', label);
     hdot.title = label;
   }

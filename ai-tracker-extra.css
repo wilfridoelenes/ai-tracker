@@ -18895,7 +18895,7 @@ body.body--focus-mode::after {
   cursor: pointer;
   font-size: 12px;
   font-weight: 500;
-  max-width: 200px;
+  max-width: 140px;
   white-space: nowrap;
   overflow: hidden;
   transition: border-color 0.15s ease, background 0.15s ease;

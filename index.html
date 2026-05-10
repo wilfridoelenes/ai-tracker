@@ -147,14 +147,13 @@
       <input type="file" id="backlog-file-input" accept=".md,text/markdown,text/plain" class="hidden" onchange="importBacklog(event)"><!-- R-202604-052 -->
     </div>
   </div>
+  <!-- R-202605-168: Sprint progress bar — segunda fila del header -->
+  <div id="header-sprint-row" role="button" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" onclick="if(typeof toggleSprintHealthPanel==='function')toggleSprintHealthPanel()" title="Ver sprint health">
+    <span class="hsr-label" id="hsr-label"></span>
+    <div class="hsr-bar"><div class="hsr-bar-fill" id="hsr-bar-fill"></div></div>
+    <span class="hsr-text" id="hsr-text"></span>
+  </div>
 </header>
-
-<!-- R-202605-168: Sprint progress bar — segunda fila del header -->
-<div id="header-sprint-row" role="button" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" onclick="if(typeof toggleSprintHealthPanel==='function')toggleSprintHealthPanel()" title="Ver sprint health">
-  <span class="hsr-label" id="hsr-label"></span>
-  <div class="hsr-bar"><div class="hsr-bar-fill" id="hsr-bar-fill"></div></div>
-  <span class="hsr-text" id="hsr-text"></span>
-</div>
 
 <!-- T-084: Storage warning banner — visible solo si totalSessions > 300 -->
 <div id="storage-warn" class="hidden">
