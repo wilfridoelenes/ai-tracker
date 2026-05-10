@@ -1,6 +1,6 @@
 /**
  * ai-tracker-map-generator.js
- * Versión: v1.3.1 | Última actualización: 2026-05-06 UTC-6
+ * Versión: v1.3.2 | Última actualización: 2026-05-10 UTC-6
  * Módulo: Document Generator — MAP + CONTEXT + BACKLOG + Sprint Review + ZIP
  * Proyecto: AI Tracker
  * R-202604-053 | R-202604-086 | R-202605-101
@@ -634,6 +634,8 @@ function generateDocuments() {
 
   // T-202605-504: validar campos obligatorios del CONTEXT antes de generar
   // R1 — desmarca CONTEXT + avisa con link a editar sprint si faltan name/goal
+  // B-[pendiente-ID]: validación fallida descarta solo CONTEXT — no aborta los demás documentos
+  let contextCheckedFinal = contextChecked;
   if (contextChecked) {
     const _valSp = _mgActiveSprint();
     if (_valSp) {
@@ -643,6 +645,7 @@ function generateDocuments() {
         // Desmarcar CONTEXT automáticamente
         const _ctxChk = document.getElementById('mg-out-context');
         if (_ctxChk) _ctxChk.checked = false;
+        contextCheckedFinal = false;
         // Toast warning con acción de editar sprint
         const _campo = _missingName ? 'nombre' : 'goal';
         if (typeof showToastInline === 'function') {
@@ -650,7 +653,7 @@ function generateDocuments() {
         } else if (typeof showToast === 'function') {
           showToast('warning', `El sprint no tiene ${_campo}. CONTEXT desmarcado — edita el sprint y vuelve a marcar CONTEXT.`);
         }
-        return;
+        // B-[pendiente-ID]: no hacer return — continuar con los demás documentos seleccionados
       }
       // AC3: status active + backlog.pending = 0 con backlog.total > 0 — advertencia con opción continuar
       const _valStatus = _mgInferStatus(_valSp, (() => {
@@ -697,7 +700,7 @@ function generateDocuments() {
   _mapGen.generatedDocs._bumpedVer = bumpedVer; // B-202605-496: fuente de verdad para confirmMapGenerator()
 
   if (mapChecked)     _mapGen.generatedDocs.map     = _generateMap(bumpedVer);
-  if (contextChecked) _mapGen.generatedDocs.context  = _generateContext(bumpedVer);
+  if (contextCheckedFinal) _mapGen.generatedDocs.context  = _generateContext(bumpedVer);
   if (backlogChecked) _mapGen.generatedDocs.backlog   = _generateBacklog(bumpedVer);
   if (reviewChecked)  _mapGen.generatedDocs.review    = _generateSprintReview(bumpedVer);
   if (planChecked) {
