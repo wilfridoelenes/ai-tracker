@@ -6517,7 +6517,7 @@ function _getMapContent(ver) {
       updated = raw.includes('```json')
         ? raw.replace(/```json\s*[\s\S]*?\s*```/, '```json\n' + newJson + '\n```')
         : newJson;
-    } catch(e) { /* retornar raw sin modificar si el JSON es inválido */ }
+    } catch(e) { /* T-202605-516: JSON inválido — _getMapContent() retorna raw sin modificar */ }
   } else {
     updated = raw.replace(/Versi[oó]n:\s*[\d.]+/, `Versión: ${resolvedVer}`);
   }
