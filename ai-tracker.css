@@ -8027,6 +8027,8 @@ body.radar-sb-open .tracker-sidebar {
   text-overflow: ellipsis;
 }
 .breadcrumb-seg--proj:not(:disabled):hover { color: var(--accent); }
+/* B-202605-518: sin proyecto activo → text-secondary */
+.breadcrumb-seg--proj:disabled { color: var(--text2); }
 
 /* Segmento 2 — sprint: text-secondary weight 400 */
 .breadcrumb-seg--sprint {

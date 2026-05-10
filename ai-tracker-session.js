@@ -1556,61 +1556,18 @@ ${narrativeMd}
 `;
 }
 
+// B-202605-517: stub legacy reemplazado — delegación a _generateBacklogContent (ai-tracker-sprint-project.js)
+// La función anterior leía tracker.items (schema legacy, solo sesiones) en lugar de ITEMS (backlog global),
+// produciendo exports truncados con backlogs de 24+ ítems.
 function buildBacklogMd(version) {
+  if (typeof _generateBacklogContent === 'function') {
+    const { md } = _generateBacklogContent(version);
+    return md;
+  }
+  // Fallback: _generateBacklogContent no disponible (carga parcial de módulos)
   const now = new Date();
   const timestamp = now.toISOString().replace('T', ' ').slice(0, 16) + ' UTC-6';
-  
-  const tracker = getActiveTracker();
-  const trackerItems = tracker.items || [];
-  const counters = tracker.counters || {P:0, T:0, R:0, B:0};
-  
-  let md = `# Backlog-v${version}.md
-<!-- Versión: v${version} | Última actualización: ${timestamp} | App: AI-Tracker-v${version} -->
-
----
-
-## Meta
-
-| Campo | Valor |
-|---|---|
-| Proyecto | AI Tracker |
-| Versión del backlog | v${version} |
-| Última actualización | ${timestamp} |
-| Generado por | AI Tracker — exportado desde Tracker Global |
-
----
-
-## Índice de estado
-
-Contadores: P=${counters.P} | T=${counters.T} | R=${counters.R} | B=${counters.B}
-
----
-
-## Ítems
-
-`;
-  
-  // Agrupar por tipo
-  const byType = {I: [], P: [], T: [], R: [], B: []};
-  trackerItems.forEach(item => {
-    if (byType[item.code[0]]) byType[item.code[0]].push(item);
-  });
-  
-  ['I', 'P', 'T', 'R', 'B'].forEach(type => {
-    byType[type].forEach(item => {
-      md += `\n### ${item.code} · ${item.title || item.desc}\n`;
-      md += `**Status:** ${item.status}\n`;
-      md += `\n---\n`;
-    });
-  });
-  
-  md += `\n## Estadísticas finales\n\n`;
-  md += `| Métrica | Valor |\n`;
-  md += `|---------|-------|\n`;
-  md += `| Ítems totales | ${trackerItems.length} |\n`;
-  md += `| App version actual | v${version} |\n`;
-  
-  return md;
+  return `# Backlog-v${version}.md\n<!-- Versión: v${version} | Última actualización: ${timestamp} -->\n\n⚠ buildBacklogMd: _generateBacklogContent no disponible — adjunta ai-tracker-sprint-project.js\n`;
 }
 
 // R-202604-022: muestra alerta de cuota de localStorage si supera umbrales
