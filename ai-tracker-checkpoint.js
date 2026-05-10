@@ -2281,12 +2281,24 @@ async function _loadFromSupabase() {
           if (!aiExists) continue;
           const remoteTs  = row.updated_at ? new Date(row.updated_at).getTime() : 0;
           const localRaw  = localStorage.getItem('draft-' + aiId);
-          // Aplicar solo si no hay borrador local o remoto es más reciente
-          if (!localRaw || remoteTs > 0) {
-            const localTs = localRaw ? (localStorage.getItem('draft-' + aiId + '-ts') || 0) : 0;
-            if (!localRaw || remoteTs > Number(localTs)) {
+          // AC-1: sin draft local → aplicar remoto sin condición adicional
+          // AC-2: con draft local → aplicar solo si remoto es estrictamente más reciente
+          // AC-4: remoteTs === 0 (updated_at nulo/inválido) → no aplicar, local gana
+          if (!localRaw) {
+            if (remoteTs > 0) {
               try { localStorage.setItem('draft-' + aiId, row.value.text); } catch(_) {}
-              // Actualizar dot visual si el card está renderizado
+              // AC-7: dot visual solo cuando el draft efectivamente se aplica
+              const dot = document.getElementById('draft-' + aiId);
+              if (dot) dot.className = 'draft-dot visible';
+            }
+          } else {
+            // AC-6: localTs-ts no parseable → tratar como 0 (remoto gana si remoteTs > 0)
+            const localTsRaw = localStorage.getItem('draft-' + aiId + '-ts');
+            const localTs    = localTsRaw ? (Number(localTsRaw) || 0) : 0;
+            // AC-2 + AC-3: remoto solo gana si es estrictamente más reciente
+            if (remoteTs > 0 && remoteTs > localTs) {
+              try { localStorage.setItem('draft-' + aiId, row.value.text); } catch(_) {}
+              // AC-7: dot visual solo cuando el draft efectivamente se aplica
               const dot = document.getElementById('draft-' + aiId);
               if (dot) dot.className = 'draft-dot visible';
             }
