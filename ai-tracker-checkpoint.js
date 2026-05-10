@@ -3836,6 +3836,43 @@ function _sessRelTsShared(s) {
     return (typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || '');
   }
 }
+
+// Helper: hora fija por grupo — mini historial
+// hoy   → 'HH:MM'
+// ayer  → 'HH:MM'  (sección ya dice "Ayer")
+// semana→ 'lun · HH:MM'
+// anteriores → '10 may'
+function _sessFixedTs(s, group) {
+  const ts = s.updatedAt || s.createdAt || 0;
+  if (!ts) return (s.dateShort || '');
+  try {
+    if (group === 'hoy' || group === 'ayer') {
+      return new Date(ts).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
+    }
+    if (group === 'semana') {
+      const dow  = new Date(ts).toLocaleDateString('es', { weekday: 'short' });
+      const hhmm = new Date(ts).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
+      return `${dow} · ${hhmm}`;
+    }
+    return new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'short' });
+  } catch(_) {
+    return (s.dateShort || '');
+  }
+}
+
+// Helper: timestamp relativo dinámico para card sesión en curso
+// 'ahora' · 'hace 1 minuto' · 'hace 3 horas' · 'hace 1 día'
+function _cscardRelTs(ts) {
+  if (!ts) return '';
+  const diffMs  = Date.now() - ts;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffH   = Math.floor(diffMs / 3600000);
+  const diffD   = Math.floor(diffMs / 86400000);
+  if (diffMin < 1)  return 'ahora';
+  if (diffMin < 60) return `hace ${diffMin} minuto${diffMin !== 1 ? 's' : ''}`;
+  if (diffH   < 24) return `hace ${diffH} hora${diffH !== 1 ? 's' : ''}`;
+  return `hace ${diffD} día${diffD !== 1 ? 's' : ''}`;
+}
 // ── END R-202605-162 helper ──────────────────────────────────────────────
 
 // ── R-202604-078 Fase 2: Mini-historial de IA en Col2 (modo Por IA) ─────
@@ -3915,57 +3952,67 @@ function _trackerRenderMiniHist(aiId) {
   // R-202605-162: usa helper compartido — _sessRelTsShared definida antes de esta función
   const _sessRelTs = _sessRelTsShared;
 
-  // T-202605-488: agrupar en Hoy / Esta semana / Anteriores
-  const _nowMs    = Date.now();
-  const _todayKey = new Date().toISOString().slice(0, 10);
-  const _weekAgo  = _nowMs - 7 * 86400000;
+  // Agrupar en Hoy / Ayer / Últimos 7 días / Anteriores
+  const _nowMs = Date.now();
+  const _localDateKey = (d) => {
+    const y   = d.getFullYear();
+    const m   = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
+  const _todayKey  = _localDateKey(new Date());
+  const _ydDate    = new Date(); _ydDate.setDate(_ydDate.getDate() - 1);
+  const _yesterKey = _localDateKey(_ydDate);
+  const _7dAgo     = _nowMs - 7 * 86400000;
   const _sessGroup = (s) => {
     const ts = s.updatedAt || s.createdAt || 0;
     if (!ts) return 'anteriores';
-    const dateKey = new Date(ts).toISOString().slice(0, 10);
-    if (dateKey === _todayKey) return 'hoy';
-    if (ts >= _weekAgo)       return 'semana';
+    const dateKey = _localDateKey(new Date(ts));
+    if (dateKey === _todayKey)  return 'hoy';
+    if (dateKey === _yesterKey) return 'ayer';
+    if (ts >= _7dAgo)           return 'semana';
     return 'anteriores';
   };
-  const _groupLabel = { hoy: 'Hoy', semana: 'Esta semana', anteriores: 'Anteriores' };
-  const _groupOrder = ['hoy', 'semana', 'anteriores'];
+  const _groupLabel = { hoy: 'Hoy', ayer: 'Ayer', semana: 'Últimos 7 días', anteriores: 'Anteriores' };
+  const _groupOrder = ['hoy', 'ayer', 'semana', 'anteriores'];
 
-  const _grouped = { hoy: [], semana: [], anteriores: [] };
+  const _grouped = { hoy: [], ayer: [], semana: [], anteriores: [] };
   sorted.forEach(s => _grouped[_sessGroup(s)].push(s));
 
   // sesión en curso — para marcar in-progress
   const _inProgressSess = (typeof _getCurrentSession === 'function') ? _getCurrentSession(aiId) : null;
 
-  const _renderRow = (s) => {
+  const _renderRow = (s, group) => {
     const proj     = s.projectId ? (typeof getProjectById === 'function' ? getProjectById(s.projectId) : null) : null;
     const isActive = s.id === _trackerHistSelectedSessId;
     const isInProg = _inProgressSess && s.id === _inProgressSess.id;
 
-    // badge de ítems vinculados — T-202605-488
+    // badge de ítems vinculados
     const linkedItems = projTracker.items.filter(x => x.sessionId === s.id);
     const badgeHtml = linkedItems.length
       ? `<span class="sess-items-badge">${linkedItems.length}</span>`
       : '';
 
-    // pill de proyecto con nombre — T-202605-488
+    // pill de proyecto
     const projPill = proj
       ? `<span class="sess-proj-pill">${esc(proj.name || proj.icon || '📁')}</span>`
       : '';
 
-    // timestamp relativo de alta precisión — T-202605-488
-    const tsHtml = `<span class="sess-timestamp">${_sessRelTs(s)}</span>`;
+    // hora fija por grupo — no relativa
+    const fixedTs  = _sessFixedTs(s, group);
+    const tsHtml   = fixedTs ? `<span class="sess-timestamp">${fixedTs}</span>` : '';
 
-    // separador meta (·) solo si hay proyecto
-    const metaSep = proj ? `<span class="sess-meta-sep">·</span>` : '';
+    // separador meta (·) solo si hay proyecto Y hay timestamp
+    const metaSep = (proj && fixedTs) ? `<span class="sess-meta-sep">·</span>` : '';
 
-    // indicadores secundarios (sin cambio)
-    const starInd   = s.starred      ? `<span class="tracker-mini-hist-ind" title="Destacada">⭐</span>` : '';
-    const reviewInd = s.inReview     ? `<span class="tracker-mini-hist-ind" title="En revisión">🔍</span>` : '';
+    // indicadores secundarios
+    const starInd   = s.starred  ? `<span class="tracker-mini-hist-ind" title="Destacada">⭐</span>` : '';
+    const reviewInd = s.inReview ? `<span class="tracker-mini-hist-ind" title="En revisión">🔍</span>` : '';
 
     const rowCls = [
       'tracker-mini-hist-row',
       'sess-row',
-      isActive  ? 'active'            : '',
+      isActive  ? 'active'               : '',
       isInProg  ? 'sess-row--in-progress' : ''
     ].filter(Boolean).join(' ');
 
@@ -3988,7 +4035,7 @@ function _trackerRenderMiniHist(aiId) {
     .filter(g => _grouped[g].length > 0)
     .map(g =>
       `<div class="sess-group-sep">${_groupLabel[g]}</div>` +
-      _grouped[g].map(_renderRow).join('')
+      _grouped[g].map(s => _renderRow(s, g)).join('')
     ).join('');
 
   // Auto-seleccionar la sesión más reciente si no hay ninguna seleccionada —
@@ -4095,11 +4142,13 @@ function _buildCurrentSessionCard(aiId) {
   const el = document.createElement('div');
   el.className = 'current-session-card';
   el.id = 'current-session-card-' + aiId;
+  const _cscardTs = currentSess.updatedAt || currentSess.createdAt || 0;
+  const _cscardInitLabel = _cscardTs ? _cscardRelTs(_cscardTs) : '';
   el.innerHTML = `
     <div class="cscard-header">
       <span class="cscard-dot"></span>
       <span class="cscard-label">Sesión en curso</span>
-      <span class="cscard-timer" id="cscard-timer-${aiId}"></span>
+      <span class="cscard-timer" id="cscard-timer-${aiId}" data-ai-id="${aiId}" data-ts="${_cscardTs}">${_cscardInitLabel}</span>
     </div>
     <div class="cscard-rows">
       ${sessionRows}
@@ -4324,10 +4373,19 @@ function _refreshTimerTick() {
   _timerIntervalId = setInterval(() => {
     state.ais.forEach(ai => _renderTimerInCard(ai.id));
     _renderActiveWorkerChip();
+    // Actualizar timestamps relativos en cards de sesión en curso
+    document.querySelectorAll('.cscard-timer[data-ts]').forEach(el => {
+      const ts = parseInt(el.dataset.ts, 10);
+      if (ts) el.textContent = _cscardRelTs(ts);
+    });
   }, 60000);
   // Actualización inmediata al arrancar el tick
   state.ais.forEach(ai => _renderTimerInCard(ai.id));
   _renderActiveWorkerChip();
+  document.querySelectorAll('.cscard-timer[data-ts]').forEach(el => {
+    const ts = parseInt(el.dataset.ts, 10);
+    if (ts) el.textContent = _cscardRelTs(ts);
+  });
 }
 
 // HTML del widget cronómetro — insertado en buildCard()

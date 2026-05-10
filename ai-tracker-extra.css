@@ -17230,9 +17230,17 @@ body.body--focus-mode::after {
 }
 
 .cscard-timer {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--hint, #888);
   font-variant-numeric: tabular-nums;
+  font-family: var(--font-mono, monospace);
+  letter-spacing: 0.01em;
+  opacity: 0.8;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.cscard-timer:empty {
+  display: none;
 }
 
 .cscard-rows {
@@ -17846,6 +17854,10 @@ body.body--focus-mode::after {
   white-space: nowrap;
   flex-shrink: 0;
   line-height: 1;
+  margin-left: auto;
+}
+.sess-timestamp:empty {
+  display: none;
 }
 
 /* — Starred compatible — */
