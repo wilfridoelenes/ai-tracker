@@ -20,12 +20,12 @@ window._updateHeaderProjectLabel = function() {
   const nameEl   = document.getElementById('header-project-name');
   if (!proj) {
     if (prefixEl) prefixEl.textContent = 'AI';
-    if (nameEl)   nameEl.textContent   = 'AI Tracker';
+    if (nameEl)   nameEl.textContent   = 'Locus';
     return;
   }
   const prefix = proj.prefix || _PREFIX_MAP[proj.name] || (proj.name || '').slice(0, 2).toUpperCase() || 'AI';
   if (prefixEl) prefixEl.textContent = prefix;
-  if (nameEl)   nameEl.textContent   = proj.name || 'AI Tracker';
+  if (nameEl)   nameEl.textContent   = proj.name || 'Locus';
 };
 
 // R-202604-040: genera bloque ## Estado actual para el Backlog exportado

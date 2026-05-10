@@ -163,7 +163,7 @@ function downloadGlobalReport() {
   const totalSess = allSess.filter(s => activeAIs.some(a => a.id === s.aiId)).length;
 
   // Encabezado global
-  let md = `# AI Tracker — Reporte global\n\n`;
+  let md = `# Locus — Reporte global\n\n`;
   md += `**Exportado:** ${dateStr}  \n`;
   md += `**IAs activas:** ${activeAIsWithSess.length}  \n`;
   md += `**Sesiones totales:** ${totalSess}  \n`;
@@ -1452,7 +1452,9 @@ function confirmItemEditor() {
     item.desc = desc;
     item.ac = ac;
     // B-202605-068: si notes es null (#item-notes ausente del DOM), preservar valor existente
+    // T-528: normalizar notes null→'' — ítems cargados desde CHECKPOINT sin campo notes
     if (notes !== null) item.notes = notes;
+    if (item.notes == null) item.notes = '';
     item.blockedBy = blockedBy;
     item.archivos = archivos;
     item.parentId = parentId || null;
@@ -5253,7 +5255,7 @@ function exportAnalyticsMd() {
     return `| ${fmtMonth(ym)} | ${total} |`;
   });
 
-  const md = `# AI Tracker by Pepe — Resumen Analytics
+  const md = `# Locus — Resumen Analytics
 > Generado: ${fecha} · Período: ${rangeLabel}
 
 ## Métricas clave
@@ -5719,6 +5721,7 @@ function renderProject(query) {
 
   // T-202604-289: sección Decisiones del proyecto
   if (filterId) {
+
     const proj = getProjectById(filterId);
     const decisions = (proj && Array.isArray(proj.decisions)) ? proj.decisions : [];
     const decisionsEl = document.createElement('div');
@@ -5729,6 +5732,37 @@ function renderProject(query) {
     trackerPanel.appendChild(decisionsEl);
   }
 }
+
+// R-B: helper para refrescar solo la sección de notas sin re-renderizar el panel completo
+function _refreshProjectNotes() {
+  const el = document.getElementById('project-notes-section');
+  if (!el) return; // panel no visible — no hay nada que refrescar
+  const projNotes = state.quickNotes || [];
+  if (projNotes.length) {
+    el.innerHTML = `
+      <div class="proj-notes-header">
+        <span class="proj-notes-title">📝 Notas</span>
+        <span class="proj-notes-count">${projNotes.length}</span>
+      </div>
+      <div class="proj-notes-list">
+        ${projNotes.map(n => `
+          <div class="proj-note-row" onclick="openQuickNote('${n.id}')">
+            <div class="proj-note-body">
+              <span class="proj-note-text">${esc(n.text)}</span>
+              ${n.itemRef ? `<span class="proj-note-badge" onclick="event.stopPropagation();_qnNavToItem('${esc(n.itemRef)}')" title="Ir a ${esc(n.itemRef)}">${esc(n.itemRef)}</span>` : ''}
+            </div>
+            <span class="proj-note-date">${typeof relDate === 'function' ? (relDate(n.updatedAt || n.createdAt) || '') : ''}</span>
+          </div>`).join('')}
+      </div>`;
+  } else {
+    el.innerHTML = `
+      <div class="proj-notes-header">
+        <span class="proj-notes-title">📝 Notas</span>
+      </div>
+      <div class="proj-notes-empty">Sin notas registradas</div>`;
+  }
+}
+window._refreshProjectNotes = _refreshProjectNotes;
 
 // T-202604-289: render interno de la sección Decisiones (reutilizable por CRUD)
 function _renderDecisionsSection(el, projId, decisions) {

@@ -43,7 +43,7 @@ const AVATAR_LOGOS = {
   anthropic: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 7v10M8 11h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="15.5" cy="9" r="1" fill="currentColor"/></svg>',
   default: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 9a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" fill="currentColor"/><path d="M7 15c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>'
 };
-document.title = 'AI Tracker ' + _effectiveVersion(); // v3.0.0.9.6
+document.title = 'Locus ' + _effectiveVersion(); // v3.0.0.9.6
 
 // Header project label — muestra Prefijo · Nombre canónico del proyecto activo
 // R-202605-167: Breadcrumb interactivo — proyecto › sprint › ítem activo
@@ -66,7 +66,7 @@ function _updateHeaderProjectLabel() {
     projBtn.removeAttribute('disabled');
   } else {
     // Sin proyecto activo → texto plano sin interacción
-    projBtn.textContent = 'AI Tracker';
+    projBtn.textContent = 'Locus';
     projBtn.setAttribute('disabled', '');
   }
 
@@ -466,7 +466,7 @@ async function signInWithMagicLink(resend = false) {
     email,
     options: { shouldCreateUser: false, emailRedirectTo: window.location.origin } // B-202605-044: solo emails pre-registrados pueden autenticarse
   });
-  if (btn) { btn.disabled = false; btn.textContent = 'Enviar magic link'; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Enviar enlace de acceso'; }
   if (error) {
     console.warn('Magic link error:', error);
     showToast('error', 'Error al enviar: ' + (error.message || error));
@@ -478,7 +478,7 @@ async function signInWithMagicLink(resend = false) {
     if (emailForm) emailForm.classList.add('hidden');
     if (sentState) sentState.classList.remove('hidden');
   }
-  showToast('info', resend ? 'Link reenviado a ' + email : 'Magic link enviado a ' + email);
+  showToast('info', resend ? 'Enlace reenviado a ' + email : 'Enlace de acceso enviado a ' + email);
 }
 
 // getSupabaseUserId — user_id del founder para queries Supabase
@@ -1315,7 +1315,18 @@ function showToastInline(anchorEl, actionsOrType, title, opts = {}) {
   if (pos === 'static') anchorEl.style.setProperty('position', 'relative');
 
   const el = document.createElement('div');
-  const placement = opts.position || 'above';
+  // R-202605-174: detección de viewport — flip a 'below' cuando anchor cerca del top
+  // No aplica en mobile (≤600px) — ya delegado a showToast() antes de llegar aquí
+  const _TOAST_INLINE_FLIP_THRESHOLD = 80; // px desde el top del viewport
+  let placement = opts.position || 'above';
+  try {
+    const rect = anchorEl.getBoundingClientRect();
+    if (rect.top < _TOAST_INLINE_FLIP_THRESHOLD) {
+      placement = 'below';
+    }
+  } catch(e) {
+    // getBoundingClientRect falló — conservar placement calculado hasta ahora
+  }
   el.className = `toast-inline t-${type} toast-inline--${placement}`;
   el.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   el.setAttribute('role', type === 'error' ? 'alert' : 'status');
@@ -2526,6 +2537,23 @@ function _isInSession(ai) {
 }
 
 // T-086 / T-202604-181: Barra de estado sobre el grid (solo vista Cards)
+// T-202605-523: helper compartido — evita recalcular sprint activo en múltiples bloques de renderStatusBar
+function _getActiveSprintStats() {
+  try {
+    const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+    const sp = proj && proj.sprints ? proj.sprints.find(s => s.status === 'active') : null;
+    if (!sp) return { sp: null, spItems: [], spDone: 0, spTotal: 0, spPct: 0, spLabel: '' };
+    const spItems = (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(i => i.sprint === sp.id);
+    const spDone  = spItems.filter(i => i.status === 'done').length;
+    const spTotal = spItems.length;
+    const spPct   = spTotal > 0 ? Math.round((spDone / spTotal) * 100) : 0;
+    const spLabel = sp.label || sp.id || '';
+    return { sp, spItems, spDone, spTotal, spPct, spLabel };
+  } catch(e) {
+    return { sp: null, spItems: [], spDone: 0, spTotal: 0, spPct: 0, spLabel: '' };
+  }
+}
+
 // Contenido: toggle tema (izq) · Sprint activo · Pendientes · Último cambio relativo (der)
 function renderStatusBar() {
   // R-202604-060: tracker-status-bar DEPRECATED — lógica migrada a tracker-grid-header + global-footer
@@ -2538,17 +2566,9 @@ function renderStatusBar() {
     const _hsrFill   = document.getElementById('hsr-bar-fill');
     const _hsrText   = document.getElementById('hsr-text');
     if (_hsrRow) {
-      const _hsprProj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
-      const _hsprSp   = _hsprProj && _hsprProj.sprints
-        ? _hsprProj.sprints.find(s => s.status === 'active')
-        : null;
+      const { sp: _hsprSp, spDone: _hsprDone, spTotal: _hsprTotal, spPct: _hsprPct } = _getActiveSprintStats();
 
       if (_hsprSp) {
-        const _hsprItems = (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(i => i.sprint === _hsprSp.id);
-        const _hsprDone  = _hsprItems.filter(i => i.status === 'done').length;
-        const _hsprTotal = _hsprItems.length;
-        const _hsprPct   = _hsprTotal > 0 ? Math.round((_hsprDone / _hsprTotal) * 100) : 0;
-
         if (_hsrLabel) _hsrLabel.textContent = _hsprSp.label || _hsprSp.id || '';
         if (_hsrFill) {
           _hsrFill.style.setProperty('--hsr-pct', _hsprPct + '%');
@@ -2581,14 +2601,8 @@ function renderStatusBar() {
   if (viewHeader) {
     let sprintPillHtml = '';
     try {
-      const proj = getActiveProject();
-      const sp = proj && proj.sprints ? proj.sprints.find(s => s.status === 'active') : null;
+      const { sp, spDone, spTotal, spPct, spLabel } = _getActiveSprintStats();
       if (sp) {
-        const spItems = (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(i => i.sprint === sp.id);
-        const spDone  = spItems.filter(i => i.status === 'done').length;
-        const spTotal = spItems.length;
-        const spPct   = spTotal > 0 ? Math.round((spDone / spTotal) * 100) : 0;
-        const spLabel = sp.label || sp.id;
         sprintPillHtml = `<button class="tgh-sprint-pill tvh-sprint-pill" onclick="if(typeof toggleSprintHealthPanel==='function')toggleSprintHealthPanel();" title="Ver sprint health">` +
           `<span class="tgh-sprint-name">${spLabel}</span>` +
           `<span class="tgh-sprint-sep">·</span>` +
@@ -2630,11 +2644,11 @@ function renderStatusBar() {
   if (gfProyecto) {
     try {
       const proj = getActiveProject();
-      const nombre = (proj && proj.name) ? proj.name : 'AI Tracker';
+      const nombre = (proj && proj.name) ? proj.name : 'Locus';
       gfProyecto.textContent = nombre;
       gfProyecto.classList.remove('gf-hidden');
     } catch(e) {
-      gfProyecto.textContent = 'AI Tracker';
+      gfProyecto.textContent = 'Locus';
       gfProyecto.classList.remove('gf-hidden');
     }
   }
@@ -3470,6 +3484,24 @@ function renderGlobalRadarSidebar() {
   if (_rsbSearchQuery) rsbFilterAIs(_rsbSearchQuery, true);
 }
 
+// R-202605-172: Toggle colapsar/expandir grupos del radar sidebar
+// Función independiente de toggleCollapseAll() del tracker (que opera sobre state.ais.showAll)
+function _rsbToggleCollapseAll() {
+  const container = document.getElementById('radar-sidebar-cards');
+  if (!container) return;
+  const sections = container.querySelectorAll('.radar-sb-section');
+  if (!sections.length) return;
+  const allCollapsed = Array.from(sections).every(s => s.classList.contains('rsb-section-collapsed'));
+  sections.forEach(s => {
+    if (allCollapsed) {
+      s.classList.remove('rsb-section-collapsed');
+    } else {
+      s.classList.add('rsb-section-collapsed');
+    }
+  });
+}
+window._rsbToggleCollapseAll = _rsbToggleCollapseAll;
+
 // Toggle sección Agotadas (colapsable por defecto)
 function _rsbToggleAgotadas() {
   const group = document.getElementById('rsb-group-agotadas');
@@ -3549,6 +3581,21 @@ function _rsbIsPinned() {
   return localStorage.getItem('rsb-pinned') === '1';
 }
 
+// R-202605-173: Centralizar aplicación de --toast-right-offset
+// isCollapsed true → removeProperty (sidebar colapsado, sin desplazamiento)
+// isCollapsed false → setProperty 300px (sidebar expandido, desplazar toast-stack)
+// Guard: si document.documentElement no está disponible, no lanza error
+function _applyToastOffset(isCollapsed) {
+  try {
+    if (!document.documentElement) return;
+    if (isCollapsed) {
+      document.documentElement.style.removeProperty('--toast-right-offset');
+    } else {
+      document.documentElement.style.setProperty('--toast-right-offset', '300px');
+    }
+  } catch(e) {}
+}
+
 // T-202604-254: Toggle sidebar Radar
 function toggleRadarSidebar() {
   const sidebar = document.getElementById('global-radar-sidebar');
@@ -3557,12 +3604,8 @@ function toggleRadarSidebar() {
   document.body.classList.toggle('radar-sb-collapsed', isCollapsed);
   document.body.classList.toggle('radar-sb-open', !isCollapsed);
   localStorage.setItem('radar-sidebar-collapsed', isCollapsed ? '1' : '0');
-  // T-202604-300: desplazar toast-stack cuando sidebar está expandida (284px + 16px gap)
-  if (isCollapsed) {
-    document.documentElement.style.removeProperty('--toast-right-offset');
-  } else {
-    document.documentElement.style.setProperty('--toast-right-offset', '300px');
-  }
+  // R-202605-173: delegar offset a función centralizada
+  _applyToastOffset(isCollapsed);
 }
 
 // T-202604-254: Init sidebar state from localStorage
@@ -3574,13 +3617,14 @@ function _initRadarSidebarState() {
     sidebar.classList.add('collapsed');
     document.body.classList.remove('radar-sb-open');
     document.body.classList.add('radar-sb-collapsed');
-    document.documentElement.style.removeProperty('--toast-right-offset');
+    // R-202605-173: delegar offset a función centralizada (rama colapsado)
+    _applyToastOffset(true);
   } else {
     sidebar.classList.remove('collapsed');
     document.body.classList.remove('radar-sb-collapsed');
     document.body.classList.add('radar-sb-open');
-    // T-202604-300: sidebar expandida al cargar → desplazar toast-stack
-    document.documentElement.style.setProperty('--toast-right-offset', '300px');
+    // R-202605-173: delegar offset a función centralizada (rama expandido)
+    _applyToastOffset(false);
   }
 
   // Restaurar estado pin — reutiliza sidebar ya declarado arriba
@@ -4622,7 +4666,7 @@ function _exportWeeklySummaryMd() {
   const s = _buildWeeklySummary();
   if (!s) return;
   const lines = [
-    '# Resumen semanal — AI Tracker',
+    '# Resumen semanal — Locus',
     `**Fecha:** ${new Date().toLocaleDateString('es-MX', {weekday:'long', year:'numeric', month:'long', day:'numeric'})}`,
     '',
     `- **Sesiones registradas:** ${s.totalSessions}`,
@@ -5604,7 +5648,12 @@ document.addEventListener('keydown', e => {
     const _panelOpen = _itemPanel && _itemPanel.classList.contains('open');
     if (_isBacklogTab && !_panelOpen) {
       e.preventDefault();
-      if (typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode();
+      // R-202605-175: guard typeof — si módulo backlog no cargó, toast warning en lugar de error silencioso
+      if (typeof toggleBacklogFocusMode === 'function') {
+        toggleBacklogFocusMode();
+      } else {
+        showToast('warning', '⚠️ Módulo de backlog no disponible');
+      }
       return;
     }
     const si = document.getElementById('search-global');
@@ -7006,14 +7055,13 @@ function saveQuickNote() {
     const note = state.quickNotes.find(n => n.id === _quickNoteEditId);
     if (note) { note.text = text; note.itemRef = itemRef; note.updatedAt = new Date().toISOString(); }
     save();
-    showToast('success', 'Nota actualizada');
   } else {
     // Create mode
     state.quickNotes.unshift({ id: 'qn-' + Date.now(), text, itemRef: itemRef || '', createdAt: new Date().toISOString() });
     save();
-    showToast('success', 'Nota guardada');
   }
   closeQuickNote();
+  if (typeof _refreshProjectNotes === 'function') _refreshProjectNotes();
 }
 
 function qnRequestDelete() {
@@ -7030,8 +7078,8 @@ function qnConfirmDelete() {
   if (!_quickNoteEditId) return;
   state.quickNotes = (state.quickNotes || []).filter(n => n.id !== _quickNoteEditId);
   save();
-  showToast('success', 'Nota eliminada');
   closeQuickNote();
+  if (typeof _refreshProjectNotes === 'function') _refreshProjectNotes();
 }
 
 function _qnRefInput(val) {

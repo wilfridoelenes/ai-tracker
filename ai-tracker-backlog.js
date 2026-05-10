@@ -492,11 +492,17 @@ function _calcPriority(item) {
   if (type === 'B') return 'high';
   if (item.sprint) {
     const sp = _getSprintById(item.sprint);
-    const sprintIsOpen = sp && (sp.status === 'active' || sp.status === 'open');
+    // T-202605-529: guard explícita — si el sprint asignado no tiene registro en getSprintById,
+    // tratar el ítem como sin sprint asignado y continuar con lógica estándar por effort.
+    // No retornar 'high' automáticamente por este caso (comportamiento implícito previo eliminado).
+    if (sp === null || sp === undefined) {
+      // Sprint asignado pero sin registro → calcular por effort sin elevación por sprint
+      if (!item.sprint && parseInt(item.effort) === 3) return 'low';
+      return 'medium';
+    }
+    const sprintIsOpen = sp.status === 'active' || sp.status === 'open';
     // B-202605-059: effort 1 → high solo si el sprint está activo u open — nunca en sprints cerrados
     if (sprintIsOpen) return 'high';
-    if (sp && !sprintIsOpen && parseInt(item.effort) === 1) { /* sprint cerrado — no elevar */ }
-    else if (!sp && parseInt(item.effort) === 1) return 'high'; // sprint sin registro → comportamiento previo conservado
   }
   if (!item.sprint && parseInt(item.effort) === 3) return 'low';
   return 'medium';
@@ -6186,7 +6192,7 @@ ${doneSection}
 ${pendSection}
 ---
 
-${discardedMdSection ? discardedMdSection + '\n---\n\n' : ''}${scopeAddedRetroSection ? scopeAddedRetroSection + '\n---\n\n' : ''}${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por AI Tracker ${(typeof _effectiveVersion === 'function') ? _effectiveVersion() : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '')} · ${dateStr}_
+${discardedMdSection ? discardedMdSection + '\n---\n\n' : ''}${scopeAddedRetroSection ? scopeAddedRetroSection + '\n---\n\n' : ''}${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por Locus ${(typeof _effectiveVersion === 'function') ? _effectiveVersion() : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '')} · ${dateStr}_
 `;
 }
 

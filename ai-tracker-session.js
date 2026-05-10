@@ -675,6 +675,28 @@ function parsePasteStandalone() {
 
   // Reutilizar parseCheckpoint para extraer campos y validar estructura
   // R-202605-133: parseCheckpoint detecta JSON puro o Markdown legacy automáticamente
+  // T-202605-524: EXECUTION-PLAN standalone — sin CHECKPOINT envolvente
+  // Si el texto contiene solo un bloque ---EXECUTION-PLAN--- sin CHECKPOINT, procesarlo directamente
+  const _hasEP  = text.includes('---EXECUTION-PLAN---');
+  const _hasCKP = text.includes('---CHECKPOINT---') || /```json\s*\{/.test(text);
+  if (_hasEP && !_hasCKP) {
+    const _epResult = (typeof _tryIngestPlan === 'function') ? _tryIngestPlan(text) : false;
+    if (_epResult) {
+      prev.innerHTML = '<div class="ckpt-pill ckpt-pill--ok ckpt-pill--mb">✓ Execution Plan aplicado</div>';
+      btn.disabled = true; // sin ítems de backlog — nada más que confirmar
+    } else {
+      // _tryIngestPlan falló — proyecto no activo o bloque inválido
+      const _activeProj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+      if (!_activeProj) {
+        prev.innerHTML = '<div class="paste-error">⚠ Selecciona un proyecto activo antes de aplicar el Execution Plan.</div>';
+      } else {
+        prev.innerHTML = '<div class="paste-error">⚠ Bloque <code>---EXECUTION-PLAN---</code> inválido o sin sprint activo.<br><span class="paste-hint">Verifica que el bloque incluya <code>sprint:</code> o que haya un sprint activo en el proyecto.</span></div>';
+      }
+      btn.disabled = true;
+    }
+    return;
+  }
+
   const ckpt = parseCheckpoint(text);
 
   // Validación: bloque de apertura (cualquier formato)
@@ -1512,7 +1534,7 @@ function buildContextMd(version) {
   // ── Sección: Narrativa operativa ─────────────────────────────────────────────
   const narrativeMd = _buildNarrativeMd ? _buildNarrativeMd() : '';
 
-  return `# CONTEXT — AI Tracker
+  return `# CONTEXT — Locus
 # CONTEXT.md
 <!--
   Versión: ${version}
@@ -1550,7 +1572,7 @@ ${gapsSection}
 
 ## Notas
 
-Documento generado automáticamente desde AI Tracker v${version}.
+Documento generado automáticamente desde Locus v${version}.
 Importa este archivo en la siguiente sesión.
 ${narrativeMd}
 `;

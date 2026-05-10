@@ -2,7 +2,7 @@
  * ai-tracker-map-generator.js
  * Versión: v1.3.2 | Última actualización: 2026-05-10 UTC-6
  * Módulo: Document Generator — MAP + CONTEXT + BACKLOG + Sprint Review + ZIP
- * Proyecto: AI Tracker
+ * Proyecto: Locus
  * R-202604-053 | R-202604-086 | R-202605-101
  */
 
@@ -1038,7 +1038,7 @@ function _generateContext(ver) {
     version: _ctxVersion,
     updated,
     generated_at,
-    project: proj ? (proj.name || 'AI Tracker') : 'AI Tracker',
+    project: proj ? (proj.name || 'Locus') : 'Locus',
     main_file: 'index.html',
     status,
     stack,
@@ -1174,7 +1174,7 @@ function _generateSprintReview(ver) {
     md += `\n`;
   }
 
-  md += `---\n\n_Documento generado desde Document Generator — PP AI Tracker._\n`;
+  md += `---\n\n_Documento generado desde Document Generator — Locus._\n`;
   return md;
 }
 
@@ -1420,7 +1420,7 @@ function _mgApplyBumpedVersion(ver) {
   try { localStorage.setItem('app-version-override', ver); } catch(e) {}
 
   // 2. DOM — title del documento
-  document.title = `AI Tracker ${ver}`;
+  document.title = `Locus ${ver}`;
 
   // 3. DOM — pill de versión en el header global (textContent + tooltip)
   const vpEl = document.getElementById('version-pill');
