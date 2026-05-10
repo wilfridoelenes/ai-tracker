@@ -7024,9 +7024,10 @@ function confirmCorrectHora() {
     }
     save(); render();
     if (typeof renderHoy === 'function' && currentTab === 'hoy') renderHoy();
-    showToast('success', `Hora corregida · ${ai.name} desbloquea a las ${result.label}`);
   } else {
-    showToast('error', 'Hora inválida — ingresa formato HHMM (ej: 2100)');
+    // Hora inválida — mantener modal abierto sin toast
+    inp.classList.add('error');
+    setTimeout(() => inp.classList.remove('error'), 1200);
     return; // No cerrar modal
   }
 
@@ -7048,7 +7049,6 @@ function unlockNowFromCard() {
   if (modal) modal.classList.remove('open');
   save(); render();
   if (typeof renderHoy === 'function' && currentTab === 'hoy') renderHoy();
-  showToast('success', `${ai.name} marcada como disponible`);
 }
 
 // ══ T-202604-268 / T-202604-270: QUICK NOTE ══
