@@ -6134,18 +6134,6 @@ function toggleProjectSection(key) {
 
 
 
-
-// Restore drafts
-function restoreDrafts() {
-  state.ais.forEach(ai => {
-    if (ai.status !== 'available') return;
-    const draft = localStorage.getItem('draft-' + ai.id);
-    if (!draft) return;
-    const ta = document.getElementById('ta-' + ai.id);
-    if (ta) { ta.value = draft; parsePaste(ai.id); }
-  });
-}
-
 // ── T-202604-048: Sub-tabs Templates ──
 
 let currentSubTab = 'backlog';
@@ -6206,14 +6194,16 @@ function _updateSubTabButtons(sub) {
   // Sidebar danger zone — show always, per-sub reset button visible
   const dangerZone = document.getElementById('tpl-sidebar-danger');
   if (dangerZone) dangerZone.classList.remove('hidden');
-  const dbBacklog = document.getElementById('sidebar-danger-btn-backlog');
+  const dbBacklog   = document.getElementById('sidebar-danger-btn-backlog');
+  const dbHistorico = document.getElementById('sidebar-danger-btn-historico');
   const dbContext = document.getElementById('sidebar-danger-btn-context');
   const dbHtmlmap = document.getElementById('sidebar-danger-btn-htmlmap');
   const dbContratos = document.getElementById('sidebar-danger-btn-contratos');
-  if (dbBacklog)   dbBacklog.classList.toggle('hidden', sub !== 'backlog');
-  if (dbContext)   dbContext.classList.toggle('hidden', sub !== 'context');
-  if (dbHtmlmap)   dbHtmlmap.classList.toggle('hidden', sub !== 'htmlmap');
-  if (dbContratos) dbContratos.classList.toggle('hidden', sub !== 'contratos');
+  if (dbBacklog)    dbBacklog.classList.toggle('hidden', sub !== 'backlog');
+  if (dbHistorico)  dbHistorico.classList.toggle('hidden', sub !== 'backlog');
+  if (dbContext)    dbContext.classList.toggle('hidden', sub !== 'context');
+  if (dbHtmlmap)    dbHtmlmap.classList.toggle('hidden', sub !== 'htmlmap');
+  if (dbContratos)  dbContratos.classList.toggle('hidden', sub !== 'contratos');
   // Contratos — botones toolbar
   const btnExpContratos = document.getElementById('btn-export-contratos');
   if (btnExpContratos) {

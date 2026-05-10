@@ -680,6 +680,33 @@ function _purgeStaleBacklogCache() {
   return purged;
 }
 
+// T-[pendiente-ID]: Purge permanente de ítems históricos pre-reset
+// Elimina del array en memoria todos los ítems con status 'historico'.
+// Acción irreversible (salvo undo inmediato) — requiere confirmación explícita.
+function purgeAllHistorico() {
+  const historicos = ITEMS.filter(i => i.status === 'historico');
+  if (!historicos.length) {
+    showToast('info', 'No hay ítems históricos para purgar.');
+    return;
+  }
+  _gconfirmOpen({
+    title: 'Purgar archivo histórico',
+    msg: `¿Eliminar permanentemente los ${historicos.length} ítem${historicos.length !== 1 ? 's' : ''} históricos? Esta acción no se puede deshacer después de guardar.`,
+    okLabel: 'Purgar',
+    danger: true
+  }, () => {
+    if (typeof _undoSnapshot === 'function') _undoSnapshot();
+    const before = ITEMS.length;
+    ITEMS = ITEMS.filter(i => i.status !== 'historico');
+    const purged = before - ITEMS.length;
+    if (typeof saveBacklog === 'function') saveBacklog();
+    renderBacklogList();
+    renderStats();
+    console.log(`[AI Tracker] purgeAllHistorico: ${purged} ítem(s) histórico(s) eliminados permanentemente.`);
+    showToast('success', `🗑 ${purged} ítem${purged !== 1 ? 's' : ''} histórico${purged !== 1 ? 's' : ''} eliminado${purged !== 1 ? 's' : ''}.`);
+  });
+}
+
 function loadBacklog() {
   // R-[pendiente-ID]: Supabase-first — si el usuario está autenticado, delegar a
   // _loadFromSupabase() que implementa lógica timestamp-first en su paso 5.

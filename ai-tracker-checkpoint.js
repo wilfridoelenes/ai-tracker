@@ -334,16 +334,6 @@ async function _offlineQueueFlush() {
             if (notesErr) throw notesErr;
           }
         }
-      } else if (entry.type === 'draft' && entry.aiId) {
-        // R-3: flush borrador desde localStorage a Supabase al reconectar
-        const draftRaw = localStorage.getItem('draft-' + entry.aiId);
-        if (draftRaw && _supabase && _supabaseUser) {
-          const { error: draftErr } = await _supabase.from('tracker_docs').upsert(
-            [{ user_id: _supabaseUser.id, key: 'draft-' + entry.aiId, value: { text: draftRaw, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
-            { onConflict: 'user_id,key' }
-          );
-          if (draftErr) throw draftErr;
-        }
       } else if (entry.type === 'user-prefs') {
         // R-4: flush preferencias de usuario desde localStorage a Supabase al reconectar
         await _saveUserPrefs();
@@ -4843,8 +4833,6 @@ function render() {
   renderGlobalRadarSidebar();
   if (!window._radarSbInited) { window._radarSbInited = true; _initRadarSidebarState(); }
   renderProjDots();
-  // B-202604-154: restaurar drafts tras reconstrucción del card — evita que el textarea quede vacío
-  if (typeof restoreDrafts === 'function') restoreDrafts();
   // R-202604-059: actualizar historial col 2 según modo activo + re-attach drop targets tras cada render
   if (_trackerCurrentView === 'poria') {
     if (typeof _trackerRenderMiniHist === 'function') _trackerRenderMiniHist(_trackerSelectedId);
@@ -5185,7 +5173,7 @@ function buildCard(ai) {
 
   const inputHTML = ai.status === 'available' ? `
     <div class="paste-wrap">
-      <div class="paste-label">Resumen de sesión <span class="draft-dot" id="draft-${ai.id}"></span>${_projInlineSelect}</div>
+      <div class="paste-label">Resumen de sesión ${_projInlineSelect}</div>
       <div class="paste-help-box hidden" id="paste-help-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el TL al final de cada sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
       <div class="phase-bar" id="phasebar-${ai.id}">
         <div class="phase-bar-step active" id="phase-paste-${ai.id}"><span class="phase-bar-dot"></span>Pegar</div>
