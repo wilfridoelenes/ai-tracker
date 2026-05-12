@@ -1,4 +1,5 @@
 /* locus-base.css */
+
 /* Versión: 1.0 | Última actualización: 2026-05-11 | Variables, reset, temas dark/light, tipografía global */
 
 
@@ -24,6 +25,7 @@
   --radius-lg:  12px;
   --radius-xl:  16px;
   --radius-pill: 999px;
+
   /* ── Aliases de radio — retrocompatibilidad ── */
   --radius:           var(--radius-md);
   --border-radius-sm: var(--radius-sm);
@@ -35,15 +37,16 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-
   --trans-fast:   all 0.12s var(--ease-out);
   --trans-medium: all 0.20s var(--ease-out);
   --trans-slow:   all 0.32s var(--ease-out);
   --trans-color:  color 0.15s var(--ease-out), background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out), opacity 0.15s var(--ease-out);
+
   /* ── R-202605-179: token canónico de microinteracciones ── */
   --transition-base: 150ms ease;
 
   /* ── Aliases de retrocompatibilidad ── */
+
   /* Variables usadas en el código sin estar declaradas en :root */
   --mono:     var(--font-mono);
   --sans:     var(--font-sans);
@@ -66,6 +69,7 @@
   --bp-ipad:       1024px;   /* iPad / tablet landscape */
 
   /* ── Layout global — altura real del header principal ── */
+
   /* .header-inner: 52px + border-bottom 1px = 53px total  */
   --header-h: 53px;
 }
@@ -92,7 +96,6 @@
   --text:        #e8eaf6;
   --text2:       #8b90c0;
   --hint:        #3a3d5c;
-
   --green:       #39e87c;
   --green-dim:   #071a10;
   --green-border:#0d2e1c;
@@ -100,45 +103,43 @@
   --red-dim:     #1a0810;
   --red-border:  #3a1018;
   --amber:       #f5c842;
-
   --accent:      #a6e22e;
-  --accent-glow: rgba(166,226,46,0.12);
-  --accent-dim:  rgba(166,226,46,0.08);
-  --accent-border: rgba(166,226,46,0.25);
+  --accent-glow: rgb(166 226 46 / 12%);
+  --accent-dim:  rgb(166 226 46 / 8%);
+  --accent-border: rgb(166 226 46 / 25%);
   --blue:        #4fc3f7;
-
-  --card-shadow:       0 1px 6px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.03);
-  --card-shadow-hover: 0 4px 20px rgba(0,0,0,0.6), 0 0 0 1px rgba(166,226,46,0.15);
+  --card-shadow:       0 1px 6px rgb(0 0 0 / 50%), 0 0 0 1px rgb(255 255 255 / 3%);
+  --card-shadow-hover: 0 4px 20px rgb(0 0 0 / 60%), 0 0 0 1px rgb(166 226 46 / 15%);
 
   /* severity colors */
-  --c-critical-bg:     rgba(240,86,106,0.1);
-  --c-critical-border: rgba(240,86,106,0.25);
+  --c-critical-bg:     rgb(240 86 106 / 10%);
+  --c-critical-border: rgb(240 86 106 / 25%);
   --c-critical-text:   #f0566a;
-  --c-high-bg:         rgba(230,100,30,0.1);
-  --c-high-border:     rgba(230,100,30,0.3);
+  --c-high-bg:         rgb(230 100 30 / 10%);
+  --c-high-border:     rgb(230 100 30 / 30%);
   --c-high-text:       #e8742e;
-  --c-medium-bg:       rgba(245,200,66,0.1);
-  --c-medium-border:   rgba(245,200,66,0.25);
+  --c-medium-bg:       rgb(245 200 66 / 10%);
+  --c-medium-border:   rgb(245 200 66 / 25%);
   --c-medium-text:     #f5c842;
-  --c-pulido-bg:       rgba(79,195,247,0.1);
-  --c-pulido-border:   rgba(79,195,247,0.25);
+  --c-pulido-bg:       rgb(79 195 247 / 10%);
+  --c-pulido-border:   rgb(79 195 247 / 25%);
   --c-pulido-text:     #4fc3f7;
-  --c-low-bg:          rgba(166,226,46,0.1);
-  --c-low-border:      rgba(166,226,46,0.25);
+  --c-low-bg:          rgb(166 226 46 / 10%);
+  --c-low-border:      rgb(166 226 46 / 25%);
   --c-low-text:        #a6e22e;
-  --c-won-bg:          rgba(90,90,110,0.1);
-  --c-won-border:      rgba(90,90,110,0.2);
+  --c-won-bg:          rgb(90 90 110 / 10%);
+  --c-won-border:      rgb(90 90 110 / 20%);
   --c-won-text:        #606080;
-  --c-done-bg:         rgba(90,90,110,0.06);
-  --c-done-border:     rgba(90,90,110,0.12);
+  --c-done-bg:         rgb(90 90 110 / 6%);
+  --c-done-border:     rgb(90 90 110 / 12%);
   --c-done-text:       #454560;
 
   /* ── Variables de uso extendido — declaradas aquí para evitar fallbacks hardcodeados ── */
   --text-secondary:  var(--text2);
   --danger:          var(--red);
-  --bg-hover:        rgba(255,255,255,0.05);
-  --bg-subtle:       rgba(255,255,255,0.04);
-  --accent-subtle:   rgba(166,226,46,0.10);
+  --bg-hover:        rgb(255 255 255 / 5%);
+  --bg-subtle:       rgb(255 255 255 / 4%);
+  --accent-subtle:   rgb(166 226 46 / 10%);
   --accent-rgb:      166,226,46;
 
   /* ── Aliases --color-* para componentes migrados (weekly-modal, user-chip, timer) ── */
@@ -160,7 +161,7 @@
 :root[data-theme="light"] {
   --bg:          #f4f5fa;
   --bg2:         #ecedf5;
-  --surface:     #ffffff;
+  --surface:     #fff;
   --surface2:    #f7f8fd;
   --surface3:    #eef0f8;
   --border:      #dde0f0;
@@ -168,7 +169,6 @@
   --text:        #14162a;
   --text2:       #4a5080;
   --hint:        #a0a4c8;
-
   --green:       #1aab5a;
   --green-dim:   #e6f9ef;
   --green-border:#99ddb8;
@@ -176,44 +176,41 @@
   --red-dim:     #fdf0f3;
   --red-border:  #f0b0bc;
   --amber:       #d4920e;
-
   --accent:      #6db821;
-  --accent-glow: rgba(109,184,33,0.1);
-  --accent-dim:  rgba(109,184,33,0.07);
-  --accent-border: rgba(109,184,33,0.22);
+  --accent-glow: rgb(109 184 33 / 10%);
+  --accent-dim:  rgb(109 184 33 / 7%);
+  --accent-border: rgb(109 184 33 / 22%);
   --blue:        #0288d1;
-
-  --card-shadow:       0 1px 4px rgba(20,22,42,0.08);
-  --card-shadow-hover: 0 4px 16px rgba(20,22,42,0.14);
-
-  --c-critical-bg:     rgba(217,48,80,0.07);
-  --c-critical-border: rgba(217,48,80,0.18);
+  --card-shadow:       0 1px 4px rgb(20 22 42 / 8%);
+  --card-shadow-hover: 0 4px 16px rgb(20 22 42 / 14%);
+  --c-critical-bg:     rgb(217 48 80 / 7%);
+  --c-critical-border: rgb(217 48 80 / 18%);
   --c-critical-text:   #c42040;
-  --c-high-bg:         rgba(192,76,16,0.07);
-  --c-high-border:     rgba(192,76,16,0.18);
+  --c-high-bg:         rgb(192 76 16 / 7%);
+  --c-high-border:     rgb(192 76 16 / 18%);
   --c-high-text:       #b05020;
-  --c-medium-bg:       rgba(180,120,0,0.07);
-  --c-medium-border:   rgba(180,120,0,0.18);
+  --c-medium-bg:       rgb(180 120 0 / 7%);
+  --c-medium-border:   rgb(180 120 0 / 18%);
   --c-medium-text:     #a07000;
-  --c-pulido-bg:       rgba(2,136,209,0.07);
-  --c-pulido-border:   rgba(2,136,209,0.18);
+  --c-pulido-bg:       rgb(2 136 209 / 7%);
+  --c-pulido-border:   rgb(2 136 209 / 18%);
   --c-pulido-text:     #0277bd;
-  --c-low-bg:          rgba(109,184,33,0.07);
-  --c-low-border:      rgba(109,184,33,0.18);
+  --c-low-bg:          rgb(109 184 33 / 7%);
+  --c-low-border:      rgb(109 184 33 / 18%);
   --c-low-text:        #4a8a10;
-  --c-won-bg:          rgba(120,120,140,0.07);
-  --c-won-border:      rgba(120,120,140,0.14);
+  --c-won-bg:          rgb(120 120 140 / 7%);
+  --c-won-border:      rgb(120 120 140 / 14%);
   --c-won-text:        #808090;
-  --c-done-bg:         rgba(160,160,160,0.06);
-  --c-done-border:     rgba(160,160,160,0.11);
+  --c-done-bg:         rgb(160 160 160 / 6%);
+  --c-done-border:     rgb(160 160 160 / 11%);
   --c-done-text:       #a0a0a0;
 
   /* ── Variables de uso extendido ── */
   --text-secondary:  var(--text2);
   --danger:          var(--red);
-  --bg-hover:        rgba(0,0,0,0.04);
-  --bg-subtle:       rgba(0,0,0,0.03);
-  --accent-subtle:   rgba(109,184,33,0.10);
+  --bg-hover:        rgb(0 0 0 / 4%);
+  --bg-subtle:       rgb(0 0 0 / 3%);
+  --accent-subtle:   rgb(109 184 33 / 10%);
   --accent-rgb:      109,184,33;
 
   /* ── Aliases --color-* ── */
@@ -244,13 +241,13 @@ body {
 }
 
 [data-theme="dark"] body {
-  background: radial-gradient(ellipse 120% 80% at 50% -20%, rgba(166,226,46,0.04) 0%, transparent 60%),
+  background: radial-gradient(ellipse 120% 80% at 50% -20%, rgb(166 226 46 / 4%) 0%, transparent 60%),
               linear-gradient(180deg, #0b0c10 0%, #0d0e16 100%);
   background-attachment: fixed;
 }
 
 /* B-202605-057: background-attachment: fixed causa scroll jank en iOS/Android */
-@media (max-width: 768px) {
+@media (width <= 768px) {
   [data-theme="dark"] body {
     background-attachment: scroll;
   }
