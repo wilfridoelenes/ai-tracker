@@ -3041,6 +3041,7 @@
   width: 100%;
   max-width: 560px;
   max-height: 85dvh;
+  z-index: var(--z-modal);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -3111,6 +3112,7 @@
 .sprint-close-overlay.skip-step2 #scs-step-3::before {
   content: "2 · Confirmar";
   font-size: var(--text-sm);
+  font-weight: 600;
 }
 
 /* ── Body (contenido inyectado por JS) ── */
@@ -3212,11 +3214,13 @@
   border-color: var(--accent);
   color: #000;
   font-weight: 700;
+  box-shadow: 0 0 0 3px rgba(166, 226, 46, 0.22);
   box-shadow: 0 0 0 3px rgb(from var(--accent) r g b / 22%);
   letter-spacing: 0.01em;
 }
 .sprint-close-next-btn.is-close:hover {
   opacity: 0.88;
+  box-shadow: 0 0 0 4px rgba(166, 226, 46, 0.30);
   box-shadow: 0 0 0 4px rgb(from var(--accent) r g b / 30%);
 }
 .sprint-close-next-btn.is-close:focus-visible {
