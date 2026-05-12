@@ -1250,12 +1250,16 @@ function confirmMapGenerator() {
   // R-202605-117: guard — no bumpear versión si no hay sprint cerrado previo
   const allSprints = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
   const hasClosedSprint = allSprints.some(s => s.status === 'closed');
-  if (!hasClosedSprint) {
-    if (typeof showToast === 'function') {
-      showToast('warning', 'Cierra un sprint antes de confirmar el Generator — sin sprint cerrado no se bumpa versión');
-    }
-    return;
+if (!hasClosedSprint) {
+  // B-[pendiente-ID]: warning no bloqueante — MAP y demás documentos se descargan
+  // sin sprint cerrado. Solo el bump de versión requiere sprint cerrado.
+  // Si no hay sprint cerrado → usar versión actual sin bumpear.
+  if (typeof showToast === 'function') {
+    showToast('warning', 'Sin sprint cerrado — archivos descargados con versión actual sin bumpear');
   }
+  docs._bumpedVer = _mgGetVersion(); // sobreescribir: no bumpear sin sprint cerrado
+  // No hacer return — continuar con _doConfirmGenerate()
+}
 
   // B-202605-071: warning no bloqueante si hay sprints sin cerrar
   // El MAP puede generarse con sprint abierto (snapshot del estado actual), pero el usuario
