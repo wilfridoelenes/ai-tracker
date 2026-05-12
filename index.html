@@ -126,17 +126,12 @@
               </label>
             </div>
           </div>
-          <!-- Grupo: Navegación -->
-          <hr class="mm-separator">
-          <div class="mm-group-label">Navegación</div>
-          <button onclick="openCommandPalette();toggleMoreMenu()"><span class="mm-icon">⌘</span> Command palette</button>
-          <button onclick="openShortcuts();toggleMoreMenu()"><span class="mm-icon">⌨</span> Atajos de teclado</button>
-          <button onclick="openChangelog();toggleMoreMenu()"><span class="mm-icon">📋</span> Changelog</button>
           <!-- Grupo: Configuración -->
           <hr class="mm-separator">
           <div class="mm-group-label">Configuración</div>
+          <button onclick="openShortcuts();toggleMoreMenu()"><span class="mm-icon">⌨</span> Atajos de teclado</button>
+          <button onclick="openChangelog();toggleMoreMenu()"><span class="mm-icon">📋</span> Changelog</button>
           <button onclick="openNotifConfig();toggleMoreMenu()"><span class="mm-icon">🔔</span> Configurar notificaciones</button>
-          <button onclick="toggleTheme();toggleMoreMenu()" id="more-menu-theme"><span class="mm-icon">🌙</span> Cambiar tema</button>
           <button onclick="handleSyncPillClick();toggleMoreMenu()"><span class="mm-icon sync-status-dot" id="sync-status-dot">●</span> <span id="sync-status-label">Sync: local</span></button>
           <!-- B-202605: openFbOnboarding removido — Firebase deprecado, migración a Supabase completa -->
           <!-- R-migración: visible solo cuando Firebase y Supabase están disponibles -->
@@ -1746,12 +1741,10 @@ function _validateResetBacklogInput(el) {
 <!-- R-202604-060 T-202604-370 R-202604-080: Global footer — barra de estado global -->
 <footer id="global-footer">
   <span id="gf-proyecto" class="gf-proyecto gf-hidden"></span>
-  <span id="gf-version" class="gf-version gf-hidden"></span>
   <span id="gf-total" class="gf-total gf-hidden"></span>
   <span id="gf-done" class="gf-done gf-hidden"></span>
   <span id="gf-ckpt" class="gf-ckpt gf-hidden"></span>
   <span id="gf-pulso" class="gf-pulso gf-hidden" onclick="openPulsoPanel()" title="Pulso del Ecosistema"><span class="pulso-dot pulso-dot--green" id="pulso-dot"></span></span>
-  <span id="gf-fecha" class="gf-fecha gf-hidden"></span>
   <span id="gf-sync" class="gf-sync gf-hidden"></span>
 </footer>
 <!-- END R-202604-060 R-202604-080 -->
