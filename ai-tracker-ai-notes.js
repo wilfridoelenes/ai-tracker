@@ -8016,3 +8016,14 @@ function confirmResetSessions() {
 
   showToast('success', 'Sesiones y sprints reseteados — Workers y Proyectos conservados');
 }
+
+// ── R-202605-008: Setup checklist banner — dismiss persistente ──
+function _scbDismiss() {
+  localStorage.setItem('scb-dismissed', '1');
+  const banner = document.getElementById('setup-checklist-banner');
+  if (banner) banner.classList.add('scb-hidden');
+}
+
+function _scbShouldShow() {
+  return localStorage.getItem('scb-dismissed') !== '1';
+}

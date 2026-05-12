@@ -83,7 +83,7 @@
 }
 
 #pepe-splash .splash-version {
-  font-size: 10px; color: var(--hint);
+  font-size: var(--text-xs); color: var(--hint);
   font-family: var(--mono);
 }
 
@@ -335,7 +335,7 @@ button {
 }
 
 .breadcrumb-sep {
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--hint);
   flex-shrink: 0;
   line-height: 1;
@@ -436,7 +436,7 @@ button {
 }
 
 .hsr-label {
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-family: var(--mono, monospace);
   color: var(--hint);
   white-space: nowrap;
@@ -881,7 +881,7 @@ button {
   border: 1px solid var(--border2);
   color: var(--text);
   font-family: var(--font-sans);
-  font-size: 10px;
+  font-size: var(--text-xs);
   font-weight: 500;
   white-space: nowrap;
   padding: 4px 8px;
@@ -1062,7 +1062,7 @@ button {
 
 /* Filter active label — reemplaza cssText en backlog.js L1367 */
 .filter-active-label {
-  font-size: 10px;
+  font-size: var(--text-xs);
   color: var(--hint);
   font-family: var(--font-mono);
   margin-left: 4px;
@@ -1086,7 +1086,7 @@ button {
   background: none;
   border: none;
   color: var(--text);
-  font-size: 0.85rem;
+  font-size: var(--text-xs);
   padding: 4px 0;
   cursor: pointer;
   text-align: left;
@@ -1098,7 +1098,7 @@ button {
 
 .tmpl-trigger-arrow {
   margin-left: auto;
-  font-size: 0.75rem;
+  font-size: var(--text-2xs);
   color: var(--text2);
   transition: transform 0.18s ease;
 }
@@ -1126,7 +1126,7 @@ button {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.82rem;
+  font-size: var(--text-xs);
   color: var(--text2);
   padding: 3px 0;
   cursor: pointer;
@@ -1369,7 +1369,7 @@ button {
 }
 
 .ckpt-info-text {
-  font-size: 12.5px;
+  font-size: var(--text-sm);
   color: var(--text);
   line-height: 1.5;
 }

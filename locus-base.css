@@ -11,6 +11,8 @@
   --font-display: 'DM Sans', sans-serif;
 
   /* ── Escala tipográfica ── */
+  --text-3xs:  8px;   /* badge ultra-compacto: .sprint-badge */
+  --text-2xs:  9px;   /* labels de metadatos compactos */
   --text-xs:   11px;
   --text-sm:   12px;
   --text-base: 13px;
@@ -18,6 +20,13 @@
   --text-lg:   16px;
   --text-xl:   18px;
   --text-2xl:  22px;
+
+  /* ── Escala display — stat numbers, headings de sección ── */
+  --text-display-sm:  17px;  /* heading de sección compacto */
+  --text-display-md:  26px;  /* stat numbers */
+  --text-display-lg:  28px;  /* stat values prominentes */
+  --text-display-xl:  32px;  /* stat / ícono grande */
+  --text-display-2xl: 40px;  /* empty state icons */
 
   /* ── Espaciado / Radios ── */
   --radius-sm:  4px;
