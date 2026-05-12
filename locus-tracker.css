@@ -5663,7 +5663,7 @@ body.radar-sb-collapsed #global-footer {
 /* ── Layout base: 3 columnas en desktop ── */
 .tracker-3col {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr;
   grid-template-rows: 1fr;
   flex: 1;
   min-height: 0;
@@ -5691,6 +5691,16 @@ body.radar-sb-collapsed #global-footer {
 
 .tracker-col--items {
   background: var(--surface2);
+}
+
+/* ── Columna 3: detalle de sesión (tracker-preview) ── */
+.tracker-preview {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  background: var(--surface2);
+  border-left: 1px solid var(--border);
 }
 
 /* tracker-detail dentro de col — quitar full-width override */
@@ -9405,6 +9415,18 @@ body.radar-sb-open
   }
 
   .tracker-col.active {
+    display: flex;
+  }
+
+  .tracker-preview {
+    display: none;
+    width: 100%;
+    min-width: 0;
+    border-left: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .tracker-preview.active {
     display: flex;
   }
 
