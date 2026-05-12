@@ -2730,7 +2730,7 @@
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 55%);
-  z-index: 3100;
+  z-index: var(--z-panel-top);
   align-items: center;
   justify-content: center;
   backdrop-filter: blur(2px);
@@ -2888,7 +2888,7 @@
   border: 1px solid var(--border-color, rgb(255 255 255 / 13%));
   border-radius: var(--radius-md);
   overflow: hidden;
-  z-index: 10;
+  z-index: var(--z-base);
   box-shadow: 0 4px 16px rgb(0 0 0 / 30%);
 }
 
@@ -4772,7 +4772,7 @@
   background: var(--surface1);
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: var(--z-raised);
 }
 
 .ctx-search-input {
@@ -4921,7 +4921,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-toast);
   padding: 20px;
   opacity: 0;
   pointer-events: none;
@@ -5597,7 +5597,7 @@
 
 /* Overlay — más generoso que el modal base */
 .mdiff-overlay {
-  z-index: 500;
+  z-index: var(--z-modal);
 }
 
 .mdiff-overlay.open {
@@ -6338,7 +6338,7 @@
 .backlog-footer-fixed {
   position: sticky;
   bottom: 0;
-  z-index: 40;
+  z-index: var(--z-float-md);
   background: var(--surface); /* B-202604-187: --color-bg → --surface */
   border-top: 1px solid var(--border); /* B-202604-187: --color-border → --border */
   box-shadow: 0 -4px 16px rgb(0 0 0 / 35%);
@@ -6462,7 +6462,7 @@
   order: -1;
   position: sticky;
   left: 0;
-  z-index: 2;
+  z-index: var(--z-raised);
   box-shadow: 0 0 0 2px var(--accent), 0 2px 10px var(--accent-glow);
   background: rgb(99 102 241 / 16%);
   background: color-mix(in srgb, var(--accent) 16%, var(--surface2));
@@ -6609,7 +6609,7 @@
 #backlog-footer {
   position: sticky;
   bottom: 0;
-  z-index: 40;
+  z-index: var(--z-float-md);
   background: var(--surface); /* B-202604-187 */
   border-top: 1px solid var(--border);
   box-shadow: 0 -3px 12px rgb(0 0 0 / 30%);
@@ -6838,7 +6838,7 @@ body:not([data-theme]) .theme-toggle-btn::before {
   border-top: 1px solid var(--border);
   font-size: 0.7rem;
   color: var(--text2);
-  z-index: 210;
+  z-index: var(--z-sidebar-plus);
 }
 
 .gf-spacer {
@@ -7442,7 +7442,7 @@ body {
   /* B-202604-185: sticky funciona dentro de #ckpt-body (overflow-y:auto) como scroll container */
   position: sticky;
   bottom: 0;
-  z-index: 1;
+  z-index: var(--z-deep);
   border-radius: 0 0 8px 8px;
   flex-shrink: 0;
 }
@@ -8251,7 +8251,7 @@ body {
   position: sticky;
   top: 0;
   background: var(--bg);
-  z-index: 2;
+  z-index: var(--z-raised);
   border-bottom: 1px solid var(--border);
   margin-bottom: 8px;
 }
@@ -8771,7 +8771,7 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 800;
+    z-index: var(--z-overlay-sub);
   }
 }
 

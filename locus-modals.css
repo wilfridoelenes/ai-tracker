@@ -12,7 +12,7 @@
   position: fixed;
   bottom: 1.5rem;
   right: var(--toast-right-offset, 1.5rem);
-  z-index: 10000;
+  z-index: var(--z-absolute);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -234,7 +234,7 @@
   border: 1.5px solid var(--border2);
   border-radius: var(--radius-xl);
   box-shadow: 0 12px 40px rgb(0 0 0 / 35%);
-  z-index: 9999;
+  z-index: var(--z-top);
   overflow: hidden;
   opacity: 0;
   transform: translateY(20px);
@@ -774,6 +774,7 @@
   border-top: 1px solid var(--border);
 }
 
+/* DEPRECATED — usar .is-hidden. display:none centralizado en locus-base.css CSS-04 */
 .blind-exhaust-inline.hidden {
   display: none;
 }
@@ -1203,7 +1204,7 @@
 
 .toast-inline {
   position: absolute;
-  z-index: 9999;
+  z-index: var(--z-top);
   left: 50%;
   transform: translateX(-50%) translateY(-4px);
   white-space: nowrap;
@@ -1846,7 +1847,7 @@
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  z-index: var(--z-panel-2);
   background: rgb(0 0 0 / 55%);
   align-items: center;
   justify-content: center;
@@ -2403,10 +2404,8 @@
 
 /* ══ T-202605-440: CSS — modal--retro · bl-sprint-retro-btn · sprint-action-retro · is-hidden retro overlay ══ */
 
-/* is-hidden: utilitaria de visibilidad para overlay de retro — toggle via classList, sin style.display en JS */
-.sprint-retro-overlay.is-hidden {
-  display: none;
-}
+/* .is-hidden centralizado en locus-base.css CSS-04 — esta declaración es redundante */
+/* .sprint-retro-overlay.is-hidden { display: none; } */
 
 /* ══ END T-202605-440 ══ */
 
@@ -2445,7 +2444,7 @@
   position:fixed;
   inset:0;
   background:rgb(0 0 0 / 45%);
-  z-index:1200;
+  z-index: var(--z-panel-2);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -2640,12 +2639,13 @@
   position:fixed;
   inset:0;
   background:rgb(0 0 0 / 50%);
-  z-index:1300;
+  z-index: var(--z-panel-3);
   display:flex;
   align-items:flex-start;
   justify-content:center;
   padding-top:12vh;
 }
+/* DEPRECATED — usar .is-hidden. display:none centralizado en locus-base.css CSS-04 */
 .cmd-palette-overlay.hidden {
   display:none;
 }

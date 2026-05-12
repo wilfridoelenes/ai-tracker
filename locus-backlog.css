@@ -73,7 +73,7 @@
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 45%);
-  z-index: 9999;
+  z-index: var(--z-top);
   align-items: center;
   justify-content: center;
 }
@@ -85,7 +85,7 @@
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 50%);
-  z-index: 8000;
+  z-index: var(--z-supreme-sub);
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -2795,7 +2795,7 @@
   border-radius: 10px;
   padding: 4px 0;
   min-width: 160px;
-  z-index: 50;
+  z-index: var(--z-float);
   box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
 }
 .card-dot-dropdown.open {
@@ -2905,7 +2905,7 @@
 .card.focus-active .card-footer {
   position: sticky;
   bottom: 0;
-  z-index: 2;
+  z-index: var(--z-raised);
   background: var(--surface);
   padding-top: 8px;
   box-shadow: 0 -4px 12px rgb(0 0 0 / 18%);
@@ -3133,6 +3133,7 @@
 }
 
 /* Mi vista — oculto por defecto */
+/* DEPRECATED — usar .is-hidden. display:none centralizado en locus-base.css CSS-04 */
 .bl-view-btn.hidden {
   display: none;
 }
@@ -3247,7 +3248,7 @@
   border: 1px solid var(--accent);
   border-radius: 0 0 8px 8px;
   box-shadow: 0 8px 24px rgb(0 0 0 / 18%);
-  z-index: 120;
+  z-index: var(--z-popover);
   overflow: hidden;
   animation: bl-sprint-drop-in 0.15s var(--ease-out) forwards;
   border-top: none;
@@ -3434,18 +3435,11 @@
 .bl-sprint-closed-toggle.is-open .bl-sprint-closed-toggle-arrow {
   transform: rotate(180deg);
 }
-.bl-sprint-closed-list {
-  display: flex;
-  flex-direction: column;
-  padding: 2px 0;
-}
-.bl-sprint-closed-list.is-hidden {
-  display: none;
-}
+.bl-sprint-closed-list {\n  display: flex;\n  flex-direction: column;\n  padding: 2px 0;\n}\n/* .is-hidden centralizado en locus-base.css CSS-04 — esta declaración es redundante */\n/* .bl-sprint-closed-list.is-hidden { display: none; } */
 .bl-sprint-overlay {
   position: fixed;
   inset: 0;
-  z-index: 119;
+  z-index: var(--z-popover);
   background: transparent;
 }
 
@@ -3506,6 +3500,7 @@
 }
 
 /* Estado oculto — controlado por JS */
+/* DEPRECATED — usar .is-hidden. display:none centralizado en locus-base.css CSS-04 */
 #setup-checklist-banner.scb-hidden {
   display: none;
 }
@@ -4469,7 +4464,7 @@
   inset: 0;
   background: rgb(0 0 0 / 55%);
   backdrop-filter: blur(2px);
-  z-index: 1200;
+  z-index: var(--z-panel-2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4985,7 +4980,7 @@
 .pulso-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  z-index: var(--z-panel);
   display: flex;
   align-items: flex-start;
   justify-content: flex-end;
@@ -5749,7 +5744,7 @@
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: var(--z-deep);
 }
 
 .plan-sprint-id {
@@ -6941,7 +6936,7 @@
   position: fixed;
   top: var(--sp-top, 0);
   left: var(--sp-left, 0);
-  z-index: 9999;
+  z-index: var(--z-top);
   background: var(--surface2);
   border: 1.5px solid var(--border2);
   border-radius: 9px;
@@ -7318,6 +7313,37 @@ textarea:hover {
 @media (prefers-reduced-motion: reduce) {
   .pulso-dot--yellow,
   .pulso-dot--red {
+    animation: none;
+  }
+
+  /* CSS-05: Cobertura extendida — keyframes sin cobertura previa */
+
+  /* pulse-dot — .sstab-modified-dot */
+  .sstab-modified-dot {
+    animation: none;
+  }
+
+  /* bl-sprint-drop-in / bl-sprint-drop-out — sprint dropdown */
+  .bl-sprint-dropdown {
+    animation: none;
+  }
+
+  .bl-sprint-dropdown.is-closing {
+    animation: none;
+  }
+
+  /* scb-pop — setup checklist step icon */
+  .scb-step.scb-just-done .scb-icon {
+    animation: none;
+  }
+
+  /* bitem-nav-pulse — item nav highlight */
+  .bitem--nav-highlight {
+    animation: none;
+  }
+
+  /* cscard-pulse — card status dot */
+  .cscard-dot {
     animation: none;
   }
 }

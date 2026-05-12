@@ -1333,7 +1333,7 @@
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 55%);
-  z-index: 250;
+  z-index: var(--z-layer);
   align-items: flex-start;
   justify-content: flex-end;
   padding: 1rem;
@@ -1350,7 +1350,7 @@
   position: sticky;
   top: 0;
   background: var(--surface);
-  z-index: 1;
+  z-index: var(--z-deep);
 }
 .pend-panel-title {
   font-size: var(--text-base);
@@ -1905,7 +1905,7 @@
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 60%);
-  z-index: 200;
+  z-index: var(--z-sidebar);
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -2192,7 +2192,7 @@
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 60%);
-  z-index: 200;
+  z-index: var(--z-sidebar);
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -2522,7 +2522,7 @@
 /* T-202604-009: Onboarding primer uso */
 .onboarding-overlay {
   display: none; position: fixed; inset: 0;
-  background: rgb(0 0 0 / 70%); z-index: 600;
+  background: rgb(0 0 0 / 70%); z-index: var(--z-modal-plus);
   align-items: center; justify-content: center; padding: 1rem;
 }
 .onboarding-overlay.open {
@@ -2641,7 +2641,7 @@
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 65%);
-  z-index: 500;
+  z-index: var(--z-modal);
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -2784,7 +2784,7 @@
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 60%);
-  z-index: 100;
+  z-index: var(--z-sticky);
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -3130,7 +3130,7 @@
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 65%);
-  z-index: 300;
+  z-index: var(--z-layer-2);
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -3348,7 +3348,7 @@
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 60%);
-  z-index: 500;
+  z-index: var(--z-modal);
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -3412,7 +3412,7 @@
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 60%);
-  z-index: 400;
+  z-index: var(--z-dropdown);
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -3483,7 +3483,7 @@
   position: fixed;
   inset: 0;
   background: rgb(0 0 0 / 60%);
-  z-index: 400;
+  z-index: var(--z-dropdown);
   align-items: center;
   justify-content: center;
   padding: 1rem;
@@ -3925,7 +3925,7 @@
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  z-index: var(--z-panel);
   background: transparent;
 }
 #doc-log-overlay.open {
@@ -3938,7 +3938,7 @@
   right: -380px;
   width: 360px;
   height: 100vh;
-  z-index: 1101;
+  z-index: var(--z-panel);
   background: var(--bg2);
   border-left: 1px solid var(--border);
   display: flex;
@@ -4078,7 +4078,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 900;
+  z-index: var(--z-overlay);
   display: none;
   align-items: center;
   padding: 0 12px;
@@ -4346,7 +4346,7 @@ body.ai-sb-active {
   bottom: 0;
   width: var(--rsb-strip);
   cursor: pointer;
-  z-index: 2;
+  z-index: var(--z-raised);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5294,7 +5294,7 @@ body.radar-sb-collapsed #global-footer {
   align-items: center;
   justify-content: center;
   margin: -28px 10px 10px auto;
-  z-index: 10;
+  z-index: var(--z-base);
   transition: background 0.1s, color 0.1s;
   box-shadow: 0 2px 6px rgb(0 0 0 / 18%);
 }
@@ -6223,7 +6223,7 @@ textarea[id^="ta-"]:focus {
   display: none;
   position: fixed;
   inset: 0;
-  z-index: 1100;
+  z-index: var(--z-panel);
   background: rgb(0 0 0 / 55%);
   align-items: center;
   justify-content: center;
@@ -7754,7 +7754,7 @@ textarea[id^="ta-"]:focus {
 #cp-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9900;
+  z-index: var(--z-critical-2);
   background: rgb(0 0 0 / 55%);
   backdrop-filter: blur(4px);
   display: flex;
@@ -8088,7 +8088,7 @@ body.body--focus-mode #global-footer {
 body.body--focus-mode #backlog-two-col-wrap.backlog-two-col {
   position: fixed !important;
   inset: 0 !important;
-  z-index: 500 !important;
+  z-index: var(--z-modal) !important;
   background: var(--bg) !important;
 }
 
@@ -8116,7 +8116,7 @@ body.body--focus-mode::after {
   font-weight: 600;
   color: var(--hint, #aaa);
   pointer-events: none;
-  z-index: 9999;
+  z-index: var(--z-top);
   letter-spacing: 0.04em;
 }
 
@@ -8834,7 +8834,7 @@ body.body--focus-mode::after {
   position:sticky;
   top:0;
   background:var(--bg,#fff);
-  z-index:1;
+  z-index: var(--z-deep);
 }
 .tvh-hist-day-count {
   margin-left:auto;
@@ -8903,7 +8903,7 @@ body.body--focus-mode::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9500;
+  z-index: var(--z-critical);
 }
 .weekly-modal--hidden {
   display: none;
@@ -9312,7 +9312,7 @@ body.radar-sb-open
     background: var(--surface);
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: var(--z-base);
     flex-shrink: 0;
   }
 

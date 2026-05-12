@@ -166,7 +166,7 @@
 <div id="storage-warn" class="hidden">
   <span>⚠️ Tienes muchas sesiones guardadas — el almacenamiento local puede saturarse pronto.</span>
   <button onclick="purgeOldSessions();checkStorageWarn()">🗑 Purgar sesiones antiguas</button>
-  <button onclick="document.getElementById('storage-warn').classList.add('hidden')" title="Cerrar">✕</button>
+  <button onclick="document.getElementById('storage-warn').classList.add('is-hidden')" title="Cerrar">✕</button>
 </div>
 <!-- ═══ RADAR SIDEBAR GLOBAL ═══ -->
 <div id="global-radar-sidebar">
@@ -1528,8 +1528,8 @@ function _validateResetSessionsInput(el) {
   const ok = v === 'RESET';
   document.getElementById('reset-sessions-confirm-btn').disabled = !ok;
   const hint = document.getElementById('reset-sessions-hint');
-  if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('hidden'); }
-  else { hint.classList.add('hidden'); }
+  if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('is-hidden'); }
+  else { hint.classList.add('is-hidden'); }
 }
 // B-202605-037: validación de reset-backlog-input — lógica extraída de oninput inline a función nombrada
 // TODO: migrar a ai-tracker-backlog.js cuando se refactorice el módulo de modales
@@ -1538,8 +1538,8 @@ function _validateResetBacklogInput(el) {
   const ok = v === 'RESET';
   document.getElementById('reset-backlog-confirm-btn').disabled = !ok;
   const hint = document.getElementById('reset-backlog-hint');
-  if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('hidden'); }
-  else { hint.classList.add('hidden'); }
+  if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('is-hidden'); }
+  else { hint.classList.add('is-hidden'); }
 }
 </script>
 <!-- ═══ DOCUMENT GENERATOR OVERLAY — R-202604-053 · UX R-202605-102 ═══ -->

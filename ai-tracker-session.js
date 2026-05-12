@@ -2255,8 +2255,8 @@ function openDetail(aiId, sessId) {
       </div>`;
 
     // Show panel
-    previewEmpty.classList.add('hidden');
-    previewInner.classList.remove('hidden'); previewInner.classList.add('d-flex');
+    previewEmpty.classList.add('is-hidden');
+    previewInner.classList.remove('is-hidden'); previewInner.classList.add('d-flex');
     tab.classList.add('preview-open');
     preview.scrollTop = 0;
   }
@@ -2267,9 +2267,9 @@ function closePopup() {
   const previewEmpty = document.getElementById('tracker-preview-empty');
   const previewInner = document.getElementById('tracker-preview-inner');
   if (tab) tab.classList.remove('preview-open');
-  if (previewEmpty) previewEmpty.classList.remove('hidden');
+  if (previewEmpty) previewEmpty.classList.remove('is-hidden');
   if (previewInner) {
-    previewInner.classList.add('hidden'); previewInner.classList.remove('d-flex');
+    previewInner.classList.add('is-hidden'); previewInner.classList.remove('d-flex');
     // Remove injected delete confirm so it doesn't duplicate on next open
     const dc = document.getElementById('pop-delete-confirm');
     if (dc && previewInner.contains(dc)) dc.remove();
@@ -2820,7 +2820,7 @@ function checkNotesOverflow(id) {
   const toggleEl = document.getElementById('notes-toggle-' + id);
   if (!textEl || !toggleEl) return;
   const isOverflowing = textEl.scrollHeight > textEl.clientHeight + 2;
-  toggleEl.classList.toggle('hidden', !isOverflowing); toggleEl.classList.toggle('d-inline-block', isOverflowing);
+  toggleEl.classList.toggle('is-hidden', !isOverflowing); toggleEl.classList.toggle('d-inline-block', isOverflowing);
   if (isOverflowing) toggleEl.textContent = '▾ ver más';
 }
 
@@ -3090,7 +3090,7 @@ function _rebuildLogBody() {
       logBody.removeEventListener('scroll', _logScrollHandler);
     }
     _logScrollHandler = () => {
-      scrollBtn.classList.toggle('hidden', logBody.scrollTop <= 120);
+      scrollBtn.classList.toggle('is-hidden', logBody.scrollTop <= 120);
       scrollBtn.classList.toggle('d-flex', logBody.scrollTop > 120);
     };
     logBody.addEventListener('scroll', _logScrollHandler, { passive: true });
@@ -3109,9 +3109,9 @@ function scrollToLogCard(highlightSessId) {
   const detailEmpty = document.getElementById('tracker-detail-empty');
   const card = document.getElementById('log-card');
 
-  if (grid) grid.classList.add('hidden');
-  if (detailEmpty) detailEmpty.classList.add('hidden');
-  if (card) card.classList.remove('hidden');
+  if (grid) grid.classList.add('is-hidden');
+  if (detailEmpty) detailEmpty.classList.add('is-hidden');
+  if (card) card.classList.remove('is-hidden');
 
   _rebuildLogBody();
 
@@ -3132,9 +3132,9 @@ function closeLogCard() {
   const detailEmpty = document.getElementById('tracker-detail-empty');
   const card = document.getElementById('log-card');
 
-  if (card) card.classList.add('hidden');
-  if (grid) grid.classList.remove('hidden');
-  if (detailEmpty) detailEmpty.classList.remove('hidden');
+  if (card) card.classList.add('is-hidden');
+  if (grid) grid.classList.remove('is-hidden');
+  if (detailEmpty) detailEmpty.classList.remove('is-hidden');
 }
 
 function setLogFilterAI(aiId) {
@@ -3206,7 +3206,7 @@ window.addEventListener('load', function() {
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
       const card = document.getElementById('log-card');
-      if (card && !card.classList.contains('hidden')) {
+      if (card && !card.classList.contains('is-hidden')) {
         closeLogCard();
       }
     }
@@ -3215,7 +3215,7 @@ window.addEventListener('load', function() {
   // Click fuera del log card cierra — usar captura en el card para detener propagación interna
   document.addEventListener('click', function(e) {
     const card = document.getElementById('log-card');
-    if (!card || card.classList.contains('hidden')) return;
+    if (!card || card.classList.contains('is-hidden')) return;
     // Si el target ya fue removido del DOM (ej: _rebuildLogBody hizo innerHTML), no cerrar
     if (!document.contains(e.target)) return;
     // Si el click fue dentro del log-card, no cerrar
@@ -3232,7 +3232,7 @@ window.addEventListener('load', function() {
 
   // Ocultar log card por defecto al iniciar
   const card = document.getElementById('log-card');
-  if (card) card.classList.add('hidden');
+  if (card) card.classList.add('is-hidden');
 
   _rebuildLogBody();
 });

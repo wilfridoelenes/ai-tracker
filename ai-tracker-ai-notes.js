@@ -275,7 +275,7 @@ function closeModal(id) {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
     document.querySelectorAll('.inline-confirm.open').forEach(el => el.remove());
-    const m = document.getElementById('more-menu'); if (m) m.classList.add('hidden');
+    const m = document.getElementById('more-menu'); if (m) m.classList.add('is-hidden');
     // Cerrar panel CHECKPOINT con Escape
     const ckpt = document.getElementById('ckpt-panel');
     if (ckpt && ckpt.classList.contains('open')) closeCkptPanel();
@@ -304,7 +304,7 @@ document.addEventListener('click', e => {
   }
   // T-202604-009: close more-menu on outside click
   if (!e.target.closest('#more-menu-wrap')) {
-    const m = document.getElementById('more-menu'); if (m) m.classList.add('hidden');
+    const m = document.getElementById('more-menu'); if (m) m.classList.add('is-hidden');
   }
 });
 
@@ -315,7 +315,7 @@ function toggleMoreMenu() {
   const btn = document.getElementById('more-menu-btn');
   if (!m) return;
 
-  const isHidden = m.classList.contains('hidden');
+  const isHidden = m.classList.contains('is-hidden');
 
   if (isHidden) {
     // Anclar coords relativas al viewport — necesario porque .more-menu usa position:fixed
@@ -325,7 +325,7 @@ function toggleMoreMenu() {
       m.style.right = window.innerWidth - rect.right + 'px';
       m.style.left  = 'auto';
     }
-    m.classList.remove('hidden');
+    m.classList.remove('is-hidden');
 
     // T-202604-295: sync checked state desde localStorage — shell estático en index.html
     const cur = (typeof _templateTrigger === 'function' ? _templateTrigger() : 'session');
@@ -337,13 +337,13 @@ function toggleMoreMenu() {
     // Cerrar al hacer click fuera del menú
     const _closeOnOutside = (e) => {
       if (!m.contains(e.target) && e.target !== btn) {
-        m.classList.add('hidden');
+        m.classList.add('is-hidden');
         document.removeEventListener('mousedown', _closeOnOutside);
       }
     };
     setTimeout(() => document.addEventListener('mousedown', _closeOnOutside), 0);
   } else {
-    m.classList.add('hidden');
+    m.classList.add('is-hidden');
   }
 }
 document.querySelectorAll('.modal-overlay,.popup-overlay').forEach(el => {
@@ -406,14 +406,14 @@ function _gconfirmOpen({ title, msg, okLabel = 'Confirmar', danger = true, input
   okBtn.className = 'btn-primary' + (danger ? ' danger' : '');
   const wrap = document.getElementById('gconfirm-input-wrap');
   if (inputLabel) {
-    wrap.classList.remove('hidden');
+    wrap.classList.remove('is-hidden');
     document.getElementById('gconfirm-input-label').textContent = inputLabel;
     const inp = document.getElementById('gconfirm-input');
     inp.placeholder = inputPlaceholder;
     inp.value = '';
     setTimeout(() => inp.focus(), 60);
   } else {
-    wrap.classList.add('hidden');
+    wrap.classList.add('is-hidden');
   }
   document.getElementById('gconfirm-overlay').classList.add('open');
 }
@@ -423,7 +423,7 @@ function _gconfirmClose() {
 }
 function _gconfirmOk() {
   const inputWrap = document.getElementById('gconfirm-input-wrap');
-  const val = !inputWrap.classList.contains('hidden') ? document.getElementById('gconfirm-input').value.trim() : null;
+  const val = !inputWrap.classList.contains('is-hidden') ? document.getElementById('gconfirm-input').value.trim() : null;
   document.getElementById('gconfirm-overlay').classList.remove('open');
   if (_gconfirmCb) { const cb = _gconfirmCb; _gconfirmCb = null; cb(val); }
 }
@@ -449,7 +449,7 @@ function closePurgeModal() {
 function toggleBacklogDangerZone() {
   const body = document.getElementById('backlog-danger-body');
   if (!body) return;
-  body.classList.toggle('hidden');
+  body.classList.toggle('is-hidden');
 }
 
 function openResetBacklogModal() {
@@ -1154,7 +1154,7 @@ function _refreshParentIdDropdown(selectedType, selectedParentId) {
   if (!field || !sel) return;
   // Solo T y B pueden tener R padre
   const show = selectedType === 'T' || selectedType === 'B';
-  field.classList.toggle('hidden', !show);
+  field.classList.toggle('is-hidden', !show);
   if (!show) { sel.value = ''; return; }
   // Poblar con R disponibles
   const rItems = ITEMS.filter(i => i.code && i.code[0] === 'R');
@@ -2133,7 +2133,7 @@ function onSearch() {
     const nameMatch = ai.name.toLowerCase().includes(q);
     const notesMatch = (ai.notes || '').toLowerCase().includes(q);
     const hasSessMatch = sessMatches.some(({ ai: sai }) => sai && sai.id === ai.id);
-    card.classList.toggle('hidden', !(nameMatch || notesMatch || hasSessMatch));
+    card.classList.toggle('is-hidden', !(nameMatch || notesMatch || hasSessMatch));
     const list = card.querySelector('.sess-list');
     if (!list) return;
     const aiSess = getAISessions(ai.id);
@@ -2142,7 +2142,7 @@ function onSearch() {
       const titleEl = row.querySelector('.sess-row-title');
       const rowTitle = titleEl ? titleEl.textContent : '';
       const match = notesMatch || aiSess.some(s => matchSessIds.has(s.id) && s.title === rowTitle);
-      row.classList.toggle('hidden', !match);
+      row.classList.toggle('is-hidden', !match);
     });
   });
 
@@ -5835,7 +5835,7 @@ function _projOpenAddDecision(projId) {
   const auth = document.getElementById('proj-dec-author-' + projId);
   if (ta) { ta.value = ''; ta.removeAttribute('data-edit-id'); }
   if (auth) auth.value = '';
-  form.classList.remove('hidden');
+  form.classList.remove('is-hidden');
   if (ta) setTimeout(() => ta.focus(), 40);
 }
 
@@ -5866,7 +5866,7 @@ function _projSaveDecision(projId) {
 // T-202604-289: cancelar formulario
 function _projCancelDecision(projId) {
   const form = document.getElementById('proj-dec-form-' + projId);
-  if (form) form.classList.add('hidden');
+  if (form) form.classList.add('is-hidden');
 }
 
 // T-202604-289: abrir formulario en modo edición
@@ -5882,7 +5882,7 @@ function _projEditDecision(projId, decId) {
   ta.value = dec.text || '';
   ta.setAttribute('data-edit-id', decId);
   if (auth) auth.value = dec.author || '';
-  form.classList.remove('hidden');
+  form.classList.remove('is-hidden');
   setTimeout(() => ta.focus(), 40);
 }
 
@@ -6178,55 +6178,55 @@ function _updateSubTabButtons(sub) {
   // T-202604-124 / T-202604-006: bootstrap único por proyecto
   const _backlogRaw = localStorage.getItem(_tplKey('backlog-items'));
   const backlogBootstrapped = !!_backlogRaw && (() => { try { return JSON.parse(_backlogRaw).length > 0; } catch { return false; } })();
-  if (btnB) btnB.classList.add('hidden'); // R-202604-052: import manual eliminado
-  if (btnE) btnE.classList.toggle('hidden', sub !== 'backlog');
-  if (btnFull) btnFull.classList.toggle('hidden', sub !== 'backlog');
-  if (btnNew) btnNew.classList.toggle('hidden', sub !== 'backlog');
+  if (btnB) btnB.classList.add('is-hidden'); // R-202604-052: import manual eliminado
+  if (btnE) btnE.classList.toggle('is-hidden', sub !== 'backlog');
+  if (btnFull) btnFull.classList.toggle('is-hidden', sub !== 'backlog');
+  if (btnNew) btnNew.classList.toggle('is-hidden', sub !== 'backlog');
   const undoRow = document.getElementById('tpl-undo-row');
   const btnUndo = document.getElementById('btn-undo-backlog');
   const btnRedo = document.getElementById('btn-redo-backlog');
-  if (undoRow) undoRow.classList.toggle('hidden', sub !== 'backlog');
-  if (btnUndo) btnUndo.classList.toggle('hidden', sub !== 'backlog');
-  if (btnRedo) btnRedo.classList.toggle('hidden', sub !== 'backlog');
+  if (undoRow) undoRow.classList.toggle('is-hidden', sub !== 'backlog');
+  if (btnUndo) btnUndo.classList.toggle('is-hidden', sub !== 'backlog');
+  if (btnRedo) btnRedo.classList.toggle('is-hidden', sub !== 'backlog');
   if (sub === 'backlog' && typeof _updateUndoUI === 'function') _updateUndoUI();
   // T-202604-123 / T-202604-006: bootstrap único por proyecto
   const mapBootstrapped = !!localStorage.getItem(_tplKey('html-map-raw'));
-  if (btnM) btnM.classList.toggle('hidden', !(sub === 'htmlmap' && !mapBootstrapped));
+  if (btnM) btnM.classList.toggle('is-hidden', !(sub === 'htmlmap' && !mapBootstrapped));
   if (btnME) {
-    btnME.classList.toggle('hidden', sub !== 'htmlmap');
+    btnME.classList.toggle('is-hidden', sub !== 'htmlmap');
     const hasData = !!localStorage.getItem(_tplKey('html-map-raw'));
     btnME.disabled = !hasData;
     btnME.title = hasData ? 'Exportar MODULE-MAP.md' : 'Sin datos — importa primero';
   }
   // [tmp:map-generator] — botón Generar MAP visible siempre en sub htmlmap
   const btnGenMap = document.getElementById('btn-generate-map');
-  if (btnGenMap) btnGenMap.classList.toggle('hidden', sub !== 'htmlmap');
+  if (btnGenMap) btnGenMap.classList.toggle('is-hidden', sub !== 'htmlmap');
   const btnIC = document.getElementById('btn-import-context');
-  if (btnIC) btnIC.classList.add('hidden');
+  if (btnIC) btnIC.classList.add('is-hidden');
   const btnEC = document.getElementById('btn-export-context');
   if (btnEC) {
     const hasContext = !!localStorage.getItem(_tplKey('context-raw'));
-    btnEC.classList.toggle('hidden', sub !== 'context');
+    btnEC.classList.toggle('is-hidden', sub !== 'context');
     btnEC.disabled = !hasContext;
     btnEC.title = hasContext ? 'Exportar CONTEXT.md actualizado' : 'Sin datos — importa primero';
   }
   // Sidebar danger zone — show always, per-sub reset button visible
   const dangerZone = document.getElementById('tpl-sidebar-danger');
-  if (dangerZone) dangerZone.classList.remove('hidden');
+  if (dangerZone) dangerZone.classList.remove('is-hidden');
   const dbBacklog   = document.getElementById('sidebar-danger-btn-backlog');
   const dbHistorico = document.getElementById('sidebar-danger-btn-historico');
   const dbContext = document.getElementById('sidebar-danger-btn-context');
   const dbHtmlmap = document.getElementById('sidebar-danger-btn-htmlmap');
   const dbContratos = document.getElementById('sidebar-danger-btn-contratos');
-  if (dbBacklog)    dbBacklog.classList.toggle('hidden', sub !== 'backlog');
-  if (dbHistorico)  dbHistorico.classList.toggle('hidden', sub !== 'backlog');
-  if (dbContext)    dbContext.classList.toggle('hidden', sub !== 'context');
-  if (dbHtmlmap)    dbHtmlmap.classList.toggle('hidden', sub !== 'htmlmap');
-  if (dbContratos)  dbContratos.classList.toggle('hidden', sub !== 'contratos');
+  if (dbBacklog)    dbBacklog.classList.toggle('is-hidden', sub !== 'backlog');
+  if (dbHistorico)  dbHistorico.classList.toggle('is-hidden', sub !== 'backlog');
+  if (dbContext)    dbContext.classList.toggle('is-hidden', sub !== 'context');
+  if (dbHtmlmap)    dbHtmlmap.classList.toggle('is-hidden', sub !== 'htmlmap');
+  if (dbContratos)  dbContratos.classList.toggle('is-hidden', sub !== 'contratos');
   // Contratos — botones toolbar
   const btnExpContratos = document.getElementById('btn-export-contratos');
   if (btnExpContratos) {
-    btnExpContratos.classList.toggle('hidden', sub !== 'contratos');
+    btnExpContratos.classList.toggle('is-hidden', sub !== 'contratos');
     const hasContratos = !!localStorage.getItem(_tplKey('contratos-data'));
     btnExpContratos.disabled = !hasContratos;
     btnExpContratos.title = hasContratos ? 'Exportar Contratos.md' : 'Sin contratos definidos aún';
@@ -6236,14 +6236,14 @@ function _updateSubTabButtons(sub) {
   if (dangerBody) dangerBody.classList.remove('open');
   // sub-tab plan — no tiene botones de acción ni danger zone (read-only)
   if (sub === 'plan') {
-    if (dangerZone) dangerZone.classList.add('hidden');
+    if (dangerZone) dangerZone.classList.add('is-hidden');
   }
   // Hide actions section label if no buttons visible
   const actionsSection = document.querySelector('.tpl-sidebar-actions');
   if (actionsSection) {
     const allItems = actionsSection.querySelectorAll('button, .tpl-action-row');
-    const anyVisible = Array.from(allItems).some(el => !el.classList.contains('hidden'));
-    actionsSection.classList.toggle('hidden', !anyVisible);
+    const anyVisible = Array.from(allItems).some(el => !el.classList.contains('is-hidden'));
+    actionsSection.classList.toggle('is-hidden', !anyVisible);
   }
 }
 
@@ -6339,7 +6339,7 @@ function _renderDocsOnboarding() {
     </div>`).join('');
 
   banner.innerHTML = `
-    <div class="docs-ob-header" onclick="this.parentElement.querySelector('.docs-ob-body').classList.toggle('hidden');this.querySelector('.docs-ob-progress').textContent=this.parentElement.querySelector('.docs-ob-body').classList.contains('hidden')?'▸':'▾'">
+    <div class="docs-ob-header" onclick="this.parentElement.querySelector('.docs-ob-body').classList.toggle('is-hidden');this.querySelector('.docs-ob-progress').textContent=this.parentElement.querySelector('.docs-ob-body').classList.contains('is-hidden')?'▸':'▾'">
       <span class="docs-ob-icon">📋</span>
       <span class="docs-ob-title">Configura los documentos del proyecto</span>
       <span class="docs-ob-progress">${doneCount}/3 ▾</span>
@@ -6421,7 +6421,7 @@ function importHtmlMap(event) {
     _setHtmlMapModified();
     _blogLog('importado', meta.file, `v${meta.version} · ${sections.length} secciones${isJson ? ' (JSON)' : ''}`, 'htmlmap');
     _updateDocLogCount('htmlmap');
-    document.getElementById('htmlmap-filter-bar').classList.remove('hidden');
+    document.getElementById('htmlmap-filter-bar').classList.remove('is-hidden');
     showToast('success', `Module Map importado — ${sections.length} secciones`);
   };
   reader.readAsText(file);
@@ -6818,9 +6818,9 @@ function _setContextModified() {
   const modLabel = document.getElementById('cmeta-mod-label');
   const modVal = document.getElementById('cmeta-mod-val');
   const now = new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-  if (modSep) modSep.classList.remove('hidden');
-  if (modLabel) modLabel.classList.remove('hidden');
-  if (modVal) { modVal.classList.remove('hidden'); modVal.textContent = now; }
+  if (modSep) modSep.classList.remove('is-hidden');
+  if (modLabel) modLabel.classList.remove('is-hidden');
+  if (modVal) { modVal.classList.remove('is-hidden'); modVal.textContent = now; }
 }
 
 function _clearContextModifiedBadge() {
@@ -6829,9 +6829,9 @@ function _clearContextModifiedBadge() {
   const modSep = document.getElementById('cmeta-mod-sep');
   const modLabel = document.getElementById('cmeta-mod-label');
   const modVal = document.getElementById('cmeta-mod-val');
-  if (modSep) modSep.classList.add('hidden');
-  if (modLabel) modLabel.classList.add('hidden');
-  if (modVal) modVal.classList.add('hidden');
+  if (modSep) modSep.classList.add('is-hidden');
+  if (modLabel) modLabel.classList.add('is-hidden');
+  if (modVal) modVal.classList.add('is-hidden');
 }
 
 // T-202604-109: badge HTML-MAP modificado en sesión
@@ -6858,9 +6858,9 @@ function _clearHtmlMapModifiedBadge() {
   const modSep = document.getElementById('hmeta-mod-sep');
   const modLabel = document.getElementById('hmeta-mod-label');
   const modVal = document.getElementById('hmeta-mod-val');
-  if (modSep) modSep.classList.add('hidden');
-  if (modLabel) modLabel.classList.add('hidden');
-  if (modVal) modVal.classList.add('hidden');
+  if (modSep) modSep.classList.add('is-hidden');
+  if (modLabel) modLabel.classList.add('is-hidden');
+  if (modVal) modVal.classList.add('is-hidden');
 }
 
 function updateHtmlMapModificationBadge() {
@@ -6874,9 +6874,9 @@ function updateHtmlMapModificationBadge() {
   
   if (_htmlMapModifiedInSession && meta.version) {
     const now = new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-    if (modSep) modSep.classList.remove('hidden');
-    if (modLabel) modLabel.classList.remove('hidden');
-    if (modVal) { modVal.classList.remove('hidden'); modVal.textContent = now; }
+    if (modSep) modSep.classList.remove('is-hidden');
+    if (modLabel) modLabel.classList.remove('is-hidden');
+    if (modVal) { modVal.classList.remove('is-hidden'); modVal.textContent = now; }
   }
 }
 
@@ -6904,8 +6904,8 @@ function updateBacklogModificationBadge() {
   
   if (_backlogModifiedInSession && meta.version) {
     const now = new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-    if (modSep) modSep.classList.remove('hidden');
-    if (modVal) { modVal.classList.remove('hidden'); modVal.textContent = '✎ ' + now; }
+    if (modSep) modSep.classList.remove('is-hidden');
+    if (modVal) { modVal.classList.remove('is-hidden'); modVal.textContent = '✎ ' + now; }
   }
 }
 
@@ -7038,8 +7038,8 @@ function renderContext() {
   const raw = localStorage.getItem(_tplKey('context-raw'));
   const hasData = !!raw;
 
-  emptyEl.classList.toggle('hidden', hasData);
-  loadedEl.classList.toggle('hidden', !hasData);
+  emptyEl.classList.toggle('is-hidden', hasData);
+  loadedEl.classList.toggle('is-hidden', !hasData);
 
   if (!hasData) return;
 
@@ -7118,7 +7118,7 @@ function onContextSearch() {
   const input = document.getElementById('ctx-search-input');
   const clear = document.getElementById('ctx-search-clear');
   const q = input ? input.value : '';
-  if (clear) clear.classList.toggle('hidden', !q);
+  if (clear) clear.classList.toggle('is-hidden', !q);
   _renderContextSections(_ctxSections, q);
 }
 
@@ -7126,15 +7126,15 @@ function clearContextSearch() {
   const input = document.getElementById('ctx-search-input');
   const clear = document.getElementById('ctx-search-clear');
   if (input) input.value = '';
-  if (clear) clear.classList.add('hidden');
+  if (clear) clear.classList.add('is-hidden');
   _renderContextSections(_ctxSections, '');
 }
 
 function contextShowImport() {
   const emptyEl = document.getElementById('context-empty-state');
   const loadedEl = document.getElementById('context-loaded-state');
-  if (emptyEl) emptyEl.classList.remove('hidden');
-  if (loadedEl) loadedEl.classList.add('hidden');
+  if (emptyEl) emptyEl.classList.remove('is-hidden');
+  if (loadedEl) loadedEl.classList.add('is-hidden');
 }
 
 function toggleContextSection(idx) {
@@ -7938,7 +7938,7 @@ function openResetSessionsModal() {
   const btn = document.getElementById('reset-sessions-confirm-btn');
   if (btn) btn.disabled = true;
   const hint = document.getElementById('reset-sessions-hint');
-  if (hint) hint.classList.add('hidden');
+  if (hint) hint.classList.add('is-hidden');
   document.getElementById('reset-sessions-overlay').classList.add('open');
   if (typeof _focusFirstInteractive === 'function') _focusFirstInteractive('reset-sessions-overlay');
 }

@@ -1217,8 +1217,8 @@ function _filteredAIs() {
 if (typeof ITEMS !== 'undefined' && ITEMS.length) {
   const ftypes = document.getElementById('filter-bar-types');
   const fstatus = document.getElementById('filter-bar-status');
-  if (ftypes) ftypes.classList.remove('hidden');
-  if (fstatus) fstatus.classList.remove('hidden');
+  if (ftypes) ftypes.classList.remove('is-hidden');
+  if (fstatus) fstatus.classList.remove('is-hidden');
   renderStats();
   updateBacklogBanner();
   updateStatusFilterUI();
@@ -1226,8 +1226,8 @@ if (typeof ITEMS !== 'undefined' && ITEMS.length) {
 }
 
 // T-052: Init — tab Hoy es el primero y activo por defecto
-document.querySelectorAll('.tracker-only').forEach(el => el.classList.add('hidden'));
-document.querySelectorAll('.analytics-only').forEach(el => el.classList.add('hidden'));
+document.querySelectorAll('.tracker-only').forEach(el => el.classList.add('is-hidden'));
+document.querySelectorAll('.analytics-only').forEach(el => el.classList.add('is-hidden'));
 // B-202604-013: restaurar tab activo después del init — el init oculta tracker-only, debe restaurarse al final
 // T-202604-317: si active-tab vacío → Tracker como default
 { const _savedTab = localStorage.getItem('active-tab'); switchTab(_savedTab || 'tracker'); }

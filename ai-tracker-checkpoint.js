@@ -159,9 +159,9 @@ function setSyncStatus(status, label) {
       const name = (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || '').split(' ')[0];
       chipName.textContent = name;
       chipDot.className = 'user-chip-dot user-chip-dot--' + status;
-      chip.classList.remove('hidden');
+      chip.classList.remove('is-hidden');
     } else {
-      chip.classList.add('hidden');
+      chip.classList.add('is-hidden');
     }
   }
 }
@@ -371,7 +371,7 @@ window.addEventListener('offline', () => {
 // AC-8 Fase B: _refreshMigrationBtnVisibility — botón de migración FB→SB eliminado en Fase B
 function _refreshMigrationBtnVisibility() {
   const btn = document.getElementById('btn-migrate-fb-sb');
-  if (btn) btn.classList.add('hidden');
+  if (btn) btn.classList.add('is-hidden');
 }
 
 function signInWithSupabase() {
@@ -431,8 +431,8 @@ function openAuthModal() {
   const emailForm = document.getElementById('auth-email-form');
   const sentState = document.getElementById('auth-sent-state');
   const emailInput = document.getElementById('auth-email-input');
-  if (emailForm) emailForm.classList.remove('hidden');
-  if (sentState) sentState.classList.add('hidden');
+  if (emailForm) emailForm.classList.remove('is-hidden');
+  if (sentState) sentState.classList.add('is-hidden');
   if (emailInput) emailInput.value = '';
   overlay.classList.add('open');
   setTimeout(() => { if (emailInput) emailInput.focus(); }, 80);
@@ -468,8 +468,8 @@ async function signInWithMagicLink(resend = false) {
   const emailForm = document.getElementById('auth-email-form');
   const sentState = document.getElementById('auth-sent-state');
   if (!resend) {
-    if (emailForm) emailForm.classList.add('hidden');
-    if (sentState) sentState.classList.remove('hidden');
+    if (emailForm) emailForm.classList.add('is-hidden');
+    if (sentState) sentState.classList.remove('is-hidden');
   }
   showToast('info', resend ? 'Enlace reenviado a ' + email : 'Enlace de acceso enviado a ' + email);
 }
@@ -516,8 +516,8 @@ function switchTab(tab) {
   if (tabBtn) tabBtn.classList.add('active');
 
   // Visibility of tab-specific header buttons
-  document.querySelectorAll('.tracker-only').forEach(el => el.classList.toggle('hidden', tab !== 'tracker'));
-  document.querySelectorAll('.analytics-only').forEach(el => el.classList.toggle('hidden', tab !== 'analytics'));
+  document.querySelectorAll('.tracker-only').forEach(el => el.classList.toggle('is-hidden', tab !== 'tracker'));
+  document.querySelectorAll('.analytics-only').forEach(el => el.classList.toggle('is-hidden', tab !== 'analytics'));
   // Templates toolbar: update buttons via _updateSubTabButtons
   if (tab === 'backlog') {
     _updateSubTabButtons(currentSubTab || 'backlog');
@@ -1074,14 +1074,14 @@ function showCheckpointPanel(result) {
 function togglePasteHelp(id) {
   const box = document.getElementById('paste-help-' + id);
   if (!box) return;
-  box.classList.toggle('hidden');
+  box.classList.toggle('is-hidden');
 }
 
 
 function _updateCkptReopenBtn() {
   const btn = document.getElementById('ckpt-reopen-btn');
   if (!btn) return;
-  btn.classList.toggle('hidden', !_lastCheckpointResult);
+  btn.classList.toggle('is-hidden', !_lastCheckpointResult);
 }
 
 function closeCkptPanel() {
@@ -3039,9 +3039,9 @@ function updateTabNotifBadges() {
         btn.appendChild(badge);
       }
       badge.textContent = counts[tab] > 9 ? '9+' : counts[tab];
-      badge.classList.remove('hidden');
+      badge.classList.remove('is-hidden');
     } else {
-      if (badge) badge.classList.add('hidden');
+      if (badge) badge.classList.add('is-hidden');
     }
   });
 }
@@ -3978,7 +3978,7 @@ function _trackerRenderMiniHist(aiId) {
   if (!aiId) {
     // T-202605-470: sin IA — título neutral
     if (titleEl) titleEl.textContent = 'Sesiones';
-    if (countEl) { countEl.textContent = ''; countEl.classList.add('hidden'); }
+    if (countEl) { countEl.textContent = ''; countEl.classList.add('is-hidden'); }
     const lastMetaEl = document.getElementById('tracker-mini-hist-last');
     if (lastMetaEl) lastMetaEl.textContent = '';
     listEl.innerHTML = '<div class="tracker-mini-hist-empty"><span class="tracker-mini-hist-empty-icon">📋</span><span>Selecciona una IA</span></div>';
@@ -4020,10 +4020,10 @@ function _trackerRenderMiniHist(aiId) {
     // Mostrar filtered count solo cuando hay filtro de proyecto activo
     if (projFilter && sorted.length !== totalCount) {
       countEl.textContent = sorted.length + ' filtradas';
-      countEl.classList.remove('hidden');
+      countEl.classList.remove('is-hidden');
     } else {
       countEl.textContent = '';
-      countEl.classList.add('hidden');
+      countEl.classList.add('is-hidden');
     }
   }
 
@@ -4353,10 +4353,10 @@ function _renderTrackerSidebar() {
     const isSection = isEl.closest('.tracker-sidebar-section');
     if (inSession.length) {
       isEl.innerHTML = inSession.map(ai => mkRow(ai, true)).join('');
-      if (isSection) isSection.classList.remove('hidden');
+      if (isSection) isSection.classList.remove('is-hidden');
     } else {
       isEl.innerHTML = '';
-      if (isSection) isSection.classList.add('hidden');
+      if (isSection) isSection.classList.add('is-hidden');
     }
   }
 
@@ -4507,7 +4507,7 @@ function _renderActiveWorkerChip() {
   });
 
   if (!best) {
-    chip.classList.add('hidden');
+    chip.classList.add('is-hidden');
     return;
   }
 
@@ -4518,7 +4518,7 @@ function _renderActiveWorkerChip() {
   chip.querySelector('.hwc-name').textContent = best.name || best.id;
   chip.querySelector('.hwc-time').textContent = timeStr;
   chip.dataset.hwcAiId = best.id;
-  chip.classList.remove('hidden');
+  chip.classList.remove('is-hidden');
 }
 
 function _hwcClick() {
@@ -4760,7 +4760,7 @@ function render() {
   if (!state.ais.length) {
     if (grid) grid.innerHTML = '';
     // R-202605-178 AC: sin workers — único CTA
-    if (emptyEl) { emptyEl.classList.remove('hidden'); emptyEl.classList.add('visible'); emptyEl.innerHTML = `
+    if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); emptyEl.innerHTML = `
       <div class="empty-state-icon">🤖</div>
       <div class="empty-state-title">Agrega tu primer Worker</div>
       <div class="empty-state-hint">Los Workers son las IAs que usas. Empieza por crear uno para registrar tus sesiones.</div>
@@ -4772,7 +4772,7 @@ function render() {
   const _hasActiveProj = typeof getActiveProject === 'function' && !!getActiveProject();
   if (!_hasActiveProj && (state.projects || []).length === 0) {
     if (grid) grid.innerHTML = '';
-    if (emptyEl) { emptyEl.classList.remove('hidden'); emptyEl.classList.add('visible'); emptyEl.innerHTML = `
+    if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); emptyEl.innerHTML = `
       <div class="empty-state-icon">🗂</div>
       <div class="empty-state-title">Sin proyecto activo</div>
       <div class="empty-state-hint">Crea un proyecto para empezar a registrar sesiones y gestionar tu backlog.</div>
@@ -4791,13 +4791,13 @@ function render() {
 
   if (!_trackerSelectedId) {
     if (grid) grid.innerHTML = '';
-    if (emptyEl) { emptyEl.classList.remove('hidden'); emptyEl.classList.add('visible'); }
+    if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); }
     updateStats(); renderStatusBar(); renderSetupChecklist(); return;
   }
 
   if (emptyEl) emptyEl.classList.remove('visible');
   // B-202604-XXX: ocultar del flujo del DOM cuando hay IA seleccionada
-  if (emptyEl) emptyEl.classList.add('hidden');
+  if (emptyEl) emptyEl.classList.add('is-hidden');
 
   // R-202604-060: aplicar color del proyecto activo como CSS custom property (CSS Purity — setProperty permitido)
   const _activeProjForColor = getActiveProject();
@@ -4980,7 +4980,7 @@ function openBlindExhaustMode(id) {
   if (!footer) return;
   footer.classList.add('card-footer--blind-exhaust-mode');
   const inline = document.getElementById('bexhaust-inline-' + id);
-  if (inline) inline.classList.remove('hidden');
+  if (inline) inline.classList.remove('is-hidden');
   setTimeout(() => {
     const inp = document.getElementById('bexhaust-hora-' + id);
     if (inp) { inp.focus(); inp.select(); }
@@ -4991,7 +4991,7 @@ function cancelBlindExhaustMode(id) {
   const footer = document.getElementById('footer-' + id);
   if (footer) footer.classList.remove('card-footer--blind-exhaust-mode');
   const inline = document.getElementById('bexhaust-inline-' + id);
-  if (inline) inline.classList.add('hidden');
+  if (inline) inline.classList.add('is-hidden');
   const inp = document.getElementById('bexhaust-hora-' + id);
   if (inp) inp.value = '';
   const disp = document.getElementById('bexhaust-disp-' + id);
@@ -5466,7 +5466,7 @@ function confirmInterruptInline(id, triggerBtn) {
   // Si ya hay un confirm-row, no duplicar
   if (dropdown.querySelector('.dot-confirm-row')) return;
   // Ocultar el botón trigger
-  triggerBtn.classList.add('hidden');
+  triggerBtn.classList.add('is-hidden');
   const row = document.createElement('div');
   row.className = 'dot-confirm-row';
   row.innerHTML = `<span class="dot-confirm-label">⚡ ¿Interrumpir?</span>
@@ -5480,7 +5480,7 @@ function cancelInterruptInline(id) {
   const row = dropdown.querySelector('.dot-confirm-row');
   if (row) row.remove();
   const btn = dropdown.querySelector('.card-dot-item[onclick*="confirmInterruptInline"]');
-  if (btn) btn.classList.remove('hidden');
+  if (btn) btn.classList.remove('is-hidden');
 }
 
 function interruptSession(id) {
@@ -5629,15 +5629,15 @@ function _escCascade() {
     // T-202605-460: panel búsqueda global — prioridad más alta
     () => { const el = document.getElementById('search-unified-results'); if (el) { el.remove(); return true; } },
     // Prioridad alta — modales de confirmación / editing
-    () => { const el = document.getElementById('shortcuts-ref-overlay'); if (el && !el.classList.contains('hidden')) { closeShortcutsRef(); return true; } },
-    () => { const el = document.getElementById('shortcuts-overlay'); if (el && !el.classList.contains('hidden')) { closeShortcuts(); return true; } },
-    () => { const el = document.getElementById('cp-overlay') || document.getElementById('cmd-palette-overlay'); if (el && (el.classList.contains('cp-visible') || !el.classList.contains('hidden'))) { closeCommandPalette(); return true; } },
+    () => { const el = document.getElementById('shortcuts-ref-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcutsRef(); return true; } },
+    () => { const el = document.getElementById('shortcuts-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcuts(); return true; } },
+    () => { const el = document.getElementById('cp-overlay') || document.getElementById('cmd-palette-overlay'); if (el && (el.classList.contains('cp-visible') || !el.classList.contains('is-hidden'))) { closeCommandPalette(); return true; } },
     () => { const el = document.getElementById('quick-note-modal'); if (el && el.offsetParent !== null) { if (typeof closeQuickNote === 'function') closeQuickNote(); return true; } },
     () => { const el = document.getElementById('quick-modal-overlay'); if (el && el.classList.contains('open')) { closeQuickModal(); return true; } },
     () => { const el = document.getElementById('item-detail-panel'); if (el && el.classList.contains('open')) { if (typeof closeItemPanel === 'function') closeItemPanel(); return true; } },
     () => { const el = document.getElementById('item-editor-overlay'); if (el && el.offsetParent !== null) { if (typeof closeItemEditor === 'function') closeItemEditor(); return true; } },
-    () => { const el = document.getElementById('merge-diff-overlay'); if (el && el.offsetParent !== null) { if (typeof showMergeDiffPanel === 'function') { const p = document.getElementById('item-viz-overlay'); if (p && !p.classList.contains('hidden')) { if (typeof _itemVizClose === 'function') _itemVizClose(); return true; } } } },
-    () => { const el = document.getElementById('item-viz-overlay'); if (el && !el.classList.contains('hidden')) { if (typeof _itemVizClose === 'function') _itemVizClose(); return true; } },
+    () => { const el = document.getElementById('merge-diff-overlay'); if (el && el.offsetParent !== null) { if (typeof showMergeDiffPanel === 'function') { const p = document.getElementById('item-viz-overlay'); if (p && !p.classList.contains('is-hidden')) { if (typeof _itemVizClose === 'function') _itemVizClose(); return true; } } } },
+    () => { const el = document.getElementById('item-viz-overlay'); if (el && !el.classList.contains('is-hidden')) { if (typeof _itemVizClose === 'function') _itemVizClose(); return true; } },
     () => { const el = document.getElementById('pend-overlay'); if (el && el.offsetParent !== null) { if (typeof closePendPanel === 'function') closePendPanel(); return true; } },
     () => { const el = document.getElementById('proj-modal-overlay'); if (el && el.offsetParent !== null) { if (typeof closeProjModal === 'function') closeProjModal(); return true; } },
     () => { const el = document.getElementById('proj-panel-overlay'); if (el && el.offsetParent !== null) { if (typeof closeProjPanel === 'function') closeProjPanel(); return true; } },
@@ -6038,7 +6038,7 @@ function openCommandPalette() {
   // Fallback legacy — #cmd-palette-overlay
   const overlay = document.getElementById('cmd-palette-overlay');
   if (!overlay) return;
-  overlay.classList.remove('hidden');
+  overlay.classList.remove('is-hidden');
   const input = document.getElementById('cmd-palette-input');
   if (input) { input.value = ''; setTimeout(() => input.focus(), 30); }
   _cpSelectedIdx = 0;
@@ -6055,7 +6055,7 @@ function closeCommandPalette() {
     return;
   }
   const overlay = document.getElementById('cmd-palette-overlay');
-  if (overlay) overlay.classList.add('hidden');
+  if (overlay) overlay.classList.add('is-hidden');
 }
 
 function _cpRender(query) {
@@ -6373,7 +6373,7 @@ function restoreDefaultShortcuts() {
 function openShortcuts() {
   const overlay = document.getElementById('shortcuts-overlay');
   if (overlay) {
-    overlay.classList.remove('hidden');
+    overlay.classList.remove('is-hidden');
     _shortcutsRender();
     _focusFirstInteractive('shortcuts-panel');
   }
@@ -6382,7 +6382,7 @@ function openShortcuts() {
 function closeShortcuts(e) {
   if (e && e.target !== document.getElementById('shortcuts-overlay')) return;
   const overlay = document.getElementById('shortcuts-overlay');
-  if (overlay) overlay.classList.add('hidden');
+  if (overlay) overlay.classList.add('is-hidden');
 }
 
 // DUP-03: openShortcutsRef y closeShortcutsRef redirigen a #shortcuts-overlay
@@ -6927,7 +6927,7 @@ function openCorrectHora(id) {
   title.textContent = '⏰ Corregir hora de desbloqueo';
   // Ocultar el input-wrap del modal genérico (usado por _gconfirmOpen)
   const inputWrap = document.getElementById('gconfirm-input-wrap');
-  if (inputWrap) inputWrap.classList.add('hidden');
+  if (inputWrap) inputWrap.classList.add('is-hidden');
 
   const currentLabel = ai.resetTime ? fmt12(ai.resetTime) : '(sin hora)';
   msg.innerHTML = `

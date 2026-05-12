@@ -52,7 +52,7 @@
 
 /* Splash screen Pepe */
 #pepe-splash {
-  position: fixed; inset: 0; z-index: 9999;
+  position: fixed; inset: 0; z-index: var(--z-top);
   background: var(--bg);
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
   transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -642,7 +642,7 @@ button {
   right: 0;
   height: 3px;
   background: var(--border);
-  z-index: 9000;
+  z-index: var(--z-supreme);
   opacity: 0;
   transition: opacity 0.2s ease;
   pointer-events: none;
@@ -724,7 +724,7 @@ button {
   position: fixed;
   top: auto; /* sobreescrito por JS via style.top */
   right: auto; /* sobreescrito por JS via style.right */
-  z-index: 9999;
+  z-index: var(--z-top);
   min-width: 220px;
   max-height: calc(100vh - 60px);
   overflow-y: auto;
@@ -890,7 +890,7 @@ button {
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.14s ease, transform 0.14s ease;
-  z-index: 900;
+  z-index: var(--z-overlay);
 }
 
 .has-tooltip:hover::after {
@@ -1050,7 +1050,7 @@ button {
 
 /* Modal overlay apilado sobre otros overlays */
 .modal-overlay--top {
-  z-index: 9200;
+  z-index: var(--z-supreme-2);
 }
 
 /* Clipboard textarea fantasma — reemplaza cssText position:fixed;opacity:0;pointer-events:none */
@@ -1115,6 +1115,8 @@ button {
   padding: 4px 0 6px 20px;
 }
 
+/* Nota CSS-04: .is-hidden aquí NO es display:none — es colapso animado (max-height/opacity).
+   Uso intencional — no redundante con la clase canónica de locus-base.css. */
 .tmpl-trigger-body.is-hidden {
   max-height: 0;
   opacity: 0;
@@ -1388,7 +1390,7 @@ button {
   display: flex;
   flex-direction: row;
   gap: 4px;
-  z-index: 2;
+  z-index: var(--z-raised);
 }
 
 .paste-ta-btn {

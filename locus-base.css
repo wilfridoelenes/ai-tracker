@@ -11,9 +11,10 @@
   --font-display: 'DM Sans', sans-serif;
 
   /* ── Escala tipográfica ── */
-  --text-3xs:  8px;   /* badge ultra-compacto: .sprint-badge */
-  --text-2xs:  9px;   /* labels de metadatos compactos */
-  --text-xs:   11px;
+  --text-3xs:      8px;   /* badge ultra-compacto: .sprint-badge */
+  --text-2xs:      9px;   /* labels de metadatos compactos */
+  --text-2xs-plus: 10px;  /* CSS-01: valor 10px en locus-modals.css — entre --text-2xs y --text-xs */
+  --text-xs:       11px;
   --text-sm:   12px;
   --text-base: 13px;
   --text-md:   14px;
@@ -30,9 +31,13 @@
 
   /* ── Espaciado / Radios ── */
   --radius-sm:  4px;
+  --radius-xs:  6px;   /* CSS-02: valor 6px en uso — entre --radius-sm y --radius-md */
   --radius-md:  8px;
+  --radius-md-plus: 10px; /* CSS-02: valor 10px en uso — entre --radius-md y --radius-lg */
   --radius-lg:  12px;
+  --radius-lg-plus: 14px; /* CSS-02: valor 14px en uso — entre --radius-lg y --radius-xl */
   --radius-xl:  16px;
+  --radius-2xl: 20px;  /* CSS-02: valor 20px en uso — sobre --radius-xl */
   --radius-pill: 999px;
 
   /* ── Aliases de radio — retrocompatibilidad ── */
@@ -63,14 +68,37 @@
   --font-base: var(--font-sans);
 
   /* ── Escala de z-index ── */
-  --z-base:     10;
-  --z-sticky:   100;
-  --z-sidebar:  200;
-  --z-dropdown: 400;
-  --z-modal:    500;
-  --z-overlay:  900;
-  --z-toast:    1000;
-  --z-top:      9999;
+  --z-deep:        1;     /* stacking mínimo — fondos decorativos */
+  --z-raised:      2;     /* elementos inline con elevación leve */
+  --z-base:        10;
+  --z-float-sm:    30;    /* CSS-06: flotantes ligeros de baja prioridad */
+  --z-float-md:    40;    /* CSS-06: flotantes ligeros de prioridad media */
+  --z-float:       50;    /* elementos flotantes ligeros */
+  --z-sticky:      100;
+  --z-popover:     120;   /* popovers · dropdowns compactos (cubre 119/120) */
+  --z-sidebar:     200;
+  --z-sidebar-plus: 210;  /* CSS-06: elementos sobre sidebar base */
+  --z-layer:       250;   /* CSS-06: capa intermedia sidebar→dropdown */
+  --z-layer-2:     300;   /* CSS-06: segunda capa intermedia */
+  --z-dropdown:    400;
+  --z-modal:       500;
+  --z-modal-plus:  600;   /* CSS-06: elementos sobre modal base */
+  --z-overlay:     900;
+  --z-overlay-sub: 800;   /* CSS-06: sub-overlay antes del toast */
+  --z-toast:       1000;
+  --z-toast-plus:  1001;  /* CSS-06: elementos sobre toast base */
+  --z-panel:       1100;  /* paneles sobre modal base */
+  --z-panel-2:     1200;  /* paneles secundarios apilados */
+  --z-panel-3:     1300;  /* tercer nivel de panel */
+  --z-panel-top:   3100;  /* CSS-06: panel de máxima prioridad */
+  --z-supreme-sub: 8000;  /* CSS-06: sub-nivel antes de supreme */
+  --z-supreme-mid: 8500;  /* CSS-06: nivel medio antes de supreme */
+  --z-supreme:     9000;  /* elementos sobre overlay general */
+  --z-supreme-2:   9200;  /* segundo nivel sobre overlay */
+  --z-critical:    9500;  /* CSS-06: entre supreme-2 y top */
+  --z-critical-2:  9900;  /* CSS-06: segundo nivel crítico */
+  --z-top:         9999;
+  --z-absolute:    10000; /* máximo absoluto — supera --z-top */
 
   /* ── Breakpoints responsive — T-202605-477 ── */
   --bp-wide:       1920px;   /* monitor estándar */
@@ -263,5 +291,12 @@ body {
     background-attachment: scroll;
   }
 }
+
+
+/* ══ CSS-04: Clase canónica de ocultamiento ══ */
+.is-hidden {
+  display: none !important;
+}
+/* ══ END CSS-04 ══ */
 
 

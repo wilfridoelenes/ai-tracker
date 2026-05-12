@@ -104,7 +104,7 @@ function renderHtmlMap() {
         <div class="htmlmap-empty-hint">El MAP se actualiza automáticamente vía CHECKPOINT.</div>
       </div>`;
     _skelHide(el);
-    document.getElementById('htmlmap-filter-bar').classList.add('hidden');
+    document.getElementById('htmlmap-filter-bar').classList.add('is-hidden');
     return;
   }
 
@@ -113,7 +113,7 @@ function renderHtmlMap() {
 
   if (!isModular) {
     // Fallback legado
-    document.getElementById('htmlmap-filter-bar').classList.remove('hidden');
+    document.getElementById('htmlmap-filter-bar').classList.remove('is-hidden');
     const filtered = htmlMapFilter === 'all' ? HTML_MAP_SECTIONS : HTML_MAP_SECTIONS.filter(s => s.type === htmlMapFilter);
     const typeLabel = { css: 'CSS', html: 'HTML', js: 'JS' };
     const rows = filtered.map(s => `
@@ -127,7 +127,7 @@ function renderHtmlMap() {
   }
 
   // ── Module.Map árbol modular ──
-  document.getElementById('htmlmap-filter-bar').classList.add('hidden');
+  document.getElementById('htmlmap-filter-bar').classList.add('is-hidden');
 
   // Agrupar por archivo preservando orden de aparición
   const fileMap = {};
@@ -1027,12 +1027,12 @@ function updateBacklogBanner() {
   const exportBtn = document.getElementById('export-backlog-btn');
   if (!_getActiveProjectFilter() || !ITEMS.length) {
     if (banner) banner.classList.remove('visible');
-    if (exportBtn) exportBtn.classList.add("hidden");
+    if (exportBtn) exportBtn.classList.add("is-hidden");
     return;
   }
   if (banner) banner.classList.add('visible');
   // Mostrar botón exportar solo si estamos en tab backlog
-  if (exportBtn && currentTab === 'backlog') exportBtn.classList.remove("hidden")
+  if (exportBtn && currentTab === 'backlog') exportBtn.classList.remove("is-hidden")
 
   const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
   const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
@@ -1121,8 +1121,8 @@ function importBacklog(event) {
       // T-049: mostrar filtros
       const ftypes = document.getElementById('filter-bar-types');
       const fstatus = document.getElementById('filter-bar-status');
-      if (ftypes) ftypes.classList.remove('hidden');
-      if (fstatus) fstatus.classList.remove('hidden');
+      if (ftypes) ftypes.classList.remove('is-hidden');
+      if (fstatus) fstatus.classList.remove('is-hidden');
 
       updateBacklogBanner();
       updateStatusFilterUI();
@@ -1834,7 +1834,7 @@ function updateClearFilterBtn() {
   const noRoleFilter = activeRoleFilter === null;
   const noPriorityFilter = activePriorityFilter.size === 0; // T-202604-357
   const isDefault = allTypes && defaultStatus && noSearch && noRoleFilter && noPriorityFilter && !_backlogFocusMode && !_backlogNoAcMode;
-  btn.classList.toggle('hidden', isDefault);
+  btn.classList.toggle('is-hidden', isDefault);
 
   // R-202605-094: chips individuales limpiables por filtro activo
   const wrap = document.getElementById('active-filter-chips');
@@ -1906,8 +1906,8 @@ function toggleSprintHealthPanel() {
   const arrow = document.getElementById('sprint-health-arrow');
   const header = body ? body.previousElementSibling : null;
   if (!body) return;
-  const isNowCollapsed = !body.classList.contains('hidden');
-  body.classList.toggle('hidden', isNowCollapsed);
+  const isNowCollapsed = !body.classList.contains('is-hidden');
+  body.classList.toggle('is-hidden', isNowCollapsed);
   if (header) header.classList.toggle('sh-header--open', !isNowCollapsed);
   if (arrow) arrow.textContent = isNowCollapsed ? '▸' : '▾';
   try { localStorage.setItem('sprint-health-open', isNowCollapsed ? '0' : '1'); } catch {}
@@ -2639,7 +2639,7 @@ function renderBacklogList() {
       const activeSprint = _getActiveSprint();
       const miRoles = _getMiViewRoles();
       const show = !!(activeSprint && miRoles.length);
-      mikeBtn.classList.toggle('hidden', !show);
+      mikeBtn.classList.toggle('is-hidden', !show);
       if (show) {
         mikeBtn.classList.toggle('active', _backlogMikeMode);
         mikeBtn.textContent = _backlogMikeMode ? _getMiViewLabel() : 'Mi vista';
@@ -2777,7 +2777,7 @@ function renderBacklogList() {
     // B-202604-161: si el Item Detail Panel está abierto, mantener oculto el nodo recién creado
     if (_itemPanelCode) {
       const el = document.getElementById('sprint-health-panel');
-      if (el) el.classList.add('hidden');
+      if (el) el.classList.add('is-hidden');
     }
   })();
 
@@ -2787,7 +2787,7 @@ function renderBacklogList() {
     // B-202604-161: si el Item Detail Panel está abierto, mantener oculto
     if (_itemPanelCode) {
       const el = document.getElementById('bl-sprint-bar');
-      if (el) el.classList.add('hidden');
+      if (el) el.classList.add('is-hidden');
     }
   })();
 
@@ -5401,12 +5401,12 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
       valid = false;
       const errEl = document.getElementById('mdiff-sprint-vt-err-' + code);
       if (vtEl) vtEl.classList.add('input-outline-error');
-      if (errEl) { errEl.textContent = 'Ingresa una versión (ej: v1.0.0)'; errEl.classList.remove('hidden'); }
+      if (errEl) { errEl.textContent = 'Ingresa una versión (ej: v1.0.0)'; errEl.classList.remove('is-hidden'); }
     }
     if (!rt) {
       valid = false;
       const errEl = document.getElementById('mdiff-sprint-rt-err-' + code);
-      if (errEl) { errEl.textContent = 'Selecciona el tipo de release'; errEl.classList.remove('hidden'); }
+      if (errEl) { errEl.textContent = 'Selecciona el tipo de release'; errEl.classList.remove('is-hidden'); }
     }
     if (!valid) return;
 
@@ -6502,7 +6502,7 @@ function _clearSprintFieldErr(errId) {
   const el = document.getElementById(errId);
   if (!el) return;
   el.textContent = '';
-  el.classList.add('hidden');
+  el.classList.add('is-hidden');
   // B-202605-506: quitar borde de error del input asociado (hermano anterior al span)
   const prev = el.previousElementSibling;
   if (prev && prev.tagName === 'INPUT') prev.classList.remove('input-outline-error');
@@ -6529,12 +6529,12 @@ function confirmNewSprint(code) {
     valid = false;
     const errEl = document.getElementById('new-sprint-vt-err-' + code);
     if (vtInp) vtInp.classList.add('input-outline-error');
-    if (errEl) { errEl.textContent = 'Ingresa una versión (ej: v1.0.0)'; errEl.classList.remove('hidden'); }
+    if (errEl) { errEl.textContent = 'Ingresa una versión (ej: v1.0.0)'; errEl.classList.remove('is-hidden'); }
   }
   if (!rt) {
     valid = false;
     const errEl = document.getElementById('new-sprint-rt-err-' + code);
-    if (errEl) { errEl.textContent = 'Selecciona el tipo de release'; errEl.classList.remove('hidden'); }
+    if (errEl) { errEl.textContent = 'Selecciona el tipo de release'; errEl.classList.remove('is-hidden'); }
   }
   if (!valid) return;
   const id = createSprint(raw, goal, vt, rt);
@@ -7484,9 +7484,9 @@ function openItemPanel(code) {
 
   // B-161: ocultar roadmap y sprint health para liberar espacio en layout two-col
   const roadmap = document.getElementById('sprint-roadmap');
-  if (roadmap) roadmap.classList.add('hidden');
+  if (roadmap) roadmap.classList.add('is-hidden');
   const spHealth = document.getElementById('sprint-health-panel');
-  if (spHealth) spHealth.classList.add('hidden');
+  if (spHealth) spHealth.classList.add('is-hidden');
 
   // Registrar Esc handler (sin duplicar)
   document.removeEventListener('keydown', _itemPanelEscHandler);
@@ -7508,9 +7508,9 @@ function closeItemPanel() {
       if (wrap) wrap.classList.remove('backlog-two-col');
       // B-161: restaurar roadmap y sprint health al cerrar panel
       const roadmap = document.getElementById('sprint-roadmap');
-      if (roadmap) roadmap.classList.remove('hidden');
+      if (roadmap) roadmap.classList.remove('is-hidden');
       const spHealth = document.getElementById('sprint-health-panel');
-      if (spHealth) spHealth.classList.remove('hidden');
+      if (spHealth) spHealth.classList.remove('is-hidden');
     }, 280);
   }
   _itemPanelCode = null;
@@ -7903,8 +7903,8 @@ function _idpStartEditTitle(code) {
   const item = ITEMS.find(i => i.code === code);
   if (!item) return;
   input.value = item.title;
-  display.classList.add("hidden");
-  input.classList.remove("hidden")
+  display.classList.add("is-hidden");
+  input.classList.remove("is-hidden")
   input.focus();
   input.select();
 }
@@ -7931,15 +7931,15 @@ function _idpSaveTitle(code) {
     showToast('success', `${code} — título actualizado`);
   }
   display.textContent = item.title;
-  display.classList.remove("hidden")
-  input.classList.add("hidden");
+  display.classList.remove("is-hidden")
+  input.classList.add("is-hidden");
 }
 
 function _idpCancelTitle() {
   const display = document.getElementById('idp-title-display');
   const input = document.getElementById('idp-title-input');
-  if (display) display.classList.remove("hidden")
-  if (input) input.classList.add("hidden");
+  if (display) display.classList.remove("is-hidden")
+  if (input) input.classList.add("is-hidden");
 }
 
 // R-202604-015: actualizar campo genérico del ítem desde el panel
@@ -7991,7 +7991,7 @@ function _idpToggleHistory() {
   const body = document.getElementById('idp-hist-body');
   const arrow = document.getElementById('idp-hist-arrow');
   if (!body) return;
-  const open = body.classList.toggle('hidden');
+  const open = body.classList.toggle('is-hidden');
   if (arrow) arrow.textContent = open ? '▸' : '▾';
 }
 
