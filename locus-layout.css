@@ -1469,13 +1469,53 @@ button {
   }
 }
 
-/* prefers-reduced-motion — deshabilitar transiciones de T-381/T-386 */
+/* prefers-reduced-motion — deshabilitar transiciones de T-381/T-386 + CSS-05 */
 @media (prefers-reduced-motion: reduce) {
+  /* T-381/T-386 — originales */
   .logo-grillo,
   .tab-panel,
   .search-expand-wrap,
   .has-tooltip::after {
     transition: none;
+  }
+
+  .sync-pill.syncing::before {
+    animation: none;
+  }
+
+  /* CSS-05: Splash — sin scale en fade-out, sin pulse */
+  #pepe-splash {
+    transition: opacity 0.3s ease;
+  }
+
+  #pepe-splash.fade-out {
+    transform: none;
+  }
+
+  #pepe-splash img,
+  #pepe-splash img.loading {
+    animation: none;
+  }
+
+  /* CSS-05: Progress bar splash — sin animación infinita */
+  #pepe-progress-fill.indeterminate {
+    animation: none;
+  }
+
+  /* CSS-05: Tab panels — sin translateY en entrada */
+  .tab-panel.active {
+    animation: none;
+    opacity: 1;
+  }
+
+  /* CSS-05: Sess-row — sin spring en entrada */
+  .sess-row.fade-slide-in {
+    animation: none;
+  }
+
+  /* CSS-05: Sync pill — sin pulse */
+  .sync-pill.syncing {
+    animation: none;
   }
 
   .sync-pill.syncing::before {

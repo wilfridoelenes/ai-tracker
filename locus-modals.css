@@ -2861,21 +2861,57 @@
 /* === Responsive === */
 
 
+/* ══ CSS-05: prefers-reduced-motion — toasts + modales ══ */
 @media (prefers-reduced-motion: reduce) {
-  .toast-item,
-  .toast-item.toast-hide {
+  /* Toasts — sin translate ni scale; solo fade */
+  .toast-item {
     transform: none;
     transition: opacity 0.16s ease;
   }
-}
 
-@media (prefers-reduced-motion: reduce) {
-  .toast-item,
+  .toast-item.show {
+    transform: none;
+  }
+
   .toast-item.toast-hide {
     transform: none;
     transition: opacity 0.16s ease;
   }
+
+  /* Modales — sin scale ni translate en cierre; solo fade */
+  .modal-overlay.closing,
+  .gconfirm-overlay.closing,
+  .purge-modal-overlay.closing,
+  .import-diff-overlay.closing,
+  .quick-modal-overlay.closing,
+  .onboarding-overlay.closing,
+  .fb-onboarding-overlay.closing,
+  .avatar-modal.closing,
+  .popup-overlay.closing,
+  .proj-modal-overlay.closing,
+  .status-confirm-overlay.closing,
+  .item-viz-overlay.closing {
+    animation: overlay-out 0.15s ease forwards;
+  }
+
+  .modal-overlay.closing .modal,
+  .gconfirm-overlay.closing .gconfirm-modal,
+  .purge-modal-overlay.closing .purge-modal,
+  .import-diff-overlay.closing .import-diff-modal,
+  .quick-modal-overlay.closing .quick-modal,
+  .onboarding-overlay.closing .onboarding-modal,
+  .fb-onboarding-overlay.closing .fb-onboarding-modal,
+  .avatar-modal.closing .avatar-modal-box,
+  .popup-overlay.closing .popup,
+  .proj-modal-overlay.closing .proj-modal,
+  .status-confirm-overlay.closing .status-confirm-box,
+  .item-viz-overlay.closing .item-viz-panel {
+    animation: none;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
 }
+/* ══ END CSS-05 ══ */
 
 /* AC mobile: toasts full-width anclados al bottom — sin esquina, sin sombra lateral */
 @media (width <= 600px) {
