@@ -8805,6 +8805,40 @@ body.body--focus-mode::after {
   opacity:.4;
 }
 
+/* ── B: sess-row-top / sess-row-bottom — layout de filas en mini-hist ── */
+/* _renderRow emite .sess-row-top y .sess-row-bottom pero no tenían reglas CSS.
+   Sin display:flex el contenido se expande sin límite y desborda el card. */
+.tracker-mini-hist-list .sess-row-top {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  margin-bottom: 2px;
+}
+.tracker-mini-hist-list .sess-row-bottom {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+/* .sess-row-title dentro de mini-hist — truncar en lugar de expandir */
+.tracker-mini-hist-list .sess-row-title {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--text, #111);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+/* Estado activo: .tracker-mini-hist-row.active tiene menor especificidad que
+   .sess-row.active (que aplica --surface2). Elevar con el contexto del panel. */
+.tracker-mini-hist-list .tracker-mini-hist-row.active,
+.tracker-mini-hist-list .sess-row.active {
+  background: var(--accent-subtle, rgb(166 226 46 / 10%));
+  border-left: 2px solid var(--accent);
+}
+
 /* ── Col 1 Vista B ── */
 .tvh-hist-col1-header {
   display:flex;
