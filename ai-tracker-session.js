@@ -2066,22 +2066,7 @@ function openDetail(aiId, sessId) {
   const s = found ? found.sess : null;
   if (!s) return;
   popAIId = aiId; popSessId = sessId;
-  
-  // T-011: Renderizar avatar en popup
-  const popAvatar = document.getElementById('pop-avatar');
-  if (popAvatar) {
-    popAvatar.innerHTML = ai.avatar ? ai.avatar : AVATAR_LOGOS.default;
-  }
-  
-  document.getElementById('pop-title').textContent = s.title;
-  // Restaurar ícono lápiz si fue borrado por edición inline
-  const titleWrap = document.getElementById('pop-title-wrap');
-  if (titleWrap && !titleWrap.querySelector('.pop-edit-icon')) {
-    titleWrap.classList.remove('editing');
-    const icon = document.createElement('span');
-    icon.className = 'pop-edit-icon'; icon.textContent = '✏';
-    titleWrap.appendChild(icon);
-  }
+
   const aiSessAll = getAISessions(aiId);
   const isLastSess = aiSessAll.length > 0 && aiSessAll[aiSessAll.length - 1].id === s.id;
   const showResetField = isLastSess && ai.status === 'available' && !s.resetAt;
@@ -2091,8 +2076,6 @@ function openDetail(aiId, sessId) {
   const quickBadge = s.quickCapture ? `<span class="pop-header-badge quick">⚡ rápida</span>` : '';
   // T-202604-098: badge inReview en popup (solo sesión más reciente)
   const reviewBadge = (s.inReview && isLastSess) ? `<span class="pop-header-badge review">🔍 en revisión</span>` : '';
-  document.getElementById('pop-meta').innerHTML = `<span>${s.date}${s.resetAt ? ' · hasta ' + s.resetAt : ''}</span>${starBadge}${quickBadge}${reviewBadge}`;
-
   // T-087: Sección superior — siempre visible (resumen + pendiente + B-006 reset)
   let topFields = '';
   // T-202604-190: botón "Completar sesión" para sesiones quick
@@ -2211,9 +2194,8 @@ function openDetail(aiId, sessId) {
     midHtml = midFields;
   }
 
-  document.getElementById('pop-fields').innerHTML = topFields + midHtml;
-  // ── Preview panel vs modal ────────────────────────────────────────────
-  const isDesktop = window.innerWidth > 768;
+  // ── Preview panel — desktop único ────────────────────────────────────
+  const isDesktop = true; // DUP-05: mobile eliminado — siempre desktop
   if (isDesktop) {
     // Populate preview panel — render IDs directly here so all edit functions work
     const tab = document.getElementById('tab-tracker');
@@ -2277,14 +2259,9 @@ function openDetail(aiId, sessId) {
     previewInner.classList.remove('hidden'); previewInner.classList.add('d-flex');
     tab.classList.add('preview-open');
     preview.scrollTop = 0;
-  } else {
-    document.getElementById('detail-popup').classList.add('open');
-    const starBtn = document.getElementById('pop-star-btn');
-    if (starBtn) { starBtn.textContent = s.starred ? '⭐' : '☆'; starBtn.classList.toggle('starred', !!s.starred); starBtn.title = s.starred ? 'Quitar destacado' : 'Destacar sesión'; }
   }
 }
 function closePopup() {
-  document.getElementById('detail-popup').classList.remove('open');
   // Close preview panel
   const tab = document.getElementById('tab-tracker');
   const previewEmpty = document.getElementById('tracker-preview-empty');

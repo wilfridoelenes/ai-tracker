@@ -309,18 +309,41 @@ document.addEventListener('click', e => {
 });
 
 // T-202604-009: toggle ⋯ dropdown
+// B — position:fixed para escapar overflow:hidden del header (Nova 2026-05-12)
 function toggleMoreMenu() {
-  const m = document.getElementById('more-menu');
+  const m   = document.getElementById('more-menu');
+  const btn = document.getElementById('more-menu-btn');
   if (!m) return;
-  m.classList.toggle('hidden');
-  // T-202604-295: sync checked state desde localStorage — shell estático en index.html
-  const isOpen = !m.classList.contains('hidden');
-  if (isOpen) {
+
+  const isHidden = m.classList.contains('hidden');
+
+  if (isHidden) {
+    // Anclar coords relativas al viewport — necesario porque .more-menu usa position:fixed
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      m.style.top   = rect.bottom + 6 + 'px';
+      m.style.right = window.innerWidth - rect.right + 'px';
+      m.style.left  = 'auto';
+    }
+    m.classList.remove('hidden');
+
+    // T-202604-295: sync checked state desde localStorage — shell estático en index.html
     const cur = (typeof _templateTrigger === 'function' ? _templateTrigger() : 'session');
     const sesRad = document.getElementById('tmpl-trigger-session');
     const sprRad = document.getElementById('tmpl-trigger-sprint');
     if (sesRad) sesRad.checked = cur === 'session';
     if (sprRad) sprRad.checked = cur === 'sprint';
+
+    // Cerrar al hacer click fuera del menú
+    const _closeOnOutside = (e) => {
+      if (!m.contains(e.target) && e.target !== btn) {
+        m.classList.add('hidden');
+        document.removeEventListener('mousedown', _closeOnOutside);
+      }
+    };
+    setTimeout(() => document.addEventListener('mousedown', _closeOnOutside), 0);
+  } else {
+    m.classList.add('hidden');
   }
 }
 document.querySelectorAll('.modal-overlay,.popup-overlay').forEach(el => {

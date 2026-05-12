@@ -711,6 +711,25 @@ button {
               background 0.15s;
 }
 
+/* B — more-menu sale del header con overflow:hidden via position:fixed.
+   position:absolute no es suficiente — un ancestro con overflow:hidden
+   recorta cualquier descendiente absolute que desborde sus bounds.
+   position:fixed escapa ese contexto de stacking y se posiciona
+   relativo al viewport. JS ancla las coords con getBoundingClientRect. */
+.more-menu-wrap {
+  position: relative;
+}
+
+.more-menu {
+  position: fixed;
+  top: auto; /* sobreescrito por JS via style.top */
+  right: auto; /* sobreescrito por JS via style.right */
+  z-index: 9999;
+  min-width: 220px;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+
 /* ══ END R-202604-066 ══ */
 
 /* ══ R-202604-065: Rediseño header global ══ */
