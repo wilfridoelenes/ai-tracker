@@ -9393,3 +9393,31 @@ body.radar-sb-open
     display:none;
   }
 }
+
+
+/* ══ B-202605-XXX: Worker cards — grid 2 cols en radar sidebar ══ */
+
+/* Cards activas (En sesión / Disponibles) en 2 columnas */
+.rsb-section-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+}
+
+/* En secciones con una sola card — ocupa el ancho completo */
+.rsb-section-body:has(> :only-child) {
+  grid-template-columns: 1fr;
+}
+
+/* Session info: wrap para no reventar el ancho comprimido */
+.rsb-card-session-info {
+  flex-wrap: wrap;
+  gap: 3px 6px;
+}
+
+/* Agotadas: compactas siguen en columna única (ya son one-liners) */
+.rsb-section-body:has(> .rsb-card.exhausted.rsb-compact) {
+  grid-template-columns: 1fr;
+}
+
+/* ══ END B-202605-XXX ══ */
