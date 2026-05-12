@@ -45,6 +45,8 @@
 #tab-tracker.active {
   display: flex;
   flex-direction: column;
+  height: calc(100vh - var(--header-h, 54px));
+  overflow: hidden;
 }
 
 /* Sidebar */
