@@ -7993,21 +7993,18 @@ function renderPulsoDot() {
   // B-202605-522: cálculo de estado ocurre antes de cualquier guard de elemento
   const s = _calcPulsoDotState();
   const labels = { green: 'Ecosistema activo ✓', yellow: '⚠ Actividad baja — algún proyecto inactivo 4-7d', red: '⛔ Alerta — proyectos parados o bloqueantes activos' };
-  // Footer dot — guard independiente: si no existe, solo el footer no se actualiza
+  // DUP-04: punto de entrada consolidado en footer — #gf-pulso es el elemento interactivo
   const dot = document.getElementById('pulso-dot');
+  const gfPulso = document.getElementById('gf-pulso');
+  // B-202605-521: sin datos → neutral (gris); con datos → color del ecosistema
+  const color = s.hasData ? s.dotColor : 'neutral';
+  const label = s.hasData ? (labels[s.dotColor] || '') : 'Sin datos';
   if (dot) {
-    dot.className = `pulso-dot pulso-dot--${s.dotColor}`;
-    dot.title = labels[s.dotColor] || '';
+    dot.className = `pulso-dot pulso-dot--${color}`;
   }
-  // R-202605-169: Header dot — guard independiente del footer
-  const hdot = document.getElementById('header-pulso-dot');
-  if (hdot) {
-    // B-202605-521: sin datos → neutral (gris); con datos → color del ecosistema
-    const headerColor = s.hasData ? s.dotColor : 'neutral';
-    const label = s.hasData ? (labels[s.dotColor] || '') : 'Sin datos';
-    hdot.className = `pulso-dot pulso-dot--${headerColor}`;
-    hdot.setAttribute('aria-label', label);
-    hdot.title = label;
+  if (gfPulso) {
+    gfPulso.setAttribute('aria-label', label);
+    gfPulso.title = label;
   }
   try { localStorage.setItem(_PULSO_KEY, JSON.stringify({ color: s.dotColor, ts: Date.now() })); } catch(e) {}
 }
