@@ -1171,14 +1171,9 @@
   </div>
 </div>
 
-<!-- promote-modal-overlay (P → T/R) -->
+<!-- promote-modal-overlay (P → T/R · T → R) — DUP-02: shell unificado, contenido inyectado por JS según flujo -->
 <div class="promote-modal-overlay" id="promote-modal-overlay">
   <div class="promote-modal" id="promote-modal-body"></div>
-</div>
-
-<!-- promote-t-modal-overlay (T → R) -->
-<div class="promote-modal-overlay" id="promote-t-modal-overlay">
-  <div class="promote-modal" id="promote-t-modal-body"></div>
 </div>
 
 <!-- merge-diff-overlay — R-202604-071: rediseño two-column -->
@@ -1779,7 +1774,22 @@ function _validateResetBacklogInput(el) {
 
 <!-- T-202604-423: estilos migrados a ai-tracker-extra.css -->
 
-<!-- DUP-01: sprint-retro-panel-overlay eliminado — shell huérfano sin JS implementado. Flujo retro cubre #sprint-retro-overlay -->
+<!-- T-202604-417: Panel de retrospectiva de sprint cerrado -->
+<div class="sprint-retro-panel-overlay" id="sprint-retro-panel-overlay">
+  <div class="sprint-retro-panel">
+    <div class="srp-header">
+      <div class="srp-title-wrap">
+        <span class="srp-icon">📋</span>
+        <span class="srp-title" id="srp-title"></span>
+      </div>
+      <div class="srp-header-actions">
+        <button class="srp-export-btn" id="srp-export-btn">Exportar MD</button>
+        <button class="srp-close-btn" onclick="closeRetroPanel()" title="Cerrar">✕</button>
+      </div>
+    </div>
+    <div class="srp-body" id="srp-body"></div>
+  </div>
+</div>
 <!-- T-202605-USR: user chip styles -->
 
 

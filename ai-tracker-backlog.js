@@ -4476,9 +4476,10 @@ function _promoteTtoR(code) {
   if (item.status === 'done' || item.status === 'descartado') return;
 
   // R-202604-047: shell estático en index.html — inject content + classList
-  const overlay = document.getElementById('promote-t-modal-overlay');
+  // DUP-02: usa shell unificado #promote-modal-overlay
+  const overlay = document.getElementById('promote-modal-overlay');
   if (!overlay) return;
-  const body = document.getElementById('promote-t-modal-body');
+  const body = document.getElementById('promote-modal-body');
   if (body) {
     body.innerHTML = `
       <div class="promote-modal-title">⬆ Promover Ticket a Requerimiento</div>
@@ -4488,7 +4489,7 @@ function _promoteTtoR(code) {
         El T origen quedará <strong>descartado</strong> con referencia al R nuevo.
       </div>
       <div class="promote-modal-actions">
-        <button onclick="document.getElementById('promote-t-modal-overlay').classList.remove('open')"
+        <button onclick="document.getElementById('promote-modal-overlay').classList.remove('open')"
           class="btn-ghost">Cancelar</button>
         <button onclick="_promoteTtoRConfirm('${esc(code)}')" class="btn-primary">⬆ Promover</button>
       </div>`;
@@ -4537,7 +4538,7 @@ function _promoteTtoRConfirm(originCode) {
   saveBacklog();
   _setBacklogModified();
 
-  const overlay = document.getElementById('promote-t-modal-overlay');
+  const overlay = document.getElementById('promote-modal-overlay'); // DUP-02: shell unificado
   if (overlay) overlay.classList.remove('open');
 
   renderBacklogList();
