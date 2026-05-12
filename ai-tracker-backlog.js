@@ -2675,13 +2675,29 @@ function renderBacklogList() {
   // Guard: backlog requiere proyecto activo
   if (!_getActiveProjectFilter()) {
     const hasProjects = (state.projects || []).length > 0;
-    listEl.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">${hasProjects ? '📁' : '🗂'}</div>
-        <div class="empty-state-title">${hasProjects ? 'Selecciona un proyecto' : 'Sin proyectos'}</div>
-        <div class="empty-state-hint">${hasProjects ? 'El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.' : 'El backlog requiere al menos un proyecto. Crea el primero para empezar a organizar tu trabajo.'}</div>
-        <button class="empty-state-btn" onclick="${hasProjects ? "openProjPanel()" : "openProjModal(false)"}">${hasProjects ? '📁 Seleccionar proyecto' : '＋ Crear proyecto'}</button>
-      </div>`;
+    if (!hasProjects) {
+      // R-202605-178: global empty — ningún proyecto creado → secuencia de primeros pasos
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🗂</div>
+          <div class="empty-state-title">Crea tu primer proyecto para empezar</div>
+          <div class="empty-state-hint">Sigue estos pasos para tener tu primer ítem en el backlog:</div>
+          <ol class="empty-state-steps">
+            <li><strong>Crea un proyecto</strong> en el tab Proyectos</li>
+            <li><strong>Abre un sprint</strong> desde el Backlog</li>
+            <li><strong>Registra tu primera sesión</strong> en el Tracker</li>
+          </ol>
+          <button class="empty-state-btn" onclick="if(typeof switchTab==='function')switchTab('proyectos')">Ir a Proyectos</button>
+        </div>`;
+    } else {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📁</div>
+          <div class="empty-state-title">Selecciona un proyecto</div>
+          <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
+          <button class="empty-state-btn" onclick="openProjPanel()">📁 Seleccionar proyecto</button>
+        </div>`;
+    }
     _skelHide(listEl);
     return;
   }
@@ -2694,29 +2710,34 @@ function renderBacklogList() {
     if (_activeFilter && !_hasStoredData) {
       // Proyecto seleccionado pero sin datos en localStorage
       listEl.innerHTML = `
-      <div class=\"empty-state\">
-        <div class=\"empty-state-icon\">📂</div>
-        <div class=\"empty-state-title\">Sin ítems — selecciona un proyecto con datos</div>
-        <div class=\"empty-state-hint\">El proyecto activo no tiene backlog guardado. Importa un Backlog.md o selecciona otro proyecto.</div>
-        <div class=\"es-cta-row\">
-          <button class=\"empty-state-btn\" onclick=\"document.getElementById('backlog-file-input').click()\">Importar backlog</button>
-          <button class=\"empty-state-btn\" onclick=\"openProjPanel()\">Cambiar proyecto</button>
-        </div>
+      <div class="empty-state">
+        <div class="empty-state-icon">📂</div>
+        <div class="empty-state-title">Este proyecto no tiene ítems aún</div>
+        <div class="empty-state-hint">Selecciona otro proyecto o empieza a registrar sesiones para ver ítems aquí.</div>
+        <button class="empty-state-btn" onclick="openProjPanel()">Cambiar proyecto</button>
       </div>`;
       _skelHide(listEl);
       return;
     }
-    // R-202605-166: empty state unificado — CTA Importar + escape Crear ítem
-    listEl.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">📋</div>
-        <div class="empty-state-title">Backlog vacío</div>
-        <div class="empty-state-hint">Importa tu Backlog.md o crea tu primer ítem para empezar.</div>
-        <div class="es-cta-row">
-          <button class="empty-state-btn" onclick="document.getElementById('backlog-file-input').click()">Importar backlog</button>
-        </div>
-        <div class="es-escape-link">¿Sin archivo? Crea tu primer ítem →<button class="es-escape-btn" onclick="if(typeof openItemEditor==='function')openItemEditor(null)">Crear ítem</button></div>
-      </div>`;
+    // R-202605-178: backlog vacío — diferenciar sprint activo vs sin sprint
+    const _activeSprint178 = _getActiveSprint();
+    if (_activeSprint178) {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📋</div>
+          <div class="empty-state-title">Registra tu primera sesión para ver ítems aquí</div>
+          <div class="empty-state-hint">Tienes un sprint activo. Ve al Tracker, abre una sesión con tu IA y guarda el resultado.</div>
+          <button class="empty-state-btn" onclick="if(typeof switchTab==='function')switchTab('tracker')">Ir al Tracker</button>
+        </div>`;
+    } else {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📅</div>
+          <div class="empty-state-title">Abre un sprint para empezar</div>
+          <div class="empty-state-hint">El backlog necesita un sprint activo. Abre uno para organizar y ejecutar tu trabajo.</div>
+          <button class="empty-state-btn" onclick="openNewSprintInline()">＋ Abrir sprint</button>
+        </div>`;
+    }
     _skelHide(listEl);
     return;
   }

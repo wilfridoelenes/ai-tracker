@@ -3329,6 +3329,32 @@ function renderGlobalRadarSidebar() {
       sessionInfo = `<div class="rsb-interrupted-badge">⚡ Sesión en curso</div>`;
     }
 
+    // R-202605-177: chip de ítem activo — primer código de trackerRefs de la última sesión
+    let activeItemChip = '';
+    try {
+      const lastSess = (typeof getLastAISession === 'function') ? getLastAISession(ai.id) : null;
+      if (lastSess && lastSess.trackerRefs && lastSess.trackerRefs.length > 0) {
+        const code = lastSess.trackerRefs[0];
+        // Verificar si el código existe en el backlog — si no, mostrar como texto plano sin link
+        let codeExists = false;
+        try {
+          const tracker = (typeof getActiveTracker === 'function') ? getActiveTracker() : null;
+          if (tracker && tracker.items) {
+            codeExists = tracker.items.some(i => i.code === code);
+          }
+        } catch (_e) {}
+        if (codeExists) {
+          activeItemChip = `<div class="rsb-card-active-item">
+            <button class="rsb-active-item-btn" onclick="event.stopPropagation();typeof navigateToItem==='function'&&navigateToItem('${esc(code)}')" title="Ver ítem ${esc(code)}">${esc(code)}</button>
+          </div>`;
+        } else if (code) {
+          activeItemChip = `<div class="rsb-card-active-item">
+            <span class="rsb-active-item-code">${esc(code)}</span>
+          </div>`;
+        }
+      }
+    } catch (_e) {}
+
     // Botón CKPT directo — un click, sin abrir detalle
     const ckptBtn = `<button class="rsb-ckpt-direct-btn" onclick="event.stopPropagation();showCheckpointPanel && showCheckpointPanel('${ai.id}'); navigateToCard('${ai.id}')">
       ⬡ checkpoint
@@ -3340,6 +3366,7 @@ function renderGlobalRadarSidebar() {
         <div class="rsb-card-meta">${badge}${quickBtn}</div>
       </div>
       ${pill ? `<div class="rsb-card-proj">${pill}</div>` : ''}
+      ${activeItemChip}
       ${sessionInfo}
       ${ckptBtn}
     </div>`;
@@ -4732,15 +4759,12 @@ function render() {
 
   if (!state.ais.length) {
     if (grid) grid.innerHTML = '';
-    // R-202605-007 AC: sin workers — CTA primario + secundario en fila
+    // R-202605-178 AC: sin workers — único CTA
     if (emptyEl) { emptyEl.classList.remove('hidden'); emptyEl.classList.add('visible'); emptyEl.innerHTML = `
       <div class="empty-state-icon">🤖</div>
-      <div class="empty-state-title">Sin Workers registrados</div>
-      <div class="empty-state-hint">Registra las IAs que usas para hacer seguimiento de cada sesión de trabajo.</div>
-      <div class="es-cta-row">
-        <button class="empty-state-btn" onclick="openAddAI()">＋ Nuevo Worker</button>
-        <button class="btn-ghost" onclick="if(typeof openProjModal==='function')openProjModal(false)">Nuevo Proyecto</button>
-      </div>`; }
+      <div class="empty-state-title">Agrega tu primer Worker</div>
+      <div class="empty-state-hint">Los Workers son las IAs que usas. Empieza por crear uno para registrar tus sesiones.</div>
+      <button class="empty-state-btn" onclick="openAddAI()">＋ Nuevo Worker</button>`; }
     updateStats(); renderStatusBar(); renderSetupChecklist(); return;
   }
 

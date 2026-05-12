@@ -3609,19 +3609,15 @@ function renderAnalytics() {
   const currSess = _sessInRange(allSess, bounds.current);
   const prevSess = _sessInRange(allSess, bounds.previous);
 
-  // T-202604-281: guard estado vacío — sin sesiones registradas
+  // R-202605-178: guard estado vacío — sin sesiones registradas
   if (!allSess.length) {
     container.classList.remove('is-loading');
     container.innerHTML = `
       <div class="empty-state empty-state--mt">
         <div class="empty-state-icon">📊</div>
-        <div class="empty-state-title">Sin datos todavía</div>
-        <div class="empty-state-hint">Analytics se construye a partir de tus sesiones registradas. Para empezar:</div>
-        <ol class="empty-state-steps">
-          <li>Crea una IA en el tab <strong>Tracker</strong></li>
-          <li>Crea un proyecto en el tab <strong>Proyectos</strong></li>
-          <li>Registra tu primera sesión pegando un CHECKPOINT</li>
-        </ol>
+        <div class="empty-state-title">Las métricas aparecen cuando tengas sesiones registradas</div>
+        <div class="empty-state-hint">Pega tu primer CHECKPOINT en el tab Tracker para empezar.</div>
+        <button class="empty-state-btn" onclick="if(typeof switchTab==='function')switchTab('tracker')">Ir al Tracker</button>
       </div>`;
     return;
   }

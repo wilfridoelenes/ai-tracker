@@ -1,0 +1,17 @@
+{
+  "name": "locus-css",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint:css": "stylelint \"locus-*.css\"",
+    "lint:css:fix": "stylelint \"locus-*.css\" --fix"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "stylelint": "^17.11.0"
+  }
+}
