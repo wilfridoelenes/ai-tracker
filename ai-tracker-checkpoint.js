@@ -6385,53 +6385,10 @@ function closeShortcuts(e) {
   if (overlay) overlay.classList.add('hidden');
 }
 
-// Referencia rápida Cmd+? — lista todos los atajos activos
-function openShortcutsRef() {
-  const overlay = document.getElementById('shortcuts-ref-overlay');
-  const body = document.getElementById('shortcuts-ref-body');
-  if (!overlay || !body) return;
-
-  const overrides = _shortcutsLoad();
-  const groups = {};
-  _SHORTCUT_DEFS.forEach(def => {
-    if (!groups[def.group]) groups[def.group] = [];
-    groups[def.group].push(def);
-  });
-
-  body.innerHTML = Object.entries(groups).map(([group, defs]) => {
-    const rows = defs.map(def => {
-      const active = overrides[def.id] || def.default;
-      const display = def.chord
-        ? active.replace('+', ' → ').toUpperCase()
-        : active.toUpperCase();
-      return `<div class="scr-row">
-        <kbd class="scr-key">${display}</kbd>
-        <span class="scr-label">${def.label}</span>
-      </div>`;
-    }).join('');
-    return `<div class="scr-group">
-      <div class="scr-group-label">${group}</div>
-      ${rows}
-    </div>`;
-  }).join('') +
-  `<div class="scr-group scr-group--fixed">
-    <div class="scr-group-label">Sistema (no configurables)</div>
-    <div class="scr-row"><kbd class="scr-key">ESC</kbd><span class="scr-label">Cerrar en cascada / salir modo protagonista</span></div>
-    <div class="scr-row"><kbd class="scr-key">⌘K</kbd><span class="scr-label">Command palette</span></div>
-    <div class="scr-row"><kbd class="scr-key">⌘?</kbd><span class="scr-label">Esta referencia de atajos</span></div>
-    <div class="scr-row"><kbd class="scr-key">⌘F</kbd><span class="scr-label">Búsqueda global</span></div>
-    <div class="scr-row"><kbd class="scr-key">⇧N</kbd><span class="scr-label">Nuevo ítem</span></div>
-    <div class="scr-row"><kbd class="scr-key">ENTER</kbd><span class="scr-label">Abrir detalle del ítem seleccionado</span></div>
-  </div>`;
-
-  overlay.classList.remove('hidden');
-}
-
-function closeShortcutsRef(e) {
-  if (e && e.target !== document.getElementById('shortcuts-ref-overlay')) return;
-  const overlay = document.getElementById('shortcuts-ref-overlay');
-  if (overlay) overlay.classList.add('hidden');
-}
+// DUP-03: openShortcutsRef y closeShortcutsRef redirigen a #shortcuts-overlay
+// Todos los triggers (⌘?, command palette, ESC handler) siguen funcionando sin cambios
+function openShortcutsRef() { openShortcuts(); }
+function closeShortcutsRef(e) { closeShortcuts(e); }
 
 // ── Integración con el handler global de keydown ─────────────────────────
 // Helpers para resolver teclas activas desde el handler existente

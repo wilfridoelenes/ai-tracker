@@ -1171,9 +1171,14 @@
   </div>
 </div>
 
-<!-- promote-modal-overlay (P → T/R · T → R) — DUP-02: shell unificado, contenido inyectado por JS según flujo -->
+<!-- promote-modal-overlay (P → T/R) -->
 <div class="promote-modal-overlay" id="promote-modal-overlay">
   <div class="promote-modal" id="promote-modal-body"></div>
+</div>
+
+<!-- promote-t-modal-overlay (T → R) -->
+<div class="promote-modal-overlay" id="promote-t-modal-overlay">
+  <div class="promote-modal" id="promote-t-modal-body"></div>
 </div>
 
 <!-- merge-diff-overlay — R-202604-071: rediseño two-column -->
@@ -1400,16 +1405,7 @@
   </div>
 </div>
 
-<!-- T-202605-442: Referencia rápida Cmd+? -->
-<div class="shortcuts-ref-overlay hidden" id="shortcuts-ref-overlay" onclick="closeShortcutsRef(event)">
-  <div class="shortcuts-ref-panel" id="shortcuts-ref-panel">
-    <div class="shortcuts-ref-header">
-      <span class="shortcuts-ref-title">Atajos de teclado</span>
-      <button class="shortcuts-ref-close" onclick="closeShortcutsRef()">✕</button>
-    </div>
-    <div class="shortcuts-ref-body" id="shortcuts-ref-body"></div>
-  </div>
-</div>
+<!-- DUP-03: shortcuts-ref-overlay eliminado — ⌘? redirige a #shortcuts-overlay (openShortcuts) -->
 <!-- END T-202605-442 -->
 
 <!-- T-202604-418: Command Palette Cmd+K -->
