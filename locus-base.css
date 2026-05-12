@@ -230,7 +230,9 @@
 
 /* ── GLOBAL TYPOGRAPHY ── */
 
-html { font-size: var(--text-base); }
+html {
+  font-size: var(--text-base);
+}
 
 body {
   font-family: var(--font-sans);
