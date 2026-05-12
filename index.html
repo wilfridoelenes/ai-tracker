@@ -77,9 +77,6 @@
     <div class="header-actions">
       <!-- Orden AC: búsqueda (en header-search) · nota rápida · menú ⋯ -->
 
-      <!-- R-202605-169: Pulso dot en header — estado rápido del ecosistema -->
-      <button class="pulso-dot pulso-dot--neutral" id="header-pulso-dot" onclick="openPulsoPanel()" aria-label="Sin datos" title="Sin datos"></button>
-
       <!-- R-202605-170: Worker activo chip — nombre y cronómetro visible sin abrir sidebar -->
       <button class="header-worker-chip hidden" id="header-active-worker" onclick="_hwcClick()" title="Worker en sesión">
         <span class="hwc-dot session-timer-dot--active"></span>
@@ -1759,7 +1756,7 @@ function _validateResetBacklogInput(el) {
   <span id="gf-total" class="gf-total gf-hidden"></span>
   <span id="gf-done" class="gf-done gf-hidden"></span>
   <span id="gf-ckpt" class="gf-ckpt gf-hidden"></span>
-  <span id="gf-pulso" class="gf-pulso gf-hidden" onclick="openPulsoPanel()" title="Pulso del Ecosistema"><span class="pulso-dot pulso-dot--green" id="pulso-dot"></span></span>
+  <span id="gf-pulso" class="gf-pulso gf-hidden" role="button" tabindex="0" onclick="openPulsoPanel()" onkeydown="if(event.key==='Enter'||event.key===' ')openPulsoPanel()" aria-label="Sin datos" title="Pulso del Ecosistema"><span class="pulso-dot pulso-dot--neutral" id="pulso-dot"></span></span>
   <span id="gf-fecha" class="gf-fecha gf-hidden"></span>
   <span id="gf-sync" class="gf-sync gf-hidden"></span>
 </footer>

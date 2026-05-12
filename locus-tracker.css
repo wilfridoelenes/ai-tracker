@@ -8438,71 +8438,7 @@ body.body--focus-mode::after {
 
 /* END T-202605-513 */
 
-/* ══ R-202605-169: Pulso dot en header — estado rápido sin scroll ══ */
-#header-pulso-dot {
-  /* hit area 24×24 */
-  width: 24px;
-  height: 24px;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: transparent;
-  box-shadow: none;
-  transition: background 0.15s;
-  flex-shrink: 0;
-}
-
-#header-pulso-dot:hover {
-  background: var(--surface2);
-}
-
-/* Dot visual 8px vía ::after */
-#header-pulso-dot::after {
-  content: '';
-  display: block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--text3, #888);
-  transition: transform 0.15s ease, background 0.3s ease;
-}
-
-#header-pulso-dot:hover::after {
-  transform: scale(1.25);
-}
-#header-pulso-dot.pulso-dot--green::after {
-  background: var(--green);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 20%, transparent);
-}
-#header-pulso-dot.pulso-dot--yellow::after {
-  background: #e8a832;
-  box-shadow: 0 0 0 2px color-mix(in srgb, #e8a832 20%, transparent);
-}
-#header-pulso-dot.pulso-dot--red::after {
-  background: var(--red);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--red) 20%, transparent);
-}
-
-/* Cancelar animación pulso heredada — fuera de scope en header */
-#header-pulso-dot.pulso-dot--yellow,
-#header-pulso-dot.pulso-dot--red {
-  animation: none;
-}
-
-/* Cancelar cualquier background/box-shadow de pulso-dot--* aplicado al botón directamente */
-#header-pulso-dot.pulso-dot--green,
-#header-pulso-dot.pulso-dot--yellow,
-#header-pulso-dot.pulso-dot--red,
-#header-pulso-dot.pulso-dot--neutral {
-  background: transparent;
-  box-shadow: none;
-}
-
-/* END R-202605-169 */
+/* R-202605-169: Pulso dot migrado a footer — ver #gf-pulso en locus-proyectos.css */
 
 /* R-202605-170: Worker activo chip en header — nombre y cronómetro */
 #header-active-worker {
