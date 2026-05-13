@@ -1,6 +1,6 @@
 /* locus-tracker.css */
 
-/* Versión: 2.0 | Selectores consolidados — T3 */
+/* Versión: 2.1 | Última actualización: 2026-05-13 | Refactor: @media consolidados, sintaxis normalizada, regla vacía eliminada */
 
 /* ══ T-011: AVATARS ══ */
 
@@ -2150,7 +2150,6 @@
 }
 
 /* T-202604-004: resumen largo scrollable */
-.popup-section.summary .popup-section-val { }
 
 .popup-section-val.mono {
   font-family: var(--mono);
@@ -2162,7 +2161,7 @@
   color: var(--amber);
 }
 
-.popup-section.files 
+.popup-section.files
 .popup-section.files .popup-section-val {
   color: var(--accent);
   opacity: 0.75;
@@ -4767,7 +4766,7 @@ body.ai-sb-active {
 
 :root[data-theme="light"]
 
-:root[data-theme="dark"] 
+:root[data-theme="dark"]
 
 /* Colapsado: solo strip visible de 14px en el borde derecho */
 #global-radar-sidebar.collapsed {
@@ -8478,7 +8477,7 @@ textarea[id^="ta-"]:focus {
   color: #1a1a2e;
 }
 
-[data-theme="light"] 
+[data-theme="light"]
 
 [data-theme="light"] .cp-item:hover,
 [data-theme="light"] .cp-item-selected {
@@ -9652,11 +9651,9 @@ body.radar-sb-open .tracker-sidebar {
   }
 }
 
-  @media (width <= 600px) {
-    .card-rename-hint { opacity: 0.5; }
-  }
-
 @media (width <= 600px) {
+  .card-rename-hint { opacity: 0.5; }
+
   #ai-status-bar {
     padding: 0 8px;
   }
@@ -9664,12 +9661,7 @@ body.radar-sb-open .tracker-sidebar {
   .ai-sb-pill-name {
     max-width: 72px;
   }
-}
 
-/* ══ END T-202604-216 ══ */
-
-/* ══ T-202604-218: Sidebar → strip horizontal en mobile (<600px) ══ */
-@media (width <= 600px) {
   /* Contenedor principal: columna — sidebar arriba, detail abajo */
 
   /* Sidebar: strip horizontal scrollable */
@@ -9754,10 +9746,6 @@ body.radar-sb-open .tracker-sidebar {
     padding: 0;
   }
 
-}
-
-/* Mobile (<600px): ocultar barra de progreso para no comprimir el header */
-@media (width <= 600px) {
   .tvh-sprint-pill .tgh-sprint-bar-wrap {
     display: none;
   }
@@ -9765,13 +9753,7 @@ body.radar-sb-open .tracker-sidebar {
   .tvh-sprint-pill .tgh-sprint-name {
     max-width: 80px;
   }
-}
 
-/* copy-item-btn — disponible (utilidad legítima en archivo) */
-
-/* ── Mobile ──────────────────────────────────────────────────────────── */
-
-@media (width <= 600px) {
   .arch-historico-tabs {
     margin-left: 0;
     width: 100%;
@@ -9787,9 +9769,7 @@ body.radar-sb-open .tracker-sidebar {
   .arch-se-name {
     display: none;
   }
-}
 
-@media (width <= 600px) {
   .arch-row-code {
     display: none;
   }
@@ -9797,9 +9777,7 @@ body.radar-sb-open .tracker-sidebar {
   .arch-row-effort {
     display: none;
   }
-}
 
-@media (width <= 600px) {
   .acf-legend {
     gap: 10px;
   }
@@ -9807,10 +9785,7 @@ body.radar-sb-open .tracker-sidebar {
   .acf-legend-item {
     font-size: var(--text-xs);
   }
-}
 
-/* Mobile (<600px): ocultar nombre y tiempo — solo dot */
-@media (width <= 600px) {
   .hwc-name,
   .hwc-time {
     display: none;
@@ -9820,9 +9795,7 @@ body.radar-sb-open .tracker-sidebar {
     padding: 3px 5px;
     max-width: unset;
   }
-}
 
-@media (width <= 600px) {
   .user-chip-name {
     display: none;
   }
@@ -9830,7 +9803,40 @@ body.radar-sb-open .tracker-sidebar {
   .user-chip {
     padding: 3px 5px;
   }
+
+  .tracker-view-toggle {
+    display:flex;
+  }
+
+  .tvh-proj-select {
+    display:none;
+  }
+
+  .tracker-view--historial .tvh-hist-col1 {
+    display:flex;
+  }
+
+  .tracker-view--historial .tracker-col--hist {
+    display:none;
+  }
 }
+
+
+/* ══ END T-202604-216 ══ */
+
+/* ══ T-202604-218: Sidebar → strip horizontal en mobile (<600px) ══ */
+
+
+/* Mobile (<600px): ocultar barra de progreso para no comprimir el header */
+
+
+/* copy-item-btn — disponible (utilidad legítima en archivo) */
+
+/* ── Mobile ──────────────────────────────────────────────────────────── */
+
+
+/* Mobile (<600px): ocultar nombre y tiempo — solo dot */
+
 
 /* T-202604-320: historial en grid cuando viewport lo permite */
 @media (width >= 900px) {
@@ -9871,10 +9877,7 @@ body.radar-sb-open .tracker-sidebar {
     width: 100vw;
     right: -100vw;
   }
-}
 
-/* Mobile */
-@media (width <= 560px) {
   #cp-overlay {
     padding-top: 40px;
     align-items: flex-start;
@@ -9893,6 +9896,9 @@ body.radar-sb-open .tracker-sidebar {
     display: none;
   }
 }
+
+/* Mobile */
+
 
 /* ── Mobile < 768px — sidebar oculta ── */
 @media (width <= 768px) {
@@ -9988,23 +9994,6 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 /* ── Mobile (<600px) ── */
-@media(width <=600px){
-  .tracker-view-toggle {
-    display:flex;
-  }
-
-  .tvh-proj-select {
-    display:none;
-  }
-
-  .tracker-view--historial .tvh-hist-col1 {
-    display:flex;
-  }
-
-  .tracker-view--historial .tracker-col--hist {
-    display:none;
-  }
-}
 
 
 /* ══ B-202605-XXX: Worker cards — grid 2 cols en radar sidebar ══ */
