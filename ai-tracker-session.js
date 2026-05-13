@@ -1240,6 +1240,7 @@ function _showProjRequiredInPanel(id, parsed, horaResult) {
   overlay.classList.add('open', 'item-viz--flex');
   // [pendiente-ID]: mover foco al overlay para lectores de pantalla
   overlay.focus();
+}
 
 function confirmSave(id) {
   saveSession(id);
