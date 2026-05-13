@@ -8253,6 +8253,8 @@ function _trackerSelectSess(sessId, aiId) {
   document.querySelectorAll('.tracker-hist-row').forEach(row => {
     row.classList.toggle('active', row.dataset.sessId === sessId);
   });
+  // abrir preview en col 3
+  if (typeof openDetail === 'function') openDetail(aiId, sessId);
 }
 
 // ── T-202604-372: Drag & drop sesión → textarea col 1 ──
