@@ -2246,7 +2246,7 @@ function openDetail(aiId, sessId) {
           <div class="pop-editable pop-editable--mt" id="pop-title-wrap" onclick="startPopupEdit('title')" title="Editar título">
             <span class="popup-title" id="pop-title">${esc(s.title)}</span><span class="pop-edit-icon">✏</span>
           </div>
-          <div class="popup-date" id="pop-meta"><span>${s.date}${s.resetAt ? ' · hasta ' + s.resetAt : ''}</span>${s.starred ? '<span class="pop-header-badge starred">⭐ destacada</span>' : ''}${s.quickCapture ? '<span class="pop-header-badge quick">⚡ rápida</span>' : ''}${(s.inReview && isLastSess) ? '<span class="pop-header-badge review">🔍 en revisión</span>' : ''}</div>
+          <div class="popup-date" id="pop-meta"><span>${esc(ai.name)} · ${s.date}${s.resetAt ? ' · hasta ' + s.resetAt : ''}</span>${s.starred ? '<span class="pop-header-badge starred">⭐ destacada</span>' : ''}${s.quickCapture ? '<span class="pop-header-badge quick">⚡ rápida</span>' : ''}${(s.inReview && isLastSess) ? '<span class="pop-header-badge review">🔍 en revisión</span>' : ''}</div>
         </div>
       </div>`;
 
