@@ -5130,7 +5130,7 @@ function buildCard(ai) {
     return `<div class="sess-row${extraCls}" data-sess-id="${s.id}" onclick="openDetail('${ai.id}','${s.id}')">
       <div class="sess-row-top">
         <div class="sess-row-title" title="${esc(s.title)}">${esc(s.title)}</div>
-        <div class="sess-row-date" title="${esc(s.date || s.dateShort || '')}">${relDate(s.date) || s.dateShort || ''}</div>
+        <div class="sess-row-date" title="${esc(s.date || s.dateShort || '')}">${(typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || '')}</div>
       </div>
       <div class="sess-row-bottom">
         ${summaryHtml}
