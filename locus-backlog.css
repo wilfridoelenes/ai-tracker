@@ -394,7 +394,7 @@
 }
 
 .htmlmap-empty-icon {
-  font-size: 2.5rem;
+  font-size: var(--text-display-xl);
   margin-bottom: 0.75rem;
 }
 
@@ -745,7 +745,7 @@
 }
 
 .context-placeholder-icon {
-  font-size: 3rem;
+  font-size: var(--text-display-2xl);
   margin-bottom: 1rem;
 }
 
@@ -949,13 +949,13 @@
 .stat-mini-track {
   height: 5px;
   background: var(--surface3);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .stat-mini-fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   background: var(--green,var(--green));
   transition: width 0.3s;
 }
@@ -2969,14 +2969,14 @@
   width: 100px;
   height: 6px;
   background: var(--surface3);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .proj-ai-rank-bar {
   height: 100%;
   background: var(--accent);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transition: width 0.3s;
 }
 
@@ -3577,7 +3577,7 @@
   width: 64px;
   height: 3px;
   background: var(--surface3);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -3585,7 +3585,7 @@
   height: 100%;
   width: var(--sbar-w, 0%);
   background: var(--accent);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transition: width 0.3s var(--ease-out);
 }
 
@@ -3728,14 +3728,14 @@
   width: 48px;
   height: 3px;
   background: var(--surface3);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
 .bl-sprint-option-bar-fill {
   height: 100%;
   background: var(--accent);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
 }
 
 .bl-sprint-option-pct {
@@ -3815,7 +3815,7 @@
   font-size: var(--text-xs);
   font-family: var(--font-mono);
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   margin-left: auto;
 }
 
@@ -5529,7 +5529,7 @@
 .pls-vel-bar-wrap {
   height: 6px;
   background: var(--surface2);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
 }
 
@@ -5537,7 +5537,7 @@
   height: 100%;
   width: var(--pls-vel-fill, 0%);
   background: var(--pls-vel-color, var(--blue));
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   transition: width 0.4s var(--ease-out);
 }
 
@@ -6048,7 +6048,7 @@
 .ctr-empty-hint code {
   font-family: var(--font-mono, monospace);
   background: var(--bg2);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   padding: 1px 4px;
   font-size: var(--text-xs);
 }
@@ -6149,7 +6149,7 @@
   font-family: var(--font-mono, monospace);
   color: var(--text2);
   background: var(--bg);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   padding: 4px 8px;
   overflow-x: auto;
   white-space: pre;
@@ -7294,7 +7294,7 @@
 .cscard-ref-pill {
   font-size: var(--text-2xs);
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font-weight: 600;
   letter-spacing: 0.02em;
   background: var(--bg3, rgb(255 255 255 / 6%));

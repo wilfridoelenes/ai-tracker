@@ -241,7 +241,7 @@
 
   <div class="tracker-3col" id="tracker-3col">
 
-    <!-- Columna 1: card principal (textarea + parse preview) -->
+    <!-- Columna 1: lista de sesiones -->
     <div class="tracker-col tracker-col--card" id="tracker-col-card">
 
       <div class="tvh-hist-col1" id="tvh-hist-col1">
@@ -261,49 +261,62 @@
         </div>
         <div class="tvh-hist-col1-body" id="tvh-hist-col1-body">
           <div class="tracker-hist-list" id="tracker-hist-list">
-            <div class="tracker-hist-empty">
-              <span class="tracker-hist-empty-icon">📋</span>
-              <span>Sin sesiones registradas</span>
+            <div class="tracker-sessions-empty">
+              <div class="tracker-sessions-empty-icon">📋</div>
+              <div class="tracker-sessions-empty-msg">Sin sesiones registradas</div>
+              <div class="tracker-sessions-empty-hint">Pega un CHECKPOINT en el panel derecho para registrar tu primera sesión.</div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- B-258: banner de sesión sugerida eliminado — información inline en buildCard() -->
-
-      <div class="tracker-detail tracker-detail--full" id="tracker-detail">
-        <div class="tracker-detail-empty" id="tracker-detail-empty">
-          <div class="tracker-detail-empty-icon">→</div>
-          <div class="tracker-detail-empty-text">Selecciona un Worker</div>
-          <div class="tracker-detail-empty-hint">Elige un Worker del panel derecho para abrir su tarjeta de sesión.</div>
-        </div>
-        <div id="tracker-grid-header"></div>
-        <div id="grid"></div>
-        <div class="log-card" id="log-card"></div>
-      </div>
     </div>
 
-    <div class="tracker-col tracker-col--hist" id="tracker-col-hist">
+    <!-- Columna 2: input (ingesta de CHECKPOINT) + idle (card de sesión activa) -->
+    <!-- IDs legacy tracker-col-hist preservado para backward compat con JS -->
+    <div class="tracker-col tracker-col--hist tracker-col--input is-active" id="tracker-col-hist">
 
-      <!-- Panel A: Mini-historial de la IA seleccionada — visible en modo Por IA -->
-      <div class="tracker-mini-hist-panel" id="tracker-mini-hist-panel">
-        <div class="tracker-mini-hist-header">
-          <span class="tracker-mini-hist-title" id="tracker-mini-hist-title">Sesiones</span>
-          <span class="tracker-mini-hist-last" id="tracker-mini-hist-last"></span>
-          <span class="tracker-mini-hist-count hidden" id="tracker-mini-hist-count"></span>
+      <!-- Panel A: input — textarea de ingesta — visible en estado activo -->
+      <div class="tci-input-panel" id="tci-input-panel">
+
+        <!-- B-258: banner de sesión sugerida eliminado — información inline en buildCard() -->
+
+        <div class="tracker-detail tracker-detail--full" id="tracker-detail">
+          <div class="tracker-detail-empty" id="tracker-detail-empty">
+            <div class="tracker-detail-empty-icon">→</div>
+            <div class="tracker-detail-empty-text">Selecciona un Worker</div>
+            <div class="tracker-detail-empty-hint">Elige un Worker del panel derecho para abrir su tarjeta de sesión.</div>
+          </div>
+          <div id="tracker-grid-header"></div>
+          <div id="grid"></div>
+          <div class="log-card" id="log-card"></div>
         </div>
-        <div class="tracker-mini-hist-list" id="tracker-mini-hist-list">
-          <div class="tracker-mini-hist-empty" id="tracker-mini-hist-empty">
-            <span class="tracker-mini-hist-empty-icon">📋</span>
-            <span>Selecciona un Worker</span>
+
+      </div>
+
+      <!-- Panel B: idle — card de sesión activa — visible cuando no hay CHECKPOINT en edición -->
+      <div class="tci-idle-panel" id="tci-idle-panel">
+
+        <!-- Mini-historial de la IA seleccionada — preservado para backward compat -->
+        <div class="tracker-mini-hist-panel" id="tracker-mini-hist-panel">
+          <div class="tracker-mini-hist-header">
+            <span class="tracker-mini-hist-title" id="tracker-mini-hist-title">Sesión activa</span>
+            <span class="tracker-mini-hist-last" id="tracker-mini-hist-last"></span>
+            <span class="tracker-mini-hist-count hidden" id="tracker-mini-hist-count"></span>
+          </div>
+          <div class="tracker-mini-hist-list" id="tracker-mini-hist-list">
+            <div class="tracker-mini-hist-empty" id="tracker-mini-hist-empty">
+              <span class="tracker-mini-hist-empty-icon">📋</span>
+              <span>Sin sesión activa</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <!-- Panel B: Historial global — movido a col 1 (tvh-hist-col1) -->
+      </div>
 
     </div>
 
+    <!-- Columna 3: detalle de sesión seleccionada (reutilizada sin cambios) -->
     <div class="tracker-preview" id="tracker-preview">
       <div class="tracker-preview-empty" id="tracker-preview-empty">
         <span class="tracker-preview-empty-icon">←</span>
