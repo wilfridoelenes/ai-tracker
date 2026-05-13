@@ -606,6 +606,11 @@
 }
 
 /* Card project chip — inline en card-strip */
+.card-proj-chip {
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
 .card-proj-chip:hover {
   color: var(--accent);
   border-color: var(--accent);
@@ -642,6 +647,15 @@
 /* T-032: Pill de sesiones del mes */
 
 /* T-031: Notas por IA */
+.card-notes-text {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  color: var(--text2);
+  transition: color var(--transition-fast);
+}
+
 .card-notes-text.expanded {
   display: block;
   -webkit-line-clamp: unset;
@@ -738,6 +752,11 @@
 
 .paste-wrap--valid {
   background: var(--accent-dim);
+}
+
+.draft-label-text {
+  opacity: 0;
+  transition: opacity var(--transition-fast);
 }
 
 .paste-wrap--valid
@@ -955,6 +974,10 @@
   font-style: italic;
 }
 
+.hora-input {
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast);
+}
+
 .hora-input.error {
   border-color: var(--red);
   color: var(--red);
@@ -965,6 +988,10 @@
   font-size: var(--text-sm);
   color: var(--text2);
   flex: 1;
+}
+
+.save-btn {
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
 }
 
 .save-btn:hover {
@@ -1336,6 +1363,10 @@
 }
 
 /* ══ TRACKER GLOBAL — Panel, items, add-row ══ */
+.tg-overlay {
+  display: none;
+}
+
 .tg-overlay.open {
   display: flex;
 }
@@ -1376,6 +1407,10 @@
 
 .tg-type-B .tg-section-title {
   color: var(--red);
+}
+
+.tg-item {
+  transition: border-color var(--transition-fast);
 }
 
 .tg-item:hover {
@@ -1632,6 +1667,11 @@
   display:block;
 }
 
+.tg-add-row select,
+.tg-add-row input {
+  transition: border-color var(--transition-fast);
+}
+
 .tg-add-row select:focus, .tg-add-row input:focus {
   border-color: var(--accent);
 }
@@ -1645,6 +1685,10 @@
   font-size: var(--text-2xs-plus);
   color: var(--hint);
   padding: 4px 0;
+}
+
+.tg-btn {
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
 }
 
 .tg-btn:hover {
@@ -1689,6 +1733,10 @@
   border-top: none;
   border-bottom: 1px solid rgb(232 168 50 / 20%);
   border-radius: 0;
+}
+
+.btn-interrupt {
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
 }
 
 .btn-interrupt:hover {
@@ -2198,6 +2246,10 @@
   to {
     background: rgb(0 0 0 / 55%);
   }
+}
+
+.cd-banner-btn {
+  transition: background var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
 }
 
 .cd-banner-btn:hover {
@@ -4060,6 +4112,10 @@
   padding: 0 6px 6px;
 }
 
+.tsb-ai-row {
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
 .tsb-ai-row:hover {
   background: var(--surface);
   border-color: var(--border);
@@ -4206,6 +4262,10 @@
 
 /* ── SESSION ROWS ── */
 
+.sess-row {
+  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+}
+
 .sess-row:last-child {
   border-bottom: 1px solid transparent;
 }
@@ -4216,6 +4276,10 @@
   border-bottom-color: transparent;
   transform: translateX(2px);
   border-left-color: transparent;
+}
+
+.paste-ta {
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast);
 }
 
 .paste-ta:focus {
@@ -6790,6 +6854,12 @@ textarea.tracker-drop-active {
   to {
     box-shadow: 0 0 0 2px var(--accent-border);
   }
+}
+
+.card-ta,
+textarea[id^="ta-"] {
+  outline: none;
+  transition: box-shadow var(--transition-fast);
 }
 
 .card-ta:focus,
@@ -9410,6 +9480,14 @@ body.radar-sb-open .tracker-sidebar {
   .sess-list .sess-row--latest {
     grid-column: 1 / -1;
   }
+}
+
+.pend-overlay {
+  display: none;
+}
+
+.pend-overlay.open {
+  display: flex;
 }
 
 @media (prefers-reduced-motion: no-preference) {
