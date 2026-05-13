@@ -548,7 +548,7 @@
 }
 
 .focus-exit-btn {
-  display: none;
+  display: none; /* oculto por defecto — visible via .card.focus-active */
   align-items: center;
   gap: 4px;
   font-size: var(--text-sm);
@@ -560,6 +560,10 @@
   padding: 3px 8px;
   cursor: pointer;
   transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.card.focus-active .focus-exit-btn {
+  display: flex;
 }
 
 .focus-exit-btn:hover {
