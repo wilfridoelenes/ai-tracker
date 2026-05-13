@@ -1519,40 +1519,10 @@ button {
   color: var(--accent, var(--hint));
 }
 
-/* === Responsive === */
 
 
-/* Mobile: segmentos sprint e ítem ocultos */
-@media (width <= 600px) {
-  .breadcrumb-seg--hide-mobile {
-    display: none !important;
-  }
-}
 
-/* Mobile: oculto */
-@media (width <= 600px) {
-  #header-sprint-row {
-    display: none !important;
-  }
-}
 
-/* ── TAG REDESIGN ── */
-
-/* ── RESPONSIVE ── */
-@media (width <= 768px) {
-  .tabs {
-    gap: 2px;
-    padding: 2px;
-  }
-
-}
-
-@media (width <= 560px) {
-  .logo-by,
-  .header-sep {
-    display: none;
-  }
-}
 
 /* prefers-reduced-motion — deshabilitar transiciones de T-381/T-386 + CSS-05 */
 @media (prefers-reduced-motion: reduce) {
@@ -1609,22 +1579,6 @@ button {
 }
 
 /* ══ END S-CPR: utilidades ══ */
-
-/* ══ T-202605-479 — iPad 768–1024px breakpoint ══ */
-@media (width <= 1024px) and (width >= 601px) {
-  /* Radar sidebar — ancho reducido en iPad */
-
-  /* Radar sidebar — colapsado por defecto en iPad (no pinned) */
-  #global-radar-sidebar:not(.rsb-pinned) {
-    transform: translateX(calc(var(--rsb-width) - var(--rsb-strip)));
-  }
-
-  /* Modales — max-width adaptado para viewport iPad */
-
-  /* Kanban — columnas fluidas sin max-width fijo en iPad */
-}
-
-/* ══ END T-202605-479 ══ */
 
 /* ══ T-202605-478 — 2560px ultrawide: contenedores de contenido ══ */
 @media (width >= 2560px) {

@@ -1184,7 +1184,6 @@ function openItemEditor(itemId = null, itemCode = null) {
   if (savePanel) savePanel.classList.remove('open');
 
 
-
   if (itemId || itemCode) {
     // Editar ítem existente — buscar por id primero, luego por code como fallback
     const item = itemId
@@ -1523,8 +1522,6 @@ function confirmItemEditor() {
   renderBacklogList();
   updateBacklogBanner();
 }
-
-
 
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -5317,13 +5314,6 @@ function getAIColor(aiId) {
   return CHRONO_COLORS[idx % CHRONO_COLORS.length] || '#7c6af7';
 }
 
-// Detectar mobile
-function isMobile() { return window.innerWidth <= 600; }
-
-// viewMode eliminado — siempre 'cards' (T-202604-202 deprecado)
-const viewMode = 'cards';
-function setViewMode() {} // no-op — eliminado
-function applyViewMode() { if (typeof render === 'function') render(); }
 
 // T-078: Estado de filtros inline de la vista proyecto
 let _projViewFilterAI = ''; // aiId activo o ''
@@ -6150,7 +6140,6 @@ function toggleProjectSection(key) {
   if (arrow) arrow.classList.toggle('open', isOpen);
   renderProject._collapsed[key] = isOpen;
 }
-
 
 
 // ── T-202604-048: Sub-tabs Templates ──
@@ -7639,10 +7628,6 @@ function _buildPulsoPlanesHtml() {
     ${rows.join('')}
   </div>`;
 }
-
-
-
-
 
 
 // ════════════════════════════════════════════════════════════════════
