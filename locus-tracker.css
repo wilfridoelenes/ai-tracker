@@ -59,8 +59,6 @@
   flex-direction: column;
 }
 
-.tracker-sidebar-section:first-child
-
 .tracker-sidebar-exhausted {
   border-top: 1px solid var(--border);
   padding: 10px 10px 6px;
@@ -69,8 +67,7 @@
   flex-direction: column;
 }
 
-.tracker-sidebar-exhausted 
-.tsb-ai-dot.insession {
+.tracker-sidebar-exhausted .tsb-ai-dot.insession {
   background: var(--purple);
   animation: pulse-dot 1.8s ease-in-out infinite;
 }
@@ -79,12 +76,10 @@
 
 /* T-202604-320: card ocupa ancho disponible */
 .tracker-detail > .card,
-.tracker-detail #grid >
-
+.tracker-detail #grid > .card,
 /* T-202604-320-b: cuando preview abierto, card llena el espacio — sin gap muerto */
 #tab-tracker.preview-open .tracker-detail > .card,
-#tab-tracker.preview-open .tracker-detail #grid > 
-
+#tab-tracker.preview-open .tracker-detail #grid > .card,
 .tracker-detail-full {
   width: 100%;
   box-sizing: border-box;
@@ -247,7 +242,7 @@
   margin-top: 0;
 }
 .log-entry {
-  display: flex;
+  display: grid;
   grid-template-columns: 68px minmax(0,1fr) minmax(0,1.2fr) 72px;
   align-items: flex-start;
   gap: 9px;
@@ -268,6 +263,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .log-entry-summary {
@@ -278,6 +274,7 @@
   text-overflow: ellipsis;
   padding-left: 6px;
   border-left: 1px solid var(--border);
+  min-width: 0;
 }
 
 .log-entry-date {
@@ -9031,11 +9028,17 @@ body.body--focus-mode::after {
 
 
 /* R-202604-068 AC-3/4/5: sidebar coexistence — tracker-sidebar narrows when radar is open */
-body.radar-sb-open
+body.radar-sb-open .tracker-sidebar {
+  flex-shrink: 1;
+  min-width: 0;
+}
 
 /* AC-4: at narrow viewports with both sidebars, prevent overflow */
 @media (width <= 1024px) {
-  body.radar-sb-open 
+  body.radar-sb-open .tracker-sidebar {
+    flex-shrink: 1;
+    min-width: 0;
+  }
 
   body.radar-sb-open .tracker-detail > .card,
   body.radar-sb-open .tracker-detail #grid > .card {
