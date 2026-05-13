@@ -367,8 +367,8 @@
 
 .card-avatar {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-pill);
   display: flex;
   align-items: center;
@@ -545,30 +545,6 @@
 .btn-quick:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-.focus-exit-btn {
-  display: none; /* oculto por defecto — visible via .card.focus-active */
-  align-items: center;
-  gap: 4px;
-  font-size: var(--text-sm);
-  font-family: var(--font-sans);
-  color: var(--hint);
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 3px 8px;
-  cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
-}
-
-.card.focus-active .focus-exit-btn {
-  display: flex;
-}
-
-.focus-exit-btn:hover {
-  color: var(--text);
-  border-color: var(--border2);
 }
 
 .card-drag-handle {
@@ -4187,9 +4163,7 @@
 }
 
 .card-status-pill.available {
-  color: var(--green);
-  border-color: var(--green);
-  background: var(--green-dim);
+  display: none;
 }
 
 .card-status-pill.exhausted {

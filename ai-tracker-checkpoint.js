@@ -5352,7 +5352,6 @@ function buildCard(ai) {
             </div>
           </div>
         </div>
-        <button class="focus-exit-btn" onclick="exitFocusMode()" title="Salir del modo protagonista">✕ salir</button>
         <span class="card-drag-handle" title="Arrastrar para reordenar">⠿</span>
       </div>
     </div>
