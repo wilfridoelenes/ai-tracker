@@ -1311,7 +1311,7 @@ function renderStats() {
   // los mismos ítems que aparecen en la lista, incluyendo el filtro de búsqueda.
   const _q = (backlogSearchQuery || '').trim().toLowerCase();
   const _matchesSearch = _q
-    ? i => i.code.toLowerCase().includes(_q) || (i.title || '').toLowerCase().includes(_q) || (i.desc || '').toLowerCase().includes(_q) || (i.area || '').toLowerCase().includes(_q)
+    ? i => i.code.toLowerCase().includes(_q) || (i.title || '').toLowerCase().includes(_q) || (i.area || '').toLowerCase().includes(_q)
     : () => true;
 
   const visible = countableItems.filter(i => {
@@ -2488,7 +2488,7 @@ function _renderPlanningView(listEl) {
         ${prioClass ? `<span class="bl-plan-card-prio ${prioClass}">${item.priority === 'high' ? '↑' : '↓'}</span>` : ''}
         <span class="bl-plan-dots">${dots}</span>
       </div>
-      <div class="bl-plan-card-title">${esc(item.title || item.desc || '')}</div>
+      <div class="bl-plan-card-title">${esc(item.title || '')}</div>
     </div>`;
   }
 
@@ -2845,7 +2845,6 @@ function renderBacklogList() {
     filtered = filtered.filter(i =>
       i.code.toLowerCase().includes(q) ||
       i.title.toLowerCase().includes(q) ||
-      (i.desc || '').toLowerCase().includes(q) ||
       (i.area || '').toLowerCase().includes(q)
     );
   }
@@ -2955,7 +2954,7 @@ function renderBacklogList() {
   const ideaItems      = filtered.filter(i => i.status !== 'done' && i.status !== 'descartado' && itemType(i.code) === 'P');
   const pendienteItems = filtered.filter(i => i.status !== 'done' && i.status !== 'descartado' && itemType(i.code) !== 'P');
   const _matchesQuery = q
-    ? (i => i.code.toLowerCase().includes(q) || i.title.toLowerCase().includes(q) || (i.desc || '').toLowerCase().includes(q) || (i.area || '').toLowerCase().includes(q))
+    ? (i => i.code.toLowerCase().includes(q) || i.title.toLowerCase().includes(q) || (i.area || '').toLowerCase().includes(q))
     : () => true;
   const doneItems      = activeStatuses.has('done')
     ? ITEMS.filter(i => i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
@@ -3414,7 +3413,7 @@ function _sprintNum(id) {
 function _archItemRow(i) {
   const type   = esc(i.type || 'T');
   const code   = esc(i.code || '—');
-  const title  = esc(i.title || i.desc || '—');
+  const title  = esc(i.title || '—');
   const effort = parseInt(i.effort) || 0;
   const effortHtml = effort
     ? `<span class="arch-row-effort" title="Effort ${effort}">${'●'.repeat(effort)}</span>`
@@ -3624,7 +3623,6 @@ function _renderKanban(listEl) {
     allFiltered = allFiltered.filter(i =>
       i.code.toLowerCase().includes(q) ||
       i.title.toLowerCase().includes(q) ||
-      (i.desc || '').toLowerCase().includes(q) ||
       (i.area || '').toLowerCase().includes(q)
     );
   }
@@ -3846,7 +3844,6 @@ function _buildChildrenBlock(rCode) {
     </div>
     <div class="item-body item-body--child" id="ibody-${cSafeId}">
       <div id="code-badge-${cSafeId}" onclick="copyItemCode(event,'${esc(child.code)}',-1)" title="Click para copiar ID" class="item-code-badge">${esc(child.code)}</div>
-      ${child.desc ? `<div class="item-desc item-desc--child">${esc(child.desc)}</div>` : ''}
       <div class="child-meta-row">
         <span class="badge ${badgeClass(child.priority)} badge--sm">${badgeLabel(child.priority)}</span>
         ${child.area ? `<span class="badge badge-area badge--sm">${esc(child.area)}</span>` : ''}
@@ -4740,7 +4737,7 @@ function _findTmpMatch(tmpCode, desc, existingItems) {
   const needle = desc.trim().toLowerCase();
   let best = null, bestScore = 0;
   existingItems.forEach(item => {
-    const haystack = (item.title || item.desc || '').trim().toLowerCase();
+    const haystack = (item.title || '').trim().toLowerCase();
     if (!haystack) return;
     // Similitud: palabras en común / total palabras
     const needleWords = needle.split(/\s+/);
@@ -6030,7 +6027,7 @@ function _suggestReleaseType(sprintItems) {
   if (!hasR) return 'Patch';
   // Rs arquitectura/refactor → Major (keywords heurísticos)
   const archKeywords = /migra|refactor|arquitectura|core|parser|schema|json/i;
-  const hasArch = sprintItems.some(i => i.type === 'R' && archKeywords.test(i.title || i.desc || ''));
+  const hasArch = sprintItems.some(i => i.type === 'R' && archKeywords.test(i.title || ''));
   if (hasArch) return 'Major';
   // mezcla Rs+Bs → Minor
   if (hasR && hasB) return 'Minor';
@@ -6795,14 +6792,14 @@ function _scmStep1Html(sp, spLabel, pendingItems, doneItems, metrics) {
     `<div class="scm-item-row">
       <span class="scm-item-type scm-type-${i.type||'T'}">${esc(i.type||'T')}</span>
       <span class="scm-item-code">${esc(i.code)}</span>
-      <span class="scm-item-title">${esc(i.title || i.desc || '—')}</span>
+      <span class="scm-item-title">${esc(i.title || '—')}</span>
     </div>`
   ).join('');
   const pendRows = pendingItems.map(i =>
     `<div class="scm-item-row">
       <span class="scm-item-type scm-type-${i.type||'T'}">${esc(i.type||'T')}</span>
       <span class="scm-item-code">${esc(i.code)}</span>
-      <span class="scm-item-title">${esc(i.title || i.desc || '—')}</span>
+      <span class="scm-item-title">${esc(i.title || '—')}</span>
     </div>`
   ).join('');
 
@@ -6889,7 +6886,7 @@ function _scmStep2Html(pendingItems, migrations, currentId) {
     const cur = migrations[i.code] !== undefined ? migrations[i.code] : '';
     return `<div class="scm-migration-item">
       <div class="scm-migration-item-info">
-        <span class="scm-migration-item-title">${esc(i.title || i.desc || '—')}</span>
+        <span class="scm-migration-item-title">${esc(i.title || '—')}</span>
         <span class="scm-migration-item-meta">${esc(i.code)} · ${esc(i.type||'T')}</span>
       </div>
       <select class="scm-migration-select" data-code="${esc(i.code)}"
@@ -6950,7 +6947,7 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
     `<div class="scm-confirm-row">
       <span class="scm-item-type scm-type-${i.type||'T'} scm-flex-shrink-0">${esc(i.type||'T')}</span>
       <span class="scm-item-code">${esc(i.code)}</span>
-      <span class="scm-item-title scm-item-title-cell">${esc(i.title || i.desc || '—')}</span>
+      <span class="scm-item-title scm-item-title-cell">${esc(i.title || '—')}</span>
       <span class="scm-confirm-dest ${cls}">${esc(destLabel)}</span>
     </div>`;
 
@@ -7005,7 +7002,7 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
   const _miniRow = i =>
     `<div class="scm-retro3-mini-row">
        <span class="scm-item-code">${esc(i.code)}</span>
-       <span class="scm-retro3-mini-title">${esc(i.title || i.desc || '—')}</span>
+       <span class="scm-retro3-mini-title">${esc(i.title || '—')}</span>
      </div>`;
 
   const completadosMini  = doneItems.filter(i => i.status === 'done').map(_miniRow).join('');

@@ -2854,7 +2854,7 @@ function _computeNotifications() {
       });
       if (!recent) return;
       const id  = 'unblocked-' + item.code + '-' + recent.ts;
-      const lbl = (item.title || item.desc || '').substring(0, 48);
+      const lbl = (item.title || '').substring(0, 48);
       notifs.push({
         id, type: 'unblocked', tab: 'backlog', icon: '\uD83D\uDD13',
         title: 'Bloqueante resuelto',
@@ -2894,7 +2894,7 @@ function _computeNotifications() {
       if (ageDays <= thresh) return;
       if (_itemHasRecentSession(item, thresh)) return;
       const id  = 'item-inactivo-' + item.code;
-      const lbl = (item.title || item.desc || '').substring(0, 40);
+      const lbl = (item.title || '').substring(0, 40);
       notifs.push({
         id, type: 'itemInactivo', tab: 'backlog', icon: '\uD83D\uDD51',
         title: 'Ítem sin actividad',
@@ -2943,7 +2943,7 @@ function _computeNotifications() {
       if (ageDays <= bugThresh) return;
       if (_itemHasRecentSession(item, bugThresh)) return;
       const id  = 'bug-high-' + item.code;
-      const lbl = (item.title || item.desc || '').substring(0, 40);
+      const lbl = (item.title || '').substring(0, 40);
       notifs.push({
         id, type: 'bugHigh', tab: 'backlog', icon: '\uD83D\uDED1',
         title: 'Bug high sin atención',
@@ -6016,7 +6016,7 @@ function _cpItemCommands(query) {
     .slice(0, 6)
     .map(item => ({
       id: `item-${item.code}`,
-      label: `${item.code}: ${(item.title || item.desc || '').slice(0, 50)}`,
+      label: `${item.code}: ${(item.title || '').slice(0, 50)}`,
       icon: typeIcons[item.type] || '•',
       group: 'Ítems',
       action: () => { if (typeof navigateToItem === 'function') navigateToItem(item.code); }
@@ -6901,7 +6901,7 @@ function buildTGPreview(items, discrepancy) {
     html += `<div class="preview-tg-row">
       <span class="preview-tg-badge ${item.type}">${item.type}</span>
       <span class="preview-tg-code">${esc(item.code)}</span>
-      <span class="preview-tg-desc">${esc(item.title || item.desc)}${tag}${noAcTag}</span>
+      <span class="preview-tg-desc">${esc(item.title)}${tag}${noAcTag}</span>
       <span class="preview-tg-status">${esc(item.status)}</span>
     </div>`;
   });
@@ -7104,7 +7104,7 @@ function _qnRefInput(val) {
   const matches = (typeof ITEMS !== 'undefined' ? ITEMS : [])
     .filter(i => {
       const code = (i.code || '').toLowerCase();
-      const title = (i.title || i.desc || '').toLowerCase();
+      const title = (i.title || '').toLowerCase();
       return code.includes(q) || title.includes(q);
     })
     .slice(0, 6);
@@ -7112,7 +7112,7 @@ function _qnRefInput(val) {
   list.innerHTML = matches.map(i =>
     `<div class="qn-ac-item" onclick="_qnSelectAC('${esc(i.code)}')">
       <span class="qn-ac-code">${esc(i.code)}</span>
-      <span class="qn-ac-desc">${esc((i.title || i.desc || '').slice(0,60))}</span>
+      <span class="qn-ac-desc">${esc((i.title || '').slice(0,60))}</span>
     </div>`
   ).join('');
   list.classList.add('qn-ac-list--visible');
