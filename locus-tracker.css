@@ -4158,6 +4158,16 @@
   gap: 8px;
 }
 
+.card-name {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
 .card-name:hover {
   color: var(--accent);
 }
