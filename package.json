@@ -1,0 +1,17 @@
+{
+  "name": "locus",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.html",
+  "scripts": {
+    "lint:css": "stylelint \"*.css\" --allow-empty-input",
+    "lint:css:fix": "stylelint \"*.css\" --fix --allow-empty-input"
+  },
+  "devDependencies": {
+    "stylelint": "^15.0.0",
+    "stylelint-config-standard": "^34.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

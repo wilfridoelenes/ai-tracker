@@ -2,7 +2,6 @@
 <html lang="es"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<!-- B-202605-036: tema establecido desde localStorage antes del primer paint — sin hardcode en <html> -->
 <script>(function(){var t=localStorage.getItem('theme');document.documentElement.setAttribute('data-theme',(t==='dark'||t==='light')?t:'light');})();</script>
 <title>Locus v1.0.0</title>
 <link rel="icon" type="image/png" href="/img/logo.png">
@@ -20,7 +19,6 @@
 <link rel="stylesheet" href="locus-modals.css">
 <link rel="stylesheet" href="locus-proyectos.css">
 <link rel="stylesheet" href="locus-overrides.css">
-
 
 </head>
 <body>
@@ -43,7 +41,6 @@
   <div class="header-inner">
     <div class="logo cursor-pointer" onclick="switchTab('tracker')" id="logo-btn" title="Ir a Tracker">
       <img id="pepe-logo" src="/img/logo.png" alt="Pepe" class="logo-img">
-      <!-- R-202605-167: Breadcrumb interactivo — proyecto › sprint › ítem activo -->
       <div class="logo-project-label" id="header-project-label">
         <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" onclick="if(typeof openProjPanel==='function')openProjPanel()">Locus</button>
         <span class="breadcrumb-sep breadcrumb-sep--first breadcrumb-seg--hidden" aria-hidden="true">›</span>
@@ -53,9 +50,6 @@
       </div>
     </div>
 
-    <!-- T-202604-324: mini progress dots del ecosistema — color por proyecto, fill proporcional al progreso -->
-
-
     <div class="tabs">
       <button class="tab-btn" id="tab-btn-tracker" onclick="switchTab('tracker')" title="Ver Tracker de sesiones">🗂 Sesiones<span class="tab-notif-badge hidden" id="tab-notif-badge-tracker"></span></button>
       <button class="tab-btn" id="tab-btn-proyectos" onclick="switchTab('proyectos')" title="Dashboard estratégico de proyectos">📁 Proyectos<span class="tab-notif-badge hidden" id="tab-notif-badge-proyectos"></span></button>
@@ -63,7 +57,6 @@
       <button class="tab-btn" id="tab-btn-analytics" onclick="switchTab('analytics')" title="Analytics — sesiones por mes">📊 Analytics<span class="tab-notif-badge hidden" id="tab-notif-badge-analytics"></span></button>
     </div>
 
-    <!-- T-202604-163: search animada — T-202604-211: expandida por defecto, scope explícito en placeholder -->
     <div class="header-search tracker-only" id="header-search-wrap">
       <button class="search-toggle-btn active" id="search-toggle-btn" onclick="toggleHeaderSearch()" title="Buscar sesiones">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -77,7 +70,6 @@
     <div class="header-actions">
       <!-- Orden AC: búsqueda (en header-search) · nota rápida · menú ⋯ -->
 
-      <!-- R-202605-169: Pulso dot en header — estado rápido del ecosistema -->
       <button class="pulso-dot pulso-dot--neutral" id="header-pulso-dot" onclick="openPulsoPanel()" aria-label="Sin datos" title="Sin datos"></button>
 
       <!-- [pendiente-ID]: Panel pendientes — trigger header -->
@@ -88,7 +80,6 @@
         <span class="header-pend-btn__count" id="header-pend-count" aria-hidden="true"></span>
       </button>
 
-      <!-- R-202605-170: Worker activo chip — nombre y cronómetro visible sin abrir sidebar -->
       <button class="header-worker-chip hidden" id="header-active-worker" onclick="_hwcClick()" title="Worker en sesión">
         <span class="hwc-dot session-timer-dot--active"></span>
         <span class="hwc-name"></span>
@@ -96,7 +87,7 @@
       </button>
 
       <!-- [pendiente-ID]: Toggle light/dark — invoca applyTheme() existente -->
-      <button class="theme-toggle-btn btn-ghost btn-icon" id="theme-toggle-btn" onclick="applyTheme(document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark')" aria-label="Cambiar a tema light" title="Cambiar tema">
+      <button class="theme-toggle-btn btn-ghost btn-icon" id="theme-toggle-btn" onclick="toggleTheme()" aria-label="Cambiar a tema light" title="Cambiar tema">
         <span class="theme-icon-dark" aria-hidden="true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </span>
@@ -105,13 +96,10 @@
         </span>
       </button>
 
-      <!-- T-202604-268: Quick Note — visible en todos los tabs -->
       <button class="btn-quick-note" id="btn-quick-note" onclick="openQuickNote()" title="Nueva nota rápida">✏️</button>
 
-      <!-- B-202604-012: botón reabrir último CHECKPOINT -->
       <button class="btn-ghost btn-ckpt-reopen hidden" id="ckpt-reopen-btn" onclick="showCheckpointPanel(_lastCheckpointResult)" title="Ver último CHECKPOINT">📋</button>
 
-      <!-- T-202605-USR: chip de usuario conectado — visible cuando hay sesión activa -->
       <div class="user-chip hidden" id="user-chip" onclick="handleSyncPillClick()" title="Sesión activa · click para cerrar sesión">
         <span class="user-chip-dot" id="user-chip-dot">●</span>
         <span class="user-chip-name" id="user-chip-name"></span>
@@ -123,12 +111,10 @@
         <div class="more-menu is-hidden" id="more-menu">
           <!-- Grupo: Datos -->
           <div class="mm-group-label">Datos</div>
-          <button onclick="exportData();toggleMoreMenu()"><span class="mm-icon">⬇</span> Backup</button>
-          <button onclick="document.getElementById('imp').click();toggleMoreMenu()"><span class="mm-icon">⬆</span> Importar backup</button>
-          <button onclick="downloadGlobalReport();toggleMoreMenu()"><span class="mm-icon">📄</span> Reporte global</button>
+          <button type="button" onclick="exportData();toggleMoreMenu()"><span class="mm-icon">⬇</span> Backup</button>
+          <button type="button" onclick="document.getElementById('imp').click();toggleMoreMenu()"><span class="mm-icon">⬆</span> Importar backup</button>
+          <button type="button" onclick="downloadGlobalReport();toggleMoreMenu()"><span class="mm-icon">📄</span> Reporte global</button>
           <button id="more-menu-autodl" onclick="toggleAutoDownload()"><span class="mm-icon">⬇</span> Auto-descargar templates: ON</button>
-          <!-- T-202604-295: control de trigger de descarga -->
-          <!-- T-202605-443: sub-panel colapso/expansión -->
           <div id="tmpl-trigger-wrap" class="tmpl-trigger-wrap">
             <button class="tmpl-trigger-label tmpl-trigger-toggle is-collapsed" onclick="toggleTmplTriggerPanel(this)" type="button">
               <span class="mm-icon">⬇</span> Descargar templates <span class="tmpl-trigger-arrow">▸</span>
@@ -147,27 +133,23 @@
           <!-- Grupo: Configuración -->
           <hr class="mm-separator">
           <div class="mm-group-label">Configuración</div>
-          <button onclick="openShortcuts();toggleMoreMenu()"><span class="mm-icon">⌨</span> Atajos de teclado</button>
-          <button onclick="openChangelog();toggleMoreMenu()"><span class="mm-icon">📋</span> Changelog</button>
-          <button onclick="openNotifConfig();toggleMoreMenu()"><span class="mm-icon">🔔</span> Configurar notificaciones</button>
-          <button onclick="handleSyncPillClick();toggleMoreMenu()"><span class="mm-icon sync-status-dot" id="sync-status-dot">●</span> <span id="sync-status-label">Sync: local</span></button>
-          <!-- B-202605: openFbOnboarding removido — Firebase deprecado, migración a Supabase completa -->
-          <!-- R-migración: visible solo cuando Firebase y Supabase están disponibles -->
-          <button id="btn-migrate-fb-sb" onclick="openMigrateFirebaseModal();toggleMoreMenu()" class="hidden"><span class="mm-icon">🔄</span> Migrar Firebase → Supabase</button>
+          <button type="button" onclick="openShortcuts();toggleMoreMenu()"><span class="mm-icon">⌨</span> Atajos de teclado</button>
+          <button type="button" onclick="openChangelog();toggleMoreMenu()"><span class="mm-icon">📋</span> Changelog</button>
+          <button type="button" onclick="openNotifConfig();toggleMoreMenu()"><span class="mm-icon">🔔</span> Configurar notificaciones</button>
+          <button type="button" onclick="handleSyncPillClick();toggleMoreMenu()"><span class="mm-icon sync-status-dot" id="sync-status-dot">●</span> <span id="sync-status-label">Sync: local</span></button>
+          <button id="btn-migrate-fb-sb" onclick="openMigrateFirebaseModal();toggleMoreMenu()" class="is-hidden"><span class="mm-icon">🔄</span> Migrar Firebase → Supabase</button>
           <!-- Grupo: Zona peligrosa -->
           <hr class="mm-separator">
           <div class="mm-group-label mm-group-label--danger">Zona peligrosa</div>
-          <button onclick="purgeOldSessions();toggleMoreMenu()" class="mm-danger"><span class="mm-icon">🗑</span> Purgar sesiones antiguas</button>
+          <button type="button" onclick="purgeOldSessions();toggleMoreMenu()" class="mm-danger"><span class="mm-icon">🗑</span> Purgar sesiones antiguas</button>
         </div>
       </div>
 
       <!-- inputs ocultos para importación -->
-      <input type="file" id="imp" accept=".json" class="hidden" onchange="importData(event)">
-      <input type="file" id="context-file-input" accept=".md,text/markdown,text/plain" class="hidden" onchange="_importContextMdFromFile(event)">
-      <input type="file" id="backlog-file-input" accept=".md,text/markdown,text/plain" class="hidden" onchange="importBacklog(event)"><!-- R-202604-052 -->
-    </div>
+      <input type="file" id="imp" accept=".json" class="is-hidden" onchange="importData(event)">
+      <input type="file" id="context-file-input" accept=".md,text/markdown,text/plain" class="is-hidden" onchange="_importContextMdFromFile(event)">
+      <input type="file" id="backlog-file-input" accept=".md,text/markdown,text/plain" class="is-hidden" onchange="importBacklog(event)">    </div>
   </div>
-  <!-- R-202605-168: Sprint progress bar — segunda fila del header -->
   <div id="header-sprint-row" role="button" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" onclick="if(typeof toggleSprintHealthPanel==='function')toggleSprintHealthPanel()" title="Ver sprint health">
     <span class="hsr-label" id="hsr-label"></span>
     <div class="hsr-bar"><div class="hsr-bar-fill" id="hsr-bar-fill"></div></div>
@@ -176,10 +158,10 @@
 </header>
 
 <!-- T-084: Storage warning banner — visible solo si totalSessions > 300 -->
-<div id="storage-warn" class="hidden">
+<div id="storage-warn" class="is-hidden">
   <span>⚠️ Tienes muchas sesiones guardadas — el almacenamiento local puede saturarse pronto.</span>
-  <button onclick="purgeOldSessions();checkStorageWarn()">🗑 Purgar sesiones antiguas</button>
-  <button onclick="document.getElementById('storage-warn').classList.add('is-hidden')" title="Cerrar">✕</button>
+  <button type="button" onclick="purgeOldSessions();checkStorageWarn()">🗑 Purgar sesiones antiguas</button>
+  <button type="button" onclick="document.getElementById('storage-warn').classList.add('is-hidden')" title="Cerrar">✕</button>
 </div>
 <!-- ═══ RADAR SIDEBAR GLOBAL ═══ -->
 <div id="global-radar-sidebar">
@@ -222,7 +204,6 @@
 <!-- ═══ TAB TRACKER ═══ -->
 <div class="tab-panel active" id="tab-tracker">
 
-  <!-- R-202605-008: checklist de setup — banner sticky, mutuamente excluyente con empty state -->
   <div class="setup-checklist-banner scb-hidden" id="setup-checklist-banner" role="status" aria-label="Progreso de configuración inicial">
     <div class="scb-steps" id="scb-steps">
       <div class="scb-step" id="scb-step-worker"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Worker</span></div>
@@ -233,7 +214,6 @@
     <button class="scb-dismiss" onclick="_scbDismiss()" aria-label="Cerrar checklist de configuración">✕</button>
   </div>
 
-  <!-- R-202604-078: header de vista — toggle Por IA / Historial + selector proyecto + colapsar -->
   <div class="tracker-view-header" id="tracker-view-header">
     <div class="tracker-view-toggle" id="tracker-view-toggle" role="group" aria-label="Vista del Tracker">
       <button class="tvh-toggle-btn active" id="tvh-btn-poria" onclick="_trackerSetView('poria')" aria-pressed="true">Checkpoint</button>
@@ -246,28 +226,24 @@
     </div>
   </div>
 
-  <!-- R-202604-036: sidebar izquierdo eliminado — navegación via Radar sidebar derecho -->
   <!-- IDs legacy preservados para backward compat con _renderTrackerSidebar() -->
-  <div class="hidden" id="tracker-sidebar">
+  <div class="is-hidden" id="tracker-sidebar">
     <div class="tracker-sidebar-list" id="tsb-insession"></div>
     <div class="tracker-sidebar-list" id="tsb-available"></div>
     <div class="tracker-sidebar-list" id="tsb-exhausted"></div>
   </div>
 
-  <!-- R-202604-059: tab pills mobile — visible solo en <900px -->
   <div class="tracker-col-tabs" id="tracker-col-tabs">
     <button class="tracker-col-tab active" data-col="card" onclick="_trackerSwitchCol('card')">Sesión</button>
     <button class="tracker-col-tab" data-col="hist" onclick="_trackerSwitchCol('hist')">Sesiones</button>
 
   </div>
 
-  <!-- R-202604-059: grid 3 columnas -->
   <div class="tracker-3col" id="tracker-3col">
 
     <!-- Columna 1: card principal (textarea + parse preview) -->
     <div class="tracker-col tracker-col--card" id="tracker-col-card">
 
-      <!-- R-202604-078 Entrega 2: col 1 Vista Historial — oculta en Vista Por IA -->
       <div class="tvh-hist-col1" id="tvh-hist-col1">
         <div class="tvh-hist-col1-header">
           <span class="tvh-hist-col1-title">Sesiones</span>
@@ -292,7 +268,6 @@
           </div>
         </div>
       </div>
-      <!-- /R-202604-078 Entrega 2 -->
 
       <!-- B-258: banner de sesión sugerida eliminado — información inline en buildCard() -->
 
@@ -302,15 +277,12 @@
           <div class="tracker-detail-empty-text">Selecciona un Worker</div>
           <div class="tracker-detail-empty-hint">Elige un Worker del panel derecho para abrir su tarjeta de sesión.</div>
         </div>
-        <!-- R-202604-060: tracker-grid-header -->
         <div id="tracker-grid-header"></div>
         <div id="grid"></div>
-        <!-- R-202604-016: Log de Sesiones -->
         <div class="log-card" id="log-card"></div>
       </div>
     </div>
 
-    <!-- Columna 2: historial de sesiones — R-202604-059 / T-202604-367 -->
     <div class="tracker-col tracker-col--hist" id="tracker-col-hist">
 
       <!-- Panel A: Mini-historial de la IA seleccionada — visible en modo Por IA -->
@@ -332,7 +304,6 @@
 
     </div>
 
-    <!-- B-202604-184: Panel de detalle de sesión — col 3 del grid en desktop -->
     <div class="tracker-preview" id="tracker-preview">
       <div class="tracker-preview-empty" id="tracker-preview-empty">
         <span class="tracker-preview-empty-icon">←</span>
@@ -347,7 +318,6 @@
 
   </div><!-- /tracker-3col -->
 
-  <!-- R-202604-036: Visualizador de ítems — panel overlay al parsear paste -->
   <!-- [pendiente-ID]: aria-live="polite" + aria-atomic + role="region" + tabindex para gestión de foco -->
   <div class="item-viz-overlay hidden" id="item-viz-overlay"
        role="region"
@@ -375,13 +345,11 @@
   <!-- Sidebar de Templates -->
   <div class="tpl-sidebar" id="tpl-sidebar">
 
-    <!-- Banner proyecto activo — T-202604-006 -->
-    <div id="tpl-proj-banner" class="hidden">
+    <div id="tpl-proj-banner" class="is-hidden">
       <span id="tpl-proj-icon" class="tpl-proj-icon"></span>
       <span id="tpl-proj-name" class="tpl-proj-name"></span>
     </div>
 
-    <!-- Navegación — T-202604-048 -->
     <div class="tpl-sidebar-section">
       <div class="tpl-sidebar-label">Backlog</div>
       <div class="tpl-sidebar-nav">
@@ -411,10 +379,8 @@
     <div class="tpl-sidebar-section tpl-sidebar-actions">
       <div class="tpl-sidebar-label">Acciones</div>
       <div class="tpl-sidebar-action-list" id="tpl-toolbar">
-        <!-- R-202604-052: import manual eliminado — único punto de entrada es ---ITEMS--- via CHECKPOINT -->
         <button class="tpl-action-btn hidden" id="btn-import-backlog" onclick="" title="Import deshabilitado — usar ---ITEMS--- en CHECKPOINT" disabled>↑ Importar Backlog</button>
 
-        <!-- T-202604-359: btn-new-item eliminado — CHECKPOINT es el único punto de entrada para ítems nuevos -->
         <div class="tpl-action-row hidden" id="tpl-undo-row">
           <button class="tpl-action-btn tpl-action-icon" id="btn-undo-backlog" onclick="undoBacklog()" title="Deshacer" disabled>↩</button>
           <button class="tpl-action-btn tpl-action-icon" id="btn-redo-backlog" onclick="redoBacklog()" title="Rehacer" disabled>↪</button>
@@ -456,7 +422,6 @@
     </div>
 
     <div class="stats-bar" id="stats-bar"></div>
-    <!-- R-202605-094: chips de filtro activo — visibles sin scroll -->
     <div class="active-filter-chips" id="active-filter-chips"></div>
 
     <!-- R-[tmp:toolbar-backlog-redesign]: 3-layer toolbar -->
@@ -514,7 +479,6 @@
 
     <!-- toolbar vieja — oculta, mantenida por compatibilidad con JS que la referencia -->
     <div class="toolbar hidden" id="toolbar"></div>
-    <!-- R-202604-047: wrapper estático para two-col layout con item-detail-panel -->
     <div id="backlog-two-col-wrap">
       <div id="backlog-list"></div>
       <div id="item-detail-panel" class="item-detail-panel"></div>
@@ -551,14 +515,14 @@
         <button class="doc-log-btn" id="doc-log-btn-htmlmap" onclick="openDocLog('htmlmap')" title="Historial de acciones del MAP">🕐<span class="doc-log-count"></span></button>
       </div>
       <div id="htmlmap-content"></div>
-      <input type="file" id="htmlmap-file-input" accept=".md,text/markdown,text/plain" class="hidden" onchange="importHtmlMap(event)">
+      <input type="file" id="htmlmap-file-input" accept=".md,text/markdown,text/plain" class="is-hidden" onchange="importHtmlMap(event)">
     </div><!-- /sspanel-htmlmap -->
 
     <!-- Sub-panel: Context -->
     <div class="session-subpanel" id="sspanel-context">
 
       <!-- Estado vacío: importar -->
-      <div id="context-empty-state" class="hidden">
+      <div id="context-empty-state" class="is-hidden">
         <div class="doc-dropzone" id="context-dropzone"
           ondragover="event.preventDefault();this.classList.add('doc-dropzone--over')"
           ondragleave="this.classList.remove('doc-dropzone--over')"
@@ -572,7 +536,7 @@
       </div>
 
       <!-- Estado cargado: navegación por secciones -->
-      <div id="context-loaded-state" class="hidden">
+      <div id="context-loaded-state" class="is-hidden">
         <!-- Meta banner -->
         <div class="htmlmap-meta-banner" id="context-meta-banner">
           <span class="htmlmap-meta-label">Versión</span>
@@ -587,8 +551,8 @@
           <span class="htmlmap-meta-value hidden amber-color" id="cmeta-mod-val">—</span>
           <span class="flex-1"></span>
           <button class="doc-log-btn" id="doc-log-btn-context" onclick="openDocLog('context')" title="Historial de acciones del Context">🕐<span class="doc-log-count"></span></button>
-          <button onclick="exportContextMd()" class="ctx-meta-action-btn" title="Descargar CONTEXT.md actualizado">⬇ Exportar</button>
-          <button onclick="contextShowImport()" class="ctx-meta-action-btn" title="Re-importar CONTEXT.md">↑ Re-importar</button>
+          <button type="button" onclick="exportContextMd()" class="ctx-meta-action-btn" title="Descargar CONTEXT.md actualizado">⬇ Exportar</button>
+          <button type="button" onclick="contextShowImport()" class="ctx-meta-action-btn" title="Re-importar CONTEXT.md">↑ Re-importar</button>
         </div>
 
         <!-- Search bar -->
@@ -640,7 +604,6 @@
 
 <!-- ═══ OVERLAYS / MODALES (Tracker) ═══ -->
 
-<!-- T-202604-268 / T-202604-270: Quick Note Modal -->
 <div class="quick-note-overlay" id="quick-note-modal" onclick="_qnOverlayClick(event)">
   <div class="quick-note-box">
     <div class="quick-note-header">
@@ -650,7 +613,6 @@
         <button class="btn-ghost btn-icon qn-close" onclick="closeQuickNote()" title="Cerrar">✕</button>
       </div>
     </div>
-    <!-- Inline delete confirm — T-202604-270 -->
     <div class="qn-delete-confirm hidden" id="qn-delete-confirm">
       <span class="qn-delete-msg">¿Eliminar esta nota?</span>
       <button class="btn-danger-sm" onclick="qnConfirmDelete()">Eliminar</button>
@@ -703,10 +665,9 @@
       <button class="confirm-yes" onclick="deleteCurrentSession()">Eliminar</button>
     </div>
     <div class="popup-footer">
-      <button onclick="closePopup()">Cerrar</button>
+      <button type="button" onclick="closePopup()">Cerrar</button>
       <div class="pop-sess-actions">
         <button class="btn-ghost" id="pop-star-btn" onclick="starCurrentSession()" title="Destacar sesión">☆</button>
-        <!-- T-202604-004: eliminar visible en footer -->
         <button class="btn-ghost danger-label-red" onclick="openDeleteConfirm()" title="Eliminar sesión">🗑</button>
 
       </div>
@@ -720,7 +681,7 @@
     <div class="modal-title">Nuevo Worker</div>
     <div class="field"><label>Nombre</label><input type="text" id="new-name" placeholder="Ej: Firefox Claude..." maxlength="40" onkeydown="if(event.key==='Enter')confirmAddAI()"></div>
     <div class="modal-actions">
-      <button onclick="closeModal('add-modal')">Cancelar</button>
+      <button type="button" onclick="closeModal('add-modal')">Cancelar</button>
       <button class="btn-primary" onclick="confirmAddAI()">Agregar</button>
     </div>
   </div>
@@ -731,7 +692,7 @@
   <div class="pend-panel">
     <div class="pend-panel-header">
       <div class="pend-panel-title">⏳ Pendientes</div>
-      <button onclick="closePendPanel()">Cerrar</button>
+      <button type="button" onclick="closePendPanel()">Cerrar</button>
     </div>
     <div class="pend-panel-body" id="pend-panel-body"></div>
   </div>
@@ -751,12 +712,10 @@
       <div class="color-picker-row" id="color-picker-row"></div>
     </div>
     <div class="modal-actions modal-actions-mt">
-      <button onclick="closeModal('tag-modal')">Listo</button>
+      <button type="button" onclick="closeModal('tag-modal')">Listo</button>
     </div>
   </div>
 </div>
-
-
 
 <!-- R-[pendiente-ID]: Quick Capture — modal unificado con stepper de 2 pasos -->
 <!-- Reemplaza: #quick-modal-overlay (T-071) + #ai-quick-select-modal -->
@@ -835,7 +794,6 @@
 <!-- END R-[pendiente-ID] Quick Capture modal unificado -->
 
 <!-- T-075: Firebase Onboarding Wizard -->
-<!-- ═══ T-202604-009: ONBOARDING PRIMER USO ═══ -->
 <div class="onboarding-overlay" id="onboarding-overlay">
   <div class="onboarding-modal">
     <div class="onboarding-header">
@@ -851,14 +809,12 @@
   </div>
 </div>
 
-<!-- T-202605-491: Firebase wizard removido — Firebase deprecado, Supabase es el provider activo -->
-
 <!-- T-077: Panel lateral proyectos -->
 <div class="proj-panel-overlay" id="proj-panel-overlay" onclick="if(event.target===this)closeProjPanel()">
   <div class="proj-panel">
     <div class="proj-panel-header">
       <div class="proj-panel-title">🗂 Proyectos</div>
-      <button onclick="closeProjPanel()">Cerrar</button>
+      <button type="button" onclick="closeProjPanel()">Cerrar</button>
     </div>
     <div class="proj-panel-body" id="proj-panel-body"></div>
     <div class="proj-panel-actions">
@@ -874,7 +830,7 @@
   <div class="proj-modal">
     <div class="proj-modal-header">
       <div class="proj-modal-title">Gestionar proyectos</div>
-      <button onclick="closeProjModal()">✕</button>
+      <button type="button" onclick="closeProjModal()">✕</button>
     </div>
     <div class="proj-modal-body">
       <!-- Formulario crear/editar -->
@@ -923,7 +879,7 @@
       <input class="gconfirm-input" id="gconfirm-input" type="text" placeholder="" onkeydown="if(event.key==='Enter')_gconfirmOk();if(event.key==='Escape')_gconfirmClose()">
     </div>
     <div class="gconfirm-actions">
-      <button onclick="_gconfirmClose()">Cancelar</button>
+      <button type="button" onclick="_gconfirmClose()">Cancelar</button>
       <button class="btn-primary danger" id="gconfirm-ok-btn" onclick="_gconfirmOk()">Confirmar</button>
     </div>
   </div>
@@ -943,9 +899,9 @@
     <input type="text" id="reset-sessions-input" placeholder="Escribe RESET para confirmar"
       class="purge-input-field"
       oninput="_validateResetSessionsInput(this)">
-    <div id="reset-sessions-hint" class="hidden">Debe ser exactamente: RESET (mayúsculas)</div>
+    <div id="reset-sessions-hint" class="is-hidden">Debe ser exactamente: RESET (mayúsculas)</div>
     <div class="modal-actions">
-      <button onclick="closeResetSessionsModal()">Cancelar</button>
+      <button type="button" onclick="closeResetSessionsModal()">Cancelar</button>
       <button class="btn-primary btn-danger" id="reset-sessions-confirm-btn" onclick="confirmResetSessions()" disabled>Resetear</button>
     </div>
   </div>
@@ -961,9 +917,9 @@
     <input type="text" id="reset-backlog-input" placeholder="Escribe RESET para confirmar"
       class="purge-input-field"
       oninput="_validateResetBacklogInput(this)">
-    <div id="reset-backlog-hint" class="hidden">Debe ser exactamente: RESET (mayúsculas)</div>
+    <div id="reset-backlog-hint" class="is-hidden">Debe ser exactamente: RESET (mayúsculas)</div>
     <div class="modal-actions">
-      <button onclick="closeResetBacklogModal()">Cancelar</button>
+      <button type="button" onclick="closeResetBacklogModal()">Cancelar</button>
       <button class="btn-primary btn-danger" id="reset-backlog-confirm-btn" onclick="confirmResetBacklog()" disabled>Resetear</button>
     </div>
   </div>
@@ -979,7 +935,7 @@
     </div>
     <div class="purge-preview" id="purge-preview">Ingresa un número de meses para ver el conteo.</div>
     <div class="modal-actions">
-      <button onclick="closePurgeModal()">Cancelar</button>
+      <button type="button" onclick="closePurgeModal()">Cancelar</button>
       <button class="btn-primary btn-danger" id="purge-confirm-btn" onclick="confirmPurge()" disabled="">Eliminar</button>
     </div>
   </div>
@@ -996,13 +952,12 @@
       <div class="modal-title import-section-label">CAMBIOS VS ESTADO ACTUAL</div>
     </div>
     <div class="modal-actions">
-      <button onclick="closeImportDiff()">Cancelar</button>
+      <button type="button" onclick="closeImportDiff()">Cancelar</button>
       <button class="btn-primary" onclick="confirmImport()">Importar</button>
     </div>
   </div>
 </div>
 
-<!-- T-202604-048: modal paste items -->
 <div class="modal-overlay" id="item-editor-overlay" onclick="if(event.target===this)closeItemEditor()">
   <div class="modal">
     <!-- Header -->
@@ -1092,7 +1047,6 @@
         </div>
       </div>
 
-      <!-- Notas (T-202604-256) -->
       <div class="ie-row cols-1">
         <div class="ie-field ie-field-mt">
           <label for="item-notes" class="ie-label">Notas <span class="ie-label-opt">(opcional)</span></label>
@@ -1154,11 +1108,9 @@
     <!-- Footer -->
     <div class="ie-footer">
       <button class="ie-btn-cancel" onclick="closeItemEditor()">Cancelar</button>
-      <!-- T-202605-451: guardar como template -->
       <button class="ie-btn-tpl-save" onclick="toggleTplSavePanel()" title="Guardar campos actuales como template reutilizable">Guardar como template</button>
       <button class="ie-btn-save" onclick="confirmItemEditor()">Guardar en Backlog</button>
     </div>
-    <!-- T-202605-451: save-as-template inline panel -->
     <div class="tpl-save-panel" id="tpl-save-panel">
       <label class="tpl-save-label">Nombre del template</label>
       <div class="tpl-save-row">
@@ -1170,7 +1122,6 @@
   </div>
 </div>
 
-<!-- T-202605-451: TEMPLATE PICKER MODAL -->
 <div class="modal-overlay" id="tpl-picker-overlay" onclick="if(event.target===this)closeTemplatePicker()">
   <div class="modal tpl-picker-modal">
     <div class="ie-header">
@@ -1183,8 +1134,6 @@
     </div>
   </div>
 </div>
-
-<!-- ═══ R-202604-047: STATIC MODAL SHELLS ═══ -->
 
 <!-- standalone-ckpt-overlay -->
 <div class="modal-overlay modal-overlay--top" id="standalone-ckpt-overlay">
@@ -1200,7 +1149,7 @@
       oninput="if(typeof parsePasteStandalone==='function')parsePasteStandalone()"></textarea>
     <div id="standalone-ckpt-prev" class="standalone-ckpt-prev"></div>
     <div class="modal-actions modal-actions--mt">
-      <button onclick="closeStandaloneCheckpoint()">Cancelar</button>
+      <button type="button" onclick="closeStandaloneCheckpoint()">Cancelar</button>
       <button class="btn-primary" id="standalone-ckpt-btn" disabled onclick="if(typeof saveStandaloneCheckpoint==='function')saveStandaloneCheckpoint()">Aplicar ítems</button>
     </div>
   </div>
@@ -1214,7 +1163,7 @@
       Archivo: <code id="export-confirm-filename"></code>
     </div>
     <div class="modal-actions">
-      <button onclick="document.getElementById('export-confirm-overlay').classList.remove('open')">Cancelar</button>
+      <button type="button" onclick="document.getElementById('export-confirm-overlay').classList.remove('open')">Cancelar</button>
       <button class="btn-primary" id="export-confirm-btn">⬇ Descargar</button>
     </div>
   </div>
@@ -1233,7 +1182,7 @@
       Archivo: <code id="hmexport-filename-preview" class="hmexport-filename"></code>
     </div>
     <div class="modal-actions">
-      <button onclick="document.getElementById('htmlmap-export-overlay').classList.remove('open')">Cancelar</button>
+      <button type="button" onclick="document.getElementById('htmlmap-export-overlay').classList.remove('open')">Cancelar</button>
       <button class="btn-primary" id="hmexport-confirm-btn">⬇ Descargar</button>
     </div>
   </div>
@@ -1294,7 +1243,7 @@
     <!-- sprint-retro-notes: visible en modo vista para notas adicionales -->
     <textarea class="sprint-retro-notes is-hidden" id="sprint-retro-notes" rows="3" readonly></textarea>
     <div class="modal-actions">
-      <button onclick="closeSprintRetroOverlay()">Cerrar</button>
+      <button type="button" onclick="closeSprintRetroOverlay()">Cerrar</button>
       <button class="btn-primary" id="sprint-retro-dl-btn">⬇ Descargar</button>
     </div>
   </div>
@@ -1304,9 +1253,6 @@
 <div class="promote-modal-overlay" id="migrate-item-overlay">
   <div class="promote-modal migrate-modal" id="migrate-modal-body"></div>
 </div>
-
-<!-- ai-quick-select-modal DEPRECADO — R-[pendiente-ID] -->
-<!-- Reemplazado por #qc-modal-overlay (Paso 1 del modal unificado) -->
 
 <!-- changelog-overlay -->
 <div class="modal-overlay" id="changelog-overlay">
@@ -1319,7 +1265,7 @@
     <div class="modal-title modal-title--accent">⚠ Proyecto diferente</div>
     <div class="modal-body-text" id="proj-mismatch-msg"></div>
     <div class="modal-actions">
-      <button onclick="document.getElementById('proj-mismatch-overlay').classList.remove('open')">Cancelar</button>
+      <button type="button" onclick="document.getElementById('proj-mismatch-overlay').classList.remove('open')">Cancelar</button>
       <button class="btn-primary" id="proj-mismatch-continue">Continuar</button>
     </div>
   </div>
@@ -1370,18 +1316,18 @@
         </ul>
       </div>
       <!-- Estado: running -->
-      <div id="migrate-fb-running" class="hidden">
+      <div id="migrate-fb-running" class="is-hidden">
         <div class="migrate-fb-progress-wrap">
           <div class="migrate-fb-progress-bar" id="migrate-fb-progress-bar"></div>
         </div>
         <div class="migrate-fb-status" id="migrate-fb-status">Iniciando…</div>
       </div>
       <!-- Estado: done -->
-      <div id="migrate-fb-done" class="hidden">
+      <div id="migrate-fb-done" class="is-hidden">
         <div id="migrate-fb-result"></div>
       </div>
       <!-- Estado: error -->
-      <div id="migrate-fb-error" class="hidden">
+      <div id="migrate-fb-error" class="is-hidden">
         <div class="migrate-fb-error-msg" id="migrate-fb-error-msg"></div>
       </div>
     </div>
@@ -1427,16 +1373,11 @@
     </div>
 
     <div class="modal-actions">
-      <button onclick="closeAuthModal()">Cancelar</button>
+      <button type="button" onclick="closeAuthModal()">Cancelar</button>
     </div>
   </div>
 </div>
 
-<!-- ═══ FIN R-202604-047 STATIC MODAL SHELLS ═══ -->
-
-<!-- T-202604-419: cp-overlay legacy eliminado — B-002 fix. Activo: #cmd-palette-overlay (T-202604-418) -->
-
-<!-- B-202605-240: Configuración de notificaciones -->
 <div class="modal-overlay hidden" id="notif-config-overlay" onclick="if(event.target===this)closeNotifConfig()">
   <div class="modal modal--notif-config" id="notif-config-panel" role="dialog" aria-modal="true" aria-label="Configurar notificaciones">
     <div class="modal-header">
@@ -1451,7 +1392,6 @@
   </div>
 </div>
 
-<!-- T-202605-442: Atajos de teclado — configurabilidad -->
 <div class="shortcuts-overlay hidden" id="shortcuts-overlay" onclick="closeShortcuts(event)">
   <div class="shortcuts-panel" id="shortcuts-panel" role="dialog" aria-modal="true" aria-label="Configuración de atajos">
     <div class="shortcuts-header">
@@ -1465,36 +1405,22 @@
   </div>
 </div>
 
-<!-- DUP-03: shortcuts-ref-overlay eliminado — ⌘? redirige a #shortcuts-overlay (openShortcuts) -->
-<!-- END T-202605-442 -->
-
-<!-- T-202604-418: Command Palette Cmd+K -->
-<div class="cmd-palette-overlay hidden" id="cmd-palette-overlay" onclick="if(event.target===this)closeCommandPalette()">
-  <div class="cmd-palette-panel" id="cmd-palette-panel" role="dialog" aria-modal="true" aria-label="Command palette">
-    <div class="cmd-palette-input-wrap">
-      <span class="cmd-palette-icon">⌘</span>
-      <input
-        class="cmd-palette-input"
-        id="cmd-palette-input"
-        type="text"
-        placeholder="Buscar acción o comando…"
-        autocomplete="off"
-        autocorrect="off"
-        spellcheck="false"
-        oninput="_cpInput(event)"
-        onkeydown="_cpKeydown(event)"
-      >
-      <kbd class="cmd-palette-esc-hint">ESC</kbd>
+<!-- Command Palette — cp-overlay (activo) -->
+<div class="cmd-palette-overlay is-hidden" id="cp-overlay" onclick="if(event.target===this)closeCommandPalette()">
+  <div class="cmd-palette-panel" id="cp-container" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="cmd-palette-input-wrap" id="cp-search-bar">
+      <span class="cmd-palette-icon" id="cp-search-icon">⌘</span>
+      <input class="cmd-palette-input" id="cp-input" type="text" placeholder="Buscar acción o comando…" autocomplete="off" autocorrect="off" spellcheck="false">
+      <div class="cmd-palette-esc-hint" id="cp-kbd-hint"><kbd>ESC</kbd></div>
     </div>
-    <div class="cmd-palette-list" id="cmd-palette-list"></div>
-    <div class="cmd-palette-footer">
-      <span><kbd class="cp-hint-key">↑↓</kbd> navegar</span>
-      <span><kbd class="cp-hint-key">↵</kbd> ejecutar</span>
-      <span><kbd class="cp-hint-key">ESC</kbd> cerrar</span>
+    <div class="cmd-palette-list" id="cp-body"></div>
+    <div class="cmd-palette-footer" id="cp-footer">
+      <span class="cp-footer-hint"><kbd>↑↓</kbd> navegar</span>
+      <span class="cp-footer-hint"><kbd>↵</kbd> ejecutar</span>
+      <span class="cp-footer-hint"><kbd>ESC</kbd> cerrar</span>
     </div>
   </div>
 </div>
-<!-- END T-202604-418 -->
 
 <!-- ═══ DOC LOG DRAWER ═══ -->
 <div id="doc-log-overlay" onclick="closeDocLog()"></div>
@@ -1507,7 +1433,6 @@
   <div class="doc-log-body" id="doc-log-body"></div>
 </div>
 
-<!-- T-202605-448: Resumen semanal automático — modal lunes -->
 <div class="weekly-modal-overlay weekly-modal--hidden" id="weekly-summary-modal" role="dialog" aria-modal="true" aria-label="Resumen semanal">
   <div class="weekly-modal-panel">
     <div class="weekly-modal-header">
@@ -1527,7 +1452,6 @@
     </div>
   </div>
 </div>
-<!-- /T-202605-448 -->
 
 <div id="toast-stack" aria-live="polite" aria-atomic="false"></div>
 <div id="ckpt-panel">
@@ -1539,8 +1463,8 @@
   <div class="ckpt-progress"><div class="ckpt-progress-bar" id="ckpt-bar"></div></div>
 </div>
 
-<!-- T-202604-163: search animada — funciones JS (migrar a checkpoint.js cuando esté disponible) -->
 <script>
+function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')=='dark'?'light':'dark');}
 function toggleHeaderSearch() {
   const wrap  = document.getElementById('search-expand-wrap');
   const btn   = document.getElementById('search-toggle-btn');
@@ -1582,7 +1506,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }, 1200);
 });
 // B-202605-503: validación de reset-sessions-input — lógica extraída de oninput inline a función nombrada
-// TODO: migrar al módulo de modales cuando se refactorice
 function _validateResetSessionsInput(el) {
   const v = el.value.trim();
   const ok = v === 'RESET';
@@ -1592,7 +1515,6 @@ function _validateResetSessionsInput(el) {
   else { hint.classList.add('is-hidden'); }
 }
 // B-202605-037: validación de reset-backlog-input — lógica extraída de oninput inline a función nombrada
-// TODO: migrar a ai-tracker-backlog.js cuando se refactorice el módulo de modales
 function _validateResetBacklogInput(el) {
   const v = el.value.trim();
   const ok = v === 'RESET';
@@ -1723,13 +1645,11 @@ function _validateResetBacklogInput(el) {
 
     </div>
 
-    <!-- R-202604-086: Ritual de cierre de sprint -->
     <div class="mg-ritual-hint" role="note">
       <span class="mg-ritual-icon" aria-hidden="true"></span>
       <span class="mg-ritual-text"><strong>Ritual de cierre de sprint:</strong> genera MAP + CONTEXT + BACKLOG + Sprint Review al cerrar. El paquete se descarga con versión bumpeada (semver minor) y la versión se actualiza en PP automáticamente.</span>
     </div>
 
-    <!-- R-202605-146: Exportar individual — sección fija al pie del overlay -->
     <div class="mg-export-strip">
       <div class="mg-export-strip-label">Exportar</div>
       <div class="mg-export-strip-btns">
@@ -1740,7 +1660,6 @@ function _validateResetBacklogInput(el) {
       </div>
       <button class="mg-export-all-btn" onclick="_mgExportAllZip()">descargar todo ↓</button>
     </div>
-    <!-- /R-202605-146 -->
 
     <!-- Footer -->
     <div class="mg-footer">
@@ -1763,9 +1682,7 @@ function _validateResetBacklogInput(el) {
 <script src="ai-tracker-sprint-project.js"></script>
 <script src="ai-tracker-map-generator.js"></script>
 <script src="ai-tracker-command-palette.js"></script>
-<!-- ═══ AI STATUS BAR — DEPRECATED T-202604-254 ═══ -->
 
-<!-- T-202604-163: garantizar que applyTheme setea data-theme en <html> para :root[data-theme] CSS -->
 <!-- [pendiente-ID]: patch extendido — actualiza aria-label del theme-toggle-btn al cambiar tema -->
 <script>
 (function patchApplyTheme() {
@@ -1787,7 +1704,6 @@ function _validateResetBacklogInput(el) {
 })();
 </script>
 
-<!-- R-202604-073: Panel Pulso del Ecosistema — overlay no bloqueante -->
 <div class="pulso-overlay" id="pulso-overlay" onclick="if(event.target===this)closePulsoPanel()" role="dialog" aria-modal="true" aria-label="Pulso del Ecosistema">
   <div class="pulso-panel" id="pulso-panel">
     <div class="pulso-header">
@@ -1798,7 +1714,6 @@ function _validateResetBacklogInput(el) {
   </div>
 </div>
 
-<!-- R-202604-072: Sesión de Arranque -->
 <div class="arranque-overlay" id="arranque-overlay" role="dialog" aria-modal="true" aria-label="Sesión de Arranque">
   <div class="arranque-panel" id="arranque-panel">
     <div class="arranque-header">
@@ -1812,9 +1727,7 @@ function _validateResetBacklogInput(el) {
     </div>
   </div>
 </div>
-<!-- END R-202604-072 -->
 
-<!-- R-202604-060 T-202604-370 R-202604-080: Global footer — barra de estado global -->
 <footer id="global-footer">
   <span id="gf-proyecto" class="gf-proyecto gf-hidden"></span>
   <span id="gf-total" class="gf-total gf-hidden"></span>
@@ -1823,39 +1736,6 @@ function _validateResetBacklogInput(el) {
   <span id="gf-pulso" class="gf-pulso gf-hidden" onclick="openPulsoPanel()" title="Pulso del Ecosistema"><span class="pulso-dot pulso-dot--green" id="pulso-dot"></span></span>
   <span id="gf-sync" class="gf-sync gf-hidden"></span>
 </footer>
-<!-- END R-202604-060 R-202604-080 -->
-<!-- R-202604-086: estilos del ritual hint — migrados a ai-tracker-extra.css R-202605-102 -->
-
-<!-- T-202605-442: Atajos de teclado — estilos -->
-<!-- END T-202605-442 -->
-
-<!-- R-202604-078: Vista Por IA / Historial — estilos de header, toggle, vistas y col 1 -->
-<!-- END R-202604-078 -->
-
-<!-- S-17: T-446 Cronómetro · T-447 Sesión sugerida · T-448 Resumen semanal -->
-<!-- /S-17 CSS -->
-
-
-
-<!-- T-202604-423: estilos migrados a ai-tracker-extra.css -->
-
-<!-- T-202604-417: Panel de retrospectiva de sprint cerrado -->
-<div class="sprint-retro-panel-overlay" id="sprint-retro-panel-overlay">
-  <div class="sprint-retro-panel">
-    <div class="srp-header">
-      <div class="srp-title-wrap">
-        <span class="srp-icon">📋</span>
-        <span class="srp-title" id="srp-title"></span>
-      </div>
-      <div class="srp-header-actions">
-        <button class="srp-export-btn" id="srp-export-btn">Exportar MD</button>
-        <button class="srp-close-btn" onclick="closeRetroPanel()" title="Cerrar">✕</button>
-      </div>
-    </div>
-    <div class="srp-body" id="srp-body"></div>
-  </div>
-</div>
-<!-- T-202605-USR: user chip styles -->
 
 
 </body></html>
