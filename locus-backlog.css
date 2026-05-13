@@ -7664,7 +7664,6 @@ textarea:hover {
 }
 
 
-
 @media (prefers-reduced-motion: reduce) {
   .pulso-dot--yellow,
   .pulso-dot--red {
@@ -7702,3 +7701,4 @@ textarea:hover {
     animation: none;
   }
 }
+

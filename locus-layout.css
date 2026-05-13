@@ -68,8 +68,8 @@
   display: flex; flex-direction: column; align-items: center; gap: 16px;
 }
 
-#pepe-splash img { 
-  width: 80px; height: 80px; object-fit: contain; 
+#pepe-splash img {
+  width: 80px; height: 80px; object-fit: contain;
   animation: pepe-pulse 2s ease-in-out infinite;
 }
 
@@ -1520,10 +1520,6 @@ button {
 }
 
 
-
-
-
-
 /* prefers-reduced-motion — deshabilitar transiciones de T-381/T-386 + CSS-05 */
 @media (prefers-reduced-motion: reduce) {
   /* T-381/T-386 — originales */
@@ -1572,10 +1568,6 @@ button {
   .sync-pill.syncing {
     animation: none;
   }
-
-  .sync-pill.syncing::before {
-    animation: none;
-  }
 }
 
 /* ══ END S-CPR: utilidades ══ */
@@ -1588,3 +1580,4 @@ button {
 
   /* Tracker — área de detalle contenida para evitar estiramiento de cards */
 }
+
