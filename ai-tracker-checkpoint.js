@@ -544,7 +544,7 @@ function switchTab(tab) {
   if (_surPanel) _surPanel.remove();
 
   if (tab === 'tracker') {
-    applyViewMode();
+    render(); // B-202605-[pendiente-ID]: applyViewMode eliminada en refactor — reemplazada por render()
   } else if (tab === 'backlog') {
     updateBacklogBanner();
     renderBacklogList();
