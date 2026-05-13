@@ -348,6 +348,245 @@
 
 /* Card */
 
+/* ══ card-header-premium — header premium de cards de IA ══ */
+/* Reemplaza la zona visual de .card-strip en cards que usan renderCard() */
+
+.card-header-premium {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Avatar column ── */
+
+.card-avatar-col {
+  flex-shrink: 0;
+}
+
+.card-avatar {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  transition: box-shadow var(--transition-fast);
+}
+
+.card-avatar.available {
+  background: var(--green-dim);
+  color: var(--green);
+  box-shadow: 0 0 0 2px var(--green);
+}
+
+.card-avatar.exhausted {
+  background: var(--red-dim);
+  color: var(--red);
+  box-shadow: 0 0 0 2px var(--red-border);
+}
+
+.card-avatar.interrupted {
+  background: rgb(232 168 50 / 10%);
+  color: var(--amber);
+  box-shadow: 0 0 0 2px var(--amber);
+}
+
+.card-avatar-initial {
+  position: relative;
+  z-index: var(--z-raised);
+  line-height: 1;
+}
+
+/* Pulse ring — solo en available */
+.card-avatar-pulse {
+  position: absolute;
+  inset: -4px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--green);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.card-avatar.available .card-avatar-pulse {
+  animation: avatarRingPulse 2.4s ease-in-out infinite;
+}
+
+.card-avatar.exhausted .card-avatar-pulse,
+.card-avatar.interrupted .card-avatar-pulse {
+  display: none;
+}
+
+@keyframes avatarRingPulse {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-avatar-pulse { animation: none; }
+}
+
+/* ── Identity column ── */
+
+.card-identity {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.card-name-row .card-name {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: default;
+}
+
+.card-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* ── Status pill — base + estados ── */
+
+.card-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+.card-status-pill.insession {
+  color: var(--purple);
+  border-color: rgb(124 106 247 / 35%);
+  background: rgb(124 106 247 / 8%);
+}
+
+/* Status dot animado dentro del pill */
+.card-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+.card-status-pill.available .card-status-dot {
+  animation: statusDotBlink 2s ease-in-out infinite;
+}
+
+.card-status-pill.insession .card-status-dot {
+  animation: statusDotBlink 1.2s ease-in-out infinite;
+}
+
+@keyframes statusDotBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-status-dot { animation: none; }
+}
+
+/* ── Right column — acciones ── */
+
+.card-right {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.btn-quick {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--hint);
+  font-size: var(--text-md);
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.btn-quick:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-glow);
+}
+
+.btn-quick:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.focus-exit-btn {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+  font-family: var(--font-sans);
+  color: var(--hint);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 3px 8px;
+  cursor: pointer;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.focus-exit-btn:hover {
+  color: var(--text);
+  border-color: var(--border2);
+}
+
+.card-drag-handle {
+  color: var(--hint);
+  font-size: var(--text-md);
+  cursor: grab;
+  padding: 0 2px;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  user-select: none;
+}
+
+.card-header-premium:hover .card-drag-handle {
+  opacity: 1;
+}
+
+.card-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* ══ END card-header-premium ══ */
+
 .card-header-left {
   display: flex;
   align-items: center;
@@ -2437,6 +2676,16 @@
 }
 
 /* T-074: dot indicator sugerencia contextual */
+.stale-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--amber);
+  flex-shrink: 0;
+  cursor: pointer;
+  transition: box-shadow var(--transition-fast);
+}
+
 .stale-dot:hover {
   box-shadow: 0 0 0 3px rgb(232 168 50 / 30%);
 }
@@ -3935,13 +4184,13 @@
 
 .card-status-pill.available {
   color: var(--green);
-  border: 1px solid var(--green);
+  border-color: var(--green);
   background: var(--green-dim);
 }
 
 .card-status-pill.exhausted {
   color: var(--red);
-  border: 1px solid var(--red-border);
+  border-color: var(--red-border);
   background: var(--red-dim);
 }
 
