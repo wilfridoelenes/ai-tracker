@@ -80,6 +80,14 @@
       <!-- R-202605-169: Pulso dot en header — estado rápido del ecosistema -->
       <button class="pulso-dot pulso-dot--neutral" id="header-pulso-dot" onclick="openPulsoPanel()" aria-label="Sin datos" title="Sin datos"></button>
 
+      <!-- [pendiente-ID]: Panel pendientes — trigger header -->
+      <button class="header-pend-btn is-hidden" id="header-pend-btn"
+              onclick="openPendPanel()"
+              aria-label="Ver pendientes">
+        <span class="header-pend-btn__icon" aria-hidden="true">⏳</span>
+        <span class="header-pend-btn__count" id="header-pend-count" aria-hidden="true"></span>
+      </button>
+
       <!-- R-202605-170: Worker activo chip — nombre y cronómetro visible sin abrir sidebar -->
       <button class="header-worker-chip hidden" id="header-active-worker" onclick="_hwcClick()" title="Worker en sesión">
         <span class="hwc-dot session-timer-dot--active"></span>
@@ -340,10 +348,17 @@
   </div><!-- /tracker-3col -->
 
   <!-- R-202604-036: Visualizador de ítems — panel overlay al parsear paste -->
-  <div class="item-viz-overlay hidden" id="item-viz-overlay">
+  <!-- [pendiente-ID]: aria-live="polite" + aria-atomic + role="region" + tabindex para gestión de foco -->
+  <div class="item-viz-overlay hidden" id="item-viz-overlay"
+       role="region"
+       aria-label="Ítems detectados"
+       aria-live="polite"
+       aria-atomic="true"
+       tabindex="-1">
     <div class="item-viz-panel" id="item-viz-panel">
       <div class="item-viz-header">
         <span class="item-viz-title">Ítems detectados</span>
+        <span class="item-viz-origin-badge">Desde: editor de ítem</span>
         <div class="item-viz-header-actions">
           <button class="item-viz-confirm-btn" id="item-viz-confirm-btn" onclick="_itemVizConfirm()">Confirmar merge</button>
           <button class="item-viz-close-btn" onclick="_itemVizClose()">✕</button>
@@ -448,13 +463,13 @@
 
     <!-- Capa 1: Toolbar principal — layout + vistas + collapse + búsqueda -->
     <div class="bl-toolbar" id="bl-toolbar">
-      <div class="bl-toolbar-views">
-        <button class="bl-toolbar-view-btn active" id="fbar-sprint-btn" onclick="toggleBacklogSprintGroupMode()" title="Agrupación por sprint activa — click para vista plana">Sprints</button>
-        <button class="bl-toolbar-view-btn active" id="fbar-tree-btn" onclick="toggleBacklogTreeMode()" title="Vista árbol">⊞ Árbol</button>
-        <button class="bl-toolbar-view-btn" id="fbar-kanban-btn" onclick="toggleBacklogKanbanMode()" title="Vista Kanban">⬛ Kanban</button>
-        <button class="bl-toolbar-view-btn" id="fbar-focus-btn" onclick="toggleBacklogFocusMode()" title="Focus — Top 10 por prioridad">🎯 Focus</button>
-        <button class="bl-toolbar-view-btn hidden" id="fbar-mike-btn" onclick="toggleBacklogMikeMode()" title="Mi vista — T's pendientes por rol en sprint activo">Mi vista</button>
-        <button class="bl-toolbar-view-btn" id="fbar-planning-btn" onclick="toggleBacklogPlanningMode()" title="Vista Planificación — asignar ítems al siguiente sprint">📅 Planificar</button>
+      <div class="bl-toolbar-views" role="tablist" aria-label="Vista del backlog">
+        <button class="bl-toolbar-view-btn active" id="fbar-sprint-btn" onclick="toggleBacklogSprintGroupMode()" title="Agrupación por sprint activa — click para vista plana" role="tab" aria-selected="true">Sprints</button>
+        <button class="bl-toolbar-view-btn active" id="fbar-tree-btn" onclick="toggleBacklogTreeMode()" title="Vista árbol" role="tab" aria-selected="true">⊞ Árbol</button>
+        <button class="bl-toolbar-view-btn" id="fbar-kanban-btn" onclick="toggleBacklogKanbanMode()" title="Vista Kanban" role="tab" aria-selected="false">⬛ Kanban</button>
+        <button class="bl-toolbar-view-btn" id="fbar-planning-btn" onclick="toggleBacklogPlanningMode()" title="Vista Planificación — asignar ítems al siguiente sprint" role="tab" aria-selected="false">📅 Planificar</button>
+        <button class="bl-toolbar-view-btn" id="fbar-focus-btn" onclick="toggleBacklogFocusMode()" title="Focus — Top 10 por prioridad" role="checkbox" aria-checked="false">🎯 Focus</button>
+        <button class="bl-toolbar-view-btn hidden" id="fbar-mike-btn" onclick="toggleBacklogMikeMode()" title="Mi vista — T's pendientes por rol en sprint activo" role="checkbox" aria-checked="false">Mi vista</button>
       </div>
       <div class="bl-toolbar-divider"></div>
       <button class="bl-collapse-btn" id="bl-collapse-all-btn" onclick="toggleCollapseAll()" title="Colapsar / expandir todos los grupos">
@@ -743,33 +758,81 @@
 
 
 
-<!-- T-071: Modal captura rápida -->
-<div class="quick-modal-overlay" id="quick-modal-overlay" onclick="closeQuickModal(event)">
-  <div class="quick-modal" onclick="event.stopPropagation()">
-    <div class="quick-modal-title">
-      ＋ Sesión rápida
-      <span class="quick-modal-ai-name" id="quick-modal-ai-name"></span>
-    </div>
-    <div class="quick-field">
-      <label>Título <span class="req-asterisk">*</span></label>
-      <input type="text" id="quick-title" placeholder="¿Qué se hizo en esta sesión?" onkeydown="quickTitleKey(event)">
-    </div>
-    <div class="quick-field">
-      <label>Resumen <span class="optional-label">(opcional)</span></label>
-      <textarea id="quick-summary" rows="3" placeholder="Detalles adicionales..."></textarea>
-    </div>
-    <div class="quick-hora-row">
-      <input class="quick-hora-input" id="quick-hora" type="text" maxlength="4" placeholder="--:--" oninput="quickParseHora()" onkeydown="if(event.key==='Enter')confirmQuickCapture()" title="Hora de reset (opcional)">
-      <div>
-        <div class="quick-hora-hint" id="quick-hora-disp">hora de desbloqueo (opcional)</div>
+<!-- R-[pendiente-ID]: Quick Capture — modal unificado con stepper de 2 pasos -->
+<!-- Reemplaza: #quick-modal-overlay (T-071) + #ai-quick-select-modal -->
+<!-- JS: openQuickCapture(), closeQuickCapture(), confirmQuickCapture() en ai-tracker-session.js -->
+<div class="quick-modal-overlay qc-overlay" id="qc-modal-overlay" role="dialog" aria-modal="true" aria-label="Quick Capture" onclick="closeQuickCapture(event)">
+  <div class="quick-modal qc-modal" onclick="event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="qc-header">
+      <span class="qc-title-text">Quick Capture</span>
+      <div class="qc-header-right">
+        <!-- Stepper — oculto en skip (worker único) via JS: qc-stepper.hidden -->
+        <div class="qc-stepper" id="qc-stepper" aria-label="Paso 1 de 2">
+          <span class="qc-dot qc-dot--active" id="qc-dot-1"></span>
+          <span class="qc-dot" id="qc-dot-2"></span>
+        </div>
+        <button class="qc-close-btn" onclick="closeQuickCapture()" aria-label="Cerrar modal">✕</button>
       </div>
     </div>
-    <div class="modal-actions">
-      <button onclick="closeQuickModal()">Cancelar</button>
-      <button class="btn-primary" id="quick-confirm-btn" onclick="confirmQuickCapture()">Guardar</button>
+
+    <!-- Paso 1: Selector de Worker -->
+    <!-- JS: mostrar con qc-panel-1.classList.remove('hidden') -->
+    <!-- JS: ocultar con qc-panel-1.classList.add('hidden') -->
+    <!-- AC: si worker único → skip — este panel no se muestra -->
+    <div class="qc-panel" id="qc-panel-1">
+      <p class="qc-panel-label">¿Para qué Worker es esta captura?</p>
+      <div class="qc-worker-list" id="qc-worker-list">
+        <!-- JS inyecta qc-worker-item por cada Worker registrado -->
+        <!-- Ejemplo de ítem generado por JS:
+        <button class="qc-worker-item" data-worker-id="[id]" onclick="qcSelectWorker(this)">
+          <span class="qc-worker-avatar" data-sigla="FS">FS</span>
+          <span class="qc-worker-name">Rune</span>
+          <span class="qc-worker-check hidden">✓</span>
+        </button>
+        -->
+      </div>
     </div>
+
+    <!-- Paso 2: Formulario de captura -->
+    <!-- JS: mostrar con qc-panel-2.classList.remove('hidden') -->
+    <!-- JS: ocultar con qc-panel-2.classList.add('hidden') -->
+    <div class="qc-panel hidden" id="qc-panel-2">
+      <!-- Chip de contexto: Worker destino — JS actualiza #qc-worker-chip-name -->
+      <div class="qc-worker-chip">
+        <span class="qc-worker-chip-label">Capturando para:</span>
+        <span class="qc-worker-chip-name" id="qc-worker-chip-name"></span>
+      </div>
+      <!-- Campos del formulario — mantienen IDs existentes para compatibilidad con JS -->
+      <div class="quick-field">
+        <label>Título <span class="req-asterisk">*</span></label>
+        <input type="text" id="quick-title" placeholder="¿Qué se hizo en esta sesión?" onkeydown="quickTitleKey(event)">
+      </div>
+      <div class="quick-field">
+        <label>Resumen <span class="optional-label">(opcional)</span></label>
+        <textarea id="quick-summary" rows="3" placeholder="Detalles adicionales..."></textarea>
+      </div>
+      <div class="quick-hora-row">
+        <input class="quick-hora-input" id="quick-hora" type="text" maxlength="4" placeholder="--:--" oninput="quickParseHora()" onkeydown="if(event.key==='Enter')confirmQuickCapture()" title="Hora de reset (opcional)">
+        <div>
+          <div class="quick-hora-hint" id="quick-hora-disp">hora de desbloqueo (opcional)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-actions qc-footer">
+      <!-- JS alterna texto: "Cancelar" en paso 1 / "Atrás" en paso 2 -->
+      <button id="qc-back-btn" onclick="qcHandleBack()">Cancelar</button>
+      <!-- JS alterna texto: "Continuar" en paso 1 / "Guardar" en paso 2 -->
+      <!-- JS habilita/deshabilita: disabled hasta selección en paso 1 -->
+      <button class="btn-primary" id="qc-next-btn" onclick="qcHandleNext()" disabled>Continuar</button>
+    </div>
+
   </div>
 </div>
+<!-- END R-[pendiente-ID] Quick Capture modal unificado -->
 
 <!-- T-075: Firebase Onboarding Wizard -->
 <!-- ═══ T-202604-009: ONBOARDING PRIMER USO ═══ -->
@@ -1242,16 +1305,8 @@
   <div class="promote-modal migrate-modal" id="migrate-modal-body"></div>
 </div>
 
-<!-- ai-quick-select-modal -->
-<div class="modal-overlay" id="ai-quick-select-modal">
-  <div class="modal modal--narrow">
-    <div class="modal-title">Seleccionar Worker para captura rápida</div>
-    <div class="ai-quick-select-list" id="ai-quick-select-list"></div>
-    <div class="modal-actions">
-      <button onclick="document.getElementById('ai-quick-select-modal').classList.remove('open')">Cancelar</button>
-    </div>
-  </div>
-</div>
+<!-- ai-quick-select-modal DEPRECADO — R-[pendiente-ID] -->
+<!-- Reemplazado por #qc-modal-overlay (Paso 1 del modal unificado) -->
 
 <!-- changelog-overlay -->
 <div class="modal-overlay" id="changelog-overlay">

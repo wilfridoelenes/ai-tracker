@@ -777,6 +777,8 @@ function loadBacklog() {
   _recalcAllScores(); // T-202604-257: estampar score en memoria tras cargar
   // B-202605-048: saveBacklog() solo si hubo migraciones o saneamiento — carga limpia no escribe
   if (migrated || sanitized > 0) saveBacklog();
+  // AC aria tablist: sincronizar estado inicial de atributos aria desde variables de estado
+  if (typeof _syncViewAriaStates === 'function') _syncViewAriaStates();
 }
 
 // T-049: derivar tipo del código
@@ -1675,6 +1677,39 @@ function toggleBacklogFooter() {
   if (toggleBtn)  toggleBtn.textContent = _blFooterCollapsed ? '▼' : '▲';
 }
 
+// AC: aria tablist — sincroniza atributos aria-selected (vistas de agrupación) y aria-checked (modificadores)
+// Vistas de agrupación mutuamente excluyentes: Sprints · Árbol · Kanban · Planificar
+// Modificadores combinables: Focus · Mi vista
+// Regla: nunca todas las vistas de agrupación inactivas — default Sprints
+function _syncViewAriaStates() {
+  // Vistas de agrupación — aria-selected refleja estado de cada variable
+  const sprintBtn   = document.getElementById('fbar-sprint-btn');
+  const treeBtn     = document.getElementById('fbar-tree-btn');
+  const kanbanBtn   = document.getElementById('fbar-kanban-btn');
+  const planningBtn = document.getElementById('fbar-planning-btn');
+
+  // Determinar vista de agrupación activa
+  // Prioridad: Planificación > Kanban > Árbol > Sprints (default)
+  const anyGroupActive = _backlogPlanningMode || _backlogKanbanMode || _backlogTreeMode || _backlogSprintGroupMode;
+  // Garantizar default: si ninguna activa, activar Sprints
+  if (!anyGroupActive) {
+    _backlogSprintGroupMode = true;
+    localStorage.setItem('backlog-sprint-group-mode', 'true');
+    if (sprintBtn) sprintBtn.classList.add('active');
+  }
+
+  if (sprintBtn)   sprintBtn.setAttribute('aria-selected',   String(_backlogSprintGroupMode && !_backlogKanbanMode && !_backlogPlanningMode));
+  if (treeBtn)     treeBtn.setAttribute('aria-selected',     String(_backlogTreeMode && !_backlogKanbanMode && !_backlogPlanningMode));
+  if (kanbanBtn)   kanbanBtn.setAttribute('aria-selected',   String(_backlogKanbanMode && !_backlogPlanningMode));
+  if (planningBtn) planningBtn.setAttribute('aria-selected', String(_backlogPlanningMode));
+
+  // Modificadores — aria-checked refleja estado
+  const focusBtn = document.getElementById('fbar-focus-btn');
+  const mikeBtn  = document.getElementById('fbar-mike-btn');
+  if (focusBtn) focusBtn.setAttribute('aria-checked', String(_backlogFocusMode));
+  if (mikeBtn)  mikeBtn.setAttribute('aria-checked',  String(_backlogMikeMode));
+}
+
 function toggleBacklogMikeMode() {
   const roles = _getMiViewRoles();
   if (!roles.length) return;
@@ -1698,6 +1733,7 @@ function toggleBacklogMikeMode() {
       : 'Mi vista — T\'s pendientes por rol en sprint activo';
   }
   updateClearFilterBtn();
+  _syncViewAriaStates();
   renderBacklogList();
 }
 
@@ -1705,6 +1741,7 @@ function toggleBacklogKanbanMode() {
   _backlogKanbanMode = !_backlogKanbanMode;
   if (_backlogKanbanMode) {
     _backlogTreeMode = false;
+    _backlogPlanningMode = false;
     localStorage.setItem('backlog-view-mode', 'kanban');
   } else {
     localStorage.setItem('backlog-view-mode', 'false'); // plano al salir de kanban
@@ -1718,11 +1755,13 @@ function toggleBacklogKanbanMode() {
   // Actualizar botón kanban
   const kbBtn = document.getElementById('fbar-kanban-btn');
   if (kbBtn) kbBtn.classList.toggle('active', _backlogKanbanMode);
+  _syncViewAriaStates();
   renderBacklogList();
 }
 
 function toggleBacklogTreeMode() {
   if (_backlogKanbanMode) { _backlogKanbanMode = false; }
+  if (_backlogPlanningMode) { _backlogPlanningMode = false; }
   _backlogTreeMode = !_backlogTreeMode;
   localStorage.setItem('backlog-view-mode', String(_backlogTreeMode));
   const btn = document.getElementById('fbar-tree-btn');
@@ -1731,6 +1770,7 @@ function toggleBacklogTreeMode() {
     btn.title = _backlogTreeMode ? 'Vista árbol activa — click para vista plana' : 'Vista plana activa — click para vista árbol';
     btn.classList.toggle('active', _backlogTreeMode);
   }
+  _syncViewAriaStates();
   renderBacklogList();
 }
 
@@ -1749,18 +1789,25 @@ function toggleBacklogFocusMode() {
   // B-202604-157: recalcular scores al activar Focus — garantiza orden por relevancia actualizado
   if (_backlogFocusMode) _recalcAllScores();
   updateClearFilterBtn();
+  _syncViewAriaStates();
   renderBacklogList();
 }
 
 // R-[tmp:sprint-group-toggle]: toggle agrupación por sprint en backlog activo
 function toggleBacklogSprintGroupMode() {
   _backlogSprintGroupMode = !_backlogSprintGroupMode;
+  if (_backlogSprintGroupMode) {
+    _backlogKanbanMode = false;
+    _backlogTreeMode = false;
+    _backlogPlanningMode = false;
+  }
   localStorage.setItem('backlog-sprint-group-mode', String(_backlogSprintGroupMode));
   const btn = document.getElementById('fbar-sprint-btn');
   if (btn) {
     btn.classList.toggle('active', _backlogSprintGroupMode);
     btn.title = _backlogSprintGroupMode ? 'Agrupación por sprint activa — click para vista plana' : 'Vista plana activa — click para agrupar por sprint';
   }
+  _syncViewAriaStates();
   renderBacklogList();
 }
 
@@ -1782,6 +1829,8 @@ function toggleBacklogPlanningMode() {
   // Al activar planning, desactivar otros modos de vista exclusivos
   if (_backlogPlanningMode) {
     _backlogKanbanMode = false;
+    _backlogTreeMode = false;
+    _backlogSprintGroupMode = false;
     _backlogFocusMode = false;
   }
   const btn = document.getElementById('fbar-planning-btn');
@@ -1796,6 +1845,7 @@ function toggleBacklogPlanningMode() {
   const focusBtn = document.getElementById('fbar-focus-btn');
   if (focusBtn) focusBtn.classList.toggle('active', _backlogFocusMode);
   updateClearFilterBtn();
+  _syncViewAriaStates();
   renderBacklogList();
 }
 

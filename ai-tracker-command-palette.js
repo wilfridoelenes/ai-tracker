@@ -184,6 +184,15 @@ function _buildCommandRegistry() {
         if (typeof toggleFocusMode === 'function') toggleFocusMode();
       },
     },
+    // [pendiente-ID]: Panel de pendientes — trigger via Command Palette
+    {
+      id: 'action-open-pend-panel',
+      label: 'Ver pendientes',
+      icon: '⏳',
+      keywords: ['pendientes', 'pend', 'panel', 'ver', 'pendiente'],
+      group: 'Acciones',
+      action: () => { if (typeof openPendPanel === 'function') openPendPanel(); },
+    },
   ];
 
   return [...nav, ...actions];

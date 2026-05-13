@@ -1155,6 +1155,9 @@ let _pendingCompleteId = null;
 // El botón Guardar queda en estado --btn-blocked hasta que el usuario selecciona proyecto en el card.
 // No dispara toast — la advertencia vive completamente dentro del panel.
 function _showProjRequiredInPanel(id, parsed, horaResult) {
+  // [pendiente-ID] fix: guardar foco antes de cualquier mutación DOM (body.innerHTML + cloneNode)
+  const _vizPrevFocus = document.activeElement;
+
   const overlay = document.getElementById('item-viz-overlay');
   const confirmBtn = document.getElementById('item-viz-confirm-btn');
   const body = document.getElementById('item-viz-body');
@@ -1219,7 +1222,13 @@ function _showProjRequiredInPanel(id, parsed, horaResult) {
     if (!_resolvedProj) return;
     overlay.classList.add('closing');
     overlay.classList.remove('open');
-    setTimeout(() => overlay.classList.remove('closing', 'item-viz--flex'), 220);
+    setTimeout(() => {
+      overlay.classList.remove('closing', 'item-viz--flex');
+      // [pendiente-ID]: restaurar foco al elemento que lo tenía antes de abrir
+      if (_vizPrevFocus && typeof _vizPrevFocus.focus === 'function') {
+        _vizPrevFocus.focus();
+      }
+    }, 220);
     // Sincronizar selector del card para que el estado quede consistente
     const projSelectEl = document.getElementById('sess-proj-' + id);
     if (projSelectEl) { projSelectEl.value = _resolvedProj.id; }
@@ -1229,7 +1238,8 @@ function _showProjRequiredInPanel(id, parsed, horaResult) {
   // Abrir panel
   overlay.classList.remove('closing');
   overlay.classList.add('open', 'item-viz--flex');
-}
+  // [pendiente-ID]: mover foco al overlay para lectores de pantalla
+  overlay.focus();
 
 function confirmSave(id) {
   saveSession(id);

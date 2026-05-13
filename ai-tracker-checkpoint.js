@@ -122,7 +122,13 @@ function _updateHeaderProjectLabel() {
       itemBtn.textContent = label;
       itemBtn.title = 'Ver ítem ' + code;
       itemBtn.onclick = function () {
-        if (typeof navigateToItem === 'function') navigateToItem(code);
+        const _allItems = (typeof ITEMS !== 'undefined') ? ITEMS : [];
+        const _target = _allItems.find(function(b) { return b.code === code; });
+        if (_target && typeof openItemPanel === 'function') {
+          openItemPanel(_target);
+        } else if (typeof navigateToItem === 'function') {
+          navigateToItem(code);
+        }
       };
       itemBtn.classList.remove('breadcrumb-seg--hidden');
     } else {
@@ -5364,31 +5370,155 @@ function buildCard(ai) {
   return el;
 }
 
-// ── T-071: Captura rápida ──
+// ── R-[pendiente-ID]: Quick Capture — modal unificado con stepper ──
+// Reemplaza: T-071 (quick-modal-overlay) + selectAIForQuickCapture (ai-quick-select-modal)
+// Shell HTML: #qc-modal-overlay con #qc-panel-1 (selector) y #qc-panel-2 (formulario)
+// CSS: locus-modals.css §qc-
+
 let _quickAIId = null;
+let _qcStep = 0; // 0 = sin inicializar · 1 = paso 1 · 2 = paso 2
 
+// ── Helpers internos ──
+
+function _qcEl(id) { return document.getElementById(id); }
+
+// AC-10: transición entre pasos via .hidden — sin style.display (CSS Purity H-01/H-02)
+function _qcSetStep(step) {
+  _qcStep = step;
+  const panel1 = _qcEl('qc-panel-1');
+  const panel2 = _qcEl('qc-panel-2');
+  const dot1   = _qcEl('qc-dot-1');
+  const dot2   = _qcEl('qc-dot-2');
+  const stepper = _qcEl('qc-stepper');
+  const backBtn = _qcEl('qc-back-btn');
+  const nextBtn = _qcEl('qc-next-btn');
+
+  if (step === 1) {
+    panel1.classList.remove('hidden');
+    panel2.classList.add('hidden');
+    dot1.classList.add('qc-dot--active');
+    dot2.classList.remove('qc-dot--active');
+    stepper.setAttribute('aria-label', 'Paso 1 de 2');
+    backBtn.textContent = 'Cancelar';
+    nextBtn.textContent = 'Continuar';
+    nextBtn.disabled = !_qcEl('qc-worker-list').querySelector('.qc-worker-item--selected');
+  } else {
+    panel1.classList.add('hidden');
+    panel2.classList.remove('hidden');
+    dot1.classList.remove('qc-dot--active');
+    dot2.classList.add('qc-dot--active');
+    stepper.setAttribute('aria-label', 'Paso 2 de 2');
+    backBtn.textContent = 'Atrás';
+    nextBtn.textContent = 'Guardar';
+    nextBtn.disabled = false;
+    // AC-11: foco al primer elemento interactivo del Paso 2
+    setTimeout(() => { const qt = _qcEl('quick-title'); if (qt) qt.focus(); }, 60);
+  }
+}
+
+// Inyecta lista de Workers en Paso 1 — genera qc-worker-item por cada Worker activo
+function _qcRenderWorkerList() {
+  const list = _qcEl('qc-worker-list');
+  if (!list) return;
+  const available = (state.ais || []).filter(a => !a.archived);
+  list.innerHTML = available.map(ai => `
+    <button class="qc-worker-item" data-worker-id="${esc(ai.id)}" onclick="qcSelectWorker(this)">
+      <span class="qc-worker-avatar">${esc((ai.sigla || ai.name || '?').slice(0,2).toUpperCase())}</span>
+      <span class="qc-worker-name">${esc(ai.name)}</span>
+      <span class="qc-worker-check hidden">✓</span>
+    </button>
+  `).join('');
+}
+
+// ── API pública ──
+
+// AC-03/04/05: abre modal — con id salta Paso 1 (skip), sin id muestra selector
 function openQuickCapture(id) {
-  _quickAIId = id;
-  const ai = getAI(id);
-  document.getElementById('quick-modal-ai-name').textContent = ai.name;
-  document.getElementById('quick-title').value = '';
-  document.getElementById('quick-summary').value = '';
-  document.getElementById('quick-hora').value = '';
-  document.getElementById('quick-hora-disp').textContent = 'hora de desbloqueo (opcional)';
-  document.getElementById('quick-modal-overlay').classList.add('open');
-  setTimeout(() => document.getElementById('quick-title').focus(), 80);
+  const overlay = _qcEl('qc-modal-overlay');
+  if (!overlay) return;
+
+  // Limpiar estado previo
+  _quickAIId = null;
+  _qcStep = 0;
+  _qcEl('quick-title').value = '';
+  _qcEl('quick-summary').value = '';
+  _qcEl('quick-hora').value = '';
+  _qcEl('quick-hora-disp').textContent = 'hora de desbloqueo (opcional)';
+
+  const available = (state.ais || []).filter(a => !a.archived);
+
+  if (id) {
+    // Llamado directo con Worker conocido — skip Paso 1 (AC-05)
+    _quickAIId = id;
+    _qcEl('qc-stepper').classList.add('hidden'); // sin stepper en skip
+    _qcEl('qc-worker-chip-name').textContent = (getAI(id) || {}).name || id;
+    overlay.classList.add('open');
+    _qcSetStep(2);
+  } else if (available.length === 1) {
+    // AC-05: un solo Worker — skip Paso 1 directamente
+    _quickAIId = available[0].id;
+    _qcEl('qc-stepper').classList.add('hidden');
+    _qcEl('qc-worker-chip-name').textContent = available[0].name;
+    overlay.classList.add('open');
+    _qcSetStep(2);
+  } else {
+    // Múltiples Workers — mostrar Paso 1
+    _qcEl('qc-stepper').classList.remove('hidden');
+    _qcRenderWorkerList();
+    overlay.classList.add('open');
+    _qcSetStep(1);
+  }
 }
 
-function closeQuickModal(e) {
-  if (e && e.target !== document.getElementById('quick-modal-overlay')) return;
-  document.getElementById('quick-modal-overlay').classList.remove('open');
-  _quickAIId = null;
+// AC-04: selección de Worker en Paso 1
+function qcSelectWorker(el) {
+  _qcEl('qc-worker-list').querySelectorAll('.qc-worker-item').forEach(item => {
+    item.classList.remove('qc-worker-item--selected');
+    item.querySelector('.qc-worker-check').classList.add('hidden');
+  });
+  el.classList.add('qc-worker-item--selected');
+  el.querySelector('.qc-worker-check').classList.remove('hidden');
+  _quickAIId = el.dataset.workerId;
+  _qcEl('qc-next-btn').disabled = false;
 }
+
+// Botón Continuar / Guardar
+function qcHandleNext() {
+  if (_qcStep === 1) {
+    if (!_quickAIId) return;
+    _qcEl('qc-worker-chip-name').textContent = (getAI(_quickAIId) || {}).name || _quickAIId;
+    _qcSetStep(2);
+  } else {
+    confirmQuickCapture();
+  }
+}
+
+// Botón Cancelar / Atrás
+function qcHandleBack() {
+  if (_qcStep === 2 && _qcEl('qc-stepper') && !_qcEl('qc-stepper').classList.contains('hidden')) {
+    // En Paso 2 con stepper visible → volver a Paso 1
+    _quickAIId = null;
+    _qcSetStep(1);
+  } else {
+    closeQuickCapture();
+  }
+}
+
+// Cierra el modal y limpia estado
+function closeQuickCapture(e) {
+  if (e && e.target !== _qcEl('qc-modal-overlay')) return;
+  _qcEl('qc-modal-overlay').classList.remove('open');
+  _quickAIId = null;
+  _qcStep = 0;
+}
+
+// Alias legacy — closeQuickModal referenciado en cascade Escape y quickTitleKey
+function closeQuickModal(e) { closeQuickCapture(e); }
 
 // T-202605-430: usa _horaUpdate — feedback visual completo igual que la referencia
 function quickParseHora() {
-  const inp = document.getElementById('quick-hora');
-  const disp = document.getElementById('quick-hora-disp');
+  const inp = _qcEl('quick-hora');
+  const disp = _qcEl('quick-hora-disp');
   if (inp && !inp.value.replace(/\D/g, '')) {
     if (disp) { disp.textContent = 'hora de desbloqueo (opcional)'; disp.className = 'hora-disp--hint'; }
     return;
@@ -5398,20 +5528,20 @@ function quickParseHora() {
 
 function quickTitleKey(e) {
   if (e.key === 'Enter') { e.preventDefault(); confirmQuickCapture(); }
-  if (e.key === 'Escape') { closeQuickModal(); }
+  if (e.key === 'Escape') { closeQuickCapture(); }
 }
 
 function confirmQuickCapture() {
   if (!_quickAIId) return;
-  const title = document.getElementById('quick-title').value.trim();
+  const title = _qcEl('quick-title').value.trim();
   if (!title) {
-    document.getElementById('quick-title').focus();
-    const _qt = document.getElementById('quick-title');
+    _qcEl('quick-title').focus();
+    const _qt = _qcEl('quick-title');
     if (_qt) { _qt.classList.add('input-border-error'); setTimeout(() => _qt.classList.remove('input-border-error'), 1200); }
     return;
   }
-  const summary = document.getElementById('quick-summary').value.trim();
-  const horaRaw = document.getElementById('quick-hora').value.replace(/\D/g,'');
+  const summary = _qcEl('quick-summary').value.trim();
+  const horaRaw = _qcEl('quick-hora').value.replace(/\D/g,'');
   const horaResult = horaRaw ? interpretHora(horaRaw) : null;
 
   const ai = getAI(_quickAIId);
@@ -5449,14 +5579,15 @@ function confirmQuickCapture() {
     ai.resetEpoch = horaResult.epoch;
   }
 
-  document.getElementById('quick-modal-overlay').classList.remove('open');
-  _quickAIId = null;
+  closeQuickCapture();
   // B-202605-XXX: usar saveImmediate() para garantizar escritura en Supabase antes de
   // cualquier recarga. save() con debounce de 5s podía perder resetTime/resetEpoch/status
   // si el usuario recargaba la tab antes de que el timer disparara.
   saveImmediate().then(() => { render(); if (currentTab === 'hoy') renderHoy(); });
   showToast('success', `${ai.name} — sesión rápida guardada`);
 }
+
+// ── END R-[pendiente-ID] Quick Capture ──
 
 // ── T-055: Sesión interrumpida ──
 // T-093: confirmación inline dentro del dropdown antes de interrumpir
@@ -5633,7 +5764,7 @@ function _escCascade() {
     () => { const el = document.getElementById('shortcuts-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcuts(); return true; } },
     () => { const el = document.getElementById('cp-overlay') || document.getElementById('cmd-palette-overlay'); if (el && (el.classList.contains('cp-visible') || !el.classList.contains('is-hidden'))) { closeCommandPalette(); return true; } },
     () => { const el = document.getElementById('quick-note-modal'); if (el && el.offsetParent !== null) { if (typeof closeQuickNote === 'function') closeQuickNote(); return true; } },
-    () => { const el = document.getElementById('quick-modal-overlay'); if (el && el.classList.contains('open')) { closeQuickModal(); return true; } },
+    () => { const el = document.getElementById('qc-modal-overlay'); if (el && el.classList.contains('open')) { closeQuickCapture(); return true; } },
     () => { const el = document.getElementById('item-detail-panel'); if (el && el.classList.contains('open')) { if (typeof closeItemPanel === 'function') closeItemPanel(); return true; } },
     () => { const el = document.getElementById('item-editor-overlay'); if (el && el.offsetParent !== null) { if (typeof closeItemEditor === 'function') closeItemEditor(); return true; } },
     () => { const el = document.getElementById('merge-diff-overlay'); if (el && el.offsetParent !== null) { if (typeof showMergeDiffPanel === 'function') { const p = document.getElementById('item-viz-overlay'); if (p && !p.classList.contains('is-hidden')) { if (typeof _itemVizClose === 'function') _itemVizClose(); return true; } } } },
@@ -6815,28 +6946,15 @@ function renderHoy() {
 
 
 // T-202604-052: Selector de IA para captura rápida desde tab Hoy
+// R-[pendiente-ID]: selectAIForQuickCapture reemplazado — openQuickCapture() sin id
+// maneja skip si worker único y Paso 1 si múltiples
 function selectAIForQuickCapture() {
-  const available = state.ais.filter(a => !a.archived);
+  const available = (state.ais || []).filter(a => !a.archived);
   if (!available.length) {
-    showToast('warning', 'Sin IAs disponibles — todas agotadas');
+    showToast('warning', 'Sin Workers disponibles — todos agotados');
     return;
   }
-
-  // R-202604-047: shell estático en index.html — solo inject lista + classList
-  const modal = document.getElementById('ai-quick-select-modal');
-  if (!modal) return;
-
-  const list = document.getElementById('ai-quick-select-list');
-  if (list) {
-    list.innerHTML = available.map(ai => `
-      <div class="ai-quick-select-item" onclick="openQuickCapture('${ai.id}');document.getElementById('ai-quick-select-modal').classList.remove('open');">
-        <div class="ai-quick-select-name">${esc(ai.name)}</div>
-        <div class="ai-quick-select-status">${ai.status === 'available' ? '✓ Disponible' : '⏳ Agotada'}</div>
-      </div>
-    `).join('');
-  }
-
-  modal.classList.add('open');
+  openQuickCapture();
 }
 
 
