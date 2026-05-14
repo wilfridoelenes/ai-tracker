@@ -249,6 +249,7 @@ function showInlineConfirm(id, action, msg) {
   if (!card) return;
   const div = document.createElement('div');
   div.className = 'inline-confirm open'; div.id = 'iconf-' + id;
+  div.addEventListener('click', e => e.stopPropagation());
   div.innerHTML = `
     <div class="inline-confirm-msg">${esc(msg)}</div>
     <div class="inline-confirm-actions">
