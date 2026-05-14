@@ -665,37 +665,6 @@
   </div>
 </div>
 
-<div class="popup-overlay" id="detail-popup">
-  <div class="popup">
-    <div class="popup-header">
-      <div class="pop-header-body">
-        <div class="avatar-wrapper avatar-lg pop-avatar-host" id="pop-avatar"></div>
-        <div class="pop-flex-col">
-          <div class="pop-editable" id="pop-title-wrap" onclick="startPopupEdit('title')" title="Editar título">
-            <span class="popup-title" id="pop-title"></span><span class="pop-edit-icon">✏</span>
-          </div>
-          <div class="popup-date" id="pop-meta"></div>
-        </div>
-      </div>
-    </div>
-    <div class="popup-body" id="pop-fields"></div>
-    <!-- T-087: Confirmación inline eliminar -->
-    <div class="pop-delete-confirm" id="pop-delete-confirm">
-      <span class="confirm-text">¿Eliminar esta sesión?</span>
-      <button class="confirm-no" onclick="closeDeleteConfirm()">Cancelar</button>
-      <button class="confirm-yes" onclick="deleteCurrentSession()">Eliminar</button>
-    </div>
-    <div class="popup-footer">
-      <button type="button" onclick="closePopup()">Cerrar</button>
-      <div class="pop-sess-actions">
-        <button class="btn-ghost" id="pop-star-btn" onclick="starCurrentSession()" title="Destacar sesión">☆</button>
-        <button class="btn-ghost danger-label-red" onclick="openDeleteConfirm()" title="Eliminar sesión">🗑</button>
-
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Add AI modal -->
 <div class="modal-overlay" id="add-modal">
   <div class="modal">

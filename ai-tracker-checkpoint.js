@@ -162,6 +162,8 @@ function navigateToCard(aiId) {
 }
 
 function switchTab(tab) {
+  // DUP-05: cerrar preview de sesión al cambiar de tab
+  if (typeof closePopup === 'function') closePopup();
   // B-202605-207: cerrar panel de detalle al cambiar de tab
   if (typeof closeItemPanel === 'function') {
     const panel = document.getElementById('item-detail-panel');
@@ -2303,6 +2305,8 @@ function _buildCurrentSessionCard(aiId) {
 // ── END R-202605-116 ─────────────────────────────────────────────────────
 
 function selectTrackerAI(aiId) {
+  // DUP-05: cerrar preview de sesión al cambiar de Worker
+  if (typeof closePopup === 'function') closePopup();
   // T-202604-373: skeleton rows en historial al cambiar de IA
   const _prevCard = _trackerSelectedId ? document.getElementById('card-' + _trackerSelectedId) : null;
   if (_prevCard) {
