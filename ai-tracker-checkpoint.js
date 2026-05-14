@@ -3276,7 +3276,9 @@ function buildCard(ai) {
       <div class="countdown-dramatic">
         <div class="card-stat-countdown" id="cd-${ai.id}">${cd || '--:--:--'}</div>
         <div class="card-stat-reset-lbl">${resetLabel}</div>
-        <div class="card-unlock-time" id="unlock-lbl-${ai.id}">${unlockLabel}</div>
+        <div class="sc-unlock-field" id="unlock-lbl-${ai.id}">
+          ${unlockLabel ? `<i class="sc-unlock-icon ti ti-lock-open"></i><span class="sc-unlock-label">${unlockLabel}</span>` : ''}
+        </div>
       </div>
     </div>
   ` : `
@@ -3326,14 +3328,19 @@ function buildCard(ai) {
     </div>
   `;
 
-  // T-031: Notas
+  // T-031: Notas — colapsadas por defecto con label explicativo (rediseño AI Card)
   const notesVal = ai.notes || '';
   const notesHTML = `<div class="card-notes-wrap" id="notes-wrap-${ai.id}">
-    ${notesVal
-      ? `<div class="card-notes-text" id="notes-text-${ai.id}" onclick="editNotes('${ai.id}')" title="Click para editar notas">${esc(notesVal)}</div>
-         <span class="card-notes-toggle hidden" id="notes-toggle-${ai.id}" onclick="toggleNotes('${ai.id}')"></span>`
-      : `<div class="card-notes-text empty-notes" id="notes-text-${ai.id}" onclick="editNotes('${ai.id}')" title="Agregar notas">+ notas libres</div>`
-    }
+    <button class="sc-notes-toggle${notesVal ? '' : ' empty'}" id="notes-toggle-${ai.id}" onclick="toggleNotes('${ai.id}')" aria-expanded="false">
+      <span class="sc-notes-toggle-icon ti ti-chevron-right"></span>
+      <span class="sc-notes-desc">notas de sesión</span>
+    </button>
+    <div class="card-notes-body is-hidden" id="notes-body-${ai.id}">
+      ${notesVal
+        ? `<div class="card-notes-text" id="notes-text-${ai.id}" onclick="editNotes('${ai.id}')" title="Click para editar notas">${esc(notesVal)}</div>`
+        : `<div class="card-notes-text empty-notes" id="notes-text-${ai.id}" onclick="editNotes('${ai.id}')" title="Agregar notas">+ notas libres</div>`
+      }
+    </div>
   </div>`;
 
   // v3: stale usa aiSessions
@@ -3348,7 +3355,7 @@ function buildCard(ai) {
   const statsBarHTML = `<div class="card-stats-bar${ai.status === 'exhausted' ? ' exhausted-bar' : ' available-bar'}">
       <div class="card-stat-cell"><div class="card-stat-num">${checkpointTotal}</div><div class="card-stat-lbl">checkpoints</div></div>
       <div class="card-stat-cell"><div class="card-stat-num">${sessConHora}</div><div class="card-stat-lbl">sesiones</div></div>
-      <div class="card-stat-cell"><div class="card-stat-num">${avgShort}</div><div class="card-stat-lbl" title="Tiempo promedio entre sesiones de este AI">frecuencia</div></div>
+      <div class="card-stat-cell"><div class="card-stat-num">${avgShort}</div><div class="card-stat-lbl" title="Tiempo promedio entre sesiones de este Worker, desde apertura">desde apertura</div></div>
     </div>`;
 
   // Project chip — basado en la última sesión de la IA
@@ -3361,6 +3368,15 @@ function buildCard(ai) {
   // Premium card: avatar initial + status pill animado + countdown dramático
   const _aiInitial = esc(ai.name).charAt(0).toUpperCase();
   const _isAvail = ai.status === 'available';
+
+  // Sprint activo del proyecto de la card — para mostrar ID en header
+  const _cardActiveSprint = _cardProj && _cardProj.sprints
+    ? _cardProj.sprints.find(s => s.status === 'active')
+    : null;
+  const _cardSprintId = _cardActiveSprint ? esc(_cardActiveSprint.id || _cardActiveSprint.name || '') : '';
+  const _cardSprintHTML = _cardSprintId
+    ? `<span class="sc-card-sprint-id" title="${esc(_cardActiveSprint.name || _cardActiveSprint.id)}">${_cardSprintId}</span>`
+    : '';
 
   el.innerHTML = `
     ${interruptedBannerHTML}
@@ -3383,12 +3399,13 @@ function buildCard(ai) {
           </span>
           ${_projChipHTML}
           ${_hasStaleSuggestion(ai) ? `<span class="stale-dot" title="Última sesión hace ${staleDays} días — tienes ítems en progreso pendientes"></span>` : ''}
+          ${_cardSprintHTML}
         </div>
       </div>
       <div class="card-right">
         ${_isAvail ? `<button class="btn-quick" onclick="openQuickCapture('${ai.id}')" title="Registrar sesión rápida sin protocolo">⚡</button>` : ''}
         <div class="card-dot-menu" id="dotmenu-wrap-${ai.id}">
-          <button class="card-dot-btn" onclick="toggleCardMenu('${ai.id}',event)" title="Más opciones">⋯</button>
+          <button class="card-dot-btn sc-card-menu-btn" onclick="toggleCardMenu('${ai.id}',event)" title="Más opciones" aria-label="Más opciones"><i class="ti ti-dots"></i></button>
           <div class="card-dot-dropdown" id="dotmenu-${ai.id}">
             <button class="card-dot-item" onclick="closeCardMenu('${ai.id}');startRename('${ai.id}')"><span class="dot-item-icon">✎</span> Renombrar</button>
             ${_isAvail ? `<button class="card-dot-item" onclick="confirmInterruptInline('${ai.id}',this)"><span class="dot-item-icon">⛓️‍💥</span> Interrumpir sesión</button>` : ''}
@@ -6077,3 +6094,33 @@ function _trackerSwitchCol(col) {
 // ══ END R-202604-059 ══
 
 // R-migración Firebase→Supabase eliminada — AC-8: migración completada
+
+// ── toggleNotes override — rediseño AI Card ──────────────────────────────────
+// Compatible con estructura nueva (card-notes-body + is-hidden) y legacy.
+// Si coexiste con toggleNotes en ai-tracker-ai-notes.js, este override prevalece
+// por estar cargado después. Ver MAP: ai-tracker-ai-notes.js L2.
+function toggleNotes(id) {
+  const body    = document.getElementById('notes-body-' + id);
+  const toggle  = document.getElementById('notes-toggle-' + id);
+
+  // Nueva estructura (rediseño AI Card)
+  if (body) {
+    const isHidden = body.classList.contains('is-hidden');
+    body.classList.toggle('is-hidden', !isHidden);
+    if (toggle) {
+      toggle.classList.toggle('open', isHidden);
+      toggle.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+    }
+    return;
+  }
+
+  // Legacy — opera sobre card-notes-text.expanded (estructura anterior)
+  const notesEl = document.getElementById('notes-text-' + id);
+  if (!notesEl) return;
+  notesEl.classList.toggle('expanded');
+  if (toggle) {
+    const exp = notesEl.classList.contains('expanded');
+    toggle.classList.toggle('open', exp);
+    toggle.setAttribute('aria-expanded', String(exp));
+  }
+}

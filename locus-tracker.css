@@ -7952,3 +7952,350 @@ body.radar-sb-open .tracker-sidebar {
   color:var(--text);
   background:var(--surface2);
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   REDISEÑO AI CARD — sc-* · stepper 3 estados · header consolidado
+   Brief Nova · implementado Rune · locus-tracker.css
+   ══════════════════════════════════════════════════════════════════ */
+
+/* ── sc-card-header — header consolidado en una línea ── */
+
+.sc-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px 8px;
+}
+
+.sc-card-header-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.sc-card-proj-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sc-card-status-badge {
+  background: var(--c-low-bg);
+  border: 1px solid var(--c-low-border);
+  color: var(--c-low-text);
+  font-size: var(--text-2xs);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sc-card-sprint-id {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Botón menú ⋯ → ti-dots — reemplaza card-dot-btn en el header consolidado */
+.sc-card-menu-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: none;
+  color: var(--hint);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.sc-card-menu-btn:hover {
+  background: var(--surface3);
+  color: var(--text);
+}
+
+.sc-card-menu-btn:active {
+  transform: scale(0.93);
+}
+
+.sc-card-menu-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── sc-stepper — 3 estados reales: pending / active / done ── */
+
+.sc-stepper {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 8px 14px 6px;
+}
+
+.sc-step {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+}
+
+/* Conector entre steps */
+.sc-step + .sc-step {
+  flex: 1;
+}
+
+.sc-step-connector {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+.sc-step.done + .sc-step-connector,
+.sc-step.active + .sc-step-connector {
+  background: var(--c-low-border);
+}
+
+.sc-step-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-pill);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+
+  /* pending (default) */
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--hint);
+}
+
+.sc-step.active .sc-step-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.sc-step.done .sc-step-dot {
+  background: var(--c-low-bg);
+  border: 1px solid var(--c-low-border);
+  color: var(--c-low-text);
+}
+
+.sc-step-label {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  white-space: nowrap;
+  transition: color var(--transition-fast);
+}
+
+.sc-step.active .sc-step-label {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.sc-step.done .sc-step-label {
+  color: var(--c-low-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-step-dot,
+  .sc-step-label,
+  .sc-step-connector { transition: none; }
+}
+
+/* ── sc-preview-block — paso 2: preview del CHECKPOINT ── */
+
+.sc-preview-block {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-size: var(--text-xs);
+  color: var(--text2);
+  font-family: var(--mono, monospace);
+  overflow-y: auto;
+  max-height: 160px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0 14px 8px;
+}
+
+/* ── sc-success-state — paso 3: feedback inline de éxito ── */
+
+.sc-success-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 20px 14px;
+  text-align: center;
+}
+
+.sc-success-icon {
+  font-size: var(--text-display-xl);
+  color: var(--c-low-text);
+  line-height: 1;
+}
+
+.sc-success-msg {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sc-success-sub {
+  font-size: var(--text-xs);
+  color: var(--hint);
+}
+
+/* ── sc-stat — stats con jerarquía número → etiqueta ── */
+
+.sc-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 12px;
+}
+
+.sc-stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-display-sm);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.sc-stat-label {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+}
+
+/* ── sc-notes — notas colapsadas por defecto con label explicativo ── */
+
+.sc-notes-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--hint);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 4px 14px;
+  width: 100%;
+  transition: color var(--transition-fast);
+}
+
+.sc-notes-toggle:hover {
+  color: var(--text);
+}
+
+.sc-notes-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.sc-notes-toggle-icon {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  transition: transform var(--transition-fast);
+}
+
+.sc-notes-toggle.open .sc-notes-toggle-icon {
+  transform: rotate(90deg);
+}
+
+.sc-notes-desc {
+  font-style: italic;
+  font-size: var(--text-xs);
+  color: var(--hint);
+}
+
+/* ── sc-unlock-field — campo de desbloqueo con ícono + etiqueta visible ── */
+
+.sc-unlock-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: var(--text-xs);
+}
+
+.sc-unlock-icon {
+  color: var(--accent);
+  font-size: var(--text-md);
+  flex-shrink: 0;
+}
+
+.sc-unlock-label {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  font-weight: 500;
+}
+
+/* ── btn--disabled — estado deshabilitado completo (D-04) ── */
+/* Complementa el atributo HTML [disabled] con feedback visual consistente */
+
+.btn--disabled,
+.save-btn[disabled]:not(.ready) {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── Stat label: "desde apertura" — override de label existente ── */
+/* Actualiza el tercer stat de frecuencia → label descriptivo */
+
+.card-stats-bar .card-stat-cell:nth-child(3) .card-stat-lbl {
+  /* El texto lo cambia JS — esta regla previene overflow en labels largos */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70px;
+}
+
+/* ══ END REDISEÑO AI CARD — sc-* ══ */
+
+/* ── card-notes-body — cuerpo colapsable de notas (nueva estructura) ── */
+/* .is-hidden definida en locus-base.css — esta regla solo maneja la transición */
+.card-notes-body {
+  padding: 0 14px 6px;
+  animation: fadeIn var(--transition-fast) var(--ease-out);
+}
+
+.card-notes-body.is-hidden {
+  display: none;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-notes-body { animation: none; }
+}
