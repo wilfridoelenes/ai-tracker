@@ -1076,7 +1076,11 @@ function _scbDismissed() {
 function _scbDismiss() {
   localStorage.setItem('setup-checklist-dismissed', '1');
   const banner = document.getElementById('setup-checklist-banner');
-  if (banner) banner.classList.add('scb-hidden');
+  if (banner) {
+    banner.classList.remove('scb-expanded');
+    banner.setAttribute('aria-expanded', 'false');
+    banner.classList.add('is-hidden');
+  }
 }
 function _scbStep(id, done) {
   const el = document.getElementById('scb-step-' + id);
@@ -1084,6 +1088,7 @@ function _scbStep(id, done) {
   const icon = el.querySelector('.scb-icon');
   const wasDone = el.classList.contains('scb-done');
   el.classList.toggle('scb-done', done);
+  el.classList.remove('scb-active');
   if (icon) icon.textContent = done ? '✓' : '○';
   // opacity fade ○→✓ 150ms (CSS handles transition)
   if (!wasDone && done) el.classList.add('scb-just-done');
@@ -1091,18 +1096,87 @@ function _scbStep(id, done) {
 function renderSetupChecklist() {
   const banner = document.getElementById('setup-checklist-banner');
   if (!banner) return;
-  if (_scbDismissed()) { banner.classList.add('scb-hidden'); return; }
+  if (_scbDismissed()) { banner.classList.add('is-hidden'); return; }
+
   const workerDone  = (state.ais || []).length > 0;
   const projectDone = (state.projects || []).length > 0;
   const itemDone    = (typeof ITEMS !== 'undefined' ? ITEMS : []).length > 0;
   const sessionDone = (typeof getAllSessions === 'function') ? getAllSessions().length > 0 : false;
   const allDone = workerDone && projectDone && itemDone && sessionDone;
-  if (allDone) { banner.classList.add('scb-hidden'); return; }
-  banner.classList.remove('scb-hidden');
+
+  if (allDone) { banner.classList.add('is-hidden'); return; }
+
+  banner.classList.remove('is-hidden');
   _scbStep('worker',  workerDone);
   _scbStep('project', projectDone);
   _scbStep('item',    itemDone);
   _scbStep('session', sessionDone);
+
+  // Mark first pending step as active
+  const steps = [
+    { id: 'worker',  done: workerDone },
+    { id: 'project', done: projectDone },
+    { id: 'item',    done: itemDone },
+    { id: 'session', done: sessionDone }
+  ];
+  for (const s of steps) {
+    if (!s.done) {
+      const el = document.getElementById('scb-step-' + s.id);
+      if (el) el.classList.add('scb-active');
+      break;
+    }
+  }
+
+  // If banner was expanded and first step is now done → collapse
+  if (banner.classList.contains('scb-expanded') && workerDone) {
+    _scbCollapse(banner);
+    try { localStorage.setItem('onboarding-seen', '1'); } catch(_) {}
+    if (typeof _saveUserPrefs === 'function') _saveUserPrefs();
+  }
+
+  // First use: expand if onboarding-seen not set and banner not yet expanded
+  const isFirstUse = !localStorage.getItem('onboarding-seen');
+  if (isFirstUse && !banner.classList.contains('scb-expanded')) {
+    _scbExpand(banner);
+  }
+}
+
+function _scbExpand(banner) {
+  const b = banner || document.getElementById('setup-checklist-banner');
+  if (!b) return;
+  b.classList.add('scb-expanded');
+  b.setAttribute('aria-expanded', 'true');
+  // Focus first action button
+  const firstAction = b.querySelector('.scb-active .scb-step-action');
+  if (firstAction) setTimeout(() => firstAction.focus(), 210); // after transition
+}
+
+function _scbCollapse(banner) {
+  const b = banner || document.getElementById('setup-checklist-banner');
+  if (!b) return;
+  b.classList.remove('scb-expanded');
+  b.setAttribute('aria-expanded', 'false');
+}
+
+// Called when user completes first step — collapse expanded state
+function _scbOnStepComplete() {
+  const banner = document.getElementById('setup-checklist-banner');
+  if (banner && banner.classList.contains('scb-expanded')) {
+    _scbCollapse(banner);
+    // Mark onboarding-seen so expanded state doesn't reappear
+    try { localStorage.setItem('onboarding-seen', '1'); } catch(_) {}
+    if (typeof _saveUserPrefs === 'function') _saveUserPrefs();
+  }
+}
+
+// Action buttons per step — routes to existing open functions
+function _scbStepAction(stepId) {
+  switch (stepId) {
+    case 'worker':  if (typeof openAddAI === 'function') openAddAI(); break;
+    case 'project': if (typeof openProjModal === 'function') openProjModal(); break;
+    case 'item':    if (typeof switchTab === 'function') switchTab('backlog'); break;
+    case 'session': /* Session created via CHECKPOINT paste — no direct action */ break;
+  }
 }
 // ── END R-202605-008 ──────────────────────────────────────────────────────────
 

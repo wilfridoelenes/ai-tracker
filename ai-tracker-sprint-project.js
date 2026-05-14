@@ -1248,77 +1248,15 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
   // Garantizar status bar visible tras restaurar tab
   if (typeof renderAIStatusBar === 'function') renderAIStatusBar();
   // T-202604-009: onboarding primer uso
-  setTimeout(_checkOnboarding, 300);
+  // R-[pendiente-ID]: _checkOnboarding removed — SCB handles first-use onboarding
   // T-077: inicializar estado visual de filtro proyectos
   if (typeof _updateProjBreadcrumb === 'function') _updateProjBreadcrumb();
   if (typeof _updateProjFilterBtn === 'function') _updateProjFilterBtn();
   if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
 });
 
-// ── T-202604-009: Onboarding primer uso ──
-function _checkOnboarding() {
-  // Solo mostrar si: no hay IAs, no hay proyectos, y no fue descartado
-  if (localStorage.getItem('onboarding-seen')) return;
-  const hasAIs = (state.ais || []).filter(a => !a.archived).length > 0;
-  const hasProjects = (state.projects || []).length > 0;
-  if (hasAIs || hasProjects) return;
-  _renderOnboardingSteps();
-  document.getElementById('onboarding-overlay').classList.add('open');
-}
 
-function _renderOnboardingSteps() {
-  const el = document.getElementById('onboarding-steps');
-  if (!el) return;
-  const hasProjects = (state.projects || []).length > 0;
-  const hasAIs = (state.ais || []).filter(a => !a.archived).length > 0;
-  const hasSessions = (state.ais || []).some(a => a.sessions.length > 0);
-
-  const steps = [
-    {
-      title: 'Crea tu primer proyecto',
-      hint: 'Agrupa tus IAs y sesiones por proyecto para mantener el contexto separado.',
-      done: hasProjects,
-      action: () => { _dismissOnboarding(); openProjModal(); }
-    },
-    {
-      title: 'Agrega tu primera IA',
-      hint: 'Registra a Claude, GPT, Gemini o cualquier asistente que uses.',
-      done: hasAIs,
-      action: () => { _dismissOnboarding(); openAddAI(); }
-    },
-    {
-      title: 'Registra tu primera sesión',
-      hint: 'Al terminar una sesión, pega el bloque <abbr title="Resumen estructurado que el rol emite al cerrar cada sesión de trabajo — incluye qué se hizo, archivos entregados, ítems nuevos y próximo paso.">CHECKPOINT</abbr> en el card de la IA.',
-      done: hasSessions,
-      action: null
-    }
-  ];
-
-  el.innerHTML = steps.map((s, i) => `
-    <div class="onboarding-step${s.done ? ' done' : ''}">
-      <div class="onboarding-step-num">${s.done ? '✓' : i + 1}</div>
-      <div class="onboarding-step-body">
-        <div class="onboarding-step-title">${s.title}</div>
-        <div class="onboarding-step-hint">${s.hint}</div>
-        ${!s.done && s.action ? `<button class="onboarding-step-action" onclick="_onboardingStepAction(${i})">Hacer ahora →</button>` : ''}
-      </div>
-    </div>`).join('');
-
-  // Guardar actions para referencia
-  window._onboardingActions = steps.map(s => s.action);
-}
-
-function _onboardingStepAction(idx) {
-  const fn = (window._onboardingActions || [])[idx];
-  if (fn) fn();
-}
-
-function _dismissOnboarding() {
-  localStorage.setItem('onboarding-seen', '1');
-  document.getElementById('onboarding-overlay').classList.remove('open');
-  // R-4: sincronizar onboardingSeen a Supabase
-  if (typeof _saveUserPrefs === 'function') _saveUserPrefs();
-}
+// R-[pendiente-ID]: Onboarding overlay removed — _checkOnboarding, _renderOnboardingSteps, _onboardingStepAction, _dismissOnboarding eliminated. SCB handles first-use via renderSetupChecklist.
 
 // T-202605-491: Firebase wizard removido — Firebase deprecado, Supabase es el provider activo.
 

@@ -208,12 +208,18 @@
 <!-- ═══ TAB TRACKER ═══ -->
 <div class="tab-panel active" id="tab-tracker">
 
-  <div class="setup-checklist-banner scb-hidden" id="setup-checklist-banner" role="status" aria-label="Progreso de configuración inicial">
+  <div class="setup-checklist-banner is-hidden" id="setup-checklist-banner"
+       role="status" aria-label="Progreso de configuración inicial"
+       aria-expanded="false">
+    <div class="scb-expanded-header">
+      <div class="scb-expanded-title">Configura Locus</div>
+      <div class="scb-expanded-subtitle">Completa estos pasos para empezar a registrar tus sesiones.</div>
+    </div>
     <div class="scb-steps" id="scb-steps">
-      <div class="scb-step" id="scb-step-worker"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Worker</span></div>
-      <div class="scb-step" id="scb-step-project"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Proyecto</span></div>
-      <div class="scb-step" id="scb-step-item"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Ítem</span></div>
-      <div class="scb-step" id="scb-step-session"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Sesión</span></div>
+      <div class="scb-step" id="scb-step-worker"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Worker</span><button class="scb-step-action" onclick="_scbStepAction('worker')">Hacer ahora →</button></div>
+      <div class="scb-step" id="scb-step-project"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Proyecto</span><button class="scb-step-action" onclick="_scbStepAction('project')">Hacer ahora →</button></div>
+      <div class="scb-step" id="scb-step-item"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Ítem</span><button class="scb-step-action" onclick="_scbStepAction('item')">Hacer ahora →</button></div>
+      <div class="scb-step" id="scb-step-session"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Sesión</span><button class="scb-step-action" onclick="_scbStepAction('session')">Hacer ahora →</button></div>
     </div>
     <button class="scb-dismiss" onclick="_scbDismiss()" aria-label="Cerrar checklist de configuración">✕</button>
   </div>
@@ -810,21 +816,6 @@
 </div>
 <!-- END R-[pendiente-ID] Quick Capture modal unificado -->
 
-<!-- T-075: Firebase Onboarding Wizard -->
-<div class="onboarding-overlay" id="onboarding-overlay">
-  <div class="onboarding-modal">
-    <div class="onboarding-header">
-      <span class="onboarding-mascot">🪨</span>
-      <div class="onboarding-title">Bienvenido a Locus</div>
-      <div class="onboarding-subtitle">Registra tus sesiones con Workers, gestiona tu backlog y mantén el contexto de Obsidian Labs entre conversaciones.</div>
-    </div>
-    <div class="onboarding-steps" id="onboarding-steps"></div>
-    <div class="onboarding-footer">
-      <button class="onboarding-skip" onclick="_dismissOnboarding()">Saltar configuración</button>
-      <button class="btn-primary onboarding-dismiss" onclick="_dismissOnboarding()">Empezar →</button>
-    </div>
-  </div>
-</div>
 
 <!-- T-077: Panel lateral proyectos -->
 <div class="proj-panel-overlay" id="proj-panel-overlay" onclick="if(event.target===this)closeProjPanel()">
