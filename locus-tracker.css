@@ -8049,23 +8049,28 @@ body.radar-sb-open .tracker-sidebar {
   flex: 1;
 }
 
-/* Conector entre steps */
-.sc-step + .sc-step {
+/* Conector entre steps — pseudo-element en lugar de elemento DOM separado */
+.sc-step:not(:last-child) {
   flex: 1;
 }
 
-.sc-step-connector {
+.sc-step:not(:last-child)::after {
+  content: '';
   flex: 1;
   height: 1px;
   background: var(--border);
   margin: 0 4px;
   flex-shrink: 0;
+  transition: background var(--transition-fast);
 }
 
-.sc-step.done + .sc-step-connector,
-.sc-step.active + .sc-step-connector {
+.sc-step.done:not(:last-child)::after,
+.sc-step.active:not(:last-child)::after {
   background: var(--c-low-border);
 }
+
+/* Clase .sc-step-connector mantenida como no-op — no se emite en DOM */
+.sc-step-connector { display: none; }
 
 .sc-step-dot {
   width: 20px;
@@ -8211,6 +8216,10 @@ body.radar-sb-open .tracker-sidebar {
 
 .sc-notes-toggle:hover {
   color: var(--text);
+}
+
+.sc-notes-toggle:active {
+  transform: scale(0.97);
 }
 
 .sc-notes-toggle:focus-visible {
