@@ -158,9 +158,14 @@ function _setPhase(id, phase) {
   const p2 = document.getElementById('phase-confirm-' + id);
   const p3 = document.getElementById('phase-save-'    + id);
   if (!p1 || !p2 || !p3) return;
-  p1.className = 'phase-bar-step' + (phase === 1 ? ' active' : phase > 1 ? ' done' : '');
-  p2.className = 'phase-bar-step' + (phase === 2 ? ' active' : phase > 2 ? ' done' : '');
-  p3.className = 'phase-bar-step' + (phase === 3 ? ' saved' : '');
+  p1.className = 'sc-step' + (phase === 1 ? ' active' : phase > 1 ? ' done' : '');
+  p2.className = 'sc-step' + (phase === 2 ? ' active' : phase > 2 ? ' done' : '');
+  p3.className = 'sc-step' + (phase === 3 ? ' done' : '');
+  // aria-current
+  [p1,p2,p3].forEach((p,i) => {
+    if (phase === i+1) p.setAttribute('aria-current','step');
+    else p.removeAttribute('aria-current');
+  });
 }
 
 function parsePaste(id) {
@@ -381,7 +386,7 @@ function parsePaste(id) {
     const _prevEl = document.getElementById('prev-' + id);
     if (_prevEl) { _prevEl.className = 'preview'; _prevEl.innerHTML = ''; }
     const _btnEl = document.getElementById('sbtn-' + id);
-    if (_btnEl) { _btnEl.disabled = true; _btnEl.className = 'save-btn'; }
+    if (_btnEl) { _btnEl.disabled = true; _btnEl.className = 'sc-save'; }
     const _taEl = document.getElementById('ta-' + id);
     if (_taEl) _taEl.classList.remove('ta-has-items');
     ai._parsed = { title: '', summary: '', files: '', tgItems: [], isCheckpoint: false, nextStep: '', ckptProyecto: '' };
@@ -408,7 +413,7 @@ function parsePaste(id) {
     if (failed) {
       prev.className = 'preview show';
       prev.innerHTML = `<div class="paste-error">\u26A0 Formato inv\xE1lido \u2014 ${failed.msg}</div>`;
-      if (btn) { btn.disabled = true; btn.className = 'save-btn'; }
+      if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
 
@@ -418,7 +423,7 @@ function parsePaste(id) {
     if (_itemsJsonErr) {
       prev.className = 'preview show';
       prev.innerHTML = `<div class="paste-error">&#9940; Bloque de ítems inválido — ${esc(_itemsJsonErr)}.<br><span class="paste-hint">Corrige el JSON antes de procesar. El bloque debe ser un array de objetos con al menos <code>type</code>, <code>code</code> y <code>status</code>.</span></div>`;
-      if (btn) { btn.disabled = true; btn.className = 'save-btn'; }
+      if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
     // AC-3: no hay bloque ---ITEMS--- → aviso no bloqueante (solo en formato legacy)
@@ -427,7 +432,7 @@ function parsePaste(id) {
     if (isCheckpoint && !_hasItemsBlock && !window[_noItemsWarnKey]) {
       prev.className = 'preview show';
       prev.innerHTML = `<div class="paste-error" class="paste-error paste-warn">⚠ No se detectaron ítems estructurados — falta el bloque <code>---ITEMS---</code>.<br><span class="paste-hint">El CHECKPOINT se guardará sin ítems. Si tienes ítems P/T/R/B, agrégalos en formato JSON dentro del bloque.</span><br><button class="btn-ghost" class="paste-inline-btn" onclick="window['${_noItemsWarnKey}']=true;parsePaste('${id}')">Continuar sin ítems</button></div>`;
-      if (btn) { btn.disabled = true; btn.className = 'save-btn'; }
+      if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
     if (window[_noItemsWarnKey]) delete window[_noItemsWarnKey];
@@ -442,7 +447,7 @@ function parsePaste(id) {
     if (isCheckpoint && !_hasRolField && !window[_rolWarnKey]) {
       prev.className = 'preview show';
       prev.innerHTML = `<div class="paste-error" class="paste-error paste-warn">⚠ Falta el campo <code>Rol:</code> en el CHECKPOINT.<br><span class="paste-hint">Formato esperado: <code>Rol: FS · Mike</code>. El paste funcionará igual sin este campo.</span><br><button class="btn-ghost" class="paste-inline-btn" onclick="window['${_rolWarnKey}']=true;parsePaste('${id}')">Procesar de todas formas</button></div>`;
-      if (btn) { btn.disabled = true; btn.className = 'save-btn'; }
+      if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
     if (window[_rolWarnKey]) delete window[_rolWarnKey];
@@ -458,7 +463,7 @@ function parsePaste(id) {
         const _codes = _doneNoAc.map(it => `<code>${esc(it.code)}</code>`).join(', ');
         prev.className = 'preview show';
         prev.innerHTML = `<div class="paste-error paste-warn">⚠ ${_doneNoAc.length} ítem${_doneNoAc.length !== 1 ? 's' : ''} marcado${_doneNoAc.length !== 1 ? 's' : ''} como done sin criterios de aceptación: ${_codes}.<br><span class="paste-hint">Un ítem done sin AC no es verificable. Agrega AC antes de marcar como done, o continúa si es intencional.</span><br><button class="btn-ghost paste-inline-btn" onclick="window['${_doneWarnKey}']=true;parsePaste('${id}')">Continuar de todas formas</button></div>`;
-        if (btn) { btn.disabled = true; btn.className = 'save-btn'; }
+        if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
         return;
       }
     }
@@ -476,7 +481,7 @@ function parsePaste(id) {
       const _previewAlreadyShowing = prev.classList.contains('show') && prev.innerHTML.includes('paste-error');
       prev.className = 'preview show';
       prev.innerHTML = `<div class="paste-error">⛔ CHECKPOINT inválido — <code>Proyecto:</code> contiene un valor no reconocido: <strong>${esc(_proyectoRaw)}</strong>.<br><span class="paste-hint">Valores válidos (case-sensitive): ${_validList}. Corrige el campo <code>Proyecto:</code> antes de procesar.</span></div>`;
-      if (btn) { btn.disabled = true; btn.className = 'save-btn'; }
+      if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       if (!_previewAlreadyShowing) showToast('error', `⛔ Proyecto no reconocido: "${esc(_proyectoRaw)}" — corrige el campo`);
       return;
     }
@@ -487,7 +492,7 @@ function parsePaste(id) {
       : '\u2713 CHECKPOINT v\xE1lido \u2014 listo para guardar', 'success');
   }
 
-  if (btn) { btn.disabled = false; btn.className = title ? 'save-btn ready' : 'save-btn'; }
+  if (btn) { btn.disabled = false; btn.className = title ? 'sc-save ready' : 'sc-save'; }
 
   // T-409: atenuar textarea cuando hay ítems detectados en fase CONFIRMAR
   const _ta409 = document.getElementById('ta-' + id);

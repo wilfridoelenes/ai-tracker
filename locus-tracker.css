@@ -3894,24 +3894,6 @@
   transform: translateY(-1px);
 }
 
-/* ── Zen mode — focus-active / focus-dimmed ── */
-
-.card {
-  transition: opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
-}
-
-/* Card activo: cancela translateY del hover — evita layout shift al entrar en focus */
-.card.focus-active {
-  transform: translateY(0) !important;
-  box-shadow: var(--card-shadow-hover);
-}
-
-/* Cards dimmeados: invisibles e inertes */
-.card.focus-dimmed {
-  opacity: 0.3;
-  pointer-events: none;
-}
-
 .card.exhausted {
   background: var(--red-dim);
   border-color: var(--red-border);
@@ -7972,28 +7954,54 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 /* ══════════════════════════════════════════════════════════════════
-   REDISEÑO AI CARD — sc-* · stepper 3 estados · header consolidado
-   Brief Nova · implementado Rune · locus-tracker.css
+   REDISEÑO AI CARD — sc-* · brief Nova V2 · locus-tracker.css
    ══════════════════════════════════════════════════════════════════ */
 
-/* ── sc-card-header — header consolidado en una línea ── */
+/* ── sc-header ── */
 
-.sc-card-header {
+.sc-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 10px 14px 8px;
+  padding: 0.875rem 1.125rem;
+  border-bottom: 0.5px solid var(--border);
 }
 
-.sc-card-header-left {
+.sc-header-left {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 9px;
   min-width: 0;
 }
 
-.sc-card-proj-name {
+.sc-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ── sc-avatar ── */
+
+.sc-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--accent-dim, rgba(124,106,247,0.12));
+  border: 0.5px solid var(--accent-border, rgba(124,106,247,0.3));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent);
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+/* ── sc-project ── */
+
+.sc-project {
   font-size: var(--text-sm);
   font-weight: 500;
   color: var(--text);
@@ -8002,26 +8010,50 @@ body.radar-sb-open .tracker-sidebar {
   white-space: nowrap;
 }
 
-.sc-card-status-badge {
-  background: var(--c-low-bg);
-  border: 1px solid var(--c-low-border);
-  color: var(--c-low-text);
-  font-size: var(--text-2xs);
-  padding: 1px 6px;
+/* ── sc-badge — estado activo con dot animado ── */
+
+.sc-badge {
+  font-size: 11px;
+  padding: 2px 7px;
   border-radius: var(--radius-pill);
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border: 0.5px solid var(--c-low-border);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
   white-space: nowrap;
+}
+
+.sc-badge-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--c-low-text);
+  animation: sc-pulse-dot 2s ease-in-out infinite;
   flex-shrink: 0;
 }
 
-.sc-card-sprint-id {
-  font-size: var(--text-xs);
+@keyframes sc-pulse-dot {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+
+/* ── sc-sprint-id ── */
+
+.sc-sprint-id {
+  font-size: 11px;
   color: var(--hint);
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
   flex-shrink: 0;
 }
 
-/* Botón menú ⋯ → ti-dots — reemplaza card-dot-btn en el header consolidado */
-.sc-card-menu-btn {
+/* ── sc-menu-btn — reemplaza card-dot-btn en el header ── */
+
+.sc-menu-btn {
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -8037,109 +8069,126 @@ body.radar-sb-open .tracker-sidebar {
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 
-.sc-card-menu-btn:hover {
+.sc-menu-btn:hover {
   background: var(--surface3);
   color: var(--text);
 }
 
-.sc-card-menu-btn:active {
+.sc-menu-btn:active {
   transform: scale(0.93);
 }
 
-.sc-card-menu-btn:focus-visible {
+.sc-menu-btn:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-/* ── sc-stepper — 3 estados reales: pending / active / done ── */
+/* ── sc-stats — grid de 3 columnas ── */
+
+.sc-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-bottom: 0.5px solid var(--border);
+}
+
+.sc-stat {
+  padding: 0.75rem 1.125rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sc-stat + .sc-stat {
+  border-left: 0.5px solid var(--border);
+}
+
+.sc-stat-val {
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.sc-stat-lbl {
+  font-size: 10px;
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── sc-stepper — 3 estados: pending / active / done ── */
 
 .sc-stepper {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 0;
-  padding: 8px 14px 6px;
 }
 
 .sc-step {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 0;
+  border: 0.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--hint);
   flex: 1;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
-/* Conector entre steps — pseudo-element en lugar de elemento DOM separado */
-.sc-step:not(:last-child) {
-  flex: 1;
+.sc-step:first-child {
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
 }
 
-.sc-step:not(:last-child)::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-  margin: 0 4px;
-  flex-shrink: 0;
-  transition: background var(--transition-fast);
+.sc-step:last-child {
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
 
-.sc-step.done:not(:last-child)::after,
-.sc-step.active:not(:last-child)::after {
-  background: var(--c-low-border);
+.sc-step:not(:first-child) {
+  border-left: none;
 }
 
-/* Clase .sc-step-connector mantenida como no-op — no se emite en DOM */
-.sc-step-connector { display: none; }
+.sc-step.active {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border2, var(--border));
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
 
-.sc-step-dot {
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-pill);
+.sc-step.done {
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border-color: var(--c-low-border);
+}
+
+.sc-step-num {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--text-2xs);
-  font-weight: 700;
+  font-size: 9px;
   flex-shrink: 0;
-  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
-
-  /* pending (default) */
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--hint);
 }
 
-.sc-step.active .sc-step-dot {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--bg);
-}
-
-.sc-step.done .sc-step-dot {
-  background: var(--c-low-bg);
-  border: 1px solid var(--c-low-border);
-  color: var(--c-low-text);
-}
-
-.sc-step-label {
-  font-size: var(--text-xs);
-  color: var(--hint);
-  white-space: nowrap;
-  transition: color var(--transition-fast);
-}
-
-.sc-step.active .sc-step-label {
-  color: var(--text);
-  font-weight: 500;
-}
-
-.sc-step.done .sc-step-label {
-  color: var(--c-low-text);
+.sc-step.done .sc-step-num {
+  border: none;
+  font-size: 12px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sc-step-dot,
-  .sc-step-label,
-  .sc-step-connector { transition: none; }
+  .sc-step,
+  .sc-badge-dot { animation: none; transition: none; }
 }
 
 /* ── sc-preview-block — paso 2: preview del CHECKPOINT ── */
@@ -8163,17 +8212,22 @@ body.radar-sb-open .tracker-sidebar {
 
 .sc-success-state {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 20px 14px;
-  text-align: center;
+  gap: 7px;
+  padding: 0.625rem 0.875rem;
+  background: var(--c-low-bg);
+  border: 0.5px solid var(--c-low-border);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--c-low-text);
+  font-weight: 500;
 }
 
 .sc-success-icon {
-  font-size: var(--text-display-xl);
+  font-size: var(--text-md);
   color: var(--c-low-text);
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .sc-success-msg {
@@ -8187,36 +8241,7 @@ body.radar-sb-open .tracker-sidebar {
   color: var(--hint);
 }
 
-/* ── sc-stat — stats con jerarquía número → etiqueta ── */
-
-.sc-stat {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  align-items: center;
-  justify-content: center;
-  padding: 7px 12px;
-}
-
-.sc-stat-value {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--text-display-sm);
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1;
-}
-
-.sc-stat-label {
-  font-size: var(--text-2xs);
-  color: var(--hint);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
-  line-height: 1.3;
-  text-align: center;
-}
-
-/* ── sc-notes — notas colapsadas por defecto con label explicativo ── */
+/* ── sc-notes — toggle de notas colapsadas ── */
 
 .sc-notes-toggle {
   display: flex;
@@ -8262,14 +8287,32 @@ body.radar-sb-open .tracker-sidebar {
   color: var(--hint);
 }
 
-/* ── sc-unlock-field — campo de desbloqueo con ícono + etiqueta visible ── */
+/* ── sc-footer ── */
 
-.sc-unlock-field {
+.sc-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1.125rem;
+  border-top: 0.5px solid var(--border);
+  background: var(--surface2);
+  gap: 12px;
+}
+
+/* ── sc-unlock — campo de hora de desbloqueo en footer ── */
+
+.sc-unlock {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 14px;
+}
+
+.sc-unlock-label {
   font-size: var(--text-xs);
+  color: var(--hint);
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .sc-unlock-icon {
@@ -8278,31 +8321,35 @@ body.radar-sb-open .tracker-sidebar {
   flex-shrink: 0;
 }
 
-.sc-unlock-label {
+/* ── sc-save — botón guardar sesión ── */
+
+.sc-save {
   font-size: var(--text-xs);
-  color: var(--text2);
   font-weight: 500;
+  padding: 6px 18px;
+  border-radius: var(--radius-md);
+  border: 0.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast);
+  white-space: nowrap;
 }
 
-/* ── btn--disabled — estado deshabilitado completo (D-04) ── */
-/* Complementa el atributo HTML [disabled] con feedback visual consistente */
-
-.btn--disabled,
-.save-btn[disabled]:not(.ready) {
+.sc-save[disabled]:not(.ready) {
   opacity: 0.35;
   cursor: not-allowed;
   pointer-events: none;
 }
 
-/* ── Stat label: "desde apertura" — override de label existente ── */
-/* Actualiza el tercer stat de frecuencia → label descriptivo */
+.sc-save.ready {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: transparent;
+}
 
-.card-stats-bar .card-stat-cell:nth-child(3) .card-stat-lbl {
-  /* El texto lo cambia JS — esta regla previene overflow en labels largos */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 70px;
+.sc-save.ready:hover {
+  opacity: 0.88;
 }
 
 /* ══ END REDISEÑO AI CARD — sc-* ══ */

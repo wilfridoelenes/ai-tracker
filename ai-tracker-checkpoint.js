@@ -3256,10 +3256,10 @@ function buildCard(ai) {
     <div class="paste-wrap">
       <div class="paste-label">Resumen de sesión ${_projInlineSelect}</div>
       <div class="paste-help-box hidden" id="paste-help-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el TL al final de cada sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
-      <div class="phase-bar" id="phasebar-${ai.id}">
-        <div class="phase-bar-step active" id="phase-paste-${ai.id}"><span class="phase-bar-dot"></span>Pegar</div>
-        <div class="phase-bar-step" id="phase-confirm-${ai.id}"><span class="phase-bar-dot"></span>Confirmar</div>
-        <div class="phase-bar-step" id="phase-save-${ai.id}"><span class="phase-bar-dot"></span>Guardar</div>
+      <div class="sc-stepper" id="phasebar-${ai.id}" role="list">
+        <div class="sc-step active" id="phase-paste-${ai.id}" role="listitem" aria-current="step" data-step="1"><span class="sc-step-num" aria-hidden="true">1</span>pegar</div>
+        <div class="sc-step" id="phase-confirm-${ai.id}" role="listitem" data-step="2"><span class="sc-step-num" aria-hidden="true">2</span>confirmar</div>
+        <div class="sc-step" id="phase-save-${ai.id}" role="listitem" data-step="3"><span class="sc-step-num" aria-hidden="true">3</span>guardar</div>
       </div>
       <div class="paste-ta-wrap">
         <textarea class="paste-ta" id="ta-${ai.id}" rows="3"
@@ -3292,19 +3292,17 @@ function buildCard(ai) {
 
   // T-202604-203: footer fijo — acciones primarias siempre en la misma posición
   const footerHTML = ai.status === 'available' ? `
-    <div class="card-footer" id="footer-${ai.id}">
-      <div class="hora-row">
+    <div class="sc-footer" id="footer-${ai.id}">
+      <div class="sc-unlock">
+        <label class="sc-unlock-label" for="hora-${ai.id}">
+          <i class="sc-unlock-icon ti ti-lock" aria-hidden="true"></i>desbloqueo
+        </label>
         <input class="hora-input" id="hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
           oninput="parseHora('${ai.id}')"
           onkeydown="horaKey(event,'${ai.id}')">
-        <div>
-          <div class="hora-parsed" id="hdisp-${ai.id}">—</div>
-          <div class="hora-hint-txt">hora de desbloqueo (opcional) · Enter para guardar</div>
-        </div>
+        <div class="hora-parsed" id="hdisp-${ai.id}">—</div>
       </div>
-      <div class="card-footer-actions-row">
-        <button class="save-btn" id="sbtn-${ai.id}" onclick="confirmSave('${ai.id}')" disabled>Guardar sesión</button>
-      </div>
+      <button class="sc-save" id="sbtn-${ai.id}" onclick="confirmSave('${ai.id}')" disabled>guardar sesión</button>
       <div class="blind-exhaust-inline hidden" id="bexhaust-inline-${ai.id}">
         <div class="blind-exhaust-hora-row">
           <input class="hora-input blind-exhaust-hora-input" id="bexhaust-hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
@@ -3323,7 +3321,7 @@ function buildCard(ai) {
       </div>
     </div>
   ` : `
-    <div class="card-footer card-footer--exhausted">
+    <div class="sc-footer sc-footer--exhausted">
       <button class="card-footer-unlock-btn" onclick="openCorrectHora('${ai.id}')">⏰ Corregir hora</button>
     </div>
   `;
@@ -3352,10 +3350,10 @@ function buildCard(ai) {
   const avgLabel2 = avgBetweenSessions(ai);
   const avgShort = avgLabel2 ? avgLabel2.replace(' entre sesiones','') : '—';
   // T-202604-203: stats bar idéntica en ambos estados — solo números, sin countdown
-  const statsBarHTML = `<div class="card-stats-bar${ai.status === 'exhausted' ? ' exhausted-bar' : ' available-bar'}">
-      <div class="card-stat-cell"><div class="card-stat-num">${checkpointTotal}</div><div class="card-stat-lbl">checkpoints</div></div>
-      <div class="card-stat-cell"><div class="card-stat-num">${sessConHora}</div><div class="card-stat-lbl">sesiones</div></div>
-      <div class="card-stat-cell"><div class="card-stat-num">${avgShort}</div><div class="card-stat-lbl" title="Tiempo promedio entre sesiones de este Worker, desde apertura">desde apertura</div></div>
+  const statsBarHTML = `<div class="sc-stats">
+      <div class="sc-stat"><span class="sc-stat-val">${checkpointTotal}</span><span class="sc-stat-lbl">checkpoints</span></div>
+      <div class="sc-stat"><span class="sc-stat-val">${sessConHora}</span><span class="sc-stat-lbl">sesiones</span></div>
+      <div class="sc-stat"><span class="sc-stat-val">${avgShort}</span><span class="sc-stat-lbl" title="Tiempo promedio entre sesiones de este Worker, desde apertura">desde apertura</span></div>
     </div>`;
 
   // Project chip — basado en la última sesión de la IA
@@ -3375,37 +3373,28 @@ function buildCard(ai) {
     : null;
   const _cardSprintId = _cardActiveSprint ? esc(_cardActiveSprint.id || _cardActiveSprint.name || '') : '';
   const _cardSprintHTML = _cardSprintId
-    ? `<span class="sc-card-sprint-id" title="${esc(_cardActiveSprint.name || _cardActiveSprint.id)}">${_cardSprintId}</span>`
+    ? `<span class="sc-sprint-id" title="${esc(_cardActiveSprint.name || _cardActiveSprint.id)}">${_cardSprintId}</span>`
     : '';
 
   el.innerHTML = `
     ${interruptedBannerHTML}
-    <div class="card-header-premium">
-      <div class="card-avatar-col">
-        <div class="card-avatar ${ai.status}${isInterrupted ? ' interrupted' : ''}" title="${esc(ai.name)}">
-          <span class="card-avatar-initial">${_aiInitial}</span>
-          <span class="card-avatar-pulse"></span>
-        </div>
+    <div class="sc-header">
+      <div class="sc-header-left">
+        <div class="sc-avatar" title="${esc(ai.name)}" ondblclick="startRename('${ai.id}')">${_aiInitial}</div>
+        <span class="sc-project" id="name-${ai.id}">${esc(ai.name)}</span>
+        ${isInSession
+          ? `<span class="sc-badge"><span class="sc-badge-dot"></span>${STATUS_LABELS.insession}</span>`
+          : _isAvail
+            ? `<span class="sc-badge sc-badge--avail">${STATUS_LABELS.available}</span>`
+            : `<span class="sc-badge sc-badge--exhausted">${STATUS_LABELS.exhausted}</span>`
+        }
       </div>
-      <div class="card-identity">
-        <div class="card-name-row">
-          <div class="card-name" ondblclick="startRename('${ai.id}')" id="name-${ai.id}" title="Doble click para renombrar">${esc(ai.name)}</div>
-          <span class="card-rename-hint">✎</span>
-        </div>
-        <div class="card-meta-row">
-          <span class="card-status-pill ${isInSession ? 'insession' : ai.status}">
-            <span class="card-status-dot"></span>
-            ${isInSession ? STATUS_LABELS.insession : _isAvail ? STATUS_LABELS.available : STATUS_LABELS.exhausted}
-          </span>
-          ${_projChipHTML}
-          ${_hasStaleSuggestion(ai) ? `<span class="stale-dot" title="Última sesión hace ${staleDays} días — tienes ítems en progreso pendientes"></span>` : ''}
-          ${_cardSprintHTML}
-        </div>
-      </div>
-      <div class="card-right">
+      <div class="sc-header-right">
+        ${_hasStaleSuggestion(ai) ? `<span class="stale-dot" title="Última sesión hace ${staleDays} días — tienes ítems en progreso pendientes"></span>` : ''}
+        ${_cardSprintHTML}
         ${_isAvail ? `<button class="btn-quick" onclick="openQuickCapture('${ai.id}')" title="Registrar sesión rápida sin protocolo">⚡</button>` : ''}
         <div class="card-dot-menu" id="dotmenu-wrap-${ai.id}">
-          <button class="card-dot-btn sc-card-menu-btn" onclick="toggleCardMenu('${ai.id}',event)" title="Más opciones" aria-label="Más opciones"><i class="ti ti-dots"></i></button>
+          <button class="sc-menu-btn" onclick="toggleCardMenu('${ai.id}',event)" title="Más opciones" aria-label="Más opciones"><i class="ti ti-dots"></i></button>
           <div class="card-dot-dropdown" id="dotmenu-${ai.id}">
             <button class="card-dot-item" onclick="closeCardMenu('${ai.id}');startRename('${ai.id}')"><span class="dot-item-icon">✎</span> Renombrar</button>
             ${_isAvail ? `<button class="card-dot-item" onclick="confirmInterruptInline('${ai.id}',this)"><span class="dot-item-icon">⛓️‍💥</span> Interrumpir sesión</button>` : ''}
@@ -3971,7 +3960,7 @@ document.addEventListener('keydown', e => {
       const _aiId = _activeTA.closest('[data-ai-id]') && _activeTA.closest('[data-ai-id]').dataset.aiId;
       const _sbtn = _aiId
         ? document.getElementById(`sbtn-${_aiId}`)
-        : document.querySelector('.save-btn');
+        : document.querySelector('.sc-save');
       if (_sbtn) _sbtn.click();
     } else {
       // Fallback: llamar confirmSave con el AI activo en focusMode
