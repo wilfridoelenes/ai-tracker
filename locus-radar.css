@@ -774,23 +774,23 @@
 /* ── Push layout completo — body se comprime, todo hereda ── */
 body.radar-sb-open {
   margin-right: var(--rsb-width, 340px);
-  transition: margin-right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: margin-right 0.35s var(--ease-out);
 }
 
 body.radar-sb-collapsed {
   margin-right: var(--rsb-strip, 14px);
-  transition: margin-right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: margin-right 0.35s var(--ease-out);
 }
 
 /* footer es fixed — necesita su propio ajuste */
 body.radar-sb-open #global-footer {
   right: var(--rsb-width, 340px);
-  transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: right 0.35s var(--ease-out);
 }
 
 body.radar-sb-collapsed #global-footer {
   right: var(--rsb-strip, 14px);
-  transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: right 0.35s var(--ease-out);
 }
 
 /* ── Collapsed: ocultar todo excepto strip ── */

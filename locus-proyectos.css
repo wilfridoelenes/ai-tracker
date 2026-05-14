@@ -128,7 +128,7 @@
   border-left-width: 4px;
   background: color-mix(in srgb, var(--proj-color, var(--accent)) 8%, var(--surface, #1e2030) 92%);
   box-shadow: 0 2px 12px rgb(0 0 0 / 10%);
-  animation: proy2CardIn 0.22s cubic-bezier(0.22,1,0.36,1) both, proy2CardPulse 0.6s ease-out 0.2s 1;
+  animation: proy2CardIn 0.22s var(--ease-decel) both, proy2CardPulse 0.6s ease-out 0.2s 1;
   outline: 1px solid color-mix(in srgb, var(--proj-color, var(--accent)) 40%, transparent 60%);
   outline-offset: -1px;
 }
@@ -516,7 +516,7 @@
   background: var(--bg);
   display: none;
   flex-direction: column;
-  transition: width 0.22s cubic-bezier(0.4,0,0.2,1), min-width 0.22s cubic-bezier(0.4,0,0.2,1);
+  transition: width 0.22s var(--ease-standard), min-width 0.22s var(--ease-standard);
   flex-shrink: 0;
   height: 100%;
 }
@@ -1375,7 +1375,7 @@
   flex-shrink: 0;
   overflow: hidden;
   opacity: 0;
-  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.22s ease;
+  transition: width 0.28s var(--ease-standard), opacity 0.22s ease;
   position: sticky;
   top: 1rem;
   max-height: calc(100vh - 5rem);
@@ -5617,7 +5617,7 @@
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 24px 64px rgb(0 0 0 / 50%), 0 4px 16px rgb(0 0 0 / 30%);
-  animation: mdiffIn 0.22s var(--ease-out, cubic-bezier(0.16,1,0.3,1));
+  animation: mdiffIn 0.22s var(--ease-out);
 }
 
 @keyframes mdiffIn {

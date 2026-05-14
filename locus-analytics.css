@@ -881,24 +881,6 @@
   display: none;
 }
 
-/* T-084: Storage warning banner */
-#storage-warn span {
-  flex: 1;
-}
-
-#storage-warn button {
-  font-size: var(--text-xs);
-  padding: 3px 10px;
-  border-radius: var(--radius-xs);
-  border: 1px solid rgb(232 168 50 / 40%);
-  background: rgb(232 168 50 / 15%);
-  color: #e8a832;
-  cursor: pointer;
-}
-
-#storage-warn button:hover {
-  background: rgb(232 168 50 / 25%);
-}
 
 /* B-006: Campo hora de reset en popup */
 .pop-reset-row {
@@ -1933,7 +1915,7 @@
 .sh-burndown-seg {
   height: 100%;
   width: var(--bd-w, 0%);
-  transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.45s var(--ease-standard);
   border-radius: 0;
   min-width: 0;
 }
@@ -2358,7 +2340,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
-  animation: ppatRowIn 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ppatRowIn 0.28s var(--ease-decel) both;
   animation-delay: var(--ppat-entry-delay, 0ms);
 }
 
@@ -3132,7 +3114,7 @@
 .akpi-row.analytics-section--animate,
 .akpi-row-new.analytics-section--animate,
 .analytics-control-bar.analytics-section--animate {
-  animation: analyticsSectionIn 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: analyticsSectionIn 0.3s var(--ease-decel) both;
   animation-delay: var(--section-delay, 0ms);
 }
 
@@ -3445,7 +3427,7 @@
   width: var(--ct-bar-pct, 0%);
   background: var(--ct-bar-color, var(--accent));
   border-radius: var(--radius-sm);
-  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  transition: width 0.4s var(--ease-decel);
   opacity: 0.75;
 }
 

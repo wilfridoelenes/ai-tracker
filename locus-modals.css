@@ -38,8 +38,8 @@
   width: 100%;
   opacity: 0;
   transform: translateX(16px) scale(0.97);
-  transition: opacity 0.24s var(--ease-out, cubic-bezier(0.16,1,0.3,1)),
-              transform 0.24s var(--ease-out, cubic-bezier(0.16,1,0.3,1));
+  transition: opacity 0.24s var(--ease-out),
+              transform 0.24s var(--ease-out);
   will-change: opacity, transform;
   position: relative;
   overflow: hidden;
@@ -1124,7 +1124,7 @@
 .proj-modal-overlay.closing .proj-modal,
 .status-confirm-overlay.closing .status-confirm-box,
 .item-viz-overlay.closing .item-viz-panel {
-  animation: modal-out 0.18s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: modal-out 0.18s var(--ease-standard) forwards;
 }
 
 /* Reforzar modal-in en todos los modales (unifica con modalSpring existente) */
@@ -2067,7 +2067,7 @@
 
 .srp-body::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 .srp-meta {
@@ -2206,7 +2206,7 @@
 
 .sprint-retro-body::-webkit-scrollbar-thumb {
   background: var(--border);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
 }
 
 /* sprint-retro-notes: textarea readonly — visible solo en modo vista */
@@ -3056,7 +3056,7 @@
 .sur-hl {
   background:rgb(var(--accent-rgb,166,226,46),.18);
   color:var(--accent);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
   font-weight:600;
   padding:0 1px;
 }
@@ -3066,6 +3066,11 @@
 
 /* ══ CSS-05: prefers-reduced-motion — toasts + modales ══ */
 @media (prefers-reduced-motion: reduce) {
+  /* Toast stack — sin slide al desplazar posición por Radar Sidebar */
+  #toast-stack {
+    transition: none;
+  }
+
   /* Toasts — sin translate ni scale; solo fade */
   .toast-item {
     transform: none;
@@ -3079,6 +3084,53 @@
   .toast-item.toast-hide {
     transform: none;
     transition: opacity 0.16s var(--ease-out);
+  }
+
+  /* Progress bar auto-dismiss (toast-shrink) — sin scaleX animado */
+  .toast-progress {
+    animation: none;
+  }
+
+  /* CKPT panel — sin translateY en apertura; solo fade */
+  #ckpt-panel {
+    transform: none;
+    transition: opacity 0.18s var(--ease-out);
+  }
+
+  #ckpt-panel.open {
+    transform: none;
+  }
+
+  /* Toast inline — sin translate en entrada/salida; solo fade */
+  .toast-inline {
+    transform: translateX(-50%);
+    transition: opacity 0.16s var(--ease-out);
+  }
+
+  .toast-inline.show {
+    transform: translateX(-50%);
+  }
+
+  .toast-inline.toast-hide {
+    transform: translateX(-50%);
+    transition: opacity 0.12s var(--ease-out);
+  }
+
+  /* Modales — sin scale en apertura; solo fade */
+  .modal,
+  .gconfirm-modal,
+  .purge-modal,
+  .import-diff-modal,
+  .quick-modal,
+  .onboarding-modal,
+  .fb-onboarding-modal,
+  .avatar-modal-box,
+  .popup,
+  .proj-modal,
+  .status-confirm-box,
+  .item-viz-panel {
+    animation: none;
+    opacity: 1;
   }
 
   /* Modales — sin scale ni translate en cierre; solo fade */
@@ -3153,7 +3205,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  animation: modal-in 0.22s var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) forwards;
+  animation: modal-in 0.22s var(--ease-out) forwards;
 }
 
 /* ── Header ── */
@@ -3357,7 +3409,7 @@
 }
 
 .sprint-close-overlay.closing .sprint-close-dialog {
-  animation: modal-out 0.18s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: modal-out 0.18s var(--ease-standard) forwards;
 }
 
 

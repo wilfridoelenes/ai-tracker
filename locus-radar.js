@@ -1,5 +1,5 @@
 // locus-radar.js
-// Última actualización: 2026-05-13 | Bug 2: auto-call _initRadarSidebarState via DOMContentLoaded
+// Última actualización: 2026-05-13 | Refactor: funciones anidadas extraídas al scope del módulo
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
 //
 // Dependencias cross-módulo (resueltas en runtime via guards typeof):
@@ -12,7 +12,18 @@
 //   session.js   → navigateToCard, openQuickCapture
 //   checkpoint.js → showCheckpointPanel
 
-// ── R-202605-119: _renderNotifSection — empty state + historial + panel config colapsable al pie ──
+// ── UTILS ─────────────────────────────────────────────────────────────────────
+
+function _fmtNotifTs(ts) {
+  if (!ts) return '';
+  var d = new Date(ts);
+  var pad = function(x) { return String(x).padStart(2,'0'); };
+  return d.getDate() + '/' + pad(d.getMonth()+1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+// ── NOTIFICACIONES ────────────────────────────────────────────────────────────
+
+// R-202605-119: _renderNotifSection — empty state + historial + panel config colapsable al pie
 function _renderNotifSection() {
   const all    = _computeNotifications();
   const read   = _notifReadSet();
@@ -20,21 +31,12 @@ function _renderNotifSection() {
 
   _registerNotifActions(all);
 
-  // AC-2: helper para formatear ts en card
-  function _fmtNotifTs(ts) {
-    if (!ts) return '';
-    var d = new Date(ts);
-    var pad = function(x) { return String(x).padStart(2,'0'); };
-    return d.getDate() + '/' + pad(d.getMonth()+1) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
-  }
-
   var notifContent;
   if (unseen.length) {
     var rows = unseen.map(function(n) {
       var eid  = n.id.replace(/&/g,'&amp;').replace(/\"/g,'&quot;');
       var body = n.body.replace(/</g,'&lt;').replace(/>/g,'&gt;');
       var sid  = JSON.stringify(n.id);
-      // AC-2: clases rsb-notif-type y rsb-notif-ts en cada card
       return '<div class="rsb-notif-item rsb-notif-item--unseen" data-id="' + eid + '">' +
         '<span class="rsb-notif-icon">' + n.icon + '</span>' +
         '<div class="rsb-notif-content">' +
@@ -136,11 +138,182 @@ function _rsbToggleCfg(e) {
   if (btn)   btn.setAttribute('aria-expanded', String(!isHidden));
 }
 
+// ── DATA HELPERS ──────────────────────────────────────────────────────────────
+
+function _sessionElapsed(ai) {
+  try {
+    const timerData = JSON.parse(localStorage.getItem('session-timer-' + ai.id) || 'null');
+    if (timerData && timerData.startEpoch) {
+      const ms = Date.now() - timerData.startEpoch;
+      const m = Math.floor(ms / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      return { label: `${m}m ${String(s).padStart(2,'0')}s`, ms };
+    }
+  } catch(e) {}
+  const sessions = getAISessions(ai.id);
+  const last = sessions.length ? sessions[sessions.length - 1] : null;
+  if (last && last.date) {
+    const ms = Date.now() - new Date(last.date).getTime();
+    if (ms > 0 && ms < 86400000) {
+      const m = Math.floor(ms / 60000);
+      const s = Math.floor((ms % 60000) / 1000);
+      return { label: `${m}m ${String(s).padStart(2,'0')}s`, ms };
+    }
+  }
+  return null;
+}
+
+function _sessionTitle(ai) {
+  try {
+    const sessions = getAISessions(ai.id);
+    const last = sessions.length ? sessions[sessions.length - 1] : null;
+    return last && last.title ? last.title : '';
+  } catch(e) { return ''; }
+}
+
+function _projPill(ai) {
+  try {
+    const aiSessions = getAISessions(ai.id);
+    if (!aiSessions.length) return '';
+    const lastSess = aiSessions[aiSessions.length - 1];
+    const proj = lastSess && lastSess.projId
+      ? (state.projects || []).find(p => p.id === lastSess.projId)
+      : null;
+    if (!proj) return '';
+    const color = proj.color || '#7c6af7';
+    return `<span class="rsb-proj-pill" style="--rsb-proj-color:${color}">${esc(proj.name)}</span>`;
+  } catch(e) { return ''; }
+}
+
+// ── CARD BUILDERS ─────────────────────────────────────────────────────────────
+
+function _buildSessionCard(ai, isInterrupted) {
+  const elapsed = _sessionElapsed(ai);
+  const sessionTitle = _sessionTitle(ai);
+  const pill = _projPill(ai);
+
+  const warnClass = elapsed && elapsed.ms > 3600000 ? ' rsb-elapsed-warn' : '';
+  const cls = isInterrupted ? 'rsb-card interrupted-state' : 'rsb-card in-session-state';
+  const badge = isInterrupted
+    ? `<span class="rsb-status-badge rsb-status-interrupted">⚡ en curso</span>`
+    : `<span class="rsb-status-badge rsb-status-session">● sesión</span>`;
+
+  const quickBtn = `<button class="rsb-card-quick" onclick="event.stopPropagation();openQuickCapture('${ai.id}')" title="Sesión rápida">⚡</button>`;
+
+  let sessionInfo = '';
+  if (!isInterrupted) {
+    const elapsedHtml = elapsed
+      ? `<span class="rsb-session-elapsed${warnClass}" id="rsb-elapsed-${ai.id}">${elapsed.label}</span>`
+      : '';
+    const titleHtml = sessionTitle
+      ? `<span class="rsb-session-title" id="rsb-session-title-${ai.id}">${esc(sessionTitle.substring(0, 28))}${sessionTitle.length > 28 ? '…' : ''}</span>`
+      : '';
+    sessionInfo = `<div class="rsb-card-session-info">${titleHtml}${elapsedHtml}</div>`;
+  } else {
+    sessionInfo = `<div class="rsb-interrupted-badge">⚡ Sesión en curso</div>`;
+  }
+
+  // R-202605-177: chip de ítem activo — primer código de trackerRefs de la última sesión
+  let activeItemChip = '';
+  try {
+    const lastSess = (typeof getLastAISession === 'function') ? getLastAISession(ai.id) : null;
+    if (lastSess && lastSess.trackerRefs && lastSess.trackerRefs.length > 0) {
+      const code = lastSess.trackerRefs[0];
+      let codeExists = false;
+      try {
+        const tracker = (typeof getActiveTracker === 'function') ? getActiveTracker() : null;
+        if (tracker && tracker.items) {
+          codeExists = tracker.items.some(i => i.code === code);
+        }
+      } catch (_e) {}
+      if (codeExists) {
+        activeItemChip = `<div class="rsb-card-active-item">
+          <button class="rsb-active-item-btn" onclick="event.stopPropagation();typeof navigateToItem==='function'&&navigateToItem('${esc(code)}')" title="Ver ítem ${esc(code)}">${esc(code)}</button>
+        </div>`;
+      } else if (code) {
+        activeItemChip = `<div class="rsb-card-active-item">
+          <span class="rsb-active-item-code">${esc(code)}</span>
+        </div>`;
+      }
+    }
+  } catch (_e) {}
+
+  const ckptBtn = `<button class="rsb-ckpt-direct-btn" onclick="event.stopPropagation();showCheckpointPanel && showCheckpointPanel('${ai.id}'); navigateToCard('${ai.id}')">
+    ⬡ checkpoint
+  </button>`;
+
+  return `<div class="${cls}" onclick="navigateToCard('${ai.id}')" id="rsb-card-${ai.id}">
+    <div class="rsb-card-row">
+      <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
+      <div class="rsb-card-meta">${badge}${quickBtn}</div>
+    </div>
+    ${pill ? `<div class="rsb-card-proj">${pill}</div>` : ''}
+    ${activeItemChip}
+    ${sessionInfo}
+    ${ckptBtn}
+  </div>`;
+}
+
+function _buildAvailableCard(ai) {
+  const pill = _projPill(ai);
+
+  let sinceLabel = '';
+  if (ai.resetTime && ai.resetEpoch) {
+    const epoch = new Date(ai.resetEpoch);
+    const hh = String(epoch.getHours()).padStart(2,'0');
+    const mm = String(epoch.getMinutes()).padStart(2,'0');
+    sinceLabel = fmt12(`${hh}:${mm}`);
+  } else {
+    const aiSessions = getAISessions(ai.id);
+    const last = aiSessions.length ? aiSessions[aiSessions.length - 1] : null;
+    if (last && last.date) {
+      const d = new Date(last.date);
+      if (!isNaN(d)) {
+        const hh = String(d.getHours()).padStart(2,'0');
+        const mm = String(d.getMinutes()).padStart(2,'0');
+        sinceLabel = fmt12(`${hh}:${mm}`);
+      }
+    }
+  }
+
+  const tsSpan = sinceLabel
+    ? `<span class="rsb-card-ts">${sinceLabel}</span>`
+    : '';
+
+  return `<div class="rsb-card available" onclick="navigateToCard('${ai.id}')" id="rsb-card-${ai.id}">
+    <div class="rsb-card-row">
+      <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
+      <div class="rsb-card-meta">
+        ${tsSpan}
+        <span class="rsb-status-badge rsb-status-available">🟢</span>
+        <button class="rsb-card-quick" onclick="event.stopPropagation();openQuickCapture('${ai.id}')" title="Sesión rápida">⚡</button>
+      </div>
+    </div>
+    ${pill ? `<div class="rsb-card-proj">${pill}</div>` : ''}
+  </div>`;
+}
+
+function _buildExhaustedCard(ai) {
+  const cd = getCD(ai.resetTime, ai.resetEpoch);
+  const resetLabel = ai.resetTime ? `hasta ${fmt12(ai.resetTime)}` : '';
+  return `<div class="rsb-card exhausted rsb-compact" onclick="navigateToCard('${ai.id}')" id="rsb-card-${ai.id}">
+    <div class="rsb-card-row">
+      <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
+      <div class="rsb-card-meta"><span class="rsb-status-badge rsb-status-exhausted">🔴</span></div>
+    </div>
+    <div class="rsb-card-body">
+      <div class="rsb-countdown" id="rsb-cd-${ai.id}">${cd || '--:--:--'}</div>
+      ${resetLabel ? `<div class="rsb-reset-label">${resetLabel}</div>` : ''}
+    </div>
+  </div>`;
+}
+
+// ── RENDER PRINCIPAL ──────────────────────────────────────────────────────────
+
 // R-202605-113: renderGlobalRadarSidebar — jerarquía, auto-hide Dock, cards por estado
 // Grupos: En sesión → Disponibles → Agotadas (colapsadas por defecto)
 // Eliminados: Sprint Activo · Top Pendientes
 // Nuevos: timer en sesión, btn CKPT directo, Agotadas colapsables, notif oculta cuando count=0
-
 function renderGlobalRadarSidebar() {
   const sidebar = document.getElementById('global-radar-sidebar');
   const container = document.getElementById('radar-sidebar-cards');
@@ -150,202 +323,16 @@ function renderGlobalRadarSidebar() {
 
   const interrupted = active.filter(a => a.interrupted);
   const inSession   = active.filter(a => !a.interrupted && _isInSession(a));
-  // Disponibles — ordenadas por tiempo desde última sesión (más descansada primero)
   const available   = active
     .filter(a => a.status === 'available' && !a.interrupted && !_isInSession(a))
     .sort((a, b) => _hoyAvailableSince(a) - _hoyAvailableSince(b));
-  // Agotadas — ordenadas por tiempo restante (la que se libera antes, primero)
   const exhausted   = active
     .filter(a => a.status === 'exhausted' && !a.interrupted)
     .sort((a, b) => _hoyMsUntilReset(a) - _hoyMsUntilReset(b));
 
-  // ── helpers ──────────────────────────────────────────────────────────────
-
-  function _sessionElapsed(ai) {
-    // Tiempo transcurrido desde el inicio de la sesión activa
-    try {
-      const timerData = JSON.parse(localStorage.getItem('session-timer-' + ai.id) || 'null');
-      if (timerData && timerData.startEpoch) {
-        const ms = Date.now() - timerData.startEpoch;
-        const m = Math.floor(ms / 60000);
-        const s = Math.floor((ms % 60000) / 1000);
-        return { label: `${m}m ${String(s).padStart(2,'0')}s`, ms };
-      }
-    } catch(e) {}
-    // Fallback: hora de última sesión
-    const sessions = getAISessions(ai.id);
-    const last = sessions.length ? sessions[sessions.length - 1] : null;
-    if (last && last.date) {
-      const ms = Date.now() - new Date(last.date).getTime();
-      if (ms > 0 && ms < 86400000) {
-        const m = Math.floor(ms / 60000);
-        const s = Math.floor((ms % 60000) / 1000);
-        return { label: `${m}m ${String(s).padStart(2,'0')}s`, ms };
-      }
-    }
-    return null;
-  }
-
-  function _sessionTitle(ai) {
-    try {
-      const sessions = getAISessions(ai.id);
-      const last = sessions.length ? sessions[sessions.length - 1] : null;
-      return last && last.title ? last.title : '';
-    } catch(e) { return ''; }
-  }
-
-  function _projPill(ai) {
-    try {
-      const aiSessions = getAISessions(ai.id);
-      if (!aiSessions.length) return '';
-      const lastSess = aiSessions[aiSessions.length - 1];
-      const proj = lastSess && lastSess.projId
-        ? (state.projects || []).find(p => p.id === lastSess.projId)
-        : null;
-      if (!proj) return '';
-      const color = proj.color || '#7c6af7';
-      return `<span class="rsb-proj-pill" style="--rsb-proj-color:${color}">${esc(proj.name)}</span>`;
-    } catch(e) { return ''; }
-  }
-
-  // ── card builders ─────────────────────────────────────────────────────────
-
-  function _buildSessionCard(ai, isInterrupted) {
-    const elapsed = _sessionElapsed(ai);
-    const sessionTitle = _sessionTitle(ai);
-    const pill = _projPill(ai);
-
-    const warnClass = elapsed && elapsed.ms > 3600000 ? ' rsb-elapsed-warn' : '';
-    const cls = isInterrupted ? 'rsb-card interrupted-state' : 'rsb-card in-session-state';
-    const badge = isInterrupted
-      ? `<span class="rsb-status-badge rsb-status-interrupted">⚡ en curso</span>`
-      : `<span class="rsb-status-badge rsb-status-session">● sesión</span>`;
-
-    const quickBtn = `<button class="rsb-card-quick" onclick="event.stopPropagation();openQuickCapture('${ai.id}')" title="Sesión rápida">⚡</button>`;
-
-    let sessionInfo = '';
-    if (!isInterrupted) {
-      const elapsedHtml = elapsed
-        ? `<span class="rsb-session-elapsed${warnClass}" id="rsb-elapsed-${ai.id}">${elapsed.label}</span>`
-        : '';
-      const titleHtml = sessionTitle
-        ? `<span class="rsb-session-title" id="rsb-session-title-${ai.id}">${esc(sessionTitle.substring(0, 28))}${sessionTitle.length > 28 ? '…' : ''}</span>`
-        : '';
-      sessionInfo = `<div class="rsb-card-session-info">${titleHtml}${elapsedHtml}</div>`;
-    } else {
-      sessionInfo = `<div class="rsb-interrupted-badge">⚡ Sesión en curso</div>`;
-    }
-
-    // R-202605-177: chip de ítem activo — primer código de trackerRefs de la última sesión
-    let activeItemChip = '';
-    try {
-      const lastSess = (typeof getLastAISession === 'function') ? getLastAISession(ai.id) : null;
-      if (lastSess && lastSess.trackerRefs && lastSess.trackerRefs.length > 0) {
-        const code = lastSess.trackerRefs[0];
-        // Verificar si el código existe en el backlog — si no, mostrar como texto plano sin link
-        let codeExists = false;
-        try {
-          const tracker = (typeof getActiveTracker === 'function') ? getActiveTracker() : null;
-          if (tracker && tracker.items) {
-            codeExists = tracker.items.some(i => i.code === code);
-          }
-        } catch (_e) {}
-        if (codeExists) {
-          activeItemChip = `<div class="rsb-card-active-item">
-            <button class="rsb-active-item-btn" onclick="event.stopPropagation();typeof navigateToItem==='function'&&navigateToItem('${esc(code)}')" title="Ver ítem ${esc(code)}">${esc(code)}</button>
-          </div>`;
-        } else if (code) {
-          activeItemChip = `<div class="rsb-card-active-item">
-            <span class="rsb-active-item-code">${esc(code)}</span>
-          </div>`;
-        }
-      }
-    } catch (_e) {}
-
-    // Botón CKPT directo — un click, sin abrir detalle
-    const ckptBtn = `<button class="rsb-ckpt-direct-btn" onclick="event.stopPropagation();showCheckpointPanel && showCheckpointPanel('${ai.id}'); navigateToCard('${ai.id}')">
-      ⬡ checkpoint
-    </button>`;
-
-    return `<div class="${cls}" onclick="navigateToCard('${ai.id}')" id="rsb-card-${ai.id}">
-      <div class="rsb-card-row">
-        <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
-        <div class="rsb-card-meta">${badge}${quickBtn}</div>
-      </div>
-      ${pill ? `<div class="rsb-card-proj">${pill}</div>` : ''}
-      ${activeItemChip}
-      ${sessionInfo}
-      ${ckptBtn}
-    </div>`;
-  }
-
-  function _buildAvailableCard(ai) {
-    const pill = _projPill(ai);
-
-    // Calcular timestamp de última sesión o reset — para .rsb-card-ts en meta
-    let sinceLabel = '';
-    if (ai.resetTime && ai.resetEpoch) {
-      const epoch = new Date(ai.resetEpoch);
-      const hh = String(epoch.getHours()).padStart(2,'0');
-      const mm = String(epoch.getMinutes()).padStart(2,'0');
-      sinceLabel = fmt12(`${hh}:${mm}`);
-    } else {
-      const aiSessions = getAISessions(ai.id);
-      const last = aiSessions.length ? aiSessions[aiSessions.length - 1] : null;
-      if (last && last.date) {
-        const d = new Date(last.date);
-        if (!isNaN(d)) {
-          const hh = String(d.getHours()).padStart(2,'0');
-          const mm = String(d.getMinutes()).padStart(2,'0');
-          sinceLabel = fmt12(`${hh}:${mm}`);
-        }
-      }
-    }
-
-    // Timestamp visible en meta — solo si hay valor
-    const tsSpan = sinceLabel
-      ? `<span class="rsb-card-ts">${sinceLabel}</span>`
-      : '';
-
-    return `<div class="rsb-card available" onclick="navigateToCard('${ai.id}')" id="rsb-card-${ai.id}">
-      <div class="rsb-card-row">
-        <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
-        <div class="rsb-card-meta">
-          ${tsSpan}
-          <span class="rsb-status-badge rsb-status-available">🟢</span>
-          <button class="rsb-card-quick" onclick="event.stopPropagation();openQuickCapture('${ai.id}')" title="Sesión rápida">⚡</button>
-        </div>
-      </div>
-      ${pill ? `<div class="rsb-card-proj">${pill}</div>` : ''}
-    </div>`;
-  }
-
-  function _buildExhaustedCard(ai) {
-    const cd = getCD(ai.resetTime, ai.resetEpoch);
-    const resetLabel = ai.resetTime ? `hasta ${fmt12(ai.resetTime)}` : '';
-    return `<div class="rsb-card exhausted rsb-compact" onclick="navigateToCard('${ai.id}')" id="rsb-card-${ai.id}">
-      <div class="rsb-card-row">
-        <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
-        <div class="rsb-card-meta"><span class="rsb-status-badge rsb-status-exhausted">🔴</span></div>
-      </div>
-      <div class="rsb-card-body">
-        <div class="rsb-countdown" id="rsb-cd-${ai.id}">${cd || '--:--:--'}</div>
-        ${resetLabel ? `<div class="rsb-reset-label">${resetLabel}</div>` : ''}
-      </div>
-    </div>`;
-  }
-
-  // ── notificaciones (oculto cuando count = 0) ──────────────────────────────
-  const notifSection = (() => {
-    const notifHtml = _renderNotifSection();
-    // Ocultar cuando no hay notificaciones sin leer
-    const unseen = _computeNotifications().filter(n => !_notifReadSet().has(n.id)).length;
-    if (!unseen) return '';
-    return notifHtml;
-  })();
-
-  // ── construir HTML ─────────────────────────────────────────────────────────
-  let html = notifSection;
+  // Notificaciones — oculto cuando count = 0
+  const unseen = _computeNotifications().filter(n => !_notifReadSet().has(n.id)).length;
+  let html = unseen ? _renderNotifSection() : '';
 
   if (!active.length) {
     html = `<div class="rsb-empty-state">
@@ -355,7 +342,7 @@ function renderGlobalRadarSidebar() {
       <button class="rsb-empty-btn" onclick="openAddAI()">+ Nueva IA</button>
     </div>`;
   } else {
-    // Grupo 1: En sesión (interrupted + inSession fusionados — orden fijo: interrupted primero)
+    // Grupo 1: En sesión (interrupted + inSession — orden fijo: interrupted primero)
     const enSesionAll = [...interrupted, ...inSession];
     if (enSesionAll.length) {
       const cards = [
@@ -396,21 +383,19 @@ function renderGlobalRadarSidebar() {
   container.innerHTML = html;
 
   // Header — contadores — R-202605-138: contadores migrados a fila 2
-  const titleEl  = sidebar.querySelector('.radar-sidebar-title');
-  const row2El   = sidebar.querySelector('.rsb-header-row2');
+  const titleEl = sidebar.querySelector('.radar-sidebar-title');
+  const row2El  = sidebar.querySelector('.rsb-header-row2');
   if (titleEl) {
-    const unseen = _computeNotifications().filter(n => !_notifReadSet().has(n.id)).length;
-    const notifBadge = unseen ? ` <span class="rsb-notif-hdr-badge">${unseen}</span>` : '';
-    // Fila 1: solo título + badge de notificaciones — sin contadores
+    const unreadCount = _computeNotifications().filter(n => !_notifReadSet().has(n.id)).length;
+    const notifBadge = unreadCount ? ` <span class="rsb-notif-hdr-badge">${unreadCount}</span>` : '';
     titleEl.innerHTML = `Centro de notificaciones${notifBadge}`;
   }
   if (row2El) {
-    // Fila 2: contadores de disponibilidad — se ocultan si valor es 0
-    const sessionCount  = interrupted.length + inSession.length;
+    const sessionCount = interrupted.length + inSession.length;
     const counts = [
-      sessionCount   ? `<span class="rsb-hdr-count rsb-hdr-session"><span class="rsb-hdr-dot"></span>${sessionCount}</span>`   : '',
-      available.length  ? `<span class="rsb-hdr-count rsb-hdr-available"><span class="rsb-hdr-dot"></span>${available.length}</span>`  : '',
-      exhausted.length  ? `<span class="rsb-hdr-count rsb-hdr-exhausted"><span class="rsb-hdr-dot"></span>${exhausted.length}</span>`  : '',
+      sessionCount     ? `<span class="rsb-hdr-count rsb-hdr-session"><span class="rsb-hdr-dot"></span>${sessionCount}</span>`    : '',
+      available.length ? `<span class="rsb-hdr-count rsb-hdr-available"><span class="rsb-hdr-dot"></span>${available.length}</span>` : '',
+      exhausted.length ? `<span class="rsb-hdr-count rsb-hdr-exhausted"><span class="rsb-hdr-dot"></span>${exhausted.length}</span>` : '',
     ].filter(Boolean).join('');
     row2El.innerHTML = counts ? `<span class="rsb-hdr-counts">${counts}</span>` : '';
   }
@@ -435,6 +420,8 @@ function renderGlobalRadarSidebar() {
   updateTabNotifBadges();
   if (_rsbSearchQuery) rsbFilterAIs(_rsbSearchQuery, true);
 }
+
+// ── COLLAPSE / GRUPOS ─────────────────────────────────────────────────────────
 
 // R-202605-172: Toggle colapsar/expandir grupos del radar sidebar
 // Función independiente de toggleCollapseAll() del tracker (que opera sobre state.ais.showAll)
@@ -462,7 +449,8 @@ function _rsbToggleAgotadas() {
   localStorage.setItem('rsb-agotadas-collapsed', isNowCollapsed ? '1' : '0');
 }
 
-// ── RADAR SEARCH — Nova UX ────────────────────────────────────────────────────
+// ── RADAR SEARCH ──────────────────────────────────────────────────────────────
+
 let _rsbSearchQuery = '';
 
 function rsbFilterAIs(query, silent) {
@@ -505,7 +493,6 @@ function rsbFilterAIs(query, silent) {
     noResults.remove();
   }
 
-  // Focus solo si viene de interacción directa (no de re-render)
   if (!silent) {
     const input = document.getElementById('rsb-search-input');
     if (input) input.focus();
@@ -517,7 +504,8 @@ function rsbClearSearch() {
   if (input) input.value = '';
   rsbFilterAIs('');
 }
-// ── END RADAR SEARCH ──────────────────────────────────────────────────────────
+
+// ── PIN / OFFSET / TOGGLE / INIT ──────────────────────────────────────────────
 
 // R-202605-113: Pin toggle — desactiva auto-hide cuando está fijado
 function rsbTogglePin() {
@@ -534,9 +522,6 @@ function _rsbIsPinned() {
 }
 
 // R-202605-173: Centralizar aplicación de --toast-right-offset
-// isCollapsed true → removeProperty (sidebar colapsado, sin desplazamiento)
-// isCollapsed false → setProperty 300px (sidebar expandido, desplazar toast-stack)
-// Guard: si document.documentElement no está disponible, no lanza error
 function _applyToastOffset(isCollapsed) {
   try {
     if (!document.documentElement) return;
@@ -556,7 +541,6 @@ function toggleRadarSidebar() {
   document.body.classList.toggle('radar-sb-collapsed', isCollapsed);
   document.body.classList.toggle('radar-sb-open', !isCollapsed);
   localStorage.setItem('radar-sidebar-collapsed', isCollapsed ? '1' : '0');
-  // R-202605-173: delegar offset a función centralizada
   _applyToastOffset(isCollapsed);
 }
 
@@ -569,17 +553,15 @@ function _initRadarSidebarState() {
     sidebar.classList.add('collapsed');
     document.body.classList.remove('radar-sb-open');
     document.body.classList.add('radar-sb-collapsed');
-    // R-202605-173: delegar offset a función centralizada (rama colapsado)
     _applyToastOffset(true);
   } else {
     sidebar.classList.remove('collapsed');
     document.body.classList.remove('radar-sb-collapsed');
     document.body.classList.add('radar-sb-open');
-    // R-202605-173: delegar offset a función centralizada (rama expandido)
     _applyToastOffset(false);
   }
 
-  // Restaurar estado pin — reutiliza sidebar ya declarado arriba
+  // Restaurar estado pin
   if (localStorage.getItem('rsb-pinned') === '1') {
     sidebar.classList.add('rsb-pinned');
     const btn = document.getElementById('rsb-pin-btn');
@@ -587,7 +569,6 @@ function _initRadarSidebarState() {
   }
 
   // R-202605-113: Auto-hide — colapsa si el cursor sale y no regresa en 2.5s
-  // Usa toggleRadarSidebar() para mantener estado DOM + localStorage consistentes
   if (!window._rsbAutoHideInited) {
     window._rsbAutoHideInited = true;
     let _rsbHideTimer = null;
