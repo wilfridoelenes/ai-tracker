@@ -3894,6 +3894,24 @@
   transform: translateY(-1px);
 }
 
+/* ── Zen mode — focus-active / focus-dimmed ── */
+
+.card {
+  transition: opacity var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+/* Card activo: cancela translateY del hover — evita layout shift al entrar en focus */
+.card.focus-active {
+  transform: translateY(0) !important;
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* Cards dimmeados: invisibles e inertes */
+.card.focus-dimmed {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
 .card.exhausted {
   background: var(--red-dim);
   border-color: var(--red-border);
