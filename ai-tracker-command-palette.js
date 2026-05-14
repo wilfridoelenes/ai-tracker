@@ -193,6 +193,25 @@ function _buildCommandRegistry() {
       group: 'Acciones',
       action: () => { if (typeof openPendPanel === 'function') openPendPanel(); },
     },
+    {
+      id: 'shortcuts-ref',
+      label: 'Ver atajos de teclado',
+      icon: '⌨️',
+      keywords: ['atajos', 'shortcuts', 'teclado', 'keyboard', 'ver'],
+      group: 'Acciones',
+      action: () => { if (typeof openShortcutsRef === 'function') openShortcutsRef(); },
+    },
+    {
+      id: 'search-global',
+      label: 'Buscar…',
+      icon: '🔍',
+      keywords: ['buscar', 'search', 'global', 'find'],
+      group: 'Acciones',
+      action: () => {
+        const si = document.getElementById('search-global');
+        if (si) { si.focus(); si.select(); }
+      },
+    },
   ];
 
   return [...nav, ...actions];
@@ -272,6 +291,38 @@ function _buildDynamicCommands(query) {
         });
       }
     });
+  }
+
+  // Sesiones — búsqueda por título o resumen
+  if (query.trim().length >= 2 && typeof state !== 'undefined') {
+    const q = query.trim().toLowerCase();
+    const allSessions = [];
+    (state.projects || []).forEach(proj => {
+      (proj.sessions || []).forEach(s => {
+        if (
+          (s.title || '').toLowerCase().includes(q) ||
+          (s.summary || '').toLowerCase().includes(q)
+        ) {
+          const ai = (state.ais || []).find(a => a.id === s.aiId);
+          allSessions.push({ s, ai });
+        }
+      });
+    });
+    allSessions
+      .sort((a, b) => parseInt(b.s.id || 0) - parseInt(a.s.id || 0))
+      .slice(0, 6)
+      .forEach(({ s, ai }) => {
+        cmds.push({
+          id: 'sess-' + s.id,
+          label: s.title || '(sin título)',
+          icon: '📄',
+          keywords: [],
+          group: 'Sesiones',
+          action: () => {
+            if (ai && typeof openDetail === 'function') openDetail(ai.id, s.id);
+          },
+        });
+      });
   }
 
   return cmds;
@@ -402,10 +453,10 @@ const _cp = {
 
 function _el(id) { return document.getElementById(id); }
 
-function _cpInput()       { return _el('cmd-palette-input'); }  // B-202605-002: ID canónico
-function _cpList()        { return _el('cmd-palette-list'); }    // B-202605-002: ID canónico
-function _cpOverlay()     { return _el('cmd-palette-overlay'); } // B-202605-002: ID canónico
-function _cpRecent()      { return _el('cp-recent'); }           // cp-recent: no existe en HTML canónico — funciones guardan con if(!el)
+function _cpInput()       { return _el('cp-input'); }    // ID canónico en index.html
+function _cpList()        { return _el('cp-body'); }      // ID canónico en index.html
+function _cpOverlay()     { return _el('cp-overlay'); }  // ID canónico en index.html
+function _cpRecent()      { return _el('cp-recent'); }   // no existe en HTML canónico — guards en uso
 
 /* ────────────────────────────────────────────────────────────────
    OPEN / CLOSE
@@ -421,7 +472,7 @@ function openCommandPalette() {
   const overlay = _cpOverlay();
   if (!overlay) return;
 
-  overlay.classList.remove('hidden'); // B-202605-002: sistema canónico usa 'hidden', no 'cp-visible'
+  overlay.classList.remove('is-hidden');
   document.body.classList.add('cp-body-lock');
 
   const input = _cpInput();
@@ -439,7 +490,7 @@ function closeCommandPalette() {
   _cp.open = false;
 
   const overlay = _cpOverlay();
-  if (overlay) overlay.classList.add('hidden'); // B-202605-002: sistema canónico usa 'hidden', no 'cp-visible'
+  if (overlay) overlay.classList.add('is-hidden');
   document.body.classList.remove('cp-body-lock');
 }
 
