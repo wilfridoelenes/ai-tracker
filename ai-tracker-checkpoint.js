@@ -171,68 +171,9 @@ function handleSyncPillClick() {
   else { signOutSupabase(); }
 }
 
-// ── T-202605-482c: Supabase Auth — Google OAuth (founder único, multidispositivo) ──
-// SUPABASE_URL y SUPABASE_ANON_KEY se inyectan como variables de entorno en Vercel.
-  try {
-    // B-202605-504: Safari bloquea localStorage en redirects OAuth via ITP —
-    // usa implicit flow en Safari, PKCE con localStorage en Chrome y resto.
-    const _isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: {
-        detectSessionInUrl: true,
-        persistSession: true,
-        storage: localStorage,
-        flowType: _isSafari ? 'implicit' : 'pkce'
-      }
-    });
-
-    _supabaseReady = new Promise(resolve => {
-      _supabase.auth.onAuthStateChange((event, session) => {
-        _supabaseUser = session ? session.user : null;
-        if (_supabaseUser) {
-          setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
-          if (event === 'SIGNED_IN') {
-            if (typeof closeAuthModal === 'function') closeAuthModal();
-            if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
-            if (typeof render === 'function') render();
-            // T-202605-XXX: activar sync Realtime al iniciar sesión
-            _subscribeRealtime();
-          }
-          // T-202605-XXX: si la sesión ya existía al cargar (INITIAL_SESSION), también suscribir
-          if (event === 'INITIAL_SESSION') {
-            _subscribeRealtime();
-          }
-        } else {
-          setSyncStatus('local', '☁ conectar');
-          // T-202605-XXX: limpiar canal al cerrar sesión
-          _unsubscribeRealtime();
-        }
-        resolve(_supabaseUser);
-        if (typeof _refreshMigrationBtnVisibility === 'function') _refreshMigrationBtnVisibility();
-      });
-    });
-
-    // B-202605-504: getSession explícito post-listener — cubre el caso donde INITIAL_SESSION
-    // disparó antes de que el listener estuviera registrado (flujo PKCE post-redirect en Vercel).
-    _supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session && !_supabaseUser) {
-        // El listener no capturó la sesión — aplicar manualmente
-        _supabaseUser = session.user;
-        setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
-        if (typeof closeAuthModal === 'function') closeAuthModal();
-        if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
-        if (typeof render === 'function') render();
-        _subscribeRealtime();
-        if (typeof _refreshMigrationBtnVisibility === 'function') _refreshMigrationBtnVisibility();
-      }
-    });
-  } catch(e) {
-    console.warn('Supabase init error:', e);
-    _supabaseReady = Promise.resolve(null);
-  }
-} else {
-  _supabaseReady = Promise.resolve(null);
-}
+// ── T-202605-482c: Supabase Auth — migrado a locus-storage.js ──
+// El bloque de inicialización de Supabase (createClient, onAuthStateChange, getSession)
+// vive en locus-storage.js que carga antes. Eliminado aquí para evitar duplicación.
 
 
 // navegar al Tracker enfocando la card de una IA
@@ -1185,7 +1126,7 @@ function onSearchDispatch() {
 
 // ── TAB-TRACKER — State, render, cards, sesiones, tracker global, tags, pendientes ──
 
-const DEFAULT_AIS = [];
+// DEFAULT_AIS declarado en locus-storage.js — debe estar disponible antes de load()
 let popAIId = null, popSessId = null;
 let tagModalAIId = null, tagModalSessId = null, selectedColor = 0;
 

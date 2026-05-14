@@ -1213,6 +1213,11 @@ function _applyStateData(raw) {
 // B-202604-011: clone nunca estuvo definida — fallback crasheaba silenciosamente
 function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
 
+// DEFAULT_AIS: valor inicial del estado cuando no hay datos en localStorage.
+// Declarado aquí (locus-storage.js) porque load() lo necesita antes de que
+// ai-tracker-checkpoint.js esté disponible en el DOM.
+const DEFAULT_AIS = [];
+
 function load() {
   // Carga síncrona desde localStorage (arranque inmediato)
   const s = localStorage.getItem('ai-tracker-v4');
