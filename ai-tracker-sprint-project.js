@@ -1232,26 +1232,28 @@ if (typeof ITEMS !== 'undefined' && ITEMS.length) {
   updateBacklogFooter();
 }
 
-// T-052: Init — tab Hoy es el primero y activo por defecto
-document.querySelectorAll('.tracker-only').forEach(el => el.classList.add('is-hidden'));
-document.querySelectorAll('.analytics-only').forEach(el => el.classList.add('is-hidden'));
-// B-202604-013: restaurar tab activo después del init — el init oculta tracker-only, debe restaurarse al final
-// T-202604-317: si active-tab vacío → Tracker como default
-{ const _savedTab = localStorage.getItem('active-tab'); switchTab(_savedTab || 'tracker'); }
-
-// T-202604-048: cargar Module Map desde localStorage al arranque
-loadHtmlMap();
-
-
-renderHoy();
-// Garantizar status bar visible tras restaurar tab (el DOM de #ai-status-bar se inserta después de los scripts)
-if (typeof renderAIStatusBar === 'function') renderAIStatusBar();
-// T-202604-009: onboarding primer uso
-setTimeout(_checkOnboarding, 300);
-// T-077: inicializar estado visual de filtro proyectos
-_updateProjBreadcrumb();
-_updateProjFilterBtn();
-if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
+// T-052 / B-202604-013 / T-202604-048 — Init diferido: requiere módulos completos (switchTab en checkpoint.js)
+document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
+  // T-052: ocultar tabs que no son el activo por defecto
+  document.querySelectorAll('.tracker-only').forEach(el => el.classList.add('is-hidden'));
+  document.querySelectorAll('.analytics-only').forEach(el => el.classList.add('is-hidden'));
+  // B-202604-013 / T-202604-317: restaurar tab activo — switchTab vive en checkpoint.js
+  if (typeof switchTab === 'function') {
+    const _savedTab = localStorage.getItem('active-tab');
+    switchTab(_savedTab || 'tracker');
+  }
+  // T-202604-048: cargar Module Map desde localStorage
+  if (typeof loadHtmlMap === 'function') loadHtmlMap();
+  if (typeof renderHoy === 'function') renderHoy();
+  // Garantizar status bar visible tras restaurar tab
+  if (typeof renderAIStatusBar === 'function') renderAIStatusBar();
+  // T-202604-009: onboarding primer uso
+  setTimeout(_checkOnboarding, 300);
+  // T-077: inicializar estado visual de filtro proyectos
+  if (typeof _updateProjBreadcrumb === 'function') _updateProjBreadcrumb();
+  if (typeof _updateProjFilterBtn === 'function') _updateProjFilterBtn();
+  if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
+});
 
 // ── T-202604-009: Onboarding primer uso ──
 function _checkOnboarding() {

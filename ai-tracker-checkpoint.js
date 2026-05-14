@@ -4000,6 +4000,7 @@ document.addEventListener('keydown', e => {
 
 // ── T-202605-442: Atajos de teclado configurables ────────────────────────
 // _SHORTCUTS_KEY, _USER_PREFS_TS_KEY, _shortcutsLoad, _shortcutsSave → migradas a locus-storage.js
+const _SHORTCUT_DEFS = [
   // Navegación de tabs (chord G+)
   { id: 'tab-tracker',   label: 'Ir a Tracker',                  group: 'Navegación', default: 'g+t', chord: true },
   { id: 'tab-backlog',   label: 'Ir a Backlog',                   group: 'Navegación', default: 'g+d', chord: true },

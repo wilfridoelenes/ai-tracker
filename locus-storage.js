@@ -1048,14 +1048,16 @@ async function _loadFromSupabase() {
     } catch (prefsErr) {
       console.warn('[AI Tracker] Error cargando preferencias desde Supabase:', prefsErr);
     }
-    render(); renderHoy(); updateStats();
+    if (typeof render === 'function') render();
+    if (typeof renderHoy === 'function') renderHoy();
+    if (typeof updateStats === 'function') updateStats();
     if (typeof renderBacklogList === 'function') renderBacklogList();
     setSyncStatus('synced', '✓ sincronizado');
 
   } catch (err) {
     console.error('[AI Tracker] _loadFromSupabase() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
-    showToast('warning', '⚠️ No se pudo cargar desde Supabase — operando en modo local', null, 6000);
+    if (typeof showToast === 'function') showToast('warning', '⚠️ No se pudo cargar desde Supabase — operando en modo local', null, 6000);
   }
 }
 
