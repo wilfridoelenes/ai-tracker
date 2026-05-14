@@ -1,5 +1,5 @@
 /* locus-radar.css */
-/* Versión: 1.2 | Última actualización: 2026-05-13 | Cards 1 col + layout horizontal disponibles + CTA CKPT reforzado */
+/* Versión: 1.3 | Última actualización: 2026-05-13 | B1 fondo explícito sidebar · B2 auto-init JS (ver nota) · B3 pin icon dual SVG */
 
 /* ══ R-202605-113: RADAR SIDEBAR GLOBAL — Jerarquía, auto-hide Dock, cards por estado ══ */
 
@@ -17,6 +17,19 @@
   --radar-card-border: rgb(255 255 255 / 7%);
   --radar-card-hover-bg: rgb(255 255 255 / 9%);
   --radar-section-divider: rgb(255 255 255 / 5%);
+}
+
+/* ── Sidebar base — background y borde explícitos (Bug 1) ──
+   position:fixed no hereda body background → declarar explícito.
+   Fallback: --surface-2 si existe, sino --surface, sino color duro. */
+#global-radar-sidebar {
+  background: var(--surface-2, var(--surface, #1a1a2e));
+  border-left: 1px solid var(--border, rgb(255 255 255 / 10%));
+}
+
+:root[data-theme="light"] #global-radar-sidebar {
+  background: var(--surface-2, var(--surface, #f5f5f7));
+  border-left: 1px solid var(--border, rgb(0 0 0 / 8%));
 }
 
 /* Colapsado: solo strip visible de 14px en el borde derecho */
@@ -715,6 +728,15 @@
   color: var(--text);
   border-color: var(--border2);
 }
+
+/* ── Pin icon — dos SVGs, CSS alterna (Bug 3) ── */
+/* Estado default: mostrar off, ocultar on */
+.rsb-pin-icon--on  { display: none; }
+.rsb-pin-icon--off { display: block; }
+
+/* Estado pinned: mostrar on, ocultar off */
+#global-radar-sidebar.rsb-pinned .rsb-pin-icon--on  { display: block; }
+#global-radar-sidebar.rsb-pinned .rsb-pin-icon--off { display: none; }
 
 #global-radar-sidebar.rsb-pinned .rsb-pin-btn {
   color: var(--accent);
