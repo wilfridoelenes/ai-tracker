@@ -90,6 +90,92 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
   _supabaseReady = Promise.resolve(null);
 }
 
+// ── SYNC STATUS UI ────────────────────────────────────────────────────────────
+// T-202604-312: color semántico — verde/neutro cuando conectado, rojo solo en error real de sync
+// Estados: synced → verde | syncing → acento neutro | local → neutro | offline → rojo
+// Migrado desde ai-tracker-checkpoint.js — necesario antes del init de auth
+function setSyncStatus(status, label) {
+  // T-202605-433: sync-pill eliminado — nuevos IDs en menú ⋯
+  const dot = document.getElementById('sync-status-dot');
+  const lbl = document.getElementById('sync-status-label');
+  if (dot) dot.className = 'mm-icon sync-status-dot sync-status-dot--' + status;
+  if (lbl) lbl.textContent = 'Sync: ' + label;
+  // R-202604-060: mirror en global footer
+  const gfSync = document.getElementById('gf-sync');
+  if (gfSync) { gfSync.className = 'gf-sync gf-sync--' + status; gfSync.textContent = label; }
+  // T-202605-USR: chip de usuario en header
+  const chip = document.getElementById('user-chip');
+  const chipDot = document.getElementById('user-chip-dot');
+  const chipName = document.getElementById('user-chip-name');
+  if (chip && chipDot && chipName) {
+    if (_supabaseUser) {
+      const name = (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || '').split(' ')[0];
+      chipName.textContent = name;
+      chipDot.className = 'user-chip-dot user-chip-dot--' + status;
+      chip.classList.remove('is-hidden');
+    } else {
+      chip.classList.add('is-hidden');
+    }
+  }
+}
+
+function handleSyncPillClick() {
+  if (!_supabaseUser) { if (typeof openAuthModal === 'function') openAuthModal(); else signInWithSupabase(); }
+  else { signOutSupabase(); }
+}
+
+// ── SHORTCUTS + USER PREFS ───────────────────────────────────────────────────
+// T-202605-442: Atajos de teclado configurables — migrado desde ai-tracker-checkpoint.js
+// _saveUserPrefs (más abajo) los necesita al serializar preferencias hacia Supabase
+const _SHORTCUTS_KEY = 'user-shortcuts';
+const _USER_PREFS_TS_KEY = 'user-prefs-ts'; // R-4: timestamp del último user-prefs aplicado desde Supabase
+
+function _shortcutsLoad() {
+  try {
+    const raw = localStorage.getItem(_SHORTCUTS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch(_) { return {}; }
+}
+
+function _shortcutsSave(map) {
+  localStorage.setItem(_SHORTCUTS_KEY, JSON.stringify(map));
+  _saveUserPrefs(); // R-4: persistir en Supabase
+}
+
+// ── TMP ID MAP ────────────────────────────────────────────────────────────────
+// Migrado desde ai-tracker-checkpoint.js — operación Supabase pura
+function _loadTmpIdMap() {
+  try {
+    const raw = localStorage.getItem('tmp-id-map');
+    if (!raw) return {};
+    const map = JSON.parse(raw);
+    // TTL: limpiar entradas con más de 24h
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+    let dirty = false;
+    Object.keys(map).forEach(k => {
+      if (!map[k].createdAt || map[k].createdAt < cutoff) { delete map[k]; dirty = true; }
+    });
+    if (dirty) localStorage.setItem('tmp-id-map', JSON.stringify(map));
+    return map;
+  } catch(e) { return {}; }
+}
+
+function _saveTmpIdMap(map) {
+  try { localStorage.setItem('tmp-id-map', JSON.stringify(map)); } catch(e) {}
+  // R-1: persistir tmp-id-map en Supabase para sobrevivir cambio de dispositivo
+  if (_supabase && _supabaseUser) {
+    _supabase.from('tracker_docs').upsert(
+      [{ user_id: _supabaseUser.id, key: 'tmp-id-map', value: { map, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
+      { onConflict: 'user_id,key' }
+    ).then(({ error }) => {
+      if (error) {
+        console.warn('[AI Tracker] _saveTmpIdMap Supabase error:', error);
+        _offlineQueuePush({ type: 'tmp-id-map' });
+      }
+    });
+  }
+}
+
 // ── GRUPO 5 — OFFLINE QUEUE ───────────────────────────────────────────────────
 // T-202605-483: Fallback offline — cola de pendientes + listeners de red
 // Cola persistida en localStorage para sobrevivir recargas
@@ -1218,12 +1304,22 @@ function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
 // ai-tracker-checkpoint.js esté disponible en el DOM.
 const DEFAULT_AIS = [];
 
+// load() — solo datos, sin efectos de UI.
+// Carga estado desde localStorage en memoria y normaliza — no llama render ni toast.
+// Llamada desde _initApp() una vez que todos los módulos están disponibles.
 function load() {
   // Carga síncrona desde localStorage (arranque inmediato)
   const s = localStorage.getItem('ai-tracker-v4');
   let _migrated = false;
-  if (s) { try { _migrated = _applyStateData(JSON.parse(s)); } catch (e) { console.error('[AI Tracker] Estado corrupto en localStorage — restaurando defaults:', e); _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]}); showToast('error', '❌ Estado corrupto detectado — se restauraron los valores por defecto. Tus datos en Supabase no fueron afectados.', null, 10000); } }
-  else { _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]}); }
+  if (s) {
+    try { _migrated = _applyStateData(JSON.parse(s)); }
+    catch (e) {
+      console.error('[AI Tracker] Estado corrupto en localStorage — restaurando defaults:', e);
+      _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]});
+    }
+  } else {
+    _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]});
+  }
   // Normalización: si había sesiones en ai.sessions[], persistir inmediatamente sin esperar Supabase
   if (_migrated) {
     try { localStorage.setItem('ai-tracker-v4', JSON.stringify(state)); } catch {}
@@ -1239,27 +1335,58 @@ function load() {
       }
     }
   });
-  // B-202604-010: render inicial desde estado real — el HTML estático es un snapshot,
-  // sin este render el DOM no refleja localStorage al refrescar
-  render();
-  // B-202605-508: garantizar badges visibles al arranque, incluyendo early-return paths de render()
-  updateTabNotifBadges();
-  // R-202604-072: panel de contexto diario — diferido para que ITEMS esté cargado
-  setTimeout(_showArranquePanel, 400);
-  // R-202604-073: dot Pulso — inicializar desde localStorage si existe, recalcular en 600ms
+  // R-202604-073: dot Pulso — inicializar desde caché localStorage sin esperar render completo
   (function() {
     const cached = (() => { try { return JSON.parse(localStorage.getItem(_PULSO_KEY) || 'null'); } catch(e) { return null; } })();
     const dot = document.getElementById('pulso-dot');
     if (dot && cached && cached.color) dot.className = `pulso-dot pulso-dot--${cached.color}`;
   })();
-  setTimeout(renderPulsoDot, 600);
-  // T-084: verificar umbral de sesiones al cargar
-  setTimeout(checkStorageWarn, 500);
+}
 
-  // T-202605-482: cargar desde Supabase
-  if (_supabase) {
-    _loadFromSupabase();
+// _initApp() — punto de arranque de la app. Llamado desde DOMContentLoaded en index.html
+// una vez que todos los módulos JS están disponibles.
+// Gate de auth: si no hay sesión activa → openAuthModal() bloqueante, sin render.
+// Si hay sesión activa → render completo + sync Supabase.
+function _initApp() {
+  // 1. Cargar estado desde localStorage en memoria (sin UI)
+  load();
+
+  // 2. Verificar auth antes de cualquier render
+  const checkAuth = (user) => {
+    if (!user) {
+      // Sin auth → modal bloqueante. Sin render, sin interacción.
+      if (typeof openAuthModal === 'function') openAuthModal();
+      else console.warn('[AI Tracker] openAuthModal no disponible — auth requerida');
+      return;
+    }
+    // 3. Auth confirmada → render completo
+    _renderAfterAuth();
+  };
+
+  // Esperar a que Supabase resuelva el estado de auth inicial
+  if (_supabaseReady) {
+    _supabaseReady.then(user => checkAuth(user));
+  } else {
+    // Sin Supabase configurado — auth no disponible, bloquear
+    checkAuth(null);
   }
+}
+
+// _renderAfterAuth() — secuencia de render post-auth.
+// Solo se llama cuando hay sesión activa confirmada.
+function _renderAfterAuth() {
+  // B-202604-010: render inicial desde estado real
+  if (typeof render === 'function') render();
+  // B-202605-508: garantizar badges visibles al arranque
+  if (typeof updateTabNotifBadges === 'function') updateTabNotifBadges();
+  // R-202604-072: panel de contexto diario — diferido para que ITEMS esté cargado
+  if (typeof _showArranquePanel === 'function') setTimeout(_showArranquePanel, 400);
+  // R-202604-073: dot Pulso — recalcular con datos reales
+  if (typeof renderPulsoDot === 'function') setTimeout(renderPulsoDot, 600);
+  // T-084: verificar umbral de sesiones
+  if (typeof checkStorageWarn === 'function') setTimeout(checkStorageWarn, 500);
+  // T-202605-482: sincronizar desde Supabase
+  if (_supabase && typeof _loadFromSupabase === 'function') _loadFromSupabase();
 }
 
 // Claves localStorage por proyecto

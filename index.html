@@ -1699,6 +1699,17 @@ function _validateResetBacklogInput(el) {
 <script src="ai-tracker-map-generator.js"></script>
 <script src="ai-tracker-command-palette.js"></script>
 
+<!-- Arranque de la app — gate de auth via _initApp() en locus-storage.js -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof _initApp === 'function') {
+    _initApp();
+  } else {
+    console.error('[AI Tracker] _initApp no disponible — locus-storage.js no cargó correctamente');
+  }
+});
+</script>
+
 <!-- [pendiente-ID]: patch extendido — actualiza aria-label del theme-toggle-btn al cambiar tema -->
 <script>
 (function patchApplyTheme() {

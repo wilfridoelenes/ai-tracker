@@ -137,39 +137,7 @@ function _updateHeaderProjectLabel() {
 window._updateHeaderProjectLabel = _updateHeaderProjectLabel;
 
 // AC-8: Firebase eliminado — Supabase es el único backend de sync
-
-// Sync pill helper
-// T-202604-312: color semántico — verde/neutro cuando conectado, rojo solo en error real de sync
-// Estados: synced → verde | syncing → acento neutro | local → neutro | offline → rojo
-function setSyncStatus(status, label) {
-  // T-202605-433: sync-pill eliminado — nuevos IDs en menú ⋯
-  const dot = document.getElementById('sync-status-dot');
-  const lbl = document.getElementById('sync-status-label');
-  if (dot) dot.className = 'mm-icon sync-status-dot sync-status-dot--' + status;
-  if (lbl) lbl.textContent = 'Sync: ' + label;
-  // R-202604-060: mirror en global footer
-  const gfSync = document.getElementById('gf-sync');
-  if (gfSync) { gfSync.className = 'gf-sync gf-sync--' + status; gfSync.textContent = label; }
-  // T-202605-USR: chip de usuario en header
-  const chip = document.getElementById('user-chip');
-  const chipDot = document.getElementById('user-chip-dot');
-  const chipName = document.getElementById('user-chip-name');
-  if (chip && chipDot && chipName) {
-    if (_supabaseUser) {
-      const name = (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || '').split(' ')[0];
-      chipName.textContent = name;
-      chipDot.className = 'user-chip-dot user-chip-dot--' + status;
-      chip.classList.remove('is-hidden');
-    } else {
-      chip.classList.add('is-hidden');
-    }
-  }
-}
-
-function handleSyncPillClick() {
-  if (!_supabaseUser) { if (typeof openAuthModal === 'function') openAuthModal(); else signInWithSupabase(); }
-  else { signOutSupabase(); }
-}
+// setSyncStatus y handleSyncPillClick → migradas a locus-storage.js
 
 // ── T-202605-482c: Supabase Auth — migrado a locus-storage.js ──
 // El bloque de inicialización de Supabase (createClient, onAuthStateChange, getSession)
@@ -268,37 +236,7 @@ function _slugify(desc) {
     .join('-') || '';
 }
 
-function _loadTmpIdMap() {
-  try {
-    const raw = localStorage.getItem('tmp-id-map');
-    if (!raw) return {};
-    const map = JSON.parse(raw);
-    // TTL: limpiar entradas con más de 24h
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000;
-    let dirty = false;
-    Object.keys(map).forEach(k => {
-      if (!map[k].createdAt || map[k].createdAt < cutoff) { delete map[k]; dirty = true; }
-    });
-    if (dirty) localStorage.setItem('tmp-id-map', JSON.stringify(map));
-    return map;
-  } catch(e) { return {}; }
-}
-
-function _saveTmpIdMap(map) {
-  try { localStorage.setItem('tmp-id-map', JSON.stringify(map)); } catch(e) {}
-  // R-1: persistir tmp-id-map en Supabase para sobrevivir cambio de dispositivo
-  if (_supabase && _supabaseUser) {
-    _supabase.from('tracker_docs').upsert(
-      [{ user_id: _supabaseUser.id, key: 'tmp-id-map', value: { map, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
-      { onConflict: 'user_id,key' }
-    ).then(({ error }) => {
-      if (error) {
-        console.warn('[AI Tracker] _saveTmpIdMap Supabase error:', error);
-        _offlineQueuePush({ type: 'tmp-id-map' });
-      }
-    });
-  }
-}
+// _loadTmpIdMap y _saveTmpIdMap → migradas a locus-storage.js
 
 function _assignPendingIds(tgItems) {
   if (!tgItems || !tgItems.length) return tgItems;
@@ -4061,13 +3999,7 @@ document.addEventListener('keydown', e => {
 
 
 // ── T-202605-442: Atajos de teclado configurables ────────────────────────
-
-const _SHORTCUTS_KEY = 'user-shortcuts';
-const _USER_PREFS_TS_KEY = 'user-prefs-ts'; // R-4: timestamp del último user-prefs aplicado desde Supabase
-
-
-// Definición canónica — id, label, grupo, default key, si es chord G+key
-const _SHORTCUT_DEFS = [
+// _SHORTCUTS_KEY, _USER_PREFS_TS_KEY, _shortcutsLoad, _shortcutsSave → migradas a locus-storage.js
   // Navegación de tabs (chord G+)
   { id: 'tab-tracker',   label: 'Ir a Tracker',                  group: 'Navegación', default: 'g+t', chord: true },
   { id: 'tab-backlog',   label: 'Ir a Backlog',                   group: 'Navegación', default: 'g+d', chord: true },
@@ -4084,19 +4016,6 @@ const _SHORTCUT_DEFS = [
   { id: 'nav-down',      label: 'Ítem siguiente (lista activa)',  group: 'Backlog',    default: 'k',   chord: false },
   { id: 'edit-item',     label: 'Editar ítem seleccionado',       group: 'Backlog',    default: 'e',   chord: false },
 ];
-
-// Carga y guarda
-function _shortcutsLoad() {
-  try {
-    const raw = localStorage.getItem(_SHORTCUTS_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch(_) { return {}; }
-}
-
-function _shortcutsSave(map) {
-  localStorage.setItem(_SHORTCUTS_KEY, JSON.stringify(map));
-  _saveUserPrefs(); // R-4: persistir en Supabase
-}
 
 // Resuelve la tecla activa de un shortcut (override o default)
 function _shortcutKey(id) {
@@ -5013,13 +4932,7 @@ function _qnNavToItem(code) {
   }, 220);
 }
 
-// T-202604-299: beforeunload — flush Supabase si hay cambios pendientes
-window.addEventListener('beforeunload', () => {
-  if (_stateDirty && _supabase && _supabaseUser) {
-    clearTimeout(_saveDebounceTimer);
-    _saveFlush(); // best-effort; browser puede no esperar la promesa
-  }
-});
+// T-202604-299: beforeunload → en locus-storage.js
 
 // ─── R-202604-036: showMergeDiffPanel — visualizador de ítems al parsear paste ───
 // Reemplaza T-202604-201 (panel diff genérico)

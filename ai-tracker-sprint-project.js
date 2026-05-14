@@ -677,19 +677,26 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// Init
-load();
-// Auto-seleccionar primer proyecto activo si no hay filtro (backlog requiere proyecto)
-(function _ensureProjectFilter() {
-  if (_getActiveProjectFilter()) return; // ya hay filtro activo
-  const active = (state.projects || []).find(p => p.status === 'active' || (!p.status && !p.archived));
-  if (active) _setActiveProjectFilter(active.id);
-})();
-// Migración: paused → archived (one-time, idempotent)
-if (state.projects && state.projects.some(p => p.status === 'paused')) {
-  state.projects.forEach(p => { if (p.status === 'paused') p.status = 'archived'; });
-  save();
-}
+// Init — diferido post-DOMContentLoaded con gate de auth
+// load() ya fue llamado por _initApp() en locus-storage.js antes de que este módulo renderice.
+// Este bloque solo ejecuta las inicializaciones de sprint-project que dependen de state ya cargado.
+document.addEventListener('DOMContentLoaded', function _sprintProjectInit() {
+  // Gate: sin auth no hay state válido — _initApp() habrá bloqueado con openAuthModal()
+  if (typeof getSupabaseUserId === 'function' && !getSupabaseUserId()) return;
+
+  // Auto-seleccionar primer proyecto activo si no hay filtro (backlog requiere proyecto)
+  (function _ensureProjectFilter() {
+    if (_getActiveProjectFilter()) return;
+    const active = (state.projects || []).find(p => p.status === 'active' || (!p.status && !p.archived));
+    if (active) _setActiveProjectFilter(active.id);
+  })();
+
+  // Migración: paused → archived (one-time, idempotent)
+  if (state.projects && state.projects.some(p => p.status === 'paused')) {
+    state.projects.forEach(p => { if (p.status === 'paused') p.status = 'archived'; });
+    save();
+  }
+});
 // ── T-077: Panel selector proyectos ──
 
 const PROJ_COLORS = ['#7c6af7','#38bdf8','#2ecc78','#e8a832','#e85555','#f472b6','#a3e635','#fb923c','#8BC34A','#64748b'];
