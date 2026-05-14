@@ -281,6 +281,8 @@ function renderGlobalRadarSidebar() {
 
   function _buildAvailableCard(ai) {
     const pill = _projPill(ai);
+
+    // Calcular timestamp de última sesión o reset — para .rsb-card-ts en meta
     let sinceLabel = '';
     if (ai.resetTime && ai.resetEpoch) {
       const epoch = new Date(ai.resetEpoch);
@@ -299,24 +301,22 @@ function renderGlobalRadarSidebar() {
         }
       }
     }
-    const sinceSpan = sinceLabel
-      ? `<span class="rsb-ckpt-since">desde ${sinceLabel}</span>`
-      : `<span class="rsb-ckpt-since">disponible</span>`;
+
+    // Timestamp visible en meta — solo si hay valor
+    const tsSpan = sinceLabel
+      ? `<span class="rsb-card-ts">${sinceLabel}</span>`
+      : '';
 
     return `<div class="rsb-card available" onclick="navigateToCard('${ai.id}')" id="rsb-card-${ai.id}">
       <div class="rsb-card-row">
         <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
         <div class="rsb-card-meta">
+          ${tsSpan}
           <span class="rsb-status-badge rsb-status-available">🟢</span>
           <button class="rsb-card-quick" onclick="event.stopPropagation();openQuickCapture('${ai.id}')" title="Sesión rápida">⚡</button>
         </div>
       </div>
       ${pill ? `<div class="rsb-card-proj">${pill}</div>` : ''}
-      <div class="rsb-card-body">
-        <button class="rsb-ckpt-btn" onclick="event.stopPropagation();navigateToCard('${ai.id}')">
-          + checkpoint ${sinceSpan}
-        </button>
-      </div>
     </div>`;
   }
 

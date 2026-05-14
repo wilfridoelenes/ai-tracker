@@ -1,5 +1,5 @@
 /* locus-radar.css */
-/* Versión: 1.1 | Última actualización: 2026-05-13 | Radar Sidebar — temas corregidos, log-* migrado a locus-tracker.css */
+/* Versión: 1.2 | Última actualización: 2026-05-13 | Cards 1 col + layout horizontal disponibles + CTA CKPT reforzado */
 
 /* ══ R-202605-113: RADAR SIDEBAR GLOBAL — Jerarquía, auto-hide Dock, cards por estado ══ */
 
@@ -1267,29 +1267,84 @@ body.radar-sb-collapsed #global-footer {
 /* END R-202605-119 */
 
 
-/* ══ B-202605-XXX: Worker cards — grid 2 cols en radar sidebar ══ */
+/* ══ R-202605-180: Worker cards — 1 col, layout horizontal por card ══
+   Reemplaza B-202605-XXX (grid 2 cols).
+   Dirección: 1 columna para DISPONIBLES. Cada card muestra
+   nombre + dot + timestamp + botón en una sola línea.
+   Nova · 2026-05-13
+   ══════════════════════════════════════════════════════════════════ */
 
-/* Cards activas (En sesión / Disponibles) en 2 columnas */
+/* Sección body — columna única siempre */
 .rsb-section-body {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
-/* En secciones con una sola card — ocupa el ancho completo */
-.rsb-section-body:has(> :only-child) {
-  grid-template-columns: 1fr;
+/* ── Card disponible: fila horizontal compacta ── */
+/* La card en sección DISPONIBLES muestra toda la info en una línea */
+.rsb-card.available .rsb-card-row {
+  align-items: center;
+  gap: 7px;
 }
 
-/* Session info: wrap para no reventar el ancho comprimido */
+/* Nombre: más pequeño en el layout compacto para dar espacio al timestamp */
+.rsb-card.available .rsb-card-name {
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+/* Meta: timestamp + botón en línea con el nombre */
+.rsb-card.available .rsb-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+/* Timestamp relativo — visible directamente, no solo en hover */
+.rsb-card-ts {
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  color: var(--hint);
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
+/* body (proj pill) — sin margen superior para mantener altura mínima */
+.rsb-card.available .rsb-card-body {
+  margin-top: 2px;
+}
+
+/* Pill proyecto: una línea debajo del nombre, tamaño reducido */
+.rsb-card.available .rsb-proj-pill {
+  font-size: var(--text-3xs, 9px);
+  padding: 1px 4px;
+}
+
+/* Session info: sin wrap, una sola línea */
 .rsb-card-session-info {
-  flex-wrap: wrap;
-  gap: 3px 6px;
+  flex-wrap: nowrap;
+  gap: 6px;
 }
 
-/* Agotadas: compactas siguen en columna única (ya son one-liners) */
-.rsb-section-body:has(> .rsb-card.exhausted.rsb-compact) {
-  grid-template-columns: 1fr;
+/* ── Card EN SESIÓN: jerarquía elevada ── */
+/* Fondo levemente más opaco + borde izquierdo más pronunciado */
+.rsb-section-body > .rsb-card:not(.available):not(.exhausted) {
+  background: rgb(167 139 250 / 8%);
+  border-left: 3px solid var(--purple);
 }
 
-/* ══ END B-202605-XXX ══ */
+/* Botón CKPT directo: más peso visual como CTA primario */
+.rsb-ckpt-direct-btn {
+  background: rgb(167 139 250 / 14%);
+  border-color: rgb(167 139 250 / 35%);
+  padding: 4px 10px;
+}
+
+.rsb-ckpt-direct-btn:hover {
+  background: rgb(167 139 250 / 22%);
+  border-color: rgb(167 139 250 / 55%);
+}
+
+/* ══ END R-202605-180 ══ */
