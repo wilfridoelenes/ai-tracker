@@ -936,7 +936,7 @@ button {
 }
 
 /* Tab activo siempre visible */
-.tab-panel:not(.hidden) {
+.tab-panel.active {
   opacity: 1;
 }
 
