@@ -1,5 +1,5 @@
 // locus-radar.js
-// Última actualización: 2026-05-13 | Radar Sidebar — render, toggle, search, pin, collapse
+// Última actualización: 2026-05-13 | Bug 2: auto-call _initRadarSidebarState via DOMContentLoaded
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
 //
 // Dependencias cross-módulo (resueltas en runtime via guards typeof):
@@ -609,4 +609,12 @@ function _initRadarSidebarState() {
       }
     });
   }
+}
+
+// Bug 2: _initRadarSidebarState se extrajo de checkpoint.js pero el call quedó allá.
+// Auto-invocación al cargar el módulo — guard para DOM no listo aún.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initRadarSidebarState);
+} else {
+  _initRadarSidebarState();
 }
