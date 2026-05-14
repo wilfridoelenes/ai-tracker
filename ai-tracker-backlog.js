@@ -4425,7 +4425,7 @@ function _promoteItem(code) {
   const body = document.getElementById('promote-modal-body');
   if (body) {
     body.innerHTML = `
-      <div class="promote-modal-title">⬆ Promover idea</div>
+      <div class="promote-modal-title" id="promote-modal-title-el">⬆ Promover idea</div>
       <div class="promote-modal-sub">${esc(code)} · ${esc(item.title)}</div>
       <div class="promote-modal-desc">¿A qué tipo quieres promover esta idea?</div>
       <div class="promote-type-btns">
@@ -4447,6 +4447,11 @@ function _promoteItem(code) {
   }
   _promoteTargetType = null;
   overlay.classList.add('open');
+  // AC: foco inicial en primer botón de tipo (flujo P)
+  requestAnimationFrame(() => {
+    const first = overlay.querySelector('.promote-type-btn');
+    if (first) first.focus();
+  });
 }
 
 let _promoteTargetType = null;
@@ -4529,7 +4534,7 @@ function _promoteTtoR(code) {
   const body = document.getElementById('promote-modal-body');
   if (body) {
     body.innerHTML = `
-      <div class="promote-modal-title">⬆ Promover Ticket a Requerimiento</div>
+      <div class="promote-modal-title" id="promote-modal-title-el">⬆ Promover Ticket a Requerimiento</div>
       <div class="promote-modal-sub">${esc(code)} · ${esc(item.title)}</div>
       <div class="promote-modal-info">
         Se creará un <strong>R</strong> heredando los campos del T.<br>
@@ -4538,10 +4543,15 @@ function _promoteTtoR(code) {
       <div class="promote-modal-actions">
         <button onclick="document.getElementById('promote-modal-overlay').classList.remove('open')"
           class="btn-ghost">Cancelar</button>
-        <button onclick="_promoteTtoRConfirm('${esc(code)}')" class="btn-primary">⬆ Promover</button>
+        <button onclick="_promoteTtoRConfirm('${esc(code)}')" class="btn-primary" id="promote-ttor-confirm-btn">⬆ Promover</button>
       </div>`;
   }
   overlay.classList.add('open');
+  // AC: foco inicial en botón confirmar (flujo T — sin selector de tipo)
+  requestAnimationFrame(() => {
+    const confirmBtn = overlay.querySelector('#promote-ttor-confirm-btn');
+    if (confirmBtn) confirmBtn.focus();
+  });
 }
 
 function _promoteTtoRConfirm(originCode) {
