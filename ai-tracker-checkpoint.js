@@ -339,7 +339,7 @@ function showCheckpointPanel(result) {
     const rows = result.created.map(i =>
       `<div class="ckpt-item">
         <span class="ckpt-item-code">${esc(i.code)}${i._wasAssigned ? ' <span class="ckpt-new-id-badge">★nuevo ID</span>' : ''}</span>
-        <span class="ckpt-item-desc">${esc((i.desc || '').slice(0, 60))}</span>
+        <span class="ckpt-item-desc">${esc((i.title || i.desc || '').slice(0, 60))}</span>
       </div>`).join('');
     sections.push(`<div class="ckpt-section created">
       <div class="ckpt-section-header">✚ ${result.created.length} nuevo${result.created.length>1?'s':''}</div>
@@ -352,7 +352,7 @@ function showCheckpointPanel(result) {
     const rows = result.advanced.map(i =>
       `<div class="ckpt-item">
         <span class="ckpt-item-code">${esc(i.code)}</span>
-        <span class="ckpt-item-desc">${esc((i.desc || '').slice(0, 50))}</span>
+        <span class="ckpt-item-desc">${esc((i.title || i.desc || '').slice(0, 50))}</span>
         <span class="ckpt-item-arrow">${esc(i.from)} → ${esc(i.to)}</span>
       </div>`).join('');
     sections.push(`<div class="ckpt-section advanced">
@@ -391,7 +391,7 @@ function showCheckpointPanel(result) {
           </label>
           <div class="ckpt-diff-content">
             <span class="ckpt-diff-code">${esc(i.code)}</span>
-            <span class="ckpt-diff-desc">${esc((i.desc || '').slice(0, 45))}</span>
+            <span class="ckpt-diff-desc">${esc((i.title || i.desc || '').slice(0, 45))}</span>
             <span class="ckpt-diff-arrow ckpt-diff-arrow--retroceso">${esc(i.from)} → ${esc(i.to)}</span>
             <span class="ckpt-diff-type-badge ckpt-diff-type-badge--retroceso">↓ retroceso</span>
           </div>
@@ -419,7 +419,7 @@ function showCheckpointPanel(result) {
           </label>
           <div class="ckpt-diff-content">
             <span class="ckpt-diff-code">${esc(i.code)}</span>
-            <span class="ckpt-diff-desc">${esc((i.desc || '').slice(0, 45))}</span>
+            <span class="ckpt-diff-desc">${esc((i.title || i.desc || '').slice(0, 45))}</span>
             ${reasonHtml}
             <span class="ckpt-diff-type-badge ckpt-diff-type-badge--discard">🗑 descarte</span>
           </div>
@@ -581,7 +581,7 @@ function showCheckpointPanel(result) {
       return `<div class="ckpt-item ckpt-item--updated">
         <div class="ckpt-item-row">
           <span class="ckpt-item-code">${esc(i.code)}</span>
-          <span class="ckpt-item-desc">${esc((i.desc || '').slice(0, 50))}</span>
+          <span class="ckpt-item-desc">${esc((i.title || i.desc || '').slice(0, 50))}</span>
         </div>
         ${diffHtml}
       </div>`;
@@ -602,7 +602,7 @@ function showCheckpointPanel(result) {
     const rows = ignoredNoStatus.map(i =>
       `<div class="ckpt-item">
         <span class="ckpt-item-code">${esc(i.code)}</span>
-        <span class="ckpt-item-desc">${esc((i.desc || '').slice(0, 50))}</span>
+        <span class="ckpt-item-desc">${esc((i.title || i.desc || '').slice(0, 50))}</span>
         <span class="ckpt-item-change ckpt-item-change--error">sin status</span>
       </div>`).join('');
     sections.push(`<div class="ckpt-section warning">
@@ -616,7 +616,7 @@ function showCheckpointPanel(result) {
     const rows = ignoredDup.map(i =>
       `<div class="ckpt-item">
         <span class="ckpt-item-code ckpt-item-change--warn">[nuevo]</span>
-        <span class="ckpt-item-desc">${esc((i.desc || '').slice(0, 60))}</span>
+        <span class="ckpt-item-desc">${esc((i.title || i.desc || '').slice(0, 60))}</span>
         <span class="ckpt-item-change ckpt-item-change--warn">duplicado de ${i.existingCode ? esc(i.existingCode) : 'ítem existente'}</span>
       </div>`).join('');
     sections.push(`<div class="ckpt-section notice">
@@ -630,7 +630,7 @@ function showCheckpointPanel(result) {
     const rows = ignoredOk.map(i =>
       `<div class="ckpt-item">
         <span class="ckpt-item-code">${esc(i.code)}</span>
-        <span class="ckpt-item-desc">${esc((i.desc || '').slice(0, 50))}</span>
+        <span class="ckpt-item-desc">${esc((i.title || i.desc || '').slice(0, 50))}</span>
         <span class="ckpt-item-change">${i.reason === 'ya-en-status' ? 'ya ' + esc(i.status || '') : 'sin cambios'}</span>
       </div>`).join('');
     sections.push(`<div class="ckpt-section ignored">
@@ -5250,7 +5250,7 @@ function _itemVizRender() {
         <div class="viz-content">
           <div class="viz-row-top">
             ${codeDisplay}
-            <span class="viz-desc">${esc(item.desc || item.title || item.status)}</span>
+            <span class="viz-desc">${esc(item.title || item.desc || item.status)}</span>
             <span class="viz-merge-result ${_mergeResultClass(mergeResult)}">${_mergeResultLabel(mergeResult)}</span>
           </div>
           <div class="viz-row-bottom">
@@ -5414,7 +5414,7 @@ function _showArranquePanel() {
                 const _tc = {P:'#7c6af7',T:'#2ecc78',R:'#38bdf8',B:'#e85555'};
                 return `<li class="arr-item arr-item--done">
                   <span class="arr-item-code" style="--arr-type-color:${_tc[t]||'#38bdf8'}">${esc(i.code)}</span>
-                  <span class="arr-item-desc">${esc(i.desc||'')}</span>
+                  <span class="arr-item-desc">${esc(i.title || i.desc || '')}</span>
                 </li>`;
               }).join('')}
               ${closedInSess.length > 3 ? `<li class="arr-item arr-item--more">+${closedInSess.length - 3} más</li>` : ''}
@@ -5455,7 +5455,7 @@ function _showArranquePanel() {
       <span class="arr-label">Ítem sugerido${activeSprint ? ' · ' + esc(activeSprint.name || activeSprint.id) : ''}</span>
       <div class="arr-item arr-item--featured">
         <span class="arr-item-code" style="--arr-type-color:${_tc[t]||'#38bdf8'}">${esc(suggestedItem.code)}</span>
-        <span class="arr-item-desc">${esc(suggestedItem.desc||'')}</span>
+        <span class="arr-item-desc">${esc(suggestedItem.title || suggestedItem.desc || '')}</span>
       </div>
     </div>`;
   }

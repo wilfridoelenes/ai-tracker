@@ -4836,7 +4836,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
   tgItems.forEach(item => {
     if (!item.code) return;
-    if (item._invalidType) { ignored.push({ code: item.code || '[sin-código]', reason: 'tipo-invalido', desc: item.desc }); return; }
+    if (item._invalidType) { ignored.push({ code: item.code || '[sin-código]', reason: 'tipo-invalido', desc: item.title || item.desc }); return; }
     if (item._duplicate) {
       // B-202605-XXX: ítem duplicado (título matchea existente via _assignPendingIds) —
       // aunque se ignore para status/creación, si trae AC se mergean sobre el existente.
@@ -4851,7 +4851,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
           changed = true;
         }
       }
-      ignored.push({ code: '[pendiente-ID]', reason: 'duplicado', desc: item.desc, existingCode: item._existingCode || '' });
+      ignored.push({ code: '[pendiente-ID]', reason: 'duplicado', desc: item.title || item.desc, existingCode: item._existingCode || '' });
       return;
     }
 
@@ -4864,11 +4864,11 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
     // B-202604-198: REGLA DE TMP — detectar si [tmp:slug] corresponde a un ID real existente
     // por similitud de título. Si hay match potencial, registrar sugerencia y NO crear duplicado.
     if (isPlaceholder && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
-      const tmpMatch = _findTmpMatch(item.code, item.desc, ITEMS);
+      const tmpMatch = _findTmpMatch(item.code, item.title || item.desc, ITEMS);
       if (tmpMatch) {
         tmpSuggestions.push({
           tmpCode: item.code,
-          desc: item.desc,
+          desc: item.title || item.desc,
           suggestedCode: tmpMatch.item.code,
           suggestedTitle: tmpMatch.item.title || tmpMatch.item.desc,
           score: tmpMatch.score
@@ -4914,6 +4914,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
       // --- Resto de campos: entrante gana si trae valor (vacíos no degradan) ---
       // T-202604-414: changes es array de {field, from, to} para diff inline en panel
+      if (item.title && item.title !== existing.title) { changes.push({ field: 'title', from: existing.title || '—', to: item.title }); if (!_dryRun) { existing.title = item.title; changed = true; } }
       if (item.desc && item.desc !== existing.desc) { changes.push({ field: 'desc', from: existing.desc || '—', to: item.desc }); if (!_dryRun) { existing.desc = item.desc; changed = true; } }
       if (item.effort && item.effort !== existing.effort) { changes.push({ field: 'effort', from: existing.effort || '—', to: item.effort }); if (!_dryRun) { existing.effort = item.effort; changed = true; } }
       if (item.area && item.area !== existing.area) { changes.push({ field: 'area', from: existing.area || '—', to: item.area }); if (!_dryRun) { existing.area = item.area; changed = true; } }
@@ -4994,7 +4995,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
         ITEMS.push({
           id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
           code: item.code,
-          title: item.desc || item.code,
+          title: item.title || item.desc || item.code,
           desc: '',
           priority: 'medium',
           area: item.area || '',
@@ -5013,7 +5014,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
           statusChangedAt: nowTs,
           doneAt: initialStatus === 'done' ? nowTs : null
         });
-        _blogLog('ckpt-creado', item.code, item.desc || '', 'backlog');
+        _blogLog('ckpt-creado', item.code, item.title || item.desc || '', 'backlog');
         changed = true;
 
         // R-[pendiente-ID]: si el nuevo ítem tiene origin → cerrar automáticamente el P padre
@@ -5031,9 +5032,9 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // B-202604-198: si el ítem nace con status done en el mismo CHECKPOINT → grupo propio
       const initialStatusForGroup = _tgStatusToBacklog(item.status) || 'pendiente';
       if (initialStatusForGroup === 'done') {
-        createdAndClosed.push({ code: item.code, desc: item.desc, _wasAssigned: isNew });
+        createdAndClosed.push({ code: item.code, desc: item.title || item.desc, _wasAssigned: isNew });
       } else {
-        created.push({ code: item.code, desc: item.desc, _wasAssigned: isNew });
+        created.push({ code: item.code, desc: item.title || item.desc, _wasAssigned: isNew });
       }
     }
     // Actualizar contadores en backlog-meta (no en dryRun)
