@@ -1,6 +1,6 @@
 /* locus-tracker.css */
 
-/* Versión: 2.1 | Última actualización: 2026-05-13 | Refactor: @media consolidados, sintaxis normalizada, regla vacía eliminada */
+/* Versión: 2.2 | Última actualización: 2026-05-13 | log-* migrado desde locus-radar.css */
 
 /* ══ T-011: AVATARS ══ */
 
@@ -7754,4 +7754,501 @@ body.radar-sb-open .tracker-sidebar {
   }
 }
 
+/* ══════════════════════════════════════════════════════════════════
+   LOG CARD — Historial de sesiones (migrado desde locus-radar.css)
+   Selectores: log-card-*, log-row, log-filters-row, log-ai-pill,
+               log-empty, log-ref, sess-proj-*, preview-proj-*
+   ══════════════════════════════════════════════════════════════════ */
 
+.log-card-header {
+  padding: 12px 14px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.log-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.log-card-title {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text);
+}
+
+.log-card-count {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  font-family: var(--font-mono);
+}
+
+.log-search-input {
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-family: var(--font);
+  box-sizing: border-box;
+}
+
+.log-search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.log-filters-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.log-ai-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.log-ai-pill {
+  padding: 2px 9px;
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.1s;
+}
+
+.log-ai-pill:hover {
+  background: var(--surface);
+}
+
+.log-ai-pill--active {
+  font-weight: 700;
+}
+
+.log-type-pills {
+  display: flex;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.log-type-pill {
+  padding: 2px 8px;
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.1s;
+}
+
+.log-type-pill:hover {
+  background: var(--surface);
+}
+
+.log-type-pill--active {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* B-257: filtros activos con cero resultados — advertencia visual en pills/controles */
+.log-filters-row--warn .log-type-pill--active,
+.log-filters-row--warn .log-ai-pill--active {
+  background: rgb(var(--amber-rgb, 200, 120, 0), 0.12);
+  border-color: var(--amber, #c87800);
+  color: var(--amber, #c87800);
+}
+
+.log-filters-row--warn .log-search-input,
+.log-filters-row--warn .log-proj-select {
+  border-color: var(--amber, #c87800);
+}
+
+/* Scroll-to-top flotante */
+.log-scroll-top {
+  position: sticky;
+  bottom: 10px;
+  right: 10px;
+  align-self: flex-end;
+  width: 28px; height: 28px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text2);
+  font-size: var(--text-base);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  margin: -28px 10px 10px auto;
+  z-index: var(--z-base);
+  transition: background 0.1s, color 0.1s;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 18%);
+}
+
+.log-scroll-top:hover {
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+
+/* Highlight row al navegar */
+@keyframes logRowHighlight {
+  0% {
+    background: var(--accent-dim);
+  }
+
+  70% {
+    background: var(--accent-dim);
+  }
+
+  100% {
+    background: transparent;
+  }
+}
+
+.log-row--highlight {
+  animation: logRowHighlight 1.8s ease forwards;
+}
+
+/* Selector de proyecto en header del log */
+.log-proj-select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-md);
+  padding: 4px 8px;
+  font-size: var(--text-xs);
+  color: var(--text);
+  font-family: var(--font);
+  cursor: pointer;
+  outline: none;
+}
+
+.log-proj-select:focus {
+  border-color: var(--accent);
+}
+
+/* trackerRefs pills en log-row */
+.log-row-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.log-ref {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  font-family: var(--font-mono);
+  padding: 1px 5px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--hint);
+}
+
+.log-ref--t {
+  border-color: var(--green-border);
+  color: var(--green);
+  background: var(--green-dim);
+}
+
+.log-ref--p {
+  border-color: rgb(124 106 247 / 30%);
+  color: var(--purple);
+  background: var(--purple-dim);
+}
+
+.log-ref--r {
+  border-color: rgb(56 189 248 / 30%);
+  color: var(--blue);
+  background: var(--blue-dim);
+}
+
+.log-ref--b {
+  border-color: rgb(232 85 85 / 30%);
+  color: var(--red);
+  background: var(--red-dim);
+}
+
+.log-ref--more {
+  color: var(--hint);
+  background: var(--surface2);
+}
+
+/* quickCapture badge inline */
+.log-qc-badge {
+  font-size: var(--text-2xs-plus);
+  opacity: 0.7;
+}
+
+.log-row {
+  display: flex;
+  gap: 10px;
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.log-row:last-child {
+  border-bottom: none;
+}
+
+.log-row:hover {
+  background: var(--surface);
+}
+
+.log-row-left {
+  display: flex;
+  align-items: flex-start;
+  padding-top: 4px;
+}
+
+.log-row-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.log-row-top {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-bottom: 2px;
+}
+
+.log-ai-name {
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.log-proj-name {
+  font-size: var(--text-2xs-plus);
+  color: var(--hint);
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  padding: 0 5px;
+}
+
+.log-row-date {
+  font-size: var(--text-2xs-plus);
+  color: var(--hint);
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.log-row-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-row-summary {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* R-202605-162: timestamp relativo bajo el título en log-row */
+.log-row-ts-line {
+  display: flex;
+  align-items: center;
+  margin-top: 1px;
+}
+
+.log-row-ts {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-pill {
+  display: inline-block;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  border-radius: var(--radius-md);
+  padding: 1px 6px;
+  flex-shrink: 0;
+}
+
+.log-pill--normal {
+  background: var(--surface2);
+  color: var(--hint);
+  border: 1px solid var(--border);
+  display: none;
+}
+
+.log-pill--quick {
+  background: rgb(245 166 35 / 15%);
+  color: #f5a623;
+  border: 1px solid rgb(245 166 35 / 30%);
+}
+
+.log-pill--interrupted {
+  background: rgb(232 85 85 / 12%);
+  color: var(--red);
+  border: 1px solid rgb(232 85 85 / 25%);
+}
+
+.log-pill--starred {
+  background: rgb(245 166 35 / 12%);
+  color: #f5a623;
+  border: 1px solid rgb(245 166 35 / 25%);
+}
+
+/* B-256: empty states del log diferenciados por causa */
+.log-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.log-empty-icon {
+  font-size: var(--text-2xl);
+  margin-bottom: 2px;
+}
+
+.log-empty-msg {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text2);
+}
+
+.log-empty-hint {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  max-width: 260px;
+  line-height: 1.5;
+}
+
+.log-empty-cta {
+  margin-top: 4px;
+  padding: 5px 14px;
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.log-empty-cta:hover {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.log-empty--filter .log-empty-icon {
+  opacity: 0.7;
+}
+
+.log-empty--search .log-empty-msg {
+  color: var(--hint);
+  font-weight: 500;
+}
+
+.log-hint {
+  font-size: var(--text-xs);
+  color: var(--hint);
+}
+
+/* ── Selector de proyecto en card ── */
+.sess-proj-row {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin:6px 0 4px;
+}
+
+.sess-proj-label {
+  font-size: var(--text-xs);
+  color:var(--hint);
+  white-space:nowrap;
+  flex-shrink:0;
+}
+
+.sess-proj-select {
+  flex:1;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius: var(--radius-xs);
+  padding:4px 8px;
+  font-size: var(--text-sm);
+  color:var(--text);
+  font-family:var(--font-sans);
+  cursor:pointer;
+  outline:none;
+}
+
+.sess-proj-select:focus {
+  border-color:var(--accent);
+}
+
+/* ── Selector de proyecto en preview panel (col 3) ── */
+.preview-proj-select {
+  display:block;
+  width:100%;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius: var(--radius-xs);
+  padding:5px 8px;
+  font-size: var(--text-sm);
+  color:var(--text);
+  font-family:var(--font-sans);
+  cursor:pointer;
+  outline:none;
+  margin-bottom:2px;
+}
+
+.preview-proj-select:focus {
+  border-color:var(--accent);
+}
+
+/* ── Botón cerrar log card ── */
+.log-card-close {
+  margin-left:auto;
+  background:none;
+  border:none;
+  color:var(--hint);
+  font-size: var(--text-md);
+  cursor:pointer;
+  padding:2px 6px;
+  border-radius: var(--radius-sm);
+  line-height:1;
+}
+
+.log-card-close:hover {
+  color:var(--text);
+  background:var(--surface2);
+}
