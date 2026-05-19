@@ -110,7 +110,7 @@ function deleteAI(id) {
     showInlineConfirm(id, 'delete', '¿Eliminar esta IA y todo su historial?');
   } else {
     state.ais = state.ais.filter(a => a.id !== id);
-    save(); if (typeof render === 'function') render();
+    saveImmediate(); if (typeof render === 'function') render();
   }
 }
 
@@ -139,7 +139,7 @@ function archiveAI(id) {
   const ai = getAI(id);
   if (!ai) return;
   ai.archived = !ai.archived;
-  save(); if (typeof render === 'function') render();
+  saveImmediate(); if (typeof render === 'function') render();
   showToast('info', ai.archived ? `${ai.name} archivada` : `${ai.name} restaurada`);
 }
 
@@ -181,10 +181,10 @@ function executeConfirm(id, action) {
     (state.projects || []).forEach(proj => {
       if (proj.sessions) proj.sessions = proj.sessions.filter(s => s.aiId !== id);
     });
-    save(); if (typeof render === 'function') render(); showToast('success', `Historial de ${ai.name} limpiado`);
+    saveImmediate(); if (typeof render === 'function') render(); showToast('success', `Historial de ${ai.name} limpiado`);
   } else if (action === 'delete') {
     state.ais = state.ais.filter(a => a.id !== id);
-    save(); if (typeof render === 'function') render();
+    saveImmediate(); if (typeof render === 'function') render();
   }
 }
 
