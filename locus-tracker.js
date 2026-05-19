@@ -1617,7 +1617,7 @@ function buildCard(ai) {
     ${interruptedBannerHTML}
     <div class="sc-header">
       <div class="sc-header-left">
-        <div class="sc-avatar" title="${esc(ai.name)}" ondblclick="startRename('${ai.id}')">${_aiInitial}</div>
+        <div class="sc-avatar" title="${esc(ai.name)}" ondblclick="startRename('${ai.id}')">${ai.avatar || _aiInitial}</div>
         <span class="sc-project" id="name-${ai.id}">${esc(ai.name)}</span>
         ${isInSession
           ? `<span class="sc-badge"><span class="sc-badge-dot"></span>${STATUS_LABELS.insession}</span>`
