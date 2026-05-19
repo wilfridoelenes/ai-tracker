@@ -1059,7 +1059,7 @@ function render() {
       <div class="empty-state-title">Agrega tu primer Worker</div>
       <div class="empty-state-hint">Los Workers son las IAs que usas. Empieza por crear uno para registrar tus sesiones.</div>
       <button class="empty-state-btn" onclick="openAddAI()">＋ Nuevo Worker</button>`; }
-    updateStats(); renderStatusBar(); renderSetupChecklist(); return;
+    if (typeof updateStats === 'function') updateStats(); if (typeof renderStatusBar === 'function') renderStatusBar(); if (typeof renderSetupChecklist === 'function') renderSetupChecklist(); return;
   }
 
   // R-202605-007 AC: con workers pero sin proyecto activo — solo CTA "Nuevo Proyecto"
@@ -1073,7 +1073,7 @@ function render() {
       <div class="es-cta-row">
         <button class="empty-state-btn" onclick="if(typeof openProjModal==='function')openProjModal(false)">＋ Nuevo Proyecto</button>
       </div>`; }
-    updateStats(); renderStatusBar(); renderSetupChecklist(); return;
+    if (typeof updateStats === 'function') updateStats(); if (typeof renderStatusBar === 'function') renderStatusBar(); if (typeof renderSetupChecklist === 'function') renderSetupChecklist(); return;
   }
 
   // auto-select: preferir disponible/en-sesión sobre agotada
@@ -1086,7 +1086,7 @@ function render() {
   if (!_trackerSelectedId) {
     if (grid) grid.innerHTML = '';
     if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); }
-    updateStats(); renderStatusBar(); renderSetupChecklist(); return;
+    if (typeof updateStats === 'function') updateStats(); if (typeof renderStatusBar === 'function') renderStatusBar(); if (typeof renderSetupChecklist === 'function') renderSetupChecklist(); return;
   }
 
   if (emptyEl) emptyEl.classList.remove('visible');
@@ -1146,11 +1146,11 @@ function render() {
     }
   }
 
-  updateStats();
-  renderStatusBar();
-  renderGlobalRadarSidebar();
+  if (typeof updateStats === 'function') updateStats();
+  if (typeof renderStatusBar === 'function') renderStatusBar();
+  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
   if (!window._radarSbInited) { window._radarSbInited = true; _initRadarSidebarState(); }
-  renderProjDots();
+  if (typeof renderProjDots === 'function') renderProjDots();
   // R-202604-059: actualizar historial col 2 según modo activo + re-attach drop targets tras cada render
   if (_trackerCurrentView === 'poria') {
     if (typeof _trackerRenderMiniHist === 'function') _trackerRenderMiniHist(_trackerSelectedId);
@@ -1161,9 +1161,9 @@ function render() {
   // T-202605-447: actualizar banner de sesión sugerida tras cada render
   renderSuggestionBanner();
   // R-202605-008: actualizar checklist de setup tras cada render
-  renderSetupChecklist();
+  if (typeof renderSetupChecklist === 'function') renderSetupChecklist();
   // B-202605-508: actualizar badges de tabs al final de cada render
-  updateTabNotifBadges();
+  if (typeof updateTabNotifBadges === 'function') updateTabNotifBadges();
   // R-202605-170: sincronizar chip de worker activo en header
   _renderActiveWorkerChip();
 }
