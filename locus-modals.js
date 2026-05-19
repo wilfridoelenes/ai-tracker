@@ -9,7 +9,6 @@
 let _gconfirmCb = null;
 
 function _gconfirmOpen({ title, msg, okLabel = 'Confirmar', danger = true, inputLabel = null, inputPlaceholder = '' }, cb) {
-  if (typeof cb !== 'function') return;
   _gconfirmCb = cb;
   document.getElementById('gconfirm-title').textContent = title;
   document.getElementById('gconfirm-msg').textContent = msg;
@@ -31,8 +30,7 @@ function _gconfirmOpen({ title, msg, okLabel = 'Confirmar', danger = true, input
 }
 
 function _gconfirmClose() {
-  const overlay = document.getElementById('gconfirm-overlay');
-  if (overlay) overlay.classList.remove('open');
+  document.getElementById('gconfirm-overlay').classList.remove('open');
   _gconfirmCb = null;
 }
 
