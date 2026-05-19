@@ -83,8 +83,8 @@ function confirmAddAI() {
     return;
   }
   state.ais.push({ id: 'ai-' + Date.now() + '-' + Math.random().toString(36).slice(2), name, status: 'available', resetTime: '', sessions: [], showAll: false, notes: '', avatar: AVATAR_LOGOS.default }); // B-202605-079: componente random evita colisión en mismo ms
-  save();
   if (typeof closeModal === 'function') closeModal('add-modal');
+  save();
   if (typeof switchTab === 'function' && currentTab !== 'tracker') switchTab('tracker'); else render();
   showToast('success', 'IA agregada');
 }
@@ -108,7 +108,7 @@ function deleteAI(id) {
     showInlineConfirm(id, 'delete', '¿Eliminar esta IA y todo su historial?');
   } else {
     state.ais = state.ais.filter(a => a.id !== id);
-    save(); render();
+    save(); if (typeof render === 'function') render();
   }
 }
 
@@ -137,7 +137,7 @@ function archiveAI(id) {
   const ai = getAI(id);
   if (!ai) return;
   ai.archived = !ai.archived;
-  save(); render();
+  save(); if (typeof render === 'function') render();
   showToast('info', ai.archived ? `${ai.name} archivada` : `${ai.name} restaurada`);
 }
 
@@ -179,10 +179,10 @@ function executeConfirm(id, action) {
     (state.projects || []).forEach(proj => {
       if (proj.sessions) proj.sessions = proj.sessions.filter(s => s.aiId !== id);
     });
-    save(); render(); showToast('success', `Historial de ${ai.name} limpiado`);
+    save(); if (typeof render === 'function') render(); showToast('success', `Historial de ${ai.name} limpiado`);
   } else if (action === 'delete') {
     state.ais = state.ais.filter(a => a.id !== id);
-    save(); render();
+    save(); if (typeof render === 'function') render();
   }
 }
 

@@ -1624,6 +1624,7 @@ function buildCard(ai) {
             ${_isAvail ? `<button class="card-dot-item" onclick="closeCardMenu('${ai.id}');openBlindExhaustMode('${ai.id}')"><span class="dot-item-icon">🔴</span> Agotar</button>` : ''}
             ${!_isAvail ? `<button class="card-dot-item" onclick="closeCardMenu('${ai.id}');openCorrectHora('${ai.id}')"><span class="dot-item-icon">⏰</span> Corregir hora de desbloqueo</button>` : ''}
             <button class="card-dot-item${sessTotal < 2 ? ' disabled' : ''}" onclick="closeCardMenu('${ai.id}');${sessTotal >= 2 ? `downloadReport('${ai.id}')` : ''}" title="${sessTotal < 2 ? 'Necesitas al menos 2 sesiones' : 'Descargar reporte markdown'}"${sessTotal < 2 ? ' disabled' : ''}><span class="dot-item-icon">📥</span> Descargar reporte</button>
+            <button class="card-dot-item" onclick="closeCardMenu('${ai.id}');openAvatarModal('${ai.id}')"><span class="dot-item-icon">🖼️</span> Cambiar avatar</button>
             <hr class="card-dot-divider">
             <div class="danger-zone">
             <button class="card-dot-item danger" onclick="closeCardMenu('${ai.id}');archiveAI('${ai.id}')"><span class="dot-item-icon">⊟</span> Archivar</button>
