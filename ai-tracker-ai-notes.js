@@ -2849,6 +2849,7 @@ function renderProject(query) {
   }
   trackerPanel.appendChild(listEl);
 
+}
 // T-202604-289: render interno de la sección Decisiones (reutilizable por CRUD)
 function _renderDecisionsSection(el, projId, decisions) {
   const sorted = [...decisions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
