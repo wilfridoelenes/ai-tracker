@@ -4,14 +4,6 @@
 // Analytics extraído a ai-tracker-analytics.js
 
 
-function toggleNotes(id) {
-  const textEl = document.getElementById('notes-text-' + id);
-  const toggleEl = document.getElementById('notes-toggle-' + id);
-  if (!textEl || !toggleEl) return;
-  const expanded = textEl.classList.toggle('expanded');
-  toggleEl.textContent = expanded ? '▴ ver menos' : '▾ ver más';
-}
-
 // ── T-011: Avatar selector ──
 let avatarModalAIId = null;
 let selectedAvatarKey = null;
@@ -2887,87 +2879,6 @@ function renderProject(query) {
     ).join('');
   }
   trackerPanel.appendChild(listEl);
-
-  // T-202604-269: sección Notas rápidas del proyecto
-  if (filterId) {
-    const projNotes = (state.quickNotes || []).filter(n => {
-      // Incluir todas las notas — filtradas opcionalmente por vínculo a ítem del proyecto
-      // Mostrar todas (notas son globales, no tienen projectId)
-      return true;
-    });
-    const notesEl = document.createElement('div');
-    notesEl.id = 'project-notes-section';
-    notesEl.className = 'proj-notes-section';
-    if (projNotes.length) {
-      notesEl.innerHTML = `
-        <div class="proj-notes-header">
-          <span class="proj-notes-title">📝 Notas</span>
-          <span class="proj-notes-count">${projNotes.length}</span>
-        </div>
-        <div class="proj-notes-list">
-          ${projNotes.map(n => `
-            <div class="proj-note-row" onclick="openQuickNote('${n.id}')">
-              <div class="proj-note-body">
-                <span class="proj-note-text">${esc(n.text)}</span>
-                ${n.itemRef ? `<span class="proj-note-badge" onclick="event.stopPropagation();_qnNavToItem('${esc(n.itemRef)}')" title="Ir a ${esc(n.itemRef)}">${esc(n.itemRef)}</span>` : ''}
-              </div>
-              <span class="proj-note-date">${typeof relDate === 'function' ? (relDate(n.updatedAt || n.createdAt) || '') : ''}</span>
-            </div>`).join('')}
-        </div>`;
-    } else {
-      notesEl.innerHTML = `
-        <div class="proj-notes-header">
-          <span class="proj-notes-title">📝 Notas</span>
-        </div>
-        <div class="proj-notes-empty">Sin notas registradas</div>`;
-    }
-    trackerPanel.appendChild(notesEl);
-  }
-
-  // T-202604-289: sección Decisiones del proyecto
-  if (filterId) {
-
-    const proj = getProjectById(filterId);
-    const decisions = (proj && Array.isArray(proj.decisions)) ? proj.decisions : [];
-    const decisionsEl = document.createElement('div');
-    decisionsEl.id = 'project-decisions-section';
-    decisionsEl.className = 'proj-decisions-section';
-    decisionsEl.dataset.projId = filterId;
-    _renderDecisionsSection(decisionsEl, filterId, decisions);
-    trackerPanel.appendChild(decisionsEl);
-  }
-}
-
-// R-B: helper para refrescar solo la sección de notas sin re-renderizar el panel completo
-function _refreshProjectNotes() {
-  const el = document.getElementById('project-notes-section');
-  if (!el) return; // panel no visible — no hay nada que refrescar
-  const projNotes = state.quickNotes || [];
-  if (projNotes.length) {
-    el.innerHTML = `
-      <div class="proj-notes-header">
-        <span class="proj-notes-title">📝 Notas</span>
-        <span class="proj-notes-count">${projNotes.length}</span>
-      </div>
-      <div class="proj-notes-list">
-        ${projNotes.map(n => `
-          <div class="proj-note-row" onclick="openQuickNote('${n.id}')">
-            <div class="proj-note-body">
-              <span class="proj-note-text">${esc(n.text)}</span>
-              ${n.itemRef ? `<span class="proj-note-badge" onclick="event.stopPropagation();_qnNavToItem('${esc(n.itemRef)}')" title="Ir a ${esc(n.itemRef)}">${esc(n.itemRef)}</span>` : ''}
-            </div>
-            <span class="proj-note-date">${typeof relDate === 'function' ? (relDate(n.updatedAt || n.createdAt) || '') : ''}</span>
-          </div>`).join('')}
-      </div>`;
-  } else {
-    el.innerHTML = `
-      <div class="proj-notes-header">
-        <span class="proj-notes-title">📝 Notas</span>
-      </div>
-      <div class="proj-notes-empty">Sin notas registradas</div>`;
-  }
-}
-window._refreshProjectNotes = _refreshProjectNotes;
 
 // T-202604-289: render interno de la sección Decisiones (reutilizable por CRUD)
 function _renderDecisionsSection(el, projId, decisions) {

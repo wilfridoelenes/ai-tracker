@@ -95,7 +95,6 @@
         </span>
       </button>
 
-      <button class="btn-quick-note" id="btn-quick-note" onclick="openQuickNote()" title="Nueva nota rápida">✏️</button>
 
       <button class="btn-ghost btn-ckpt-reopen hidden" id="ckpt-reopen-btn" onclick="showCheckpointPanel(_lastCheckpointResult)" title="Ver último CHECKPOINT">📋</button>
 
@@ -625,32 +624,7 @@
 
 <!-- ═══ OVERLAYS / MODALES (Tracker) ═══ -->
 
-<div class="quick-note-overlay" id="quick-note-modal" onclick="_qnOverlayClick(event)">
-  <div class="quick-note-box">
-    <div class="quick-note-header">
-      <span class="quick-note-title" id="qn-title">✏️ Nota rápida</span>
-      <div class="qn-header-actions">
-        <button class="btn-ghost btn-icon qn-delete-btn hidden" id="qn-delete-btn" onclick="qnRequestDelete()" title="Eliminar nota">🗑</button>
-        <button class="btn-ghost btn-icon qn-close" onclick="closeQuickNote()" title="Cerrar">✕</button>
-      </div>
-    </div>
-    <div class="qn-delete-confirm hidden" id="qn-delete-confirm">
-      <span class="qn-delete-msg">¿Eliminar esta nota?</span>
-      <button class="btn-danger-sm" onclick="qnConfirmDelete()">Eliminar</button>
-      <button class="btn-ghost btn-sm" onclick="qnCancelDelete()">Cancelar</button>
-    </div>
-    <textarea id="qn-text" class="quick-note-textarea" placeholder="Escribe tu nota..." rows="4" onkeydown="_qnTextKeydown(event)"></textarea>
-    <div class="qn-ref-wrap">
-      <input id="qn-ref" class="quick-note-ref" type="text" placeholder="Vincular ítem (ej: T-202604-059)" autocomplete="off"
-        oninput="_qnRefInput(this.value)" onkeydown="_qnRefKeydown(event)" />
-      <div class="qn-ac-list hidden" id="qn-ac-list"></div>
-    </div>
-    <div class="quick-note-actions">
-      <button class="btn-ghost" onclick="closeQuickNote()">Cancelar</button>
-      <button class="btn-primary" onclick="saveQuickNote()">Guardar</button>
-    </div>
-  </div>
-</div>
+
 
 <!-- Session detail popup -->
 <!-- ═══ T-011: AVATAR SELECTOR MODAL ═══ -->
@@ -1649,6 +1623,7 @@ function _validateResetBacklogInput(el) {
 <script src="locus-storage.js"></script>
 <script src="ai-tracker-analytics.js"></script>
 <script src="locus-toast.js"></script>
+<script src="locus-tracker.js"></script>
 <script src="locus-ui-shell.js"></script>
 		<script src="ai-tracker-checkpoint.js"></script>
 <script src="locus-radar.js"></script>
