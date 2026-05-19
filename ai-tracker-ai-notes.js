@@ -393,39 +393,6 @@ function exportData() {
   a.click(); URL.revokeObjectURL(u); showToast('download', 'Backup exportado');
 }
 
-// ── T-090: Generic confirm/prompt modal ──
-let _gconfirmCb = null;
-function _gconfirmOpen({ title, msg, okLabel = 'Confirmar', danger = true, inputLabel = null, inputPlaceholder = '' }, cb) {
-  _gconfirmCb = cb;
-  document.getElementById('gconfirm-title').textContent = title;
-  document.getElementById('gconfirm-msg').textContent = msg;
-  const okBtn = document.getElementById('gconfirm-ok-btn');
-  okBtn.textContent = okLabel;
-  okBtn.className = 'btn-primary' + (danger ? ' danger' : '');
-  const wrap = document.getElementById('gconfirm-input-wrap');
-  if (inputLabel) {
-    wrap.classList.remove('is-hidden');
-    document.getElementById('gconfirm-input-label').textContent = inputLabel;
-    const inp = document.getElementById('gconfirm-input');
-    inp.placeholder = inputPlaceholder;
-    inp.value = '';
-    setTimeout(() => inp.focus(), 60);
-  } else {
-    wrap.classList.add('is-hidden');
-  }
-  document.getElementById('gconfirm-overlay').classList.add('open');
-}
-function _gconfirmClose() {
-  document.getElementById('gconfirm-overlay').classList.remove('open');
-  _gconfirmCb = null;
-}
-function _gconfirmOk() {
-  const inputWrap = document.getElementById('gconfirm-input-wrap');
-  const val = !inputWrap.classList.contains('is-hidden') ? document.getElementById('gconfirm-input').value.trim() : null;
-  document.getElementById('gconfirm-overlay').classList.remove('open');
-  if (_gconfirmCb) { const cb = _gconfirmCb; _gconfirmCb = null; cb(val); }
-}
-
 // ── T-038: Purgar sesiones antiguas ──
 function purgeOldSessions() {
   // T-090: abrir modal inline en lugar de prompt() nativo
@@ -513,6 +480,7 @@ function toggleSidebarDanger() {
 }
 
 function resetContextData() {
+  if (typeof _gconfirmOpen !== 'function') return;
   _gconfirmOpen({
     title: '🗑 Resetear Context',
     msg: 'Se eliminará el Context importado. Tendrás que re-importar el CONTEXT.md desde cero. Esta acción es irreversible.',
@@ -533,6 +501,7 @@ function resetContextData() {
 }
 
 function resetHtmlMapData() {
+  if (typeof _gconfirmOpen !== 'function') return;
   _gconfirmOpen({
     title: '🗑 Resetear Module Map',
     msg: 'Se eliminará el Module Map importado. Tendrás que re-importar el HTML-MAP.md desde cero. Esta acción es irreversible.',

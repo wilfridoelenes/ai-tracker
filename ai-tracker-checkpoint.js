@@ -1003,6 +1003,7 @@ function cancelInterruptInline(id) {
 
 function interruptSession(id) {
   const ai = getAI(id);
+  if (typeof _gconfirmOpen !== 'function') return;
   _gconfirmOpen({
     title: `Marcar sesión interrumpida`,
     msg: `"${ai.name}" pasará a estado agotado.`,
@@ -1146,29 +1147,6 @@ function toggleBacklogFocusMode() {
 // _shortcutsSaveEdit, _shortcutsResetOne, restoreDefaultShortcuts,
 // openShortcuts, closeShortcuts, openShortcutsRef, closeShortcutsRef, _sk
 // ─────────────────────────────────────────────────────────────────────────
-
-const _modalTriggerMap = new Map(); // modal id → elemento que tenía foco antes de abrir
-
-function _saveModalTrigger(id) {
-  const active = document.activeElement;
-  if (active && active !== document.body) _modalTriggerMap.set(id, active);
-}
-
-function _restoreModalFocus(id) {
-  const trigger = _modalTriggerMap.get(id);
-  if (trigger && typeof trigger.focus === 'function') {
-    try { trigger.focus(); } catch(_) {}
-  }
-  _modalTriggerMap.delete(id);
-}
-
-function _focusFirstInteractive(containerId) {
-  const container = document.getElementById(containerId);
-  if (!container) return;
-  const sel = 'input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), button:not([disabled])';
-  const el = container.querySelector(sel);
-  if (el) setTimeout(() => el.focus(), 50);
-}
 
 // T-202604-295: trigger de descarga de templates — 'session' (default) | 'sprint'
 const _TPL_TRIGGER_KEY = 'template-download-trigger';
