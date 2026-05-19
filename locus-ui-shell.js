@@ -3,6 +3,12 @@
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
 // Debe cargarse antes de ai-tracker-checkpoint.js y ai-tracker-ai-notes.js
 
+// ── Global utility ────────────────────────────────────────────────────────
+// esc() usada por múltiples módulos (backlog, session, toast, checkpoint)
+// Vive aquí porque locus-ui-shell.js carga primero
+
+function esc(s) { return s ? (s + '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''; }
+
 // ── Tab switching ──────────────────────────────────────────────────────────
 
 function switchTab(tab) {
