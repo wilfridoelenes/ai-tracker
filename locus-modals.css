@@ -6,8 +6,6 @@
 
 /* ── Toast stack system ── */
 
-/*
-
 #toast-stack {
   position: fixed;
   bottom: 1.5rem;
@@ -1093,6 +1091,12 @@
 /* T-202605-527: background consolidado en Fix #1 macOS (ver sección macOS FIDELITY) */
 
 /* --- Animación de entrada para overlay --- */
+
+/* --- Estado open: visibilidad activa --- */
+.modal-overlay.open,
+.avatar-modal.open {
+  display: flex;
+}
 
 /* --- Estado closing: animación de salida --- */
 .modal-overlay.closing,
