@@ -1084,7 +1084,21 @@ function render() {
   }
 
   if (!_trackerSelectedId) {
-    if (grid) grid.innerHTML = '';
+    if (grid) {
+      grid.innerHTML = '';
+      const archived = state.ais.filter(a => a.archived);
+      if (archived.length) {
+        const section = document.createElement('div');
+        section.className = 'archived-section';
+        const isOpen = localStorage.getItem('archived-open') === '1';
+        section.innerHTML = `<button class="archived-toggle" onclick="toggleArchivedSection(this)">
+          ${isOpen ? '▼' : '▶'} Archivadas (${archived.length})</button>
+          <div class="archived-grid${isOpen ? ' open' : ''}" id="archived-grid"></div>`;
+        grid.appendChild(section);
+        const archGrid = section.querySelector('#archived-grid');
+        archived.forEach(a => archGrid.appendChild(buildCard(a)));
+      }
+    }
     if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); }
     if (typeof updateStats === 'function') updateStats(); if (typeof renderStatusBar === 'function') renderStatusBar(); if (typeof renderSetupChecklist === 'function') renderSetupChecklist(); return;
   }

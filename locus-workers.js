@@ -77,13 +77,15 @@ function confirmAddAI() {
   const nameLower = name.toLowerCase();
   const duplicate = state.ais.find(a => a.name.toLowerCase() === nameLower);
   if (duplicate) {
-    showToast('warning', `Ya existe una IA llamada "${duplicate.name}"`);
+    if (typeof showToast === 'function') showToast('warning', `Ya existe una IA llamada "${duplicate.name}"`);
+    else console.warn('[locus-workers] showToast no disponible — duplicado bloqueado:', duplicate.name);
     const inp = document.getElementById('new-name');
     inp.focus(); inp.select();
     return;
   }
   state.ais.push({ id: 'ai-' + Date.now() + '-' + Math.random().toString(36).slice(2), name, status: 'available', resetTime: '', sessions: [], showAll: false, notes: '', avatar: AVATAR_LOGOS.default }); // B-202605-079: componente random evita colisión en mismo ms
   if (typeof closeModal === 'function') closeModal('add-modal');
+  document.getElementById('add-modal').classList.remove('open');
   save();
   if (typeof switchTab === 'function' && currentTab !== 'tracker') switchTab('tracker'); else render();
   showToast('success', 'IA agregada');
