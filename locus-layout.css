@@ -577,6 +577,20 @@ button {
   box-shadow: 0 1px 0 var(--border), 0 2px 12px rgb(20 22 42 / 6%);
 }
 
+/* C — Header full-width · contenido con max-width alineado */
+header {
+  width: 100%;
+}
+
+.header-inner {
+  max-width: 1440px;
+  margin-inline: auto;
+  padding-inline: 2rem;
+  height: var(--header-h);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
 .logo {
   display: flex;
   align-items: center;
