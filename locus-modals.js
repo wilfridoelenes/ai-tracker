@@ -65,9 +65,17 @@ function _focusFirstInteractive(containerId) {
   if (el) setTimeout(() => el.focus(), 50);
 }
 
+// ── closeModal ──
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  if (typeof _restoreModalFocus === 'function') _restoreModalFocus(id);
+}
+
 // ── Window fallback para inline handlers de index.html ──
-// Garantiza que _gconfirmClose y _gconfirmOk existen en window aunque el módulo falle al cargar.
+// Garantiza que _gconfirmClose, _gconfirmOk y closeModal existen en window aunque el módulo falle al cargar.
 // Los inline onclick en index.html (L822, L828, L831, L832) no pueden usar guard typeof —
 // este fallback evita ReferenceError si locus-modals.js no cargó.
+// closeModal tiene callers inline en index.html (L648, L679).
 window._gconfirmClose = window._gconfirmClose || function() {};
 window._gconfirmOk    = window._gconfirmOk    || function() {};
+window.closeModal     = window.closeModal     || function() {};
