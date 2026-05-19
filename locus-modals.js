@@ -64,3 +64,10 @@ function _focusFirstInteractive(containerId) {
   const el = container.querySelector(sel);
   if (el) setTimeout(() => el.focus(), 50);
 }
+
+// ── Window fallback para inline handlers de index.html ──
+// Garantiza que _gconfirmClose y _gconfirmOk existen en window aunque el módulo falle al cargar.
+// Los inline onclick en index.html (L822, L828, L831, L832) no pueden usar guard typeof —
+// este fallback evita ReferenceError si locus-modals.js no cargó.
+window._gconfirmClose = window._gconfirmClose || function() {};
+window._gconfirmOk    = window._gconfirmOk    || function() {};
