@@ -13,20 +13,8 @@ function _docPrefix() {
   return _PREFIX_MAP[name] || (name.slice(0, 2).toUpperCase() || 'XX');
 }
 
-// R-1: actualiza el header con prefix + nombre del proyecto activo
-window._updateHeaderProjectLabel = function() {
-  const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
-  const prefixEl = document.getElementById('header-project-prefix');
-  const nameEl   = document.getElementById('header-project-name');
-  if (!proj) {
-    if (prefixEl) prefixEl.textContent = 'AI';
-    if (nameEl)   nameEl.textContent   = 'Locus';
-    return;
-  }
-  const prefix = proj.prefix || _PREFIX_MAP[proj.name] || (proj.name || '').slice(0, 2).toUpperCase() || 'AI';
-  if (prefixEl) prefixEl.textContent = prefix;
-  if (nameEl)   nameEl.textContent   = proj.name || 'Locus';
-};
+// R-1: _updateHeaderProjectLabel — definición canónica en checkpoint.js
+// Este módulo la llama via guard — no la redefine.
 
 // R-202604-040: genera bloque ## Estado actual para el Backlog exportado
 function _buildCurrentStateMd() {
@@ -1324,40 +1312,7 @@ const SplashController = {
   }
 };
 
-// B-202605-077: funciones de debug en namespace _debug — no expuestas en window
-// Acceso desde consola: _debug.cleanupLocalStorage() / _debug.testLocalStorageQuota()
-window._debug = window._debug || {};
 
-window._debug.cleanupLocalStorage = function() {
-  console.log('[AI Tracker Debug] === Cleaning localStorage ===');
-  const toRemove = [
-    'ai-tracker-changelog',      // changelog pesado
-    'ai-tracker-disc-tips',      // tooltips vistos
-    // 'fb-onboarding-seen' — T-202605-491: removido junto con wizard Firebase
-    'tracker-view-mode',         // modo vista
-    'analytics-range',           // rango analytics
-    'current-project-filter',    // filtro proyecto
-    'archived-open',             // estado colapso
-    'active-tab',                // tab activo
-    'backlog-raw',               // raw backlog (nunca se usa)
-    'tmp-id-map',                // T-202604-TMP: mapeo slug→código (auto-expira 24h, limpieza manual)
-    'context-log',               // log de acciones Context
-    'html-map-log',              // log de acciones Module Map
-    'tracker-filter-status'      // filtro Tracker Global (eliminado en v3.0.0.9.7)
-  ];
-
-  let freed = 0;
-  toRemove.forEach(key => {
-    const val = localStorage.getItem(key);
-    if (val) {
-      freed += val.length;
-      localStorage.removeItem(key);
-      console.log(`  Removed ${key} (${(val.length / 1024).toFixed(2)} KB)`);
-    }
-  });
-
-  console.log(`[AI Tracker Debug] ✓ Liberados ${(freed / 1024).toFixed(2)} KB`);
-};
 
 // R-202604-022: calcula uso actual de localStorage como porcentaje
 // Asume límite estándar de 5MB (5 * 1024 * 1024 chars)
@@ -1372,39 +1327,7 @@ function _getLocalStorageUsage() {
   return { usedKB: (used / 1024).toFixed(1), totalKB: (LIMIT / 1024).toFixed(0), pct: used / LIMIT };
 }
 
-window._debug.testLocalStorageQuota = function() {
-  console.log('[AI Tracker Debug] === localStorage Quota Test ===');
-  let totalSize = 0;
-  const items = {};
 
-  for (let key in localStorage) {
-    if (localStorage.hasOwnProperty(key)) {
-      const value = localStorage.getItem(key);
-      const size = (key + value).length;
-      items[key] = { sizeBytes: size, sizeKB: (size / 1024).toFixed(2) };
-      totalSize += size;
-    }
-  }
-
-  console.log('Total localStorage:', (totalSize / 1024).toFixed(2), 'KB');
-  console.log('Items by size:');
-  Object.entries(items)
-    .sort((a, b) => b[1].sizeBytes - a[1].sizeBytes)
-    .forEach(([key, info]) => {
-      console.log(`  ${key}: ${info.sizeKB} KB`);
-    });
-
-  // Intenta escribir 1KB de prueba
-  try {
-    const testKey = 'test-1mb-' + Date.now();
-    const testData = new Array(1024).fill('x').join('');
-    localStorage.setItem(testKey, testData);
-    localStorage.removeItem(testKey);
-    console.log('[AI Tracker Debug] ✓ Puede escribir ~1KB sin problemas');
-  } catch (err) {
-    console.error('[AI Tracker Debug] ✗ Escritura falló:', err.name);
-  }
-};
 (function() {
   const PEPE_URI = document.querySelector('link[rel="icon"]').href;
   
