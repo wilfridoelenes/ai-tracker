@@ -736,6 +736,25 @@ function _unsubscribeRealtime() {
   }
 }
 
+// _resetExpired — lógica de estado pura, sin UI ni render.
+// Retorna true cuando el momento de reset de un worker exhausted ya pasó.
+// Prioriza resetEpoch (epoch ms absoluto) sobre resetTime (string "HH:MM" local).
+function _resetExpired(resetTime, resetEpoch) {
+  if (resetEpoch && typeof resetEpoch === 'number') {
+    return Date.now() >= resetEpoch;
+  }
+  if (resetTime && typeof resetTime === 'string') {
+    const parts = resetTime.split(':').map(Number);
+    if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+      const now = new Date();
+      const reset = new Date(now);
+      reset.setHours(parts[0], parts[1], 0, 0);
+      return Date.now() >= reset.getTime();
+    }
+  }
+  return false;
+}
+
 async function _loadFromSupabase() {
   const authUser = await (_supabaseReady || Promise.resolve(null));
   if (!authUser) {
