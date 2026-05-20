@@ -1,6 +1,6 @@
 /* locus-base.css */
 
-/* Versión: 1.1 | Última actualización: 2026-05-20 | Variables, reset, temas dark/light, tipografía global */
+/* Versión: 1.2 | Última actualización: 2026-05-20 | Variables, reset, temas dark/light, tipografía global */
 /* Cluster A — tokens fantasma resueltos: --purple/*-dim/*-border, --blue-dim/border declarados;
    --text-muted/--text1/--text3/--bg3/--surface1/--bg-card mapeados a token canónico */
 
@@ -329,6 +329,11 @@ body {
 
 /* ══ CSS-04: Clase canónica de ocultamiento ══ */
 .is-hidden {
+  display: none !important;
+}
+
+/* alias legacy — no migrar a JS hasta T de migración CSS */
+.hidden {
   display: none !important;
 }
 
