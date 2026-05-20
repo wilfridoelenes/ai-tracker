@@ -1390,7 +1390,7 @@
   margin: 8px 12px 16px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md-plus);
-  background: var(--card-bg);
+  background: var(--surface);
   overflow: hidden;
 }
 

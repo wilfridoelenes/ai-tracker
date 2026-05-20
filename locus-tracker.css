@@ -376,7 +376,7 @@
   font-family: var(--font-sans);
   font-size: var(--text-lg);
   font-weight: 700;
-  transition: box-shadow var(--transition-fast);
+  transition: box-shadow var(--trans-fast);
 }
 
 .card-avatar.available {
@@ -533,7 +533,7 @@
   color: var(--hint);
   font-size: var(--text-md);
   cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  transition: color var(--trans-fast), border-color var(--trans-fast), background var(--trans-fast);
 }
 
 .btn-quick:hover {
@@ -553,7 +553,7 @@
   cursor: grab;
   padding: 0 2px;
   opacity: 0;
-  transition: opacity var(--transition-fast);
+  transition: opacity var(--trans-fast);
   user-select: none;
 }
 
@@ -608,7 +608,7 @@
 /* Card project chip — inline en card-strip */
 .card-proj-chip {
   cursor: pointer;
-  transition: color var(--transition-fast), border-color var(--transition-fast);
+  transition: color var(--trans-fast), border-color var(--trans-fast);
 }
 
 .card-proj-chip:hover {
@@ -653,7 +653,7 @@
   overflow: hidden;
   -webkit-line-clamp: 2;
   color: var(--text2);
-  transition: color var(--transition-fast);
+  transition: color var(--trans-fast);
 }
 
 .card-notes-text.expanded {
@@ -756,7 +756,7 @@
 
 .draft-label-text {
   opacity: 0;
-  transition: opacity var(--transition-fast);
+  transition: opacity var(--trans-fast);
 }
 
 .paste-wrap--valid
@@ -975,7 +975,7 @@
 }
 
 .hora-input {
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast);
+  transition: border-color var(--trans-fast), box-shadow var(--trans-fast), color var(--trans-fast);
 }
 
 .hora-input.error {
@@ -991,7 +991,7 @@
 }
 
 .save-btn {
-  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+  transition: border-color var(--trans-fast), color var(--trans-fast), background var(--trans-fast);
 }
 
 .save-btn:hover {
@@ -1410,7 +1410,7 @@
 }
 
 .tg-item {
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--trans-fast);
 }
 
 .tg-item:hover {
@@ -1515,7 +1515,7 @@
 }
 
 .pi-item-header:hover {
-  background:var(--hover);
+  background:var(--bg-hover);
 }
 
 .pi-item-check {
@@ -1669,7 +1669,7 @@
 
 .tg-add-row select,
 .tg-add-row input {
-  transition: border-color var(--transition-fast);
+  transition: border-color var(--trans-fast);
 }
 
 .tg-add-row select:focus, .tg-add-row input:focus {
@@ -1688,7 +1688,7 @@
 }
 
 .tg-btn {
-  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  transition: color var(--trans-fast), border-color var(--trans-fast), background var(--trans-fast);
 }
 
 .tg-btn:hover {
@@ -1736,7 +1736,7 @@
 }
 
 .btn-interrupt {
-  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  transition: color var(--trans-fast), border-color var(--trans-fast), background var(--trans-fast);
 }
 
 .btn-interrupt:hover {
@@ -2249,7 +2249,7 @@
 }
 
 .cd-banner-btn {
-  transition: background var(--transition-fast), color var(--transition-fast), opacity var(--transition-fast);
+  transition: background var(--trans-fast), color var(--trans-fast), opacity var(--trans-fast);
 }
 
 .cd-banner-btn:hover {
@@ -2715,7 +2715,7 @@
   background: var(--amber);
   flex-shrink: 0;
   cursor: pointer;
-  transition: box-shadow var(--transition-fast);
+  transition: box-shadow var(--trans-fast);
 }
 
 .stale-dot:hover {
@@ -3813,7 +3813,7 @@
 }
 
 .tsb-ai-row {
-  transition: background var(--transition-fast), border-color var(--transition-fast);
+  transition: background var(--trans-fast), border-color var(--trans-fast);
 }
 
 .tsb-ai-row:hover {
@@ -3963,7 +3963,7 @@
 /* ── SESSION ROWS ── */
 
 .sess-row {
-  transition: background var(--transition-fast), border-color var(--transition-fast), transform var(--transition-fast);
+  transition: background var(--trans-fast), border-color var(--trans-fast), transform var(--trans-fast);
 }
 
 .sess-row:last-child {
@@ -3979,7 +3979,7 @@
 }
 
 .paste-ta {
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), color var(--transition-fast);
+  transition: border-color var(--trans-fast), box-shadow var(--trans-fast), color var(--trans-fast);
 }
 
 .paste-ta:focus {
@@ -4059,7 +4059,7 @@
 .day-label {
   font-size: var(--text-2xs-plus);
   font-weight: 600;
-  color: var(--color-text-tertiary, var(--text-3));
+  color: var(--color-text-tertiary);
   text-transform: uppercase;
   letter-spacing: .08em;
   padding: 6px 14px 5px;
@@ -4130,7 +4130,7 @@
 .entry-ai {
   font-size: var(--text-2xs-plus);
   font-weight: 600;
-  color: var(--color-text-tertiary, var(--text-3));
+  color: var(--color-text-tertiary);
   letter-spacing: .02em;
   text-transform: uppercase;
   margin-bottom: 1px;
@@ -4156,7 +4156,7 @@
 
 .entry-time {
   font-size: var(--text-2xs-plus);
-  color: var(--color-text-tertiary, var(--text-3));
+  color: var(--color-text-tertiary);
   font-variant-numeric: tabular-nums;
 }
 
@@ -4198,7 +4198,7 @@
 .entry-link {
   font-size: var(--text-lg);
   line-height: 1;
-  color: var(--color-text-tertiary, var(--text-3));
+  color: var(--color-text-tertiary);
   opacity: 0;
   flex-shrink: 0;
   align-self: center;
@@ -4215,7 +4215,7 @@
 .rail-empty {
   padding: 32px 14px;
   text-align: center;
-  color: var(--color-text-tertiary, var(--text-3));
+  color: var(--color-text-tertiary);
   font-size: var(--text-sm);
   line-height: 1.6;
 }
@@ -4403,8 +4403,8 @@
 
 .copy-item-btn:hover {
   background: var(--surface3, var(--surface2));
-  border-color: var(--fg);
-  color: var(--fg);
+  border-color: var(--text);
+  color: var(--text);
 }
 
 .copy-item-btn--done {
@@ -4989,7 +4989,7 @@ textarea.tracker-drop-active {
 .card-ta,
 textarea[id^="ta-"] {
   outline: none;
-  transition: box-shadow var(--transition-fast);
+  transition: box-shadow var(--trans-fast);
 }
 
 .card-ta:focus,
@@ -7686,7 +7686,7 @@ body.radar-sb-open .tracker-sidebar {
   cursor: pointer;
   padding: 3px;
   border-radius: var(--radius-sm);
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition: background var(--trans-fast), color var(--trans-fast);
 }
 
 .sc-menu-btn:hover {
@@ -7761,7 +7761,7 @@ body.radar-sb-open .tracker-sidebar {
   background: var(--surface2);
   color: var(--hint);
   flex: 1;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+  transition: background var(--trans-fast), color var(--trans-fast), border-color var(--trans-fast);
 }
 
 .sc-step:first-child {
@@ -7874,7 +7874,7 @@ body.radar-sb-open .tracker-sidebar {
   border: none;
   padding: 4px 14px;
   width: 100%;
-  transition: color var(--transition-fast);
+  transition: color var(--trans-fast);
 }
 
 .sc-notes-toggle:hover {
@@ -7894,7 +7894,7 @@ body.radar-sb-open .tracker-sidebar {
   font-size: var(--text-2xs);
   color: var(--hint);
   flex-shrink: 0;
-  transition: transform var(--transition-fast);
+  transition: transform var(--trans-fast);
 }
 
 .sc-notes-toggle.open .sc-notes-toggle-icon {
@@ -7952,7 +7952,7 @@ body.radar-sb-open .tracker-sidebar {
   background: var(--surface);
   color: var(--text2);
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast);
+  transition: background var(--trans-fast), color var(--trans-fast), border-color var(--trans-fast), opacity var(--trans-fast);
   white-space: nowrap;
 }
 
@@ -7978,7 +7978,7 @@ body.radar-sb-open .tracker-sidebar {
 /* .is-hidden definida en locus-base.css — esta regla solo maneja la transición */
 .card-notes-body {
   padding: 0 14px 6px;
-  animation: fadeIn var(--transition-fast) var(--ease-out);
+  animation: fadeIn var(--trans-fast) var(--ease-out);
 }
 
 .card-notes-body.is-hidden {

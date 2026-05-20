@@ -3620,7 +3620,7 @@
 }
 
 .fcst-detail-val {
-  color: var(--fg);
+  color: var(--text);
   font-weight: 500;
 }
 

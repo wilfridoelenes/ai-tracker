@@ -5918,7 +5918,7 @@
 
 .ctr-search-clear:hover {
   color: var(--text1);
-  background: var(--hover);
+  background: var(--bg-hover);
 }
 
 /* Layout — dos columnas */
@@ -5955,7 +5955,7 @@
 }
 
 .ctr-module-row:hover {
-  background: var(--hover);
+  background: var(--bg-hover);
 }
 
 .ctr-module-row--active {
@@ -6092,7 +6092,7 @@
 
 .ctr-detail-close:hover {
   color: var(--text1);
-  background: var(--hover);
+  background: var(--bg-hover);
 }
 
 /* Función row */
@@ -6211,7 +6211,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem 0.35rem;
-  background: var(--bg2, var(--bg-2));
+  background: var(--bg2);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -6350,7 +6350,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 0.75rem;
-  background: var(--surface, var(--bg-2));
+  background: var(--surface);
   transition: box-shadow 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
 }
 
@@ -6383,7 +6383,7 @@
 .plan-session--blocked {
   opacity: 0.55;
   border-left-color: var(--hint, #3a3d5c);
-  background: var(--bg2, var(--bg-2));
+  background: var(--bg2);
 }
 
 /* ── Header de sesión ── */
@@ -6405,7 +6405,7 @@
   font-size: var(--text-xs);
   font-weight: 600;
   color: var(--text, #e8eaf6);
-  background: var(--surface2, var(--bg-3));
+  background: var(--surface2);
   padding: 0.15rem 0.5rem;
   border-radius: var(--radius-sm);
   flex: 1;
@@ -6421,7 +6421,7 @@
   font-size: var(--text-2xs);
   padding: 0.1rem 0.45rem;
   border-radius: var(--radius-pill);
-  background: var(--surface2, var(--bg-3));
+  background: var(--surface2);
   color: var(--text2, var(--text-muted));
   white-space: nowrap;
 }
@@ -6453,7 +6453,7 @@
   font-size: var(--text-2xs);
   font-family: var(--font-mono, monospace);
   color: var(--text2, var(--text-muted));
-  background: var(--surface2, var(--bg-3));
+  background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 0.15rem 0.4rem;
@@ -6495,7 +6495,7 @@
   font-size: var(--text-xs);
   padding: 0.25rem 0.5rem;
   border-radius: var(--radius-sm);
-  background: var(--surface2, var(--bg-3));
+  background: var(--surface2);
 }
 
 .plan-item--done {
@@ -6609,7 +6609,7 @@
   font-size: var(--text-2xs);
   font-weight: 500;
   color: var(--text2, var(--text-muted));
-  background: var(--bg2, var(--bg-2));
+  background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius-pill);
   padding: 0.2rem 0.65rem;
@@ -6649,7 +6649,7 @@
 }
 
 .historico-header:hover {
-  background: var(--bg-2);
+  background: var(--bg2);
 }
 
 .historico-toggle-icon {
@@ -6664,7 +6664,7 @@
 
 .historico-count {
   font-size: var(--text-2xs);
-  background: var(--bg-3);
+  background: var(--surface2);
   padding: 0.1rem 0.4rem;
   border-radius: var(--radius-pill);
 }

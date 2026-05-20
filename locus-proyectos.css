@@ -1419,10 +1419,8 @@
   font-weight: 900;
   flex-shrink: 0;
   background: rgb(99 102 241 / 15%);
-  background: color-mix(in srgb, var(--tc) 15%, transparent);
-  color: var(--tc);
+  color: #6366f1;
   border: 1px solid rgb(99 102 241 / 30%);
-  border: 1px solid color-mix(in srgb, var(--tc) 30%, transparent);
 }
 
 .idp-header-meta {
@@ -1493,10 +1491,8 @@
   padding: 2px 8px;
   border-radius: var(--radius-2xl);
   border: 1px solid rgb(99 102 241 / 35%);
-  border: 1px solid color-mix(in srgb, var(--pc) 35%, transparent);
   background: rgb(99 102 241 / 12%);
-  background: color-mix(in srgb, var(--pc) 12%, transparent);
-  color: var(--pc);
+  color: #6366f1;
   white-space: nowrap;
 }
 
@@ -2555,12 +2551,12 @@
   display: inline-block !important;
 }
 
-/* CHECKPOINT proj pill — runtime colors via custom properties */
+/* CHECKPOINT proj pill — color dinámico pendiente (P en backlog) */
 .ckpt-proj-pill {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: var(--text-3xs); font-weight: 600;
-  background: var(--pill-bg); color: var(--pill-color);
-  border: 1px solid var(--pill-border);
+  background: rgb(99 102 241 / 12%); color: #6366f1;
+  border: 1px solid rgb(99 102 241 / 30%);
   border-radius: var(--radius-md); padding: 1px 7px;
   margin-bottom: 5px; margin-left: 6px;
 }
@@ -5003,7 +4999,7 @@
 }
 
 .mg-close-btn:hover {
-  background: var(--color-background-secondary);
+  background: var(--surface2);
 }
 
 .mg-close-btn:focus-visible {
@@ -5017,7 +5013,7 @@
   align-items: center;
   padding: 12px 18px;
   border-bottom: 0.5px solid var(--color-border-tertiary, var(--border));
-  background: var(--color-background-secondary);
+  background: var(--surface2);
   flex-shrink: 0;
   gap: 0;
 }
@@ -5125,7 +5121,7 @@
   padding: 14px;
   border: 0.5px solid var(--color-border-tertiary, var(--border));
   border-radius: var(--mg-radius);
-  background: var(--color-background-secondary);
+  background: var(--surface2);
   flex-wrap: wrap;
 }
 
@@ -5189,7 +5185,7 @@
   padding: 2px 7px;
   border: 0.5px solid var(--color-border-tertiary, var(--border));
   border-radius: var(--radius-pill);
-  background: var(--color-background-secondary);
+  background: var(--surface2);
   margin-left: .5rem;
   text-transform: none;
 }
@@ -5284,7 +5280,7 @@
   text-align: center;
   cursor: pointer;
   transition: border-color var(--mg-transition), background var(--mg-transition);
-  background: var(--color-background-secondary);
+  background: var(--surface2);
 }
 
 .mg-dropzone:hover,
@@ -5415,7 +5411,7 @@
   border: 0.5px solid var(--color-border-tertiary, var(--border));
   border-radius: var(--mg-radius);
   padding: 12px 14px;
-  background: var(--color-background-secondary);
+  background: var(--surface2);
   font-size: var(--text-sm);
   font-family: var(--font-mono, monospace);
   overflow-x: auto;
@@ -5464,7 +5460,7 @@
   justify-content: space-between;
   padding: 12px 18px;
   border-top: 0.5px solid var(--color-border-tertiary, var(--border));
-  background: var(--color-background-secondary);
+  background: var(--surface2);
   flex-shrink: 0;
   gap: 10px;
 }
@@ -7544,7 +7540,7 @@ body {
 }
 
 .proy2-eco-stat strong {
-  color: var(--text-primary, var(--fg));
+  color: var(--text);
 }
 
 .proy2-eco-high strong {
@@ -7565,7 +7561,7 @@ body {
 
 .proy2-suggestion-name {
   font-weight: 600;
-  color: var(--text-primary, var(--fg));
+  color: var(--text);
 }
 
 /* Heatmap horizontal T-377 */
@@ -7616,7 +7612,7 @@ body {
 .proy2-sprint-est-val {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--text-primary, var(--fg));
+  color: var(--text);
 }
 
 /* ══ END R-202604-063 ══ */
