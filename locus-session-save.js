@@ -526,7 +526,6 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
       }
       const _taClearC = document.getElementById('ta-' + id);
       if (_taClearC) { _taClearC.value = ''; parsePaste(id); }
-      exitFocusMode();
 
       // Merge backlog y contexto igual que flujo normal
       // B-202604-116: usar proyecto del card, no filtro global activo
@@ -707,7 +706,6 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // el debounce path y reescribir el draft si hay un oninput pendiente en la cola del browser.
   // El rAF post-render ya limpia el textarea y valida el estado final.
   if (_taClear) { _taClear.value = ''; _taClear.classList.remove('ta-has-items'); }
-  exitFocusMode();
   await saveImmediate(); render();
   // R-202604-022: alerta de cuota tras guardar
   _checkStorageQuota();
