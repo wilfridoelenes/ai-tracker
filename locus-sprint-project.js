@@ -1,3 +1,8 @@
+// locus-sprint-project.js
+// Última actualización: 2026-05-19 UTC-6
+// Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
+// Renombrado de ai-tracker-sprint-project.js
+
 // T-202604-243: prefijo de documento vivo según proyecto activo — OL-CONTEXT §7
 const _PREFIX_MAP = {
   'Obsidian Labs':   'OL',
@@ -1361,3 +1366,36 @@ function _getLocalStorageUsage() {
     }, 400);
   }, 900);
 })();
+
+// ── Context export — migrado desde ai-tracker-backlog.js ─────────────────
+// B-202605-260, R-202605-136
+function _generateContextContent() {
+  const raw = localStorage.getItem(_tplKey('context-raw'));
+  if (!raw) return null;
+  const _ctxVer = (typeof _effectiveVersion === 'function')
+    ? _effectiveVersion()
+    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
+
+  let isJson = false;
+  try { const o = JSON.parse(raw.trim()); isJson = typeof o === 'object' && o !== null && 'version' in o; } catch(e) {}
+  const ext      = isJson ? 'json' : 'md';
+  const mime     = isJson ? 'application/json' : 'text/markdown';
+  const fileName = `${_docPrefix()}-CONTEXT_${_ctxVer}.${ext}`;
+  return { raw, ext, mime, fileName };
+}
+
+function exportContextMd() {
+  const ctx = _generateContextContent();
+  if (!ctx) { showToast('warning', 'Sin datos — importa primero'); return; }
+  const { raw, mime, fileName } = ctx;
+
+  _showExportConfirmModal('CONTEXT', fileName, () => {
+    const b = new Blob([raw], { type: mime });
+    const u = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href = u; a.download = fileName;
+    a.click(); URL.revokeObjectURL(u);
+    _blogLog('exportado', fileName, '', 'context');
+    showToast('success', 'CONTEXT exportado');
+  });
+}

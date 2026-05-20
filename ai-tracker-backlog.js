@@ -10,38 +10,7 @@ function _skelShow(el, variant) {
 }
 function _skelHide(el) { if (el) el.classList.remove('is-loading'); }
 
-function _generateContextContent() {
-  const raw = localStorage.getItem(_tplKey('context-raw'));
-  if (!raw) return null;
-  // B-202605-260: usar versión canónica (post-Generator) — no APP_VERSION hardcodeada
-  const _ctxVer = (typeof _effectiveVersion === 'function')
-    ? _effectiveVersion()
-    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
-
-  // R-202605-136: detectar formato JSON para extensión y MIME correctos
-  let isJson = false;
-  try { const o = JSON.parse(raw.trim()); isJson = typeof o === 'object' && o !== null && 'version' in o; } catch(e) {}
-  const ext      = isJson ? 'json' : 'md';
-  const mime     = isJson ? 'application/json' : 'text/markdown';
-  const fileName = `${_docPrefix()}-CONTEXT_${_ctxVer}.${ext}`;
-  return { raw, ext, mime, fileName };
-}
-
-function exportContextMd() {
-  const ctx = _generateContextContent();
-  if (!ctx) { showToast('warning', 'Sin datos — importa primero'); return; }
-  const { raw, mime, fileName } = ctx;
-
-  _showExportConfirmModal('CONTEXT', fileName, () => {
-    const b = new Blob([raw], { type: mime });
-    const u = URL.createObjectURL(b);
-    const a = document.createElement('a');
-    a.href = u; a.download = fileName;
-    a.click(); URL.revokeObjectURL(u);
-    _blogLog('exportado', fileName, '', 'context');
-    showToast('success', 'CONTEXT exportado');
-  });
-}
+// _generateContextContent + exportContextMd — migradas a locus-sprint-project.js
 
 
 // ── TAB-BACKLOG — State, parser, importación, render, filtros, búsqueda ──

@@ -1149,28 +1149,31 @@ function toggleBacklogFocusMode() {
 // ─────────────────────────────────────────────────────────────────────────
 
 // T-202604-295: trigger de descarga de templates — 'session' (default) | 'sprint'
+// _templateTrigger definida en locus-session.js — consumir via guard
+// _TPL_TRIGGER_KEY preservada para _updateAutoDownloadLabel e _initAutoDlLabel
 const _TPL_TRIGGER_KEY = 'template-download-trigger';
-function _templateTrigger() {
-  return localStorage.getItem(_TPL_TRIGGER_KEY) || 'session';
-}
 function _autoDownloadOn() {
   // Backward compat — ON si trigger es 'session' (comportamiento original)
-  return _templateTrigger() === 'session';
+  const trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
+  return trig === 'session';
 }
 function toggleAutoDownload() {
-  const next = _templateTrigger() === 'session' ? 'sprint' : 'session';
+  const trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
+  const next = trig === 'session' ? 'sprint' : 'session';
   localStorage.setItem(_TPL_TRIGGER_KEY, next);
   _saveUserPrefs(); // R-4: sincronizar preferencia a Supabase
   _updateAutoDownloadLabel();
 }
 function _updateAutoDownloadLabel() {
   const btn = document.getElementById('more-menu-autodl');
-  if (btn) btn.textContent = `⬇ Descargar templates: ${_templateTrigger() === 'session' ? 'al guardar sesión' : 'al cerrar sprint'}`;
+  const _trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
+  if (btn) btn.textContent = `⬇ Descargar templates: ${_trig === 'session' ? 'al guardar sesión' : 'al cerrar sprint'}`;
 }
 // Inicializar label al cargar
 (function _initAutoDlLabel() {
   const btn = document.getElementById('more-menu-autodl');
-  if (btn) btn.textContent = `⬇ Descargar templates: ${_templateTrigger() === 'session' ? 'al guardar sesión' : 'al cerrar sprint'}`;
+  const _trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
+  if (btn) btn.textContent = `⬇ Descargar templates: ${_trig === 'session' ? 'al guardar sesión' : 'al cerrar sprint'}`;
 })();
 
 

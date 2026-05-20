@@ -1,5 +1,6 @@
-// ai-tracker-command-palette.js
-// Versión: 1.0.3 | Última actualización: 2026-05-08 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto
+// locus-command-palette.js
+// Versión: 1.0.3 | Última actualización: 2026-05-19 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto
+// Renombrado de ai-tracker-command-palette.js
 
 'use strict';
 

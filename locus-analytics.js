@@ -1,6 +1,7 @@
-// ai-tracker-analytics.js
-// Última actualización: 2026-05-13 UTC-6
+// locus-analytics.js
+// Última actualización: 2026-05-19 UTC-6
 // Módulo de analytics — KPIs, heatmap, productividad, flujo acumulativo, digest toasts
+// Renombrado de ai-tracker-analytics.js
 // Requiere: locus-storage.js · ai-tracker-checkpoint.js
 
 const ANALYTICS_COLORS = ['#8BC34A','#38bdf8','#e8a832','#e85555','#f472b6','#a3e635','#fb923c','#2ecc78'];

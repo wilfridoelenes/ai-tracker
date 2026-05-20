@@ -1,8 +1,9 @@
 /**
- * ai-tracker-map-generator.js
- * Versión: v1.3.2 | Última actualización: 2026-05-10 UTC-6
+ * locus-map-generator.js
+ * Versión: v1.3.2 | Última actualización: 2026-05-19 UTC-6
  * Módulo: Document Generator — MAP + CONTEXT + BACKLOG + Sprint Review + ZIP
  * Proyecto: Locus
+ * Renombrado de ai-tracker-map-generator.js
  * R-202604-053 | R-202604-086 | R-202605-101
  */
 
