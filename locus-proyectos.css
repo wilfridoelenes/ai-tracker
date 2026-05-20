@@ -645,8 +645,6 @@
   background: var(--surface3);
   color: var(--text);
 }
-.proj-ctx-edit { }
-
 .proj-ctx-save {
   border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent);
 }
