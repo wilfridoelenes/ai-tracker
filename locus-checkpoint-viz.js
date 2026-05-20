@@ -841,3 +841,107 @@ function _showArranquePanel() {
 
 // R-migración Firebase→Supabase eliminada — AC-8: migración completada
 
+// ══ showCheckpointPanel — R-202605-140 ══
+// Migrado desde monolítico. Dependencias: #ckpt-panel, #ckpt-body, #ckpt-bar, #ckpt-reopen-btn
+
+let _lastCheckpointResult = null;
+let _ckptPanelTimer = null;
+const _CKPT_PANEL_DURATION = 12000;
+
+function showCheckpointPanel(data) {
+  const panel  = document.getElementById('ckpt-panel');
+  const body   = document.getElementById('ckpt-body');
+  const bar    = document.getElementById('ckpt-bar');
+  const reopen = document.getElementById('ckpt-reopen-btn');
+  if (!panel || !body) return;
+
+  _lastCheckpointResult = data;
+
+  const _isInfoOnly = (v) => !v || v.trim().toLowerCase() === 'n/a';
+  const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+  // ── Secciones de ítems ──
+  const sections = [
+    { key: 'created',   label: '✅ Creados',      cls: 'ckpt-created'   },
+    { key: 'advanced',  label: '⬆ Avanzados',     cls: 'ckpt-advanced'  },
+    { key: 'updated',   label: '✏ Actualizados',  cls: 'ckpt-updated'   },
+    { key: 'retroceso', label: '⚠ Retroceso',     cls: 'ckpt-retroceso' },
+    { key: 'discarded', label: '🗑 Descartados',   cls: 'ckpt-discarded' },
+    { key: 'ignored',   label: '— Ignorados',      cls: 'ckpt-ignored'   },
+  ];
+
+  let html = '';
+
+  sections.forEach(({ key, label, cls }) => {
+    const items = data[key];
+    if (!items || !items.length) return;
+    html += `<div class="ckpt-section ${cls}">`;
+    html += `<div class="ckpt-section-label">${label}</div>`;
+    html += `<ul class="ckpt-item-list">`;
+    items.forEach(item => {
+      const code  = item.code  ? `<span class="ckpt-item-code">${esc(item.code)}</span>` : '';
+      const title = item.title ? esc(item.title) : (item.code ? '' : esc(String(item)));
+      html += `<li class="ckpt-item-row">${code}<span class="ckpt-item-title">${title}</span></li>`;
+    });
+    html += `</ul></div>`;
+  });
+
+  // ── Context sections ──
+  if (data.contextSections && data.contextSections.length) {
+    html += `<div class="ckpt-section ckpt-context">`;
+    html += `<div class="ckpt-section-label">📄 Context actualizado</div>`;
+    html += `<ul class="ckpt-item-list">`;
+    data.contextSections.forEach(s => {
+      html += `<li class="ckpt-item-row"><span class="ckpt-item-title">${esc(s)}</span></li>`;
+    });
+    html += `</ul></div>`;
+  }
+
+  // ── Próximo paso y decisión ──
+  if (!_isInfoOnly(data.proximoPaso)) {
+    html += `<div class="ckpt-section ckpt-next">`;
+    html += `<div class="ckpt-section-label">➡ Próximo paso</div>`;
+    html += `<div class="ckpt-info-text">${esc(data.proximoPaso)}</div>`;
+    html += `</div>`;
+  }
+  if (!_isInfoOnly(data.decision)) {
+    html += `<div class="ckpt-section ckpt-decision">`;
+    html += `<div class="ckpt-section-label">🔒 Decisión</div>`;
+    html += `<div class="ckpt-info-text">${esc(data.decision)}</div>`;
+    html += `</div>`;
+  }
+
+  body.innerHTML = html;
+
+  // ── Mostrar panel ──
+  panel.classList.add('open');
+  if (reopen) reopen.classList.add('hidden');
+
+  // ── Barra de progreso auto-close ──
+  if (bar) {
+    bar.style.transition = 'none';
+    bar.style.width = '100%';
+    // Forzar reflow antes de iniciar transición
+    void bar.offsetWidth;
+    bar.style.transition = `width ${_CKPT_PANEL_DURATION}ms linear`;
+    bar.style.width = '0%';
+  }
+
+  if (_ckptPanelTimer) clearTimeout(_ckptPanelTimer);
+  _ckptPanelTimer = setTimeout(() => closeCkptPanel(), _CKPT_PANEL_DURATION);
+}
+
+function closeCkptPanel() {
+  const panel  = document.getElementById('ckpt-panel');
+  const bar    = document.getElementById('ckpt-bar');
+  const reopen = document.getElementById('ckpt-reopen-btn');
+
+  if (panel) panel.classList.remove('open');
+  if (bar)   { bar.style.transition = 'none'; bar.style.width = '0%'; }
+  if (reopen && _lastCheckpointResult) reopen.classList.remove('hidden');
+
+  if (_ckptPanelTimer) { clearTimeout(_ckptPanelTimer); _ckptPanelTimer = null; }
+}
+
+// ══ END showCheckpointPanel ══
+
