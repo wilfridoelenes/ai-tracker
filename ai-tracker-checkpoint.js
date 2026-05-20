@@ -1737,10 +1737,12 @@ function unlockNowFromCard() {
 
 // T-202604-299: beforeunload → en locus-storage.js
 
-// ─── R-202604-036: showMergeDiffPanel — visualizador de ítems al parsear paste ───
+// ─── R-202604-036: _showItemVizPanel — visualizador de ítems al parsear paste ───
 // Reemplaza T-202604-201 (panel diff genérico)
 // Muestra tabla de ítems con: código, tipo, título, status resultante,
 // datos de backlog si existe, campos inline si es nuevo, checkbox excluir, Ver en Backlog
+// Nota: backlog.js expone showMergeDiffPanel (merge-diff-overlay, dry-run) — nombre compartido
+// resuelto: esta función renombrada a _showItemVizPanel para evitar colisión de nombres.
 
 let _itemVizPendingCb = null;
 let _itemVizItems     = null;
@@ -1750,7 +1752,7 @@ let _itemVizProjId    = null;
 let _itemVizExcluded  = new Set();
 let _itemVizKeyHandler = null; // T-202605-429: ref al handler Enter para limpieza en close
 
-function showMergeDiffPanel(tgItems, sessId, projId, onConfirm) {
+function _showItemVizPanel(tgItems, sessId, projId, onConfirm) {
   if (!tgItems || !tgItems.length) { onConfirm(); return; }
 
   _itemVizPendingCb = onConfirm;

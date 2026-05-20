@@ -10,7 +10,9 @@
 //   _dropzoneHandle         → ai-tracker-ai-notes.js
 //   _tplKey / esc / _blogLog → locus-storage.js
 //   showToast               → locus-toast.js
-//   parseHtmlMapMd / _isMapJson / _extractMapJson / _parseMapJson → ai-tracker-ai-notes.js
+//
+// MAP helpers definidas en este módulo (migradas desde ai-tracker-ai-notes.js):
+//   parseHtmlMapMd / _isMapJson / _extractMapJson / _parseMapJson
 //
 // Orden en index.html: después de ai-tracker-ai-notes.js, antes de ai-tracker-backlog.js (AC-1)
 
@@ -18,6 +20,122 @@
 let HTML_MAP_SECTIONS = [];
 let htmlMapFilter = 'all';
 let _hmSearch = '';
+
+// ── MAP helpers — migradas desde ai-tracker-ai-notes.js ───────────────────
+// Definidas aquí porque locus-map-viewer.js es su único consumidor real.
+// ai-tracker-ai-notes.js las referencia en _getMapContent via typeof guard.
+
+// R-202605-137: detectar si el texto es un MAP en formato JSON
+function _isMapJson(text) {
+  if (!text || !text.trim()) return false;
+  const raw = _extractMapJson(text);
+  if (!raw) return false;
+  try {
+    const obj = JSON.parse(raw);
+    return typeof obj === 'object' && obj !== null && Array.isArray(obj.files);
+  } catch(e) { return false; }
+}
+
+// R-202605-137: extraer JSON crudo del bloque ```json ... ``` o del texto directo
+function _extractMapJson(text) {
+  const fenced = text.match(/```json\s*([\s\S]*?)\s*```/);
+  if (fenced) return fenced[1].trim();
+  const t = text.trim();
+  if (t.startsWith('{')) return t;
+  return null;
+}
+
+// R-202605-137: parsear MAP JSON al schema {type, file, name, line, area} que usa renderHtmlMap
+function _parseMapJson(text) {
+  const raw = _extractMapJson(text);
+  if (!raw) return null;
+  let obj;
+  try { obj = JSON.parse(raw); } catch(e) { return null; }
+  if (!Array.isArray(obj.files)) return null;
+  const sections = [];
+  obj.files.forEach(f => {
+    const ext = (f.type || f.name.split('.').pop() || 'js').toLowerCase();
+    (f.functions || []).forEach(fn => {
+      sections.push({
+        type: ext,
+        file: f.name,
+        name: fn.name || '',
+        line: fn.line != null ? String(fn.line) : '',
+        area: fn.area || '',
+        comment: fn.area || '',
+        lines: fn.line != null ? String(fn.line) : ''
+      });
+    });
+  });
+  return sections;
+}
+
+// R-202605-137: Markdown legacy — read-only, sin cambios al parser original
+function parseHtmlMapMd(text) {
+  const sections = [];
+  const lines = text.split('\n');
+  // Formato modular v3: headers H2 = archivos, tablas = funciones con Línea/Función/Área
+  // Formato legacy: ## CSS / ## HTML / ## JS + tablas planas
+  let currentFile = null;
+  let currentType = null;
+  // Detectar si es formato modular (tiene headers con nombres de archivo)
+  const isModular = /##\s+\S+\.(js|css|html)\b/i.test(text);
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.startsWith('## ')) {
+      const header = line.slice(3).trim();
+      if (isModular) {
+        const fileMatch = header.match(/^(\S+\.(js|css|html))/i);
+        if (fileMatch) {
+          currentFile = fileMatch[1];
+          currentType = fileMatch[2].toLowerCase();
+        } else {
+          currentFile = null;
+        }
+      } else {
+        if (/CSS/i.test(header)) { currentType = 'css'; currentFile = null; }
+        else if (/HTML/i.test(header)) { currentType = 'html'; currentFile = null; }
+        else if (/JS/i.test(header)) { currentType = 'js'; currentFile = null; }
+        else { currentFile = null; }
+      }
+      continue;
+    }
+    if (!line.startsWith('|')) continue;
+    if (/^\|\s*[-:]+/.test(line)) continue;
+    const cols = line.split('|').map(c => c.trim()).filter(Boolean);
+    if (cols.length < 2) continue;
+    const firstCol = cols[0].toLowerCase();
+    if (['sección','elemento','section','línea','linea','líneas','función','funcion','function','line'].includes(firstCol)) continue;
+    if (cols[0].startsWith('---') || cols[0].startsWith('===')) continue;
+
+    if (isModular && currentFile) {
+      const lineNum = cols[0];
+      const fnName = cols[1] || '';
+      const area = cols[2] || '';
+      sections.push({
+        type: currentType || 'js',
+        file: currentFile,
+        name: fnName,
+        line: lineNum,
+        area: area,
+        comment: area,
+        lines: lineNum
+      });
+    } else {
+      sections.push({
+        type: currentType || 'js',
+        file: null,
+        name: cols[0],
+        line: cols[2] || '',
+        area: '',
+        comment: cols[1] || '',
+        lines: cols[2] || ''
+      });
+    }
+  }
+  return sections;
+}
 
 // ── loadHtmlMap ────────────────────────────────────────────────────────────
 // AC-9: lee html-map-sections de localStorage via _tplKey.
@@ -241,7 +359,12 @@ function renderHtmlMap() {
 }
 
 // ── AC-11: exponer como window.* para inline handlers y callers en ai-notes ──
-window.renderHtmlMap      = renderHtmlMap;
-window.setHtmlMapFilter   = setHtmlMapFilter;
+window.renderHtmlMap       = renderHtmlMap;
+window.setHtmlMapFilter    = setHtmlMapFilter;
 window.updateHtmlMapBanner = updateHtmlMapBanner;
-window.loadHtmlMap        = loadHtmlMap;
+window.loadHtmlMap         = loadHtmlMap;
+// MAP helpers — expuestas para _getMapContent en ai-tracker-ai-notes.js
+window.parseHtmlMapMd  = parseHtmlMapMd;
+window._isMapJson      = _isMapJson;
+window._extractMapJson = _extractMapJson;
+window._parseMapJson   = _parseMapJson;
