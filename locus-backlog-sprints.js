@@ -681,14 +681,12 @@ function confirmCloseSprint(id) {
 
   _scmRender();
   overlay.classList.add('open');
-  _pauseCkptTimer();
 }
 
 function closeCloseSprintModal() {
   const overlay = document.getElementById('sprint-close-overlay');
   if (overlay) overlay.classList.remove('open');
   _scmState = null;
-  _resumeCkptTimer();
 }
 
 function _scmBack() {

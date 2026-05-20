@@ -2259,7 +2259,6 @@ function _showStatusConfirmModal({ title, body, okLabel, okClass, onConfirm }) {
     okBtn.parentNode.replaceChild(newOkBtn, okBtn);
     newOkBtn.addEventListener('click', () => {
       overlay.classList.remove('open');
-      _resumeCkptTimer(); // P-001: reanudar al confirmar
       onConfirm();
     });
   }
@@ -2268,10 +2267,8 @@ function _showStatusConfirmModal({ title, body, okLabel, okClass, onConfirm }) {
     cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
     newCancelBtn.addEventListener('click', () => {
       overlay.classList.remove('open');
-      _resumeCkptTimer();
     });
   }
-  _pauseCkptTimer(); // P-001: pausar panel mientras modal está abierto
   overlay.classList.add('open');
 }
 
