@@ -4607,6 +4607,21 @@ function _findTmpMatch(tmpCode, desc, existingItems) {
   return best ? { item: best, score: bestScore } : null;
 }
 
+// B-202605-guardar-sesion: _assignPendingIds — convierte [pendiente-ID] en código real.
+// Llamado por mergeBacklogFromTG antes de procesar ítems.
+// AC-3: ítems sin type válido se dejan con [pendiente-ID] sin modificar.
+// AC-4: ítems con código real pasan sin modificación.
+// AC-5: [tmp:slug] pasan sin modificación — tienen su propio flujo (_findTmpMatch).
+function _assignPendingIds(tgItems) {
+  const validTypes = new Set(['P', 'T', 'R', 'B']);
+  return tgItems.map(item => {
+    if (item.code !== '[pendiente-ID]') return item; // AC-4/5: no es placeholder estándar
+    if (!item.type || !validTypes.has(item.type)) return item; // AC-3: type inválido — no asignar
+    const newCode = _getNextItemCode(item.type);
+    return { ...item, code: newCode };
+  });
+}
+
 // ── T-098: Merge TRACKER-GLOBAL → ITEMS en memoria ──
 // Llamado desde saveSession(). Acumula múltiples sesiones sin exportar.
 // T-202604-121: retorna {created, updated, ignored} para super toast
