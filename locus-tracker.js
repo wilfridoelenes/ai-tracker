@@ -585,7 +585,7 @@ function selectTrackerAI(aiId) {
   // focus textarea si disponible
   setTimeout(() => {
     const ta = document.getElementById('ta-' + aiId);
-    if (ta) { ta.focus(); enterFocusMode(aiId); }
+    if (ta) { ta.focus(); }
   }, 80);
 }
 
@@ -1515,8 +1515,7 @@ function buildCard(ai) {
       <div class="paste-ta-wrap">
         <textarea class="paste-ta" id="ta-${ai.id}" rows="3"
           onpaste="if(typeof handlePaste==='function'){handlePaste('${ai.id}')}else{showToast('error','Módulo de ingesta no disponible')}"
-          oninput="if(typeof handleInput==='function'){handleInput('${ai.id}');}"
-          onfocus="enterFocusMode('${ai.id}')"></textarea>
+          oninput="if(typeof handleInput==='function'){handleInput('${ai.id}');}"></textarea>
         <div class="paste-ta-hint" id="pta-hint-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el rol al cerrar sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
       </div>
       <div class="char-counter" id="cc-${ai.id}"></div>
