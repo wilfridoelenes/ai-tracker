@@ -1,5 +1,5 @@
 // locus-map-viewer.js
-// Última actualización: 2026-05-19 18:00 UTC-6
+// Última actualización: 2026-05-20 UTC-6
 // Módulo: HTML MAP viewer — render, filtro, búsqueda y toggle de módulos
 // Extraído de ai-tracker-backlog.js (renderHtmlMap, setHtmlMapFilter, updateHtmlMapBanner,
 //   _hmOnSearch, _hmToggleModule, _hmSearch) y ai-tracker-ai-notes.js
@@ -12,7 +12,7 @@
 //   showToast               → locus-toast.js
 //
 // MAP helpers definidas en este módulo (migradas desde ai-tracker-ai-notes.js):
-//   parseHtmlMapMd / _isMapJson / _extractMapJson / _parseMapJson
+//   parseHtmlMapMd
 //
 // Orden en index.html: después de ai-tracker-ai-notes.js, antes de ai-tracker-backlog.js (AC-1)
 
@@ -24,51 +24,6 @@ let _hmSearch = '';
 // ── MAP helpers — migradas desde ai-tracker-ai-notes.js ───────────────────
 // Definidas aquí porque locus-map-viewer.js es su único consumidor real.
 // ai-tracker-ai-notes.js las referencia en _getMapContent via typeof guard.
-
-// R-202605-137: detectar si el texto es un MAP en formato JSON
-function _isMapJson(text) {
-  if (!text || !text.trim()) return false;
-  const raw = _extractMapJson(text);
-  if (!raw) return false;
-  try {
-    const obj = JSON.parse(raw);
-    return typeof obj === 'object' && obj !== null && Array.isArray(obj.files);
-  } catch(e) { return false; }
-}
-
-// R-202605-137: extraer JSON crudo del bloque ```json ... ``` o del texto directo
-function _extractMapJson(text) {
-  const fenced = text.match(/```json\s*([\s\S]*?)\s*```/);
-  if (fenced) return fenced[1].trim();
-  const t = text.trim();
-  if (t.startsWith('{')) return t;
-  return null;
-}
-
-// R-202605-137: parsear MAP JSON al schema {type, file, name, line, area} que usa renderHtmlMap
-function _parseMapJson(text) {
-  const raw = _extractMapJson(text);
-  if (!raw) return null;
-  let obj;
-  try { obj = JSON.parse(raw); } catch(e) { return null; }
-  if (!Array.isArray(obj.files)) return null;
-  const sections = [];
-  obj.files.forEach(f => {
-    const ext = (f.type || f.name.split('.').pop() || 'js').toLowerCase();
-    (f.functions || []).forEach(fn => {
-      sections.push({
-        type: ext,
-        file: f.name,
-        name: fn.name || '',
-        line: fn.line != null ? String(fn.line) : '',
-        area: fn.area || '',
-        comment: fn.area || '',
-        lines: fn.line != null ? String(fn.line) : ''
-      });
-    });
-  });
-  return sections;
-}
 
 // R-202605-137: Markdown legacy — read-only, sin cambios al parser original
 function parseHtmlMapMd(text) {
@@ -363,8 +318,5 @@ window.renderHtmlMap       = renderHtmlMap;
 window.setHtmlMapFilter    = setHtmlMapFilter;
 window.updateHtmlMapBanner = updateHtmlMapBanner;
 window.loadHtmlMap         = loadHtmlMap;
-// MAP helpers — expuestas para _getMapContent en ai-tracker-ai-notes.js
+// parseHtmlMapMd — expuesta para callers externos
 window.parseHtmlMapMd  = parseHtmlMapMd;
-window._isMapJson      = _isMapJson;
-window._extractMapJson = _extractMapJson;
-window._parseMapJson   = _parseMapJson;

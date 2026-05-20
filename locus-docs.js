@@ -1,5 +1,5 @@
 // locus-docs.js
-// Última actualización: 2026-05-19 UTC-6
+// Última actualización: 2026-05-20 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
 // Extraído de ai-tracker-ai-notes.js
 
@@ -218,43 +218,34 @@ function _renderTplProjBanner() {
 // HTML_MAP_SECTIONS y htmlMapFilter migrados a locus-map-viewer.js (AC-10)
 
 function importHtmlMap(event) {
-  // R-202605-137: acepta JSON (nuevo) o Markdown (legado read-only)
+  // R-202605-XXX: solo Markdown — rama JSON eliminada
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
     const text = e.target.result;
-    const isJson = _isMapJson(text);
-    const sections = isJson ? _parseMapJson(text) : parseHtmlMapMd(text);
-    if (isJson && sections === null) {
-      showToast('error', 'MAP JSON inválido — verifica el formato del archivo');
-      return;
-    }
+    const sections = parseHtmlMapMd(text);
     HTML_MAP_SECTIONS = sections;
     localStorage.setItem(_tplKey('html-map-raw'), text);
     localStorage.setItem(_tplKey('html-map-sections'), JSON.stringify(sections));
-    // Meta
+    // Meta — leer version y nombre del encabezado Markdown
     let version = '—';
     let fileName = file.name;
-    if (isJson) {
-      try { const obj = JSON.parse(_extractMapJson(text)); version = obj.version || '—'; fileName = obj.project ? `${obj.project}-MAP_${version}` : file.name; } catch(e) {}
-    } else {
-      const vm = text.match(/Versión:\s*([\d.]+)/); if (vm) version = vm[1];
-      const fm = text.match(/^#\s+(.+)/m); if (fm) fileName = fm[1].trim();
-    }
+    const vm = text.match(/Versi[oó]n:\s*([\d.v][\d.]*)/); if (vm) version = vm[1];
+    const fm = text.match(/^#\s+(.+)/m); if (fm) fileName = fm[1].trim();
     const meta = {
       file: fileName,
       version,
       importedAt: new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }),
       total: sections.length,
-      format: isJson ? 'json' : 'markdown'
+      format: 'markdown'
     };
     localStorage.setItem(_tplKey('html-map-meta'), JSON.stringify(meta));
     if (typeof updateHtmlMapBanner === 'function') updateHtmlMapBanner();
     updateHtmlMapModificationBadge();
     if (typeof renderHtmlMap === 'function') renderHtmlMap();
     _setHtmlMapModified();
-    _blogLog('importado', meta.file, `v${meta.version} · ${sections.length} secciones${isJson ? ' (JSON)' : ''}`, 'htmlmap');
+    _blogLog('importado', meta.file, `v${meta.version} · ${sections.length} secciones`, 'htmlmap');
     _updateDocLogCount('htmlmap');
     document.getElementById('htmlmap-filter-bar').classList.remove('is-hidden');
     showToast('success', `Module Map importado — ${sections.length} secciones`);
@@ -270,27 +261,13 @@ function importHtmlMap(event) {
 // Retorna null si no hay datos en localStorage.
 // exportHtmlMapMd() y _mgExportAllZip() consumen esta función.
 function _getMapContent(ver) {
+  // R-202605-XXX: MAP siempre Markdown — rama JSON eliminada
   const raw = localStorage.getItem(_tplKey('html-map-raw'));
   if (!raw) return null;
   const resolvedVer = ver || (typeof _effectiveVersion !== 'undefined' && _effectiveVersion
     ? _effectiveVersion
     : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0'));
-  const isJson = (typeof _isMapJson === 'function') ? _isMapJson(raw) : false;
-  let updated = raw;
-  if (isJson) {
-    try {
-      const jsonRaw = (typeof _extractMapJson === 'function') ? _extractMapJson(raw) : raw;
-      const obj = JSON.parse(jsonRaw);
-      obj.version = resolvedVer;
-      const newJson = JSON.stringify(obj, null, 2);
-      updated = raw.includes('```json')
-        ? raw.replace(/```json\s*[\s\S]*?\s*```/, '```json\n' + newJson + '\n```')
-        : newJson;
-    } catch(e) { /* T-202605-516: JSON inválido — _getMapContent() retorna raw sin modificar */ }
-  } else {
-    updated = raw.replace(/Versi[oó]n:\s*[\d.]+/, `Versión: ${resolvedVer}`);
-  }
-  return updated;
+  return raw.replace(/Versi[oó]n:\s*[\d.v][\d.]*/, `Versión: ${resolvedVer}`);
 }
 
 // ── T-103 / T-202604-123: Exportar HTML-MAP con versión editable ──
@@ -303,13 +280,13 @@ function exportHtmlMapMd() {
     : (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
       ? _effectiveVersion
       : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
-  const isJson = _isMapJson(raw);
-  const ext = isJson ? 'json' : 'md';
+  // R-202605-XXX: MAP siempre Markdown — rama JSON eliminada
+  const ext = 'md';
   // B-202605-514: usar _getMapContent() — lógica de versioning centralizada
   const updated = _getMapContent(ver) || raw;
   _clearHtmlMapModifiedBadge();
   const fname = `${_docPrefix()}-MAP_${ver}.${ext}`;
-  const mtype = isJson ? 'application/json' : 'text/markdown';
+  const mtype = 'text/markdown';
   const b = new Blob([updated], { type: mtype });
   const u = URL.createObjectURL(b);
   const a = document.createElement('a');
