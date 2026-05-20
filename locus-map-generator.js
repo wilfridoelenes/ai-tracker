@@ -334,6 +334,8 @@ function _mgUpdateBtn() {
 
 // ─── Parser ──────────────────────────────────────────────────────────────────
 
+// AC-17: _mgParseFile realiza Pasada 1 — construye lista de funciones con área heredada de sección.
+// Pasada 2 (exports + calls) se ejecuta en _generateMap() sobre el índice global de todas las funciones.
 function _mgParseFile(name, text) {
   const ext = name.split('.').pop().toLowerCase();
   const lines = text.split('\n');
@@ -341,21 +343,37 @@ function _mgParseFile(name, text) {
   const entries = [];
 
   if (ext === 'js') {
+    // AC-02: rastrear la sección más cercana hacia arriba para herencia de área
+    let currentSection = '';
     lines.forEach((line, i) => {
       const lineNum = i + 1;
+
+      // Detectar comentario de sección (── Nombre ──) para herencia
+      const secMatch = line.match(/\/\/\s*[─\-═=]{2,}\s*(.+?)\s*[─\-═=]{2,}/);
+      if (secMatch) {
+        currentSection = secMatch[1].trim();
+      }
+
       const fnMatch = line.match(/^\s*(?:async\s+)?function\s+(\w+)\s*\(/);
       if (fnMatch) {
-        entries.push({ line: `L${lineNum}`, fn: fnMatch[1], area: _mgGuessArea(fnMatch[1], line) });
+        // AC-01 + AC-02: área = guessArea → si vacío, heredar sección → si aún vacío, 'Internal'
+        const guessed = _mgGuessArea(fnMatch[1], line);
+        const area = guessed || currentSection || 'Internal';
+        entries.push({ line: `L${lineNum}`, fn: fnMatch[1], area, bodyStart: lineNum });
         return;
       }
       const arrowMatch = line.match(/^\s*(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(?[^)]*\)?\s*=>/);
       if (arrowMatch) {
-        entries.push({ line: `L${lineNum}`, fn: arrowMatch[1], area: _mgGuessArea(arrowMatch[1], line) });
+        const guessed = _mgGuessArea(arrowMatch[1], line);
+        const area = guessed || currentSection || 'Internal';
+        entries.push({ line: `L${lineNum}`, fn: arrowMatch[1], area, bodyStart: lineNum });
         return;
       }
       const exprMatch = line.match(/^\s*(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?function/);
       if (exprMatch) {
-        entries.push({ line: `L${lineNum}`, fn: exprMatch[1], area: _mgGuessArea(exprMatch[1], line) });
+        const guessed = _mgGuessArea(exprMatch[1], line);
+        const area = guessed || currentSection || 'Internal';
+        entries.push({ line: `L${lineNum}`, fn: exprMatch[1], area, bodyStart: lineNum });
       }
     });
   } else if (ext === 'css') {
@@ -370,7 +388,7 @@ function _mgParseFile(name, text) {
     });
   }
 
-  return { name, ext, total, entries };
+  return { name, ext, total, entries, lines };
 }
 
 function _mgGuessArea(fnName, _line) {
@@ -731,6 +749,7 @@ function _generateMap(ver) {
   // R-202605-137: produce JSON puro — parseable con JSON.parse sin regex
   // T-202605-491: incluye campo status en objeto raíz — coherencia con CONTEXT
   // B-202605-494: acepta ver como parámetro; fallback a _mgGetVersion() si no se pasa
+  // [pendiente-ID]: AC-17/18/19 — dos pasadas para exports + calls cruzados
   const order = { js: 0, css: 1, html: 2 };
   const sorted = [..._mapGen.files].sort((a, b) => {
     const ea = a.name.split('.').pop().toLowerCase();
@@ -741,7 +760,18 @@ function _generateMap(ver) {
   const version = (ver && ver !== 'undefined') ? ver : _mgGetVersion();
   const now = _mgNow();
   const project = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+
+  // Pasada 1 — parsear todos los archivos y construir índice global de funciones
+  // AC-17: índice global { fnName → [fileName, ...] } (un nombre puede existir en múltiples archivos)
   const parsed = sorted.map(f => _mgParseFile(f.name, f.text));
+  const fnIndex = {}; // { fnName → Set<fileName> }
+  parsed.forEach(p => {
+    if (p.ext !== 'js') return;
+    p.entries.forEach(e => {
+      if (!fnIndex[e.fn]) fnIndex[e.fn] = new Set();
+      fnIndex[e.fn].add(p.name);
+    });
+  });
 
   // T-202605-491: inferir status — reutiliza _mgInferStatus() de R-202605-147
   let _blItemsForMap = [];
@@ -756,18 +786,188 @@ function _generateMap(ver) {
   const _activeSpForMap = _mgActiveSprint();
   const mapStatus = (typeof _mgInferStatus === 'function')
     ? _mgInferStatus(_activeSpForMap, _blItemsForMap)
-    : 'between_sprints'; // fallback si _mgInferStatus no está disponible
+    : 'between_sprints';
 
-  const files = parsed.map(p => ({
-    name: p.name,
-    type: p.ext,
-    lines: p.total,
-    functions: p.entries.map(e => ({
-      line: e.line,
-      name: e.fn,
-      area: e.area || ''
-    }))
-  }));
+  // Nombres de archivos en el MAP para validar calls (AC-12: solo archivos presentes en el MAP)
+  const mapFileNames = new Set(parsed.map(p => p.name));
+
+  // Pasada 2 — detectar referencias cruzadas para poblar exports y calls simultáneamente
+  // AC-17: índice global ya construido en Pasada 1
+  // AC-18: exports y calls se derivan del mismo recorrido en Pasada 2
+  // AC-05: detección en dos capas — cuerpo de función + 3 líneas previas
+  // AC-11: exports granular — solo funciones referenciadas en el cuerpo del caller (sin comentarios/strings)
+  // AC-19: si el mismo nombre existe en múltiples archivos, calls incluye todos
+
+  // exportsMap: { fileName → Set<fnName> } — funciones de este archivo referenciadas desde otros
+  // callsMap:   { fileName → Map<fnName, Set<calledFileName>> } — por función, archivos a los que llama
+  const exportsMap = {};
+  const callsMap   = {}; // { callerFileName → Map<fnName, Set<targetFileName>> }
+
+  parsed.forEach(p => {
+    if (!exportsMap[p.name]) exportsMap[p.name] = new Set();
+    if (!callsMap[p.name])   callsMap[p.name]   = new Map();
+  });
+
+  // Pre-calcular texto limpio (sin comentarios ni strings) de cada archivo para AC-11
+  const cleanTextCache = {};
+  parsed.forEach(p => {
+    if (p.ext === 'js') {
+      cleanTextCache[p.name] = _mgStripCommentsAndStrings(p.lines.join('\n'));
+    }
+  });
+
+  // Para cada función de cada archivo caller, determinar calls y contribuir a exports
+  parsed.forEach(callerFile => {
+    if (callerFile.ext !== 'js') return;
+    const callerName = callerFile.name;
+    const callerLines = callerFile.lines;
+    const callerEntries = callerFile.entries;
+
+    callerEntries.forEach((entry, idx) => {
+      // AC-05: cuerpo = desde 3 líneas antes de la declaración hasta inicio de siguiente función
+      const nextEntry = callerEntries[idx + 1];
+      const nextBodyStart = nextEntry ? nextEntry.bodyStart : null;
+      const fnBodyRaw = _mgGetFunctionBody(callerLines, entry.bodyStart, nextBodyStart, 3);
+      // AC-11: texto limpio para exports (sin comentarios ni strings)
+      const fnBodyClean = _mgStripCommentsAndStrings(fnBodyRaw);
+
+      const callsForFn = new Set();
+
+      parsed.forEach(targetFile => {
+        if (targetFile.name === callerName) return; // no auto-referencia
+        if (targetFile.ext !== 'js') return;
+        const targetName = targetFile.name;
+        if (!mapFileNames.has(targetName)) return; // AC-12
+
+        let referencesTarget = false;
+
+        // Capa 1: referencia explícita al nombre de archivo en el cuerpo (raw, incluyendo comentarios/imports)
+        // AC-05 Capa 1: nombre de archivo en el cuerpo completo de la función + 3 líneas previas
+        const baseName = targetName.replace(/\.js$/i, '');
+        const explicitRef = new RegExp(
+          '(?:import|require|from|//|/\\*).*?' + _mgEscapeRegExp(baseName),
+          'i'
+        );
+        if (explicitRef.test(fnBodyRaw)) {
+          referencesTarget = true;
+        }
+
+        // Capa 2: fallback — nombres de funciones del target en el cuerpo limpio del caller
+        // AC-05 Capa 2: nombres de funciones conocidas del MAP como fallback
+        if (!referencesTarget) {
+          for (const tEntry of targetFile.entries) {
+            if (tEntry.fn && tEntry.fn.length > 2) {
+              const fnCallRegex = new RegExp('\\b' + _mgEscapeRegExp(tEntry.fn) + '\\s*\\(', '');
+              if (fnCallRegex.test(fnBodyClean)) {
+                referencesTarget = true;
+                break;
+              }
+            }
+          }
+        }
+
+        if (referencesTarget) {
+          callsForFn.add(targetName);
+
+          // AC-11: exports granular — solo las funciones de targetFile referenciadas
+          // en el cuerpo limpio de esta función caller (no todas las funciones del target)
+          targetFile.entries.forEach(tEntry => {
+            if (!tEntry.fn || tEntry.fn.length <= 2) return;
+            const fnCallRegex = new RegExp('\\b' + _mgEscapeRegExp(tEntry.fn) + '\\s*\\(', '');
+            if (fnCallRegex.test(fnBodyClean)) {
+              exportsMap[targetName].add(tEntry.fn);
+            }
+          });
+
+          // AC-19: si el mismo nombre de función existe en múltiples archivos,
+          // calls incluye todos los archivos donde ese nombre existe.
+          // Capa 2 pudo matchear por nombre de función que existe en varios archivos —
+          // garantizar que callsForFn incluye todos los archivos con ese nombre.
+          for (const tEntry of targetFile.entries) {
+            if (tEntry.fn && tEntry.fn.length > 2) {
+              const fnCallRegex = new RegExp('\\b' + _mgEscapeRegExp(tEntry.fn) + '\\s*\\(', '');
+              if (fnCallRegex.test(fnBodyClean) && fnIndex[tEntry.fn]) {
+                fnIndex[tEntry.fn].forEach(ambigFile => {
+                  if (ambigFile !== callerName && mapFileNames.has(ambigFile)) {
+                    callsForFn.add(ambigFile);
+                  }
+                });
+              }
+            }
+          }
+        }
+      });
+
+      // AC-09: siempre emitir calls por función (vacío [] si ninguno)
+      callsMap[callerName].set(entry.fn, callsForFn);
+    });
+  });
+
+  // AC-07: changed_in — ID del sprint más reciente en comentarios (R/T/B-YYYYMM-NNN), null si ninguno
+  // AC-10: si no hay IDs → changed_in: null, campo siempre presente
+  const sprintIdPattern = /[RTB]-\d{6}-\d{3}/g;
+
+  // AC-06: Construir changed_in por archivo
+  function _mgChangedIn(fileLines) {
+    const text = fileLines.join('\n');
+    const matches = text.match(sprintIdPattern);
+    if (!matches || !matches.length) return null;
+    // Ordenar descendente (YYYYMM-NNN lexicográfico) y tomar el más reciente
+    const sorted = [...new Set(matches)].sort((a, b) => b.localeCompare(a));
+    return sorted[0];
+  }
+
+  // AC-07: size_signal — low < 500, medium 500–2000, high > 2000
+  function _mgSizeSignal(lines) {
+    if (lines < 500) return 'low';
+    if (lines <= 2000) return 'medium';
+    return 'high';
+  }
+
+  // Construir array files con todos los campos nuevos
+  const files = parsed.map(p => {
+    // AC-11: exports sin duplicados — solo funciones realmente referenciadas desde otros archivos
+    const exportsArr = p.ext === 'js'
+      ? [...(exportsMap[p.name] || new Set())]
+      : [];
+
+    // AC-04 + AC-09 + AC-12: calls a nivel archivo — unión de todos los archivos llamados por cualquier función
+    // (para mantener el campo calls de nivel archivo como antes, compatibilidad de schema)
+    const fileLevelCalls = new Set();
+    if (p.ext === 'js' && callsMap[p.name]) {
+      callsMap[p.name].forEach(fileSet => fileSet.forEach(f => fileLevelCalls.add(f)));
+    }
+    const callsArr = [...fileLevelCalls];
+
+    // AC-06 + AC-10
+    const changedIn = _mgChangedIn(p.lines);
+
+    // AC-07
+    const sizeSignal = _mgSizeSignal(p.total);
+
+    return {
+      name: p.name,
+      type: p.ext,
+      lines: p.total,
+      exports: exportsArr,          // AC-03
+      calls: callsArr,              // AC-04 nivel archivo
+      changed_in: changedIn,        // AC-06
+      size_signal: sizeSignal,      // AC-07
+      functions: p.entries.map(e => {
+        // AC-04/AC-05: calls a nivel función — archivos a los que esta función llama
+        let fnCalls = [];
+        if (p.ext === 'js' && callsMap[p.name] && callsMap[p.name].has(e.fn)) {
+          fnCalls = [...callsMap[p.name].get(e.fn)];
+        }
+        return {
+          line: e.line,
+          name: e.fn,
+          area: e.area,               // AC-01: nunca vacío — 'Internal' como default
+          calls: fnCalls              // AC-04/AC-05: archivos llamados por esta función
+        };
+      })
+    };
+  });
 
   const mapObj = {
     version,
@@ -778,6 +978,78 @@ function _generateMap(ver) {
   };
 
   return '```json\n' + JSON.stringify(mapObj, null, 2) + '\n```';
+}
+
+// Helper: escapar caracteres especiales de RegExp
+function _mgEscapeRegExp(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// AC-11: eliminar comentarios de línea (//), bloque (/* */), y strings literales (' " `) del texto
+// para que exports no cuente menciones en comentarios ni dentro de strings.
+function _mgStripCommentsAndStrings(text) {
+  // Orden: strings primero (para no confundir // dentro de un string), luego comentarios
+  let out = '';
+  let i = 0;
+  const len = text.length;
+  while (i < len) {
+    // String comilla doble
+    if (text[i] === '"') {
+      i++;
+      while (i < len && text[i] !== '"') {
+        if (text[i] === '\\') i++; // escape
+        i++;
+      }
+      i++; // cierre
+      continue;
+    }
+    // String comilla simple
+    if (text[i] === "'") {
+      i++;
+      while (i < len && text[i] !== "'") {
+        if (text[i] === '\\') i++;
+        i++;
+      }
+      i++;
+      continue;
+    }
+    // Template literal
+    if (text[i] === '`') {
+      i++;
+      while (i < len && text[i] !== '`') {
+        if (text[i] === '\\') i++;
+        i++;
+      }
+      i++;
+      continue;
+    }
+    // Comentario de bloque /* */
+    if (text[i] === '/' && text[i + 1] === '*') {
+      i += 2;
+      while (i < len && !(text[i] === '*' && text[i + 1] === '/')) i++;
+      i += 2;
+      continue;
+    }
+    // Comentario de línea //
+    if (text[i] === '/' && text[i + 1] === '/') {
+      while (i < len && text[i] !== '\n') i++;
+      continue;
+    }
+    out += text[i];
+    i++;
+  }
+  return out;
+}
+
+// AC-04/AC-05: extraer texto de cuerpo de función + N líneas previas a la declaración.
+// bodyStartLine: número de línea 1-based de la declaración.
+// allLines: array de strings (las líneas del archivo).
+// nextBodyStart: número de línea 1-based de la siguiente función (o fin de archivo).
+// prevLines: cuántas líneas previas incluir (AC-05 especifica 3).
+function _mgGetFunctionBody(allLines, bodyStartLine, nextBodyStart, prevLines) {
+  const start = Math.max(0, bodyStartLine - 1 - prevLines); // índice 0-based, incluyendo N previas
+  const end   = nextBodyStart ? nextBodyStart - 1 : allLines.length; // índice 0-based exclusivo
+  return allLines.slice(start, end).join('\n');
 }
 // ─── Generador CONTEXT ───────────────────────────────────────────────────────
 
