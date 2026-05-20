@@ -1709,3 +1709,80 @@ header {
     transition: none;
   }
 }
+
+/* ══ A4-b: Splash screen — clases faltantes ══ */
+
+/* .splash-name — nombre "Locus" en splash
+   Nota: #pepe-splash .splash-name em ya existe (L80). Este es el selector base. */
+#pepe-splash .splash-name {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+/* .splash-sub — subtítulo bajo el nombre */
+#pepe-splash .splash-sub {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  font-family: var(--font-sans);
+}
+
+/* .splash-name--hidden — estado oculto cuando el logo JPG incluye wordmark
+   Nota: ya declarado en locus-modals.css (L960). Este alias mantiene consistencia de módulo. */
+
+/* ══ END A4-b: Splash screen ══ */
+
+/* ══ A4-b: Breadcrumb — modificadores de separador ══ */
+
+/* Primer separador › — oculto por defecto, visible cuando hay contexto de sprint */
+.breadcrumb-sep--first {
+  display: none;
+}
+
+.breadcrumb-sep--first.is-visible {
+  display: inline;
+}
+
+/* Separador antes del segmento sprint */
+.breadcrumb-sep--sprint {
+  color: var(--hint);
+  opacity: 0.5;
+  margin: 0 2px;
+}
+
+/* ══ END A4-b: Breadcrumb modificadores ══ */
+
+/* ══ A4-b: Header worker chip ══ */
+
+/* Chip del worker activo en el header — nombre + tiempo de sesión */
+.header-worker-chip {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  font-size: var(--text-sm);
+  color: var(--text2);
+  cursor: pointer;
+  transition: var(--trans-fast);
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header-worker-chip.is-active {
+  display: inline-flex;
+}
+
+.header-worker-chip:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* ══ END A4-b: Header worker chip ══ */

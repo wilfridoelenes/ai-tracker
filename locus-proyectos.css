@@ -8554,3 +8554,29 @@ body {
     opacity: 1;
   }
 }
+
+/* ══ A4-b: Panel Contratos — clases faltantes ══ */
+
+/* Layout contenedor del sub-panel Contratos */
+.ctr-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Área de búsqueda del panel Contratos */
+.ctr-search {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* Cuerpo del panel Contratos — scroll interno */
+.ctr-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+}
+
+/* ══ END A4-b: Panel Contratos ══ */

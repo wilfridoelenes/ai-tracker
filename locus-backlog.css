@@ -7698,3 +7698,76 @@ textarea:hover {
   }
 }
 
+
+/* ══ A4-b: Backlog — clases faltantes ══ */
+
+/* Chips de filtro activo — contenedor de tags visuales de filtro aplicado */
+.active-filter-chips {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+/* Botón "+ Nuevo ítem" en la toolbar del backlog */
+.bl-toolbar-new-item-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: var(--trans-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bl-toolbar-new-item-btn:hover {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+}
+
+.bl-toolbar-new-item-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Botón de ícono en toolbar de templates (undo/redo) */
+.tpl-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--hint);
+  cursor: pointer;
+  transition: var(--trans-fast);
+}
+
+.tpl-action-icon:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.tpl-action-icon:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Modificador del modal de migración de ítem entre proyectos */
+.migrate-modal {
+  max-width: 400px;
+  width: 100%;
+}
+
+/* ══ END A4-b: Backlog ══ */

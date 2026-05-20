@@ -1370,3 +1370,19 @@ body.radar-sb-collapsed #global-footer {
 }
 
 /* ══ END R-202605-180 ══ */
+
+/* ══ A4-b: Radar Sidebar — clases faltantes ══ */
+
+/* Ícono SVG del pin del radar sidebar — base
+   Los modificadores --on y --off ya existen en este archivo (L734-739).
+   Este es el selector base del contenedor. */
+.rsb-pin-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* ══ END A4-b: Radar Sidebar ══ */

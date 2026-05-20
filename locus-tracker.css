@@ -8007,3 +8007,48 @@ body.radar-sb-open .tracker-sidebar {
   .session-timer-dot--active { animation: none; }
 }
 /* ══ END CSS-07 ══ */
+
+/* ══ A4-b: Tracker — clases faltantes ══ */
+
+/* Tab individual en #tracker-col-tabs — visible en mobile (<900px)
+   .tracker-col-tabs (contenedor) ya existe en este archivo */
+.tracker-col-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 14px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: var(--trans-fast);
+  white-space: nowrap;
+}
+
+.tracker-col-tab.active,
+.tracker-col-tab[aria-selected="true"] {
+  background: var(--surface2);
+  border-color: var(--border2);
+  color: var(--text);
+}
+
+.tracker-col-tab:hover:not(.active) {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+/* Área de filtros de la columna de historial en Tracker — vista Por IA */
+.tvh-hist-col1-filters {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px 8px;
+  border-bottom: 1px solid var(--border2);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* ══ END A4-b: Tracker ══ */
