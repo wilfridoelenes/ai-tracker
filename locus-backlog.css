@@ -3900,8 +3900,8 @@
 
 /* Estado oculto — controlado por JS */
 
-/* DEPRECATED — usar .is-hidden. display:none centralizado en locus-base.css CSS-04 */
-#setup-checklist-banner.scb-hidden {
+/* Visibilidad controlada por .is-hidden (locus-base.css) */
+#setup-checklist-banner.is-hidden {
   display: none;
 }
 

@@ -7999,7 +7999,7 @@ body.radar-sb-open .tracker-sidebar {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 500;
   color: var(--accent);
   flex-shrink: 0;
@@ -8020,7 +8020,7 @@ body.radar-sb-open .tracker-sidebar {
 /* ── sc-badge — estado activo con dot animado ── */
 
 .sc-badge {
-  font-size: 11px;
+  font-size: var(--text-xs);
   padding: 2px 7px;
   border-radius: var(--radius-pill);
   background: var(--c-low-bg);
@@ -8050,7 +8050,7 @@ body.radar-sb-open .tracker-sidebar {
 /* ── sc-sprint-id ── */
 
 .sc-sprint-id {
-  font-size: 11px;
+  font-size: var(--text-xs);
   color: var(--hint);
   letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
@@ -8110,7 +8110,7 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 .sc-stat-val {
-  font-size: 19px;
+  font-size: var(--text-display-sm);
   font-weight: 500;
   color: var(--text);
   line-height: 1;
@@ -8118,7 +8118,7 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 .sc-stat-lbl {
-  font-size: 10px;
+  font-size: var(--text-2xs-plus);
   color: var(--hint);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -8141,7 +8141,7 @@ body.radar-sb-open .tracker-sidebar {
   align-items: center;
   justify-content: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--text-xs);
   font-weight: 500;
   padding: 6px 0;
   border: 0.5px solid var(--border);
@@ -8184,13 +8184,13 @@ body.radar-sb-open .tracker-sidebar {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 9px;
+  font-size: var(--text-2xs);
   flex-shrink: 0;
 }
 
 .sc-step.done .sc-step-num {
   border: none;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 
 @media (prefers-reduced-motion: reduce) {
