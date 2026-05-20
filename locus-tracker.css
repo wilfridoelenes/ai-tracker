@@ -4375,182 +4375,6 @@
 
 /* ══ END DOC LOG DRAWER ══ */
 
-/* ══ AI STATUS BAR ══ */
-#ai-status-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: var(--z-overlay);
-  display: none;
-  align-items: center;
-  padding: 0 12px;
-  height: 32px;
-  background: var(--bg2);
-  border-top: 1px solid var(--border);
-  box-shadow: 0 -2px 10px rgb(0 0 0 / 10%);
-  overflow: hidden;
-}
-
-#ai-status-bar.visible {
-  display: flex;
-}
-
-/* Scroll wrapper for pills */
-.ai-sb-pills {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 3px 2px;
-  flex: 1;
-  min-width: 0;
-}
-
-.ai-sb-pills::-webkit-scrollbar {
-  display: none;
-}
-
-/* Individual pill */
-.ai-sb-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 0 8px 0 5px;
-  height: 22px;
-  border-radius: var(--radius-lg);
-  border: 1px solid var(--border);
-  font-size: var(--text-xs);
-  font-weight: 500;
-  line-height: 1;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: background .15s, border-color .15s, opacity .15s;
-  flex-shrink: 0;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-  background: var(--bg3, var(--bg2));
-  color: var(--text2);
-}
-
-.ai-sb-pill:hover {
-  background: var(--bg3, var(--bg2));
-  border-color: var(--border2, var(--border));
-  color: var(--text);
-  opacity: 1;
-}
-
-/* Agotada — reducida */
-.ai-sb-pill.pill-inactive {
-  opacity: 0.45;
-}
-
-/* Interrumpida — borde ámbar sutil */
-.ai-sb-pill.pill-interrupted {
-  border-color: rgb(232 168 50 / 35%);
-  background: rgb(232 168 50 / 7%);
-}
-
-.ai-sb-pill.pill-interrupted:hover {
-  border-color: rgb(232 168 50 / 55%);
-  background: rgb(232 168 50 / 13%);
-}
-
-/* En sesión — borde púrpura sutil */
-.ai-sb-pill.pill-insession {
-  border-color: rgb(124 106 247 / 40%);
-  background: rgb(124 106 247 / 8%);
-  color: var(--text);
-}
-
-.ai-sb-pill.pill-insession:hover {
-  border-color: rgb(124 106 247 / 65%);
-  background: rgb(124 106 247 / 14%);
-}
-
-/* Status dot inside pill */
-.ai-sb-pill-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: var(--radius-pill);
-  flex-shrink: 0;
-}
-
-.ai-sb-pill-dot.dot-available {
-  background: var(--green);
-}
-
-.ai-sb-pill-dot.dot-exhausted {
-  background: #888;
-}
-
-/* Interrumpida — ámbar con pulso */
-.ai-sb-pill-dot.dot-interrupted {
-  background: #e8a832;
-  animation: ai-sb-pulse-amber 1.6s ease-in-out infinite;
-}
-
-@keyframes ai-sb-pulse-amber {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgb(232 168 50 / 50%);
-  }
-
-  50% {
-    box-shadow: 0 0 0 4px rgb(232 168 50 / 0%);
-  }
-}
-
-/* En sesión — púrpura con latido */
-.ai-sb-pill-dot.dot-insession {
-  background: var(--purple);
-  animation: ai-sb-pulse-purple 1.4s ease-in-out infinite;
-}
-
-@keyframes ai-sb-pulse-purple {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgb(124 106 247 / 60%);
-    transform: scale(1);
-  }
-
-  50% {
-    box-shadow: 0 0 0 4px rgb(124 106 247 / 0%);
-    transform: scale(1.15);
-  }
-}
-
-/* Pill name */
-.ai-sb-pill-name {
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Sprint chip inside pill — solo en sesiones activas */
-.ai-sb-sprint {
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  color: var(--accent, var(--purple));
-  background: rgb(124 106 247 / 12%);
-  border-radius: var(--radius-sm);
-  padding: 1px 5px;
-  white-space: nowrap;
-  line-height: 1.4;
-}
-
-/* body padding so content doesn't hide behind bar */
-body.ai-sb-active {
-  padding-bottom: 32px;
-}
-
-/* tsb-pill variante insession — referencia desde renderStatusBar (ai-tracker.css tiene la base) */
-.tsb-pill.insession {
-  color: var(--purple);
-  border-color: rgb(124 106 247 / 35%);
-  background: rgb(124 106 247 / 8%);
-}
-
-/* ══ END AI STATUS BAR ══ */
 
 /* ══ T-202604-178: Copy item button ══ */
 .copy-item-btn {
@@ -5998,9 +5822,6 @@ textarea[id^="ta-"]:focus {
   overflow: hidden;
 }
 
-.idp-hist-body.hidden {
-  display: none;
-}
 
 .idp-hist-count {
   display: inline-flex;
@@ -6266,9 +6087,6 @@ body.body--focus-mode::after {
   padding: 4px 8px 8px;
 }
 
-.tpl-notif-cfg-body.hidden {
-  display: none;
-}
 
 /* Filas de configuración */
 .nsb-rows {
@@ -6342,10 +6160,6 @@ body.body--focus-mode::after {
   outline: none;
 }
 
-/* tab-notif-badge — visible por defecto via .hidden class */
-.tab-notif-badge.hidden {
-  display: none;
-}
 
 /* END T-202605-461 */
 
@@ -6555,9 +6369,6 @@ body.body--focus-mode::after {
   background: var(--bg3, #f1f5f9);
 }
 
-#header-active-worker.hidden {
-  display: none;
-}
 
 .hwc-dot {
   flex-shrink: 0;

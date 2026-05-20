@@ -1,6 +1,6 @@
 /* locus-overrides.css */
 
-/* Versión: 1.2000000000000002 | Última actualización: 2026-05-11 | Cascade overrides cross-módulo consolidados — selectores deduplicados (T1) */
+/* Versión: 1.2 | Última actualización: 2026-05-20 | Cascade overrides cross-módulo consolidados — selectores deduplicados (T1) */
 
 /*
  * Consolidación de selectores CSS que aparecen en más de un módulo con reglas distintas.
@@ -2702,3 +2702,13 @@ border-color: var(--accent);
   cursor: pointer;
   user-select: none;
 }
+
+/* ══ CSS-07: prefers-reduced-motion — animaciones infinite sin cobertura ══ */
+@media (prefers-reduced-motion: reduce) {
+  /* countdownPulse — countdown de reset */
+  .card-stat-countdown { animation: none; }
+
+  /* skel-shimmer — skeleton rows de carga */
+  .skel-row { animation: none; }
+}
+/* ══ END CSS-07 ══ */

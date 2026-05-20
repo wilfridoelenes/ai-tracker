@@ -2546,10 +2546,6 @@
 
 /* ═══ §15 CSS Purity — session.js migration ═══ */
 
-/* Utility */
-.hidden {
-  display: none !important;
-}
 
 .d-flex {
   display: flex !important;
@@ -4362,9 +4358,6 @@
   margin-bottom: 6px;
 }
 
-.ai-status-deprecated {
-  display: none;
-}
 
 .amber-color {
   color: var(--amber);
@@ -8530,9 +8523,6 @@ body {
   padding: 0 3px;
 }
 
-.paste-ta-hint.hidden {
-  display: none;
-}
 
 
 /* T-374: grid 2 columnas para cards de proyectos en viewports anchos */

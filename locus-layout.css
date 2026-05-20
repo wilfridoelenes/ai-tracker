@@ -794,7 +794,7 @@ header {
 }
 
 /* 5. Menú ⋯ — rotate cuando el menú está abierto */
-.more-menu-wrap:has(.more-menu:not(.hidden)) #more-menu-btn {
+.more-menu-wrap:has(.more-menu:not(.is-hidden)) #more-menu-btn {
   transform: rotate(90deg);
   border-color: var(--accent-border, rgb(56 189 248 / 40%));
   color: var(--accent);

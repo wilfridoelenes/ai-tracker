@@ -500,7 +500,7 @@
     <!-- toolbar vieja — oculta, mantenida por compatibilidad con JS que la referencia -->
     <div class="toolbar hidden" id="toolbar"></div>
     <div id="backlog-two-col-wrap">
-      <div id="backlog-list"></div>
+      <div id="backlog-list" role="tabpanel" aria-labelledby="fbar-sprint-btn"></div>
       <div id="item-detail-panel" class="item-detail-panel"></div>
     </div>
     <div class="backlog-footer" id="backlog-footer"></div>
@@ -1679,7 +1679,7 @@ document.addEventListener('DOMContentLoaded', function() {
       <span class="pulso-title">⚡ Pulso del Ecosistema</span>
       <button class="pulso-close-btn" onclick="closePulsoPanel()" title="Cerrar">✕</button>
     </div>
-    <div class="pulso-body" id="pulso-body"></div>
+    <div class="pulso-body" id="pulso-body" aria-live="polite"></div>
   </div>
 </div>
 

@@ -857,6 +857,8 @@ function renderBacklogList() {
       planningBtn.id = 'fbar-planning-btn';
       planningBtn.title = 'Vista Planificación — asignar ítems al siguiente sprint';
       planningBtn.textContent = '📅 Planificar';
+      planningBtn.setAttribute('role', 'tab');
+      planningBtn.setAttribute('aria-selected', 'false');
       planningBtn.onclick = toggleBacklogPlanningMode;
       viewsDiv.appendChild(planningBtn);
     }

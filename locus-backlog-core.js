@@ -1475,6 +1475,17 @@ function _syncViewAriaStates() {
   if (kanbanBtn)   kanbanBtn.setAttribute('aria-selected',   String(_backlogKanbanMode && !_backlogPlanningMode));
   if (planningBtn) planningBtn.setAttribute('aria-selected', String(_backlogPlanningMode));
 
+  // AC: aria tabpanel — #backlog-list labelledby refleja el tab activo
+  const backlogPanel = document.getElementById('backlog-list');
+  if (backlogPanel) {
+    let activeTabId = 'fbar-sprint-btn'; // default
+    if (_backlogPlanningMode)                              activeTabId = 'fbar-planning-btn';
+    else if (_backlogKanbanMode)                           activeTabId = 'fbar-kanban-btn';
+    else if (_backlogTreeMode)                             activeTabId = 'fbar-tree-btn';
+    else if (_backlogSprintGroupMode)                      activeTabId = 'fbar-sprint-btn';
+    backlogPanel.setAttribute('aria-labelledby', activeTabId);
+  }
+
   // Modificadores — aria-checked refleja estado
   const focusBtn = document.getElementById('fbar-focus-btn');
   const mikeBtn  = document.getElementById('fbar-mike-btn');

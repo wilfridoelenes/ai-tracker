@@ -3489,10 +3489,6 @@
 
 /* Mi vista — oculto por defecto */
 
-/* DEPRECATED — usar .is-hidden. display:none centralizado en locus-base.css CSS-04 */
-.bl-view-btn.hidden {
-  display: none;
-}
 
 /* frole-bar fusionada dentro de bl-filter-strip — R[tmp:frole-into-filter-strip] */
 .frole-bar--inline {

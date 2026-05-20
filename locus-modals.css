@@ -855,10 +855,6 @@
   border-top: 1px solid var(--border);
 }
 
-/* DEPRECATED — usar .is-hidden. display:none centralizado en locus-base.css CSS-04 */
-.blind-exhaust-inline.hidden {
-  display: none;
-}
 
 .blind-exhaust-hora-row {
   display: flex;
@@ -2826,10 +2822,6 @@
   padding-top:12vh;
 }
 
-/* DEPRECATED — usar .is-hidden. display:none centralizado en locus-base.css CSS-04 */
-.cmd-palette-overlay.hidden {
-  display:none;
-}
 
 .cmd-palette-panel {
   background:var(--bg,#fff);
@@ -3525,9 +3517,6 @@
   transition: opacity 120ms var(--ease-out);
 }
 
-.qc-panel.hidden {
-  display: none;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .qc-panel {
@@ -3606,9 +3595,6 @@
   font-weight: 700;
 }
 
-.qc-worker-check.hidden {
-  display: none;
-}
 
 /* ── Paso 2: chip de contexto ── */
 
