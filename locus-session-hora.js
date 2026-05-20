@@ -232,3 +232,5 @@ function cancelConfirmSave(id) {
 // T-202604-295: helper persistente para trigger de descarga de templates
 const _TMPL_TRIGGER_KEY = 'template-download-trigger';
 function _templateTrigger() {
+  return localStorage.getItem(_TMPL_TRIGGER_KEY) || 'session';
+}

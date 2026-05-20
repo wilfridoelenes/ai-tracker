@@ -2,8 +2,6 @@
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 
-  return localStorage.getItem(_TMPL_TRIGGER_KEY) || 'session';
-}
 function toggleTemplateTrigger(val) {
   localStorage.setItem(_TMPL_TRIGGER_KEY, val);
   // Actualizar UI si el toggle está visible
