@@ -4893,6 +4893,13 @@ body.ai-sb-active {
   flex: 1;
 }
 
+/* Ícono de proyecto en meta row */
+.tracker-hist-proj-icon {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  flex-shrink: 0;
+}
+
 /* Badge: conteo de ítems vinculados */
 .tracker-hist-items-badge {
   font-size: var(--text-2xs);

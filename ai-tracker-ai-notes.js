@@ -345,9 +345,9 @@ function resetHtmlMapData() {
     HTML_MAP_SECTIONS = [];
     saveContextDocs();
     _htmlMapModifiedInSession = false;
-    loadHtmlMap();
-    renderHtmlMap();
-    updateHtmlMapBanner();
+    if (typeof loadHtmlMap === 'function') loadHtmlMap();
+    if (typeof renderHtmlMap === 'function') renderHtmlMap();
+    if (typeof updateHtmlMapBanner === 'function') updateHtmlMapBanner();
     showToast('success', 'Module Map reseteado — ya puedes importar un nuevo HTML-MAP.md');
   });
 }
@@ -2279,7 +2279,7 @@ function _proyAbrir(projId) {
   _updateProjFilterBtn();
   // Recargar templates con las keys del proyecto recién activado
   loadBacklog();
-  loadHtmlMap();
+  if (typeof loadHtmlMap === 'function') loadHtmlMap();
   // Refrescar el sub-tab activo si Templates está visible
   if (currentSubTab) switchSubTab(currentSubTab);
   switchTab('hoy');
@@ -3257,8 +3257,7 @@ function _renderTplProjBanner() {
 // T-202604-006: Render Tracker del proyecto activo en sub-panel Templates
 
 
-let HTML_MAP_SECTIONS = [];
-let htmlMapFilter = 'all';
+// HTML_MAP_SECTIONS y htmlMapFilter migrados a locus-map-viewer.js (AC-10)
 
 function importHtmlMap(event) {
   // R-202605-137: acepta JSON (nuevo) o Markdown (legado read-only)
@@ -3293,9 +3292,9 @@ function importHtmlMap(event) {
       format: isJson ? 'json' : 'markdown'
     };
     localStorage.setItem(_tplKey('html-map-meta'), JSON.stringify(meta));
-    updateHtmlMapBanner();
+    if (typeof updateHtmlMapBanner === 'function') updateHtmlMapBanner();
     updateHtmlMapModificationBadge();
-    renderHtmlMap();
+    if (typeof renderHtmlMap === 'function') renderHtmlMap();
     _setHtmlMapModified();
     _blogLog('importado', meta.file, `v${meta.version} · ${sections.length} secciones${isJson ? ' (JSON)' : ''}`, 'htmlmap');
     _updateDocLogCount('htmlmap');
@@ -3418,10 +3417,7 @@ function parseHtmlMapMd(text) {
   return sections;
 }
 
-function loadHtmlMap() {
-  const stored = localStorage.getItem(_tplKey('html-map-sections'));
-  if (stored) { try { HTML_MAP_SECTIONS = JSON.parse(stored); } catch { HTML_MAP_SECTIONS = []; } } else { HTML_MAP_SECTIONS = []; }
-}
+// loadHtmlMap migrada a locus-map-viewer.js (AC-10)
 
 // ── B-202605-514: _getMapContent() — retorna string del MAP con versión aplicada ──
 // Retorna null si no hay datos en localStorage.
@@ -3903,7 +3899,7 @@ function mergeHtmlMapSections(sections, projId) {
   _setHtmlMapModified();
   _blogLog('sección mergeada', '', `${sections.length} sección(es)`, 'htmlmap');
   _updateDocLogCount('htmlmap');
-  if (currentSubTab === 'htmlmap') renderHtmlMap();
+  if (currentSubTab === 'htmlmap' && typeof renderHtmlMap === 'function') renderHtmlMap();
   showToast('success', `✓ Module Map actualizado — ${sections.length} sección(es) mergeada(s)`);
 }
 
