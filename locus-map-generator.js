@@ -969,15 +969,52 @@ function _generateMap(ver) {
     };
   });
 
-  const mapObj = {
-    version,
-    updated: `${now} UTC-6`,
-    project,
-    status: mapStatus,
-    files
-  };
+  // R-202605-137 (rev): output Markdown — una sección ## por archivo, tabla de funciones por sección
+  // AC-1: un archivo .md — bloque ```json eliminado
+  // AC-2: sección ## nombre-archivo.ext por cada archivo
+  // AC-3: cada sección incluye líneas totales · size_signal · changed_in
+  // AC-4: tabla | Función | Área | Calls | por archivo JS
+  // AC-5: exports como línea **Exports:** fn1, fn2 si existen
+  // AC-6: CSS y HTML con tabla de entradas (selectores / secciones), sin columna Calls
+  // AC-7: campos version/updated/project/status en cabecera del archivo
 
-  return '```json\n' + JSON.stringify(mapObj, null, 2) + '\n```';
+  let md = `# ${project}-MAP_${version}.md\n`;
+  md += `<!-- Versión: ${version} | Actualizado: ${now} UTC-6 | Proyecto: ${project} | Status: ${mapStatus} -->\n\n`;
+
+  files.forEach(f => {
+    const changedStr = f.changed_in ? f.changed_in : '—';
+    md += `## ${f.name}\n`;
+    md += `**Líneas:** ${f.lines} · **Size:** ${f.size_signal} · **Changed in:** ${changedStr}\n\n`;
+
+    if (f.type === 'js') {
+      // AC-5: exports si existen
+      if (f.exports && f.exports.length) {
+        md += `**Exports:** ${f.exports.join(', ')}\n\n`;
+      }
+      // AC-4: tabla de funciones con calls
+      if (f.functions && f.functions.length) {
+        md += `| Función | Área | Calls |\n`;
+        md += `|---------|------|-------|\n`;
+        f.functions.forEach(fn => {
+          const callsStr = fn.calls && fn.calls.length ? fn.calls.join(', ') : '—';
+          md += `| ${fn.line} · ${fn.name} | ${fn.area} | ${callsStr} |\n`;
+        });
+        md += '\n';
+      }
+    } else {
+      // AC-6: CSS y HTML — tabla de entradas sin columna Calls
+      if (f.functions && f.functions.length) {
+        md += `| Línea | Sección / Selector |\n`;
+        md += `|-------|--------------------|\n`;
+        f.functions.forEach(fn => {
+          md += `| ${fn.line} | ${fn.name} |\n`;
+        });
+        md += '\n';
+      }
+    }
+  });
+
+  return md.trimEnd() + '\n';
 }
 
 // Helper: escapar caracteres especiales de RegExp
@@ -1492,22 +1529,41 @@ function _mgShowPreview(docs) {
   });
   html += `</div>`;
 
-  // R-202605-137: Si hay MAP en JSON, mostrar tabla de archivos parseando el JSON
+  // R-202605-137 (rev): Si hay MAP en Markdown, mostrar tabla de archivos parseando secciones ##
   if (docs.map) {
     try {
-      const jsonMatch = docs.map.match(/```json\n([\s\S]*?)\n```/);
-      if (jsonMatch) {
-        const mapObj = JSON.parse(jsonMatch[1]);
-        if (Array.isArray(mapObj.files) && mapObj.files.length) {
-          html += `<table class="mg-preview-table"><thead><tr><th>Archivo</th><th>Tipo</th><th>Líneas</th><th>Entradas</th></tr></thead><tbody>`;
-          mapObj.files.forEach(f => {
-            html += `<tr><td>${f.name}</td><td>${(f.type||'').toUpperCase()}</td><td>${(f.lines||0).toLocaleString()}</td><td>${(f.functions||[]).length}</td></tr>`;
-          });
-          html += `</tbody></table>`;
+      const mapLines = docs.map.split('\n');
+      const mapFiles = [];
+      let currentFile = null;
+      let fnCount = 0;
+      mapLines.forEach(line => {
+        const h2 = line.match(/^## (\S+\.(js|css|html))\s*$/i);
+        if (h2) {
+          if (currentFile) { currentFile.entries = fnCount; mapFiles.push(currentFile); }
+          currentFile = { name: h2[1], type: h2[2].toLowerCase(), lines: 0, size: '' };
+          fnCount = 0;
+          return;
         }
+        if (currentFile) {
+          const meta = line.match(/\*\*Líneas:\*\*\s*(\d+)\s*·\s*\*\*Size:\*\*\s*(\S+)/);
+          if (meta) { currentFile.lines = parseInt(meta[1], 10); currentFile.size = meta[2]; }
+          // contar filas de tabla (excluir cabecera y separador)
+          if (line.startsWith('|') && !line.match(/^\|\s*[-:]+/) && !line.match(/^\|\s*(Función|Línea|Área|Sección)/i)) {
+            fnCount++;
+          }
+        }
+      });
+      if (currentFile) { currentFile.entries = fnCount; mapFiles.push(currentFile); }
+
+      if (mapFiles.length) {
+        html += `<table class="mg-preview-table"><thead><tr><th>Archivo</th><th>Tipo</th><th>Líneas</th><th>Size</th><th>Entradas</th></tr></thead><tbody>`;
+        mapFiles.forEach(f => {
+          html += `<tr><td>${f.name}</td><td>${f.type.toUpperCase()}</td><td>${(f.lines||0).toLocaleString()}</td><td>${f.size}</td><td>${f.entries}</td></tr>`;
+        });
+        html += `</tbody></table>`;
       }
     } catch(e) {
-      html += `<div class="mg-preview-error">⚠ Error al parsear MAP JSON: ${e.message}</div>`;
+      html += `<div class="mg-preview-error">⚠ Error al parsear MAP Markdown: ${e.message}</div>`;
     }
   }
 
@@ -1746,9 +1802,8 @@ function _mgExportAllZip() {
     const ver = _mgGetVersion();
     const mapContent = _getMapContent(ver);
     if (mapContent !== null) {
-      // detectar extensión según tipo de contenido
-      const mapExt = mapContent.trimStart().startsWith('{') || mapContent.includes('```json') ? 'json' : 'md';
-      fileDefs.push({ filename: `${prefix}-MAP_${ver}.${mapExt}`, fn: () => mapContent });
+      // R-202605-137 (rev): output siempre .md — bloque JSON eliminado
+      fileDefs.push({ filename: `${prefix}-MAP_${ver}.md`, fn: () => mapContent });
     }
   }
 
