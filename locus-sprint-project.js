@@ -665,7 +665,7 @@ document.addEventListener('keydown', e => {
     closePasteItems();
     closeModal('add-modal');
     closeModal('tag-modal');
-    document.getElementById('quick-modal-overlay').classList.remove('open');
+    const _qcOverlay = document.getElementById('qc-modal-overlay'); if (_qcOverlay) _qcOverlay.classList.remove('open');
     _quickAIId = null;
   }
 });
