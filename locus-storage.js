@@ -405,28 +405,7 @@ async function _saveFlush() {
   clearTimeout(_saveDebounceTimer);
   _saveDebounceTimer = null;
 
-  // localStorage siempre (rápido, sin costo de red)
-  try {
-    localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
-  } catch (err) {
-    if (err.name === 'QuotaExceededError') {
-      console.error('[AI Tracker] localStorage quota exceeded in save(), attempting cleanup...');
-      try {
-        localStorage.removeItem('ai-tracker-changelog');
-        localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
-        showToast('warning', '⚠️ Cuota crítica — se limpió historial automáticamente');
-      } catch (err2) {
-        console.error('[AI Tracker] save() failed after cleanup:', err2);
-        showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas.');
-        _stateDirty = false;
-        return;
-      }
-    } else {
-      throw err;
-    }
-  }
-
-  // T-202605-482: Supabase — prioridad cuando disponible
+  // AC-4 R-C1: Supabase primero cuando disponible — localStorage solo como caché post-write exitoso.
   if (_supabase && _supabaseUser && _stateDirty) {
     _stateDirty = false;
     setSyncStatus('syncing', '⟳ sincronizando');
@@ -456,16 +435,37 @@ async function _saveFlush() {
       }
       if (sessionWrites.length > 0) await Promise.all(sessionWrites);
 
+      // AC-4 R-C1: upsert exitoso → escribir localStorage como caché
+      try {
+        localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+      } catch (lsErr) {
+        if (lsErr.name === 'QuotaExceededError') {
+          console.error('[AI Tracker] localStorage quota exceeded in _saveFlush(), attempting cleanup...');
+          try {
+            localStorage.removeItem('ai-tracker-changelog');
+            localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+            showToast('warning', '⚠️ Cuota crítica — se limpió historial automáticamente');
+          } catch (lsErr2) {
+            console.error('[AI Tracker] _saveFlush() localStorage cache failed after cleanup:', lsErr2);
+            showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas.');
+          }
+        } else { throw lsErr; }
+      }
+
       setSyncStatus('synced', '✓ sincronizado');
     } catch (err) {
+      // AC-5 R-C1: upsert Supabase falla → localStorage como fallback + encolar + toast
       console.error('[AI Tracker] Supabase save() failed:', err);
       _stateDirty = true;
       setSyncStatus('offline', '✕ sin conexión');
+      try {
+        localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+      } catch (lsErr) {
+        console.error('[AI Tracker] _saveFlush() fallback localStorage also failed:', lsErr);
+      }
       showToast('warning', '⚠️ No se sincronizó con Supabase — datos guardados localmente');
-      // T-202605-483: encolar para reintento al reconectar
       _offlineQueuePush({ type: 'state' });
     }
-    return;
   }
 
 }
@@ -475,39 +475,58 @@ async function _saveFlush() {
 // Para eventos críticos usar saveImmediate()
 function save() {
   _stateDirty = true;
-  // localStorage siempre inmediato (barato)
-  try {
-    localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
-  } catch (err) {
-    if (err.name === 'QuotaExceededError') {
-      console.error('[AI Tracker] localStorage quota exceeded in save(), attempting cleanup...');
-      try {
-        localStorage.removeItem('ai-tracker-changelog');
-        localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
-        showToast('warning', '⚠️ Cuota crítica — se limpió historial automáticamente');
-      } catch (err2) {
-        console.error('[AI Tracker] save() failed after cleanup:', err2);
-        showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas.');
-        return;
-      }
-    } else {
-      throw err;
-    }
-  }
+
+  // AC-9 R-C1: render reactivo — fuera de cualquier condicional de Supabase/online.
+  // Se ejecuta en todos los paths: con auth, sin auth, offline, sin Supabase.
   // T-202604-304 / T-202604-302: actualización reactiva del Radar tras cualquier mutación de estado
   if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
   // R-202604-073: actualización reactiva del dot Pulso
   if (typeof renderPulsoDot === 'function') renderPulsoDot();
-  // T-202605-482: Supabase — encolar debounce o encolar offline directo
-  if (_supabase) {
-    if (!_isOnline) {
-      // offline — encolar sin intentar red
-      _offlineQueuePush({ type: 'state' });
-    } else {
-      clearTimeout(_saveDebounceTimer);
-      _saveDebounceTimer = setTimeout(() => _saveFlush(), _SAVE_DEBOUNCE_MS);
+
+  // AC-3 R-C1: sin auth → localStorage inmediato. Supabase no se intenta.
+  if (!_supabaseUser) {
+    try {
+      localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+    } catch (err) {
+      if (err.name === 'QuotaExceededError') {
+        console.error('[AI Tracker] localStorage quota exceeded in save(), attempting cleanup...');
+        try {
+          localStorage.removeItem('ai-tracker-changelog');
+          localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+          showToast('warning', '⚠️ Cuota crítica — se limpió historial automáticamente');
+        } catch (err2) {
+          console.error('[AI Tracker] save() failed after cleanup:', err2);
+          showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas.');
+        }
+      } else { throw err; }
     }
+    return;
   }
+
+  // AC-2 R-C1: offline → localStorage inmediato como fallback + encolar para reintento.
+  if (!_isOnline) {
+    try {
+      localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+    } catch (err) {
+      if (err.name === 'QuotaExceededError') {
+        console.error('[AI Tracker] localStorage quota exceeded in save() offline, attempting cleanup...');
+        try {
+          localStorage.removeItem('ai-tracker-changelog');
+          localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+          showToast('warning', '⚠️ Cuota crítica — se limpió historial automáticamente');
+        } catch (err2) {
+          console.error('[AI Tracker] save() offline failed after cleanup:', err2);
+          showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas.');
+        }
+      } else { throw err; }
+    }
+    _offlineQueuePush({ type: 'state' });
+    return;
+  }
+
+  // AC-1 R-C1: online + auth → encolar debounce hacia _saveFlush(). No escribir localStorage aquí.
+  clearTimeout(_saveDebounceTimer);
+  _saveDebounceTimer = setTimeout(() => _saveFlush(), _SAVE_DEBOUNCE_MS);
 }
 
 // T-202604-299: saveImmediate() — bypasa debounce para eventos críticos
@@ -582,73 +601,83 @@ async function saveBacklog() {
 
   const items = (typeof ITEMS !== 'undefined') ? ITEMS : [];
   const key = _tplKey('backlog-items');
-  try {
-    localStorage.setItem(key, JSON.stringify(items));
-  } catch (err) {
-    if (err.name === 'QuotaExceededError') {
-      console.error('[AI Tracker] localStorage quota exceeded, attempting cleanup...');
-      try {
-        localStorage.removeItem('ai-tracker-changelog');
-        localStorage.setItem(key, JSON.stringify(items));
-        showToast('warning', '⚠️ Cuota de almacenamiento crítica — se limpió historial');
-      } catch (err2) {
-        console.error('[AI Tracker] saveBacklog failed after cleanup:', err2);
-        // B-[pendiente-ID]: toast bloqueante con CTAs — Exportar y Limpiar y reintentar
-        const _quotaBody =
-          `<span class="toast-quota-actions">` +
-            `<button class="toast-quota-btn" id="toast-quota-export">Exportar backlog</button>` +
-            `<button class="toast-quota-btn" id="toast-quota-clean">Limpiar y reintentar</button>` +
-          `</span>`;
-        showToast('error', '❌ Almacenamiento lleno — el backlog no se guardó', _quotaBody);
-        // Registrar handlers tras render (el toast se inserta en el stack sincrónicamente)
-        requestAnimationFrame(() => {
-          const btnExport = document.getElementById('toast-quota-export');
-          const btnClean  = document.getElementById('toast-quota-clean');
-          if (btnExport) {
-            btnExport.addEventListener('click', () => {
-              if (typeof exportBacklogMd === 'function') exportBacklogMd();
-            }, { once: true });
-          }
-          if (btnClean) {
-            btnClean.addEventListener('click', async () => {
-              // Purgar claves no críticas para liberar espacio y reintentar
-              const purgeable = ['ai-tracker-changelog', 'ai-tracker-notif-history', 'ai-tracker-log-filters'];
-              purgeable.forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
-              await saveBacklog();
-            }, { once: true });
-          }
-        });
-        return;
-      }
-    } else {
-      console.error('[AI Tracker] saveBacklog error:', err);
-      throw err;
-    }
-  }
-
   const projId = _getActiveProjectFilter();
   const metaKey = _tplKey('backlog-meta');
   const meta = JSON.parse(localStorage.getItem(metaKey) || '{}');
   const suffix = projId ? '-' + projId : '-global';
 
-  // T-202605-482: Supabase — prioridad cuando disponible
-  if (_supabase && _supabaseUser) {
+  // AC-3 R-C5: sin Supabase o sin auth → localStorage como único destino.
+  if (!_supabase || !_supabaseUser) {
     try {
-      const { error } = await _supabase.from('tracker_backlog').upsert([
-        { user_id: _supabaseUser.id, key: 'items' + suffix, value: items, updated_at: new Date().toISOString() },
-        { user_id: _supabaseUser.id, key: 'meta'  + suffix, value: meta,  updated_at: new Date().toISOString() }
-      ], { onConflict: 'user_id,key' });
-      if (error) throw error;
-      setSyncStatus('synced', '✓ sincronizado');
+      localStorage.setItem(key, JSON.stringify(items));
     } catch (err) {
-      console.error('[AI Tracker] Supabase saveBacklog() failed:', err);
-      setSyncStatus('offline', '✕ sin conexión');
-      showToast('warning', '⚠️ Backlog no sincronizado con Supabase — guardado localmente');
-      _offlineQueuePush({ type: 'backlog' });
+      if (err.name === 'QuotaExceededError') {
+        console.error('[AI Tracker] localStorage quota exceeded, attempting cleanup...');
+        try {
+          localStorage.removeItem('ai-tracker-changelog');
+          localStorage.setItem(key, JSON.stringify(items));
+          showToast('warning', '⚠️ Cuota de almacenamiento crítica — se limpió historial');
+        } catch (err2) {
+          console.error('[AI Tracker] saveBacklog failed after cleanup:', err2);
+          // B-[pendiente-ID]: toast bloqueante con CTAs — Exportar y Limpiar y reintentar
+          const _quotaBody =
+            `<span class="toast-quota-actions">` +
+              `<button class="toast-quota-btn" id="toast-quota-export">Exportar backlog</button>` +
+              `<button class="toast-quota-btn" id="toast-quota-clean">Limpiar y reintentar</button>` +
+            `</span>`;
+          showToast('error', '❌ Almacenamiento lleno — el backlog no se guardó', _quotaBody);
+          requestAnimationFrame(() => {
+            const btnExport = document.getElementById('toast-quota-export');
+            const btnClean  = document.getElementById('toast-quota-clean');
+            if (btnExport) {
+              btnExport.addEventListener('click', () => {
+                if (typeof exportBacklogMd === 'function') exportBacklogMd();
+              }, { once: true });
+            }
+            if (btnClean) {
+              btnClean.addEventListener('click', async () => {
+                const purgeable = ['ai-tracker-changelog', 'ai-tracker-notif-history', 'ai-tracker-log-filters'];
+                purgeable.forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
+                await saveBacklog();
+              }, { once: true });
+            }
+          });
+          return;
+        }
+      } else {
+        console.error('[AI Tracker] saveBacklog error:', err);
+        throw err;
+      }
     }
     return;
   }
 
+  // AC-1 R-C5: Supabase disponible → upsert primero. localStorage solo como caché post-write exitoso.
+  try {
+    const { error } = await _supabase.from('tracker_backlog').upsert([
+      { user_id: _supabaseUser.id, key: 'items' + suffix, value: items, updated_at: new Date().toISOString() },
+      { user_id: _supabaseUser.id, key: 'meta'  + suffix, value: meta,  updated_at: new Date().toISOString() }
+    ], { onConflict: 'user_id,key' });
+    if (error) throw error;
+    // AC-1 R-C5: upsert exitoso → escribir localStorage como caché. Nunca antes.
+    try {
+      localStorage.setItem(key, JSON.stringify(items));
+    } catch (lsErr) {
+      console.warn('[AI Tracker] saveBacklog: fallo al cachear en localStorage post-upsert', lsErr);
+    }
+    setSyncStatus('synced', '✓ sincronizado');
+  } catch (err) {
+    // AC-2 R-C5: upsert falla → localStorage como fallback + encolar + toast.
+    console.error('[AI Tracker] Supabase saveBacklog() failed:', err);
+    setSyncStatus('offline', '✕ sin conexión');
+    try {
+      localStorage.setItem(key, JSON.stringify(items));
+    } catch (lsErr) {
+      console.warn('[AI Tracker] saveBacklog: fallo al escribir localStorage fallback', lsErr);
+    }
+    showToast('warning', '⚠️ Backlog no sincronizado con Supabase — guardado localmente');
+    _offlineQueuePush({ type: 'backlog' });
+  }
 }
 
 // R-202604-035: saveContextDocs() — escribe en tracker_docs
@@ -667,16 +696,16 @@ async function saveContextDocs() {
     meta:     localStorage.getItem(_tplKey('html-map-meta'))     || '{}'
   };
 
-  // B-202605-041: persistir en localStorage ANTES de intentar Supabase —
-  // garantiza que los datos sobreviven un fallo o ausencia de Supabase.
-  try {
-    localStorage.setItem('tracker-ctx-docs' + suffix, JSON.stringify(ctxPayload));
-    localStorage.setItem('tracker-hm-docs'  + suffix, JSON.stringify(hmPayload));
-  } catch (lsErr) {
-    console.warn('[AI Tracker] saveContextDocs: fallo al escribir en localStorage', lsErr);
+  // AC-8 R-C1: sin Supabase o sin auth → localStorage como único destino.
+  if (!_supabase || !_supabaseUser) {
+    try {
+      localStorage.setItem('tracker-ctx-docs' + suffix, JSON.stringify(ctxPayload));
+      localStorage.setItem('tracker-hm-docs'  + suffix, JSON.stringify(hmPayload));
+    } catch (lsErr) {
+      console.warn('[AI Tracker] saveContextDocs: fallo al escribir en localStorage (sin auth)', lsErr);
+    }
+    return;
   }
-
-  if (!_supabase || !_supabaseUser) return;
 
   try {
     const { error } = await _supabase.from('tracker_docs').upsert([
@@ -684,9 +713,23 @@ async function saveContextDocs() {
       { user_id: _supabaseUser.id, key: 'htmlmap' + suffix, value: hmPayload,  updated_at: new Date().toISOString() }
     ], { onConflict: 'user_id,key' });
     if (error) throw error;
+    // AC-6 R-C1: upsert exitoso → escribir localStorage como caché post-write. Nunca antes.
+    try {
+      localStorage.setItem('tracker-ctx-docs' + suffix, JSON.stringify(ctxPayload));
+      localStorage.setItem('tracker-hm-docs'  + suffix, JSON.stringify(hmPayload));
+    } catch (lsErr) {
+      console.warn('[AI Tracker] saveContextDocs: fallo al cachear en localStorage post-upsert', lsErr);
+    }
   } catch (err) {
+    // AC-7 R-C1: upsert falla → localStorage como fallback + encolar + toast.
     console.error('[AI Tracker] Supabase saveContextDocs() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
+    try {
+      localStorage.setItem('tracker-ctx-docs' + suffix, JSON.stringify(ctxPayload));
+      localStorage.setItem('tracker-hm-docs'  + suffix, JSON.stringify(hmPayload));
+    } catch (lsErr) {
+      console.warn('[AI Tracker] saveContextDocs: fallo al escribir localStorage fallback', lsErr);
+    }
     showToast('warning', '⚠️ Context/HTML-MAP no sincronizado con Supabase — guardado localmente');
     _offlineQueuePush({ type: 'docs' });
   }
@@ -756,6 +799,11 @@ function _resetExpired(resetTime, resetEpoch) {
 }
 
 async function _loadFromSupabase() {
+  // AC-9 R-C2: si hay un write local pendiente en debounce, el state local es más reciente
+  // que Supabase — cancelar la carga para evitar rollback silencioso del estado volátil.
+  // El state local prevalece hasta la próxima llamada explícita post-flush.
+  if (_saveDebounceTimer !== null) return;
+
   const authUser = await (_supabaseReady || Promise.resolve(null));
   if (!authUser) {
     setSyncStatus('local', '☁ conectar');
@@ -776,42 +824,7 @@ async function _loadFromSupabase() {
     if (stateRows && stateRows.value) {
       const remote = stateRows.value;
 
-      // ── 2. Merge IAs — local gana en status volátil ───────────────────
-      const localAIMap  = new Map((state.ais || []).map(a => [a.id, a]));
-      const remoteAIMap = new Map((remote.ais || []).map(a => [a.id, a]));
-      remoteAIMap.forEach((remoteAI, id) => {
-        remoteAI.sessions = [];
-        const localAI = localAIMap.get(id);
-        if (localAI) {
-          remoteAI.status      = localAI.status;
-          remoteAI.resetTime   = localAI.resetTime;
-          remoteAI.resetEpoch  = localAI.resetEpoch;
-          remoteAI.interrupted = localAI.interrupted;
-        }
-      });
-      localAIMap.forEach((localAI, id) => {
-        if (!remoteAIMap.has(id)) { if (!remote.ais) remote.ais = []; remote.ais.push({ ...localAI, sessions: [] }); }
-      });
-
-      // ── 3. Merge proyectos ────────────────────────────────────────────
-      const localProjMap = new Map((state.projects || []).map(p => [p.id, p]));
-      if (!remote.projects) remote.projects = [];
-      remote.projects.forEach(rp => {
-        const lp = localProjMap.get(rp.id);
-        rp.sessions = lp ? (lp.sessions || []) : [];
-        if (lp && lp.sprints && lp.sprints.length) {
-          const localSprintMap = new Map(lp.sprints.map(s => [s.id, s]));
-          rp.sprints = (rp.sprints || []).map(rs => {
-            const ls = localSprintMap.get(rs.id);
-            return ls ? { ...rs, status: ls.status, ...(ls.closedAt ? { closedAt: ls.closedAt } : {}) } : rs;
-          });
-          lp.sprints.forEach(ls => { if (!rp.sprints.some(rs => rs.id === ls.id)) rp.sprints.push({ ...ls }); });
-        }
-      });
-      localProjMap.forEach((lp, id) => {
-        if (!remote.projects.some(p => p.id === id)) remote.projects.push({ ...lp });
-      });
-
+      // ── 2+3. Supabase-wins — reemplazar state local completo sin merge ─
       _applyStateData(remote);
       state.ais.forEach(ai => {
         if (ai.status === 'exhausted' && ai.resetTime && _resetExpired(ai.resetTime, ai.resetEpoch)) {
@@ -1085,124 +1098,7 @@ async function _loadFromSupabase() {
 // v3.0.0: sessions, tracker y sprints viven en project — no en state global
 let state = {ais:[], theme:'dark', tags:[], projects:[], _stateVersion:3};
 
-// ── v3.0.0: detección de formato v2 ──
-function _isV2State(raw) {
-  // v2: state.tracker global + ai.sessions[] + state.sprints global
-  // v3: project.sessions[] + project.tracker + project.sprints[]
-  if (!raw) return false;
-  if (raw._stateVersion === 3) return false;
-  // Si hay tracker global O ais con sessions, es v2
-  return !!(raw.tracker || (raw.ais && raw.ais.some(a => a.sessions && a.sessions.length > 0)));
-}
-
-// ── v3.0.0: migración automática v2 → v3 ──
-function _migrateV2toV3(raw) {
-  console.log('[AI Tracker] Migrando state v2 → v3...');
-
-  // 1. Crear o reutilizar proyecto "AI Tracker" como contenedor de migración
-  if (!raw.projects) raw.projects = [];
-  let migProj = raw.projects.find(p => p._migrated || p.name === 'AI Tracker');
-  if (!migProj) {
-    migProj = {
-      id: 'proj-' + Math.random().toString(36).slice(2, 8),
-      name: 'AI Tracker',
-      color: '#7c6af7',
-      icon: '🤖',
-      status: 'active',
-      notes: '',
-      sessions: [],
-      tracker: { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } },
-      sprints: [],
-      contextVersion: '',
-      backlogVersion: '',
-      htmlMapVersion: '',
-      _migrated: true
-    };
-    raw.projects.unshift(migProj);
-  } else {
-    // Asegurar campos v3 en proyecto existente
-    if (!migProj.sessions) migProj.sessions = [];
-    if (!migProj.tracker) migProj.tracker = { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
-    if (!migProj.sprints) migProj.sprints = [];
-    if (!migProj.contextVersion) migProj.contextVersion = '';
-    if (!migProj.backlogVersion) migProj.backlogVersion = '';
-    if (!migProj.htmlMapVersion) migProj.htmlMapVersion = '';
-  }
-
-  // 2. Migrar ai.sessions[] → project.sessions[] con aiId
-  (raw.ais || []).forEach(ai => {
-    (ai.sessions || []).forEach(s => {
-      // Evitar duplicados si ya fue migrado parcialmente
-      const exists = migProj.sessions.some(ps => ps.id === s.id);
-      if (!exists) {
-        migProj.sessions.push(Object.assign({}, s, { aiId: ai.id }));
-      }
-    });
-    // Limpiar sessions del ai — en v3 las IAs no tienen sessions
-    ai.sessions = [];
-    // Limpiar campo project del ai — en v3 las IAs son globales
-    delete ai.project;
-  });
-
-  // 3. Migrar state.tracker → project.tracker
-  if (raw.tracker && raw.tracker.items && raw.tracker.items.length > 0) {
-    const existingCodes = new Set(migProj.tracker.items.map(i => i.code));
-    (raw.tracker.items || []).forEach(item => {
-      if (!existingCodes.has(item.code)) migProj.tracker.items.push(item);
-    });
-    // Merge counters — el máximo gana
-    const rc = raw.tracker.counters || {};
-    const mc = migProj.tracker.counters;
-    Object.keys(rc).forEach(k => { if ((rc[k] || 0) > (mc[k] || 0)) mc[k] = rc[k]; });
-  }
-  delete raw.tracker;
-
-  // 4. Migrar state.sprints → project.sprints
-  if (raw.sprints && raw.sprints.length > 0) {
-    const existingIds = new Set(migProj.sprints.map(s => s.id));
-    (raw.sprints || []).forEach(sp => {
-      if (!existingIds.has(sp.id)) migProj.sprints.push(sp);
-    });
-  }
-  delete raw.sprints;
-
-  // 5. Migrar proj.aiIds → eliminar (v3 no usa aiIds)
-  raw.projects.forEach(p => { delete p.aiIds; delete p.sessionsCount; });
-
-  // 6. Migrar templates globales de localStorage → claves por proyecto
-  const projId = migProj.id;
-  ['context-raw', 'context-sections', 'context-meta',
-   'html-map-raw', 'html-map-sections', 'html-map-meta'].forEach(key => {
-    const val = localStorage.getItem(key);
-    if (val && !localStorage.getItem(key + '-' + projId)) {
-      try { localStorage.setItem(key + '-' + projId, val); } catch(e) {}
-    }
-  });
-  // Backlog items
-  const bkItems = localStorage.getItem('backlog-items');
-  if (bkItems && !localStorage.getItem('backlog-items-' + projId)) {
-    try { localStorage.setItem('backlog-items-' + projId, bkItems); } catch(e) {}
-  }
-  const bkMeta = localStorage.getItem('backlog-meta');
-  if (bkMeta && !localStorage.getItem('backlog-meta-' + projId)) {
-    try { localStorage.setItem('backlog-meta-' + projId, bkMeta); } catch(e) {}
-  }
-
-  // 7. Marcar como v3 para no re-migrar
-  raw._stateVersion = 3;
-
-  // 8. Activar el proyecto migrado como activo
-  if (!localStorage.getItem('current-project-filter')) {
-    localStorage.setItem('current-project-filter', migProj.id);
-  }
-
-  console.log('[AI Tracker] Migración v2→v3 completa. Proyecto:', migProj.name, '| Sesiones migradas:', migProj.sessions.length);
-  return raw;
-}
-
 function _applyStateData(raw) {
-  // v3.0.0: migración automática si se detecta formato v2
-  if (_isV2State(raw)) raw = _migrateV2toV3(raw);
 
   if (!raw.theme) raw.theme = 'dark';
   if (!raw.tags) raw.tags = [];
@@ -1211,7 +1107,6 @@ function _applyStateData(raw) {
   if (!raw.quickNotes) raw.quickNotes = [];
 
   // v3: migración de proyectos — asegurar campos v3
-  let _dateNormalized = false;
   (raw.projects || []).forEach(proj => {
     if (!proj.sessions) proj.sessions = [];
     if (!proj.tracker) proj.tracker = { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
@@ -1245,7 +1140,6 @@ function _applyStateData(raw) {
               if (!pm && hour === 12) hour = 0;
             }
             s.date = new Date(year, mon, day, hour, min, 0).toISOString();
-            _dateNormalized = true;
           }
         }
       }
@@ -1284,7 +1178,6 @@ function _applyStateData(raw) {
   });
 
   // v3: IAs son globales — sin sessions, sin project
-  let wasMigrated = false;
   (raw.ais || []).forEach(ai => {
     if (!ai.sessions) ai.sessions = [];
     if (ai.interrupted === undefined) ai.interrupted = false;
@@ -1292,29 +1185,11 @@ function _applyStateData(raw) {
     if (ai.avatar === undefined) ai.avatar = '';
     if (ai.archived === undefined) ai.archived = false;
     if (ai.showAll === undefined) ai.showAll = false;
-    // Normalización: sesiones en ai.sessions → project.sessions (sin deuda heredada)
-    if (ai.sessions.length > 0) {
-      const targetProj = (raw.projects || []).find(p => p.name === 'AI Tracker') || (raw.projects || [])[0];
-      if (targetProj) {
-        if (!targetProj.sessions) targetProj.sessions = [];
-        const existingIds = new Set(targetProj.sessions.map(s => s.id));
-        ai.sessions.forEach(s => {
-          if (!existingIds.has(s.id)) {
-            targetProj.sessions.push({ ...s, aiId: ai.id });
-            existingIds.add(s.id);
-          }
-        });
-        console.log(`[AI Tracker] Normalización: ${ai.sessions.length} sesión(es) de "${ai.name}" movidas a project.sessions`);
-      }
-      ai.sessions = []; // limpiar — en v3 ai.sessions siempre vacío
-      wasMigrated = true;
-    }
     delete ai.project; // v2 compat — eliminado en v3
   });
 
   state = raw;
   applyTheme(state.theme);
-  return wasMigrated || _dateNormalized;
 }
 
 // B-202604-011: clone nunca estuvo definida — fallback crasheaba silenciosamente
@@ -1331,20 +1206,14 @@ const DEFAULT_AIS = [];
 function load() {
   // Carga síncrona desde localStorage (arranque inmediato)
   const s = localStorage.getItem('ai-tracker-v4');
-  let _migrated = false;
   if (s) {
-    try { _migrated = _applyStateData(JSON.parse(s)); }
+    try { _applyStateData(JSON.parse(s)); }
     catch (e) {
       console.error('[AI Tracker] Estado corrupto en localStorage — restaurando defaults:', e);
       _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]});
     }
   } else {
     _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]});
-  }
-  // Normalización: si había sesiones en ai.sessions[], persistir inmediatamente sin esperar Supabase
-  if (_migrated) {
-    try { localStorage.setItem('ai-tracker-v4', JSON.stringify(state)); } catch {}
-    console.log('[AI Tracker] Normalización ai.sessions→project.sessions persistida');
   }
   // B-202604-009: limpiar IAs expiradas antes del primer render — usar epoch cuando existe
   state.ais.forEach(ai => {
