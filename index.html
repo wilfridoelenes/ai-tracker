@@ -1118,24 +1118,6 @@
   </div>
 </div>
 
-<!-- htmlmap-export-overlay (HTML-MAP export con input de versión) -->
-<div class="modal-overlay" id="htmlmap-export-overlay">
-  <div class="modal modal--sm">
-    <div class="modal-title">⬇ Exportar MAP</div>
-    <div class="hmexport-field-wrap">
-      <label class="hmexport-label">Versión</label>
-      <input id="hmexport-version-input" type="text" class="hmexport-input"
-        oninput="document.getElementById('hmexport-filename-preview').textContent=_docPrefix()+'-MAP_'+this.value+'.md'">
-    </div>
-    <div class="hmexport-desc">
-      Archivo: <code id="hmexport-filename-preview" class="hmexport-filename"></code>
-    </div>
-    <div class="modal-actions">
-      <button type="button" onclick="document.getElementById('htmlmap-export-overlay').classList.remove('open')">Cancelar</button>
-      <button class="btn-primary" id="hmexport-confirm-btn">⬇ Descargar</button>
-    </div>
-  </div>
-</div>
 
 <!-- promote-modal-overlay — shell unificado P→T/R · T→R (DUP-02) -->
 <div class="promote-modal-overlay" id="promote-modal-overlay"

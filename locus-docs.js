@@ -295,42 +295,29 @@ function _getMapContent(ver) {
 
 // ── T-103 / T-202604-123: Exportar HTML-MAP con versión editable ──
 function exportHtmlMapMd() {
+  // DUP-08: descarga directa — #htmlmap-export-overlay eliminado
   const raw = localStorage.getItem(_tplKey('html-map-raw'));
   if (!raw) { showToast('warning', 'Sin datos — importa primero'); return; }
-  const overlay = document.getElementById('htmlmap-export-overlay');
-  if (!overlay) return;
-  const _hmVer = (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
-    ? _effectiveVersion
-    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
+  const ver = (typeof _mgGetVersion === 'function' && _mgGetVersion())
+    ? _mgGetVersion()
+    : (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
+      ? _effectiveVersion
+      : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
   const isJson = _isMapJson(raw);
   const ext = isJson ? 'json' : 'md';
-  const versionInput = document.getElementById('hmexport-version-input');
-  const preview = document.getElementById('hmexport-filename-preview');
-  if (versionInput) versionInput.value = _hmVer;
-  if (preview) preview.textContent = `${_docPrefix()}-MAP_${_hmVer}.${ext}`;
-  overlay.classList.add('open');
-  const btn = document.getElementById('hmexport-confirm-btn');
-  if (btn) {
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
-    newBtn.addEventListener('click', () => {
-      const ver = document.getElementById('hmexport-version-input').value.trim() || _hmVer;
-      // B-202605-514: usar _getMapContent() — lógica de versioning centralizada
-      const updated = _getMapContent(ver) || raw;
-      overlay.classList.remove('open');
-      _clearHtmlMapModifiedBadge();
-      const fname = `${_docPrefix()}-MAP_${ver}.${ext}`;
-      const mtype = isJson ? 'application/json' : 'text/markdown';
-      const b = new Blob([updated], { type: mtype });
-      const u = URL.createObjectURL(b);
-      const a = document.createElement('a');
-      a.href = u; a.download = fname;
-      a.click(); URL.revokeObjectURL(u);
-      _blogLog('exportado', fname, '', 'htmlmap');
-      _updateDocLogCount('htmlmap');
-      showToast('download', `${fname} exportado`);
-    });
-  }
+  // B-202605-514: usar _getMapContent() — lógica de versioning centralizada
+  const updated = _getMapContent(ver) || raw;
+  _clearHtmlMapModifiedBadge();
+  const fname = `${_docPrefix()}-MAP_${ver}.${ext}`;
+  const mtype = isJson ? 'application/json' : 'text/markdown';
+  const b = new Blob([updated], { type: mtype });
+  const u = URL.createObjectURL(b);
+  const a = document.createElement('a');
+  a.href = u; a.download = fname;
+  a.click(); URL.revokeObjectURL(u);
+  _blogLog('exportado', fname, '', 'htmlmap');
+  _updateDocLogCount('htmlmap');
+  showToast('download', `${fname} exportado`);
 }
 
 // ── T-202604-102: Context vivo — import/store/export ──
