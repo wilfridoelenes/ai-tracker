@@ -35,40 +35,6 @@
 }
 
 /* T-202604-055: backlog log */
-.blog-list {
-  display: flex;
-  flex-direction: column;
-}
-
-.blog-row {
-  display: grid;
-  grid-template-columns: 64px 110px 110px 1fr;
-  gap: 6px;
-  padding: 5px 14px;
-  font-size: var(--text-xs);
-  border-bottom: 1px solid var(--border);
-  align-items: center;
-  font-family: var(--font-sans);
-  transition: background 0.1s var(--ease-out);
-}
-
-.blog-row:last-child {
-  border-bottom: none;
-}
-
-.blog-action {
-  color: var(--text2);
-  font-size: var(--text-xs);
-}
-
-.blog-detail {
-  color: var(--hint);
-  font-size: var(--text-xs);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 /* Confirmación retroceso/descarte */
 .status-confirm-overlay {
   display: none;
@@ -2589,43 +2555,6 @@
 }
 
 /* T-067: Log view — layout compacto tipo log, sin card-wrapper */
-.chrono-list {
-  display: flex; flex-direction: column;
-  max-width: 800px; margin: 0 auto;
-  padding: 0 1.5rem 5rem;
-}
-
-.chrono-entry:first-child {
-  border-top: 1px solid var(--border);
-}
-
-.chrono-entry:hover {
-  background: var(--surface2);
-}
-
-.chrono-ai-pill {
-  font-size: var(--text-2xs); font-weight: 600;
-  padding: 2px 7px; border-radius: var(--radius-md);
-  white-space: nowrap; flex-shrink: 0;
-  font-family: var(--mono);
-  text-align: center;
-}
-
-.chrono-title {
-  font-size: var(--text-sm); font-weight: 500; color: var(--text);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-
-.chrono-date {
-  font-size: var(--text-xs); color: var(--hint);
-  white-space: nowrap; font-family: var(--mono);
-  text-align: right;
-}
-
-.chrono-empty {
-  text-align: center; padding: 4rem; color: var(--hint); font-size: var(--text-base);
-}
-
 /* T-070: Vista por proyecto */
 .project-list {
   max-width: 800px; margin: 0 auto;
@@ -4040,16 +3969,6 @@
   padding: 7px 16px;
 }
 
-.blog-ts {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--text-2xs);
-}
-
-.blog-code {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: var(--text-xs);
-}
-
 .session-subtab-btn {
   font-family: var(--font-sans);
   font-size: var(--text-xs);
@@ -4186,18 +4105,6 @@
 /* ── STALE DOT ── */
 
 /* ── CDBN BANNER ── */
-
-.cd-banner-time {
-  font-family: 'JetBrains Mono', monospace;
-  font-weight: 600;
-}
-
-.cd-banner-btn {
-  font-family: var(--font-sans);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  border-radius: var(--radius-2xl);
-}
 
 /* ══ T-202604-286: Mencionado en — sección en ítem expandido del Backlog ══ */
 .bitem-mentioned-in {

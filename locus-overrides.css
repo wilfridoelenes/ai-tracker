@@ -1488,31 +1488,6 @@ header {
 
 /* ── §2H TRACKER-COMPONENTS ── */
 
-/* .cd-banner  (backlog:2394  ·  tracker:792) */
-
-/* backlog.css:2394 | tracker.css:792 */
-.cd-banner {
-  border-radius: var(--radius-xl) 15px 0 0;
-  display: none;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 14px;
-  background: var(--red-dim);
-  border-bottom: 1px solid var(--red-border);
-}
-
-/* .cd-banner-name  (layout:1496  ·  tracker:795) */
-
-/* layout.css:1496 | tracker.css:795 */
-.cd-banner-name {
-  letter-spacing: 0.08em;
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  color: var(--red);
-  opacity: 0.7;
-  text-transform: uppercase;
-}
-
 /* .hora-hint-txt  (analytics:543  ·  tracker:541) */
 
 /* analytics.css:543 | tracker.css:541 */
@@ -2265,34 +2240,6 @@ text-align: left; font-size: var(--text-2xs-plus); font-weight: 600;
   margin-top: 2px;
   color: var(--hint);
   transition: color 0.15s;
-}
-
-/* .chrono-entry  (analytics:886  ·  backlog:1098) */
-
-/* analytics.css:886 | backlog.css:1098 */
-.chrono-entry {
-  grid-template-columns: 68px auto 1fr auto;
-  display: grid;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 4px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background 0.1s;
-}
-
-/* .chrono-summary  (analytics:889  ·  backlog:1121) */
-
-/* analytics.css:889 | backlog.css:1121 */
-.chrono-summary {
-  display: none;
-  font-size: var(--text-xs);
-  color: var(--hint);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding-left: 6px;
-  border-left: 1px solid var(--border);
 }
 
 /* .draft-label-text  (backlog:2177  ·  tracker:500) */
