@@ -1177,12 +1177,17 @@ function _findTmpMatch(tmpCode, desc, existingItems) {
 // AC-3: ítems sin type válido se dejan con [pendiente-ID] sin modificar.
 // AC-4: ítems con código real pasan sin modificación.
 // AC-5: [tmp:slug] pasan sin modificación — tienen su propio flujo (_findTmpMatch).
+// B-202605-ids: reservedCodes acumula los códigos asignados en esta pasada para que
+// _getNextItemCode no repita el mismo número cuando hay múltiples [pendiente-ID] del
+// mismo tipo — los ítems nuevos aún no están en ITEMS en el momento de la asignación.
 function _assignPendingIds(tgItems) {
   const validTypes = new Set(['P', 'T', 'R', 'B']);
+  const reservedCodes = new Set();
   return tgItems.map(item => {
     if (item.code !== '[pendiente-ID]') return item; // AC-4/5: no es placeholder estándar
     if (!item.type || !validTypes.has(item.type)) return item; // AC-3: type inválido — no asignar
-    const newCode = _getNextItemCode(item.type);
+    const newCode = _getNextItemCode(item.type, reservedCodes);
+    reservedCodes.add(newCode);
     return { ...item, code: newCode };
   });
 }

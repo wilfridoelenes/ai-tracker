@@ -662,7 +662,10 @@ function toggleVersionCollapse(v) {
 }
 
 // T-202604-118: generar siguiente código disponible por tipo
-function _getNextItemCode(typeChar) {
+// B-202605-ids: acepta reservedCodes (Set) para evitar colisiones dentro de una misma
+// pasada de _assignPendingIds — los ítems nuevos aún no están en ITEMS cuando se llama
+// en batch, por lo que sin este parámetro todos obtienen el mismo número.
+function _getNextItemCode(typeChar, reservedCodes) {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -678,6 +681,18 @@ function _getNextItemCode(typeChar) {
       }
     }
   });
+  // B-202605-ids: también considerar códigos ya reservados en esta pasada (no están en ITEMS aún)
+  if (reservedCodes && reservedCodes.size) {
+    reservedCodes.forEach(rc => {
+      if (rc && rc.startsWith(prefix)) {
+        const numMatch = rc.match(new RegExp(`${prefix}(\\d{3})`));
+        if (numMatch) {
+          const num = parseInt(numMatch[1]);
+          if (num > maxNum) maxNum = num;
+        }
+      }
+    });
+  }
   const nextNum = String(maxNum + 1).padStart(3, '0');
   return `${typeChar}-${yyyymm}-${nextNum}`;
 }
