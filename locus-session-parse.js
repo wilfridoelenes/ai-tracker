@@ -216,6 +216,7 @@ function parsePaste(id) {
         tgItems.push({
           type:          _it.type,
           code:          _it.code,
+          title:         _it.title  || _it.desc  || '',
           desc:          _it.title  || _it.desc  || '',
           status:        normStatus(_it.status),
           _noStatus:     false,
@@ -287,6 +288,7 @@ function parsePaste(id) {
           tgItems.push({
             type:          _it.type,
             code:          _it.code,
+            title:         _it.title  || _it.desc  || '',
             desc:          _it.title  || _it.desc  || '',
             status:        normStatus(_it.status),
             _noStatus:     false,
@@ -779,6 +781,7 @@ function parsePasteStandalone() {
     tgItems.push({
       type:          it.type,
       code:          it.code,
+      title:         it.title  || it.desc   || '',
       desc:          it.title  || it.desc   || '',
       status:        (typeof normStatus === 'function') ? normStatus(it.status) : it.status,
       _noStatus:     false,
