@@ -745,7 +745,7 @@ function _scmRender() {
   const backBtn = document.getElementById('sprint-close-back-btn');
   const nextBtn = document.getElementById('sprint-close-next-btn');
   const isFirst = step === 1;
-  const isLast  = step === 3; // T-A1: con skipStep2=true el wizard salta a step 3 (_scmNext L708) — isLast siempre en step 3
+  const isLast  = step >= totalSteps; // B-202605-007: usar totalSteps en lugar de magic number 3 — con skipStep2=true totalSteps=2 y step salta a 3 (≥2), isLast=true en ambos flujos
 
   if (backBtn) {
     backBtn.hidden = isFirst;
