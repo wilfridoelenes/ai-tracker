@@ -424,17 +424,13 @@ function _mgBumpMinor(version) {
 
 function _mgGetVersion() {
   // B-202605-228: rechazar string literal "undefined" — ocurre si APP_VERSION no estaba listo al abrir el overlay
+  // T-202605-018: input manual del overlay tiene prioridad — resto delega a _effectiveVersion
   const input = document.getElementById('mg-version-input');
   const raw = input ? input.value.trim() : '';
   if (raw && raw !== 'undefined') return raw;
-  // B-202605-266: preferir versión canónica post-Generator (app-version-override) sobre APP_VERSION hardcodeada
-  try {
-    const stored = localStorage.getItem('app-version-override');
-    if (stored && stored.trim() && stored !== 'undefined') return stored;
-  } catch(e) {}
-  const appVer = typeof APP_VERSION !== 'undefined' ? APP_VERSION : null;
-  if (appVer && appVer !== 'undefined') return appVer;
-  return 'v3.1.0';
+  // Delegar a _effectiveVersion — fuente de verdad canónica de versión
+  if (typeof _effectiveVersion === 'function') return _effectiveVersion();
+  return typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v1.0.0';
 }
 
 // ─── Generador PLAN ──────────────────────────────────────────────────────────
