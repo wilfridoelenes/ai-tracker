@@ -8149,13 +8149,14 @@ textarea:hover {
   gap: 4px;
   opacity: 0;
   transform: translateX(-4px);
-  transition: var(--trans-medium);
+  transition: var(--trans-fast);
   pointer-events: none;
 }
 
 .item-inline-confirm.is-visible {
   opacity: 1;
   transform: translateX(0);
+  transition: var(--trans-medium);
   pointer-events: auto;
 }
 
