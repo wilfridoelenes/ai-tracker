@@ -61,6 +61,7 @@
     <div class="header-search tracker-only" id="header-search-wrap">
       <button class="search-toggle-btn active" id="search-toggle-btn" onclick="toggleHeaderSearch()" title="Buscar sesiones">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <span class="search-toggle-btn__label">Buscar</span>
       </button>
       <div class="search-expand-wrap open" id="search-expand-wrap">
         <input class="search-input" id="search-global" type="text" placeholder="Buscar · Workers, sesiones, notas…" oninput="onSearchDispatch()" autocomplete="off" onblur="onSearchBlur()">
@@ -77,6 +78,14 @@
               aria-label="Ver pendientes">
         <span class="header-pend-btn__icon" aria-hidden="true">⏳</span>
         <span class="header-pend-btn__count" id="header-pend-count" aria-hidden="true"></span>
+      </button>
+
+      <!-- R-202605-006: Pill ⌘K — acceso visible a Command Palette -->
+      <button class="cmd-k-pill" id="cmd-k-pill"
+              aria-label="Abrir Command Palette (⌘K)"
+              title="Command Palette (⌘K)"
+              onclick="(function(){var sw=document.getElementById('search-expand-wrap');if(sw&&sw.classList.contains('open')){toggleHeaderSearch();}var cp=document.getElementById('cp-overlay');if(cp&&!cp.classList.contains('is-hidden'))return;if(typeof openCommandPalette==='function')openCommandPalette();})()">
+        ⌘K
       </button>
 
       <button class="header-worker-chip hidden" id="header-active-worker" onclick="_hwcClick()" title="Worker en sesión">
