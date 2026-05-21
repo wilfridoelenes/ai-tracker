@@ -1219,7 +1219,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
   tgItems.forEach(item => {
     if (!item.code) return;
-    if (item._invalidType) { ignored.push({ code: item.code || '[sin-código]', reason: 'tipo-invalido', desc: item.title || item.desc }); return; }
+    if (item._invalidType) { ignored.push({ code: item.code || '[sin-código]', reason: 'tipo-invalido', desc: item.title }); return; }
     if (item._duplicate) {
       // B-202605-XXX: ítem duplicado (título matchea existente via _assignPendingIds) —
       // aunque se ignore para status/creación, si trae AC se mergean sobre el existente.
@@ -1234,7 +1234,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
           changed = true;
         }
       }
-      ignored.push({ code: '[pendiente-ID]', reason: 'duplicado', desc: item.title || item.desc, existingCode: item._existingCode || '' });
+      ignored.push({ code: '[pendiente-ID]', reason: 'duplicado', desc: item.title, existingCode: item._existingCode || '' });
       return;
     }
 
@@ -1247,13 +1247,13 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
     // B-202604-198: REGLA DE TMP — detectar si [tmp:slug] corresponde a un ID real existente
     // por similitud de título. Si hay match potencial, registrar sugerencia y NO crear duplicado.
     if (isPlaceholder && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
-      const tmpMatch = _findTmpMatch(item.code, item.title || item.desc, ITEMS);
+      const tmpMatch = _findTmpMatch(item.code, item.title, ITEMS);
       if (tmpMatch) {
         tmpSuggestions.push({
           tmpCode: item.code,
-          desc: item.title || item.desc,
+          desc: item.title,
           suggestedCode: tmpMatch.item.code,
-          suggestedTitle: tmpMatch.item.title || tmpMatch.item.desc,
+          suggestedTitle: tmpMatch.item.title,
           score: tmpMatch.score
         });
         // No crear duplicado — el usuario confirma el match en el panel
@@ -1275,7 +1275,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
         if (newStatus === 'descartado') {
           // Descarte: encolar para confirmación — no persistir todavía
-          discarded.push({ code: item.code, desc: item.desc || existing.title, from: oldStatus, reason: item.discardReason || existing.discardReason || '', ref: item.discardRef || existing.discardRef || '' });
+          discarded.push({ code: item.code, desc: existing.title, from: oldStatus, reason: item.discardReason || existing.discardReason || '', ref: item.discardRef || existing.discardRef || '' });
           // No tocar existing todavía — se aplica en _confirmDiscard()
         } else if (newRank > oldRank) {
           // Avance: aplicar directo (no en dryRun)
@@ -1287,10 +1287,10 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
             _blogLog('ckpt-avance', item.code, oldStatus + ' → ' + newStatus, 'backlog');
             changed = true;
           }
-          advanced.push({ code: item.code, desc: item.desc || existing.title, from: oldStatus, to: newStatus });
+          advanced.push({ code: item.code, desc: existing.title, from: oldStatus, to: newStatus });
         } else {
           // Retroceso: encolar para confirmación — no persistir todavía
-          retroceso.push({ code: item.code, desc: item.desc || existing.title, from: oldStatus, to: newStatus });
+          retroceso.push({ code: item.code, desc: existing.title, from: oldStatus, to: newStatus });
           // No tocar existing todavía — se aplica en _confirmRetroceso()
         }
       }
@@ -1351,7 +1351,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
       if (changes.length) {
         if (!advanced.find(a => a.code === item.code)) {
           // T-202604-414: emitir changes array estructurado + change string para backward compat
-          updated.push({ code: item.code, desc: item.desc || existing.title, changes, change: changes.map(c => c.field).join(' · ') });
+          updated.push({ code: item.code, desc: existing.title, changes, change: changes.map(c => c.field).join(' · ') });
         }
       } else if (!advanced.find(a => a.code === item.code) && !retroceso.find(r => r.code === item.code) && !discarded.find(d => d.code === item.code)) {
         // Distinguir: ya tenía ese status (ok) vs no hubo cambio de status porque no llegó uno válido
@@ -1378,7 +1378,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
         ITEMS.push({
           id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
           code: item.code,
-          title: item.title || item.desc || item.code,
+          title: item.title || item.code,
           desc: '',
           priority: 'medium',
           area: item.area || '',
@@ -1397,7 +1397,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
           statusChangedAt: nowTs,
           doneAt: initialStatus === 'done' ? nowTs : null
         });
-        _blogLog('ckpt-creado', item.code, item.title || item.desc || '', 'backlog');
+        _blogLog('ckpt-creado', item.code, item.title || '', 'backlog');
         changed = true;
 
         // R-[pendiente-ID]: si el nuevo ítem tiene origin → cerrar automáticamente el P padre
@@ -1415,9 +1415,9 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // B-202604-198: si el ítem nace con status done en el mismo CHECKPOINT → grupo propio
       const initialStatusForGroup = _tgStatusToBacklog(item.status) || 'pendiente';
       if (initialStatusForGroup === 'done') {
-        createdAndClosed.push({ code: item.code, desc: item.title || item.desc, _wasAssigned: isNew });
+        createdAndClosed.push({ code: item.code, desc: item.title, _wasAssigned: isNew });
       } else {
-        created.push({ code: item.code, desc: item.title || item.desc, _wasAssigned: isNew });
+        created.push({ code: item.code, desc: item.title, _wasAssigned: isNew });
       }
     }
     // Actualizar contadores en backlog-meta (no en dryRun)
