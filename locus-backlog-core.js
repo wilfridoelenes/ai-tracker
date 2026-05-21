@@ -1105,7 +1105,9 @@ function _showInlineConfirmDone(code) {
   // Resetear select visualmente mientras el confirm está visible
   _resetStatusSelect(code, item.status);
 
-  const itemEl = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
+  // T-202605-013: buscar en vista lista (.item) y vista Kanban (.kb-card) — independientes
+  const itemEl = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`)
+               || document.querySelector(`.kb-card[data-code="${CSS.escape(code)}"]`);
   if (!itemEl) {
     // Fallback: si no hay elemento en DOM, aplicar directamente
     _applyDoneStatus(code);
