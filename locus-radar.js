@@ -400,6 +400,13 @@ function renderGlobalRadarSidebar() {
     }
   }
 
+  // B-202605-009: leer estado real del DOM ANTES de destruirlo con innerHTML
+  // _rsbCfgExpanded puede estar desincronizado si el panel fue expandido sin pasar por openNotifConfig
+  var _cfgBodyEl = document.getElementById('rsb-cfg-body');
+  if (_cfgBodyEl) {
+    _rsbCfgExpanded = !_cfgBodyEl.classList.contains('rsb-cfg-body--hidden');
+  }
+
   container.innerHTML = html;
 
   // B mayor: _renderCfgPanel siempre presente en el DOM — independiente de unseen y de active.length
