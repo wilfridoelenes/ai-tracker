@@ -694,6 +694,8 @@ function updateTabNotifBadges() {
 // B-202605-240: UI de configuración de notificaciones — tipos y umbrales
 // R-202605-119: openNotifConfig redirige al Radar Sidebar — config unificada ahí
 // B mayor: panel config siempre presente en DOM — openNotifConfig lo expande directamente
+// B-202605-008: forzar estado expandido incondicionalmente — la condición anterior
+// fallaba silenciosamente cuando unseen=0 o cuando el panel ya estaba expandido
 function openNotifConfig() {
   const sidebar = document.getElementById('global-radar-sidebar');
   if (!sidebar) return;
@@ -701,21 +703,15 @@ function openNotifConfig() {
   if (sidebar.classList.contains('collapsed')) {
     toggleRadarSidebar();
   }
-  // Re-renderizar para asegurar que el panel esté presente
+  // Sincronizar variable de módulo ANTES del re-render para que _renderCfgPanel()
+  // produzca el panel ya expandido — evita el flash de panel colapsado
+  window._rsbCfgExpanded = true;
+  // Re-renderizar para asegurar que el panel esté presente con estado correcto
   if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
-  // Expandir el panel config con un tick para que el DOM esté listo
+  // Scroll al panel con un tick para que el DOM esté listo
   setTimeout(function() {
-    var body  = document.getElementById('rsb-cfg-body');
-    var arrow = document.getElementById('rsb-cfg-arrow');
-    var btn   = document.getElementById('rsb-cfg-toggle-btn');
-    if (body && body.classList.contains('rsb-cfg-body--hidden')) {
-      body.classList.remove('rsb-cfg-body--hidden');
-      if (arrow) arrow.textContent = '\u25BE';
-      if (btn)   btn.setAttribute('aria-expanded', 'true');
-      // B menor: sincronizar variable de módulo para que el re-render preserve el estado expandido
-      if (typeof _rsbCfgExpanded !== 'undefined') { window._rsbCfgExpanded = true; }
-      body.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
+    var body = document.getElementById('rsb-cfg-body');
+    if (body) body.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 50);
 }
 
