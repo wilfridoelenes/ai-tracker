@@ -1011,6 +1011,16 @@ function setItemStatus(code, newStatus) {
     }
   }
 
+  // T-A4b: marcar done en sprint activo — inline confirm no-bloqueante (Variante B)
+  if (newStatus === 'done') {
+    const activeSprint = typeof _getActiveSprint === 'function' ? _getActiveSprint() : null;
+    const itemInActiveSprint = activeSprint && item.sprint && item.sprint === activeSprint.id;
+    if (itemInActiveSprint) {
+      _showInlineConfirmDone(code);
+      return;
+    }
+  }
+
   const _prevStatus = item.status;
   item.status = newStatus;
   item.statusChangedAt = Date.now();
@@ -1071,6 +1081,128 @@ function _resetStatusSelect(code, currentStatus) {
       sel.value = currentStatus;
     }
   });
+}
+
+// T-A4b: inline confirm no-bloqueante para marcar done un ítem en sprint activo
+function _showInlineConfirmDone(code) {
+  const item = ITEMS.find(i => i.code === code);
+  if (!item) return;
+
+  // Resetear select visualmente mientras el confirm está visible
+  _resetStatusSelect(code, item.status);
+
+  const itemEl = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
+  if (!itemEl) {
+    // Fallback: si no hay elemento en DOM, aplicar directamente
+    _applyDoneStatus(code);
+    return;
+  }
+
+  // Limpiar confirm previo si existe en este elemento
+  const existing = itemEl.querySelector('.item-inline-confirm');
+  if (existing) existing.remove();
+
+  // Construir los botones inline
+  const confirmEl = document.createElement('div');
+  confirmEl.className = 'item-inline-confirm';
+  confirmEl.innerHTML =
+    `<button class="item-inline-confirm__accept" data-code="${code}">Marcar done</button>` +
+    `<button class="item-inline-confirm__cancel" data-code="${code}">Cancelar</button>`;
+
+  itemEl.appendChild(confirmEl);
+
+  // Trigger de entrada con requestAnimationFrame para que la transición CSS aplique
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => confirmEl.classList.add('is-visible'));
+  });
+
+  // Auto-cancelación a 6s
+  const autoCancel = setTimeout(() => _dismissInlineConfirm(itemEl, code), 6000);
+
+  confirmEl.querySelector('.item-inline-confirm__accept').addEventListener('click', () => {
+    clearTimeout(autoCancel);
+    _dismissInlineConfirm(itemEl, code);
+    _applyDoneStatus(code);
+  });
+
+  confirmEl.querySelector('.item-inline-confirm__cancel').addEventListener('click', () => {
+    clearTimeout(autoCancel);
+    _dismissInlineConfirm(itemEl, code);
+  });
+}
+
+function _dismissInlineConfirm(itemEl, code) {
+  const confirmEl = itemEl && itemEl.querySelector('.item-inline-confirm');
+  if (!confirmEl) return;
+  confirmEl.classList.remove('is-visible');
+  // Remover del DOM tras la transición de salida
+  confirmEl.addEventListener('transitionend', () => confirmEl.remove(), { once: true });
+}
+
+// T-A4b: micro-flash Variante A — cambio inmediato sin confirmación
+function _flashStatusConfirmed(code) {
+  const itemEl = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
+  if (!itemEl) return;
+  itemEl.classList.remove('item-status-confirmed');
+  // Forzar reflow para reiniciar la animación si ya estaba activa
+  void itemEl.offsetWidth;
+  itemEl.classList.add('item-status-confirmed');
+  itemEl.addEventListener('animationend', () => itemEl.classList.remove('item-status-confirmed'), { once: true });
+}
+
+// T-A4b: aplica el cambio de status a done — ejecutado tras confirmación inline o directo en Variante A
+function _applyDoneStatus(code) {
+  const item = ITEMS.find(i => i.code === code);
+  if (!item || item.status === 'done') return;
+
+  const _prevStatus = item.status;
+  item.status = 'done';
+  item.statusChangedAt = Date.now();
+  if (!item.doneAt) item.doneAt = Date.now();
+  if (typeof _effectiveVersion === 'function') item.closedInVersion = _effectiveVersion();
+  if (!item.history) item.history = [];
+  item.history.push({ type: 'status', ts: item.statusChangedAt, aiId: _getActiveSessionAiId() || undefined, data: { from: _prevStatus, to: 'done', role: item.role || '' } });
+  _recalcAllScores();
+
+  // Notificar ítems desbloqueados
+  const nowUnblocked = [];
+  ITEMS.forEach(dep => {
+    if (dep.status === 'pendiente' && dep.blockedBy && dep.blockedBy.includes(code)) {
+      if (!dep.history) dep.history = [];
+      dep.history.push({ type: 'unblocked', ts: Date.now(), data: { by: code } });
+      const stillBlocked = dep.blockedBy.filter(c => {
+        if (c === code) return false;
+        const blocker = ITEMS.find(i => i.code === c);
+        return !blocker || blocker.status !== 'done';
+      });
+      if (stillBlocked.length === 0) nowUnblocked.push(dep.code);
+    }
+  });
+  if (nowUnblocked.length) {
+    const label = nowUnblocked.length === 1
+      ? `🔓 ${nowUnblocked[0]} desbloqueado`
+      : `🔓 ${nowUnblocked.length} ítems desbloqueados: ${nowUnblocked.join(', ')}`;
+    setTimeout(() => showToast('success', label, null, 4000), 400);
+  }
+
+  _undoSnapshot();
+  _blogLog('status →', code, _prevStatus + ' → done', 'backlog');
+  saveBacklog();
+
+  // Micro-flash Variante A/B antes de que el render remueva el elemento
+  _flashStatusConfirmed(code);
+
+  // C8: animación salida si el ítem va a desaparecer del filtro activo
+  if (!activeStatuses.has('done')) {
+    const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
+    if (el) {
+      el.classList.add('item-exit-anim');
+      setTimeout(() => { renderBacklogList(); renderStats(); }, 360);
+      return;
+    }
+  }
+  renderBacklogList();
+  renderStats();
 }
 function effortDots(n) {
   let h = '';

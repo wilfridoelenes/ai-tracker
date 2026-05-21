@@ -8123,3 +8123,95 @@ textarea:hover {
 }
 
 /* END B-202605-004 · A4 — clases fantasma: backlog */
+
+/* T-A4b · inline confirm — confirmación no-bloqueante para cambio de status */
+
+.item-status-confirmed {
+  animation: statusConfirmFlash 600ms var(--ease-out) forwards;
+}
+
+@keyframes statusConfirmFlash {
+  0%   { background: var(--c-low-bg); }
+  60%  { background: var(--c-low-bg); }
+  100% { background: transparent; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item-status-confirmed {
+    animation: none;
+    background: transparent;
+  }
+}
+
+.item-inline-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: var(--trans-medium);
+  pointer-events: none;
+}
+
+.item-inline-confirm.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.item-inline-confirm__accept {
+  font-size: var(--text-xs);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border: 1px solid var(--c-low-border);
+  cursor: pointer;
+  transition: var(--trans-fast);
+}
+
+.item-inline-confirm__accept:hover {
+  background: var(--c-low-border);
+}
+
+.item-inline-confirm__accept:active {
+  transform: scale(0.95);
+}
+
+.item-inline-confirm__accept:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.item-inline-confirm__cancel {
+  font-size: var(--text-xs);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: var(--trans-fast);
+}
+
+.item-inline-confirm__cancel:hover {
+  background: var(--surface3);
+}
+
+.item-inline-confirm__cancel:active {
+  transform: scale(0.95);
+}
+
+.item-inline-confirm__cancel:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item-inline-confirm {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* END T-A4b · inline confirm */
