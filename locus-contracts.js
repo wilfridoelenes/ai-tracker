@@ -326,6 +326,9 @@ function confirmResetSessions() {
     return;
   }
 
+  // T-202605-017: limpiar version override al resetear
+  localStorage.removeItem('app-version-override');
+
   // AC-9: sincronizar reset a Supabase cuando el usuario está autenticado
   if (typeof _supabase !== 'undefined' && _supabase &&
       typeof _supabaseUser !== 'undefined' && _supabaseUser) {
