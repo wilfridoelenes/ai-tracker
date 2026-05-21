@@ -401,12 +401,12 @@
       <div class="tpl-sidebar-action-list" id="tpl-toolbar">
         <button class="tpl-action-btn hidden" id="btn-import-backlog" onclick="" title="Import deshabilitado — usar ---ITEMS--- en CHECKPOINT" disabled>↑ Importar Backlog</button>
 
-        <div class="tpl-action-row hidden" id="tpl-undo-row">
+        <div class="tpl-action-row is-hidden" id="tpl-undo-row">
           <button class="tpl-action-btn tpl-action-icon" id="btn-undo-backlog" onclick="undoBacklog()" title="Deshacer" disabled>↩</button>
           <button class="tpl-action-btn tpl-action-icon" id="btn-redo-backlog" onclick="redoBacklog()" title="Rehacer" disabled>↪</button>
         </div>
-        <button class="tpl-action-btn hidden" id="btn-export-backlog" onclick="exportBacklogMd()" title="Descargar Backlog activo como .md">⬇ Descargar Backlog</button>
-        <button class="tpl-action-btn hidden" id="btn-export-backlog-full" onclick="exportFullHistoryMd()" title="Descargar historial completo como .md">⬇ Historial completo</button>
+        <button class="tpl-action-btn is-hidden" id="btn-export-backlog" onclick="exportBacklogMd()" title="Descargar Backlog activo como .md">⬇ Descargar Backlog</button>
+        <button class="tpl-action-btn is-hidden" id="btn-export-backlog-full" onclick="exportFullHistoryMd()" title="Descargar historial completo como .md">⬇ Historial completo</button>
         <button class="tpl-action-btn hidden" id="btn-import-htmlmap" onclick="document.getElementById('htmlmap-file-input').click()" title="Importar archivo AI-MAP_vX.Y.md">↑ Importar MAP</button>
         <button class="tpl-action-btn tpl-action-primary hidden" id="btn-generate-map" onclick="openMapGenerator()" title="Generar documentos">⚙ Generar documentos</button>
         <button class="tpl-action-btn hidden" id="btn-export-contratos" onclick="exportContratosMd()" title="Exportar Contratos.md">⬇ Exportar Contratos</button>
