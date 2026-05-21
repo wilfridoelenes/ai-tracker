@@ -1002,13 +1002,20 @@ function setItemStatus(code, newStatus) {
       const dep = ITEMS.find(i => i.code === c);
       return !dep || dep.status !== 'done';
     });
-    const label = pendingBlockers.length === 1
+    const msg = pendingBlockers.length === 1
       ? `⚠ ${pendingBlockers[0]} aún pendiente — ¿marcar done igual?`
       : `⚠ ${pendingBlockers.length} bloqueadores pendientes — ¿marcar done igual?`;
-    if (!confirm(label)) {
-      _resetStatusSelect(code, item.status);
-      return;
-    }
+    // T-202605-008: reemplazar confirm() nativo por _gconfirmOpen
+    const prevStatus = item.status;
+    _resetStatusSelect(code, prevStatus);
+    _gconfirmOpen({
+      msg,
+      danger: false,
+      okLabel: 'Marcar done',
+      onConfirm: () => _applyStatusChange(code, newStatus, prevStatus),
+      onCancel: () => {}
+    });
+    return;
   }
 
   // T-A4b: marcar done en sprint activo — inline confirm no-bloqueante (Variante B)
@@ -1022,6 +1029,13 @@ function setItemStatus(code, newStatus) {
   }
 
   const _prevStatus = item.status;
+  _applyStatusChange(code, newStatus, _prevStatus);
+}
+
+// T-202605-008: lógica de mutación extraída para ser llamada desde _gconfirmOpen y flujo directo
+function _applyStatusChange(code, newStatus, prevStatus) {
+  const item = ITEMS.find(i => i.code === code);
+  if (!item) return;
   item.status = newStatus;
   item.statusChangedAt = Date.now();
   if (newStatus === 'done' && !item.doneAt) item.doneAt = Date.now();
@@ -1031,7 +1045,7 @@ function setItemStatus(code, newStatus) {
   }
   // R-202604-015: registrar cambio en history[]
   if (!item.history) item.history = [];
-  item.history.push({ type: 'status', ts: item.statusChangedAt, aiId: _getActiveSessionAiId() || undefined, data: { from: _prevStatus, to: newStatus, role: item.role || '' } });
+  item.history.push({ type: 'status', ts: item.statusChangedAt, aiId: _getActiveSessionAiId() || undefined, data: { from: prevStatus, to: newStatus, role: item.role || '' } });
   if (newStatus === 'pendiente') item.priority = _calcPriority(item); // T-202604-297
   _recalcAllScores(); // T-202604-257: recalcular scores tras cambio de status
   // R-202604-051 + T-202605-449: al marcar done, notificar ítems que quedaron desbloqueados
@@ -1058,7 +1072,7 @@ function setItemStatus(code, newStatus) {
     }
   }
   _undoSnapshot();
-  _blogLog('status →', code, _prevStatus + ' → ' + newStatus, 'backlog');
+  _blogLog('status →', code, prevStatus + ' → ' + newStatus, 'backlog');
   saveBacklog();
   // C8: animación salida si el ítem va a desaparecer del filtro activo
   if (newStatus === 'done' && !activeStatuses.has('done')) {
@@ -1135,9 +1149,8 @@ function _dismissInlineConfirm(itemEl, code) {
   const confirmEl = itemEl && itemEl.querySelector('.item-inline-confirm');
   if (!confirmEl) return;
   confirmEl.classList.remove('is-visible');
-  // Remover del DOM tras la transición de salida — fallback si transitionend no dispara (B-202605-006)
-  const fallback = setTimeout(() => confirmEl.remove(), 400);
-  confirmEl.addEventListener('transitionend', () => { clearTimeout(fallback); confirmEl.remove(); }, { once: true });
+  // Remover del DOM tras la transición de salida
+  confirmEl.addEventListener('transitionend', () => confirmEl.remove(), { once: true });
 }
 
 // T-A4b: micro-flash Variante A — cambio inmediato sin confirmación
