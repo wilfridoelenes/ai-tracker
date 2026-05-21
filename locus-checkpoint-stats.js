@@ -79,13 +79,13 @@ function _updateHeaderProjectLabel() {
     if (sp) {
       sprintBtn.textContent = sp.label || sp.id || 'Sprint';
       sprintBtn.title = 'Ver sprint health';
-      sprintBtn.classList.remove('breadcrumb-seg--hidden');
-      sprintSep.classList.remove('breadcrumb-seg--hidden');
-      if (firstSep) firstSep.classList.remove('breadcrumb-seg--hidden');
+      sprintBtn.classList.remove('is-hidden');
+      sprintSep.classList.remove('is-hidden');
+      if (firstSep) firstSep.classList.remove('is-hidden');
     } else {
-      sprintBtn.classList.add('breadcrumb-seg--hidden');
-      sprintSep.classList.add('breadcrumb-seg--hidden');
-      if (firstSep) firstSep.classList.add('breadcrumb-seg--hidden');
+      sprintBtn.classList.add('is-hidden');
+      sprintSep.classList.add('is-hidden');
+      if (firstSep) firstSep.classList.add('is-hidden');
     }
   }
 
@@ -130,12 +130,12 @@ function _updateHeaderProjectLabel() {
           navigateToItem(code);
         }
       };
-      itemBtn.classList.remove('breadcrumb-seg--hidden');
+      itemBtn.classList.remove('is-hidden');
     } else {
       itemBtn.textContent = '';
       itemBtn.title = '';
       itemBtn.onclick = null;
-      itemBtn.classList.add('breadcrumb-seg--hidden');
+      itemBtn.classList.add('is-hidden');
     }
   }
 }
