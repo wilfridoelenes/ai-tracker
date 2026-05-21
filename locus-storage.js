@@ -11,8 +11,17 @@
 // APP_VERSION es el fallback de primer arranque; el generador es la fuente de verdad post-bump.
 const _APP_VERSION_KEY = 'app-version-override';
 // B-202605-263: función getter — lee localStorage en cada invocación para reflejar bumps post-carga
+// B-202605-XXX: sprint activo con version_target declarado tiene prioridad sobre localStorage
+// Jerarquía: sprint activo version_target > app-version-override (localStorage) > APP_VERSION
 function _effectiveVersion() {
   try {
+    // 1. Sprint activo con version_target — fuente de verdad del ciclo activo
+    const activeSprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+    const openSprint = activeSprints.find(s => s.status === 'open');
+    if (openSprint && openSprint.version_target && openSprint.version_target.trim()) {
+      return openSprint.version_target.trim();
+    }
+    // 2. Override del generador — válido solo entre cierre de sprint y apertura del siguiente
     const stored = localStorage.getItem(_APP_VERSION_KEY);
     return (stored && stored.trim() && stored !== 'undefined') ? stored : APP_VERSION;
   } catch(e) { return APP_VERSION; }
