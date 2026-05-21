@@ -20,8 +20,8 @@ let _backlogModifiedInSession = false;
 
 function _updateSubTabButtons(sub) {
   const btnB = document.getElementById('btn-import-backlog');
-  const btnE = document.getElementById('export-backlog-btn');
-  const btnFull = document.getElementById('btn-export-backlog-full'); // R-202604-052: historial completo
+  const btnE = document.getElementById('btn-export-backlog');
+  const btnFull = document.getElementById('btn-export-backlog-full');
   const btnNew = document.getElementById('btn-new-item');
   const btnM = document.getElementById('btn-import-htmlmap');
   const btnME = document.getElementById('btn-export-htmlmap');
