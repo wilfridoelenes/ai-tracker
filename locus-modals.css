@@ -4675,3 +4675,59 @@
 }
 
 /* END R-202605-005 · A4-b · utilitarios modals */
+
+/* B-202605-004 · A4 — clases fantasma: modals */
+
+/* field-error — estado de error visual en select effort (locus-item-editor.js) */
+.field-error {
+  border-color: var(--red) !important;
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+/* modal--open — alias de .open para criterio de visibilidad en #close-sprint-modal (locus-map-generator.js) */
+.modal--open {
+  display: flex !important;
+  visibility: visible;
+  opacity: 1;
+}
+
+/* toast-inline-actions — wrapper de botones en modo acción (locus-toast.js) */
+.toast-inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+/* toast-inline-btn — botón individual en modo acción (locus-toast.js) */
+.toast-inline-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.toast-inline-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-border);
+}
+
+/* toast-inline-msg — span de texto en modo acción (locus-toast.js) */
+.toast-inline-msg {
+  font-size: var(--text-sm);
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+
+/* END B-202605-004 · A4 — clases fantasma: modals */

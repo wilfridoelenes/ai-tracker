@@ -8112,3 +8112,14 @@ textarea:hover {
 }
 
 /* END R-202605-005 · A4-b · utilitarios backlog */
+
+/* B-202605-004 · A4 — clases fantasma: backlog */
+
+/* kb-selected — navegación teclado en backlog-item (locus-ui-shell.js) */
+.backlog-item.kb-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--accent-subtle, color-mix(in srgb, var(--accent) 8%, transparent 92%));
+}
+
+/* END B-202605-004 · A4 — clases fantasma: backlog */

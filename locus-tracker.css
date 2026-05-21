@@ -8090,3 +8090,31 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 /* END R-202605-005 · A4-b · tracker sueltas */
+
+/* B-202605-004 · A4 — clases fantasma: tracker */
+
+/* is-triggered — feedback transitorio 300ms en botón add worker (locus-workers.js) */
+.is-triggered {
+  animation: triggered-flash 300ms ease forwards;
+}
+
+@keyframes triggered-flash {
+  0%   { opacity: 1; transform: scale(1); }
+  40%  { opacity: 0.6; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* kb-selected — navegación teclado en listas de sesiones (locus-ui-shell.js) */
+/* Variante tracker: sesión activa por navegación teclado */
+.kb-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  background: var(--accent-subtle, color-mix(in srgb, var(--accent) 8%, transparent 92%));
+}
+
+/* suggestion-banner--hidden — banner eliminado B-258, función no-op (locus-tracker.js) */
+.suggestion-banner--hidden {
+  display: none;
+}
+
+/* END B-202605-004 · A4 — clases fantasma: tracker */

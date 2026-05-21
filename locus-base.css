@@ -1,8 +1,9 @@
 /* locus-base.css */
 
-/* Versión: 1.2 | Última actualización: 2026-05-20 | Variables, reset, temas dark/light, tipografía global */
+/* Versión: 1.3 | Última actualización: 2026-05-20 | Variables, reset, temas dark/light, tipografía global */
 /* Cluster A — tokens fantasma resueltos: --purple/*-dim/*-border, --blue-dim/border declarados;
-   --text-muted/--text1/--text3/--bg3/--surface1/--bg-card mapeados a token canónico */
+   --text-muted/--text1/--text3/--bg3/--surface1/--bg-card mapeados a token canónico
+   A3 — 39 tokens semánticos sin declarar → resueltos como alias a canónicos existentes o valores nuevos */
 
 
 /* ══ VARIABLES ══ */
@@ -111,6 +112,10 @@
   /* ── Layout global ── */
   /* .header-inner: 52px + border-bottom 1px = 53px total */
   --header-h: 53px;
+
+  /* ── A3: Tokens de espaciado — independientes de tema ── */
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
 }
 
 
@@ -209,6 +214,56 @@
   --color-border-hover:     var(--border2);
   --color-text-primary:     var(--text);
   --color-text-tertiary:    var(--hint);
+
+  /* ── A3: Tokens semánticos sin declarar — resueltos ── */
+  /* Acento */
+  --accent-hover:        #b8f03a;                  /* --accent saturado para hover */
+  --accent-muted:        var(--accent-dim);
+  --accent-subtle-hover: rgb(166 226 46 / 14%);
+  --color-accent:        var(--accent);
+  --color-primary:       var(--accent);
+  --color-primary-alpha: var(--accent-dim);
+
+  /* Semánticos de estado */
+  --correct:                    var(--green);
+  --error:                      var(--red);
+  --success:                    var(--green);
+  --warning:                    var(--amber);
+  --yellow:                     var(--amber);
+  --color-correct:              var(--green);
+  --color-incorrect:            var(--red);
+  --color-danger:               var(--red);
+  --color-text-danger:          var(--red);
+  --color-text-success:         var(--green);
+  --color-border-success:       var(--green-border);
+  --color-background-success:   var(--green-dim);
+  --c-done:                     var(--c-done-text);
+
+  /* Fondos semánticos */
+  --bg-danger-subtle:            var(--red-dim);
+  --bg-tag:                      var(--surface3);
+  --bg-modal:                    var(--surface);
+  --bg-input:                    var(--surface2);
+  --hover:                       var(--bg-hover);
+  --hover-bg:                    var(--bg-hover);
+  --color-background-primary:    var(--bg);
+  --color-background-tertiary:   var(--surface3);
+
+  /* Superficies alias */
+  --card-bg:           var(--surface);
+  --card-bg-hover:     var(--surface2);
+  --surface-2:         var(--surface2);
+  --color-surface-1:   var(--surface);
+  --color-surface-2:   var(--surface2);
+
+  /* Bordes alias */
+  --border-color:  var(--border);
+  --border-hover:  var(--border2);
+  --text-primary:  var(--text);
+  --color-text-muted: var(--text2);
+
+  /* Numérico raw */
+  --amber-rgb: 245,200,66;
 }
 
 /* ── LIGHT THEME OVERRIDE ── */
@@ -297,6 +352,56 @@
   --color-border-hover:     var(--border2);
   --color-text-primary:     var(--text);
   --color-text-tertiary:    var(--hint);
+
+  /* ── A3: Tokens semánticos sin declarar — resueltos ── */
+  /* Acento */
+  --accent-hover:        #7ec828;                  /* --accent saturado para hover */
+  --accent-muted:        var(--accent-dim);
+  --accent-subtle-hover: rgb(109 184 33 / 14%);
+  --color-accent:        var(--accent);
+  --color-primary:       var(--accent);
+  --color-primary-alpha: var(--accent-dim);
+
+  /* Semánticos de estado */
+  --correct:                    var(--green);
+  --error:                      var(--red);
+  --success:                    var(--green);
+  --warning:                    var(--amber);
+  --yellow:                     var(--amber);
+  --color-correct:              var(--green);
+  --color-incorrect:            var(--red);
+  --color-danger:               var(--red);
+  --color-text-danger:          var(--red);
+  --color-text-success:         var(--green);
+  --color-border-success:       var(--green-border);
+  --color-background-success:   var(--green-dim);
+  --c-done:                     var(--c-done-text);
+
+  /* Fondos semánticos */
+  --bg-danger-subtle:            var(--red-dim);
+  --bg-tag:                      var(--surface3);
+  --bg-modal:                    var(--surface);
+  --bg-input:                    var(--surface2);
+  --hover:                       var(--bg-hover);
+  --hover-bg:                    var(--bg-hover);
+  --color-background-primary:    var(--bg);
+  --color-background-tertiary:   var(--surface3);
+
+  /* Superficies alias */
+  --card-bg:           var(--surface);
+  --card-bg-hover:     var(--surface2);
+  --surface-2:         var(--surface2);
+  --color-surface-1:   var(--surface);
+  --color-surface-2:   var(--surface2);
+
+  /* Bordes alias */
+  --border-color:  var(--border);
+  --border-hover:  var(--border2);
+  --text-primary:  var(--text);
+  --color-text-muted: var(--text2);
+
+  /* Numérico raw */
+  --amber-rgb: 180,120,0;
 }
 
 /* ── GLOBAL TYPOGRAPHY ── */
