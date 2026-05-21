@@ -184,7 +184,7 @@ function _generateSprintsContent(newVersion) {
   });
 
   // AC-7: ítems sin sprint en sección 'Sin sprint' al final
-  const noSprintItems = ITEMS.filter(i => !i.sprint);
+  const noSprintItems = ITEMS.filter(i => !i.sprint || i.sprint === 'n/a');
   let noSprintSection = '';
   if (noSprintItems.length) {
     noSprintSection = `\n### Sin sprint asignado\n\n${_itemRowHeader()}\n${noSprintItems.map(i => _itemRow(i, 0)).join('\n')}\n\n---\n`;
@@ -358,7 +358,7 @@ function _generateFullHistoryContent(newVersion) {
   }
 
   // Ítems sin sprint asignado
-  const noSprintItems = ITEMS.filter(i => !i.sprint);
+  const noSprintItems = ITEMS.filter(i => !i.sprint || i.sprint === 'n/a');
   let noSprintSection = '';
   if (noSprintItems.length) {
     noSprintSection = `\n### Sin sprint asignado\n\n${_itemRowHeader()}\n${noSprintItems.map(i => _itemRow(i, 0)).join('\n')}\n\n---\n`;
