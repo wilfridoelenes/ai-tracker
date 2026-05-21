@@ -3682,3 +3682,15 @@
   }
 }
 
+/* CSS-07: prefers-reduced-motion — animaciones infinite */
+@media (prefers-reduced-motion: reduce) {
+  .card-avatar.available .card-avatar-pulse {
+    animation: none;
+  }
+
+  .card-status-pill.available .card-status-dot,
+  .card-status-pill.insession .card-status-dot {
+    animation: none;
+  }
+}
+
