@@ -1149,8 +1149,9 @@ function _dismissInlineConfirm(itemEl, code) {
   const confirmEl = itemEl && itemEl.querySelector('.item-inline-confirm');
   if (!confirmEl) return;
   confirmEl.classList.remove('is-visible');
-  // Remover del DOM tras la transición de salida
-  confirmEl.addEventListener('transitionend', () => confirmEl.remove(), { once: true });
+  // Remover del DOM tras la transición de salida — fallback si transitionend no dispara (B-202605-006)
+  const fallback = setTimeout(() => confirmEl.remove(), 400);
+  confirmEl.addEventListener('transitionend', () => { clearTimeout(fallback); confirmEl.remove(); }, { once: true });
 }
 
 // T-A4b: micro-flash Variante A — cambio inmediato sin confirmación
