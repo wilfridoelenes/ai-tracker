@@ -776,8 +776,7 @@ function _scmRender() {
   };
   if (step === 1) body.innerHTML = _scmStep1Html(sp, spLabel, pendingItems, doneItems, _step1Metrics);
   else if (step === 2 && !skipStep2) body.innerHTML = _scmStep2Html(pendingItems, migrations, id);
-  else if (step === 2 && skipStep2) body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep2); // B-202605-001: skipStep2=true → paso 2 es el último, renderiza resumen
-  else if (step === 3 && !skipStep2) body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep2);
+  else if (step === 3) body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep2); // T-A1: cubre step===3 en ambos casos (skipStep2=true y false)
 }
 
 // B-202605-067: métricas de entrega recibidas como parámetro — sin acceso a _scmState global
