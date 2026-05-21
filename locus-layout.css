@@ -862,7 +862,7 @@ header {
   position: fixed;
   top: auto; /* sobreescrito por JS via style.top */
   right: auto; /* sobreescrito por JS via style.right */
-  z-index: var(--z-top);
+  z-index: var(--z-supreme-2); /* B-202605-019 — --z-top insuficiente, quedaba debajo de overlays y header */
   min-width: 220px;
   max-height: calc(100vh - 60px);
   overflow-y: auto;

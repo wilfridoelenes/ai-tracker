@@ -134,17 +134,20 @@ function _confirmMigrateItem(code) {
     migratedAt: Date.now()
   });
 
-  const targetItems = getProjBacklog(targetProjId);
-  targetItems.push(migratedItem);
-  setProjBacklog(targetProjId, targetItems);
-
-  // AC-3: eliminar del origen — sin duplicado
+  // AC-3: eliminar del origen primero — snapshot + splice + persist antes de tocar destino
   const idx = ITEMS.indexOf(item);
-  if (idx !== -1) {
-    _undoSnapshot();
-    ITEMS.splice(idx, 1);
-    saveBacklog();
-  }
+  if (idx === -1) return;
+  _undoSnapshot();
+  ITEMS.splice(idx, 1);
+  saveBacklog();
+  _setBacklogModified();
+
+  // AC-1: agregar al destino en proj.tracker.items (modelo v3)
+  // proj.backlog es campo v2 — eliminado por _applyStateData en cada carga (locus-storage.js L1158)
+  if (!targetProj.tracker) targetProj.tracker = { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
+  if (!Array.isArray(targetProj.tracker.items)) targetProj.tracker.items = [];
+  targetProj.tracker.items.push(migratedItem);
+  save();
 
   if (overlay) overlay.classList.remove('open');
   renderBacklogList();
