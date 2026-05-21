@@ -359,7 +359,7 @@ function openItemEditor(itemId = null, itemCode = null) {
     
     typeSelect.value = item.code[0];
     document.getElementById('item-code').value = item.code;
-    document.getElementById('item-title').value = item.title || '';
+    document.getElementById('item-title').value = item.title || item.desc || ''; // DUP-06: fallback a desc si title vacío
     document.getElementById('item-priority').value = item.priority || 'medium';
     document.getElementById('item-effort').value = item.effort || 1;
     document.getElementById('item-area').value = item.area || '';
