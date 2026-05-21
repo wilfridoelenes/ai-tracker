@@ -61,6 +61,7 @@
 }
 
 /* layout.css:623 */
+/* Cat A — animación compartida entre paneles modales. Base estructural de .pend-panel en locus-modals.css (R-202605-005). */
 .popup, .tg-panel, .pend-panel {
 animation: modalSpring 0.22s var(--ease-spring);
 }
