@@ -1,6 +1,6 @@
 /* locus-overrides.css */
 
-/* Versión: 1.2 | Última actualización: 2026-05-20 | Cascade overrides cross-módulo consolidados — selectores deduplicados (T1) */
+/* Versión: 1.3 | Última actualización: 2026-05-20 | Cascade overrides cross-módulo consolidados — selectores deduplicados (T1) · clasificación R-202605-005 */
 
 /*
  * Consolidación de selectores CSS que aparecen en más de un módulo con reglas distintas.
@@ -13,6 +13,16 @@
  * Para cada selector se indica en qué módulo(s) aparecía y qué aportaba cada uno.
  * La regla canónica final (cascade winner) se consolida aquí.
  * Las ocurrencias en los módulos base se eliminan o minimizan tras esta migración.
+ *
+ * Clasificación R-202605-005 (2026-05-20):
+ * ─ Cat A (base global): overrides define la base. Los módulos extienden con
+ *   pseudo-clases (:hover, :focus), modificadores (.active) o estados (.open).
+ *   No hay solapamiento real — la cascade opera correctamente. No modificar.
+ * ─ Cat B (consolidados): solapamiento de valores base resuelto. Base migrada
+ *   al módulo canónico. Bloques eliminados de este archivo.
+ *   Consolidados: .card-status-pill → tracker · .pend-panel → modals ·
+ *   .avatar-modal → modals · .tsb-ai-row → tracker · .tracker-detail → tracker
+ * ─ Cat C (duplicados entre módulos): .avatar-modal.open eliminado de tracker.
  */
 
 
@@ -237,21 +247,7 @@ animation: modalSpring 0.22s var(--ease-spring);
   padding: 20px;
 }
 
-/* ── [3 módulos] .pend-panel
-   layout:623  ·  modals:812  ·  tracker:777 */
-
-
-/* modals.css:812 | tracker.css:777 */
-.pend-panel {
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-lg-plus);
-  box-shadow: 0 16px 48px rgb(0 0 0 / 35%);
-  width: 100%;
-  max-width: 380px;
-  display: flex;
-  flex-direction: column;
-}
+/* .pend-panel → consolidado en locus-modals.css (R-202605-005) */
 
 /* ── [3 módulos] .popup-date
    analytics:696  ·  proyectos:1842  ·  tracker:985 */
@@ -380,21 +376,7 @@ font-family: 'JetBrains Mono', monospace;
   cursor: pointer;
 }
 
-/* ── [3 módulos] .tracker-detail
-   analytics:426  ·  layout:1313  ·  tracker:132 */
-
-/* analytics.css:426 | layout.css:1313 | tracker.css:132 */
-.tracker-detail {
-  padding: 0.75rem 1.5rem 5rem;
-  max-width: 1600px;
-  flex: 1;
-
-  /* B-202604-XXX: reducido de 1.5rem a 0.75rem top */
-  min-width: 0;
-  overflow-y: auto;
-
-  /* B-fix: scroll para llegar al botón Guardar cuando el card es alto */;
-}
+/* .tracker-detail → consolidado en locus-tracker.css (R-202605-005) */
 
 /* ── [3 módulos] .tracker-sidebar
    analytics:419  ·  layout:603  ·  tracker:90 */
@@ -431,22 +413,7 @@ font-family: 'JetBrains Mono', monospace;
   flex-direction: column;
 }
 
-/* .avatar-modal  (analytics:738  ·  tracker:27) */
-
-/* analytics.css:738 | tracker.css:27 */
-.avatar-modal {
-  padding: 0.75rem;
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: var(--z-toast-plus);
-  width: 100%;
-  height: 100%;
-  background: rgb(0 0 0 / 50%);
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
+/* .avatar-modal → consolidado en locus-modals.css (R-202605-005) */
 
 /* .avatar-modal-actions  (analytics:778  ·  tracker:55) */
 
@@ -952,23 +919,7 @@ font-family: 'JetBrains Mono', monospace;
   background: var(--surface2);
 }
 
-/* .card-status-pill  (analytics:1129  ·  tracker:1777) */
-
-/* analytics.css:1129 | tracker.css:1777 */
-.card-status-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  padding: 2px 8px;
-  border-radius: var(--radius-2xl);
-  border: 1px solid transparent;
-  transition: var(--trans-color);
-  font-family: 'JetBrains Mono', monospace;
-  text-transform: uppercase;
-}
+/* .card-status-pill → consolidado en locus-tracker.css (R-202605-005) */
 
 /* .card.exhausted:hover  (analytics:1038  ·  tracker:1751) */
 
@@ -2076,20 +2027,7 @@ text-align: left; font-size: var(--text-2xs-plus); font-weight: 600;
   background: linear-gradient(135deg, rgb(167 139 250 / 9%) 0%, var(--radar-card-bg, rgb(255 255 255 / 4%)) 60%);
 }
 
-/* .tsb-ai-row  (backlog:5778  ·  tracker:1631) */
-
-/* backlog.css:5778 | tracker.css:1631 */
-.tsb-ai-row {
-  transition: all 0.12s;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  border: 1px solid transparent;
-  position: relative;
-}
+/* .tsb-ai-row → consolidado en locus-tracker.css (R-202605-005) */
 
 /* ── §2K ANALYTICS ── */
 

@@ -8578,3 +8578,31 @@ body {
 }
 
 /* ══ END A4-b: Panel Contratos ══ */
+
+/* R-202605-005 · A4-b · mdiff-* compactos */
+
+.mdiff-card--discard {
+  background: var(--red-dim);
+  border-color: var(--red-border);
+  opacity: 0.85;
+}
+
+.mdiff-card--retroceso {
+  background: rgb(245 200 66 / 6%);
+  border-color: rgb(245 200 66 / 20%);
+}
+
+.mdiff-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mdiff-right-retro-cb {
+  flex-shrink: 0;
+  accent-color: var(--amber);
+}
+
+/* END R-202605-005 · A4-b · mdiff-* compactos */

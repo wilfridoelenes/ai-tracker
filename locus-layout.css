@@ -1786,3 +1786,11 @@ header {
 }
 
 /* ══ END A4-b: Header worker chip ══ */
+
+/* R-202605-005 · A4-b · utilitarios layout */
+
+.force-hidden {
+  display: none !important;
+}
+
+/* END R-202605-005 · A4-b · utilitarios layout */

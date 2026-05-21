@@ -2586,7 +2586,8 @@
 
 .akpi-card--no-data {
   opacity: 0.65;
-} /* T-202605-476 */
+}
+/* END T-202605-476 */
 .akpi-value-sm {
   font-size: var(--text-base);
   font-weight: 500;

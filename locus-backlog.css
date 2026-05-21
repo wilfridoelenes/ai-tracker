@@ -7771,3 +7771,344 @@ textarea:hover {
 }
 
 /* ══ END A4-b: Backlog ══ */
+
+/* R-202605-005 · A4-b · bitem-* */
+
+.bitem-ac-header--empty {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-style: italic;
+}
+
+.bitem-child-badge-label {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+}
+
+.bitem-notes-block {
+  padding: 4px 8px;
+  border-left: 2px solid var(--border);
+  margin-top: 4px;
+}
+
+.bitem-notes-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+
+.bitem-notes-text {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.bitem-origin-avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-pill);
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.bitem-origin-files {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.bitem-origin-p-name {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.bitem-origin-row--files {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.bitem-origin-row--mt {
+  margin-top: 6px;
+}
+
+.bitem-select-role {
+  font-size: var(--text-sm);
+  padding: 2px 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.bitem-subline-role {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bitem-timestamps {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+/* END R-202605-005 · A4-b · bitem-* */
+
+/* R-202605-005 · A4-b · badge-* */
+
+.badge--sm {
+  font-size: var(--text-2xs);
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+}
+
+.badge-blocking {
+  background: var(--red-dim);
+  color: var(--red);
+  border: 1px solid var(--red-border);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+}
+
+.badge-effort-quick {
+  cursor: pointer;
+  font-size: var(--text-xs);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  transition: var(--trans-fast);
+}
+
+.badge-effort-quick:hover {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.badge-missing--blocked {
+  color: var(--amber);
+  font-size: var(--text-xs);
+}
+
+.badge-missing--effort {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.badge-missing--idle {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  opacity: 0.7;
+}
+
+.badge-missing--warning {
+  color: var(--amber);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+/* END R-202605-005 · A4-b · badge-* */
+
+/* R-202605-005 · A4-b · promote-* */
+
+.promote-modal-desc {
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.promote-type-hint {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.promote-type-letter {
+  font-size: var(--text-display-md);
+  font-weight: 700;
+  line-height: 1;
+}
+
+.promote-type-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* END R-202605-005 · A4-b · promote-* */
+
+/* R-202605-005 · A4-b · item-* compactos */
+
+.item-body--child {
+  padding-left: 24px;
+  border-left: 2px solid var(--border);
+}
+
+.item-code-badge {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  background: var(--bg-subtle);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+.item-type-pill--sm {
+  font-size: var(--text-3xs);
+  padding: 0 4px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  line-height: 16px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* END R-202605-005 · A4-b · item-* compactos */
+
+/* R-202605-005 · A4-b · ac-* */
+
+.ac-list--child {
+  font-size: var(--text-xs);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ac-list-item--sm {
+  font-size: var(--text-xs);
+  padding: 1px 0;
+  color: var(--text-secondary);
+}
+
+/* END R-202605-005 · A4-b · ac-* */
+
+/* R-202605-005 · A4-b · btn-ghost-* */
+
+.btn-ghost--muted {
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  opacity: 0.8;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: var(--trans-fast);
+}
+
+.btn-ghost--muted:hover {
+  opacity: 1;
+  background: var(--bg-hover);
+}
+
+.btn-ghost--sm {
+  font-size: var(--text-xs);
+  padding: 2px 6px;
+  height: auto;
+}
+
+/* END R-202605-005 · A4-b · btn-ghost-* */
+
+/* R-202605-005 · A4-b · child-* */
+
+.child-actions {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.bl-item:hover .child-actions {
+  opacity: 1;
+}
+
+.child-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+}
+
+/* END R-202605-005 · A4-b · child-* */
+
+/* R-202605-005 · A4-b · r-children-* */
+
+.r-children-arrow {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  flex-shrink: 0;
+}
+
+.r-children-tickets-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* END R-202605-005 · A4-b · r-children-* */
+
+/* R-202605-005 · A4-b · utilitarios backlog */
+
+.bl-footer-row--filters {
+  background: var(--accent-subtle);
+  border-top-color: var(--accent-border);
+}
+
+.effort-dots--inline {
+  display: inline-flex;
+  gap: 2px;
+  vertical-align: middle;
+}
+
+.effort-missing {
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  opacity: 0.7;
+}
+
+.frole-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  padding: 4px 0;
+}
+
+.setup-checklist-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+}
+
+.stat-effort-missing {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+/* END R-202605-005 · A4-b · utilitarios backlog */

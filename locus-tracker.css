@@ -24,9 +24,7 @@
   height: 18px;
 }
 
-.avatar-modal.open {
-  display: flex;
-}
+/* .avatar-modal.open — canónico en locus-modals.css */
 
 .avatar-modal-actions button:hover {
   background: var(--surface3);
@@ -78,6 +76,19 @@
 }
 
 /* Detail panel */
+
+/* R-202605-005 · consolidado desde locus-overrides.css */
+.tracker-detail {
+  padding: 0.75rem 1.5rem 5rem;
+  max-width: 1600px;
+  flex: 1;
+
+  /* B-202604-XXX: reducido de 1.5rem a 0.75rem top */
+  min-width: 0;
+  overflow-y: auto;
+
+  /* B-fix: scroll para llegar al botón Guardar cuando el card es alto */
+}
 
 /* T-202604-320: card ocupa ancho disponible */
 .tracker-detail > .card,
@@ -466,15 +477,20 @@
 
 /* ── Status pill — base + estados ── */
 
+/* R-202605-005 · consolidado desde locus-overrides.css */
 .card-status-pill {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: var(--text-sm);
-  font-weight: 500;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.05em;
   padding: 2px 8px;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-2xl);
   border: 1px solid transparent;
+  transition: var(--trans-color);
+  font-family: 'JetBrains Mono', monospace;
+  text-transform: uppercase;
   white-space: nowrap;
   line-height: 1.4;
 }
@@ -3813,6 +3829,15 @@
 }
 
 .tsb-ai-row {
+  /* R-202605-005 · consolidado desde locus-overrides.css — transition de módulo preservada */
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  border: 1px solid transparent;
+  position: relative;
   transition: background var(--trans-fast), border-color var(--trans-fast);
 }
 
@@ -8052,3 +8077,16 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 /* ══ END A4-b: Tracker ══ */
+
+/* R-202605-005 · A4-b · tracker sueltas */
+
+.tracker-card--interrupting {
+  border-color: rgb(245 200 66 / 30%);
+  background: rgb(245 200 66 / 4%);
+}
+
+.cursor-grabbing {
+  cursor: grabbing !important;
+}
+
+/* END R-202605-005 · A4-b · tracker sueltas */
