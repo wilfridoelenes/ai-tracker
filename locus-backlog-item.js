@@ -880,7 +880,8 @@ function _promoteConfirm(originCode) {
   showToast('success', `⬆ ${originCode} promovido → ${newCode}`);
 
   // Navegar al ítem hijo creado
-  setTimeout(() => navigateToItem(newCode), 200);
+  // B-promote-render: 400ms garantiza que renderBacklogList termina el paint antes de navegar
+  setTimeout(() => navigateToItem(newCode), 400);
 }
 
 // T-202604-236: Promover T → R desde Backlog UI
@@ -966,7 +967,8 @@ function _promoteTtoRConfirm(originCode) {
   showToast('success', `⬆ ${originCode} promovido → ${newCode}`);
 
   // Navegar al R creado
-  setTimeout(() => navigateToItem(newCode), 200);
+  // B-promote-render: 400ms garantiza que renderBacklogList termina el paint antes de navegar
+  setTimeout(() => navigateToItem(newCode), 400);
 }
 
 function copyItemCode(e, code, idx) {
