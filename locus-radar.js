@@ -90,7 +90,25 @@ function _renderNotifSection() {
     }
   }
 
-  // Panel config colapsable — fuente de verdad única para umbrales
+  // B mayor: panel config extraído a _renderCfgPanel() — se llama siempre desde renderGlobalRadarSidebar()
+  return '<div class="radar-sb-section rsb-notif-section">' +
+    notifContent +
+  '</div>';
+}
+
+// B mayor: variable de módulo — preserva estado de expansión del panel config entre re-renders
+// B menor: _rsbToggleCfg y renderGlobalRadarSidebar leen/escriben este valor
+// Expuesto en window para que openNotifConfig (locus-checkpoint-stats.js) pueda sincronizarlo
+let _rsbCfgExpanded = false;
+Object.defineProperty(window, '_rsbCfgExpanded', {
+  get: function() { return _rsbCfgExpanded; },
+  set: function(v) { _rsbCfgExpanded = !!v; },
+  configurable: true
+});
+
+// B mayor: _renderCfgPanel — extraída de _renderNotifSection para llamarse siempre,
+// independientemente de si hay notificaciones activas (unseen > 0 o no)
+function _renderCfgPanel() {
   var cfg = _notifConfig();
   var cfgRows = Object.keys(_NOTIF_DEFAULTS).map(function(key) {
     var def = cfg[key];
@@ -110,19 +128,19 @@ function _renderNotifSection() {
     '</div>';
   }).join('');
 
-  var cfgPanel = '<div class="rsb-cfg-section" id="rsb-cfg-section">' +
-    '<button class="rsb-cfg-toggle-btn" onclick="_rsbToggleCfg(event)" aria-expanded="false" id="rsb-cfg-toggle-btn">' +
+  // B menor: aplicar estado de expansión preservado en _rsbCfgExpanded
+  var bodyClass = _rsbCfgExpanded ? 'rsb-cfg-body' : 'rsb-cfg-body rsb-cfg-body--hidden';
+  var arrowChar = _rsbCfgExpanded ? '\u25BE' : '\u25B8';
+  var ariaExpanded = _rsbCfgExpanded ? 'true' : 'false';
+
+  return '<div class="rsb-cfg-section" id="rsb-cfg-section">' +
+    '<button class="rsb-cfg-toggle-btn" onclick="_rsbToggleCfg(event)" aria-expanded="' + ariaExpanded + '" id="rsb-cfg-toggle-btn">' +
       '<span>\uD83D\uDD14 Configurar alertas</span>' +
-      '<span class="rsb-cfg-arrow" id="rsb-cfg-arrow">\u25B8</span>' +
+      '<span class="rsb-cfg-arrow" id="rsb-cfg-arrow">' + arrowChar + '</span>' +
     '</button>' +
-    '<div class="rsb-cfg-body rsb-cfg-body--hidden" id="rsb-cfg-body">' +
+    '<div class="' + bodyClass + '" id="rsb-cfg-body">' +
       cfgRows +
     '</div>' +
-  '</div>';
-
-  return '<div class="radar-sb-section rsb-notif-section">' +
-    notifContent +
-    cfgPanel +
   '</div>';
 }
 
@@ -134,6 +152,7 @@ function _rsbToggleCfg(e) {
   var btn   = document.getElementById('rsb-cfg-toggle-btn');
   if (!body) return;
   var isHidden = body.classList.toggle('rsb-cfg-body--hidden');
+  _rsbCfgExpanded = !isHidden; // B menor: sincronizar variable de módulo
   if (arrow) arrow.textContent = isHidden ? '\u25B8' : '\u25BE';
   if (btn)   btn.setAttribute('aria-expanded', String(!isHidden));
 }
@@ -332,10 +351,11 @@ function renderGlobalRadarSidebar() {
 
   // Notificaciones — oculto cuando count = 0
   const unseen = _computeNotifications().filter(n => !_notifReadSet().has(n.id)).length;
+  // B mayor: _renderNotifSection solo cuando hay unseen
   let html = unseen ? _renderNotifSection() : '';
 
   if (!active.length) {
-    html = `<div class="rsb-empty-state">
+    html += `<div class="rsb-empty-state">
       <div class="rsb-empty-icon">🤖</div>
       <div class="rsb-empty-title">Sin IAs registradas</div>
       <div class="rsb-empty-hint">Agrega una IA para comenzar a registrar sesiones.</div>
@@ -381,6 +401,10 @@ function renderGlobalRadarSidebar() {
   }
 
   container.innerHTML = html;
+
+  // B mayor: _renderCfgPanel siempre presente en el DOM — independiente de unseen y de active.length
+  // Se inserta después de innerHTML para sobrevivir al bloque empty-state
+  container.insertAdjacentHTML('beforeend', _renderCfgPanel());
 
   // Header — contadores — R-202605-138: contadores migrados a fila 2
   const titleEl = sidebar.querySelector('.radar-sidebar-title');

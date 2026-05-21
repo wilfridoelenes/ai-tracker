@@ -693,6 +693,7 @@ function updateTabNotifBadges() {
 
 // B-202605-240: UI de configuración de notificaciones — tipos y umbrales
 // R-202605-119: openNotifConfig redirige al Radar Sidebar — config unificada ahí
+// B mayor: panel config siempre presente en DOM — openNotifConfig lo expande directamente
 function openNotifConfig() {
   const sidebar = document.getElementById('global-radar-sidebar');
   if (!sidebar) return;
@@ -709,8 +710,10 @@ function openNotifConfig() {
     var btn   = document.getElementById('rsb-cfg-toggle-btn');
     if (body && body.classList.contains('rsb-cfg-body--hidden')) {
       body.classList.remove('rsb-cfg-body--hidden');
-      if (arrow) arrow.textContent = '▾';
+      if (arrow) arrow.textContent = '\u25BE';
       if (btn)   btn.setAttribute('aria-expanded', 'true');
+      // B menor: sincronizar variable de módulo para que el re-render preserve el estado expandido
+      if (typeof _rsbCfgExpanded !== 'undefined') { window._rsbCfgExpanded = true; }
       body.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
   }, 50);
