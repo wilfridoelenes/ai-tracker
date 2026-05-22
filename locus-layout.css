@@ -37,10 +37,11 @@
 
 /* R [pendiente-ID]: grillo ocupa exactamente el alto del header — height 100% de .header-inner (52px), overflow:hidden en header lo contiene */
 #pepe-logo {
-  height: 100%;
+  height: 90%;
   width: auto;
   display: block;
   object-fit: contain;
+  padding-block: 2px;
 }
 
 .header-sep {
@@ -156,6 +157,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md-plus);
   padding: 3px;
+  margin-inline: auto;
 }
 
 .tab-btn::after {
