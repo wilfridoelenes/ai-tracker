@@ -1422,3 +1422,40 @@ body.radar-sb-collapsed #global-footer {
 }
 
 /* ══ END A4-b: Radar Sidebar ══ */
+
+/* ══════════════════════════════════════════════════════════════════════
+   R-202605-018 Fase 2 — Migrado desde locus-overrides.css
+   ══════════════════════════════════════════════════════════════════════ */
+
+  --rsb-width: 340px;
+  --rsb-strip: 14px;
+  --rsb-transition: 0.35s var(--ease-out);
+
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: var(--rsb-width);
+  bottom: 0;
+  z-index: var(--z-sidebar);
+  display: flex;
+  flex-direction: column;
+  transition: transform var(--rsb-transition);
+  background: var(--radar-bg, rgb(15 15 20 / 82%));
+  backdrop-filter: blur(24px) saturate(1.6);
+  border-left: 1px solid var(--radar-border, rgb(255 255 255 / 6%));
+  box-shadow: -1px 0 0 var(--border), -12px 0 40px rgb(0 0 0 / 28%);
+}
+
+/* .rsb-card.exhausted */
+.rsb-card.exhausted {
+  opacity: 0.75;
+  border-left: 3px solid var(--red);
+  background: linear-gradient(135deg, var(--red-dim) 0%, var(--radar-card-bg, rgb(255 255 255 / 4%)) 60%);
+}
+
+/* .rsb-card.in-session-state */
+.rsb-card.in-session-state {
+  box-shadow: 0 0 0 1px rgb(167 139 250 / 35%), 0 2px 8px rgb(167 139 250 / 18%);
+  border-left: 3px solid #a78bfa;
+  background: linear-gradient(135deg, rgb(167 139 250 / 9%) 0%, var(--radar-card-bg, rgb(255 255 255 / 4%)) 60%);
+}

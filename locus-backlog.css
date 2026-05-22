@@ -8123,3 +8123,202 @@ textarea:hover {
 }
 
 /* END T-A4b · inline confirm */
+
+/* ══════════════════════════════════════════════════════════════════════
+   R-202605-018 Fase 2 — Migrado desde locus-overrides.css
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* §2C — Cards */
+
+/* .card-drag-handle */
+.card-drag-handle {
+  font-size: var(--text-sm);
+  opacity: 0;
+  cursor: grab;
+  color: var(--hint);
+  transition: opacity 0.1s;
+  padding: 0 3px;
+  flex-shrink: 0;
+}
+
+/* .card.focus-active .focus-exit-btn */
+.card.focus-active .focus-exit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* §2J — Backlog / Sidebar */
+
+/* .bl-sprint-retro-btn */
+.bl-sprint-retro-btn {
+  font-size: var(--text-2xs);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgb(124 106 247 / 35%);
+  background: rgb(124 106 247 / 10%);
+  color: var(--accent, var(--purple));
+  cursor: pointer;
+  transition: background .12s, opacity .12s;
+  font-family: var(--sans);
+  font-weight: 600;
+  margin-left: 4px;
+  white-space: nowrap;
+}
+
+/* .bl-sprint-retro-btn:hover */
+.bl-sprint-retro-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+  background: rgb(124 106 247 / 20%);
+}
+
+/* .bl-toolbar */
+.bl-toolbar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+  max-width: 2200px;
+  margin-inline: auto;
+}
+
+/* §2Z — Other */
+
+/* .arch-historico */
+.arch-historico {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md-plus);
+  overflow: hidden;
+  background: var(--surface2);
+}
+
+/* .archived-grid */
+.archived-grid {
+  grid-template-columns: 1fr;
+  margin-top: 0.75rem;
+  display: none;
+}
+
+/* .archived-section */
+.archived-section {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+/* .focus-exit-btn */
+.focus-exit-btn {
+  display: none;
+  font-size: var(--text-2xs-plus);
+  font-weight: 500;
+  color: var(--hint);
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-xs);
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: var(--trans-fast);
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+
+/* .focus-exit-btn:hover */
+.focus-exit-btn:hover {
+  color: var(--text2);
+  border-color: var(--accent-border);
+}
+
+/* .item */
+.item {
+  padding: 12px 16px;
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.15s;
+}
+
+/* .item.bitem:hover — override: pisa .item en locus-backlog.css porque contexto bitem requiere transform y background override */
+.item.bitem:hover {
+  transform: translateY(-1px);
+  background: var(--surface2) !important;
+}
+
+/* .kb-board */
+.kb-board {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 4px 2px 16px;
+  min-height: 240px;
+  overflow: auto visible;
+}
+
+/* .kb-col */
+.kb-col {
+  flex: 1 1 180px;
+  min-width: 160px;
+  max-width: none;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md-plus);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+/* .r-children-list */
+.r-children-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+  transition: max-height 0.25s ease, opacity 0.2s ease;
+}
+
+/* §2O — Items / Forms */
+
+/* .char-counter */
+.char-counter {
+  font-family: var(--mono);
+  font-size: var(--text-3xs);
+  text-align: right;
+  margin-top: 2px;
+  color: var(--hint);
+  transition: color 0.15s;
+}
+
+/* .fb-status-msg */
+.fb-status-msg {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  display: none;
+}
+
+/* .items-grid */
+.items-grid {
+  gap: 9px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* .stale-dot */
+.stale-dot {
+  box-shadow: 0 0 0 2px rgb(232 168 50 / 18%);
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+  background: var(--amber, #e8a832);
+  position: relative;
+  cursor: default;
+  transition: box-shadow 0.15s;
+}

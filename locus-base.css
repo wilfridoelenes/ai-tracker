@@ -1,6 +1,6 @@
 /* locus-base.css */
 
-/* Versión: 1.3 | Última actualización: 2026-05-20 | Variables, reset, temas dark/light, tipografía global */
+/* Versión: 1.4 | Última actualización: 2026-05-22 | Variables, reset, temas dark/light, tipografía global */
 /* Cluster A — tokens fantasma resueltos: --purple/*-dim/*-border, --blue-dim/border declarados;
    --text-muted/--text1/--text3/--bg3/--surface1/--bg-card mapeados a token canónico
    A3 — 39 tokens semánticos sin declarar → resueltos como alias a canónicos existentes o valores nuevos */
@@ -443,3 +443,13 @@ body {
 }
 
 /* ══ END CSS-04 ══ */
+
+/* ══ CSS-07: prefers-reduced-motion — animaciones infinite sin cobertura ══ */
+@media (prefers-reduced-motion: reduce) {
+  /* countdownPulse — countdown de reset */
+  .card-stat-countdown { animation: none; }
+
+  /* skel-shimmer — skeleton rows de carga */
+  .skel-row { animation: none; }
+}
+/* ══ END CSS-07 ══ */

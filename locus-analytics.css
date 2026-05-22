@@ -3615,3 +3615,109 @@
   }
 }
 
+
+/* ══════════════════════════════════════════════════════════════════════
+   R-202605-018 Fase 2 — Migrado desde locus-overrides.css
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* §2E — Tabs / Layout */
+
+/* #tab-analytics */
+#tab-analytics {
+  padding: 2rem;
+  max-width: var(--bp-ultrawide);
+  margin-inline: auto;
+  width: 100%;
+}
+
+/* §2K — Analytics */
+
+/* .analytics-v2-wrap */
+.analytics-v2-wrap {
+  padding: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  max-width: 2200px;
+  margin-inline: auto;
+}
+
+/* .atip-bar-fill */
+.atip-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.2s ease;
+  width: 100%;
+  background: var(--atip-color, var(--accent));
+}
+
+/* .atip-dot */
+.atip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+  grid-row: 1;
+  grid-column: 1;
+  background: var(--atip-color, var(--accent));
+}
+
+/* .ckpt-proj-bar-fill */
+.ckpt-proj-bar-fill {
+  height: 100%;
+  border-radius: 0 1px 0 0;
+  transition: width 0.4s ease;
+  width: var(--ckpt-bar-pct, 0%);
+}
+
+/* .hourly-bar */
+.hourly-bar {
+  width: 100%;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--surface3);
+  transition: background 0.2s, height 0.3s;
+  cursor: default;
+  min-height: 2px;
+  height: var(--bar-h, 2%);
+}
+
+/* .ppat-dot */
+.ppat-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+  background: var(--ppat-dot-color, var(--accent));
+}
+
+/* .rm-chip */
+.rm-chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px 10px 5px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--text2);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 90px;
+  transition: transform .1s ease, box-shadow .1s ease;
+  text-align: left;
+}
+
+/* .sprint-roadmap-chips */
+.sprint-roadmap-chips {
+  display: flex;
+  flex-flow: row nowrap;
+  gap: .5rem;
+  overflow-x: auto;
+  padding-bottom: .25rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+  -webkit-overflow-scrolling: touch;
+}
