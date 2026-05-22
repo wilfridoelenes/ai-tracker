@@ -7533,6 +7533,87 @@ body.radar-sb-open .tracker-sidebar {
   outline-offset: 2px;
 }
 
+/* ── B-202605-020: card-dot-menu dropdown ── */
+
+.card-dot-menu {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.card-dot-dropdown {
+  display: none;
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: var(--z-dropdown, 200);
+  min-width: 188px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  padding: 4px 0;
+  flex-direction: column;
+}
+
+.card-dot-dropdown.open {
+  display: flex;
+}
+
+.card-dot-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 14px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: var(--text-sm, 13px);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--trans-fast);
+  white-space: nowrap;
+}
+
+.card-dot-item:hover:not(:disabled) {
+  background: var(--surface3);
+}
+
+.card-dot-item:disabled,
+.card-dot-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.card-dot-item.danger {
+  color: var(--red, #e85555);
+}
+
+.card-dot-item.danger:hover:not(:disabled) {
+  background: var(--red-dim, rgba(232, 85, 85, 0.08));
+}
+
+.dot-item-icon {
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+  font-style: normal;
+}
+
+.card-dot-divider {
+  margin: 4px 0;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+.danger-zone {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── END B-202605-020 ── */
+
 /* ── sc-stats — grid de 3 columnas ── */
 
 .sc-stats {
