@@ -1026,6 +1026,11 @@ header {
   overflow: hidden auto;
 }
 
+#tab-tracker.active {
+  height: calc(100vh - var(--header-h, 54px));
+  overflow: hidden auto;
+}
+
 /* T-387 · Tooltips CSS en iconos sin label — .has-tooltip pattern */
 .has-tooltip {
   position: relative;
