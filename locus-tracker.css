@@ -7428,6 +7428,7 @@ body.radar-sb-open .tracker-sidebar {
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
+  position: relative;
 }
 
 /* ── sc-avatar ── */

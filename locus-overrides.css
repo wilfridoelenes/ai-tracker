@@ -2490,7 +2490,7 @@ text-align: left; font-size: var(--text-2xs-plus); font-weight: 600;
   position: absolute;
   top: calc(100% + 6px);
   right: 0;
-  z-index: var(--z-layer-2);
+  z-index: var(--z-dropdown);
 }
 
 /* .preview  (proyectos:1876  ·  tracker:514) */
