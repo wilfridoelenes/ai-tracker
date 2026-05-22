@@ -810,7 +810,7 @@ function _planDrop(e, targetCol) {
   }
 }
 
-function renderBacklogList() {
+function renderBacklogList(onRendered) {
   const listEl = document.getElementById('backlog-list');
   _skelShow(listEl, 5);
   const q = backlogSearchQuery;
@@ -1474,5 +1474,7 @@ function renderBacklogList() {
       inp.placeholder = '🔍 Buscar…';
     }
   })();
+
+  if (typeof onRendered === 'function') onRendered();
 }
 

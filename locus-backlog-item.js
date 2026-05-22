@@ -875,13 +875,9 @@ function _promoteConfirm(originCode) {
   if (_pmo) _pmo.classList.remove('open');
   _promoteTargetType = null;
 
-  renderBacklogList();
+  renderBacklogList(() => navigateToItem(newCode));
   renderStats();
   showToast('success', `⬆ ${originCode} promovido → ${newCode}`);
-
-  // Navegar al ítem hijo creado
-  // B-promote-render: 400ms garantiza que renderBacklogList termina el paint antes de navegar
-  setTimeout(() => navigateToItem(newCode), 400);
 }
 
 // T-202604-236: Promover T → R desde Backlog UI
@@ -962,13 +958,9 @@ function _promoteTtoRConfirm(originCode) {
   const overlay = document.getElementById('promote-modal-overlay'); // DUP-02: shell unificado
   if (overlay) overlay.classList.remove('open');
 
-  renderBacklogList();
+  renderBacklogList(() => navigateToItem(newCode));
   renderStats();
   showToast('success', `⬆ ${originCode} promovido → ${newCode}`);
-
-  // Navegar al R creado
-  // B-promote-render: 400ms garantiza que renderBacklogList termina el paint antes de navegar
-  setTimeout(() => navigateToItem(newCode), 400);
 }
 
 function copyItemCode(e, code, idx) {

@@ -147,6 +147,11 @@ function _confirmMigrateItem(code) {
   if (!targetProj.tracker) targetProj.tracker = { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
   if (!Array.isArray(targetProj.tracker.items)) targetProj.tracker.items = [];
   targetProj.tracker.items.push(migratedItem);
+  // B-202605-018: setProjBacklog explícito para que el backlog del proyecto destino
+  // se persista por el canal correcto (Supabase vía saveBacklog del destino).
+  // Sin esto, saveImmediate() persiste el state pero el backlog del destino puede
+  // no llegar a Supabase si no está marcado como modificado en el canal correcto.
+  if (typeof setProjBacklog === 'function') setProjBacklog(targetProjId, targetProj.tracker.items);
   // saveImmediate() — migrate es operación crítica de datos, no puede esperar el debounce de 5s
   if (typeof saveImmediate === 'function') saveImmediate(); else save();
 
