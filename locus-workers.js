@@ -121,7 +121,17 @@ function toggleCardMenu(id, e) {
   if (!dd) return;
   const isOpen = dd.classList.contains('open');
   document.querySelectorAll('.card-dot-dropdown.open').forEach(el => el.classList.remove('open'));
-  if (!isOpen) dd.classList.add('open');
+  if (!isOpen) {
+    const btn = e.currentTarget;
+    const rect = btn.getBoundingClientRect();
+    dd.style.top  = (rect.bottom + 4) + 'px';
+    dd.style.left = (rect.right - dd.offsetWidth || rect.right - 188) + 'px';
+    dd.classList.add('open');
+    // Ajuste post-render: alinear derecha del menú con derecha del botón
+    requestAnimationFrame(() => {
+      dd.style.left = (rect.right - dd.offsetWidth) + 'px';
+    });
+  }
 }
 
 function closeCardMenu(id) {

@@ -7543,10 +7543,8 @@ body.radar-sb-open .tracker-sidebar {
 
 .card-dot-dropdown {
   display: none;
-  position: absolute;
-  top: calc(100% + 4px);
-  right: 0;
-  z-index: var(--z-dropdown, 200);
+  position: fixed;
+  z-index: 1000;
   min-width: 188px;
   background: var(--surface2);
   border: 1px solid var(--border);
