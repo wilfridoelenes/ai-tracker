@@ -8022,7 +8022,7 @@ body.radar-sb-open .tracker-sidebar {
   height: calc(100vh - var(--header-h, 54px));
   overflow: hidden;
   position: relative;
-  display: flex;
+  /* display: flex movido a #tab-tracker.active en locus-layout.css — B fix tab visibility */
   padding: 0;
   max-width: var(--bp-ultrawide);
   margin-inline: auto;
