@@ -116,7 +116,6 @@ function _startSidebarTicker() {
   _sidebarTickerInterval = setInterval(() => {
     const exhausted = state.ais.filter(ai => !ai.archived && ai.status === 'exhausted' && ai.resetTime);
     if (!exhausted.length) { _stopSidebarTicker(); return; }
-    let anyExpired = false;
     exhausted.forEach(ai => {
       const el = document.getElementById('tsb-row-' + ai.id);
       if (el) {
@@ -126,8 +125,25 @@ function _startSidebarTicker() {
         const reset = new Date(now); reset.setHours(hh, mm, 0, 0);
         if (reset <= now) reset.setDate(reset.getDate() + 1);
         const diff = Math.max(0, Math.round((reset - now) / 60000));
-        if (diff === 0) { anyExpired = true; }
-        else {
+        if (diff === 0) {
+          // B-[pendiente-ID]: actualización quirúrgica — no llamar render() completo.
+          // Mutar estado del AI a 'available' y actualizar solo los elementos DOM afectados.
+          ai.status = 'available';
+          // Actualizar badge de status en tsb-row si existe
+          const statusEl = el.querySelector('.tsb-ai-status');
+          if (statusEl) statusEl.textContent = 'Disponible';
+          // Remover countdown del sidebar
+          if (cdEl) cdEl.remove();
+          // Actualizar unlock label
+          const unlockLblEl = document.getElementById('unlock-lbl-' + ai.id);
+          if (unlockLblEl) unlockLblEl.textContent = 'Disponible ahora';
+          // Actualizar radar sidebar card si existe
+          const rsbCard = document.getElementById('rsb-card-' + ai.id);
+          if (rsbCard) {
+            const rsbCd = rsbCard.querySelector('.rsb-countdown');
+            if (rsbCd) rsbCd.textContent = '--:--:--';
+          }
+        } else {
           const h = Math.floor(diff / 60), m = diff % 60;
           const label = `${h}h${String(m).padStart(2,'0')}`;
           if (!cdEl) { cdEl = document.createElement('span'); cdEl.className = 'tsb-ai-cd'; el.appendChild(cdEl); }
@@ -156,7 +172,6 @@ function _startSidebarTicker() {
         }
       }
     });
-    if (anyExpired) { if (typeof render === 'function') render(); }
   }, 1000); // T-202604-302: cada 1s — countdown live sin interacción
 }
 function _stopSidebarTicker() {
