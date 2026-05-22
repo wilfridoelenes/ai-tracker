@@ -4766,6 +4766,7 @@
 
 /* .popup-header */
 .popup-header {
+  display: flex;
   padding: 1.1rem 1.25rem 0.85rem;
   flex-direction: column;
   gap: 8px;
