@@ -433,9 +433,11 @@ function _showImportDiff(d) {
     d.ais.reduce((a, x) => a + (x.sessions ? x.sessions.length : 0), 0);
 
   const currentAIs = state.ais || [];
-  const currentNames = new Set(currentAIs.map(a => a.name.toLowerCase()));
-  const newAIs = d.ais.filter(a => !currentNames.has(a.name.toLowerCase()));
-  const existingAIs = d.ais.filter(a => currentNames.has(a.name.toLowerCase()));
+  // AC-3: comparar por id (igual que confirmImport) — comparar por nombre causaba
+  // falso "0 IAs nuevas" cuando el mismo AI tenía distinto id en backup vs local
+  const currentAIIds = new Set(currentAIs.map(a => a.id));
+  const newAIs = d.ais.filter(a => !currentAIIds.has(a.id));
+  const existingAIs = d.ais.filter(a => currentAIIds.has(a.id));
 
   // Contar sesiones nuevas: diferencia por session.id entre proyectos entrantes y actuales
   const currentSessIds = new Set(
@@ -503,6 +505,10 @@ function closeImportDiff() {
   document.getElementById('import-diff-overlay').classList.remove('open');
   if (typeof _restoreModalFocus === 'function') _restoreModalFocus('import-diff-overlay');
   _pendingImportData = null;
+  // AC-2/AC-5: limpiar el input para que onchange dispare si el usuario
+  // selecciona el mismo archivo después de cancelar el diff
+  const imp = document.getElementById('imp');
+  if (imp) imp.value = '';
 }
 function confirmImport() {
   if (!_pendingImportData) return;
