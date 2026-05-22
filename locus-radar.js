@@ -200,7 +200,7 @@ function _projPill(ai) {
       : null;
     if (!proj) return '';
     const color = proj.color || '#7c6af7';
-    return `<span class="rsb-proj-pill" style="--rsb-proj-color:${color}">${esc(proj.name)}</span>`;
+    return `<span class="rsb-proj-pill" data-proj-color="${esc(color)}">${esc(proj.name)}</span>`;
   } catch(e) { return ''; }
 }
 
@@ -409,6 +409,11 @@ function renderGlobalRadarSidebar() {
 
   container.innerHTML = html;
 
+  // B-04 CSS Purity: aplicar --rsb-proj-color via setProperty post-render — no inline style=
+  container.querySelectorAll('.rsb-proj-pill[data-proj-color]').forEach(pill => {
+    pill.style.setProperty('--rsb-proj-color', pill.dataset.projColor);
+  });
+
   // B mayor: _renderCfgPanel siempre presente en el DOM — independiente de unseen y de active.length
   // Se inserta después de innerHTML para sobrevivir al bloque empty-state
   container.insertAdjacentHTML('beforeend', _renderCfgPanel());
@@ -500,15 +505,15 @@ function rsbFilterAIs(query, silent) {
     const nameEl = card.querySelector('.rsb-card-name');
     const name = (nameEl ? nameEl.textContent : card.textContent).toLowerCase();
     const match = !q || name.includes(q);
-    card.classList.toggle('rsb-hidden', !match);
+    card.classList.toggle('is-hidden', !match);
     if (match) visibleCount++;
   });
 
   // Ocultar secciones cuyos cards estén todos hidden
   container.querySelectorAll('.radar-sb-section').forEach(section => {
     const anyVisible = Array.from(section.querySelectorAll('.rsb-card'))
-      .some(c => !c.classList.contains('rsb-hidden'));
-    section.classList.toggle('rsb-hidden', !anyVisible);
+      .some(c => !c.classList.contains('is-hidden'));
+    section.classList.toggle('is-hidden', !anyVisible);
   });
 
   // Empty state de búsqueda

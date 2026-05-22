@@ -1352,7 +1352,7 @@ body.radar-sb-collapsed #global-footer {
 
 /* ── Card EN SESIÓN: jerarquía elevada ── */
 /* Fondo levemente más opaco + borde izquierdo más pronunciado */
-.rsb-section-body > .rsb-card:not(.available):not(.exhausted) {
+.rsb-card.in-session-state {
   background: rgb(167 139 250 / 8%);
   border-left: 3px solid var(--purple);
 }
@@ -1372,6 +1372,42 @@ body.radar-sb-collapsed #global-footer {
 /* ══ END R-202605-180 ══ */
 
 /* ══ A4-b: Radar Sidebar — clases faltantes ══ */
+
+/* ── Historial de notificaciones ── */
+.rsb-notif-hist-item {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--border, #2a2a2a);
+}
+
+.rsb-notif-hist-text {
+  font-size: var(--text-sm);
+  color: var(--text-muted, #9ca3af);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Variantes de severidad — borde izquierdo semántico */
+.rsb-notif-hist--info {
+  border-left-color: var(--purple, #7c6af7);
+}
+
+.rsb-notif-hist--blocker {
+  border-left-color: var(--red, #e85555);
+}
+
+.rsb-notif-hist--riesgo {
+  border-left-color: var(--amber, #f59e0b);
+}
+
+.rsb-notif-hist--pendiente {
+  border-left-color: var(--blue, #38bdf8);
+}
 
 /* Ícono SVG del pin del radar sidebar — base
    Los modificadores --on y --off ya existen en este archivo (L734-739).
