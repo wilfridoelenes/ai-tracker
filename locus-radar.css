@@ -1427,6 +1427,7 @@ body.radar-sb-collapsed #global-footer {
    R-202605-018 Fase 2 — Migrado desde locus-overrides.css
    ══════════════════════════════════════════════════════════════════════ */
 
+#global-radar-sidebar {
   --rsb-width: 340px;
   --rsb-strip: 14px;
   --rsb-transition: 0.35s var(--ease-out);
