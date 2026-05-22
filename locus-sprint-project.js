@@ -1100,17 +1100,6 @@ function setProjContext(projId, text, version) {
   if (version !== undefined) proj.contextVersion = version || '';
   save();
 }
-function getProjBacklog(projId) {
-  const proj = getProjectById(projId);
-  return proj ? (proj.backlog || []) : [];
-}
-function setProjBacklog(projId, items, version) {
-  const proj = getProjectById(projId);
-  if (!proj) return;
-  proj.backlog = Array.isArray(items) ? items : [];
-  if (version !== undefined) proj.backlogVersion = version || '';
-  save();
-}
 
 // T-202604-267: Notas rápidas — modelo de datos y persistencia
 // Clave localStorage: notes-{projId} (o 'notes' si no hay proyecto activo)
