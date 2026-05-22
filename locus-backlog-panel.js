@@ -147,7 +147,8 @@ function _confirmMigrateItem(code) {
   if (!targetProj.tracker) targetProj.tracker = { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
   if (!Array.isArray(targetProj.tracker.items)) targetProj.tracker.items = [];
   targetProj.tracker.items.push(migratedItem);
-  save();
+  // saveImmediate() — migrate es operación crítica de datos, no puede esperar el debounce de 5s
+  if (typeof saveImmediate === 'function') saveImmediate(); else save();
 
   if (overlay) overlay.classList.remove('open');
   renderBacklogList();
