@@ -205,7 +205,8 @@
   flex-shrink: 0;
 }
 
-.search-toggle-btn {
+/* R-202605-014: hdr-search-trigger — trigger permanente de Command Palette */
+.hdr-search-trigger {
   height: 32px;
   padding: 0 10px 0 8px;
   display: flex;
@@ -220,19 +221,45 @@
   flex-shrink: 0;
   font-size: var(--text-md);
   white-space: nowrap;
+  user-select: none;
 }
 
-.search-toggle-btn__label {
+.hdr-search-trigger__label {
   font-size: 12px;
   font-weight: 500;
   letter-spacing: 0.01em;
   line-height: 1;
 }
 
-.search-toggle-btn.active {
-  background: var(--surface2);
+.hdr-search-trigger__badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text3);
+  line-height: 1;
+  margin-left: 2px;
+}
+
+.hdr-search-trigger:hover {
   border-color: var(--accent);
   color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.hdr-search-trigger:hover .hdr-search-trigger__badge {
+  color: var(--accent);
+}
+
+.hdr-search-trigger:active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: scale(0.97);
+}
+
+.hdr-search-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* R-202605-006: Pill ⌘K — Command Palette trigger */
@@ -975,12 +1002,7 @@ header {
   position: relative;
 }
 
-.search-toggle-btn:hover,
-.search-wrap.search-open .search-toggle-btn {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: var(--accent-dim);
-}
+/* R-202605-014: .search-toggle-btn hover rule eliminada — reemplazada por .hdr-search-trigger:hover */
 
 .tab-panel.tab-fade-out {
   opacity: 0;
@@ -1581,6 +1603,7 @@ header {
   .logo-grillo,
   .tab-panel,
   .search-expand-wrap,
+  .hdr-search-trigger,
   .has-tooltip::after {
     transition: none;
   }

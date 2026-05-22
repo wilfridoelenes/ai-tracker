@@ -58,15 +58,15 @@
       <button class="tab-btn" id="tab-btn-analytics" onclick="switchTab('analytics')" title="Analytics — sesiones por mes">📊 Analytics<span class="tab-notif-badge hidden" id="tab-notif-badge-analytics"></span></button>
     </div>
 
-    <div class="header-search tracker-only" id="header-search-wrap">
-      <button class="search-toggle-btn active" id="search-toggle-btn" onclick="toggleHeaderSearch()" title="Buscar sesiones">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <span class="search-toggle-btn__label">Buscar</span>
+    <div class="header-search" id="header-search-wrap">
+      <button class="hdr-search-trigger" id="hdr-search-trigger"
+              onclick="if(typeof openCommandPalette==='function')openCommandPalette()"
+              aria-label="Abrir búsqueda (⌘K)"
+              title="Buscar (⌘K)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <span class="hdr-search-trigger__label">Buscar...</span>
+        <span class="hdr-search-trigger__badge">⌘K</span>
       </button>
-      <div class="search-expand-wrap open" id="search-expand-wrap">
-        <input class="search-input" id="search-global" type="text" placeholder="Buscar · Workers, sesiones, notas…" oninput="onSearchDispatch()" autocomplete="off" onblur="onSearchBlur()">
-        <div class="search-results-count" id="search-count"></div>
-      </div>
     </div>
 
     <div class="header-actions">
@@ -84,7 +84,7 @@
       <button class="cmd-k-pill" id="cmd-k-pill"
               aria-label="Abrir Command Palette (⌘K)"
               title="Command Palette (⌘K)"
-              onclick="(function(){var sw=document.getElementById('search-expand-wrap');if(sw&&sw.classList.contains('open')){toggleHeaderSearch();}var cp=document.getElementById('cp-overlay');if(cp&&!cp.classList.contains('is-hidden'))return;if(typeof openCommandPalette==='function')openCommandPalette();})()">
+              onclick="if(typeof openCommandPalette==='function')openCommandPalette()">
         ⌘K
       </button>
 
@@ -1403,22 +1403,7 @@
 
 <script>
 function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')=='dark'?'light':'dark');}
-function toggleHeaderSearch() {
-  const wrap  = document.getElementById('search-expand-wrap');
-  const btn   = document.getElementById('search-toggle-btn');
-  const input = document.getElementById('search-global');
-  const open  = wrap.classList.toggle('open');
-  btn.classList.toggle('active', open);
-  if (open) { setTimeout(() => input.focus(), 280); }
-  else { input.value = ''; if (typeof onSearchDispatch === 'function') onSearchDispatch(); }
-}
-function onSearchBlur() {
-  const input = document.getElementById('search-global');
-  if (!input.value.trim()) {
-    document.getElementById('search-expand-wrap').classList.remove('open');
-    document.getElementById('search-toggle-btn').classList.remove('active');
-  }
-}
+// R-202605-014: toggleHeaderSearch y onSearchBlur eliminados — hdr-search-trigger invoca openCommandPalette() directamente
 // T-202604-210: badge en botón backup — activo cuando hay datos en localStorage
 function _updateBackupBadge() {
   try {
