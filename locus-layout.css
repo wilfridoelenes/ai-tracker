@@ -1097,7 +1097,6 @@ header {
 }
 
 #tab-tracker.active {
-  display: flex; /* B fix tab visibility — display movido desde #tab-tracker en locus-tracker.css */
   height: calc(100vh - var(--header-h, 54px));
   overflow: hidden auto;
 }
