@@ -5400,7 +5400,7 @@
 .mg-file-item-remove:focus-visible {
   outline: 2px solid var(--mg-accent);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-2xs);
 }
 
 /* ── Preview area ── */
@@ -7062,7 +7062,7 @@ body {
 
 .rsb-sprint-bar-wrap {
   height: 4px;
-  border-radius: 2px;
+  border-radius: var(--radius-2xs);
   background: var(--border);
   overflow: hidden;
   margin-bottom: 4px;
@@ -7070,7 +7070,7 @@ body {
 
 .rsb-sprint-bar {
   height: 100%;
-  border-radius: 2px;
+  border-radius: var(--radius-2xs);
   background: var(--accent, var(--purple));
   width: var(--rsb-pct, 0%);
   transition: width .4s ease;
@@ -7332,7 +7332,7 @@ body {
   transition: opacity 0.15s ease, transform 0.15s ease;
   width: 10px;
   height: 10px;
-  border-radius: 2px;
+  border-radius: var(--radius-2xs);
   flex-shrink: 0;
   cursor: default;
 }
@@ -7659,7 +7659,7 @@ body {
   width: 2px;
   height: 11px;
   background: var(--border2);
-  border-radius: 1px;
+  border-radius: var(--radius-3xs);
 }
 
 .bl-plan-meter-label {
@@ -7880,7 +7880,7 @@ body {
 .plan-zone-toggle:focus-visible {
   outline: 2px solid var(--color-primary, #4F46E5);
   outline-offset: 2px;
-  border-radius: 2px;
+  border-radius: var(--radius-2xs);
 }
 
 /* ══ END T-202605-509 ══ */
