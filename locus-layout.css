@@ -517,11 +517,12 @@ button {
   pointer-events: none;
 }
 
-/* Segmento 1 — proyecto: text-primary weight 500 */
+/* Segmento 1 — proyecto: text-primary weight 700 */
 .breadcrumb-seg--proj {
   color: var(--text);
-  font-weight: 500;
-  max-width: 110px;
+  font-weight: 700;
+  font-size: var(--text-md);
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
