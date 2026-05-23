@@ -140,6 +140,8 @@ function toggleCardMenu(id, e) {
     dd.style.top  = '';
     dd.style.left = '';
     dd.dataset.wrapId = 'dotmenu-wrap-' + id;
+    // B-202605-044: guardar referencia al trigger para devolver foco al cerrar por Escape
+    dd.dataset.triggerId = id;
     document.body.appendChild(dd);
     // Coordenadas post-appendChild — previene flash de posición stale
     dd.style.top  = (rect.bottom + 4) + 'px';
@@ -148,7 +150,7 @@ function toggleCardMenu(id, e) {
   }
 }
 
-function _closeCardMenuPortal(id) {
+function _closeCardMenuPortal(id, returnFocus) {
   const dd = document.getElementById('dotmenu-' + id);
   if (!dd) return;
   dd.classList.remove('open');
@@ -157,8 +159,14 @@ function _closeCardMenuPortal(id) {
   if (wrapId) {
     const wrap = document.getElementById(wrapId);
     if (wrap && dd.parentNode === document.body) wrap.appendChild(dd);
+    // B-202605-044: devolver foco al .sc-menu-btn trigger al cerrar por Escape
+    if (returnFocus) {
+      const trigger = wrap.querySelector('.sc-menu-btn');
+      if (trigger) trigger.focus();
+    }
     delete dd.dataset.wrapId;
   }
+  delete dd.dataset.triggerId;
 }
 
 function closeCardMenu(id) {
@@ -171,6 +179,15 @@ document.addEventListener('click', function(e) {
   document.querySelectorAll('.card-dot-dropdown.open').forEach(el => {
     const id = el.id.replace('dotmenu-', '');
     _closeCardMenuPortal(id);
+  });
+});
+
+// B-202605-044: cerrar menú al presionar Escape — devuelve foco al trigger
+document.addEventListener('keydown', function(e) {
+  if (e.key !== 'Escape') return;
+  document.querySelectorAll('.card-dot-dropdown.open').forEach(el => {
+    const id = el.id.replace('dotmenu-', '');
+    _closeCardMenuPortal(id, true);
   });
 });
 
