@@ -1409,8 +1409,8 @@ function _buildSprintItemRow(item, sectionId, allItems) {
     isBlocked ? 'spi-item--blocked' : ''
   ].filter(Boolean).join(' ');
 
-  const code  = _esc(item.code  || '');
-  const title = _esc(item.title || '');
+  const code  = _escSpr(item.code  || '');
+  const title = _escSpr(item.title || '');
 
   return `<div class="${itemClass}" role="button" tabindex="0"
     onclick="if(typeof navigateToItem==='function') navigateToItem('${item.code}')"
@@ -1474,20 +1474,21 @@ function _buildScopeAddedRow(item) {
     ? '<span class="sca-item-type sca-item-type--r">R</span>'
     : '<span class="sca-item-type sca-item-type--t">T</span>';
 
-  const code  = _esc(item.code  || '');
-  const title = _esc(item.title || '');
+  const code  = _escSpr(item.code  || '');
+  const title = _escSpr(item.title || '');
 
   return `<div class="sca-item">
     ${typePill}
     <span class="sca-item-code">${code}</span>
     <span class="sca-item-title">${title}</span>
-    <span class="sca-item-date">${_esc(dateStr)}</span>
+    <span class="sca-item-date">${_escSpr(dateStr)}</span>
   </div>`;
 }
 
-// T-202605-071: _esc unificada con esc() de locus-ui-shell.js
-// Guard typeof — AC estándar Fase A · fallback inline si locus-ui-shell no cargó
-const _esc = typeof esc === 'function'
+// T-202605-071: _escSpr — helper local de escape HTML para locus-backlog-sprints.js
+// Nombre local (_escSpr) para evitar colisión con _esc declarada en locus-contracts.js.
+// Delega a esc() de locus-ui-shell.js si está disponible — fallback inline si no cargó.
+const _escSpr = typeof esc === 'function'
   ? esc
   : str => String(str == null ? '' : str)
       .replace(/&/g, '&amp;')
@@ -1542,5 +1543,5 @@ function renderSprintWorkers(sp, allItems) {
 }
 
 function _buildWorkerPill(name) {
-  return `<span class="spw-pill">${_esc(name)}</span>`;
+  return `<span class="spw-pill">${_escSpr(name)}</span>`;
 }
