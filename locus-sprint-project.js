@@ -735,7 +735,7 @@ function clearProjectFilter() {
   // B-202604-NNN: recargar ITEMS siempre al limpiar filtro
   loadBacklog(); loadHtmlMap();
   render(); renderHoy();
-  if (currentTab === 'analytics') renderAnalytics();
+  if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   // B-202604-NNN: render backlog incondicional — funciona en tab Templates y tab Backlog
   renderBacklogList(); renderStats();
   _renderTplProjBanner();
@@ -800,7 +800,7 @@ function selectProjectFilter(projId) {
   // B-202604-NNN: recargar ITEMS siempre al cambiar proyecto — independientemente del tab activo
   loadBacklog(); loadHtmlMap();
   render(); renderHoy();
-  if (currentTab === 'analytics') renderAnalytics();
+  if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   // B-202604-NNN: render backlog incondicional — funciona en tab Templates y tab Backlog
   renderBacklogList(); renderStats();
   _renderTplProjBanner();

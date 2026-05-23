@@ -821,7 +821,7 @@ function updateBacklogBanner() {
   }
   if (banner) banner.classList.add('visible');
   // Mostrar botón exportar solo si estamos en tab backlog
-  if (exportBtn && currentTab === 'backlog') exportBtn.classList.remove("is-hidden")
+  if (exportBtn && typeof currentTab !== 'undefined' && currentTab === 'backlog') exportBtn.classList.remove("is-hidden")
 
   const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
   const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
@@ -831,7 +831,7 @@ function updateBacklogBanner() {
 
 // Actualizar el indicador de importado cada minuto
 setInterval(() => {
-  if (currentTab === 'backlog') updateBacklogBanner();
+  if (typeof currentTab !== 'undefined' && currentTab === 'backlog') updateBacklogBanner();
 }, 60000);
 
 function importBacklog(event) {
