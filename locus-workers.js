@@ -115,33 +115,58 @@ function deleteAI(id) {
 }
 
 // ── T-202604-049: Menú ⋯ en cards ──
+// B-202605-020: el dropdown se mueve a document.body al abrir para escapar de
+// ancestros con overflow:auto (.tracker-col--card) que rompen position:fixed.
+// Al cerrar se devuelve al wrap original para mantener la estructura del DOM.
+
 function toggleCardMenu(id, e) {
   e.stopPropagation();
   const dd = document.getElementById('dotmenu-' + id);
   if (!dd) return;
   const isOpen = dd.classList.contains('open');
-  document.querySelectorAll('.card-dot-dropdown.open').forEach(el => el.classList.remove('open'));
+  // Cerrar cualquier otro menú abierto (devuelve al wrap si está en body)
+  document.querySelectorAll('.card-dot-dropdown.open').forEach(el => {
+    const elId = el.id.replace('dotmenu-', '');
+    _closeCardMenuPortal(elId);
+  });
   if (!isOpen) {
     const btn = e.currentTarget;
     const rect = btn.getBoundingClientRect();
-    // B-202605-020: medir ancho antes de hacer visible para evitar parpadeo.
-    // offsetWidth es 0 con display:none — usar min-width declarado en CSS (188px).
+    // B-202605-020: min-width declarado en CSS (188px) — offsetWidth es 0 con display:none
     const menuWidth = 188;
     dd.style.top  = (rect.bottom + 4) + 'px';
     dd.style.left = (rect.right - menuWidth) + 'px';
+    // Mover a body para escapar de overflow:auto del scroll container
+    dd.dataset.wrapId = 'dotmenu-wrap-' + id;
+    document.body.appendChild(dd);
     dd.classList.add('open');
   }
 }
 
-function closeCardMenu(id) {
+function _closeCardMenuPortal(id) {
   const dd = document.getElementById('dotmenu-' + id);
-  if (dd) dd.classList.remove('open');
+  if (!dd) return;
+  dd.classList.remove('open');
+  // Devolver al wrap original si fue movido a body
+  const wrapId = dd.dataset.wrapId;
+  if (wrapId) {
+    const wrap = document.getElementById(wrapId);
+    if (wrap && dd.parentNode === document.body) wrap.appendChild(dd);
+    delete dd.dataset.wrapId;
+  }
+}
+
+function closeCardMenu(id) {
+  _closeCardMenuPortal(id);
 }
 
 // Cerrar menú al click fuera — ignorar clicks dentro del propio card-dot-menu
 document.addEventListener('click', function(e) {
   if (e.target.closest('.card-dot-menu')) return;
-  document.querySelectorAll('.card-dot-dropdown.open').forEach(el => el.classList.remove('open'));
+  document.querySelectorAll('.card-dot-dropdown.open').forEach(el => {
+    const id = el.id.replace('dotmenu-', '');
+    _closeCardMenuPortal(id);
+  });
 });
 
 // ── T-033: Archivar / restaurar IA ──
