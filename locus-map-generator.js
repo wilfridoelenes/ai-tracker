@@ -1,6 +1,6 @@
 /**
  * locus-map-generator.js
- * Versión: v1.3.2 | Última actualización: 2026-05-19 UTC-6
+ * Versión: v1.3.3 | Última actualización: 2026-05-23 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
  * Módulo: Document Generator — MAP + CONTEXT + BACKLOG + Sprint Review + ZIP
  * Proyecto: Locus
  * Renombrado de ai-tracker-map-generator.js
@@ -1692,7 +1692,7 @@ function _doConfirmGenerate() {
       try {
         const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
         if (proj) {
-          const metaKey = `ai-tracker-plan-auto-${proj.id}`;
+          const metaKey = `sprint-plan:auto-${proj.id}`; // T-202605-069: alineado con locus-sprint-plan.js (T-202605-068)
           localStorage.setItem(metaKey, JSON.stringify({ ts: Date.now(), sprintId: docs._planSprintId || '?' }));
         }
       } catch(e) {}

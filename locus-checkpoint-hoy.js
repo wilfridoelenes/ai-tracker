@@ -126,22 +126,20 @@ function _startSidebarTicker() {
         if (reset <= now) reset.setDate(reset.getDate() + 1);
         const diff = Math.max(0, Math.round((reset - now) / 60000));
         if (diff === 0) {
-          // B-[pendiente-ID]: actualización quirúrgica — no llamar render() completo.
-          // Mutar estado del AI a 'available' y actualizar solo los elementos DOM afectados.
+          // Fix: limpiar los tres campos de estado, persistir y hacer render completo.
+          // Las actualizaciones quirúrgicas de DOM previas eran insuficientes — no movían
+          // la IA de la sección exhausted a available en sidebar ni en card.
           ai.status = 'available';
-          // Actualizar badge de status en tsb-row si existe
-          const statusEl = el.querySelector('.tsb-ai-status');
-          if (statusEl) statusEl.textContent = 'Disponible';
-          // Remover countdown del sidebar
-          if (cdEl) cdEl.remove();
-          // Actualizar unlock label
-          const unlockLblEl = document.getElementById('unlock-lbl-' + ai.id);
-          if (unlockLblEl) unlockLblEl.textContent = 'Disponible ahora';
-          // Actualizar radar sidebar card si existe
-          const rsbCard = document.getElementById('rsb-card-' + ai.id);
-          if (rsbCard) {
-            const rsbCd = rsbCard.querySelector('.rsb-countdown');
-            if (rsbCd) rsbCd.textContent = '--:--:--';
+          ai.resetTime = '';
+          ai.resetEpoch = null;
+          if (typeof saveImmediate === 'function') {
+            saveImmediate().then(() => {
+              if (typeof render === 'function') render();
+              if (typeof renderHoy === 'function' && currentTab === 'hoy') renderHoy();
+            });
+          } else {
+            if (typeof render === 'function') render();
+            if (typeof renderHoy === 'function' && currentTab === 'hoy') renderHoy();
           }
         } else {
           const h = Math.floor(diff / 60), m = diff % 60;

@@ -1,6 +1,6 @@
 /* locus-backlog.css */
 
-/* Versión: 2.2 | Última actualización: 2026-05-22 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
+/* Versión: 2.2 | Última actualización: 2026-05-23 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
 
 /* T-202604-059: sección descartados en backlog */
 .section-group.sg-discarded .section-group-header {
@@ -8306,3 +8306,20 @@ textarea:hover {
   cursor: default;
   transition: box-shadow 0.15s;
 }
+
+/* ══ T-202605-056: Tab Sprint — empty state centrado ══ */
+
+#tab-sprint .tab-sprint-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  min-height: 300px;
+  text-align: center;
+  padding: var(--spacing-xl, 40px);
+}
+
+/* ══ END T-202605-056 ══ */
+

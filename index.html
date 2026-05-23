@@ -14,12 +14,12 @@
 <link rel="stylesheet" href="locus-base.css">
 <link rel="stylesheet" href="locus-layout.css">
 <link rel="stylesheet" href="locus-backlog.css">
+<link rel="stylesheet" href="locus-sprint.css">
 <link rel="stylesheet" href="locus-tracker.css">
 <link rel="stylesheet" href="locus-radar.css">
 <link rel="stylesheet" href="locus-analytics.css">
 <link rel="stylesheet" href="locus-modals.css">
 <link rel="stylesheet" href="locus-proyectos.css">
-<link rel="stylesheet" href="locus-overrides.css">
 
 </head>
 <body>
@@ -45,7 +45,7 @@
       <div class="logo-project-label" id="header-project-label">
         <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" onclick="if(typeof openProjPanel==='function')openProjPanel()">Locus</button>
         <span class="breadcrumb-sep breadcrumb-sep--first breadcrumb-seg--hidden" aria-hidden="true">›</span>
-        <button class="breadcrumb-seg breadcrumb-seg--sprint breadcrumb-seg--hidden" id="breadcrumb-sprint" title="Ver sprint health" onclick="if(typeof toggleSprintHealthPanel==='function')toggleSprintHealthPanel()"></button>
+        <button class="breadcrumb-seg breadcrumb-seg--sprint breadcrumb-seg--hidden" id="breadcrumb-sprint" title="Sprint activo"></button>
         <span class="breadcrumb-sep breadcrumb-sep--sprint breadcrumb-seg--hidden" aria-hidden="true">›</span>
         <button class="breadcrumb-seg breadcrumb-seg--item breadcrumb-seg--hidden" id="breadcrumb-item" title=""></button>
       </div>
@@ -55,6 +55,7 @@
       <button class="tab-btn" id="tab-btn-tracker" onclick="switchTab('tracker')" title="Ver Tracker de sesiones">🗂 Sesiones<span class="tab-notif-badge hidden" id="tab-notif-badge-tracker"></span></button>
       <button class="tab-btn" id="tab-btn-proyectos" onclick="switchTab('proyectos')" title="Dashboard estratégico de proyectos">📁 Proyectos<span class="tab-notif-badge hidden" id="tab-notif-badge-proyectos"></span></button>
       <button class="tab-btn" id="tab-btn-backlog" onclick="switchTab('backlog')" title="Backlog — ítems, sprints y estado del ecosistema">🗃 Backlog<span class="tab-notif-badge hidden" id="tab-notif-badge-backlog"></span></button>
+      <button class="tab-btn" id="tab-btn-sprint" onclick="switchTab('sprint')" title="Sprint — estado y ejecución del sprint activo">🏃 Sprint<span class="tab-notif-badge hidden" id="tab-notif-badge-sprint"></span></button>
       <button class="tab-btn" id="tab-btn-analytics" onclick="switchTab('analytics')" title="Analytics — sesiones por mes">📊 Analytics<span class="tab-notif-badge hidden" id="tab-notif-badge-analytics"></span></button>
     </div>
 
@@ -157,7 +158,7 @@
       <input type="file" id="context-file-input" accept=".md,text/markdown,text/plain" class="is-hidden" onchange="_importContextMdFromFile(event)">
       <input type="file" id="backlog-file-input" accept=".md,text/markdown,text/plain" class="is-hidden" onchange="importBacklog(event)">    </div>
   </div>
-  <div id="header-sprint-row" role="button" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" onclick="if(typeof toggleSprintHealthPanel==='function')toggleSprintHealthPanel()" title="Ver sprint health">
+  <div id="header-sprint-row" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
     <span class="hsr-label" id="hsr-label"></span>
     <div class="hsr-bar"><div class="hsr-bar-fill" id="hsr-bar-fill"></div></div>
     <span class="hsr-text" id="hsr-text"></span>
@@ -460,7 +461,6 @@
     <!-- Capa 1: Toolbar principal — layout + vistas + collapse + búsqueda -->
     <div class="bl-toolbar" id="bl-toolbar">
       <div class="bl-toolbar-views" role="tablist" aria-label="Vista del backlog">
-        <button class="bl-toolbar-view-btn active" id="fbar-sprint-btn" onclick="toggleBacklogSprintGroupMode()" title="Agrupación por sprint activa — click para vista plana" role="tab" aria-selected="true">Sprints</button>
         <button class="bl-toolbar-view-btn active" id="fbar-tree-btn" onclick="toggleBacklogTreeMode()" title="Vista árbol" role="tab" aria-selected="true">⊞ Árbol</button>
         <button class="bl-toolbar-view-btn" id="fbar-kanban-btn" onclick="toggleBacklogKanbanMode()" title="Vista Kanban" role="tab" aria-selected="false">⬛ Kanban</button>
         <button class="bl-toolbar-view-btn" id="fbar-planning-btn" onclick="toggleBacklogPlanningMode()" title="Vista Planificación — asignar ítems al siguiente sprint" role="tab" aria-selected="false">📅 Planificar</button>
@@ -628,7 +628,87 @@
   <div id="tab-analytics-inner"></div>
 </div>
 
-<!-- ═══ TAB PROYECTOS ═══ -->
+<!-- ═══ TAB SPRINT ═══ -->
+<div class="tab-panel" id="tab-sprint">
+  <!-- Header sprint activo — visible solo cuando hay sprint activo -->
+  <div class="sph-header is-hidden" id="sprint-panel-header">
+    <div class="sph-inner">
+      <div class="sph-name" id="sph-name"></div>
+      <div class="sph-meta">
+        <span class="sph-version" id="sph-version"></span>
+        <span class="sph-release-pill" id="sph-release-pill"></span>
+        <span class="sph-days" id="sph-days"></span>
+      </div>
+      <div class="sph-burndown">
+        <div class="sph-bd-labels">
+          <span class="sph-bd-label" id="sph-bd-label">Effort: 0 / 0</span>
+          <span class="sph-bd-pct" id="sph-bd-pct">0%</span>
+        </div>
+        <div class="sph-bd-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sph-bd-track">
+          <div class="sph-bd-fill" id="sph-bd-fill"></div>
+        </div>
+        <div class="sph-bd-warn is-hidden" id="sph-bd-warn"></div>
+      </div>
+      <!-- Botón cierre sprint — T-202605-062 -->
+      <button class="btn-close-sprint is-hidden"
+              id="btn-close-sprint"
+              aria-label="Cerrar sprint"
+              onclick="if(typeof confirmCloseSprint==='function'){ const sp=typeof _getActiveSprint==='function'?_getActiveSprint():null; if(sp) confirmCloseSprint(sp.id); }">
+        Cerrar sprint
+      </button>
+    </div>
+  </div>
+  <!-- Workers vinculados al sprint — T-202605-061 -->
+  <div class="spw-section is-hidden" id="sprint-workers" aria-label="Workers vinculados al sprint">
+    <div class="spw-header">
+      <span class="spw-label">Workers</span>
+    </div>
+    <div class="spw-body" id="spw-body"></div>
+  </div>
+  <!-- /Workers vinculados al sprint -->
+
+  <div class="spi-list is-hidden" id="sprint-items-list" aria-label="Ítems del sprint activo">
+    <div class="spi-section" id="spi-section-pendiente">
+      <div class="spi-section-header">
+        <span class="spi-section-label">Pendiente</span>
+        <span class="spi-section-count" id="spi-count-pendiente">0</span>
+      </div>
+      <div class="spi-section-body" id="spi-body-pendiente"></div>
+    </div>
+    <div class="spi-section" id="spi-section-bloqueado">
+      <div class="spi-section-header">
+        <span class="spi-section-label spi-label--blocked">Bloqueado</span>
+        <span class="spi-section-count" id="spi-count-bloqueado">0</span>
+      </div>
+      <div class="spi-section-body" id="spi-body-bloqueado"></div>
+    </div>
+    <div class="spi-section" id="spi-section-done">
+      <div class="spi-section-header">
+        <span class="spi-section-label spi-label--done">Done</span>
+        <span class="spi-section-count" id="spi-count-done">0</span>
+      </div>
+      <div class="spi-section-body" id="spi-body-done"></div>
+    </div>
+  </div>
+  <!-- Scope added — T-202605-060 -->
+  <div class="sca-section is-hidden" id="sprint-scope-added" aria-label="Ítems añadidos al sprint">
+    <div class="sca-header">
+      <span class="sca-label">Scope añadido</span>
+      <span class="sca-count" id="sca-count">0</span>
+    </div>
+    <div class="sca-body" id="sca-body"></div>
+  </div>
+  <!-- /Scope added -->
+
+  <div id="tab-sprint-empty" class="tab-sprint-empty is-hidden">
+    <div class="empty-icon">🏃</div>
+    <div class="empty-title">No hay sprint activo</div>
+    <div class="empty-hint">Crea un sprint para comenzar a planificar y ejecutar ítems del backlog.</div>
+    <div class="es-cta-row">
+      <button class="empty-btn" onclick="if(typeof openNewSprintInline==='function') openNewSprintInline()">+ Nuevo sprint</button>
+    </div>
+  </div>
+</div>
 <div class="tab-panel" id="tab-proyectos">
   <div id="tab-proyectos-inner" class="tab-proyectos-content"></div>
 </div>
@@ -1623,7 +1703,7 @@ function _validateResetBacklogInput(el) {
 <script src="locus-misc-ui.js"></script>
 <script src="locus-projects.js"></script>
 <script src="locus-docs.js"></script>
-<script src="locus-plan.js"></script>
+<script src="locus-sprint-plan.js"></script>
 <script src="locus-contracts.js"></script>
 <script src="locus-map-viewer.js"></script>
 <script src="locus-backlog-core.js"></script>
@@ -1632,6 +1712,7 @@ function _validateResetBacklogInput(el) {
 <script src="locus-backlog-render.js"></script>
 <script src="locus-backlog-sprints.js"></script>
 <script src="locus-backlog-archive.js"></script>
+<script src="locus-sprint.js"></script>
 <script src="locus-sprint-project.js"></script>
 <script src="locus-map-generator.js"></script>
 <script src="locus-command-palette.js"></script>

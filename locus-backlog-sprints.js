@@ -1230,3 +1230,317 @@ function navigateToItem(code) {
   }, 120);
 }
 
+
+// T-202605-058: Burndown — barra de progreso effort done vs total del sprint activo
+function renderSprintBurndown() {
+  const trackEl  = document.getElementById('sph-bd-track');
+  const fillEl   = document.getElementById('sph-bd-fill');
+  const labelEl  = document.getElementById('sph-bd-label');
+  const pctEl    = document.getElementById('sph-bd-pct');
+  const warnEl   = document.getElementById('sph-bd-warn');
+  if (!trackEl || !fillEl || !labelEl || !pctEl || !warnEl) return;
+
+  const sp = _getActiveSprint();
+  if (!sp) {
+    labelEl.textContent = 'Effort: 0 / 0';
+    pctEl.textContent   = '0%';
+    fillEl.style.removeProperty('--sph-bd-width');
+    fillEl.classList.remove('is-complete');
+    fillEl.classList.remove('is-ready');
+    trackEl.setAttribute('aria-valuenow', '0');
+    warnEl.classList.add('is-hidden');
+    warnEl.textContent = '';
+    const btnEl = document.getElementById('btn-close-sprint');
+    if (btnEl) btnEl.classList.add('is-hidden');
+    return;
+  }
+
+  const spItems = (typeof ITEMS !== 'undefined' ? ITEMS : [])
+    .filter(i => i.sprint === sp.id && i.status !== 'descartado');
+
+  // Solo ítems con effort declarado contribuyen al cálculo
+  const withEffort    = spItems.filter(i => i.effort && parseInt(i.effort) > 0);
+  const withoutEffort = spItems.filter(i => !i.effort || parseInt(i.effort) === 0);
+
+  const totalEffort = withEffort.reduce((acc, i) => acc + parseInt(i.effort), 0);
+  const doneEffort  = withEffort
+    .filter(i => i.status === 'done')
+    .reduce((acc, i) => acc + parseInt(i.effort), 0);
+
+  const pct = totalEffort > 0 ? Math.round(doneEffort / totalEffort * 100) : 0;
+
+  labelEl.textContent = `Effort: ${doneEffort} / ${totalEffort}`;
+  pctEl.textContent   = `${pct}%`;
+  trackEl.setAttribute('aria-valuenow', pct);
+
+  // width vía CSS custom property — CSS Purity
+  fillEl.style.setProperty('--sph-bd-width', pct + '%');
+  fillEl.classList.toggle('is-complete', pct >= 100);
+
+  // Indicador de ítems sin effort
+  if (withoutEffort.length > 0) {
+    warnEl.textContent = `${withoutEffort.length} ítem${withoutEffort.length > 1 ? 's' : ''} sin effort — no incluidos en el cálculo`;
+    warnEl.classList.remove('is-hidden');
+  } else {
+    warnEl.classList.add('is-hidden');
+    warnEl.textContent = '';
+  }
+
+  // T-202605-062: indicador y botón de cierre — debe ejecutarse después del write de labelEl
+  _updateCloseReadyState(sp, labelEl);
+}
+
+// T-202605-062: evalúa condición de cierre y actualiza indicador + botón
+function _updateCloseReadyState(sp, labelEl) {
+  const fillEl  = document.getElementById('sph-bd-fill');
+  const btnEl   = document.getElementById('btn-close-sprint');
+  if (!fillEl || !btnEl) return;
+
+  if (!sp) {
+    fillEl.classList.remove('is-ready');
+    btnEl.classList.add('is-hidden');
+    return;
+  }
+
+  // AC-6: solo Rs no descartados del sprint. Ts hijos excluidos. Sin Rs → no listo.
+  const spRs = (typeof ITEMS !== 'undefined' ? ITEMS : [])
+    .filter(i => i.sprint === sp.id && i.type === 'R' && i.status !== 'descartado');
+
+  const isReady = spRs.length > 0 && spRs.every(i => i.status === 'done');
+
+  // AC-4/AC-5: fill verde + label "listo" — o estado normal
+  fillEl.classList.toggle('is-ready', isReady);
+  if (labelEl) {
+    labelEl.textContent = isReady ? '✓ Listo para cerrar' : labelEl.textContent;
+  }
+
+  // AC-1: botón visible solo cuando listo
+  btnEl.classList.toggle('is-hidden', !isReady);
+}
+
+// T-202605-044: Lista de Rs del sprint activo agrupados por estado
+function renderSprintItems() {
+  const listEl    = document.getElementById('sprint-items-list');
+  const emptyEl   = document.getElementById('tab-sprint-empty');
+  const headerEl  = document.getElementById('sprint-panel-header');
+  if (!listEl || !emptyEl) return;
+
+  const sp = _getActiveSprint();
+
+  // Sin sprint activo — mostrar empty state
+  if (!sp) {
+    listEl.classList.add('is-hidden');
+    emptyEl.classList.remove('is-hidden');
+    return;
+  }
+
+  // Con sprint activo — ocultar empty, mostrar header + lista
+  emptyEl.classList.add('is-hidden');
+  if (headerEl) headerEl.classList.remove('is-hidden');
+  listEl.classList.remove('is-hidden');
+
+  const allItems = typeof ITEMS !== 'undefined' ? ITEMS : [];
+
+  // Solo Rs del sprint activo (excluir descartados)
+  const spRs = allItems.filter(i =>
+    i.sprint === sp.id &&
+    i.type === 'R' &&
+    i.status !== 'descartado'
+  );
+
+  // Clasificar: bloqueado > done > pendiente
+  const _blocked  = typeof _isBlocked === 'function' ? _isBlocked : () => false;
+  const blocked   = spRs.filter(i => _blocked(i) && i.status !== 'done');
+  const done      = spRs.filter(i => i.status === 'done');
+  const pendiente = spRs.filter(i => i.status !== 'done' && !_blocked(i));
+
+  _renderSprintSection('pendiente', pendiente, allItems);
+  _renderSprintSection('bloqueado', blocked,   allItems);
+  _renderSprintSection('done',      done,       allItems);
+
+  renderScopeAdded(sp, allItems);    // T-202605-060
+  renderSprintWorkers(sp, allItems); // T-202605-061
+}
+
+function _renderSprintSection(sectionId, items, allItems) {
+  const bodyEl  = document.getElementById('spi-body-' + sectionId);
+  const countEl = document.getElementById('spi-count-' + sectionId);
+  const sectionEl = document.getElementById('spi-section-' + sectionId);
+  if (!bodyEl || !countEl || !sectionEl) return;
+
+  countEl.textContent = items.length;
+
+  // Ocultar sección si no hay ítems
+  sectionEl.classList.toggle('is-hidden', items.length === 0);
+
+  if (items.length === 0) {
+    bodyEl.innerHTML = '';
+    return;
+  }
+
+  bodyEl.innerHTML = items.map(item => _buildSprintItemRow(item, sectionId, allItems)).join('');
+}
+
+function _buildSprintItemRow(item, sectionId, allItems) {
+  const isBlocked = sectionId === 'bloqueado';
+  const isDone    = sectionId === 'done';
+
+  // Ts hijos del R — para mostrar progreso
+  const children     = allItems.filter(c => c.parentId === item.code && c.type === 'T');
+  const childrenDone = children.filter(c => c.status === 'done');
+  const childrenHtml = children.length > 0
+    ? `<span class="spi-item-children">${childrenDone.length}/${children.length} T</span>`
+    : '';
+
+  // Indicador de bloqueante
+  const blockedIconHtml = isBlocked
+    ? `<span class="spi-item-blocked-icon" title="Bloqueado por ítem pendiente">🔒</span>`
+    : '';
+
+  // Pill de estado
+  const statusClass = isDone ? 'done' : isBlocked ? 'blocked' : 'pendiente';
+  const statusLabel = isDone ? 'Done' : isBlocked ? 'Bloqueado' : 'Pendiente';
+  const statusHtml  = `<span class="spi-item-status spi-item-status--${statusClass}">${statusLabel}</span>`;
+
+  // Clases del ítem
+  const itemClass = [
+    'spi-item',
+    isDone    ? 'spi-item--done'    : '',
+    isBlocked ? 'spi-item--blocked' : ''
+  ].filter(Boolean).join(' ');
+
+  const code  = _esc(item.code  || '');
+  const title = _esc(item.title || '');
+
+  return `<div class="${itemClass}" role="button" tabindex="0"
+    onclick="if(typeof navigateToItem==='function') navigateToItem('${item.code}')"
+    onkeydown="if(event.key==='Enter'&&typeof navigateToItem==='function') navigateToItem('${item.code}')"
+    title="Ir a ${code} en Tab Backlog">
+    <span class="spi-item-code">${code}</span>
+    <span class="spi-item-title">${title}</span>
+    ${childrenHtml}
+    ${blockedIconHtml}
+    ${statusHtml}
+  </div>`;
+}
+
+// T-202605-060: Sección scope added — ítems añadidos al sprint después de su apertura
+function renderScopeAdded(sp, allItems) {
+  const sectionEl = document.getElementById('sprint-scope-added');
+  const bodyEl    = document.getElementById('sca-body');
+  const countEl   = document.getElementById('sca-count');
+  if (!sectionEl || !bodyEl || !countEl) return;
+
+  // Sin sprint activo — ocultar sección
+  if (!sp) {
+    sectionEl.classList.add('is-hidden');
+    return;
+  }
+
+  // Ítems del sprint activo con flag scope_added (R o T, excluir descartados)
+  const added = allItems.filter(i =>
+    i.sprint === sp.id &&
+    i.scope_added === true &&
+    i.status !== 'descartado'
+  );
+
+  // Sección siempre visible cuando hay sprint activo — AC-3
+  sectionEl.classList.remove('is-hidden');
+  countEl.textContent = added.length;
+
+  if (added.length === 0) {
+    bodyEl.innerHTML = '<div class="sca-empty">Sin adiciones al scope del sprint.</div>';
+    return;
+  }
+
+  bodyEl.innerHTML = added.map(_buildScopeAddedRow).join('');
+}
+
+function _buildScopeAddedRow(item) {
+  // Fecha de adición: última entrada history type:'sprint' con data.to === item.sprint
+  const pad2 = n => String(n).padStart(2, '0');
+  let dateStr = '—';
+  if (Array.isArray(item.history)) {
+    const entry = [...item.history]
+      .reverse()
+      .find(h => h.type === 'sprint' && h.data && h.data.to === item.sprint);
+    if (entry && entry.ts) {
+      const d = new Date(entry.ts);
+      dateStr = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+    }
+  }
+
+  const typePill = item.type === 'R'
+    ? '<span class="sca-item-type sca-item-type--r">R</span>'
+    : '<span class="sca-item-type sca-item-type--t">T</span>';
+
+  const code  = _esc(item.code  || '');
+  const title = _esc(item.title || '');
+
+  return `<div class="sca-item">
+    ${typePill}
+    <span class="sca-item-code">${code}</span>
+    <span class="sca-item-title">${title}</span>
+    <span class="sca-item-date">${_esc(dateStr)}</span>
+  </div>`;
+}
+
+// T-202605-071: _esc unificada con esc() de locus-ui-shell.js
+// Guard typeof — AC estándar Fase A · fallback inline si locus-ui-shell no cargó
+const _esc = typeof esc === 'function'
+  ? esc
+  : str => String(str == null ? '' : str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+
+// T-202605-061: Sección workers vinculados al sprint activo
+function renderSprintWorkers(sp, allItems) {
+  const sectionEl = document.getElementById('sprint-workers');
+  const bodyEl    = document.getElementById('spw-body');
+  if (!sectionEl || !bodyEl) return;
+
+  // Sin sprint activo — ocultar sección (AC-3)
+  if (!sp) {
+    sectionEl.classList.add('is-hidden');
+    return;
+  }
+
+  // Recopilar aiIds únicos desde history de ítems del sprint activo (AC-5)
+  const sprintItems = allItems.filter(i =>
+    i.sprint === sp.id &&
+    i.status !== 'descartado'
+  );
+
+  const seenIds = new Set();
+  sprintItems.forEach(item => {
+    if (!Array.isArray(item.history)) return;
+    item.history.forEach(h => {
+      if (h.aiId) seenIds.add(h.aiId);
+    });
+  });
+
+  // Sección siempre visible con sprint activo (AC-2 y AC-3)
+  sectionEl.classList.remove('is-hidden');
+
+  if (seenIds.size === 0) {
+    bodyEl.innerHTML = '<span class="spw-empty">Sin workers vinculados.</span>';
+    return;
+  }
+
+  // Resolver nombres via getAI() (AC-5)
+  const pills = [];
+  seenIds.forEach(aiId => {
+    const ai = (typeof getAI === 'function') ? getAI(aiId) : null;
+    const name = (ai && ai.name) ? ai.name : aiId;
+    pills.push(_buildWorkerPill(name));
+  });
+
+  bodyEl.innerHTML = pills.join('');
+}
+
+function _buildWorkerPill(name) {
+  return `<span class="spw-pill">${_esc(name)}</span>`;
+}

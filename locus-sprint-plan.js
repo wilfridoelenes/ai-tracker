@@ -1,14 +1,95 @@
-// locus-plan.js
-// Última actualización: 2026-05-19 UTC-6
+// locus-sprint-plan.js
+// Versión: 1.0.1 | Última actualización: 2026-05-23 UTC-6 | T-202605-068 migración keys sprint-plan:*
 // Módulo: Bloque PLAN — savePlan, loadPlan, renderPlan, togglePlanZoneDone
-// Extraído de ai-tracker-ai-notes.js
+// Extraído de ai-tracker-ai-notes.js · Renombrado de locus-plan.js (T-202605-066)
 
 // ════════════════════════════════════════════════════════════════════
 // R-202604-076 · Bloque ---PLAN--- · Sub-tab Plan en Documentos
 // ════════════════════════════════════════════════════════════════════
 
+// ════════════════════════════════════════════════════════════════════
+// T-202605-068 — Migración de keys de storage al prefijo sprint-plan:*
+//
+// Keys anteriores (deprecados):
+//   localStorage : ai-tracker-plan-{projId}
+//   localStorage : ai-tracker-plan-auto-{projId}
+//   localStorage : locus-plan-zone-done-collapsed
+//   Supabase     : plan-{projId}   (tracker_docs.key)
+//
+// Keys canónicos nuevos (sprint-plan:*):
+//   localStorage : sprint-plan:{projId}
+//   localStorage : sprint-plan:auto-{projId}
+//   localStorage : sprint-plan:zone-done-collapsed
+//   Supabase     : sprint-plan-{projId}  (tracker_docs.key)
+// ════════════════════════════════════════════════════════════════════
+
 // Storage key para planes por proyecto
-function _planKey(projId) { return `ai-tracker-plan-${projId}`; }
+function _planKey(projId) { return `sprint-plan:${projId}`; }
+
+// T-202605-068: migración atómica de keys legacy → sprint-plan:*
+// Fases: (1) escribir nuevos keys · (2) verificar lectura · (3) eliminar anteriores
+// Si verificación falla → rollback completo + toast · keys anteriores intactos
+function _migratePlanKeys() {
+  const toMigrate = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (k.startsWith('ai-tracker-plan-') && !k.includes('-auto-')) {
+        const projId = k.slice('ai-tracker-plan-'.length);
+        toMigrate.push({ oldKey: k, newKey: `sprint-plan:${projId}` });
+      } else if (k.startsWith('ai-tracker-plan-auto-')) {
+        const projId = k.slice('ai-tracker-plan-auto-'.length);
+        toMigrate.push({ oldKey: k, newKey: `sprint-plan:auto-${projId}` });
+      } else if (k === 'locus-plan-zone-done-collapsed') {
+        toMigrate.push({ oldKey: k, newKey: 'sprint-plan:zone-done-collapsed' });
+      }
+    }
+  } catch(e) {
+    console.warn('[locus-sprint-plan] _migratePlanKeys scan error:', e);
+    return;
+  }
+  if (!toMigrate.length) return;
+
+  // Fase 1 — escribir nuevos keys
+  const written = [];
+  let writeFailed = false;
+  for (const { oldKey, newKey } of toMigrate) {
+    try {
+      const val = localStorage.getItem(oldKey);
+      if (val === null) continue;
+      localStorage.setItem(newKey, val);
+      written.push({ oldKey, newKey, originalVal: val });
+    } catch(e) {
+      writeFailed = true;
+      console.warn('[locus-sprint-plan] _migratePlanKeys write error:', newKey, e);
+      break;
+    }
+  }
+
+  if (writeFailed) {
+    written.forEach(({ newKey }) => { try { localStorage.removeItem(newKey); } catch(e2) {} });
+    if (typeof showToast === 'function') showToast('Error al migrar storage del Plan — datos anteriores intactos', 'error');
+    return;
+  }
+
+  // Fase 2 — verificar lectura de nuevos keys
+  let verifyFailed = false;
+  for (const { newKey, originalVal } of written) {
+    try {
+      if (localStorage.getItem(newKey) !== originalVal) { verifyFailed = true; break; }
+    } catch(e) { verifyFailed = true; break; }
+  }
+
+  if (verifyFailed) {
+    written.forEach(({ newKey }) => { try { localStorage.removeItem(newKey); } catch(e2) {} });
+    if (typeof showToast === 'function') showToast('Error al verificar migración de storage del Plan — datos anteriores intactos', 'error');
+    return;
+  }
+
+  // Fase 3 — eliminar keys anteriores (solo si verificación exitosa)
+  written.forEach(({ oldKey }) => { try { localStorage.removeItem(oldKey); } catch(e) {} });
+}
 
 // R-202605-120: savePlan — localStorage inmediato + Supabase async (tracker_docs, key plan-{suffix})
 // El objeto plan se envuelve en { data, _savedAt } para comparación de timestamps en _loadFromSupabase
@@ -23,7 +104,7 @@ function savePlan(projId, plan) {
     const suffix = '-' + projId;
     const nowIso = new Date().toISOString();
     _supabase.from('tracker_docs').upsert(
-      [{ user_id: _supabaseUser.id, key: 'plan' + suffix, value: payload, updated_at: nowIso }],
+      [{ user_id: _supabaseUser.id, key: 'sprint-plan' + suffix, value: payload, updated_at: nowIso }],
       { onConflict: 'user_id,key' }
     ).then(({ error }) => {
       if (error) {
@@ -62,7 +143,7 @@ function _planSavedAt(projId) {
 }
 
 // T-202605-509: helpers para toggle colapso zona --done
-const _PLAN_ZONE_DONE_KEY = 'locus-plan-zone-done-collapsed';
+const _PLAN_ZONE_DONE_KEY = 'sprint-plan:zone-done-collapsed';
 
 function _planZoneDoneCollapsed() {
   try {
@@ -108,7 +189,7 @@ function renderPlan() {
   // T-202605-488: chip "Generado automáticamente" si el plan vino del Generator
   let autoChipHtml = '';
   try {
-    const metaKey = `ai-tracker-plan-auto-${proj.id}`;
+    const metaKey = `sprint-plan:auto-${proj.id}`;
     const metaRaw = localStorage.getItem(metaKey);
     if (metaRaw) {
       const meta = JSON.parse(metaRaw);
@@ -354,3 +435,6 @@ function renderPlan() {
 
   panel.innerHTML = html;
 }
+
+// T-202605-068: ejecutar migración atómica al cargar el módulo
+(function() { try { _migratePlanKeys(); } catch(e) { console.warn('[locus-sprint-plan] migración fallida:', e); } })();

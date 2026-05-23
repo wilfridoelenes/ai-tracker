@@ -1,0 +1,516 @@
+/* locus-sprint.css */
+/* Versión: 1.0 | Última actualización: 2026-05-23 | Tab Sprint — estilos de header, burndown, ítems, scope added, workers y trigger de cierre */
+/* Migrado desde locus-backlog.css — T-202605-065 */
+/* Carga: después de locus-backlog.css en index.html */
+
+/* ══ T-202605-057: Tab Sprint — header sticky ══ */
+
+.sph-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  flex-shrink: 0;
+}
+
+.sph-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sph-name {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sph-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sph-version {
+  font-size: var(--text-sm);
+  color: var(--text2);
+}
+
+.sph-release-pill {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--c-pulido-bg);
+  color: var(--c-pulido-text);
+  border: 1px solid var(--c-pulido-border);
+}
+
+.sph-release-pill.is-major {
+  background: var(--c-high-bg);
+  color: var(--c-high-text);
+  border-color: var(--c-high-border);
+}
+
+.sph-release-pill.is-patch {
+  background: var(--c-won-bg);
+  color: var(--c-won-text);
+  border-color: var(--c-won-border);
+}
+
+.sph-days {
+  font-size: var(--text-sm);
+  color: var(--hint);
+}
+
+/* ══ END T-202605-057 ══ */
+
+/* ══ T-202605-058: Tab Sprint — burndown barra ══ */
+
+.sph-burndown {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.sph-bd-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sph-bd-label {
+  font-size: var(--text-sm);
+  color: var(--text2);
+}
+
+.sph-bd-pct {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sph-bd-track {
+  width: 100%;
+  height: 8px;
+  background: var(--border2, var(--border));
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.sph-bd-fill {
+  height: 100%;
+  width: var(--sph-bd-width, 0%);
+  background: var(--c-low-border);
+  border-radius: var(--radius-pill);
+  transition: width var(--trans-medium);
+}
+
+.sph-bd-fill.is-complete {
+  background: var(--c-low-text);
+}
+
+/* T-202605-062: fill verde cuando sprint listo para cerrar */
+.sph-bd-fill.is-ready {
+  background: var(--c-low-text);
+}
+
+.sph-bd-warn {
+  font-size: var(--text-xs);
+  color: var(--text2);
+}
+
+/* ══ END T-202605-058 ══ */
+
+/* ══ T-202605-044: Tab Sprint — lista de Rs por estado ══ */
+
+.spi-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 16px 24px;
+  max-width: var(--bp-ultrawide);
+  margin-inline: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.spi-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.spi-section + .spi-section {
+  margin-top: 16px;
+}
+
+.spi-section:empty {
+  display: none;
+}
+
+.spi-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+.spi-section-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text2);
+}
+
+.spi-label--blocked {
+  color: var(--c-high-text);
+}
+
+.spi-label--done {
+  color: var(--c-low-text);
+}
+
+.spi-section-count {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--hint);
+  background: var(--surface2, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0 6px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.spi-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Fila de ítem R */
+.spi-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  transition: var(--trans-fast);
+}
+
+.spi-item:hover {
+  background: var(--surface2, var(--surface));
+  border-color: var(--border2, var(--border));
+}
+
+.spi-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.spi-item--blocked {
+  opacity: 0.75;
+  border-color: var(--c-high-border);
+  background: var(--c-high-bg);
+}
+
+.spi-item--blocked:hover {
+  opacity: 0.9;
+}
+
+.spi-item--done {
+  opacity: 0.6;
+}
+
+.spi-item-code {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.spi-item-title {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spi-item--done .spi-item-title {
+  text-decoration: line-through;
+  color: var(--text2);
+}
+
+.spi-item-status {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+}
+
+.spi-item-status--pendiente {
+  background: var(--surface2, var(--surface));
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+
+.spi-item-status--done {
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border: 1px solid var(--c-low-border);
+}
+
+.spi-item-status--blocked {
+  background: var(--c-high-bg);
+  color: var(--c-high-text);
+  border: 1px solid var(--c-high-border);
+}
+
+.spi-item-blocked-icon {
+  font-size: var(--text-xs);
+  flex-shrink: 0;
+  color: var(--c-high-text);
+}
+
+/* Child progress pill — Ts hijos */
+.spi-item-children {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Sección vacía dentro de spi-section-body */
+.spi-section-empty {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  padding: 8px 10px;
+  font-style: italic;
+}
+
+/* ══ END T-202605-044 ══ */
+
+/* ══ T-202605-060: Tab Sprint — sección scope added ══ */
+
+.sca-section {
+  max-width: var(--bp-ultrawide);
+  margin-inline: auto;
+  width: 100%;
+  padding: 16px 24px 0;
+  box-sizing: border-box;
+}
+
+.sca-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.sca-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sca-count {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--hint);
+  background: var(--surface2, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 1px 7px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.sca-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sca-empty {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  padding: 8px 4px;
+  font-style: italic;
+}
+
+.sca-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  transition: var(--trans-fast);
+}
+
+.sca-item:hover {
+  background: var(--surface2, var(--surface));
+}
+
+.sca-item-type {
+  font-size: var(--text-2xs-plus);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.sca-item-type--r {
+  background: var(--c-pulido-bg);
+  color: var(--c-pulido-text);
+}
+
+.sca-item-type--t {
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+}
+
+.sca-item-code {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--hint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sca-item-title {
+  font-size: var(--text-sm);
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sca-item-date {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ══ END T-202605-060 ══ */
+
+/* ══ T-202605-061: Tab Sprint — sección workers vinculados ══ */
+
+.spw-section {
+  max-width: var(--bp-ultrawide);
+  margin-inline: auto;
+  width: 100%;
+  padding: 12px 24px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.spw-header {
+  flex-shrink: 0;
+}
+
+.spw-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.spw-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.spw-empty {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  font-style: italic;
+}
+
+.spw-pill {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text2);
+  background: var(--surface2, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+/* ══ END T-202605-061 ══ */
+
+/* ══ T-202605-062: Tab Sprint — trigger de cierre ══ */
+
+.btn-close-sprint {
+  margin-inline-start: auto;
+  padding: 6px 14px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--c-low-text);
+  background: transparent;
+  border: 1.5px solid var(--c-low-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--trans-color);
+}
+
+.btn-close-sprint:hover {
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border-color: var(--c-low-text);
+}
+
+.btn-close-sprint:active {
+  transform: scale(0.97);
+}
+
+.btn-close-sprint:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-close-sprint {
+    transition: none;
+  }
+
+  .sph-bd-fill {
+    transition: none;
+  }
+}
+
+/* ══ END T-202605-062 ══ */

@@ -59,6 +59,8 @@ function switchTab(tab) {
     if (typeof renderBacklogList === 'function') renderBacklogList();
   } else if (tab === 'analytics') {
     if (typeof renderAnalytics === 'function') renderAnalytics();
+  } else if (tab === 'sprint') {
+    // T-[pendiente-ID]: renderSprint() — pendiente implementación
   } else if (tab === 'proyectos') {
     if (typeof renderProyectos === 'function') renderProyectos();
   }

@@ -1,5 +1,5 @@
 // locus-command-palette.js
-// Versión: 1.0.3 | Última actualización: 2026-05-19 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto
+// Versión: 1.0.4 | Última actualización: 2026-05-23 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto · T-202605-067 nav-tab-sprint
 // Renombrado de ai-tracker-command-palette.js
 
 'use strict';
@@ -48,6 +48,15 @@ function _buildCommandRegistry() {
       keywords: ['proyectos', 'dashboard', 'tab'],
       group: 'Navegación',
       action: () => { if (typeof switchTab === 'function') switchTab('tab-proyectos'); },
+    },
+    {
+      // T-202605-067: nav al tab Sprint — reemplaza sub-tab Plan eliminado
+      id: 'nav-tab-sprint',
+      label: 'Ir a Sprint',
+      icon: '🏃',
+      keywords: ['sprint', 'tab', 'plan', 'activo', 'burndown'],
+      group: 'Navegación',
+      action: () => { if (typeof switchTab === 'function') switchTab('tab-sprint'); },
     },
     {
       id: 'nav-radar',

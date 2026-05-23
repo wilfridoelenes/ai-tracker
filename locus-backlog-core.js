@@ -1079,12 +1079,14 @@ function _applyStatusChange(code, newStatus, prevStatus) {
     const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
     if (el) {
       el.classList.add('item-exit-anim');
-      setTimeout(() => { renderBacklogList(); renderStats(); }, 360);
+      setTimeout(() => { renderBacklogList(); renderStats(); if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); if (typeof renderSprintItems === 'function') renderSprintItems(); }, 360); // T-202605-058 T-202605-044
       return;
     }
   }
   renderBacklogList();
   renderStats();
+  if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); // T-202605-058
+  if (typeof renderSprintItems === 'function') renderSprintItems(); // T-202605-044
 }
 
 function _resetStatusSelect(code, currentStatus) {
@@ -1214,12 +1216,14 @@ function _applyDoneStatus(code) {
     const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
     if (el) {
       el.classList.add('item-exit-anim');
-      setTimeout(() => { renderBacklogList(); renderStats(); }, 360);
+      setTimeout(() => { renderBacklogList(); renderStats(); if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); if (typeof renderSprintItems === 'function') renderSprintItems(); }, 360); // T-202605-058 T-202605-044
       return;
     }
   }
   renderBacklogList();
   renderStats();
+  if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); // T-202605-058
+  if (typeof renderSprintItems === 'function') renderSprintItems(); // T-202605-044
 }
 function effortDots(n) {
   let h = '';
@@ -1736,24 +1740,6 @@ function toggleBacklogFocusMode() {
   // B-202604-157: recalcular scores al activar Focus — garantiza orden por relevancia actualizado
   if (_backlogFocusMode) _recalcAllScores();
   updateClearFilterBtn();
-  _syncViewAriaStates();
-  renderBacklogList();
-}
-
-// R-[tmp:sprint-group-toggle]: toggle agrupación por sprint en backlog activo
-function toggleBacklogSprintGroupMode() {
-  _backlogSprintGroupMode = !_backlogSprintGroupMode;
-  if (_backlogSprintGroupMode) {
-    _backlogKanbanMode = false;
-    _backlogTreeMode = false;
-    _backlogPlanningMode = false;
-  }
-  localStorage.setItem('backlog-sprint-group-mode', String(_backlogSprintGroupMode));
-  const btn = document.getElementById('fbar-sprint-btn');
-  if (btn) {
-    btn.classList.toggle('active', _backlogSprintGroupMode);
-    btn.title = _backlogSprintGroupMode ? 'Agrupación por sprint activa — click para vista plana' : 'Vista plana activa — click para agrupar por sprint';
-  }
   _syncViewAriaStates();
   renderBacklogList();
 }
