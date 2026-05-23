@@ -950,6 +950,11 @@ header {
   min-width: 220px;
   max-height: calc(100vh - 60px);
   overflow-y: auto;
+  /* B-202605-043: fondo, borde y sombra faltantes */
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
 }
 
 /* ══ END R-202604-066 ══ */
