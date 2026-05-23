@@ -1506,7 +1506,7 @@ function buildCard(ai) {
   const inputHTML = ai.status === 'available' ? `
     <div class="paste-wrap">
       <div class="paste-label">Resumen de sesión ${_projInlineSelect}</div>
-      <div class="paste-help-box hidden" id="paste-help-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el TL al final de cada sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
+      <div class="paste-help-box is-hidden" id="paste-help-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el TL al final de cada sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
       <div class="sc-stepper" id="phasebar-${ai.id}" role="list">
         <div class="sc-step active" id="phase-paste-${ai.id}" role="listitem" aria-current="step" data-step="1"><span class="sc-step-num" aria-hidden="true">1</span>pegar</div>
         <div class="sc-step" id="phase-confirm-${ai.id}" role="listitem" data-step="2"><span class="sc-step-num" aria-hidden="true">2</span>confirmar</div>
@@ -1553,7 +1553,7 @@ function buildCard(ai) {
         <div class="hora-parsed" id="hdisp-${ai.id}">—</div>
       </div>
       <button class="sc-save" id="sbtn-${ai.id}" onclick="confirmSave('${ai.id}')" disabled>guardar sesión</button>
-      <div class="blind-exhaust-inline hidden" id="bexhaust-inline-${ai.id}">
+      <div class="blind-exhaust-inline is-hidden" id="bexhaust-inline-${ai.id}">
         <div class="blind-exhaust-hora-row">
           <input class="hora-input blind-exhaust-hora-input" id="bexhaust-hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
             oninput="blindExhaustHoraInput('${ai.id}')"
