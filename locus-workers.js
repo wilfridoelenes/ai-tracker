@@ -132,13 +132,18 @@ function toggleCardMenu(id, e) {
   if (!isOpen) {
     const btn = e.currentTarget;
     const rect = btn.getBoundingClientRect();
+    // B-202605-042: limpiar coordenadas antes de mover para evitar flash de posición anterior.
+    // Las coordenadas se aplican DESPUÉS del appendChild — el nodo llega a body sin posición
+    // stale visible, luego recibe las nuevas coordenadas y .open en el mismo tick sincrónico.
     // B-202605-020: min-width declarado en CSS (188px) — offsetWidth es 0 con display:none
     const menuWidth = 188;
-    dd.style.top  = (rect.bottom + 4) + 'px';
-    dd.style.left = (rect.right - menuWidth) + 'px';
-    // Mover a body para escapar de overflow:auto del scroll container
+    dd.style.top  = '';
+    dd.style.left = '';
     dd.dataset.wrapId = 'dotmenu-wrap-' + id;
     document.body.appendChild(dd);
+    // Coordenadas post-appendChild — previene flash de posición stale
+    dd.style.top  = (rect.bottom + 4) + 'px';
+    dd.style.left = (rect.right - menuWidth) + 'px';
     dd.classList.add('open');
   }
 }
