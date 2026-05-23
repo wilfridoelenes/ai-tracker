@@ -1124,6 +1124,10 @@ function render() {
     };
     const aisToRender = [...state.ais.filter(a => !a.archived)].sort((a, b) => _sortOrder(a) - _sortOrder(b));
     const ai = aisToRender.find(a => a.id === _trackerSelectedId) || state.ais.find(a => a.id === _trackerSelectedId);
+    // B-202605-056: preservar valor del textarea antes de destruir el DOM
+    // grid.innerHTML = '' elimina el textarea y su valor en cada render — restaurar post-buildCard
+    const _taId = ai ? 'ta-' + ai.id : null;
+    const _taSaved = _taId ? ((document.getElementById(_taId) || {}).value || '') : '';
     grid.innerHTML = '';
     if (ai) {
       const card = buildCard(ai);
@@ -1132,6 +1136,11 @@ function render() {
       // R-202604-061 AC-04: stagger reveal — una sola card en tracker, delay 0ms
       card.style.setProperty('--card-stagger-delay', '0ms');
       requestAnimationFrame(() => card.classList.add('stagger-in'));
+      // B-202605-056: restaurar valor del textarea si había texto antes del render
+      if (_taSaved) {
+        const _taNew = document.getElementById(_taId);
+        if (_taNew && !_taNew.value) _taNew.value = _taSaved;
+      }
 
       // R-202605-116: card sesión en curso — se inserta después del card IA
       const existingCsCard = document.getElementById('current-session-card-' + ai.id);
