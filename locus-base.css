@@ -161,6 +161,13 @@
   --purple-dim:    rgb(124 106 247 / 8%);   /* fondo sutil insession */
   --purple-border: rgb(124 106 247 / 30%);  /* borde insession */
 
+  /* ── T-202605-033: Tokens de color nuevos ── */
+  --text-on-accent: #000;                   /* texto sobre var(--accent) lime-green — contraste ~8:1 */
+  --text-on-danger: #fff;                   /* texto sobre var(--red) / fondos destructivos */
+  --pink:           #f472b6;                /* tag color .tc-5 */
+  --lime:           #a3e635;                /* tag color .tc-6 */
+  --orange:         #fb923c;                /* tag color .tc-7 */
+
   --card-shadow:       0 1px 6px rgb(0 0 0 / 50%), 0 0 0 1px rgb(255 255 255 / 3%);
   --card-shadow-hover: 0 4px 20px rgb(0 0 0 / 60%), 0 0 0 1px rgb(166 226 46 / 15%);
 
@@ -299,6 +306,13 @@
   --purple:        #6054d4;
   --purple-dim:    rgb(96 84 212 / 7%);    /* fondo sutil insession */
   --purple-border: rgb(96 84 212 / 22%);   /* borde insession */
+
+  /* ── T-202605-033: Tokens de color nuevos ── */
+  --text-on-accent: #000;                  /* texto sobre var(--accent) lime-green — contraste válido en ambos temas */
+  --text-on-danger: #fff;                  /* texto sobre var(--red) / fondos destructivos */
+  --pink:           #d6509e;               /* tag color .tc-5 — versión light ajustada para contraste */
+  --lime:           #6a9e1a;               /* tag color .tc-6 — versión light ajustada para contraste */
+  --orange:         #d4691a;               /* tag color .tc-7 — versión light ajustada para contraste */
 
   --card-shadow:       0 1px 4px rgb(20 22 42 / 8%);
   --card-shadow-hover: 0 4px 16px rgb(20 22 42 / 14%);
