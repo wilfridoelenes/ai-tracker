@@ -527,7 +527,7 @@ function buildBacklogItem(item) {
     ? '<span class="badge-missing badge-missing--blocked" title="Sin cambio de status en más de 14 días">⛔ bloqueado</span>'
     : '';
   // T-202604-259: badge "sin sesión" — pendiente con sprint sin mención en sesión en >14 días
-  const noSessionBadge = (!isDone && !isDiscarded && item.sprint && !_hasRecentSession(item))
+  const noSessionBadge = (!isDone && !isDiscarded && item.sprint && item.sprint !== 'n/a' && !_hasRecentSession(item))
     ? '<span class="badge-missing badge-missing--idle" title="Sin mención en sesión en más de 14 días">💤 sin sesión</span>'
     : '';
 
@@ -638,7 +638,7 @@ function buildBacklogItem(item) {
     <div class="item-body bitem-body" id="ibody-${globalIdx}">
       ${item.notes ? `<div class="bitem-notes-block"><span class="bitem-notes-label">Notas</span><span class="bitem-notes-text">${esc(item.notes)}</span></div>` : ''}
       ${_isBlocked(item) ? `<div class="bitem-missing-row"><span class="badge-missing badge-missing--blocked">⛔ bloqueado — sin cambio de status en más de ${_BLOCKED_DAYS} días</span></div>` : ''}
-      ${(!isDone && !isDiscarded && item.sprint && !_hasRecentSession(item)) ? `<div class="bitem-missing-row"><span class="badge-missing badge-missing--idle">💤 sin sesión — sin mención en los últimos ${_NO_SESSION_DAYS} días</span></div>` : ''}
+      ${(!isDone && !isDiscarded && item.sprint && item.sprint !== 'n/a' && !_hasRecentSession(item)) ? `<div class="bitem-missing-row"><span class="badge-missing badge-missing--idle">💤 sin sesión — sin mención en los últimos ${_NO_SESSION_DAYS} días</span></div>` : ''}
       ${missingAlert}
       <div class="bitem-meta-grid" onclick="event.stopPropagation()">
         <div class="bitem-meta-cell">

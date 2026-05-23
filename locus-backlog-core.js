@@ -246,7 +246,7 @@ const _NO_SESSION_DAYS = 14;
 // B-202604-200: ítems recientes sin mención retornan true via fallback createdAt en hasRecentSession
 function _hasRecentSession(item) {
   if (!item || item.status !== 'pendiente') return true; // no aplica
-  if (!item.sprint) return true; // no aplica sin sprint
+  if (!item.sprint || item.sprint === 'n/a') return true; // no aplica sin sprint — B-202605-041: 'n/a' es truthy pero equivale a sin sprint
   if (typeof hasRecentSession !== 'function') return true; // guardia — función canónica no disponible
   return hasRecentSession(item, _NO_SESSION_DAYS);
 }
