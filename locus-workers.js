@@ -124,13 +124,12 @@ function toggleCardMenu(id, e) {
   if (!isOpen) {
     const btn = e.currentTarget;
     const rect = btn.getBoundingClientRect();
+    // B-202605-020: medir ancho antes de hacer visible para evitar parpadeo.
+    // offsetWidth es 0 con display:none — usar min-width declarado en CSS (188px).
+    const menuWidth = 188;
     dd.style.top  = (rect.bottom + 4) + 'px';
-    dd.style.left = (rect.right - dd.offsetWidth || rect.right - 188) + 'px';
+    dd.style.left = (rect.right - menuWidth) + 'px';
     dd.classList.add('open');
-    // Ajuste post-render: alinear derecha del menú con derecha del botón
-    requestAnimationFrame(() => {
-      dd.style.left = (rect.right - dd.offsetWidth) + 'px';
-    });
   }
 }
 
@@ -139,8 +138,9 @@ function closeCardMenu(id) {
   if (dd) dd.classList.remove('open');
 }
 
-// Cerrar menú al click fuera
-document.addEventListener('click', function() {
+// Cerrar menú al click fuera — ignorar clicks dentro del propio card-dot-menu
+document.addEventListener('click', function(e) {
+  if (e.target.closest('.card-dot-menu')) return;
   document.querySelectorAll('.card-dot-dropdown.open').forEach(el => el.classList.remove('open'));
 });
 
