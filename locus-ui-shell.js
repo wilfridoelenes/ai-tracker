@@ -60,7 +60,7 @@ function switchTab(tab) {
   } else if (tab === 'analytics') {
     if (typeof renderAnalytics === 'function') renderAnalytics();
   } else if (tab === 'sprint') {
-    // T-[pendiente-ID]: renderSprint() — pendiente implementación
+    if (typeof renderSprintTab === 'function') renderSprintTab();
   } else if (tab === 'proyectos') {
     if (typeof renderProyectos === 'function') renderProyectos();
   }
