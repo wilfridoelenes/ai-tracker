@@ -544,7 +544,7 @@
   cursor: pointer;
   user-select: none;
   background: var(--surface);
-  transition: background 0.12s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .mm-module-header:hover {
@@ -809,7 +809,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md-plus);
   padding: 10px 14px;
-  transition: border-color 0.15s var(--ease-out);
+  transition: var(--trans-color);
   display: flex; flex-direction: column; justify-content: center;
 }
 
@@ -1193,7 +1193,7 @@
   display: inline-flex; align-items: center; gap: 5px;
   padding: 3px 8px; border-radius: var(--radius-xs); border: 1px solid var(--border);
   background: var(--surface); cursor: pointer;
-  transition: border-color 0.15s var(--ease-out), background 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .stat-effort-card:hover {
@@ -1346,7 +1346,7 @@
   font-size: var(--text-base); font-weight: 700; line-height: 1;
   padding: 4px 8px; border-radius: var(--radius-xs);
   border: 1px solid var(--border2); background: var(--surface2);
-  color: var(--text2); cursor: pointer; transition: border-color 0.15s var(--ease-out), color 0.15s var(--ease-out);
+  color: var(--text2); cursor: pointer; transition: var(--trans-color);
   flex-shrink: 0;
 }
 
@@ -1670,7 +1670,7 @@
 .sprint-actions {
   display: flex; gap: 4px; align-items: center; flex-shrink: 0;
   opacity: 0; pointer-events: none;
-  transition: opacity 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .version-group:hover .sprint-actions {
@@ -2154,7 +2154,7 @@
   font-size: var(--text-sm);
   font-family: var(--sans);
   outline: none;
-  transition: border-color .15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .backlog-search-input:focus {
@@ -2440,7 +2440,7 @@
   background: var(--surface3);
   border: 1px solid var(--border2);
   flex-shrink: 0;
-  transition: background 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .item-effort-dot-lg.on {
@@ -2758,7 +2758,7 @@
   border-radius: var(--radius-md); border: 1px solid var(--accent);
   background: var(--accent-dim); color: var(--accent);
   cursor: pointer; font-family: var(--mono);
-  transition: background 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .proj-no-sessions-cta:hover {
@@ -2769,7 +2769,7 @@
   font-family: var(--font-sans); font-size: var(--text-xs);
   background: var(--surface2); border: 1px solid var(--border);
   border-radius: var(--radius-md); color: var(--text); padding: 4px 10px;
-  outline: none; transition: border-color 0.15s var(--ease-out); width: 160px;
+  outline: none; transition: var(--trans-color); width: 160px;
 }
 
 .proj-search-input:focus {
@@ -3030,7 +3030,7 @@
   padding: 0 4px;
   line-height: 1;
   border-radius: var(--radius-sm);
-  transition: color 0.12s var(--ease-out), background 0.12s var(--ease-out);
+  transition: var(--trans-color);
   letter-spacing: 1px;
 }
 
@@ -3447,7 +3447,7 @@
   background: var(--surface);
   cursor: pointer;
   user-select: none;
-  transition: border-color 0.15s var(--ease-out), background 0.15s var(--ease-out);
+  transition: var(--trans-color);
   min-height: 32px;
 }
 
@@ -3848,7 +3848,7 @@
   font-size: var(--text-sm);
   color: var(--hint);
   white-space: nowrap;
-  transition: color 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 /* Paso completado */
@@ -3860,7 +3860,7 @@
 .scb-icon {
   font-size: var(--text-sm);
   line-height: 1;
-  transition: opacity 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .scb-step.scb-done .scb-icon {
@@ -3907,7 +3907,7 @@
   flex-shrink: 0;
   line-height: 1;
   padding: 0;
-  transition: color 0.12s var(--ease-out), background 0.12s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .scb-dismiss:hover {
@@ -4130,7 +4130,7 @@
   padding: 5px 8px;
   border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: background 0.12s var(--ease-out);
+  transition: var(--trans-color);
   margin-bottom: 2px;
 }
 
@@ -4376,7 +4376,7 @@
   color: var(--text2);
   cursor: pointer;
   font-family: var(--font-sans);
-  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 #fbar-kanban-btn.active {
@@ -4456,7 +4456,7 @@
 }
 
 .r-children-header {
-  transition: background 0.15s var(--ease-out);
+  transition: var(--trans-color);
   border-radius: var(--radius-xs);
   padding: 5px 8px;
   margin: 8px -4px 0;
@@ -4475,7 +4475,7 @@
   color: var(--text2);
   cursor: pointer;
   font-family: var(--sans);
-  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 #fbar-tree-btn.active {
@@ -4575,7 +4575,7 @@
   text-decoration: underline;
   text-underline-offset: 2px;
   text-decoration-color: rgb(56 189 248 / 40%);
-  transition: color 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .popup-tg-code--link:hover {
@@ -4590,7 +4590,7 @@
   font: inherit;
   cursor: pointer;
   text-decoration: none;
-  transition: opacity 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .log-ref--link:hover {
@@ -4610,7 +4610,7 @@
   border: 1px solid color-mix(in srgb, var(--purple,var(--purple)) 35%, transparent);
   color: var(--purple,var(--purple));
   cursor: pointer;
-  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+  transition: var(--trans-color);
   font-family: var(--sans);
 }
 
@@ -4859,7 +4859,7 @@
   padding: 4px 6px;
   border-radius: var(--radius-xs);
   line-height: 1;
-  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .arranque-close-btn:hover {
@@ -4949,7 +4949,7 @@
   font-size: var(--text-base);
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .arranque-btn-secondary:hover {
@@ -5173,7 +5173,7 @@
   font-size: var(--text-base);
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s var(--ease-out), background 0.15s var(--ease-out);
+  transition: var(--trans-color);
   margin-top: 2px;
 }
 
@@ -5280,7 +5280,7 @@
   cursor: pointer;
   padding: 0;
   border-radius: var(--radius-pill);
-  transition: background 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .pulso-dot-btn:hover {
@@ -5339,7 +5339,7 @@
   padding: 56px 12px 0;
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .pulso-overlay.pulso-visible {
@@ -5390,7 +5390,7 @@
   padding: 3px 6px;
   border-radius: var(--radius-xs);
   line-height: 1;
-  transition: background 0.12s var(--ease-out), color 0.12s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .pulso-close-btn:hover {
@@ -5512,7 +5512,7 @@
   font-weight: 600;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .pls-blocker-btn:hover {
@@ -5583,7 +5583,7 @@
   text-align: left;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  transition: background 0.12s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .acv-toggle:hover {
@@ -5690,7 +5690,7 @@
   background: none;
   color: var(--amber);
   cursor: pointer;
-  transition: background 0.12s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .acv-clarify-btn:hover {
@@ -5707,7 +5707,7 @@
   background: color-mix(in srgb, var(--green) 10%, transparent);
   color: var(--green);
   cursor: pointer;
-  transition: background 0.12s var(--ease-out);
+  transition: var(--trans-color);
   width: 100%;
 }
 
@@ -5799,7 +5799,7 @@
   font-size: var(--text-base);
   padding: 5px 10px;
   outline: none;
-  transition: border-color .15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .ctr-search-input:focus {
@@ -5815,7 +5815,7 @@
   cursor: pointer;
   padding: 4px 6px;
   border-radius: var(--radius-sm);
-  transition: color .15s var(--ease-out), background .15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .ctr-search-clear--visible {
@@ -5857,7 +5857,7 @@
   padding: 8px 12px;
   cursor: pointer;
   border-bottom: 1px solid var(--border);
-  transition: background .12s var(--ease-out);
+  transition: var(--trans-color);
   gap: 8px;
 }
 
@@ -5994,7 +5994,7 @@
   cursor: pointer;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
-  transition: color .12s var(--ease-out), background .12s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .ctr-detail-close:hover {
@@ -6977,7 +6977,7 @@
   border-radius: var(--radius-sm);
   padding:        2px 7px;
   cursor:         pointer;
-  transition:     background 0.15s var(--ease-out), color 0.15s var(--ease-out);
+  transition: var(--trans-color);
   text-decoration: none;
 }
 
@@ -7143,7 +7143,7 @@
   padding: 6px 8px;
   border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: background 120ms var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .cscard-row:hover {
@@ -7293,7 +7293,7 @@
   cursor: pointer;
   border: 1px solid transparent;
   white-space: nowrap;
-  transition: opacity 0.12s var(--ease-out), background 0.12s var(--ease-out);
+  transition: var(--trans-color);
   flex-shrink: 0;
   line-height: 1.6;
 }
@@ -8143,7 +8143,7 @@ textarea:hover {
   background: rgb(124 106 247 / 10%);
   color: var(--accent, var(--purple));
   cursor: pointer;
-  transition: background .12s, opacity .12s;
+  transition: var(--trans-color);
   font-family: var(--sans);
   font-weight: 600;
   margin-left: 4px;
@@ -8274,7 +8274,7 @@ textarea:hover {
   text-align: right;
   margin-top: 2px;
   color: var(--hint);
-  transition: color 0.15s;
+  transition: var(--trans-color);
 }
 
 /* .fb-status-msg */

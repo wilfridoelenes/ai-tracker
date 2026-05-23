@@ -15,7 +15,7 @@
   border: 1.5px solid var(--border);
   flex-shrink: 0;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: var(--trans-medium);
   color: var(--text);
 }
 
@@ -166,7 +166,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: var(--trans-fast);
   white-space: nowrap;
   width: 100%;
   text-align: left;
@@ -221,7 +221,7 @@
   background: var(--surface2);
   color: var(--text2);
   cursor: pointer;
-  transition: all 0.1s;
+  transition: var(--trans-fast);
   white-space: nowrap;
   font-family: var(--mono);
 }
@@ -246,7 +246,7 @@
   color: var(--text);
   outline: none;
   width: 140px;
-  transition: border-color 0.12s;
+  transition: var(--trans-color);
 }
 
 .log-search:focus {
@@ -327,7 +327,7 @@
   border: 1.5px dashed var(--accent-border);
   border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: var(--trans-medium);
   text-align: center;
   width: 100%;
   box-sizing: border-box;
@@ -599,7 +599,7 @@
   font-size: var(--text-2xs);
   color: var(--hint);
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: var(--trans-color);
   flex-shrink: 0;
   pointer-events: none;
 }
@@ -693,7 +693,7 @@
   cursor: pointer;
   margin-top: 2px;
   display: inline-block;
-  transition: color 0.12s;
+  transition: var(--trans-color);
 }
 
 .card-notes-toggle:hover {
@@ -714,7 +714,7 @@
   color: var(--accent);
   border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: var(--trans-fast);
 }
 
 .card-notes-save:hover {
@@ -730,7 +730,7 @@
   color: var(--hint);
   border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: var(--trans-fast);
 }
 
 .card-notes-cancel:hover {
@@ -834,7 +834,7 @@
   outline: none;
   margin-left: auto;
   max-width: 130px;
-  transition: border-color 0.15s, color 0.15s;
+  transition: var(--trans-color);
 }
 
 .paste-proj-select:hover, .paste-proj-select:focus {
@@ -1041,7 +1041,7 @@
   color: var(--green);
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: var(--trans-color);
 }
 
 .save-confirm-btn:hover {
@@ -1056,7 +1056,7 @@
   background: transparent;
   color: var(--hint);
   cursor: pointer;
-  transition: background 0.15s;
+  transition: var(--trans-color);
 }
 
 .save-cancel-btn:hover {
@@ -1329,7 +1329,7 @@
   color: var(--blue);
   cursor: pointer;
   user-select: none;
-  transition: opacity 0.12s;
+  transition: var(--trans-color);
 }
 
 .sess-review-ind:hover {
@@ -1469,7 +1469,7 @@
   font-size: var(--text-xs);
   resize:vertical;
   outline:none;
-  transition:border-color 0.15s;
+  transition: var(--trans-color);
   box-sizing:border-box;
 }
 
@@ -1510,7 +1510,7 @@
   margin-bottom:6px;
   border:1px solid var(--border);
   overflow:hidden;
-  transition:border-color 0.15s;
+  transition: var(--trans-color);
 }
 
 .pi-item.deselected {
@@ -1854,7 +1854,7 @@
   border: 1px solid rgb(232 85 85 / 20%);
   border-radius: var(--radius-lg);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: var(--trans-medium);
 }
 
 .hoy-exh-row.next-up {
@@ -2313,7 +2313,7 @@
   border-radius: var(--radius-sm);
   padding: 2px 4px;
   margin: -2px -4px;
-  transition: background 0.12s;
+  transition: var(--trans-color);
 }
 
 .pop-editable:hover {
@@ -2325,7 +2325,7 @@
   font-size: var(--text-2xs-plus);
   margin-left: 5px;
   color: var(--hint);
-  transition: opacity 0.15s;
+  transition: var(--trans-color);
   vertical-align: middle;
 }
 
@@ -2432,7 +2432,7 @@
   font-family: var(--mono);
   margin: 2px 2px 2px 0;
   cursor: pointer;
-  transition: opacity 0.12s;
+  transition: var(--trans-color);
 }
 
 .popup-ref-pill:hover {
@@ -2565,7 +2565,7 @@
   font-family: var(--mono); font-size: var(--text-lg); font-weight: 500;
   text-align: center; width: 80px; background: var(--surface2);
   border: 1px solid var(--border); border-radius: var(--radius-md); color: var(--accent);
-  padding: 5px 4px; outline: none; transition: border-color 0.15s;
+  padding: 5px 4px; outline: none; transition: var(--trans-color);
 }
 
 .quick-hora-input:focus {
@@ -2597,7 +2597,7 @@
   padding: 1px 5px; border-radius: var(--radius-sm); flex-shrink: 0;
   background: rgb(160 160 160 / 8%); color: var(--hint);
   border: 1px solid rgb(160 160 160 / 18%); letter-spacing: 0.02em;
-  opacity: 0; transition: opacity 0.12s;
+  opacity: 0; transition: var(--trans-color);
 }
 
 .sess-row:hover .sess-no-hora {
@@ -2617,7 +2617,7 @@
   font-weight:500;
   color:var(--text);
   cursor:pointer;
-  transition:all 0.15s;
+  transition: var(--trans-medium);
 }
 
 .btn-google:hover {
@@ -2695,7 +2695,7 @@
   overflow: visible;
   position: relative;
   box-shadow: var(--card-shadow);
-  transition: all 0.15s;
+  transition: var(--trans-medium);
   display: flex;
   flex-direction: column;
   animation: hoyCardIn 0.32s var(--ease-bounce) both;
@@ -2797,7 +2797,7 @@
   border-radius: var(--radius-xs);
   padding: 3px 9px;
   cursor: pointer;
-  transition: all 0.12s;
+  transition: var(--trans-fast);
 }
 
 .hoy-mini-mark-btn:hover {
@@ -2814,7 +2814,7 @@
   color: var(--green);
   background: rgb(46 204 120 / 8%);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: var(--trans-medium);
   flex-shrink: 0;
 }
 
@@ -2835,7 +2835,7 @@
   border-top: 1px solid rgb(46 204 120 / 20%);
   border-bottom: 1px solid rgb(46 204 120 / 20%);
   cursor: pointer;
-  transition: all 0.15s;
+  transition: var(--trans-medium);
   text-align: left;
   letter-spacing: -0.01em;
 }
@@ -3092,7 +3092,7 @@
   border-radius: var(--radius-md);
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: var(--trans-color);
 }
 
 #item-editor-overlay .ie-footer button:hover {
@@ -3222,7 +3222,7 @@
 .popup-secondary-toggle {
   display: flex; align-items: center; gap: 6px; cursor: pointer;
   font-size: var(--text-2xs-plus); color: var(--hint); padding: 2px 0; user-select: none;
-  transition: color 0.12s;
+  transition: var(--trans-color);
 }
 
 .popup-secondary-toggle:hover {
@@ -3357,7 +3357,7 @@
 .proj-form-input {
   font-family: var(--font-sans); font-size: var(--text-sm); flex: 1;
   background: var(--surface); border: 1px solid var(--border2);
-  border-radius: var(--radius-xs); color: var(--text); padding: 6px 9px; outline: none; transition: border-color 0.12s;
+  border-radius: var(--radius-xs); color: var(--text); padding: 6px 9px; outline: none; transition: var(--trans-color);
 }
 
 .proj-form-input:focus {
@@ -3368,7 +3368,7 @@
   font-family: var(--font-sans); font-size: var(--text-xs); width: 100%; box-sizing: border-box;
   background: var(--surface); border: 1px solid var(--border2);
   border-radius: var(--radius-xs); color: var(--text); padding: 6px 9px; outline: none;
-  resize: vertical; min-height: 52px; transition: border-color 0.12s;
+  resize: vertical; min-height: 52px; transition: var(--trans-color);
 }
 
 .proj-notes-input:focus {
@@ -3404,7 +3404,7 @@
   border-radius: var(--radius-pill);
   border: 2px solid transparent;
   cursor: pointer;
-  transition: all 0.12s;
+  transition: var(--trans-fast);
 }
 
 .proj-color-dot.sel {
@@ -3430,7 +3430,7 @@
 .proj-list-row {
   display: flex; align-items: center; gap: 8px;
   padding: 9px 12px; border-radius: var(--radius-md); background: var(--surface2);
-  border: 1px solid var(--border); transition: all 0.12s; cursor: grab;
+  border: 1px solid var(--border); transition: var(--trans-fast); cursor: grab;
 }
 
 .proj-list-row:hover {
@@ -3484,7 +3484,7 @@
   border-radius: var(--radius-xs);
   padding: 2px 7px;
   cursor: pointer;
-  transition: all 0.12s;
+  transition: var(--trans-fast);
 }
 
 .proj-list-btn:hover {
@@ -3620,7 +3620,7 @@
   font-size: var(--text-xs);
   cursor: pointer;
   padding: 2px 0;
-  transition: color 0.12s;
+  transition: var(--trans-color);
 }
 
 .backlog-danger-toggle:hover {
@@ -4032,7 +4032,7 @@
   width: 2px;
   border-radius: 0 2px 2px 0;
   background: transparent;
-  transition: background .12s;
+  transition: var(--trans-color);
 }
 
 .log-entry:hover::before {
@@ -4223,7 +4223,7 @@
   font-size: var(--text-2xs-plus);
   padding: 4px 6px;
   border-radius: var(--radius-sm);
-  transition: background .15s, color .15s;
+  transition: var(--trans-color);
 }
 
 .doc-log-clear-btn:hover,
@@ -4295,7 +4295,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  transition: background .15s, color .15s;
+  transition: var(--trans-color);
 }
 
 .doc-log-btn:hover {
@@ -4337,7 +4337,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: var(--trans-color);
 }
 
 .bitem-header:hover .copy-item-btn,
@@ -4958,7 +4958,7 @@ textarea[id^="ta-"]:focus {
   color: var(--text);
   font-size: var(--text-2xs-plus);
   cursor: pointer;
-  transition: background .15s, border-color .15s;
+  transition: var(--trans-color);
   vertical-align: middle;
   max-width: 360px;
   overflow: hidden;
@@ -5095,7 +5095,7 @@ textarea[id^="ta-"]:focus {
   cursor: pointer;
   user-select: none;
   background: var(--surface2);
-  transition: background 0.15s;
+  transition: var(--trans-color);
   flex-wrap: wrap;
 }
 
@@ -5169,7 +5169,7 @@ textarea[id^="ta-"]:focus {
   background: transparent;
   color: var(--text2);
   cursor: pointer;
-  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  transition: var(--trans-color);
   line-height: 1.5;
 }
 
@@ -5231,7 +5231,7 @@ textarea[id^="ta-"]:focus {
   padding: 8px 14px;
   cursor: pointer;
   user-select: none;
-  transition: background 0.12s;
+  transition: var(--trans-color);
 }
 
 .arch-sprint-entry-header:hover {
@@ -5315,7 +5315,7 @@ textarea[id^="ta-"]:focus {
 
 #arch-historico-body .item {
   opacity: 0.65;
-  transition: opacity 0.15s;
+  transition: var(--trans-color);
 }
 
 #arch-historico-body .item:hover {
@@ -5508,7 +5508,7 @@ textarea[id^="ta-"]:focus {
   padding: 4px 8px;
   cursor: pointer;
   outline: none;
-  transition: border-color 0.15s;
+  transition: var(--trans-color);
 }
 
 .acf-select:focus {
@@ -5742,7 +5742,7 @@ textarea[id^="ta-"]:focus {
   border: 1px solid rgb(232 85 85 / 30%);
   background: var(--red-dim);
   color: var(--red);
-  transition: background 0.12s, border-color 0.12s;
+  transition: var(--trans-color);
   font-family: inherit;
   line-height: 1;
 }
@@ -5909,7 +5909,7 @@ body.body--focus-mode::after {
   cursor: pointer;
   text-align: left;
   border-radius: var(--radius-xs);
-  transition: background .12s, color .12s;
+  transition: var(--trans-color);
 }
 
 .tpl-sidebar-notif-toggle:hover {
@@ -6203,7 +6203,7 @@ body.body--focus-mode::after {
   max-width: 140px;
   white-space: nowrap;
   overflow: hidden;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: var(--trans-color);
 
   /* Sin style= inline — layout via CSS */
 }
@@ -6316,7 +6316,7 @@ body.body--focus-mode::after {
   font-size: var(--text-base);
   font-weight:500;
   cursor:pointer;
-  transition:background .15s,color .15s;
+  transition: var(--trans-color);
 }
 
 .tvh-toggle-btn.active {
@@ -6482,7 +6482,7 @@ body.body--focus-mode::after {
   padding:7px 12px;
   border-radius: var(--radius-xs);
   cursor:pointer;
-  transition:background .12s;
+  transition: var(--trans-color);
   margin:0 4px;
 }
 
@@ -6823,7 +6823,7 @@ body.body--focus-mode::after {
   cursor: pointer;
   font-size: var(--text-2xs-plus);
   color: var(--color-text-secondary, #aaa);
-  transition: background 0.15s, border-color 0.15s;
+  transition: var(--trans-color);
   white-space: nowrap;
   user-select: none;
 }
@@ -6994,7 +6994,7 @@ body.radar-sb-open .tracker-sidebar {
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.1s;
+  transition: var(--trans-fast);
 }
 
 .log-ai-pill:hover {
@@ -7020,7 +7020,7 @@ body.radar-sb-open .tracker-sidebar {
   font-size: var(--text-xs);
   cursor: pointer;
   white-space: nowrap;
-  transition: all 0.1s;
+  transition: var(--trans-fast);
 }
 
 .log-type-pill:hover {
@@ -7324,7 +7324,7 @@ body.radar-sb-open .tracker-sidebar {
   color: var(--text);
   font-size: var(--text-xs);
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition: var(--trans-color);
 }
 
 .log-empty-cta:hover {
@@ -8095,7 +8095,7 @@ body.radar-sb-open .tracker-sidebar {
   font-weight: 500;
   border-radius: var(--radius-2xl);
   border: 1px solid var(--border2);
-  transition: all 0.12s;
+  transition: var(--trans-fast);
   background: transparent;
   color: var(--hint);
   cursor: pointer;
@@ -8127,14 +8127,14 @@ body.radar-sb-open .tracker-sidebar {
   border: 1px solid var(--border);
   border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: var(--trans-fast);
 }
 
 /* .btn-quick */
 .btn-quick {
   font-size: var(--text-xl);
   border-radius: var(--radius-md);
-  transition: all 0.12s;
+  transition: var(--trans-fast);
   background: rgb(245 197 24 / 10%);
   border: 1px solid rgb(245 197 24 / 30%);
   line-height: 1;
@@ -8154,7 +8154,7 @@ body.radar-sb-open .tracker-sidebar {
   font-size: var(--text-2xs);
   border-radius: var(--radius-xs);
   border: 1px solid var(--border);
-  transition: all 0.12s;
+  transition: var(--trans-fast);
   color: var(--hint);
   background: none;
   padding: 3px 8px;
@@ -8229,7 +8229,7 @@ body.radar-sb-open .tracker-sidebar {
   -webkit-box-orient: vertical;
   overflow: hidden;
   cursor: pointer;
-  transition: color 0.12s;
+  transition: var(--trans-color);
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -8241,7 +8241,7 @@ body.radar-sb-open .tracker-sidebar {
 
 /* .card-proj-chip */
 .card-proj-chip {
-  transition: color 0.15s, border-color 0.15s;
+  transition: var(--trans-color);
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -8267,7 +8267,7 @@ body.radar-sb-open .tracker-sidebar {
   color: var(--text2);
   cursor: pointer;
   opacity: 0.75;
-  transition: color 0.12s, opacity 0.12s;
+  transition: var(--trans-color);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -8582,7 +8582,7 @@ body.radar-sb-open .tracker-sidebar {
   border-radius: var(--radius-md);
   color: var(--accent);
   outline: none;
-  transition: border-color 0.15s;
+  transition: var(--trans-color);
   letter-spacing: 0.05em;
 }
 
@@ -8721,7 +8721,7 @@ body.radar-sb-open .tracker-sidebar {
   border: 1px solid var(--border);
   border-radius: var(--radius-xs);
   cursor: pointer;
-  transition: all 0.12s;
+  transition: var(--trans-fast);
   display: flex;
   align-items: center;
   gap: 4px;

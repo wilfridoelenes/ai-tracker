@@ -121,7 +121,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: opacity 0.12s var(--ease-out), color 0.12s var(--ease-out);
+  transition: var(--trans-color);
   align-self: flex-start;
   margin-top: -2px;
   margin-right: -4px;
@@ -757,7 +757,7 @@
   font-family: var(--font-sans); font-size: var(--text-base); font-weight: 500;
   color: var(--text); background: var(--surface2);
   border: 1px solid var(--border2); border-radius: var(--radius-md);
-  cursor: pointer; transition: background 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
+  cursor: pointer; transition: var(--trans-color);
 }
 
 .btn-auth-google:hover {
@@ -1024,7 +1024,7 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
-  transition: all 0.12s;
+  transition: var(--trans-fast);
 }
 
 .avatar-option svg {
@@ -1475,7 +1475,7 @@
   padding: 8px 14px;
   cursor: pointer;
   border-top: 1px solid var(--border);
-  transition: background 0.12s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .sur-row:first-child {
@@ -1605,7 +1605,7 @@
   background: color-mix(in srgb, var(--amber) 6%, transparent);
   margin-bottom: 5px;
   cursor: pointer;
-  transition: background 0.15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .mdiff-right-retro-row:hover {
@@ -1945,7 +1945,7 @@
   resize: vertical;
   box-sizing: border-box;
   line-height: 1.5;
-  transition: border-color .15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .scm-retro-textarea:focus {
@@ -1971,7 +1971,7 @@
   font-weight: 600;
   cursor: pointer;
   padding: .45rem .9rem;
-  transition: opacity .15s var(--ease-out), background .15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .scm-retro-btn--export {
@@ -2000,7 +2000,7 @@
 /* ── Sprint cerrado badge — clickeable ── */
 .sprint-badge-closed--link {
   cursor: pointer;
-  transition: opacity .15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .sprint-badge-closed--link:hover {
@@ -2122,7 +2122,7 @@
   resize: vertical;
   box-sizing: border-box;
   line-height: 1.5;
-  transition: border-color .15s var(--ease-out);
+  transition: var(--trans-color);
   margin-top: .35rem;
 }
 
@@ -2190,7 +2190,7 @@
   color: var(--text2);
   font-size: var(--text-2xs);
   cursor: pointer;
-  transition: background .15s var(--ease-out), color .15s var(--ease-out), border-color .15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .scm-retro3-dl-btn:hover {
@@ -2443,7 +2443,7 @@
   font-size: var(--text-2xs-plus);
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.15s var(--ease-out);
+  transition: var(--trans-color);
   white-space: nowrap;
 }
 
@@ -2898,7 +2898,7 @@
   background:var(--bg-subtle);
   color:var(--text-secondary);
   cursor:pointer;
-  transition:background .15s var(--ease-out),color .15s var(--ease-out);
+  transition: var(--trans-color);
 }
 
 .sur-scope-btn:hover {
@@ -2973,7 +2973,7 @@
 
   .toast-inline.toast-hide {
     transform: translateX(-50%);
-    transition: opacity 0.12s var(--ease-out);
+    transition: var(--trans-color);
   }
 
   /* Modales — sin scale en apertura; solo fade */
@@ -3017,7 +3017,7 @@
   .item-viz-overlay.closing .item-viz-panel {
     animation: none;
     opacity: 0;
-    transition: opacity 0.15s var(--ease-out);
+    transition: var(--trans-color);
   }
 }
 
@@ -3382,7 +3382,7 @@
 /* AC-10: transición entre pasos — opacity, sin transform */
 .qc-panel {
   opacity: 1;
-  transition: opacity 120ms var(--ease-out);
+  transition: var(--trans-color);
 }
 
 
@@ -3723,7 +3723,7 @@
   border-radius: var(--radius-md);
   font-weight: 600;
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: var(--trans-color);
   background: var(--surface2);
   border: 1px solid var(--border2);
   color: var(--text2);
@@ -3856,7 +3856,7 @@
   color: var(--text);
   padding: 6px 10px;
   outline: none;
-  transition: border-color 0.15s;
+  transition: var(--trans-color);
   min-width: 0;
 }
 
@@ -3873,7 +3873,7 @@
   background: var(--accent);
   color: var(--text-on-accent);
   cursor: pointer;
-  transition: opacity 0.15s;
+  transition: var(--trans-color);
   flex-shrink: 0;
 }
 
@@ -3919,7 +3919,7 @@
   outline: none;
   resize: vertical;
   line-height: 1.6;
-  transition: border-color 0.15s;
+  transition: var(--trans-color);
   box-sizing: border-box;
 }
 
@@ -4567,7 +4567,7 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition: background 150ms ease, border-color 150ms ease;
+  transition: var(--trans-color);
 }
 
 .toast-inline-btn:hover {
@@ -4735,7 +4735,7 @@
   border: 1px solid var(--accent-border);
   border-radius: var(--radius-xs);
   color: var(--text);
-  transition: all 0.12s;
+  transition: var(--trans-fast);
   width: 100%;
   padding: 5px 8px;
   outline: none;
@@ -4891,7 +4891,7 @@
   border: 1.5px solid var(--border2);
   border-radius: var(--radius-md);
   color: var(--text);
-  transition: border-color 0.12s;
+  transition: var(--trans-color);
   resize: none;
   line-height: 1.5;
 }
@@ -4901,7 +4901,7 @@
   font-family: var(--font-sans); font-size: var(--text-base);
   width: 100%; background: var(--surface2); border: 1px solid var(--border2);
   border-radius: var(--radius-xs); color: var(--text); padding: 7px 10px;
-  outline: none; box-sizing: border-box; transition: border-color 0.12s;
+  outline: none; box-sizing: border-box; transition: var(--trans-color);
 }
 
 /* .quick-field textarea:focus */
