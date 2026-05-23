@@ -1,6 +1,6 @@
 /* locus-layout.css */
 
-/* Versión: 2.0 | Selectores consolidados — T3 */
+/* Versión: 2.1 | Última actualización: 2026-05-22 | Selectores compartidos consolidados — T-202605-031 */
 
 /* ══ SHARED — Reset, body, header, tabs, botones, toast, search ══ */
 
@@ -734,19 +734,6 @@ header {
   align-items: center;
   flex-shrink: 0;
   gap: 10px;
-}
-
-.tab-btn:hover {
-  background: var(--surface3);
-  color: var(--text);
-}
-
-.tab-btn.active {
-  background: var(--surface);
-  color: var(--text);
-  border-color: var(--border2);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 15%);
-  font-weight: 600;
 }
 
 /* ── SEARCH REDESIGN ── */
@@ -1939,6 +1926,7 @@ header {
    ══════════════════════════════════════════════════════════════════════ */
 
 /* .card — scope: analytics · backlog · proyectos · tracker */
+/* .card — fuente canónica: locus-layout.css — scope: backlog · layout · proyectos · tracker */
 .card {
   transition: border-color 0.2s, box-shadow 0.2s;
   border-left: 3px solid var(--proj-color, transparent);
@@ -1976,7 +1964,7 @@ header {
   padding-right: 26px;
 }
 
-/* .tab-btn — scope: analytics · backlog · layout · modals */
+/* .tab-btn — fuente canónica: locus-layout.css — scope: analytics · backlog · layout · modals */
 .tab-btn {
   font-size: var(--text-sm);
   padding: 5px 14px;
@@ -1992,6 +1980,25 @@ header {
   letter-spacing: -0.01em;
   position: relative;
   overflow: visible;
+}
+
+.tab-btn:hover {
+  background: var(--surface3);
+  color: var(--text);
+}
+
+.tab-btn.active {
+  background: var(--surface);
+  color: var(--text);
+  border-color: var(--border2);
+  box-shadow: 0 1px 4px rgb(0 0 0 / 15%);
+  font-weight: 600;
+}
+
+/* Normaliza desde: all 0.15s cubic-bezier(0.4,0,0.2,1) — movido desde locus-backlog.css */
+.tab-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* .btn-ghost — scope: analytics · backlog · layout */
@@ -2150,7 +2157,7 @@ header {
   color: var(--hint);
 }
 
-/* .btn-primary — scope: backlog · layout */
+/* .btn-primary — fuente canónica: locus-layout.css — scope: backlog · layout */
 .btn-primary {
   transition: background-color var(--transition-base),
     border-color     var(--transition-base),
@@ -2169,6 +2176,17 @@ header {
   opacity: 0.88;
   transform: translateY(-1px);
   box-shadow: 0 3px 10px rgb(0 0 0 / 25%);
+}
+
+/* movido desde locus-backlog.css */
+.btn-primary:active {
+  transform: scale(0.97);
+  opacity: 1;
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* .field label — scope: layout · tracker */
