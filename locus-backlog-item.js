@@ -2420,6 +2420,9 @@ function _isActiveRecently(item) {
   allSessions.forEach(s => {
     if ((s.backlogRefs || s.trackerRefs || []).includes(item.code)) {
       const ts = s.savedAt || s.createdAt || 0;
+      // R-202605-041: excluir sesiones anteriores al createdAt del ítem
+      // Ítems legacy sin createdAt → comportamiento anterior sin cambio
+      if (item.createdAt && ts < item.createdAt) return;
       if (ts > lastTs) lastTs = ts;
     }
   });

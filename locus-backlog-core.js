@@ -248,6 +248,17 @@ function _hasRecentSession(item) {
   if (!item || item.status !== 'pendiente') return true; // no aplica
   if (!item.sprint || item.sprint === 'n/a') return true; // no aplica sin sprint — B-202605-041: 'n/a' es truthy pero equivale a sin sprint
   if (typeof hasRecentSession !== 'function') return true; // guardia — función canónica no disponible
+  // R-202605-041: excluir sesiones anteriores al createdAt del ítem al evaluar actividad reciente
+  // Ítems legacy sin createdAt → comportamiento anterior sin cambio
+  if (item.createdAt && typeof getAllSessions === 'function') {
+    const allSessions = getAllSessions();
+    const hasPostCreation = allSessions.some(s =>
+      ((s.trackerRefs || []).includes(item.code) || (s.backlogRefs || []).includes(item.code)) &&
+      (s.savedAt || 0) >= item.createdAt &&
+      (Date.now() - (s.savedAt || 0)) / 86400000 <= _NO_SESSION_DAYS
+    );
+    return hasPostCreation;
+  }
   return hasRecentSession(item, _NO_SESSION_DAYS);
 }
 

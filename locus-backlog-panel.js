@@ -426,22 +426,46 @@ function _renderItemPanel(item) {
 
   // ── Sessions vinculadas ──
   const allSessions = typeof getAllSessions === 'function' ? getAllSessions() : [];
-  const linkedSessions = allSessions.filter(s => (s.trackerRefs || []).includes(item.code));
+  const allLinkedSessions = allSessions.filter(s => (s.trackerRefs || []).includes(item.code));
+
+  // R-202605-041: separar sesiones pre-creación (session.savedAt < item.createdAt)
+  // Ítems legacy sin createdAt → todas las sesiones van al bloque principal (comportamiento anterior)
+  const _sessTs = s => s.savedAt || 0;
+  const linkedSessions = item.createdAt
+    ? allLinkedSessions.filter(s => _sessTs(s) >= item.createdAt)
+    : allLinkedSessions;
+  const preCreationSessions = item.createdAt
+    ? allLinkedSessions.filter(s => _sessTs(s) < item.createdAt)
+    : [];
+
+  const _sessChip = (s, canUnlink) => {
+    const ai = typeof getAI === 'function' ? getAI(s.aiId) : null;
+    const aiName = ai ? esc(ai.name) : 'IA';
+    const dateLabel = s.dateShort || s.date || '';
+    return `<div class="idp-session-chip" onclick="switchTab('tracker');setTimeout(()=>openDetail('${s.aiId}','${s.id}'),120)">
+      <span class="idp-sess-ai">${aiName}</span>
+      <span class="idp-sess-date">${esc(dateLabel)}</span>
+      ${s.title ? `<span class="idp-sess-title">${esc(s.title)}</span>` : ''}
+      ${canUnlink ? `<button class="idp-sess-unlink" onclick="event.stopPropagation();_idpUnlinkSession('${esc(item.code)}','${s.id}')" title="Desvincular sesión">✕</button>` : ''}
+    </div>`;
+  };
+
+  const preCreationHtml = preCreationSessions.length ? `
+    <div class="idp-section">
+      <div class="idp-section-label idp-section-toggle" onclick="this.nextElementSibling.classList.toggle('is-hidden');this.querySelector('.idp-toggle-arrow').textContent=this.nextElementSibling.classList.contains('is-hidden')?'▸':'▾'">
+        <span>Mencionado antes de creación (${preCreationSessions.length})</span>
+        <span class="idp-toggle-arrow">▸</span>
+      </div>
+      <div class="idp-sessions-list is-hidden">
+        ${preCreationSessions.map(s => _sessChip(s, false)).join('')}
+      </div>
+    </div>` : '';
+
   const sessionsHtml = linkedSessions.length ? `
     <div class="idp-section">
       <div class="idp-section-label">Sesiones vinculadas</div>
       <div class="idp-sessions-list">
-        ${linkedSessions.map(s => {
-          const ai = typeof getAI === 'function' ? getAI(s.aiId) : null;
-          const aiName = ai ? esc(ai.name) : 'IA';
-          const dateLabel = s.dateShort || s.date || '';
-          return `<div class="idp-session-chip" onclick="switchTab('tracker');setTimeout(()=>openDetail('${s.aiId}','${s.id}'),120)">
-            <span class="idp-sess-ai">${aiName}</span>
-            <span class="idp-sess-date">${esc(dateLabel)}</span>
-            ${s.title ? `<span class="idp-sess-title">${esc(s.title)}</span>` : ''}
-            <button class="idp-sess-unlink" onclick="event.stopPropagation();_idpUnlinkSession('${esc(item.code)}','${s.id}')" title="Desvincular sesión">✕</button>
-          </div>`;
-        }).join('')}
+        ${linkedSessions.map(s => _sessChip(s, true)).join('')}
       </div>
     </div>` : '';
 
@@ -504,6 +528,7 @@ function _renderItemPanel(item) {
       ${depsHtml}
       ${notesHtml}
       ${sessionsHtml ? sessionsHtml : ''}
+      ${preCreationHtml ? preCreationHtml : ''}
       ${acHtml}
       ${timelineHtml}
     </div>`;
