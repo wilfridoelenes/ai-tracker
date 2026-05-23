@@ -1644,14 +1644,17 @@ function _syncViewAriaStates() {
   if (planningBtn) planningBtn.setAttribute('aria-selected', String(_backlogPlanningMode));
 
   // AC: aria tabpanel — #backlog-list labelledby refleja el tab activo
+  // B-202605-046: default fbar-tree-btn (fbar-sprint-btn eliminado del DOM)
   const backlogPanel = document.getElementById('backlog-list');
   if (backlogPanel) {
-    let activeTabId = 'fbar-sprint-btn'; // default
-    if (_backlogPlanningMode)                              activeTabId = 'fbar-planning-btn';
-    else if (_backlogKanbanMode)                           activeTabId = 'fbar-kanban-btn';
-    else if (_backlogTreeMode)                             activeTabId = 'fbar-tree-btn';
-    else if (_backlogSprintGroupMode)                      activeTabId = 'fbar-sprint-btn';
-    backlogPanel.setAttribute('aria-labelledby', activeTabId);
+    let activeTabId = 'fbar-tree-btn'; // default — fbar-sprint-btn no existe en el DOM
+    if (_backlogPlanningMode)        activeTabId = 'fbar-planning-btn';
+    else if (_backlogKanbanMode)     activeTabId = 'fbar-kanban-btn';
+    else if (_backlogTreeMode)       activeTabId = 'fbar-tree-btn';
+    // Guard: solo aplicar si el tab existe en el DOM
+    if (document.getElementById(activeTabId)) {
+      backlogPanel.setAttribute('aria-labelledby', activeTabId);
+    }
   }
 
   // Modificadores — aria-checked refleja estado
