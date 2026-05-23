@@ -870,7 +870,7 @@ async function _loadFromSupabase() {
 
     // ── 5. Cargar backlog ────────────────────────────────────────────────
     try {
-      const projId = _getActiveProjectFilter();
+      const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : null;
       const suffix = projId ? '-' + projId : '-global';
       const { data: blRows, error: blErr } = await _supabase
         .from('tracker_backlog')
@@ -903,7 +903,7 @@ async function _loadFromSupabase() {
     // ── 6. Cargar docs vivos (context, htmlmap, plan) — R-202605-120: Supabase es fuente de verdad ──
     // Patrón idéntico al backlog: Supabase gana si es más nuevo o localStorage vacío
     try {
-      const projId = _getActiveProjectFilter();
+      const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : null;
       const suffix = projId ? '-' + projId : '-global';
       const { data: docRows, error: docErr } = await _supabase
         .from('tracker_docs')
@@ -984,7 +984,7 @@ async function _loadFromSupabase() {
 
     // ── 6c. Notas de proyecto — R-2 ──────────────────────────────────────
     try {
-      const projId  = _getActiveProjectFilter();
+      const projId  = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : null;
       const sbKey   = projId ? 'notes-' + projId : 'notes-global';
       const localKey = projId ? 'notes-' + projId : 'notes';
       const { data: noteRows } = await _supabase
