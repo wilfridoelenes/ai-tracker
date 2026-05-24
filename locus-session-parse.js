@@ -252,7 +252,8 @@ function parsePaste(id) {
           role:          _it.role   || ckptHeaderRole,
           discardReason: _it.discard_reason || _it.reason || '',
           discardRef:    _it.ref    || '',
-          blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : []
+          blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : [],
+          parentId:      _it.parentId || null
         });
         // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
         _normalizeSprint(tgItems[tgItems.length - 1]);
@@ -326,7 +327,8 @@ function parsePaste(id) {
             role:          _it.role   || ckptHeaderRole,
             discardReason: _it.discard_reason || _it.reason || '',
             discardRef:    _it.ref    || '',
-            blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : []
+            blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : [],
+            parentId:      _it.parentId || null
           });
           // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
           _normalizeSprint(tgItems[tgItems.length - 1]);

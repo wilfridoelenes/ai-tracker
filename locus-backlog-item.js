@@ -1371,15 +1371,43 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
       const isNew = item._wasAssigned;
       const nowTs = Date.now();
       const initialStatus = _tgStatusToBacklog(item.status) || 'pendiente';
+
+      // R-202605-021: resolver parentId para ítems nuevos
+      // AC: solo T o B pueden tener parentId — R con parentId → ignorar + DocLog
+      // AC: si parentId apunta a T o B existente → ignorar + DocLog
+      // AC: si parentId no existe en backlog → ignorar + DocLog
+      let _resolvedParentId = null;
+      const _incomingType = item.type || (item.code ? item.code.charAt(0) : 'T');
+      if (item.parentId) {
+        if (_incomingType === 'R') {
+          if (typeof _blogLog === 'function') {
+            _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ítems tipo R no pueden tener padre. parentId recibido: ' + item.parentId, 'backlog');
+          }
+        } else {
+          const _parentCandidate = ITEMS.find(p => p.code === item.parentId);
+          if (!_parentCandidate) {
+            if (typeof _blogLog === 'function') {
+              _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: código ' + item.parentId + ' no existe en el backlog', 'backlog');
+            }
+          } else if (_parentCandidate.type !== 'R') {
+            if (typeof _blogLog === 'function') {
+              _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ' + item.parentId + ' es de tipo ' + _parentCandidate.type + ' — solo R puede ser padre', 'backlog');
+            }
+          } else {
+            _resolvedParentId = item.parentId;
+          }
+        }
+      }
+
       // B-202604-015: heredar sprint del padre si el ítem no trae sprint propio
-      const _parentSprint = (!item.sprint && item.parentId)
-        ? (ITEMS.find(p => p.code === item.parentId) || {}).sprint || ''
+      const _parentSprint = (!item.sprint && _resolvedParentId)
+        ? (ITEMS.find(p => p.code === _resolvedParentId) || {}).sprint || ''
         : '';
       if (!_dryRun) {
         ITEMS.push({
           id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
           code: item.code,
-          type: item.type || (item.code ? item.code.charAt(0) : 'T'),
+          type: _incomingType,
           title: item.title || item.code,
           desc: '',
           priority: 'medium',
@@ -1392,6 +1420,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
           ac: item.ac || [],
           role: item.role || '',
           origin: item.origin || null,
+          parentId: _resolvedParentId,
           blockedBy: item.blockedBy || [],
           blocking: item.blocking || false,
           sessionId: sessionId || null,
