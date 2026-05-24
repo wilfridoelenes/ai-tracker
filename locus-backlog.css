@@ -8323,3 +8323,37 @@ textarea:hover {
 
 /* ══ END T-202605-056 ══ */
 
+
+/* ══ R-202605-045 · staleness-pill — indicador de estancamiento por statusChangedAt ══ */
+
+.staleness-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid;
+  line-height: 1.6;
+  letter-spacing: 0.02em;
+}
+
+.staleness--fresh {
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border-color: var(--c-low-border);
+}
+
+.staleness--warn {
+  background: var(--c-medium-bg);
+  color: var(--c-medium-text);
+  border-color: var(--c-medium-border);
+}
+
+.staleness--stale {
+  background: var(--c-high-bg);
+  color: var(--c-high-text);
+  border-color: var(--c-high-border);
+}
+
+/* ══ END R-202605-045 ══ */
