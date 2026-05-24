@@ -892,6 +892,8 @@ async function _loadFromSupabase() {
           // Reemplazar completo — no merge aditivo
           _itemsRef.length = 0;
           remoteItems.forEach(ri => _itemsRef.push(ri));
+          // B-202605-XXX: normalizar type post-carga remota — Supabase no tiene el campo
+          if (typeof _migrateItemTypes === 'function') _migrateItemTypes();
           localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(_itemsRef));
           localStorage.setItem(_tplKey('backlog-meta'),  JSON.stringify(remoteMeta));
         }

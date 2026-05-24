@@ -246,7 +246,7 @@ const _NO_SESSION_DAYS = 14;
 // B-202604-200: ítems recientes sin mención retornan true via fallback createdAt en hasRecentSession
 function _hasRecentSession(item) {
   if (!item || item.status !== 'pendiente') return true; // no aplica
-  if (!item.sprint || item.sprint === 'n/a') return true; // no aplica sin sprint — B-202605-041: 'n/a' es truthy pero equivale a sin sprint
+  if (!item.sprint) return true; // no aplica sin sprint — R-202605-046: campo ausente es canónico, guard 'n/a' eliminado
   if (typeof hasRecentSession !== 'function') return true; // guardia — función canónica no disponible
   // R-202605-041: excluir sesiones anteriores al createdAt del ítem al evaluar actividad reciente
   // Ítems legacy sin createdAt → comportamiento anterior sin cambio
@@ -398,7 +398,7 @@ function _sanitizePendingInClosedSprints() {
         ts: Date.now(),
         data: { from: item.sprint, to: null, reason: 'sanitize-closed-sprint' }
       });
-      item.sprint = '';
+      delete item.sprint; // R-202605-046: campo ausente = canónico para "sin sprint"
       count++;
     }
   });
@@ -536,7 +536,7 @@ function loadBacklog() {
       item.schema_version = 1;
       migrated = true;
     }
-    // B-202605-XXX: type undefined — inferir desde prefijo del código (migración one-shot)
+    // B-202605-XXX: type undefined — inferir desde prefijo del código
     if (!item.type && item.code) {
       const inferredType = item.code.charAt(0);
       if ('PTRB'.includes(inferredType)) { item.type = inferredType; migrated = true; }
@@ -1801,3 +1801,18 @@ function toggleBacklogPlanningMode() {
   renderBacklogList();
 }
 
+
+// B-202605-XXX: _migrateItemTypes — normaliza type en ITEMS post-carga remota
+// Llamada desde _loadFromSupabase en locus-storage.js después de poblar ITEMS
+function _migrateItemTypes() {
+  if (typeof ITEMS === 'undefined') return;
+  let migrated = false;
+  ITEMS.forEach(item => {
+    if (!item.type && item.code) {
+      const inferredType = item.code.charAt(0);
+      if ('PTRB'.includes(inferredType)) { item.type = inferredType; migrated = true; }
+    }
+  });
+  if (migrated && typeof saveBacklog === 'function') saveBacklog();
+}
+window._migrateItemTypes = _migrateItemTypes;

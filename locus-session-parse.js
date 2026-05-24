@@ -172,6 +172,31 @@ function _setPhase(id, phase) {
   });
 }
 
+// R-202605-046: normalizar campo sprint al ingestar ítems
+// Valores centinela → delete item.sprint (campo ausente = canónico para "sin sprint")
+// Sprint cerrado → delete item.sprint + advertencia DocLog
+function _normalizeSprint(item) {
+  const raw = item.sprint;
+  // AC-1: centinelas → campo ausente
+  if (!raw || raw === 'n/a' || raw === 'N/A' || String(raw).trim() === '') {
+    delete item.sprint;
+    return;
+  }
+  // AC-6: sprint cerrado → campo ausente + advertencia DocLog
+  if (typeof getActiveSprints === 'function' && typeof saveBacklog !== 'undefined') {
+    const allSprints = typeof window._getAllSprints === 'function' ? window._getAllSprints() : [];
+    const sprintObj  = allSprints.find(s => s.id === raw);
+    if (sprintObj && sprintObj.status === 'closed') {
+      if (typeof _blogLog === 'function') {
+        _blogLog('sprint-normalizado', item.code || '', `Sprint cerrado normalizado a campo ausente: ${raw}`, 'backlog');
+      }
+      delete item.sprint;
+      return;
+    }
+  }
+  // AC-5: sprint válido — conservar sin modificar
+}
+
 function parsePaste(id) {
   const ta = document.getElementById('ta-' + id);
   const text = ta ? ta.value : '';
@@ -222,13 +247,15 @@ function parsePaste(id) {
           _noStatus:     false,
           effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
           area:          _it.area   || '',
-          sprint:        _it.sprint || '',
+          sprint:        _it.sprint,
           ac:            Array.isArray(_it.ac) ? _it.ac : [],
           role:          _it.role   || ckptHeaderRole,
           discardReason: _it.reason || '',
           discardRef:    _it.ref    || '',
           blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : []
         });
+        // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
+        _normalizeSprint(tgItems[tgItems.length - 1]);
       }
       if (_itemError) {
         window[`_itemsJsonError_${id}`] = _itemError;
@@ -294,13 +321,15 @@ function parsePaste(id) {
             _noStatus:     false,
             effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
             area:          _it.area   || '',
-            sprint:        _it.sprint || '',
+            sprint:        _it.sprint,
             ac:            Array.isArray(_it.ac) ? _it.ac : [],
             role:          _it.role   || ckptHeaderRole,
             discardReason: _it.reason || '',
             discardRef:    _it.ref    || '',
             blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : []
           });
+          // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
+          _normalizeSprint(tgItems[tgItems.length - 1]);
         }
         if (_itemError) {
           window[`_itemsJsonError_${id}`] = _itemError;
@@ -787,13 +816,15 @@ function parsePasteStandalone() {
       _noStatus:     false,
       effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
       area:          it.area   || '',
-      sprint:        it.sprint || '',
+      sprint:        it.sprint,
       ac:            Array.isArray(it.ac) ? it.ac : [],
       role:          it.role   || (ckpt.rol || ''),
       discardReason: it.reason || '',
       discardRef:    it.ref    || '',
       blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : []
     });
+    // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
+    _normalizeSprint(tgItems[tgItems.length - 1]);
   }
 
   if (itemError) {
