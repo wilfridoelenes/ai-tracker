@@ -1,19 +1,21 @@
 // locus-api.js
-// Última actualización: 2026-05-19 | Contrato público del ecosistema Locus
+// Última actualización: 2026-05-24 | Contrato público del ecosistema Locus
 // Carga como ÚLTIMO script en index.html — todos los módulos ya están definidos.
 //
 // Módulos que alimentan este contrato:
-//   locus-toast.js          → showToast, showToastDigest, showToastInline, toast
-//   locus-ui-shell.js       → switchTab, switchSubTab
-//   locus-tracker.js        → render
-//   locus-storage.js        → save, saveImmediate, saveBacklog, saveContextDocs,
-//                             getActiveProject, getActiveSprints, getAllSessions,
-//                             getAI, _getActiveProjectFilter, _tplKey
-//   locus-pulso.js          → openPulsoPanel, closePulsoPanel, renderPulsoDot
-//   locus-modals.js         → closeModal, _gconfirmClose, _gconfirmOk
-//   locus-map-viewer.js     → renderHtmlMap, setHtmlMapFilter, loadHtmlMap, updateHtmlMapBanner
-//   locus-radar.js          → renderGlobalRadarSidebar, _rsbToggleCollapseAll
-//   ai-tracker-checkpoint.js → _updateHeaderProjectLabel
+//   locus-toast.js             → showToast, showToastDigest, showToastInline, toast
+//   locus-ui-shell.js          → switchTab, switchSubTab
+//   locus-tracker.js           → render, selectTrackerAI, buildHoyCard
+//   locus-tracker-utils.js     → startSessionTimer, stopSessionTimer,
+//                                renderSuggestionBanner, _buildWeeklySummary
+//   locus-storage.js           → save, saveImmediate, saveBacklog, saveContextDocs,
+//                                getActiveProject, getActiveSprints, getAllSessions,
+//                                getAI, _getActiveProjectFilter, _tplKey
+//   locus-pulso.js             → openPulsoPanel, closePulsoPanel, renderPulsoDot
+//   locus-modals.js            → closeModal, _gconfirmClose, _gconfirmOk
+//   locus-map-viewer.js        → renderHtmlMap, setHtmlMapFilter, loadHtmlMap, updateHtmlMapBanner
+//   locus-radar.js             → renderGlobalRadarSidebar, _rsbToggleCollapseAll
+//   locus-checkpoint-stats.js  → _updateHeaderProjectLabel
 //
 // AC-3: cada valor es referencia directa a la función del módulo.
 // Si el módulo no cargó, el valor es undefined — el caller usa window.Locus?.fn?.()
@@ -34,6 +36,12 @@ window.Locus.switchSubTab     = switchSubTab;
 
 // ── locus-tracker.js ──────────────────────────────────────────────────────────
 window.Locus.render           = render;
+
+// ── locus-tracker-utils.js ────────────────────────────────────────────────────
+window.Locus.startSessionTimer      = startSessionTimer;
+window.Locus.stopSessionTimer       = stopSessionTimer;
+window.Locus.renderSuggestionBanner = renderSuggestionBanner;
+window.Locus._buildWeeklySummary    = _buildWeeklySummary;
 
 // ── locus-storage.js ──────────────────────────────────────────────────────────
 window.Locus.save                    = save;
@@ -67,5 +75,5 @@ window.Locus.updateHtmlMapBanner  = updateHtmlMapBanner;
 window.Locus.renderGlobalRadarSidebar = renderGlobalRadarSidebar;
 window.Locus._rsbToggleCollapseAll    = _rsbToggleCollapseAll;
 
-// ── ai-tracker-checkpoint.js ──────────────────────────────────────────────────
+// ── locus-checkpoint-stats.js ─────────────────────────────────────────────────
 window.Locus._updateHeaderProjectLabel = _updateHeaderProjectLabel;
