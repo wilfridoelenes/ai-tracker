@@ -459,6 +459,11 @@ body {
   display: none !important;
 }
 
+/* Utilidad display — usada por openDetail/closePopup en locus-session-popup.js */
+.d-flex {
+  display: flex !important;
+}
+
 /* ══ END CSS-04 ══ */
 
 /* ══ CSS-07: prefers-reduced-motion — animaciones infinite sin cobertura ══ */
