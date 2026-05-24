@@ -186,7 +186,7 @@ function _sessRelTsShared(s) {
 // anteriores → '10 may'
 function _sessFixedTs(s, group) {
   const ts = s.createdAt || s.date && new Date(s.date).getTime() || 0; // B-202605-067: createdAt como fuente — refleja ocurrencia, no edición. Fallback a s.date
-  if (!ts) return (s.dateShort || '');
+  if (!ts) return (s.dateShort || '—'); // B-[pendiente-ID]: fallback '—' cuando no hay timestamp ni dateShort
   try {
     if (group === 'hoy' || group === 'ayer') {
       return new Date(ts).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -198,7 +198,7 @@ function _sessFixedTs(s, group) {
     }
     return new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'short' });
   } catch(_) {
-    return (s.dateShort || '');
+    return (s.dateShort || '—'); // B-[pendiente-ID]: fallback '—' en catch
   }
 }
 
@@ -232,12 +232,13 @@ function _trackerRenderMiniHist(aiId) {
     if (titleEl) titleEl.textContent = 'Sesiones';
     const lastMetaEl = document.getElementById('tracker-mini-hist-last');
     if (lastMetaEl) lastMetaEl.textContent = '';
-    listEl.innerHTML = '<div class="tracker-mini-hist-empty"><span class="tracker-mini-hist-empty-icon">📋</span><span>Selecciona una IA</span></div>';
+    listEl.innerHTML = '<div class="tracker-mini-hist-empty">Selecciona una IA</div>';
     return;
   }
 
   const allSessions = typeof getAllSessions === 'function' ? getAllSessions() : [];
-  const aiSessions  = allSessions.filter(s => s.aiId === aiId);
+  // B-[pendiente-ID]: guard aiId — evita que s.aiId===null pase el filtro cuando aiId es null
+  const aiSessions  = aiId ? allSessions.filter(s => s.aiId === aiId) : [];
 
   // R-202605-116 AC: excluir sesión en curso del mini historial
   const currentSess = (typeof _getCurrentSession === 'function') ? _getCurrentSession(aiId) : null;
@@ -272,8 +273,8 @@ function _trackerRenderMiniHist(aiId) {
     // T-202605-473: mensajes diferenciados — filtro activo vs sin checkpoints reales
     const emptyMsg = projFilter
       ? 'Sin checkpoints para este filtro'
-      : (aiSessions.length === 0 ? 'Esta IA no tiene checkpoints registrados' : 'Sin checkpoints registrados');
-    listEl.innerHTML = `<div class="tracker-mini-hist-empty"><span class="tracker-mini-hist-empty-icon">📋</span><span>${emptyMsg}</span></div>`;
+      : (aiSessions.length === 0 ? 'Sin sesiones registradas' : 'Sin sesiones registradas');
+    listEl.innerHTML = `<div class="tracker-mini-hist-empty">${emptyMsg}</div>`;
     return;
   }
 
