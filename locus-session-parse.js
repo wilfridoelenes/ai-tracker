@@ -183,8 +183,8 @@ function _normalizeSprint(item) {
     return;
   }
   // AC-6: sprint cerrado → campo ausente + advertencia DocLog
-  if (typeof getActiveSprints === 'function' && typeof saveBacklog !== 'undefined') {
-    const allSprints = typeof window._getAllSprints === 'function' ? window._getAllSprints() : [];
+  if (typeof getActiveSprints === 'function') {
+    const allSprints = getActiveSprints(); // B-202605-065: devuelve proj.sprints completo — abiertos y cerrados
     const sprintObj  = allSprints.find(s => s.id === raw);
     if (sprintObj && sprintObj.status === 'closed') {
       if (typeof _blogLog === 'function') {
