@@ -1144,7 +1144,7 @@ function renderBacklogList(onRendered) {
     if (q) {
       emptyTitle = `Sin resultados para "${esc(q)}"`;
       emptyHint  = 'Prueba con otro término o limpia la búsqueda.';
-      emptyCTA   = `<button class="empty-state-btn" onclick="document.getElementById('backlog-search').value='';onBacklogSearch()">✕ Limpiar búsqueda</button>`;
+      emptyCTA   = `<button class="empty-state-btn" onclick="clearBacklogSearch()">✕ Limpiar búsqueda</button>`;
     } else if (_backlogMikeMode && _activeSprint) {
       const _miRoles = _getMiViewRoles();
       const _miRole = _miRoles[_miViewRoleIndex % _miRoles.length] || 'este rol';
