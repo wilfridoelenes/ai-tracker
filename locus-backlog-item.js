@@ -1259,6 +1259,11 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
     // B-202604-198: si es placeholder, saltar directamente a rama "nuevo"
     const existing = isPlaceholder ? null : ITEMS.find(i => i.code === item.code);
     if (existing) {
+      // B-202605-XXX: normalizar type si falta — inferir desde prefijo del código
+      if (!existing.type && existing.code) {
+        const inferredType = existing.code.charAt(0);
+        if ('PTRB'.includes(inferredType)) existing.type = inferredType;
+      }
       const newStatus = _tgStatusToBacklog(item.status);
       const oldStatus = existing.status || 'pendiente';
       const changes = [];
@@ -1373,6 +1378,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
         ITEMS.push({
           id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
           code: item.code,
+          type: item.type || (item.code ? item.code.charAt(0) : 'T'),
           title: item.title || item.code,
           desc: '',
           priority: 'medium',

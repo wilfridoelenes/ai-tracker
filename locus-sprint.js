@@ -12,8 +12,8 @@ let _sprintTabActiveSprint = null;
 function _spEl(id) { return document.getElementById(id); }
 
 function _sprintDaysLabel(sprint) {
-  if (!sprint || !sprint.openedAt) return '';
-  const opened = new Date(sprint.openedAt);
+  if (!sprint || !sprint.startedAt) return '';
+  const opened = new Date(sprint.startedAt);
   const now    = new Date();
   const days   = Math.floor((now - opened) / 86400000);
   if (days === 0) return 'Hoy';
@@ -71,11 +71,12 @@ function _sprintItemHtml(item) {
 function _renderSprintItems(sprint) {
   if (typeof ITEMS === 'undefined') return;
 
-  const spItems = ITEMS.filter(i =>
-    i.sprint && i.sprint.startsWith(sprint.id) &&
-    (i.type === 'R' || i.type === 'B') &&
-    i.status !== 'descartado'
-  );
+  const spItems = ITEMS.filter(i => {
+    const t = i.type || (i.code ? i.code.charAt(0) : '');
+    return i.sprint && i.sprint.startsWith(sprint.id) &&
+      (t === 'R' || t === 'B') &&
+      i.status !== 'descartado';
+  });
 
   const pendiente = spItems.filter(i => i.status !== 'done' && !_sprintIsBlocked(i));
   const bloqueado = spItems.filter(i => i.status !== 'done' &&  _sprintIsBlocked(i));
@@ -245,11 +246,12 @@ function renderSprintTab() {
     const pillEl    = _spEl('sph-release-pill');
     const daysEl    = _spEl('sph-days');
 
-    if (nameEl)    nameEl.textContent    = sprint.name || sprint.id || '';
-    if (versionEl) versionEl.textContent = sprint.versionTarget ? `v${sprint.versionTarget}` : '';
+    if (nameEl)    nameEl.textContent    = sprint.label || sprint.name || sprint.id || '';
+    if (versionEl) versionEl.textContent = sprint.version_target ? `v${sprint.version_target}` : '';
     if (pillEl) {
-      pillEl.textContent = sprint.releaseType || 'Minor';
-      pillEl.className   = `sph-release-pill ${_sprintReleaseClass(sprint.releaseType)}`;
+      const rt = sprint.release_type || sprint.releaseType || 'Minor';
+      pillEl.textContent = rt;
+      pillEl.className   = `sph-release-pill ${_sprintReleaseClass(rt)}`;
     }
     if (daysEl) daysEl.textContent = _sprintDaysLabel(sprint);
   }
@@ -257,6 +259,15 @@ function renderSprintTab() {
   // Ítems
   if (itemsList) itemsList.classList.remove('is-hidden');
   _renderSprintItems(sprint);
+
+  // Sprint Health panel (vive en locus-backlog-render.js)
+  if (typeof _buildSprintHealthPanel === 'function') {
+    const healthEl = _spEl('sprint-health-panel');
+    if (healthEl) {
+      healthEl.innerHTML = _buildSprintHealthPanel(sprint.id);
+      healthEl.classList.remove('is-hidden');
+    }
+  }
 
   // Workers
   _renderSprintWorkers(sprint);

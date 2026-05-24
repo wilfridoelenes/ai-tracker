@@ -536,6 +536,11 @@ function loadBacklog() {
       item.schema_version = 1;
       migrated = true;
     }
+    // B-202605-XXX: type undefined — inferir desde prefijo del código (migración one-shot)
+    if (!item.type && item.code) {
+      const inferredType = item.code.charAt(0);
+      if ('PTRB'.includes(inferredType)) { item.type = inferredType; migrated = true; }
+    }
   });
   // B-202605-061: migración desc→title — 'desc' no es campo canónico del schema v1
   // Si el ítem tiene desc y title está vacío, copiar desc a title (silencioso)
