@@ -39,27 +39,27 @@
 }
 
 .bitem-type-T {
-  background: rgb(46 204 120 / 15%);
+  background: color-mix(in srgb, var(--green) 15%, transparent);
   color: var(--green);
   border: 1px solid var(--green-border);
 }
 
 .bitem-type-R {
-  background: rgb(56 189 248 / 15%);
+  background: color-mix(in srgb, var(--blue) 15%, transparent);
   color: var(--blue);
-  border: 1px solid rgb(56 189 248 / 30%);
+  border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
 }
 
 .bitem-type-B {
-  background: rgb(232 85 85 / 15%);
+  background: color-mix(in srgb, var(--red) 15%, transparent);
   color: var(--red);
-  border: 1px solid rgb(232 85 85 / 30%);
+  border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
 }
 
 .bitem-type-P {
-  background: rgb(124 106 247 / 15%);
+  background: color-mix(in srgb, var(--purple) 15%, transparent);
   color: var(--purple);
-  border: 1px solid rgb(124 106 247 / 30%);
+  border: 1px solid color-mix(in srgb, var(--purple) 30%, transparent);
 }
 
 /* Item container override */
@@ -152,8 +152,8 @@
   font-size: var(--text-2xs);
   font-family: var(--mono);
   color: var(--blue);
-  background: rgb(56 189 248 / 10%);
-  border: 1px solid rgb(56 189 248 / 25%);
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent);
   border-radius: var(--radius-sm);
   padding: 1px 5px;
 }
@@ -223,14 +223,14 @@
 
 .bitem-prio-badge.prio-high {
   color: var(--red);
-  border-color: rgb(232 85 85 / 50%);
-  background: rgb(232 85 85 / 10%);
+  border-color: color-mix(in srgb, var(--red) 50%, transparent);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
 }
 
 .bitem-prio-badge.prio-medium {
   color: var(--amber);
-  border-color: rgb(245 158 11 / 50%);
-  background: rgb(245 158 11 / 10%);
+  border-color: color-mix(in srgb, var(--amber) 50%, transparent);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
 }
 
 .bitem-prio-badge.prio-low {
@@ -611,19 +611,19 @@
 }
 
 .item.bitem[data-type="T"] .bitem-ac-dot {
-  background: rgb(46 204 120 / 50%);
+  background: color-mix(in srgb, var(--green) 50%, transparent);
 }
 
 .item.bitem[data-type="R"] .bitem-ac-dot {
-  background: rgb(56 189 248 / 50%);
+  background: color-mix(in srgb, var(--blue) 50%, transparent);
 }
 
 .item.bitem[data-type="B"] .bitem-ac-dot {
-  background: rgb(232 85 85 / 50%);
+  background: color-mix(in srgb, var(--red) 50%, transparent);
 }
 
 .item.bitem[data-type="P"] .bitem-ac-dot {
-  background: rgb(124 106 247 / 50%);
+  background: color-mix(in srgb, var(--purple) 50%, transparent);
 }
 
 /* Missing fields */
@@ -688,7 +688,7 @@
 .view-pill--active {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--text-on-accent);
 }
 
 /* ══ END T-202604-202 ══ */
@@ -761,9 +761,9 @@
   font-size: var(--text-md);
   font-weight: 900;
   flex-shrink: 0;
-  background: rgb(99 102 241 / 15%);
-  color: #6366f1;
-  border: 1px solid rgb(99 102 241 / 30%);
+  background: color-mix(in srgb, var(--purple) 15%, transparent);
+  color: var(--purple);
+  border: 1px solid color-mix(in srgb, var(--purple) 30%, transparent);
 }
 
 .idp-header-meta {
@@ -833,9 +833,9 @@
   font-weight: 600;
   padding: 2px 8px;
   border-radius: var(--radius-2xl);
-  border: 1px solid rgb(99 102 241 / 35%);
-  background: rgb(99 102 241 / 12%);
-  color: #6366f1;
+  border: 1px solid color-mix(in srgb, var(--purple) 35%, transparent);
+  background: color-mix(in srgb, var(--purple) 12%, transparent);
+  color: var(--purple);
   white-space: nowrap;
 }
 
@@ -1239,13 +1239,13 @@
 }
 
 .idp-action-done {
-  background: rgb(46 204 120 / 12%);
-  border-color: rgb(46 204 120 / 40%);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
+  border-color: color-mix(in srgb, var(--green) 40%, transparent);
   color: var(--green);
 }
 
 .idp-action-done:hover {
-  background: rgb(46 204 120 / 22%);
+  background: color-mix(in srgb, var(--green) 22%, transparent);
   border-color: var(--green);
   color: var(--green);
 }
@@ -1316,7 +1316,7 @@
 
 .idp-tl-note-btn:hover {
   background: var(--accent);
-  color: #fff;
+  color: var(--text-on-accent);
   border-color: var(--accent);
 }
 
@@ -1329,8 +1329,8 @@
 /* CHECKPOINT panel — retroceso confirm button */
 .ckpt-btn-retroceso {
   font-size: var(--text-2xs-plus); padding: 2px 8px; border-radius: var(--radius-sm);
-  border: 1px solid #e8a832; background: rgb(232 168 50 / 15%);
-  color: #e8a832; cursor: pointer; margin-left: 4px;
+  border: 1px solid var(--amber); background: color-mix(in srgb, var(--amber) 15%, transparent);
+  color: var(--amber); cursor: pointer; margin-left: 4px;
 }
 
 /* CHECKPOINT panel — discard confirm button */
@@ -1358,7 +1358,7 @@
 
 /* CHECKPOINT item — color semántico warning */
 .ckpt-item-change--warn {
-  color: #e8a832;
+  color: var(--amber);
 }
 
 /* CHECKPOINT item — nuevo ID badge */
@@ -1562,8 +1562,8 @@
 
 .preview-tg-discrepancy {
   font-size: var(--text-2xs);
-  background: rgb(232 85 85 / 10%);
-  border: 1px solid rgb(232 85 85 / 30%);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
   border-radius: var(--radius-xs);
   padding: 4px 8px;
   margin-bottom: 7px;
@@ -1677,7 +1677,7 @@
 
 .sprint-inline-confirm {
   font-size: var(--text-2xs-plus); padding: 3px 8px; border-radius: var(--radius-xs);
-  background: var(--accent); color: #fff; border: none; cursor: pointer;
+  background: var(--accent); color: var(--text-on-accent); border: none; cursor: pointer;
 }
 
 .sprint-inline-cancel {
@@ -1936,8 +1936,8 @@
 .mdiff-pending-item {
   font-size: var(--text-xs);
   color: var(--amber);
-  background: rgb(240 180 40 / 6%);
-  border: 1px solid rgb(240 180 40 / 18%);
+  background: color-mix(in srgb, var(--amber) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 18%, transparent);
   border-radius: var(--radius-xs);
   padding: 5px 8px;
   line-height: 1.4;
@@ -1982,7 +1982,7 @@
 .mdiff-btn--primary {
   background: var(--accent);
   border-color: var(--accent);
-  color: #fff;
+  color: var(--text-on-accent);
   font-weight: 600;
   font-size: var(--text-sm);
 }
@@ -2060,7 +2060,7 @@
 
 .mdiff-section-header--warn {
   color: var(--amber);
-  background: rgb(240 180 40 / 7%);
+  background: color-mix(in srgb, var(--amber) 7%, transparent);
 }
 
 .mdiff-section-header--red {
@@ -2074,11 +2074,11 @@
 }
 
 .mdiff-section-header--green:hover {
-  background: rgb(52 217 120 / 12%);
+  background: color-mix(in srgb, var(--green) 12%, transparent);
 }
 
 .mdiff-section-header--blue:hover {
-  background: rgb(56 189 248 / 12%);
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
 }
 
 .mdiff-section-header--accent:hover {
@@ -2086,11 +2086,11 @@
 }
 
 .mdiff-section-header--warn:hover {
-  background: rgb(240 180 40 / 12%);
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
 }
 
 .mdiff-section-header--red:hover {
-  background: rgb(240 85 85 / 12%);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
 }
 
 .mdiff-sec-count {
@@ -2230,9 +2230,9 @@
 }
 
 .mdiff-pill--advanced {
-  background: rgb(56 189 248 / 10%);
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
   color: var(--blue);
-  border: 1px solid rgb(56 189 248 / 25%);
+  border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent);
 }
 
 .mdiff-pill--updated {
@@ -2242,9 +2242,9 @@
 }
 
 .mdiff-pill--retroceso {
-  background: rgb(240 180 40 / 10%);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
   color: var(--amber);
-  border: 1px solid rgb(240 180 40 / 28%);
+  border: 1px solid color-mix(in srgb, var(--amber) 28%, transparent);
 }
 
 .mdiff-pill--discarded {
@@ -2254,9 +2254,9 @@
 }
 
 .mdiff-pill--warn {
-  background: rgb(240 180 40 / 10%);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
   color: var(--amber);
-  border: 1px solid rgb(240 180 40 / 28%);
+  border: 1px solid color-mix(in srgb, var(--amber) 28%, transparent);
 }
 
 .mdiff-pill--ignored {
@@ -2271,8 +2271,8 @@
   gap: 6px;
   padding: 6px 10px;
   border-radius: var(--radius-xs);
-  background: rgb(234 179 8 / 8%);
-  border: 1px solid rgb(234 179 8 / 25%);
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 25%, transparent);
   cursor: pointer;
   user-select: none;
   width: fit-content;
@@ -2281,8 +2281,8 @@
 }
 
 .mdiff-retroceso-check:hover {
-  background: rgb(234 179 8 / 14%);
-  border-color: rgb(234 179 8 / 45%);
+  background: color-mix(in srgb, var(--amber) 14%, transparent);
+  border-color: color-mix(in srgb, var(--amber) 45%, transparent);
 }
 
 .mdiff-retroceso-check input[type="checkbox"] {
@@ -2303,8 +2303,8 @@
   font-size: var(--text-sm);
   padding: 3px 8px;
   border-radius: var(--radius-xs);
-  border: 1px solid rgb(239 68 68 / 35%);
-  background: rgb(239 68 68 / 8%);
+  border: 1px solid color-mix(in srgb, var(--red) 35%, transparent);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
   color: var(--text);
   cursor: pointer;
   outline: none;
@@ -2312,8 +2312,8 @@
 }
 
 .mdiff-discard-reason-select:focus {
-  border-color: rgb(239 68 68 / 60%);
-  background: rgb(239 68 68 / 12%);
+  border-color: color-mix(in srgb, var(--red) 60%, transparent);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
 }
 
 .mdiff-discard-reason-select option {
@@ -2326,9 +2326,9 @@
   font-size: var(--text-xs);
   padding: 2px 7px;
   border-radius: var(--radius-sm);
-  background: rgb(239 68 68 / 12%);
-  color: #ef4444;
-  border: 1px solid rgb(239 68 68 / 25%);
+  background: color-mix(in srgb, var(--red) 12%, transparent);
+  color: var(--red);
+  border: 1px solid color-mix(in srgb, var(--red) 25%, transparent);
   font-weight: 500;
 }
 
@@ -2346,12 +2346,12 @@
 
 .mg-review-tab--active {
   background: var(--accent);
-  color: #fff;
+  color: var(--text-on-accent);
   border-color: transparent;
 }
 
 .mg-review-row--transcends td {
-  background: rgb(124 106 247 / 8%);
+  background: color-mix(in srgb, var(--purple) 8%, transparent);
 }
 
 .mg-trasciende-toggle {
@@ -2519,7 +2519,7 @@
 .bl-footer-badge:hover,
 .bl-footer-badge--active {
   border-color: var(--accent);
-  background: rgb(99 102 241 / 14%);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--text);
 }
@@ -2595,7 +2595,7 @@
   left: 0;
   z-index: var(--z-raised);
   box-shadow: 0 0 0 2px var(--accent), 0 2px 10px var(--accent-glow);
-  background: rgb(99 102 241 / 16%);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
   background: color-mix(in srgb, var(--accent) 16%, var(--surface2));
   border-color: var(--accent-border);
 }
@@ -2635,12 +2635,12 @@
 /* Filter pulse feedback */
 @keyframes bl-filter-pulse {
   0% {
-    box-shadow: 0 0 0 0 rgb(99 102 241 / 50%);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent);
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 50%, transparent);
   }
 
   60% {
-    box-shadow: 0 0 0 6px rgb(99 102 241 / 0%);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent);
     box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 0%, transparent);
   }
 
@@ -2718,12 +2718,12 @@
 
 @keyframes rm-chip-click {
   0% {
-    box-shadow: 0 0 0 0 rgb(99 102 241 / 40%);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 40%, transparent);
   }
 
   100% {
-    box-shadow: 0 0 0 8px rgb(99 102 241 / 0%);
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 0%, transparent);
     box-shadow: 0 0 0 8px color-mix(in srgb, var(--accent) 0%, transparent);
   }
 }
@@ -2801,9 +2801,9 @@
   font-weight: 700;
   padding: 1px 6px;
   border-radius: var(--radius-sm);
-  background: rgb(79 195 247 / 15%);
+  background: color-mix(in srgb, var(--blue) 15%, transparent);
   color: var(--blue, #4fc3f7);
-  border: 1px solid rgb(79 195 247 / 30%);
+  border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
   letter-spacing: .02em;
 }
 
@@ -2842,7 +2842,7 @@
 .bl-filter-chip:hover,
 .bl-filter-chip.active {
   border-color: var(--accent);
-  background: rgb(166 226 46 / 14%);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
   background: color-mix(in srgb, var(--accent) 14%, transparent);
   color: var(--text);
 }
@@ -2867,25 +2867,21 @@
   background: color-mix(in srgb, var(--purple) 14%, transparent);
 }
 
-@supports not (background: color-mix(in srgb, red 14%, transparent)) {
-  .bl-filter-chip:hover, .bl-filter-chip.active {
-    background: rgb(99 102 241 / 14%);
-  }
 
   .bl-fc-type-B.active {
-    background: rgb(232 85 85 / 14%);
+    background: color-mix(in srgb, var(--red) 14%, transparent);
   }
 
   .bl-fc-type-T.active {
-    background: rgb(46 204 120 / 14%);
+    background: color-mix(in srgb, var(--green) 14%, transparent);
   }
 
   .bl-fc-type-R.active {
-    background: rgb(56 189 248 / 14%);
+    background: color-mix(in srgb, var(--blue) 14%, transparent);
   }
 
   .bl-fc-type-P.active {
-    background: rgb(124 106 247 / 14%);
+    background: color-mix(in srgb, var(--purple) 14%, transparent);
   }
 }
 
@@ -3252,14 +3248,9 @@ body {
   border-color: var(--accent, var(--purple));
 }
 
-@supports not (background: color-mix(in srgb, red 10%, transparent)) {
-  .rsb-sprint-create-btn {
-    background: rgb(99 102 241 / 10%);
-    border-color: rgb(99 102 241 / 40%);
-  }
 
   .rsb-sprint-create-btn:hover {
-    background: rgb(99 102 241 / 18%);
+    background: color-mix(in srgb, var(--accent) 18%, transparent);
   }
 }
 
@@ -3312,21 +3303,17 @@ body {
   color:var(--purple);
 }
 
-@supports not (background: color-mix(in srgb, red 16%, transparent)) {
-  .rsb-item-b {
-    background: rgb(232 85 85 / 16%);
-  }
 
   .rsb-item-r {
-    background: rgb(56 189 248 / 16%);
+    background: color-mix(in srgb, var(--blue) 16%, transparent);
   }
 
   .rsb-item-t {
-    background: rgb(46 204 120 / 16%);
+    background: color-mix(in srgb, var(--green) 16%, transparent);
   }
 
   .rsb-item-p {
-    background: rgb(124 106 247 / 16%);
+    background: color-mix(in srgb, var(--purple) 16%, transparent);
   }
 }
 
@@ -3347,8 +3334,8 @@ body {
 
 /* Fila de retroceso */
 .mdiff-row--retroceso {
-  background: rgb(234 179 8 / 6%);
-  border-left: 3px solid rgb(234 179 8 / 50%);
+  background: color-mix(in srgb, var(--amber) 6%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--amber) 50%, transparent);
   border-radius: var(--radius-xs);
   flex-direction: column;
   gap: 8px;
@@ -3356,8 +3343,8 @@ body {
 
 /* Fila de descarte */
 .mdiff-row--discard {
-  background: rgb(239 68 68 / 6%);
-  border-left: 3px solid rgb(239 68 68 / 40%);
+  background: color-mix(in srgb, var(--red) 6%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--red) 40%, transparent);
   border-radius: var(--radius-xs);
 }
 
@@ -3368,7 +3355,7 @@ body {
 
 /* Sección de descartes */
 .mdiff-section--discard .mdiff-section-title {
-  color: #ef4444;
+  color: var(--red);
 }
 
 /* ══ END R-[pendiente-ID]: Unified Merge Diff Panel ══ */
@@ -3397,23 +3384,23 @@ body {
 
 /* ── Variables por tipo ── */
 .mdiff-card.mdiff-type--b {
-  --_type-color: #e85555;
-  --_type-bg: rgb(232 85 85 / 8%);
+  --_type-color: var(--red);
+  --_type-bg: color-mix(in srgb, var(--red) 8%, transparent);
 }
 
 .mdiff-card.mdiff-type--t {
-  --_type-color: #2ecc78;
-  --_type-bg: rgb(46 204 120 / 8%);
+  --_type-color: var(--green);
+  --_type-bg: color-mix(in srgb, var(--green) 8%, transparent);
 }
 
 .mdiff-card.mdiff-type--r {
-  --_type-color: #38bdf8;
-  --_type-bg: rgb(56 189 248 / 8%);
+  --_type-color: var(--blue);
+  --_type-bg: color-mix(in srgb, var(--blue) 8%, transparent);
 }
 
 .mdiff-card.mdiff-type--p {
-  --_type-color: #7c6af7;
-  --_type-bg: rgb(124 106 247 / 8%);
+  --_type-color: var(--purple);
+  --_type-bg: color-mix(in srgb, var(--purple) 8%, transparent);
 }
 
 .mdiff-card.mdiff-type--unknown {
