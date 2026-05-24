@@ -224,7 +224,7 @@ function _sessRelTsShared(s) {
 // semana→ 'lun · HH:MM'
 // anteriores → '10 may'
 function _sessFixedTs(s, group) {
-  const ts = s.updatedAt || s.createdAt || 0;
+  const ts = s.createdAt || s.date && new Date(s.date).getTime() || 0; // B-202605-067: createdAt como fuente — refleja ocurrencia, no edición. Fallback a s.date
   if (!ts) return (s.dateShort || '');
   try {
     if (group === 'hoy' || group === 'ayer') {
@@ -468,8 +468,18 @@ function _getCurrentSession(aiId) {
   const last = aiSess.reduce((a, b) =>
     (parseInt(b.id) || 0) > (parseInt(a.id) || 0) ? b : a
   );
-  if (last && !last.resetAt && !last.quickCapture) return last;
-  return null;
+  if (!last || last.resetAt || last.quickCapture) return null;
+  // B-202605-066: si el worker tiene resetEpoch, el checkpoint debe ser posterior a ese timestamp
+  // Un checkpoint cerrado sin resetAt pero anterior al último reset no está "en curso"
+  const ai = (state.ais || []).find(a => a.id === aiId);
+  if (ai && ai.resetEpoch) {
+    const resetTs = new Date(ai.resetEpoch).getTime();
+    const sessTs  = last.createdAt || 0;
+    if (sessTs <= resetTs) return null; // checkpoint anterior al reset — no está en curso
+  }
+  // AC-2: worker exhausted sin resetEpoch — no puede haber sesión en curso
+  if (ai && ai.status === 'exhausted' && !ai.resetEpoch) return null;
+  return last;
 }
 
 function _buildCurrentSessionCard(aiId) {
