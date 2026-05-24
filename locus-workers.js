@@ -1,13 +1,14 @@
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm
 // Extraído de: ai-tracker-ai-notes.js
-// Última actualización: 2026-05-19 UTC-6
+// Última actualización: 2026-05-23 UTC-6
 // Carga después de: locus-modals.js, locus-toast.js, locus-ui-shell.js
 // Carga antes de: ai-tracker-ai-notes.js
 
 // ── Estado interno ──
 let avatarModalAIId = null;
 let selectedAvatarKey = null;
+let _cardMenuScrollHandler = null; // B-202605-049: referencia al listener de scroll activo
 
 // ── T-011: Avatar selector ──
 function openAvatarModal(aiId) {
@@ -147,6 +148,27 @@ function toggleCardMenu(id, e) {
     dd.style.top  = (rect.bottom + 4) + 'px';
     dd.style.left = (rect.right - menuWidth) + 'px';
     dd.classList.add('open');
+
+    // B-202605-049: cerrar menú al hacer scroll en .tracker-col--card
+    _cardMenuScrollCleanup();
+    const scrollContainer = document.querySelector('.tracker-col--card');
+    if (scrollContainer) {
+      _cardMenuScrollHandler = function() {
+        document.querySelectorAll('.card-dot-dropdown.open').forEach(el => {
+          const elId = el.id.replace('dotmenu-', '');
+          _closeCardMenuPortal(elId);
+        });
+      };
+      scrollContainer.addEventListener('scroll', _cardMenuScrollHandler, { passive: true });
+    }
+  }
+}
+
+function _cardMenuScrollCleanup() {
+  if (_cardMenuScrollHandler) {
+    const scrollContainer = document.querySelector('.tracker-col--card');
+    if (scrollContainer) scrollContainer.removeEventListener('scroll', _cardMenuScrollHandler);
+    _cardMenuScrollHandler = null;
   }
 }
 
@@ -154,6 +176,7 @@ function _closeCardMenuPortal(id, returnFocus) {
   const dd = document.getElementById('dotmenu-' + id);
   if (!dd) return;
   dd.classList.remove('open');
+  _cardMenuScrollCleanup(); // B-202605-049: limpiar listener de scroll al cerrar
   // Devolver al wrap original si fue movido a body
   const wrapId = dd.dataset.wrapId;
   if (wrapId) {
