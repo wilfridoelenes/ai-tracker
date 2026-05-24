@@ -426,7 +426,7 @@ function _renderItemPanel(item) {
 
   // ── Sessions vinculadas ──
   const allSessions = typeof getAllSessions === 'function' ? getAllSessions() : [];
-  const allLinkedSessions = allSessions.filter(s => (s.trackerRefs || []).includes(item.code));
+  const allLinkedSessions = allSessions.filter(s => (s.trackerRefs || []).includes(item.code) || (s.backlogRefs || []).includes(item.code)); // R-202605-042: incluir backlogRefs — alineado con _hasRecentSession e _isActiveRecently
 
   // R-202605-041: separar sesiones pre-creación (session.savedAt < item.createdAt)
   // Ítems legacy sin createdAt → todas las sesiones van al bloque principal (comportamiento anterior)
