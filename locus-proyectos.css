@@ -1202,6 +1202,130 @@
   font-family: var(--mono);
 }
 
+/* R-202605-024: Motivo de descarte — sección editable en IDP */
+.bitem-discard-reason-block {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bitem-discard-reason-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bitem-discard-reason-text {
+  font-size: var(--text-sm);
+  color: var(--text2);
+  flex: 1;
+}
+
+.bitem-discard-reason-empty {
+  font-style: italic;
+  color: var(--hint);
+  opacity: 0.7;
+}
+
+.bitem-discard-reason-edit {
+  font-size: var(--text-xs);
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--hint);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  transition: var(--trans-fast);
+  flex-shrink: 0;
+}
+
+.bitem-discard-reason-edit:hover {
+  background: var(--surface3);
+  color: var(--text2);
+}
+
+.bitem-discard-reason-edit:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.bitem-discard-reason-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bitem-discard-reason-input {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-family: var(--sans);
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  padding: 4px 8px;
+  outline: none;
+}
+
+.bitem-discard-reason-input:focus {
+  border-color: var(--accent);
+}
+
+.bitem-discard-reason-save {
+  font-size: var(--text-xs);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border: 1px solid var(--c-low-border);
+  cursor: pointer;
+  transition: var(--trans-fast);
+  flex-shrink: 0;
+}
+
+.bitem-discard-reason-save:hover {
+  background: var(--c-low-border);
+}
+
+.bitem-discard-reason-save:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.bitem-discard-reason-cancel {
+  font-size: var(--text-xs);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  transition: var(--trans-fast);
+  flex-shrink: 0;
+}
+
+.bitem-discard-reason-cancel:hover {
+  background: var(--surface3);
+}
+
+.bitem-discard-reason-cancel:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bitem-discard-reason-edit,
+  .bitem-discard-reason-save,
+  .bitem-discard-reason-cancel {
+    transition: none;
+  }
+}
+/* END R-202605-024 */
+
 /* AC block */
 .bitem-ac-block {
   margin-bottom: 10px;

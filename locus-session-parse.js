@@ -250,7 +250,7 @@ function parsePaste(id) {
           sprint:        _it.sprint,
           ac:            Array.isArray(_it.ac) ? _it.ac : [],
           role:          _it.role   || ckptHeaderRole,
-          discardReason: _it.reason || '',
+          discardReason: _it.discard_reason || _it.reason || '',
           discardRef:    _it.ref    || '',
           blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : []
         });
@@ -324,7 +324,7 @@ function parsePaste(id) {
             sprint:        _it.sprint,
             ac:            Array.isArray(_it.ac) ? _it.ac : [],
             role:          _it.role   || ckptHeaderRole,
-            discardReason: _it.reason || '',
+            discardReason: _it.discard_reason || _it.reason || '',
             discardRef:    _it.ref    || '',
             blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : []
           });

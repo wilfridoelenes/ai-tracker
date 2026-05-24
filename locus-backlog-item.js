@@ -699,6 +699,22 @@ function buildBacklogItem(item) {
             + '</select></div>';
         })() : ''}
       </div>
+      ${isDiscarded ? (() => {
+        const _drId = `discard-reason-idp-${globalIdx}`;
+        const _drVal = item.discardReason || '';
+        return `<div class="bitem-discard-reason-block" onclick="event.stopPropagation()">
+          <span class="bitem-meta-label">Motivo de descarte</span>
+          <div class="bitem-discard-reason-row" id="${_drId}-row">
+            <span class="bitem-discard-reason-text" id="${_drId}-text">${_drVal ? esc(_drVal) : '<span class="bitem-discard-reason-empty">Sin motivo registrado</span>'}</span>
+            <button class="bitem-discard-reason-edit" onclick="event.stopPropagation();_idpDiscardReasonEdit('${esc(item.code)}',${globalIdx})" title="Editar motivo">✎</button>
+          </div>
+          <div class="bitem-discard-reason-edit-row is-hidden" id="${_drId}-edit">
+            <input type="text" class="bitem-discard-reason-input" id="${_drId}-input" value="${esc(_drVal)}" maxlength="280" placeholder="Motivo (opcional)">
+            <button class="bitem-discard-reason-save" onclick="event.stopPropagation();_idpDiscardReasonSave('${esc(item.code)}',${globalIdx})">Guardar</button>
+            <button class="bitem-discard-reason-cancel" onclick="event.stopPropagation();_idpDiscardReasonCancel(${globalIdx})">Cancelar</button>
+          </div>
+        </div>`;
+      })() : ''}
       ${isIdea ? '' : acHtml}
       ${(() => {
         // R-202604-074: AC Vivo — solo en pendientes con sprint; R-202605-098: nunca en P
@@ -2344,6 +2360,41 @@ function _confirmRetroceso(code, toStatus) {
       }
     }
   });
+}
+
+// R-202605-024: edición inline del motivo de descarte desde el IDP
+function _idpDiscardReasonEdit(code, globalIdx) {
+  const _drId = `discard-reason-idp-${globalIdx}`;
+  const rowEl  = document.getElementById(_drId + '-row');
+  const editEl = document.getElementById(_drId + '-edit');
+  if (!rowEl || !editEl) return;
+  rowEl.classList.add('is-hidden');
+  editEl.classList.remove('is-hidden');
+  const inputEl = document.getElementById(_drId + '-input');
+  if (inputEl) { inputEl.focus(); inputEl.select(); }
+}
+
+function _idpDiscardReasonSave(code, globalIdx) {
+  const item = ITEMS.find(i => i.code === code);
+  if (!item) return;
+  const _drId   = `discard-reason-idp-${globalIdx}`;
+  const inputEl = document.getElementById(_drId + '-input');
+  const newVal  = inputEl ? inputEl.value.trim() : '';
+  item.discardReason = newVal || null; // AC: vacío → null
+  _undoSnapshot();
+  saveBacklog();
+  _setBacklogModified();
+  renderBacklogList();
+  if (typeof showToast === 'function') showToast('success', '✓ Motivo actualizado');
+}
+
+function _idpDiscardReasonCancel(globalIdx) {
+  const _drId  = `discard-reason-idp-${globalIdx}`;
+  const rowEl  = document.getElementById(_drId + '-row');
+  const editEl = document.getElementById(_drId + '-edit');
+  if (!rowEl || !editEl) return;
+  editEl.classList.add('is-hidden');
+  rowEl.classList.remove('is-hidden');
 }
 
 function _confirmDiscard(code, reason, ref) {
