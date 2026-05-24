@@ -85,12 +85,16 @@ function createSprint(raw, goal, versionTarget, releaseType) {
   const vt  = (versionTarget || '').trim() || null;
   // T-202605-500: label canónico = '[ID] · [Nombre descriptivo]'
   const canonicalLabel = displayLabel ? id + ' · ' + displayLabel : id;
+  // B-202605-057: solo un sprint activo a la vez — degradar cualquier activo previo a 'open'
+  _activeProjForSprint.sprints.forEach(s => { if (s.status === 'active') s.status = 'open'; });
   _activeProjForSprint.sprints.push({
     id, label: canonicalLabel, goal: goalTrimmed,
     version_target: vt, release_type: rt,
-    status: 'open', createdAt: Date.now()
+    // B-202605-057: status 'active' desde creación — _getActiveSprint() lo detecta inmediatamente
+    status: 'active', startedAt: Date.now(), createdAt: Date.now()
   });
-  save();
+  // B-202605-058: saveImmediate() evita perder el sprint si el usuario recarga antes del debounce
+  saveImmediate();
   return id;
 }
 
