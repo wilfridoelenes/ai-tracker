@@ -1175,15 +1175,48 @@ function _findTmpMatch(tmpCode, desc, existingItems) {
 // B-202605-ids: reservedCodes acumula los códigos asignados en esta pasada para que
 // _getNextItemCode no repita el mismo número cuando hay múltiples [pendiente-ID] del
 // mismo tipo — los ítems nuevos aún no están en ITEMS en el momento de la asignación.
+// B-202605-054: antes de asignar ID nuevo, cruzar título contra ITEMS existentes (pendiente,
+// mismo proyecto) — si hay match, marcar _duplicate + _existingCode para que mergeBacklogFromTG
+// lo trate como actualización en lugar de crear un duplicado.
 function _assignPendingIds(tgItems) {
   const validTypes = new Set(['P', 'T', 'R', 'B']);
   const reservedCodes = new Set();
+
+  // B-202605-054: helper de normalización de título para dedup
+  const _normTitle = t => (t || '').trim().toLowerCase().replace(/\s+/g, ' ');
+
+  // B-202605-054: índice de títulos normalizados de ítems existentes en status pendiente
+  // para lookup O(1) por título → código existente
+  const _pendingTitleIndex = new Map();
+  if (typeof ITEMS !== 'undefined' && Array.isArray(ITEMS)) {
+    ITEMS.forEach(existing => {
+      if (existing.status === 'pendiente' && existing.title) {
+        _pendingTitleIndex.set(_normTitle(existing.title), existing.code);
+      }
+    });
+  }
+
   return tgItems.map(item => {
     if (item.code !== '[pendiente-ID]') return item; // AC-4/5: no es placeholder estándar
     if (!item.type || !validTypes.has(item.type)) return item; // AC-3: type inválido — no asignar
+
+    // B-202605-054: dedup por título — si el título normalizado del ítem entrante coincide
+    // con un ítem existente en status pendiente, marcar como duplicado en lugar de asignar ID.
+    // La coincidencia es case-insensitive y strip de whitespace (AC-3 del bug).
+    if (item.title) {
+      const normIncoming = _normTitle(item.title);
+      const existingCode = _pendingTitleIndex.get(normIncoming);
+      if (existingCode) {
+        return { ...item, _duplicate: true, _existingCode: existingCode };
+      }
+    }
+
     const newCode = _getNextItemCode(item.type, reservedCodes);
     reservedCodes.add(newCode);
-    return { ...item, code: newCode };
+    // B-202605-054: registrar título del nuevo ítem en el índice para que ítems posteriores
+    // en el mismo CHECKPOINT que compartan título también se desdupliquen entre sí.
+    if (item.title) _pendingTitleIndex.set(_normTitle(item.title), newCode);
+    return { ...item, code: newCode, _wasAssigned: true };
   });
 }
 
@@ -1216,7 +1249,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
     if (!item.code) return;
     if (item._invalidType) { ignored.push({ code: item.code || '[sin-código]', reason: 'tipo-invalido', desc: item.title }); return; }
     if (item._duplicate) {
-      // B-202605-XXX: ítem duplicado (título matchea existente via _assignPendingIds) —
+      // B-202605-054: ítem duplicado (título matchea existente en status pendiente) —
       // aunque se ignore para status/creación, si trae AC se mergean sobre el existente.
       if (item.ac && item.ac.length && item._existingCode && !_dryRun) {
         const dupExisting = ITEMS.find(i => i.code === item._existingCode);
@@ -1229,14 +1262,21 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
           changed = true;
         }
       }
+      // B-202605-054 AC-5: registrar deduplicación en DocLog — código asignado, título, acción
+      if (!_dryRun) {
+        const _dupAction = (item.ac && item.ac.length && item._existingCode) ? 'actualizado' : 'ignorado';
+        _blogLog('ckpt-dedup', item._existingCode || '[pendiente-ID]', item.title + ' \u2192 ' + _dupAction, 'backlog');
+      }
       ignored.push({ code: '[pendiente-ID]', reason: 'duplicado', desc: item.title, existingCode: item._existingCode || '' });
       return;
     }
 
-    // B-202604-198: REGLA DE PLACEHOLDER — forzar rama "nuevo" sin intentar match
-    // Un [tmp:slug] o [pendiente-ID] NUNCA matchea contra ITEMS existentes.
-    // Nota: _assignPendingIds ya habrá convertido [pendiente-ID] con type char real si tiene
-    // suficiente info; si no pudo (sin type), sigue siendo placeholder.
+    // B-202604-198: REGLA DE PLACEHOLDER — forzar rama "nuevo" sin intentar match de código.
+    // Un [tmp:slug] o [pendiente-ID] residual (sin type válido) NUNCA matchea por código contra ITEMS.
+    // Nota: _assignPendingIds ya procesó los [pendiente-ID] con type válido:
+    //   - si el título coincide con un pendiente existente → _duplicate: true (bloque anterior)
+    //   - si no hay coincidencia → código real asignado (_wasAssigned: true)
+    // Lo que llega aquí como isPlaceholder es [pendiente-ID] sin type o [tmp:slug] sin match de título.
     const isPlaceholder = _isPlaceholderCode(item.code);
 
     // B-202604-198: REGLA DE TMP — detectar si [tmp:slug] corresponde a un ID real existente
