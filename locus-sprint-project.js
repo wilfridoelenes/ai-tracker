@@ -25,13 +25,6 @@ function _docPrefix() {
 function _buildCurrentStateMd() {
   const lines = ['## Estado actual', ''];
 
-  // Sprint activo — B-202605-031: solo status === 'active' (sprint con ★).
-  // El filtro generacional usa active || open por diseño (R-202605-144) — criterios distintos, no unificar.
-  const activeSprint = (state.sprints || []).find(s => s.status === 'active');
-  if (activeSprint) {
-    lines.push(`**Sprint activo:** ${activeSprint.name || activeSprint.id}`);
-  }
-
   // Ítems pendientes por tipo
   const pendientes = ITEMS.filter(i => i.status === 'pendiente');
   if (pendientes.length) {
@@ -57,7 +50,7 @@ function _buildCurrentStateMd() {
 
   lines.push('', '---', '');
   // Solo emitir si hay contenido real (más de header + separador)
-  const hasContent = activeSprint || pendientes.length || lastWithBlocker;
+  const hasContent = pendientes.length || lastWithBlocker;
   return hasContent ? lines.join('\n') : '';
 }
 
