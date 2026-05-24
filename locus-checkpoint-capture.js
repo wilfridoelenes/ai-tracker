@@ -216,7 +216,7 @@ function confirmQuickCapture() {
   // B-202605-XXX: usar saveImmediate() para garantizar escritura en Supabase antes de
   // cualquier recarga. save() con debounce de 5s podía perder resetTime/resetEpoch/status
   // si el usuario recargaba la tab antes de que el timer disparara.
-  saveImmediate().then(() => { typeof render === 'function' && render(); if (currentTab === 'hoy') renderHoy(); });
+  saveImmediate().then(() => { typeof render === 'function' && render(); if (currentTab === 'sesiones') renderHoy(); });
   if (typeof showToast === 'function') showToast('success', `${ai.name} — sesión rápida guardada`);
 }
 
@@ -267,7 +267,7 @@ function interruptSession(id) {
     if (_intCard) _intCard.classList.add('tracker-card--interrupting');
     setTimeout(() => {
       save(); if (typeof render === 'function') render();
-      if (currentTab === 'hoy') renderHoy();
+      if (currentTab === 'sesiones') renderHoy();
     }, 200);
     if (typeof showToast === 'function') showToast('info', `${ai.name} — sesión interrumpida`);
   });
@@ -277,7 +277,7 @@ function dismissInterrupted(id) {
   const ai = getAI(id);
   ai.interrupted = false;
   save(); if (typeof render === 'function') render();
-  if (currentTab === 'hoy') renderHoy();
+  if (currentTab === 'sesiones') renderHoy();
 }
 
 // T-058 ya maneja auto-disponible; al desbloquearse, si tenía interrupted, lo conservamos

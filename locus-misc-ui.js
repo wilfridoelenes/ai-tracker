@@ -61,7 +61,7 @@ setInterval(() => {
   });
   if (changed) {
     save(); render();
-    if (currentTab === 'hoy') renderHoy();
+    if (currentTab === 'sesiones') renderHoy();
   }
   updateStats();
   renderStatusBar();
