@@ -344,14 +344,15 @@ function _trackerRenderMiniHist(aiId) {
   const _todayKey  = _localDateKey(new Date());
   const _ydDate    = new Date(); _ydDate.setDate(_ydDate.getDate() - 1);
   const _yesterKey = _localDateKey(_ydDate);
-  const _7dAgo     = _nowMs - 7 * 86400000;
+  const _7dDate    = new Date(); _7dDate.setDate(_7dDate.getDate() - 7);
+  const _7dKey     = _localDateKey(_7dDate); // B-202605-068: criterio dateKey local — consistente con hoy/ayer
   const _sessGroup = (s) => {
     const ts = s.updatedAt || s.createdAt || 0;
     if (!ts) return 'anteriores';
     const dateKey = _localDateKey(new Date(ts));
     if (dateKey === _todayKey)  return 'hoy';
     if (dateKey === _yesterKey) return 'ayer';
-    if (ts >= _7dAgo)           return 'semana';
+    if (dateKey >= _7dKey)      return 'semana'; // B-202605-068: >= incluye el día de hace exactamente 7 días (AC-2)
     return 'anteriores';
   };
   const _groupLabel = { hoy: 'Hoy', ayer: 'Ayer', semana: 'Últimos 7 días', anteriores: 'Anteriores' };
