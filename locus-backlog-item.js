@@ -526,18 +526,12 @@ function buildBacklogItem(item) {
   const blockedBadge = _isBlocked(item)
     ? '<span class="badge-missing badge-missing--blocked" title="Sin cambio de status en más de 14 días">⛔ bloqueado</span>'
     : '';
-  // R-202605-045: staleness-pill — reemplaza badge "sin sesión" estático
-  // Condición: pendiente, con sprint asignado, con createdAt válido, sin sesión reciente
-  // Modificador: fresh (≤3d) | warn (4–7d) | stale (>7d) según días desde statusChangedAt
-  // B-202605-048: omitir pill si item.createdAt es inválido (legacy sin timestamp)
-  const noSessionBadge = (() => {
-    if (isDone || isDiscarded || !item.sprint || item.sprint === 'n/a' || !item.createdAt || _hasRecentSession(item)) return '';
-    const _refTs = item.statusChangedAt || item.createdAt;
-    const _staleDays = Math.floor((Date.now() - _refTs) / 86400000);
-    const _staleModifier = _staleDays <= 3 ? 'fresh' : _staleDays <= 7 ? 'warn' : 'stale';
-    const _staleLabel = _staleDays === 0 ? 'hoy' : _staleDays === 1 ? '1d' : _staleDays + 'd';
-    return `<span class="staleness-pill staleness--${_staleModifier}" title="Sin sesión vinculada — ${_staleDays}d desde último cambio de status">${_staleLabel}</span>`;
-  })();
+  // R-202605-045 · T-202605-083: staleness-pill — punto único de cálculo via _staleness()
+  // B-202605-048: omitir pill si item.createdAt es inválido (legacy sin timestamp) — manejado en _staleness()
+  const _stalenessData = (!isDone && !isDiscarded) ? _staleness(item) : null;
+  const noSessionBadge = _stalenessData
+    ? `<span class="staleness-pill staleness--${_stalenessData.modifier}" title="Sin sesión vinculada — ${_stalenessData.days}d desde último cambio de status">${_stalenessData.label}</span>`
+    : '';
 
   // Children count + progreso para R type (T-188)
   // B-202605-052: usar ITEMS sin filtrar como denominador — los filtros activos no afectan el porcentaje
@@ -646,7 +640,7 @@ function buildBacklogItem(item) {
     <div class="item-body bitem-body" id="ibody-${globalIdx}">
       ${item.notes ? `<div class="bitem-notes-block"><span class="bitem-notes-label">Notas</span><span class="bitem-notes-text">${esc(item.notes)}</span></div>` : ''}
       ${_isBlocked(item) ? `<div class="bitem-missing-row"><span class="badge-missing badge-missing--blocked">⛔ bloqueado — sin cambio de status en más de ${_BLOCKED_DAYS} días</span></div>` : ''}
-      ${(!isDone && !isDiscarded && item.sprint && item.sprint !== 'n/a' && item.createdAt && !_hasRecentSession(item)) ? (() => { const _rTs = item.statusChangedAt || item.createdAt; const _sd = Math.floor((Date.now() - _rTs) / 86400000); const _sm = _sd <= 3 ? 'fresh' : _sd <= 7 ? 'warn' : 'stale'; const _sl = _sd === 0 ? 'hoy' : _sd === 1 ? '1d' : _sd + 'd'; return `<div class="bitem-missing-row"><span class="staleness-pill staleness--${_sm}" title="Sin sesión vinculada — ${_sd}d desde último cambio de status">${_sl} sin sesión</span></div>`; })() : ''}
+      ${_stalenessData ? `<div class="bitem-missing-row"><span class="staleness-pill staleness--${_stalenessData.modifier}" title="Sin sesión vinculada — ${_stalenessData.days}d desde último cambio de status">${_stalenessData.label} sin sesión</span></div>` : ''}
       ${missingAlert}
       <div class="bitem-meta-grid" onclick="event.stopPropagation()">
         <div class="bitem-meta-cell">
@@ -2421,6 +2415,24 @@ function _normalizeStatus(raw) {
   // R-202604-091: 'en curso' fusionado con 'pendiente' — decorador visual reemplaza al status
   if (s === 'en curso' || s === 'en-curso' || s === 'progreso' || s === 'in-progress' || s === 'en progreso') return 'pendiente';
   return 'pendiente';
+}
+
+// T-202605-083: _staleness — punto único de cálculo de días de estancamiento para staleness-pill
+// Retorna objeto { days, modifier, label } si el pill debe renderizar, null si no aplica.
+// Gate: _hasRecentSession debe retornar false (ítem sin sesión reciente).
+// Modificadores: fresh (≤3d) · warn (4–7d) · stale (>7d).
+// Si statusChangedAt y createdAt son ambos null/undefined → retorna null (sin crash, sin valor inventado).
+function _staleness(item) {
+  if (!item || item.status !== 'pendiente') return null;
+  if (!item.sprint || item.sprint === 'n/a') return null;
+  if (!item.createdAt) return null;
+  if (typeof _hasRecentSession === 'function' && _hasRecentSession(item)) return null;
+  const _refTs = item.statusChangedAt || item.createdAt;
+  if (!_refTs) return null;
+  const days = Math.floor((Date.now() - _refTs) / 86400000);
+  const modifier = days <= 3 ? 'fresh' : days <= 7 ? 'warn' : 'stale';
+  const label = days === 0 ? 'hoy' : days === 1 ? '1d' : days + 'd';
+  return { days, modifier, label };
 }
 
 // R-202604-091: decorador de actividad — pendiente con sesión vinculada en los últimos 7 días
