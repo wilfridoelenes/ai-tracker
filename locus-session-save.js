@@ -509,6 +509,8 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
       ts.trackerRefs = trackerRefs.length ? trackerRefs : (ts.trackerRefs || []);
       ts.resetAt    = horaResult ? horaResult.label : (ts.resetAt || '');
       ts.quickCapture = false; // AC-3: pasa a sesión completa
+      // R-202605-049 AC-2: asignar sessionGroupId si la sesión aún no tiene uno
+      if (!ts.sessionGroupId) ts.sessionGroupId = 'sg-' + Date.now();
 
       if (horaResult) { ai.status = 'exhausted'; ai.resetTime = horaResult.hhmm; ai.resetEpoch = horaResult.epoch; }
       ai._parsed = {};
@@ -587,6 +589,13 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     // Si no se encuentra la sesión target, continuar con flujo normal
   }
 
+  // R-202605-049: sessionGroupId — hereda del checkpoint activo del worker o genera nuevo
+  const _allSessForGroup = (activeProj.sessions || []).filter(s => s.aiId === ai.id && !s.resetAt);
+  const _lastSessForGroup = _allSessForGroup.length ? _allSessForGroup[_allSessForGroup.length - 1] : null;
+  const _sessionGroupId = (_lastSessForGroup && _lastSessForGroup.sessionGroupId)
+    ? _lastSessForGroup.sessionGroupId
+    : 'sg-' + Date.now();
+
   // v3.0.0: sesión va al proyecto activo con aiId
   // R-202604-017 AC-3: ckptProyecto registrado en sesión para trazabilidad en log
   const newSess = {
@@ -603,6 +612,8 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     bloqueantes: parsed.bloqueantes || '',
     aprendizaje: parsed.aprendizaje || '',
     resetAt: horaResult ? horaResult.label : '',
+    // R-202605-049: sessionGroupId — agrupa checkpoints bajo sesión como contenedor
+    sessionGroupId: _sessionGroupId,
     // T-202605-446: tiempo cronometrado de la sesión en ms
     durationMs: (typeof window._stopSessionTimer === 'function') ? window._stopSessionTimer(id) : 0,
     dateShort, date: dateFull
@@ -712,7 +723,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // B-007: actualizar stat bar y lista backlog siempre al guardar sesión
   renderStats();
   // B-202604-XXX: actualizar tab Hoy tras guardar CKPT con hora de cierre — sin esto el card no refleja estado exhausted sin refresh manual
-  if (currentTab === 'hoy' && typeof renderHoy === 'function') renderHoy();
+  if (currentTab === 'sesiones' && typeof renderHoy === 'function') renderHoy();
   if (currentTab === 'backlog') renderBacklogList();
   // R-202604-016: actualizar log card
   _rebuildLogBody();

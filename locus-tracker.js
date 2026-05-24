@@ -8,8 +8,6 @@ let _trackerSelectedId = null;
 
 // ── R-202604-078: Vista Por IA / Historial ──────────────────────────────
 let _trackerCurrentView = 'poria'; // 'poria' | 'historial'
-let _trackerViewProjFilter = '';
-
 function _trackerSetView(view) {
   _trackerCurrentView = view;
 
@@ -24,9 +22,6 @@ function _trackerSetView(view) {
   if (!tab) return;
   tab.classList.toggle('tracker-view--poria',    view === 'poria');
   tab.classList.toggle('tracker-view--historial', view === 'historial');
-
-  // populate project selector cada vez que cambia la vista
-  _trackerViewPopulateProjects();
 
   if (view === 'historial') {
     // Vista B: render col 1 agrupada por día + col 2 global hist
@@ -48,30 +43,7 @@ function _trackerSetView(view) {
   }
 }
 
-function _trackerViewPopulateProjects() {
-  const sel = document.getElementById('tvh-proj-select');
-  if (!sel) return;
-  const projects = (state.projects || []).filter(p => p.status !== 'paused');
-  const current = _trackerViewProjFilter;
-  sel.innerHTML = '<option value="">Todos los proyectos</option>' +
-    projects.map(p => `<option value="${esc(p.id)}"${p.id === current ? ' selected' : ''}>${esc((p.icon || '📁') + ' ' + p.name)}</option>`).join('');
-  // B-202605-269: ocultar el select si solo hay 0 o 1 proyecto — no aporta filtrado útil
-  sel.classList.toggle('tvh-proj-single', projects.length <= 1);
-}
 
-function _trackerViewProjChange() {
-  const sel = document.getElementById('tvh-proj-select');
-  _trackerViewProjFilter = sel ? sel.value : '';
-  // sincronizar con filtro de historial col 2 existente
-  _trackerHistProjFilter = _trackerViewProjFilter;
-  if (_trackerCurrentView === 'poria') {
-    if (typeof _trackerRenderMiniHist === 'function') _trackerRenderMiniHist(_trackerSelectedId);
-  } else {
-    if (typeof _trackerRenderHist === 'function') _trackerRenderHist();
-  }
-  // re-render col 1 Vista B si está activa
-  if (_trackerCurrentView === 'historial') _trackerHistDayRender();
-}
 
 // ── END R-202604-078 Entrega 1 ──────────────────────────────────────────
 
@@ -81,23 +53,12 @@ function _trackerHistDayRender() {
   const bodyEl = document.getElementById('tvh-hist-col1-body');
   if (!bodyEl) return;
 
-  const periodSel = document.getElementById('tvh-hist-period');
-  const days = periodSel ? parseInt(periodSel.value, 10) : 7;
-
   let allSessions = (typeof getAllSessions === 'function') ? getAllSessions() : [];
 
-  // filtro por proyecto (sincronizado con tvh-proj-select)
-  if (_trackerViewProjFilter) {
-    allSessions = allSessions.filter(s => s.projectId === _trackerViewProjFilter);
-  }
-
-  // filtro por período
-  if (days > 0) {
-    const cutoff = Date.now() - days * 86400000;
-    allSessions = allSessions.filter(s => {
-      const ts = s.updatedAt || s.createdAt || 0;
-      return ts >= cutoff;
-    });
+  // filtro por proyecto activo (getActiveProject)
+  const activeProj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+  if (activeProj) {
+    allSessions = allSessions.filter(s => s.projectId === activeProj.id);
   }
 
   // más reciente primero
@@ -263,14 +224,12 @@ function _trackerRenderMiniHist(aiId) {
   const panelEl  = document.getElementById('tracker-mini-hist-panel');
   const listEl   = document.getElementById('tracker-mini-hist-list');
   const titleEl  = document.getElementById('tracker-mini-hist-title');
-  const countEl  = document.getElementById('tracker-mini-hist-count');
   const emptyEl  = document.getElementById('tracker-mini-hist-empty');
   if (!listEl) return;
 
   if (!aiId) {
     // T-202605-470: sin IA — título neutral
     if (titleEl) titleEl.textContent = 'Sesiones';
-    if (countEl) { countEl.textContent = ''; countEl.classList.add('is-hidden'); }
     const lastMetaEl = document.getElementById('tracker-mini-hist-last');
     if (lastMetaEl) lastMetaEl.textContent = '';
     listEl.innerHTML = '<div class="tracker-mini-hist-empty"><span class="tracker-mini-hist-empty-icon">📋</span><span>Selecciona una IA</span></div>';
@@ -286,8 +245,9 @@ function _trackerRenderMiniHist(aiId) {
     ? aiSessions.filter(s => s.id !== currentSess.id)
     : aiSessions;
 
-  // R-202605-116 AC: filtro de proyecto — usa selector global del tracker view
-  const projFilter = _trackerViewProjFilter;
+  // R-202605-116 AC: filtro de proyecto — usa proyecto activo (getActiveProject)
+  const _activeProjMH = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+  const projFilter = _activeProjMH ? _activeProjMH.id : null;
   const filtered = projFilter
     ? pastSessions.filter(s => s.projectId === projFilter)
     : pastSessions;
@@ -298,7 +258,7 @@ function _trackerRenderMiniHist(aiId) {
   // T-202605-470: header muestra conteo + último acceso — el nombre de la IA ya es visible en col 1
   const totalCount = aiSessions.length;
   if (titleEl) {
-    titleEl.textContent = `${totalCount} sesión${totalCount !== 1 ? 'es' : ''}`;
+    titleEl.textContent = `${totalCount} checkpoint${totalCount !== 1 ? 's' : ''}`;
   }
   const lastMetaEl = document.getElementById('tracker-mini-hist-last');
   if (lastMetaEl) {
@@ -308,22 +268,11 @@ function _trackerRenderMiniHist(aiId) {
       : '';
   }
 
-  if (countEl) {
-    // Mostrar filtered count solo cuando hay filtro de proyecto activo
-    if (projFilter && sorted.length !== totalCount) {
-      countEl.textContent = sorted.length + ' filtradas';
-      countEl.classList.remove('is-hidden');
-    } else {
-      countEl.textContent = '';
-      countEl.classList.add('is-hidden');
-    }
-  }
-
   if (!sorted.length) {
-    // T-202605-473: mensajes diferenciados — filtro activo vs sin sesiones reales
+    // T-202605-473: mensajes diferenciados — filtro activo vs sin checkpoints reales
     const emptyMsg = projFilter
-      ? 'Sin sesiones para este filtro'
-      : (aiSessions.length === 0 ? 'Esta IA no tiene sesiones registradas' : 'Sin sesiones');
+      ? 'Sin checkpoints para este filtro'
+      : (aiSessions.length === 0 ? 'Esta IA no tiene checkpoints registrados' : 'Sin checkpoints registrados');
     listEl.innerHTML = `<div class="tracker-mini-hist-empty"><span class="tracker-mini-hist-empty-icon">📋</span><span>${emptyMsg}</span></div>`;
     return;
   }
@@ -481,6 +430,8 @@ function _getCurrentSession(aiId) {
   if (ai && ai.status === 'exhausted' && !ai.resetEpoch) return null;
   return last;
 }
+// R-202605-050: alias canónico — _getCurrentCheckpoint
+function _getCurrentCheckpoint(aiId) { return _getCurrentSession(aiId); }
 
 function _buildCurrentSessionCard(aiId) {
   const currentSess = _getCurrentSession(aiId);
@@ -539,7 +490,7 @@ function _buildCurrentSessionCard(aiId) {
   el.innerHTML = `
     <div class="cscard-header">
       <span class="cscard-dot"></span>
-      <span class="cscard-label">Sesión en curso</span>
+      <span class="cscard-label">Checkpoint en curso</span>
       <span class="cscard-timer" id="cscard-timer-${aiId}" data-ai-id="${aiId}" data-ts="${_cscardTs}">${_cscardInitLabel}</span>
     </div>
     <div class="cscard-rows">
@@ -631,7 +582,7 @@ function _renderTrackerSidebar() {
     const _lastDate = _lastSess ? (_lastSess.date || _lastSess.dateShort || '') : '';
     const _rel = _lastDate && typeof relDate === 'function' ? relDate(_lastDate) : '';
     const _meta = _sessCount
-      ? `<span class="tsb-ai-meta">${_sessCount} ses${_rel ? ' · ' + _rel : ''}</span>`
+      ? `<span class="tsb-ai-meta">${_sessCount} ckpt${_rel ? ' · ' + _rel : ''}</span>`
       : '';
     return `<div class="tsb-ai-row${sel}" onclick="selectTrackerAI('${ai.id}')" id="tsb-row-${ai.id}">
       <span class="tsb-ai-dot ${dot}"></span>
@@ -1365,7 +1316,7 @@ function confirmBlindExhaust(id) {
   cancelBlindExhaustMode(id);
   saveImmediate().then(() => {
     render();
-    if (typeof renderHoy === 'function' && currentTab === 'hoy') renderHoy();
+    if (typeof renderHoy === 'function' && currentTab === 'sesiones') renderHoy();
   });
   if (typeof showToast === 'function') showToast('info', `${ai.name} — agotada sin sesión · desbloqueo a las ${result.label}`);
 }
@@ -1398,7 +1349,7 @@ function buildCard(ai) {
   // T-055: banner sesión interrumpida
   const interruptedBannerHTML = ai.interrupted
     ? `<div class="interrupted-banner visible">
-        <span class="interrupted-banner-text">⚡ Sesión en curso</span>
+        <span class="interrupted-banner-text">⚡ Checkpoint en curso</span>
         <button class="interrupted-banner-btn" onclick="dismissInterrupted('${ai.id}')">Continuar →</button>
        </div>`
     : `<div class="interrupted-banner" id="intbanner-${ai.id}"></div>`;
@@ -1476,7 +1427,7 @@ function buildCard(ai) {
   const _noSessReason = _buildSuggestionReason(ai);
   const emptyState = `<div class="no-sess">
     <span class="no-sess-icon">📋</span>
-    Sin sesiones aún
+    Sin checkpoints registrados
     ${_noSessReason ? `<div class="no-sess-suggestion">${esc(_noSessReason)}</div>` : ''}
     <div class="no-sess-hint">Pega el bloque CHECKPOINT al terminar tu sesión con la IA</div>
   </div>`;
@@ -1684,32 +1635,20 @@ function buildCard(ai) {
 
 // ── Vista Historial col 2 — estado ──────────────────────────────────────
 let _trackerHistSelectedSessId = null;
-let _trackerHistProjFilter = '';
 
 // ── T-202604-372: Drag & drop sesión → textarea col 1 — estado ──────────
 let _trackerDragSessId = null;
 let _trackerDragAiId   = null;
 
-// Poblar select de proyectos en col 2
-function _trackerHistPopulateProjects() {
-  const sel = document.getElementById('tracker-hist-proj-filter');
-  if (!sel) return;
-  const projects = (state.projects || []).filter(p => p.status !== 'paused');
-  const current = sel.value;
-  sel.innerHTML = '<option value="">Todos los proyectos</option>' +
-    projects.map(p => `<option value="${esc(p.id)}"${p.id === current ? ' selected' : ''}>${esc(p.icon || '📁')} ${esc(p.name)}</option>`).join('');
-}
-
-// Render col 2: lista de sesiones con filtro de proyecto
+// Render col 2: lista de sesiones filtrada por proyecto activo
 function _trackerRenderHist() {
   const listEl = document.getElementById('tracker-hist-list');
   if (!listEl) return;
 
-  _trackerHistPopulateProjects();
-
-  const allSessions = getAllSessions(); // ordenadas cronológicamente
-  const filtered = _trackerHistProjFilter
-    ? allSessions.filter(s => s.projectId === _trackerHistProjFilter)
+  const allSessions = getAllSessions();
+  const activeProj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+  const filtered = activeProj
+    ? allSessions.filter(s => s.projectId === activeProj.id)
     : allSessions;
 
   // más reciente primero
@@ -1718,7 +1657,7 @@ function _trackerRenderHist() {
   if (!sorted.length) {
     listEl.innerHTML = `<div class="tracker-hist-empty">
       <span class="tracker-hist-empty-icon">📋</span>
-      <span>Sin sesiones${_trackerHistProjFilter ? ' en este proyecto' : ''}</span>
+      <span>Sin sesiones</span>
     </div>`;
     return;
   }
@@ -1766,13 +1705,6 @@ function _trackerRenderHist() {
 
   // Re-attach drag target listeners
   _trackerHistAttachDropTargets();
-}
-
-// Handler cambio de filtro proyecto
-function _trackerHistFilterChange() {
-  const sel = document.getElementById('tracker-hist-proj-filter');
-  _trackerHistProjFilter = sel ? sel.value : '';
-  _trackerRenderHist();
 }
 
 // Seleccionar sesión: resaltar en col 2 + abrir preview

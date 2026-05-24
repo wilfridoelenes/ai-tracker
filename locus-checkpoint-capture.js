@@ -191,7 +191,9 @@ function confirmQuickCapture() {
     quickCapture: true,
     resetAt: horaResult ? horaResult.hhmm : '',
     dateShort: now.toLocaleDateString('es-MX', {day:'2-digit',month:'short'}),
-    date: now.toISOString()
+    date: now.toISOString(),
+    // R-202605-049 AC-3: sesión rápida genera sessionGroupId propio — siempre grupo de un solo checkpoint
+    sessionGroupId: 'sg-' + Date.now()
   };
 
   // v3: sesión va al proyecto activo con aiId

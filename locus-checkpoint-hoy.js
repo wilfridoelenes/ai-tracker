@@ -92,7 +92,7 @@ let _hoyTickerInterval = null;
 function _startHoyTicker() {
   _stopHoyTicker();
   _hoyTickerInterval = setInterval(() => {
-    if (typeof currentTab === 'undefined' || currentTab !== 'hoy') { _stopHoyTicker(); return; }
+    if (typeof currentTab === 'undefined' || currentTab !== 'sesiones') { _stopHoyTicker(); return; }
     document.querySelectorAll('[data-hoy-ai-id]').forEach(el => {
       const ai = getAI(el.dataset.hoyAiId);
       if (!ai || ai.status !== 'exhausted') return;
@@ -135,11 +135,11 @@ function _startSidebarTicker() {
           if (typeof saveImmediate === 'function') {
             saveImmediate().then(() => {
               if (typeof render === 'function') render();
-              if (typeof renderHoy === 'function' && typeof currentTab !== 'undefined' && currentTab === 'hoy') renderHoy();
+              if (typeof renderHoy === 'function' && typeof currentTab !== 'undefined' && currentTab === 'sesiones') renderHoy();
             });
           } else {
             if (typeof render === 'function') render();
-            if (typeof renderHoy === 'function' && typeof currentTab !== 'undefined' && currentTab === 'hoy') renderHoy();
+            if (typeof renderHoy === 'function' && typeof currentTab !== 'undefined' && currentTab === 'sesiones') renderHoy();
           }
         } else {
           const h = Math.floor(diff / 60), m = diff % 60;

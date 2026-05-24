@@ -236,11 +236,6 @@
       <button class="tvh-toggle-btn active" id="tvh-btn-poria" onclick="_trackerSetView('poria')" aria-pressed="true">Checkpoint</button>
       <button class="tvh-toggle-btn" id="tvh-btn-historial" onclick="_trackerSetView('historial')" aria-pressed="false">Historial</button>
     </div>
-    <div class="tracker-view-controls">
-      <select class="tvh-proj-select" id="tvh-proj-select" onchange="_trackerViewProjChange()" title="Filtrar por proyecto">
-        <option value="">Todos los proyectos</option>
-      </select>
-    </div>
   </div>
 
   <!-- IDs legacy preservados para backward compat con _renderTrackerSidebar() -->
@@ -264,17 +259,6 @@
       <div class="tvh-hist-col1" id="tvh-hist-col1">
         <div class="tvh-hist-col1-header">
           <span class="tvh-hist-col1-title">Sesiones</span>
-          <div class="tvh-hist-col1-filters">
-            <select class="tracker-hist-proj-filter" id="tracker-hist-proj-filter" onchange="_trackerHistFilterChange()">
-              <option value="">Todos los proyectos</option>
-            </select>
-            <select class="tvh-hist-period-select" id="tvh-hist-period" onchange="_trackerHistDayRender()">
-              <option value="7">Últimos 7 días</option>
-              <option value="30">Últimos 30 días</option>
-              <option value="90">Últimos 90 días</option>
-              <option value="0">Todo</option>
-            </select>
-          </div>
         </div>
         <div class="tvh-hist-col1-body" id="tvh-hist-col1-body">
           <div class="tracker-hist-list" id="tracker-hist-list">

@@ -1323,6 +1323,8 @@ function getAllSessions() {
   });
   return (state.projects || []).flatMap(p => (p.sessions || []).map(s => ({ ...s, projectId: p.id })));
 }
+// R-202605-050: alias canónico — getAllCheckpoints
+function getAllCheckpoints() { return getAllSessions(); }
 
 // Sesiones de un proyecto filtradas por aiId
 function getSessionsByAI(projId, aiId) {
@@ -1352,6 +1354,8 @@ function getActiveSprints() {
 function countAISessions(aiId) {
   return (state.projects || []).reduce((sum, p) => sum + (p.sessions || []).filter(s => s.aiId === aiId).length, 0);
 }
+// R-202605-050: alias canónico — countAICheckpoints
+function countAICheckpoints(aiId) { return countAISessions(aiId); }
 
 // Última sesión de una IA en el proyecto activo (o en todos si no hay filtro)
 function getLastAISession(aiId) {
@@ -1368,6 +1372,8 @@ function getAISessions(aiId) {
   if (projId) return getProjectSessions(projId).filter(s => s.aiId === aiId);
   return getAllSessions().filter(s => s.aiId === aiId);
 }
+// R-202605-050: alias canónico — getAICheckpoints
+function getAICheckpoints(aiId) { return getAISessions(aiId); }
 
 // Busca una sesión por id en todos los proyectos — devuelve { proj, sess } o null
 function _findSession(sessId) {
@@ -1377,6 +1383,8 @@ function _findSession(sessId) {
   }
   return null;
 }
+// R-202605-050: alias canónico — _findCheckpoint
+function _findCheckpoint(sessId) { return _findSession(sessId); }
 
 // Busca una sesión por aiId + sessId — para compatibilidad con funciones que tienen ambos
 function _findSessionByAI(aiId, sessId) {
@@ -1386,6 +1394,8 @@ function _findSessionByAI(aiId, sessId) {
   }
   return null;
 }
+// R-202605-050: alias canónico — _findCheckpointByAI
+function _findCheckpointByAI(aiId, sessId) { return _findSessionByAI(aiId, sessId); }
 
 // ── GRUPO 4 — USER PREFS (Supabase) ──────────────────────────────────────────
 
