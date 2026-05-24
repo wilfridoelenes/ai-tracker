@@ -1175,10 +1175,10 @@ function render() {
   if (!window._radarSbInited) { window._radarSbInited = true; _initRadarSidebarState(); }
   if (typeof renderProjDots === 'function') renderProjDots();
   // R-202604-059: actualizar historial col 2 según modo activo + re-attach drop targets tras cada render
+  // Col 1 (tracker-hist-list) siempre se actualiza con _trackerRenderHist — independiente del modo
+  if (typeof _trackerRenderHist === 'function') _trackerRenderHist();
   if (_trackerCurrentView === 'poria') {
     if (typeof _trackerRenderMiniHist === 'function') _trackerRenderMiniHist(_trackerSelectedId);
-  } else {
-    if (typeof _trackerRenderHist === 'function') _trackerRenderHist();
   }
   if (typeof _trackerHistAttachDropTargets === 'function') _trackerHistAttachDropTargets();
   // T-202605-447: actualizar banner de sesión sugerida tras cada render
