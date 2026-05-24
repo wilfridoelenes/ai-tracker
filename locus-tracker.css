@@ -6500,7 +6500,7 @@ body.body--focus-mode::after {
   color: var(--text-muted);
   font-size: var(--text-sm);
   text-align: center;
-  /* B-[pendiente-ID]: spec Nova — sin emoji, --text-muted, padding-top compacto */
+  /* B-202605-075: centrado horizontal · --spacing-md top · --text-muted · sin ícono ni CTA */
 }
 
 .tracker-mini-hist-row {

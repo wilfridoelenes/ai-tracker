@@ -270,10 +270,12 @@ function _trackerRenderMiniHist(aiId) {
   }
 
   if (!sorted.length) {
-    // T-202605-473: mensajes diferenciados — filtro activo vs sin checkpoints reales
+    // B-202605-075: mensajes diferenciados — filtro activo vs sin sesiones vs solo sesión en curso
     const emptyMsg = projFilter
       ? 'Sin checkpoints para este filtro'
-      : (aiSessions.length === 0 ? 'Sin sesiones registradas' : 'Sin sesiones registradas');
+      : (aiSessions.length === 0
+          ? 'Sin sesiones registradas'
+          : 'Sin sesiones anteriores');
     listEl.innerHTML = `<div class="tracker-mini-hist-empty">${emptyMsg}</div>`;
     return;
   }
