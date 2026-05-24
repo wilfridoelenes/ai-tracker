@@ -433,6 +433,33 @@ function _showExportConfirmModal(label, filename, onConfirm) {
   }
 }
 
+// R-202605-053: bloque ## Sprint activo — primera sección del backlog exportado
+// AC-1: primera línea del contenido después del encabezado # BACKLOG
+// AC-2: campos sprint (nombre canónico), status, version_target, release_type
+// AC-3: si no hay sprint abierto → sprint: ninguno, demás campos n/a
+function _buildSprintActivoMd() {
+  const sprints = (state && Array.isArray(state.sprints)) ? state.sprints : [];
+  const activeSprint = sprints.find(s => s.status === 'active' || s.status === 'open');
+  const lines = ['## Sprint activo', ''];
+  if (activeSprint) {
+    lines.push(`| Campo | Valor |`);
+    lines.push(`|---|---|`);
+    lines.push(`| sprint | ${activeSprint.name || activeSprint.id} |`);
+    lines.push(`| status | ${activeSprint.status} |`);
+    lines.push(`| version_target | ${activeSprint.version_target || 'n/a'} |`);
+    lines.push(`| release_type | ${activeSprint.release_type || 'n/a'} |`);
+  } else {
+    lines.push(`| Campo | Valor |`);
+    lines.push(`|---|---|`);
+    lines.push(`| sprint | ninguno |`);
+    lines.push(`| status | n/a |`);
+    lines.push(`| version_target | n/a |`);
+    lines.push(`| release_type | n/a |`);
+  }
+  lines.push('', '---', '');
+  return lines.join('\n');
+}
+
 function _generateBacklogContent(newVersion, opts = {}) {
   const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
   const _activeProj = typeof getActiveProject === 'function' ? getActiveProject() : null;
@@ -498,6 +525,9 @@ function _generateBacklogContent(newVersion, opts = {}) {
   // R-202604-040: bloque de estado actual — sprint activo, pendientes, último bloqueante
   const currentStateMd = _buildCurrentStateMd();
 
+  // R-202605-053: bloque ## Sprint activo — primera sección del export (fuente de verdad en sesión)
+  const sprintActivoMd = _buildSprintActivoMd();
+
   // B-202605-260: versión canónica para campos de metadata del export
   const _appVerStr = (typeof _effectiveVersion === 'string' && _effectiveVersion)
     ? _effectiveVersion
@@ -509,7 +539,7 @@ function _generateBacklogContent(newVersion, opts = {}) {
 
 ---
 
-## Meta
+${sprintActivoMd}## Meta
 
 | Campo | Valor |
 |---|---|

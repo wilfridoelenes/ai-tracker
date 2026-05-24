@@ -113,10 +113,18 @@ function _stopHoyTicker() {
 let _sidebarTickerInterval = null;
 function _startSidebarTicker() {
   _stopSidebarTicker();
+  // B-202605-047: set de IDs ya procesados para expiración en este ciclo de ticker.
+  // Evita doble escritura en unlock-lbl- y rsb-card- cuando render() relanza el ticker
+  // antes de que saveImmediate confirme el cambio de estado en state.ais.
+  const _expiredThisTick = new Set();
   _sidebarTickerInterval = setInterval(() => {
     const exhausted = state.ais.filter(ai => !ai.archived && ai.status === 'exhausted' && ai.resetTime);
     if (!exhausted.length) { _stopSidebarTicker(); return; }
     exhausted.forEach(ai => {
+      // B-202605-047: si este ai ya fue procesado para expiración en este ticker,
+      // no escribir unlock-lbl ni rsb-card hasta que el nuevo ticker arranque post-render.
+      if (_expiredThisTick.has(ai.id)) return;
+
       const el = document.getElementById('tsb-row-' + ai.id);
       if (el) {
         let cdEl = el.querySelector('.tsb-ai-cd');
@@ -126,6 +134,9 @@ function _startSidebarTicker() {
         if (reset <= now) reset.setDate(reset.getDate() + 1);
         const diff = Math.max(0, Math.round((reset - now) / 60000));
         if (diff === 0) {
+          // B-202605-047: marcar antes de mutar estado para bloquear escrituras
+          // en unlock-lbl y rsb-card durante el render que viene a continuación.
+          _expiredThisTick.add(ai.id);
           // Fix: limpiar los tres campos de estado, persistir y hacer render completo.
           // Las actualizaciones quirúrgicas de DOM previas eran insuficientes — no movían
           // la IA de la sección exhausted a available en sidebar ni en card.
@@ -141,6 +152,7 @@ function _startSidebarTicker() {
             if (typeof render === 'function') render();
             if (typeof renderHoy === 'function' && typeof currentTab !== 'undefined' && currentTab === 'sesiones') renderHoy();
           }
+          return; // B-202605-047: no continuar a las escrituras de DOM de este ai
         } else {
           const h = Math.floor(diff / 60), m = diff % 60;
           const label = `${h}h${String(m).padStart(2,'0')}`;
