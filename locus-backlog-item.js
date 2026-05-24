@@ -526,11 +526,18 @@ function buildBacklogItem(item) {
   const blockedBadge = _isBlocked(item)
     ? '<span class="badge-missing badge-missing--blocked" title="Sin cambio de status en más de 14 días">⛔ bloqueado</span>'
     : '';
-  // T-202604-259: badge "sin sesión" — pendiente con sprint sin mención en sesión en >14 días
+  // R-202605-045: staleness-pill — reemplaza badge "sin sesión" estático
+  // Condición: pendiente, con sprint asignado, con createdAt válido, sin sesión reciente
+  // Modificador: fresh (≤3d) | warn (4–7d) | stale (>7d) según días desde statusChangedAt
   // B-202605-048: omitir pill si item.createdAt es inválido (legacy sin timestamp)
-  const noSessionBadge = (!isDone && !isDiscarded && item.sprint && item.sprint !== 'n/a' && item.createdAt && !_hasRecentSession(item))
-    ? '<span class="badge-missing badge-missing--idle" title="Sin mención en sesión en más de 14 días">💤 sin sesión</span>'
-    : '';
+  const noSessionBadge = (() => {
+    if (isDone || isDiscarded || !item.sprint || item.sprint === 'n/a' || !item.createdAt || _hasRecentSession(item)) return '';
+    const _refTs = item.statusChangedAt || item.createdAt;
+    const _staleDays = Math.floor((Date.now() - _refTs) / 86400000);
+    const _staleModifier = _staleDays <= 3 ? 'fresh' : _staleDays <= 7 ? 'warn' : 'stale';
+    const _staleLabel = _staleDays === 0 ? 'hoy' : _staleDays === 1 ? '1d' : _staleDays + 'd';
+    return `<span class="staleness-pill staleness--${_staleModifier}" title="Sin sesión vinculada — ${_staleDays}d desde último cambio de status">${_staleLabel}</span>`;
+  })();
 
   // Children count + progreso para R type (T-188)
   // B-202605-052: usar ITEMS sin filtrar como denominador — los filtros activos no afectan el porcentaje
@@ -639,7 +646,7 @@ function buildBacklogItem(item) {
     <div class="item-body bitem-body" id="ibody-${globalIdx}">
       ${item.notes ? `<div class="bitem-notes-block"><span class="bitem-notes-label">Notas</span><span class="bitem-notes-text">${esc(item.notes)}</span></div>` : ''}
       ${_isBlocked(item) ? `<div class="bitem-missing-row"><span class="badge-missing badge-missing--blocked">⛔ bloqueado — sin cambio de status en más de ${_BLOCKED_DAYS} días</span></div>` : ''}
-      ${(!isDone && !isDiscarded && item.sprint && item.sprint !== 'n/a' && item.createdAt && !_hasRecentSession(item)) ? `<div class="bitem-missing-row"><span class="badge-missing badge-missing--idle">💤 sin sesión — sin mención en los últimos ${_NO_SESSION_DAYS} días</span></div>` : ''}
+      ${(!isDone && !isDiscarded && item.sprint && item.sprint !== 'n/a' && item.createdAt && !_hasRecentSession(item)) ? (() => { const _rTs = item.statusChangedAt || item.createdAt; const _sd = Math.floor((Date.now() - _rTs) / 86400000); const _sm = _sd <= 3 ? 'fresh' : _sd <= 7 ? 'warn' : 'stale'; const _sl = _sd === 0 ? 'hoy' : _sd === 1 ? '1d' : _sd + 'd'; return `<div class="bitem-missing-row"><span class="staleness-pill staleness--${_sm}" title="Sin sesión vinculada — ${_sd}d desde último cambio de status">${_sl} sin sesión</span></div>`; })() : ''}
       ${missingAlert}
       <div class="bitem-meta-grid" onclick="event.stopPropagation()">
         <div class="bitem-meta-cell">
@@ -699,22 +706,6 @@ function buildBacklogItem(item) {
             + '</select></div>';
         })() : ''}
       </div>
-      ${isDiscarded ? (() => {
-        const _drId = `discard-reason-idp-${globalIdx}`;
-        const _drVal = item.discardReason || '';
-        return `<div class="bitem-discard-reason-block" onclick="event.stopPropagation()">
-          <span class="bitem-meta-label">Motivo de descarte</span>
-          <div class="bitem-discard-reason-row" id="${_drId}-row">
-            <span class="bitem-discard-reason-text" id="${_drId}-text">${_drVal ? esc(_drVal) : '<span class="bitem-discard-reason-empty">Sin motivo registrado</span>'}</span>
-            <button class="bitem-discard-reason-edit" onclick="event.stopPropagation();_idpDiscardReasonEdit('${esc(item.code)}',${globalIdx})" title="Editar motivo">✎</button>
-          </div>
-          <div class="bitem-discard-reason-edit-row is-hidden" id="${_drId}-edit">
-            <input type="text" class="bitem-discard-reason-input" id="${_drId}-input" value="${esc(_drVal)}" maxlength="280" placeholder="Motivo (opcional)">
-            <button class="bitem-discard-reason-save" onclick="event.stopPropagation();_idpDiscardReasonSave('${esc(item.code)}',${globalIdx})">Guardar</button>
-            <button class="bitem-discard-reason-cancel" onclick="event.stopPropagation();_idpDiscardReasonCancel(${globalIdx})">Cancelar</button>
-          </div>
-        </div>`;
-      })() : ''}
       ${isIdea ? '' : acHtml}
       ${(() => {
         // R-202604-074: AC Vivo — solo en pendientes con sprint; R-202605-098: nunca en P
@@ -1191,48 +1182,15 @@ function _findTmpMatch(tmpCode, desc, existingItems) {
 // B-202605-ids: reservedCodes acumula los códigos asignados en esta pasada para que
 // _getNextItemCode no repita el mismo número cuando hay múltiples [pendiente-ID] del
 // mismo tipo — los ítems nuevos aún no están en ITEMS en el momento de la asignación.
-// B-202605-054: antes de asignar ID nuevo, cruzar título contra ITEMS existentes (pendiente,
-// mismo proyecto) — si hay match, marcar _duplicate + _existingCode para que mergeBacklogFromTG
-// lo trate como actualización en lugar de crear un duplicado.
 function _assignPendingIds(tgItems) {
   const validTypes = new Set(['P', 'T', 'R', 'B']);
   const reservedCodes = new Set();
-
-  // B-202605-054: helper de normalización de título para dedup
-  const _normTitle = t => (t || '').trim().toLowerCase().replace(/\s+/g, ' ');
-
-  // B-202605-054: índice de títulos normalizados de ítems existentes en status pendiente
-  // para lookup O(1) por título → código existente
-  const _pendingTitleIndex = new Map();
-  if (typeof ITEMS !== 'undefined' && Array.isArray(ITEMS)) {
-    ITEMS.forEach(existing => {
-      if (existing.status === 'pendiente' && existing.title) {
-        _pendingTitleIndex.set(_normTitle(existing.title), existing.code);
-      }
-    });
-  }
-
   return tgItems.map(item => {
     if (item.code !== '[pendiente-ID]') return item; // AC-4/5: no es placeholder estándar
     if (!item.type || !validTypes.has(item.type)) return item; // AC-3: type inválido — no asignar
-
-    // B-202605-054: dedup por título — si el título normalizado del ítem entrante coincide
-    // con un ítem existente en status pendiente, marcar como duplicado en lugar de asignar ID.
-    // La coincidencia es case-insensitive y strip de whitespace (AC-3 del bug).
-    if (item.title) {
-      const normIncoming = _normTitle(item.title);
-      const existingCode = _pendingTitleIndex.get(normIncoming);
-      if (existingCode) {
-        return { ...item, _duplicate: true, _existingCode: existingCode };
-      }
-    }
-
     const newCode = _getNextItemCode(item.type, reservedCodes);
     reservedCodes.add(newCode);
-    // B-202605-054: registrar título del nuevo ítem en el índice para que ítems posteriores
-    // en el mismo CHECKPOINT que compartan título también se desdupliquen entre sí.
-    if (item.title) _pendingTitleIndex.set(_normTitle(item.title), newCode);
-    return { ...item, code: newCode, _wasAssigned: true };
+    return { ...item, code: newCode };
   });
 }
 
@@ -1265,7 +1223,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
     if (!item.code) return;
     if (item._invalidType) { ignored.push({ code: item.code || '[sin-código]', reason: 'tipo-invalido', desc: item.title }); return; }
     if (item._duplicate) {
-      // B-202605-054: ítem duplicado (título matchea existente en status pendiente) —
+      // B-202605-XXX: ítem duplicado (título matchea existente via _assignPendingIds) —
       // aunque se ignore para status/creación, si trae AC se mergean sobre el existente.
       if (item.ac && item.ac.length && item._existingCode && !_dryRun) {
         const dupExisting = ITEMS.find(i => i.code === item._existingCode);
@@ -1278,21 +1236,14 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
           changed = true;
         }
       }
-      // B-202605-054 AC-5: registrar deduplicación en DocLog — código asignado, título, acción
-      if (!_dryRun) {
-        const _dupAction = (item.ac && item.ac.length && item._existingCode) ? 'actualizado' : 'ignorado';
-        _blogLog('ckpt-dedup', item._existingCode || '[pendiente-ID]', item.title + ' \u2192 ' + _dupAction, 'backlog');
-      }
       ignored.push({ code: '[pendiente-ID]', reason: 'duplicado', desc: item.title, existingCode: item._existingCode || '' });
       return;
     }
 
-    // B-202604-198: REGLA DE PLACEHOLDER — forzar rama "nuevo" sin intentar match de código.
-    // Un [tmp:slug] o [pendiente-ID] residual (sin type válido) NUNCA matchea por código contra ITEMS.
-    // Nota: _assignPendingIds ya procesó los [pendiente-ID] con type válido:
-    //   - si el título coincide con un pendiente existente → _duplicate: true (bloque anterior)
-    //   - si no hay coincidencia → código real asignado (_wasAssigned: true)
-    // Lo que llega aquí como isPlaceholder es [pendiente-ID] sin type o [tmp:slug] sin match de título.
+    // B-202604-198: REGLA DE PLACEHOLDER — forzar rama "nuevo" sin intentar match
+    // Un [tmp:slug] o [pendiente-ID] NUNCA matchea contra ITEMS existentes.
+    // Nota: _assignPendingIds ya habrá convertido [pendiente-ID] con type char real si tiene
+    // suficiente info; si no pudo (sin type), sigue siendo placeholder.
     const isPlaceholder = _isPlaceholderCode(item.code);
 
     // B-202604-198: REGLA DE TMP — detectar si [tmp:slug] corresponde a un ID real existente
@@ -2360,41 +2311,6 @@ function _confirmRetroceso(code, toStatus) {
       }
     }
   });
-}
-
-// R-202605-024: edición inline del motivo de descarte desde el IDP
-function _idpDiscardReasonEdit(code, globalIdx) {
-  const _drId = `discard-reason-idp-${globalIdx}`;
-  const rowEl  = document.getElementById(_drId + '-row');
-  const editEl = document.getElementById(_drId + '-edit');
-  if (!rowEl || !editEl) return;
-  rowEl.classList.add('is-hidden');
-  editEl.classList.remove('is-hidden');
-  const inputEl = document.getElementById(_drId + '-input');
-  if (inputEl) { inputEl.focus(); inputEl.select(); }
-}
-
-function _idpDiscardReasonSave(code, globalIdx) {
-  const item = ITEMS.find(i => i.code === code);
-  if (!item) return;
-  const _drId   = `discard-reason-idp-${globalIdx}`;
-  const inputEl = document.getElementById(_drId + '-input');
-  const newVal  = inputEl ? inputEl.value.trim() : '';
-  item.discardReason = newVal || null; // AC: vacío → null
-  _undoSnapshot();
-  saveBacklog();
-  _setBacklogModified();
-  renderBacklogList();
-  if (typeof showToast === 'function') showToast('success', '✓ Motivo actualizado');
-}
-
-function _idpDiscardReasonCancel(globalIdx) {
-  const _drId  = `discard-reason-idp-${globalIdx}`;
-  const rowEl  = document.getElementById(_drId + '-row');
-  const editEl = document.getElementById(_drId + '-edit');
-  if (!rowEl || !editEl) return;
-  editEl.classList.add('is-hidden');
-  rowEl.classList.remove('is-hidden');
 }
 
 function _confirmDiscard(code, reason, ref) {
