@@ -596,7 +596,7 @@ function setSprintStatus(id, newStatus) {
     }
   }
   save();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   showToast('info', id + ' → ' + newStatus);
 }
 
@@ -624,7 +624,7 @@ function setItemSprint(code, sprintId) {
   _undoSnapshot();
   saveBacklog();
   _setBacklogModified();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   renderStats();
 }
 
@@ -656,7 +656,7 @@ function openNewSprintInline(code) {
       setItemSprint(code, newId);
     },
     function onCancel() {
-      renderBacklogList();
+      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
     }
   );
 
@@ -700,7 +700,7 @@ function confirmNewSprint(code) {
       if (bnsf) { _bnsf_confirm(bnsf.dataset.bnsf); return; }
     }
   }
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202604-246: edición inline del nombre de sprint desde el header del grupo
@@ -725,19 +725,19 @@ function editSprintInline(sprintId) {
     <span class="sprint-inline-id-preview">${esc(sprintId)} ·</span>
     <input id="${esc(inputId)}" type="text" value="${esc(currentDescriptive)}"
       class="sprint-inline-input sprint-inline-input--wide"
-      onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')renderBacklogList();">
+      onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();">
     <button onclick="confirmEditSprint('${esc(sprintId)}')" class="sprint-inline-confirm">&#10003;</button>
-    <button onclick="renderBacklogList()" class="sprint-inline-cancel">&#10005;</button>
+    <button onclick="if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList()" class="sprint-inline-cancel">&#10005;</button>
     <input id="${esc(goalId)}" type="text" value="${esc(currentGoal)}"
       placeholder="Goal del sprint (opcional, max 120)"
       class="sprint-inline-goal-input"
       maxlength="120"
-      onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')renderBacklogList();">
+      onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();">
     <div class="sprint-inline-release-row">
       <label class="sprint-inline-release-label">Versión:</label>
       <input id="${esc(vtId)}" type="text" value="${esc(suggestVt)}"
         class="sprint-inline-vt-input" placeholder="v3.5"
-        onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')renderBacklogList();">
+        onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();">
       <label class="sprint-inline-release-label">Tipo:</label>
       <select id="${esc(rtId)}" class="sprint-inline-rt-select">
         <option value="Patch"${suggestRt==='Patch'?' selected':''}>Patch</option>
@@ -762,7 +762,7 @@ function confirmEditSprint(sprintId) {
   const rtId    = 'edit-sprint-rt-'   + sprintId;
   const inp = document.getElementById(inputId);
   const raw = inp ? inp.value.trim() : '';
-  if (!raw) { renderBacklogList(); return; } // AC-4: cancelar si vacío — no modifica
+  if (!raw) { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); return; } // AC-4: cancelar si vacío — no modifica
   // T-202605-500: raw es el nombre descriptivo — el ID no cambia
   if (!_isValidSprintName(raw)) {
     if (inp) { inp.classList.add('sprint-inline-input--warn'); inp.title = 'El nombre descriptivo no puede estar vacío'; }
@@ -771,7 +771,7 @@ function confirmEditSprint(sprintId) {
   }
   if (inp) inp.classList.remove('sprint-inline-input--warn');
   const sp = _getSprintById(sprintId);
-  if (!sp) { renderBacklogList(); return; }
+  if (!sp) { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); return; }
   // T-202605-500: reconstruir label canónico = 'ID · Nombre descriptivo'
   sp.label = sprintId + ' · ' + raw;
   // R-202605-123: persistir goal si el campo existe
@@ -785,7 +785,7 @@ function confirmEditSprint(sprintId) {
   if (vtInp !== null) sp.version_target = vtInp.value.trim();
   if (rtSel !== null) sp.release_type   = rtSel.value;
   save();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   showToast('success', '✓ Sprint actualizado: ' + sp.label);
 }
 
@@ -1357,7 +1357,7 @@ function createSprintFromGroup(id) {
   if (!proj.sprints) proj.sprints = [];
   proj.sprints.push({ id, label: id, status: 'open' });
   save();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   showToast('success', id + ' registrado en catálogo');
 }
 

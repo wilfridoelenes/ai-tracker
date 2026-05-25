@@ -93,7 +93,7 @@ function undoBacklog() {
   _redoStack.push(JSON.stringify(ITEMS));
   ITEMS = JSON.parse(_undoStack.pop());
   saveBacklog();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   renderStats();
   _updateUndoUI();
   showToast('info', '↩ Deshacer aplicado');
@@ -104,7 +104,7 @@ function redoBacklog() {
   _undoStack.push(JSON.stringify(ITEMS));
   ITEMS = JSON.parse(_redoStack.pop());
   saveBacklog();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   renderStats();
   _updateUndoUI();
   showToast('info', '↪ Rehacer aplicado');
@@ -201,7 +201,7 @@ function toggleBacklogBlockerFilter() {
   _backlogBlockerFilter = !_backlogBlockerFilter;
   const btn = document.getElementById('fbar-blocker-btn');
   if (btn) btn.classList.toggle('active', _backlogBlockerFilter);
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202605-449: filtro por ítems con dependencias bloqueantes activas
@@ -215,7 +215,7 @@ function toggleDepsFilter() {
     btn.textContent = labels[_depsFilter];
     btn.classList.toggle('active', _depsFilter > 0);
   }
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202605-449: helper — ítems con blockedBy[] que aún no están done
@@ -480,7 +480,7 @@ function purgeAllHistorico() {
     ITEMS = ITEMS.filter(i => i.status !== 'historico');
     const purged = before - ITEMS.length;
     if (typeof saveBacklog === 'function') saveBacklog();
-    renderBacklogList();
+    if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
     renderStats();
     console.log(`[AI Tracker] purgeAllHistorico: ${purged} ítem(s) histórico(s) eliminados permanentemente.`);
     showToast('success', `🗑 ${purged} ítem${purged !== 1 ? 's' : ''} histórico${purged !== 1 ? 's' : ''} eliminado${purged !== 1 ? 's' : ''}.`);
@@ -578,7 +578,7 @@ function itemType(code) {
 function clearTypeFilters() {
   activeTypes = new Set(['T','R','B','P']);
   updateTypeFilterUI();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 function toggleTypeFilter(type) {
@@ -598,7 +598,7 @@ function toggleTypeFilter(type) {
     activeTypes.add(type);
   }
   updateTypeFilterUI();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   // T-202604-364: filter-pulse feedback
   requestAnimationFrame(() => {
     document.querySelectorAll('.bl-fc-type-' + type).forEach(el => {
@@ -643,7 +643,7 @@ function toggleStatusFilter(status) {
     }
   }
   updateStatusFilterUI();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   // T-202604-364: filter-pulse feedback
   requestAnimationFrame(() => {
     const btnId = status === 'done' ? 'fstatus-done' : status === 'descartado' ? 'fstatus-descartado' : 'fstatus-pendiente';
@@ -929,7 +929,7 @@ function importBacklog(event) {
       updateBacklogBanner();
       updateStatusFilterUI();
       renderStats();
-      renderBacklogList();
+      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
       updateBacklogFooter();
       _setBacklogModified();
       // Toast enriquecido con pills de color por tipo y sprint
@@ -1092,11 +1092,11 @@ function _applyStatusChange(code, newStatus, prevStatus) {
     const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
     if (el) {
       el.classList.add('item-exit-anim');
-      setTimeout(() => { renderBacklogList(); renderStats(); if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); if (typeof renderSprintItems === 'function') renderSprintItems(); }, 360); // T-202605-058 T-202605-044
+      setTimeout(() => { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); renderStats(); if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); if (typeof renderSprintItems === 'function') renderSprintItems(); }, 360); // T-202605-058 T-202605-044
       return;
     }
   }
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   renderStats();
   if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); // T-202605-058
   if (typeof renderSprintItems === 'function') renderSprintItems(); // T-202605-044
@@ -1229,11 +1229,11 @@ function _applyDoneStatus(code) {
     const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
     if (el) {
       el.classList.add('item-exit-anim');
-      setTimeout(() => { renderBacklogList(); renderStats(); if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); if (typeof renderSprintItems === 'function') renderSprintItems(); }, 360); // T-202605-058 T-202605-044
+      setTimeout(() => { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); renderStats(); if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); if (typeof renderSprintItems === 'function') renderSprintItems(); }, 360); // T-202605-058 T-202605-044
       return;
     }
   }
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   renderStats();
   if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); // T-202605-058
   if (typeof renderSprintItems === 'function') renderSprintItems(); // T-202605-044
@@ -1444,7 +1444,7 @@ function clearAllFilters() {
   updateEffortFilterUI(); // T-071
   updateRoleFilterUI();   // T-202604-245
   updateClearFilterBtn();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 // R-202605-122 AC3: asignación rápida de effort desde badge sin abrir editor completo
@@ -1458,7 +1458,7 @@ function _quickAssignEffort(codeOrId) {
   if (item._needsEffortReview) delete item._needsEffortReview;
   _undoSnapshot();
   saveBacklog();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   renderStats();
   showToast('success', '✓ Effort ' + n + ' asignado a ' + (item.code || item.id));
 }
@@ -1482,7 +1482,7 @@ function toggleEffortFilter(e) {
     activeEfforts.add(n);
   }
   updateEffortFilterUI();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   // T-202604-364: filter-pulse feedback
   requestAnimationFrame(() => {
     const el = document.getElementById('feff-' + n);
@@ -1515,7 +1515,7 @@ function setItemRole(code, role) {
   _blogLog('rol →', code, role || '(vacío)', 'backlog');
   saveBacklog();
   _setBacklogModified();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   renderStats();
   showToast('success', role ? `${code} → ${role}` : `${code} rol limpiado`);
 }
@@ -1530,7 +1530,7 @@ function toggleRoleFilter(role) {
   }
   updateRoleFilterUI();
   updateClearFilterBtn();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202604-357: toggle filtro por prioridad — acumulable, combina con otros filtros
@@ -1541,7 +1541,7 @@ function togglePriorityFilter(p) {
     activePriorityFilter.add(p);
   }
   updateClearFilterBtn();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   renderStats();
 }
 
@@ -1587,7 +1587,7 @@ function onBacklogSortChange(val) {
   // T-202604-424: ignorar 'sprint' si llega de localStorage legacy o select antiguo
   if (val === 'sprint') val = 'priority';
   backlogSortMode = val;
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-072: toggle dirección de sort
@@ -1595,7 +1595,7 @@ function toggleSortDir() {
   backlogSortDir = backlogSortDir === 'asc' ? 'desc' : 'asc';
   const btn = document.getElementById('fbar-sort-dir-btn');
   if (btn) btn.textContent = backlogSortDir === 'asc' ? '↑' : '↓';
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202604-187: toggle árbol vs vista plana
@@ -1697,7 +1697,7 @@ function toggleBacklogMikeMode() {
   }
   updateClearFilterBtn();
   _syncViewAriaStates();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 function toggleBacklogKanbanMode() {
@@ -1718,7 +1718,7 @@ function toggleBacklogKanbanMode() {
   const kbBtn = document.getElementById('fbar-kanban-btn');
   if (kbBtn) kbBtn.classList.toggle('active', _backlogKanbanMode);
   _syncViewAriaStates();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 function toggleBacklogTreeMode() {
@@ -1732,7 +1732,7 @@ function toggleBacklogTreeMode() {
     btn.classList.toggle('active', _backlogTreeMode);
   }
   _syncViewAriaStates();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202604-258: toggle modo Focus — top 10 ítems por score descendente
@@ -1751,7 +1751,7 @@ function toggleBacklogFocusMode() {
   if (_backlogFocusMode) _recalcAllScores();
   updateClearFilterBtn();
   _syncViewAriaStates();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202604-363: toggle filtro Sin AC — pendientes sin criterios de aceptación
@@ -1763,7 +1763,7 @@ function toggleBacklogNoAcMode() {
     btn.title = _backlogNoAcMode ? 'Sin AC activo — click para desactivar' : 'Filtrar ítems sin criterios de aceptación';
   }
   updateClearFilterBtn();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 // R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente

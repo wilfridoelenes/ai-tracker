@@ -182,7 +182,7 @@ function _attachBacklogDnD() {
         ITEMS.splice(toIdx, 0, moved);
         _undoSnapshot();
         saveBacklog();
-        renderBacklogList();
+        if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
       });
     });
   });
@@ -212,11 +212,11 @@ function _inlineEditTitle(code, e) {
       _undoSnapshot();
       saveBacklog();
     }
-    renderBacklogList();
+    if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   }
 
   function _cancel() {
-    renderBacklogList();
+    if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   }
 
   input.addEventListener('keydown', e => {
@@ -291,7 +291,7 @@ function _confirmUnlinkChild(childCode, rCode) {
     danger: true
   }, () => {
     const item = ITEMS.find(i => i.code === childCode);
-    if (item) { item.parentId = null; saveBacklog(); renderBacklogList(); renderStats(); showToast('success', `${childCode} desvinculado`); }
+    if (item) { item.parentId = null; saveBacklog(); if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); renderStats(); showToast('success', `${childCode} desvinculado`); }
   });
 }
 
@@ -878,7 +878,7 @@ function _promoteConfirm(originCode) {
   if (_pmo) _pmo.classList.remove('open');
   _promoteTargetType = null;
 
-  renderBacklogList(() => navigateToItem(newCode));
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(() => navigateToItem(newCode));
   renderStats();
   showToast('success', `⬆ ${originCode} promovido → ${newCode}`);
 }
@@ -961,7 +961,7 @@ function _promoteTtoRConfirm(originCode) {
   const overlay = document.getElementById('promote-modal-overlay'); // DUP-02: shell unificado
   if (overlay) overlay.classList.remove('open');
 
-  renderBacklogList(() => navigateToItem(newCode));
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(() => navigateToItem(newCode));
   renderStats();
   showToast('success', `⬆ ${originCode} promovido → ${newCode}`);
 }
@@ -1069,7 +1069,7 @@ function setFilter(f) {
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   const btn = document.querySelector('.f-' + f);
   if (btn) btn.classList.add('active');
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 }
 
 function onBacklogSearch() {
@@ -1078,7 +1078,7 @@ function onBacklogSearch() {
   const clearBtn = document.getElementById('backlog-search-clear');
   if (clearBtn) clearBtn.classList.toggle('visible', !!backlogSearchQuery);
   updateClearFilterBtn();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   renderStats(); // B-202605-205: actualizar contadores de tipo con búsqueda activa
 }
 
@@ -1089,7 +1089,7 @@ function clearBacklogSearch() {
   const clearBtn = document.getElementById('backlog-search-clear');
   if (clearBtn) clearBtn.classList.remove('visible');
   updateClearFilterBtn();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   renderStats(); // B-202605-205: restaurar contadores al limpiar búsqueda
 }
 
@@ -1474,7 +1474,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
     saveBacklog(); // B-202605-007: _undoSnapshot() movido antes del forEach
     _setBacklogModified();
     renderStats(); // siempre actualizar stat bar aunque no estemos en tab Backlog
-    if (currentTab === 'backlog') { renderBacklogList(); updateBacklogBanner(); }
+    if (currentTab === 'backlog') { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); updateBacklogBanner(); }
   }
   return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions };
 }
@@ -1668,7 +1668,7 @@ function applyPatchesFromTG(patches, sessionId) {
     }
   });
 
-  if (typeof renderBacklogList === 'function') renderBacklogList();
+  if (typeof renderBacklogList === 'function') if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   if (typeof renderStats === 'function') renderStats();
 
   return { patched, ignored: ignoredPatches };

@@ -24,7 +24,7 @@ function setItemParent(code, parentCode) {
   _undoSnapshot();
   saveBacklog();
   _setBacklogModified();
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   renderStats();
   showToast('success', parentCode ? `${code} vinculado a ${parentCode}` : `${code} desvinculado`);
 }
@@ -177,7 +177,7 @@ function roadmapGoToSprint(sprintId) {
     updateStatusFilterUI();
   }
 
-  renderBacklogList();
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
 
   if (!_roadmapSprintFilter) return;
 
@@ -572,12 +572,12 @@ function _planDrop(e, targetCol) {
     if (!targetSprint) return;
     if (item.sprint === targetSprint.id) return; // ya está asignado
     setItemSprint(item.code, targetSprint.id);
-    // setItemSprint llama renderBacklogList() → dispatch a _renderPlanningView automático
+    // setItemSprint llama if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList() → dispatch a _renderPlanningView automático
   } else if (targetCol === 'left') {
     // Desasignar del sprint (solo si venía de la derecha)
     if (!item.sprint) return;
     setItemSprint(item.code, '');
-    // setItemSprint llama renderBacklogList() → dispatch a _renderPlanningView automático
+    // setItemSprint llama if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList() → dispatch a _renderPlanningView automático
   }
 }
 
