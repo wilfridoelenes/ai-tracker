@@ -8374,3 +8374,27 @@ body.radar-sb-open .tracker-sidebar {
   opacity: 0;
   transition: opacity 0.2s;
 }
+
+/* ── B-202605-268: tracker-view-header fijo como segundo header ──────────── */
+
+/* #tab-tracker es flex-column con overflow:hidden — .tracker-view-header con */
+
+/* flex-shrink:0 queda anclado arriba y nunca scrollea. .tracker-3col con     */
+
+/* flex:1 y min-height:0 absorbe todo el scroll. position:sticky no funciona  */
+
+/* aquí porque el padre tiene overflow:hidden, no overflow-y:auto.            */
+
+/* ── END B-202605-268 ─────────────────────────────────────────────────────── */
+
+/* ── B-202605-269: tvh-proj-select oculto con un solo proyecto ──────────── */
+
+/* El select de proyecto en tracker-view-header solo tiene valor con 2+ proy. */
+
+/* La clase .tvh-proj-single se añade por JS cuando projects.length <= 1.     */
+
+.tracker-view-header .tvh-proj-single {
+  display: none;
+}
+
+/* ── END B-202605-269 ─────────────────────────────────────────────────────── */
