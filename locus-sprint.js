@@ -251,6 +251,15 @@ function _renderSprintScopeAdded(sprint) {
 // ── Función principal ───────────────────────────────────────────────────────
 
 function renderSprintTab() {
+  // T-202605-117: Guard de tab activo — skip render si el tab Sprint no es el visible.
+  // AC-4: Command Palette abierto no cuenta como cambio de tab — evaluar tab subyacente.
+  // AC-5: si currentTab no es detectable → fail-safe, ejecutar sin guard.
+  const _cpOpen = (() => {
+    const el = document.getElementById('cp-overlay');
+    return el && !el.classList.contains('is-hidden');
+  })();
+  if (!_cpOpen && typeof currentTab !== 'undefined' && currentTab !== 'sprint') return;
+
   const header    = _spEl('sprint-panel-header');
   const itemsList = _spEl('sprint-items-list');
   const emptyEl   = _spEl('tab-sprint-empty');

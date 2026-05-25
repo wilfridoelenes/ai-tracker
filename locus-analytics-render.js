@@ -3,6 +3,15 @@
 // Dependencias: locus-analytics-core.js · locus-analytics-digest.js · locus-analytics-charts.js
 
 function renderAnalytics() {
+  // T-202605-117: Guard de tab activo — skip render si el tab Analytics no es el visible.
+  // AC-4: Command Palette abierto no cuenta como cambio de tab — evaluar tab subyacente.
+  // AC-5: si currentTab no es detectable → fail-safe, ejecutar sin guard.
+  const _cpOpen = (() => {
+    const el = document.getElementById('cp-overlay');
+    return el && !el.classList.contains('is-hidden');
+  })();
+  if (!_cpOpen && typeof currentTab !== 'undefined' && currentTab !== 'analytics') return;
+
   const container = document.getElementById('tab-analytics-inner');
   if (!container) return;
   // T-202604-216: skeleton while computing analytics

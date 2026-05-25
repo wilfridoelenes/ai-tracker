@@ -7,6 +7,15 @@
 
 // Reutiliza los mismos colores que chrono para consistencia visual
 function renderProyectos() {
+  // T-202605-117: Guard de tab activo — skip render si el tab Proyectos no es el visible.
+  // AC-4: Command Palette abierto no cuenta como cambio de tab — evaluar tab subyacente.
+  // AC-5: si currentTab no es detectable → fail-safe, ejecutar sin guard.
+  const _cpOpen = (() => {
+    const el = document.getElementById('cp-overlay');
+    return el && !el.classList.contains('is-hidden');
+  })();
+  if (!_cpOpen && typeof currentTab !== 'undefined' && currentTab !== 'proyectos') return;
+
   const el = document.getElementById('tab-proyectos-inner');
   if (!el) return;
 
