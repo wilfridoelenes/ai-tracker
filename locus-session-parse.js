@@ -226,6 +226,17 @@ function parsePaste(id) {
       let _itemError = null;
       for (let _i = 0; _i < _rawItems.length; _i++) {
         const _it = _rawItems[_i];
+        // R-202605-062: patch — instrucción de operación, no tipo de ítem
+        if (_it.type === 'patch') {
+          if (!_it.code || _isPlaceholderCode(_it.code)) {
+            // AC-7: patch sobre código placeholder → ignorar + advertencia DocLog
+            if (typeof _blogLog === 'function') _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
+          } else {
+            window[`_patchItems_${id}`] = window[`_patchItems_${id}`] || [];
+            window[`_patchItems_${id}`].push(_it);
+          }
+          continue;
+        }
         if (!_it.type || !_it.code || !_it.status) {
           _itemError = `Ítem [${_i}]: faltan campos obligatorios (type, code, status). Recibido: ${JSON.stringify(_it)}`;
           break;
@@ -261,6 +272,7 @@ function parsePaste(id) {
       if (_itemError) {
         window[`_itemsJsonError_${id}`] = _itemError;
         tgItems = [];
+        delete window[`_patchItems_${id}`];
       } else {
         if (typeof _ctrMergeFromItem === 'function') {
           _rawItems.forEach(it => { if (it.contract) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract); });
@@ -297,6 +309,16 @@ function parsePaste(id) {
         let _itemError = null;
         for (let _i = 0; _i < _parsedJSON.length; _i++) {
           const _it = _parsedJSON[_i];
+          // R-202605-062: patch — instrucción de operación, no tipo de ítem
+          if (_it.type === 'patch') {
+            if (!_it.code || (typeof _isPlaceholderCode === 'function' && _isPlaceholderCode(_it.code))) {
+              if (typeof _blogLog === 'function') _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
+            } else {
+              window[`_patchItems_${id}`] = window[`_patchItems_${id}`] || [];
+              window[`_patchItems_${id}`].push(_it);
+            }
+            continue;
+          }
           // AC-5: campos obligatorios
           if (!_it.type || !_it.code || !_it.status) {
             _itemError = `Ítem [${_i}]: faltan campos obligatorios (type, code, status). Recibido: ${JSON.stringify(_it)}`;
@@ -336,6 +358,7 @@ function parsePaste(id) {
         if (_itemError) {
           window[`_itemsJsonError_${id}`] = _itemError;
           tgItems = []; // reset — no procesar parcialmente
+          delete window[`_patchItems_${id}`];
         } else {
           delete window[`_itemsJsonError_${id}`];
           // R-202604-075: extraer campo contract de cada ítem y aplicar a Contratos de Módulo
@@ -353,7 +376,10 @@ function parsePaste(id) {
   }
 
   const ai = getAI(id);
-  ai._parsed = { title, summary, files, tgItems, isCheckpoint, nextStep, ckptProyecto: ckpt ? (ckpt.proyecto || '') : '' };
+  // R-202605-062: propagar patches acumulados en window[_patchItems_${id}] a _parsed
+  const _pendingPatches = window[`_patchItems_${id}`] || [];
+  delete window[`_patchItems_${id}`];
+  ai._parsed = { title, summary, files, tgItems, patchItems: _pendingPatches, isCheckpoint, nextStep, ckptProyecto: ckpt ? (ckpt.proyecto || '') : '' };
 
   // Calcular discrepancia raw vs parseado
   let rawTotal = 0, parsedTotal = tgItems.length;
@@ -791,10 +817,20 @@ function parsePasteStandalone() {
   const _validTypes    = ['P', 'T', 'R', 'B'];
   const _validStatuses = ['done', 'pendiente', 'descartado'];
   const tgItems = [];
+  const patchItems = []; // R-202605-062: patches separados de ítems normales
   let itemError = null;
 
   for (let i = 0; i < parsedJSON.length; i++) {
     const it = parsedJSON[i];
+    // R-202605-062: patch — instrucción de operación, no tipo de ítem
+    if (it.type === 'patch') {
+      if (!it.code || (typeof _isPlaceholderCode === 'function' && _isPlaceholderCode(it.code))) {
+        if (typeof _blogLog === 'function') _blogLog('patch-ignorado', it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (it.code || '(vacío)'), 'backlog');
+      } else {
+        patchItems.push(it);
+      }
+      continue;
+    }
     if (!it.type || !it.code || !it.status) {
       itemError = `Ítem [${i}]: faltan campos obligatorios (type, code, status).`;
       break;
@@ -844,7 +880,7 @@ function parsePasteStandalone() {
   if (text.includes('---PLAN---') || text.includes('---EXECUTION-PLAN---')) _tryIngestPlan(text);
 
   // Éxito — guardar parsed y habilitar botón
-  _standaloneLastParsed = { ckpt, tgItems, raw: text };
+  _standaloneLastParsed = { ckpt, tgItems, patchItems, raw: text };
 
   const _assignedIds = (typeof _assignPendingIds === 'function') ? _assignPendingIds(tgItems) : 0;
   const previewHtml = (typeof buildTGPreview === 'function') ? buildTGPreview(tgItems, null) : '';
@@ -857,10 +893,10 @@ function parsePasteStandalone() {
 
 function saveStandaloneCheckpoint() {
   if (!_standaloneLastParsed) return;
-  const { tgItems, ckpt, raw } = _standaloneLastParsed;
+  const { tgItems, patchItems, ckpt, raw } = _standaloneLastParsed;
 
-  // AC-4: si no hay ítems, no hacer nada
-  if (!tgItems.length) {
+  // AC-4: si no hay ítems ni patches, no hacer nada
+  if (!tgItems.length && !(patchItems && patchItems.length)) {
     if (typeof showToast === 'function') showToast('warning', '⚠ Sin ítems para aplicar');
     return;
   }
@@ -879,6 +915,15 @@ function saveStandaloneCheckpoint() {
     const mergeResult = (typeof _mergeBacklogWithProject === 'function')
       ? _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id)
       : { created:[], updated:[], ignored:[], advanced:[], retroceso:[], discarded:[] };
+
+    // R-202605-062: aplicar patches después del merge de ítems normales
+    if (patchItems && patchItems.length && typeof applyPatchesFromTG === 'function') {
+      const patchResult = applyPatchesFromTG(patchItems, syntheticSessId);
+      // Incorporar patches al mergeResult para que el panel diff los muestre (AC-10)
+      if (patchResult.patched && patchResult.patched.length) {
+        mergeResult.updated = [...(mergeResult.updated || []), ...patchResult.patched];
+      }
+    }
 
     // Merge CONTEXT-SECTION / MAP-SECTION si hay
     if (typeof extractContextSections === 'function') {
@@ -911,7 +956,8 @@ function saveStandaloneCheckpoint() {
     if (hasMergeData && typeof showCheckpointPanel === 'function') {
       showCheckpointPanel(mergeResult);
     } else if (typeof showToast === 'function') {
-      showToast('success', `✓ ${tgItems.length} ítem${tgItems.length !== 1 ? 's' : ''} aplicado${tgItems.length !== 1 ? 's' : ''} al backlog`);
+      const _total = tgItems.length + (patchItems ? patchItems.length : 0);
+      showToast('success', `✓ ${_total} ítem${_total !== 1 ? 's' : ''} aplicado${_total !== 1 ? 's' : ''} al backlog`);
     }
     _standaloneLastParsed = null;
   };

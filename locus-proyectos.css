@@ -3668,6 +3668,25 @@
   border-color: var(--border2);
 }
 
+/* R-202605-179: microinteracciones proy-card / proy2-card */
+.proy-card:active {
+  transform: scale(0.99);
+}
+
+.proy-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.proy2-card:active {
+  transform: scale(0.99);
+}
+
+.proy2-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* §2F — Header */
 
 /* .context-section-header */

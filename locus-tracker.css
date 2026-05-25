@@ -8023,6 +8023,12 @@ body.radar-sb-open .tracker-sidebar {
   align-items: center;
 }
 
+/* R-202605-179: microinteracciones sess-row */
+.sess-row:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* §2E — Tabs / Layout */
 
 /* #tab-tracker.preview-open .tracker-3col */

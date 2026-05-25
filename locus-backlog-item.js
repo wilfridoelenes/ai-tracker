@@ -1538,3 +1538,139 @@ function _isActiveRecently(item) {
   return (Date.now() - lastTs) / 86400000 <= _ACTIVE_RECENT_DAYS;
 }
 
+
+// R-202605-062: applyPatchesFromTG — aplica patches de campo individual sobre ítems existentes
+// AC-1: type: "patch" es instrucción de operación — no tipo de ítem
+// AC-2: solo requiere code + campos a patchear
+// AC-3: campos patcheables: title, status, priority, effort, area, sprint, role, ac
+// AC-3b: campos no patcheables (code, type, schema_version) → advertencia DocLog, sin crash
+// AC-4: ac presente → reemplaza array completo
+// AC-5: código no existe en backlog → advertencia DocLog, sin crash
+// AC-6: código placeholder → ignorado (manejado en parsePaste antes de llegar aquí)
+// AC-7: status done → mismas reglas de confirmación que done manual (vía setItemStatus)
+// AC-8: mezcla ítems + patches en mismo ---ITEMS--- → parser separa por type
+// AC-9: panel diff muestra solo campos del patch (changes array)
+// AC-11: sin regresión en mergeBacklogFromTG
+const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac']);
+const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version']);
+
+function applyPatchesFromTG(patches, sessionId) {
+  if (!patches || !patches.length) return { patched: [], ignored: [] };
+
+  const patched = [];
+  const ignoredPatches = [];
+
+  if (typeof _undoSnapshot === 'function') _undoSnapshot();
+
+  patches.forEach(patch => {
+    const code = patch.code;
+
+    // AC-5: código no existe en backlog → advertencia DocLog
+    const existing = (typeof ITEMS !== 'undefined') ? ITEMS.find(i => i.code === code) : null;
+    if (!existing) {
+      if (typeof _blogLog === 'function') {
+        _blogLog('patch-ignorado', code, 'Patch ignorado: código no existe en el backlog. code: ' + code, 'backlog');
+      }
+      ignoredPatches.push({ code, reason: 'no-existe' });
+      return;
+    }
+
+    // AC-3b: advertir sobre campos no patcheables presentes en el objeto patch
+    Object.keys(patch).forEach(k => {
+      if (_PATCH_NON_PATCHEABLE.has(k)) {
+        if (typeof _blogLog === 'function') {
+          _blogLog('patch-campo-ignorado', code, 'Campo no patcheable ignorado: ' + k, 'backlog');
+        }
+      }
+    });
+
+    const changes = [];
+    const nowTs = Date.now();
+
+    // Iterar solo sobre campos patcheables presentes en el objeto patch
+    _PATCH_ALLOWED_FIELDS.forEach(field => {
+      if (!(field in patch)) return; // campo no incluido en este patch → no tocar
+      const incoming = patch[field];
+      const current  = existing[field];
+
+      if (field === 'status') {
+        // AC-8 + AC-7: status done → vía setItemStatus para respetar reglas de confirmación
+        const normalized = (typeof _normalizeStatus === 'function') ? _normalizeStatus(incoming) : incoming;
+        if (normalized !== existing.status) {
+          if (normalized === 'done' && typeof setItemStatus === 'function') {
+            // setItemStatus maneja confirmación, history, doneAt, etc.
+            setItemStatus(existing, normalized, sessionId || null);
+            changes.push({ field: 'status', from: existing.status, to: normalized });
+          } else if (normalized && normalized !== existing.status) {
+            changes.push({ field: 'status', from: existing.status, to: normalized });
+            existing.status = normalized;
+            existing.statusChangedAt = nowTs;
+          }
+        }
+        return;
+      }
+
+      if (field === 'ac') {
+        // AC-4: ac reemplaza array completo
+        if (Array.isArray(incoming)) {
+          changes.push({ field: 'ac', from: existing.ac || [], to: incoming });
+          existing.ac = incoming;
+        }
+        return;
+      }
+
+      if (field === 'sprint') {
+        // Sprint: aplicar _normalizeSprint sobre objeto temporal para normalizar centinelas
+        const tempItem = { sprint: incoming };
+        if (typeof _normalizeSprint === 'function') _normalizeSprint(tempItem);
+        const normalizedSprint = tempItem.sprint; // undefined si centinela, valor si válido
+        if (normalizedSprint !== current) {
+          changes.push({ field: 'sprint', from: current || '—', to: normalizedSprint });
+          if (normalizedSprint === undefined) delete existing.sprint;
+          else existing.sprint = normalizedSprint;
+        }
+        return;
+      }
+
+      // Resto de campos patcheables: title, priority, effort, area, role
+      if (incoming !== undefined && incoming !== null && incoming !== current) {
+        changes.push({ field, from: current !== undefined ? current : '—', to: incoming });
+        existing[field] = incoming;
+      }
+    });
+
+    if (changes.length) {
+      // Registrar en history del ítem
+      if (!existing.history) existing.history = [];
+      changes.forEach(ch => {
+        if (ch.field === 'status') return; // status lo registra setItemStatus
+        existing.history.push({
+          type: 'field',
+          ts: nowTs,
+          origin: 'patch',
+          sessionId: sessionId || null,
+          data: { field: ch.field, from: ch.from !== '—' ? ch.from : null, to: ch.to || null }
+        });
+      });
+      if (sessionId && existing.sessionId !== sessionId) existing.sessionId = sessionId;
+
+      patched.push({
+        code,
+        desc: existing.title,
+        changes,
+        change: changes.map(c => c.field).join(' · ')
+      });
+
+      if (typeof saveBacklog === 'function') saveBacklog();
+    } else {
+      ignoredPatches.push({ code, reason: 'sin-cambios' });
+    }
+  });
+
+  if (typeof renderBacklogList === 'function') renderBacklogList();
+  if (typeof renderStats === 'function') renderStats();
+
+  return { patched, ignored: ignoredPatches };
+}
+
+
