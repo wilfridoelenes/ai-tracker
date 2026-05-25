@@ -844,6 +844,10 @@
     animation: none;
   }
 
+  .sprint-close-overlay.closing {
+    animation: none;
+  }
+
   .sprint-close-overlay.closing .sprint-close-dialog {
     animation: none;
   }
