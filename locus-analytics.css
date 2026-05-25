@@ -48,6 +48,10 @@
   overflow: visible;
 }
 
+#analytics-chart-wrap canvas {
+  border-radius: var(--radius-md-plus);
+}
+
 .analytics-legend {
   display: flex;
   flex-wrap: wrap;
