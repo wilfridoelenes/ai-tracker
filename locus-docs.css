@@ -1,0 +1,650 @@
+/* locus-docs.css */
+/* Versión: 1.0 | Última actualización: 2026-05-25 | Estilos HTML-MAP y Context — extraídos de locus-backlog.css (T-202605-112) */
+
+/* T-202604-048: HTML-MAP view */
+.htmlmap-meta-banner {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  margin-bottom: 1rem;
+  font-size: var(--text-xs);
+}
+
+.htmlmap-meta-banner.visible {
+  display: flex;
+}
+
+.htmlmap-meta-label {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.htmlmap-meta-value {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--text2);
+}
+
+.htmlmap-meta-sep {
+  color: var(--border2);
+  margin: 0 2px;
+}
+
+.htmlmap-filter-bar {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.htmlmap-filter-btn {
+  padding: 4px 12px;
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border2);
+  background: none;
+  font-size: var(--text-xs);
+  color: var(--text2);
+  cursor: pointer;
+  transition: var(--trans-medium);
+}
+
+.htmlmap-filter-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.htmlmap-filter-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.htmlmap-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.htmlmap-table th {
+  text-align: left;
+  padding: 8px 12px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  color: var(--hint);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.htmlmap-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  color: var(--text);
+}
+
+.htmlmap-table tr:hover td {
+  background: var(--surface);
+}
+
+.htmlmap-table td:first-child {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+}
+
+.htmlmap-table td:last-child {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--hint);
+}
+
+.htmlmap-type-badge {
+  display: inline-block;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+}
+
+.htmlmap-type-css {
+  background: rgb(56 189 248 / 15%);
+  color: var(--blue);
+}
+
+.htmlmap-type-html {
+  background: rgb(251 146 60 / 15%);
+  color: #fb923c;
+}
+
+.htmlmap-type-js {
+  background: rgb(250 204 21 / 15%);
+  color: #ca8a04;
+}
+
+.htmlmap-empty {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--hint);
+}
+
+.htmlmap-empty-icon {
+  font-size: var(--text-display-xl);
+  margin-bottom: 0.75rem;
+}
+
+.htmlmap-empty-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+
+/* ── Module.Map — árbol modular ── */
+.mm-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.mm-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+}
+
+.hmfilter-pill {
+  padding: 4px 11px;
+  border-radius: var(--radius-2xl);
+  border: 1.5px solid var(--border2);
+  background: transparent;
+  font-size: var(--text-sm);
+  color: var(--text2);
+  cursor: pointer;
+  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out), border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-sans);
+  white-space: nowrap;
+  font-weight: 500;
+  position: relative;
+  opacity: 0.75;
+}
+
+.hmfilter-pill.active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 700;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent);
+  padding-left: 8px;
+  border-style: solid;
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  text-decoration-thickness: 1.5px;
+}
+
+.hmfilter-pill.active::before {
+  content: '✓';
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  opacity: 0.9;
+  margin-right: 3px;
+  line-height: 1;
+}
+
+.hmfilter-pill--all.active {
+  background: color-mix(in srgb, var(--text1) 10%, transparent);
+  border-color: var(--text1);
+  border-width: 2px;
+  color: var(--text1);
+  font-weight: 700;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text1) 20%, transparent);
+  padding-left: 8px;
+  text-decoration-color: color-mix(in srgb, var(--text1) 40%, transparent);
+}
+
+/* R-202604-046: individual pills idle when 'Todos' is active — subtle deemphasis */
+.hmfilter-pill--all.active ~ .hmfilter-pill:not(.active),
+.mm-pills:has(.hmfilter-pill--all.active) .hmfilter-pill:not(.hmfilter-pill--all) {
+  opacity: 0.65;
+}
+
+.mm-pills:has(.hmfilter-pill--all.active) .hmfilter-pill:not(.hmfilter-pill--all):hover {
+  opacity: 1;
+}
+
+/* B-202604-140: light theme — pill Todos.active fill perceptible sobre --bg blanco */
+:root[data-theme="light"] .hmfilter-pill--all.active {
+  background: rgb(93 154 36 / 12%);
+}
+
+.hmfilter-pill.mm-fc-js.active {
+  background: color-mix(in srgb, var(--mm-bar-js,  var(--green)) 12%, transparent);
+  border-color: var(--mm-bar-js,  var(--green));
+  color: var(--mm-bar-js, var(--green));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--mm-bar-js, var(--green)) 30%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--mm-bar-js, var(--green)) 50%, transparent);
+}
+
+.hmfilter-pill-count {
+  background: color-mix(in srgb, currentcolor 15%, transparent);
+  border-radius: var(--radius-md);
+  padding: 1px 5px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: inherit;
+  opacity: 0.85;
+  font-family: var(--font-mono);
+  line-height: 1.4;
+}
+
+.hmfilter-pill:not(.active) .hmfilter-pill-count {
+  background: var(--surface2);
+  color: var(--hint);
+}
+
+.mm-search-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.mm-search {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  padding: 5px 28px 5px 10px;
+  outline: none;
+  width: 180px;
+  transition: border-color 0.15s var(--ease-out), width 0.2s;
+}
+
+.mm-search:focus {
+  border-color: var(--accent);
+  width: 220px;
+}
+
+.mm-search-clear {
+  position: absolute;
+  right: 7px;
+  background: none;
+  border: none;
+  color: var(--hint);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  padding: 0;
+  line-height: 1;
+}
+
+.mm-search-clear:hover {
+  color: var(--text2);
+}
+
+.mm-modules {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mm-module {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md-plus);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.mm-module-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--surface);
+  transition: var(--trans-color);
+}
+
+.mm-module-header:hover {
+  background: var(--surface2);
+}
+
+.mm-file-badge {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.mm-fc-js {
+  background: rgb(250 204 21 / 15%);
+  color: #ca8a04;
+}
+
+.mm-fc-css {
+  background: rgb(56 189 248 / 15%);
+  color: #0284c7;
+}
+
+.mm-fc-html {
+  background: rgb(251 146 60 / 15%);
+  color: #ea580c;
+}
+
+.mm-file-name {
+  font-family: var(--mono);
+  font-size: var(--text-sm);
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mm-fn-count {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+
+.mm-arrow {
+  font-size: var(--text-lg);
+  color: var(--hint);
+  transition: transform 0.2s var(--ease-out);
+  flex-shrink: 0;
+  line-height: 1;
+  transform: rotate(0deg);
+}
+
+.mm-arrow.mm-arrow-open {
+  transform: rotate(90deg);
+}
+
+.mm-module-body {
+  display: none;
+  border-top: 1px solid var(--border);
+}
+
+.mm-module-body.mm-open {
+  display: block;
+}
+
+.mm-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--text-sm);
+}
+
+.mm-table thead th {
+  text-align: left;
+  padding: 7px 12px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  color: var(--hint);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.mm-area-group + .mm-area-group {
+  border-top: 1px solid var(--border);
+}
+
+.mm-area-label {
+  padding: 6px 12px 4px;
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+
+.mm-fn-row:hover td {
+  background: var(--surface2);
+}
+
+.mm-fn-row td {
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.mm-fn-row:last-child td {
+  border-bottom: none;
+}
+
+.mm-fn-line {
+  padding: 6px 12px;
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--hint);
+  width: 52px;
+  white-space: nowrap;
+}
+
+.mm-fn-name {
+  padding: 6px 10px;
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--text);
+  flex: 1;
+}
+
+.mm-fn-area-cell {
+  padding: 6px 12px 6px 4px;
+  width: 130px;
+}
+
+.mm-area-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-2xl);
+  font-size: var(--text-xs);
+  background: var(--surface2);
+  color: var(--text2);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.htmlmap-empty-hint {
+  font-size: var(--text-sm);
+  color: var(--hint);
+}
+
+/* T-202604-048: Context placeholder */
+.context-placeholder {
+  text-align: center;
+  padding: 4rem 1rem;
+  color: var(--hint);
+}
+
+.context-placeholder-icon {
+  font-size: var(--text-display-2xl);
+  margin-bottom: 1rem;
+}
+
+.context-placeholder-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text2);
+  margin-bottom: 8px;
+}
+
+.context-placeholder-hint {
+  font-size: var(--text-base);
+  color: var(--hint);
+}
+
+/* T-202604-102: Context vivo */
+.context-raw-block {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md-plus);
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--text2);
+  line-height: 1.65;
+  white-space: pre-wrap;
+  margin-top: 0;
+}
+
+/* T-202604-108: Context navegable por secciones */
+.context-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.context-section-body tr:last-child td {
+  border-bottom: none;
+}
+
+/* T-202604-108: badge modificado en sub-tab */
+.sstab-modified-dot {
+  display: inline-block; width: 6px; height: 6px;
+  border-radius: var(--radius-pill); background: var(--amber, var(--amber));
+  margin-left: 5px; vertical-align: middle;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* T-202604-108: alerta conflicto context */
+.context-conflict-banner {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; margin-bottom: 10px;
+  background: rgb(232 85 85 / 10%); border: 1px solid rgb(232 85 85 / 30%);
+  border-radius: var(--radius-md); font-size: var(--text-sm); color: var(--red);
+}
+
+.context-conflict-banner button {
+  margin-left: auto; font-size: var(--text-xs); padding: 3px 10px;
+  border-radius: var(--radius-xs); border: 1px solid var(--red);
+  background: none; color: var(--red); cursor: pointer;
+}
+
+.context-conflict-banner button:hover {
+  background: rgb(232 85 85 / 15%);
+}
+
+
+/* ── Variantes de tipo hmfilter-pill (extraídas de R-202604-046) ── */
+.hmfilter-pill:hover {
+  border-style: solid;
+  border-color: var(--border2);
+  background: var(--surface2);
+  color: var(--text1);
+  opacity: 1;
+}
+
+/* Pills por tipo de archivo — color de borde en estado no-seleccionado para identificación */
+.hmfilter-pill.mm-fc-js {
+  border-color: rgb(34 197 94 / 40%);
+  border-color: color-mix(in srgb, var(--mm-bar-js,  var(--green)) 40%, var(--border2));
+}
+
+.hmfilter-pill.mm-fc-css {
+  border-color: rgb(56 189 248 / 40%);
+  border-color: color-mix(in srgb, var(--mm-bar-css, var(--blue)) 40%, var(--border2));
+}
+
+.hmfilter-pill.mm-fc-html {
+  border-color: rgb(245 158 11 / 40%);
+  border-color: color-mix(in srgb, var(--mm-bar-html,var(--amber)) 40%, var(--border2));
+}
+
+.hmfilter-pill.mm-fc-css.active {
+  border-color: var(--mm-bar-css, var(--blue));
+  background: rgb(56 189 248 / 12%);
+  background: color-mix(in srgb, var(--mm-bar-css, var(--blue)) 12%, transparent);
+  color: var(--mm-bar-css, var(--blue));
+  box-shadow: 0 0 0 1px rgb(56 189 248 / 30%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--mm-bar-css, var(--blue)) 30%, transparent);
+  text-decoration-color: rgb(56 189 248 / 50%);
+  text-decoration-color: color-mix(in srgb, var(--mm-bar-css, var(--blue)) 50%, transparent);
+}
+
+.hmfilter-pill.mm-fc-html.active {
+  border-color: var(--mm-bar-html,var(--amber));
+  background: rgb(245 158 11 / 12%);
+  background: color-mix(in srgb, var(--mm-bar-html,var(--amber)) 12%, transparent);
+  color: var(--mm-bar-html,var(--amber));
+  box-shadow: 0 0 0 1px rgb(245 158 11 / 30%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--mm-bar-html, var(--amber)) 30%, transparent);
+  text-decoration-color: rgb(245 158 11 / 50%);
+  text-decoration-color: color-mix(in srgb, var(--mm-bar-html, var(--amber)) 50%, transparent);
+}
+
+/* ══ END R-202604-046 ══ */
+
+/* ── mm-bar: barra de progreso de módulo ── */
+.mm-bar-wrap {
+  flex: 1;
+  height: 4px;
+  background: var(--border2, rgb(255 255 255 / 8%));
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  min-width: 40px;
+  max-width: 160px;
+}
+
+.mm-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-pill);
+  transition: width 0.4s var(--ease-bounce);
+  opacity: 0.85;
+}
+
+.mm-module-header:hover .mm-bar-fill {
+  opacity: 1;
+}
+
+/* ── prefers-reduced-motion: pulse-dot ── */
+@media (prefers-reduced-motion: reduce) {
+  .sstab-modified-dot {
+    animation: none;
+  }
+}
