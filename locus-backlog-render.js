@@ -581,7 +581,17 @@ function _planDrop(e, targetCol) {
   }
 }
 
+// T-202605-118: dirty flag — render quirúrgico
+let _backlogListDirty = false;
+function _markBacklogListDirty() { _backlogListDirty = true; }
+window._markBacklogListDirty = _markBacklogListDirty;
+
 function renderBacklogList(onRendered) {
+  if (!_backlogListDirty) return;
+  // AC-3 T-202605-118: skip si el item editor está abierto
+  const _ieOverlay = document.getElementById('item-editor-overlay');
+  if (_ieOverlay && _ieOverlay.offsetParent !== null) { return; }
+  _backlogListDirty = false;
   const listEl = document.getElementById('backlog-list');
   _skelShow(listEl, 5);
   const q = backlogSearchQuery;
