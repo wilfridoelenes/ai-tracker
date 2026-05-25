@@ -267,7 +267,12 @@ function _mgInitDropzone() {
 
 function _mgLoadFiles(fileList) {
   const allowed = ['.js', '.css', '.html'];
-  const valid = fileList.filter(f => allowed.some(ext => f.name.toLowerCase().endsWith(ext)));
+  const excluded = /^(env|\.env)(\.local|\.dev|\.prod|\.test)?\.js$/i;
+  const rejected = fileList.filter(f => excluded.test(f.name));
+  rejected.forEach(f => {
+    if (typeof showToast === 'function') showToast('warning', `${f.name} excluido — archivos de entorno no se importan al MAP`);
+  });
+  const valid = fileList.filter(f => !excluded.test(f.name) && allowed.some(ext => f.name.toLowerCase().endsWith(ext)));
   if (!valid.length) return;
 
   let pending = valid.length;
