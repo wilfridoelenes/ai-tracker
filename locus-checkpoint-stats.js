@@ -529,14 +529,23 @@ function _computeNotifications() {
     });
   }
 
-  // 3. B-202605-238 AC: ítem pendiente sin sesión vinculada > 14 días
+  // 3. R-202605-058: ítem high + sprint activo + sin sesión ≥ threshold días
+  // Condiciones: priority === 'high' AND sprint === sprint activo AND días sin sesión ≥ threshold
+  // Ítems medium/low o sin sprint asignado no generan notificación de staleness.
   if (cfg.itemInactivo && cfg.itemInactivo.enabled) {
     const thresh = cfg.itemInactivo.threshold || 14;
+    const allSprintsForInactivo = (typeof getActiveSprints === 'function' ? getActiveSprints() : []);
+    const activeSprintIds = allSprintsForInactivo
+      .filter(function(s) { return s.status === 'active'; })
+      .map(function(s) { return s.id; });
     items.forEach(function(item) {
       if (item.status !== 'pendiente') return;
+      if (item.priority !== 'high') return;                          // AC-2: solo high
+      if (!item.sprint || item.sprint === 'n/a') return;            // AC-3: sin sprint → skip
+      if (!activeSprintIds.includes(item.sprint)) return;           // AC-1: debe ser sprint activo
       if (!item.createdAt) return;
       const ageDays = (Date.now() - item.createdAt) / 86400000;
-      if (ageDays <= thresh) return;
+      if (ageDays < thresh) return;                                  // AC-4: threshold como gate
       if (_itemHasRecentSession(item, thresh)) return;
       const id  = 'item-inactivo-' + item.code;
       const lbl = (item.title || '').substring(0, 40);
