@@ -361,7 +361,7 @@ window._exportWeeklySummaryMd = _exportWeeklySummaryMd;
 function dismissWeeklySummary() {
   _markWeeklyDismissed();
   const modal = document.getElementById('weekly-summary-modal');
-  if (modal) modal.classList.add('weekly-modal--hidden');
+  if (modal) modal.classList.add('is-hidden');
 }
 // window fallback para inline handler en index.html
 window.dismissWeeklySummary = dismissWeeklySummary;
@@ -381,5 +381,5 @@ function _maybeShowWeeklySummary() {
   if (el('wsum-sprint'))   el('wsum-sprint').textContent   = summary.sprintProgress;
 
   const modal = document.getElementById('weekly-summary-modal');
-  if (modal) modal.classList.remove('weekly-modal--hidden');
+  if (modal) modal.classList.remove('is-hidden');
 }

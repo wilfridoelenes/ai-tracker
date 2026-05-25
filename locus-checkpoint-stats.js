@@ -299,7 +299,7 @@ function renderStatusBar() {
   const gfPulso    = document.getElementById('gf-pulso');
   const gfFecha    = document.getElementById('gf-fecha');
   const gfSyncEl   = document.getElementById('gf-sync');
-  if (gfSyncEl) gfSyncEl.classList.remove('gf-hidden');
+  if (gfSyncEl) gfSyncEl.classList.remove('is-hidden');
 
   const _items = (typeof ITEMS !== 'undefined' ? ITEMS : []);
 
@@ -309,25 +309,25 @@ function renderStatusBar() {
       const proj = getActiveProject();
       const nombre = (proj && proj.name) ? proj.name : 'Locus';
       gfProyecto.textContent = nombre;
-      gfProyecto.classList.remove('gf-hidden');
+      gfProyecto.classList.remove('is-hidden');
     } catch(e) {
       gfProyecto.textContent = 'Locus';
-      gfProyecto.classList.remove('gf-hidden');
+      gfProyecto.classList.remove('is-hidden');
     }
   }
 
   // gf-version
   if (gfVersion) {
     gfVersion.textContent = (typeof _effectiveVersion === 'function') ? _effectiveVersion() : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '');
-    gfVersion.classList.remove('gf-hidden');
+    gfVersion.classList.remove('is-hidden');
   }
 
   // gf-total / gf-done
   if (gfTotal || gfDone) {
     const total = _items.filter(i => typeof _isCountableItem === 'function' ? _isCountableItem(i) : true).length;
     const done  = _items.filter(i => (typeof _isCountableItem === 'function' ? _isCountableItem(i) : true) && i.status === 'done').length;
-    if (gfTotal) { gfTotal.textContent = total + ' ítems'; gfTotal.classList.remove('gf-hidden'); }
-    if (gfDone)  { gfDone.textContent  = '✓ ' + done;   gfDone.classList.remove('gf-hidden'); }
+    if (gfTotal) { gfTotal.textContent = total + ' ítems'; gfTotal.classList.remove('is-hidden'); }
+    if (gfDone)  { gfDone.textContent  = '✓ ' + done;   gfDone.classList.remove('is-hidden'); }
   }
 
   // gf-ckpt: ultimo checkpoint global
@@ -342,22 +342,22 @@ function renderStatusBar() {
       if (lastSess) {
         const titulo = (lastSess.title || lastSess.nombre || '').slice(0, 28) || '—';
         gfCkpt.textContent = '⏱ ' + titulo;
-        gfCkpt.classList.remove('gf-hidden');
+        gfCkpt.classList.remove('is-hidden');
         gfCkpt.classList.add('gf-ckpt--link');
         gfCkpt.onclick = function() {
           if (typeof openDetail === 'function') openDetail(lastSess.aiId, lastSess.id);
         };
       } else {
-        gfCkpt.classList.add('gf-hidden');
+        gfCkpt.classList.add('is-hidden');
         gfCkpt.onclick = null;
       }
-    } catch(e) { gfCkpt.classList.add('gf-hidden'); }
+    } catch(e) { gfCkpt.classList.add('is-hidden'); }
   }
 
   // gf-pulso
   if (gfPulso) {
     gfPulso.textContent = '◉ Pulso';
-    gfPulso.classList.remove('gf-hidden');
+    gfPulso.classList.remove('is-hidden');
     gfPulso.classList.add('gf-pulso--link');
     gfPulso.onclick = function() {
       if (typeof openPulsoPanel === 'function') openPulsoPanel();
@@ -372,11 +372,11 @@ function renderStatusBar() {
         const maxTs = Math.max.apply(null, timestamps);
         const iso   = new Date(maxTs).toISOString().split('T')[0];
         gfFecha.textContent = iso;
-        gfFecha.classList.remove('gf-hidden');
+        gfFecha.classList.remove('is-hidden');
       } else {
-        gfFecha.classList.add('gf-hidden');
+        gfFecha.classList.add('is-hidden');
       }
-    } catch(e) { gfFecha.classList.add('gf-hidden'); }
+    } catch(e) { gfFecha.classList.add('is-hidden'); }
   }
 }
 

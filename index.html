@@ -34,7 +34,7 @@
 <div id="pepe-splash">
   <div id="pepe-splash-container">
     <img id="pepe-splash-img" src="img/logo-splash.png" alt="Locus — Obsidian Labs" class="loading">
-    <div class="splash-name splash-name--hidden"><em>Locus</em></div>
+    <div class="splash-name is-hidden"><em>Locus</em></div>
     <div class="splash-sub" id="splash-status">Registra sesiones, gestiona tu backlog y mantén el contexto del equipo.</div>
     <div class="splash-version" id="splash-version"></div>
     <div id="pepe-progress-bar">
@@ -50,10 +50,10 @@
       <img id="pepe-logo" src="/img/logo.png" alt="Pepe" class="logo-img">
       <div class="logo-project-label" id="header-project-label">
         <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" onclick="if(typeof openProjPanel==='function')openProjPanel()">Locus</button>
-        <span class="breadcrumb-sep breadcrumb-sep--first breadcrumb-seg--hidden" aria-hidden="true">›</span>
-        <button class="breadcrumb-seg breadcrumb-seg--sprint breadcrumb-seg--hidden" id="breadcrumb-sprint" title="Sprint activo"></button>
-        <span class="breadcrumb-sep breadcrumb-sep--sprint breadcrumb-seg--hidden" aria-hidden="true">›</span>
-        <button class="breadcrumb-seg breadcrumb-seg--item breadcrumb-seg--hidden" id="breadcrumb-item" title=""></button>
+        <span class="breadcrumb-sep breadcrumb-sep--first is-hidden" aria-hidden="true">›</span>
+        <button class="breadcrumb-seg breadcrumb-seg--sprint is-hidden" id="breadcrumb-sprint" title="Sprint activo"></button>
+        <span class="breadcrumb-sep breadcrumb-sep--sprint is-hidden" aria-hidden="true">›</span>
+        <button class="breadcrumb-seg breadcrumb-seg--item is-hidden" id="breadcrumb-item" title=""></button>
       </div>
     </div>
 
@@ -1452,7 +1452,7 @@
   <div class="doc-log-body" id="doc-log-body"></div>
 </div>
 
-<div class="weekly-modal-overlay weekly-modal--hidden" id="weekly-summary-modal" role="dialog" aria-modal="true" aria-label="Resumen semanal">
+<div class="weekly-modal-overlay is-hidden" id="weekly-summary-modal" role="dialog" aria-modal="true" aria-label="Resumen semanal">
   <div class="weekly-modal-panel">
     <div class="weekly-modal-header">
       <span class="weekly-modal-title">📊 Resumen semanal</span>
@@ -1778,12 +1778,12 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <footer id="global-footer">
-  <span id="gf-proyecto" class="gf-proyecto gf-hidden"></span>
-  <span id="gf-total" class="gf-total gf-hidden"></span>
-  <span id="gf-done" class="gf-done gf-hidden"></span>
-  <span id="gf-ckpt" class="gf-ckpt gf-hidden"></span>
-  <span id="gf-pulso" class="gf-pulso gf-hidden" onclick="openPulsoPanel()" title="Pulso del Ecosistema"><span class="pulso-dot pulso-dot--green" id="pulso-dot"></span></span>
-  <span id="gf-sync" class="gf-sync gf-hidden"></span>
+  <span id="gf-proyecto" class="gf-proyecto is-hidden"></span>
+  <span id="gf-total" class="gf-total is-hidden"></span>
+  <span id="gf-done" class="gf-done is-hidden"></span>
+  <span id="gf-ckpt" class="gf-ckpt is-hidden"></span>
+  <span id="gf-pulso" class="gf-pulso is-hidden" onclick="openPulsoPanel()" title="Pulso del Ecosistema"><span class="pulso-dot pulso-dot--green" id="pulso-dot"></span></span>
+  <span id="gf-sync" class="gf-sync is-hidden"></span>
 </footer>
 
 
