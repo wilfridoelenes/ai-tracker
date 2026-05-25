@@ -1,70 +1,8 @@
 // locus-analytics-digest.js
-// Responsabilidad: Digest contextual al abrir app (_runDigestToasts),
-//   gráfico de flujo acumulativo (_buildCumulativeFlowChart).
-// Dependencias: locus-analytics-core.js · locus-storage.js · locus-toast.js
+// Responsabilidad: Gráfico de flujo acumulativo (_buildCumulativeFlowChart).
+// Dependencias: locus-analytics-core.js · locus-storage.js
+// R-202605-056: _runDigestToasts eliminada — digest de toasts al abrir app removido.
 
-const _DIGEST_KEY      = 'digest-last-open';
-const _DIGEST_COOLDOWN = 8 * 60 * 60 * 1000; // 8 h en ms
-const _DIGEST_MAX      = 3;
-
-function _runDigestToasts() {
-  // Guardia: no mostrar si la app se abrió hace menos de 8 h
-  const now      = Date.now();
-  const lastOpen = parseInt(localStorage.getItem(_DIGEST_KEY) || '0', 10);
-  if (now - lastOpen < _DIGEST_COOLDOWN) return;
-  localStorage.setItem(_DIGEST_KEY, String(now));
-
-  const toasts = [];
-
-  // AC1 — proyectos activos con más de 3 días sin sesión
-  const activeProjs = (state.projects || []).filter(p => p.status !== 'paused');
-  for (const proj of activeProjs) {
-    if (toasts.length >= _DIGEST_MAX) break;
-    const sessions = getProjectSessions(proj.id) || [];
-    if (!sessions.length) continue; // proyecto sin sesiones — no aplica
-    const lastDate = sessions
-      .map(s => s.date ? new Date(s.date).getTime() : 0)
-      .reduce((a, b) => Math.max(a, b), 0);
-    if (!lastDate) continue;
-    const daysSince = Math.floor((now - lastDate) / 86400000);
-    if (daysSince > 3) {
-      toasts.push({
-        msg: `📂 <strong>${proj.name}</strong> lleva ${daysSince} días sin sesión`,
-        type: 'info'
-      });
-    }
-  }
-
-  // AC2 — ítems bloqueados (sprint + pendiente + 14+ días sin movimiento)
-  if (toasts.length < _DIGEST_MAX) {
-    const BLOCKED_CUTOFF = now - 14 * 24 * 60 * 60 * 1000;
-    const allItems       = typeof ITEMS !== 'undefined' ? ITEMS : [];
-    const blockedCount   = allItems.filter(i =>
-      i.sprint &&
-      i.status === 'pendiente' &&
-      (i.updatedAt || i.createdAt) &&
-      (i.updatedAt || i.createdAt) < BLOCKED_CUTOFF
-    ).length;
-    if (blockedCount > 0) {
-      toasts.push({
-        msg: `🔒 ${blockedCount} ítem${blockedCount !== 1 ? 's' : ''} bloqueado${blockedCount !== 1 ? 's' : ''} — <a href="#" onclick="switchTab('tab-proyectos');return false;" class="analytics-link">ver Proyectos</a>`,
-        type: 'warning'
-      });
-    }
-  }
-
-  // Emitir hasta _DIGEST_MAX toasts con stagger de 600 ms
-  toasts.slice(0, _DIGEST_MAX).forEach((t, i) => {
-    setTimeout(() => showToast(t.type, t.msg, null, 7000), i * 600);
-  });
-}
-
-// Hook: correr tras load() + render() sin bloquear el render inicial
-window.addEventListener('load', () => {
-  setTimeout(_runDigestToasts, 1800);
-});
-
-// ── T-202605-452: Gráfico de flujo acumulativo — ítems creados vs cerrados ──
 function _buildCumulativeFlowChart() {
   const W = 760, H = 220, PAD_L = 42, PAD_R = 16, PAD_T = 16, PAD_B = 36;
   const CHART_W = W - PAD_L - PAD_R;

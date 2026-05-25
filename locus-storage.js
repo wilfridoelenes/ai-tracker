@@ -453,10 +453,10 @@ async function _saveFlush() {
           try {
             localStorage.removeItem('ai-tracker-changelog');
             localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
-            showToast('warning', '⚠️ Cuota crítica — se limpió historial automáticamente');
+            // R-202605-055: showToast eliminado de _saveFlush — ruido silencioso en flujo de guardado
           } catch (lsErr2) {
             console.error('[AI Tracker] _saveFlush() localStorage cache failed after cleanup:', lsErr2);
-            showToast('error', '❌ Almacenamiento lleno. Limpia sesiones archivadas.');
+            // R-202605-055: showToast eliminado de _saveFlush — ruido silencioso en flujo de guardado
           }
         } else { throw lsErr; }
       }
@@ -472,7 +472,7 @@ async function _saveFlush() {
       } catch (lsErr) {
         console.error('[AI Tracker] _saveFlush() fallback localStorage also failed:', lsErr);
       }
-      showToast('warning', '⚠️ No se sincronizó con Supabase — datos guardados localmente');
+      // R-202605-055: showToast eliminado de _saveFlush — ruido silencioso en flujo de guardado
       _offlineQueuePush({ type: 'state' });
     }
   }
