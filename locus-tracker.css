@@ -6383,6 +6383,34 @@ body.radar-sb-open .tracker-sidebar {
 
 
 /* copy-item-btn — disponible (utilidad legítima en archivo) */
+.copy-item-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.copy-item-btn:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.copy-item-btn:active {
+  background: var(--surface-active);
+}
+
+.copy-item-btn:focus-visible {
+  outline: 2px solid var(--c-accent);
+  outline-offset: 2px;
+}
 
 /* ── Mobile ──────────────────────────────────────────────────────────── */
 
