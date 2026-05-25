@@ -577,7 +577,7 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
         });
         // T-202605-446: detener cronómetro y registrar tiempo total en la sesión
         if (typeof window._stopSessionTimer === 'function') ts.durationMs = window._stopSessionTimer(id) || 0;
-        showToast('success', 'Sesión completada ✓');
+        // G-04: card-flash + btn--saved + _setPhase(3) confirman inline — toast redundante eliminado.
       };
       if (typeof showMergeDiffPanel === 'function' && tgItems.length) {
         showMergeDiffPanel(tgItems, ts.id, activeProj.id, _doCompleteFinish);

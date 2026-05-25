@@ -523,10 +523,8 @@ function parsePaste(id) {
       return;
     }
 
-    const itemCount = tgItems.length;
-    showToast('success', itemCount
-      ? `\u2713 CHECKPOINT v\xE1lido \u2014 ${itemCount} \xEDtem${itemCount !== 1 ? 's' : ''} detectado${itemCount !== 1 ? 's' : ''}`
-      : '\u2713 CHECKPOINT v\xE1lido \u2014 listo para guardar', 'success');
+    // G-04: parse exitoso → silencio. El preview renderizado es la confirmación.
+    // Toast solo en error (ver bloque de validaciones previo).
   }
 
   if (btn) { btn.disabled = false; btn.className = title ? 'sc-save ready' : 'sc-save'; }
