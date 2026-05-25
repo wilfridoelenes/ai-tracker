@@ -8357,3 +8357,102 @@ textarea:hover {
 }
 
 /* ══ END R-202605-045 ══ */
+
+/* ══ T-202604-178: Copy item button — migrado desde locus-tracker.css ══ */
+.copy-item-btn {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius-md-plus);
+  border: 1px solid transparent;
+  background: transparent;
+  color: transparent;
+  font-size: var(--text-xl);
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--trans-color);
+}
+
+.bitem-header:hover .copy-item-btn,
+.bitem-header:focus-within .copy-item-btn {
+  background: var(--surface2);
+  border-color: var(--border);
+  color: var(--hint);
+}
+
+.copy-item-btn:hover {
+  background: var(--surface3, var(--surface2));
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.copy-item-btn--done {
+  color: var(--green);
+  border-color: var(--green);
+  background: rgb(46 204 120 / 12%);
+}
+
+/* ══ END T-202604-178 ══ */
+
+/* ══ T-202604-216: Skeleton rows — renderBacklogList / renderAnalytics / renderHtmlMap ══ */
+@keyframes skel-shimmer {
+  0% {
+    background-position: -600px 0;
+  }
+
+  100% {
+    background-position: 600px 0;
+  }
+}
+
+/* Base row */
+.skel-row {
+  height: 52px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    90deg,
+    var(--surface2)   0%,
+    var(--surface3)  40%,
+    var(--surface2)  60%,
+    var(--surface2) 100%
+  );
+  background-size: 1200px 100%;
+  animation: skel-shimmer 1.5s ease-in-out infinite;
+  margin-bottom: 6px;
+  border: 1px solid var(--border);
+}
+
+/* Variantes de altura */
+.skel-row--sm {
+  height: 36px;
+}
+
+.skel-row--lg {
+  height: 72px;
+}
+
+.skel-row--tbl {
+  height: 38px;
+  border-radius: var(--radius-sm);
+}
+
+/* Wrapper de skeleton — oculto por defecto; visible dentro de .is-loading */
+.skel-wrap {
+  display: none;
+  padding: 4px 0;
+}
+
+.is-loading > .skel-wrap {
+  display: block;
+}
+
+/* Ocultar contenido real durante carga */
+.is-loading > *:not(.skel-wrap) {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* ══ END T-202604-216 ══ */
