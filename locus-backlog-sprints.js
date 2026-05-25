@@ -14,14 +14,196 @@ function _getSprintById(id) {
 }
 
 // T-202605-500: ID con prefijo de proyecto — [PREFIJO]-S[NN], consecutivo por proyecto
-function _nextSprintId() {
-  const prefix = (typeof _docPrefix === 'function') ? _docPrefix() : 'XX';
+// B-202605-077: acepta projId opcional — si se pasa, opera exclusivamente sobre los sprints
+//   de ese proyecto, resolviendo el ID incorrecto cuando el DIFF se abre con projId != filtro global
+function _nextSprintId(projId) {
+  const allSprints = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
+
+  let prefix;
+  let sprintsForCalc;
+
+  if (projId) {
+    // Determinar prefijo desde sprints existentes del proyecto o desde el objeto proyecto
+    const sprintsOfProj = allSprints.filter(s => s.projectId === projId);
+    if (sprintsOfProj.length) {
+      const m = (sprintsOfProj[0].id || '').match(/^([A-Za-z]+)-S\d+$/i);
+      prefix = m ? m[1].toUpperCase() : 'XX';
+    } else {
+      const proj = (typeof getProjectById === 'function') ? getProjectById(projId) : null;
+      if (proj && proj.prefix) {
+        prefix = proj.prefix.toUpperCase();
+      } else if (proj && proj.name) {
+        prefix = proj.name.split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 3) || 'XX';
+      } else {
+        prefix = (typeof _docPrefix === 'function') ? _docPrefix() : 'XX';
+      }
+    }
+    sprintsForCalc = sprintsOfProj;
+  } else {
+    // Comportamiento original — prefijo del proyecto activo en filtro global
+    prefix = (typeof _docPrefix === 'function') ? _docPrefix() : 'XX';
+    sprintsForCalc = allSprints;
+  }
+
   const re = new RegExp('^' + prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '-S(\\d+)$', 'i');
-  const nums = getActiveSprints()
+  const nums = sprintsForCalc
     .map(s => { const m = (s.id || '').match(re); return m ? parseInt(m[1], 10) : NaN; })
     .filter(n => !isNaN(n));
   const max = nums.length ? Math.max(...nums) : 0;
   return prefix + '-S' + String(max + 1).padStart(2, '0');
+}
+
+// B-202605-077: función compartida que encapsula el formulario de creación de sprint.
+// Usada tanto por openNewSprintInline (backlog) como por _mdiffOpenNewSprintForm (DIFF panel).
+// projId: ID del proyecto para el que se crea el sprint — determina el prefijo del ID auto-generado.
+//   Si es null, usa el proyecto activo en el filtro global (comportamiento original).
+// onConfirm(newSprintId): callback invocado con el ID del sprint creado.
+// onCancel(): callback invocado si el usuario cancela.
+// Devuelve: objeto { html, init(wrapEl) }
+//   html: HTML del formulario listo para inyectar en el DOM
+//   init(wrapEl): debe llamarse después de insertar html para enganchar eventos y hacer focus
+function _buildNewSprintForm(projId, onConfirm, onCancel) {
+  const suggestedRt = _suggestReleaseType([]);
+  const suggestedVt = _suggestVersionTarget(suggestedRt);
+  const previewId   = _nextSprintId(projId || undefined);
+
+  // Namespace único para IDs DOM — evita colisiones si hay varios formularios simultáneos
+  const ns = 'bnsf-' + previewId.replace(/[^a-z0-9]/gi, '_');
+
+  // Validar unicidad del ID propuesto
+  function _idIsUnique(id) {
+    return !(typeof getActiveSprints === 'function' &&
+             getActiveSprints().some(s => s.id === id));
+  }
+
+  // Comprobar si ya hay un sprint activo para el proyecto
+  function _hasActiveSprint() {
+    if (typeof getActiveSprints !== 'function') return false;
+    return getActiveSprints().some(s =>
+      s.status === 'active' &&
+      (!projId || s.projectId === projId)
+    );
+  }
+
+  const rtRadios = ['Major', 'Minor', 'Patch'].map(v =>
+    `<label class="sprint-inline-release-label">
+      <input type="radio" name="${ns}-rt" value="${v}"
+        ${suggestedRt === v ? 'checked' : ''}
+        onchange="_bnsf_syncBtn('${ns}');_clearSprintFieldErr('${ns}-rt-err')">
+      ${v}
+    </label>`
+  ).join('');
+
+  const activeWarn = _hasActiveSprint()
+    ? `<div id="${ns}-active-warn" class="sprint-inline-active-warn">
+        Ya existe un sprint abierto para este proyecto.
+        <button type="button" class="sprint-inline-active-warn-dismiss"
+          onclick="document.getElementById('${ns}-active-warn').style.display='none'">Continuar</button>
+        <button type="button" class="sprint-inline-active-warn-cancel"
+          onclick="_bnsf_cancel('${ns}')">Cancelar</button>
+       </div>`
+    : '';
+
+  const html = `<div class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal" data-bnsf="${ns}">
+    ${activeWarn}
+    <span class="sprint-inline-id-preview" id="${ns}-id-preview">${esc(previewId)} ·</span>
+    <input id="${ns}-name" type="text" placeholder="Nombre descriptivo"
+      class="sprint-inline-input"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();_bnsf_confirm('${ns}');}if(event.key==='Escape'){event.preventDefault();_bnsf_cancel('${ns}');}">
+    <button type="button" id="${ns}-confirm" class="sprint-inline-confirm" onclick="_bnsf_confirm('${ns}')">&#10003;</button>
+    <button type="button" class="sprint-inline-cancel" onclick="_bnsf_cancel('${ns}')">&#10005;</button>
+    <input id="${ns}-goal" type="text" placeholder="Goal del sprint (opcional, max 120)"
+      class="sprint-inline-goal-input" maxlength="120"
+      onkeydown="if(event.key==='Enter'){event.preventDefault();_bnsf_confirm('${ns}');}if(event.key==='Escape'){event.preventDefault();_bnsf_cancel('${ns}');}">
+    <div class="sprint-inline-release-row">
+      <label class="sprint-inline-release-label">Versión:</label>
+      <input id="${ns}-vt" type="text" value="${esc(suggestedVt)}"
+        class="sprint-inline-vt-input" placeholder="ej: v1.1.0"
+        oninput="_bnsf_syncBtn('${ns}');_clearSprintFieldErr('${ns}-vt-err')"
+        onkeydown="if(event.key==='Enter'){event.preventDefault();_bnsf_confirm('${ns}');}if(event.key==='Escape'){event.preventDefault();_bnsf_cancel('${ns}');}">
+      <span id="${ns}-vt-err" class="sprint-field-err is-hidden"></span>
+      <label class="sprint-inline-release-label">Tipo de release:</label>
+      <div class="sprint-inline-release-radios">${rtRadios}</div>
+      <span id="${ns}-rt-err" class="sprint-field-err is-hidden"></span>
+    </div>
+  </div>`;
+
+  function init(wrapEl) {
+    // Registrar handlers globales con namespace — se limpian solos al confirmar/cancelar
+    window['_bnsf_syncBtn'] = window['_bnsf_syncBtn'] || function(ns2) {
+      const btn  = document.getElementById(ns2 + '-confirm');
+      const vtEl = document.getElementById(ns2 + '-vt');
+      const rtEls = document.querySelectorAll(`input[name="${ns2}-rt"]`);
+      if (!btn) return;
+      const vtOk = vtEl && vtEl.value.trim().length > 0;
+      const rtOk = Array.from(rtEls).some(r => r.checked);
+      btn.disabled = !(vtOk && rtOk);
+    };
+
+    window['_bnsf_confirm'] = function(ns2) {
+      const nameEl = document.getElementById(ns2 + '-name');
+      const name   = nameEl ? nameEl.value.trim() : '';
+      if (!name) { if (nameEl) nameEl.focus(); return; }
+
+      const goalEl = document.getElementById(ns2 + '-goal');
+      const goal   = goalEl ? goalEl.value.trim() : '';
+      const vtEl   = document.getElementById(ns2 + '-vt');
+      const vt     = vtEl ? vtEl.value.trim() : '';
+      const rtEls  = document.querySelectorAll(`input[name="${ns2}-rt"]`);
+      const rt     = (Array.from(rtEls).find(r => r.checked) || {}).value || '';
+
+      let valid = true;
+      if (!vt) {
+        valid = false;
+        const errEl = document.getElementById(ns2 + '-vt-err');
+        if (vtEl) vtEl.classList.add('input-outline-error');
+        if (errEl) { errEl.textContent = 'Ingresa una versión (ej: v1.0.0)'; errEl.classList.remove('is-hidden'); }
+      }
+      if (!rt) {
+        valid = false;
+        const errEl = document.getElementById(ns2 + '-rt-err');
+        if (errEl) { errEl.textContent = 'Selecciona el tipo de release'; errEl.classList.remove('is-hidden'); }
+      }
+      if (!valid) return;
+
+      // B-202605-077 AC: validar unicidad del ID antes de crear
+      const proposedId = _nextSprintId(projId || undefined);
+      if (!_idIsUnique(proposedId)) {
+        const errEl = document.getElementById(ns2 + '-vt-err');
+        if (errEl) {
+          errEl.textContent = 'El ID ' + proposedId + ' ya existe. Cierra el sprint activo primero.';
+          errEl.classList.remove('is-hidden');
+        }
+        return;
+      }
+
+      const newId = createSprint(name, goal, vt, rt, projId || undefined);
+      if (!newId) {
+        // createSprint falló (sin proyecto activo u otro error) — no asignar sprint
+        onCancel();
+        return;
+      }
+      // Limpiar handlers globales del namespace
+      delete window['_bnsf_confirm'];
+      delete window['_bnsf_cancel'];
+      onConfirm(newId);
+    };
+
+    window['_bnsf_cancel'] = function(ns2) {
+      delete window['_bnsf_confirm'];
+      delete window['_bnsf_cancel'];
+      onCancel();
+    };
+
+    // Sync inicial + focus
+    setTimeout(() => {
+      if (typeof window['_bnsf_syncBtn'] === 'function') window['_bnsf_syncBtn'](ns);
+      const inp = document.getElementById(ns + '-name');
+      if (inp) inp.focus();
+    }, 30);
+  }
+
+  return { html, init };
 }
 
 // T-202605-500: validar que el nombre descriptivo no esté vacío — el ID lo genera PP automáticamente
@@ -66,13 +248,16 @@ function _suggestVersionTarget(releaseType) {
 // R-202605-123: createSprint acepta goal opcional (máx 120 chars)
 // R-202605-134: acepta version_target y release_type — se calculan con sugerencia automática si no se pasan
 // T-202605-500: ID generado internamente con prefijo de proyecto — founder solo pasa nombre descriptivo
-function createSprint(raw, goal, versionTarget, releaseType) {
-  const _activeProjForSprint = getActiveProject();
+function createSprint(raw, goal, versionTarget, releaseType, projId) {
+  // B-202605-077: si se pasa projId, operar sobre ese proyecto en lugar del filtro global
+  const _activeProjForSprint = projId && typeof getProjectById === 'function'
+    ? getProjectById(projId)
+    : getActiveProject();
   if (!_activeProjForSprint) { showToast('warning', 'Selecciona un proyecto primero'); return; }
   if (!_activeProjForSprint.sprints) _activeProjForSprint.sprints = [];
   raw = (raw || '').trim();
   // T-202605-500: ID siempre auto-generado — el founder solo ingresa el nombre descriptivo
-  const id = _nextSprintId();
+  const id = _nextSprintId(projId || undefined);
   const displayLabel = raw || id;
   if (!_isValidSprintName(displayLabel)) {
     showToast('warning', '⚠ Nombre de sprint no puede estar vacío');
@@ -454,60 +639,42 @@ function _syncSprintConfirmBtn(code) {
   btn.disabled = !(vtOk && rtOk);
 }
 
+// B-202605-077: refactorizado para consumir _buildNewSprintForm — comportamiento externo idéntico
 function openNewSprintInline(code) {
-  // Muestra input inline en el select de sprint del ítem
   const wrap = document.getElementById('sprint-select-wrap-' + CSS.escape(code));
   if (!wrap) return;
+
   // T-202605-450: sugerencia de effort máximo basada en velocidad histórica
   const velocityData = _calcEstimatedVelocity();
   const suggestHtml = velocityData !== null
     ? `<span class="sprint-inline-hint">Velocidad real promedio: <strong>${velocityData.avg}</strong> effort</span>`
     : '';
-  // R-202605-134: sugerencia automática de release_type y version_target
-  const suggestedRt  = _suggestReleaseType(ITEMS.filter(i => i.sprint === code));
-  const suggestedVt  = _suggestVersionTarget(suggestedRt);
-  // T-202605-500: mostrar ID auto-generado como prefijo no editable
-  const previewId = _nextSprintId();
-  // R-202605-009: radio buttons para release_type — Major / Minor / Patch con label visible
-  const rtRadios = ['Major', 'Minor', 'Patch'].map(v =>
-    `<label class="sprint-inline-release-label">
-      <input type="radio" name="new-sprint-rt-${esc(code)}" value="${v}"
-        ${suggestedRt === v ? 'checked' : ''}
-        onchange="_syncSprintConfirmBtn('${esc(code)}');_clearSprintFieldErr('new-sprint-rt-err-${esc(code)}')">
-      ${v}
-    </label>`
-  ).join('');
-  // R-202605-123: campo goal opcional bajo el nombre del sprint
-  wrap.innerHTML = `<div class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal">
-    <span class="sprint-inline-id-preview">${esc(previewId)} ·</span>
-    <input id="new-sprint-inp-${esc(code)}" type="text" placeholder="Nombre descriptivo"
-      class="sprint-inline-input"
-      onkeydown="if(event.key==='Enter')confirmNewSprint('${esc(code)}');if(event.key==='Escape')renderBacklogList();">
-    <button id="new-sprint-confirm-${esc(code)}" onclick="confirmNewSprint('${esc(code)}')" class="sprint-inline-confirm">&#10003;</button>
-    <button onclick="renderBacklogList()" class="sprint-inline-cancel">&#10005;</button>
-    ${suggestHtml}
-    <input id="new-sprint-goal-${esc(code)}" type="text" placeholder="Goal del sprint (opcional, max 120)"
-      class="sprint-inline-goal-input"
-      maxlength="120"
-      onkeydown="if(event.key==='Enter')confirmNewSprint('${esc(code)}');if(event.key==='Escape')renderBacklogList();">
-    <div class="sprint-inline-release-row">
-      <label class="sprint-inline-release-label">Versión:</label>
-      <input id="new-sprint-vt-${esc(code)}" type="text" value="${esc(suggestedVt)}"
-        class="sprint-inline-vt-input" placeholder="ej: v1.1.0"
-        oninput="_syncSprintConfirmBtn('${esc(code)}');_clearSprintFieldErr('new-sprint-vt-err-${esc(code)}')"
-        onkeydown="if(event.key==='Enter')confirmNewSprint('${esc(code)}');if(event.key==='Escape')renderBacklogList();">
-      <span id="new-sprint-vt-err-${esc(code)}" class="sprint-field-err hidden"></span>
-      <label class="sprint-inline-release-label">Tipo de release:</label>
-      <div class="sprint-inline-release-radios">${rtRadios}</div>
-      <span id="new-sprint-rt-err-${esc(code)}" class="sprint-field-err hidden"></span>
-    </div>
-  </div>`;
-  // R-202605-009: sync inicial — con sugerencias pre-pobladas el botón puede arrancar habilitado
-  setTimeout(() => {
-    _syncSprintConfirmBtn(code);
-    const inp = document.getElementById('new-sprint-inp-' + code);
-    if (inp) inp.focus();
-  }, 30);
+
+  const form = _buildNewSprintForm(
+    null, // null = proyecto activo en filtro global (comportamiento original)
+    function onConfirm(newId) {
+      setItemSprint(code, newId);
+    },
+    function onCancel() {
+      renderBacklogList();
+    }
+  );
+
+  wrap.innerHTML = suggestHtml ? form.html.replace(
+    'class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal"',
+    'class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal"'
+  ) + `<span class="sprint-inline-hint-injected">${suggestHtml}</span>` : form.html;
+
+  // Reemplazar el innerHTML por el form y re-obtener el wrapEl correcto
+  wrap.innerHTML = form.html;
+  const hint = document.createElement('span');
+  if (velocityData !== null) {
+    hint.className = 'sprint-inline-hint';
+    hint.innerHTML = `Velocidad real promedio: <strong>${velocityData.avg}</strong> effort`;
+    wrap.querySelector('.sprint-inline-edit-wrap').insertAdjacentElement('beforeend', hint);
+  }
+
+  form.init(wrap);
 }
 
 // R-202605-009: limpiar mensaje de error de campo
@@ -521,38 +688,19 @@ function _clearSprintFieldErr(errId) {
   if (prev && prev.tagName === 'INPUT') prev.classList.remove('input-outline-error');
 }
 
+// B-202605-077: confirmNewSprint ya no es el handler principal — openNewSprintInline usa _buildNewSprintForm.
+// Se conserva como stub por si hay referencias residuales en HTML generado por versiones anteriores.
 function confirmNewSprint(code) {
-  const inp = document.getElementById('new-sprint-inp-' + code);
-  const raw = inp ? inp.value.trim() : '';
-  if (!raw) { renderBacklogList(); return; }
-  // R-202605-123: leer goal si está presente
-  const goalInp = document.getElementById('new-sprint-goal-' + code);
-  const goal = goalInp ? goalInp.value.trim() : '';
-  // R-202605-134: leer version_target y release_type
-  const vtInp = document.getElementById('new-sprint-vt-' + code);
-  const rtEls = document.querySelectorAll(`input[name="new-sprint-rt-${CSS.escape(code)}"]`);
-  const rtSel = document.getElementById('new-sprint-rt-' + code); // select fallback (mdiff)
-  const vt = vtInp ? vtInp.value.trim() : '';
-  const rt = rtEls.length > 0
-    ? (Array.from(rtEls).find(r => r.checked) || {}).value || ''
-    : (rtSel ? rtSel.value : '');
-  // R-202605-009: validación obligatoria de vt y rt — modal no cierra hasta que sean válidos
-  let valid = true;
-  if (!vt) {
-    valid = false;
-    const errEl = document.getElementById('new-sprint-vt-err-' + code);
-    if (vtInp) vtInp.classList.add('input-outline-error');
-    if (errEl) { errEl.textContent = 'Ingresa una versión (ej: v1.0.0)'; errEl.classList.remove('is-hidden'); }
+  if (typeof _bnsf_confirm === 'function') {
+    // _buildNewSprintForm registra _bnsf_confirm en window con el ns correcto.
+    // Buscar el formulario activo en el wrap y disparar confirm.
+    const wrap = document.getElementById('sprint-select-wrap-' + CSS.escape(code));
+    if (wrap) {
+      const bnsf = wrap.querySelector('[data-bnsf]');
+      if (bnsf) { _bnsf_confirm(bnsf.dataset.bnsf); return; }
+    }
   }
-  if (!rt) {
-    valid = false;
-    const errEl = document.getElementById('new-sprint-rt-err-' + code);
-    if (errEl) { errEl.textContent = 'Selecciona el tipo de release'; errEl.classList.remove('is-hidden'); }
-  }
-  if (!valid) return;
-  const id = createSprint(raw, goal, vt, rt);
-  if (!id) { renderBacklogList(); return; } // sin proyecto activo — createSprint ya mostró toast
-  setItemSprint(code, id);
+  renderBacklogList();
 }
 
 // T-202604-246: edición inline del nombre de sprint desde el header del grupo

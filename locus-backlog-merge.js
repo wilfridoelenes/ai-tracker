@@ -1,5 +1,5 @@
 // locus-backlog-merge.js
-// Última actualización: 2026-05-24 | Merge diff panel — revisión visual de cambios de CHECKPOINT
+// Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
 // Dependencias: locus-backlog-core.js · locus-backlog-item.js · locus-backlog-sprints.js · locus-storage.js · locus-toast.js
 // Carga: después de locus-backlog-item.js
@@ -316,142 +316,57 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
   // R-202605-148: mini-formulario inline — reemplaza el select en la card
   // Campos: nombre, goal (opcional), version_target, release_type
+  // B-202605-077: refactorizado para consumir _buildNewSprintForm.
+  //   - projId del ítem activo en el DIFF (no el filtro global de proyecto)
+  //   - Si createSprint falla, ítems con sprint: n/a (onCancel restaura select sin asignar)
   function _mdiffOpenNewSprintForm(sel, code) {
-    const suggestedRt = _suggestReleaseType(ITEMS.filter(i => i.sprint === code));
-    const suggestedVt = _suggestVersionTarget(suggestedRt);
+    // Obtener projId del ítem en ITEMS; si es nuevo (aún no existe), usar projId de la sesión
+    const _itemForSprint = ITEMS.find(i => i.code === code);
+    const _projIdForForm = (_itemForSprint && _itemForSprint.projectId) || projId || null;
 
-    // T-202605-500: mostrar ID auto-generado como prefijo no editable
-    const _mdiffPreviewId = _nextSprintId();
-    const _mdiffConfirmId = 'mdiff-sprint-confirm-' + code;
-    // R-202605-009: radio buttons para release_type con label visible
-    const rtRadios = ['Major', 'Minor', 'Patch'].map(v =>
-      `<label class="sprint-inline-release-label">
-        <input type="radio" name="mdiff-sprint-rt-${esc(code)}" value="${v}"
-          ${suggestedRt === v ? 'checked' : ''}
-          onchange="_mdiffSyncConfirmBtn('${esc(code)}');_clearSprintFieldErr('mdiff-sprint-rt-err-${esc(code)}')">
-        ${v}
-      </label>`
-    ).join('');
-    const wrap = document.createElement('div');
-    wrap.className = 'mdiff-new-sprint-form';
-    wrap.innerHTML = `
-      <span class="sprint-inline-id-preview">${esc(_mdiffPreviewId)} ·</span>
-      <input type="text" class="mdiff-new-sprint-inp" placeholder="Nombre descriptivo"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();_mdiffConfirmNewSprintForm(this,'${esc(code)}');}if(event.key==='Escape'){event.preventDefault();_mdiffCancelNewSprintForm(this);}">
-      <input type="text" class="mdiff-new-sprint-goal" placeholder="Goal (opcional)"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();_mdiffConfirmNewSprintForm(this,'${esc(code)}');}if(event.key==='Escape'){event.preventDefault();_mdiffCancelNewSprintForm(this);}">
-      <div class="mdiff-new-sprint-row">
-        <label class="sprint-inline-release-label">Versión:</label>
-        <input type="text" class="mdiff-new-sprint-vt" value="${esc(suggestedVt)}" placeholder="ej: v1.1.0"
-          oninput="_mdiffSyncConfirmBtn('${esc(code)}');_clearSprintFieldErr('mdiff-sprint-vt-err-${esc(code)}')"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();_mdiffConfirmNewSprintForm(this,'${esc(code)}');}if(event.key==='Escape'){event.preventDefault();_mdiffCancelNewSprintForm(this);}">
-        <span id="mdiff-sprint-vt-err-${esc(code)}" class="sprint-field-err hidden"></span>
-        <label class="sprint-inline-release-label">Tipo de release:</label>
-        <div class="sprint-inline-release-radios">${rtRadios}</div>
-        <span id="mdiff-sprint-rt-err-${esc(code)}" class="sprint-field-err hidden"></span>
-        <button type="button" id="${esc(_mdiffConfirmId)}" class="mdiff-new-sprint-confirm"
-          onclick="_mdiffConfirmNewSprintForm(this,'${esc(code)}')">✓</button>
-        <button type="button" class="mdiff-new-sprint-cancel"
-          onclick="_mdiffCancelNewSprintForm(this)">✕</button>
-      </div>`;
+    if (typeof _buildNewSprintForm !== 'function') {
+      // Fallback: no debería ocurrir si el orden de carga es correcto
+      console.error('B-202605-077: _buildNewSprintForm no disponible');
+      return;
+    }
 
-    // Guardar referencia al select original para restaurar si se cancela
-    wrap._originalSelect = sel;
-    sel.parentNode.replaceChild(wrap, sel);
-    // R-202605-009: sync inicial del botón confirm
-    setTimeout(() => {
-      _mdiffSyncConfirmBtn(code);
-      wrap.querySelector('.mdiff-new-sprint-inp').focus();
-    }, 10);
+    const form = _buildNewSprintForm(
+      _projIdForForm,
+      // onConfirm: sprint creado exitosamente
+      function(newSprintId) {
+        _mdiffPersistSprint(code, newSprintId);
+        const restoredSel = _mdiffRestoreSelect(wrapDiv, code, newSprintId);
+        // Añadir la nueva opción a todos los demás selects del DIFF
+        const _newSp = (typeof _getSprintById === 'function') ? _getSprintById(newSprintId) : null;
+        const _newSpLabel = _newSp ? (_newSp.label || newSprintId) : newSprintId;
+        document.querySelectorAll('.mdiff-sprint-select[data-item-code]').forEach(s => {
+          if (s === restoredSel) return;
+          const newOptNode = s.querySelector('option[value="__new__"]');
+          const opt = document.createElement('option');
+          opt.value = newSprintId;
+          opt.textContent = _newSpLabel;
+          if (newOptNode) s.insertBefore(opt, newOptNode);
+          else s.appendChild(opt);
+        });
+      },
+      // onCancel: createSprint falló o usuario canceló — restaurar select sin asignar sprint
+      function() {
+        _mdiffRestoreSelect(wrapDiv, code, null);
+      }
+    );
+
+    const wrapDiv = document.createElement('div');
+    wrapDiv.innerHTML = form.html;
+    const formEl = wrapDiv.firstElementChild || wrapDiv;
+    // Preservar referencia al select para _mdiffRestoreSelect
+    formEl._originalSelect = sel;
+    sel.parentNode.replaceChild(formEl, sel);
+    form.init(formEl);
   }
 
-  // R-202605-009: sync estado del botón confirm en el mini-form del diff
-  window._mdiffSyncConfirmBtn = function(code) {
-    const btn  = document.getElementById('mdiff-sprint-confirm-' + code);
-    const vtEl = btn ? btn.closest('.mdiff-new-sprint-form').querySelector('.mdiff-new-sprint-vt') : null;
-    const rtEls = document.querySelectorAll(`input[name="mdiff-sprint-rt-${CSS.escape(code)}"]`);
-    if (!btn) return;
-    const vtOk = vtEl && vtEl.value.trim().length > 0;
-    const rtOk = Array.from(rtEls).some(r => r.checked);
-    btn.disabled = !(vtOk && rtOk);
-  };
-
-  window._mdiffConfirmNewSprintForm = function(el, code) {
-    const wrap = el.closest('.mdiff-new-sprint-form');
-    if (!wrap) return;
-    const name = wrap.querySelector('.mdiff-new-sprint-inp').value.trim();
-    const goal = wrap.querySelector('.mdiff-new-sprint-goal').value.trim();
-    const vtEl = wrap.querySelector('.mdiff-new-sprint-vt');
-    const vt   = vtEl ? vtEl.value.trim() : '';
-    const rtEls = document.querySelectorAll(`input[name="mdiff-sprint-rt-${CSS.escape(code)}"]`);
-    const rt   = (Array.from(rtEls).find(r => r.checked) || {}).value || '';
-
-    if (!name) { wrap.querySelector('.mdiff-new-sprint-inp').focus(); return; }
-
-    // R-202605-009: validación obligatoria de vt y rt — no confirma hasta que sean válidos
-    let valid = true;
-    if (!vt) {
-      valid = false;
-      const errEl = document.getElementById('mdiff-sprint-vt-err-' + code);
-      if (vtEl) vtEl.classList.add('input-outline-error');
-      if (errEl) { errEl.textContent = 'Ingresa una versión (ej: v1.0.0)'; errEl.classList.remove('is-hidden'); }
-    }
-    if (!rt) {
-      valid = false;
-      const errEl = document.getElementById('mdiff-sprint-rt-err-' + code);
-      if (errEl) { errEl.textContent = 'Selecciona el tipo de release'; errEl.classList.remove('is-hidden'); }
-    }
-    if (!valid) return;
-
-    // B-202605-499: input parcial S-XX (sin nombre descriptivo) — bifurcar sin mostrar toast de error
-    const bareSprintMatch = /^S-\d+$/i.test(name);
-    if (bareSprintMatch) {
-      const existingSprint = _getSprintById(name.toUpperCase());
-      if (existingSprint) {
-        // Sprint ya existe → asignar directamente
-        _mdiffPersistSprint(code, existingSprint.id);
-        _mdiffRestoreSelect(wrap, code, existingSprint.id);
-        return;
-      } else {
-        // Sprint no existe → restaurar select y abrir modal de nuevo sprint para completar nombre
-        _mdiffRestoreSelect(wrap, code, null);
-        if (typeof openNewSprintInline === 'function') openNewSprintInline(code);
-        return;
-      }
-    }
-
-    const newId = createSprint(name, goal, vt, rt);
-    if (!newId) { wrap.querySelector('.mdiff-new-sprint-inp').focus(); return; }
-
-    // Persistir sprint en el ítem
-    _mdiffPersistSprint(code, newId);
-
-    // Restaurar select con el nuevo sprint seleccionado + añadirlo a todos los selects del DIFF
-    const restoredSel = _mdiffRestoreSelect(wrap, code, newId);
-
-    // Añadir la nueva opción a todos los demás selects del DIFF
-    // T-202605-500: label canónico generado por createSprint — leer desde state
-    const _newSp = _getSprintById(newId);
-    const _newSpLabel = _newSp ? (_newSp.label || newId) : newId;
-    document.querySelectorAll(`.mdiff-sprint-select[data-item-code]`).forEach(s => {
-      if (s === restoredSel) return;
-      const newOpt = s.querySelector('option[value="__new__"]');
-      const opt = document.createElement('option');
-      opt.value = newId;
-      opt.textContent = _newSpLabel;
-      if (newOpt) s.insertBefore(opt, newOpt);
-      else s.appendChild(opt);
-    });
-  };
-
-  window._mdiffCancelNewSprintForm = function(el) {
-    const wrap = el.closest('.mdiff-new-sprint-form');
-    if (!wrap) return;
-    const code = wrap.querySelector('.mdiff-new-sprint-inp')
-      ? wrap.querySelector('[data-item-code]') : null;
-    // Restaurar select original sin cambios
-    _mdiffRestoreSelect(wrap, null, null);
-  };
+  // B-202605-077: _mdiffSyncConfirmBtn, _mdiffConfirmNewSprintForm, _mdiffCancelNewSprintForm
+  // eliminados — lógica migrada a _buildNewSprintForm (locus-backlog-sprints.js).
+  // Los handlers _bnsf_confirm/_bnsf_cancel se registran en window por _buildNewSprintForm.init().
 
   // Reemplaza el mini-form con un select reconstruido
   function _mdiffRestoreSelect(wrap, code, selectedId) {
@@ -707,8 +622,6 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     delete window._mdiffToggleSection;
     delete window._mdiffJumpTo;
     delete window._mdiffSetItemSprint;
-    delete window._mdiffConfirmNewSprintForm;
-    delete window._mdiffCancelNewSprintForm;
 
     if (typeof showToast === 'function' && appliedCount > 0) {
       showToast('success', `Sesión guardada — ${appliedCount} ítem${appliedCount !== 1 ? 's' : ''} aplicado${appliedCount !== 1 ? 's' : ''}`);
@@ -757,8 +670,6 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     delete window._mdiffToggleSection;
     delete window._mdiffJumpTo;
     delete window._mdiffSetItemSprint;
-    delete window._mdiffConfirmNewSprintForm;
-    delete window._mdiffCancelNewSprintForm;
     // Sin toast — el usuario canceló deliberadamente
   });
 
@@ -790,8 +701,6 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
       delete window._mdiffToggleSection;
       delete window._mdiffJumpTo;
       delete window._mdiffSetItemSprint;
-      delete window._mdiffConfirmNewSprintForm;
-      delete window._mdiffCancelNewSprintForm;
     }
   }
   document.addEventListener('keydown', _mdiffKeyHandler);
