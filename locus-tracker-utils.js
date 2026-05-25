@@ -1,5 +1,5 @@
 // locus-tracker-utils.js
-// Última actualización: 2026-05-24 · T hardening state.ais | Extraído de locus-tracker.js
+// Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-tracker.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal
 // Requiere: locus-storage.js, locus-ui-shell.js (switchTab) cargados ANTES en index.html
 // Debe cargarse ANTES de locus-tracker.js
@@ -73,7 +73,7 @@ function _renderTimerInCard(aiId) {
   // Actualizar título de sesión activa en tiempo real
   const titleEl = document.getElementById('rsb-session-title-' + aiId);
   if (titleEl) {
-    const ai = state.ais && state.ais.find(a => a.id === aiId);
+    const ai = (typeof state !== 'undefined' && state.ais && state.ais.find(a => a.id === aiId));
     if (ai) {
       const sessions = (typeof getAISessions === 'function') ? getAISessions(aiId) : [];
       const last = sessions.length ? sessions[sessions.length - 1] : null;
@@ -86,7 +86,7 @@ function _renderTimerInCard(aiId) {
 function _refreshTimerTick() {
   clearInterval(_timerIntervalId);
   _timerIntervalId = setInterval(() => {
-    (state.ais || []).forEach(ai => _renderTimerInCard(ai.id));
+    (typeof state !== 'undefined' && state.ais || []).forEach(ai => _renderTimerInCard(ai.id));
     _renderActiveWorkerChip();
     // Actualizar timestamps relativos en cards de sesión en curso
     document.querySelectorAll('.cscard-timer[data-ts]').forEach(el => {
@@ -95,7 +95,7 @@ function _refreshTimerTick() {
     });
   }, 60000);
   // Actualización inmediata al arrancar el tick
-  (state.ais || []).forEach(ai => _renderTimerInCard(ai.id));
+  (typeof state !== 'undefined' && state.ais || []).forEach(ai => _renderTimerInCard(ai.id));
   _renderActiveWorkerChip();
   document.querySelectorAll('.cscard-timer[data-ts]').forEach(el => {
     const ts = parseInt(el.dataset.ts, 10);
@@ -125,7 +125,7 @@ function _renderActiveWorkerChip() {
   // Buscar el Worker con timer activo — si hay más de uno, el de mayor elapsed
   let best = null;
   let bestElapsed = -1;
-  (state.ais || []).forEach(ai => {
+  (typeof state !== 'undefined' && state.ais || []).forEach(ai => {
     const d = _getTimerData(ai.id);
     if (!d || !d.running) return;
     const elapsed = d.elapsed + (Date.now() - d.startEpoch);
@@ -197,7 +197,7 @@ function _computeSuggestionScore(ai) {
 }
 
 function _getSuggestedAI() {
-  const active = (state.ais || []).filter(ai => !ai.archived);
+  const active = (typeof state !== 'undefined' && state.ais || []).filter(ai => !ai.archived);
   if (!active.length) return null;
   // Desempate: gana el que tiene más ítems high pendientes
   return active.reduce((best, ai) => {
@@ -293,7 +293,7 @@ function _buildWeeklySummary() {
   const twoWeeksAgo = now - 14 * 86400000;
 
   // Sesiones de la semana anterior (entre hace 14 días y hace 7 días)
-  const allSessions = (state.projects || []).flatMap(p => (p.sessions || []));
+  const allSessions = (typeof state !== 'undefined' && state.projects || []).flatMap(p => (p.sessions || []));
   const lastWeekSess = allSessions.filter(s => {
     const ts = new Date(s.date || 0).getTime();
     return ts >= twoWeeksAgo && ts < oneWeekAgo;
@@ -322,7 +322,7 @@ function _buildWeeklySummary() {
   let sprintProgress = '—';
   try {
     const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
-    const projFallback = proj || (state.projects && state.projects[0]);
+    const projFallback = proj || (typeof state !== 'undefined' && state.projects && state.projects[0]);
     const sp = projFallback && projFallback.sprints ? projFallback.sprints.find(s => s.status === 'active') : null;
     if (sp) {
       const spItems = allItems.filter(i => i.sprint === sp.id);
