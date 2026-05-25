@@ -27,8 +27,8 @@ function _qcSetStep(step) {
   const nextBtn = _qcEl('qc-next-btn');
 
   if (step === 1) {
-    panel1.classList.remove('hidden');
-    panel2.classList.add('hidden');
+    panel1.classList.remove('is-hidden');
+    panel2.classList.add('is-hidden');
     dot1.classList.add('qc-dot--active');
     dot2.classList.remove('qc-dot--active');
     stepper.setAttribute('aria-label', 'Paso 1 de 2');
@@ -36,8 +36,8 @@ function _qcSetStep(step) {
     nextBtn.textContent = 'Continuar';
     nextBtn.disabled = !_qcEl('qc-worker-list').querySelector('.qc-worker-item--selected');
   } else {
-    panel1.classList.add('hidden');
-    panel2.classList.remove('hidden');
+    panel1.classList.add('is-hidden');
+    panel2.classList.remove('is-hidden');
     dot1.classList.remove('qc-dot--active');
     dot2.classList.add('qc-dot--active');
     stepper.setAttribute('aria-label', 'Paso 2 de 2');
@@ -83,20 +83,20 @@ function openQuickCapture(id) {
   if (id) {
     // Llamado directo con Worker conocido — skip Paso 1 (AC-05)
     _quickAIId = id;
-    _qcEl('qc-stepper').classList.add('hidden'); // sin stepper en skip
+    _qcEl('qc-stepper').classList.add('is-hidden'); // sin stepper en skip
     _qcEl('qc-worker-chip-name').textContent = (getAI(id) || {}).name || id;
     overlay.classList.add('open');
     _qcSetStep(2);
   } else if (available.length === 1) {
     // AC-05: un solo Worker — skip Paso 1 directamente
     _quickAIId = available[0].id;
-    _qcEl('qc-stepper').classList.add('hidden');
+    _qcEl('qc-stepper').classList.add('is-hidden');
     _qcEl('qc-worker-chip-name').textContent = available[0].name;
     overlay.classList.add('open');
     _qcSetStep(2);
   } else {
     // Múltiples Workers — mostrar Paso 1
-    _qcEl('qc-stepper').classList.remove('hidden');
+    _qcEl('qc-stepper').classList.remove('is-hidden');
     _qcRenderWorkerList();
     overlay.classList.add('open');
     _qcSetStep(1);
@@ -107,10 +107,10 @@ function openQuickCapture(id) {
 function qcSelectWorker(el) {
   _qcEl('qc-worker-list').querySelectorAll('.qc-worker-item').forEach(item => {
     item.classList.remove('qc-worker-item--selected');
-    item.querySelector('.qc-worker-check').classList.add('hidden');
+    item.querySelector('.qc-worker-check').classList.add('is-hidden');
   });
   el.classList.add('qc-worker-item--selected');
-  el.querySelector('.qc-worker-check').classList.remove('hidden');
+  el.querySelector('.qc-worker-check').classList.remove('is-hidden');
   _quickAIId = el.dataset.workerId;
   _qcEl('qc-next-btn').disabled = false;
 }
@@ -128,7 +128,7 @@ function qcHandleNext() {
 
 // Botón Cancelar / Atrás
 function qcHandleBack() {
-  if (_qcStep === 2 && _qcEl('qc-stepper') && !_qcEl('qc-stepper').classList.contains('hidden')) {
+  if (_qcStep === 2 && _qcEl('qc-stepper') && !_qcEl('qc-stepper').classList.contains('is-hidden')) {
     // En Paso 2 con stepper visible → volver a Paso 1
     _quickAIId = null;
     _qcSetStep(1);

@@ -54,11 +54,11 @@
     </div>
 
     <div class="tabs">
-      <button class="tab-btn" id="tab-btn-tracker" onclick="switchTab('tracker')" title="Ver Tracker de sesiones">🗂 Sesiones<span class="tab-notif-badge hidden" id="tab-notif-badge-tracker"></span></button>
-      <button class="tab-btn" id="tab-btn-proyectos" onclick="switchTab('proyectos')" title="Dashboard estratégico de proyectos">📁 Proyectos<span class="tab-notif-badge hidden" id="tab-notif-badge-proyectos"></span></button>
-      <button class="tab-btn" id="tab-btn-backlog" onclick="switchTab('backlog')" title="Backlog — ítems, sprints y estado del ecosistema">🗃 Backlog<span class="tab-notif-badge hidden" id="tab-notif-badge-backlog"></span></button>
-      <button class="tab-btn" id="tab-btn-sprint" onclick="switchTab('sprint')" title="Sprint — estado y ejecución del sprint activo">🏃 Sprint<span class="tab-notif-badge hidden" id="tab-notif-badge-sprint"></span></button>
-      <button class="tab-btn" id="tab-btn-analytics" onclick="switchTab('analytics')" title="Analytics — sesiones por mes">📊 Analytics<span class="tab-notif-badge hidden" id="tab-notif-badge-analytics"></span></button>
+      <button class="tab-btn" id="tab-btn-tracker" onclick="switchTab('tracker')" title="Ver Tracker de sesiones">🗂 Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-tracker"></span></button>
+      <button class="tab-btn" id="tab-btn-proyectos" onclick="switchTab('proyectos')" title="Dashboard estratégico de proyectos">📁 Proyectos<span class="tab-notif-badge is-hidden" id="tab-notif-badge-proyectos"></span></button>
+      <button class="tab-btn" id="tab-btn-backlog" onclick="switchTab('backlog')" title="Backlog — ítems, sprints y estado del ecosistema">🗃 Backlog<span class="tab-notif-badge is-hidden" id="tab-notif-badge-backlog"></span></button>
+      <button class="tab-btn" id="tab-btn-sprint" onclick="switchTab('sprint')" title="Sprint — estado y ejecución del sprint activo">🏃 Sprint<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sprint"></span></button>
+      <button class="tab-btn" id="tab-btn-analytics" onclick="switchTab('analytics')" title="Analytics — sesiones por mes">📊 Analytics<span class="tab-notif-badge is-hidden" id="tab-notif-badge-analytics"></span></button>
     </div>
 
     <div class="header-search" id="header-search-wrap">
@@ -91,7 +91,7 @@
         ⌘K
       </button>
 
-      <button class="header-worker-chip hidden" id="header-active-worker" onclick="_hwcClick()" title="Worker en sesión">
+      <button class="header-worker-chip is-hidden" id="header-active-worker" onclick="_hwcClick()" title="Worker en sesión">
         <span class="hwc-dot session-timer-dot--active"></span>
         <span class="hwc-name"></span>
         <span class="hwc-time"></span>
@@ -110,7 +110,7 @@
 
       <button class="btn-ghost btn-ckpt-reopen is-hidden" id="ckpt-reopen-btn" onclick="if(typeof showCheckpointPanel==='function')showCheckpointPanel(_lastCheckpointResult)" title="Ver último CHECKPOINT">📋</button>
 
-      <div class="user-chip hidden" id="user-chip" onclick="handleSyncPillClick()" title="Sesión activa · click para cerrar sesión">
+      <div class="user-chip is-hidden" id="user-chip" onclick="handleSyncPillClick()" title="Sesión activa · click para cerrar sesión">
         <span class="user-chip-dot" id="user-chip-dot">●</span>
         <span class="user-chip-name" id="user-chip-name"></span>
       </div>
@@ -305,7 +305,7 @@
           <div class="tracker-mini-hist-header">
             <span class="tracker-mini-hist-title" id="tracker-mini-hist-title">Sesión activa</span>
             <span class="tracker-mini-hist-last" id="tracker-mini-hist-last"></span>
-            <span class="tracker-mini-hist-count hidden" id="tracker-mini-hist-count"></span>
+            <span class="tracker-mini-hist-count is-hidden" id="tracker-mini-hist-count"></span>
           </div>
           <div class="tracker-mini-hist-list" id="tracker-mini-hist-list">
             <div class="tracker-mini-hist-empty" id="tracker-mini-hist-empty">
@@ -335,7 +335,7 @@
   </div><!-- /tracker-3col -->
 
   <!-- [pendiente-ID]: aria-live="polite" + aria-atomic + role="region" + tabindex para gestión de foco -->
-  <div class="item-viz-overlay hidden" id="item-viz-overlay"
+  <div class="item-viz-overlay is-hidden" id="item-viz-overlay"
        role="region"
        aria-label="Ítems detectados"
        aria-live="polite"
@@ -384,7 +384,7 @@
         <button class="tpl-nav-btn" id="sstab-btn-plan" onclick="switchSubTab('plan')">
           <span class="tpl-nav-icon">🗓</span><span class="tpl-nav-text">Plan</span>
         </button>
-        <button class="tpl-nav-btn hidden" id="sstab-btn-contratos" onclick="switchSubTab('contratos')">
+        <button class="tpl-nav-btn is-hidden" id="sstab-btn-contratos" onclick="switchSubTab('contratos')">
           <span class="tpl-nav-icon">📐</span><span class="tpl-nav-text">Contratos</span>
           <span class="tpl-nav-badge" id="tpl-badge-contratos"></span>
         </button>
@@ -410,15 +410,15 @@
     </div>
 
     <!-- Zona de peligro — sidebar -->
-    <div class="tpl-sidebar-danger hidden" id="tpl-sidebar-danger">
+    <div class="tpl-sidebar-danger is-hidden" id="tpl-sidebar-danger">
       <button class="tpl-danger-toggle" onclick="toggleSidebarDanger()">⚠ Opciones avanzadas</button>
       <div class="tpl-danger-body" id="tpl-danger-body">
         <div class="tpl-danger-label">Zona de peligro — irreversible</div>
-        <button class="btn-danger hidden" id="sidebar-danger-btn-backlog" onclick="openResetBacklogModal()">🗑 Resetear Backlog</button>
-        <button class="btn-danger hidden" id="sidebar-danger-btn-historico" onclick="purgeAllHistorico()">🗑 Purgar Histórico</button>
-        <button class="btn-danger hidden" id="sidebar-danger-btn-context" onclick="resetContextData()">🗑 Resetear Context</button>
-        <button class="btn-danger hidden" id="sidebar-danger-btn-htmlmap" onclick="resetHtmlMapData()">🗑 Resetear MAP</button>
-        <button class="btn-danger hidden" id="sidebar-danger-btn-contratos" onclick="resetContratosData()">🗑 Resetear Contratos</button>
+        <button class="btn-danger is-hidden" id="sidebar-danger-btn-backlog" onclick="openResetBacklogModal()">🗑 Resetear Backlog</button>
+        <button class="btn-danger is-hidden" id="sidebar-danger-btn-historico" onclick="purgeAllHistorico()">🗑 Purgar Histórico</button>
+        <button class="btn-danger is-hidden" id="sidebar-danger-btn-context" onclick="resetContextData()">🗑 Resetear Context</button>
+        <button class="btn-danger is-hidden" id="sidebar-danger-btn-htmlmap" onclick="resetHtmlMapData()">🗑 Resetear MAP</button>
+        <button class="btn-danger is-hidden" id="sidebar-danger-btn-contratos" onclick="resetContratosData()">🗑 Resetear Contratos</button>
         <button class="btn-danger" id="sidebar-danger-btn-sessions" onclick="openResetSessionsModal()">🗑 Resetear Sesiones</button>
       </div>
     </div>
@@ -435,8 +435,8 @@
       <span class="backlog-meta-value" id="bmeta-total">69 ítems</span>
       <span class="backlog-meta-sep">·</span>
       <span class="backlog-meta-value" id="bmeta-version">v—</span>
-      <span class="backlog-meta-sep hidden" id="bmeta-mod-sep">·</span>
-      <span class="backlog-meta-value hidden amber-color" id="bmeta-mod-val">—</span>
+      <span class="backlog-meta-sep is-hidden" id="bmeta-mod-sep">·</span>
+      <span class="backlog-meta-value is-hidden amber-color" id="bmeta-mod-val">—</span>
     </div>
 
     <div class="stats-bar" id="stats-bar"></div>
@@ -451,7 +451,7 @@
         <button class="bl-toolbar-view-btn" id="fbar-kanban-btn" onclick="toggleBacklogKanbanMode()" title="Vista Kanban" role="tab" aria-selected="false">⬛ Kanban</button>
         <button class="bl-toolbar-view-btn" id="fbar-planning-btn" onclick="toggleBacklogPlanningMode()" title="Vista Planificación — asignar ítems al siguiente sprint" role="tab" aria-selected="false">📅 Planificar</button>
         <button class="bl-toolbar-view-btn" id="fbar-focus-btn" onclick="toggleBacklogFocusMode()" title="Focus — Top 10 por prioridad" role="checkbox" aria-checked="false">🎯 Focus</button>
-        <button class="bl-toolbar-view-btn hidden" id="fbar-mike-btn" onclick="toggleBacklogMikeMode()" title="Mi vista — T's pendientes por rol en sprint activo" role="checkbox" aria-checked="false">Mi vista</button>
+        <button class="bl-toolbar-view-btn is-hidden" id="fbar-mike-btn" onclick="toggleBacklogMikeMode()" title="Mi vista — T's pendientes por rol en sprint activo" role="checkbox" aria-checked="false">Mi vista</button>
       </div>
       <div class="bl-toolbar-divider"></div>
       <button class="bl-collapse-btn" id="bl-collapse-all-btn" onclick="toggleCollapseAll()" title="Colapsar / expandir todos los grupos">
@@ -488,14 +488,14 @@
         </select>
         <button class="bl-sort-dir-btn" id="fbar-sort-dir-btn" onclick="toggleSortDir()" title="Invertir dirección">↓</button>
       </div>
-      <button class="fbar-clear-btn hidden" id="filter-clear-btn" onclick="clearAllFilters()" title="Limpiar todos los filtros">✕ Limpiar</button>
+      <button class="fbar-clear-btn is-hidden" id="filter-clear-btn" onclick="clearAllFilters()" title="Limpiar todos los filtros">✕ Limpiar</button>
     </div>
 
     <!-- Capa 3: Sprint selector — colapsado por defecto, despliega al click -->
     <div class="bl-sprint-bar" id="bl-sprint-bar"></div>
 
     <!-- toolbar vieja — oculta, mantenida por compatibilidad con JS que la referencia -->
-    <div class="toolbar hidden" id="toolbar"></div>
+    <div class="toolbar is-hidden" id="toolbar"></div>
     <div id="backlog-two-col-wrap">
       <div id="backlog-list" role="tabpanel" aria-labelledby="fbar-tree-btn"></div>
       <div id="item-detail-panel" class="item-detail-panel"></div>
@@ -518,11 +518,11 @@
         <span class="htmlmap-meta-sep">·</span>
         <span class="htmlmap-meta-label">Secciones</span>
         <span class="htmlmap-meta-value" id="hmeta-total">—</span>
-        <span class="htmlmap-meta-sep hidden" id="hmeta-mod-sep">·</span>
-        <span class="htmlmap-meta-label hidden amber-color" id="hmeta-mod-label">✎ Actualizado</span>
-        <span class="htmlmap-meta-value hidden amber-color" id="hmeta-mod-val">—</span>
+        <span class="htmlmap-meta-sep is-hidden" id="hmeta-mod-sep">·</span>
+        <span class="htmlmap-meta-label is-hidden amber-color" id="hmeta-mod-label">✎ Actualizado</span>
+        <span class="htmlmap-meta-value is-hidden amber-color" id="hmeta-mod-val">—</span>
       </div>
-      <div class="htmlmap-filter-bar hidden" id="htmlmap-filter-bar">
+      <div class="htmlmap-filter-bar is-hidden" id="htmlmap-filter-bar">
         <span class="toolbar-label">Tipo</span>
         <button class="htmlmap-filter-btn active" id="hmfilter-all" onclick="setHtmlMapFilter('all')">Todos</button>
         <button class="htmlmap-filter-btn" id="hmfilter-css" onclick="setHtmlMapFilter('css')">CSS</button>
@@ -563,9 +563,9 @@
           <span class="htmlmap-meta-value" id="cmeta-imported">—</span>
           <span class="htmlmap-meta-sep">·</span>
           <span class="htmlmap-meta-value hint-color" id="cmeta-section-count">—</span>
-          <span class="htmlmap-meta-sep hidden" id="cmeta-mod-sep">·</span>
-          <span class="htmlmap-meta-label hidden amber-color" id="cmeta-mod-label">✎ Modificado</span>
-          <span class="htmlmap-meta-value hidden amber-color" id="cmeta-mod-val">—</span>
+          <span class="htmlmap-meta-sep is-hidden" id="cmeta-mod-sep">·</span>
+          <span class="htmlmap-meta-label is-hidden amber-color" id="cmeta-mod-label">✎ Modificado</span>
+          <span class="htmlmap-meta-value is-hidden amber-color" id="cmeta-mod-val">—</span>
           <span class="flex-1"></span>
           <button class="doc-log-btn" id="doc-log-btn-context" onclick="openDocLog('context')" title="Historial de acciones del Context">🕐<span class="doc-log-count"></span></button>
           <button type="button" onclick="exportContextMd()" class="ctx-meta-action-btn" title="Descargar CONTEXT.md actualizado">⬇ Exportar</button>
@@ -800,7 +800,7 @@
         <button class="qc-worker-item" data-worker-id="[id]" onclick="qcSelectWorker(this)">
           <span class="qc-worker-avatar" data-sigla="FS">FS</span>
           <span class="qc-worker-name">Rune</span>
-          <span class="qc-worker-check hidden">✓</span>
+          <span class="qc-worker-check is-hidden">✓</span>
         </button>
         -->
       </div>
@@ -809,7 +809,7 @@
     <!-- Paso 2: Formulario de captura -->
     <!-- JS: mostrar con qc-panel-2.classList.remove('hidden') -->
     <!-- JS: ocultar con qc-panel-2.classList.add('hidden') -->
-    <div class="qc-panel hidden" id="qc-panel-2">
+    <div class="qc-panel is-hidden" id="qc-panel-2">
       <!-- Chip de contexto: Worker destino — JS actualiza #qc-worker-chip-name -->
       <div class="qc-worker-chip">
         <span class="qc-worker-chip-label">Capturando para:</span>
@@ -911,7 +911,7 @@
   <div class="gconfirm-modal">
     <div class="gconfirm-title" id="gconfirm-title"></div>
     <div class="gconfirm-msg" id="gconfirm-msg"></div>
-    <div class="gconfirm-input-wrap hidden" id="gconfirm-input-wrap">
+    <div class="gconfirm-input-wrap is-hidden" id="gconfirm-input-wrap">
       <div class="gconfirm-input-label" id="gconfirm-input-label"></div>
       <input class="gconfirm-input" id="gconfirm-input" type="text" placeholder="" onkeydown="if(event.key==='Enter')_gconfirmOk();if(event.key==='Escape')_gconfirmClose()">
     </div>
@@ -1111,7 +1111,7 @@
       </div>
 
       <!-- R padre (solo T y B) -->
-      <div class="ie-row cols-1 hidden" id="field-parentid">
+      <div class="ie-row cols-1 is-hidden" id="field-parentid">
         <div class="ie-field">
           <label>R padre <span class="ie-parent-note">(solo T y B)</span></label>
           <select id="item-parentid">
@@ -1314,7 +1314,7 @@
 </div>
 
 <!-- R-migración Firebase → Supabase — modal shell para openMigrateFirebaseModal() -->
-<div class="modal-overlay hidden" id="migrate-fb-overlay" onclick="if(event.target===this)closeMigrateFirebaseModal()">
+<div class="modal-overlay is-hidden" id="migrate-fb-overlay" onclick="if(event.target===this)closeMigrateFirebaseModal()">
   <div class="modal modal--migration" role="dialog" aria-modal="true" aria-label="Migrar datos Firebase a Supabase">
     <div class="modal-header">
       <span class="modal-title">🔄 Migrar Firebase → Supabase</span>
@@ -1381,7 +1381,7 @@
     </div>
 
     <!-- Estado: email enviado -->
-    <div id="auth-sent-state" class="auth-sent-state hidden">
+    <div id="auth-sent-state" class="auth-sent-state is-hidden">
       <div class="auth-sent-icon">✉</div>
       <div class="auth-sent-msg">Revisa tu correo — el enlace expira en 1 hora.</div>
       <button class="auth-resend-btn" onclick="signInWithMagicLink(true)">Reenviar</button>
@@ -1393,7 +1393,7 @@
   </div>
 </div>
 
-<div class="modal-overlay hidden" id="notif-config-overlay" onclick="if(event.target===this)closeNotifConfig()">
+<div class="modal-overlay is-hidden" id="notif-config-overlay" onclick="if(event.target===this)closeNotifConfig()">
   <div class="modal modal--notif-config" id="notif-config-panel" role="dialog" aria-modal="true" aria-label="Configurar notificaciones">
     <div class="modal-header">
       <span class="modal-title">🔔 Notificaciones</span>
@@ -1407,7 +1407,7 @@
   </div>
 </div>
 
-<div class="shortcuts-overlay hidden" id="shortcuts-overlay" onclick="closeShortcuts(event)">
+<div class="shortcuts-overlay is-hidden" id="shortcuts-overlay" onclick="closeShortcuts(event)">
   <div class="shortcuts-panel" id="shortcuts-panel" role="dialog" aria-modal="true" aria-label="Configuración de atajos">
     <div class="shortcuts-header">
       <span class="shortcuts-title">Atajos de teclado</span>
