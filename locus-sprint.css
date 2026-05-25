@@ -1,5 +1,5 @@
 /* locus-sprint.css */
-/* Versión: 1.0 | Última actualización: 2026-05-23 | Tab Sprint — estilos de header, burndown, ítems, scope added, workers y trigger de cierre */
+/* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
 /* Carga: después de locus-backlog.css en index.html */
 
@@ -514,3 +514,94 @@
 }
 
 /* ══ END T-202605-062 ══ */
+
+/* ══ R-202605-043: Subtab nav — Ítems / Plan ══ */
+
+.spt-nav {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: var(--sph-header-height, 88px);
+  z-index: calc(var(--z-sticky) - 1);
+  flex-shrink: 0;
+}
+
+.spt-tab {
+  position: relative;
+  padding: 10px 16px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--trans-fast);
+  outline: none;
+}
+
+.spt-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  border-radius: 2px 2px 0 0;
+  transition: background var(--trans-fast);
+}
+
+.spt-tab:hover {
+  color: var(--text);
+}
+
+.spt-tab.is-active {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.spt-tab.is-active::after {
+  background: var(--accent);
+}
+
+.spt-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Paneles de contenido — ocupan el espacio disponible */
+#sprint-panel-items,
+#sprint-panel-plan {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#sprint-panel-plan.is-hidden,
+#sprint-panel-items.is-hidden {
+  display: none;
+}
+
+/* Contenedor interno del plan */
+.spt-plan-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spt-tab,
+  .spt-tab::after {
+    transition: none;
+  }
+}
+
+/* ══ END R-202605-043 ══ */

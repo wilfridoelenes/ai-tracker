@@ -1,7 +1,7 @@
 // locus-sprint.js
-// Versión: 1.0 | Última actualización: 2026-05-23 UTC-6
-// Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded
-// Consume: locus-sprint-plan.js · locus-backlog-sprints.js · locus-checkpoint-stats.js · locus-storage.js
+// Versión: 1.2 | Última actualización: 2026-05-25 UTC-6
+// Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
+// Consume: locus-sprint-plan.js · locus-backlog-sprints.js · locus-checkpoint-stats.js · locus-storage.js · locus-backlog-render.js
 // Carga: después de locus-sprint-plan.js, antes de locus-api.js
 
 // ── Estado interno ──────────────────────────────────────────────────────────
@@ -66,7 +66,42 @@ function _sprintItemHtml(item) {
 </div>`;
 }
 
-// ── Render secciones ────────────────────────────────────────────────────────
+// ── Sub-tab del sprint — R-202605-052 ───────────────────────────────────────
+// Paneles del tab Sprint tienen IDs propios (sprint-panel-*).
+// switchSubTab opera sobre sspanel-*/sstab-btn-* del tab Docs — contextos distintos.
+// _sptSwitch gestiona exclusivamente los paneles del tab Sprint.
+
+const _SPT_PANELS   = ['items', 'planificar', 'plan'];
+
+function _sptSwitch(subtab, triggerBtn) {
+  _SPT_PANELS.forEach(s => {
+    const panel = document.getElementById('sprint-panel-' + s);
+    const btn   = document.getElementById('spt-tab-' + s);
+    const active = (s === subtab);
+    if (panel) panel.classList.toggle('is-hidden', !active);
+    if (btn) {
+      btn.classList.toggle('is-active', active);
+      btn.setAttribute('aria-selected', String(active));
+    }
+  });
+  // Render bajo demanda
+  if (subtab === 'planificar') _renderSprintPlanificar();
+  if (subtab === 'plan' && typeof renderPlanInto === 'function') renderPlanInto('sprint-plan-container');
+}
+
+// ── Render panel Planificar — R-202605-052 ──────────────────────────────────
+
+function _renderSprintPlanificar() {
+  const container = document.getElementById('sprint-planificar-container');
+  if (!container) return;
+  // _renderPlanningView vive en locus-backlog-render.js — espera un elemento contenedor
+  if (typeof _renderPlanningView === 'function') {
+    _renderPlanningView(container, "_sptSwitch('items', document.getElementById('spt-tab-items'))");
+  } else {
+    container.innerHTML = '<div class="spi-section-empty">Vista Planificar no disponible.</div>';
+  }
+}
+
 
 function _renderSprintItems(sprint) {
   if (typeof ITEMS === 'undefined') return;
@@ -219,24 +254,40 @@ function renderSprintTab() {
   const header    = _spEl('sprint-panel-header');
   const itemsList = _spEl('sprint-items-list');
   const emptyEl   = _spEl('tab-sprint-empty');
+  const sptNav    = _spEl('spt-nav'); // R-202605-043
 
   const sprint = typeof _getActiveSprint === 'function' ? _getActiveSprint() : null;
   _sprintTabActiveSprint = sprint;
 
   if (!sprint) {
-    // Sin sprint activo — mostrar empty state
+    // Sin sprint activo — mostrar empty state, ocultar nav
     if (header)    header.classList.add('is-hidden');
     if (itemsList) itemsList.classList.add('is-hidden');
     if (emptyEl)   emptyEl.classList.remove('is-hidden');
-    const workers  = _spEl('sprint-workers');
+    if (sptNav)    sptNav.classList.add('is-hidden');
+    const workers    = _spEl('sprint-workers');
     const scopeAdded = _spEl('sprint-scope-added');
     if (workers)   workers.classList.add('is-hidden');
     if (scopeAdded) scopeAdded.classList.add('is-hidden');
+    // Ocultar paneles — R-202605-043 + R-202605-052
+    const panelItems      = _spEl('sprint-panel-items');
+    const panelPlan       = _spEl('sprint-panel-plan');
+    const panelPlanificar = _spEl('sprint-panel-planificar');
+    if (panelItems)      panelItems.classList.add('is-hidden');
+    if (panelPlan)       panelPlan.classList.add('is-hidden');
+    if (panelPlanificar) panelPlanificar.classList.add('is-hidden');
     return;
   }
 
   // Hay sprint activo
   if (emptyEl) emptyEl.classList.add('is-hidden');
+
+  // Mostrar subtab nav y resetear a "Ítems" — R-202605-043
+  if (sptNav) {
+    sptNav.classList.remove('is-hidden');
+    // Reset al subtab Ítems por defecto — R-202605-052: usa _sptSwitch
+    _sptSwitch('items', _spEl('spt-tab-items'));
+  }
 
   // Header
   if (header) {
@@ -282,3 +333,5 @@ window.renderSprintTab          = renderSprintTab;
 window._renderSprintItems       = _renderSprintItems;
 window._renderSprintWorkers     = _renderSprintWorkers;
 window._renderSprintScopeAdded  = _renderSprintScopeAdded;
+window._sptSwitch               = _sptSwitch;               // R-202605-052
+window._renderSprintPlanificar  = _renderSprintPlanificar;  // R-202605-052

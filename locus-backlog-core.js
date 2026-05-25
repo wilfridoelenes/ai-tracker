@@ -138,9 +138,6 @@ let _miViewRoleIndex = 0; // índice del rol activo en la rotación
 // T-202604-258: modo Focus — top 10 por score descendente
 let _backlogFocusMode = false;
 
-// R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente
-let _backlogPlanningMode = false;
-
 // R-[tmp:sprint-group-toggle]: agrupación por sprint en backlog activo — activo por defecto
 const _backlogSprintGroupRaw = localStorage.getItem('backlog-sprint-group-mode');
 let _backlogSprintGroupMode = _backlogSprintGroupRaw !== null ? _backlogSprintGroupRaw !== 'false' : true;
@@ -1432,7 +1429,6 @@ function clearAllFilters() {
   backlogSortMode = 'priority'; // T-202604-424: sprint eliminado como opción de sort
   backlogSortDir = 'desc'; // T-072 — default desc
   _backlogFocusMode = false; // T-202604-258
-  _backlogPlanningMode = false; // R-202605-130
   const sortDirBtn = document.getElementById('fbar-sort-dir-btn');
   if (sortDirBtn) sortDirBtn.textContent = '↓';
   const searchEl = document.getElementById('search-global');
@@ -1642,11 +1638,10 @@ function _syncViewAriaStates() {
   const sprintBtn   = document.getElementById('fbar-sprint-btn');
   const treeBtn     = document.getElementById('fbar-tree-btn');
   const kanbanBtn   = document.getElementById('fbar-kanban-btn');
-  const planningBtn = document.getElementById('fbar-planning-btn');
 
   // Determinar vista de agrupación activa
-  // Prioridad: Planificación > Kanban > Árbol > Sprints (default)
-  const anyGroupActive = _backlogPlanningMode || _backlogKanbanMode || _backlogTreeMode || _backlogSprintGroupMode;
+  // Prioridad: Kanban > Árbol > Sprints (default)
+  const anyGroupActive = _backlogKanbanMode || _backlogTreeMode || _backlogSprintGroupMode;
   // Garantizar default: si ninguna activa, activar Sprints
   if (!anyGroupActive) {
     _backlogSprintGroupMode = true;
@@ -1654,19 +1649,17 @@ function _syncViewAriaStates() {
     if (sprintBtn) sprintBtn.classList.add('active');
   }
 
-  if (sprintBtn)   sprintBtn.setAttribute('aria-selected',   String(_backlogSprintGroupMode && !_backlogKanbanMode && !_backlogPlanningMode));
-  if (treeBtn)     treeBtn.setAttribute('aria-selected',     String(_backlogTreeMode && !_backlogKanbanMode && !_backlogPlanningMode));
-  if (kanbanBtn)   kanbanBtn.setAttribute('aria-selected',   String(_backlogKanbanMode && !_backlogPlanningMode));
-  if (planningBtn) planningBtn.setAttribute('aria-selected', String(_backlogPlanningMode));
+  if (sprintBtn)   sprintBtn.setAttribute('aria-selected',   String(_backlogSprintGroupMode && !_backlogKanbanMode));
+  if (treeBtn)     treeBtn.setAttribute('aria-selected',     String(_backlogTreeMode && !_backlogKanbanMode));
+  if (kanbanBtn)   kanbanBtn.setAttribute('aria-selected',   String(_backlogKanbanMode));
 
   // AC: aria tabpanel — #backlog-list labelledby refleja el tab activo
   // B-202605-046: default fbar-tree-btn (fbar-sprint-btn eliminado del DOM)
   const backlogPanel = document.getElementById('backlog-list');
   if (backlogPanel) {
-    let activeTabId = 'fbar-tree-btn'; // default — fbar-sprint-btn no existe en el DOM
-    if (_backlogPlanningMode)        activeTabId = 'fbar-planning-btn';
-    else if (_backlogKanbanMode)     activeTabId = 'fbar-kanban-btn';
-    else if (_backlogTreeMode)       activeTabId = 'fbar-tree-btn';
+    let activeTabId = 'fbar-tree-btn'; // default
+    if (_backlogKanbanMode)     activeTabId = 'fbar-kanban-btn';
+    else if (_backlogTreeMode)  activeTabId = 'fbar-tree-btn';
     // Guard: solo aplicar si el tab existe en el DOM
     if (document.getElementById(activeTabId)) {
       backlogPanel.setAttribute('aria-labelledby', activeTabId);
@@ -1711,7 +1704,6 @@ function toggleBacklogKanbanMode() {
   _backlogKanbanMode = !_backlogKanbanMode;
   if (_backlogKanbanMode) {
     _backlogTreeMode = false;
-    _backlogPlanningMode = false;
     localStorage.setItem('backlog-view-mode', 'kanban');
   } else {
     localStorage.setItem('backlog-view-mode', 'false'); // plano al salir de kanban
@@ -1731,7 +1723,6 @@ function toggleBacklogKanbanMode() {
 
 function toggleBacklogTreeMode() {
   if (_backlogKanbanMode) { _backlogKanbanMode = false; }
-  if (_backlogPlanningMode) { _backlogPlanningMode = false; }
   _backlogTreeMode = !_backlogTreeMode;
   localStorage.setItem('backlog-view-mode', String(_backlogTreeMode));
   const btn = document.getElementById('fbar-tree-btn');
@@ -1776,31 +1767,6 @@ function toggleBacklogNoAcMode() {
 }
 
 // R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente
-function toggleBacklogPlanningMode() {
-  _backlogPlanningMode = !_backlogPlanningMode;
-  // Al activar planning, desactivar otros modos de vista exclusivos
-  if (_backlogPlanningMode) {
-    _backlogKanbanMode = false;
-    _backlogTreeMode = false;
-    _backlogSprintGroupMode = false;
-    _backlogFocusMode = false;
-  }
-  const btn = document.getElementById('fbar-planning-btn');
-  if (btn) {
-    btn.classList.toggle('active', _backlogPlanningMode);
-    btn.title = _backlogPlanningMode
-      ? 'Vista Planificación activa — click para volver al backlog'
-      : 'Vista Planificación — asignar ítems al siguiente sprint';
-  }
-  const kanbanBtn = document.getElementById('fbar-kanban-btn');
-  if (kanbanBtn) kanbanBtn.classList.toggle('active', _backlogKanbanMode);
-  const focusBtn = document.getElementById('fbar-focus-btn');
-  if (focusBtn) focusBtn.classList.toggle('active', _backlogFocusMode);
-  updateClearFilterBtn();
-  _syncViewAriaStates();
-  renderBacklogList();
-}
-
 
 // B-202605-XXX: _migrateItemTypes — normaliza type en ITEMS post-carga remota
 // Llamada desde _loadFromSupabase en locus-storage.js después de poblar ITEMS

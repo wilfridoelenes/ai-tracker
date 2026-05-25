@@ -362,7 +362,7 @@ function _renderSprintRoadmap() {
 // alias legacy — roadmapGoToSprint sigue funcionando igual
 
 // R-202605-130: vista Planificación — layout dos columnas con drag & drop
-function _renderPlanningView(listEl) {
+function _renderPlanningView(listEl, closeCallback) {
   const activeSprint = _getActiveSprint();
   const allSprints   = getActiveSprints();
   // Determinar sprint destino: siguiente abierto no activo, o null si no hay
@@ -470,7 +470,7 @@ function _renderPlanningView(listEl) {
           <span class="bl-plan-header-icon">📋</span>
           Planificación
         </div>
-        <button class="bl-plan-close-btn" onclick="toggleBacklogPlanningMode()" title="Volver al backlog">✕ Cerrar planificación</button>
+        <button class="bl-plan-close-btn" onclick="${closeCallback ? closeCallback : 'toggleBacklogPlanningMode()'}" title="Volver al backlog">✕ Cerrar planificación</button>
       </div>
 
       <div class="bl-plan-columns">
@@ -608,19 +608,6 @@ function renderBacklogList(onRendered) {
         mikeBtn.textContent = _backlogMikeMode ? _getMiViewLabel() : 'Mi vista';
       }
     }
-    // R-202605-130: inyectar botón Planificación si no existe aún
-    const viewsDiv = document.querySelector('.bl-toolbar-views');
-    if (viewsDiv && !document.getElementById('fbar-planning-btn')) {
-      const planningBtn = document.createElement('button');
-      planningBtn.className = 'bl-toolbar-view-btn';
-      planningBtn.id = 'fbar-planning-btn';
-      planningBtn.title = 'Vista Planificación — asignar ítems al siguiente sprint';
-      planningBtn.textContent = '📅 Planificar';
-      planningBtn.setAttribute('role', 'tab');
-      planningBtn.setAttribute('aria-selected', 'false');
-      planningBtn.onclick = toggleBacklogPlanningMode;
-      viewsDiv.appendChild(planningBtn);
-    }
     // Sin AC y bloqueados
     const noAcBtn = document.getElementById('fbar-no-ac-btn');
     if (noAcBtn) noAcBtn.classList.toggle('active', _backlogNoAcMode);
@@ -632,9 +619,6 @@ function renderBacklogList(onRendered) {
       sprintBtn.classList.toggle('active', _backlogSprintGroupMode);
       sprintBtn.title = _backlogSprintGroupMode ? 'Agrupación por sprint activa — click para vista plana' : 'Vista plana activa — click para agrupar por sprint';
     }
-    // R-202605-130: botón planificación (inyectado via JS)
-    const planBtn = document.getElementById('fbar-planning-btn');
-    if (planBtn) planBtn.classList.toggle('active', _backlogPlanningMode);
   })();
 
   // Guard: backlog requiere proyecto activo
@@ -703,14 +687,6 @@ function renderBacklogList(onRendered) {
           <button class="empty-state-btn" onclick="openNewSprintInline()">＋ Abrir sprint</button>
         </div>`;
     }
-    _skelHide(listEl);
-    return;
-  }
-
-  // R-202605-130: desviar a vista Planificación si está activa
-  if (_backlogPlanningMode) {
-    _renderPlanningView(listEl);
-    _updateDocLogCount('backlog');
     _skelHide(listEl);
     return;
   }

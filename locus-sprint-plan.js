@@ -1,5 +1,5 @@
 // locus-sprint-plan.js
-// Versión: 1.0.1 | Última actualización: 2026-05-23 UTC-6 | T-202605-068 migración keys sprint-plan:*
+// Versión: 1.1 | Última actualización: 2026-05-25 UTC-6 | R-202605-043: renderPlanInto + _buildPlanContent
 // Módulo: Bloque PLAN — savePlan, loadPlan, renderPlan, togglePlanZoneDone
 // Extraído de ai-tracker-ai-notes.js · Renombrado de locus-plan.js (T-202605-066)
 
@@ -170,10 +170,21 @@ function togglePlanZoneDone() {
 // Renderizar el sub-tab Plan para el proyecto activo
 // R-202604-085 + R-B: dos scopes diferenciados — sesion (superior) y sprint (inferior)
 // Backward compatible: planes legacy (sin campo scope) se muestran en sección sprint
+// R-202605-043: renderPlanInto — renderiza el plan en un contenedor arbitrario
+// Permite reutilizar la lógica desde el tab Sprint sin depender de #sspanel-plan
+function renderPlanInto(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  _buildPlanContent(container);
+}
+
 function renderPlan() {
   const panel = document.getElementById('sspanel-plan');
   if (!panel) return;
+  _buildPlanContent(panel);
+}
 
+function _buildPlanContent(panel) {
   const proj = getActiveProject();
   if (!proj) {
     panel.innerHTML = `<div class="plan-empty">Selecciona un proyecto para ver su plan.</div>`;
@@ -438,3 +449,7 @@ function renderPlan() {
 
 // T-202605-068: ejecutar migración atómica al cargar el módulo
 (function() { try { _migratePlanKeys(); } catch(e) { console.warn('[locus-sprint-plan] migración fallida:', e); } })();
+
+// ── Exposición pública ──────────────────────────────────────────────────────
+window.renderPlan      = renderPlan;
+window.renderPlanInto  = renderPlanInto; // R-202605-043

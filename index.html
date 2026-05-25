@@ -453,7 +453,7 @@
       <div class="bl-toolbar-views" role="tablist" aria-label="Vista del backlog">
         <button class="bl-toolbar-view-btn active" id="fbar-tree-btn" onclick="toggleBacklogTreeMode()" title="Vista árbol" role="tab" aria-selected="true">⊞ Árbol</button>
         <button class="bl-toolbar-view-btn" id="fbar-kanban-btn" onclick="toggleBacklogKanbanMode()" title="Vista Kanban" role="tab" aria-selected="false">⬛ Kanban</button>
-        <button class="bl-toolbar-view-btn" id="fbar-planning-btn" onclick="toggleBacklogPlanningMode()" title="Vista Planificación — asignar ítems al siguiente sprint" role="tab" aria-selected="false">📅 Planificar</button>
+
         <button class="bl-toolbar-view-btn" id="fbar-focus-btn" onclick="toggleBacklogFocusMode()" title="Focus — Top 10 por prioridad" role="checkbox" aria-checked="false">🎯 Focus</button>
         <button class="bl-toolbar-view-btn is-hidden" id="fbar-mike-btn" onclick="toggleBacklogMikeMode()" title="Mi vista — T's pendientes por rol en sprint activo" role="checkbox" aria-checked="false">Mi vista</button>
       </div>
@@ -648,6 +648,41 @@
       </button>
     </div>
   </div>
+  <!-- R-202605-043: Subtab nav Sprint — Ítems / Planificar / Plan -->
+  <div class="spt-nav is-hidden" id="spt-nav" role="tablist" aria-label="Vistas del sprint">
+    <button class="spt-tab is-active"
+            role="tab"
+            id="spt-tab-items"
+            aria-selected="true"
+            aria-controls="sprint-panel-items"
+            data-subtab="items"
+            onclick="if(typeof _sptSwitch==='function') _sptSwitch('items', this)">
+      Ítems
+    </button>
+    <button class="spt-tab"
+            role="tab"
+            id="spt-tab-planificar"
+            aria-selected="false"
+            aria-controls="sprint-panel-planificar"
+            data-subtab="planificar"
+            onclick="if(typeof _sptSwitch==='function') _sptSwitch('planificar', this)">
+      Planificar
+    </button>
+    <button class="spt-tab"
+            role="tab"
+            id="spt-tab-plan"
+            aria-selected="false"
+            aria-controls="sprint-panel-plan"
+            data-subtab="plan"
+            onclick="if(typeof _sptSwitch==='function') _sptSwitch('plan', this)">
+      Plan
+    </button>
+  </div>
+  <!-- END R-202605-043: Subtab nav -->
+
+  <!-- Panel Ítems — R-202605-043 -->
+  <div id="sprint-panel-items" role="tabpanel" aria-labelledby="spt-tab-items">
+
   <!-- Workers vinculados al sprint — T-202605-061 -->
   <div class="spw-section is-hidden" id="sprint-workers" aria-label="Workers vinculados al sprint">
     <div class="spw-header">
@@ -683,14 +718,6 @@
   <!-- Sprint Health panel — _buildSprintHealthPanel desde locus-backlog-render.js -->
   <div class="sprint-health-panel is-hidden" id="sprint-health-panel" aria-label="Estado del sprint"></div>
 
-  <!-- Plan del sprint — renderPlan desde locus-sprint-plan.js -->
-  <div class="sprint-plan-section is-hidden" id="sprint-plan-section" aria-label="Plan de ejecución del sprint">
-    <div class="sprint-plan-header">
-      <span class="sprint-plan-label">Plan</span>
-    </div>
-    <div id="plan-container"></div>
-  </div>
-
   <!-- Scope added — T-202605-060 -->
   <div class="sca-section is-hidden" id="sprint-scope-added" aria-label="Ítems añadidos al sprint">
     <div class="sca-header">
@@ -700,6 +727,20 @@
     <div class="sca-body" id="sca-body"></div>
   </div>
   <!-- /Scope added -->
+
+  </div><!-- /sprint-panel-items — R-202605-043 -->
+
+  <!-- Panel Planificar — R-202605-052 -->
+  <div id="sprint-panel-planificar" role="tabpanel" aria-labelledby="spt-tab-planificar" class="is-hidden">
+    <div id="sprint-planificar-container"></div>
+  </div>
+  <!-- END Panel Planificar — R-202605-052 -->
+
+  <!-- Panel Plan — R-202605-043 -->
+  <div id="sprint-panel-plan" role="tabpanel" aria-labelledby="spt-tab-plan" class="is-hidden">
+    <div id="sprint-plan-container" class="spt-plan-container"></div>
+  </div>
+  <!-- END Panel Plan — R-202605-043 -->
 
   <div id="tab-sprint-empty" class="tab-sprint-empty">
     <div class="empty-icon">🏃</div>
