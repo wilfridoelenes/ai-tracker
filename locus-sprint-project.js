@@ -932,7 +932,7 @@ function confirmProjForm() {
       proj.icon = emoji;
       proj.prefix = (document.getElementById('proj-prefix-input') || {value:''}).value.trim().toUpperCase().slice(0, 3);
       proj.notes = notes;
-      showToast('success', `Proyecto "${name}" actualizado`);
+      showToastInline('success', `Proyecto "${name}" actualizado`, document.getElementById('proj-form-confirm-btn'));
     }
     save();
     closeProjModal();
@@ -945,7 +945,7 @@ function confirmProjForm() {
     const id = 'proj-' + Math.random().toString(36).slice(2, 8);
     const prefix = (document.getElementById('proj-prefix-input') || {value:''}).value.trim().toUpperCase().slice(0, 3);
     state.projects.push({ id, name, color, icon: emoji, prefix, notes, status: 'active', context: '', contextVersion: '', backlog: [], backlogVersion: '' });
-    showToast('success', `Proyecto "${name}" creado`);
+    showToastInline('success', `Proyecto "${name}" creado`, document.getElementById('proj-form-confirm-btn'));
   }
 
   save();
