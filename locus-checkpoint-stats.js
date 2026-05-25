@@ -218,7 +218,14 @@ function _getActiveSprintStats() {
 }
 
 // Contenido: toggle tema (izq) · Sprint activo · Pendientes · Último cambio relativo (der)
+// T-202605-118: dirty flag — render quirúrgico
+let _statusBarDirty = false;
+function _markStatusBarDirty() { _statusBarDirty = true; }
+window._markStatusBarDirty = _markStatusBarDirty;
+
 function renderStatusBar() {
+  if (!_statusBarDirty) return;
+  try {
   // R-202604-060: tracker-status-bar DEPRECATED — lógica migrada a tracker-grid-header + global-footer
 
   // ── R-202605-168: Sprint progress bar — segunda fila del header ───────────
@@ -377,6 +384,9 @@ function renderStatusBar() {
         gfFecha.classList.add('is-hidden');
       }
     } catch(e) { gfFecha.classList.add('is-hidden'); }
+  }
+  } finally {
+    _statusBarDirty = false; // AC-5 T-202605-118: reset en finally
   }
 }
 

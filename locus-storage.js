@@ -477,6 +477,14 @@ async function _saveFlush() {
     }
   }
 
+  // T-202605-118: AC-6 — renders post-debounce (online+auth path)
+  // B-202605-079: activar dirty flags antes de llamar renders — sin mark los guards devuelven no-op
+  if (typeof _markRadarDirty === 'function') _markRadarDirty();
+  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+  if (typeof _markPulsoDotDirty === 'function') _markPulsoDotDirty();
+  if (typeof renderPulsoDot === 'function') renderPulsoDot();
+  if (typeof _markStatusBarDirty === 'function') _markStatusBarDirty();
+  if (typeof renderStatusBar === 'function') renderStatusBar();
 }
 
 // R-202604-035 / T-202604-299: save() — debounced
@@ -485,12 +493,10 @@ async function _saveFlush() {
 function save() {
   _stateDirty = true;
 
-  // AC-9 R-C1: render reactivo — fuera de cualquier condicional de Supabase/online.
-  // Se ejecuta en todos los paths: con auth, sin auth, offline, sin Supabase.
-  // T-202604-304 / T-202604-302: actualización reactiva del Radar tras cualquier mutación de estado
-  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
-  // R-202604-073: actualización reactiva del dot Pulso
-  if (typeof renderPulsoDot === 'function') renderPulsoDot();
+  // T-202605-118: activar dirty flags — renders se ejecutan path-específico (AC-6: no antes del flush en online+auth)
+  if (typeof _markRadarDirty === 'function') _markRadarDirty();
+  if (typeof _markPulsoDotDirty === 'function') _markPulsoDotDirty();
+  if (typeof _markStatusBarDirty === 'function') _markStatusBarDirty();
 
   // AC-3 R-C1: sin auth → localStorage inmediato. Supabase no se intenta.
   if (!_supabaseUser) {
@@ -509,6 +515,9 @@ function save() {
         }
       } else { throw err; }
     }
+    // T-202605-118: render inmediato — sin auth, sin debounce
+    if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+    if (typeof renderPulsoDot === 'function') renderPulsoDot();
     return;
   }
 
@@ -529,6 +538,9 @@ function save() {
         }
       } else { throw err; }
     }
+    // T-202605-118: render inmediato — offline, sin debounce
+    if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+    if (typeof renderPulsoDot === 'function') renderPulsoDot();
     _offlineQueuePush({ type: 'state' });
     return;
   }
@@ -1094,6 +1106,9 @@ async function _loadFromSupabase() {
     if (typeof render === 'function') render();
     if (typeof renderHoy === 'function') renderHoy();
     if (typeof updateStats === 'function') updateStats();
+    // T-202605-118: marcar dirty antes de render
+    if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+    if (typeof _markStatusBarDirty === 'function') _markStatusBarDirty();
     if (typeof renderBacklogList === 'function') renderBacklogList();
     setSyncStatus('synced', '✓ sincronizado');
 
@@ -1283,6 +1298,8 @@ function _renderAfterAuth() {
   // R-202604-072: panel de contexto diario — diferido para que ITEMS esté cargado
   if (typeof _showArranquePanel === 'function') setTimeout(_showArranquePanel, 400);
   // R-202604-073: dot Pulso — recalcular con datos reales
+  // B-202605-079: mark antes del setTimeout — el guard requiere flag activo al ejecutar
+  if (typeof _markPulsoDotDirty === 'function') _markPulsoDotDirty();
   if (typeof renderPulsoDot === 'function') setTimeout(renderPulsoDot, 600);
   // T-084: verificar umbral de sesiones
   if (typeof checkStorageWarn === 'function') setTimeout(checkStorageWarn, 500);

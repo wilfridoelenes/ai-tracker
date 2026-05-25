@@ -546,7 +546,7 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
         await saveImmediate(); render(); renderStats();
         // B-202605-508: actualizar badges de tabs tras guardar sesión
         if (typeof updateTabNotifBadges === 'function') updateTabNotifBadges();
-        if (currentTab === 'backlog') renderBacklogList();
+        if (currentTab === 'backlog') { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); }
         _rebuildLogBody();
         _checkStorageQuota();
         // B-202605-265: _setPhase(id,3) movido dentro de rAF — render() reconstruye el DOM con
@@ -555,7 +555,7 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
           _setPhase(id, 3);
           // segundo render garantiza sidebar y card con state final estabilizado
           render();
-          if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+          if (typeof _markRadarDirty === 'function') _markRadarDirty(); if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
           // B-202605-XXX: re-limpiar draft después del segundo render() — mismo fix que flujo principal
           localStorage.removeItem('draft-' + id);
           localStorage.removeItem('draft-' + id + '-ts');
@@ -724,7 +724,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   renderStats();
   // B-202604-XXX: actualizar tab Hoy tras guardar CKPT con hora de cierre — sin esto el card no refleja estado exhausted sin refresh manual
   if (currentTab === 'sesiones' && typeof renderHoy === 'function') renderHoy();
-  if (currentTab === 'backlog') renderBacklogList();
+  if (currentTab === 'backlog') { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); }
   // R-202604-016: actualizar log card
   _rebuildLogBody();
   // R-003: animar la primera sess-row del card recién guardado
@@ -734,7 +734,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   requestAnimationFrame(() => {
     _setPhase(id, 3);
     render();
-    if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+    if (typeof _markRadarDirty === 'function') _markRadarDirty(); if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
     // B-202605-XXX: re-limpiar draft después del segundo render() — restoreDrafts() corre
     // al final de render() y puede repoblar el textarea si el draft sobrevivió en localStorage
     // (race entre parsePaste con ta.value='' y un oninput/debounce timer previo).

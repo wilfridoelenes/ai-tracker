@@ -5871,3 +5871,11 @@ textarea:hover {
 
 /* END T-A4b · inline confirm */
 
+/* R-202605-066: effort vs velocidad inline en header de sprint activo */
+.hsr-velocity {
+  font-size: var(--text-sm);
+  color: var(--text2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+/* END R-202605-066 */

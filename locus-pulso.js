@@ -160,7 +160,14 @@ function _buildPulsoPlanesHtml() {
 // Dependencias: _calcPulsoDotState, _PULSO_KEY, localStorage, DOM (#pulso-dot, #gf-pulso)
 // ════════════════════════════════════════════════════════════════════
 
+// T-202605-118: dirty flag — render quirúrgico
+let _pulsoDotDirty = false;
+function _markPulsoDotDirty() { _pulsoDotDirty = true; }
+window._markPulsoDotDirty = _markPulsoDotDirty;
+
 function renderPulsoDot() {
+  if (!_pulsoDotDirty) return;
+  try {
   // B-202605-522: cálculo de estado ocurre antes de cualquier guard de elemento
   const s = _calcPulsoDotState();
   const labels = { green: 'Ecosistema activo ✓', yellow: '⚠ Actividad baja — algún proyecto inactivo 4-7d', red: '⛔ Alerta — proyectos parados o bloqueantes activos' };
@@ -178,6 +185,9 @@ function renderPulsoDot() {
     gfPulso.title = label;
   }
   try { localStorage.setItem(_PULSO_KEY, JSON.stringify({ color: s.dotColor, ts: Date.now() })); } catch(e) {}
+  } finally {
+    _pulsoDotDirty = false; // AC-5 T-202605-118: reset en finally
+  }
 }
 
 // ════════════════════════════════════════════════════════════════════

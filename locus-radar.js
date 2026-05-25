@@ -333,7 +333,18 @@ function _buildExhaustedCard(ai) {
 // Grupos: En sesión → Disponibles → Agotadas (colapsadas por defecto)
 // Eliminados: Sprint Activo · Top Pendientes
 // Nuevos: timer en sesión, btn CKPT directo, Agotadas colapsables, notif oculta cuando count=0
+// T-202605-118: dirty flag — render quirúrgico
+let _radarDirty = false;
+function _markRadarDirty() { _radarDirty = true; }
+window._markRadarDirty = _markRadarDirty;
+
 function renderGlobalRadarSidebar() {
+  if (!_radarDirty) return;
+  // AC-3 T-202605-118: skip si hay foco activo dentro del sidebar
+  const _rsbFocusEl = document.getElementById('radar-sidebar-cards');
+  const _rsbAEl = document.activeElement;
+  if (_rsbAEl && _rsbFocusEl && _rsbFocusEl.contains(_rsbAEl)) return;
+  try {
   const sidebar = document.getElementById('global-radar-sidebar');
   const container = document.getElementById('radar-sidebar-cards');
   if (!sidebar || !container) return;
@@ -455,6 +466,9 @@ function renderGlobalRadarSidebar() {
 
   updateTabNotifBadges();
   if (_rsbSearchQuery) rsbFilterAIs(_rsbSearchQuery, true);
+  } finally {
+    _radarDirty = false; // AC-5 T-202605-118: reset en finally
+  }
 }
 
 // ── COLLAPSE / GRUPOS ─────────────────────────────────────────────────────────

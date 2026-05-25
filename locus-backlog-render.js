@@ -136,6 +136,18 @@ function _calcEstimatedVelocity() {
   return { avg, sprints: sprintData };
 }
 
+// R-202605-066: label inline de effort vs velocidad para header del sprint activo
+// Retorna HTML con clase hsr-velocity, o '' si no hay sprint activo
+function _sprintVelocityLabel(sprintId) {
+  if (!sprintId) return '';
+  const spItems = ITEMS.filter(i => (i.sprint || '').trim() === sprintId && i.status === 'pendiente');
+  const effortTotal = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+  const vel = _calcEstimatedVelocity();
+  const velLabel = (vel && typeof vel.avg === 'number') ? vel.avg : null;
+  const velStr = velLabel !== null ? velLabel : '—';
+  return `<span class="hsr-velocity">Effort: ${effortTotal} / vel. ${velStr}</span>`;
+}
+
 // T-202604-284: Sprint Roadmap — filtro activo (sprintId | null)
 let _roadmapSprintFilter = null;
 
@@ -952,11 +964,13 @@ function renderBacklogList(onRendered) {
         </div>`;
       const _sprintAllItems = ITEMS.filter(i => (i.sprint || '').trim() === s.id);
       const _sprintPills = _statusPills(_sprintAllItems);
+      const _velLabel066a = isActive ? _sprintVelocityLabel(s.id) : '';
       html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}">
         <div onclick="toggleVersionCollapse('${groupId}')" class="version-collapse-trigger">
           <div class="version-header">
             <span id="sprint-label-wrap-${esc(s.id)}"><span class="version-tag">${esc(s.id)}${sprintBadge}</span>${(s.label && s.label !== s.id) ? `<span class="sprint-name-label">${esc(s.label.replace(/^[A-Za-z]+[-\s]S\d+\s*·?\s*/i, ''))}</span>` : ''}</span>${sprintStatusLabel}
             ${progressBar}
+            ${_velLabel066a}
             ${_sprintPills ? `<span class="sprint-pills-secondary">${_sprintPills}</span>` : ''}
             ${sprintActions}
             <span class="version-collapse-arrow" id="varrow-${groupId}">▸</span>
@@ -1012,6 +1026,7 @@ function renderBacklogList(onRendered) {
       const _pendPill   = _pendCount  ? `<span class="status-pill status-pill--pendiente">${_pendCount} pend.</span>` : '';
       const _donePill   = _doneCount  ? `<span class="status-pill status-pill--done">${_doneCount} done</span>` : '';
       const _descPill   = _descCount  ? `<span class="status-pill status-pill--descartado">${_descCount} desc.</span>` : '';
+      const _velLabel066b = isActive ? _sprintVelocityLabel(key) : '';
       html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}">
         <div onclick="toggleVersionCollapse('${groupId}')" class="version-collapse-trigger">
           <div class="version-header">
@@ -1019,6 +1034,7 @@ function renderBacklogList(onRendered) {
             ${_pendPill}
             ${isSinAsignar ? `<span class="version-label">Sin asignar</span>` : ''}
             ${progressBar}
+            ${_velLabel066b}
             ${(_donePill || _descPill) ? `<span class="sprint-pills-secondary">${_donePill}${_descPill}</span>` : ''}
             ${sprintActions}
             <span class="version-collapse-arrow" id="varrow-${groupId}">${isCollapsed ? '▸' : '▾'}</span>
