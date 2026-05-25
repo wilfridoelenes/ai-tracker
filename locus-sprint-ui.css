@@ -1,5 +1,5 @@
 /* locus-sprint-ui.css */
-/* Versión: 1.0 | Última actualización: 2026-05-25 | Locus — Vista Planificación + EXECUTION-PLAN UI — extraído de locus-proyectos.css via R-202605-040 */
+/* Versión: 1.1 | Última actualización: 2026-05-25 | Locus — Vista Planificación + EXECUTION-PLAN UI — extraído de locus-proyectos.css via R-202605-040 */
 
 /* ══ R-202605-130: Vista Planificación — drag & drop backlog → sprint ══ */
 
@@ -349,30 +349,6 @@
   border-radius: var(--radius-md);
 }
 
-/* — Botón Planificar en toolbar — */
-#fbar-planning-btn {
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  color: var(--text2);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  border-radius: var(--radius-md);
-  padding: 4px 9px;
-  cursor: pointer;
-  transition: var(--trans-color);
-  white-space: nowrap;
-}
-
-#fbar-planning-btn:hover {
-  border-color: var(--border2);
-  color: var(--text);
-}
-
-#fbar-planning-btn.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
 
 /* ══ T-202605-509: Toggle colapso/expansión zona --done en Plan ══ */
 
