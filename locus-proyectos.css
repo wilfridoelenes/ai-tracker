@@ -3176,12 +3176,14 @@
 }
 
 /* Context section rows */
-.context-section:not(.open)
-.context-section.open
 .context-section-body th {
   background: var(--surface2);
   font-weight: 600;
   color: var(--text);
+}
+
+.context-section.open .context-section-body {
+  display: block;
 }
 
 /* Touched badge (CHECKPOINT merge) */
