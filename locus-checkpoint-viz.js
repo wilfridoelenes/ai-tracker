@@ -915,7 +915,7 @@ function showCheckpointPanel(data) {
 
   // ── Mostrar panel ──
   panel.classList.add('open');
-  if (reopen) reopen.classList.add('hidden');
+  if (reopen) reopen.classList.add('is-hidden');
 
   // ── Barra de progreso auto-close ──
   if (bar) {
@@ -938,7 +938,7 @@ function closeCkptPanel() {
 
   if (panel) panel.classList.remove('open');
   if (bar)   { bar.style.transition = 'none'; bar.style.width = '0%'; }
-  if (reopen && _lastCheckpointResult) reopen.classList.remove('hidden');
+  if (reopen && _lastCheckpointResult) reopen.classList.remove('is-hidden');
 
   if (_ckptPanelTimer) { clearTimeout(_ckptPanelTimer); _ckptPanelTimer = null; }
 }
