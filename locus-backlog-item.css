@@ -3451,3 +3451,88 @@ body {
 }
 
 /* ══ END R-202605-148 ══ */
+
+/* ═══ §15 CSS Purity — backlog.js migration — migrado desde locus-proyectos.css ═══ */
+
+.promote-modal-info {
+  font-size: var(--text-sm);
+  color: var(--text2);
+  margin-bottom: 16px;
+}
+
+.discard-field-select {
+  margin-top: 4px; font-size: var(--text-sm); font-family: var(--font-sans);
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--radius-xs); padding: 4px 8px; color: var(--text); width: 100%;
+}
+
+.discard-field-input {
+  margin-top: 4px; font-size: var(--text-sm); font-family: var(--font-mono);
+  background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--radius-xs); padding: 4px 8px; color: var(--text);
+  width: 100%; box-sizing: border-box;
+}
+
+.retro-filename-code {
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.bl-plan-card-type {
+  color: var(--item-type-color, var(--hint));
+  font-size: var(--text-xs);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+/* ═══ END §15 CSS Purity — backlog.js migration ═══ */
+
+/* ══ R-202605-005 · A4-b · mdiff-* compactos — migrado desde locus-proyectos.css ══ */
+
+.mdiff-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  border: none;
+  width: 100%;
+  text-align: left;
+  position: sticky;
+  top: 0;
+  z-index: var(--z-deep);
+  transition: var(--trans-color);
+  background: var(--surface2);
+  color: var(--text2);
+  border-radius: var(--radius-md-plus) 10px 0 0;
+}
+
+.mdiff-card--discard {
+  background: var(--red-dim);
+  border-color: var(--red-border);
+  opacity: 0.85;
+}
+
+.mdiff-card--retroceso {
+  background: rgb(245 200 66 / 6%);
+  border-color: rgb(245 200 66 / 20%);
+}
+
+.mdiff-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mdiff-right-retro-cb {
+  flex-shrink: 0;
+  accent-color: var(--amber);
+}
+
+/* ══ END R-202605-005 · A4-b · mdiff-* compactos ══ */
