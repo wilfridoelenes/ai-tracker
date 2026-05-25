@@ -1,0 +1,432 @@
+/* locus-archive.css
+   Versión: 1.0 | Última actualización: 2026-05-25 | Locus — Archivo Histórico de sprints
+   Scope: HISTÓRICO UNIFICADO — vistas Por sprint y Lista plana
+*/
+
+/* ══════════════════════════════════════════════════════════════════════
+   ══ HISTÓRICO UNIFICADO ══
+   R-202605-103 · Nova · 2026-05-02
+   Reemplaza .closed-sprints-block + .historico-section (B-202604-193).
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── badge-status-historico ─────────────────────────────────────────── */
+
+/* B-202605-229: clase emitida por statusClass('historico') + statusLabel */
+
+.badge-status-historico {
+  background: rgb(100 116 139 / 18%);
+  color: #94a3b8;
+  border: 1px solid rgb(100 116 139 / 28%);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+}
+
+/* ── Contenedor principal ───────────────────────────────────────────── */
+
+/* ── Header ─────────────────────────────────────────────────────────── */
+
+.arch-historico-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  background: var(--surface2);
+  transition: var(--trans-color);
+  flex-wrap: wrap;
+}
+
+.arch-historico-header:hover {
+  background: var(--surface3, var(--surface2));
+  filter: brightness(0.97);
+}
+
+.arch-historico-header:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.arch-historico-arrow {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  transition: transform 0.2s;
+  line-height: 1;
+}
+
+.arch-historico-arrow--open {
+  transform: rotate(90deg);
+}
+
+.arch-historico-title {
+  font-size: var(--text-2xs-plus);
+  font-weight: 600;
+  color: var(--text2);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.arch-historico-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.arch-historico-count {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  background: var(--surface, rgb(0 0 0 / 6%));
+  padding: 2px 8px;
+  border-radius: var(--radius-2xl);
+  font-weight: 500;
+  border: 1px solid var(--border);
+}
+
+.arch-historico-since {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  opacity: 0.75;
+}
+
+/* ── View tabs (Por sprint / Lista plana) ────────────────────────────── */
+
+.arch-historico-tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.arch-tab {
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: var(--trans-color);
+  line-height: 1.5;
+}
+
+.arch-tab:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+
+.arch-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.arch-tab--active {
+  background: var(--accent);
+  color: #fff;
+  border-color: transparent;
+}
+
+.arch-tab--active:hover {
+  opacity: 0.9;
+}
+
+/* ── Body ────────────────────────────────────────────────────────────── */
+
+.arch-historico-body {
+  overflow: hidden;
+  border-top: 1px solid var(--border);
+}
+
+.arch-historico-body--collapsed {
+  display: none;
+}
+
+/* ── Views ───────────────────────────────────────────────────────────── */
+
+.arch-view {
+  padding: 6px 0 4px;
+}
+
+.arch-view--hidden {
+  display: none;
+}
+
+/* ── View: Por sprint — accordion ───────────────────────────────────── */
+
+.arch-sprint-entry {
+  border-bottom: 1px solid var(--border);
+}
+
+.arch-sprint-entry:last-child {
+  border-bottom: none;
+}
+
+.arch-sprint-entry-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: var(--trans-color);
+}
+
+.arch-sprint-entry-header:hover {
+  background: var(--surface, rgb(0 0 0 / 4%));
+}
+
+.arch-sprint-entry-header:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.arch-se-arrow {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  transition: transform 0.15s;
+  line-height: 1;
+}
+
+.arch-se-arrow--open {
+  transform: rotate(90deg);
+}
+
+.arch-se-id {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  font-family: var(--font-mono, monospace);
+  color: var(--text2);
+  flex-shrink: 0;
+}
+
+.arch-se-name {
+  font-size: var(--text-2xs-plus);
+  color: var(--text2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arch-se-date {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.arch-se-count {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  background: var(--surface, rgb(0 0 0 / 6%));
+  border: 1px solid var(--border);
+  padding: 1px 7px;
+  border-radius: var(--radius-md-plus);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.arch-sprint-items {
+  padding: 0 0 4px;
+}
+
+.arch-sprint-items--collapsed {
+  display: none;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────── */
+
+.arch-empty {
+  padding: 20px 14px;
+  text-align: center;
+  font-size: var(--text-2xs-plus);
+  color: var(--hint);
+  font-style: italic;
+}
+
+/* ── Read-only treatment ─────────────────────────────────────────────── */
+
+/* Escopado a #arch-historico-body — buildBacklogItem sin modificación.  */
+
+#arch-historico-body .item {
+  opacity: 0.65;
+  transition: var(--trans-color);
+}
+
+#arch-historico-body .item:hover {
+  opacity: 0.8;
+}
+
+/* Drag handle — sin sentido en archivo */
+#arch-historico-body .item-drag-handle {
+  display: none;
+}
+
+/* Selects (status, rol, sprint, R padre) — no mutables */
+#arch-historico-body .item-status-select,
+#arch-historico-body .bitem-select {
+  pointer-events: none;
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Effort dots — apagados, no interactivos */
+#arch-historico-body .bitem-effort-dot,
+#arch-historico-body .bitem-effort-dot-sm {
+  pointer-events: none;
+}
+
+#arch-historico-body .bitem-effort-dot.on,
+#arch-historico-body .bitem-effort-dot-sm.on {
+  background: var(--hint);
+  opacity: 0.45;
+}
+
+/* Priority badge — dato legible, no clickeable */
+#arch-historico-body .bitem-prio-badge {
+  pointer-events: none;
+}
+
+/* Botones de acción — ocultos en archivo */
+#arch-historico-body .bitem-edit-btn,
+#arch-historico-body .bitem-promote-btn,
+#arch-historico-body .item-quick-actions,
+#arch-historico-body .bitem-header-more {
+  display: none;
+}
+
+/* Activity dot — sin sentido en archivo */
+#arch-historico-body .bitem-activity-dot {
+  display: none;
+}
+
+/* Inline edit title — desactivado */
+#arch-historico-body .bitem-title {
+  pointer-events: none;
+}
+
+/* ── R-202605-124: effort entregado en header de sprint ─────────────── */
+
+.arch-se-effort {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--accent, #38bdf8);
+  background: rgb(56 189 248 / 10%);
+  border: 1px solid rgb(56 189 248 / 22%);
+  padding: 1px 7px;
+  border-radius: var(--radius-md-plus);
+  flex-shrink: 0;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+/* ── R-202605-124: bloque legado pre-S-23 ───────────────────────────── */
+
+.arch-sprint-entry--legacy .arch-se-id--legacy {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  opacity: 0.7;
+}
+
+.arch-sprint-entry--legacy .arch-se-name {
+  color: var(--hint);
+  font-style: italic;
+}
+
+/* ── R-202605-124: lista compacta de ítems en el Archivo Histórico ──── */
+
+.arch-items-list {
+  padding: 4px 0;
+}
+
+.arch-item-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  border-bottom: 1px solid var(--border);
+  min-height: 30px;
+  transition: background 0.1s;
+}
+
+.arch-item-row:last-child {
+  border-bottom: none;
+}
+
+.arch-item-row:hover {
+  background: var(--surface, rgb(0 0 0 / 3%));
+}
+
+.arch-row-type {
+  font-size: var(--text-3xs);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.arch-row-type--r {
+  background: rgb(56 189 248 / 12%);
+  color: #38bdf8;
+}
+
+.arch-row-type--t {
+  background: rgb(46 204 120 / 12%);
+  color: #2ecc78;
+}
+
+.arch-row-type--b {
+  background: rgb(232 85 85 / 12%);
+  color: #e85555;
+}
+
+.arch-row-type--p {
+  background: rgb(124 106 247 / 12%);
+  color: #7c6af7;
+}
+
+.arch-row-code {
+  font-size: var(--text-2xs);
+  font-family: var(--font-mono, monospace);
+  color: var(--hint);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.arch-row-title {
+  font-size: var(--text-2xs-plus);
+  color: var(--text2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.arch-row-effort {
+  font-size: var(--text-3xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  letter-spacing: 1px;
+  opacity: 0.6;
+}
+
+.arch-row-status {
+  font-size: var(--text-3xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  text-transform: lowercase;
+  white-space: nowrap;
+  opacity: 0.75;
+}
+
+/* ══ FIN HISTÓRICO UNIFICADO ══════════════════════════════════════════ */
