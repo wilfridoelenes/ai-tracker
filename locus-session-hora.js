@@ -229,6 +229,47 @@ function cancelConfirmSave(id) {
   // Mantenido por compatibilidad con referencias existentes — no-op
 }
 
+// R-202605-065: ⌘+Enter / Ctrl+Enter en textarea de AI Card → guardar sesión
+// Delegación a nivel document — captura textareas generados dinámicamente por buildCard.
+// Guard de id: solo activa en elementos con id 'ta-{aiId}' para no interferir con
+// otros contextos (modales, IDP, búsqueda, item-editor-overlay, standalone-checkpoint-ta).
+(function _initTaGuardarShortcut() {
+  document.addEventListener('keydown', function _taGuardarKeydown(e) {
+    // Solo ⌘+Enter (Mac) y Ctrl+Enter (Win/Linux)
+    if (e.key !== 'Enter' || !(e.metaKey || e.ctrlKey)) return;
+
+    const ta = e.target;
+    if (!ta || ta.tagName !== 'TEXTAREA') return;
+
+    // Guard: solo textareas principales de AI Card (id="ta-{aiId}")
+    const taId = ta.id || '';
+    if (!taId.startsWith('ta-')) return;
+
+    // Guard: no disparar si el textarea está vacío (mismo comportamiento que botón deshabilitado)
+    if (!ta.value.trim()) return;
+
+    // Guard: no disparar si hay un modal/overlay de mayor prioridad abierto
+    const _blockers = [
+      'item-editor-overlay',
+      'item-viz-overlay',
+      'merge-diff-overlay',
+      'gconfirm-overlay',
+      'proj-modal-overlay',
+      'cp-overlay',
+    ];
+    for (const bid of _blockers) {
+      const el = document.getElementById(bid);
+      if (el && (el.offsetParent !== null || el.classList.contains('open'))) return;
+    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const aiId = taId.slice(3); // strip 'ta-'
+    if (typeof confirmSave === 'function') confirmSave(aiId);
+  }, true); // capture phase — antes de que otros handlers puedan consumir el evento
+})();
+
 // T-202604-295: helper persistente para trigger de descarga de templates
 const _TMPL_TRIGGER_KEY = 'template-download-trigger';
 function _templateTrigger() {

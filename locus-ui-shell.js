@@ -854,6 +854,8 @@ const _SHORTCUT_DEFS = [
   { id: 'toggle-focus',  label: 'Toggle modo protagonista',       group: 'Acciones',   default: 'f',   chord: false },
   { id: 'search',        label: 'Búsqueda en tab activo',         group: 'Acciones',   default: '/',   chord: false },
   { id: 'paste-ckpt',    label: 'Pegar CHECKPOINT',               group: 'Acciones',   default: 'p',   chord: false },
+  // R-202605-065: guardar desde textarea de AI Card — no configurable (combo fijo ⌘/Ctrl+↵)
+  { id: 'save-session-textarea', label: 'Guardar sesión (textarea activo)', group: 'Acciones', default: '⌘+Enter / Ctrl+Enter', chord: false, fixed: true },
   // Backlog — T-202604-418 amplía J/K a cualquier lista activa
   { id: 'nav-up',        label: 'Ítem anterior (lista activa)',   group: 'Backlog',    default: 'j',   chord: false },
   { id: 'nav-down',      label: 'Ítem siguiente (lista activa)',  group: 'Backlog',    default: 'k',   chord: false },
@@ -894,6 +896,15 @@ function _shortcutsRender() {
 
   body.innerHTML = Object.entries(groups).map(([group, defs]) => {
     const rows = defs.map(def => {
+      // R-202605-065: atajos fijos (fixed:true) — solo visualización, sin edición
+      if (def.fixed) {
+        return `<div class="sc-row sc-row--fixed" data-id="${def.id}">
+          <span class="sc-row-label">${def.label}</span>
+          <div class="sc-row-right">
+            <kbd class="sc-key-pill sc-key-pill--fixed">${def.default}</kbd>
+          </div>
+        </div>`;
+      }
       const active = overrides[def.id] || def.default;
       const isModified = !!overrides[def.id] && overrides[def.id] !== def.default;
       const displayKey = def.chord
