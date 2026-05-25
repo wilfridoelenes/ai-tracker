@@ -8467,3 +8467,10 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 /* ── END B-202605-269 ─────────────────────────────────────────────────────── */
+
+/* ── R-202605-064: Indicador visual de contenido sin guardar en AI Card ───── */
+.paste-ta-wrap--has-content .paste-ta {
+  border-left-color: var(--amber, #EF9F27);
+  border-left-width: 3px;
+}
+/* ── END R-202605-064 ────────────────────────────────────────────────────── */

@@ -732,7 +732,12 @@ function render() {
       // B-202605-056: restaurar valor del textarea si había texto antes del render
       if (_taSaved) {
         const _taNew = document.getElementById(_taId);
-        if (_taNew && !_taNew.value) _taNew.value = _taSaved;
+        if (_taNew && !_taNew.value) {
+          _taNew.value = _taSaved;
+          // R-202605-064: re-aplicar indicador visual si el textarea tiene contenido post-render
+          const _taWrap = _taNew.closest('.paste-ta-wrap');
+          if (_taWrap) _taWrap.classList.add('paste-ta-wrap--has-content');
+        }
       }
 
       // R-202605-116: card sesión en curso — se inserta después del card IA
@@ -1119,7 +1124,7 @@ function buildCard(ai) {
       <div class="paste-ta-wrap">
         <textarea class="paste-ta" id="ta-${ai.id}" rows="3"
           onpaste="if(typeof handlePaste==='function'){handlePaste('${ai.id}')}else{showToast('error','Módulo de ingesta no disponible')}"
-          oninput="if(typeof handleInput==='function'){handleInput('${ai.id}');}"></textarea>
+          oninput="if(typeof handleInput==='function'){handleInput('${ai.id}');}this.closest('.paste-ta-wrap').classList.toggle('paste-ta-wrap--has-content',this.value.length>0);"></textarea>
         <div class="paste-ta-hint" id="pta-hint-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el rol al cerrar sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
       </div>
       <div class="char-counter" id="cc-${ai.id}"></div>

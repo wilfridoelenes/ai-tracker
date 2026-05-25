@@ -7,6 +7,30 @@
 // OL-CONTEXT §7: strings canónicos — 'Obsidiana'/'Obsidiana Labs' deprecados · 'ASVAB App' deprecado (→ 'Alisto') · 'AI Tracker' deprecado (→ 'Locus')
 const CANONICAL_PROJECTS = ['Obsidian Labs', 'Alisto', 'Content Manager', 'Locus'];
 
+// R-202605-063: Levenshtein simple para sugerencia de string canónico
+function _levenshtein(a, b) {
+  const m = a.length, n = b.length;
+  const dp = Array.from({ length: m + 1 }, (_, i) => [i]);
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  return dp[m][n];
+}
+
+function _suggestCanonical(raw) {
+  let best = null, bestDist = Infinity;
+  CANONICAL_PROJECTS.forEach(p => {
+    const d = _levenshtein(raw.toLowerCase(), p.toLowerCase());
+    if (d < bestDist) { bestDist = d; best = p; }
+  });
+  return { suggestion: best, distance: bestDist };
+}
+
 // R-202605-133: parseCheckpoint — path primario JSON puro + path legacy regex
 // Path primario: bloque ```json { ... } ``` con schema completo
 // Path legacy:   formato Markdown ---CHECKPOINT--- (read-only — CHECKPOINTs históricos)
@@ -546,6 +570,15 @@ function parsePaste(id) {
       prev.innerHTML = `<div class="paste-error">⛔ CHECKPOINT inválido — <code>Proyecto:</code> contiene un valor no reconocido: <strong>${esc(_proyectoRaw)}</strong>.<br><span class="paste-hint">Valores válidos (case-sensitive): ${_validList}. Corrige el campo <code>Proyecto:</code> antes de procesar.</span></div>`;
       if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       if (!_previewAlreadyShowing) showToast('error', `⛔ Proyecto no reconocido: "${esc(_proyectoRaw)}" — corrige el campo`);
+      // R-202605-063: sugerencia de string canónico por distancia de edición
+      if (typeof _blogLog === 'function') {
+        const { suggestion, distance } = _suggestCanonical(_proyectoRaw);
+        if (distance <= 3) {
+          _blogLog('proyecto-no-reconocido', '', `Proyecto no reconocido: "${_proyectoRaw}". ¿Quisiste decir "${suggestion}"?`, 'parser');
+        } else {
+          _blogLog('proyecto-no-reconocido', '', `Proyecto no reconocido: "${_proyectoRaw}". Verificar string canónico.`, 'parser');
+        }
+      }
       return;
     }
 
