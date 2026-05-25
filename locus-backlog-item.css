@@ -21,6 +21,12 @@
   transform: scale(1.06);
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .bitem-header:hover .bitem-type-block {
+    transform: none;
+  }
+}
+
 .bitem-type-letter {
   font-family: var(--mono);
   font-size: var(--text-xl);
@@ -3508,7 +3514,7 @@ body {
   transition: var(--trans-color);
   background: var(--surface2);
   color: var(--text2);
-  border-radius: var(--radius-md-plus) 10px 0 0;
+  border-radius: var(--radius-md-plus) var(--radius-md-plus) 0 0;
 }
 
 .mdiff-card--discard {
@@ -3518,8 +3524,8 @@ body {
 }
 
 .mdiff-card--retroceso {
-  background: rgb(245 200 66 / 6%);
-  border-color: rgb(245 200 66 / 20%);
+  background: var(--c-amber-retro-bg);
+  border-color: var(--c-amber-retro-border);
 }
 
 .mdiff-header-left {
