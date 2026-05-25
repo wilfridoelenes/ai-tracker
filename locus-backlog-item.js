@@ -1599,8 +1599,9 @@ function applyPatchesFromTG(patches, sessionId) {
         if (normalized !== existing.status) {
           if (normalized === 'done' && typeof setItemStatus === 'function') {
             // setItemStatus maneja confirmación, history, doneAt, etc.
+            const _prevStatus = existing.status;
             setItemStatus(existing, normalized, sessionId || null);
-            changes.push({ field: 'status', from: existing.status, to: normalized });
+            changes.push({ field: 'status', from: _prevStatus, to: normalized });
           } else if (normalized && normalized !== existing.status) {
             changes.push({ field: 'status', from: existing.status, to: normalized });
             existing.status = normalized;
