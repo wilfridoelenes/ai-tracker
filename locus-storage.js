@@ -1088,6 +1088,8 @@ async function _loadFromSupabase() {
     if (typeof render === 'function') render();
     if (typeof renderHoy === 'function') renderHoy();
     if (typeof updateStats === 'function') updateStats();
+    if (typeof _markRadarDirty === 'function') _markRadarDirty();
+    if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
     if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
     if (typeof _markStatusBarDirty === 'function') _markStatusBarDirty();
     if (typeof renderBacklogList === 'function') renderBacklogList();
