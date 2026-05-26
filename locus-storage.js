@@ -625,6 +625,7 @@ async function saveBacklog() {
   const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
   const metaKey = _tplKey('backlog-meta');
   const meta = JSON.parse(localStorage.getItem(metaKey) || '{}');
+  meta.updated = new Date().toISOString(); // B-fix: meta.updated debe reflejar el momento del write para que _loadFromSupabase compare timestamps correctamente
   const suffix = projId ? '-' + projId : '-global';
 
   // AC-3 R-C5: sin Supabase o sin auth → localStorage como único destino.
