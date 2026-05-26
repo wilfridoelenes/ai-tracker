@@ -479,7 +479,7 @@ function renderGlobalRadarSidebar() {
     document.body.classList.add('radar-sb-open');
   }
 
-  updateTabNotifBadges();
+  updateTabNotifBadges(_allNotifs);
   if (_rsbSearchQuery) rsbFilterAIs(_rsbSearchQuery, true);
   } finally {
     _radarDirty = false; // AC-5 T-202605-118: reset en finally

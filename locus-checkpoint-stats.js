@@ -663,7 +663,7 @@ function markNotifRead(id) {
   set.add(id);
   _notifSaveRead(set);
   if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
-  updateTabNotifBadges();
+  updateTabNotifBadges(all);
 }
 
 function markAllNotifsRead() {
@@ -674,13 +674,13 @@ function markAllNotifsRead() {
   notifs.forEach(function(n) { set.add(n.id); });
   _notifSaveRead(set);
   if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
-  updateTabNotifBadges();
+  updateTabNotifBadges(notifs);
 }
 
 // B-202605-239: badges numéricos en tab buttons — un badge por tab con notifs no leídas
 // tab field en cada notif determina qué tab recibe el badge
-function updateTabNotifBadges() {
-  const notifs = _computeNotifications();
+function updateTabNotifBadges(allNotifs) {
+  const notifs = (Array.isArray(allNotifs)) ? allNotifs : _computeNotifications();
   const read   = _notifReadSet();
   const unseen = notifs.filter(function(n) { return !read.has(n.id); });
 
