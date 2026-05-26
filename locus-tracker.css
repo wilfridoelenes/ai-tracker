@@ -8474,3 +8474,21 @@ body.radar-sb-open .tracker-sidebar {
   border-left-width: 3px;
 }
 /* ── END R-202605-064 ────────────────────────────────────────────────────── */
+
+/* ── T-053: referencia de sesión en ítem en-progreso — migrado desde locus-backlog.css ── */
+/* R-202605-068: pertenece al scope Tracker (componente buildHoyCard / en-progreso card) */
+.hoy-item-ref {
+  font-size: var(--text-2xs); color: var(--hint);
+  font-family: var(--mono);
+  margin-left: auto; flex-shrink: 0;
+  cursor: pointer; padding: 1px 5px;
+  border-radius: var(--radius-sm); border: 1px solid transparent;
+  transition: var(--trans-fast); white-space: nowrap;
+}
+
+.hoy-item-ref:hover {
+  color: var(--accent);
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+/* ── END T-053 ────────────────────────────────────────────────────────────── */
