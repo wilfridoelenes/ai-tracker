@@ -6,154 +6,9 @@
 
 let _trackerSelectedId = null;
 
-// ── R-202604-078: Vista Por IA / Historial ──────────────────────────────
-let _trackerCurrentView = 'poria'; // 'poria' | 'historial'
-function _trackerSetView(view) {
-  _trackerCurrentView = view;
-
-  // toggle buttons
-  const btnPoria    = document.getElementById('tvh-btn-poria');
-  const btnHistorial = document.getElementById('tvh-btn-historial');
-  if (btnPoria)    { btnPoria.classList.toggle('active', view === 'poria');    btnPoria.setAttribute('aria-pressed', view === 'poria' ? 'true' : 'false'); }
-  if (btnHistorial) { btnHistorial.classList.toggle('active', view === 'historial'); btnHistorial.setAttribute('aria-pressed', view === 'historial' ? 'true' : 'false'); }
-
-  // panel classes
-  const tab = document.getElementById('tab-tracker');
-  if (!tab) return;
-  tab.classList.toggle('tracker-view--poria',    view === 'poria');
-  tab.classList.toggle('tracker-view--historial', view === 'historial');
-
-  if (view === 'historial') {
-    // Vista B: render col 1 agrupada por día + col 2 global hist
-    _trackerHistDayRender();
-    if (typeof _trackerRenderHist === 'function') _trackerRenderHist();
-  } else if (view === 'poria') {
-    // Vista A: persistencia — si hay sesión seleccionada, aterrizar en su IA
-    if (_trackerHistSelectedSessId) {
-      const allSess = (typeof getAllSessions === 'function') ? getAllSessions() : [];
-      const sess = allSess.find(s => s.id === _trackerHistSelectedSessId);
-      if (sess && sess.aiId) {
-        navigateToCard(sess.aiId);
-        return;
-      }
-    }
-    // fallback: re-render normal + mini-hist
-    _markTrackerDirty(); if (typeof render === 'function') render();
-    if (typeof _trackerRenderMiniHist === 'function') _trackerRenderMiniHist(_trackerSelectedId);
-  }
-}
-
-
-
-// ── END R-202604-078 Entrega 1 ──────────────────────────────────────────
-
-// ── R-202604-078 Entrega 2: Vista Historial — col 1 agrupada por día ───
-
-function _trackerHistDayRender() {
-  const bodyEl = document.getElementById('tvh-hist-col1-body');
-  if (!bodyEl) return;
-
-  let allSessions = (typeof getAllSessions === 'function') ? getAllSessions() : [];
-
-  // filtro por proyecto activo (getActiveProject)
-  const activeProj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
-  if (activeProj) {
-    allSessions = allSessions.filter(s => s.projectId === activeProj.id);
-  }
-
-  // más reciente primero
-  const sorted = [...allSessions].sort((a, b) => {
-    const ta = a.updatedAt || a.createdAt || 0;
-    const tb = b.updatedAt || b.createdAt || 0;
-    return tb - ta;
-  });
-
-  if (!sorted.length) {
-    bodyEl.innerHTML = `<div class="tvh-hist-empty"><span class="tvh-hist-empty-icon">📋</span><span>Sin sesiones en este período</span></div>`;
-    return;
-  }
-
-  // Agrupar por fecha YYYY-MM-DD
-  const groups = [];
-  const groupMap = {};
-  sorted.forEach(s => {
-    const ts = s.updatedAt || s.createdAt || 0;
-    const dateKey = ts ? new Date(ts).toISOString().slice(0, 10) : 'sin-fecha';
-    if (!groupMap[dateKey]) {
-      groupMap[dateKey] = [];
-      groups.push(dateKey);
-    }
-    groupMap[dateKey].push(s);
-  });
-
-  const today    = new Date().toISOString().slice(0, 10);
-  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-
-  bodyEl.innerHTML = groups.map(dateKey => {
-    let dayLabel = dateKey;
-    if (dateKey === today)     dayLabel = 'Hoy';
-    else if (dateKey === yesterday) dayLabel = 'Ayer';
-    else {
-      // format as "lun 28 abr"
-      try {
-        const d = new Date(dateKey + 'T12:00:00');
-        dayLabel = d.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
-      } catch(_) { dayLabel = dateKey; }
-    }
-
-    const rows = groupMap[dateKey].map(s => {
-      const ai = (state.ais || []).find(a => a.id === s.aiId);
-      const aiName = ai ? esc(ai.name) : '—';
-      const isActive = s.id === _trackerHistSelectedSessId;
-      // R-202605-162: timestamp relativo bajo el título — usa helper compartido
-      const tsLabel = _sessRelTsShared(s);
-      const tsHtml = tsLabel ? `<span class="tvh-hist-day-row-ts">${esc(tsLabel)}</span>` : '';
-      return `<div class="tvh-hist-day-row${isActive ? ' active' : ''}"
-          data-sess-id="${s.id}"
-          data-ai-id="${s.aiId}"
-          onclick="_trackerHistDaySelect('${s.id}','${s.aiId}')">
-        <span class="tvh-hist-day-row-title" title="${esc(s.title)}">${esc(s.title)}</span>
-        <span class="tvh-hist-day-row-ai">${aiName}</span>
-        ${tsHtml}
-      </div>`;
-    }).join('');
-
-    return `<div class="tvh-hist-day-group">
-      <div class="tvh-hist-day-label">${dayLabel}<span class="tvh-hist-day-count">${groupMap[dateKey].length}</span></div>
-      <div class="tvh-hist-day-rows">${rows}</div>
-    </div>`;
-  }).join('');
-}
-
-// Seleccionar sesión desde col 1 Vista B
-function _trackerHistDaySelect(sessId, aiId) {
-  _trackerHistSelectedSessId = sessId;
-
-  // actualizar estado activo en col 1
-  document.querySelectorAll('.tvh-hist-day-row').forEach(row => {
-    row.classList.toggle('active', row.dataset.sessId === sessId);
-  });
-
-  // actualizar estado activo en col 2 (hist panel)
-  document.querySelectorAll('.tracker-hist-row').forEach(row => {
-    row.classList.toggle('active', row.dataset.sessId === sessId);
-  });
-
-  // col 2 en Vista B: mostrar preview de sesión via openDetail si disponible
-  if (typeof openDetail === 'function') {
-    openDetail(aiId, sessId);
-  }
-
-  // mobile: navegar a col 2
-  if (window.innerWidth < 600 && typeof _trackerSwitchCol === 'function') {
-    _trackerSwitchCol('hist');
-  }
-}
-
-// ── END R-202604-078 Entrega 2 ──────────────────────────────────────────
 
 // ── R-202605-162: Helper compartido — timestamp relativo para filas de sesión ─
-// Usado por _trackerRenderMiniHist, _trackerHistDayRender y _buildLogRow
+// Usado por _trackerRenderMiniHist y _buildLogRow
 // Formato: mismo día → 'Hoy · HH:MM' | ayer → 'Ayer · HH:MM' |
 //          2–6 días → 'Hace N días' | 7–13 días → 'Hace 1 semana' |
 //          14–29 días → 'Hace N semanas' | 30+ días → 'DD mmm'
@@ -779,14 +634,8 @@ function render() {
   if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
   if (!window._radarSbInited) { window._radarSbInited = true; _initRadarSidebarState(); }
   if (typeof renderProjDots === 'function') renderProjDots();
-  // R-202604-059: actualizar historial col 2 según modo activo + re-attach drop targets tras cada render
-  // B-202605-075: _trackerRenderHist solo en vista historial — en vista poria mezcla sesiones de todas las IAs en Col 1
-  if (_trackerCurrentView === 'historial') {
-    if (typeof _trackerRenderHist === 'function') _trackerRenderHist();
-  }
-  if (_trackerCurrentView === 'poria') {
-    if (typeof _trackerRenderMiniHist === 'function') _trackerRenderMiniHist(_trackerSelectedId);
-  }
+  // ac-8: renderizar lista de sesiones en Col 1 siempre — sin condicional de vista
+  if (typeof _trackerRenderMiniHist === 'function') _trackerRenderMiniHist(_trackerSelectedId);
   if (typeof _trackerHistAttachDropTargets === 'function') _trackerHistAttachDropTargets();
   // T-202605-447: actualizar banner de sesión sugerida tras cada render
   if (typeof renderSuggestionBanner === 'function') renderSuggestionBanner();
@@ -1268,7 +1117,7 @@ function buildCard(ai) {
     ${statsBarHTML}
     <div class="card-body">
       ${inputHTML}
-      ${_trackerCurrentView !== 'poria' ? histHTMLv2 : ''}
+      
     </div>
     ${footerHTML}`;
   // CSS Purity: tag dot background color calculado desde datos → setProperty post-render
@@ -1285,83 +1134,6 @@ let _trackerHistSelectedSessId = null;
 let _trackerDragSessId = null;
 let _trackerDragAiId   = null;
 
-// Render col 2: lista de sesiones filtrada por proyecto activo
-function _trackerRenderHist() {
-  const listEl = document.getElementById('tracker-hist-list');
-  if (!listEl) return;
-
-  const allSessions = getAllSessions();
-  const activeProj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
-  const filtered = activeProj
-    ? allSessions.filter(s => s.projectId === activeProj.id)
-    : allSessions;
-
-  // más reciente primero
-  const sorted = [...filtered].reverse();
-
-  if (!sorted.length) {
-    listEl.innerHTML = `<div class="tracker-hist-empty">
-      <span class="tracker-hist-empty-icon">📋</span>
-      <span>Sin sesiones</span>
-    </div>`;
-    return;
-  }
-
-  const projTracker = getActiveTracker();
-
-  listEl.innerHTML = sorted.map(s => {
-    const ai = state.ais.find(a => a.id === s.aiId);
-    const aiName = ai ? esc(ai.name) : '—';
-    const proj = s.projectId ? getProjectById(s.projectId) : null;
-    const dateLabel = (typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || '');
-    const isActive = s.id === _trackerHistSelectedSessId;
-
-    // conteo de ítems backlog vinculados
-    const linkedItems = projTracker.items.filter(x => x.sessionId === s.id);
-    const badgeHtml = linkedItems.length
-      ? `<span class="tracker-hist-items-badge">${linkedItems.length}</span>`
-      : '';
-
-    // CSS Purity: clase en lugar de style= inline
-    const projPill = proj
-      ? `<span class="tracker-hist-proj-icon">${esc(proj.icon || '📁')}</span>`
-      : '';
-
-    return `<div class="tracker-hist-row${isActive ? ' active' : ''}"
-        data-sess-id="${s.id}"
-        data-ai-id="${s.aiId}"
-        draggable="true"
-        onclick="_trackerSelectSess('${s.id}','${s.aiId}')"
-        ondragstart="_trackerHistDragStart(event,'${s.id}','${s.aiId}')"
-        ondragend="_trackerHistDragEnd(event)">
-      <span class="tracker-hist-row-drag">⠿</span>
-      <div class="tracker-hist-row-top">
-        <span class="tracker-hist-ai-dot"></span>
-        <span class="tracker-hist-row-title" title="${esc(s.title)}">${esc(s.title)}</span>
-        <span class="tracker-hist-row-date">${dateLabel}</span>
-      </div>
-      <div class="tracker-hist-row-meta">
-        ${projPill}
-        <span class="tracker-hist-ai-name">${aiName}</span>
-        ${badgeHtml}
-      </div>
-    </div>`;
-  }).join('');
-
-  // Re-attach drag target listeners
-  _trackerHistAttachDropTargets();
-}
-
-// Seleccionar sesión: resaltar en col 2 + abrir preview
-function _trackerSelectSess(sessId, aiId) {
-  _trackerHistSelectedSessId = sessId;
-  // actualizar estado activo en col 2
-  document.querySelectorAll('.tracker-hist-row').forEach(row => {
-    row.classList.toggle('active', row.dataset.sessId === sessId);
-  });
-  // abrir preview en col 3
-  if (typeof openDetail === 'function') openDetail(aiId, sessId);
-}
 
 // ── T-202604-372: Drag & drop sesión → textarea col 1 ───────────────────
 
