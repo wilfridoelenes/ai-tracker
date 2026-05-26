@@ -754,6 +754,7 @@ function _confirmRetroceso(code, toStatus) {
       _undoSnapshot();
       saveBacklog();
       _setBacklogModified();
+      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
       renderBacklogList(); updateBacklogBanner(); renderStats();
       showToast('info', '↓ ' + code + ' → ' + toStatus);
       // Disparar descarga diferida si no quedan retrocesos ni descartes pendientes
@@ -815,6 +816,7 @@ function _confirmDiscard(code, reason, ref) {
       _undoSnapshot();
       saveBacklog();
       _setBacklogModified();
+      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
       renderBacklogList(); updateBacklogBanner(); renderStats();
       showToast('info', '🗑 ' + code + ' descartado');
     }
