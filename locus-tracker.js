@@ -38,7 +38,7 @@ function _trackerSetView(view) {
       }
     }
     // fallback: re-render normal + mini-hist
-    if (typeof render === 'function') render();
+    _markTrackerDirty(); if (typeof render === 'function') render();
     if (typeof _trackerRenderMiniHist === 'function') _trackerRenderMiniHist(_trackerSelectedId);
   }
 }
@@ -523,7 +523,7 @@ function selectTrackerAI(aiId) {
   if (typeof closeLogCard === 'function') closeLogCard();
   // R-202604-061 AC-5: try-catch defensivo — skeleton siempre se limpia
   try {
-    render();
+    _markTrackerDirty(); render();
     // R-202604-061 AC-06: fade-in del panel de detalle al cambiar selección
     requestAnimationFrame(() => {
       const _newCard = document.getElementById('card-' + aiId);
@@ -638,7 +638,14 @@ function _renderTrackerSidebar() {
 }
 
 
+// B-202605-082: dirty flag — evita renders redundantes sin cambio de estado
+let _trackerDirty = false;
+function _markTrackerDirty() { _trackerDirty = true; }
+window._markTrackerDirty = _markTrackerDirty;
+
 function render() {
+  if (!_trackerDirty) return;
+  _trackerDirty = false;
   const grid = document.getElementById('grid');
   const emptyEl = document.getElementById('tracker-detail-empty');
 
@@ -886,7 +893,7 @@ function _hoyMarkExhausted(id) {
   ai.resetEpoch = null;
   save();
   renderHoy();
-  render();
+  _markTrackerDirty(); render();
 }
 
 // ── Bloqueo ciego — agotar IA sin crear sesión ni log ──
@@ -953,7 +960,7 @@ function confirmBlindExhaust(id) {
   // AC: no crea sesión, no toca resetAt de sesiones existentes, no emite log
   cancelBlindExhaustMode(id);
   saveImmediate().then(() => {
-    render();
+    _markTrackerDirty(); render();
     if (typeof renderHoy === 'function' && currentTab === 'sesiones') renderHoy();
   });
   if (typeof showToast === 'function') showToast('info', `${ai.name} — agotada sin sesión · desbloqueo a las ${result.label}`);

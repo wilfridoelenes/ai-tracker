@@ -160,8 +160,7 @@ function navigateToCard(aiId) {
   _trackerSelectedId = aiId;
   switchTab('tracker');
   setTimeout(() => {
-    if (typeof render === 'function') render();
-    _scrollToCard(aiId);
+    if (typeof _markTrackerDirty === 'function') _markTrackerDirty(); if (typeof render === 'function') render();
     const ta = document.getElementById('ta-' + aiId);
     if (ta) setTimeout(() => { ta.focus(); }, 80);
   }, 80);
@@ -775,7 +774,7 @@ function toggleCollapseAll() {
   const active = state.ais.filter(a => !a.archived);
   const allCollapsed = active.every(a => !a.showAll);
   active.forEach(a => { a.showAll = allCollapsed; });
-  save(); if (typeof render === 'function') render();
+  save(); if (typeof _markTrackerDirty === 'function') _markTrackerDirty(); if (typeof render === 'function') render();
 }
 
 

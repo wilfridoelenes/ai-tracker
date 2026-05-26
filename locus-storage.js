@@ -59,7 +59,7 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
           if (event === 'SIGNED_IN') {
             if (typeof closeAuthModal === 'function') closeAuthModal();
             if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
-            if (typeof render === 'function') render();
+            if (typeof _markTrackerDirty === 'function') _markTrackerDirty(); if (typeof render === 'function') render();
             // T-202605-XXX: activar sync Realtime al iniciar sesión
             _subscribeRealtime();
           }
@@ -86,7 +86,7 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
         setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
         if (typeof closeAuthModal === 'function') closeAuthModal();
         if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
-        if (typeof render === 'function') render();
+        if (typeof _markTrackerDirty === 'function') _markTrackerDirty(); if (typeof render === 'function') render();
         _subscribeRealtime();
         if (typeof _refreshMigrationBtnVisibility === 'function') _refreshMigrationBtnVisibility();
       }
@@ -1085,7 +1085,7 @@ async function _loadFromSupabase() {
       console.warn('[AI Tracker] Error procesando borradores:', draftErr);
     }
 
-    if (typeof render === 'function') render();
+    if (typeof _markTrackerDirty === 'function') _markTrackerDirty(); if (typeof render === 'function') render();
     if (typeof renderHoy === 'function') renderHoy();
     if (typeof updateStats === 'function') updateStats();
     if (typeof _markRadarDirty === 'function') _markRadarDirty();
@@ -1275,7 +1275,7 @@ function _initApp() {
 // Solo se llama cuando hay sesión activa confirmada.
 function _renderAfterAuth() {
   // B-202604-010: render inicial desde estado real
-  if (typeof render === 'function') render();
+  if (typeof _markTrackerDirty === 'function') _markTrackerDirty(); if (typeof render === 'function') render();
   // B-202605-508: garantizar badges visibles al arranque
   if (typeof updateTabNotifBadges === 'function') updateTabNotifBadges();
   // R-202604-072: panel de contexto diario — diferido para que ITEMS esté cargado
