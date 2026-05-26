@@ -1,5 +1,5 @@
 // locus-radar.js
-// Última actualización: 2026-05-13 | Refactor: funciones anidadas extraídas al scope del módulo
+// Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
 //
 // Dependencias cross-módulo (resueltas en runtime via guards typeof):
@@ -159,7 +159,8 @@ function _rsbToggleCfg(e) {
 
 // ── DATA HELPERS ──────────────────────────────────────────────────────────────
 
-function _sessionElapsed(ai) {
+// Perf: acepta sessions pre-cacheadas para evitar call a getAISessions por card
+function _sessionElapsed(ai, sessions) {
   try {
     const timerData = JSON.parse(localStorage.getItem('session-timer-' + ai.id) || 'null');
     if (timerData && timerData.startEpoch) {
@@ -169,8 +170,8 @@ function _sessionElapsed(ai) {
       return { label: `${m}m ${String(s).padStart(2,'0')}s`, ms };
     }
   } catch(e) {}
-  const sessions = getAISessions(ai.id);
-  const last = sessions.length ? sessions[sessions.length - 1] : null;
+  const _sessions = sessions || getAISessions(ai.id);
+  const last = _sessions.length ? _sessions[_sessions.length - 1] : null;
   if (last && last.date) {
     const ms = Date.now() - new Date(last.date).getTime();
     if (ms > 0 && ms < 86400000) {
@@ -182,17 +183,19 @@ function _sessionElapsed(ai) {
   return null;
 }
 
-function _sessionTitle(ai) {
+// Perf: acepta sessions pre-cacheadas
+function _sessionTitle(ai, sessions) {
   try {
-    const sessions = getAISessions(ai.id);
-    const last = sessions.length ? sessions[sessions.length - 1] : null;
+    const _sessions = sessions || getAISessions(ai.id);
+    const last = _sessions.length ? _sessions[_sessions.length - 1] : null;
     return last && last.title ? last.title : '';
   } catch(e) { return ''; }
 }
 
-function _projPill(ai) {
+// Perf: acepta sessions pre-cacheadas
+function _projPill(ai, sessions) {
   try {
-    const aiSessions = getAISessions(ai.id);
+    const aiSessions = sessions || getAISessions(ai.id);
     if (!aiSessions.length) return '';
     const lastSess = aiSessions[aiSessions.length - 1];
     const proj = lastSess && lastSess.projId
@@ -206,10 +209,11 @@ function _projPill(ai) {
 
 // ── CARD BUILDERS ─────────────────────────────────────────────────────────────
 
-function _buildSessionCard(ai, isInterrupted) {
-  const elapsed = _sessionElapsed(ai);
-  const sessionTitle = _sessionTitle(ai);
-  const pill = _projPill(ai);
+// Perf: acepta sessions pre-cacheadas para evitar múltiples calls a getAISessions por card
+function _buildSessionCard(ai, isInterrupted, sessions) {
+  const elapsed = _sessionElapsed(ai, sessions);
+  const sessionTitle = _sessionTitle(ai, sessions);
+  const pill = _projPill(ai, sessions);
 
   const warnClass = elapsed && elapsed.ms > 3600000 ? ' rsb-elapsed-warn' : '';
   const cls = isInterrupted ? 'rsb-card interrupted-state' : 'rsb-card in-session-state';
@@ -273,8 +277,9 @@ function _buildSessionCard(ai, isInterrupted) {
   </div>`;
 }
 
-function _buildAvailableCard(ai) {
-  const pill = _projPill(ai);
+// Perf: acepta sessions pre-cacheadas
+function _buildAvailableCard(ai, sessions) {
+  const pill = _projPill(ai, sessions);
 
   let sinceLabel = '';
   if (ai.resetTime && ai.resetEpoch) {
@@ -283,7 +288,7 @@ function _buildAvailableCard(ai) {
     const mm = String(epoch.getMinutes()).padStart(2,'0');
     sinceLabel = fmt12(`${hh}:${mm}`);
   } else {
-    const aiSessions = getAISessions(ai.id);
+    const aiSessions = sessions || getAISessions(ai.id);
     const last = aiSessions.length ? aiSessions[aiSessions.length - 1] : null;
     if (last && last.date) {
       const d = new Date(last.date);
@@ -351,6 +356,11 @@ function renderGlobalRadarSidebar() {
 
   const active = (state.ais || []).filter(a => !a.archived);
 
+  // Perf: cachear sessions por worker — una sola call a getAISessions por AI para todo el render
+  const _sessionsCache = {};
+  active.forEach(a => { _sessionsCache[a.id] = getAISessions(a.id); });
+  const _getSessions = (ai) => _sessionsCache[ai.id] || [];
+
   const interrupted = active.filter(a => a.interrupted);
   const inSession   = active.filter(a => !a.interrupted && _isInSession(a));
   const available   = active
@@ -360,10 +370,14 @@ function renderGlobalRadarSidebar() {
     .filter(a => a.status === 'exhausted' && !a.interrupted)
     .sort((a, b) => _hoyMsUntilReset(a) - _hoyMsUntilReset(b));
 
+  // Perf: _computeNotifications una sola vez por render — reutilizada en header y body
+  const _allNotifs = _computeNotifications();
+  const _readSet   = _notifReadSet();
+  const unseenCount = _allNotifs.filter(n => !_readSet.has(n.id)).length;
+
   // Notificaciones — oculto cuando count = 0
-  const unseen = _computeNotifications().filter(n => !_notifReadSet().has(n.id)).length;
   // B mayor: _renderNotifSection solo cuando hay unseen
-  let html = unseen ? _renderNotifSection() : '';
+  let html = unseenCount ? _renderNotifSection() : '';
 
   if (!active.length) {
     html += `<div class="rsb-empty-state">
@@ -377,8 +391,8 @@ function renderGlobalRadarSidebar() {
     const enSesionAll = [...interrupted, ...inSession];
     if (enSesionAll.length) {
       const cards = [
-        ...interrupted.map(a => _buildSessionCard(a, true)),
-        ...inSession.map(a => _buildSessionCard(a, false))
+        ...interrupted.map(a => _buildSessionCard(a, true, _getSessions(a))),
+        ...inSession.map(a => _buildSessionCard(a, false, _getSessions(a)))
       ].join('');
       html += `<div class="radar-sb-section">
         <div class="radar-sb-section-label">● En sesión (${enSesionAll.length})</div>
@@ -390,7 +404,7 @@ function renderGlobalRadarSidebar() {
     if (available.length) {
       html += `<div class="radar-sb-section">
         <div class="radar-sb-section-label">🟢 Disponibles (${available.length})</div>
-        <div class="rsb-section-body">${available.map(a => _buildAvailableCard(a)).join('')}</div>
+        <div class="rsb-section-body">${available.map(a => _buildAvailableCard(a, _getSessions(a))).join('')}</div>
       </div>`;
     }
 
@@ -433,8 +447,8 @@ function renderGlobalRadarSidebar() {
   const titleEl = sidebar.querySelector('.radar-sidebar-title');
   const row2El  = sidebar.querySelector('.rsb-header-row2');
   if (titleEl) {
-    const unreadCount = _computeNotifications().filter(n => !_notifReadSet().has(n.id)).length;
-    const notifBadge = unreadCount ? ` <span class="rsb-notif-hdr-badge">${unreadCount}</span>` : '';
+    // Perf: reutilizar unseenCount ya calculado — no llamar _computeNotifications() de nuevo
+    const notifBadge = unseenCount ? ` <span class="rsb-notif-hdr-badge">${unseenCount}</span>` : '';
     titleEl.innerHTML = `Centro de notificaciones${notifBadge}`;
   }
   if (row2El) {
