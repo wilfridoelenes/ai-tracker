@@ -101,7 +101,7 @@ function _startHoyTicker() {
       if (!cdEl) return;
       cdEl.textContent = _hoyCountdownLabel(ms);
       cdEl.classList.toggle('soon', ms < 30 * 60000);
-      if (ms <= 0) renderHoy();
+      if (ms <= 0) { if (typeof _markHoyDirty === 'function') _markHoyDirty(); renderHoy(); }
     });
   }, 1000);
 }
@@ -146,10 +146,12 @@ function _startSidebarTicker() {
           if (typeof saveImmediate === 'function') {
             saveImmediate().then(() => {
               if (typeof render === 'function') render();
+              if (typeof _markHoyDirty === 'function') _markHoyDirty();
               if (typeof renderHoy === 'function' && typeof currentTab !== 'undefined' && currentTab === 'sesiones') renderHoy();
             });
           } else {
             if (typeof render === 'function') render();
+            if (typeof _markHoyDirty === 'function') _markHoyDirty();
             if (typeof renderHoy === 'function' && typeof currentTab !== 'undefined' && currentTab === 'sesiones') renderHoy();
           }
           return; // B-202605-047: no continuar a las escrituras de DOM de este ai
@@ -193,7 +195,14 @@ function renderProjDots() {
   // Eliminado — ruido con pocos proyectos activos
 }
 
+// R-202605-061: dirty flag — evita renders redundantes sin cambio de estado
+let _hoyDirty = false;
+function _markHoyDirty() { _hoyDirty = true; }
+window._markHoyDirty = _markHoyDirty;
+
 function renderHoy() {
+  if (!_hoyDirty) return;
+  _hoyDirty = false;
   const el = document.getElementById('hoy-content');
   if (!el) return;
 

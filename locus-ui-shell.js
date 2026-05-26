@@ -11,7 +11,25 @@ function esc(s) { return s ? (s + '').replace(/&/g, '&amp;').replace(/</g, '&lt;
 
 // ── Tab switching ──────────────────────────────────────────────────────────
 
+// R-202605-067: estado sucio del textarea de AI Card
+// El flag es escrito por locus-tracker.js cuando el textarea tiene texto no guardado.
+// Si locus-tracker.js aún no lo declara, se usa detección DOM como fallback.
+let _trackerTextareaDirty = false;
+
 function switchTab(tab) {
+  // R-202605-067: guard — confirm si hay texto sin guardar en textarea de AI Card
+  const _dirtyTextarea = document.querySelector('.note-ta[data-dirty="true"], .ai-card textarea[data-dirty="true"]');
+  const _isDirty = _trackerTextareaDirty || !!_dirtyTextarea;
+  if (_isDirty) {
+    const _proceed = window.confirm('Hay texto sin guardar. ¿Salir de todos modos?');
+    if (!_proceed) {
+      // AC-3: restaurar foco al textarea que disparó el estado sucio
+      const _focusTarget = _dirtyTextarea || document.querySelector('.note-ta, .ai-card textarea');
+      if (_focusTarget) _focusTarget.focus();
+      return;
+    }
+  }
+
   // DUP-05: cerrar preview de sesión al cambiar de tab
   if (typeof closePopup === 'function') closePopup();
   // B-202605-207: cerrar panel de detalle al cambiar de tab
@@ -70,6 +88,7 @@ function switchTab(tab) {
   if (tabEl) tabEl.scrollTop = 0;
 
   // Refresh radar sidebar
+  if (typeof _markRadarDirty === 'function') _markRadarDirty();
   if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
 }
 
