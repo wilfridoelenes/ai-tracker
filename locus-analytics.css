@@ -2,6 +2,18 @@
 
 /* Versión: 2.0 | Selectores consolidados — T2 */
 
+/* === locus-analytics-render.js ===
+   Funciones: renderAnalytics · _buildBarChart · _kpiCard · _projMetricsSbs · _buildForecastData · _forecastHtml */
+
+/* === locus-analytics-charts.js ===
+   Funciones: renderHeatmap · renderHourly · renderProductivityPatterns · renderCheckpointsByProject */
+
+/* === locus-analytics-core.js ===
+   Funciones: getAnalyticsColor · getTooltip · showAnalyticsTooltip · _animateCountUp · exportWeeklySummary */
+
+/* === locus-backlog-sprints.js ===
+   Funciones: renderSprintBurndown · _generateSprintRetroMd (Sprint Health Panel) */
+
 /* ══ TAB-ANALYTICS ══ */
 
 /* locus-analytics.css */
@@ -1415,6 +1427,9 @@
 /* ── END FASE 2 ── */
 
 /* highlight al navegar desde Tab Hoy */
+
+/* === locus-backlog-sprints.js ===
+   Funciones: renderSprintBurndown · _scmStep1Html · createSprint (sprint health indicators) */
 
 /* ══ T-202604-265: SPRINT HEALTH INDICATOR ══ */
 
@@ -3147,6 +3162,9 @@
 
 /* ══ END T-202605-454 ══ */
 
+/* === locus-analytics-render.js ===
+   Funciones: _cycleTimeData · _ctDaysLabel · _ctTrendHtml · _ctSparkHtml · _ctOutliersHtml */
+
 /* ══ T-202605-453: Tiempo promedio pendiente → done ══ */
 
 /* Sección contenedora — hereda analytics-section */
@@ -3479,6 +3497,9 @@
 }
 
 /* ══ END T-202605-453 ══ */
+
+/* === locus-analytics-render.js ===
+   Funciones: _buildForecastData · _forecastHtml */
 
 /* ══ R-202605-128: Forecast de backlog ══ */
 .fcst-section {

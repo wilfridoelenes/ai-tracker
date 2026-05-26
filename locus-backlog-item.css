@@ -1,6 +1,9 @@
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-24 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
+/* === locus-backlog-item.js ===
+   Funciones: buildBacklogItem · _buildChildrenBlock · _openStatusPopover · _acRows */
+
 /* ═══ T-202604-165: buildBacklogItem() premium ═══ */
 
 /* Type block — elemento dominante */
@@ -664,6 +667,9 @@
   color: var(--accent);
 }
 
+/* === locus-backlog-item.js ===
+   Funciones: buildBacklogItem (view mode variants) */
+
 /* ══ T-202604-202: View mode pills — Cards / Proyecto ══ */
 .view-mode-pills {
   display: flex;
@@ -699,6 +705,9 @@
 
 /* ══ END T-202604-202 ══ */
 
+
+/* === locus-backlog-panel.js ===
+   Funciones: openItemPanel · closeItemPanel · _renderItemPanel · _buildPanelTimeline */
 
 /* ═══ R-202604-015: Item Detail Panel — two-column backlog layout ═══ */
 
@@ -1212,6 +1221,9 @@
 
 /* ═══ END R-202604-015 Sesión 2 ═══ */
 
+/* === locus-backlog-panel.js ===
+   Funciones: _idpMarkDone · _idpAddNote · _idpUnlinkSession · _acvToggle · _acvSaveEdit */
+
 /* ═══ T-202604-307 — Quick actions · Timeline notes · Session unlink ═══ */
 
 /* Actions bar */
@@ -1328,6 +1340,9 @@
 
 /* ═══ END T-202604-307 ═══ */
 
+/* === locus-checkpoint-viz.js ===
+   Funciones: showCheckpointPanel · closeCkptPanel · _showArranquePanel (CSS Purity migration) */
+
 /* ═══ §15 CSS Purity — checkpoint.js parte 1 ═══ */
 
 /* Toast — clickable state */
@@ -1404,6 +1419,9 @@
 /* Toasts — play-state via CSS custom property (mouseenter/mouseleave programático) */
 
 /* ═══ END §15 CSS Purity — checkpoint.js parte 1 ═══ */
+
+/* === locus-checkpoint-viz.js ===
+   Funciones: _itemVizRender · _buildRow · _fieldDiffChips (CSS Purity migration) */
 
 /* ═══ §15 CSS Purity — checkpoint.js parte 2 ═══ */
 
@@ -1628,6 +1646,12 @@
 
 /* ═══ END §15 CSS Purity — checkpoint.js parte 2 ═══ */
 
+/* === locus-backlog-item.js ===
+   Funciones: buildBacklogItem · _promoteItem · mergeBacklogFromTG (CSS Purity migration) */
+
+/* === locus-backlog-core.js ===
+   Funciones: setItemStatus · _showInlineConfirmDone (CSS Purity migration) */
+
 /* ═══ §15 CSS Purity — backlog.js migration ═══ */
 
 /* Discard modal */
@@ -1724,6 +1748,9 @@
 }
 
 /* ═══ END §15 CSS Purity — backlog.js migration ═══ */
+
+/* === locus-backlog-merge.js ===
+   Funciones: showMergeDiffPanel · _confirmRetroceso · _confirmDiscard · _mdiffDoApply */
 
 /* ══ R-202604-071: Merge Diff Panel — rediseño completo two-column ══ */
 

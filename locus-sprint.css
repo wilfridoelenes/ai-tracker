@@ -3,6 +3,15 @@
 /* Migrado desde locus-backlog.css — T-202605-065 */
 /* Carga: después de locus-backlog.css en index.html */
 
+/* === locus-sprint.js ===
+   Funciones: renderSprintTab · _renderSprintItems · _renderSprintWorkers · _renderSprintScopeAdded · _sptSwitch */
+
+/* === locus-sprint-plan.js ===
+   Funciones: renderPlan · renderPlanInto · _buildPlanContent */
+
+/* === locus-backlog-sprints.js ===
+   Funciones: renderSprintBurndown · renderSprintItems · renderScopeAdded · renderSprintWorkers · confirmCloseSprint */
+
 /* ══ T-202605-057: Tab Sprint — header sticky ══ */
 
 .sph-header {

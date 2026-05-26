@@ -2,6 +2,9 @@
 
 /* Versión: 2.2 | Última actualización: 2026-05-13 | log-* migrado desde locus-radar.css */
 
+/* === locus-workers.js ===
+   Funciones: openAvatarModal · selectAvatarOption · confirmAvatarModal · closeAvatarModal */
+
 /* ══ T-011: AVATARS ══ */
 
 .avatar-wrapper {
@@ -43,6 +46,12 @@
 .avatar-modal-actions .btn-confirm:hover {
   opacity: 0.9;
 }
+
+/* === locus-tracker.js ===
+   Funciones: render · selectTrackerAI · buildCard · buildHoyCard · _renderTrackerSidebar */
+
+/* === locus-tracker-utils.js ===
+   Funciones: startSessionTimer · _renderActiveWorkerChip · renderSuggestionBanner */
 
 /* ══ TAB-TRACKER — Sidebar + Detail layout ══ */
 #tab-tracker.active {
@@ -358,6 +367,12 @@
 /* tracker-status-bar: now lives inside tracker-detail, always renderable */
 
 /* Card */
+
+/* === locus-workers.js ===
+   Funciones: duplicate · archiveAI · deleteAI · toggleCardMenu */
+
+/* === locus-tracker.js ===
+   Funciones: buildCard · _buildSessRow */
 
 /* ══ card-header-premium — header premium de cards de IA ══ */
 /* Reemplaza la zona visual de .card-strip en cards que usan renderCard() */
@@ -1224,6 +1239,12 @@
   transform: scale(1);
 }
 
+/* === locus-tracker.js ===
+   Funciones: _trackerHistDayRender · _buildSessRow · _trackerRenderMiniHist */
+
+/* === locus-session-popup.js ===
+   Funciones: openDetail · closePopup · _buildLogRow */
+
 /* ══ SESIONES — Filas, indicadores, show-all ══ */
 @keyframes fadeSlideIn {
   from {
@@ -1377,6 +1398,12 @@
   border-radius: var(--radius-pill);
   flex-shrink: 0;
 }
+
+/* === locus-tracker.js ===
+   Funciones: render · _trackerRenderHist · _trackerHistDaySelect */
+
+/* === locus-checkpoint-viz.js ===
+   Funciones: showCheckpointPanel · _showArranquePanel */
 
 /* ══ TRACKER GLOBAL — Panel, items, add-row ══ */
 .tg-overlay {
@@ -4166,6 +4193,9 @@
   line-height: 1.6;
 }
 
+/* === locus-misc-ui.js ===
+   Funciones: openDocLog · closeDocLog · _renderDocLog · _updateDocLogCount */
+
 /* ══ DOC LOG DRAWER ══ */
 #doc-log-overlay {
   display: none;
@@ -4324,6 +4354,9 @@
 
 /* ══ T-202604-178 + T-202604-216: migrados a locus-backlog.css ══ */
 
+
+/* === locus-tracker.js ===
+   Funciones: render (grid layout de 3 columnas) */
 
 /* ══ R-202604-059: Grid Tracker 3 columnas ══ */
 
@@ -4697,6 +4730,9 @@ textarea.tracker-drop-active {
   outline: 2px solid var(--accent-border);
 }
 
+/* === locus-tracker.js ===
+   Funciones: buildCard · _renderTrackerSidebar (hover, transiciones) */
+
 /* ══ R-202604-061: Microinteracciones Tracker — S-10 ══ */
 
 /* AC-01: tsb-add-btn — press feedback (rotate + scale) */
@@ -4996,6 +5032,9 @@ textarea[id^="ta-"]:focus {
   border-radius: 0 0 var(--radius-md-plus) var(--radius-md-plus);
 }
 
+
+/* === locus-analytics-digest.js ===
+   Funciones: _buildCumulativeFlowChart · buildPoints · buildPath */
 
 /* ══ T-202605-452: Flujo acumulativo — ítems entrando vs saliendo ══════ */
 
@@ -6949,6 +6988,12 @@ body.radar-sb-open .tracker-sidebar {
   background:var(--surface2);
 }
 
+/* === locus-tracker.js ===
+   Funciones: buildCard · _buildCurrentSessionCard (sc-* rediseño) */
+
+/* === locus-tracker-utils.js ===
+   Funciones: _renderActiveWorkerChip · _timerWidgetHtml */
+
 /* ══════════════════════════════════════════════════════════════════
    REDISEÑO AI CARD — sc-* · brief Nova V2 · locus-tracker.css
    ══════════════════════════════════════════════════════════════════ */
@@ -7455,6 +7500,9 @@ body.radar-sb-open .tracker-sidebar {
   .tracker-sidebar-exhausted .tsb-ai-dot.insession,
 }
 /* ══ END CSS-07 ══ */
+
+/* === locus-tracker.js ===
+   Funciones: render · buildCard (clases faltantes completadas) */
 
 /* ══ A4-b: Tracker — clases faltantes ══ */
 

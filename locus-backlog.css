@@ -185,6 +185,15 @@
 
 /* .btn-danger — consolidado en locus-overrides.css §2B */
 
+/* === locus-backlog-core.js ===
+   Funciones: loadBacklog · renderStats · importBacklog · setItemStatus · toggleTypeFilter · toggleStatusFilter · updateBacklogBanner */
+
+/* === locus-backlog-render.js ===
+   Funciones: renderBacklogList · _renderSprintRoadmap · _renderPlanningView */
+
+/* === locus-backlog-item.js ===
+   Funciones: buildBacklogItem · _renderKanban · setFilter · updateBacklogFooter */
+
 /* ══ TAB-BACKLOG ══ */
 #tab-backlog {
   padding: 2rem;
@@ -2487,6 +2496,12 @@
   transition: opacity 0.18s;
 }
 
+/* === locus-backlog-core.js ===
+   Funciones: toggleTypeFilter · toggleStatusFilter · toggleEffortFilter · toggleRoleFilter · clearAllFilters */
+
+/* === locus-backlog-panel.js ===
+   Funciones: toggleFocusMode · exitFocusMode */
+
 /* ══ TOOLBAR SYSTEM — Capas 1 / 2 / 3 ══
    Consolida: R-202605-099
    ═══════════════════════════════════════════════════════════════════════════════════ */
@@ -3448,6 +3463,9 @@
 
 /* ── CDBN BANNER ── */
 
+/* === locus-backlog-panel.js ===
+   Funciones: _buildItemMentionedIn */
+
 /* ══ T-202604-286: Mencionado en — sección en ítem expandido del Backlog ══ */
 .bitem-mentioned-in {
   margin: 8px 0 4px;
@@ -3536,7 +3554,10 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  overflow: hidden;
+  ove/* === locus-backlog-item.js ===
+   Funciones: _renderKanban · _kanbanCard · _kbDrop */
+
+rflow: hidden;
   transition: max-height 0.25s ease, opacity 0.2s ease;
 }
 
@@ -4407,6 +4428,9 @@
   color: var(--red);
 }
 
+/* === locus-checkpoint-viz.js ===
+   Funciones: showCheckpointPanel (bloque de sesión del plan en arranque) */
+
 /* R-202605-097: Bloque sesión del plan en tarjeta de arranque ────────────── */
 .arr-section--plan {
   border-top: 1px solid var(--border);
@@ -4618,7 +4642,10 @@
   color: var(--text3);
 }
 
-.arr-plan-copy-btn--disabled:hover {
+.arr-plan-copy-btn--disabled:hov/* === locus-backlog-sprints.js ===
+   Funciones: renderSprintItems · _renderSprintSection (sprint header badges) */
+
+er {
   opacity: 0.45;
 }
 

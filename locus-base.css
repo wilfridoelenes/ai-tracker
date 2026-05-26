@@ -1,5 +1,8 @@
 /* locus-base.css */
 
+
+/* === visual-only — sin módulo JS propietario ===
+   Tokens CSS globales: variables, colores, tipografía, espaciado, radios, sombras, transiciones */
 /* Versión: 1.5 | Última actualización: 2026-05-22 | Variables, reset, temas dark/light, tipografía global */
 /* Cluster A — tokens fantasma resueltos: --purple/*-dim/*-border, --blue-dim/border declarados;
    --text-muted/--text1/--text3/--bg3/--surface1/--bg-card mapeados a token canónico

@@ -3,6 +3,9 @@
    Scope: HISTÓRICO UNIFICADO — vistas Por sprint y Lista plana
 */
 
+/* === locus-backlog-archive.js ===
+   Funciones: archiveClosedItems · toggleArchivoHistorico · renderArchivoHistorico · _archSprintEntryHtml · _archItemRow */
+
 /* ══════════════════════════════════════════════════════════════════════
    ══ HISTÓRICO UNIFICADO ══
    R-202605-103 · Nova · 2026-05-02

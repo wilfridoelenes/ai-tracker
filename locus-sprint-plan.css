@@ -1,5 +1,8 @@
 /* locus-sprint-plan.css */
 /* Versión: 1.0 | Última actualización: 2026-05-25 00:00 UTC-6 | Pulso del ecosistema + Contratos de módulo + Sub-tab Plan */
+/* === locus-pulso.js ===
+   Funciones: openPulsoPanel · closePulsoPanel · renderPulsoDot · _buildPulsoPlanesHtml */
+
 /* ─────────────────────────────────────────────────────────────────────────────
    R-202604-073: Pulso del Ecosistema — dot semántico + panel
    ───────────────────────────────────────────────────────────────────────────── */
@@ -277,6 +280,9 @@
   text-align: center;
   padding: 8px 0;
 }
+
+/* === locus-contracts.js ===
+   Funciones: renderContratos · openContratoDetail · _renderContratoDetail · exportContratosMd */
 
 /* ════════════════════════════════════════════════════════════════════
    R-202604-074 · AC VIVO — Revisión de criterios de aceptación
@@ -826,6 +832,9 @@
 }
 
 /* END R-202604-075 */
+
+/* === locus-sprint-plan.js ===
+   Funciones: renderPlan · renderPlanInto · _buildPlanContent · _sessCard · _renderSprintGroup · _liveStatus · _sessIsDone */
 
 /* R-202604-076: Sub-tab Plan — estilos */
 

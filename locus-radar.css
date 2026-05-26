@@ -1643,4 +1643,7 @@ body.radar-sb-collapsed #global-footer {
 .tsb-ai-row:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
+}/* === locus-radar.js ===
+   Funciones: renderGlobalRadarSidebar · toggleRadarSidebar · _initRadarSidebarState · _buildSessionCard · _buildAvailableCard · _buildExhaustedCard · rsbFilterAIs */
+
+

@@ -1089,4 +1089,7 @@
   gap: 8px;
 }
 
-/* END R-202605-005 · A4-b · scm-* */
+/* END R-202605-005 · A4-b · scm-* *//* === locus-backlog-sprints.js ===
+   Funciones: confirmCloseSprint · _scmRender · _scmStep1Html · _scmStep2Html · _scmStep3Html · _scmExecuteClose · openSprintRetroView · _generateSprintRetroMd */
+
+

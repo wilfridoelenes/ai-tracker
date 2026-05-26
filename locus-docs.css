@@ -1,6 +1,12 @@
 /* locus-docs.css */
 /* Versión: 1.0 | Última actualización: 2026-05-25 | Estilos HTML-MAP y Context — extraídos de locus-backlog.css (T-202605-112) */
 
+/* === locus-map-viewer.js ===
+   Funciones: renderHtmlMap · loadHtmlMap · updateHtmlMapBanner · setHtmlMapFilter · _hmToggleModule · _hmOnSearch */
+
+/* === locus-docs.js ===
+   Funciones: renderContext · importHtmlMap · exportHtmlMapMd · _importContextMdFromText · updateContextBanner · mergeContextSections */
+
 /* T-202604-048: HTML-MAP view */
 .htmlmap-meta-banner {
   display: none;

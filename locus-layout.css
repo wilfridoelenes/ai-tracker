@@ -2,6 +2,9 @@
 
 /* Versión: 2.1 | Última actualización: 2026-05-22 | Selectores compartidos consolidados — T-202605-031 */
 
+/* shared — fuente canónica: locus-layout.css
+   Consumido por: locus-ui-shell.js · locus-tracker.js · locus-storage.js · locus-checkpoint-stats.js */
+
 /* ══ SHARED — Reset, body, header, tabs, botones, toast, search ══ */
 
 /* locus-layout.css */
@@ -249,6 +252,9 @@
   align-items: center;
   flex-shrink: 0;
 }
+
+/* === locus-command-palette.js ===
+   Funciones: openCommandPalette · closeCommandPalette */
 
 /* R-202605-014: hdr-search-trigger — trigger permanente de Command Palette */
 .hdr-search-trigger {
@@ -539,6 +545,9 @@ button {
   transition: opacity 0.1s var(--ease-out);
 }
 
+/* === locus-checkpoint-stats.js ===
+   Funciones: _updateHeaderProjectLabel */
+
 /* ══ R-202605-167: Breadcrumb interactivo en logo area — proyecto › sprint › ítem ══ */
 
 /* La estructura de tres segmentos siempre está en el DOM;
@@ -633,6 +642,9 @@ button {
 }
 
 /* ══ END R-202605-167 ══ */
+
+/* === locus-sprint.js ===
+   Funciones: renderSprintTab (segunda fila del header) */
 
 /* ══ R-202605-168: Sprint progress bar — segunda fila del header ══ */
 
@@ -1553,6 +1565,9 @@ header {
 
 /* ══ END macOS FIDELITY ══ */
 
+/* === locus-checkpoint-viz.js ===
+   Funciones: showCheckpointPanel · closeCkptPanel */
+
 /* R-202605-140: DIFF panel — sección informativa Próximo paso + Decisión */
 .ckpt-section--info {
   display: flex;
@@ -1918,6 +1933,9 @@ header {
 
 /* ══ END A4-b: Header worker chip ══ */
 
+/* === locus-ui-shell.js ===
+   Funciones: renderSetupChecklist */
+
 /* R-202605-005 · A4-b · utilitarios layout */
 
 .force-hidden {
@@ -2228,7 +2246,10 @@ header {
 
 /* ══ Migrado desde locus-backlog.css — R-202605-068 ══ */
 /* Scope: microinteracciones globales — botones, inputs, chips, drag handles, focus mode */
-/* Fuente canónica: locus-layout.css (R-202605-179 Sesión 1 + Sesión 2) */
+/* Fuent/* shared — fuente canónica: locus-layout.css
+   Microinteracciones compartidas por múltiples módulos */
+
+e canónica: locus-layout.css (R-202605-179 Sesión 1 + Sesión 2) */
 
 /* ══ R-202605-179: Normalización de microinteracciones — Sesión 1 ══ */
 

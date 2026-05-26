@@ -2,6 +2,12 @@
 
 /* Versión: 2.0 | Selectores consolidados — T3 */
 
+/* === locus-projects.js ===
+   Funciones: renderProyectos · renderProject · _buildCard · renderProjectAnalytics · downloadProjectReport */
+
+/* === locus-sprint-project.js ===
+   Funciones: openProjPanel · closeProjPanel · openProjModal · closeProjModal · selectProjectFilter · renderProjPanel */
+
 /* ═══ TAB PROYECTOS — Dashboard v2 ═══ */
 
 /* Top bar */
@@ -614,6 +620,9 @@
     border-color: var(--accent-border);
   }
 
+/* === locus-projects.js ===
+   Funciones: _renderCtxPreview · _buildCtxEl · _projCtxStartEdit · _projCtxSave */
+
 /* ═══ T-202604-285: Contexto rico por proyecto ═══ */
 
 .proj-ctx-section {
@@ -781,6 +790,9 @@
 
 /* ═══ END T-202604-285 ═══ */
 
+/* === locus-sprint-project.js ===
+   Funciones: exportBacklogMd · exportContextMd · _generateBacklogContent (CSS Purity migration) */
+
 /* ═══ §15 CSS Purity — sprint-project migration ═══ */
 
 /* Export confirm modal */
@@ -944,6 +956,9 @@
 }
 
 /* ckpt-proj-bar-fill — width runtime */
+
+/* === locus-session-popup.js ===
+   Funciones: openDetail · closePopup · startPopupEdit · renderBacklogRefs (CSS Purity migration) */
 
 /* ═══ §15 CSS Purity — session.js migration ═══ */
 
@@ -2900,6 +2915,9 @@
    MIGRATED FROM JS — T-202604-342 JS Cleanup
    ══════════════════════════════════════════════════════════════ */
 
+/* === locus-docs.js ===
+   Funciones: _renderDocsOnboarding · _docsOnboardingAction · _dismissDocsOnboarding */
+
 /* ══ T-202604-204: Docs Onboarding ══ */
     #docs-onboarding-banner {
       margin: 0 0 12px;
@@ -3032,6 +3050,9 @@
       background: color-mix(in srgb, var(--accent) 10%, transparent);
     }
   
+
+/* === locus-docs.js ===
+   Funciones: renderContext · renderContextMd · extractContextSections · mergeContextSections · updateContextBanner */
 
 /* ══ Context Panel ══ */
 
@@ -3214,6 +3235,12 @@
   min-height: 0;
 }
 
+/* === locus-docs.js ===
+   Funciones: importHtmlMap · _importContextMdFromText · importContextMd */
+
+/* === locus-backlog-core.js ===
+   Funciones: importBacklog */
+
 /* ══ DROPZONE — Importación unificada Backlog / HTML-MAP / Context ══ */
 .doc-dropzone {
   display: flex;
@@ -3271,6 +3298,9 @@
   padding: 2px 7px;
   margin-top: 4px;
 }
+
+/* === locus-backlog-merge.js ===
+   Funciones: showMergeDiffPanel · _mdiffDoApply · _applyDiscardBatch */
 
 /* ══ R-202604-077: CKPT Diff Panel Unificado — confirmaciones post-CHECKPOINT ══ */
 
@@ -3579,6 +3609,9 @@
     opacity: 1;
   }
 }
+
+/* === locus-contracts.js ===
+   Funciones: renderContratos · openContratoDetail · searchContratos */
 
 /* ══ A4-b: Panel Contratos — clases faltantes ══ */
 

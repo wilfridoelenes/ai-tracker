@@ -1,6 +1,9 @@
 /* locus-sprint-ui.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Locus — Vista Planificación + EXECUTION-PLAN UI — extraído de locus-proyectos.css via R-202605-040 */
 
+/* === locus-backlog-render.js ===
+   Funciones: _renderPlanningView · _planCard · _planDragStart · _planDragEnd · _planDrop */
+
 /* ══ R-202605-130: Vista Planificación — drag & drop backlog → sprint ══ */
 
 /* — Contenedor principal — */
@@ -382,6 +385,9 @@
 }
 
 /* ══ END T-202605-509 ══ */
+
+/* === locus-sprint-plan.js ===
+   Funciones: renderPlan · renderPlanInto · _buildPlanContent · _liveStatus · _sessIsDone */
 
 /* ════════════════════════════════════════════════════════════════════
    R-B: EXECUTION-PLAN — Dos scopes en sub-tab Plan

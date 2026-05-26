@@ -2,6 +2,9 @@
 
 /* Versión: 2.1 | Última actualización: 2026-05-22 | T-202605-033: hex hardcodeados → tokens semánticos */
 
+/* === locus-toast.js ===
+   Funciones: showToast · showToastInline · showToastDigest · _toastRender · _dismissToast */
+
 /* Toast shared */
 
 /* ── Toast stack system ── */
@@ -456,6 +459,9 @@
   color: var(--amber);
 }
 
+/* === locus-misc-ui.js ===
+   Funciones: openTagModal · renderTagPicker · renderColorPicker · selectColor */
+
 /* ══ TAGS — Pills, picker modal, colores ══ */
 .tag-wrap {
   display: flex;
@@ -740,6 +746,9 @@
 
 /* ═══ END B-202604-117: Toast system ═══ */
 
+/* === locus-storage.js ===
+   Funciones: signInWithSupabase · signInWithMagicLink · signOutSupabase */
+
 /* ══ R[tmp:magic-link-auth]: Auth modal — Google + Magic link ══ */
 .modal--auth {
   max-width: 340px;
@@ -807,6 +816,9 @@
 }
 
 /* ══ END R[tmp:magic-link-auth] ══ */
+
+/* === locus-tracker.js ===
+   Funciones: openBlindExhaustMode · cancelBlindExhaustMode · confirmBlindExhaust */
 
 /* ══ Bloqueo ciego — agotar IA sin sesión ══ */
 .card-footer-actions-row {
@@ -1065,6 +1077,9 @@
   outline: none;
 }
 
+/* === locus-modals.js ===
+   Funciones: _gconfirmOpen · closeModal · _focusFirstInteractive · _saveModalTrigger */
+
 /* ══ T-202604-164: Modal animations — scale-in/out + backdrop blur + button states ══ */
 
 /* --- Keyframes --- */
@@ -1318,6 +1333,9 @@
 
 /* ══ END T-202604-233 ══ */
 
+/* === locus-toast.js ===
+   Funciones: showToastInline · _hideInline */
+
 /* ══ T-202604-221: Toast inline — anclado al elemento que detona la acción ══ */
 
 /*
@@ -1431,6 +1449,12 @@
 }
 
 /* ══ END T-202604-221 toast inline ══ */
+
+/* === locus-command-palette.js ===
+   Funciones: openCommandPalette · closeCommandPalette · _cpSearch · _cpRenderResults */
+
+/* === locus-ui-shell.js ===
+   Funciones: onSearchDispatch · onSearch */
 
 /* ══ T-202604-293: Unified Search Panel ══ */
 .search-unified-results {
@@ -1552,6 +1576,9 @@
 }
 
 /* ══ END T-202604-293 ══ */
+
+/* === locus-backlog-merge.js ===
+   Funciones: showMergeDiffPanel · _confirmRetroceso · _confirmDiscard */
 
 /* ══ R-202605-096: Toast bloqueante → confirmación inline en panel DIFF ══ */
 
@@ -2444,6 +2471,9 @@
 
 /* sprint-close: R-[pendiente-ID] sprint-close-overlay → locus-sprint-close.css */
 
+/* === locus-checkpoint-capture.js ===
+   Funciones: openQuickCapture · closeQuickCapture · qcSelectWorker · confirmQuickCapture · interruptSession */
+
 /* ══════════════════════════════════════════════════════════
    R-[pendiente-ID]: Quick Capture — modal unificado con stepper
    Prefijo: qc-  |  Archivo: locus-modals.css
@@ -2669,6 +2699,9 @@
 
 /* ══ END R-[pendiente-ID] Quick Capture ══ */
 
+/* === locus-misc-ui.js ===
+   Funciones: openPendPanel · closePendPanel */
+
 /* ══ [pendiente-ID]: Panel de pendientes — overlay + drawer ══ */
 
 .pend-overlay {
@@ -2829,6 +2862,9 @@
 
 /* ══ END A4-b: Modal genérico ══ */
 
+/* === locus-item-editor.js ===
+   Funciones: openItemEditor · closeItemEditor · confirmItemEditor */
+
 /* ══ A4-b: Item Editor — clases standalone (complemento a selectores con ID en locus-tracker.css) ══ */
 
 /* Clases que el Item Editor y Template Picker usan sin el contexto del ID padre.
@@ -2927,6 +2963,9 @@
 }
 
 /* ══ END A4-b: Item Editor standalone ══ */
+
+/* === locus-item-editor.js ===
+   Funciones: openTemplatePicker · closeTemplatePicker · _applyTemplate */
 
 /* ══ A4-b: Template Picker modal ══ */
 
@@ -3068,6 +3107,9 @@
 }
 
 /* ══ END A4-b: Template save panel ══ */
+
+/* === locus-misc-ui.js ===
+   Funciones: openStandaloneCheckpoint · closeStandaloneCheckpoint */
 
 /* ══ A4-b: Standalone CHECKPOINT modal ══ */
 
