@@ -353,7 +353,7 @@ function _trackerRenderMiniHist(aiId) {
     return `<div class="${rowCls}"
         data-sess-id="${s.id}"
         data-ai-id="${s.aiId}"
-        onclick="_trackerMiniHistSelect('${s.id}','${s.aiId}')">
+        onclick="event.stopPropagation();_trackerMiniHistSelect('${s.id}','${s.aiId}')">
       <div class="sess-row-top">
         <span class="sess-row-title" title="${esc(s.title)}">${esc(s.title)}</span>
         ${badgeHtml}
@@ -471,7 +471,7 @@ function _buildCurrentSessionCard(aiId) {
     return `<div class="cscard-row${latestCls}"
         data-sess-id="${s.id}"
         data-ai-id="${s.aiId}"
-        onclick="_trackerMiniHistSelect('${s.id}','${s.aiId}')">
+        onclick="event.stopPropagation();_trackerMiniHistSelect('${s.id}','${s.aiId}')">
       <div class="cscard-row-top">
         <span class="cscard-row-title" title="${esc(s.title)}">${esc(s.title)}</span>
         <span class="cscard-row-date">${isLatest ? dateLabel : ''}</span>
