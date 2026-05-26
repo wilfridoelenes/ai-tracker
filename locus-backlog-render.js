@@ -591,8 +591,17 @@ function renderBacklogList(onRendered) {
   // AC-3 T-202605-118: skip si el item editor está abierto
   const _ieOverlay = document.getElementById('item-editor-overlay');
   if (_ieOverlay && _ieOverlay.offsetParent !== null) { return; }
-  _backlogListDirty = false;
+  // B-202605-083: defer si hay input/textarea activo dentro de backlog-list
   const listEl = document.getElementById('backlog-list');
+  const _ae = document.activeElement;
+  if (listEl && _ae && listEl.contains(_ae) && (_ae.tagName === 'INPUT' || _ae.tagName === 'TEXTAREA')) {
+    _ae.addEventListener('blur', function _deferRender() {
+      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+      renderBacklogList(onRendered);
+    }, { once: true });
+    return;
+  }
+  _backlogListDirty = false;
   _skelShow(listEl, 5);
   const q = backlogSearchQuery;
 
