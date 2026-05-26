@@ -487,6 +487,91 @@ function purgeAllHistorico() {
   });
 }
 
+// R-202605-070: _normalizeItems — función pura que garantiza el contrato de datos de ITEMS
+// antes de que cualquier módulo consuma el array.
+// Absorbe las responsabilidades de _migrateItemTypes y las migraciones inline de loadBacklog().
+// Retorna el array normalizado. No tiene efectos laterales (no escribe en Supabase ni localStorage).
+// Toda corrección aplicada se registra en DocLog via _blogLog con el código del ítem afectado.
+function _normalizeItems(items) {
+  if (!Array.isArray(items)) return [];
+
+  const VALID_STATUSES = new Set(['done', 'pendiente', 'descartado', 'historico']);
+
+  items.forEach(item => {
+    // ── schema_version ────────────────────────────────────────────────────────
+    // Ítems sin campo → versión 0. Migrar a 1 (schema actual).
+    if (item.schema_version === undefined) {
+      item.schema_version = 1;
+      if (typeof _blogLog === 'function') _blogLog('normalize', item.code || '(sin código)', 'schema_version ausente → 1', 'backlog');
+    }
+
+    // ── code ──────────────────────────────────────────────────────────────────
+    // code vacío o ausente: conservar ítem, registrar warning. No asignar código aquí
+    // (los IDs los asigna Locus). Ítems placeholder ([pendiente-ID], [tmp:slug]) son válidos.
+    if (!item.code) {
+      if (typeof _blogLog === 'function') _blogLog('normalize-warn', '(sin código)', 'code ausente — ítem conservado sin modificar', 'backlog');
+    }
+
+    // ── type ──────────────────────────────────────────────────────────────────
+    // Ausente: inferir desde prefijo del code. Default 'T' si no inferible.
+    if (!item.type) {
+      const firstChar = (item.code || '').charAt(0);
+      if ('PTRB'.includes(firstChar)) {
+        item.type = firstChar;
+        if (typeof _blogLog === 'function') _blogLog('normalize', item.code || '(sin código)', `type inferido desde prefijo → ${item.type}`, 'backlog');
+      } else {
+        item.type = 'T';
+        if (typeof _blogLog === 'function') _blogLog('normalize-warn', item.code || '(sin código)', 'type ausente y no inferible → T (default)', 'backlog');
+      }
+    }
+
+    // ── status ────────────────────────────────────────────────────────────────
+    // Ausente o inválido → 'pendiente'. Usa _normalizeStatus si disponible.
+    const rawStatus = item.status;
+    let normalizedStatus;
+    if (typeof _normalizeStatus === 'function') {
+      normalizedStatus = _normalizeStatus(rawStatus);
+    } else {
+      // Fallback inline — misma lógica que _normalizeStatus para los valores canónicos
+      normalizedStatus = VALID_STATUSES.has(rawStatus) ? rawStatus : 'pendiente';
+    }
+    if (item.status !== normalizedStatus) {
+      item.status = normalizedStatus;
+      if (typeof _blogLog === 'function') _blogLog('normalize', item.code || '(sin código)', `status "${rawStatus}" → "${normalizedStatus}"`, 'backlog');
+    }
+
+    // ── title ─────────────────────────────────────────────────────────────────
+    // Ausente → '[sin título]'. Migración desc→title si title está vacío.
+    if (item.desc !== undefined) {
+      if (!item.title || item.title.trim() === '') {
+        item.title = item.desc;
+        if (typeof _blogLog === 'function') _blogLog('normalize', item.code || '(sin código)', 'desc migrado a title', 'backlog');
+      }
+      delete item.desc;
+    }
+    if (!item.title || item.title.trim() === '') {
+      item.title = '[sin título]';
+      if (typeof _blogLog === 'function') _blogLog('normalize-warn', item.code || '(sin código)', 'title ausente → "[sin título]"', 'backlog');
+    }
+
+    // ── id ────────────────────────────────────────────────────────────────────
+    // Ítems importados sin id: asignar id interno (no confundir con code).
+    if (!item.id) {
+      item.id = 'item-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+    }
+
+    // ── history ───────────────────────────────────────────────────────────────
+    if (!item.history) {
+      item.history = [];
+      if (item.statusChangedAt) {
+        item.history.push({ type: 'status', ts: item.statusChangedAt, data: { to: item.status } });
+      }
+    }
+  });
+
+  return items;
+}
+
 function loadBacklog() {
   // R-[pendiente-ID]: Supabase-first — si el usuario está autenticado, delegar a
   // _loadFromSupabase() que implementa lógica timestamp-first en su paso 5.
@@ -505,63 +590,25 @@ function loadBacklog() {
     const s = localStorage.getItem(_tplKey('backlog-items'));
     if (s) { try { ITEMS = JSON.parse(s); } catch { ITEMS = []; } } else { ITEMS = []; }
   }
-  // Migración: normalizar status legacy (⏳ Backlog, in-progress, en-progreso, etc.)
-  // B-202605-006: guardia explícita — _normalizeStatus debe estar disponible antes de continuar
+  // R-202605-070: normalizar contrato de datos antes de cualquier uso downstream.
+  // _normalizeItems absorbe: type, status, title/desc, id, history, schema_version.
+  // Guard: _normalizeStatus debe estar disponible (dependency de _normalizeItems).
   if (typeof _normalizeStatus !== 'function') {
-    console.error('[AI Tracker] loadBacklog: _normalizeStatus no disponible — migración de status abortada. Verificar orden de carga de módulos.');
+    console.error('[AI Tracker] loadBacklog: _normalizeStatus no disponible — normalización abortada. Verificar orden de carga de módulos.');
     if (typeof showToast === 'function') showToast({ title: 'Error de carga', body: '_normalizeStatus no disponible. Recarga la página.', type: 'error' });
     return;
   }
-  let migrated = false;
-  ITEMS.forEach(item => {
-    const norm = _normalizeStatus(item.status);
-    if (item.status !== norm) { item.status = norm; migrated = true; }
-    // Migración: asignar id a ítems importados sin id (parseBacklogMd no los genera)
-    if (!item.id) { item.id = 'item-' + Date.now() + '-' + Math.random().toString(36).slice(2,6); migrated = true; }
-    // R-202604-015: inicializar history[] si no existe
-    if (!item.history) {
-      item.history = [];
-      if (item.statusChangedAt) {
-        item.history.push({ type: 'status', ts: item.statusChangedAt, data: { to: item.status } });
-      }
-      migrated = true;
-    }
-    // B-202604-194: _acReplacedInSession eliminado de items — ahora vive en _acReplacedSet (memoria)
-    // No se necesita delete aquí.
-    // R-202605-135: schema_version — ítems sin campo se tratan como versión 0 y se migran
-    if (item.schema_version === undefined) {
-      item.schema_version = 1;
-      migrated = true;
-    }
-    // B-202605-XXX: type undefined — inferir desde prefijo del código
-    if (!item.type && item.code) {
-      const inferredType = item.code.charAt(0);
-      if ('PTRB'.includes(inferredType)) { item.type = inferredType; migrated = true; }
-    }
-  });
-  // B-202605-061: migración desc→title — 'desc' no es campo canónico del schema v1
-  // Si el ítem tiene desc y title está vacío, copiar desc a title (silencioso)
-  // T-202605-507: delete item.desc en todo ítem con desc definido tras la copia — localStorage queda limpio
-  ITEMS.forEach(item => {
-    if (item.desc !== undefined) {
-      if (!item.title || item.title.trim() === '') {
-        item.title = item.desc;
-      }
-      delete item.desc;
-      migrated = true;
-    }
-  });
-  if (migrated) console.log('[AI Tracker] Status migration: legacy values normalized (historico preserved)');
+  ITEMS = _normalizeItems(ITEMS);
+
   // B-202605-210: sanear pendientes en sprints cerrados (migración retroactiva)
   const sanitized = _sanitizePendingInClosedSprints();
   if (sanitized > 0) {
     console.log(`[AI Tracker] B-202605-210: ${sanitized} ítem(s) pendiente(s) en sprints cerrados → desasignados`);
-    migrated = true;
   }
   _applyAllPriorities(); // T-202604-297: recalcular prioridad automática al cargar
-  _recalcAllScores(); // T-202604-257: estampar score en memoria tras cargar
-  // B-202605-048: saveBacklog() solo si hubo migraciones o saneamiento — carga limpia no escribe
-  if (migrated || sanitized > 0) saveBacklog();
+  _recalcAllScores();    // T-202604-257: estampar score en memoria tras cargar
+  // Guardar siempre tras normalización — _normalizeItems puede haber corregido campos
+  saveBacklog();
   // AC aria tablist: sincronizar estado inicial de atributos aria desde variables de estado
   if (typeof _syncViewAriaStates === 'function') _syncViewAriaStates();
 }
@@ -1768,17 +1815,13 @@ function toggleBacklogNoAcMode() {
 
 // R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente
 
-// B-202605-XXX: _migrateItemTypes — normaliza type en ITEMS post-carga remota
-// Llamada desde _loadFromSupabase en locus-storage.js después de poblar ITEMS
+// B-202605-XXX: _migrateItemTypes — stub de compatibilidad para call site en locus-storage.js
+// R-202605-070: la lógica real fue absorbida por _normalizeItems(). Este stub redirige
+// la llamada post-carga remota de _loadFromSupabase a _normalizeItems para mantener
+// el contrato de datos sin duplicar lógica.
 function _migrateItemTypes() {
   if (typeof ITEMS === 'undefined') return;
-  let migrated = false;
-  ITEMS.forEach(item => {
-    if (!item.type && item.code) {
-      const inferredType = item.code.charAt(0);
-      if ('PTRB'.includes(inferredType)) { item.type = inferredType; migrated = true; }
-    }
-  });
-  if (migrated && typeof saveBacklog === 'function') saveBacklog();
+  ITEMS = _normalizeItems(ITEMS);
+  if (typeof saveBacklog === 'function') saveBacklog();
 }
 window._migrateItemTypes = _migrateItemTypes;
