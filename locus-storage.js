@@ -639,6 +639,7 @@ async function saveBacklog() {
         try {
           localStorage.removeItem('ai-tracker-changelog');
           localStorage.setItem(key, JSON.stringify(items));
+          localStorage.setItem(metaKey, JSON.stringify(meta)); // B-202605-091: persistir meta.updated en path de cleanup
           showToast('warning', '⚠️ Cuota de almacenamiento crítica — se limpió historial');
         } catch (err2) {
           console.error('[AI Tracker] saveBacklog failed after cleanup:', err2);
