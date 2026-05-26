@@ -1290,11 +1290,12 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
             changed = true;
           }
           advanced.push({ code: item.code, desc: existing.title, from: oldStatus, to: newStatus });
-        } else {
+        } else if (newRank < oldRank) {
           // Retroceso: encolar para confirmación — no persistir todavía
           retroceso.push({ code: item.code, desc: existing.title, from: oldStatus, to: newStatus });
           // No tocar existing todavía — se aplica en _confirmRetroceso()
         }
+        // newRank === oldRank: status idéntico al existente — ignorar silenciosamente (B-202605-086)
       }
 
       // --- Resto de campos: entrante gana si trae valor (vacíos no degradan) ---
