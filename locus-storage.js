@@ -822,7 +822,6 @@ function _resetExpired(resetTime, resetEpoch) {
 async function _loadFromSupabase() {
   // AC-9 R-C2: si hay un write local pendiente en debounce, el state local es más reciente
   // que Supabase — cancelar la carga para evitar rollback silencioso del estado volátil.
-  // El state local prevalece hasta la próxima llamada explícita post-flush.
   if (_saveDebounceTimer !== null) return;
 
   const authUser = await (_supabaseReady || Promise.resolve(null));
@@ -833,7 +832,7 @@ async function _loadFromSupabase() {
   try {
     setSyncStatus('syncing', '⟳ sincronizando');
 
-    // ── 1. Cargar state/main ──────────────────────────────────────────────
+    // ── 1. Cargar state/main (secuencial — popula state.projects para batches siguientes) ──
     const { data: stateRows, error: stateErr } = await _supabase
       .from('tracker_state')
       .select('value')
@@ -844,8 +843,6 @@ async function _loadFromSupabase() {
 
     if (stateRows && stateRows.value) {
       const remote = stateRows.value;
-
-      // ── 2+3. Supabase-wins — reemplazar state local completo sin merge ─
       _applyStateData(remote);
       state.ais.forEach(ai => {
         if (ai.status === 'exhausted' && ai.resetTime && _resetExpired(ai.resetTime, ai.resetEpoch)) {
@@ -854,259 +851,243 @@ async function _loadFromSupabase() {
       });
     }
 
-    // ── 4. Cargar sesiones ───────────────────────────────────────────────
-    try {
-      const { data: sessRows, error: sessErr } = await _supabase
+    // ── 2. Batch paralelo: sesiones + backlog + docs (context/htmlmap/plan/tmp-id-map/notes/user-prefs) + drafts ──
+    // Colapsa 6 queries secuenciales a tracker_docs en una sola con .in('key', [...])
+    const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : null;
+    const suffix = projId ? '-' + projId : '-global';
+    const notesKey = projId ? 'notes-' + projId : 'notes-global';
+    const docsKeysToFetch = [
+      'context' + suffix,
+      'htmlmap' + suffix,
+      'plan' + suffix,
+      'tmp-id-map',
+      notesKey,
+      'user-prefs'
+    ];
+
+    const [sessResult, blResult, docsResult, draftsResult] = await Promise.allSettled([
+      // 4. Sesiones
+      _supabase
         .from('tracker_sessions')
         .select('project_id, session_id, data')
-        .eq('user_id', _supabaseUser.id);
-      if (sessErr) throw sessErr;
-      if (sessRows && sessRows.length) {
-        const remoteSessMap = {};
-        sessRows.forEach(row => {
-          if (!remoteSessMap[row.project_id]) remoteSessMap[row.project_id] = [];
-          remoteSessMap[row.project_id].push(row.data);
-        });
-        state.projects.forEach(proj => {
-          const remoteSessions = remoteSessMap[proj.id] || [];
-          if (!remoteSessions.length) return;
-          if (!proj.sessions) proj.sessions = [];
-          const localIds = new Set(proj.sessions.map(s => s.id));
-          remoteSessions.forEach(s => { if (!localIds.has(s.id)) { proj.sessions.push(s); localIds.add(s.id); } });
-        });
-        try { localStorage.setItem('ai-tracker-v4', JSON.stringify(state)); } catch {}
-      }
-    } catch (sessErr) {
-      console.warn('[AI Tracker] Error cargando sesiones desde Supabase:', sessErr);
-    }
+        .eq('user_id', _supabaseUser.id),
 
-    // ── 5. Cargar backlog ────────────────────────────────────────────────
-    try {
-      const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : null;
-      const suffix = projId ? '-' + projId : '-global';
-      const { data: blRows, error: blErr } = await _supabase
+      // 5. Backlog
+      _supabase
         .from('tracker_backlog')
         .select('key, value')
         .eq('user_id', _supabaseUser.id)
-        .in('key', ['items' + suffix, 'meta' + suffix]);
-      if (blErr) throw blErr;
-      if (blRows && blRows.length) {
-        const blMap = Object.fromEntries(blRows.map(r => [r.key, r.value]));
-        const remoteItems = blMap['items' + suffix] || [];
-        const remoteMeta  = blMap['meta'  + suffix] || {};
-        const localMeta   = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
-        const localTs     = localMeta.updated  ? new Date(localMeta.updated).getTime()  : 0;
-        const remoteTs    = remoteMeta.updated ? new Date(remoteMeta.updated).getTime() : 0;
-        // Supabase es fuente de verdad — remoto gana si es más nuevo o local está vacío
-        const _itemsRef = (typeof ITEMS !== 'undefined') ? ITEMS : null;
-        const shouldLoad  = remoteItems.length && (!_itemsRef || _itemsRef.length === 0 || localTs === 0 || remoteTs > localTs);
-        if (shouldLoad && _itemsRef) {
-          // Reemplazar completo — no merge aditivo
-          _itemsRef.length = 0;
-          remoteItems.forEach(ri => _itemsRef.push(ri));
-          // B-202605-XXX: normalizar type post-carga remota — Supabase no tiene el campo
-          if (typeof _migrateItemTypes === 'function') _migrateItemTypes();
-          localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(_itemsRef));
-          localStorage.setItem(_tplKey('backlog-meta'),  JSON.stringify(remoteMeta));
+        .in('key', ['items' + suffix, 'meta' + suffix]),
+
+      // 6 + 6b + 6c + 6e — una sola query para todos los docs
+      _supabase
+        .from('tracker_docs')
+        .select('key, value, updated_at')
+        .eq('user_id', _supabaseUser.id)
+        .in('key', docsKeysToFetch),
+
+      // 6d. Drafts — LIKE no se puede combinar con .in(), va paralelo aparte
+      _supabase
+        .from('tracker_docs')
+        .select('key, value, updated_at')
+        .eq('user_id', _supabaseUser.id)
+        .like('key', 'draft-%')
+    ]);
+
+    // ── 4. Procesar sesiones ─────────────────────────────────────────────
+    try {
+      if (sessResult.status === 'fulfilled' && !sessResult.value.error) {
+        const sessRows = sessResult.value.data;
+        if (sessRows && sessRows.length) {
+          const remoteSessMap = {};
+          sessRows.forEach(row => {
+            if (!remoteSessMap[row.project_id]) remoteSessMap[row.project_id] = [];
+            remoteSessMap[row.project_id].push(row.data);
+          });
+          state.projects.forEach(proj => {
+            const remoteSessions = remoteSessMap[proj.id] || [];
+            if (!remoteSessions.length) return;
+            if (!proj.sessions) proj.sessions = [];
+            const localIds = new Set(proj.sessions.map(s => s.id));
+            remoteSessions.forEach(s => { if (!localIds.has(s.id)) { proj.sessions.push(s); localIds.add(s.id); } });
+          });
+          try { localStorage.setItem('ai-tracker-v4', JSON.stringify(state)); } catch {}
         }
+      } else {
+        console.warn('[AI Tracker] Error cargando sesiones desde Supabase:', sessResult.reason || sessResult.value?.error);
+      }
+    } catch (sessErr) {
+      console.warn('[AI Tracker] Error procesando sesiones:', sessErr);
+    }
+
+    // ── 5. Procesar backlog ──────────────────────────────────────────────
+    try {
+      if (blResult.status === 'fulfilled' && !blResult.value.error) {
+        const blRows = blResult.value.data;
+        if (blRows && blRows.length) {
+          const blMap = Object.fromEntries(blRows.map(r => [r.key, r.value]));
+          const remoteItems = blMap['items' + suffix] || [];
+          const remoteMeta  = blMap['meta'  + suffix] || {};
+          const localMeta   = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
+          const localTs     = localMeta.updated  ? new Date(localMeta.updated).getTime()  : 0;
+          const remoteTs    = remoteMeta.updated ? new Date(remoteMeta.updated).getTime() : 0;
+          const _itemsRef   = (typeof ITEMS !== 'undefined') ? ITEMS : null;
+          const shouldLoad  = remoteItems.length && (!_itemsRef || _itemsRef.length === 0 || localTs === 0 || remoteTs > localTs);
+          if (shouldLoad && _itemsRef) {
+            _itemsRef.length = 0;
+            remoteItems.forEach(ri => _itemsRef.push(ri));
+            if (typeof _migrateItemTypes === 'function') _migrateItemTypes();
+            localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(_itemsRef));
+            localStorage.setItem(_tplKey('backlog-meta'),  JSON.stringify(remoteMeta));
+          }
+        }
+      } else {
+        console.warn('[AI Tracker] Error cargando backlog desde Supabase:', blResult.reason || blResult.value?.error);
       }
     } catch (blErr) {
-      console.warn('[AI Tracker] Error cargando backlog desde Supabase:', blErr);
+      console.warn('[AI Tracker] Error procesando backlog:', blErr);
     }
 
-    // ── 6. Cargar docs vivos (context, htmlmap, plan) — R-202605-120: Supabase es fuente de verdad ──
-    // Patrón idéntico al backlog: Supabase gana si es más nuevo o localStorage vacío
+    // ── 6. Procesar docs vivos (context, htmlmap, plan, tmp-id-map, notes, user-prefs) ──
     try {
-      const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : null;
-      const suffix = projId ? '-' + projId : '-global';
-      const { data: docRows, error: docErr } = await _supabase
-        .from('tracker_docs')
-        .select('key, value, updated_at')
-        .eq('user_id', _supabaseUser.id)
-        .in('key', ['context' + suffix, 'htmlmap' + suffix, 'plan' + suffix]);
-      if (docErr) throw docErr;
-      if (docRows && docRows.length) {
-        const docMap = Object.fromEntries(docRows.map(r => [r.key, r]));
+      if (docsResult.status === 'fulfilled' && !docsResult.value.error) {
+        const docRows = docsResult.value.data;
+        if (docRows && docRows.length) {
+          const docMap = Object.fromEntries(docRows.map(r => [r.key, r]));
 
-        // Helper: aplica doc remoto si Supabase es más nuevo o local está vacío
-        const _applyDocIfNewer = (remoteRow, localRawKey, applyFn) => {
-          if (!remoteRow || !remoteRow.value) return;
-          const localVal  = localStorage.getItem(_tplKey(localRawKey));
-          const remoteTs  = remoteRow.updated_at ? new Date(remoteRow.updated_at).getTime() : 0;
-          const remoteMeta = remoteRow.value.meta;
-          const localMeta  = (() => { try { return JSON.parse(localStorage.getItem(_tplKey(localRawKey + '-meta')) || '{}'); } catch { return {}; } })();
-          const localTs    = localMeta.importedAt ? new Date(localMeta.importedAt).getTime() : 0;
-          const shouldLoad = !localVal || localTs === 0 || remoteTs > localTs;
-          if (shouldLoad) applyFn(remoteRow.value);
-        };
+          const _applyDocIfNewer = (remoteRow, localRawKey, applyFn) => {
+            if (!remoteRow || !remoteRow.value) return;
+            const localVal   = localStorage.getItem(_tplKey(localRawKey));
+            const remoteTs   = remoteRow.updated_at ? new Date(remoteRow.updated_at).getTime() : 0;
+            const localMeta  = (() => { try { return JSON.parse(localStorage.getItem(_tplKey(localRawKey + '-meta')) || '{}'); } catch { return {}; } })();
+            const localTs    = localMeta.importedAt ? new Date(localMeta.importedAt).getTime() : 0;
+            const shouldLoad = !localVal || localTs === 0 || remoteTs > localTs;
+            if (shouldLoad) applyFn(remoteRow.value);
+          };
 
-        // Context
-        _applyDocIfNewer(docMap['context' + suffix], 'context-raw', (ctx) => {
-          if (ctx.raw)      try { localStorage.setItem(_tplKey('context-raw'),      ctx.raw);      } catch {}
-          if (ctx.sections) try { localStorage.setItem(_tplKey('context-sections'), ctx.sections); } catch {}
-          if (ctx.meta)     try { localStorage.setItem(_tplKey('context-meta'),     ctx.meta);     } catch {}
-        });
+          // 6a. Context
+          _applyDocIfNewer(docMap['context' + suffix], 'context-raw', (ctx) => {
+            if (ctx.raw)      try { localStorage.setItem(_tplKey('context-raw'),      ctx.raw);      } catch {}
+            if (ctx.sections) try { localStorage.setItem(_tplKey('context-sections'), ctx.sections); } catch {}
+            if (ctx.meta)     try { localStorage.setItem(_tplKey('context-meta'),     ctx.meta);     } catch {}
+          });
 
-        // HTML-MAP
-        _applyDocIfNewer(docMap['htmlmap' + suffix], 'html-map-raw', (hm) => {
-          if (hm.raw)      try { localStorage.setItem(_tplKey('html-map-raw'),      hm.raw);      } catch {}
-          if (hm.sections) try { localStorage.setItem(_tplKey('html-map-sections'), hm.sections); } catch {}
-          if (hm.meta)     try { localStorage.setItem(_tplKey('html-map-meta'),     hm.meta);     } catch {}
-        });
+          // 6a. HTML-MAP
+          _applyDocIfNewer(docMap['htmlmap' + suffix], 'html-map-raw', (hm) => {
+            if (hm.raw)      try { localStorage.setItem(_tplKey('html-map-raw'),      hm.raw);      } catch {}
+            if (hm.sections) try { localStorage.setItem(_tplKey('html-map-sections'), hm.sections); } catch {}
+            if (hm.meta)     try { localStorage.setItem(_tplKey('html-map-meta'),     hm.meta);     } catch {}
+          });
 
-        // Plan — R-202605-120: plan persiste en Supabase
-        const planRow = docMap['plan' + suffix];
-        if (planRow && planRow.value && planRow.value.data) {
-          const localPlanRaw = projId ? localStorage.getItem('ai-tracker-plan-' + projId) : null;
-          const remoteTs     = planRow.updated_at ? new Date(planRow.updated_at).getTime() : 0;
-          const localTs      = (() => { try { const p = JSON.parse(localPlanRaw || 'null'); return p && p._savedAt ? p._savedAt : 0; } catch { return 0; } })();
-          if (!localPlanRaw || localTs === 0 || remoteTs > localTs) {
-            const planKey = projId ? 'ai-tracker-plan-' + projId : null;
-            if (planKey) try { localStorage.setItem(planKey, JSON.stringify(planRow.value.data)); } catch {}
+          // 6a. Plan
+          const planRow = docMap['plan' + suffix];
+          if (planRow && planRow.value && planRow.value.data) {
+            const localPlanRaw = projId ? localStorage.getItem('ai-tracker-plan-' + projId) : null;
+            const remoteTs     = planRow.updated_at ? new Date(planRow.updated_at).getTime() : 0;
+            const localTs      = (() => { try { const p = JSON.parse(localPlanRaw || 'null'); return p && p._savedAt ? p._savedAt : 0; } catch { return 0; } })();
+            if (!localPlanRaw || localTs === 0 || remoteTs > localTs) {
+              const planKey = projId ? 'ai-tracker-plan-' + projId : null;
+              if (planKey) try { localStorage.setItem(planKey, JSON.stringify(planRow.value.data)); } catch {}
+            }
+          }
+
+          // 6b. tmp-id-map
+          const mapRow = docMap['tmp-id-map'];
+          if (mapRow) {
+            const remoteTs  = mapRow.updated_at ? new Date(mapRow.updated_at).getTime() : 0;
+            const localRaw  = localStorage.getItem('tmp-id-map');
+            if (!localRaw || remoteTs > 0) {
+              const localMap   = (() => { try { return JSON.parse(localRaw || '{}'); } catch { return {}; } })();
+              const localMaxTs = Object.values(localMap).reduce((m, v) => Math.max(m, v.createdAt || 0), 0);
+              if (!localRaw || remoteTs > localMaxTs) {
+                const merged = { ...localMap, ...(mapRow.value && mapRow.value.map ? mapRow.value.map : {}) };
+                try { localStorage.setItem('tmp-id-map', JSON.stringify(merged)); } catch {}
+              }
+            }
+          }
+
+          // 6c. Notas de proyecto
+          const noteRow    = docMap[notesKey];
+          const localNoteKey = projId ? 'notes-' + projId : 'notes';
+          if (noteRow) {
+            const remoteNotes = noteRow.value && Array.isArray(noteRow.value.notes) ? noteRow.value.notes : null;
+            if (remoteNotes) {
+              const remoteTs   = noteRow.updated_at ? new Date(noteRow.updated_at).getTime() : 0;
+              const localRaw   = localStorage.getItem(localNoteKey);
+              const localNotes = (() => { try { return JSON.parse(localRaw || '[]'); } catch { return []; } })();
+              const shouldLoad = !localRaw || localNotes.length === 0 || remoteTs > 0;
+              if (shouldLoad && remoteNotes.length > 0) {
+                try { localStorage.setItem(localNoteKey, JSON.stringify(remoteNotes)); } catch {}
+              }
+            }
+          }
+
+          // 6e. Preferencias de usuario
+          const prefsRow = docMap['user-prefs'];
+          if (prefsRow && prefsRow.value) {
+            const prefs    = prefsRow.value;
+            const remoteTs = prefsRow.updated_at ? new Date(prefsRow.updated_at).getTime() : 0;
+            const localTs  = (() => { try { return new Date(localStorage.getItem(_USER_PREFS_TS_KEY) || 0).getTime(); } catch { return 0; } })();
+            if (remoteTs > localTs) {
+              if (prefs.shortcuts && typeof prefs.shortcuts === 'object') {
+                try { localStorage.setItem(_SHORTCUTS_KEY, JSON.stringify(prefs.shortcuts)); } catch {}
+              }
+              if (prefs.templateTrigger) {
+                try { localStorage.setItem(_TPL_TRIGGER_KEY, prefs.templateTrigger); _updateAutoDownloadLabel(); } catch {}
+              }
+              if (prefs.onboardingSeen) {
+                try { localStorage.setItem('onboarding-seen', '1'); } catch {}
+              }
+              try { localStorage.setItem(_USER_PREFS_TS_KEY, prefsRow.updated_at || new Date().toISOString()); } catch {}
+            }
           }
         }
+      } else {
+        console.warn('[AI Tracker] Error cargando docs desde Supabase:', docsResult.reason || docsResult.value?.error);
       }
     } catch (docsErr) {
-      console.warn('[AI Tracker] Error cargando docs desde Supabase:', docsErr);
+      console.warn('[AI Tracker] Error procesando docs:', docsErr);
     }
 
-    // ── 6b. tmp-id-map — R-1 ─────────────────────────────────────────────
+    // ── 6d. Procesar drafts ──────────────────────────────────────────────
     try {
-      const { data: mapRows } = await _supabase
-        .from('tracker_docs')
-        .select('key, value, updated_at')
-        .eq('user_id', _supabaseUser.id)
-        .eq('key', 'tmp-id-map');
-      if (mapRows && mapRows.length) {
-        const remoteRow = mapRows[0];
-        const remoteTs  = remoteRow.updated_at ? new Date(remoteRow.updated_at).getTime() : 0;
-        const localRaw  = localStorage.getItem('tmp-id-map');
-        // Supabase gana si local está vacío o remoto es más reciente
-        if (!localRaw || remoteTs > 0) {
-          const localMap  = (() => { try { return JSON.parse(localRaw || '{}'); } catch { return {}; } })();
-          // Comparar por cantidad de entradas + timestamp de la entrada más reciente
-          const localMaxTs = Object.values(localMap).reduce((m, v) => Math.max(m, v.createdAt || 0), 0);
-          if (!localRaw || remoteTs > localMaxTs) {
-            const merged = { ...localMap, ...(remoteRow.value && remoteRow.value.map ? remoteRow.value.map : {}) };
-            try { localStorage.setItem('tmp-id-map', JSON.stringify(merged)); } catch(_) {}
-          }
-        }
-      }
-    } catch (mapErr) {
-      console.warn('[AI Tracker] Error cargando tmp-id-map desde Supabase:', mapErr);
-    }
-
-    // ── 6c. Notas de proyecto — R-2 ──────────────────────────────────────
-    try {
-      const projId  = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : null;
-      const sbKey   = projId ? 'notes-' + projId : 'notes-global';
-      const localKey = projId ? 'notes-' + projId : 'notes';
-      const { data: noteRows } = await _supabase
-        .from('tracker_docs')
-        .select('key, value, updated_at')
-        .eq('user_id', _supabaseUser.id)
-        .eq('key', sbKey);
-      if (noteRows && noteRows.length) {
-        const remoteRow   = noteRows[0];
-        const remoteNotes = remoteRow.value && Array.isArray(remoteRow.value.notes) ? remoteRow.value.notes : null;
-        if (remoteNotes) {
-          const remoteTs  = remoteRow.updated_at ? new Date(remoteRow.updated_at).getTime() : 0;
-          const localRaw  = localStorage.getItem(localKey);
-          const localNotes = (() => { try { return JSON.parse(localRaw || '[]'); } catch { return []; } })();
-          // Solo aplicar si local está vacío o Supabase es más reciente
-          const shouldLoad = !localRaw || localNotes.length === 0 || remoteTs > 0;
-          if (shouldLoad && remoteNotes.length > 0) {
-            try { localStorage.setItem(localKey, JSON.stringify(remoteNotes)); } catch(_) {}
-          }
-        }
-      }
-    } catch (notesErr) {
-      console.warn('[AI Tracker] Error cargando notas desde Supabase:', notesErr);
-    }
-
-    // ── 6d. Borradores de CHECKPOINT — R-3 ───────────────────────────────
-    try {
-      const { data: draftRows } = await _supabase
-        .from('tracker_docs')
-        .select('key, value, updated_at')
-        .eq('user_id', _supabaseUser.id)
-        .like('key', 'draft-%');
-      if (draftRows && draftRows.length) {
-        for (const row of draftRows) {
-          if (!row.value || !row.value.text) continue;
-          // Extraer aiId de la key 'draft-{aiId}'
-          const aiId = row.key.replace(/^draft-/, '');
-          // Verificar que la AI existe en el state local
-          const aiExists = (state.ais || []).some(a => a.id === aiId);
-          if (!aiExists) continue;
-          const remoteTs  = row.updated_at ? new Date(row.updated_at).getTime() : 0;
-          const localRaw  = localStorage.getItem('draft-' + aiId);
-          // AC-1: sin draft local → aplicar remoto sin condición adicional
-          // AC-2: con draft local → aplicar solo si remoto es estrictamente más reciente
-          // AC-4: remoteTs === 0 (updated_at nulo/inválido) → no aplicar, local gana
-          if (!localRaw) {
-            if (remoteTs > 0) {
-              try { localStorage.setItem('draft-' + aiId, row.value.text); } catch(_) {}
-              // AC-7: dot visual solo cuando el draft efectivamente se aplica
-              const dot = document.getElementById('draft-' + aiId);
-              if (dot) dot.className = 'draft-dot visible';
-            }
-          } else {
-            // AC-6: localTs-ts no parseable → tratar como 0 (remoto gana si remoteTs > 0)
-            const localTsRaw = localStorage.getItem('draft-' + aiId + '-ts');
-            const localTs    = localTsRaw ? (Number(localTsRaw) || 0) : 0;
-            // AC-2 + AC-3: remoto solo gana si es estrictamente más reciente
-            if (remoteTs > 0 && remoteTs > localTs) {
-              try { localStorage.setItem('draft-' + aiId, row.value.text); } catch(_) {}
-              // AC-7: dot visual solo cuando el draft efectivamente se aplica
-              const dot = document.getElementById('draft-' + aiId);
-              if (dot) dot.className = 'draft-dot visible';
+      if (draftsResult.status === 'fulfilled' && !draftsResult.value.error) {
+        const draftRows = draftsResult.value.data;
+        if (draftRows && draftRows.length) {
+          for (const row of draftRows) {
+            if (!row.value || !row.value.text) continue;
+            const aiId    = row.key.replace(/^draft-/, '');
+            const aiExists = (state.ais || []).some(a => a.id === aiId);
+            if (!aiExists) continue;
+            const remoteTs = row.updated_at ? new Date(row.updated_at).getTime() : 0;
+            const localRaw = localStorage.getItem('draft-' + aiId);
+            if (!localRaw) {
+              if (remoteTs > 0) {
+                try { localStorage.setItem('draft-' + aiId, row.value.text); } catch {}
+                const dot = document.getElementById('draft-' + aiId);
+                if (dot) dot.className = 'draft-dot visible';
+              }
+            } else {
+              const localTsRaw = localStorage.getItem('draft-' + aiId + '-ts');
+              const localTs    = localTsRaw ? (Number(localTsRaw) || 0) : 0;
+              if (remoteTs > 0 && remoteTs > localTs) {
+                try { localStorage.setItem('draft-' + aiId, row.value.text); } catch {}
+                const dot = document.getElementById('draft-' + aiId);
+                if (dot) dot.className = 'draft-dot visible';
+              }
             }
           }
         }
+      } else {
+        console.warn('[AI Tracker] Error cargando borradores desde Supabase:', draftsResult.reason || draftsResult.value?.error);
       }
     } catch (draftErr) {
-      console.warn('[AI Tracker] Error cargando borradores desde Supabase:', draftErr);
+      console.warn('[AI Tracker] Error procesando borradores:', draftErr);
     }
 
-    // ── 6e. Preferencias de usuario — R-4 ────────────────────────────────
-    try {
-      const { data: prefsRows } = await _supabase
-        .from('tracker_docs')
-        .select('key, value, updated_at')
-        .eq('user_id', _supabaseUser.id)
-        .eq('key', 'user-prefs');
-      if (prefsRows && prefsRows.length) {
-        const remoteRow = prefsRows[0];
-        const prefs     = remoteRow.value;
-        if (prefs) {
-          const remoteTs = remoteRow.updated_at ? new Date(remoteRow.updated_at).getTime() : 0;
-          const localTs  = (() => { try { return new Date(localStorage.getItem(_USER_PREFS_TS_KEY) || 0).getTime(); } catch { return 0; } })();
-          if (remoteTs > localTs) {
-            // Shortcuts
-            if (prefs.shortcuts && typeof prefs.shortcuts === 'object') {
-              try { localStorage.setItem(_SHORTCUTS_KEY, JSON.stringify(prefs.shortcuts)); } catch(_) {}
-            }
-            // Template trigger
-            if (prefs.templateTrigger) {
-              try { localStorage.setItem(_TPL_TRIGGER_KEY, prefs.templateTrigger); _updateAutoDownloadLabel(); } catch(_) {}
-            }
-            // Onboarding
-            if (prefs.onboardingSeen) {
-              try { localStorage.setItem('onboarding-seen', '1'); } catch(_) {}
-            }
-            // Marcar timestamp local
-            try { localStorage.setItem(_USER_PREFS_TS_KEY, remoteRow.updated_at || new Date().toISOString()); } catch(_) {}
-          }
-        }
-      }
-    } catch (prefsErr) {
-      console.warn('[AI Tracker] Error cargando preferencias desde Supabase:', prefsErr);
-    }
     if (typeof render === 'function') render();
     if (typeof renderHoy === 'function') renderHoy();
     if (typeof updateStats === 'function') updateStats();
-    // T-202605-118: marcar dirty antes de render
     if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
     if (typeof _markStatusBarDirty === 'function') _markStatusBarDirty();
     if (typeof renderBacklogList === 'function') renderBacklogList();

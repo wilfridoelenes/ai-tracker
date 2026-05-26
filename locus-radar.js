@@ -1,5 +1,5 @@
 // locus-radar.js
-// Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez
+// Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
 //
 // Dependencias cross-módulo (resueltas en runtime via guards typeof):
@@ -24,9 +24,10 @@ function _fmtNotifTs(ts) {
 // ── NOTIFICACIONES ────────────────────────────────────────────────────────────
 
 // R-202605-119: _renderNotifSection — empty state + historial + panel config colapsable al pie
-function _renderNotifSection() {
-  const all    = _computeNotifications();
-  const read   = _notifReadSet();
+// Perf: acepta allNotifs y readSet pre-calculados desde renderGlobalRadarSidebar — evita tercer call a _computeNotifications por render
+function _renderNotifSection(allNotifs, readSet) {
+  const all    = allNotifs || _computeNotifications();
+  const read   = readSet   || _notifReadSet();
   const unseen = all.filter(function(n) { return !read.has(n.id); });
 
   _registerNotifActions(all);
@@ -376,8 +377,8 @@ function renderGlobalRadarSidebar() {
   const unseenCount = _allNotifs.filter(n => !_readSet.has(n.id)).length;
 
   // Notificaciones — oculto cuando count = 0
-  // B mayor: _renderNotifSection solo cuando hay unseen
-  let html = unseenCount ? _renderNotifSection() : '';
+  // B mayor: _renderNotifSection solo cuando hay unseen — pasa params pre-calculados (AC-4)
+  let html = unseenCount ? _renderNotifSection(_allNotifs, _readSet) : '';
 
   if (!active.length) {
     html += `<div class="rsb-empty-state">
