@@ -754,9 +754,19 @@ function _confirmRetroceso(code, toStatus) {
       _undoSnapshot();
       saveBacklog();
       _setBacklogModified();
-      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
-      renderBacklogList(); updateBacklogBanner(); renderStats();
       showToast('info', '↓ ' + code + ' → ' + toStatus);
+      // Animación de salida — mismo patrón que _confirmDiscard
+      const _retEl = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
+      if (_retEl) {
+        _retEl.classList.add('item-exit-anim');
+        setTimeout(() => {
+          if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+          renderBacklogList(); updateBacklogBanner(); renderStats();
+        }, 230);
+      } else {
+        if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+        renderBacklogList(); updateBacklogBanner(); renderStats();
+      }
       // Disparar descarga diferida si no quedan retrocesos ni descartes pendientes
       if (window._pendingTemplateDownload) {
         const panel = document.getElementById('ckpt-panel-body');
@@ -851,6 +861,9 @@ function _applyDiscardBatch(items) {
   _undoSnapshot();
   saveBacklog();
   _setBacklogModified();
+  // item-exit-anim no aplica en batch — múltiples nodos simultáneos generan race condition con setTimeout
+  // _markBacklogListDirty antes de re-render para consistencia con _confirmDiscard
+  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
   renderBacklogList(); updateBacklogBanner(); renderStats();
   showToast('info', '🗑 ' + applied + ' ítem' + (applied > 1 ? 's descartados' : ' descartado'));
   // Quitar sección de descartes del panel si ya no hay pendientes

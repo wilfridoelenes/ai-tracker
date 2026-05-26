@@ -1157,6 +1157,15 @@
 }
 
 /* --- Estado closing: animación de salida --- */
+/* T-202605-126: status-confirm-overlay — ocultamiento por defecto + estado .open */
+.status-confirm-overlay {
+  display: none;
+}
+.status-confirm-overlay.open {
+  display: flex;
+}
+/* END T-202605-126 */
+
 .modal-overlay.closing,
 .gconfirm-overlay.closing,
 .purge-modal-overlay.closing,
