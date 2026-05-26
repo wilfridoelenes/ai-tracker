@@ -1144,14 +1144,10 @@ window.addEventListener('load', function() {
     };
   }
 
-  // Cerrar log card al navegar a una IA
-  const _origNav = typeof navigateToCard === 'function' ? navigateToCard : null;
-  if (_origNav) {
-    window.navigateToCard = function() {
-      closeLogCard();
-      _origNav.apply(this, arguments);
-    };
-  }
+  // B-202605-002: patch de navigateToCard eliminado.
+  // El patch causaba render() como efecto secundario (via switchTab) que destruía
+  // el DOM del preview al cambiar de IA. closeLogCard() se dispara desde
+  // selectTrackerAI() en locus-tracker.js — no se necesita interceptar aquí.
 
   // ESC para cerrar log card
   document.addEventListener('keydown', function(e) {

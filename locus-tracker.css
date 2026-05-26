@@ -6831,6 +6831,13 @@ body.radar-sb-open .tracker-sidebar {
 
 /* ══ A4-b: Tracker — clases faltantes ══ */
 
+/* B-202605-003: .d-flex — usada por openDetail() en locus-session-popup.js
+   para activar el layout flex en #tracker-preview-inner al abrir el preview.
+   Sin esta clase el panel no distribuye header/body/footer correctamente. */
+.d-flex {
+  display: flex;
+}
+
 /* Tab individual en #tracker-col-tabs — visible en mobile (<900px)
    .tracker-col-tabs (contenedor) ya existe en este archivo */
 .tracker-col-tab {
@@ -7404,21 +7411,12 @@ body.radar-sb-open .tracker-sidebar {
 
 /* §2E — Tabs / Layout */
 
-/* #tab-tracker.preview-open .tracker-3col */
-#tab-tracker.preview-open .tracker-3col {
-  grid-template-columns: 1fr;
-}
-
-/* #tab-tracker.preview-open .tracker-preview */
-#tab-tracker.preview-open .tracker-preview {
-  width: 100%;
-  min-width: 340px;
-  position: absolute;
-  inset: 0;
-  z-index: var(--z-float-sm);
-  height: 100%;
-  border-left: none;
-}
+/* B-202605-004: reglas duplicadas eliminadas.
+   #tab-tracker.preview-open .tracker-3col con grid-template-columns:1fr
+   sobreescribía la regla canónica (30fr 40fr 30fr) en R-202604-059.
+   #tab-tracker.preview-open .tracker-preview con position:absolute
+   colapsaba el grid a una columna destruyendo el layout de 3 columnas.
+   La regla canónica en ══ R-202604-059 ══ es la única fuente de verdad. */
 
 /* .tracker-detail-empty */
 .tracker-detail-empty {
