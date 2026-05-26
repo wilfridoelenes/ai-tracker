@@ -2224,3 +2224,188 @@ header {
    El bloque de overrides usaba position: absolute + var(--z-dropdown) — superado. */
 
 /* #pepe-splash .splash-name omitido — ya existe en locus-layout.css L1788 (duplicado puro). */
+
+
+/* ══ Migrado desde locus-backlog.css — R-202605-068 ══ */
+/* Scope: microinteracciones globales — botones, inputs, chips, drag handles, focus mode */
+/* Fuente canónica: locus-layout.css (R-202605-179 Sesión 1 + Sesión 2) */
+
+/* ══ R-202605-179: Normalización de microinteracciones — Sesión 1 ══ */
+
+/*
+  Token base: --transition-base: 150ms ease (declarado en :root de ai-tracker.css)
+  Scope sesión 1: botones, inputs/selects, chips/pills
+  La regla global :focus-visible (línea 903) cubre outline base para teclado.
+  Aquí se normaliza: transición consistente, :active con scale, :focus-visible
+  explícito donde el componente sobreescribe el global o necesita override.
+  Nota: :focus-visible protege la accesibilidad de teclado sin afectar mouse.
+  .btn-primary — base y todos sus estados en locus-layout.css (fuente canónica)
+*/
+
+.btn-ghost:active {
+  transform: scale(0.97);
+}
+
+.btn-ghost:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Botón danger / danger-ghost ── */
+.btn-danger:active,
+.btn-danger-ghost:active {
+  transform: scale(0.97);
+}
+
+.btn-danger:focus-visible,
+.btn-danger-ghost:focus-visible {
+  outline: 2px solid var(--red);
+  outline-offset: 2px;
+}
+
+/* ── Botones icono (sin label) ── */
+
+/* Cubre: toast-dismiss, tsb-log-btn, card-notes-save/cancel, proy2-btn, etc. */
+.toast-dismiss:active,
+.tsb-log-btn:active,
+.card-notes-save:active,
+.card-notes-cancel:active,
+.empty-state-btn:active {
+  transform: scale(0.95);
+}
+
+.toast-dismiss:focus-visible,
+.tsb-log-btn:focus-visible,
+.card-notes-save:focus-visible,
+.card-notes-cancel:focus-visible,
+.empty-state-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── Inputs y textarea ── */
+
+/* Hover: border color shift. Focus: cubierto por reglas específicas existentes. */
+
+/* Normalizamos transición a --transition-base para consistencia. */
+input:not([type="checkbox"], [type="radio"]),
+textarea,
+select {
+  transition:
+    border-color var(--transition-base),
+    background-color var(--transition-base),
+    color var(--transition-base),
+    box-shadow var(--transition-base);
+}
+
+input:not([type="checkbox"], [type="radio"]):hover,
+textarea:hover {
+  border-color: var(--border2);
+}
+
+/* :focus ya cubierto por reglas específicas de componente — no override global aquí */
+
+/* ── Chips / pills de filtro ── */
+
+/* hmfilter-pill, log-chip, card-proj-chip y similares */
+.hmfilter-pill:active,
+.log-chip:active,
+.card-proj-chip:active {
+  transform: scale(0.97);
+}
+
+.hmfilter-pill:focus-visible,
+.log-chip:focus-visible,
+.card-proj-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── sync-pill ── */
+
+/* END R-202605-179 Sesión 1 */
+
+/* ══ R-202605-179: Normalización de microinteracciones — Sesión 2 ══ */
+
+/*
+  Scope: ítems de lista/backlog · cards de proyecto/AI ·
+         tabs de navegación · drag handles · componentes auxiliares
+  Token --transition-base: 150ms ease declarado en :root (Sesión 1).
+  La regla global :focus-visible (línea 903) cubre outline base;
+  aquí se agrega :focus-visible explícito en componentes que necesitan
+  color de acento en lugar del outline genérico.
+  No se introduce style= inline. Todas las transiciones viven en CSS.
+*/
+
+/* ── .item — filas del backlog ── */
+
+/* Normaliza desde: box-shadow 0.15s var(--ease-out), border-color 0.15s var(--ease-out), transform 0.1s */
+
+.item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── .tab-btn:focus-visible — movido a locus-layout.css (fuente canónica) ── */
+
+.item-drag-handle:active {
+  cursor: grabbing;
+}
+
+.item-drag-handle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ── .card-drag-handle — drag handle de cards ── */
+.card-drag-handle {
+  font-size: var(--text-sm);
+  opacity: 0;
+  cursor: grab;
+  color: var(--hint);
+  transition: opacity 0.1s;
+  padding: 0 3px;
+  flex-shrink: 0;
+}
+
+.focus-exit-btn {
+  display: none;
+  font-size: var(--text-2xs-plus);
+  font-weight: 500;
+  color: var(--hint);
+  background: none;
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-xs);
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: var(--trans-fast);
+  font-family: var(--mono);
+  flex-shrink: 0;
+}
+
+.focus-exit-btn:hover {
+  color: var(--text2);
+  border-color: var(--accent-border);
+}
+
+.card.focus-active .focus-exit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* R-202605-165: Focus Mode — colapso visual de ítems fuera del Top-10 */
+.blf-hidden {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-width: 0;
+  pointer-events: none;
+  transition: max-height 150ms ease-out, opacity 150ms ease-out, margin 150ms ease-out, padding 150ms ease-out;
+}
+
+/* END R-202605-179 Sesión 2 */

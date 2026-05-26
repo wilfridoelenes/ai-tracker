@@ -3861,3 +3861,152 @@
   border-radius: var(--radius-pill);
   white-space: nowrap;
 }
+
+
+/* ══ Migrado desde locus-backlog.css — R-202605-068 ══ */
+/* Scope: sesiones de proyecto y analytics por proyecto (pertenecen a locus-proyectos.css) */
+
+.proj-sess-row {
+  display: grid; grid-template-columns: 80px 1fr auto;
+  align-items: center; gap: 10px;
+  padding: 7px 10px; border-radius: var(--radius-md); cursor: pointer;
+  border: 1px solid transparent; transition: background 0.1s var(--ease-out);
+}
+
+.proj-sess-row:hover {
+  background: var(--surface2);
+  border-color: var(--border);
+}
+
+.proj-sess-ai {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.proj-sess-title {
+  font-size: var(--text-xs);
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.proj-sess-date {
+  font-family: var(--mono);
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  white-space: nowrap;
+}
+
+/* T-079: Analytics por proyecto */
+.proj-analytics-toggle {
+  display: flex; align-items: center; gap: 6px;
+  background: none; border: 1px solid var(--border); border-radius: var(--radius-md);
+  padding: 4px 12px; font-size: var(--text-xs); color: var(--text2); cursor: pointer;
+  transition: var(--trans-fast); margin: 0 auto;
+}
+
+.proj-analytics-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.proj-analytics-section {
+  max-width: 800px; margin: 0 auto; padding: 0 1.5rem 1rem;
+  display: none; flex-direction: column; gap: 1rem;
+}
+
+.proj-analytics-section.open {
+  display: flex;
+}
+
+.proj-analytics-block {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 1rem 1.2rem;
+}
+
+.proj-analytics-block--flex {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.proj-analytics-block-title {
+  font-size: var(--text-xs); font-weight: 600; color: var(--text2);
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.6rem;
+}
+
+.proj-analytics-range-label {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  font-weight: 400;
+}
+
+.proj-analytics-bars-row {
+  display: flex;
+  gap: 6px;
+  align-items: flex-end;
+  height: 90px;
+  padding: 4px 0;
+}
+
+.proj-ai-rank-row {
+  display: flex; align-items: center; gap: 8px; padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.proj-ai-rank-row:last-child {
+  border-bottom: none;
+}
+
+.proj-ai-rank-name {
+  font-size: var(--text-sm);
+  color: var(--text);
+  flex: 1;
+}
+
+.proj-ai-rank-bar-wrap {
+  width: 100px;
+  height: 6px;
+  background: var(--surface3);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.proj-ai-rank-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: var(--radius-sm);
+  transition: width 0.3s;
+}
+
+.proj-ai-rank-count {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  font-family: var(--mono);
+  min-width: 28px;
+  text-align: right;
+}
+
+.proj-racha-value {
+  font-size: var(--text-display-lg);
+  font-weight: 700;
+  color: var(--accent);
+  font-family: var(--mono);
+}
+
+.proj-racha-label {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  margin-top: 2px;
+}
+
+.proj-analytics-export-row {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
