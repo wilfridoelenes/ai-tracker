@@ -446,6 +446,29 @@ function _showProjMismatchModal({ msg, onContinue }) {
   }
 }
 
+// T-202605-120: construye una versión enriquecida de tgItems para visualización en el panel diff.
+// Para cada patchItem, busca el ítem real en ITEMS global y genera un objeto con los campos
+// del patch aplicados encima — permite que el panel muestre qué ítems serán actualizados
+// sin aplicar los cambios reales (eso ocurre en el callback vía applyPatchesFromTG).
+// Los patchItems que no tienen código real en ITEMS se omiten silenciosamente.
+function _buildPatchTgItems(patchItems, existingTgItems) {
+  if (!patchItems || !patchItems.length) return existingTgItems || [];
+  const base = (existingTgItems || []).slice();
+  if (typeof ITEMS === 'undefined' || !Array.isArray(ITEMS)) return base;
+  const existingCodes = new Set(base.map(x => x.code));
+  patchItems.forEach(patch => {
+    if (!patch.code || /^\[/.test(patch.code)) return; // ignorar placeholders
+    if (existingCodes.has(patch.code)) return; // ya está en tgItems — no duplicar
+    const real = ITEMS.find(x => x.code === patch.code);
+    if (!real) return;
+    // Construir representación visual: ítem real con campos del patch aplicados
+    const synthetic = Object.assign({}, real);
+    Object.keys(patch).forEach(k => { if (k !== 'type' && k !== 'code') synthetic[k] = patch[k]; });
+    base.push(synthetic);
+  });
+  return base;
+}
+
 // B-202604-116: merge de backlog apuntando al proyecto del card, no al filtro global activo.
 // Sobrescribe temporalmente current-project-filter + recarga ITEMS del proyecto destino,
 // ejecuta el merge, y restaura el estado anterior (filtro + ITEMS del proyecto original).
@@ -583,8 +606,12 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
         if (typeof window._stopSessionTimer === 'function') ts.durationMs = window._stopSessionTimer(id) || 0;
         // G-04: card-flash + btn--saved + _setPhase(3) confirman inline — toast redundante eliminado.
       };
-      if (typeof showMergeDiffPanel === 'function' && tgItems.length) {
-        showMergeDiffPanel(tgItems, ts.id, activeProj.id, _doCompleteFinish);
+      // T-202605-120: enriquecer tgItems con representaciones de patches para visualización en el panel.
+      // patchItems se aplican realmente dentro de _doCompleteFinish — aquí solo se pre-visualizan.
+      const _patchItemsC = parsed.patchItems || [];
+      const _tgItemsForPanel = _buildPatchTgItems(_patchItemsC, tgItems);
+      if (typeof showMergeDiffPanel === 'function' && _tgItemsForPanel.length) {
+        showMergeDiffPanel(_tgItemsForPanel, ts.id, activeProj.id, _doCompleteFinish);
       } else {
         _doCompleteFinish();
       }
@@ -631,12 +658,16 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // T-202604-121: recoger resultado detallado para super toast
   // B-202604-116: usar proyecto del card, no filtro global activo
   // T-202604-201: panel de confirmación diff antes de aplicar el merge
-  if (typeof showMergeDiffPanel === 'function' && tgItems.length) {
+  // T-202605-120: enriquecer tgItems con representaciones de patches para visualización en el panel.
+  // patchItems se aplican realmente dentro de _doApplyMergeAndFinish — aquí solo se pre-visualizan.
+  const _patchItemsN = parsed.patchItems || [];
+  const _tgItemsForPanel = _buildPatchTgItems(_patchItemsN, tgItems);
+  if (typeof showMergeDiffPanel === 'function' && _tgItemsForPanel.length) {
     // B-202605-NNN: cancelar timer Supabase de draft antes de abrir el panel diff.
     // Si el usuario tarda >3s en confirmar, el timer se dispara y hace upsert del draft.
     // Ese upsert puede llegar por realtime DESPUÉS del delete post-confirm → restoreDrafts restaura el textarea.
     clearTimeout(window['_draftSbTimer_' + id]);
-    showMergeDiffPanel(tgItems, sessId, activeProj.id, () => {
+    showMergeDiffPanel(_tgItemsForPanel, sessId, activeProj.id, () => {
       _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, sessId, tgItems, newSess);
     });
     return;
