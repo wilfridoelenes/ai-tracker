@@ -632,6 +632,7 @@ async function saveBacklog() {
   if (!_supabase || !_supabaseUser) {
     try {
       localStorage.setItem(key, JSON.stringify(items));
+      localStorage.setItem(metaKey, JSON.stringify(meta)); // B-202605-089: persistir meta.updated en localStorage
     } catch (err) {
       if (err.name === 'QuotaExceededError') {
         console.error('[AI Tracker] localStorage quota exceeded, attempting cleanup...');
