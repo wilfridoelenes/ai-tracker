@@ -6,25 +6,46 @@
 
 // ── VARIABLES DE MÓDULO ───────────────────────────────────────────────────────
 
-// R-202604-086: versión efectiva — localStorage override prevalece sobre APP_VERSION.
-// Se escribe desde _mgApplyBumpedVersion() en ai-tracker-map-generator.js al confirmar el generador.
-// APP_VERSION es el fallback de primer arranque; el generador es la fuente de verdad post-bump.
-const _APP_VERSION_KEY = 'app-version-override';
-// B-202605-263: función getter — lee localStorage en cada invocación para reflejar bumps post-carga
-// B-202605-XXX: sprint activo con version_target declarado tiene prioridad sobre localStorage
-// Jerarquía: sprint activo version_target > app-version-override (localStorage) > APP_VERSION
+// R-202605-002: claves localStorage centralizadas — fuente canónica para todos los módulos
+const LOCUS_KEYS = {
+  STATE:            'locus-state-v1',
+  OFFLINE_QUEUE:    'locus-offline-queue',
+  CHANGELOG:        'locus-changelog',
+  PLAN_PREFIX:      'locus-plan-',
+  NOTIF_HISTORY:    'locus-notif-history',
+  LOG_FILTERS:      'locus-log-filters',
+  DRAFT_PREFIX:     'locus-draft-',
+  THEME:            'theme',
+  TMP_ID_MAP:       'tmp-id-map',
+  SHORTCUTS:        'user-shortcuts',
+  USER_PREFS_TS:    'user-prefs-ts',
+  PULSO:            'locus-pulso',
+  TPL_TRIGGER:      'locus-tpl-trigger',
+};
+
+// R-202605-002: strings canónicos de proyecto — fuente única de verdad
+const CANONICAL_PROJECTS = ['Obsidian Labs', 'Alisto', 'Content Manager', 'Locus'];
+
+// R-202605-002: prefijos de proyecto — fuente única de verdad
+const _PREFIX_MAP = {
+  'Obsidian Labs':   'OL',
+  'Alisto':          'AS',
+  'Content Manager': 'CM',
+  'Locus':           'PP',
+};
+
+// R-202605-002: versión efectiva — lee sprint cerrado más reciente con version_target
+// Jerarquía: sprint cerrado más reciente con version_target > '' (sin fallback hardcodeado)
 function _effectiveVersion() {
   try {
-    // 1. Sprint activo con version_target — fuente de verdad del ciclo activo
-    const activeSprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
-    const openSprint = activeSprints.find(s => s.status === 'open');
-    if (openSprint && openSprint.version_target && openSprint.version_target.trim()) {
-      return openSprint.version_target.trim();
+    const sprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+    const closed = sprints.filter(s => s.status === 'closed' && s.version_target && s.version_target.trim());
+    if (closed.length) {
+      closed.sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
+      return closed[0].version_target.trim();
     }
-    // 2. Override del generador — válido solo entre cierre de sprint y apertura del siguiente
-    const stored = localStorage.getItem(_APP_VERSION_KEY);
-    return (stored && stored.trim() && stored !== 'undefined') ? stored : APP_VERSION;
-  } catch(e) { return APP_VERSION; }
+    return '';
+  } catch(e) { return ''; }
 }
 
 // ── T-202605-482c: Supabase Auth — Google OAuth (founder único, multidispositivo) ──
@@ -136,8 +157,8 @@ function handleSyncPillClick() {
 // ── SHORTCUTS + USER PREFS ───────────────────────────────────────────────────
 // T-202605-442: Atajos de teclado configurables — migrado desde ai-tracker-checkpoint.js
 // _saveUserPrefs (más abajo) los necesita al serializar preferencias hacia Supabase
-const _SHORTCUTS_KEY = 'user-shortcuts';
-const _USER_PREFS_TS_KEY = 'user-prefs-ts'; // R-4: timestamp del último user-prefs aplicado desde Supabase
+const _SHORTCUTS_KEY = LOCUS_KEYS.SHORTCUTS;
+const _USER_PREFS_TS_KEY = LOCUS_KEYS.USER_PREFS_TS; // R-4: timestamp del último user-prefs aplicado desde Supabase
 
 function _shortcutsLoad() {
   try {
@@ -155,7 +176,7 @@ function _shortcutsSave(map) {
 // Migrado desde ai-tracker-checkpoint.js — operación Supabase pura
 function _loadTmpIdMap() {
   try {
-    const raw = localStorage.getItem('tmp-id-map');
+    const raw = localStorage.getItem(LOCUS_KEYS.TMP_ID_MAP);
     if (!raw) return {};
     const map = JSON.parse(raw);
     // TTL: limpiar entradas con más de 24h
@@ -164,13 +185,13 @@ function _loadTmpIdMap() {
     Object.keys(map).forEach(k => {
       if (!map[k].createdAt || map[k].createdAt < cutoff) { delete map[k]; dirty = true; }
     });
-    if (dirty) localStorage.setItem('tmp-id-map', JSON.stringify(map));
+    if (dirty) localStorage.setItem(LOCUS_KEYS.TMP_ID_MAP, JSON.stringify(map));
     return map;
   } catch(e) { return {}; }
 }
 
 function _saveTmpIdMap(map) {
-  try { localStorage.setItem('tmp-id-map', JSON.stringify(map)); } catch(e) {}
+  try { localStorage.setItem(LOCUS_KEYS.TMP_ID_MAP, JSON.stringify(map)); } catch(e) {}
   // R-1: persistir tmp-id-map en Supabase para sobrevivir cambio de dispositivo
   if (_supabase && _supabaseUser) {
     _supabase.from('tracker_docs').upsert(
@@ -188,7 +209,7 @@ function _saveTmpIdMap(map) {
 // ── GRUPO 5 — OFFLINE QUEUE ───────────────────────────────────────────────────
 // T-202605-483: Fallback offline — cola de pendientes + listeners de red
 // Cola persistida en localStorage para sobrevivir recargas
-const _OFFLINE_QUEUE_KEY = 'ai-tracker-offline-queue';
+const _OFFLINE_QUEUE_KEY = LOCUS_KEYS.OFFLINE_QUEUE;
 let _offlineQueue = (() => {
   try { return JSON.parse(localStorage.getItem(_OFFLINE_QUEUE_KEY) || '[]'); } catch { return []; }
 })();
@@ -232,7 +253,7 @@ async function _offlineQueueFlush() {
         await saveContextDocs();
       } else if (entry.type === 'plan' && entry.projId) {
         // R-202605-120: flush plan desde localStorage a Supabase al reconectar
-        const planRaw = localStorage.getItem('ai-tracker-plan-' + entry.projId);
+        const planRaw = localStorage.getItem(LOCUS_KEYS.PLAN_PREFIX + entry.projId);
         if (planRaw && _supabase && _supabaseUser) {
           const suffix = '-' + entry.projId;
           const payload = (() => { try { return JSON.parse(planRaw); } catch { return null; } })();
@@ -249,7 +270,7 @@ async function _offlineQueueFlush() {
         if (proj) await _saveSessions(proj);
       } else if (entry.type === 'tmp-id-map') {
         // R-1: flush tmp-id-map desde localStorage a Supabase al reconectar
-        const raw = localStorage.getItem('tmp-id-map');
+        const raw = localStorage.getItem(LOCUS_KEYS.TMP_ID_MAP);
         if (raw && _supabase && _supabaseUser) {
           const map = (() => { try { return JSON.parse(raw); } catch { return null; } })();
           if (map) {
@@ -446,13 +467,13 @@ async function _saveFlush() {
 
       // AC-4 R-C1: upsert exitoso → escribir localStorage como caché
       try {
-        localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+        localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
       } catch (lsErr) {
         if (lsErr.name === 'QuotaExceededError') {
           console.error('[AI Tracker] localStorage quota exceeded in _saveFlush(), attempting cleanup...');
           try {
-            localStorage.removeItem('ai-tracker-changelog');
-            localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+            localStorage.removeItem(LOCUS_KEYS.CHANGELOG);
+            localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
             // R-202605-055: showToast eliminado de _saveFlush — ruido silencioso en flujo de guardado
           } catch (lsErr2) {
             console.error('[AI Tracker] _saveFlush() localStorage cache failed after cleanup:', lsErr2);
@@ -468,7 +489,7 @@ async function _saveFlush() {
       _stateDirty = true;
       setSyncStatus('offline', '✕ sin conexión');
       try {
-        localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+        localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
       } catch (lsErr) {
         console.error('[AI Tracker] _saveFlush() fallback localStorage also failed:', lsErr);
       }
@@ -501,13 +522,13 @@ function save() {
   // AC-3 R-C1: sin auth → localStorage inmediato. Supabase no se intenta.
   if (!_supabaseUser) {
     try {
-      localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+      localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
     } catch (err) {
       if (err.name === 'QuotaExceededError') {
         console.error('[AI Tracker] localStorage quota exceeded in save(), attempting cleanup...');
         try {
-          localStorage.removeItem('ai-tracker-changelog');
-          localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+          localStorage.removeItem(LOCUS_KEYS.CHANGELOG);
+          localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
           showToast('warning', '⚠️ Cuota crítica — se limpió historial automáticamente');
         } catch (err2) {
           console.error('[AI Tracker] save() failed after cleanup:', err2);
@@ -524,13 +545,13 @@ function save() {
   // AC-2 R-C1: offline → localStorage inmediato como fallback + encolar para reintento.
   if (!_isOnline) {
     try {
-      localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+      localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
     } catch (err) {
       if (err.name === 'QuotaExceededError') {
         console.error('[AI Tracker] localStorage quota exceeded in save() offline, attempting cleanup...');
         try {
-          localStorage.removeItem('ai-tracker-changelog');
-          localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+          localStorage.removeItem(LOCUS_KEYS.CHANGELOG);
+          localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
           showToast('warning', '⚠️ Cuota crítica — se limpió historial automáticamente');
         } catch (err2) {
           console.error('[AI Tracker] save() offline failed after cleanup:', err2);
@@ -637,7 +658,7 @@ async function saveBacklog() {
       if (err.name === 'QuotaExceededError') {
         console.error('[AI Tracker] localStorage quota exceeded, attempting cleanup...');
         try {
-          localStorage.removeItem('ai-tracker-changelog');
+          localStorage.removeItem(LOCUS_KEYS.CHANGELOG);
           localStorage.setItem(key, JSON.stringify(items));
           localStorage.setItem(metaKey, JSON.stringify(meta)); // B-202605-091: persistir meta.updated en path de cleanup
           showToast('warning', '⚠️ Cuota de almacenamiento crítica — se limpió historial');
@@ -660,7 +681,7 @@ async function saveBacklog() {
             }
             if (btnClean) {
               btnClean.addEventListener('click', async () => {
-                const purgeable = ['ai-tracker-changelog', 'ai-tracker-notif-history', 'ai-tracker-log-filters'];
+                const purgeable = [LOCUS_KEYS.CHANGELOG, LOCUS_KEYS.NOTIF_HISTORY, LOCUS_KEYS.LOG_FILTERS];
                 purgeable.forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
                 await saveBacklog();
               }, { once: true });
@@ -914,7 +935,7 @@ async function _loadFromSupabase() {
             const localIds = new Set(proj.sessions.map(s => s.id));
             remoteSessions.forEach(s => { if (!localIds.has(s.id)) { proj.sessions.push(s); localIds.add(s.id); } });
           });
-          try { localStorage.setItem('ai-tracker-v4', JSON.stringify(state)); } catch {}
+          try { localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state)); } catch {}
         }
       } else {
         console.warn('[AI Tracker] Error cargando sesiones desde Supabase:', sessResult.reason || sessResult.value?.error);
@@ -985,7 +1006,7 @@ async function _loadFromSupabase() {
           // 6a. Plan
           const planRow = docMap['plan' + suffix];
           if (planRow && planRow.value && planRow.value.data) {
-            const localPlanRaw = projId ? localStorage.getItem('ai-tracker-plan-' + projId) : null;
+            const localPlanRaw = projId ? localStorage.getItem(LOCUS_KEYS.PLAN_PREFIX + projId) : null;
             const remoteTs     = planRow.updated_at ? new Date(planRow.updated_at).getTime() : 0;
             const localTs      = (() => { try { const p = JSON.parse(localPlanRaw || 'null'); return p && p._savedAt ? p._savedAt : 0; } catch { return 0; } })();
             if (!localPlanRaw || localTs === 0 || remoteTs > localTs) {
@@ -998,13 +1019,13 @@ async function _loadFromSupabase() {
           const mapRow = docMap['tmp-id-map'];
           if (mapRow) {
             const remoteTs  = mapRow.updated_at ? new Date(mapRow.updated_at).getTime() : 0;
-            const localRaw  = localStorage.getItem('tmp-id-map');
+            const localRaw  = localStorage.getItem(LOCUS_KEYS.TMP_ID_MAP);
             if (!localRaw || remoteTs > 0) {
               const localMap   = (() => { try { return JSON.parse(localRaw || '{}'); } catch { return {}; } })();
               const localMaxTs = Object.values(localMap).reduce((m, v) => Math.max(m, v.createdAt || 0), 0);
               if (!localRaw || remoteTs > localMaxTs) {
                 const merged = { ...localMap, ...(mapRow.value && mapRow.value.map ? mapRow.value.map : {}) };
-                try { localStorage.setItem('tmp-id-map', JSON.stringify(merged)); } catch {}
+                try { localStorage.setItem(LOCUS_KEYS.TMP_ID_MAP, JSON.stringify(merged)); } catch {}
               }
             }
           }
@@ -1036,7 +1057,7 @@ async function _loadFromSupabase() {
                 try { localStorage.setItem(_SHORTCUTS_KEY, JSON.stringify(prefs.shortcuts)); } catch {}
               }
               if (prefs.templateTrigger) {
-                try { localStorage.setItem(_TPL_TRIGGER_KEY, prefs.templateTrigger); _updateAutoDownloadLabel(); } catch {}
+                try { localStorage.setItem(LOCUS_KEYS.TPL_TRIGGER, prefs.templateTrigger); _updateAutoDownloadLabel(); } catch {}
               }
               if (prefs.onboardingSeen) {
                 try { localStorage.setItem('onboarding-seen', '1'); } catch {}
@@ -1168,25 +1189,6 @@ function _applyStateData(raw) {
         if (item.schema_version === undefined) item.schema_version = 1;
       });
     }
-
-    // R-202605-121: seed de nombres canónicos para sprints S-01–S-20 sin label
-    // Sprints creados antes de S-23 no tienen label guardado — se usa el ID como label.
-    // S-07b y S-16b se preservan tal cual (formato no estándar, no se normalizan).
-    if (proj.sprints && proj.sprints.length) {
-      const _HISTORICAL_SPRINT_IDS = new Set([
-        'S-01','S-02','S-03','S-04','S-05','S-06','S-07','S-07b',
-        'S-08','S-09','S-10','S-11','S-12','S-13','S-14','S-15',
-        'S-16','S-16b','S-17','S-18','S-19','S-20'
-      ]);
-      let _sprintSeeded = false;
-      proj.sprints.forEach(sp => {
-        if (_HISTORICAL_SPRINT_IDS.has(sp.id) && !sp.label) {
-          sp.label = sp.id; // ID como label canónico — nunca se sobreescribe si ya existe
-          _sprintSeeded = true;
-        }
-      });
-      if (_sprintSeeded) console.log('[AI Tracker] R-202605-121: labels canónicos aplicados a sprints históricos sin nombre.');
-    }
   });
 
   // v3: IAs son globales — sin sessions, sin project
@@ -1217,7 +1219,7 @@ const DEFAULT_AIS = [];
 // Llamada desde _initApp() una vez que todos los módulos están disponibles.
 function load() {
   // Carga síncrona desde localStorage (arranque inmediato)
-  const s = localStorage.getItem('ai-tracker-v4');
+  const s = localStorage.getItem(LOCUS_KEYS.STATE);
   if (s) {
     try { _applyStateData(JSON.parse(s)); }
     catch (e) {
@@ -1239,7 +1241,7 @@ function load() {
   });
   // R-202604-073: dot Pulso — inicializar desde caché localStorage sin esperar render completo
   (function() {
-    const cached = (() => { try { return JSON.parse(localStorage.getItem(_PULSO_KEY) || 'null'); } catch(e) { return null; } })();
+    const cached = (() => { try { return JSON.parse(localStorage.getItem(LOCUS_KEYS.PULSO) || 'null'); } catch(e) { return null; } })();
     const dot = document.getElementById('pulso-dot');
     if (dot && cached && cached.color) dot.className = `pulso-dot pulso-dot--${cached.color}`;
   })();
@@ -1404,7 +1406,7 @@ function _findCheckpointByAI(aiId, sessId) { return _findSessionByAI(aiId, sessI
 
 async function _saveUserPrefs() {
   const shortcuts     = _shortcutsLoad();
-  const templateTrigger = localStorage.getItem(_TPL_TRIGGER_KEY) || 'session';
+  const templateTrigger = localStorage.getItem(LOCUS_KEYS.TPL_TRIGGER) || 'session';
   const onboardingSeen  = !!localStorage.getItem('onboarding-seen');
   const updatedAt       = new Date().toISOString();
   if (_supabase && _supabaseUser) {

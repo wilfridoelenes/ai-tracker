@@ -2,10 +2,10 @@
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
-// R-202604-037: tabla canónica de proyectos del ecosistema — editar aquí para agregar nuevos
+// R-202604-037: tabla canónica de proyectos del ecosistema — declarada en locus-storage.js
 // La validación en parsePaste() es case-sensitive: 'Locus' es válido, 'locus' no.
 // OL-CONTEXT §7: strings canónicos — 'Obsidiana'/'Obsidiana Labs' deprecados · 'ASVAB App' deprecado (→ 'Alisto') · 'AI Tracker' deprecado (→ 'Locus')
-const CANONICAL_PROJECTS = ['Obsidian Labs', 'Alisto', 'Content Manager', 'Locus'];
+// R-202605-002: CANONICAL_PROJECTS consumida desde locus-storage.js — sin declaración local
 
 // R-202605-063: Levenshtein simple para sugerencia de string canónico
 function _levenshtein(a, b) {
@@ -557,7 +557,7 @@ function parsePaste(id) {
     if (window[_doneWarnKey]) delete window[_doneWarnKey];
 
     // R-202604-037: validar Proyecto: contra tabla de strings canónicos
-    // AC-1: tabla interna CANONICAL_PROJECTS editable al top del archivo
+    // AC-1: tabla canónica CANONICAL_PROJECTS declarada en locus-storage.js
     // AC-2: valor no canónico → error bloqueante — muestra valor recibido + lista de válidos
     // AC-4: vacío → aviso no bloqueante (comportamiento actual preservado)
     // AC-5: validación case-sensitive

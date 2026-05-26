@@ -439,7 +439,7 @@ ${doneSection}
 ${pendSection}
 ---
 
-${discardedMdSection ? discardedMdSection + '\n---\n\n' : ''}${scopeAddedRetroSection ? scopeAddedRetroSection + '\n---\n\n' : ''}${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por Locus ${(typeof _effectiveVersion === 'function') ? _effectiveVersion() : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '')} · ${dateStr}_
+${discardedMdSection ? discardedMdSection + '\n---\n\n' : ''}${scopeAddedRetroSection ? scopeAddedRetroSection + '\n---\n\n' : ''}${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por Locus ${(typeof _effectiveVersion === 'function') ? _effectiveVersion() : ''} · ${dateStr}_
 `;
 }
 

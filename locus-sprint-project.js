@@ -4,12 +4,7 @@
 // Renombrado de ai-tracker-sprint-project.js
 
 // T-202604-243: prefijo de documento vivo según proyecto activo — OL-CONTEXT §7
-const _PREFIX_MAP = {
-  'Obsidian Labs':   'OL',
-  'Alisto':          'AS',
-  'Content Manager': 'CM',
-  'Locus':           'PP',
-};
+// R-202605-002: _PREFIX_MAP consumida desde locus-storage.js — sin declaración local
 function _docPrefix() {
   const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
   if (!proj) return 'XX';
@@ -55,22 +50,21 @@ function _buildCurrentStateMd() {
 }
 
 // R-202604-052: extraer MAJOR.MINOR.PATCH de versión canónica para naming generacional
-// B-202605-260: usa _effectiveVersion (post-Generator) — no APP_VERSION hardcodeada
+// R-202605-002: _effectiveVersion() llamada como función — typeof guard corregido
 function _backlogVersion() {
-  const _src = (typeof _effectiveVersion === 'string' && _effectiveVersion)
-    ? _effectiveVersion
-    : (typeof APP_VERSION === 'string' && APP_VERSION ? APP_VERSION : 'v0');
+  const _src = (typeof _effectiveVersion === 'function')
+    ? _effectiveVersion()
+    : 'v0';
   const m = _src.replace(/^v/, '').match(/^(\d+\.\d+(?:\.\d+)?)/);
-  return m ? `v${m[1]}` : _src;
+  return m ? `v${m[1]}` : (_src || 'v0');
 }
 
 // R-202604-052: sprint cerrado más reciente del proyecto activo
-// B-202605-026: accede a state.sprints directamente — no usa getActiveSprints() que retorna solo 'active'
+// R-202605-002: usa getActiveSprints() como fuente de verdad v3
 function _lastClosedSprint() {
-  const sprints = (state && Array.isArray(state.sprints)) ? state.sprints : [];
+  const sprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
   const closed = sprints.filter(s => s.status === 'closed');
   if (!closed.length) return null;
-  // El más reciente por closedAt o por posición en array
   return closed.sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0))[0];
 }
 
@@ -521,10 +515,8 @@ function _generateBacklogContent(newVersion, opts = {}) {
   // R-202605-053: bloque ## Sprint activo — primera sección del export (fuente de verdad en sesión)
   const sprintActivoMd = _buildSprintActivoMd();
 
-  // B-202605-260: versión canónica para campos de metadata del export
-  const _appVerStr = (typeof _effectiveVersion === 'string' && _effectiveVersion)
-    ? _effectiveVersion
-    : (typeof APP_VERSION === 'string' && APP_VERSION ? APP_VERSION : 'v0');
+  // R-202605-002: versión canónica para campos de metadata del export
+  const _appVerStr = typeof _effectiveVersion === 'function' ? _effectiveVersion() : '';
 
   const pfx = _docPrefix();
   const md = `# ${pfx}-BACKLOG_${newVersion}.md
@@ -1384,9 +1376,7 @@ function _getLocalStorageUsage() {
 function _generateContextContent() {
   const raw = localStorage.getItem(_tplKey('context-raw'));
   if (!raw) return null;
-  const _ctxVer = (typeof _effectiveVersion === 'function')
-    ? _effectiveVersion()
-    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
+  const _ctxVer = typeof _effectiveVersion === 'function' ? _effectiveVersion() : '';
 
   let isJson = false;
   try { const o = JSON.parse(raw.trim()); isJson = typeof o === 'object' && o !== null && 'version' in o; } catch(e) {}

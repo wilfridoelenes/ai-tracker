@@ -817,8 +817,6 @@
 </div>
 
 <!-- R-[pendiente-ID]: Quick Capture — modal unificado con stepper de 2 pasos -->
-<!-- Reemplaza: #quick-modal-overlay (T-071) + #ai-quick-select-modal -->
-<!-- JS: openQuickCapture(), closeQuickCapture(), confirmQuickCapture() en ai-tracker-session.js -->
 <div class="quick-modal-overlay qc-overlay" id="qc-modal-overlay" role="dialog" aria-modal="true" aria-label="Quick Capture" onclick="closeQuickCapture(event)">
   <div class="quick-modal qc-modal" onclick="event.stopPropagation()">
 
@@ -1533,13 +1531,13 @@ function _updateBackupBadge() {
   try {
     const badge = document.getElementById('backup-badge');
     if (!badge) return;
-    const raw = localStorage.getItem('ai-tracker-v4');
+    const raw = localStorage.getItem(typeof LOCUS_KEYS !== 'undefined' ? LOCUS_KEYS.STATE : 'locus-state-v1');
     const hasData = raw && raw.length > 50;
     badge.classList.toggle('visible', !!hasData);
     // También actualizar tooltip del logo con versión
     const vp = document.getElementById('version-pill');
     if (vp) {
-      const _ver = (typeof _effectiveVersion !== 'undefined') ? _effectiveVersion : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '');
+      const _ver = typeof _effectiveVersion === 'function' ? _effectiveVersion() : '';
       vp.title = _ver + ' · Ver changelog';
     }
   } catch(e) {}
@@ -1767,6 +1765,12 @@ function _validateResetBacklogInput(el) {
 <!-- Arranque de la app — gate de auth via _initApp() en locus-storage.js -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+  // R-202605-002: title dinámico con versión efectiva
+  try {
+    const _ver = typeof _effectiveVersion === 'function' ? _effectiveVersion() : '';
+    document.title = _ver ? 'Locus ' + _ver : 'Locus';
+  } catch(e) { document.title = 'Locus'; }
+
   if (typeof _initApp === 'function') {
     _initApp();
   } else {

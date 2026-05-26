@@ -51,7 +51,7 @@ function openMapGenerator() {
   const vInput = document.getElementById('mg-version-input');
   const fPreview = document.getElementById('mg-filename-preview');
   const prefix = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
-  const ver = (typeof _effectiveVersion === 'function') ? _effectiveVersion() : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v3.1.0.0');
+  const ver = (typeof _effectiveVersion === 'function') ? _effectiveVersion() : '';
   if (vInput) vInput.value = ver;
   if (fPreview) fPreview.textContent = `${prefix}-MAP_${ver}.md`;
 
@@ -433,9 +433,9 @@ function _mgGetVersion() {
   const input = document.getElementById('mg-version-input');
   const raw = input ? input.value.trim() : '';
   if (raw && raw !== 'undefined') return raw;
-  // Delegar a _effectiveVersion — fuente de verdad canónica de versión
+  // R-202605-002: delegar a _effectiveVersion — fuente de verdad canónica de versión
   if (typeof _effectiveVersion === 'function') return _effectiveVersion();
-  return typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v1.0.0';
+  return '';
 }
 
 // ─── Generador PLAN ──────────────────────────────────────────────────────────
@@ -1746,24 +1746,20 @@ function _doConfirmGenerate() {
     }
   }
 }
-// Fuente de verdad única: localStorage key 'app-version-override' (declarada en ai-tracker-checkpoint.js).
-// ai-tracker-checkpoint.js la lee al arrancar y la usa sobre APP_VERSION.
+// R-202605-002: _mgApplyBumpedVersion — solo actualiza DOM, no persiste en localStorage
 function _mgApplyBumpedVersion(ver) {
-  // 1. Persistir — fuente de verdad para todos los módulos en próximos arranques
-  // _APP_VERSION_KEY declarada en ai-tracker-checkpoint.js — usar string literal aquí para evitar redeclaración
-  try { localStorage.setItem('app-version-override', ver); } catch(e) {}
 
-  // 2. DOM — title del documento
+  // 1. DOM — title del documento
   document.title = `Locus ${ver}`;
 
-  // 3. DOM — pill de versión en el header global (textContent + tooltip)
+  // 2. DOM — pill de versión en el header global (textContent + tooltip)
   const vpEl = document.getElementById('version-pill');
   if (vpEl) {
     vpEl.textContent = ver;
     vpEl.title = `${ver} · Ver changelog`;
   }
 
-  // 4. DOM — banner de versión en sub-tab Backlog
+  // 3. DOM — banner de versión en sub-tab Backlog
   const bmetaEl = document.getElementById('bmeta-version');
   if (bmetaEl) bmetaEl.textContent = ver;
 }
