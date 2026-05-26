@@ -1599,9 +1599,9 @@ function applyPatchesFromTG(patches, sessionId) {
         const normalized = (typeof _normalizeStatus === 'function') ? _normalizeStatus(incoming) : incoming;
         if (normalized !== existing.status) {
           if (normalized === 'done' && typeof setItemStatus === 'function') {
-            // setItemStatus maneja confirmación, history, doneAt, etc.
+            // B-202605-087: setItemStatus(code, newStatus) — pasar existing.code (string), no el objeto
             const _prevStatus = existing.status;
-            setItemStatus(existing, normalized, sessionId || null);
+            setItemStatus(existing.code, normalized);
             changes.push({ field: 'status', from: _prevStatus, to: normalized });
           } else if (normalized && normalized !== existing.status) {
             changes.push({ field: 'status', from: existing.status, to: normalized });
