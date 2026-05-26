@@ -622,7 +622,7 @@ async function saveBacklog() {
 
   const items = (typeof ITEMS !== 'undefined') ? ITEMS : [];
   const key = _tplKey('backlog-items');
-  const projId = _getActiveProjectFilter();
+  const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
   const metaKey = _tplKey('backlog-meta');
   const meta = JSON.parse(localStorage.getItem(metaKey) || '{}');
   const suffix = projId ? '-' + projId : '-global';
@@ -703,7 +703,7 @@ async function saveBacklog() {
 
 // R-202604-035: saveContextDocs() — escribe en tracker_docs
 async function saveContextDocs() {
-  const projId = _getActiveProjectFilter();
+  const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
   const suffix = projId ? '-' + projId : '-global';
 
   const ctxPayload = {
@@ -1295,7 +1295,7 @@ function _projKey(base, projId) { return projId ? base + '-' + projId : base; }
 
 // T-202604-006: clave de template para el proyecto activo
 function _tplKey(base) {
-  const projId = _getActiveProjectFilter();
+  const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
   return projId ? base + '-' + projId : base;
 }
 
@@ -1303,7 +1303,7 @@ function getAI(id) { return state.ais.find(a => a.id === id); }
 
 // Proyecto activo (objeto)
 function getActiveProject() {
-  const id = _getActiveProjectFilter();
+  const id = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
   return id ? getProjectById(id) : null;
 }
 
@@ -1359,7 +1359,7 @@ function countAICheckpoints(aiId) { return countAISessions(aiId); }
 
 // Última sesión de una IA en el proyecto activo (o en todos si no hay filtro)
 function getLastAISession(aiId) {
-  const projId = _getActiveProjectFilter();
+  const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
   const sessions = projId
     ? getProjectSessions(projId).filter(s => s.aiId === aiId)
     : getAllSessions().filter(s => s.aiId === aiId);
@@ -1368,7 +1368,7 @@ function getLastAISession(aiId) {
 
 // Sesiones de una IA en el proyecto activo (o todos)
 function getAISessions(aiId) {
-  const projId = _getActiveProjectFilter();
+  const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
   if (projId) return getProjectSessions(projId).filter(s => s.aiId === aiId);
   return getAllSessions().filter(s => s.aiId === aiId);
 }
