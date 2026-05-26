@@ -816,9 +816,19 @@ function _confirmDiscard(code, reason, ref) {
       _undoSnapshot();
       saveBacklog();
       _setBacklogModified();
-      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
-      renderBacklogList(); updateBacklogBanner(); renderStats();
       showToast('info', '🗑 ' + code + ' descartado');
+      // Animación de salida — agrega clase al nodo DOM, espera que complete (220ms) y luego re-renderiza
+      const _exitEl = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
+      if (_exitEl) {
+        _exitEl.classList.add('item-exit-anim');
+        setTimeout(() => {
+          if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+          renderBacklogList(); updateBacklogBanner(); renderStats();
+        }, 230);
+      } else {
+        if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+        renderBacklogList(); updateBacklogBanner(); renderStats();
+      }
     }
   });
 }
