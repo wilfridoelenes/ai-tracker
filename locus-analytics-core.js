@@ -23,20 +23,20 @@ let _compareProjectIdB = null;
 // Alias legacy para retrocompatibilidad con setCompareProject existente
 function setCompareProject(projId) {
   _compareProjectIdB = projId || null;
-  renderAnalytics();
+  if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics();
 }
 function setCompareProjectA(projId) {
   _compareProjectIdA = projId || null;
-  renderAnalytics();
+  if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics();
 }
 function setCompareProjectB(projId) {
   _compareProjectIdB = projId || null;
-  renderAnalytics();
+  if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics();
 }
 function clearComparison() {
   _compareProjectIdA = null;
   _compareProjectIdB = null;
-  renderAnalytics();
+  if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics();
 }
 
 function setAnalyticsPeriod(p) {
@@ -45,18 +45,18 @@ function setAnalyticsPeriod(p) {
   document.querySelectorAll('.period-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.period === p);
   });
-  renderAnalytics();
+  if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics();
 }
 
 // Legacy — mantenido para compatibilidad con exportAnalyticsMd y otros llamadores
 let _analyticsRange = 3;
-function setAnalyticsRange(n) { _analyticsRange = n; renderAnalytics(); }
+function setAnalyticsRange(n) { _analyticsRange = n; if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics(); }
 
 // T-202605-452: Gráfico de flujo acumulativo — filtros de proyecto y tipo
 let _cfProjId   = '';
 let _cfTypeFilter = '';
-function setCfProject(id)   { _cfProjId = id || ''; renderAnalytics(); }
-function setCfType(t)        { _cfTypeFilter = t || ''; renderAnalytics(); }
+function setCfProject(id)   { _cfProjId = id || ''; if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics(); }
+function setCfType(t)        { _cfTypeFilter = t || ''; if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics(); }
 
 // Devuelve { current: {start,end}, previous: {start,end} } para el período activo
 function _getPeriodBounds() {

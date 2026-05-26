@@ -2,7 +2,14 @@
 // Responsabilidad: renderAnalytics — función principal del tab de analytics.
 // Dependencias: locus-analytics-core.js · locus-analytics-digest.js · locus-analytics-charts.js
 
+// R-202605-061: dirty flag — evita renders redundantes sin cambio de estado
+let _analyticsDirty = false;
+function _markAnalyticsDirty() { _analyticsDirty = true; }
+window._markAnalyticsDirty = _markAnalyticsDirty;
+
 function renderAnalytics() {
+  if (!_analyticsDirty) return;
+  _analyticsDirty = false;
   // T-202605-117: Guard de tab activo — skip render si el tab Analytics no es el visible.
   // AC-4: Command Palette abierto no cuenta como cambio de tab — evaluar tab subyacente.
   // AC-5: si currentTab no es detectable → fail-safe, ejecutar sin guard.
