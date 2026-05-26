@@ -534,6 +534,10 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
       // T-202604-201: panel de confirmación diff antes de aplicar el merge
       const _doCompleteFinish = async () => {
         _mergeBacklogWithProject(tgItems, ts.id, activeProj.id);
+        // R-202605-062: aplicar patches después del merge de ítems normales
+        if (parsed.patchItems && parsed.patchItems.length && typeof applyPatchesFromTG === 'function') {
+          applyPatchesFromTG(parsed.patchItems, ts.id);
+        }
         // B-202604-XXX: sincronizar trackerRefs con códigos reales post-resolución
         ts.trackerRefs = tgItems.map(x => x.code).filter(c => c && /^[PTRB]-\d{6}-\d{3}/.test(c));
         const contextSections2 = extractContextSections(raw);
@@ -672,6 +676,10 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
 
   const raw = (document.getElementById('ta-' + id) || {}).value || '';
   const mergeResult = _mergeBacklogWithProject(tgItems, sessId, activeProj.id);
+  // R-202605-062: aplicar patches después del merge de ítems normales
+  if (parsed.patchItems && parsed.patchItems.length && typeof applyPatchesFromTG === 'function') {
+    applyPatchesFromTG(parsed.patchItems, sessId);
+  }
 
   // B-202604-XXX: actualizar trackerRefs con códigos reales post-_assignPendingIds
   // _mergeBacklogWithProject resuelve [pendiente-ID] → código real en tgItems
