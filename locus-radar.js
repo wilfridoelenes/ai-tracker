@@ -316,7 +316,7 @@ function renderGlobalRadarSidebar() {
   const inSession   = active.filter(a => !a.interrupted && _isInSession(a));
   const available   = active
     .filter(a => a.status === 'available' && !a.interrupted && !_isInSession(a))
-    .sort((a, b) => _hoyAvailableSince(a) - _hoyAvailableSince(b));
+    .sort((a, b) => _hoyMsUntilReset(a) - _hoyMsUntilReset(b));
   const exhausted   = active
     .filter(a => a.status === 'exhausted' && !a.interrupted)
     .sort((a, b) => _hoyMsUntilReset(a) - _hoyMsUntilReset(b));
