@@ -700,4 +700,64 @@
   }
 }
 
-/* ══ END R-202605-006 ══ */
+
+/* ══ R-202605-008: Picker inline de sprint — empty state ══ */
+
+.spm-sprint-picker {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  margin-top: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.1));
+  overflow: hidden;
+  z-index: var(--z-dropdown, 100);
+}
+
+.spm-picker-item {
+  display: flex;
+  align-items: center;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: background var(--trans-fast);
+  outline: none;
+}
+
+.spm-picker-item:hover,
+.spm-picker-item:focus-visible {
+  background: var(--surface2, var(--surface));
+}
+
+.spm-picker-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.spm-picker-item + .spm-picker-item {
+  border-top: 1px solid var(--border);
+}
+
+.spm-picker-item-label {
+  font-size: var(--text-sm);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Botón en estado activo mientras el picker está abierto */
+#spm-empty-btn-activar.is-active {
+  background: var(--surface2, var(--surface));
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spm-picker-item {
+    transition: none;
+  }
+}
+
+/* ══ END R-202605-008 ══ */

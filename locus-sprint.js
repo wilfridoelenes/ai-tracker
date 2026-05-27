@@ -495,18 +495,119 @@ function _spmCancelEdit() {
   if (btnEditar) btnEditar.classList.toggle('is-hidden', !(sprint && sprint.status === 'active'));
 }
 
-// AC-6: Activar sprint existente (desde empty state)
+// AC-6 / R-202605-008: Activar sprint existente (desde empty state)
+// AC-1: un solo sprint cerrado → activar directamente (comportamiento original)
+// AC-2+: múltiples sprints cerrados → picker inline
 function _spmActivarExistente() {
   const sprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
-  const closed = sprints.filter(s => s.status !== 'active');
+  const closed  = sprints
+    .filter(s => s.status !== 'active')
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   if (!closed.length) return;
-  // Activar el más reciente
-  const target = closed.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
-  if (typeof setSprintStatus === 'function') {
-    setSprintStatus(target.id, 'active');
+
+  // AC-1: exactamente uno — activar sin picker
+  if (closed.length === 1) {
+    if (typeof setSprintStatus === 'function') setSprintStatus(closed[0].id, 'active');
     if (typeof renderSprintTab === 'function') renderSprintTab();
+    return;
+  }
+
+  // AC-2: más de uno — mostrar picker inline
+  _spmPickerOpen(closed);
+}
+
+// ── R-202605-008: Picker inline de sprint ──────────────────────────────────
+
+let _spmPickerOutsideHandler = null;
+
+function _spmPickerOpen(closedSprints) {
+  const btn = document.getElementById('spm-empty-btn-activar');
+  if (!btn) return;
+
+  // Evitar duplicado
+  _spmPickerClose();
+
+  // AC-2: botón en estado activo
+  btn.classList.add('is-active');
+
+  // Construir picker
+  const picker = document.createElement('div');
+  picker.id = 'spm-sprint-picker';
+  picker.className = 'spm-sprint-picker';
+  // AC-5: accesibilidad
+  picker.setAttribute('role', 'listbox');
+  picker.setAttribute('aria-label', 'Seleccionar sprint a activar');
+
+  picker.innerHTML = closedSprints.map((sp, idx) =>
+    `<div class="spm-picker-item"
+          role="option"
+          tabindex="0"
+          data-sprint-id="${sp.id}"
+          aria-selected="false"
+          onclick="if(typeof _spmPickerSelect==='function') _spmPickerSelect('${sp.id}')"
+          onkeydown="if(typeof _spmPickerKey==='function') _spmPickerKey(event, '${sp.id}', ${idx})">
+      <span class="spm-picker-item-label">${sp.label || sp.id}</span>
+    </div>`
+  ).join('');
+
+  // Insertar después del botón
+  btn.insertAdjacentElement('afterend', picker);
+
+  // AC-5: foco al primer ítem
+  const first = picker.querySelector('.spm-picker-item');
+  if (first) setTimeout(() => first.focus(), 30);
+
+  // AC-4: click fuera cierra el picker
+  _spmPickerOutsideHandler = (e) => {
+    if (!picker.contains(e.target) && e.target !== btn) {
+      _spmPickerClose();
+    }
+  };
+  document.addEventListener('click', _spmPickerOutsideHandler, true);
+}
+
+// AC-3: seleccionar un sprint del picker
+function _spmPickerSelect(sprintId) {
+  if (typeof setSprintStatus === 'function') setSprintStatus(sprintId, 'active');
+  _spmPickerClose();
+  if (typeof renderSprintTab === 'function') renderSprintTab();
+}
+
+// AC-4: teclado — Escape cierra, Enter confirma, flechas navegan
+function _spmPickerKey(e, sprintId, idx) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    _spmPickerSelect(sprintId);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    _spmPickerClose();
+    const btn = document.getElementById('spm-empty-btn-activar');
+    if (btn) btn.focus();
+  } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    const picker = document.getElementById('spm-sprint-picker');
+    if (!picker) return;
+    const items = Array.from(picker.querySelectorAll('.spm-picker-item'));
+    const next = e.key === 'ArrowDown'
+      ? items[Math.min(idx + 1, items.length - 1)]
+      : items[Math.max(idx - 1, 0)];
+    if (next) next.focus();
   }
 }
+
+// Cierra y limpia el picker
+function _spmPickerClose() {
+  const picker = document.getElementById('spm-sprint-picker');
+  if (picker) picker.remove();
+  const btn = document.getElementById('spm-empty-btn-activar');
+  if (btn) btn.classList.remove('is-active');
+  if (_spmPickerOutsideHandler) {
+    document.removeEventListener('click', _spmPickerOutsideHandler, true);
+    _spmPickerOutsideHandler = null;
+  }
+}
+
+// ── END R-202605-008 ──────────────────────────────────────────────────────
 
 // Actualiza visibilidad de botones según estado — llamado desde renderSprintTab
 function _spmUpdateButtons(sprint) {
@@ -585,6 +686,9 @@ window._spmRegistrar            = _spmRegistrar;
 window._spmReactivar            = _spmReactivar;
 window._spmRetro                = _spmRetro;
 window._spmEditar               = _spmEditar;
-window._spmCancelEdit           = _spmCancelEdit;  // B-202605-008
+window._spmCancelEdit           = _spmCancelEdit;      // B-202605-008
 window._spmActivarExistente     = _spmActivarExistente;
+window._spmPickerSelect         = _spmPickerSelect;    // R-202605-008
+window._spmPickerKey            = _spmPickerKey;       // R-202605-008
+window._spmPickerClose          = _spmPickerClose;     // R-202605-008
 window._spmUpdateButtons        = _spmUpdateButtons;
