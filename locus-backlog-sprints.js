@@ -1355,7 +1355,7 @@ function createSprintFromGroup(id) {
   const proj = getActiveProject();
   if (!proj) return;
   if (!proj.sprints) proj.sprints = [];
-  proj.sprints.push({ id, label: id, status: 'open' });
+  proj.sprints.push({ id, label: id, status: 'active' });
   save();
   if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   showToast('success', id + ' registrado en catálogo');

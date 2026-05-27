@@ -1543,7 +1543,7 @@ function _isActiveRecently(item) {
 // R-202605-062: applyPatchesFromTG — aplica patches de campo individual sobre ítems existentes
 // AC-1: type: "patch" es instrucción de operación — no tipo de ítem
 // AC-2: solo requiere code + campos a patchear
-// AC-3: campos patcheables: title, status, priority, effort, area, sprint, role, ac
+// AC-3: campos patcheables: title, status, priority, effort, area, sprint, role, ac, origin
 // AC-3b: campos no patcheables (code, type, schema_version) → advertencia DocLog, sin crash
 // AC-4: ac presente → reemplaza array completo
 // AC-5: código no existe en backlog → advertencia DocLog, sin crash
@@ -1552,7 +1552,7 @@ function _isActiveRecently(item) {
 // AC-8: mezcla ítems + patches en mismo ---ITEMS--- → parser separa por type
 // AC-9: panel diff muestra solo campos del patch (changes array)
 // AC-11: sin regresión en mergeBacklogFromTG
-const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac']);
+const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin']); // R-202605-004: origin patcheable
 const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version']);
 
 function applyPatchesFromTG(patches, sessionId) {

@@ -1434,7 +1434,7 @@ function _updateBackupBadge() {
   try {
     const badge = document.getElementById('backup-badge');
     if (!badge) return;
-    const raw = localStorage.getItem(typeof LOCUS_KEYS !== 'undefined' ? LOCUS_KEYS.STATE : 'locus-state-v1');
+    const raw = localStorage.getItem(LOCUS_KEYS.STATE);
     const hasData = raw && raw.length > 50;
     badge.classList.toggle('visible', !!hasData);
     // También actualizar tooltip del logo con versión

@@ -288,7 +288,8 @@ function parsePaste(id) {
           discardReason: _it.discard_reason || _it.reason || '',
           discardRef:    _it.ref    || '',
           blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : [],
-          parentId:      _it.parentId || null
+          parentId:      _it.parentId || null,
+          origin:        _it.origin   || null   // R-202605-004: trazabilidad de ítems derivados
         });
         // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
         _normalizeSprint(tgItems[tgItems.length - 1]);
@@ -374,7 +375,8 @@ function parsePaste(id) {
             discardReason: _it.discard_reason || _it.reason || '',
             discardRef:    _it.ref    || '',
             blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : [],
-            parentId:      _it.parentId || null
+            parentId:      _it.parentId || null,
+            origin:        _it.origin   || null   // R-202605-004: trazabilidad de ítems derivados
           });
           // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
           _normalizeSprint(tgItems[tgItems.length - 1]);

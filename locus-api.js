@@ -1,27 +1,26 @@
 // locus-api.js
-// Última actualización: 2026-05-24 | Contrato público del ecosistema Locus
+// Última actualización: 2026-05-27 | Contrato público del ecosistema Locus
 // Carga como ÚLTIMO script en index.html — todos los módulos ya están definidos.
 //
 // Módulos que alimentan este contrato:
 //   locus-toast.js             → showToast, showToastDigest, showToastInline, toast
 //   locus-ui-shell.js          → switchTab, switchSubTab
-//   locus-tracker.js           → render, selectTrackerAI, buildHoyCard
+//   locus-tracker.js           → render
 //   locus-tracker-utils.js     → startSessionTimer, stopSessionTimer,
-//                                renderSuggestionBanner, _buildWeeklySummary
+//                                renderSuggestionBanner
 //   locus-storage.js           → save, saveImmediate, saveBacklog, saveContextDocs,
 //                                getActiveProject, getActiveSprints, getAllSessions,
-//                                getAI, _getActiveProjectFilter, _tplKey
+//                                getAI, getCanonicalProjects (via _effectiveVersion wrapper)
 //   locus-pulso.js             → openPulsoPanel, closePulsoPanel, renderPulsoDot
-//   locus-modals.js            → closeModal, _gconfirmClose, _gconfirmOk
+//   locus-modals.js            → closeModal
 //   locus-map-viewer.js        → renderHtmlMap, setHtmlMapFilter, loadHtmlMap, updateHtmlMapBanner
-//   locus-radar.js             → renderGlobalRadarSidebar, _rsbToggleCollapseAll
-//   locus-checkpoint-stats.js  → _updateHeaderProjectLabel
+//   locus-radar.js             → renderGlobalRadarSidebar
 //
-// AC-3: cada valor es referencia directa a la función del módulo.
+// Cada valor es referencia directa a la función del módulo.
 // Si el módulo no cargó, el valor es undefined — el caller usa window.Locus?.fn?.()
-// AC-5: los window.fn sueltos existentes se preservan — este archivo no los toca.
+// Los window.fn sueltos existentes se preservan — este archivo no los toca.
 
-// AC-1: window.Locus declarado como objeto vacío antes de cualquier asignación.
+// window.Locus declarado como objeto vacío antes de cualquier asignación.
 window.Locus = {};
 
 // ── locus-toast.js ────────────────────────────────────────────────────────────
@@ -41,19 +40,29 @@ window.Locus.render           = render;
 window.Locus.startSessionTimer      = startSessionTimer;
 window.Locus.stopSessionTimer       = stopSessionTimer;
 window.Locus.renderSuggestionBanner = renderSuggestionBanner;
-window.Locus._buildWeeklySummary    = _buildWeeklySummary;
+// _buildWeeklySummary: función interna — eliminada del contrato (AC-1)
 
 // ── locus-storage.js ──────────────────────────────────────────────────────────
-window.Locus.save                    = save;
-window.Locus.saveImmediate           = saveImmediate;
-window.Locus.saveBacklog             = saveBacklog;
-window.Locus.saveContextDocs         = saveContextDocs;
-window.Locus.getActiveProject        = getActiveProject;
-window.Locus.getActiveSprints        = getActiveSprints;
-window.Locus.getAllSessions           = getAllSessions;
-window.Locus.getAI                   = getAI;
-window.Locus._getActiveProjectFilter = _getActiveProjectFilter;
-window.Locus._tplKey                 = _tplKey;
+window.Locus.save             = save;
+window.Locus.saveImmediate    = saveImmediate;
+window.Locus.saveBacklog      = saveBacklog;
+window.Locus.saveContextDocs  = saveContextDocs;
+window.Locus.getActiveProject = getActiveProject;
+window.Locus.getActiveSprints = getActiveSprints;
+window.Locus.getAllSessions   = getAllSessions;
+window.Locus.getAI            = getAI;
+// _getActiveProjectFilter: función interna — eliminada del contrato (AC-1)
+// _tplKey: función interna — eliminada del contrato (AC-1)
+
+// getVersion: wrapper público sobre _effectiveVersion (AC-2)
+window.Locus.getVersion = function () {
+  return typeof _effectiveVersion === 'function' ? _effectiveVersion() : undefined;
+};
+
+// getCanonicalProjects: expone CANONICAL_PROJECTS desde locus-storage.js (AC-3)
+window.Locus.getCanonicalProjects = function () {
+  return typeof CANONICAL_PROJECTS !== 'undefined' ? CANONICAL_PROJECTS : [];
+};
 
 // ── locus-pulso.js ────────────────────────────────────────────────────────────
 window.Locus.openPulsoPanel   = openPulsoPanel;
@@ -62,8 +71,8 @@ window.Locus.renderPulsoDot   = renderPulsoDot;
 
 // ── locus-modals.js ───────────────────────────────────────────────────────────
 window.Locus.closeModal       = closeModal;
-window.Locus._gconfirmClose   = _gconfirmClose;
-window.Locus._gconfirmOk      = _gconfirmOk;
+// _gconfirmClose: función interna — eliminada del contrato (AC-1)
+// _gconfirmOk: función interna — eliminada del contrato (AC-1)
 
 // ── locus-map-viewer.js ───────────────────────────────────────────────────────
 window.Locus.renderHtmlMap        = renderHtmlMap;
@@ -73,7 +82,7 @@ window.Locus.updateHtmlMapBanner  = updateHtmlMapBanner;
 
 // ── locus-radar.js ────────────────────────────────────────────────────────────
 window.Locus.renderGlobalRadarSidebar = renderGlobalRadarSidebar;
-window.Locus._rsbToggleCollapseAll    = _rsbToggleCollapseAll;
+// _rsbToggleCollapseAll: función interna — eliminada del contrato (AC-1)
 
 // ── locus-checkpoint-stats.js ─────────────────────────────────────────────────
-window.Locus._updateHeaderProjectLabel = _updateHeaderProjectLabel;
+// _updateHeaderProjectLabel: función interna — eliminada del contrato (AC-1)

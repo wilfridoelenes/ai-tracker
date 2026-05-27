@@ -520,10 +520,27 @@ function _renderItemPanel(item) {
         </div>` : ''}
     </div>` : '';
 
+  // R-202605-004: chip "Generado desde [código]" — solo si item.origin tiene valor
+  const originChipHtml = (() => {
+    if (!item.origin) return '';
+    const originItem = (typeof ITEMS !== 'undefined') ? ITEMS.find(i => i.code === item.origin) : null;
+    if (originItem) {
+      // AC-4: código existe en backlog — chip navegable con foco visible y aria-label
+      return `<div class="idp-meta-row idp-origin-row">
+        <button class="idp-dep-chip idp-dep-chip--origin" onclick="openItemPanel('${esc(item.origin)}')" aria-label="Generado desde ${esc(item.origin)}" title="${esc(originItem.title || item.origin)}">↩ Generado desde ${esc(item.origin)}</button>
+      </div>`;
+    }
+    // AC-5: código no existe (archivado o proyecto distinto) — texto plano sin link
+    return `<div class="idp-meta-row idp-origin-row">
+      <span class="idp-pill idp-pill--origin">↩ Generado desde ${esc(item.origin)}</span>
+    </div>`;
+  })();
+
   panel.innerHTML = `
     <div class="idp-inner">
       ${headerHtml}
       ${metaHtml}
+      ${originChipHtml}
       <div class="idp-divider"></div>
       ${depsHtml}
       ${notesHtml}
