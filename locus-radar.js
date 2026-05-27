@@ -1,5 +1,5 @@
 // locus-radar.js
-// Última actualización: 2026-05-27 | _hoyAvailableSince y _hoyMsUntilReset definidas localmente — eliminada dependencia cross-módulo con locus-sesiones.js
+// Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
 //
 // Dependencias cross-módulo (resueltas en runtime via guards typeof):
@@ -7,27 +7,12 @@
 //                   _NOTIF_DEFAULTS, _notifConfigSetThreshold, _notifConfigSetEnabled,
 //                   _notifGoto, _registerNotifActions, markNotifRead, markAllNotifsRead,
 //                   updateTabNotifBadges, esc, getAISessions, getLastAISession,
-//                   getActiveTracker, getCD, fmt12, _isInSession, state
+//                   getActiveTracker, getCD, fmt12, _isInSession, _hoyAvailableSince,
+//                   _hoyMsUntilReset, state
 //   session.js   → navigateToCard, openQuickCapture
 //   checkpoint.js → showCheckpointPanel
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
-
-// Funciones puras de countdown — definidas localmente para evitar dependencia de orden de carga
-// con locus-sesiones.js (que carga después de locus-storage.js donde se llama renderGlobalRadarSidebar)
-function _hoyMsUntilReset(ai) {
-  if (!ai || !ai.resetTime) return Infinity;
-  const [h, m] = ai.resetTime.split(':').map(Number);
-  const r = new Date(); r.setHours(h, m, 0, 0);
-  if (r <= new Date()) r.setDate(r.getDate() + 1);
-  return r - new Date();
-}
-function _hoyAvailableSince(ai) {
-  if (!ai) return 0;
-  const last = (typeof getLastAISession === 'function') ? getLastAISession(ai.id) : null;
-  if (!last || !last.date) return 0;
-  return new Date(last.date).getTime();
-}
 
 function _fmtNotifTs(ts) {
   if (!ts) return '';
@@ -227,69 +212,19 @@ function _projPill(ai, sessions) {
 
 // Perf: acepta sessions pre-cacheadas para evitar múltiples calls a getAISessions por card
 function _buildSessionCard(ai, isInterrupted, sessions) {
-  const elapsed = _sessionElapsed(ai, sessions);
-  const sessionTitle = _sessionTitle(ai, sessions);
   const pill = _projPill(ai, sessions);
 
-  const warnClass = elapsed && elapsed.ms > 3600000 ? ' rsb-elapsed-warn' : '';
   const cls = isInterrupted ? 'rsb-card interrupted-state' : 'rsb-card in-session-state';
   const badge = isInterrupted
     ? `<span class="rsb-status-badge rsb-status-interrupted">⚡ en curso</span>`
     : `<span class="rsb-status-badge rsb-status-session">● sesión</span>`;
 
-  const quickBtn = `<button class="rsb-card-quick" onclick="event.stopPropagation();openQuickCapture('${ai.id}')" title="Sesión rápida">⚡</button>`;
-
-  let sessionInfo = '';
-  if (!isInterrupted) {
-    const elapsedHtml = elapsed
-      ? `<span class="rsb-session-elapsed${warnClass}" id="rsb-elapsed-${ai.id}">${elapsed.label}</span>`
-      : '';
-    const titleHtml = sessionTitle
-      ? `<span class="rsb-session-title" id="rsb-session-title-${ai.id}">${esc(sessionTitle.substring(0, 28))}${sessionTitle.length > 28 ? '…' : ''}</span>`
-      : '';
-    sessionInfo = `<div class="rsb-card-session-info">${titleHtml}${elapsedHtml}</div>`;
-  } else {
-    sessionInfo = `<div class="rsb-interrupted-badge">⚡ Sesión en curso</div>`;
-  }
-
-  // R-202605-177: chip de ítem activo — primer código de trackerRefs de la última sesión
-  let activeItemChip = '';
-  try {
-    const lastSess = (typeof getLastAISession === 'function') ? getLastAISession(ai.id) : null;
-    if (lastSess && lastSess.trackerRefs && lastSess.trackerRefs.length > 0) {
-      const code = lastSess.trackerRefs[0];
-      let codeExists = false;
-      try {
-        const tracker = (typeof getActiveTracker === 'function') ? getActiveTracker() : null;
-        if (tracker && tracker.items) {
-          codeExists = tracker.items.some(i => i.code === code);
-        }
-      } catch (_e) {}
-      if (codeExists) {
-        activeItemChip = `<div class="rsb-card-active-item">
-          <button class="rsb-active-item-btn" onclick="event.stopPropagation();typeof navigateToItem==='function'&&navigateToItem('${esc(code)}')" title="Ver ítem ${esc(code)}">${esc(code)}</button>
-        </div>`;
-      } else if (code) {
-        activeItemChip = `<div class="rsb-card-active-item">
-          <span class="rsb-active-item-code">${esc(code)}</span>
-        </div>`;
-      }
-    }
-  } catch (_e) {}
-
-  const ckptBtn = `<button class="rsb-ckpt-direct-btn" onclick="event.stopPropagation();showCheckpointPanel && showCheckpointPanel('${ai.id}'); navigateToCard('${ai.id}')">
-    ⬡ checkpoint
-  </button>`;
-
   return `<div class="${cls}" onclick="navigateToCard('${ai.id}')" id="rsb-card-${ai.id}">
     <div class="rsb-card-row">
       <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
-      <div class="rsb-card-meta">${badge}${quickBtn}</div>
+      <div class="rsb-card-meta">${badge}</div>
     </div>
     ${pill ? `<div class="rsb-card-proj">${pill}</div>` : ''}
-    ${activeItemChip}
-    ${sessionInfo}
-    ${ckptBtn}
   </div>`;
 }
 
