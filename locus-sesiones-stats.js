@@ -327,18 +327,25 @@ function toggleCollapseAll() {
   if (typeof render === 'function') render();
 }
 
-// R-202604-080: Global footer — true si hay alguna sesión registrada en las últimas 24 horas.
-// Usado para mostrar el indicador de actividad reciente en el footer global.
-function hasRecentSession() {
-  try {
-    const allSess = (typeof getAllSessions === 'function') ? getAllSessions() : [];
-    if (!allSess.length) return false;
-    const cutoff = Date.now() - 24 * 60 * 60 * 1000; // 24 h
-    return allSess.some(function(s) {
-      const ts = s.timestamp || s.endTime || s.startTime || (s.date ? new Date(s.date).getTime() : 0);
-      return ts > cutoff;
-    });
-  } catch (e) {
-    return false;
+// Función canónica — ¿tiene el ítem sesión vinculada en los últimos N días?
+// Consulta trackerRefs + backlogRefs. Usa savedAt || createdAt como timestamp.
+// Fallback: si el ítem fue creado hace menos de N días sin ninguna mención, retorna true.
+function hasRecentSession(item, days) {
+  if (!item) return true;
+  const allSess = (typeof getAllSessions === 'function' ? getAllSessions() : []);
+  const cutoff  = Date.now() - days * 86400000;
+  let lastMentionTs = 0;
+  allSess.forEach(function(s) {
+    const refs = (s.trackerRefs || []).concat(s.backlogRefs || []);
+    if (refs.includes(item.code)) {
+      const ts = s.savedAt || s.createdAt || (s.date ? new Date(s.date).getTime() : 0);
+      if (ts > lastMentionTs) lastMentionTs = ts;
+    }
+  });
+  if (!lastMentionTs) {
+    const createdAt = item.createdAt || 0;
+    if (!createdAt) return false;
+    return (Date.now() - createdAt) / 86400000 <= days;
   }
+  return lastMentionTs >= cutoff;
 }
