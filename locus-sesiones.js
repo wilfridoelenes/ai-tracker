@@ -501,7 +501,15 @@ function _markTrackerDirty() { _trackerDirty = true; }
 window._markTrackerDirty = _markTrackerDirty;
 
 function render() {
-  if (!_trackerDirty) return;
+  // B-202605-hoy: si hay workers pero emptyEl esta visible (estado pre-auth residual), forzar render
+  if (!_trackerDirty) {
+    const _emptyCheck = document.getElementById('tracker-detail-empty');
+    if (_emptyCheck && !_emptyCheck.classList.contains('is-hidden') && state.ais && state.ais.length) {
+      _trackerDirty = true;
+    } else {
+      return;
+    }
+  }
   _trackerDirty = false;
   const grid = document.getElementById('grid');
   const emptyEl = document.getElementById('tracker-detail-empty');
