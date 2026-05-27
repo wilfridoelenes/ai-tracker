@@ -157,10 +157,14 @@ function _scrollToCard(aiId) {
 }
 
 function navigateToCard(aiId) {
-  _trackerSelectedId = aiId;
   switchTab('tracker');
   setTimeout(() => {
-    if (typeof _markTrackerDirty === 'function') _markTrackerDirty(); if (typeof render === 'function') render();
+    // B: delegar en selectTrackerAI — setea _trackerSelectedId en su scope, marca dirty y llama render
+    if (typeof selectTrackerAI === 'function') {
+      selectTrackerAI(aiId);
+    } else {
+      if (typeof _markTrackerDirty === 'function') _markTrackerDirty(); if (typeof render === 'function') render();
+    }
     const ta = document.getElementById('ta-' + aiId);
     if (ta) setTimeout(() => { ta.focus(); }, 80);
   }, 80);
