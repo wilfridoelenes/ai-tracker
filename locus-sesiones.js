@@ -743,7 +743,6 @@ function _hoyMarkExhausted(id) {
   ai.resetTime = '';
   ai.resetEpoch = null;
   save();
-  renderHoy();
   _markTrackerDirty(); render();
 }
 
@@ -812,7 +811,6 @@ function confirmBlindExhaust(id) {
   cancelBlindExhaustMode(id);
   saveImmediate().then(() => {
     _markTrackerDirty(); render();
-    if (typeof renderHoy === 'function' && currentTab === 'sesiones') renderHoy();
   });
   if (typeof showToast === 'function') showToast('info', `${ai.name} — agotada sin sesión · desbloqueo a las ${result.label}`);
 }
@@ -1288,7 +1286,6 @@ function _startSidebarTicker() {
           if (typeof saveImmediate === 'function') {
             saveImmediate().then(() => {
               if (typeof render === 'function') render();
-              if (typeof _markHoyDirty === 'function') _markHoyDirty();
             });
           } else {
             if (typeof render === 'function') render();

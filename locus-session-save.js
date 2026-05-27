@@ -762,7 +762,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // B-007: actualizar stat bar y lista backlog siempre al guardar sesión
   renderStats();
   // B-202604-XXX: actualizar tab Hoy tras guardar CKPT con hora de cierre — sin esto el card no refleja estado exhausted sin refresh manual
-  if (currentTab === 'sesiones' && typeof renderHoy === 'function') renderHoy();
+  if (currentTab === 'sesiones') render();
   if (currentTab === 'backlog') { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); }
   // R-202604-016: actualizar log card
   _rebuildLogBody();
