@@ -926,62 +926,6 @@
   </div>
 </div>
 
-<!-- Reset backlog modal (opción nuclear) -->
-
-<!-- Reset Sesiones modal -->
-<div class="purge-modal-overlay" id="reset-sessions-overlay" onclick="if(event.target===this)closeResetSessionsModal()">
-  <div class="purge-modal">
-    <div class="modal-title">🗑 Resetear sesiones y sprints</div>
-    <div class="purge-preview purge-preview-danger">
-      Esta acción elimina <strong>todas las sesiones y sprints</strong> de todos los proyectos.<br>
-      Los <strong>Workers y Proyectos se conservan</strong>.<br><br>
-      Para confirmar escribe: <strong>RESET</strong>
-    </div>
-    <input type="text" id="reset-sessions-input" placeholder="Escribe RESET para confirmar"
-      class="purge-input-field"
-      oninput="_validateResetSessionsInput(this)">
-    <div id="reset-sessions-hint" class="is-hidden">Debe ser exactamente: RESET (mayúsculas)</div>
-    <div class="modal-actions">
-      <button type="button" onclick="closeResetSessionsModal()">Cancelar</button>
-      <button class="btn-primary btn-danger" id="reset-sessions-confirm-btn" onclick="confirmResetSessions()" disabled>Resetear</button>
-    </div>
-  </div>
-</div>
-
-<div class="purge-modal-overlay" id="reset-backlog-overlay" onclick="if(event.target===this)closeResetBacklogModal()">
-  <div class="purge-modal">
-    <div class="modal-title">🗑 Resetear backlog completo</div>
-    <div class="purge-preview purge-preview-danger">
-      Esta acción elimina <strong>todos los ítems del backlog</strong> y reactiva el botón de importación.<br><br>
-      Para confirmar escribe: <strong>RESET</strong>
-    </div>
-    <input type="text" id="reset-backlog-input" placeholder="Escribe RESET para confirmar"
-      class="purge-input-field"
-      oninput="_validateResetBacklogInput(this)">
-    <div id="reset-backlog-hint" class="is-hidden">Debe ser exactamente: RESET (mayúsculas)</div>
-    <div class="modal-actions">
-      <button type="button" onclick="closeResetBacklogModal()">Cancelar</button>
-      <button class="btn-primary btn-danger" id="reset-backlog-confirm-btn" onclick="confirmResetBacklog()" disabled>Resetear</button>
-    </div>
-  </div>
-</div>
-
-<!-- T-090: Purge modal -->
-<div class="purge-modal-overlay" id="purge-modal-overlay" onclick="if(event.target===this)closePurgeModal()">
-  <div class="purge-modal">
-    <div class="modal-title">🗑 Purgar sesiones antiguas</div>
-    <div class="field">
-      <label>Eliminar sesiones anteriores a (meses)</label>
-      <input type="number" id="purge-months-input" min="1" max="60" value="3" placeholder="3" oninput="updatePurgePreview()" onkeydown="if(event.key==='Enter')confirmPurge()">
-    </div>
-    <div class="purge-preview" id="purge-preview">Ingresa un número de meses para ver el conteo.</div>
-    <div class="modal-actions">
-      <button type="button" onclick="closePurgeModal()">Cancelar</button>
-      <button class="btn-primary btn-danger" id="purge-confirm-btn" onclick="confirmPurge()" disabled="">Eliminar</button>
-    </div>
-  </div>
-</div>
-
 <!-- T-091: Import diff modal -->
 <div class="import-diff-overlay" id="import-diff-overlay" onclick="if(event.target===this)closeImportDiff()">
   <div class="import-diff-modal">

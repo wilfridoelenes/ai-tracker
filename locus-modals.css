@@ -1175,7 +1175,8 @@
 .popup-overlay.closing,
 .proj-modal-overlay.closing,
 .status-confirm-overlay.closing,
-.item-viz-overlay.closing {
+.item-viz-overlay.closing,
+.clean-project-overlay.closing {
   animation: overlay-out 0.2s ease forwards;
   pointer-events: none;
 }
@@ -1190,7 +1191,8 @@
 .popup-overlay.closing .popup,
 .proj-modal-overlay.closing .proj-modal,
 .status-confirm-overlay.closing .status-confirm-box,
-.item-viz-overlay.closing .item-viz-panel {
+.item-viz-overlay.closing .item-viz-panel,
+.clean-project-overlay.closing .clean-project-panel {
   animation: modal-out 0.18s var(--ease-standard) forwards;
 }
 
@@ -2451,7 +2453,8 @@
   .popup-overlay.closing,
   .proj-modal-overlay.closing,
   .status-confirm-overlay.closing,
-  .item-viz-overlay.closing {
+  .item-viz-overlay.closing,
+  .clean-project-overlay.closing {
     animation: overlay-out 0.15s ease forwards;
   }
 
@@ -2464,7 +2467,8 @@
   .popup-overlay.closing .popup,
   .proj-modal-overlay.closing .proj-modal,
   .status-confirm-overlay.closing .status-confirm-box,
-  .item-viz-overlay.closing .item-viz-panel {
+  .item-viz-overlay.closing .item-viz-panel,
+  .clean-project-overlay.closing .clean-project-panel {
     animation: none;
     opacity: 0;
     transition: var(--trans-color);
