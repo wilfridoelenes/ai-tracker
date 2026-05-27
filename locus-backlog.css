@@ -1107,40 +1107,7 @@
   display: none;
 }
 
-.sprint-actions {
-  display: flex; gap: 4px; align-items: center; flex-shrink: 0;
-  opacity: 0; pointer-events: none;
-  transition: var(--trans-color);
-}
-
-.version-group:hover .sprint-actions {
-  opacity: 1; pointer-events: auto;
-}
-
-.sprint-action-btn {
-  font-size: var(--text-2xs); padding: 2px 8px; border-radius: var(--radius-sm); cursor: pointer;
-  border: 1px solid var(--border2); background: var(--surface2); color: var(--text2);
-  font-family: var(--sans); transition: background 0.1s var(--ease-out);
-}
-
-.sprint-action-btn:hover {
-  background: var(--surface3);
-  color: var(--text);
-}
-
-.sprint-action-activate {
-  border-color: rgb(245 158 11 / 40%);
-  color: var(--amber);
-}
-
-.sprint-action-activate:hover {
-  background: rgb(245 158 11 / 10%);
-}
-
-.sprint-action-close {
-  border-color: var(--border2);
-  color: var(--hint);
-}
+/* R-202605-007: .sprint-actions · .sprint-action-btn y familia eliminados — header solo lectura */
 
 .item.is-done {
   opacity: 0.45;

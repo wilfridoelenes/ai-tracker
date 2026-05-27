@@ -971,11 +971,7 @@ function renderBacklogList(onRendered) {
       // T-202605-456: ★ eliminado del version-tag — estado activo lo comunica sprint-badge-active
       const sprintBadge = '';
       const sprintStatusLabel = isActive ? `<span class="sprint-badge-active" class="sprint-badge-ml">activo</span>` : '';
-      const sprintActions = `
-        <div class="sprint-actions" onclick="event.stopPropagation()">
-          ${!isActive ? `<button class="sprint-action-btn sprint-action-activate" onclick="setSprintStatus('${esc(s.id)}','active')" title="Marcar como activo">activar</button>` : ''}
-          <button class="sprint-action-btn sprint-action-close" onclick="confirmCloseSprint('${esc(s.id)}')" title="Cerrar sprint">cerrar</button>
-        </div>`;
+      // R-202605-007: sprintActions eliminado — header solo lectura
       const _sprintAllItems = ITEMS.filter(i => (i.sprint || '').trim() === s.id);
       const _sprintPills = _statusPills(_sprintAllItems);
       const _velLabel066a = isActive ? _sprintVelocityLabel(s.id) : '';
@@ -986,7 +982,6 @@ function renderBacklogList(onRendered) {
             ${progressBar}
             ${_velLabel066a}
             ${_sprintPills ? `<span class="sprint-pills-secondary">${_sprintPills}</span>` : ''}
-            ${sprintActions}
             <span class="version-collapse-arrow" id="varrow-${groupId}">▸</span>
           </div>
         </div>
@@ -1022,15 +1017,7 @@ function renderBacklogList(onRendered) {
           ? `<span class="sprint-badge-closed" class="sprint-badge-ml">cerrado</span>`
           : '';
 
-      const sprintActions = isSinAsignar ? '' : `
-        <div class="sprint-actions" onclick="event.stopPropagation()">
-          ${!sprintObj ? `<button class="sprint-action-btn" onclick="createSprintFromGroup('${esc(key)}')" title="Registrar sprint en catálogo">+ registrar</button>` : ''}
-          
-          ${sprintObj && !isActive && !isClosed ? `<button class="sprint-action-btn sprint-action-activate" onclick="setSprintStatus('${esc(key)}','active')" title="Marcar como activo">activar</button>` : ''}
-          ${sprintObj && !isClosed ? `<button class="sprint-action-btn sprint-action-close" onclick="confirmCloseSprint('${esc(key)}')" title="Cerrar sprint">cerrar</button>` : ''}
-          ${sprintObj && isClosed ? `<button class="sprint-action-btn" onclick="setSprintStatus('${esc(key)}','active')" title="Reactivar sprint">reactivar</button>` : ''}
-          ${sprintObj && isClosed && sprintObj.retroDoc ? `<button class="sprint-action-btn sprint-action-retro" onclick="openSprintRetroView('${esc(key)}')" title="Ver retrospectiva">retro</button>` : ''}
-        </div>`;
+      // R-202605-007: sprintActions eliminado — header solo lectura (AC-2)
 
       const _sprintAllItems = ITEMS.filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key));
       const _pendCount  = group.length;
@@ -1043,13 +1030,12 @@ function renderBacklogList(onRendered) {
       html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}">
         <div onclick="toggleVersionCollapse('${groupId}')" class="version-collapse-trigger">
           <div class="version-header">
-            ${!isSinAsignar ? `<span id="sprint-label-wrap-${esc(key)}"${sprintObj && !isClosed ? ` ondblclick="event.stopPropagation();editSprintInline('${esc(key)}')" title="Doble click para editar"` : ''}><span class="version-tag">${esc(key)}${sprintBadge}</span>${(label && label !== key) ? `<span class="sprint-name-label">${esc(label.replace(/^[A-Za-z]+[-\s]S\d+\s*[·]?\s*/i, ''))}</span>` : ''}</span>${sprintStatusLabel}` : ''}
+            ${!isSinAsignar ? `<span id="sprint-label-wrap-${esc(key)}"><span class="version-tag">${esc(key)}${sprintBadge}</span>${(label && label !== key) ? `<span class="sprint-name-label">${esc(label.replace(/^[A-Za-z]+[-\s]S\d+\s*[·]?\s*/i, ''))}</span>` : ''}</span>${sprintStatusLabel}` : ''}
             ${_pendPill}
             ${isSinAsignar ? `<span class="version-label">Sin asignar</span>` : ''}
             ${progressBar}
             ${_velLabel066b}
             ${(_donePill || _descPill) ? `<span class="sprint-pills-secondary">${_donePill}${_descPill}</span>` : ''}
-            ${sprintActions}
             <span class="version-collapse-arrow" id="varrow-${groupId}">${isCollapsed ? '▸' : '▾'}</span>
           </div>
         </div>
