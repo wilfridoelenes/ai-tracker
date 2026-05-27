@@ -326,3 +326,19 @@ function toggleCollapseAll() {
   if (typeof _markTrackerDirty === 'function') _markTrackerDirty();
   if (typeof render === 'function') render();
 }
+
+// R-202604-080: Global footer — true si hay alguna sesión registrada en las últimas 24 horas.
+// Usado para mostrar el indicador de actividad reciente en el footer global.
+function hasRecentSession() {
+  try {
+    const allSess = (typeof getAllSessions === 'function') ? getAllSessions() : [];
+    if (!allSess.length) return false;
+    const cutoff = Date.now() - 24 * 60 * 60 * 1000; // 24 h
+    return allSess.some(function(s) {
+      const ts = s.timestamp || s.endTime || s.startTime || (s.date ? new Date(s.date).getTime() : 0);
+      return ts > cutoff;
+    });
+  } catch (e) {
+    return false;
+  }
+}
