@@ -1595,13 +1595,14 @@ function applyPatchesFromTG(patches, sessionId) {
       const current  = existing[field];
 
       if (field === 'status') {
-        // AC-8 + AC-7: status done → vía setItemStatus para respetar reglas de confirmación
         const normalized = (typeof _normalizeStatus === 'function') ? _normalizeStatus(incoming) : incoming;
         if (normalized !== existing.status) {
-          if (normalized === 'done' && typeof setItemStatus === 'function') {
-            // B-202605-087: setItemStatus(code, newStatus) — pasar existing.code (string), no el objeto
-            const _prevStatus = existing.status;
-            setItemStatus(existing.code, normalized);
+          const _prevStatus = existing.status;
+          if (normalized === 'done' && typeof _applyDoneStatus === 'function') {
+            // B-202605-XXX: patch programático → _applyDoneStatus directo, sin modal inline
+            // setItemStatus dispara _showInlineConfirmDone para ítems en sprint activo,
+            // lo que requiere interacción del usuario y cancela el patch silenciosamente.
+            _applyDoneStatus(existing.code);
             changes.push({ field: 'status', from: _prevStatus, to: normalized });
           } else if (normalized && normalized !== existing.status) {
             changes.push({ field: 'status', from: existing.status, to: normalized });

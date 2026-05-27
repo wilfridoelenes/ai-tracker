@@ -8,8 +8,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<!-- Firebase SDK — compat v9 (sin build step) -->
-
 <!-- CSS Modular — orden de carga: base → layout → backlog → tracker → analytics → modals → proyectos → overrides -->
 <link rel="stylesheet" href="locus-base.css">
 <link rel="stylesheet" href="locus-layout.css">
@@ -56,6 +54,7 @@
         <button class="breadcrumb-seg breadcrumb-seg--sprint is-hidden" id="breadcrumb-sprint" title="Sprint activo"></button>
         <span class="breadcrumb-sep breadcrumb-sep--sprint is-hidden" aria-hidden="true">›</span>
         <button class="breadcrumb-seg breadcrumb-seg--item is-hidden" id="breadcrumb-item" title=""></button>
+        <div id="header-sprint-pill-wrap" class="is-hidden"></div>
       </div>
     </div>
 
@@ -157,7 +156,7 @@
           <!-- Grupo: Zona peligrosa -->
           <hr class="mm-separator">
           <div class="mm-group-label mm-group-label--danger">Zona peligrosa</div>
-          <button type="button" onclick="purgeOldSessions();toggleMoreMenu()" class="mm-danger"><span class="mm-icon">🗑</span> Purgar sesiones antiguas</button>
+          <button type="button" onclick="openCleanProjectModal();toggleMoreMenu()" class="mm-danger"><span class="mm-icon">🗑</span> Limpiar proyecto</button>
         </div>
       </div>
 
@@ -166,17 +165,12 @@
       <input type="file" id="context-file-input" accept=".md,text/markdown,text/plain" class="is-hidden" onchange="_importContextMdFromFile(event)">
       <input type="file" id="backlog-file-input" accept=".md,text/markdown,text/plain" class="is-hidden" onchange="importBacklog(event)">    </div>
   </div>
-  <div id="header-sprint-row" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-    <span class="hsr-label" id="hsr-label"></span>
-    <div class="hsr-bar"><div class="hsr-bar-fill" id="hsr-bar-fill"></div></div>
-    <span class="hsr-text" id="hsr-text"></span>
-  </div>
 </header>
 
 <!-- T-084: Storage warning banner — visible solo si totalSessions > 300 -->
 <div id="storage-warn" class="is-hidden">
   <span>⚠️ Tienes muchas sesiones guardadas — el almacenamiento local puede saturarse pronto.</span>
-  <button type="button" onclick="purgeOldSessions();checkStorageWarn()">🗑 Purgar sesiones antiguas</button>
+  <button type="button" onclick="openCleanProjectModal()">🗑 Limpiar proyecto</button>
   <button type="button" onclick="document.getElementById('storage-warn').classList.add('is-hidden')" title="Cerrar">✕</button>
 </div>
 <!-- ═══ RADAR SIDEBAR GLOBAL ═══ -->
@@ -387,12 +381,10 @@
       <button class="tpl-danger-toggle" onclick="toggleSidebarDanger()">⚠ Opciones avanzadas</button>
       <div class="tpl-danger-body" id="tpl-danger-body">
         <div class="tpl-danger-label">Zona de peligro — irreversible</div>
-        <button class="btn-danger is-hidden" id="sidebar-danger-btn-backlog" onclick="openResetBacklogModal()">🗑 Resetear Backlog</button>
-        <button class="btn-danger is-hidden" id="sidebar-danger-btn-historico" onclick="purgeAllHistorico()">🗑 Purgar Histórico</button>
+        <button class="btn-danger" id="sidebar-danger-btn-clean-project" onclick="openCleanProjectModal()" aria-disabled="false">🗑 Limpiar proyecto</button>
         <button class="btn-danger is-hidden" id="sidebar-danger-btn-context" onclick="resetContextData()">🗑 Resetear Context</button>
         <button class="btn-danger is-hidden" id="sidebar-danger-btn-htmlmap" onclick="resetHtmlMapData()">🗑 Resetear MAP</button>
         <button class="btn-danger is-hidden" id="sidebar-danger-btn-contratos" onclick="resetContratosData()">🗑 Resetear Contratos</button>
-        <button class="btn-danger" id="sidebar-danger-btn-sessions" onclick="openResetSessionsModal()">🗑 Resetear Sesiones</button>
       </div>
     </div>
 
@@ -1800,5 +1792,74 @@ document.addEventListener('DOMContentLoaded', function() {
   <span id="gf-sync" class="gf-sync is-hidden"></span>
 </footer>
 
+<!-- ═══ MODAL LIMPIAR PROYECTO ═══ R-[pendiente-ID] -->
+<div class="modal-overlay clean-project-overlay" id="clean-project-overlay"
+     role="dialog" aria-modal="true" aria-labelledby="clean-project-dialog-title"
+     onclick="if(event.target===this)closeCleanProjectModal()">
+  <div class="modal-panel clean-project-panel">
+    <div class="modal-header">
+      <span class="modal-title clean-project-dialog-title" id="clean-project-dialog-title">
+        Limpiar: <span class="clean-project-title clean-project-name" id="clean-project-title">proyecto</span>
+      </span>
+      <button class="modal-close-btn" onclick="closeCleanProjectModal()" aria-label="Cerrar">✕</button>
+    </div>
+
+    <div class="modal-body clean-project-body">
+      <p class="clean-project-warning" id="clean-project-warning" role="alert">
+        ⚠️ Esta acción es <strong>irreversible</strong>. Los datos se eliminarán de Supabase y del almacenamiento local del proyecto activo.
+      </p>
+
+      <!-- AC-4: checkboxes con label clickeable completo -->
+      <div class="clean-project-checks">
+        <label class="clean-project-check-label">
+          <input type="checkbox" id="clean-chk-sessions" onchange="_cleanProjectValidate()">
+          <span class="clean-project-check-text">
+            <span class="clean-project-check-title">Sesiones y Checkpoints</span>
+            <span class="clean-project-check-desc">Elimina todo el historial de sesiones del proyecto activo</span>
+          </span>
+        </label>
+        <label class="clean-project-check-label">
+          <input type="checkbox" id="clean-chk-backlog" onchange="_cleanProjectValidate()">
+          <span class="clean-project-check-text">
+            <span class="clean-project-check-title">Backlog e Histórico</span>
+            <span class="clean-project-check-desc">Elimina todos los ítems del backlog del proyecto activo</span>
+          </span>
+        </label>
+      </div>
+
+      <!-- AC-5: separación visual entre checkboxes y confirmación -->
+      <div class="clean-project-confirm-section">
+        <!-- AC-6: campo de confirmación -->
+        <label class="clean-project-confirm-label" for="clean-project-input"
+               id="clean-project-confirm-desc">
+          Escribe <strong>LIMPIAR</strong> para confirmar
+        </label>
+        <input
+          type="text"
+          id="clean-project-input"
+          class="clean-project-input"
+          placeholder="LIMPIAR"
+          autocomplete="off"
+          spellcheck="false"
+          aria-describedby="clean-project-warning clean-project-confirm-desc"
+          oninput="_cleanProjectValidate()"
+        >
+      </div>
+    </div>
+
+    <div class="modal-footer clean-project-footer">
+      <button class="tpl-action-btn" onclick="closeCleanProjectModal()">Cancelar</button>
+      <button
+        class="btn-danger clean-project-confirm is-disabled"
+        id="clean-project-confirm-btn"
+        aria-disabled="true"
+        disabled
+        onclick="confirmCleanProject()">
+        Limpiar proyecto
+      </button>
+    </div>
+  </div>
+</div>
+<!-- /MODAL LIMPIAR PROYECTO -->
 
 </body></html>

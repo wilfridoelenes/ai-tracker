@@ -643,76 +643,22 @@ button {
 
 /* ══ END R-202605-167 ══ */
 
-/* === locus-sprint.js ===
-   Funciones: renderSprintTab (segunda fila del header) */
+/* ══ T-202605-002: Sprint pill wrap — segundo hijo de .logo-project-label ══ */
 
-/* ══ R-202605-168: Sprint progress bar — segunda fila del header ══ */
-
-#header-sprint-row {
-  display: none; /* oculto por defecto — hsr-visible lo activa */
-  align-items: center;
-  gap: 8px;
-  height: 0;
-  overflow: hidden;
-  padding: 0 2rem;
-  background: var(--bg);
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: height 0.18s var(--ease-out);
+#header-sprint-pill-wrap {
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 2px;
+  padding: 0;
 }
 
-#header-sprint-row.hsr-visible {
+#header-sprint-pill-wrap.hsr-visible {
   display: flex;
-  height: 28px;
 }
 
-.hsr-label {
-  font-size: var(--text-xs);
-  font-family: var(--mono, monospace);
-  color: var(--hint);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
+/* ══ END T-202605-002 ══ */
 
-.hsr-bar {
-  flex: 1;
-  height: 3px;
-  border-radius: var(--radius-sm);
-  background: var(--border);
-  overflow: hidden;
-  min-width: 40px;
-}
-
-.hsr-bar-fill {
-  height: 100%;
-  width: var(--hsr-pct, 0%);
-  border-radius: var(--radius-sm);
-  transition: width 0.3s var(--ease-out);
-}
-
-/* Color semántico via clase — sin style= inline para color */
-.hsr-bar-fill--accent {
-  background: var(--accent);
-}
-
-.hsr-bar-fill--success {
-  background: var(--green, #2ecc78);
-}
-
-.hsr-text {
-  font-size: var(--text-xs);
-  color: var(--text2);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-/* Hover sutil en la fila — no distrae pero confirma interactividad */
-#header-sprint-row:hover .hsr-label,
-#header-sprint-row:hover .hsr-text {
-  color: var(--text);
-}
-
-/* ══ END R-202605-168 ══ */
 
 /* ── HEADER REDESIGN ── */
 

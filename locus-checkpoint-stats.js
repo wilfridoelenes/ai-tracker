@@ -227,52 +227,14 @@ function renderStatusBar() {
   try {
   // R-202604-060: tracker-status-bar DEPRECATED — lógica migrada a tracker-grid-header + global-footer
 
-  // ── R-202605-168: Sprint progress bar — segunda fila del header ───────────
-  // Reutiliza el cálculo de sprint activo; no duplica lógica.
+  // ── T-202605-002: Sprint pill en #header-sprint-pill-wrap ────────────────
+  // Pill migrado al header global — vive dentro de .logo-project-label.
   try {
-    const _hsrRow    = document.getElementById('header-sprint-row');
-    const _hsrLabel  = document.getElementById('hsr-label');
-    const _hsrFill   = document.getElementById('hsr-bar-fill');
-    const _hsrText   = document.getElementById('hsr-text');
-    if (_hsrRow) {
-      const { sp: _hsprSp, spDone: _hsprDone, spTotal: _hsprTotal, spPct: _hsprPct } = _getActiveSprintStats();
-
-      if (_hsprSp) {
-        if (_hsrLabel) _hsrLabel.textContent = _hsprSp.label || _hsprSp.id || '';
-        if (_hsrFill) {
-          _hsrFill.style.setProperty('--hsr-pct', _hsprPct + '%');
-          _hsrFill.classList.toggle('hsr-bar-fill--success', _hsprPct >= 70);
-          _hsrFill.classList.toggle('hsr-bar-fill--accent',  _hsprPct < 70);
-        }
-        if (_hsrText) _hsrText.textContent = _hsprPct + '% · ' + _hsprDone + '/' + _hsprTotal;
-        _hsrRow.setAttribute('aria-valuenow', _hsprPct);
-        _hsrRow.classList.add('hsr-visible');
-      } else {
-        _hsrRow.classList.remove('hsr-visible');
-      }
-    }
-  } catch (e) {}
-
-  // Sincronizar breadcrumb con el estado actual de sprint/proyecto
-  if (typeof _updateHeaderProjectLabel === 'function') _updateHeaderProjectLabel();
-
-  // ── Grid header: vacío — pill migrado a tracker-view-header (R-202605-139) ──
-  const gridHeader = document.getElementById('tracker-grid-header');
-  if (gridHeader) {
-    gridHeader.innerHTML = '';
-    gridHeader.classList.remove('tgh-visible');
-  }
-
-  // ── R-202605-139: sprint pill en tracker-view-header ──────────────────────────────────
-  // El sprint pertenece al proyecto activo, no a un AI individual.
-  // El pill vive a la izquierda del selector de vista, siempre visible en el tab Tracker.
-  const viewHeader = document.getElementById('tracker-view-header');
-  if (viewHeader) {
-    let sprintPillHtml = '';
-    try {
+    const _pillWrap = document.getElementById('header-sprint-pill-wrap');
+    if (_pillWrap) {
       const { sp, spDone, spTotal, spPct, spLabel } = _getActiveSprintStats();
       if (sp) {
-        sprintPillHtml = `<button class="tgh-sprint-pill tvh-sprint-pill" onclick="if(typeof toggleSprintHealthPanel==='function')toggleSprintHealthPanel();" title="Ver sprint health">` +
+        const pillHtml = `<button class="tgh-sprint-pill" onclick="if(typeof toggleSprintHealthPanel==='function')toggleSprintHealthPanel();" title="Ver sprint health">` +
           `<span class="tgh-sprint-name">${spLabel}</span>` +
           `<span class="tgh-sprint-sep">·</span>` +
           `<span class="tgh-sprint-progress">${spDone}/${spTotal}</span>` +
@@ -280,19 +242,25 @@ function renderStatusBar() {
           `<span class="tgh-sprint-pct">${spPct}%</span>` +
           `<span class="tgh-sprint-bar-wrap"><span class="tgh-sprint-bar-fill" style="--pct:${spPct}%"></span></span>` +
           `</button>`;
-      }
-    } catch(e) {}
-
-    const existingPill = viewHeader.querySelector('.tvh-sprint-pill');
-    if (existingPill) {
-      if (sprintPillHtml) {
-        existingPill.outerHTML = sprintPillHtml;
+        _pillWrap.innerHTML = pillHtml;
+        _pillWrap.classList.add('hsr-visible');
+        _pillWrap.classList.remove('is-hidden');
       } else {
-        existingPill.remove();
+        _pillWrap.innerHTML = '';
+        _pillWrap.classList.remove('hsr-visible');
+        _pillWrap.classList.add('is-hidden');
       }
-    } else if (sprintPillHtml) {
-      viewHeader.insertAdjacentHTML('afterbegin', sprintPillHtml);
     }
+  } catch (e) {}
+
+  // Sincronizar breadcrumb con el estado actual de sprint/proyecto
+  if (typeof _updateHeaderProjectLabel === 'function') _updateHeaderProjectLabel();
+
+  // ── Grid header: vacío — pill migrado a header global (T-202605-002) ──
+  const gridHeader = document.getElementById('tracker-grid-header');
+  if (gridHeader) {
+    gridHeader.innerHTML = '';
+    gridHeader.classList.remove('tgh-visible');
   }
 
 

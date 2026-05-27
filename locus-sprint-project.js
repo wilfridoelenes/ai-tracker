@@ -719,6 +719,7 @@ function _setActiveProjectFilter(projId) {
   _updateProjBreadcrumb();
   _updateProjFilterBtn();
   if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
+  if (typeof _syncCleanProjectBtn === 'function') _syncCleanProjectBtn();
 }
 
 function _updateProjBreadcrumb() {

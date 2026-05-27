@@ -313,7 +313,202 @@ function toggleSidebarDanger() {
   const body = document.getElementById('tpl-danger-body');
   if (!body) return;
   body.classList.toggle('open');
+  if (typeof _syncCleanProjectBtn === 'function') _syncCleanProjectBtn();
 }
+
+// ── R-[pendiente-ID]: Modal Limpiar proyecto activo ──────────────────────────
+// Reemplaza: openResetBacklogModal · confirmResetBacklog · openResetSessionsModal · purgeOldSessions
+// Scope: proyecto activo únicamente — workers y proyectos nunca se tocan
+
+function openCleanProjectModal() {
+  const projId = typeof _getActiveProjectFilter === 'function' ? _getActiveProjectFilter() : null;
+  if (!projId) return; // AC-2: sin proyecto activo el botón está disabled — guard defensivo
+
+  // Nombre del proyecto activo para el título del modal
+  const proj = typeof getProjectById === 'function' ? getProjectById(projId) : null;
+  const projName = proj ? (proj.name || projId) : projId;
+  const titleEl = document.getElementById('clean-project-title');
+  if (titleEl) titleEl.textContent = projName;
+
+  // Reset estado inicial del modal
+  const chkSessions = document.getElementById('clean-chk-sessions');
+  const chkBacklog  = document.getElementById('clean-chk-backlog');
+  const inputConfirm = document.getElementById('clean-project-input');
+  const btnConfirm  = document.getElementById('clean-project-confirm-btn');
+
+  if (chkSessions) { chkSessions.checked = false; chkSessions.disabled = false; }
+  if (chkBacklog)  { chkBacklog.checked  = false; chkBacklog.disabled  = false; }
+  if (inputConfirm) { inputConfirm.value = ''; inputConfirm.disabled = false; }
+  if (btnConfirm)  { btnConfirm.setAttribute('aria-disabled', 'true'); btnConfirm.classList.add('is-disabled'); btnConfirm.disabled = true; }
+
+  if (typeof _saveModalTrigger === 'function') _saveModalTrigger('clean-project-overlay');
+  document.getElementById('clean-project-overlay').classList.add('open');
+
+  // AC-4: foco inicial en primer checkbox
+  setTimeout(() => { if (chkSessions) chkSessions.focus(); }, 50);
+}
+
+function closeCleanProjectModal() {
+  document.getElementById('clean-project-overlay').classList.remove('open');
+  if (typeof _restoreModalFocus === 'function') _restoreModalFocus('clean-project-overlay');
+}
+
+// AC-2 (T-202605-004): sincronizar estado disabled del botón clean-project
+// según si hay proyecto activo. Se llama en cada cambio de proyecto y al abrir la Zona de Peligro.
+function _syncCleanProjectBtn() {
+  const btn = document.getElementById('sidebar-danger-btn-clean-project');
+  if (!btn) return;
+  const hasProjActive = typeof _getActiveProjectFilter === 'function'
+    ? !!_getActiveProjectFilter()
+    : false;
+  btn.setAttribute('aria-disabled', hasProjActive ? 'false' : 'true');
+  if (hasProjActive) btn.classList.remove('is-disabled');
+  else               btn.classList.add('is-disabled');
+}
+
+// AC-7: validación reactiva — habilita botón cuando checkbox + campo correctos
+function _cleanProjectValidate() {
+  const chkSessions  = document.getElementById('clean-chk-sessions');
+  const chkBacklog   = document.getElementById('clean-chk-backlog');
+  const inputConfirm = document.getElementById('clean-project-input');
+  const btnConfirm   = document.getElementById('clean-project-confirm-btn');
+  if (!chkSessions || !chkBacklog || !inputConfirm || !btnConfirm) return;
+
+  const hasCheck   = chkSessions.checked || chkBacklog.checked;
+  const hasConfirm = inputConfirm.value === 'LIMPIAR';
+  const ready = hasCheck && hasConfirm;
+
+  btnConfirm.disabled = !ready;
+  btnConfirm.setAttribute('aria-disabled', ready ? 'false' : 'true');
+  if (ready) btnConfirm.classList.remove('is-disabled');
+  else btnConfirm.classList.add('is-disabled');
+}
+
+async function confirmCleanProject() {
+  const projId = typeof _getActiveProjectFilter === 'function' ? _getActiveProjectFilter() : null;
+  if (!projId) return;
+
+  const chkSessions  = document.getElementById('clean-chk-sessions');
+  const chkBacklog   = document.getElementById('clean-chk-backlog');
+  const inputConfirm = document.getElementById('clean-project-input');
+  const btnConfirm   = document.getElementById('clean-project-confirm-btn');
+
+  if (!chkSessions || !chkBacklog || !inputConfirm) return;
+  if (!chkSessions.checked && !chkBacklog.checked) return;
+  if (inputConfirm.value !== 'LIMPIAR') return;
+
+  const doSessions = chkSessions.checked;
+  const doBacklog  = chkBacklog.checked;
+
+  const proj = typeof getProjectById === 'function' ? getProjectById(projId) : null;
+  const projName = proj ? (proj.name || projId) : projId;
+
+  // AC-12: estado ejecutando
+  btnConfirm.disabled = true;
+  btnConfirm.setAttribute('aria-disabled', 'true');
+  btnConfirm.classList.add('is-disabled');
+  btnConfirm.textContent = 'Limpiando…';
+  if (chkSessions) chkSessions.disabled = true;
+  if (chkBacklog)  chkBacklog.disabled  = true;
+  if (inputConfirm) inputConfirm.disabled = true;
+
+  // AC-8: desconectar Realtime antes de operar
+  if (typeof _unsubscribeRealtime === 'function') _unsubscribeRealtime();
+
+  const errors = [];
+
+  // AC-11: Promise.allSettled para ejecutar ambas operaciones en paralelo
+  const ops = [];
+
+  if (doSessions) {
+    ops.push((async () => {
+      // Limpiar en memoria primero — evita re-upsert durante DELETE
+      const projObj = (state.projects || []).find(p => p.id === projId);
+      if (projObj) projObj.sessions = [];
+
+      // DELETE en Supabase
+      if (_supabase && _supabaseUser) {
+        const { error } = await _supabase
+          .from('tracker_sessions')
+          .delete()
+          .eq('user_id', _supabaseUser.id)
+          .eq('project_id', projId);
+        if (error) {
+          // AC-13: fallo Supabase — limpieza local aplicada de todas formas
+          errors.push('Sesiones: ' + error.message);
+          if (typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'sessions', projId });
+        }
+      }
+
+      // Limpiar localStorage
+      localStorage.removeItem('ai-tracker-v4');
+    })());
+  }
+
+  if (doBacklog) {
+    ops.push((async () => {
+      // Limpiar ITEMS en memoria
+      if (typeof ITEMS !== 'undefined') ITEMS.length = 0;
+
+      // DELETE en Supabase
+      if (_supabase && _supabaseUser) {
+        const suffix = '-' + projId;
+        const { error } = await _supabase
+          .from('tracker_backlog')
+          .delete()
+          .eq('user_id', _supabaseUser.id)
+          .in('key', ['items' + suffix, 'meta' + suffix]);
+        if (error) {
+          errors.push('Backlog: ' + error.message);
+          if (typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'backlog' });
+        }
+      }
+
+      // Limpiar localStorage
+      localStorage.removeItem('backlog-items-' + projId);
+      localStorage.removeItem('backlog-meta-' + projId);
+      localStorage.removeItem('backlog-raw');
+    })());
+  }
+
+  await Promise.allSettled(ops);
+
+  // Persistir state limpio
+  await saveImmediate();
+
+  // AC-8: reconectar Realtime
+  if (typeof _subscribeRealtime === 'function') _subscribeRealtime();
+
+  // AC-13: si hubo errores — modal permanece abierto, toast warning
+  if (errors.length > 0) {
+    showToast('warning', '⚠️ Limpieza local aplicada — Supabase falló: ' + errors.join(' · '));
+    // Restaurar botón
+    btnConfirm.disabled = false;
+    btnConfirm.setAttribute('aria-disabled', 'false');
+    btnConfirm.classList.remove('is-disabled');
+    btnConfirm.textContent = 'Limpiar proyecto';
+    if (chkSessions) chkSessions.disabled = false;
+    if (chkBacklog)  chkBacklog.disabled  = false;
+    if (inputConfirm) inputConfirm.disabled = false;
+    return;
+  }
+
+  // AC-14: éxito — cerrar modal, toast, renders
+  const cleaned = [doSessions ? 'sesiones' : null, doBacklog ? 'backlog' : null].filter(Boolean).join(' y ');
+  closeCleanProjectModal();
+  showToast('success', `✓ ${projName} — ${cleaned} eliminados`);
+
+  if (typeof renderBacklogList === 'function') renderBacklogList();
+  if (typeof render === 'function') render();
+  if (typeof updateStats === 'function') updateStats();
+  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+}
+
+// ── FUNCIONES LEGACY — deprecadas, mantenidas para compatibilidad ────────────
+// No se llaman desde ningún punto del HTML tras R-[pendiente-ID]
+// openResetBacklogModal / closeResetBacklogModal / confirmResetBacklog → reemplazadas por openCleanProjectModal
+// openResetSessionsModal / confirmResetSessions → reemplazadas por openCleanProjectModal
+// purgeOldSessions / openPurgeModal / closePurgeModal / confirmPurge → reemplazadas por openCleanProjectModal
 
 function resetContextData() {
   if (typeof _gconfirmOpen !== 'function') return;

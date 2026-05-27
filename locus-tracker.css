@@ -4783,21 +4783,6 @@ textarea[id^="ta-"]:focus {
 }
 
 /* ══ END T-202604-416 ══ */
-
-/* ══════════════════════════════════════════════════════════════════
-   R-202605-139: Sprint pill — reubicado en tracker-view-header
-   El pill es contexto del proyecto activo, no del AI individual.
-   ══════════════════════════════════════════════════════════════════ */
-
-/* Pill en tracker-view-header: orden visual correcto — queda antes del toggle Checkpoint/Historial */
-.tvh-sprint-pill {
-  order: -1;
-  flex-shrink: 0;
-  margin-right: 4px;
-}
-
-/* ══ END R-202605-139 ══ */
-
 /* ══════════════════════════════════════════════════════════════════
    T-202604-426: .bitem-focus-rank — badge de posición en Focus mode
    ══════════════════════════════════════════════════════════════════ */
