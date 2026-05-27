@@ -157,7 +157,7 @@ function _scrollToCard(aiId) {
 }
 
 function navigateToCard(aiId) {
-  switchTab('tracker');
+  switchTab('sesiones');
   setTimeout(() => {
     // B: delegar en selectTrackerAI — setea _trackerSelectedId en su scope, marca dirty y llama render
     if (typeof selectTrackerAI === 'function') {
@@ -616,7 +616,7 @@ function _computeNotifications() {
         title: 'IA fuera de cadencia',
         body: (ai.name || ai.id) + ' sin sesión en ' + sinceD + ' días (cadencia habitual: ' + Math.round(avgGapMs / 86400000) + 'd)',
         action: function() {
-          if (typeof switchTab === 'function') switchTab('tracker');
+          if (typeof switchTab === 'function') switchTab('sesiones');
           if (typeof navigateToCard === 'function') setTimeout(function() { navigateToCard(ai.id); }, 80);
         }
       });
