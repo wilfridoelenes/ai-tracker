@@ -1140,8 +1140,7 @@ function _applyStateData(raw) {
   if (!raw._stateVersion) raw._stateVersion = 3;
   if (!raw.quickNotes) raw.quickNotes = [];
 
-  Entregable — bloque completo con el cambio incorporado:
-js    // v3: migración de proyectos — asegurar campos v3
+  // v3: migración de proyectos — asegurar campos v3
   (raw.projects || []).forEach(proj => {
     if (!proj.sessions) proj.sessions = [];
     if (!proj.tracker) proj.tracker = { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
