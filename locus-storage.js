@@ -1,5 +1,5 @@
 // locus-storage.js
-// Última actualización: 2026-05-13 UTC-6
+// Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 // No contiene lógica de UI, render, toast ni timer de sesión.
@@ -19,6 +19,7 @@ const LOCUS_KEYS = {
   TMP_ID_MAP:       'tmp-id-map',
   SHORTCUTS:        'user-shortcuts',
   USER_PREFS_TS:    'user-prefs-ts',
+  OFFLINE_QUEUE_KEY: 'locus-offline-queue',
   PULSO:            'locus-pulso',
   TPL_TRIGGER:      'locus-tpl-trigger',
 };

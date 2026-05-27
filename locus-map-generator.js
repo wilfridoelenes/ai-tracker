@@ -1,6 +1,6 @@
 /**
  * locus-map-generator.js
- * Versión: v1.3.3 | Última actualización: 2026-05-23 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
+ * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
  * Módulo: Document Generator — MAP + CONTEXT + BACKLOG + Sprint Review + ZIP
  * Proyecto: Locus
  * Renombrado de ai-tracker-map-generator.js
@@ -428,7 +428,7 @@ function _mgBumpMinor(version) {
 }
 
 function _mgGetVersion() {
-  // B-202605-228: rechazar string literal "undefined" — ocurre si APP_VERSION no estaba listo al abrir el overlay
+  // B-202605-228: rechazar string literal "undefined" — ocurre si la versión no estaba lista al abrir el overlay
   // T-202605-018: input manual del overlay tiene prioridad — resto delega a _effectiveVersion
   const input = document.getElementById('mg-version-input');
   const raw = input ? input.value.trim() : '';
