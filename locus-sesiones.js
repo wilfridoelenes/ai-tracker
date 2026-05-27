@@ -1,6 +1,6 @@
-// locus-tracker.js
+// locus-sesiones.js
 // Última actualización: 2026-05-24 UTC-6
-// Módulo: Tab Tracker — render, cards de IAs, session list, log card, detail panel, mini-hist
+// Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist
 // Requiere: locus-storage.js, locus-toast.js, locus-tracker-utils.js cargados ANTES en index.html
 // Timer · suggestion · weekly summary → locus-tracker-utils.js
 

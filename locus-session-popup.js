@@ -149,7 +149,7 @@ function openDetail(aiId, sessId) {
   const isDesktop = true; // DUP-05: mobile eliminado — siempre desktop
   if (isDesktop) {
     // Populate preview panel — render IDs directly here so all edit functions work
-    const tab = document.getElementById('tab-tracker');
+    const tab = document.getElementById('tab-sesiones');
     const preview = document.getElementById('tracker-preview');
     const previewEmpty = document.getElementById('tracker-preview-empty');
     const previewInner = document.getElementById('tracker-preview-inner');
@@ -214,7 +214,7 @@ function openDetail(aiId, sessId) {
 }
 function closePopup() {
   // Close preview panel
-  const tab = document.getElementById('tab-tracker');
+  const tab = document.getElementById('tab-sesiones');
   const previewEmpty = document.getElementById('tracker-preview-empty');
   const previewInner = document.getElementById('tracker-preview-inner');
   if (tab) tab.classList.remove('preview-open');
@@ -357,7 +357,7 @@ function saveResetFromPopup() {
     ai.resetEpoch = null;
   }
   save(); render();
-  if (currentTab === 'hoy') renderHoy();
+  if (currentTab === 'sesiones') renderHoy();
   closePopup();
   showToast('success', result ? `${ai.name} marcada agotada · desbloquea a las ${result.label}` : `${ai.name} marcada agotada`);
 }
@@ -458,7 +458,7 @@ function saveCorrectHoraFromPopup() {
   ai.resetEpoch = result.epoch;
   s.resetAt = result.label;
   save(); render();
-  if (currentTab === 'hoy') renderHoy();
+  if (currentTab === 'sesiones') renderHoy();
   closePopup();
   showToast('success', `Hora corregida · ${ai.name} desbloquea a las ${result.label}`);
 }
@@ -473,7 +473,7 @@ function unlockNowFromPopup() {
   ai.resetTime = '';
   ai.resetEpoch = null;
   save(); render();
-  if (currentTab === 'hoy') renderHoy();
+  if (currentTab === 'sesiones') renderHoy();
   closePopup();
   showToast('success', `${ai.name} marcada como disponible`);
 }
@@ -1054,7 +1054,7 @@ function _logScrollTop() {
 }
 
 function scrollToLogCard(highlightSessId) {
-  if (currentTab !== 'tracker') switchTab('tracker');
+  if (currentTab !== 'sesiones') switchTab('sesiones');
 
   const grid = document.getElementById('grid');
   const detailEmpty = document.getElementById('tracker-detail-empty');

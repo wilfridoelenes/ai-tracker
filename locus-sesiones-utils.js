@@ -1,8 +1,8 @@
-// locus-tracker-utils.js
-// Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-tracker.js
+// locus-sesiones-utils.js
+// Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal
 // Requiere: locus-storage.js, locus-ui-shell.js (switchTab) cargados ANTES en index.html
-// Debe cargarse ANTES de locus-tracker.js
+// Debe cargarse ANTES de locus-sesiones.js
 
 // ══════════════════════════════════════════════════════════════════════════════
 // S-17: T-202605-446 · Cronómetro de sesión — card IA activa
@@ -152,8 +152,8 @@ function _hwcClick() {
   const aiId = chip && chip.dataset.hwcAiId;
   if (!aiId) return;
   if (typeof selectTrackerAI === 'function') selectTrackerAI(aiId);
-  if (typeof switchTab === 'function' && document.querySelector('.tab-btn.active')?.dataset.tab !== 'tracker') {
-    switchTab('tracker');
+  if (typeof switchTab === 'function' && document.querySelector('.tab-btn.active')?.dataset.tab !== 'sesiones') {
+    switchTab('sesiones');
   }
 }
 // window fallback para inline handler en index.html

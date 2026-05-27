@@ -18,8 +18,8 @@
 <link rel="stylesheet" href="locus-sprint-plan.css">
 <link rel="stylesheet" href="locus-sprint-ui.css">
 <link rel="stylesheet" href="locus-archive.css">
-<link rel="stylesheet" href="locus-tracker.css">
-    <link rel="stylesheet" href="locus-tracker-card.css">
+<link rel="stylesheet" href="locus-sesiones.css">
+    <link rel="stylesheet" href="locus-sesiones-card.css">
 <link rel="stylesheet" href="locus-radar.css">
 <link rel="stylesheet" href="locus-analytics.css">
 <link rel="stylesheet" href="locus-modals.css">
@@ -46,7 +46,7 @@
 <!-- ═══ HEADER COMPARTIDO ═══ -->
 <header>
   <div class="header-inner">
-    <div class="logo cursor-pointer" onclick="switchTab('tracker')" id="logo-btn" title="Ir a Tracker">
+    <div class="logo cursor-pointer" onclick="switchTab('sesiones')" id="logo-btn" title="Ir a Sesiones">
       <img id="pepe-logo" src="/img/logo.png" alt="Pepe" class="logo-img">
       <div class="logo-project-label" id="header-project-label">
         <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" onclick="if(typeof openProjPanel==='function')openProjPanel()">Locus</button>
@@ -59,7 +59,7 @@
     </div>
 
     <div class="tabs">
-      <button class="tab-btn" id="tab-btn-tracker" onclick="switchTab('tracker')" title="Ver Tracker de sesiones">🗂 Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-tracker"></span></button>
+      <button class="tab-btn" id="tab-btn-sesiones" onclick="switchTab('sesiones')" title="Ver Sesiones">🗂 Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sesiones"></span></button>
       <button class="tab-btn" id="tab-btn-proyectos" onclick="switchTab('proyectos')" title="Dashboard estratégico de proyectos">📁 Proyectos<span class="tab-notif-badge is-hidden" id="tab-notif-badge-proyectos"></span></button>
       <button class="tab-btn" id="tab-btn-backlog" onclick="switchTab('backlog')" title="Backlog — ítems, sprints y estado del ecosistema">🗃 Backlog<span class="tab-notif-badge is-hidden" id="tab-notif-badge-backlog"></span></button>
       <button class="tab-btn" id="tab-btn-sprint" onclick="switchTab('sprint')" title="Sprint — estado y ejecución del sprint activo">🏃 Sprint<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sprint"></span></button>
@@ -214,8 +214,8 @@
   <div class="radar-sidebar-cards" id="radar-sidebar-cards"></div>
 </div>
 
-<!-- ═══ TAB TRACKER ═══ -->
-<div class="tab-panel active" id="tab-tracker">
+<!-- ═══ TAB SESIONES ═══ -->
+<div class="tab-panel active" id="tab-sesiones">
 
   <div class="setup-checklist-banner is-hidden" id="setup-checklist-banner"
        role="status" aria-label="Progreso de configuración inicial"
@@ -1675,8 +1675,8 @@ function _validateResetBacklogInput(el) {
 <script src="locus-analytics-render.js"></script>
 <script src="locus-analytics-charts.js"></script>
 <script src="locus-toast.js"></script>
-<script src="locus-tracker.js"></script>
-<script src="locus-tracker-utils.js"></script>
+<script src="locus-sesiones.js"></script>
+<script src="locus-sesiones-utils.js"></script>
 <script src="locus-ui-shell.js"></script>
 		<script src="locus-modals.js"></script>
 		<script src="locus-workers.js"></script>
