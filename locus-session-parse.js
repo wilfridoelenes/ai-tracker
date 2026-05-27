@@ -1,6 +1,78 @@
 // locus-session-parse.js
-// Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan.
+// Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
+//   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
+
+// T-202604-215: Labels de status en español — fuente de verdad para UI
+// Movido desde locus-checkpoint-hoy.js
+const STATUS_LABELS = {
+  available:    'Disponible',
+  exhausted:    'Agotada',
+  insession:    'En curso',
+  interrupted:  'Interrumpida'
+};
+
+const TG_PARSER_CONFIG = {
+  TYPES: ['P', 'T', 'R', 'B'],
+  TYPE_NAMES: { P: 'Ideas', T: 'Tickets', R: 'Requerimientos', B: 'Bugs' },
+  STATUS_ALIASES: {
+    'pendiente':'📤 Pendiente', '📤 pendiente':'📤 Pendiente',
+    'backlog':'⏳ Backlog', '⏳ backlog':'⏳ Backlog',
+    'done':'✅ DONE', '✅ done':'✅ DONE', 'listo':'✅ DONE',
+    'en progreso':'🔄 En progreso', '🔄 en progreso':'🔄 En progreso',
+    'in-progress':'🔄 En progreso', 'progreso':'🔄 En progreso',
+    'descartado':'🗑 Descartado', '🗑 descartado':'🗑 Descartado'
+  }
+};
+
+function normStatus(raw) {
+  if (!raw) return '📤 Pendiente';
+  const key = raw.trim().toLowerCase();
+  const resolved = TG_PARSER_CONFIG.STATUS_ALIASES[key];
+  if (!resolved) {
+    console.warn('[AI Tracker] normStatus: status desconocido "' + raw.trim() + '" — usando "📤 Pendiente"');
+    return '📤 Pendiente';
+  }
+  return resolved;
+}
+
+function buildTGPreview(items, discrepancy) {
+  if (!items.length && !discrepancy) return '';
+  let html = `<div class="preview-tg">
+    <div class="preview-tg-header">
+      <div class="preview-tg-header-label">📋 Items detectados</div>
+      <div class="preview-tg-header-count">${items.length} ítem${items.length !== 1 ? 's' : ''}</div>
+    </div>`;
+  if (discrepancy) {
+    html += `<div class="preview-tg-discrepancy">
+      ⚠ ${discrepancy.raw} línea${discrepancy.raw !== 1 ? 's' : ''} en el texto — solo ${discrepancy.parsed} parseada${discrepancy.parsed !== 1 ? 's' : ''}. Verifica el formato de las líneas no detectadas.
+    </div>`;
+  }
+  html += `<div class="preview-tg-badges-row">`;
+  TG_PARSER_CONFIG.TYPES.forEach(type => {
+    const count = items.filter(x => x.type === type).length;
+    if (count) html += `<span class="preview-tg-badge ${type}" title="${TG_PARSER_CONFIG.TYPE_NAMES[type]} (${count})">${type} ${count}</span>`;
+  });
+  html += `</div>`;
+  items.forEach(item => {
+    const existing = (getActiveTracker().items || []).find(x => x.code === item.code);
+    const tag = existing
+      ? `<span class="preview-tg-tag update">↑ actualizar</span>`
+      : `<span class="preview-tg-tag new">+ nuevo</span>`;
+    // T-202605-436 AC4: indicador visual para ítems nuevos sin AC
+    const noAcTag = (!existing && (!item.ac || item.ac.length === 0))
+      ? `<span class="preview-tg-tag preview-tg-tag--warn" title="Ítem nuevo sin criterios de aceptación">sin AC</span>`
+      : '';
+    html += `<div class="preview-tg-row">
+      <span class="preview-tg-badge ${item.type}">${item.type}</span>
+      <span class="preview-tg-code">${esc(item.code)}</span>
+      <span class="preview-tg-desc">${esc(item.title)}${tag}${noAcTag}</span>
+      <span class="preview-tg-status">${esc(item.status)}</span>
+    </div>`;
+  });
+  html += `</div>`;
+  return html;
+}
 
 // R-202604-037: tabla canónica de proyectos del ecosistema — declarada en locus-storage.js
 // La validación en parsePaste() es case-sensitive: 'Locus' es válido, 'locus' no.
@@ -883,7 +955,7 @@ function parsePasteStandalone() {
       code:          it.code,
       title:         it.title  || it.desc   || '',
       desc:          it.title  || it.desc   || '',
-      status:        (typeof normStatus === 'function') ? normStatus(it.status) : it.status,
+      status:        normStatus(it.status),
       _noStatus:     false,
       effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
       area:          it.area   || '',
@@ -918,7 +990,7 @@ function parsePasteStandalone() {
   _standaloneLastParsed = { ckpt, tgItems, patchItems, raw: text };
 
   const _assignedIds = (typeof _assignPendingIds === 'function') ? _assignPendingIds(tgItems) : 0;
-  const previewHtml = (typeof buildTGPreview === 'function') ? buildTGPreview(tgItems, null) : '';
+  const previewHtml = buildTGPreview(tgItems, null);
   prev.innerHTML = `
     <div class="ckpt-pill ckpt-pill--ok ckpt-pill--mb">✓ CHECKPOINT · ${tgItems.length} ítem${tgItems.length !== 1 ? 's' : ''}</div>
     <div class="sa-ckpt-desc">${esc(ckpt.titulo)}</div>

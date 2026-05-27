@@ -1,8 +1,10 @@
 // locus-sesiones.js
-// Última actualización: 2026-05-24 UTC-6
-// Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist
+// Última actualización: 2026-05-27 UTC-6
+// Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
+//   sidebar ticker, auto-download preference.
 // Requiere: locus-storage.js, locus-toast.js, locus-tracker-utils.js cargados ANTES en index.html
 // Timer · suggestion · weekly summary → locus-tracker-utils.js
+// normStatus · buildTGPreview · STATUS_LABELS · TG_PARSER_CONFIG → locus-session-parse.js
 
 let _trackerSelectedId = null;
 
@@ -1214,3 +1216,113 @@ function _trackerSwitchCol(col) {
   const cardCol = document.getElementById('tracker-col-card');
   if (cardCol) cardCol.classList.add('active');
 })();
+
+
+// ── Funciones movidas desde locus-checkpoint-hoy.js ──────────────────────
+
+// T-202604-295: clave de preferencia auto-download de templates
+const _TPL_TRIGGER_KEY = 'template-download-trigger';
+function _autoDownloadOn() {
+  const trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
+  return trig === 'session';
+}
+function toggleAutoDownload() {
+  const trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
+  const next = trig === 'session' ? 'sprint' : 'session';
+  localStorage.setItem(_TPL_TRIGGER_KEY, next);
+  _saveUserPrefs();
+  _updateAutoDownloadLabel();
+}
+function _updateAutoDownloadLabel() {
+  const btn = document.getElementById('more-menu-autodl');
+  const _trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
+  if (btn) btn.textContent = `⬇ Descargar templates: ${_trig === 'session' ? 'al guardar sesión' : 'al cerrar sprint'}`;
+}
+// Inicializar label al cargar — usando DOMContentLoaded para que _templateTrigger ya exista
+document.addEventListener('DOMContentLoaded', function _initAutoDlLabel() {
+  const btn = document.getElementById('more-menu-autodl');
+  const _trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
+  if (btn) btn.textContent = `⬇ Descargar templates: ${_trig === 'session' ? 'al guardar sesión' : 'al cerrar sprint'}`;
+}, { once: true });
+
+// Utilidades de countdown para IAs agotadas
+function _hoyMsUntilReset(ai) {
+  if (!ai.resetTime) return Infinity;
+  const [h, m] = ai.resetTime.split(':').map(Number);
+  const r = new Date(); r.setHours(h, m, 0, 0);
+  if (r <= new Date()) r.setDate(r.getDate() + 1);
+  return r - new Date();
+}
+function _hoyCountdownLabel(ms) {
+  if (!isFinite(ms) || ms <= 0) return '—';
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const min = Math.floor((totalSec % 3600) / 60);
+  const sec = totalSec % 60;
+  return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
+
+// Ticker de countdown para IAs agotadas en el sidebar del Tab Tracker
+let _sidebarTickerInterval = null;
+function _startSidebarTicker() {
+  _stopSidebarTicker();
+  const _expiredThisTick = new Set();
+  _sidebarTickerInterval = setInterval(() => {
+    const exhausted = state.ais.filter(ai => !ai.archived && ai.status === 'exhausted' && ai.resetTime);
+    if (!exhausted.length) { _stopSidebarTicker(); return; }
+    exhausted.forEach(ai => {
+      if (_expiredThisTick.has(ai.id)) return;
+      const el = document.getElementById('tsb-row-' + ai.id);
+      if (el) {
+        let cdEl = el.querySelector('.tsb-ai-cd');
+        const [hh, mm] = ai.resetTime.split(':').map(Number);
+        const now = new Date();
+        const reset = new Date(now); reset.setHours(hh, mm, 0, 0);
+        if (reset <= now) reset.setDate(reset.getDate() + 1);
+        const diff = Math.max(0, Math.round((reset - now) / 60000));
+        if (diff === 0) {
+          _expiredThisTick.add(ai.id);
+          ai.status = 'available';
+          ai.resetTime = '';
+          ai.resetEpoch = null;
+          if (typeof saveImmediate === 'function') {
+            saveImmediate().then(() => {
+              if (typeof render === 'function') render();
+              if (typeof _markHoyDirty === 'function') _markHoyDirty();
+            });
+          } else {
+            if (typeof render === 'function') render();
+          }
+          return;
+        } else {
+          const h = Math.floor(diff / 60), m = diff % 60;
+          const label = `${h}h${String(m).padStart(2,'0')}`;
+          if (!cdEl) { cdEl = document.createElement('span'); cdEl.className = 'tsb-ai-cd'; el.appendChild(cdEl); }
+          cdEl.textContent = label;
+        }
+      }
+      const rsbCard = document.getElementById('rsb-card-' + ai.id);
+      if (rsbCard) {
+        const cdEl = rsbCard.querySelector('.rsb-countdown');
+        if (cdEl) { cdEl.textContent = getCD(ai.resetTime, ai.resetEpoch) || '--:--:--'; }
+      }
+      const unlockLblEl = document.getElementById('unlock-lbl-' + ai.id);
+      if (unlockLblEl) {
+        const msLeft = _hoyMsUntilReset(ai);
+        if (!isFinite(msLeft) || msLeft <= 0) {
+          unlockLblEl.textContent = 'Disponible ahora';
+        } else {
+          const totalMin = Math.floor(msLeft / 60000);
+          const h = Math.floor(totalMin / 60);
+          const m = totalMin % 60;
+          unlockLblEl.textContent = h === 0
+            ? `Disponible en ${m}min`
+            : `Disponible en ${h}h ${String(m).padStart(2,'0')}min`;
+        }
+      }
+    });
+  }, 1000);
+}
+function _stopSidebarTicker() {
+  if (_sidebarTickerInterval) { clearInterval(_sidebarTickerInterval); _sidebarTickerInterval = null; }
+}
