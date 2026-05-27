@@ -463,7 +463,36 @@ function _spmEditar() {
       area.appendChild(wrap);
     }
     editSprintInline(sprint.id);
+    // B-202605-008: editSprintInline inyecta onkeydown con renderBacklogList() como cancelación.
+    // En el tab Sprint el comportamiento correcto al cancelar es cerrar spm-edit-area y
+    // recuperar visibilidad del botón — sin re-renderizar el backlog.
+    // Reemplazamos el handler de Escape en los inputs inyectados por editSprintInline.
+    setTimeout(() => {
+      const wrap = document.getElementById(wrapId);
+      if (!wrap) return;
+      wrap.querySelectorAll('input, select').forEach(el => {
+        el.addEventListener('keydown', function(e) {
+          if (e.key === 'Escape') {
+            e.stopImmediatePropagation();
+            _spmCancelEdit();
+          }
+        }, true); // capture: true — intercepta antes del handler inline
+      });
+    }, 40); // después de que editSprintInline inyecta el HTML (usa setTimeout 30ms internamente)
   }
+}
+
+// B-202605-008: cerrar área de edición limpiamente sin re-renderizar el tab
+function _spmCancelEdit() {
+  const area = document.getElementById('spm-edit-area');
+  if (area) {
+    area.innerHTML = '';
+    area.classList.add('is-hidden');
+  }
+  // Recuperar visibilidad del botón Editar si el sprint sigue activo
+  const sprint = _sprintTabActiveSprint;
+  const btnEditar = document.getElementById('spm-btn-editar');
+  if (btnEditar) btnEditar.classList.toggle('is-hidden', !(sprint && sprint.status === 'active'));
 }
 
 // AC-6: Activar sprint existente (desde empty state)
@@ -556,5 +585,6 @@ window._spmRegistrar            = _spmRegistrar;
 window._spmReactivar            = _spmReactivar;
 window._spmRetro                = _spmRetro;
 window._spmEditar               = _spmEditar;
+window._spmCancelEdit           = _spmCancelEdit;  // B-202605-008
 window._spmActivarExistente     = _spmActivarExistente;
 window._spmUpdateButtons        = _spmUpdateButtons;
