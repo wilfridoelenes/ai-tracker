@@ -280,8 +280,8 @@ function _calcPriority(item) {
       if (!item.sprint && parseInt(item.effort) === 3) return 'low';
       return 'medium';
     }
-    const sprintIsOpen = sp.status === 'active' || sp.status === 'open';
-    // B-202605-059: effort 1 → high solo si el sprint está activo u open — nunca en sprints cerrados
+    const sprintIsOpen = sp.status === 'active';
+    // B-202605-059: effort 1 → high solo si el sprint está activo — nunca en sprints cerrados
     if (sprintIsOpen) return 'high';
   }
   if (!item.sprint && parseInt(item.effort) === 3) return 'low';
@@ -313,7 +313,6 @@ function _calcRelevanceScore(item, allSessionsCache) { // B-202605-009: allSessi
   if (item.sprint) {
     const sp = _getSprintById(item.sprint);
     if (sp && sp.status === 'active') score += 20;   // sprint activo
-    else if (sp && sp.status === 'open')  score += 12; // sprint abierto no activo
     else if (item.sprint)                 score += 6;  // sprint no registrado — heredado de import
   }
 

@@ -270,8 +270,10 @@ function createSprint(raw, goal, versionTarget, releaseType, projId) {
   const vt  = (versionTarget || '').trim() || null;
   // T-202605-500: label canónico = '[ID] · [Nombre descriptivo]'
   const canonicalLabel = displayLabel ? id + ' · ' + displayLabel : id;
-  // B-202605-057: solo un sprint activo a la vez — degradar cualquier activo previo a 'open'
-  _activeProjForSprint.sprints.forEach(s => { if (s.status === 'active') s.status = 'open'; });
+// AC-1 [R — Eliminar status 'open']: si hay un sprint activo al crear, cerrarlo explícitamente.
+  // La validación previa en _buildNewSprintForm ya mostró el modal de decisión al founder.
+  // Si createSprint llega aquí, el founder eligió continuar — cerrar el activo.
+  _activeProjForSprint.sprints.forEach(s => { if (s.status === 'active') s.status = 'closed'; });
   _activeProjForSprint.sprints.push({
     id, label: canonicalLabel, goal: goalTrimmed,
     version_target: vt, release_type: rt,
@@ -550,10 +552,10 @@ function _openRetroDownloadPrompt(id) {
 }
 
 function setSprintStatus(id, newStatus) {
-  // newStatus: 'active' | 'open' | 'closed'
+  // newStatus: 'active' | 'closed'
   if (newStatus === 'active') {
-    // Solo un sprint activo a la vez
-    getActiveSprints().forEach(s => { if (s.status === 'active') s.status = 'open'; });
+    // Solo un sprint activo a la vez — el anterior pasa a 'closed', no a 'open'
+    getActiveSprints().forEach(s => { if (s.status === 'active') s.status = 'closed'; });
   }
   const sp = _getSprintById(id);
   if (!sp) return;

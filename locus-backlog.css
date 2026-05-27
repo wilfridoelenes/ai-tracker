@@ -3236,15 +3236,6 @@
   border: 1px solid rgb(245 158 11 / 30%);
 }
 
-.bl-sprint-badge--open {
-  font-size: var(--text-2xs);
-  color: var(--text2);
-  background: var(--surface3);
-  padding: 1px 6px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border2);
-}
-
 .bl-sprint-badge--closed {
   font-size: var(--text-2xs);
   color: var(--hint);

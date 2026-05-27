@@ -1140,7 +1140,8 @@ function _applyStateData(raw) {
   if (!raw._stateVersion) raw._stateVersion = 3;
   if (!raw.quickNotes) raw.quickNotes = [];
 
-  // v3: migración de proyectos — asegurar campos v3
+  Entregable — bloque completo con el cambio incorporado:
+js    // v3: migración de proyectos — asegurar campos v3
   (raw.projects || []).forEach(proj => {
     if (!proj.sessions) proj.sessions = [];
     if (!proj.tracker) proj.tracker = { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
@@ -1151,6 +1152,16 @@ function _applyStateData(raw) {
     if (proj.htmlMapVersion === undefined) proj.htmlMapVersion = '';
     if (proj.notes === undefined) proj.notes = '';
     if (proj.status === undefined) proj.status = 'active';
+    // AC-4 [R — Eliminar status 'open']: migración de sprints 'open' → 'active' o 'closed'
+    // Corre en cada _applyStateData() — idempotente, no requiere flag.
+    const _hasActiveSprint = proj.sprints.some(sp => sp.status === 'active');
+    proj.sprints.forEach(sp => {
+      if (sp.status === 'open') {
+        const newStatus = _hasActiveSprint ? 'closed' : 'active';
+        console.log(`[Locus] migración open→${newStatus}: sprint ${sp.id}`);
+        sp.status = newStatus;
+      }
+    });
     // Migrar sessions internas
     proj.sessions.forEach(s => {
       if (!s.tags) s.tags = [];

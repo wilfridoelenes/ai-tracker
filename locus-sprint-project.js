@@ -112,8 +112,7 @@ function _generateSprintsContent(newVersion) {
     .filter(s => s.status === 'closed')
     .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
   const activeSprints = allSprints.filter(s => s.status === 'active');
-  const openSprints = allSprints.filter(s => s.status === 'open');
-  const orderedSprints = [...closedSprints, ...activeSprints, ...openSprints];
+  const orderedSprints = [...closedSprints, ...activeSprints];
 
   const _itemRow = (i, sprintOpenedAt) => {
     const effortN = parseInt(i.effort) || 1;
@@ -426,7 +425,7 @@ function _showExportConfirmModal(label, filename, onConfirm) {
 // AC-3: si no hay sprint abierto → sprint: ninguno, demás campos n/a
 function _buildSprintActivoMd() {
   const sprints = (state && Array.isArray(state.sprints)) ? state.sprints : [];
-  const activeSprint = sprints.find(s => s.status === 'active' || s.status === 'open');
+  const activeSprint = sprints.find(s => s.status === 'active');
   const lines = ['## Sprint activo', ''];
   if (activeSprint) {
     lines.push(`| Campo | Valor |`);
@@ -466,8 +465,7 @@ function _generateBacklogContent(newVersion, opts = {}) {
   } else {
     const lastClosed = _lastClosedSprint();
     const lastClosedId = lastClosed ? lastClosed.id : null;
-    // R-202605-144: incluir 'open' además de 'active' — sprint en curso puede tener cualquiera de los dos estados
-    const activeSprint = (state.sprints || []).find(s => s.status === 'active' || s.status === 'open');
+    const activeSprint = (state.sprints || []).find(s => s.status === 'active');
     const activeSprintId = activeSprint ? activeSprint.id : null;
     exportItems = ITEMS.filter(i => {
       if (i.status === 'historico') return false; // B-202604-193: histórico nunca en export activo

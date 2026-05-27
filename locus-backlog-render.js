@@ -201,7 +201,7 @@ function roadmapGoToSprint(sprintId) {
 function _buildSprintOption(sp) {
   const id = sp.id;
   const label = sp.label || sp.id;
-  const status = sp.status || 'open';
+  const status = sp.status || 'active';
   const isActive = status === 'active';
   const isClosed = status === 'closed';
   const isSelected = _roadmapSprintFilter === id;
@@ -209,8 +209,8 @@ function _buildSprintOption(sp) {
   const done  = ITEMS.filter(i => (i.sprint || '').trim() === id && i.status === 'done').length;
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
   const mark  = isActive ? '★' : isClosed ? '·' : '○';
-  const badgeCls = isActive ? 'bl-sprint-badge--active' : isClosed ? 'bl-sprint-badge--closed' : 'bl-sprint-badge--open';
-  const badgeTxt = isActive ? 'activo' : isClosed ? 'cerrado' : 'abierto';
+  const badgeCls = isActive ? 'bl-sprint-badge--active' : isClosed ? 'bl-sprint-badge--closed' : 'bl-sprint-badge--active';
+  const badgeTxt = isActive ? 'activo' : isClosed ? 'cerrado' : 'activo';
   const activeCls = isActive ? ' is-active-sprint' : '';
   const selectedCls = isSelected ? ' is-selected' : '';
   // T-202604-417: botón "Ver retro" para sprints cerrados con retroDoc guardado
@@ -235,7 +235,7 @@ function _buildSprintSelector() {
 
   // Sprint activo para el trigger
   const activeSprint = allSprints.find(s => s.status === 'active');
-  const openSprints  = allSprints.filter(s => s.status !== 'closed' && s.status !== 'active');
+  const openSprints  = []; // AC-7: post-migración no existen sprints con status distinto de 'active' o 'closed'
   const closedSprints = allSprints.filter(s => s.status === 'closed');
 
   // datos del sprint activo para la barra de progreso del trigger
@@ -294,7 +294,7 @@ function _blSprintOpen() {
   // construir dropdown
   const allSprints = getActiveSprints() || [];
   const activeSprint = allSprints.find(s => s.status === 'active');
-  const openSprints  = allSprints.filter(s => s.status !== 'closed' && s.status !== 'active');
+  const openSprints  = []; // AC-7: post-migración no existen sprints con status distinto de 'active' o 'closed'
   const closedSprints = allSprints.filter(s => s.status === 'closed');
 
   // B-202605-058: referencia a función de módulo _buildSprintOption — elimina duplicación
@@ -378,11 +378,9 @@ function _renderPlanningView(listEl, closeCallback) {
   const activeSprint = _getActiveSprint();
   const allSprints   = getActiveSprints();
   // Determinar sprint destino: siguiente abierto no activo, o null si no hay
-  const openSprints  = allSprints.filter(s => s.status === 'open' || s.status === 'active');
-  // Sprint destino = primer sprint open (no active), o activo si no hay otro
-  const targetSprint = allSprints.find(s => s.status === 'open' && s.id !== (activeSprint && activeSprint.id))
-                    || activeSprint
-                    || null;
+  const openSprints  = allSprints.filter(s => s.status === 'active');
+  // Sprint destino = sprint activo, o null si no hay
+  const targetSprint = activeSprint || null;
 
   // Columna izquierda: ítems pendientes sin sprint (no done, no descartado, no historico)
   const unassigned = ITEMS.filter(i =>
@@ -566,9 +564,7 @@ function _planDrop(e, targetCol) {
     // Asignar al sprint destino
     const allSprints  = getActiveSprints();
     const activeSprint = _getActiveSprint();
-    const targetSprint = allSprints.find(s => s.status === 'open' && s.id !== (activeSprint && activeSprint.id))
-                      || activeSprint
-                      || null;
+    const targetSprint = activeSprint || null;
     if (!targetSprint) return;
     if (item.sprint === targetSprint.id) return; // ya está asignado
     setItemSprint(item.code, targetSprint.id);
@@ -978,7 +974,6 @@ function renderBacklogList(onRendered) {
       const sprintActions = `
         <div class="sprint-actions" onclick="event.stopPropagation()">
           ${!isActive ? `<button class="sprint-action-btn sprint-action-activate" onclick="setSprintStatus('${esc(s.id)}','active')" title="Marcar como activo">activar</button>` : ''}
-          ${isActive ? `<button class="sprint-action-btn" onclick="setSprintStatus('${esc(s.id)}','open')" title="Quitar estado activo">desactivar</button>` : ''}
           <button class="sprint-action-btn sprint-action-close" onclick="confirmCloseSprint('${esc(s.id)}')" title="Cerrar sprint">cerrar</button>
         </div>`;
       const _sprintAllItems = ITEMS.filter(i => (i.sprint || '').trim() === s.id);
@@ -1032,9 +1027,8 @@ function renderBacklogList(onRendered) {
           ${!sprintObj ? `<button class="sprint-action-btn" onclick="createSprintFromGroup('${esc(key)}')" title="Registrar sprint en catálogo">+ registrar</button>` : ''}
           
           ${sprintObj && !isActive && !isClosed ? `<button class="sprint-action-btn sprint-action-activate" onclick="setSprintStatus('${esc(key)}','active')" title="Marcar como activo">activar</button>` : ''}
-          ${sprintObj && isActive ? `<button class="sprint-action-btn" onclick="setSprintStatus('${esc(key)}','open')" title="Quitar estado activo">desactivar</button>` : ''}
           ${sprintObj && !isClosed ? `<button class="sprint-action-btn sprint-action-close" onclick="confirmCloseSprint('${esc(key)}')" title="Cerrar sprint">cerrar</button>` : ''}
-          ${sprintObj && isClosed ? `<button class="sprint-action-btn" onclick="setSprintStatus('${esc(key)}','open')" title="Reabrir sprint">reabrir</button>` : ''}
+          ${sprintObj && isClosed ? `<button class="sprint-action-btn" onclick="setSprintStatus('${esc(key)}','active')" title="Reactivar sprint">reactivar</button>` : ''}
           ${sprintObj && isClosed && sprintObj.retroDoc ? `<button class="sprint-action-btn sprint-action-retro" onclick="openSprintRetroView('${esc(key)}')" title="Ver retrospectiva">retro</button>` : ''}
         </div>`;
 

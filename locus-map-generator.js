@@ -13,8 +13,8 @@
 function _mgActiveSprint() {
   if (typeof getActiveSprints !== 'function') return null;
   const all = getActiveSprints();
-  // Primero: sprint activo o abierto
-  const active = all.find(s => s.status === 'active' || s.status === 'open');
+  // Sprint activo
+  const active = all.find(s => s.status === 'active');
   if (active) return active;
   // Fallback: último sprint cerrado por closedAt desc
   const closed = all
@@ -464,15 +464,15 @@ function _mgGetVersion() {
 function _mgBuildPlan() {
   // Obtener ítems del sprint siguiente
   const allSprints = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
-  const openSprints = allSprints.filter(s => s.status === 'active' || s.status === 'open');
+  const openSprints = allSprints.filter(s => s.status === 'active');
 
-  // Sprint siguiente: primero después del activo, o el primer open si no hay activo
+  // Sprint siguiente: primero después del activo, o el primer active si no hay activo
   const activeSprint = _mgActiveSprint();
   let targetSprint = null;
   if (activeSprint) {
-    // Buscar sprint open con id posterior al activo
+    // Buscar sprint active con id posterior al activo
     const activeIdx = allSprints.findIndex(s => s.id === activeSprint.id);
-    targetSprint = allSprints.slice(activeIdx + 1).find(s => s.status === 'active' || s.status === 'open') || null;
+    targetSprint = allSprints.slice(activeIdx + 1).find(s => s.status === 'active') || null;
   }
   if (!targetSprint && openSprints.length) {
     // Ordenar por id numérico ascendente (S-22 antes que S-23) para tomar el siguiente cronológico
@@ -1101,7 +1101,7 @@ function _mgInferStatus(activeSp, blItems) {
   if (scmModal && scmModal.classList.contains('modal--open')) {
     return 'closing';
   }
-  if (activeSp && (activeSp.status === 'active' || activeSp.status === 'open')) return 'active';
+  if (activeSp && activeSp.status === 'active') return 'active';
   // Sin sprint activo — decidir por backlog
   const unassigned = (blItems || []).filter(i =>
     i.status === 'pendiente' && (!i.sprint || i.sprint === '' || i.sprint === 'n/a' || i.sprint === 'futura')
@@ -1594,7 +1594,7 @@ if (!hasClosedSprint) {
   // B-202605-071: warning no bloqueante si hay sprints sin cerrar
   // El MAP puede generarse con sprint abierto (snapshot del estado actual), pero el usuario
   // debe confirmar explícitamente que entiende que el sprint no está cerrado.
-  const openSprints = allSprints.filter(s => s.status === 'active' || s.status === 'open');
+  const openSprints = allSprints.filter(s => s.status === 'active');
   if (openSprints.length > 0) {
     const area = document.getElementById('mg-preview-area');
     if (area) {
