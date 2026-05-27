@@ -274,6 +274,7 @@ function renderSprintTab() {
     if (itemsList) itemsList.classList.add('is-hidden');
     if (emptyEl)   emptyEl.classList.remove('is-hidden');
     if (sptNav)    sptNav.classList.add('is-hidden');
+    _spmUpdateButtons(null); // AC-6: actualizar botones del empty state
     const workers    = _spEl('sprint-workers');
     const scopeAdded = _spEl('sprint-scope-added');
     if (workers)   workers.classList.add('is-hidden');
@@ -329,12 +330,217 @@ function renderSprintTab() {
     }
   }
 
+  // Gestión del sprint — R-202605-006
+  _spmUpdateButtons(sprint);
+
   // Workers
   _renderSprintWorkers(sprint);
 
   // Scope added
   _renderSprintScopeAdded(sprint);
 }
+
+// ── R-202605-006: Sección Gestión del sprint ───────────────────────────────
+
+// AC-1: estado de colapso persistido en localStorage
+const _SPM_COLLAPSED_KEY = 'locus-sprint-mgmt-collapsed';
+
+function _spmIsCollapsed() {
+  return localStorage.getItem(_SPM_COLLAPSED_KEY) === 'true';
+}
+
+function _spmSetCollapsed(val) {
+  localStorage.setItem(_SPM_COLLAPSED_KEY, String(val));
+}
+
+// Toggle colapso — AC-1
+function _spmToggle() {
+  const body    = document.getElementById('sprint-mgmt-body');
+  const arrow   = document.getElementById('spm-toggle-arrow');
+  const toggleBtn = document.getElementById('sprint-mgmt-toggle');
+  if (!body) return;
+  const collapsed = !body.classList.contains('is-hidden');
+  body.classList.toggle('is-hidden', collapsed);
+  if (arrow)     arrow.textContent = collapsed ? '▸' : '▾';
+  if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(!collapsed));
+  _spmSetCollapsed(collapsed);
+}
+
+// Determina el sprint ID más frecuente en ítems no registrados — AC-2c
+function _spmGetUnregisteredSprintId() {
+  if (typeof ITEMS === 'undefined') return null;
+  const allSprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+  const registeredIds = new Set(allSprints.map(s => s.id));
+  const freq = {};
+  const order = [];
+  ITEMS.forEach(i => {
+    if (!i.sprint || registeredIds.has(i.sprint)) return;
+    if (!freq[i.sprint]) { freq[i.sprint] = 0; order.push(i.sprint); }
+    freq[i.sprint]++;
+  });
+  if (!order.length) return null;
+  // Mayor frecuencia; empate → primero en orden de aparición
+  return order.reduce((best, id) => freq[id] > freq[best] ? id : best, order[0]);
+}
+
+// AC-2: Registrar y activar
+function _spmRegistrar() {
+  const sprintId = _spmGetUnregisteredSprintId();
+  if (!sprintId) return;
+
+  const activeSprint = typeof _getActiveSprint === 'function' ? _getActiveSprint() : null;
+
+  const doRegister = () => {
+    // AC-2c: mostrar ID en botón ya se hizo en _spmUpdateButtons — aquí ejecutar
+    // AC-2b: createSprint puede fallar — capturar con try/catch y mostrar toast de error
+    try {
+      // Extraer nombre descriptivo del ID (si tiene formato PP-S01 · Nombre)
+      const descriptive = sprintId.replace(/^[A-Za-z]+-S\d+\s*·?\s*/i, '').trim() || sprintId;
+      const result = typeof createSprint === 'function'
+        ? createSprint(descriptive, '', '', '', null)
+        : null;
+      if (!result) throw new Error('createSprint no devolvió un ID');
+      if (typeof renderSprintTab === 'function') renderSprintTab();
+    } catch (err) {
+      if (typeof showToast === 'function') showToast('error', 'Error al registrar el sprint: ' + (err.message || err));
+    }
+  };
+
+  if (activeSprint) {
+    // AC-2: hay sprint activo — mostrar modal de confirmación
+    if (typeof _gconfirmOpen === 'function') {
+      _gconfirmOpen({
+        title: 'Cerrar sprint actual',
+        msg: `Se cerrará "${activeSprint.label || activeSprint.id}" y se activará "${sprintId}". ¿Confirmar?`,
+        okLabel: 'Cerrar sprint actual y activar el nuevo',
+        danger: true
+      }, () => {
+        try {
+          if (typeof setSprintStatus === 'function') setSprintStatus(activeSprint.id, 'closed');
+          doRegister();
+        } catch (err) {
+          if (typeof showToast === 'function') showToast('error', 'Error al cerrar sprint actual: ' + (err.message || err));
+        }
+      });
+    }
+  } else {
+    doRegister();
+  }
+}
+
+// AC-3: Reactivar sprint cerrado
+function _spmReactivar() {
+  const sprint = _sprintTabActiveSprint;
+  if (!sprint || sprint.status !== 'closed') return;
+  if (typeof setSprintStatus === 'function') {
+    setSprintStatus(sprint.id, 'active');
+    if (typeof renderSprintTab === 'function') renderSprintTab();
+  }
+}
+
+// AC-4: Ver retrospectiva
+function _spmRetro() {
+  const sprint = _sprintTabActiveSprint;
+  if (!sprint || !sprint.retroDoc) return;
+  if (typeof openSprintRetroView === 'function') openSprintRetroView(sprint.id);
+}
+
+// AC-5: Editar nombre — abre editSprintInline en el área spm-edit-area
+function _spmEditar() {
+  const sprint = _sprintTabActiveSprint;
+  if (!sprint || sprint.status !== 'active') return;
+  if (typeof editSprintInline === 'function') {
+    // editSprintInline espera un elemento con id sprint-label-wrap-[id]
+    // En el tab Sprint no existe ese elemento — creamos uno temporal en spm-edit-area
+    const area = document.getElementById('spm-edit-area');
+    if (!area) return;
+    area.classList.remove('is-hidden');
+    const wrapId = 'sprint-label-wrap-' + sprint.id;
+    if (!document.getElementById(wrapId)) {
+      const wrap = document.createElement('div');
+      wrap.id = wrapId;
+      area.innerHTML = '';
+      area.appendChild(wrap);
+    }
+    editSprintInline(sprint.id);
+  }
+}
+
+// AC-6: Activar sprint existente (desde empty state)
+function _spmActivarExistente() {
+  const sprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+  const closed = sprints.filter(s => s.status !== 'active');
+  if (!closed.length) return;
+  // Activar el más reciente
+  const target = closed.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+  if (typeof setSprintStatus === 'function') {
+    setSprintStatus(target.id, 'active');
+    if (typeof renderSprintTab === 'function') renderSprintTab();
+  }
+}
+
+// Actualiza visibilidad de botones según estado — llamado desde renderSprintTab
+function _spmUpdateButtons(sprint) {
+  const section       = document.getElementById('sprint-mgmt-section');
+  const btnRegistrar  = document.getElementById('spm-btn-registrar');
+  const btnReactivar  = document.getElementById('spm-btn-reactivar');
+  const btnRetro      = document.getElementById('spm-btn-retro');
+  const btnEditar     = document.getElementById('spm-btn-editar');
+
+  // Botones del empty state
+  const emptyRegistrar = document.getElementById('spm-empty-btn-registrar');
+  const emptyActivar   = document.getElementById('spm-empty-btn-activar');
+
+  const allSprints      = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+  const registeredIds   = new Set(allSprints.map(s => s.id));
+  const unregisteredId  = _spmGetUnregisteredSprintId();
+  const hasClosed       = allSprints.some(s => s.status !== 'active');
+
+  // Empty state buttons — AC-6
+  if (emptyRegistrar) emptyRegistrar.classList.toggle('is-hidden', !unregisteredId);
+  if (emptyActivar)   emptyActivar.classList.toggle('is-hidden', !hasClosed);
+
+  if (!section) return;
+
+  if (!sprint) {
+    section.classList.add('is-hidden');
+    return;
+  }
+
+  section.classList.remove('is-hidden');
+
+  // Restaurar estado de colapso — AC-1
+  const body    = document.getElementById('sprint-mgmt-body');
+  const arrow   = document.getElementById('spm-toggle-arrow');
+  const toggleBtn = document.getElementById('sprint-mgmt-toggle');
+  const collapsed = _spmIsCollapsed();
+  if (body)      body.classList.toggle('is-hidden', collapsed);
+  if (arrow)     arrow.textContent = collapsed ? '▸' : '▾';
+  if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(!collapsed));
+
+  const isRegistered = sprint ? registeredIds.has(sprint.id) : false;
+  const isClosed     = sprint ? sprint.status === 'closed' : false;
+  const isActive     = sprint ? sprint.status === 'active' : false;
+  const hasRetro     = sprint ? !!sprint.retroDoc : false;
+
+  // AC-2: Registrar y activar — solo si el sprint no está registrado en el catálogo
+  if (btnRegistrar) {
+    const show = !isRegistered && !!unregisteredId;
+    btnRegistrar.classList.toggle('is-hidden', !show);
+    if (show && unregisteredId) btnRegistrar.textContent = `Registrar y activar ${unregisteredId}`;
+  }
+
+  // AC-3: Reactivar — solo cuando sprint cerrado
+  if (btnReactivar) btnReactivar.classList.toggle('is-hidden', !isClosed);
+
+  // AC-4: Retro — solo cuando sprint cerrado con retroDoc
+  if (btnRetro) btnRetro.classList.toggle('is-hidden', !(isClosed && hasRetro));
+
+  // AC-5: Editar nombre — solo cuando sprint activo
+  if (btnEditar) btnEditar.classList.toggle('is-hidden', !isActive);
+}
+
+// ── END R-202605-006 ──────────────────────────────────────────────────────
 
 // ── Exposición pública ──────────────────────────────────────────────────────
 
@@ -344,3 +550,11 @@ window._renderSprintWorkers     = _renderSprintWorkers;
 window._renderSprintScopeAdded  = _renderSprintScopeAdded;
 window._sptSwitch               = _sptSwitch;               // R-202605-052
 window._renderSprintPlanificar  = _renderSprintPlanificar;  // R-202605-052
+// R-202605-006
+window._spmToggle               = _spmToggle;
+window._spmRegistrar            = _spmRegistrar;
+window._spmReactivar            = _spmReactivar;
+window._spmRetro                = _spmRetro;
+window._spmEditar               = _spmEditar;
+window._spmActivarExistente     = _spmActivarExistente;
+window._spmUpdateButtons        = _spmUpdateButtons;

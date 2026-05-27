@@ -613,4 +613,91 @@
   }
 }
 
-/* ══ END R-202605-043 ══ */
+
+/* ══ R-202605-006: Sección Gestión del sprint ══ */
+
+.spm-section {
+  max-width: var(--bp-ultrawide);
+  margin-inline: auto;
+  width: 100%;
+  padding: 0 24px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--border);
+}
+
+.spm-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--trans-fast);
+}
+
+.spm-toggle:hover {
+  color: var(--text);
+}
+
+.spm-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.spm-toggle-arrow {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  flex-shrink: 0;
+}
+
+.spm-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.spm-action {
+  padding: 5px 12px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text2);
+  background: var(--surface2, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--trans-color);
+}
+
+.spm-action:hover {
+  color: var(--text);
+  border-color: var(--border2, var(--border));
+  background: var(--surface);
+}
+
+.spm-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.spm-edit-area {
+  width: 100%;
+  padding-bottom: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spm-toggle,
+  .spm-action {
+    transition: none;
+  }
+}
+
+/* ══ END R-202605-006 ══ */

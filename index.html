@@ -644,6 +644,42 @@
   <!-- Panel Ítems — R-202605-043 -->
   <div id="sprint-panel-items" role="tabpanel" aria-labelledby="spt-tab-items">
 
+  <!-- Sección Gestión del sprint — R-202605-006 -->
+  <div class="spm-section is-hidden" id="sprint-mgmt-section" aria-label="Gestión del sprint">
+    <button class="spm-toggle"
+            id="sprint-mgmt-toggle"
+            aria-expanded="false"
+            aria-controls="sprint-mgmt-body"
+            onclick="if(typeof _spmToggle==='function') _spmToggle()">
+      ⚙ Gestión del sprint <span class="spm-toggle-arrow" id="spm-toggle-arrow">▸</span>
+    </button>
+    <div class="spm-body is-hidden" id="sprint-mgmt-body">
+      <!-- AC-2: Registrar y activar — visible cuando sprint no existe en catálogo -->
+      <button class="spm-action is-hidden" id="spm-btn-registrar"
+              onclick="if(typeof _spmRegistrar==='function') _spmRegistrar()">
+        Registrar y activar
+      </button>
+      <!-- AC-3: Reactivar — visible cuando sprint está cerrado -->
+      <button class="spm-action is-hidden" id="spm-btn-reactivar"
+              onclick="if(typeof _spmReactivar==='function') _spmReactivar()">
+        Reactivar sprint
+      </button>
+      <!-- AC-4: Retro — visible cuando sprint cerrado con retroDoc -->
+      <button class="spm-action is-hidden" id="spm-btn-retro"
+              onclick="if(typeof _spmRetro==='function') _spmRetro()">
+        Ver retrospectiva
+      </button>
+      <!-- AC-5: Editar nombre — visible cuando hay sprint activo -->
+      <button class="spm-action is-hidden" id="spm-btn-editar"
+              onclick="if(typeof _spmEditar==='function') _spmEditar()">
+        Editar nombre
+      </button>
+      <!-- Área de edición inline — AC-5 -->
+      <div class="spm-edit-area is-hidden" id="spm-edit-area"></div>
+    </div>
+  </div>
+  <!-- /Sección Gestión del sprint — R-202605-006 -->
+
   <!-- Workers vinculados al sprint — T-202605-061 -->
   <div class="spw-section is-hidden" id="sprint-workers" aria-label="Workers vinculados al sprint">
     <div class="spw-header">
@@ -709,6 +745,16 @@
     <div class="empty-hint">Crea un sprint para comenzar a planificar y ejecutar ítems del backlog.</div>
     <div class="es-cta-row">
       <button class="empty-btn" onclick="if(typeof openNewSprintInline==='function') openNewSprintInline()">+ Nuevo sprint</button>
+      <!-- AC-6: Registrar y activar — visible si hay ítems con sprint sin registrar -->
+      <button class="empty-btn is-hidden" id="spm-empty-btn-registrar"
+              onclick="if(typeof _spmRegistrar==='function') _spmRegistrar()">
+        Registrar y activar
+      </button>
+      <!-- AC-6: Activar sprint existente — visible si hay sprints registrados no activos -->
+      <button class="empty-btn is-hidden" id="spm-empty-btn-activar"
+              onclick="if(typeof _spmActivarExistente==='function') _spmActivarExistente()">
+        Activar sprint existente
+      </button>
     </div>
   </div>
 </div>
