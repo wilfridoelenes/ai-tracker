@@ -1,3 +1,4 @@
+<!-- [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -371,7 +372,7 @@
         <button class="tpl-action-btn is-hidden" id="btn-export-backlog" onclick="exportBacklogMd()" title="Descargar Backlog activo como .md">⬇ Descargar Backlog</button>
         <button class="tpl-action-btn is-hidden" id="btn-export-backlog-full" onclick="exportFullHistoryMd()" title="Descargar historial completo como .md">⬇ Historial completo</button>
         <button class="tpl-action-btn is-hidden" id="btn-import-htmlmap" onclick="document.getElementById('htmlmap-file-input').click()" title="Importar archivo AI-MAP_vX.Y.md">↑ Importar MAP</button>
-        <button class="tpl-action-btn tpl-action-primary is-hidden" id="btn-generate-map" onclick="openMapGenerator()" title="Generar documentos">⚙ Generar documentos</button>
+        <button class="tpl-action-btn tpl-action-primary is-hidden" id="btn-generate-map" title="Generar documentos">⚙ Generar documentos</button>
         <button class="tpl-action-btn is-hidden" id="btn-export-contratos" onclick="exportContratosMd()" title="Exportar Contratos.md">⬇ Exportar Contratos</button>
       </div>
     </div>
@@ -1528,7 +1529,7 @@ function _validateResetBacklogInput(el) {
         <span class="mg-step-badge" id="mg-step-badge" aria-label="Paso 1 de 3">1</span>
         <span class="mg-title">Generador de documentos</span>
       </div>
-      <button class="mg-close-btn" onclick="closeMapGenerator()" aria-label="Cerrar generador">✕</button>
+      <button class="mg-close-btn" id="mg-close-btn" aria-label="Cerrar generador">✕</button>
     </div>
 
     <!-- Stepper — R-202605-102 -->
@@ -1592,7 +1593,7 @@ function _validateResetBacklogInput(el) {
           </div>
         </div>
         <div class="mg-generate-col">
-          <button class="btn-primary mg-generate-btn" id="mg-generate-btn" onclick="generateDocuments()" disabled
+          <button class="btn-primary mg-generate-btn" id="mg-generate-btn" disabled
             aria-describedby="mg-generate-hint">Generar</button>
           <span class="mg-generate-hint" id="mg-generate-hint" role="tooltip">Adjunta al menos un archivo para habilitar</span>
         </div>
@@ -1606,10 +1607,8 @@ function _validateResetBacklogInput(el) {
         </div>
         <div class="mg-section-sub">Selecciona qué decisiones y aprendizajes trascienden al contexto global.</div>
         <div class="mg-review-tabs" role="tablist" aria-label="Tipo de entrada del sprint">
-          <button class="mg-review-tab mg-review-tab--active" role="tab" aria-selected="true"
-            onclick="_mgSwitchReviewTab('decisions', this)">Decisiones</button>
-          <button class="mg-review-tab" role="tab" aria-selected="false"
-            onclick="_mgSwitchReviewTab('learnings', this)">Aprendizajes</button>
+          <button class="mg-review-tab mg-review-tab--active" id="mg-tab-decisions" role="tab" aria-selected="true">Decisiones</button>
+          <button class="mg-review-tab" id="mg-tab-learnings" role="tab" aria-selected="false">Aprendizajes</button>
         </div>
         <div class="mg-review-panel" id="mg-review-decisions" role="tabpanel">
           <table class="mg-review-table">
@@ -1657,8 +1656,8 @@ function _validateResetBacklogInput(el) {
 
     <!-- Footer -->
     <div class="mg-footer">
-      <button class="tpl-action-btn" onclick="closeMapGenerator()">Cancelar</button>
-      <button class="btn-primary" id="mg-confirm-btn" onclick="confirmMapGenerator()" disabled
+      <button class="tpl-action-btn" id="mg-cancel-btn">Cancelar</button>
+      <button class="btn-primary" id="mg-confirm-btn" disabled
         aria-describedby="mg-confirm-hint">Aplicar y descargar</button>
       <span class="mg-confirm-hint" id="mg-confirm-hint" role="tooltip">Genera los documentos primero para habilitar la descarga</span>
     </div>

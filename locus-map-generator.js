@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -1828,3 +1829,22 @@ function _mgExportAllZip() {
     if (typeof showToast === 'function') showToast('info', 'Documentos descargados individualmente');
   }
 }
+
+// T-202605-032: addEventListener — migración desde onclick inline en index.html
+document.addEventListener('DOMContentLoaded', function () {
+  const btnOpen     = document.getElementById('btn-generate-map');
+  const btnClose    = document.getElementById('mg-close-btn');
+  const btnGenerate = document.getElementById('mg-generate-btn');
+  const btnCancel   = document.getElementById('mg-cancel-btn');
+  const btnConfirm  = document.getElementById('mg-confirm-btn');
+  const tabDecisions  = document.getElementById('mg-tab-decisions');
+  const tabLearnings  = document.getElementById('mg-tab-learnings');
+
+  if (btnOpen)     btnOpen.addEventListener('click', openMapGenerator);
+  if (btnClose)    btnClose.addEventListener('click', closeMapGenerator);
+  if (btnGenerate) btnGenerate.addEventListener('click', generateDocuments);
+  if (btnCancel)   btnCancel.addEventListener('click', closeMapGenerator);
+  if (btnConfirm)  btnConfirm.addEventListener('click', confirmMapGenerator);
+  if (tabDecisions)  tabDecisions.addEventListener('click', function () { _mgSwitchReviewTab('decisions', this); });
+  if (tabLearnings)  tabLearnings.addEventListener('click', function () { _mgSwitchReviewTab('learnings', this); });
+});
