@@ -1,4 +1,4 @@
-// locus-backlog-render.js
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-27 00:00 UTC-6
 // Responsabilidad: Renderizado del backlog — vista árbol, sprint health panel,
 //   roadmap, planning (drag & drop), renderBacklogList, sprint selector inline.
 // Dependencias: locus-backlog-core.js · locus-backlog-archive.js · locus-backlog-item.js · locus-backlog-sprints.js
@@ -383,8 +383,9 @@ function _renderPlanningView(listEl, closeCallback) {
   const targetSprint = activeSprint || null;
 
   // Columna izquierda: ítems pendientes sin sprint (no done, no descartado, no historico)
+  // T-202605-024: icebox es el valor canónico de "sin sprint asignado" (BR-Ecosystem V1.6)
   const unassigned = ITEMS.filter(i =>
-    !i.sprint &&
+    (!i.sprint || i.sprint === 'icebox') &&
     i.status !== 'done' &&
     i.status !== 'descartado' &&
     i.status !== 'historico'
