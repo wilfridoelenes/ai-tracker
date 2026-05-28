@@ -58,7 +58,7 @@ function _qcRenderWorkerList() {
     <button class="qc-worker-item" data-worker-id="${esc(ai.id)}" onclick="qcSelectWorker(this)">
       <span class="qc-worker-avatar">${esc((ai.sigla || ai.name || '?').slice(0,2).toUpperCase())}</span>
       <span class="qc-worker-name">${esc(ai.name)}</span>
-      <span class="qc-worker-check hidden">✓</span>
+      <span class="qc-worker-check is-hidden">✓</span>
     </button>
   `).join('');
 }
