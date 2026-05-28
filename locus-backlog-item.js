@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1209,7 +1210,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
   const tmpSuggestions = [];
 
   // Orden de avance: pendiente < done < descartado (descartado solo vía confirmación)
-  const _statusRank = { pendiente: 0, done: 1, descartado: 2 };
+  const _statusRank = { pendiente: 0, 'en-revision': 0.5, done: 1, descartado: 2 };
 
   // B-202605-007: snapshot antes de cualquier mutación — incluye cierre automático de P padre
   if (!_dryRun) _undoSnapshot();
@@ -1498,6 +1499,8 @@ function _normalizeStatus(raw) {
   if (s === 'descartado' || s.includes('descart') || s.includes('discard')) return 'descartado';
   // R-202604-091: 'en curso' fusionado con 'pendiente' — decorador visual reemplaza al status
   if (s === 'en curso' || s === 'en-curso' || s === 'progreso' || s === 'in-progress' || s === 'en progreso') return 'pendiente';
+  // T-202605-039: en-revision — valor canónico, no degradar a pendiente
+  if (s === 'en-revision' || s === 'en_revision') return 'en-revision';
   return 'pendiente';
 }
 
