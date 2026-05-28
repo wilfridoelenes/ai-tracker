@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 00:00 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -606,19 +607,22 @@ function setItemSprint(code, sprintId) {
   if (sprintId === '__new__') { openNewSprintInline(code); return; }
   const item = ITEMS.find(i => i.code === code);
   if (!item) return;
-  const prevSprint = item.sprint || '';
-  item.sprint = sprintId || '';
+  const prevSprint = item.sprint || 'icebox';
+  // Normalizar: sprint vacío o falsy → 'icebox' (valor canónico BR-Ecosystem V1.6)
+  const normalizedId = sprintId || 'icebox';
+  item.sprint = normalizedId;
   item.priority = _calcPriority(item); // T-202604-297
   // R-202605-131: marcar scope_added si el sprint destino está activo al momento de asignar
-  if (sprintId) {
-    const targetSprint = _getSprintById(sprintId);
+  // Solo sprints reales (no icebox) califican para scope_added
+  if (normalizedId && normalizedId !== 'icebox') {
+    const targetSprint = _getSprintById(normalizedId);
     if (targetSprint && targetSprint.status === 'active' && targetSprint.startedAt) {
       item.scope_added = true;
-    } else if (!sprintId || prevSprint === sprintId) {
-      // No marcar si se desasigna o se mueve al mismo sprint
+    } else if (prevSprint === normalizedId) {
+      // No marcar si se mueve al mismo sprint
     }
   } else {
-    // Al desasignar de sprint, limpiar el flag
+    // Al desasignar de sprint (icebox), limpiar el flag
     delete item.scope_added;
   }
   if (!item.history) item.history = [];

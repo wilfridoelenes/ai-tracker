@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-27 00:00 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 00:00 UTC-6
 // Responsabilidad: Renderizado del backlog — vista árbol, sprint health panel,
 //   roadmap, planning (drag & drop), renderBacklogList, sprint selector inline.
 // Dependencias: locus-backlog-core.js · locus-backlog-archive.js · locus-backlog-item.js · locus-backlog-sprints.js
@@ -563,18 +563,23 @@ function _planDrop(e, targetCol) {
 
   if (targetCol === 'right') {
     // Asignar al sprint destino
-    const allSprints  = getActiveSprints();
     const activeSprint = _getActiveSprint();
     const targetSprint = activeSprint || null;
     if (!targetSprint) return;
     if (item.sprint === targetSprint.id) return; // ya está asignado
     setItemSprint(item.code, targetSprint.id);
-    // setItemSprint llama if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList() → dispatch a _renderPlanningView automático
   } else if (targetCol === 'left') {
-    // Desasignar del sprint (solo si venía de la derecha)
-    if (!item.sprint) return;
-    setItemSprint(item.code, '');
-    // setItemSprint llama if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList() → dispatch a _renderPlanningView automático
+    // Desasignar del sprint — solo si venía de la derecha (tiene sprint asignado)
+    const currentSprint = item.sprint;
+    if (!currentSprint || currentSprint === 'icebox') return;
+    setItemSprint(item.code, 'icebox');
+  }
+
+  // Re-renderizar la vista planificación inmediatamente — renderBacklogList()
+  // actualiza el backlog normal pero no este panel; sin este re-render el DOM
+  // queda desactualizado y la card parece regresar visualmente.
+  if (typeof _renderSprintPlanificar === 'function') {
+    _renderSprintPlanificar();
   }
 }
 
