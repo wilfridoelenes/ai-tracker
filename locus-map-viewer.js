@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-map-viewer.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: HTML MAP viewer — render, filtro, búsqueda y toggle de módulos
@@ -7,17 +7,22 @@
 //   (HTML_MAP_SECTIONS, htmlMapFilter, loadHtmlMap) — AC-10, AC-12
 // T-202605-030 Fase 1A: addEventListener para los 4 botones hmfilter-* (all, css, html, js)
 //              Elimina inline onclick de index.html para setHtmlMapFilter.
+// T-202605-035 Fase 1A Capa B: Migrar handlers dinámicos restantes.
+//              Dropzone: ondragover/ondragleave/ondrop/onclick → addEventListener post-render.
+//              Pills dinámicas: onclick inline → event delegation en .mm-pills.
+//              Search: oninput/onclick clear → addEventListener post-render.
+//              mm-module-header: onclick → event delegation en .mm-modules.
 //
 // Dependencias externas consumidas sin mover:
-//   _skelShow / _skelHide   → ai-tracker-backlog.js
-//   _dropzoneHandle         → ai-tracker-ai-notes.js
-//   _tplKey / esc / _blogLog → locus-storage.js
+//   _skelShow / _skelHide   → locus-backlog-core.js
+//   _dropzoneHandle         → locus-docs.js  (typeof guard — no se mueve)
+//   _tplKey / esc           → locus-storage.js
 //   showToast               → locus-toast.js
 //
 // MAP helpers definidas en este módulo (migradas desde ai-tracker-ai-notes.js):
 //   parseHtmlMapMd
 //
-// Orden en index.html: después de ai-tracker-ai-notes.js, antes de ai-tracker-backlog.js (AC-1)
+// Orden en index.html: después de locus-docs.js, antes de locus-backlog-core.js
 
 // ── Estado interno — AC-3: inicializa en cada carga, sin persistencia ─────
 let HTML_MAP_SECTIONS = [];
@@ -157,11 +162,7 @@ function renderHtmlMap() {
   if (!HTML_MAP_SECTIONS.length) {
     const _mapRawExists = !!localStorage.getItem(_tplKey('html-map-raw'));
     el.innerHTML = !_mapRawExists ? `
-      <div class="doc-dropzone" id="htmlmap-dropzone"
-        ondragover="event.preventDefault();this.classList.add('doc-dropzone--over')"
-        ondragleave="this.classList.remove('doc-dropzone--over')"
-        ondrop="this.classList.remove('doc-dropzone--over');_dropzoneHandle(event,'htmlmap')"
-        onclick="document.getElementById('htmlmap-file-input').click()">
+      <div class="doc-dropzone" id="htmlmap-dropzone">
         <div class="doc-dropzone-icon">🗺</div>
         <div class="doc-dropzone-title">Importar MODULE-MAP.md</div>
         <div class="doc-dropzone-hint">Arrastra el archivo aquí o haz click para seleccionar</div>
@@ -173,6 +174,20 @@ function renderHtmlMap() {
         <div class="htmlmap-empty-hint">El MAP se actualiza automáticamente vía CHECKPOINT.</div>
       </div>`;
     _skelHide(el);
+    // T-202605-035: adjuntar handlers de dropzone post-render (sin on* inline)
+    const dz = document.getElementById('htmlmap-dropzone');
+    if (dz) {
+      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('doc-dropzone--over'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('doc-dropzone--over'));
+      dz.addEventListener('drop', e => {
+        dz.classList.remove('doc-dropzone--over');
+        if (typeof _dropzoneHandle === 'function') _dropzoneHandle(e, 'htmlmap');
+      });
+      dz.addEventListener('click', () => {
+        const fi = document.getElementById('htmlmap-file-input');
+        if (fi) fi.click();
+      });
+    }
     document.getElementById('htmlmap-filter-bar').classList.add('is-hidden');
     return;
   }
@@ -218,18 +233,17 @@ function renderHtmlMap() {
   const fileTypeBarColor = f => f.endsWith('.css') ? 'var(--mm-bar-css,#38bdf8)' : f.endsWith('.html') ? 'var(--mm-bar-html,#f59e0b)' : 'var(--mm-bar-js,#2ecc78)';
 
   // Pills de archivo
-  const allPill = `<button class="hmfilter-pill hmfilter-pill--all ${!activeFile ? 'active' : ''}" data-file="all" onclick="setHtmlMapFilter('all')">Todos</button>`;
+  const allPill = `<button class="hmfilter-pill hmfilter-pill--all ${!activeFile ? 'active' : ''}" data-file="all">Todos</button>`;
   const filePills = fileOrder.map(f => {
     const isActive = activeFile === f;
-    return `<button class="hmfilter-pill ${isActive ? 'active' : ''} ${fileTypeClass(f)}" data-file="${esc(f)}" onclick="setHtmlMapFilter('${esc(f)}')" title="${esc(f)}">${esc(fileShortName(f))}<span class="hmfilter-pill-count">${fileMap[f].length}</span></button>`;
+    return `<button class="hmfilter-pill ${isActive ? 'active' : ''} ${fileTypeClass(f)}" data-file="${esc(f)}" title="${esc(f)}">${esc(fileShortName(f))}<span class="hmfilter-pill-count">${fileMap[f].length}</span></button>`;
   }).join('');
 
   // Barra de búsqueda
   const searchBar = `
     <div class="mm-search-wrap">
-      <input class="mm-search" type="text" placeholder="Buscar función, área…" value="${esc(_hmSearch)}"
-        oninput="_hmOnSearch(this.value)">
-      ${_hmSearch ? `<button class="mm-search-clear" onclick="_hmOnSearch('');this.closest('.mm-search-wrap').querySelector('.mm-search').value=''">✕</button>` : ''}
+      <input class="mm-search" type="text" placeholder="Buscar función, área…" value="${esc(_hmSearch)}">
+      ${_hmSearch ? `<button class="mm-search-clear">✕</button>` : ''}
     </div>`;
 
   // Árbol de módulos
@@ -287,7 +301,7 @@ function renderHtmlMap() {
 
     modulesHtml += `
       <div class="mm-module" id="hmmod-${fileId}">
-        <div class="mm-module-header" onclick="_hmToggleModule('${fileId}')">
+        <div class="mm-module-header" data-hmmod="${fileId}">
           <span class="mm-file-badge ${fileTypeClass(f)}">${fileTypeLabel(f)}</span>
           <span class="mm-file-name">${esc(f)}</span>
           <span class="mm-fn-count">${rows.length} fn</span>
@@ -313,6 +327,39 @@ function renderHtmlMap() {
       ${searchBar}
     </div>
     <div class="mm-modules">${modulesHtml}${emptyMsg}</div>`;
+
+  // T-202605-035: event delegation — pills dinámicas (.mm-pills)
+  const pillsContainer = el.querySelector('.mm-pills');
+  if (pillsContainer) {
+    pillsContainer.addEventListener('click', e => {
+      const btn = e.target.closest('[data-file]');
+      if (btn) setHtmlMapFilter(btn.dataset.file);
+    });
+  }
+
+  // T-202605-035: search input oninput + clear button
+  const searchInput = el.querySelector('.mm-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', e => _hmOnSearch(e.target.value));
+  }
+  const clearBtn = el.querySelector('.mm-search-clear');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      _hmOnSearch('');
+      const inp = el.querySelector('.mm-search');
+      if (inp) inp.value = '';
+    });
+  }
+
+  // T-202605-035: event delegation — .mm-module-header (toggle módulo)
+  const modulesContainer = el.querySelector('.mm-modules');
+  if (modulesContainer) {
+    modulesContainer.addEventListener('click', e => {
+      const header = e.target.closest('[data-hmmod]');
+      if (header) _hmToggleModule(header.dataset.hmmod);
+    });
+  }
+
   _skelHide(el);
 }
 
