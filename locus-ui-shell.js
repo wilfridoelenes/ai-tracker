@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-044: Migrar handlers inline → addEventListener
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -1092,15 +1092,11 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }, true);
 
-  // Botón Templates en proj-panel — delegation sobre document
-  // Guard: .btn-ghost dentro de .proj-panel-actions cuyo texto incluye 'Templates'
-  document.addEventListener('click', function (e) {
-    const btn = e.target.closest('.proj-panel-actions .btn-ghost');
-    if (!btn) return;
-    if (btn.textContent.trim().includes('Templates')) {
-      closeProjPanel();
-      switchTab('backlog');
-    }
+  // Botón Templates en proj-panel — getElementById directo
+  const tplBtn = document.getElementById('proj-panel-btn-templates');
+  if (tplBtn) tplBtn.addEventListener('click', function () {
+    if (typeof closeProjPanel === 'function') closeProjPanel();
+    switchTab('backlog');
   });
 
 });
