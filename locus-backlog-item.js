@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -405,6 +405,7 @@ function _openStatusPopover(e, code) {
   const isIdea = (itemType(code) || '') === 'P';
   const options = [
     { val: 'pendiente', label: 'Pendiente' },
+    ...(!isIdea ? [{ val: 'en-revision', label: 'En revisión' }] : []),
     ...(!isIdea ? [{ val: 'done', label: 'Hecho' }] : []),
     { val: 'descartado', label: 'Descartado' }
   ];

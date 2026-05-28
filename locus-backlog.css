@@ -1,3 +1,4 @@
+/* [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 00:00 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -1365,6 +1366,13 @@
 }
 
 .badge-status-en-progreso {
+  background: var(--c-high-bg);
+  border-color: var(--c-high-border);
+  color: var(--c-high-text);
+}
+
+/* T-202605-040: en-revision — reutiliza variables de en-curso/en-progreso */
+.badge-status-en-revision {
   background: var(--c-high-bg);
   border-color: var(--c-high-border);
   color: var(--c-high-text);
@@ -4661,6 +4669,14 @@ er {
   opacity: 0.7;
 }
 
+/* T-202605-040: En revisión — reutiliza variables de en-curso */
+.status-pill--en-revision {
+  color: var(--c-high-text);
+  background: var(--c-high-bg);
+  border-color: var(--c-high-border);
+  font-weight: 600;
+}
+
 [data-theme="dark"] {
   --idea-bg:            hsl(var(--idea-hue) 30% 12%);
   --idea-bg-hover:      hsl(var(--idea-hue) 30% 16%);
@@ -4942,6 +4958,13 @@ er {
   background: var(--surface3);
   color: var(--hint);
   border-color: var(--border2);
+}
+
+/* T-202605-040: En revisión — reutiliza variables de en-curso */
+.bitem-status-chip--en-revision {
+  background: var(--c-high-bg);
+  color: var(--c-high-text);
+  border-color: var(--c-high-border);
 }
 
 /* Popover flotante de status */

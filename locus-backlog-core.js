@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 00:00 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -155,7 +156,7 @@ const _collapsedChildren = new Set();
 
 // T-049: state de filtros mixtos
 let activeTypes = new Set(['T','R','B','P']);
-let activeStatuses = new Set(['pendiente']); // done oculto por defecto
+let activeStatuses = new Set(['pendiente', 'en-revision']); // done oculto por defecto
 let _blFooterCollapsed = false; // T-202604-360: footer fijo colapsable
 
 const VERSIONS_ORDER = ['v2.0.0','futura'];
@@ -682,6 +683,7 @@ function toggleStatusFilter(status) {
       activeStatuses.add(status);
     }
   } else {
+    // pendiente y en-revision: no toggleable a off si es el único activo
     if (activeStatuses.has(status)) {
       if (activeStatuses.size > 1) activeStatuses.delete(status);
     } else {
@@ -692,7 +694,7 @@ function toggleStatusFilter(status) {
   if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
   // T-202604-364: filter-pulse feedback
   requestAnimationFrame(() => {
-    const btnId = status === 'done' ? 'fstatus-done' : status === 'descartado' ? 'fstatus-descartado' : 'fstatus-pendiente';
+    const btnId = status === 'done' ? 'fstatus-done' : status === 'descartado' ? 'fstatus-descartado' : status === 'en-revision' ? 'fstatus-en-revision' : 'fstatus-pendiente';
     const el = document.getElementById(btnId);
     if (el) { el.classList.remove('filter-pulse'); void el.offsetWidth; el.classList.add('filter-pulse'); el.addEventListener('animationend', () => el.classList.remove('filter-pulse'), { once: true }); }
   });
@@ -700,6 +702,8 @@ function toggleStatusFilter(status) {
 function updateStatusFilterUI() {
   const pendBtn = document.getElementById('fstatus-pendiente');
   if (pendBtn) pendBtn.classList.toggle('active', activeStatuses.has('pendiente'));
+  const enRevBtn = document.getElementById('fstatus-en-revision');
+  if (enRevBtn) enRevBtn.classList.toggle('active', activeStatuses.has('en-revision'));
   const doneBtn = document.getElementById('fstatus-done');
   if (doneBtn) doneBtn.classList.toggle('active', activeStatuses.has('done'));
   const discBtn = document.getElementById('fstatus-descartado');
@@ -1021,11 +1025,13 @@ function badgeLabel(p) {
 }
 function statusClass(s) {
   // B-202605-229: historico agregado como status canónico
-  return {'pendiente':'badge-status-backlog','done':'badge-status-done','descartado':'badge-status-descartado','historico':'badge-status-historico'}[s] || 'badge-status-backlog';
+  // T-202605-040: en-revision agregado como status canónico
+  return {'pendiente':'badge-status-backlog','en-revision':'badge-status-en-revision','done':'badge-status-done','descartado':'badge-status-descartado','historico':'badge-status-historico'}[s] || 'badge-status-backlog';
 }
 function statusLabel(s) {
   // B-202605-229: historico agregado como status canónico
-  return {'pendiente':'Pendiente','done':'Hecho','descartado':'Descartado','historico':'Histórico'}[s] || s;
+  // T-202605-040: en-revision agregado como status canónico
+  return {'pendiente':'Pendiente','en-revision':'En revisión','done':'Hecho','descartado':'Descartado','historico':'Histórico'}[s] || s;
 }
 
 // B-245: helper para obtener el aiId de la sesión activa al momento de registrar en history[]
