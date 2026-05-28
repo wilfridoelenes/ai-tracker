@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-28 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-28 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -1440,7 +1440,7 @@
   <div class="weekly-modal-panel">
     <div class="weekly-modal-header">
       <span class="weekly-modal-title">📊 Resumen semanal</span>
-      <button class="weekly-modal-close" onclick="dismissWeeklySummary()" title="Cerrar">✕</button>
+      <button class="weekly-modal-close" id="weekly-modal-close-btn" title="Cerrar">✕</button>
     </div>
     <div class="weekly-modal-body">
       <div class="weekly-stat-row"><span class="weekly-stat-label">Sesiones registradas</span><span class="weekly-stat-value" id="wsum-sessions">—</span></div>
@@ -1450,8 +1450,8 @@
       <div class="weekly-stat-row"><span class="weekly-stat-label">Sprint progress</span><span class="weekly-stat-value" id="wsum-sprint">—</span></div>
     </div>
     <div class="weekly-modal-footer">
-      <button class="btn-ghost" onclick="_exportWeeklySummaryMd()">⬇ Exportar MD</button>
-      <button class="btn-primary" onclick="dismissWeeklySummary()">Cerrar</button>
+      <button class="btn-ghost" id="weekly-export-btn">⬇ Exportar MD</button>
+      <button class="btn-primary" id="weekly-dismiss-btn">Cerrar</button>
     </div>
   </div>
 </div>

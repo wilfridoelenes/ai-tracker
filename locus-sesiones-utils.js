@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal
@@ -395,3 +395,21 @@ if (document.readyState === 'loading') {
   const chip = document.getElementById('header-active-worker');
   if (chip) chip.addEventListener('click', _hwcClick);
 }
+
+// ── B-202605-019: Listeners — weekly-summary-modal on* migrados desde index.html ──
+(function _initWeeklySummaryHandlers() {
+  function _bind() {
+    const closeBtn   = document.getElementById('weekly-modal-close-btn');
+    const dismissBtn = document.getElementById('weekly-dismiss-btn');
+    const exportBtn  = document.getElementById('weekly-export-btn');
+    if (closeBtn)   closeBtn.addEventListener('click', dismissWeeklySummary);
+    if (dismissBtn) dismissBtn.addEventListener('click', dismissWeeklySummary);
+    if (exportBtn)  exportBtn.addEventListener('click', _exportWeeklySummaryMd);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _bind, { once: true });
+  } else {
+    _bind();
+  }
+})();
+// ── END B-202605-019 ─────────────────────────────────────────────────────────
