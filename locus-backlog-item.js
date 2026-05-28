@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -69,10 +69,7 @@ function _renderKanban(listEl) {
     const kbDepBadge = kbIsDepBlocked ? '<span class="kb-dep-blocked-badge" title="Tiene dependencias pendientes">🔒</span>' : '';
     return `<div class="kb-card${kbIsActive ? ' kb-card--active' : ''}${kbIsDepBlocked ? ' kb-card--dep-blocked' : ''}" data-code="${esc(item.code)}" data-status="${esc(item.status)}"
         style="--kb-type-color:${typeColor}"
-        draggable="true"
-        ondragstart="event.dataTransfer.setData('text/plain','${esc(item.code)}');this.classList.add('kanban-card--dragging')"
-        ondragend="this.classList.remove('kanban-card--dragging')"
-        onclick="_kbCardClick(event,'${esc(item.code)}')">
+        draggable="true">`
       <div class="kb-card-header">
         <span class="kb-card-type">${type}</span>
         <span class="kb-card-code">${esc(item.code)}</span>
@@ -92,10 +89,7 @@ function _renderKanban(listEl) {
   COLS.forEach(col => {
     const colItems = byCol[col.id];
     html += `<div class="kb-col" id="kb-col-${col.id}"
-        data-col-status="${col.id}"
-        ondragover="event.preventDefault();this.classList.add('kb-col-dragover')"
-        ondragleave="this.classList.remove('kb-col-dragover')"
-        ondrop="_kbDrop(event,'${col.id}')">
+        data-col-status="${col.id}">
       <div class="kb-col-header" style="--col-accent:${col.accentColor}">
         <span class="kb-col-title">${col.label}</span>
         <span class="kb-col-count">${colItems.length}</span>
@@ -136,6 +130,119 @@ function _kbCardClick(event, code) {
   if (!item) return;
   _openItemEditorSafe(item.id || null, code); // B-202605-012
 }
+
+// T-202605-054: delegación de eventos para #backlog-list — reemplaza handlers inline
+// Cubre: copyItemCode · copyItemToClipboard · _inlineEditTitle · _confirmUnlinkChild
+//        child-expand · drag-handle · kanban card (click + drag) · kb-col (drag) · _promoteSelectType
+function _attachBacklogListDelegation() {
+  const listEl = document.getElementById('backlog-list');
+  if (!listEl || listEl._delegationAttached) return;
+  listEl._delegationAttached = true;
+
+  // --- Click delegation ---
+  listEl.addEventListener('click', function _blListClick(e) {
+    const action = e.target.closest('[data-action]');
+    if (!action) return;
+    const act = action.dataset.action;
+
+    if (act === 'copy-code') {
+      e.stopPropagation();
+      const code = action.dataset.code;
+      const idx  = parseInt(action.dataset.idx, 10);
+      if (typeof copyItemCode === 'function') copyItemCode(e, code, idx);
+      return;
+    }
+    if (act === 'copy-item') {
+      e.stopPropagation();
+      if (typeof copyItemToClipboard === 'function') copyItemToClipboard(e, action.dataset.code);
+      return;
+    }
+    if (act === 'unlink-child') {
+      e.stopPropagation();
+      if (typeof _confirmUnlinkChild === 'function') _confirmUnlinkChild(action.dataset.childCode, action.dataset.rCode);
+      return;
+    }
+    if (act === 'child-expand') {
+      e.stopPropagation();
+      const code   = action.dataset.childCode;
+      const safeId = action.dataset.safeId;
+      const ci = ITEMS.findIndex(x => x.code === code);
+      if (ci >= 0) toggleItemExpand(ci);
+      const arrow = document.getElementById('ciarrow-' + safeId);
+      const body  = document.getElementById('ibody-'  + safeId);
+      if (arrow && body) arrow.textContent = body.classList.contains('open') ? '▾' : '▸';
+      return;
+    }
+    if (act === 'drag-handle') {
+      e.stopPropagation();
+      return;
+    }
+    // kanban card click
+    if (act === 'kb-card-click' || e.target.closest('.kb-card')) {
+      const card = e.target.closest('.kb-card');
+      if (!card) return;
+      if (e.defaultPrevented) return;
+      if (typeof _kbCardClick === 'function') _kbCardClick(e, card.dataset.code);
+      return;
+    }
+  });
+
+  // --- Dblclick delegation (inline edit title) ---
+  listEl.addEventListener('dblclick', function _blListDblClick(e) {
+    const action = e.target.closest('[data-action="inline-edit-title"]');
+    if (!action) return;
+    e.stopPropagation();
+    if (typeof _inlineEditTitle === 'function') _inlineEditTitle(action.dataset.code, e);
+  });
+
+  // --- Kanban card drag ---
+  listEl.addEventListener('dragstart', function _blListDragStart(e) {
+    // kb-card drag
+    const card = e.target.closest('.kb-card');
+    if (card) {
+      e.dataTransfer.setData('text/plain', card.dataset.code);
+      card.classList.add('kanban-card--dragging');
+      return;
+    }
+  });
+  listEl.addEventListener('dragend', function _blListDragEnd(e) {
+    const card = e.target.closest('.kb-card');
+    if (card) { card.classList.remove('kanban-card--dragging'); return; }
+  });
+
+  // --- Kanban column drag (kb-col) ---
+  listEl.addEventListener('dragover', function _blListDragOver(e) {
+    const col = e.target.closest('.kb-col');
+    if (col) { e.preventDefault(); col.classList.add('kb-col-dragover'); }
+  });
+  listEl.addEventListener('dragleave', function _blListDragLeave(e) {
+    const col = e.target.closest('.kb-col');
+    if (col) col.classList.remove('kb-col-dragover');
+  });
+  listEl.addEventListener('drop', function _blListDrop(e) {
+    const col = e.target.closest('.kb-col');
+    if (col) {
+      e.preventDefault();
+      col.classList.remove('kb-col-dragover');
+      if (typeof _kbDrop === 'function') _kbDrop(e, col.dataset.colStatus);
+    }
+  });
+}
+
+// _attachBacklogListDelegation: llamado al final de renderBacklogList (ver locus-backlog-render.js)
+
+// Promote modal delegation — #promote-modal-overlay es DOM estático, attachment único
+(function _attachPromoteModalDelegation() {
+  document.addEventListener('DOMContentLoaded', function() {
+    const overlay = document.getElementById('promote-modal-overlay');
+    if (!overlay) return;
+    overlay.addEventListener('click', function(e) {
+      const action = e.target.closest('[data-action="promote-select-type"]');
+      if (!action) return;
+      if (typeof _promoteSelectType === 'function') _promoteSelectType(action.dataset.type);
+    });
+  });
+})();
 
 // T-202604-076: DnD para reordenar ítems dentro de grupo sprint (no aplica a done/descartado ni a modo plano)
 function _attachBacklogDnD() {
@@ -252,13 +359,13 @@ function _buildChildrenBlock(rCode) {
     const cType = itemType(child.code) || '';
     const isDoneC = child.status === 'done';
     return `<div class="child-item${isDoneC ? ' is-done' : ''}">
-      <span class="child-collapse-arrow" id="ciarrow-${cSafeId}" onclick="(function(){var _ci=ITEMS.findIndex(function(x){return x.code==='${esc(child.code)}'});if(_ci>=0)toggleItemExpand(_ci);var a=document.getElementById('ciarrow-${cSafeId}');var b=document.getElementById('ibody-${cSafeId}');if(a&&b)a.textContent=b.classList.contains('open')?'▾':'▸';event.stopPropagation();})()">&#x25B8;</span>
+      <span class="child-collapse-arrow" id="ciarrow-${cSafeId}" data-action="child-expand" data-child-code="${esc(child.code)}" data-safe-id="${cSafeId}">&#x25B8;</span>
       <span class="item-type-pill ${cType} item-type-pill--sm">${cType}</span>
-      <span class="child-title" onclick="(function(){var _ci=ITEMS.findIndex(function(x){return x.code==='${esc(child.code)}'});if(_ci>=0)toggleItemExpand(_ci);var a=document.getElementById('ciarrow-${cSafeId}');var b=document.getElementById('ibody-${cSafeId}');if(a&&b)a.textContent=b.classList.contains('open')?'▾':'▸';})()}">${esc(child.title)}</span>
+      <span class="child-title" data-action="child-expand" data-child-code="${esc(child.code)}" data-safe-id="${cSafeId}">${esc(child.title)}</span>
       <span class="badge ${statusClass(child.status)} badge--sm">${statusLabel(child.status)}</span>
     </div>
     <div class="item-body item-body--child" id="ibody-${cSafeId}">
-      <div id="code-badge-${cSafeId}" onclick="copyItemCode(event,'${esc(child.code)}',-1)" title="Click para copiar ID" class="item-code-badge">${esc(child.code)}</div>
+      <div id="code-badge-${cSafeId}" data-action="copy-code" data-code="${esc(child.code)}" data-idx="-1" title="Click para copiar ID" class="item-code-badge">${esc(child.code)}</div>
       <div class="child-meta-row">
         <span class="badge ${badgeClass(child.priority)} badge--sm">${badgeLabel(child.priority)}</span>
         ${child.area ? `<span class="badge badge-area badge--sm">${esc(child.area)}</span>` : ''}
@@ -267,7 +374,7 @@ function _buildChildrenBlock(rCode) {
       ${child.ac && child.ac.length ? `<ul class="ac-list open ac-list--child">${child.ac.map(c => `<li class="ac-list-item--sm">${esc(c)}</li>`).join('')}</ul>` : ''}
       <div class="child-actions">
         <button onclick="event.stopPropagation();_openItemEditorSafe(null,'${esc(child.code)}')" class="btn-ghost btn-ghost--sm" title="Editar ítem">✎ Editar</button>
-        <button onclick="event.stopPropagation();_confirmUnlinkChild('${esc(child.code)}','${esc(rCode)}')" class="btn-ghost btn-ghost--sm btn-ghost--muted" title="Desvincular del R padre">⊠ Desvincular</button>
+        <button data-action="unlink-child" data-child-code="${esc(child.code)}" data-r-code="${esc(rCode)}" class="btn-ghost btn-ghost--sm btn-ghost--muted" title="Desvincular del R padre">⊠ Desvincular</button>
       </div>
     </div>`;
   }).join('');
@@ -628,15 +735,15 @@ function buildBacklogItem(item) {
   const _blfAriaHidden  = item._blfHidden ? ' aria-hidden="true"' : '';
   return `<div class="item bitem${isDone ? ' is-done' : ''}${isDiscarded ? ' is-discarded' : ''}${isActive ? ' bitem--active' : ''}${isIdea ? ' bitem--idea' : ''}${isPromoted ? ' bitem--promoted' : ''}${_blfHiddenClass}" data-type="${type}" data-code="${esc(item.code)}"${_blfAriaHidden}>
     <div class="item-header bitem-header" onclick="toggleItemExpand(${globalIdx})">
-      ${(!isDone && !isDiscarded && item.sprint) ? `<span class="item-drag-handle" title="Arrastrar para reordenar en sprint" ondragstart="event.stopPropagation()" onclick="event.stopPropagation()">⠿</span>` : ''}
+      ${(!isDone && !isDiscarded && item.sprint) ? `<span class="item-drag-handle" data-action="drag-handle" title="Arrastrar para reordenar en sprint">⠿</span>` : ''}
       ${isActive ? '<span class="bitem-activity-dot" title="Actividad reciente — sesión vinculada en los últimos 7 días"></span>' : ''}
       ${typeBlock}
       <div class="bitem-title-col">
-        <span class="bitem-code" id="code-badge-${globalIdx}" onclick="copyItemCode(event,'${esc(item.code)}',${globalIdx})" title="Click para copiar ID">${item._focusRank ? `<span class="bitem-focus-rank" title="Posición en Focus">#${item._focusRank}</span> ` : ''}${esc(item.code)}</span>
-        <span class="bitem-title"${(!isDone && !isDiscarded) ? ` ondblclick="_inlineEditTitle('${esc(item.code)}',event)" title="Doble click para editar título"` : ''}>${esc(item.title)}</span>${isDiscarded && (!item.title || item.title.trim() === item.code) ? '<span class="bitem-ghost-note" title="Ítem sin título — posiblemente generado por un CHECKPOINT malformado">⚠ ítem fantasma — generado por CHECKPOINT malformado</span>' : ''}
+        <span class="bitem-code" id="code-badge-${globalIdx}" data-action="copy-code" data-code="${esc(item.code)}" data-idx="${globalIdx}" title="Click para copiar ID">${item._focusRank ? `<span class="bitem-focus-rank" title="Posición en Focus">#${item._focusRank}</span> ` : ''}${esc(item.code)}</span>
+        <span class="bitem-title"${(!isDone && !isDiscarded) ? ' data-action="inline-edit-title" data-code="${esc(item.code)}" title="Doble click para editar título"' : ''}>${esc(item.title)}</span>${isDiscarded && (!item.title || item.title.trim() === item.code) ? '<span class="bitem-ghost-note" title="Ítem sin título — posiblemente generado por un CHECKPOINT malformado">⚠ ítem fantasma — generado por CHECKPOINT malformado</span>' : ''}
         ${subline}
       </div>
-      <button id="copy-item-btn-${esc(item.code)}" class="copy-item-btn" onclick="copyItemToClipboard(event,'${esc(item.code)}')" title="Copiar ítem para sesión FS">⎘</button>
+      <button id="copy-item-btn-${esc(item.code)}" class="copy-item-btn" data-action="copy-item" data-code="${esc(item.code)}" title="Copiar ítem para sesión FS">⎘</button>
       <span class="bitem-collapse-arrow" id="iarrow-${globalIdx}">▸</span>
       ${headerRight}
     </div>
@@ -797,12 +904,12 @@ function _promoteItem(code) {
       <div class="promote-modal-sub">${esc(code)} · ${esc(item.title)}</div>
       <div class="promote-modal-desc">¿A qué tipo quieres promover esta idea?</div>
       <div class="promote-type-btns">
-        <button class="promote-type-btn" id="promote-btn-T" onclick="_promoteSelectType('T')">
+        <button class="promote-type-btn" id="promote-btn-T" data-action="promote-select-type" data-type="T">
           <div class="promote-type-letter">T</div>
           <div class="promote-type-name">Ticket</div>
           <div class="promote-type-hint">Tarea técnica concreta</div>
         </button>
-        <button class="promote-type-btn" id="promote-btn-R" onclick="_promoteSelectType('R')">
+        <button class="promote-type-btn" id="promote-btn-R" data-action="promote-select-type" data-type="R">
           <div class="promote-type-letter">R</div>
           <div class="promote-type-name">Requerimiento</div>
           <div class="promote-type-hint">Feature o épica con tickets</div>

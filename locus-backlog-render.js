@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 00:00 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // Responsabilidad: Renderizado del backlog — vista árbol, sprint health panel,
 //   roadmap, planning (drag & drop), renderBacklogList, sprint selector inline.
 // Dependencias: locus-backlog-core.js · locus-backlog-archive.js · locus-backlog-item.js · locus-backlog-sprints.js
@@ -217,7 +217,7 @@ function _buildSprintOption(sp) {
   const retroBtn = isClosed && sp.retroDoc
     ? `<button class="bl-sprint-retro-btn" onclick="event.stopPropagation();openSprintRetroView('${esc(id)}')" title="Ver retrospectiva" type="button">retro</button>`
     : '';
-  return `<button class="bl-sprint-option${activeCls}${selectedCls}" onclick="_blSprintSelect('${esc(id)}')" type="button">
+  return `<button class="bl-sprint-option${activeCls}${selectedCls}" data-action="bl-sprint-select" data-sprint-id="${esc(id)}" type="button">
     <span class="bl-sprint-option-mark">${mark}</span>
     <span class="bl-sprint-option-name">${esc(label)}</span>
     <div class="bl-sprint-option-meta">
@@ -265,7 +265,7 @@ function _buildSprintSelector() {
   // builder de opción individual — B-202605-058: referencia a función de módulo _buildSprintOption
   const closedOptionsHtml = closedSprints.map(_buildSprintOption).join('');
   const closedSection = closedSprints.length ? `
-    <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" onclick="_blSprintToggleClosed()" type="button">
+    <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" data-action="bl-sprint-toggle-closed" type="button">
       <span class="bl-sprint-closed-toggle-label">Cerrados</span>
       <span class="bl-sprint-closed-toggle-count">${closedSprints.length}</span>
       <span class="bl-sprint-closed-toggle-arrow">▾</span>
@@ -274,7 +274,7 @@ function _buildSprintSelector() {
       ${closedOptionsHtml}
     </div>` : '';
 
-  return `<div class="bl-sprint-trigger" id="bl-sprint-trigger" onclick="_blSprintOpen()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')_blSprintOpen()">
+  return `<div class="bl-sprint-trigger" id="bl-sprint-trigger" data-action="bl-sprint-open" role="button" tabindex="0" data-keyaction="bl-sprint-open">
     <span class="bl-sprint-trigger-label">Sprint</span>
     ${triggerNameHtml}
     ${progressHtml}
@@ -301,7 +301,7 @@ function _blSprintOpen() {
   const openOptionsHtml   = [activeSprint, ...openSprints].filter(Boolean).map(_buildSprintOption).join('');
   const closedOptionsHtml = closedSprints.map(_buildSprintOption).join('');
   const closedSection = closedSprints.length ? `
-    <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" onclick="_blSprintToggleClosed()" type="button">
+    <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" data-action="bl-sprint-toggle-closed" type="button">
       <span class="bl-sprint-closed-toggle-label">Cerrados</span>
       <span class="bl-sprint-closed-toggle-count">${closedSprints.length}</span>
       <span class="bl-sprint-closed-toggle-arrow">▾</span>
@@ -317,7 +317,7 @@ function _blSprintOpen() {
         ${closedSection}
       </div>
     </div>
-    <div class="bl-sprint-overlay" id="bl-sprint-overlay" onclick="_blSprintClose()"></div>
+    <div class="bl-sprint-overlay" id="bl-sprint-overlay" data-action="bl-sprint-close"></div>
   `);
 }
 
@@ -350,6 +350,81 @@ function _blSprintToggleClosed() {
   list.classList.toggle('is-hidden', isOpen);
   if (toggle) toggle.classList.toggle('is-open', !isOpen);
   if (arrow) arrow.textContent = isOpen ? '▾' : '▴';
+}
+
+// T-202605-054: delegación de eventos para #bl-sprint-bar — reemplaza handlers inline
+// Cubre: bl-sprint-open · bl-sprint-close · bl-sprint-select · bl-sprint-toggle-closed
+function _attachSprintBarDelegation() {
+  const bar = document.getElementById('bl-sprint-bar');
+  if (!bar || bar._delegationAttached) return;
+  bar._delegationAttached = true;
+
+  bar.addEventListener('click', function _sprintBarClick(e) {
+    const action = e.target.closest('[data-action]');
+    if (!action) return;
+    const act = action.dataset.action;
+
+    if (act === 'bl-sprint-open') {
+      if (typeof _blSprintOpen === 'function') _blSprintOpen();
+      return;
+    }
+    if (act === 'bl-sprint-close') {
+      if (typeof _blSprintClose === 'function') _blSprintClose();
+      return;
+    }
+    if (act === 'bl-sprint-select') {
+      if (typeof _blSprintSelect === 'function') _blSprintSelect(action.dataset.sprintId);
+      return;
+    }
+    if (act === 'bl-sprint-toggle-closed') {
+      if (typeof _blSprintToggleClosed === 'function') _blSprintToggleClosed();
+      return;
+    }
+  });
+
+  bar.addEventListener('keydown', function _sprintBarKeydown(e) {
+    const action = e.target.closest('[data-keyaction="bl-sprint-open"]');
+    if (!action) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      if (typeof _blSprintOpen === 'function') _blSprintOpen();
+    }
+  });
+}
+
+// T-202605-054: delegación de eventos para #backlog-list — plan view drag handlers
+// Cubre: _planDragStart · _planDragEnd · _planDragOver · _planDragLeave · _planDrop
+function _attachPlanViewDelegation() {
+  const listEl = document.getElementById('backlog-list');
+  if (!listEl || listEl._planDelegationAttached) return;
+  listEl._planDelegationAttached = true;
+
+  listEl.addEventListener('dragstart', function _planViewDragStart(e) {
+    const card = e.target.closest('.bl-plan-card');
+    if (!card) return;
+    // _planDragStart usa e.currentTarget — pasamos un proxy con currentTarget = card
+    if (typeof _planDragStart === 'function') _planDragStart(Object.assign(e, { currentTarget: card }));
+  });
+  listEl.addEventListener('dragend', function _planViewDragEnd(e) {
+    const card = e.target.closest('.bl-plan-card');
+    if (!card) return;
+    if (typeof _planDragEnd === 'function') _planDragEnd(Object.assign(e, { currentTarget: card }));
+  });
+  listEl.addEventListener('dragover', function _planViewDragOver(e) {
+    const col = e.target.closest('[data-plan-col]');
+    if (!col) return;
+    if (typeof _planDragOver === 'function') _planDragOver(e);
+  });
+  listEl.addEventListener('dragleave', function _planViewDragLeave(e) {
+    const col = e.target.closest('[data-plan-col]');
+    if (!col) return;
+    if (typeof _planDragLeave === 'function') _planDragLeave(e);
+  });
+  listEl.addEventListener('drop', function _planViewDrop(e) {
+    const col = e.target.closest('[data-plan-col]');
+    if (!col) return;
+    if (typeof _planDrop === 'function') _planDrop(e, col.dataset.planCol);
+  });
 }
 
 // render/update del sprint selector en #bl-sprint-bar
@@ -453,9 +528,7 @@ function _renderPlanningView(listEl, closeCallback) {
          draggable="${draggable ? 'true' : 'false'}"
          data-code="${esc(item.code)}"
          data-col="${col}"
-         style="--item-type-color:${tc}"
-         ondragstart="_planDragStart(event)"
-         ondragend="_planDragEnd(event)">
+         style="--item-type-color:${tc}">
       <div class="bl-plan-card-header">
         <span class="bl-plan-card-type">${type}</span>
         <span class="bl-plan-card-code">${esc(item.code)}</span>
@@ -488,9 +561,7 @@ function _renderPlanningView(listEl, closeCallback) {
         <!-- Columna izquierda: sin sprint -->
         <div class="bl-plan-col bl-plan-col--left"
              id="bl-plan-col-left"
-             ondragover="_planDragOver(event)"
-             ondragleave="_planDragLeave(event)"
-             ondrop="_planDrop(event,'left')">
+             data-plan-col="left">
           <div class="bl-plan-col-header">
             <span class="bl-plan-col-title">Sin sprint</span>
             <span class="bl-plan-col-count">${unassigned.length} ítems</span>
@@ -508,9 +579,7 @@ function _renderPlanningView(listEl, closeCallback) {
         <!-- Columna derecha: sprint destino -->
         <div class="bl-plan-col bl-plan-col--right ${!targetSprint ? 'bl-plan-col--disabled' : ''}"
              id="bl-plan-col-right"
-             ondragover="_planDragOver(event)"
-             ondragleave="_planDragLeave(event)"
-             ondrop="_planDrop(event,'right')">
+             data-plan-col="right">
           <div class="bl-plan-col-header">
             <span class="bl-plan-col-title">${esc(targetLabel)}</span>
             <span class="bl-plan-col-count">${inTarget.length} ítems</span>
@@ -1198,6 +1267,9 @@ function renderBacklogList(onRendered) {
   }
 
   _attachBacklogDnD();
+  if (typeof _attachBacklogListDelegation === 'function') _attachBacklogListDelegation();
+  if (typeof _attachSprintBarDelegation === 'function') _attachSprintBarDelegation();
+  if (typeof _attachPlanViewDelegation === 'function') _attachPlanViewDelegation();
   _updateDocLogCount('backlog');
 
   // T-202604-362: placeholder del buscador refleja scope activo
