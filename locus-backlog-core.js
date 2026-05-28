@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 00:00 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1830,3 +1830,68 @@ function _migrateItemTypes() {
   if (typeof saveBacklog === 'function') saveBacklog();
 }
 window._migrateItemTypes = _migrateItemTypes;
+
+// T-202605-053: Migrar handlers inline de index.html → addEventListener
+// Funciones cubiertas: undoBacklog · redoBacklog · toggleBacklogTreeMode · toggleBacklogKanbanMode
+// toggleBacklogFocusMode · toggleBacklogMikeMode · toggleCollapseAll · onBacklogSearch
+// clearBacklogSearch · toggleStatusFilter (×5) · toggleBacklogBlockerFilter
+// toggleBacklogNoAcMode · clearAllFilters
+document.addEventListener('DOMContentLoaded', function () {
+  // Undo / Redo
+  const _btnUndo = document.getElementById('btn-undo-backlog');
+  if (_btnUndo) _btnUndo.addEventListener('click', function () { if (typeof undoBacklog === 'function') undoBacklog(); });
+
+  const _btnRedo = document.getElementById('btn-redo-backlog');
+  if (_btnRedo) _btnRedo.addEventListener('click', function () { if (typeof redoBacklog === 'function') redoBacklog(); });
+
+  // Vista — Árbol / Kanban / Focus / Mi vista
+  const _btnTree = document.getElementById('fbar-tree-btn');
+  if (_btnTree) _btnTree.addEventListener('click', function () { if (typeof toggleBacklogTreeMode === 'function') toggleBacklogTreeMode(); });
+
+  const _btnKanban = document.getElementById('fbar-kanban-btn');
+  if (_btnKanban) _btnKanban.addEventListener('click', function () { if (typeof toggleBacklogKanbanMode === 'function') toggleBacklogKanbanMode(); });
+
+  const _btnFocus = document.getElementById('fbar-focus-btn');
+  if (_btnFocus) _btnFocus.addEventListener('click', function () { if (typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode(); });
+
+  const _btnMike = document.getElementById('fbar-mike-btn');
+  if (_btnMike) _btnMike.addEventListener('click', function () { if (typeof toggleBacklogMikeMode === 'function') toggleBacklogMikeMode(); });
+
+  // Colapsar / expandir todos
+  const _btnCollapse = document.getElementById('bl-collapse-all-btn');
+  if (_btnCollapse) _btnCollapse.addEventListener('click', function () { if (typeof toggleCollapseAll === 'function') toggleCollapseAll(); });
+
+  // Búsqueda
+  const _inputSearch = document.getElementById('backlog-search-input');
+  if (_inputSearch) _inputSearch.addEventListener('input', function () { if (typeof onBacklogSearch === 'function') onBacklogSearch(); });
+
+  const _btnSearchClear = document.getElementById('backlog-search-clear');
+  if (_btnSearchClear) _btnSearchClear.addEventListener('click', function () { if (typeof clearBacklogSearch === 'function') clearBacklogSearch(); });
+
+  // Filtros de status
+  const _statusMap = {
+    'fstatus-pendiente':  'pendiente',
+    'fstatus-en-revision': 'en-revision',
+    'fstatus-done':       'done',
+    'fstatus-en-curso':   'en curso',
+    'fstatus-descartado': 'descartado'
+  };
+  Object.keys(_statusMap).forEach(function (id) {
+    const _btn = document.getElementById(id);
+    if (_btn) _btn.addEventListener('click', (function (val) {
+      return function () { if (typeof toggleStatusFilter === 'function') toggleStatusFilter(val); };
+    }(_statusMap[id])));
+  });
+
+  // Filtro Bloqueados
+  const _btnBlocker = document.getElementById('fbar-blocker-btn');
+  if (_btnBlocker) _btnBlocker.addEventListener('click', function () { if (typeof toggleBacklogBlockerFilter === 'function') toggleBacklogBlockerFilter(); });
+
+  // Filtro Sin AC
+  const _btnNoAc = document.getElementById('fbar-no-ac-btn');
+  if (_btnNoAc) _btnNoAc.addEventListener('click', function () { if (typeof toggleBacklogNoAcMode === 'function') toggleBacklogNoAcMode(); });
+
+  // Limpiar todos los filtros
+  const _btnClearFilters = document.getElementById('filter-clear-btn');
+  if (_btnClearFilters) _btnClearFilters.addEventListener('click', function () { if (typeof clearAllFilters === 'function') clearAllFilters(); });
+});

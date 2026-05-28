@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-28 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-28 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -363,8 +363,8 @@
         <button class="tpl-action-btn is-hidden" id="btn-import-backlog" onclick="" title="Import deshabilitado — usar ---ITEMS--- en CHECKPOINT" disabled>↑ Importar Backlog</button>
 
         <div class="tpl-action-row is-hidden" id="tpl-undo-row">
-          <button class="tpl-action-btn tpl-action-icon" id="btn-undo-backlog" onclick="undoBacklog()" title="Deshacer" disabled>↩</button>
-          <button class="tpl-action-btn tpl-action-icon" id="btn-redo-backlog" onclick="redoBacklog()" title="Rehacer" disabled>↪</button>
+          <button class="tpl-action-btn tpl-action-icon" id="btn-undo-backlog" title="Deshacer" disabled>↩</button>
+          <button class="tpl-action-btn tpl-action-icon" id="btn-redo-backlog" title="Rehacer" disabled>↪</button>
         </div>
         <button class="tpl-action-btn is-hidden" id="btn-export-backlog" onclick="exportBacklogMd()" title="Descargar Backlog activo como .md">⬇ Descargar Backlog</button>
         <button class="tpl-action-btn is-hidden" id="btn-export-backlog-full" onclick="exportFullHistoryMd()" title="Descargar historial completo como .md">⬇ Historial completo</button>
@@ -410,37 +410,37 @@
     <!-- Capa 1: Toolbar principal — layout + vistas + collapse + búsqueda -->
     <div class="bl-toolbar" id="bl-toolbar">
       <div class="bl-toolbar-views" role="tablist" aria-label="Vista del backlog">
-        <button class="bl-toolbar-view-btn active" id="fbar-tree-btn" onclick="toggleBacklogTreeMode()" title="Vista árbol" role="tab" aria-selected="true">⊞ Árbol</button>
-        <button class="bl-toolbar-view-btn" id="fbar-kanban-btn" onclick="toggleBacklogKanbanMode()" title="Vista Kanban" role="tab" aria-selected="false">⬛ Kanban</button>
+        <button class="bl-toolbar-view-btn active" id="fbar-tree-btn" title="Vista árbol" role="tab" aria-selected="true">⊞ Árbol</button>
+        <button class="bl-toolbar-view-btn" id="fbar-kanban-btn" title="Vista Kanban" role="tab" aria-selected="false">⬛ Kanban</button>
 
-        <button class="bl-toolbar-view-btn" id="fbar-focus-btn" onclick="toggleBacklogFocusMode()" title="Focus — Top 10 por prioridad" role="checkbox" aria-checked="false">🎯 Focus</button>
-        <button class="bl-toolbar-view-btn is-hidden" id="fbar-mike-btn" onclick="toggleBacklogMikeMode()" title="Mi vista — T's pendientes por rol en sprint activo" role="checkbox" aria-checked="false">Mi vista</button>
+        <button class="bl-toolbar-view-btn" id="fbar-focus-btn" title="Focus — Top 10 por prioridad" role="checkbox" aria-checked="false">🎯 Focus</button>
+        <button class="bl-toolbar-view-btn is-hidden" id="fbar-mike-btn" title="Mi vista — T's pendientes por rol en sprint activo" role="checkbox" aria-checked="false">Mi vista</button>
       </div>
       <div class="bl-toolbar-divider"></div>
-      <button class="bl-collapse-btn" id="bl-collapse-all-btn" onclick="toggleCollapseAll()" title="Colapsar / expandir todos los grupos">
+      <button class="bl-collapse-btn" id="bl-collapse-all-btn" title="Colapsar / expandir todos los grupos">
         <span class="bl-collapse-btn-icon">⊟</span>
         <span class="bl-collapse-btn-label">Colapsar</span>
       </button>
       <button class="bl-toolbar-new-item-btn" id="btn-new-backlog-item" onclick="_openItemEditorSafe(null, null)" title="Crear nuevo ítem">+ Nuevo ítem</button>
       <div class="bl-toolbar-spacer"></div>
       <div class="fbar-search-wrap">
-        <input class="fbar-search-input" id="backlog-search-input" type="text" placeholder="🔍 Buscar…" oninput="onBacklogSearch()" autocomplete="off">
-        <button class="fbar-search-clear" id="backlog-search-clear" onclick="clearBacklogSearch()" title="Limpiar búsqueda">✕</button>
+        <input class="fbar-search-input" id="backlog-search-input" type="text" placeholder="🔍 Buscar…" autocomplete="off">
+        <button class="fbar-search-clear" id="backlog-search-clear" title="Limpiar búsqueda">✕</button>
       </div>
       <button class="doc-log-btn" id="doc-log-btn-backlog" title="Historial de acciones del Backlog">🕐<span class="doc-log-count"></span></button>
     </div>
 
     <!-- Capa 2: Filter strip — status + sort + filtros secundarios -->
     <div class="bl-filter-strip" id="filter-bar-status">
-      <button class="bl-strip-btn active" id="fstatus-pendiente" onclick="toggleStatusFilter('pendiente')">Pendiente</button>
-      <button class="bl-strip-btn s-en-revision active" id="fstatus-en-revision" onclick="toggleStatusFilter('en-revision')">En revisión</button>
-      <button class="bl-strip-btn" id="fstatus-done" onclick="toggleStatusFilter('done')">Hecho</button>
-      <button class="bl-strip-btn s-en-curso" id="fstatus-en-curso" onclick="toggleStatusFilter('en curso')">En curso</button>
-      <button class="bl-strip-btn s-descartado" id="fstatus-descartado" onclick="toggleStatusFilter('descartado')">Descartado</button>
+      <button class="bl-strip-btn active" id="fstatus-pendiente">Pendiente</button>
+      <button class="bl-strip-btn s-en-revision active" id="fstatus-en-revision">En revisión</button>
+      <button class="bl-strip-btn" id="fstatus-done">Hecho</button>
+      <button class="bl-strip-btn s-en-curso" id="fstatus-en-curso">En curso</button>
+      <button class="bl-strip-btn s-descartado" id="fstatus-descartado">Descartado</button>
       <div class="bl-filter-strip-sep"></div>
-      <button class="bl-strip-btn s-bloqueado" id="fbar-blocker-btn" onclick="toggleBacklogBlockerFilter()" title="Solo ítems bloqueados — pendientes sin cambio en +14 días">⛔ Bloqueados</button>
+      <button class="bl-strip-btn s-bloqueado" id="fbar-blocker-btn" title="Solo ítems bloqueados — pendientes sin cambio en +14 días">⛔ Bloqueados</button>
       <button class="bl-strip-btn" id="fbar-deps-btn" onclick="toggleDepsFilter()" title="Filtrar por dependencias explícitas — bloqueados / libres">🔗 Deps</button>
-      <button class="bl-strip-btn" id="fbar-no-ac-btn" onclick="toggleBacklogNoAcMode()" title="Ítems sin criterios de aceptación">Sin AC</button>
+      <button class="bl-strip-btn" id="fbar-no-ac-btn" title="Ítems sin criterios de aceptación">Sin AC</button>
       <div class="bl-sort-wrap">
         <select class="bl-sort-select" id="fbar-sort-select" onchange="onBacklogSortChange(this.value)">
           <option value="priority">Prioridad</option>
@@ -452,7 +452,7 @@
         </select>
         <button class="bl-sort-dir-btn" id="fbar-sort-dir-btn" onclick="toggleSortDir()" title="Invertir dirección">↓</button>
       </div>
-      <button class="fbar-clear-btn is-hidden" id="filter-clear-btn" onclick="clearAllFilters()" title="Limpiar todos los filtros">✕ Limpiar</button>
+      <button class="fbar-clear-btn is-hidden" id="filter-clear-btn" title="Limpiar todos los filtros">✕ Limpiar</button>
     </div>
 
     <!-- Capa 3: Sprint selector — colapsado por defecto, despliega al click -->
