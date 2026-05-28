@@ -1,3 +1,4 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal
@@ -382,4 +383,15 @@ function _maybeShowWeeklySummary() {
 
   const modal = document.getElementById('weekly-summary-modal');
   if (modal) modal.classList.remove('is-hidden');
+}
+
+// T-202605-045: Migrar handler inline #header-active-worker → addEventListener
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', function _initHwcHandler() {
+    const chip = document.getElementById('header-active-worker');
+    if (chip) chip.addEventListener('click', _hwcClick);
+  }, { once: true });
+} else {
+  const chip = document.getElementById('header-active-worker');
+  if (chip) chip.addEventListener('click', _hwcClick);
 }

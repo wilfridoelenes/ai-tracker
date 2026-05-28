@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-27 UTC-6
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1250,6 +1250,8 @@ document.addEventListener('DOMContentLoaded', function _initAutoDlLabel() {
   const btn = document.getElementById('more-menu-autodl');
   const _trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
   if (btn) btn.textContent = `⬇ Descargar templates: ${_trig === 'session' ? 'al guardar sesión' : 'al cerrar sprint'}`;
+  // T-202605-045: Migrar onclick inline → addEventListener
+  if (btn) btn.addEventListener('click', toggleAutoDownload);
 }, { once: true });
 
 // Utilidades de countdown para IAs agotadas

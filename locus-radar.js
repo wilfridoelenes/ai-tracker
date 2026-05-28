@@ -1,3 +1,4 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -604,6 +605,29 @@ function _initRadarSidebarState() {
         toggleRadarSidebar();
       }
     });
+  }
+
+  // T-202605-045: Migrar handlers inline de index.html a addEventListener
+  if (!window._rsbHandlersInited) {
+    window._rsbHandlersInited = true;
+
+    const pinBtn = document.getElementById('rsb-pin-btn');
+    if (pinBtn) pinBtn.addEventListener('click', rsbTogglePin);
+
+    const toggleBtn = document.getElementById('radar-sidebar-toggle');
+    if (toggleBtn) toggleBtn.addEventListener('click', toggleRadarSidebar);
+
+    const strip = document.querySelector('.radar-sidebar-strip');
+    if (strip) strip.addEventListener('click', toggleRadarSidebar);
+
+    const addIaBtn = document.querySelector('.rsb-add-ia-btn');
+    if (addIaBtn) addIaBtn.addEventListener('click', openAddAI);
+
+    const searchInput = document.getElementById('rsb-search-input');
+    if (searchInput) searchInput.addEventListener('input', () => rsbFilterAIs(searchInput.value));
+
+    const searchClear = document.getElementById('rsb-search-clear');
+    if (searchClear) searchClear.addEventListener('click', rsbClearSearch);
   }
 }
 

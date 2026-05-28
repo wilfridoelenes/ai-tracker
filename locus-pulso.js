@@ -1,3 +1,4 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-pulso.js
 // Última actualización: 2026-05-19 | Panel Pulso del Ecosistema
 // Extraído de: ai-tracker-checkpoint.js · ai-tracker-ai-notes.js
@@ -139,7 +140,7 @@ function _buildPulsoPlanesHtml() {
         }).join(' · ')
       : '';
 
-    rows.push(`<div class="pls-plan-row pls-plan-row--clickable" onclick="closePulsoPanel();if(typeof switchTab==='function')switchTab('backlog');setTimeout(()=>{if(typeof switchSubTab==='function')switchSubTab('plan');},80)" title="Ver plan completo">
+    rows.push(`<div class="pls-plan-row pls-plan-row--clickable" data-pulso-action="goto-plan" title="Ver plan completo">
       <span class="pls-plan-proj">${esc(proj.name)}</span>
       <span class="pls-plan-sprint">${esc(sprintLabel)}</span>
       <span class="pls-plan-progress">${doneSess}/${totalSess} sesiones</span>
@@ -236,7 +237,7 @@ function openPulsoPanel() {
 
   if (s.blockerCount > 0) {
     html += `<div class="pls-section pls-section--alert">
-      <button class="pls-blocker-btn" onclick="closePulsoPanel();if(typeof switchTab==='function')switchTab('backlog')">
+      <button class="pls-blocker-btn" data-pulso-action="goto-backlog">
         ⛔ ${s.blockerCount} bloqueante${s.blockerCount !== 1 ? 's' : ''} activo${s.blockerCount !== 1 ? 's' : ''} → ver en Backlog
       </button>
     </div>`;
@@ -259,6 +260,24 @@ function openPulsoPanel() {
 
   body.innerHTML = html;
   overlay.classList.add('pulso-visible');
+
+  // T-202605-045: Event delegation para data-pulso-action (pls-blocker-btn y pls-plan-row)
+  if (!body._pulsoHandlerAttached) {
+    body._pulsoHandlerAttached = true;
+    body.addEventListener('click', (e) => {
+      const el = e.target.closest('[data-pulso-action]');
+      if (!el) return;
+      const action = el.dataset.pulsoAction;
+      if (action === 'goto-backlog') {
+        closePulsoPanel();
+        if (typeof switchTab === 'function') switchTab('backlog');
+      } else if (action === 'goto-plan') {
+        closePulsoPanel();
+        if (typeof switchTab === 'function') switchTab('backlog');
+        setTimeout(() => { if (typeof switchSubTab === 'function') switchSubTab('plan'); }, 80);
+      }
+    });
+  }
 
   const onKey = (e) => { if (e.key === 'Escape') { closePulsoPanel(); document.removeEventListener('keydown', onKey); } };
   document.addEventListener('keydown', onKey);
@@ -285,3 +304,22 @@ function closePulsoPanel() {
 window.openPulsoPanel  = window.openPulsoPanel  || openPulsoPanel;
 window.closePulsoPanel = window.closePulsoPanel || closePulsoPanel;
 window.renderPulsoDot  = window.renderPulsoDot  || renderPulsoDot;
+
+// T-202605-045: Migrar handlers inline de index.html → addEventListener
+// #gf-pulso, #pulso-overlay (guard event.target===this), .pulso-close-btn
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', _initPulsoHandlers, { once: true });
+} else {
+  _initPulsoHandlers();
+}
+
+function _initPulsoHandlers() {
+  const gfPulso = document.getElementById('gf-pulso');
+  if (gfPulso) gfPulso.addEventListener('click', openPulsoPanel);
+
+  const overlay = document.getElementById('pulso-overlay');
+  if (overlay) overlay.addEventListener('click', (e) => { if (e.target === overlay) closePulsoPanel(); });
+
+  const closeBtn = document.querySelector('.pulso-close-btn');
+  if (closeBtn) closeBtn.addEventListener('click', closePulsoPanel);
+}
