@@ -327,25 +327,6 @@ function toggleCollapseAll() {
   if (typeof render === 'function') render();
 }
 
-// Función canónica — ¿tiene el ítem sesión vinculada en los últimos N días?
-// Consulta trackerRefs + backlogRefs. Usa savedAt || createdAt como timestamp.
-// Fallback: si el ítem fue creado hace menos de N días sin ninguna mención, retorna true.
-function hasRecentSession(item, days) {
-  if (!item) return true;
-  const allSess = (typeof getAllSessions === 'function' ? getAllSessions() : []);
-  const cutoff  = Date.now() - days * 86400000;
-  let lastMentionTs = 0;
-  allSess.forEach(function(s) {
-    const refs = (s.trackerRefs || []).concat(s.backlogRefs || []);
-    if (refs.includes(item.code)) {
-      const ts = s.savedAt || s.createdAt || (s.date ? new Date(s.date).getTime() : 0);
-      if (ts > lastMentionTs) lastMentionTs = ts;
-    }
-  });
-  if (!lastMentionTs) {
-    const createdAt = item.createdAt || 0;
-    if (!createdAt) return false;
-    return (Date.now() - createdAt) / 86400000 <= days;
-  }
-  return lastMentionTs >= cutoff;
-}
+// hasRecentSession — fuente de verdad: locus-notifications.js
+// B-202605-012: definición eliminada de este archivo para resolver duplicación.
+// Call sites existentes consumen la función de locus-notifications.js (carga antes).
