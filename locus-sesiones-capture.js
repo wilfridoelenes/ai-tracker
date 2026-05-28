@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-capture.js
 // Responsabilidad: Quick Capture modal (stepper de 2 pasos) + Sesión interrumpida (T-055).
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
@@ -237,9 +237,20 @@ function confirmInterruptInline(id, triggerBtn) {
   const row = document.createElement('div');
   row.className = 'dot-confirm-row';
   row.innerHTML = `<span class="dot-confirm-label">⚡ ¿Interrumpir?</span>
-    <button class="dot-confirm-cancel" onclick="cancelInterruptInline('${id}')">No</button>
-    <button class="dot-confirm-ok" onclick="closeCardMenu('${id}');interruptSession('${id}')">Sí</button>`;
+    <button class="dot-confirm-cancel">No</button>
+    <button class="dot-confirm-ok">Sí</button>`;
   triggerBtn.after(row);
+  // Delegación en dropdown — evita onclick inline en innerHTML dinámico (T-202605-033 + B-202605-017).
+  dropdown.addEventListener('click', function _dotConfirmHandler(e) {
+    if (e.target.classList.contains('dot-confirm-cancel')) {
+      cancelInterruptInline(id);
+      dropdown.removeEventListener('click', _dotConfirmHandler);
+    } else if (e.target.classList.contains('dot-confirm-ok')) {
+      closeCardMenu(id);
+      interruptSession(id);
+      dropdown.removeEventListener('click', _dotConfirmHandler);
+    }
+  });
 }
 
 function cancelInterruptInline(id) {
@@ -247,7 +258,7 @@ function cancelInterruptInline(id) {
   if (!dropdown) return;
   const row = dropdown.querySelector('.dot-confirm-row');
   if (row) row.remove();
-  const btn = dropdown.querySelector('.card-dot-item[onclick*="confirmInterruptInline"]');
+  const btn = dropdown.querySelector('[data-action="interrupt"]');
   if (btn) btn.classList.remove('is-hidden');
 }
 

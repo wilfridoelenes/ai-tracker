@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-contracts.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
@@ -157,7 +157,7 @@ function renderContratos() {
     const riskCount = (m.functions || []).filter(_ctrIsRisk).length;
     const isActive  = _ctrActiveModule === m.file;
     const updDate   = m.updatedAt ? new Date(m.updatedAt).toLocaleDateString('es-MX', { day:'2-digit', month:'short' }) : '—';
-    return `<div class="ctr-module-row${isActive ? ' ctr-module-row--active' : ''}" onclick="openContratoDetail('${_esc(m.file)}')">
+    return `<div class="ctr-module-row${isActive ? ' ctr-module-row--active' : ''}" data-file="${_esc(m.file)}">
       <span class="ctr-module-name">${_esc(m.file)}</span>
       <span class="ctr-module-meta">
         <span class="ctr-fn-count" title="${fnCount} funciones">${fnCount} fn</span>
@@ -218,7 +218,7 @@ function _renderContratoDetail(mod, el) {
   el.innerHTML = `<div class="ctr-detail-wrap">
     <div class="ctr-detail-header">
       <span class="ctr-detail-title">${_esc(mod.file)}</span>
-      <button class="ctr-detail-close" onclick="_ctrActiveModule=null;renderContratos()" title="Cerrar detalle">✕</button>
+      <button class="ctr-detail-close" title="Cerrar detalle">✕</button>
     </div>
     <div class="ctr-fn-list-wrap">
       ${rows || `<div class="ctr-empty"><p class="ctr-empty-title">Sin funciones registradas</p></div>`}
@@ -404,5 +404,21 @@ document.addEventListener('DOMContentLoaded', () => {
   // ctr-search-clear — limpiar búsqueda
   const ctrSearchClear = document.getElementById('ctr-search-clear');
   if (ctrSearchClear) ctrSearchClear.addEventListener('click', clearContratosSearch);
+
+  // ── T-202605-033: Migración handlers dinámicos ──
+  // ctr-list-panel → delegación para .ctr-module-row (generados dinámicamente por renderContratos)
+  // data-file transporta el argumento de openContratoDetail sin onclick inline
+  const ctrListPanel = document.getElementById('ctr-list-panel');
+  if (ctrListPanel) ctrListPanel.addEventListener('click', (e) => {
+    const row = e.target.closest('.ctr-module-row');
+    if (row && row.dataset.file) openContratoDetail(row.dataset.file);
+  });
+
+  // ctr-detail-panel → delegación para .ctr-detail-close (generado dinámicamente por _renderContratoDetail)
+  const ctrDetailPanel = document.getElementById('ctr-detail-panel');
+  if (ctrDetailPanel) ctrDetailPanel.addEventListener('click', (e) => {
+    if (e.target.closest('.ctr-detail-close')) { _ctrActiveModule = null; renderContratos(); }
+  });
+  // ── END T-202605-033 locus-contracts ──
 
 });

@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-27 UTC-6
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1106,7 +1107,7 @@ function buildCard(ai) {
           <button class="sc-menu-btn" onclick="toggleCardMenu('${ai.id}',event)" title="Más opciones" aria-label="Más opciones"><i class="ti ti-dots"></i></button>
           <div class="card-dot-dropdown" id="dotmenu-${ai.id}">
             <button class="card-dot-item" onclick="closeCardMenu('${ai.id}');startRename('${ai.id}')"><span class="dot-item-icon">✎</span> Renombrar</button>
-            ${_isAvail ? `<button class="card-dot-item" onclick="confirmInterruptInline('${ai.id}',this)"><span class="dot-item-icon">⛓️‍💥</span> Interrumpir sesión</button>` : ''}
+            ${_isAvail ? `<button class="card-dot-item" data-action="interrupt" data-ai-id="${ai.id}"><span class="dot-item-icon">⛓️‍💥</span> Interrumpir sesión</button>` : ''}
             ${_isAvail ? `<button class="card-dot-item" onclick="closeCardMenu('${ai.id}');openBlindExhaustMode('${ai.id}')"><span class="dot-item-icon">🔴</span> Agotar</button>` : ''}
             ${!_isAvail ? `<button class="card-dot-item" onclick="closeCardMenu('${ai.id}');openCorrectHora('${ai.id}')"><span class="dot-item-icon">⏰</span> Corregir hora de desbloqueo</button>` : ''}
             <button class="card-dot-item${sessTotal < 2 ? ' disabled' : ''}" onclick="closeCardMenu('${ai.id}');${sessTotal >= 2 ? `downloadReport('${ai.id}')` : ''}" title="${sessTotal < 2 ? 'Necesitas al menos 2 sesiones' : 'Descargar reporte markdown'}"${sessTotal < 2 ? ' disabled' : ''}><span class="dot-item-icon">📥</span> Descargar reporte</button>
@@ -1331,3 +1332,20 @@ function _startSidebarTicker() {
 function _stopSidebarTicker() {
   if (_sidebarTickerInterval) { clearInterval(_sidebarTickerInterval); _sidebarTickerInterval = null; }
 }
+
+// ── B-202605-017: Delegación para [data-action="interrupt"] ──
+// Reemplaza onclick="confirmInterruptInline('${ai.id}',this)" en el template del dropdown.
+// Delegación en #tab-sesiones (contenedor estático raíz) — el dotmenu es dinámico.
+document.addEventListener('DOMContentLoaded', () => {
+  const tabSesiones = document.getElementById('tab-sesiones');
+  if (tabSesiones) {
+    tabSesiones.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-action="interrupt"]');
+      if (btn) {
+        const aiId = btn.dataset.aiId;
+        if (aiId) confirmInterruptInline(aiId, btn);
+      }
+    });
+  }
+});
+// ── END B-202605-017 ──
