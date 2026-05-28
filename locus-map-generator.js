@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -174,7 +174,7 @@ function _mgRenderDecisions(decisions) {
       <td class="mg-review-text">${esc(d.text)}</td>
       <td class="mg-review-meta">${esc(d.author || '—')}</td>
       <td class="mg-review-meta">${esc(d.date || '—')}</td>
-      <td class="mg-col-trasciende"><label class="mg-trasciende-toggle"><input type="checkbox" ${checked} onchange="_mgToggleDecisionTranscends('${d.id}', this.checked)"><span>Sí</span></label></td>
+      <td class="mg-col-trasciende"><label class="mg-trasciende-toggle"><input type="checkbox" ${checked} data-decision-id="${d.id}"><span>Sí</span></label></td>
     </tr>`;
   }).join('');
 }
@@ -203,7 +203,7 @@ function _mgRenderLearnings(sessions) {
       <td class="mg-review-text">${esc(txt)}</td>
       <td class="mg-review-meta">${esc(s.title ? s.title.slice(0, 40) : '—')}</td>
       <td class="mg-review-meta">${esc(dateStr)}</td>
-      <td class="mg-col-trasciende"><label class="mg-trasciende-toggle"><input type="checkbox" ${checked} onchange="_mgToggleLearningTranscends('${s.id}', this.checked)"><span>Sí</span></label></td>
+      <td class="mg-col-trasciende"><label class="mg-trasciende-toggle"><input type="checkbox" ${checked} data-learning-id="${s.id}"><span>Sí</span></label></td>
     </tr>`;
   }).join('');
 }
@@ -315,7 +315,7 @@ function _mgRenderFileList() {
         <span class="mg-file-tag ${typeClass}">${ext}</span>
         <span class="mg-file-name">${f.name}</span>
         <span class="mg-file-size">${kb} KB</span>
-        <button class="mg-file-remove" onclick="_mgRemoveFile(${i})" title="Eliminar">✕</button>
+        <button class="mg-file-remove" data-remove-idx="${i}" title="Eliminar">✕</button>
       </div>`;
   }).join('');
 }
@@ -670,7 +670,7 @@ function generateDocuments() {
         // Toast warning con acción de editar sprint
         const _campo = _missingName ? 'nombre' : 'goal';
         if (typeof showToastInline === 'function') {
-          showToastInline('warning', `El sprint no tiene ${_campo}. CONTEXT desmarcado. <a href="#" onclick="closeMapGenerator();setTimeout(()=>editSprintInline && editSprintInline('${_valSp.id}'),100);return false;">Editar sprint →</a>`);
+          showToastInline('warning', `El sprint no tiene ${_campo}. CONTEXT desmarcado. <button class="mg-toast-edit-sprint" data-mg-action="edit-sprint" data-sprint-id="${_valSp.id}">Editar sprint →</button>`);
         } else if (typeof showToast === 'function') {
           showToast('warning', `El sprint no tiene ${_campo}. CONTEXT desmarcado — edita el sprint y vuelve a marcar CONTEXT.`);
         }
@@ -1608,8 +1608,8 @@ if (!hasClosedSprint) {
           <p class="mg-warn-title">⚠ Sprint sin cerrar</p>
           <p class="mg-warn-body">${sprintLabel} El MAP reflejará el estado actual, no el estado final del sprint.</p>
           <div class="mg-warn-actions">
-            <button class="mg-warn-btn mg-warn-btn--confirm" onclick="_doConfirmGenerate()">Generar de todos modos</button>
-            <button class="mg-warn-btn mg-warn-btn--cancel" onclick="_mgResetPreview()">Cancelar</button>
+            <button class="mg-warn-btn mg-warn-btn--confirm" data-mg-action="confirm-generate">Generar de todos modos</button>
+            <button class="mg-warn-btn mg-warn-btn--cancel" data-mg-action="reset-preview">Cancelar</button>
           </div>
         </div>`;
       return;
@@ -1847,4 +1847,50 @@ document.addEventListener('DOMContentLoaded', function () {
   if (btnConfirm)  btnConfirm.addEventListener('click', confirmMapGenerator);
   if (tabDecisions)  tabDecisions.addEventListener('click', function () { _mgSwitchReviewTab('decisions', this); });
   if (tabLearnings)  tabLearnings.addEventListener('click', function () { _mgSwitchReviewTab('learnings', this); });
+
+  // T-202605-036: event delegation — migración de handlers on* en templates dinámicos
+
+  // AC1 — decisions tbody: onchange checkbox → _mgToggleDecisionTranscends
+  const decisionsTbody = document.getElementById('mg-decisions-tbody');
+  if (decisionsTbody) {
+    decisionsTbody.addEventListener('change', function (e) {
+      const input = e.target.closest('input[data-decision-id]');
+      if (input) _mgToggleDecisionTranscends(input.dataset.decisionId, input.checked);
+    });
+  }
+
+  // AC2 — learnings tbody: onchange checkbox → _mgToggleLearningTranscends
+  const learningsTbody = document.getElementById('mg-learnings-tbody');
+  if (learningsTbody) {
+    learningsTbody.addEventListener('change', function (e) {
+      const input = e.target.closest('input[data-learning-id]');
+      if (input) _mgToggleLearningTranscends(input.dataset.learningId, input.checked);
+    });
+  }
+
+  // AC3 — file list: onclick remove button → _mgRemoveFile
+  const fileList = document.getElementById('mg-file-list');
+  if (fileList) {
+    fileList.addEventListener('click', function (e) {
+      const btn = e.target.closest('button[data-remove-idx]');
+      if (btn) _mgRemoveFile(parseInt(btn.dataset.removeIdx, 10));
+    });
+  }
+
+  // AC4 — preview area: onclick confirm/cancel en warning de sprint sin cerrar
+  // Contenedor padre estable (existe desde carga inicial, no se destruye entre aperturas)
+  const mgOverlay = document.getElementById('mg-overlay');
+  if (mgOverlay) {
+    mgOverlay.addEventListener('click', function (e) {
+      const btn = e.target.closest('button[data-mg-action]');
+      if (!btn) return;
+      if (btn.dataset.mgAction === 'confirm-generate') _doConfirmGenerate();
+      if (btn.dataset.mgAction === 'reset-preview') _mgResetPreview();
+      if (btn.dataset.mgAction === 'edit-sprint') {
+        closeMapGenerator();
+        const spId = btn.dataset.sprintId;
+        setTimeout(() => { if (typeof editSprintInline === 'function') editSprintInline(spId); }, 100);
+      }
+    });
+  }
 });
