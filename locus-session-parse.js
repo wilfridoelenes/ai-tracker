@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -21,7 +22,8 @@ const TG_PARSER_CONFIG = {
     'done':'✅ DONE', '✅ done':'✅ DONE', 'listo':'✅ DONE',
     'en progreso':'🔄 En progreso', '🔄 en progreso':'🔄 En progreso',
     'in-progress':'🔄 En progreso', 'progreso':'🔄 En progreso',
-    'descartado':'🗑 Descartado', '🗑 descartado':'🗑 Descartado'
+    'descartado':'🗑 Descartado', '🗑 descartado':'🗑 Descartado',
+    'en-revision':'🔍 En revisión', 'en_revision':'🔍 En revisión', 'en revisión':'🔍 En revisión'
   }
 };
 
@@ -317,7 +319,7 @@ function parsePaste(id) {
       delete window[`_itemsJsonError_${id}`];
       const _rawItems = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
       const _validTypes    = ['P', 'T', 'R', 'B'];
-      const _validStatuses = ['done', 'pendiente', 'descartado'];
+      const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
       const ckptHeaderRole = ckpt.rol || '';
       let _itemError = null;
       for (let _i = 0; _i < _rawItems.length; _i++) {
@@ -342,7 +344,7 @@ function parsePaste(id) {
           break;
         }
         if (!_validStatuses.includes(_it.status)) {
-          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado`;
+          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision`;
           break;
         }
         tgItems.push({
@@ -401,7 +403,7 @@ function parsePaste(id) {
       } else {
         // Validar y construir tgItems desde el array JSON
         const _validTypes   = ['P', 'T', 'R', 'B'];
-        const _validStatuses = ['done', 'pendiente', 'descartado'];
+        const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
         const ckptHeaderRole = ckpt ? (ckpt.rol || '') : '';
         let _itemError = null;
         for (let _i = 0; _i < _parsedJSON.length; _i++) {
@@ -428,7 +430,7 @@ function parsePaste(id) {
           }
           // AC-7: status válido
           if (!_validStatuses.includes(_it.status)) {
-            _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado`;
+            _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision`;
             break;
           }
           // Construir objeto compatible con mergeBacklogFromTG (sin cambios en esa función)
@@ -922,7 +924,7 @@ function parsePasteStandalone() {
   }
 
   const _validTypes    = ['P', 'T', 'R', 'B'];
-  const _validStatuses = ['done', 'pendiente', 'descartado'];
+  const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
   const tgItems = [];
   const patchItems = []; // R-202605-062: patches separados de ítems normales
   let itemError = null;
@@ -947,7 +949,7 @@ function parsePasteStandalone() {
       break;
     }
     if (!_validStatuses.includes(it.status)) {
-      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado`;
+      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision`;
       break;
     }
     tgItems.push({
