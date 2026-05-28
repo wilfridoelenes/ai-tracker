@@ -1,5 +1,5 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-sprint.js
-// Versión: 1.2 | Última actualización: 2026-05-25 UTC-6
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 // Consume: locus-sprint-plan.js · locus-backlog-sprints.js · locus-checkpoint-stats.js · locus-storage.js · locus-backlog-render.js
 // Carga: después de locus-sprint-plan.js, antes de locus-api.js
@@ -671,6 +671,30 @@ function _spmUpdateButtons(sprint) {
 }
 
 // ── END R-202605-006 ──────────────────────────────────────────────────────
+
+// ── T-202605-046: Listeners — btn-close-sprint y spt-tab buttons ─────────────
+// Migrado desde index.html — reemplaza onclick inline en #btn-close-sprint y .spt-tab
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Botón cierre sprint
+  const btnClose = document.getElementById('btn-close-sprint');
+  if (btnClose) {
+    btnClose.addEventListener('click', function() {
+      const sp = typeof _getActiveSprint === 'function' ? _getActiveSprint() : null;
+      if (sp && typeof confirmCloseSprint === 'function') confirmCloseSprint(sp.id);
+    });
+  }
+
+  // Sub-tabs sprint: Ítems / Planificar / Plan
+  ['items', 'planificar', 'plan'].forEach(function(subtab) {
+    const btn = document.getElementById('spt-tab-' + subtab);
+    if (btn) {
+      btn.addEventListener('click', function() {
+        if (typeof _sptSwitch === 'function') _sptSwitch(subtab, btn);
+      });
+    }
+  });
+});
 
 // ── Exposición pública ──────────────────────────────────────────────────────
 

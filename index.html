@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.3 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6 -->
+<!-- [PP] v1.2.3 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -605,8 +605,7 @@
       <!-- Botón cierre sprint — T-202605-062 -->
       <button class="btn-close-sprint is-hidden"
               id="btn-close-sprint"
-              aria-label="Cerrar sprint"
-              onclick="if(typeof confirmCloseSprint==='function'){ const sp=typeof _getActiveSprint==='function'?_getActiveSprint():null; if(sp) confirmCloseSprint(sp.id); }">
+              aria-label="Cerrar sprint">
         Cerrar sprint
       </button>
     </div>
@@ -618,8 +617,7 @@
             id="spt-tab-items"
             aria-selected="true"
             aria-controls="sprint-panel-items"
-            data-subtab="items"
-            onclick="if(typeof _sptSwitch==='function') _sptSwitch('items', this)">
+            data-subtab="items">
       Ítems
     </button>
     <button class="spt-tab"
@@ -627,8 +625,7 @@
             id="spt-tab-planificar"
             aria-selected="false"
             aria-controls="sprint-panel-planificar"
-            data-subtab="planificar"
-            onclick="if(typeof _sptSwitch==='function') _sptSwitch('planificar', this)">
+            data-subtab="planificar">
       Planificar
     </button>
     <button class="spt-tab"
@@ -636,8 +633,7 @@
             id="spt-tab-plan"
             aria-selected="false"
             aria-controls="sprint-panel-plan"
-            data-subtab="plan"
-            onclick="if(typeof _sptSwitch==='function') _sptSwitch('plan', this)">
+            data-subtab="plan">
       Plan
     </button>
   </div>
@@ -775,8 +771,8 @@
     <div class="avatar-modal-title">Seleccionar avatar</div>
     <div class="avatar-grid" id="avatar-grid"></div>
     <div class="avatar-modal-actions">
-      <button class="btn-cancel" onclick="closeAvatarModal()">Cancelar</button>
-      <button class="btn-confirm" onclick="confirmAvatarModal()">Confirmar</button>
+      <button class="btn-cancel">Cancelar</button>
+      <button class="btn-confirm">Confirmar</button>
     </div>
   </div>
 </div>

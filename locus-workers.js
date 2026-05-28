@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm.
 //   Define AVATAR_LOGOS (SVGs de avatares) — movido desde locus-checkpoint-stats.js.
@@ -41,7 +42,7 @@ function openAvatarModal(aiId) {
   const grid = document.getElementById('avatar-grid');
   grid.innerHTML = Object.entries(AVATAR_LOGOS).map(([key, svg]) => `
     <div class="avatar-option ${key === selectedAvatarKey ? 'selected' : ''}"
-         onclick="selectAvatarOption('${key}')"
+         data-avatar-key="${key}"
          title="${key}">
       ${svg}
     </div>
@@ -53,7 +54,8 @@ function openAvatarModal(aiId) {
 function selectAvatarOption(key) {
   selectedAvatarKey = key;
   document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
-  event.target.closest('.avatar-option').classList.add('selected');
+  const target = document.querySelector(`.avatar-option[data-avatar-key="${key}"]`);
+  if (target) target.classList.add('selected');
 }
 
 function confirmAvatarModal() {
@@ -256,12 +258,18 @@ function showInlineConfirm(id, action, msg) {
   if (!card) return;
   const div = document.createElement('div');
   div.className = 'inline-confirm open'; div.id = 'iconf-' + id;
-  div.addEventListener('click', e => e.stopPropagation());
+  div.addEventListener('click', function(e) {
+    e.stopPropagation();
+    const btn = e.target.closest('button[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'confirm') executeConfirm(id, action);
+    else if (btn.dataset.action === 'cancel') closeInlineConfirm(id);
+  });
   div.innerHTML = `
     <div class="inline-confirm-msg">${esc(msg)}</div>
     <div class="inline-confirm-actions">
-      <button class="btn-danger" onclick="executeConfirm('${id}','${action}')">Confirmar</button>
-      <button onclick="closeInlineConfirm('${id}')">Cancelar</button>
+      <button class="btn-danger" data-action="confirm">Confirmar</button>
+      <button data-action="cancel">Cancelar</button>
     </div>`;
   card.appendChild(div);
 }
@@ -285,6 +293,30 @@ function executeConfirm(id, action) {
     saveImmediate(); if (typeof render === 'function') render();
   }
 }
+
+// ── T-202605-046: Listeners — avatar-modal + avatar-grid ─────────────────────
+// Migrado desde index.html — reemplaza onclick inline en .btn-cancel, .btn-confirm
+// y en .avatar-option (generado dinámicamente, delegado en #avatar-grid).
+
+document.addEventListener('DOMContentLoaded', function() {
+  // btn-cancel / btn-confirm del modal de avatar
+  const avatarModal = document.getElementById('avatar-modal');
+  if (avatarModal) {
+    const btnCancel  = avatarModal.querySelector('.btn-cancel');
+    const btnConfirm = avatarModal.querySelector('.btn-confirm');
+    if (btnCancel)  btnCancel.addEventListener('click',  closeAvatarModal);
+    if (btnConfirm) btnConfirm.addEventListener('click', confirmAvatarModal);
+  }
+
+  // Event delegation en #avatar-grid para .avatar-option generados dinámicamente
+  const grid = document.getElementById('avatar-grid');
+  if (grid) {
+    grid.addEventListener('click', function(e) {
+      const opt = e.target.closest('.avatar-option[data-avatar-key]');
+      if (opt) selectAvatarOption(opt.dataset.avatarKey);
+    });
+  }
+});
 
 // ── Window fallback para inline handlers de index.html ──
 // closeModal tiene callers inline en index.html (L648, L679) — fallback evita ReferenceError si locus-workers.js no cargó.
