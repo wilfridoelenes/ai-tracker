@@ -1,5 +1,12 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-contracts.js
-// Última actualización: 2026-05-19 UTC-6
+// Última actualización: 2026-05-28 UTC-6
+// Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
+// Extraído de ai-tracker-ai-notes.js
+// T-202605-030 Fase 1A: addEventListener para btn-export-contratos, sidebar-danger-btn-contratos,
+//              ctr-search-input (oninput), ctr-search-clear (onclick).
+//              Elimina inline onclick/oninput de index.html para estas funciones.
+
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
 // Extraído de ai-tracker-ai-notes.js
 
@@ -377,3 +384,25 @@ function confirmResetSessions() {
 
   showToast('success', 'Sesiones y sprints reseteados — Workers y Proyectos conservados');
 }
+
+// ── addEventListener — T-202605-030 ──
+// Reemplaza los inline onclick/oninput eliminados de index.html para funciones de este módulo.
+document.addEventListener('DOMContentLoaded', () => {
+
+  // btn-export-contratos — Exportar Contratos.md
+  const btnExportContratos = document.getElementById('btn-export-contratos');
+  if (btnExportContratos) btnExportContratos.addEventListener('click', exportContratosMd);
+
+  // sidebar-danger-btn-contratos — Resetear Contratos
+  const btnResetContratos = document.getElementById('sidebar-danger-btn-contratos');
+  if (btnResetContratos) btnResetContratos.addEventListener('click', resetContratosData);
+
+  // ctr-search-input — oninput búsqueda
+  const ctrSearchInput = document.getElementById('ctr-search-input');
+  if (ctrSearchInput) ctrSearchInput.addEventListener('input', onContratosSearch);
+
+  // ctr-search-clear — limpiar búsqueda
+  const ctrSearchClear = document.getElementById('ctr-search-clear');
+  if (ctrSearchClear) ctrSearchClear.addEventListener('click', clearContratosSearch);
+
+});

@@ -1,7 +1,11 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-modals.js
 // Módulo: sistema de modal genérico y focus management
 // Extraído de: ai-tracker-ai-notes.js (_gconfirmCb, _gconfirmOpen, _gconfirmClose, _gconfirmOk)
 //              ai-tracker-checkpoint.js (_modalTriggerMap, _saveModalTrigger, _restoreModalFocus, _focusFirstInteractive)
+// T-202605-030 Fase 1A: addEventListener para closeModal (add-modal, tag-modal) y
+//              handlers de gconfirm-overlay (overlay-click, cancelar, ok, enter/escape en input)
+//              Elimina inline onclick/onkeydown de index.html para estas funciones.
 // Carga antes de: ai-tracker-checkpoint.js, ai-tracker-ai-notes.js
 
 // ── Generic confirm/prompt modal (T-090) ──
@@ -71,11 +75,51 @@ function closeModal(id) {
   if (typeof _restoreModalFocus === 'function') _restoreModalFocus(id);
 }
 
-// ── Window fallback para inline handlers de index.html ──
-// Garantiza que _gconfirmClose, _gconfirmOk y closeModal existen en window aunque el módulo falle al cargar.
-// Los inline onclick en index.html (L822, L828, L831, L832) no pueden usar guard typeof —
-// este fallback evita ReferenceError si locus-modals.js no cargó.
-// closeModal tiene callers inline en index.html (L648, L679).
-window._gconfirmClose = window._gconfirmClose || function() {};
-window._gconfirmOk    = window._gconfirmOk    || function() {};
-window.closeModal     = window.closeModal     || function() {};
+// ── addEventListener — T-202605-030 ──
+// Reemplaza los inline onclick/onkeydown eliminados de index.html.
+// Usa DOMContentLoaded para garantizar que los elementos existen al adjuntar.
+document.addEventListener('DOMContentLoaded', () => {
+
+  // closeModal('add-modal') — botón Cancelar en #add-modal
+  const addModalCancel = document.querySelector('#add-modal .modal-actions button[type="button"]');
+  if (addModalCancel) addModalCancel.addEventListener('click', () => closeModal('add-modal'));
+
+  // closeModal('tag-modal') — botón Listo en #tag-modal
+  const tagModalClose = document.querySelector('#tag-modal .modal-actions button[type="button"]');
+  if (tagModalClose) tagModalClose.addEventListener('click', () => closeModal('tag-modal'));
+
+  // gconfirm-overlay — click en backdrop cierra modal
+  const gconfirmOverlay = document.getElementById('gconfirm-overlay');
+  if (gconfirmOverlay) {
+    gconfirmOverlay.addEventListener('click', (e) => {
+      if (e.target === gconfirmOverlay) _gconfirmClose();
+    });
+  }
+
+  // gconfirm-input — Enter confirma, Escape cancela
+  const gconfirmInput = document.getElementById('gconfirm-input');
+  if (gconfirmInput) {
+    gconfirmInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') _gconfirmOk();
+      if (e.key === 'Escape') _gconfirmClose();
+    });
+  }
+
+  // gconfirm-ok-btn — click confirma
+  const gconfirmOkBtn = document.getElementById('gconfirm-ok-btn');
+  if (gconfirmOkBtn) gconfirmOkBtn.addEventListener('click', _gconfirmOk);
+
+  // gconfirm cancelar — botón Cancelar en .gconfirm-actions
+  const gconfirmCancelBtn = document.querySelector('#gconfirm-overlay .gconfirm-actions button[type="button"]');
+  if (gconfirmCancelBtn) gconfirmCancelBtn.addEventListener('click', _gconfirmClose);
+
+});
+
+// ── Exponer en window.* para callers externos (otros módulos JS) ──
+window._gconfirmOpen  = _gconfirmOpen;
+window._gconfirmClose = _gconfirmClose;
+window._gconfirmOk    = _gconfirmOk;
+window.closeModal     = closeModal;
+window._saveModalTrigger     = _saveModalTrigger;
+window._restoreModalFocus    = _restoreModalFocus;
+window._focusFirstInteractive = _focusFirstInteractive;

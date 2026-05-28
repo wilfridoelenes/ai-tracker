@@ -163,7 +163,7 @@
 
       <!-- inputs ocultos para importación -->
       <input type="file" id="imp" accept=".json" class="is-hidden" onchange="importData(event)">
-      <input type="file" id="context-file-input" accept=".md,text/markdown,text/plain" class="is-hidden" onchange="_importContextMdFromFile(event)">
+      <input type="file" id="context-file-input" accept=".md,text/markdown,text/plain" class="is-hidden">
       <input type="file" id="backlog-file-input" accept=".md,text/markdown,text/plain" class="is-hidden" onchange="importBacklog(event)">    </div>
   </div>
 </header>
@@ -373,7 +373,7 @@
         <button class="tpl-action-btn is-hidden" id="btn-export-backlog-full" onclick="exportFullHistoryMd()" title="Descargar historial completo como .md">⬇ Historial completo</button>
         <button class="tpl-action-btn is-hidden" id="btn-import-htmlmap" onclick="document.getElementById('htmlmap-file-input').click()" title="Importar archivo AI-MAP_vX.Y.md">↑ Importar MAP</button>
         <button class="tpl-action-btn tpl-action-primary is-hidden" id="btn-generate-map" title="Generar documentos">⚙ Generar documentos</button>
-        <button class="tpl-action-btn is-hidden" id="btn-export-contratos" onclick="exportContratosMd()" title="Exportar Contratos.md">⬇ Exportar Contratos</button>
+        <button class="tpl-action-btn is-hidden" id="btn-export-contratos" title="Exportar Contratos.md">⬇ Exportar Contratos</button>
       </div>
     </div>
 
@@ -385,7 +385,7 @@
         <button class="btn-danger" id="sidebar-danger-btn-clean-project" onclick="openCleanProjectModal()" aria-disabled="false">🗑 Limpiar proyecto</button>
         <button class="btn-danger is-hidden" id="sidebar-danger-btn-context" onclick="resetContextData()">🗑 Resetear Context</button>
         <button class="btn-danger is-hidden" id="sidebar-danger-btn-htmlmap" onclick="resetHtmlMapData()">🗑 Resetear MAP</button>
-        <button class="btn-danger is-hidden" id="sidebar-danger-btn-contratos" onclick="resetContratosData()">🗑 Resetear Contratos</button>
+        <button class="btn-danger is-hidden" id="sidebar-danger-btn-contratos">🗑 Resetear Contratos</button>
       </div>
     </div>
 
@@ -430,7 +430,7 @@
         <input class="fbar-search-input" id="backlog-search-input" type="text" placeholder="🔍 Buscar…" oninput="onBacklogSearch()" autocomplete="off">
         <button class="fbar-search-clear" id="backlog-search-clear" onclick="clearBacklogSearch()" title="Limpiar búsqueda">✕</button>
       </div>
-      <button class="doc-log-btn" id="doc-log-btn-backlog" onclick="openDocLog('backlog')" title="Historial de acciones del Backlog">🕐<span class="doc-log-count"></span></button>
+      <button class="doc-log-btn" id="doc-log-btn-backlog" title="Historial de acciones del Backlog">🕐<span class="doc-log-count"></span></button>
     </div>
 
     <!-- Capa 2: Filter strip — status + sort + filtros secundarios -->
@@ -491,15 +491,15 @@
       </div>
       <div class="htmlmap-filter-bar is-hidden" id="htmlmap-filter-bar">
         <span class="toolbar-label">Tipo</span>
-        <button class="htmlmap-filter-btn active" id="hmfilter-all" onclick="setHtmlMapFilter('all')">Todos</button>
-        <button class="htmlmap-filter-btn" id="hmfilter-css" onclick="setHtmlMapFilter('css')">CSS</button>
-        <button class="htmlmap-filter-btn" id="hmfilter-html" onclick="setHtmlMapFilter('html')">HTML</button>
-        <button class="htmlmap-filter-btn" id="hmfilter-js" onclick="setHtmlMapFilter('js')">JS</button>
+        <button class="htmlmap-filter-btn active" id="hmfilter-all">Todos</button>
+        <button class="htmlmap-filter-btn" id="hmfilter-css">CSS</button>
+        <button class="htmlmap-filter-btn" id="hmfilter-html">HTML</button>
+        <button class="htmlmap-filter-btn" id="hmfilter-js">JS</button>
         <div class="flex-1"></div>
-        <button class="doc-log-btn" id="doc-log-btn-htmlmap" onclick="openDocLog('htmlmap')" title="Historial de acciones del MAP">🕐<span class="doc-log-count"></span></button>
+        <button class="doc-log-btn" id="doc-log-btn-htmlmap" title="Historial de acciones del MAP">🕐<span class="doc-log-count"></span></button>
       </div>
       <div id="htmlmap-content"></div>
-      <input type="file" id="htmlmap-file-input" accept=".md,text/markdown,text/plain" class="is-hidden" onchange="importHtmlMap(event)">
+      <input type="file" id="htmlmap-file-input" accept=".md,text/markdown,text/plain" class="is-hidden">
     </div><!-- /sspanel-htmlmap -->
 
     <!-- Sub-panel: Context -->
@@ -534,15 +534,15 @@
           <span class="htmlmap-meta-label is-hidden amber-color" id="cmeta-mod-label">✎ Modificado</span>
           <span class="htmlmap-meta-value is-hidden amber-color" id="cmeta-mod-val">—</span>
           <span class="flex-1"></span>
-          <button class="doc-log-btn" id="doc-log-btn-context" onclick="openDocLog('context')" title="Historial de acciones del Context">🕐<span class="doc-log-count"></span></button>
+          <button class="doc-log-btn" id="doc-log-btn-context" title="Historial de acciones del Context">🕐<span class="doc-log-count"></span></button>
           <button type="button" onclick="exportContextMd()" class="ctx-meta-action-btn" title="Descargar CONTEXT.md actualizado">⬇ Exportar</button>
-          <button type="button" onclick="contextShowImport()" class="ctx-meta-action-btn" title="Re-importar CONTEXT.md">↑ Re-importar</button>
+          <button type="button" class="ctx-meta-action-btn ctx-import-btn" title="Re-importar CONTEXT.md">↑ Re-importar</button>
         </div>
 
         <!-- Search bar -->
         <div class="ctx-search-bar">
-          <input type="text" id="ctx-search-input" class="ctx-search-input" placeholder="🔍 Buscar sección…" oninput="onContextSearch()" autocomplete="off">
-          <button class="ctx-search-clear" id="ctx-search-clear" onclick="clearContextSearch()" title="Limpiar">✕</button>
+          <input type="text" id="ctx-search-input" class="ctx-search-input" placeholder="🔍 Buscar sección…" autocomplete="off">
+          <button class="ctx-search-clear" id="ctx-search-clear" title="Limpiar">✕</button>
         </div>
 
         <!-- Secciones navegables -->
@@ -562,8 +562,8 @@
     <div class="session-subpanel ctr-layout" id="sspanel-contratos">
       <div class="ctr-toolbar">
         <div class="ctr-search">
-          <input class="ctr-search-input" id="ctr-search-input" type="text" placeholder="Buscar módulo o función..." oninput="onContratosSearch()" />
-          <button class="ctr-search-clear" id="ctr-search-clear" onclick="clearContratosSearch()" title="Limpiar búsqueda">✕</button>
+          <input class="ctr-search-input" id="ctr-search-input" type="text" placeholder="Buscar módulo o función..." />
+          <button class="ctr-search-clear" id="ctr-search-clear" title="Limpiar búsqueda">✕</button>
         </div>
       </div>
       <div class="ctr-body">
@@ -787,7 +787,7 @@
     <div class="modal-title">Nuevo Worker</div>
     <div class="field"><label>Nombre</label><input type="text" id="new-name" placeholder="Ej: Firefox Claude..." maxlength="40" onkeydown="if(event.key==='Enter')confirmAddAI()"></div>
     <div class="modal-actions">
-      <button type="button" onclick="closeModal('add-modal')">Cancelar</button>
+      <button type="button">Cancelar</button>
       <button class="btn-primary" onclick="confirmAddAI()">Agregar</button>
     </div>
   </div>
@@ -818,13 +818,13 @@
       <div class="color-picker-row" id="color-picker-row"></div>
     </div>
     <div class="modal-actions modal-actions-mt">
-      <button type="button" onclick="closeModal('tag-modal')">Listo</button>
+      <button type="button">Listo</button>
     </div>
   </div>
 </div>
 
 <!-- R-[pendiente-ID]: Quick Capture — modal unificado con stepper de 2 pasos -->
-<div class="quick-modal-overlay qc-overlay" id="qc-modal-overlay" role="dialog" aria-modal="true" aria-label="Quick Capture" onclick="closeQuickCapture(event)">
+<div class="quick-modal-overlay qc-overlay" id="qc-modal-overlay" role="dialog" aria-modal="true" aria-label="Quick Capture">
   <div class="quick-modal qc-modal" onclick="event.stopPropagation()">
 
     <!-- Header -->
@@ -836,7 +836,7 @@
           <span class="qc-dot qc-dot--active" id="qc-dot-1"></span>
           <span class="qc-dot" id="qc-dot-2"></span>
         </div>
-        <button class="qc-close-btn" onclick="closeQuickCapture()" aria-label="Cerrar modal">✕</button>
+        <button class="qc-close-btn" id="qc-close-btn" aria-label="Cerrar modal">✕</button>
       </div>
     </div>
 
@@ -849,7 +849,7 @@
       <div class="qc-worker-list" id="qc-worker-list">
         <!-- JS inyecta qc-worker-item por cada Worker registrado -->
         <!-- Ejemplo de ítem generado por JS:
-        <button class="qc-worker-item" data-worker-id="[id]" onclick="qcSelectWorker(this)">
+        <button class="qc-worker-item" data-worker-id="[id]">
           <span class="qc-worker-avatar" data-sigla="FS">FS</span>
           <span class="qc-worker-name">Rune</span>
           <span class="qc-worker-check is-hidden">✓</span>
@@ -870,14 +870,14 @@
       <!-- Campos del formulario — mantienen IDs existentes para compatibilidad con JS -->
       <div class="quick-field">
         <label>Título <span class="req-asterisk">*</span></label>
-        <input type="text" id="quick-title" placeholder="¿Qué se hizo en esta sesión?" onkeydown="quickTitleKey(event)">
+        <input type="text" id="quick-title" placeholder="¿Qué se hizo en esta sesión?">
       </div>
       <div class="quick-field">
         <label>Resumen <span class="optional-label">(opcional)</span></label>
         <textarea id="quick-summary" rows="3" placeholder="Detalles adicionales..."></textarea>
       </div>
       <div class="quick-hora-row">
-        <input class="quick-hora-input" id="quick-hora" type="text" maxlength="4" placeholder="--:--" oninput="quickParseHora()" onkeydown="if(event.key==='Enter')confirmQuickCapture()" title="Hora de reset (opcional)">
+        <input class="quick-hora-input" id="quick-hora" type="text" maxlength="4" placeholder="--:--" title="Hora de reset (opcional)">
         <div>
           <div class="quick-hora-hint" id="quick-hora-disp">hora de desbloqueo (opcional)</div>
         </div>
@@ -887,10 +887,10 @@
     <!-- Footer -->
     <div class="modal-actions qc-footer">
       <!-- JS alterna texto: "Cancelar" en paso 1 / "Atrás" en paso 2 -->
-      <button id="qc-back-btn" onclick="qcHandleBack()">Cancelar</button>
+      <button id="qc-back-btn">Cancelar</button>
       <!-- JS alterna texto: "Continuar" en paso 1 / "Guardar" en paso 2 -->
       <!-- JS habilita/deshabilita: disabled hasta selección en paso 1 -->
-      <button class="btn-primary" id="qc-next-btn" onclick="qcHandleNext()" disabled>Continuar</button>
+      <button class="btn-primary" id="qc-next-btn" disabled>Continuar</button>
     </div>
 
   </div>
@@ -959,17 +959,17 @@
 </div>
 
 <!-- T-090: Generic confirm/prompt modal -->
-<div class="gconfirm-overlay" id="gconfirm-overlay" onclick="if(event.target===this)_gconfirmClose()">
+<div class="gconfirm-overlay" id="gconfirm-overlay">
   <div class="gconfirm-modal">
     <div class="gconfirm-title" id="gconfirm-title"></div>
     <div class="gconfirm-msg" id="gconfirm-msg"></div>
     <div class="gconfirm-input-wrap is-hidden" id="gconfirm-input-wrap">
       <div class="gconfirm-input-label" id="gconfirm-input-label"></div>
-      <input class="gconfirm-input" id="gconfirm-input" type="text" placeholder="" onkeydown="if(event.key==='Enter')_gconfirmOk();if(event.key==='Escape')_gconfirmClose()">
+      <input class="gconfirm-input" id="gconfirm-input" type="text" placeholder="">
     </div>
     <div class="gconfirm-actions">
-      <button type="button" onclick="_gconfirmClose()">Cancelar</button>
-      <button class="btn-primary danger" id="gconfirm-ok-btn" onclick="_gconfirmOk()">Confirmar</button>
+      <button type="button">Cancelar</button>
+      <button class="btn-primary danger" id="gconfirm-ok-btn">Confirmar</button>
     </div>
   </div>
 </div>
@@ -1434,12 +1434,12 @@
 </div>
 
 <!-- ═══ DOC LOG DRAWER ═══ -->
-<div id="doc-log-overlay" onclick="closeDocLog()"></div>
+<div id="doc-log-overlay"></div>
 <div id="doc-log-drawer">
   <div class="doc-log-header">
     <span id="doc-log-title">Log</span>
     <button class="doc-log-clear-btn" onclick="clearDocLog()" title="Limpiar todo">🗑 Limpiar</button>
-    <button class="doc-log-close-btn" onclick="closeDocLog()" title="Cerrar">✕</button>
+    <button class="doc-log-close-btn" title="Cerrar">✕</button>
   </div>
   <div class="doc-log-body" id="doc-log-body"></div>
 </div>
@@ -1649,7 +1649,7 @@ function _validateResetBacklogInput(el) {
       <div class="mg-export-strip-btns">
         <button class="mg-export-btn" onclick="exportBacklogMd()">Backlog activo</button>
         <button class="mg-export-btn" onclick="exportFullHistoryMd()">Backlog archivado</button>
-        <button class="mg-export-btn" onclick="exportHtmlMapMd()">MAP</button>
+        <button class="mg-export-btn" id="mg-export-htmlmap-btn">MAP</button>
         <button class="mg-export-btn" onclick="exportContextMd()">Context</button>
       </div>
       <button class="mg-export-all-btn" onclick="_mgExportAllZip()">descargar todo ↓</button>

@@ -1,9 +1,12 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-map-viewer.js
-// Última actualización: 2026-05-20 UTC-6
+// Última actualización: 2026-05-28 UTC-6
 // Módulo: HTML MAP viewer — render, filtro, búsqueda y toggle de módulos
 // Extraído de ai-tracker-backlog.js (renderHtmlMap, setHtmlMapFilter, updateHtmlMapBanner,
 //   _hmOnSearch, _hmToggleModule, _hmSearch) y ai-tracker-ai-notes.js
 //   (HTML_MAP_SECTIONS, htmlMapFilter, loadHtmlMap) — AC-10, AC-12
+// T-202605-030 Fase 1A: addEventListener para los 4 botones hmfilter-* (all, css, html, js)
+//              Elimina inline onclick de index.html para setHtmlMapFilter.
 //
 // Dependencias externas consumidas sin mover:
 //   _skelShow / _skelHide   → ai-tracker-backlog.js
@@ -312,6 +315,19 @@ function renderHtmlMap() {
     <div class="mm-modules">${modulesHtml}${emptyMsg}</div>`;
   _skelHide(el);
 }
+
+// ── addEventListener — T-202605-030 ──
+// Los 4 botones hmfilter-* (all, css, html, js) son estáticos en index.html.
+// Se adjuntan aquí; eliminan sus onclick de index.html.
+// Nota: los pills generados dinámicamente dentro de renderHtmlMap() mantienen onclick
+// inline porque se regeneran en cada render y no existen en el DOM al cargar.
+document.addEventListener('DOMContentLoaded', () => {
+  const hmFilterMap = { 'hmfilter-all': 'all', 'hmfilter-css': 'css', 'hmfilter-html': 'html', 'hmfilter-js': 'js' };
+  Object.entries(hmFilterMap).forEach(([id, filter]) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.addEventListener('click', () => setHtmlMapFilter(filter));
+  });
+});
 
 // ── AC-11: exponer como window.* para inline handlers y callers en ai-notes ──
 window.renderHtmlMap       = renderHtmlMap;

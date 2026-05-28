@@ -1,5 +1,6 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-docs.js
-// Última actualización: 2026-05-20 UTC-6
+// Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
 // Extraído de ai-tracker-ai-notes.js
 
@@ -899,3 +900,53 @@ function renderContextInline(text) {
 
 
 // ── Analytics v2 — estilos inyectados ──
+
+// ── T-202605-031: Migración handlers on* → addEventListener ──
+// Todos los handlers de locus-docs eliminados de index.html — se bindean aquí via DOMContentLoaded.
+// Delegación en contenedores estáticos donde aplica.
+document.addEventListener('DOMContentLoaded', () => {
+  // context-file-input → _importContextMdFromFile
+  const ctxFileInput = document.getElementById('context-file-input');
+  if (ctxFileInput) ctxFileInput.addEventListener('change', _importContextMdFromFile);
+
+  // doc-log-btn-backlog → openDocLog('backlog')
+  const dlBacklog = document.getElementById('doc-log-btn-backlog');
+  if (dlBacklog) dlBacklog.addEventListener('click', () => openDocLog('backlog'));
+
+  // doc-log-btn-htmlmap → openDocLog('htmlmap')
+  const dlHtmlmap = document.getElementById('doc-log-btn-htmlmap');
+  if (dlHtmlmap) dlHtmlmap.addEventListener('click', () => openDocLog('htmlmap'));
+
+  // htmlmap-file-input → importHtmlMap
+  const hmFileInput = document.getElementById('htmlmap-file-input');
+  if (hmFileInput) hmFileInput.addEventListener('change', importHtmlMap);
+
+  // doc-log-btn-context → openDocLog('context')
+  const dlContext = document.getElementById('doc-log-btn-context');
+  if (dlContext) dlContext.addEventListener('click', () => openDocLog('context'));
+
+  // .ctx-import-btn → contextShowImport (sin ID — selector de clase)
+  const ctxImportBtn = document.querySelector('.ctx-import-btn');
+  if (ctxImportBtn) ctxImportBtn.addEventListener('click', contextShowImport);
+
+  // ctx-search-input → onContextSearch
+  const ctxSearch = document.getElementById('ctx-search-input');
+  if (ctxSearch) ctxSearch.addEventListener('input', onContextSearch);
+
+  // ctx-search-clear → clearContextSearch
+  const ctxClear = document.getElementById('ctx-search-clear');
+  if (ctxClear) ctxClear.addEventListener('click', clearContextSearch);
+
+  // doc-log-overlay → closeDocLog
+  const dlOverlay = document.getElementById('doc-log-overlay');
+  if (dlOverlay) dlOverlay.addEventListener('click', closeDocLog);
+
+  // .doc-log-close-btn → closeDocLog (sin ID — selector de clase)
+  const dlCloseBtn = document.querySelector('.doc-log-close-btn');
+  if (dlCloseBtn) dlCloseBtn.addEventListener('click', closeDocLog);
+
+  // mg-export-htmlmap-btn → exportHtmlMapMd
+  const mgExportHtmlmap = document.getElementById('mg-export-htmlmap-btn');
+  if (mgExportHtmlmap) mgExportHtmlmap.addEventListener('click', exportHtmlMapMd);
+});
+// ── END T-202605-031 locus-docs ──

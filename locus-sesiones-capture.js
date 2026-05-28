@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-capture.js
 // Responsabilidad: Quick Capture modal (stepper de 2 pasos) + Sesión interrumpida (T-055).
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
@@ -55,7 +56,7 @@ function _qcRenderWorkerList() {
   if (!list) return;
   const available = (state.ais || []).filter(a => !a.archived);
   list.innerHTML = available.map(ai => `
-    <button class="qc-worker-item" data-worker-id="${esc(ai.id)}" onclick="qcSelectWorker(this)">
+    <button class="qc-worker-item" data-worker-id="${esc(ai.id)}">
       <span class="qc-worker-avatar">${esc((ai.sigla || ai.name || '?').slice(0,2).toUpperCase())}</span>
       <span class="qc-worker-name">${esc(ai.name)}</span>
       <span class="qc-worker-check is-hidden">✓</span>
@@ -287,3 +288,43 @@ function dismissInterrupted(id) {
 // Solo limpiamos interrupted cuando el usuario hace click en "Continuar →"
 
 // T-056: Focus Zone — eliminada (deprecada)
+
+// ── T-202605-031: Migración handlers on* → addEventListener ──
+// Handlers de locus-sesiones-capture eliminados de index.html — se bindean aquí via DOMContentLoaded.
+// qc-worker-list usa delegación — los items son generados dinámicamente por _qcRenderWorkerList.
+document.addEventListener('DOMContentLoaded', () => {
+  // qc-modal-overlay → closeQuickCapture con event (click fuera del panel)
+  const qcOverlay = document.getElementById('qc-modal-overlay');
+  if (qcOverlay) qcOverlay.addEventListener('click', closeQuickCapture);
+
+  // qc-close-btn → closeQuickCapture sin event
+  const qcCloseBtn = document.getElementById('qc-close-btn');
+  if (qcCloseBtn) qcCloseBtn.addEventListener('click', () => closeQuickCapture());
+
+  // qc-worker-list → delegación para qc-worker-item (generados dinámicamente)
+  const qcWorkerList = document.getElementById('qc-worker-list');
+  if (qcWorkerList) qcWorkerList.addEventListener('click', (e) => {
+    const item = e.target.closest('.qc-worker-item');
+    if (item) qcSelectWorker(item);
+  });
+
+  // quick-title → quickTitleKey (onkeydown)
+  const quickTitle = document.getElementById('quick-title');
+  if (quickTitle) quickTitle.addEventListener('keydown', quickTitleKey);
+
+  // quick-hora → quickParseHora (oninput) + confirmQuickCapture en Enter (onkeydown)
+  const quickHora = document.getElementById('quick-hora');
+  if (quickHora) {
+    quickHora.addEventListener('input', quickParseHora);
+    quickHora.addEventListener('keydown', (e) => { if (e.key === 'Enter') confirmQuickCapture(); });
+  }
+
+  // qc-back-btn → qcHandleBack
+  const qcBackBtn = document.getElementById('qc-back-btn');
+  if (qcBackBtn) qcBackBtn.addEventListener('click', qcHandleBack);
+
+  // qc-next-btn → qcHandleNext
+  const qcNextBtn = document.getElementById('qc-next-btn');
+  if (qcNextBtn) qcNextBtn.addEventListener('click', qcHandleNext);
+});
+// ── END T-202605-031 locus-sesiones-capture ──
