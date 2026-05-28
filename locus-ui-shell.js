@@ -17,6 +17,10 @@ function esc(s) { return s ? (s + '').replace(/&/g, '&amp;').replace(/</g, '&lt;
 // Si locus-tracker.js aún no lo declara, se usa detección DOM como fallback.
 let _trackerTextareaDirty = false;
 
+// B-202605-019: array module-level para acciones de contratos en panel de búsqueda
+// Se repuebla en cada llamada a onSearch — delegation usa índice via data-contrato-idx
+let _surContratoActions = [];
+
 function switchTab(tab) {
   // R-202605-067: guard — confirm si hay texto sin guardar en textarea de AI Card
   const _dirtyTextarea = document.querySelector('.note-ta[data-dirty="true"], .ai-card textarea[data-dirty="true"]');
@@ -255,6 +259,8 @@ function onSearch() {
   const total = aiMatches.length + sessMatches.length + noteMatches.length;
   // R-202604-075: contratos en búsqueda global
   const contratoMatches = (typeof searchContratos === 'function') ? searchContratos(q) : [];
+  // B-202605-019: poblar array de acciones para event delegation (delegation usa índice)
+  _surContratoActions = contratoMatches.map(r => r.action);
   // B-243: búsqueda en contexto del proyecto activo — usa _ctxSections ya cargado
   const contextMatches = [];
   if (typeof _ctxSections !== 'undefined' && _ctxSections && _ctxSections.length) {
@@ -303,7 +309,7 @@ function onSearch() {
   let html = '<div class="sur-inner">';
 
   // B-202605-236: control de scope visible en cabecera del panel
-  html += `<div class="sur-scope-row"><button class="sur-scope-btn" id="search-scope-btn" onclick="_toggleSearchScope()">${scopeLabel}</button></div>`;
+  html += `<div class="sur-scope-row"><button class="sur-scope-btn" id="search-scope-btn" data-action="toggleSearchScope">${scopeLabel}</button></div>`;
 
   // Grupo IAs
   if (aiMatches.length) {
@@ -313,7 +319,7 @@ function onSearch() {
     aiMatches.forEach(ai => {
       const statusDot = ai.status === 'available' ? '\u{1F7E2}' : '\u{1F534}';
       const noteSnip = ai.notes ? `<span class="sur-meta">${hlText(ai.notes.slice(0, 80), q)}${ai.notes.length > 80 ? '\u2026' : ''}</span>` : '';
-      html += `<div class="sur-row" onclick="navigateToCard('${ai.id}')">
+      html += `<div class="sur-row" data-action="navigateToCard" data-ai-id="${ai.id}">
         <span class="sur-row-icon">${statusDot}</span>
         <span class="sur-row-title">${hlText(ai.name, q)}</span>
         ${noteSnip}
@@ -333,11 +339,11 @@ function onSearch() {
       const projName = proj ? _esc((proj.icon || '\u{1F4C1}') + ' ' + proj.name) : '';
       const dateLabel = (typeof relDate === 'function' ? relDate(sess.date, sess.savedAt || sess.createdAt) : '') || sess.dateShort || '';
       const summSnip = sess.summary ? `<span class="sur-meta">${hlText(sess.summary.slice(0, 80), q)}${sess.summary.length > 80 ? '\u2026' : ''}</span>` : '';
-      html += `<div class="sur-row" onclick="openDetail('${ai ? ai.id : ''}','${sess.id}')">
-        <span class="sur-row-icon">\u{1F4C4}</span>
+      html += `<div class="sur-row" data-action="openDetail" data-ai-id="${ai ? ai.id : ''}" data-sess-id="${sess.id}">
+        <span class="sur-row-icon">📄</span>
         <div class="sur-row-body">
           <span class="sur-row-title">${hlText(sess.title, q)}</span>
-          <span class="sur-row-sub">${aiName}${projName ? ' \u00B7 ' + projName : ''}${dateLabel ? ' \u00B7 ' + dateLabel : ''}</span>
+          <span class="sur-row-sub">${aiName}${projName ? ' · ' + projName : ''}${dateLabel ? ' · ' + dateLabel : ''}</span>
           ${summSnip}
         </div>
       </div>`;
@@ -356,7 +362,7 @@ function onSearch() {
     noteMatches.slice(0, 20).forEach(n => {
       const dateLabel = (typeof relDate === 'function' ? relDate(n.updatedAt || n.createdAt) : '') || '';
       const refBadge = n.itemRef ? `<span class="sur-badge">${hlText(n.itemRef, q)}</span>` : '';
-      html += `<div class="sur-row" onclick="openQuickNote('${n.id}')">
+      html += `<div class="sur-row" data-action="openQuickNote" data-note-id="${n.id}">
         <span class="sur-row-icon">🗒</span>
         <div class="sur-row-body">
           <span class="sur-row-title">${hlText(n.text.slice(0, 100), q)}${n.text.length > 100 ? '…' : ''}</span>
@@ -375,9 +381,9 @@ function onSearch() {
     html += `<div class="sur-group">
       <div class="sur-group-label">📐 Contratos (${contratoMatches.length})</div>
       <div class="sur-rows">`;
-    contratoMatches.forEach(r => {
+    contratoMatches.forEach((r, idx) => {
       const icon = r.type === 'contrato-modulo' ? '📄' : '⚙';
-      html += `<div class="sur-row" onclick="(${r.action.toString()})()">
+      html += `<div class="sur-row" data-action="contratoAction" data-contrato-idx="${idx}">
         <span class="sur-row-icon">${icon}</span>
         <div class="sur-row-body">
           <span class="sur-row-title">${hlText(r.label, q)}</span>
@@ -400,7 +406,7 @@ function onSearch() {
       const typeChar = (item.code || '').charAt(0);
       const icon = typeIcons[typeChar] || '📌';
       const statusLabel = item.status === 'done' ? ' · ✓' : '';
-      html += `<div class="sur-row" onclick="navigateToItem(${JSON.stringify(item.code)})">
+      html += `<div class="sur-row" data-action="navigateToItem" data-item-code="${_esc(item.code)}">
         <span class="sur-row-icon">${icon}</span>
         <div class="sur-row-body">
           <span class="sur-row-title">${hlText(item.title || item.desc || item.code, q)}</span>
@@ -421,7 +427,7 @@ function onSearch() {
       <div class="sur-rows">`;
     projMatches.forEach(p => {
       const sessCount = (p.sessions || []).length;
-      html += `<div class="sur-row" onclick="typeof selectProjectFilter==='function'&&selectProjectFilter(${JSON.stringify(p.id)})">
+      html += `<div class="sur-row" data-action="selectProjectFilter" data-proj-id="${_esc(p.id)}">
         <span class="sur-row-icon">${_esc(p.icon || '📁')}</span>
         <div class="sur-row-body">
           <span class="sur-row-title">${hlText(p.name, q)}</span>
@@ -449,18 +455,7 @@ function onSearch() {
         const n = l.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         return n.includes(q.normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
       }) || '';
-      html += `<div class="sur-row" onclick="
-        (function(){
-          if(typeof switchTab==='function') switchTab('backlog');
-          setTimeout(function(){
-            if(typeof switchSubTab==='function') switchSubTab('context');
-            setTimeout(function(){
-              if(typeof toggleContextSection==='function') toggleContextSection(${secIdx});
-              var el=document.getElementById('ctx-sec-${secIdx}');
-              if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
-            },120);
-          },80);
-        })()">
+      html += `<div class="sur-row" data-action="navigateToContext" data-ctx-idx="${secIdx}">
         <span class="sur-row-icon">📄</span>
         <div class="sur-row-body">
           <span class="sur-row-title">${hlText(sec.title, q)}</span>
@@ -935,8 +930,8 @@ function _shortcutsRender() {
         <div class="sc-row-right">
           ${isModified ? `<span class="sc-modified-badge">modificado</span>` : ''}
           <kbd class="sc-key-pill${isModified ? ' is-modified' : ''}">${displayKey}</kbd>
-          <button class="sc-edit-btn" onclick="_shortcutsStartEdit('${def.id}')" title="Cambiar atajo">✎</button>
-          ${isModified ? `<button class="sc-reset-one-btn" onclick="_shortcutsResetOne('${def.id}')" title="Restaurar default">↺</button>` : ''}
+          <button class="sc-edit-btn" data-action="shortcutsStartEdit" data-sc-id="${def.id}" title="Cambiar atajo">✎</button>
+          ${isModified ? `<button class="sc-reset-one-btn" data-action="shortcutsResetOne" data-sc-id="${def.id}" title="Restaurar default">↺</button>` : ''}
         </div>
       </div>`;
     }).join('');
@@ -964,15 +959,22 @@ function _shortcutsStartEdit(id) {
         value="${current}"
         placeholder="${def.chord ? 'ej: g+t' : 'ej: n'}"
         maxlength="5"
-        onkeydown="_shortcutsCaptureKey(event,'${id}',${def.chord})"
         autocomplete="off" autocorrect="off" spellcheck="false">
       <span class="sc-error" id="sc-err-${id}"></span>
-      <button class="sc-save-btn" onclick="_shortcutsSaveEdit('${id}',${def.chord})">Guardar</button>
-      <button class="sc-cancel-btn" onclick="_shortcutsRender()">Cancelar</button>
+      <button class="sc-save-btn" id="sc-save-${id}">Guardar</button>
+      <button class="sc-cancel-btn" id="sc-cancel-${id}">Cancelar</button>
     </div>`;
 
   const input = document.getElementById(`sc-input-${id}`);
-  if (input) { input.focus(); input.select(); }
+  if (input) {
+    input.addEventListener('keydown', function(e) { _shortcutsCaptureKey(e, id, def.chord); });
+    input.focus();
+    input.select();
+  }
+  const saveBtn = document.getElementById(`sc-save-${id}`);
+  if (saveBtn) saveBtn.addEventListener('click', function() { _shortcutsSaveEdit(id, def.chord); });
+  const cancelBtn = document.getElementById(`sc-cancel-${id}`);
+  if (cancelBtn) cancelBtn.addEventListener('click', function() { _shortcutsRender(); });
 }
 
 // Captura de tecla en modo edición
@@ -1102,3 +1104,145 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // ── END locus-ui-shell.js ──────────────────────────────────────────────────
+
+// ── B-202605-019: Listeners adicionales — scb-dismiss, arranque-btn-ver-todo, event delegation data-action ──
+document.addEventListener('DOMContentLoaded', function () {
+
+  // .scb-dismiss → _scbDismiss()
+  const scbDismissBtn = document.querySelector('.scb-dismiss');
+  if (scbDismissBtn) scbDismissBtn.addEventListener('click', function () { _scbDismiss(); });
+
+  // #arranque-btn-ver-todo → closeArranquePanel() + switchTab('proyectos')
+  const arranqueVerTodoBtn = document.getElementById('arranque-btn-ver-todo');
+  if (arranqueVerTodoBtn) arranqueVerTodoBtn.addEventListener('click', function () {
+    if (typeof closeArranquePanel === 'function') closeArranquePanel();
+    switchTab('proyectos');
+  });
+
+  // Event delegation — data-action en sur-row (panel búsqueda) y shortcuts-body
+  document.addEventListener('click', function (e) {
+    const row = e.target.closest('[data-action]');
+    if (!row) return;
+    const action = row.dataset.action;
+    if (action === 'navigateToCard') {
+      if (typeof navigateToCard === 'function') navigateToCard(row.dataset.aiId);
+    } else if (action === 'openDetail') {
+      if (typeof openDetail === 'function') openDetail(row.dataset.aiId, row.dataset.sessId);
+    } else if (action === 'openQuickNote') {
+      if (typeof openQuickNote === 'function') openQuickNote(row.dataset.noteId);
+    } else if (action === 'contratoAction') {
+      const idx = parseInt(row.dataset.contratoIdx, 10);
+      if (typeof _surContratoActions !== 'undefined' && _surContratoActions[idx]) {
+        _surContratoActions[idx]();
+      }
+    } else if (action === 'navigateToItem') {
+      if (typeof navigateToItem === 'function') navigateToItem(row.dataset.itemCode);
+    } else if (action === 'selectProjectFilter') {
+      if (typeof selectProjectFilter === 'function') selectProjectFilter(row.dataset.projId);
+    } else if (action === 'navigateToContext') {
+      const secIdx = parseInt(row.dataset.ctxIdx, 10);
+      if (typeof switchTab === 'function') switchTab('backlog');
+      setTimeout(function () {
+        if (typeof switchSubTab === 'function') switchSubTab('context');
+        setTimeout(function () {
+          if (typeof toggleContextSection === 'function') toggleContextSection(secIdx);
+          const el = document.getElementById('ctx-sec-' + secIdx);
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 120);
+      }, 80);
+    } else if (action === 'toggleSearchScope') {
+      _toggleSearchScope();
+    } else if (action === 'shortcutsStartEdit') {
+      _shortcutsStartEdit(row.dataset.scId);
+    } else if (action === 'shortcutsResetOne') {
+      _shortcutsResetOne(row.dataset.scId);
+    }
+  });
+
+});
+
+// ── B-202605-019: Listeners — header, breadcrumb, more-menu, inputs ─────────
+document.addEventListener('DOMContentLoaded', function () {
+
+  // breadcrumb-proj → openProjPanel()
+  const breadcrumbProj = document.getElementById('breadcrumb-proj');
+  if (breadcrumbProj) breadcrumbProj.addEventListener('click', function () {
+    if (typeof openProjPanel === 'function') openProjPanel();
+  });
+
+  // hdr-search-trigger → openCommandPalette()
+  const hdrSearchTrigger = document.getElementById('hdr-search-trigger');
+  if (hdrSearchTrigger) hdrSearchTrigger.addEventListener('click', function () {
+    if (typeof openCommandPalette === 'function') openCommandPalette();
+  });
+
+  // header-pend-btn → openPendPanel()
+  const headerPendBtn = document.getElementById('header-pend-btn');
+  if (headerPendBtn) headerPendBtn.addEventListener('click', function () {
+    if (typeof openPendPanel === 'function') openPendPanel();
+  });
+
+  // cmd-k-pill → openCommandPalette()
+  const cmdKPill = document.getElementById('cmd-k-pill');
+  if (cmdKPill) cmdKPill.addEventListener('click', function () {
+    if (typeof openCommandPalette === 'function') openCommandPalette();
+  });
+
+  // ckpt-reopen-btn → showCheckpointPanel(_lastCheckpointResult)
+  const ckptReopenBtn = document.getElementById('ckpt-reopen-btn');
+  if (ckptReopenBtn) ckptReopenBtn.addEventListener('click', function () {
+    if (typeof showCheckpointPanel === 'function') showCheckpointPanel(window._lastCheckpointResult);
+  });
+
+  // user-chip → handleSyncPillClick()
+  const userChip = document.getElementById('user-chip');
+  if (userChip) userChip.addEventListener('click', function () {
+    if (typeof handleSyncPillClick === 'function') handleSyncPillClick();
+  });
+
+  // more-menu-btn → toggleMoreMenu()
+  const moreMenuBtn = document.getElementById('more-menu-btn');
+  if (moreMenuBtn) moreMenuBtn.addEventListener('click', function () {
+    if (typeof toggleMoreMenu === 'function') toggleMoreMenu();
+  });
+
+  // more-menu items por ID
+  const mm = {
+    'mm-btn-backup':    function () { if (typeof exportData === 'function') exportData(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
+    'mm-btn-import':    function () { const el = document.getElementById('imp'); if (el) el.click(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
+    'mm-btn-report':    function () { if (typeof downloadGlobalReport === 'function') downloadGlobalReport(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
+    'mm-btn-changelog': function () { if (typeof openChangelog === 'function') openChangelog(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
+    'mm-btn-notif':     function () { if (typeof openNotifConfig === 'function') openNotifConfig(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
+    'mm-btn-sync':      function () { if (typeof handleSyncPillClick === 'function') handleSyncPillClick(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
+    'mm-btn-migrate':   function () { if (typeof openMigrateFirebaseModal === 'function') openMigrateFirebaseModal(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
+    'mm-btn-clean':     function () { if (typeof openCleanProjectModal === 'function') openCleanProjectModal(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
+  };
+  Object.keys(mm).forEach(function (id) {
+    const btn = document.getElementById(id);
+    if (btn) btn.addEventListener('click', mm[id]);
+  });
+
+  // tmpl-trigger radios → toggleTemplateTrigger()
+  const tmplSession = document.getElementById('tmpl-trigger-session');
+  if (tmplSession) tmplSession.addEventListener('change', function () {
+    if (typeof toggleTemplateTrigger === 'function') toggleTemplateTrigger('session');
+  });
+  const tmplSprint = document.getElementById('tmpl-trigger-sprint');
+  if (tmplSprint) tmplSprint.addEventListener('change', function () {
+    if (typeof toggleTemplateTrigger === 'function') toggleTemplateTrigger('sprint');
+  });
+
+  // imp file input → importData()
+  const impInput = document.getElementById('imp');
+  if (impInput) impInput.addEventListener('change', function (e) {
+    if (typeof importData === 'function') importData(e);
+  });
+
+  // backlog-file-input → importBacklog()
+  const backlogFileInput = document.getElementById('backlog-file-input');
+  if (backlogFileInput) backlogFileInput.addEventListener('change', function (e) {
+    if (typeof importBacklog === 'function') importBacklog(e);
+  });
+
+});
+// ── END B-202605-019 ─────────────────────────────────────────────────────────

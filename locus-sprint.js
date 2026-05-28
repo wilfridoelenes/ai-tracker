@@ -740,3 +740,57 @@ window._spmPickerSelect         = _spmPickerSelect;    // R-202605-008
 window._spmPickerKey            = _spmPickerKey;       // R-202605-008
 window._spmPickerClose          = _spmPickerClose;     // R-202605-008
 window._spmUpdateButtons        = _spmUpdateButtons;
+
+// ── B-202605-019: Listeners — sprint management panel (_spm*) ───────────────
+document.addEventListener('DOMContentLoaded', function () {
+
+  // sprint-mgmt-toggle → _spmToggle()
+  const spmToggle = document.getElementById('sprint-mgmt-toggle');
+  if (spmToggle) spmToggle.addEventListener('click', function () {
+    if (typeof _spmToggle === 'function') _spmToggle();
+  });
+
+  // spm-btn-registrar → _spmRegistrar()
+  const spmRegistrar = document.getElementById('spm-btn-registrar');
+  if (spmRegistrar) spmRegistrar.addEventListener('click', function () {
+    if (typeof _spmRegistrar === 'function') _spmRegistrar();
+  });
+
+  // spm-btn-reactivar → _spmReactivar()
+  const spmReactivar = document.getElementById('spm-btn-reactivar');
+  if (spmReactivar) spmReactivar.addEventListener('click', function () {
+    if (typeof _spmReactivar === 'function') _spmReactivar();
+  });
+
+  // spm-btn-retro → _spmRetro()
+  const spmRetro = document.getElementById('spm-btn-retro');
+  if (spmRetro) spmRetro.addEventListener('click', function () {
+    if (typeof _spmRetro === 'function') _spmRetro();
+  });
+
+  // spm-btn-editar → _spmEditar()
+  const spmEditar = document.getElementById('spm-btn-editar');
+  if (spmEditar) spmEditar.addEventListener('click', function () {
+    if (typeof _spmEditar === 'function') _spmEditar();
+  });
+
+  // spm-new-sprint-btn → openNewSprintInline()
+  const spmNewSprint = document.getElementById('spm-new-sprint-btn');
+  if (spmNewSprint) spmNewSprint.addEventListener('click', function () {
+    if (typeof openNewSprintInline === 'function') openNewSprintInline();
+  });
+
+  // spm-empty-btn-registrar → _spmRegistrar()
+  const spmEmptyRegistrar = document.getElementById('spm-empty-btn-registrar');
+  if (spmEmptyRegistrar) spmEmptyRegistrar.addEventListener('click', function () {
+    if (typeof _spmRegistrar === 'function') _spmRegistrar();
+  });
+
+  // spm-empty-btn-activar → _spmActivarExistente()
+  const spmEmptyActivar = document.getElementById('spm-empty-btn-activar');
+  if (spmEmptyActivar) spmEmptyActivar.addEventListener('click', function () {
+    if (typeof _spmActivarExistente === 'function') _spmActivarExistente();
+  });
+
+});
+// ── END B-202605-019 ─────────────────────────────────────────────────────────

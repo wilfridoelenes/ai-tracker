@@ -1351,3 +1351,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 // ── END B-202605-017 ──
+
+// ── B-202605-019: Listeners — tracker-col-tabs ───────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  document.querySelectorAll('.tracker-col-tab').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const col = btn.dataset.col;
+      if (col && typeof _trackerSwitchCol === 'function') _trackerSwitchCol(col);
+    });
+  });
+});
+// ── END B-202605-019 ─────────────────────────────────────────────────────────

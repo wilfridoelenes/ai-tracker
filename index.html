@@ -50,7 +50,7 @@
     <div class="logo cursor-pointer" id="logo-btn" title="Ir a Sesiones">
       <img id="pepe-logo" src="/img/logo.png" alt="Pepe" class="logo-img">
       <div class="logo-project-label" id="header-project-label">
-        <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" onclick="if(typeof openProjPanel==='function')openProjPanel()">Locus</button>
+        <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" >Locus</button>
         <span class="breadcrumb-sep breadcrumb-sep--first is-hidden" aria-hidden="true">›</span>
         <button class="breadcrumb-seg breadcrumb-seg--sprint is-hidden" id="breadcrumb-sprint" title="Sprint activo"></button>
         <span class="breadcrumb-sep breadcrumb-sep--sprint is-hidden" aria-hidden="true">›</span>
@@ -69,7 +69,6 @@
 
     <div class="header-search" id="header-search-wrap">
       <button class="hdr-search-trigger" id="hdr-search-trigger"
-              onclick="if(typeof openCommandPalette==='function')openCommandPalette()"
               aria-label="Abrir búsqueda (⌘K)"
               title="Buscar (⌘K)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
@@ -83,7 +82,6 @@
 
       <!-- [pendiente-ID]: Panel pendientes — trigger header -->
       <button class="header-pend-btn is-hidden" id="header-pend-btn"
-              onclick="openPendPanel()"
               aria-label="Ver pendientes">
         <span class="header-pend-btn__icon" aria-hidden="true">⏳</span>
         <span class="header-pend-btn__count" id="header-pend-count" aria-hidden="true"></span>
@@ -93,11 +91,11 @@
       <button class="cmd-k-pill" id="cmd-k-pill"
               aria-label="Abrir Command Palette (⌘K)"
               title="Command Palette (⌘K)"
-              onclick="if(typeof openCommandPalette==='function')openCommandPalette()">
+>
         ⌘K
       </button>
 
-      <button class="header-worker-chip is-hidden" id="header-active-worker" onclick="_hwcClick()" title="Worker en sesión">
+      <button class="header-worker-chip is-hidden" id="header-active-worker" title="Worker en sesión">
         <span class="hwc-dot session-timer-dot--active"></span>
         <span class="hwc-name"></span>
         <span class="hwc-time"></span>
@@ -114,34 +112,34 @@
       </button>
 
 
-      <button class="btn-ghost btn-ckpt-reopen is-hidden" id="ckpt-reopen-btn" onclick="if(typeof showCheckpointPanel==='function')showCheckpointPanel(_lastCheckpointResult)" title="Ver último CHECKPOINT">📋</button>
+      <button class="btn-ghost btn-ckpt-reopen is-hidden" id="ckpt-reopen-btn" title="Ver último CHECKPOINT">📋</button>
 
-      <div class="user-chip is-hidden" id="user-chip" onclick="handleSyncPillClick()" title="Sesión activa · click para cerrar sesión">
+      <div class="user-chip is-hidden" id="user-chip" title="Sesión activa · click para cerrar sesión">
         <span class="user-chip-dot" id="user-chip-dot">●</span>
         <span class="user-chip-name" id="user-chip-name"></span>
       </div>
 
       <!-- Menú ⋯ — R-202605-012: grupos semánticos con separadores — Datos · Navegación · Configuración · Zona peligrosa -->
       <div class="more-menu-wrap" id="more-menu-wrap">
-        <button class="btn-ghost btn-icon" onclick="toggleMoreMenu()" title="Más opciones" id="more-menu-btn">⋯</button>
+        <button class="btn-ghost btn-icon" title="Más opciones" id="more-menu-btn">⋯</button>
         <div class="more-menu is-hidden" id="more-menu">
           <!-- Grupo: Datos -->
           <div class="mm-group-label">Datos</div>
-          <button type="button" onclick="exportData();toggleMoreMenu()"><span class="mm-icon">⬇</span> Backup</button>
-          <button type="button" onclick="document.getElementById('imp').click();toggleMoreMenu()"><span class="mm-icon">⬆</span> Importar backup</button>
-          <button type="button" onclick="downloadGlobalReport();toggleMoreMenu()"><span class="mm-icon">📄</span> Reporte global</button>
-          <button id="more-menu-autodl" onclick="toggleAutoDownload()"><span class="mm-icon">⬇</span> Auto-descargar templates: ON</button>
+          <button type="button" id="mm-btn-backup"><span class="mm-icon">⬇</span> Backup</button>
+          <button type="button" id="mm-btn-import"><span class="mm-icon">⬆</span> Importar backup</button>
+          <button type="button" id="mm-btn-report"><span class="mm-icon">📄</span> Reporte global</button>
+          <button id="more-menu-autodl"><span class="mm-icon">⬇</span> Auto-descargar templates: ON</button>
           <div id="tmpl-trigger-wrap" class="tmpl-trigger-wrap">
             <button class="tmpl-trigger-label tmpl-trigger-toggle is-collapsed" onclick="toggleTmplTriggerPanel(this)" type="button">
               <span class="mm-icon">⬇</span> Descargar templates <span class="tmpl-trigger-arrow">▸</span>
             </button>
             <div id="tmpl-trigger-body" class="tmpl-trigger-body is-hidden">
               <label class="tmpl-trigger-option">
-                <input type="radio" id="tmpl-trigger-session" name="tmpl-trigger" value="session" onchange="toggleTemplateTrigger('session')">
+                <input type="radio" id="tmpl-trigger-session" name="tmpl-trigger" value="session">
                 Al guardar sesión
               </label>
               <label class="tmpl-trigger-option">
-                <input type="radio" id="tmpl-trigger-sprint" name="tmpl-trigger" value="sprint" onchange="toggleTemplateTrigger('sprint')">
+                <input type="radio" id="tmpl-trigger-sprint" name="tmpl-trigger" value="sprint">
                 Al cerrar sprint
               </label>
             </div>
@@ -150,21 +148,21 @@
           <hr class="mm-separator">
           <div class="mm-group-label">Configuración</div>
           <button type="button"><span class="mm-icon">⌨</span> Atajos de teclado</button>
-          <button type="button" onclick="openChangelog();toggleMoreMenu()"><span class="mm-icon">📋</span> Changelog</button>
-          <button type="button" onclick="openNotifConfig();toggleMoreMenu()"><span class="mm-icon">🔔</span> Configurar notificaciones</button>
-          <button type="button" onclick="handleSyncPillClick();toggleMoreMenu()"><span class="mm-icon sync-status-dot" id="sync-status-dot">●</span> <span id="sync-status-label">Sync: local</span></button>
-          <button id="btn-migrate-fb-sb" onclick="openMigrateFirebaseModal();toggleMoreMenu()" class="is-hidden"><span class="mm-icon">🔄</span> Migrar Firebase → Supabase</button>
+          <button type="button" id="mm-btn-changelog"><span class="mm-icon">📋</span> Changelog</button>
+          <button type="button" id="mm-btn-notif"><span class="mm-icon">🔔</span> Configurar notificaciones</button>
+          <button type="button" id="mm-btn-sync"><span class="mm-icon sync-status-dot" id="sync-status-dot">●</span> <span id="sync-status-label">Sync: local</span></button>
+          <button id="btn-migrate-fb-sb" id="mm-btn-migrate" class="is-hidden"><span class="mm-icon">🔄</span> Migrar Firebase → Supabase</button>
           <!-- Grupo: Zona peligrosa -->
           <hr class="mm-separator">
           <div class="mm-group-label mm-group-label--danger">Zona peligrosa</div>
-          <button type="button" onclick="openCleanProjectModal();toggleMoreMenu()" class="mm-danger"><span class="mm-icon">🗑</span> Limpiar proyecto</button>
+          <button type="button" id="mm-btn-clean" class="mm-danger"><span class="mm-icon">🗑</span> Limpiar proyecto</button>
         </div>
       </div>
 
       <!-- inputs ocultos para importación -->
-      <input type="file" id="imp" accept=".json" class="is-hidden" onchange="importData(event)">
+      <input type="file" id="imp" accept=".json" class="is-hidden">
       <input type="file" id="context-file-input" accept=".md,text/markdown,text/plain" class="is-hidden">
-      <input type="file" id="backlog-file-input" accept=".md,text/markdown,text/plain" class="is-hidden" onchange="importBacklog(event)">    </div>
+      <input type="file" id="backlog-file-input" accept=".md,text/markdown,text/plain" class="is-hidden">    </div>
   </div>
 </header>
 
@@ -178,7 +176,7 @@
 <div id="global-radar-sidebar">
   <div class="radar-sidebar-header">
     <div class="rsb-header-row1">
-      <button class="rsb-pin-btn" id="rsb-pin-btn" onclick="rsbTogglePin()" title="Fijar sidebar">
+      <button class="rsb-pin-btn" id="rsb-pin-btn" title="Fijar sidebar">
         <!-- Estado: no pinned — icono outline -->
         <svg class="rsb-pin-icon rsb-pin-icon--off" width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.5 1.5L11.5 4.5L7.5 8.5L6.5 11.5L4.5 9.5L1.5 12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M4.5 8.5L1.5 5.5L5.5 4.5L8.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
         <!-- Estado: pinned — icono filled -->
@@ -186,8 +184,8 @@
       </button>
       <span class="radar-sidebar-title">Workers</span>
       <div class="rsb-header-actions">
-        <button class="rsb-add-ia-btn" onclick="openAddAI()" title="Nuevo Worker">+ Worker</button>
-        <button class="radar-sidebar-collapse-btn" id="radar-sidebar-toggle" onclick="toggleRadarSidebar()" title="Colapsar">&#x2039;</button>
+        <button class="rsb-add-ia-btn" title="Nuevo Worker">+ Worker</button>
+        <button class="radar-sidebar-collapse-btn" id="radar-sidebar-toggle" title="Colapsar">&#x2039;</button>
       </div>
     </div>
     <div class="rsb-header-row2" id="rsb-hdr-counts"></div>
@@ -206,12 +204,11 @@
       type="text"
       placeholder="Buscar Worker…"
       autocomplete="off"
-      oninput="rsbFilterAIs(this.value)"
     />
-    <button class="rsb-search-clear" id="rsb-search-clear" onclick="rsbClearSearch()" aria-label="Limpiar búsqueda">×</button>
+    <button class="rsb-search-clear" id="rsb-search-clear" aria-label="Limpiar búsqueda">×</button>
   </div>
   <!-- END RADAR SEARCH -->
-  <div class="radar-sidebar-strip" onclick="toggleRadarSidebar()" title="Expandir sidebar" role="button" aria-label="Expandir sidebar"></div>
+  <div class="radar-sidebar-strip" title="Expandir sidebar" role="button" aria-label="Expandir sidebar"></div>
   <div class="radar-sidebar-cards" id="radar-sidebar-cards"></div>
 </div>
 
@@ -226,12 +223,12 @@
       <div class="scb-expanded-subtitle">Completa estos pasos para empezar a registrar tus sesiones.</div>
     </div>
     <div class="scb-steps" id="scb-steps">
-      <div class="scb-step" id="scb-step-worker"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Worker</span><button class="scb-step-action" onclick="_scbStepAction('worker')">Hacer ahora →</button></div>
-      <div class="scb-step" id="scb-step-project"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Proyecto</span><button class="scb-step-action" onclick="_scbStepAction('project')">Hacer ahora →</button></div>
-      <div class="scb-step" id="scb-step-item"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Ítem</span><button class="scb-step-action" onclick="_scbStepAction('item')">Hacer ahora →</button></div>
-      <div class="scb-step" id="scb-step-session"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Sesión</span><button class="scb-step-action" onclick="_scbStepAction('session')">Hacer ahora →</button></div>
+      <div class="scb-step" id="scb-step-worker"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Worker</span><button class="scb-step-action" data-step="worker">Hacer ahora →</button></div>
+      <div class="scb-step" id="scb-step-project"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Proyecto</span><button class="scb-step-action" data-step="project">Hacer ahora →</button></div>
+      <div class="scb-step" id="scb-step-item"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Ítem</span><button class="scb-step-action" data-step="item">Hacer ahora →</button></div>
+      <div class="scb-step" id="scb-step-session"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Sesión</span><button class="scb-step-action" data-step="session">Hacer ahora →</button></div>
     </div>
-    <button class="scb-dismiss" onclick="_scbDismiss()" aria-label="Cerrar checklist de configuración">✕</button>
+    <button class="scb-dismiss" aria-label="Cerrar checklist de configuración">✕</button>
   </div>
 
   <div class="tracker-view-header" id="tracker-view-header">
@@ -245,8 +242,8 @@
   </div>
 
   <div class="tracker-col-tabs" id="tracker-col-tabs">
-    <button class="tracker-col-tab active" data-col="card" onclick="_trackerSwitchCol('card')">Sesión</button>
-    <button class="tracker-col-tab" data-col="hist" onclick="_trackerSwitchCol('hist')">Sesiones</button>
+    <button class="tracker-col-tab active" data-col="card">Sesión</button>
+    <button class="tracker-col-tab" data-col="hist">Sesiones</button>
 
   </div>
 
@@ -647,29 +644,28 @@
     <button class="spm-toggle"
             id="sprint-mgmt-toggle"
             aria-expanded="false"
-            aria-controls="sprint-mgmt-body"
-            onclick="if(typeof _spmToggle==='function') _spmToggle()">
+            aria-controls="sprint-mgmt-body">
       ⚙ Gestión del sprint <span class="spm-toggle-arrow" id="spm-toggle-arrow">▸</span>
     </button>
     <div class="spm-body is-hidden" id="sprint-mgmt-body">
       <!-- AC-2: Registrar y activar — visible cuando sprint no existe en catálogo -->
       <button class="spm-action is-hidden" id="spm-btn-registrar"
-              onclick="if(typeof _spmRegistrar==='function') _spmRegistrar()">
+>
         Registrar y activar
       </button>
       <!-- AC-3: Reactivar — visible cuando sprint está cerrado -->
       <button class="spm-action is-hidden" id="spm-btn-reactivar"
-              onclick="if(typeof _spmReactivar==='function') _spmReactivar()">
+>
         Reactivar sprint
       </button>
       <!-- AC-4: Retro — visible cuando sprint cerrado con retroDoc -->
       <button class="spm-action is-hidden" id="spm-btn-retro"
-              onclick="if(typeof _spmRetro==='function') _spmRetro()">
+>
         Ver retrospectiva
       </button>
       <!-- AC-5: Editar nombre — visible cuando hay sprint activo -->
       <button class="spm-action is-hidden" id="spm-btn-editar"
-              onclick="if(typeof _spmEditar==='function') _spmEditar()">
+>
         Editar nombre
       </button>
       <!-- Área de edición inline — AC-5 -->
@@ -742,15 +738,15 @@
     <div class="empty-title">No hay sprint activo</div>
     <div class="empty-hint">Crea un sprint para comenzar a planificar y ejecutar ítems del backlog.</div>
     <div class="es-cta-row">
-      <button class="empty-btn" onclick="if(typeof openNewSprintInline==='function') openNewSprintInline()">+ Nuevo sprint</button>
+      <button class="empty-btn" id="spm-new-sprint-btn">+ Nuevo sprint</button>
       <!-- AC-6: Registrar y activar — visible si hay ítems con sprint sin registrar -->
       <button class="empty-btn is-hidden" id="spm-empty-btn-registrar"
-              onclick="if(typeof _spmRegistrar==='function') _spmRegistrar()">
+>
         Registrar y activar
       </button>
       <!-- AC-6: Activar sprint existente — visible si hay sprints registrados no activos -->
       <button class="empty-btn is-hidden" id="spm-empty-btn-activar"
-              onclick="if(typeof _spmActivarExistente==='function') _spmActivarExistente()">
+>
         Activar sprint existente
       </button>
     </div>
@@ -1764,7 +1760,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     <div class="arranque-body" id="arranque-body"></div>
     <div class="arranque-footer">
-      <button class="arranque-btn-secondary" onclick="closeArranquePanel(); if(typeof switchTab==='function') switchTab('proyectos');">Ver todo</button>
+      <button class="arranque-btn-secondary" id="arranque-btn-ver-todo">Ver todo</button>
       <button class="btn-primary arranque-btn-primary" id="arranque-cta-btn">Arrancar →</button>
     </div>
   </div>

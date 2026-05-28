@@ -48,14 +48,14 @@ function _renderNotifSection(allNotifs, readSet) {
         '</div>' +
         '<div class="rsb-notif-actions">' +
           '<span class="rsb-notif-ts">' + _fmtNotifTs(n.ts || Date.now()) + '</span>' +
-          '<button class="rsb-notif-goto" onclick="event.stopPropagation();_notifGoto(' + sid + ')" title="Ir al \xEDtem">\u2192</button>' +
-          '<button class="rsb-notif-dismiss" onclick="event.stopPropagation();markNotifRead(' + sid + ')" title="Marcar como le\xEDda">\u2713</button>' +
+          '<button class="rsb-notif-goto" data-action="notifGoto" data-notif-id=\'' + sid + '\' title="Ir al ítem">\u2192</button>' +
+          '<button class="rsb-notif-dismiss" data-action="notifDismiss" data-notif-id=\'' + sid + '\' title="Marcar como leída">\u2713</button>' +
         '</div>' +
       '</div>';
     }).join('');
 
     var markAllBtn = unseen.length > 1
-      ? '<button class="rsb-notif-mark-all" onclick="event.stopPropagation();markAllNotifsRead()">Marcar todas \u2713</button>'
+      ? '<button class="rsb-notif-mark-all" data-action="notifMarkAll">Marcar todas \u2713</button>'
       : '';
 
     var badgeHtml = ' <span class="rsb-notif-badge">' + unseen.length + '</span>';
@@ -117,7 +117,7 @@ function _renderCfgPanel() {
     var thrInput = (typeof def.threshold === 'number' && def.threshold > 0)
       ? '<input class="rsb-cfg-thr" type="number" min="1" max="365" value="' + def.threshold + '"' +
         (def.enabled ? '' : ' disabled') +
-        ' onchange="_notifConfigSetThreshold(\''  + key + '\',this.value)" onclick="event.stopPropagation()">' +
+        ' data-action="cfgSetThreshold" data-cfg-key="' + key + '">' +
         '<span class="rsb-cfg-thr-unit">d</span>'
       : '';
     return '<div class="rsb-cfg-row">' +
@@ -125,7 +125,7 @@ function _renderCfgPanel() {
       '<div class="rsb-cfg-controls">' +
         thrInput +
         '<input class="rsb-cfg-toggle" type="checkbox"' + (def.enabled ? ' checked' : '') +
-          ' onchange="_notifConfigSetEnabled(\''  + key + '\',this.checked)" onclick="event.stopPropagation()">' +
+          ' data-action="cfgSetEnabled" data-cfg-key="' + key + '">' +
       '</div>' +
     '</div>';
   }).join('');
@@ -136,7 +136,7 @@ function _renderCfgPanel() {
   var ariaExpanded = _rsbCfgExpanded ? 'true' : 'false';
 
   return '<div class="rsb-cfg-section" id="rsb-cfg-section">' +
-    '<button class="rsb-cfg-toggle-btn" onclick="_rsbToggleCfg(event)" aria-expanded="' + ariaExpanded + '" id="rsb-cfg-toggle-btn">' +
+    '<button class="rsb-cfg-toggle-btn" data-action="rsbToggleCfg" aria-expanded="' + ariaExpanded + '" id="rsb-cfg-toggle-btn">' +
       '<span>\uD83D\uDD14 Configurar alertas</span>' +
       '<span class="rsb-cfg-arrow" id="rsb-cfg-arrow">' + arrowChar + '</span>' +
     '</button>' +
@@ -220,7 +220,7 @@ function _buildSessionCard(ai, isInterrupted, sessions) {
     ? `<span class="rsb-status-badge rsb-status-interrupted">⚡ en curso</span>`
     : `<span class="rsb-status-badge rsb-status-session">● sesión</span>`;
 
-  return `<div class="${cls}" onclick="navigateToCard('${ai.id}')" id="rsb-card-${ai.id}">
+  return `<div class="${cls}" data-action="navigateToCard" data-ai-id="${ai.id}" id="rsb-card-${ai.id}">
     <div class="rsb-card-row">
       <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
       <div class="rsb-card-meta">${badge}</div>
@@ -256,13 +256,13 @@ function _buildAvailableCard(ai, sessions) {
     ? `<span class="rsb-card-ts">${sinceLabel}</span>`
     : '';
 
-  return `<div class="rsb-card available" onclick="navigateToCard('${ai.id}')" id="rsb-card-${ai.id}">
+  return `<div class="rsb-card available" data-action="navigateToCard" data-ai-id="${ai.id}" id="rsb-card-${ai.id}">
     <div class="rsb-card-row">
       <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
       <div class="rsb-card-meta">
         ${tsSpan}
         <span class="rsb-status-badge rsb-status-available">🟢</span>
-        <button class="rsb-card-quick" onclick="event.stopPropagation();openQuickCapture('${ai.id}')" title="Sesión rápida">⚡</button>
+        <button class="rsb-card-quick" data-action="openQuickCapture" data-ai-id="${ai.id}" title="Sesión rápida">⚡</button>
       </div>
     </div>
     ${pill ? `<div class="rsb-card-proj">${pill}</div>` : ''}
@@ -272,7 +272,7 @@ function _buildAvailableCard(ai, sessions) {
 function _buildExhaustedCard(ai) {
   const cd = getCD(ai.resetTime, ai.resetEpoch);
   const resetLabel = ai.resetTime ? `hasta ${fmt12(ai.resetTime)}` : '';
-  return `<div class="rsb-card exhausted rsb-compact" onclick="navigateToCard('${ai.id}')" id="rsb-card-${ai.id}">
+  return `<div class="rsb-card exhausted rsb-compact" data-action="navigateToCard" data-ai-id="${ai.id}" id="rsb-card-${ai.id}">
     <div class="rsb-card-row">
       <div class="rsb-card-name" title="${esc(ai.name)}">${esc(ai.name)}</div>
       <div class="rsb-card-meta"><span class="rsb-status-badge rsb-status-exhausted">🔴</span></div>
@@ -336,7 +336,7 @@ function renderGlobalRadarSidebar() {
       <div class="rsb-empty-icon">🤖</div>
       <div class="rsb-empty-title">Sin IAs registradas</div>
       <div class="rsb-empty-hint">Agrega una IA para comenzar a registrar sesiones.</div>
-      <button class="rsb-empty-btn" onclick="openAddAI()">+ Nueva IA</button>
+      <button class="rsb-empty-btn" data-action="openAddAI">+ Nueva IA</button>
     </div>`;
   } else {
     // Grupo 1: En sesión (interrupted + inSession — orden fijo: interrupted primero)
@@ -368,7 +368,7 @@ function renderGlobalRadarSidebar() {
       const isCollapsed = localStorage.getItem('rsb-agotadas-collapsed') !== '0';
       const colClass = isCollapsed ? ' rsb-section-collapsed' : '';
       html += `<div class="radar-sb-section${colClass}" id="rsb-group-agotadas">
-        <div class="radar-sb-section-label rsb-collapsible" onclick="_rsbToggleAgotadas()">
+        <div class="radar-sb-section-label rsb-collapsible" data-action="rsbToggleAgotadas">
           <span class="rsb-section-caret">▾</span>
           <span class="rsb-section-label-text">🔴 Agotadas (${exhausted.length})${metaLabel ? ` · ${metaLabel}` : ''}</span>
         </div>
@@ -638,3 +638,54 @@ if (document.readyState === 'loading') {
 } else {
   _initRadarSidebarState();
 }
+
+// ── B-202605-019: Event delegation para data-action en #global-radar-sidebar ──
+document.addEventListener('DOMContentLoaded', function () {
+  const sidebar = document.getElementById('global-radar-sidebar');
+  if (!sidebar) return;
+
+  // Click delegation — cubre rsb-card, rsb-card-quick, rsb-empty-btn, rsb-collapsible,
+  // rsb-notif-goto, rsb-notif-dismiss, rsb-notif-mark-all, rsb-cfg-toggle-btn
+  sidebar.addEventListener('click', function (e) {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const action = el.dataset.action;
+
+    if (action === 'navigateToCard') {
+      if (typeof navigateToCard === 'function') navigateToCard(el.dataset.aiId);
+    } else if (action === 'openQuickCapture') {
+      e.stopPropagation();
+      if (typeof openQuickCapture === 'function') openQuickCapture(el.dataset.aiId);
+    } else if (action === 'notifGoto') {
+      e.stopPropagation();
+      try { _notifGoto(JSON.parse(el.dataset.notifId)); } catch(_) {}
+    } else if (action === 'notifDismiss') {
+      e.stopPropagation();
+      try { if (typeof markNotifRead === 'function') markNotifRead(JSON.parse(el.dataset.notifId)); } catch(_) {}
+    } else if (action === 'notifMarkAll') {
+      e.stopPropagation();
+      if (typeof markAllNotifsRead === 'function') markAllNotifsRead();
+    } else if (action === 'rsbToggleCfg') {
+      _rsbToggleCfg(e);
+    } else if (action === 'openAddAI') {
+      if (typeof openAddAI === 'function') openAddAI();
+    } else if (action === 'rsbToggleAgotadas') {
+      _rsbToggleAgotadas();
+    }
+  });
+
+  // Change delegation — cubre rsb-cfg-thr (cfgSetThreshold) y rsb-cfg-toggle (cfgSetEnabled)
+  sidebar.addEventListener('change', function (e) {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const action = el.dataset.action;
+    const key = el.dataset.cfgKey;
+    if (action === 'cfgSetThreshold') {
+      e.stopPropagation();
+      if (typeof _notifConfigSetThreshold === 'function') _notifConfigSetThreshold(key, el.value);
+    } else if (action === 'cfgSetEnabled') {
+      e.stopPropagation();
+      if (typeof _notifConfigSetEnabled === 'function') _notifConfigSetEnabled(key, el.checked);
+    }
+  });
+});
