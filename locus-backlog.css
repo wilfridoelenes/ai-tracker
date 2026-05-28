@@ -1,4 +1,4 @@
-/* [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 00:00 UTC-6 */
+/* [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -2871,6 +2871,13 @@
   border-color: var(--c-pulido-border);
   background: var(--c-pulido-bg);
   color: var(--c-pulido-text);
+}
+
+/* T-202605-040: En revisión — reutiliza variables de en-curso */
+.bl-strip-btn.active.s-en-revision {
+  border-color: var(--c-high-border);
+  background: var(--c-high-bg);
+  color: var(--c-high-text);
 }
 
 .bl-strip-btn.active.s-descartado {
