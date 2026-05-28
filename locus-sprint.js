@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 // Consume: locus-sprint-plan.js · locus-backlog-sprints.js · locus-checkpoint-stats.js · locus-storage.js · locus-backlog-render.js
@@ -55,9 +55,7 @@ function _sprintItemHtml(item) {
     }
   }
 
-  const onclick = `if(typeof openItemPanel==='function') openItemPanel('${item.code}')`;
-
-  return `<div class="${cls}" tabindex="0" role="button" aria-label="${item.code}: ${item.title}" onclick="${onclick}">
+  return `<div class="${cls}" tabindex="0" role="button" aria-label="${item.code}: ${item.title}" data-item-code="${item.code}">
   ${blockedIcon}
   <span class="spi-item-code">${item.code}</span>
   <span class="spi-item-title">${item.title || ''}</span>
@@ -543,9 +541,8 @@ function _spmPickerOpen(closedSprints) {
           role="option"
           tabindex="0"
           data-sprint-id="${sp.id}"
-          aria-selected="false"
-          onclick="if(typeof _spmPickerSelect==='function') _spmPickerSelect('${sp.id}')"
-          onkeydown="if(typeof _spmPickerKey==='function') _spmPickerKey(event, '${sp.id}', ${idx})">
+          data-sprint-idx="${idx}"
+          aria-selected="false">
       <span class="spm-picker-item-label">${sp.label || sp.id}</span>
     </div>`
   ).join('');
@@ -556,6 +553,16 @@ function _spmPickerOpen(closedSprints) {
   // AC-5: foco al primer ítem
   const first = picker.querySelector('.spm-picker-item');
   if (first) setTimeout(() => first.focus(), 30);
+
+  // T-202605-052: Event delegation — click y keydown en picker
+  picker.addEventListener('click', function(e) {
+    const opt = e.target.closest('[data-sprint-id]');
+    if (opt && typeof _spmPickerSelect === 'function') _spmPickerSelect(opt.dataset.sprintId);
+  });
+  picker.addEventListener('keydown', function(e) {
+    const opt = e.target.closest('[data-sprint-id]');
+    if (opt && typeof _spmPickerKey === 'function') _spmPickerKey(e, opt.dataset.sprintId, Number(opt.dataset.sprintIdx));
+  });
 
   // AC-4: click fuera cierra el picker
   _spmPickerOutsideHandler = (e) => {
@@ -694,6 +701,23 @@ document.addEventListener('DOMContentLoaded', function() {
       });
     }
   });
+
+  // T-202605-051: Event delegation en #sprint-items-list para ítems generados dinámicamente
+  const itemsList = document.getElementById('sprint-items-list');
+  if (itemsList) {
+    itemsList.addEventListener('click', function(e) {
+      const item = e.target.closest('[data-item-code]');
+      if (item && typeof openItemPanel === 'function') openItemPanel(item.dataset.itemCode);
+    });
+    itemsList.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const item = e.target.closest('[data-item-code]');
+      if (item && typeof openItemPanel === 'function') {
+        e.preventDefault();
+        openItemPanel(item.dataset.itemCode);
+      }
+    });
+  }
 });
 
 // ── Exposición pública ──────────────────────────────────────────────────────
