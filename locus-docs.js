@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -171,16 +171,16 @@ function _renderDocsOnboarding() {
       <div class="docs-ob-step-text">
         <div class="docs-ob-step-title">${s.title}</div>
         <div class="docs-ob-step-hint">${s.hint}</div>
-        ${!s.done ? `<button class="docs-ob-step-action" onclick="_docsOnboardingAction(${i})">Hacer ahora →</button>` : ''}
+        ${!s.done ? `<button class="docs-ob-step-action" data-step-idx="${i}">Hacer ahora →</button>` : ''}
       </div>
     </div>`).join('');
 
   banner.innerHTML = `
-    <div class="docs-ob-header" onclick="this.parentElement.querySelector('.docs-ob-body').classList.toggle('is-hidden');this.querySelector('.docs-ob-progress').textContent=this.parentElement.querySelector('.docs-ob-body').classList.contains('is-hidden')?'▸':'▾'">
+    <div class="docs-ob-header" data-docs-ob-toggle>
       <span class="docs-ob-icon">📋</span>
       <span class="docs-ob-title">Configura los documentos del proyecto</span>
       <span class="docs-ob-progress">${doneCount}/3 ▾</span>
-      <button class="docs-ob-dismiss" onclick="event.stopPropagation();_dismissDocsOnboarding()" title="No mostrar de nuevo">✕</button>
+      <button class="docs-ob-dismiss" title="No mostrar de nuevo">✕</button>
     </div>
     <div class="docs-ob-body">${stepsHtml}</div>`;
 }
@@ -632,7 +632,7 @@ function mergeContextSections(sections, projId) {
       conflictArea.innerHTML = `
         <div class="context-conflict-banner">
           ⚠ Conflicto — ${names} ya fue modificada en esta sesión.
-          <button onclick="this.closest('.context-conflict-banner').remove()">Ignorar</button>
+          <button class="conflict-banner-dismiss">Ignorar</button>
         </div>`;
     }
     showToast('warning', '⚠ Conflicto de sección — revisa el banner en Context');
@@ -789,7 +789,7 @@ function _renderContextSections(sections, query) {
     const openClass = (!q && idx === 0) ? ' open' : (q ? ' open' : '');
     html += `
       <div class="context-section${openClass}${touchedClass}" id="ctx-sec-${idx}">
-        <div class="context-section-header" onclick="toggleContextSection(${idx})">
+        <div class="context-section-header" data-ctx-idx="${idx}">
           <span class="context-section-title">${esc(sec.title)}</span>
           ${touchedBadge}
           <span class="context-section-toggle">▾</span>
@@ -948,5 +948,63 @@ document.addEventListener('DOMContentLoaded', () => {
   // mg-export-htmlmap-btn → exportHtmlMapMd
   const mgExportHtmlmap = document.getElementById('mg-export-htmlmap-btn');
   if (mgExportHtmlmap) mgExportHtmlmap.addEventListener('click', exportHtmlMapMd);
+
+  // ── T-202605-034: Delegación handlers dinámicos ──
+
+  // .docs-ob-step-action [data-step-idx] → _docsOnboardingAction
+  // Banner se inserta en sspanel dinámico — document como raíz
+  document.addEventListener('click', function(e) {
+    const stepBtn = e.target.closest('.docs-ob-step-action[data-step-idx]');
+    if (stepBtn) {
+      const idx = parseInt(stepBtn.dataset.stepIdx, 10);
+      _docsOnboardingAction(idx);
+    }
+  });
+
+  // .docs-ob-header [data-docs-ob-toggle] → toggle body visibility
+  document.addEventListener('click', function(e) {
+    const header = e.target.closest('.docs-ob-header[data-docs-ob-toggle]');
+    if (header) {
+      const body = header.parentElement.querySelector('.docs-ob-body');
+      const progress = header.querySelector('.docs-ob-progress');
+      if (body) {
+        body.classList.toggle('is-hidden');
+        if (progress) progress.textContent = body.classList.contains('is-hidden') ? '\u25b8' : '\u25be';
+      }
+    }
+  });
+
+  // .docs-ob-dismiss → _dismissDocsOnboarding
+  document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.docs-ob-dismiss');
+    if (btn) {
+      e.stopPropagation();
+      _dismissDocsOnboarding();
+    }
+  });
+
+  // .conflict-banner-dismiss → remove banner — delegado en #context-conflict-area
+  const conflictArea = document.getElementById('context-conflict-area');
+  if (conflictArea) {
+    conflictArea.addEventListener('click', function(e) {
+      const btn = e.target.closest('.conflict-banner-dismiss');
+      if (btn) btn.closest('.context-conflict-banner').remove();
+    });
+  }
+
+  // .context-section-header [data-ctx-idx] → toggleContextSection — delegado en #context-content
+  const ctxContent = document.getElementById('context-content');
+  if (ctxContent) {
+    ctxContent.addEventListener('click', function(e) {
+      const header = e.target.closest('.context-section-header[data-ctx-idx]');
+      if (header) {
+        const idx = parseInt(header.dataset.ctxIdx, 10);
+        toggleContextSection(idx);
+      }
+    });
+  }
+
+  // ── END T-202605-034 ──
+
 });
 // ── END T-202605-031 locus-docs ──
