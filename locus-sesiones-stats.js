@@ -6,9 +6,8 @@
 // Carga después de: locus-notifications.js · locus-workers.js · locus-pulso.js
 // Carga antes de: locus-sesiones-capture.js · locus-sesiones-viz.js
 
-// Fuente de verdad de versión — actualizar aquí al hacer bump
-const APP_VERSION = 'v3.4';
-
+// APP_VERSION — fuente de verdad: locus-workers.js
+// R-202605-012: constante movida a locus-workers.js (carga antes). Disponible globalmente aquí.
 // R-202604-086: versión efectiva — localStorage override prevalece sobre APP_VERSION.
 // Se escribe desde _mgApplyBumpedVersion() en locus-map-generator.js al confirmar el generador.
 // APP_VERSION es el fallback de primer arranque; el generador es la fuente de verdad post-bump.

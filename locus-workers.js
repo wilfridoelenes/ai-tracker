@@ -18,6 +18,11 @@ const AVATAR_LOGOS = {
   default: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M12 9a1.5 1.5 0 100-3 1.5 1.5 0 000 3z" fill="currentColor"/><path d="M7 15c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.5" fill="none"/></svg>'
 };
 
+// ── Versión de la app — fuente de verdad ──
+// R-202605-012: movida desde locus-sesiones-stats.js — locus-workers.js carga antes.
+// R-202604-086: _mgApplyBumpedVersion() en locus-map-generator.js sobreescribe via localStorage.
+const APP_VERSION = 'v3.4';
+
 // ── Estado interno ──
 let avatarModalAIId = null;
 let selectedAvatarKey = null;
