@@ -1,5 +1,6 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-ui-shell.js
-// Última actualización: 2026-05-19 · Extraído de ai-tracker-checkpoint.js y ai-tracker-ai-notes.js
+// Última actualización: 2026-05-28 · T-202605-044: Migrar handlers inline → addEventListener
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
 // Debe cargarse antes de ai-tracker-checkpoint.js y ai-tracker-ai-notes.js
 
@@ -1052,5 +1053,56 @@ function closeShortcutsRef(e) { closeShortcuts(e); }
 
 // Shorthand interno
 function _sk(id) { return _shortcutKey(id); }
+
+// ── T-202605-044: Migración de handlers inline → addEventListener ──────────
+// Reemplaza los onclick declarados en index.html para los elementos de shell:
+// logo-btn, tab-btn (×5), sstab-btn (×5), theme-toggle-btn,
+// botón Shortcuts en more-menu, botón Templates en proj-panel.
+document.addEventListener('DOMContentLoaded', function () {
+
+  // #logo-btn → switchTab('sesiones')
+  const logoBtn = document.getElementById('logo-btn');
+  if (logoBtn) logoBtn.addEventListener('click', function () { switchTab('sesiones'); });
+
+  // .tab-btn (×5) — cada botón lleva su tab en el id: tab-btn-{tab}
+  document.querySelectorAll('.tab-btn').forEach(function (btn) {
+    const tab = btn.id.replace('tab-btn-', '');
+    btn.addEventListener('click', function () { switchTab(tab); });
+  });
+
+  // .sstab-btn (×5) — cada botón lleva su sub-tab en el id: sstab-btn-{tab}
+  document.querySelectorAll('[id^="sstab-btn-"]').forEach(function (btn) {
+    const stab = btn.id.replace('sstab-btn-', '');
+    btn.addEventListener('click', function () { switchSubTab(stab); });
+  });
+
+  // #theme-toggle-btn → toggleTheme()
+  const themeBtn = document.getElementById('theme-toggle-btn');
+  if (themeBtn) themeBtn.addEventListener('click', function () { toggleTheme(); });
+
+  // Botón Shortcuts en more-menu — delegation sobre document en capture
+  // Guard: botón dentro de #more-menu cuyo texto incluye 'Atajos'
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('#more-menu button');
+    if (!btn) return;
+    if (btn.textContent.trim().includes('Atajos')) {
+      e.stopPropagation();
+      openShortcuts();
+      if (typeof toggleMoreMenu === 'function') toggleMoreMenu();
+    }
+  }, true);
+
+  // Botón Templates en proj-panel — delegation sobre document
+  // Guard: .btn-ghost dentro de .proj-panel-actions cuyo texto incluye 'Templates'
+  document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.proj-panel-actions .btn-ghost');
+    if (!btn) return;
+    if (btn.textContent.trim().includes('Templates')) {
+      closeProjPanel();
+      switchTab('backlog');
+    }
+  });
+
+});
 
 // ── END locus-ui-shell.js ──────────────────────────────────────────────────

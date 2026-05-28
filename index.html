@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6 -->
+<!-- [PP] v1.2.3 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -47,7 +47,7 @@
 <!-- ═══ HEADER COMPARTIDO ═══ -->
 <header>
   <div class="header-inner">
-    <div class="logo cursor-pointer" onclick="switchTab('sesiones')" id="logo-btn" title="Ir a Sesiones">
+    <div class="logo cursor-pointer" id="logo-btn" title="Ir a Sesiones">
       <img id="pepe-logo" src="/img/logo.png" alt="Pepe" class="logo-img">
       <div class="logo-project-label" id="header-project-label">
         <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" onclick="if(typeof openProjPanel==='function')openProjPanel()">Locus</button>
@@ -60,11 +60,11 @@
     </div>
 
     <div class="tabs">
-      <button class="tab-btn" id="tab-btn-sesiones" onclick="switchTab('sesiones')" title="Ver Sesiones">🗂 Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sesiones"></span></button>
-      <button class="tab-btn" id="tab-btn-proyectos" onclick="switchTab('proyectos')" title="Dashboard estratégico de proyectos">📁 Proyectos<span class="tab-notif-badge is-hidden" id="tab-notif-badge-proyectos"></span></button>
-      <button class="tab-btn" id="tab-btn-backlog" onclick="switchTab('backlog')" title="Backlog — ítems, sprints y estado del ecosistema">🗃 Backlog<span class="tab-notif-badge is-hidden" id="tab-notif-badge-backlog"></span></button>
-      <button class="tab-btn" id="tab-btn-sprint" onclick="switchTab('sprint')" title="Sprint — estado y ejecución del sprint activo">🏃 Sprint<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sprint"></span></button>
-      <button class="tab-btn" id="tab-btn-analytics" onclick="switchTab('analytics')" title="Analytics — sesiones por mes">📊 Analytics<span class="tab-notif-badge is-hidden" id="tab-notif-badge-analytics"></span></button>
+      <button class="tab-btn" id="tab-btn-sesiones" title="Ver Sesiones">🗂 Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sesiones"></span></button>
+      <button class="tab-btn" id="tab-btn-proyectos" title="Dashboard estratégico de proyectos">📁 Proyectos<span class="tab-notif-badge is-hidden" id="tab-notif-badge-proyectos"></span></button>
+      <button class="tab-btn" id="tab-btn-backlog" title="Backlog — ítems, sprints y estado del ecosistema">🗃 Backlog<span class="tab-notif-badge is-hidden" id="tab-notif-badge-backlog"></span></button>
+      <button class="tab-btn" id="tab-btn-sprint" title="Sprint — estado y ejecución del sprint activo">🏃 Sprint<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sprint"></span></button>
+      <button class="tab-btn" id="tab-btn-analytics" title="Analytics — sesiones por mes">📊 Analytics<span class="tab-notif-badge is-hidden" id="tab-notif-badge-analytics"></span></button>
     </div>
 
     <div class="header-search" id="header-search-wrap">
@@ -104,7 +104,7 @@
       </button>
 
       <!-- [pendiente-ID]: Toggle light/dark — invoca applyTheme() existente -->
-      <button class="theme-toggle-btn btn-ghost btn-icon" id="theme-toggle-btn" onclick="toggleTheme()" aria-label="Cambiar a tema light" title="Cambiar tema">
+      <button class="theme-toggle-btn btn-ghost btn-icon" id="theme-toggle-btn" aria-label="Cambiar a tema light" title="Cambiar tema">
         <span class="theme-icon-dark" aria-hidden="true">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         </span>
@@ -149,7 +149,7 @@
           <!-- Grupo: Configuración -->
           <hr class="mm-separator">
           <div class="mm-group-label">Configuración</div>
-          <button type="button" onclick="openShortcuts();toggleMoreMenu()"><span class="mm-icon">⌨</span> Atajos de teclado</button>
+          <button type="button"><span class="mm-icon">⌨</span> Atajos de teclado</button>
           <button type="button" onclick="openChangelog();toggleMoreMenu()"><span class="mm-icon">📋</span> Changelog</button>
           <button type="button" onclick="openNotifConfig();toggleMoreMenu()"><span class="mm-icon">🔔</span> Configurar notificaciones</button>
           <button type="button" onclick="handleSyncPillClick();toggleMoreMenu()"><span class="mm-icon sync-status-dot" id="sync-status-dot">●</span> <span id="sync-status-label">Sync: local</span></button>
@@ -337,22 +337,22 @@
     <div class="tpl-sidebar-section">
       <div class="tpl-sidebar-label">Backlog</div>
       <div class="tpl-sidebar-nav">
-        <button class="tpl-nav-btn active" id="sstab-btn-backlog" onclick="switchSubTab('backlog')">
+        <button class="tpl-nav-btn active" id="sstab-btn-backlog">
           <span class="tpl-nav-icon">📋</span><span class="tpl-nav-text">Backlog</span>
           <span class="tpl-nav-badge" id="tpl-badge-backlog"></span>
         </button>
-        <button class="tpl-nav-btn" id="sstab-btn-htmlmap" onclick="switchSubTab('htmlmap')">
+        <button class="tpl-nav-btn" id="sstab-btn-htmlmap">
           <span class="tpl-nav-icon">🗺</span><span class="tpl-nav-text">Documentos</span>
           <span class="tpl-nav-badge" id="tpl-badge-htmlmap"></span>
         </button>
-        <button class="tpl-nav-btn" id="sstab-btn-context" onclick="switchSubTab('context')">
+        <button class="tpl-nav-btn" id="sstab-btn-context">
           <span class="tpl-nav-icon">📄</span><span class="tpl-nav-text">Context</span>
           <span class="tpl-nav-badge" id="tpl-badge-context"></span>
         </button>
-        <button class="tpl-nav-btn" id="sstab-btn-plan" onclick="switchSubTab('plan')">
+        <button class="tpl-nav-btn" id="sstab-btn-plan">
           <span class="tpl-nav-icon">🗓</span><span class="tpl-nav-text">Plan</span>
         </button>
-        <button class="tpl-nav-btn is-hidden" id="sstab-btn-contratos" onclick="switchSubTab('contratos')">
+        <button class="tpl-nav-btn is-hidden" id="sstab-btn-contratos">
           <span class="tpl-nav-icon">📐</span><span class="tpl-nav-text">Contratos</span>
           <span class="tpl-nav-badge" id="tpl-badge-contratos"></span>
         </button>
@@ -909,7 +909,7 @@
     <div class="proj-panel-actions">
       <button class="btn-primary proj-panel-btn-sm" onclick="closeProjPanel();openProjModal()">+ Nuevo proyecto</button>
       <button class="btn-ghost proj-panel-btn-sm" onclick="closeProjPanel();openProjModal()">⚙ Gestionar</button>
-      <button class="btn-ghost proj-panel-btn-sm" onclick="closeProjPanel();switchTab('backlog')">📂 Templates</button>
+      <button class="btn-ghost proj-panel-btn-sm">📂 Templates</button>
     </div>
   </div>
 </div>
