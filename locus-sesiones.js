@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-27 UTC-6
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -484,7 +484,7 @@ function _renderTrackerSidebar() {
   let exHtml = exhausted.map(ai => mkRow(ai)).join('');
   if (archived.length) {
     const isOpen = localStorage.getItem('archived-open') === '1';
-    exHtml += `<div class="tsb-archived-toggle" onclick="this.classList.toggle('open');localStorage.setItem('archived-open',this.classList.contains('open')?'1':'0');_renderTrackerSidebar()">
+    exHtml += `<div class="tsb-archived-toggle">
       ${isOpen ? '▼' : '▶'} Archivadas (${archived.length})</div>`;
     if (isOpen) exHtml += archived.map(ai => mkRow(ai)).join('');
   }
@@ -524,7 +524,7 @@ function render() {
       <div class="empty-state-icon">🤖</div>
       <div class="empty-state-title">Agrega tu primer Worker</div>
       <div class="empty-state-hint">Los Workers son las IAs que usas. Empieza por crear uno para registrar tus sesiones.</div>
-      <button class="empty-state-btn" onclick="openAddAI()">＋ Nuevo Worker</button>`; }
+      <button class="empty-state-btn" data-action="openAddAI">＋ Nuevo Worker</button>`; }
     if (typeof updateStats === 'function') updateStats(); if (typeof renderStatusBar === 'function') renderStatusBar(); if (typeof renderSetupChecklist === 'function') renderSetupChecklist(); return;
   }
 
@@ -537,7 +537,7 @@ function render() {
       <div class="empty-state-title">Sin proyecto activo</div>
       <div class="empty-state-hint">Crea un proyecto para empezar a registrar sesiones y gestionar tu backlog.</div>
       <div class="es-cta-row">
-        <button class="empty-state-btn" onclick="if(typeof openProjModal==='function')openProjModal(false)">＋ Nuevo Proyecto</button>
+        <button class="empty-state-btn" data-action="openProjModal">＋ Nuevo Proyecto</button>
       </div>`; }
     if (typeof updateStats === 'function') updateStats(); if (typeof renderStatusBar === 'function') renderStatusBar(); if (typeof renderSetupChecklist === 'function') renderSetupChecklist(); return;
   }
@@ -557,7 +557,7 @@ function render() {
         const section = document.createElement('div');
         section.className = 'archived-section';
         const isOpen = localStorage.getItem('archived-open') === '1';
-        section.innerHTML = `<button class="archived-toggle" onclick="toggleArchivedSection(this)">
+        section.innerHTML = `<button class="archived-toggle">
           ${isOpen ? '▼' : '▶'} Archivadas (${archived.length})</button>
           <div class="archived-grid${isOpen ? ' open' : ''}" id="archived-grid"></div>`;
         grid.appendChild(section);
@@ -630,7 +630,7 @@ function render() {
         const section = document.createElement('div');
         section.className = 'archived-section';
         const isOpen = localStorage.getItem('archived-open') === '1';
-        section.innerHTML = `<button class="archived-toggle" onclick="toggleArchivedSection(this)">
+        section.innerHTML = `<button class="archived-toggle">
           ${isOpen ? '▼' : '▶'} Archivadas (${archived.length})</button>
           <div class="archived-grid${isOpen ? ' open' : ''}" id="archived-grid"></div>`;
         grid.appendChild(section);
@@ -1360,5 +1360,45 @@ document.addEventListener('DOMContentLoaded', function () {
       if (col && typeof _trackerSwitchCol === 'function') _trackerSwitchCol(col);
     });
   });
+});
+// ── END B-202605-019 ─────────────────────────────────────────────────────────
+
+
+// ── B-202605-019: Listeners — on* migrados desde templates de locus-sesiones.js ──
+// Cubre: tsb-archived-toggle, archived-toggle, empty-state-btn openAddAI/openProjModal.
+document.addEventListener('DOMContentLoaded', function () {
+
+  // .tsb-archived-toggle → toggle open + localStorage + _renderTrackerSidebar()
+  // Delegación en document — el elemento se genera dinámicamente en _renderTrackerSidebar.
+  document.addEventListener('click', function _tsbArchivedToggleDelegate(e) {
+    const el = e.target.closest('.tsb-archived-toggle');
+    if (!el) return;
+    el.classList.toggle('open');
+    localStorage.setItem('archived-open', el.classList.contains('open') ? '1' : '0');
+    if (typeof _renderTrackerSidebar === 'function') _renderTrackerSidebar();
+  });
+
+  // .archived-toggle → toggleArchivedSection(el)
+  // Delegación en document — el elemento se genera dinámicamente en render().
+  document.addEventListener('click', function _archivedToggleDelegate(e) {
+    const el = e.target.closest('.archived-toggle');
+    if (!el) return;
+    if (typeof toggleArchivedSection === 'function') toggleArchivedSection(el);
+  });
+
+  // [data-action="openAddAI"] → openAddAI()
+  // [data-action="openProjModal"] → openProjModal(false)
+  // Delegación en document — los botones se generan dinámicamente en render().
+  document.addEventListener('click', function _sesionesEmptyStateDelegate(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const action = btn.dataset.action;
+    if (action === 'openAddAI') {
+      if (typeof openAddAI === 'function') openAddAI();
+    } else if (action === 'openProjModal') {
+      if (typeof openProjModal === 'function') openProjModal(false);
+    }
+  });
+
 });
 // ── END B-202605-019 ─────────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm.
 //   Define AVATAR_LOGOS (SVGs de avatares) — movido desde locus-checkpoint-stats.js.
@@ -326,5 +326,11 @@ window.closeModal = window.closeModal || function() {};
 document.addEventListener('DOMContentLoaded', function () {
   const addAiConfirmBtn = document.getElementById('add-ai-confirm-btn');
   if (addAiConfirmBtn) addAiConfirmBtn.addEventListener('click', confirmAddAI);
+
+  // #new-name: Enter → confirmAddAI (migrado desde onkeydown inline en index.html)
+  const newNameInput = document.getElementById('new-name');
+  if (newNameInput) newNameInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') confirmAddAI();
+  });
 });
 // ── END B-202605-019 ─────────────────────────────────────────────────────────
