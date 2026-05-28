@@ -321,3 +321,10 @@ document.addEventListener('DOMContentLoaded', function() {
 // ── Window fallback para inline handlers de index.html ──
 // closeModal tiene callers inline en index.html (L648, L679) — fallback evita ReferenceError si locus-workers.js no cargó.
 window.closeModal = window.closeModal || function() {};
+
+// ── B-202605-019: Listener — #add-ai-confirm-btn ─────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+  const addAiConfirmBtn = document.getElementById('add-ai-confirm-btn');
+  if (addAiConfirmBtn) addAiConfirmBtn.addEventListener('click', confirmAddAI);
+});
+// ── END B-202605-019 ─────────────────────────────────────────────────────────

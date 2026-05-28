@@ -780,7 +780,7 @@
     <div class="field"><label>Nombre</label><input type="text" id="new-name" placeholder="Ej: Firefox Claude..." maxlength="40" onkeydown="if(event.key==='Enter')confirmAddAI()"></div>
     <div class="modal-actions">
       <button type="button">Cancelar</button>
-      <button class="btn-primary" onclick="confirmAddAI()">Agregar</button>
+      <button class="btn-primary" id="add-ai-confirm-btn">Agregar</button>
     </div>
   </div>
 </div>
@@ -1742,11 +1742,11 @@ document.addEventListener('DOMContentLoaded', function() {
 })();
 </script>
 
-<div class="pulso-overlay" id="pulso-overlay" onclick="if(event.target===this)closePulsoPanel()" role="dialog" aria-modal="true" aria-label="Pulso del Ecosistema">
+<div class="pulso-overlay" id="pulso-overlay" role="dialog" aria-modal="true" aria-label="Pulso del Ecosistema">
   <div class="pulso-panel" id="pulso-panel">
     <div class="pulso-header">
       <span class="pulso-title">⚡ Pulso del Ecosistema</span>
-      <button class="pulso-close-btn" onclick="closePulsoPanel()" title="Cerrar">✕</button>
+      <button class="pulso-close-btn" id="pulso-close-btn" title="Cerrar">✕</button>
     </div>
     <div class="pulso-body" id="pulso-body" aria-live="polite"></div>
   </div>
@@ -1756,7 +1756,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="arranque-panel" id="arranque-panel">
     <div class="arranque-header">
       <span class="arranque-title">☀ Buenos días</span>
-      <button class="arranque-close-btn" onclick="closeArranquePanel()" title="Cerrar">✕</button>
+      <button class="arranque-close-btn" id="arranque-close-btn" title="Cerrar">✕</button>
     </div>
     <div class="arranque-body" id="arranque-body"></div>
     <div class="arranque-footer">
@@ -1771,7 +1771,7 @@ document.addEventListener('DOMContentLoaded', function() {
   <span id="gf-total" class="gf-total is-hidden"></span>
   <span id="gf-done" class="gf-done is-hidden"></span>
   <span id="gf-ckpt" class="gf-ckpt is-hidden"></span>
-  <span id="gf-pulso" class="gf-pulso is-hidden" onclick="openPulsoPanel()" title="Pulso del Ecosistema"><span class="pulso-dot pulso-dot--green" id="pulso-dot"></span></span>
+  <span id="gf-pulso" class="gf-pulso is-hidden" title="Pulso del Ecosistema"><span class="pulso-dot pulso-dot--green" id="pulso-dot"></span></span>
   <span id="gf-sync" class="gf-sync is-hidden"></span>
 </footer>
 

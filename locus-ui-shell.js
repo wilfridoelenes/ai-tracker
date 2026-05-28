@@ -1244,5 +1244,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof importBacklog === 'function') importBacklog(e);
   });
 
+  // #arranque-close-btn → closeArranquePanel()
+  const arranqueCloseBtn = document.getElementById('arranque-close-btn');
+  if (arranqueCloseBtn) arranqueCloseBtn.addEventListener('click', function () {
+    if (typeof closeArranquePanel === 'function') closeArranquePanel();
+  });
+
 });
 // ── END B-202605-019 ─────────────────────────────────────────────────────────
