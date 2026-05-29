@@ -484,7 +484,7 @@ export function _purgeStaleBacklogCache() {
     if (!purgeable.includes(item.status)) return true; // nunca purgar pendientes/en-curso
     const ts = item.statusChangedAt || item.doneAt || 0;
     return ts > cutoff; // conservar si fue cerrado hace menos de 90 días
-  });
+  }));
 
   const purged = before - ITEMS.length;
   if (purged > 0) {
