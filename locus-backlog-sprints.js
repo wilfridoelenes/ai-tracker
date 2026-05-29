@@ -103,7 +103,7 @@ export function _buildNewSprintForm(projId, onConfirm, onCancel) {
     `<label class="sprint-inline-release-label">
       <input type="radio" name="${ns}-rt" value="${v}"
         ${suggestedRt === v ? 'checked' : ''}
-        onchange="_bnsf_syncBtn('${ns}');_clearSprintFieldErr('${ns}-rt-err')">
+        data-action="bnsf-rt" data-ns="${ns}">
       ${v}
     </label>`
   ).join('');
@@ -112,9 +112,9 @@ export function _buildNewSprintForm(projId, onConfirm, onCancel) {
     ? `<div id="${ns}-active-warn" class="sprint-inline-active-warn">
         Ya existe un sprint abierto para este proyecto.
         <button type="button" class="sprint-inline-active-warn-dismiss"
-          onclick="document.getElementById('${ns}-active-warn').style.display='none'">Continuar</button>
+          data-action="bnsf-warn-dismiss" data-ns="${ns}">Continuar</button>
         <button type="button" class="sprint-inline-active-warn-cancel"
-          onclick="_bnsf_cancel('${ns}')">Cancelar</button>
+          data-action="bnsf-cancel" data-ns="${ns}">Cancelar</button>
        </div>`
     : '';
 
@@ -123,12 +123,14 @@ export function _buildNewSprintForm(projId, onConfirm, onCancel) {
     <span class="sprint-inline-id-preview" id="${ns}-id-preview">${esc(previewId)} ·</span>
     <input id="${ns}-name" type="text" placeholder="Nombre descriptivo"
       class="sprint-inline-input"
-      onkeydown="if(event.key==='Enter'){event.preventDefault();_bnsf_confirm('${ns}');}if(event.key==='Escape'){event.preventDefault();_bnsf_cancel('${ns}');}">
-    <button type="button" id="${ns}-confirm" class="sprint-inline-confirm" onclick="_bnsf_confirm('${ns}')">&#10003;</button>
-    <button type="button" class="sprint-inline-cancel" onclick="_bnsf_cancel('${ns}')">&#10005;</button>
+      data-action="bnsf-keydown" data-ns="${ns}">
+    <button type="button" id="${ns}-confirm" class="sprint-inline-confirm"
+      data-action="bnsf-confirm" data-ns="${ns}">&#10003;</button>
+    <button type="button" class="sprint-inline-cancel"
+      data-action="bnsf-cancel" data-ns="${ns}">&#10005;</button>
     <input id="${ns}-goal" type="text" placeholder="Goal del sprint (opcional, max 120)"
       class="sprint-inline-goal-input" maxlength="120"
-      onkeydown="if(event.key==='Enter'){event.preventDefault();_bnsf_confirm('${ns}');}if(event.key==='Escape'){event.preventDefault();_bnsf_cancel('${ns}');}">
+      data-action="bnsf-keydown" data-ns="${ns}">
     <div class="sprint-inline-release-row">
       <label class="sprint-inline-release-label">Versión:</label>
       <input id="${ns}-vt" type="text" value="${esc(suggestedVt)}"
