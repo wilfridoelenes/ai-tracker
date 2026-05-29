@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1448,7 +1448,7 @@ window.addEventListener('beforeunload', () => {
 function _initStorageListeners() {
   // Auth modal — Google
   const btnGoogle = document.getElementById('auth-btn-google');
-  if (btnGoogle) btnGoogle.addEventListener('click', () => { closeAuthModal(); signInWithSupabase(); });
+  if (btnGoogle) btnGoogle.addEventListener('click', () => { if (typeof closeAuthModal === 'function') closeAuthModal(); signInWithSupabase(); });
 
   // Auth modal — Magic link send
   const btnMagic = document.getElementById('auth-btn-magic');
@@ -1464,7 +1464,7 @@ function _initStorageListeners() {
 
   // Auth modal — Cancel
   const btnCancel = document.getElementById('auth-cancel-btn');
-  if (btnCancel) btnCancel.addEventListener('click', () => closeAuthModal());
+  if (btnCancel) btnCancel.addEventListener('click', () => { if (typeof closeAuthModal === 'function') closeAuthModal(); });
 
   // Sync pill
   const syncPill = document.getElementById('mm-btn-sync');
