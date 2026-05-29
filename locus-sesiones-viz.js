@@ -1,3 +1,4 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-29 UTC-6
 // [PP] v1.2.3 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-viz.js
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
@@ -198,7 +199,7 @@ export function _itemVizClose() {
   }
 }
 
-function _itemVizConfirm() {
+export function _itemVizConfirm() {
   if (!_itemVizPendingCb || !_itemVizItems) return;
   const filtered = _itemVizItems.filter((_, i) => !_itemVizExcluded.has(i));
   _itemVizItems.splice(0, _itemVizItems.length, ...filtered);

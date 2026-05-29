@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -484,7 +484,7 @@ export function _purgeStaleBacklogCache() {
     if (!purgeable.includes(item.status)) return true; // nunca purgar pendientes/en-curso
     const ts = item.statusChangedAt || item.doneAt || 0;
     return ts > cutoff; // conservar si fue cerrado hace menos de 90 días
-  }));
+  });
 
   const purged = before - ITEMS.length;
   if (purged > 0) {
@@ -1854,6 +1854,15 @@ function toggleBacklogNoAcMode() {
 }
 
 // R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente
+
+// Getters exportados para variables de estado de vista — consumidos por locus-backlog-render.js.
+// Las variables son let privados (mutables), por lo que se exponen via getter en lugar de export let.
+export function _getBacklogTreeMode()        { return _backlogTreeMode; }
+export function _getBacklogKanbanMode()      { return _backlogKanbanMode; }
+export function _getBacklogFocusMode()       { return _backlogFocusMode; }
+export function _getBacklogMikeMode()        { return _backlogMikeMode; }
+export function _getBacklogSprintGroupMode() { return _backlogSprintGroupMode; }
+export function _getBacklogNoAcMode()        { return _backlogNoAcMode; }
 
 // B-202605-XXX: _migrateItemTypes — stub de compatibilidad para call site en locus-storage.js
 // R-202605-070: la lógica real fue absorbida por _normalizeItems(). Este stub redirige

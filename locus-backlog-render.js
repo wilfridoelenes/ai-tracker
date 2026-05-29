@@ -1,5 +1,6 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
-import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI } from './locus-backlog-core.js';
+import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogFocusMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _renderKanban, buildBacklogItem, setFilter, updateBacklogFooter } from './locus-backlog-item.js';
 
@@ -54,7 +55,7 @@ export function updateClearFilterBtn() {
   const noSearch = !backlogSearchQuery;
   const noRoleFilter = activeRoleFilter === null;
   const noPriorityFilter = activePriorityFilter.size === 0; // T-202604-357
-  const isDefault = allTypes && defaultStatus && noSearch && noRoleFilter && noPriorityFilter && !_backlogFocusMode && !_backlogNoAcMode;
+  const isDefault = allTypes && defaultStatus && noSearch && noRoleFilter && noPriorityFilter && !_getBacklogFocusMode() && !_getBacklogNoAcMode();
   btn.classList.toggle('is-hidden', isDefault);
 
   // R-202605-094: chips individuales limpiables por filtro activo
@@ -96,8 +97,8 @@ export function updateClearFilterBtn() {
     });
   }
   if (!noSearch) chips.push(_chip(`"${backlogSearchQuery}"`, `function(){clearBacklogSearch()}`));
-  if (_backlogNoAcMode) chips.push(_chip('Sin AC', `function(){toggleBacklogNoAcMode()}`));
-  if (_backlogFocusMode) chips.push(_chip('Focus top 10', `function(){toggleBacklogFocusMode()}`));
+  if (_getBacklogNoAcMode()) chips.push(_chip('Sin AC', `function(){toggleBacklogNoAcMode()}`));
+  if (_getBacklogFocusMode()) chips.push(_chip('Focus top 10', `function(){toggleBacklogFocusMode()}`));
 
   wrap.innerHTML = chips.join('');
 }
@@ -701,20 +702,20 @@ export function renderBacklogList(onRendered) {
     const mikeBtn   = document.getElementById('fbar-mike-btn');
 
     if (treeBtn) {
-      treeBtn.classList.toggle('active', _backlogTreeMode);
-      treeBtn.textContent = _backlogTreeMode ? '⊞ Árbol' : '☰ Plano';
-      treeBtn.title = _backlogTreeMode ? 'Vista árbol activa — click para vista plana' : 'Vista plana activa — click para vista árbol';
+      treeBtn.classList.toggle('active', _getBacklogTreeMode());
+      treeBtn.textContent = _getBacklogTreeMode() ? '⊞ Árbol' : '☰ Plano';
+      treeBtn.title = _getBacklogTreeMode() ? 'Vista árbol activa — click para vista plana' : 'Vista plana activa — click para vista árbol';
     }
     if (kanbanBtn) {
-      kanbanBtn.classList.toggle('active', _backlogKanbanMode);
-      kanbanBtn.title = _backlogKanbanMode ? 'Vista Kanban activa — click para desactivar' : 'Vista Kanban — columnas por status';
+      kanbanBtn.classList.toggle('active', _getBacklogKanbanMode());
+      kanbanBtn.title = _getBacklogKanbanMode() ? 'Vista Kanban activa — click para desactivar' : 'Vista Kanban — columnas por status';
     }
     if (focusBtn) {
-      focusBtn.classList.toggle('active', _backlogFocusMode);
-      focusBtn.title = _backlogFocusMode
+      focusBtn.classList.toggle('active', _getBacklogFocusMode());
+      focusBtn.title = _getBacklogFocusMode()
         ? 'Focus activo — Top 10 por: tipo · sprint · effort · antigüedad · click para desactivar'
         : 'Activar Focus — Top 10 por: tipo · sprint · effort · antigüedad';
-      if (!_backlogFocusMode) focusBtn.textContent = '🎯 Focus';
+      if (!_getBacklogFocusMode()) focusBtn.textContent = '🎯 Focus';
     }
     // Mi vista — visible solo con sprint activo + roles disponibles
     if (mikeBtn) {
@@ -723,20 +724,20 @@ export function renderBacklogList(onRendered) {
       const show = !!(activeSprint && miRoles.length);
       mikeBtn.classList.toggle('is-hidden', !show);
       if (show) {
-        mikeBtn.classList.toggle('active', _backlogMikeMode);
-        mikeBtn.textContent = _backlogMikeMode ? _getMiViewLabel() : 'Mi vista';
+        mikeBtn.classList.toggle('active', _getBacklogMikeMode());
+        mikeBtn.textContent = _getBacklogMikeMode() ? _getMiViewLabel() : 'Mi vista';
       }
     }
     // Sin AC y bloqueados
     const noAcBtn = document.getElementById('fbar-no-ac-btn');
-    if (noAcBtn) noAcBtn.classList.toggle('active', _backlogNoAcMode);
+    if (noAcBtn) noAcBtn.classList.toggle('active', _getBacklogNoAcMode());
     const blockerBtn = document.getElementById('fbar-blocker-btn');
     if (blockerBtn) blockerBtn.classList.toggle('active', _backlogBlockerFilter);
     // R-[tmp:sprint-group-toggle]: botón agrupación por sprint
     const sprintBtn = document.getElementById('fbar-sprint-btn');
     if (sprintBtn) {
-      sprintBtn.classList.toggle('active', _backlogSprintGroupMode);
-      sprintBtn.title = _backlogSprintGroupMode ? 'Agrupación por sprint activa — click para vista plana' : 'Vista plana activa — click para agrupar por sprint';
+      sprintBtn.classList.toggle('active', _getBacklogSprintGroupMode());
+      sprintBtn.title = _getBacklogSprintGroupMode() ? 'Agrupación por sprint activa — click para vista plana' : 'Vista plana activa — click para agrupar por sprint';
     }
   })();
 
@@ -811,7 +812,7 @@ export function renderBacklogList(onRendered) {
   }
 
   // T-202604-287: desviar a vista Kanban si está activa
-  if (_backlogKanbanMode) {
+  if (_getBacklogKanbanMode()) {
     _renderKanban(listEl);
     _updateDocLogCount('backlog');
     _skelHide(listEl);
@@ -868,11 +869,11 @@ export function renderBacklogList(onRendered) {
       else if (activePriorityFilter.has('medium') && !isHigh && !isLow) priorityOk = true;
       else priorityOk = false;
     }
-    return typeOk && statusOk && effortOk && roleOk && priorityOk && (_backlogTreeMode ? !isChild : true);
+    return typeOk && statusOk && effortOk && roleOk && priorityOk && (_getBacklogTreeMode() ? !isChild : true);
   });
 
   // T-202604-363: Sin AC — solo pendientes sin criterios de aceptación
-  if (_backlogNoAcMode) {
+  if (_getBacklogNoAcMode()) {
     filtered = filtered.filter(i => i.status === 'pendiente' && (!i.ac || !i.ac.length));
   }
 
@@ -902,7 +903,7 @@ export function renderBacklogList(onRendered) {
   // AC: sprint activo + high→medium primero · sin sprint activo: score global · ≤10 = todos visibles
   // AC: NO filtra filtered — aplica _blfHidden en ítems fuera del Top-10 → buildBacklogItem añade clase
   filtered.forEach(item => { delete item._blfHidden; delete item._focusRank; });
-  if (_backlogFocusMode) {
+  if (_getBacklogFocusMode()) {
     const pendienteFiltered = filtered.filter(i => i.status === 'pendiente');
     const _focusActiveSprint = _getActiveSprint();
     let sorted;
@@ -933,7 +934,7 @@ export function renderBacklogList(onRendered) {
   }
 
   // T-202604-313/366: Mi vista — T's pendientes del rol activo en sprint activo
-  if (_backlogMikeMode) {
+  if (_getBacklogMikeMode()) {
     const _activeSprint = _getActiveSprint();
     if (_activeSprint) {
       const _miRoles = _getMiViewRoles();
@@ -1016,7 +1017,7 @@ export function renderBacklogList(onRendered) {
   // T-202604-424 eliminó 'sprint' como opción del selector de sort, pero la condición de entrada
   // quedó atada a backlogSortMode === 'sprint' — inalcanzable. Fix: agrupar siempre que no haya
   // un modo exclusivo activo que tome control del rendering (kanban, focus, mike, noAc).
-  const _useSprintGroups = _backlogSprintGroupMode && !_backlogKanbanMode && !_backlogFocusMode && !_backlogMikeMode && !_backlogNoAcMode;
+  const _useSprintGroups = _getBacklogSprintGroupMode() && !_getBacklogKanbanMode() && !_getBacklogFocusMode() && !_getBacklogMikeMode() && !_getBacklogNoAcMode();
 
   if (_useSprintGroups) {
     // ── Modo Sprint: agrupar pendientes por sprint ──
@@ -1220,7 +1221,7 @@ export function renderBacklogList(onRendered) {
     const _hasRoleFilter  = activeRoleFilter !== null;
     const _hasStatusFilter = !(activeStatuses.has('pendiente') && activeStatuses.size === 1);
     const _hasEffortFilter = activeEfforts.size < 3;
-    const _hasAnyFilter = q || _hasTypeFilter || _hasRoleFilter || _hasStatusFilter || _hasEffortFilter || _backlogFocusMode || _backlogMikeMode;
+    const _hasAnyFilter = q || _hasTypeFilter || _hasRoleFilter || _hasStatusFilter || _hasEffortFilter || _getBacklogFocusMode() || _getBacklogMikeMode();
 
     let emptyIcon = '🔍', emptyTitle = '', emptyHint = '', emptyCTA = '';
 
@@ -1228,14 +1229,14 @@ export function renderBacklogList(onRendered) {
       emptyTitle = `Sin resultados para "${esc(q)}"`;
       emptyHint  = 'Prueba con otro término o limpia la búsqueda.';
       emptyCTA   = `<button class="empty-state-btn" onclick="clearBacklogSearch()">✕ Limpiar búsqueda</button>`;
-    } else if (_backlogMikeMode && _activeSprint) {
+    } else if (_getBacklogMikeMode() && _activeSprint) {
       const _miRoles = _getMiViewRoles();
       const _miRole = _miRoles[_miViewRoleIndex % _miRoles.length] || 'este rol';
       emptyIcon  = '⚡';
       emptyTitle = `Sin T's pendientes para ${_miRole} en ${_activeSprint.label || _activeSprint.id}`;
       emptyHint  = 'No hay tickets pendientes asignados a este rol en el sprint activo. Rota al siguiente rol o desactiva Mi vista.';
       emptyCTA   = `<button class="empty-state-btn" onclick="toggleBacklogMikeMode()">↻ Rotar rol / desactivar</button>`;
-    } else if (_backlogFocusMode) {
+    } else if (_getBacklogFocusMode()) {
       emptyIcon  = '🎯';
       emptyTitle = 'Sin ítems en Focus';
       emptyHint  = 'No hay ítems pendientes con los filtros actuales.';
