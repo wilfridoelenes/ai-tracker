@@ -1,8 +1,14 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
-// Dependencias: locus-storage.js · locus-toast.js · locus-item-editor.js (typeof guard)
+
+import { _normalizeStatus } from './locus-backlog-item.js';
+import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
+import { _getActiveSprint, renderSprintBurndown, renderSprintItems } from './locus-backlog-sprints.js';
+import { openItemEditor } from './locus-item-editor.js';
+import { _blogLog, _effectiveVersion, _loadFromSupabase, getAllSessions, saveBacklog } from './locus-storage.js';
+import { showToast } from './locus-toast.js';
 
 // T-202604-216: Skeleton helpers
 const _SKEL_HTML_4 = Array(4).fill('<div class="skel-row"></div>').join('');
@@ -71,13 +77,12 @@ let _redoStack = [];
 // Se limpia automáticamente al recargar la página (nueva sesión).
 const _acReplacedSet = new Set();
 
-// B-202605-012: wrapper con guardia typeof para llamadas inline a openItemEditor
-// Evita falla silenciosa cuando el módulo externo no carga
+// B-202605-012: wrapper para llamadas inline a openItemEditor
 export function _openItemEditorSafe(id, code) {
-  if (typeof openItemEditor === 'function') {
+  if (openItemEditor) {
     openItemEditor(id, code);
   } else {
-    if (typeof showToast === 'function') showToast({ title: 'No se pudo abrir el editor', body: 'Recarga la página.', type: 'error' });
+    showToast({ title: 'No se pudo abrir el editor', body: 'Recarga la página.', type: 'error' });
     console.error('[AI Tracker] openItemEditor no disponible — módulo externo no cargado');
   }
 }
@@ -94,7 +99,7 @@ export function undoBacklog() {
   _redoStack.push(JSON.stringify(ITEMS));
   ITEMS = JSON.parse(_undoStack.pop());
   saveBacklog();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   renderStats();
   _updateUndoUI();
   showToast('info', '↩ Deshacer aplicado');
@@ -105,7 +110,7 @@ export function redoBacklog() {
   _undoStack.push(JSON.stringify(ITEMS));
   ITEMS = JSON.parse(_redoStack.pop());
   saveBacklog();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   renderStats();
   _updateUndoUI();
   showToast('info', '↪ Rehacer aplicado');
@@ -202,7 +207,7 @@ function toggleBacklogBlockerFilter() {
   _backlogBlockerFilter = !_backlogBlockerFilter;
   const btn = document.getElementById('fbar-blocker-btn');
   if (btn) btn.classList.toggle('active', _backlogBlockerFilter);
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202605-449: filtro por ítems con dependencias bloqueantes activas
@@ -216,7 +221,7 @@ function toggleDepsFilter() {
     btn.textContent = labels[_depsFilter];
     btn.classList.toggle('active', _depsFilter > 0);
   }
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202605-449: helper — ítems con blockedBy[] que aún no están done
@@ -248,7 +253,7 @@ export function _hasRecentSession(item) {
   if (typeof hasRecentSession !== 'function') return true; // guardia — función canónica no disponible
   // R-202605-041: excluir sesiones anteriores al createdAt del ítem al evaluar actividad reciente
   // Ítems legacy sin createdAt → comportamiento anterior sin cambio
-  if (item.createdAt && typeof getAllSessions === 'function') {
+  if (item.createdAt) {
     const allSessions = getAllSessions();
     const hasPostCreation = allSessions.some(s =>
       ((s.trackerRefs || []).includes(item.code) || (s.backlogRefs || []).includes(item.code)) &&
@@ -363,7 +368,7 @@ export function _calcRelevanceScore(item, allSessionsCache) { // B-202605-009: a
 // T-202604-257: recalcular score en todos los ITEMS pendientes y estamparlo en item._score
 function _recalcAllScores() {
   // B-202605-009: una sola llamada a getAllSessions() por ciclo — no O(n×m)
-  const _sessCache = typeof getAllSessions === 'function' ? getAllSessions() : [];
+  const _sessCache = getAllSessions();
   ITEMS.forEach(item => {
     item._score = (item.status === 'pendiente') ? _calcRelevanceScore(item, _sessCache) : 0;
   });
@@ -442,7 +447,7 @@ export function _purgeStaleBacklogCache() {
   const before = ITEMS.length;
 
   // B-202605-045: snapshot antes de mutar para que la purga sea deshacible
-  if (typeof _undoSnapshot === 'function') _undoSnapshot();
+  _undoSnapshot();
 
   // Filtrar del array en memoria — Supabase conserva el registro completo
   ITEMS = ITEMS.filter(item => {
@@ -455,7 +460,7 @@ export function _purgeStaleBacklogCache() {
   if (purged > 0) {
     console.log(`[AI Tracker] _purgeStaleBacklogCache: ${purged} ítem(s) purgado(s) del caché local (>90 días done/descartado)`);
     // B-202605-045: persistir tras mutación para que el estado sea consistente
-    if (typeof saveBacklog === 'function') saveBacklog();
+    saveBacklog();
   }
   return purged;
 }
@@ -475,12 +480,12 @@ function purgeAllHistorico() {
     okLabel: 'Purgar',
     danger: true
   }, () => {
-    if (typeof _undoSnapshot === 'function') _undoSnapshot();
+    _undoSnapshot();
     const before = ITEMS.length;
     ITEMS = ITEMS.filter(i => i.status !== 'historico');
     const purged = before - ITEMS.length;
-    if (typeof saveBacklog === 'function') saveBacklog();
-    if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+    saveBacklog();
+    _markBacklogListDirty(); renderBacklogList();
     renderStats();
     console.log(`[AI Tracker] purgeAllHistorico: ${purged} ítem(s) histórico(s) eliminados permanentemente.`);
     showToast('success', `🗑 ${purged} ítem${purged !== 1 ? 's' : ''} histórico${purged !== 1 ? 's' : ''} eliminado${purged !== 1 ? 's' : ''}.`);
@@ -502,14 +507,14 @@ function _normalizeItems(items) {
     // Ítems sin campo → versión 0. Migrar a 1 (schema actual).
     if (item.schema_version === undefined) {
       item.schema_version = 1;
-      if (typeof _blogLog === 'function') _blogLog('normalize', item.code || '(sin código)', 'schema_version ausente → 1', 'backlog');
+      _blogLog('normalize', item.code || '(sin código)', 'schema_version ausente → 1', 'backlog');
     }
 
     // ── code ──────────────────────────────────────────────────────────────────
     // code vacío o ausente: conservar ítem, registrar warning. No asignar código aquí
     // (los IDs los asigna Locus). Ítems placeholder ([pendiente-ID], [tmp:slug]) son válidos.
     if (!item.code) {
-      if (typeof _blogLog === 'function') _blogLog('normalize-warn', '(sin código)', 'code ausente — ítem conservado sin modificar', 'backlog');
+      _blogLog('normalize-warn', '(sin código)', 'code ausente — ítem conservado sin modificar', 'backlog');
     }
 
     // ── type ──────────────────────────────────────────────────────────────────
@@ -518,10 +523,10 @@ function _normalizeItems(items) {
       const firstChar = (item.code || '').charAt(0);
       if ('PTRB'.includes(firstChar)) {
         item.type = firstChar;
-        if (typeof _blogLog === 'function') _blogLog('normalize', item.code || '(sin código)', `type inferido desde prefijo → ${item.type}`, 'backlog');
+        _blogLog('normalize', item.code || '(sin código)', `type inferido desde prefijo → ${item.type}`, 'backlog');
       } else {
         item.type = 'T';
-        if (typeof _blogLog === 'function') _blogLog('normalize-warn', item.code || '(sin código)', 'type ausente y no inferible → T (default)', 'backlog');
+        _blogLog('normalize-warn', item.code || '(sin código)', 'type ausente y no inferible → T (default)', 'backlog');
       }
     }
 
@@ -529,7 +534,7 @@ function _normalizeItems(items) {
     // Ausente o inválido → 'pendiente'. Usa _normalizeStatus si disponible.
     const rawStatus = item.status;
     let normalizedStatus;
-    if (typeof _normalizeStatus === 'function') {
+    {
       normalizedStatus = _normalizeStatus(rawStatus);
     } else {
       // Fallback inline — misma lógica que _normalizeStatus para los valores canónicos
@@ -537,7 +542,7 @@ function _normalizeItems(items) {
     }
     if (item.status !== normalizedStatus) {
       item.status = normalizedStatus;
-      if (typeof _blogLog === 'function') _blogLog('normalize', item.code || '(sin código)', `status "${rawStatus}" → "${normalizedStatus}"`, 'backlog');
+      _blogLog('normalize', item.code || '(sin código)', `status "${rawStatus}" → "${normalizedStatus}"`, 'backlog');
     }
 
     // ── title ─────────────────────────────────────────────────────────────────
@@ -545,13 +550,13 @@ function _normalizeItems(items) {
     if (item.desc !== undefined) {
       if (!item.title || item.title.trim() === '') {
         item.title = item.desc;
-        if (typeof _blogLog === 'function') _blogLog('normalize', item.code || '(sin código)', 'desc migrado a title', 'backlog');
+        _blogLog('normalize', item.code || '(sin código)', 'desc migrado a title', 'backlog');
       }
       delete item.desc;
     }
     if (!item.title || item.title.trim() === '') {
       item.title = '[sin título]';
-      if (typeof _blogLog === 'function') _blogLog('normalize-warn', item.code || '(sin código)', 'title ausente → "[sin título]"', 'backlog');
+      _blogLog('normalize-warn', item.code || '(sin código)', 'title ausente → "[sin título]"', 'backlog');
     }
 
     // ── id ────────────────────────────────────────────────────────────────────
@@ -584,7 +589,7 @@ export function loadBacklog() {
     const s = localStorage.getItem(_tplKey('backlog-items'));
     if (s) { try { ITEMS = JSON.parse(s); } catch { ITEMS = []; } } else { ITEMS = []; }
     // Lanzar carga remota en background — _loadFromSupabase re-renderiza al terminar
-    if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
+    _loadFromSupabase();
     // Ejecutar migraciones locales sobre los datos inmediatos mientras Supabase responde
   } else {
     const s = localStorage.getItem(_tplKey('backlog-items'));
@@ -595,7 +600,7 @@ export function loadBacklog() {
   // Guard: _normalizeStatus debe estar disponible (dependency de _normalizeItems).
   if (typeof _normalizeStatus !== 'function') {
     console.error('[AI Tracker] loadBacklog: _normalizeStatus no disponible — normalización abortada. Verificar orden de carga de módulos.');
-    if (typeof showToast === 'function') showToast({ title: 'Error de carga', body: '_normalizeStatus no disponible. Recarga la página.', type: 'error' });
+    showToast({ title: 'Error de carga', body: '_normalizeStatus no disponible. Recarga la página.', type: 'error' });
     return;
   }
   ITEMS = _normalizeItems(ITEMS);
@@ -625,7 +630,7 @@ export function itemType(code) {
 function clearTypeFilters() {
   activeTypes = new Set(['T','R','B','P']);
   updateTypeFilterUI();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 function toggleTypeFilter(type) {
@@ -645,7 +650,7 @@ function toggleTypeFilter(type) {
     activeTypes.add(type);
   }
   updateTypeFilterUI();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   // T-202604-364: filter-pulse feedback
   requestAnimationFrame(() => {
     document.querySelectorAll('.bl-fc-type-' + type).forEach(el => {
@@ -691,7 +696,7 @@ function toggleStatusFilter(status) {
     }
   }
   updateStatusFilterUI();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   // T-202604-364: filter-pulse feedback
   requestAnimationFrame(() => {
     const btnId = status === 'done' ? 'fstatus-done' : status === 'descartado' ? 'fstatus-descartado' : status === 'en-revision' ? 'fstatus-en-revision' : 'fstatus-pendiente';
@@ -979,7 +984,7 @@ export function importBacklog(event) {
       updateBacklogBanner();
       updateStatusFilterUI();
       renderStats();
-      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+      _markBacklogListDirty(); renderBacklogList();
       updateBacklogFooter();
       _setBacklogModified();
       // Toast enriquecido con pills de color por tipo y sprint
@@ -1085,7 +1090,7 @@ export function setItemStatus(code, newStatus) {
 
   // T-A4b: marcar done en sprint activo — inline confirm no-bloqueante (Variante B)
   if (newStatus === 'done') {
-    const activeSprint = typeof _getActiveSprint === 'function' ? _getActiveSprint() : null;
+    const activeSprint = _getActiveSprint();
     const itemInActiveSprint = activeSprint && item.sprint && item.sprint === activeSprint.id;
     if (itemInActiveSprint) {
       _showInlineConfirmDone(code);
@@ -1106,7 +1111,7 @@ function _applyStatusChange(code, newStatus, prevStatus) {
   if (newStatus === 'done' && !item.doneAt) item.doneAt = Date.now();
   // B-[tmp:closed-version]: persistir versión activa al cerrar ítem
   if (newStatus === 'done' || newStatus === 'descartado') {
-    item.closedInVersion = (typeof _effectiveVersion === 'function') ? _effectiveVersion() : '';
+    item.closedInVersion = _effectiveVersion();
   }
   // R-202604-015: registrar cambio en history[]
   if (!item.history) item.history = [];
@@ -1144,14 +1149,14 @@ function _applyStatusChange(code, newStatus, prevStatus) {
     const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
     if (el) {
       el.classList.add('item-exit-anim');
-      setTimeout(() => { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); renderStats(); if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); if (typeof renderSprintItems === 'function') renderSprintItems(); }, 360); // T-202605-058 T-202605-044
+      setTimeout(() => { _markBacklogListDirty(); renderBacklogList(); renderStats(); renderSprintBurndown(); renderSprintItems(); }, 360); // T-202605-058 T-202605-044
       return;
     }
   }
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   renderStats();
-  if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); // T-202605-058
-  if (typeof renderSprintItems === 'function') renderSprintItems(); // T-202605-044
+  renderSprintBurndown(); // T-202605-058
+  renderSprintItems(); // T-202605-044
 }
 
 function _resetStatusSelect(code, currentStatus) {
@@ -1243,7 +1248,7 @@ export function _applyDoneStatus(code) {
   item.status = 'done';
   item.statusChangedAt = Date.now();
   if (!item.doneAt) item.doneAt = Date.now();
-  if (typeof _effectiveVersion === 'function') item.closedInVersion = _effectiveVersion();
+  item.closedInVersion = _effectiveVersion();
   if (!item.history) item.history = [];
   item.history.push({ type: 'status', ts: item.statusChangedAt, aiId: _getActiveSessionAiId() || undefined, data: { from: _prevStatus, to: 'done', role: item.role || '' } });
   _recalcAllScores();
@@ -1281,14 +1286,14 @@ export function _applyDoneStatus(code) {
     const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
     if (el) {
       el.classList.add('item-exit-anim');
-      setTimeout(() => { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); renderStats(); if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); if (typeof renderSprintItems === 'function') renderSprintItems(); }, 360); // T-202605-058 T-202605-044
+      setTimeout(() => { _markBacklogListDirty(); renderBacklogList(); renderStats(); renderSprintBurndown(); renderSprintItems(); }, 360); // T-202605-058 T-202605-044
       return;
     }
   }
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   renderStats();
-  if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); // T-202605-058
-  if (typeof renderSprintItems === 'function') renderSprintItems(); // T-202605-044
+  renderSprintBurndown(); // T-202605-058
+  renderSprintItems(); // T-202605-044
 }
 export function effortDots(n) {
   let h = '';
@@ -1496,7 +1501,7 @@ function clearAllFilters() {
   updateEffortFilterUI(); // T-071
   updateRoleFilterUI();   // T-202604-245
   updateClearFilterBtn();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 // R-202605-122 AC3: asignación rápida de effort desde badge sin abrir editor completo
@@ -1510,7 +1515,7 @@ function _quickAssignEffort(codeOrId) {
   if (item._needsEffortReview) delete item._needsEffortReview;
   _undoSnapshot();
   saveBacklog();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   renderStats();
   showToast('success', '✓ Effort ' + n + ' asignado a ' + (item.code || item.id));
 }
@@ -1534,7 +1539,7 @@ function toggleEffortFilter(e) {
     activeEfforts.add(n);
   }
   updateEffortFilterUI();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   // T-202604-364: filter-pulse feedback
   requestAnimationFrame(() => {
     const el = document.getElementById('feff-' + n);
@@ -1567,7 +1572,7 @@ function setItemRole(code, role) {
   _blogLog('rol →', code, role || '(vacío)', 'backlog');
   saveBacklog();
   _setBacklogModified();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   renderStats();
   showToast('success', role ? `${code} → ${role}` : `${code} rol limpiado`);
 }
@@ -1582,7 +1587,7 @@ function toggleRoleFilter(role) {
   }
   updateRoleFilterUI();
   updateClearFilterBtn();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202604-357: toggle filtro por prioridad — acumulable, combina con otros filtros
@@ -1593,7 +1598,7 @@ function togglePriorityFilter(p) {
     activePriorityFilter.add(p);
   }
   updateClearFilterBtn();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   renderStats();
 }
 
@@ -1639,7 +1644,7 @@ function onBacklogSortChange(val) {
   // T-202604-424: ignorar 'sprint' si llega de localStorage legacy o select antiguo
   if (val === 'sprint') val = 'priority';
   backlogSortMode = val;
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-072: toggle dirección de sort
@@ -1647,7 +1652,7 @@ function toggleSortDir() {
   backlogSortDir = backlogSortDir === 'asc' ? 'desc' : 'asc';
   const btn = document.getElementById('fbar-sort-dir-btn');
   if (btn) btn.textContent = backlogSortDir === 'asc' ? '↑' : '↓';
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202604-187: toggle árbol vs vista plana
@@ -1749,7 +1754,7 @@ function toggleBacklogMikeMode() {
   }
   updateClearFilterBtn();
   _syncViewAriaStates();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 function toggleBacklogKanbanMode() {
@@ -1770,7 +1775,7 @@ function toggleBacklogKanbanMode() {
   const kbBtn = document.getElementById('fbar-kanban-btn');
   if (kbBtn) kbBtn.classList.toggle('active', _backlogKanbanMode);
   _syncViewAriaStates();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 function toggleBacklogTreeMode() {
@@ -1784,7 +1789,7 @@ function toggleBacklogTreeMode() {
     btn.classList.toggle('active', _backlogTreeMode);
   }
   _syncViewAriaStates();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202604-258: toggle modo Focus — top 10 ítems por score descendente
@@ -1803,7 +1808,7 @@ export function toggleBacklogFocusMode() {
   if (_backlogFocusMode) _recalcAllScores();
   updateClearFilterBtn();
   _syncViewAriaStates();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202604-363: toggle filtro Sin AC — pendientes sin criterios de aceptación
@@ -1815,7 +1820,7 @@ function toggleBacklogNoAcMode() {
     btn.title = _backlogNoAcMode ? 'Sin AC activo — click para desactivar' : 'Filtrar ítems sin criterios de aceptación';
   }
   updateClearFilterBtn();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 // R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente
@@ -1827,7 +1832,7 @@ function toggleBacklogNoAcMode() {
 export function _migrateItemTypes() {
   if (typeof ITEMS === 'undefined') return;
   ITEMS = _normalizeItems(ITEMS);
-  if (typeof saveBacklog === 'function') saveBacklog();
+  saveBacklog();
 }
 window._migrateItemTypes = _migrateItemTypes;
 
