@@ -1,8 +1,20 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
+
+import { renderStats } from './locus-backlog-core.js';
+import { _isPlaceholderCode, applyPatchesFromTG } from './locus-backlog-item.js';
+import { showMergeDiffPanel } from './locus-backlog-merge.js';
+import { renderBacklogList } from './locus-backlog-render.js';
+import { _ctrMergeFromItem } from './locus-contracts.js';
+import { extractContextSections, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections } from './locus-docs.js';
+import { showCheckpointPanel } from './locus-sesiones-viz.js';
+import { _checkStorageQuota, _mergeBacklogWithProject } from './locus-session-save.js';
+import { loadPlan, renderPlan } from './locus-sprint-plan.js';
+import { _blogLog, _offlineQueuePush, getActiveProject, getActiveSprints } from './locus-storage.js';
+import { showToast } from './locus-toast.js';
 
 // T-202604-215: Labels de status en español — fuente de verdad para UI
 // Movido desde locus-checkpoint-hoy.js
@@ -281,13 +293,11 @@ export function _normalizeSprint(item) {
     return;
   }
   // AC-6: sprint cerrado → campo ausente + advertencia DocLog
-  if (typeof getActiveSprints === 'function') {
+  {
     const allSprints = getActiveSprints(); // B-202605-065: devuelve proj.sprints completo — abiertos y cerrados
     const sprintObj  = allSprints.find(s => s.id === raw);
     if (sprintObj && sprintObj.status === 'closed') {
-      if (typeof _blogLog === 'function') {
-        _blogLog('sprint-normalizado', item.code || '', `Sprint cerrado normalizado a campo ausente: ${raw}`, 'backlog');
-      }
+      _blogLog('sprint-normalizado', item.code || '', `Sprint cerrado normalizado a campo ausente: ${raw}`, 'backlog');
       delete item.sprint;
       return;
     }
@@ -328,7 +338,7 @@ export function parsePaste(id) {
         if (_it.type === 'patch') {
           if (!_it.code || _isPlaceholderCode(_it.code)) {
             // AC-7: patch sobre código placeholder → ignorar + advertencia DocLog
-            if (typeof _blogLog === 'function') _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
+            _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
           } else {
             window[`_patchItems_${id}`] = window[`_patchItems_${id}`] || [];
             window[`_patchItems_${id}`].push(_it);
@@ -373,9 +383,7 @@ export function parsePaste(id) {
         tgItems = [];
         delete window[`_patchItems_${id}`];
       } else {
-        if (typeof _ctrMergeFromItem === 'function') {
-          _rawItems.forEach(it => { if (it.contract) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract); });
-        }
+        _rawItems.forEach(it => { if (it.contract) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract); });
       }
     }
     // Path legacy: ---ITEMS--- / ---ITEMS-END---
@@ -410,8 +418,8 @@ export function parsePaste(id) {
           const _it = _parsedJSON[_i];
           // R-202605-062: patch — instrucción de operación, no tipo de ítem
           if (_it.type === 'patch') {
-            if (!_it.code || (typeof _isPlaceholderCode === 'function' && _isPlaceholderCode(_it.code))) {
-              if (typeof _blogLog === 'function') _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
+            if (!_it.code || _isPlaceholderCode(_it.code)) {
+              _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
             } else {
               window[`_patchItems_${id}`] = window[`_patchItems_${id}`] || [];
               window[`_patchItems_${id}`].push(_it);
@@ -462,11 +470,9 @@ export function parsePaste(id) {
         } else {
           delete window[`_itemsJsonError_${id}`];
           // R-202604-075: extraer campo contract de cada ítem y aplicar a Contratos de Módulo
-          if (typeof _ctrMergeFromItem === 'function') {
-            _parsedJSON.forEach(it => {
+          _parsedJSON.forEach(it => {
               if (it.contract) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract);
             });
-          }
         }
       }
     } else {
@@ -514,7 +520,7 @@ export function parsePaste(id) {
     } catch (e) {
       // B-202605-NNN: QuotaExceededError — storage lleno. El draft no se guarda
       // pero el render del preview continúa sin interrupciones.
-      if (typeof _checkStorageQuota === 'function') _checkStorageQuota();
+      _checkStorageQuota();
     }
     // R-3: persistir borrador en Supabase con debounce para no saturar en cada keystroke
     clearTimeout(window['_draftSbTimer_' + id]);
@@ -526,7 +532,7 @@ export function parsePaste(id) {
             [{ user_id: _supabaseUser.id, key: draftKey, value: { text: savedText, savedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
             { onConflict: 'user_id,key' }
           ).then(({ error }) => {
-            if (error && typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'draft', aiId: id });
+            if (error) _offlineQueuePush({ type: 'draft', aiId: id });
           });
         }
       }
@@ -653,7 +659,7 @@ export function parsePaste(id) {
       if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       if (!_previewAlreadyShowing) showToast('error', `⛔ Proyecto no reconocido: "${esc(_proyectoRaw)}" — corrige el campo`);
       // R-202605-063: sugerencia de string canónico por distancia de edición
-      if (typeof _blogLog === 'function') {
+      {
         const { suggestion, distance } = _suggestCanonical(_proyectoRaw);
         if (distance <= 3) {
           _blogLog('proyecto-no-reconocido', '', `Proyecto no reconocido: "${_proyectoRaw}". ¿Quisiste decir "${suggestion}"?`, 'parser');
@@ -793,7 +799,7 @@ export function _tryIngestPlan(text) {
   if (typeof parsePlanBlock !== 'function' || typeof savePlan !== 'function') return false;
   const incoming = parsePlanBlock(text);
   if (!incoming || !incoming.length) return false;
-  const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+  const proj = getActiveProject();
   if (!proj) return false;
 
   // R-202605-153: merge por scope — preservar sprints del otro scope en localStorage
@@ -803,7 +809,7 @@ export function _tryIngestPlan(text) {
   const incomingHasSprint = incoming.some(sp => sp.scope !== 'sesion');
 
   let merged = incoming;
-  if (typeof loadPlan === 'function') {
+  {
     const existing = loadPlan(proj.id) || [];
     if (incomingHasSesion && !incomingHasSprint) {
       // Solo scope:sesion entrante — conservar scope:sprint existente
@@ -826,8 +832,8 @@ export function _tryIngestPlan(text) {
           ? '✓ Execution Plan importado — plan de sprint actualizado'
           : '✓ Execution Plan importado — plan completo actualizado')
     : '✓ Plan importado — ' + incoming.length + ' sprint(s)';
-  if (typeof showToast === 'function') showToast('success', label);
-  if (typeof renderPlan === 'function') renderPlan();
+  showToast('success', label);
+  renderPlan();
   return true;
 }
 
@@ -861,13 +867,13 @@ function parsePasteStandalone() {
   const _hasEP  = text.includes('---EXECUTION-PLAN---');
   const _hasCKP = text.includes('---CHECKPOINT---') || /```json\s*\{/.test(text);
   if (_hasEP && !_hasCKP) {
-    const _epResult = (typeof _tryIngestPlan === 'function') ? _tryIngestPlan(text) : false;
+    const _epResult = _tryIngestPlan(text);
     if (_epResult) {
       prev.innerHTML = '<div class="ckpt-pill ckpt-pill--ok ckpt-pill--mb">✓ Execution Plan aplicado</div>';
       btn.disabled = true; // sin ítems de backlog — nada más que confirmar
     } else {
       // _tryIngestPlan falló — proyecto no activo o bloque inválido
-      const _activeProj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+      const _activeProj = getActiveProject();
       if (!_activeProj) {
         prev.innerHTML = '<div class="paste-error">⚠ Selecciona un proyecto activo antes de aplicar el Execution Plan.</div>';
       } else {
@@ -939,8 +945,8 @@ function parsePasteStandalone() {
     const it = parsedJSON[i];
     // R-202605-062: patch — instrucción de operación, no tipo de ítem
     if (it.type === 'patch') {
-      if (!it.code || (typeof _isPlaceholderCode === 'function' && _isPlaceholderCode(it.code))) {
-        if (typeof _blogLog === 'function') _blogLog('patch-ignorado', it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (it.code || '(vacío)'), 'backlog');
+      if (!it.code || _isPlaceholderCode(it.code)) {
+        _blogLog('patch-ignorado', it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (it.code || '(vacío)'), 'backlog');
       } else {
         patchItems.push(it);
       }
@@ -985,11 +991,9 @@ function parsePasteStandalone() {
   }
 
   // R-202604-075: extraer campo contract de cada ítem y aplicar a Contratos de Módulo
-  if (typeof _ctrMergeFromItem === 'function') {
-    parsedJSON.forEach(it => {
-      if (it.contract) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract);
-    });
-  }
+  parsedJSON.forEach(it => {
+    if (it.contract) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract);
+  });
 
   // R-202604-085 + R-B: detectar ---PLAN--- o ---EXECUTION-PLAN--- embebido en el CHECKPOINT standalone
   if (text.includes('---PLAN---') || text.includes('---EXECUTION-PLAN---')) _tryIngestPlan(text);
@@ -1012,14 +1016,14 @@ function saveStandaloneCheckpoint() {
 
   // AC-4: si no hay ítems ni patches, no hacer nada
   if (!tgItems.length && !(patchItems && patchItems.length)) {
-    if (typeof showToast === 'function') showToast('warning', '⚠ Sin ítems para aplicar');
+    showToast('warning', '⚠ Sin ítems para aplicar');
     return;
   }
 
   // Proyecto activo
-  const activeProj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+  const activeProj = getActiveProject();
   if (!activeProj) {
-    if (typeof showToast === 'function') showToast('warning', '⚠ Selecciona un proyecto antes de aplicar');
+    showToast('warning', '⚠ Selecciona un proyecto antes de aplicar');
     return;
   }
 
@@ -1027,12 +1031,10 @@ function saveStandaloneCheckpoint() {
   const syntheticSessId = 'standalone-' + Date.now();
 
   const _doApply = () => {
-    const mergeResult = (typeof _mergeBacklogWithProject === 'function')
-      ? _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id)
-      : { created:[], updated:[], ignored:[], advanced:[], retroceso:[], discarded:[] };
+    const mergeResult = _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id);
 
     // R-202605-062: aplicar patches después del merge de ítems normales
-    if (patchItems && patchItems.length && typeof applyPatchesFromTG === 'function') {
+    if (patchItems && patchItems.length) {
       const patchResult = applyPatchesFromTG(patchItems, syntheticSessId);
       // Incorporar patches al mergeResult para que el panel diff los muestre (AC-10)
       if (patchResult.patched && patchResult.patched.length) {
@@ -1041,15 +1043,15 @@ function saveStandaloneCheckpoint() {
     }
 
     // Merge CONTEXT-SECTION / MAP-SECTION si hay
-    if (typeof extractContextSections === 'function') {
+    {
       const ctxSections = extractContextSections(raw);
-      if (ctxSections.length && typeof mergeContextSections === 'function') {
+      if (ctxSections.length) {
         mergeContextSections(ctxSections, activeProj.id);
       }
     }
-    if (typeof extractHtmlMapSections === 'function') {
+    {
       const mapSections = extractHtmlMapSections(raw);
-      if (mapSections.length && typeof mergeHtmlMapSections === 'function') {
+      if (mapSections.length) {
         mergeHtmlMapSections(mapSections, activeProj.id);
       }
     }
@@ -1059,8 +1061,8 @@ function saveStandaloneCheckpoint() {
 
     closeStandaloneCheckpoint();
 
-    if (typeof renderBacklogList === 'function') renderBacklogList();
-    if (typeof renderStats === 'function') renderStats();
+    renderBacklogList();
+    renderStats();
 
     // Mostrar resultado en panel CHECKPOINT igual que el flujo sesión
     const hasMergeData = mergeResult.created.length || mergeResult.advanced.length ||
@@ -1068,9 +1070,9 @@ function saveStandaloneCheckpoint() {
       mergeResult.updated.length || mergeResult.ignored.length;
     // B-202604-164: el panel diff (showCheckpointPanel) ya comunica el resultado —
     // el toast adicional causaba duplicado. Si no hay merge data → toast como fallback.
-    if (hasMergeData && typeof showCheckpointPanel === 'function') {
+    if (hasMergeData) {
       showCheckpointPanel(mergeResult);
-    } else if (typeof showToast === 'function') {
+    } else {
       const _total = tgItems.length + (patchItems ? patchItems.length : 0);
       showToast('success', `✓ ${_total} ítem${_total !== 1 ? 's' : ''} aplicado${_total !== 1 ? 's' : ''} al backlog`);
     }
@@ -1078,12 +1080,8 @@ function saveStandaloneCheckpoint() {
   };
 
   // AC-1+2: pasar por showMergeDiffPanel — muestra panel de confirmación antes de aplicar
-  if (typeof showMergeDiffPanel === 'function') {
-    closeStandaloneCheckpoint();
-    showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _doApply);
-  } else {
-    _doApply();
-  }
+  closeStandaloneCheckpoint();
+  showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _doApply);
 }
 
 
