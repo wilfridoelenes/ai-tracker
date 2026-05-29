@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1886,6 +1886,11 @@ export function _migrateItemTypes() {
   saveBacklog();
 }
 window._migrateItemTypes = _migrateItemTypes;
+
+// Inline handlers dinámicos — no tienen ID fijo, no pueden migrar a addEventListener
+// Se exponen en window para que onclick="fn()" en HTML generado en runtime funcione
+window.toggleItemExpand = toggleItemExpand;
+window.clearAllFilters  = clearAllFilters;
 
 // T-202605-053: Migrar handlers inline de index.html → addEventListener
 // Funciones cubiertas: undoBacklog · redoBacklog · toggleBacklogTreeMode · toggleBacklogKanbanMode
