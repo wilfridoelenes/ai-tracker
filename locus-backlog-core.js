@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -65,7 +65,7 @@ let ITEMS = (() => {
   if (!stored && _initProjId) {
     // B-202605-062: proyecto activo sin datos — feedback explícito
     console.warn('[AI Tracker] ITEMS IIFE: proyecto activo "' + _initProjId + '" no tiene datos en localStorage.');
-    // El empty state visual se muestra en renderBacklogList cuando ITEMS queda vacío
+    // El empty window.state visual se muestra en renderBacklogList cuando ITEMS queda vacío
   }
   if (stored) {
     try {
@@ -88,6 +88,14 @@ let ITEMS = (() => {
   }
   return [];
 })();
+
+// Exponer ITEMS en window para módulos que acceden directamente (legacy pre-module).
+// _setITEMS(arr): reemplaza el contenido de ITEMS sin romper la referencia de window.ITEMS.
+window.ITEMS = ITEMS;
+function _setITEMS(arr) {
+  ITEMS.splice(0, ITEMS.length, ...(Array.isArray(arr) ? arr : []));
+  // window.ITEMS apunta al mismo array — no necesita reasignación
+}
 
 // B-202604-002: undo/redo stack para ITEMS (20 niveles)
 const UNDO_MAX = 20;
@@ -119,7 +127,7 @@ export function _undoSnapshot() {
 export function undoBacklog() {
   if (!_undoStack.length) return;
   _redoStack.push(JSON.stringify(ITEMS));
-  ITEMS = JSON.parse(_undoStack.pop());
+  _setITEMS(JSON.parse(_undoStack.pop()));
   saveBacklog();
   _markBacklogListDirty(); renderBacklogList();
   renderStats();
@@ -130,7 +138,7 @@ export function undoBacklog() {
 export function redoBacklog() {
   if (!_redoStack.length) return;
   _undoStack.push(JSON.stringify(ITEMS));
-  ITEMS = JSON.parse(_redoStack.pop());
+  _setITEMS(JSON.parse(_redoStack.pop()));
   saveBacklog();
   _markBacklogListDirty(); renderBacklogList();
   renderStats();
@@ -181,7 +189,7 @@ let _backlogTreeMode = !_backlogKanbanMode && (_backlogViewModeRaw !== null
 // T-202604-187: set de rCodes con bloque hijos colapsado
 const _collapsedChildren = new Set();
 
-// T-049: state de filtros mixtos
+// T-049: window.state de filtros mixtos
 let activeTypes = new Set(['T','R','B','P']);
 let activeStatuses = new Set(['pendiente', 'en-revision']); // done oculto por defecto
 let _blFooterCollapsed = false; // T-202604-360: footer fijo colapsable
@@ -472,11 +480,11 @@ export function _purgeStaleBacklogCache() {
   _undoSnapshot();
 
   // Filtrar del array en memoria — Supabase conserva el registro completo
-  ITEMS = ITEMS.filter(item => {
+  _setITEMS(ITEMS.filter(item => {
     if (!purgeable.includes(item.status)) return true; // nunca purgar pendientes/en-curso
     const ts = item.statusChangedAt || item.doneAt || 0;
     return ts > cutoff; // conservar si fue cerrado hace menos de 90 días
-  });
+  }));
 
   const purged = before - ITEMS.length;
   if (purged > 0) {
@@ -504,7 +512,7 @@ function purgeAllHistorico() {
   }, () => {
     _undoSnapshot();
     const before = ITEMS.length;
-    ITEMS = ITEMS.filter(i => i.status !== 'historico');
+    _setITEMS(ITEMS.filter(i => i.status !== 'historico'));
     const purged = before - ITEMS.length;
     saveBacklog();
     _markBacklogListDirty(); renderBacklogList();
@@ -609,13 +617,13 @@ export function loadBacklog() {
       typeof _supabaseUser !== 'undefined' && _supabaseUser) {
     // Cargar localStorage como base inmediata (evita flash de backlog vacío)
     const s = localStorage.getItem(_tplKey('backlog-items'));
-    if (s) { try { ITEMS = JSON.parse(s); } catch { ITEMS = []; } } else { ITEMS = []; }
+    if (s) { try { _setITEMS(JSON.parse(s)); } catch { _setITEMS([]); } } else { _setITEMS([]); }
     // Lanzar carga remota en background — _loadFromSupabase re-renderiza al terminar
     _loadFromSupabase();
     // Ejecutar migraciones locales sobre los datos inmediatos mientras Supabase responde
   } else {
     const s = localStorage.getItem(_tplKey('backlog-items'));
-    if (s) { try { ITEMS = JSON.parse(s); } catch { ITEMS = []; } } else { ITEMS = []; }
+    if (s) { try { _setITEMS(JSON.parse(s)); } catch { _setITEMS([]); } } else { _setITEMS([]); }
   }
   // R-202605-070: normalizar contrato de datos antes de cualquier uso downstream.
   // _normalizeItems absorbe: type, status, title/desc, id, history, schema_version.
@@ -625,7 +633,7 @@ export function loadBacklog() {
     showToast({ title: 'Error de carga', body: '_normalizeStatus no disponible. Recarga la página.', type: 'error' });
     return;
   }
-  ITEMS = _normalizeItems(ITEMS);
+  _setITEMS(_normalizeItems(ITEMS));
 
   // B-202605-210: sanear pendientes en sprints cerrados (migración retroactiva)
   const sanitized = _sanitizePendingInClosedSprints();
@@ -655,7 +663,7 @@ function clearTypeFilters() {
   _markBacklogListDirty(); renderBacklogList();
 }
 
-function toggleTypeFilter(type) {
+export function toggleTypeFilter(type) {
   const allActive = activeTypes.size === 4; // T/R/B/P
   if (allActive) {
     // primer click: desactiva todos, activa solo el clickeado
@@ -702,7 +710,7 @@ function updateTypeFilterUI() {
 }
 
 // T-049: toggle filtros status
-function toggleStatusFilter(status) {
+export function toggleStatusFilter(status) {
   if (status === 'done' || status === 'descartado') {
     if (activeStatuses.has(status)) {
       activeStatuses.delete(status);
@@ -741,7 +749,7 @@ export function updateStatusFilterUI() {
 }
 
 // T-051: colapso por versión
-function toggleVersionCollapse(v) {
+export function toggleVersionCollapse(v) {
   if (collapsedVersions.has(v)) collapsedVersions.delete(v);
   else collapsedVersions.add(v);
   _cvSave();
@@ -1063,8 +1071,8 @@ function statusLabel(s) {
 
 // B-245: helper para obtener el aiId de la sesión activa al momento de registrar en history[]
 export function _getActiveSessionAiId() {
-  if (typeof state === 'undefined' || typeof _isInSession !== 'function') return null;
-  const ai = (state.ais || []).find(a => !a.archived && _isInSession(a));
+  if (typeof window.state === 'undefined' || typeof _isInSession !== 'function') return null;
+  const ai = (window.state.ais || []).find(a => !a.archived && _isInSession(a));
   return ai ? ai.id : null;
 }
 
@@ -1487,7 +1495,7 @@ function toggleItemExpand(idx) {
 }
 
 // T-104/106: toggle secciones done/futura
-function toggleSectionGroup(key) {
+export function toggleSectionGroup(key) {
   const body = document.getElementById('sgbody-' + key);
   const arrow = document.getElementById('sgarrow-' + key);
   if (!body) return;
@@ -1543,7 +1551,7 @@ function _quickAssignEffort(codeOrId) {
 }
 
 // T-071: toggle filtro por esfuerzo
-function toggleEffortFilter(e) {
+export function toggleEffortFilter(e) {
   const n = parseInt(e);
   const allActive = activeEfforts.size === 3;
   if (allActive) {
@@ -1600,7 +1608,7 @@ function setItemRole(code, role) {
 }
 
 // T-202604-245: toggle filtro por rol
-function toggleRoleFilter(role) {
+export function toggleRoleFilter(role) {
   // null = 'Sin rol'; string = rol específico
   if (activeRoleFilter === role) {
     activeRoleFilter = null; // segundo click = quitar filtro
@@ -1752,7 +1760,7 @@ function _syncViewAriaStates() {
   if (mikeBtn)  mikeBtn.setAttribute('aria-checked',  String(_backlogMikeMode));
 }
 
-function toggleBacklogMikeMode() {
+export function toggleBacklogMikeMode() {
   const roles = _getMiViewRoles();
   if (!roles.length) return;
   if (!_backlogMikeMode) {
@@ -1834,7 +1842,7 @@ export function toggleBacklogFocusMode() {
 }
 
 // T-202604-363: toggle filtro Sin AC — pendientes sin criterios de aceptación
-function toggleBacklogNoAcMode() {
+export function toggleBacklogNoAcMode() {
   _backlogNoAcMode = !_backlogNoAcMode;
   const btn = document.getElementById('fbar-no-ac-btn');
   if (btn) {
@@ -1847,13 +1855,34 @@ function toggleBacklogNoAcMode() {
 
 // R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente
 
+// Getters exportados para variables de estado — consumidos por locus-backlog-render.js.
+// Las variables son let/const privados (mutables), por lo que se exponen via getter en lugar de export let.
+export function _getBacklogTreeMode()        { return _backlogTreeMode; }
+export function _getBacklogKanbanMode()      { return _backlogKanbanMode; }
+export function _getBacklogFocusMode()       { return _backlogFocusMode; }
+export function _getBacklogMikeMode()        { return _backlogMikeMode; }
+export function _getBacklogSprintGroupMode() { return _backlogSprintGroupMode; }
+export function _getBacklogNoAcMode()        { return _backlogNoAcMode; }
+export function _getActiveTypes()            { return activeTypes; }
+export function _getActiveStatuses()         { return activeStatuses; }
+export function _getActiveEfforts()          { return activeEfforts; }
+export function _getActiveRoleFilter()       { return activeRoleFilter; }
+export function _getActivePriorityFilter()   { return activePriorityFilter; }
+export function _getBacklogBlockerFilter()   { return _backlogBlockerFilter; }
+export function _getDepsFilter()             { return _depsFilter; }
+export function _getBacklogSortMode()        { return backlogSortMode; }
+export function _getBacklogSortDir()         { return backlogSortDir; }
+export function _getMiViewRoleIndex()        { return _miViewRoleIndex; }
+export function _getBacklogSearchQuery()     { return backlogSearchQuery; }
+export function _getCollapsedVersions()      { return collapsedVersions; }
+
 // B-202605-XXX: _migrateItemTypes — stub de compatibilidad para call site en locus-storage.js
 // R-202605-070: la lógica real fue absorbida por _normalizeItems(). Este stub redirige
 // la llamada post-carga remota de _loadFromSupabase a _normalizeItems para mantener
 // el contrato de datos sin duplicar lógica.
 export function _migrateItemTypes() {
   if (typeof ITEMS === 'undefined') return;
-  ITEMS = _normalizeItems(ITEMS);
+  _setITEMS(_normalizeItems(ITEMS));
   saveBacklog();
 }
 window._migrateItemTypes = _migrateItemTypes;

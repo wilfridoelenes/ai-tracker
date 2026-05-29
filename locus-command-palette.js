@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
 // locus-command-palette.js
 // Versión: 1.0.4 | Última actualización: 2026-05-23 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto · T-202605-067 nav-tab-sprint
 // Renombrado de ai-tracker-command-palette.js
@@ -484,7 +484,7 @@ function _cpRecent()      { return _el('cp-recent'); }   // no existe en HTML ca
    OPEN / CLOSE
 ──────────────────────────────────────────────────────────────────*/
 
-function openCommandPalette() {
+export function openCommandPalette() {
   if (_cp.open) return;
   _cp.open = true;
   _cp.query = '';
@@ -792,7 +792,7 @@ function _escHtml(str) {
    INIT — llamar una vez tras DOMContentLoaded
 ──────────────────────────────────────────────────────────────────*/
 
-function initCommandPalette() {
+export function initCommandPalette() {
   // Global Cmd+K listener
   // B-202605-032: registrado en fase bubble (false) — SP listener también en bubble puede ejecutar.
   // stopPropagation en el handler evita conflicto con otros listeners bubble en el mismo evento.
