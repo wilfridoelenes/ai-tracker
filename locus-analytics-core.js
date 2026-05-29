@@ -1,9 +1,19 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-analytics-core.js
 // Responsabilidad: State de analytics, período/rango, helpers de fecha,
 //   tooltip, delta, ítems abiertos/cerrados, export semanal MD.
 // Dependencias: locus-storage.js · locus-toast.js
-import { _markAnalyticsDirty } from './locus-analytics-render.js';
+import { _markAnalyticsDirty, renderAnalytics } from './locus-analytics-render.js';
+
+import { _buildHourlyInsightData } from './locus-analytics-charts.js';
+
+import { render } from './locus-sesiones.js';
+
+import { getAllSessions } from './locus-storage.js';
+
+import { showToast } from './locus-toast.js';
+
+import { esc } from './locus-ui-shell.js';
 
 // locus-analytics.js
 // Última actualización: 2026-05-19 UTC-6

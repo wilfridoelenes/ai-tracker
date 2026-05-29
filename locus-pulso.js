@@ -1,9 +1,13 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-pulso.js
 // Última actualización: 2026-05-19 | Panel Pulso del Ecosistema
 // Extraído de: ai-tracker-checkpoint.js · ai-tracker-ai-notes.js
 // Fase A — Refactor JS modular
-import { switchSubTab, switchTab } from './locus-ui-shell.js';
+import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
+
+import { loadPlan } from './locus-sprint-plan.js';
+
+import { _tplKey } from './locus-storage.js';
 
 // ════════════════════════════════════════════════════════════════════
 // CONSTANTE INTERNA

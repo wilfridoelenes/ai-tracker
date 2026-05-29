@@ -1,4 +1,9 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+import { _skelHide, _skelShow } from './locus-backlog-core.js';
+import { _tplKey } from './locus-storage.js';
+
+import { esc } from './locus-ui-shell.js';
+
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-map-viewer.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: HTML MAP viewer — render, filtro, búsqueda y toggle de módulos

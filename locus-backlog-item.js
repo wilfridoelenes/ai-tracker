@@ -1,14 +1,28 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-item-editor.js · locus-toast.js
-import { _applyDoneStatus, _hasRecentSession, _undoSnapshot, renderStats } from './locus-backlog-core.js';
-import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
+import { _applyDoneStatus, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, itemType, renderStats, setItemStatus, updateBacklogBanner } from './locus-backlog-core.js';
+import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
 import { _normalizeSprint } from './locus-session-parse.js';
-import { _blogLog, getAI, getAllSessions, saveBacklog } from './locus-storage.js';
+import { _blogLog, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog } from './locus-storage.js';
 
+
+import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel } from './locus-backlog-panel.js';
+
+import { _getActiveSprint, navigateToItem, setItemSprint } from './locus-backlog-sprints.js';
+
+import { _setBacklogModified } from './locus-docs.js';
+
+import { _gconfirmOpen } from './locus-modals.js';
+
+import { render } from './locus-sesiones.js';
+
+import { showToast } from './locus-toast.js';
+
+import { esc } from './locus-ui-shell.js';
 
 export function _renderKanban(listEl) {
   // R-202604-091: 3 columnas — 'en curso' eliminado, ítems activos decorados en 'pendiente'

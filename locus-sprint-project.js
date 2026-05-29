@@ -1,13 +1,37 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-05-29 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
 // Renombrado de ai-tracker-sprint-project.js
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _syncCleanProjectBtn } from './locus-reports.js';
-import { _effectiveVersion, _offlineQueuePush, getActiveProject, getActiveSprints, getState, getSupabaseUserId } from './locus-storage.js';
-import { switchTab } from './locus-ui-shell.js';
+import { _blogLog, _effectiveVersion, _offlineQueuePush, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getProjectSessions, getState, getSupabaseUserId, save } from './locus-storage.js';
+import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
+
+import { renderAnalytics } from './locus-analytics-render.js';
+
+import { loadBacklog, renderStats, updateBacklogBanner, updateStatusFilterUI } from './locus-backlog-core.js';
+
+import { updateBacklogFooter } from './locus-backlog-item.js';
+
+import { renderBacklogList } from './locus-backlog-render.js';
+
+import { _renderTplProjBanner } from './locus-docs.js';
+
+import { closePasteItems } from './locus-item-editor.js';
+
+import { _gconfirmOpen, closeModal } from './locus-modals.js';
+
+import { renderProyectos } from './locus-projects.js';
+
+import { _updateHeaderProjectLabel } from './locus-sesiones-stats.js';
+
+import { render } from './locus-sesiones.js';
+
+import { closePopup } from './locus-session-popup.js';
+
+import { showToast, showToastInline } from './locus-toast.js';
 
 // ── Utilidades de módulo — T3.bis ─────────────────────────────────────────────
 export function pad(n) { return String(n).padStart(2, '0'); }

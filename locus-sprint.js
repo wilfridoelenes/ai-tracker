@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -9,7 +9,9 @@ import { _getActiveSprint, confirmCloseSprint, createSprint, editSprintInline, o
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto } from './locus-sprint-plan.js';
 import { getAI, getActiveSprints, getAllSessions } from './locus-storage.js';
-import { showToast } from './locus-toast.js';
+import { showToast, toast } from './locus-toast.js';
+
+import { render } from './locus-sesiones.js';
 
 // ── Estado interno ──────────────────────────────────────────────────────────
 let _sprintTabActiveSprint = null;

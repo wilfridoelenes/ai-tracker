@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -10,8 +10,12 @@ import { updateTabNotifBadges } from './locus-notifications.js';
 import { _markPulsoDotDirty, renderPulsoDot } from './locus-pulso.js';
 import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js';
 import { _markStatusBarDirty, renderStatusBar, updateStats } from './locus-sesiones-stats.js';
-import { _markTrackerDirty, render } from './locus-sesiones.js';
-import { showToast } from './locus-toast.js';
+import { _markTrackerDirty, _updateAutoDownloadLabel, render } from './locus-sesiones.js';
+import { showToast, toast } from './locus-toast.js';
+
+import { getProjectById } from './locus-sprint-project.js';
+
+import { applyTheme } from './locus-ui-shell.js';
 
 // ── Lazy references para romper ciclo storage ↔ sprint-project ────────────────
 // _getActiveProjectFilter y exportBacklogMd viven en locus-sprint-project.js,

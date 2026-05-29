@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm.
 //   Define AVATAR_LOGOS (SVGs de avatares) — movido desde locus-checkpoint-stats.js.
@@ -9,8 +9,10 @@
 
 import { _restoreModalFocus, _saveModalTrigger, closeModal } from './locus-modals.js';
 import { render } from './locus-sesiones.js';
-import { showToast } from './locus-toast.js';
-import { switchTab } from './locus-ui-shell.js';
+import { showToast, toast } from './locus-toast.js';
+import { esc, switchTab } from './locus-ui-shell.js';
+
+import { getAI, getAISessions, save } from './locus-storage.js';
 
 // ── AVATAR_LOGOS — fuente de verdad de SVGs de avatares ──
 const AVATAR_LOGOS = {

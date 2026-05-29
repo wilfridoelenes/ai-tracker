@@ -1,4 +1,21 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
+import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI } from './locus-backlog-core.js';
+
+import { _attachBacklogDnD, _renderKanban, buildBacklogItem, setFilter, updateBacklogFooter } from './locus-backlog-item.js';
+
+import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
+
+import { _setBacklogModified } from './locus-docs.js';
+
+import { _getActiveProjectFilter, openProjPanel } from './locus-sprint-project.js';
+
+import { getActiveSprints } from './locus-storage.js';
+
+import { showToast } from './locus-toast.js';
+
+import { esc, switchTab } from './locus-ui-shell.js';
+
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // Responsabilidad: Renderizado del backlog — vista árbol, sprint health panel,
 //   roadmap, planning (drag & drop), renderBacklogList, sprint selector inline.
 // Dependencias: locus-backlog-core.js · locus-backlog-archive.js · locus-backlog-item.js · locus-backlog-sprints.js

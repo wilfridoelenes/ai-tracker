@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -28,9 +28,11 @@ import { closePopup, openDetail } from './locus-session-popup.js';
 import { renderPlan } from './locus-sprint-plan.js';
 import { _getActiveProjectFilter, closeProjModal, closeProjPanel, openProjModal, openProjPanel, selectProjectFilter } from './locus-sprint-project.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _saveUserPrefs, getAISessions, getAllSessions, getState, save } from './locus-storage.js';
-import { showToast } from './locus-toast.js';
+import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAISessions, getAllSessions, getState, save } from './locus-storage.js';
+import { showToast, toast } from './locus-toast.js';
 import { openAddAI } from './locus-workers.js';
+
+import { normalize } from './locus-map-generator.js';
 
 // ── Global utility ────────────────────────────────────────────────────────
 // esc() usada por múltiples módulos (backlog, session, toast, checkpoint)

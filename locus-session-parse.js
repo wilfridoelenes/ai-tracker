@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -12,13 +12,17 @@ import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections } from './locus-docs.js';
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject } from './locus-session-save.js';
-import { loadPlan, renderPlan } from './locus-sprint-plan.js';
-import { _blogLog, _offlineQueuePush, getActiveProject, getActiveSprints } from './locus-storage.js';
-import { showToast } from './locus-toast.js';
+import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save } from './locus-storage.js';
+import { showToast, toast } from './locus-toast.js';
+
+import { render } from './locus-sesiones.js';
+
+import { esc } from './locus-ui-shell.js';
 
 // T-202604-215: Labels de status en español — fuente de verdad para UI
 // Movido desde locus-checkpoint-hoy.js
-const STATUS_LABELS = {
+export const STATUS_LABELS = {
   available:    'Disponible',
   exhausted:    'Agotada',
   insession:    'En curso',

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
 // locus-contracts.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
@@ -12,7 +12,11 @@
 
 import { renderStats } from './locus-backlog-core.js';
 import { _focusFirstInteractive, _restoreModalFocus } from './locus-modals.js';
-import { _offlineQueuePush, setSyncStatus } from './locus-storage.js';
+import { _offlineQueuePush, _tplKey, save, setSyncStatus } from './locus-storage.js';
+
+import { showToast } from './locus-toast.js';
+
+import { switchSubTab, switchTab } from './locus-ui-shell.js';
 
 // ════════════════════════════════════════════════════════════════════
 // R-202604-075 · CONTRATOS DE MÓDULO

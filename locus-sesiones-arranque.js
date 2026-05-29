@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-arranque.js
 // Responsabilidad: Panel de Sesión de Arranque — contexto diario al abrir la app
 //   (R-202604-072). Muestra resumen de ayer, ítem sugerido, estado IA y sesión del plan.
@@ -7,10 +7,10 @@
 // Carga después de: locus-sesiones-viz.js · locus-sesiones-stats.js · locus-sprint-plan.js
 
 import { _copyTextSafe } from './locus-sesiones-viz.js';
-import { selectTrackerAI } from './locus-sesiones.js';
+import { _hoyCountdownLabel, _hoyMsUntilReset, selectTrackerAI } from './locus-sesiones.js';
 import { loadPlan } from './locus-sprint-plan.js';
-import { _tplKey } from './locus-storage.js';
-import { switchTab } from './locus-ui-shell.js';
+import { _tplKey, getActiveProject, getAllSessions } from './locus-storage.js';
+import { esc, switchTab } from './locus-ui-shell.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // R-202604-072: Sesión de Arranque — panel de contexto diario al abrir la app

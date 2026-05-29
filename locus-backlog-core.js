@@ -1,14 +1,36 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
 
-import { _normalizeStatus } from './locus-backlog-item.js';
-import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
-import { _getActiveSprint, renderSprintBurndown, renderSprintItems } from './locus-backlog-sprints.js';
+import { _normalizeStatus, updateBacklogFooter } from './locus-backlog-item.js';
+import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
+import { _getActiveSprint, _getSprintById, renderSprintBurndown, renderSprintItems } from './locus-backlog-sprints.js';
 import { openItemEditor } from './locus-item-editor.js';
-import { _blogLog, _effectiveVersion, _loadFromSupabase, getAllSessions, saveBacklog } from './locus-storage.js';
-import { showToast } from './locus-toast.js';
+import { _blogLog, _effectiveVersion, _loadFromSupabase, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog } from './locus-storage.js';
+import { showToast, toast } from './locus-toast.js';
+
+import { _confirmDiscard, _confirmRetroceso } from './locus-backlog-merge.js';
+
+import { _backlogSetSelected, closeItemPanel, openItemPanel } from './locus-backlog-panel.js';
+
+import { _setBacklogModified, _updateSubTabButtons } from './locus-docs.js';
+
+import { normalize } from './locus-map-generator.js';
+
+import { _gconfirmOpen } from './locus-modals.js';
+
+import { hasRecentSession } from './locus-notifications.js';
+
+import { _isInSession } from './locus-sesiones-stats.js';
+
+import { render } from './locus-sesiones.js';
+
+import { openDetail } from './locus-session-popup.js';
+
+import { _getActiveProjectFilter } from './locus-sprint-project.js';
+
+import { esc, switchTab } from './locus-ui-shell.js';
 
 // T-202604-216: Skeleton helpers
 const _SKEL_HTML_4 = Array(4).fill('<div class="skel-row"></div>').join('');

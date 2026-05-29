@@ -1,13 +1,19 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
 // Extraído de ai-tracker-ai-notes.js
 
-import { _updateUndoUI } from './locus-backlog-core.js';
+import { _updateUndoUI, importBacklog } from './locus-backlog-core.js';
 import { _mgGetVersion } from './locus-map-generator.js';
-import { renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
-import { _tplKey } from './locus-storage.js';
+import { parseHtmlMapMd, renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
+import { _blogLog, _effectiveVersion, _projKey, _tplKey, getActiveProject } from './locus-storage.js';
+
+import { _docPrefix } from './locus-sprint-project.js';
+
+import { showToast } from './locus-toast.js';
+
+import { esc, switchSubTab } from './locus-ui-shell.js';
 
 // ── T-202604-048: Sub-tabs Templates ──
 

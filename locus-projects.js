@@ -1,15 +1,23 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
 // Extraído de ai-tracker-ai-notes.js
 
-import { _calcRelevanceScore } from './locus-backlog-core.js';
+import { _calcRelevanceScore, loadBacklog } from './locus-backlog-core.js';
 import { _getActiveSprint } from './locus-backlog-sprints.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { relDate } from './locus-session-hora.js';
-import { _getActiveProjectFilter, _updateProjBreadcrumb, setProjContext } from './locus-sprint-project.js';
-import { switchSubTab } from './locus-ui-shell.js';
+import { _countProjSessions, _getActiveProjectFilter, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, getProjectById, openProjModal, setProjContext } from './locus-sprint-project.js';
+import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
+
+import { _animateCountUp, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionYM } from './locus-analytics-core.js';
+
+import { openDetail } from './locus-session-popup.js';
+
+import { _projKey, getAI, getAISessions, getProjectSessions, save } from './locus-storage.js';
+
+import { showToast } from './locus-toast.js';
 
 // ── T-202604-061: Analytics — gráfico comparativo mensual ──
 

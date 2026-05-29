@@ -1,10 +1,12 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-sprint-plan.js
 // Versión: 1.1 | Última actualización: 2026-05-28 UTC-6 | R-202605-043: renderPlanInto + _buildPlanContent
 // Módulo: Bloque PLAN — savePlan, loadPlan, renderPlan, togglePlanZoneDone
 // Extraído de ai-tracker-ai-notes.js · Renombrado de locus-plan.js (T-202605-066)
-import { _offlineQueuePush, _tplKey, getActiveSprints } from './locus-storage.js';
-import { showToast } from './locus-toast.js';
+import { _offlineQueuePush, _tplKey, getActiveProject, getActiveSprints } from './locus-storage.js';
+import { showToast, toast } from './locus-toast.js';
+
+import { esc } from './locus-ui-shell.js';
 
 // ── Helpers de módulo — T3.bis ────────────────────────────────────────────────
 // Versiones de módulo de _liveStatus y _sessIsDone para consumo externo.

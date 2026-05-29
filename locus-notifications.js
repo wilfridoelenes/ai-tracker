@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -8,7 +8,7 @@
 
 import { setFilter } from './locus-backlog-item.js';
 import { navigateToItem } from './locus-backlog-sprints.js';
-import { renderGlobalRadarSidebar } from './locus-radar.js';
+import { renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
 import { getActiveSprints, getAllSessions } from './locus-storage.js';
 import { switchTab } from './locus-ui-shell.js';

@@ -1,11 +1,17 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-misc-ui.js
 // Módulo: Helpers de UI — getNextOccurrence, _resetExpired, Tags, Pendientes, Doc Activity Drawer
 // Extraído de ai-tracker-ai-notes.js
 import { _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
 import { getState, save, getAISessions, _findSession } from './locus-storage.js';
-import { showToast } from './locus-toast.js';
+import { showToast, toast } from './locus-toast.js';
 import { openDetail } from './locus-session-popup.js';
+
+import { renderStatusBar, updateStats } from './locus-sesiones-stats.js';
+
+import { render } from './locus-sesiones.js';
+
+import { esc } from './locus-ui-shell.js';
 
 // Helpers para globales que viven en módulos no adjuntos (TAG_COLORS, esc, currentTab, renderHoy, _relTs, popAIId, popSessId)
 // Acceso via window con guards — patrón establecido en este stack para evitar ciclos de importación

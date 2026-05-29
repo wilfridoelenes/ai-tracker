@@ -1,13 +1,17 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 
 import { _sessRelTsShared, render } from './locus-sesiones.js';
 import { _getActiveProjectFilter } from './locus-sprint-project.js';
-import { showToastInline } from './locus-toast.js';
-import { switchSubTab } from './locus-ui-shell.js';
-import { getState, getAI, getAISessions, _findSession, _findSessionByAI, save } from './locus-storage.js';
+import { showToast, showToastInline, toast } from './locus-toast.js';
+import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
+import { _findSession, _findSessionByAI, getAI, getAISessions, getActiveTracker, getState, save } from './locus-storage.js';
+
+import { fmt12, interpretHora } from './locus-session-hora.js';
+
+import { parsePaste } from './locus-session-parse.js';
 
 // Variables de estado del popup — declaradas como módulo (eran globales en el stack monolítico)
 let popAIId = null;

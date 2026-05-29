@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
 // locus-api.js
 // Última actualización: 2026-05-28 | Contrato público del ecosistema Locus
 // Carga como ÚLTIMO script en index.html — todos los módulos ya están definidos.
 
 // ── Imports explícitos por módulo de origen ────────────────────────────────────
-import { showToast, showToastDigest, showToastInline } from './locus-toast.js';
+import { showToast, showToastDigest, showToastInline, toast } from './locus-toast.js';
 import { switchTab, switchSubTab } from './locus-ui-shell.js';
 import { render } from './locus-sesiones.js';
 import { startSessionTimer, renderSuggestionBanner } from './locus-sesiones-utils.js';

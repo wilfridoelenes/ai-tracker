@@ -1,4 +1,9 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+import { _doSaveSession, saveSession } from './locus-session-save.js';
+import { getAI } from './locus-storage.js';
+
+import { esc } from './locus-ui-shell.js';
+
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-session-hora.js
 // Responsabilidad: Componente de hora — _horaUpdate, parseHora, correctHora, interpretHora, fmt12, relDate, horaKey, confirmSave.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js

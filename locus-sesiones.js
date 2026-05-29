@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-29 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -8,21 +8,27 @@
 // normStatus · buildTGPreview · STATUS_LABELS · TG_PARSER_CONFIG → locus-session-parse.js
 
 import { updateTabNotifBadges } from './locus-notifications.js';
-import { renderGlobalRadarSidebar } from './locus-radar.js';
-import { _updateHeaderProjectLabel, renderStatusBar, updateStats } from './locus-sesiones-stats.js';
+import { _initRadarSidebarState, renderGlobalRadarSidebar } from './locus-radar.js';
+import { _scrollToCard, _updateHeaderProjectLabel, navigateToCard, renderStatusBar, updateStats } from './locus-sesiones-stats.js';
 // _isInSession — en sesiones-stats pero verificar export; fallback window
 const _isInSession = (ai) => typeof window._isInSession === 'function' ? window._isInSession(ai) : false;
 import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer, _buildSuggestionReason } from './locus-sesiones-utils.js';
-import { _templateTrigger, relDate } from './locus-session-hora.js';
+import { _templateTrigger, confirmSave, interpretHora, relDate } from './locus-session-hora.js';
 // fmt12, getCD, _isInSession — módulo fuente pendiente de confirmar; acceso via window con fallback
 const fmt12  = (...a) => typeof window.fmt12  === 'function' ? window.fmt12(...a)  : a[0] || '';
 const getCD  = (...a) => typeof window.getCD  === 'function' ? window.getCD(...a)  : '';
 import { closeLogCard, closePopup, openDetail } from './locus-session-popup.js';
-import { getProjectById, openProjModal } from './locus-sprint-project.js';
+import { _getActiveProjectFilter, getProjectById, openProjModal, selectProjectFilter } from './locus-sprint-project.js';
 import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate } from './locus-storage.js';
-import { showToast } from './locus-toast.js';
-import { renderSetupChecklist } from './locus-ui-shell.js';
-import { openAddAI, toggleArchivedSection } from './locus-workers.js';
+import { showToast, toast } from './locus-toast.js';
+import { esc, renderSetupChecklist } from './locus-ui-shell.js';
+import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatarModal, toggleArchivedSection, toggleCardMenu } from './locus-workers.js';
+
+import { downloadReport } from './locus-reports.js';
+
+import { openQuickCapture } from './locus-sesiones-capture.js';
+
+import { STATUS_LABELS } from './locus-session-parse.js';
 
 let _trackerSelectedId = null;
 

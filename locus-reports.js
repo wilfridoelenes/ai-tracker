@@ -1,19 +1,27 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
 // Extraído de ai-tracker-ai-notes.js
 
-import { loadBacklog } from './locus-backlog-core.js';
+import { loadBacklog, redoBacklog, renderStats, undoBacklog, updateBacklogBanner } from './locus-backlog-core.js';
 import { renderBacklogList } from './locus-backlog-render.js';
 import { loadHtmlMap, renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
-import { _focusFirstInteractive, _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
+import { _focusFirstInteractive, _gconfirmOpen, _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
 import { renderGlobalRadarSidebar } from './locus-radar.js';
 import { updateStats } from './locus-sesiones-stats.js';
 import { render } from './locus-sesiones.js';
 import { _templateTrigger } from './locus-session-hora.js';
 import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
-import { _offlineQueuePush, _subscribeRealtime, _unsubscribeRealtime, setSyncStatus } from './locus-storage.js';
+import { _offlineQueuePush, _subscribeRealtime, _tplKey, _unsubscribeRealtime, getAI, getAISessions, getActiveTracker, getAllSessions, save, setSyncStatus } from './locus-storage.js';
+
+import { _updateSubTabButtons, renderContext, updateContextBanner } from './locus-docs.js';
+
+import { closeCkptPanel } from './locus-sesiones-viz.js';
+
+import { showToast } from './locus-toast.js';
+
+import { applyTheme } from './locus-ui-shell.js';
 
 // ai-tracker-ai-notes.js
 // Última actualización: 2026-05-13 UTC-6

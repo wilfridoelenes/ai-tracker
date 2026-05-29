@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -10,7 +10,9 @@ import { openPulsoPanel } from './locus-pulso.js';
 import { _markTrackerDirty, render, selectTrackerAI } from './locus-sesiones.js';
 import { openDetail } from './locus-session-popup.js';
 import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
-import { _effectiveVersion, getActiveProject, getActiveTracker, getAllSessions } from './locus-storage.js';
+import { _effectiveVersion, getAISessions, getActiveProject, getActiveTracker, getAllSessions, save } from './locus-storage.js';
+
+import { switchTab } from './locus-ui-shell.js';
 
 // APP_VERSION — fuente de verdad: locus-workers.js
 // R-202605-012: constante movida a locus-workers.js (carga antes). Disponible globalmente aquí.

@@ -1,16 +1,32 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
-import { loadBacklog } from './locus-backlog-core.js';
-import { applyPatchesFromTG } from './locus-backlog-item.js';
+import { loadBacklog, renderStats } from './locus-backlog-core.js';
+import { applyPatchesFromTG, mergeBacklogFromTG } from './locus-backlog-item.js';
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { updateTabNotifBadges } from './locus-notifications.js';
-import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js';
-import { _generateBacklogContent, _getLocalStorageUsage } from './locus-sprint-project.js';
-import { _effectiveVersion, getAI, getActiveProject, getActiveSprints } from './locus-storage.js';
+import { _markRadarDirty, renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
+import { _docPrefix, _generateBacklogContent, _generateBacklogMd, _getLocalStorageUsage } from './locus-sprint-project.js';
+import { _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker } from './locus-storage.js';
 
+
+import { extractContextSections, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections } from './locus-docs.js';
+
+import { showCheckpointPanel } from './locus-sesiones-viz.js';
+
+import { render } from './locus-sesiones.js';
+
+import { _showProjRequiredInPanel, _templateTrigger, interpretHora } from './locus-session-hora.js';
+
+import { _setPhase, _tryIngestPlan, parsePaste } from './locus-session-parse.js';
+
+import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js';
+
+import { showToast } from './locus-toast.js';
+
+import { esc } from './locus-ui-shell.js';
 
 function toggleTemplateTrigger(val) {
   localStorage.setItem(_TMPL_TRIGGER_KEY, val);

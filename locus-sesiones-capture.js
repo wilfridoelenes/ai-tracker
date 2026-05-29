@@ -1,11 +1,21 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-capture.js
 // Responsabilidad: Quick Capture modal (stepper de 2 pasos) + Sesión interrumpida (T-055).
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
 import { render } from './locus-sesiones.js';
 import { openProjPanel } from './locus-sprint-project.js';
-import { showToast } from './locus-toast.js';
+import { showToast, toast } from './locus-toast.js';
 
+
+import { _gconfirmOpen } from './locus-modals.js';
+
+import { _horaUpdate, interpretHora } from './locus-session-hora.js';
+
+import { getAI, getActiveProject, save } from './locus-storage.js';
+
+import { esc } from './locus-ui-shell.js';
+
+import { closeCardMenu } from './locus-workers.js';
 
 // ── R-[pendiente-ID]: Quick Capture — modal unificado con stepper ──
 // Reemplaza: T-071 (quick-modal-overlay) + selectAIForQuickCapture (ai-quick-select-modal)

@@ -1,10 +1,22 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-item-editor.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Item Editor, Paste Items, Templates de ítems
 // Extraído de ai-tracker-ai-notes.js
 import { _getActiveSprint } from './locus-backlog-sprints.js';
 import { _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
+
+import { _getNextItemCode, _undoSnapshot, renderStats, updateBacklogBanner } from './locus-backlog-core.js';
+
+import { _normalizeStatus } from './locus-backlog-item.js';
+
+import { renderBacklogList } from './locus-backlog-render.js';
+
+import { _blogLog, _tplKey, save } from './locus-storage.js';
+
+import { showToast } from './locus-toast.js';
+
+import { esc } from './locus-ui-shell.js';
 
 // ── T-202604-109: Editor de ítems del Backlog ──
 let _editorItemId = null; // null = nuevo, o id existente para editar
