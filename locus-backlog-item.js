@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:4 · autor:Finn · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1310,6 +1310,13 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // _assignPendingIds se aplica solo a los que tienen type char válido (P/T/R/B) y código real.
   tgItems = _assignPendingIds(tgItems);
 
+  // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)
+  // El schema declara "parent" pero el código usa parentId — mapear antes del loop
+  tgItems = tgItems.map(item => {
+    if (item.parent && !item.parentId) { item.parentId = item.parent; }
+    return item;
+  });
+
   let changed = false;
   const created = [], advanced = [], retroceso = [], discarded = [], updated = [], ignored = [];
   // B-202604-198: grupo propio para ítems que nacen y cierran en el mismo CHECKPOINT
@@ -1663,7 +1670,7 @@ function _isActiveRecently(item) {
 // AC-8: mezcla ítems + patches en mismo ---ITEMS--- → parser separa por type
 // AC-9: panel diff muestra solo campos del patch (changes array)
 // AC-11: sin regresión en mergeBacklogFromTG
-const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin']); // R-202605-004: origin patcheable
+const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable
 const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version']);
 
 function applyPatchesFromTG(patches, sessionId) {
@@ -1675,6 +1682,8 @@ function applyPatchesFromTG(patches, sessionId) {
   if (typeof _undoSnapshot === 'function') _undoSnapshot();
 
   patches.forEach(patch => {
+    // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)
+    if (patch.parent && !patch.parentId) { patch.parentId = patch.parent; }
     const code = patch.code;
 
     // AC-5: código no existe en backlog → advertencia DocLog
