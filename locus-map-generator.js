@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -7,6 +7,10 @@
  * Renombrado de ai-tracker-map-generator.js
  * R-202604-053 | R-202604-086 | R-202605-101
  */
+
+// ─── Utilidades de módulo ─────────────────────────────────────────────────────
+export function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+export function normalize(v) { return String(v || '').replace(/^v/, '').trim(); }
 
 // ─── Helper: sprint de referencia — activo o último cerrado ──────────────────
 // B-[pendiente-ID]: el generador se usa post-cierre de sprint — si no hay sprint
@@ -169,7 +173,6 @@ function _mgRenderDecisions(decisions) {
   const sorted = [...decisions].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   tbody.innerHTML = sorted.map(d => {
     const checked = _mapGen.decisionTranscends[d.id] ? 'checked' : '';
-    const esc = s => (s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return `<tr class="mg-review-row${checked ? ' mg-review-row--transcends' : ''}" data-id="${d.id}">
       <td class="mg-review-text">${esc(d.text)}</td>
       <td class="mg-review-meta">${esc(d.author || '—')}</td>
@@ -194,7 +197,6 @@ function _mgRenderLearnings(sessions) {
     return;
   }
 
-  const esc = s => (s || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   tbody.innerHTML = withLearning.map(s => {
     const txt = s.learning || s.aprendizaje || s.nextStep || '';
     const checked = _mapGen.learningTranscends[s.id] ? 'checked' : '';
@@ -428,7 +430,8 @@ function _mgBumpMinor(version) {
   return (version.startsWith('v') ? 'v' : '') + parts.join('.');
 }
 
-function _mgGetVersion() {
+
+export function _mgGetVersion() {
   // B-202605-228: rechazar string literal "undefined" — ocurre si la versión no estaba lista al abrir el overlay
   // T-202605-018: input manual del overlay tiene prioridad — resto delega a _effectiveVersion
   const input = document.getElementById('mg-version-input');
@@ -1636,8 +1639,7 @@ function _doConfirmGenerate() {
     try {
       const ctxObj = JSON.parse(docs.context);
       const ctxVer = ctxObj.version || '';
-      // Normalizar: quitar 'v' inicial para comparación insensible al prefijo
-      const normalize = v => String(v || '').replace(/^v/, '').trim();
+      // Normalizar: quitar 'v' inicial para comparación insensible al prefijo — normalize() definida a nivel de módulo
       if (normalize(ctxVer) !== normalize(bumpedVer)) {
         if (typeof showToast === 'function') {
           showToast('error', `Versión interna del CONTEXT (${ctxVer}) no coincide con el nombre del archivo (${bumpedVer}) — regenera los documentos antes de confirmar.`);
@@ -1894,3 +1896,17 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 });
+
+// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+window.esc                  = window.esc || esc;
+window.normalize            = window.normalize || normalize;
+window._mgGetVersion        = _mgGetVersion;
+window.openMapGenerator     = openMapGenerator;
+window.closeMapGenerator    = closeMapGenerator;
+window.generateDocuments    = generateDocuments;
+window.generateMap          = generateMap;
+window.confirmMapGenerator  = confirmMapGenerator;
+window._mgSwitchReviewTab   = _mgSwitchReviewTab;
+window._mgToggleDecisionTranscends  = _mgToggleDecisionTranscends;
+window._mgToggleLearningTranscends  = _mgToggleLearningTranscends;
+window._mgRemoveFile        = _mgRemoveFile;

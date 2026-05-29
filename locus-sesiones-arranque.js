@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-arranque.js
 // Responsabilidad: Panel de Sesión de Arranque — contexto diario al abrir la app
 //   (R-202604-072). Muestra resumen de ayer, ítem sugerido, estado IA y sesión del plan.
@@ -6,12 +6,76 @@
 // Dependencias: locus-sesiones-viz.js · locus-sesiones-stats.js · locus-storage.js · locus-sprint-plan.js
 // Carga después de: locus-sesiones-viz.js · locus-sesiones-stats.js · locus-sprint-plan.js
 
+import { _copyTextSafe } from './locus-sesiones-viz.js';
+import { selectTrackerAI } from './locus-sesiones.js';
+import { loadPlan } from './locus-sprint-plan.js';
+import { _tplKey } from './locus-storage.js';
+import { switchTab } from './locus-ui-shell.js';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // R-202604-072: Sesión de Arranque — panel de contexto diario al abrir la app
 // ─────────────────────────────────────────────────────────────────────────────
 
 const _ARRANQUE_KEY = 'ai-tracker-arranque-ts';
 const _ARRANQUE_6H  = 6 * 60 * 60 * 1000;
+
+// ── Funciones de módulo — consumibles por locus-pulso.js y locus-sprint-plan.js ──────────
+
+/**
+ * Carga el backlog desde localStorage usando la clave del proyecto activo.
+ * Devuelve un mapa code → item para consulta O(1).
+ */
+function _arranqueItemByCode() {
+  try {
+    const _tplK = _tplKey('backlog-items');
+    const raw = localStorage.getItem(_tplK);
+    const items = raw ? JSON.parse(raw) : [];
+    const map = {};
+    items.forEach(it => { if (it.code) map[it.code] = it; });
+    return map;
+  } catch (e) { return {}; }
+}
+
+/** Devuelve el status live de un ítem por código. */
+function _liveStatus(code) {
+  const it = _arranqueItemByCode()[code];
+  return it ? (it.status || 'pendiente') : 'pendiente';
+}
+
+/** Devuelve el título live de un ítem por código. */
+function _liveTitle(code) {
+  const it = _arranqueItemByCode()[code];
+  return it ? (it.title || it.desc || '') : '';
+}
+
+/** Determina si una sesión del plan está completa (todos sus ítems done/descartado). */
+function _sessIsDone(sess) {
+  const codes = sess.items || [];
+  return codes.length > 0 && codes.every(c => {
+    const s = _liveStatus(c);
+    return s === 'done' || s === 'descartado';
+  });
+}
+
+/**
+ * Determina si una sesión del plan está bloqueada.
+ * Requiere el Set de IDs done calculado externamente para evitar re-computar.
+ * @param {object} sess - Sesión del plan
+ * @param {Set<string>} doneIds - Set de IDs de sesiones completadas
+ */
+function _isBlocked(sess, doneIds) {
+  const deps = (sess.depende_de || []).filter(Boolean);
+  return deps.length > 0 && !deps.every(d => doneIds.has(d));
+}
+
+/**
+ * Filtra las sesiones bloqueadas de un array de sesiones pendientes.
+ * @param {Array} pendingSessions - Sesiones no completadas
+ * @param {Set<string>} doneIds - Set de IDs de sesiones completadas
+ */
+function _blocked(pendingSessions, doneIds) {
+  return pendingSessions.filter(s => _isBlocked(s, doneIds));
+}
 
 function closeArranquePanel() {
   const overlay = document.getElementById('arranque-overlay');
@@ -162,11 +226,11 @@ function _showArranquePanel() {
     || (state.projects || []).filter(p => !p.archived)[0]
     || null;
 
-  if (_activeProj && typeof loadPlan === 'function') {
+  if (_activeProj) {
     const _planSprints = loadPlan(_activeProj.id);
     const _backlogItems = (() => {
       try {
-        const _tplK = typeof _tplKey === 'function' ? _tplKey('backlog-items') : 'backlog-items';
+        const _tplK = _tplKey('backlog-items');
         const raw = localStorage.getItem(_tplK);
         return raw ? JSON.parse(raw) : [];
       } catch(e) { return []; }
@@ -174,17 +238,19 @@ function _showArranquePanel() {
     const _itemByCode = {};
     _backlogItems.forEach(it => { if (it.code) _itemByCode[it.code] = it; });
 
-    const _liveStatus = code => { const it = _itemByCode[code]; return it ? (it.status || 'pendiente') : 'pendiente'; };
-    const _liveTitle  = code => { const it = _itemByCode[code]; return it ? (it.title || it.desc || '') : ''; };
-    const _sessScore  = sess => (sess.items || []).reduce((sum, code) => {
+    // Closures locales sobre _itemByCode — mismo comportamiento que funciones de módulo
+    // pero con acceso directo al mapa ya cargado (evita re-parse de localStorage)
+    const _liveStatusLocal = code => { const it = _itemByCode[code]; return it ? (it.status || 'pendiente') : 'pendiente'; };
+    const _liveTitleLocal  = code => { const it = _itemByCode[code]; return it ? (it.title || it.desc || '') : ''; };
+    const _sessScoreLocal  = sess => (sess.items || []).reduce((sum, code) => {
       const it = _itemByCode[code];
-      if (!it || _liveStatus(code) === 'done' || _liveStatus(code) === 'descartado') return sum;
+      if (!it || _liveStatusLocal(code) === 'done' || _liveStatusLocal(code) === 'descartado') return sum;
       const w = it.priority === 'high' ? 3 : it.priority === 'low' ? 1 : 2;
       return sum + w;
     }, 0);
-    const _sessIsDone = sess => {
+    const _sessIsDoneLocal = sess => {
       const codes = sess.items || [];
-      return codes.length > 0 && codes.every(c => { const s = _liveStatus(c); return s === 'done' || s === 'descartado'; });
+      return codes.length > 0 && codes.every(c => { const s = _liveStatusLocal(c); return s === 'done' || s === 'descartado'; });
     };
 
     if (_planSprints && _planSprints.length) {
@@ -195,13 +261,13 @@ function _showArranquePanel() {
         });
       });
 
-      const _doneIds = new Set(_allSessions.filter(s => _sessIsDone(s)).map(s => s.id).filter(Boolean));
-      const _isBlocked = sess => {
+      const _doneIds = new Set(_allSessions.filter(s => _sessIsDoneLocal(s)).map(s => s.id).filter(Boolean));
+      const _isBlockedLocal = sess => {
         const deps = (sess.depende_de || []).filter(Boolean);
         return deps.length > 0 && !deps.every(d => _doneIds.has(d));
       };
 
-      const _pendingSessions = _allSessions.filter(s => !_sessIsDone(s));
+      const _pendingSessions = _allSessions.filter(s => !_sessIsDoneLocal(s));
 
       if (_pendingSessions.length === 0) {
         bloque4Html = `<div class="arr-section arr-section--plan">
@@ -209,9 +275,9 @@ function _showArranquePanel() {
           <div class="arr-plan-done">✓ Todas las sesiones del sprint completadas</div>
         </div>`;
       } else {
-        const _available = _pendingSessions.filter(s => !_isBlocked(s));
-        const _blocked   = _pendingSessions.filter(s =>  _isBlocked(s));
-        const _recommended = _available.slice().sort((a, b) => _sessScore(b) - _sessScore(a))[0] || null;
+        const _available = _pendingSessions.filter(s => !_isBlockedLocal(s));
+        const _blocked   = _pendingSessions.filter(s =>  _isBlockedLocal(s));
+        const _recommended = _available.slice().sort((a, b) => _sessScoreLocal(b) - _sessScoreLocal(a))[0] || null;
         const _others = _available.filter(s => s !== _recommended);
 
         const _typeColor = { P: '#7c6af7', T: '#2ecc78', R: '#38bdf8', B: '#e85555' };
@@ -224,7 +290,7 @@ function _showArranquePanel() {
         let recHtml = '';
         if (_recommended) {
           const pendingCodes = (_recommended.items || []).filter(c => {
-            const s = _liveStatus(c); return s !== 'done' && s !== 'descartado';
+            const s = _liveStatusLocal(c); return s !== 'done' && s !== 'descartado';
           });
           const archivos = (_recommended.archivos || []).filter(Boolean);
 
@@ -277,7 +343,7 @@ function _showArranquePanel() {
         let othersHtml = '';
         if (_others.length) {
           othersHtml = _others.map(s => {
-            const pendCount = (s.items || []).filter(c => { const st = _liveStatus(c); return st !== 'done' && st !== 'descartado'; }).length;
+            const pendCount = (s.items || []).filter(c => { const st = _liveStatusLocal(c); return st !== 'done' && st !== 'descartado'; }).length;
             return `<div class="arr-plan-row">
               <span class="arr-plan-indicator arr-plan-indicator--available">●</span>
               <span class="arr-plan-row-rol">${esc(s.rol || '—')}</span>
@@ -334,7 +400,7 @@ function _showArranquePanel() {
         }, 2000);
       }).catch(() => {
         // B-202605-505: usar _copyTextSafe para evitar sobreescribir clipboard del usuario
-        if (typeof _copyTextSafe === 'function') _copyTextSafe(_planPromptText);
+        _copyTextSafe(_planPromptText);
         _copyBtn.classList.add('arr-plan-copy-btn--copied');
         _copyBtn.textContent = '✓ Copiado';
         setTimeout(() => {
@@ -349,10 +415,10 @@ function _showArranquePanel() {
   if (ctaBtn) {
     ctaBtn.addEventListener('click', () => {
       closeArranquePanel();
-      if (bestAI && typeof selectTrackerAI === 'function') {
-        if (typeof switchTab === 'function') switchTab('sesiones');
+      if (bestAI) {
+        switchTab('sesiones');
         setTimeout(() => selectTrackerAI(bestAI.id), 80);
-      } else if (typeof switchTab === 'function') {
+      } else {
         switchTab('sesiones');
       }
     });
@@ -368,7 +434,7 @@ function _showArranquePanel() {
   if (verTodoBtn) {
     verTodoBtn.addEventListener('click', () => {
       closeArranquePanel();
-      if (typeof switchTab === 'function') switchTab('sesiones');
+      switchTab('sesiones');
     });
   }
 
@@ -379,3 +445,12 @@ function _showArranquePanel() {
 
   overlay.classList.add('arranque-visible');
 }
+
+// ── Exposición pública ───────────────────────────────────────────────────────
+window._isBlocked        = _isBlocked;
+window._blocked          = _blocked;
+window._liveStatus       = _liveStatus;
+window._liveTitle        = _liveTitle;
+window._sessIsDone       = _sessIsDone;
+window._showArranquePanel = _showArranquePanel;
+window.closeArranquePanel = closeArranquePanel;

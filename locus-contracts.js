@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-contracts.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
@@ -9,6 +9,10 @@
 
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
 // Extraído de ai-tracker-ai-notes.js
+
+import { renderStats } from './locus-backlog-core.js';
+import { _focusFirstInteractive, _restoreModalFocus } from './locus-modals.js';
+import { _offlineQueuePush, setSyncStatus } from './locus-storage.js';
 
 // ════════════════════════════════════════════════════════════════════
 // R-202604-075 · CONTRATOS DE MÓDULO
@@ -40,7 +44,9 @@ function _ctrSave(d)  { try { localStorage.setItem(_ctrKey(), JSON.stringify(d))
 
 // Merge de contrato desde un ítem parseado
 // ítem.contract = { file, functions: [ { name, signature, invariants, sideEffects, lastTouched, riskSprints } ] }
-function _ctrMergeFromItem(itemCode, contract) {
+export function pad(s, n) { return String(s).padEnd(n); }
+
+export function _ctrMergeFromItem(itemCode, contract) {
   if (!contract || !contract.file) return;
   const data = _ctrLoad();
   const now = Date.now();
@@ -116,7 +122,7 @@ function _ctrIsRisk(fn) {
 }
 
 // Render principal del sub-tab
-function renderContratos() {
+export function renderContratos() {
   const listEl   = document.getElementById('ctr-list-panel');
   const detailEl = document.getElementById('ctr-detail-panel');
   if (!listEl || !detailEl) return;
@@ -180,7 +186,7 @@ function openContratoDetail(file) {
   renderContratos();
 }
 
-function _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+export function _esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 function _renderContratoDetail(mod, el) {
   const fns = mod.functions || [];
@@ -232,7 +238,7 @@ function exportContratosMd() {
   const modules = Object.values(data);
   if (!modules.length) { showToast('warn', 'Sin contratos para exportar'); return; }
 
-  const pad = (s, n) => String(s).padEnd(n);
+  // pad definida a nivel de módulo — T3.bis
   let md = `# Contratos de Módulo\n\n`;
   md += `Exportado: ${new Date().toLocaleString('es-MX')}\n\n---\n\n`;
 
@@ -305,12 +311,12 @@ function openResetSessionsModal() {
   const hint = document.getElementById('reset-sessions-hint');
   if (hint) hint.classList.add('is-hidden');
   document.getElementById('reset-sessions-overlay').classList.add('open');
-  if (typeof _focusFirstInteractive === 'function') _focusFirstInteractive('reset-sessions-overlay');
+  _focusFirstInteractive('reset-sessions-overlay');
 }
 
 function closeResetSessionsModal() {
   document.getElementById('reset-sessions-overlay').classList.remove('open');
-  if (typeof _restoreModalFocus === 'function') _restoreModalFocus('reset-sessions-overlay');
+  _restoreModalFocus('reset-sessions-overlay');
 }
 
 function confirmResetSessions() {
@@ -366,11 +372,11 @@ function confirmResetSessions() {
           }, { onConflict: 'user_id,key' });
         if (stateErr) throw stateErr;
 
-        if (typeof setSyncStatus === 'function') setSyncStatus('synced', '✓ sincronizado');
+        setSyncStatus('synced', '✓ sincronizado');
       } catch (err) {
         console.error('[AI Tracker] confirmResetSessions: Supabase sync error:', err);
-        if (typeof setSyncStatus === 'function') setSyncStatus('offline', '✕ sin conexión');
-        if (typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'state' });
+        setSyncStatus('offline', '✕ sin conexión');
+        _offlineQueuePush({ type: 'state' });
         showToast('warning', '⚠️ Reset local aplicado — Supabase se sincronizará al reconectar');
       }
     })();
@@ -380,7 +386,7 @@ function confirmResetSessions() {
 
   // Re-render
   if (typeof renderSessionList === 'function') renderSessionList();
-  if (typeof renderStats === 'function') renderStats();
+  renderStats();
 
   showToast('success', 'Sesiones y sprints reseteados — Workers y Proyectos conservados');
 }
@@ -422,3 +428,18 @@ document.addEventListener('DOMContentLoaded', () => {
   // ── END T-202605-033 locus-contracts ──
 
 });
+
+// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+window.pad                      = window.pad || pad;
+window._ctrMergeFromItem        = _ctrMergeFromItem;
+window.renderContratos          = renderContratos;
+window._esc                     = _esc;
+window.onContratosSearch        = onContratosSearch;
+window.clearContratosSearch     = clearContratosSearch;
+window.openContratoDetail       = openContratoDetail;
+window.exportContratosMd        = exportContratosMd;
+window.resetContratosData       = resetContratosData;
+window.searchContratos          = searchContratos;
+window.openResetSessionsModal   = openResetSessionsModal;
+window.closeResetSessionsModal  = closeResetSessionsModal;
+window.confirmResetSessions     = confirmResetSessions;

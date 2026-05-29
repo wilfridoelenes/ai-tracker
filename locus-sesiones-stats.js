@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-06 · mod:1 · autor:Rune · 2026-05-28 18:10 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 18:10 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -34,7 +34,7 @@ document.title = 'Locus ' + _effectiveVersion();
 
 // Header project label — muestra Prefijo · Nombre canónico del proyecto activo
 // R-202605-167: Breadcrumb interactivo — proyecto › sprint › ítem activo
-function _updateHeaderProjectLabel() {
+export function _updateHeaderProjectLabel() {
   // ── Segmento 1: proyecto ──────────────────────────────────────────────────
   const projBtn    = document.getElementById('breadcrumb-proj');
   const firstSep   = document.querySelector('.breadcrumb-sep--first');
@@ -130,12 +130,12 @@ window._updateHeaderProjectLabel = _updateHeaderProjectLabel;
 // ── T-202605-482c: Supabase Auth — migrado a locus-storage.js ──
 
 // navegar al Tracker enfocando la card de una IA
-function _scrollToCard(aiId) {
+export function _scrollToCard(aiId) {
   const detail = document.querySelector('.tracker-detail');
   if (detail) detail.scrollTop = 0;
 }
 
-function navigateToCard(aiId) {
+export function navigateToCard(aiId) {
   switchTab('sesiones');
   setTimeout(() => {
     if (typeof selectTrackerAI === 'function') {
@@ -149,7 +149,7 @@ function navigateToCard(aiId) {
   }, 80);
 }
 
-function updateStats() {
+export function updateStats() {
   const tot = getAllSessions().length;
   const tgBadgeSub = document.getElementById('tg-badge-sub');
   if (tgBadgeSub) {
@@ -161,7 +161,7 @@ function updateStats() {
 }
 
 // Detecta si una IA está "en sesión": disponible con última sesión sin resetAt ni quickCapture
-function _isInSession(ai) {
+export function _isInSession(ai) {
   if (ai.status !== 'available' || ai.interrupted) return false;
   const allSess = getAllSessions().filter(s => s.aiId === ai.id);
   if (!allSess.length) return false;
@@ -189,10 +189,10 @@ function _getActiveSprintStats() {
 // T-086 / T-202604-181: Barra de estado sobre el grid
 // T-202605-118: dirty flag — render quirúrgico
 let _statusBarDirty = false;
-function _markStatusBarDirty() { _statusBarDirty = true; }
+export function _markStatusBarDirty() { _statusBarDirty = true; }
 window._markStatusBarDirty = _markStatusBarDirty;
 
-function renderStatusBar() {
+export function renderStatusBar() {
   if (!_statusBarDirty) return;
   try {
   // R-202604-060: tracker-status-bar DEPRECATED — lógica migrada a tracker-grid-header + global-footer
@@ -324,7 +324,7 @@ function renderStatusBar() {
 }
 
 // T-097: Colapsar/expandir todas las cards activas
-function toggleCollapseAll() {
+export function toggleCollapseAll() {
   const active = state.ais.filter(a => !a.archived);
   const allCollapsed = active.every(a => !a.showAll);
   active.forEach(a => { a.showAll = allCollapsed; });

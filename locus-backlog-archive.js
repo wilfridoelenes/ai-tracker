@@ -1,3 +1,4 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 // Dependencias: locus-backlog-core.js · locus-storage.js
@@ -6,7 +7,7 @@
 // B-[tmp:closed-version]: archivar ítems done/descartados al hacer bump de versión
 // Llamada desde confirmMapGenerator() en ai-tracker-map-generator.js
 // ─────────────────────────────────────────────────────────────────────────────
-function archiveClosedItems() {
+export function archiveClosedItems() {
   let changed = false;
   ITEMS.forEach(item => {
     if (item.status === 'done' || item.status === 'descartado') {
@@ -35,7 +36,7 @@ const _ARCH_VIEW_KEY  = 'ai-tracker-arch-view';   // 'sprint' | 'flat'
 // con confirmCloseSprint que usa localStorage.setItem(_HISTORICO_KEY, '1')
 const _HISTORICO_KEY  = _ARCH_KEY;
 
-function renderArchivoHistorico(listEl) {
+export function renderArchivoHistorico(listEl) {
   const historicos = ITEMS.filter(i => i.status === 'historico');
   if (!historicos.length) return;
 
@@ -87,7 +88,7 @@ function renderArchivoHistorico(listEl) {
   }
 }
 
-function toggleArchivoHistorico() {
+export function toggleArchivoHistorico() {
   const body   = document.getElementById('arch-historico-body');
   const header = document.querySelector('#arch-historico .arch-historico-header');
   const arrow  = document.querySelector('#arch-historico .arch-historico-arrow');
@@ -135,7 +136,7 @@ function _renderArchivoBody(view) {
 }
 
 // R-202605-124: número de sprint como entero para comparar con la frontera S-23
-function _sprintNum(id) {
+export function _sprintNum(id) {
   const m = (id || '').match(/^S-(\d+)$/i);
   return m ? parseInt(m[1], 10) : 0;
 }

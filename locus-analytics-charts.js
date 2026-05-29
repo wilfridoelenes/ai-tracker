@@ -1,3 +1,4 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-analytics-charts.js
 // Responsabilidad: Heatmap, distribución horaria, patrones de productividad,
 //   checkpoints por proyecto, exportAnalyticsMd.
@@ -5,7 +6,7 @@
 
 const HEATMAP_WEEKS = 12; // últimas N semanas — configurable
 
-function renderHeatmap() {
+export function renderHeatmap() {
   const el = document.getElementById('analytics-heatmap');
   if (!el) return;
 
@@ -130,7 +131,7 @@ function renderHeatmap() {
 // ── T-202605-454: Insight de horas productivas — dos métricas separadas ──
 // Métrica A: hora con más sesiones iniciadas (resetAt)
 // Métrica B: hora con más ítems cerrados (closedAt de backlog cruzado con hora de sesión)
-function _buildHourlyInsightData(allSess) {
+export function _buildHourlyInsightData(allSess) {
   // A — sesiones por hora
   const sessCountsByHour = new Array(24).fill(0);
   allSess.forEach(s => {
@@ -170,7 +171,7 @@ function _buildHourlyInsightData(allSess) {
   return { sessCountsByHour, closedCountsByHour, maxSess, maxClosed, peakSessH, peakClosedH };
 }
 
-function renderHourly() {
+export function renderHourly() {
   const el = document.getElementById('analytics-hourly');
   if (!el) return;
 
@@ -263,7 +264,7 @@ const _PROD_MIN_SESSIONS = 5;
 const _DOW_LABELS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const _DOW_SHORT  = ['D','L','M','X','J','V','S'];
 
-function renderProductivityPatterns() {
+export function renderProductivityPatterns() {
   const el = document.getElementById('analytics-productivity');
   if (!el) return;
 
@@ -437,7 +438,7 @@ function renderProductivityPatterns() {
 }
 
 // ── T-202604-274: Checkpoints por proyecto — esta semana, este mes, total ──
-function renderCheckpointsByProject() {
+export function renderCheckpointsByProject() {
   const el = document.getElementById('analytics-ckpt-by-proj');
   if (!el) return;
 
@@ -564,7 +565,7 @@ function renderCheckpointsByProject() {
 }
 
 // ── T-046: Exportar resumen de analytics en markdown ──
-function exportAnalyticsMd() {
+export function exportAnalyticsMd() {
   const now = new Date();
   const months = getAnalyticsMonths();
   const rangeLabel = _analyticsRange === 0 ? 'Todo el historial' : `Últimos ${_analyticsRange} mes${_analyticsRange > 1 ? 'es' : ''}`;

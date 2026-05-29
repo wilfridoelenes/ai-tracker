@@ -1,9 +1,13 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal
 // Requiere: locus-storage.js, locus-ui-shell.js (switchTab) cargados ANTES en index.html
 // Debe cargarse ANTES de locus-sesiones.js
+
+import { _cscardRelTs, render, selectTrackerAI } from './locus-sesiones.js';
+import { getAI, getAISessions, getActiveProject } from './locus-storage.js';
+import { switchTab } from './locus-ui-shell.js';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // S-17: T-202605-446 · Cronómetro de sesión — card IA activa
@@ -46,7 +50,7 @@ function stopSessionTimer(aiId) {
 }
 
 // Llamado al abrir/seleccionar una IA — inicia o retoma cronómetro
-function startSessionTimer(aiId) {
+export function startSessionTimer(aiId) {
   const existing = _getTimerData(aiId);
   if (existing && existing.running) return; // ya corriendo
   const elapsed = existing ? existing.elapsed : 0;
@@ -76,7 +80,7 @@ function _renderTimerInCard(aiId) {
   if (titleEl) {
     const ai = (typeof state !== 'undefined' && state.ais && state.ais.find(a => a.id === aiId));
     if (ai) {
-      const sessions = (typeof getAISessions === 'function') ? getAISessions(aiId) : [];
+      const sessions = getAISessions(aiId);
       const last = sessions.length ? sessions[sessions.length - 1] : null;
       const t = (last && last.title) ? last.title : '';
       titleEl.textContent = t.length > 28 ? t.substring(0, 28) + '\u2026' : t;
@@ -92,7 +96,7 @@ function _refreshTimerTick() {
     // Actualizar timestamps relativos en cards de sesión en curso
     document.querySelectorAll('.cscard-timer[data-ts]').forEach(el => {
       const ts = parseInt(el.dataset.ts, 10);
-      if (ts && typeof _cscardRelTs === 'function') el.textContent = _cscardRelTs(ts);
+      if (ts) el.textContent = _cscardRelTs(ts);
     });
   }, 60000);
   // Actualización inmediata al arrancar el tick
@@ -100,7 +104,7 @@ function _refreshTimerTick() {
   _renderActiveWorkerChip();
   document.querySelectorAll('.cscard-timer[data-ts]').forEach(el => {
     const ts = parseInt(el.dataset.ts, 10);
-    if (ts && typeof _cscardRelTs === 'function') el.textContent = _cscardRelTs(ts);
+    if (ts) el.textContent = _cscardRelTs(ts);
   });
 }
 
@@ -119,7 +123,7 @@ function _timerWidgetHtml(aiId) {
 // R-202605-170: Worker activo chip — nombre y cronómetro en header
 // ══════════════════════════════════════════════════════════════════════════════
 
-function _renderActiveWorkerChip() {
+export function _renderActiveWorkerChip() {
   const chip = document.getElementById('header-active-worker');
   if (!chip) return;
 
@@ -152,8 +156,8 @@ function _hwcClick() {
   const chip = document.getElementById('header-active-worker');
   const aiId = chip && chip.dataset.hwcAiId;
   if (!aiId) return;
-  if (typeof selectTrackerAI === 'function') selectTrackerAI(aiId);
-  if (typeof switchTab === 'function' && document.querySelector('.tab-btn.active')?.dataset.tab !== 'sesiones') {
+  selectTrackerAI(aiId);
+  if (document.querySelector('.tab-btn.active')?.dataset.tab !== 'sesiones') {
     switchTab('sesiones');
   }
 }
@@ -166,7 +170,7 @@ window._hwcClick = _hwcClick;
 
 function _computeSuggestionScore(ai) {
   // Peso 40%: días desde última sesión (más días = más urgente)
-  const allSess = (typeof getAISessions === 'function') ? getAISessions(ai.id) : [];
+  const allSess = getAISessions(ai.id);
   let daysSinceScore = 0;
   if (allSess.length) {
     const lastSess = allSess.reduce((a, b) => {
@@ -222,8 +226,8 @@ function _highPendingCount(ai) {
   ).length;
 }
 
-function _buildSuggestionReason(ai) {
-  const allSess = (typeof getAISessions === 'function') ? getAISessions(ai.id) : [];
+export function _buildSuggestionReason(ai) {
+  const allSess = getAISessions(ai.id);
   const parts = [];
   if (allSess.length) {
     const lastSess = allSess.reduce((a, b) =>
@@ -239,7 +243,7 @@ function _buildSuggestionReason(ai) {
   return parts.join(' · ');
 }
 
-function renderSuggestionBanner() {
+export function renderSuggestionBanner() {
   // B-258: banner global eliminado — información equivalente inline en buildCard()
   const banner = document.getElementById('session-suggestion-banner');
   if (banner) banner.classList.add('suggestion-banner--hidden');
@@ -256,7 +260,7 @@ function startSuggestedSession(aiId) {
   if (typeof _trackerSelectAI === 'function') _trackerSelectAI(aiId);
   else if (typeof _trackerSelectedId !== 'undefined') {
     _trackerSelectedId = aiId;
-    if (typeof render === 'function') render();
+    render();
   }
   startSessionTimer(aiId);
 }
@@ -312,7 +316,7 @@ function _buildWeeklySummary() {
   // IAs más activas
   const aiCounts = {};
   lastWeekSess.forEach(s => {
-    const ai = (typeof getAI === 'function') ? getAI(s.aiId) : null;
+    const ai = getAI(s.aiId);
     const name = ai ? ai.name : s.aiId;
     aiCounts[name] = (aiCounts[name] || 0) + 1;
   });
@@ -322,7 +326,7 @@ function _buildWeeklySummary() {
   // Sprint progress
   let sprintProgress = '—';
   try {
-    const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+    const proj = getActiveProject();
     const projFallback = proj || (typeof state !== 'undefined' && state.projects && state.projects[0]);
     const sp = projFallback && projFallback.sprints ? projFallback.sprints.find(s => s.status === 'active') : null;
     if (sp) {

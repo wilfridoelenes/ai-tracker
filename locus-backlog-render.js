@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // Responsabilidad: Renderizado del backlog — vista árbol, sprint health panel,
 //   roadmap, planning (drag & drop), renderBacklogList, sprint selector inline.
 // Dependencias: locus-backlog-core.js · locus-backlog-archive.js · locus-backlog-item.js · locus-backlog-sprints.js
@@ -29,7 +29,7 @@ function setItemParent(code, parentCode) {
   showToast('success', parentCode ? `${code} vinculado a ${parentCode}` : `${code} desvinculado`);
 }
 
-function updateClearFilterBtn() {
+export function updateClearFilterBtn() {
   const btn = document.getElementById('filter-clear-btn');
   if (!btn) return;
   const allTypes = activeTypes.size === 4;
@@ -110,7 +110,7 @@ function toggleClosedSprintsBody() { toggleArchivoHistorico(); }
 // T-202604-290 · T-202605-450: velocidad por sprint — retorna { avg, sprints: [{id, label, planned, real}] }
 // planned = suma effort asignado (excluye descartados)
 // real    = suma effort done
-function _calcEstimatedVelocity() {
+export function _calcEstimatedVelocity() {
   const closedSprints = getActiveSprints()
     .filter(s => s.status === 'closed')
     .slice(-5); // R-202605-126: últimos 5 cerrados (antes: 3)
@@ -449,7 +449,7 @@ function _renderSprintRoadmap() {
 // alias legacy — roadmapGoToSprint sigue funcionando igual
 
 // R-202605-130: vista Planificación — layout dos columnas con drag & drop
-function _renderPlanningView(listEl, closeCallback) {
+export function _renderPlanningView(listEl, closeCallback) {
   const activeSprint = _getActiveSprint();
   const allSprints   = getActiveSprints();
   // Determinar sprint destino: siguiente abierto no activo, o null si no hay
@@ -654,10 +654,10 @@ function _planDrop(e, targetCol) {
 
 // T-202605-118: dirty flag — render quirúrgico
 let _backlogListDirty = false;
-function _markBacklogListDirty() { _backlogListDirty = true; }
+export function _markBacklogListDirty() { _backlogListDirty = true; }
 window._markBacklogListDirty = _markBacklogListDirty;
 
-function renderBacklogList(onRendered) {
+export function renderBacklogList(onRendered) {
   if (!_backlogListDirty) return;
   // AC-3 T-202605-118: skip si el item editor está abierto
   const _ieOverlay = document.getElementById('item-editor-overlay');

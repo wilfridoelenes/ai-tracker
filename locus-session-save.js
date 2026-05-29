@@ -1,7 +1,16 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
+import { loadBacklog } from './locus-backlog-core.js';
+import { applyPatchesFromTG } from './locus-backlog-item.js';
+import { showMergeDiffPanel } from './locus-backlog-merge.js';
+import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
+import { updateTabNotifBadges } from './locus-notifications.js';
+import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js';
+import { _generateBacklogContent, _getLocalStorageUsage } from './locus-sprint-project.js';
+import { _effectiveVersion, getAI, getActiveProject, getActiveSprints } from './locus-storage.js';
+
 
 function toggleTemplateTrigger(val) {
   localStorage.setItem(_TMPL_TRIGGER_KEY, val);
@@ -13,7 +22,7 @@ function toggleTemplateTrigger(val) {
 }
 
 // T-202604-115: Descargar templates individuales (HTML + CONTEXT + Backlog)
-function downloadTemplates() {
+export function downloadTemplates() {
   showToast('download', 'Templates listos — click para descargar', null, 8000, () => { _doDownloadTemplates(); });
 }
 
@@ -46,9 +55,7 @@ function _buildNarrativeMemoryMd() {
 
 function _doDownloadTemplates() {
   // B-202605-267: usar versión canónica (post-Generator) en lugar de APP_VERSION hardcodeada
-  const _ver = (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
-    ? _effectiveVersion
-    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v3.4');
+  const _ver = _effectiveVersion || (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v3.4');
 
   // Backlog
   _generateBacklogMd(_ver);
@@ -151,7 +158,7 @@ function _buildChangelogHTML() {
 // Toma las últimas N sesiones del proyecto activo que tengan al menos un campo narrativo con contenido real
 function _buildNarrativeMd() {
   const N = 10;
-  const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+  const proj = getActiveProject();
   const sessions = (proj && Array.isArray(proj.sessions)) ? proj.sessions : [];
   if (!sessions.length) return '';
 
@@ -167,7 +174,7 @@ function _buildNarrativeMd() {
   if (!narrative.length) return '';
 
   const _ai = (aiId) => {
-    if (typeof getAI === 'function') { const a = getAI(aiId); return a ? a.name : aiId; }
+    const a = getAI(aiId); return a ? a.name : aiId;
     return aiId || '—';
   };
 
@@ -190,7 +197,7 @@ function buildContextMd(version) {
   const counters = tracker.counters || { P: 0, T: 0, R: 0, B: 0 };
 
   // Sprint activo — acepta 'active' y 'open'
-  const allSprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+  const allSprints = getActiveSprints();
   const activeSprint = allSprints.find(s => s.status === 'active' || s.status === 'open') || null;
   const lastClosed  = allSprints.filter(s => s.status === 'closed')
     .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0))[0] || null;
@@ -201,7 +208,7 @@ function buildContextMd(version) {
     : `AI-Tracker-v${version}.html`;
 
   // Proyecto activo
-  const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+  const proj = getActiveProject();
   const allProjects = (typeof state !== 'undefined' && state.projects) ? state.projects : [];
 
   // Todas las sesiones — para bloqueante y decisiones
@@ -340,8 +347,8 @@ ${narrativeMd}
 // B-202605-517: stub legacy reemplazado — delegación a _generateBacklogContent (ai-tracker-sprint-project.js)
 // La función anterior leía tracker.items (schema legacy, solo sesiones) en lugar de ITEMS (backlog global),
 // produciendo exports truncados con backlogs de 24+ ítems.
-function buildBacklogMd(version) {
-  if (typeof _generateBacklogContent === 'function') {
+export function buildBacklogMd(version) {
+  {
     const { md } = _generateBacklogContent(version);
     return md;
   }
@@ -352,8 +359,8 @@ function buildBacklogMd(version) {
 }
 
 // R-202604-022: muestra alerta de cuota de localStorage si supera umbrales
-function _checkStorageQuota() {
-  if (typeof _getLocalStorageUsage !== 'function') return;
+export function _checkStorageQuota() {
+
   const { usedKB, totalKB, pct } = _getLocalStorageUsage();
   if (pct >= 0.85) {
     showToast('error', `⚠ localStorage al ${Math.round(pct * 100)}% (${usedKB} KB / ${totalKB} KB) — limpia ítems o exporta datos`, null, 8000);
@@ -362,7 +369,7 @@ function _checkStorageQuota() {
   }
 }
 
-function saveSession(id) {
+export function saveSession(id) {
   // B-202605-054: getAI(id) puede devolver null si el worker fue eliminado entre el inicio
   // de la sesión y el guardado (ej: purge concurrente). Sin guard, ai._parsed explota.
   const ai = getAI(id);
@@ -474,14 +481,14 @@ function _buildPatchTgItems(patchItems, existingTgItems) {
 // Sobrescribe temporalmente current-project-filter + recarga ITEMS del proyecto destino,
 // ejecuta el merge, y restaura el estado anterior (filtro + ITEMS del proyecto original).
 // _setActiveProjectFilter no se usa porque tiene side-effects de UI.
-function _mergeBacklogWithProject(tgItems, sessId, projId) {
+export function _mergeBacklogWithProject(tgItems, sessId, projId) {
   if (!tgItems || !tgItems.length) return { created:[], updated:[], ignored:[], advanced:[], retroceso:[], discarded:[] };
   const _prevFilter = localStorage.getItem('current-project-filter') || '';
   const _filterChanged = projId && projId !== _prevFilter;
   if (_filterChanged) {
     // Apuntar al proyecto del card y recargar ITEMS correspondientes
     localStorage.setItem('current-project-filter', projId);
-    if (typeof loadBacklog === 'function') loadBacklog();
+    loadBacklog();
   }
   let result;
   try {
@@ -491,14 +498,14 @@ function _mergeBacklogWithProject(tgItems, sessId, projId) {
       // Restaurar filtro original y recargar ITEMS del proyecto original
       if (_prevFilter) localStorage.setItem('current-project-filter', _prevFilter);
       else localStorage.removeItem('current-project-filter');
-      if (typeof loadBacklog === 'function') loadBacklog();
+      loadBacklog();
     }
   }
   return result;
 }
 
 // R-202604-017 + P-202604-115: lógica central de guardado extraída para reutilización
-function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
+export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   const ta = document.getElementById('ta-' + id);
   const raw = ta ? ta.value.trim() : '';
   // B-202604-NNN: evitar que marcas de bloque (---CHECKPOINT---, ```) queden como título
@@ -559,7 +566,7 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
       const _doCompleteFinish = async () => {
         _mergeBacklogWithProject(tgItems, ts.id, activeProj.id);
         // R-202605-062: aplicar patches después del merge de ítems normales
-        if (parsed.patchItems && parsed.patchItems.length && typeof applyPatchesFromTG === 'function') {
+        if (parsed.patchItems && parsed.patchItems.length) {
           applyPatchesFromTG(parsed.patchItems, ts.id);
         }
         // B-202604-XXX: sincronizar trackerRefs con códigos reales post-resolución
@@ -573,8 +580,8 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
         if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
         await saveImmediate(); render(); renderStats();
         // B-202605-508: actualizar badges de tabs tras guardar sesión
-        if (typeof updateTabNotifBadges === 'function') updateTabNotifBadges();
-        if (currentTab === 'backlog') { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); }
+        updateTabNotifBadges();
+        if (currentTab === 'backlog') { _markBacklogListDirty(); renderBacklogList(); }
         _rebuildLogBody();
         _checkStorageQuota();
         // B-202605-265: _setPhase(id,3) movido dentro de rAF — render() reconstruye el DOM con
@@ -583,7 +590,7 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
           _setPhase(id, 3);
           // segundo render garantiza sidebar y card con state final estabilizado
           render();
-          if (typeof _markRadarDirty === 'function') _markRadarDirty(); if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+          _markRadarDirty(); renderGlobalRadarSidebar();
           // B-202605-XXX: re-limpiar draft después del segundo render() — mismo fix que flujo principal
           localStorage.removeItem('draft-' + id);
           localStorage.removeItem('draft-' + id + '-ts');
@@ -611,7 +618,7 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
       // patchItems se aplican realmente dentro de _doCompleteFinish — aquí solo se pre-visualizan.
       const _patchItemsC = parsed.patchItems || [];
       const _tgItemsForPanel = _buildPatchTgItems(_patchItemsC, tgItems);
-      if (typeof showMergeDiffPanel === 'function' && _tgItemsForPanel.length) {
+      if (_tgItemsForPanel.length) {
         showMergeDiffPanel(_tgItemsForPanel, ts.id, activeProj.id, _doCompleteFinish);
       } else {
         _doCompleteFinish();
@@ -663,7 +670,8 @@ function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // patchItems se aplican realmente dentro de _doApplyMergeAndFinish — aquí solo se pre-visualizan.
   const _patchItemsN = parsed.patchItems || [];
   const _tgItemsForPanel = _buildPatchTgItems(_patchItemsN, tgItems);
-  if (typeof showMergeDiffPanel === 'function' && _tgItemsForPanel.length) {
+  if (_tgItemsForPanel.length) {
+    showMergeDiffPanel(_tgItemsForPanel);
     // B-202605-NNN: cancelar timer Supabase de draft antes de abrir el panel diff.
     // Si el usuario tarda >3s en confirmar, el timer se dispara y hace upsert del draft.
     // Ese upsert puede llegar por realtime DESPUÉS del delete post-confirm → restoreDrafts restaura el textarea.
@@ -709,7 +717,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   const raw = (document.getElementById('ta-' + id) || {}).value || '';
   const mergeResult = _mergeBacklogWithProject(tgItems, sessId, activeProj.id);
   // R-202605-062: aplicar patches después del merge de ítems normales
-  if (parsed.patchItems && parsed.patchItems.length && typeof applyPatchesFromTG === 'function') {
+  if (parsed.patchItems && parsed.patchItems.length) {
     applyPatchesFromTG(parsed.patchItems, sessId);
   }
 
@@ -764,7 +772,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   renderStats();
   // B-202604-XXX: actualizar tab Hoy tras guardar CKPT con hora de cierre — sin esto el card no refleja estado exhausted sin refresh manual
   if (currentTab === 'sesiones') render();
-  if (currentTab === 'backlog') { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); }
+  if (currentTab === 'backlog') { _markBacklogListDirty(); renderBacklogList(); }
   // R-202604-016: actualizar log card
   _rebuildLogBody();
   // R-003: animar la primera sess-row del card recién guardado
@@ -774,7 +782,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   requestAnimationFrame(() => {
     _setPhase(id, 3);
     render();
-    if (typeof _markRadarDirty === 'function') _markRadarDirty(); if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+    _markRadarDirty(); renderGlobalRadarSidebar();
     // B-202605-XXX: re-limpiar draft después del segundo render() — restoreDrafts() corre
     // al final de render() y puede repoblar el textarea si el draft sobrevivió en localStorage
     // (race entre parsePaste con ta.value='' y un oninput/debounce timer previo).

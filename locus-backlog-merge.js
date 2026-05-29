@@ -1,12 +1,20 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
 // Dependencias: locus-backlog-core.js · locus-backlog-item.js · locus-backlog-sprints.js · locus-storage.js · locus-toast.js
 // Carga: después de locus-backlog-item.js
 
+import { loadBacklog } from './locus-backlog-core.js';
+import { _markBacklogListDirty } from './locus-backlog-render.js';
+import { _getSprintById } from './locus-backlog-sprints.js';
+import { getActiveProject, getActiveSprints } from './locus-storage.js';
+import { showToast } from './locus-toast.js';
+import { switchSubTab, switchTab } from './locus-ui-shell.js';
+
 // R-202605-033: Extraído de locus-backlog-item.js
 
-function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
+export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   if (!tgItems || !tgItems.length) { onApply(); return; }
 
   // Dry-run: obtener diff sin mutar ITEMS
@@ -14,7 +22,7 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   const _filterChanged = projId && projId !== _prevFilter;
   if (_filterChanged) {
     localStorage.setItem('current-project-filter', projId);
-    if (typeof loadBacklog === 'function') loadBacklog();
+    loadBacklog();
   }
   let diff;
   try {
@@ -25,10 +33,10 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
       if (_prevFilter) localStorage.setItem('current-project-filter', _prevFilter);
       else localStorage.removeItem('current-project-filter');
       try {
-        if (typeof loadBacklog === 'function') loadBacklog();
+        loadBacklog();
       } catch (e) {
         console.error('[AI Tracker] showMergeDiffPanel: loadBacklog falló en finally — filter restaurado, backlog puede estar desactualizado.', e);
-        if (typeof showToast === 'function') showToast({ title: 'Error al restaurar backlog', body: 'Recarga la página.', type: 'error' });
+        showToast({ title: 'Error al restaurar backlog', body: 'Recarga la página.', type: 'error' });
       }
     }
   }
@@ -58,8 +66,7 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
   // R-202605-148: select de sprint inline — persiste via _mdiffSetItemSprint sin re-render del DIFF
   const _sprintSelect = (code) => {
-    const openSprints = (typeof getActiveSprints === 'function')
-      ? getActiveSprints().filter(s => s.status !== 'closed')
+    const openSprints = getActiveSprints().filter(s => s.status !== 'closed')
       : [];
     const item = ITEMS.find(i => i.code === code);
     const rawSprint = item ? (item.sprint || '') : '';
@@ -240,7 +247,7 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
   // Header: título + contexto de paso
   if (header) {
-    const projName = (typeof getActiveProject === 'function' && getActiveProject())
+    const projName = getActiveProject()
       ? getActiveProject().name : '';
     header.innerHTML = `
       <div class="mdiff-header-inner">
@@ -337,7 +344,7 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
         _mdiffPersistSprint(code, newSprintId);
         const restoredSel = _mdiffRestoreSelect(wrapDiv, code, newSprintId);
         // Añadir la nueva opción a todos los demás selects del DIFF
-        const _newSp = (typeof _getSprintById === 'function') ? _getSprintById(newSprintId) : null;
+        const _newSp = _getSprintById(newSprintId);
         const _newSpLabel = _newSp ? (_newSp.label || newSprintId) : newSprintId;
         document.querySelectorAll('.mdiff-sprint-select[data-item-code]').forEach(s => {
           if (s === restoredSel) return;
@@ -370,8 +377,7 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
   // Reemplaza el mini-form con un select reconstruido
   function _mdiffRestoreSelect(wrap, code, selectedId) {
-    const openSprints = (typeof getActiveSprints === 'function')
-      ? getActiveSprints().filter(s => s.status !== 'closed')
+    const openSprints = getActiveSprints().filter(s => s.status !== 'closed')
       : [];
     const currentSprint = code
       ? ((ITEMS.find(i => i.code === code) || {}).sprint || '')
@@ -623,7 +629,7 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     delete window._mdiffJumpTo;
     delete window._mdiffSetItemSprint;
 
-    if (typeof showToast === 'function' && appliedCount > 0) {
+    if (appliedCount > 0) {
       showToast('success', `Sesión guardada — ${appliedCount} ítem${appliedCount !== 1 ? 's' : ''} aplicado${appliedCount !== 1 ? 's' : ''}`);
     }
 
@@ -657,8 +663,8 @@ function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     }
 
     if (andThenGoBacklog) {
-      if (typeof switchTab === 'function') switchTab('backlog');
-      if (typeof switchSubTab === 'function') switchSubTab('backlog');
+      switchTab('backlog');
+      switchSubTab('backlog');
     }
   }
 
@@ -738,7 +744,7 @@ function _showStatusConfirmModal({ title, body, okLabel, okClass, onConfirm }) {
   overlay.classList.add('open');
 }
 
-function _confirmRetroceso(code, toStatus) {
+export function _confirmRetroceso(code, toStatus) {
   const item = ITEMS.find(i => i.code === code);
   if (!item) return;
   const from = item.status;
@@ -760,11 +766,11 @@ function _confirmRetroceso(code, toStatus) {
       if (_retEl) {
         _retEl.classList.add('item-exit-anim');
         setTimeout(() => {
-          if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+          _markBacklogListDirty();
           renderBacklogList(); updateBacklogBanner(); renderStats();
         }, 230);
       } else {
-        if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+        _markBacklogListDirty();
         renderBacklogList(); updateBacklogBanner(); renderStats();
       }
       // Disparar descarga diferida si no quedan retrocesos ni descartes pendientes
@@ -777,7 +783,7 @@ function _confirmRetroceso(code, toStatus) {
   });
 }
 
-function _confirmDiscard(code, reason, ref) {
+export function _confirmDiscard(code, reason, ref) {
   const item = ITEMS.find(i => i.code === code);
   if (!item) return;
 
@@ -832,11 +838,11 @@ function _confirmDiscard(code, reason, ref) {
       if (_exitEl) {
         _exitEl.classList.add('item-exit-anim');
         setTimeout(() => {
-          if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+          _markBacklogListDirty();
           renderBacklogList(); updateBacklogBanner(); renderStats();
         }, 230);
       } else {
-        if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+        _markBacklogListDirty();
         renderBacklogList(); updateBacklogBanner(); renderStats();
       }
     }
@@ -863,7 +869,7 @@ function _applyDiscardBatch(items) {
   _setBacklogModified();
   // item-exit-anim no aplica en batch — múltiples nodos simultáneos generan race condition con setTimeout
   // _markBacklogListDirty antes de re-render para consistencia con _confirmDiscard
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+  _markBacklogListDirty();
   renderBacklogList(); updateBacklogBanner(); renderStats();
   showToast('info', '🗑 ' + applied + ' ítem' + (applied > 1 ? 's descartados' : ' descartado'));
   // Quitar sección de descartes del panel si ya no hay pendientes

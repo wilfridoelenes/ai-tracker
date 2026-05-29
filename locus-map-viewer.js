@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-map-viewer.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: HTML MAP viewer — render, filtro, búsqueda y toggle de módulos
@@ -34,7 +34,7 @@ let _hmSearch = '';
 // ai-tracker-ai-notes.js las referencia en _getMapContent via typeof guard.
 
 // R-202605-137: Markdown legacy — read-only, sin cambios al parser original
-function parseHtmlMapMd(text) {
+export function parseHtmlMapMd(text) {
   const sections = [];
   const lines = text.split('\n');
   // Formato modular v3: headers H2 = archivos, tablas = funciones con Línea/Función/Área
@@ -103,7 +103,7 @@ function parseHtmlMapMd(text) {
 // ── loadHtmlMap ────────────────────────────────────────────────────────────
 // AC-9: lee html-map-sections de localStorage via _tplKey.
 // Si no hay dato o JSON inválido → HTML_MAP_SECTIONS = []. Sin throw.
-function loadHtmlMap() {
+export function loadHtmlMap() {
   const stored = localStorage.getItem(_tplKey('html-map-sections'));
   if (stored) { try { HTML_MAP_SECTIONS = JSON.parse(stored); } catch { HTML_MAP_SECTIONS = []; } } else { HTML_MAP_SECTIONS = []; }
 }
@@ -111,7 +111,7 @@ function loadHtmlMap() {
 // ── updateHtmlMapBanner ────────────────────────────────────────────────────
 // AC-8: lee html-map-meta de localStorage via _tplKey y actualiza DOM.
 // Sin error si el banner no existe.
-function updateHtmlMapBanner() {
+export function updateHtmlMapBanner() {
   const meta = JSON.parse(localStorage.getItem(_tplKey('html-map-meta')) || '{}');
   const banner = document.getElementById('htmlmap-meta-banner');
   if (!banner) return;
@@ -154,7 +154,7 @@ function _hmToggleModule(fileId) {
 // ── renderHtmlMap ──────────────────────────────────────────────────────────
 // AC-4: tres estados — empty+dropzone (sin raw), empty sin dropzone (raw sin secciones),
 //        render modular completo (hay secciones). Sin regresión visual ni funcional.
-function renderHtmlMap() {
+export function renderHtmlMap() {
   const el = document.getElementById('htmlmap-content');
   if (!el) return;
   _skelShow(el, 'tbl');

@@ -1,14 +1,42 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-ui-shell.js
-// Última actualización: 2026-05-28 · T-202605-044: Migrar handlers inline → addEventListener
+// Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
 // Debe cargarse antes de ai-tracker-checkpoint.js y ai-tracker-ai-notes.js
+
+import { renderAnalytics } from './locus-analytics-render.js';
+import { importBacklog, loadBacklog, renderStats, toggleBacklogFocusMode, updateBacklogBanner } from './locus-backlog-core.js';
+import { showMergeDiffPanel } from './locus-backlog-merge.js';
+import { closeItemPanel, exitFocusMode, openItemPanel } from './locus-backlog-panel.js';
+import { renderBacklogList } from './locus-backlog-render.js';
+import { navigateToItem } from './locus-backlog-sprints.js';
+import { renderContratos } from './locus-contracts.js';
+import { _renderDocsOnboarding, _renderTplProjBanner, _updateSubTabButtons, renderContext, updateBacklogModificationBadge, updateHtmlMapModificationBadge } from './locus-docs.js';
+import { closeItemEditor, openItemEditor } from './locus-item-editor.js';
+import { renderHtmlMap } from './locus-map-viewer.js';
+import { _focusFirstInteractive } from './locus-modals.js';
+import { openNotifConfig } from './locus-notifications.js';
+import { renderProyectos } from './locus-projects.js';
+import { closePulsoPanel } from './locus-pulso.js';
+import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js';
+import { closeQuickCapture } from './locus-sesiones-capture.js';
+import { navigateToCard } from './locus-sesiones-stats.js';
+import { _itemVizClose, showCheckpointPanel } from './locus-sesiones-viz.js';
+import { _stopSidebarTicker, render } from './locus-sesiones.js';
+import { confirmSave, relDate } from './locus-session-hora.js';
+import { closePopup, openDetail } from './locus-session-popup.js';
+import { renderPlan } from './locus-sprint-plan.js';
+import { _getActiveProjectFilter, closeProjModal, closeProjPanel, openProjModal, openProjPanel, selectProjectFilter } from './locus-sprint-project.js';
+import { renderSprintTab } from './locus-sprint.js';
+import { _saveUserPrefs, getAISessions, getAllSessions, save } from './locus-storage.js';
+import { showToast } from './locus-toast.js';
+import { openAddAI } from './locus-workers.js';
 
 // ── Global utility ────────────────────────────────────────────────────────
 // esc() usada por múltiples módulos (backlog, session, toast, checkpoint)
 // Vive aquí porque locus-ui-shell.js carga primero
 
-function esc(s) { return s ? (s + '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''; }
+export function esc(s) { return s ? (s + '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''; }
 
 // ── Tab switching ──────────────────────────────────────────────────────────
 
@@ -21,7 +49,7 @@ let _trackerTextareaDirty = false;
 // Se repuebla en cada llamada a onSearch — delegation usa índice via data-contrato-idx
 let _surContratoActions = [];
 
-function switchTab(tab) {
+export function switchTab(tab) {
   // R-202605-067: guard — confirm si hay texto sin guardar en textarea de AI Card
   const _dirtyTextarea = document.querySelector('.note-ta[data-dirty="true"], .ai-card textarea[data-dirty="true"]');
   const _isDirty = _trackerTextareaDirty || !!_dirtyTextarea;
@@ -36,12 +64,10 @@ function switchTab(tab) {
   }
 
   // DUP-05: cerrar preview de sesión al cambiar de tab
-  if (typeof closePopup === 'function') closePopup();
+  closePopup();
   // B-202605-207: cerrar panel de detalle al cambiar de tab
-  if (typeof closeItemPanel === 'function') {
-    const panel = document.getElementById('item-detail-panel');
-    if (panel && panel.classList.contains('open')) closeItemPanel();
-  }
+  const panel = document.getElementById('item-detail-panel');
+  if (panel && panel.classList.contains('open')) closeItemPanel();
   // T-202604-254: tab 'hoy' eliminado — redirigir a 'tracker'
   if (tab === 'hoy') tab = 'tracker';
   currentTab = tab;
@@ -58,10 +84,10 @@ function switchTab(tab) {
   document.querySelectorAll('.analytics-only').forEach(el => el.classList.toggle('is-hidden', tab !== 'analytics'));
   // Templates toolbar: update buttons via _updateSubTabButtons
   if (tab === 'backlog') {
-    if (typeof _updateSubTabButtons === 'function') _updateSubTabButtons(currentSubTab || 'backlog');
+    _updateSubTabButtons(currentSubTab || 'backlog');
   }
   if (typeof _stopHoyTicker === 'function') _stopHoyTicker();
-  if (tab !== 'tracker' && typeof _stopSidebarTicker === 'function') _stopSidebarTicker();
+  if (tab !== 'tracker') _stopSidebarTicker();
 
   // Update search placeholder — T-202605-460: conservar término, cerrar panel
   const si = document.getElementById('search-global');
@@ -76,16 +102,16 @@ function switchTab(tab) {
   if (_surPanel) _surPanel.remove();
 
   if (tab === 'tracker') {
-    if (typeof render === 'function') render(); // B-202605-[pendiente-ID]: applyViewMode eliminada en refactor — reemplazada por render()
+    render(); // B-202605-[pendiente-ID]: applyViewMode eliminada en refactor — reemplazada por render()
   } else if (tab === 'backlog') {
-    if (typeof updateBacklogBanner === 'function') updateBacklogBanner();
-    if (typeof renderBacklogList === 'function') renderBacklogList();
+    updateBacklogBanner();
+    renderBacklogList();
   } else if (tab === 'analytics') {
-    if (typeof renderAnalytics === 'function') renderAnalytics();
+    renderAnalytics();
   } else if (tab === 'sprint') {
-    if (typeof renderSprintTab === 'function') renderSprintTab();
+    renderSprintTab();
   } else if (tab === 'proyectos') {
-    if (typeof renderProyectos === 'function') renderProyectos();
+    renderProyectos();
   }
 
   // B-[pendiente-ID]: cada tab-panel tiene su propio overflow-y:auto —
@@ -93,13 +119,13 @@ function switchTab(tab) {
   if (tabEl) tabEl.scrollTop = 0;
 
   // Refresh radar sidebar
-  if (typeof _markRadarDirty === 'function') _markRadarDirty();
-  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+  _markRadarDirty();
+  renderGlobalRadarSidebar();
 }
 
 // ── Sub-tab switching (extraído de ai-tracker-ai-notes.js) ─────────────────
 
-function switchSubTab(sub) {
+export function switchSubTab(sub) {
   currentSubTab = sub;
   ['backlog','htmlmap','context','plan','contratos'].forEach(s => {
     const btn = document.getElementById('sstab-btn-' + s);
@@ -107,34 +133,34 @@ function switchSubTab(sub) {
     if (btn) btn.classList.toggle('active', s === sub);
     if (panel) panel.classList.toggle('active', s === sub);
   });
-  if (typeof _updateSubTabButtons === 'function') _updateSubTabButtons(sub);
-  if (typeof _renderTplProjBanner === 'function') _renderTplProjBanner();
+  _updateSubTabButtons(sub);
+  _renderTplProjBanner();
   if (sub === 'htmlmap') {
-    if (typeof renderHtmlMap === 'function') renderHtmlMap();
-    if (typeof updateHtmlMapModificationBadge === 'function') updateHtmlMapModificationBadge();
+    renderHtmlMap();
+    updateHtmlMapModificationBadge();
   }
   if (sub === 'backlog') {
-    if (typeof loadBacklog === 'function') loadBacklog();
-    if (typeof renderBacklogList === 'function') renderBacklogList();
-    if (typeof renderStats === 'function') renderStats();
-    if (typeof updateBacklogModificationBadge === 'function') updateBacklogModificationBadge();
+    loadBacklog();
+    renderBacklogList();
+    renderStats();
+    updateBacklogModificationBadge();
   }
-  if (sub === 'context') { if (typeof renderContext === 'function') renderContext(); }
-  if (sub === 'plan') { if (typeof renderPlan === 'function') renderPlan(); }
-  if (sub === 'contratos') { if (typeof renderContratos === 'function') renderContratos(); }
+  if (sub === 'context') { renderContext(); }
+  if (sub === 'plan') { renderPlan(); }
+  if (sub === 'contratos') { renderContratos(); }
   if (typeof renderAIStatusBar === 'function') renderAIStatusBar();
-  if (typeof _renderDocsOnboarding === 'function') _renderDocsOnboarding(); // T-202604-204
+  _renderDocsOnboarding(); // T-202604-204
 }
 
 // ── Theme ──────────────────────────────────────────────────────────────────
 
-function toggleTheme() {
+export function toggleTheme() {
   state.theme = state.theme === 'dark' ? 'light' : 'dark';
   applyTheme(state.theme);
-  if (typeof save === 'function') save();
+  save();
 }
 
-function applyTheme(t) {
+export function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
   // T-202605-433: theme-btn eliminado — nuevo ID en menú ⋯
   const btn = document.getElementById('more-menu-theme');
@@ -146,7 +172,7 @@ function applyTheme(t) {
 
 // ── Search dispatch (extraído de ai-tracker-checkpoint.js) ────────────────
 
-function onSearchDispatch() {
+export function onSearchDispatch() {
   // T-202604-420: búsqueda global unificada como punto de entrada principal
   const _surPanel = document.getElementById('search-unified-results');
   if (_surPanel) _surPanel.remove();
@@ -170,7 +196,7 @@ function _toggleSearchScope() {
   onSearch();
 }
 
-function onSearch() {
+export function onSearch() {
   const q = (document.getElementById('search-global').value || '').toLowerCase().trim();
   const countEl = document.getElementById('search-count');
 
@@ -179,13 +205,13 @@ function onSearch() {
   if (prevPanel) prevPanel.remove();
 
   if (!q) {
-    if (typeof render === 'function') render();
+    render();
     if (countEl) countEl.textContent = '';
     return;
   }
 
   // B-202605-236: proyecto activo para filtrar sesiones/proyectos
-  const _activeProjId = (typeof _getActiveProjectFilter === 'function' && !_searchScopeAll)
+  const _activeProjId = (!_searchScopeAll)
     ? _getActiveProjectFilter()
     : null;
 
@@ -289,7 +315,7 @@ function onSearch() {
     card.classList.toggle('is-hidden', !(nameMatch || notesMatch || hasSessMatch));
     const list = card.querySelector('.sess-list');
     if (!list) return;
-    const aiSess = typeof getAISessions === 'function' ? getAISessions(ai.id) : [];
+    const aiSess = getAISessions(ai.id);
     const matchSessIds = new Set(sessMatches.filter(({ ai: sai }) => sai && sai.id === ai.id).map(({ sess }) => sess.id));
     list.querySelectorAll('.sess-row').forEach(row => {
       const titleEl = row.querySelector('.sess-row-title');
@@ -506,7 +532,7 @@ function _scbStep(id, done) {
   if (!wasDone && done) el.classList.add('scb-just-done');
 }
 
-function renderSetupChecklist() {
+export function renderSetupChecklist() {
   const banner = document.getElementById('setup-checklist-banner');
   if (!banner) return;
   if (_scbDismissed()) { banner.classList.add('is-hidden'); return; }
@@ -514,7 +540,7 @@ function renderSetupChecklist() {
   const workerDone  = (state.ais || []).length > 0;
   const projectDone = (state.projects || []).length > 0;
   const itemDone    = (typeof ITEMS !== 'undefined' ? ITEMS : []).length > 0;
-  const sessionDone = (typeof getAllSessions === 'function') ? getAllSessions().length > 0 : false;
+  const sessionDone = getAllSessions().length > 0;
   const allDone = workerDone && projectDone && itemDone && sessionDone;
 
   if (allDone) { banner.classList.add('is-hidden'); return; }
@@ -544,7 +570,7 @@ function renderSetupChecklist() {
   if (banner.classList.contains('scb-expanded') && workerDone) {
     _scbCollapse(banner);
     try { localStorage.setItem('onboarding-seen', '1'); } catch(_) {}
-    if (typeof _saveUserPrefs === 'function') _saveUserPrefs();
+    _saveUserPrefs();
   }
 
   // First use: expand if onboarding-seen not set and banner not yet expanded
@@ -578,16 +604,16 @@ function _scbOnStepComplete() {
     _scbCollapse(banner);
     // Mark onboarding-seen so expanded state doesn't reappear
     try { localStorage.setItem('onboarding-seen', '1'); } catch(_) {}
-    if (typeof _saveUserPrefs === 'function') _saveUserPrefs();
+    _saveUserPrefs();
   }
 }
 
 // Action buttons per step — routes to existing open functions
 function _scbStepAction(stepId) {
   switch (stepId) {
-    case 'worker':  if (typeof openAddAI === 'function') openAddAI(); break;
-    case 'project': if (typeof openProjModal === 'function') openProjModal(); break;
-    case 'item':    if (typeof switchTab === 'function') switchTab('backlog'); break;
+    case 'worker':  openAddAI(); break;
+    case 'project': openProjModal(); break;
+    case 'item':    switchTab('backlog'); break;
     case 'session': /* Session created via CHECKPOINT paste — no direct action */ break;
   }
 }
@@ -596,7 +622,7 @@ function _scbStepAction(stepId) {
 
 // T-202604-418: Atajos de teclado globales
 // Cascade Escape — cierra en orden de profundidad (más reciente primero)
-function _escCascade() {
+export function _escCascade() {
   const _overlayChecks = [
     // T-202605-460: panel búsqueda global — prioridad más alta
     () => { const el = document.getElementById('search-unified-results'); if (el) { el.remove(); return true; } },
@@ -605,16 +631,16 @@ function _escCascade() {
     () => { const el = document.getElementById('shortcuts-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcuts(); return true; } },
     () => { const el = document.getElementById('cp-overlay'); if (el && !el.classList.contains('is-hidden')) { if (typeof closeCommandPalette === 'function') closeCommandPalette(); return true; } },
     () => { const el = document.getElementById('quick-note-modal'); if (el && el.offsetParent !== null) { if (typeof closeQuickNote === 'function') closeQuickNote(); return true; } },
-    () => { const el = document.getElementById('qc-modal-overlay'); if (el && el.classList.contains('open')) { if (typeof closeQuickCapture === 'function') closeQuickCapture(); return true; } },
-    () => { const el = document.getElementById('item-detail-panel'); if (el && el.classList.contains('open')) { if (typeof closeItemPanel === 'function') closeItemPanel(); return true; } },
-    () => { const el = document.getElementById('item-editor-overlay'); if (el && el.offsetParent !== null) { if (typeof closeItemEditor === 'function') closeItemEditor(); return true; } },
-    () => { const el = document.getElementById('merge-diff-overlay'); if (el && el.offsetParent !== null) { if (typeof showMergeDiffPanel === 'function') { const p = document.getElementById('item-viz-overlay'); if (p && !p.classList.contains('is-hidden')) { if (typeof _itemVizClose === 'function') _itemVizClose(); return true; } } } },
-    () => { const el = document.getElementById('item-viz-overlay'); if (el && !el.classList.contains('is-hidden')) { if (typeof _itemVizClose === 'function') _itemVizClose(); return true; } },
+    () => { const el = document.getElementById('qc-modal-overlay'); if (el && el.classList.contains('open')) { closeQuickCapture(); return true; } },
+    () => { const el = document.getElementById('item-detail-panel'); if (el && el.classList.contains('open')) { closeItemPanel(); return true; } },
+    () => { const el = document.getElementById('item-editor-overlay'); if (el && el.offsetParent !== null) { closeItemEditor(); return true; } },
+    () => { const el = document.getElementById('merge-diff-overlay'); if (el && el.offsetParent !== null) { if (typeof showMergeDiffPanel === 'function') { const p = document.getElementById('item-viz-overlay'); if (p && !p.classList.contains('is-hidden')) { _itemVizClose(); return true; } } } },
+    () => { const el = document.getElementById('item-viz-overlay'); if (el && !el.classList.contains('is-hidden')) { _itemVizClose(); return true; } },
     () => { const el = document.getElementById('pend-overlay'); if (el && el.offsetParent !== null) { if (typeof closePendPanel === 'function') closePendPanel(); return true; } },
-    () => { const el = document.getElementById('proj-modal-overlay'); if (el && el.offsetParent !== null) { if (typeof closeProjModal === 'function') closeProjModal(); return true; } },
-    () => { const el = document.getElementById('proj-panel-overlay'); if (el && el.offsetParent !== null) { if (typeof closeProjPanel === 'function') closeProjPanel(); return true; } },
-    () => { const el = document.getElementById('pulso-panel'); if (el && el.offsetParent !== null) { if (typeof closePulsoPanel === 'function') closePulsoPanel(); return true; } },
-    () => { if (window.focusActiveId) { if (typeof exitFocusMode === 'function') exitFocusMode(); return true; } },
+    () => { const el = document.getElementById('proj-modal-overlay'); if (el && el.offsetParent !== null) { closeProjModal(); return true; } },
+    () => { const el = document.getElementById('proj-panel-overlay'); if (el && el.offsetParent !== null) { closeProjPanel(); return true; } },
+    () => { const el = document.getElementById('pulso-panel'); if (el && el.offsetParent !== null) { closePulsoPanel(); return true; } },
+    () => { if (window.focusActiveId) { exitFocusMode(); return true; } },
   ];
   for (const check of _overlayChecks) {
     if (check()) return;
@@ -644,7 +670,7 @@ document.addEventListener('keydown', e => {
   // T-202605-442: Cmd+? → referencia de atajos (Cmd+Shift+/ y Cmd+?)
   if ((e.metaKey || e.ctrlKey) && (e.key === '?' || (e.shiftKey && e.key === '/'))) {
     e.preventDefault();
-    if (typeof openShortcutsRef === 'function') openShortcutsRef();
+    openShortcutsRef();
     return;
   }
 
@@ -656,11 +682,7 @@ document.addEventListener('keydown', e => {
     if (_isBacklogTab && !_panelOpen) {
       e.preventDefault();
       // R-202605-175: guard typeof — si módulo backlog no cargó, toast warning
-      if (typeof toggleBacklogFocusMode === 'function') {
-        toggleBacklogFocusMode();
-      } else {
-        if (typeof showToast === 'function') showToast('warning', '⚠️ Módulo de backlog no disponible');
-      }
+      toggleBacklogFocusMode();
       return;
     }
     const si = document.getElementById('search-global');
@@ -732,7 +754,7 @@ document.addEventListener('keydown', e => {
   // T-202604-418: Shift+N → nuevo ítem
   if (e.shiftKey && e.key === 'N') {
     e.preventDefault();
-    if (typeof openItemEditor === 'function') openItemEditor(null);
+    openItemEditor(null);
     return;
   }
 
@@ -747,7 +769,7 @@ document.addEventListener('keydown', e => {
         : document.querySelector('.sc-save');
       if (_sbtn) _sbtn.click();
     } else {
-      if (window.focusActiveId && typeof confirmSave === 'function') confirmSave(window.focusActiveId);
+      if (window.focusActiveId) confirmSave(window.focusActiveId);
     }
     return;
   }
@@ -756,7 +778,7 @@ document.addEventListener('keydown', e => {
   if (_pressedKey === _sk('toggle-focus')) {
     e.preventDefault();
     if (window.focusActiveId) {
-      if (typeof exitFocusMode === 'function') exitFocusMode();
+      exitFocusMode();
     } else {
       const _inSessCard = document.querySelector('.card.in-session-state');
       if (_inSessCard) {
@@ -826,8 +848,8 @@ document.addEventListener('keydown', e => {
     if (_selBL) {
       e.preventDefault();
       const _code = _selBL.dataset.code;
-      if (_code && typeof navigateToItem === 'function') navigateToItem(_code);
-      else if (typeof openItemPanel === 'function') {
+      if (_code) navigateToItem(_code);
+      else {
         const _item = _selBL.dataset.id && (typeof ITEMS !== 'undefined') && ITEMS.find(i => i.id === _selBL.dataset.id);
         if (_item) openItemPanel(_item);
       }
@@ -848,7 +870,7 @@ document.addEventListener('keydown', e => {
     if (!_sel) return;
     e.preventDefault();
     const _code = _sel.dataset.code;
-    if (_code && typeof openItemEditor === 'function') openItemEditor(null, _code);
+    if (_code) openItemEditor(null, _code);
     return;
   }
 });
@@ -1028,29 +1050,29 @@ function _shortcutsResetOne(id) {
   _shortcutsRender();
 }
 
-function restoreDefaultShortcuts() {
+export function restoreDefaultShortcuts() {
   localStorage.removeItem(_SHORTCUTS_KEY);
-  if (typeof _saveUserPrefs === 'function') _saveUserPrefs(); // R-4: sincronizar reset a Supabase
+  _saveUserPrefs(); // R-4: sincronizar reset a Supabase
   _shortcutsRender();
 }
 
-function openShortcuts() {
+export function openShortcuts() {
   const overlay = document.getElementById('shortcuts-overlay');
   if (overlay) {
     overlay.classList.remove('is-hidden');
     _shortcutsRender();
-    if (typeof _focusFirstInteractive === 'function') _focusFirstInteractive('shortcuts-panel');
+    _focusFirstInteractive('shortcuts-panel');
   }
 }
 
-function closeShortcuts(e) {
+export function closeShortcuts(e) {
   if (e && e.target !== document.getElementById('shortcuts-overlay')) return;
   const overlay = document.getElementById('shortcuts-overlay');
   if (overlay) overlay.classList.add('is-hidden');
 }
 
 // DUP-03: openShortcutsRef y closeShortcutsRef redirigen a #shortcuts-overlay
-function openShortcutsRef() { openShortcuts(); }
+export function openShortcutsRef() { openShortcuts(); }
 function closeShortcutsRef(e) { closeShortcuts(e); }
 
 // Shorthand interno
@@ -1097,7 +1119,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Botón Templates en proj-panel — getElementById directo
   const tplBtn = document.getElementById('proj-panel-btn-templates');
   if (tplBtn) tplBtn.addEventListener('click', function () {
-    if (typeof closeProjPanel === 'function') closeProjPanel();
+    closeProjPanel();
     switchTab('backlog');
   });
 
@@ -1125,9 +1147,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!row) return;
     const action = row.dataset.action;
     if (action === 'navigateToCard') {
-      if (typeof navigateToCard === 'function') navigateToCard(row.dataset.aiId);
+      navigateToCard(row.dataset.aiId);
     } else if (action === 'openDetail') {
-      if (typeof openDetail === 'function') openDetail(row.dataset.aiId, row.dataset.sessId);
+      openDetail(row.dataset.aiId, row.dataset.sessId);
     } else if (action === 'openQuickNote') {
       if (typeof openQuickNote === 'function') openQuickNote(row.dataset.noteId);
     } else if (action === 'contratoAction') {
@@ -1136,9 +1158,9 @@ document.addEventListener('DOMContentLoaded', function () {
         _surContratoActions[idx]();
       }
     } else if (action === 'navigateToItem') {
-      if (typeof navigateToItem === 'function') navigateToItem(row.dataset.itemCode);
+      navigateToItem(row.dataset.itemCode);
     } else if (action === 'selectProjectFilter') {
-      if (typeof selectProjectFilter === 'function') selectProjectFilter(row.dataset.projId);
+      selectProjectFilter(row.dataset.projId);
     } else if (action === 'navigateToContext') {
       const secIdx = parseInt(row.dataset.ctxIdx, 10);
       if (typeof switchTab === 'function') switchTab('backlog');
@@ -1167,7 +1189,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // breadcrumb-proj → openProjPanel()
   const breadcrumbProj = document.getElementById('breadcrumb-proj');
   if (breadcrumbProj) breadcrumbProj.addEventListener('click', function () {
-    if (typeof openProjPanel === 'function') openProjPanel();
+    openProjPanel();
   });
 
   // hdr-search-trigger → openCommandPalette()
@@ -1191,7 +1213,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // ckpt-reopen-btn → showCheckpointPanel(_lastCheckpointResult)
   const ckptReopenBtn = document.getElementById('ckpt-reopen-btn');
   if (ckptReopenBtn) ckptReopenBtn.addEventListener('click', function () {
-    if (typeof showCheckpointPanel === 'function') showCheckpointPanel(window._lastCheckpointResult);
+    showCheckpointPanel(window._lastCheckpointResult);
   });
 
   // user-chip → handleSyncPillClick()
@@ -1212,7 +1234,7 @@ document.addEventListener('DOMContentLoaded', function () {
     'mm-btn-import':    function () { const el = document.getElementById('imp'); if (el) el.click(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
     'mm-btn-report':    function () { if (typeof downloadGlobalReport === 'function') downloadGlobalReport(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
     'mm-btn-changelog': function () { if (typeof openChangelog === 'function') openChangelog(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
-    'mm-btn-notif':     function () { if (typeof openNotifConfig === 'function') openNotifConfig(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
+    'mm-btn-notif':     function () { openNotifConfig(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
     'mm-btn-sync':      function () { if (typeof handleSyncPillClick === 'function') handleSyncPillClick(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
     'mm-btn-migrate':   function () { if (typeof openMigrateFirebaseModal === 'function') openMigrateFirebaseModal(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
     'mm-btn-clean':     function () { if (typeof openCleanProjectModal === 'function') openCleanProjectModal(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
@@ -1241,7 +1263,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // backlog-file-input → importBacklog()
   const backlogFileInput = document.getElementById('backlog-file-input');
   if (backlogFileInput) backlogFileInput.addEventListener('change', function (e) {
-    if (typeof importBacklog === 'function') importBacklog(e);
+    importBacklog(e);
   });
 
   // #arranque-close-btn → closeArranquePanel()
@@ -1252,3 +1274,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 // ── END B-202605-019 ─────────────────────────────────────────────────────────
+
+// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+window.esc                = esc;
+window.switchTab          = switchTab;
+window.switchSubTab       = switchSubTab;
+window.toggleTheme        = toggleTheme;
+window.applyTheme         = applyTheme;
+window.openShortcutsRef   = openShortcutsRef;
+window.renderSetupChecklist = renderSetupChecklist;
+window.onSearchDispatch   = onSearchDispatch;
+window.onSearch           = onSearch;
+window._escCascade        = _escCascade;
+window.openShortcuts      = openShortcuts;
+window.closeShortcuts     = closeShortcuts;
+window.restoreDefaultShortcuts = restoreDefaultShortcuts;

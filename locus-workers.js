@@ -7,6 +7,11 @@
 // Carga después de: locus-modals.js, locus-toast.js, locus-ui-shell.js
 // Carga antes de: locus-sesiones-stats.js · locus-sesiones-capture.js
 
+import { _restoreModalFocus, _saveModalTrigger, closeModal } from './locus-modals.js';
+import { render } from './locus-sesiones.js';
+import { showToast } from './locus-toast.js';
+import { switchTab } from './locus-ui-shell.js';
+
 // ── AVATAR_LOGOS — fuente de verdad de SVGs de avatares ──
 const AVATAR_LOGOS = {
   claude: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="12" cy="12" r="6" fill="currentColor" opacity="0.7"/><path d="M8 12a4 4 0 018 0" fill="currentColor"/></svg>',
@@ -30,8 +35,8 @@ let selectedAvatarKey = null;
 let _cardMenuScrollHandler = null; // B-202605-049: referencia al listener de scroll activo
 
 // ── T-011: Avatar selector ──
-function openAvatarModal(aiId) {
-  if (typeof _saveModalTrigger === 'function') _saveModalTrigger('avatar-modal');
+export function openAvatarModal(aiId) {
+  _saveModalTrigger('avatar-modal');
   const ai = getAI(aiId);
   if (!ai) return;
   avatarModalAIId = aiId;
@@ -51,14 +56,14 @@ function openAvatarModal(aiId) {
   document.getElementById('avatar-modal').classList.add('open');
 }
 
-function selectAvatarOption(key) {
+export function selectAvatarOption(key) {
   selectedAvatarKey = key;
   document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
   const target = document.querySelector(`.avatar-option[data-avatar-key="${key}"]`);
   if (target) target.classList.add('selected');
 }
 
-function confirmAvatarModal() {
+export function confirmAvatarModal() {
   if (!avatarModalAIId || !selectedAvatarKey) return;
   const ai = getAI(avatarModalAIId);
   if (!ai) return;
@@ -73,54 +78,54 @@ function confirmAvatarModal() {
   showToast('success', 'Avatar actualizado');
 }
 
-function closeAvatarModal() {
+export function closeAvatarModal() {
   document.getElementById('avatar-modal').classList.remove('open');
-  if (typeof _restoreModalFocus === 'function') _restoreModalFocus('avatar-modal');
+  _restoreModalFocus('avatar-modal');
   avatarModalAIId = null;
   selectedAvatarKey = null;
 }
 
 // ── Agregar IA ──
-function openAddAI() {
+export function openAddAI() {
   // B-202604-177: rotate feedback antes de abrir modal
   const addBtn = document.querySelector('.radar-sidebar-add-btn');
   if (addBtn) { addBtn.classList.add('is-triggered'); setTimeout(() => addBtn.classList.remove('is-triggered'), 300); }
-  if (typeof _saveModalTrigger === 'function') _saveModalTrigger('add-modal');
+  _saveModalTrigger('add-modal');
   document.getElementById('new-name').value = '';
   document.getElementById('add-modal').classList.add('open');
   setTimeout(() => document.getElementById('new-name').focus(), 50);
 }
 
-function confirmAddAI() {
+export function confirmAddAI() {
   const name = document.getElementById('new-name').value.trim();
   if (!name) { showToast('warning', 'Escribe un nombre'); return; }
   // T-093: validar duplicados case-insensitive
   const nameLower = name.toLowerCase();
   const duplicate = state.ais.find(a => a.name.toLowerCase() === nameLower);
   if (duplicate) {
-    if (typeof showToast === 'function') showToast('warning', `Ya existe una IA llamada "${duplicate.name}"`);
+    showToast('warning', `Ya existe una IA llamada "${duplicate.name}"`);
     else console.warn('[locus-workers] showToast no disponible — duplicado bloqueado:', duplicate.name);
     const inp = document.getElementById('new-name');
     inp.focus(); inp.select();
     return;
   }
   state.ais.push({ id: 'ai-' + Date.now() + '-' + Math.random().toString(36).slice(2), name, status: 'available', resetTime: '', sessions: [], showAll: false, notes: '', avatar: AVATAR_LOGOS.default }); // B-202605-079: componente random evita colisión en mismo ms
-  if (typeof closeModal === 'function') closeModal('add-modal');
+  closeModal('add-modal');
   document.getElementById('add-modal').classList.remove('open');
   save();
-  if (typeof switchTab === 'function' && currentTab !== 'tracker') switchTab('tracker'); else render();
+  if (currentTab !== 'tracker') switchTab('tracker'); else render();
   showToast('success', 'IA agregada');
 }
 
 // ── Eliminar / limpiar ──
-function confirmClear(id) {
+export function confirmClear(id) {
   const ai = getAI(id);
   const sess = getAISessions(id);
   if (!sess.length) { showToast('warning', 'Sin sesiones'); return; }
   showInlineConfirm(id, 'clear', `¿Eliminar las ${sess.length} sesiones de "${ai.name}"?`);
 }
 
-function deleteAI(id) {
+export function deleteAI(id) {
   // T-202604-212: confirmar solo si tiene sesiones — sin historial, borrar directo
   // B-202605-023: verificar sesiones en state.projects Y en ai.sessions (formato legacy v2)
   const ai = getAI(id);
@@ -131,7 +136,7 @@ function deleteAI(id) {
     showInlineConfirm(id, 'delete', '¿Eliminar esta IA y todo su historial?');
   } else {
     state.ais = state.ais.filter(a => a.id !== id);
-    saveImmediate(); if (typeof render === 'function') render();
+    saveImmediate(); render();
   }
 }
 
@@ -140,7 +145,7 @@ function deleteAI(id) {
 // ancestros con overflow:auto (.tracker-col--card) que rompen position:fixed.
 // Al cerrar se devuelve al wrap original para mantener la estructura del DOM.
 
-function toggleCardMenu(id, e) {
+export function toggleCardMenu(id, e) {
   e.stopPropagation();
   const dd = document.getElementById('dotmenu-' + id);
   if (!dd) return;
@@ -212,7 +217,7 @@ function _closeCardMenuPortal(id, returnFocus) {
   delete dd.dataset.triggerId;
 }
 
-function closeCardMenu(id) {
+export function closeCardMenu(id) {
   _closeCardMenuPortal(id);
 }
 
@@ -235,15 +240,15 @@ document.addEventListener('keydown', function(e) {
 });
 
 // ── T-033: Archivar / restaurar IA ──
-function archiveAI(id) {
+export function archiveAI(id) {
   const ai = getAI(id);
   if (!ai) return;
   ai.archived = !ai.archived;
-  saveImmediate(); if (typeof render === 'function') render();
+  saveImmediate(); render();
   showToast('info', ai.archived ? `${ai.name} archivada` : `${ai.name} restaurada`);
 }
 
-function toggleArchivedSection(btn) {
+export function toggleArchivedSection(btn) {
   const grid = document.getElementById('archived-grid');
   if (!grid) return;
   const open = grid.classList.toggle('open');
@@ -252,7 +257,7 @@ function toggleArchivedSection(btn) {
 }
 
 // ── Inline confirm ──
-function showInlineConfirm(id, action, msg) {
+export function showInlineConfirm(id, action, msg) {
   document.querySelectorAll('.inline-confirm.open').forEach(el => el.remove());
   const card = document.getElementById('card-' + id);
   if (!card) return;
@@ -274,12 +279,12 @@ function showInlineConfirm(id, action, msg) {
   card.appendChild(div);
 }
 
-function closeInlineConfirm(id) {
+export function closeInlineConfirm(id) {
   const el = document.getElementById('iconf-' + id);
   if (el) el.remove();
 }
 
-function executeConfirm(id, action) {
+export function executeConfirm(id, action) {
   closeInlineConfirm(id);
   if (action === 'clear') {
     const ai = getAI(id);
@@ -287,10 +292,10 @@ function executeConfirm(id, action) {
     (state.projects || []).forEach(proj => {
       if (proj.sessions) proj.sessions = proj.sessions.filter(s => s.aiId !== id);
     });
-    saveImmediate(); if (typeof render === 'function') render(); showToast('success', `Historial de ${ai.name} limpiado`);
+    saveImmediate(); render(); showToast('success', `Historial de ${ai.name} limpiado`);
   } else if (action === 'delete') {
     state.ais = state.ais.filter(a => a.id !== id);
-    saveImmediate(); if (typeof render === 'function') render();
+    saveImmediate(); render();
   }
 }
 
@@ -320,7 +325,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── Window fallback para inline handlers de index.html ──
 // closeModal tiene callers inline en index.html (L648, L679) — fallback evita ReferenceError si locus-workers.js no cargó.
-window.closeModal = window.closeModal || function() {};
+// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+window.openAddAI              = openAddAI;
+window.confirmAddAI           = confirmAddAI;
+window.confirmClear           = confirmClear;
+window.deleteAI               = deleteAI;
+window.archiveAI              = archiveAI;
+window.toggleArchivedSection  = toggleArchivedSection;
+window.toggleCardMenu         = toggleCardMenu;
+window.closeCardMenu          = closeCardMenu;
+window.showInlineConfirm      = showInlineConfirm;
+window.closeInlineConfirm     = closeInlineConfirm;
+window.executeConfirm         = executeConfirm;
+window.openAvatarModal        = openAvatarModal;
+window.selectAvatarOption     = selectAvatarOption;
+window.confirmAvatarModal     = confirmAvatarModal;
+window.closeAvatarModal       = closeAvatarModal;
 
 // ── B-202605-019: Listener — #add-ai-confirm-btn ─────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {

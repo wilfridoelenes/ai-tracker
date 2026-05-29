@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -8,13 +8,13 @@
 const _SKEL_HTML_4 = Array(4).fill('<div class="skel-row"></div>').join('');
 const _SKEL_HTML_5 = Array(5).fill('<div class="skel-row"></div>').join('');
 const _SKEL_TBL    = Array(4).fill('<div class="skel-row skel-row--tbl"></div>').join('');
-function _skelShow(el, variant) {
+export function _skelShow(el, variant) {
   if (!el) return;
   const h = variant === 'tbl' ? _SKEL_TBL : variant === 5 ? _SKEL_HTML_5 : _SKEL_HTML_4;
   el.innerHTML = h;
   el.classList.add('is-loading');
 }
-function _skelHide(el) { if (el) el.classList.remove('is-loading'); }
+export function _skelHide(el) { if (el) el.classList.remove('is-loading'); }
 
 // _generateContextContent + exportContextMd — migradas a locus-sprint-project.js
 
@@ -73,7 +73,7 @@ const _acReplacedSet = new Set();
 
 // B-202605-012: wrapper con guardia typeof para llamadas inline a openItemEditor
 // Evita falla silenciosa cuando el módulo externo no carga
-function _openItemEditorSafe(id, code) {
+export function _openItemEditorSafe(id, code) {
   if (typeof openItemEditor === 'function') {
     openItemEditor(id, code);
   } else {
@@ -82,14 +82,14 @@ function _openItemEditorSafe(id, code) {
   }
 }
 
-function _undoSnapshot() {
+export function _undoSnapshot() {
   _undoStack.push(JSON.stringify(ITEMS));
   if (_undoStack.length > UNDO_MAX) _undoStack.shift();
   _redoStack = [];
   _updateUndoUI();
 }
 
-function undoBacklog() {
+export function undoBacklog() {
   if (!_undoStack.length) return;
   _redoStack.push(JSON.stringify(ITEMS));
   ITEMS = JSON.parse(_undoStack.pop());
@@ -100,7 +100,7 @@ function undoBacklog() {
   showToast('info', '↩ Deshacer aplicado');
 }
 
-function redoBacklog() {
+export function redoBacklog() {
   if (!_redoStack.length) return;
   _undoStack.push(JSON.stringify(ITEMS));
   ITEMS = JSON.parse(_redoStack.pop());
@@ -111,7 +111,7 @@ function redoBacklog() {
   showToast('info', '↪ Rehacer aplicado');
 }
 
-function _updateUndoUI() {
+export function _updateUndoUI() {
   const btnU = document.getElementById('btn-undo-backlog');
   const btnR = document.getElementById('btn-redo-backlog');
   if (btnU) { btnU.disabled = !_undoStack.length; btnU.title = _undoStack.length ? `Deshacer (${_undoStack.length})  Ctrl+Z` : 'Sin acciones para deshacer'; }
@@ -176,7 +176,7 @@ function _cvSave() {
 const collapsedVersions = _cvLoad();
 
 // R-[tmp:toolbar-backlog-redesign]: collapse all — volátil, no persiste entre sesiones
-function toggleCollapseAll() {
+export function toggleCollapseAll() {
   const bodies = document.querySelectorAll('.version-group-body');
   const arrows = document.querySelectorAll('.version-collapse-arrow');
   const btn = document.getElementById('bl-collapse-all-btn');
@@ -220,7 +220,7 @@ function toggleDepsFilter() {
 }
 
 // T-202605-449: helper — ítems con blockedBy[] que aún no están done
-function _hasDepsBlocked(item) {
+export function _hasDepsBlocked(item) {
   if (!item.blockedBy || !item.blockedBy.length) return false;
   return item.blockedBy.some(c => {
     const dep = ITEMS.find(i => i.code === c);
@@ -230,7 +230,7 @@ function _hasDepsBlocked(item) {
 
 // T-202604-261: ítem bloqueado — pendiente con sprint asignado y sin cambio de status en >14 días
 const _BLOCKED_DAYS = 14;
-function _isBlocked(item) {
+export function _isBlocked(item) {
   if (!item || item.status !== 'pendiente') return false;
   if (!item.sprint) return false;
   if (!item.statusChangedAt) return false;
@@ -242,7 +242,7 @@ function _isBlocked(item) {
 const _NO_SESSION_DAYS = 14;
 // Wrapper — delega a hasRecentSession() canónica (checkpoint.js)
 // B-202604-200: ítems recientes sin mención retornan true via fallback createdAt en hasRecentSession
-function _hasRecentSession(item) {
+export function _hasRecentSession(item) {
   if (!item || item.status !== 'pendiente') return true; // no aplica
   if (!item.sprint) return true; // no aplica sin sprint — R-202605-046: campo ausente es canónico, guard 'n/a' eliminado
   if (typeof hasRecentSession !== 'function') return true; // guardia — función canónica no disponible
@@ -267,7 +267,7 @@ function _hasRecentSession(item) {
 //   3. Effort 1 + cualquier sprint asignado → high
 //   4. Sin sprint + effort 3 → low
 //   5. Todo lo demás → medium
-function _calcPriority(item) {
+export function _calcPriority(item) {
   if (!item) return 'medium';
   const type = (item.code || '')[0];
   if (type === 'B') return 'high';
@@ -300,7 +300,7 @@ function _applyAllPriorities() {
 
 // T-202604-257: score de relevancia por ítem — retorna 0–100
 // Señales: antigüedad, tipo, effort, sprint asignado, última mención en sesión, AC definidos
-function _calcRelevanceScore(item, allSessionsCache) { // B-202605-009: allSessionsCache evita O(n×m)
+export function _calcRelevanceScore(item, allSessionsCache) { // B-202605-009: allSessionsCache evita O(n×m)
   if (!item || item.status !== 'pendiente') return 0;
 
   let score = 0;
@@ -423,7 +423,7 @@ function _sanitizePendingInClosedSprints() {
 
 // T-[pendiente-ID]: Purga inteligente de localStorage — ítems done/descartado >90 días
 // Retorna el número de ítems purgados del caché local (no se eliminan de Supabase).
-function _localStorageUsageRatio() {
+export function _localStorageUsageRatio() {
   try {
     let total = 0;
     for (let i = 0; i < localStorage.length; i++) {
@@ -435,7 +435,7 @@ function _localStorageUsageRatio() {
   } catch (_) { return 0; }
 }
 
-function _purgeStaleBacklogCache() {
+export function _purgeStaleBacklogCache() {
   const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
   const cutoff = Date.now() - NINETY_DAYS_MS;
   const purgeable = ['done', 'descartado'];
@@ -572,7 +572,7 @@ function _normalizeItems(items) {
   return items;
 }
 
-function loadBacklog() {
+export function loadBacklog() {
   // R-[pendiente-ID]: Supabase-first — si el usuario está autenticado, delegar a
   // _loadFromSupabase() que implementa lógica timestamp-first en su paso 5.
   // Migración one-shot (founder only): si localStorage tiene datos y Supabase está
@@ -614,7 +614,7 @@ function loadBacklog() {
 }
 
 // T-049: derivar tipo del código
-function itemType(code) {
+export function itemType(code) {
   const c = (code || '')[0];
   const t = ['I','T','R','B','P'].includes(c) ? c : null;
   return t === 'I' ? 'P' : t; // I es alias de P — normalizado
@@ -699,7 +699,7 @@ function toggleStatusFilter(status) {
     if (el) { el.classList.remove('filter-pulse'); void el.offsetWidth; el.classList.add('filter-pulse'); el.addEventListener('animationend', () => el.classList.remove('filter-pulse'), { once: true }); }
   });
 }
-function updateStatusFilterUI() {
+export function updateStatusFilterUI() {
   const pendBtn = document.getElementById('fstatus-pendiente');
   if (pendBtn) pendBtn.classList.toggle('active', activeStatuses.has('pendiente'));
   const enRevBtn = document.getElementById('fstatus-en-revision');
@@ -728,7 +728,7 @@ function toggleVersionCollapse(v) {
 // B-202605-ids: acepta reservedCodes (Set) para evitar colisiones dentro de una misma
 // pasada de _assignPendingIds — los ítems nuevos aún no están en ITEMS cuando se llama
 // en batch, por lo que sin este parámetro todos obtienen el mismo número.
-function _getNextItemCode(typeChar, reservedCodes) {
+export function _getNextItemCode(typeChar, reservedCodes) {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -874,7 +874,7 @@ function relativeImportTime(ts) {
 }
 
 // T-048: actualizar banner
-function updateBacklogBanner() {
+export function updateBacklogBanner() {
   const banner = document.getElementById('backlog-meta-banner');
   const exportBtn = document.getElementById('export-backlog-btn');
   if (!_getActiveProjectFilter() || !ITEMS.length) {
@@ -897,7 +897,7 @@ setInterval(() => {
   if (typeof currentTab !== 'undefined' && currentTab === 'backlog') updateBacklogBanner();
 }, 60000);
 
-function importBacklog(event) {
+export function importBacklog(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -1035,14 +1035,14 @@ function statusLabel(s) {
 }
 
 // B-245: helper para obtener el aiId de la sesión activa al momento de registrar en history[]
-function _getActiveSessionAiId() {
+export function _getActiveSessionAiId() {
   if (typeof state === 'undefined' || typeof _isInSession !== 'function') return null;
   const ai = (state.ais || []).find(a => !a.archived && _isInSession(a));
   return ai ? ai.id : null;
 }
 
 // T-202604-066: cambio de status inline
-function setItemStatus(code, newStatus) {
+export function setItemStatus(code, newStatus) {
   const item = ITEMS.find(i => i.code === code);
   if (!item || item.status === newStatus) return;
 
@@ -1235,7 +1235,7 @@ function _flashStatusConfirmed(code) {
 }
 
 // T-A4b: aplica el cambio de status a done — ejecutado tras confirmación inline o directo en Variante A
-function _applyDoneStatus(code) {
+export function _applyDoneStatus(code) {
   const item = ITEMS.find(i => i.code === code);
   if (!item || item.status === 'done') return;
 
@@ -1290,20 +1290,20 @@ function _applyDoneStatus(code) {
   if (typeof renderSprintBurndown === 'function') renderSprintBurndown(); // T-202605-058
   if (typeof renderSprintItems === 'function') renderSprintItems(); // T-202605-044
 }
-function effortDots(n) {
+export function effortDots(n) {
   let h = '';
   for (let i = 0; i < 3; i++) h += `<div class="effort-dot${i < n ? ' filled' : ''}"></div>`;
   return h;
 }
 
 // Lógica R-con-hijos: si un R tiene hijos → no contable (se cuentan los hijos). R sin hijos → contable.
-function _isCountableItem(i) {
+export function _isCountableItem(i) {
   const rCodesWithChildren = new Set(ITEMS.filter(x => x.parentId).map(x => x.parentId));
   if (itemType(i.code) === 'P') return false; // P (posibilidades) no contaminan contadores de trabajo activo
   return !(itemType(i.code) === 'R' && rCodesWithChildren.has(i.code));
 }
 
-function renderStats() {
+export function renderStats() {
   if (!_getActiveProjectFilter() || !ITEMS.length) { document.getElementById('stats-bar').innerHTML = ''; return; }
 
   // T-202604-106: excluir ítems de sprints cerrados del módulo principal
@@ -1422,7 +1422,7 @@ function renderStats() {
   updateTypeFilterUI();
 }
 // T-053: construye el bloque de sesiones que referencian un ítem del backlog
-function buildItemRefs(code) {
+export function buildItemRefs(code) {
   const matches = [];
   getAllSessions().forEach(s => {
     if ((s.trackerRefs || []).includes(code)) {
@@ -1618,7 +1618,7 @@ function _getActiveRoles() {
 }
 
 // T-202604-245: construir chips de rol para inyectar en filter bar
-function _buildRoleChips() {
+export function _buildRoleChips() {
   const roles = _getActiveRoles();
   if (!roles.length) return '';
   const noneCount = ITEMS.filter(i => !i.role || !i.role.trim()).length;
@@ -1654,7 +1654,7 @@ function toggleSortDir() {
 // B-202604-122: persistir estado en localStorage
 // T-202604-287: toggle vista Kanban
 // T-202604-313/366: Mi vista — T's pendientes del rol activo en sprint activo, rotativo
-function _getMiViewRoles() {
+export function _getMiViewRoles() {
   const activeSprint = _getActiveSprint();
   if (!activeSprint) return [];
   const roles = new Set();
@@ -1665,7 +1665,7 @@ function _getMiViewRoles() {
   return [...roles].sort();
 }
 
-function _getMiViewLabel() {
+export function _getMiViewLabel() {
   const roles = _getMiViewRoles();
   if (!roles.length) return 'Mi vista';
   const role = roles[_miViewRoleIndex % roles.length] || roles[0];
@@ -1788,7 +1788,7 @@ function toggleBacklogTreeMode() {
 }
 
 // T-202604-258: toggle modo Focus — top 10 ítems por score descendente
-function toggleBacklogFocusMode() {
+export function toggleBacklogFocusMode() {
   _backlogFocusMode = !_backlogFocusMode;
   const btn = document.getElementById('fbar-focus-btn');
   if (btn) {
@@ -1824,7 +1824,7 @@ function toggleBacklogNoAcMode() {
 // R-202605-070: la lógica real fue absorbida por _normalizeItems(). Este stub redirige
 // la llamada post-carga remota de _loadFromSupabase a _normalizeItems para mantener
 // el contrato de datos sin duplicar lógica.
-function _migrateItemTypes() {
+export function _migrateItemTypes() {
   if (typeof ITEMS === 'undefined') return;
   ITEMS = _normalizeItems(ITEMS);
   if (typeof saveBacklog === 'function') saveBacklog();

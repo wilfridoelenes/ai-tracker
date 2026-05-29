@@ -1,3 +1,4 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-toast.js
 // Última actualización: 2026-05-19 00:00 UTC-6
 // Toast stack system — extraído de ai-tracker-checkpoint.js (R-202605-003)
@@ -30,13 +31,13 @@ const _TOAST_MAX = 3;
 const _TOAST_PRIORITY = { error: 0, warning: 1, success: 2, info: 3, download: 4 };
 let _toastQueue = []; // { type, title, body, base, onClick }
 
-function _toastVisibleCount() {
+export function _toastVisibleCount() {
   const stack = document.getElementById('toast-stack');
   if (!stack) return 0;
   return Array.from(stack.querySelectorAll('.toast-item')).filter(t => !t._dismissed).length;
 }
 
-function _toastRender(type, title, body, base, onClick) {
+export function _toastRender(type, title, body, base, onClick) {
   const stack = document.getElementById('toast-stack');
   if (!stack) return;
 
@@ -140,7 +141,7 @@ function _toastRender(type, title, body, base, onClick) {
 //   en la UI principal, onClick es redundante y se omite.
 //   Ejemplos válidos: navegar a una sección que se acaba de modificar en otro tab.
 //   Ejemplos inválidos: dismiss manual (ya hay botón ×), re-abrir modal que tiene acceso directo.
-function showToast(type, title, body = null, duration = null, onClick = null) {
+export function showToast(type, title, body = null, duration = null, onClick = null) {
   // T-202604-229: duration explícito tiene prioridad; si no → _toastDuration calibra por tipo+len
   // T-202604-279: _toastDuration() aplica fórmula base + 40ms/char; error siempre null (no dismiss)
   const base = duration !== null ? duration : _toastDuration(type, title, body);
@@ -158,7 +159,7 @@ function showToast(type, title, body = null, duration = null, onClick = null) {
   _toastRender(type, title, body, base, onClick);
 }
 
-function _dismissToast(el) {
+export function _dismissToast(el) {
   if (el._dismissed) return;
   el._dismissed = true;
   clearTimeout(el._hideTimer);
@@ -170,7 +171,7 @@ function _dismissToast(el) {
 }
 
 // T-202604-280: extrae el siguiente toast de queue (ya ordenado por prioridad) y lo renderiza
-function _toastNext() {
+export function _toastNext() {
   if (!_toastQueue.length) return;
   if (_toastVisibleCount() >= _TOAST_MAX) return;
   const next = _toastQueue.shift();
@@ -178,9 +179,7 @@ function _toastNext() {
 }
 
 // T-202604-280: digest — agrupa múltiples mensajes del mismo tipo en un solo toast
-// Uso: showToastDigest('warning', ['Proyecto A estancado', 'Proyecto B estancado', 'Proyecto C estancado'])
-// Resultado: "Proyecto A estancado" + body "y 2 más" si count > 1, o toast individual si solo 1
-function showToastDigest(type, msgs, duration = null) {
+export function showToastDigest(type, msgs, duration = null) {
   if (!msgs || !msgs.length) return;
   if (msgs.length === 1) {
     showToast(type, msgs[0], null, duration);
@@ -192,20 +191,10 @@ function showToastDigest(type, msgs, duration = null) {
 }
 
 // alias — retrocompat
-function toast(msg) { showToast('info', msg); }
+export function toast(msg) { showToast('info', msg); }
 
 // T-202604-221: showToastInline — toast anclado al elemento que detona la acción
-// Acciones sobre ítems: marcar done, copiar código, cambio de status
-// En mobile (<600px) delega a showToast global.
-//
-// Firma original:   showToastInline(anchorEl, type, title, opts)
-// Firma con acción: showToastInline(anchorEl, actions, title, opts)
-//   donde actions es Array<{ label, cls, cb }> — detectado por Array.isArray(actionsOrType)
-//
-// R-202605-151: modo acción — renderiza título + botones. Al ejecutar cb() cierra el toast.
-//   Click fuera del anchor cierra sin ejecutar ningún callback (cancelar implícito).
-//   Mobile (≤600px): delega a showToast con el título — sin botones.
-function showToastInline(anchorEl, actionsOrType, title, opts = {}) {
+export function showToastInline(anchorEl, actionsOrType, title, opts = {}) {
   const isActionMode = Array.isArray(actionsOrType);
   const type = isActionMode ? 'info' : actionsOrType;
   const actions = isActionMode ? actionsOrType : null;
@@ -227,18 +216,12 @@ function showToastInline(anchorEl, actionsOrType, title, opts = {}) {
   if (pos === 'static') anchorEl.style.setProperty('position', 'relative');
 
   const el = document.createElement('div');
-  // R-202605-174: detección de viewport — flip a 'below' cuando anchor cerca del top
-  // No aplica en mobile (≤600px) — ya delegado a showToast() antes de llegar aquí
-  const _TOAST_INLINE_FLIP_THRESHOLD = 80; // px desde el top del viewport
+  const _TOAST_INLINE_FLIP_THRESHOLD = 80;
   let placement = opts.position || 'above';
   try {
     const rect = anchorEl.getBoundingClientRect();
-    if (rect.top < _TOAST_INLINE_FLIP_THRESHOLD) {
-      placement = 'below';
-    }
-  } catch(e) {
-    // getBoundingClientRect falló — conservar placement calculado hasta ahora
-  }
+    if (rect.top < _TOAST_INLINE_FLIP_THRESHOLD) placement = 'below';
+  } catch(e) {}
   el.className = `toast-inline t-${type} toast-inline--${placement}`;
   el.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   el.setAttribute('role', type === 'error' ? 'alert' : 'status');
@@ -252,7 +235,6 @@ function showToastInline(anchorEl, actionsOrType, title, opts = {}) {
   };
 
   if (isActionMode && actions.length) {
-    // Modo acción: texto + botones
     const msgSpan = document.createElement('span');
     msgSpan.className = 'toast-inline-msg';
     msgSpan.textContent = title;
@@ -274,30 +256,27 @@ function showToastInline(anchorEl, actionsOrType, title, opts = {}) {
     });
     el.appendChild(btnWrap);
 
-    // Click fuera del anchor — cancelar implícito (sin ejecutar cb)
     const _outsideHandler = (e) => {
       if (!anchorEl.contains(e.target)) {
         _hideInline();
         document.removeEventListener('click', _outsideHandler, true);
       }
     };
-    // Diferir para no capturar el click que abrió el toast
     setTimeout(() => document.addEventListener('click', _outsideHandler, true), 0);
     el._outsideHandler = _outsideHandler;
 
   } else {
-    // Modo informativo original
     const icon = _TOAST_ICONS[type] || 'ℹ';
     el.textContent = `${icon} ${title}`;
     el._inlineTimer = setTimeout(_hideInline, 2000);
   }
 
   anchorEl.appendChild(el);
-  el.getBoundingClientRect(); // forzar reflow
+  el.getBoundingClientRect();
   el.classList.add('show');
 }
 
-// ── Exposición pública ────────────────────────────────────────────────────────
+// ── window.* — solo para compatibilidad con locus-api.js (T5) ────────────────
 window.showToast        = showToast;
 window.showToastDigest  = showToastDigest;
 window.showToastInline  = showToastInline;

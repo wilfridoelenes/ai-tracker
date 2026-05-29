@@ -1,8 +1,12 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
 // Extraído de ai-tracker-ai-notes.js
+
+import { _updateUndoUI } from './locus-backlog-core.js';
+import { _mgGetVersion } from './locus-map-generator.js';
+import { renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
 
 // ── T-202604-048: Sub-tabs Templates ──
 
@@ -19,7 +23,7 @@ let _htmlMapModifiedTimer = null;
 // T-202604-110: tracking modificaciones Backlog en sesión activa
 let _backlogModifiedInSession = false;
 
-function _updateSubTabButtons(sub) {
+export function _updateSubTabButtons(sub) {
   const btnB = document.getElementById('btn-import-backlog');
   const btnE = document.getElementById('btn-export-backlog');
   const btnFull = document.getElementById('btn-export-backlog-full');
@@ -39,7 +43,7 @@ function _updateSubTabButtons(sub) {
   if (undoRow) undoRow.classList.toggle('is-hidden', sub !== 'backlog');
   if (btnUndo) btnUndo.classList.toggle('is-hidden', sub !== 'backlog');
   if (btnRedo) btnRedo.classList.toggle('is-hidden', sub !== 'backlog');
-  if (sub === 'backlog' && typeof _updateUndoUI === 'function') _updateUndoUI();
+  if (sub === 'backlog') _updateUndoUI();
   // T-202604-123 / T-202604-006: bootstrap único por proyecto
   const mapBootstrapped = !!localStorage.getItem(_tplKey('html-map-raw'));
   if (btnM) btnM.classList.toggle('is-hidden', !(sub === 'htmlmap' && !mapBootstrapped));
@@ -133,7 +137,7 @@ function _docsOnboardingSteps() {
   ];
 }
 
-function _renderDocsOnboarding() {
+export function _renderDocsOnboarding() {
   // Buscar el contenedor del sub-tab activo — insertar banner antes del contenido
   const panel = document.getElementById('sspanel-' + currentSubTab);
   if (!panel) return;
@@ -201,7 +205,7 @@ function _dismissDocsOnboarding() {
 }
 
 // T-202604-006: Banner proyecto activo en Templates
-function _renderTplProjBanner() {
+export function _renderTplProjBanner() {
   const banner = document.getElementById('tpl-proj-banner');
   if (!banner) return;
   const proj = getActiveProject();
@@ -218,7 +222,7 @@ function _renderTplProjBanner() {
 
 // HTML_MAP_SECTIONS y htmlMapFilter migrados a locus-map-viewer.js (AC-10)
 
-function importHtmlMap(event) {
+export function importHtmlMap(event) {
   // R-202605-XXX: solo Markdown — rama JSON eliminada
   const file = event.target.files[0];
   if (!file) return;
@@ -242,9 +246,9 @@ function importHtmlMap(event) {
       format: 'markdown'
     };
     localStorage.setItem(_tplKey('html-map-meta'), JSON.stringify(meta));
-    if (typeof updateHtmlMapBanner === 'function') updateHtmlMapBanner();
+    updateHtmlMapBanner();
     updateHtmlMapModificationBadge();
-    if (typeof renderHtmlMap === 'function') renderHtmlMap();
+    renderHtmlMap();
     _setHtmlMapModified();
     _blogLog('importado', meta.file, `v${meta.version} · ${sections.length} secciones`, 'htmlmap');
     _updateDocLogCount('htmlmap');
@@ -261,7 +265,7 @@ function importHtmlMap(event) {
 // ── B-202605-514: _getMapContent() — retorna string del MAP con versión aplicada ──
 // Retorna null si no hay datos en localStorage.
 // exportHtmlMapMd() y _mgExportAllZip() consumen esta función.
-function _getMapContent(ver) {
+export function _getMapContent(ver) {
   // R-202605-XXX: MAP siempre Markdown — rama JSON eliminada
   const raw = localStorage.getItem(_tplKey('html-map-raw'));
   if (!raw) return null;
@@ -272,11 +276,11 @@ function _getMapContent(ver) {
 }
 
 // ── T-103 / T-202604-123: Exportar HTML-MAP con versión editable ──
-function exportHtmlMapMd() {
+export function exportHtmlMapMd() {
   // DUP-08: descarga directa — #htmlmap-export-overlay eliminado
   const raw = localStorage.getItem(_tplKey('html-map-raw'));
   if (!raw) { showToast('warning', 'Sin datos — importa primero'); return; }
-  const ver = (typeof _mgGetVersion === 'function' && _mgGetVersion())
+  const ver = (_mgGetVersion()
     ? _mgGetVersion()
     : (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
       ? _effectiveVersion
@@ -406,7 +410,7 @@ function importContextMd() {
   document.getElementById('context-file-input')?.click();
 }
 
-function _importContextMdFromText(text) {
+export function _importContextMdFromText(text) {
   if (!text || !text.trim()) { showToast('warning', '⚠ Archivo vacío o inválido'); return; }
 
   // R-202605-136: detectar formato JSON vs Markdown
@@ -447,7 +451,7 @@ function _importContextMdFromText(text) {
   showToast('success', `✓ CONTEXT v${parsed.version} importado (${parsed.sections.length} secciones${fmtLabel})`);
 }
 
-function updateContextBanner() {
+export function updateContextBanner() {
   const meta = JSON.parse(localStorage.getItem(_tplKey('context-meta')) || '{}');
   const vEl = document.getElementById('cmeta-version');
   const iEl = document.getElementById('cmeta-imported');
@@ -549,7 +553,7 @@ function _clearHtmlMapModifiedBadge() {
   if (modVal) modVal.classList.add('is-hidden');
 }
 
-function updateHtmlMapModificationBadge() {
+export function updateHtmlMapModificationBadge() {
   const meta = JSON.parse(localStorage.getItem('html-map-meta') || '{}');
   const htmlmapMeta = document.getElementById('htmlmap-meta-banner');
   if (!htmlmapMeta) return;
@@ -567,7 +571,7 @@ function updateHtmlMapModificationBadge() {
 }
 
 // T-202604-110: badge Backlog modificado en sesión
-function _setBacklogModified() {
+export function _setBacklogModified() {
   _backlogModifiedInSession = true;
   const btn = document.getElementById('sstab-btn-backlog');
   if (btn && !btn.querySelector('.sstab-modified-dot')) {
@@ -580,7 +584,7 @@ function _setBacklogModified() {
   updateBacklogModificationBadge();
 }
 
-function updateBacklogModificationBadge() {
+export function updateBacklogModificationBadge() {
   const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
   const backlogMeta = document.getElementById('backlog-meta-banner');
   if (!backlogMeta) return;
@@ -596,7 +600,7 @@ function updateBacklogModificationBadge() {
 }
 
 // T-202604-108: extraer bloques CONTEXT-SECTION del texto pegado
-function extractContextSections(text) {
+export function extractContextSections(text) {
   const sections = [];
   // AC-3: solo procesar secciones dentro del bloque CHECKPOINT
   const ckptMatch = text.match(/---CHECKPOINT---([\s\S]*?)---FIN-CHECKPOINT---/);
@@ -618,7 +622,7 @@ function extractContextSections(text) {
 }
 
 // T-202604-108: merge de secciones al Context raw almacenado
-function mergeContextSections(sections, projId) {
+export function mergeContextSections(sections, projId) {
   if (!sections.length) return;
   const _ctxKey = base => projId ? _projKey(base, projId) : _tplKey(base);
   let raw = localStorage.getItem(_ctxKey('context-raw')) || '';
@@ -667,7 +671,7 @@ function mergeContextSections(sections, projId) {
 }
 
 // extraer bloques MAP-SECTION del texto pegado
-function extractHtmlMapSections(text) {
+export function extractHtmlMapSections(text) {
   const sections = [];
   // AC-3: solo procesar secciones dentro del bloque CHECKPOINT
   const ckptMatch = text.match(/---CHECKPOINT---([\s\S]*?)---FIN-CHECKPOINT---/);
@@ -686,7 +690,7 @@ function extractHtmlMapSections(text) {
 }
 
 // merge de secciones MAP-SECTION al HTML-MAP raw almacenado
-function mergeHtmlMapSections(sections, projId) {
+export function mergeHtmlMapSections(sections, projId) {
   if (!sections.length) return;
   const _mapKey = base => projId ? _projKey(base, projId) : _tplKey(base);
   let raw = localStorage.getItem(_mapKey('html-map-raw')) || '';
@@ -711,12 +715,12 @@ function mergeHtmlMapSections(sections, projId) {
   _setHtmlMapModified();
   _blogLog('sección mergeada', '', `${sections.length} sección(es)`, 'htmlmap');
   _updateDocLogCount('htmlmap');
-  if (currentSubTab === 'htmlmap' && typeof renderHtmlMap === 'function') renderHtmlMap();
+  if (currentSubTab === 'htmlmap') renderHtmlMap();
   showToast('success', `✓ Module Map actualizado — ${sections.length} sección(es) mergeada(s)`);
 }
 
 // T-202604-108: renderContext — two states: empty / loaded
-function renderContext() {
+export function renderContext() {
   const emptyEl = document.getElementById('context-empty-state');
   const loadedEl = document.getElementById('context-loaded-state');
   if (!emptyEl || !loadedEl) return;
@@ -1008,3 +1012,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 // ── END T-202605-031 locus-docs ──
+
+// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+window._setBacklogModified          = _setBacklogModified;
+window._updateSubTabButtons         = _updateSubTabButtons;
+window.importHtmlMap                = importHtmlMap;
+window._importContextMdFromText     = _importContextMdFromText;
+window._getMapContent               = _getMapContent;
+window.exportHtmlMapMd              = exportHtmlMapMd;
+window.updateContextBanner          = updateContextBanner;
+window.renderContext                = renderContext;
+window.extractContextSections       = extractContextSections;
+window.mergeContextSections         = mergeContextSections;
+window.extractHtmlMapSections       = extractHtmlMapSections;
+window.mergeHtmlMapSections         = mergeHtmlMapSections;
+window._renderTplProjBanner         = _renderTplProjBanner;
+window._renderDocsOnboarding        = _renderDocsOnboarding;
+window.updateHtmlMapModificationBadge = updateHtmlMapModificationBadge;
+window.updateBacklogModificationBadge = updateBacklogModificationBadge;
+window.importContextMd              = importContextMd;
+window.onContextSearch              = onContextSearch;
+window.clearContextSearch           = clearContextSearch;
+window.contextShowImport            = contextShowImport;
+window.toggleContextSection         = toggleContextSection;
+window.renderContextMd              = renderContextMd;
+window.renderContextInline          = renderContextInline;
+window.renderContextStatus          = renderContextStatus;

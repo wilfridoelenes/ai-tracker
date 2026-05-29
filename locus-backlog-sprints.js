@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -6,11 +6,11 @@
 
 // ── T-sprints: Catálogo de sprints ──
 
-function _getActiveSprint() {
+export function _getActiveSprint() {
   return getActiveSprints().find(s => s.status === 'active') || null;
 }
 
-function _getSprintById(id) {
+export function _getSprintById(id) {
   return getActiveSprints().find(s => s.id === id) || null;
 }
 
@@ -63,7 +63,7 @@ function _nextSprintId(projId) {
 // Devuelve: objeto { html, init(wrapEl) }
 //   html: HTML del formulario listo para inyectar en el DOM
 //   init(wrapEl): debe llamarse después de insertar html para enganchar eventos y hacer focus
-function _buildNewSprintForm(projId, onConfirm, onCancel) {
+export function _buildNewSprintForm(projId, onConfirm, onCancel) {
   const suggestedRt = _suggestReleaseType([]);
   const suggestedVt = _suggestVersionTarget(suggestedRt);
   const previewId   = _nextSprintId(projId || undefined);
@@ -249,7 +249,7 @@ function _suggestVersionTarget(releaseType) {
 // R-202605-123: createSprint acepta goal opcional (máx 120 chars)
 // R-202605-134: acepta version_target y release_type — se calculan con sugerencia automática si no se pasan
 // T-202605-500: ID generado internamente con prefijo de proyecto — founder solo pasa nombre descriptivo
-function createSprint(raw, goal, versionTarget, releaseType, projId) {
+export function createSprint(raw, goal, versionTarget, releaseType, projId) {
   // B-202605-077: si se pasa projId, operar sobre ese proyecto en lugar del filtro global
   const _activeProjForSprint = projId && typeof getProjectById === 'function'
     ? getProjectById(projId)
@@ -448,7 +448,7 @@ ${discardedMdSection ? discardedMdSection + '\n---\n\n' : ''}${scopeAddedRetroSe
 
 // T-202604-262: mostrar modal de descarga opcional de retrospectiva
 // T-202604-417: abre el overlay de retro en modo vista — muestra retro guardada del sprint cerrado
-function openSprintRetroView(id) {
+export function openSprintRetroView(id) {
   const sp = _getSprintById(id);
   if (!sp) return;
   const sprintLabel = sp.label || sp.id;
@@ -552,7 +552,7 @@ function _openRetroDownloadPrompt(id) {
   }
 }
 
-function setSprintStatus(id, newStatus) {
+export function setSprintStatus(id, newStatus) {
   // newStatus: 'active' | 'closed'
   if (newStatus === 'active') {
     // Solo un sprint activo a la vez — el anterior pasa a 'closed', no a 'open'
@@ -603,7 +603,7 @@ function setSprintStatus(id, newStatus) {
   showToast('info', id + ' → ' + newStatus);
 }
 
-function setItemSprint(code, sprintId) {
+export function setItemSprint(code, sprintId) {
   if (sprintId === '__new__') { openNewSprintInline(code); return; }
   const item = ITEMS.find(i => i.code === code);
   if (!item) return;
@@ -711,7 +711,7 @@ function confirmNewSprint(code) {
 
 // T-202604-246: edición inline del nombre de sprint desde el header del grupo
 // R-202605-123: incluye campo goal editable
-function editSprintInline(sprintId) {
+export function editSprintInline(sprintId) {
   const wrap = document.getElementById('sprint-label-wrap-' + CSS.escape(sprintId));
   if (!wrap) return;
   const sp = _getSprintById(sprintId);
@@ -798,7 +798,7 @@ function confirmEditSprint(sprintId) {
 // R-202604-089: estado del modal de cierre de sprint
 let _scmState = null; // { id, step, pendingItems, doneItems, migrations: { [code]: '' | sprintId | '__discard__' } }
 
-function confirmCloseSprint(id) {
+export function confirmCloseSprint(id) {
   // R-202604-089: abre modal de 3 pasos en lugar de confirm directo
   const sp = _getSprintById(id);
   if (!sp) return;
@@ -1368,7 +1368,7 @@ function createSprintFromGroup(id) {
 }
 
 // R-[pendiente-ID]: navegar a un ítem del backlog por código — cambia a tab backlog, sub-tab backlog, hace scroll y pulsa highlight
-function navigateToItem(code) {
+export function navigateToItem(code) {
   if (!code) return;
   // Asegurar que el filtro de status incluye el status del ítem
   const item = ITEMS.find(i => i.code === code);
@@ -1390,7 +1390,7 @@ function navigateToItem(code) {
 
 
 // T-202605-058: Burndown — barra de progreso effort done vs total del sprint activo
-function renderSprintBurndown() {
+export function renderSprintBurndown() {
   const trackEl  = document.getElementById('sph-bd-track');
   const fillEl   = document.getElementById('sph-bd-fill');
   const labelEl  = document.getElementById('sph-bd-label');
@@ -1477,7 +1477,7 @@ function _updateCloseReadyState(sp, labelEl) {
 }
 
 // T-202605-044: Lista de Rs del sprint activo agrupados por estado
-function renderSprintItems() {
+export function renderSprintItems() {
   const listEl    = document.getElementById('sprint-items-list');
   const emptyEl   = document.getElementById('tab-sprint-empty');
   const headerEl  = document.getElementById('sprint-panel-header');

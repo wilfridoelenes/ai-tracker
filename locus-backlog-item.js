@@ -1,11 +1,16 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-item-editor.js · locus-toast.js
+import { _applyDoneStatus, _hasRecentSession, _undoSnapshot, renderStats } from './locus-backlog-core.js';
+import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
+import { _normalizeSprint } from './locus-session-parse.js';
+import { _blogLog, getAI, getAllSessions, saveBacklog } from './locus-storage.js';
 
-function _renderKanban(listEl) {
+
+export function _renderKanban(listEl) {
   // R-202604-091: 3 columnas — 'en curso' eliminado, ítems activos decorados en 'pendiente'
   const COLS = [
     { id: 'pendiente',  label: 'Pendiente',  status: 'pendiente',  colorVar: 'var(--text2)',  accentColor: 'rgba(124,106,247,0.4)' },
@@ -245,7 +250,7 @@ function _attachBacklogListDelegation() {
 })();
 
 // T-202604-076: DnD para reordenar ítems dentro de grupo sprint (no aplica a done/descartado ni a modo plano)
-function _attachBacklogDnD() {
+export function _attachBacklogDnD() {
   // B-202605-013: T-202604-424 eliminó 'sprint' como valor de backlogSortMode — guard era inalcanzable.
   // DnD activo cuando la agrupación por sprint está activa y no hay modo exclusivo que tome el rendering.
   if (!_backlogSprintGroupMode || _backlogKanbanMode || _backlogFocusMode || _backlogMikeMode || _backlogNoAcMode) return;
@@ -290,7 +295,7 @@ function _attachBacklogDnD() {
         ITEMS.splice(toIdx, 0, moved);
         _undoSnapshot();
         saveBacklog();
-        if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+        _markBacklogListDirty(); renderBacklogList();
       });
     });
   });
@@ -320,11 +325,11 @@ function _inlineEditTitle(code, e) {
       _undoSnapshot();
       saveBacklog();
     }
-    if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+    _markBacklogListDirty(); renderBacklogList();
   }
 
   function _cancel() {
-    if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+    _markBacklogListDirty(); renderBacklogList();
   }
 
   input.addEventListener('keydown', e => {
@@ -399,7 +404,7 @@ function _confirmUnlinkChild(childCode, rCode) {
     danger: true
   }, () => {
     const item = ITEMS.find(i => i.code === childCode);
-    if (item) { item.parentId = null; saveBacklog(); if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); renderStats(); showToast('success', `${childCode} desvinculado`); }
+    if (item) { item.parentId = null; saveBacklog(); _markBacklogListDirty(); renderBacklogList(); renderStats(); showToast('success', `${childCode} desvinculado`); }
   });
 }
 
@@ -450,11 +455,11 @@ function _buildItemOriginBlock(item) {
   if (!item.sessionId) return '';
 
   // getAllSessions() retorna sesiones planas con s.aiId — no {sess,ai} pairs
-  const allSessions = typeof getAllSessions === 'function' ? getAllSessions() : [];
+  const allSessions = getAllSessions();
   const foundSess = allSessions.find(s => s && s.id === item.sessionId);
   if (!foundSess) return '';
 
-  const foundAi = typeof getAI === 'function' ? getAI(foundSess.aiId) : null;
+  const foundAi = getAI(foundSess.aiId);
 
   const aiName = foundAi ? esc(foundAi.name || foundAi.id) : '—';
   const aiAvatar = (foundAi && foundAi.avatar) ? `<span class="bitem-origin-avatar">${foundAi.avatar}</span>` : '';
@@ -573,7 +578,7 @@ function _openStatusPopover(e, code) {
 }
 
 // T-108: construir un ítem colapsado
-function buildBacklogItem(item) {
+export function buildBacklogItem(item) {
   const globalIdx = ITEMS.indexOf(item);
   const isDone = item.status === 'done';
   const isDiscarded = item.status === 'descartado';
@@ -987,7 +992,7 @@ function _promoteConfirm(originCode) {
   if (_pmo) _pmo.classList.remove('open');
   _promoteTargetType = null;
 
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(() => navigateToItem(newCode));
+  _markBacklogListDirty(); renderBacklogList(() => navigateToItem(newCode));
   renderStats();
   showToast('success', `⬆ ${originCode} promovido → ${newCode}`);
 }
@@ -1070,7 +1075,7 @@ function _promoteTtoRConfirm(originCode) {
   const overlay = document.getElementById('promote-modal-overlay'); // DUP-02: shell unificado
   if (overlay) overlay.classList.remove('open');
 
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(() => navigateToItem(newCode));
+  _markBacklogListDirty(); renderBacklogList(() => navigateToItem(newCode));
   renderStats();
   showToast('success', `⬆ ${originCode} promovido → ${newCode}`);
 }
@@ -1173,12 +1178,12 @@ function toggleAc(idx) {
   arrow.textContent = list.classList.contains('open') ? '▾' : '▸';
 }
 
-function setFilter(f) {
+export function setFilter(f) {
   currentFilter = f;
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
   const btn = document.querySelector('.f-' + f);
   if (btn) btn.classList.add('active');
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 function onBacklogSearch() {
@@ -1187,7 +1192,7 @@ function onBacklogSearch() {
   const clearBtn = document.getElementById('backlog-search-clear');
   if (clearBtn) clearBtn.classList.toggle('visible', !!backlogSearchQuery);
   updateClearFilterBtn();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   renderStats(); // B-202605-205: actualizar contadores de tipo con búsqueda activa
 }
 
@@ -1198,11 +1203,11 @@ function clearBacklogSearch() {
   const clearBtn = document.getElementById('backlog-search-clear');
   if (clearBtn) clearBtn.classList.remove('visible');
   updateClearFilterBtn();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   renderStats(); // B-202605-205: restaurar contadores al limpiar búsqueda
 }
 
-function updateBacklogFooter() {
+export function updateBacklogFooter() {
   // T-202604-360: footer fijo colapsable — dos filas: info + filtros accionables
   const footer = document.getElementById('backlog-footer');
   if (!footer) return;
@@ -1252,7 +1257,7 @@ function updateBacklogFooter() {
 }
 
 // B-202604-198: Helper — detecta si un code es placeholder (nunca matchear contra backlog)
-function _isPlaceholderCode(code) {
+export function _isPlaceholderCode(code) {
   if (!code) return true;
   if (code === '[pendiente-ID]') return true;
   if (/^\[tmp:[a-z0-9_-]+\]$/i.test(code)) return true;
@@ -1301,7 +1306,7 @@ function _assignPendingIds(tgItems) {
 // ── T-098: Merge TRACKER-GLOBAL → ITEMS en memoria ──
 // Llamado desde saveSession(). Acumula múltiples sesiones sin exportar.
 // T-202604-121: retorna {created, updated, ignored} para super toast
-function mergeBacklogFromTG(tgItems, sessionId, opts) {
+export function mergeBacklogFromTG(tgItems, sessionId, opts) {
   if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[] };
   const _dryRun = !!(opts && opts.dryRun);
 
@@ -1498,19 +1503,13 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
       const _incomingType = item.type || (item.code ? item.code.charAt(0) : 'T');
       if (item.parentId) {
         if (_incomingType === 'R') {
-          if (typeof _blogLog === 'function') {
-            _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ítems tipo R no pueden tener padre. parentId recibido: ' + item.parentId, 'backlog');
-          }
+                      _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ítems tipo R no pueden tener padre. parentId recibido: ' + item.parentId, 'backlog');
         } else {
           const _parentCandidate = ITEMS.find(p => p.code === item.parentId);
           if (!_parentCandidate) {
-            if (typeof _blogLog === 'function') {
-              _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: código ' + item.parentId + ' no existe en el backlog', 'backlog');
-            }
+                          _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: código ' + item.parentId + ' no existe en el backlog', 'backlog');
           } else if (_parentCandidate.type !== 'R') {
-            if (typeof _blogLog === 'function') {
-              _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ' + item.parentId + ' es de tipo ' + _parentCandidate.type + ' — solo R puede ser padre', 'backlog');
-            }
+                          _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ' + item.parentId + ' es de tipo ' + _parentCandidate.type + ' — solo R puede ser padre', 'backlog');
           } else {
             _resolvedParentId = item.parentId;
           }
@@ -1591,7 +1590,7 @@ function mergeBacklogFromTG(tgItems, sessionId, opts) {
     saveBacklog(); // B-202605-007: _undoSnapshot() movido antes del forEach
     _setBacklogModified();
     renderStats(); // siempre actualizar stat bar aunque no estemos en tab Backlog
-    if (currentTab === 'backlog') { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); updateBacklogBanner(); }
+    if (currentTab === 'backlog') { _markBacklogListDirty(); renderBacklogList(); updateBacklogBanner(); }
   }
   return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions };
 }
@@ -1605,7 +1604,7 @@ function _tgStatusToBacklog(raw) {
 }
 
 // Normaliza cualquier variante de status a los valores canónicos: 'pendiente' | 'done' | 'descartado' | 'historico'
-function _normalizeStatus(raw) {
+export function _normalizeStatus(raw) {
   if (!raw) return 'pendiente';
   const s = raw.toLowerCase().trim();
   // B-202604-193: 'historico' es valor canónico — NO normalizar a pendiente
@@ -1628,7 +1627,7 @@ function _staleness(item) {
   if (!item || item.status !== 'pendiente') return null;
   if (!item.sprint || item.sprint === 'n/a') return null;
   if (!item.createdAt) return null;
-  if (typeof _hasRecentSession === 'function' && _hasRecentSession(item)) return null;
+  if (_hasRecentSession(item)) return null;
   const _refTs = item.statusChangedAt || item.createdAt;
   if (!_refTs) return null;
   const days = Math.floor((Date.now() - _refTs) / 86400000);
@@ -1641,7 +1640,7 @@ function _staleness(item) {
 const _ACTIVE_RECENT_DAYS = 7;
 function _isActiveRecently(item) {
   if (!item || item.status !== 'pendiente') return false;
-  if (typeof getAllSessions !== 'function') return false;
+
   const allSessions = getAllSessions();
   let lastTs = 0;
   allSessions.forEach(s => {
@@ -1673,13 +1672,13 @@ function _isActiveRecently(item) {
 const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable
 const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version']);
 
-function applyPatchesFromTG(patches, sessionId) {
+export function applyPatchesFromTG(patches, sessionId) {
   if (!patches || !patches.length) return { patched: [], ignored: [] };
 
   const patched = [];
   const ignoredPatches = [];
 
-  if (typeof _undoSnapshot === 'function') _undoSnapshot();
+  _undoSnapshot();
 
   patches.forEach(patch => {
     // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)
@@ -1689,9 +1688,7 @@ function applyPatchesFromTG(patches, sessionId) {
     // AC-5: código no existe en backlog → advertencia DocLog
     const existing = (typeof ITEMS !== 'undefined') ? ITEMS.find(i => i.code === code) : null;
     if (!existing) {
-      if (typeof _blogLog === 'function') {
-        _blogLog('patch-ignorado', code, 'Patch ignorado: código no existe en el backlog. code: ' + code, 'backlog');
-      }
+              _blogLog('patch-ignorado', code, 'Patch ignorado: código no existe en el backlog. code: ' + code, 'backlog');
       ignoredPatches.push({ code, reason: 'no-existe' });
       return;
     }
@@ -1699,9 +1696,7 @@ function applyPatchesFromTG(patches, sessionId) {
     // AC-3b: advertir sobre campos no patcheables presentes en el objeto patch
     Object.keys(patch).forEach(k => {
       if (_PATCH_NON_PATCHEABLE.has(k)) {
-        if (typeof _blogLog === 'function') {
-          _blogLog('patch-campo-ignorado', code, 'Campo no patcheable ignorado: ' + k, 'backlog');
-        }
+                  _blogLog('patch-campo-ignorado', code, 'Campo no patcheable ignorado: ' + k, 'backlog');
       }
     });
 
@@ -1715,10 +1710,10 @@ function applyPatchesFromTG(patches, sessionId) {
       const current  = existing[field];
 
       if (field === 'status') {
-        const normalized = (typeof _normalizeStatus === 'function') ? _normalizeStatus(incoming) : incoming;
+        const normalized = _normalizeStatus(incoming);
         if (normalized !== existing.status) {
           const _prevStatus = existing.status;
-          if (normalized === 'done' && typeof _applyDoneStatus === 'function') {
+          if (normalized === 'done') {
             // B-202605-XXX: patch programático → _applyDoneStatus directo, sin modal inline
             // setItemStatus dispara _showInlineConfirmDone para ítems en sprint activo,
             // lo que requiere interacción del usuario y cancela el patch silenciosamente.
@@ -1745,7 +1740,7 @@ function applyPatchesFromTG(patches, sessionId) {
       if (field === 'sprint') {
         // Sprint: aplicar _normalizeSprint sobre objeto temporal para normalizar centinelas
         const tempItem = { sprint: incoming };
-        if (typeof _normalizeSprint === 'function') _normalizeSprint(tempItem);
+        _normalizeSprint(tempItem);
         const normalizedSprint = tempItem.sprint; // undefined si centinela, valor si válido
         if (normalizedSprint !== current) {
           changes.push({ field: 'sprint', from: current || '—', to: normalizedSprint });
@@ -1784,14 +1779,14 @@ function applyPatchesFromTG(patches, sessionId) {
         change: changes.map(c => c.field).join(' · ')
       });
 
-      if (typeof saveBacklog === 'function') saveBacklog();
+      saveBacklog();
     } else {
       ignoredPatches.push({ code, reason: 'sin-cambios' });
     }
   });
 
-  if (typeof renderBacklogList === 'function') if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
-  if (typeof renderStats === 'function') renderStats();
+  _markBacklogListDirty(); renderBacklogList();
+  renderStats();
 
   return { patched, ignored: ignoredPatches };
 }

@@ -1,3 +1,4 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-analytics-digest.js
 // Responsabilidad: Gráfico de flujo acumulativo (_buildCumulativeFlowChart).
 // Dependencias: locus-analytics-core.js · locus-storage.js

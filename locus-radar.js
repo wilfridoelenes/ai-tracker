@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -12,6 +12,11 @@
 //                   _hoyMsUntilReset, state
 //   session.js   → navigateToCard, openQuickCapture
 //   checkpoint.js → showCheckpointPanel
+
+import { _notifConfigSetEnabled, _notifConfigSetThreshold, markAllNotifsRead, markNotifRead } from './locus-notifications.js';
+import { openQuickCapture } from './locus-sesiones-capture.js';
+import { navigateToCard } from './locus-sesiones-stats.js';
+import { openAddAI } from './locus-workers.js';
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 
@@ -292,10 +297,10 @@ function _buildExhaustedCard(ai) {
 // Nuevos: timer en sesión, btn CKPT directo, Agotadas colapsables, notif oculta cuando count=0
 // T-202605-118: dirty flag — render quirúrgico
 let _radarDirty = false;
-function _markRadarDirty() { _radarDirty = true; }
+export function _markRadarDirty() { _radarDirty = true; }
 window._markRadarDirty = _markRadarDirty;
 
-function renderGlobalRadarSidebar() {
+export function renderGlobalRadarSidebar() {
   if (!_radarDirty) return;
   // AC-3 T-202605-118: skip si hay foco activo dentro del sidebar
   const _rsbFocusEl = document.getElementById('radar-sidebar-cards');
@@ -441,7 +446,7 @@ function renderGlobalRadarSidebar() {
 
 // R-202605-172: Toggle colapsar/expandir grupos del radar sidebar
 // Función independiente de toggleCollapseAll() del tracker (que opera sobre state.ais.showAll)
-function _rsbToggleCollapseAll() {
+export function _rsbToggleCollapseAll() {
   const container = document.getElementById('radar-sidebar-cards');
   if (!container) return;
   const sections = container.querySelectorAll('.radar-sb-section');
@@ -469,7 +474,7 @@ function _rsbToggleAgotadas() {
 
 let _rsbSearchQuery = '';
 
-function rsbFilterAIs(query, silent) {
+export function rsbFilterAIs(query, silent) {
   _rsbSearchQuery = (query || '').trim();
   const q = _rsbSearchQuery.toLowerCase();
   const wrap = document.getElementById('rsb-search-wrap');
@@ -515,7 +520,7 @@ function rsbFilterAIs(query, silent) {
   }
 }
 
-function rsbClearSearch() {
+export function rsbClearSearch() {
   const input = document.getElementById('rsb-search-input');
   if (input) input.value = '';
   rsbFilterAIs('');
@@ -524,7 +529,7 @@ function rsbClearSearch() {
 // ── PIN / OFFSET / TOGGLE / INIT ──────────────────────────────────────────────
 
 // R-202605-113: Pin toggle — desactiva auto-hide cuando está fijado
-function rsbTogglePin() {
+export function rsbTogglePin() {
   const sidebar = document.getElementById('global-radar-sidebar');
   if (!sidebar) return;
   const isPinned = sidebar.classList.toggle('rsb-pinned');
@@ -550,7 +555,7 @@ function _applyToastOffset(isCollapsed) {
 }
 
 // T-202604-254: Toggle sidebar Radar
-function toggleRadarSidebar() {
+export function toggleRadarSidebar() {
   const sidebar = document.getElementById('global-radar-sidebar');
   if (!sidebar) return;
   const isCollapsed = sidebar.classList.toggle('collapsed');
@@ -561,7 +566,7 @@ function toggleRadarSidebar() {
 }
 
 // T-202604-254: Init sidebar state from localStorage
-function _initRadarSidebarState() {
+export function _initRadarSidebarState() {
   const sidebar = document.getElementById('global-radar-sidebar');
   if (!sidebar) return;
   const saved = localStorage.getItem('radar-sidebar-collapsed');
@@ -652,23 +657,23 @@ document.addEventListener('DOMContentLoaded', function () {
     const action = el.dataset.action;
 
     if (action === 'navigateToCard') {
-      if (typeof navigateToCard === 'function') navigateToCard(el.dataset.aiId);
+      navigateToCard(el.dataset.aiId);
     } else if (action === 'openQuickCapture') {
       e.stopPropagation();
-      if (typeof openQuickCapture === 'function') openQuickCapture(el.dataset.aiId);
+      openQuickCapture(el.dataset.aiId);
     } else if (action === 'notifGoto') {
       e.stopPropagation();
       try { _notifGoto(JSON.parse(el.dataset.notifId)); } catch(_) {}
     } else if (action === 'notifDismiss') {
       e.stopPropagation();
-      try { if (typeof markNotifRead === 'function') markNotifRead(JSON.parse(el.dataset.notifId)); } catch(_) {}
+      try { markNotifRead(JSON.parse(el.dataset.notifId)); } catch(_) {}
     } else if (action === 'notifMarkAll') {
       e.stopPropagation();
-      if (typeof markAllNotifsRead === 'function') markAllNotifsRead();
+      markAllNotifsRead();
     } else if (action === 'rsbToggleCfg') {
       _rsbToggleCfg(e);
     } else if (action === 'openAddAI') {
-      if (typeof openAddAI === 'function') openAddAI();
+      openAddAI();
     } else if (action === 'rsbToggleAgotadas') {
       _rsbToggleAgotadas();
     }
@@ -682,10 +687,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const key = el.dataset.cfgKey;
     if (action === 'cfgSetThreshold') {
       e.stopPropagation();
-      if (typeof _notifConfigSetThreshold === 'function') _notifConfigSetThreshold(key, el.value);
+      _notifConfigSetThreshold(key, el.value);
     } else if (action === 'cfgSetEnabled') {
       e.stopPropagation();
-      if (typeof _notifConfigSetEnabled === 'function') _notifConfigSetEnabled(key, el.checked);
+      _notifConfigSetEnabled(key, el.checked);
     }
   });
 });
+
+// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+window.toggleRadarSidebar       = toggleRadarSidebar;
+window.renderGlobalRadarSidebar = renderGlobalRadarSidebar;
+window._initRadarSidebarState   = _initRadarSidebarState;
+window.rsbFilterAIs             = rsbFilterAIs;
+window.rsbClearSearch           = rsbClearSearch;
+window.rsbTogglePin             = rsbTogglePin;

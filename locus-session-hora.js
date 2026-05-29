@@ -1,8 +1,9 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-session-hora.js
 // Responsabilidad: Componente de hora — _horaUpdate, parseHora, correctHora, interpretHora, fmt12, relDate, horaKey, confirmSave.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 
-function _horaUpdate(inputEl, dispEl) {
+export function _horaUpdate(inputEl, dispEl) {
   if (!dispEl) return;
   const raw = inputEl ? inputEl.value.replace(/\D/g, '') : '';
   const result = interpretHora(raw);
@@ -38,7 +39,7 @@ function correctHora(id) {
   );
 }
 
-function interpretHora(raw) {
+export function interpretHora(raw) {
   if (!raw) return null;
   let h, m;
   if (raw.length === 1) { h = parseInt(raw); m = 0; }
@@ -57,7 +58,7 @@ function interpretHora(raw) {
   return {h, m, hhmm, label: `${h12}:${String(m).padStart(2,'0')} ${period}`, epoch};
 }
 
-function fmt12(hhmm) {
+export function fmt12(hhmm) {
   if (!hhmm) return '';
   const [h, m] = hhmm.split(':').map(Number);
   const p = h >= 12 ? 'PM' : 'AM';
@@ -68,7 +69,7 @@ function fmt12(hhmm) {
 // T-202604-028: fecha relativa
 // Acepta timestamp numérico (ms) o string de fecha "3 May. 2026".
 // Para timestamps < 24h emite "hace X min" / "hace X h" en lugar de "Hoy".
-function relDate(dateStr, ts) {
+export function relDate(dateStr, ts) {
   if (!dateStr && !ts) return '';
 
   // — Rama 1: valor numérico (timestamp ms directo) —
@@ -133,7 +134,7 @@ let _pendingCompleteId = null;
 // R-202605-095: abre el panel item-viz con banner bloqueante cuando no hay proyecto seleccionado.
 // El botón Guardar queda en estado --btn-blocked hasta que el usuario selecciona proyecto en el card.
 // No dispara toast — la advertencia vive completamente dentro del panel.
-function _showProjRequiredInPanel(id, parsed, horaResult) {
+export function _showProjRequiredInPanel(id, parsed, horaResult) {
   // [pendiente-ID] fix: guardar foco antes de cualquier mutación DOM (body.innerHTML + cloneNode)
   const _vizPrevFocus = document.activeElement;
 
@@ -221,7 +222,7 @@ function _showProjRequiredInPanel(id, parsed, horaResult) {
   overlay.focus();
 }
 
-function confirmSave(id) {
+export function confirmSave(id) {
   saveSession(id);
 }
 
@@ -272,6 +273,6 @@ function cancelConfirmSave(id) {
 
 // T-202604-295: helper persistente para trigger de descarga de templates
 const _TMPL_TRIGGER_KEY = 'template-download-trigger';
-function _templateTrigger() {
+export function _templateTrigger() {
   return localStorage.getItem(_TMPL_TRIGGER_KEY) || 'session';
 }

@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -255,7 +255,7 @@ function parseCheckpoint(text) {
 
 // T-202604-200: actualiza la mini barra de progreso 3 fases del card
 // phase: 1=Pegar (inicial), 2=Confirmar (CHECKPOINT válido), 3=Guardar (sesión persistida)
-function _setPhase(id, phase) {
+export function _setPhase(id, phase) {
   const p1 = document.getElementById('phase-paste-'   + id);
   const p2 = document.getElementById('phase-confirm-' + id);
   const p3 = document.getElementById('phase-save-'    + id);
@@ -273,7 +273,7 @@ function _setPhase(id, phase) {
 // R-202605-046: normalizar campo sprint al ingestar ítems
 // Valores centinela → delete item.sprint (campo ausente = canónico para "sin sprint")
 // Sprint cerrado → delete item.sprint + advertencia DocLog
-function _normalizeSprint(item) {
+export function _normalizeSprint(item) {
   const raw = item.sprint;
   // AC-1: centinelas → campo ausente
   if (!raw || raw === 'n/a' || raw === 'N/A' || String(raw).trim() === '') {
@@ -295,7 +295,7 @@ function _normalizeSprint(item) {
   // AC-5: sprint válido — conservar sin modificar
 }
 
-function parsePaste(id) {
+export function parsePaste(id) {
   const ta = document.getElementById('ta-' + id);
   const text = ta ? ta.value : '';
   // R-202605-133: detectar CHECKPOINT en formato JSON puro (```json) o Markdown legacy
@@ -786,7 +786,7 @@ function handleInput(id) {
 }
 
 // R-202604-085 + R-B: ingesta de ---PLAN--- o ---EXECUTION-PLAN--- desde cualquier texto
-function _tryIngestPlan(text) {
+export function _tryIngestPlan(text) {
   const hasLegacy = text && text.includes('---PLAN---');
   const hasNew    = text && text.includes('---EXECUTION-PLAN---');
   if (!hasLegacy && !hasNew) return false;

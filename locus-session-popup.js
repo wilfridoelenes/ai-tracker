@@ -1,7 +1,12 @@
-// [PP] v1.2.3 · sprint:PP-S-06 · mod:1 · autor:Rune · 2026-05-28 18:10 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
+
+import { _sessRelTsShared, render } from './locus-sesiones.js';
+import { _getActiveProjectFilter } from './locus-sprint-project.js';
+import { showToastInline } from './locus-toast.js';
+import { switchSubTab } from './locus-ui-shell.js';
 
 function toggleStatus(id) {
   const ai = getAI(id);
@@ -12,7 +17,7 @@ function toggleStatus(id) {
 
 function toggleShowAll(id) { const ai = getAI(id); ai.showAll = !ai.showAll; save(); render(); }
 
-function openDetail(aiId, sessId) {
+export function openDetail(aiId, sessId) {
   const ai = getAI(aiId);
   const found = _findSessionByAI(aiId, sessId);
   const s = found ? found.sess : null;
@@ -297,7 +302,7 @@ function openDetail(aiId, sessId) {
     });
   }
 }
-function closePopup() {
+export function closePopup() {
   // Close preview panel
   const tab = document.getElementById('tab-sesiones');
   const previewEmpty = document.getElementById('tracker-preview-empty');
@@ -464,7 +469,7 @@ function _previewProjConfirmChange(aiId, sessId, selectEl) {
   const projName = newProj ? `${newProj.icon || '📁'} ${newProj.name}` : 'sin proyecto';
 
   // Usar el confirm inline de la app si está disponible, sino confirm nativo como fallback
-  if (typeof showToastInline === 'function') {
+  {
     // Guardar referencia para confirmar/cancelar
     selectEl.dataset.pendingProj = newProjId;
     selectEl.dataset.prevProj    = prevProjId;
@@ -922,7 +927,7 @@ let _logSearch        = '';
 let _logScrollHandler = null;   // B-202605-053: referencia de módulo — sobrevive card.innerHTML
 
 // Recopila todas las sesiones de todos los proyectos, cronológicas inversas
-function _getAllSessionsChron() {
+export function _getAllSessionsChron() {
   const rows = [];
   (state.projects || []).forEach(proj => {
     (proj.sessions || []).forEach(s => {
@@ -1041,7 +1046,7 @@ function _buildLogRow({ sess, proj, ai }) {
   const qcBadge = sess.quickCapture ? '<span class="log-qc-badge" title="Quick capture">⚡</span>' : '';
 
   // R-202605-162: timestamp relativo bajo el título — usa helper compartido
-  const tsLabel = (typeof _sessRelTsShared === 'function') ? _sessRelTsShared(sess) : (sess.dateShort || '');
+  const tsLabel = _sessRelTsShared(sess);
   const tsMeta = tsLabel ? `<span class="log-row-ts">${esc(tsLabel)}</span>` : '';
 
   return `
@@ -1066,12 +1071,12 @@ function _buildLogRow({ sess, proj, ai }) {
 }
 
 // Construye y actualiza el cuerpo del log card
-function _rebuildLogBody() {
+export function _rebuildLogBody() {
   const card = document.getElementById('log-card');
   if (!card) return;
 
   // Proyecto activo siempre del filtro global del header
-  const activeProjId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : '';
+  const activeProjId = _getActiveProjectFilter();
 
   const all = _getAllSessionsChron();
   const q = _logSearch.toLowerCase();
@@ -1230,7 +1235,7 @@ function scrollToLogCard(highlightSessId) {
   });
 }
 
-function closeLogCard() {
+export function closeLogCard() {
   const grid = document.getElementById('grid');
   const detailEmpty = document.getElementById('tracker-detail-empty');
   const card = document.getElementById('log-card');
@@ -1288,7 +1293,7 @@ window.addEventListener('load', function() {
   // Restaurar filtros persistidos
   _loadLogFilters();
 
-  const _origRender = typeof render === 'function' ? render : null;
+  const _origRender = render;
   if (_origRender) {
     window.render = function() {
       _origRender.apply(this, arguments);
@@ -1340,7 +1345,7 @@ window.addEventListener('load', function() {
 function navigateToBacklogItem(code) {
   if (!code) return;
   switchTab('backlog');
-  if (typeof switchSubTab === 'function') switchSubTab('backlog');
+  switchSubTab('backlog');
   // Esperar a que el tab y la lista rendericen antes de scrollear
   setTimeout(() => {
     const el = document.querySelector(`.bitem[data-code="${CSS.escape(code)}"]`);

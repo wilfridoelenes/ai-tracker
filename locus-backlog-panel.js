@@ -1,15 +1,20 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-toast.js
 
+import { toggleBacklogFocusMode } from './locus-backlog-core.js';
+import { exportBacklogMd } from './locus-sprint-project.js';
+import { getAI, getAllSessions, save, saveImmediate } from './locus-storage.js';
+import { showToast } from './locus-toast.js';
+
 // ── T-098: Exportar Backlog.md ──
 
 
 // T-202604-286: sección "Mencionado en" — sesiones que referencian este ítem
-function _buildItemMentionedIn(item) {
-  if (typeof getAllSessions !== 'function') return '';
+export function _buildItemMentionedIn(item) {
+  if (false) return '';
   const allSessions = getAllSessions();
   const mentions = allSessions.filter(s =>
     (s.backlogRefs || s.trackerRefs || []).includes(item.code)
@@ -35,7 +40,7 @@ function _buildItemMentionedIn(item) {
   };
 
   const rows = mentions.map(s => {
-    const ai = typeof getAI === 'function' ? getAI(s.aiId) : null;
+    const ai = getAI(s.aiId);
     const aiName = ai ? esc(ai.name) : 'IA';
     const ts = s.savedAt || s.createdAt || 0;
     const dateLabel = _fmtRel(ts) || s.dateShort || s.date || '';
@@ -54,7 +59,7 @@ function _buildItemMentionedIn(item) {
 }
 
 // T-202604-242: bloque visual "migrado de [proyecto]" en item-body
-function _buildItemMigratedBlock(item) {
+export function _buildItemMigratedBlock(item) {
   if (!item.migratedFrom) return '';
   const fromProj = item.migratedFromProject ? esc(item.migratedFromProject) : '(proyecto anterior)';
   return `<div class="bitem-migrated-block">
@@ -153,7 +158,7 @@ function _confirmMigrateItem(code) {
   // tracker.items ya actualizado arriba — saveBacklog() es suficiente.
   saveBacklog();
   // saveImmediate() — migrate es operación crítica de datos, no puede esperar el debounce de 5s
-  if (typeof saveImmediate === 'function') saveImmediate(); else save();
+  saveImmediate();
 
   if (overlay) overlay.classList.remove('open');
   renderBacklogList();
@@ -164,7 +169,7 @@ function _confirmMigrateItem(code) {
 // ═══ T-202604-253: Space → done para ítem seleccionado ═══
 
 // AC-1 + helper visual: marcar ítem como seleccionado (resaltar)
-function _backlogSetSelected(el) {
+export function _backlogSetSelected(el) {
   // Quitar selección previa
   document.querySelectorAll('.item.bitem--selected').forEach(e => e.classList.remove('bitem--selected'));
   if (!el) { _backlogSelectedCode = null; return; }
@@ -198,7 +203,7 @@ function _backlogSetSelected(el) {
     setItemStatus(code, 'done');
 
     // Toast con acción Undo inline
-    if (typeof showToast === 'function') {
+    {
       showToast('success',
         `<span class="toast-undo-wrap">` +
         `<span>✓ <strong>${code}</strong> → done</span>` +
@@ -232,7 +237,7 @@ let _itemPanelCode = null;
 // B-244: Modo Focus — estado y función toggle
 let _focusModeActive = false;
 
-function toggleFocusMode() {
+export function toggleFocusMode() {
   _focusModeActive = !_focusModeActive;
   document.body.classList.toggle('body--focus-mode', _focusModeActive);
   // Actualizar botón en panel si está abierto
@@ -244,7 +249,7 @@ function toggleFocusMode() {
   }
 }
 
-function exitFocusMode() {
+export function exitFocusMode() {
   if (_focusModeActive) {
     _focusModeActive = false;
     document.body.classList.remove('body--focus-mode');
@@ -258,7 +263,7 @@ function exitFocusMode() {
 }
 let _itemPanelNotesTimer = null;
 
-function openItemPanel(code) {
+export function openItemPanel(code) {
   const item = ITEMS.find(i => i.code === code);
   if (!item) return;
   _itemPanelCode = code;
@@ -284,7 +289,7 @@ function openItemPanel(code) {
   panel.classList.add('open');
 }
 
-function closeItemPanel() {
+export function closeItemPanel() {
   const panel = document.getElementById('item-detail-panel');
   if (panel) {
     panel.classList.remove('open');
@@ -311,7 +316,7 @@ function _itemPanelEscHandler(e) {
     if (_focusModeActive) {
       exitFocusMode();
       // B-202605-051: si _backlogFocusMode también está activo, desactivarlo en el mismo Esc
-      if (_backlogFocusMode && typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode();
+      if (_backlogFocusMode) toggleBacklogFocusMode();
       return;
     }
     // Colapsar el ítem expandido también
@@ -425,7 +430,7 @@ function _renderItemPanel(item) {
     </div>`;
 
   // ── Sessions vinculadas ──
-  const allSessions = typeof getAllSessions === 'function' ? getAllSessions() : [];
+  const allSessions = getAllSessions();
   const allLinkedSessions = allSessions.filter(s => (s.trackerRefs || []).includes(item.code) || (s.backlogRefs || []).includes(item.code)); // R-202605-042: incluir backlogRefs — alineado con _hasRecentSession e _isActiveRecently
 
   // R-202605-041: separar sesiones pre-creación (session.savedAt < item.createdAt)
@@ -439,7 +444,7 @@ function _renderItemPanel(item) {
     : [];
 
   const _sessChip = (s, canUnlink) => {
-    const ai = typeof getAI === 'function' ? getAI(s.aiId) : null;
+    const ai = getAI(s.aiId);
     const aiName = ai ? esc(ai.name) : 'IA';
     const dateLabel = s.dateShort || s.date || '';
     return `<div class="idp-session-chip" onclick="switchTab('tracker');setTimeout(()=>openDetail('${s.aiId}','${s.id}'),120)">
@@ -623,12 +628,12 @@ function _buildPanelTimeline(item) {
         entries.push({ ts: h.ts, type: 'unblocked', icon: '🔓', label: `Desbloqueado por ${h.data.by || ''}`, color: '#2ecc78' });
       } else if (h.type === 'session-linked') {
         // B-246 + B-245: vinculación de sesión con nombre de IA
-        const aiLinked = h.aiId && typeof getAI === 'function' ? getAI(h.aiId) : null;
+        const aiLinked = h.aiId && getAI(h.aiId);
         const aiName = aiLinked ? aiLinked.name : (h.aiId || '');
         entries.push({ ts: h.ts, type: 'session-linked', icon: '🔗', label: `Sesión vinculada${aiName ? ' · ' + aiName : ''}`, color: '#7c6af7', sub: h.data && h.data.sessId ? h.data.sessId : '' });
       } else if (h.type === 'session-unlinked') {
         // B-246 + B-245: desvinculación de sesión con nombre de IA
-        const aiUnlinked = h.aiId && typeof getAI === 'function' ? getAI(h.aiId) : null;
+        const aiUnlinked = h.aiId && getAI(h.aiId);
         const aiNameU = aiUnlinked ? aiUnlinked.name : (h.aiId || '');
         entries.push({ ts: h.ts, type: 'session-unlinked', icon: '🔗', label: `Sesión desvinculada${aiNameU ? ' · ' + aiNameU : ''}`, color: 'var(--hint)', sub: h.data && h.data.sessId ? h.data.sessId : '' });
       }
@@ -655,10 +660,10 @@ function _buildPanelTimeline(item) {
   }
 
   // Sesiones vinculadas en timeline
-  const allSessions = typeof getAllSessions === 'function' ? getAllSessions() : [];
+  const allSessions = getAllSessions();
   allSessions.forEach(s => {
     if ((s.trackerRefs || []).includes(item.code)) {
-      const ai = typeof getAI === 'function' ? getAI(s.aiId) : null;
+      const ai = getAI(s.aiId);
       const ts = s.savedAt || s.createdAt || 0;
       if (ts) {
         entries.push({
@@ -840,11 +845,11 @@ function _idpMarkDone(code) {
 
 // T-202604-307: desvincular sesión desde chip en panel
 function _idpUnlinkSession(itemCode, sessId) {
-  const allSessions = typeof getAllSessions === 'function' ? getAllSessions() : [];
+  const allSessions = getAllSessions();
   const sess = allSessions.find(s => s.id === sessId);
   if (!sess) return;
   sess.trackerRefs = (sess.trackerRefs || []).filter(c => c !== itemCode);
-  if (typeof save === 'function') save();
+  save();
   // Re-renderizar panel
   const item = ITEMS.find(i => i.code === itemCode);
   if (item) _renderItemPanel(item);
@@ -1001,9 +1006,9 @@ function toggleTmplTriggerPanel(btn) {
       // B-202605-014: con panel abierto → focus mode del panel; sin panel → Backlog Top-10
       const panelOpen = document.getElementById('item-detail-panel')?.classList.contains('open');
       if (panelOpen) {
-        if (typeof toggleFocusMode === 'function') toggleFocusMode();
+        toggleFocusMode();
       } else {
-        if (typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode();
+        toggleBacklogFocusMode();
       }
     }
   }
@@ -1017,7 +1022,7 @@ function toggleTmplTriggerPanel(btn) {
     const btn = document.getElementById('export-backlog-btn');
     if (btn && !btn._exportHandlerAttached) {
       btn.addEventListener('click', function() {
-        if (typeof exportBacklogMd === 'function') exportBacklogMd();
+        exportBacklogMd();
       });
       btn._exportHandlerAttached = true;
     }
@@ -1053,7 +1058,7 @@ function toggleTmplTriggerPanel(btn) {
       return;
     }
     if (act === 'idp-toggle-focus') {
-      if (typeof toggleFocusMode === 'function') toggleFocusMode();
+      toggleFocusMode();
       return;
     }
     if (act === 'idp-toggle-ac') {

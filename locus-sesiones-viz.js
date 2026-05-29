@@ -1,10 +1,12 @@
-// [PP] v1.2.3 · sprint:PP-S-06 · mod:1 · autor:Rune · 2026-05-28 18:10 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-viz.js
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
 //   (_showItemVizPanel), corrección de hora (openCorrectHora).
 // Extraído de: locus-checkpoint-viz.js
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
 // Carga después de: locus-sesiones-stats.js · locus-sesiones-capture.js
+import { render } from './locus-sesiones.js';
+import { switchSubTab, switchTab } from './locus-ui-shell.js';
 
 // ── B-202604-094: Corregir hora de desbloqueo desde card ──
 let _correctHoraAIId = null;
@@ -95,7 +97,7 @@ function confirmCorrectHora() {
       const lastSess = aiSessions[aiSessions.length - 1];
       lastSess.resetAt = result.label;
     }
-    save(); if (typeof render === 'function') render();
+    save(); render();
     if (typeof renderHoy === 'function' && currentTab === 'hoy') renderHoy();
   } else {
     inp.classList.add('error');
@@ -119,7 +121,7 @@ function unlockNowFromCard() {
   _correctHoraAIId = null;
   const modal = document.getElementById('gconfirm-overlay');
   if (modal) modal.classList.remove('open');
-  save(); if (typeof render === 'function') render();
+  save(); render();
   if (typeof renderHoy === 'function' && currentTab === 'hoy') renderHoy();
 }
 
@@ -174,7 +176,7 @@ function _showItemVizPanel(tgItems, sessId, projId, onConfirm) {
   _itemVizKeyHandler = _vizKeyHandler;
 }
 
-function _itemVizClose() {
+export function _itemVizClose() {
   const overlay = document.getElementById('item-viz-overlay');
   if (overlay) {
     overlay.classList.add('closing');
@@ -217,8 +219,8 @@ function _itemVizToggleSinCambios() {
 
 function _itemVizNavBacklog(code) {
   _itemVizClose();
-  if (typeof switchTab === 'function') switchTab('backlog');
-  if (typeof switchSubTab === 'function') switchSubTab('backlog');
+  switchTab('backlog');
+  switchSubTab('backlog');
   setTimeout(() => {
     const el = document.querySelector(`[data-code="${CSS.escape(code)}"]`);
     if (el) {
@@ -423,7 +425,7 @@ function _itemVizRender() {
 }
 
 // B-202605-505: helper de copia segura
-function _copyTextSafe(text) {
+export function _copyTextSafe(text) {
   const prev = document.activeElement;
   const ta = document.createElement('textarea');
   ta.value = text;
@@ -463,7 +465,7 @@ let _lastCheckpointResult = null;
 let _ckptPanelTimer = null;
 const _CKPT_PANEL_DURATION = 12000;
 
-function showCheckpointPanel(data) {
+export function showCheckpointPanel(data) {
   const panel  = document.getElementById('ckpt-panel');
   const body   = document.getElementById('ckpt-body');
   const bar    = document.getElementById('ckpt-bar');
@@ -540,7 +542,7 @@ function showCheckpointPanel(data) {
   _ckptPanelTimer = setTimeout(() => closeCkptPanel(), _CKPT_PANEL_DURATION);
 }
 
-function closeCkptPanel() {
+export function closeCkptPanel() {
   const panel  = document.getElementById('ckpt-panel');
   const bar    = document.getElementById('ckpt-bar');
   const reopen = document.getElementById('ckpt-reopen-btn');

@@ -1,7 +1,8 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-misc-ui.js
 // Módulo: Helpers de UI — getNextOccurrence, _resetExpired, Tags, Pendientes, Doc Activity Drawer
 // Extraído de ai-tracker-ai-notes.js
+import { _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
 
 // B-202604-007: corrección — proyección correcta evita countdown vacío
 function getNextOccurrence(resetTime) {
@@ -69,7 +70,7 @@ setInterval(() => {
 
 // ── Tags ──
 function openTagModal(aiId, sessId) {
-  if (typeof _saveModalTrigger === 'function') _saveModalTrigger('tag-modal');
+  _saveModalTrigger('tag-modal');
   tagModalAIId = aiId; tagModalSessId = sessId; selectedColor = 0;
   renderTagPicker(); renderColorPicker();
   document.getElementById('tag-new-input').value = '';
@@ -150,7 +151,7 @@ function openPendPanel() {
 }
 function closePendPanel() {
   document.getElementById('pend-overlay').classList.remove('open');
-  if (typeof _restoreModalFocus === 'function') _restoreModalFocus('pend-overlay');
+  _restoreModalFocus('pend-overlay');
 }
 
 // B-202604-138: modal standalone de CHECKPOINT — merge de ítems sin crear sesión de IA
@@ -202,7 +203,7 @@ function closeDocLog() {
   if (overlay) overlay.classList.remove('open');
   // T-202604-300: restaurar posición por defecto del toast-stack
   document.documentElement.style.removeProperty('--toast-right-offset');
-  if (typeof _restoreModalFocus === 'function') _restoreModalFocus('doc-log-overlay');
+  _restoreModalFocus('doc-log-overlay');
 }
 
 function _updateDocLogCount(doc) {
@@ -276,3 +277,22 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── Search — extraído a locus-ui-shell.js ────────────────────────────────
 // _searchScopeAll, _toggleSearchScope, onSearch
 // ─────────────────────────────────────────────────────────────────────────
+
+// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+window._updateDocLogCount       = _updateDocLogCount;
+window.openStandaloneCheckpoint = openStandaloneCheckpoint;
+window.openPendPanel            = openPendPanel;
+window.openDocLog               = openDocLog;
+window.getCD                    = getCD;
+window.closeStandaloneCheckpoint = closeStandaloneCheckpoint;
+window.closePendPanel           = closePendPanel;
+window._resetExpired            = _resetExpired;
+window.getNextOccurrence        = getNextOccurrence;
+window.clearDocLog              = clearDocLog;
+window.openTagModal             = openTagModal;
+window.renderTagPicker          = renderTagPicker;
+window.renderColorPicker        = renderColorPicker;
+window.selectColor              = selectColor;
+window.toggleTagOnSession       = toggleTagOnSession;
+window.addNewTag                = addNewTag;
+window.closeDocLog              = closeDocLog;

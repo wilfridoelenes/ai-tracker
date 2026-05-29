@@ -1,7 +1,39 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-sprint-plan.js
-// Versión: 1.1 | Última actualización: 2026-05-25 UTC-6 | R-202605-043: renderPlanInto + _buildPlanContent
+// Versión: 1.1 | Última actualización: 2026-05-28 UTC-6 | R-202605-043: renderPlanInto + _buildPlanContent
 // Módulo: Bloque PLAN — savePlan, loadPlan, renderPlan, togglePlanZoneDone
 // Extraído de ai-tracker-ai-notes.js · Renombrado de locus-plan.js (T-202605-066)
+import { _offlineQueuePush, _tplKey, getActiveSprints } from './locus-storage.js';
+import { showToast } from './locus-toast.js';
+
+// ── Helpers de módulo — T3.bis ────────────────────────────────────────────────
+// Versiones de módulo de _liveStatus y _sessIsDone para consumo externo.
+// Leen directamente de localStorage (mismo patrón que _buildPlanContent).
+function _getItemByCode() {
+  try {
+    const raw = localStorage.getItem(_tplKey('backlog-items'));
+    const items = raw ? JSON.parse(raw) : [];
+    const map = {};
+    items.forEach(it => { if (it.code) map[it.code] = it; });
+    return map;
+  } catch(e) { return {}; }
+}
+
+export function _liveStatus(code) {
+  const map = _getItemByCode();
+  const it = map[code];
+  return it ? (it.status || 'pendiente') : 'pendiente';
+}
+
+export function _sessIsDone(sess) {
+  const map = _getItemByCode();
+  const codes = sess.items || [];
+  return codes.length > 0 && codes.every(c => {
+    const it = map[c];
+    const s = it ? (it.status || 'pendiente') : 'pendiente';
+    return s === 'done' || s === 'descartado';
+  });
+}
 
 // ════════════════════════════════════════════════════════════════════
 // R-202604-076 · Bloque ---PLAN--- · Sub-tab Plan en Documentos
@@ -69,7 +101,7 @@ function _migratePlanKeys() {
 
   if (writeFailed) {
     written.forEach(({ newKey }) => { try { localStorage.removeItem(newKey); } catch(e2) {} });
-    if (typeof showToast === 'function') showToast('Error al migrar storage del Plan — datos anteriores intactos', 'error');
+    showToast('Error al migrar storage del Plan — datos anteriores intactos', 'error');
     return;
   }
 
@@ -83,7 +115,7 @@ function _migratePlanKeys() {
 
   if (verifyFailed) {
     written.forEach(({ newKey }) => { try { localStorage.removeItem(newKey); } catch(e2) {} });
-    if (typeof showToast === 'function') showToast('Error al verificar migración de storage del Plan — datos anteriores intactos', 'error');
+    showToast('Error al verificar migración de storage del Plan — datos anteriores intactos', 'error');
     return;
   }
 
@@ -93,7 +125,7 @@ function _migratePlanKeys() {
 
 // R-202605-120: savePlan — localStorage inmediato + Supabase async (tracker_docs, key plan-{suffix})
 // El objeto plan se envuelve en { data, _savedAt } para comparación de timestamps en _loadFromSupabase
-function savePlan(projId, plan) {
+export function savePlan(projId, plan) {
   // localStorage inmediato
   const payload = { data: plan, _savedAt: Date.now() };
   try { localStorage.setItem(_planKey(projId), JSON.stringify(payload)); } catch(e) {}
@@ -109,7 +141,7 @@ function savePlan(projId, plan) {
     ).then(({ error }) => {
       if (error) {
         console.warn('[AI Tracker] savePlan Supabase failed:', error);
-        if (typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'plan', projId });
+        _offlineQueuePush({ type: 'plan', projId });
       }
     });
   }
@@ -117,7 +149,7 @@ function savePlan(projId, plan) {
 
 // R-202605-120: loadPlan — lee desde localStorage (caché)
 // La hidratación desde Supabase ocurre en _loadFromSupabase() paso 6
-function loadPlan(projId) {
+export function loadPlan(projId) {
   try {
     const raw = localStorage.getItem(_planKey(projId));
     if (!raw) return null;
@@ -172,13 +204,13 @@ function togglePlanZoneDone() {
 // Backward compatible: planes legacy (sin campo scope) se muestran en sección sprint
 // R-202605-043: renderPlanInto — renderiza el plan en un contenedor arbitrario
 // Permite reutilizar la lógica desde el tab Sprint sin depender de #sspanel-plan
-function renderPlanInto(containerId) {
+export function renderPlanInto(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
   _buildPlanContent(container);
 }
 
-function renderPlan() {
+export function renderPlan() {
   const panel = document.getElementById('sspanel-plan');
   if (!panel) return;
   _buildPlanContent(panel);
@@ -316,7 +348,6 @@ function _buildPlanContent(panel) {
   // T-202605-511: lookup de sprints activos para chip 'activo'
   const _activeSprintIds = (() => {
     try {
-      if (typeof getActiveSprints !== 'function') return new Set();
       return new Set(
         getActiveSprints()
           .filter(sp => sp.status === 'active')
@@ -451,5 +482,10 @@ function _buildPlanContent(panel) {
 (function() { try { _migratePlanKeys(); } catch(e) { console.warn('[locus-sprint-plan] migración fallida:', e); } })();
 
 // ── Exposición pública ──────────────────────────────────────────────────────
-window.renderPlan      = renderPlan;
-window.renderPlanInto  = renderPlanInto; // R-202605-043
+window.renderPlan           = renderPlan;
+window.renderPlanInto       = renderPlanInto;       // R-202605-043
+window.savePlan             = savePlan;              // T-202605-068
+window.loadPlan             = loadPlan;              // T-202605-068
+window.togglePlanZoneDone   = togglePlanZoneDone;   // T-202605-068
+window._liveStatus          = _liveStatus;           // T3.bis
+window._sessIsDone          = _sessIsDone;           // T3.bis

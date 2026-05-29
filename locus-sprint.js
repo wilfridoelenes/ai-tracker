@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 // Consume: locus-sprint-plan.js · locus-backlog-sprints.js · locus-checkpoint-stats.js · locus-storage.js · locus-backlog-render.js
@@ -248,7 +248,7 @@ function _renderSprintScopeAdded(sprint) {
 
 // ── Función principal ───────────────────────────────────────────────────────
 
-function renderSprintTab() {
+export function renderSprintTab() {
   // T-202605-117: Guard de tab activo — skip render si el tab Sprint no es el visible.
   // AC-4: Command Palette abierto no cuenta como cambio de tab — evaluar tab subyacente.
   // AC-5: si currentTab no es detectable → fail-safe, ejecutar sin guard.

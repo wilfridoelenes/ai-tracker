@@ -1,7 +1,10 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-item-editor.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Item Editor, Paste Items, Templates de ítems
 // Extraído de ai-tracker-ai-notes.js
+import { _getActiveSprint } from './locus-backlog-sprints.js';
+import { _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
 
 // ── T-202604-109: Editor de ítems del Backlog ──
 let _editorItemId = null; // null = nuevo, o id existente para editar
@@ -14,7 +17,7 @@ function openPasteItems() {
   openItemEditor();
 }
 
-function closePasteItems() {
+export function closePasteItems() {
   // Fusionado en item editor — redirigir
   closeItemEditor();
 }
@@ -326,13 +329,12 @@ function _refreshParentIdDropdown(selectedType, selectedParentId) {
 
 // T-202604-294: helper — retorna id del sprint activo si existe, '' si no
 function _activeSprint() {
-  if (typeof _getActiveSprint !== 'function') return '';
   const s = _getActiveSprint();
   return s ? s.id : '';
 }
 
-function openItemEditor(itemId = null, itemCode = null) {
-  if (typeof _saveModalTrigger === 'function') _saveModalTrigger('item-editor-overlay');
+export function openItemEditor(itemId = null, itemCode = null) {
+  _saveModalTrigger('item-editor-overlay');
   const overlay = document.getElementById('item-editor-overlay');
   // T-522: guard — si el overlay no existe el módulo externo no cargó correctamente
   if (!overlay) {
@@ -563,9 +565,9 @@ function _ieHighlightAutofilled() {
   });
 }
 
-function closeItemEditor() {
+export function closeItemEditor() {
   document.getElementById('item-editor-overlay').classList.remove('open');
-  if (typeof _restoreModalFocus === 'function') _restoreModalFocus('item-editor-overlay');
+  _restoreModalFocus('item-editor-overlay');
   _editorItemId = null;
 }
 
@@ -783,7 +785,7 @@ function _getAllTemplates() {
 }
 
 // Abre el picker de templates
-function openTemplatePicker() {
+export function openTemplatePicker() {
   const overlay = document.getElementById('tpl-picker-overlay');
   if (!overlay) return;
   _renderTemplatePicker();
@@ -918,3 +920,25 @@ function toggleTplSavePanel() {
 
 // T-082: Helper centralizado — retorna el próximo Date en que resetTime ocurre
 // Siempre retorna un Date futuro: si la hora ya pasó hoy, proyecta a mañana (+24h)
+
+// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+window.openItemEditor       = openItemEditor;
+window.closeItemEditor      = closeItemEditor;
+window.openTemplatePicker   = openTemplatePicker;
+window.closePasteItems      = closePasteItems;
+window.openPasteItems       = openPasteItems;
+window.piParse              = piParse;
+window.piRenderPreview      = piRenderPreview;
+window.piToggleCard         = piToggleCard;
+window.piToggle             = piToggle;
+window.piEditTitle          = piEditTitle;
+window.piEditType           = piEditType;
+window.piEditStatus         = piEditStatus;
+window.piConfirm            = piConfirm;
+window.piDragOver           = piDragOver;
+window.piDragLeave          = piDragLeave;
+window.piDrop               = piDrop;
+window.confirmItemEditor    = confirmItemEditor;
+window.saveCurrentItemAsTemplate = saveCurrentItemAsTemplate;
+window.toggleTplSavePanel   = toggleTplSavePanel;
+window.closeTemplatePicker  = closeTemplatePicker;

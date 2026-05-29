@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -13,7 +13,7 @@
 // Workers (IAs) — CRUD extraído a locus-workers.js
 
 // R-005: Exportación markdown de sesiones por IA
-function downloadReport(id) {
+export function downloadReport(id) {
   const ai = getAI(id);
   const aiSess = getAISessions(id);
   if (!ai || aiSess.length < 2) return;
@@ -356,7 +356,7 @@ function closeCleanProjectModal() {
 
 // AC-2 (T-202605-004): sincronizar estado disabled del botón clean-project
 // según si hay proyecto activo. Se llama en cada cambio de proyecto y al abrir la Zona de Peligro.
-function _syncCleanProjectBtn() {
+export function _syncCleanProjectBtn() {
   const btn = document.getElementById('sidebar-danger-btn-clean-project');
   if (!btn) return;
   const hasProjActive = typeof _getActiveProjectFilter === 'function'
@@ -896,3 +896,26 @@ function _initReportsListeners() {
 }
 
 document.addEventListener('DOMContentLoaded', _initReportsListeners);
+
+// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+window.downloadReport          = downloadReport;
+window._syncCleanProjectBtn    = _syncCleanProjectBtn;
+window.downloadGlobalReport    = downloadGlobalReport;
+window.toggleMoreMenu          = toggleMoreMenu;
+window.exportData              = exportData;
+window.openPurgeModal          = openPurgeModal;
+window.closePurgeModal         = closePurgeModal;
+window.toggleBacklogDangerZone = toggleBacklogDangerZone;
+window.openResetBacklogModal   = openResetBacklogModal;
+window.closeResetBacklogModal  = closeResetBacklogModal;
+window.confirmResetBacklog     = confirmResetBacklog;
+window.toggleSidebarDanger     = toggleSidebarDanger;
+window.openCleanProjectModal   = openCleanProjectModal;
+window.closeCleanProjectModal  = closeCleanProjectModal;
+window.resetContextData        = resetContextData;
+window.resetHtmlMapData        = resetHtmlMapData;
+window.updatePurgePreview      = updatePurgePreview;
+window.confirmPurge            = confirmPurge;
+window.importData              = importData;
+window.closeImportDiff         = closeImportDiff;
+window.confirmImport           = confirmImport;

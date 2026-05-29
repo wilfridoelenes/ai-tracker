@@ -1,10 +1,17 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
 // Extraído de: locus-checkpoint-stats.js
 // Dependencias: locus-storage.js · locus-radar.js · locus-ui-shell.js
 // Carga antes de: locus-sesiones-stats.js · locus-radar.js
+
+import { setFilter } from './locus-backlog-item.js';
+import { navigateToItem } from './locus-backlog-sprints.js';
+import { renderGlobalRadarSidebar } from './locus-radar.js';
+import { navigateToCard } from './locus-sesiones-stats.js';
+import { getActiveSprints, getAllSessions } from './locus-storage.js';
+import { switchTab } from './locus-ui-shell.js';
 
 // T-202604-422: Notificaciones de ecosistema — motor + helpers
 const _NOTIF_KEY         = 'ai-tracker-notifs-read';
@@ -46,7 +53,7 @@ const _NOTIF_DEFAULTS = {
   aiCadencia:    { enabled: true,  label: 'IA fuera de cadencia histórica',   threshold: 0  },
 };
 
-function _notifConfig() {
+export function _notifConfig() {
   try {
     const stored = JSON.parse(localStorage.getItem(_NOTIF_CONFIG_KEY) || '{}');
     // Merge con defaults — nuevos tipos no borran config existente
@@ -62,7 +69,7 @@ function _saveNotifConfig(cfg) {
   try { localStorage.setItem(_NOTIF_CONFIG_KEY, JSON.stringify(cfg)); } catch {}
 }
 
-function _notifReadSet() {
+export function _notifReadSet() {
   try { return new Set(JSON.parse(localStorage.getItem(_NOTIF_KEY) || '[]')); } catch { return new Set(); }
 }
 
@@ -76,9 +83,9 @@ function _notifSaveRead(set) {
 // Función canónica — ¿tiene el ítem sesión vinculada en los últimos N días?
 // Consulta trackerRefs + backlogRefs. Usa savedAt || createdAt como timestamp.
 // Fallback: si el ítem fue creado hace menos de N días sin ninguna mención, retorna true.
-function hasRecentSession(item, days) {
+export function hasRecentSession(item, days) {
   if (!item) return true;
-  const allSess = (typeof getAllSessions === 'function' ? getAllSessions() : []);
+  const allSess = (getAllSessions());
   const cutoff  = Date.now() - days * 86400000;
   let lastMentionTs = 0;
   allSess.forEach(function(s) {
@@ -96,7 +103,7 @@ function hasRecentSession(item, days) {
   return lastMentionTs >= cutoff;
 }
 
-function _computeNotifications() {
+export function _computeNotifications() {
   const notifs = [];
   const items  = (typeof ITEMS !== 'undefined' ? ITEMS : []);
   const cfg    = _notifConfig();
@@ -128,14 +135,14 @@ function _computeNotifications() {
         id, type: 'unblocked', tab: 'backlog', icon: '\uD83D\uDD13',
         title: 'Bloqueante resuelto',
         body: item.code + (lbl ? ' \u2014 ' + lbl : '') + ' ya puede avanzar',
-        action: function() { if (typeof navigateToItem === 'function') navigateToItem(item.code); }
+        action: function() { navigateToItem(item.code); }
       });
     });
   }
 
   // 2. Sprint cerrado con pendientes sin reasignar
   if (cfg.sprintOrphans && cfg.sprintOrphans.enabled) {
-    const allSprints = (typeof getActiveSprints === 'function' ? getActiveSprints() : []);
+    const allSprints = (getActiveSprints());
     allSprints.filter(function(s) { return s.status === 'closed'; }).forEach(function(sp) {
       const orphans = items.filter(function(i) { return i.sprint === sp.id && i.status === 'pendiente'; });
       if (!orphans.length) return;
@@ -146,8 +153,8 @@ function _computeNotifications() {
         title: 'Sprint cerrado con pendientes',
         body: (sp.label || sp.id) + ' \u2014 ' + cnt + ' \xEDtem' + (cnt !== 1 ? 's' : '') + ' sin reasignar',
         action: function() {
-          if (typeof switchTab === 'function') switchTab('backlog');
-          if (typeof setFilter === 'function') setTimeout(function() { setFilter('sprint', sp.id); }, 80);
+          switchTab('backlog');
+          setTimeout(function() { setFilter('sprint', sp.id); }, 80);
         }
       });
     });
@@ -158,7 +165,7 @@ function _computeNotifications() {
   // Ítems medium/low o sin sprint asignado no generan notificación de staleness.
   if (cfg.itemInactivo && cfg.itemInactivo.enabled) {
     const thresh = cfg.itemInactivo.threshold || 14;
-    const allSprintsForInactivo = (typeof getActiveSprints === 'function' ? getActiveSprints() : []);
+    const allSprintsForInactivo = (getActiveSprints());
     const activeSprintIds = allSprintsForInactivo
       .filter(function(s) { return s.status === 'active'; })
       .map(function(s) { return s.id; });
@@ -177,7 +184,7 @@ function _computeNotifications() {
         id, type: 'itemInactivo', tab: 'backlog', icon: '\uD83D\uDD51',
         title: 'Ítem sin actividad',
         body: item.code + (lbl ? ' \u2014 ' + lbl : '') + ' sin sesión en ' + Math.floor(ageDays) + ' días',
-        action: function() { if (typeof navigateToItem === 'function') navigateToItem(item.code); }
+        action: function() { navigateToItem(item.code); }
       });
     });
   }
@@ -185,7 +192,7 @@ function _computeNotifications() {
   // 4. B-202605-238 AC: sprint con < 20% avance a mitad de período
   if (cfg.sprintLow && cfg.sprintLow.enabled) {
     const minPct = cfg.sprintLow.threshold != null ? cfg.sprintLow.threshold : 20;
-    const allSprints2 = (typeof getActiveSprints === 'function' ? getActiveSprints() : []);
+    const allSprints2 = (getActiveSprints());
     allSprints2.filter(function(s) { return s.status === 'active'; }).forEach(function(sp) {
       if (!sp.startedAt || !sp.endsAt) return;
       const now      = Date.now();
@@ -202,7 +209,7 @@ function _computeNotifications() {
         title: 'Sprint con avance bajo',
         body: (sp.label || sp.id) + ' \u2014 ' + spPct + '% a mitad del período',
         action: function() {
-          if (typeof switchTab === 'function') switchTab('backlog');
+          switchTab('backlog');
           if (typeof toggleSprintHealthPanel === 'function') setTimeout(toggleSprintHealthPanel, 80);
         }
       });
@@ -226,7 +233,7 @@ function _computeNotifications() {
         id, type: 'bugHigh', tab: 'backlog', icon: '\uD83D\uDED1',
         title: 'Bug high sin atención',
         body: item.code + (lbl ? ' \u2014 ' + lbl : '') + ' lleva ' + Math.floor(ageDays) + ' días sin sesión',
-        action: function() { if (typeof navigateToItem === 'function') navigateToItem(item.code); }
+        action: function() { navigateToItem(item.code); }
       });
     });
   }
@@ -236,7 +243,7 @@ function _computeNotifications() {
     const active = (typeof state !== 'undefined' ? (state.ais || []) : []).filter(function(a) { return !a.archived; });
     active.forEach(function(ai) {
       if (ai.status === 'exhausted') return;
-      const allSess  = (typeof getAllSessions === 'function' ? getAllSessions() : [])
+      const allSess  = (getAllSessions())
         .filter(function(s) { return s.aiId === ai.id; })
         .sort(function(a, b) { return (new Date(a.date).getTime() || 0) - (new Date(b.date).getTime() || 0); });
       if (allSess.length < 3) return; // sin cadencia establecida
@@ -259,8 +266,8 @@ function _computeNotifications() {
         title: 'IA fuera de cadencia',
         body: (ai.name || ai.id) + ' sin sesión en ' + sinceD + ' días (cadencia habitual: ' + Math.round(avgGapMs / 86400000) + 'd)',
         action: function() {
-          if (typeof switchTab === 'function') switchTab('sesiones');
-          if (typeof navigateToCard === 'function') setTimeout(function() { navigateToCard(ai.id); }, 80);
+          switchTab('sesiones');
+          setTimeout(function() { navigateToCard(ai.id); }, 80);
         }
       });
     });
@@ -269,7 +276,7 @@ function _computeNotifications() {
   return notifs;
 }
 
-function markNotifRead(id) {
+export function markNotifRead(id) {
   // AC-3: guardar en historial antes de marcar como leída
   const all    = _computeNotifications();
   const notif  = all.find(function(n) { return n.id === id; });
@@ -277,24 +284,24 @@ function markNotifRead(id) {
   const set = _notifReadSet();
   set.add(id);
   _notifSaveRead(set);
-  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+  renderGlobalRadarSidebar();
   updateTabNotifBadges(all);
 }
 
-function markAllNotifsRead() {
+export function markAllNotifsRead() {
   const notifs = _computeNotifications();
   const set    = _notifReadSet();
   // AC-3: guardar todas en historial antes de marcar
   notifs.forEach(function(n) { _notifHistoryAdd(n); });
   notifs.forEach(function(n) { set.add(n.id); });
   _notifSaveRead(set);
-  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+  renderGlobalRadarSidebar();
   updateTabNotifBadges(notifs);
 }
 
 // B-202605-239: badges numéricos en tab buttons — un badge por tab con notifs no leídas
 // tab field en cada notif determina qué tab recibe el badge
-function updateTabNotifBadges(allNotifs) {
+export function updateTabNotifBadges(allNotifs) {
   const notifs = (Array.isArray(allNotifs)) ? allNotifs : _computeNotifications();
   const read   = _notifReadSet();
   const unseen = notifs.filter(function(n) { return !read.has(n.id); });
@@ -326,44 +333,44 @@ function updateTabNotifBadges(allNotifs) {
 
 // B-202605-240: UI de configuración de notificaciones
 // R-202605-119: openNotifConfig redirige al Radar Sidebar — config unificada ahí
-function openNotifConfig() {
+export function openNotifConfig() {
   const sidebar = document.getElementById('global-radar-sidebar');
   if (!sidebar) return;
   if (sidebar.classList.contains('collapsed')) {
     toggleRadarSidebar();
   }
   window._rsbCfgExpanded = true;
-  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+  renderGlobalRadarSidebar();
   setTimeout(function() {
     var body = document.getElementById('rsb-cfg-body');
     if (body) body.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, 50);
 }
 
-function _notifConfigReset() {
+export function _notifConfigReset() {
   try { localStorage.removeItem(_NOTIF_CONFIG_KEY); } catch {}
-  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+  renderGlobalRadarSidebar();
 }
 
-function _notifConfigSetEnabled(key, enabled) {
+export function _notifConfigSetEnabled(key, enabled) {
   const cfg = _notifConfig();
   if (!cfg[key]) cfg[key] = Object.assign({}, _NOTIF_DEFAULTS[key]);
   cfg[key].enabled = !!enabled;
   _saveNotifConfig(cfg);
-  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+  renderGlobalRadarSidebar();
 }
 
-function _notifConfigSetThreshold(key, val) {
+export function _notifConfigSetThreshold(key, val) {
   const num = parseInt(val, 10);
   if (isNaN(num) || num < 1) return;
   const cfg = _notifConfig();
   if (!cfg[key]) cfg[key] = Object.assign({}, _NOTIF_DEFAULTS[key]);
   cfg[key].threshold = num;
   _saveNotifConfig(cfg);
-  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+  renderGlobalRadarSidebar();
 }
 
-function closeNotifConfig() {
+export function closeNotifConfig() {
   const overlay = document.getElementById('notif-config-overlay');
   if (overlay) overlay.classList.add('is-hidden');
 }
@@ -380,11 +387,27 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 const _notifActionMap = {};
-function _registerNotifActions(notifs) {
+export function _registerNotifActions(notifs) {
   notifs.forEach(function(n) { _notifActionMap[n.id] = n.action; });
 }
-function _notifGoto(id) {
+export function _notifGoto(id) {
   const fn = _notifActionMap[id];
   if (typeof fn === 'function') fn();
   markNotifRead(id);
 }
+
+// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+window.hasRecentSession       = hasRecentSession;
+window._notifReadSet          = _notifReadSet;
+window._computeNotifications  = _computeNotifications;
+window.markNotifRead          = markNotifRead;
+window.markAllNotifsRead      = markAllNotifsRead;
+window._registerNotifActions  = _registerNotifActions;
+window._notifGoto             = _notifGoto;
+window._notifConfig           = _notifConfig;
+window.updateTabNotifBadges   = updateTabNotifBadges;
+window.openNotifConfig        = openNotifConfig;
+window.closeNotifConfig       = closeNotifConfig;
+window._notifConfigReset      = _notifConfigReset;
+window._notifConfigSetEnabled = _notifConfigSetEnabled;
+window._notifConfigSetThreshold = _notifConfigSetThreshold;

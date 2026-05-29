@@ -1,12 +1,20 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
 // Extraído de ai-tracker-ai-notes.js
 
+import { _calcRelevanceScore } from './locus-backlog-core.js';
+import { _getActiveSprint } from './locus-backlog-sprints.js';
+import { loadHtmlMap } from './locus-map-viewer.js';
+import { relDate } from './locus-session-hora.js';
+import { _getActiveProjectFilter, _updateProjBreadcrumb, setProjContext } from './locus-sprint-project.js';
+import { switchSubTab } from './locus-ui-shell.js';
+
 // ── T-202604-061: Analytics — gráfico comparativo mensual ──
 
 // Reutiliza los mismos colores que chrono para consistencia visual
-function renderProyectos() {
+export function renderProyectos() {
   // T-202605-117: Guard de tab activo — skip render si el tab Proyectos no es el visible.
   // AC-4: Command Palette abierto no cuenta como cambio de tab — evaluar tab subyacente.
   // AC-5: si currentTab no es detectable → fail-safe, ejecutar sin guard.
@@ -217,9 +225,9 @@ function renderProyectos() {
     // Note: _calcProjVelocity and _estimateSprintClose are defined in renderProyectos scope
     let velocityHtml = '';
     let sprintEstHtml = '';
-    if (!isArchived && typeof _calcProjVelocity === 'function') {
+    if (!isArchived) {
       const vel = _calcProjVelocity(proj);
-      const est = typeof _estimateSprintClose === 'function' ? _estimateSprintClose(proj) : null;
+      const est = _estimateSprintClose(proj);
       velocityHtml = `<div class="proy2-velocity">
         <span class="proy2-velocity-label">Velocidad</span>
         <span class="proy2-velocity-val">${vel > 0 ? vel + ' ses/sem' : '—'}</span>
@@ -284,7 +292,7 @@ function renderProyectos() {
       if (last) {
         const lastAI = state.ais.find(a => a.id === last.aiId);
         const lastAIName = lastAI ? lastAI.name : (last.aiId || '—');
-        const lastDate = (typeof relDate === 'function' ? relDate(last.date, last.savedAt || last.createdAt) : null) || _relTimeShort(last.date) || '';
+        const lastDate = relDate(last.date, last.savedAt || last.createdAt) || _relTimeShort(last.date) || '';
         lastSessHtml = `<div class="proy2-last-sess">
           <span class="proy2-last-sess-label">Última sesión</span>
           <div class="proy2-last-sess-body">
@@ -467,12 +475,12 @@ function _proyDeleteExecute(projId) {
   const proj = getProjectById(projId);
   if (!proj) return;
   state.projects = (state.projects || []).filter(p => p.id !== projId);
-  if (typeof _getActiveProjectFilter === 'function' && _getActiveProjectFilter() === projId) {
+  if (_getActiveProjectFilter() === projId) {
     _setActiveProjectFilter('');
   }
   save();
   renderProyectos();
-  if (typeof _updateProjBreadcrumb === 'function') _updateProjBreadcrumb();
+  _updateProjBreadcrumb();
   showToast('success', `Proyecto eliminado`);
 }
 
@@ -482,7 +490,7 @@ function _proyAbrir(projId) {
   _updateProjFilterBtn();
   // Recargar templates con las keys del proyecto recién activado
   loadBacklog();
-  if (typeof loadHtmlMap === 'function') loadHtmlMap();
+  loadHtmlMap();
   // Refrescar el sub-tab activo si Templates está visible
   if (currentSubTab) switchSubTab(currentSubTab);
   switchTab('hoy');
@@ -668,7 +676,7 @@ function renderProject(query) {
     const sprintEl = document.createElement('div');
     sprintEl.id = 'project-sprint-health';
     sprintEl.className = 'proj-sprint-health';
-    const activeSprint = typeof _getActiveSprint === 'function' ? _getActiveSprint() : null;
+    const activeSprint = _getActiveSprint();
     if (activeSprint) {
       const sprintItems = (typeof ITEMS !== 'undefined' ? ITEMS : [])
         .filter(i => i.sprint === activeSprint.id && i.status !== 'descartado');
@@ -783,7 +791,7 @@ function renderProject(query) {
     suggestedEl.className = 'proj-suggested-section';
     const candidateItems = (typeof ITEMS !== 'undefined' ? ITEMS : [])
       .filter(i => i.status === 'pendiente')
-      .map(i => ({ ...i, _score: typeof _calcRelevanceScore === 'function' ? _calcRelevanceScore(i) : (i._score || 0) }))
+      .map(i => ({ ...i, _score: _calcRelevanceScore(i) }))
       .sort((a, b) => b._score - a._score)
       .slice(0, 3);
     if (candidateItems.length) {
@@ -999,7 +1007,7 @@ function _projDeleteDecision(projId, decId) {
 function _qnNavToItem(code) {
   if (!code) return;
   switchTab('backlog');
-  if (typeof switchSubTab === 'function') switchSubTab('backlog');
+  switchSubTab('backlog');
   // Esperar render del backlog antes de scroll
   setTimeout(() => {
     // buildBacklogItem genera id="bl-item-{code}" — intentar directo primero
@@ -1036,11 +1044,7 @@ function _projCtxSave(projId) {
   const ta = document.getElementById('proj-ctx-ta-' + projId);
   if (!ta) return;
   const newText = ta.value;
-  if (typeof setProjContext === 'function') setProjContext(projId, newText);
-  else {
-    const proj = getProjectById(projId);
-    if (proj) { proj.context = newText; save(); }
-  }
+  setProjContext(projId, newText);
   renderProject();
 }
 
@@ -1246,3 +1250,23 @@ function toggleProjectSection(key) {
   if (arrow) arrow.classList.toggle('open', isOpen);
   renderProject._collapsed[key] = isOpen;
 }
+
+// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+window.renderProyectos          = renderProyectos;
+window.renderProject            = renderProject;
+window.getAIColor               = getAIColor;
+window.renderProjectAnalytics   = renderProjectAnalytics;
+window.downloadProjectReport    = downloadProjectReport;
+window.toggleProjectSection     = toggleProjectSection;
+window._projOpenAddDecision     = _projOpenAddDecision;
+window._projSaveDecision        = _projSaveDecision;
+window._projCancelDecision      = _projCancelDecision;
+window._projEditDecision        = _projEditDecision;
+window._projDeleteDecision      = _projDeleteDecision;
+window._projCtxStartEdit        = _projCtxStartEdit;
+window._projCtxSave             = _projCtxSave;
+window._projCtxCancelEdit       = _projCtxCancelEdit;
+window._projCtxToggleSec        = _projCtxToggleSec;
+window._projToggleAIFilter      = _projToggleAIFilter;
+window._projViewSearchInput     = _projViewSearchInput;
+window._toggleProjAnalytics     = _toggleProjAnalytics;

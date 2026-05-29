@@ -1,7 +1,10 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-capture.js
 // Responsabilidad: Quick Capture modal (stepper de 2 pasos) + Sesión interrumpida (T-055).
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
+import { render } from './locus-sesiones.js';
+import { openProjPanel } from './locus-sprint-project.js';
+import { showToast } from './locus-toast.js';
 
 
 // ── R-[pendiente-ID]: Quick Capture — modal unificado con stepper ──
@@ -67,7 +70,7 @@ function _qcRenderWorkerList() {
 // ── API pública ──
 
 // AC-03/04/05: abre modal — con id salta Paso 1 (skip), sin id muestra selector
-function openQuickCapture(id) {
+export function openQuickCapture(id) {
   const overlay = _qcEl('qc-modal-overlay');
   if (!overlay) return;
 
@@ -139,7 +142,7 @@ function qcHandleBack() {
 }
 
 // Cierra el modal y limpia estado
-function closeQuickCapture(e) {
+export function closeQuickCapture(e) {
   if (e && e.target !== _qcEl('qc-modal-overlay')) return;
   _qcEl('qc-modal-overlay').classList.remove('open');
   _quickAIId = null;
@@ -201,8 +204,8 @@ function confirmQuickCapture() {
   sess.aiId = _quickAIId;
   const activeProj = getActiveProject();
   if (!activeProj) {
-    if (typeof showToast === 'function') showToast('warning', '⚠ Selecciona un proyecto antes de guardar la sesión');
-    if (typeof openProjPanel === 'function') openProjPanel();
+    showToast('warning', '⚠ Selecciona un proyecto antes de guardar la sesión');
+    openProjPanel();
     return;
   }
   if (!activeProj.sessions) activeProj.sessions = [];
@@ -219,8 +222,8 @@ function confirmQuickCapture() {
   // B-202605-XXX: usar saveImmediate() para garantizar escritura en Supabase antes de
   // cualquier recarga. save() con debounce de 5s podía perder resetTime/resetEpoch/status
   // si el usuario recargaba la tab antes de que el timer disparara.
-  saveImmediate().then(() => { typeof render === 'function' && render(); if (currentTab === 'sesiones') renderHoy(); });
-  if (typeof showToast === 'function') showToast('success', `${ai.name} — sesión rápida guardada`);
+  saveImmediate().then(() => { render(); if (currentTab === 'sesiones') renderHoy(); });
+  showToast('success', `${ai.name} — sesión rápida guardada`);
 }
 
 // ── END R-[pendiente-ID] Quick Capture ──
@@ -281,17 +284,17 @@ function interruptSession(id) {
     const _intCard = document.getElementById('card-' + id);
     if (_intCard) _intCard.classList.add('tracker-card--interrupting');
     setTimeout(() => {
-      save(); if (typeof render === 'function') render();
+      save(); render();
       if (currentTab === 'sesiones') renderHoy();
     }, 200);
-    if (typeof showToast === 'function') showToast('info', `${ai.name} — sesión interrumpida`);
+    showToast('info', `${ai.name} — sesión interrumpida`);
   });
 }
 
 function dismissInterrupted(id) {
   const ai = getAI(id);
   ai.interrupted = false;
-  save(); if (typeof render === 'function') render();
+  save(); render();
   if (currentTab === 'sesiones') renderHoy();
 }
 

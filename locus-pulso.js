@@ -1,8 +1,9 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-pulso.js
 // Última actualización: 2026-05-19 | Panel Pulso del Ecosistema
 // Extraído de: ai-tracker-checkpoint.js · ai-tracker-ai-notes.js
 // Fase A — Refactor JS modular
+import { switchSubTab, switchTab } from './locus-ui-shell.js';
 
 // ════════════════════════════════════════════════════════════════════
 // CONSTANTE INTERNA
@@ -163,10 +164,10 @@ function _buildPulsoPlanesHtml() {
 
 // T-202605-118: dirty flag — render quirúrgico
 let _pulsoDotDirty = false;
-function _markPulsoDotDirty() { _pulsoDotDirty = true; }
+export function _markPulsoDotDirty() { _pulsoDotDirty = true; }
 window._markPulsoDotDirty = _markPulsoDotDirty;
 
-function renderPulsoDot() {
+export function renderPulsoDot() {
   if (!_pulsoDotDirty) return;
   try {
   // B-202605-522: cálculo de estado ocurre antes de cualquier guard de elemento
@@ -197,7 +198,7 @@ function renderPulsoDot() {
 // Dependencias: _calcPulsoDotState, _buildPulsoPlanesHtml, closePulsoPanel, esc, switchTab (globales)
 // ════════════════════════════════════════════════════════════════════
 
-function openPulsoPanel() {
+export function openPulsoPanel() {
   const overlay = document.getElementById('pulso-overlay');
   const body    = document.getElementById('pulso-body');
   if (!overlay || !body) return;
@@ -270,11 +271,11 @@ function openPulsoPanel() {
       const action = el.dataset.pulsoAction;
       if (action === 'goto-backlog') {
         closePulsoPanel();
-        if (typeof switchTab === 'function') switchTab('backlog');
+        switchTab('backlog');
       } else if (action === 'goto-plan') {
         closePulsoPanel();
-        if (typeof switchTab === 'function') switchTab('backlog');
-        setTimeout(() => { if (typeof switchSubTab === 'function') switchSubTab('plan'); }, 80);
+        switchTab('backlog');
+        setTimeout(() => { switchSubTab('plan'); }, 80);
       }
     });
   }
@@ -289,7 +290,7 @@ function openPulsoPanel() {
 // Dependencias: DOM (#pulso-overlay)
 // ════════════════════════════════════════════════════════════════════
 
-function closePulsoPanel() {
+export function closePulsoPanel() {
   const overlay = document.getElementById('pulso-overlay');
   if (overlay) overlay.classList.remove('pulso-visible');
 }

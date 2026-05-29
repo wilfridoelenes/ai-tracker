@@ -1,13 +1,26 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-28 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
 // Renombrado de ai-tracker-sprint-project.js
+import { loadHtmlMap } from './locus-map-viewer.js';
+import { _syncCleanProjectBtn } from './locus-reports.js';
+import { _effectiveVersion, _offlineQueuePush, getActiveProject, getActiveSprints, getSupabaseUserId } from './locus-storage.js';
+import { switchTab } from './locus-ui-shell.js';
+
+
+// ── Utilidades de módulo — T3.bis ─────────────────────────────────────────────
+export function pad(n) { return String(n).padStart(2, '0'); }
+export function _sprintNum(id) {
+  if (!id) return null;
+  const m = String(id).match(/S-(\d+)/i);
+  return m ? parseInt(m[1], 10) : null;
+}
 
 // T-202604-243: prefijo de documento vivo según proyecto activo — OL-CONTEXT §7
 // R-202605-002: _PREFIX_MAP consumida desde locus-storage.js — sin declaración local
-function _docPrefix() {
-  const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+export function _docPrefix() {
+  const proj = getActiveProject();
   if (!proj) return 'XX';
   if (proj.prefix) return proj.prefix;
   const name = proj.name || '';
@@ -53,9 +66,7 @@ function _buildCurrentStateMd() {
 // R-202604-052: extraer MAJOR.MINOR.PATCH de versión canónica para naming generacional
 // R-202605-002: _effectiveVersion() llamada como función — typeof guard corregido
 function _backlogVersion() {
-  const _src = (typeof _effectiveVersion === 'function')
-    ? _effectiveVersion()
-    : 'v0';
+  const _src = _effectiveVersion() || 'v0';
   const m = _src.replace(/^v/, '').match(/^(\d+\.\d+(?:\.\d+)?)/);
   return m ? `v${m[1]}` : (_src || 'v0');
 }
@@ -63,13 +74,13 @@ function _backlogVersion() {
 // R-202604-052: sprint cerrado más reciente del proyecto activo
 // R-202605-002: usa getActiveSprints() como fuente de verdad v3
 function _lastClosedSprint() {
-  const sprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+  const sprints = getActiveSprints();
   const closed = sprints.filter(s => s.status === 'closed');
   if (!closed.length) return null;
   return closed.sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0))[0];
 }
 
-function exportBacklogMd() {
+export function exportBacklogMd() {
   if (!ITEMS.length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
   const pfx = _docPrefix();
   const ver = _backlogVersion();
@@ -77,7 +88,7 @@ function exportBacklogMd() {
 }
 
 // AC-5: Exportar historial completo — todos los ítems sin filtro generacional
-function exportFullHistoryMd() {
+export function exportFullHistoryMd() {
   if (!ITEMS.length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
   const pfx = _docPrefix();
   const ver = _backlogVersion();
@@ -103,7 +114,7 @@ function _generateSprintsContent(newVersion) {
   const pad = n => String(n).padStart(2, '0');
   const dateStr = `${utcM6.getUTCFullYear()}-${pad(utcM6.getUTCMonth()+1)}-${pad(utcM6.getUTCDate())} ${pad(utcM6.getUTCHours())}:${pad(utcM6.getUTCMinutes())} UTC-6`;
   const pfx = _docPrefix();
-  const _activeProj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+  const _activeProj = getActiveProject();
   const _projName = _activeProj ? (_activeProj.name || 'Sin proyecto') : 'Sin proyecto';
 
   // B-202605-026: state.sprints directo — getActiveSprints() retorna solo 'active' post-fix
@@ -252,13 +263,13 @@ function _generateSprintsExportMd(newVersion) {
 // AC-5 (R-202605-132): retro de sprint cerrado incluida si existe
 // B-202605-515: _generateFullHistoryContent — función pura que retorna el string Markdown
 // sin blob download ni toast. _generateFullHistoryBySprintMd delega aquí.
-function _generateFullHistoryContent(newVersion) {
+export function _generateFullHistoryContent(newVersion) {
   const now = new Date();
   const utcM6 = new Date(now.getTime() - 6 * 3600000);
   const pad = n => String(n).padStart(2, '0');
   const dateStr = `${utcM6.getUTCFullYear()}-${pad(utcM6.getUTCMonth()+1)}-${pad(utcM6.getUTCDate())} ${pad(utcM6.getUTCHours())}:${pad(utcM6.getUTCMinutes())} UTC-6`;
   const pfx = _docPrefix();
-  const _activeProj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+  const _activeProj = getActiveProject();
   const _projName = _activeProj ? (_activeProj.name || 'Sin proyecto') : 'Sin proyecto';
 
   // Sprint threshold: S-23 es el primer sprint con datos completos de effort
@@ -447,9 +458,9 @@ function _buildSprintActivoMd() {
   return lines.join('\n');
 }
 
-function _generateBacklogContent(newVersion, opts = {}) {
+export function _generateBacklogContent(newVersion, opts = {}) {
   const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
-  const _activeProj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+  const _activeProj = getActiveProject();
   const _projName = _activeProj ? (_activeProj.name || 'Sin proyecto') : 'Sin proyecto';
   const now = new Date();
   const utcM6 = new Date(now.getTime() - 6 * 3600000);
@@ -515,7 +526,7 @@ function _generateBacklogContent(newVersion, opts = {}) {
   const sprintActivoMd = _buildSprintActivoMd();
 
   // R-202605-002: versión canónica para campos de metadata del export
-  const _appVerStr = typeof _effectiveVersion === 'function' ? _effectiveVersion() : '';
+  const _appVerStr = _effectiveVersion();
 
   const pfx = _docPrefix();
   const md = `# ${pfx}-BACKLOG_${newVersion}.md
@@ -566,7 +577,7 @@ ${itemsMd}
   return { md, meta, counters, dateStr };
 }
 
-function _generateBacklogMd(newVersion, opts = {}) {
+export function _generateBacklogMd(newVersion, opts = {}) {
   const pfx = _docPrefix();
   const { md, meta, counters, dateStr } = _generateBacklogContent(newVersion, opts);
   const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
@@ -689,7 +700,7 @@ document.addEventListener('keydown', e => {
 // Este bloque solo ejecuta las inicializaciones de sprint-project que dependen de state ya cargado.
 document.addEventListener('DOMContentLoaded', function _sprintProjectInit() {
   // Gate: sin auth no hay state válido — _initApp() habrá bloqueado con openAuthModal()
-  if (typeof getSupabaseUserId === 'function' && !getSupabaseUserId()) return;
+  if (!getSupabaseUserId()) return;
 
   // Auto-seleccionar primer proyecto activo si no hay filtro (backlog requiere proyecto)
   (function _ensureProjectFilter() {
@@ -731,24 +742,24 @@ function _projListDropHandler(e) {
   if (row) projDrop(e, row.dataset.dragProjId, row);
 }
 
-function _getActiveProjectFilter() {
+export function _getActiveProjectFilter() {
   return localStorage.getItem('current-project-filter') || '';
 }
 
-function _setActiveProjectFilter(projId) {
+export function _setActiveProjectFilter(projId) {
   if (projId) localStorage.setItem('current-project-filter', projId);
   else localStorage.removeItem('current-project-filter');
   _updateProjBreadcrumb();
   _updateProjFilterBtn();
   if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
-  if (typeof _syncCleanProjectBtn === 'function') _syncCleanProjectBtn();
+  _syncCleanProjectBtn();
 }
 
-function _updateProjBreadcrumb() {
+export function _updateProjBreadcrumb() {
   // absorbido por _updateProjFilterBtn — no-op
 }
 
-function _updateProjFilterBtn() {
+export function _updateProjFilterBtn() {
   const btn = document.getElementById('proj-filter-btn');
   if (!btn) return;
   const filterId = _getActiveProjectFilter();
@@ -787,7 +798,7 @@ function clearProjectFilter() {
   switchSubTab(currentSubTab);
 }
 
-function openProjPanel() {
+export function openProjPanel() {
   renderProjPanel();
   document.getElementById('proj-panel-overlay').classList.add('open');
   // R-202604-066: chevron animado — activar mientras panel abierto
@@ -795,7 +806,7 @@ function openProjPanel() {
   if (btn) btn.classList.add('active');
 }
 
-function closeProjPanel() {
+export function closeProjPanel() {
   document.getElementById('proj-panel-overlay').classList.remove('open');
   // R-202604-066: chevron animado — desactivar al cerrar
   const btn = document.getElementById('proj-filter-btn');
@@ -849,11 +860,11 @@ function renderProjPanel() {
   }, { once: true });
 }
 
-function _countProjSessions(proj) {
+export function _countProjSessions(proj) {
   return getProjectSessions(proj.id).length;
 }
 
-function selectProjectFilter(projId) {
+export function selectProjectFilter(projId) {
   _setActiveProjectFilter(projId);
   closeProjPanel();
   // B-202604-NNN: recargar ITEMS siempre al cambiar proyecto — independientemente del tab activo
@@ -877,7 +888,7 @@ function selectProjectFilter(projId) {
 let _projEditId = null; // null = crear, string = editar
 let _projSelectedColor = 0;
 
-function openProjModal(editMode, projId) {
+export function openProjModal(editMode, projId) {
   _projEditId = editMode && projId ? projId : null;
   _projSelectedColor = 0;
   _renderProjColorRow();
@@ -912,7 +923,7 @@ function openProjModal(editMode, projId) {
   setTimeout(() => { if (nameInput) nameInput.focus(); }, 80);
 }
 
-function closeProjModal() {
+export function closeProjModal() {
   const projModalOverlay = document.getElementById('proj-modal-overlay');
   if (projModalOverlay) projModalOverlay.classList.remove('open');
   _projEditId = null;
@@ -1165,7 +1176,7 @@ function projDrop(e, toId, rowEl) {
 }
 
 // T-076: helpers (redefinidos aquí para acceso completo al state actualizado)
-function getProjectById(id) {
+export function getProjectById(id) {
   return (state.projects || []).find(p => p.id === id);
 }
 // Helper: retorna proyectos que tienen sesiones de una IA específica
@@ -1174,11 +1185,11 @@ function getProjectsByAI(aiId) {
 }
 
 // T-202604-002: helpers para context y backlog por proyecto
-function getProjContext(projId) {
+export function getProjContext(projId) {
   const proj = getProjectById(projId);
   return proj ? (proj.context || '') : '';
 }
-function setProjContext(projId, text, version) {
+export function setProjContext(projId, text, version) {
   const proj = getProjectById(projId);
   if (!proj) return;
   proj.context = text || '';
@@ -1213,7 +1224,7 @@ function _saveNotes(projId, notes) {
     ).then(({ error }) => {
       if (error) {
         console.warn('[AI Tracker] _saveNotes Supabase error:', error);
-        if (typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'notes', projId: projId || null });
+        _offlineQueuePush({ type: 'notes', projId: projId || null });
       }
     });
   }
@@ -1305,12 +1316,10 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
   document.querySelectorAll('.tracker-only').forEach(el => el.classList.add('is-hidden'));
   document.querySelectorAll('.analytics-only').forEach(el => el.classList.add('is-hidden'));
   // B-202604-013 / T-202604-317: restaurar tab activo — switchTab vive en checkpoint.js
-  if (typeof switchTab === 'function') {
-    const _savedTab = localStorage.getItem('active-tab');
-    switchTab(_savedTab || 'tracker');
-  }
+  const _savedTab = localStorage.getItem('active-tab');
+  switchTab(_savedTab || 'tracker');
   // T-202604-048: cargar Module Map desde localStorage
-  if (typeof loadHtmlMap === 'function') loadHtmlMap();
+  loadHtmlMap();
   if (typeof renderHoy === 'function') renderHoy();
   // Garantizar status bar visible tras restaurar tab
   if (typeof renderAIStatusBar === 'function') renderAIStatusBar();
@@ -1425,7 +1434,7 @@ const SplashController = {
 
 // R-202604-022: calcula uso actual de localStorage como porcentaje
 // Asume límite estándar de 5MB (5 * 1024 * 1024 chars)
-function _getLocalStorageUsage() {
+export function _getLocalStorageUsage() {
   const LIMIT = 5 * 1024 * 1024;
   let used = 0;
   for (let key in localStorage) {
@@ -1476,7 +1485,7 @@ function _getLocalStorageUsage() {
 function _generateContextContent() {
   const raw = localStorage.getItem(_tplKey('context-raw'));
   if (!raw) return null;
-  const _ctxVer = typeof _effectiveVersion === 'function' ? _effectiveVersion() : '';
+  const _ctxVer = _effectiveVersion();
 
   let isJson = false;
   try { const o = JSON.parse(raw.trim()); isJson = typeof o === 'object' && o !== null && 'version' in o; } catch(e) {}
@@ -1486,7 +1495,7 @@ function _generateContextContent() {
   return { raw, ext, mime, fileName };
 }
 
-function exportContextMd() {
+export function exportContextMd() {
   const ctx = _generateContextContent();
   if (!ctx) { showToast('warning', 'Sin datos — importa primero'); return; }
   const { raw, mime, fileName } = ctx;
@@ -1501,3 +1510,47 @@ function exportContextMd() {
     showToast('success', 'CONTEXT exportado');
   });
 }
+
+// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+window.getProjectById            = getProjectById;
+window._getActiveProjectFilter   = _getActiveProjectFilter;
+window.pad                       = window.pad || pad;           // T3.bis
+window._sprintNum                = _sprintNum;                   // T3.bis
+window.exportBacklogMd           = exportBacklogMd;
+window.openProjPanel             = openProjPanel;
+window.selectProjectFilter       = selectProjectFilter;
+window._docPrefix                = _docPrefix;
+window.getProjContext            = getProjContext;
+window.exportFullHistoryMd       = exportFullHistoryMd;
+window._generateFullHistoryContent = _generateFullHistoryContent;
+window.exportContextMd           = exportContextMd;
+window._countProjSessions        = _countProjSessions;
+window._setActiveProjectFilter   = _setActiveProjectFilter;
+window._updateProjBreadcrumb     = _updateProjBreadcrumb;
+window._updateProjFilterBtn      = _updateProjFilterBtn;
+window.setProjContext            = setProjContext;
+window._generateBacklogMd        = _generateBacklogMd;
+window._generateBacklogContent   = _generateBacklogContent;
+window._getLocalStorageUsage     = _getLocalStorageUsage;
+window.openProjModal             = openProjModal;
+window.closeProjPanel            = closeProjPanel;
+window.closeProjModal            = closeProjModal;
+// Inline handlers
+window.clearProjectFilter        = clearProjectFilter;
+window.renderProjPanel           = renderProjPanel;
+window.cancelProjForm            = cancelProjForm;
+window.selectProjColor           = selectProjColor;
+window.confirmProjForm           = confirmProjForm;
+window.editProjInline            = editProjInline;
+window.toggleProjArchive         = toggleProjArchive;
+window.deleteProjConfirm         = deleteProjConfirm;
+window.projDragStart             = projDragStart;
+window.projDragEnd               = projDragEnd;
+window.projDragOver              = projDragOver;
+window.projDragLeave             = projDragLeave;
+window.projDrop                  = projDrop;
+window.createNote                = createNote;
+window.editNote                  = editNote;
+window.deleteNote                = deleteNote;
+window.getActiveProjectNotes     = getActiveProjectNotes;
+window.exportSprintsMd           = exportSprintsMd;

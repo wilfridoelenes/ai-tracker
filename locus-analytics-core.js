@@ -1,7 +1,9 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-analytics-core.js
 // Responsabilidad: State de analytics, período/rango, helpers de fecha,
 //   tooltip, delta, ítems abiertos/cerrados, export semanal MD.
 // Dependencias: locus-storage.js · locus-toast.js
+import { _markAnalyticsDirty } from './locus-analytics-render.js';
 
 // locus-analytics.js
 // Última actualización: 2026-05-19 UTC-6
@@ -11,7 +13,7 @@
 
 const ANALYTICS_COLORS = ['#8BC34A','#38bdf8','#e8a832','#e85555','#f472b6','#a3e635','#fb923c','#2ecc78'];
 
-function getAnalyticsColor(idx) {
+export function getAnalyticsColor(idx) {
   return ANALYTICS_COLORS[idx % ANALYTICS_COLORS.length];
 }
 
@@ -23,20 +25,20 @@ let _compareProjectIdB = null;
 // Alias legacy para retrocompatibilidad con setCompareProject existente
 function setCompareProject(projId) {
   _compareProjectIdB = projId || null;
-  if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics();
+  _markAnalyticsDirty(); renderAnalytics();
 }
 function setCompareProjectA(projId) {
   _compareProjectIdA = projId || null;
-  if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics();
+  _markAnalyticsDirty(); renderAnalytics();
 }
 function setCompareProjectB(projId) {
   _compareProjectIdB = projId || null;
-  if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics();
+  _markAnalyticsDirty(); renderAnalytics();
 }
 function clearComparison() {
   _compareProjectIdA = null;
   _compareProjectIdB = null;
-  if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics();
+  _markAnalyticsDirty(); renderAnalytics();
 }
 
 function setAnalyticsPeriod(p) {
@@ -45,21 +47,21 @@ function setAnalyticsPeriod(p) {
   document.querySelectorAll('.period-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.period === p);
   });
-  if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics();
+  _markAnalyticsDirty(); renderAnalytics();
 }
 
 // Legacy — mantenido para compatibilidad con exportAnalyticsMd y otros llamadores
 let _analyticsRange = 3;
-function setAnalyticsRange(n) { _analyticsRange = n; if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics(); }
+function setAnalyticsRange(n) { _analyticsRange = n; _markAnalyticsDirty(); renderAnalytics(); }
 
 // T-202605-452: Gráfico de flujo acumulativo — filtros de proyecto y tipo
 let _cfProjId   = '';
 let _cfTypeFilter = '';
-function setCfProject(id)   { _cfProjId = id || ''; if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics(); }
-function setCfType(t)        { _cfTypeFilter = t || ''; if (typeof _markAnalyticsDirty === 'function') _markAnalyticsDirty(); renderAnalytics(); }
+function setCfProject(id)   { _cfProjId = id || ''; _markAnalyticsDirty(); renderAnalytics(); }
+function setCfType(t)        { _cfTypeFilter = t || ''; _markAnalyticsDirty(); renderAnalytics(); }
 
 // Devuelve { current: {start,end}, previous: {start,end} } para el período activo
-function _getPeriodBounds() {
+export function _getPeriodBounds() {
   const now = new Date();
   if (_analyticsPeriod === 'week') {
     // T-202604-399: 7 días rodantes (hoy incluido) en lugar de semana calendario
@@ -86,7 +88,7 @@ function _getPeriodBounds() {
 }
 
 // Filtra sesiones dentro de un rango {start,end}
-function _sessInRange(sessions, range) {
+export function _sessInRange(sessions, range) {
   return sessions.filter(s => {
     if (!s.date) return false;
     let d = new Date(s.date);
@@ -96,7 +98,7 @@ function _sessInRange(sessions, range) {
 }
 
 // Devuelve etiqueta del período actual
-function _periodLabel() {
+export function _periodLabel() {
   const now = new Date();
   const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   if (_analyticsPeriod === 'week') {
@@ -111,7 +113,7 @@ function _periodLabel() {
 }
 
 // Etiqueta del período anterior
-function _prevPeriodLabel() {
+export function _prevPeriodLabel() {
   const now = new Date();
   const MONTHS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   if (_analyticsPeriod === 'week') {
@@ -130,7 +132,7 @@ function _prevPeriodLabel() {
 }
 
 // Delta formateado con flecha
-function _delta(curr, prev) {
+export function _delta(curr, prev) {
   if (prev === 0 && curr === 0) return { html: '<span class="kpi-delta neutral">—</span>', dir: 0 };
   if (prev === 0) return { html: `<span class="kpi-delta up">▲ nuevo</span>`, dir: 1 };
   const d = curr - prev;
@@ -151,7 +153,7 @@ function _getWeeksInPeriod() {
 //   month  → días (28–31 barras)
 //   quarter → semanas (12–13 barras)
 // Devuelve { intervals, granularity } donde cada interval es { start, end, idx }
-function _getIntervalsInPeriod() {
+export function _getIntervalsInPeriod() {
   const bounds = _getPeriodBounds();
   const { start, end } = bounds.current;
   const granularity = _analyticsPeriod === 'quarter' ? 'week' : 'day';
@@ -199,17 +201,17 @@ function lastNMonths(n) {
 }
 
 // Legacy — usado por exportAnalyticsMd
-function getAnalyticsMonths() { return lastNMonths(3); }
+export function getAnalyticsMonths() { return lastNMonths(3); }
 
 // Formatea 'YYYY-MM' → 'Ene 25' para eje X
-function fmtMonth(ym) {
+export function fmtMonth(ym) {
   const [y, m] = ym.split('-');
   const names = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   return names[parseInt(m, 10) - 1] + ' ' + String(y).slice(2);
 }
 
 // Extrae 'YYYY-MM' de un campo date de sesión
-function sessionYM(s) {
+export function sessionYM(s) {
   if (!s.date) return null;
   let d = new Date(s.date);
   if (isNaN(d.getTime())) d = _parseSpanishDate(s.date);
@@ -218,7 +220,7 @@ function sessionYM(s) {
 }
 
 // Parsea formato de fecha español legacy: "12 abr 2026 11:08 a.m."
-function _parseSpanishDate(str) {
+export function _parseSpanishDate(str) {
   const _MES = {ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
   const m = String(str).toLowerCase().match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})(?:\s+(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?))?/);
   if (!m) return null;
@@ -237,7 +239,7 @@ function _parseSpanishDate(str) {
 }
 
 // Extrae fecha YYYY-MM-DD de sesión para cálculos de racha
-function sessionDateKey(s) {
+export function sessionDateKey(s) {
   if (!s.date) return null;
   let d = new Date(s.date);
   if (isNaN(d.getTime())) d = _parseSpanishDate(s.date);
@@ -247,7 +249,7 @@ function sessionDateKey(s) {
 
 // Tooltip singleton
 let _analyticsTooltip = null;
-function getTooltip() {
+export function getTooltip() {
   if (!_analyticsTooltip) {
     _analyticsTooltip = document.createElement('div');
     _analyticsTooltip.className = 'analytics-tooltip';
@@ -279,7 +281,7 @@ function showAnalyticsTooltip(e, monthLabel, rows) {
   _posTooltip(e);
 }
 
-function _posTooltip(e) {
+export function _posTooltip(e) {
   const tip = getTooltip();
   const tw = tip.offsetWidth || 140;
   const th = tip.offsetHeight || 80;
@@ -292,7 +294,7 @@ function _posTooltip(e) {
   tip.style.top = y + 'px';
 }
 
-function hideAnalyticsTooltip() {
+export function hideAnalyticsTooltip() {
   const tip = getTooltip();
   tip.classList.remove('visible');
 }
@@ -300,7 +302,7 @@ function hideAnalyticsTooltip() {
 // ═══ T-202604-380: Count-up en métricas numéricas de cards de proyectos ═══
 let _countupDone = false;
 
-function _animateCountUp(container) {
+export function _animateCountUp(container) {
   if (_countupDone) return;
   _countupDone = true;
 
@@ -344,7 +346,7 @@ function _animateCountUp(container) {
 }
 
 // ═══ T-202604-119: Tab Proyectos — Dashboard estratégico ═══
-function _closedItemsInRange(range) {
+export function _closedItemsInRange(range) {
   let count = 0;
   (state.projects || []).forEach(p => {
     try {
@@ -363,7 +365,7 @@ function _closedItemsInRange(range) {
 }
 
 // Retorna count de ítems creados en range {start,end}
-function _openedItemsInRange(range) {
+export function _openedItemsInRange(range) {
   let count = 0;
   (state.projects || []).forEach(p => {
     try {
@@ -422,7 +424,7 @@ function _openedItemsDetailInRange(range) {
 }
 
 // ── T-202604-273: Resumen semanal exportable a MD ──
-function exportWeeklySummary() {
+export function exportWeeklySummary() {
   const now = new Date();
 
   // Últimos 7 días (hoy inclusive)

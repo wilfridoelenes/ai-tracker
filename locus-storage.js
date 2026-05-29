@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -38,7 +38,7 @@ const _PREFIX_MAP = {
 
 // R-202605-002: versión efectiva — lee sprint cerrado más reciente con version_target
 // Jerarquía: sprint cerrado más reciente con version_target > '' (sin fallback hardcodeado)
-function _effectiveVersion() {
+export function _effectiveVersion() {
   try {
     const sprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
     const closed = sprints.filter(s => s.status === 'closed' && s.version_target && s.version_target.trim());
@@ -126,7 +126,7 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
 // T-202604-312: color semántico — verde/neutro cuando conectado, rojo solo en error real de sync
 // Estados: synced → verde | syncing → acento neutro | local → neutro | offline → rojo
 // Migrado desde ai-tracker-checkpoint.js — necesario antes del init de auth
-function setSyncStatus(status, label) {
+export function setSyncStatus(status, label) {
   // T-202605-433: sync-pill eliminado — nuevos IDs en menú ⋯
   const dot = document.getElementById('sync-status-dot');
   const lbl = document.getElementById('sync-status-label');
@@ -162,14 +162,14 @@ function handleSyncPillClick() {
 const _SHORTCUTS_KEY = LOCUS_KEYS.SHORTCUTS;
 const _USER_PREFS_TS_KEY = LOCUS_KEYS.USER_PREFS_TS; // R-4: timestamp del último user-prefs aplicado desde Supabase
 
-function _shortcutsLoad() {
+export function _shortcutsLoad() {
   try {
     const raw = localStorage.getItem(_SHORTCUTS_KEY);
     return raw ? JSON.parse(raw) : {};
   } catch(_) { return {}; }
 }
 
-function _shortcutsSave(map) {
+export function _shortcutsSave(map) {
   localStorage.setItem(_SHORTCUTS_KEY, JSON.stringify(map));
   _saveUserPrefs(); // R-4: persistir en Supabase
 }
@@ -222,7 +222,7 @@ function _offlineQueueSave() {
 }
 
 // Encola un write pendiente con timestamp — last-write-wins por tipo de entrada
-function _offlineQueuePush(entry) {
+export function _offlineQueuePush(entry) {
   // T-525: deduplicar por type+projId — evita pérdida silenciosa de writes en multi-proyecto
   // Antes deduplicaba solo por type: dos proyectos distintos con type 'sessions' colisionaban
   const idx = _offlineQueue.findIndex(e =>
@@ -421,7 +421,7 @@ async function signInWithMagicLink(resend = false) {
 }
 
 // getSupabaseUserId — user_id del founder para queries Supabase
-function getSupabaseUserId() {
+export function getSupabaseUserId() {
   return _supabaseUser ? _supabaseUser.id : null;
 }
 
@@ -513,7 +513,7 @@ async function _saveFlush() {
 // R-202604-035 / T-202604-299: save() — debounced
 // Escribe localStorage inmediatamente (sync); Supabase se acumula hasta _SAVE_DEBOUNCE_MS
 // Para eventos críticos usar saveImmediate()
-function save() {
+export function save() {
   _stateDirty = true;
 
   // T-202605-118: activar dirty flags — renders se ejecutan path-específico (AC-6: no antes del flush en online+auth)
@@ -575,7 +575,7 @@ function save() {
 
 // T-202604-299: saveImmediate() — bypasa debounce para eventos críticos
 // Usar en: saveSession(), signOutSupabase(), beforeunload
-async function saveImmediate() {
+export async function saveImmediate() {
   _stateDirty = true;
   clearTimeout(_saveDebounceTimer);
   await _saveFlush();
@@ -614,7 +614,7 @@ async function _saveSessions(proj) {
 const BACKLOG_LOG_MAX = 100;
 const _DOC_LOG_KEYS = { backlog: 'backlog-log', context: 'context-log', htmlmap: 'html-map-log' };
 
-function _blogLog(action, code, detail, doc) {
+export function _blogLog(action, code, detail, doc) {
   const key = _DOC_LOG_KEYS[doc] || _DOC_LOG_KEYS.backlog;
   let log = [];
   try { log = JSON.parse(localStorage.getItem(key) || '[]'); } catch {}
@@ -632,7 +632,7 @@ function _relTs(ts) {
 }
 
 // R-202604-035: saveBacklog() — escribe en /backlog/items-{suffix} y /backlog/meta-{suffix}
-async function saveBacklog() {
+export async function saveBacklog() {
   // T-[pendiente-ID]: purga inteligente — si localStorage supera el 80% de capacidad,
   // purgar ítems done/descartado >90 días del caché local antes de intentar escribir.
   // Los ítems purgados siguen existiendo en Supabase — solo se elimina el caché local.
@@ -728,7 +728,7 @@ async function saveBacklog() {
 }
 
 // R-202604-035: saveContextDocs() — escribe en tracker_docs
-async function saveContextDocs() {
+export async function saveContextDocs() {
   const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
   const suffix = projId ? '-' + projId : '-global';
 
@@ -789,7 +789,7 @@ async function saveContextDocs() {
 // Escucha cambios en tracker_state para el user activo.
 // Cuando otro cliente guarda, el updated_at cambia → este cliente recarga.
 // Throttle: no recarga si el cambio vino de este mismo cliente (_realtimeLastTs).
-function _subscribeRealtime() {
+export function _subscribeRealtime() {
   if (!_supabase || !_supabaseUser) return;
   _unsubscribeRealtime(); // limpiar canal previo si existe
 
@@ -819,7 +819,7 @@ function _subscribeRealtime() {
     .subscribe();
 }
 
-function _unsubscribeRealtime() {
+export function _unsubscribeRealtime() {
   if (_realtimeChannel) {
     try { _supabase.removeChannel(_realtimeChannel); } catch(e) {}
     _realtimeChannel = null;
@@ -829,7 +829,7 @@ function _unsubscribeRealtime() {
 // _resetExpired — lógica de estado pura, sin UI ni render.
 // Retorna true cuando el momento de reset de un worker exhausted ya pasó.
 // Prioriza resetEpoch (epoch ms absoluto) sobre resetTime (string "HH:MM" local).
-function _resetExpired(resetTime, resetEpoch) {
+export function _resetExpired(resetTime, resetEpoch) {
   if (resetEpoch && typeof resetEpoch === 'number') {
     return Date.now() >= resetEpoch;
   }
@@ -845,7 +845,7 @@ function _resetExpired(resetTime, resetEpoch) {
   return false;
 }
 
-async function _loadFromSupabase() {
+export async function _loadFromSupabase() {
   // AC-9 R-C2: si hay un write local pendiente en debounce, el state local es más reciente
   // que Supabase — cancelar la carga para evitar rollback silencioso del estado volátil.
   if (_saveDebounceTimer !== null) return;
@@ -1308,30 +1308,30 @@ function _renderAfterAuth() {
 }
 
 // Claves localStorage por proyecto
-function _projKey(base, projId) { return projId ? base + '-' + projId : base; }
+export function _projKey(base, projId) { return projId ? base + '-' + projId : base; }
 
 // T-202604-006: clave de template para el proyecto activo
-function _tplKey(base) {
+export function _tplKey(base) {
   const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
   return projId ? base + '-' + projId : base;
 }
 
-function getAI(id) { return state.ais.find(a => a.id === id); }
+export function getAI(id) { return state.ais.find(a => a.id === id); }
 
 // Proyecto activo (objeto)
-function getActiveProject() {
+export function getActiveProject() {
   const id = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
   return id ? getProjectById(id) : null;
 }
 
 // Todas las sesiones de un proyecto
-function getProjectSessions(projId) {
+export function getProjectSessions(projId) {
   const proj = getProjectById(projId);
   return proj ? (proj.sessions || []) : [];
 }
 
 // Todas las sesiones de todos los proyectos (vista global)
-function getAllSessions() {
+export function getAllSessions() {
   // Guardia: detectar sesiones corruptas en ai.sessions (nunca debería ocurrir en v3)
   (state.ais || []).forEach(ai => {
     if (ai.sessions && ai.sessions.length > 0) {
@@ -1354,7 +1354,7 @@ function getProjectForSession(sessId) {
 }
 
 // Tracker del proyecto activo (o vacío si no hay proyecto)
-function getActiveTracker() {
+export function getActiveTracker() {
   const proj = getActiveProject();
   if (!proj) return { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
   if (!proj.tracker) proj.tracker = { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
@@ -1362,7 +1362,7 @@ function getActiveTracker() {
 }
 
 // Sprints del proyecto activo
-function getActiveSprints() {
+export function getActiveSprints() {
   const proj = getActiveProject();
   return proj ? (proj.sprints || []) : [];
 }
@@ -1375,7 +1375,7 @@ function countAISessions(aiId) {
 function countAICheckpoints(aiId) { return countAISessions(aiId); }
 
 // Última sesión de una IA en el proyecto activo (o en todos si no hay filtro)
-function getLastAISession(aiId) {
+export function getLastAISession(aiId) {
   const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
   const sessions = projId
     ? getProjectSessions(projId).filter(s => s.aiId === aiId)
@@ -1384,7 +1384,7 @@ function getLastAISession(aiId) {
 }
 
 // Sesiones de una IA en el proyecto activo (o todos)
-function getAISessions(aiId) {
+export function getAISessions(aiId) {
   const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
   if (projId) return getProjectSessions(projId).filter(s => s.aiId === aiId);
   return getAllSessions().filter(s => s.aiId === aiId);
@@ -1393,7 +1393,7 @@ function getAISessions(aiId) {
 function getAICheckpoints(aiId) { return getAISessions(aiId); }
 
 // Busca una sesión por id en todos los proyectos — devuelve { proj, sess } o null
-function _findSession(sessId) {
+export function _findSession(sessId) {
   for (const proj of (state.projects || [])) {
     const sess = (proj.sessions || []).find(x => x.id === sessId);
     if (sess) return { proj, sess };
@@ -1404,7 +1404,7 @@ function _findSession(sessId) {
 function _findCheckpoint(sessId) { return _findSession(sessId); }
 
 // Busca una sesión por aiId + sessId — para compatibilidad con funciones que tienen ambos
-function _findSessionByAI(aiId, sessId) {
+export function _findSessionByAI(aiId, sessId) {
   for (const proj of (state.projects || [])) {
     const sess = (proj.sessions || []).find(x => x.id === sessId && x.aiId === aiId);
     if (sess) return { proj, sess };
@@ -1416,7 +1416,7 @@ function _findCheckpointByAI(aiId, sessId) { return _findSessionByAI(aiId, sessI
 
 // ── GRUPO 4 — USER PREFS (Supabase) ──────────────────────────────────────────
 
-async function _saveUserPrefs() {
+export async function _saveUserPrefs() {
   const shortcuts     = _shortcutsLoad();
   const templateTrigger = localStorage.getItem(LOCUS_KEYS.TPL_TRIGGER) || 'session';
   const onboardingSeen  = !!localStorage.getItem('onboarding-seen');

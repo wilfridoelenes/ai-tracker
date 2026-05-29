@@ -1,11 +1,23 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones.js
-// Última actualización: 2026-05-27 UTC-6
+// Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
 //   sidebar ticker, auto-download preference.
 // Requiere: locus-storage.js, locus-toast.js, locus-tracker-utils.js cargados ANTES en index.html
 // Timer · suggestion · weekly summary → locus-tracker-utils.js
 // normStatus · buildTGPreview · STATUS_LABELS · TG_PARSER_CONFIG → locus-session-parse.js
+
+import { updateTabNotifBadges } from './locus-notifications.js';
+import { renderGlobalRadarSidebar } from './locus-radar.js';
+import { _updateHeaderProjectLabel, renderStatusBar, updateStats } from './locus-sesiones-stats.js';
+import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer } from './locus-sesiones-utils.js';
+import { _templateTrigger, relDate } from './locus-session-hora.js';
+import { closeLogCard, closePopup, openDetail } from './locus-session-popup.js';
+import { getProjectById, openProjModal } from './locus-sprint-project.js';
+import { getActiveProject, getActiveTracker, getAllSessions, saveImmediate } from './locus-storage.js';
+import { showToast } from './locus-toast.js';
+import { renderSetupChecklist } from './locus-ui-shell.js';
+import { openAddAI, toggleArchivedSection } from './locus-workers.js';
 
 let _trackerSelectedId = null;
 
@@ -15,9 +27,9 @@ let _trackerSelectedId = null;
 // Formato: mismo día → 'Hoy · HH:MM' | ayer → 'Ayer · HH:MM' |
 //          2–6 días → 'Hace N días' | 7–13 días → 'Hace 1 semana' |
 //          14–29 días → 'Hace N semanas' | 30+ días → 'DD mmm'
-function _sessRelTsShared(s) {
+export function _sessRelTsShared(s) {
   const ts = s.updatedAt || s.createdAt || 0;
-  if (!ts) return (typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || '');
+  if (!ts) return s.date ? relDate(s.date) : (s.dateShort || '');
   const diffMs = Date.now() - ts;
   const diffD  = Math.floor(diffMs / 86400000);
   const todayKey = new Date().toISOString().slice(0, 10);
@@ -33,7 +45,7 @@ function _sessRelTsShared(s) {
   try {
     return new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'short' });
   } catch(_) {
-    return (typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || '');
+    return s.date ? relDate(s.date) : (s.dateShort || '');
   }
 }
 
@@ -62,7 +74,7 @@ function _sessFixedTs(s, group) {
 
 // Helper: timestamp relativo dinámico para card sesión en curso
 // 'ahora' · 'hace 1 minuto' · 'hace 3 horas' · 'hace 1 día'
-function _cscardRelTs(ts) {
+export function _cscardRelTs(ts) {
   if (!ts) return '';
   const diffMs  = Date.now() - ts;
   const diffMin = Math.floor(diffMs / 60000);
@@ -94,7 +106,7 @@ function _trackerRenderMiniHist(aiId) {
     return;
   }
 
-  const allSessions = typeof getAllSessions === 'function' ? getAllSessions() : [];
+  const allSessions = getAllSessions();
   // B-[pendiente-ID]: guard aiId — evita que s.aiId===null pase el filtro cuando aiId es null
   const aiSessions  = aiId ? allSessions.filter(s => s.aiId === aiId) : [];
 
@@ -105,7 +117,7 @@ function _trackerRenderMiniHist(aiId) {
     : aiSessions;
 
   // R-202605-116 AC: filtro de proyecto — usa proyecto activo (getActiveProject)
-  const _activeProjMH = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+  const _activeProjMH = getActiveProject();
   const projFilter = _activeProjMH ? _activeProjMH.id : null;
   const filtered = projFilter
     ? pastSessions.filter(s => s.projectId === projFilter)
@@ -123,7 +135,7 @@ function _trackerRenderMiniHist(aiId) {
   if (lastMetaEl) {
     const lastSess = aiSessions.length ? aiSessions[aiSessions.length - 1] : null;
     lastMetaEl.textContent = lastSess
-      ? ('Último: ' + ((typeof relDate === 'function' && lastSess.date) ? relDate(lastSess.date) : (lastSess.dateShort || lastSess.date || '')))
+      ? ('Último: ' + (lastSess.date ? relDate(lastSess.date) : (lastSess.dateShort || lastSess.date || '')))
       : '';
   }
 
@@ -138,7 +150,7 @@ function _trackerRenderMiniHist(aiId) {
     return;
   }
 
-  const projTracker = typeof getActiveTracker === 'function' ? getActiveTracker() : { items: [] };
+  const projTracker = getActiveTracker();
 
   // R-202605-162: usa helper compartido — _sessRelTsShared definida antes de esta función
   const _sessRelTs = _sessRelTsShared;
@@ -175,7 +187,7 @@ function _trackerRenderMiniHist(aiId) {
   const _inProgressSess = (typeof _getCurrentSession === 'function') ? _getCurrentSession(aiId) : null;
 
   const _renderRow = (s, group) => {
-    const proj     = s.projectId ? (typeof getProjectById === 'function' ? getProjectById(s.projectId) : null) : null;
+    const proj     = s.projectId ? getProjectById(s.projectId) : null;
     const isActive = s.id === _trackerHistSelectedSessId;
     const isInProg = _inProgressSess && s.id === _inProgressSess.id;
 
@@ -237,7 +249,7 @@ function _trackerRenderMiniHist(aiId) {
     _trackerHistSelectedSessId = latestSess.id;
     const firstRow = listEl.querySelector('.tracker-mini-hist-row');
     if (firstRow) firstRow.classList.add('active');
-    if (typeof openDetail === 'function') openDetail(latestSess.aiId, latestSess.id);
+    openDetail(latestSess.aiId, latestSess.id);
   }
 
   // T-202605-471: scroll al row activo para que siempre quede visible
@@ -257,9 +269,7 @@ function _trackerMiniHistSelect(sessId, aiId) {
   });
 
   // Col3: preview de sesión via openDetail
-  if (typeof openDetail === 'function') {
-    openDetail(aiId, sessId);
-  }
+  openDetail(aiId, sessId);
 
   // mobile: navegar a col 3
   if (window.innerWidth < 900 && typeof _trackerSwitchCol === 'function') {
@@ -272,7 +282,7 @@ function _trackerMiniHistSelect(sessId, aiId) {
 // ── R-202605-116: Card sesión en curso — col 1, debajo del card IA ──────
 
 function _getCurrentSession(aiId) {
-  const allSess = (typeof getAllSessions === 'function') ? getAllSessions() : [];
+  const allSess = getAllSessions();
   const aiSess  = allSess.filter(s => s.aiId === aiId);
   if (!aiSess.length) return null;
   const last = aiSess.reduce((a, b) =>
@@ -298,7 +308,7 @@ function _buildCurrentSessionCard(aiId) {
   const currentSess = _getCurrentSession(aiId);
   if (!currentSess) return null;
 
-  const allSess   = (typeof getAllSessions === 'function') ? getAllSessions() : [];
+  const allSess   = getAllSessions();
   const aiSess    = allSess.filter(s => s.aiId === aiId);
   const sessIndex = aiSess.findIndex(s => s.id === currentSess.id);
 
@@ -312,7 +322,7 @@ function _buildCurrentSessionCard(aiId) {
   const shown = continuousSess.slice(0, 3);
   const total = continuousSess.length;
 
-  const dateLabel = (typeof relDate === 'function' && currentSess.date)
+  const dateLabel = (currentSess.date)
     ? relDate(currentSess.date)
     : (currentSess.dateShort || '');
 
@@ -364,9 +374,9 @@ function _buildCurrentSessionCard(aiId) {
 
 // ── END R-202605-116 ─────────────────────────────────────────────────────
 
-function selectTrackerAI(aiId) {
+export function selectTrackerAI(aiId) {
   // DUP-05: cerrar preview de sesión al cambiar de Worker
-  if (typeof closePopup === 'function') closePopup();
+  closePopup();
   // T-202604-373: skeleton rows en historial al cambiar de IA
   const _prevCard = _trackerSelectedId ? document.getElementById('card-' + _trackerSelectedId) : null;
   if (_prevCard) {
@@ -378,7 +388,7 @@ function selectTrackerAI(aiId) {
   // Fase 2: resetear sesión seleccionada al cambiar de IA — mini-hist auto-selecciona la más reciente
   if (_trackerSelectedId !== aiId) _trackerHistSelectedSessId = null;
   _trackerSelectedId = aiId;
-  if (typeof closeLogCard === 'function') closeLogCard();
+  closeLogCard();
   // R-202604-061 AC-5: try-catch defensivo — skeleton siempre se limpia
   try {
     _markTrackerDirty(); render();
@@ -402,9 +412,9 @@ function selectTrackerAI(aiId) {
   }
   _scrollToCard(aiId);
   // T-202605-446: iniciar/retomar cronómetro al seleccionar IA
-  if (typeof startSessionTimer === 'function') startSessionTimer(aiId);
+  startSessionTimer(aiId);
   // R-202605-167: actualizar segmento 3 del breadcrumb al cambiar Worker seleccionado
-  if (typeof _updateHeaderProjectLabel === 'function') _updateHeaderProjectLabel();
+  _updateHeaderProjectLabel();
   // focus textarea si disponible
   setTimeout(() => {
     const ta = document.getElementById('ta-' + aiId);
@@ -441,7 +451,7 @@ function _renderTrackerSidebar() {
     const _sessCount = _aiSess.length;
     const _lastSess = _aiSess.length ? _aiSess[_aiSess.length - 1] : null;
     const _lastDate = _lastSess ? (_lastSess.date || _lastSess.dateShort || '') : '';
-    const _rel = _lastDate && typeof relDate === 'function' ? relDate(_lastDate) : '';
+    const _rel = _lastDate ? relDate(_lastDate) : '';
     const _meta = _sessCount
       ? `<span class="tsb-ai-meta">${_sessCount} ckpt${_rel ? ' · ' + _rel : ''}</span>`
       : '';
@@ -498,10 +508,10 @@ function _renderTrackerSidebar() {
 
 // B-202605-082: dirty flag — evita renders redundantes sin cambio de estado
 let _trackerDirty = false;
-function _markTrackerDirty() { _trackerDirty = true; }
+export function _markTrackerDirty() { _trackerDirty = true; }
 window._markTrackerDirty = _markTrackerDirty;
 
-function render() {
+export function render() {
   // B-202605-hoy: si hay workers pero emptyEl esta visible (estado pre-auth residual), forzar render
   if (!_trackerDirty) {
     const _emptyCheck = document.getElementById('tracker-detail-empty');
@@ -525,11 +535,11 @@ function render() {
       <div class="empty-state-title">Agrega tu primer Worker</div>
       <div class="empty-state-hint">Los Workers son las IAs que usas. Empieza por crear uno para registrar tus sesiones.</div>
       <button class="empty-state-btn" data-action="openAddAI">＋ Nuevo Worker</button>`; }
-    if (typeof updateStats === 'function') updateStats(); if (typeof renderStatusBar === 'function') renderStatusBar(); if (typeof renderSetupChecklist === 'function') renderSetupChecklist(); return;
+    updateStats(); renderStatusBar(); renderSetupChecklist(); return;
   }
 
   // R-202605-007 AC: con workers pero sin proyecto activo — solo CTA "Nuevo Proyecto"
-  const _hasActiveProj = typeof getActiveProject === 'function' && !!getActiveProject();
+  const _hasActiveProj = !!getActiveProject();
   if (!_hasActiveProj && (state.projects || []).length === 0) {
     if (grid) grid.innerHTML = '';
     if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); emptyEl.innerHTML = `
@@ -539,7 +549,7 @@ function render() {
       <div class="es-cta-row">
         <button class="empty-state-btn" data-action="openProjModal">＋ Nuevo Proyecto</button>
       </div>`; }
-    if (typeof updateStats === 'function') updateStats(); if (typeof renderStatusBar === 'function') renderStatusBar(); if (typeof renderSetupChecklist === 'function') renderSetupChecklist(); return;
+    updateStats(); renderStatusBar(); renderSetupChecklist(); return;
   }
 
   // auto-select: preferir disponible/en-sesión sobre agotada
@@ -566,7 +576,7 @@ function render() {
       }
     }
     if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); }
-    if (typeof updateStats === 'function') updateStats(); if (typeof renderStatusBar === 'function') renderStatusBar(); if (typeof renderSetupChecklist === 'function') renderSetupChecklist(); return;
+    updateStats(); renderStatusBar(); renderSetupChecklist(); return;
   }
 
   if (emptyEl) emptyEl.classList.remove('visible');
@@ -642,20 +652,20 @@ function render() {
 
   if (typeof updateStats === 'function') updateStats();
   if (typeof renderStatusBar === 'function') renderStatusBar();
-  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+  renderGlobalRadarSidebar();
   if (!window._radarSbInited) { window._radarSbInited = true; _initRadarSidebarState(); }
   if (typeof renderProjDots === 'function') renderProjDots();
   // ac-8: renderizar lista de sesiones en Col 1 siempre — sin condicional de vista
   if (typeof _trackerRenderMiniHist === 'function') _trackerRenderMiniHist(_trackerSelectedId);
   if (typeof _trackerHistAttachDropTargets === 'function') _trackerHistAttachDropTargets();
   // T-202605-447: actualizar banner de sesión sugerida tras cada render
-  if (typeof renderSuggestionBanner === 'function') renderSuggestionBanner();
+  renderSuggestionBanner();
   // R-202605-008: actualizar checklist de setup tras cada render
-  if (typeof renderSetupChecklist === 'function') renderSetupChecklist();
+  renderSetupChecklist();
   // B-202605-508: actualizar badges de tabs al final de cada render
-  if (typeof updateTabNotifBadges === 'function') updateTabNotifBadges();
+  updateTabNotifBadges();
   // R-202605-170: sincronizar chip de worker activo en header
-  if (typeof _renderActiveWorkerChip === 'function') _renderActiveWorkerChip();
+  _renderActiveWorkerChip();
 }
 
 const TG_TYPE_NAMES = {I:'Idea', P:'Pendiente', T:'Ticket', R:'Requerimiento', B:'Bug'};
@@ -675,6 +685,29 @@ function buildHoyCard(ai, idx = 0, opts = {}) {
 
   const cd = ai.status === 'exhausted' ? getCD(ai.resetTime, ai.resetEpoch) : '';
   const resetLabel = ai.resetTime ? `hasta las ${fmt12(ai.resetTime)}` : '';
+
+  // "disponible desde" — hora del último reset o última sesión
+  function _availableSinceLabel() {
+    if (ai.resetTime && ai.resetEpoch) {
+      const epoch = new Date(ai.resetEpoch);
+      const hh = String(epoch.getHours()).padStart(2,'0');
+      const mm = String(epoch.getMinutes()).padStart(2,'0');
+      return fmt12(`${hh}:${mm}`);
+    }
+    const last = aiSessions.length ? aiSessions[aiSessions.length - 1] : null;
+    if (last && last.date) {
+      const d = new Date(last.date);
+      if (!isNaN(d)) {
+        const hh = String(d.getHours()).padStart(2,'0');
+        const mm = String(d.getMinutes()).padStart(2,'0');
+        return fmt12(`${hh}:${mm}`);
+      }
+    }
+    return null;
+  }
+
+  const availSince = ai.status === 'available' ? _availableSinceLabel() : null;
+
 
   // "disponible desde" — hora del último reset o última sesión
   function _availableSinceLabel() {
@@ -810,7 +843,7 @@ function confirmBlindExhaust(id) {
   const raw = inp.value.replace(/\D/g, '');
   const result = interpretHora(raw);
   if (!result) {
-    if (typeof showToast === 'function') showToast('error', 'Hora inválida — ingresa formato HHMM (ej: 2100)');
+    showToast('error', 'Hora inválida — ingresa formato HHMM (ej: 2100)');
     return;
   }
   ai.status = 'exhausted';
@@ -821,7 +854,7 @@ function confirmBlindExhaust(id) {
   saveImmediate().then(() => {
     _markTrackerDirty(); render();
   });
-  if (typeof showToast === 'function') showToast('info', `${ai.name} — agotada sin sesión · desbloqueo a las ${result.label}`);
+  showToast('info', `${ai.name} — agotada sin sesión · desbloqueo a las ${result.label}`);
 }
 
 function avgBetweenSessions(ai) {
@@ -906,7 +939,7 @@ function buildCard(ai) {
     return `<div class="sess-row${extraCls}" data-sess-id="${s.id}" onclick="openDetail('${ai.id}','${s.id}')">
       <div class="sess-row-top">
         <div class="sess-row-title" title="${esc(s.title)}">${esc(s.title)}</div>
-        <div class="sess-row-date" title="${esc(s.date || s.dateShort || '')}">${(typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || '')}</div>
+        <div class="sess-row-date" title="${esc(s.date || s.dateShort || '')}">${s.date ? relDate(s.date) : (s.dateShort || '')}</div>
       </div>
       <div class="sess-row-bottom">
         ${summaryHtml}
@@ -1191,7 +1224,7 @@ function _trackerHistAttachDropTargets() {
       if (!s) return;
 
       // Insertar referencia de sesión: título + fecha como texto en el textarea
-      const dateLabel = (typeof relDate === 'function' && s.date) ? relDate(s.date) : (s.dateShort || '');
+      const dateLabel = s.date ? relDate(s.date) : (s.dateShort || '');
       const ref = `[Sesión: ${s.title}${dateLabel ? ' · ' + dateLabel : ''}]`;
       const start = ta.selectionStart;
       const end   = ta.selectionEnd;
@@ -1230,39 +1263,39 @@ function _trackerSwitchCol(col) {
 // T-202604-295: clave de preferencia auto-download de templates
 const _TPL_TRIGGER_KEY = 'template-download-trigger';
 function _autoDownloadOn() {
-  const trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
+  const trig = _templateTrigger();
   return trig === 'session';
 }
 function toggleAutoDownload() {
-  const trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
+  const trig = _templateTrigger();
   const next = trig === 'session' ? 'sprint' : 'session';
   localStorage.setItem(_TPL_TRIGGER_KEY, next);
   _saveUserPrefs();
   _updateAutoDownloadLabel();
 }
-function _updateAutoDownloadLabel() {
+export function _updateAutoDownloadLabel() {
   const btn = document.getElementById('more-menu-autodl');
-  const _trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
+  const _trig = _templateTrigger();
   if (btn) btn.textContent = `⬇ Descargar templates: ${_trig === 'session' ? 'al guardar sesión' : 'al cerrar sprint'}`;
 }
 // Inicializar label al cargar — usando DOMContentLoaded para que _templateTrigger ya exista
 document.addEventListener('DOMContentLoaded', function _initAutoDlLabel() {
   const btn = document.getElementById('more-menu-autodl');
-  const _trig = typeof _templateTrigger === 'function' ? _templateTrigger() : (localStorage.getItem(_TPL_TRIGGER_KEY) || 'session');
+  const _trig = _templateTrigger();
   if (btn) btn.textContent = `⬇ Descargar templates: ${_trig === 'session' ? 'al guardar sesión' : 'al cerrar sprint'}`;
   // T-202605-045: Migrar onclick inline → addEventListener
   if (btn) btn.addEventListener('click', toggleAutoDownload);
 }, { once: true });
 
 // Utilidades de countdown para IAs agotadas
-function _hoyMsUntilReset(ai) {
+export function _hoyMsUntilReset(ai) {
   if (!ai.resetTime) return Infinity;
   const [h, m] = ai.resetTime.split(':').map(Number);
   const r = new Date(); r.setHours(h, m, 0, 0);
   if (r <= new Date()) r.setDate(r.getDate() + 1);
   return r - new Date();
 }
-function _hoyCountdownLabel(ms) {
+export function _hoyCountdownLabel(ms) {
   if (!isFinite(ms) || ms <= 0) return '—';
   const totalSec = Math.floor(ms / 1000);
   const h = Math.floor(totalSec / 3600);
@@ -1294,13 +1327,7 @@ function _startSidebarTicker() {
           ai.status = 'available';
           ai.resetTime = '';
           ai.resetEpoch = null;
-          if (typeof saveImmediate === 'function') {
-            saveImmediate().then(() => {
-              if (typeof render === 'function') render();
-            });
-          } else {
-            if (typeof render === 'function') render();
-          }
+          saveImmediate().then(() => { render(); });
           return;
         } else {
           const h = Math.floor(diff / 60), m = diff % 60;
@@ -1331,7 +1358,7 @@ function _startSidebarTicker() {
     });
   }, 1000);
 }
-function _stopSidebarTicker() {
+export function _stopSidebarTicker() {
   if (_sidebarTickerInterval) { clearInterval(_sidebarTickerInterval); _sidebarTickerInterval = null; }
 }
 
@@ -1383,7 +1410,7 @@ document.addEventListener('DOMContentLoaded', function () {
   document.addEventListener('click', function _archivedToggleDelegate(e) {
     const el = e.target.closest('.archived-toggle');
     if (!el) return;
-    if (typeof toggleArchivedSection === 'function') toggleArchivedSection(el);
+    toggleArchivedSection(el);
   });
 
   // [data-action="openAddAI"] → openAddAI()
@@ -1394,9 +1421,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!btn) return;
     const action = btn.dataset.action;
     if (action === 'openAddAI') {
-      if (typeof openAddAI === 'function') openAddAI();
+      openAddAI();
     } else if (action === 'openProjModal') {
-      if (typeof openProjModal === 'function') openProjModal(false);
+      openProjModal(false);
     }
   });
 
