@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal
@@ -371,7 +371,7 @@ function dismissWeeklySummary() {
 // window fallback para inline handler en index.html
 window.dismissWeeklySummary = dismissWeeklySummary;
 
-export function _maybeShowWeeklySummary() {
+function _maybeShowWeeklySummary() {
   if (!_isMonday()) return;
   if (_weeklyAlreadyDismissed()) return;
   const summary = _buildWeeklySummary();

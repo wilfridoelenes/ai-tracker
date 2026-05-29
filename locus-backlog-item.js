@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-item-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, itemType, renderStats, setItemStatus, updateBacklogBanner } from './locus-backlog-core.js';
+import { _applyDoneStatus, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, itemType, renderStats, setItemStatus, updateBacklogBanner } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
 import { _normalizeSprint } from './locus-session-parse.js';
 import { _blogLog, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog } from './locus-storage.js';
@@ -24,48 +24,6 @@ import { showToast } from './locus-toast.js';
 
 import { esc } from './locus-ui-shell.js';
 
-// Constantes canónicas del ecosistema — roles disponibles para el select de ítem
-// Fuente: OB-STRATEGY §6. Actualizar aquí si se agregan/eliminan roles.
-const _ECOSYSTEM_ROLES = [
-  'ST · Vera', 'GW · Lena', 'CPO · Noa', 'CMO · Maya',
-  'PO · Cael', 'FS · Rune', 'UX · Nova', 'QA · Finn',
-  'CC · Flux', 'ET · Eden', 'GC · Sage', 'DA · Iris'
-];
-
-// Días sin cambio de status para considerar un ítem bloqueado (alineado con _isBlocked en core)
-const _BLOCKED_DAYS = 14;
-
-// Labels de tipo de ítem para display en UI
-const TYPE_LABELS = { R: 'Requerimiento', T: 'Ticket', B: 'Bug', P: 'Posibilidad' };
-
-// Helpers de badge — funciones del monolito original declaradas localmente al modularizar
-function badgeLabel(priority) {
-  return { high: 'Alta', medium: 'Media', low: 'Baja' }[priority] || priority || '—';
-}
-function badgeClass(priority) {
-  return 'badge-prio-' + (priority || 'medium');
-}
-function statusLabel(status) {
-  return { pendiente: 'Pendiente', 'en-revision': 'En revisión', done: 'Done', descartado: 'Descartado', historico: 'Histórico' }[status] || status || '—';
-}
-function statusClass(status) {
-  return 'badge-status-' + (status || 'pendiente');
-}
-
-// B-202604-194: flag de sesión — ítems cuyo AC fue reemplazado via merge. Se vacía al recargar.
-const _acReplacedSet = new Set();
-
-// ── Estado del módulo ──────────────────────────────────────────────────────
-// Búsqueda activa — compartida con locus-backlog-render.js via window.backlogSearchQuery
-let backlogSearchQuery = '';
-window.backlogSearchQuery = backlogSearchQuery;
-// Getter/setter para mantener window sincronizado
-function _getBacklogSearch() { return backlogSearchQuery; }
-function _setBacklogSearch(v) { backlogSearchQuery = v; window.backlogSearchQuery = v; }
-// Filtro de tipo activo
-let currentFilter = 'all';
-// ──────────────────────────────────────────────────────────────────────────
-
 export function _renderKanban(listEl) {
   // R-202604-091: 3 columnas — 'en curso' eliminado, ítems activos decorados en 'pendiente'
   const COLS = [
@@ -84,15 +42,15 @@ export function _renderKanban(listEl) {
 
   // Filtrar aplicando los mismos filtros activos del backlog
   const q = backlogSearchQuery;
-  let allFiltered = window.ITEMS.filter(i => {
+  let allFiltered = ITEMS.filter(i => {
     const type = itemType(i.code);
-    const typeOk = type ? _getActiveTypes().has(type) : true;
+    const typeOk = type ? activeTypes.has(type) : true;
     const _rawEffortK = parseInt(i.effort) || 1;
     const _normEffortK = _rawEffortK > 3 ? 3 : _rawEffortK < 1 ? 1 : _rawEffortK;
-    const effortOk = _getActiveEfforts().has(_normEffortK); // B-202605-233: effort >3 normalizado a 3
+    const effortOk = activeEfforts.has(_normEffortK); // B-202605-233: effort >3 normalizado a 3
     let roleOk = true;
-    if (_getActiveRoleFilter() === '__none__') roleOk = !i.role || !i.role.trim();
-    else if (_getActiveRoleFilter() !== null) roleOk = (i.role || '').trim() === _getActiveRoleFilter();
+    if (activeRoleFilter === '__none__') roleOk = !i.role || !i.role.trim();
+    else if (activeRoleFilter !== null) roleOk = (i.role || '').trim() === activeRoleFilter;
     return typeOk && effortOk && roleOk && i.status !== 'historico'; // B-202605-266
   });
   if (q) {
@@ -187,7 +145,7 @@ function _kbDrop(event, toStatus) {
 function _kbCardClick(event, code) {
   // No abrir si fue un drag (el drag pone clase antes del click)
   if (event.defaultPrevented) return;
-  const item = window.ITEMS.find(i => i.code === code);
+  const item = ITEMS.find(i => i.code === code);
   if (!item) return;
   _openItemEditorSafe(item.id || null, code); // B-202605-012
 }
@@ -227,7 +185,7 @@ function _attachBacklogListDelegation() {
       e.stopPropagation();
       const code   = action.dataset.childCode;
       const safeId = action.dataset.safeId;
-      const ci = window.ITEMS.findIndex(x => x.code === code);
+      const ci = ITEMS.findIndex(x => x.code === code);
       if (ci >= 0) toggleItemExpand(ci);
       const arrow = document.getElementById('ciarrow-' + safeId);
       const body  = document.getElementById('ibody-'  + safeId);
@@ -309,7 +267,7 @@ function _attachBacklogListDelegation() {
 export function _attachBacklogDnD() {
   // B-202605-013: T-202604-424 eliminó 'sprint' como valor de backlogSortMode — guard era inalcanzable.
   // DnD activo cuando la agrupación por sprint está activa y no hay modo exclusivo que tome el rendering.
-  if (!_getBacklogSprintGroupMode() || _getBacklogKanbanMode() || _getBacklogFocusMode() || _getBacklogMikeMode() || _getBacklogNoAcMode()) return;
+  if (!_backlogSprintGroupMode || _backlogKanbanMode || _backlogFocusMode || _backlogMikeMode || _backlogNoAcMode) return;
   // Solo grupos sprint: vbody-{groupId} — excluye sgbody-done, sgbody-discarded y vbody-flat
   const sprintBodies = document.querySelectorAll('[id^="vbody-"]:not(#vbody-flat)');
   sprintBodies.forEach(body => {
@@ -343,12 +301,12 @@ export function _attachBacklogDnD() {
         const fromCode = e.dataTransfer.getData('text/plain');
         const toCode = el.dataset.code;
         if (!fromCode || fromCode === toCode) return;
-        const fromIdx = window.ITEMS.findIndex(i => i.code === fromCode);
-        const toIdx   = window.ITEMS.findIndex(i => i.code === toCode);
+        const fromIdx = ITEMS.findIndex(i => i.code === fromCode);
+        const toIdx   = ITEMS.findIndex(i => i.code === toCode);
         if (fromIdx < 0 || toIdx < 0) return;
-        if ((window.ITEMS[fromIdx].sprint || '') !== (window.ITEMS[toIdx].sprint || '')) return;
-        const [moved] = window.ITEMS.splice(fromIdx, 1);
-        window.ITEMS.splice(toIdx, 0, moved);
+        if ((ITEMS[fromIdx].sprint || '') !== (ITEMS[toIdx].sprint || '')) return;
+        const [moved] = ITEMS.splice(fromIdx, 1);
+        ITEMS.splice(toIdx, 0, moved);
         _undoSnapshot();
         saveBacklog();
         _markBacklogListDirty(); renderBacklogList();
@@ -361,7 +319,7 @@ export function _attachBacklogDnD() {
 function _inlineEditTitle(code, e) {
   e.stopPropagation(); // evitar toggleItemExpand
   const span = e.currentTarget;
-  const item = window.ITEMS.find(i => i.code === code);
+  const item = ITEMS.find(i => i.code === code);
   if (!item) return;
 
   const originalTitle = item.title;
@@ -401,12 +359,12 @@ function _inlineEditTitle(code, e) {
 // T-202604-187/188: _buildChildrenBlock con colapsable y progreso
 function _buildChildrenBlock(rCode) {
   // B-202604-158: respetar filtros activos — solo mostrar hijos que pasan tipo y status
-  const allChildren = window.ITEMS.filter(i => i.parentId === rCode);
+  const allChildren = ITEMS.filter(i => i.parentId === rCode);
   if (!allChildren.length) return '';
   const children = allChildren.filter(i => {
     const t = itemType(i.code);
-    const typeOk = t ? _getActiveTypes().has(t) : true;
-    const statusOk = _getActiveStatuses().has(i.status);
+    const typeOk = t ? activeTypes.has(t) : true;
+    const statusOk = activeStatuses.has(i.status);
     return typeOk && statusOk;
   });
   if (!children.length) return '';
@@ -415,7 +373,7 @@ function _buildChildrenBlock(rCode) {
   const isCollapsed = _collapsedChildren.has(rCode);
 
   const childRows = children.map(child => {
-    // B-202605-011: IDs de DOM desde item.code — estables ante mutaciones de window.ITEMS
+    // B-202605-011: IDs de DOM desde item.code — estables ante mutaciones de ITEMS
     const cSafeId = child.code.replace(/[^a-zA-Z0-9-_]/g, '_');
     const cType = itemType(child.code) || '';
     const isDoneC = child.status === 'done';
@@ -459,7 +417,7 @@ function _confirmUnlinkChild(childCode, rCode) {
     okLabel: 'Desvincular',
     danger: true
   }, () => {
-    const item = window.ITEMS.find(i => i.code === childCode);
+    const item = ITEMS.find(i => i.code === childCode);
     if (item) { item.parentId = null; saveBacklog(); _markBacklogListDirty(); renderBacklogList(); renderStats(); showToast('success', `${childCode} desvinculado`); }
   });
 }
@@ -497,7 +455,7 @@ function _buildItemTimestamps(item) {
 // R-[pendiente-ID]: bloque de origen P padre — muestra enlace al P que originó este ítem
 function _buildItemPOriginBlock(item) {
   if (!item.origin) return '';
-  const pItem = window.ITEMS.find(i => i.code === item.origin);
+  const pItem = ITEMS.find(i => i.code === item.origin);
   const pTitle = pItem ? esc(pItem.title) : '';
   return `<div class="bitem-origin-p-block">
     <span class="bitem-origin-p-label">Origen</span>
@@ -567,7 +525,7 @@ function _openStatusPopover(e, code) {
   if (_statusPopoverCode === code) { _statusPopoverCode = null; return; }
   _statusPopoverCode = code;
 
-  const item = window.ITEMS.find(i => i.code === code);
+  const item = ITEMS.find(i => i.code === code);
   if (!item) { _statusPopoverCode = null; return; }
 
   const isIdea = (itemType(code) || '') === 'P';
@@ -635,7 +593,7 @@ function _openStatusPopover(e, code) {
 
 // T-108: construir un ítem colapsado
 export function buildBacklogItem(item) {
-  const globalIdx = window.ITEMS.indexOf(item);
+  const globalIdx = ITEMS.indexOf(item);
   const isDone = item.status === 'done';
   const isDiscarded = item.status === 'descartado';
   const isHistorico = item.status === 'historico'; // B-202604-193: read-only
@@ -705,16 +663,16 @@ export function buildBacklogItem(item) {
     : '';
 
   // Children count + progreso para R type (T-188)
-  // B-202605-052: usar window.ITEMS sin filtrar como denominador — los filtros activos no afectan el porcentaje
-  const childCount = type === 'R' ? window.ITEMS.filter(i => i.parentId === item.code).length : 0;
-  const childDoneCount = type === 'R' ? window.ITEMS.filter(i => i.parentId === item.code && i.status === 'done').length : 0;
+  // B-202605-052: usar ITEMS sin filtrar como denominador — los filtros activos no afectan el porcentaje
+  const childCount = type === 'R' ? ITEMS.filter(i => i.parentId === item.code).length : 0;
+  const childDoneCount = type === 'R' ? ITEMS.filter(i => i.parentId === item.code && i.status === 'done').length : 0;
   const childBadge = (type === 'R' && childCount > 0 && !isDone && !isDiscarded)
     ? `<span class="bitem-child-badge" title="${childDoneCount}/${childCount} tickets done">${childDoneCount}/${childCount} <span class="bitem-child-badge-label">tickets</span></span>`
     : '';
 
   // T-202604-288: badge "Bloqueado por [código]" — blockedBy explícito pendiente
   const blockedByItems = (!isDone && !isDiscarded && item.blockedBy && item.blockedBy.length)
-    ? item.blockedBy.filter(c => { const dep = window.ITEMS.find(i => i.code === c); return !dep || dep.status !== 'done'; })
+    ? item.blockedBy.filter(c => { const dep = ITEMS.find(i => i.code === c); return !dep || dep.status !== 'done'; })
     : [];
   const blockedByBadge = blockedByItems.length
     ? blockedByItems.map(c =>
@@ -854,11 +812,11 @@ export function buildBacklogItem(item) {
         </div>
         ${(type === 'T' || type === 'B') ? (() => {
           // T-202604-354: solo R pendientes, orden descendente por código, label ID · Título truncado 60 chars
-          const rItems = window.ITEMS
+          const rItems = ITEMS
             .filter(i => itemType(i.code) === 'R' && i.status === 'pendiente')
             .sort((a, b) => b.code.localeCompare(a.code));
           const _rLabel = r => { const t = r.title || ''; return r.code + ' · ' + (t.length > 60 ? t.slice(0, 57) + '…' : t); };
-          const currentParent = item.parentId ? window.ITEMS.find(i => i.code === item.parentId) : null;
+          const currentParent = item.parentId ? ITEMS.find(i => i.code === item.parentId) : null;
           const ghostOption = (currentParent && !rItems.find(r => r.code === item.parentId))
             ? '<option value="' + esc(currentParent.code) + '" selected>' + esc(_rLabel(currentParent)) + ' [' + esc(currentParent.status) + ']</option>'
             : '';
@@ -952,7 +910,7 @@ export function buildBacklogItem(item) {
 
 // R-[pendiente-ID]: Promover ítem P → T o R con trazabilidad de origen
 function _promoteItem(code) {
-  const item = window.ITEMS.find(i => i.code === code);
+  const item = ITEMS.find(i => i.code === code);
   if (!item) return;
 
   // R-202604-047: shell estático en index.html — inject content + classList
@@ -1004,7 +962,7 @@ function _promoteSelectType(type) {
 
 function _promoteConfirm(originCode) {
   if (!_promoteTargetType) return;
-  const originItem = window.ITEMS.find(i => i.code === originCode);
+  const originItem = ITEMS.find(i => i.code === originCode);
   if (!originItem) return;
 
   const newCode = _getNextItemCode(_promoteTargetType);
@@ -1012,7 +970,7 @@ function _promoteConfirm(originCode) {
 
   // Crear ítem hijo con campos heredados + origin
   // R-202605-098: ítem hijo nace sin esfuerzo — el campo no se hereda del P original
-  window.ITEMS.push({
+  ITEMS.push({
     id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2, 6),
     code: newCode,
     title: originItem.title,
@@ -1055,7 +1013,7 @@ function _promoteConfirm(originCode) {
 
 // T-202604-236: Promover T → R desde Backlog UI
 function _promoteTtoR(code) {
-  const item = window.ITEMS.find(i => i.code === code);
+  const item = ITEMS.find(i => i.code === code);
   if (!item) return;
   // AC-5: solo en T pendiente o progreso
   if (item.status === 'done' || item.status === 'descartado') return;
@@ -1088,7 +1046,7 @@ function _promoteTtoR(code) {
 }
 
 function _promoteTtoRConfirm(originCode) {
-  const originItem = window.ITEMS.find(i => i.code === originCode);
+  const originItem = ITEMS.find(i => i.code === originCode);
   if (!originItem) return;
 
   const newCode = _getNextItemCode('R');
@@ -1096,7 +1054,7 @@ function _promoteTtoRConfirm(originCode) {
 
   // AC-2: R hereda desc · area · sprint · tags del T origen
   // AC-4: origin del R apunta al T
-  window.ITEMS.push({
+  ITEMS.push({
     id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2, 6),
     code: newCode,
     title: originItem.title,
@@ -1163,7 +1121,7 @@ function copyItemCode(e, code, idx) {
 // T-202604-178: copia ítem formateado para sesión FS
 function copyItemToClipboard(e, code) {
   e.stopPropagation();
-  const item = window.ITEMS.find(i => i.code === code);
+  const item = ITEMS.find(i => i.code === code);
   if (!item) return;
 
   const lines = [];
@@ -1194,7 +1152,7 @@ function copyItemToClipboard(e, code) {
   // Tags (si el ítem los tiene)
   if (item.tags && item.tags.length) {
     const tagNames = item.tags.map(tid => {
-      const t = (window.state.tags || []).find(t => t.id === tid);
+      const t = (state.tags || []).find(t => t.id === tid);
       return t ? t.name : tid;
     });
     lines.push(`Tags: ${tagNames.join(', ')}`);
@@ -1244,7 +1202,7 @@ export function setFilter(f) {
 
 function onBacklogSearch() {
   const input = document.getElementById('backlog-search-input');
-  _setBacklogSearch((input ? input.value : '').toLowerCase().trim());
+  backlogSearchQuery = (input ? input.value : '').toLowerCase().trim();
   const clearBtn = document.getElementById('backlog-search-clear');
   if (clearBtn) clearBtn.classList.toggle('visible', !!backlogSearchQuery);
   updateClearFilterBtn();
@@ -1255,7 +1213,7 @@ function onBacklogSearch() {
 function clearBacklogSearch() {
   const input = document.getElementById('backlog-search-input');
   if (input) input.value = '';
-  _setBacklogSearch('');
+  backlogSearchQuery = '';
   const clearBtn = document.getElementById('backlog-search-clear');
   if (clearBtn) clearBtn.classList.remove('visible');
   updateClearFilterBtn();
@@ -1270,13 +1228,13 @@ export function updateBacklogFooter() {
 
   const d = new Date().toISOString().split('T')[0];
   const closedSprintIds = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
-  const countable = window.ITEMS.filter(i => _isCountableItem(i) && !i.sprint || !closedSprintIds.has(i.sprint));
-  const total    = window.ITEMS.filter(i => _isCountableItem(i)).length;
-  const pend     = window.ITEMS.filter(i => _isCountableItem(i) && i.status === 'pendiente').length;
-  const done     = window.ITEMS.filter(i => _isCountableItem(i) && i.status === 'done').length;
-  const pIdeas   = window.ITEMS.filter(i => itemType(i.code) === 'P' && i.status !== 'descartado').length;
+  const countable = ITEMS.filter(i => _isCountableItem(i) && !i.sprint || !closedSprintIds.has(i.sprint));
+  const total    = ITEMS.filter(i => _isCountableItem(i)).length;
+  const pend     = ITEMS.filter(i => _isCountableItem(i) && i.status === 'pendiente').length;
+  const done     = ITEMS.filter(i => _isCountableItem(i) && i.status === 'done').length;
+  const pIdeas   = ITEMS.filter(i => itemType(i.code) === 'P' && i.status !== 'descartado').length;
   const byType   = { B: 0, T: 0, R: 0, P: 0 };
-  window.ITEMS.forEach(i => { const t = itemType(i.code); if (t && byType[t] !== undefined) byType[t]++; });
+  ITEMS.forEach(i => { const t = itemType(i.code); if (t && byType[t] !== undefined) byType[t]++; });
   const activeSp = _getActiveSprint();
 
   footer.innerHTML = `
@@ -1284,19 +1242,19 @@ export function updateBacklogFooter() {
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Tipo</span>
         ${[['B','Bug'],['T','Ticket'],['R','Req'],['P','Pos.']].map(([t,l]) =>
-          `<button class="bl-filter-chip bl-fc-type-${t}${_getActiveTypes().has(t) ? ' active' : ''}" onclick="toggleTypeFilter('${t}')" title="${l}">${t} <span>${byType[t]}</span></button>`
+          `<button class="bl-filter-chip bl-fc-type-${t}${activeTypes.has(t) ? ' active' : ''}" onclick="toggleTypeFilter('${t}')" title="${l}">${t} <span>${byType[t]}</span></button>`
         ).join('')}
       </div>
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Status</span>
-        <button class="bl-filter-chip${_getActiveStatuses().has('pendiente') ? ' active' : ''}" onclick="toggleStatusFilter('pendiente')">Pendiente <span>${pend}</span></button>
-        <button class="bl-filter-chip${_getActiveStatuses().has('done') ? ' active' : ''}" onclick="toggleStatusFilter('done')">Done <span>${done}</span></button>
+        <button class="bl-filter-chip${activeStatuses.has('pendiente') ? ' active' : ''}" onclick="toggleStatusFilter('pendiente')">Pendiente <span>${pend}</span></button>
+        <button class="bl-filter-chip${activeStatuses.has('done') ? ' active' : ''}" onclick="toggleStatusFilter('done')">Done <span>${done}</span></button>
       </div>
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Esfuerzo</span>
         ${[1,2,3].map(e => {
-          const cnt = window.ITEMS.filter(i => (parseInt(i.effort)||1) === e).length;
-          return `<button class="bl-filter-chip${_getActiveEfforts().has(e) ? ' active' : ''}" onclick="toggleEffortFilter(${e})" title="Effort ${e}">E${e} <span>${cnt}</span></button>`;
+          const cnt = ITEMS.filter(i => (parseInt(i.effort)||1) === e).length;
+          return `<button class="bl-filter-chip${activeEfforts.has(e) ? ' active' : ''}" onclick="toggleEffortFilter(${e})" title="Effort ${e}">E${e} <span>${cnt}</span></button>`;
         }).join('')}
       </div>
       <button class="bl-footer-clear" onclick="clearAllFilters()" title="Limpiar todos los filtros">✕ Limpiar</button>
@@ -1346,7 +1304,7 @@ function _findTmpMatch(tmpCode, desc, existingItems) {
 // AC-5: [tmp:slug] pasan sin modificación — tienen su propio flujo (_findTmpMatch).
 // B-202605-ids: reservedCodes acumula los códigos asignados en esta pasada para que
 // _getNextItemCode no repita el mismo número cuando hay múltiples [pendiente-ID] del
-// mismo tipo — los ítems nuevos aún no están en window.ITEMS en el momento de la asignación.
+// mismo tipo — los ítems nuevos aún no están en ITEMS en el momento de la asignación.
 function _assignPendingIds(tgItems) {
   const validTypes = new Set(['P', 'T', 'R', 'B']);
   const reservedCodes = new Set();
@@ -1359,7 +1317,7 @@ function _assignPendingIds(tgItems) {
   });
 }
 
-// ── T-098: Merge TRACKER-GLOBAL → window.ITEMS en memoria ──
+// ── T-098: Merge TRACKER-GLOBAL → ITEMS en memoria ──
 // Llamado desde saveSession(). Acumula múltiples sesiones sin exportar.
 // T-202604-121: retorna {created, updated, ignored} para super toast
 export function mergeBacklogFromTG(tgItems, sessionId, opts) {
@@ -1398,7 +1356,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // B-202605-XXX: ítem duplicado (título matchea existente via _assignPendingIds) —
       // aunque se ignore para status/creación, si trae AC se mergean sobre el existente.
       if (item.ac && item.ac.length && item._existingCode && !_dryRun) {
-        const dupExisting = window.ITEMS.find(i => i.code === item._existingCode);
+        const dupExisting = ITEMS.find(i => i.code === item._existingCode);
         if (dupExisting) {
           dupExisting.ac = item.ac;
           _acReplacedSet.add(dupExisting.id);
@@ -1413,7 +1371,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     }
 
     // B-202604-198: REGLA DE PLACEHOLDER — forzar rama "nuevo" sin intentar match
-    // Un [tmp:slug] o [pendiente-ID] NUNCA matchea contra window.ITEMS existentes.
+    // Un [tmp:slug] o [pendiente-ID] NUNCA matchea contra ITEMS existentes.
     // Nota: _assignPendingIds ya habrá convertido [pendiente-ID] con type char real si tiene
     // suficiente info; si no pudo (sin type), sigue siendo placeholder.
     const isPlaceholder = _isPlaceholderCode(item.code);
@@ -1421,7 +1379,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     // B-202604-198: REGLA DE TMP — detectar si [tmp:slug] corresponde a un ID real existente
     // por similitud de título. Si hay match potencial, registrar sugerencia y NO crear duplicado.
     if (isPlaceholder && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
-      const tmpMatch = _findTmpMatch(item.code, item.title, window.ITEMS);
+      const tmpMatch = _findTmpMatch(item.code, item.title, ITEMS);
       if (tmpMatch) {
         tmpSuggestions.push({
           tmpCode: item.code,
@@ -1436,7 +1394,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     }
 
     // B-202604-198: si es placeholder, saltar directamente a rama "nuevo"
-    const existing = isPlaceholder ? null : window.ITEMS.find(i => i.code === item.code);
+    const existing = isPlaceholder ? null : ITEMS.find(i => i.code === item.code);
     if (existing) {
       // B-202605-XXX: normalizar type si falta — inferir desde prefijo del código
       if (!existing.type && existing.code) {
@@ -1561,7 +1519,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
         if (_incomingType === 'R') {
                       _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ítems tipo R no pueden tener padre. parentId recibido: ' + item.parentId, 'backlog');
         } else {
-          const _parentCandidate = window.ITEMS.find(p => p.code === item.parentId);
+          const _parentCandidate = ITEMS.find(p => p.code === item.parentId);
           if (!_parentCandidate) {
                           _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: código ' + item.parentId + ' no existe en el backlog', 'backlog');
           } else if (_parentCandidate.type !== 'R') {
@@ -1574,10 +1532,10 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
       // B-202604-015: heredar sprint del padre si el ítem no trae sprint propio
       const _parentSprint = (!item.sprint && _resolvedParentId)
-        ? (window.ITEMS.find(p => p.code === _resolvedParentId) || {}).sprint || ''
+        ? (ITEMS.find(p => p.code === _resolvedParentId) || {}).sprint || ''
         : '';
       if (!_dryRun) {
-        window.ITEMS.push({
+        ITEMS.push({
           id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
           code: item.code,
           type: _incomingType,
@@ -1606,7 +1564,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
         // R-[pendiente-ID]: si el nuevo ítem tiene origin → cerrar automáticamente el P padre
         if (item.origin) {
-          const pParent = window.ITEMS.find(p => p.code === item.origin);
+          const pParent = ITEMS.find(p => p.code === item.origin);
           if (pParent && pParent.status !== 'done') {
             pParent.status = 'done';
             pParent.doneAt = pParent.doneAt || nowTs;
@@ -1722,7 +1680,7 @@ function _isActiveRecently(item) {
 // AC-5: código no existe en backlog → advertencia DocLog, sin crash
 // AC-6: código placeholder → ignorado (manejado en parsePaste antes de llegar aquí)
 // AC-7: status done → mismas reglas de confirmación que done manual (vía setItemStatus)
-// AC-8: mezcla ítems + patches en mismo ---window.ITEMS--- → parser separa por type
+// AC-8: mezcla ítems + patches en mismo ---ITEMS--- → parser separa por type
 // AC-9: panel diff muestra solo campos del patch (changes array)
 // AC-11: sin regresión en mergeBacklogFromTG
 const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable
@@ -1742,7 +1700,7 @@ export function applyPatchesFromTG(patches, sessionId) {
     const code = patch.code;
 
     // AC-5: código no existe en backlog → advertencia DocLog
-    const existing = (typeof window.ITEMS !== 'undefined') ? window.ITEMS.find(i => i.code === code) : null;
+    const existing = (typeof ITEMS !== 'undefined') ? ITEMS.find(i => i.code === code) : null;
     if (!existing) {
               _blogLog('patch-ignorado', code, 'Patch ignorado: código no existe en el backlog. code: ' + code, 'backlog');
       ignoredPatches.push({ code, reason: 'no-existe' });

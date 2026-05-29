@@ -1,6 +1,5 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
-import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogFocusMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
+import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _renderKanban, buildBacklogItem, setFilter, updateBacklogFooter } from './locus-backlog-item.js';
 
@@ -50,12 +49,12 @@ function setItemParent(code, parentCode) {
 export function updateClearFilterBtn() {
   const btn = document.getElementById('filter-clear-btn');
   if (!btn) return;
-  const allTypes = _getActiveTypes().size === 4;
-  const defaultStatus = _getActiveStatuses().size === 1 && _getActiveStatuses().has('pendiente') && !_getActiveStatuses().has('done');
-  const noSearch = !_getBacklogSearchQuery();
-  const noRoleFilter = _getActiveRoleFilter() === null;
-  const noPriorityFilter = _getActivePriorityFilter().size === 0; // T-202604-357
-  const isDefault = allTypes && defaultStatus && noSearch && noRoleFilter && noPriorityFilter && !_getBacklogFocusMode() && !_getBacklogNoAcMode();
+  const allTypes = activeTypes.size === 4;
+  const defaultStatus = activeStatuses.size === 1 && activeStatuses.has('pendiente') && !activeStatuses.has('done');
+  const noSearch = !backlogSearchQuery;
+  const noRoleFilter = activeRoleFilter === null;
+  const noPriorityFilter = activePriorityFilter.size === 0; // T-202604-357
+  const isDefault = allTypes && defaultStatus && noSearch && noRoleFilter && noPriorityFilter && !_backlogFocusMode && !_backlogNoAcMode;
   btn.classList.toggle('is-hidden', isDefault);
 
   // R-202605-094: chips individuales limpiables por filtro activo
@@ -68,37 +67,37 @@ export function updateClearFilterBtn() {
     `<span class="afc-chip" onclick="(${clearFn})()">${esc(label)} <span class="afc-chip-x">✕</span></span>`;
 
   if (!allTypes) {
-    const excluded = ['T','R','B','P'].filter(t => !_getActiveTypes().has(t));
+    const excluded = ['T','R','B','P'].filter(t => !activeTypes.has(t));
     excluded.forEach(t => {
       const labels = { T:'Ticket', R:'Req', B:'Bug', P:'Posibilidad' };
       chips.push(_chip(`Sin ${labels[t]}`, `function(){toggleTypeFilter('${t}')}`));
     });
   }
   if (!defaultStatus) {
-    [..._getActiveStatuses()].filter(s => s !== 'pendiente').forEach(s => {
+    [...activeStatuses].filter(s => s !== 'pendiente').forEach(s => {
       chips.push(_chip(`+${s}`, `function(){toggleStatusFilter('${s}')}`));
     });
-    if (!_getActiveStatuses().has('pendiente')) {
+    if (!activeStatuses.has('pendiente')) {
       chips.push(_chip('−Pendiente', `function(){toggleStatusFilter('pendiente')}`));
     }
   }
   if (!noRoleFilter) {
-    const label = _getActiveRoleFilter() === '__none__' ? 'Sin rol' : _getActiveRoleFilter();
-    chips.push(_chip(`Rol: ${label}`, `function(){toggleRoleFilter(${_getActiveRoleFilter() === '__none__' ? "'__none__'" : `'${_getActiveRoleFilter()}'`})}`));
+    const label = activeRoleFilter === '__none__' ? 'Sin rol' : activeRoleFilter;
+    chips.push(_chip(`Rol: ${label}`, `function(){toggleRoleFilter(${activeRoleFilter === '__none__' ? "'__none__'" : `'${activeRoleFilter}'`})}`));
   }
   if (!noPriorityFilter) {
-    [..._getActivePriorityFilter()].forEach(p => {
+    [...activePriorityFilter].forEach(p => {
       chips.push(_chip(`Pri: ${p}`, `function(){togglePriorityFilter('${p}')}`));
     });
   }
-  if (_getActiveEfforts().size < 3) {
-    [1,2,3].filter(e => !_getActiveEfforts().has(e)).forEach(e => {
+  if (activeEfforts.size < 3) {
+    [1,2,3].filter(e => !activeEfforts.has(e)).forEach(e => {
       chips.push(_chip(`Sin E${e}`, `function(){toggleEffortFilter(${e})}`));
     });
   }
-  if (!noSearch) chips.push(_chip(`"${_getBacklogSearchQuery()}"`, `function(){clearBacklogSearch()}`));
-  if (_getBacklogNoAcMode()) chips.push(_chip('Sin AC', `function(){toggleBacklogNoAcMode()}`));
-  if (_getBacklogFocusMode()) chips.push(_chip('Focus top 10', `function(){toggleBacklogFocusMode()}`));
+  if (!noSearch) chips.push(_chip(`"${backlogSearchQuery}"`, `function(){clearBacklogSearch()}`));
+  if (_backlogNoAcMode) chips.push(_chip('Sin AC', `function(){toggleBacklogNoAcMode()}`));
+  if (_backlogFocusMode) chips.push(_chip('Focus top 10', `function(){toggleBacklogFocusMode()}`));
 
   wrap.innerHTML = chips.join('');
 }
@@ -190,8 +189,8 @@ function roadmapGoToSprint(sprintId) {
 
   // T-202604-424: agrupación por sprint es siempre activa — no es necesario forzar sortMode
   // Asegurar status pendiente incluido
-  if (!_getActiveStatuses().has('pendiente')) {
-    _getActiveStatuses().add('pendiente');
+  if (!activeStatuses.has('pendiente')) {
+    activeStatuses.add('pendiente');
     updateStatusFilterUI();
   }
 
@@ -692,7 +691,7 @@ export function renderBacklogList(onRendered) {
   }
   _backlogListDirty = false;
   _skelShow(listEl, 5);
-  const q = _getBacklogSearchQuery();
+  const q = backlogSearchQuery;
 
   // R-[tmp:toolbar-backlog-redesign]: botones de vista ya son estáticos en HTML — solo actualizar estado
   (function _updateViewBtns() {
@@ -702,20 +701,20 @@ export function renderBacklogList(onRendered) {
     const mikeBtn   = document.getElementById('fbar-mike-btn');
 
     if (treeBtn) {
-      treeBtn.classList.toggle('active', _getBacklogTreeMode());
-      treeBtn.textContent = _getBacklogTreeMode() ? '⊞ Árbol' : '☰ Plano';
-      treeBtn.title = _getBacklogTreeMode() ? 'Vista árbol activa — click para vista plana' : 'Vista plana activa — click para vista árbol';
+      treeBtn.classList.toggle('active', _backlogTreeMode);
+      treeBtn.textContent = _backlogTreeMode ? '⊞ Árbol' : '☰ Plano';
+      treeBtn.title = _backlogTreeMode ? 'Vista árbol activa — click para vista plana' : 'Vista plana activa — click para vista árbol';
     }
     if (kanbanBtn) {
-      kanbanBtn.classList.toggle('active', _getBacklogKanbanMode());
-      kanbanBtn.title = _getBacklogKanbanMode() ? 'Vista Kanban activa — click para desactivar' : 'Vista Kanban — columnas por status';
+      kanbanBtn.classList.toggle('active', _backlogKanbanMode);
+      kanbanBtn.title = _backlogKanbanMode ? 'Vista Kanban activa — click para desactivar' : 'Vista Kanban — columnas por status';
     }
     if (focusBtn) {
-      focusBtn.classList.toggle('active', _getBacklogFocusMode());
-      focusBtn.title = _getBacklogFocusMode()
+      focusBtn.classList.toggle('active', _backlogFocusMode);
+      focusBtn.title = _backlogFocusMode
         ? 'Focus activo — Top 10 por: tipo · sprint · effort · antigüedad · click para desactivar'
         : 'Activar Focus — Top 10 por: tipo · sprint · effort · antigüedad';
-      if (!_getBacklogFocusMode()) focusBtn.textContent = '🎯 Focus';
+      if (!_backlogFocusMode) focusBtn.textContent = '🎯 Focus';
     }
     // Mi vista — visible solo con sprint activo + roles disponibles
     if (mikeBtn) {
@@ -724,20 +723,20 @@ export function renderBacklogList(onRendered) {
       const show = !!(activeSprint && miRoles.length);
       mikeBtn.classList.toggle('is-hidden', !show);
       if (show) {
-        mikeBtn.classList.toggle('active', _getBacklogMikeMode());
-        mikeBtn.textContent = _getBacklogMikeMode() ? _getMiViewLabel() : 'Mi vista';
+        mikeBtn.classList.toggle('active', _backlogMikeMode);
+        mikeBtn.textContent = _backlogMikeMode ? _getMiViewLabel() : 'Mi vista';
       }
     }
     // Sin AC y bloqueados
     const noAcBtn = document.getElementById('fbar-no-ac-btn');
-    if (noAcBtn) noAcBtn.classList.toggle('active', _getBacklogNoAcMode());
+    if (noAcBtn) noAcBtn.classList.toggle('active', _backlogNoAcMode);
     const blockerBtn = document.getElementById('fbar-blocker-btn');
-    if (blockerBtn) blockerBtn.classList.toggle('active', _getBacklogBlockerFilter());
+    if (blockerBtn) blockerBtn.classList.toggle('active', _backlogBlockerFilter);
     // R-[tmp:sprint-group-toggle]: botón agrupación por sprint
     const sprintBtn = document.getElementById('fbar-sprint-btn');
     if (sprintBtn) {
-      sprintBtn.classList.toggle('active', _getBacklogSprintGroupMode());
-      sprintBtn.title = _getBacklogSprintGroupMode() ? 'Agrupación por sprint activa — click para vista plana' : 'Vista plana activa — click para agrupar por sprint';
+      sprintBtn.classList.toggle('active', _backlogSprintGroupMode);
+      sprintBtn.title = _backlogSprintGroupMode ? 'Agrupación por sprint activa — click para vista plana' : 'Vista plana activa — click para agrupar por sprint';
     }
   })();
 
@@ -812,7 +811,7 @@ export function renderBacklogList(onRendered) {
   }
 
   // T-202604-287: desviar a vista Kanban si está activa
-  if (_getBacklogKanbanMode()) {
+  if (_backlogKanbanMode) {
     _renderKanban(listEl);
     _updateDocLogCount('backlog');
     _skelHide(listEl);
@@ -833,8 +832,7 @@ export function renderBacklogList(onRendered) {
   (function _ensureSprintRoadmap() {
     _renderSprintRoadmap();
     // B-202604-161: si el Item Detail Panel está abierto, mantener oculto
-    const _panelEl = document.getElementById('item-detail-panel');
-    if (_panelEl && _panelEl.classList.contains('open')) {
+    if (_itemPanelCode) {
       const el = document.getElementById('bl-sprint-bar');
       if (el) el.classList.add('is-hidden');
     }
@@ -846,47 +844,47 @@ export function renderBacklogList(onRendered) {
   let filtered = ITEMS.filter(i => {
     if (i.status === 'historico') return false;
     const type = itemType(i.code);
-    const typeOk = type ? _getActiveTypes().has(type) : true;
-    const statusOk = _getActiveStatuses().has(i.status);
+    const typeOk = type ? activeTypes.has(type) : true;
+    const statusOk = activeStatuses.has(i.status);
     const _rawEffort = parseInt(i.effort) || 1;
     const _normEffort = _rawEffort > 3 ? 3 : _rawEffort < 1 ? 1 : _rawEffort;
-    const effortOk = _getActiveEfforts().has(_normEffort); // T-071 · B-202605-233: effort >3 normalizado a 3
+    const effortOk = activeEfforts.has(_normEffort); // T-071 · B-202605-233: effort >3 normalizado a 3
     // T-202604-245: filtro de rol
     let roleOk = true;
-    if (_getActiveRoleFilter() === '__none__') {
+    if (activeRoleFilter === '__none__') {
       roleOk = !i.role || !i.role.trim();
-    } else if (_getActiveRoleFilter() !== null) {
-      roleOk = (i.role || '').trim() === _getActiveRoleFilter();
+    } else if (activeRoleFilter !== null) {
+      roleOk = (i.role || '').trim() === activeRoleFilter;
     }
     const isChild = !!i.parentId; // en modo árbol, hijos aparecen bajo su R padre
     // T-202604-357: filtro por prioridad — vacío = todos
     let priorityOk = true;
-    if (_getActivePriorityFilter().size > 0) {
+    if (activePriorityFilter.size > 0) {
       const p = i.priority || 'medium';
       const isHigh = p === 'high' || p === 'important' || p === 'critical' || p === 'importante';
       const isLow  = p === 'low' || p === 'futura' || p === 'baja';
-      if (_getActivePriorityFilter().has('high') && isHigh) priorityOk = true;
-      else if (_getActivePriorityFilter().has('low') && isLow) priorityOk = true;
-      else if (_getActivePriorityFilter().has('medium') && !isHigh && !isLow) priorityOk = true;
+      if (activePriorityFilter.has('high') && isHigh) priorityOk = true;
+      else if (activePriorityFilter.has('low') && isLow) priorityOk = true;
+      else if (activePriorityFilter.has('medium') && !isHigh && !isLow) priorityOk = true;
       else priorityOk = false;
     }
-    return typeOk && statusOk && effortOk && roleOk && priorityOk && (_getBacklogTreeMode() ? !isChild : true);
+    return typeOk && statusOk && effortOk && roleOk && priorityOk && (_backlogTreeMode ? !isChild : true);
   });
 
   // T-202604-363: Sin AC — solo pendientes sin criterios de aceptación
-  if (_getBacklogNoAcMode()) {
+  if (_backlogNoAcMode) {
     filtered = filtered.filter(i => i.status === 'pendiente' && (!i.ac || !i.ac.length));
   }
 
   // R-[tmp:toolbar-backlog-redesign]: solo bloqueados — pendiente con sprint asignado sin cambio >14 días
-  if (_getBacklogBlockerFilter()) {
+  if (_backlogBlockerFilter) {
     filtered = filtered.filter(i => _isBlocked(i));
   }
 
   // T-202605-449: filtro por dependencias explícitas bloqueantes
-  if (_getDepsFilter() === 1) {
+  if (_depsFilter === 1) {
     filtered = filtered.filter(i => _hasDepsBlocked(i));
-  } else if (_getDepsFilter() === 2) {
+  } else if (_depsFilter === 2) {
     filtered = filtered.filter(i => !_hasDepsBlocked(i) && i.status === 'pendiente');
   }
 
@@ -904,7 +902,7 @@ export function renderBacklogList(onRendered) {
   // AC: sprint activo + high→medium primero · sin sprint activo: score global · ≤10 = todos visibles
   // AC: NO filtra filtered — aplica _blfHidden en ítems fuera del Top-10 → buildBacklogItem añade clase
   filtered.forEach(item => { delete item._blfHidden; delete item._focusRank; });
-  if (_getBacklogFocusMode()) {
+  if (_backlogFocusMode) {
     const pendienteFiltered = filtered.filter(i => i.status === 'pendiente');
     const _focusActiveSprint = _getActiveSprint();
     let sorted;
@@ -935,11 +933,11 @@ export function renderBacklogList(onRendered) {
   }
 
   // T-202604-313/366: Mi vista — T's pendientes del rol activo en sprint activo
-  if (_getBacklogMikeMode()) {
+  if (_backlogMikeMode) {
     const _activeSprint = _getActiveSprint();
     if (_activeSprint) {
       const _miRoles = _getMiViewRoles();
-      const _miRole = _miRoles[_getMiViewRoleIndex() % _miRoles.length] || null;
+      const _miRole = _miRoles[_miViewRoleIndex % _miRoles.length] || null;
       filtered = filtered.filter(i =>
         itemType(i.code) === 'T' &&
         i.status === 'pendiente' &&
@@ -949,13 +947,13 @@ export function renderBacklogList(onRendered) {
     }
   }
 
-  // T-202604-065: sort dentro de cada grupo — T-072: respeta _getBacklogSortDir()
+  // T-202604-065: sort dentro de cada grupo — T-072: respeta backlogSortDir
   const _priOrder = { high: 0, important: 0, critical: 0, importante: 0, medium: 1, low: 2, futura: 2, baja: 2 };
   const _typeOrder = { B: 0, T: 1, R: 2, I: 3 };
-  const _dir = _getBacklogSortDir() === 'desc' ? -1 : 1;
+  const _dir = backlogSortDir === 'desc' ? -1 : 1;
 
   // T-202604-424: sort interno dentro de cada grupo de sprint — priority desc → effort asc
-  // B-[pendiente-ID]: aplicar _dir para respetar _getBacklogSortDir() — el botón ↑↓ ahora funciona en modo sprint group
+  // B-[pendiente-ID]: aplicar _dir para respetar backlogSortDir — el botón ↑↓ ahora funciona en modo sprint group
   function _sortGroup(arr) {
     return [...arr].sort((a, b) => {
       const pa = _priOrder[a.priority] ?? 1, pb = _priOrder[b.priority] ?? 1;
@@ -969,21 +967,21 @@ export function renderBacklogList(onRendered) {
   function _sortItems(arr) {
     return [...arr].sort((a, b) => {
       let cmp = 0;
-      if (_getBacklogSortMode() === 'priority') {
+      if (backlogSortMode === 'priority') {
         const pa = _priOrder[a.priority] ?? 1, pb = _priOrder[b.priority] ?? 1;
         cmp = pa !== pb ? pa - pb : a.code.localeCompare(b.code);
-      } else if (_getBacklogSortMode() === 'effort') {
+      } else if (backlogSortMode === 'effort') {
         const ea = parseInt(a.effort) || 1, eb = parseInt(b.effort) || 1;
         cmp = ea !== eb ? eb - ea : a.code.localeCompare(b.code);
-      } else if (_getBacklogSortMode() === 'type') {
+      } else if (backlogSortMode === 'type') {
         const ta = _typeOrder[itemType(a.code)] ?? 9, tb = _typeOrder[itemType(b.code)] ?? 9;
         cmp = ta !== tb ? ta - tb : a.code.localeCompare(b.code);
-      } else if (_getBacklogSortMode() === 'completedAt') {
+      } else if (backlogSortMode === 'completedAt') {
         // Ítems sin doneAt van al final (independiente de dir)
         const ha = a.doneAt != null, hb = b.doneAt != null;
         if (ha !== hb) return ha ? -1 : 1; // los que tienen fecha primero
         cmp = ha && hb ? (a.doneAt - b.doneAt) : a.code.localeCompare(b.code);
-      } else if (_getBacklogSortMode() === 'createdAt') {
+      } else if (backlogSortMode === 'createdAt') {
         // Ítems sin createdAt van al final (independiente de dir)
         const ha = a.createdAt != null, hb = b.createdAt != null;
         if (ha !== hb) return ha ? -1 : 1;
@@ -1005,10 +1003,10 @@ export function renderBacklogList(onRendered) {
   const _matchesQuery = q
     ? (i => i.code.toLowerCase().includes(q) || i.title.toLowerCase().includes(q) || (i.area || '').toLowerCase().includes(q))
     : () => true;
-  const doneItems      = _getActiveStatuses().has('done')
+  const doneItems      = activeStatuses.has('done')
     ? ITEMS.filter(i => i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
     : [];
-  const descartadoItems = _getActiveStatuses().has('descartado')
+  const descartadoItems = activeStatuses.has('descartado')
     ? ITEMS.filter(i => i.status === 'descartado' && _matchesQuery(i))
     : [];
 
@@ -1016,9 +1014,9 @@ export function renderBacklogList(onRendered) {
 
   // B-202605-206: agrupación por sprint es el comportamiento por defecto.
   // T-202604-424 eliminó 'sprint' como opción del selector de sort, pero la condición de entrada
-  // quedó atada a _getBacklogSortMode() === 'sprint' — inalcanzable. Fix: agrupar siempre que no haya
+  // quedó atada a backlogSortMode === 'sprint' — inalcanzable. Fix: agrupar siempre que no haya
   // un modo exclusivo activo que tome control del rendering (kanban, focus, mike, noAc).
-  const _useSprintGroups = _getBacklogSprintGroupMode() && !_getBacklogKanbanMode() && !_getBacklogFocusMode() && !_getBacklogMikeMode() && !_getBacklogNoAcMode();
+  const _useSprintGroups = _backlogSprintGroupMode && !_backlogKanbanMode && !_backlogFocusMode && !_backlogMikeMode && !_backlogNoAcMode;
 
   if (_useSprintGroups) {
     // ── Modo Sprint: agrupar pendientes por sprint ──
@@ -1090,7 +1088,7 @@ export function renderBacklogList(onRendered) {
       const sprintObj = isSinAsignar ? null : _getSprintById(key);
       const label = isSinAsignar ? 'Sin asignar' : (sprintObj ? sprintObj.label : key);
       const groupId = isSinAsignar ? 'sin-asignar' : key.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const isCollapsed = _getCollapsedVersions().has(groupId);
+      const isCollapsed = collapsedVersions.has(groupId);
       const doneInGroup = ITEMS.filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key) && i.status === 'done').length;
       const totalInGroup = ITEMS.filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key)).length;
       const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
@@ -1145,7 +1143,7 @@ export function renderBacklogList(onRendered) {
 
     // R-202604-051: sección Bloqueantes activos — sobre En curso y Pendientes
     const blockingItems = pendienteItems.filter(i => i.blocking);
-    if (blockingItems.length && _getActiveStatuses().has('pendiente')) {
+    if (blockingItems.length && activeStatuses.has('pendiente')) {
       html += `<div class="section-group section-group--blocking" id="sg-blocking">
         <div class="section-group-header section-group-header--blocking">
           <span class="section-group-icon">⚠</span>
@@ -1171,7 +1169,7 @@ export function renderBacklogList(onRendered) {
   }
 
   // T-202604-427: Ideas (P) — sección diferenciada, colapsada por defecto, antes de done
-  if (ideaItems.length && _getActiveTypes().has('P')) {
+  if (ideaItems.length && activeTypes.has('P')) {
     const ideasOpen = localStorage.getItem('backlog-ideas-open') === '1';
     html += `<div class="section-group sg-ideas" id="sg-ideas">
       <div class="section-group-header" onclick="toggleSectionGroup('ideas')">
@@ -1200,7 +1198,7 @@ export function renderBacklogList(onRendered) {
   }
 
   // T-202604-059: Descartados — colapsados por defecto, visibles solo si filtro activo
-  if (descartadoItems.length && _getActiveStatuses().has('descartado')) {
+  if (descartadoItems.length && activeStatuses.has('descartado')) {
     const discOpen = localStorage.getItem('backlog-discarded-open') === '1';
     html += `<div class="section-group sg-discarded" id="sg-discarded">
       <div class="section-group-header" onclick="toggleSectionGroup('discarded')">
@@ -1214,15 +1212,15 @@ export function renderBacklogList(onRendered) {
   }
 
   // B-202604-NNN: evaluar empty state sobre pendientes+done+descartados — no solo filtered (pendientes)
-  const _hasVisible = pendienteItems.length || ideaItems.length || doneItems.length || (descartadoItems.length && _getActiveStatuses().has('descartado'));
+  const _hasVisible = pendienteItems.length || ideaItems.length || doneItems.length || (descartadoItems.length && activeStatuses.has('descartado'));
   if (!_hasVisible) {
     // T-202604-319: empty state contextual según causa
     const _activeSprint = _getActiveSprint();
-    const _hasTypeFilter  = _getActiveTypes().size < 4;
-    const _hasRoleFilter  = _getActiveRoleFilter() !== null;
-    const _hasStatusFilter = !(_getActiveStatuses().has('pendiente') && _getActiveStatuses().size === 1);
-    const _hasEffortFilter = _getActiveEfforts().size < 3;
-    const _hasAnyFilter = q || _hasTypeFilter || _hasRoleFilter || _hasStatusFilter || _hasEffortFilter || _getBacklogFocusMode() || _getBacklogMikeMode();
+    const _hasTypeFilter  = activeTypes.size < 4;
+    const _hasRoleFilter  = activeRoleFilter !== null;
+    const _hasStatusFilter = !(activeStatuses.has('pendiente') && activeStatuses.size === 1);
+    const _hasEffortFilter = activeEfforts.size < 3;
+    const _hasAnyFilter = q || _hasTypeFilter || _hasRoleFilter || _hasStatusFilter || _hasEffortFilter || _backlogFocusMode || _backlogMikeMode;
 
     let emptyIcon = '🔍', emptyTitle = '', emptyHint = '', emptyCTA = '';
 
@@ -1230,19 +1228,19 @@ export function renderBacklogList(onRendered) {
       emptyTitle = `Sin resultados para "${esc(q)}"`;
       emptyHint  = 'Prueba con otro término o limpia la búsqueda.';
       emptyCTA   = `<button class="empty-state-btn" onclick="clearBacklogSearch()">✕ Limpiar búsqueda</button>`;
-    } else if (_getBacklogMikeMode() && _activeSprint) {
+    } else if (_backlogMikeMode && _activeSprint) {
       const _miRoles = _getMiViewRoles();
-      const _miRole = _miRoles[_getMiViewRoleIndex() % _miRoles.length] || 'este rol';
+      const _miRole = _miRoles[_miViewRoleIndex % _miRoles.length] || 'este rol';
       emptyIcon  = '⚡';
       emptyTitle = `Sin T's pendientes para ${_miRole} en ${_activeSprint.label || _activeSprint.id}`;
       emptyHint  = 'No hay tickets pendientes asignados a este rol en el sprint activo. Rota al siguiente rol o desactiva Mi vista.';
       emptyCTA   = `<button class="empty-state-btn" onclick="toggleBacklogMikeMode()">↻ Rotar rol / desactivar</button>`;
-    } else if (_getBacklogFocusMode()) {
+    } else if (_backlogFocusMode) {
       emptyIcon  = '🎯';
       emptyTitle = 'Sin ítems en Focus';
       emptyHint  = 'No hay ítems pendientes con los filtros actuales.';
       emptyCTA   = `<button class="empty-state-btn" onclick="toggleBacklogFocusMode()">✕ Desactivar Focus</button>`;
-    } else if (_getBacklogSortMode() === 'sprint' && _activeSprint) {
+    } else if (backlogSortMode === 'sprint' && _activeSprint) {
       emptyIcon  = '📅';
       emptyTitle = `Sin ítems en ${_activeSprint.label || _activeSprint.id}`;
       emptyHint  = 'El sprint activo no tiene ítems con los filtros actuales. Asigna ítems desde el editor o cambia el sprint.';
@@ -1297,11 +1295,11 @@ export function renderBacklogList(onRendered) {
     if (!inp) return;
     const parts = [];
     const activeSprint = _getActiveSprint();
-    const sprintFiltered = _getBacklogSortMode() === 'sprint' && activeSprint && !_getActiveStatuses().has('done') && !_getActiveStatuses().has('descartado');
+    const sprintFiltered = backlogSortMode === 'sprint' && activeSprint && !activeStatuses.has('done') && !activeStatuses.has('descartado');
     if (sprintFiltered) parts.push(activeSprint.label || activeSprint.id);
-    if (_getActiveTypes().size < 4) parts.push([..._getActiveTypes()].join('/'));
-    if (_getActivePriorityFilter().size > 0) parts.push('pri:' + [..._getActivePriorityFilter()].join('/'));
-    const scopeCount = (pendienteItems.length + doneItems.length + (descartadoItems.length && _getActiveStatuses().has('descartado') ? descartadoItems.length : 0));
+    if (activeTypes.size < 4) parts.push([...activeTypes].join('/'));
+    if (activePriorityFilter.size > 0) parts.push('pri:' + [...activePriorityFilter].join('/'));
+    const scopeCount = (pendienteItems.length + doneItems.length + (descartadoItems.length && activeStatuses.has('descartado') ? descartadoItems.length : 0));
     if (parts.length) {
       inp.placeholder = '🔍 Buscando en ' + parts.join(' · ') + ' · ' + scopeCount + ' ítem' + (scopeCount !== 1 ? 's' : '');
     } else {

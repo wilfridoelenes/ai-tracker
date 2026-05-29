@@ -1,7 +1,0 @@
-{
-  "buildCommand": "sh generate-env.sh",
-  "outputDirectory": ".",
-  "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
-  ]
-}

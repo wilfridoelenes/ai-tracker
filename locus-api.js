@@ -5,13 +5,13 @@
 
 // ── Imports explícitos por módulo de origen ────────────────────────────────────
 import { showToast, showToastDigest, showToastInline, toast } from './locus-toast.js';
-import { switchTab, switchSubTab, applyTheme } from './locus-ui-shell.js';
+import { switchTab, switchSubTab } from './locus-ui-shell.js';
 import { render } from './locus-sesiones.js';
-import { startSessionTimer, renderSuggestionBanner, _maybeShowWeeklySummary } from './locus-sesiones-utils.js';
+import { startSessionTimer, renderSuggestionBanner } from './locus-sesiones-utils.js';
 import {
   save, saveImmediate, saveBacklog, saveContextDocs,
   getActiveProject, getActiveSprints, getAllSessions, getAI,
-  _effectiveVersion, _initApp
+  _effectiveVersion
 } from './locus-storage.js';
 import { openPulsoPanel, closePulsoPanel, renderPulsoDot } from './locus-pulso.js';
 import { closeModal } from './locus-modals.js';
@@ -20,25 +20,12 @@ import {
 } from './locus-map-viewer.js';
 import { renderGlobalRadarSidebar } from './locus-radar.js';
 import { _getActiveProjectFilter, exportBacklogMd } from './locus-sprint-project.js';
-import { _itemVizClose, _itemVizConfirm, closeCkptPanel } from './locus-sesiones-viz.js';
-import { initCommandPalette, openCommandPalette } from './locus-command-palette.js';
 
 // window.Locus = {} — bridge para handlers inline de index.html
 window.Locus = {};
 // Bridge para romper ciclo storage ↔ sprint-project — storage accede via window en runtime
 window._getActiveProjectFilter = _getActiveProjectFilter;
 window._exportBacklogMd        = exportBacklogMd;
-
-// Funciones llamadas directamente desde scripts inline de index.html (no type=module)
-window._initApp                = _initApp;
-window._effectiveVersion       = _effectiveVersion;
-window._itemVizClose           = _itemVizClose;
-window._itemVizConfirm         = _itemVizConfirm;
-window._maybeShowWeeklySummary = _maybeShowWeeklySummary;
-window.applyTheme              = applyTheme;
-window.closeCkptPanel          = closeCkptPanel;
-window.initCommandPalette      = initCommandPalette;
-window.openCommandPalette      = openCommandPalette;
 
 // ── locus-toast.js ────────────────────────────────────────────────────────────
 window.Locus.showToast        = showToast;
