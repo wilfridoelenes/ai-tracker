@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -1132,4 +1132,10 @@ function toggleTmplTriggerPanel(btn) {
   document.addEventListener('keydown', _onIdpKeydown);
   document.addEventListener('blur', _onIdpBlur, true); // capture para blur
 })();
+
+// Exposición global — funciones llamadas desde inline handlers HTML generados dinámicamente
+window.openItemPanel  = openItemPanel;
+window.closeItemPanel = closeItemPanel;
+window.toggleFocusMode = toggleFocusMode;
+window.exitFocusMode   = exitFocusMode;
 
