@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-29 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -12,7 +12,7 @@ import { renderGlobalRadarSidebar } from './locus-radar.js';
 import { _updateHeaderProjectLabel, renderStatusBar, updateStats } from './locus-sesiones-stats.js';
 // _isInSession — en sesiones-stats pero verificar export; fallback window
 const _isInSession = (ai) => typeof window._isInSession === 'function' ? window._isInSession(ai) : false;
-import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer } from './locus-sesiones-utils.js';
+import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer, _buildSuggestionReason } from './locus-sesiones-utils.js';
 import { _templateTrigger, relDate } from './locus-session-hora.js';
 // fmt12, getCD, _isInSession — módulo fuente pendiente de confirmar; acceso via window con fallback
 const fmt12  = (...a) => typeof window.fmt12  === 'function' ? window.fmt12(...a)  : a[0] || '';

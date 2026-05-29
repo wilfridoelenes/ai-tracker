@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -37,6 +37,9 @@ import { openAddAI } from './locus-workers.js';
 // Vive aquí porque locus-ui-shell.js carga primero
 
 export function esc(s) { return s ? (s + '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''; }
+
+// ── Sub-tab state ──────────────────────────────────────────────────────────
+let currentSubTab = 'backlog';
 
 // ── Tab switching ──────────────────────────────────────────────────────────
 
