@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -243,6 +243,9 @@ document.addEventListener('click', function(e) {
 // ═══════════════════════════════════════════════════════════════
 
 let _itemPanelCode = null;
+
+// T-202604-253: estado de ítem seleccionado en lista (Space → done)
+let _backlogSelectedCode = null;
 
 // B-244: Modo Focus — estado y función toggle
 let _focusModeActive = false;

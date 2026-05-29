@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -13,7 +13,7 @@
 //   session.js   → navigateToCard, openQuickCapture
 //   checkpoint.js → showCheckpointPanel
 
-import { _computeNotifications, _notifConfig, _notifConfigSetEnabled, _notifConfigSetThreshold, _notifGoto, _notifReadSet, _registerNotifActions, markAllNotifsRead, markNotifRead, updateTabNotifBadges } from './locus-notifications.js';
+import { _NOTIF_DEFAULTS, _computeNotifications, _notifConfig, _notifConfigSetEnabled, _notifConfigSetThreshold, _notifGoto, _notifReadSet, _registerNotifActions, markAllNotifsRead, markNotifRead, updateTabNotifBadges } from './locus-notifications.js';
 import { openQuickCapture } from './locus-sesiones-capture.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
 import { getAISessions, getState } from './locus-storage.js';

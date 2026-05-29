@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -44,7 +44,7 @@ function _notifHistoryAdd(notif) {
 
 // Configuración de notificaciones — tipos habilitados y umbrales de tiempo
 // B-202605-240: persiste en localStorage
-const _NOTIF_DEFAULTS = {
+export const _NOTIF_DEFAULTS = {
   unblocked:     { enabled: true,  label: 'Bloqueante resuelto',              threshold: 7  },
   sprintOrphans: { enabled: true,  label: 'Sprint cerrado con pendientes',    threshold: 0  },
   itemInactivo:  { enabled: true,  label: 'Ítem sin sesión vinculada',        threshold: 14 },
