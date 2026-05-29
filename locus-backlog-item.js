@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -26,6 +26,20 @@ import { esc } from './locus-ui-shell.js';
 
 // Labels de tipo de ítem para display en UI
 const TYPE_LABELS = { R: 'Requerimiento', T: 'Ticket', B: 'Bug', P: 'Posibilidad' };
+
+// Helpers de badge — funciones del monolito original declaradas localmente al modularizar
+function badgeLabel(priority) {
+  return { high: 'Alta', medium: 'Media', low: 'Baja' }[priority] || priority || '—';
+}
+function badgeClass(priority) {
+  return 'badge-prio-' + (priority || 'medium');
+}
+function statusLabel(status) {
+  return { pendiente: 'Pendiente', 'en-revision': 'En revisión', done: 'Done', descartado: 'Descartado', historico: 'Histórico' }[status] || status || '—';
+}
+function statusClass(status) {
+  return 'badge-status-' + (status || 'pendiente');
+}
 
 // ── Estado del módulo ──────────────────────────────────────────────────────
 // Búsqueda activa — compartida con locus-backlog-render.js via window.backlogSearchQuery
