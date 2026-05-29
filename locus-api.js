@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-29 UTC-6
 // locus-api.js
 // Última actualización: 2026-05-28 | Contrato público del ecosistema Locus
 // Carga como ÚLTIMO script en index.html — todos los módulos ya están definidos.
@@ -19,9 +19,13 @@ import {
   renderHtmlMap, setHtmlMapFilter, loadHtmlMap, updateHtmlMapBanner
 } from './locus-map-viewer.js';
 import { renderGlobalRadarSidebar } from './locus-radar.js';
+import { _getActiveProjectFilter, exportBacklogMd } from './locus-sprint-project.js';
 
 // window.Locus = {} — bridge para handlers inline de index.html
 window.Locus = {};
+// Bridge para romper ciclo storage ↔ sprint-project — storage accede via window en runtime
+window._getActiveProjectFilter = _getActiveProjectFilter;
+window._exportBacklogMd        = exportBacklogMd;
 
 // ── locus-toast.js ────────────────────────────────────────────────────────────
 window.Locus.showToast        = showToast;

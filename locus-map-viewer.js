@@ -126,7 +126,7 @@ export function updateHtmlMapBanner() {
 
 // ── setHtmlMapFilter ───────────────────────────────────────────────────────
 // AC-5: actualiza htmlMapFilter, activa pill correcta, llama renderHtmlMap.
-function setHtmlMapFilter(f) {
+export function setHtmlMapFilter(f) {
   htmlMapFilter = f;
   document.querySelectorAll('.hmfilter-pill').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.file === f || (f === 'all' && btn.dataset.file === 'all'));

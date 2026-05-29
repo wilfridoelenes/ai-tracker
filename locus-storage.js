@@ -11,8 +11,21 @@ import { _markPulsoDotDirty, renderPulsoDot } from './locus-pulso.js';
 import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js';
 import { _markStatusBarDirty, renderStatusBar, updateStats } from './locus-sesiones-stats.js';
 import { _markTrackerDirty, render } from './locus-sesiones.js';
-import { _getActiveProjectFilter, exportBacklogMd } from './locus-sprint-project.js';
 import { showToast } from './locus-toast.js';
+
+// ── Lazy references para romper ciclo storage ↔ sprint-project ────────────────
+// _getActiveProjectFilter y exportBacklogMd viven en locus-sprint-project.js,
+// que a su vez importa locus-storage.js → ciclo ES module → TDZ en _supabaseUser.
+// Solución: acceso en runtime via window (locus-api.js expone ambas funciones).
+function _getActiveProjectFilter() {
+  return typeof window._getActiveProjectFilter === 'function'
+    ? window._getActiveProjectFilter()
+    : (window.Locus?._getActiveProjectFilter?.() ?? null);
+}
+function exportBacklogMd() {
+  if (typeof window._exportBacklogMd === 'function') return window._exportBacklogMd();
+  if (typeof window.Locus?.exportBacklogMd === 'function') return window.Locus.exportBacklogMd();
+}
 // No contiene lógica de UI, render, toast ni timer de sesión.
 
 // ── VARIABLES DE MÓDULO ───────────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-29 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
@@ -1369,7 +1369,7 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
 // T-047: inicializar botón de rango activo al cargar
 (function() {
   const saved = parseInt(localStorage.getItem('analytics-range') || '3', 10);
-  _analyticsRange = saved;
+  if (typeof setAnalyticsRange === 'function') setAnalyticsRange(saved);
   document.querySelectorAll('.range-btn').forEach(b => {
     b.classList.toggle('active', parseInt(b.dataset.range) === saved);
   });
