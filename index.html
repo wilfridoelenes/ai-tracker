@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-28 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-05-28 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -891,27 +891,27 @@
 
 
 <!-- T-077: Panel lateral proyectos -->
-<div class="proj-panel-overlay" id="proj-panel-overlay" onclick="if(event.target===this)closeProjPanel()">
+<div class="proj-panel-overlay" id="proj-panel-overlay">
   <div class="proj-panel">
     <div class="proj-panel-header">
       <div class="proj-panel-title">🗂 Proyectos</div>
-      <button type="button" onclick="closeProjPanel()">Cerrar</button>
+      <button type="button" id="proj-panel-close-btn">Cerrar</button>
     </div>
     <div class="proj-panel-body" id="proj-panel-body"></div>
     <div class="proj-panel-actions">
-      <button class="btn-primary proj-panel-btn-sm" onclick="closeProjPanel();openProjModal()">+ Nuevo proyecto</button>
-      <button class="btn-ghost proj-panel-btn-sm" onclick="closeProjPanel();openProjModal()">⚙ Gestionar</button>
+      <button class="btn-primary proj-panel-btn-sm" id="proj-panel-btn-nuevo">+ Nuevo proyecto</button>
+      <button class="btn-ghost proj-panel-btn-sm" id="proj-panel-btn-gestionar">⚙ Gestionar</button>
       <button class="btn-ghost proj-panel-btn-sm" id="proj-panel-btn-templates">📂 Templates</button>
     </div>
   </div>
 </div>
 
 <!-- T-080: Modal gestión proyectos -->
-<div class="proj-modal-overlay" id="proj-modal-overlay" onclick="if(event.target===this)closeProjModal()">
+<div class="proj-modal-overlay" id="proj-modal-overlay">
   <div class="proj-modal">
     <div class="proj-modal-header">
       <div class="proj-modal-title">Gestionar proyectos</div>
-      <button type="button" onclick="closeProjModal()">✕</button>
+      <button type="button" id="proj-modal-close-btn">✕</button>
     </div>
     <div class="proj-modal-body">
       <!-- Formulario crear/editar -->
@@ -921,7 +921,7 @@
           <label class="proj-form-label">Nombre</label>
           <div class="proj-form-row">
             <input class="proj-emoji-input" id="proj-emoji" maxlength="2" placeholder="📁" title="Emoji del proyecto">
-            <input class="proj-form-input" id="proj-name-input" placeholder="Nombre del proyecto..." maxlength="40" onkeydown="if(event.key==='Enter')confirmProjForm()">
+            <input class="proj-form-input" id="proj-name-input" placeholder="Nombre del proyecto..." maxlength="40">
           </div>
         </div>
         <div>
@@ -937,8 +937,8 @@
           <textarea class="proj-notes-input" id="proj-notes-input" placeholder="Descripción, cliente, contexto..." maxlength="300"></textarea>
         </div>
         <div class="proj-form-actions">
-          <button class="btn-ghost proj-form-btn-sm" id="proj-form-cancel-btn" onclick="cancelProjForm()">Cancelar</button>
-          <button class="btn-primary proj-form-btn-sm" onclick="confirmProjForm()" id="proj-form-confirm-btn">Guardar</button>
+          <button class="btn-ghost proj-form-btn-sm" id="proj-form-cancel-btn">Cancelar</button>
+          <button class="btn-primary proj-form-btn-sm" id="proj-form-confirm-btn">Guardar</button>
         </div>
       </div>
       <!-- Lista proyectos existentes -->
@@ -1381,16 +1381,16 @@
   </div>
 </div>
 
-<div class="modal-overlay is-hidden" id="notif-config-overlay" onclick="if(event.target===this)closeNotifConfig()">
+<div class="modal-overlay is-hidden" id="notif-config-overlay">
   <div class="modal modal--notif-config" id="notif-config-panel" role="dialog" aria-modal="true" aria-label="Configurar notificaciones">
     <div class="modal-header">
       <span class="modal-title">🔔 Notificaciones</span>
-      <button class="modal-close" onclick="closeNotifConfig()" aria-label="Cerrar">×</button>
+      <button class="modal-close" id="notif-config-close-btn" aria-label="Cerrar">×</button>
     </div>
     <div class="modal-body" id="notif-config-body"></div>
     <div class="modal-footer">
-      <button class="btn-ghost" onclick="_notifConfigReset()">Restaurar por defecto</button>
-      <button class="btn-primary" onclick="closeNotifConfig()">Listo</button>
+      <button class="btn-ghost" id="notif-config-reset-btn">Restaurar por defecto</button>
+      <button class="btn-primary" id="notif-config-listo-btn">Listo</button>
     </div>
   </div>
 </div>

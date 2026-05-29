@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
@@ -1318,6 +1318,36 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
   if (typeof _updateProjBreadcrumb === 'function') _updateProjBreadcrumb();
   if (typeof _updateProjFilterBtn === 'function') _updateProjFilterBtn();
   if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
+
+  // T-202605-064: bindings estáticos proj-panel (on* removidos de index.html)
+  const _projPanelOverlay = document.getElementById('proj-panel-overlay');
+  if (_projPanelOverlay) {
+    _projPanelOverlay.addEventListener('click', function(e) {
+      if (e.target === _projPanelOverlay) closeProjPanel();
+    });
+  }
+  const _projPanelCloseBtn = document.getElementById('proj-panel-close-btn');
+  if (_projPanelCloseBtn) _projPanelCloseBtn.addEventListener('click', closeProjPanel);
+  const _projPanelNuevoBtn = document.getElementById('proj-panel-btn-nuevo');
+  if (_projPanelNuevoBtn) _projPanelNuevoBtn.addEventListener('click', function() { closeProjPanel(); openProjModal(); });
+  const _projPanelGestionarBtn = document.getElementById('proj-panel-btn-gestionar');
+  if (_projPanelGestionarBtn) _projPanelGestionarBtn.addEventListener('click', function() { closeProjPanel(); openProjModal(); });
+
+  // T-202605-064: bindings estáticos proj-modal (on* removidos de index.html)
+  const _projModalOverlay = document.getElementById('proj-modal-overlay');
+  if (_projModalOverlay) {
+    _projModalOverlay.addEventListener('click', function(e) {
+      if (e.target === _projModalOverlay) closeProjModal();
+    });
+  }
+  const _projModalCloseBtn = document.getElementById('proj-modal-close-btn');
+  if (_projModalCloseBtn) _projModalCloseBtn.addEventListener('click', closeProjModal);
+  const _projFormCancelBtn = document.getElementById('proj-form-cancel-btn');
+  if (_projFormCancelBtn) _projFormCancelBtn.addEventListener('click', cancelProjForm);
+  const _projFormConfirmBtn = document.getElementById('proj-form-confirm-btn');
+  if (_projFormConfirmBtn) _projFormConfirmBtn.addEventListener('click', confirmProjForm);
+  const _projNameInput = document.getElementById('proj-name-input');
+  if (_projNameInput) _projNameInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') confirmProjForm(); });
 });
 
 

@@ -1,3 +1,4 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -361,6 +362,22 @@ function _notifConfigSetThreshold(key, val) {
   _saveNotifConfig(cfg);
   if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
 }
+
+function closeNotifConfig() {
+  const overlay = document.getElementById('notif-config-overlay');
+  if (overlay) overlay.classList.add('is-hidden');
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var _notifConfigCloseBtn = document.getElementById('notif-config-close-btn');
+  if (_notifConfigCloseBtn) _notifConfigCloseBtn.addEventListener('click', closeNotifConfig);
+
+  var _notifConfigResetBtn = document.getElementById('notif-config-reset-btn');
+  if (_notifConfigResetBtn) _notifConfigResetBtn.addEventListener('click', _notifConfigReset);
+
+  var _notifConfigListoBtn = document.getElementById('notif-config-listo-btn');
+  if (_notifConfigListoBtn) _notifConfigListoBtn.addEventListener('click', closeNotifConfig);
+});
 
 const _notifActionMap = {};
 function _registerNotifActions(notifs) {
