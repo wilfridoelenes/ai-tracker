@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-arranque.js
 // Responsabilidad: Panel de Sesión de Arranque — contexto diario al abrir la app
 //   (R-202604-072). Muestra resumen de ayer, ítem sugerido, estado IA y sesión del plan.
@@ -18,9 +19,11 @@ function closeArranquePanel() {
 }
 
 function _showArranquePanel() {
-  const overlay = document.getElementById('arranque-overlay');
-  const body    = document.getElementById('arranque-body');
-  const ctaBtn  = document.getElementById('arranque-cta-btn');
+  const overlay    = document.getElementById('arranque-overlay');
+  const body       = document.getElementById('arranque-body');
+  const ctaBtn     = document.getElementById('arranque-cta-btn');
+  const closeBtn   = document.getElementById('arranque-close-btn');
+  const verTodoBtn = document.getElementById('arranque-btn-ver-todo');
   if (!overlay || !body) return;
 
   // AC: no aparece si han pasado menos de 6h desde el último arranque (localStorage)
@@ -344,7 +347,7 @@ function _showArranquePanel() {
 
   // Footer CTA secundario: ir a Tracker
   if (ctaBtn) {
-    ctaBtn.onclick = () => {
+    ctaBtn.addEventListener('click', () => {
       closeArranquePanel();
       if (bestAI && typeof selectTrackerAI === 'function') {
         if (typeof switchTab === 'function') switchTab('sesiones');
@@ -352,8 +355,21 @@ function _showArranquePanel() {
       } else if (typeof switchTab === 'function') {
         switchTab('sesiones');
       }
-    };
+    });
     ctaBtn.textContent = bestAI ? `Arrancar con ${bestAI.name} →` : 'Arrancar →';
+  }
+
+  // Botón cerrar (✕)
+  if (closeBtn) {
+    closeBtn.addEventListener('click', () => closeArranquePanel());
+  }
+
+  // Botón ver todo — navega a tab sesiones sin seleccionar IA
+  if (verTodoBtn) {
+    verTodoBtn.addEventListener('click', () => {
+      closeArranquePanel();
+      if (typeof switchTab === 'function') switchTab('sesiones');
+    });
   }
 
   // AC: Escape y click fuera cierran el panel
