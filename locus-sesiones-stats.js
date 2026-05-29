@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-06 · mod:1 · autor:Rune · 2026-05-28 18:10 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -202,7 +203,7 @@ function renderStatusBar() {
     if (_pillWrap) {
       const { sp, spDone, spTotal, spPct, spLabel } = _getActiveSprintStats();
       if (sp) {
-        const pillHtml = `<button class="tgh-sprint-pill" onclick="if(typeof toggleSprintHealthPanel==='function')toggleSprintHealthPanel();" title="Ver sprint health">` +
+        const pillHtml = `<button class="tgh-sprint-pill" title="Ver sprint health">` +
           `<span class="tgh-sprint-name">${spLabel}</span>` +
           `<span class="tgh-sprint-sep">·</span>` +
           `<span class="tgh-sprint-progress">${spDone}/${spTotal}</span>` +
@@ -211,6 +212,12 @@ function renderStatusBar() {
           `<span class="tgh-sprint-bar-wrap"><span class="tgh-sprint-bar-fill" style="--pct:${spPct}%"></span></span>` +
           `</button>`;
         _pillWrap.innerHTML = pillHtml;
+        const _sprintPillBtn = _pillWrap.querySelector('.tgh-sprint-pill');
+        if (_sprintPillBtn) {
+          _sprintPillBtn.addEventListener('click', function() {
+            if (typeof toggleSprintHealthPanel === 'function') toggleSprintHealthPanel();
+          });
+        }
         _pillWrap.classList.add('hsr-visible');
         _pillWrap.classList.remove('is-hidden');
       } else {

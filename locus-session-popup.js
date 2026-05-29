@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-06 · mod:1 · autor:Rune · 2026-05-28 18:10 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -32,11 +33,11 @@ function openDetail(aiId, sessId) {
   // T-202604-190: botón "Completar sesión" para sesiones quick
   if (s.quickCapture) {
     topFields += `<div class="popup-section popup-section--sep">
-      <button class="btn-primary btn-primary--full" onclick="openCompleteQuickSession('${esc(aiId)}','${esc(s.id)}')">⚡ Completar sesión</button>
+      <button class="btn-primary btn-primary--full" data-popup-action="completeQuick" data-ai-id="${esc(aiId)}" data-sess-id="${esc(s.id)}">⚡ Completar sesión</button>
     </div>`;
   }
-  if (s.summary) topFields += `<div class="popup-section summary"><div class="popup-section-label">Resumen</div><div class="pop-editable popup-section-val" id="pop-field-summary" onclick="startPopupEdit('summary')" title="Editar resumen">${esc(s.summary)}<span class="pop-edit-icon">✏</span></div></div>`;
-  if (s.pending) topFields += `<div class="popup-section pending"><div class="popup-section-label">⏳ Pendiente</div><div class="pop-editable popup-section-val" id="pop-field-pending" onclick="startPopupEdit('pending')" title="Editar pendiente">${esc(s.pending)}<span class="pop-edit-icon">✏</span></div></div>`;
+  if (s.summary) topFields += `<div class="popup-section summary"><div class="popup-section-label">Resumen</div><div class="pop-editable popup-section-val" id="pop-field-summary" data-popup-edit="summary" title="Editar resumen">${esc(s.summary)}<span class="pop-edit-icon">✏</span></div></div>`;
+  if (s.pending) topFields += `<div class="popup-section pending"><div class="popup-section-label">⏳ Pendiente</div><div class="pop-editable popup-section-val" id="pop-field-pending" data-popup-edit="pending" title="Editar pendiente">${esc(s.pending)}<span class="pop-edit-icon">✏</span></div></div>`;
 
   // R-202604-039: campos de memoria narrativa — colapsados, solo si tienen contenido
   const _narrativeFields = [
@@ -52,7 +53,7 @@ function openDetail(aiId, sessId) {
     const _narBody = _narrativeFields.map(f =>
       `<div class="popup-section popup-section--pt"><div class="popup-section-label">${f.label}</div><div class="popup-section-val popup-section-val--pre">${esc(f.val)}</div></div>`
     ).join('');
-    topFields += `<div class="popup-secondary-toggle${_narClass}" id="pop-nar-toggle" onclick="(function(){var k='${_narKey}',o=sessionStorage.getItem(k)==='open';sessionStorage.setItem(k,o?'closed':'open');document.getElementById('pop-nar-toggle').classList.toggle('open',!o);document.getElementById('pop-nar-body').classList.toggle('open',!o);})()">
+    topFields += `<div class="popup-secondary-toggle${_narClass}" id="pop-nar-toggle" data-popup-action="toggleNar" data-nar-key="${esc(_narKey)}">
       <span class="toggle-arrow">▶</span>
       <span>Memoria narrativa</span>
     </div>
@@ -64,10 +65,9 @@ function openDetail(aiId, sessId) {
     topFields += `<div class="popup-section" id="pop-reset-section">
       <div class="popup-section-label">⏰ Hora de desbloqueo</div>
       <div class="pop-reset-row">
-        <input class="pop-reset-input" id="pop-reset-hora" type="text" maxlength="4" placeholder="--:--"
-          oninput="popParseHora()" onkeydown="if(event.key==='Enter')saveResetFromPopup()">
+        <input class="pop-reset-input" id="pop-reset-hora" type="text" maxlength="4" placeholder="--:--">
         <div class="pop-reset-disp" id="pop-reset-disp">—</div>
-        <button class="btn-primary btn-primary--sm" onclick="saveResetFromPopup()">Marcar agotada</button>
+        <button class="btn-primary btn-primary--sm" id="pop-reset-save-btn">Marcar agotada</button>
       </div>
     </div>`;
   }
@@ -78,13 +78,12 @@ function openDetail(aiId, sessId) {
     topFields += `<div class="popup-section" id="pop-correct-section">
       <div class="popup-section-label">⏰ Hora de desbloqueo <span class="popup-label-hint">· actual: ${esc(currentLabel)}</span></div>
       <div class="pop-reset-row">
-        <input class="pop-reset-input" id="pop-correct-hora" type="text" maxlength="4" placeholder="--:--"
-          oninput="popCorrectParseHora()" onkeydown="if(event.key==='Enter')saveCorrectHoraFromPopup()">
+        <input class="pop-reset-input" id="pop-correct-hora" type="text" maxlength="4" placeholder="--:--">
         <div class="pop-reset-disp" id="pop-correct-disp">—</div>
-        <button class="btn-primary btn-primary--sm" onclick="saveCorrectHoraFromPopup()">Guardar</button>
+        <button class="btn-primary btn-primary--sm" id="pop-correct-save-btn">Guardar</button>
       </div>
       <div class="popup-hora-hint-wrap">
-        <button class="btn-ghost" class="btn-unlock-now" onclick="unlockNowFromPopup()">✅ Desbloquear ahora</button>
+        <button class="btn-ghost btn-unlock-now" id="pop-unlock-now-btn">✅ Desbloquear ahora</button>
       </div>
     </div>`;
   }
@@ -104,7 +103,7 @@ function openDetail(aiId, sessId) {
     const rows = tgItems.map(x => `
       <div class="popup-tg-row">
         <span class="popup-tg-badge ${x.code[0]}">${x.code[0]}</span>
-        <button class="popup-tg-code popup-tg-code--link" onclick="navigateToBacklogItem('${esc(x.code)}')" title="Ir al ítem en Backlog">${esc(x.code)}</button>
+        <button class="popup-tg-code popup-tg-code--link" data-nav-item-code="${esc(x.code)}" title="Ir al ítem en Backlog">${esc(x.code)}</button>
         <span class="popup-tg-desc">${esc(x.desc)}</span>
         <span class="popup-tg-status">${esc(x.status)}</span>
       </div>`).join('');
@@ -123,7 +122,7 @@ function openDetail(aiId, sessId) {
     return t ? `<span class="tag tc-${ci >= 0 ? ci : 0}">${esc(t.name)}</span>` : '';
   }).join('');
   midFields += `<div class="popup-section"><div class="popup-section-label">Etiquetas</div>
-    <div class="tag-wrap tag-wrap--mt">${tagHtml}<button class="tag-add-btn" onclick="openTagModal('${aiId}','${sessId}')">+ etiqueta</button></div>
+    <div class="tag-wrap tag-wrap--mt">${tagHtml}<button class="tag-add-btn" data-popup-action="openTag" data-ai-id="${esc(aiId)}" data-sess-id="${esc(sessId)}">+ etiqueta</button></div>
   </div>`;
 
   // T-087: si sección media tiene contenido no trivial (archivos, tg, refs no vacíos) → mostrar toggle
@@ -135,7 +134,7 @@ function openDetail(aiId, sessId) {
 
   let midHtml = '';
   if (hasMidContent) {
-    midHtml = `<div class="popup-secondary-toggle${midOpenClass}" id="pop-mid-toggle" onclick="togglePopupMid('${sessId}')">
+    midHtml = `<div class="popup-secondary-toggle${midOpenClass}" id="pop-mid-toggle" data-popup-action="toggleMid" data-sess-id="${esc(sessId)}">
       <span class="toggle-arrow">▶</span>
       <span>Archivos · trazabilidad · etiquetas</span>
     </div>
@@ -176,14 +175,14 @@ function openDetail(aiId, sessId) {
       `<option value="${esc(p.id)}" ${p.id === _previewSessProjId ? 'selected' : ''}>${esc(p.icon || '📁')} ${esc(p.name)}</option>`
     ).join('');
     // T-202605-472: onchange no muta directamente — pide confirm inline antes de aplicar
-    const _previewProjSelect = `<select class="paste-proj-select preview-proj-select" id="preview-proj-${sessId}" title="Proyecto de esta sesión" onchange="_previewProjConfirmChange('${aiId}','${sessId}',this)"><option value="">sin proyecto</option>${_previewProjOpts}</select>`;
+    const _previewProjSelect = `<select class="paste-proj-select preview-proj-select" id="preview-proj-${sessId}" title="Proyecto de esta sesión"><option value="">sin proyecto</option>${_previewProjOpts}</select>`;
 
     previewHeader.innerHTML = `
-      <button class="tracker-preview-close" onclick="closePopup()" title="Cerrar">✕</button>
+      <button class="tracker-preview-close" id="pop-close-btn" title="Cerrar">✕</button>
       <div class="popup-header-body">
         <div class="changelog-row-body">
           ${_previewProjSelect}
-          <div class="pop-editable pop-editable--mt" id="pop-title-wrap" onclick="startPopupEdit('title')" title="Editar título">
+          <div class="pop-editable pop-editable--mt" id="pop-title-wrap" data-popup-edit="title" title="Editar título">
             <span class="popup-title" id="pop-title">${esc(s.title)}</span><span class="pop-edit-icon">✏</span>
           </div>
           <div class="popup-date" id="pop-meta"><span>${esc(ai.name)} · ${s.date}${s.resetAt ? ' · hasta ' + s.resetAt : ''}</span>${s.starred ? '<span class="pop-header-badge starred">⭐ destacada</span>' : ''}${s.quickCapture ? '<span class="pop-header-badge quick">⚡ rápida</span>' : ''}${(s.inReview && isLastSess) ? '<span class="pop-header-badge review">🔍 en revisión</span>' : ''}</div>
@@ -196,13 +195,13 @@ function openDetail(aiId, sessId) {
     // Footer — incluye confirm de borrado inline (B-fix: era appendChild a previewInner → overflow:hidden lo ocultaba)
     previewFooter.innerHTML = `
       <div class="popup-footer-row">
-        <button class="btn-ghost${s.starred ? ' starred' : ''}" id="pop-star-btn" onclick="starCurrentSession()" title="${s.starred ? 'Quitar destacado' : 'Destacar sesión'}">${s.starred ? '⭐' : '☆'}</button>
-        <button class="btn-ghost" class="btn-danger-sm" onclick="openDeleteConfirm()" title="Eliminar sesión">🗑</button>
+        <button class="btn-ghost${s.starred ? ' starred' : ''}" id="pop-star-btn" title="${s.starred ? 'Quitar destacado' : 'Destacar sesión'}">${s.starred ? '⭐' : '☆'}</button>
+        <button class="btn-ghost btn-danger-sm" id="pop-delete-open-btn" title="Eliminar sesión">🗑</button>
       </div>
       <div id="pop-delete-confirm" class="pop-delete-confirm">
         <span class="confirm-text">¿Eliminar esta sesión?</span>
-        <button class="confirm-no" onclick="closeDeleteConfirm()">Cancelar</button>
-        <button class="confirm-yes" onclick="deleteCurrentSession()">Eliminar</button>
+        <button class="confirm-no" id="pop-delete-cancel-btn">Cancelar</button>
+        <button class="confirm-yes" id="pop-delete-confirm-btn">Eliminar</button>
       </div>`;
 
     // Show panel
@@ -210,6 +209,92 @@ function openDetail(aiId, sessId) {
     previewInner.classList.remove('is-hidden'); previewInner.classList.add('d-flex');
     tab.classList.add('preview-open');
     preview.scrollTop = 0;
+
+    // ── Event delegation post-render — CSS Purity ────────────────────────
+    const _pdClose = document.getElementById('pop-close-btn');
+    if (_pdClose) _pdClose.addEventListener('click', closePopup);
+
+    const _pdStar = document.getElementById('pop-star-btn');
+    if (_pdStar) _pdStar.addEventListener('click', starCurrentSession);
+
+    const _pdDeleteOpen = document.getElementById('pop-delete-open-btn');
+    if (_pdDeleteOpen) _pdDeleteOpen.addEventListener('click', openDeleteConfirm);
+
+    const _pdDeleteCancel = document.getElementById('pop-delete-cancel-btn');
+    if (_pdDeleteCancel) _pdDeleteCancel.addEventListener('click', closeDeleteConfirm);
+
+    const _pdDeleteConfirm = document.getElementById('pop-delete-confirm-btn');
+    if (_pdDeleteConfirm) _pdDeleteConfirm.addEventListener('click', deleteCurrentSession);
+
+    const _pdProjSel = document.getElementById('preview-proj-' + sessId);
+    if (_pdProjSel) _pdProjSel.addEventListener('change', function() { _previewProjConfirmChange(aiId, sessId, this); });
+
+    // Campos editables (summary, pending, title)
+    previewBody.querySelectorAll('[data-popup-edit]').forEach(function(el) {
+      el.addEventListener('click', function() { startPopupEdit(el.dataset.popupEdit); });
+    });
+    previewHeader.querySelectorAll('[data-popup-edit]').forEach(function(el) {
+      el.addEventListener('click', function() { startPopupEdit(el.dataset.popupEdit); });
+    });
+
+    // Toggle narrativa
+    const _pdNarToggle = document.getElementById('pop-nar-toggle');
+    if (_pdNarToggle) {
+      _pdNarToggle.addEventListener('click', function() {
+        const k = _pdNarToggle.dataset.narKey;
+        const o = sessionStorage.getItem(k) === 'open';
+        sessionStorage.setItem(k, o ? 'closed' : 'open');
+        _pdNarToggle.classList.toggle('open', !o);
+        const narBody = document.getElementById('pop-nar-body');
+        if (narBody) narBody.classList.toggle('open', !o);
+      });
+    }
+
+    // Toggle mid
+    const _pdMidToggle = document.getElementById('pop-mid-toggle');
+    if (_pdMidToggle) {
+      _pdMidToggle.addEventListener('click', function() {
+        togglePopupMid(_pdMidToggle.dataset.sessId);
+      });
+    }
+
+    // Botones de hora reset
+    const _pdResetInput = document.getElementById('pop-reset-hora');
+    if (_pdResetInput) {
+      _pdResetInput.addEventListener('input', function() { popParseHora(); });
+      _pdResetInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveResetFromPopup(); });
+    }
+    const _pdResetSave = document.getElementById('pop-reset-save-btn');
+    if (_pdResetSave) _pdResetSave.addEventListener('click', saveResetFromPopup);
+
+    // Botones de hora corrección
+    const _pdCorrectInput = document.getElementById('pop-correct-hora');
+    if (_pdCorrectInput) {
+      _pdCorrectInput.addEventListener('input', function() { popCorrectParseHora(); });
+      _pdCorrectInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveCorrectHoraFromPopup(); });
+    }
+    const _pdCorrectSave = document.getElementById('pop-correct-save-btn');
+    if (_pdCorrectSave) _pdCorrectSave.addEventListener('click', saveCorrectHoraFromPopup);
+
+    const _pdUnlockNow = document.getElementById('pop-unlock-now-btn');
+    if (_pdUnlockNow) _pdUnlockNow.addEventListener('click', unlockNowFromPopup);
+
+    // Quick capture complete
+    previewBody.querySelectorAll('[data-popup-action="completeQuick"]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        openCompleteQuickSession(btn.dataset.aiId, btn.dataset.sessId);
+      });
+    });
+
+    // Tags
+    previewBody.querySelectorAll('[data-popup-action="openTag"]').forEach(function(btn) {
+      btn.addEventListener('click', function() { openTagModal(btn.dataset.aiId, btn.dataset.sessId); });
+    });
+
+    // Nav a backlog items (tgItems)
+    previewBody.querySelectorAll('[data-nav-item-code]').forEach(function(btn) {
+      btn.addEventListener('click', function() { navigateToBacklogItem(btn.dataset.navItemCode); });
+    });
   }
 }
 function closePopup() {
@@ -493,10 +578,10 @@ function renderBacklogRefs(s) {
       const statusLabel = {'pendiente':'Pendiente','done':'Hecho'}[status] || status;
       html += `<div class="popup-tg-row">
         <span class="popup-tg-badge ${type}">${type}</span>
-        <button class="popup-tg-code popup-tg-code--link" onclick="navigateToBacklogItem('${esc(code)}')" title="Ir al ítem en Backlog">${esc(code)}</button>
+        <button class="popup-tg-code popup-tg-code--link" data-nav-item-code="${esc(code)}" title="Ir al ítem en Backlog">${esc(code)}</button>
         <span class="popup-tg-desc">${esc(desc)}</span>
         <span class="popup-tg-status">${esc(statusLabel)}</span>
-        <button class="popup-ref-unlink" onclick="unlinkBacklogItem('${esc(code)}')" title="Desvincular">✕</button>
+        <button class="popup-ref-unlink" data-unlink-code="${esc(code)}" title="Desvincular">✕</button>
       </div>`;
     });
   } else {
@@ -507,7 +592,7 @@ function renderBacklogRefs(s) {
   if (typeof ITEMS === 'undefined' || !ITEMS.length) {
     html += `<div class="popup-ref-empty">Importa tu <code>Backlog.md</code> para vincular ítems.</div>`;
   } else {
-    html += `<input class="popup-ref-search" id="pop-ref-input" type="text" placeholder="Buscar por código o título..." oninput="onPopupRefSearch()" autocomplete="off">`;
+    html += `<input class="popup-ref-search" id="pop-ref-input" type="text" placeholder="Buscar por código o título..." autocomplete="off">`;
     html += `<div class="popup-ref-suggestions" id="pop-ref-suggestions"></div>`;
   }
 
@@ -527,7 +612,18 @@ function refreshPopupRefs() {
   section.innerHTML = '<div class="popup-section-label">🔗 Backlog vinculado</div>' + renderBacklogRefs(s);
   // Restaurar query y re-filtrar
   const inp = document.getElementById('pop-ref-input');
-  if (inp) { inp.value = inputVal; onPopupRefSearch(); }
+  if (inp) {
+    inp.value = inputVal;
+    inp.addEventListener('input', onPopupRefSearch);
+    onPopupRefSearch();
+  }
+  // Event delegation para nav y unlink
+  section.querySelectorAll('[data-nav-item-code]').forEach(function(btn) {
+    btn.addEventListener('click', function() { navigateToBacklogItem(btn.dataset.navItemCode); });
+  });
+  section.querySelectorAll('[data-unlink-code]').forEach(function(btn) {
+    btn.addEventListener('click', function() { unlinkBacklogItem(btn.dataset.unlinkCode); });
+  });
 }
 
 // Filtra ITEMS según query y muestra sugerencias en el popup
@@ -557,12 +653,16 @@ function onPopupRefSearch() {
 
   sugEl.innerHTML = matches.map(i => {
     const type = (i.code[0] || '');
-    return `<div class="popup-ref-suggestion" onclick="linkBacklogItem('${esc(i.code)}')">
+    return `<div class="popup-ref-suggestion" data-link-code="${esc(i.code)}">
       <span class="popup-tg-badge ${type}">${type}</span>
       <span class="popup-ref-code">${esc(i.code)}</span>
       <span class="popup-ref-title">${esc(i.title)}</span>
     </div>`;
   }).join('');
+  // Event delegation para sugerencias
+  sugEl.querySelectorAll('[data-link-code]').forEach(function(el) {
+    el.addEventListener('click', function() { linkBacklogItem(el.dataset.linkCode); });
+  });
 }
 
 // Vincula un código de backlog a la sesión actual
@@ -725,8 +825,8 @@ function editNotes(id) {
   const actions = document.createElement('div');
   actions.className = 'card-notes-actions';
   actions.innerHTML = `
-    <button class="card-notes-save" onclick="saveNotes('${id}')">Guardar</button>
-    <button class="card-notes-cancel" onclick="cancelNotes('${id}')">Cancelar</button>`;
+    <button class="card-notes-save" data-notes-id="${esc(id)}">Guardar</button>
+    <button class="card-notes-cancel" data-notes-cancel-id="${esc(id)}">Cancelar</button>`;
   wrap.innerHTML = '';
   wrap.appendChild(ta);
   wrap.appendChild(actions);
@@ -735,6 +835,11 @@ function editNotes(id) {
   ta.focus();
   // Auto-resize
   ta.addEventListener('input', () => { ta.style.setProperty('--ta-height', 'auto'); ta.style.setProperty('--ta-height', ta.scrollHeight + 'px'); });
+  // Event delegation post-render
+  const _notesSave = actions.querySelector('[data-notes-id]');
+  if (_notesSave) _notesSave.addEventListener('click', function() { saveNotes(id); });
+  const _notesCancel = actions.querySelector('[data-notes-cancel-id]');
+  if (_notesCancel) _notesCancel.addEventListener('click', function() { cancelNotes(id); });
 }
 
 function saveNotes(id) {
@@ -757,12 +862,19 @@ function renderNotesDisplay(id) {
   const val = ai.notes || '';
   if (val) {
     wrap.innerHTML = `
-      <div class="card-notes-text" id="notes-text-${id}" onclick="editNotes('${id}')" title="Click para editar notas">${esc(val)}</div>
-      <span class="card-notes-toggle" id="notes-toggle-${id}" onclick="toggleNotes('${id}')"></span>`;
+      <div class="card-notes-text" id="notes-text-${id}" data-edit-notes-id="${esc(id)}" title="Click para editar notas">${esc(val)}</div>
+      <span class="card-notes-toggle" id="notes-toggle-${id}" data-toggle-notes-id="${esc(id)}"></span>`;
+    // Event delegation post-render
+    const _notesText = wrap.querySelector('[data-edit-notes-id]');
+    if (_notesText) _notesText.addEventListener('click', function() { editNotes(id); });
+    const _notesToggle = wrap.querySelector('[data-toggle-notes-id]');
+    if (_notesToggle) _notesToggle.addEventListener('click', function() { toggleNotes(id); });
     // Verificar si hay overflow para mostrar toggle
     setTimeout(() => checkNotesOverflow(id), 50);
   } else {
-    wrap.innerHTML = `<div class="card-notes-text empty-notes" id="notes-text-${id}" onclick="editNotes('${id}')" title="Agregar notas">+ notas libres</div>`;
+    wrap.innerHTML = `<div class="card-notes-text empty-notes" id="notes-text-${id}" data-edit-notes-id="${esc(id)}" title="Agregar notas">+ notas libres</div>`;
+    const _notesTextEmpty = wrap.querySelector('[data-edit-notes-id]');
+    if (_notesTextEmpty) _notesTextEmpty.addEventListener('click', function() { editNotes(id); });
   }
 }
 
@@ -864,7 +976,7 @@ function _buildLogHeader(total, filtered) {
     const color = ai.color ? ai.color : '';
     // B-202605-020: color aplicado como data-color — nunca interpolado como atributo sin nombre
     const colorAttr = color ? `data-color="${esc(color)}" style="--ai-pill-color:${esc(color)}"` : '';
-    return `<button class="log-ai-pill${active}" ${colorAttr} onclick="setLogFilterAI('${ai.id}')" title="${esc(ai.name)}">${esc(ai.name)}</button>`;
+    return `<button class="log-ai-pill${active}" ${colorAttr} data-log-filter-ai="${esc(ai.id)}" title="${esc(ai.name)}">${esc(ai.name)}</button>`;
   }).join('');
 
   const typePills = [
@@ -873,16 +985,16 @@ function _buildLogHeader(total, filtered) {
     { key: 'quick',       label: 'Quick' },
     { key: 'interrupted', label: 'Interrumpida' },
   ].map(({ key, label }) =>
-    `<button class="log-type-pill${_logFilterType === key ? ' log-type-pill--active' : ''}" onclick="setLogFilterType('${key}')">${label}</button>`
+    `<button class="log-type-pill${_logFilterType === key ? ' log-type-pill--active' : ''}" data-log-filter-type="${key}">${label}</button>`
   ).join('');
 
-  const starredPill = `<button class="log-type-pill${_logFilterStarred ? ' log-type-pill--active' : ''}" onclick="setLogFilterStarred()" title="Solo destacadas">⭐</button>`;
+  const starredPill = `<button class="log-type-pill${_logFilterStarred ? ' log-type-pill--active' : ''}" data-log-filter-starred title="Solo destacadas">⭐</button>`;
 
   const projOptions = projList.map(p =>
     `<option value="${esc(p.id)}"${_logFilterProj === p.id ? ' selected' : ''}>${esc((p.icon || '📁') + ' ' + p.name)}</option>`
   ).join('');
   const projSelect = projList.length
-    ? `<select class="log-proj-select" onchange="setLogFilterProj(this.value)">
+    ? `<select class="log-proj-select" id="log-proj-select">
         <option value="">Todos los proyectos</option>
         ${projOptions}
        </select>`
@@ -895,10 +1007,10 @@ function _buildLogHeader(total, filtered) {
       <div class="log-card-title-row">
         <span class="log-card-title">📋 Log de sesiones</span>
         <span class="log-card-count" id="log-count">${countLabel}</span>
-        <button class="log-card-close" onclick="closeLogCard()" title="Cerrar (ESC)">✕</button>
+        <button class="log-card-close" id="log-card-close-btn" title="Cerrar (ESC)">✕</button>
       </div>
       <input class="log-search-input" id="log-search-input" type="text" placeholder="🔍 Buscar título o resumen…"
-        value="${esc(_logSearch)}" oninput="onLogSearch()" autocomplete="off">
+        value="${esc(_logSearch)}" autocomplete="off">
       <div class="log-filters-row">
         <div class="log-ai-pills" id="log-ai-pills">${aiPills || '<span class="log-hint">Sin sesiones</span>'}</div>
         <div class="log-type-pills">${typePills}${starredPill}</div>
@@ -921,7 +1033,7 @@ function _buildLogRow({ sess, proj, ai }) {
     ? refs.slice(0, 4).map(code => {
         const t = code[0]; // P T R B
         const cls = t === 'T' ? 'log-ref--t' : t === 'P' ? 'log-ref--p' : t === 'R' ? 'log-ref--r' : t === 'B' ? 'log-ref--b' : '';
-        return `<button class="log-ref log-ref--link ${cls}" onclick="event.stopPropagation();navigateToBacklogItem('${esc(code)}')" title="Ir al ítem en Backlog">${esc(code)}</button>`;
+        return `<button class="log-ref log-ref--link ${cls}" data-log-nav-code="${esc(code)}" title="Ir al ítem en Backlog">${esc(code)}</button>`;
       }).join('') + (refs.length > 4 ? `<span class="log-ref log-ref--more">+${refs.length - 4}</span>` : '')
     : '';
 
@@ -933,7 +1045,7 @@ function _buildLogRow({ sess, proj, ai }) {
   const tsMeta = tsLabel ? `<span class="log-row-ts">${esc(tsLabel)}</span>` : '';
 
   return `
-    <div class="log-row" id="log-row-${esc(sess.id)}" onclick="openDetail('${esc(ai.id)}','${esc(sess.id)}')" title="Ver detalle">
+    <div class="log-row" id="log-row-${esc(sess.id)}" data-log-ai="${esc(ai.id)}" data-log-sess="${esc(sess.id)}" title="Ver detalle">
       <div class="log-row-left">
         <span class="log-ai-dot" style="--ai-dot-color:${color}"></span>
       </div>
@@ -1004,25 +1116,23 @@ function _rebuildLogBody() {
       emptyHtml = `<div class="log-empty log-empty--search">
         <span class="log-empty-icon">🔍</span>
         <span class="log-empty-msg">Sin resultados para «${esc(q)}»</span>
-        <button class="log-empty-cta" onclick="clearLogFilters()">Limpiar búsqueda</button>
+        <button class="log-empty-cta" data-log-clear-filters>Limpiar búsqueda</button>
       </div>`;
     } else {
       // Causa (b): filtros activos sin resultados
       emptyHtml = `<div class="log-empty log-empty--filter">
         <span class="log-empty-icon">⚠️</span>
         <span class="log-empty-msg">Sin sesiones con los filtros activos</span>
-        <button class="log-empty-cta" onclick="clearLogFilters()">Limpiar filtros</button>
+        <button class="log-empty-cta" data-log-clear-filters>Limpiar filtros</button>
       </div>`;
     }
   }
 
   // B-257: marcar pills/controles con advertencia cuando filtros activos producen cero resultados
-  // Se aplica post-render via clase en el header — _rebuildLogBody re-inyecta el header completo
-  // La clase log-filters-row--warn se aplica al wrapper de filtros cuando hay cero resultados con filtros activos
   const filtersWarnClass = (!filtered.length && hasActiveFilter && all.length) ? ' log-filters-row--warn' : '';
 
   const body = filtered.length ? rows : emptyHtml;
-  const scrollTopBtn = `<button class="log-scroll-top hidden" id="log-scroll-top" onclick="_logScrollTop()" title="Ir al inicio">↑</button>`;
+  const scrollTopBtn = `<button class="log-scroll-top hidden" id="log-scroll-top" title="Ir al inicio">↑</button>`;
 
   // Inyectar warn class en log-filters-row post-render
   const headerWithWarn = filtersWarnClass
@@ -1030,6 +1140,48 @@ function _rebuildLogBody() {
     : header;
 
   card.innerHTML = `${headerWithWarn}<div class="log-card-body" id="log-body">${body}</div>${scrollTopBtn}`;
+
+  // ── Event delegation post-render ──────────────────────────────────────────
+  const _lcClose = document.getElementById('log-card-close-btn');
+  if (_lcClose) _lcClose.addEventListener('click', closeLogCard);
+
+  const _lcSearch = document.getElementById('log-search-input');
+  if (_lcSearch) _lcSearch.addEventListener('input', onLogSearch);
+
+  const _lcProjSel = document.getElementById('log-proj-select');
+  if (_lcProjSel) _lcProjSel.addEventListener('change', function() { setLogFilterProj(this.value); });
+
+  card.querySelectorAll('[data-log-filter-ai]').forEach(function(btn) {
+    btn.addEventListener('click', function() { setLogFilterAI(btn.dataset.logFilterAi); });
+  });
+
+  card.querySelectorAll('[data-log-filter-type]').forEach(function(btn) {
+    btn.addEventListener('click', function() { setLogFilterType(btn.dataset.logFilterType); });
+  });
+
+  const _lcStarredPill = card.querySelector('[data-log-filter-starred]');
+  if (_lcStarredPill) _lcStarredPill.addEventListener('click', setLogFilterStarred);
+
+  card.querySelectorAll('[data-log-clear-filters]').forEach(function(btn) {
+    btn.addEventListener('click', clearLogFilters);
+  });
+
+  const _lcScrollTop = document.getElementById('log-scroll-top');
+  if (_lcScrollTop) _lcScrollTop.addEventListener('click', _logScrollTop);
+
+  // Filas del log — click en la fila abre detail; click en ref pill navega sin abrir detail
+  card.querySelectorAll('.log-row[data-log-ai]').forEach(function(row) {
+    row.addEventListener('click', function() {
+      openDetail(row.dataset.logAi, row.dataset.logSess);
+    });
+  });
+
+  card.querySelectorAll('[data-log-nav-code]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      navigateToBacklogItem(btn.dataset.logNavCode);
+    });
+  });
 
   // Scroll-to-top button visibility
   // B-202605-053: variable de módulo _logScrollHandler — card.innerHTML destruye #log-body en cada

@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-28 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-28 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -311,8 +311,8 @@
         <span class="item-viz-title">Ítems detectados</span>
         <span class="item-viz-origin-badge">Desde: editor de ítem</span>
         <div class="item-viz-header-actions">
-          <button class="item-viz-confirm-btn" id="item-viz-confirm-btn" onclick="_itemVizConfirm()">Confirmar merge</button>
-          <button class="item-viz-close-btn" onclick="_itemVizClose()">✕</button>
+          <button class="item-viz-confirm-btn" id="item-viz-confirm-btn">Confirmar merge</button>
+          <button class="item-viz-close-btn" id="item-viz-close-btn">✕</button>
         </div>
       </div>
       <div class="item-viz-body" id="item-viz-body"></div>
@@ -1460,7 +1460,7 @@
 <div id="ckpt-panel">
   <div class="ckpt-header">
     <span class="ckpt-header-title">📋 CHECKPOINT aplicado</span>
-    <button class="ckpt-header-close" onclick="closeCkptPanel()">✕</button>
+    <button class="ckpt-header-close" id="ckpt-header-close-btn">✕</button>
   </div>
   <div class="ckpt-body" id="ckpt-body"></div>
   <div class="ckpt-progress"><div class="ckpt-progress-bar" id="ckpt-bar"></div></div>
@@ -1488,6 +1488,13 @@ function _updateBackupBadge() {
 document.addEventListener('DOMContentLoaded', function() {
   setTimeout(_updateBackupBadge, 800);
   if (typeof initCommandPalette === 'function') initCommandPalette();
+  // T-202605-062: inline handlers → addEventListener (CSS Purity)
+  var _ivzConfirm = document.getElementById('item-viz-confirm-btn');
+  if (_ivzConfirm) _ivzConfirm.addEventListener('click', function() { if (typeof _itemVizConfirm === 'function') _itemVizConfirm(); });
+  var _ivzClose = document.getElementById('item-viz-close-btn');
+  if (_ivzClose) _ivzClose.addEventListener('click', function() { if (typeof _itemVizClose === 'function') _itemVizClose(); });
+  var _ckptClose = document.getElementById('ckpt-header-close-btn');
+  if (_ckptClose) _ckptClose.addEventListener('click', function() { if (typeof closeCkptPanel === 'function') closeCkptPanel(); });
   // T-202605-448: panel de resumen semanal — se activa los lunes al abrir la app
   setTimeout(function() {
     if (typeof _maybeShowWeeklySummary === 'function') _maybeShowWeeklySummary();

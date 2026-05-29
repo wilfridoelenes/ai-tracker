@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-06 · mod:1 · autor:Rune · 2026-05-28 18:10 UTC-6
 // locus-sesiones-viz.js
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
 //   (_showItemVizPanel), corrección de hora (openCorrectHora).
@@ -27,19 +28,33 @@ function openCorrectHora(id) {
   msg.innerHTML = `
     <div class="correct-hora-current">Hora actual: <strong>${esc(currentLabel)}</strong></div>
     <div class="correct-hora-input-row">
-      <input id="correct-hora-input" class="hora-input correct-hora-input" type="text" maxlength="4" placeholder="--:--"
-        oninput="(function(){
-          const raw=(document.getElementById('correct-hora-input')||{}).value.replace(/\\D/g,'');
-          const disp=document.getElementById('correct-hora-disp');
-          const r=interpretHora(raw);
-          if(disp){disp.textContent=r?r.label:(raw.length>=3?'hora inválida':(raw.length?'...':'—'));disp.className=r?'hora-disp--valid':(raw.length>=3?'hora-disp--error':'hora-disp--hint');}
-        })()"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();confirmCorrectHora();}">
+      <input id="correct-hora-input" class="hora-input correct-hora-input" type="text" maxlength="4" placeholder="--:--">
       <div id="correct-hora-disp" class="correct-hora-disp">—</div>
     </div>
     <div class="correct-hora-unlock-row">
-      <button class="btn-ghost correct-hora-unlock-btn" onclick="unlockNowFromCard()">✅ Desbloquear ahora</button>
+      <button class="btn-ghost correct-hora-unlock-btn" id="correct-hora-unlock-btn">✅ Desbloquear ahora</button>
     </div>`;
+
+  // Eventos post-render — CSS Purity
+  const _chInput = document.getElementById('correct-hora-input');
+  if (_chInput) {
+    _chInput.addEventListener('input', function() {
+      const raw = (_chInput.value || '').replace(/\D/g, '');
+      const disp = document.getElementById('correct-hora-disp');
+      const r = interpretHora(raw);
+      if (disp) {
+        disp.textContent = r ? r.label : (raw.length >= 3 ? 'hora inválida' : (raw.length ? '...' : '—'));
+        disp.className = r ? 'hora-disp--valid' : (raw.length >= 3 ? 'hora-disp--error' : 'hora-disp--hint');
+      }
+    });
+    _chInput.addEventListener('keydown', function(event) {
+      if (event.key === 'Enter') { event.preventDefault(); confirmCorrectHora(); }
+    });
+  }
+  const _chUnlockBtn = document.getElementById('correct-hora-unlock-btn');
+  if (_chUnlockBtn) {
+    _chUnlockBtn.addEventListener('click', function() { unlockNowFromCard(); });
+  }
 
   okBtn.textContent = 'Guardar';
   okBtn.className = 'btn-primary';
@@ -304,7 +319,7 @@ function _itemVizRender() {
         <span class="viz-bk-status viz-bk-status--${bkItem.status}">${bkItem.status}</span>
         ${bkItem.sprint ? `<span class="viz-bk-chip">${esc(bkItem.sprint)}</span>` : ''}
         ${bkItem.effort ? `<span class="viz-bk-chip">e${bkItem.effort}</span>` : ''}
-        ${!isSinCambio ? `<button class="viz-nav-btn" onclick="_itemVizNavBacklog('${esc(item.code)}')" title="Ver en Backlog">→ Backlog</button>` : ''}
+        ${!isSinCambio ? `<button class="viz-nav-btn" data-viz-nav-code="${esc(item.code)}" title="Ver en Backlog">→ Backlog</button>` : ''}
       </div>` : '';
 
     const newBlock = (!bkItem && isReal) ? `
@@ -317,13 +332,12 @@ function _itemVizRender() {
     const fieldDiffs = mergeResult === 'actualizado' ? _fieldDiffChips(item, bkItem) : '';
 
     const codeDisplay = isReal
-      ? `<button class="viz-code viz-code--real viz-code--copyable" data-type-color="${esc(typeColor)}" data-code="${esc(item.code)}" title="Click para copiar" onclick="_vizCopyCode(event,this)">${esc(item.code)}</button>`
+      ? `<button class="viz-code viz-code--real viz-code--copyable" data-type-color="${esc(typeColor)}" data-code="${esc(item.code)}" title="Click para copiar">${esc(item.code)}</button>`
       : `<span class="viz-code viz-code--pending">${esc(item.code)}</span>`;
 
     const checkboxHtml = !isSinCambio
       ? `<label class="viz-checkbox-wrap" title="${isExcluded ? 'Incluir en merge' : 'Excluir del merge'}">
-          <input type="checkbox" class="viz-checkbox" ${isExcluded ? '' : 'checked'}
-            onchange="_itemVizToggleExclude(${idx})">
+          <input type="checkbox" class="viz-checkbox" data-viz-idx="${idx}" ${isExcluded ? '' : 'checked'}>
          </label>`
       : `<span class="viz-sinc-icon">—</span>`;
 
@@ -362,7 +376,7 @@ function _itemVizRender() {
     const sinCambioRows = sinCambioItems.map(item => _buildRow(item, items.indexOf(item), true)).join('');
     sinCambioGroup = `
       <div class="viz-sinc-group" id="viz-sinc-group">
-        <button class="viz-sinc-header" onclick="_itemVizToggleSinCambios()">
+        <button class="viz-sinc-header" id="viz-sinc-header-btn">
           <span class="viz-sinc-label">${sinCambioItems.length} ítem${sinCambioItems.length !== 1 ? 's' : ''} ya existen sin cambios — se ignorarán</span>
           <span class="viz-sinc-chevron" id="viz-sinc-chevron">▸</span>
         </button>
@@ -373,6 +387,27 @@ function _itemVizRender() {
   }
 
   body.innerHTML = summary + `<div class="viz-rows">${activeRows}</div>` + sinCambioGroup;
+
+  // Event delegation post-render — CSS Purity
+  body.querySelectorAll('.viz-checkbox[data-viz-idx]').forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      _itemVizToggleExclude(parseInt(cb.dataset.vizIdx, 10));
+    });
+  });
+  body.querySelectorAll('[data-viz-nav-code]').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      _itemVizNavBacklog(btn.dataset.vizNavCode);
+    });
+  });
+  body.querySelectorAll('.viz-code--copyable[data-code]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      _vizCopyCode(e, btn);
+    });
+  });
+  const _sincHeaderBtn = document.getElementById('viz-sinc-header-btn');
+  if (_sincHeaderBtn) {
+    _sincHeaderBtn.addEventListener('click', function() { _itemVizToggleSinCambios(); });
+  }
 
   // CSS Purity: colores de tipo calculados en runtime → custom properties CSS
   body.querySelectorAll('[data-type-color]').forEach(el => {
