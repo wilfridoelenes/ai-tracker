@@ -1,8 +1,15 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
-// Dependencias: locus-backlog-core.js · locus-storage.js · locus-toast.js
+
+import { _isBlocked } from './locus-backlog-core.js';
+import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
+import { _templateTrigger } from './locus-session-hora.js';
+import { _docPrefix, getProjectById } from './locus-sprint-project.js';
+import { _effectiveVersion, getAI, getActiveSprints, getAllSessions } from './locus-storage.js';
+import { showToast } from './locus-toast.js';
+import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
 // ── T-sprints: Catálogo de sprints ──
 
@@ -18,7 +25,7 @@ export function _getSprintById(id) {
 // B-202605-077: acepta projId opcional — si se pasa, opera exclusivamente sobre los sprints
 //   de ese proyecto, resolviendo el ID incorrecto cuando el DIFF se abre con projId != filtro global
 function _nextSprintId(projId) {
-  const allSprints = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
+  const allSprints = getActiveSprints();
 
   let prefix;
   let sprintsForCalc;
@@ -30,19 +37,19 @@ function _nextSprintId(projId) {
       const m = (sprintsOfProj[0].id || '').match(/^([A-Za-z]+)-S\d+$/i);
       prefix = m ? m[1].toUpperCase() : 'XX';
     } else {
-      const proj = (typeof getProjectById === 'function') ? getProjectById(projId) : null;
+      const proj = getProjectById(projId);
       if (proj && proj.prefix) {
         prefix = proj.prefix.toUpperCase();
       } else if (proj && proj.name) {
         prefix = proj.name.split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 3) || 'XX';
       } else {
-        prefix = (typeof _docPrefix === 'function') ? _docPrefix() : 'XX';
+        prefix = _docPrefix();
       }
     }
     sprintsForCalc = sprintsOfProj;
   } else {
     // Comportamiento original — prefijo del proyecto activo en filtro global
-    prefix = (typeof _docPrefix === 'function') ? _docPrefix() : 'XX';
+    prefix = _docPrefix();
     sprintsForCalc = allSprints;
   }
 
@@ -73,7 +80,7 @@ export function _buildNewSprintForm(projId, onConfirm, onCancel) {
 
   // Validar unicidad del ID propuesto
   function _idIsUnique(id) {
-    return !(typeof getActiveSprints === 'function' &&
+    return !(
              getActiveSprints().some(s => s.id === id));
   }
 
@@ -234,7 +241,7 @@ function _suggestReleaseType(sprintItems) {
 // Incrementa el segmento correcto según release_type
 function _suggestVersionTarget(releaseType) {
   try {
-    const vStr = (typeof _effectiveVersion === 'function' ? _effectiveVersion() : _effectiveVersion) || '0.0.0';
+    const vStr = _effectiveVersion() || '0.0.0';
     const clean = vStr.replace(/^v/i, '');
     const parts = clean.split('.').map(Number);
     const major = parts[0] || 0;
@@ -251,9 +258,7 @@ function _suggestVersionTarget(releaseType) {
 // T-202605-500: ID generado internamente con prefijo de proyecto — founder solo pasa nombre descriptivo
 export function createSprint(raw, goal, versionTarget, releaseType, projId) {
   // B-202605-077: si se pasa projId, operar sobre ese proyecto en lugar del filtro global
-  const _activeProjForSprint = projId && typeof getProjectById === 'function'
-    ? getProjectById(projId)
-    : getActiveProject();
+  const _activeProjForSprint = projId ? getProjectById(projId) : getActiveProject();
   if (!_activeProjForSprint) { showToast('warning', 'Selecciona un proyecto primero'); return; }
   if (!_activeProjForSprint.sprints) _activeProjForSprint.sprints = [];
   raw = (raw || '').trim();
@@ -332,7 +337,7 @@ function _generateSprintRetroMd(id, notes) {
 
   // T-202604-417: sesiones del período del sprint
   let sessionsSection = '';
-  if (typeof getAllSessions === 'function') {
+  {
     const allSessions = getAllSessions();
     const spStart = sp && sp.createdAt ? sp.createdAt : 0;
     const spEnd   = sp && sp.closedAt  ? sp.closedAt  : Date.now();
@@ -353,7 +358,7 @@ function _generateSprintRetroMd(id, notes) {
 
   // T-202604-417: aprendizajes registrados en CHECKPOINTs del sprint
   let learningsSection = '';
-  if (typeof getAllSessions === 'function') {
+  {
     const allSessions = getAllSessions();
     const spStart = sp && sp.createdAt ? sp.createdAt : 0;
     const spEnd   = sp && sp.closedAt  ? sp.closedAt  : Date.now();
@@ -379,7 +384,7 @@ function _generateSprintRetroMd(id, notes) {
     ? `## ➕ Scope añadido durante el sprint (${scopeAddedRetroItems.length})\n\n| Código | Título | Effort |\n|--------|--------|--------|\n${scopeAddedRetroItems.map(_itemRow).join('\n')}\n`
     : '';
 
-  const pfx = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+  const pfx = _docPrefix();
 
   // R-202605-129: comparativa sprint anterior para el MD
   const prevMd = (() => {
@@ -442,7 +447,7 @@ ${doneSection}
 ${pendSection}
 ---
 
-${discardedMdSection ? discardedMdSection + '\n---\n\n' : ''}${scopeAddedRetroSection ? scopeAddedRetroSection + '\n---\n\n' : ''}${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por Locus ${(typeof _effectiveVersion === 'function') ? _effectiveVersion() : ''} · ${dateStr}_
+${discardedMdSection ? discardedMdSection + '\n---\n\n' : ''}${scopeAddedRetroSection ? scopeAddedRetroSection + '\n---\n\n' : ''}${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por Locus ${_effectiveVersion()} · ${dateStr}_
 `;
 }
 
@@ -457,7 +462,7 @@ export function openSprintRetroView(id) {
   const pad = n => String(n).padStart(2, '0');
   const closedAt = sp.closedAt ? new Date(sp.closedAt) : now;
   const closedStr = `${closedAt.getFullYear()}-${pad(closedAt.getMonth()+1)}-${pad(closedAt.getDate())}`;
-  const pfx = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+  const pfx = _docPrefix();
   const filename = `${pfx}-Retrospectiva-${id}-${closedStr}.md`;
 
   const overlay = document.getElementById('sprint-retro-overlay');
@@ -515,7 +520,7 @@ function _openRetroDownloadPrompt(id) {
   const pad = n => String(n).padStart(2, '0');
   const closedAt = sp.closedAt ? new Date(sp.closedAt) : now;
   const closedStr = `${closedAt.getFullYear()}-${pad(closedAt.getMonth()+1)}-${pad(closedAt.getDate())}`;
-  const pfx = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+  const pfx = _docPrefix();
   const filename = `${pfx}-Retrospectiva-${id}-${closedStr}.md`;
 
   const overlay = document.getElementById('sprint-retro-overlay');
@@ -599,7 +604,7 @@ export function setSprintStatus(id, newStatus) {
     }
   }
   save();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   showToast('info', id + ' → ' + newStatus);
 }
 
@@ -630,7 +635,7 @@ export function setItemSprint(code, sprintId) {
   _undoSnapshot();
   saveBacklog();
   _setBacklogModified();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   renderStats();
 }
 
@@ -662,7 +667,7 @@ function openNewSprintInline(code) {
       setItemSprint(code, newId);
     },
     function onCancel() {
-      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+      _markBacklogListDirty(); renderBacklogList();
     }
   );
 
@@ -706,7 +711,7 @@ function confirmNewSprint(code) {
       if (bnsf) { _bnsf_confirm(bnsf.dataset.bnsf); return; }
     }
   }
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
 }
 
 // T-202604-246: edición inline del nombre de sprint desde el header del grupo
@@ -768,7 +773,7 @@ function confirmEditSprint(sprintId) {
   const rtId    = 'edit-sprint-rt-'   + sprintId;
   const inp = document.getElementById(inputId);
   const raw = inp ? inp.value.trim() : '';
-  if (!raw) { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); return; } // AC-4: cancelar si vacío — no modifica
+  if (!raw) { _markBacklogListDirty(); renderBacklogList(); return; } // AC-4: cancelar si vacío — no modifica
   // T-202605-500: raw es el nombre descriptivo — el ID no cambia
   if (!_isValidSprintName(raw)) {
     if (inp) { inp.classList.add('sprint-inline-input--warn'); inp.title = 'El nombre descriptivo no puede estar vacío'; }
@@ -777,7 +782,7 @@ function confirmEditSprint(sprintId) {
   }
   if (inp) inp.classList.remove('sprint-inline-input--warn');
   const sp = _getSprintById(sprintId);
-  if (!sp) { if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList(); return; }
+  if (!sp) { _markBacklogListDirty(); renderBacklogList(); return; }
   // T-202605-500: reconstruir label canónico = 'ID · Nombre descriptivo'
   sp.label = sprintId + ' · ' + raw;
   // R-202605-123: persistir goal si el campo existe
@@ -791,7 +796,7 @@ function confirmEditSprint(sprintId) {
   if (vtInp !== null) sp.version_target = vtInp.value.trim();
   if (rtSel !== null) sp.release_type   = rtSel.value;
   save();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   showToast('success', '✓ Sprint actualizado: ' + sp.label);
 }
 
@@ -1087,7 +1092,7 @@ function _scmDownloadRetro() {
   const now = new Date();
   const pad = n => String(n).padStart(2, '0');
   const ds = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
-  const pfx = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+  const pfx = _docPrefix();
   const fname = pfx + '-Retrospectiva-' + (_scmState.id || '') + '-' + ds + '.md';
   const blob = new Blob([md], { type: 'text/markdown' });
   const url = URL.createObjectURL(blob);
@@ -1098,7 +1103,7 @@ function _scmDownloadRetro() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  if (typeof showToast === 'function') showToast('download', 'Retro descargada', fname);
+  showToast('download', 'Retro descargada', fname);
 }
 
 function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
@@ -1345,7 +1350,7 @@ function _scmExecuteClose() {
   }
 
   // T-202604-295: descargar templates al cerrar sprint si trigger lo indica
-  if (typeof _templateTrigger === 'function' && _templateTrigger() === 'sprint') {
+  if (_templateTrigger() === 'sprint') {
     downloadTemplates();
   }
 
@@ -1363,7 +1368,7 @@ function createSprintFromGroup(id) {
   if (!proj.sprints) proj.sprints = [];
   proj.sprints.push({ id, label: id, status: 'active' });
   save();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   showToast('success', id + ' registrado en catálogo');
 }
 
@@ -1376,8 +1381,8 @@ export function navigateToItem(code) {
     activeStatuses.add(item.status);
     updateStatusFilterUI();
   }
-  if (typeof switchTab === 'function') switchTab('backlog');
-  if (typeof switchSubTab === 'function') switchSubTab('backlog');
+  switchTab('backlog');
+  switchSubTab('backlog');
   // Esperar render y hacer scroll
   setTimeout(() => {
     const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
@@ -1507,7 +1512,7 @@ export function renderSprintItems() {
   );
 
   // Clasificar: bloqueado > done > pendiente
-  const _blocked  = typeof _isBlocked === 'function' ? _isBlocked : () => false;
+  const _blocked  = _isBlocked;
   const blocked   = spRs.filter(i => _blocked(i) && i.status !== 'done');
   const done      = spRs.filter(i => i.status === 'done');
   const pendiente = spRs.filter(i => i.status !== 'done' && !_blocked(i));
@@ -1646,10 +1651,7 @@ function _buildScopeAddedRow(item) {
 // T-202605-071: _escSpr — helper local de escape HTML para locus-backlog-sprints.js
 // Nombre local (_escSpr) para evitar colisión con _esc declarada en locus-contracts.js.
 // Delega a esc() de locus-ui-shell.js si está disponible — fallback inline si no cargó.
-const _escSpr = typeof esc === 'function'
-  ? esc
-  : str => String(str == null ? '' : str)
-      .replace(/&/g, '&amp;')
+const _escSpr = esc;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
@@ -1692,7 +1694,7 @@ function renderSprintWorkers(sp, allItems) {
   // Resolver nombres via getAI() (AC-5)
   const pills = [];
   seenIds.forEach(aiId => {
-    const ai = (typeof getAI === 'function') ? getAI(aiId) : null;
+    const ai = getAI(aiId);
     const name = (ai && ai.name) ? ai.name : aiId;
     pills.push(_buildWorkerPill(name));
   });
@@ -1720,8 +1722,8 @@ function _buildWorkerPill(name) {
       return;
     }
     if (act === 'sprint-edit-cancel') {
-      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
-      if (typeof renderBacklogList === 'function') renderBacklogList();
+      _markBacklogListDirty();
+      renderBacklogList();
       return;
     }
     if (act === 'scm-download-retro') {
@@ -1738,8 +1740,8 @@ function _buildWorkerPill(name) {
       if (typeof confirmEditSprint === 'function') confirmEditSprint(sprintId);
     }
     if (e.key === 'Escape') {
-      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
-      if (typeof renderBacklogList === 'function') renderBacklogList();
+      _markBacklogListDirty();
+      renderBacklogList();
     }
   });
 })();

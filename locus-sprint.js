@@ -1,8 +1,15 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
-// Consume: locus-sprint-plan.js · locus-backlog-sprints.js · locus-checkpoint-stats.js · locus-storage.js · locus-backlog-render.js
-// Carga: después de locus-sprint-plan.js, antes de locus-api.js
+
+import { _isBlocked } from './locus-backlog-core.js';
+import { openItemPanel } from './locus-backlog-panel.js';
+import { _renderPlanningView } from './locus-backlog-render.js';
+import { _getActiveSprint, confirmCloseSprint, createSprint, editSprintInline, openSprintRetroView, setSprintStatus } from './locus-backlog-sprints.js';
+import { _gconfirmOpen } from './locus-modals.js';
+import { renderPlanInto } from './locus-sprint-plan.js';
+import { getAI, getActiveSprints, getAllSessions } from './locus-storage.js';
+import { showToast } from './locus-toast.js';
 
 // ── Estado interno ──────────────────────────────────────────────────────────
 let _sprintTabActiveSprint = null;
@@ -30,7 +37,7 @@ function _sprintReleaseClass(type) {
 }
 
 function _sprintIsBlocked(item) {
-  if (typeof _isBlocked === 'function') return _isBlocked(item);
+  return _isBlocked(item);
   return false;
 }
 
@@ -84,7 +91,7 @@ function _sptSwitch(subtab, triggerBtn) {
   });
   // Render bajo demanda
   if (subtab === 'planificar') _renderSprintPlanificar();
-  if (subtab === 'plan' && typeof renderPlanInto === 'function') renderPlanInto('sprint-plan-container');
+  if (subtab === 'plan') renderPlanInto('sprint-plan-container');
 }
 
 // ── Render panel Planificar — R-202605-052 ──────────────────────────────────
@@ -93,7 +100,7 @@ function _renderSprintPlanificar() {
   const container = document.getElementById('sprint-planificar-container');
   if (!container) return;
   // _renderPlanningView vive en locus-backlog-render.js — espera un elemento contenedor
-  if (typeof _renderPlanningView === 'function') {
+  {
     _renderPlanningView(container, "_sptSwitch('items', document.getElementById('spt-tab-items'))");
   } else {
     container.innerHTML = '<div class="spi-section-empty">Vista Planificar no disponible.</div>';
@@ -179,8 +186,8 @@ function _renderSprintWorkers(sprint) {
   // Workers: IAs que tienen sesiones vinculadas a ítems del sprint
   let workers = [];
 
-  if (typeof getAI === 'function') {
-    const sessions = typeof getAllSessions === 'function' ? getAllSessions() : [];
+  {
+    const sessions = getAllSessions();
     const sprintItemCodes = (typeof ITEMS !== 'undefined')
       ? new Set(ITEMS.filter(i => i.sprint && i.sprint.startsWith(sprint.id)).map(i => i.code))
       : new Set();
@@ -194,7 +201,7 @@ function _renderSprintWorkers(sprint) {
     });
 
     aiIds.forEach(id => {
-      const ai = typeof getAI === 'function' ? getAI(id) : null;
+      const ai = getAI(id);
       if (ai) workers.push(ai.name || id);
     });
   }
@@ -263,7 +270,7 @@ export function renderSprintTab() {
   const emptyEl   = _spEl('tab-sprint-empty');
   const sptNav    = _spEl('spt-nav'); // R-202605-043
 
-  const sprint = typeof _getActiveSprint === 'function' ? _getActiveSprint() : null;
+  const sprint = _getActiveSprint();
   _sprintTabActiveSprint = sprint;
 
   if (!sprint) {
@@ -367,7 +374,7 @@ function _spmToggle() {
 // Determina el sprint ID más frecuente en ítems no registrados — AC-2c
 function _spmGetUnregisteredSprintId() {
   if (typeof ITEMS === 'undefined') return null;
-  const allSprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+  const allSprints = getActiveSprints();
   const registeredIds = new Set(allSprints.map(s => s.id));
   const freq = {};
   const order = [];
@@ -386,7 +393,7 @@ function _spmRegistrar() {
   const sprintId = _spmGetUnregisteredSprintId();
   if (!sprintId) return;
 
-  const activeSprint = typeof _getActiveSprint === 'function' ? _getActiveSprint() : null;
+  const activeSprint = _getActiveSprint();
 
   const doRegister = () => {
     // AC-2c: mostrar ID en botón ya se hizo en _spmUpdateButtons — aquí ejecutar
@@ -394,19 +401,17 @@ function _spmRegistrar() {
     try {
       // Extraer nombre descriptivo del ID (si tiene formato PP-S01 · Nombre)
       const descriptive = sprintId.replace(/^[A-Za-z]+-S\d+\s*·?\s*/i, '').trim() || sprintId;
-      const result = typeof createSprint === 'function'
-        ? createSprint(descriptive, '', '', '', null)
-        : null;
+      const result = createSprint(descriptive, '', '', '', null);
       if (!result) throw new Error('createSprint no devolvió un ID');
       if (typeof renderSprintTab === 'function') renderSprintTab();
     } catch (err) {
-      if (typeof showToast === 'function') showToast('error', 'Error al registrar el sprint: ' + (err.message || err));
+      showToast('error', 'Error al registrar el sprint: ' + (err.message || err));
     }
   };
 
   if (activeSprint) {
     // AC-2: hay sprint activo — mostrar modal de confirmación
-    if (typeof _gconfirmOpen === 'function') {
+    {
       _gconfirmOpen({
         title: 'Cerrar sprint actual',
         msg: `Se cerrará "${activeSprint.label || activeSprint.id}" y se activará "${sprintId}". ¿Confirmar?`,
@@ -414,10 +419,10 @@ function _spmRegistrar() {
         danger: true
       }, () => {
         try {
-          if (typeof setSprintStatus === 'function') setSprintStatus(activeSprint.id, 'closed');
+          setSprintStatus(activeSprint.id, 'closed');
           doRegister();
         } catch (err) {
-          if (typeof showToast === 'function') showToast('error', 'Error al cerrar sprint actual: ' + (err.message || err));
+          showToast('error', 'Error al cerrar sprint actual: ' + (err.message || err));
         }
       });
     }
@@ -430,24 +435,22 @@ function _spmRegistrar() {
 function _spmReactivar() {
   const sprint = _sprintTabActiveSprint;
   if (!sprint || sprint.status !== 'closed') return;
-  if (typeof setSprintStatus === 'function') {
-    setSprintStatus(sprint.id, 'active');
-    if (typeof renderSprintTab === 'function') renderSprintTab();
-  }
+  setSprintStatus(sprint.id, 'active');
+  renderSprintTab();
 }
 
 // AC-4: Ver retrospectiva
 function _spmRetro() {
   const sprint = _sprintTabActiveSprint;
   if (!sprint || !sprint.retroDoc) return;
-  if (typeof openSprintRetroView === 'function') openSprintRetroView(sprint.id);
+  openSprintRetroView(sprint.id);
 }
 
 // AC-5: Editar nombre — abre editSprintInline en el área spm-edit-area
 function _spmEditar() {
   const sprint = _sprintTabActiveSprint;
   if (!sprint || sprint.status !== 'active') return;
-  if (typeof editSprintInline === 'function') {
+  {
     // editSprintInline espera un elemento con id sprint-label-wrap-[id]
     // En el tab Sprint no existe ese elemento — creamos uno temporal en spm-edit-area
     const area = document.getElementById('spm-edit-area');
@@ -497,7 +500,7 @@ function _spmCancelEdit() {
 // AC-1: un solo sprint cerrado → activar directamente (comportamiento original)
 // AC-2+: múltiples sprints cerrados → picker inline
 function _spmActivarExistente() {
-  const sprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+  const sprints = getActiveSprints();
   const closed  = sprints
     .filter(s => s.status !== 'active')
     .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -505,8 +508,8 @@ function _spmActivarExistente() {
 
   // AC-1: exactamente uno — activar sin picker
   if (closed.length === 1) {
-    if (typeof setSprintStatus === 'function') setSprintStatus(closed[0].id, 'active');
-    if (typeof renderSprintTab === 'function') renderSprintTab();
+    setSprintStatus(closed[0].id, 'active');
+    renderSprintTab();
     return;
   }
 
@@ -575,9 +578,9 @@ function _spmPickerOpen(closedSprints) {
 
 // AC-3: seleccionar un sprint del picker
 function _spmPickerSelect(sprintId) {
-  if (typeof setSprintStatus === 'function') setSprintStatus(sprintId, 'active');
+  setSprintStatus(sprintId, 'active');
   _spmPickerClose();
-  if (typeof renderSprintTab === 'function') renderSprintTab();
+  renderSprintTab();
 }
 
 // AC-4: teclado — Escape cierra, Enter confirma, flechas navegan
@@ -628,7 +631,7 @@ function _spmUpdateButtons(sprint) {
   const emptyRegistrar = document.getElementById('spm-empty-btn-registrar');
   const emptyActivar   = document.getElementById('spm-empty-btn-activar');
 
-  const allSprints      = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+  const allSprints      = getActiveSprints();
   const registeredIds   = new Set(allSprints.map(s => s.id));
   const unregisteredId  = _spmGetUnregisteredSprintId();
   const hasClosed       = allSprints.some(s => s.status !== 'active');
@@ -687,8 +690,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const btnClose = document.getElementById('btn-close-sprint');
   if (btnClose) {
     btnClose.addEventListener('click', function() {
-      const sp = typeof _getActiveSprint === 'function' ? _getActiveSprint() : null;
-      if (sp && typeof confirmCloseSprint === 'function') confirmCloseSprint(sp.id);
+      const sp = _getActiveSprint();
+      if (sp) confirmCloseSprint(sp.id);
     });
   }
 
@@ -707,12 +710,12 @@ document.addEventListener('DOMContentLoaded', function() {
   if (itemsList) {
     itemsList.addEventListener('click', function(e) {
       const item = e.target.closest('[data-item-code]');
-      if (item && typeof openItemPanel === 'function') openItemPanel(item.dataset.itemCode);
+      if (item) openItemPanel(item.dataset.itemCode);
     });
     itemsList.addEventListener('keydown', function(e) {
       if (e.key !== 'Enter' && e.key !== ' ') return;
       const item = e.target.closest('[data-item-code]');
-      if (item && typeof openItemPanel === 'function') {
+      if (item) {
         e.preventDefault();
         openItemPanel(item.dataset.itemCode);
       }

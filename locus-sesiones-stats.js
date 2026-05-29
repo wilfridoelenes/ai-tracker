@@ -1,11 +1,16 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 18:10 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
-// Extraído de: locus-checkpoint-stats.js
-// Dependencias: locus-notifications.js · locus-storage.js · locus-sesiones.js
-// Carga después de: locus-notifications.js · locus-workers.js · locus-pulso.js
-// Carga antes de: locus-sesiones-capture.js · locus-sesiones-viz.js
+
+import { _isCountableItem } from './locus-backlog-core.js';
+import { openItemPanel } from './locus-backlog-panel.js';
+import { navigateToItem } from './locus-backlog-sprints.js';
+import { openPulsoPanel } from './locus-pulso.js';
+import { _markTrackerDirty, render, selectTrackerAI } from './locus-sesiones.js';
+import { openDetail } from './locus-session-popup.js';
+import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
+import { _effectiveVersion, getActiveProject, getActiveTracker, getAllSessions } from './locus-storage.js';
 
 // APP_VERSION — fuente de verdad: locus-workers.js
 // R-202605-012: constante movida a locus-workers.js (carga antes). Disponible globalmente aquí.
@@ -43,8 +48,8 @@ export function _updateHeaderProjectLabel() {
   const itemBtn    = document.getElementById('breadcrumb-item');
   if (!projBtn) return;
 
-  const filterId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : '';
-  const proj = filterId && (typeof getProjectById === 'function') ? getProjectById(filterId) : null;
+  const filterId = _getActiveProjectFilter();
+  const proj = filterId ? getProjectById(filterId) : null;
 
   if (proj) {
     projBtn.textContent = proj.name || 'Proyecto';
@@ -78,11 +83,9 @@ export function _updateHeaderProjectLabel() {
     let activeItem = null;
     try {
       if (typeof _trackerSelectedId !== 'undefined' && _trackerSelectedId) {
-        const tracker = (typeof getActiveTracker === 'function') ? getActiveTracker() : { items: [] };
+        const tracker = getActiveTracker();
         const items = tracker.items || [];
-        const aiSessions = (typeof getAllSessions === 'function')
-          ? getAllSessions().filter(s => s.aiId === _trackerSelectedId)
-          : [];
+        const aiSessions = getAllSessions().filter(s => s.aiId === _trackerSelectedId);
         const sessIds = new Set(aiSessions.map(s => s.id));
         const linked = items.filter(i =>
           i.status !== 'done' &&
@@ -106,9 +109,9 @@ export function _updateHeaderProjectLabel() {
       itemBtn.onclick = function () {
         const _allItems = (typeof ITEMS !== 'undefined') ? ITEMS : [];
         const _target = _allItems.find(function(b) { return b.code === code; });
-        if (_target && typeof openItemPanel === 'function') {
+        if (_target) {
           openItemPanel(_target);
-        } else if (typeof navigateToItem === 'function') {
+        } else {
           navigateToItem(code);
         }
       };
@@ -138,12 +141,7 @@ export function _scrollToCard(aiId) {
 export function navigateToCard(aiId) {
   switchTab('sesiones');
   setTimeout(() => {
-    if (typeof selectTrackerAI === 'function') {
-      selectTrackerAI(aiId);
-    } else {
-      if (typeof _markTrackerDirty === 'function') _markTrackerDirty();
-      if (typeof render === 'function') render();
-    }
+    selectTrackerAI(aiId);
     const ta = document.getElementById('ta-' + aiId);
     if (ta) setTimeout(() => { ta.focus(); }, 80);
   }, 80);
@@ -172,7 +170,7 @@ export function _isInSession(ai) {
 // T-202605-523: helper compartido — evita recalcular sprint activo en múltiples bloques
 function _getActiveSprintStats() {
   try {
-    const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+    const proj = getActiveProject();
     const sp = proj && proj.sprints ? proj.sprints.find(s => s.status === 'active') : null;
     if (!sp) return { sp: null, spItems: [], spDone: 0, spTotal: 0, spPct: 0, spLabel: '' };
     const spItems = (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(i => i.sprint === sp.id);
@@ -228,7 +226,7 @@ export function renderStatusBar() {
     }
   } catch (e) {}
 
-  if (typeof _updateHeaderProjectLabel === 'function') _updateHeaderProjectLabel();
+  _updateHeaderProjectLabel();
 
   const gridHeader = document.getElementById('tracker-grid-header');
   if (gridHeader) {
@@ -262,13 +260,13 @@ export function renderStatusBar() {
   }
 
   if (gfVersion) {
-    gfVersion.textContent = (typeof _effectiveVersion === 'function') ? _effectiveVersion() : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : '');
+    gfVersion.textContent = _effectiveVersion();
     gfVersion.classList.remove('is-hidden');
   }
 
   if (gfTotal || gfDone) {
-    const total = _items.filter(i => typeof _isCountableItem === 'function' ? _isCountableItem(i) : true).length;
-    const done  = _items.filter(i => (typeof _isCountableItem === 'function' ? _isCountableItem(i) : true) && i.status === 'done').length;
+    const total = _items.filter(i => _isCountableItem(i)).length;
+    const done  = _items.filter(i => _isCountableItem(i) && i.status === 'done').length;
     if (gfTotal) { gfTotal.textContent = total + ' ítems'; gfTotal.classList.remove('is-hidden'); }
     if (gfDone)  { gfDone.textContent  = '✓ ' + done;   gfDone.classList.remove('is-hidden'); }
   }
@@ -287,7 +285,7 @@ export function renderStatusBar() {
         gfCkpt.classList.remove('is-hidden');
         gfCkpt.classList.add('gf-ckpt--link');
         gfCkpt.onclick = function() {
-          if (typeof openDetail === 'function') openDetail(lastSess.aiId, lastSess.id);
+          openDetail(lastSess.aiId, lastSess.id);
         };
       } else {
         gfCkpt.classList.add('is-hidden');
@@ -301,7 +299,7 @@ export function renderStatusBar() {
     gfPulso.classList.remove('is-hidden');
     gfPulso.classList.add('gf-pulso--link');
     gfPulso.onclick = function() {
-      if (typeof openPulsoPanel === 'function') openPulsoPanel();
+      openPulsoPanel();
     };
   }
 
@@ -329,8 +327,8 @@ export function toggleCollapseAll() {
   const allCollapsed = active.every(a => !a.showAll);
   active.forEach(a => { a.showAll = allCollapsed; });
   save();
-  if (typeof _markTrackerDirty === 'function') _markTrackerDirty();
-  if (typeof render === 'function') render();
+  _markTrackerDirty();
+  render();
 }
 
 // hasRecentSession — fuente de verdad: locus-notifications.js
