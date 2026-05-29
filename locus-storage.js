@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 14:30 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -20,16 +20,18 @@ import { applyTheme } from './locus-ui-shell.js';
 // ── Lazy references para romper ciclo storage ↔ sprint-project ────────────────
 // _getActiveProjectFilter y exportBacklogMd viven en locus-sprint-project.js,
 // que a su vez importa locus-storage.js → ciclo ES module → TDZ en _supabaseUser.
-// Solución: acceso en runtime via window (locus-api.js expone ambas funciones).
-function _getActiveProjectFilter() {
+// T2: declaradas como let para que _initApp(opts) pueda inyectar referencias directas
+// desde main.js eliminando la dependencia de window.*. Fallback window.* se mantiene
+// por compatibilidad con locus-api.js hasta que T6 complete la migración.
+let _getActiveProjectFilter = function() {
   return typeof window._getActiveProjectFilter === 'function'
     ? window._getActiveProjectFilter()
     : (window.Locus?._getActiveProjectFilter?.() ?? null);
-}
-function exportBacklogMd() {
+};
+let exportBacklogMd = function() {
   if (typeof window._exportBacklogMd === 'function') return window._exportBacklogMd();
   if (typeof window.Locus?.exportBacklogMd === 'function') return window.Locus.exportBacklogMd();
-}
+};
 // No contiene lógica de UI, render, toast ni timer de sesión.
 
 // ── VARIABLES DE MÓDULO ───────────────────────────────────────────────────────
@@ -1290,11 +1292,13 @@ function load() {
   })();
 }
 
-// _initApp() — punto de arranque de la app. Llamado desde DOMContentLoaded en index.html
+// _initApp() — punto de arranque de la app. Llamado desde DOMContentLoaded en main.js
 // una vez que todos los módulos JS están disponibles.
 // Gate de auth: si no hay sesión activa → openAuthModal() bloqueante, sin render.
 // Si hay sesión activa → render completo + sync Supabase.
-export function _initApp() {
+export function _initApp(opts = {}) {
+  if (opts.getActiveProjectFilter) _getActiveProjectFilter = opts.getActiveProjectFilter;
+  if (opts.exportBacklogMd) exportBacklogMd = opts.exportBacklogMd;
   // 1. Cargar estado desde localStorage en memoria (sin UI)
   load();
 
