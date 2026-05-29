@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -705,9 +705,6 @@ function buildHoyCard(ai, idx = 0, opts = {}) {
     }
     return null;
   }
-
-  const availSince = ai.status === 'available' ? _availableSinceLabel() : null;
-
 
   // "disponible desde" — hora del último reset o última sesión
   function _availableSinceLabel() {

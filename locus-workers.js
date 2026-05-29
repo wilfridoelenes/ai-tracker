@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-29 UTC-6
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm.
 //   Define AVATAR_LOGOS (SVGs de avatares) — movido desde locus-checkpoint-stats.js.
@@ -103,8 +103,11 @@ export function confirmAddAI() {
   const nameLower = name.toLowerCase();
   const duplicate = state.ais.find(a => a.name.toLowerCase() === nameLower);
   if (duplicate) {
-    showToast('warning', `Ya existe una IA llamada "${duplicate.name}"`);
-    else console.warn('[locus-workers] showToast no disponible — duplicado bloqueado:', duplicate.name);
+    if (typeof showToast === 'function') {
+      showToast('warning', `Ya existe una IA llamada "${duplicate.name}"`);
+    } else {
+      console.warn('[locus-workers] showToast no disponible — duplicado bloqueado:', duplicate.name);
+    }
     const inp = document.getElementById('new-name');
     inp.focus(); inp.select();
     return;

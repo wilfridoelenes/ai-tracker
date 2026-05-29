@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -534,7 +534,7 @@ function _normalizeItems(items) {
     // Ausente o inválido → 'pendiente'. Usa _normalizeStatus si disponible.
     const rawStatus = item.status;
     let normalizedStatus;
-    {
+    if (typeof _normalizeStatus === 'function') {
       normalizedStatus = _normalizeStatus(rawStatus);
     } else {
       // Fallback inline — misma lógica que _normalizeStatus para los valores canónicos
