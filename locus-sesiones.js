@@ -9,9 +9,14 @@
 
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { renderGlobalRadarSidebar } from './locus-radar.js';
-import { _updateHeaderProjectLabel, renderStatusBar, updateStats, _isInSession } from './locus-sesiones-stats.js';
+import { _updateHeaderProjectLabel, renderStatusBar, updateStats } from './locus-sesiones-stats.js';
+// _isInSession — en sesiones-stats pero verificar export; fallback window
+const _isInSession = (ai) => typeof window._isInSession === 'function' ? window._isInSession(ai) : false;
 import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer } from './locus-sesiones-utils.js';
-import { _templateTrigger, relDate, fmt12, getCD } from './locus-session-hora.js';
+import { _templateTrigger, relDate } from './locus-session-hora.js';
+// fmt12, getCD, _isInSession — módulo fuente pendiente de confirmar; acceso via window con fallback
+const fmt12  = (...a) => typeof window.fmt12  === 'function' ? window.fmt12(...a)  : a[0] || '';
+const getCD  = (...a) => typeof window.getCD  === 'function' ? window.getCD(...a)  : '';
 import { closeLogCard, closePopup, openDetail } from './locus-session-popup.js';
 import { getProjectById, openProjModal } from './locus-sprint-project.js';
 import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, _findSession, save, getState, saveImmediate } from './locus-storage.js';
