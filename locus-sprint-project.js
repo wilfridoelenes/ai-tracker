@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-28 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
@@ -1051,8 +1051,8 @@ function _renderProjList() {
   }
   list.innerHTML = html || `<div class="proj-empty-hint">Aún no hay proyectos — crea uno arriba</div>`;
 
-  // Event delegation — botones de acción
-  list.addEventListener('click', function _projListClickDelegate(e) {
+  // Event delegation — botones de acción (B-202605-023: remove antes de add — evita acumulación en nodo persistente)
+  function _projListClickDelegate(e) {
     const btn = e.target.closest('[data-proj-action]');
     if (!btn) return;
     const action = btn.dataset.projAction;
@@ -1061,7 +1061,9 @@ function _renderProjList() {
     if (action === 'archive') { toggleProjArchive(projId); return; }
     if (action === 'delete') { deleteProjConfirm(projId); return; }
     if (action === 'toggle-archived') { _toggleProjArchivedSection(); return; }
-  }, { once: true });
+  }
+  list.removeEventListener('click', _projListClickDelegate);
+  list.addEventListener('click', _projListClickDelegate);
 
   // Event delegation — drag & drop (B-202605-022: remove antes de add — evita acumulación en nodo persistente)
   list.removeEventListener('dragstart', _projListDragStartHandler);
