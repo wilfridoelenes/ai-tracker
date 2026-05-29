@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -23,6 +23,9 @@ import { render } from './locus-sesiones.js';
 import { showToast } from './locus-toast.js';
 
 import { esc } from './locus-ui-shell.js';
+
+// Labels de tipo de ítem para display en UI
+const TYPE_LABELS = { R: 'Requerimiento', T: 'Ticket', B: 'Bug', P: 'Posibilidad' };
 
 // ── Estado del módulo ──────────────────────────────────────────────────────
 // Búsqueda activa — compartida con locus-backlog-render.js via window.backlogSearchQuery
