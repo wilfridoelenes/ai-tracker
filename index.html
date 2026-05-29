@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-28 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-28 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -786,11 +786,11 @@
 </div>
 
 <!-- Pendientes panel -->
-<div class="pend-overlay" id="pend-overlay" onclick="if(event.target===this)closePendPanel()">
+<div class="pend-overlay" id="pend-overlay">
   <div class="pend-panel">
     <div class="pend-panel-header">
       <div class="pend-panel-title">⏳ Pendientes</div>
-      <button type="button" onclick="closePendPanel()">Cerrar</button>
+      <button type="button" id="pend-close-btn">Cerrar</button>
     </div>
     <div class="pend-panel-body" id="pend-panel-body"></div>
   </div>
@@ -1174,7 +1174,7 @@
       oninput="if(typeof parsePasteStandalone==='function')parsePasteStandalone()"></textarea>
     <div id="standalone-ckpt-prev" class="standalone-ckpt-prev"></div>
     <div class="modal-actions modal-actions--mt">
-      <button type="button" onclick="closeStandaloneCheckpoint()">Cancelar</button>
+      <button type="button" id="standalone-ckpt-cancel-btn">Cancelar</button>
       <button class="btn-primary" id="standalone-ckpt-btn" disabled onclick="if(typeof saveStandaloneCheckpoint==='function')saveStandaloneCheckpoint()">Aplicar ítems</button>
     </div>
   </div>
@@ -1430,8 +1430,8 @@
 <div id="doc-log-drawer">
   <div class="doc-log-header">
     <span id="doc-log-title">Log</span>
-    <button class="doc-log-clear-btn" onclick="clearDocLog()" title="Limpiar todo">🗑 Limpiar</button>
-    <button class="doc-log-close-btn" title="Cerrar">✕</button>
+    <button class="doc-log-clear-btn" id="doc-log-clear-btn" title="Limpiar todo">🗑 Limpiar</button>
+    <button class="doc-log-close-btn" id="doc-log-close-btn" title="Cerrar">✕</button>
   </div>
   <div class="doc-log-body" id="doc-log-body"></div>
 </div>

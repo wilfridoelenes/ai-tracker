@@ -1,5 +1,5 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-misc-ui.js
-// Última actualización: 2026-05-19 UTC-6
 // Módulo: Helpers de UI — getNextOccurrence, _resetExpired, Tags, Pendientes, Doc Activity Drawer
 // Extraído de ai-tracker-ai-notes.js
 
@@ -252,6 +252,26 @@ function clearDocLog() {
   _updateDocLogCount(doc);
 }
 
+
+// ── Listeners — handlers migrados desde index.html (T-202605-056) ────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Pendientes panel — overlay click + botón cerrar
+  const pendOverlay = document.getElementById('pend-overlay');
+  if (pendOverlay) pendOverlay.addEventListener('click', e => { if (e.target === pendOverlay) closePendPanel(); });
+  const pendCloseBtn = document.getElementById('pend-close-btn');
+  if (pendCloseBtn) pendCloseBtn.addEventListener('click', closePendPanel);
+
+  // Standalone checkpoint — botón cancelar
+  const ckptCancelBtn = document.getElementById('standalone-ckpt-cancel-btn');
+  if (ckptCancelBtn) ckptCancelBtn.addEventListener('click', closeStandaloneCheckpoint);
+
+  // Doc log drawer — limpiar y cerrar
+  const docLogClearBtn = document.getElementById('doc-log-clear-btn');
+  if (docLogClearBtn) docLogClearBtn.addEventListener('click', clearDocLog);
+  const docLogCloseBtn = document.getElementById('doc-log-close-btn');
+  if (docLogCloseBtn) docLogCloseBtn.addEventListener('click', closeDocLog);
+});
+// ─────────────────────────────────────────────────────────────────────────
 
 // ── Search — extraído a locus-ui-shell.js ────────────────────────────────
 // _searchScopeAll, _toggleSearchScope, onSearch
