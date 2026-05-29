@@ -1,8 +1,18 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
+
+import { _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
+import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
+import { updateTabNotifBadges } from './locus-notifications.js';
+import { _markPulsoDotDirty, renderPulsoDot } from './locus-pulso.js';
+import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js';
+import { _markStatusBarDirty, renderStatusBar, updateStats } from './locus-sesiones-stats.js';
+import { _markTrackerDirty, render } from './locus-sesiones.js';
+import { _getActiveProjectFilter, exportBacklogMd } from './locus-sprint-project.js';
+import { showToast } from './locus-toast.js';
 // No contiene lógica de UI, render, toast ni timer de sesión.
 
 // ── VARIABLES DE MÓDULO ───────────────────────────────────────────────────────
@@ -40,7 +50,7 @@ const _PREFIX_MAP = {
 // Jerarquía: sprint cerrado más reciente con version_target > '' (sin fallback hardcodeado)
 export function _effectiveVersion() {
   try {
-    const sprints = typeof getActiveSprints === 'function' ? getActiveSprints() : [];
+    const sprints = getActiveSprints();
     const closed = sprints.filter(s => s.status === 'closed' && s.version_target && s.version_target.trim());
     if (closed.length) {
       closed.sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
@@ -82,7 +92,7 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
           if (event === 'SIGNED_IN') {
             if (typeof closeAuthModal === 'function') closeAuthModal();
             if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
-            if (typeof _markTrackerDirty === 'function') _markTrackerDirty(); if (typeof render === 'function') render();
+            _markTrackerDirty(); render();
             // T-202605-XXX: activar sync Realtime al iniciar sesión
             _subscribeRealtime();
           }
@@ -109,7 +119,7 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
         setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
         if (typeof closeAuthModal === 'function') closeAuthModal();
         if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
-        if (typeof _markTrackerDirty === 'function') _markTrackerDirty(); if (typeof render === 'function') render();
+        _markTrackerDirty(); render();
         _subscribeRealtime();
         if (typeof _refreshMigrationBtnVisibility === 'function') _refreshMigrationBtnVisibility();
       }
@@ -502,12 +512,12 @@ async function _saveFlush() {
 
   // T-202605-118: AC-6 — renders post-debounce (online+auth path)
   // B-202605-079: activar dirty flags antes de llamar renders — sin mark los guards devuelven no-op
-  if (typeof _markRadarDirty === 'function') _markRadarDirty();
-  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
-  if (typeof _markPulsoDotDirty === 'function') _markPulsoDotDirty();
-  if (typeof renderPulsoDot === 'function') renderPulsoDot();
-  if (typeof _markStatusBarDirty === 'function') _markStatusBarDirty();
-  if (typeof renderStatusBar === 'function') renderStatusBar();
+  _markRadarDirty();
+  renderGlobalRadarSidebar();
+  _markPulsoDotDirty();
+  renderPulsoDot();
+  _markStatusBarDirty();
+  renderStatusBar();
 }
 
 // R-202604-035 / T-202604-299: save() — debounced
@@ -517,9 +527,9 @@ export function save() {
   _stateDirty = true;
 
   // T-202605-118: activar dirty flags — renders se ejecutan path-específico (AC-6: no antes del flush en online+auth)
-  if (typeof _markRadarDirty === 'function') _markRadarDirty();
-  if (typeof _markPulsoDotDirty === 'function') _markPulsoDotDirty();
-  if (typeof _markStatusBarDirty === 'function') _markStatusBarDirty();
+  _markRadarDirty();
+  _markPulsoDotDirty();
+  _markStatusBarDirty();
 
   // AC-3 R-C1: sin auth → localStorage inmediato. Supabase no se intenta.
   if (!_supabaseUser) {
@@ -539,8 +549,8 @@ export function save() {
       } else { throw err; }
     }
     // T-202605-118: render inmediato — sin auth, sin debounce
-    if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
-    if (typeof renderPulsoDot === 'function') renderPulsoDot();
+    renderGlobalRadarSidebar();
+    renderPulsoDot();
     return;
   }
 
@@ -562,8 +572,8 @@ export function save() {
       } else { throw err; }
     }
     // T-202605-118: render inmediato — offline, sin debounce
-    if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
-    if (typeof renderPulsoDot === 'function') renderPulsoDot();
+    renderGlobalRadarSidebar();
+    renderPulsoDot();
     _offlineQueuePush({ type: 'state' });
     return;
   }
@@ -636,8 +646,8 @@ export async function saveBacklog() {
   // T-[pendiente-ID]: purga inteligente — si localStorage supera el 80% de capacidad,
   // purgar ítems done/descartado >90 días del caché local antes de intentar escribir.
   // Los ítems purgados siguen existiendo en Supabase — solo se elimina el caché local.
-  if (typeof _localStorageUsageRatio === 'function' && _localStorageUsageRatio() > 0.8) {
-    if (typeof _purgeStaleBacklogCache === 'function') {
+  if (_localStorageUsageRatio() > 0.8) {
+    {
       const purged = _purgeStaleBacklogCache();
       if (purged > 0) showToast('warning', `⚠️ Caché local compacto — ${purged} ítem${purged > 1 ? 's' : ''} archivado${purged > 1 ? 's' : ''} (disponibles en Supabase)`);
     }
@@ -645,7 +655,7 @@ export async function saveBacklog() {
 
   const items = (typeof ITEMS !== 'undefined') ? ITEMS : [];
   const key = _tplKey('backlog-items');
-  const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
+  const projId = _getActiveProjectFilter();
   const metaKey = _tplKey('backlog-meta');
   const meta = JSON.parse(localStorage.getItem(metaKey) || '{}');
   meta.updated = new Date().toISOString(); // B-fix: meta.updated debe reflejar el momento del write para que _loadFromSupabase compare timestamps correctamente
@@ -678,7 +688,7 @@ export async function saveBacklog() {
             const btnClean  = document.getElementById('toast-quota-clean');
             if (btnExport) {
               btnExport.addEventListener('click', () => {
-                if (typeof exportBacklogMd === 'function') exportBacklogMd();
+                exportBacklogMd();
               }, { once: true });
             }
             if (btnClean) {
@@ -729,7 +739,7 @@ export async function saveBacklog() {
 
 // R-202604-035: saveContextDocs() — escribe en tracker_docs
 export async function saveContextDocs() {
-  const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
+  const projId = _getActiveProjectFilter();
   const suffix = projId ? '-' + projId : '-global';
 
   const ctxPayload = {
@@ -879,7 +889,7 @@ export async function _loadFromSupabase() {
 
     // ── 2. Batch paralelo: sesiones + backlog + docs (context/htmlmap/plan/tmp-id-map/notes/user-prefs) + drafts ──
     // Colapsa 6 queries secuenciales a tracker_docs en una sola con .in('key', [...])
-    const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : null;
+    const projId = _getActiveProjectFilter();
     const suffix = projId ? '-' + projId : '-global';
     const notesKey = projId ? 'notes-' + projId : 'notes-global';
     const docsKeysToFetch = [
@@ -962,7 +972,7 @@ export async function _loadFromSupabase() {
           if (shouldLoad && _itemsRef) {
             _itemsRef.length = 0;
             remoteItems.forEach(ri => _itemsRef.push(ri));
-            if (typeof _migrateItemTypes === 'function') _migrateItemTypes();
+            _migrateItemTypes();
             localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(_itemsRef));
             localStorage.setItem(_tplKey('backlog-meta'),  JSON.stringify(remoteMeta));
           }
@@ -1111,20 +1121,20 @@ export async function _loadFromSupabase() {
       console.warn('[AI Tracker] Error procesando borradores:', draftErr);
     }
 
-    if (typeof _markTrackerDirty === 'function') _markTrackerDirty(); if (typeof render === 'function') render();
+    _markTrackerDirty(); render();
     if (typeof renderHoy === 'function') renderHoy();
-    if (typeof updateStats === 'function') updateStats();
-    if (typeof _markRadarDirty === 'function') _markRadarDirty();
-    if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
-    if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
-    if (typeof _markStatusBarDirty === 'function') _markStatusBarDirty();
-    if (typeof renderBacklogList === 'function') renderBacklogList();
+    updateStats();
+    _markRadarDirty();
+    renderGlobalRadarSidebar();
+    _markBacklogListDirty();
+    _markStatusBarDirty();
+    renderBacklogList();
     setSyncStatus('synced', '✓ sincronizado');
 
   } catch (err) {
     console.error('[AI Tracker] _loadFromSupabase() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
-    if (typeof showToast === 'function') showToast('warning', '⚠️ No se pudo cargar desde Supabase — operando en modo local', null, 6000);
+    showToast('warning', '⚠️ No se pudo cargar desde Supabase — operando en modo local', null, 6000);
   }
 }
 
@@ -1292,15 +1302,15 @@ function _initApp() {
 // Solo se llama cuando hay sesión activa confirmada.
 function _renderAfterAuth() {
   // B-202604-010: render inicial desde estado real
-  if (typeof _markTrackerDirty === 'function') _markTrackerDirty(); if (typeof render === 'function') render();
+  _markTrackerDirty(); render();
   // B-202605-508: garantizar badges visibles al arranque
-  if (typeof updateTabNotifBadges === 'function') updateTabNotifBadges();
+  updateTabNotifBadges();
   // R-202604-072: panel de contexto diario — diferido para que ITEMS esté cargado
   if (typeof _showArranquePanel === 'function') setTimeout(_showArranquePanel, 400);
   // R-202604-073: dot Pulso — recalcular con datos reales
   // B-202605-079: mark antes del setTimeout — el guard requiere flag activo al ejecutar
-  if (typeof _markPulsoDotDirty === 'function') _markPulsoDotDirty();
-  if (typeof renderPulsoDot === 'function') setTimeout(renderPulsoDot, 600);
+  _markPulsoDotDirty();
+  setTimeout(renderPulsoDot, 600);
   // T-084: verificar umbral de sesiones
   if (typeof checkStorageWarn === 'function') setTimeout(checkStorageWarn, 500);
   // T-202605-482: sincronizar desde Supabase
@@ -1312,7 +1322,7 @@ export function _projKey(base, projId) { return projId ? base + '-' + projId : b
 
 // T-202604-006: clave de template para el proyecto activo
 export function _tplKey(base) {
-  const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
+  const projId = _getActiveProjectFilter();
   return projId ? base + '-' + projId : base;
 }
 
@@ -1320,7 +1330,7 @@ export function getAI(id) { return state.ais.find(a => a.id === id); }
 
 // Proyecto activo (objeto)
 export function getActiveProject() {
-  const id = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
+  const id = _getActiveProjectFilter();
   return id ? getProjectById(id) : null;
 }
 
@@ -1376,7 +1386,7 @@ function countAICheckpoints(aiId) { return countAISessions(aiId); }
 
 // Última sesión de una IA en el proyecto activo (o en todos si no hay filtro)
 export function getLastAISession(aiId) {
-  const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
+  const projId = _getActiveProjectFilter();
   const sessions = projId
     ? getProjectSessions(projId).filter(s => s.aiId === aiId)
     : getAllSessions().filter(s => s.aiId === aiId);
@@ -1385,7 +1395,7 @@ export function getLastAISession(aiId) {
 
 // Sesiones de una IA en el proyecto activo (o todos)
 export function getAISessions(aiId) {
-  const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : (localStorage.getItem('current-project-filter') || '');
+  const projId = _getActiveProjectFilter();
   if (projId) return getProjectSessions(projId).filter(s => s.aiId === aiId);
   return getAllSessions().filter(s => s.aiId === aiId);
 }

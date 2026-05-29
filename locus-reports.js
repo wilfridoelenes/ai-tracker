@@ -1,8 +1,19 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
 // Extraído de ai-tracker-ai-notes.js
+
+import { loadBacklog } from './locus-backlog-core.js';
+import { renderBacklogList } from './locus-backlog-render.js';
+import { loadHtmlMap, renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
+import { _focusFirstInteractive, _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
+import { renderGlobalRadarSidebar } from './locus-radar.js';
+import { updateStats } from './locus-sesiones-stats.js';
+import { render } from './locus-sesiones.js';
+import { _templateTrigger } from './locus-session-hora.js';
+import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
+import { _offlineQueuePush, _subscribeRealtime, _unsubscribeRealtime, setSyncStatus } from './locus-storage.js';
 
 // ai-tracker-ai-notes.js
 // Última actualización: 2026-05-13 UTC-6
@@ -163,7 +174,7 @@ function toggleMoreMenu() {
     m.classList.remove('is-hidden');
 
     // T-202604-295: sync checked state desde localStorage — shell estático en index.html
-    const cur = (typeof _templateTrigger === 'function' ? _templateTrigger() : 'session');
+    const cur = (_templateTrigger();
     const sesRad = document.getElementById('tmpl-trigger-session');
     const sprRad = document.getElementById('tmpl-trigger-sprint');
     if (sesRad) sesRad.checked = cur === 'session';
@@ -245,7 +256,7 @@ function openPurgeModal() {
 }
 function closePurgeModal() {
   document.getElementById('purge-modal-overlay').classList.remove('open');
-  if (typeof _restoreModalFocus === 'function') _restoreModalFocus('purge-modal-overlay');
+  _restoreModalFocus('purge-modal-overlay');
 }
 
 function toggleBacklogDangerZone() {
@@ -255,18 +266,18 @@ function toggleBacklogDangerZone() {
 }
 
 function openResetBacklogModal() {
-  if (typeof _saveModalTrigger === 'function') _saveModalTrigger('reset-backlog-overlay');
+  _saveModalTrigger('reset-backlog-overlay');
   const input = document.getElementById('reset-backlog-input');
   if (input) { input.value = ''; }
   const btn = document.getElementById('reset-backlog-confirm-btn');
   if (btn) btn.disabled = true;
   document.getElementById('reset-backlog-overlay').classList.add('open');
-  if (typeof _focusFirstInteractive === 'function') _focusFirstInteractive('reset-backlog-overlay');
+  _focusFirstInteractive('reset-backlog-overlay');
 }
 
 function closeResetBacklogModal() {
   document.getElementById('reset-backlog-overlay').classList.remove('open');
-  if (typeof _restoreModalFocus === 'function') _restoreModalFocus('reset-backlog-overlay');
+  _restoreModalFocus('reset-backlog-overlay');
 }
 
 function confirmResetBacklog() {
@@ -285,7 +296,7 @@ function confirmResetBacklog() {
       typeof _supabaseUser !== 'undefined' && _supabaseUser) {
     (async () => {
       try {
-        const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : null;
+        const projId = _getActiveProjectFilter();
         const suffix = projId ? '-' + projId : '-global';
         const { error } = await _supabase
           .from('tracker_backlog')
@@ -293,11 +304,11 @@ function confirmResetBacklog() {
           .eq('user_id', _supabaseUser.id)
           .in('key', ['items' + suffix, 'meta' + suffix]);
         if (error) throw error;
-        if (typeof setSyncStatus === 'function') setSyncStatus('synced', '✓ sincronizado');
+        setSyncStatus('synced', '✓ sincronizado');
       } catch (err) {
         console.error('[AI Tracker] confirmResetBacklog: Supabase sync error:', err);
-        if (typeof setSyncStatus === 'function') setSyncStatus('offline', '✕ sin conexión');
-        if (typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'backlog' });
+        setSyncStatus('offline', '✕ sin conexión');
+        _offlineQueuePush({ type: 'backlog' });
         showToast('warning', '⚠️ Reset local aplicado — Supabase se sincronizará al reconectar');
       }
     })();
@@ -322,11 +333,11 @@ function toggleSidebarDanger() {
 // Scope: proyecto activo únicamente — workers y proyectos nunca se tocan
 
 function openCleanProjectModal() {
-  const projId = typeof _getActiveProjectFilter === 'function' ? _getActiveProjectFilter() : null;
+  const projId = _getActiveProjectFilter();
   if (!projId) return; // AC-2: sin proyecto activo el botón está disabled — guard defensivo
 
   // Nombre del proyecto activo para el título del modal
-  const proj = typeof getProjectById === 'function' ? getProjectById(projId) : null;
+  const proj = getProjectById(projId);
   const projName = proj ? (proj.name || projId) : projId;
   const titleEl = document.getElementById('clean-project-title');
   if (titleEl) titleEl.textContent = projName;
@@ -342,7 +353,7 @@ function openCleanProjectModal() {
   if (inputConfirm) { inputConfirm.value = ''; inputConfirm.disabled = false; }
   if (btnConfirm)  { btnConfirm.setAttribute('aria-disabled', 'true'); btnConfirm.classList.add('is-disabled'); btnConfirm.disabled = true; }
 
-  if (typeof _saveModalTrigger === 'function') _saveModalTrigger('clean-project-overlay');
+  _saveModalTrigger('clean-project-overlay');
   document.getElementById('clean-project-overlay').classList.add('open');
 
   // AC-4: foco inicial en primer checkbox
@@ -351,7 +362,7 @@ function openCleanProjectModal() {
 
 function closeCleanProjectModal() {
   document.getElementById('clean-project-overlay').classList.remove('open');
-  if (typeof _restoreModalFocus === 'function') _restoreModalFocus('clean-project-overlay');
+  _restoreModalFocus('clean-project-overlay');
 }
 
 // AC-2 (T-202605-004): sincronizar estado disabled del botón clean-project
@@ -359,9 +370,7 @@ function closeCleanProjectModal() {
 export function _syncCleanProjectBtn() {
   const btn = document.getElementById('sidebar-danger-btn-clean-project');
   if (!btn) return;
-  const hasProjActive = typeof _getActiveProjectFilter === 'function'
-    ? !!_getActiveProjectFilter()
-    : false;
+  const hasProjActive = !!_getActiveProjectFilter();
   btn.setAttribute('aria-disabled', hasProjActive ? 'false' : 'true');
   if (hasProjActive) btn.classList.remove('is-disabled');
   else               btn.classList.add('is-disabled');
@@ -386,7 +395,7 @@ function _cleanProjectValidate() {
 }
 
 async function confirmCleanProject() {
-  const projId = typeof _getActiveProjectFilter === 'function' ? _getActiveProjectFilter() : null;
+  const projId = _getActiveProjectFilter();
   if (!projId) return;
 
   const chkSessions  = document.getElementById('clean-chk-sessions');
@@ -401,7 +410,7 @@ async function confirmCleanProject() {
   const doSessions = chkSessions.checked;
   const doBacklog  = chkBacklog.checked;
 
-  const proj = typeof getProjectById === 'function' ? getProjectById(projId) : null;
+  const proj = getProjectById(projId);
   const projName = proj ? (proj.name || projId) : projId;
 
   // AC-12: estado ejecutando
@@ -414,7 +423,7 @@ async function confirmCleanProject() {
   if (inputConfirm) inputConfirm.disabled = true;
 
   // AC-8: desconectar Realtime antes de operar
-  if (typeof _unsubscribeRealtime === 'function') _unsubscribeRealtime();
+  _unsubscribeRealtime();
 
   const errors = [];
 
@@ -437,7 +446,7 @@ async function confirmCleanProject() {
         if (error) {
           // AC-13: fallo Supabase — limpieza local aplicada de todas formas
           errors.push('Sesiones: ' + error.message);
-          if (typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'sessions', projId });
+          _offlineQueuePush({ type: 'sessions', projId });
         }
       }
 
@@ -461,7 +470,7 @@ async function confirmCleanProject() {
           .in('key', ['items' + suffix, 'meta' + suffix]);
         if (error) {
           errors.push('Backlog: ' + error.message);
-          if (typeof _offlineQueuePush === 'function') _offlineQueuePush({ type: 'backlog' });
+          _offlineQueuePush({ type: 'backlog' });
         }
       }
 
@@ -478,7 +487,7 @@ async function confirmCleanProject() {
   await saveImmediate();
 
   // AC-8: reconectar Realtime
-  if (typeof _subscribeRealtime === 'function') _subscribeRealtime();
+  _subscribeRealtime();
 
   // AC-13: si hubo errores — modal permanece abierto, toast warning
   if (errors.length > 0) {
@@ -499,10 +508,10 @@ async function confirmCleanProject() {
   closeCleanProjectModal();
   showToast('success', `✓ ${projName} — ${cleaned} eliminados`);
 
-  if (typeof renderBacklogList === 'function') renderBacklogList();
-  if (typeof render === 'function') render();
-  if (typeof updateStats === 'function') updateStats();
-  if (typeof renderGlobalRadarSidebar === 'function') renderGlobalRadarSidebar();
+  renderBacklogList();
+  render();
+  updateStats();
+  renderGlobalRadarSidebar();
 }
 
 // ── FUNCIONES LEGACY — deprecadas, mantenidas para compatibilidad ────────────
@@ -546,9 +555,9 @@ function resetHtmlMapData() {
     HTML_MAP_SECTIONS = [];
     saveContextDocs();
     _htmlMapModifiedInSession = false;
-    if (typeof loadHtmlMap === 'function') loadHtmlMap();
-    if (typeof renderHtmlMap === 'function') renderHtmlMap();
-    if (typeof updateHtmlMapBanner === 'function') updateHtmlMapBanner();
+    loadHtmlMap();
+    renderHtmlMap();
+    updateHtmlMapBanner();
     showToast('success', 'Module Map reseteado — ya puedes importar un nuevo HTML-MAP.md');
   });
 }
@@ -699,7 +708,7 @@ function _showImportDiff(d) {
 }
 function closeImportDiff() {
   document.getElementById('import-diff-overlay').classList.remove('open');
-  if (typeof _restoreModalFocus === 'function') _restoreModalFocus('import-diff-overlay');
+  _restoreModalFocus('import-diff-overlay');
   _pendingImportData = null;
   // AC-2/AC-5: limpiar el input para que onchange dispare si el usuario
   // selecciona el mismo archivo después de cancelar el diff
@@ -838,7 +847,7 @@ function confirmImport() {
 
   save(); render(); applyTheme(state.theme || 'dark');
   // Hidratar ITEMS desde localStorage restaurado
-  if (typeof loadBacklog === 'function') loadBacklog();
+  loadBacklog();
 
   const totalSess = mergedProjects.reduce((a, p) => a + (p.sessions || []).length, 0);
   const docsMsg = docsRestored > 0 ? ` · ${docsRestored} doc${docsRestored > 1 ? 's' : ''} restaurado${docsRestored > 1 ? 's' : ''}` : '';

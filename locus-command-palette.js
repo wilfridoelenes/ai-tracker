@@ -1,8 +1,19 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-command-palette.js
 // Versión: 1.0.4 | Última actualización: 2026-05-23 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto · T-202605-067 nav-tab-sprint
 // Renombrado de ai-tracker-command-palette.js
 
+
+import { toggleFocusMode } from './locus-backlog-panel.js';
+import { confirmCloseSprint, navigateToItem } from './locus-backlog-sprints.js';
+import { openItemEditor, openTemplatePicker } from './locus-item-editor.js';
+import { toggleRadarSidebar } from './locus-radar.js';
+import { openQuickCapture } from './locus-sesiones-capture.js';
+import { openDetail } from './locus-session-popup.js';
+import { _getActiveProjectFilter, exportBacklogMd, openProjPanel, selectProjectFilter } from './locus-sprint-project.js';
+import { getActiveProject, getActiveSprints } from './locus-storage.js';
+import { showToast } from './locus-toast.js';
+import { openShortcutsRef, switchSubTab, switchTab, toggleTheme } from './locus-ui-shell.js';
 'use strict';
 
 /* ────────────────────────────────────────────────────────────────
@@ -24,7 +35,7 @@ function _buildCommandRegistry() {
       icon: '🗂',
       keywords: ['tracker', 'tab', 'ir', 'sesiones', 'cards'],
       group: 'Navegación',
-      action: () => { if (typeof switchTab === 'function') switchTab('tab-tracker'); },
+      action: () => { switchTab('tab-tracker'); },
     },
     {
       id: 'nav-tab-backlog',
@@ -32,7 +43,7 @@ function _buildCommandRegistry() {
       icon: '🗃',
       keywords: ['backlog', 'documentos', 'context', 'map', 'tab'],
       group: 'Navegación',
-      action: () => { if (typeof switchTab === 'function') switchTab('tab-backlog'); },
+      action: () => { switchTab('tab-backlog'); },
     },
     {
       id: 'nav-tab-analytics',
@@ -40,7 +51,7 @@ function _buildCommandRegistry() {
       icon: '📊',
       keywords: ['analytics', 'estadisticas', 'metricas', 'tab'],
       group: 'Navegación',
-      action: () => { if (typeof switchTab === 'function') switchTab('tab-analytics'); },
+      action: () => { switchTab('tab-analytics'); },
     },
     {
       id: 'nav-tab-proyectos',
@@ -48,7 +59,7 @@ function _buildCommandRegistry() {
       icon: '📁',
       keywords: ['proyectos', 'dashboard', 'tab'],
       group: 'Navegación',
-      action: () => { if (typeof switchTab === 'function') switchTab('tab-proyectos'); },
+      action: () => { switchTab('tab-proyectos'); },
     },
     {
       // T-202605-067: nav al tab Sprint — reemplaza sub-tab Plan eliminado
@@ -57,7 +68,7 @@ function _buildCommandRegistry() {
       icon: '🏃',
       keywords: ['sprint', 'tab', 'plan', 'activo', 'burndown'],
       group: 'Navegación',
-      action: () => { if (typeof switchTab === 'function') switchTab('tab-sprint'); },
+      action: () => { switchTab('tab-sprint'); },
     },
     {
       id: 'nav-radar',
@@ -65,7 +76,7 @@ function _buildCommandRegistry() {
       icon: '📡',
       keywords: ['radar', 'sidebar', 'panel', 'global'],
       group: 'Navegación',
-      action: () => { if (typeof toggleRadarSidebar === 'function') toggleRadarSidebar(); },
+      action: () => { toggleRadarSidebar(); },
     },
   ];
 
@@ -76,7 +87,7 @@ function _buildCommandRegistry() {
       icon: '⚡',
       keywords: ['nueva', 'sesion', 'quick', 'capture', 'rapida'],
       group: 'Acciones',
-      action: () => { if (typeof openQuickCapture === 'function') openQuickCapture(); },
+      action: () => { openQuickCapture(); },
     },
     {
       id: 'action-new-item',
@@ -85,8 +96,8 @@ function _buildCommandRegistry() {
       keywords: ['nuevo', 'item', 'backlog', 'ticket', 'agregar'],
       group: 'Acciones',
       action: () => {
-        if (typeof switchTab === 'function') switchTab('tab-backlog');
-        setTimeout(() => { if (typeof openItemEditor === 'function') openItemEditor(null); }, 150);
+        switchTab('tab-backlog');
+        setTimeout(() => { openItemEditor(null); }, 150);
       },
     },
     {
@@ -103,7 +114,7 @@ function _buildCommandRegistry() {
       icon: '🌓',
       keywords: ['tema', 'theme', 'claro', 'oscuro', 'dark', 'light'],
       group: 'Acciones',
-      action: () => { if (typeof toggleTheme === 'function') toggleTheme(); },
+      action: () => { toggleTheme(); },
     },
     {
       id: 'action-close-sprint',
@@ -112,13 +123,11 @@ function _buildCommandRegistry() {
       keywords: ['cerrar', 'sprint', 'close', 'activo'],
       group: 'Acciones',
       action: () => {
-        if (typeof confirmCloseSprint === 'function') {
-          // B-202605-026: filtrar por status === 'active' — getActiveSprints() retorna todos los sprints del proyecto
-          const allSprints = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
+        // B-202605-026: filtrar por status === 'active' — getActiveSprints() retorna todos los sprints del proyecto
+          const allSprints = getActiveSprints();
           const active = allSprints.filter(s => s.status === 'active');
           if (active.length > 0) confirmCloseSprint(active[0].id);
           else _cpShowToast('No hay sprint activo para cerrar');
-        }
       },
     },
     {
@@ -127,7 +136,7 @@ function _buildCommandRegistry() {
       icon: '📤',
       keywords: ['exportar', 'backlog', 'export', 'descargar'],
       group: 'Acciones',
-      action: () => { if (typeof exportBacklogMd === 'function') exportBacklogMd(); },
+      action: () => { exportBacklogMd(); },
     },
     {
       id: 'action-open-doc-log',
@@ -153,10 +162,10 @@ function _buildCommandRegistry() {
       keywords: ['template', 'plantilla', 'predefinido', 'item', 'usar'],
       group: 'Acciones',
       action: () => {
-        if (typeof switchTab === 'function') switchTab('tab-backlog');
+        switchTab('tab-backlog');
         setTimeout(() => {
-          if (typeof openItemEditor === 'function') openItemEditor(null);
-          setTimeout(() => { if (typeof openTemplatePicker === 'function') openTemplatePicker(); }, 120);
+          openItemEditor(null);
+          setTimeout(() => { openTemplatePicker(); }, 120);
         }, 150);
       },
     },
@@ -168,8 +177,8 @@ function _buildCommandRegistry() {
       keywords: ['buscar', 'contexto', 'context', 'search', 'proyecto'],
       group: 'Acciones',
       action: () => {
-        if (typeof switchTab === 'function') switchTab('tab-backlog');
-        setTimeout(() => { if (typeof switchSubTab === 'function') switchSubTab('context'); }, 80);
+        switchTab('tab-backlog');
+        setTimeout(() => { switchSubTab('context'); }, 80);
       },
     },
     // AC-3 R-202604-084: acción cambiar proyecto activo
@@ -180,8 +189,8 @@ function _buildCommandRegistry() {
       keywords: ['cambiar', 'proyecto', 'switch', 'project', 'activo', 'filtro'],
       group: 'Acciones',
       action: () => {
-        if (typeof switchTab === 'function') switchTab('tab-proyectos');
-        setTimeout(() => { if (typeof openProjPanel === 'function') openProjPanel(); }, 150);
+        switchTab('tab-proyectos');
+        setTimeout(() => { openProjPanel(); }, 150);
       },
     },
     // B-244: toggle Modo Focus
@@ -192,7 +201,7 @@ function _buildCommandRegistry() {
       keywords: ['focus', 'modo', 'pantalla', 'completa', 'toggle', 'activar'],
       group: 'Acciones',
       action: () => {
-        if (typeof toggleFocusMode === 'function') toggleFocusMode();
+        toggleFocusMode();
       },
     },
     // [pendiente-ID]: Panel de pendientes — trigger via Command Palette
@@ -210,7 +219,7 @@ function _buildCommandRegistry() {
       icon: '⌨️',
       keywords: ['atajos', 'shortcuts', 'teclado', 'keyboard', 'ver'],
       group: 'Acciones',
-      action: () => { if (typeof openShortcutsRef === 'function') openShortcutsRef(); },
+      action: () => { openShortcutsRef(); },
     },
     {
       id: 'search-global',
@@ -248,7 +257,7 @@ function _buildDynamicCommands(query) {
           keywords: ['nueva', 'sesion', ai.name.toLowerCase(), ai.id],
           group: 'Acciones',
           action: () => {
-            if (typeof switchTab === 'function') switchTab('tab-tracker');
+            switchTab('tab-tracker');
             setTimeout(() => {
               const card = document.getElementById('card-' + ai.id);
               if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -262,7 +271,7 @@ function _buildDynamicCommands(query) {
   }
 
   // Proyectos
-  if (typeof getActiveProject === 'function' || typeof window.state !== 'undefined') {
+  if (getActiveProject() !== null || typeof window.state !== 'undefined') {
     const projects = (window.state && window.state.projects) ? window.state.projects : [];
     projects.filter(p => p.status !== 'archived').forEach(p => {
       const label = p.name || '';
@@ -274,8 +283,8 @@ function _buildDynamicCommands(query) {
           keywords: [label.toLowerCase(), p.id],
           group: 'Proyectos',
           action: () => {
-            if (typeof selectProjectFilter === 'function') selectProjectFilter(p.id);
-            if (typeof switchTab === 'function') switchTab('tab-proyectos');
+            selectProjectFilter(p.id);
+            switchTab('tab-proyectos');
           },
         });
       }
@@ -297,7 +306,7 @@ function _buildDynamicCommands(query) {
           keywords: [item.code, (item.title || item.desc || '').toLowerCase()],
           group: 'Ítems',
           action: () => {
-            if (typeof navigateToItem === 'function') navigateToItem(item.code);
+            navigateToItem(item.code);
           },
         });
       }
@@ -330,7 +339,7 @@ function _buildDynamicCommands(query) {
           keywords: [],
           group: 'Sesiones',
           action: () => {
-            if (ai && typeof openDetail === 'function') openDetail(ai.id, s.id);
+            if (ai) openDetail(ai.id, s.id);
           },
         });
       });
@@ -341,7 +350,7 @@ function _buildDynamicCommands(query) {
 
 function _getAllBacklogItems() {
   try {
-    const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+    const proj = getActiveProject();
     const key = proj ? `backlog-items-${proj.id}` : 'backlog-items';
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : [];
@@ -354,7 +363,7 @@ function _getAllBacklogItems() {
 function _cpSearchContext(query) {
   if (!query || query.length < 2) return [];
   try {
-    const projId = (typeof _getActiveProjectFilter === 'function') ? _getActiveProjectFilter() : null;
+    const projId = _getActiveProjectFilter();
     const key = projId ? `context-raw-${projId}` : 'context-raw';
     const raw = localStorage.getItem(key) || '';
     if (!raw) return [];
@@ -380,9 +389,9 @@ function _cpSearchContext(query) {
             group: 'Contexto',
             sub: currentSection,
             action: () => {
-              if (typeof switchTab === 'function') switchTab('tab-backlog');
+              switchTab('tab-backlog');
               setTimeout(() => {
-                if (typeof switchSubTab === 'function') switchSubTab('context');
+                switchSubTab('context');
               }, 80);
             },
           });
@@ -761,11 +770,7 @@ function _cpOnListMouseover(e) {
 ──────────────────────────────────────────────────────────────────*/
 
 function _cpShowToast(msg) {
-  if (typeof showToast === 'function') {
-    showToast('info', msg);
-  } else {
-    console.info('[CP]', msg);
-  }
+  showToast('info', msg);
 }
 
 /* ────────────────────────────────────────────────────────────────
