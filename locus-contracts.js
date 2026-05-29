@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-contracts.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
@@ -44,7 +44,7 @@ function _ctrSave(d)  { try { localStorage.setItem(_ctrKey(), JSON.stringify(d))
 
 // Merge de contrato desde un ítem parseado
 // ítem.contract = { file, functions: [ { name, signature, invariants, sideEffects, lastTouched, riskSprints } ] }
-export function pad(s, n) { return String(s).padEnd(n); }
+export function padEnd(s, n) { return String(s).padEnd(n); }
 
 export function _ctrMergeFromItem(itemCode, contract) {
   if (!contract || !contract.file) return;
@@ -238,7 +238,7 @@ function exportContratosMd() {
   const modules = Object.values(data);
   if (!modules.length) { showToast('warn', 'Sin contratos para exportar'); return; }
 
-  // pad definida a nivel de módulo — T3.bis
+  // padEnd definida a nivel de módulo — T3.bis
   let md = `# Contratos de Módulo\n\n`;
   md += `Exportado: ${new Date().toLocaleString('es-MX')}\n\n---\n\n`;
 
@@ -430,7 +430,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
-window.pad                      = window.pad || pad;
+window.padEnd                   = window.padEnd || padEnd;
 window._ctrMergeFromItem        = _ctrMergeFromItem;
 window.renderContratos          = renderContratos;
 window._esc                     = _esc;
