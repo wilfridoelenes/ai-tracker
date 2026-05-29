@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
@@ -736,8 +737,15 @@ function _updateProjFilterBtn() {
           : `<span class="proj-filter-initial" style="--proj-color:${proj.color || '#7c6af7'}">${esc((proj.name||'P')[0].toUpperCase())}</span>`)
       : '';
     const name = proj ? esc(proj.name) : 'Proyecto';
-    btn.innerHTML = `${avatar}${name} <span onclick="event.stopPropagation();clearProjectFilter()" title="Limpiar filtro" class="proj-filter-clear">✕</span>`;
+    btn.innerHTML = `${avatar}${name} <span title="Limpiar filtro" class="proj-filter-clear">✕</span>`;
     btn.classList.add('active');
+    const clearSpan = btn.querySelector('.proj-filter-clear');
+    if (clearSpan) {
+      clearSpan.addEventListener('click', function(e) {
+        e.stopPropagation();
+        clearProjectFilter();
+      });
+    }
   } else {
     btn.innerHTML = '📁 Proyectos';
     btn.classList.remove('active');
@@ -785,23 +793,37 @@ function renderProjPanel() {
     projects.forEach(proj => {
       const sessCount = _countProjSessions(proj);
       const isActive = filterId === proj.id;
-      html += `<div class="proj-row${isActive ? ' active' : ''}" onclick="selectProjectFilter('${proj.id}')">
+      html += `<div class="proj-row${isActive ? ' active' : ''}" data-proj-id="${proj.id}">
         ${proj.icon ? `<span class="proj-row-icon">${esc(proj.icon)}</span>` : `<span class="proj-row-dot" style="--proj-color:${proj.color || '#7c6af7'}"></span>`}
         <span class="proj-row-name">${esc(proj.name)}${proj.notes ? `<span class="proj-row-notes">${esc(proj.notes)}</span>` : ''}</span>
         <span class="proj-row-count">${sessCount}</span>
-        <button class="proj-row-edit" onclick="event.stopPropagation();closeProjPanel();openProjModal(true,'${proj.id}')" title="Editar">✎</button>
+        <button class="proj-row-edit" data-proj-edit-id="${proj.id}" title="Editar">✎</button>
       </div>`;
     });
   }
 
   if (filterId) {
-    html += `<div class="proj-all-row proj-all-row--separator" onclick="selectProjectFilter('')">
+    html += `<div class="proj-all-row proj-all-row--separator" data-proj-clear="1">
       <span class="proj-all-row-icon">✕</span>
       <span class="proj-all-row-label">Sin filtro activo</span>
     </div>`;
   }
 
   body.innerHTML = html;
+
+  body.addEventListener('click', function _projPanelDelegate(e) {
+    const editBtn = e.target.closest('[data-proj-edit-id]');
+    if (editBtn) {
+      e.stopPropagation();
+      closeProjPanel();
+      openProjModal(true, editBtn.dataset.projEditId);
+      return;
+    }
+    const clearRow = e.target.closest('[data-proj-clear]');
+    if (clearRow) { selectProjectFilter(''); return; }
+    const row = e.target.closest('[data-proj-id]');
+    if (row) { selectProjectFilter(row.dataset.projId); return; }
+  }, { once: true });
 }
 
 function _countProjSessions(proj) {
@@ -893,8 +915,12 @@ function _renderProjColorRow() {
   const row = document.getElementById('proj-color-row');
   if (!row) return;
   row.innerHTML = PROJ_COLORS.map((c, i) =>
-    `<div class="proj-color-dot${i === _projSelectedColor ? ' sel' : ''}" style="--proj-color:${c}" onclick="selectProjColor(${i})" title="${c}"></div>`
+    `<div class="proj-color-dot${i === _projSelectedColor ? ' sel' : ''}" style="--proj-color:${c}" data-color-idx="${i}" title="${c}"></div>`
   ).join('');
+  row.addEventListener('click', function _colorRowDelegate(e) {
+    const dot = e.target.closest('[data-color-idx]');
+    if (dot) selectProjColor(parseInt(dot.dataset.colorIdx, 10));
+  }, { once: true });
 }
 
 function selectProjColor(i) {
@@ -970,11 +996,7 @@ function _renderProjList() {
     const isArchived = proj.status === 'archived';
     return `<div class="proj-list-row${isArchived ? ' paused' : ''}" draggable="${isArchived ? 'false' : 'true'}"
       id="prow-${proj.id}"
-      ondragstart="projDragStart(event,'${proj.id}')"
-      ondragend="projDragEnd(event)"
-      ondragover="projDragOver(event,'${proj.id}')"
-      ondragleave="projDragLeave(event)"
-      ondrop="projDrop(event,'${proj.id}')">
+      data-drag-proj-id="${proj.id}">
       <span class="proj-list-drag">${isArchived ? '' : '⠿'}</span>
       ${proj.icon
         ? `<span class="proj-list-icon">${esc(proj.icon)}</span>`
@@ -984,9 +1006,9 @@ function _renderProjList() {
       <span class="proj-list-name">${esc(proj.name)}${proj.notes ? `<br><span class="proj-list-notes">${esc(proj.notes)}</span>` : ''}</span>
       <span class="proj-list-meta">${sessCount} ses.</span>
       <div class="proj-list-actions">
-        <button class="proj-list-btn" onclick="editProjInline('${proj.id}')" title="Editar">✎</button>
-        <button class="proj-list-btn" onclick="toggleProjArchive('${proj.id}')" title="${isArchived ? 'Restaurar' : 'Archivar'}">${isArchived ? '↩' : '📦'}</button>
-        <button class="proj-list-btn danger" onclick="deleteProjConfirm('${proj.id}')" title="Eliminar">✕</button>
+        <button class="proj-list-btn" data-proj-action="edit" data-proj-id="${proj.id}" title="Editar">✎</button>
+        <button class="proj-list-btn" data-proj-action="archive" data-proj-id="${proj.id}" title="${isArchived ? 'Restaurar' : 'Archivar'}">${isArchived ? '↩' : '📦'}</button>
+        <button class="proj-list-btn danger" data-proj-action="delete" data-proj-id="${proj.id}" title="Eliminar">✕</button>
       </div>
     </div>`;
   }
@@ -997,7 +1019,7 @@ function _renderProjList() {
   let html = activeProjs.map(_projRow).join('');
   if (archivedProjs.length) {
     html += `<div class="proj-archived-section">
-      <button class="proj-archived-toggle" onclick="_toggleProjArchivedSection()">
+      <button class="proj-archived-toggle" data-proj-action="toggle-archived">
         <span class="proj-archived-arrow">${archivedOpen ? '▾' : '▸'}</span>
         <span>Archivados (${archivedProjs.length})</span>
       </button>
@@ -1005,6 +1027,38 @@ function _renderProjList() {
     </div>`;
   }
   list.innerHTML = html || `<div class="proj-empty-hint">Aún no hay proyectos — crea uno arriba</div>`;
+
+  // Event delegation — botones de acción
+  list.addEventListener('click', function _projListClickDelegate(e) {
+    const btn = e.target.closest('[data-proj-action]');
+    if (!btn) return;
+    const action = btn.dataset.projAction;
+    const projId = btn.dataset.projId;
+    if (action === 'edit') { editProjInline(projId); return; }
+    if (action === 'archive') { toggleProjArchive(projId); return; }
+    if (action === 'delete') { deleteProjConfirm(projId); return; }
+    if (action === 'toggle-archived') { _toggleProjArchivedSection(); return; }
+  }, { once: true });
+
+  // Event delegation — drag & drop
+  list.addEventListener('dragstart', function _projListDragStart(e) {
+    const row = e.target.closest('[data-drag-proj-id]');
+    if (row) projDragStart(e, row.dataset.dragProjId);
+  });
+  list.addEventListener('dragend', function _projListDragEnd(e) {
+    projDragEnd(e);
+  });
+  list.addEventListener('dragover', function _projListDragOver(e) {
+    const row = e.target.closest('[data-drag-proj-id]');
+    if (row) projDragOver(e, row.dataset.dragProjId);
+  });
+  list.addEventListener('dragleave', function _projListDragLeave(e) {
+    projDragLeave(e);
+  });
+  list.addEventListener('drop', function _projListDrop(e) {
+    const row = e.target.closest('[data-drag-proj-id]');
+    if (row) projDrop(e, row.dataset.dragProjId);
+  });
 }
 
 function editProjInline(projId) {
