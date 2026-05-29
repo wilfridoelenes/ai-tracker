@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -23,6 +23,17 @@ import { render } from './locus-sesiones.js';
 import { showToast } from './locus-toast.js';
 
 import { esc } from './locus-ui-shell.js';
+
+// Constantes canónicas del ecosistema — roles disponibles para el select de ítem
+// Fuente: OB-STRATEGY §6. Actualizar aquí si se agregan/eliminan roles.
+const _ECOSYSTEM_ROLES = [
+  'ST · Vera', 'GW · Lena', 'CPO · Noa', 'CMO · Maya',
+  'PO · Cael', 'FS · Rune', 'UX · Nova', 'QA · Finn',
+  'CC · Flux', 'ET · Eden', 'GC · Sage', 'DA · Iris'
+];
+
+// Días sin cambio de status para considerar un ítem bloqueado (alineado con _isBlocked en core)
+const _BLOCKED_DAYS = 14;
 
 // Labels de tipo de ítem para display en UI
 const TYPE_LABELS = { R: 'Requerimiento', T: 'Ticket', B: 'Bug', P: 'Posibilidad' };
@@ -80,8 +91,8 @@ export function _renderKanban(listEl) {
     const _normEffortK = _rawEffortK > 3 ? 3 : _rawEffortK < 1 ? 1 : _rawEffortK;
     const effortOk = _getActiveEfforts().has(_normEffortK); // B-202605-233: effort >3 normalizado a 3
     let roleOk = true;
-    if (activeRoleFilter === '__none__') roleOk = !i.role || !i.role.trim();
-    else if (activeRoleFilter !== null) roleOk = (i.role || '').trim() === activeRoleFilter;
+    if (_getActiveRoleFilter() === '__none__') roleOk = !i.role || !i.role.trim();
+    else if (_getActiveRoleFilter() !== null) roleOk = (i.role || '').trim() === _getActiveRoleFilter();
     return typeOk && effortOk && roleOk && i.status !== 'historico'; // B-202605-266
   });
   if (q) {
@@ -298,7 +309,7 @@ function _attachBacklogListDelegation() {
 export function _attachBacklogDnD() {
   // B-202605-013: T-202604-424 eliminó 'sprint' como valor de backlogSortMode — guard era inalcanzable.
   // DnD activo cuando la agrupación por sprint está activa y no hay modo exclusivo que tome el rendering.
-  if (!_backlogSprintGroupMode || _backlogKanbanMode || _backlogFocusMode || _backlogMikeMode || _backlogNoAcMode) return;
+  if (!_getBacklogSprintGroupMode() || _getBacklogKanbanMode() || _getBacklogFocusMode() || _getBacklogMikeMode() || _getBacklogNoAcMode()) return;
   // Solo grupos sprint: vbody-{groupId} — excluye sgbody-done, sgbody-discarded y vbody-flat
   const sprintBodies = document.querySelectorAll('[id^="vbody-"]:not(#vbody-flat)');
   sprintBodies.forEach(body => {
