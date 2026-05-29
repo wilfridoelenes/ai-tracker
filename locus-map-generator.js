@@ -1,8 +1,17 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-28 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
  * Módulo: Document Generator — MAP + CONTEXT + BACKLOG + Sprint Review + ZIP
+
+import { archiveClosedItems } from './locus-backlog-archive.js';
+import { editSprintInline } from './locus-backlog-sprints.js';
+import { _getMapContent, _importContextMdFromText, exportHtmlMapMd, importHtmlMap } from './locus-docs.js';
+import { _tryIngestPlan } from './locus-session-parse.js';
+import { buildBacklogMd } from './locus-session-save.js';
+import { _docPrefix, _generateFullHistoryContent, exportBacklogMd, exportContextMd, exportFullHistoryMd, getProjContext } from './locus-sprint-project.js';
+import { _effectiveVersion, _tplKey, getAISessions, getActiveProject, getActiveSprints } from './locus-storage.js';
+import { showToast, showToastInline } from './locus-toast.js';
  * Proyecto: Locus
  * Renombrado de ai-tracker-map-generator.js
  * R-202604-053 | R-202604-086 | R-202605-101
@@ -55,20 +64,16 @@ function openMapGenerator() {
   // Inicializar versión
   const vInput = document.getElementById('mg-version-input');
   const fPreview = document.getElementById('mg-filename-preview');
-  const prefix = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
-  const ver = (typeof _effectiveVersion === 'function') ? _effectiveVersion() : '';
+  const prefix = _docPrefix();
+  const ver = _effectiveVersion();
   if (vInput) vInput.value = ver;
   if (fPreview) fPreview.textContent = `${prefix}-MAP_${ver}.md`;
 
   // R-202605-147: inferir status al abrir — calculado una sola vez
   let _blItemsForStatus = [];
   try {
-    if (typeof _tplKey === 'function') {
-      const raw = localStorage.getItem(_tplKey('backlog-items'));
+    const raw = localStorage.getItem(_tplKey('backlog-items'));
       _blItemsForStatus = raw ? JSON.parse(raw) : [];
-    } else if (typeof ITEMS !== 'undefined') {
-      _blItemsForStatus = ITEMS;
-    }
   } catch(e) {}
   const _activeSp = _mgActiveSprint();
   const inferredStatus = _mgInferStatus(_activeSp, _blItemsForStatus);
@@ -76,7 +81,7 @@ function openMapGenerator() {
   const _pad2 = n => String(n).padStart(2, '0');
   const tsLabel = `${_now2.getFullYear()}-${_pad2(_now2.getMonth()+1)}-${_pad2(_now2.getDate())} ${_pad2(_now2.getHours())}:${_pad2(_now2.getMinutes())}`;
   const spLabel = _activeSp ? _activeSp.id : ((() => {
-    const allSp = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
+    const allSp = getActiveSprints();
     const last = allSp.filter(s => s.status === 'closed').sort((a,b)=>(b.closedAt||0)-(a.closedAt||0))[0];
     return last ? last.id : '—';
   })());
@@ -116,7 +121,7 @@ function closeMapGenerator() {
 // ─── Sprint Review — carga de datos ─────────────────────────────────────────
 
 function _mgLoadSprintReview() {
-  const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+  const proj = getActiveProject();
   if (!proj) return;
 
   // Sprint activo
@@ -273,7 +278,7 @@ function _mgLoadFiles(fileList) {
   const excluded = /^(env|\.env)(\.local|\.dev|\.prod|\.test)?\.js$/i;
   const rejected = fileList.filter(f => excluded.test(f.name));
   rejected.forEach(f => {
-    if (typeof showToast === 'function') showToast('warning', `${f.name} excluido — archivos de entorno no se importan al MAP`);
+    showToast('warning', `${f.name} excluido — archivos de entorno no se importan al MAP`);
   });
   const valid = fileList.filter(f => !excluded.test(f.name) && allowed.some(ext => f.name.toLowerCase().endsWith(ext)));
   if (!valid.length) return;
@@ -286,7 +291,7 @@ function _mgLoadFiles(fileList) {
     reader.onload = e => {
       if (existingIdx !== -1) {
         _mapGen.files[existingIdx] = { name: file.name, size: file.size, text: e.target.result };
-        if (typeof showToast === 'function') showToast('info', `${file.name} reemplazado — versión anterior descartada`);
+        showToast('info', `${file.name} reemplazado — versión anterior descartada`);
       } else {
         _mapGen.files.push({ name: file.name, size: file.size, text: e.target.result });
       }
@@ -438,8 +443,7 @@ export function _mgGetVersion() {
   const raw = input ? input.value.trim() : '';
   if (raw && raw !== 'undefined') return raw;
   // R-202605-002: delegar a _effectiveVersion — fuente de verdad canónica de versión
-  if (typeof _effectiveVersion === 'function') return _effectiveVersion();
-  return '';
+  return _effectiveVersion();
 }
 
 // ─── Generador PLAN ──────────────────────────────────────────────────────────
@@ -467,7 +471,7 @@ export function _mgGetVersion() {
 
 function _mgBuildPlan() {
   // Obtener ítems del sprint siguiente
-  const allSprints = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
+  const allSprints = getActiveSprints();
   const openSprints = allSprints.filter(s => s.status === 'active');
 
   // Sprint siguiente: primero después del activo, o el primer active si no hay activo
@@ -491,12 +495,8 @@ function _mgBuildPlan() {
   // Leer ítems del backlog
   let backlogItems = [];
   try {
-    if (typeof _tplKey === 'function') {
-      const raw = localStorage.getItem(_tplKey('backlog-items'));
+    const raw = localStorage.getItem(_tplKey('backlog-items'));
       backlogItems = raw ? JSON.parse(raw) : [];
-    } else if (typeof ITEMS !== 'undefined') {
-      backlogItems = ITEMS;
-    }
   } catch(e) { backlogItems = []; }
 
   // Filtrar ítems del sprint objetivo con rol asignado y status pendiente
@@ -648,11 +648,11 @@ function generateDocuments() {
   const planChecked    = document.getElementById('mg-out-plan')?.checked;
 
   if (!mapChecked && !contextChecked && !backlogChecked && !reviewChecked && !planChecked) {
-    if (typeof showToast === 'function') showToast('warning', 'Selecciona al menos un documento a generar.');
+    showToast('warning', 'Selecciona al menos un documento a generar.');
     return;
   }
   if (mapChecked && !_mapGen.files.length) {
-    if (typeof showToast === 'function') showToast('warning', 'Adjunta archivos para generar el MAP.');
+    showToast('warning', 'Adjunta archivos para generar el MAP.');
     return;
   }
 
@@ -672,31 +672,21 @@ function generateDocuments() {
         contextCheckedFinal = false;
         // Toast warning con acción de editar sprint
         const _campo = _missingName ? 'nombre' : 'goal';
-        if (typeof showToastInline === 'function') {
-          showToastInline('warning', `El sprint no tiene ${_campo}. CONTEXT desmarcado. <button class="mg-toast-edit-sprint" data-mg-action="edit-sprint" data-sprint-id="${_valSp.id}">Editar sprint →</button>`);
-        } else if (typeof showToast === 'function') {
-          showToast('warning', `El sprint no tiene ${_campo}. CONTEXT desmarcado — edita el sprint y vuelve a marcar CONTEXT.`);
-        }
+        showToastInline('warning', `El sprint no tiene ${_campo}. CONTEXT desmarcado. <button class="mg-toast-edit-sprint" data-mg-action="edit-sprint" data-sprint-id="${_valSp.id}">Editar sprint →</button>`);
         // B-[pendiente-ID]: no hacer return — continuar con los demás documentos seleccionados
       }
       // AC3: status active + backlog.pending = 0 con backlog.total > 0 — advertencia con opción continuar
       const _valStatus = _mgInferStatus(_valSp, (() => {
         try {
-          if (typeof _tplKey === 'function') {
-            const raw = localStorage.getItem(_tplKey('backlog-items'));
+          const raw = localStorage.getItem(_tplKey('backlog-items'));
             return raw ? JSON.parse(raw) : [];
-          }
-          return typeof ITEMS !== 'undefined' ? ITEMS : [];
         } catch(e) { return []; }
       })());
       if (_valStatus === 'active') {
         const _valItems = (() => {
           try {
-            if (typeof _tplKey === 'function') {
-              const raw = localStorage.getItem(_tplKey('backlog-items'));
+            const raw = localStorage.getItem(_tplKey('backlog-items'));
               return raw ? JSON.parse(raw) : [];
-            }
-            return typeof ITEMS !== 'undefined' ? ITEMS : [];
           } catch(e) { return []; }
         })();
         const _valTotal   = _valItems.length;
@@ -730,7 +720,7 @@ function generateDocuments() {
   if (planChecked) {
     const planResult = _mgBuildPlan();
     if (planResult.warning) {
-      if (typeof showToast === 'function') showToast('warning', planResult.warning);
+      showToast('warning', planResult.warning);
     } else {
       _mapGen.generatedDocs.plan = planResult.planMd;
       _mapGen.generatedDocs._planSprintId = planResult.sprintId;
@@ -764,7 +754,7 @@ function _generateMap(ver) {
 
   const version = (ver && ver !== 'undefined') ? ver : _mgGetVersion();
   const now = _mgNow();
-  const project = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+  const project = _docPrefix();
 
   // Pasada 1 — parsear todos los archivos y construir índice global de funciones
   // AC-17: índice global { fnName → [fileName, ...] } (un nombre puede existir en múltiples archivos)
@@ -781,12 +771,8 @@ function _generateMap(ver) {
   // T-202605-491: inferir status — reutiliza _mgInferStatus() de R-202605-147
   let _blItemsForMap = [];
   try {
-    if (typeof _tplKey === 'function') {
-      const raw = localStorage.getItem(_tplKey('backlog-items'));
+    const raw = localStorage.getItem(_tplKey('backlog-items'));
       _blItemsForMap = raw ? JSON.parse(raw) : [];
-    } else if (typeof ITEMS !== 'undefined') {
-      _blItemsForMap = ITEMS;
-    }
   } catch(e) {}
   const _activeSpForMap = _mgActiveSprint();
   const mapStatus = (typeof _mgInferStatus === 'function')
@@ -1124,7 +1110,7 @@ function _generateContext(ver) {
     : (_activeSp && _activeSp.version_target && _activeSp.version_target !== 'undefined')
       ? _activeSp.version_target
       : _mgGetVersion();
-  const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+  const proj = getActiveProject();
 
   // Timestamp
   const _now = new Date();
@@ -1135,7 +1121,7 @@ function _generateContext(ver) {
 
   // Stack — leer del contexto almacenado si existe; priorizar JSON > Markdown > default
   let stack = [];
-  const storedRaw = (proj && typeof getProjContext === 'function') ? getProjContext(proj.id) : null;
+  const storedRaw = proj ? getProjContext(proj.id) : null;
   if (storedRaw && storedRaw.trim()) {
     let isJson = false;
     try { const o = JSON.parse(storedRaw.trim()); isJson = typeof o === 'object' && o !== null && 'version' in o; } catch(e) {}
@@ -1163,12 +1149,8 @@ function _generateContext(ver) {
   // Backlog items
   let _blItems = [];
   try {
-    if (typeof _tplKey === 'function') {
-      const raw = localStorage.getItem(_tplKey('backlog-items'));
+    const raw = localStorage.getItem(_tplKey('backlog-items'));
       _blItems = raw ? JSON.parse(raw) : [];
-    } else if (typeof ITEMS !== 'undefined') {
-      _blItems = ITEMS;
-    }
   } catch(e) { _blItems = []; }
 
   // R-202605-147: status inferido — calculado una sola vez al abrir
@@ -1183,7 +1165,7 @@ function _generateContext(ver) {
   };
 
   // R-202605-147: sprint enriquecido
-  const allSprints = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
+  const allSprints = getActiveSprints();
   const closedSprints = allSprints
     .filter(s => s.status === 'closed')
     .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
@@ -1329,7 +1311,7 @@ function _generateContext(ver) {
   // Fallback 2: error en getAISessions → placeholder explícito (no objeto vacío silencioso)
   let commands = {};
   try {
-    const projAIs = (proj && typeof getAISessions === 'function')
+    const projAIs = proj
       ? (getAISessions() || []).filter(ai => !ai.archived)
       : [];
     const activeRoles = projAIs
@@ -1377,22 +1359,21 @@ function _generateContext(ver) {
 // T-202605-489: acepta version como parámetro; fallback a _mgGetVersion() si no se pasa
 function _generateBacklog(version) {
   const ver = (version && version !== 'undefined') ? version : _mgGetVersion();
-  if (typeof buildBacklogMd === 'function') return buildBacklogMd(ver);
-  return `# BACKLOG generado — buildBacklogMd no disponible\n`;
+  return buildBacklogMd(ver);
 }
 
 // ─── Generador SPRINT-REVIEW ─────────────────────────────────────────────────
 
 function _generateSprintReview(ver) {
   // B-202605-495: acepta ver como parámetro; fallback a _mgGetVersion() si no se pasa
-  const proj = typeof getActiveProject === 'function' ? getActiveProject() : null;
+  const proj = getActiveProject();
   const activeSprint = _mgActiveSprint();
 
   const sprintId   = activeSprint ? activeSprint.id : 'sin-sprint';
   const sprintName = activeSprint ? (activeSprint.label || activeSprint.id) : '—';
   const version    = (ver && ver !== 'undefined') ? ver : _mgGetVersion();
   const now        = _mgNow();
-  const prefix     = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+  const prefix     = _docPrefix();
 
   let md = `# ${prefix}-SPRINT-REVIEW_${sprintId}.md\n`;
   md += `<!-- Versión: ${version} | Sprint: ${sprintId} | Generado: ${now} UTC-6 -->\n\n`;
@@ -1516,7 +1497,7 @@ function _mgShowPreview(docs) {
   if (!area) return;
 
   const version = _mgGetVersion();
-  const prefix = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+  const prefix = _docPrefix();
 
   const items = [
     { key: 'map',     label: 'MAP',          filename: `${prefix}-MAP_${version}.md` },
@@ -1582,15 +1563,13 @@ function confirmMapGenerator() {
   if (!Object.keys(docs).length) return;
 
   // R-202605-117: guard — no bumpear versión si no hay sprint cerrado previo
-  const allSprints = (typeof getActiveSprints === 'function') ? getActiveSprints() : [];
+  const allSprints = getActiveSprints();
   const hasClosedSprint = allSprints.some(s => s.status === 'closed');
 if (!hasClosedSprint) {
   // B-[pendiente-ID]: warning no bloqueante — MAP y demás documentos se descargan
   // sin sprint cerrado. Solo el bump de versión requiere sprint cerrado.
   // Si no hay sprint cerrado → usar versión actual sin bumpear.
-  if (typeof showToast === 'function') {
-    showToast('warning', 'Sin sprint cerrado — archivos descargados con versión actual sin bumpear');
-  }
+  showToast('warning', 'Sin sprint cerrado — archivos descargados con versión actual sin bumpear');
   docs._bumpedVer = _mgGetVersion(); // sobreescribir: no bumpear sin sprint cerrado
   // No hacer return — continuar con _doConfirmGenerate()
 }
@@ -1627,7 +1606,7 @@ function _doConfirmGenerate() {
   const docs = _mapGen.generatedDocs;
   if (!Object.keys(docs).length) return;
 
-  const prefix    = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+  const prefix    = _docPrefix();
   // B-202605-496: usar bumpedVer de generateDocuments() — evita recálculo independiente
   // Si no está disponible (flujo inesperado) — fallback al comportamiento anterior
   const bumpedVer = (docs._bumpedVer && docs._bumpedVer !== 'undefined')
@@ -1641,9 +1620,7 @@ function _doConfirmGenerate() {
       const ctxVer = ctxObj.version || '';
       // Normalizar: quitar 'v' inicial para comparación insensible al prefijo — normalize() definida a nivel de módulo
       if (normalize(ctxVer) !== normalize(bumpedVer)) {
-        if (typeof showToast === 'function') {
-          showToast('error', `Versión interna del CONTEXT (${ctxVer}) no coincide con el nombre del archivo (${bumpedVer}) — regenera los documentos antes de confirmar.`);
-        }
+        showToast('error', `Versión interna del CONTEXT (${ctxVer}) no coincide con el nombre del archivo (${bumpedVer}) — regenera los documentos antes de confirmar.`);
         return;
       }
     } catch(e) {
@@ -1662,10 +1639,8 @@ function _doConfirmGenerate() {
       filename: name,
       content:  docs.map,
       apply: () => {
-        if (typeof importHtmlMap === 'function') {
-          const f = new File([docs.map], name, { type: 'text/markdown' });
+        const f = new File([docs.map], name, { type: 'text/markdown' });
           importHtmlMap({ target: { files: [f], value: '' } });
-        }
       },
     });
   }
@@ -1675,7 +1650,7 @@ function _doConfirmGenerate() {
       filename: name,
       content:  docs.context,
       apply: () => {
-        if (typeof _importContextMdFromText === 'function') _importContextMdFromText(docs.context);
+        _importContextMdFromText(docs.context);
       },
     });
   }
@@ -1692,13 +1667,13 @@ function _doConfirmGenerate() {
 
   // T-202605-488: ingerir Plan generado automáticamente (no es efecto DOM externo — es parse interno)
   if (docs.plan) {
-    const ingested = (typeof _tryIngestPlan === 'function') ? _tryIngestPlan(docs.plan) : false;
-    if (!ingested && typeof showToast === 'function') {
+    const ingested = _tryIngestPlan(docs.plan);
+    if (!ingested) {
       showToast('warning', 'Plan generado pero no pudo ingresarse automáticamente — copia el bloque manualmente');
     }
     if (ingested) {
       try {
-        const proj = (typeof getActiveProject === 'function') ? getActiveProject() : null;
+        const proj = getActiveProject();
         if (proj) {
           const metaKey = `sprint-plan:auto-${proj.id}`; // T-202605-069: alineado con locus-sprint-plan.js (T-202605-068)
           localStorage.setItem(metaKey, JSON.stringify({ ts: Date.now(), sprintId: docs._planSprintId || '?' }));
@@ -1718,7 +1693,7 @@ function _doConfirmGenerate() {
       // ZIP generado exitosamente — aplicar efectos en orden: DOM → versión → archivo
       fileDefs.forEach(d => { if (d.apply) d.apply(); });
       _mgApplyBumpedVersion(bumpedVer); // B-202605-493: diferido post-confirmación
-      if (typeof archiveClosedItems === 'function') archiveClosedItems(); // B-202605-493: diferido post-confirmación
+      archiveClosedItems(); // B-202605-493: diferido post-confirmación
 
       const url = URL.createObjectURL(blob);
       const a   = document.createElement('a');
@@ -1728,25 +1703,21 @@ function _doConfirmGenerate() {
       URL.revokeObjectURL(url);
 
       closeMapGenerator();
-      if (typeof showToast === 'function') {
-        showToast('success', `Paquete generado — ${fileDefs.length} documento${fileDefs.length !== 1 ? 's' : ''} · v${bumpedVer}`);
-      }
+      showToast('success', `Paquete generado — ${fileDefs.length} documento${fileDefs.length !== 1 ? 's' : ''} · v${bumpedVer}`);
     }).catch(() => {
       // ZIP falló — no aplicar ningún efecto de estado
-      if (typeof showToast === 'function') showToast('error', 'Error al generar el ZIP — no se aplicaron cambios');
+      showToast('error', 'Error al generar el ZIP — no se aplicaron cambios');
     });
   } else {
     // Fallback: descargas individuales — aplicar efectos después de iniciar descargas
     fileDefs.forEach(d => _mgDownload(d.content, d.filename));
     fileDefs.forEach(d => { if (d.apply) d.apply(); });
     _mgApplyBumpedVersion(bumpedVer); // B-202605-493: diferido post-descarga
-    if (typeof archiveClosedItems === 'function') archiveClosedItems(); // B-202605-493: diferido post-descarga
-    if (typeof showToast === 'function') showToast('warning', 'JSZip no disponible — descargando archivos por separado');
+    archiveClosedItems(); // B-202605-493: diferido post-descarga
+    showToast('warning', 'JSZip no disponible — descargando archivos por separado');
 
     closeMapGenerator();
-    if (typeof showToast === 'function') {
-      showToast('success', `Paquete generado — ${fileDefs.length} documento${fileDefs.length !== 1 ? 's' : ''} · v${bumpedVer}`);
-    }
+    showToast('success', `Paquete generado — ${fileDefs.length} documento${fileDefs.length !== 1 ? 's' : ''} · v${bumpedVer}`);
   }
 }
 // R-202605-002: _mgApplyBumpedVersion — solo actualiza DOM, no persiste en localStorage
@@ -1780,25 +1751,21 @@ function _mgDownload(content, filename) {
 // R-202605-146: Descargar todos los documentos exportables en un ZIP
 // Usa JSZip si está disponible; fallback a descargas individuales
 function _mgExportAllZip() {
-  const prefix = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+  const prefix = _docPrefix();
 
   const fileDefs = [];
 
-  if (typeof buildBacklogMd === 'function') {
-    fileDefs.push({ filename: `${prefix}-BACKLOG.md`, fn: () => buildBacklogMd(_mgGetVersion()) }); // B-202605-513: pasar versión para que el export no quede con header undefined
-  }
+  fileDefs.push({ filename: `${prefix}-BACKLOG.md`, fn: () => buildBacklogMd(_mgGetVersion()) }); // B-202605-513: pasar versión para que el export no quede con header undefined
   // B-202605-515: historial completo via _generateFullHistoryContent (función pura, sin blob/toast)
-  if (typeof _generateFullHistoryContent === 'function') {
-    const ver = _mgGetVersion();
-    fileDefs.push({ filename: `${prefix}-BACKLOG-FULL_${ver}.md`, fn: () => _generateFullHistoryContent(ver) });
-  }
+  const ver = _mgGetVersion();
+  fileDefs.push({ filename: `${prefix}-BACKLOG-FULL_${ver}.md`, fn: () => _generateFullHistoryContent(ver) });
   if (typeof _generateContext === 'function') {
     const version = _mgGetVersion();
-    const prefix2 = typeof _docPrefix === 'function' ? _docPrefix() : 'AI';
+    const prefix2 = _docPrefix();
     fileDefs.push({ filename: `${prefix2}-CONTEXT_${version}.md`, fn: () => _generateContext() }); // B-202605-276
   }
   // B-202605-514: MAP via _getMapContent() — función pura, sin overlay ni blob
-  if (typeof _getMapContent === 'function') {
+  {
     const ver = _mgGetVersion();
     const mapContent = _getMapContent(ver);
     if (mapContent !== null) {
@@ -1820,15 +1787,15 @@ function _mgExportAllZip() {
       a.download = `${prefix}-DOCUMENTOS.zip`;
       a.click();
       URL.revokeObjectURL(url);
-      if (typeof showToast === 'function') showToast('success', 'ZIP descargado — todos los documentos');
+      showToast('success', 'ZIP descargado — todos los documentos');
     });
   } else {
     // Fallback: descargas individuales usando las funciones de exportación existentes
-    if (typeof exportBacklogMd === 'function') exportBacklogMd();
-    if (typeof exportFullHistoryMd === 'function') exportFullHistoryMd();
-    if (typeof exportHtmlMapMd === 'function') exportHtmlMapMd();
-    if (typeof exportContextMd === 'function') exportContextMd();
-    if (typeof showToast === 'function') showToast('info', 'Documentos descargados individualmente');
+    exportBacklogMd();
+    exportFullHistoryMd();
+    exportHtmlMapMd();
+    exportContextMd();
+    showToast('info', 'Documentos descargados individualmente');
   }
 }
 
@@ -1891,7 +1858,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (btn.dataset.mgAction === 'edit-sprint') {
         closeMapGenerator();
         const spId = btn.dataset.sprintId;
-        setTimeout(() => { if (typeof editSprintInline === 'function') editSprintInline(spId); }, 100);
+        setTimeout(() => { editSprintInline(spId); }, 100);
       }
     });
   }
