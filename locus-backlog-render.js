@@ -1289,7 +1289,7 @@ export function renderBacklogList(onRendered) {
   if (typeof _attachBacklogListDelegation === 'function') _attachBacklogListDelegation();
   if (typeof _attachSprintBarDelegation === 'function') _attachSprintBarDelegation();
   if (typeof _attachPlanViewDelegation === 'function') _attachPlanViewDelegation();
-  _updateDocLogCount('backlog');
+  if (typeof _updateDocLogCount === 'function') _updateDocLogCount('backlog');
 
   // T-202604-362: placeholder del buscador refleja scope activo
   (function _updateSearchPlaceholder() {
