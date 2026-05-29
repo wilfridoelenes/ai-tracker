@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:15 · autor:Rune · 2026-05-28 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:16 · autor:Rune · 2026-05-29 14:00 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -1671,22 +1671,8 @@ function _validateResetBacklogInput(el) {
 <script type="module" src="locus-command-palette.js"></script>
 <script type="module" src="locus-api.js"></script>
 
-<!-- Arranque de la app — gate de auth via _initApp() en locus-storage.js -->
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  // R-202605-002: title dinámico con versión efectiva
-  try {
-    const _ver = typeof _effectiveVersion === 'function' ? _effectiveVersion() : '';
-    document.title = _ver ? 'Locus ' + _ver : 'Locus';
-  } catch(e) { document.title = 'Locus'; }
-
-  if (typeof _initApp === 'function') {
-    _initApp();
-  } else {
-    console.error('[AI Tracker] _initApp no disponible — locus-storage.js no cargó correctamente');
-  }
-});
-</script>
+<!-- Arranque de la app — T1: reemplazado por main.js como punto de entrada ES Module -->
+<script type="module" src="main.js"></script>
 
 <!-- [pendiente-ID]: patch extendido — actualiza aria-label del theme-toggle-btn al cambiar tema -->
 <script>
