@@ -16,7 +16,15 @@
 import { _notifConfigSetEnabled, _notifConfigSetThreshold, markAllNotifsRead, markNotifRead } from './locus-notifications.js';
 import { openQuickCapture } from './locus-sesiones-capture.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
+import { getAISessions, getState } from './locus-storage.js';
+import { esc } from './locus-ui-shell.js';
 import { openAddAI } from './locus-workers.js';
+
+// fmt12, getCD, _isInSession, _hoyMsUntilReset — módulo fuente con ciclo potencial; window fallback
+const fmt12           = (...a) => typeof window.fmt12           === 'function' ? window.fmt12(...a)           : a[0] || '';
+const getCD           = (...a) => typeof window.getCD           === 'function' ? window.getCD(...a)           : '';
+const _isInSession    = (ai)   => typeof window._isInSession    === 'function' ? window._isInSession(ai)    : false;
+const _hoyMsUntilReset = (ai)  => typeof window._hoyMsUntilReset === 'function' ? window._hoyMsUntilReset(ai) : Infinity;
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 
