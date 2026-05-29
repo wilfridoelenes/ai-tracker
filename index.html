@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-05-28 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:14 · autor:Rune · 2026-05-28 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -1297,46 +1297,6 @@
         <button class="sprint-close-back-btn" id="sprint-close-back-btn" >← Atrás</button>
         <button class="sprint-close-next-btn btn-primary" id="sprint-close-next-btn" >Siguiente →</button>
       </div>
-    </div>
-  </div>
-</div>
-
-<!-- R-migración Firebase → Supabase — modal shell para openMigrateFirebaseModal() -->
-<div class="modal-overlay is-hidden" id="migrate-fb-overlay" onclick="if(event.target===this)closeMigrateFirebaseModal()">
-  <div class="modal modal--migration" role="dialog" aria-modal="true" aria-label="Migrar datos Firebase a Supabase">
-    <div class="modal-header">
-      <span class="modal-title">🔄 Migrar Firebase → Supabase</span>
-      <button class="modal-close" onclick="closeMigrateFirebaseModal()" aria-label="Cerrar">×</button>
-    </div>
-    <div class="modal-body">
-      <!-- Estado: idle -->
-      <div id="migrate-fb-idle">
-        <p>Esta operación copia todos tus datos de Firebase a Supabase.</p>
-        <ul class="migration-req-list">
-          <li>Firebase no se modifica — solo lectura</li>
-          <li>Si un registro ya existe en Supabase con fecha más reciente — no se sobreescribe</li>
-          <li>Al finalizar se verifica el conteo de sesiones</li>
-        </ul>
-      </div>
-      <!-- Estado: running -->
-      <div id="migrate-fb-running" class="is-hidden">
-        <div class="migrate-fb-progress-wrap">
-          <div class="migrate-fb-progress-bar" id="migrate-fb-progress-bar"></div>
-        </div>
-        <div class="migrate-fb-status" id="migrate-fb-status">Iniciando…</div>
-      </div>
-      <!-- Estado: done -->
-      <div id="migrate-fb-done" class="is-hidden">
-        <div id="migrate-fb-result"></div>
-      </div>
-      <!-- Estado: error -->
-      <div id="migrate-fb-error" class="is-hidden">
-        <div class="migrate-fb-error-msg" id="migrate-fb-error-msg"></div>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button id="migrate-fb-cancel-btn" onclick="closeMigrateFirebaseModal()">Cancelar</button>
-      <button class="btn-primary" id="migrate-fb-run-btn" onclick="runFirebaseToSupabaseMigration()">Iniciar migración</button>
     </div>
   </div>
 </div>
