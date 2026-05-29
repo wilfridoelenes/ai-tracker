@@ -670,7 +670,7 @@ export async function saveBacklog() {
     }
   }
 
-  const items = (typeof ITEMS !== 'undefined') ? ITEMS : [];
+  const items = (typeof window.ITEMS !== 'undefined') ? window.ITEMS : [];
   const key = _tplKey('backlog-items');
   const projId = _getActiveProjectFilter();
   const metaKey = _tplKey('backlog-meta');
@@ -984,7 +984,7 @@ export async function _loadFromSupabase() {
           const localMeta   = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
           const localTs     = localMeta.updated  ? new Date(localMeta.updated).getTime()  : 0;
           const remoteTs    = remoteMeta.updated ? new Date(remoteMeta.updated).getTime() : 0;
-          const _itemsRef   = (typeof ITEMS !== 'undefined') ? ITEMS : null;
+          const _itemsRef   = (typeof window.ITEMS !== 'undefined') ? window.ITEMS : null;
           const shouldLoad  = remoteItems.length && (!_itemsRef || _itemsRef.length === 0 || localTs === 0 || remoteTs > localTs);
           if (shouldLoad && _itemsRef) {
             _itemsRef.length = 0;
@@ -1159,8 +1159,9 @@ export async function _loadFromSupabase() {
 
 // v3.0.0: sessions, tracker y sprints viven en project — no en state global
 let state = {ais:[], theme:'dark', tags:[], projects:[], _stateVersion:3};
-// getState(): getter dinámico — siempre retorna la referencia actual de state aunque sea reasignada.
-// Necesario porque state = raw en _applyStateData invalida exports estáticos de let.
+// Exponer en window para módulos que acceden a `state` directamente (legacy pre-module)
+window.state = state;
+// getState(): getter dinámico — siempre retorna la referencia actual de state.
 export function getState() { return state; }
 
 function _applyStateData(raw) {
@@ -1244,7 +1245,7 @@ function _applyStateData(raw) {
     delete ai.project; // v2 compat — eliminado en v3
   });
 
-  state = raw;
+  Object.assign(state, raw);
   applyTheme(state.theme);
 }
 
@@ -1293,7 +1294,7 @@ function load() {
 // una vez que todos los módulos JS están disponibles.
 // Gate de auth: si no hay sesión activa → openAuthModal() bloqueante, sin render.
 // Si hay sesión activa → render completo + sync Supabase.
-function _initApp() {
+export function _initApp() {
   // 1. Cargar estado desde localStorage en memoria (sin UI)
   load();
 
@@ -1325,7 +1326,7 @@ function _renderAfterAuth() {
   _markTrackerDirty(); render();
   // B-202605-508: garantizar badges visibles al arranque
   updateTabNotifBadges();
-  // R-202604-072: panel de contexto diario — diferido para que ITEMS esté cargado
+  // R-202604-072: panel de contexto diario — diferido para que window.ITEMS esté cargado
   if (typeof _showArranquePanel === 'function') setTimeout(_showArranquePanel, 400);
   // R-202604-073: dot Pulso — recalcular con datos reales
   // B-202605-079: mark antes del setTimeout — el guard requiere flag activo al ejecutar

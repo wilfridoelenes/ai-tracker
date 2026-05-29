@@ -65,7 +65,7 @@ let ITEMS = (() => {
   if (!stored && _initProjId) {
     // B-202605-062: proyecto activo sin datos — feedback explícito
     console.warn('[AI Tracker] ITEMS IIFE: proyecto activo "' + _initProjId + '" no tiene datos en localStorage.');
-    // El empty state visual se muestra en renderBacklogList cuando ITEMS queda vacío
+    // El empty window.state visual se muestra en renderBacklogList cuando ITEMS queda vacío
   }
   if (stored) {
     try {
@@ -88,6 +88,14 @@ let ITEMS = (() => {
   }
   return [];
 })();
+
+// Exponer ITEMS en window para módulos que acceden directamente (legacy pre-module).
+// _setITEMS(arr): reemplaza el contenido de ITEMS sin romper la referencia de window.ITEMS.
+window.ITEMS = ITEMS;
+function _setITEMS(arr) {
+  ITEMS.splice(0, ITEMS.length, ...(Array.isArray(arr) ? arr : []));
+  // window.ITEMS apunta al mismo array — no necesita reasignación
+}
 
 // B-202604-002: undo/redo stack para ITEMS (20 niveles)
 const UNDO_MAX = 20;
@@ -119,7 +127,7 @@ export function _undoSnapshot() {
 export function undoBacklog() {
   if (!_undoStack.length) return;
   _redoStack.push(JSON.stringify(ITEMS));
-  ITEMS = JSON.parse(_undoStack.pop());
+  _setITEMS(JSON.parse(_undoStack.pop()));
   saveBacklog();
   _markBacklogListDirty(); renderBacklogList();
   renderStats();
@@ -130,7 +138,7 @@ export function undoBacklog() {
 export function redoBacklog() {
   if (!_redoStack.length) return;
   _undoStack.push(JSON.stringify(ITEMS));
-  ITEMS = JSON.parse(_redoStack.pop());
+  _setITEMS(JSON.parse(_redoStack.pop()));
   saveBacklog();
   _markBacklogListDirty(); renderBacklogList();
   renderStats();
@@ -181,7 +189,7 @@ let _backlogTreeMode = !_backlogKanbanMode && (_backlogViewModeRaw !== null
 // T-202604-187: set de rCodes con bloque hijos colapsado
 const _collapsedChildren = new Set();
 
-// T-049: state de filtros mixtos
+// T-049: window.state de filtros mixtos
 let activeTypes = new Set(['T','R','B','P']);
 let activeStatuses = new Set(['pendiente', 'en-revision']); // done oculto por defecto
 let _blFooterCollapsed = false; // T-202604-360: footer fijo colapsable
@@ -472,7 +480,7 @@ export function _purgeStaleBacklogCache() {
   _undoSnapshot();
 
   // Filtrar del array en memoria — Supabase conserva el registro completo
-  ITEMS = ITEMS.filter(item => {
+  _setITEMS(ITEMS.filter(item => {
     if (!purgeable.includes(item.status)) return true; // nunca purgar pendientes/en-curso
     const ts = item.statusChangedAt || item.doneAt || 0;
     return ts > cutoff; // conservar si fue cerrado hace menos de 90 días
@@ -504,7 +512,7 @@ function purgeAllHistorico() {
   }, () => {
     _undoSnapshot();
     const before = ITEMS.length;
-    ITEMS = ITEMS.filter(i => i.status !== 'historico');
+    _setITEMS(ITEMS.filter(i => i.status !== 'historico'));
     const purged = before - ITEMS.length;
     saveBacklog();
     _markBacklogListDirty(); renderBacklogList();
@@ -609,13 +617,13 @@ export function loadBacklog() {
       typeof _supabaseUser !== 'undefined' && _supabaseUser) {
     // Cargar localStorage como base inmediata (evita flash de backlog vacío)
     const s = localStorage.getItem(_tplKey('backlog-items'));
-    if (s) { try { ITEMS = JSON.parse(s); } catch { ITEMS = []; } } else { ITEMS = []; }
+    if (s) { try { _setITEMS(JSON.parse(s)); } catch { _setITEMS([]); } } else { _setITEMS([]); }
     // Lanzar carga remota en background — _loadFromSupabase re-renderiza al terminar
     _loadFromSupabase();
     // Ejecutar migraciones locales sobre los datos inmediatos mientras Supabase responde
   } else {
     const s = localStorage.getItem(_tplKey('backlog-items'));
-    if (s) { try { ITEMS = JSON.parse(s); } catch { ITEMS = []; } } else { ITEMS = []; }
+    if (s) { try { _setITEMS(JSON.parse(s)); } catch { _setITEMS([]); } } else { _setITEMS([]); }
   }
   // R-202605-070: normalizar contrato de datos antes de cualquier uso downstream.
   // _normalizeItems absorbe: type, status, title/desc, id, history, schema_version.
@@ -625,7 +633,7 @@ export function loadBacklog() {
     showToast({ title: 'Error de carga', body: '_normalizeStatus no disponible. Recarga la página.', type: 'error' });
     return;
   }
-  ITEMS = _normalizeItems(ITEMS);
+  _setITEMS(_normalizeItems(ITEMS));
 
   // B-202605-210: sanear pendientes en sprints cerrados (migración retroactiva)
   const sanitized = _sanitizePendingInClosedSprints();
@@ -1063,8 +1071,8 @@ function statusLabel(s) {
 
 // B-245: helper para obtener el aiId de la sesión activa al momento de registrar en history[]
 export function _getActiveSessionAiId() {
-  if (typeof state === 'undefined' || typeof _isInSession !== 'function') return null;
-  const ai = (state.ais || []).find(a => !a.archived && _isInSession(a));
+  if (typeof window.state === 'undefined' || typeof _isInSession !== 'function') return null;
+  const ai = (window.state.ais || []).find(a => !a.archived && _isInSession(a));
   return ai ? ai.id : null;
 }
 
@@ -1853,7 +1861,7 @@ function toggleBacklogNoAcMode() {
 // el contrato de datos sin duplicar lógica.
 export function _migrateItemTypes() {
   if (typeof ITEMS === 'undefined') return;
-  ITEMS = _normalizeItems(ITEMS);
+  _setITEMS(_normalizeItems(ITEMS));
   saveBacklog();
 }
 window._migrateItemTypes = _migrateItemTypes;
