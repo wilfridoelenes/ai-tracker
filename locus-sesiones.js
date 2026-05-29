@@ -19,7 +19,7 @@ const fmt12  = (...a) => typeof window.fmt12  === 'function' ? window.fmt12(...a
 const getCD  = (...a) => typeof window.getCD  === 'function' ? window.getCD(...a)  : '';
 import { closeLogCard, closePopup, openDetail } from './locus-session-popup.js';
 import { getProjectById, openProjModal } from './locus-sprint-project.js';
-import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, _findSession, save, getState, saveImmediate } from './locus-storage.js';
+import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate } from './locus-storage.js';
 import { showToast } from './locus-toast.js';
 import { renderSetupChecklist } from './locus-ui-shell.js';
 import { openAddAI, toggleArchivedSection } from './locus-workers.js';
