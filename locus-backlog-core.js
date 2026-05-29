@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -663,7 +663,7 @@ function clearTypeFilters() {
   _markBacklogListDirty(); renderBacklogList();
 }
 
-function toggleTypeFilter(type) {
+export function toggleTypeFilter(type) {
   const allActive = activeTypes.size === 4; // T/R/B/P
   if (allActive) {
     // primer click: desactiva todos, activa solo el clickeado
@@ -710,7 +710,7 @@ function updateTypeFilterUI() {
 }
 
 // T-049: toggle filtros status
-function toggleStatusFilter(status) {
+export function toggleStatusFilter(status) {
   if (status === 'done' || status === 'descartado') {
     if (activeStatuses.has(status)) {
       activeStatuses.delete(status);
@@ -749,7 +749,7 @@ export function updateStatusFilterUI() {
 }
 
 // T-051: colapso por versión
-function toggleVersionCollapse(v) {
+export function toggleVersionCollapse(v) {
   if (collapsedVersions.has(v)) collapsedVersions.delete(v);
   else collapsedVersions.add(v);
   _cvSave();
@@ -1495,7 +1495,7 @@ function toggleItemExpand(idx) {
 }
 
 // T-104/106: toggle secciones done/futura
-function toggleSectionGroup(key) {
+export function toggleSectionGroup(key) {
   const body = document.getElementById('sgbody-' + key);
   const arrow = document.getElementById('sgarrow-' + key);
   if (!body) return;
@@ -1551,7 +1551,7 @@ function _quickAssignEffort(codeOrId) {
 }
 
 // T-071: toggle filtro por esfuerzo
-function toggleEffortFilter(e) {
+export function toggleEffortFilter(e) {
   const n = parseInt(e);
   const allActive = activeEfforts.size === 3;
   if (allActive) {
@@ -1608,7 +1608,7 @@ function setItemRole(code, role) {
 }
 
 // T-202604-245: toggle filtro por rol
-function toggleRoleFilter(role) {
+export function toggleRoleFilter(role) {
   // null = 'Sin rol'; string = rol específico
   if (activeRoleFilter === role) {
     activeRoleFilter = null; // segundo click = quitar filtro
@@ -1760,7 +1760,7 @@ function _syncViewAriaStates() {
   if (mikeBtn)  mikeBtn.setAttribute('aria-checked',  String(_backlogMikeMode));
 }
 
-function toggleBacklogMikeMode() {
+export function toggleBacklogMikeMode() {
   const roles = _getMiViewRoles();
   if (!roles.length) return;
   if (!_backlogMikeMode) {
@@ -1842,7 +1842,7 @@ export function toggleBacklogFocusMode() {
 }
 
 // T-202604-363: toggle filtro Sin AC — pendientes sin criterios de aceptación
-function toggleBacklogNoAcMode() {
+export function toggleBacklogNoAcMode() {
   _backlogNoAcMode = !_backlogNoAcMode;
   const btn = document.getElementById('fbar-no-ac-btn');
   if (btn) {
@@ -1855,14 +1855,26 @@ function toggleBacklogNoAcMode() {
 
 // R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente
 
-// Getters exportados para variables de estado de vista — consumidos por locus-backlog-render.js.
-// Las variables son let privados (mutables), por lo que se exponen via getter en lugar de export let.
+// Getters exportados para variables de estado — consumidos por locus-backlog-render.js.
+// Las variables son let/const privados (mutables), por lo que se exponen via getter en lugar de export let.
 export function _getBacklogTreeMode()        { return _backlogTreeMode; }
 export function _getBacklogKanbanMode()      { return _backlogKanbanMode; }
 export function _getBacklogFocusMode()       { return _backlogFocusMode; }
 export function _getBacklogMikeMode()        { return _backlogMikeMode; }
 export function _getBacklogSprintGroupMode() { return _backlogSprintGroupMode; }
 export function _getBacklogNoAcMode()        { return _backlogNoAcMode; }
+export function _getActiveTypes()            { return activeTypes; }
+export function _getActiveStatuses()         { return activeStatuses; }
+export function _getActiveEfforts()          { return activeEfforts; }
+export function _getActiveRoleFilter()       { return activeRoleFilter; }
+export function _getActivePriorityFilter()   { return activePriorityFilter; }
+export function _getBacklogBlockerFilter()   { return _backlogBlockerFilter; }
+export function _getDepsFilter()             { return _depsFilter; }
+export function _getBacklogSortMode()        { return backlogSortMode; }
+export function _getBacklogSortDir()         { return backlogSortDir; }
+export function _getMiViewRoleIndex()        { return _miViewRoleIndex; }
+export function _getBacklogSearchQuery()     { return backlogSearchQuery; }
+export function _getCollapsedVersions()      { return collapsedVersions; }
 
 // B-202605-XXX: _migrateItemTypes — stub de compatibilidad para call site en locus-storage.js
 // R-202605-070: la lógica real fue absorbida por _normalizeItems(). Este stub redirige
