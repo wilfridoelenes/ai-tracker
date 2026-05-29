@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-item-editor.js · locus-toast.js
-import { _applyDoneStatus, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, itemType, renderStats, setItemStatus, updateBacklogBanner } from './locus-backlog-core.js';
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, itemType, renderStats, setItemStatus, updateBacklogBanner } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
 import { _normalizeSprint } from './locus-session-parse.js';
 import { _blogLog, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog } from './locus-storage.js';
@@ -41,6 +41,9 @@ function statusClass(status) {
   return 'badge-status-' + (status || 'pendiente');
 }
 
+// B-202604-194: flag de sesión — ítems cuyo AC fue reemplazado via merge. Se vacía al recargar.
+const _acReplacedSet = new Set();
+
 // ── Estado del módulo ──────────────────────────────────────────────────────
 // Búsqueda activa — compartida con locus-backlog-render.js via window.backlogSearchQuery
 let backlogSearchQuery = '';
@@ -72,10 +75,10 @@ export function _renderKanban(listEl) {
   const q = backlogSearchQuery;
   let allFiltered = window.ITEMS.filter(i => {
     const type = itemType(i.code);
-    const typeOk = type ? activeTypes.has(type) : true;
+    const typeOk = type ? _getActiveTypes().has(type) : true;
     const _rawEffortK = parseInt(i.effort) || 1;
     const _normEffortK = _rawEffortK > 3 ? 3 : _rawEffortK < 1 ? 1 : _rawEffortK;
-    const effortOk = activeEfforts.has(_normEffortK); // B-202605-233: effort >3 normalizado a 3
+    const effortOk = _getActiveEfforts().has(_normEffortK); // B-202605-233: effort >3 normalizado a 3
     let roleOk = true;
     if (activeRoleFilter === '__none__') roleOk = !i.role || !i.role.trim();
     else if (activeRoleFilter !== null) roleOk = (i.role || '').trim() === activeRoleFilter;
@@ -391,8 +394,8 @@ function _buildChildrenBlock(rCode) {
   if (!allChildren.length) return '';
   const children = allChildren.filter(i => {
     const t = itemType(i.code);
-    const typeOk = t ? activeTypes.has(t) : true;
-    const statusOk = activeStatuses.has(i.status);
+    const typeOk = t ? _getActiveTypes().has(t) : true;
+    const statusOk = _getActiveStatuses().has(i.status);
     return typeOk && statusOk;
   });
   if (!children.length) return '';
@@ -1270,19 +1273,19 @@ export function updateBacklogFooter() {
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Tipo</span>
         ${[['B','Bug'],['T','Ticket'],['R','Req'],['P','Pos.']].map(([t,l]) =>
-          `<button class="bl-filter-chip bl-fc-type-${t}${activeTypes.has(t) ? ' active' : ''}" onclick="toggleTypeFilter('${t}')" title="${l}">${t} <span>${byType[t]}</span></button>`
+          `<button class="bl-filter-chip bl-fc-type-${t}${_getActiveTypes().has(t) ? ' active' : ''}" onclick="toggleTypeFilter('${t}')" title="${l}">${t} <span>${byType[t]}</span></button>`
         ).join('')}
       </div>
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Status</span>
-        <button class="bl-filter-chip${activeStatuses.has('pendiente') ? ' active' : ''}" onclick="toggleStatusFilter('pendiente')">Pendiente <span>${pend}</span></button>
-        <button class="bl-filter-chip${activeStatuses.has('done') ? ' active' : ''}" onclick="toggleStatusFilter('done')">Done <span>${done}</span></button>
+        <button class="bl-filter-chip${_getActiveStatuses().has('pendiente') ? ' active' : ''}" onclick="toggleStatusFilter('pendiente')">Pendiente <span>${pend}</span></button>
+        <button class="bl-filter-chip${_getActiveStatuses().has('done') ? ' active' : ''}" onclick="toggleStatusFilter('done')">Done <span>${done}</span></button>
       </div>
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Esfuerzo</span>
         ${[1,2,3].map(e => {
           const cnt = window.ITEMS.filter(i => (parseInt(i.effort)||1) === e).length;
-          return `<button class="bl-filter-chip${activeEfforts.has(e) ? ' active' : ''}" onclick="toggleEffortFilter(${e})" title="Effort ${e}">E${e} <span>${cnt}</span></button>`;
+          return `<button class="bl-filter-chip${_getActiveEfforts().has(e) ? ' active' : ''}" onclick="toggleEffortFilter(${e})" title="Effort ${e}">E${e} <span>${cnt}</span></button>`;
         }).join('')}
       </div>
       <button class="bl-footer-clear" onclick="clearAllFilters()" title="Limpiar todos los filtros">✕ Limpiar</button>
