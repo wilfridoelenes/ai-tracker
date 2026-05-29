@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-29 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -9,7 +9,7 @@
 
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _initRadarSidebarState, renderGlobalRadarSidebar } from './locus-radar.js';
-import { _scrollToCard, _updateHeaderProjectLabel, navigateToCard, renderStatusBar, updateStats } from './locus-sesiones-stats.js';
+import { _scrollToCard, _updateHeaderProjectLabel, navigateToCard, renderStatusBar, updateStats , _hasStaleSuggestion } from './locus-sesiones-stats.js';
 // _isInSession — en sesiones-stats pero verificar export; fallback window
 const _isInSession = (ai) => typeof window._isInSession === 'function' ? window._isInSession(ai) : false;
 import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer, _buildSuggestionReason } from './locus-sesiones-utils.js';

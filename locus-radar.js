@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -216,7 +216,7 @@ function _projPill(ai, sessions) {
     if (!aiSessions.length) return '';
     const lastSess = aiSessions[aiSessions.length - 1];
     const proj = lastSess && lastSess.projId
-      ? (state.projects || []).find(p => p.id === lastSess.projId)
+      ? (getState().projects || []).find(p => p.id === lastSess.projId)
       : null;
     if (!proj) return '';
     const color = proj.color || '#7c6af7';
@@ -321,7 +321,7 @@ export function renderGlobalRadarSidebar() {
   const container = document.getElementById('radar-sidebar-cards');
   if (!sidebar || !container) return;
 
-  const active = (state.ais || []).filter(a => !a.archived);
+  const active = (getState().ais || []).filter(a => !a.archived);
 
   // Perf: cachear sessions por worker — una sola call a getAISessions por AI para todo el render
   const _sessionsCache = {};
@@ -455,7 +455,7 @@ export function renderGlobalRadarSidebar() {
 // ── COLLAPSE / GRUPOS ─────────────────────────────────────────────────────────
 
 // R-202605-172: Toggle colapsar/expandir grupos del radar sidebar
-// Función independiente de toggleCollapseAll() del tracker (que opera sobre state.ais.showAll)
+// Función independiente de toggleCollapseAll() del tracker (que opera sobre getState().ais.showAll)
 export function _rsbToggleCollapseAll() {
   const container = document.getElementById('radar-sidebar-cards');
   if (!container) return;

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -24,7 +24,7 @@ import { switchTab } from './locus-ui-shell.js';
 const STALE_DAYS_THRESHOLD = 3;
 
 // T-074: true si la IA lleva >STALE_DAYS_THRESHOLD días sin sesión Y tiene ítems pendientes
-function _hasStaleSuggestion(ai) {
+export function _hasStaleSuggestion(ai) {
   if (ai.status === 'exhausted') return false;
   const aiSessions = getAISessions(ai.id);
   if (!aiSessions.length) return false;
