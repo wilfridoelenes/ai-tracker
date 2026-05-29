@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-29 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -28,7 +28,7 @@ import { closePopup, openDetail } from './locus-session-popup.js';
 import { renderPlan } from './locus-sprint-plan.js';
 import { _getActiveProjectFilter, closeProjModal, closeProjPanel, openProjModal, openProjPanel, selectProjectFilter } from './locus-sprint-project.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _saveUserPrefs, getAISessions, getAllSessions, save } from './locus-storage.js';
+import { _saveUserPrefs, getAISessions, getAllSessions, getState, save } from './locus-storage.js';
 import { showToast } from './locus-toast.js';
 import { openAddAI } from './locus-workers.js';
 
@@ -44,6 +44,7 @@ export function esc(s) { return s ? (s + '').replace(/&/g, '&amp;').replace(/</g
 // El flag es escrito por locus-tracker.js cuando el textarea tiene texto no guardado.
 // Si locus-tracker.js aún no lo declara, se usa detección DOM como fallback.
 let _trackerTextareaDirty = false;
+let currentTab = localStorage.getItem('active-tab') || 'sesiones';
 
 // B-202605-019: array module-level para acciones de contratos en panel de búsqueda
 // Se repuebla en cada llamada a onSearch — delegation usa índice via data-contrato-idx
@@ -155,6 +156,7 @@ export function switchSubTab(sub) {
 // ── Theme ──────────────────────────────────────────────────────────────────
 
 export function toggleTheme() {
+  const state = getState();
   state.theme = state.theme === 'dark' ? 'light' : 'dark';
   applyTheme(state.theme);
   save();
@@ -197,6 +199,7 @@ function _toggleSearchScope() {
 }
 
 export function onSearch() {
+  const state = getState();
   const q = (document.getElementById('search-global').value || '').toLowerCase().trim();
   const countEl = document.getElementById('search-count');
 
@@ -537,6 +540,7 @@ export function renderSetupChecklist() {
   if (!banner) return;
   if (_scbDismissed()) { banner.classList.add('is-hidden'); return; }
 
+  const state = getState();
   const workerDone  = (state.ais || []).length > 0;
   const projectDone = (state.projects || []).length > 0;
   const itemDone    = (typeof ITEMS !== 'undefined' ? ITEMS : []).length > 0;

@@ -1,11 +1,11 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-29 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
 // Renombrado de ai-tracker-sprint-project.js
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _syncCleanProjectBtn } from './locus-reports.js';
-import { _effectiveVersion, _offlineQueuePush, getActiveProject, getActiveSprints, getSupabaseUserId } from './locus-storage.js';
+import { _effectiveVersion, _offlineQueuePush, getActiveProject, getActiveSprints, getState, getSupabaseUserId } from './locus-storage.js';
 import { switchTab } from './locus-ui-shell.js';
 
 
@@ -32,6 +32,7 @@ export function _docPrefix() {
 
 // R-202604-040: genera bloque ## Estado actual para el Backlog exportado
 function _buildCurrentStateMd() {
+  const state = getState();
   const lines = ['## Estado actual', ''];
 
   // Ítems pendientes por tipo
@@ -109,6 +110,7 @@ function exportSprintsMd() {
 
 // R-202605-132: genera Markdown por sprint con todos los campos estructurados
 function _generateSprintsContent(newVersion) {
+  const state = getState();
   const now = new Date();
   const utcM6 = new Date(now.getTime() - 6 * 3600000);
   const pad = n => String(n).padStart(2, '0');
@@ -264,6 +266,7 @@ function _generateSprintsExportMd(newVersion) {
 // B-202605-515: _generateFullHistoryContent — función pura que retorna el string Markdown
 // sin blob download ni toast. _generateFullHistoryBySprintMd delega aquí.
 export function _generateFullHistoryContent(newVersion) {
+  const state = getState();
   const now = new Date();
   const utcM6 = new Date(now.getTime() - 6 * 3600000);
   const pad = n => String(n).padStart(2, '0');
@@ -436,6 +439,7 @@ function _showExportConfirmModal(label, filename, onConfirm) {
 // AC-2: campos sprint (nombre canónico), status, version_target, release_type
 // AC-3: si no hay sprint abierto → sprint: ninguno, demás campos n/a
 function _buildSprintActivoMd() {
+  const state = getState();
   const sprints = (state && Array.isArray(state.sprints)) ? state.sprints : [];
   const activeSprint = sprints.find(s => s.status === 'active');
   const lines = ['## Sprint activo', ''];
@@ -459,6 +463,7 @@ function _buildSprintActivoMd() {
 }
 
 export function _generateBacklogContent(newVersion, opts = {}) {
+  const state = getState();
   const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
   const _activeProj = getActiveProject();
   const _projName = _activeProj ? (_activeProj.name || 'Sin proyecto') : 'Sin proyecto';
@@ -634,6 +639,7 @@ function _buildIndexLines(itemMap) {
 
 // Construye la sección de ítems en formato Backlog.md
 function _buildItemsMd(items) {
+  const state = getState();
   const src = items || ITEMS;
   return src.map(item => {
     let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}\n`;
@@ -702,6 +708,7 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectInit() {
   // Gate: sin auth no hay state válido — _initApp() habrá bloqueado con openAuthModal()
   if (!getSupabaseUserId()) return;
 
+  const state = getState();
   // Auto-seleccionar primer proyecto activo si no hay filtro (backlog requiere proyecto)
   (function _ensureProjectFilter() {
     if (_getActiveProjectFilter()) return;
@@ -814,6 +821,7 @@ export function closeProjPanel() {
 }
 
 function renderProjPanel() {
+  const state = getState();
   const body = document.getElementById('proj-panel-body');
   if (!body) return;
   const filterId = _getActiveProjectFilter();
@@ -963,6 +971,7 @@ function selectProjColor(i) {
 }
 
 function confirmProjForm() {
+  const state = getState();
   const name = (document.getElementById('proj-name-input') || {value:''}).value.trim();
   if (!name) {
     const el = document.getElementById('proj-name-input');
@@ -1014,6 +1023,7 @@ function _toggleProjArchivedSection() {
 }
 
 function _renderProjList() {
+  const state = getState();
   const list = document.getElementById('proj-list');
   if (!list) return;
   const projects = state.projects || [];
@@ -1132,6 +1142,7 @@ function deleteProjConfirm(projId) {
     ? `Las ${sessCount} sesiones de las IAs vinculadas mantendrán sus datos.`
     : `Esta acción no se puede deshacer.`;
   _gconfirmOpen({ title: `¿Eliminar "${proj.name}"?`, msg, okLabel: 'Eliminar', danger: true }, () => {
+    const state = getState();
     state.projects = (state.projects || []).filter(p => p.id !== projId);
     if (_getActiveProjectFilter() === projId) _setActiveProjectFilter('');
     save();
@@ -1165,6 +1176,7 @@ function projDrop(e, toId, rowEl) {
   e.preventDefault();
   if (rowEl) rowEl.classList.remove('drag-over');
   if (!_projDragId || _projDragId === toId) return;
+  const state = getState();
   const projs = state.projects || [];
   const fromIdx = projs.findIndex(p => p.id === _projDragId);
   const toIdx   = projs.findIndex(p => p.id === toId);
@@ -1177,10 +1189,12 @@ function projDrop(e, toId, rowEl) {
 
 // T-076: helpers (redefinidos aquí para acceso completo al state actualizado)
 export function getProjectById(id) {
+  const state = getState();
   return (state.projects || []).find(p => p.id === id);
 }
 // Helper: retorna proyectos que tienen sesiones de una IA específica
 function getProjectsByAI(aiId) {
+  const state = getState();
   return (state.projects || []).filter(p => (p.sessions || []).some(s => s.aiId === aiId));
 }
 
@@ -1288,6 +1302,7 @@ function getActiveProjectNotes() {
 
 // T-081: _filteredAIs — retorna AIs según filtro global activo (por sesiones)
 function _filteredAIs() {
+  const state = getState();
   const filterId = _getActiveProjectFilter();
   if (!filterId) return state.ais;
   const proj = getProjectById(filterId);
