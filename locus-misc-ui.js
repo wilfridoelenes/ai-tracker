@@ -1,8 +1,19 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
 // locus-misc-ui.js
 // Módulo: Helpers de UI — getNextOccurrence, _resetExpired, Tags, Pendientes, Doc Activity Drawer
 // Extraído de ai-tracker-ai-notes.js
 import { _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
+import { getState, save, getAISessions, _findSession } from './locus-storage.js';
+import { showToast } from './locus-toast.js';
+import { openDetail } from './locus-session-popup.js';
+
+// Helpers para globales que viven en módulos no adjuntos (TAG_COLORS, esc, currentTab, renderHoy, _relTs, popAIId, popSessId)
+// Acceso via window con guards — patrón establecido en este stack para evitar ciclos de importación
+const _esc = (s) => window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const _getTagColors = () => window.TAG_COLORS || [];
+const _getCurrentTab = () => window.currentTab || '';
+const _renderHoy = () => { if (typeof window.renderHoy === 'function') window.renderHoy(); };
+const _relTs = (ts) => window._relTs ? window._relTs(ts) : '';
 
 // B-202604-007: corrección — proyección correcta evita countdown vacío
 function getNextOccurrence(resetTime) {
@@ -45,7 +56,7 @@ function getCD(resetTime, resetEpoch) {
 // T-058 + T-082: intervalo usando getNextOccurrence para consistencia con getCD()
 setInterval(() => {
   let changed = false;
-  state.ais.forEach(ai => {
+  getState().ais.forEach(ai => {
     if (ai.status !== 'exhausted' || !ai.resetTime) return;
     // B-202604-009: pasar resetEpoch a _resetExpired para comparación exacta
     if (_resetExpired(ai.resetTime, ai.resetEpoch)) {
@@ -61,11 +72,12 @@ setInterval(() => {
     if (el) el.textContent = cd || '--:--:--';
   });
   if (changed) {
-    save(); render();
-    if (currentTab === 'sesiones') renderHoy();
+    save();
+    if (typeof window.render === 'function') window.render();
+    if (_getCurrentTab() === 'sesiones') _renderHoy();
   }
-  updateStats();
-  renderStatusBar();
+  if (typeof window.updateStats === 'function') window.updateStats();
+  if (typeof window.renderStatusBar === 'function') window.renderStatusBar();
 }, 1000);
 
 // ── Tags ──
@@ -83,13 +95,13 @@ function renderTagPicker() {
   const selected = s ? s.tags || [] : [];
   const list = document.getElementById('tag-picker-list');
   if (!list) return;
-  if (!state.tags.length) { list.innerHTML = `<div class="pi-no-ac">Sin etiquetas aún — crea una abajo</div>`; return; }
-  list.innerHTML = state.tags.map(t => {
-    const ci = TAG_COLORS.indexOf(t.color);
+  if (!getState().tags.length) { list.innerHTML = `<div class="pi-no-ac">Sin etiquetas aún — crea una abajo</div>`; return; }
+  list.innerHTML = getState().tags.map(t => {
+    const ci = _getTagColors().indexOf(t.color);
     const isSel = selected.includes(t.id);
     return `<div class="tag-picker-row${isSel ? ' selected' : ''}" onclick="toggleTagOnSession('${t.id}')">
       <div class="tag-picker-dot" style="--dot-color:${t.color}"></div>
-      <div class="tag-picker-name">${esc(t.name)}</div>
+      <div class="tag-picker-name">${_esc(t.name)}</div>
       ${isSel ? `<span class="tag-picker-check">✓</span>` : ''}
     </div>`;
   }).join('');
@@ -97,7 +109,7 @@ function renderTagPicker() {
 function renderColorPicker() {
   const row = document.getElementById('color-picker-row');
   if (!row) return;
-  row.innerHTML = TAG_COLORS.map((c, i) =>
+  row.innerHTML = _getTagColors().map((c, i) =>
     `<div class="color-dot-btn${i === selectedColor ? ' sel' : ''}" style="--dot-color:${c}" onclick="selectColor(${i})"></div>`
   ).join('');
 }
@@ -109,19 +121,19 @@ function toggleTagOnSession(tagId) {
   if (!s.tags) s.tags = [];
   const idx = s.tags.indexOf(tagId);
   if (idx >= 0) s.tags.splice(idx, 1); else s.tags.push(tagId);
-  save(); renderTagPicker(); render();
-  if (popAIId === tagModalAIId && popSessId === tagModalSessId) openDetail(tagModalAIId, tagModalSessId);
+  save(); renderTagPicker(); if (typeof window.render === 'function') window.render();
+  if (window.popAIId === tagModalAIId && window.popSessId === tagModalSessId) openDetail(tagModalAIId, tagModalSessId);
 }
 function addNewTag() {
   const name = document.getElementById('tag-new-input').value.trim();
   if (!name) { showToast('warning', 'Escribe un nombre'); return; }
-  if (state.tags.find(t => t.name.toLowerCase() === name.toLowerCase())) { showToast('warning', 'Ya existe esa etiqueta'); return; }
-  const tag = {id:'tag-'+Date.now(), name, color:TAG_COLORS[selectedColor]};
-  state.tags.push(tag);
+  if (getState().tags.find(t => t.name.toLowerCase() === name.toLowerCase())) { showToast('warning', 'Ya existe esa etiqueta'); return; }
+  const tag = {id:'tag-'+Date.now(), name, color:_getTagColors()[selectedColor]};
+  getState().tags.push(tag);
   const found = tagModalSessId ? _findSession(tagModalSessId) : null;
   const s = found ? found.sess : null;
   if (s) { if (!s.tags) s.tags = []; s.tags.push(tag.id); }
-  save(); renderTagPicker(); renderColorPicker(); render();
+  save(); renderTagPicker(); renderColorPicker(); if (typeof window.render === 'function') window.render();
   document.getElementById('tag-new-input').value = '';
   showToast('success', `Etiqueta "${name}" creada`);
 }
@@ -130,18 +142,18 @@ function addNewTag() {
 function openPendPanel() {
   const body = document.getElementById('pend-panel-body');
   let html = ''; let total = 0;
-  state.ais.forEach(ai => {
+  getState().ais.forEach(ai => {
     const aiSess = getAISessions(ai.id);
     const withPending = aiSess.filter(s => s.pending && s.pending.trim());
     if (!withPending.length) return;
     total += withPending.length;
     const dotColor = ai.status === 'available' ? 'var(--green)' : 'var(--red)';
     html += `<div class="pend-ai-group">
-      <div class="pend-ai-name"><span class="pend-ai-dot" style="--ai-dot-color:${dotColor}"></span>${esc(ai.name)}</div>`;
+      <div class="pend-ai-name"><span class="pend-ai-dot" style="--ai-dot-color:${dotColor}"></span>${_esc(ai.name)}</div>`;
     [...withPending].reverse().forEach(s => {
       html += `<div class="pend-item" onclick="closePendPanel();openDetail('${ai.id}','${s.id}')">
-        <div class="pend-item-pending">${esc(s.pending)}</div>
-        <div class="pend-item-meta">${esc(s.title)} · ${s.dateShort || ''}</div>
+        <div class="pend-item-pending">${_esc(s.pending)}</div>
+        <div class="pend-item-meta">${_esc(s.title)} · ${s.dateShort || ''}</div>
       </div>`;
     });
     html += '</div>';
@@ -236,9 +248,9 @@ function _renderDocLog(doc) {
     const icon = ACTION_ICONS[e.action] || '·';
     return `<div class="doc-log-row">
       <span class="doc-log-ts">${_relTs(e.ts)}</span>
-      <span class="doc-log-action">${icon} ${esc(e.action)}</span>
-      ${e.code ? `<span class="doc-log-code">${esc(e.code)}</span>` : ''}
-      ${e.detail ? `<span class="doc-log-detail">${esc(e.detail)}</span>` : ''}
+      <span class="doc-log-action">${icon} ${_esc(e.action)}</span>
+      ${e.code ? `<span class="doc-log-code">${_esc(e.code)}</span>` : ''}
+      ${e.detail ? `<span class="doc-log-detail">${_esc(e.detail)}</span>` : ''}
     </div>`;
   }).join('');
 }

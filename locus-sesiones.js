@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -9,12 +9,12 @@
 
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { renderGlobalRadarSidebar } from './locus-radar.js';
-import { _updateHeaderProjectLabel, renderStatusBar, updateStats } from './locus-sesiones-stats.js';
+import { _updateHeaderProjectLabel, renderStatusBar, updateStats, _isInSession } from './locus-sesiones-stats.js';
 import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer } from './locus-sesiones-utils.js';
-import { _templateTrigger, relDate } from './locus-session-hora.js';
+import { _templateTrigger, relDate, fmt12, getCD } from './locus-session-hora.js';
 import { closeLogCard, closePopup, openDetail } from './locus-session-popup.js';
 import { getProjectById, openProjModal } from './locus-sprint-project.js';
-import { getActiveProject, getActiveTracker, getAllSessions, saveImmediate } from './locus-storage.js';
+import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, _findSession, save, getState, saveImmediate } from './locus-storage.js';
 import { showToast } from './locus-toast.js';
 import { renderSetupChecklist } from './locus-ui-shell.js';
 import { openAddAI, toggleArchivedSection } from './locus-workers.js';
@@ -291,7 +291,7 @@ function _getCurrentSession(aiId) {
   if (!last || last.resetAt || last.quickCapture) return null;
   // B-202605-066: si el worker tiene resetEpoch, el checkpoint debe ser posterior a ese timestamp
   // Un checkpoint cerrado sin resetAt pero anterior al último reset no está "en curso"
-  const ai = (state.ais || []).find(a => a.id === aiId);
+  const ai = (getState().ais || []).find(a => a.id === aiId);
   if (ai && ai.resetEpoch) {
     const resetTs = new Date(ai.resetEpoch).getTime();
     const sessTs  = last.createdAt || 0;
@@ -423,11 +423,11 @@ export function selectTrackerAI(aiId) {
 }
 
 function _renderTrackerSidebar() {
-  const nonArchived = state.ais.filter(ai => !ai.archived);
+  const nonArchived = getState().ais.filter(ai => !ai.archived);
   const inSession = nonArchived.filter(ai => ai.status !== 'exhausted' && !ai.interrupted && _isInSession(ai));
   const available = nonArchived.filter(ai => ai.status !== 'exhausted' && !_isInSession(ai));
   const exhausted = nonArchived.filter(ai => ai.status === 'exhausted');
-  const archived  = state.ais.filter(ai => ai.archived);
+  const archived  = getState().ais.filter(ai => ai.archived);
 
   const mkRow = (ai, forceInSession = false) => {
     const sel = _trackerSelectedId === ai.id ? ' selected' : '';
@@ -468,7 +468,7 @@ function _renderTrackerSidebar() {
   const exEl = document.getElementById('tsb-exhausted');
   if (!avEl || !exEl) return;
 
-  if (!state.ais.length) {
+  if (!getState().ais.length) {
     if (isEl) isEl.innerHTML = '';
     avEl.innerHTML = `<div class="tsb-empty-hint">Sin IAs</div>`;
     exEl.innerHTML = '';
@@ -515,7 +515,7 @@ export function render() {
   // B-202605-hoy: si hay workers pero emptyEl esta visible (estado pre-auth residual), forzar render
   if (!_trackerDirty) {
     const _emptyCheck = document.getElementById('tracker-detail-empty');
-    if (_emptyCheck && !_emptyCheck.classList.contains('is-hidden') && state.ais && state.ais.length) {
+    if (_emptyCheck && !_emptyCheck.classList.contains('is-hidden') && getState().ais && getState().ais.length) {
       _trackerDirty = true;
     } else {
       return;
@@ -527,7 +527,7 @@ export function render() {
 
   _renderTrackerSidebar();
 
-  if (!state.ais.length) {
+  if (!getState().ais.length) {
     if (grid) grid.innerHTML = '';
     // R-202605-178 AC: sin workers — único CTA
     if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); emptyEl.innerHTML = `
@@ -540,7 +540,7 @@ export function render() {
 
   // R-202605-007 AC: con workers pero sin proyecto activo — solo CTA "Nuevo Proyecto"
   const _hasActiveProj = !!getActiveProject();
-  if (!_hasActiveProj && (state.projects || []).length === 0) {
+  if (!_hasActiveProj && (getState().projects || []).length === 0) {
     if (grid) grid.innerHTML = '';
     if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); emptyEl.innerHTML = `
       <div class="empty-state-icon">🗂</div>
@@ -553,8 +553,8 @@ export function render() {
   }
 
   // auto-select: preferir disponible/en-sesión sobre agotada
-  const allActive = state.ais.filter(ai => !ai.archived);
-  if (!_trackerSelectedId || !state.ais.find(a => a.id === _trackerSelectedId)) {
+  const allActive = getState().ais.filter(ai => !ai.archived);
+  if (!_trackerSelectedId || !getState().ais.find(a => a.id === _trackerSelectedId)) {
     const preferred = allActive.find(a => a.status !== 'exhausted') || allActive[0];
     _trackerSelectedId = preferred ? preferred.id : null;
   }
@@ -562,7 +562,7 @@ export function render() {
   if (!_trackerSelectedId) {
     if (grid) {
       grid.innerHTML = '';
-      const archived = state.ais.filter(a => a.archived);
+      const archived = getState().ais.filter(a => a.archived);
       if (archived.length) {
         const section = document.createElement('div');
         section.className = 'archived-section';
@@ -598,8 +598,8 @@ export function render() {
       if (ai.status !== 'exhausted') return 1;
       return 2;
     };
-    const aisToRender = [...state.ais.filter(a => !a.archived)].sort((a, b) => _sortOrder(a) - _sortOrder(b));
-    const ai = aisToRender.find(a => a.id === _trackerSelectedId) || state.ais.find(a => a.id === _trackerSelectedId);
+    const aisToRender = [...getState().ais.filter(a => !a.archived)].sort((a, b) => _sortOrder(a) - _sortOrder(b));
+    const ai = aisToRender.find(a => a.id === _trackerSelectedId) || getState().ais.find(a => a.id === _trackerSelectedId);
     // B-202605-056: preservar valor del textarea antes de destruir el DOM
     // grid.innerHTML = '' elimina el textarea y su valor en cada render — restaurar post-buildCard
     const _taId = ai ? 'ta-' + ai.id : null;
@@ -635,7 +635,7 @@ export function render() {
       }
 
       // archived section below card
-      const archived = state.ais.filter(a => a.archived);
+      const archived = getState().ais.filter(a => a.archived);
       if (archived.length) {
         const section = document.createElement('div');
         section.className = 'archived-section';
@@ -854,7 +854,7 @@ function confirmBlindExhaust(id) {
   showToast('info', `${ai.name} — agotada sin sesión · desbloqueo a las ${result.label}`);
 }
 
-function avgBetweenSessions(ai) {
+export function avgBetweenSessions(ai) {
   const dated = getAISessions(ai.id)
     .map(s => new Date(s.date).getTime())
     .filter(t => !isNaN(t))
@@ -902,7 +902,7 @@ function buildCard(ai) {
   // T-397: helper — build a single sess-row HTML
   const _buildSessRow = (s, isHero) => {
     const tagDots = (s.tags || []).map(tid => {
-      const t = state.tags.find(x => x.id === tid);
+      const t = getState().tags.find(x => x.id === tid);
       return t ? `<span class="sess-tag-dot" data-tag-color="${esc(t.color)}" title="${esc(t.name)}"></span>` : '';
     }).join('');
     const tgItems = projTracker.items.filter(x => x.sessionId === s.id);
@@ -985,7 +985,7 @@ function buildCard(ai) {
     </div>`;
 
   // Selector de proyecto — inline en paste-label
-  const _activeProjects = (state.projects || []).filter(p => p.status !== 'paused');
+  const _activeProjects = (getState().projects || []).filter(p => p.status !== 'paused');
   const _activeProjId = _getActiveProjectFilter() || '';
   const _projOptions = _activeProjects.map(p =>
     `<option value="${esc(p.id)}" ${p.id === _activeProjId ? 'selected' : ''}>${esc(p.icon || '📁')} ${esc(p.name)}</option>`
@@ -1307,7 +1307,7 @@ function _startSidebarTicker() {
   _stopSidebarTicker();
   const _expiredThisTick = new Set();
   _sidebarTickerInterval = setInterval(() => {
-    const exhausted = state.ais.filter(ai => !ai.archived && ai.status === 'exhausted' && ai.resetTime);
+    const exhausted = getState().ais.filter(ai => !ai.archived && ai.status === 'exhausted' && ai.resetTime);
     if (!exhausted.length) { _stopSidebarTicker(); return; }
     exhausted.forEach(ai => {
       if (_expiredThisTick.has(ai.id)) return;

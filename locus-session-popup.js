@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -7,6 +7,11 @@ import { _sessRelTsShared, render } from './locus-sesiones.js';
 import { _getActiveProjectFilter } from './locus-sprint-project.js';
 import { showToastInline } from './locus-toast.js';
 import { switchSubTab } from './locus-ui-shell.js';
+import { getState, getAI, getAISessions, _findSession, _findSessionByAI, save } from './locus-storage.js';
+
+// Variables de estado del popup — declaradas como módulo (eran globales en el stack monolítico)
+let popAIId = null;
+let popSessId = null;
 
 function toggleStatus(id) {
   const ai = getAI(id);
@@ -23,6 +28,7 @@ export function openDetail(aiId, sessId) {
   const s = found ? found.sess : null;
   if (!s) return;
   popAIId = aiId; popSessId = sessId;
+  window.popAIId = aiId; window.popSessId = sessId;
 
   const aiSessAll = getAISessions(aiId);
   const isLastSess = aiSessAll.length > 0 && aiSessAll[aiSessAll.length - 1].id === s.id;
@@ -122,7 +128,7 @@ export function openDetail(aiId, sessId) {
   </div>`;
 
   const tagHtml = (s.tags || []).map(tid => {
-    const t = state.tags.find(x => x.id === tid);
+    const t = getState().tags.find(x => x.id === tid);
     const ci = TAG_COLORS.indexOf(t?.color);
     return t ? `<span class="tag tc-${ci >= 0 ? ci : 0}">${esc(t.name)}</span>` : '';
   }).join('');
@@ -169,9 +175,9 @@ export function openDetail(aiId, sessId) {
 
     // Header — with functional IDs for edit + star update
     // Preview project selector — activo session's project, editable post-registro
-    const _previewProjects = (state.projects || []).filter(p => p.status !== 'archived');
+    const _previewProjects = (getState().projects || []).filter(p => p.status !== 'archived');
     const _previewSessProjId = (() => {
-      for (const p of (state.projects || [])) {
+      for (const p of (getState().projects || [])) {
         if ((p.sessions || []).some(x => x.id === sessId)) return p.id;
       }
       return '';
@@ -317,6 +323,7 @@ export function closePopup() {
   }
   document.querySelectorAll('.sess-row.preview-active').forEach(el => el.classList.remove('preview-active'));
   popAIId = null; popSessId = null;
+  window.popAIId = null; window.popSessId = null;
 }
 
 // T-202604-190: Completar sesión quick — pre-carga textarea y activa modo update
@@ -457,7 +464,7 @@ function saveResetFromPopup() {
 function _previewProjConfirmChange(aiId, sessId, selectEl) {
   const newProjId  = selectEl.value;
   const prevProjId = (() => {
-    for (const p of (state.projects || [])) {
+    for (const p of (getState().projects || [])) {
       if ((p.sessions || []).some(x => x.id === sessId)) return p.id;
     }
     return '';
@@ -465,7 +472,7 @@ function _previewProjConfirmChange(aiId, sessId, selectEl) {
 
   if (newProjId === prevProjId) return; // sin cambio real
 
-  const newProj = (state.projects || []).find(p => p.id === newProjId);
+  const newProj = (getState().projects || []).find(p => p.id === newProjId);
   const projName = newProj ? `${newProj.icon || '📁'} ${newProj.name}` : 'sin proyecto';
 
   // Usar el confirm inline de la app si está disponible, sino confirm nativo como fallback
@@ -501,7 +508,7 @@ function _previewProjConfirmChange(aiId, sessId, selectEl) {
 
 function savePreviewProject(aiId, sessId, newProjId) {
   if (!newProjId) return;
-  const projects = state.projects || [];
+  const projects = getState().projects || [];
   // Encontrar proyecto origen (donde vive la sesión)
   let fromProj = null, sess = null;
   for (const p of projects) {
@@ -801,7 +808,7 @@ function startRename(id) {
     }
     // T-092: validar duplicados case-insensitive (excluir la propia IA)
     const nameLower = newName.toLowerCase();
-    const duplicate = state.ais.find(a => a.id !== id && a.name.toLowerCase() === nameLower);
+    const duplicate = getState().ais.find(a => a.id !== id && a.name.toLowerCase() === nameLower);
     if (duplicate) {
       showToast('warning', `Ya existe una IA llamada "${duplicate.name}"`);
       render(); return;
@@ -929,9 +936,9 @@ let _logScrollHandler = null;   // B-202605-053: referencia de módulo — sobre
 // Recopila todas las sesiones de todos los proyectos, cronológicas inversas
 export function _getAllSessionsChron() {
   const rows = [];
-  (state.projects || []).forEach(proj => {
+  (getState().projects || []).forEach(proj => {
     (proj.sessions || []).forEach(s => {
-      const ai = (state.ais || []).find(a => a.id === s.aiId) || null;
+      const ai = (getState().ais || []).find(a => a.id === s.aiId) || null;
       rows.push({ sess: s, proj, ai });
     });
   });
@@ -974,7 +981,7 @@ function _sessTypePill(s) {
 // Renderiza el header del log card (pills IA + pills tipo + buscador + contador)
 function _buildLogHeader(total, filtered) {
   const aiList = _logAIList();
-  const projList = (state.projects || []);
+  const projList = (getState().projects || []);
 
   const aiPills = aiList.map(ai => {
     const active = _logFilterAI === ai.id ? ' log-ai-pill--active' : '';
