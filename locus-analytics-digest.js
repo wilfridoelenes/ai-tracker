@@ -1,11 +1,11 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-29 15:00 UTC-6
 import { esc } from './locus-ui-shell.js';
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-analytics-digest.js
 // Responsabilidad: Gráfico de flujo acumulativo (_buildCumulativeFlowChart).
 // Dependencias: locus-analytics-core.js · locus-storage.js
 // R-202605-056: _runDigestToasts eliminada — digest de toasts al abrir app removido.
 
-function _buildCumulativeFlowChart() {
+export function _buildCumulativeFlowChart() {
   const W = 760, H = 220, PAD_L = 42, PAD_R = 16, PAD_T = 16, PAD_B = 36;
   const CHART_W = W - PAD_L - PAD_R;
   const CHART_H = H - PAD_T - PAD_B;

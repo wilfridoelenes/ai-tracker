@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 15:00 UTC-6
 // locus-sesiones-arranque.js
 // Responsabilidad: Panel de Sesión de Arranque — contexto diario al abrir la app
 //   (R-202604-072). Muestra resumen de ayer, ítem sugerido, estado IA y sesión del plan.
@@ -37,19 +37,19 @@ function _arranqueItemByCode() {
 }
 
 /** Devuelve el status live de un ítem por código. */
-function _liveStatus(code) {
+export function _liveStatus(code) {
   const it = _arranqueItemByCode()[code];
   return it ? (it.status || 'pendiente') : 'pendiente';
 }
 
 /** Devuelve el título live de un ítem por código. */
-function _liveTitle(code) {
+export function _liveTitle(code) {
   const it = _arranqueItemByCode()[code];
   return it ? (it.title || it.desc || '') : '';
 }
 
 /** Determina si una sesión del plan está completa (todos sus ítems done/descartado). */
-function _sessIsDone(sess) {
+export function _sessIsDone(sess) {
   const codes = sess.items || [];
   return codes.length > 0 && codes.every(c => {
     const s = _liveStatus(c);
@@ -63,7 +63,7 @@ function _sessIsDone(sess) {
  * @param {object} sess - Sesión del plan
  * @param {Set<string>} doneIds - Set de IDs de sesiones completadas
  */
-function _isBlocked(sess, doneIds) {
+export function _isBlocked(sess, doneIds) {
   const deps = (sess.depende_de || []).filter(Boolean);
   return deps.length > 0 && !deps.every(d => doneIds.has(d));
 }
@@ -73,16 +73,16 @@ function _isBlocked(sess, doneIds) {
  * @param {Array} pendingSessions - Sesiones no completadas
  * @param {Set<string>} doneIds - Set de IDs de sesiones completadas
  */
-function _blocked(pendingSessions, doneIds) {
+export function _blocked(pendingSessions, doneIds) {
   return pendingSessions.filter(s => _isBlocked(s, doneIds));
 }
 
-function closeArranquePanel() {
+export function closeArranquePanel() {
   const overlay = document.getElementById('arranque-overlay');
   if (overlay) overlay.classList.remove('arranque-visible');
 }
 
-function _showArranquePanel() {
+export function _showArranquePanel() {
   const overlay    = document.getElementById('arranque-overlay');
   const body       = document.getElementById('arranque-body');
   const ctaBtn     = document.getElementById('arranque-cta-btn');

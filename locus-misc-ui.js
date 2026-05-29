@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 15:00 UTC-6
 // locus-misc-ui.js
 // Módulo: Helpers de UI — getNextOccurrence, _resetExpired, Tags, Pendientes, Doc Activity Drawer
 // Extraído de ai-tracker-ai-notes.js
@@ -22,7 +22,7 @@ const _renderHoy = () => { if (typeof window.renderHoy === 'function') window.re
 const _relTs = (ts) => window._relTs ? window._relTs(ts) : '';
 
 // B-202604-007: corrección — proyección correcta evita countdown vacío
-function getNextOccurrence(resetTime) {
+export function getNextOccurrence(resetTime) {
   if (!resetTime) return null;
   const [h, m] = resetTime.split(':').map(Number);
   const r = new Date(); r.setHours(h, m, 0, 0);
@@ -30,7 +30,7 @@ function getNextOccurrence(resetTime) {
   return r;
 }
 // B-202604-009: usa epoch absoluto cuando está disponible — evita liberar IAs por coincidencia de hora
-function _resetExpired(resetTime, resetEpoch) {
+export function _resetExpired(resetTime, resetEpoch) {
   if (!resetTime) return false;
   // Si hay epoch absoluto, comparar contra él — fuente de verdad
   if (resetEpoch) return Date.now() >= resetEpoch;
@@ -40,7 +40,7 @@ function _resetExpired(resetTime, resetEpoch) {
   return r <= new Date();
 }
 
-function getCD(resetTime, resetEpoch) {
+export function getCD(resetTime, resetEpoch) {
   if (!resetTime) return '';
   // B-202604-009: usar epoch absoluto si está disponible
   if (resetEpoch) {
@@ -87,7 +87,7 @@ setInterval(() => {
 }, 1000);
 
 // ── Tags ──
-function openTagModal(aiId, sessId) {
+export function openTagModal(aiId, sessId) {
   _saveModalTrigger('tag-modal');
   tagModalAIId = aiId; tagModalSessId = sessId; selectedColor = 0;
   renderTagPicker(); renderColorPicker();
@@ -95,7 +95,7 @@ function openTagModal(aiId, sessId) {
   document.getElementById('tag-modal').classList.add('open');
   setTimeout(() => document.getElementById('tag-new-input').focus(), 80);
 }
-function renderTagPicker() {
+export function renderTagPicker() {
   const found = tagModalSessId ? _findSession(tagModalSessId) : null;
   const s = found ? found.sess : null;
   const selected = s ? s.tags || [] : [];
@@ -112,15 +112,15 @@ function renderTagPicker() {
     </div>`;
   }).join('');
 }
-function renderColorPicker() {
+export function renderColorPicker() {
   const row = document.getElementById('color-picker-row');
   if (!row) return;
   row.innerHTML = _getTagColors().map((c, i) =>
     `<div class="color-dot-btn${i === selectedColor ? ' sel' : ''}" style="--dot-color:${c}" onclick="selectColor(${i})"></div>`
   ).join('');
 }
-function selectColor(i) { selectedColor = i; renderColorPicker(); }
-function toggleTagOnSession(tagId) {
+export function selectColor(i) { selectedColor = i; renderColorPicker(); }
+export function toggleTagOnSession(tagId) {
   const found = tagModalSessId ? _findSession(tagModalSessId) : null;
   const s = found ? found.sess : null;
   if (!s) return;
@@ -130,7 +130,7 @@ function toggleTagOnSession(tagId) {
   save(); renderTagPicker(); if (typeof window.render === 'function') window.render();
   if (window.popAIId === tagModalAIId && window.popSessId === tagModalSessId) openDetail(tagModalAIId, tagModalSessId);
 }
-function addNewTag() {
+export function addNewTag() {
   const name = document.getElementById('tag-new-input').value.trim();
   if (!name) { showToast('warning', 'Escribe un nombre'); return; }
   if (getState().tags.find(t => t.name.toLowerCase() === name.toLowerCase())) { showToast('warning', 'Ya existe esa etiqueta'); return; }
@@ -145,7 +145,7 @@ function addNewTag() {
 }
 
 // ── Pendientes panel ──
-function openPendPanel() {
+export function openPendPanel() {
   const body = document.getElementById('pend-panel-body');
   let html = ''; let total = 0;
   getState().ais.forEach(ai => {
@@ -167,13 +167,13 @@ function openPendPanel() {
   body.innerHTML = total ? html : `<div class="pend-empty">🎉 Sin pendientes — todo resuelto</div>`;
   document.getElementById('pend-overlay').classList.add('open');
 }
-function closePendPanel() {
+export function closePendPanel() {
   document.getElementById('pend-overlay').classList.remove('open');
   _restoreModalFocus('pend-overlay');
 }
 
 // B-202604-138: modal standalone de CHECKPOINT — merge de ítems sin crear sesión de IA
-function openStandaloneCheckpoint() {
+export function openStandaloneCheckpoint() {
   // R-202604-047: shell estático en index.html — solo inject content + classList
   const overlay = document.getElementById('standalone-ckpt-overlay');
   if (!overlay) return;
@@ -185,7 +185,7 @@ function openStandaloneCheckpoint() {
   }, 80);
 }
 
-function closeStandaloneCheckpoint() {
+export function closeStandaloneCheckpoint() {
   const overlay = document.getElementById('standalone-ckpt-overlay');
   // B-new: forzar display:none además de quitar clase open
   // El overlay tiene z-index:9200 > item-viz-overlay(8500) — si solo se quita .open
@@ -197,7 +197,7 @@ function closeStandaloneCheckpoint() {
 
 let _docLogDrawerOpen = false;
 
-function openDocLog(doc) {
+export function openDocLog(doc) {
   _docLogDrawerOpen = true;
   const drawer = document.getElementById('doc-log-drawer');
   const overlay = document.getElementById('doc-log-overlay');
@@ -213,7 +213,7 @@ function openDocLog(doc) {
   document.documentElement.style.setProperty('--toast-right-offset', '376px');
 }
 
-function closeDocLog() {
+export function closeDocLog() {
   _docLogDrawerOpen = false;
   const drawer = document.getElementById('doc-log-drawer');
   const overlay = document.getElementById('doc-log-overlay');
@@ -224,7 +224,7 @@ function closeDocLog() {
   _restoreModalFocus('doc-log-overlay');
 }
 
-function _updateDocLogCount(doc) {
+export function _updateDocLogCount(doc) {
   const btnId = { backlog: 'doc-log-btn-backlog', context: 'doc-log-btn-context', htmlmap: 'doc-log-btn-htmlmap' }[doc];
   const btn = document.getElementById(btnId);
   if (!btn) return;
@@ -235,7 +235,7 @@ function _updateDocLogCount(doc) {
   if (badge) badge.textContent = log.length ? log.length : '';
 }
 
-function _renderDocLog(doc) {
+export function _renderDocLog(doc) {
   const key = doc === 'context' ? 'context-log' : doc === 'htmlmap' ? 'html-map-log' : 'backlog-log';
   const body = document.getElementById('doc-log-body');
   if (!body) return;
@@ -261,7 +261,7 @@ function _renderDocLog(doc) {
   }).join('');
 }
 
-function clearDocLog() {
+export function clearDocLog() {
   const drawer = document.getElementById('doc-log-drawer');
   const doc = drawer ? drawer.getAttribute('data-doc') : 'backlog';
   const key = doc === 'context' ? 'context-log' : doc === 'htmlmap' ? 'html-map-log' : 'backlog-log';
