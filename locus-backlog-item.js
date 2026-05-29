@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:14 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -34,6 +34,9 @@ const _ECOSYSTEM_ROLES = [
 
 // Días sin cambio de status para considerar un ítem bloqueado (alineado con _isBlocked en core)
 const _BLOCKED_DAYS = 14;
+
+// Estado de colapso de bloques de hijos (R → Ts) — compartido con locus-backlog-render.js via export
+export const _collapsedChildren = new Set();
 
 // Labels de tipo de ítem para display en UI
 const TYPE_LABELS = { R: 'Requerimiento', T: 'Ticket', B: 'Bug', P: 'Posibilidad' };
