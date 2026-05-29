@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 00:00 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -731,19 +731,19 @@ function editSprintInline(sprintId) {
     <span class="sprint-inline-id-preview">${esc(sprintId)} ·</span>
     <input id="${esc(inputId)}" type="text" value="${esc(currentDescriptive)}"
       class="sprint-inline-input sprint-inline-input--wide"
-      onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();">
-    <button onclick="confirmEditSprint('${esc(sprintId)}')" class="sprint-inline-confirm">&#10003;</button>
-    <button onclick="if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList()" class="sprint-inline-cancel">&#10005;</button>
+      data-action="sprint-edit-keydown" data-sprint-id="${esc(sprintId)}">
+    <button data-action="sprint-edit-confirm" data-sprint-id="${esc(sprintId)}" class="sprint-inline-confirm">&#10003;</button>
+    <button data-action="sprint-edit-cancel" class="sprint-inline-cancel">&#10005;</button>
     <input id="${esc(goalId)}" type="text" value="${esc(currentGoal)}"
       placeholder="Goal del sprint (opcional, max 120)"
       class="sprint-inline-goal-input"
       maxlength="120"
-      onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();">
+      data-action="sprint-edit-keydown" data-sprint-id="${esc(sprintId)}">
     <div class="sprint-inline-release-row">
       <label class="sprint-inline-release-label">Versión:</label>
       <input id="${esc(vtId)}" type="text" value="${esc(suggestVt)}"
         class="sprint-inline-vt-input" placeholder="v3.5"
-        onkeydown="if(event.key==='Enter')confirmEditSprint('${esc(sprintId)}');if(event.key==='Escape')if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();">
+        data-action="sprint-edit-keydown" data-sprint-id="${esc(sprintId)}">
       <label class="sprint-inline-release-label">Tipo:</label>
       <select id="${esc(rtId)}" class="sprint-inline-rt-select">
         <option value="Patch"${suggestRt==='Patch'?' selected':''}>Patch</option>
@@ -1190,7 +1190,7 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
       <div class="scm-retro3-header">
         <span class="scm-retro3-title">📄 Retrospectiva del sprint</span>
         <button class="scm-retro3-dl-btn" type="button"
-          onclick="_scmDownloadRetro()">⬇ Descargar MD</button>
+          data-action="scm-download-retro">⬇ Descargar MD</button>
       </div>
       <div class="scm-retro3-body">
         ${goal ? `<div class="scm-retro3-row"><span class="scm-retro3-key">Goal</span><span class="scm-retro3-val">${esc(goal)}</span></div>` : ''}
@@ -1703,3 +1703,86 @@ function renderSprintWorkers(sp, allItems) {
 function _buildWorkerPill(name) {
   return `<span class="spw-pill">${_escSpr(name)}</span>`;
 }
+
+// T-202605-055: delegación de eventos para locus-backlog-sprints.js
+// Cubre: confirmEditSprint (inputs keydown + button) · sprint-edit-cancel · _scmDownloadRetro
+// Los handlers de index.html (closeCloseSprintModal · _scmBack · _scmNext · closeSprintRetroOverlay)
+// se migran a listeners en DOMContentLoaded en este módulo — ver función _attachSprintStaticHandlers
+(function _attachSprintDelegation() {
+  // Delegación en document para form inline de edición de sprint (se re-inyecta via innerHTML)
+  document.addEventListener('click', function _sprintDelegateClick(e) {
+    const action = e.target.closest('[data-action]');
+    if (!action) return;
+    const act = action.dataset.action;
+
+    if (act === 'sprint-edit-confirm') {
+      if (typeof confirmEditSprint === 'function') confirmEditSprint(action.dataset.sprintId);
+      return;
+    }
+    if (act === 'sprint-edit-cancel') {
+      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+      if (typeof renderBacklogList === 'function') renderBacklogList();
+      return;
+    }
+    if (act === 'scm-download-retro') {
+      if (typeof _scmDownloadRetro === 'function') _scmDownloadRetro();
+      return;
+    }
+  });
+
+  document.addEventListener('keydown', function _sprintDelegateKeydown(e) {
+    const inp = e.target.closest('[data-action="sprint-edit-keydown"]');
+    if (!inp) return;
+    const sprintId = inp.dataset.sprintId;
+    if (e.key === 'Enter') {
+      if (typeof confirmEditSprint === 'function') confirmEditSprint(sprintId);
+    }
+    if (e.key === 'Escape') {
+      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+      if (typeof renderBacklogList === 'function') renderBacklogList();
+    }
+  });
+})();
+
+// Migración de handlers del scope en index.html (DOM estático de modales de sprint)
+// closeSprintRetroOverlay · closeCloseSprintModal · _scmBack · _scmNext
+(function _attachSprintStaticHandlers() {
+  function _attach() {
+    // Usar IDs de botones declarados en index.html
+    const cancelBtn = document.getElementById('sprint-close-cancel-btn');
+    const backBtn   = document.getElementById('sprint-close-back-btn');
+    const nextBtn   = document.getElementById('sprint-close-next-btn');
+
+    if (cancelBtn) {
+      cancelBtn.removeAttribute('onclick');
+      cancelBtn.addEventListener('click', function() {
+        if (typeof closeCloseSprintModal === 'function') closeCloseSprintModal();
+      });
+    }
+    if (backBtn) {
+      backBtn.removeAttribute('onclick');
+      backBtn.addEventListener('click', function() {
+        if (typeof _scmBack === 'function') _scmBack();
+      });
+    }
+    if (nextBtn) {
+      nextBtn.removeAttribute('onclick');
+      nextBtn.addEventListener('click', function() {
+        if (typeof _scmNext === 'function') _scmNext();
+      });
+    }
+    // Botón Cerrar del overlay retro — id="sprint-retro-close-btn" (migrado desde onclick en index.html)
+    const retroCloseBtn = document.getElementById('sprint-retro-close-btn');
+    if (retroCloseBtn) {
+      retroCloseBtn.addEventListener('click', function() {
+        if (typeof closeSprintRetroOverlay === 'function') closeSprintRetroOverlay();
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _attach);
+  } else {
+    _attach();
+  }
+})();

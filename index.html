@@ -130,7 +130,7 @@
           <button type="button" id="mm-btn-report"><span class="mm-icon">📄</span> Reporte global</button>
           <button id="more-menu-autodl"><span class="mm-icon">⬇</span> Auto-descargar templates: ON</button>
           <div id="tmpl-trigger-wrap" class="tmpl-trigger-wrap">
-            <button class="tmpl-trigger-label tmpl-trigger-toggle is-collapsed" onclick="toggleTmplTriggerPanel(this)" type="button">
+            <button class="tmpl-trigger-label tmpl-trigger-toggle is-collapsed" data-action="tmpl-trigger-toggle" type="button">
               <span class="mm-icon">⬇</span> Descargar templates <span class="tmpl-trigger-arrow">▸</span>
             </button>
             <div id="tmpl-trigger-body" class="tmpl-trigger-body is-hidden">
@@ -1246,7 +1246,7 @@
     <!-- sprint-retro-notes: visible en modo vista para notas adicionales -->
     <textarea class="sprint-retro-notes is-hidden" id="sprint-retro-notes" rows="3" readonly></textarea>
     <div class="modal-actions">
-      <button type="button" onclick="closeSprintRetroOverlay()">Cerrar</button>
+      <button type="button" id="sprint-retro-close-btn">Cerrar</button>
       <button class="btn-primary" id="sprint-retro-dl-btn">⬇ Descargar</button>
     </div>
   </div>
@@ -1292,10 +1292,10 @@
     <div class="sprint-close-body" id="sprint-close-body"></div>
     <!-- Footer -->
     <div class="sprint-close-footer">
-      <button class="sprint-close-cancel-btn" id="sprint-close-cancel-btn" onclick="closeCloseSprintModal()">Cancelar</button>
+      <button class="sprint-close-cancel-btn" id="sprint-close-cancel-btn" >Cancelar</button>
       <div class="sprint-close-nav">
-        <button class="sprint-close-back-btn" id="sprint-close-back-btn" onclick="_scmBack()">← Atrás</button>
-        <button class="sprint-close-next-btn btn-primary" id="sprint-close-next-btn" onclick="_scmNext()">Siguiente →</button>
+        <button class="sprint-close-back-btn" id="sprint-close-back-btn" >← Atrás</button>
+        <button class="sprint-close-next-btn btn-primary" id="sprint-close-next-btn" >Siguiente →</button>
       </div>
     </div>
   </div>

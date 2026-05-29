@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -339,7 +340,7 @@ function _renderItemPanel(item) {
   const TYPE_NAMES = { T: 'Ticket', R: 'Requerimiento', B: 'Bug', P: 'Posibilidad' };
 
   // ── Header ──
-  const doneBtn = item.status !== 'done' ? `<button class="idp-action-btn idp-action-done" onclick="_idpMarkDone('${esc(item.code)}')" title="Marcar done">✓ Done</button>` : '';
+  const doneBtn = item.status !== 'done' ? `<button class="idp-action-btn idp-action-done" data-action="idp-mark-done" data-code="${esc(item.code)}" title="Marcar done">✓ Done</button>` : '';
   const headerHtml = `
     <div class="idp-header">
       <div class="idp-type-chip idp-type-${type}" style="--tc:${typeColor}">${type}</div>
@@ -351,18 +352,17 @@ function _renderItemPanel(item) {
     </div>
     <div class="idp-title-wrap">
       <span class="idp-title" id="idp-title-display"
-        onclick="_idpStartEditTitle('${esc(item.code)}')"
+        data-action="idp-start-edit-title" data-code="${esc(item.code)}"
         title="Click para editar título">${esc(item.title)}</span>
       <input class="idp-title-input hidden" id="idp-title-input"
         value="${esc(item.title)}"
-        onblur="_idpSaveTitle('${esc(item.code)}')"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();_idpSaveTitle('${esc(item.code)}');}if(event.key==='Escape'){_idpCancelTitle();}">
+        data-action="idp-title-input" data-code="${esc(item.code)}">
     </div>
     <div class="idp-actions-bar">
-      <button class="idp-action-btn" onclick="_idpCopyCode('${esc(item.code)}')" title="Copiar código">⎘ ${esc(item.code)}</button>
+      <button class="idp-action-btn" data-action="idp-copy-code" data-code="${esc(item.code)}" title="Copiar código">⎘ ${esc(item.code)}</button>
       <button class="idp-action-btn" onclick="_openItemEditorSafe(null,'${esc(item.code)}')" title="Abrir editor completo">✎ Editar</button>
       ${doneBtn}
-      <button class="idp-action-btn${_focusModeActive ? ' idp-action-btn--active' : ''}" id="idp-focus-btn" onclick="toggleFocusMode()" title="${_focusModeActive ? 'Salir del Modo Focus (Esc)' : 'Activar Modo Focus'}">${_focusModeActive ? '⛶ Salir focus' : '⛶ Focus'}</button>
+      <button class="idp-action-btn${_focusModeActive ? ' idp-action-btn--active' : ''}" id="idp-focus-btn" data-action="idp-toggle-focus" title="${_focusModeActive ? 'Salir del Modo Focus (Esc)' : 'Activar Modo Focus'}">${_focusModeActive ? '⛶ Salir focus' : '⛶ Focus'}</button>
     </div>`;
 
   // ── Metadata grid — campos editables ──
@@ -472,7 +472,7 @@ function _renderItemPanel(item) {
   // ── AC colapsable ──
   const acHtml = item.ac && item.ac.length ? `
     <div class="idp-section">
-      <div class="idp-section-label idp-section-toggle" onclick="_idpToggleAc()">
+      <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-ac" role="button" tabindex="0">
         <span>Criterios de aceptación</span>
         <span class="idp-toggle-arrow" id="idp-ac-arrow">▾</span>
       </div>
@@ -675,15 +675,15 @@ function _buildPanelTimeline(item) {
 
   if (!entries.length) return `
     <div class="idp-section">
-      <div class="idp-section-label idp-section-toggle" onclick="_idpToggleHistory()">
+      <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-history" role="button" tabindex="0">
         <span>Historial</span>
         <span class="idp-toggle-arrow" id="idp-hist-arrow">▸</span>
       </div>
       <div class="idp-hist-body hidden" id="idp-hist-body">
         <div class="idp-tl-note-row">
           <input class="idp-tl-note-input" id="idp-tl-note-input" placeholder="Añadir nota al historial…"
-            onkeydown="if(event.key==='Enter'&&this.value.trim()){_idpAddNote('${esc(item.code)}',this.value.trim());this.value=''}">
-          <button class="idp-tl-note-btn" onclick="_idpAddNote_fromBtn('${esc(item.code)}')">＋</button>
+            data-action="idp-note-input" data-code="${esc(item.code)}">
+          <button class="idp-tl-note-btn" data-action="idp-add-note-btn" data-code="${esc(item.code)}">＋</button>
         </div>
       </div>
     </div>`;
@@ -709,7 +709,7 @@ function _buildPanelTimeline(item) {
 
   return `
     <div class="idp-section">
-      <div class="idp-section-label idp-section-toggle" onclick="_idpToggleHistory()">
+      <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-history" role="button" tabindex="0">
         <span>Historial <span class="idp-hist-count">${entries.length}</span></span>
         <span class="idp-toggle-arrow" id="idp-hist-arrow">▸</span>
       </div>
@@ -717,8 +717,8 @@ function _buildPanelTimeline(item) {
         <div class="idp-timeline">${rows}</div>
         <div class="idp-tl-note-row">
           <input class="idp-tl-note-input" id="idp-tl-note-input" placeholder="Añadir nota al historial…"
-            onkeydown="if(event.key==='Enter'&&this.value.trim()){_idpAddNote('${esc(item.code)}',this.value.trim());this.value=''}">
-          <button class="idp-tl-note-btn" onclick="_idpAddNote_fromBtn('${esc(item.code)}')">＋</button>
+            data-action="idp-note-input" data-code="${esc(item.code)}">
+          <button class="idp-tl-note-btn" data-action="idp-add-note-btn" data-code="${esc(item.code)}">＋</button>
         </div>
       </div>
     </div>`;
@@ -896,7 +896,7 @@ function _acvStartEdit(rowId, code, acIdx) {
     <div class="acv-inline-edit">
       <textarea class="acv-edit-ta" id="${rowId}-ta" rows="2">${esc(current)}</textarea>
       <div class="acv-edit-actions">
-        <button class="acv-save-btn" onclick="event.stopPropagation();_acvSaveEdit('${rowId}','${esc(code)}',${acIdx})">Guardar</button>
+        <button class="acv-save-btn" data-action="acv-save" data-row-id="${rowId}" data-code="${esc(code)}" data-ac-idx="${acIdx}">Guardar</button>
         <button class="acv-cancel-btn" onclick="event.stopPropagation();renderBacklogList()">Cancelar</button>
       </div>
     </div>`;
@@ -1027,5 +1027,91 @@ function toggleTmplTriggerPanel(btn) {
   } else {
     _attach();
   }
+})();
+
+// T-202605-055: delegación de eventos para el Item Detail Panel (#item-detail-panel)
+// Cubre: _idpMarkDone · _idpStartEditTitle · _idpSaveTitle · _idpCancelTitle
+//        _idpCopyCode · toggleFocusMode · _idpToggleAc · _idpToggleHistory
+//        _idpAddNote · _idpAddNote_fromBtn · _acvSaveEdit
+// Delegación en document para cubrir panel dinámico que se re-renderiza con cada ítem
+(function _attachIdpDelegation() {
+  function _onIdpClick(e) {
+    const action = e.target.closest('[data-action]');
+    if (!action) return;
+    const act = action.dataset.action;
+
+    if (act === 'idp-mark-done') {
+      if (typeof _idpMarkDone === 'function') _idpMarkDone(action.dataset.code);
+      return;
+    }
+    if (act === 'idp-start-edit-title') {
+      if (typeof _idpStartEditTitle === 'function') _idpStartEditTitle(action.dataset.code);
+      return;
+    }
+    if (act === 'idp-copy-code') {
+      if (typeof _idpCopyCode === 'function') _idpCopyCode(action.dataset.code);
+      return;
+    }
+    if (act === 'idp-toggle-focus') {
+      if (typeof toggleFocusMode === 'function') toggleFocusMode();
+      return;
+    }
+    if (act === 'idp-toggle-ac') {
+      if (typeof _idpToggleAc === 'function') _idpToggleAc();
+      return;
+    }
+    if (act === 'idp-toggle-history') {
+      if (typeof _idpToggleHistory === 'function') _idpToggleHistory();
+      return;
+    }
+    if (act === 'idp-add-note-btn') {
+      if (typeof _idpAddNote_fromBtn === 'function') _idpAddNote_fromBtn(action.dataset.code);
+      return;
+    }
+    if (act === 'acv-save') {
+      e.stopPropagation();
+      if (typeof _acvSaveEdit === 'function') _acvSaveEdit(action.dataset.rowId, action.dataset.code, parseInt(action.dataset.acIdx, 10));
+      return;
+    }
+    if (act === 'tmpl-trigger-toggle') {
+      if (typeof toggleTmplTriggerPanel === 'function') toggleTmplTriggerPanel(action);
+      return;
+    }
+  }
+
+  function _onIdpKeydown(e) {
+    // idp-title-input: Enter → save, Escape → cancel
+    const inp = e.target.closest('[data-action="idp-title-input"]');
+    if (inp) {
+      if (e.key === 'Enter') { e.preventDefault(); if (typeof _idpSaveTitle === 'function') _idpSaveTitle(inp.dataset.code); }
+      if (e.key === 'Escape') { if (typeof _idpCancelTitle === 'function') _idpCancelTitle(); }
+      return;
+    }
+    // idp-note-input: Enter → addNote
+    const noteInp = e.target.closest('[data-action="idp-note-input"]');
+    if (noteInp && e.key === 'Enter' && noteInp.value.trim()) {
+      if (typeof _idpAddNote === 'function') _idpAddNote(noteInp.dataset.code, noteInp.value.trim());
+      noteInp.value = '';
+      return;
+    }
+    // idp-toggle-ac / idp-toggle-history: Enter/Space para accesibilidad
+    const toggle = e.target.closest('[data-action="idp-toggle-ac"],[data-action="idp-toggle-history"]');
+    if (toggle && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      const act = toggle.dataset.action;
+      if (act === 'idp-toggle-ac' && typeof _idpToggleAc === 'function') _idpToggleAc();
+      if (act === 'idp-toggle-history' && typeof _idpToggleHistory === 'function') _idpToggleHistory();
+    }
+  }
+
+  function _onIdpBlur(e) {
+    // idp-title-input: blur → save
+    const inp = e.target.closest('[data-action="idp-title-input"]');
+    if (inp && typeof _idpSaveTitle === 'function') _idpSaveTitle(inp.dataset.code);
+  }
+
+  document.addEventListener('click', _onIdpClick);
+  document.addEventListener('keydown', _onIdpKeydown);
+  document.addEventListener('blur', _onIdpBlur, true); // capture para blur
 })();
 
