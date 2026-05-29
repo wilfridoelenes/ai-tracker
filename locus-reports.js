@@ -1,3 +1,4 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -844,3 +845,54 @@ function confirmImport() {
   closeImportDiff();
   showToast('success', `Importado — ${mergedAIs.length} IAs · ${totalSess} sesiones${docsMsg} · backup guardado`, null, 5000);
 }
+
+// T-202605-060: Migración inline handlers — locus-reports.js
+function _initReportsListeners() {
+  // Storage warn banner — Limpiar proyecto
+  const btnStorageWarnClean = document.getElementById('storage-warn-clean-btn');
+  if (btnStorageWarnClean) btnStorageWarnClean.addEventListener('click', openCleanProjectModal);
+
+  // Sidebar danger zone — toggle
+  const btnDangerToggle = document.getElementById('tpl-danger-toggle-btn');
+  if (btnDangerToggle) btnDangerToggle.addEventListener('click', toggleSidebarDanger);
+
+  // Sidebar danger zone — clean project
+  const btnDangerClean = document.getElementById('sidebar-danger-btn-clean-project');
+  if (btnDangerClean) btnDangerClean.addEventListener('click', openCleanProjectModal);
+
+  // Sidebar danger zone — reset context
+  const btnDangerCtx = document.getElementById('sidebar-danger-btn-context');
+  if (btnDangerCtx) btnDangerCtx.addEventListener('click', resetContextData);
+
+  // Sidebar danger zone — reset htmlmap
+  const btnDangerMap = document.getElementById('sidebar-danger-btn-htmlmap');
+  if (btnDangerMap) btnDangerMap.addEventListener('click', resetHtmlMapData);
+
+  // Clean project modal — overlay backdrop
+  const overlay = document.getElementById('clean-project-overlay');
+  if (overlay) overlay.addEventListener('click', e => { if (e.target === overlay) closeCleanProjectModal(); });
+
+  // Clean project modal — close (✕)
+  const btnClose = document.getElementById('clean-project-close-btn');
+  if (btnClose) btnClose.addEventListener('click', closeCleanProjectModal);
+
+  // Clean project modal — cancel
+  const btnCleanCancel = document.getElementById('clean-project-cancel-btn');
+  if (btnCleanCancel) btnCleanCancel.addEventListener('click', closeCleanProjectModal);
+
+  // Clean project modal — confirm
+  const btnCleanConfirm = document.getElementById('clean-project-confirm-btn');
+  if (btnCleanConfirm) btnCleanConfirm.addEventListener('click', confirmCleanProject);
+
+  // Clean project modal — checkboxes and input validation
+  const chkSessions = document.getElementById('clean-chk-sessions');
+  if (chkSessions) chkSessions.addEventListener('change', _cleanProjectValidate);
+
+  const chkBacklog = document.getElementById('clean-chk-backlog');
+  if (chkBacklog) chkBacklog.addEventListener('change', _cleanProjectValidate);
+
+  const inputConfirm = document.getElementById('clean-project-input');
+  if (inputConfirm) inputConfirm.addEventListener('input', _cleanProjectValidate);
+}
+
+document.addEventListener('DOMContentLoaded', _initReportsListeners);

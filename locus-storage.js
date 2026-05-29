@@ -1,3 +1,4 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1442,3 +1443,32 @@ window.addEventListener('beforeunload', () => {
     _saveFlush(); // best-effort; browser puede no esperar la promesa
   }
 });
+
+// T-202605-060: Migración inline handlers — auth modal
+function _initStorageListeners() {
+  // Auth modal — Google
+  const btnGoogle = document.getElementById('auth-btn-google');
+  if (btnGoogle) btnGoogle.addEventListener('click', () => { closeAuthModal(); signInWithSupabase(); });
+
+  // Auth modal — Magic link send
+  const btnMagic = document.getElementById('auth-btn-magic');
+  if (btnMagic) btnMagic.addEventListener('click', () => signInWithMagicLink());
+
+  // Auth modal — Email input Enter key
+  const emailInput = document.getElementById('auth-email-input');
+  if (emailInput) emailInput.addEventListener('keydown', e => { if (e.key === 'Enter') signInWithMagicLink(); });
+
+  // Auth modal — Resend
+  const btnResend = document.getElementById('auth-resend-btn');
+  if (btnResend) btnResend.addEventListener('click', () => signInWithMagicLink(true));
+
+  // Auth modal — Cancel
+  const btnCancel = document.getElementById('auth-cancel-btn');
+  if (btnCancel) btnCancel.addEventListener('click', () => closeAuthModal());
+
+  // Sync pill
+  const syncPill = document.getElementById('mm-btn-sync');
+  if (syncPill) syncPill.addEventListener('click', handleSyncPillClick);
+}
+
+document.addEventListener('DOMContentLoaded', _initStorageListeners);

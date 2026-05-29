@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-28 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-28 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -169,7 +169,7 @@
 <!-- T-084: Storage warning banner — visible solo si totalSessions > 300 -->
 <div id="storage-warn" class="is-hidden">
   <span>⚠️ Tienes muchas sesiones guardadas — el almacenamiento local puede saturarse pronto.</span>
-  <button type="button" onclick="openCleanProjectModal()">🗑 Limpiar proyecto</button>
+  <button type="button" id="storage-warn-clean-btn">🗑 Limpiar proyecto</button>
   <button type="button" onclick="document.getElementById('storage-warn').classList.add('is-hidden')" title="Cerrar">✕</button>
 </div>
 <!-- ═══ RADAR SIDEBAR GLOBAL ═══ -->
@@ -376,12 +376,12 @@
 
     <!-- Zona de peligro — sidebar -->
     <div class="tpl-sidebar-danger is-hidden" id="tpl-sidebar-danger">
-      <button class="tpl-danger-toggle" onclick="toggleSidebarDanger()">⚠ Opciones avanzadas</button>
+      <button class="tpl-danger-toggle" id="tpl-danger-toggle-btn">⚠ Opciones avanzadas</button>
       <div class="tpl-danger-body" id="tpl-danger-body">
         <div class="tpl-danger-label">Zona de peligro — irreversible</div>
-        <button class="btn-danger" id="sidebar-danger-btn-clean-project" onclick="openCleanProjectModal()" aria-disabled="false">🗑 Limpiar proyecto</button>
-        <button class="btn-danger is-hidden" id="sidebar-danger-btn-context" onclick="resetContextData()">🗑 Resetear Context</button>
-        <button class="btn-danger is-hidden" id="sidebar-danger-btn-htmlmap" onclick="resetHtmlMapData()">🗑 Resetear MAP</button>
+        <button class="btn-danger" id="sidebar-danger-btn-clean-project" aria-disabled="false">🗑 Limpiar proyecto</button>
+        <button class="btn-danger is-hidden" id="sidebar-danger-btn-context"   >🗑 Resetear Context</button>
+        <button class="btn-danger is-hidden" id="sidebar-danger-btn-htmlmap"   >🗑 Resetear MAP</button>
         <button class="btn-danger is-hidden" id="sidebar-danger-btn-contratos">🗑 Resetear Contratos</button>
       </div>
     </div>
@@ -1348,7 +1348,7 @@
     <p class="auth-modal-desc">Sincroniza Locus entre dispositivos.</p>
 
     <!-- Path A: Google -->
-    <button class="btn-auth-google" onclick="closeAuthModal(); signInWithSupabase();">
+    <button class="btn-auth-google" id="auth-btn-google">
       <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 6.293C4.672 4.166 6.656 3.58 9 3.58z"/></svg>
       Continuar con Google
     </button>
@@ -1360,10 +1360,10 @@
       <div class="field">
         <label for="auth-email-input">Email</label>
         <input type="email" id="auth-email-input" placeholder="tu@email.com"
-          onkeydown="if(event.key==='Enter')signInWithMagicLink()"
+          
           autocomplete="email" />
       </div>
-      <button class="btn-primary auth-btn-email" id="auth-btn-magic" onclick="signInWithMagicLink()">
+      <button class="btn-primary auth-btn-email" id="auth-btn-magic">
         Enviar enlace de acceso
       </button>
     </div>
@@ -1372,11 +1372,11 @@
     <div id="auth-sent-state" class="auth-sent-state is-hidden">
       <div class="auth-sent-icon">✉</div>
       <div class="auth-sent-msg">Revisa tu correo — el enlace expira en 1 hora.</div>
-      <button class="auth-resend-btn" onclick="signInWithMagicLink(true)">Reenviar</button>
+      <button class="auth-resend-btn" id="auth-resend-btn">Reenviar</button>
     </div>
 
     <div class="modal-actions">
-      <button type="button" onclick="closeAuthModal()">Cancelar</button>
+      <button type="button" id="auth-cancel-btn">Cancelar</button>
     </div>
   </div>
 </div>
@@ -1778,13 +1778,13 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- ═══ MODAL LIMPIAR PROYECTO ═══ R-[pendiente-ID] -->
 <div class="modal-overlay clean-project-overlay" id="clean-project-overlay"
      role="dialog" aria-modal="true" aria-labelledby="clean-project-dialog-title"
-     onclick="if(event.target===this)closeCleanProjectModal()">
+     >
   <div class="modal-panel clean-project-panel">
     <div class="modal-header">
       <span class="modal-title clean-project-dialog-title" id="clean-project-dialog-title">
         Limpiar: <span class="clean-project-title clean-project-name" id="clean-project-title">proyecto</span>
       </span>
-      <button class="modal-close-btn" onclick="closeCleanProjectModal()" aria-label="Cerrar">✕</button>
+      <button class="modal-close-btn" id="clean-project-close-btn" aria-label="Cerrar">✕</button>
     </div>
 
     <div class="modal-body clean-project-body">
@@ -1795,14 +1795,14 @@ document.addEventListener('DOMContentLoaded', function() {
       <!-- AC-4: checkboxes con label clickeable completo -->
       <div class="clean-project-checks">
         <label class="clean-project-check-label">
-          <input type="checkbox" id="clean-chk-sessions" onchange="_cleanProjectValidate()">
+          <input type="checkbox" id="clean-chk-sessions">
           <span class="clean-project-check-text">
             <span class="clean-project-check-title">Sesiones y Checkpoints</span>
             <span class="clean-project-check-desc">Elimina todo el historial de sesiones del proyecto activo</span>
           </span>
         </label>
         <label class="clean-project-check-label">
-          <input type="checkbox" id="clean-chk-backlog" onchange="_cleanProjectValidate()">
+          <input type="checkbox" id="clean-chk-backlog">
           <span class="clean-project-check-text">
             <span class="clean-project-check-title">Backlog e Histórico</span>
             <span class="clean-project-check-desc">Elimina todos los ítems del backlog del proyecto activo</span>
@@ -1825,19 +1825,19 @@ document.addEventListener('DOMContentLoaded', function() {
           autocomplete="off"
           spellcheck="false"
           aria-describedby="clean-project-warning clean-project-confirm-desc"
-          oninput="_cleanProjectValidate()"
+          
         >
       </div>
     </div>
 
     <div class="modal-footer clean-project-footer">
-      <button class="tpl-action-btn" onclick="closeCleanProjectModal()">Cancelar</button>
+      <button class="tpl-action-btn" id="clean-project-cancel-btn">Cancelar</button>
       <button
         class="btn-danger clean-project-confirm is-disabled"
         id="clean-project-confirm-btn"
         aria-disabled="true"
         disabled
-        onclick="confirmCleanProject()">
+        >
         Limpiar proyecto
       </button>
     </div>
