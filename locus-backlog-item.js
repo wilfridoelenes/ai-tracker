@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -23,6 +23,13 @@ import { render } from './locus-sesiones.js';
 import { showToast } from './locus-toast.js';
 
 import { esc } from './locus-ui-shell.js';
+
+// ── Estado del módulo ──────────────────────────────────────────────────────
+// Búsqueda activa — compartida con locus-backlog-render.js
+let backlogSearchQuery = '';
+// Filtro de tipo activo
+let currentFilter = 'all';
+// ──────────────────────────────────────────────────────────────────────────
 
 export function _renderKanban(listEl) {
   // R-202604-091: 3 columnas — 'en curso' eliminado, ítems activos decorados en 'pendiente'
