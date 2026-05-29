@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -66,8 +66,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
   // R-202605-148: select de sprint inline — persiste via _mdiffSetItemSprint sin re-render del DIFF
   const _sprintSelect = (code) => {
-    const openSprints = getActiveSprints().filter(s => s.status !== 'closed')
-      : [];
+    const openSprints = getActiveSprints().filter(s => s.status !== 'closed');
     const item = ITEMS.find(i => i.code === code);
     const rawSprint = item ? (item.sprint || '') : '';
     // R-202605-148 AC: si el sprint asignado ya no existe, mostrar 'Sin sprint' como fallback
@@ -377,8 +376,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
   // Reemplaza el mini-form con un select reconstruido
   function _mdiffRestoreSelect(wrap, code, selectedId) {
-    const openSprints = getActiveSprints().filter(s => s.status !== 'closed')
-      : [];
+    const openSprints = getActiveSprints().filter(s => s.status !== 'closed');
     const currentSprint = code
       ? ((ITEMS.find(i => i.code === code) || {}).sprint || '')
       : '';

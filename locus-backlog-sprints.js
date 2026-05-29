@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -1651,11 +1651,14 @@ function _buildScopeAddedRow(item) {
 // T-202605-071: _escSpr — helper local de escape HTML para locus-backlog-sprints.js
 // Nombre local (_escSpr) para evitar colisión con _esc declarada en locus-contracts.js.
 // Delega a esc() de locus-ui-shell.js si está disponible — fallback inline si no cargó.
-const _escSpr = esc;')
+const _escSpr = typeof esc === 'function'
+  ? esc
+  : (s => String(s)
+      .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#39;');
+      .replace(/'/g, '&#39;'));
 
 // T-202605-061: Sección workers vinculados al sprint activo
 function renderSprintWorkers(sp, allItems) {

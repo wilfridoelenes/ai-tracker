@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -100,9 +100,7 @@ function _renderSprintPlanificar() {
   const container = document.getElementById('sprint-planificar-container');
   if (!container) return;
   // _renderPlanningView vive en locus-backlog-render.js — espera un elemento contenedor
-  {
-    _renderPlanningView(container, "_sptSwitch('items', document.getElementById('spt-tab-items'))");
-  } else {
+  if (typeof _renderPlanningView === 'function') {
     container.innerHTML = '<div class="spi-section-empty">Vista Planificar no disponible.</div>';
   }
 }

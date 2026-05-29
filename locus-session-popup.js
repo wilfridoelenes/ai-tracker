@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-29 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -469,7 +469,7 @@ function _previewProjConfirmChange(aiId, sessId, selectEl) {
   const projName = newProj ? `${newProj.icon || '📁'} ${newProj.name}` : 'sin proyecto';
 
   // Usar el confirm inline de la app si está disponible, sino confirm nativo como fallback
-  {
+  if (typeof showToastInline === 'function') {
     // Guardar referencia para confirmar/cancelar
     selectEl.dataset.pendingProj = newProjId;
     selectEl.dataset.prevProj    = prevProjId;

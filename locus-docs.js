@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -280,7 +280,7 @@ export function exportHtmlMapMd() {
   // DUP-08: descarga directa — #htmlmap-export-overlay eliminado
   const raw = localStorage.getItem(_tplKey('html-map-raw'));
   if (!raw) { showToast('warning', 'Sin datos — importa primero'); return; }
-  const ver = (_mgGetVersion()
+  const ver = _mgGetVersion()
     ? _mgGetVersion()
     : (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
       ? _effectiveVersion

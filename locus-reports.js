@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-29 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -174,7 +174,7 @@ function toggleMoreMenu() {
     m.classList.remove('is-hidden');
 
     // T-202604-295: sync checked state desde localStorage — shell estático en index.html
-    const cur = (_templateTrigger();
+    const cur = _templateTrigger();
     const sesRad = document.getElementById('tmpl-trigger-session');
     const sprRad = document.getElementById('tmpl-trigger-sprint');
     if (sesRad) sesRad.checked = cur === 'session';
