@@ -594,7 +594,9 @@ function parsePaste(id) {
     const _noItemsWarnKey = `_noItemsWarnSeen_${id}`;
     if (isCheckpoint && !_hasItemsBlock && !window[_noItemsWarnKey]) {
       prev.className = 'preview show';
-      prev.innerHTML = `<div class="paste-error" class="paste-error paste-warn">⚠ No se detectaron ítems estructurados — falta el bloque <code>---ITEMS---</code>.<br><span class="paste-hint">El CHECKPOINT se guardará sin ítems. Si tienes ítems P/T/R/B, agrégalos en formato JSON dentro del bloque.</span><br><button class="btn-ghost" class="paste-inline-btn" onclick="window['${_noItemsWarnKey}']=true;parsePaste('${id}')">Continuar sin ítems</button></div>`;
+      prev.innerHTML = `<div class="paste-error paste-warn">⚠ No se detectaron ítems estructurados — falta el bloque <code>---ITEMS---</code>.<br><span class="paste-hint">El CHECKPOINT se guardará sin ítems. Si tienes ítems P/T/R/B, agrégalos en formato JSON dentro del bloque.</span><br><button class="btn-ghost paste-inline-btn">Continuar sin ítems</button></div>`;
+      const _noItemsBtn = prev.querySelector('.paste-inline-btn');
+      if (_noItemsBtn) _noItemsBtn.addEventListener('click', () => { window[_noItemsWarnKey] = true; parsePaste(id); }, { once: true });
       if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
@@ -609,7 +611,9 @@ function parsePaste(id) {
     const _rolWarnKey  = `_rolFieldWarnSeen_${id}`;
     if (isCheckpoint && !_hasRolField && !window[_rolWarnKey]) {
       prev.className = 'preview show';
-      prev.innerHTML = `<div class="paste-error" class="paste-error paste-warn">⚠ Falta el campo <code>Rol:</code> en el CHECKPOINT.<br><span class="paste-hint">Formato esperado: <code>Rol: FS · Mike</code>. El paste funcionará igual sin este campo.</span><br><button class="btn-ghost" class="paste-inline-btn" onclick="window['${_rolWarnKey}']=true;parsePaste('${id}')">Procesar de todas formas</button></div>`;
+      prev.innerHTML = `<div class="paste-error paste-warn">⚠ Falta el campo <code>Rol:</code> en el CHECKPOINT.<br><span class="paste-hint">Formato esperado: <code>Rol: FS · Mike</code>. El paste funcionará igual sin este campo.</span><br><button class="btn-ghost paste-inline-btn">Procesar de todas formas</button></div>`;
+      const _rolBtn = prev.querySelector('.paste-inline-btn');
+      if (_rolBtn) _rolBtn.addEventListener('click', () => { window[_rolWarnKey] = true; parsePaste(id); }, { once: true });
       if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
@@ -625,7 +629,9 @@ function parsePaste(id) {
       if (_doneNoAc.length > 0) {
         const _codes = _doneNoAc.map(it => `<code>${esc(it.code)}</code>`).join(', ');
         prev.className = 'preview show';
-        prev.innerHTML = `<div class="paste-error paste-warn">⚠ ${_doneNoAc.length} ítem${_doneNoAc.length !== 1 ? 's' : ''} marcado${_doneNoAc.length !== 1 ? 's' : ''} como done sin criterios de aceptación: ${_codes}.<br><span class="paste-hint">Un ítem done sin AC no es verificable. Agrega AC antes de marcar como done, o continúa si es intencional.</span><br><button class="btn-ghost paste-inline-btn" onclick="window['${_doneWarnKey}']=true;parsePaste('${id}')">Continuar de todas formas</button></div>`;
+        prev.innerHTML = `<div class="paste-error paste-warn">⚠ ${_doneNoAc.length} ítem${_doneNoAc.length !== 1 ? 's' : ''} marcado${_doneNoAc.length !== 1 ? 's' : ''} como done sin criterios de aceptación: ${_codes}.<br><span class="paste-hint">Un ítem done sin AC no es verificable. Agrega AC antes de marcar como done, o continúa si es intencional.</span><br><button class="btn-ghost paste-inline-btn">Continuar de todas formas</button></div>`;
+        const _doneBtn = prev.querySelector('.paste-inline-btn');
+        if (_doneBtn) _doneBtn.addEventListener('click', () => { window[_doneWarnKey] = true; parsePaste(id); }, { once: true });
         if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
         return;
       }

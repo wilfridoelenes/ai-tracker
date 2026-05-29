@@ -1,3 +1,4 @@
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -13,9 +14,7 @@ function toggleTemplateTrigger(val) {
 
 // T-202604-115: Descargar templates individuales (HTML + CONTEXT + Backlog)
 function downloadTemplates() {
-  const t = document.getElementById('toast');
-  const msg = `Templates listos <button onclick="_doDownloadTemplates();_dismissToast(this.closest('.toast-item'))" class="toast-dl-btn">⬇ Descargar</button>`;
-  showToast('download', msg, null, 8000);
+  showToast('download', 'Templates listos — click para descargar', null, 8000, () => { _doDownloadTemplates(); });
 }
 
 function _dlTemplatesCancel() {
@@ -114,6 +113,8 @@ function openChangelog() {
   const body = document.getElementById('changelog-body');
   if (body) body.innerHTML = _buildChangelogInner();
   overlay.classList.add('open');
+  const closeBtn = overlay.querySelector('[data-close-changelog]');
+  if (closeBtn) closeBtn.addEventListener('click', () => overlay.classList.remove('open'), { once: true });
 }
 
 function _buildChangelogInner() {
@@ -137,7 +138,7 @@ function _buildChangelogInner() {
     <div class="modal-title">📋 Changelog</div>
     <div class="changelog-scroll">${rows}</div>
     <div class="modal-actions changelog-actions">
-      <button onclick="document.getElementById('changelog-overlay').classList.remove('open')">Cerrar</button>
+      <button data-close-changelog>Cerrar</button>
     </div>`;
 }
 
@@ -846,8 +847,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   if (!_hasPending) {
     // T-202604-295: descargar templates solo si trigger es 'session' (default)
     if (_templateTrigger() === 'session') {
-      const _dlBtn = `<button onclick="_doDownloadTemplates();_dismissToast(this.closest('.toast-item'))" class="toast-dl-btn">⬇ Templates</button>`;
-      showToast('download', _baseMsg + _dlBtn, null, 8000);
+      showToast('download', _baseMsg + ' · click para descargar templates', null, 8000, () => { _doDownloadTemplates(); });
     } else {
       showToast('success', _baseMsg);
     }
