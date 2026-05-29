@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
@@ -708,6 +708,29 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectInit() {
 
 const PROJ_COLORS = ['#7c6af7','#38bdf8','#2ecc78','#e8a832','#e85555','#f472b6','#a3e635','#fb923c','#8BC34A','#64748b'];
 
+// B-202605-022: funciones nombradas para drag delegation en #proj-list
+// Definidas en módulo-scope para que removeEventListener pueda referenciarlas
+function _projListDragStartHandler(e) {
+  const row = e.target.closest('[data-drag-proj-id]');
+  if (row) projDragStart(e, row.dataset.dragProjId, row);
+}
+function _projListDragEndHandler(e) {
+  const row = e.target.closest('[data-drag-proj-id]');
+  projDragEnd(e, row);
+}
+function _projListDragOverHandler(e) {
+  const row = e.target.closest('[data-drag-proj-id]');
+  if (row) projDragOver(e, row.dataset.dragProjId, row);
+}
+function _projListDragLeaveHandler(e) {
+  const row = e.target.closest('[data-drag-proj-id]');
+  projDragLeave(e, row);
+}
+function _projListDropHandler(e) {
+  const row = e.target.closest('[data-drag-proj-id]');
+  if (row) projDrop(e, row.dataset.dragProjId, row);
+}
+
 function _getActiveProjectFilter() {
   return localStorage.getItem('current-project-filter') || '';
 }
@@ -1040,25 +1063,17 @@ function _renderProjList() {
     if (action === 'toggle-archived') { _toggleProjArchivedSection(); return; }
   }, { once: true });
 
-  // Event delegation — drag & drop
-  list.addEventListener('dragstart', function _projListDragStart(e) {
-    const row = e.target.closest('[data-drag-proj-id]');
-    if (row) projDragStart(e, row.dataset.dragProjId);
-  });
-  list.addEventListener('dragend', function _projListDragEnd(e) {
-    projDragEnd(e);
-  });
-  list.addEventListener('dragover', function _projListDragOver(e) {
-    const row = e.target.closest('[data-drag-proj-id]');
-    if (row) projDragOver(e, row.dataset.dragProjId);
-  });
-  list.addEventListener('dragleave', function _projListDragLeave(e) {
-    projDragLeave(e);
-  });
-  list.addEventListener('drop', function _projListDrop(e) {
-    const row = e.target.closest('[data-drag-proj-id]');
-    if (row) projDrop(e, row.dataset.dragProjId);
-  });
+  // Event delegation — drag & drop (B-202605-022: remove antes de add — evita acumulación en nodo persistente)
+  list.removeEventListener('dragstart', _projListDragStartHandler);
+  list.removeEventListener('dragend',   _projListDragEndHandler);
+  list.removeEventListener('dragover',  _projListDragOverHandler);
+  list.removeEventListener('dragleave', _projListDragLeaveHandler);
+  list.removeEventListener('drop',      _projListDropHandler);
+  list.addEventListener('dragstart', _projListDragStartHandler);
+  list.addEventListener('dragend',   _projListDragEndHandler);
+  list.addEventListener('dragover',  _projListDragOverHandler);
+  list.addEventListener('dragleave', _projListDragLeaveHandler);
+  list.addEventListener('drop',      _projListDropHandler);
 }
 
 function editProjInline(projId) {
@@ -1115,27 +1130,27 @@ function deleteProjConfirm(projId) {
 
 // Drag & drop proyectos en modal
 let _projDragId = null;
-function projDragStart(e, projId) {
+function projDragStart(e, projId, rowEl) {
   _projDragId = projId;
-  e.currentTarget.classList.add('dragging');
+  if (rowEl) rowEl.classList.add('dragging');
 }
-function projDragEnd(e) {
-  e.currentTarget.classList.remove('dragging');
+function projDragEnd(e, rowEl) {
+  if (rowEl) rowEl.classList.remove('dragging');
   document.querySelectorAll('.proj-list-row').forEach(r => r.classList.remove('drag-over'));
   _projDragId = null;
 }
-function projDragOver(e, projId) {
+function projDragOver(e, projId, rowEl) {
   e.preventDefault();
   if (_projDragId === projId) return;
   document.querySelectorAll('.proj-list-row').forEach(r => r.classList.remove('drag-over'));
-  e.currentTarget.classList.add('drag-over');
+  if (rowEl) rowEl.classList.add('drag-over');
 }
-function projDragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
+function projDragLeave(e, rowEl) {
+  if (rowEl) rowEl.classList.remove('drag-over');
 }
-function projDrop(e, toId) {
+function projDrop(e, toId, rowEl) {
   e.preventDefault();
-  e.currentTarget.classList.remove('drag-over');
+  if (rowEl) rowEl.classList.remove('drag-over');
   if (!_projDragId || _projDragId === toId) return;
   const projs = state.projects || [];
   const fromIdx = projs.findIndex(p => p.id === _projDragId);
