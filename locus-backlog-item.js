@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1044,9 +1044,9 @@ export function buildBacklogItem(item) {
           <span class="bitem-meta-label">Sprint</span>
           <div id="sprint-select-wrap-${esc(item.code)}">
             <select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-select-type="sprint">
-              <option value="">— Sin asignar</option>
+              <option value="icebox"${(!item.sprint || item.sprint === 'icebox') ? ' selected' : ''}>icebox</option>
               ${getActiveSprints().filter(s=>s.status!=='closed').map(s=>`<option value="${esc(s.id)}"${item.sprint===s.id?' selected':''}>${esc(s.label||s.id)}${s.status==='active'?' ★':''}</option>`).join('')}
-              ${item.sprint && !getActiveSprints().find(s=>s.id===item.sprint) ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : ''}
+              ${item.sprint && item.sprint !== 'icebox' && !getActiveSprints().find(s=>s.id===item.sprint) ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : ''}
               <option value="__new__">＋ Nuevo sprint...</option>
             </select>
           </div>
