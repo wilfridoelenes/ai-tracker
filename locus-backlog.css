@@ -5541,10 +5541,6 @@ er {
   width: 12px;
 }
 
-.bl-icebox-header:not(.collapsed) .bl-icebox-arrow {
-  transform: rotate(90deg);
-}
-
 .bl-icebox-count {
   font-size: var(--text-xs);
   color: var(--hint);
