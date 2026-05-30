@@ -1,4 +1,4 @@
-// [PP] v1.2 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogFocusMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
@@ -1044,8 +1044,13 @@ export function renderBacklogList(onRendered) {
 
   if (_useSprintGroups) {
     // ── Modo Sprint: agrupar pendientes por sprint ──
+    // T-202605-104: ítems icebox separados del sprintMap — sección propia al final
+    const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
+    const iceboxItems = pendienteItems.filter(_isIcebox);
+    const sprintableItems = pendienteItems.filter(i => !_isIcebox(i));
+
     const sprintMap = {};
-    pendienteItems.forEach(i => {
+    sprintableItems.forEach(i => {
       const s = (i.sprint || '').trim();
       const key = s || '__sin_asignar__';
       if (!sprintMap[key]) sprintMap[key] = [];
@@ -1161,6 +1166,20 @@ export function renderBacklogList(onRendered) {
     });
 
     // R-202605-103: bloque sprints cerrados eliminado — absorbido por renderArchivoHistorico
+
+    // T-202605-104: sección Icebox — ítems sin sprint asignado (icebox / '' / null)
+    if (iceboxItems.length) {
+      const iceboxOpen = localStorage.getItem('backlog-icebox-open') === '1';
+      html += `<div class="section-group sg-icebox" id="sg-icebox">
+        <div class="section-group-header bl-icebox-header" data-action="section-group-toggle" data-group="icebox">
+          <span class="section-group-arrow bl-icebox-arrow" id="sgarrow-icebox">${iceboxOpen ? '▾' : '▸'}</span>
+          <span>📥 Icebox</span>
+          <span class="section-group-count bl-icebox-count">${iceboxItems.length} ítem${iceboxItems.length !== 1 ? 's' : ''}</span>
+        </div>
+        <div class="section-group-body items-grid bl-icebox-body${iceboxOpen ? '' : ' collapsed'}" id="sgbody-icebox">`;
+      _sortGroup(iceboxItems).forEach(item => { html += buildBacklogItem(item); });
+      html += `</div></div>`;
+    }
 
   } else {
     // ── Modo plano: lista sin grupos de sprint ──
