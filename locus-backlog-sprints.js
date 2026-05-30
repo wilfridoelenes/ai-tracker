@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-11 · mod:15 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-11 · mod:16 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -1434,6 +1434,7 @@ export function navigateToItem(code) {
 
 
 // T-202605-058: Burndown — barra de progreso effort done vs total del sprint activo
+// T-202605-027: usa sprint con current:true — sin fallback a all[0]
 export function renderSprintBurndown() {
   const trackEl  = document.getElementById('sph-bd-track');
   const fillEl   = document.getElementById('sph-bd-fill');
@@ -1442,10 +1443,13 @@ export function renderSprintBurndown() {
   const warnEl   = document.getElementById('sph-bd-warn');
   if (!trackEl || !fillEl || !labelEl || !pctEl || !warnEl) return;
 
-  const sp = _getActiveSprint();
+  // T-202605-027: solo sprint con current:true — sprints abiertos sin flag no cuentan
+  const all = getActiveSprints().filter(s => s.status === 'active');
+  const sp = all.find(s => s.current === true) || null;
+
   if (!sp) {
-    labelEl.textContent = 'Effort: 0 / 0';
-    pctEl.textContent   = '0%';
+    labelEl.textContent = 'Sin sprint en curso';
+    pctEl.textContent   = '';
     fillEl.style.removeProperty('--sph-bd-width');
     fillEl.classList.remove('is-complete');
     fillEl.classList.remove('is-ready');
