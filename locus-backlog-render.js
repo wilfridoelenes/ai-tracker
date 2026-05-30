@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-29 UTC-6
+// [AS] v1.2 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-30 22:15 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogFocusMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
@@ -253,7 +253,7 @@ function _buildSprintOption(sp) {
   const selectedCls = isSelected ? ' is-selected' : '';
   // T-202604-417: botón "Ver retro" para sprints cerrados con retroDoc guardado
   const retroBtn = isClosed && sp.retroDoc
-    ? `<button class="bl-sprint-retro-btn" onclick="event.stopPropagation();openSprintRetroView('${esc(id)}')" title="Ver retrospectiva" type="button">retro</button>`
+    ? `<button class="bl-sprint-retro-btn" data-action="bl-sprint-retro" data-sprint-id="${esc(id)}" title="Ver retrospectiva" type="button">retro</button>`
     : '';
   return `<button class="bl-sprint-option${activeCls}${selectedCls}" data-action="bl-sprint-select" data-sprint-id="${esc(id)}" type="button">
     <span class="bl-sprint-option-mark">${mark}</span>
@@ -592,7 +592,7 @@ export function _renderPlanningView(listEl, closeCallback) {
           <span class="bl-plan-header-icon">📋</span>
           Planificación
         </div>
-        <button class="bl-plan-close-btn" onclick="${closeCallback ? closeCallback : 'toggleBacklogPlanningMode()'}" title="Volver al backlog">✕ Cerrar planificación</button>
+        <button class="bl-plan-close-btn" data-action="bl-plan-close" data-callback="${closeCallback || ''}" title="Volver al backlog">✕ Cerrar planificación</button>
       </div>
 
       <div class="bl-plan-columns">
@@ -776,7 +776,7 @@ export function renderBacklogList(onRendered) {
             <li><strong>Abre un sprint</strong> desde el Backlog</li>
             <li><strong>Registra tu primera sesión</strong> en el Tracker</li>
           </ol>
-          <button class="empty-state-btn" onclick="if(typeof switchTab==='function')switchTab('proyectos')">Ir a Proyectos</button>
+          <button class="empty-state-btn" data-action="es-switch-tab" data-tab="proyectos">Ir a Proyectos</button>
         </div>`;
     } else {
       listEl.innerHTML = `
@@ -784,7 +784,7 @@ export function renderBacklogList(onRendered) {
           <div class="empty-state-icon">📁</div>
           <div class="empty-state-title">Selecciona un proyecto</div>
           <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
-          <button class="empty-state-btn" onclick="openProjPanel()">📁 Seleccionar proyecto</button>
+          <button class="empty-state-btn" data-action="es-open-proj-panel">📁 Seleccionar proyecto</button>
         </div>`;
     }
     _skelHide(listEl);
@@ -803,7 +803,7 @@ export function renderBacklogList(onRendered) {
         <div class="empty-state-icon">📂</div>
         <div class="empty-state-title">Este proyecto no tiene ítems aún</div>
         <div class="empty-state-hint">Selecciona otro proyecto o empieza a registrar sesiones para ver ítems aquí.</div>
-        <button class="empty-state-btn" onclick="openProjPanel()">Cambiar proyecto</button>
+        <button class="empty-state-btn" data-action="es-open-proj-panel">Cambiar proyecto</button>
       </div>`;
       _skelHide(listEl);
       return;
@@ -816,7 +816,7 @@ export function renderBacklogList(onRendered) {
           <div class="empty-state-icon">📋</div>
           <div class="empty-state-title">Registra tu primera sesión para ver ítems aquí</div>
           <div class="empty-state-hint">Tienes un sprint activo. Ve al Tracker, abre una sesión con tu IA y guarda el resultado.</div>
-          <button class="empty-state-btn" onclick="if(typeof switchTab==='function')switchTab('tracker')">Ir al Tracker</button>
+          <button class="empty-state-btn" data-action="es-switch-tab" data-tab="tracker">Ir al Tracker</button>
         </div>`;
     } else {
       listEl.innerHTML = `
@@ -824,7 +824,7 @@ export function renderBacklogList(onRendered) {
           <div class="empty-state-icon">📅</div>
           <div class="empty-state-title">Abre un sprint para empezar</div>
           <div class="empty-state-hint">El backlog necesita un sprint activo. Abre uno para organizar y ejecutar tu trabajo.</div>
-          <button class="empty-state-btn" onclick="openNewSprintInline()">＋ Abrir sprint</button>
+          <button class="empty-state-btn" data-action="es-open-new-sprint">＋ Abrir sprint</button>
         </div>`;
     }
     _skelHide(listEl);
@@ -1090,7 +1090,7 @@ export function renderBacklogList(onRendered) {
       const _sprintPills = _statusPills(_sprintAllItems);
       const _velLabel066a = isActive ? _sprintVelocityLabel(s.id) : '';
       html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}">
-        <div onclick="toggleVersionCollapse('${groupId}')" class="version-collapse-trigger">
+        <div data-action="version-collapse" data-group-id="${groupId}" class="version-collapse-trigger">
           <div class="version-header">
             <span id="sprint-label-wrap-${esc(s.id)}"><span class="version-tag">${esc(s.id)}${sprintBadge}</span>${(s.label && s.label !== s.id) ? `<span class="sprint-name-label">${esc(s.label.replace(/^[A-Za-z]+[-\s]S\d+\s*·?\s*/i, ''))}</span>` : ''}</span>${sprintStatusLabel}
             ${progressBar}
@@ -1142,7 +1142,7 @@ export function renderBacklogList(onRendered) {
       const _descPill   = _descCount  ? `<span class="status-pill status-pill--descartado">${_descCount} desc.</span>` : '';
       const _velLabel066b = isActive ? _sprintVelocityLabel(key) : '';
       html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}">
-        <div onclick="toggleVersionCollapse('${groupId}')" class="version-collapse-trigger">
+        <div data-action="version-collapse" data-group-id="${groupId}" class="version-collapse-trigger">
           <div class="version-header">
             ${!isSinAsignar ? `<span id="sprint-label-wrap-${esc(key)}"><span class="version-tag">${esc(key)}${sprintBadge}</span>${(label && label !== key) ? `<span class="sprint-name-label">${esc(label.replace(/^[A-Za-z]+[-\s]S\d+\s*[·]?\s*/i, ''))}</span>` : ''}</span>${sprintStatusLabel}` : ''}
             ${_pendPill}
@@ -1194,7 +1194,7 @@ export function renderBacklogList(onRendered) {
   if (ideaItems.length && _getActiveTypes().has('P')) {
     const ideasOpen = localStorage.getItem('backlog-ideas-open') === '1';
     html += `<div class="section-group sg-ideas" id="sg-ideas">
-      <div class="section-group-header" onclick="toggleSectionGroup('ideas')">
+      <div class="section-group-header" data-action="section-group-toggle" data-group="ideas">
         <span class="section-group-arrow" id="sgarrow-ideas">${ideasOpen ? '▾' : '▸'}</span>
         <span>💡 Posibilidades</span>
         <span class="section-group-count">${ideaItems.length} ítem${ideaItems.length !== 1 ? 's' : ''}</span>
@@ -1208,7 +1208,7 @@ export function renderBacklogList(onRendered) {
   if (doneItems.length) {
     const doneOpen = localStorage.getItem('backlog-done-open') === '1';
     html += `<div class="section-group" id="sg-done">
-      <div class="section-group-header" onclick="toggleSectionGroup('done')">
+      <div class="section-group-header" data-action="section-group-toggle" data-group="done">
         <span class="section-group-arrow" id="sgarrow-done">${doneOpen ? '▾' : '▸'}</span>
         <span>Completados</span>
         <span class="section-group-count">${doneItems.length} ítem${doneItems.length !== 1 ? 's' : ''}</span>
@@ -1223,7 +1223,7 @@ export function renderBacklogList(onRendered) {
   if (descartadoItems.length && _getActiveStatuses().has('descartado')) {
     const discOpen = localStorage.getItem('backlog-discarded-open') === '1';
     html += `<div class="section-group sg-discarded" id="sg-discarded">
-      <div class="section-group-header" onclick="toggleSectionGroup('discarded')">
+      <div class="section-group-header" data-action="section-group-toggle" data-group="discarded">
         <span class="section-group-arrow" id="sgarrow-discarded">${discOpen ? '▾' : '▸'}</span>
         <span>Descartados</span>
         <span class="section-group-count">${descartadoItems.length} ítem${descartadoItems.length !== 1 ? 's' : ''}</span>
@@ -1249,28 +1249,28 @@ export function renderBacklogList(onRendered) {
     if (q) {
       emptyTitle = `Sin resultados para "${esc(q)}"`;
       emptyHint  = 'Prueba con otro término o limpia la búsqueda.';
-      emptyCTA   = `<button class="empty-state-btn" onclick="clearBacklogSearch()">✕ Limpiar búsqueda</button>`;
+      emptyCTA   = `<button class="empty-state-btn" data-action="es-clear-search">✕ Limpiar búsqueda</button>`;
     } else if (_getBacklogMikeMode() && _activeSprint) {
       const _miRoles = _getMiViewRoles();
       const _miRole = _miRoles[_getMiViewRoleIndex() % _miRoles.length] || 'este rol';
       emptyIcon  = '⚡';
       emptyTitle = `Sin T's pendientes para ${_miRole} en ${_activeSprint.label || _activeSprint.id}`;
       emptyHint  = 'No hay tickets pendientes asignados a este rol en el sprint activo. Rota al siguiente rol o desactiva Mi vista.';
-      emptyCTA   = `<button class="empty-state-btn" onclick="toggleBacklogMikeMode()">↻ Rotar rol / desactivar</button>`;
+      emptyCTA   = `<button class="empty-state-btn" data-action="es-toggle-mike">↻ Rotar rol / desactivar</button>`;
     } else if (_getBacklogFocusMode()) {
       emptyIcon  = '🎯';
       emptyTitle = 'Sin ítems en Focus';
       emptyHint  = 'No hay ítems pendientes con los filtros actuales.';
-      emptyCTA   = `<button class="empty-state-btn" onclick="toggleBacklogFocusMode()">✕ Desactivar Focus</button>`;
+      emptyCTA   = `<button class="empty-state-btn" data-action="es-toggle-focus">✕ Desactivar Focus</button>`;
     } else if (_getBacklogSortMode() === 'sprint' && _activeSprint) {
       emptyIcon  = '📅';
       emptyTitle = `Sin ítems en ${_activeSprint.label || _activeSprint.id}`;
       emptyHint  = 'El sprint activo no tiene ítems con los filtros actuales. Asigna ítems desde el editor o cambia el sprint.';
-      emptyCTA   = `<button class="empty-state-btn" onclick="setFilter('all')">Ver todos los ítems</button>`;
+      emptyCTA   = `<button class="empty-state-btn" data-action="es-filter-all">Ver todos los ítems</button>`;
     } else if (_hasAnyFilter) {
       emptyTitle = 'Sin ítems con estos filtros';
       emptyHint  = 'Los filtros activos no coinciden con ningún ítem. Limpia los filtros para ver el backlog completo.';
-      emptyCTA   = `<button class="empty-state-btn" onclick="document.getElementById('filter-clear-btn').click()">✕ Limpiar filtros</button>`;
+      emptyCTA   = `<button class="empty-state-btn" data-action="es-clear-filters">✕ Limpiar filtros</button>`;
     } else {
       emptyIcon  = '📋';
       emptyTitle = 'Sin ítems que mostrar';

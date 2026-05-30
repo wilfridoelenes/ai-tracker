@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:17 · autor:Rune · 2026-05-29 UTC-6
+// [AS] v1.2 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 22:15 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -370,6 +370,59 @@ function _attachBacklogListDelegation() {
     if (act === 'status-change') {
       e.stopPropagation();
       if (typeof setItemStatus === 'function') setItemStatus(action.dataset.code, action.value || action.dataset.value);
+      return;
+    }
+    // Render-level actions (from locus-backlog-render.js)
+    if (act === 'bl-sprint-retro') {
+      e.stopPropagation();
+      if (typeof openSprintRetroView === 'function') openSprintRetroView(action.dataset.sprintId);
+      return;
+    }
+    if (act === 'bl-plan-close') {
+      const cb = action.dataset.callback;
+      if (cb && window[cb]) { window[cb](); }
+      else if (typeof toggleBacklogPlanningMode === 'function') { toggleBacklogPlanningMode(); }
+      return;
+    }
+    if (act === 'es-switch-tab') {
+      if (typeof switchTab === 'function') switchTab(action.dataset.tab);
+      return;
+    }
+    if (act === 'es-open-proj-panel') {
+      if (typeof openProjPanel === 'function') openProjPanel();
+      return;
+    }
+    if (act === 'es-open-new-sprint') {
+      if (typeof openNewSprintInline === 'function') openNewSprintInline();
+      return;
+    }
+    if (act === 'es-clear-search') {
+      if (typeof clearBacklogSearch === 'function') clearBacklogSearch();
+      return;
+    }
+    if (act === 'es-toggle-mike') {
+      if (typeof toggleBacklogMikeMode === 'function') toggleBacklogMikeMode();
+      return;
+    }
+    if (act === 'es-toggle-focus') {
+      if (typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode();
+      return;
+    }
+    if (act === 'es-filter-all') {
+      if (typeof setFilter === 'function') setFilter('all');
+      return;
+    }
+    if (act === 'es-clear-filters') {
+      const btn = document.getElementById('filter-clear-btn');
+      if (btn) btn.click();
+      return;
+    }
+    if (act === 'version-collapse') {
+      if (typeof toggleVersionCollapse === 'function') toggleVersionCollapse(action.dataset.groupId);
+      return;
+    }
+    if (act === 'section-group-toggle') {
+      if (typeof toggleSectionGroup === 'function') toggleSectionGroup(action.dataset.group);
       return;
     }
   });

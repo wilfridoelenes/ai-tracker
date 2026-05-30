@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-29 UTC-6
+// [AS] v1.2 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-30 22:15 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -68,8 +68,8 @@ export function renderArchivoHistorico(listEl) {
   section.className = 'arch-historico';
 
   section.innerHTML = `
-    <div class="arch-historico-header" onclick="toggleArchivoHistorico()" tabindex="0"
-         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleArchivoHistorico()}"
+    <div class="arch-historico-header" data-action="arch-toggle" tabindex="0"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.dispatchEvent(new MouseEvent('click'))}"
          aria-expanded="${isOpen}" aria-controls="arch-historico-body">
       <span class="arch-historico-arrow${isOpen ? ' arch-historico-arrow--open' : ''}" aria-hidden="true">▸</span>
       <span class="arch-historico-title">Archivo histórico</span>
@@ -77,11 +77,11 @@ export function renderArchivoHistorico(listEl) {
         <span class="arch-historico-count">${total} ítem${total !== 1 ? 's' : ''}</span>
         ${sinceHtml}
       </div>
-      <div class="arch-historico-tabs" onclick="event.stopPropagation()">
+      <div class="arch-historico-tabs" data-action="arch-tabs-stop">
         <button class="arch-tab${activeView === 'sprint' ? ' arch-tab--active' : ''}"
-                onclick="setArchivoView('sprint',this)">Por sprint</button>
+                data-action="arch-set-view" data-view="sprint">Por sprint</button>
         <button class="arch-tab${activeView === 'flat' ? ' arch-tab--active' : ''}"
-                onclick="setArchivoView('flat',this)">Lista plana</button>
+                data-action="arch-set-view" data-view="flat">Lista plana</button>
       </div>
     </div>
     <div class="arch-historico-body${isOpen ? '' : ' arch-historico-body--collapsed'}"
@@ -92,6 +92,17 @@ export function renderArchivoHistorico(listEl) {
   zoneDivider.className = 'arch-zone-divider';
   listEl.appendChild(zoneDivider);
   listEl.appendChild(section);
+
+  // Delegation — evita onclick= en HTML generado; funciones locales accesibles en scope
+  section.addEventListener('click', function _archSectionClick(e) {
+    const action = e.target.closest('[data-action]');
+    if (!action) return;
+    const act = action.dataset.action;
+    if (act === 'arch-toggle') { toggleArchivoHistorico(); return; }
+    if (act === 'arch-tabs-stop') { e.stopPropagation(); return; }
+    if (act === 'arch-set-view') { e.stopPropagation(); setArchivoView(action.dataset.view, action); return; }
+    if (act === 'arch-sprint-entry') { _toggleArchSprintEntry(action.dataset.bodyId, action.dataset.storageKey); return; }
+  });
 
   if (isOpen) {
     _renderArchivoBody(activeView);
@@ -190,9 +201,8 @@ function _archSprintEntryHtml(sp, spItems, entryId, entryKey, entryOpen) {
     : esc(sp.id || 'Sprint sin nombre');
 
   return `<div class="arch-sprint-entry">
-    <div class="arch-sprint-entry-header" tabindex="0"
-         onclick="_toggleArchSprintEntry('${esc(entryId)}','${esc(entryKey)}')"
-         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleArchSprintEntry('${esc(entryId)}','${esc(entryKey)}')}">
+    <div class="arch-sprint-entry-header" data-action="arch-sprint-entry" data-body-id="${esc(entryId)}" data-storage-key="${esc(entryKey)}" tabindex="0"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.dispatchEvent(new MouseEvent('click'))}">
       <span class="arch-se-arrow${entryOpen ? ' arch-se-arrow--open' : ''}" aria-hidden="true">&#9658;</span>
       <span class="arch-se-id">${esc(sp.id)}</span>
       <span class="arch-se-name">${nameDisplay}</span>
@@ -259,9 +269,8 @@ function _renderArchivoViewSprint(body) {
     const legOpen = (() => { try { return localStorage.getItem(legKey) === '1'; } catch { return false; } })();
     const legId   = 'arch-se-body-legacy';
     html += `<div class="arch-sprint-entry arch-sprint-entry--legacy">
-      <div class="arch-sprint-entry-header" tabindex="0"
-           onclick="_toggleArchSprintEntry('${legId}','${legKey}')"
-           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();_toggleArchSprintEntry('${legId}','${legKey}')}">
+      <div class="arch-sprint-entry-header" data-action="arch-sprint-entry" data-body-id="${legId}" data-storage-key="${legKey}" tabindex="0"
+           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.dispatchEvent(new MouseEvent('click'))}">
         <span class="arch-se-arrow${legOpen ? ' arch-se-arrow--open' : ''}" aria-hidden="true">&#9658;</span>
         <span class="arch-se-id arch-se-id--legacy">pre-S-23</span>
         <span class="arch-se-name">Histórico pre-S-23 (sin datos de sprint)</span>

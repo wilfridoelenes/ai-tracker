@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [AS] v1.2 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-30 22:15 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -87,7 +87,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     ).join('');
     return `<select class="mdiff-sprint-select" data-item-code="${esc(code)}"
       onchange="_mdiffSetItemSprint(this)"
-      onclick="event.stopPropagation()">
+      data-stop-propagation="true">
       <option value="" ${!currentSprint ? 'selected' : ''}>Sin sprint</option>
       ${options}
       <option value="__new__">＋ Nuevo sprint...</option>
@@ -174,7 +174,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   const _section = (id, accentClass, titleHtml, rows, collapsed = false) => `
     <div class="mdiff-section" id="mdiff-sec-${id}">
       <button class="mdiff-section-header mdiff-section-header--${accentClass}${collapsed ? ' is-collapsed' : ''}"
-              onclick="_mdiffToggleSection(this)" type="button">
+              data-action="mdiff-toggle-section" type="button">
         <span class="mdiff-section-chevron">▾</span>
         <span>${titleHtml}</span>
       </button>
@@ -289,7 +289,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     summaryChips.innerHTML = _chipDefs
       .filter(c => c.count > 0)
       .map(c => `<button class="mdiff-sum-chip mdiff-sum-chip--${c.cls}"
-          onclick="_mdiffJumpTo('${c.id}')" type="button">
+          data-action="mdiff-jump-to" data-sec-id="${c.id}" type="button">
           <span class="mdiff-sum-count">${c.count}</span>
           <span class="mdiff-sum-label">${c.label}</span>
         </button>`).join('');
@@ -675,6 +675,22 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
       switchSubTab('backlog');
     }
   }
+
+  // Delegation — evita onclick= en HTML dinámico; _mdiff* accesibles via window
+  overlay.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) {
+      // data-stop-propagation en selects
+      if (e.target.closest('[data-stop-propagation]')) { e.stopPropagation(); }
+      return;
+    }
+    const action = btn.dataset.action;
+    if (action === 'mdiff-toggle-section') {
+      window._mdiffToggleSection && window._mdiffToggleSection(btn);
+    } else if (action === 'mdiff-jump-to') {
+      window._mdiffJumpTo && window._mdiffJumpTo(btn.dataset.secId);
+    }
+  });
 
   overlay.querySelector('#mdiff-cancel-btn').addEventListener('click', () => {
     overlay.classList.remove('open');
