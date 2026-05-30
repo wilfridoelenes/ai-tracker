@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:15 · autor:Rune · 2026-05-30 23:00 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:16 · autor:Rune · 2026-05-30 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -16,7 +16,7 @@ import { fmt12, _templateTrigger, confirmSave, interpretHora, relDate } from './
 const getCD  = (...a) => typeof window.getCD  === 'function' ? window.getCD(...a)  : '';
 import { closeLogCard, closePopup, openDetail } from './locus-session-popup.js';
 import { _getActiveProjectFilter, getProjectById, openProjModal, selectProjectFilter } from './locus-sprint-project.js';
-import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate } from './locus-storage.js';
+import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc, renderSetupChecklist } from './locus-ui-shell.js';
 import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatarModal, toggleArchivedSection, toggleCardMenu } from './locus-workers.js';
@@ -119,7 +119,7 @@ function _trackerRenderMiniHist(aiId) {
   const aiSessions  = aiId ? allSessions.filter(s => s.aiId === aiId) : [];
 
   // R-202605-116 AC: excluir sesión en curso del mini historial
-  const currentSess = (typeof _getCurrentSession === 'function') ? _getCurrentSession(aiId) : null;
+  const currentSess = _getCurrentSession(aiId);
   const pastSessions = currentSess
     ? aiSessions.filter(s => s.id !== currentSess.id)
     : aiSessions;
@@ -192,7 +192,7 @@ function _trackerRenderMiniHist(aiId) {
   sorted.forEach(s => _grouped[_sessGroup(s)].push(s));
 
   // sesión en curso — para marcar in-progress
-  const _inProgressSess = (typeof _getCurrentSession === 'function') ? _getCurrentSession(aiId) : null;
+  const _inProgressSess = _getCurrentSession(aiId);
 
   const _renderRow = (s, group) => {
     const proj     = s.projectId ? getProjectById(s.projectId) : null;
@@ -288,29 +288,8 @@ function _trackerMiniHistSelect(sessId, aiId) {
 // ── END R-202604-078 Fase 2 ──────────────────────────────────────────────
 
 // ── R-202605-116: Card sesión en curso — col 1, debajo del card IA ──────
-
-function _getCurrentSession(aiId) {
-  const allSess = getAllSessions();
-  const aiSess  = allSess.filter(s => s.aiId === aiId);
-  if (!aiSess.length) return null;
-  const last = aiSess.reduce((a, b) =>
-    (parseInt(b.id) || 0) > (parseInt(a.id) || 0) ? b : a
-  );
-  if (!last || last.resetAt || last.quickCapture) return null;
-  // B-202605-066: si el worker tiene resetEpoch, el checkpoint debe ser posterior a ese timestamp
-  // Un checkpoint cerrado sin resetAt pero anterior al último reset no está "en curso"
-  const ai = (getState().ais || []).find(a => a.id === aiId);
-  if (ai && ai.resetEpoch) {
-    const resetTs = new Date(ai.resetEpoch).getTime();
-    const sessTs  = last.createdAt || 0;
-    if (sessTs <= resetTs) return null; // checkpoint anterior al reset — no está en curso
-  }
-  // AC-2: worker exhausted sin resetEpoch — no puede haber sesión en curso
-  if (ai && ai.status === 'exhausted' && !ai.resetEpoch) return null;
-  return last;
-}
-// R-202605-050: alias canónico — _getCurrentCheckpoint
-function _getCurrentCheckpoint(aiId) { return _getCurrentSession(aiId); }
+// T-202605-082: _getCurrentSession y _getCurrentCheckpoint movidas a locus-storage.js como fuente canónica.
+// Importadas en L19. Disponibles directamente sin typeof guard.
 
 function _buildCurrentSessionCard(aiId) {
   const currentSess = _getCurrentSession(aiId);

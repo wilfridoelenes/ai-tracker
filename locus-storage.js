@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-30 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1456,6 +1456,31 @@ export function getAISessions(aiId) {
 }
 // R-202605-050: alias canónico — getAICheckpoints
 function getAICheckpoints(aiId) { return getAISessions(aiId); }
+
+// T-202605-082: _getCurrentSession — fuente de verdad canónica (movida desde locus-sesiones.js)
+// Detecta la sesión en curso de una IA: última sesión sin resetAt ni quickCapture,
+// posterior al resetEpoch del Worker si existe, y sin status exhausted sin resetEpoch.
+export function _getCurrentSession(aiId) {
+  const allSess = getAllSessions();
+  const aiSess  = allSess.filter(s => s.aiId === aiId);
+  if (!aiSess.length) return null;
+  const last = aiSess.reduce((a, b) =>
+    (parseInt(b.id) || 0) > (parseInt(a.id) || 0) ? b : a
+  );
+  if (!last || last.resetAt || last.quickCapture) return null;
+  // B-202605-066: si el worker tiene resetEpoch, el checkpoint debe ser posterior a ese timestamp
+  const ai = (getState().ais || []).find(a => a.id === aiId);
+  if (ai && ai.resetEpoch) {
+    const resetTs = new Date(ai.resetEpoch).getTime();
+    const sessTs  = last.createdAt || 0;
+    if (sessTs <= resetTs) return null;
+  }
+  // AC-2: worker exhausted sin resetEpoch — no puede haber sesión en curso
+  if (ai && ai.status === 'exhausted' && !ai.resetEpoch) return null;
+  return last;
+}
+// R-202605-050: alias canónico — _getCurrentCheckpoint
+export function _getCurrentCheckpoint(aiId) { return _getCurrentSession(aiId); }
 
 // Busca una sesión por id en todos los proyectos — devuelve { proj, sess } o null
 export function _findSession(sessId) {
