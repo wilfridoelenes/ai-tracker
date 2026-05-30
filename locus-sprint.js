@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:10 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.0.5 · sprint:PP-S-11 · mod:11 · autor:Rune · 2026-05-30 14:45 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -8,7 +8,7 @@ import { _renderPlanningView } from './locus-backlog-render.js';
 import { _getActiveSprint, confirmCloseSprint, createSprint, editSprintInline, openSprintRetroView, setSprintStatus } from './locus-backlog-sprints.js';
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto } from './locus-sprint-plan.js';
-import { getAI, getActiveSprints, getAllSessions } from './locus-storage.js';
+import { getAI, getActiveSprints, getAllSessions, save } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 
 import { render } from './locus-sesiones.js';
@@ -729,6 +729,77 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// ── T-202605-107: setSprintCurrent — marcar / desmarcar sprint en curso ────────
+
+/**
+ * Marca o desmarca un sprint abierto como "en curso" (current: true).
+ *
+ * Comportamiento:
+ *  - Si sprintId NO es current → lo marca current: true y desmarca cualquier otro.
+ *  - Si sprintId YA es current → lo desmarca (current: false). Ninguno queda como current.
+ *
+ * Actualiza el DOM inmediatamente (sin reload) y persiste via save().
+ *
+ * Accesible desde inline handlers HTML: window.setSprintCurrent(sprintId)
+ *
+ * @param {string} sprintId
+ */
+function setSprintCurrent(sprintId) {
+  if (!sprintId) return;
+
+  const allSprints = getActiveSprints();
+  if (!allSprints || !allSprints.length) return;
+
+  // Proyecto activo — todos los sprints comparten el mismo projId
+  const targetSprint = allSprints.find(s => s.id === sprintId);
+  if (!targetSprint) return;
+
+  const projId      = targetSprint.projId || targetSprint.projectId || null;
+  const isAlready   = !!targetSprint.current;
+  const nextCurrent = !isAlready; // toggle
+
+  // Mutar modelo — solo sprints del mismo proyecto
+  allSprints.forEach(s => {
+    const sameProj = projId
+      ? (s.projId === projId || s.projectId === projId)
+      : true; // sin projId → afectar todos (fallback seguro)
+    if (!sameProj) return;
+    s.current = (s.id === sprintId) ? nextCurrent : false;
+  });
+
+  // Persistir
+  if (typeof save === 'function') save();
+
+  // Actualizar DOM — sin reload
+  _syncCurrentBadges(allSprints);
+}
+
+/**
+ * Sincroniza badges y botones de current en el DOM según el estado del modelo.
+ * Opera sobre elementos con data-sprint-id en el tab Sprint.
+ *
+ * @param {Array} sprints — array ya mutado
+ */
+function _syncCurrentBadges(sprints) {
+  sprints.forEach(s => {
+    // Badge — elemento con data-sprint-current-badge="[sprintId]"
+    const badge = document.querySelector(`[data-sprint-current-badge="${s.id}"]`);
+    if (badge) {
+      badge.classList.toggle('is-hidden', !s.current);
+    }
+
+    // Botón — elemento con data-sprint-set-current="[sprintId]"
+    const btn = document.querySelector(`[data-sprint-set-current="${s.id}"]`);
+    if (btn) {
+      btn.classList.toggle('is-current', !!s.current);
+      btn.setAttribute('aria-pressed', String(!!s.current));
+      btn.title = s.current ? 'Desmarcar sprint en curso' : 'Marcar como sprint en curso';
+    }
+  });
+}
+
+// ── END T-202605-107 ────────────────────────────────────────────────────────
+
 // ── Exposición pública ──────────────────────────────────────────────────────
 
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
@@ -750,6 +821,7 @@ window._spmPickerSelect         = _spmPickerSelect;    // R-202605-008
 window._spmPickerKey            = _spmPickerKey;       // R-202605-008
 window._spmPickerClose          = _spmPickerClose;     // R-202605-008
 window._spmUpdateButtons        = _spmUpdateButtons;
+window.setSprintCurrent         = setSprintCurrent; // T-202605-107
 
 // ── B-202605-019: Listeners — sprint management panel (_spm*) ───────────────
 document.addEventListener('DOMContentLoaded', function () {
