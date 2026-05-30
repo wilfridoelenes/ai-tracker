@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-30 UTC-6
 // locus-item-editor.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Item Editor, Paste Items, Templates de ítems
@@ -194,9 +194,9 @@ function piRenderPreview() {
       : `<div class="pi-no-ac">Sin criterios de aceptación</div>`;
 
     return `
-    <div class="pi-item${item.selected ? '' : ' deselected'}${hasWarning ? ' has-warning' : ''}" id="pi-item-${i}">
-      <div class="pi-item-header" onclick="piToggleCard(${i}, event)">
-        <input type="checkbox" class="pi-item-check" ${item.selected ? 'checked' : ''} onchange="piToggle(${i},this.checked)" onclick="event.stopPropagation()">
+    <div class="pi-item${item.selected ? '' : ' deselected'}${hasWarning ? ' has-warning' : ''}" id="pi-item-${i}" data-pi-index="${i}">
+      <div class="pi-item-header" data-pi-toggle="${i}">
+        <input type="checkbox" class="pi-item-check" ${item.selected ? 'checked' : ''} data-pi-check="${i}">
         <span class="pi-item-collapse${autoExpand ? ' open' : ''}">▶</span>
         <div class="pi-item-summary">
           ${typePill}
@@ -204,7 +204,7 @@ function piRenderPreview() {
           ${statusPill}
           ${warnBadge}
         </div>
-        <button class="pi-item-del" onclick="piDeleteItem(${i});event.stopPropagation();" title="Quitar del preview">✕</button>
+        <button class="pi-item-del" data-pi-del="${i}" title="Quitar del preview">✕</button>
       </div>
       <div class="pi-item-body${autoExpand ? ' open' : ''}" id="pi-body-${i}">
         <div class="pi-item-fields">
@@ -221,6 +221,16 @@ function piRenderPreview() {
   }).join('');
 
   preview.classList.add('visible');
+
+  // Delegation — evita onclick= en HTML generado; reemplaza piToggleCard, piToggle y piDeleteItem inline
+  list.onclick = function(e) {
+    const delBtn = e.target.closest('[data-pi-del]');
+    if (delBtn) { e.stopPropagation(); piDeleteItem(Number(delBtn.dataset.piDel)); return; }
+    const checkbox = e.target.closest('[data-pi-check]');
+    if (checkbox) { e.stopPropagation(); piToggle(Number(checkbox.dataset.piCheck), checkbox.checked); return; }
+    const header = e.target.closest('[data-pi-toggle]');
+    if (header) { piToggleCard(Number(header.dataset.piToggle), e); return; }
+  };
 }
 
 function piToggleCard(i, e) {
@@ -824,9 +834,9 @@ function _renderTemplatePicker() {
       const typeClass = 'tag-' + tpl.type.toLowerCase();
       const acCount = (tpl.ac || []).length;
       const deleteBtn = tpl.builtin ? '' :
-        `<button class="tpl-delete-btn" onclick="event.stopPropagation();_deleteCustomTemplate('${tpl.id}')" title="Eliminar template">✕</button>`;
+        `<button class="tpl-delete-btn" data-tpl-del="${tpl.id}" title="Eliminar template">✕</button>`;
       return `
-        <div class="tpl-picker-item" onclick="_applyTemplate('${tpl.id}')">
+        <div class="tpl-picker-item" data-tpl-apply="${tpl.id}">
           <div class="tpl-item-info">
             <div class="tpl-item-name">${tpl.name}</div>
             <div class="tpl-item-meta">
@@ -844,6 +854,14 @@ function _renderTemplatePicker() {
 
   const html = renderGroup(predefined, '') + renderGroup(custom, custom.length ? 'Personalizados' : '');
   list.innerHTML = html || '<div class="tpl-empty">No hay templates. Crea uno desde un ítem existente.</div>';
+
+  // Delegation — evita onclick= en HTML generado; reemplaza _applyTemplate y _deleteCustomTemplate inline
+  list.onclick = function(e) {
+    const delBtn = e.target.closest('[data-tpl-del]');
+    if (delBtn) { e.stopPropagation(); _deleteCustomTemplate(delBtn.dataset.tplDel); return; }
+    const item = e.target.closest('[data-tpl-apply]');
+    if (item) { _applyTemplate(item.dataset.tplApply); return; }
+  };
 }
 
 function _applyTemplate(tplId) {

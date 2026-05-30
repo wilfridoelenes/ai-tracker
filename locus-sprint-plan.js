@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-30 UTC-6
 // locus-sprint-plan.js
 // Versión: 1.1 | Última actualización: 2026-05-28 UTC-6 | R-202605-043: renderPlanInto + _buildPlanContent
 // Módulo: Bloque PLAN — savePlan, loadPlan, renderPlan, togglePlanZoneDone
@@ -210,12 +210,22 @@ export function renderPlanInto(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
   _buildPlanContent(container);
+  _attachPlanDelegation(container);
 }
 
 export function renderPlan() {
   const panel = document.getElementById('sspanel-plan');
   if (!panel) return;
   _buildPlanContent(panel);
+  _attachPlanDelegation(panel);
+}
+
+// Delegation — evita onclick= en HTML generado; reemplaza togglePlanZoneDone inline
+function _attachPlanDelegation(container) {
+  container.onclick = function(e) {
+    const btn = e.target.closest('[data-action="togglePlanZoneDone"]');
+    if (btn) { togglePlanZoneDone(); return; }
+  };
 }
 
 function _buildPlanContent(panel) {
@@ -405,7 +415,7 @@ function _buildPlanContent(panel) {
         const _doneTitleAttr = _doneCollapsed ? 'Expandir' : 'Colapsar';
         const _doneChevron   = _doneCollapsed ? '&#x25b2;' : '&#x25be;';
         html += `<div class="plan-zone plan-zone--done">`;
-        html += `<div class="plan-zone-label">Completadas<button class="plan-zone-toggle" onclick="togglePlanZoneDone()" aria-label="${_doneAriaLabel}" title="${_doneTitleAttr}">${_doneChevron}</button></div>`;
+        html += `<div class="plan-zone-label">Completadas<button class="plan-zone-toggle" data-action="togglePlanZoneDone" aria-label="${_doneAriaLabel}" title="${_doneTitleAttr}">${_doneChevron}</button></div>`;
         html += `<div class="plan-sessions-row${_doneCollapsed ? ' is-hidden' : ''}">`;
         doneSessions.forEach(sess => { globalSessIdx++; html += _sessCard(sess, globalSessIdx, 'plan-session--done'); });
         html += `</div></div>`;

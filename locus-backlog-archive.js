@@ -1,4 +1,4 @@
-// [PP] v1.2 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-30 23:10 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -92,7 +92,8 @@ export function renderArchivoHistorico(listEl) {
   listEl.appendChild(zoneDivider);
   listEl.appendChild(section);
 
-  // Delegation — evita onclick= y onkeydown= en HTML generado; funciones locales accesibles en scope
+  // Delegation — listener en listEl (#backlog-list), ancestro estático que existe en el DOM inicial
+  // Evita onclick= y onkeydown= en HTML generado; funciones locales accesibles en scope
   function _archHandleAction(e, action) {
     const act = action.dataset.action;
     if (act === 'arch-toggle') { toggleArchivoHistorico(); return; }
@@ -100,18 +101,22 @@ export function renderArchivoHistorico(listEl) {
     if (act === 'arch-set-view') { e.stopPropagation(); setArchivoView(action.dataset.view, action); return; }
     if (act === 'arch-sprint-entry') { _toggleArchSprintEntry(action.dataset.bodyId, action.dataset.storageKey); return; }
   }
-  section.addEventListener('click', function _archSectionClick(e) {
-    const action = e.target.closest('[data-action]');
-    if (!action) return;
-    _archHandleAction(e, action);
-  });
-  section.addEventListener('keydown', function _archSectionKeydown(e) {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    const action = e.target.closest('[data-action]');
-    if (!action) return;
-    e.preventDefault();
-    _archHandleAction(e, action);
-  });
+  // Solo adjuntar una vez — evitar acumulación de listeners en renders sucesivos
+  if (!listEl._archDelegationAttached) {
+    listEl._archDelegationAttached = true;
+    listEl.addEventListener('click', function _archListClick(e) {
+      const action = e.target.closest('[data-action]');
+      if (!action || !listEl.contains(action)) return;
+      _archHandleAction(e, action);
+    });
+    listEl.addEventListener('keydown', function _archListKeydown(e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const action = e.target.closest('[data-action]');
+      if (!action || !listEl.contains(action)) return;
+      e.preventDefault();
+      _archHandleAction(e, action);
+    });
+  }
 
   if (isOpen) {
     _renderArchivoBody(activeView);
