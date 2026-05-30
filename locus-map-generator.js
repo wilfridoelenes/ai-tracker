@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 23:00 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -1880,3 +1880,4 @@ window._mgSwitchReviewTab   = _mgSwitchReviewTab;
 window._mgToggleDecisionTranscends  = _mgToggleDecisionTranscends;
 window._mgToggleLearningTranscends  = _mgToggleLearningTranscends;
 window._mgRemoveFile        = _mgRemoveFile;
+window._mgExportAllZip      = _mgExportAllZip;
