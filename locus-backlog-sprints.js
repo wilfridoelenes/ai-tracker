@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 23:20 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-10 · mod:11 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -614,6 +614,33 @@ export function setSprintStatus(id, newStatus) {
   save();
   _markBacklogListDirty(); renderBacklogList();
   showToast('info', id + ' → ' + newStatus);
+}
+
+// T-202605-026: enforcea exactamente un current por proyecto
+export function setSprintCurrent(sprintId, projectId) {
+  const allSprints = getActiveSprints().filter(s => s.project === projectId || s.projectId === projectId);
+  const sp = allSprints.find(s => s.id === sprintId);
+
+  if (!sp) {
+    console.warn(`[Locus] setSprintCurrent: sprint "${sprintId}" no encontrado en proyecto "${projectId}"`);
+    return;
+  }
+  if (sp.status === 'closed') {
+    console.warn(`[Locus] setSprintCurrent: sprint "${sprintId}" está cerrado — no se puede marcar current`);
+    return;
+  }
+
+  const wasCurrent = !!sp.current;
+
+  // Toggle: si ya era current → quitar. Si no → poner en este y quitar en los demás.
+  if (wasCurrent) {
+    delete sp.current;
+  } else {
+    allSprints.forEach(s => { delete s.current; });
+    sp.current = true;
+  }
+
+  save();
 }
 
 export function setItemSprint(code, sprintId) {
@@ -1833,5 +1860,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }, true); // capture phase para interceptar antes de burbujeo
 });
 // ─────────────────────────────────────────────────────────────────────────
-window.setItemSprint  = setItemSprint;
-window.navigateToItem = navigateToItem;
+window.setItemSprint      = setItemSprint;
+window.setSprintCurrent   = setSprintCurrent;
+window.navigateToItem     = navigateToItem;
