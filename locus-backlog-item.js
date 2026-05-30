@@ -252,6 +252,146 @@ function _attachBacklogListDelegation() {
       if (typeof _kbCardClick === 'function') _kbCardClick(e, card.dataset.code);
       return;
     }
+    if (act === 'ref-chip-session') {
+      if (typeof switchTab === 'function') switchTab('sesiones');
+      setTimeout(() => { if (typeof openDetail === 'function') openDetail(action.dataset.aiId, action.dataset.sessId); }, 120);
+      return;
+    }
+    if (act === 'item-expand') {
+      const idx = parseInt(action.dataset.idx, 10);
+      if (typeof toggleItemExpand === 'function') toggleItemExpand(idx);
+      return;
+    }
+    if (act === 'edit-child') {
+      e.stopPropagation();
+      if (typeof _openItemEditorSafe === 'function') _openItemEditorSafe(null, action.dataset.code);
+      return;
+    }
+    if (act === 'toggle-children') {
+      e.stopPropagation();
+      if (typeof toggleChildrenBlock === 'function') toggleChildrenBlock(action.dataset.rCode);
+      return;
+    }
+    if (act === 'navigate-origin') {
+      e.stopPropagation();
+      if (typeof navigateToItem === 'function') navigateToItem(action.dataset.origin);
+      return;
+    }
+    if (act === 'quick-assign-effort') {
+      e.stopPropagation();
+      if (typeof _quickAssignEffort === 'function') _quickAssignEffort(action.dataset.code);
+      return;
+    }
+    if (act === 'open-blocker') {
+      e.stopPropagation();
+      if (typeof openItemPanel === 'function') openItemPanel(action.dataset.code);
+      return;
+    }
+    if (act === 'promote-item') {
+      e.stopPropagation();
+      if (typeof _promoteItem === 'function') _promoteItem(action.dataset.code);
+      return;
+    }
+    if (act === 'discard-idea') {
+      e.stopPropagation();
+      if (typeof setItemStatus === 'function') setItemStatus(action.dataset.code, 'descartado');
+      return;
+    }
+    if (act === 'open-status-popover') {
+      if (typeof _openStatusPopover === 'function') _openStatusPopover(e, action.dataset.code);
+      return;
+    }
+    if (act === 'navigate-discard-ref') {
+      e.stopPropagation();
+      if (typeof navigateToItem === 'function') navigateToItem(action.dataset.ref);
+      return;
+    }
+    if (act === 'bitem-edit') {
+      if (typeof _openItemEditorSafe === 'function') _openItemEditorSafe(null, action.dataset.code);
+      return;
+    }
+    if (act === 'bitem-promote') {
+      e.stopPropagation();
+      if (typeof _promoteItem === 'function') _promoteItem(action.dataset.code);
+      return;
+    }
+    if (act === 'bitem-promote-ttor') {
+      e.stopPropagation();
+      if (typeof _promoteTtoR === 'function') _promoteTtoR(action.dataset.code);
+      return;
+    }
+    if (act === 'bitem-migrate') {
+      e.stopPropagation();
+      if (typeof _openMigrateItem === 'function') _openMigrateItem(action.dataset.code);
+      return;
+    }
+    if (act === 'promote-modal-cancel') {
+      const overlay = document.getElementById('promote-modal-overlay');
+      if (overlay) overlay.classList.remove('open');
+      return;
+    }
+    if (act === 'promote-confirm') {
+      if (typeof _promoteConfirm === 'function') _promoteConfirm(action.dataset.code);
+      return;
+    }
+    if (act === 'promote-ttor-cancel') {
+      const overlay = document.getElementById('promote-modal-overlay');
+      if (overlay) overlay.classList.remove('open');
+      return;
+    }
+    if (act === 'promote-ttor-confirm') {
+      if (typeof _promoteTtoRConfirm === 'function') _promoteTtoRConfirm(action.dataset.code);
+      return;
+    }
+    if (act === 'acv-toggle') {
+      e.stopPropagation();
+      if (typeof _acvToggle === 'function') _acvToggle(action.dataset.panelId);
+      return;
+    }
+    if (act === 'acv-open-editor') {
+      e.stopPropagation();
+      if (typeof _openItemEditorSafe === 'function') _openItemEditorSafe(null, action.dataset.code);
+      return;
+    }
+    if (act === 'acv-clarify') {
+      e.stopPropagation();
+      if (typeof _acvStartEdit === 'function') _acvStartEdit(action.dataset.rowId, action.dataset.code, parseInt(action.dataset.ci, 10));
+      return;
+    }
+    if (act === 'acv-confirm') {
+      e.stopPropagation();
+      if (typeof _acvConfirm === 'function') _acvConfirm(action.dataset.code, action.dataset.panelId);
+      return;
+    }
+    if (act === 'bitem-meta-stop') {
+      e.stopPropagation();
+      return;
+    }
+    if (act === 'status-change') {
+      e.stopPropagation();
+      if (typeof setItemStatus === 'function') setItemStatus(action.dataset.code, action.value || action.dataset.value);
+      return;
+    }
+  });
+
+  // --- Change delegation (status-select, role, sprint, parent) ---
+  listEl.addEventListener('change', function _blListChange(e) {
+    const sel = e.target.closest('.item-status-select');
+    if (!sel) return;
+    e.stopPropagation();
+    const code = sel.dataset.code;
+    const type = sel.dataset.selectType;
+    if (!code) return;
+    if (type === 'role') {
+      if (typeof setItemRole === 'function') setItemRole(code, sel.value);
+    } else if (type === 'sprint') {
+      if (typeof setItemSprint === 'function') setItemSprint(code, sel.value);
+    } else if (type === 'parent') {
+      if (typeof setItemParent === 'function') setItemParent(code, sel.value);
+    } else {
+      // status select (no data-select-type)
+      if (typeof setItemStatus === 'function') setItemStatus(code, sel.value);
+    }
   });
 
   // --- Dblclick delegation (inline edit title) ---
@@ -440,14 +580,14 @@ function _buildChildrenBlock(rCode) {
       </div>
       ${child.ac && child.ac.length ? `<ul class="ac-list open ac-list--child">${child.ac.map(c => `<li class="ac-list-item--sm">${esc(c)}</li>`).join('')}</ul>` : ''}
       <div class="child-actions">
-        <button onclick="event.stopPropagation();_openItemEditorSafe(null,'${esc(child.code)}')" class="btn-ghost btn-ghost--sm" title="Editar ítem">✎ Editar</button>
+        <button data-action="edit-child" data-code="${esc(child.code)}" class="btn-ghost btn-ghost--sm" title="Editar ítem">✎ Editar</button>
         <button data-action="unlink-child" data-child-code="${esc(child.code)}" data-r-code="${esc(rCode)}" class="btn-ghost btn-ghost--sm btn-ghost--muted" title="Desvincular del R padre">⊠ Desvincular</button>
       </div>
     </div>`;
   }).join('');
 
   return `<div class="r-children-block">
-    <div class="r-children-header" onclick="event.stopPropagation();toggleChildrenBlock('${esc(rCode)}')">
+    <div class="r-children-header" data-action="toggle-children" data-r-code="${esc(rCode)}">>
       <span class="r-children-tickets-label">Tickets</span>
       <div class="r-children-bar-wrap"><div class="r-children-bar" style="--rch-bar-w:${pct}%"></div></div>
       <span class="r-children-label">${doneCount}/${children.length} · ${pct}%</span>
@@ -507,7 +647,7 @@ function _buildItemPOriginBlock(item) {
   const pTitle = pItem ? esc(pItem.title) : '';
   return `<div class="bitem-origin-p-block">
     <span class="bitem-origin-p-label">Origen</span>
-    <button class="bitem-origin-p-link" onclick="event.stopPropagation();navigateToItem('${esc(item.origin)}')" title="${pTitle}">${esc(item.origin)}</button>
+    <button class="bitem-origin-p-link" data-action="navigate-origin" data-origin="${esc(item.origin)}" title="${pTitle}">${esc(item.origin)}</button>
     ${pTitle ? `<span class="bitem-origin-p-name" title="${pTitle}">${pTitle}</span>` : ''}
   </div>`;
 }
@@ -661,7 +801,7 @@ export function buildBacklogItem(item) {
   // R-202605-122 AC2/AC3: badge 'sin effort' con acción rápida de asignación
   const _missingEffort = !isDiscarded && !isIdea && !item.effort;
   const _effortQuickBadge = _missingEffort
-    ? `<span class="badge-missing badge-missing--effort" title="Esfuerzo no declarado — requerido para burndown">⚠ sin effort <button class="badge-effort-quick" onclick="event.stopPropagation();_quickAssignEffort('${esc(item.code || item.id)}')" title="Asignar effort rápidamente">Asignar</button></span>`
+    ? `<span class="badge-missing badge-missing--effort" title="Esfuerzo no declarado — requerido para burndown">⚠ sin effort <button class="badge-effort-quick" data-action="quick-assign-effort" data-code="${esc(item.code || item.id)}" title="Asignar effort rápidamente">Asignar</button></span>`
     : '';
   const _otherMissing = missingFields.filter(f => f !== 'effort');
   const missingAlert = (_missingEffort || _otherMissing.length)
@@ -724,7 +864,7 @@ export function buildBacklogItem(item) {
     : [];
   const blockedByBadge = blockedByItems.length
     ? blockedByItems.map(c =>
-        `<span class="badge-missing badge-missing--blocked badge-blocked-by" onclick="event.stopPropagation();openItemPanel('${esc(c)}')" title="Ir al ítem bloqueante">🔒 ${esc(c)}</span>`
+        `<span class="badge-missing badge-missing--blocked badge-blocked-by" data-action="open-blocker" data-code="${esc(c)}" title="Ir al ítem bloqueante">🔒 ${esc(c)}</span>`
       ).join('')
     : '';
 
@@ -750,13 +890,13 @@ export function buildBacklogItem(item) {
   // R-202605-098: para P pendiente — acciones inline en header sin necesidad de expandir
   const _ideaQuickActions = (isIdea && !isDiscarded && !isDone)
     ? `<div class="item-quick-actions">
-        <button class="btn-promote" onclick="event.stopPropagation();_promoteItem('${esc(item.code)}')" title="Promover a Ticket o Requerimiento">⬆ Promover</button>
-        <button class="btn-discard-idea" onclick="event.stopPropagation();setItemStatus('${esc(item.code)}','descartado')" title="Descartar esta idea">✕ Descartar</button>
+        <button class="btn-promote" data-action="promote-item" data-code="${esc(item.code)}" title="Promover a Ticket o Requerimiento">⬆ Promover</button>
+        <button class="btn-discard-idea" data-action="discard-idea" data-code="${esc(item.code)}" title="Descartar esta idea">✕ Descartar</button>
        </div>`
     : '';
   // R-202605-010: status chip inline clickeable — solo para ítems pendientes (no P, no done, no descartado)
   const _statusChipHtml = (!isDone && !isDiscarded && !isIdea)
-    ? `<button class="bitem-status-chip bitem-status-chip--${esc(item.status || 'pendiente')}" onclick="_openStatusPopover(event,'${esc(item.code)}')" title="Cambiar status" type="button">${statusLabel(item.status || 'pendiente')}</button>`
+    ? `<button class="bitem-status-chip bitem-status-chip--${esc(item.status || 'pendiente')}" data-action="open-status-popover" data-code="${esc(item.code)}" title="Cambiar status" type="button">${statusLabel(item.status || 'pendiente')}</button>`
     : '';
   const headerRight = isDiscarded
     ? `<span class="bitem-discarded-icon">🗑</span>`
@@ -770,7 +910,7 @@ export function buildBacklogItem(item) {
   // P descartado por promoción → chip con ref; P descartado manual → razón libre
   const _discardReasonHtml = (isDiscarded && item.discardReason)
     ? isIdea && item.discardRef
-      ? `<span class="idea-promoted-chip" onclick="event.stopPropagation();navigateToItem('${esc(item.discardRef)}')" title="Ir al ítem promovido">${esc(item.discardRef)}</span>`
+      ? `<span class="idea-promoted-chip" data-action="navigate-discard-ref" data-ref="${esc(item.discardRef)}" title="Ir al ítem promovido">${esc(item.discardRef)}</span>`
       : `<span class="idea-discard-reason">${esc(item.discardReason)}</span>`
     : isDiscarded && !isIdea && item.discardReason
       ? `<span class="bitem-discard-reason">🗑 ${esc(item.discardReason)}${item.discardRef ? ' · ' + esc(item.discardRef) : ''}</span>`
@@ -801,7 +941,7 @@ export function buildBacklogItem(item) {
   const _blfHiddenClass = item._blfHidden ? ' blf-hidden' : '';
   const _blfAriaHidden  = item._blfHidden ? ' aria-hidden="true"' : '';
   return `<div class="item bitem${isDone ? ' is-done' : ''}${isDiscarded ? ' is-discarded' : ''}${isActive ? ' bitem--active' : ''}${isIdea ? ' bitem--idea' : ''}${isPromoted ? ' bitem--promoted' : ''}${_blfHiddenClass}" data-type="${type}" data-code="${esc(item.code)}"${_blfAriaHidden}>
-    <div class="item-header bitem-header" onclick="toggleItemExpand(${globalIdx})">
+    <div class="item-header bitem-header" data-action="item-expand" data-idx="${globalIdx}">
       ${(!isDone && !isDiscarded && item.sprint) ? `<span class="item-drag-handle" data-action="drag-handle" title="Arrastrar para reordenar en sprint">⠿</span>` : ''}
       ${isActive ? '<span class="bitem-activity-dot" title="Actividad reciente — sesión vinculada en los últimos 7 días"></span>' : ''}
       ${typeBlock}
@@ -819,10 +959,10 @@ export function buildBacklogItem(item) {
       ${_isBlocked(item) ? `<div class="bitem-missing-row"><span class="badge-missing badge-missing--blocked">⛔ bloqueado — sin cambio de status en más de ${_BLOCKED_DAYS} días</span></div>` : ''}
       ${_stalenessData ? `<div class="bitem-missing-row"><span class="staleness-pill staleness--${_stalenessData.modifier}" title="Sin sesión vinculada — ${_stalenessData.days}d desde último cambio de status">${_stalenessData.label} sin sesión</span></div>` : ''}
       ${missingAlert}
-      <div class="bitem-meta-grid" onclick="event.stopPropagation()">
+      <div class="bitem-meta-grid" data-action="bitem-meta-stop">
         <div class="bitem-meta-cell">
           <span class="bitem-meta-label">Status</span>
-          <select class="item-status-select bitem-select" onchange="setItemStatus('${esc(item.code)}',this.value)" onclick="event.stopPropagation()">
+          <select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-action="bitem-meta-stop">
             <option value="pendiente"${item.status==='pendiente'?' selected':''}>Pendiente</option>
             ${!isIdea ? `<option value="done"${item.status==='done'?' selected':''}>Hecho</option>` : ''}
             <option value="descartado"${item.status==='descartado'?' selected':''}>Descartado</option>
@@ -840,17 +980,17 @@ export function buildBacklogItem(item) {
           <span class="bitem-meta-label">Tipo</span>
           <span class="bitem-meta-value">${typeLabel || '—'}</span>
         </div>
-        <div class="bitem-meta-cell" onclick="event.stopPropagation()">
+        <div class="bitem-meta-cell" data-action="bitem-meta-stop">
           <span class="bitem-meta-label">Rol</span>
-          <select class="item-status-select bitem-select" onchange="setItemRole('${esc(item.code)}',this.value)" class="bitem-select-role">
+          <select class="item-status-select bitem-select bitem-select-role" data-code="${esc(item.code)}" data-select-type="role">
             <option value="">— Sin rol —</option>
             ${_ECOSYSTEM_ROLES.map(r => `<option value="${esc(r)}"${(item.role||'')=== r?' selected':''}>${esc(r)}</option>`).join('')}
           </select>
         </div>
-        <div class="bitem-meta-cell" onclick="event.stopPropagation()">
+        <div class="bitem-meta-cell" data-action="bitem-meta-stop">
           <span class="bitem-meta-label">Sprint</span>
           <div id="sprint-select-wrap-${esc(item.code)}">
-            <select class="item-status-select bitem-select" onchange="setItemSprint('${esc(item.code)}',this.value)">
+            <select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-select-type="sprint">
               <option value="">— Sin asignar</option>
               ${getActiveSprints().filter(s=>s.status!=='closed').map(s=>`<option value="${esc(s.id)}"${item.sprint===s.id?' selected':''}>${esc(s.label||s.id)}${s.status==='active'?' ★':''}</option>`).join('')}
               ${item.sprint && !getActiveSprints().find(s=>s.id===item.sprint) ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : ''}
@@ -868,9 +1008,9 @@ export function buildBacklogItem(item) {
           const ghostOption = (currentParent && !rItems.find(r => r.code === item.parentId))
             ? '<option value="' + esc(currentParent.code) + '" selected>' + esc(_rLabel(currentParent)) + ' [' + esc(currentParent.status) + ']</option>'
             : '';
-          return '<div class="bitem-meta-cell" onclick="event.stopPropagation()">'
+          return '<div class="bitem-meta-cell" data-action="bitem-meta-stop">'
             + '<span class="bitem-meta-label">R padre</span>'
-            + '<select class="item-status-select bitem-select" onchange="setItemParent(\'' + esc(item.code) + '\',this.value)">'
+            + '<select class="item-status-select bitem-select" data-code=\'' + esc(item.code) + '\' data-select-type="parent">'
             + '<option value="">— Sin padre</option>'
             + ghostOption
             + rItems.map(r => '<option value="' + esc(r.code) + '"' + (item.parentId === r.code ? ' selected' : '') + '>' + esc(_rLabel(r)) + '</option>').join('')
@@ -885,12 +1025,12 @@ export function buildBacklogItem(item) {
         if (!item.ac || !item.ac.length) {
           const _emptyId = `acv-panel-empty-${globalIdx}`;
           return `<div class="acv-wrap acv-wrap--empty" id="${_emptyId}">
-            <button class="acv-toggle" onclick="event.stopPropagation();_acvToggle('${_emptyId}')" title="Revisión de AC">
+            <button class="acv-toggle" data-action="acv-toggle" data-panel-id="${_emptyId}" title="Revisión de AC">
               <span class="acv-toggle-arrow">▸</span> Revisión de AC
             </button>
             <div class="acv-body acv-body--hidden">
               <p class="acv-empty-msg">Este ítem no tiene AC — agrega criterios antes de implementar.</p>
-              <button class="acv-confirm-btn" onclick="event.stopPropagation();_openItemEditorSafe(null,'${esc(item.code)}')" title="Abrir editor de ítem">✎ Ir a Item Editor</button>
+              <button class="acv-confirm-btn" data-action="acv-open-editor" data-code="${esc(item.code)}" title="Abrir editor de ítem">✎ Ir a Item Editor</button>
             </div>
           </div>`;
         }
@@ -919,7 +1059,7 @@ export function buildBacklogItem(item) {
             return `<li class="acv-row acv-row--warn" id="${rowId}">
               <span class="acv-badge acv-badge--warn" title="${esc(ambig.desc)}">⚠</span>
               <span class="acv-text">${esc(c)}</span>
-              <button class="acv-clarify-btn" onclick="event.stopPropagation();_acvStartEdit('${rowId}','${esc(item.code)}',${ci})" title="Aclarar este AC">Aclarar</button>
+              <button class="acv-clarify-btn" data-action="acv-clarify" data-row-id="${rowId}" data-code="${esc(item.code)}" data-ci="${ci}" title="Aclarar este AC">Aclarar</button>
             </li>`;
           }
           return `<li class="acv-row acv-row--ok" id="${rowId}">
@@ -930,12 +1070,12 @@ export function buildBacklogItem(item) {
         const _panelId  = `acv-panel-${globalIdx}`;
         const _revClass = _reviewed ? ' acv-reviewed' : '';
         return `<div class="acv-wrap${_revClass}" id="${_panelId}">
-          <button class="acv-toggle" onclick="event.stopPropagation();_acvToggle('${_panelId}')" title="Revisión de AC">
+          <button class="acv-toggle" data-action="acv-toggle" data-panel-id="${_panelId}" title="Revisión de AC">
             <span class="acv-toggle-arrow">▸</span> Revisión de AC
           </button>
           <div class="acv-body acv-body--hidden">
             <ul class="acv-list">${_acRows}</ul>
-            <button class="acv-confirm-btn" onclick="event.stopPropagation();_acvConfirm('${esc(item.code)}','${_panelId}')" title="Marcar revisión como completada">✓ Confirmar y proceder</button>
+            <button class="acv-confirm-btn" data-action="acv-confirm" data-code="${esc(item.code)}" data-panel-id="${_panelId}" title="Marcar revisión como completada">✓ Confirmar y proceder</button>
           </div>
         </div>`;
       })()}
@@ -947,10 +1087,10 @@ export function buildBacklogItem(item) {
       ${item.migratedFrom ? _buildItemMigratedBlock(item) : ''}
       ${_buildItemMentionedIn(item)}
       <div class="bitem-footer">
-        ${isHistorico ? '' : `<button onclick="_openItemEditorSafe(null,'${esc(item.code)}')" class="bitem-edit-btn" title="Editar ítem">✎ Editar</button>`}
-        ${(!isHistorico && isIdea && !isDone && !isDiscarded) ? `<button onclick="event.stopPropagation();_promoteItem('${esc(item.code)}')" class="bitem-promote-btn" title="Promover esta posibilidad a Ticket o Requerimiento">⬆ Promover</button>` : ''}
-        ${(!isHistorico && type === 'T' && !isDone && !isDiscarded) ? `<button onclick="event.stopPropagation();_promoteTtoR('${esc(item.code)}')" class="bitem-promote-btn" title="Promover Ticket a Requerimiento">⬆ → R</button>` : ''}
-        ${(!isHistorico && !isDone && !isDiscarded) ? `<button onclick="event.stopPropagation();_openMigrateItem('${esc(item.code)}')" class="bitem-promote-btn" title="Mover item a otro proyecto">&#x21C4; Mover</button>` : ''}
+        ${isHistorico ? '' : `<button data-action="bitem-edit" data-code="${esc(item.code)}" class="bitem-edit-btn" title="Editar ítem">✎ Editar</button>`}
+        ${(!isHistorico && isIdea && !isDone && !isDiscarded) ? `<button data-action="bitem-promote" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Promover esta posibilidad a Ticket o Requerimiento">⬆ Promover</button>` : ''}
+        ${(!isHistorico && type === 'T' && !isDone && !isDiscarded) ? `<button data-action="bitem-promote-ttor" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Promover Ticket a Requerimiento">⬆ → R</button>` : ''}
+        ${(!isHistorico && !isDone && !isDiscarded) ? `<button data-action="bitem-migrate" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Mover item a otro proyecto">&#x21C4; Mover</button>` : ''}
       </div>
     </div>
   </div>`;
@@ -983,8 +1123,8 @@ function _promoteItem(code) {
         </button>
       </div>
       <div class="promote-modal-actions">
-        <button onclick="document.getElementById('promote-modal-overlay').classList.remove('open')" class="btn-cancel">Cancelar</button>
-        <button id="promote-confirm-btn" onclick="_promoteConfirm('${esc(code)}')" class="btn-primary" disabled>Promover</button>
+        <button data-action="promote-modal-cancel" class="btn-cancel">Cancelar</button>
+        <button id="promote-confirm-btn" data-action="promote-confirm" data-code="${esc(code)}" class="btn-primary" disabled>Promover</button>
       </div>`;
   }
   _promoteTargetType = null;
@@ -1080,9 +1220,9 @@ function _promoteTtoR(code) {
         El T origen quedará <strong>descartado</strong> con referencia al R nuevo.
       </div>
       <div class="promote-modal-actions">
-        <button onclick="document.getElementById('promote-modal-overlay').classList.remove('open')"
+        <button data-action="promote-ttor-cancel"
           class="btn-ghost">Cancelar</button>
-        <button onclick="_promoteTtoRConfirm('${esc(code)}')" class="btn-primary" id="promote-ttor-confirm-btn">⬆ Promover</button>
+        <button data-action="promote-ttor-confirm" data-code="${esc(code)}" class="btn-primary" id="promote-ttor-confirm-btn">⬆ Promover</button>
       </div>`;
   }
   overlay.classList.add('open');
@@ -1274,6 +1414,25 @@ export function updateBacklogFooter() {
   const footer = document.getElementById('backlog-footer');
   if (!footer) return;
 
+  // Delegation para filter chips del footer — se registra una sola vez
+  if (!footer._delegationAttached) {
+    footer._delegationAttached = true;
+    footer.addEventListener('click', function _blFooterClick(e) {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const act = btn.dataset.action;
+      if (act === 'footer-type-filter') {
+        if (typeof toggleTypeFilter === 'function') toggleTypeFilter(btn.dataset.type);
+      } else if (act === 'footer-status-filter') {
+        if (typeof toggleStatusFilter === 'function') toggleStatusFilter(btn.dataset.status);
+      } else if (act === 'footer-effort-filter') {
+        if (typeof toggleEffortFilter === 'function') toggleEffortFilter(parseInt(btn.dataset.effort, 10));
+      } else if (act === 'footer-clear-filters') {
+        if (typeof clearAllFilters === 'function') clearAllFilters();
+      }
+    });
+  }
+
   const d = new Date().toISOString().split('T')[0];
   const closedSprintIds = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
   const countable = window.ITEMS.filter(i => _isCountableItem(i) && !i.sprint || !closedSprintIds.has(i.sprint));
@@ -1290,22 +1449,22 @@ export function updateBacklogFooter() {
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Tipo</span>
         ${[['B','Bug'],['T','Ticket'],['R','Req'],['P','Pos.']].map(([t,l]) =>
-          `<button class="bl-filter-chip bl-fc-type-${t}${_getActiveTypes().has(t) ? ' active' : ''}" onclick="toggleTypeFilter('${t}')" title="${l}">${t} <span>${byType[t]}</span></button>`
+          `<button class="bl-filter-chip bl-fc-type-${t}${_getActiveTypes().has(t) ? ' active' : ''}" data-action="footer-type-filter" data-type="${t}" title="${l}">${t} <span>${byType[t]}</span></button>`
         ).join('')}
       </div>
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Status</span>
-        <button class="bl-filter-chip${_getActiveStatuses().has('pendiente') ? ' active' : ''}" onclick="toggleStatusFilter('pendiente')">Pendiente <span>${pend}</span></button>
-        <button class="bl-filter-chip${_getActiveStatuses().has('done') ? ' active' : ''}" onclick="toggleStatusFilter('done')">Done <span>${done}</span></button>
+        <button class="bl-filter-chip${_getActiveStatuses().has('pendiente') ? ' active' : ''}" data-action="footer-status-filter" data-status="pendiente">Pendiente <span>${pend}</span></button>
+        <button class="bl-filter-chip${_getActiveStatuses().has('done') ? ' active' : ''}" data-action="footer-status-filter" data-status="done">Done <span>${done}</span></button>
       </div>
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Esfuerzo</span>
         ${[1,2,3].map(e => {
           const cnt = window.ITEMS.filter(i => (parseInt(i.effort)||1) === e).length;
-          return `<button class="bl-filter-chip${_getActiveEfforts().has(e) ? ' active' : ''}" onclick="toggleEffortFilter(${e})" title="Effort ${e}">E${e} <span>${cnt}</span></button>`;
+          return `<button class="bl-filter-chip${_getActiveEfforts().has(e) ? ' active' : ''}" data-action="footer-effort-filter" data-effort="${e}" title="Effort ${e}">E${e} <span>${cnt}</span></button>`;
         }).join('')}
       </div>
-      <button class="bl-footer-clear" onclick="clearAllFilters()" title="Limpiar todos los filtros">✕ Limpiar</button>
+      <button class="bl-footer-clear" data-action="footer-clear-filters" title="Limpiar todos los filtros">✕ Limpiar</button>
     </div>
   `;
 

@@ -64,19 +64,39 @@ export function updateClearFilterBtn() {
   if (isDefault) { wrap.innerHTML = ''; return; }
 
   const chips = [];
-  const _chip = (label, clearFn) =>
-    `<span class="afc-chip" onclick="(${clearFn})()">${esc(label)} <span class="afc-chip-x">✕</span></span>`;
+  // Delegation en #active-filter-chips — se registra una sola vez
+  if (!wrap._delegationAttached) {
+    wrap._delegationAttached = true;
+    wrap.addEventListener('click', function _afcClick(e) {
+      const chip = e.target.closest('[data-afc]');
+      if (!chip) return;
+      const act = chip.dataset.afc;
+      const val = chip.dataset.afcVal;
+      if (act === 'type')          { if (typeof toggleTypeFilter     === 'function') toggleTypeFilter(val); }
+      else if (act === 'status')   { if (typeof toggleStatusFilter   === 'function') toggleStatusFilter(val); }
+      else if (act === 'role')     { if (typeof toggleRoleFilter     === 'function') toggleRoleFilter(val); }
+      else if (act === 'priority') { if (typeof togglePriorityFilter === 'function') togglePriorityFilter(val); }
+      else if (act === 'effort')   { if (typeof toggleEffortFilter   === 'function') toggleEffortFilter(parseInt(val, 10)); }
+      else if (act === 'search')   { if (typeof clearBacklogSearch   === 'function') clearBacklogSearch(); }
+      else if (act === 'noac')     { if (typeof toggleBacklogNoAcMode  === 'function') toggleBacklogNoAcMode(); }
+      else if (act === 'focus')    { if (typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode(); }
+    });
+  }
+
+  const chips = [];
+  const _chip = (label, afcAction, afcVal = '') =>
+    `<span class="afc-chip" data-afc="${afcAction}" data-afc-val="${esc(String(afcVal))}">${esc(label)} <span class="afc-chip-x">✕</span></span>`;
 
   if (!allTypes) {
     const excluded = ['T','R','B','P'].filter(t => !_getActiveTypes().has(t));
     excluded.forEach(t => {
       const labels = { T:'Ticket', R:'Req', B:'Bug', P:'Posibilidad' };
-      chips.push(_chip(`Sin ${labels[t]}`, `function(){toggleTypeFilter('${t}')}`));
+      chips.push(_chip(`Sin ${labels[t]}`, 'type', t));
     });
   }
   if (!defaultStatus) {
     [..._getActiveStatuses()].filter(s => s !== 'pendiente').forEach(s => {
-      chips.push(_chip(`+${s}`, `function(){toggleStatusFilter('${s}')}`));
+      chips.push(_chip(`+${s}`, 'status', s));
     });
     if (!_getActiveStatuses().has('pendiente')) {
       chips.push(_chip('−Pendiente', `function(){toggleStatusFilter('pendiente')}`));
@@ -84,21 +104,21 @@ export function updateClearFilterBtn() {
   }
   if (!noRoleFilter) {
     const label = _getActiveRoleFilter() === '__none__' ? 'Sin rol' : _getActiveRoleFilter();
-    chips.push(_chip(`Rol: ${label}`, `function(){toggleRoleFilter(${_getActiveRoleFilter() === '__none__' ? "'__none__'" : `'${_getActiveRoleFilter()}'`})}`));
+    chips.push(_chip(`Rol: ${label}`, 'role', _getActiveRoleFilter()));
   }
   if (!noPriorityFilter) {
     [..._getActivePriorityFilter()].forEach(p => {
-      chips.push(_chip(`Pri: ${p}`, `function(){togglePriorityFilter('${p}')}`));
+      chips.push(_chip(`Pri: ${p}`, 'priority', p));
     });
   }
   if (_getActiveEfforts().size < 3) {
     [1,2,3].filter(e => !_getActiveEfforts().has(e)).forEach(e => {
-      chips.push(_chip(`Sin E${e}`, `function(){toggleEffortFilter(${e})}`));
+      chips.push(_chip(`Sin E${e}`, 'effort', e));
     });
   }
-  if (!noSearch) chips.push(_chip(`"${_getBacklogSearchQuery()}"`, `function(){clearBacklogSearch()}`));
-  if (_getBacklogNoAcMode()) chips.push(_chip('Sin AC', `function(){toggleBacklogNoAcMode()}`));
-  if (_getBacklogFocusMode()) chips.push(_chip('Focus top 10', `function(){toggleBacklogFocusMode()}`));
+  if (!noSearch) chips.push(_chip(`"${_getBacklogSearchQuery()}"`, 'search'));
+  if (_getBacklogNoAcMode()) chips.push(_chip('Sin AC', 'noac'));
+  if (_getBacklogFocusMode()) chips.push(_chip('Focus top 10', 'focus'));
 
   wrap.innerHTML = chips.join('');
 }

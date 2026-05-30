@@ -1341,6 +1341,31 @@ export function _isCountableItem(i) {
 export function renderStats() {
   if (!_getActiveProjectFilter() || !ITEMS.length) { document.getElementById('stats-bar').innerHTML = ''; return; }
 
+  // Delegation para stats-bar — se registra una sola vez
+  const statsBarEl = document.getElementById('stats-bar');
+  if (statsBarEl && !statsBarEl._delegationAttached) {
+    statsBarEl._delegationAttached = true;
+    statsBarEl.addEventListener('click', function _statsBarClick(e) {
+      const btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      const act = btn.dataset.action;
+      if (act === 'stats-clear-types') {
+        if (typeof clearTypeFilters === 'function') clearTypeFilters();
+      } else if (act === 'stats-type-filter') {
+        if (typeof toggleTypeFilter === 'function') toggleTypeFilter(btn.dataset.type);
+      } else if (act === 'stats-priority-filter') {
+        if (typeof togglePriorityFilter === 'function') togglePriorityFilter(btn.dataset.priority);
+      } else if (act === 'stats-effort-filter') {
+        if (typeof toggleEffortFilter === 'function') toggleEffortFilter(parseInt(btn.dataset.effort, 10));
+      } else if (act === 'stats-effort-missing') {
+        if (typeof toggleBacklogBlockerFilter === 'function') toggleBacklogBlockerFilter();
+        if (typeof toggleEffortFilter === 'function') toggleEffortFilter(0);
+      } else if (act === 'stats-role-filter') {
+        if (typeof toggleRoleFilter === 'function') toggleRoleFilter(btn.dataset.role);
+      }
+    });
+  }
+
   // T-202604-106: excluir ítems de sprints cerrados del módulo principal
   const closedSprintIds = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
   const isInClosedSprint = i => i.sprint && closedSprintIds.has(i.sprint);
@@ -1419,13 +1444,13 @@ export function renderStats() {
       <div class="stat-card s-types">
         <div class="stat-detail-label">Tipo · filtrables</div>
         <div class="stat-detail-items">
-          ${activeTypes.size < 4 ? `<span class="stat-type-chip stat-type-chip--all" onclick="clearTypeFilters()" title="Mostrar todos los tipos">✕ Todos</span>` : ''}
+          ${activeTypes.size < 4 ? `<span class="stat-type-chip stat-type-chip--all" data-action="stats-clear-types" title="Mostrar todos los tipos">✕ Todos</span>` : ''}
           ${[['B','Bug','Bugs / correcciones'],['T','Ticket','Tickets técnicos'],['R','Req','Requerimientos / epics']].map(([t,label,hint]) =>
-            `<span class="stat-type-chip tc-${t}${activeTypes.has(t) ? ' active' : ''}" onclick="toggleTypeFilter('${t}')" title="${hint} — click para filtrar">
+            `<span class="stat-type-chip tc-${t}${activeTypes.has(t) ? ' active' : ''}" data-action="stats-type-filter" data-type="${t}" title="${hint} — click para filtrar">
               <span class="tc-count">${byType[t]}</span><span class="tc-label">${label}</span>
             </span>`
           ).join('')}
-          ${pIdeasCount > 0 ? `<span class="stat-type-chip tc-P stat-type-chip--ideas${activeTypes.has('P') ? ' active' : ''}" onclick="toggleTypeFilter('P')" title="Posibilidades — no afectan contadores de trabajo activo">
+          ${pIdeasCount > 0 ? `<span class="stat-type-chip tc-P stat-type-chip--ideas${activeTypes.has('P') ? ' active' : ''}" data-action="stats-type-filter" data-type="P" title="Posibilidades — no afectan contadores de trabajo activo">
             <span class="tc-count">${pIdeasCount}</span><span class="tc-label">💡 Posibilidades</span>
           </span>` : ''}
         </div>
@@ -1437,17 +1462,17 @@ export function renderStats() {
         <div class="stat-meta-block">
           <div class="stat-meta-label">Prioridad</div>
           <div class="stat-meta-row">
-            <span class="stat-pri-chip pri-high${activePriorityFilter.has('high') ? ' active' : ''}" onclick="togglePriorityFilter('high')" title="Filtrar por prioridad alta — click para activar/desactivar"><span class="spc-n">${c.high}</span> Alto</span>
-            <span class="stat-pri-chip pri-medium${activePriorityFilter.has('medium') ? ' active' : ''}" onclick="togglePriorityFilter('medium')" title="Filtrar por prioridad media"><span class="spc-n">${c.medium}</span> Med</span>
-            <span class="stat-pri-chip pri-low${activePriorityFilter.has('low') ? ' active' : ''}" onclick="togglePriorityFilter('low')" title="Filtrar por prioridad baja"><span class="spc-n">${c.low}</span> Bajo</span>
+            <span class="stat-pri-chip pri-high${activePriorityFilter.has('high') ? ' active' : ''}" data-action="stats-priority-filter" data-priority="high" title="Filtrar por prioridad alta — click para activar/desactivar"><span class="spc-n">${c.high}</span> Alto</span>
+            <span class="stat-pri-chip pri-medium${activePriorityFilter.has('medium') ? ' active' : ''}" data-action="stats-priority-filter" data-priority="medium" title="Filtrar por prioridad media"><span class="spc-n">${c.medium}</span> Med</span>
+            <span class="stat-pri-chip pri-low${activePriorityFilter.has('low') ? ' active' : ''}" data-action="stats-priority-filter" data-priority="low" title="Filtrar por prioridad baja"><span class="spc-n">${c.low}</span> Bajo</span>
           </div>
         </div>
         <div class="stat-meta-block">
-          <div class="stat-meta-label">Esfuerzo · filtrables${noEffortCount > 0 ? ` <span class="stat-effort-missing" title="Ítems sin effort asignado — requerido para burndown" onclick="toggleBacklogBlockerFilter && toggleEffortFilter(0)">${noEffortCount} sin effort</span>` : ''}</div>
+          <div class="stat-meta-label">Esfuerzo · filtrables${noEffortCount > 0 ? ` <span class="stat-effort-missing" title="Ítems sin effort asignado — requerido para burndown" data-action="stats-effort-missing">${noEffortCount} sin effort</span>` : ''}</div>
           <div class="stat-meta-row">
-            <span class="stat-effort-card${activeEfforts.has(1) ? ' active' : ''}" id="feff-1" onclick="toggleEffortFilter(1)" title="Filtrar effort 1"><span class="sec-count">${byEffort[1]}</span><span class="eff-label">● simple</span></span>
-            <span class="stat-effort-card${activeEfforts.has(2) ? ' active' : ''}" id="feff-2" onclick="toggleEffortFilter(2)" title="Filtrar effort 2"><span class="sec-count">${byEffort[2]}</span><span class="eff-label">●● medio</span></span>
-            <span class="stat-effort-card${activeEfforts.has(3) ? ' active' : ''}" id="feff-3" onclick="toggleEffortFilter(3)" title="Filtrar effort 3"><span class="sec-count">${byEffort[3]}</span><span class="eff-label">●●● complejo</span></span>
+            <span class="stat-effort-card${activeEfforts.has(1) ? ' active' : ''}" id="feff-1" data-action="stats-effort-filter" data-effort="1" title="Filtrar effort 1"><span class="sec-count">${byEffort[1]}</span><span class="eff-label">● simple</span></span>
+            <span class="stat-effort-card${activeEfforts.has(2) ? ' active' : ''}" id="feff-2" data-action="stats-effort-filter" data-effort="2" title="Filtrar effort 2"><span class="sec-count">${byEffort[2]}</span><span class="eff-label">●● medio</span></span>
+            <span class="stat-effort-card${activeEfforts.has(3) ? ' active' : ''}" id="feff-3" data-action="stats-effort-filter" data-effort="3" title="Filtrar effort 3"><span class="sec-count">${byEffort[3]}</span><span class="eff-label">●●● complejo</span></span>
           </div>
         </div>
       </div>
@@ -1467,7 +1492,7 @@ export function buildItemRefs(code) {
   });
   if (!matches.length) return '';
   const chips = matches.map(({ ai, s }) =>
-    `<span class="item-ref-chip" title="${esc(s.title)}" onclick="switchTab('tracker');setTimeout(()=>openDetail('${ai.id}','${s.id}'),120)">${esc(ai.name)} · ${s.dateShort || s.date || ''}</span>`
+    `<span class="item-ref-chip" title="${esc(s.title)}" data-action="ref-chip-session" data-ai-id="${ai.id}" data-sess-id="${s.id}">${esc(ai.name)} · ${s.dateShort || s.date || ''}</span>`
   ).join('');
   return `<div class="item-refs"><span class="item-ref-label">Sesiones</span>${chips}</div>`;
 }
@@ -1659,13 +1684,13 @@ export function _buildRoleChips() {
   const noneCount = ITEMS.filter(i => !i.role || !i.role.trim()).length;
   const chips = roles.map(r => {
     const isActive = activeRoleFilter === r;
-    return `<button class="fbtn frole-chip${isActive ? ' active' : ''}" data-role="${esc(r)}" onclick="toggleRoleFilter('${esc(r)}')" title="Filtrar por rol: ${esc(r)}">${esc(r)}</button>`;
+    return `<button class="fbtn frole-chip${isActive ? ' active' : ''}" data-role="${esc(r)}" data-action="stats-role-filter" title="Filtrar por rol: ${esc(r)}">${esc(r)}</button>`;
   });
   if (noneCount > 0) {
     const isActive = activeRoleFilter === null && activeRoleFilter !== undefined && activeRoleFilter !== 'initial';
     // chip Sin rol: activo cuando activeRoleFilter === '__none__' (sentinel)
     const isSinRolActive = activeRoleFilter === '__none__';
-    chips.push(`<button class="fbtn frole-chip${isSinRolActive ? ' active' : ''}" data-role="__none__" onclick="toggleRoleFilter('__none__')" title="Ítems sin rol asignado">Sin rol</button>`);
+    chips.push(`<button class="fbtn frole-chip${isSinRolActive ? ' active' : ''}" data-role="__none__" data-action="stats-role-filter" title="Ítems sin rol asignado">Sin rol</button>`);
   }
   return `<div class="frole-bar" id="frole-bar">${chips.join('')}</div>`;
 }
