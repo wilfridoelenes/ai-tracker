@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -160,12 +160,22 @@ export function updateStats() {
 }
 
 // Detecta si una IA está "en sesión": disponible con última sesión sin resetAt ni quickCapture
+// B-202605-026: agrega check de resetEpoch — alineado con _getCurrentSession en locus-sesiones.js.
+// Sin este check, Workers con resetEpoch previo podían quedar en verde aunque tuvieran sesión activa.
 export function _isInSession(ai) {
   if (ai.status !== 'available' || ai.interrupted) return false;
   const allSess = getAllSessions().filter(s => s.aiId === ai.id);
   if (!allSess.length) return false;
   const last = allSess.reduce((a, b) => (parseInt(b.id) || 0) > (parseInt(a.id) || 0) ? b : a);
-  return !!(last && !last.resetAt && !last.quickCapture);
+  if (!last || last.resetAt || last.quickCapture) return false;
+  // B-202605-026: si el Worker tiene resetEpoch, la sesión debe ser posterior a ese timestamp.
+  // Un checkpoint sin resetAt pero anterior al último reset no está en curso.
+  if (ai.resetEpoch) {
+    const resetTs = new Date(ai.resetEpoch).getTime();
+    const sessTs  = last.createdAt || 0;
+    if (sessTs <= resetTs) return false;
+  }
+  return true;
 }
 
 // T-202605-523: helper compartido — evita recalcular sprint activo en múltiples bloques

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -875,16 +875,33 @@ export function _resetExpired(resetTime, resetEpoch) {
   return false;
 }
 
+// R-202605-022 Fase 3 AC-2: lock anti-doble-load — previene cargas concurrentes de _loadFromSupabase.
+// onAuthStateChange(INITIAL_SESSION) + getSession() pueden disparar en paralelo;
+// el segundo disparo detecta el flag activo y sale como no-op.
+let _loadFromSupabaseInFlight = false;
+
 export async function _loadFromSupabase() {
   // AC-9 R-C2: si hay un write local pendiente en debounce, el state local es más reciente
   // que Supabase — cancelar la carga para evitar rollback silencioso del estado volátil.
   if (_saveDebounceTimer !== null) return;
 
+  // R-202605-022 Fase 3 AC-2: guard anti-doble-load — el segundo disparo es no-op.
+  if (_loadFromSupabaseInFlight) return;
+  _loadFromSupabaseInFlight = true;
+
   const authUser = await (_supabaseReady || Promise.resolve(null));
   if (!authUser) {
     setSyncStatus('local', '☁ conectar');
+    _loadFromSupabaseInFlight = false;
     return;
   }
+
+  // R-202605-022 Fase 3 AC-1: snapshot del estado antes de cualquier mutación.
+  // Si _loadFromSupabase falla a mitad, restauramos ITEMS y state al estado previo.
+  const _itemsRef = (typeof window.ITEMS !== 'undefined') ? window.ITEMS : null;
+  const _itemsSnapshot = _itemsRef ? [..._itemsRef] : null;
+  const _stateSnapshot = JSON.parse(JSON.stringify(state));
+
   try {
     setSyncStatus('syncing', '⟳ sincronizando');
 
@@ -987,7 +1004,7 @@ export async function _loadFromSupabase() {
           const localMeta   = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
           const localTs     = localMeta.updated  ? new Date(localMeta.updated).getTime()  : 0;
           const remoteTs    = remoteMeta.updated ? new Date(remoteMeta.updated).getTime() : 0;
-          const _itemsRef   = (typeof window.ITEMS !== 'undefined') ? window.ITEMS : null;
+          // R-202605-022 Fase 3 AC-1: _itemsRef capturado en snapshot al inicio — no redeclarar.
           const shouldLoad  = remoteItems.length && (!_itemsRef || _itemsRef.length === 0 || localTs === 0 || remoteTs > localTs);
           if (shouldLoad && _itemsRef) {
             _itemsRef.length = 0;
@@ -1154,7 +1171,19 @@ export async function _loadFromSupabase() {
   } catch (err) {
     console.error('[AI Tracker] _loadFromSupabase() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
+
+    // R-202605-022 Fase 3 AC-1: rollback — restaurar ITEMS y state al snapshot pre-carga
+    // para evitar que un fallo a mitad deje el backlog en estado parcialmente aplicado.
+    if (_itemsRef && _itemsSnapshot) {
+      _itemsRef.length = 0;
+      _itemsSnapshot.forEach(item => _itemsRef.push(item));
+    }
+    Object.assign(state, _stateSnapshot);
+
     showToast('warning', '⚠️ No se pudo cargar desde Supabase — operando en modo local', null, 6000);
+  } finally {
+    // R-202605-022 Fase 3 AC-2: liberar lock siempre — éxito o error.
+    _loadFromSupabaseInFlight = false;
   }
 }
 
