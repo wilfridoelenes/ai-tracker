@@ -1,5 +1,5 @@
 /* locus-backlog-item.css */
-/* Última actualización: 2026-05-24 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
+/* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
 /* === locus-backlog-item.js ===
    Funciones: buildBacklogItem · _buildChildrenBlock · _openStatusPopover · _acRows */
@@ -2243,6 +2243,13 @@
   color: var(--text2);
   font-style: italic;
   margin-top: 1px;
+}
+
+/* T-202605-037: parent visible en ítems tipo T del panel Diff */
+.mdiff-parent-hint {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  margin-top: 2px;
 }
 
 /* ── Pills ── */

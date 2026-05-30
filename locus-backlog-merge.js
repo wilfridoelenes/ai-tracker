@@ -1,4 +1,4 @@
-// [PP] v1.2 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -94,7 +94,19 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     </select>`;
   };
 
-  const _card = (code, desc, accentClass, pillsHtml, extraHtml = '') => {
+  // T-202605-037: para ítems tipo T, muestra el campo parent debajo del título
+  // parentOverride: valor de parent del objeto diff cuando el ítem aún no existe en ITEMS (recién creado)
+  const _parentHtml = (code, parentOverride) => {
+    if ((code || '?')[0].toUpperCase() !== 'T') return '';
+    const item = ITEMS.find(i => i.code === code);
+    const parentVal = item
+      ? (item.parent || null)
+      : (parentOverride || null);
+    const label = parentVal ? esc(parentVal) : 'Sin parent';
+    return `<div class="mdiff-parent-hint">Parent: ${label}</div>`;
+  };
+
+  const _card = (code, desc, accentClass, pillsHtml, extraHtml = '', parentOverride = undefined) => {
     const typeChar  = (code || '?')[0].toUpperCase();
     const typeCls   = _typeClass[typeChar] || 'mdiff-type--unknown';
     // R-202605-148: ítem sin tipo declarado muestra '?' — no rompe el render
@@ -109,6 +121,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
           ${pillsHtml}
           ${_sprintSelect(code)}
         </div>
+        ${_parentHtml(code, parentOverride)}
         <div class="mdiff-desc">${esc(desc || '')}</div>
         ${extraHtml}
       </div>
@@ -184,7 +197,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   let sectionsHtml = '';
 
   if (diff.created.length) {
-    const rows = _sortByType(diff.created).map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'))).join('');
+    const rows = _sortByType(diff.created).map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), '', i.parent)).join('');
     sectionsHtml += _section('created', 'green', `Creados <span class="mdiff-sec-count">${diff.created.length}</span>`, rows);
   }
   // B-202604-198: ítems que nacen y cierran en el mismo CHECKPOINT — grupo diferenciado
@@ -192,7 +205,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     const rows = _sortByType(diff.createdAndClosed).map(i => _card(
       i.code, i.desc, 'green',
       _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'),
-      `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>`
+      `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>`,
+      i.parent
     )).join('');
     sectionsHtml += _section('created-and-closed', 'green', `Creados y cerrados <span class="mdiff-sec-count">${diff.createdAndClosed.length}</span>`, rows);
   }
