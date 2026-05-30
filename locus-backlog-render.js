@@ -1,4 +1,4 @@
-// [AS] v1.2 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-30 22:15 UTC-6
+// [PP] v1.2 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-30 23:25 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogFocusMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
@@ -63,7 +63,6 @@ export function updateClearFilterBtn() {
   if (!wrap) return;
   if (isDefault) { wrap.innerHTML = ''; return; }
 
-  const chips = [];
   // Delegation en #active-filter-chips — se registra una sola vez
   if (!wrap._delegationAttached) {
     wrap._delegationAttached = true;

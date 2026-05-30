@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -345,8 +345,8 @@ export function renderProyectos() {
       <div class="inline-confirm proy2-inline-confirm" id="proy2-del-confirm-${proj.id}">
         <div class="inline-confirm-msg">${deleteMsg}</div>
         <div class="inline-confirm-actions">
-          <button class="btn-sm danger" onclick="event.stopPropagation();_proyDeleteExecute('${proj.id}')">Sí, eliminar</button>
-          <button class="btn-sm" onclick="event.stopPropagation();_proyDeleteInline('${proj.id}')">Cancelar</button>
+          <button class="btn-sm danger" data-action="proj-delete-execute" data-proj-id="${proj.id}">Sí, eliminar</button>
+          <button class="btn-sm" data-action="proj-delete-cancel" data-proj-id="${proj.id}">Cancelar</button>
         </div>
       </div>
     </div>`;
@@ -360,13 +360,13 @@ export function renderProyectos() {
     el.innerHTML = `
       <div class="proy2-top-bar">
         <div class="proy2-top-title">📁 Proyectos</div>
-        <button class="proy2-btn proy2-btn-new" onclick="openProjModal()">+ Nuevo</button>
+        <button class="proy2-btn proy2-btn-new" data-action="open-proj-modal">+ Nuevo</button>
       </div>
       <div class="empty-state">
         <div class="empty-state-icon">📁</div>
         <div class="empty-state-title">Sin proyectos</div>
         <div class="empty-state-hint">Los proyectos agrupan tus sesiones y backlog. Crea el primero para organizar tu trabajo.</div>
-        <button class="empty-state-btn" onclick="openProjModal()">＋ Nuevo proyecto</button>
+        <button class="empty-state-btn" data-action="open-proj-modal">＋ Nuevo proyecto</button>
       </div>`;
     return;
   }
@@ -386,11 +386,7 @@ export function renderProyectos() {
   const archivedOpen = localStorage.getItem('proy2-archived-open') !== '0';
   const archivedSectionHtml = archivedProjects.length
     ? `<div class="proy2-archived-section">
-        <button onclick="
-          var o=localStorage.getItem('proy2-archived-open')!=='0';
-          localStorage.setItem('proy2-archived-open',o?'0':'1');
-          renderProyectos();
-        " class="proy2-archived-toggle">
+        <button data-action="toggle-archived-section" class="proy2-archived-toggle">
           <span>${archivedOpen ? '▾' : '▸'}</span>
           <span>Archivados (${archivedProjects.length})</span>
         </button>
@@ -460,7 +456,7 @@ export function renderProyectos() {
   el.innerHTML = `
     <div class="proy2-top-bar">
       <div class="proy2-top-title">📁 Proyectos <span class="proy2-top-count">${activeCount} activo${activeCount !== 1 ? 's' : ''}</span></div>
-      <button class="proy2-btn proy2-btn-new" onclick="openProjModal()">+ Nuevo</button>
+      <button class="proy2-btn proy2-btn-new" data-action="open-proj-modal">+ Nuevo</button>
     </div>
     ${ecosHeaderHtml}
     <div class="proy2-list">
@@ -598,7 +594,7 @@ function renderProject(query) {
       <div class="proj-no-sessions-icon">🗂</div>
       <div class="proj-no-sessions-title">Proyecto nuevo — sin sesiones aún</div>
       <div class="proj-no-sessions-hint">Inicia una sesión desde el Tracker y asígnala a este proyecto para empezar a registrar.</div>
-      <button class="proj-no-sessions-cta" onclick="switchTab('tab-tracker')">Ir al Tracker →</button>`;
+      <button class="proj-no-sessions-cta" data-action="go-to-tracker">Ir al Tracker →</button>`;
     trackerPanel.appendChild(emptyEl);
     return;
   }
@@ -618,7 +614,7 @@ function renderProject(query) {
   const aiChips = scopeAIs.length > 1
     ? `<span class="proj-filter-label">Filtrar por IA:</span>` + scopeAIs.map(a =>
         `<span class="proj-filter-chip${_projViewFilterAI === a.id ? ' active' : ''}"
-          onclick="_projToggleAIFilter('${a.id}')">${esc(a.name)}</span>`
+          data-action="toggle-ai-filter" data-ai-id="${a.id}">${esc(a.name)}</span>`
       ).join('')
     : '';
 
@@ -655,7 +651,7 @@ function renderProject(query) {
     const analyticsToggleEl = document.createElement('div');
     analyticsToggleEl.className = 'proj-analytics-toggle-wrap';
     analyticsToggleEl.innerHTML = `<button class="proj-analytics-toggle" id="proj-analytics-toggle-btn"
-      onclick="_toggleProjAnalytics('${filterId}')">📊 Ver analytics del proyecto</button>`;
+      data-action="toggle-proj-analytics" data-filter-id="${filterId}">📊 Ver analytics del proyecto</button>`;
     trackerPanel.appendChild(analyticsToggleEl);
 
     const analyticsEl = document.createElement('div');
@@ -706,7 +702,7 @@ function renderProject(query) {
       sprintEl.innerHTML = `
         <div class="sprint-health-empty">
           <span class="sprint-health-none">Sin sprint activo</span>
-          <button class="btn-ghost btn-sm sprint-health-cta" onclick="switchTab('backlog');if(typeof switchSubTab==='function')switchSubTab('backlog')">+ Crear sprint</button>
+          <button class="btn-ghost btn-sm sprint-health-cta" data-action="go-to-sprint-create">+ Crear sprint</button>
         </div>`;
     }
     trackerPanel.appendChild(sprintEl);
@@ -754,7 +750,7 @@ function renderProject(query) {
           return `<div class="proj-ctx-body proj-ctx-lead">${renderContextMd(sec.body)}</div>`;
         }
         return `<div class="proj-ctx-sec">
-          <div class="proj-ctx-sec-header" onclick="_projCtxToggleSec('${sId}')">
+          <div class="proj-ctx-sec-header" data-action="ctx-toggle-sec" data-sec-id="${sId}">
             <span class="proj-ctx-sec-arrow" id="${sId}-arrow">▾</span>
             <span class="proj-ctx-sec-title">${esc(sec.title)}</span>
           </div>
@@ -769,8 +765,8 @@ function renderProject(query) {
           <div class="proj-ctx-header">
             <span class="proj-ctx-label">📄 Contexto</span>
             <div class="proj-ctx-actions">
-              <button class="proj-ctx-btn proj-ctx-save" onclick="_projCtxSave('${filterId}')">Guardar</button>
-              <button class="proj-ctx-btn proj-ctx-cancel" onclick="_projCtxCancelEdit('${filterId}')">Cancelar</button>
+              <button class="proj-ctx-btn proj-ctx-save" data-action="ctx-save" data-filter-id="${filterId}">Guardar</button>
+              <button class="proj-ctx-btn proj-ctx-cancel" data-action="ctx-cancel" data-filter-id="${filterId}">Cancelar</button>
             </div>
           </div>
           <textarea class="proj-ctx-textarea" id="proj-ctx-ta-${filterId}">${esc(ctxRaw)}</textarea>`;
@@ -782,7 +778,7 @@ function renderProject(query) {
         ctxEl.innerHTML = `
           <div class="proj-ctx-header">
             <span class="proj-ctx-label">📄 Contexto</span>
-            <button class="proj-ctx-btn proj-ctx-edit" onclick="_projCtxStartEdit('${filterId}')">Editar</button>
+            <button class="proj-ctx-btn proj-ctx-edit" data-action="ctx-start-edit" data-filter-id="${filterId}">Editar</button>
           </div>
           <div class="proj-ctx-preview">${_renderCtxPreview(ctxRaw)}</div>`;
       }
@@ -817,7 +813,7 @@ function renderProject(query) {
         </div>
         <div class="proj-suggested-list">
           ${candidateItems.map(i => `
-            <div class="proj-suggested-row" onclick="_qnNavToItem('${esc(i.code)}')">
+            <div class="proj-suggested-row" data-action="qn-nav-to-item" data-code="${esc(i.code)}">>
               <span class="proj-suggested-code" style="--item-type-color:${typeColor(i.code)}">${esc(i.code)}</span>
               <span class="proj-suggested-desc">${esc((i.title || i.desc || '').slice(0, 80))}</span>
               <span class="proj-suggested-score" title="Score de relevancia">${i._score}</span>
@@ -868,7 +864,7 @@ function renderProject(query) {
         </div>
         <div class="proj-blocked-list">
           ${blockedItems.map(i => `
-            <div class="proj-blocked-row" onclick="_qnNavToItem('${esc(i.code)}')">
+            <div class="proj-blocked-row" data-action="qn-nav-to-item" data-code="${esc(i.code)}">>
               <span class="proj-blocked-code" style="--item-type-color:${typeColor(i.code)}">${esc(i.code)}</span>
               <span class="proj-blocked-desc">${esc((i.title || i.desc || '').slice(0, 80))}</span>
               <span class="proj-blocked-days" title="${i._daysBlocked} días sin movimiento">${i._daysBlocked}d</span>
@@ -890,7 +886,7 @@ function renderProject(query) {
     listEl.innerHTML = `<div class="project-empty">${q || _projViewFilterAI ? 'Sin resultados con los filtros actuales' : 'Sin sesiones registradas'}</div>`;
   } else {
     listEl.innerHTML = allSessions.map(({ ai, s }) =>
-      `<div class="proj-sess-row" onclick="openDetail('${ai.id}','${s.id}')">
+      `<div class="proj-sess-row" data-action="open-session-detail" data-ai-id="${ai.id}" data-sess-id="${s.id}">>
         <span class="proj-sess-ai">${esc(ai.name)}</span>
         <span class="proj-sess-title">${esc(s.title)}</span>
         <span class="proj-sess-date">${relDate(s.date, s.savedAt || s.createdAt) || s.dateShort || ''}</span>
@@ -913,8 +909,8 @@ function _renderDecisionsSection(el, projId, decisions) {
         </div>
       </div>
       <div class="proj-dec-actions">
-        <button class="proj-dec-btn" title="Editar" onclick="_projEditDecision('${esc(projId)}','${esc(d.id)}')">✎</button>
-        <button class="proj-dec-btn proj-dec-btn-del" title="Eliminar" onclick="_projDeleteDecision('${esc(projId)}','${esc(d.id)}')">✕</button>
+        <button class="proj-dec-btn" title="Editar" data-action="dec-edit" data-proj-id="${esc(projId)}" data-dec-id="${esc(d.id)}">✎</button>
+        <button class="proj-dec-btn proj-dec-btn-del" title="Eliminar" data-action="dec-delete" data-proj-id="${esc(projId)}" data-dec-id="${esc(d.id)}">✕</button>
       </div>
     </div>`).join('');
 
@@ -922,15 +918,15 @@ function _renderDecisionsSection(el, projId, decisions) {
     <div class="proj-dec-header">
       <span class="proj-dec-title">🗂 Decisiones</span>
       ${decisions.length ? `<span class="proj-dec-count">${decisions.length}</span>` : ''}
-      <button class="proj-dec-add-btn" onclick="_projOpenAddDecision('${esc(projId)}')" title="Agregar decisión">＋ Agregar</button>
+      <button class="proj-dec-add-btn" data-action="dec-add" data-proj-id="${esc(projId)}" title="Agregar decisión">＋ Agregar</button>
     </div>
     <div id="proj-dec-form-${esc(projId)}" class="proj-dec-form hidden">
       <textarea class="proj-dec-textarea" id="proj-dec-ta-${esc(projId)}" placeholder="Describe la decisión tomada…" rows="3"></textarea>
       <div class="proj-dec-form-row">
         <input class="proj-dec-input" id="proj-dec-author-${esc(projId)}" type="text" placeholder="Autor / rol (ej: PO · Alex)" maxlength="60">
         <div class="proj-dec-form-actions">
-          <button class="proj-dec-btn proj-dec-btn-save" onclick="_projSaveDecision('${esc(projId)}')">Guardar</button>
-          <button class="proj-dec-btn" onclick="_projCancelDecision('${esc(projId)}')">Cancelar</button>
+          <button class="proj-dec-btn proj-dec-btn-save" data-action="dec-save" data-proj-id="${esc(projId)}">Guardar</button>
+          <button class="proj-dec-btn" data-action="dec-cancel" data-proj-id="${esc(projId)}">Cancelar</button>
         </div>
       </div>
     </div>
@@ -1037,8 +1033,8 @@ function _projCtxStartEdit(projId) {
     <div class="proj-ctx-header">
       <span class="proj-ctx-label">📄 Contexto</span>
       <div class="proj-ctx-actions">
-        <button class="proj-ctx-btn proj-ctx-save" onclick="_projCtxSave('${projId}')">Guardar</button>
-        <button class="proj-ctx-btn proj-ctx-cancel" onclick="_projCtxCancelEdit('${projId}')">Cancelar</button>
+        <button class="proj-ctx-btn proj-ctx-save" data-action="ctx-save" data-filter-id="${projId}">Guardar</button>
+        <button class="proj-ctx-btn proj-ctx-cancel" data-action="ctx-cancel" data-filter-id="${projId}">Cancelar</button>
       </div>
     </div>
     <textarea class="proj-ctx-textarea" id="proj-ctx-ta-${projId}">${esc(raw)}</textarea>`;
@@ -1187,7 +1183,7 @@ function renderProjectAnalytics(projId) {
       </div>
     </div>
     <div class="proj-analytics-export-row">
-      <button class="btn-export-analytics" onclick="downloadProjectReport('${projId}')">⬇️ Descargar reporte del proyecto</button>
+      <button class="btn-export-analytics" data-action="download-project-report" data-proj-id="${projId}">⬇️ Descargar reporte del proyecto</button>
     </div>`;
 }
 
@@ -1279,3 +1275,91 @@ window._projCtxToggleSec        = _projCtxToggleSec;
 window._projToggleAIFilter      = _projToggleAIFilter;
 window._projViewSearchInput     = _projViewSearchInput;
 window._toggleProjAnalytics     = _toggleProjAnalytics;
+
+// --- Delegation: locus-projects.js ---
+document.addEventListener('DOMContentLoaded', () => {
+  // Contenedor principal del tab proyectos
+  const tabProyectos = document.getElementById('tab-proyectos-inner') || document.body;
+  tabProyectos.addEventListener('click', e => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const { action, projId, aiId, filterId, secId, decId, code, sessId } = {
+      action: el.dataset.action,
+      projId: el.dataset.projId,
+      aiId: el.dataset.aiId,
+      filterId: el.dataset.filterId,
+      secId: el.dataset.secId,
+      decId: el.dataset.decId,
+      code: el.dataset.code,
+      sessId: el.dataset.sessId
+    };
+    switch (action) {
+      case 'open-proj-modal':
+        if (typeof openProjModal === 'function') openProjModal();
+        break;
+      case 'toggle-archived-section': {
+        const o = localStorage.getItem('proy2-archived-open') !== '0';
+        localStorage.setItem('proy2-archived-open', o ? '0' : '1');
+        if (typeof renderProyectos === 'function') renderProyectos();
+        break;
+      }
+      case 'go-to-tracker':
+        if (typeof switchTab === 'function') switchTab('tab-tracker');
+        break;
+      case 'go-to-sprint-create':
+        if (typeof switchTab === 'function') switchTab('backlog');
+        if (typeof switchSubTab === 'function') switchSubTab('backlog');
+        break;
+      case 'toggle-ai-filter':
+        if (typeof _projToggleAIFilter === 'function') _projToggleAIFilter(aiId);
+        break;
+      case 'toggle-proj-analytics':
+        if (typeof _toggleProjAnalytics === 'function') _toggleProjAnalytics(filterId);
+        break;
+      case 'ctx-toggle-sec':
+        if (typeof _projCtxToggleSec === 'function') _projCtxToggleSec(secId);
+        break;
+      case 'ctx-save':
+        if (typeof _projCtxSave === 'function') _projCtxSave(filterId);
+        break;
+      case 'ctx-cancel':
+        if (typeof _projCtxCancelEdit === 'function') _projCtxCancelEdit(filterId);
+        break;
+      case 'ctx-start-edit':
+        if (typeof _projCtxStartEdit === 'function') _projCtxStartEdit(filterId);
+        break;
+      case 'qn-nav-to-item':
+        if (typeof _qnNavToItem === 'function') _qnNavToItem(code);
+        break;
+      case 'open-session-detail':
+        if (typeof openDetail === 'function') openDetail(aiId, sessId);
+        break;
+      case 'dec-edit':
+        if (typeof _projEditDecision === 'function') _projEditDecision(projId, decId);
+        break;
+      case 'dec-delete':
+        if (typeof _projDeleteDecision === 'function') _projDeleteDecision(projId, decId);
+        break;
+      case 'dec-add':
+        if (typeof _projOpenAddDecision === 'function') _projOpenAddDecision(projId);
+        break;
+      case 'dec-save':
+        if (typeof _projSaveDecision === 'function') _projSaveDecision(projId);
+        break;
+      case 'dec-cancel':
+        if (typeof _projCancelDecision === 'function') _projCancelDecision(projId);
+        break;
+      case 'download-project-report':
+        if (typeof downloadProjectReport === 'function') downloadProjectReport(projId);
+        break;
+      case 'proj-delete-execute':
+        e.stopPropagation();
+        if (typeof _proyDeleteExecute === 'function') _proyDeleteExecute(projId);
+        break;
+      case 'proj-delete-cancel':
+        e.stopPropagation();
+        if (typeof _proyDeleteInline === 'function') _proyDeleteInline(projId);
+        break;
+    }
+  });
+});
