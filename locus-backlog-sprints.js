@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:12 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-10 · mod:13 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -620,7 +620,7 @@ export function setSprintStatus(id, newStatus) {
 
 // T-202605-026: enforcea exactamente un current por proyecto
 export function setSprintCurrent(sprintId, projectId) {
-  const allSprints = getActiveSprints().filter(s => s.project === projectId || s.projectId === projectId);
+  const allSprints = getActiveSprints().filter(s => s.projectId === projectId);
   const sp = allSprints.find(s => s.id === sprintId);
 
   if (!sp) {
