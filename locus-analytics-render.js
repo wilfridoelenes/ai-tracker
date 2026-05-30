@@ -1,3 +1,4 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 import { renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
 import { _closedItemsInRange, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, sessionDateKey } from './locus-analytics-core.js';
 
@@ -17,6 +18,7 @@ import { esc, switchTab } from './locus-ui-shell.js';
 // R-202605-061: dirty flag — evita renders redundantes sin cambio de estado
 let _analyticsDirty = false;
 export function _markAnalyticsDirty() { _analyticsDirty = true; }
+// window.* — solo para locus-api.js (T6)
 window._markAnalyticsDirty = _markAnalyticsDirty;
 
 export function renderAnalytics() {

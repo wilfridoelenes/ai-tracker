@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-29 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -727,6 +727,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── Exposición pública ──────────────────────────────────────────────────────
 
+// ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
 window.renderSprintTab          = renderSprintTab;
 window._renderSprintItems       = _renderSprintItems;
 window._renderSprintWorkers     = _renderSprintWorkers;

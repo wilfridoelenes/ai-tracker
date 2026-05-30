@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -915,6 +915,7 @@ function _initReportsListeners() {
 document.addEventListener('DOMContentLoaded', _initReportsListeners);
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
+// ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
 window.downloadReport          = downloadReport;
 window._syncCleanProjectBtn    = _syncCleanProjectBtn;
 window.downloadGlobalReport    = downloadGlobalReport;

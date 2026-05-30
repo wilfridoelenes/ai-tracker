@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 15:00 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
 // locus-misc-ui.js
 // Módulo: Helpers de UI — getNextOccurrence, _resetExpired, Tags, Pendientes, Doc Activity Drawer
 // Extraído de ai-tracker-ai-notes.js
@@ -15,7 +15,7 @@ import { esc } from './locus-ui-shell.js';
 
 // Helpers para globales que viven en módulos no adjuntos (TAG_COLORS, esc, currentTab, renderHoy, _relTs, popAIId, popSessId)
 // Acceso via window con guards — patrón establecido en este stack para evitar ciclos de importación
-const _esc = (s) => window.esc ? window.esc(s) : String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const _esc = (s) => esc(s);
 const _getTagColors = () => window.TAG_COLORS || [];
 const _getCurrentTab = () => window.currentTab || '';
 const _renderHoy = () => { if (typeof window.renderHoy === 'function') window.renderHoy(); };
@@ -79,11 +79,11 @@ setInterval(() => {
   });
   if (changed) {
     save();
-    if (typeof window.render === 'function') window.render();
+    render();
     if (_getCurrentTab() === 'sesiones') _renderHoy();
   }
-  if (typeof window.updateStats === 'function') window.updateStats();
-  if (typeof window.renderStatusBar === 'function') window.renderStatusBar();
+  updateStats();
+  renderStatusBar();
 }, 1000);
 
 // ── Tags ──
@@ -127,7 +127,7 @@ export function toggleTagOnSession(tagId) {
   if (!s.tags) s.tags = [];
   const idx = s.tags.indexOf(tagId);
   if (idx >= 0) s.tags.splice(idx, 1); else s.tags.push(tagId);
-  save(); renderTagPicker(); if (typeof window.render === 'function') window.render();
+  save(); renderTagPicker(); render();
   if (window.popAIId === tagModalAIId && window.popSessId === tagModalSessId) openDetail(tagModalAIId, tagModalSessId);
 }
 export function addNewTag() {
@@ -139,7 +139,7 @@ export function addNewTag() {
   const found = tagModalSessId ? _findSession(tagModalSessId) : null;
   const s = found ? found.sess : null;
   if (s) { if (!s.tags) s.tags = []; s.tags.push(tag.id); }
-  save(); renderTagPicker(); renderColorPicker(); if (typeof window.render === 'function') window.render();
+  save(); renderTagPicker(); renderColorPicker(); render();
   document.getElementById('tag-new-input').value = '';
   showToast('success', `Etiqueta "${name}" creada`);
 }
@@ -297,6 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─────────────────────────────────────────────────────────────────────────
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
+// ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
 window._updateDocLogCount       = _updateDocLogCount;
 window.openStandaloneCheckpoint = openStandaloneCheckpoint;
 window.openPendPanel            = openPendPanel;

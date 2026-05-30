@@ -1,3 +1,7 @@
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-29 UTC-6
+// locus-backlog-archive.js
+// Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
+
 import { renderStats } from './locus-backlog-core.js';
 import { buildBacklogItem } from './locus-backlog-item.js';
 
@@ -7,9 +11,6 @@ import { getActiveSprints } from './locus-storage.js';
 
 import { esc } from './locus-ui-shell.js';
 
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
-// locus-backlog-archive.js
-// Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 // Dependencias: locus-backlog-core.js · locus-storage.js
 
 // ─────────────────────────────────────────────────────────────────────────────

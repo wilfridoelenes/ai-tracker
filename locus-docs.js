@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-29 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -1021,6 +1021,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── END T-202605-031 locus-docs ──
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
+// ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
 window._setBacklogModified          = _setBacklogModified;
 window._updateSubTabButtons         = _updateSubTabButtons;
 window.importHtmlMap                = importHtmlMap;

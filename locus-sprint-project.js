@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:14 · autor:Rune · 2026-05-29 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
@@ -782,7 +782,7 @@ export function _setActiveProjectFilter(projId) {
   else localStorage.removeItem('current-project-filter');
   _updateProjBreadcrumb();
   _updateProjFilterBtn();
-  if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
+  _updateHeaderProjectLabel();
   _syncCleanProjectBtn();
 }
 
@@ -1023,7 +1023,7 @@ function confirmProjForm() {
     _renderProjList();
     _updateProjBreadcrumb();
     _updateProjFilterBtn();
-    if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
+    _updateHeaderProjectLabel();
     return;
   } else {
     const id = 'proj-' + Math.random().toString(36).slice(2, 8);
@@ -1367,7 +1367,7 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
   // T-077: inicializar estado visual de filtro proyectos
   if (typeof _updateProjBreadcrumb === 'function') _updateProjBreadcrumb();
   if (typeof _updateProjFilterBtn === 'function') _updateProjFilterBtn();
-  if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
+  _updateHeaderProjectLabel();
 
   // T-202605-064: bindings estáticos proj-panel (on* removidos de index.html)
   const _projPanelOverlay = document.getElementById('proj-panel-overlay');
@@ -1551,6 +1551,7 @@ export function exportContextMd() {
 }
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
+// ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
 window.getProjectById            = getProjectById;
 window._getActiveProjectFilter   = _getActiveProjectFilter;
 window.pad                       = window.pad || pad;           // T3.bis

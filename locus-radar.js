@@ -23,6 +23,7 @@ import { openAddAI } from './locus-workers.js';
 import { toast } from './locus-toast.js';
 
 // fmt12, getCD, _isInSession, _hoyMsUntilReset — módulo fuente con ciclo potencial; window fallback
+// ── Ciclo potencial: locus-sesiones-utils.js — guards via window (patrón establecido) ──
 const fmt12           = (...a) => typeof window.fmt12           === 'function' ? window.fmt12(...a)           : a[0] || '';
 const getCD           = (...a) => typeof window.getCD           === 'function' ? window.getCD(...a)           : '';
 const _isInSession    = (ai)   => typeof window._isInSession    === 'function' ? window._isInSession(ai)    : false;
@@ -117,6 +118,8 @@ function _renderNotifSection(allNotifs, readSet) {
 // B menor: _rsbToggleCfg y renderGlobalRadarSidebar leen/escriben este valor
 // Expuesto en window para que openNotifConfig (locus-checkpoint-stats.js) pueda sincronizarlo
 let _rsbCfgExpanded = false;
+let _rsbAutoHideInited = false;
+let _rsbHandlersInited = false;
 Object.defineProperty(window, '_rsbCfgExpanded', {
   get: function() { return _rsbCfgExpanded; },
   set: function(v) { _rsbCfgExpanded = !!v; },
@@ -308,6 +311,7 @@ function _buildExhaustedCard(ai) {
 // T-202605-118: dirty flag — render quirúrgico
 let _radarDirty = false;
 export function _markRadarDirty() { _radarDirty = true; }
+// ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
 window._markRadarDirty = _markRadarDirty;
 
 export function renderGlobalRadarSidebar() {
@@ -600,8 +604,8 @@ export function _initRadarSidebarState() {
   }
 
   // R-202605-113: Auto-hide — colapsa si el cursor sale y no regresa en 2.5s
-  if (!window._rsbAutoHideInited) {
-    window._rsbAutoHideInited = true;
+  if (!_rsbAutoHideInited) {
+    _rsbAutoHideInited = true;
     let _rsbHideTimer = null;
 
     sidebar.addEventListener('mouseleave', () => {
@@ -623,8 +627,8 @@ export function _initRadarSidebarState() {
   }
 
   // T-202605-045: Migrar handlers inline de index.html a addEventListener
-  if (!window._rsbHandlersInited) {
-    window._rsbHandlersInited = true;
+  if (!_rsbHandlersInited) {
+    _rsbHandlersInited = true;
 
     const pinBtn = document.getElementById('rsb-pin-btn');
     if (pinBtn) pinBtn.addEventListener('click', rsbTogglePin);

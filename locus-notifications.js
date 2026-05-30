@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -397,6 +397,7 @@ export function _notifGoto(id) {
 }
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
+// ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
 window.hasRecentSession       = hasRecentSession;
 window._notifReadSet          = _notifReadSet;
 window._computeNotifications  = _computeNotifications;

@@ -1284,7 +1284,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 // ── END B-202605-019 ─────────────────────────────────────────────────────────
 
-// ── Exposición pública — T-202605-068 ───────────────────────────────────────
+// ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
 window.esc                = esc;
 window.switchTab          = switchTab;
 window.switchSubTab       = switchSubTab;

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
 // locus-contracts.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd

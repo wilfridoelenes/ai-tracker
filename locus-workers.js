@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm.
 //   Define AVATAR_LOGOS (SVGs de avatares) — movido desde locus-checkpoint-stats.js.
@@ -332,6 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // closeModal tiene callers inline en index.html (L648, L679) — fallback evita ReferenceError si locus-workers.js no cargó.
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
 window.openAddAI              = openAddAI;
+// ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
 window.confirmAddAI           = confirmAddAI;
 window.confirmClear           = confirmClear;
 window.deleteAI               = deleteAI;

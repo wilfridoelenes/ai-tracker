@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -1260,6 +1260,7 @@ function toggleProjectSection(key) {
 }
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
+// ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
 window.renderProyectos          = renderProyectos;
 window.renderProject            = renderProject;
 window.getAIColor               = getAIColor;
