@@ -1,4 +1,4 @@
-// [AS] v1.2 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 22:15 UTC-6
+// [AS] v1.2 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -22,7 +22,7 @@ import { render } from './locus-sesiones.js';
 
 import { showToast } from './locus-toast.js';
 
-import { esc } from './locus-ui-shell.js';
+import { esc, getCurrentTab } from './locus-ui-shell.js';
 
 // Constantes canónicas del ecosistema — roles disponibles para el select de ítem
 // Fuente: OB-STRATEGY §6. Actualizar aquí si se agregan/eliminan roles.
@@ -1864,7 +1864,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     saveBacklog(); // B-202605-007: _undoSnapshot() movido antes del forEach
     _setBacklogModified();
     renderStats(); // siempre actualizar stat bar aunque no estemos en tab Backlog
-    if (currentTab === 'backlog') { _markBacklogListDirty(); renderBacklogList(); updateBacklogBanner(); }
+    if (getCurrentTab() === 'backlog') { _markBacklogListDirty(); renderBacklogList(); updateBacklogBanner(); }
   }
   return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions };
 }
