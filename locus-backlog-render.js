@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-11 · mod:9 · autor:Rune · 2026-05-30 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogFocusMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
@@ -431,6 +431,7 @@ function _attachSprintBarDelegation() {
 
 // T-202605-054: delegación de eventos para #backlog-list — plan view drag handlers
 // Cubre: _planDragStart · _planDragEnd · _planDragOver · _planDragLeave · _planDrop
+// T-202605-028: data-plan-col ahora puede ser 'left' o un sprintId real
 function _attachPlanViewDelegation() {
   const listEl = document.getElementById('backlog-list');
   if (!listEl || listEl._planDelegationAttached) return;
@@ -439,7 +440,6 @@ function _attachPlanViewDelegation() {
   listEl.addEventListener('dragstart', function _planViewDragStart(e) {
     const card = e.target.closest('.bl-plan-card');
     if (!card) return;
-    // _planDragStart usa e.currentTarget — pasamos un proxy con currentTarget = card
     if (typeof _planDragStart === 'function') _planDragStart(Object.assign(e, { currentTarget: card }));
   });
   listEl.addEventListener('dragend', function _planViewDragEnd(e) {
@@ -448,19 +448,20 @@ function _attachPlanViewDelegation() {
     if (typeof _planDragEnd === 'function') _planDragEnd(Object.assign(e, { currentTarget: card }));
   });
   listEl.addEventListener('dragover', function _planViewDragOver(e) {
+    // T-202605-028: aceptar drop en sprint-dest cards individuales o en columna izquierda
     const col = e.target.closest('[data-plan-col]');
     if (!col) return;
-    if (typeof _planDragOver === 'function') _planDragOver(e);
+    if (typeof _planDragOver === 'function') _planDragOver(Object.assign(e, { currentTarget: col }));
   });
   listEl.addEventListener('dragleave', function _planViewDragLeave(e) {
     const col = e.target.closest('[data-plan-col]');
     if (!col) return;
-    if (typeof _planDragLeave === 'function') _planDragLeave(e);
+    if (typeof _planDragLeave === 'function') _planDragLeave(Object.assign(e, { currentTarget: col }));
   });
   listEl.addEventListener('drop', function _planViewDrop(e) {
     const col = e.target.closest('[data-plan-col]');
     if (!col) return;
-    if (typeof _planDrop === 'function') _planDrop(e, col.dataset.planCol);
+    if (typeof _planDrop === 'function') _planDrop(Object.assign(e, { currentTarget: col }), col.dataset.planCol);
   });
 }
 
@@ -486,13 +487,12 @@ function _renderSprintRoadmap() {
 // alias legacy — roadmapGoToSprint sigue funcionando igual
 
 // R-202605-130: vista Planificación — layout dos columnas con drag & drop
+// T-202605-028: columna derecha muestra todos los sprints active como destinos
 export function _renderPlanningView(listEl, closeCallback) {
   const activeSprint = _getActiveSprint();
   const allSprints   = getActiveSprints();
-  // Determinar sprint destino: siguiente abierto no activo, o null si no hay
+  // T-202605-028: todos los sprints con status active son destinos válidos
   const openSprints  = allSprints.filter(s => s.status === 'active');
-  // Sprint destino = sprint activo, o null si no hay
-  const targetSprint = activeSprint || null;
 
   // Columna izquierda: ítems pendientes sin sprint (no done, no descartado, no historico)
   // T-202605-024: icebox es el valor canónico de "sin sprint asignado" (BR-Ecosystem V1.6)
@@ -509,51 +509,12 @@ export function _renderPlanningView(listEl, closeCallback) {
     return (parseInt(b.effort) || 1) - (parseInt(a.effort) || 1);
   });
 
-  // Columna derecha: ítems ya en el sprint destino (pendientes)
-  const inTarget = targetSprint
-    ? ITEMS.filter(i =>
-        i.sprint === targetSprint.id &&
-        i.status !== 'done' &&
-        i.status !== 'descartado' &&
-        i.status !== 'historico'
-      )
-    : [];
-
-  // Calcular effort acumulado en sprint destino
-  const targetEffort = inTarget.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
-
-  // Velocidad promedio — AC-6/AC-7: _calcEstimatedVelocity disponible
-  const velocityData  = _calcEstimatedVelocity();
-  const velocityAvg   = velocityData ? velocityData.avg : null;
-  const isOverloaded  = velocityAvg !== null && targetEffort > velocityAvg * 1.3;
-  const pct           = velocityAvg !== null && velocityAvg > 0
-    ? Math.min(Math.round((targetEffort / velocityAvg) * 100), 999)
-    : null;
-
-  // Barra de esfuerzo acumulado
-  const effortBarWidth = velocityAvg
-    ? Math.min((targetEffort / (velocityAvg * 1.3)) * 100, 100)
-    : 0;
-
-  // Meter HTML
-  const meterHtml = velocityAvg !== null ? `
-    <div class="bl-plan-meter">
-      <div class="bl-plan-meter-bar">
-        <div class="bl-plan-meter-fill ${isOverloaded ? 'bl-plan-meter-fill--over' : ''}"
-             style="--plan-meter-pct: ${effortBarWidth}%"></div>
-        <div class="bl-plan-meter-threshold" title="Velocidad promedio (${velocityAvg} effort)"></div>
-      </div>
-      <span class="bl-plan-meter-label ${isOverloaded ? 'bl-plan-meter-label--over' : ''}">
-        ${targetEffort} / ${velocityAvg} effort${pct !== null ? ` (${pct}%)` : ''}
-        ${isOverloaded ? ' · ⚠ Sobrecarga' : ''}
-      </span>
-    </div>` : `
-    <div class="bl-plan-meter">
-      <span class="bl-plan-meter-label">Effort acumulado: <strong>${targetEffort}</strong> — sin velocidad histórica</span>
-    </div>`;
+  // Velocidad promedio — para meter de cada sprint destino
+  const velocityData = _calcEstimatedVelocity();
+  const velocityAvg  = velocityData ? velocityData.avg : null;
 
   // Helper: card compacta de ítem
-  function _planCard(item, draggable, col) {
+  function _planCard(item, draggable, sprintId) {
     const type  = itemType(item.code) || '';
     const typeColors = { T: '#2ecc78', R: '#38bdf8', B: '#e85555', P: '#7c6af7' };
     const tc    = typeColors[type] || 'var(--hint)';
@@ -561,10 +522,11 @@ export function _renderPlanningView(listEl, closeCallback) {
     const dots  = Array.from({length: 3}, (_, i) =>
       `<span class="bl-plan-dot${i < eff ? ' on' : ''}"></span>`).join('');
     const prioClass = item.priority === 'high' ? 'bl-plan-prio--high' : item.priority === 'low' ? 'bl-plan-prio--low' : '';
+    // T-202605-028: data-sprint-dest indica el sprint destino del drop
     return `<div class="bl-plan-card${draggable ? ' bl-plan-card--draggable' : ''}"
          draggable="${draggable ? 'true' : 'false'}"
          data-code="${esc(item.code)}"
-         data-col="${col}"
+         data-col="${sprintId || 'left'}"
          style="--item-type-color:${tc}">
       <div class="bl-plan-card-header">
         <span class="bl-plan-card-type">${type}</span>
@@ -576,13 +538,66 @@ export function _renderPlanningView(listEl, closeCallback) {
     </div>`;
   }
 
-  // Construir columnas
-  const leftCards  = unassigned.map(i => _planCard(i, true, 'left')).join('') ||
-    `<div class="bl-plan-empty">Sin ítems sin sprint</div>`;
-  const rightCards = inTarget.map(i => _planCard(i, false, 'right')).join('') ||
-    `<div class="bl-plan-empty">Sprint vacío — arrastra ítems aquí</div>`;
+  // Helper: meter HTML para un sprint destino
+  function _sprintMeterHtml(sprintId) {
+    const sprintEffort = ITEMS
+      .filter(i => i.sprint === sprintId && i.status !== 'done' && i.status !== 'descartado' && i.status !== 'historico')
+      .reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+    if (velocityAvg === null) {
+      return `<div class="bl-plan-meter"><span class="bl-plan-meter-label">Effort: <strong>${sprintEffort}</strong> — sin velocidad histórica</span></div>`;
+    }
+    const isOver = sprintEffort > velocityAvg * 1.3;
+    const pct    = velocityAvg > 0 ? Math.min(Math.round((sprintEffort / velocityAvg) * 100), 999) : null;
+    const barW   = Math.min((sprintEffort / (velocityAvg * 1.3)) * 100, 100);
+    return `<div class="bl-plan-meter">
+      <div class="bl-plan-meter-bar">
+        <div class="bl-plan-meter-fill ${isOver ? 'bl-plan-meter-fill--over' : ''}" style="--plan-meter-pct:${barW}%"></div>
+        <div class="bl-plan-meter-threshold" title="Velocidad promedio (${velocityAvg} effort)"></div>
+      </div>
+      <span class="bl-plan-meter-label ${isOver ? 'bl-plan-meter-label--over' : ''}">
+        ${sprintEffort} / ${velocityAvg} effort${pct !== null ? ` (${pct}%)` : ''}${isOver ? ' · ⚠ Sobrecarga' : ''}
+      </span>
+    </div>`;
+  }
 
-  const targetLabel = targetSprint ? (targetSprint.label || targetSprint.id) : 'Sin sprint destino';
+  // Helper: bloque HTML de un sprint destino en columna derecha
+  // T-202605-028: cada sprint activo es una zona de drop independiente con su data-plan-col = sprintId
+  function _sprintDestCard(sprint) {
+    const isCurrent = activeSprint && sprint.id === activeSprint.id;
+    const label     = sprint.label || sprint.id;
+    const inSprint  = ITEMS.filter(i =>
+      i.sprint === sprint.id &&
+      i.status !== 'done' &&
+      i.status !== 'descartado' &&
+      i.status !== 'historico'
+    );
+    const cards = inSprint.map(i => _planCard(i, false, sprint.id)).join('') ||
+      `<div class="bl-plan-empty">Sprint vacío — arrastra ítems aquí</div>`;
+    const currentBadge = isCurrent
+      ? `<span class="bl-plan-dest-current-badge" aria-label="Sprint en curso">en curso</span>`
+      : '';
+    return `<div class="bl-plan-dest-sprint bl-plan-col${isCurrent ? ' bl-plan-dest-sprint--current' : ''}"
+               data-plan-col="${esc(sprint.id)}">
+      <div class="bl-plan-col-header">
+        <span class="bl-plan-col-title">${esc(label)}</span>
+        ${currentBadge}
+        <span class="bl-plan-col-count">${inSprint.length} ítems</span>
+      </div>
+      ${_sprintMeterHtml(sprint.id)}
+      <div class="bl-plan-col-body">
+        ${cards}
+      </div>
+    </div>`;
+  }
+
+  // Construir columna izquierda
+  const leftCards = unassigned.map(i => _planCard(i, true, 'left')).join('') ||
+    `<div class="bl-plan-empty">Sin ítems sin sprint</div>`;
+
+  // Construir columna derecha — T-202605-028: N cards, uno por sprint active
+  const rightColContent = openSprints.length
+    ? openSprints.map(_sprintDestCard).join('')
+    : `<div class="bl-plan-empty bl-plan-dest-empty">No hay sprints abiertos</div>`;
 
   listEl.innerHTML = `
     <div class="bl-planning-view" id="bl-planning-view">
@@ -595,7 +610,7 @@ export function _renderPlanningView(listEl, closeCallback) {
       </div>
 
       <div class="bl-plan-columns">
-        <!-- Columna izquierda: sin sprint -->
+        <!-- Columna izquierda: icebox -->
         <div class="bl-plan-col bl-plan-col--left"
              id="bl-plan-col-left"
              data-plan-col="left">
@@ -613,22 +628,20 @@ export function _renderPlanningView(listEl, closeCallback) {
           <div class="bl-plan-sep-arrow">→</div>
         </div>
 
-        <!-- Columna derecha: sprint destino -->
-        <div class="bl-plan-col bl-plan-col--right ${!targetSprint ? 'bl-plan-col--disabled' : ''}"
-             id="bl-plan-col-right"
-             data-plan-col="right">
+        <!-- Columna derecha: sprints destino (T-202605-028) -->
+        <div class="bl-plan-col bl-plan-col--right bl-plan-col--dest-stack"
+             id="bl-plan-col-right">
           <div class="bl-plan-col-header">
-            <span class="bl-plan-col-title">${esc(targetLabel)}</span>
-            <span class="bl-plan-col-count">${inTarget.length} ítems</span>
+            <span class="bl-plan-col-title">Sprints abiertos</span>
+            <span class="bl-plan-col-count">${openSprints.length} sprint${openSprints.length !== 1 ? 's' : ''}</span>
           </div>
-          ${meterHtml}
-          <div class="bl-plan-col-body" id="bl-plan-right-body">
-            ${rightCards}
+          <div class="bl-plan-col-body bl-plan-dest-list" id="bl-plan-right-body">
+            ${rightColContent}
           </div>
         </div>
       </div>
 
-      ${!targetSprint ? '<div class="bl-plan-no-sprint">No hay sprint destino disponible. Crea un sprint para empezar a planificar.</div>' : ''}
+      ${!openSprints.length ? '<div class="bl-plan-no-sprint">No hay sprints abiertos. Crea un sprint para empezar a planificar.</div>' : ''}
     </div>`;
 }
 
@@ -644,7 +657,8 @@ function _planDragStart(e) {
 
 function _planDragEnd(e) {
   e.currentTarget.classList.remove('bl-plan-card--dragging');
-  document.querySelectorAll('.bl-plan-col').forEach(c => c.classList.remove('bl-plan-col--over'));
+  // T-202605-028: limpiar drag-over en todos los destinos (sprint cards y columna izquierda)
+  document.querySelectorAll('.bl-plan-col, .bl-plan-dest-sprint').forEach(c => c.classList.remove('bl-plan-col--over'));
   _planDragCode = null;
 }
 
@@ -661,30 +675,28 @@ function _planDragLeave(e) {
 
 function _planDrop(e, targetCol) {
   e.preventDefault();
-  e.currentTarget.classList.remove('bl-plan-col--over');
+  // T-202605-028: limpiar en el destino exacto que recibió el drop
+  const dropTarget = e.currentTarget;
+  if (dropTarget) dropTarget.classList.remove('bl-plan-col--over');
   if (!_planDragCode) return;
 
   const item = ITEMS.find(i => i.code === _planDragCode);
   if (!item) return;
 
-  if (targetCol === 'right') {
-    // Asignar al sprint destino
-    const activeSprint = _getActiveSprint();
-    const targetSprint = activeSprint || null;
-    if (!targetSprint) return;
-    if (item.sprint === targetSprint.id) return; // ya está asignado
-    setItemSprint(item.code, targetSprint.id);
-  } else if (targetCol === 'left') {
-    // Desasignar del sprint — solo si venía de la derecha (tiene sprint asignado)
+  if (targetCol === 'left') {
+    // Desasignar del sprint — solo si venía con sprint asignado
     const currentSprint = item.sprint;
     if (!currentSprint || currentSprint === 'icebox') return;
     setItemSprint(item.code, 'icebox');
+  } else {
+    // T-202605-028: targetCol es el sprintId del card destino (no 'right' genérico)
+    const targetSprintId = targetCol;
+    if (!targetSprintId) return;
+    if (item.sprint === targetSprintId) return; // ya está asignado a este sprint
+    setItemSprint(item.code, targetSprintId);
   }
 
-  // Re-renderizar la vista planificación inmediatamente — renderBacklogList()
-  // actualiza el backlog normal pero no este panel; sin este re-render el DOM
-  // queda desactualizado y la card parece regresar visualmente.
-  // B-202605-021: _renderSprintPlanificar no existe — nombre correcto es _renderPlanningView(listEl)
+  // Re-renderizar la vista planificación inmediatamente
   const _planListEl = document.getElementById('backlog-list');
   if (_planListEl) {
     _renderPlanningView(_planListEl);

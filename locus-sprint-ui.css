@@ -1,5 +1,4 @@
-/* locus-sprint-ui.css */
-/* Versión: 1.1 | Última actualización: 2026-05-25 | Locus — Vista Planificación + EXECUTION-PLAN UI — extraído de locus-proyectos.css via R-202605-040 */
+/* [PP] v1.2.3 · sprint:PP-S-11 · mod:3 · autor:Rune · 2026-05-30 UTC-6 */
 
 /* === locus-backlog-render.js ===
    Funciones: _renderPlanningView · _planCard · _planDragStart · _planDragEnd · _planDrop */
@@ -353,7 +352,75 @@
 }
 
 
-/* ══ T-202605-509: Toggle colapso/expansión zona --done en Plan ══ */
+/* ══ T-202605-028: Vista Planificación — múltiples sprints abiertos como destino ══ */
+
+/* Columna derecha: scroll vertical cuando hay múltiples sprints */
+.bl-plan-col--dest-stack .bl-plan-col-body {
+  overflow-y: auto;
+  gap: 8px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Lista de sprint-dest cards dentro del col-body */
+.bl-plan-dest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Card individual de sprint destino — zona de drop */
+.bl-plan-dest-sprint {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  overflow: hidden;
+  transition: border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+  min-height: unset;
+}
+
+/* Sprint actual (current) — distinción visual */
+.bl-plan-dest-sprint--current {
+  border-color: var(--accent-border, color-mix(in srgb, var(--accent) 30%, transparent));
+}
+
+.bl-plan-dest-sprint--current .bl-plan-col-header {
+  background: color-mix(in srgb, var(--accent) 6%, var(--surface3));
+  border-bottom-color: var(--accent-border, color-mix(in srgb, var(--accent) 20%, transparent));
+}
+
+/* Badge "en curso" */
+.bl-plan-dest-current-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+/* Drag-over en sprint-dest individual */
+.bl-plan-dest-sprint.bl-plan-col--over {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim), inset 0 0 0 1px var(--accent-border);
+}
+
+/* Empty state cuando no hay sprints abiertos */
+.bl-plan-dest-empty {
+  color: var(--hint);
+  font-size: var(--text-sm);
+  text-align: center;
+  padding: 32px 16px;
+  opacity: 0.8;
+  user-select: none;
+}
+
+/* ══ END T-202605-028 ══ */
+
 
 /* .is-hidden como utilitaria global — toggle via classList, sin style.display en JS */
 .plan-sessions-row.is-hidden {
