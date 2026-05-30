@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-10 · mod:13 · autor:Rune · 2026-05-30 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1225,6 +1225,15 @@ function _applyStateData(raw) {
         sp.status = newStatus;
       }
     });
+    // T-202605-025: campo current — default false + migración automática
+    // Si exactamente un sprint tiene status: active → ese recibe current: true.
+    // Si cero o más de uno → ninguno recibe current: true automáticamente.
+    // Idempotente: corre en cada _applyStateData().
+    proj.sprints.forEach(sp => { if (sp.current === undefined) sp.current = false; });
+    const activeSprints = proj.sprints.filter(sp => sp.status === 'active');
+    if (activeSprints.length === 1 && !activeSprints[0].current) {
+      activeSprints[0].current = true;
+    }
     // Migrar sessions internas
     proj.sessions.forEach(s => {
       if (!s.tags) s.tags = [];
@@ -1427,9 +1436,14 @@ export function getActiveTracker() {
 }
 
 // Sprints del proyecto activo
-export function getActiveSprints() {
+// T-202605-025: parámetro opcional currentOnly — cuando true retorna el sprint current
+// del proyecto activo. null si no hay proyecto activo o ningún sprint tiene current: true.
+export function getActiveSprints(currentOnly = false) {
   const proj = getActiveProject();
-  return proj ? (proj.sprints || []) : [];
+  if (!proj) return currentOnly ? null : [];
+  const sprints = proj.sprints || [];
+  if (currentOnly) return sprints.find(sp => sp.current === true) || null;
+  return sprints;
 }
 
 // Contar sesiones de una IA en todos los proyectos
