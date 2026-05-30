@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:14 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-10 · mod:15 · autor:Rune · 2026-05-30 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -898,9 +898,11 @@ export async function _loadFromSupabase() {
 
   // R-202605-022 Fase 3 AC-1: snapshot del estado antes de cualquier mutación.
   // Si _loadFromSupabase falla a mitad, restauramos ITEMS y state al estado previo.
+  // T-202605-084: structuredClone garantiza deep clone — Object.assign shallow no es suficiente
+  // para objetos anidados como items[i].ac o items[i].intencion.
   const _itemsRef = (typeof window.ITEMS !== 'undefined') ? window.ITEMS : null;
-  const _itemsSnapshot = _itemsRef ? [..._itemsRef] : null;
-  const _stateSnapshot = JSON.parse(JSON.stringify(state));
+  const _itemsSnapshot = _itemsRef ? structuredClone(_itemsRef) : null;
+  const _stateSnapshot = structuredClone(state);
 
   try {
     setSyncStatus('syncing', '⟳ sincronizando');
@@ -1174,10 +1176,14 @@ export async function _loadFromSupabase() {
 
     // R-202605-022 Fase 3 AC-1: rollback — restaurar ITEMS y state al snapshot pre-carga
     // para evitar que un fallo a mitad deje el backlog en estado parcialmente aplicado.
+    // T-202605-084: restaurar ITEMS con deep clone del snapshot — shallow spread no restaura propiedades anidadas.
     if (_itemsRef && _itemsSnapshot) {
       _itemsRef.length = 0;
-      _itemsSnapshot.forEach(item => _itemsRef.push(item));
+      _itemsSnapshot.forEach(item => _itemsRef.push(structuredClone(item)));
     }
+    // T-202605-084: Object.assign(state, snapshot) restaura propiedades top-level correctamente
+    // porque _stateSnapshot es un deep clone (structuredClone) — cada propiedad anidada es
+    // una copia independiente. La referencia de state (window.state) se preserva.
     Object.assign(state, _stateSnapshot);
 
     showToast('warning', '⚠️ No se pudo cargar desde Supabase — operando en modo local', null, 6000);
