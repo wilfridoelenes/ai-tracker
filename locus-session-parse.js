@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -52,6 +52,19 @@ function normStatus(raw) {
     return '📤 Pendiente';
   }
   return resolved;
+}
+
+// R-202605-023: normaliza cualquier variante de status al valor canónico del backlog
+// antes de validar contra _validStatuses. Evita rechazo de variantes como 'en_revision',
+// 'En-Revision', 'en revisión', etc. que normStatus ya mapea correctamente.
+function _canonicalStatus(raw) {
+  if (!raw) return 'pendiente';
+  const s = raw.trim().toLowerCase();
+  if (s === 'done' || s.includes('done') || s.includes('listo')) return 'done';
+  if (s === 'descartado' || s.includes('descart') || s.includes('discard')) return 'descartado';
+  if (s === 'en-revision' || s === 'en_revision' || s === 'en revisión' || s === 'en-revisión') return 'en-revision';
+  if (s === 'historico' || s === 'histórico') return 'historico';
+  return 'pendiente';
 }
 
 function buildTGPreview(items, discrepancy) {
@@ -357,7 +370,9 @@ export function parsePaste(id) {
           _itemError = `Ítem [${_i}]: type inválido "${_it.type}". Valores válidos: P · T · R · B`;
           break;
         }
-        if (!_validStatuses.includes(_it.status)) {
+        // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
+        const _normSt = _canonicalStatus(_it.status);
+        if (!_validStatuses.includes(_normSt)) {
           _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision`;
           break;
         }
@@ -366,7 +381,7 @@ export function parsePaste(id) {
           code:          _it.code,
           title:         _it.title  || _it.desc  || '',
           desc:          _it.title  || _it.desc  || '',
-          status:        normStatus(_it.status),
+          status:        normStatus(_normSt),
           _noStatus:     false,
           effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
           area:          _it.area   || '',
@@ -440,8 +455,9 @@ export function parsePaste(id) {
             _itemError = `Ítem [${_i}]: type inválido "${_it.type}". Valores válidos: P · T · R · B`;
             break;
           }
-          // AC-7: status válido
-          if (!_validStatuses.includes(_it.status)) {
+          // AC-7: status válido — R-202605-023: normalizar antes de validar
+          const _normSt2 = _canonicalStatus(_it.status);
+          if (!_validStatuses.includes(_normSt2)) {
             _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision`;
             break;
           }
@@ -451,7 +467,7 @@ export function parsePaste(id) {
             code:          _it.code,
             title:         _it.title  || _it.desc  || '',
             desc:          _it.title  || _it.desc  || '',
-            status:        normStatus(_it.status),
+            status:        normStatus(_normSt2),
             _noStatus:     false,
             effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
             area:          _it.area   || '',
@@ -987,7 +1003,9 @@ function parsePasteStandalone() {
       itemError = `Ítem [${i}]: type inválido "${it.type}". Válidos: P · T · R · B`;
       break;
     }
-    if (!_validStatuses.includes(it.status)) {
+    // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
+    const _normSt3 = _canonicalStatus(it.status);
+    if (!_validStatuses.includes(_normSt3)) {
       itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision`;
       break;
     }
@@ -996,7 +1014,7 @@ function parsePasteStandalone() {
       code:          it.code,
       title:         it.title  || it.desc   || '',
       desc:          it.title  || it.desc   || '',
-      status:        normStatus(it.status),
+      status:        normStatus(_normSt3),
       _noStatus:     false,
       effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
       area:          it.area   || '',
