@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -10,7 +10,7 @@ import { openPulsoPanel } from './locus-pulso.js';
 import { _markTrackerDirty, render, selectTrackerAI } from './locus-sesiones.js';
 import { openDetail } from './locus-session-popup.js';
 import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
-import { _effectiveVersion, getAISessions, getActiveProject, getActiveTracker, getAllSessions, save } from './locus-storage.js';
+import { _effectiveVersion, getAISessions, getActiveProject, getActiveTracker, getAllSessions, save, _isInSession } from './locus-storage.js';
 
 import { switchTab } from './locus-ui-shell.js';
 
@@ -159,24 +159,12 @@ export function updateStats() {
   }
 }
 
-// Detecta si una IA está "en sesión": disponible con última sesión sin resetAt ni quickCapture
-// B-202605-026: agrega check de resetEpoch — alineado con _getCurrentSession en locus-sesiones.js.
-// Sin este check, Workers con resetEpoch previo podían quedar en verde aunque tuvieran sesión activa.
-export function _isInSession(ai) {
-  if (ai.status !== 'available' || ai.interrupted) return false;
-  const allSess = getAllSessions().filter(s => s.aiId === ai.id);
-  if (!allSess.length) return false;
-  const last = allSess.reduce((a, b) => (parseInt(b.id) || 0) > (parseInt(a.id) || 0) ? b : a);
-  if (!last || last.resetAt || last.quickCapture) return false;
-  // B-202605-026: si el Worker tiene resetEpoch, la sesión debe ser posterior a ese timestamp.
-  // Un checkpoint sin resetAt pero anterior al último reset no está en curso.
-  if (ai.resetEpoch) {
-    const resetTs = new Date(ai.resetEpoch).getTime();
-    const sessTs  = last.createdAt || 0;
-    if (sessTs <= resetTs) return false;
-  }
-  return true;
-}
+// T-202605-082: _isInSession movida a locus-storage.js como export canónico.
+// Importada en L13. locus-radar.js importa directamente desde storage — window.* eliminado.
+
+// hasRecentSession — fuente de verdad: locus-notifications.js
+// B-202605-012: definición eliminada de este archivo para resolver duplicación.
+// Call sites existentes consumen la función de locus-notifications.js (carga antes).
 
 // T-202605-523: helper compartido — evita recalcular sprint activo en múltiples bloques
 function _getActiveSprintStats() {
@@ -344,8 +332,3 @@ export function toggleCollapseAll() {
 // hasRecentSession — fuente de verdad: locus-notifications.js
 // B-202605-012: definición eliminada de este archivo para resolver duplicación.
 // Call sites existentes consumen la función de locus-notifications.js (carga antes).
-
-// B-202605-026: exponer _isInSession en window para locus-radar.js.
-// Radar usa window.* fallback para evitar ciclo de imports (radar → sesiones-stats → sesiones → radar).
-// Sin esta asignación, window._isInSession era siempre undefined → fallback false → Workers siempre verdes en Radar.
-window._isInSession = _isInSession;

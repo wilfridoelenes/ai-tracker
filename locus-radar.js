@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -16,17 +16,17 @@
 import { _NOTIF_DEFAULTS, _computeNotifications, _notifConfig, _notifConfigSetEnabled, _notifConfigSetThreshold, _notifGoto, _notifReadSet, _registerNotifActions, markAllNotifsRead, markNotifRead, updateTabNotifBadges } from './locus-notifications.js';
 import { openQuickCapture } from './locus-sesiones-capture.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
-import { getAISessions, getState } from './locus-storage.js';
+import { getAISessions, getState, _isInSession } from './locus-storage.js';
 import { esc } from './locus-ui-shell.js';
 import { openAddAI } from './locus-workers.js';
 
 import { toast } from './locus-toast.js';
 
-// fmt12, getCD, _isInSession, _hoyMsUntilReset — módulo fuente con ciclo potencial; window fallback
+// fmt12, getCD, _hoyMsUntilReset — módulo fuente con ciclo potencial; window fallback
+// T-202605-082: _isInSession movida a locus-storage.js — import directo, sin ciclo.
 // ── Ciclo potencial: locus-sesiones-utils.js — guards via window (patrón establecido) ──
 const fmt12           = (...a) => typeof window.fmt12           === 'function' ? window.fmt12(...a)           : a[0] || '';
 const getCD           = (...a) => typeof window.getCD           === 'function' ? window.getCD(...a)           : '';
-const _isInSession    = (ai)   => typeof window._isInSession    === 'function' ? window._isInSession(ai)    : false;
 const _hoyMsUntilReset = (ai)  => typeof window._hoyMsUntilReset === 'function' ? window._hoyMsUntilReset(ai) : Infinity;
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────

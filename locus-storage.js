@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-30 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1481,6 +1481,24 @@ export function _getCurrentSession(aiId) {
 }
 // R-202605-050: alias canónico — _getCurrentCheckpoint
 export function _getCurrentCheckpoint(aiId) { return _getCurrentSession(aiId); }
+
+// T-202605-082: _isInSession — fuente de verdad canónica (movida desde locus-sesiones-stats.js)
+// Detecta si una IA está "en sesión": disponible con última sesión sin resetAt ni quickCapture,
+// posterior al resetEpoch del Worker si existe.
+// B-202605-026: check de resetEpoch — Workers con reset previo no quedan en verde.
+export function _isInSession(ai) {
+  if (ai.status !== 'available' || ai.interrupted) return false;
+  const allSess = getAllSessions().filter(s => s.aiId === ai.id);
+  if (!allSess.length) return false;
+  const last = allSess.reduce((a, b) => (parseInt(b.id) || 0) > (parseInt(a.id) || 0) ? b : a);
+  if (!last || last.resetAt || last.quickCapture) return false;
+  if (ai.resetEpoch) {
+    const resetTs = new Date(ai.resetEpoch).getTime();
+    const sessTs  = last.createdAt || 0;
+    if (sessTs <= resetTs) return false;
+  }
+  return true;
+}
 
 // Busca una sesión por id en todos los proyectos — devuelve { proj, sess } o null
 export function _findSession(sessId) {
