@@ -1,4 +1,4 @@
-// [PP] v1.2 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogFocusMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
@@ -1170,7 +1170,7 @@ export function renderBacklogList(onRendered) {
     // T-202605-104: sección Icebox — ítems sin sprint asignado (icebox / '' / null)
     if (iceboxItems.length) {
       const iceboxOpen = localStorage.getItem('backlog-icebox-open') === '1';
-      html += `<div class="section-group sg-icebox" id="sg-icebox">
+      html += `<div class="section-group sg-icebox bl-icebox-group" id="sg-icebox">
         <div class="section-group-header bl-icebox-header" data-action="section-group-toggle" data-group="icebox">
           <span class="section-group-arrow bl-icebox-arrow" id="sgarrow-icebox">${iceboxOpen ? '▾' : '▸'}</span>
           <span>📥 Icebox</span>
