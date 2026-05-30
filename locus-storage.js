@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -56,6 +56,7 @@ const LOCUS_KEYS = {
 
 // R-202605-002: strings canónicos de proyecto — fuente única de verdad
 const CANONICAL_PROJECTS = ['Obsidian Labs', 'Alisto', 'Content Manager', 'Locus'];
+window.CANONICAL_PROJECTS = CANONICAL_PROJECTS;
 
 // R-202605-002: prefijos de proyecto — fuente única de verdad
 const _PREFIX_MAP = {
