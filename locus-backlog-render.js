@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-11 · mod:9 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-11 · mod:10 · autor:Rune · 2026-05-30 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogFocusMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
@@ -697,10 +697,11 @@ function _planDrop(e, targetCol) {
   }
 
   // Re-renderizar la vista planificación inmediatamente
+  // Nota: _attachPlanViewDelegation() no se re-invoca — los listeners de delegación
+  // viven en #backlog-list (el contenedor) y sobreviven al innerHTML replace de _renderPlanningView.
   const _planListEl = document.getElementById('backlog-list');
   if (_planListEl) {
     _renderPlanningView(_planListEl);
-    _attachPlanViewDelegation();
   }
 }
 
