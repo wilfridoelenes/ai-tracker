@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:14 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-11 · mod:15 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -688,41 +688,39 @@ function _syncSprintConfirmBtn(code) {
 }
 
 // B-202605-077: refactorizado para consumir _buildNewSprintForm — comportamiento externo idéntico
+// T-202605-079: funciones top-level invocables desde fuera del módulo sin pasar por openNewSprintInline
+
+function _sprintInlineOnConfirm(code, newId) {
+  setItemSprint(code, newId);
+}
+
+function _sprintInlineInit(wrapEl, form, velocityData) {
+  wrapEl.innerHTML = form.html;
+  const hint = document.createElement('span');
+  if (velocityData !== null) {
+    hint.className = 'sprint-inline-hint';
+    hint.innerHTML = `Velocidad real promedio: <strong>${velocityData.avg}</strong> effort`;
+    wrapEl.querySelector('.sprint-inline-edit-wrap').insertAdjacentElement('beforeend', hint);
+  }
+  form.init(wrapEl);
+}
+
 function openNewSprintInline(code) {
   const wrap = document.getElementById('sprint-select-wrap-' + CSS.escape(code));
   if (!wrap) return;
 
   // T-202605-450: sugerencia de effort máximo basada en velocidad histórica
   const velocityData = _calcEstimatedVelocity();
-  const suggestHtml = velocityData !== null
-    ? `<span class="sprint-inline-hint">Velocidad real promedio: <strong>${velocityData.avg}</strong> effort</span>`
-    : '';
 
   const form = _buildNewSprintForm(
     null, // null = proyecto activo en filtro global (comportamiento original)
-    function onConfirm(newId) {
-      setItemSprint(code, newId);
-    },
+    function onConfirm(newId) { _sprintInlineOnConfirm(code, newId); },
     function onCancel() {
       _markBacklogListDirty(); renderBacklogList();
     }
   );
 
-  wrap.innerHTML = suggestHtml ? form.html.replace(
-    'class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal"',
-    'class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal"'
-  ) + `<span class="sprint-inline-hint-injected">${suggestHtml}</span>` : form.html;
-
-  // Reemplazar el innerHTML por el form y re-obtener el wrapEl correcto
-  wrap.innerHTML = form.html;
-  const hint = document.createElement('span');
-  if (velocityData !== null) {
-    hint.className = 'sprint-inline-hint';
-    hint.innerHTML = `Velocidad real promedio: <strong>${velocityData.avg}</strong> effort`;
-    wrap.querySelector('.sprint-inline-edit-wrap').insertAdjacentElement('beforeend', hint);
-  }
-
-  form.init(wrap);
+  _sprintInlineInit(wrap, form, velocityData);
 }
 
 // R-202605-009: limpiar mensaje de error de campo
