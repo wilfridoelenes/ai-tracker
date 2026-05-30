@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -57,14 +57,17 @@ function normStatus(raw) {
 // R-202605-023: normaliza cualquier variante de status al valor canónico del backlog
 // antes de validar contra _validStatuses. Evita rechazo de variantes como 'en_revision',
 // 'En-Revision', 'en revisión', etc. que normStatus ya mapea correctamente.
+// AC-7: retorna null para valores no mapeados — nunca silencia a 'pendiente'.
+// Los bloques de validación rechazan con error cuando _canonicalStatus retorna null.
 function _canonicalStatus(raw) {
-  if (!raw) return 'pendiente';
+  if (!raw) return null;
   const s = raw.trim().toLowerCase();
   if (s === 'done' || s.includes('done') || s.includes('listo')) return 'done';
   if (s === 'descartado' || s.includes('descart') || s.includes('discard')) return 'descartado';
   if (s === 'en-revision' || s === 'en_revision' || s === 'en revisión' || s === 'en-revisión') return 'en-revision';
   if (s === 'historico' || s === 'histórico') return 'historico';
-  return 'pendiente';
+  if (s === 'pendiente') return 'pendiente';
+  return null; // valor desconocido — rechazo estricto en validación
 }
 
 function buildTGPreview(items, discrepancy) {
@@ -372,7 +375,7 @@ export function parsePaste(id) {
         }
         // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
         const _normSt = _canonicalStatus(_it.status);
-        if (!_validStatuses.includes(_normSt)) {
+        if (!_normSt || !_validStatuses.includes(_normSt)) {
           _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision`;
           break;
         }
@@ -457,7 +460,7 @@ export function parsePaste(id) {
           }
           // AC-7: status válido — R-202605-023: normalizar antes de validar
           const _normSt2 = _canonicalStatus(_it.status);
-          if (!_validStatuses.includes(_normSt2)) {
+          if (!_normSt2 || !_validStatuses.includes(_normSt2)) {
             _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision`;
             break;
           }
@@ -1005,7 +1008,7 @@ function parsePasteStandalone() {
     }
     // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
     const _normSt3 = _canonicalStatus(it.status);
-    if (!_validStatuses.includes(_normSt3)) {
+    if (!_normSt3 || !_validStatuses.includes(_normSt3)) {
       itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision`;
       break;
     }
