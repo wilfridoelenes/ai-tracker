@@ -1,4 +1,4 @@
-// [AS] v1.2 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
+// [AS] v1.2 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -201,7 +201,7 @@ function _kbCardClick(event, code) {
 // T-202605-054: delegación de eventos para #backlog-list — reemplaza handlers inline
 // Cubre: copyItemCode · copyItemToClipboard · _inlineEditTitle · _confirmUnlinkChild
 //        child-expand · drag-handle · kanban card (click + drag) · kb-col (drag) · _promoteSelectType
-function _attachBacklogListDelegation() {
+export function _attachBacklogListDelegation() {
   const listEl = document.getElementById('backlog-list');
   if (!listEl || listEl._delegationAttached) return;
   listEl._delegationAttached = true;

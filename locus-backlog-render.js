@@ -1,8 +1,8 @@
-// [PP] v1.2 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-30 23:25 UTC-6
+// [PP] v1.2 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-30 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogFocusMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
-import { _attachBacklogDnD, _collapsedChildren, _renderKanban, buildBacklogItem, setFilter, updateBacklogFooter } from './locus-backlog-item.js';
+import { _attachBacklogDnD, _attachBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, setFilter, updateBacklogFooter } from './locus-backlog-item.js';
 
 import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
 
@@ -1305,7 +1305,7 @@ export function renderBacklogList(onRendered) {
   }
 
   _attachBacklogDnD();
-  if (typeof _attachBacklogListDelegation === 'function') _attachBacklogListDelegation();
+  _attachBacklogListDelegation();
   if (typeof _attachSprintBarDelegation === 'function') _attachSprintBarDelegation();
   if (typeof _attachPlanViewDelegation === 'function') _attachPlanViewDelegation();
   if (typeof _updateDocLogCount === 'function') _updateDocLogCount('backlog');
