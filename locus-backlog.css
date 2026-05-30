@@ -1,4 +1,4 @@
-/* [PP] v1.2.3 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6 */
+/* [PP] v1.2.3 · sprint:PP-S-09 · mod:4 · autor:Nova · 2026-05-30 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -5507,3 +5507,58 @@ er {
   flex-shrink: 0;
 }
 /* END R-202605-066 */
+
+/* ══ T-202605-103: Sección Icebox — bl-icebox-* ══ */
+/* Clases independientes — no reutilizan .version-group ni .version-header */
+
+.bl-icebox-group {
+  margin-bottom: 2rem;
+}
+
+.bl-icebox-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: var(--text-sm);
+  color: var(--text2);
+  background: var(--surface2);
+  border-left: 2px solid var(--hint);
+  cursor: pointer;
+  user-select: none;
+}
+
+.bl-icebox-header:hover {
+  background: var(--surface3, var(--surface2));
+  color: var(--text);
+}
+
+.bl-icebox-arrow {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  transition: transform 0.15s var(--ease-out);
+  width: 12px;
+}
+
+.bl-icebox-header:not(.collapsed) .bl-icebox-arrow {
+  transform: rotate(90deg);
+}
+
+.bl-icebox-count {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.bl-icebox-body {
+  padding: 6px 0;
+}
+
+.bl-icebox-body.collapsed {
+  display: none;
+}
+
+/* ══ END T-202605-103 ══ */
