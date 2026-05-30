@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-30 UTC-6
 // locus-session-hora.js
 import { _doSaveSession, saveSession } from './locus-session-save.js';
 import { getAI } from './locus-storage.js';
@@ -282,3 +282,10 @@ const _TMPL_TRIGGER_KEY = 'template-download-trigger';
 export function _templateTrigger() {
   return localStorage.getItem(_TMPL_TRIGGER_KEY) || 'session';
 }
+
+// Exponer funciones usadas como handlers inline en HTML generado dinámicamente.
+// Al ser módulo ES, no están en window automáticamente — se asignan explícitamente
+// para que oninput="parseHora(...)" y onkeydown="horaKey(...)" resuelvan correctamente.
+window.parseHora   = parseHora;
+window.correctHora = correctHora;
+window.horaKey     = horaKey;
