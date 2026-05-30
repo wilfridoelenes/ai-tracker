@@ -1,4 +1,4 @@
-// [AS] v1.2 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-30 22:15 UTC-6
+// [PP] v1.2 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-30 23:10 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -69,7 +69,6 @@ export function renderArchivoHistorico(listEl) {
 
   section.innerHTML = `
     <div class="arch-historico-header" data-action="arch-toggle" tabindex="0"
-         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.dispatchEvent(new MouseEvent('click'))}"
          aria-expanded="${isOpen}" aria-controls="arch-historico-body">
       <span class="arch-historico-arrow${isOpen ? ' arch-historico-arrow--open' : ''}" aria-hidden="true">▸</span>
       <span class="arch-historico-title">Archivo histórico</span>
@@ -93,15 +92,25 @@ export function renderArchivoHistorico(listEl) {
   listEl.appendChild(zoneDivider);
   listEl.appendChild(section);
 
-  // Delegation — evita onclick= en HTML generado; funciones locales accesibles en scope
-  section.addEventListener('click', function _archSectionClick(e) {
-    const action = e.target.closest('[data-action]');
-    if (!action) return;
+  // Delegation — evita onclick= y onkeydown= en HTML generado; funciones locales accesibles en scope
+  function _archHandleAction(e, action) {
     const act = action.dataset.action;
     if (act === 'arch-toggle') { toggleArchivoHistorico(); return; }
     if (act === 'arch-tabs-stop') { e.stopPropagation(); return; }
     if (act === 'arch-set-view') { e.stopPropagation(); setArchivoView(action.dataset.view, action); return; }
     if (act === 'arch-sprint-entry') { _toggleArchSprintEntry(action.dataset.bodyId, action.dataset.storageKey); return; }
+  }
+  section.addEventListener('click', function _archSectionClick(e) {
+    const action = e.target.closest('[data-action]');
+    if (!action) return;
+    _archHandleAction(e, action);
+  });
+  section.addEventListener('keydown', function _archSectionKeydown(e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const action = e.target.closest('[data-action]');
+    if (!action) return;
+    e.preventDefault();
+    _archHandleAction(e, action);
   });
 
   if (isOpen) {
@@ -201,8 +210,7 @@ function _archSprintEntryHtml(sp, spItems, entryId, entryKey, entryOpen) {
     : esc(sp.id || 'Sprint sin nombre');
 
   return `<div class="arch-sprint-entry">
-    <div class="arch-sprint-entry-header" data-action="arch-sprint-entry" data-body-id="${esc(entryId)}" data-storage-key="${esc(entryKey)}" tabindex="0"
-         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.dispatchEvent(new MouseEvent('click'))}">
+    <div class="arch-sprint-entry-header" data-action="arch-sprint-entry" data-body-id="${esc(entryId)}" data-storage-key="${esc(entryKey)}" tabindex="0">
       <span class="arch-se-arrow${entryOpen ? ' arch-se-arrow--open' : ''}" aria-hidden="true">&#9658;</span>
       <span class="arch-se-id">${esc(sp.id)}</span>
       <span class="arch-se-name">${nameDisplay}</span>
@@ -269,8 +277,7 @@ function _renderArchivoViewSprint(body) {
     const legOpen = (() => { try { return localStorage.getItem(legKey) === '1'; } catch { return false; } })();
     const legId   = 'arch-se-body-legacy';
     html += `<div class="arch-sprint-entry arch-sprint-entry--legacy">
-      <div class="arch-sprint-entry-header" data-action="arch-sprint-entry" data-body-id="${legId}" data-storage-key="${legKey}" tabindex="0"
-           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.dispatchEvent(new MouseEvent('click'))}">
+      <div class="arch-sprint-entry-header" data-action="arch-sprint-entry" data-body-id="${legId}" data-storage-key="${legKey}" tabindex="0">
         <span class="arch-se-arrow${legOpen ? ' arch-se-arrow--open' : ''}" aria-hidden="true">&#9658;</span>
         <span class="arch-se-id arch-se-id--legacy">pre-S-23</span>
         <span class="arch-se-name">Histórico pre-S-23 (sin datos de sprint)</span>

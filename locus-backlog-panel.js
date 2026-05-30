@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -55,7 +55,7 @@ export function _buildItemMentionedIn(item) {
     const ts = s.savedAt || s.createdAt || 0;
     const dateLabel = _fmtRel(ts) || s.dateShort || s.date || '';
     const title = s.title ? esc(s.title) : '';
-    return `<div class="bitem-mention-row" onclick="event.stopPropagation();switchTab('tracker');setViewMode('chrono');setTimeout(()=>scrollToLogCard('${esc(s.id)}'),150)" title="Ver en Log View">
+    return `<div class="bitem-mention-row" data-action="mention-goto-log" data-sess-id="${esc(s.id)}" title="Ver en Log View">
       <span class="bitem-mention-ai">${aiName}</span>
       <span class="bitem-mention-date">${dateLabel}</span>
       ${title ? `<span class="bitem-mention-title">${title}</span>` : ''}
@@ -113,8 +113,8 @@ function _openMigrateItem(code) {
       </div>
       <div class="migrate-modal-hint">El item desaparecera del proyecto actual y aparecera en el destino con una referencia de origen.</div>
       <div class="migrate-modal-actions">
-        <button onclick="document.getElementById('migrate-item-overlay').classList.remove('open')" class="btn-cancel">Cancelar</button>
-        <button id="migrate-confirm-btn" onclick="_confirmMigrateItem('${esc(code)}')" class="btn-primary" disabled>&#x21C4; Mover</button>
+        <button data-action="migrate-cancel" class="btn-cancel">Cancelar</button>
+        <button id="migrate-confirm-btn" data-action="migrate-confirm" data-item-code="${esc(code)}" class="btn-primary" disabled>&#x21C4; Mover</button>
       </div>`;
   }
   overlay.classList.add('open');
@@ -217,7 +217,7 @@ export function _backlogSetSelected(el) {
       showToast('success',
         `<span class="toast-undo-wrap">` +
         `<span>✓ <strong>${code}</strong> → done</span>` +
-        `<button onclick="undoBacklog();this.closest('.toast-item, [class*=toast]')?.remove?.()" ` +
+        `<button data-action="backlog-undo" ` +
         `class="toast-undo-btn">↩ Undo</button>` +
         `</span>`,
         null, 4000
@@ -366,7 +366,7 @@ function _renderItemPanel(item) {
         <span class="idp-code">${esc(item.code)}</span>
         <span class="idp-type-name">${TYPE_NAMES[type] || type}</span>
       </div>
-      <button class="idp-close-btn" onclick="closeItemPanel()" title="Cerrar panel (Esc)">✕</button>
+      <button class="idp-close-btn" data-action="idp-close" title="Cerrar panel (Esc)">✕</button>
     </div>
     <div class="idp-title-wrap">
       <span class="idp-title" id="idp-title-display"
@@ -378,7 +378,7 @@ function _renderItemPanel(item) {
     </div>
     <div class="idp-actions-bar">
       <button class="idp-action-btn" data-action="idp-copy-code" data-code="${esc(item.code)}" title="Copiar código">⎘ ${esc(item.code)}</button>
-      <button class="idp-action-btn" onclick="_openItemEditorSafe(null,'${esc(item.code)}')" title="Abrir editor completo">✎ Editar</button>
+      <button class="idp-action-btn" data-action="idp-edit" data-item-code="${esc(item.code)}" title="Abrir editor completo">✎ Editar</button>
       ${doneBtn}
       <button class="idp-action-btn${_focusModeActive ? ' idp-action-btn--active' : ''}" id="idp-focus-btn" data-action="idp-toggle-focus" title="${_focusModeActive ? 'Salir del Modo Focus (Esc)' : 'Activar Modo Focus'}">${_focusModeActive ? '⛶ Salir focus' : '⛶ Focus'}</button>
     </div>`;
@@ -460,17 +460,17 @@ function _renderItemPanel(item) {
     const ai = getAI(s.aiId);
     const aiName = ai ? esc(ai.name) : 'IA';
     const dateLabel = s.dateShort || s.date || '';
-    return `<div class="idp-session-chip" onclick="switchTab('tracker');setTimeout(()=>openDetail('${s.aiId}','${s.id}'),120)">
+    return `<div class="idp-session-chip" data-action="idp-goto-session" data-ai-id="${s.aiId}" data-sess-id="${s.id}">
       <span class="idp-sess-ai">${aiName}</span>
       <span class="idp-sess-date">${esc(dateLabel)}</span>
       ${s.title ? `<span class="idp-sess-title">${esc(s.title)}</span>` : ''}
-      ${canUnlink ? `<button class="idp-sess-unlink" onclick="event.stopPropagation();_idpUnlinkSession('${esc(item.code)}','${s.id}')" title="Desvincular sesión">✕</button>` : ''}
+      ${canUnlink ? `<button class="idp-sess-unlink" data-action="idp-unlink-session" data-item-code="${esc(item.code)}" data-sess-id="${s.id}" title="Desvincular sesión">✕</button>` : ''}
     </div>`;
   };
 
   const preCreationHtml = preCreationSessions.length ? `
     <div class="idp-section">
-      <div class="idp-section-label idp-section-toggle" onclick="this.nextElementSibling.classList.toggle('is-hidden');this.querySelector('.idp-toggle-arrow').textContent=this.nextElementSibling.classList.contains('is-hidden')?'▸':'▾'">
+      <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-section">
         <span>Mencionado antes de creación (${preCreationSessions.length})</span>
         <span class="idp-toggle-arrow">▸</span>
       </div>
@@ -513,7 +513,7 @@ function _renderItemPanel(item) {
     const title = dep ? esc(dep.title) : '';
     const cls = isDone ? 'idp-dep-chip idp-dep-chip--done' : 'idp-dep-chip';
     const icon = isDone ? '✓' : '🔒';
-    return `<span class="${cls}" onclick="openItemPanel('${esc(code)}')" title="${title}">${icon} ${esc(code)}</span>`;
+    return `<span class="${cls}" data-action="idp-open-panel" data-item-code="${esc(code)}" title="${title}">${icon} ${esc(code)}</span>`;
   };
 
   const depsHtml = (allBlockedBy.length || blockingOthers.length) ? `
@@ -532,7 +532,7 @@ function _renderItemPanel(item) {
           <span class="idp-deps-label">Bloquea a</span>
           <div class="idp-deps-chips">
             ${blockingOthers.map(i => {
-              return `<span class="idp-dep-chip idp-dep-chip--blocks" onclick="openItemPanel('${esc(i.code)}')" title="${esc(i.title)}">⚠ ${esc(i.code)}</span>`;
+              return `<span class="idp-dep-chip idp-dep-chip--blocks" data-action="idp-open-panel" data-item-code="${esc(i.code)}" title="${esc(i.title)}">⚠ ${esc(i.code)}</span>`;
             }).join('')}
           </div>
         </div>` : ''}
@@ -545,7 +545,7 @@ function _renderItemPanel(item) {
     if (originItem) {
       // AC-4: código existe en backlog — chip navegable con foco visible y aria-label
       return `<div class="idp-meta-row idp-origin-row">
-        <button class="idp-dep-chip idp-dep-chip--origin" onclick="openItemPanel('${esc(item.origin)}')" aria-label="Generado desde ${esc(item.origin)}" title="${esc(originItem.title || item.origin)}">↩ Generado desde ${esc(item.origin)}</button>
+        <button class="idp-dep-chip idp-dep-chip--origin" data-action="idp-open-panel" data-item-code="${esc(item.origin)}" aria-label="Generado desde ${esc(item.origin)}" title="${esc(originItem.title || item.origin)}">↩ Generado desde ${esc(item.origin)}</button>
       </div>`;
     }
     // AC-5: código no existe (archivado o proyecto distinto) — texto plano sin link
@@ -915,7 +915,7 @@ function _acvStartEdit(rowId, code, acIdx) {
       <textarea class="acv-edit-ta" id="${rowId}-ta" rows="2">${esc(current)}</textarea>
       <div class="acv-edit-actions">
         <button class="acv-save-btn" data-action="acv-save" data-row-id="${rowId}" data-code="${esc(code)}" data-ac-idx="${acIdx}">Guardar</button>
-        <button class="acv-cancel-btn" onclick="event.stopPropagation();renderBacklogList()">Cancelar</button>
+        <button class="acv-cancel-btn" data-action="acv-cancel">Cancelar</button>
       </div>
     </div>`;
   const ta = document.getElementById(rowId + '-ta');
@@ -1139,3 +1139,77 @@ window.closeItemPanel = closeItemPanel;
 window.toggleFocusMode = toggleFocusMode;
 window.exitFocusMode   = exitFocusMode;
 
+// ── T8: Delegation — #item-detail-panel + #migrate-item-overlay + toast-stack ──
+document.addEventListener('DOMContentLoaded', () => {
+  // Item Detail Panel (IDP)
+  const idpPanel = document.getElementById('item-detail-panel');
+  if (idpPanel) idpPanel.addEventListener('click', e => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    switch (el.dataset.action) {
+      case 'idp-close':
+        closeItemPanel();
+        break;
+      case 'idp-edit':
+        _openItemEditorSafe(null, el.dataset.itemCode);
+        break;
+      case 'idp-goto-session':
+        if (typeof switchTab === 'function') switchTab('tracker');
+        setTimeout(() => { if (typeof openDetail === 'function') openDetail(el.dataset.aiId, el.dataset.sessId); }, 120);
+        break;
+      case 'idp-unlink-session':
+        e.stopPropagation();
+        _idpUnlinkSession(el.dataset.itemCode, el.dataset.sessId);
+        break;
+      case 'idp-toggle-section': {
+        const next = el.nextElementSibling;
+        if (next) next.classList.toggle('is-hidden');
+        const arrow = el.querySelector('.idp-toggle-arrow');
+        if (arrow) arrow.textContent = next && next.classList.contains('is-hidden') ? '▸' : '▾';
+        break;
+      }
+      case 'idp-open-panel':
+        openItemPanel(el.dataset.itemCode);
+        break;
+      case 'acv-cancel':
+        e.stopPropagation();
+        if (typeof renderBacklogList === 'function') renderBacklogList();
+        break;
+      case 'mention-goto-log':
+        e.stopPropagation();
+        if (typeof switchTab === 'function') switchTab('tracker');
+        if (typeof setViewMode === 'function') setViewMode('chrono');
+        setTimeout(() => { if (typeof scrollToLogCard === 'function') scrollToLogCard(el.dataset.sessId); }, 150);
+        break;
+    }
+  });
+
+  // Migrate item overlay
+  const migrateOverlay = document.getElementById('migrate-item-overlay');
+  if (migrateOverlay) migrateOverlay.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    if (btn.dataset.action === 'migrate-cancel') {
+      migrateOverlay.classList.remove('open');
+    } else if (btn.dataset.action === 'migrate-confirm') {
+      _confirmMigrateItem(btn.dataset.itemCode);
+    }
+  });
+
+  // Toast stack — undo backlog
+  const toastStack = document.getElementById('toast-stack');
+  if (toastStack) toastStack.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action="backlog-undo"]');
+    if (btn) {
+      if (typeof undoBacklog === 'function') undoBacklog();
+      btn.closest('.toast-item, [class*=toast]')?.remove?.();
+    }
+  });
+
+  // buildItemRefs spans — openItemPanel (pueden estar fuera del IDP)
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-action="idp-open-panel"]');
+    if (el && !e.defaultPrevented) openItemPanel(el.dataset.itemCode);
+  });
+});
+// ─────────────────────────────────────────────────────────────────────────

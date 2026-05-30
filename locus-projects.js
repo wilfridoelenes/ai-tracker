@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -166,13 +166,13 @@ export function renderProyectos() {
 
     // Actions — T-202604-318: Eliminar con inline confirm, sin modal global
     const actionsHtml = isArchived
-      ? `<button class="proy2-btn" onclick="event.stopPropagation();toggleProjArchive('${proj.id}')">↩ Restaurar</button>
-         <button class="proy2-btn" onclick="event.stopPropagation();openProjModal(true,'${proj.id}')">Editar</button>
-         <button class="proy2-btn proy2-btn-danger" onclick="event.stopPropagation();_proyDeleteInline('${proj.id}')" title="Eliminar">✕</button>`
-      : `<button class="proy2-btn proy2-btn-icon" onclick="event.stopPropagation();toggleProjArchive('${proj.id}')" title="Archivar">📦</button>
-         <button class="proy2-btn" onclick="event.stopPropagation();openProjModal(true,'${proj.id}')">Editar</button>
-         <button class="proy2-btn proy2-btn-primary" onclick="event.stopPropagation();_proyAbrir('${proj.id}')">Abrir</button>
-         <button class="proy2-btn proy2-btn-danger" onclick="event.stopPropagation();_proyDeleteInline('${proj.id}')" title="Eliminar">✕</button>`;
+      ? `<button class="proy2-btn" data-action="proj-restore" data-proj-id="${proj.id}">↩ Restaurar</button>
+         <button class="proy2-btn" data-action="proj-edit" data-proj-id="${proj.id}">Editar</button>
+         <button class="proy2-btn proy2-btn-danger" data-action="proj-delete-inline" data-proj-id="${proj.id}" title="Eliminar">✕</button>`
+      : `<button class="proy2-btn proy2-btn-icon" data-action="proj-archive" data-proj-id="${proj.id}" title="Archivar">📦</button>
+         <button class="proy2-btn" data-action="proj-edit" data-proj-id="${proj.id}">Editar</button>
+         <button class="proy2-btn proy2-btn-primary" data-action="proj-open" data-proj-id="${proj.id}">Abrir</button>
+         <button class="proy2-btn proy2-btn-danger" data-action="proj-delete-inline" data-proj-id="${proj.id}" title="Eliminar">✕</button>`;
 
     // Metrics row — only for active
     let metricsHtml = '';

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -740,7 +740,7 @@ export function editSprintInline(sprintId) {
   const goalId  = 'edit-sprint-goal-' + sprintId;
   const vtId    = 'edit-sprint-vt-'   + sprintId;
   const rtId    = 'edit-sprint-rt-'   + sprintId;
-  wrap.innerHTML = `<div class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal" onclick="event.stopPropagation()">
+  wrap.innerHTML = `<div class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal" data-action="sprint-edit-stop-prop">
     <span class="sprint-inline-id-preview">${esc(sprintId)} ·</span>
     <input id="${esc(inputId)}" type="text" value="${esc(currentDescriptive)}"
       class="sprint-inline-input sprint-inline-input--wide"
@@ -1039,7 +1039,7 @@ function _scmStep1Html(sp, spLabel, pendingItems, doneItems, metrics) {
     ${!doneRows && !pendRows ? '<div class="scm-empty-hint">Sprint sin ítems registrados.</div>' : ''}
     <div class="scm-docgen-hint">
       📄 Antes de cerrar:
-      <button class="scm-docgen-btn" onclick="openMapGenerator()">Abrir Document Generator</button>
+      <button class="scm-docgen-btn" data-action="scm-open-map-generator">Abrir Document Generator</button>
       para generar MAP + Sprint Review.
     </div>
   `;
@@ -1080,7 +1080,7 @@ function _scmStep2Html(pendingItems, migrations, currentId) {
     <div class="scm-bulk-row">
       <span class="scm-nowrap">Aplicar a todos:</span>
       <select class="scm-bulk-select" id="scm-bulk-select">${bulkSprintOpts}</select>
-      <button class="scm-bulk-apply" onclick="_scmBulkApply()">Aplicar</button>
+      <button class="scm-bulk-apply" data-action="scm-bulk-apply">Aplicar</button>
     </div>
     <div class="scm-migration-intro">${pendingItems.length} ítem${pendingItems.length !== 1 ? 's' : ''} pendiente${pendingItems.length !== 1 ? 's' : ''} — elige el destino de cada uno:</div>
     ${rows}
@@ -1286,7 +1286,7 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
   html += `
     <div class="scm-backup-hint">
       💾 Backup opcional:
-      <button class="scm-docgen-btn" onclick="exportFullHistoryMd()" type="button">Descargar historial completo</button>
+      <button class="scm-docgen-btn" data-action="scm-export-history" type="button">Descargar historial completo</button>
     </div>`;
 
   return html;
@@ -1584,7 +1584,7 @@ function _buildSprintItemRow(item, sectionId, allItems) {
   const title = _escSpr(item.title || '');
 
   return `<div class="${itemClass}" role="button" tabindex="0"
-    onclick="if(typeof navigateToItem==='function') navigateToItem('${item.code}')"
+    data-action="spi-navigate" data-item-code="${code}"
     onkeydown="if(event.key==='Enter'&&typeof navigateToItem==='function') navigateToItem('${item.code}')"
     title="Ir a ${code} en Tab Backlog">
     <span class="spi-item-code">${code}</span>
@@ -1799,3 +1799,37 @@ function _buildWorkerPill(name) {
     _attach();
   }
 })();
+
+// ── T8: Delegation — #sprint-close-body + #sprint-panel-items + sprint-inline-edit-wrap ──
+document.addEventListener('DOMContentLoaded', () => {
+  // Sprint close modal — scm buttons
+  const scmBody = document.getElementById('sprint-close-body');
+  if (scmBody) scmBody.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    switch (btn.dataset.action) {
+      case 'scm-open-map-generator':
+        if (typeof openMapGenerator === 'function') openMapGenerator();
+        break;
+      case 'scm-bulk-apply':
+        _scmBulkApply();
+        break;
+      case 'scm-export-history':
+        if (typeof exportFullHistoryMd === 'function') exportFullHistoryMd();
+        break;
+    }
+  });
+
+  // Sprint panel items — spi-navigate
+  const sprintPanelItems = document.getElementById('sprint-panel-items');
+  if (sprintPanelItems) sprintPanelItems.addEventListener('click', e => {
+    const row = e.target.closest('[data-action="spi-navigate"]');
+    if (row && typeof navigateToItem === 'function') navigateToItem(row.dataset.itemCode);
+  });
+
+  // Sprint inline edit wrap — stopPropagation (reemplaza onclick="event.stopPropagation()")
+  document.addEventListener('click', e => {
+    if (e.target.closest('[data-action="sprint-edit-stop-prop"]')) e.stopPropagation();
+  }, true); // capture phase para interceptar antes de burbujeo
+});
+// ─────────────────────────────────────────────────────────────────────────

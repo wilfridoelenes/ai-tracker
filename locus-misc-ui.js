@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
 // locus-misc-ui.js
 // Módulo: Helpers de UI — getNextOccurrence, _resetExpired, Tags, Pendientes, Doc Activity Drawer
 // Extraído de ai-tracker-ai-notes.js
@@ -105,7 +105,7 @@ export function renderTagPicker() {
   list.innerHTML = getState().tags.map(t => {
     const ci = _getTagColors().indexOf(t.color);
     const isSel = selected.includes(t.id);
-    return `<div class="tag-picker-row${isSel ? ' selected' : ''}" onclick="toggleTagOnSession('${t.id}')">
+    return `<div class="tag-picker-row${isSel ? ' selected' : ''}" data-action="toggle-tag" data-tag-id="${t.id}">
       <div class="tag-picker-dot" style="--dot-color:${t.color}"></div>
       <div class="tag-picker-name">${_esc(t.name)}</div>
       ${isSel ? `<span class="tag-picker-check">✓</span>` : ''}
@@ -116,7 +116,7 @@ export function renderColorPicker() {
   const row = document.getElementById('color-picker-row');
   if (!row) return;
   row.innerHTML = _getTagColors().map((c, i) =>
-    `<div class="color-dot-btn${i === selectedColor ? ' sel' : ''}" style="--dot-color:${c}" onclick="selectColor(${i})"></div>`
+    `<div class="color-dot-btn${i === selectedColor ? ' sel' : ''}" style="--dot-color:${c}" data-action="select-color" data-color-idx="${i}"></div>`
   ).join('');
 }
 export function selectColor(i) { selectedColor = i; renderColorPicker(); }
@@ -157,7 +157,7 @@ export function openPendPanel() {
     html += `<div class="pend-ai-group">
       <div class="pend-ai-name"><span class="pend-ai-dot" style="--ai-dot-color:${dotColor}"></span>${_esc(ai.name)}</div>`;
     [...withPending].reverse().forEach(s => {
-      html += `<div class="pend-item" onclick="closePendPanel();openDetail('${ai.id}','${s.id}')">
+      html += `<div class="pend-item" data-action="pend-open-detail" data-ai-id="${ai.id}" data-sess-id="${s.id}">
         <div class="pend-item-pending">${_esc(s.pending)}</div>
         <div class="pend-item-meta">${_esc(s.title)} · ${s.dateShort || ''}</div>
       </div>`;
@@ -289,6 +289,27 @@ document.addEventListener('DOMContentLoaded', () => {
   if (docLogClearBtn) docLogClearBtn.addEventListener('click', clearDocLog);
   const docLogCloseBtn = document.getElementById('doc-log-close-btn');
   if (docLogCloseBtn) docLogCloseBtn.addEventListener('click', closeDocLog);
+
+  // T8: delegation tag-picker-list — toggleTagOnSession
+  const tagPickerList = document.getElementById('tag-picker-list');
+  if (tagPickerList) tagPickerList.addEventListener('click', e => {
+    const row = e.target.closest('[data-action="toggle-tag"]');
+    if (row) toggleTagOnSession(row.dataset.tagId);
+  });
+
+  // T8: delegation color-picker-row — selectColor
+  const colorPickerRow = document.getElementById('color-picker-row');
+  if (colorPickerRow) colorPickerRow.addEventListener('click', e => {
+    const dot = e.target.closest('[data-action="select-color"]');
+    if (dot) selectColor(Number(dot.dataset.colorIdx));
+  });
+
+  // T8: delegation pend-panel-body — closePendPanel + openDetail
+  const pendPanelBody = document.getElementById('pend-panel-body');
+  if (pendPanelBody) pendPanelBody.addEventListener('click', e => {
+    const item = e.target.closest('[data-action="pend-open-detail"]');
+    if (item) { closePendPanel(); openDetail(item.dataset.aiId, item.dataset.sessId); }
+  });
 });
 // ─────────────────────────────────────────────────────────────────────────
 

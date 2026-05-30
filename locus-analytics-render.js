@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
 import { renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
 import { _closedItemsInRange, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, sessionDateKey } from './locus-analytics-core.js';
 
@@ -55,7 +55,7 @@ export function renderAnalytics() {
         <div class="empty-state-icon">📊</div>
         <div class="empty-state-title">Las métricas aparecen cuando tengas sesiones registradas</div>
         <div class="empty-state-hint">Pega tu primer CHECKPOINT en el tab Tracker para empezar.</div>
-        <button class="empty-state-btn" onclick="if(typeof switchTab==='function')switchTab('tracker')">Ir al Tracker</button>
+        <button class="empty-state-btn" data-action="analytics-goto-tracker">Ir al Tracker</button>
       </div>`;
     return;
   }
@@ -477,7 +477,7 @@ export function renderAnalytics() {
             ${_cmpRow('📈', 'Promedio / día', parseFloat(mA.avgPerDay), parseFloat(mB.avgPerDay), parseFloat(mA.prevAvgPerDay), parseFloat(mB.prevAvgPerDay))}
           </div>
           <div class="acmp-footer">
-            <button class="acmp-clear-btn" onclick="clearComparison()">✕ Limpiar comparación</button>
+            <button class="acmp-clear-btn" data-action="analytics-clear-comparison">✕ Limpiar comparación</button>
           </div>
         </div>
       </div>`;
@@ -649,7 +649,7 @@ export function renderAnalytics() {
     if (!outliers.length) return '<div class="ct-no-outliers">Sin outliers detectados</div>';
     return outliers.map(o => {
       const typeClass = o.type === 'R' ? 'ct-pill-r' : o.type === 'T' ? 'ct-pill-t' : 'ct-pill-b';
-      return `<button class="ct-outlier-row" onclick="navigateToItem(${JSON.stringify(o.code)})" title="Ir al ítem">
+      return `<button class="ct-outlier-row" data-action="analytics-goto-item" data-item-code="${_esc(o.code)}" title="Ir al ítem">
         <span class="ct-outlier-code ct-pill ${typeClass}">${esc(o.code)}</span>
         <span class="ct-outlier-title">${esc(o.title.length > 42 ? o.title.slice(0, 42) + '…' : o.title)}</span>
         <span class="ct-outlier-days">${o.days}d</span>
@@ -869,14 +869,14 @@ export function renderAnalytics() {
       <!-- T-202604-399/400: Barra de control Analytics — pill group + zona acciones -->
       <div class="analytics-control-bar">
         <div class="analytics-period-pills">
-          <button class="period-btn${_analyticsPeriod==='week'?' active':''}" data-period="week" onclick="setAnalyticsPeriod('week')">Últ. 7 días</button>
-          <button class="period-btn${_analyticsPeriod==='month'?' active':''}" data-period="month" onclick="setAnalyticsPeriod('month')">Este mes</button>
-          <button class="period-btn${_analyticsPeriod==='quarter'?' active':''}" data-period="quarter" onclick="setAnalyticsPeriod('quarter')">Este trimestre</button>
+          <button class="period-btn${_analyticsPeriod==='week'?' active':''}" data-period="week" data-action="analytics-set-period">Últ. 7 días</button>
+          <button class="period-btn${_analyticsPeriod==='month'?' active':''}" data-period="month" data-action="analytics-set-period">Este mes</button>
+          <button class="period-btn${_analyticsPeriod==='quarter'?' active':''}" data-period="quarter" data-action="analytics-set-period">Este trimestre</button>
           <span class="analytics-period-label">${periodLabel}</span>
         </div>
         <div class="analytics-actions-group">
           ${compareSelectHtml}
-          <button class="analytics-action-btn" onclick="exportWeeklySummary()" title="Exportar resumen de los últimos 7 días">⬇ Resumen semanal</button>
+          <button class="analytics-action-btn" data-action="analytics-export-weekly" title="Exportar resumen de los últimos 7 días">⬇ Resumen semanal</button>
         </div>
       </div>
 
@@ -1092,3 +1092,31 @@ function _getAnalyticsAIs() {
 // renderRanking y renderStreak eliminados — reemplazados por KPI cards en renderAnalytics v2
 
 // ── T-042: Heatmap de actividad por día de la semana ──
+
+// ── T8: Delegation — #tab-analytics-inner ────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const analyticsInner = document.getElementById('tab-analytics-inner');
+  if (!analyticsInner) return;
+  analyticsInner.addEventListener('click', e => {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    switch (btn.dataset.action) {
+      case 'analytics-goto-tracker':
+        if (typeof switchTab === 'function') switchTab('tracker');
+        break;
+      case 'analytics-clear-comparison':
+        clearComparison();
+        break;
+      case 'analytics-goto-item':
+        navigateToItem(btn.dataset.itemCode);
+        break;
+      case 'analytics-set-period':
+        setAnalyticsPeriod(btn.dataset.period);
+        break;
+      case 'analytics-export-weekly':
+        exportWeeklySummary();
+        break;
+    }
+  });
+});
+// ─────────────────────────────────────────────────────────────────────────
