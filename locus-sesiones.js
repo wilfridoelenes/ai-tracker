@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:14 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:15 · autor:Rune · 2026-05-30 23:00 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1547,3 +1547,5 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+window.blindExhaustHoraInput = blindExhaustHoraInput;
+window.blindExhaustHoraKey   = blindExhaustHoraKey;

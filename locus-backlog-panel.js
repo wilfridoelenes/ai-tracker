@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 23:00 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -1138,6 +1138,8 @@ window.openItemPanel  = openItemPanel;
 window.closeItemPanel = closeItemPanel;
 window.toggleFocusMode = toggleFocusMode;
 window.exitFocusMode   = exitFocusMode;
+window._idpSetField          = _idpSetField;
+window._itemPanelNotesDirty  = _itemPanelNotesDirty;
 
 // ── T8: Delegation — #item-detail-panel + #migrate-item-overlay + toast-stack ──
 document.addEventListener('DOMContentLoaded', () => {

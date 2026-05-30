@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-30 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -30,6 +30,8 @@ import { showToast } from './locus-toast.js';
 import { esc } from './locus-ui-shell.js';
 
 let _pendingTemplateDownload = false; // T5: variable de módulo — reemplaza window._pendingTemplateDownload
+let _pendingCompleteId = null;        // T-202604-190: ID de sesión quick a completar — seteado por openCompleteQuickSession en locus-session-popup.js
+const _confirmTimers = {};            // timers de confirmación por worker ID — clearTimeout en _doSaveSession y _doCompleteFinish
 
 function toggleTemplateTrigger(val) {
   localStorage.setItem(_TMPL_TRIGGER_KEY, val);

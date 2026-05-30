@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 23:00 UTC-6
 // locus-item-editor.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Item Editor, Paste Items, Templates de ítems
@@ -973,3 +973,5 @@ window.confirmItemEditor    = confirmItemEditor;
 window.saveCurrentItemAsTemplate = saveCurrentItemAsTemplate;
 window.toggleTplSavePanel   = toggleTplSavePanel;
 window.closeTemplatePicker  = closeTemplatePicker;
+window._applyTemplate       = _applyTemplate;
+window.piDeleteItem         = piDeleteItem;

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 23:00 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -1833,3 +1833,5 @@ document.addEventListener('DOMContentLoaded', () => {
   }, true); // capture phase para interceptar antes de burbujeo
 });
 // ─────────────────────────────────────────────────────────────────────────
+window.setItemSprint  = setItemSprint;
+window.navigateToItem = navigateToItem;
