@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-10 · mod:10 · autor:Rune · 2026-05-30 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -641,6 +641,10 @@ function _spmUpdateButtons(sprint) {
   // Empty state buttons — AC-6
   if (emptyRegistrar) emptyRegistrar.classList.toggle('is-hidden', !unregisteredId);
   if (emptyActivar)   emptyActivar.classList.toggle('is-hidden', !hasClosed);
+
+  // T-202605-085: CTA crear sprint — visible en empty state cuando no hay sprint activo
+  const emptyNuevo = document.getElementById('spm-new-sprint-btn');
+  if (emptyNuevo) emptyNuevo.classList.toggle('is-hidden', !!sprint);
 
   if (!section) return;
 
