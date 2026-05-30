@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -1300,3 +1300,281 @@ window._escCascade        = _escCascade;
 window.openShortcuts      = openShortcuts;
 window.closeShortcuts     = closeShortcuts;
 window.restoreDefaultShortcuts = restoreDefaultShortcuts;
+
+// ── T-202605-078: Migración handlers inline index.html → addEventListener ───
+document.addEventListener('DOMContentLoaded', function () {
+
+  // storage-warn close btn
+  const storageWarnClose = document.getElementById('storage-warn-close-btn');
+  if (storageWarnClose) storageWarnClose.addEventListener('click', function () {
+    const el = document.getElementById('storage-warn');
+    if (el) el.classList.add('is-hidden');
+  });
+
+  // btn-export-backlog
+  const btnExportBacklog = document.getElementById('btn-export-backlog');
+  if (btnExportBacklog) btnExportBacklog.addEventListener('click', function () {
+    if (typeof exportBacklogMd === 'function') exportBacklogMd();
+  });
+
+  // btn-export-backlog-full
+  const btnExportBacklogFull = document.getElementById('btn-export-backlog-full');
+  if (btnExportBacklogFull) btnExportBacklogFull.addEventListener('click', function () {
+    if (typeof exportFullHistoryMd === 'function') exportFullHistoryMd();
+  });
+
+  // btn-import-htmlmap
+  const btnImportHtmlmap = document.getElementById('btn-import-htmlmap');
+  if (btnImportHtmlmap) btnImportHtmlmap.addEventListener('click', function () {
+    const fi = document.getElementById('htmlmap-file-input');
+    if (fi) fi.click();
+  });
+
+  // btn-new-backlog-item
+  const btnNewBacklogItem = document.getElementById('btn-new-backlog-item');
+  if (btnNewBacklogItem) btnNewBacklogItem.addEventListener('click', function () {
+    if (typeof _openItemEditorSafe === 'function') _openItemEditorSafe(null, null);
+  });
+
+  // fbar-deps-btn
+  const fbarDepsBtn = document.getElementById('fbar-deps-btn');
+  if (fbarDepsBtn) fbarDepsBtn.addEventListener('click', function () {
+    if (typeof toggleDepsFilter === 'function') toggleDepsFilter();
+  });
+
+  // fbar-sort-select
+  const fbarSortSelect = document.getElementById('fbar-sort-select');
+  if (fbarSortSelect) fbarSortSelect.addEventListener('change', function () {
+    if (typeof onBacklogSortChange === 'function') onBacklogSortChange(this.value);
+  });
+
+  // fbar-sort-dir-btn
+  const fbarSortDirBtn = document.getElementById('fbar-sort-dir-btn');
+  if (fbarSortDirBtn) fbarSortDirBtn.addEventListener('click', function () {
+    if (typeof toggleSortDir === 'function') toggleSortDir();
+  });
+
+  // context-dropzone — drag & drop + click
+  const ctxDropzone = document.getElementById('context-dropzone');
+  if (ctxDropzone) {
+    ctxDropzone.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      this.classList.add('doc-dropzone--over');
+    });
+    ctxDropzone.addEventListener('dragleave', function () {
+      this.classList.remove('doc-dropzone--over');
+    });
+    ctxDropzone.addEventListener('drop', function (e) {
+      this.classList.remove('doc-dropzone--over');
+      if (typeof _dropzoneHandle === 'function') _dropzoneHandle(e, 'context');
+    });
+    ctxDropzone.addEventListener('click', function () {
+      const fi = document.getElementById('context-file-input');
+      if (fi) fi.click();
+    });
+  }
+
+  // ctx-export-btn
+  const ctxExportBtn = document.getElementById('ctx-export-btn');
+  if (ctxExportBtn) ctxExportBtn.addEventListener('click', function () {
+    if (typeof exportContextMd === 'function') exportContextMd();
+  });
+
+  // tag-new-input — Enter key
+  const tagNewInput = document.getElementById('tag-new-input');
+  if (tagNewInput) tagNewInput.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' && typeof Locus !== 'undefined' && typeof Locus.addNewTag === 'function') Locus.addNewTag();
+  });
+
+  // tag-new-btn
+  const tagNewBtn = document.getElementById('tag-new-btn');
+  if (tagNewBtn) tagNewBtn.addEventListener('click', function () {
+    if (typeof Locus !== 'undefined' && typeof Locus.addNewTag === 'function') Locus.addNewTag();
+  });
+
+  // qc-modal — stopPropagation
+  const qcModal = document.querySelector('.qc-modal');
+  if (qcModal) qcModal.addEventListener('click', function (e) {
+    e.stopPropagation();
+  });
+
+  // import-diff-overlay — click outside to close
+  const importDiffOverlay = document.getElementById('import-diff-overlay');
+  if (importDiffOverlay) importDiffOverlay.addEventListener('click', function (e) {
+    if (e.target === this && typeof closeImportDiff === 'function') closeImportDiff();
+  });
+
+  // import-diff-cancel-btn
+  const importDiffCancel = document.getElementById('import-diff-cancel-btn');
+  if (importDiffCancel) importDiffCancel.addEventListener('click', function () {
+    if (typeof closeImportDiff === 'function') closeImportDiff();
+  });
+
+  // import-diff-confirm-btn
+  const importDiffConfirm = document.getElementById('import-diff-confirm-btn');
+  if (importDiffConfirm) importDiffConfirm.addEventListener('click', function () {
+    if (typeof confirmImport === 'function') confirmImport();
+  });
+
+  // item-editor-overlay — click outside to close
+  const itemEditorOverlay = document.getElementById('item-editor-overlay');
+  if (itemEditorOverlay) itemEditorOverlay.addEventListener('click', function (e) {
+    if (e.target === this && typeof closeItemEditor === 'function') closeItemEditor();
+  });
+
+  // ie-tpl-open-btn
+  const ieTplOpenBtn = document.getElementById('ie-tpl-open-btn');
+  if (ieTplOpenBtn) ieTplOpenBtn.addEventListener('click', function () {
+    if (typeof openTemplatePicker === 'function') openTemplatePicker();
+  });
+
+  // pi-textarea — oninput, dragover, dragleave, drop
+  const piTextarea = document.getElementById('pi-textarea');
+  if (piTextarea) {
+    piTextarea.addEventListener('input', function () {
+      if (typeof piParse === 'function') piParse();
+    });
+    piTextarea.addEventListener('dragover', function (e) {
+      if (typeof piDragOver === 'function') piDragOver(e);
+    });
+    piTextarea.addEventListener('dragleave', function (e) {
+      if (typeof piDragLeave === 'function') piDragLeave(e);
+    });
+    piTextarea.addEventListener('drop', function (e) {
+      if (typeof piDrop === 'function') piDrop(e);
+    });
+  }
+
+  // pi-confirm-btn
+  const piConfirmBtn = document.getElementById('pi-confirm-btn');
+  if (piConfirmBtn) piConfirmBtn.addEventListener('click', function () {
+    if (typeof piConfirm === 'function') piConfirm();
+  });
+
+  // ie-cancel-btn
+  const ieCancelBtn = document.getElementById('ie-cancel-btn');
+  if (ieCancelBtn) ieCancelBtn.addEventListener('click', function () {
+    if (typeof closeItemEditor === 'function') closeItemEditor();
+  });
+
+  // ie-tpl-save-btn
+  const ieTplSaveBtn = document.getElementById('ie-tpl-save-btn');
+  if (ieTplSaveBtn) ieTplSaveBtn.addEventListener('click', function () {
+    if (typeof toggleTplSavePanel === 'function') toggleTplSavePanel();
+  });
+
+  // ie-save-btn
+  const ieSaveBtn = document.getElementById('ie-save-btn');
+  if (ieSaveBtn) ieSaveBtn.addEventListener('click', function () {
+    if (typeof confirmItemEditor === 'function') confirmItemEditor();
+  });
+
+  // tpl-save-confirm-btn
+  const tplSaveConfirmBtn = document.getElementById('tpl-save-confirm-btn');
+  if (tplSaveConfirmBtn) tplSaveConfirmBtn.addEventListener('click', function () {
+    if (typeof saveCurrentItemAsTemplate === 'function') saveCurrentItemAsTemplate();
+  });
+
+  // tpl-save-cancel-btn
+  const tplSaveCancelBtn = document.getElementById('tpl-save-cancel-btn');
+  if (tplSaveCancelBtn) tplSaveCancelBtn.addEventListener('click', function () {
+    if (typeof toggleTplSavePanel === 'function') toggleTplSavePanel();
+  });
+
+  // tpl-picker-overlay — click outside to close
+  const tplPickerOverlay = document.getElementById('tpl-picker-overlay');
+  if (tplPickerOverlay) tplPickerOverlay.addEventListener('click', function (e) {
+    if (e.target === this && typeof closeTemplatePicker === 'function') closeTemplatePicker();
+  });
+
+  // tpl-picker-close-btn
+  const tplPickerCloseBtn = document.getElementById('tpl-picker-close-btn');
+  if (tplPickerCloseBtn) tplPickerCloseBtn.addEventListener('click', function () {
+    if (typeof closeTemplatePicker === 'function') closeTemplatePicker();
+  });
+
+  // standalone-ckpt-ta
+  const standaloneCkptTa = document.getElementById('standalone-ckpt-ta');
+  if (standaloneCkptTa) standaloneCkptTa.addEventListener('input', function () {
+    if (typeof parsePasteStandalone === 'function') parsePasteStandalone();
+  });
+
+  // standalone-ckpt-btn
+  const standaloneCkptBtn = document.getElementById('standalone-ckpt-btn');
+  if (standaloneCkptBtn) standaloneCkptBtn.addEventListener('click', function () {
+    if (typeof saveStandaloneCheckpoint === 'function') saveStandaloneCheckpoint();
+  });
+
+  // export-confirm-cancel-btn
+  const exportConfirmCancelBtn = document.getElementById('export-confirm-cancel-btn');
+  if (exportConfirmCancelBtn) exportConfirmCancelBtn.addEventListener('click', function () {
+    const overlay = document.getElementById('export-confirm-overlay');
+    if (overlay) overlay.classList.remove('open');
+  });
+
+  // proj-mismatch-cancel-btn
+  const projMismatchCancelBtn = document.getElementById('proj-mismatch-cancel-btn');
+  if (projMismatchCancelBtn) projMismatchCancelBtn.addEventListener('click', function () {
+    const overlay = document.getElementById('proj-mismatch-overlay');
+    if (overlay) overlay.classList.remove('open');
+  });
+
+  // shortcuts-overlay — click outside (delegado al overlay)
+  const shortcutsOverlay = document.getElementById('shortcuts-overlay');
+  if (shortcutsOverlay) shortcutsOverlay.addEventListener('click', function (e) {
+    if (typeof closeShortcuts === 'function') closeShortcuts(e);
+  });
+
+  // shortcuts-restore-btn
+  const shortcutsRestoreBtn = document.getElementById('shortcuts-restore-btn');
+  if (shortcutsRestoreBtn) shortcutsRestoreBtn.addEventListener('click', function () {
+    if (typeof restoreDefaultShortcuts === 'function') restoreDefaultShortcuts();
+  });
+
+  // shortcuts-close-btn
+  const shortcutsCloseBtn = document.getElementById('shortcuts-close-btn');
+  if (shortcutsCloseBtn) shortcutsCloseBtn.addEventListener('click', function () {
+    if (typeof closeShortcuts === 'function') closeShortcuts();
+  });
+
+  // cp-overlay — click outside to close
+  const cpOverlay = document.getElementById('cp-overlay');
+  if (cpOverlay) cpOverlay.addEventListener('click', function (e) {
+    if (e.target === this && typeof closeCommandPalette === 'function') closeCommandPalette();
+  });
+
+  // mg-version-input
+  const mgVersionInput = document.getElementById('mg-version-input');
+  if (mgVersionInput) mgVersionInput.addEventListener('input', function () {
+    const preview = document.getElementById('mg-filename-preview');
+    if (preview && typeof _docPrefix === 'function') {
+      preview.textContent = _docPrefix() + '-MAP_' + this.value + '.md';
+    }
+  });
+
+  // mg-export-backlog-btn
+  const mgExportBacklogBtn = document.getElementById('mg-export-backlog-btn');
+  if (mgExportBacklogBtn) mgExportBacklogBtn.addEventListener('click', function () {
+    if (typeof exportBacklogMd === 'function') exportBacklogMd();
+  });
+
+  // mg-export-history-btn
+  const mgExportHistoryBtn = document.getElementById('mg-export-history-btn');
+  if (mgExportHistoryBtn) mgExportHistoryBtn.addEventListener('click', function () {
+    if (typeof exportFullHistoryMd === 'function') exportFullHistoryMd();
+  });
+
+  // mg-export-context-btn
+  const mgExportContextBtn = document.getElementById('mg-export-context-btn');
+  if (mgExportContextBtn) mgExportContextBtn.addEventListener('click', function () {
+    if (typeof exportContextMd === 'function') exportContextMd();
+  });
+
+  // mg-export-all-btn
+  const mgExportAllBtn = document.getElementById('mg-export-all-btn');
+  if (mgExportAllBtn) mgExportAllBtn.addEventListener('click', function () {
+    if (typeof _mgExportAllZip === 'function') _mgExportAllZip();
+  });
+
+});
+// ── END T-202605-078 ─────────────────────────────────────────────────────────

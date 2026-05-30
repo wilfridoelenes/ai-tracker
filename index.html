@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:18 · autor:Rune · 2026-05-30 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:19 · autor:Rune · 2026-05-30 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -170,7 +170,7 @@
 <div id="storage-warn" class="is-hidden">
   <span>⚠️ Tienes muchas sesiones guardadas — el almacenamiento local puede saturarse pronto.</span>
   <button type="button" id="storage-warn-clean-btn">🗑 Limpiar proyecto</button>
-  <button type="button" onclick="document.getElementById('storage-warn').classList.add('is-hidden')" title="Cerrar">✕</button>
+  <button type="button" id="storage-warn-close-btn" title="Cerrar">✕</button>
 </div>
 <!-- ═══ RADAR SIDEBAR GLOBAL ═══ -->
 <div id="global-radar-sidebar">
@@ -360,15 +360,15 @@
     <div class="tpl-sidebar-section tpl-sidebar-actions">
       <div class="tpl-sidebar-label">Acciones</div>
       <div class="tpl-sidebar-action-list" id="tpl-toolbar">
-        <button class="tpl-action-btn is-hidden" id="btn-import-backlog" onclick="" title="Import deshabilitado — usar ---ITEMS--- en CHECKPOINT" disabled>↑ Importar Backlog</button>
+        <button class="tpl-action-btn is-hidden" id="btn-import-backlog" title="Import deshabilitado — usar ---ITEMS--- en CHECKPOINT" disabled>↑ Importar Backlog</button>
 
         <div class="tpl-action-row is-hidden" id="tpl-undo-row">
           <button class="tpl-action-btn tpl-action-icon" id="btn-undo-backlog" title="Deshacer" disabled>↩</button>
           <button class="tpl-action-btn tpl-action-icon" id="btn-redo-backlog" title="Rehacer" disabled>↪</button>
         </div>
-        <button class="tpl-action-btn is-hidden" id="btn-export-backlog" onclick="exportBacklogMd()" title="Descargar Backlog activo como .md">⬇ Descargar Backlog</button>
-        <button class="tpl-action-btn is-hidden" id="btn-export-backlog-full" onclick="exportFullHistoryMd()" title="Descargar historial completo como .md">⬇ Historial completo</button>
-        <button class="tpl-action-btn is-hidden" id="btn-import-htmlmap" onclick="document.getElementById('htmlmap-file-input').click()" title="Importar archivo AI-MAP_vX.Y.md">↑ Importar MAP</button>
+        <button class="tpl-action-btn is-hidden" id="btn-export-backlog" title="Descargar Backlog activo como .md">⬇ Descargar Backlog</button>
+        <button class="tpl-action-btn is-hidden" id="btn-export-backlog-full" title="Descargar historial completo como .md">⬇ Historial completo</button>
+        <button class="tpl-action-btn is-hidden" id="btn-import-htmlmap" title="Importar archivo AI-MAP_vX.Y.md">↑ Importar MAP</button>
         <button class="tpl-action-btn tpl-action-primary is-hidden" id="btn-generate-map" title="Generar documentos">⚙ Generar documentos</button>
         <button class="tpl-action-btn is-hidden" id="btn-export-contratos" title="Exportar Contratos.md">⬇ Exportar Contratos</button>
       </div>
@@ -421,7 +421,7 @@
         <span class="bl-collapse-btn-icon">⊟</span>
         <span class="bl-collapse-btn-label">Colapsar</span>
       </button>
-      <button class="bl-toolbar-new-item-btn" id="btn-new-backlog-item" onclick="_openItemEditorSafe(null, null)" title="Crear nuevo ítem">+ Nuevo ítem</button>
+      <button class="bl-toolbar-new-item-btn" id="btn-new-backlog-item" title="Crear nuevo ítem">+ Nuevo ítem</button>
       <div class="bl-toolbar-spacer"></div>
       <div class="fbar-search-wrap">
         <input class="fbar-search-input" id="backlog-search-input" type="text" placeholder="🔍 Buscar…" autocomplete="off">
@@ -439,10 +439,10 @@
       <button class="bl-strip-btn s-descartado" id="fstatus-descartado">Descartado</button>
       <div class="bl-filter-strip-sep"></div>
       <button class="bl-strip-btn s-bloqueado" id="fbar-blocker-btn" title="Solo ítems bloqueados — pendientes sin cambio en +14 días">⛔ Bloqueados</button>
-      <button class="bl-strip-btn" id="fbar-deps-btn" onclick="toggleDepsFilter()" title="Filtrar por dependencias explícitas — bloqueados / libres">🔗 Deps</button>
+      <button class="bl-strip-btn" id="fbar-deps-btn" title="Filtrar por dependencias explícitas — bloqueados / libres">🔗 Deps</button>
       <button class="bl-strip-btn" id="fbar-no-ac-btn" title="Ítems sin criterios de aceptación">Sin AC</button>
       <div class="bl-sort-wrap">
-        <select class="bl-sort-select" id="fbar-sort-select" onchange="onBacklogSortChange(this.value)">
+        <select class="bl-sort-select" id="fbar-sort-select">
           <option value="priority">Prioridad</option>
           <option value="effort">Esfuerzo</option>
           <option value="type">Tipo</option>
@@ -450,7 +450,7 @@
           <option value="completedAt">Fecha completado</option>
           <option value="createdAt">Fecha agregado</option>
         </select>
-        <button class="bl-sort-dir-btn" id="fbar-sort-dir-btn" onclick="toggleSortDir()" title="Invertir dirección">↓</button>
+        <button class="bl-sort-dir-btn" id="fbar-sort-dir-btn" title="Invertir dirección">↓</button>
       </div>
       <button class="fbar-clear-btn is-hidden" id="filter-clear-btn" title="Limpiar todos los filtros">✕ Limpiar</button>
     </div>
@@ -505,10 +505,7 @@
       <!-- Estado vacío: importar -->
       <div id="context-empty-state" class="is-hidden">
         <div class="doc-dropzone" id="context-dropzone"
-          ondragover="event.preventDefault();this.classList.add('doc-dropzone--over')"
-          ondragleave="this.classList.remove('doc-dropzone--over')"
-          ondrop="this.classList.remove('doc-dropzone--over');_dropzoneHandle(event,'context')"
-          onclick="document.getElementById('context-file-input').click()">
+>
           <div class="doc-dropzone-icon">📄</div>
           <div class="doc-dropzone-title">Importar CONTEXT.md</div>
           <div class="doc-dropzone-hint">Arrastra el archivo aquí o haz click para seleccionar</div>
@@ -532,7 +529,7 @@
           <span class="htmlmap-meta-value is-hidden amber-color" id="cmeta-mod-val">—</span>
           <span class="flex-1"></span>
           <button class="doc-log-btn" id="doc-log-btn-context" title="Historial de acciones del Context">🕐<span class="doc-log-count"></span></button>
-          <button type="button" onclick="exportContextMd()" class="ctx-meta-action-btn" title="Descargar CONTEXT.md actualizado">⬇ Exportar</button>
+          <button type="button" id="ctx-export-btn" class="ctx-meta-action-btn" title="Descargar CONTEXT.md actualizado">⬇ Exportar</button>
           <button type="button" class="ctx-meta-action-btn ctx-import-btn" title="Re-importar CONTEXT.md">↑ Re-importar</button>
         </div>
 
@@ -804,8 +801,8 @@
     <div class="pop-tag-sep">
       <div class="pop-tag-new-section">Nueva etiqueta</div>
       <div class="tag-new-row">
-        <input class="tag-new-input" id="tag-new-input" placeholder="nombre..." maxlength="20" onkeydown="if(event.key==='Enter')Locus.addNewTag()">
-        <button class="btn-primary" onclick="Locus.addNewTag()">+ Crear</button>
+        <input class="tag-new-input" id="tag-new-input" placeholder="nombre..." maxlength="20">
+        <button class="btn-primary" id="tag-new-btn">+ Crear</button>
       </div>
       <div class="color-picker-row" id="color-picker-row"></div>
     </div>
@@ -817,7 +814,7 @@
 
 <!-- R-[pendiente-ID]: Quick Capture — modal unificado con stepper de 2 pasos -->
 <div class="quick-modal-overlay qc-overlay" id="qc-modal-overlay" role="dialog" aria-modal="true" aria-label="Quick Capture">
-  <div class="quick-modal qc-modal" onclick="event.stopPropagation()">
+  <div class="quick-modal qc-modal">
 
     <!-- Header -->
     <div class="qc-header">
@@ -967,7 +964,7 @@
 </div>
 
 <!-- T-091: Import diff modal -->
-<div class="import-diff-overlay" id="import-diff-overlay" onclick="if(event.target===this)closeImportDiff()">
+<div class="import-diff-overlay" id="import-diff-overlay">
   <div class="import-diff-modal">
     <div class="modal-title">↑ Importar backup</div>
     <div class="import-diff-section" id="import-diff-incoming">
@@ -977,18 +974,18 @@
       <div class="modal-title import-section-label">CAMBIOS VS ESTADO ACTUAL</div>
     </div>
     <div class="modal-actions">
-      <button type="button" onclick="closeImportDiff()">Cancelar</button>
-      <button class="btn-primary" onclick="confirmImport()">Importar</button>
+      <button type="button" id="import-diff-cancel-btn">Cancelar</button>
+      <button class="btn-primary" id="import-diff-confirm-btn">Importar</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="item-editor-overlay" onclick="if(event.target===this)closeItemEditor()">
+<div class="modal-overlay" id="item-editor-overlay">
   <div class="modal">
     <!-- Header -->
     <div class="ie-header">
       <div class="modal-title" id="item-editor-title">➕ Nuevo ítem</div>
-      <button class="tpl-open-btn" onclick="openTemplatePicker()" title="Usar template predefinido o personalizado">⬡ Templates</button>
+      <button class="tpl-open-btn" id="ie-tpl-open-btn" title="Usar template predefinido o personalizado">⬡ Templates</button>
     </div>
 
     <!-- Body scrollable -->
@@ -1115,7 +1112,7 @@
           <label class="ie-paste-label">📋 Pegar bloque <span class="ie-paste-note">Markdown o línea CHECKPOINT — autorrellena los campos</span></label>
           <textarea class="pi-textarea" id="pi-textarea"
             placeholder="### [pendiente-ID] · Título del ítem&#10;**Priority:** high&#10;**Area:** UX&#10;**Effort:** 2&#10;**Status:** backlog&#10;&#10;### Criterios de aceptación&#10;- [ ] Criterio 1"
-            oninput="piParse()" ondragover="piDragOver(event)" ondragleave="piDragLeave(event)" ondrop="piDrop(event)" rows="4"></textarea>
+            rows="4"></textarea>
           <div class="pi-error" id="pi-error"></div>
           <div class="pi-preview" id="pi-preview">
             <div class="pi-preview-header">
@@ -1123,7 +1120,7 @@
               <span class="pi-preview-count" id="pi-count"></span>
             </div>
             <div id="pi-list"></div>
-            <button class="btn-primary btn-confirm-green" id="pi-confirm-btn" onclick="piConfirm()" disabled>Agregar seleccionados al Backlog</button>
+            <button class="btn-primary btn-confirm-green" id="pi-confirm-btn" disabled>Agregar seleccionados al Backlog</button>
           </div>
         </div>
       </div>
@@ -1132,26 +1129,26 @@
 
     <!-- Footer -->
     <div class="ie-footer">
-      <button class="ie-btn-cancel" onclick="closeItemEditor()">Cancelar</button>
-      <button class="ie-btn-tpl-save" onclick="toggleTplSavePanel()" title="Guardar campos actuales como template reutilizable">Guardar como template</button>
-      <button class="ie-btn-save" onclick="confirmItemEditor()">Guardar en Backlog</button>
+      <button class="ie-btn-cancel" id="ie-cancel-btn">Cancelar</button>
+      <button class="ie-btn-tpl-save" id="ie-tpl-save-btn" title="Guardar campos actuales como template reutilizable">Guardar como template</button>
+      <button class="ie-btn-save" id="ie-save-btn">Guardar en Backlog</button>
     </div>
     <div class="tpl-save-panel" id="tpl-save-panel">
       <label class="tpl-save-label">Nombre del template</label>
       <div class="tpl-save-row">
         <input type="text" id="tpl-save-name-input" class="tpl-save-input" placeholder="ej: R de feature con stripe">
-        <button class="btn-primary tpl-save-confirm-btn" onclick="saveCurrentItemAsTemplate()">Guardar</button>
-        <button class="ie-btn-cancel tpl-save-cancel-btn" onclick="toggleTplSavePanel()">✕</button>
+        <button class="btn-primary tpl-save-confirm-btn" id="tpl-save-confirm-btn">Guardar</button>
+        <button class="ie-btn-cancel tpl-save-cancel-btn" id="tpl-save-cancel-btn">✕</button>
       </div>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="tpl-picker-overlay" onclick="if(event.target===this)closeTemplatePicker()">
+<div class="modal-overlay" id="tpl-picker-overlay">
   <div class="modal tpl-picker-modal">
     <div class="ie-header">
       <div class="modal-title">⬡ Seleccionar template</div>
-      <button class="ie-btn-cancel tpl-picker-close-btn" onclick="closeTemplatePicker()">✕</button>
+      <button class="ie-btn-cancel tpl-picker-close-btn" id="tpl-picker-close-btn">✕</button>
     </div>
     <div class="tpl-picker-body">
       <p class="tpl-picker-hint">Selecciona un template para pre-rellenar el formulario. Podrás editar todos los campos antes de guardar.</p>
@@ -1171,11 +1168,11 @@
     <textarea id="standalone-ckpt-ta" rows="12"
       class="standalone-ckpt-ta"
       placeholder="Pega aquí el bloque ---CHECKPOINT--- completo..."
-      oninput="if(typeof parsePasteStandalone==='function')parsePasteStandalone()"></textarea>
+  ></textarea>
     <div id="standalone-ckpt-prev" class="standalone-ckpt-prev"></div>
     <div class="modal-actions modal-actions--mt">
       <button type="button" id="standalone-ckpt-cancel-btn">Cancelar</button>
-      <button class="btn-primary" id="standalone-ckpt-btn" disabled onclick="if(typeof saveStandaloneCheckpoint==='function')saveStandaloneCheckpoint()">Aplicar ítems</button>
+      <button class="btn-primary" id="standalone-ckpt-btn" disabled>Aplicar ítems</button>
     </div>
   </div>
 </div>
@@ -1188,7 +1185,7 @@
       Archivo: <code id="export-confirm-filename"></code>
     </div>
     <div class="modal-actions">
-      <button type="button" onclick="document.getElementById('export-confirm-overlay').classList.remove('open')">Cancelar</button>
+      <button type="button" id="export-confirm-cancel-btn">Cancelar</button>
       <button class="btn-primary" id="export-confirm-btn">⬇ Descargar</button>
     </div>
   </div>
@@ -1268,7 +1265,7 @@
     <div class="modal-title modal-title--accent">⚠ Proyecto diferente</div>
     <div class="modal-body-text" id="proj-mismatch-msg"></div>
     <div class="modal-actions">
-      <button type="button" onclick="document.getElementById('proj-mismatch-overlay').classList.remove('open')">Cancelar</button>
+      <button type="button" id="proj-mismatch-cancel-btn">Cancelar</button>
       <button class="btn-primary" id="proj-mismatch-continue">Continuar</button>
     </div>
   </div>
@@ -1355,13 +1352,13 @@
   </div>
 </div>
 
-<div class="shortcuts-overlay is-hidden" id="shortcuts-overlay" onclick="closeShortcuts(event)">
+<div class="shortcuts-overlay is-hidden" id="shortcuts-overlay">
   <div class="shortcuts-panel" id="shortcuts-panel" role="dialog" aria-modal="true" aria-label="Configuración de atajos">
     <div class="shortcuts-header">
       <span class="shortcuts-title">Atajos de teclado</span>
       <div class="shortcuts-header-actions">
-        <button class="shortcuts-restore-btn" onclick="restoreDefaultShortcuts()">Restaurar defaults</button>
-        <button class="shortcuts-close-btn" onclick="closeShortcuts()">✕</button>
+        <button class="shortcuts-restore-btn" id="shortcuts-restore-btn">Restaurar defaults</button>
+        <button class="shortcuts-close-btn" id="shortcuts-close-btn">✕</button>
       </div>
     </div>
     <div class="shortcuts-body" id="shortcuts-body"></div>
@@ -1369,7 +1366,7 @@
 </div>
 
 <!-- Command Palette — cp-overlay (activo) -->
-<div class="cmd-palette-overlay is-hidden" id="cp-overlay" onclick="if(event.target===this)closeCommandPalette()">
+<div class="cmd-palette-overlay is-hidden" id="cp-overlay">
   <div class="cmd-palette-panel" id="cp-container" role="dialog" aria-modal="true" aria-label="Command palette">
     <div class="cmd-palette-input-wrap" id="cp-search-bar">
       <span class="cmd-palette-icon" id="cp-search-icon">⌘</span>
@@ -1536,7 +1533,7 @@ function _validateResetBacklogInput(el) {
           <div class="hmexport-field-wrap mg-version-wrap">
             <label class="hmexport-label" for="mg-version-input">Versión</label>
             <input id="mg-version-input" type="text" class="hmexport-input"
-              oninput="document.getElementById('mg-filename-preview').textContent=_docPrefix()+'-MAP_'+this.value+'.md'">
+>
           </div>
           <div class="hmexport-desc mg-filename-desc">
             <code id="mg-filename-preview" class="hmexport-filename"></code>
@@ -1606,12 +1603,12 @@ function _validateResetBacklogInput(el) {
     <div class="mg-export-strip">
       <div class="mg-export-strip-label">Exportar</div>
       <div class="mg-export-strip-btns">
-        <button class="mg-export-btn" onclick="exportBacklogMd()">Backlog activo</button>
-        <button class="mg-export-btn" onclick="exportFullHistoryMd()">Backlog archivado</button>
+        <button class="mg-export-btn" id="mg-export-backlog-btn">Backlog activo</button>
+        <button class="mg-export-btn" id="mg-export-history-btn">Backlog archivado</button>
         <button class="mg-export-btn" id="mg-export-htmlmap-btn">MAP</button>
-        <button class="mg-export-btn" onclick="exportContextMd()">Context</button>
+        <button class="mg-export-btn" id="mg-export-context-btn">Context</button>
       </div>
-      <button class="mg-export-all-btn" onclick="_mgExportAllZip()">descargar todo ↓</button>
+      <button class="mg-export-all-btn" id="mg-export-all-btn">descargar todo ↓</button>
     </div>
 
     <!-- Footer -->
