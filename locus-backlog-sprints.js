@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:11 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-10 · mod:12 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -20,7 +20,8 @@ import { downloadTemplates } from './locus-session-save.js';
 // ── T-sprints: Catálogo de sprints ──
 
 export function _getActiveSprint() {
-  return getActiveSprints().find(s => s.status === 'active') || null;
+  const all = getActiveSprints().filter(s => s.status === 'active');
+  return all.find(s => s.current === true) || all[0] || null;
 }
 
 export function _getSprintById(id) {
@@ -284,15 +285,16 @@ export function createSprint(raw, goal, versionTarget, releaseType, projId) {
   const vt  = (versionTarget || '').trim() || null;
   // T-202605-500: label canónico = '[ID] · [Nombre descriptivo]'
   const canonicalLabel = displayLabel ? id + ' · ' + displayLabel : id;
-// AC-1 [R — Eliminar status 'open']: si hay un sprint activo al crear, cerrarlo explícitamente.
-  // La validación previa en _buildNewSprintForm ya mostró el modal de decisión al founder.
-  // Si createSprint llega aquí, el founder eligió continuar — cerrar el activo.
-  _activeProjForSprint.sprints.forEach(s => { if (s.status === 'active') s.status = 'closed'; });
+  // B-202605-028: modelo multi-sprint — no cerrar sprints activos al crear uno nuevo.
+  // El founder decide qué sprint es "en curso" via flag current:true.
+  const hasCurrentSprint = _activeProjForSprint.sprints.some(s => s.status === 'active' && s.current === true);
   _activeProjForSprint.sprints.push({
     id, label: canonicalLabel, goal: goalTrimmed,
     version_target: vt, release_type: rt,
     // B-202605-057: status 'active' desde creación — _getActiveSprint() lo detecta inmediatamente
-    status: 'active', startedAt: Date.now(), createdAt: Date.now()
+    // B-202605-028: marcar current:true si ningún sprint activo del proyecto lo tiene aún
+    status: 'active', current: !hasCurrentSprint ? true : undefined,
+    startedAt: Date.now(), createdAt: Date.now()
   });
   // B-202605-058: saveImmediate() evita perder el sprint si el usuario recarga antes del debounce
   saveImmediate();
