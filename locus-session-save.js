@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -692,7 +692,6 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   const _patchItemsN = parsed.patchItems || [];
   const _tgItemsForPanel = _buildPatchTgItems(_patchItemsN, tgItems);
   if (_tgItemsForPanel.length) {
-    showMergeDiffPanel(_tgItemsForPanel);
     // B-202605-NNN: cancelar timer Supabase de draft antes de abrir el panel diff.
     // Si el usuario tarda >3s en confirmar, el timer se dispara y hace upsert del draft.
     // Ese upsert puede llegar por realtime DESPUÉS del delete post-confirm → restoreDrafts restaura el textarea.
