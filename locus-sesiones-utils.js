@@ -1,13 +1,15 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
-// Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal
+// Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
 // Requiere: locus-storage.js, locus-ui-shell.js (switchTab) cargados ANTES en index.html
 // Debe cargarse ANTES de locus-sesiones.js
 
 import { _cscardRelTs, render, selectTrackerAI } from './locus-sesiones.js';
-import { getAI, getAISessions, getActiveProject } from './locus-storage.js';
+import { getAI, getAISessions, getActiveProject, getState, save } from './locus-storage.js';
 import { switchTab } from './locus-ui-shell.js';
+import { showToast } from './locus-toast.js';
+import { renderStatusBar, updateStats } from './locus-sesiones-stats.js';
 
 // ══════════════════════════════════════════════════════════════════════════════
 // S-17: T-202605-446 · Cronómetro de sesión — card IA activa
@@ -385,6 +387,74 @@ export function _maybeShowWeeklySummary() {
   if (modal) modal.classList.remove('is-hidden');
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// T-202605-019: Migrado desde locus-misc-ui.js — Reset de IAs (getNextOccurrence, _resetExpired, getCD, setInterval)
+// ══════════════════════════════════════════════════════════════════════════════
+
+// B-202604-007: corrección — proyección correcta evita countdown vacío
+export function getNextOccurrence(resetTime) {
+  if (!resetTime) return null;
+  const [h, m] = resetTime.split(':').map(Number);
+  const r = new Date(); r.setHours(h, m, 0, 0);
+  if (r <= new Date()) r.setDate(r.getDate() + 1);
+  return r;
+}
+
+// B-202604-009: usa epoch absoluto cuando está disponible — evita liberar IAs por coincidencia de hora
+export function _resetExpired(resetTime, resetEpoch) {
+  if (!resetTime) return false;
+  if (resetEpoch) return Date.now() >= resetEpoch;
+  const [h, m] = resetTime.split(':').map(Number);
+  const r = new Date(); r.setHours(h, m, 0, 0);
+  return r <= new Date();
+}
+
+export function getCD(resetTime, resetEpoch) {
+  if (!resetTime) return '';
+  if (resetEpoch) {
+    const d = resetEpoch - Date.now();
+    if (d <= 0) return '00:00:00';
+    const H = Math.floor(d / 3600000), M = Math.floor((d % 3600000) / 60000), S = Math.floor((d % 60000) / 1000);
+    return `${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')}:${String(S).padStart(2,'0')}`;
+  }
+  if (_resetExpired(resetTime)) return '00:00:00';
+  const r = getNextOccurrence(resetTime);
+  if (!r) return '';
+  const d = r - new Date();
+  if (d <= 0) return '00:00:00';
+  const H = Math.floor(d / 3600000), M = Math.floor((d % 3600000) / 60000), S = Math.floor((d % 60000) / 1000);
+  return `${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')}:${String(S).padStart(2,'0')}`;
+}
+
+// T-058 + T-082: intervalo de reset de IAs — migrado desde locus-misc-ui.js
+setInterval(() => {
+  let changed = false;
+  getState().ais.forEach(ai => {
+    if (ai.status !== 'exhausted' || !ai.resetTime) return;
+    if (_resetExpired(ai.resetTime, ai.resetEpoch)) {
+      ai.status = 'available';
+      ai.resetTime = '';
+      ai.resetEpoch = null;
+      changed = true;
+      showToast('info', `${ai.name} ya disponible`);
+      return;
+    }
+    const cd = getCD(ai.resetTime, ai.resetEpoch);
+    const el = document.getElementById('cd-' + ai.id);
+    if (el) el.textContent = cd || '--:--:--';
+  });
+  if (changed) {
+    save();
+    render();
+    const currentTab = typeof window.currentTab !== 'undefined' ? window.currentTab : '';
+    if (currentTab === 'sesiones' && typeof window.renderHoy === 'function') window.renderHoy();
+  }
+  updateStats();
+  renderStatusBar();
+}, 1000);
+
+// ── END T-202605-019 ─────────────────────────────────────────────────────────
+
 // T-202605-045: Migrar handler inline #header-active-worker → addEventListener
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', function _initHwcHandler() {
@@ -413,3 +483,8 @@ if (document.readyState === 'loading') {
   }
 })();
 // ── END B-202605-019 ─────────────────────────────────────────────────────────
+
+// T-202605-019: exponer funciones migradas desde misc-ui para compatibilidad con locus-api.js
+window.getCD             = getCD;
+window._resetExpired     = _resetExpired;
+window.getNextOccurrence = getNextOccurrence;

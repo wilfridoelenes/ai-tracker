@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-30 23:00 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -841,6 +841,29 @@ export function _tryIngestPlan(text) {
   return true;
 }
 
+// T-202605-019: Migrado desde locus-misc-ui.js — modal standalone de CHECKPOINT
+// B-202604-138: modal standalone de CHECKPOINT — merge de ítems sin crear sesión de IA
+export function openStandaloneCheckpoint() {
+  // R-202604-047: shell estático en index.html — solo inject content + classList
+  const overlay = document.getElementById('standalone-ckpt-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('force-hidden');
+  overlay.classList.add('open');
+  setTimeout(() => {
+    const ta = document.getElementById('standalone-ckpt-ta');
+    if (ta) ta.focus();
+  }, 80);
+}
+
+export function closeStandaloneCheckpoint() {
+  const overlay = document.getElementById('standalone-ckpt-overlay');
+  // B-new: forzar display:none además de quitar clase open
+  // El overlay tiene z-index:9200 > item-viz-overlay(8500) — si solo se quita .open
+  // puede seguir bloqueando visualmente el panel diff que se abre inmediatamente después.
+  if (overlay) { overlay.classList.remove('open'); overlay.classList.add('force-hidden'); }
+}
+// ── END T-202605-019 ─────────────────────────────────────────────────────────
+
 // B-202604-138: flujo de CHECKPOINT standalone — merge de ítems sin sesión de IA
 // AC-1: pasa por showMergeDiffPanel igual que el flujo de sesión
 // AC-2: avances de status muestran el panel antes de aplicarse
@@ -1231,3 +1254,6 @@ function parsePlanBlock(text) {
 // T-202605-430: componente reutilizable de hora — aplica en guardar sesión, sesiones rápidas y correctHora
 window.handlePaste = handlePaste;
 window.handleInput = handleInput;
+// T-202605-019: exponer funciones migradas desde misc-ui para compatibilidad con locus-api.js
+window.openStandaloneCheckpoint  = openStandaloneCheckpoint;
+window.closeStandaloneCheckpoint = closeStandaloneCheckpoint;

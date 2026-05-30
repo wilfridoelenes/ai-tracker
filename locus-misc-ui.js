@@ -1,13 +1,15 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 UTC-6
 // locus-misc-ui.js
 // Módulo: Helpers de UI — getNextOccurrence, _resetExpired, Tags, Pendientes, Doc Activity Drawer
 // Extraído de ai-tracker-ai-notes.js
+import { openStandaloneCheckpoint, closeStandaloneCheckpoint } from './locus-session-parse.js';
 import { _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
 import { getState, save, getAISessions, _findSession } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { openDetail } from './locus-session-popup.js';
 
 import { renderStatusBar, updateStats } from './locus-sesiones-stats.js';
+import { getNextOccurrence, _resetExpired, getCD } from './locus-sesiones-utils.js';
 
 import { render } from './locus-sesiones.js';
 
@@ -20,71 +22,6 @@ const _getTagColors = () => window.TAG_COLORS || [];
 const _getCurrentTab = () => window.currentTab || '';
 const _renderHoy = () => { if (typeof window.renderHoy === 'function') window.renderHoy(); };
 const _relTs = (ts) => window._relTs ? window._relTs(ts) : '';
-
-// B-202604-007: corrección — proyección correcta evita countdown vacío
-export function getNextOccurrence(resetTime) {
-  if (!resetTime) return null;
-  const [h, m] = resetTime.split(':').map(Number);
-  const r = new Date(); r.setHours(h, m, 0, 0);
-  if (r <= new Date()) r.setDate(r.getDate() + 1);
-  return r;
-}
-// B-202604-009: usa epoch absoluto cuando está disponible — evita liberar IAs por coincidencia de hora
-export function _resetExpired(resetTime, resetEpoch) {
-  if (!resetTime) return false;
-  // Si hay epoch absoluto, comparar contra él — fuente de verdad
-  if (resetEpoch) return Date.now() >= resetEpoch;
-  // Fallback legacy (IAs sin epoch — estado guardado antes del fix)
-  const [h, m] = resetTime.split(':').map(Number);
-  const r = new Date(); r.setHours(h, m, 0, 0);
-  return r <= new Date();
-}
-
-export function getCD(resetTime, resetEpoch) {
-  if (!resetTime) return '';
-  // B-202604-009: usar epoch absoluto si está disponible
-  if (resetEpoch) {
-    const d = resetEpoch - Date.now();
-    if (d <= 0) return '00:00:00';
-    const H = Math.floor(d / 3600000), M = Math.floor((d % 3600000) / 60000), S = Math.floor((d % 60000) / 1000);
-    return `${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')}:${String(S).padStart(2,'0')}`;
-  }
-  // Fallback legacy — si ya expiró retornar 00:00:00, no proyectar +24h (B-202604-008)
-  if (_resetExpired(resetTime)) return '00:00:00';
-  const r = getNextOccurrence(resetTime);
-  if (!r) return '';
-  const d = r - new Date();
-  if (d <= 0) return '00:00:00';
-  const H = Math.floor(d / 3600000), M = Math.floor((d % 3600000) / 60000), S = Math.floor((d % 60000) / 1000);
-  return `${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')}:${String(S).padStart(2,'0')}`;
-}
-
-// T-058 + T-082: intervalo usando getNextOccurrence para consistencia con getCD()
-setInterval(() => {
-  let changed = false;
-  getState().ais.forEach(ai => {
-    if (ai.status !== 'exhausted' || !ai.resetTime) return;
-    // B-202604-009: pasar resetEpoch a _resetExpired para comparación exacta
-    if (_resetExpired(ai.resetTime, ai.resetEpoch)) {
-      ai.status = 'available';
-      ai.resetTime = '';
-      ai.resetEpoch = null;
-      changed = true;
-      showToast('info', `${ai.name} ya disponible`);
-      return;
-    }
-    const cd = getCD(ai.resetTime, ai.resetEpoch);
-    const el = document.getElementById('cd-' + ai.id);
-    if (el) el.textContent = cd || '--:--:--';
-  });
-  if (changed) {
-    save();
-    render();
-    if (_getCurrentTab() === 'sesiones') _renderHoy();
-  }
-  updateStats();
-  renderStatusBar();
-}, 1000);
 
 // ── Tags ──
 export function openTagModal(aiId, sessId) {
@@ -170,27 +107,6 @@ export function openPendPanel() {
 export function closePendPanel() {
   document.getElementById('pend-overlay').classList.remove('open');
   _restoreModalFocus('pend-overlay');
-}
-
-// B-202604-138: modal standalone de CHECKPOINT — merge de ítems sin crear sesión de IA
-export function openStandaloneCheckpoint() {
-  // R-202604-047: shell estático en index.html — solo inject content + classList
-  const overlay = document.getElementById('standalone-ckpt-overlay');
-  if (!overlay) return;
-  overlay.classList.remove('force-hidden');
-  overlay.classList.add('open');
-  setTimeout(() => {
-    const ta = document.getElementById('standalone-ckpt-ta');
-    if (ta) ta.focus();
-  }, 80);
-}
-
-export function closeStandaloneCheckpoint() {
-  const overlay = document.getElementById('standalone-ckpt-overlay');
-  // B-new: forzar display:none además de quitar clase open
-  // El overlay tiene z-index:9200 > item-viz-overlay(8500) — si solo se quita .open
-  // puede seguir bloqueando visualmente el panel diff que se abre inmediatamente después.
-  if (overlay) { overlay.classList.remove('open'); overlay.classList.add('force-hidden'); }
 }
 
 // ── Doc Activity Drawer ──
