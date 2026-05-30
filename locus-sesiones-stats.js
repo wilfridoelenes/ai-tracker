@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -344,3 +344,8 @@ export function toggleCollapseAll() {
 // hasRecentSession — fuente de verdad: locus-notifications.js
 // B-202605-012: definición eliminada de este archivo para resolver duplicación.
 // Call sites existentes consumen la función de locus-notifications.js (carga antes).
+
+// B-202605-026: exponer _isInSession en window para locus-radar.js.
+// Radar usa window.* fallback para evitar ciclo de imports (radar → sesiones-stats → sesiones → radar).
+// Sin esta asignación, window._isInSession era siempre undefined → fallback false → Workers siempre verdes en Radar.
+window._isInSession = _isInSession;
