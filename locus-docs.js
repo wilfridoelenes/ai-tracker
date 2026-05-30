@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -237,7 +237,6 @@ export function importHtmlMap(event) {
   reader.onload = e => {
     const text = e.target.result;
     const sections = parseHtmlMapMd(text);
-    HTML_MAP_SECTIONS = sections;
     localStorage.setItem(_tplKey('html-map-raw'), text);
     localStorage.setItem(_tplKey('html-map-sections'), JSON.stringify(sections));
     // Meta — leer version y nombre del encabezado Markdown
@@ -716,7 +715,6 @@ export function mergeHtmlMapSections(sections, projId) {
   });
   // Re-parsear secciones navegables
   const parsed = parseHtmlMapMd(raw);
-  HTML_MAP_SECTIONS = parsed;
   localStorage.setItem(_mapKey('html-map-raw'), raw);
   localStorage.setItem(_mapKey('html-map-sections'), JSON.stringify(parsed));
   _setHtmlMapModified();
