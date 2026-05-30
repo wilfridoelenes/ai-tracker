@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-10 · mod:8 · autor:Rune · 2026-05-30 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -21,13 +21,12 @@ import { esc } from './locus-ui-shell.js';
 import { openAddAI } from './locus-workers.js';
 
 import { toast } from './locus-toast.js';
+import { fmt12 } from './locus-session-hora.js';
+import { _hoyMsUntilReset } from './locus-sesiones.js';
 
-// fmt12, getCD, _hoyMsUntilReset — módulo fuente con ciclo potencial; window fallback
-// T-202605-082: _isInSession movida a locus-storage.js — import directo, sin ciclo.
-// ── Ciclo potencial: locus-sesiones-utils.js — guards via window (patrón establecido) ──
-const fmt12           = (...a) => typeof window.fmt12           === 'function' ? window.fmt12(...a)           : a[0] || '';
-const getCD           = (...a) => typeof window.getCD           === 'function' ? window.getCD(...a)           : '';
-const _hoyMsUntilReset = (ai)  => typeof window._hoyMsUntilReset === 'function' ? window._hoyMsUntilReset(ai) : Infinity;
+// T-202605-083: fmt12 y _hoyMsUntilReset — import directo desde módulo canónico (sin ciclo confirmado).
+// getCD — módulo fuente locus-misc-ui.js; window fallback mantenido (fuera de scope T-202605-083)
+const getCD = (...a) => typeof window.getCD === 'function' ? window.getCD(...a) : '';
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 
