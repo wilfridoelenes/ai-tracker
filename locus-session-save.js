@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -27,7 +27,7 @@ import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js'
 
 import { showToast } from './locus-toast.js';
 
-import { esc } from './locus-ui-shell.js';
+import { esc, getCurrentTab } from './locus-ui-shell.js';
 
 let _pendingTemplateDownload = false; // T5: variable de módulo — reemplaza window._pendingTemplateDownload
 let _pendingCompleteId = null;        // T-202604-190: ID de sesión quick a completar — seteado por openCompleteQuickSession en locus-session-popup.js
@@ -602,7 +602,7 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
         await saveImmediate(); render(); renderStats();
         // B-202605-508: actualizar badges de tabs tras guardar sesión
         updateTabNotifBadges();
-        if (currentTab === 'backlog') { _markBacklogListDirty(); renderBacklogList(); }
+        if (getCurrentTab() === 'backlog') { _markBacklogListDirty(); renderBacklogList(); }
         _rebuildLogBody();
         _checkStorageQuota();
         // B-202605-265: _setPhase(id,3) movido dentro de rAF — render() reconstruye el DOM con
@@ -792,8 +792,8 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // B-007: actualizar stat bar y lista backlog siempre al guardar sesión
   renderStats();
   // B-202604-XXX: actualizar tab Hoy tras guardar CKPT con hora de cierre — sin esto el card no refleja estado exhausted sin refresh manual
-  if (currentTab === 'sesiones') render();
-  if (currentTab === 'backlog') { _markBacklogListDirty(); renderBacklogList(); }
+  if (getCurrentTab() === 'sesiones') render();
+  if (getCurrentTab() === 'backlog') { _markBacklogListDirty(); renderBacklogList(); }
   // R-202604-016: actualizar log card
   _rebuildLogBody();
   // R-003: animar la primera sess-row del card recién guardado
