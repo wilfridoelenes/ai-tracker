@@ -7,7 +7,7 @@ import { _normalizeStatus, updateBacklogFooter } from './locus-backlog-item.js';
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
 import { _getActiveSprint, _getSprintById, renderSprintBurndown, renderSprintItems } from './locus-backlog-sprints.js';
 import { openItemEditor } from './locus-item-editor.js';
-import { _blogLog, _effectiveVersion, _loadFromSupabase, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog } from './locus-storage.js';
+import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 
 import { _confirmDiscard, _confirmRetroceso } from './locus-backlog-merge.js';
@@ -21,8 +21,6 @@ import { normalize } from './locus-map-generator.js';
 import { _gconfirmOpen } from './locus-modals.js';
 
 import { hasRecentSession } from './locus-notifications.js';
-
-import { _isInSession } from './locus-sesiones-stats.js';
 
 import { render } from './locus-sesiones.js';
 
