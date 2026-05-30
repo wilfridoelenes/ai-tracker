@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:16 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-11 · mod:17 · autor:Rune · 2026-05-30 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1003,9 +1003,7 @@ function buildCard(ai) {
         <div class="sc-step" id="phase-save-${ai.id}" role="listitem" data-step="3"><span class="sc-step-num" aria-hidden="true">3</span>guardar</div>
       </div>
       <div class="paste-ta-wrap">
-        <textarea class="paste-ta" id="ta-${ai.id}" rows="3"
-          onpaste="if(typeof handlePaste==='function'){handlePaste('${ai.id}')}else{showToast('error','Módulo de ingesta no disponible')}"
-          oninput="if(typeof handleInput==='function'){handleInput('${ai.id}');}this.closest('.paste-ta-wrap').classList.toggle('paste-ta-wrap--has-content',this.value.length>0);"></textarea>
+        <textarea class="paste-ta" id="ta-${ai.id}" rows="3"></textarea>
         <div class="paste-ta-hint" id="pta-hint-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el rol al cerrar sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
       </div>
       <div class="char-counter" id="cc-${ai.id}"></div>
@@ -1037,17 +1035,13 @@ function buildCard(ai) {
         <label class="sc-unlock-label" for="hora-${ai.id}">
           <i class="sc-unlock-icon ti ti-lock" aria-hidden="true"></i>desbloqueo
         </label>
-        <input class="hora-input" id="hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
-          oninput="parseHora('${ai.id}')"
-          onkeydown="horaKey(event,'${ai.id}')">
+        <input class="hora-input" id="hora-${ai.id}" type="text" maxlength="4" placeholder="--:--">
         <div class="hora-parsed" id="hdisp-${ai.id}">—</div>
       </div>
       <button class="sc-save" id="sbtn-${ai.id}" data-action="confirm-save" data-ai-id="${ai.id}" disabled>guardar sesión</button>
       <div class="blind-exhaust-inline is-hidden" id="bexhaust-inline-${ai.id}">
         <div class="blind-exhaust-hora-row">
           <input class="hora-input blind-exhaust-hora-input" id="bexhaust-hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
-            oninput="blindExhaustHoraInput('${ai.id}')"
-            onkeydown="blindExhaustHoraKey(event,'${ai.id}')"
             aria-label="Hora de desbloqueo para agotamiento ciego">
           <div>
             <div class="hora-parsed" id="bexhaust-disp-${ai.id}">—</div>
@@ -1106,7 +1100,7 @@ function buildCard(ai) {
     ${interruptedBannerHTML}
     <div class="sc-header">
       <div class="sc-header-left">
-        <div class="sc-avatar" title="${esc(ai.name)}" ondblclick="startRename('${ai.id}')">${ai.avatar || _aiInitial}</div>
+        <div class="sc-avatar" title="${esc(ai.name)}" data-action="dblclick-avatar" data-ai-id="${ai.id}">${ai.avatar || _aiInitial}</div>
         <span class="sc-project" id="name-${ai.id}">${esc(ai.name)}</span>
         ${isInSession
           ? `<span class="sc-badge"><span class="sc-badge-dot"></span>${STATUS_LABELS.insession}</span>`
@@ -1149,6 +1143,34 @@ function buildCard(ai) {
   el.querySelectorAll('[data-tag-color]').forEach(dot => {
     dot.style.setProperty('background', dot.dataset.tagColor);
   });
+
+  // T-202605-057: Migración on* → addEventListener post-render
+  // ── Textarea paste-ta ──
+  const taEl = el.querySelector(`#ta-${ai.id}`);
+  if (taEl) {
+    taEl.addEventListener('paste', () => {
+      if (typeof handlePaste === 'function') handlePaste(ai.id);
+      else if (typeof showToast === 'function') showToast('error', 'Módulo de ingesta no disponible');
+    });
+    taEl.addEventListener('input', function () {
+      if (typeof handleInput === 'function') handleInput(ai.id);
+      this.closest('.paste-ta-wrap')?.classList.toggle('paste-ta-wrap--has-content', this.value.length > 0);
+    });
+  }
+  // ── Hora input (desbloqueo) ──
+  const horaEl = el.querySelector(`#hora-${ai.id}`);
+  if (horaEl) {
+    horaEl.addEventListener('input', () => { if (typeof parseHora === 'function') parseHora(ai.id); });
+    horaEl.addEventListener('keydown', (e) => { if (typeof horaKey === 'function') horaKey(e, ai.id); });
+  }
+  // ── Blind exhaust hora input ──
+  const bexhaustEl = el.querySelector(`#bexhaust-hora-${ai.id}`);
+  if (bexhaustEl) {
+    bexhaustEl.addEventListener('input', () => { blindExhaustHoraInput(ai.id); });
+    bexhaustEl.addEventListener('keydown', (e) => { blindExhaustHoraKey(e, ai.id); });
+  }
+  // END T-202605-057
+
   return el;
 }
 
@@ -1361,6 +1383,17 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 // ── END B-202605-017 ──
+
+// ── T-202605-057: Delegación dblclick — sc-avatar → startRename ──────────
+document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('dblclick', e => {
+    const el = e.target.closest('[data-action="dblclick-avatar"]');
+    if (!el) return;
+    const aiId = el.dataset.aiId;
+    if (aiId && typeof startRename === 'function') startRename(aiId);
+  });
+});
+// ── END T-202605-057 ─────────────────────────────────────────────────────
 
 // ── B-202605-019: Listeners — tracker-col-tabs ───────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {
