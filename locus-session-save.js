@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-30 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -21,7 +21,7 @@ import { render } from './locus-sesiones.js';
 
 import { _showProjRequiredInPanel, _templateTrigger, interpretHora } from './locus-session-hora.js';
 
-import { _setPhase, _tryIngestPlan, parsePaste } from './locus-session-parse.js';
+import { _setPhase, _tryIngestPlan, isParseInFlight, parsePaste } from './locus-session-parse.js';
 
 import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js';
 
@@ -391,6 +391,13 @@ export function _checkStorageQuota() {
 }
 
 export function saveSession(id) {
+  // B-202605-018: si hay un paste en vuelo, parsePaste aún no corrió — diferir hasta que complete.
+  // Race window: handlePaste dispara un setTimeout(150ms) antes de parsePaste; si confirmSave
+  // se ejecuta dentro de ese window, ai._parsed.tgItems está vacío y el diff nunca se muestra.
+  if (isParseInFlight(id)) {
+    setTimeout(() => saveSession(id), 50);
+    return;
+  }
   // B-202605-054: getAI(id) puede devolver null si el worker fue eliminado entre el inicio
   // de la sesión y el guardado (ej: purge concurrente). Sin guard, ai._parsed explota.
   const ai = getAI(id);

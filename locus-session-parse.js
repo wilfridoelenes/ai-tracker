@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -770,6 +770,10 @@ export function parsePaste(id) {
 // B-202605-NNN: flag para que oninput no corra antes de que el browser
 // inserte el texto del paste. onpaste lo activa; se limpia tras el setTimeout.
 const _pasteInFlight = {};
+
+// B-202605-018: guard para saveSession — evita que confirmSave corra antes de que parsePaste
+// complete cuando hay un paste en vuelo (race window de hasta 300ms).
+export function isParseInFlight(id) { return !!_pasteInFlight[id]; }
 
 function handlePaste(id) {
   // Llamado desde onpaste — marcar que hay un paste en vuelo y diferir
