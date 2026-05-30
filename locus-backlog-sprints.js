@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:13 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-10 · mod:14 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -1395,6 +1395,10 @@ function _scmExecuteClose() {
   if (sp && sp.retroDoc) {
     _openRetroDownloadPrompt(id);
   }
+
+  // B-[pendiente-ID]: refrescar tab Sprint post-cierre — sin esto el tab
+  // queda mostrando el sprint cerrado hasta que el usuario navega manualmente
+  if (typeof renderSprintTab === 'function') renderSprintTab();
 }
 
 function createSprintFromGroup(id) {
