@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:14 · autor:Rune · 2026-05-30 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -231,7 +231,7 @@ function _trackerRenderMiniHist(aiId) {
     return `<div class="${rowCls}"
         data-sess-id="${s.id}"
         data-ai-id="${s.aiId}"
-        onclick="event.stopPropagation();_trackerMiniHistSelect('${s.id}','${s.aiId}')">
+        data-action="mini-hist-select">
       <div class="sess-row-top">
         <span class="sess-row-title" title="${esc(s.title)}">${esc(s.title)}</span>
         ${badgeHtml}
@@ -347,7 +347,7 @@ function _buildCurrentSessionCard(aiId) {
     return `<div class="cscard-row${latestCls}"
         data-sess-id="${s.id}"
         data-ai-id="${s.aiId}"
-        onclick="event.stopPropagation();_trackerMiniHistSelect('${s.id}','${s.aiId}')">
+        data-action="mini-hist-select">
       <div class="cscard-row-top">
         <span class="cscard-row-title" title="${esc(s.title)}">${esc(s.title)}</span>
         <span class="cscard-row-date">${isLatest ? dateLabel : ''}</span>
@@ -463,7 +463,7 @@ function _renderTrackerSidebar() {
     const _meta = _sessCount
       ? `<span class="tsb-ai-meta">${_sessCount} ckpt${_rel ? ' · ' + _rel : ''}</span>`
       : '';
-    return `<div class="tsb-ai-row${sel}" onclick="selectTrackerAI('${ai.id}')" id="tsb-row-${ai.id}">
+    return `<div class="tsb-ai-row${sel}" data-action="select-tracker-ai" data-ai-id="${ai.id}" id="tsb-row-${ai.id}">
       <span class="tsb-ai-dot ${dot}"></span>
       <span class="tsb-ai-name">${esc(ai.name)}</span>
       ${_meta}
@@ -744,7 +744,7 @@ function buildHoyCard(ai, idx = 0, opts = {}) {
           </div>
         </div>
       </div>`
-    : `<button class="hoy-mini-ckpt-full" onclick="event.stopPropagation();navigateToCard('${ai.id}')">
+    : `<button class="hoy-mini-ckpt-full" data-action="navigate-to-card" data-ai-id="${ai.id}">>
         + checkpoint
         <span class="hoy-mini-ckpt-since">${availSince ? `desde ${availSince}` : 'disponible'}</span>
       </button>`;
@@ -765,10 +765,10 @@ function buildHoyCard(ai, idx = 0, opts = {}) {
 
   // quick button only for available/interrupted, not exhausted
   const quickBtn = (ai.status !== 'exhausted')
-    ? `<button class="btn-quick" onclick="event.stopPropagation();openQuickCapture('${ai.id}')" title="Sesión rápida">⚡</button>`
+    ? `<button class="btn-quick" data-action="open-quick-capture" data-ai-id="${ai.id}" title="Sesión rápida">⚡</button>`
     : '';
 
-  return `<div class="${cardClass}" data-hoy-ai-id="${ai.id}" data-anim-delay="${idx * 60}" onclick="navigateToCard('${ai.id}')">
+  return `<div class="${cardClass}" data-hoy-ai-id="${ai.id}" data-anim-delay="${idx * 60}" data-action="navigate-to-card">>
     <div class="hoy-mini-strip">
       <div class="hoy-mini-name">${esc(ai.name)}</div>
       <div class="hoy-mini-right">
@@ -890,7 +890,7 @@ function buildCard(ai) {
   const interruptedBannerHTML = ai.interrupted
     ? `<div class="interrupted-banner visible">
         <span class="interrupted-banner-text">⚡ Checkpoint en curso</span>
-        <button class="interrupted-banner-btn" onclick="dismissInterrupted('${ai.id}')">Continuar →</button>
+        <button class="interrupted-banner-btn" data-action="dismiss-interrupted" data-ai-id="${ai.id}">Continuar →</button>
        </div>`
     : `<div class="interrupted-banner" id="intbanner-${ai.id}"></div>`;
 
@@ -924,13 +924,13 @@ function buildCard(ai) {
     const noHoraTag = (!s.resetAt && !s.quickCapture) ? `<span class="sess-no-hora" title="Sin hora de reset registrada">sin hora</span>` : '';
     const refPills = (s.trackerRefs || []).map(code => {
       const type = code[0] || '';
-      return `<span class="popup-ref-pill ${type} popup-ref-pill--sm" title="${esc(code)}" onclick="event.stopPropagation();openDetail('${ai.id}','${s.id}')">${esc(code)}</span>`;
+      return `<span class="popup-ref-pill ${type} popup-ref-pill--sm" title="${esc(code)}" data-action="open-detail-stop" data-ai-id="${ai.id}" data-sess-id="${s.id}">${esc(code)}</span>`;
     }).join('');
     const starInd = s.starred ? `<span class="sess-ind sess-ind--starred" title="Destacada">⭐</span>` : '';
     const quickInd = s.quickCapture ? `<span class="sess-ind sess-quick-tag" title="Captura rápida">⚡</span>` : '';
     const isLatest = s.id === _latestSessId;
     const reviewInd = isLatest
-      ? `<span class="sess-review-ind${s.inReview ? ' active' : ''}" title="${s.inReview ? 'En revisión — click para desactivar' : 'Marcar en revisión'}" onclick="event.stopPropagation();toggleInReview('${ai.id}','${s.id}')">${s.inReview ? '🔍 revisión' : '🔍'}</span>`
+      ? `<span class="sess-review-ind${s.inReview ? ' active' : ''}" title="${s.inReview ? 'En revisión — click para desactivar' : 'Marcar en revisión'}" data-action="toggle-in-review-stop" data-ai-id="${ai.id}" data-sess-id="${s.id}">${s.inReview ? '🔍 revisión' : '🔍'}</span>`
       : '';
     const summaryTrunc = s.summary ? (s.summary.length > 80 ? s.summary.slice(0, 80) + '…' : s.summary) : '';
     const summaryHtml = isHero && s.summary
@@ -940,7 +940,7 @@ function buildCard(ai) {
       ? `<div class="sess-row-decision"><span class="sess-row-decision-label">→</span>${esc(s.decision.slice(0, 160))}${s.decision.length > 160 ? '…' : ''}</div>`
       : '';
     const extraCls = (s.starred ? ' sess-row-starred' : '') + (isHero ? ' sess-row--latest' : '');
-    return `<div class="sess-row${extraCls}" data-sess-id="${s.id}" onclick="openDetail('${ai.id}','${s.id}')">
+    return `<div class="sess-row${extraCls}" data-sess-id="${s.id}" data-action="open-detail" data-ai-id="${ai.id}">>
       <div class="sess-row-top">
         <div class="sess-row-title" title="${esc(s.title)}">${esc(s.title)}</div>
         <div class="sess-row-date" title="${esc(s.date || s.dateShort || '')}">${s.date ? relDate(s.date) : (s.dateShort || '')}</div>
@@ -987,7 +987,7 @@ function buildCard(ai) {
       </div>
       ${sessTotal === 0 ? emptyState : `
         <div class="sess-list-hero" id="sess-list-${ai.id}">${sessRows}</div>
-        ${sessTotal > SESSIONS_DEFAULT ? `<button class="show-all-btn" onclick="toggleShowAll('${ai.id}')">${ai.showAll ? '▲ ocultar historial' : '▾ Ver historial (' + sessTotal + ')'}</button>` : ''}
+        ${sessTotal > SESSIONS_DEFAULT ? `<button class="show-all-btn" data-action="toggle-show-all" data-ai-id="${ai.id}">${ai.showAll ? '▲ ocultar historial' : '▾ Ver historial (' + sessTotal + ')'}</button>` : ''}
       `}
     </div>`;
 
@@ -1046,7 +1046,7 @@ function buildCard(ai) {
     <div class="card-countdown-zone card-countdown-zone--notime">
       <div class="countdown-no-time">
         <div class="countdown-no-time-msg">Sin hora de desbloqueo asignada</div>
-        <button class="countdown-assign-hora-btn" onclick="openCorrectHora('${ai.id}')">⏰ Asignar hora</button>
+        <button class="countdown-assign-hora-btn" data-action="open-correct-hora" data-ai-id="${ai.id}">⏰ Asignar hora</button>
       </div>
     </div>
   `;
@@ -1063,7 +1063,7 @@ function buildCard(ai) {
           onkeydown="horaKey(event,'${ai.id}')">
         <div class="hora-parsed" id="hdisp-${ai.id}">—</div>
       </div>
-      <button class="sc-save" id="sbtn-${ai.id}" onclick="confirmSave('${ai.id}')" disabled>guardar sesión</button>
+      <button class="sc-save" id="sbtn-${ai.id}" data-action="confirm-save" data-ai-id="${ai.id}" disabled>guardar sesión</button>
       <div class="blind-exhaust-inline is-hidden" id="bexhaust-inline-${ai.id}">
         <div class="blind-exhaust-hora-row">
           <input class="hora-input blind-exhaust-hora-input" id="bexhaust-hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
@@ -1076,14 +1076,14 @@ function buildCard(ai) {
           </div>
         </div>
         <div class="blind-exhaust-confirm-row">
-          <button class="blind-exhaust-confirm-btn" id="bexhaust-confirm-${ai.id}" onclick="confirmBlindExhaust('${ai.id}')" disabled aria-label="Confirmar agotamiento ciego">🔴 Agotar</button>
-          <button class="blind-exhaust-cancel-btn" onclick="cancelBlindExhaustMode('${ai.id}')">Cancelar</button>
+          <button class="blind-exhaust-confirm-btn" id="bexhaust-confirm-${ai.id}" data-action="confirm-blind-exhaust" data-ai-id="${ai.id}" disabled aria-label="Confirmar agotamiento ciego">🔴 Agotar</button>
+          <button class="blind-exhaust-cancel-btn" data-action="cancel-blind-exhaust" data-ai-id="${ai.id}">Cancelar</button>
         </div>
       </div>
     </div>
   ` : `
     <div class="sc-footer sc-footer--exhausted">
-      <button class="card-footer-unlock-btn" onclick="openCorrectHora('${ai.id}')">⏰ Corregir hora</button>
+      <button class="card-footer-unlock-btn" data-action="open-correct-hora" data-ai-id="${ai.id}">⏰ Corregir hora</button>
     </div>
   `;
 
@@ -1107,7 +1107,7 @@ function buildCard(ai) {
   const _lastSess = getLastAISession(ai.id);
   const _cardProj = _lastSess ? getProjectById(_lastSess.projectId) : null;
   const _projChipHTML = _cardProj
-    ? `<span class="card-proj-chip" title="${esc(_cardProj.name)}" onclick="event.stopPropagation();selectProjectFilter('${_cardProj.id}')">${esc(_cardProj.icon || '📁')} ${esc(_cardProj.name)}</span>`
+    ? `<span class="card-proj-chip" title="${esc(_cardProj.name)}" data-action="select-project-filter-stop" data-proj-id="${_cardProj.id}">${esc(_cardProj.icon || '📁')} ${esc(_cardProj.name)}</span>`
     : '';
 
   // Premium card: avatar initial + status pill animado + countdown dramático
@@ -1139,21 +1139,21 @@ function buildCard(ai) {
       <div class="sc-header-right">
         ${_hasStaleSuggestion(ai) ? `<span class="stale-dot" title="Última sesión hace ${staleDays} días — tienes ítems en progreso pendientes"></span>` : ''}
         ${_cardSprintHTML}
-        ${_isAvail ? `<button class="btn-quick" onclick="openQuickCapture('${ai.id}')" title="Registrar sesión rápida sin protocolo">⚡</button>` : ''}
+        ${_isAvail ? `<button class="btn-quick" data-action="open-quick-capture" data-ai-id="${ai.id}" title="Registrar sesión rápida sin protocolo">⚡</button>` : ''}
         <div class="card-dot-menu" id="dotmenu-wrap-${ai.id}">
-          <button class="sc-menu-btn" onclick="toggleCardMenu('${ai.id}',event)" title="Más opciones" aria-label="Más opciones"><i class="ti ti-dots"></i></button>
+          <button class="sc-menu-btn" data-action="toggle-card-menu" data-ai-id="${ai.id}" title="Más opciones" aria-label="Más opciones"><i class="ti ti-dots"></i></button>
           <div class="card-dot-dropdown" id="dotmenu-${ai.id}">
-            <button class="card-dot-item" onclick="closeCardMenu('${ai.id}');startRename('${ai.id}')"><span class="dot-item-icon">✎</span> Renombrar</button>
+            <button class="card-dot-item" data-action="dot-rename" data-ai-id="${ai.id}"><span class="dot-item-icon">✎</span> Renombrar</button>
             ${_isAvail ? `<button class="card-dot-item" data-action="interrupt" data-ai-id="${ai.id}"><span class="dot-item-icon">⛓️‍💥</span> Interrumpir sesión</button>` : ''}
-            ${_isAvail ? `<button class="card-dot-item" onclick="closeCardMenu('${ai.id}');openBlindExhaustMode('${ai.id}')"><span class="dot-item-icon">🔴</span> Agotar</button>` : ''}
-            ${!_isAvail ? `<button class="card-dot-item" onclick="closeCardMenu('${ai.id}');openCorrectHora('${ai.id}')"><span class="dot-item-icon">⏰</span> Corregir hora de desbloqueo</button>` : ''}
-            <button class="card-dot-item${sessTotal < 2 ? ' disabled' : ''}" onclick="closeCardMenu('${ai.id}');${sessTotal >= 2 ? `downloadReport('${ai.id}')` : ''}" title="${sessTotal < 2 ? 'Necesitas al menos 2 sesiones' : 'Descargar reporte markdown'}"${sessTotal < 2 ? ' disabled' : ''}><span class="dot-item-icon">📥</span> Descargar reporte</button>
-            <button class="card-dot-item" onclick="closeCardMenu('${ai.id}');openAvatarModal('${ai.id}')"><span class="dot-item-icon">🖼️</span> Cambiar avatar</button>
+            ${_isAvail ? `<button class="card-dot-item" data-action="dot-blind-exhaust" data-ai-id="${ai.id}"><span class="dot-item-icon">🔴</span> Agotar</button>` : ''}
+            ${!_isAvail ? `<button class="card-dot-item" data-action="dot-correct-hora" data-ai-id="${ai.id}"><span class="dot-item-icon">⏰</span> Corregir hora de desbloqueo</button>` : ''}
+            <button class="card-dot-item${sessTotal < 2 ? ' disabled' : ''}" data-action="dot-download-report" data-ai-id="${ai.id}" title="${sessTotal < 2 ? 'Necesitas al menos 2 sesiones' : 'Descargar reporte markdown'}"${sessTotal < 2 ? ' disabled' : ''}><span class="dot-item-icon">📥</span> Descargar reporte</button>
+            <button class="card-dot-item" data-action="dot-avatar" data-ai-id="${ai.id}"><span class="dot-item-icon">🖼️</span> Cambiar avatar</button>
             <hr class="card-dot-divider">
             <div class="danger-zone">
-            <button class="card-dot-item danger" onclick="closeCardMenu('${ai.id}');archiveAI('${ai.id}')"><span class="dot-item-icon">⊟</span> Archivar</button>
-            <button class="card-dot-item danger" onclick="closeCardMenu('${ai.id}');confirmClear('${ai.id}')"><span class="dot-item-icon">⌫</span> Limpiar historial</button>
-            <button class="card-dot-item danger" onclick="closeCardMenu('${ai.id}');deleteAI('${ai.id}')"><span class="dot-item-icon">✕</span> Eliminar IA</button>
+            <button class="card-dot-item danger" data-action="dot-archive" data-ai-id="${ai.id}"><span class="dot-item-icon">⊟</span> Archivar</button>
+            <button class="card-dot-item danger" data-action="dot-clear" data-ai-id="${ai.id}"><span class="dot-item-icon">⌫</span> Limpiar historial</button>
+            <button class="card-dot-item danger" data-action="dot-delete" data-ai-id="${ai.id}"><span class="dot-item-icon">✕</span> Eliminar IA</button>
             </div>
           </div>
         </div>
@@ -1433,3 +1433,117 @@ document.addEventListener('DOMContentLoaded', function () {
 
 });
 // ── END B-202605-019 ─────────────────────────────────────────────────────────
+
+// --- Delegation: locus-sesiones.js ---
+document.addEventListener('DOMContentLoaded', () => {
+  // Contenedores: #tab-sesiones (grid de cards HOY) + #tracker-col-card (sidebar) + document para elementos dinámicos
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const action = el.dataset.action;
+    const aiId = el.dataset.aiId;
+    const sessId = el.dataset.sessId;
+    const projId = el.dataset.projId;
+    const filterId = el.dataset.filterId;
+
+    switch (action) {
+      // Sidebar tracker rows
+      case 'select-tracker-ai':
+        if (typeof selectTrackerAI === 'function') selectTrackerAI(aiId);
+        break;
+      // Mini hist rows (stopPropagation preservado)
+      case 'mini-hist-select':
+        e.stopPropagation();
+        if (typeof _trackerMiniHistSelect === 'function') _trackerMiniHistSelect(sessId || el.dataset.sessId, aiId);
+        break;
+      // Hoy card — navigate to card
+      case 'navigate-to-card':
+        if (typeof navigateToCard === 'function') navigateToCard(aiId);
+        break;
+      // Hoy card — open quick capture (stopPropagation)
+      case 'open-quick-capture':
+        e.stopPropagation();
+        if (typeof openQuickCapture === 'function') openQuickCapture(aiId);
+        break;
+      // Interrupted banner
+      case 'dismiss-interrupted':
+        if (typeof dismissInterrupted === 'function') dismissInterrupted(aiId);
+        break;
+      // Popup ref pill (stopPropagation)
+      case 'open-detail-stop':
+        e.stopPropagation();
+        if (typeof openDetail === 'function') openDetail(aiId, sessId);
+        break;
+      // Toggle in review (stopPropagation)
+      case 'toggle-in-review-stop':
+        e.stopPropagation();
+        if (typeof toggleInReview === 'function') toggleInReview(aiId, sessId);
+        break;
+      // Sess row — open detail
+      case 'open-detail':
+        if (typeof openDetail === 'function') openDetail(aiId, el.closest('[data-sess-id]')?.dataset.sessId || sessId);
+        break;
+      // Show all toggle
+      case 'toggle-show-all':
+        if (typeof toggleShowAll === 'function') toggleShowAll(aiId);
+        break;
+      // Footer — assign hora / correct hora
+      case 'open-correct-hora':
+        if (typeof openCorrectHora === 'function') openCorrectHora(aiId);
+        break;
+      // Footer — confirm save
+      case 'confirm-save':
+        if (typeof confirmSave === 'function') confirmSave(aiId);
+        break;
+      // Footer — blind exhaust
+      case 'confirm-blind-exhaust':
+        if (typeof confirmBlindExhaust === 'function') confirmBlindExhaust(aiId);
+        break;
+      case 'cancel-blind-exhaust':
+        if (typeof cancelBlindExhaustMode === 'function') cancelBlindExhaustMode(aiId);
+        break;
+      // Project chip (stopPropagation)
+      case 'select-project-filter-stop':
+        e.stopPropagation();
+        if (typeof selectProjectFilter === 'function') selectProjectFilter(projId);
+        break;
+      // Card dot menu toggle
+      case 'toggle-card-menu':
+        if (typeof toggleCardMenu === 'function') toggleCardMenu(aiId, e);
+        break;
+      // Card dot items — close menu then execute
+      case 'dot-rename':
+        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
+        if (typeof startRename === 'function') startRename(aiId);
+        break;
+      case 'dot-blind-exhaust':
+        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
+        if (typeof openBlindExhaustMode === 'function') openBlindExhaustMode(aiId);
+        break;
+      case 'dot-correct-hora':
+        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
+        if (typeof openCorrectHora === 'function') openCorrectHora(aiId);
+        break;
+      case 'dot-download-report':
+        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
+        if (typeof downloadReport === 'function') downloadReport(aiId);
+        break;
+      case 'dot-avatar':
+        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
+        if (typeof openAvatarModal === 'function') openAvatarModal(aiId);
+        break;
+      case 'dot-archive':
+        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
+        if (typeof archiveAI === 'function') archiveAI(aiId);
+        break;
+      case 'dot-clear':
+        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
+        if (typeof confirmClear === 'function') confirmClear(aiId);
+        break;
+      case 'dot-delete':
+        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
+        if (typeof deleteAI === 'function') deleteAI(aiId);
+        break;
+    }
+  });
+});
