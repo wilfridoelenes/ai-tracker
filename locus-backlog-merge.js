@@ -1,4 +1,4 @@
-// [PP] v1.2 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -227,7 +227,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   if (diff.updated.length) {
     const rows = _sortByType(diff.updated).map(i => _card(i.code, i.desc, 'accent',
       _pill('updated', '✎ actualizado'),
-      `<div class="mdiff-change-hint">${esc(i.change)}</div>`
+      `<div class="mdiff-change-hint">${esc(i.change)}</div>`,
+      i.parent
     )).join('');
     sectionsHtml += _section('updated', 'accent', `Campos actualizados <span class="mdiff-sec-count">${diff.updated.length}</span>`, rows);
   }

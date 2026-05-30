@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1749,7 +1749,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       if (changes.length) {
         if (!advanced.find(a => a.code === item.code)) {
           // T-202604-414: emitir changes array estructurado + change string para backward compat
-          updated.push({ code: item.code, desc: existing.title, changes, change: changes.map(c => c.field).join(' · ') });
+          updated.push({ code: item.code, desc: existing.title, changes, change: changes.map(c => c.field).join(' · '), parent: item.parent || null });
         }
       } else if (!advanced.find(a => a.code === item.code) && !retroceso.find(r => r.code === item.code) && !discarded.find(d => d.code === item.code)) {
         // Distinguir: ya tenía ese status (ok) vs no hubo cambio de status porque no llegó uno válido

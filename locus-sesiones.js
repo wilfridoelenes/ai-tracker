@@ -9,14 +9,14 @@
 
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _initRadarSidebarState, renderGlobalRadarSidebar } from './locus-radar.js';
-import { _scrollToCard, _updateHeaderProjectLabel, navigateToCard, renderStatusBar, updateStats, _hasStaleSuggestion, _isInSession } from './locus-sesiones-stats.js';
+import { _scrollToCard, _updateHeaderProjectLabel, navigateToCard, renderStatusBar, updateStats, _hasStaleSuggestion } from './locus-sesiones-stats.js';
 import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer, _buildSuggestionReason } from './locus-sesiones-utils.js';
 import { fmt12, _templateTrigger, confirmSave, interpretHora, relDate } from './locus-session-hora.js';
 // getCD — exportado desde locus-misc-ui.js (no disponible en T5); fallback window conservado hasta T6
 const getCD  = (...a) => typeof window.getCD  === 'function' ? window.getCD(...a)  : '';
 import { closeLogCard, closePopup, openDetail } from './locus-session-popup.js';
 import { _getActiveProjectFilter, getProjectById, openProjModal, selectProjectFilter } from './locus-sprint-project.js';
-import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession } from './locus-storage.js';
+import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc, renderSetupChecklist } from './locus-ui-shell.js';
 import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatarModal, toggleArchivedSection, toggleCardMenu } from './locus-workers.js';
