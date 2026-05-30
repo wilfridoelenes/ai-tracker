@@ -1,4 +1,4 @@
-// [PP] v1.2 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-30 23:10 UTC-6
+// [PP] v1.2 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -8,7 +8,7 @@
 import { _calcPriority, _getActiveSessionAiId, _undoSnapshot, loadBacklog, renderStats, updateBacklogBanner } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _buildNewSprintForm, _getSprintById } from './locus-backlog-sprints.js';
-import { _blogLog, getActiveProject, getActiveSprints } from './locus-storage.js';
+import { _blogLog, getActiveProject, getActiveSprints, saveBacklog } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
