@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-30 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -391,10 +391,8 @@ function _mgParseFile(name, text) {
       }
     });
   } else if (ext === 'css') {
-    lines.forEach((line, i) => {
-      const secMatch = line.match(/\/\*\s*[═=]{2,}\s*(.+?)\s*[═=]{2,}\s*\*\//);
-      if (secMatch) entries.push({ line: `L${i + 1}`, fn: secMatch[1].trim(), area: 'Sección' });
-    });
+    // R1: CSS reducido a metadata — no se extraen secciones ni selectores
+    // entries queda vacío; _generateMap renderiza solo nombre + líneas + changed_in
   } else if (ext === 'html') {
     lines.forEach((line, i) => {
       const secMatch = line.match(/<!--\s*[═=]{2,}\s*(.+?)\s*[═=]{2,}\s*-->/);
@@ -951,11 +949,16 @@ function _generateMap(ver) {
         if (p.ext === 'js' && callsMap[p.name] && callsMap[p.name].has(e.fn)) {
           fnCalls = [...callsMap[p.name].get(e.fn)];
         }
+        // R3-T2: isPublic — true si la función es referenciada desde otros módulos (exportsMap)
+        const isPublic = p.ext === 'js'
+          ? (exportsMap[p.name] || new Set()).has(e.fn)
+          : false;
         return {
           line: e.line,
           name: e.fn,
           area: e.area,               // AC-01: nunca vacío — 'Internal' como default
-          calls: fnCalls              // AC-04/AC-05: archivos llamados por esta función
+          calls: fnCalls,             // AC-04/AC-05: archivos llamados por esta función
+          isPublic                    // R3: true = API pública, false = internal
         };
       })
     };
@@ -967,8 +970,29 @@ function _generateMap(ver) {
   // AC-3: cada sección incluye líneas totales · size_signal · changed_in
   // AC-4: tabla | Función | Área | Calls | por archivo JS
   // AC-5: exports como línea **Exports:** fn1, fn2 si existen
-  // AC-6: CSS y HTML con tabla de entradas (selectores / secciones), sin columna Calls
+  // AC-6: CSS con solo metadata, HTML con tabla de secciones sin columna Calls
   // AC-7: campos version/updated/project/status en cabecera del archivo
+  // R3: JS separado en subsecciones ### Exports y ### Internal
+  // R2: funciones públicas incluyen columna Used by
+
+  // R2-T1: construir índice inverso { fnName → Set<callerFileName> }
+  // Para cada función pública de cada módulo, determinar qué módulos la invocan
+  const usedByIndex = {}; // { fnName → Set<callerFileName> }
+  files.forEach(callerFile => {
+    if (callerFile.type !== 'js') return;
+    callerFile.functions.forEach(fn => {
+      if (!fn.calls || !fn.calls.length) return;
+      fn.calls.forEach(targetFileName => {
+        const targetFile = files.find(f => f.name === targetFileName);
+        if (!targetFile) return;
+        targetFile.functions.forEach(tFn => {
+          if (!tFn.isPublic) return;
+          if (!usedByIndex[tFn.name]) usedByIndex[tFn.name] = new Set();
+          usedByIndex[tFn.name].add(callerFile.name);
+        });
+      });
+    });
+  });
 
   let md = `# ${project}-MAP_${version}.md\n`;
   md += `<!-- Versión: ${version} | Actualizado: ${now} UTC-6 | Proyecto: ${project} | Status: ${mapStatus} -->\n\n`;
@@ -979,22 +1003,38 @@ function _generateMap(ver) {
     md += `**Líneas:** ${f.lines} · **Size:** ${f.size_signal} · **Changed in:** ${changedStr}\n\n`;
 
     if (f.type === 'js') {
-      // AC-5: exports si existen
-      if (f.exports && f.exports.length) {
-        md += `**Exports:** ${f.exports.join(', ')}\n\n`;
+      // R3-T3: separar en públicas e internas
+      const publicFns   = f.functions.filter(fn => fn.isPublic);
+      const internalFns = f.functions.filter(fn => !fn.isPublic);
+
+      // ### Exports — solo si hay funciones públicas
+      if (publicFns.length) {
+        md += `### Exports\n\n`;
+        md += `| Función | Área | Calls | Used by |\n`;
+        md += `|---------|------|-------|---------|\n`;
+        publicFns.forEach(fn => {
+          const callsStr  = fn.calls && fn.calls.length ? fn.calls.join(', ') : '—';
+          const usedBySet = usedByIndex[fn.name];
+          const usedByStr = usedBySet && usedBySet.size ? [...usedBySet].sort().join(', ') : '—';
+          md += `| ${fn.line} · ${fn.name} | ${fn.area} | ${callsStr} | ${usedByStr} |\n`;
+        });
+        md += '\n';
       }
-      // AC-4: tabla de funciones con calls
-      if (f.functions && f.functions.length) {
+
+      // ### Internal
+      if (internalFns.length) {
+        md += `### Internal\n\n`;
         md += `| Función | Área | Calls |\n`;
         md += `|---------|------|-------|\n`;
-        f.functions.forEach(fn => {
+        internalFns.forEach(fn => {
           const callsStr = fn.calls && fn.calls.length ? fn.calls.join(', ') : '—';
           md += `| ${fn.line} · ${fn.name} | ${fn.area} | ${callsStr} |\n`;
         });
         md += '\n';
       }
-    } else {
-      // AC-6: CSS y HTML — tabla de entradas sin columna Calls
+
+    } else if (f.type === 'html') {
+      // HTML — tabla de secciones sin columna Calls
       if (f.functions && f.functions.length) {
         md += `| Línea | Sección / Selector |\n`;
         md += `|-------|--------------------|\n`;
@@ -1004,6 +1044,7 @@ function _generateMap(ver) {
         md += '\n';
       }
     }
+    // CSS: solo metadata (nombre + líneas + changed_in) — sin tabla de secciones (R1)
   });
 
   return md.trimEnd() + '\n';
