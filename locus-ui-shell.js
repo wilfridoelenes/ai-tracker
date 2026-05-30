@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-11 · mod:9 · autor:Rune · 2026-05-30 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -1144,6 +1144,18 @@ document.addEventListener('DOMContentLoaded', function () {
   // .scb-dismiss → _scbDismiss()
   const scbDismissBtn = document.querySelector('.scb-dismiss');
   if (scbDismissBtn) scbDismissBtn.addEventListener('click', function () { _scbDismiss(); });
+
+  // T-202605-081: .scb-step-action → _scbStepAction(data-step)
+  // Delegación sobre #setup-checklist-banner — cubre botones "Hacer ahora →" de cada paso
+  const scbBanner = document.getElementById('setup-checklist-banner');
+  if (scbBanner) {
+    scbBanner.addEventListener('click', function (e) {
+      const btn = e.target.closest('.scb-step-action');
+      if (!btn) return;
+      const stepId = btn.dataset.step;
+      if (stepId) _scbStepAction(stepId);
+    });
+  }
 
   // #arranque-btn-ver-todo → closeArranquePanel() + switchTab('proyectos')
   const arranqueVerTodoBtn = document.getElementById('arranque-btn-ver-todo');
