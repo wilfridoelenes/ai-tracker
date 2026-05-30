@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-30 UTC-6
 // locus-modals.js
 // Módulo: sistema de modal genérico y focus management
 // Extraído de: ai-tracker-ai-notes.js (_gconfirmCb, _gconfirmOpen, _gconfirmClose, _gconfirmOk)
@@ -78,7 +78,7 @@ export function closeModal(id) {
 // ── addEventListener — T-202605-030 ──
 document.addEventListener('DOMContentLoaded', () => {
 
-  const addModalCancel = document.querySelector('#add-modal .modal-actions button[type="button"]');
+  const addModalCancel = document.getElementById('add-modal-cancel');
   if (addModalCancel) addModalCancel.addEventListener('click', () => closeModal('add-modal'));
 
   const tagModalClose = document.querySelector('#tag-modal .modal-actions button[type="button"]');
