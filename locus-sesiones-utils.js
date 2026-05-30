@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal
@@ -39,7 +39,7 @@ function _timerIsActive(aiId) {
 }
 
 // Llamado al guardar sesión — detiene cronómetro y retorna tiempo total en ms
-function stopSessionTimer(aiId) {
+export function stopSessionTimer(aiId) {
   const d = _getTimerData(aiId);
   if (!d) return 0;
   const elapsed = d.elapsed + (d.running ? (Date.now() - d.startEpoch) : 0);
@@ -162,7 +162,7 @@ function _hwcClick() {
   }
 }
 // window fallback para inline handler en index.html
-window._hwcClick = _hwcClick;
+// _hwcClick — función privada del módulo, accedida via addEventListener (T5)
 
 // ══════════════════════════════════════════════════════════════════════════════
 // S-17: T-202605-447 · Sesión sugerida — banner de arranque
@@ -360,16 +360,12 @@ function _exportWeeklySummaryMd() {
   a.href = url; a.download = 'resumen-semanal.md'; a.click();
   URL.revokeObjectURL(url);
 }
-// window fallback para inline handler en index.html
-window._exportWeeklySummaryMd = _exportWeeklySummaryMd;
 
 function dismissWeeklySummary() {
   _markWeeklyDismissed();
   const modal = document.getElementById('weekly-summary-modal');
   if (modal) modal.classList.add('is-hidden');
 }
-// window fallback para inline handler en index.html
-window.dismissWeeklySummary = dismissWeeklySummary;
 
 export function _maybeShowWeeklySummary() {
   if (!_isMonday()) return;

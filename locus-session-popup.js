@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -32,7 +32,6 @@ export function openDetail(aiId, sessId) {
   const s = found ? found.sess : null;
   if (!s) return;
   popAIId = aiId; popSessId = sessId;
-  window.popAIId = aiId; window.popSessId = sessId;
 
   const aiSessAll = getAISessions(aiId);
   const isLastSess = aiSessAll.length > 0 && aiSessAll[aiSessAll.length - 1].id === s.id;
@@ -327,7 +326,6 @@ export function closePopup() {
   }
   document.querySelectorAll('.sess-row.preview-active').forEach(el => el.classList.remove('preview-active'));
   popAIId = null; popSessId = null;
-  window.popAIId = null; window.popSessId = null;
 }
 
 // T-202604-190: Completar sesión quick — pre-carga textarea y activa modo update
@@ -1303,14 +1301,6 @@ function onLogSearch() {
 window.addEventListener('load', function() {
   // Restaurar filtros persistidos
   _loadLogFilters();
-
-  const _origRender = render;
-  if (_origRender) {
-    window.render = function() {
-      _origRender.apply(this, arguments);
-      _rebuildLogBody();
-    };
-  }
 
   // B-202605-002: patch de navigateToCard eliminado.
   // El patch causaba render() como efecto secundario (via switchTab) que destruía

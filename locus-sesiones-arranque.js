@@ -446,11 +446,4 @@ export function _showArranquePanel() {
   overlay.classList.add('arranque-visible');
 }
 
-// ── Exposición pública ───────────────────────────────────────────────────────
-window._isBlocked        = _isBlocked;
-window._blocked          = _blocked;
-window._liveStatus       = _liveStatus;
-window._liveTitle        = _liveTitle;
-window._sessIsDone       = _sessIsDone;
-window._showArranquePanel = _showArranquePanel;
-window.closeArranquePanel = closeArranquePanel;
+// Funciones públicas expuestas vía export — eliminadas asignaciones window.* (T5)

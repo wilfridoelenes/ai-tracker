@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-29 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -8,6 +8,7 @@ import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _markRadarDirty, renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
+import { stopSessionTimer } from './locus-sesiones-utils.js';
 import { _docPrefix, _generateBacklogContent, _generateBacklogMd, _getLocalStorageUsage } from './locus-sprint-project.js';
 import { _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker } from './locus-storage.js';
 
@@ -27,6 +28,8 @@ import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js'
 import { showToast } from './locus-toast.js';
 
 import { esc } from './locus-ui-shell.js';
+
+let _pendingTemplateDownload = false; // T5: variable de módulo — reemplaza window._pendingTemplateDownload
 
 function toggleTemplateTrigger(val) {
   localStorage.setItem(_TMPL_TRIGGER_KEY, val);
@@ -627,7 +630,7 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
           }
         });
         // T-202605-446: detener cronómetro y registrar tiempo total en la sesión
-        if (typeof window._stopSessionTimer === 'function') ts.durationMs = window._stopSessionTimer(id) || 0;
+        if (typeof stopSessionTimer === 'function') ts.durationMs = stopSessionTimer(id) || 0;
         // G-04: card-flash + btn--saved + _setPhase(3) confirman inline — toast redundante eliminado.
       };
       // T-202605-120: enriquecer tgItems con representaciones de patches para visualización en el panel.
@@ -670,7 +673,7 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     // R-202605-049: sessionGroupId — agrupa checkpoints bajo sesión como contenedor
     sessionGroupId: _sessionGroupId,
     // T-202605-446: tiempo cronometrado de la sesión en ms
-    durationMs: (typeof window._stopSessionTimer === 'function') ? window._stopSessionTimer(id) : 0,
+    durationMs: (typeof stopSessionTimer === 'function') ? stopSessionTimer(id) : 0,
     dateShort, date: dateFull
   };
   // B-202605-004: newSess NO se persiste aquí. El push de sessions[] y el populate de
@@ -877,7 +880,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     }
   } else {
     showToast('success', _baseMsg);
-    window._pendingTemplateDownload = true;
+    _pendingTemplateDownload = true;
   }
 }
 

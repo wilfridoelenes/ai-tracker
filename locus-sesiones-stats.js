@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -126,8 +126,7 @@ export function _updateHeaderProjectLabel() {
     }
   }
 }
-// Exponer para que sprint-project.js lo llame al cambiar proyecto
-window._updateHeaderProjectLabel = _updateHeaderProjectLabel;
+// _updateHeaderProjectLabel expuesta vía export — window.* eliminado (T5)
 
 // AC-8: Firebase eliminado — Supabase es el único backend de sync
 // setSyncStatus y handleSyncPillClick → migradas a locus-storage.js
@@ -190,7 +189,6 @@ function _getActiveSprintStats() {
 // T-202605-118: dirty flag — render quirúrgico
 let _statusBarDirty = false;
 export function _markStatusBarDirty() { _statusBarDirty = true; }
-window._markStatusBarDirty = _markStatusBarDirty;
 
 export function renderStatusBar() {
   if (!_statusBarDirty) return;

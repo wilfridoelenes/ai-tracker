@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-05-29 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -9,13 +9,10 @@
 
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _initRadarSidebarState, renderGlobalRadarSidebar } from './locus-radar.js';
-import { _scrollToCard, _updateHeaderProjectLabel, navigateToCard, renderStatusBar, updateStats , _hasStaleSuggestion } from './locus-sesiones-stats.js';
-// _isInSession — en sesiones-stats pero verificar export; fallback window
-const _isInSession = (ai) => typeof window._isInSession === 'function' ? window._isInSession(ai) : false;
+import { _scrollToCard, _updateHeaderProjectLabel, navigateToCard, renderStatusBar, updateStats, _hasStaleSuggestion, _isInSession } from './locus-sesiones-stats.js';
 import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer, _buildSuggestionReason } from './locus-sesiones-utils.js';
-import { _templateTrigger, confirmSave, interpretHora, relDate } from './locus-session-hora.js';
-// fmt12, getCD, _isInSession — módulo fuente pendiente de confirmar; acceso via window con fallback
-const fmt12  = (...a) => typeof window.fmt12  === 'function' ? window.fmt12(...a)  : a[0] || '';
+import { fmt12, _templateTrigger, confirmSave, interpretHora, relDate } from './locus-session-hora.js';
+// getCD — exportado desde locus-misc-ui.js (no disponible en T5); fallback window conservado hasta T6
 const getCD  = (...a) => typeof window.getCD  === 'function' ? window.getCD(...a)  : '';
 import { closeLogCard, closePopup, openDetail } from './locus-session-popup.js';
 import { _getActiveProjectFilter, getProjectById, openProjModal, selectProjectFilter } from './locus-sprint-project.js';
@@ -519,9 +516,8 @@ function _renderTrackerSidebar() {
 
 // B-202605-082: dirty flag — evita renders redundantes sin cambio de estado
 let _trackerDirty = false;
+let _radarSbInited = false; // T5: variable de módulo — reemplaza window._radarSbInited
 export function _markTrackerDirty() { _trackerDirty = true; }
-window._markTrackerDirty = _markTrackerDirty;
-
 export function render() {
   // B-202605-hoy: si hay workers pero emptyEl esta visible (estado pre-auth residual), forzar render
   if (!_trackerDirty) {
@@ -664,7 +660,7 @@ export function render() {
   if (typeof updateStats === 'function') updateStats();
   if (typeof renderStatusBar === 'function') renderStatusBar();
   renderGlobalRadarSidebar();
-  if (!window._radarSbInited) { window._radarSbInited = true; _initRadarSidebarState(); }
+  if (!_radarSbInited) { _radarSbInited = true; _initRadarSidebarState(); }
   if (typeof renderProjDots === 'function') renderProjDots();
   // ac-8: renderizar lista de sesiones en Col 1 siempre — sin condicional de vista
   if (typeof _trackerRenderMiniHist === 'function') _trackerRenderMiniHist(_trackerSelectedId);

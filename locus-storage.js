@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 14:30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1161,7 +1161,7 @@ export async function _loadFromSupabase() {
 
 // v3.0.0: sessions, tracker y sprints viven en project — no en state global
 let state = {ais:[], theme:'dark', tags:[], projects:[], _stateVersion:3};
-// Exponer en window para módulos que acceden a `state` directamente (legacy pre-module)
+// Exponer en window para módulos en scope T5 que usan `state` directamente — se elimina en T6 cuando todos los consumidores usen getState()
 window.state = state;
 // getState(): getter dinámico — siempre retorna la referencia actual de state.
 export function getState() { return state; }
