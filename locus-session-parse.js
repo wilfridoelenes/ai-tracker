@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:11 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:12 · autor:Rune · 2026-05-31 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1115,6 +1115,7 @@ function saveStandaloneCheckpoint() {
 
     renderBacklogList();
     renderStats();
+    render(); // B-202605-051: actualizar estado insession del radar tras CHECKPOINT standalone
 
     // Mostrar resultado en panel CHECKPOINT igual que el flujo sesión
     const hasMergeData = mergeResult.created.length || mergeResult.advanced.length ||
