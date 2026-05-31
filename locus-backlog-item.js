@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:15 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:16 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -559,7 +559,7 @@ export function _attachBacklogDnD() {
 // T-202604-074: edición inline de título con doble click
 function _inlineEditTitle(code, e) {
   e.stopPropagation(); // evitar toggleItemExpand
-  const span = e.currentTarget;
+  const span = e.target.closest('[data-action="inline-edit-title"]');
   const item = window.ITEMS.find(i => i.code === code);
   if (!item) return;
 
