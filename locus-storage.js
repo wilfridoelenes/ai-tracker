@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:15 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:16 · autor:Rune · 2026-05-30 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -37,7 +37,7 @@ let exportBacklogMd = function() {
 // ── VARIABLES DE MÓDULO ───────────────────────────────────────────────────────
 
 // R-202605-002: claves localStorage centralizadas — fuente canónica para todos los módulos
-const LOCUS_KEYS = {
+export const LOCUS_KEYS = {
   STATE:            'locus-state-v1',
   OFFLINE_QUEUE:    'locus-offline-queue',
   CHANGELOG:        'locus-changelog',
@@ -52,6 +52,10 @@ const LOCUS_KEYS = {
   OFFLINE_QUEUE_KEY: 'locus-offline-queue',
   PULSO:            'locus-pulso',
   TPL_TRIGGER:      'locus-tpl-trigger',
+  CTX_DOCS_PREFIX:  'tracker-ctx-docs',
+  HM_DOCS_PREFIX:   'tracker-hm-docs',
+  ONBOARDING_SEEN:  'onboarding-seen',
+  DRAFT_KEY_PREFIX: 'draft-',
 };
 
 // R-202605-002: strings canónicos de proyecto — fuente única de verdad
@@ -776,8 +780,8 @@ export async function saveContextDocs() {
   // AC-8 R-C1: sin Supabase o sin auth → localStorage como único destino.
   if (!_supabase || !_supabaseUser) {
     try {
-      localStorage.setItem('tracker-ctx-docs' + suffix, JSON.stringify(ctxPayload));
-      localStorage.setItem('tracker-hm-docs'  + suffix, JSON.stringify(hmPayload));
+      localStorage.setItem(LOCUS_KEYS.CTX_DOCS_PREFIX + suffix, JSON.stringify(ctxPayload));
+      localStorage.setItem(LOCUS_KEYS.HM_DOCS_PREFIX  + suffix, JSON.stringify(hmPayload));
     } catch (lsErr) {
       console.warn('[AI Tracker] saveContextDocs: fallo al escribir en localStorage (sin auth)', lsErr);
     }
@@ -792,8 +796,8 @@ export async function saveContextDocs() {
     if (error) throw error;
     // AC-6 R-C1: upsert exitoso → escribir localStorage como caché post-write. Nunca antes.
     try {
-      localStorage.setItem('tracker-ctx-docs' + suffix, JSON.stringify(ctxPayload));
-      localStorage.setItem('tracker-hm-docs'  + suffix, JSON.stringify(hmPayload));
+      localStorage.setItem(LOCUS_KEYS.CTX_DOCS_PREFIX + suffix, JSON.stringify(ctxPayload));
+      localStorage.setItem(LOCUS_KEYS.HM_DOCS_PREFIX  + suffix, JSON.stringify(hmPayload));
     } catch (lsErr) {
       console.warn('[AI Tracker] saveContextDocs: fallo al cachear en localStorage post-upsert', lsErr);
     }
@@ -802,8 +806,8 @@ export async function saveContextDocs() {
     console.error('[AI Tracker] Supabase saveContextDocs() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
     try {
-      localStorage.setItem('tracker-ctx-docs' + suffix, JSON.stringify(ctxPayload));
-      localStorage.setItem('tracker-hm-docs'  + suffix, JSON.stringify(hmPayload));
+      localStorage.setItem(LOCUS_KEYS.CTX_DOCS_PREFIX + suffix, JSON.stringify(ctxPayload));
+      localStorage.setItem(LOCUS_KEYS.HM_DOCS_PREFIX  + suffix, JSON.stringify(hmPayload));
     } catch (lsErr) {
       console.warn('[AI Tracker] saveContextDocs: fallo al escribir localStorage fallback', lsErr);
     }
@@ -1111,7 +1115,7 @@ export async function _loadFromSupabase() {
                 try { localStorage.setItem(LOCUS_KEYS.TPL_TRIGGER, prefs.templateTrigger); _updateAutoDownloadLabel(); } catch {}
               }
               if (prefs.onboardingSeen) {
-                try { localStorage.setItem('onboarding-seen', '1'); } catch {}
+                try { localStorage.setItem(LOCUS_KEYS.ONBOARDING_SEEN, '1'); } catch {}
               }
               try { localStorage.setItem(_USER_PREFS_TS_KEY, prefsRow.updated_at || new Date().toISOString()); } catch {}
             }
@@ -1135,18 +1139,18 @@ export async function _loadFromSupabase() {
             const aiExists = (state.ais || []).some(a => a.id === aiId);
             if (!aiExists) continue;
             const remoteTs = row.updated_at ? new Date(row.updated_at).getTime() : 0;
-            const localRaw = localStorage.getItem('draft-' + aiId);
+            const localRaw = localStorage.getItem(LOCUS_KEYS.DRAFT_KEY_PREFIX + aiId);
             if (!localRaw) {
               if (remoteTs > 0) {
-                try { localStorage.setItem('draft-' + aiId, row.value.text); } catch {}
+                try { localStorage.setItem(LOCUS_KEYS.DRAFT_KEY_PREFIX + aiId, row.value.text); } catch {}
                 const dot = document.getElementById('draft-' + aiId);
                 if (dot) dot.className = 'draft-dot visible';
               }
             } else {
-              const localTsRaw = localStorage.getItem('draft-' + aiId + '-ts');
+              const localTsRaw = localStorage.getItem(LOCUS_KEYS.DRAFT_KEY_PREFIX + aiId + '-ts');
               const localTs    = localTsRaw ? (Number(localTsRaw) || 0) : 0;
               if (remoteTs > 0 && remoteTs > localTs) {
-                try { localStorage.setItem('draft-' + aiId, row.value.text); } catch {}
+                try { localStorage.setItem(LOCUS_KEYS.DRAFT_KEY_PREFIX + aiId, row.value.text); } catch {}
                 const dot = document.getElementById('draft-' + aiId);
                 if (dot) dot.className = 'draft-dot visible';
               }
@@ -1548,7 +1552,7 @@ function _findCheckpointByAI(aiId, sessId) { return _findSessionByAI(aiId, sessI
 export async function _saveUserPrefs() {
   const shortcuts     = _shortcutsLoad();
   const templateTrigger = localStorage.getItem(LOCUS_KEYS.TPL_TRIGGER) || 'session';
-  const onboardingSeen  = !!localStorage.getItem('onboarding-seen');
+  const onboardingSeen  = !!localStorage.getItem(LOCUS_KEYS.ONBOARDING_SEEN);
   const updatedAt       = new Date().toISOString();
   if (_supabase && _supabaseUser) {
     try {

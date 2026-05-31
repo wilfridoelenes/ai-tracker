@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:11 · autor:Rune · 2026-05-30 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -13,7 +13,7 @@ import { extractContextSections, extractHtmlMapSections, mergeContextSections, m
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject } from './locus-session-save.js';
 import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
-import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save } from './locus-storage.js';
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, LOCUS_KEYS } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 
 import { render } from './locus-sesiones.js';
@@ -536,7 +536,7 @@ export function parsePaste(id) {
   // T-202604-200: fase 2 si CHECKPOINT válido con título, fase 1 si no
   _setPhase(id, (isCheckpoint && title) ? 2 : 1);
 
-  const draftKey = 'draft-' + id;
+  const draftKey = LOCUS_KEYS.DRAFT_KEY_PREFIX + id;
   if (text.trim()) {
     try {
       localStorage.setItem(draftKey, text);

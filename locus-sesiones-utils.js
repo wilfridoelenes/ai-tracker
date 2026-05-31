@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
@@ -80,7 +80,7 @@ function _renderTimerInCard(aiId) {
   // Actualizar título de sesión activa en tiempo real
   const titleEl = document.getElementById('rsb-session-title-' + aiId);
   if (titleEl) {
-    const ai = (typeof state !== 'undefined' && state.ais && state.ais.find(a => a.id === aiId));
+    const ai = (getState().ais || []).find(a => a.id === aiId);
     if (ai) {
       const sessions = getAISessions(aiId);
       const last = sessions.length ? sessions[sessions.length - 1] : null;
@@ -93,17 +93,14 @@ function _renderTimerInCard(aiId) {
 function _refreshTimerTick() {
   clearInterval(_timerIntervalId);
   _timerIntervalId = setInterval(() => {
-    (typeof state !== 'undefined' && state.ais || []).forEach(ai => _renderTimerInCard(ai.id));
-    _renderActiveWorkerChip();
-    // Actualizar timestamps relativos en cards de sesión en curso
+    (getState().ais || []).forEach(ai => _renderTimerInCard(ai.id));
     document.querySelectorAll('.cscard-timer[data-ts]').forEach(el => {
       const ts = parseInt(el.dataset.ts, 10);
       if (ts) el.textContent = _cscardRelTs(ts);
     });
   }, 60000);
   // Actualización inmediata al arrancar el tick
-  (typeof state !== 'undefined' && state.ais || []).forEach(ai => _renderTimerInCard(ai.id));
-  _renderActiveWorkerChip();
+  (getState().ais || []).forEach(ai => _renderTimerInCard(ai.id));
   document.querySelectorAll('.cscard-timer[data-ts]').forEach(el => {
     const ts = parseInt(el.dataset.ts, 10);
     if (ts) el.textContent = _cscardRelTs(ts);
@@ -132,7 +129,7 @@ export function _renderActiveWorkerChip() {
   // Buscar el Worker con timer activo — si hay más de uno, el de mayor elapsed
   let best = null;
   let bestElapsed = -1;
-  (typeof state !== 'undefined' && state.ais || []).forEach(ai => {
+  (getState().ais || []).forEach(ai => {
     const d = _getTimerData(ai.id);
     if (!d || !d.running) return;
     const elapsed = d.elapsed + (Date.now() - d.startEpoch);
@@ -188,7 +185,7 @@ function _computeSuggestionScore(ai) {
 
   // Peso 40%: ítems high pendientes asignados a esta IA
   const aiSigla = ai.role || '';
-  const highPending = (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(i =>
+  const highPending = (typeof window.ITEMS !== 'undefined' ? window.ITEMS : []).filter(i =>
     i.status === 'pendiente' && i.priority === 'high' &&
     aiSigla && i.role && i.role.includes(aiSigla)
   ).length;
@@ -204,7 +201,7 @@ function _computeSuggestionScore(ai) {
 }
 
 function _getSuggestedAI() {
-  const active = (typeof state !== 'undefined' && state.ais || []).filter(ai => !ai.archived);
+  const active = (getState().ais || []).filter(ai => !ai.archived);
   if (!active.length) return null;
   // Desempate: gana el que tiene más ítems high pendientes
   return active.reduce((best, ai) => {
@@ -222,7 +219,7 @@ function _getSuggestedAI() {
 
 function _highPendingCount(ai) {
   const aiSigla = ai.role || '';
-  return (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(i =>
+  return (typeof window.ITEMS !== 'undefined' ? window.ITEMS : []).filter(i =>
     i.status === 'pendiente' && i.priority === 'high' &&
     aiSigla && i.role && i.role.includes(aiSigla)
   ).length;
@@ -300,7 +297,7 @@ function _buildWeeklySummary() {
   const twoWeeksAgo = now - 14 * 86400000;
 
   // Sesiones de la semana anterior (entre hace 14 días y hace 7 días)
-  const allSessions = (typeof state !== 'undefined' && state.projects || []).flatMap(p => (p.sessions || []));
+  const allSessions = (getState().projects || []).flatMap(p => (p.sessions || []));
   const lastWeekSess = allSessions.filter(s => {
     const ts = new Date(s.date || 0).getTime();
     return ts >= twoWeeksAgo && ts < oneWeekAgo;
@@ -311,7 +308,7 @@ function _buildWeeklySummary() {
   const totalSessions = lastWeekSess.length;
 
   // Ítems cerrados (done en esa semana)
-  const allItems = typeof ITEMS !== 'undefined' ? ITEMS : [];
+  const allItems = typeof window.ITEMS !== 'undefined' ? window.ITEMS : [];
   const doneLast = allItems.filter(i => i.status === 'done').length;
   const pendingNow = allItems.filter(i => i.status === 'pendiente').length;
 
@@ -329,7 +326,7 @@ function _buildWeeklySummary() {
   let sprintProgress = '—';
   try {
     const proj = getActiveProject();
-    const projFallback = proj || (typeof state !== 'undefined' && state.projects && state.projects[0]);
+    const projFallback = proj || (getState().projects && getState().projects[0]);
     const sp = projFallback && projFallback.sprints ? projFallback.sprints.find(s => s.status === 'active') : null;
     if (sp) {
       const spItems = allItems.filter(i => i.sprint === sp.id);
