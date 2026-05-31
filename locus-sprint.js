@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:12 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:13 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
 import { _isBlocked } from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
-import { _renderPlanningView } from './locus-sprint-planificacion.js';
+import { _renderPlanningView, _attachPlanCloseHandler } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, editSprintInline, openSprintRetroView, setSprintStatus } from './locus-backlog-sprints.js';
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto } from './locus-sprint-plan.js';
@@ -101,9 +101,9 @@ function _sptSwitch(subtab, triggerBtn) {
 function _renderSprintPlanificar() {
   const container = document.getElementById('sprint-planificar-container');
   if (!container) return;
-  // _renderPlanningView vive en locus-backlog-render.js — espera un elemento contenedor
   if (typeof _renderPlanningView === 'function') {
     _renderPlanningView(container);
+    _attachPlanCloseHandler();
   } else {
     container.innerHTML = '<div class="spi-section-empty">Vista Planificar no disponible.</div>';
   }

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:14 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:15 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1337,7 +1337,8 @@ function _promoteTtoRConfirm(originCode) {
 
 function copyItemCode(e, code, idx) {
   e.stopPropagation();
-  const btn = e.currentTarget;
+  // e.currentTarget es el listEl cuando se llama desde delegación — usar closest para obtener el badge real
+  const btn = e.target.closest('[data-action="copy-code"]');
   const iconClipboard = btn ? btn.querySelector('.copy-btn-icon--clipboard') : null;
   const iconCheck     = btn ? btn.querySelector('.copy-btn-icon--check') : null;
 

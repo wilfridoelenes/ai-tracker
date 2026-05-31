@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:2 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:3 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -580,6 +580,22 @@ export function _attachPlanViewDelegation() {
     const btn = e.target.closest('[data-action="bl-plan-close"]');
     if (!btn) return;
     // Volver al sub-tab Ítems — window._sptSwitch expuesto por locus-sprint.js
+    if (typeof window._sptSwitch === 'function') {
+      const itemsBtn = document.getElementById('spt-tab-items');
+      window._sptSwitch('items', itemsBtn || null);
+    }
+  });
+}
+
+// Handler de cierre de la vista Planificación desde el tab Sprint.
+// Se registra en #sprint-planificar-container — separado de #backlog-list.
+export function _attachPlanCloseHandler() {
+  const container = document.getElementById('sprint-planificar-container');
+  if (!container || container._planCloseAttached) return;
+  container._planCloseAttached = true;
+  container.addEventListener('click', function(e) {
+    const btn = e.target.closest('[data-action="bl-plan-close"]');
+    if (!btn) return;
     if (typeof window._sptSwitch === 'function') {
       const itemsBtn = document.getElementById('spt-tab-items');
       window._sptSwitch('items', itemsBtn || null);

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:16 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:17 · autor:Rune · 2026-05-31 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1172,6 +1172,8 @@ export async function _loadFromSupabase() {
     _markBacklogListDirty();
     _markStatusBarDirty();
     renderBacklogList();
+    // B: re-render tab Sprint tras carga Supabase — evita empty state en refresh
+    if (typeof window.renderSprintTab === 'function') window.renderSprintTab();
     setSyncStatus('synced', '✓ sincronizado');
 
   } catch (err) {
