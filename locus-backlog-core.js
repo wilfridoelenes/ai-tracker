@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-31 00:00 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:7 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1951,12 +1951,22 @@ document.addEventListener('DOMContentLoaded', function () {
   const _btnCollapse = document.getElementById('bl-collapse-all-btn');
   if (_btnCollapse) _btnCollapse.addEventListener('click', function () { if (typeof toggleCollapseAll === 'function') toggleCollapseAll(); });
 
-  // Búsqueda
+  // Búsqueda — B-202605-047: handler inline, no depende de onBacklogSearch global
   const _inputSearch = document.getElementById('backlog-search-input');
-  if (_inputSearch) _inputSearch.addEventListener('input', function () { if (typeof onBacklogSearch === 'function') onBacklogSearch(); });
+  if (_inputSearch) _inputSearch.addEventListener('input', function () {
+    backlogSearchQuery = _inputSearch.value.trim().toLowerCase();
+    const _bsClear = document.getElementById('backlog-search-clear');
+    if (_bsClear) _bsClear.classList.toggle('visible', backlogSearchQuery.length > 0);
+    _markBacklogListDirty(); renderBacklogList();
+  });
 
   const _btnSearchClear = document.getElementById('backlog-search-clear');
-  if (_btnSearchClear) _btnSearchClear.addEventListener('click', function () { if (typeof clearBacklogSearch === 'function') clearBacklogSearch(); });
+  if (_btnSearchClear) _btnSearchClear.addEventListener('click', function () {
+    backlogSearchQuery = '';
+    if (_inputSearch) _inputSearch.value = '';
+    _btnSearchClear.classList.remove('visible');
+    _markBacklogListDirty(); renderBacklogList();
+  });
 
   // Filtros de status
   const _statusMap = {
