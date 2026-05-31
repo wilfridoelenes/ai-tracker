@@ -1,0 +1,1815 @@
+<!-- [PP] v1.2.4 · sprint:PP-S-09 · mod:15 · autor:Rune · 2026-05-28 UTC-6 -->
+<!DOCTYPE html>
+<html lang="es"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script>(function(){var t=localStorage.getItem('theme');document.documentElement.setAttribute('data-theme',(t==='dark'||t==='light')?t:'light');})();</script>
+<title>Locus v1.0.0</title>
+<link rel="icon" type="image/png" href="/img/logo.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- CSS Modular — orden de carga: base → layout → backlog → tracker → analytics → modals → proyectos → overrides -->
+<link rel="stylesheet" href="locus-base.css">
+<link rel="stylesheet" href="locus-layout.css">
+<link rel="stylesheet" href="locus-backlog.css">
+<link rel="stylesheet" href="locus-backlog-item.css">
+<link rel="stylesheet" href="locus-sprint.css">
+<link rel="stylesheet" href="locus-sprint-close.css">
+<link rel="stylesheet" href="locus-sprint-plan.css">
+<link rel="stylesheet" href="locus-sprint-ui.css">
+<link rel="stylesheet" href="locus-archive.css">
+<link rel="stylesheet" href="locus-sesiones.css">
+    <link rel="stylesheet" href="locus-sesiones-card.css">
+<link rel="stylesheet" href="locus-radar.css">
+<link rel="stylesheet" href="locus-analytics.css">
+<link rel="stylesheet" href="locus-modals.css">
+<link rel="stylesheet" href="locus-docs.css">
+<link rel="stylesheet" href="locus-document-generator.css">
+<link rel="stylesheet" href="locus-proyectos.css">
+
+</head>
+<body>
+
+<!-- ═══ SPLASH PEPE ═══ -->
+<div id="pepe-splash">
+  <div id="pepe-splash-container">
+    <img id="pepe-splash-img" src="img/logo-splash.png" alt="Locus — Obsidian Labs" class="loading">
+    <div class="splash-name is-hidden"><em>Locus</em></div>
+    <div class="splash-sub" id="splash-status">Registra sesiones, gestiona tu backlog y mantén el contexto del equipo.</div>
+    <div class="splash-version" id="splash-version"></div>
+    <div id="pepe-progress-bar">
+      <div id="pepe-progress-fill" class="indeterminate"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HEADER COMPARTIDO ═══ -->
+<header>
+  <div class="header-inner">
+    <div class="logo cursor-pointer" id="logo-btn" title="Ir a Sesiones">
+      <img id="pepe-logo" src="/img/logo.png" alt="Pepe" class="logo-img">
+      <div class="logo-project-label" id="header-project-label">
+        <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" >Locus</button>
+        <span class="breadcrumb-sep breadcrumb-sep--first is-hidden" aria-hidden="true">›</span>
+        <button class="breadcrumb-seg breadcrumb-seg--sprint is-hidden" id="breadcrumb-sprint" title="Sprint activo"></button>
+        <span class="breadcrumb-sep breadcrumb-sep--sprint is-hidden" aria-hidden="true">›</span>
+        <button class="breadcrumb-seg breadcrumb-seg--item is-hidden" id="breadcrumb-item" title=""></button>
+        <div id="header-sprint-pill-wrap" class="is-hidden"></div>
+      </div>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn" id="tab-btn-sesiones" title="Ver Sesiones">🗂 Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sesiones"></span></button>
+      <button class="tab-btn" id="tab-btn-proyectos" title="Dashboard estratégico de proyectos">📁 Proyectos<span class="tab-notif-badge is-hidden" id="tab-notif-badge-proyectos"></span></button>
+      <button class="tab-btn" id="tab-btn-backlog" title="Backlog — ítems, sprints y estado del ecosistema">🗃 Backlog<span class="tab-notif-badge is-hidden" id="tab-notif-badge-backlog"></span></button>
+      <button class="tab-btn" id="tab-btn-sprint" title="Sprint — estado y ejecución del sprint activo">🏃 Sprint<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sprint"></span></button>
+      <button class="tab-btn" id="tab-btn-analytics" title="Analytics — sesiones por mes">📊 Analytics<span class="tab-notif-badge is-hidden" id="tab-notif-badge-analytics"></span></button>
+    </div>
+
+    <div class="header-search" id="header-search-wrap">
+      <button class="hdr-search-trigger" id="hdr-search-trigger"
+              aria-label="Abrir búsqueda (⌘K)"
+              title="Buscar (⌘K)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <span class="hdr-search-trigger__label">Buscar...</span>
+        <span class="hdr-search-trigger__badge">⌘K</span>
+      </button>
+    </div>
+
+    <div class="header-actions">
+      <!-- Orden AC: búsqueda (en header-search) · nota rápida · menú ⋯ -->
+
+      <!-- [pendiente-ID]: Panel pendientes — trigger header -->
+      <button class="header-pend-btn is-hidden" id="header-pend-btn"
+              aria-label="Ver pendientes">
+        <span class="header-pend-btn__icon" aria-hidden="true">⏳</span>
+        <span class="header-pend-btn__count" id="header-pend-count" aria-hidden="true"></span>
+      </button>
+
+      <!-- R-202605-006: Pill ⌘K — acceso visible a Command Palette -->
+      <button class="cmd-k-pill" id="cmd-k-pill"
+              aria-label="Abrir Command Palette (⌘K)"
+              title="Command Palette (⌘K)"
+>
+        ⌘K
+      </button>
+
+      <button class="header-worker-chip is-hidden" id="header-active-worker" title="Worker en sesión">
+        <span class="hwc-dot session-timer-dot--active"></span>
+        <span class="hwc-name"></span>
+        <span class="hwc-time"></span>
+      </button>
+
+      <!-- [pendiente-ID]: Toggle light/dark — invoca applyTheme() existente -->
+      <button class="theme-toggle-btn btn-ghost btn-icon" id="theme-toggle-btn" aria-label="Cambiar a tema light" title="Cambiar tema">
+        <span class="theme-icon-dark" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </span>
+        <span class="theme-icon-light" aria-hidden="true">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </span>
+      </button>
+
+
+      <button class="btn-ghost btn-ckpt-reopen is-hidden" id="ckpt-reopen-btn" title="Ver último CHECKPOINT">📋</button>
+
+      <div class="user-chip is-hidden" id="user-chip" title="Sesión activa · click para cerrar sesión">
+        <span class="user-chip-dot" id="user-chip-dot">●</span>
+        <span class="user-chip-name" id="user-chip-name"></span>
+      </div>
+
+      <!-- Menú ⋯ — R-202605-012: grupos semánticos con separadores — Datos · Navegación · Configuración · Zona peligrosa -->
+      <div class="more-menu-wrap" id="more-menu-wrap">
+        <button class="btn-ghost btn-icon" title="Más opciones" id="more-menu-btn">⋯</button>
+        <div class="more-menu is-hidden" id="more-menu">
+          <!-- Grupo: Datos -->
+          <div class="mm-group-label">Datos</div>
+          <button type="button" id="mm-btn-backup"><span class="mm-icon">⬇</span> Backup</button>
+          <button type="button" id="mm-btn-import"><span class="mm-icon">⬆</span> Importar backup</button>
+          <button type="button" id="mm-btn-report"><span class="mm-icon">📄</span> Reporte global</button>
+          <button id="more-menu-autodl"><span class="mm-icon">⬇</span> Auto-descargar templates: ON</button>
+          <div id="tmpl-trigger-wrap" class="tmpl-trigger-wrap">
+            <button class="tmpl-trigger-label tmpl-trigger-toggle is-collapsed" data-action="tmpl-trigger-toggle" type="button">
+              <span class="mm-icon">⬇</span> Descargar templates <span class="tmpl-trigger-arrow">▸</span>
+            </button>
+            <div id="tmpl-trigger-body" class="tmpl-trigger-body is-hidden">
+              <label class="tmpl-trigger-option">
+                <input type="radio" id="tmpl-trigger-session" name="tmpl-trigger" value="session">
+                Al guardar sesión
+              </label>
+              <label class="tmpl-trigger-option">
+                <input type="radio" id="tmpl-trigger-sprint" name="tmpl-trigger" value="sprint">
+                Al cerrar sprint
+              </label>
+            </div>
+          </div>
+          <!-- Grupo: Configuración -->
+          <hr class="mm-separator">
+          <div class="mm-group-label">Configuración</div>
+          <button type="button"><span class="mm-icon">⌨</span> Atajos de teclado</button>
+          <button type="button" id="mm-btn-changelog"><span class="mm-icon">📋</span> Changelog</button>
+          <button type="button" id="mm-btn-notif"><span class="mm-icon">🔔</span> Configurar notificaciones</button>
+          <button type="button" id="mm-btn-sync"><span class="mm-icon sync-status-dot" id="sync-status-dot">●</span> <span id="sync-status-label">Sync: local</span></button>
+          <button id="btn-migrate-fb-sb" id="mm-btn-migrate" class="is-hidden"><span class="mm-icon">🔄</span> Migrar Firebase → Supabase</button>
+          <!-- Grupo: Zona peligrosa -->
+          <hr class="mm-separator">
+          <div class="mm-group-label mm-group-label--danger">Zona peligrosa</div>
+          <button type="button" id="mm-btn-clean" class="mm-danger"><span class="mm-icon">🗑</span> Limpiar proyecto</button>
+        </div>
+      </div>
+
+      <!-- inputs ocultos para importación -->
+      <input type="file" id="imp" accept=".json" class="is-hidden">
+      <input type="file" id="context-file-input" accept=".md,text/markdown,text/plain" class="is-hidden">
+      <input type="file" id="backlog-file-input" accept=".md,text/markdown,text/plain" class="is-hidden">    </div>
+  </div>
+</header>
+
+<!-- T-084: Storage warning banner — visible solo si totalSessions > 300 -->
+<div id="storage-warn" class="is-hidden">
+  <span>⚠️ Tienes muchas sesiones guardadas — el almacenamiento local puede saturarse pronto.</span>
+  <button type="button" id="storage-warn-clean-btn">🗑 Limpiar proyecto</button>
+  <button type="button" onclick="document.getElementById('storage-warn').classList.add('is-hidden')" title="Cerrar">✕</button>
+</div>
+<!-- ═══ RADAR SIDEBAR GLOBAL ═══ -->
+<div id="global-radar-sidebar">
+  <div class="radar-sidebar-header">
+    <div class="rsb-header-row1">
+      <button class="rsb-pin-btn" id="rsb-pin-btn" title="Fijar sidebar">
+        <!-- Estado: no pinned — icono outline -->
+        <svg class="rsb-pin-icon rsb-pin-icon--off" width="13" height="13" viewBox="0 0 13 13" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.5 1.5L11.5 4.5L7.5 8.5L6.5 11.5L4.5 9.5L1.5 12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M4.5 8.5L1.5 5.5L5.5 4.5L8.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <!-- Estado: pinned — icono filled -->
+        <svg class="rsb-pin-icon rsb-pin-icon--on" width="13" height="13" viewBox="0 0 13 13" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M8.5 1.5L11.5 4.5L7.5 8.5L6.5 11.5L4.5 9.5L1.5 12.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M4.5 8.5L1.5 5.5L5.5 4.5L8.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <span class="radar-sidebar-title">Workers</span>
+      <div class="rsb-header-actions">
+        <button class="rsb-add-ia-btn" title="Nuevo Worker">+ Worker</button>
+        <button class="radar-sidebar-collapse-btn" id="radar-sidebar-toggle" title="Colapsar">&#x2039;</button>
+      </div>
+    </div>
+    <div class="rsb-header-row2" id="rsb-hdr-counts"></div>
+  </div>
+  <!-- RADAR SEARCH — Nova UX -->
+  <div class="rsb-search-wrap" id="rsb-search-wrap">
+    <span class="rsb-search-icon">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/>
+        <line x1="7.9" y1="7.9" x2="10.5" y2="10.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+    </span>
+    <input
+      class="rsb-search-input"
+      id="rsb-search-input"
+      type="text"
+      placeholder="Buscar Worker…"
+      autocomplete="off"
+    />
+    <button class="rsb-search-clear" id="rsb-search-clear" aria-label="Limpiar búsqueda">×</button>
+  </div>
+  <!-- END RADAR SEARCH -->
+  <div class="radar-sidebar-strip" title="Expandir sidebar" role="button" aria-label="Expandir sidebar"></div>
+  <div class="radar-sidebar-cards" id="radar-sidebar-cards"></div>
+</div>
+
+<!-- ═══ TAB SESIONES ═══ -->
+<div class="tab-panel active" id="tab-sesiones">
+
+  <div class="setup-checklist-banner is-hidden" id="setup-checklist-banner"
+       role="status" aria-label="Progreso de configuración inicial"
+       aria-expanded="false">
+    <div class="scb-expanded-header">
+      <div class="scb-expanded-title">Configura Locus</div>
+      <div class="scb-expanded-subtitle">Completa estos pasos para empezar a registrar tus sesiones.</div>
+    </div>
+    <div class="scb-steps" id="scb-steps">
+      <div class="scb-step" id="scb-step-worker"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Worker</span><button class="scb-step-action" data-step="worker">Hacer ahora →</button></div>
+      <div class="scb-step" id="scb-step-project"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Proyecto</span><button class="scb-step-action" data-step="project">Hacer ahora →</button></div>
+      <div class="scb-step" id="scb-step-item"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Ítem</span><button class="scb-step-action" data-step="item">Hacer ahora →</button></div>
+      <div class="scb-step" id="scb-step-session"><span class="scb-icon" aria-hidden="true">○</span><span class="scb-label">Sesión</span><button class="scb-step-action" data-step="session">Hacer ahora →</button></div>
+    </div>
+    <button class="scb-dismiss" aria-label="Cerrar checklist de configuración">✕</button>
+  </div>
+
+  <div class="tracker-view-header" id="tracker-view-header">
+  </div>
+
+  <!-- IDs legacy preservados para backward compat con _renderTrackerSidebar() -->
+  <div class="is-hidden" id="tracker-sidebar">
+    <div class="tracker-sidebar-list" id="tsb-insession"></div>
+    <div class="tracker-sidebar-list" id="tsb-available"></div>
+    <div class="tracker-sidebar-list" id="tsb-exhausted"></div>
+  </div>
+
+  <div class="tracker-col-tabs" id="tracker-col-tabs">
+    <button class="tracker-col-tab active" data-col="card">Sesión</button>
+    <button class="tracker-col-tab" data-col="hist">Sesiones</button>
+
+  </div>
+
+  <div class="tracker-3col" id="tracker-3col">
+
+    <!-- Columna 1: lista de sesiones del Worker seleccionado -->
+    <div class="tracker-col tracker-col--card" id="tracker-col-card">
+
+      <div class="tracker-mini-hist-panel" id="tracker-mini-hist-panel">
+        <div class="tracker-mini-hist-header">
+          <span class="tracker-mini-hist-title" id="tracker-mini-hist-title">Sesiones</span>
+          <span class="tracker-mini-hist-last" id="tracker-mini-hist-last"></span>
+          <span class="tracker-mini-hist-count is-hidden" id="tracker-mini-hist-count"></span>
+        </div>
+        <div class="tracker-mini-hist-list" id="tracker-mini-hist-list">
+          <div class="tracker-mini-hist-empty" id="tracker-mini-hist-empty">
+            <span class="tracker-mini-hist-empty-icon">📋</span>
+            <span>Sin sesiones registradas</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Columna 2: card del Worker — ingesta de CHECKPOINT -->
+    <div class="tracker-col tracker-col--hist" id="tracker-col-hist">
+
+      <div class="tracker-detail tracker-detail--full" id="tracker-detail">
+        <div class="tracker-detail-empty" id="tracker-detail-empty">
+          <div class="tracker-detail-empty-icon">→</div>
+          <div class="tracker-detail-empty-text">Selecciona un Worker</div>
+          <div class="tracker-detail-empty-hint">Elige un Worker del panel derecho para abrir su tarjeta de sesión.</div>
+        </div>
+        <div id="tracker-grid-header"></div>
+        <div id="grid"></div>
+        <div class="log-card" id="log-card"></div>
+      </div>
+
+    </div>
+
+    <!-- Columna 3: detalle de sesión seleccionada (reutilizada sin cambios) -->
+    <div class="tracker-preview" id="tracker-preview">
+      <div class="tracker-preview-empty" id="tracker-preview-empty">
+        <span class="tracker-preview-empty-icon">←</span>
+        <span>Selecciona una sesión para ver el detalle</span>
+      </div>
+      <div class="tracker-preview-inner is-hidden" id="tracker-preview-inner">
+        <div class="tracker-preview-header" id="tracker-preview-header"></div>
+        <div class="tracker-preview-body" id="tracker-preview-body"></div>
+        <div class="tracker-preview-footer" id="tracker-preview-footer"></div>
+      </div>
+    </div>
+
+  </div><!-- /tracker-3col -->
+
+  <!-- [pendiente-ID]: aria-live="polite" + aria-atomic + role="region" + tabindex para gestión de foco -->
+  <div class="item-viz-overlay is-hidden" id="item-viz-overlay"
+       role="region"
+       aria-label="Ítems detectados"
+       aria-live="polite"
+       aria-atomic="true"
+       tabindex="-1">
+    <div class="item-viz-panel" id="item-viz-panel">
+      <div class="item-viz-header">
+        <span class="item-viz-title">Ítems detectados</span>
+        <span class="item-viz-origin-badge">Desde: editor de ítem</span>
+        <div class="item-viz-header-actions">
+          <button class="item-viz-confirm-btn" id="item-viz-confirm-btn">Confirmar merge</button>
+          <button class="item-viz-close-btn" id="item-viz-close-btn">✕</button>
+        </div>
+      </div>
+      <div class="item-viz-body" id="item-viz-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB BACKLOG ═══ -->
+<div class="tab-panel" id="tab-backlog">
+
+  <!-- Sidebar de Templates -->
+  <div class="tpl-sidebar" id="tpl-sidebar">
+
+    <div id="tpl-proj-banner" class="is-hidden">
+      <span id="tpl-proj-icon" class="tpl-proj-icon"></span>
+      <span id="tpl-proj-name" class="tpl-proj-name"></span>
+    </div>
+
+    <div class="tpl-sidebar-section">
+      <div class="tpl-sidebar-label">Backlog</div>
+      <div class="tpl-sidebar-nav">
+        <button class="tpl-nav-btn active" id="sstab-btn-backlog">
+          <span class="tpl-nav-icon">📋</span><span class="tpl-nav-text">Backlog</span>
+          <span class="tpl-nav-badge" id="tpl-badge-backlog"></span>
+        </button>
+        <button class="tpl-nav-btn" id="sstab-btn-htmlmap">
+          <span class="tpl-nav-icon">🗺</span><span class="tpl-nav-text">Documentos</span>
+          <span class="tpl-nav-badge" id="tpl-badge-htmlmap"></span>
+        </button>
+        <button class="tpl-nav-btn" id="sstab-btn-context">
+          <span class="tpl-nav-icon">📄</span><span class="tpl-nav-text">Context</span>
+          <span class="tpl-nav-badge" id="tpl-badge-context"></span>
+        </button>
+        <button class="tpl-nav-btn" id="sstab-btn-plan">
+          <span class="tpl-nav-icon">🗓</span><span class="tpl-nav-text">Plan</span>
+        </button>
+        <button class="tpl-nav-btn is-hidden" id="sstab-btn-contratos">
+          <span class="tpl-nav-icon">📐</span><span class="tpl-nav-text">Contratos</span>
+          <span class="tpl-nav-badge" id="tpl-badge-contratos"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Acciones contextuales -->
+    <div class="tpl-sidebar-section tpl-sidebar-actions">
+      <div class="tpl-sidebar-label">Acciones</div>
+      <div class="tpl-sidebar-action-list" id="tpl-toolbar">
+        <button class="tpl-action-btn is-hidden" id="btn-import-backlog" onclick="" title="Import deshabilitado — usar ---ITEMS--- en CHECKPOINT" disabled>↑ Importar Backlog</button>
+
+        <div class="tpl-action-row is-hidden" id="tpl-undo-row">
+          <button class="tpl-action-btn tpl-action-icon" id="btn-undo-backlog" title="Deshacer" disabled>↩</button>
+          <button class="tpl-action-btn tpl-action-icon" id="btn-redo-backlog" title="Rehacer" disabled>↪</button>
+        </div>
+        <button class="tpl-action-btn is-hidden" id="btn-export-backlog" onclick="exportBacklogMd()" title="Descargar Backlog activo como .md">⬇ Descargar Backlog</button>
+        <button class="tpl-action-btn is-hidden" id="btn-export-backlog-full" onclick="exportFullHistoryMd()" title="Descargar historial completo como .md">⬇ Historial completo</button>
+        <button class="tpl-action-btn is-hidden" id="btn-import-htmlmap" onclick="document.getElementById('htmlmap-file-input').click()" title="Importar archivo AI-MAP_vX.Y.md">↑ Importar MAP</button>
+        <button class="tpl-action-btn tpl-action-primary is-hidden" id="btn-generate-map" title="Generar documentos">⚙ Generar documentos</button>
+        <button class="tpl-action-btn is-hidden" id="btn-export-contratos" title="Exportar Contratos.md">⬇ Exportar Contratos</button>
+      </div>
+    </div>
+
+    <!-- Zona de peligro — sidebar -->
+    <div class="tpl-sidebar-danger is-hidden" id="tpl-sidebar-danger">
+      <button class="tpl-danger-toggle" id="tpl-danger-toggle-btn">⚠ Opciones avanzadas</button>
+      <div class="tpl-danger-body" id="tpl-danger-body">
+        <div class="tpl-danger-label">Zona de peligro — irreversible</div>
+        <button class="btn-danger" id="sidebar-danger-btn-clean-project" aria-disabled="false">🗑 Limpiar proyecto</button>
+        <button class="btn-danger is-hidden" id="sidebar-danger-btn-context">🗑 Resetear Context</button>
+        <button class="btn-danger is-hidden" id="sidebar-danger-btn-htmlmap">🗑 Resetear MAP</button>
+        <button class="btn-danger is-hidden" id="sidebar-danger-btn-contratos">🗑 Resetear Contratos</button>
+      </div>
+    </div>
+
+  </div><!-- /tpl-sidebar -->
+
+  <!-- Panel de detalle -->
+  <div class="tpl-detail" id="tpl-detail">
+
+    <!-- Sub-panel: Backlog -->
+    <div class="session-subpanel active" id="sspanel-backlog">
+    <!-- T-048 + T-050: Banner metadata -->
+    <div class="backlog-meta-banner visible" id="backlog-meta-banner">
+      <span class="backlog-meta-value" id="bmeta-total">69 ítems</span>
+      <span class="backlog-meta-sep">·</span>
+      <span class="backlog-meta-value" id="bmeta-version">v—</span>
+      <span class="backlog-meta-sep is-hidden" id="bmeta-mod-sep">·</span>
+      <span class="backlog-meta-value is-hidden amber-color" id="bmeta-mod-val">—</span>
+    </div>
+
+    <div class="stats-bar" id="stats-bar"></div>
+    <div class="active-filter-chips" id="active-filter-chips"></div>
+
+    <!-- R-[tmp:toolbar-backlog-redesign]: 3-layer toolbar -->
+
+    <!-- Capa 1: Toolbar principal — layout + vistas + collapse + búsqueda -->
+    <div class="bl-toolbar" id="bl-toolbar">
+      <div class="bl-toolbar-views" role="tablist" aria-label="Vista del backlog">
+        <button class="bl-toolbar-view-btn active" id="fbar-tree-btn" title="Vista árbol" role="tab" aria-selected="true">⊞ Árbol</button>
+        <button class="bl-toolbar-view-btn" id="fbar-kanban-btn" title="Vista Kanban" role="tab" aria-selected="false">⬛ Kanban</button>
+
+        <button class="bl-toolbar-view-btn" id="fbar-focus-btn" title="Focus — Top 10 por prioridad" role="checkbox" aria-checked="false">🎯 Focus</button>
+        <button class="bl-toolbar-view-btn is-hidden" id="fbar-mike-btn" title="Mi vista — T's pendientes por rol en sprint activo" role="checkbox" aria-checked="false">Mi vista</button>
+      </div>
+      <div class="bl-toolbar-divider"></div>
+      <button class="bl-collapse-btn" id="bl-collapse-all-btn" title="Colapsar / expandir todos los grupos">
+        <span class="bl-collapse-btn-icon">⊟</span>
+        <span class="bl-collapse-btn-label">Colapsar</span>
+      </button>
+      <button class="bl-toolbar-new-item-btn" id="btn-new-backlog-item" onclick="_openItemEditorSafe(null, null)" title="Crear nuevo ítem">+ Nuevo ítem</button>
+      <div class="bl-toolbar-spacer"></div>
+      <div class="fbar-search-wrap">
+        <input class="fbar-search-input" id="backlog-search-input" type="text" placeholder="🔍 Buscar…" autocomplete="off">
+        <button class="fbar-search-clear" id="backlog-search-clear" title="Limpiar búsqueda">✕</button>
+      </div>
+      <button class="doc-log-btn" id="doc-log-btn-backlog" title="Historial de acciones del Backlog">🕐<span class="doc-log-count"></span></button>
+    </div>
+
+    <!-- Capa 2: Filter strip — status + sort + filtros secundarios -->
+    <div class="bl-filter-strip" id="filter-bar-status">
+      <button class="bl-strip-btn active" id="fstatus-pendiente">Pendiente</button>
+      <button class="bl-strip-btn s-en-revision active" id="fstatus-en-revision">En revisión</button>
+      <button class="bl-strip-btn" id="fstatus-done">Hecho</button>
+      <button class="bl-strip-btn s-en-curso" id="fstatus-en-curso">En curso</button>
+      <button class="bl-strip-btn s-descartado" id="fstatus-descartado">Descartado</button>
+      <div class="bl-filter-strip-sep"></div>
+      <button class="bl-strip-btn s-bloqueado" id="fbar-blocker-btn" title="Solo ítems bloqueados — pendientes sin cambio en +14 días">⛔ Bloqueados</button>
+      <button class="bl-strip-btn" id="fbar-deps-btn" onclick="toggleDepsFilter()" title="Filtrar por dependencias explícitas — bloqueados / libres">🔗 Deps</button>
+      <button class="bl-strip-btn" id="fbar-no-ac-btn" title="Ítems sin criterios de aceptación">Sin AC</button>
+      <div class="bl-sort-wrap">
+        <select class="bl-sort-select" id="fbar-sort-select" onchange="onBacklogSortChange(this.value)">
+          <option value="priority">Prioridad</option>
+          <option value="effort">Esfuerzo</option>
+          <option value="type">Tipo</option>
+          <option value="code">Código</option>
+          <option value="completedAt">Fecha completado</option>
+          <option value="createdAt">Fecha agregado</option>
+        </select>
+        <button class="bl-sort-dir-btn" id="fbar-sort-dir-btn" onclick="toggleSortDir()" title="Invertir dirección">↓</button>
+      </div>
+      <button class="fbar-clear-btn is-hidden" id="filter-clear-btn" title="Limpiar todos los filtros">✕ Limpiar</button>
+    </div>
+
+    <!-- Capa 3: Sprint selector — colapsado por defecto, despliega al click -->
+    <div class="bl-sprint-bar" id="bl-sprint-bar"></div>
+
+    <!-- toolbar vieja — oculta, mantenida por compatibilidad con JS que la referencia -->
+    <div class="toolbar is-hidden" id="toolbar"></div>
+    <div id="backlog-two-col-wrap">
+      <div id="backlog-list" role="tabpanel" aria-labelledby="fbar-tree-btn"></div>
+      <div id="item-detail-panel" class="item-detail-panel"></div>
+    </div>
+    <div class="backlog-footer" id="backlog-footer"></div>
+
+    </div><!-- /sspanel-backlog -->
+
+    <!-- Sub-panel: HTML-MAP -->
+    <div class="session-subpanel" id="sspanel-htmlmap">
+      <div class="htmlmap-meta-banner" id="htmlmap-meta-banner">
+        <span class="htmlmap-meta-label">Archivo</span>
+        <span class="htmlmap-meta-value" id="hmeta-file">—</span>
+        <span class="htmlmap-meta-sep">·</span>
+        <span class="htmlmap-meta-label">Versión</span>
+        <span class="htmlmap-meta-value meta-val-bold" id="hmeta-version">—</span>
+        <span class="htmlmap-meta-sep">·</span>
+        <span class="htmlmap-meta-label">Importado</span>
+        <span class="htmlmap-meta-value" id="hmeta-imported">—</span>
+        <span class="htmlmap-meta-sep">·</span>
+        <span class="htmlmap-meta-label">Secciones</span>
+        <span class="htmlmap-meta-value" id="hmeta-total">—</span>
+        <span class="htmlmap-meta-sep is-hidden" id="hmeta-mod-sep">·</span>
+        <span class="htmlmap-meta-label is-hidden amber-color" id="hmeta-mod-label">✎ Actualizado</span>
+        <span class="htmlmap-meta-value is-hidden amber-color" id="hmeta-mod-val">—</span>
+      </div>
+      <div class="htmlmap-filter-bar is-hidden" id="htmlmap-filter-bar">
+        <span class="toolbar-label">Tipo</span>
+        <button class="htmlmap-filter-btn active" id="hmfilter-all">Todos</button>
+        <button class="htmlmap-filter-btn" id="hmfilter-css">CSS</button>
+        <button class="htmlmap-filter-btn" id="hmfilter-html">HTML</button>
+        <button class="htmlmap-filter-btn" id="hmfilter-js">JS</button>
+        <div class="flex-1"></div>
+        <button class="doc-log-btn" id="doc-log-btn-htmlmap" title="Historial de acciones del MAP">🕐<span class="doc-log-count"></span></button>
+      </div>
+      <div id="htmlmap-content"></div>
+      <input type="file" id="htmlmap-file-input" accept=".md,text/markdown,text/plain" class="is-hidden">
+    </div><!-- /sspanel-htmlmap -->
+
+    <!-- Sub-panel: Context -->
+    <div class="session-subpanel" id="sspanel-context">
+
+      <!-- Estado vacío: importar -->
+      <div id="context-empty-state" class="is-hidden">
+        <div class="doc-dropzone" id="context-dropzone"
+          ondragover="event.preventDefault();this.classList.add('doc-dropzone--over')"
+          ondragleave="this.classList.remove('doc-dropzone--over')"
+          ondrop="this.classList.remove('doc-dropzone--over');_dropzoneHandle(event,'context')"
+          onclick="document.getElementById('context-file-input').click()">
+          <div class="doc-dropzone-icon">📄</div>
+          <div class="doc-dropzone-title">Importar CONTEXT.md</div>
+          <div class="doc-dropzone-hint">Arrastra el archivo aquí o haz click para seleccionar</div>
+          <div class="doc-dropzone-badge">.md</div>
+        </div>
+      </div>
+
+      <!-- Estado cargado: navegación por secciones -->
+      <div id="context-loaded-state" class="is-hidden">
+        <!-- Meta banner -->
+        <div class="htmlmap-meta-banner" id="context-meta-banner">
+          <span class="htmlmap-meta-label">Versión</span>
+          <span class="htmlmap-meta-value meta-val-bold" id="cmeta-version">—</span>
+          <span class="htmlmap-meta-sep">·</span>
+          <span class="htmlmap-meta-label">Importado</span>
+          <span class="htmlmap-meta-value" id="cmeta-imported">—</span>
+          <span class="htmlmap-meta-sep">·</span>
+          <span class="htmlmap-meta-value hint-color" id="cmeta-section-count">—</span>
+          <span class="htmlmap-meta-sep is-hidden" id="cmeta-mod-sep">·</span>
+          <span class="htmlmap-meta-label is-hidden amber-color" id="cmeta-mod-label">✎ Modificado</span>
+          <span class="htmlmap-meta-value is-hidden amber-color" id="cmeta-mod-val">—</span>
+          <span class="flex-1"></span>
+          <button class="doc-log-btn" id="doc-log-btn-context" title="Historial de acciones del Context">🕐<span class="doc-log-count"></span></button>
+          <button type="button" onclick="exportContextMd()" class="ctx-meta-action-btn" title="Descargar CONTEXT.md actualizado">⬇ Exportar</button>
+          <button type="button" class="ctx-meta-action-btn ctx-import-btn" title="Re-importar CONTEXT.md">↑ Re-importar</button>
+        </div>
+
+        <!-- Search bar -->
+        <div class="ctx-search-bar">
+          <input type="text" id="ctx-search-input" class="ctx-search-input" placeholder="🔍 Buscar sección…" autocomplete="off">
+          <button class="ctx-search-clear" id="ctx-search-clear" title="Limpiar">✕</button>
+        </div>
+
+        <!-- Secciones navegables -->
+        <div id="context-content" class="ctx-sections-wrap"></div>
+      </div>
+
+      <div id="context-conflict-area"></div>
+
+    </div><!-- /sspanel-context -->
+
+    <!-- Sub-panel: Plan — R-202604-076 -->
+    <div class="session-subpanel" id="sspanel-plan">
+      <!-- Contenido inyectado por renderPlan() — read-only -->
+    </div><!-- /sspanel-plan -->
+
+    <!-- Sub-panel: Contratos — R-202604-075 -->
+    <div class="session-subpanel ctr-layout" id="sspanel-contratos">
+      <div class="ctr-toolbar">
+        <div class="ctr-search">
+          <input class="ctr-search-input" id="ctr-search-input" type="text" placeholder="Buscar módulo o función..." />
+          <button class="ctr-search-clear" id="ctr-search-clear" title="Limpiar búsqueda">✕</button>
+        </div>
+      </div>
+      <div class="ctr-body">
+        <div class="ctr-list-panel" id="ctr-list-panel"></div>
+        <div class="ctr-detail-panel" id="ctr-detail-panel"><div class="ctr-detail-placeholder"><span>← Selecciona un módulo para ver sus contratos</span></div></div>
+      </div>
+    </div><!-- /sspanel-contratos -->
+
+  </div><!-- /tpl-detail -->
+
+</div><!-- /tab-backlog -->
+
+<!-- ═══ TAB ANALYTICS ═══ -->
+<div class="tab-panel" id="tab-analytics">
+  <div id="tab-analytics-inner"></div>
+</div>
+
+<!-- ═══ TAB SPRINT ═══ -->
+<div class="tab-panel" id="tab-sprint">
+  <!-- Header sprint activo — visible solo cuando hay sprint activo -->
+  <div class="sph-header is-hidden" id="sprint-panel-header">
+    <div class="sph-inner">
+      <div class="sph-name" id="sph-name"></div>
+      <div class="sph-meta">
+        <span class="sph-version" id="sph-version"></span>
+        <span class="sph-release-pill" id="sph-release-pill"></span>
+        <span class="sph-days" id="sph-days"></span>
+      </div>
+      <div class="sph-burndown">
+        <div class="sph-bd-labels">
+          <span class="sph-bd-label" id="sph-bd-label">Effort: 0 / 0</span>
+          <span class="sph-bd-pct" id="sph-bd-pct">0%</span>
+        </div>
+        <div class="sph-bd-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sph-bd-track">
+          <div class="sph-bd-fill" id="sph-bd-fill"></div>
+        </div>
+        <div class="sph-bd-warn is-hidden" id="sph-bd-warn"></div>
+      </div>
+      <!-- Botón cierre sprint — T-202605-062 -->
+      <button class="btn-close-sprint is-hidden"
+              id="btn-close-sprint"
+              aria-label="Cerrar sprint">
+        Cerrar sprint
+      </button>
+    </div>
+  </div>
+  <!-- R-202605-043: Subtab nav Sprint — Ítems / Planificar / Plan -->
+  <div class="spt-nav is-hidden" id="spt-nav" role="tablist" aria-label="Vistas del sprint">
+    <button class="spt-tab is-active"
+            role="tab"
+            id="spt-tab-items"
+            aria-selected="true"
+            aria-controls="sprint-panel-items"
+            data-subtab="items">
+      Ítems
+    </button>
+    <button class="spt-tab"
+            role="tab"
+            id="spt-tab-planificar"
+            aria-selected="false"
+            aria-controls="sprint-panel-planificar"
+            data-subtab="planificar">
+      Planificar
+    </button>
+    <button class="spt-tab"
+            role="tab"
+            id="spt-tab-plan"
+            aria-selected="false"
+            aria-controls="sprint-panel-plan"
+            data-subtab="plan">
+      Plan
+    </button>
+  </div>
+  <!-- END R-202605-043: Subtab nav -->
+
+  <!-- Panel Ítems — R-202605-043 -->
+  <div id="sprint-panel-items" role="tabpanel" aria-labelledby="spt-tab-items">
+
+  <!-- Sección Gestión del sprint — R-202605-006 -->
+  <div class="spm-section is-hidden" id="sprint-mgmt-section" aria-label="Gestión del sprint">
+    <button class="spm-toggle"
+            id="sprint-mgmt-toggle"
+            aria-expanded="false"
+            aria-controls="sprint-mgmt-body">
+      ⚙ Gestión del sprint <span class="spm-toggle-arrow" id="spm-toggle-arrow">▸</span>
+    </button>
+    <div class="spm-body is-hidden" id="sprint-mgmt-body">
+      <!-- AC-2: Registrar y activar — visible cuando sprint no existe en catálogo -->
+      <button class="spm-action is-hidden" id="spm-btn-registrar"
+>
+        Registrar y activar
+      </button>
+      <!-- AC-3: Reactivar — visible cuando sprint está cerrado -->
+      <button class="spm-action is-hidden" id="spm-btn-reactivar"
+>
+        Reactivar sprint
+      </button>
+      <!-- AC-4: Retro — visible cuando sprint cerrado con retroDoc -->
+      <button class="spm-action is-hidden" id="spm-btn-retro"
+>
+        Ver retrospectiva
+      </button>
+      <!-- AC-5: Editar nombre — visible cuando hay sprint activo -->
+      <button class="spm-action is-hidden" id="spm-btn-editar"
+>
+        Editar nombre
+      </button>
+      <!-- Área de edición inline — AC-5 -->
+      <div class="spm-edit-area is-hidden" id="spm-edit-area"></div>
+    </div>
+  </div>
+  <!-- /Sección Gestión del sprint — R-202605-006 -->
+
+  <!-- Workers vinculados al sprint — T-202605-061 -->
+  <div class="spw-section is-hidden" id="sprint-workers" aria-label="Workers vinculados al sprint">
+    <div class="spw-header">
+      <span class="spw-label">Workers</span>
+    </div>
+    <div class="spw-body" id="spw-body"></div>
+  </div>
+  <!-- /Workers vinculados al sprint -->
+
+  <div class="spi-list is-hidden" id="sprint-items-list" aria-label="Ítems del sprint activo">
+    <div class="spi-section" id="spi-section-pendiente">
+      <div class="spi-section-header">
+        <span class="spi-section-label">Pendiente</span>
+        <span class="spi-section-count" id="spi-count-pendiente">0</span>
+      </div>
+      <div class="spi-section-body" id="spi-body-pendiente"></div>
+    </div>
+    <div class="spi-section" id="spi-section-bloqueado">
+      <div class="spi-section-header">
+        <span class="spi-section-label spi-label--blocked">Bloqueado</span>
+        <span class="spi-section-count" id="spi-count-bloqueado">0</span>
+      </div>
+      <div class="spi-section-body" id="spi-body-bloqueado"></div>
+    </div>
+    <div class="spi-section" id="spi-section-done">
+      <div class="spi-section-header">
+        <span class="spi-section-label spi-label--done">Done</span>
+        <span class="spi-section-count" id="spi-count-done">0</span>
+      </div>
+      <div class="spi-section-body" id="spi-body-done"></div>
+    </div>
+  </div>
+  <!-- Sprint Health panel — _buildSprintHealthPanel desde locus-backlog-render.js -->
+  <div class="sprint-health-panel is-hidden" id="sprint-health-panel" aria-label="Estado del sprint"></div>
+
+  <!-- Scope added — T-202605-060 -->
+  <div class="sca-section is-hidden" id="sprint-scope-added" aria-label="Ítems añadidos al sprint">
+    <div class="sca-header">
+      <span class="sca-label">Scope añadido</span>
+      <span class="sca-count" id="sca-count">0</span>
+    </div>
+    <div class="sca-body" id="sca-body"></div>
+  </div>
+  <!-- /Scope added -->
+
+  </div><!-- /sprint-panel-items — R-202605-043 -->
+
+  <!-- Panel Planificar — R-202605-052 -->
+  <div id="sprint-panel-planificar" role="tabpanel" aria-labelledby="spt-tab-planificar" class="is-hidden">
+    <div id="sprint-planificar-container"></div>
+  </div>
+  <!-- END Panel Planificar — R-202605-052 -->
+
+  <!-- Panel Plan — R-202605-043 -->
+  <div id="sprint-panel-plan" role="tabpanel" aria-labelledby="spt-tab-plan" class="is-hidden">
+    <div id="sprint-plan-container" class="spt-plan-container"></div>
+  </div>
+  <!-- END Panel Plan — R-202605-043 -->
+
+  <div id="tab-sprint-empty" class="tab-sprint-empty">
+    <div class="empty-icon">🏃</div>
+    <div class="empty-title">No hay sprint activo</div>
+    <div class="empty-hint">Crea un sprint para comenzar a planificar y ejecutar ítems del backlog.</div>
+    <div class="es-cta-row">
+      <button class="empty-btn" id="spm-new-sprint-btn">+ Nuevo sprint</button>
+      <!-- AC-6: Registrar y activar — visible si hay ítems con sprint sin registrar -->
+      <button class="empty-btn is-hidden" id="spm-empty-btn-registrar"
+>
+        Registrar y activar
+      </button>
+      <!-- AC-6: Activar sprint existente — visible si hay sprints registrados no activos -->
+      <button class="empty-btn is-hidden" id="spm-empty-btn-activar"
+>
+        Activar sprint existente
+      </button>
+    </div>
+  </div>
+</div>
+<div class="tab-panel" id="tab-proyectos">
+  <div id="tab-proyectos-inner" class="tab-proyectos-content"></div>
+</div>
+
+<!-- ═══ OVERLAYS / MODALES (Tracker) ═══ -->
+
+
+
+<!-- Session detail popup -->
+<!-- ═══ T-011: AVATAR SELECTOR MODAL ═══ -->
+<div class="avatar-modal" id="avatar-modal">
+  <div class="avatar-modal-box">
+    <div class="avatar-modal-title">Seleccionar avatar</div>
+    <div class="avatar-grid" id="avatar-grid"></div>
+    <div class="avatar-modal-actions">
+      <button class="btn-cancel">Cancelar</button>
+      <button class="btn-confirm">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add AI modal -->
+<div class="modal-overlay" id="add-modal">
+  <div class="modal">
+    <div class="modal-title">Nuevo Worker</div>
+    <div class="field"><label>Nombre</label><input type="text" id="new-name" placeholder="Ej: Firefox Claude..." maxlength="40"></div>
+    <div class="modal-actions">
+      <button type="button">Cancelar</button>
+      <button class="btn-primary" id="add-ai-confirm-btn">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pendientes panel -->
+<div class="pend-overlay" id="pend-overlay">
+  <div class="pend-panel">
+    <div class="pend-panel-header">
+      <div class="pend-panel-title">⏳ Pendientes</div>
+      <button type="button" id="pend-close-btn">Cerrar</button>
+    </div>
+    <div class="pend-panel-body" id="pend-panel-body"></div>
+  </div>
+</div>
+
+<!-- Tag picker modal -->
+<div class="modal-overlay" id="tag-modal">
+  <div class="tag-modal">
+    <div class="tag-modal-title">Etiquetas de la sesión</div>
+    <div class="tag-picker-list" id="tag-picker-list"></div>
+    <div class="pop-tag-sep">
+      <div class="pop-tag-new-section">Nueva etiqueta</div>
+      <div class="tag-new-row">
+        <input class="tag-new-input" id="tag-new-input" placeholder="nombre..." maxlength="20" onkeydown="if(event.key==='Enter')addNewTag()">
+        <button class="btn-primary" onclick="addNewTag()">+ Crear</button>
+      </div>
+      <div class="color-picker-row" id="color-picker-row"></div>
+    </div>
+    <div class="modal-actions modal-actions-mt">
+      <button type="button">Listo</button>
+    </div>
+  </div>
+</div>
+
+<!-- R-[pendiente-ID]: Quick Capture — modal unificado con stepper de 2 pasos -->
+<div class="quick-modal-overlay qc-overlay" id="qc-modal-overlay" role="dialog" aria-modal="true" aria-label="Quick Capture">
+  <div class="quick-modal qc-modal" onclick="event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="qc-header">
+      <span class="qc-title-text">Quick Capture</span>
+      <div class="qc-header-right">
+        <!-- Stepper — oculto en skip (worker único) via JS: qc-stepper.hidden -->
+        <div class="qc-stepper" id="qc-stepper" aria-label="Paso 1 de 2">
+          <span class="qc-dot qc-dot--active" id="qc-dot-1"></span>
+          <span class="qc-dot" id="qc-dot-2"></span>
+        </div>
+        <button class="qc-close-btn" id="qc-close-btn" aria-label="Cerrar modal">✕</button>
+      </div>
+    </div>
+
+    <!-- Paso 1: Selector de Worker -->
+    <!-- JS: mostrar con qc-panel-1.classList.remove('hidden') -->
+    <!-- JS: ocultar con qc-panel-1.classList.add('hidden') -->
+    <!-- AC: si worker único → skip — este panel no se muestra -->
+    <div class="qc-panel" id="qc-panel-1">
+      <p class="qc-panel-label">¿Para qué Worker es esta captura?</p>
+      <div class="qc-worker-list" id="qc-worker-list">
+        <!-- JS inyecta qc-worker-item por cada Worker registrado -->
+        <!-- Ejemplo de ítem generado por JS:
+        <button class="qc-worker-item" data-worker-id="[id]">
+          <span class="qc-worker-avatar" data-sigla="FS">FS</span>
+          <span class="qc-worker-name">Rune</span>
+          <span class="qc-worker-check is-hidden">✓</span>
+        </button>
+        -->
+      </div>
+    </div>
+
+    <!-- Paso 2: Formulario de captura -->
+    <!-- JS: mostrar con qc-panel-2.classList.remove('hidden') -->
+    <!-- JS: ocultar con qc-panel-2.classList.add('hidden') -->
+    <div class="qc-panel is-hidden" id="qc-panel-2">
+      <!-- Chip de contexto: Worker destino — JS actualiza #qc-worker-chip-name -->
+      <div class="qc-worker-chip">
+        <span class="qc-worker-chip-label">Capturando para:</span>
+        <span class="qc-worker-chip-name" id="qc-worker-chip-name"></span>
+      </div>
+      <!-- Campos del formulario — mantienen IDs existentes para compatibilidad con JS -->
+      <div class="quick-field">
+        <label>Título <span class="req-asterisk">*</span></label>
+        <input type="text" id="quick-title" placeholder="¿Qué se hizo en esta sesión?">
+      </div>
+      <div class="quick-field">
+        <label>Resumen <span class="optional-label">(opcional)</span></label>
+        <textarea id="quick-summary" rows="3" placeholder="Detalles adicionales..."></textarea>
+      </div>
+      <div class="quick-hora-row">
+        <input class="quick-hora-input" id="quick-hora" type="text" maxlength="4" placeholder="--:--" title="Hora de reset (opcional)">
+        <div>
+          <div class="quick-hora-hint" id="quick-hora-disp">hora de desbloqueo (opcional)</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-actions qc-footer">
+      <!-- JS alterna texto: "Cancelar" en paso 1 / "Atrás" en paso 2 -->
+      <button id="qc-back-btn">Cancelar</button>
+      <!-- JS alterna texto: "Continuar" en paso 1 / "Guardar" en paso 2 -->
+      <!-- JS habilita/deshabilita: disabled hasta selección en paso 1 -->
+      <button class="btn-primary" id="qc-next-btn" disabled>Continuar</button>
+    </div>
+
+  </div>
+</div>
+<!-- END R-[pendiente-ID] Quick Capture modal unificado -->
+
+
+<!-- T-077: Panel lateral proyectos -->
+<div class="proj-panel-overlay" id="proj-panel-overlay">
+  <div class="proj-panel">
+    <div class="proj-panel-header">
+      <div class="proj-panel-title">🗂 Proyectos</div>
+      <button type="button" id="proj-panel-close-btn">Cerrar</button>
+    </div>
+    <div class="proj-panel-body" id="proj-panel-body"></div>
+    <div class="proj-panel-actions">
+      <button class="btn-primary proj-panel-btn-sm" id="proj-panel-btn-nuevo">+ Nuevo proyecto</button>
+      <button class="btn-ghost proj-panel-btn-sm" id="proj-panel-btn-gestionar">⚙ Gestionar</button>
+      <button class="btn-ghost proj-panel-btn-sm" id="proj-panel-btn-templates">📂 Templates</button>
+    </div>
+  </div>
+</div>
+
+<!-- T-080: Modal gestión proyectos -->
+<div class="proj-modal-overlay" id="proj-modal-overlay">
+  <div class="proj-modal">
+    <div class="proj-modal-header">
+      <div class="proj-modal-title">Gestionar proyectos</div>
+      <button type="button" id="proj-modal-close-btn">✕</button>
+    </div>
+    <div class="proj-modal-body">
+      <!-- Formulario crear/editar -->
+      <div class="proj-form" id="proj-form">
+        <div class="proj-form-title" id="proj-form-heading">+ Nuevo proyecto</div>
+        <div>
+          <label class="proj-form-label">Nombre</label>
+          <div class="proj-form-row">
+            <input class="proj-emoji-input" id="proj-emoji" maxlength="2" placeholder="📁" title="Emoji del proyecto">
+            <input class="proj-form-input" id="proj-name-input" placeholder="Nombre del proyecto..." maxlength="40">
+          </div>
+        </div>
+        <div>
+          <label class="proj-form-label">Prefijo <span class="proj-form-label-hint">(máx. 3 caracteres — aparece en header y documentos)</span></label>
+          <input class="proj-form-input proj-prefix-input" id="proj-prefix-input" placeholder="Ej: OL, AS, CM..." maxlength="3">
+        </div>
+        <div>
+          <label class="proj-form-label">Color</label>
+          <div class="proj-color-row" id="proj-color-row"></div>
+        </div>
+        <div>
+          <label class="proj-form-label">Notas</label>
+          <textarea class="proj-notes-input" id="proj-notes-input" placeholder="Descripción, cliente, contexto..." maxlength="300"></textarea>
+        </div>
+        <div class="proj-form-actions">
+          <button class="btn-ghost proj-form-btn-sm" id="proj-form-cancel-btn">Cancelar</button>
+          <button class="btn-primary proj-form-btn-sm" id="proj-form-confirm-btn">Guardar</button>
+        </div>
+      </div>
+      <!-- Lista proyectos existentes -->
+      <div>
+        <div class="proj-form-label proj-form-existing-label">Proyectos existentes</div>
+        <div class="proj-list" id="proj-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- T-090: Generic confirm/prompt modal -->
+<div class="gconfirm-overlay" id="gconfirm-overlay">
+  <div class="gconfirm-modal">
+    <div class="gconfirm-title" id="gconfirm-title"></div>
+    <div class="gconfirm-msg" id="gconfirm-msg"></div>
+    <div class="gconfirm-input-wrap is-hidden" id="gconfirm-input-wrap">
+      <div class="gconfirm-input-label" id="gconfirm-input-label"></div>
+      <input class="gconfirm-input" id="gconfirm-input" type="text" placeholder="">
+    </div>
+    <div class="gconfirm-actions">
+      <button type="button">Cancelar</button>
+      <button class="btn-primary danger" id="gconfirm-ok-btn">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- T-091: Import diff modal -->
+<div class="import-diff-overlay" id="import-diff-overlay" onclick="if(event.target===this)closeImportDiff()">
+  <div class="import-diff-modal">
+    <div class="modal-title">↑ Importar backup</div>
+    <div class="import-diff-section" id="import-diff-incoming">
+      <div class="modal-title import-section-label">ARCHIVO A IMPORTAR</div>
+    </div>
+    <div class="import-diff-section" id="import-diff-changes">
+      <div class="modal-title import-section-label">CAMBIOS VS ESTADO ACTUAL</div>
+    </div>
+    <div class="modal-actions">
+      <button type="button" onclick="closeImportDiff()">Cancelar</button>
+      <button class="btn-primary" onclick="confirmImport()">Importar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="item-editor-overlay" onclick="if(event.target===this)closeItemEditor()">
+  <div class="modal">
+    <!-- Header -->
+    <div class="ie-header">
+      <div class="modal-title" id="item-editor-title">➕ Nuevo ítem</div>
+      <button class="tpl-open-btn" onclick="openTemplatePicker()" title="Usar template predefinido o personalizado">⬡ Templates</button>
+    </div>
+
+    <!-- Body scrollable -->
+    <div class="ie-body">
+
+      <!-- Fila 1: Tipo + Código -->
+      <div class="ie-row cols-2">
+        <div class="ie-field">
+          <label>Tipo</label>
+          <select id="item-type">
+            <option value="P">P — Idea</option>
+            <option value="T">T — Ticket</option>
+            <option value="R">R — Requerimiento</option>
+            <option value="B">B — Bug</option>
+          </select>
+        </div>
+        <div class="ie-field">
+          <label>Código <span class="field-note-sm">(auto si vacío)</span></label>
+          <input type="text" id="item-code" placeholder="ej: T-202601-001">
+        </div>
+      </div>
+
+      <!-- Fila 2: Título -->
+      <div class="ie-row cols-1">
+        <div class="ie-field">
+          <label>Título *</label>
+          <input type="text" id="item-title" placeholder="Descripción breve del ítem">
+        </div>
+      </div>
+
+      <!-- Fila 3: Priority + Effort + Area -->
+      <div class="ie-row cols-3">
+        <div class="ie-field">
+          <label>Prioridad</label>
+          <select id="item-priority">
+            <option value="high">Alto</option>
+            <option value="medium" selected="">Medio</option>
+            <option value="low">Bajo</option>
+          </select>
+        </div>
+        <div class="ie-field">
+          <label>Effort (1–3)</label>
+          <input type="number" id="item-effort" min="1" max="3" value="1">
+        </div>
+        <div class="ie-field">
+          <label>Area</label>
+          <input type="text" id="item-area" placeholder="ej: UI / Parser">
+        </div>
+        <div class="ie-field">
+          <label>Rol responsable</label>
+          <select id="item-role">
+            <option value="">— Sin rol —</option>
+            <option value="PO · Cael">PO · Cael</option>
+            <option value="FS · Rune">FS · Rune</option>
+            <option value="UX · Nova">UX · Nova</option>
+            <option value="ST · Vera">ST · Vera</option>
+            <option value="GW · Lena">GW · Lena</option>
+            <option value="ET · Eden">ET · Eden</option>
+            <option value="GC · Sage">GC · Sage</option>
+            <option value="QA · Finn">QA · Finn</option>
+          </select>
+        </div>
+      </div>
+
+      <hr class="ie-divider">
+
+      <!-- Prompt / Descripción -->
+      <div class="ie-row cols-1">
+        <div class="ie-field">
+          <label>Prompt / Descripción</label>
+          <textarea id="item-desc" rows="4" placeholder="Describe el ítem, contexto, motivación o pega el prompt aquí..."></textarea>
+        </div>
+      </div>
+
+      <!-- Criterios de aceptación -->
+      <div class="ie-row cols-1">
+        <div class="ie-field">
+          <label>Criterios de aceptación</label>
+          <textarea id="item-ac" rows="4" placeholder="Un criterio por línea. Ej:&#10;Campo X visible en UI&#10;Persiste en localStorage&#10;Sin romper layout mobile"></textarea>
+          <span class="ie-hint">Un criterio por línea — sin guiones ni corchetes necesarios</span>
+        </div>
+      </div>
+
+      <div class="ie-row cols-1">
+        <div class="ie-field ie-field-mt">
+          <label for="item-notes" class="ie-label">Notas <span class="ie-label-opt">(opcional)</span></label>
+          <textarea id="item-notes" rows="2" placeholder="Contexto adicional, decisiones, referencias…"
+            class="ie-textarea"></textarea>
+        </div>
+      </div>
+
+      <!-- Bloqueado por (T-202604-288) -->
+      <div class="ie-row cols-1">
+        <div class="ie-field ie-field-mt">
+          <label for="item-blocked-by" class="ie-label">Bloqueado por <span class="ie-label-opt">(códigos separados por coma)</span></label>
+          <input id="item-blocked-by" type="text" placeholder="T-202604-001, B-202604-002…"
+            class="ie-input-mono">
+        </div>
+      </div>
+
+      <!-- Archivos que toca (T-202605-486) -->
+      <div class="ie-row cols-1">
+        <div class="ie-field ie-field-mt">
+          <label for="item-archivos" class="ie-label">Archivos que toca <span class="ie-label-opt">(separados por coma)</span></label>
+          <input id="item-archivos" type="text" placeholder="ai-tracker.css, index.html"
+            class="ie-input-mono">
+        </div>
+      </div>
+
+      <!-- R padre (solo T y B) -->
+      <div class="ie-row cols-1 is-hidden" id="field-parentid">
+        <div class="ie-field">
+          <label>R padre <span class="ie-parent-note">(solo T y B)</span></label>
+          <select id="item-parentid">
+            <option value="">— Sin R padre —</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Pegar bloque (siempre visible) -->
+      <hr class="ie-divider">
+      <div class="ie-row cols-1">
+        <div class="ie-field">
+          <label class="ie-paste-label">📋 Pegar bloque <span class="ie-paste-note">Markdown o línea CHECKPOINT — autorrellena los campos</span></label>
+          <textarea class="pi-textarea" id="pi-textarea"
+            placeholder="### [pendiente-ID] · Título del ítem&#10;**Priority:** high&#10;**Area:** UX&#10;**Effort:** 2&#10;**Status:** backlog&#10;&#10;### Criterios de aceptación&#10;- [ ] Criterio 1"
+            oninput="piParse()" ondragover="piDragOver(event)" ondragleave="piDragLeave(event)" ondrop="piDrop(event)" rows="4"></textarea>
+          <div class="pi-error" id="pi-error"></div>
+          <div class="pi-preview" id="pi-preview">
+            <div class="pi-preview-header">
+              <span class="pi-preview-title">Preview</span>
+              <span class="pi-preview-count" id="pi-count"></span>
+            </div>
+            <div id="pi-list"></div>
+            <button class="btn-primary btn-confirm-green" id="pi-confirm-btn" onclick="piConfirm()" disabled>Agregar seleccionados al Backlog</button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /ie-body -->
+
+    <!-- Footer -->
+    <div class="ie-footer">
+      <button class="ie-btn-cancel" onclick="closeItemEditor()">Cancelar</button>
+      <button class="ie-btn-tpl-save" onclick="toggleTplSavePanel()" title="Guardar campos actuales como template reutilizable">Guardar como template</button>
+      <button class="ie-btn-save" onclick="confirmItemEditor()">Guardar en Backlog</button>
+    </div>
+    <div class="tpl-save-panel" id="tpl-save-panel">
+      <label class="tpl-save-label">Nombre del template</label>
+      <div class="tpl-save-row">
+        <input type="text" id="tpl-save-name-input" class="tpl-save-input" placeholder="ej: R de feature con stripe">
+        <button class="btn-primary tpl-save-confirm-btn" onclick="saveCurrentItemAsTemplate()">Guardar</button>
+        <button class="ie-btn-cancel tpl-save-cancel-btn" onclick="toggleTplSavePanel()">✕</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="tpl-picker-overlay" onclick="if(event.target===this)closeTemplatePicker()">
+  <div class="modal tpl-picker-modal">
+    <div class="ie-header">
+      <div class="modal-title">⬡ Seleccionar template</div>
+      <button class="ie-btn-cancel tpl-picker-close-btn" onclick="closeTemplatePicker()">✕</button>
+    </div>
+    <div class="tpl-picker-body">
+      <p class="tpl-picker-hint">Selecciona un template para pre-rellenar el formulario. Podrás editar todos los campos antes de guardar.</p>
+      <div id="tpl-picker-list" class="tpl-picker-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- standalone-ckpt-overlay -->
+<div class="modal-overlay modal-overlay--top" id="standalone-ckpt-overlay">
+  <div class="modal modal--standalone-ckpt">
+    <div class="modal-title">📋 Pegar CHECKPOINT — solo ítems</div>
+    <div class="standalone-ckpt-desc">
+      Pega un CHECKPOINT para actualizar ítems del backlog <strong>sin crear una sesión de Worker</strong>.
+      Requiere bloque <code>---ITEMS---</code>.
+    </div>
+    <textarea id="standalone-ckpt-ta" rows="12"
+      class="standalone-ckpt-ta"
+      placeholder="Pega aquí el bloque ---CHECKPOINT--- completo..."
+      oninput="if(typeof parsePasteStandalone==='function')parsePasteStandalone()"></textarea>
+    <div id="standalone-ckpt-prev" class="standalone-ckpt-prev"></div>
+    <div class="modal-actions modal-actions--mt">
+      <button type="button" id="standalone-ckpt-cancel-btn">Cancelar</button>
+      <button class="btn-primary" id="standalone-ckpt-btn" disabled onclick="if(typeof saveStandaloneCheckpoint==='function')saveStandaloneCheckpoint()">Aplicar ítems</button>
+    </div>
+  </div>
+</div>
+
+<!-- export-confirm-overlay (backlog export) -->
+<div class="modal-overlay" id="export-confirm-overlay">
+  <div class="modal export-confirm-modal">
+    <div class="modal-title" id="export-confirm-title">⬇ Exportar</div>
+    <div class="export-confirm-filename">
+      Archivo: <code id="export-confirm-filename"></code>
+    </div>
+    <div class="modal-actions">
+      <button type="button" onclick="document.getElementById('export-confirm-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn-primary" id="export-confirm-btn">⬇ Descargar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- promote-modal-overlay — shell unificado P→T/R · T→R (DUP-02) -->
+<div class="promote-modal-overlay" id="promote-modal-overlay"
+     role="dialog" aria-modal="true" aria-labelledby="promote-modal-title-el">
+  <div class="promote-modal" id="promote-modal-body"></div>
+</div>
+
+<!-- merge-diff-overlay — R-202604-071: rediseño two-column -->
+<div class="modal-overlay mdiff-overlay" id="merge-diff-overlay">
+  <div class="mdiff-dialog">
+    <!-- Header -->
+    <div class="mdiff-header" id="merge-diff-header"></div>
+    <!-- Body: two columns -->
+    <div class="mdiff-layout">
+      <!-- Left: sections scroll -->
+      <div class="mdiff-sections-col" id="merge-diff-body"></div>
+      <!-- Right: summary panel sticky -->
+      <div class="mdiff-summary-col" id="merge-diff-summary">
+        <div class="mdiff-summary-inner">
+          <div class="mdiff-summary-title">Resumen</div>
+          <div class="mdiff-summary-chips" id="mdiff-summary-chips"></div>
+          <div class="mdiff-pending-list" id="mdiff-pending-list"></div>
+          <div class="mdiff-summary-footer" id="merge-diff-footer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- status-confirm-overlay -->
+<div class="status-confirm-overlay" id="status-confirm-overlay">
+  <div class="status-confirm-box">
+    <div class="status-confirm-title" id="status-confirm-title"></div>
+    <div class="status-confirm-body" id="status-confirm-body-text"></div>
+    <div class="status-confirm-actions">
+      <button class="status-confirm-cancel" id="status-confirm-cancel-btn">Cancelar</button>
+      <button class="status-confirm-ok" id="status-confirm-ok-btn"></button>
+    </div>
+  </div>
+</div>
+
+<!-- sprint-retro-overlay — T-202604-417: shell expandido para vista de retro guardada + prompt de descarga -->
+<div class="modal-overlay" id="sprint-retro-overlay">
+  <div class="modal modal--retro">
+    <div class="modal-title" id="sprint-retro-title"></div>
+    <div class="sprint-retro-desc">El sprint fue cerrado. ¿Descargar el resumen de retrospectiva?</div>
+    <div class="sprint-retro-filename">Archivo: <code class="retro-filename-code" id="sprint-retro-filename"></code></div>
+    <!-- sprint-retro-body: visible en modo vista (sprint-retro-overlay--view) -->
+    <pre class="sprint-retro-body is-hidden" id="sprint-retro-body"></pre>
+    <!-- sprint-retro-notes: visible en modo vista para notas adicionales -->
+    <textarea class="sprint-retro-notes is-hidden" id="sprint-retro-notes" rows="3" readonly></textarea>
+    <div class="modal-actions">
+      <button type="button" id="sprint-retro-close-btn">Cerrar</button>
+      <button class="btn-primary" id="sprint-retro-dl-btn">⬇ Descargar</button>
+    </div>
+  </div>
+</div>
+
+<!-- migrate-item-overlay -->
+<div class="promote-modal-overlay" id="migrate-item-overlay">
+  <div class="promote-modal migrate-modal" id="migrate-modal-body"></div>
+</div>
+
+<!-- changelog-overlay -->
+<div class="modal-overlay" id="changelog-overlay">
+  <div class="modal modal--changelog" id="changelog-body"></div>
+</div>
+
+<!-- proj-mismatch-overlay -->
+<div class="modal-overlay" id="proj-mismatch-overlay">
+  <div class="modal modal--sm">
+    <div class="modal-title modal-title--accent">⚠ Proyecto diferente</div>
+    <div class="modal-body-text" id="proj-mismatch-msg"></div>
+    <div class="modal-actions">
+      <button type="button" onclick="document.getElementById('proj-mismatch-overlay').classList.remove('open')">Cancelar</button>
+      <button class="btn-primary" id="proj-mismatch-continue">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<!-- sprint-close-modal — R-202604-089: flujo de cierre de sprint 3 pasos -->
+<div class="modal-overlay sprint-close-overlay" id="sprint-close-overlay">
+  <div class="sprint-close-dialog">
+    <!-- Header -->
+    <div class="sprint-close-header">
+      <div class="sprint-close-title" id="sprint-close-title">Cerrar sprint</div>
+      <div class="sprint-close-steps" id="sprint-close-steps">
+        <span class="scs-step" id="scs-step-1">1 · Resumen</span>
+        <span class="scs-sep">›</span>
+        <span class="scs-step" id="scs-step-2">2 · Migración</span>
+        <span class="scs-sep scs-sep--2">›</span>
+        <span class="scs-step" id="scs-step-3">3 · Confirmar</span>
+      </div>
+    </div>
+    <!-- Body (content injected by JS) -->
+    <div class="sprint-close-body" id="sprint-close-body"></div>
+    <!-- Footer -->
+    <div class="sprint-close-footer">
+      <button class="sprint-close-cancel-btn" id="sprint-close-cancel-btn" >Cancelar</button>
+      <div class="sprint-close-nav">
+        <button class="sprint-close-back-btn" id="sprint-close-back-btn" >← Atrás</button>
+        <button class="sprint-close-next-btn btn-primary" id="sprint-close-next-btn" >Siguiente →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- auth-modal — R[tmp:magic-link-auth] -->
+<div class="modal-overlay" id="auth-modal-overlay" role="dialog" aria-modal="true" aria-label="Iniciar sesión">
+  <div class="modal modal--auth">
+    <div class="modal-title">☁ Conectar cuenta</div>
+    <p class="auth-modal-desc">Sincroniza Locus entre dispositivos.</p>
+
+    <!-- Path A: Google -->
+    <button class="btn-auth-google" id="auth-btn-google">
+      <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true"><path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/><path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/><path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 6.293C4.672 4.166 6.656 3.58 9 3.58z"/></svg>
+      Continuar con Google
+    </button>
+
+    <div class="auth-divider"><span>o</span></div>
+
+    <!-- Path B: Magic link -->
+    <div id="auth-email-form">
+      <div class="field">
+        <label for="auth-email-input">Email</label>
+        <input type="email" id="auth-email-input" placeholder="tu@email.com"
+          
+          autocomplete="email" />
+      </div>
+      <button class="btn-primary auth-btn-email" id="auth-btn-magic">
+        Enviar enlace de acceso
+      </button>
+    </div>
+
+    <!-- Estado: email enviado -->
+    <div id="auth-sent-state" class="auth-sent-state is-hidden">
+      <div class="auth-sent-icon">✉</div>
+      <div class="auth-sent-msg">Revisa tu correo — el enlace expira en 1 hora.</div>
+      <button class="auth-resend-btn" id="auth-resend-btn">Reenviar</button>
+    </div>
+
+    <div class="modal-actions">
+      <button type="button" id="auth-cancel-btn">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay is-hidden" id="notif-config-overlay">
+  <div class="modal modal--notif-config" id="notif-config-panel" role="dialog" aria-modal="true" aria-label="Configurar notificaciones">
+    <div class="modal-header">
+      <span class="modal-title">🔔 Notificaciones</span>
+      <button class="modal-close" id="notif-config-close-btn" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body" id="notif-config-body"></div>
+    <div class="modal-footer">
+      <button class="btn-ghost" id="notif-config-reset-btn">Restaurar por defecto</button>
+      <button class="btn-primary" id="notif-config-listo-btn">Listo</button>
+    </div>
+  </div>
+</div>
+
+<div class="shortcuts-overlay is-hidden" id="shortcuts-overlay" onclick="closeShortcuts(event)">
+  <div class="shortcuts-panel" id="shortcuts-panel" role="dialog" aria-modal="true" aria-label="Configuración de atajos">
+    <div class="shortcuts-header">
+      <span class="shortcuts-title">Atajos de teclado</span>
+      <div class="shortcuts-header-actions">
+        <button class="shortcuts-restore-btn" onclick="restoreDefaultShortcuts()">Restaurar defaults</button>
+        <button class="shortcuts-close-btn" onclick="closeShortcuts()">✕</button>
+      </div>
+    </div>
+    <div class="shortcuts-body" id="shortcuts-body"></div>
+  </div>
+</div>
+
+<!-- Command Palette — cp-overlay (activo) -->
+<div class="cmd-palette-overlay is-hidden" id="cp-overlay" onclick="if(event.target===this)closeCommandPalette()">
+  <div class="cmd-palette-panel" id="cp-container" role="dialog" aria-modal="true" aria-label="Command palette">
+    <div class="cmd-palette-input-wrap" id="cp-search-bar">
+      <span class="cmd-palette-icon" id="cp-search-icon">⌘</span>
+      <input class="cmd-palette-input" id="cp-input" type="text" placeholder="Buscar acción o comando…" autocomplete="off" autocorrect="off" spellcheck="false">
+      <div class="cmd-palette-esc-hint" id="cp-kbd-hint"><kbd>ESC</kbd></div>
+    </div>
+    <div class="cmd-palette-list" id="cp-body"></div>
+    <div class="cmd-palette-footer" id="cp-footer">
+      <span class="cp-footer-hint"><kbd>↑↓</kbd> navegar</span>
+      <span class="cp-footer-hint"><kbd>↵</kbd> ejecutar</span>
+      <span class="cp-footer-hint"><kbd>ESC</kbd> cerrar</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ DOC LOG DRAWER ═══ -->
+<div id="doc-log-overlay"></div>
+<div id="doc-log-drawer">
+  <div class="doc-log-header">
+    <span id="doc-log-title">Log</span>
+    <button class="doc-log-clear-btn" id="doc-log-clear-btn" title="Limpiar todo">🗑 Limpiar</button>
+    <button class="doc-log-close-btn" id="doc-log-close-btn" title="Cerrar">✕</button>
+  </div>
+  <div class="doc-log-body" id="doc-log-body"></div>
+</div>
+
+<div class="weekly-modal-overlay is-hidden" id="weekly-summary-modal" role="dialog" aria-modal="true" aria-label="Resumen semanal">
+  <div class="weekly-modal-panel">
+    <div class="weekly-modal-header">
+      <span class="weekly-modal-title">📊 Resumen semanal</span>
+      <button class="weekly-modal-close" id="weekly-modal-close-btn" title="Cerrar">✕</button>
+    </div>
+    <div class="weekly-modal-body">
+      <div class="weekly-stat-row"><span class="weekly-stat-label">Sesiones registradas</span><span class="weekly-stat-value" id="wsum-sessions">—</span></div>
+      <div class="weekly-stat-row"><span class="weekly-stat-label">Ítems cerrados</span><span class="weekly-stat-value" id="wsum-done">—</span></div>
+      <div class="weekly-stat-row"><span class="weekly-stat-label">Ítems abiertos</span><span class="weekly-stat-value" id="wsum-pending">—</span></div>
+      <div class="weekly-stat-row"><span class="weekly-stat-label">Workers más activos</span><span class="weekly-stat-value" id="wsum-ais">—</span></div>
+      <div class="weekly-stat-row"><span class="weekly-stat-label">Sprint progress</span><span class="weekly-stat-value" id="wsum-sprint">—</span></div>
+    </div>
+    <div class="weekly-modal-footer">
+      <button class="btn-ghost" id="weekly-export-btn">⬇ Exportar MD</button>
+      <button class="btn-primary" id="weekly-dismiss-btn">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast-stack" aria-live="polite" aria-atomic="false"></div>
+<div id="ckpt-panel">
+  <div class="ckpt-header">
+    <span class="ckpt-header-title">📋 CHECKPOINT aplicado</span>
+    <button class="ckpt-header-close" id="ckpt-header-close-btn">✕</button>
+  </div>
+  <div class="ckpt-body" id="ckpt-body"></div>
+  <div class="ckpt-progress"><div class="ckpt-progress-bar" id="ckpt-bar"></div></div>
+</div>
+
+<script>
+function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')=='dark'?'light':'dark');}
+// R-202605-014: toggleHeaderSearch y onSearchBlur eliminados — hdr-search-trigger invoca openCommandPalette() directamente
+// T-202604-210: badge en botón backup — activo cuando hay datos en localStorage
+function _updateBackupBadge() {
+  try {
+    const badge = document.getElementById('backup-badge');
+    if (!badge) return;
+    const raw = localStorage.getItem(LOCUS_KEYS.STATE);
+    const hasData = raw && raw.length > 50;
+    badge.classList.toggle('visible', !!hasData);
+    // También actualizar tooltip del logo con versión
+    const vp = document.getElementById('version-pill');
+    if (vp) {
+      const _ver = typeof _effectiveVersion === 'function' ? _effectiveVersion() : '';
+      vp.title = _ver + ' · Ver changelog';
+    }
+  } catch(e) {}
+}
+document.addEventListener('DOMContentLoaded', function() {
+  setTimeout(_updateBackupBadge, 800);
+  if (typeof initCommandPalette === 'function') initCommandPalette();
+  // T-202605-062: inline handlers → addEventListener (CSS Purity)
+  var _ivzConfirm = document.getElementById('item-viz-confirm-btn');
+  if (_ivzConfirm) _ivzConfirm.addEventListener('click', function() { if (typeof _itemVizConfirm === 'function') _itemVizConfirm(); });
+  var _ivzClose = document.getElementById('item-viz-close-btn');
+  if (_ivzClose) _ivzClose.addEventListener('click', function() { if (typeof _itemVizClose === 'function') _itemVizClose(); });
+  var _ckptClose = document.getElementById('ckpt-header-close-btn');
+  if (_ckptClose) _ckptClose.addEventListener('click', function() { if (typeof closeCkptPanel === 'function') closeCkptPanel(); });
+  // T-202605-448: panel de resumen semanal — se activa los lunes al abrir la app
+  setTimeout(function() {
+    if (typeof _maybeShowWeeklySummary === 'function') _maybeShowWeeklySummary();
+  }, 1200);
+});
+// B-202605-503: validación de reset-sessions-input — lógica extraída de oninput inline a función nombrada
+function _validateResetSessionsInput(el) {
+  const v = el.value.trim();
+  const ok = v === 'RESET';
+  document.getElementById('reset-sessions-confirm-btn').disabled = !ok;
+  const hint = document.getElementById('reset-sessions-hint');
+  if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('is-hidden'); }
+  else { hint.classList.add('is-hidden'); }
+}
+// B-202605-037: validación de reset-backlog-input — lógica extraída de oninput inline a función nombrada
+function _validateResetBacklogInput(el) {
+  const v = el.value.trim();
+  const ok = v === 'RESET';
+  document.getElementById('reset-backlog-confirm-btn').disabled = !ok;
+  const hint = document.getElementById('reset-backlog-hint');
+  if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('is-hidden'); }
+  else { hint.classList.add('is-hidden'); }
+}
+</script>
+<!-- ═══ DOCUMENT GENERATOR OVERLAY — R-202604-053 · UX R-202605-102 ═══ -->
+<div class="mg-overlay" id="mg-overlay" role="dialog" aria-modal="true" aria-label="Generador de documentos">
+  <div class="mg-panel mg-panel--docgen">
+
+    <!-- Header -->
+    <div class="mg-header">
+      <div class="mg-header-left">
+        <span class="mg-step-badge" id="mg-step-badge" aria-label="Paso 1 de 3">1</span>
+        <span class="mg-title">Generador de documentos</span>
+      </div>
+      <button class="mg-close-btn" id="mg-close-btn" aria-label="Cerrar generador">✕</button>
+    </div>
+
+    <!-- Stepper — R-202605-102 -->
+    <nav class="mg-stepper" aria-label="Pasos del generador">
+      <div class="mg-stepper-step mg-stepper-step--active" aria-current="step">
+        <span class="mg-stepper-num" aria-hidden="true">1</span>
+        <span class="mg-stepper-label">Archivos</span>
+      </div>
+      <div class="mg-stepper-connector" aria-hidden="true"></div>
+      <div class="mg-stepper-step">
+        <span class="mg-stepper-num" aria-hidden="true">2</span>
+        <span class="mg-stepper-label">Configurar</span>
+      </div>
+      <div class="mg-stepper-connector" aria-hidden="true"></div>
+      <div class="mg-stepper-step">
+        <span class="mg-stepper-num" aria-hidden="true">3</span>
+        <span class="mg-stepper-label">Revisar y generar</span>
+      </div>
+    </nav>
+
+    <div class="mg-body">
+
+      <!-- Sección 1: Archivos fuente -->
+      <div class="mg-section">
+        <div class="mg-section-title">Archivos del módulo</div>
+        <div class="mg-section-sub">Arrastra los archivos del proyecto para generar los documentos actualizados.</div>
+        <div class="mg-dropzone" id="mg-dropzone" role="button" tabindex="0"
+          aria-label="Área de carga. Arrastra archivos .js, .css o .html, o presiona Enter para abrir el selector.">
+          <span class="mg-dropzone-icon" aria-hidden="true"></span>
+          <span class="mg-dropzone-label">
+            <strong>Arrastra archivos aquí o haz clic para seleccionar</strong>
+            Acepta <code>.js</code> <code>.css</code> <code>.html</code> · Sin límite de tamaño
+          </span>
+        </div>
+        <input type="file" id="mg-file-input" multiple accept=".js,.css,.html" class="mg-hidden-input">
+        <div class="mg-file-list" id="mg-file-list" role="list" aria-label="Archivos cargados">
+          <p class="mg-empty-files">Sin archivos adjuntados</p>
+        </div>
+      </div>
+
+      <!-- Sección 2: Versión y outputs -->
+      <div class="mg-section mg-section--row">
+        <div class="mg-version-col">
+          <div class="hmexport-field-wrap mg-version-wrap">
+            <label class="hmexport-label" for="mg-version-input">Versión</label>
+            <input id="mg-version-input" type="text" class="hmexport-input"
+              oninput="document.getElementById('mg-filename-preview').textContent=_docPrefix()+'-MAP_'+this.value+'.md'">
+          </div>
+          <div class="hmexport-desc mg-filename-desc">
+            <code id="mg-filename-preview" class="hmexport-filename"></code>
+          </div>
+        </div>
+        <div class="mg-outputs-col">
+          <div class="mg-outputs-label">Documentos a generar</div>
+          <div class="mg-outputs-checks">
+            <label class="mg-output-check"><input type="checkbox" id="mg-out-map" checked> <span>MAP</span></label>
+            <label class="mg-output-check"><input type="checkbox" id="mg-out-context"> <span>CONTEXT</span></label>
+            <label class="mg-output-check"><input type="checkbox" id="mg-out-backlog"> <span>BACKLOG</span></label>
+            <label class="mg-output-check"><input type="checkbox" id="mg-out-review"> <span>Sprint Review</span></label>
+            <label class="mg-output-check"><input type="checkbox" id="mg-out-plan"> <span>Plan</span></label>
+          </div>
+        </div>
+        <div class="mg-generate-col">
+          <button class="btn-primary mg-generate-btn" id="mg-generate-btn" disabled
+            aria-describedby="mg-generate-hint">Generar</button>
+          <span class="mg-generate-hint" id="mg-generate-hint" role="tooltip">Adjunta al menos un archivo para habilitar</span>
+        </div>
+      </div>
+
+      <!-- Sección 3: Sprint Review — decisiones y aprendizajes -->
+      <div class="mg-section mg-section--review" id="mg-review-section">
+        <div class="mg-section-title">
+          Sprint Review
+          <span class="mg-review-sprint-label" id="mg-review-sprint-label"></span>
+        </div>
+        <div class="mg-section-sub">Selecciona qué decisiones y aprendizajes trascienden al contexto global.</div>
+        <div class="mg-review-tabs" role="tablist" aria-label="Tipo de entrada del sprint">
+          <button class="mg-review-tab mg-review-tab--active" id="mg-tab-decisions" role="tab" aria-selected="true">Decisiones</button>
+          <button class="mg-review-tab" id="mg-tab-learnings" role="tab" aria-selected="false">Aprendizajes</button>
+        </div>
+        <div class="mg-review-panel" id="mg-review-decisions" role="tabpanel">
+          <table class="mg-review-table">
+            <thead><tr><th>Decisión</th><th>Autor</th><th>Fecha</th><th class="mg-col-trasciende">¿Trasciende?</th></tr></thead>
+            <tbody id="mg-decisions-tbody">
+              <tr class="mg-review-empty"><td colspan="4">Sin decisiones registradas en este sprint.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="mg-review-panel mg-review-panel--hidden" id="mg-review-learnings" role="tabpanel">
+          <table class="mg-review-table">
+            <thead><tr><th>Aprendizaje</th><th>Sesión</th><th>Fecha</th><th class="mg-col-trasciende">¿Trasciende?</th></tr></thead>
+            <tbody id="mg-learnings-tbody">
+              <tr class="mg-review-empty"><td colspan="4">Sin aprendizajes registrados en sesiones de este sprint.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Sección 4: Preview -->
+      <div class="mg-section">
+        <div class="mg-section-title">Preview</div>
+        <div class="mg-preview-area" id="mg-preview-area" aria-live="polite">
+          <p class="mg-preview-placeholder">Los documentos generados aparecerán aquí.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="mg-ritual-hint" role="note">
+      <span class="mg-ritual-icon" aria-hidden="true"></span>
+      <span class="mg-ritual-text"><strong>Ritual de cierre de sprint:</strong> genera MAP + CONTEXT + BACKLOG + Sprint Review al cerrar. El paquete se descarga con versión bumpeada (semver minor) y la versión se actualiza en PP automáticamente.</span>
+    </div>
+
+    <div class="mg-export-strip">
+      <div class="mg-export-strip-label">Exportar</div>
+      <div class="mg-export-strip-btns">
+        <button class="mg-export-btn" onclick="exportBacklogMd()">Backlog activo</button>
+        <button class="mg-export-btn" onclick="exportFullHistoryMd()">Backlog archivado</button>
+        <button class="mg-export-btn" id="mg-export-htmlmap-btn">MAP</button>
+        <button class="mg-export-btn" onclick="exportContextMd()">Context</button>
+      </div>
+      <button class="mg-export-all-btn" onclick="_mgExportAllZip()">descargar todo ↓</button>
+    </div>
+
+    <!-- Footer -->
+    <div class="mg-footer">
+      <button class="tpl-action-btn" id="mg-cancel-btn">Cancelar</button>
+      <button class="btn-primary" id="mg-confirm-btn" disabled
+        aria-describedby="mg-confirm-hint">Aplicar y descargar</button>
+      <span class="mg-confirm-hint" id="mg-confirm-hint" role="tooltip">Genera los documentos primero para habilitar la descarga</span>
+    </div>
+  </div>
+</div>
+<!-- /DOCUMENT GENERATOR OVERLAY -->
+
+<!-- Supabase SDK — T-202605-482c: Google OAuth -->
+<script type="module" src="/env.js"></script>
+<script type="module" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4"></script>
+<script type="module" src="locus-storage.js"></script>
+<script type="module" src="locus-analytics-core.js"></script>
+<script type="module" src="locus-analytics-digest.js"></script>
+<script type="module" src="locus-analytics-render.js"></script>
+<script type="module" src="locus-analytics-charts.js"></script>
+<script type="module" src="locus-toast.js"></script>
+<script type="module" src="locus-sesiones.js"></script>
+<script type="module" src="locus-sesiones-utils.js"></script>
+<script type="module" src="locus-ui-shell.js"></script>
+		<script type="module" src="locus-modals.js"></script>
+		<script type="module" src="locus-workers.js"></script>
+		<script type="module" src="locus-pulso.js"></script>
+<script type="module" src="locus-notifications.js"></script>
+<script type="module" src="locus-sesiones-stats.js"></script>
+<script type="module" src="locus-sesiones-capture.js"></script>
+<script type="module" src="locus-sesiones-viz.js"></script>
+<script type="module" src="locus-sesiones-arranque.js"></script>
+<script type="module" src="locus-radar.js"></script>
+<script type="module" src="locus-session-parse.js"></script>
+<script type="module" src="locus-session-hora.js"></script>
+<script type="module" src="locus-session-save.js"></script>
+<script type="module" src="locus-session-popup.js"></script>
+<script type="module" src="locus-reports.js"></script>
+<script type="module" src="locus-item-editor.js"></script>
+<script type="module" src="locus-misc-ui.js"></script>
+<script type="module" src="locus-projects.js"></script>
+<script type="module" src="locus-docs.js"></script>
+<script type="module" src="locus-sprint-plan.js"></script>
+<script type="module" src="locus-contracts.js"></script>
+<script type="module" src="locus-map-viewer.js"></script>
+<script type="module" src="locus-backlog-core.js"></script>
+<script type="module" src="locus-backlog-item.js"></script>
+<script type="module" src="locus-backlog-merge.js"></script>
+<script type="module" src="locus-backlog-panel.js"></script>
+<script type="module" src="locus-backlog-render.js"></script>
+<script type="module" src="locus-backlog-sprints.js"></script>
+<script type="module" src="locus-backlog-archive.js"></script>
+<script type="module" src="locus-sprint.js"></script>
+<script type="module" src="locus-sprint-project.js"></script>
+<script type="module" src="locus-map-generator.js"></script>
+<script type="module" src="locus-command-palette.js"></script>
+<script type="module" src="locus-api.js"></script>
+
+<!-- Arranque de la app — gate de auth via _initApp() en locus-storage.js -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // R-202605-002: title dinámico con versión efectiva
+  try {
+    const _ver = typeof _effectiveVersion === 'function' ? _effectiveVersion() : '';
+    document.title = _ver ? 'Locus ' + _ver : 'Locus';
+  } catch(e) { document.title = 'Locus'; }
+
+  if (typeof _initApp === 'function') {
+    _initApp();
+  } else {
+    console.error('[AI Tracker] _initApp no disponible — locus-storage.js no cargó correctamente');
+  }
+});
+</script>
+
+<!-- [pendiente-ID]: patch extendido — actualiza aria-label del theme-toggle-btn al cambiar tema -->
+<script>
+(function patchApplyTheme() {
+  const _orig = typeof applyTheme === 'function' ? applyTheme : null;
+  function _syncToggleLabel(t) {
+    var btn = document.getElementById('theme-toggle-btn');
+    if (btn) btn.setAttribute('aria-label', t === 'dark' ? 'Cambiar a tema light' : 'Cambiar a tema dark');
+  }
+  window.applyTheme = function(t) {
+    if (_orig) _orig(t);
+    document.documentElement.setAttribute('data-theme', t);
+    _syncToggleLabel(t);
+  };
+  // Sincronizar aria-label con el tema activo al cargar
+  document.addEventListener('DOMContentLoaded', function() {
+    var t = document.documentElement.getAttribute('data-theme') || 'light';
+    _syncToggleLabel(t);
+  });
+})();
+</script>
+
+<div class="pulso-overlay" id="pulso-overlay" role="dialog" aria-modal="true" aria-label="Pulso del Ecosistema">
+  <div class="pulso-panel" id="pulso-panel">
+    <div class="pulso-header">
+      <span class="pulso-title">⚡ Pulso del Ecosistema</span>
+      <button class="pulso-close-btn" id="pulso-close-btn" title="Cerrar">✕</button>
+    </div>
+    <div class="pulso-body" id="pulso-body" aria-live="polite"></div>
+  </div>
+</div>
+
+<div class="arranque-overlay" id="arranque-overlay" role="dialog" aria-modal="true" aria-label="Sesión de Arranque">
+  <div class="arranque-panel" id="arranque-panel">
+    <div class="arranque-header">
+      <span class="arranque-title">☀ Buenos días</span>
+      <button class="arranque-close-btn" id="arranque-close-btn" title="Cerrar">✕</button>
+    </div>
+    <div class="arranque-body" id="arranque-body"></div>
+    <div class="arranque-footer">
+      <button class="arranque-btn-secondary" id="arranque-btn-ver-todo">Ver todo</button>
+      <button class="btn-primary arranque-btn-primary" id="arranque-cta-btn">Arrancar →</button>
+    </div>
+  </div>
+</div>
+
+<footer id="global-footer">
+  <span id="gf-proyecto" class="gf-proyecto is-hidden"></span>
+  <span id="gf-total" class="gf-total is-hidden"></span>
+  <span id="gf-done" class="gf-done is-hidden"></span>
+  <span id="gf-ckpt" class="gf-ckpt is-hidden"></span>
+  <span id="gf-pulso" class="gf-pulso is-hidden" title="Pulso del Ecosistema"><span class="pulso-dot pulso-dot--green" id="pulso-dot"></span></span>
+  <span id="gf-sync" class="gf-sync is-hidden"></span>
+</footer>
+
+<!-- ═══ MODAL LIMPIAR PROYECTO ═══ R-[pendiente-ID] -->
+<div class="modal-overlay clean-project-overlay" id="clean-project-overlay"
+     role="dialog" aria-modal="true" aria-labelledby="clean-project-dialog-title"
+     >
+  <div class="modal-panel clean-project-panel">
+    <div class="modal-header">
+      <span class="modal-title clean-project-dialog-title" id="clean-project-dialog-title">
+        Limpiar: <span class="clean-project-title clean-project-name" id="clean-project-title">proyecto</span>
+      </span>
+      <button class="modal-close-btn" id="clean-project-close-btn" aria-label="Cerrar">✕</button>
+    </div>
+
+    <div class="modal-body clean-project-body">
+      <p class="clean-project-warning" id="clean-project-warning" role="alert">
+        ⚠️ Esta acción es <strong>irreversible</strong>. Los datos se eliminarán de Supabase y del almacenamiento local del proyecto activo.
+      </p>
+
+      <!-- AC-4: checkboxes con label clickeable completo -->
+      <div class="clean-project-checks">
+        <label class="clean-project-check-label">
+          <input type="checkbox" id="clean-chk-sessions">
+          <span class="clean-project-check-text">
+            <span class="clean-project-check-title">Sesiones y Checkpoints</span>
+            <span class="clean-project-check-desc">Elimina todo el historial de sesiones del proyecto activo</span>
+          </span>
+        </label>
+        <label class="clean-project-check-label">
+          <input type="checkbox" id="clean-chk-backlog">
+          <span class="clean-project-check-text">
+            <span class="clean-project-check-title">Backlog e Histórico</span>
+            <span class="clean-project-check-desc">Elimina todos los ítems del backlog del proyecto activo</span>
+          </span>
+        </label>
+      </div>
+
+      <!-- AC-5: separación visual entre checkboxes y confirmación -->
+      <div class="clean-project-confirm-section">
+        <!-- AC-6: campo de confirmación -->
+        <label class="clean-project-confirm-label" for="clean-project-input"
+               id="clean-project-confirm-desc">
+          Escribe <strong>LIMPIAR</strong> para confirmar
+        </label>
+        <input
+          type="text"
+          id="clean-project-input"
+          class="clean-project-input"
+          placeholder="LIMPIAR"
+          autocomplete="off"
+          spellcheck="false"
+          aria-describedby="clean-project-warning clean-project-confirm-desc"
+          
+        >
+      </div>
+    </div>
+
+    <div class="modal-footer clean-project-footer">
+      <button class="tpl-action-btn" id="clean-project-cancel-btn">Cancelar</button>
+      <button
+        class="btn-danger clean-project-confirm is-disabled"
+        id="clean-project-confirm-btn"
+        aria-disabled="true"
+        disabled
+        >
+        Limpiar proyecto
+      </button>
+    </div>
+  </div>
+</div>
+<!-- /MODAL LIMPIAR PROYECTO -->
+
+</body></html>

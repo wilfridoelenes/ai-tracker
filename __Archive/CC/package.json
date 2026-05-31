@@ -1,0 +1,15 @@
+{
+  "name": "pp-reactive-runtime-platform",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "test": "vitest"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0",
+    "vitest": "^2.0.0",
+    "typescript": "^5.0.0"
+  }
+}

@@ -1,0 +1,763 @@
+/* locus-sprint.css */
+/* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
+/* Migrado desde locus-backlog.css — T-202605-065 */
+/* Carga: después de locus-backlog.css en index.html */
+
+/* === locus-sprint.js ===
+   Funciones: renderSprintTab · _renderSprintItems · _renderSprintWorkers · _renderSprintScopeAdded · _sptSwitch */
+
+/* === locus-sprint-plan.js ===
+   Funciones: renderPlan · renderPlanInto · _buildPlanContent */
+
+/* === locus-backlog-sprints.js ===
+   Funciones: renderSprintBurndown · renderSprintItems · renderScopeAdded · renderSprintWorkers · confirmCloseSprint */
+
+/* ══ T-202605-057: Tab Sprint — header sticky ══ */
+
+.sph-header {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 24px;
+  flex-shrink: 0;
+}
+
+.sph-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sph-name {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sph-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sph-version {
+  font-size: var(--text-sm);
+  color: var(--text2);
+}
+
+.sph-release-pill {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--c-pulido-bg);
+  color: var(--c-pulido-text);
+  border: 1px solid var(--c-pulido-border);
+}
+
+.sph-release-pill.is-major {
+  background: var(--c-high-bg);
+  color: var(--c-high-text);
+  border-color: var(--c-high-border);
+}
+
+.sph-release-pill.is-patch {
+  background: var(--c-won-bg);
+  color: var(--c-won-text);
+  border-color: var(--c-won-border);
+}
+
+.sph-days {
+  font-size: var(--text-sm);
+  color: var(--hint);
+}
+
+/* ══ END T-202605-057 ══ */
+
+/* ══ T-202605-058: Tab Sprint — burndown barra ══ */
+
+.sph-burndown {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.sph-bd-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sph-bd-label {
+  font-size: var(--text-sm);
+  color: var(--text2);
+}
+
+.sph-bd-pct {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sph-bd-track {
+  width: 100%;
+  height: 8px;
+  background: var(--border2, var(--border));
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.sph-bd-fill {
+  height: 100%;
+  width: var(--sph-bd-width, 0%);
+  background: var(--c-low-border);
+  border-radius: var(--radius-pill);
+  transition: width var(--trans-medium);
+}
+
+.sph-bd-fill.is-complete {
+  background: var(--c-low-text);
+}
+
+/* T-202605-062: fill verde cuando sprint listo para cerrar */
+.sph-bd-fill.is-ready {
+  background: var(--c-low-text);
+}
+
+.sph-bd-warn {
+  font-size: var(--text-xs);
+  color: var(--text2);
+}
+
+/* ══ END T-202605-058 ══ */
+
+/* ══ T-202605-044: Tab Sprint — lista de Rs por estado ══ */
+
+.spi-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 16px 24px;
+  max-width: var(--bp-ultrawide);
+  margin-inline: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.spi-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.spi-section + .spi-section {
+  margin-top: 16px;
+}
+
+.spi-section:empty {
+  display: none;
+}
+
+.spi-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+.spi-section-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text2);
+}
+
+.spi-label--blocked {
+  color: var(--c-high-text);
+}
+
+.spi-label--done {
+  color: var(--c-low-text);
+}
+
+.spi-section-count {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--hint);
+  background: var(--surface2, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 0 6px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.spi-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Fila de ítem R */
+.spi-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  transition: var(--trans-fast);
+}
+
+.spi-item:hover {
+  background: var(--surface2, var(--surface));
+  border-color: var(--border2, var(--border));
+}
+
+.spi-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.spi-item--blocked {
+  opacity: 0.75;
+  border-color: var(--c-high-border);
+  background: var(--c-high-bg);
+}
+
+.spi-item--blocked:hover {
+  opacity: 0.9;
+}
+
+.spi-item--done {
+  opacity: 0.6;
+}
+
+.spi-item-code {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.spi-item-title {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spi-item--done .spi-item-title {
+  text-decoration: line-through;
+  color: var(--text2);
+}
+
+.spi-item-status {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  flex-shrink: 0;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+}
+
+.spi-item-status--pendiente {
+  background: var(--surface2, var(--surface));
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+
+.spi-item-status--done {
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border: 1px solid var(--c-low-border);
+}
+
+.spi-item-status--blocked {
+  background: var(--c-high-bg);
+  color: var(--c-high-text);
+  border: 1px solid var(--c-high-border);
+}
+
+.spi-item-blocked-icon {
+  font-size: var(--text-xs);
+  flex-shrink: 0;
+  color: var(--c-high-text);
+}
+
+/* Child progress pill — Ts hijos */
+.spi-item-children {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* Sección vacía dentro de spi-section-body */
+.spi-section-empty {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  padding: 8px 10px;
+  font-style: italic;
+}
+
+/* ══ END T-202605-044 ══ */
+
+/* ══ T-202605-060: Tab Sprint — sección scope added ══ */
+
+.sca-section {
+  max-width: var(--bp-ultrawide);
+  margin-inline: auto;
+  width: 100%;
+  padding: 16px 24px 0;
+  box-sizing: border-box;
+}
+
+.sca-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 8px;
+}
+
+.sca-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sca-count {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--hint);
+  background: var(--surface2, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 1px 7px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.sca-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sca-empty {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  padding: 8px 4px;
+  font-style: italic;
+}
+
+.sca-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  transition: var(--trans-fast);
+}
+
+.sca-item:hover {
+  background: var(--surface2, var(--surface));
+}
+
+.sca-item-type {
+  font-size: var(--text-2xs-plus);
+  font-weight: 700;
+  border-radius: var(--radius-sm);
+  padding: 1px 5px;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.sca-item-type--r {
+  background: var(--c-pulido-bg);
+  color: var(--c-pulido-text);
+}
+
+.sca-item-type--t {
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+}
+
+.sca-item-code {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--hint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.sca-item-title {
+  font-size: var(--text-sm);
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sca-item-date {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ══ END T-202605-060 ══ */
+
+/* ══ T-202605-061: Tab Sprint — sección workers vinculados ══ */
+
+.spw-section {
+  max-width: var(--bp-ultrawide);
+  margin-inline: auto;
+  width: 100%;
+  padding: 12px 24px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.spw-header {
+  flex-shrink: 0;
+}
+
+.spw-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.spw-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.spw-empty {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  font-style: italic;
+}
+
+.spw-pill {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text2);
+  background: var(--surface2, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+  white-space: nowrap;
+}
+
+/* ══ END T-202605-061 ══ */
+
+/* ══ T-202605-062: Tab Sprint — trigger de cierre ══ */
+
+.btn-close-sprint {
+  margin-inline-start: auto;
+  padding: 6px 14px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--c-low-text);
+  background: transparent;
+  border: 1.5px solid var(--c-low-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--trans-color);
+}
+
+.btn-close-sprint:hover {
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border-color: var(--c-low-text);
+}
+
+.btn-close-sprint:active {
+  transform: scale(0.97);
+}
+
+.btn-close-sprint:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-close-sprint {
+    transition: none;
+  }
+
+  .sph-bd-fill {
+    transition: none;
+  }
+}
+
+/* ══ END T-202605-062 ══ */
+
+/* ══ R-202605-043: Subtab nav — Ítems / Plan ══ */
+
+.spt-nav {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: var(--sph-header-height, 88px);
+  z-index: calc(var(--z-sticky) - 1);
+  flex-shrink: 0;
+}
+
+.spt-tab {
+  position: relative;
+  padding: 10px 16px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--trans-fast);
+  outline: none;
+}
+
+.spt-tab::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  border-radius: 2px 2px 0 0;
+  transition: background var(--trans-fast);
+}
+
+.spt-tab:hover {
+  color: var(--text);
+}
+
+.spt-tab.is-active {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.spt-tab.is-active::after {
+  background: var(--accent);
+}
+
+.spt-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Paneles de contenido — ocupan el espacio disponible */
+#sprint-panel-items,
+#sprint-panel-plan {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#sprint-panel-plan.is-hidden,
+#sprint-panel-items.is-hidden {
+  display: none;
+}
+
+/* Contenedor interno del plan */
+.spt-plan-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spt-tab,
+  .spt-tab::after {
+    transition: none;
+  }
+}
+
+
+/* ══ R-202605-006: Sección Gestión del sprint ══ */
+
+.spm-section {
+  max-width: var(--bp-ultrawide);
+  margin-inline: auto;
+  width: 100%;
+  padding: 0 24px;
+  box-sizing: border-box;
+  border-bottom: 1px solid var(--border);
+}
+
+.spm-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color var(--trans-fast);
+}
+
+.spm-toggle:hover {
+  color: var(--text);
+}
+
+.spm-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.spm-toggle-arrow {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  flex-shrink: 0;
+}
+
+.spm-body {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 12px;
+}
+
+.spm-action {
+  padding: 5px 12px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text2);
+  background: var(--surface2, var(--surface));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: var(--trans-color);
+}
+
+.spm-action:hover {
+  color: var(--text);
+  border-color: var(--border2, var(--border));
+  background: var(--surface);
+}
+
+.spm-action:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.spm-edit-area {
+  width: 100%;
+  padding-bottom: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spm-toggle,
+  .spm-action {
+    transition: none;
+  }
+}
+
+
+/* ══ R-202605-008: Picker inline de sprint — empty state ══ */
+
+.spm-sprint-picker {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  margin-top: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.1));
+  overflow: hidden;
+  z-index: var(--z-dropdown, 100);
+}
+
+.spm-picker-item {
+  display: flex;
+  align-items: center;
+  padding: 9px 14px;
+  cursor: pointer;
+  transition: background var(--trans-fast);
+  outline: none;
+}
+
+.spm-picker-item:hover,
+.spm-picker-item:focus-visible {
+  background: var(--surface2, var(--surface));
+}
+
+.spm-picker-item:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.spm-picker-item + .spm-picker-item {
+  border-top: 1px solid var(--border);
+}
+
+.spm-picker-item-label {
+  font-size: var(--text-sm);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Botón en estado activo mientras el picker está abierto */
+#spm-empty-btn-activar.is-active {
+  background: var(--surface2, var(--surface));
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spm-picker-item {
+    transition: none;
+  }
+}
+
+/* ══ END R-202605-008 ══ */

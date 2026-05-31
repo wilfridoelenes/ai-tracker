@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 23:00 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:11 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -372,7 +372,7 @@ function _renderItemPanel(item) {
       <span class="idp-title" id="idp-title-display"
         data-action="idp-start-edit-title" data-code="${esc(item.code)}"
         title="Click para editar título">${esc(item.title)}</span>
-      <input class="idp-title-input hidden" id="idp-title-input"
+      <input class="idp-title-input is-hidden" id="idp-title-input"
         value="${esc(item.title)}"
         data-action="idp-title-input" data-code="${esc(item.code)}">
     </div>
@@ -489,7 +489,7 @@ function _renderItemPanel(item) {
   // ── AC colapsable ──
   const acHtml = item.ac && item.ac.length ? `
     <div class="idp-section">
-      <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-ac" role="button" tabindex="0">
+      <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-ac" role="button" tabindex="0" aria-expanded="true" aria-controls="idp-ac-list">
         <span>Criterios de aceptación</span>
         <span class="idp-toggle-arrow" id="idp-ac-arrow">▾</span>
       </div>
@@ -692,11 +692,11 @@ function _buildPanelTimeline(item) {
 
   if (!entries.length) return `
     <div class="idp-section">
-      <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-history" role="button" tabindex="0">
+      <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-history" role="button" tabindex="0" aria-expanded="false" aria-controls="idp-hist-body">
         <span>Historial</span>
         <span class="idp-toggle-arrow" id="idp-hist-arrow">▸</span>
       </div>
-      <div class="idp-hist-body hidden" id="idp-hist-body">
+      <div class="idp-hist-body is-hidden" id="idp-hist-body">
         <div class="idp-tl-note-row">
           <input class="idp-tl-note-input" id="idp-tl-note-input" placeholder="Añadir nota al historial…"
             data-action="idp-note-input" data-code="${esc(item.code)}">
@@ -726,11 +726,11 @@ function _buildPanelTimeline(item) {
 
   return `
     <div class="idp-section">
-      <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-history" role="button" tabindex="0">
+      <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-history" role="button" tabindex="0" aria-expanded="false" aria-controls="idp-hist-body">
         <span>Historial <span class="idp-hist-count">${entries.length}</span></span>
         <span class="idp-toggle-arrow" id="idp-hist-arrow">▸</span>
       </div>
-      <div class="idp-hist-body hidden" id="idp-hist-body">
+      <div class="idp-hist-body is-hidden" id="idp-hist-body">
         <div class="idp-timeline">${rows}</div>
         <div class="idp-tl-note-row">
           <input class="idp-tl-note-input" id="idp-tl-note-input" placeholder="Añadir nota al historial…"
@@ -830,6 +830,8 @@ function _idpToggleAc() {
   if (!list) return;
   const open = list.classList.toggle('open');
   if (arrow) arrow.textContent = open ? '▾' : '▸';
+  const btn = document.querySelector('[data-action="idp-toggle-ac"]');
+  if (btn) btn.setAttribute('aria-expanded', String(open));
 }
 
 // T-202604-423: toggle sección Historial en Item Detail Panel
@@ -837,8 +839,10 @@ function _idpToggleHistory() {
   const body = document.getElementById('idp-hist-body');
   const arrow = document.getElementById('idp-hist-arrow');
   if (!body) return;
-  const open = body.classList.toggle('is-hidden');
-  if (arrow) arrow.textContent = open ? '▸' : '▾';
+  const nowHidden = body.classList.toggle('is-hidden');
+  if (arrow) arrow.textContent = nowHidden ? '▸' : '▾';
+  const btn = document.querySelector('[data-action="idp-toggle-history"]');
+  if (btn) btn.setAttribute('aria-expanded', String(!nowHidden));
 }
 
 // T-202604-307: copiar código al portapapeles desde panel

@@ -1,0 +1,484 @@
+/* locus-base.css */
+
+
+/* === visual-only — sin módulo JS propietario ===
+   Tokens CSS globales: variables, colores, tipografía, espaciado, radios, sombras, transiciones */
+/* Versión: 1.5 | Última actualización: 2026-05-22 | Variables, reset, temas dark/light, tipografía global */
+/* Cluster A — tokens fantasma resueltos: --purple/*-dim/*-border, --blue-dim/border declarados;
+   --text-muted/--text1/--text3/--bg3/--surface1/--bg-card mapeados a token canónico
+   A3 — 39 tokens semánticos sin declarar → resueltos como alias a canónicos existentes o valores nuevos
+   T-202605-033 — tokens nuevos: --text-on-accent, --text-on-danger, --pink, --lime, --orange */
+
+
+/* ══ VARIABLES ══ */
+:root {
+  /* ── Tipografía ── */
+  --font-sans: 'DM Sans', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --font-display: 'DM Sans', sans-serif;
+
+  /* ── Escala tipográfica ── */
+  --text-3xs:      8px;   /* badge ultra-compacto: .sprint-badge */
+  --text-2xs:      9px;   /* labels de metadatos compactos */
+  --text-2xs-plus: 10px;  /* CSS-01: valor 10px en locus-modals.css — entre --text-2xs y --text-xs */
+  --text-xs:       11px;
+  --text-sm:       12px;
+  --text-base:     13px;
+  --text-md:       14px;
+  --text-lg:       16px;
+  --text-xl:       18px;
+  --text-2xl:      22px;
+
+  /* ── Escala display — stat numbers, headings de sección ── */
+  --text-display-sm:  17px;  /* heading de sección compacto */
+  --text-display-md:  26px;  /* stat numbers */
+  --text-display-lg:  28px;  /* stat values prominentes */
+  --text-display-xl:  32px;  /* stat / ícono grande */
+  --text-display-2xl: 40px;  /* empty state icons */
+
+  /* ── Espaciado / Radios ── */
+  --radius-3xs:     1px;   /* CSS-02: suavizado mínimo de borde — separadores, líneas */
+  --radius-2xs:     2px;   /* CSS-02: detalle fino — barras de progreso, focus outlines, dots */
+  --radius-sm:      4px;
+  --radius-xs:      6px;   /* CSS-02: valor 6px en uso — entre --radius-sm y --radius-md */
+  --radius-md:      8px;
+  --radius-md-plus: 10px;  /* CSS-02: valor 10px en uso — entre --radius-md y --radius-lg */
+  --radius-lg:      12px;
+  --radius-lg-plus: 14px;  /* CSS-02: valor 14px en uso — entre --radius-lg y --radius-xl */
+  --radius-xl:      16px;
+  --radius-2xl:     20px;  /* CSS-02: valor 20px en uso — sobre --radius-xl */
+  --radius-pill:    999px;
+
+  /* ── Aliases de radio — retrocompatibilidad ── */
+  --radius:           var(--radius-md);
+  --border-radius-sm: var(--radius-sm);
+  --border-radius-md: var(--radius-md);
+  --border-radius-lg: var(--radius-lg);
+  --border-radius-xl: var(--radius-xl);
+
+  /* ── Transiciones premium ── */
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:   cubic-bezier(0.45, 0, 0.55, 1);
+  --ease-bounce:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-decel:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.4, 0.64, 1);
+  --trans-fast:    all 0.12s var(--ease-out);
+  --trans-medium:  all 0.15s var(--ease-out);
+  --trans-slow:    all 0.32s var(--ease-out);
+  --trans-color:   color 0.15s var(--ease-out), background-color 0.15s var(--ease-out), border-color 0.15s var(--ease-out), opacity 0.15s var(--ease-out);
+
+  /* ── R-202605-179: token canónico de microinteracciones ── */
+  --transition-base: 150ms ease;
+
+  /* ── Aliases de fuente — retrocompatibilidad ── */
+  --mono:      var(--font-mono);
+  --sans:      var(--font-sans);
+  --font:      var(--font-sans);
+  --font-base: var(--font-sans);
+
+  /* ── Escala de z-index ── */
+  --z-deep:         1;     /* stacking mínimo — fondos decorativos */
+  --z-raised:       2;     /* elementos inline con elevación leve */
+  --z-base:         10;
+  --z-float-sm:     30;    /* CSS-06: flotantes ligeros de baja prioridad */
+  --z-float-md:     40;    /* CSS-06: flotantes ligeros de prioridad media */
+  --z-float:        50;    /* elementos flotantes ligeros */
+  --z-sticky:       100;
+  --z-popover:      120;   /* popovers · dropdowns compactos (cubre 119/120) */
+  --z-sidebar:      200;
+  --z-sidebar-plus: 210;   /* CSS-06: elementos sobre sidebar base */
+  --z-layer:        250;   /* CSS-06: capa intermedia sidebar→dropdown */
+  --z-layer-2:      300;   /* CSS-06: segunda capa intermedia */
+  --z-dropdown:     400;
+  --z-modal:        500;
+  --z-modal-plus:   600;   /* CSS-06: elementos sobre modal base */
+  --z-overlay-sub:  800;   /* CSS-06: sub-overlay antes del toast */
+  --z-overlay:      900;
+  --z-toast:        1000;
+  --z-toast-plus:   1001;  /* CSS-06: elementos sobre toast base */
+  --z-panel:        1100;  /* paneles sobre modal base */
+  --z-panel-2:      1200;  /* paneles secundarios apilados */
+  --z-panel-3:      1300;  /* tercer nivel de panel */
+  --z-panel-top:    3100;  /* CSS-06: panel de máxima prioridad */
+  --z-supreme-sub:  8000;  /* CSS-06: sub-nivel antes de supreme */
+  --z-supreme-mid:  8500;  /* CSS-06: nivel medio antes de supreme */
+  --z-supreme:      9000;  /* elementos sobre overlay general */
+  --z-supreme-2:    9200;  /* segundo nivel sobre overlay */
+  --z-critical:     9500;  /* CSS-06: entre supreme-2 y top */
+  --z-critical-2:   9900;  /* CSS-06: segundo nivel crítico */
+  --z-top:          9999;
+  --z-absolute:     10000; /* máximo absoluto — supera --z-top */
+
+  /* ── Breakpoints responsive ── */
+  --bp-wide:      1920px;  /* monitor estándar */
+  --bp-ultrawide: 2560px;  /* monitor ultrawide — max-width de contenido */
+  --bp-ipad:      1024px;  /* iPad / tablet landscape */
+
+  /* ── Layout global ── */
+  /* .header-inner: 52px + border-bottom 1px = 53px total */
+  --header-h: 53px;
+
+  /* ── A3: Tokens de espaciado — independientes de tema ── */
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   DESIGN SYSTEM — TOKENS REDISEÑADOS
+   Principios: claridad, jerarquía visual, densidad funcional
+   Tipografía: DM Sans (display) + JetBrains Mono (código)
+   Paleta: neutrales profundos + acento verde lima preciso
+   ══════════════════════════════════════════════════════════ */
+
+
+/* ── DARK THEME OVERRIDE ── */
+:root[data-theme="dark"] {
+  --bg:          #0b0c10;
+  --bg2:         #0e0f14;
+  --surface:     #131520;
+  --surface2:    #191b28;
+  --surface3:    #1f2233;
+  --border:      #252840;
+  --border2:     #2e3050;
+  --text:        #e8eaf6;
+  --text2:       #8b90c0;
+  --hint:        #3a3d5c;
+  --green:       #39e87c;
+  --green-dim:   #071a10;
+  --green-border:#0d2e1c;
+  --red:         #f0566a;
+  --red-dim:     #1a0810;
+  --red-border:  #3a1018;
+  --amber:       #f5c842;
+  --accent:      #a6e22e;
+  --accent-glow:   rgb(166 226 46 / 12%);
+  --accent-dim:    rgb(166 226 46 / 8%);
+  --accent-border: rgb(166 226 46 / 25%);
+  --blue:          #4fc3f7;
+  --blue-dim:      rgb(79 195 247 / 8%);   /* Cluster A: fondo sutil --blue */
+  --blue-border:   rgb(79 195 247 / 25%);  /* Cluster A: borde sutil --blue */
+
+  /* ── Estado insession (púrpura) — Cluster A ── */
+  --purple:        #7c6af7;
+  --purple-dim:    rgb(124 106 247 / 8%);   /* fondo sutil insession */
+  --purple-border: rgb(124 106 247 / 30%);  /* borde insession */
+
+  /* ── T-202605-033: Tokens de color nuevos ── */
+  --text-on-accent: #000;                   /* texto sobre var(--accent) lime-green — contraste ~8:1 */
+  --text-on-danger: #fff;                   /* texto sobre var(--red) / fondos destructivos */
+  --pink:           #f472b6;                /* tag color .tc-5 */
+  --lime:           #a3e635;                /* tag color .tc-6 */
+  --orange:         #fb923c;                /* tag color .tc-7 */
+
+  --card-shadow:       0 1px 6px rgb(0 0 0 / 50%), 0 0 0 1px rgb(255 255 255 / 3%);
+  --card-shadow-hover: 0 4px 20px rgb(0 0 0 / 60%), 0 0 0 1px rgb(166 226 46 / 15%);
+
+  /* severity colors */
+  --c-critical-bg:     rgb(240 86 106 / 10%);
+  --c-critical-border: rgb(240 86 106 / 25%);
+  --c-critical-text:   #f0566a;
+  --c-high-bg:         rgb(230 100 30 / 10%);
+  --c-high-border:     rgb(230 100 30 / 30%);
+  --c-high-text:       #e8742e;
+  --c-medium-bg:       rgb(245 200 66 / 10%);
+  --c-medium-border:   rgb(245 200 66 / 25%);
+  --c-medium-text:     #f5c842;
+  --c-amber-retro-bg:     rgb(245 200 66 / 6%);
+  --c-amber-retro-border: rgb(245 200 66 / 20%);
+  --c-pulido-bg:       rgb(79 195 247 / 10%);
+  --c-pulido-border:   rgb(79 195 247 / 25%);
+  --c-pulido-text:     #4fc3f7;
+  --c-low-bg:          rgb(166 226 46 / 10%);
+  --c-low-border:      rgb(166 226 46 / 25%);
+  --c-low-text:        #a6e22e;
+  --c-won-bg:          rgb(90 90 110 / 10%);
+  --c-won-border:      rgb(90 90 110 / 20%);
+  --c-won-text:        #606080;
+  --c-done-bg:         rgb(90 90 110 / 6%);
+  --c-done-border:     rgb(90 90 110 / 12%);
+  --c-done-text:       #454560;
+
+  /* ── Variables de uso extendido ── */
+  --text-secondary: var(--text2);
+  --danger:         var(--red);
+  --bg-hover:       rgb(255 255 255 / 5%);
+  --bg-subtle:      rgb(255 255 255 / 4%);
+  --accent-subtle:  rgb(166 226 46 / 10%);
+  --accent-rgb:     166,226,46;
+
+  /* ── Aliases Cluster A — tokens fantasma mapeados a canónicos ── */
+  --text-muted:  var(--text2);    /* 69 usos → --text2 (texto secundario) */
+  --text1:       var(--text);     /* 21 usos → --text (texto primario) */
+  --text3:       var(--hint);     /* 38 usos → --hint (texto inactivo/placeholder) */
+  --bg3:         var(--surface3); /* 4 usos  → --surface3 (tercer nivel de fondo) */
+  --surface1:    var(--surface);  /* 4 usos  → --surface (primer nivel) */
+  --bg-card:     var(--surface);  /* 8 usos  → --surface (cards) */
+
+  /* ── Aliases --color-* para componentes migrados ── */
+  --color-bg:               var(--bg);
+  --color-text:             var(--text);
+  --color-text-secondary:   var(--text2);
+  --color-border:           var(--border);
+  --color-border-subtle:    var(--border2);
+  --color-border-secondary: var(--border2);
+  --color-border-tertiary:  var(--border);
+  --color-surface:          var(--surface);
+  --color-surface-hover:    var(--surface2);
+  --color-border-hover:     var(--border2);
+  --color-text-primary:     var(--text);
+  --color-text-tertiary:    var(--hint);
+
+  /* ── A3: Tokens semánticos sin declarar — resueltos ── */
+  /* Acento */
+  --accent-hover:        #b8f03a;                  /* --accent saturado para hover */
+  --accent-muted:        var(--accent-dim);
+  --accent-subtle-hover: rgb(166 226 46 / 14%);
+  --color-accent:        var(--accent);
+  --color-primary:       var(--accent);
+  --color-primary-alpha: var(--accent-dim);
+
+  /* Semánticos de estado */
+  --correct:                    var(--green);
+  --error:                      var(--red);
+  --success:                    var(--green);
+  --warning:                    var(--amber);
+  --yellow:                     var(--amber);
+  --color-correct:              var(--green);
+  --color-incorrect:            var(--red);
+  --color-danger:               var(--red);
+  --color-text-danger:          var(--red);
+  --color-text-success:         var(--green);
+  --color-border-success:       var(--green-border);
+  --color-background-success:   var(--green-dim);
+  --c-done:                     var(--c-done-text);
+
+  /* Fondos semánticos */
+  --bg-danger-subtle:            var(--red-dim);
+  --bg-tag:                      var(--surface3);
+  --bg-modal:                    var(--surface);
+  --bg-input:                    var(--surface2);
+  --hover:                       var(--bg-hover);
+  --hover-bg:                    var(--bg-hover);
+  --color-background-primary:    var(--bg);
+  --color-background-tertiary:   var(--surface3);
+
+  /* Superficies alias */
+  --card-bg:           var(--surface);
+  --card-bg-hover:     var(--surface2);
+  --surface-2:         var(--surface2);
+  --color-surface-1:   var(--surface);
+  --color-surface-2:   var(--surface2);
+
+  /* Bordes alias */
+  --border-color:  var(--border);
+  --border-hover:  var(--border2);
+  --text-primary:  var(--text);
+  --color-text-muted: var(--text2);
+
+  /* Numérico raw */
+  --amber-rgb: 245,200,66;
+}
+
+/* ── LIGHT THEME OVERRIDE ── */
+:root[data-theme="light"] {
+  --bg:          #f4f5fa;
+  --bg2:         #ecedf5;
+  --surface:     #fff;
+  --surface2:    #f7f8fd;
+  --surface3:    #eef0f8;
+  --border:      #dde0f0;
+  --border2:     #c8ccdf;
+  --text:        #14162a;
+  --text2:       #4a5080;
+  --hint:        #a0a4c8;
+  --green:       #1aab5a;
+  --green-dim:   #e6f9ef;
+  --green-border:#99ddb8;
+  --red:         #d93050;
+  --red-dim:     #fdf0f3;
+  --red-border:  #f0b0bc;
+  --amber:       #d4920e;
+  --accent:      #6db821;
+  --accent-glow:   rgb(109 184 33 / 10%);
+  --accent-dim:    rgb(109 184 33 / 7%);
+  --accent-border: rgb(109 184 33 / 22%);
+  --blue:          #0288d1;
+  --blue-dim:      rgb(2 136 209 / 7%);    /* Cluster A: fondo sutil --blue */
+  --blue-border:   rgb(2 136 209 / 18%);   /* Cluster A: borde sutil --blue */
+
+  /* ── Estado insession (púrpura) — Cluster A ── */
+  --purple:        #6054d4;
+  --purple-dim:    rgb(96 84 212 / 7%);    /* fondo sutil insession */
+  --purple-border: rgb(96 84 212 / 22%);   /* borde insession */
+
+  /* ── T-202605-033: Tokens de color nuevos ── */
+  --text-on-accent: #000;                  /* texto sobre var(--accent) lime-green — contraste válido en ambos temas */
+  --text-on-danger: #fff;                  /* texto sobre var(--red) / fondos destructivos */
+  --pink:           #d6509e;               /* tag color .tc-5 — versión light ajustada para contraste */
+  --lime:           #6a9e1a;               /* tag color .tc-6 — versión light ajustada para contraste */
+  --orange:         #d4691a;               /* tag color .tc-7 — versión light ajustada para contraste */
+
+  --card-shadow:       0 1px 4px rgb(20 22 42 / 8%);
+  --card-shadow-hover: 0 4px 16px rgb(20 22 42 / 14%);
+
+  --c-critical-bg:     rgb(217 48 80 / 7%);
+  --c-critical-border: rgb(217 48 80 / 18%);
+  --c-critical-text:   #c42040;
+  --c-high-bg:         rgb(192 76 16 / 7%);
+  --c-high-border:     rgb(192 76 16 / 18%);
+  --c-high-text:       #b05020;
+  --c-medium-bg:       rgb(180 120 0 / 7%);
+  --c-medium-border:   rgb(180 120 0 / 18%);
+  --c-medium-text:     #a07000;
+  --c-amber-retro-bg:     rgb(245 200 66 / 8%);
+  --c-amber-retro-border: rgb(245 200 66 / 25%);
+  --c-pulido-bg:       rgb(2 136 209 / 7%);
+  --c-pulido-border:   rgb(2 136 209 / 18%);
+  --c-pulido-text:     #0277bd;
+  --c-low-bg:          rgb(109 184 33 / 7%);
+  --c-low-border:      rgb(109 184 33 / 18%);
+  --c-low-text:        #4a8a10;
+  --c-won-bg:          rgb(120 120 140 / 7%);
+  --c-won-border:      rgb(120 120 140 / 14%);
+  --c-won-text:        #808090;
+  --c-done-bg:         rgb(160 160 160 / 6%);
+  --c-done-border:     rgb(160 160 160 / 11%);
+  --c-done-text:       #a0a0a0;
+
+  /* ── Variables de uso extendido ── */
+  --text-secondary: var(--text2);
+  --danger:         var(--red);
+  --bg-hover:       rgb(0 0 0 / 4%);
+  --bg-subtle:      rgb(0 0 0 / 3%);
+  --accent-subtle:  rgb(109 184 33 / 10%);
+  --accent-rgb:     109,184,33;
+
+  /* ── Aliases Cluster A — tokens fantasma mapeados a canónicos ── */
+  --text-muted:  var(--text2);
+  --text1:       var(--text);
+  --text3:       var(--hint);
+  --bg3:         var(--surface3);
+  --surface1:    var(--surface);
+  --bg-card:     var(--surface);
+
+  /* ── Aliases --color-* ── */
+  --color-bg:               var(--bg);
+  --color-text:             var(--text);
+  --color-text-secondary:   var(--text2);
+  --color-border:           var(--border);
+  --color-border-subtle:    var(--border2);
+  --color-border-secondary: var(--border2);
+  --color-border-tertiary:  var(--border);
+  --color-surface:          var(--surface);
+  --color-surface-hover:    var(--surface2);
+  --color-border-hover:     var(--border2);
+  --color-text-primary:     var(--text);
+  --color-text-tertiary:    var(--hint);
+
+  /* ── A3: Tokens semánticos sin declarar — resueltos ── */
+  /* Acento */
+  --accent-hover:        #7ec828;                  /* --accent saturado para hover */
+  --accent-muted:        var(--accent-dim);
+  --accent-subtle-hover: rgb(109 184 33 / 14%);
+  --color-accent:        var(--accent);
+  --color-primary:       var(--accent);
+  --color-primary-alpha: var(--accent-dim);
+
+  /* Semánticos de estado */
+  --correct:                    var(--green);
+  --error:                      var(--red);
+  --success:                    var(--green);
+  --warning:                    var(--amber);
+  --yellow:                     var(--amber);
+  --color-correct:              var(--green);
+  --color-incorrect:            var(--red);
+  --color-danger:               var(--red);
+  --color-text-danger:          var(--red);
+  --color-text-success:         var(--green);
+  --color-border-success:       var(--green-border);
+  --color-background-success:   var(--green-dim);
+  --c-done:                     var(--c-done-text);
+
+  /* Fondos semánticos */
+  --bg-danger-subtle:            var(--red-dim);
+  --bg-tag:                      var(--surface3);
+  --bg-modal:                    var(--surface);
+  --bg-input:                    var(--surface2);
+  --hover:                       var(--bg-hover);
+  --hover-bg:                    var(--bg-hover);
+  --color-background-primary:    var(--bg);
+  --color-background-tertiary:   var(--surface3);
+
+  /* Superficies alias */
+  --card-bg:           var(--surface);
+  --card-bg-hover:     var(--surface2);
+  --surface-2:         var(--surface2);
+  --color-surface-1:   var(--surface);
+  --color-surface-2:   var(--surface2);
+
+  /* Bordes alias */
+  --border-color:  var(--border);
+  --border-hover:  var(--border2);
+  --text-primary:  var(--text);
+  --color-text-muted: var(--text2);
+
+  /* Numérico raw */
+  --amber-rgb: 180,120,0;
+}
+
+/* ── GLOBAL TYPOGRAPHY ── */
+
+html {
+  font-size: var(--text-base);
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+[data-theme="dark"] body {
+  background: radial-gradient(ellipse 120% 80% at 50% -20%, rgb(166 226 46 / 4%) 0%, transparent 60%),
+              linear-gradient(180deg, #0b0c10 0%, #0d0e16 100%);
+  background-attachment: fixed;
+}
+
+/* B-202605-057: background-attachment: fixed causa scroll jank en iOS/Android */
+@media (width <= 768px) {
+  [data-theme="dark"] body {
+    background-attachment: scroll;
+  }
+}
+
+
+/* ══ CSS-04: Clase canónica de ocultamiento ══ */
+.is-hidden {
+  display: none !important;
+}
+
+/* alias legacy — no migrar a JS hasta T de migración CSS */
+.hidden {
+  display: none !important;
+}
+
+/* Utilidad display — usada por openDetail/closePopup en locus-session-popup.js */
+.d-flex {
+  display: flex !important;
+}
+
+/* ══ END CSS-04 ══ */
+
+/* ══ CSS-07: prefers-reduced-motion — animaciones infinite sin cobertura ══ */
+@media (prefers-reduced-motion: reduce) {
+  /* countdownPulse — countdown de reset */
+  .card-stat-countdown { animation: none; }
+
+  /* skel-shimmer — skeleton rows de carga */
+  .skel-row { animation: none; }
+}
+/* ══ END CSS-07 ══ */
