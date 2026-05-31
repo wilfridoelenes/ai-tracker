@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-11 · mod:16 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-11 · mod:17 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -136,8 +136,7 @@ export function _buildNewSprintForm(projId, onConfirm, onCancel) {
       <label class="sprint-inline-release-label">Versión:</label>
       <input id="${ns}-vt" type="text" value="${esc(suggestedVt)}"
         class="sprint-inline-vt-input" placeholder="ej: v1.1.0"
-        oninput="_bnsf_syncBtn('${ns}');_clearSprintFieldErr('${ns}-vt-err')"
-        onkeydown="if(event.key==='Enter'){event.preventDefault();_bnsf_confirm('${ns}');}if(event.key==='Escape'){event.preventDefault();_bnsf_cancel('${ns}');}">
+        data-action="bnsf-vt-input" data-ns="${ns}">
       <span id="${ns}-vt-err" class="sprint-field-err is-hidden"></span>
       <label class="sprint-inline-release-label">Tipo de release:</label>
       <div class="sprint-inline-release-radios">${rtRadios}</div>
@@ -211,6 +210,21 @@ export function _buildNewSprintForm(projId, onConfirm, onCancel) {
       delete window['_bnsf_cancel'];
       onCancel();
     };
+
+    // Listeners para ${ns}-vt — input y keydown (reemplaza on* inline)
+    setTimeout(() => {
+      const vtEl = document.getElementById(ns + '-vt');
+      if (vtEl) {
+        vtEl.addEventListener('input', () => {
+          if (typeof window['_bnsf_syncBtn'] === 'function') window['_bnsf_syncBtn'](ns);
+          if (typeof _clearSprintFieldErr === 'function') _clearSprintFieldErr(ns + '-vt-err');
+        });
+        vtEl.addEventListener('keydown', e => {
+          if (e.key === 'Enter')  { e.preventDefault(); if (typeof window['_bnsf_confirm'] === 'function') window['_bnsf_confirm'](ns); }
+          if (e.key === 'Escape') { e.preventDefault(); if (typeof window['_bnsf_cancel']  === 'function') window['_bnsf_cancel'](ns); }
+        });
+      }
+    }, 0);
 
     // Sync inicial + focus
     setTimeout(() => {
@@ -974,7 +988,12 @@ function _scmRender() {
   };
   if (step === 1) body.innerHTML = _scmStep1Html(sp, spLabel, pendingItems, doneItems, _step1Metrics);
   else if (step === 2 && !skipStep2) body.innerHTML = _scmStep2Html(pendingItems, migrations, id);
-  else if (step === 3) body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep2); // T-A1: cubre step===3 en ambos casos (skipStep2=true y false)
+  else if (step === 3) {
+    body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep2); // T-A1: cubre step===3 en ambos casos (skipStep2=true y false)
+    // Listener directo para #scm-retro-notes-ta (reemplaza oninput inline)
+    const notesTA = document.getElementById('scm-retro-notes-ta');
+    if (notesTA) notesTA.addEventListener('input', () => { if (_scmState) _scmState.retroNotes = notesTA.value; });
+  }
 }
 
 // B-202605-067: métricas de entrega recibidas como parámetro — sin acceso a _scmState global
@@ -1096,8 +1115,7 @@ function _scmStep2Html(pendingItems, migrations, currentId) {
         <span class="scm-migration-item-title">${esc(i.title || '—')}</span>
         <span class="scm-migration-item-meta">${esc(i.code)} · ${esc(i.type||'T')}</span>
       </div>
-      <select class="scm-migration-select" data-code="${esc(i.code)}"
-        onchange="_scmState && (_scmState.migrations['${esc(i.code)}'] = this.value)">
+      <select class="scm-migration-select" data-code="${esc(i.code)}">
         ${sprintOptions.replace(`value="${esc(cur)}"`, `value="${esc(cur)}" selected`)}
       </select>
     </div>`;
@@ -1257,7 +1275,6 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
           id="scm-retro-notes-ta"
           rows="3"
           placeholder="¿Qué salió bien? ¿Qué mejorar? ¿Algún aprendizaje para el próximo sprint?"
-          oninput="if (_scmState) _scmState.retroNotes = this.value"
         >${esc(st.retroNotes || '')}</textarea>
       </div>
     </div>`;
@@ -1620,7 +1637,6 @@ function _buildSprintItemRow(item, sectionId, allItems) {
 
   return `<div class="${itemClass}" role="button" tabindex="0"
     data-action="spi-navigate" data-item-code="${code}"
-    onkeydown="if(event.key==='Enter'&&typeof navigateToItem==='function') navigateToItem('${item.code}')"
     title="Ir a ${code} en Tab Backlog">
     <span class="spi-item-code">${code}</span>
     <span class="spi-item-title">${title}</span>
@@ -1855,12 +1871,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Sprint panel items — spi-navigate
-  const sprintPanelItems = document.getElementById('sprint-panel-items');
-  if (sprintPanelItems) sprintPanelItems.addEventListener('click', e => {
-    const row = e.target.closest('[data-action="spi-navigate"]');
-    if (row && typeof navigateToItem === 'function') navigateToItem(row.dataset.itemCode);
+  // Delegación change — .scm-migration-select (reemplaza onchange inline)
+  if (scmBody) scmBody.addEventListener('change', e => {
+    const sel = e.target.closest('.scm-migration-select');
+    if (!sel || !_scmState) return;
+    const code = sel.dataset.code;
+    if (code) _scmState.migrations[code] = sel.value;
   });
+
+  // Sprint panel items — spi-navigate (click + keydown Enter)
+  const sprintPanelItems = document.getElementById('sprint-panel-items');
+  if (sprintPanelItems) {
+    sprintPanelItems.addEventListener('click', e => {
+      const row = e.target.closest('[data-action="spi-navigate"]');
+      if (row && typeof navigateToItem === 'function') navigateToItem(row.dataset.itemCode);
+    });
+    sprintPanelItems.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      const row = e.target.closest('[data-action="spi-navigate"]');
+      if (row && typeof navigateToItem === 'function') navigateToItem(row.dataset.itemCode);
+    });
+  }
 
   // Sprint inline edit wrap — stopPropagation (reemplaza onclick="event.stopPropagation()")
   document.addEventListener('click', e => {
