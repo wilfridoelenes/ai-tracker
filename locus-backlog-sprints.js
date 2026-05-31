@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-11 · mod:17 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-11 · mod:18 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -1420,9 +1420,8 @@ function _scmExecuteClose() {
     _openRetroDownloadPrompt(id);
   }
 
-  // B-[pendiente-ID]: refrescar tab Sprint post-cierre — sin esto el tab
-  // queda mostrando el sprint cerrado hasta que el usuario navega manualmente
-  if (typeof renderSprintTab === 'function') renderSprintTab();
+  // B-202605-032: window.renderSprintTab expuesto por locus-sprint.js — no importable (circular)
+  window.renderSprintTab?.();
 }
 
 export function createSprintFromGroup(id) {
