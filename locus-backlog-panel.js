@@ -393,7 +393,7 @@ function _renderItemPanel(item) {
     <div class="idp-meta-grid">
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Status</span>
-        <select class="idp-meta-select" onchange="setItemStatus('${esc(item.code)}',this.value)">
+        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="status">
           <option value="pendiente"${item.status === 'pendiente' ? ' selected' : ''}>⏳ pendiente</option>
           <option value="done"${item.status === 'done' ? ' selected' : ''}>✓ done</option>
           <option value="descartado"${item.status === 'descartado' ? ' selected' : ''}>🗑 descartado</option>
@@ -401,7 +401,7 @@ function _renderItemPanel(item) {
       </div>
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Priority</span>
-        <select class="idp-meta-select" onchange="_idpSetField('${esc(item.code)}','priority',this.value)">
+        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="priority">
           <option value="high"${item.priority === 'high' ? ' selected' : ''}>🔴 high</option>
           <option value="medium"${item.priority === 'medium' ? ' selected' : ''}>🟡 medium</option>
           <option value="low"${item.priority === 'low' ? ' selected' : ''}>⚪ low</option>
@@ -409,7 +409,7 @@ function _renderItemPanel(item) {
       </div>
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Sprint</span>
-        <select class="idp-meta-select" onchange="setItemSprint('${esc(item.code)}',this.value)">
+        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="sprint">
           <option value="">— Sin asignar</option>
           ${sprintOptions}
           ${sprintOrphan}
@@ -418,7 +418,7 @@ function _renderItemPanel(item) {
       </div>
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Effort</span>
-        <select class="idp-meta-select" onchange="_idpSetField('${esc(item.code)}','effort',this.value)">
+        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="effort">
           <option value=""${!item.effort ? ' selected' : ''}>—</option>
           <option value="1"${item.effort == 1 ? ' selected' : ''}>1 · simple</option>
           <option value="2"${item.effort == 2 ? ' selected' : ''}>2 · medio</option>
@@ -428,8 +428,7 @@ function _renderItemPanel(item) {
       <div class="idp-meta-cell idp-meta-cell--wide">
         <span class="idp-meta-label">Area</span>
         <input class="idp-meta-input" value="${esc(item.area || '')}" placeholder="—"
-          onblur="_idpSetField('${esc(item.code)}','area',this.value)"
-          onkeydown="if(event.key==='Enter')this.blur()">
+          data-item-code="${esc(item.code)}" data-field="area">
       </div>
     </div>`;
 
@@ -1051,6 +1050,7 @@ function toggleTmplTriggerPanel(btn) {
 // Cubre: _idpMarkDone · _idpStartEditTitle · _idpSaveTitle · _idpCancelTitle
 //        _idpCopyCode · toggleFocusMode · _idpToggleAc · _idpToggleHistory
 //        _idpAddNote · _idpAddNote_fromBtn · _acvSaveEdit
+// T-202605-108: extiende cobertura a .idp-meta-select (change) e .idp-meta-input (blur/keydown)
 // Delegación en document para cubrir panel dinámico que se re-renderiza con cada ítem
 (function _attachIdpDelegation() {
   function _onIdpClick(e) {
@@ -1097,6 +1097,23 @@ function toggleTmplTriggerPanel(btn) {
     }
   }
 
+  // T-202605-108: change en .idp-meta-select — status usa setItemStatus, sprint usa setItemSprint, resto _idpSetField
+  function _onIdpChange(e) {
+    const sel = e.target.closest('.idp-meta-select');
+    if (!sel) return;
+    const code  = sel.dataset.itemCode;
+    const field = sel.dataset.field;
+    const value = sel.value;
+    if (!code || !field) return;
+    if (field === 'status') {
+      if (typeof setItemStatus === 'function') setItemStatus(code, value);
+    } else if (field === 'sprint') {
+      if (typeof setItemSprint === 'function') setItemSprint(code, value);
+    } else {
+      if (typeof _idpSetField === 'function') _idpSetField(code, field, value);
+    }
+  }
+
   function _onIdpKeydown(e) {
     // idp-title-input: Enter → save, Escape → cancel
     const inp = e.target.closest('[data-action="idp-title-input"]');
@@ -1120,15 +1137,26 @@ function toggleTmplTriggerPanel(btn) {
       if (act === 'idp-toggle-ac' && typeof _idpToggleAc === 'function') _idpToggleAc();
       if (act === 'idp-toggle-history' && typeof _idpToggleHistory === 'function') _idpToggleHistory();
     }
+    // T-202605-108: idp-meta-input area: Enter → blur (guarda via _onIdpBlur)
+    const areaInp = e.target.closest('.idp-meta-input');
+    if (areaInp && e.key === 'Enter') { areaInp.blur(); }
   }
 
   function _onIdpBlur(e) {
     // idp-title-input: blur → save
     const inp = e.target.closest('[data-action="idp-title-input"]');
     if (inp && typeof _idpSaveTitle === 'function') _idpSaveTitle(inp.dataset.code);
+    // T-202605-108: idp-meta-input: blur → _idpSetField para campo area
+    const areaInp = e.target.closest('.idp-meta-input');
+    if (areaInp) {
+      const code  = areaInp.dataset.itemCode;
+      const field = areaInp.dataset.field;
+      if (code && field && typeof _idpSetField === 'function') _idpSetField(code, field, areaInp.value);
+    }
   }
 
   document.addEventListener('click', _onIdpClick);
+  document.addEventListener('change', _onIdpChange);
   document.addEventListener('keydown', _onIdpKeydown);
   document.addEventListener('blur', _onIdpBlur, true); // capture para blur
 })();
