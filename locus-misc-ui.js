@@ -1,47 +1,18 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:12 · autor:Rune · 2026-05-30 UTC-6
 // locus-misc-ui.js
-// Módulo: Helpers de UI — getNextOccurrence, _resetExpired, Pendientes, Doc Activity Drawer
+// Módulo: Helpers de UI — getNextOccurrence, _resetExpired, Doc Activity Drawer
 // Extraído de ai-tracker-ai-notes.js — Tags migrado a locus-tags.js (T-202605-072)
+// Pendientes migrado a locus-pend.js (T-202605-073)
 import { openStandaloneCheckpoint, closeStandaloneCheckpoint } from './locus-session-parse.js';
 import { _restoreModalFocus } from './locus-modals.js';
-import { getState, getAISessions } from './locus-storage.js';
 import { getNextOccurrence, _resetExpired, getCD } from './locus-sesiones-utils.js';
-import { openDetail } from './locus-session-popup.js';
 import { esc } from './locus-ui-shell.js';
+// openPendPanel / closePendPanel viven en locus-pend.js — no se re-exportan desde aquí
 
 const _esc = (s) => esc(s);
 const _getCurrentTab = () => window.currentTab || '';
 const _renderHoy = () => { if (typeof window.renderHoy === 'function') window.renderHoy(); };
 const _relTs = (ts) => window._relTs ? window._relTs(ts) : '';
-
-// ── Pendientes panel ──
-export function openPendPanel() {
-  const body = document.getElementById('pend-panel-body');
-  let html = ''; let total = 0;
-  getState().ais.forEach(ai => {
-    const aiSess = getAISessions(ai.id);
-    const withPending = aiSess.filter(s => s.pending && s.pending.trim());
-    if (!withPending.length) return;
-    total += withPending.length;
-    const dotColor = ai.status === 'available' ? 'var(--green)' : 'var(--red)';
-    html += `<div class="pend-ai-group">
-      <div class="pend-ai-name"><span class="pend-ai-dot" style="--ai-dot-color:${dotColor}"></span>${_esc(ai.name)}</div>`;
-    [...withPending].reverse().forEach(s => {
-      html += `<div class="pend-item" data-action="pend-open-detail" data-ai-id="${ai.id}" data-sess-id="${s.id}">
-        <div class="pend-item-pending">${_esc(s.pending)}</div>
-        <div class="pend-item-meta">${_esc(s.title)} · ${s.dateShort || ''}</div>
-      </div>`;
-    });
-    html += '</div>';
-  });
-  body.innerHTML = total ? html : `<div class="pend-empty">🎉 Sin pendientes — todo resuelto</div>`;
-  document.getElementById('pend-overlay').classList.add('open');
-}
-
-export function closePendPanel() {
-  document.getElementById('pend-overlay').classList.remove('open');
-  _restoreModalFocus('pend-overlay');
-}
 
 // ── Doc Activity Drawer ──
 
@@ -122,12 +93,6 @@ export function clearDocLog() {
 
 // ── Listeners ────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
-  // Pendientes panel — overlay click + botón cerrar
-  const pendOverlay = document.getElementById('pend-overlay');
-  if (pendOverlay) pendOverlay.addEventListener('click', e => { if (e.target === pendOverlay) closePendPanel(); });
-  const pendCloseBtn = document.getElementById('pend-close-btn');
-  if (pendCloseBtn) pendCloseBtn.addEventListener('click', closePendPanel);
-
   // Standalone checkpoint — botón cancelar
   const ckptCancelBtn = document.getElementById('standalone-ckpt-cancel-btn');
   if (ckptCancelBtn) ckptCancelBtn.addEventListener('click', closeStandaloneCheckpoint);
@@ -137,13 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (docLogClearBtn) docLogClearBtn.addEventListener('click', clearDocLog);
   const docLogCloseBtn = document.getElementById('doc-log-close-btn');
   if (docLogCloseBtn) docLogCloseBtn.addEventListener('click', closeDocLog);
-
-  // Pendientes panel body — openDetail
-  const pendPanelBody = document.getElementById('pend-panel-body');
-  if (pendPanelBody) pendPanelBody.addEventListener('click', e => {
-    const item = e.target.closest('[data-action="pend-open-detail"]');
-    if (item) { closePendPanel(); openDetail(item.dataset.aiId, item.dataset.sessId); }
-  });
 });
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -154,11 +112,9 @@ document.addEventListener('DOMContentLoaded', () => {
 // ── Exposición pública ───────────────────────────────────────────────────
 window._updateDocLogCount        = _updateDocLogCount;
 window.openStandaloneCheckpoint  = openStandaloneCheckpoint;
-window.openPendPanel             = openPendPanel;
 window.openDocLog                = openDocLog;
 window.getCD                     = getCD;
 window.closeStandaloneCheckpoint = closeStandaloneCheckpoint;
-window.closePendPanel            = closePendPanel;
 window._resetExpired             = _resetExpired;
 window.getNextOccurrence         = getNextOccurrence;
 window.clearDocLog               = clearDocLog;
