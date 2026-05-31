@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:12 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:13 · autor:Rune · 2026-05-30 UTC-6
 // locus-misc-ui.js
 // Módulo: Helpers de UI — getNextOccurrence, _resetExpired, Doc Activity Drawer
 // Extraído de ai-tracker-ai-notes.js — Tags migrado a locus-tags.js (T-202605-072)
@@ -110,12 +110,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─────────────────────────────────────────────────────────────────────────
 
 // ── Exposición pública ───────────────────────────────────────────────────
-window._updateDocLogCount        = _updateDocLogCount;
-window.openStandaloneCheckpoint  = openStandaloneCheckpoint;
-window.openDocLog                = openDocLog;
-window.getCD                     = getCD;
-window.closeStandaloneCheckpoint = closeStandaloneCheckpoint;
-window._resetExpired             = _resetExpired;
-window.getNextOccurrence         = getNextOccurrence;
-window.clearDocLog               = clearDocLog;
-window.closeDocLog               = closeDocLog;
+// Funciones propias de este módulo
+window._updateDocLogCount = _updateDocLogCount;
+window.openDocLog         = openDocLog;
+window.clearDocLog        = clearDocLog;
+window.closeDocLog        = closeDocLog;
+// openStandaloneCheckpoint, closeStandaloneCheckpoint → locus-session-parse.js
+// getCD, _resetExpired, getNextOccurrence → locus-sesiones-utils.js
