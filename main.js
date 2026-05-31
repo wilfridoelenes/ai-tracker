@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:5 · autor:Rune · 2026-05-31 UTC-6
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // T2: imports en el mismo orden que index.html declaraba los <script src>
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
@@ -27,7 +27,7 @@ import './locus-session-save.js';
 import './locus-tags.js';
 import './locus-session-popup.js';
 import './locus-reports.js';
-import './locus-item-editor.js';
+import './locus-backlog-editor.js';
 import './locus-misc-ui.js';
 import './locus-projects.js';
 import './locus-docs.js';
