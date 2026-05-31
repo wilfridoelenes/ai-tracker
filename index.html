@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-12 · mod:21 · autor:Rune · 2026-05-31 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-13 · mod:22 · autor:Rune · 2026-05-31 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -420,7 +420,6 @@
         <span class="bl-collapse-btn-icon">⊟</span>
         <span class="bl-collapse-btn-label">Colapsar</span>
       </button>
-      <button class="bl-toolbar-new-item-btn" id="btn-new-backlog-item" title="Crear nuevo ítem">+ Nuevo ítem</button>
       <div class="bl-toolbar-spacer"></div>
       <div class="fbar-search-wrap">
         <input class="fbar-search-input" id="backlog-search-input" type="text" placeholder="🔍 Buscar…" autocomplete="off">
@@ -1101,26 +1100,6 @@
           <select id="item-parentid">
             <option value="">— Sin R padre —</option>
           </select>
-        </div>
-      </div>
-
-      <!-- Pegar bloque (siempre visible) -->
-      <hr class="ie-divider">
-      <div class="ie-row cols-1">
-        <div class="ie-field">
-          <label class="ie-paste-label">📋 Pegar bloque <span class="ie-paste-note">Markdown o línea CHECKPOINT — autorrellena los campos</span></label>
-          <textarea class="pi-textarea" id="pi-textarea"
-            placeholder="### [pendiente-ID] · Título del ítem&#10;**Priority:** high&#10;**Area:** UX&#10;**Effort:** 2&#10;**Status:** backlog&#10;&#10;### Criterios de aceptación&#10;- [ ] Criterio 1"
-            rows="4"></textarea>
-          <div class="pi-error" id="pi-error"></div>
-          <div class="pi-preview" id="pi-preview">
-            <div class="pi-preview-header">
-              <span class="pi-preview-title">Preview</span>
-              <span class="pi-preview-count" id="pi-count"></span>
-            </div>
-            <div id="pi-list"></div>
-            <button class="btn-primary btn-confirm-green" id="pi-confirm-btn" disabled>Agregar seleccionados al Backlog</button>
-          </div>
         </div>
       </div>
 
