@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:7 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:9 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -6,7 +6,7 @@
 import { _normalizeStatus, updateBacklogFooter } from './locus-backlog-item.js';
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
 import { _getActiveSprint, _getSprintById, renderSprintBurndown, renderSprintItems } from './locus-backlog-sprints.js';
-import { openItemEditor } from './locus-item-editor.js';
+import { openItemEditor } from './locus-backlog-editor.js';
 import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 
@@ -1923,8 +1923,8 @@ window.toggleSortDir        = toggleSortDir;
 
 // T-202605-053: Migrar handlers inline de index.html → addEventListener
 // Funciones cubiertas: undoBacklog · redoBacklog · toggleBacklogTreeMode · toggleBacklogKanbanMode
-// toggleBacklogFocusMode · toggleBacklogMikeMode · toggleCollapseAll · onBacklogSearch
-// clearBacklogSearch · toggleStatusFilter (×5) · toggleBacklogBlockerFilter
+// toggleBacklogFocusMode · toggleBacklogMikeMode · toggleCollapseAll
+// toggleStatusFilter (×5) · toggleBacklogBlockerFilter
 // toggleBacklogNoAcMode · clearAllFilters
 document.addEventListener('DOMContentLoaded', function () {
   // Undo / Redo

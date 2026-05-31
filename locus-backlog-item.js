@@ -1,9 +1,9 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:16 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:17 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
-// Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-item-editor.js · locus-toast.js
+// Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
 import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogFocusMode, _getBacklogKanbanMode, _getBacklogMikeMode, _getBacklogNoAcMode, _getBacklogSprintGroupMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, itemType, renderStats, setItemStatus, updateBacklogBanner } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
 import { _normalizeSprint } from './locus-session-parse.js';
