@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:4 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -45,6 +45,10 @@ const _ARCH_VIEW_KEY  = 'ai-tracker-arch-view';   // 'sprint' | 'flat'
 // B-[tmp:historico-expand]: mantener _HISTORICO_KEY en sync para compatibilidad
 // con confirmCloseSprint que usa localStorage.setItem(_HISTORICO_KEY, '1')
 const _HISTORICO_KEY  = _ARCH_KEY;
+
+// R-202605-124 / T-202605-086: frontera de sprints con datos completos vs. legado
+// Cambiar este valor si el proyecto PP resetea el catálogo de sprints en el futuro.
+const LEGACY_BOUNDARY = 23;
 
 export function renderArchivoHistorico(listEl) {
   const historicos = ITEMS.filter(i => i.status === 'historico');
@@ -238,10 +242,9 @@ function _renderArchivoViewSprint(body) {
     .filter(s => s.status === 'closed')
     .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0)); // más reciente primero
 
-  // R-202605-124: frontera S-23 — sprints con datos completos vs. legado
-  const BOUNDARY = 23;
-  const recentSprints = closedSprints.filter(s => _sprintNum(s.id) >= BOUNDARY);
-  const legacySprints = closedSprints.filter(s => _sprintNum(s.id) > 0 && _sprintNum(s.id) < BOUNDARY);
+  // R-202605-124: frontera de sprints con datos completos vs. legado — usa LEGACY_BOUNDARY del módulo
+  const recentSprints = closedSprints.filter(s => _sprintNum(s.id) >= LEGACY_BOUNDARY);
+  const legacySprints = closedSprints.filter(s => _sprintNum(s.id) > 0 && _sprintNum(s.id) < LEGACY_BOUNDARY);
 
   // Ítems huérfanos (sin sprint registrado o sprint que ya no existe en catálogo)
   const registeredIds = new Set(closedSprints.map(s => s.id));
@@ -284,8 +287,8 @@ function _renderArchivoViewSprint(body) {
     html += `<div class="arch-sprint-entry arch-sprint-entry--legacy">
       <div class="arch-sprint-entry-header" data-action="arch-sprint-entry" data-body-id="${legId}" data-storage-key="${legKey}" tabindex="0">
         <span class="arch-se-arrow${legOpen ? ' arch-se-arrow--open' : ''}" aria-hidden="true">&#9658;</span>
-        <span class="arch-se-id arch-se-id--legacy">pre-S-23</span>
-        <span class="arch-se-name">Histórico pre-S-23 (sin datos de sprint)</span>
+        <span class="arch-se-id arch-se-id--legacy">pre-S-${LEGACY_BOUNDARY}</span>
+        <span class="arch-se-name">Histórico pre-S-${LEGACY_BOUNDARY} (sin datos de sprint)</span>
         <span class="arch-se-count">${preLegacyItems.length} ítem${preLegacyItems.length !== 1 ? 's' : ''}</span>
       </div>
       <div class="arch-sprint-items${legOpen ? '' : ' arch-sprint-items--collapsed'}" id="${legId}">
@@ -333,11 +336,10 @@ function _toggleArchSprintEntry(bodyId, storageKey) {
     if (!el.querySelector('.arch-items-list')) {
       let spItems;
       if (bodyId === 'arch-se-body-legacy') {
-        // Bloque legado: históricos sin sprint en catálogo o sprint < S-23
-        const BOUNDARY = 23;
+        // Bloque legado: históricos sin sprint en catálogo o sprint < LEGACY_BOUNDARY
         const closedSprints = getActiveSprints().filter(s => s.status === 'closed');
         const registeredIds = new Set(closedSprints.map(s => s.id));
-        const legacyIds     = new Set(closedSprints.filter(s => _sprintNum(s.id) > 0 && _sprintNum(s.id) < BOUNDARY).map(s => s.id));
+        const legacyIds     = new Set(closedSprints.filter(s => _sprintNum(s.id) > 0 && _sprintNum(s.id) < LEGACY_BOUNDARY).map(s => s.id));
         spItems = ITEMS.filter(i => i.status === 'historico' && (!i.sprint || !registeredIds.has(i.sprint) || legacyIds.has(i.sprint)));
       } else {
         const spId = storageKey.replace(/^arch-se-/, '');
