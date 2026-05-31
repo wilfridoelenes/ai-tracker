@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-30 23:00 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-31 00:00 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -210,8 +210,9 @@ const collapsedVersions = _cvLoad();
 
 // R-[tmp:toolbar-backlog-redesign]: collapse all — volátil, no persiste entre sesiones
 export function toggleCollapseAll() {
-  const bodies = document.querySelectorAll('.version-group-body');
-  const arrows = document.querySelectorAll('.version-collapse-arrow');
+  // T-202605-112: incluir section-group-body para icebox y pendientes
+  const bodies = document.querySelectorAll('.version-group-body, .section-group-body');
+  const arrows = document.querySelectorAll('.version-collapse-arrow, .section-group-arrow');
   const btn = document.getElementById('bl-collapse-all-btn');
   const label = btn ? btn.querySelector('.bl-collapse-btn-label') : null;
   const icon = btn ? btn.querySelector('.bl-collapse-btn-icon') : null;
