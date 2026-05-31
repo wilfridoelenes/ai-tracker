@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:7 · autor:Rune · 2026-05-30 UTC-6
 // locus-command-palette.js
 // Versión: 1.0.4 | Última actualización: 2026-05-23 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto · T-202605-067 nav-tab-sprint
 // Renombrado de ai-tracker-command-palette.js
@@ -806,9 +806,9 @@ export function initCommandPalette() {
   const input = _cpInput();
   if (input) {
     input.addEventListener('input', e => _cpSearch(e.target.value));
-    // Prevent Esc from bubbling to other handlers when palette is open
+    // Prevent Esc from bubbling to _escCascade — _cpGlobalKeydown delegates to _cpKeydown which closes
     input.addEventListener('keydown', e => {
-      if (e.key === 'Escape') e.stopPropagation();
+      if (e.key === 'Escape') { e.stopImmediatePropagation(); closeCommandPalette(); }
     });
   }
 
