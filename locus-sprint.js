@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:14 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:15 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -323,16 +323,6 @@ function _renderSprintManager() {
   }).join('');
 
   container.innerHTML = rows;
-
-  // Event delegation — botones Ver retro
-  container.addEventListener('click', function _smlDelegate(e) {
-    const btn = e.target.closest('.sml-retro-btn');
-    if (!btn) return;
-    const sprintId = btn.dataset.sprintId;
-    if (sprintId && typeof openSprintRetroView === 'function') {
-      openSprintRetroView(sprintId);
-    }
-  }, { once: false });
 }
 
 // ── END T-202605-123 ─────────────────────────────────────────────────────────
@@ -782,6 +772,20 @@ function _spmUpdateButtons(sprint) {
 // Migrado desde index.html — reemplaza onclick inline en #btn-close-sprint y .spt-tab
 
 document.addEventListener('DOMContentLoaded', function() {
+  // B-202605-050: listener único para botones Ver retro en #sprint-manager-list
+  // Registrado una sola vez aquí — no dentro de _renderSprintManager() que se llama en cada render
+  const smlContainer = document.getElementById('sprint-manager-list');
+  if (smlContainer) {
+    smlContainer.addEventListener('click', function(e) {
+      const btn = e.target.closest('.sml-retro-btn');
+      if (!btn) return;
+      const sprintId = btn.dataset.sprintId;
+      if (sprintId && typeof openSprintRetroView === 'function') {
+        openSprintRetroView(sprintId);
+      }
+    });
+  }
+
   // Botón cierre sprint
   const btnClose = document.getElementById('btn-close-sprint');
   if (btnClose) {
