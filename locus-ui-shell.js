@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:10 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:11 · autor:Rune · 2026-05-30 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -325,7 +325,6 @@ export function onSearch() {
     card.classList.toggle('is-hidden', !(nameMatch || notesMatch || hasSessMatch));
     const list = card.querySelector('.sess-list');
     if (!list) return;
-    const aiSess = getAISessions(ai.id);
     const matchSessIds = new Set(sessMatches.filter(({ ai: sai }) => sai && sai.id === ai.id).map(({ sess }) => sess.id));
     list.querySelectorAll('.sess-row').forEach(row => {
       const sessId = row.dataset.sessId;
