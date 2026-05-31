@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:14 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1413,11 +1413,15 @@ function copyItemToClipboard(e, code) {
   const _feedback = () => {
     const btn = document.getElementById(btnId);
     if (!btn) return;
-    btn.textContent = '✓';
-    btn.classList.add('copy-item-btn--done');
+    const iconClipboard = btn.querySelector('.copy-btn-icon--clipboard');
+    const iconCheck     = btn.querySelector('.copy-btn-icon--check');
+    btn.classList.add('is-copied');
+    if (iconClipboard) iconClipboard.classList.add('is-hidden');
+    if (iconCheck)     iconCheck.classList.remove('is-hidden');
     setTimeout(() => {
-      btn.textContent = '⎘';
-      btn.classList.remove('copy-item-btn--done');
+      btn.classList.remove('is-copied');
+      if (iconClipboard) iconClipboard.classList.remove('is-hidden');
+      if (iconCheck)     iconCheck.classList.add('is-hidden');
     }, 1500);
   };
 
