@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:13 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:14 · autor:Rune · 2026-05-31 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -12,7 +12,7 @@ import { renderBacklogList } from './locus-backlog-render.js';
 import { navigateToItem } from './locus-backlog-sprints.js';
 import { renderContratos } from './locus-contracts.js';
 import { _renderDocsOnboarding, _renderTplProjBanner, _updateSubTabButtons, renderContext, updateBacklogModificationBadge, updateHtmlMapModificationBadge } from './locus-docs.js';
-import { closeItemEditor, openItemEditor } from './locus-item-editor.js';
+import { closeItemEditor, openItemEditor } from './locus-backlog-editor.js';
 import { renderHtmlMap } from './locus-map-viewer.js';
 import { _focusFirstInteractive } from './locus-modals.js';
 import { openNotifConfig } from './locus-notifications.js';
