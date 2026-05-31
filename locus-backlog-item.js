@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-05-30 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1003,7 +1003,7 @@ export function buildBacklogItem(item) {
         <span class="bitem-title"${(!isDone && !isDiscarded) ? ' data-action="inline-edit-title" data-code="${esc(item.code)}" title="Doble click para editar título"' : ''}>${esc(item.title)}</span>${isDiscarded && (!item.title || item.title.trim() === item.code) ? '<span class="bitem-ghost-note" title="Ítem sin título — posiblemente generado por un CHECKPOINT malformado">⚠ ítem fantasma — generado por CHECKPOINT malformado</span>' : ''}
         ${subline}
       </div>
-      <button id="copy-item-btn-${esc(item.code)}" class="copy-item-btn" data-action="copy-item" data-code="${esc(item.code)}" title="Copiar ítem para sesión FS">⎘</button>
+      <button id="copy-item-btn-${esc(item.code)}" class="copy-item-btn" data-action="copy-item" data-code="${esc(item.code)}" aria-label="Copiar ítem" title="Copiar ítem para sesión FS"><svg class="copy-btn-icon copy-btn-icon--clipboard" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="5" y="2" width="9" height="12" rx="1.5"/><path d="M5 4H4a1.5 1.5 0 0 0-1.5 1.5v8A1.5 1.5 0 0 0 4 15h7a1.5 1.5 0 0 0 1.5-1.5V13"/></svg><svg class="copy-btn-icon copy-btn-icon--check is-hidden" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 8l4 4 6-6"/></svg></button>
       <span class="bitem-collapse-arrow" id="iarrow-${globalIdx}">▸</span>
       ${headerRight}
     </div>
@@ -1337,18 +1337,25 @@ function _promoteTtoRConfirm(originCode) {
 
 function copyItemCode(e, code, idx) {
   e.stopPropagation();
-  navigator.clipboard.writeText(code).then(() => {
-    const el = document.getElementById('code-badge-' + idx);
-    if (!el) return;
-    const prevText = el.textContent;
-    el.classList.add('code-badge--copied');
-    el.textContent = '✓ copiado';
+  const btn = e.currentTarget;
+  const iconClipboard = btn ? btn.querySelector('.copy-btn-icon--clipboard') : null;
+  const iconCheck     = btn ? btn.querySelector('.copy-btn-icon--check') : null;
+
+  const _applyFeedback = () => {
+    if (btn) btn.classList.add('is-copied');
+    if (iconClipboard) iconClipboard.classList.add('is-hidden');
+    if (iconCheck)     iconCheck.classList.remove('is-hidden');
     setTimeout(() => {
-      el.classList.remove('code-badge--copied');
-      el.textContent = prevText;
+      if (btn) btn.classList.remove('is-copied');
+      if (iconClipboard) iconClipboard.classList.remove('is-hidden');
+      if (iconCheck)     iconCheck.classList.add('is-hidden');
     }, 1500);
+  };
+
+  navigator.clipboard.writeText(code).then(() => {
+    _applyFeedback();
   }).catch(() => {
-    // fallback silencioso
+    // fallback execCommand
     const ta = document.createElement('textarea');
     ta.value = code;
     ta.className = 'clipboard-ghost';
@@ -1356,6 +1363,7 @@ function copyItemCode(e, code, idx) {
     ta.select();
     document.execCommand('copy');
     document.body.removeChild(ta);
+    _applyFeedback();
   });
 }
 

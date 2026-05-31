@@ -1,4 +1,4 @@
-/* [PP] v1.2.3 · sprint:PP-S-09 · mod:1 · autor:Rune · 2026-05-30 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-30 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -3619,3 +3619,59 @@ body {
   margin-bottom: 6px;
 }
 /* ── END R-202605-004 ── */
+
+/* ── T-202605-105: Botón copy ítem — patrón Claude.ai ── */
+.copy-item-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--text2, var(--color-neutral));
+  opacity: 0;
+  transition: opacity var(--transition-fast, 150ms ease),
+              background var(--transition-fast, 150ms ease),
+              color var(--transition-fast, 150ms ease);
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.copy-btn-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+  pointer-events: none;
+}
+
+/* Visible en hover del ítem padre */
+.item:hover .copy-item-btn,
+.bitem:hover .copy-item-btn {
+  opacity: 1;
+}
+
+/* Hover directo del botón */
+.copy-item-btn:hover {
+  background: color-mix(in srgb, var(--surface, #fff) 12%, transparent);
+  color: var(--text1, var(--color-text));
+}
+
+/* Foco visible — accesibilidad */
+.copy-item-btn:focus-visible {
+  outline: 2px solid var(--accent, var(--color-primary));
+  outline-offset: 2px;
+  opacity: 1;
+}
+
+/* Estado copied — checkmark activo */
+.copy-item-btn.is-copied {
+  color: var(--color-correct, #16a34a);
+  opacity: 1;
+}
+/* ── END T-202605-105 ── */
+
