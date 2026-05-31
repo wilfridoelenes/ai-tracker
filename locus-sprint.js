@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:16 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:18 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -482,10 +482,14 @@ function _spmRegistrar() {
 
   const doRegister = () => {
     // B-202605-XXX: usar createSprintFromGroup en lugar de createSprint
-    // createSprint genera un ID nuevo con _nextSprintId — ignora el ID que traen los ítems.
+    // createSprint genera un ID nuevo con _nextSprintId — ignora el ítems.
     // createSprintFromGroup registra el ID existente tal cual, sin regenerarlo.
+    // B-202605-054: extraer nombre descriptivo del ID si contiene ' · '
+    // Ej: 'PP-S-09 · Migración ESM' → sprintName = 'PP-S-09 · Migración ESM'
+    // Ej: 'PP-S-09' → sprintName = undefined → createSprintFromGroup usa id como fallback
+    const sprintName = sprintId.includes(' · ') ? sprintId : undefined;
     try {
-      createSprintFromGroup(sprintId);
+      createSprintFromGroup(sprintId, sprintName);
       renderSprintTab();
     } catch (err) {
       showToast('error', 'Error al registrar el sprint: ' + (err.message || err));

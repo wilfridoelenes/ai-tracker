@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-11 · mod:19 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:20 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -1424,15 +1424,16 @@ function _scmExecuteClose() {
   window.renderSprintTab?.();
 }
 
-export function createSprintFromGroup(id) {
+export function createSprintFromGroup(id, name) {
   // Registra en catálogo un sprint que ya tiene ítems pero no estaba en proj.sprints
+  // B-202605-054: name opcional — si se pasa, se usa como label; si no, fallback a id
   if (_getSprintById(id)) return;
   const proj = getActiveProject();
   if (!proj) return;
   if (!proj.sprints) proj.sprints = [];
   // B-202605-036: current:true si ningún sprint activo lo tiene — mismo patrón que createSprint
   const hasCurrentSprint = proj.sprints.some(s => s.status === 'active' && s.current === true);
-  proj.sprints.push({ id, label: id, status: 'active', current: !hasCurrentSprint ? true : undefined, createdAt: Date.now() });
+  proj.sprints.push({ id, label: name || id, status: 'active', current: !hasCurrentSprint ? true : undefined, createdAt: Date.now() });
   save();
   _markBacklogListDirty(); renderBacklogList();
   // B-202605-036: refrescar tab Sprint — sin esto el tab no muestra el sprint recién registrado
