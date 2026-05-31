@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:11 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:12 · autor:Rune · 2026-05-30 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -21,7 +21,7 @@ import { closePulsoPanel } from './locus-pulso.js';
 import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js';
 import { closeQuickCapture } from './locus-sesiones-capture.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
-import { _itemVizClose, showCheckpointPanel } from './locus-sesiones-viz.js';
+import { _itemVizClose, getLastCheckpointResult, showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _stopSidebarTicker, render } from './locus-sesiones.js';
 import { confirmSave, relDate } from './locus-session-hora.js';
 import { closePopup, openDetail } from './locus-session-popup.js';
@@ -1233,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // ckpt-reopen-btn → showCheckpointPanel(_lastCheckpointResult)
   const ckptReopenBtn = document.getElementById('ckpt-reopen-btn');
   if (ckptReopenBtn) ckptReopenBtn.addEventListener('click', function () {
-    showCheckpointPanel(window._lastCheckpointResult);
+    showCheckpointPanel(getLastCheckpointResult());
   });
 
   // user-chip → handleSyncPillClick()

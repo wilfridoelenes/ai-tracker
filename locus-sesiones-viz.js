@@ -1,5 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-29 UTC-6
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:4 · autor:Rune · 2026-05-30 UTC-6
 // locus-sesiones-viz.js
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
 //   (_showItemVizPanel), corrección de hora (openCorrectHora).
@@ -468,6 +467,8 @@ function _vizCopyCode(e, el) {
 
 let _lastCheckpointResult = null;
 let _ckptPanelTimer = null;
+
+export function getLastCheckpointResult() { return _lastCheckpointResult; }
 const _CKPT_PANEL_DURATION = 12000;
 
 export function showCheckpointPanel(data) {
