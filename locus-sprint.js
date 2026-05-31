@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:15 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:16 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -330,7 +330,14 @@ function _renderSprintManager() {
 // ── Función principal ───────────────────────────────────────────────────────
 
 export function renderSprintTab() {
-  // T-202605-117: Guard de tab activo — skip render si el tab Sprint no es el visible.
+  // B-202605-053: actualizar estado interno siempre — independiente del tab visible.
+  // El render visual se guarda cuando el tab Sprint no está activo,
+  // pero _sprintTabActiveSprint debe reflejar el estado real para que al
+  // volver al tab el render sea correcto.
+  const _sprintNow = _getActiveSprint();
+  _sprintTabActiveSprint = _sprintNow;
+
+  // T-202605-117: Guard de tab activo — skip render visual si el tab Sprint no es el visible.
   // AC-4: Command Palette abierto no cuenta como cambio de tab — evaluar tab subyacente.
   // AC-5: si currentTab no es detectable → fail-safe, ejecutar sin guard.
   const _cpOpen = (() => {
@@ -344,8 +351,7 @@ export function renderSprintTab() {
   const emptyEl   = _spEl('tab-sprint-empty');
   const sptNav    = _spEl('spt-nav'); // R-202605-043
 
-  const sprint = _getActiveSprint();
-  _sprintTabActiveSprint = sprint;
+  const sprint = _sprintNow;
 
   if (!sprint) {
     // Sin sprint activo — mostrar empty state, ocultar nav

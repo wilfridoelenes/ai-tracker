@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-31 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -390,12 +390,19 @@ export function _checkStorageQuota() {
   }
 }
 
-export function saveSession(id) {
+export function saveSession(id, _retryCount = 0) {
   // B-202605-018: si hay un paste en vuelo, parsePaste aún no corrió — diferir hasta que complete.
   // Race window: handlePaste dispara un setTimeout(150ms) antes de parsePaste; si confirmSave
   // se ejecuta dentro de ese window, ai._parsed.tgItems está vacío y el diff nunca se muestra.
+  // B-202605-052: límite de 10 reintentos (~500ms) — si _pasteInFlight nunca se limpia
+  // (ej: excepción en _doParse antes del delete), el loop se corta con feedback al usuario.
+  // El contador vive en el parámetro para garantizar reset automático entre invocaciones independientes.
   if (isParseInFlight(id)) {
-    setTimeout(() => saveSession(id), 50);
+    if (_retryCount >= 10) {
+      showToast('warning', 'Error al leer el paste — intenta guardar de nuevo');
+      return;
+    }
+    setTimeout(() => saveSession(id, _retryCount + 1), 50);
     return;
   }
   // B-202605-054: getAI(id) puede devolver null si el worker fue eliminado entre el inicio
