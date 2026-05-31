@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-11 · mod:9 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:10 · autor:Rune · 2026-05-30 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -328,9 +328,8 @@ export function onSearch() {
     const aiSess = getAISessions(ai.id);
     const matchSessIds = new Set(sessMatches.filter(({ ai: sai }) => sai && sai.id === ai.id).map(({ sess }) => sess.id));
     list.querySelectorAll('.sess-row').forEach(row => {
-      const titleEl = row.querySelector('.sess-row-title');
-      const rowTitle = titleEl ? titleEl.textContent : '';
-      const match = notesMatch || aiSess.some(s => matchSessIds.has(s.id) && s.title === rowTitle);
+      const sessId = row.dataset.sessId;
+      const match = notesMatch || (sessId && matchSessIds.has(sessId));
       row.classList.toggle('is-hidden', !match);
     });
   });
@@ -1116,11 +1115,10 @@ document.addEventListener('DOMContentLoaded', function () {
   if (themeBtn) themeBtn.addEventListener('click', function () { toggleTheme(); });
 
   // Botón Shortcuts en more-menu — delegation sobre document en capture
-  // Guard: botón dentro de #more-menu cuyo texto incluye 'Atajos'
   document.addEventListener('click', function (e) {
     const btn = e.target.closest('#more-menu button');
     if (!btn) return;
-    if (btn.textContent.trim().includes('Atajos')) {
+    if (btn.dataset.action === 'open-shortcuts') {
       e.stopPropagation();
       openShortcuts();
       if (typeof toggleMoreMenu === 'function') toggleMoreMenu();
