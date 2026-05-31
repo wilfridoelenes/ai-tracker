@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-11 · mod:8 · autor:Rune · 2026-05-30 23:30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-11 · mod:9 · autor:Rune · 2026-05-30 23:30 UTC-6
 // locus-sesiones-capture.js
 // Responsabilidad: Quick Capture modal (stepper de 2 pasos) + Sesión interrumpida (T-055).
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
@@ -240,7 +240,7 @@ function confirmQuickCapture() {
 
 // ── T-055: Sesión interrumpida ──
 // T-093: confirmación inline dentro del dropdown antes de interrumpir
-function confirmInterruptInline(id, triggerBtn) {
+export function confirmInterruptInline(id, triggerBtn) {
   const dropdown = document.getElementById('dotmenu-' + id);
   if (!dropdown) return;
   // Si ya hay un confirm-row, no duplicar
@@ -352,4 +352,3 @@ document.addEventListener('DOMContentLoaded', () => {
   if (qcNextBtn) qcNextBtn.addEventListener('click', qcHandleNext);
 });
 // ── END T-202605-031 locus-sesiones-capture ──
-window.confirmInterruptInline = confirmInterruptInline;

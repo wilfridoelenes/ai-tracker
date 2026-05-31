@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-11 · mod:17 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-11 · mod:18 · autor:Rune · 2026-05-30 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -23,7 +23,7 @@ import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatar
 
 import { downloadReport } from './locus-reports.js';
 
-import { openQuickCapture } from './locus-sesiones-capture.js';
+import { openQuickCapture, confirmInterruptInline } from './locus-sesiones-capture.js';
 
 import { STATUS_LABELS } from './locus-session-parse.js';
 
