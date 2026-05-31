@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:12 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:13 · autor:Rune · 2026-05-31 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogFocusMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
@@ -15,7 +15,7 @@ import { getActiveSprints } from './locus-storage.js';
 import { showToast } from './locus-toast.js';
 
 import { esc, switchTab } from './locus-ui-shell.js';
-import { _renderPlanningView, _renderSprintRoadmap, _attachSprintBarDelegation, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
+import { _renderPlanningView, _renderSprintRoadmap, _attachSprintBarDelegation, _attachPlanViewDelegation, _statusPills, toggleClosedSprintsBody } from './locus-sprint-planificacion.js';
 
 // [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // Responsabilidad: Renderizado del backlog — vista árbol, sprint health panel,
@@ -123,27 +123,8 @@ export function updateClearFilterBtn() {
   wrap.innerHTML = chips.join('');
 }
 
-// T-202604-213: pills de contadores de status para headers de grupo
-function _statusPills(items) {
-  const counts = { pendiente: 0, done: 0, descartado: 0 };
-  // P's (ideas) no son trabajo activo — excluir de pendiente, consistente con _isCountableItem
-  items.forEach(i => {
-    if (i.status === 'pendiente' && itemType(i.code) === 'P') return;
-    if (counts[i.status] !== undefined) counts[i.status]++;
-  });
-  const cfg = [
-    { key: 'pendiente', label: 'pendiente', color: 'var(--accent)',  bg: 'color-mix(in srgb, var(--accent) 15%, transparent)' },
-    { key: 'done',      label: 'done',      color: 'var(--green)',   bg: 'color-mix(in srgb, var(--green) 15%, transparent)' },
-    { key: 'descartado',label: 'desc.',     color: 'var(--c-done-text)', bg: 'var(--c-done-bg)' },
-  ];
-  return cfg
-    .filter(c => counts[c.key] > 0)
-    .map(c => `<span class="status-pill status-pill--${c.key}">${counts[c.key]} ${c.label}</span>`)
-    .join('');
-}
-
-// R-202605-103: toggleClosedSprintsBody reemplazada por toggleArchivoHistorico
-function toggleClosedSprintsBody() { toggleArchivoHistorico(); }
+// T-202604-213: _statusPills — migrada a locus-sprint-planificacion.js (B-202605-046)
+// R-202605-103: toggleClosedSprintsBody — migrada a locus-sprint-planificacion.js (B-202605-046)
 
 // T-202604-290 · T-202605-450: velocidad por sprint — retorna { avg, sprints: [{id, label, planned, real}] }
 // planned = suma effort asignado (excluye descartados)
