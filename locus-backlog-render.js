@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:13 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:14 · autor:Rune · 2026-05-31 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogFocusMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
@@ -15,7 +15,7 @@ import { getActiveSprints } from './locus-storage.js';
 import { showToast } from './locus-toast.js';
 
 import { esc, switchTab } from './locus-ui-shell.js';
-import { _renderPlanningView, _renderSprintRoadmap, _attachSprintBarDelegation, _attachPlanViewDelegation, _statusPills, toggleClosedSprintsBody } from './locus-sprint-planificacion.js';
+import { _renderPlanningView, _attachPlanViewDelegation, _statusPills, toggleClosedSprintsBody } from './locus-sprint-planificacion.js';
 
 // [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // Responsabilidad: Renderizado del backlog — vista árbol, sprint health panel,
@@ -325,17 +325,6 @@ export function renderBacklogList(onRendered) {
     const newHtml = _buildRoleChips();
     if (!newHtml) { if (existing) existing.remove(); return; }
     if (existing) { existing.outerHTML = newHtml; } else { filterBar.insertAdjacentHTML('afterend', newHtml); }
-  })();
-
-  // R-[tmp:toolbar-backlog-redesign]: sprint selector en #bl-sprint-bar (Capa 3)
-  (function _ensureSprintRoadmap() {
-    _renderSprintRoadmap();
-    // B-202604-161: si el Item Detail Panel está abierto, mantener oculto
-    const _panelEl = document.getElementById('item-detail-panel');
-    if (_panelEl && _panelEl.classList.contains('open')) {
-      const el = document.getElementById('bl-sprint-bar');
-      if (el) el.classList.add('is-hidden');
-    }
   })();
 
   // Filtrado por tipo + status + effort (T-071)
@@ -805,7 +794,6 @@ export function renderBacklogList(onRendered) {
 
   _attachBacklogDnD();
   _attachBacklogListDelegation();
-  _attachSprintBarDelegation();
   _attachPlanViewDelegation();
   if (typeof _updateDocLogCount === 'function') _updateDocLogCount('backlog');
 
