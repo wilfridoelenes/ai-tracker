@@ -1,10 +1,10 @@
-// [PP] v1.0.5 · sprint:PP-S-11 · mod:11 · autor:Rune · 2026-05-30 14:45 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:12 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
 import { _isBlocked } from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
-import { _renderPlanningView } from './locus-backlog-render.js';
+import { _renderPlanningView } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, editSprintInline, openSprintRetroView, setSprintStatus } from './locus-backlog-sprints.js';
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto } from './locus-sprint-plan.js';
