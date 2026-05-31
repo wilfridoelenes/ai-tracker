@@ -293,6 +293,15 @@ export function createSprint(raw, goal, versionTarget, releaseType, projId) {
     return;
   }
   if (_getSprintById(id)) { showToast('warning', 'Ya existe ' + id); return id; }
+  // B-202605-XXX: guard — si el ID generado ya existe implícitamente en ítems del backlog
+  // bloquear creación para evitar colisión. El founder debe usar "Registrar" en lugar de "Nuevo sprint".
+  if (typeof ITEMS !== 'undefined') {
+    const _implicitSprintIds = new Set(ITEMS.map(i => i.sprint).filter(Boolean));
+    if (_implicitSprintIds.has(id)) {
+      showToast('warning', id + ' ya tiene ítems en el backlog. Usa "Registrar y activar ' + id + '" en lugar de crear uno nuevo.');
+      return;
+    }
+  }
   const goalTrimmed = (goal || '').trim().slice(0, 120);
   // R-202605-134: version_target y release_type — usar sugerencia si no se pasan explícitamente
   const rt  = (releaseType   || '').trim() || null;
@@ -1416,7 +1425,7 @@ function _scmExecuteClose() {
   if (typeof renderSprintTab === 'function') renderSprintTab();
 }
 
-function createSprintFromGroup(id) {
+export function createSprintFromGroup(id) {
   // Registra en catálogo un sprint que ya tiene ítems pero no estaba en proj.sprints
   if (_getSprintById(id)) return;
   const proj = getActiveProject();

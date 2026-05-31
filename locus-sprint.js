@@ -5,7 +5,7 @@
 import { _isBlocked } from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView } from './locus-backlog-render.js';
-import { _getActiveSprint, confirmCloseSprint, createSprint, editSprintInline, openSprintRetroView, setSprintStatus } from './locus-backlog-sprints.js';
+import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, editSprintInline, openSprintRetroView, setSprintStatus } from './locus-backlog-sprints.js';
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto } from './locus-sprint-plan.js';
 import { getAI, getActiveSprints, getAllSessions, save } from './locus-storage.js';
@@ -398,14 +398,12 @@ function _spmRegistrar() {
   const activeSprint = _getActiveSprint();
 
   const doRegister = () => {
-    // AC-2c: mostrar ID en botón ya se hizo en _spmUpdateButtons — aquí ejecutar
-    // AC-2b: createSprint puede fallar — capturar con try/catch y mostrar toast de error
+    // B-202605-XXX: usar createSprintFromGroup en lugar de createSprint
+    // createSprint genera un ID nuevo con _nextSprintId — ignora el ID que traen los ítems.
+    // createSprintFromGroup registra el ID existente tal cual, sin regenerarlo.
     try {
-      // Extraer nombre descriptivo del ID (si tiene formato PP-S01 · Nombre)
-      const descriptive = sprintId.replace(/^[A-Za-z]+-S\d+\s*·?\s*/i, '').trim() || sprintId;
-      const result = createSprint(descriptive, '', '', '', null);
-      if (!result) throw new Error('createSprint no devolvió un ID');
-      if (typeof renderSprintTab === 'function') renderSprintTab();
+      createSprintFromGroup(sprintId);
+      renderSprintTab();
     } catch (err) {
       showToast('error', 'Error al registrar el sprint: ' + (err.message || err));
     }
@@ -639,12 +637,17 @@ function _spmUpdateButtons(sprint) {
   const hasClosed       = allSprints.some(s => s.status !== 'active');
 
   // Empty state buttons — AC-6
-  if (emptyRegistrar) emptyRegistrar.classList.toggle('is-hidden', !unregisteredId);
-  if (emptyActivar)   emptyActivar.classList.toggle('is-hidden', !hasClosed);
+  // B-202605-XXX: cuando hay sprint no registrado, "Registrar" tiene prioridad sobre "Nuevo sprint".
+  // Mostrar solo uno a la vez para evitar que el founder cree un sprint con ID colisionado.
+  if (emptyRegistrar) {
+    emptyRegistrar.classList.toggle('is-hidden', !unregisteredId);
+    if (unregisteredId) emptyRegistrar.textContent = 'Registrar y activar ' + unregisteredId;
+  }
+  if (emptyActivar) emptyActivar.classList.toggle('is-hidden', !hasClosed);
 
-  // T-202605-085: CTA crear sprint — visible en empty state cuando no hay sprint activo
+  // T-202605-085: CTA crear sprint — oculto si hay sprint activo O si hay sprint no registrado
   const emptyNuevo = document.getElementById('spm-new-sprint-btn');
-  if (emptyNuevo) emptyNuevo.classList.toggle('is-hidden', !!sprint);
+  if (emptyNuevo) emptyNuevo.classList.toggle('is-hidden', !!sprint || !!unregisteredId);
 
   if (!section) return;
 
