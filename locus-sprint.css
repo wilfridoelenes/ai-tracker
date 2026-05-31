@@ -1,4 +1,4 @@
-/* [PP] v1.0.5 · sprint:PP-S-11 · mod:2 · autor:Rune · 2026-05-30 14:15 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-14 · mod:3 · autor:Rune · 2026-05-31 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -889,3 +889,160 @@
 }
 
 /* ══ END T-202605-029 ══ */
+
+/* ══ T-202605-123: Gestor de sprints — lista completa con progreso ══ */
+
+.sml-list {
+  max-width: var(--bp-ultrawide);
+  margin-inline: auto;
+  width: 100%;
+  padding: 12px 24px 16px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sml-empty {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  font-style: italic;
+  padding: 4px 0;
+}
+
+/* Fila base */
+.sml-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+/* Sprint activo — tratamiento diferenciado: fondo y peso prominentes */
+.sml-row--active {
+  background: var(--surface2, var(--surface));
+  border-color: var(--accent, var(--border));
+}
+
+.sml-row--active .sml-row-name {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Fila top: nombre · badge · botón retro */
+.sml-row-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sml-row-name {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Badge estado */
+.sml-badge {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sml-badge--active {
+  background: var(--c-pulido-bg);
+  color: var(--c-pulido-text);
+  border: 1px solid var(--c-pulido-border);
+}
+
+.sml-badge--closed {
+  background: var(--surface2, var(--surface));
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+
+/* Botón Ver retro — estilo secundario, no CTA primario */
+.sml-retro-btn {
+  margin-inline-start: auto;
+  padding: 3px 10px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text2);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: var(--trans-color);
+}
+
+.sml-retro-btn:hover {
+  color: var(--text);
+  border-color: var(--border2, var(--border));
+  background: var(--surface2, var(--surface));
+}
+
+.sml-retro-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Fila bottom: barra de progreso + conteo */
+.sml-row-bottom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.sml-bar-track {
+  flex: 1;
+  height: 6px;
+  background: var(--border2, var(--border));
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+.sml-bar-fill {
+  height: 100%;
+  width: var(--sml-bar-width, 0%);
+  background: var(--c-low-border);
+  border-radius: var(--radius-pill);
+  transition: width var(--trans-medium);
+}
+
+/* Sprint cerrado con 100% done — barra verde */
+.sml-bar-fill--done {
+  background: var(--c-low-text);
+}
+
+.sml-row-count {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sml-bar-fill {
+    transition: none;
+  }
+
+  .sml-retro-btn {
+    transition: none;
+  }
+}
+
+/* ══ END T-202605-123 ══ */

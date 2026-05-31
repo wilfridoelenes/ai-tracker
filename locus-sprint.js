@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:13 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:14 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -255,6 +255,88 @@ function _renderSprintScopeAdded(sprint) {
   section.classList.remove('is-hidden');
 }
 
+// ── T-202605-123: Gestor de sprints — lista completa con progreso y acceso a retro ──
+
+function _renderSprintManager() {
+  const container = document.getElementById('sprint-manager-list');
+  if (!container) return;
+
+  const allSprints = getActiveSprints();
+  if (!allSprints || allSprints.length === 0) {
+    container.innerHTML = '<div class="sml-empty">No hay sprints registrados</div>';
+    return;
+  }
+
+  // Separar activo de cerrados — cerrados ordenados por fecha descendente
+  const active  = allSprints.filter(s => s.status === 'active');
+  const closed  = allSprints
+    .filter(s => s.status !== 'active')
+    .sort((a, b) => (b.closedAt || b.createdAt || 0) - (a.closedAt || a.createdAt || 0));
+
+  const ordered = [...active, ...closed];
+
+  const rows = ordered.map(sprint => {
+    const isActive  = sprint.status === 'active';
+    const isClosed  = !isActive;
+    const hasRetro  = !!sprint.retroDoc;
+
+    // Calcular progreso desde ITEMS
+    let total = 0;
+    let done  = 0;
+    if (typeof ITEMS !== 'undefined') {
+      const spItems = ITEMS.filter(i => {
+        const t = i.type || (i.code ? i.code.charAt(0) : '');
+        return i.sprint && i.sprint.startsWith(sprint.id) &&
+          (t === 'R' || t === 'B') &&
+          i.status !== 'descartado';
+      });
+      total = spItems.length;
+      done  = spItems.filter(i => i.status === 'done').length;
+    }
+
+    const pct       = total > 0 ? Math.round((done / total) * 100) : 0;
+    const isFullDone = isClosed && pct === 100;
+
+    const label     = sprint.label || sprint.name || sprint.id || '';
+    const statusCls = isActive ? 'sml-badge--active' : 'sml-badge--closed';
+    const statusTxt = isActive ? 'Activo' : 'Cerrado';
+    const rowCls    = isActive ? 'sml-row sml-row--active' : 'sml-row';
+    const barCls    = isFullDone ? 'sml-bar-fill sml-bar-fill--done' : 'sml-bar-fill';
+
+    const retroBtn  = (isClosed && hasRetro)
+      ? `<button class="sml-retro-btn" data-sprint-id="${sprint.id}" type="button">Ver retro</button>`
+      : '';
+
+    return `<div class="${rowCls}">
+  <div class="sml-row-top">
+    <span class="sml-row-name">${label}</span>
+    <span class="sml-badge ${statusCls}">${statusTxt}</span>
+    ${retroBtn}
+  </div>
+  <div class="sml-row-bottom">
+    <div class="sml-bar-track" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${label}: ${pct}% completado">
+      <div class="${barCls}" style="--sml-bar-width:${pct}%"></div>
+    </div>
+    <span class="sml-row-count">${done} done / ${total} total</span>
+  </div>
+</div>`;
+  }).join('');
+
+  container.innerHTML = rows;
+
+  // Event delegation — botones Ver retro
+  container.addEventListener('click', function _smlDelegate(e) {
+    const btn = e.target.closest('.sml-retro-btn');
+    if (!btn) return;
+    const sprintId = btn.dataset.sprintId;
+    if (sprintId && typeof openSprintRetroView === 'function') {
+      openSprintRetroView(sprintId);
+    }
+  }, { once: false });
+}
+
+// ── END T-202605-123 ─────────────────────────────────────────────────────────
+
 // ── Función principal ───────────────────────────────────────────────────────
 
 export function renderSprintTab() {
@@ -282,6 +364,8 @@ export function renderSprintTab() {
     if (emptyEl)   emptyEl.classList.remove('is-hidden');
     if (sptNav)    sptNav.classList.add('is-hidden');
     _spmUpdateButtons(null); // AC-6: actualizar botones del empty state
+    // T-202605-123: gestor siempre renderiza aunque no haya sprint activo (empty state propio)
+    _renderSprintManager();
     const workers    = _spEl('sprint-workers');
     const scopeAdded = _spEl('sprint-scope-added');
     if (workers)   workers.classList.add('is-hidden');
@@ -323,6 +407,9 @@ export function renderSprintTab() {
     }
     if (daysEl) daysEl.textContent = _sprintDaysLabel(sprint);
   }
+
+  // Gestor de sprints — T-202605-123
+  _renderSprintManager();
 
   // Ítems
   if (itemsList) itemsList.classList.remove('is-hidden');
@@ -810,6 +897,7 @@ window.renderSprintTab          = renderSprintTab;
 window._renderSprintItems       = _renderSprintItems;
 window._renderSprintWorkers     = _renderSprintWorkers;
 window._renderSprintScopeAdded  = _renderSprintScopeAdded;
+window._renderSprintManager     = _renderSprintManager;     // T-202605-123
 window._sptSwitch               = _sptSwitch;               // R-202605-052
 window._renderSprintPlanificar  = _renderSprintPlanificar;  // R-202605-052
 // R-202605-006
