@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:12 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:13 · autor:Rune · 2026-05-31 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -394,7 +394,7 @@ export function parsePaste(id) {
           discardReason: _it.discard_reason || _it.reason || '',
           discardRef:    _it.ref    || '',
           blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : [],
-          parentId:      _it.parentId || null,
+          parentId:      _it.parentId || _it.parent || null,  // B-202605-055: schema usa "parent", campo interno es "parentId"
           origin:        _it.origin   || null   // R-202605-004: trazabilidad de ítems derivados
         });
         // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
@@ -480,7 +480,7 @@ export function parsePaste(id) {
             discardReason: _it.discard_reason || _it.reason || '',
             discardRef:    _it.ref    || '',
             blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : [],
-            parentId:      _it.parentId || null,
+            parentId:      _it.parentId || _it.parent || null,  // B-202605-055: schema usa "parent", campo interno es "parentId"
             origin:        _it.origin   || null   // R-202605-004: trazabilidad de ítems derivados
           });
           // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
