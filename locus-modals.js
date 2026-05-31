@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-31 UTC-6
 // locus-modals.js
 // Módulo: sistema de modal genérico y focus management
 // Extraído de: ai-tracker-ai-notes.js (_gconfirmCb, _gconfirmOpen, _gconfirmClose, _gconfirmOk)
@@ -81,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const addModalCancel = document.getElementById('add-modal-cancel');
   if (addModalCancel) addModalCancel.addEventListener('click', () => closeModal('add-modal'));
 
-  const tagModalClose = document.querySelector('#tag-modal .modal-actions button[type="button"]');
+  const tagModalClose = document.getElementById('tag-modal-close');
   if (tagModalClose) tagModalClose.addEventListener('click', () => closeModal('tag-modal'));
 
   const gconfirmOverlay = document.getElementById('gconfirm-overlay');
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const gconfirmOkBtn = document.getElementById('gconfirm-ok-btn');
   if (gconfirmOkBtn) gconfirmOkBtn.addEventListener('click', _gconfirmOk);
 
-  const gconfirmCancelBtn = document.querySelector('#gconfirm-overlay .gconfirm-actions button[type="button"]');
+  const gconfirmCancelBtn = document.getElementById('gconfirm-cancel-btn');
   if (gconfirmCancelBtn) gconfirmCancelBtn.addEventListener('click', _gconfirmClose);
 
 });
