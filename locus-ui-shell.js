@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:12 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:13 · autor:Rune · 2026-05-31 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -523,7 +523,6 @@ function _scbDismiss() {
   const banner = document.getElementById('setup-checklist-banner');
   if (banner) {
     banner.classList.remove('scb-expanded');
-    banner.setAttribute('aria-expanded', 'false');
     banner.classList.add('is-hidden');
   }
 }
@@ -593,7 +592,6 @@ function _scbExpand(banner) {
   const b = banner || document.getElementById('setup-checklist-banner');
   if (!b) return;
   b.classList.add('scb-expanded');
-  b.setAttribute('aria-expanded', 'true');
   // Focus first action button
   const firstAction = b.querySelector('.scb-active .scb-step-action');
   if (firstAction) setTimeout(() => firstAction.focus(), 210); // after transition
@@ -603,7 +601,6 @@ function _scbCollapse(banner) {
   const b = banner || document.getElementById('setup-checklist-banner');
   if (!b) return;
   b.classList.remove('scb-expanded');
-  b.setAttribute('aria-expanded', 'false');
 }
 
 // Called when user completes first step — collapse expanded state
