@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-11 · mod:10 · autor:Rune · 2026-05-31 UTC-6
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm.
 //   Define AVATAR_LOGOS (SVGs de avatares) — movido desde locus-checkpoint-stats.js.
@@ -150,8 +150,10 @@ export function deleteAI(id) {
 // ancestros con overflow:auto (.tracker-col--card) que rompen position:fixed.
 // Al cerrar se devuelve al wrap original para mantener la estructura del DOM.
 
-export function toggleCardMenu(id, e) {
-  e.stopPropagation();
+// btn: elemento botón pasado explícitamente desde el delegador de locus-sesiones.js.
+// e.currentTarget en delegadores apunta al document — no al botón — por eso se separa.
+export function toggleCardMenu(id, btn, e) {
+  if (e) e.stopPropagation();
   const dd = document.getElementById('dotmenu-' + id);
   if (!dd) return;
   const isOpen = dd.classList.contains('open');
@@ -161,7 +163,6 @@ export function toggleCardMenu(id, e) {
     _closeCardMenuPortal(elId);
   });
   if (!isOpen) {
-    const btn = e.currentTarget;
     const rect = btn.getBoundingClientRect();
     // B-202605-042: limpiar coordenadas antes de mover para evitar flash de posición anterior.
     // Las coordenadas se aplican DESPUÉS del appendChild — el nodo llega a body sin posición

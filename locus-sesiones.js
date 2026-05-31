@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-11 · mod:18 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-11 · mod:10 · autor:Rune · 2026-05-31 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1521,7 +1521,7 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       // Card dot menu toggle
       case 'toggle-card-menu':
-        if (typeof toggleCardMenu === 'function') toggleCardMenu(aiId, e);
+        if (typeof toggleCardMenu === 'function') toggleCardMenu(aiId, el, e);
         break;
       // Card dot items — close menu then execute
       case 'dot-rename':
