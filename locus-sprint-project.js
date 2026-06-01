@@ -1,8 +1,9 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:17 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:18 · autor:Rune · 2026-06-01 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
 // Renombrado de ai-tracker-sprint-project.js
+import { _getActiveSprint } from './locus-backlog-sprints.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _syncCleanProjectBtn } from './locus-reports.js';
 import { _blogLog, _effectiveVersion, _offlineQueuePush, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getProjectSessions, getState, getSupabaseUserId, save } from './locus-storage.js';
@@ -463,26 +464,24 @@ function _showExportConfirmModal(label, filename, onConfirm) {
 // AC-2: campos sprint (nombre canónico), status, version_target, release_type
 // AC-3: si no hay sprint abierto → sprint: ninguno, demás campos n/a
 function _buildSprintActivoMd() {
-  const state = getState();
-  const sprints = (state && Array.isArray(state.sprints)) ? state.sprints : [];
-  const activeSprint = sprints.find(s => s.status === 'active');
-  const lines = ['## Sprint activo', ''];
-  if (activeSprint) {
-    lines.push(`| Campo | Valor |`);
-    lines.push(`|---|---|`);
-    lines.push(`| sprint | ${activeSprint.name || activeSprint.id} |`);
-    lines.push(`| status | ${activeSprint.status} |`);
-    lines.push(`| version_target | ${activeSprint.version_target || 'n/a'} |`);
-    lines.push(`| release_type | ${activeSprint.release_type || 'n/a'} |`);
-  } else {
-    lines.push(`| Campo | Valor |`);
-    lines.push(`|---|---|`);
-    lines.push(`| sprint | ninguno |`);
-    lines.push(`| status | n/a |`);
-    lines.push(`| version_target | n/a |`);
-    lines.push(`| release_type | n/a |`);
-  }
-  lines.push('', '---', '');
+  // T-202605-151: usar _getActiveSprint() para respetar current:true
+  // en lugar de buscar el primer sprint con status === 'active'
+  const currentSprint = _getActiveSprint();
+  if (!currentSprint) return '';
+  const lines = [
+    '## Sprint activo',
+    '',
+    '| Campo | Valor |',
+    '|---|---|',
+    `| sprint | ${currentSprint.name || currentSprint.id} |`,
+    `| status | ${currentSprint.status} |`,
+    `| version_target | ${currentSprint.version_target || 'n/a'} |`,
+    `| release_type | ${currentSprint.release_type || 'n/a'} |`,
+    `| scope | ${currentSprint.scope || 'n/a'} |`,
+    '',
+    '---',
+    '',
+  ];
   return lines.join('\n');
 }
 
