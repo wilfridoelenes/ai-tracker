@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:23 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:24 · autor:Rune · 2026-06-01 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1605,12 +1605,20 @@ function _assignPendingIds(tgItems) {
   // antes de resolver referencias. Esto cubre el caso donde un patch con promovida_a:[pendiente-ID]
   // aparece antes del ítem nuevo en el array — el orden en el CHECKPOINT no debe importar.
 
-  // Sub-paso 1a: asignar IDs reales a todos los [pendiente-ID] y construir slugMap completo
-  // ANTES de resolver cualquier referencia cruzada.
+  // Sub-paso 1a: asignar IDs reales a todos los [pendiente-ID] y [tmp:slug] con type válido,
+  // y construir slugMap completo ANTES de resolver cualquier referencia cruzada.
   const paso1 = tgItems.map(item => {
-    // [tmp:slug]: registrar en slugMap para resolución futura; pasan sin modificar (flujo _findTmpMatch)
+    // T-202606-005: [tmp:slug] con type válido — asignar código real y registrar en slugMap
+    // para que las referencias cruzadas (parent, depends_on, triggered_by, origen_p, promovida_a)
+    // dentro del mismo bloque resuelvan correctamente.
+    // [tmp:slug] sin type válido: conservar literal — siguen flujo _findTmpMatch existente.
     if (item.code && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
-      return item;
+      if (!item.type || !validTypes.has(item.type)) return item; // sin type — conservar literal
+      const newCode = _getNextItemCode(item.type, reservedCodes);
+      reservedCodes.add(newCode);
+      slugMap.set(item.code, newCode); // tmp:slug → código real asignado
+      slugMap.set(newCode, newCode);   // identidad del código asignado
+      return { ...item, code: newCode, _wasAssigned: true };
     }
     if (item.code !== '[pendiente-ID]') return item; // AC-4: código real — sin modificación
     if (!item.type || !validTypes.has(item.type)) return item; // AC-3: type inválido — no asignar
