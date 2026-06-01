@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:9 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:10 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -224,7 +224,13 @@ export function toggleCollapseAll() {
     if (id) anyExpanded ? collapsedVersions.add(id) : collapsedVersions.delete(id);
   });
   _cvSave();
-  arrows.forEach(a => { a.textContent = anyExpanded ? '▸' : '▾'; });
+  arrows.forEach(a => {
+    if (a.classList.contains('section-group-arrow')) {
+      a.classList.toggle('collapsed', anyExpanded);
+    } else {
+      a.textContent = anyExpanded ? '▸' : '▾';
+    }
+  });
   if (btn) btn.classList.toggle('is-collapsed', anyExpanded);
   if (label) label.textContent = anyExpanded ? 'Expandir' : 'Colapsar';
   if (icon) icon.textContent = anyExpanded ? '⊞' : '⊟';
@@ -1524,7 +1530,7 @@ export function toggleSectionGroup(key) {
   const arrow = document.getElementById('sgarrow-' + key);
   if (!body) return;
   const collapsed = body.classList.toggle('collapsed');
-  if (arrow) arrow.textContent = collapsed ? '▸' : '▾';
+  if (arrow) arrow.classList.toggle('collapsed', collapsed);
   try { localStorage.setItem('backlog-' + key + '-open', collapsed ? '0' : '1'); } catch {}
 }
 

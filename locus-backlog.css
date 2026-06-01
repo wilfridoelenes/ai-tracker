@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-14 · mod:5 · autor:Rune · 2026-05-31 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-14 · mod:6 · autor:Rune · 2026-05-31 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -5175,6 +5175,11 @@ er {
   flex-shrink: 0;
   transition: transform 0.15s var(--ease-out);
   width: 12px;
+  display: inline-block;
+}
+
+.bl-icebox-arrow.collapsed {
+  transform: rotate(-90deg);
 }
 
 .bl-icebox-count {
