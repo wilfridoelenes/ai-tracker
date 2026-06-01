@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:19 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:20 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -857,6 +857,12 @@ export function setSprintCurrent(sprintId) {
   // Proyecto activo — todos los sprints comparten el mismo projId
   const targetSprint = allSprints.find(s => s.id === sprintId);
   if (!targetSprint) return;
+
+  // B-202605-056: guard — solo sprints activos pueden marcarse como current
+  if (targetSprint.status !== 'active') {
+    console.warn(`[setSprintCurrent] sprint ${sprintId} no es active (status: ${targetSprint.status}) — operación ignorada`);
+    return;
+  }
 
   const projId      = targetSprint.projId || targetSprint.projectId || null;
   const isAlready   = !!targetSprint.current;
