@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:20 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:21 · autor:Rune · 2026-06-01 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1619,7 +1619,11 @@ function _assignPendingIds(tgItems) {
 
   // T-202605-140 T2 · Paso 2: resolver referencias cruzadas usando slugMap
   // Campos de referencia: dependsOn, parentId, triggeredBy, origenP, promovida_a
-  // Referencia presente en slugMap → reemplazar. No presente y no en window.ITEMS → null/[] + _blogLog.
+  // Referencia presente en slugMap → reemplazar con código real.
+  // Referencia placeholder ([tmp:slug] o [pendiente-ID]) no resuelta → conservar literal
+  //   (no null) — puede resolverse en una pasada posterior o via _findTmpMatch.
+  // Referencia con formato de código real (no placeholder) no existente en backlog →
+  //   null/[] + _blogLog('ref-no-resuelta') — el código debería existir y no existe.
   const _refFields = ['parentId', 'triggeredBy', 'origenP', 'promovida_a'];
   const _listFields = ['dependsOn'];
 
@@ -1632,19 +1636,20 @@ function _assignPendingIds(tgItems) {
       const val = item[field];
       if (!val) return;
       if (_isPlaceholderCode(val)) {
-        const resolved = slugMap.get(val) || null;
+        // Placeholder: intentar resolver via slugMap
+        const resolved = slugMap.get(val);
         if (resolved) {
           patch[field] = resolved;
           changed = true;
-        } else {
-          // No existe en slugMap ni en window.ITEMS → null + log
-          const existsInBacklog = window.ITEMS && window.ITEMS.find(i => i.code === val);
-          if (!existsInBacklog) {
-            _blogLog('ref-no-resuelta', item.code || '[sin-código]', field + ': ' + val + ' no se encontró en slugMap ni en backlog', 'backlog');
-            patch[field] = null;
-            changed = true;
-          }
-          // Si existe en backlog como código real, conservar (no es placeholder)
+        }
+        // Sin resolución → conservar literal (no null) para pasadas posteriores
+      } else {
+        // Código con formato real: si no existe en backlog → null + log
+        const existsInBacklog = window.ITEMS && window.ITEMS.find(i => i.code === val);
+        if (!existsInBacklog) {
+          _blogLog('ref-no-resuelta', item.code || '[sin-código]', field + ': ' + val + ' no existe en el backlog', 'backlog');
+          patch[field] = null;
+          changed = true;
         }
       }
     });
@@ -1655,17 +1660,23 @@ function _assignPendingIds(tgItems) {
       if (!Array.isArray(arr) || !arr.length) return;
       let listChanged = false;
       const resolved = arr.map(val => {
-        if (!val || !_isPlaceholderCode(val)) return val; // código real — conservar
-        const mapped = slugMap.get(val) || null;
-        if (mapped) { listChanged = true; return mapped; }
-        // No existe en slugMap ni en backlog → null + log
-        const existsInBacklog = window.ITEMS && window.ITEMS.find(i => i.code === val);
-        if (!existsInBacklog) {
-          _blogLog('ref-no-resuelta', item.code || '[sin-código]', field + '[]: ' + val + ' no se encontró en slugMap ni en backlog', 'backlog');
-          listChanged = true;
-          return null;
+        if (!val) return val;
+        if (_isPlaceholderCode(val)) {
+          // Placeholder: intentar resolver via slugMap
+          const mapped = slugMap.get(val);
+          if (mapped) { listChanged = true; return mapped; }
+          // Sin resolución → conservar literal
+          return val;
+        } else {
+          // Código con formato real: si no existe en backlog → null + log
+          const existsInBacklog = window.ITEMS && window.ITEMS.find(i => i.code === val);
+          if (!existsInBacklog) {
+            _blogLog('ref-no-resuelta', item.code || '[sin-código]', field + '[]: ' + val + ' no existe en el backlog', 'backlog');
+            listChanged = true;
+            return null;
+          }
+          return val;
         }
-        return val;
       }).filter(v => v !== null);
       if (listChanged) { patch[field] = resolved; changed = true; }
     });
