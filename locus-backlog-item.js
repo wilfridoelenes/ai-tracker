@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:22 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:23 · autor:Rune · 2026-06-01 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1601,21 +1601,40 @@ function _assignPendingIds(tgItems) {
     }
   });
 
-  // Asignar IDs a [pendiente-ID] y registrar [tmp:slug] en slugMap
+  // T-202605-137: Paso 1 separado en dos sub-pasos para garantizar que slugMap esté completo
+  // antes de resolver referencias. Esto cubre el caso donde un patch con promovida_a:[pendiente-ID]
+  // aparece antes del ítem nuevo en el array — el orden en el CHECKPOINT no debe importar.
+
+  // Sub-paso 1a: asignar IDs reales a todos los [pendiente-ID] y construir slugMap completo
+  // ANTES de resolver cualquier referencia cruzada.
   const paso1 = tgItems.map(item => {
     // [tmp:slug]: registrar en slugMap para resolución futura; pasan sin modificar (flujo _findTmpMatch)
     if (item.code && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
-      // El [tmp:slug] en sí queda sin asignar — slugMap lo registra si ya tiene código previo asignado
-      // (solo aplica en flujos donde el slug ya fue resuelto externamente — aquí es identidad temporal)
       return item;
     }
     if (item.code !== '[pendiente-ID]') return item; // AC-4: código real — sin modificación
     if (!item.type || !validTypes.has(item.type)) return item; // AC-3: type inválido — no asignar
     const newCode = _getNextItemCode(item.type, reservedCodes);
     reservedCodes.add(newCode);
-    slugMap.set('[pendiente-ID]', newCode); // identidad de la última asignación — útil para bloques de un solo ítem
+    // T-202605-137: registrar con clave única por item (usando índice implícito en el código asignado)
+    // para que múltiples [pendiente-ID] no se sobreescriban. El slugMap usa el código asignado
+    // como clave de identidad; la clave '[pendiente-ID]' es solo el último asignado (compat legacy).
+    slugMap.set('[pendiente-ID]', newCode); // identidad de la última asignación — compat legacy bloques de un ítem
+    slugMap.set(newCode, newCode);          // identidad del código asignado — para resolución directa
     return { ...item, code: newCode, _wasAssigned: true };
   });
+
+  // Sub-paso 1b: construir índice invertido de códigos asignados para resolver referencias
+  // cross-item. Para cada item que fue asignado, su código real ya está en slugMap.
+  // Si hay exactamente un [pendiente-ID] en el batch original, slugMap['[pendiente-ID]'] lo resuelve.
+  // Si hay múltiples, la resolución es ambigua — conservar literal (comportamiento previo).
+  const assignedCount = paso1.filter(i => i._wasAssigned).length;
+  // Si hay más de un [pendiente-ID] asignado, la clave '[pendiente-ID]' apunta solo al último.
+  // En ese caso, references que usen [pendiente-ID] como valor quedan sin resolver (conservar literal).
+  if (assignedCount > 1) {
+    // Eliminar la clave genérica para forzar conservar-literal en Paso 2
+    slugMap.delete('[pendiente-ID]');
+  }
 
   // T-202605-140 T2 · Paso 2: resolver referencias cruzadas usando slugMap
   // Campos de referencia: dependsOn, parentId, triggeredBy, origenP, promovida_a
@@ -1641,6 +1660,12 @@ function _assignPendingIds(tgItems) {
         if (resolved) {
           patch[field] = resolved;
           changed = true;
+        } else if (field === 'promovida_a') {
+          // T-202605-137: AC error — promovida_a con pendiente-ID sin ítem nuevo correspondiente
+          // Conservar literal para pasadas posteriores, pero registrar advertencia en DocLog
+          _blogLog('promovida-a-no-resuelta', item.code || '[sin-código]',
+            'promovida_a: ' + val + ' no pudo resolverse — no hay ítem nuevo con ese pendiente-ID en este CHECKPOINT',
+            'backlog');
         }
         // Sin resolución → conservar literal (no null) para pasadas posteriores
       } else {
@@ -1833,6 +1858,24 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       }
       // R-202604-051: blocking
       if (item.blocking === true && !existing.blocking) { changes.push({ field: 'blocking', from: '—', to: 'true' }); if (!_dryRun) { existing.blocking = true; changed = true; } }
+      // T-202605-137: promovida_a — actualizar en la P y escribir origenP en el ítem destino
+      if (item.promovida_a && item.promovida_a !== existing.promovida_a) {
+        changes.push({ field: 'promovida_a', from: existing.promovida_a || '—', to: item.promovida_a });
+        if (!_dryRun) {
+          existing.promovida_a = item.promovida_a;
+          changed = true;
+          // AC edge case: si promovida_a apunta a código real existente, escribir origenP en el destino
+          if (!_isPlaceholderCode(item.promovida_a)) {
+            const destItem = window.ITEMS.find(i => i.code === item.promovida_a);
+            if (destItem && !destItem.origenP) {
+              destItem.origenP = existing.code;
+              _blogLog('origen-p-escrito', existing.code, existing.code + ' → origenP en ' + item.promovida_a, 'backlog');
+            }
+          }
+        }
+      }
+      // origenP: entrante gana si trae valor; si vacío no degrada el existente
+      if (item.origenP && item.origenP !== existing.origenP) { changes.push({ field: 'origenP', from: existing.origenP || '—', to: item.origenP }); if (!_dryRun) { existing.origenP = item.origenP; changed = true; } }
       // Estampar sessionId siempre que venga uno (CHECKPOINT más reciente gana)
       if (!_dryRun && sessionId && existing.sessionId !== sessionId) { existing.sessionId = sessionId; changed = true; }
 
@@ -2055,7 +2098,7 @@ function _isActiveRecently(item) {
 // AC-8: mezcla ítems + patches en mismo ---window.ITEMS--- → parser separa por type
 // AC-9: panel diff muestra solo campos del patch (changes array)
 // AC-11: sin regresión en mergeBacklogFromTG
-const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable
+const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId', 'promovida_a', 'origenP']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable · T-202605-137: promovida_a + origenP patcheables
 const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version']);
 
 export function applyPatchesFromTG(patches, sessionId) {
@@ -2136,7 +2179,23 @@ export function applyPatchesFromTG(patches, sessionId) {
         return;
       }
 
-      // Resto de campos patcheables: title, priority, effort, area, role
+      // Resto de campos patcheables: title, priority, effort, area, role, origenP
+      // T-202605-137: promovida_a — campo especial: al patchear en una P, escribir origenP en el destino
+      if (field === 'promovida_a') {
+        if (incoming !== undefined && incoming !== null && incoming !== current) {
+          changes.push({ field, from: current !== undefined ? current : '—', to: incoming });
+          existing[field] = incoming;
+          // AC edge case: si promovida_a apunta a código real existente, escribir origenP en el destino
+          if (!_isPlaceholderCode(incoming)) {
+            const destItem = (typeof window.ITEMS !== 'undefined') ? window.ITEMS.find(i => i.code === incoming) : null;
+            if (destItem && !destItem.origenP) {
+              destItem.origenP = existing.code;
+              _blogLog('origen-p-escrito', existing.code, existing.code + ' → origenP en ' + incoming, 'backlog');
+            }
+          }
+        }
+        return;
+      }
       if (incoming !== undefined && incoming !== null && incoming !== current) {
         changes.push({ field, from: current !== undefined ? current : '—', to: incoming });
         existing[field] = incoming;
