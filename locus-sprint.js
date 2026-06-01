@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:22 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:23 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -923,6 +923,7 @@ function _syncCurrentBadges(sprints) {
     // Botón — elemento con data-sprint-set-current="[sprintId]"
     const btn = document.querySelector(`[data-sprint-set-current="${s.id}"]`);
     if (btn) {
+      btn.classList.toggle('is-hidden', !!s.current);
       btn.classList.toggle('is-current', !!s.current);
       btn.setAttribute('aria-pressed', String(!!s.current));
       btn.title = s.current ? 'Desmarcar sprint en curso' : 'Marcar como sprint en curso';
