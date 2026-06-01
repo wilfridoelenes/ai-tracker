@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:11 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:13 · autor:Rune · 2026-06-01 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1534,7 +1534,7 @@ export function toggleSectionGroup(key) {
 // T-109: limpiar todos los filtros
 function clearAllFilters() {
   activeTypes = new Set(['T','R','B','P']);
-  activeStatuses = new Set(['pendiente']);
+  activeStatuses = new Set(['pendiente', 'en-revision']);
   activeEfforts = new Set([1, 2, 3]); // T-071
   activeRoleFilter = null; // T-202604-245
   activePriorityFilter = new Set(); // T-202604-357
@@ -1608,6 +1608,7 @@ function updateEffortFilterUI() {
     const el = document.getElementById('feff-' + n);
     if (el) el.classList.toggle('active', activeEfforts.has(n));
   });
+  updateClearFilterBtn(); // B-202606-006
 }
 
 // T-202604-065: sort handler

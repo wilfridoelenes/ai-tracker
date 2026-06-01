@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:18 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:21 · autor:Rune · 2026-06-01 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
@@ -52,11 +52,12 @@ export function updateClearFilterBtn() {
   const btn = document.getElementById('filter-clear-btn');
   if (!btn) return;
   const allTypes = _getActiveTypes().size === 4;
-  const defaultStatus = _getActiveStatuses().size === 1 && _getActiveStatuses().has('pendiente') && !_getActiveStatuses().has('done');
+  const defaultStatus = _getActiveStatuses().size === 2 && _getActiveStatuses().has('pendiente') && _getActiveStatuses().has('en-revision') && !_getActiveStatuses().has('done') && !_getActiveStatuses().has('descartado');
   const noSearch = !_getBacklogSearchQuery();
   const noRoleFilter = _getActiveRoleFilter() === null;
   const noPriorityFilter = _getActivePriorityFilter().size === 0; // T-202604-357
-  const isDefault = allTypes && defaultStatus && noSearch && noRoleFilter && noPriorityFilter && !_getBacklogNoAcMode();
+  const allEfforts = _getActiveEfforts().size === 3; // B-202606-006
+  const isDefault = allTypes && defaultStatus && noSearch && noRoleFilter && noPriorityFilter && allEfforts && !_getBacklogNoAcMode();
   btn.classList.toggle('is-hidden', isDefault);
 
   // R-202605-094: chips individuales limpiables por filtro activo
@@ -94,11 +95,15 @@ export function updateClearFilterBtn() {
     });
   }
   if (!defaultStatus) {
-    [..._getActiveStatuses()].filter(s => s !== 'pendiente').forEach(s => {
+    const neutralStatuses = new Set(['pendiente', 'en-revision']);
+    [..._getActiveStatuses()].filter(s => !neutralStatuses.has(s)).forEach(s => {
       chips.push(_chip(`+${s}`, 'status', s));
     });
     if (!_getActiveStatuses().has('pendiente')) {
-      chips.push(_chip('−Pendiente', `function(){toggleStatusFilter('pendiente')}`));
+      chips.push(_chip('−Pendiente', 'status', 'pendiente'));
+    }
+    if (!_getActiveStatuses().has('en-revision')) {
+      chips.push(_chip('−En revisión', 'status', 'en-revision'));
     }
   }
   if (!noRoleFilter) {
@@ -489,6 +494,13 @@ export function renderBacklogList(onRendered) {
       const _sprintAllItems = ITEMS.filter(i => (i.sprint || '').trim() === s.id);
       const _sprintPills = _statusPills(_sprintAllItems);
       const _velLabel066a = isActive ? _sprintVelocityLabel(s.id) : '';
+      const _doneInGroupItems = _getActiveStatuses().has('done')
+        ? ITEMS.filter(i => (i.sprint || '').trim() === s.id && i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
+        : [];
+      const _doneGroupHtml = _doneInGroupItems.length
+        ? _sortGroup(_doneInGroupItems).map(item => buildBacklogItem(item)).join('')
+        : '';
+      const _groupBodyCollapsed = !_doneInGroupItems.length; // colapsado si no hay done visibles
       html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}">
         <div data-action="version-collapse" data-group-id="${groupId}" class="version-collapse-trigger">
           <div class="version-header">
@@ -496,10 +508,10 @@ export function renderBacklogList(onRendered) {
             ${progressBar}
             ${_velLabel066a}
             ${_sprintPills ? `<span class="sprint-pills-secondary">${_sprintPills}</span>` : ''}
-            <span class="version-collapse-arrow" id="varrow-${groupId}">▸</span>
+            <span class="version-collapse-arrow" id="varrow-${groupId}">${_groupBodyCollapsed ? '▸' : '▾'}</span>
           </div>
         </div>
-        <div class="version-group-body items-grid collapsed" id="vbody-${groupId}"></div>
+        <div class="version-group-body items-grid${_groupBodyCollapsed ? ' collapsed' : ''}" id="vbody-${groupId}">${_doneGroupHtml}</div>
       </div>`;
     });
 
@@ -541,6 +553,13 @@ export function renderBacklogList(onRendered) {
       const _donePill   = _doneCount  ? `<span class="status-pill status-pill--done">${_doneCount} done</span>` : '';
       const _descPill   = _descCount  ? `<span class="status-pill status-pill--descartado">${_descCount} desc.</span>` : '';
       const _velLabel066b = isActive ? _sprintVelocityLabel(key) : '';
+      // T-202606-006: done items en posición natural dentro del sprint — sin sección separada
+      const _doneInGroupItems = _getActiveStatuses().has('done')
+        ? ITEMS.filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key) && i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
+        : [];
+      const _doneGroupHtml = _doneInGroupItems.length
+        ? _sortGroup(_doneInGroupItems).map(item => buildBacklogItem(item)).join('')
+        : '';
       html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}">
         <div data-action="version-collapse" data-group-id="${groupId}" class="version-collapse-trigger">
           <div class="version-header">
@@ -555,6 +574,7 @@ export function renderBacklogList(onRendered) {
         </div>
         <div class="version-group-body items-grid${isCollapsed ? ' collapsed' : ''}" id="vbody-${groupId}">`;
       _sortGroup(group).forEach(item => { html += buildBacklogItem(item); }); // T-202604-424: sort interno priority desc → effort asc
+      html += _doneGroupHtml;
       html += `</div></div>`;
     });
 
@@ -605,20 +625,8 @@ export function renderBacklogList(onRendered) {
     html += `</div>`;
   }
 
-  // Done al fondo — T-202604-356: colapsado por default (mismo comportamiento que descartados)
-  if (doneItems.length) {
-    const doneOpen = localStorage.getItem('backlog-done-open') === '1';
-    html += `<div class="section-group" id="sg-done">
-      <div class="section-group-header" data-action="section-group-toggle" data-group="done">
-        <span class="section-group-arrow" id="sgarrow-done">${doneOpen ? '▾' : '▸'}</span>
-        <span>Completados</span>
-        <span class="section-group-count">${doneItems.length} ítem${doneItems.length !== 1 ? 's' : ''}</span>
-        <span class="sprint-pills-wrap">${_statusPills(doneItems)}</span>
-      </div>
-      <div class="section-group-body items-grid${doneOpen ? '' : ' collapsed'}" id="sgbody-done">`;
-    _sortItems(doneItems).forEach(item => { html += buildBacklogItem(item); });
-    html += `</div></div>`;
-  }
+  // T-202606-006: sección #sg-done eliminada — done items en posición natural dentro de su sprint
+  // via filtro s-done. Ver R-202605-036.
 
   // T-202604-059: Descartados — colapsados por defecto, visibles solo si filtro activo
   if (descartadoItems.length && _getActiveStatuses().has('descartado')) {
