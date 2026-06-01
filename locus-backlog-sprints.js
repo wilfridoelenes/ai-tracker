@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:22 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:23 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -7,6 +7,7 @@ import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshot, itemTy
 import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _templateTrigger } from './locus-session-hora.js';
 import { _docPrefix, exportFullHistoryMd, getProjectById } from './locus-sprint-project.js';
+import { renderSprintTab } from './locus-sprint.js';
 import { _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, save, saveBacklog, saveImmediate } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
@@ -1402,8 +1403,8 @@ function _scmExecuteClose() {
     _openRetroDownloadPrompt(id);
   }
 
-  // B-202605-032: window.renderSprintTab expuesto por locus-sprint.js — no importable (circular)
-  window.renderSprintTab?.();
+  // T-202605-147: import nombrado — circular ESM seguro (llamada en runtime, no top-level)
+  renderSprintTab();
 }
 
 export function createSprintFromGroup(id, name) {
@@ -1418,8 +1419,8 @@ export function createSprintFromGroup(id, name) {
   proj.sprints.push({ id, label: name || id, status: 'active', current: !hasCurrentSprint ? true : undefined, createdAt: Date.now() });
   save();
   _markBacklogListDirty(); renderBacklogList();
-  // B-202605-036: refrescar tab Sprint — sin esto el tab no muestra el sprint recién registrado
-  window.renderSprintTab?.();
+  // T-202605-147: import nombrado — circular ESM seguro (llamada en runtime, no top-level)
+  renderSprintTab();
   showToast('success', id + ' registrado en catálogo');
 }
 

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:17 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:18 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1553,11 +1553,15 @@ export function _isPlaceholderCode(code) {
 
 // B-202604-198: Helper — busca ítem existente cuyo title es similar a un [tmp:slug]
 // Retorna { item, score } o null. Solo sugiere — nunca aplica automáticamente.
-function _findTmpMatch(tmpCode, desc, existingItems) {
+// T-202605-136: incomingType restringe la búsqueda al mismo type — evita que un T nuevo
+// con [tmp:slug] matchee contra una P existente con título similar.
+function _findTmpMatch(tmpCode, desc, existingItems, incomingType) {
   if (!desc) return null;
   const needle = desc.trim().toLowerCase();
   let best = null, bestScore = 0;
   existingItems.forEach(item => {
+    // T-202605-136: solo matchear contra ítems del mismo type que el entrante
+    if (incomingType && item.type && item.type !== incomingType) return;
     const haystack = (item.title || '').trim().toLowerCase();
     if (!haystack) return;
     // Similitud: palabras en común / total palabras
@@ -1652,7 +1656,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     // B-202604-198: REGLA DE TMP — detectar si [tmp:slug] corresponde a un ID real existente
     // por similitud de título. Si hay match potencial, registrar sugerencia y NO crear duplicado.
     if (isPlaceholder && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
-      const tmpMatch = _findTmpMatch(item.code, item.title, window.ITEMS);
+      const tmpMatch = _findTmpMatch(item.code, item.title, window.ITEMS, item.type);
       if (tmpMatch) {
         tmpSuggestions.push({
           tmpCode: item.code,
