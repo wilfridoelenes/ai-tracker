@@ -1,11 +1,11 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:15 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:16 · autor:Rune · 2026-05-31 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
 // Debe cargarse antes de ai-tracker-checkpoint.js y ai-tracker-ai-notes.js
 
 import { renderAnalytics } from './locus-analytics-render.js';
-import { importBacklog, loadBacklog, renderStats, toggleBacklogFocusMode, updateBacklogBanner } from './locus-backlog-core.js';
+import { importBacklog, loadBacklog, renderStats, updateBacklogBanner } from './locus-backlog-core.js';
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { closeItemPanel, openItemPanel } from './locus-backlog-panel.js';
 import { renderBacklogList } from './locus-backlog-render.js';
@@ -680,17 +680,8 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // B-202605-014: Ctrl+F / Cmd+F — contextual según tab activo y estado de panel
+  // B-202605-014: Ctrl+F / Cmd+F — foco al search global
   if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
-    const _isBacklogTab = currentTab === 'backlog' || currentTab === 'tab-backlog';
-    const _itemPanel = document.getElementById('item-detail-panel');
-    const _panelOpen = _itemPanel && _itemPanel.classList.contains('open');
-    if (_isBacklogTab && !_panelOpen) {
-      e.preventDefault();
-      // R-202605-175: guard typeof — si módulo backlog no cargó, toast warning
-      toggleBacklogFocusMode();
-      return;
-    }
     const si = document.getElementById('search-global');
     if (!si) return;
     e.preventDefault();
