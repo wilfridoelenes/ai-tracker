@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:16 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:17 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
@@ -12,6 +12,7 @@ import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 import { renderAnalytics } from './locus-analytics-render.js';
 
 import { loadBacklog, renderStats, updateBacklogBanner, updateStatusFilterUI } from './locus-backlog-core.js';
+import { closeQuickCapture } from './locus-sesiones-capture.js';
 
 import { updateBacklogFooter } from './locus-backlog-item.js';
 
@@ -719,7 +720,7 @@ document.addEventListener('keydown', e => {
     closeModal('add-modal');
     closeModal('tag-modal');
     const _qcOverlay = document.getElementById('qc-modal-overlay'); if (_qcOverlay) _qcOverlay.classList.remove('open');
-    _quickAIId = null;
+    closeQuickCapture();
   }
 });
 
