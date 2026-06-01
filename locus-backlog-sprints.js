@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:20 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:21 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -641,32 +641,9 @@ export function setSprintStatus(id, newStatus) {
   showToast('info', id + ' → ' + newStatus);
 }
 
-// T-202605-026: enforcea exactamente un current por proyecto
-export function setSprintCurrent(sprintId, projectId) {
-  const allSprints = getActiveSprints().filter(s => s.projectId === projectId);
-  const sp = allSprints.find(s => s.id === sprintId);
-
-  if (!sp) {
-    console.warn(`[Locus] setSprintCurrent: sprint "${sprintId}" no encontrado en proyecto "${projectId}"`);
-    return;
-  }
-  if (sp.status === 'closed') {
-    console.warn(`[Locus] setSprintCurrent: sprint "${sprintId}" está cerrado — no se puede marcar current`);
-    return;
-  }
-
-  const wasCurrent = !!sp.current;
-
-  // Toggle: si ya era current → quitar. Si no → poner en este y quitar en los demás.
-  if (wasCurrent) {
-    delete sp.current;
-  } else {
-    allSprints.forEach(s => { delete s.current; });
-    sp.current = true;
-  }
-
-  save();
-}
+// T-202605-026: setSprintCurrent vive en locus-sprint.js (T-202605-107)
+// Implementación eliminada de este módulo — era duplicación con filtro roto (s.projectId siempre undefined).
+// window.setSprintCurrent lo expone locus-sprint.js.
 
 export function setItemSprint(code, sprintId) {
   if (sprintId === '__new__') { openNewSprintInline(code); return; }
@@ -1913,5 +1890,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 // ─────────────────────────────────────────────────────────────────────────
 window.setItemSprint      = setItemSprint;
-window.setSprintCurrent   = setSprintCurrent;
 window.navigateToItem     = navigateToItem;
