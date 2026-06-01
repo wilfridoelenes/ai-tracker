@@ -1,10 +1,9 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:8 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:9 · autor:Rune · 2026-05-31 UTC-6
 // locus-command-palette.js
 // Versión: 1.0.4 | Última actualización: 2026-05-23 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto · T-202605-067 nav-tab-sprint
 // Renombrado de ai-tracker-command-palette.js
 
 
-import { toggleFocusMode } from './locus-backlog-panel.js';
 import { confirmCloseSprint, navigateToItem } from './locus-backlog-sprints.js';
 import { openItemEditor, openTemplatePicker } from './locus-backlog-editor.js';
 import { toggleRadarSidebar } from './locus-radar.js';
@@ -193,17 +192,6 @@ function _buildCommandRegistry() {
       action: () => {
         switchTab('tab-proyectos');
         setTimeout(() => { openProjPanel(); }, 150);
-      },
-    },
-    // B-244: toggle Modo Focus
-    {
-      id: 'toggle-focus',
-      label: 'Activar / desactivar Modo Focus',
-      icon: '⛶',
-      keywords: ['focus', 'modo', 'pantalla', 'completa', 'toggle', 'activar'],
-      group: 'Acciones',
-      action: () => {
-        toggleFocusMode();
       },
     },
     // [pendiente-ID]: Panel de pendientes — trigger via Command Palette
