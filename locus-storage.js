@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:17 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:18 · autor:Rune · 2026-06-01 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -196,10 +196,24 @@ function handleSyncPillClick() {
 const _SHORTCUTS_KEY = LOCUS_KEYS.SHORTCUTS;
 const _USER_PREFS_TS_KEY = LOCUS_KEYS.USER_PREFS_TS; // R-4: timestamp del último user-prefs aplicado desde Supabase
 
-export function _shortcutsLoad() {
+export function _shortcutsLoad(validIds) {
   try {
     const raw = localStorage.getItem(_SHORTCUTS_KEY);
-    return raw ? JSON.parse(raw) : {};
+    const map = raw ? JSON.parse(raw) : {};
+    if (!validIds || !Array.isArray(validIds) || validIds.length === 0) return map;
+    // Filtrar claves huérfanas — claves no presentes en _SHORTCUT_DEFS
+    const cleaned = {};
+    let dirty = false;
+    for (const key of Object.keys(map)) {
+      if (validIds.includes(key)) {
+        cleaned[key] = map[key];
+      } else {
+        dirty = true; // clave huérfana detectada
+      }
+    }
+    // Persistir mapa limpio si se eliminó al menos una clave huérfana
+    if (dirty) _shortcutsSave(cleaned);
+    return cleaned;
   } catch(_) { return {}; }
 }
 

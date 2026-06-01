@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:18 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:19 · autor:Rune · 2026-06-01 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -908,7 +908,8 @@ function _shortcutConflict(key, excludeId) {
 function _shortcutsRender() {
   const body = document.getElementById('shortcuts-body');
   if (!body) return;
-  const overrides = _shortcutsLoad();
+  // Pasar validIds para limpiar claves huérfanas de versiones anteriores (B-202606-002)
+  const overrides = _shortcutsLoad(_SHORTCUT_DEFS.map(d => d.id));
 
   // Agrupar por grupo
   const groups = {};
