@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-06-01 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -12,7 +12,7 @@ import { _blogLog, getActiveProject, getActiveSprints, saveBacklog } from './loc
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
-import { mergeBacklogFromTG } from './locus-backlog-item.js';
+import { applyPatchesFromTG, mergeBacklogFromTG } from './locus-backlog-item.js';
 
 import { _setBacklogModified } from './locus-docs.js';
 
@@ -26,6 +26,19 @@ import { downloadTemplates } from './locus-session-save.js';
 
 export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   if (!tgItems || !tgItems.length) { onApply(); return; }
+
+  // B-202606-001: separar type:patch antes del dry-run — no deben pasar por mergeBacklogFromTG.
+  // Los patches actualizan campos de ítems existentes via applyPatchesFromTG y no generan diff visual.
+  // Se aplican en _mdiffDoApply después de onApply() para que ítems nuevos ya existan en ITEMS.
+  const _patchItems = tgItems.filter(i => i.type === 'patch');
+  tgItems = tgItems.filter(i => i.type !== 'patch');
+
+  if (!tgItems.length) {
+    // Solo patches — aplicar directamente sin abrir el DIFF
+    if (_patchItems.length) applyPatchesFromTG(_patchItems);
+    onApply();
+    return;
+  }
 
   // Dry-run: obtener diff sin mutar ITEMS
   const _prevFilter = localStorage.getItem('current-project-filter') || '';
@@ -657,6 +670,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     }
 
     onApply();
+
+    // B-202606-001: aplicar patches después de onApply() — ítems nuevos ya existen en ITEMS
+    if (_patchItems.length) applyPatchesFromTG(_patchItems);
 
     // B-202605-500: aplicar sprints pendientes sobre ítems nuevos (ya existen en ITEMS tras onApply)
     const pendingEntries = Object.entries(_mdiffPendingSprints);
