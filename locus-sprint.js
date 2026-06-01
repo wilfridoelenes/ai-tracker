@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:25 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:26 · autor:Rune · 2026-06-01 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -910,17 +910,28 @@ export function setSprintCurrent(sprintId) {
   renderSprintTab();
 
   // Actualizar DOM — sin reload
-  _syncCurrentBadges(allSprints);
+  // T-202605-148: pasar projId para que _syncCurrentBadges filtre solo sprints del proyecto objetivo
+  _syncCurrentBadges(allSprints, projId);
 }
 
 /**
  * Sincroniza badges y botones de current en el DOM según el estado del modelo.
  * Opera sobre elementos con data-sprint-id en el tab Sprint.
  *
- * @param {Array} sprints — array ya mutado
+ * T-202605-148: acepta projId opcional — cuando se provee, opera únicamente sobre
+ * los sprints del proyecto objetivo. Evita mutar badges de sprints de otros proyectos
+ * cuando allSprints contiene sprints multi-proyecto y projId es null en el modelo.
+ *
+ * @param {Array}       sprints — array ya mutado
+ * @param {string|null} projId  — proyecto objetivo; null → sin filtro (comportamiento original)
  */
-function _syncCurrentBadges(sprints) {
-  sprints.forEach(s => {
+function _syncCurrentBadges(sprints, projId) {
+  // T-202605-148: filtrar al proyecto objetivo cuando projId está disponible
+  const targets = projId
+    ? sprints.filter(s => (s.projId === projId || s.projectId === projId))
+    : sprints;
+
+  targets.forEach(s => {
     // Badge — elemento con data-sprint-current-badge="[sprintId]"
     const badge = document.querySelector(`[data-sprint-current-badge="${s.id}"]`);
     if (badge) {

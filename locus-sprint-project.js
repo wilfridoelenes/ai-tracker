@@ -1,9 +1,8 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:18 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:19 · autor:Rune · 2026-06-01 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Export de documentos (Backlog, Sprints, History) + gestión de proyectos
 // Renombrado de ai-tracker-sprint-project.js
-import { _getActiveSprint } from './locus-backlog-sprints.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _syncCleanProjectBtn } from './locus-reports.js';
 import { _blogLog, _effectiveVersion, _offlineQueuePush, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getProjectSessions, getState, getSupabaseUserId, save } from './locus-storage.js';
@@ -464,9 +463,10 @@ function _showExportConfirmModal(label, filename, onConfirm) {
 // AC-2: campos sprint (nombre canónico), status, version_target, release_type
 // AC-3: si no hay sprint abierto → sprint: ninguno, demás campos n/a
 function _buildSprintActivoMd() {
-  // T-202605-151: usar _getActiveSprint() para respetar current:true
-  // en lugar de buscar el primer sprint con status === 'active'
-  const currentSprint = _getActiveSprint();
+  // T-202605-151: solo sprint con current:true — sin fallback a all[0]
+  // Mismo patrón que renderSprintBurndown (T-202605-027)
+  const all = getActiveSprints().filter(s => s.status === 'active');
+  const currentSprint = all.find(s => s.current === true) || null;
   if (!currentSprint) return '';
   const lines = [
     '## Sprint activo',
