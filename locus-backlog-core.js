@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:10 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:11 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -168,9 +168,6 @@ let _backlogNoAcMode = false;
 // T-202604-366: renombrado a Mi vista — filtro rotativo por rol con T's pendientes en sprint activo
 let _backlogMikeMode = false;
 let _miViewRoleIndex = 0; // índice del rol activo en la rotación
-
-// T-202604-258: modo Focus — top 10 por score descendente
-let _backlogFocusMode = false;
 
 // R-[tmp:sprint-group-toggle]: agrupación por sprint en backlog activo — activo por defecto
 const _backlogSprintGroupRaw = localStorage.getItem('backlog-sprint-group-mode');
@@ -1545,7 +1542,6 @@ function clearAllFilters() {
   backlogSearchQuery = '';
   backlogSortMode = 'priority'; // T-202604-424: sprint eliminado como opción de sort
   backlogSortDir = 'desc'; // T-072 — default desc
-  _backlogFocusMode = false; // T-202604-258
   const sortDirBtn = document.getElementById('fbar-sort-dir-btn');
   if (sortDirBtn) sortDirBtn.textContent = '↓';
   const searchEl = document.getElementById('search-global');
@@ -1784,9 +1780,7 @@ function _syncViewAriaStates() {
   }
 
   // Modificadores — aria-checked refleja estado
-  const focusBtn = document.getElementById('fbar-focus-btn');
   const mikeBtn  = document.getElementById('fbar-mike-btn');
-  if (focusBtn) focusBtn.setAttribute('aria-checked', String(_backlogFocusMode));
   if (mikeBtn)  mikeBtn.setAttribute('aria-checked',  String(_backlogMikeMode));
 }
 
@@ -1852,25 +1846,6 @@ function toggleBacklogTreeMode() {
   _markBacklogListDirty(); renderBacklogList();
 }
 
-// T-202604-258: toggle modo Focus — top 10 ítems por score descendente
-export function toggleBacklogFocusMode() {
-  _backlogFocusMode = !_backlogFocusMode;
-  const btn = document.getElementById('fbar-focus-btn');
-  if (btn) {
-    btn.classList.toggle('active', _backlogFocusMode);
-    // T-202604-421: tooltip explica criterios
-    btn.title = _backlogFocusMode
-      ? 'Focus activo — Top 10 por: tipo · sprint · effort · antigüedad · click para desactivar'
-      : 'Activar Focus — Top 10 por: tipo · sprint · effort · antigüedad';
-    if (!_backlogFocusMode) btn.textContent = '🎯 Focus'; // reset label al desactivar
-  }
-  // B-202604-157: recalcular scores al activar Focus — garantiza orden por relevancia actualizado
-  if (_backlogFocusMode) _recalcAllScores();
-  updateClearFilterBtn();
-  _syncViewAriaStates();
-  _markBacklogListDirty(); renderBacklogList();
-}
-
 // T-202604-363: toggle filtro Sin AC — pendientes sin criterios de aceptación
 export function toggleBacklogNoAcMode() {
   _backlogNoAcMode = !_backlogNoAcMode;
@@ -1889,7 +1864,6 @@ export function toggleBacklogNoAcMode() {
 // Las variables son let/const privados (mutables), por lo que se exponen via getter en lugar de export let.
 export function _getBacklogTreeMode()        { return _backlogTreeMode; }
 export function _getBacklogKanbanMode()      { return _backlogKanbanMode; }
-export function _getBacklogFocusMode()       { return _backlogFocusMode; }
 export function _getBacklogMikeMode()        { return _backlogMikeMode; }
 export function _getBacklogSprintGroupMode() { return _backlogSprintGroupMode; }
 export function _getBacklogNoAcMode()        { return _backlogNoAcMode; }
@@ -1929,7 +1903,7 @@ window.toggleSortDir        = toggleSortDir;
 
 // T-202605-053: Migrar handlers inline de index.html → addEventListener
 // Funciones cubiertas: undoBacklog · redoBacklog · toggleBacklogTreeMode · toggleBacklogKanbanMode
-// toggleBacklogFocusMode · toggleBacklogMikeMode · toggleCollapseAll
+// toggleBacklogMikeMode · toggleCollapseAll
 // toggleStatusFilter (×5) · toggleBacklogBlockerFilter
 // toggleBacklogNoAcMode · clearAllFilters
 document.addEventListener('DOMContentLoaded', function () {
@@ -1946,9 +1920,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   const _btnKanban = document.getElementById('fbar-kanban-btn');
   if (_btnKanban) _btnKanban.addEventListener('click', function () { if (typeof toggleBacklogKanbanMode === 'function') toggleBacklogKanbanMode(); });
-
-  const _btnFocus = document.getElementById('fbar-focus-btn');
-  if (_btnFocus) _btnFocus.addEventListener('click', function () { if (typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode(); });
 
   const _btnMike = document.getElementById('fbar-mike-btn');
   if (_btnMike) _btnMike.addEventListener('click', function () { if (typeof toggleBacklogMikeMode === 'function') toggleBacklogMikeMode(); });

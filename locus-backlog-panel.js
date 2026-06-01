@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:11 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:12 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-toast.js
 
-import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemType, renderStats, setItemStatus, toggleBacklogFocusMode, undoBacklog } from './locus-backlog-core.js';
+import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemType, renderStats, setItemStatus, undoBacklog } from './locus-backlog-core.js';
 import { _getActiveProjectFilter, exportBacklogMd, getProjectById } from './locus-sprint-project.js';
 import { getAI, getActiveSprints, getAllSessions, save, saveImmediate } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
@@ -247,33 +247,6 @@ let _itemPanelCode = null;
 // T-202604-253: estado de ítem seleccionado en lista (Space → done)
 let _backlogSelectedCode = null;
 
-// B-244: Modo Focus — estado y función toggle
-let _focusModeActive = false;
-
-export function toggleFocusMode() {
-  _focusModeActive = !_focusModeActive;
-  document.body.classList.toggle('body--focus-mode', _focusModeActive);
-  // Actualizar botón en panel si está abierto
-  const focusBtn = document.getElementById('idp-focus-btn');
-  if (focusBtn) {
-    focusBtn.textContent = _focusModeActive ? '⛶ Salir focus' : '⛶ Focus';
-    focusBtn.title = _focusModeActive ? 'Salir del Modo Focus (Esc)' : 'Activar Modo Focus';
-    focusBtn.classList.toggle('idp-action-btn--active', _focusModeActive);
-  }
-}
-
-export function exitFocusMode() {
-  if (_focusModeActive) {
-    _focusModeActive = false;
-    document.body.classList.remove('body--focus-mode');
-    const focusBtn = document.getElementById('idp-focus-btn');
-    if (focusBtn) {
-      focusBtn.textContent = '⛶ Focus';
-      focusBtn.title = 'Activar Modo Focus';
-      focusBtn.classList.remove('idp-action-btn--active');
-    }
-  }
-}
 let _itemPanelNotesTimer = null;
 
 export function openItemPanel(code) {
@@ -306,8 +279,6 @@ export function closeItemPanel() {
   const panel = document.getElementById('item-detail-panel');
   if (panel) {
     panel.classList.remove('open');
-    // B-244: salir de focus mode al cerrar el panel
-    exitFocusMode();
     // Colapsar layout two-col al cerrar
     setTimeout(() => {
       const wrap = document.getElementById('backlog-two-col-wrap');
@@ -325,13 +296,6 @@ export function closeItemPanel() {
 
 function _itemPanelEscHandler(e) {
   if (e.key === 'Escape') {
-    // B-244: si modo focus activo, salir primero sin cerrar el panel
-    if (_focusModeActive) {
-      exitFocusMode();
-      // B-202605-051: si _backlogFocusMode también está activo, desactivarlo en el mismo Esc
-      if (_backlogFocusMode) toggleBacklogFocusMode();
-      return;
-    }
     // Colapsar el ítem expandido también
     if (_itemPanelCode) {
       const itemEl = document.querySelector(`.item[data-code="${CSS.escape(_itemPanelCode)}"]`);
@@ -380,7 +344,6 @@ function _renderItemPanel(item) {
       <button class="idp-action-btn" data-action="idp-copy-code" data-code="${esc(item.code)}" title="Copiar código">⎘ ${esc(item.code)}</button>
       <button class="idp-action-btn" data-action="idp-edit" data-item-code="${esc(item.code)}" title="Abrir editor completo">✎ Editar</button>
       ${doneBtn}
-      <button class="idp-action-btn${_focusModeActive ? ' idp-action-btn--active' : ''}" id="idp-focus-btn" data-action="idp-toggle-focus" title="${_focusModeActive ? 'Salir del Modo Focus (Esc)' : 'Activar Modo Focus'}">${_focusModeActive ? '⛶ Salir focus' : '⛶ Focus'}</button>
     </div>`;
 
   // ── Metadata grid — campos editables ──
@@ -998,40 +961,6 @@ function toggleTmplTriggerPanel(btn) {
   }
 })();
 
-// ═══════════════════════════════════════════════════════════════
-// T-202605-441: shortcut Cmd+F / Ctrl+F → toggleFocusMode
-// Binding local en backlog.js — sin colisión con búsqueda del nav.
-// Solo activo cuando el tab Backlog está visible.
-// ═══════════════════════════════════════════════════════════════
-
-(function _initFocusShortcut() {
-  // B-202605-060: cleanup antes de registrar — evita acumulación de listeners en hot reload
-  if (document._focusShortcutHandler) {
-    document.removeEventListener('keydown', document._focusShortcutHandler);
-  }
-  function _focusShortcutHandler(e) {
-    // Solo si tab backlog activo
-    const backlogPanel = document.getElementById('tab-backlog');
-    if (!backlogPanel || !backlogPanel.classList.contains('active')) return;
-    // Cmd+F (Mac) o Ctrl+F (Win/Linux) — sin shift, sin alt
-    if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey && e.key === 'f') {
-      // No interferir si el foco está en un input/textarea
-      const tag = document.activeElement && document.activeElement.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      e.preventDefault();
-      // B-202605-014: con panel abierto → focus mode del panel; sin panel → Backlog Top-10
-      const panelOpen = document.getElementById('item-detail-panel')?.classList.contains('open');
-      if (panelOpen) {
-        toggleFocusMode();
-      } else {
-        toggleBacklogFocusMode();
-      }
-    }
-  }
-  document._focusShortcutHandler = _focusShortcutHandler;
-  document.addEventListener('keydown', _focusShortcutHandler);
-})();
-
 // B-[pendiente-ID]: export-backlog-btn — handler adjuntado una sola vez al iniciar
 (function _initExportBacklogBtn() {
   function _attach() {
@@ -1052,7 +981,7 @@ function toggleTmplTriggerPanel(btn) {
 
 // T-202605-055: delegación de eventos para el Item Detail Panel (#item-detail-panel)
 // Cubre: _idpMarkDone · _idpStartEditTitle · _idpSaveTitle · _idpCancelTitle
-//        _idpCopyCode · toggleFocusMode · _idpToggleAc · _idpToggleHistory
+//        _idpCopyCode · _idpToggleAc · _idpToggleHistory
 //        _idpAddNote · _idpAddNote_fromBtn · _acvSaveEdit
 // T-202605-108: extiende cobertura a .idp-meta-select (change) e .idp-meta-input (blur/keydown)
 // Delegación en document para cubrir panel dinámico que se re-renderiza con cada ítem
@@ -1072,10 +1001,6 @@ function toggleTmplTriggerPanel(btn) {
     }
     if (act === 'idp-copy-code') {
       if (typeof _idpCopyCode === 'function') _idpCopyCode(action.dataset.code);
-      return;
-    }
-    if (act === 'idp-toggle-focus') {
-      toggleFocusMode();
       return;
     }
     if (act === 'idp-toggle-ac') {
@@ -1168,8 +1093,6 @@ function toggleTmplTriggerPanel(btn) {
 // Exposición global — funciones llamadas desde inline handlers HTML generados dinámicamente
 window.openItemPanel  = openItemPanel;
 window.closeItemPanel = closeItemPanel;
-window.toggleFocusMode = toggleFocusMode;
-window.exitFocusMode   = exitFocusMode;
 window._idpSetField          = _idpSetField;
 window._itemPanelNotesDirty  = _itemPanelNotesDirty;
 
