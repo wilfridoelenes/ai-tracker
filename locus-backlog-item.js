@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:18 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:19 · autor:Rune · 2026-05-31 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogFocusMode, _getBacklogKanbanMode, _getBacklogMikeMode, _getBacklogNoAcMode, _getBacklogSprintGroupMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, itemType, renderStats, setItemStatus, updateBacklogBanner } from './locus-backlog-core.js';
+import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getBacklogSprintGroupMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, itemType, renderStats, setItemStatus, updateBacklogBanner } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
 import { _normalizeSprint } from './locus-session-parse.js';
 import { _blogLog, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog } from './locus-storage.js';
@@ -508,7 +508,7 @@ export function _attachBacklogListDelegation() {
 export function _attachBacklogDnD() {
   // B-202605-013: T-202604-424 eliminó 'sprint' como valor de backlogSortMode — guard era inalcanzable.
   // DnD activo cuando la agrupación por sprint está activa y no hay modo exclusivo que tome el rendering.
-  if (!_getBacklogSprintGroupMode() || _getBacklogKanbanMode() || _getBacklogFocusMode() || _getBacklogMikeMode() || _getBacklogNoAcMode()) return;
+  if (!_getBacklogSprintGroupMode() || _getBacklogKanbanMode() || _getBacklogNoAcMode()) return;
   // Solo grupos sprint: vbody-{groupId} — excluye sgbody-done, sgbody-discarded y vbody-flat
   const sprintBodies = document.querySelectorAll('[id^="vbody-"]:not(#vbody-flat)');
   sprintBodies.forEach(body => {

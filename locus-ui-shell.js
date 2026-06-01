@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:14 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:15 · autor:Rune · 2026-05-31 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -7,7 +7,7 @@
 import { renderAnalytics } from './locus-analytics-render.js';
 import { importBacklog, loadBacklog, renderStats, toggleBacklogFocusMode, updateBacklogBanner } from './locus-backlog-core.js';
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
-import { closeItemPanel, exitFocusMode, openItemPanel } from './locus-backlog-panel.js';
+import { closeItemPanel, openItemPanel } from './locus-backlog-panel.js';
 import { renderBacklogList } from './locus-backlog-render.js';
 import { navigateToItem } from './locus-backlog-sprints.js';
 import { renderContratos } from './locus-contracts.js';
@@ -646,7 +646,7 @@ export function _escCascade() {
     () => { const el = document.getElementById('proj-modal-overlay'); if (el && el.offsetParent !== null) { closeProjModal(); return true; } },
     () => { const el = document.getElementById('proj-panel-overlay'); if (el && el.offsetParent !== null) { closeProjPanel(); return true; } },
     () => { const el = document.getElementById('pulso-panel'); if (el && el.offsetParent !== null) { closePulsoPanel(); return true; } },
-    () => { if (window.focusActiveId) { exitFocusMode(); return true; } },
+    () => { if (window.focusActiveId) { window.focusActiveId = null; return true; } },
   ];
   for (const check of _overlayChecks) {
     if (check()) return;
@@ -780,20 +780,7 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // T-202604-418: F → toggle focus mode
-  if (_pressedKey === _sk('toggle-focus')) {
-    e.preventDefault();
-    if (window.focusActiveId) {
-      exitFocusMode();
-    } else {
-      const _inSessCard = document.querySelector('.card.in-session-state');
-      if (_inSessCard) {
-        const _ta = _inSessCard.querySelector('.main-textarea');
-        if (_ta) _ta.focus();
-      }
-    }
-    return;
-  }
+  // T-202604-418: F → toggle focus mode (deprecado — focus mode eliminado)
 
   // T-202604-418: / → búsqueda global (cuando no está en input)
   if (e.key === '/') {
