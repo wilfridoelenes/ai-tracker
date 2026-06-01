@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:24 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:25 · autor:Rune · 2026-06-01 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -12,6 +12,7 @@ import { getAI, getActiveSprints, getAllSessions, save } from './locus-storage.j
 import { showToast, toast } from './locus-toast.js';
 
 import { render } from './locus-sesiones.js';
+import { _markStatusBarDirty } from './locus-sesiones-stats.js';
 
 // ── Estado interno ──────────────────────────────────────────────────────────
 let _sprintTabActiveSprint = null;
@@ -901,6 +902,9 @@ export function setSprintCurrent(sprintId) {
 
   // Persistir
   if (typeof save === 'function') save();
+
+  // T-202605-150: sincronizar status bar al cambiar sprint en curso
+  if (typeof _markStatusBarDirty === 'function') _markStatusBarDirty();
 
   // T-202605-142: sincronizar header y burndown del tab Sprint en tiempo real
   renderSprintTab();
