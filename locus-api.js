@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-31 UTC-6
 // locus-api.js
 // Última actualización: 2026-05-28 | Contrato público del ecosistema Locus
 // Carga como ÚLTIMO script en index.html — todos los módulos ya están definidos.
@@ -23,6 +23,7 @@ import { renderGlobalRadarSidebar } from './locus-radar.js';
 import { _getActiveProjectFilter, exportBacklogMd } from './locus-sprint-project.js';
 import { _itemVizClose, _itemVizConfirm, closeCkptPanel } from './locus-sesiones-viz.js';
 import { initCommandPalette, openCommandPalette } from './locus-command-palette.js';
+import { setSprintCurrent } from './locus-sprint.js'; // T-202605-133
 
 // window.Locus = {} — bridge para handlers inline de index.html
 window.Locus = {};
@@ -95,6 +96,9 @@ window.Locus.updateHtmlMapBanner  = updateHtmlMapBanner;
 
 // ── locus-radar.js ────────────────────────────────────────────────────────────
 window.Locus.renderGlobalRadarSidebar = renderGlobalRadarSidebar;
+
+// ── locus-sprint.js ───────────────────────────────────────────────────────────
+window.Locus.setSprintCurrent = setSprintCurrent; // T-202605-133
 
 // ── locus-tags.js ─────────────────────────────────────────────────────────────
 window.Locus.addNewTag    = addNewTag;
