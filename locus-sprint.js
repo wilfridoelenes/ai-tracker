@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:20 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:21 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -40,7 +40,6 @@ function _sprintReleaseClass(type) {
 
 function _sprintIsBlocked(item) {
   return _isBlocked(item);
-  return false;
 }
 
 function _sprintItemHtml(item) {

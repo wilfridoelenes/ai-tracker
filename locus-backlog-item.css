@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-31 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Nova · 2026-05-31 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -741,7 +741,7 @@
   transition: width 0.28s var(--ease-standard), opacity 0.22s ease;
   position: sticky;
   top: 1rem;
-  max-height: calc(100vh - 5rem);
+  max-height: calc(100vh - var(--header-h, 54px) - 1.5rem);
   align-self: flex-start;
 }
 
