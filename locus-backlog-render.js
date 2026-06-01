@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:17 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:18 · autor:Rune · 2026-06-01 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
@@ -415,9 +415,8 @@ export function renderBacklogList(onRendered) {
   // T-202604-082: modo sprint = agrupado por sprint; otros modos = lista plana
   // B-202604-131: aplicar filtro de búsqueda a done/descartado cuando q está activo
   // R-202604-091: 'en curso' fusionado — todos los pendiente van juntos, decorador visual separa activos
-  // T-202604-427: P (ideas) separadas del flujo de trabajo activo — sección propia al final
-  const ideaItems      = filtered.filter(i => i.status !== 'done' && i.status !== 'descartado' && itemType(i.code) === 'P');
-  const pendienteItems = filtered.filter(i => i.status !== 'done' && i.status !== 'descartado' && itemType(i.code) !== 'P');
+  // T-202605-135: Ps integradas en pendienteItems — sin sección separada
+  const pendienteItems = filtered.filter(i => i.status !== 'done' && i.status !== 'descartado');
   const _matchesQuery = q
     ? (i => i.code.toLowerCase().includes(q) || i.title.toLowerCase().includes(q) || (i.area || '').toLowerCase().includes(q))
     : () => true;
@@ -606,20 +605,6 @@ export function renderBacklogList(onRendered) {
     html += `</div>`;
   }
 
-  // T-202604-427: Ideas (P) — sección diferenciada, colapsada por defecto, antes de done
-  if (ideaItems.length && _getActiveTypes().has('P')) {
-    const ideasOpen = localStorage.getItem('backlog-ideas-open') === '1';
-    html += `<div class="section-group sg-ideas" id="sg-ideas">
-      <div class="section-group-header" data-action="section-group-toggle" data-group="ideas">
-        <span class="section-group-arrow" id="sgarrow-ideas">${ideasOpen ? '▾' : '▸'}</span>
-        <span>💡 Posibilidades</span>
-        <span class="section-group-count">${ideaItems.length} ítem${ideaItems.length !== 1 ? 's' : ''}</span>
-      </div>
-      <div class="section-group-body items-grid${ideasOpen ? '' : ' collapsed'}" id="sgbody-ideas">`;
-    _sortItems(ideaItems).forEach(item => { html += buildBacklogItem(item); });
-    html += `</div></div>`;
-  }
-
   // Done al fondo — T-202604-356: colapsado por default (mismo comportamiento que descartados)
   if (doneItems.length) {
     const doneOpen = localStorage.getItem('backlog-done-open') === '1';
@@ -650,7 +635,7 @@ export function renderBacklogList(onRendered) {
   }
 
   // B-202604-NNN: evaluar empty state sobre pendientes+done+descartados — no solo filtered (pendientes)
-  const _hasVisible = pendienteItems.length || ideaItems.length || doneItems.length || (descartadoItems.length && _getActiveStatuses().has('descartado'));
+  const _hasVisible = pendienteItems.length || doneItems.length || (descartadoItems.length && _getActiveStatuses().has('descartado'));
   if (!_hasVisible) {
     // T-202604-319: empty state contextual según causa
     const _activeSprint = _getActiveSprint();
