@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:21 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:22 · autor:Rune · 2026-06-01 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1920,6 +1920,10 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           role: item.role || '',
           origin: item.origin || null,
           parentId: _resolvedParentId,
+          dependsOn: item.dependsOn || [],
+          triggeredBy: item.triggeredBy || null,
+          origenP: item.origenP || null,
+          promovida_a: item.promovida_a || null,
           blockedBy: item.blockedBy || [],
           blocking: item.blocking || false,
           sessionId: sessionId || null,
