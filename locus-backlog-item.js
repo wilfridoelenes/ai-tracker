@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:24 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:25 · autor:Rune · 2026-06-01 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1647,8 +1647,9 @@ function _assignPendingIds(tgItems) {
   // T-202605-140 T2 · Paso 2: resolver referencias cruzadas usando slugMap
   // Campos de referencia: dependsOn, parentId, triggeredBy, origenP, promovida_a
   // Referencia presente en slugMap → reemplazar con código real.
-  // Referencia placeholder ([tmp:slug] o [pendiente-ID]) no resuelta → conservar literal
-  //   (no null) — puede resolverse en una pasada posterior o via _findTmpMatch.
+  // [pendiente-ID] no resuelta → conservar literal — puede resolverse en pasada posterior.
+  // [tmp:slug] no resuelta → null/[] + _blogLog('tmp-slug-no-resoluble') — slug sin type
+  //   que no aparece como ítem en el bloque: no tiene sentido conservar la referencia.
   // Referencia con formato de código real (no placeholder) no existente en backlog →
   //   null/[] + _blogLog('ref-no-resuelta') — el código debería existir y no existe.
   const _refFields = ['parentId', 'triggeredBy', 'origenP', 'promovida_a'];
@@ -1674,8 +1675,16 @@ function _assignPendingIds(tgItems) {
           _blogLog('promovida-a-no-resuelta', item.code || '[sin-código]',
             'promovida_a: ' + val + ' no pudo resolverse — no hay ítem nuevo con ese pendiente-ID en este CHECKPOINT',
             'backlog');
+        } else if (/^\[tmp:[a-z0-9_-]+\]$/i.test(val)) {
+          // T-202606-005: [tmp:slug] sin type valido no resoluble — null + log
+          // No tiene sentido conservar la referencia: el slug no tiene item correspondiente en el bloque.
+          _blogLog('tmp-slug-no-resoluble', item.code || '[sin-codigo]',
+            field + ': ' + val + ' no pudo resolverse — [tmp:slug] sin type valido en este bloque',
+            'backlog');
+          patch[field] = null;
+          changed = true;
         }
-        // Sin resolución → conservar literal (no null) para pasadas posteriores
+        // [pendiente-ID] sin resolucion — conservar literal para pasadas posteriores
       } else {
         // Código con formato real: si no existe en backlog → null + log
         const existsInBacklog = window.ITEMS && window.ITEMS.find(i => i.code === val);
@@ -1698,7 +1707,15 @@ function _assignPendingIds(tgItems) {
           // Placeholder: intentar resolver via slugMap
           const mapped = slugMap.get(val);
           if (mapped) { listChanged = true; return mapped; }
-          // Sin resolución → conservar literal
+          // T-202606-005: [tmp:slug] sin resolucion — null + log (se filtra del array)
+          if (/^\[tmp:[a-z0-9_-]+\]$/i.test(val)) {
+            _blogLog('tmp-slug-no-resoluble', item.code || '[sin-codigo]',
+              field + '[]: ' + val + ' no pudo resolverse — [tmp:slug] sin type valido en este bloque',
+              'backlog');
+            listChanged = true;
+            return null;
+          }
+          // [pendiente-ID] sin resolucion — conservar literal para pasadas posteriores
           return val;
         } else {
           // Código con formato real: si no existe en backlog → null + log
