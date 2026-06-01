@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:16 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:18 · autor:Rune · 2026-06-01 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -681,7 +681,10 @@ document.addEventListener('keydown', e => {
   }
 
   // B-202605-014: Ctrl+F / Cmd+F — foco al search global
+  // B-202606-001: ignorar cuando el IDP está abierto
   if (e.key === 'f' && (e.ctrlKey || e.metaKey)) {
+    const idp = document.getElementById('item-detail-panel');
+    if (idp && !idp.classList.contains('is-hidden')) return;
     const si = document.getElementById('search-global');
     if (!si) return;
     e.preventDefault();
@@ -872,7 +875,6 @@ const _SHORTCUT_DEFS = [
   // Acciones globales — T-202604-418
   { id: 'quick-note',    label: 'Nueva nota rápida',              group: 'Acciones',   default: 'n',   chord: false },
   { id: 'save-session',  label: 'Guardar sesión activa',          group: 'Acciones',   default: 's',   chord: false },
-  { id: 'toggle-focus',  label: 'Toggle modo protagonista',       group: 'Acciones',   default: 'f',   chord: false },
   { id: 'search',        label: 'Búsqueda en tab activo',         group: 'Acciones',   default: '/',   chord: false },
   { id: 'paste-ckpt',    label: 'Pegar CHECKPOINT',               group: 'Acciones',   default: 'p',   chord: false },
   // R-202605-065: guardar desde textarea de AI Card — no configurable (combo fijo ⌘/Ctrl+↵)
