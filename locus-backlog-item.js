@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:19 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:20 · autor:Rune · 2026-06-01 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1582,15 +1582,95 @@ function _findTmpMatch(tmpCode, desc, existingItems, incomingType) {
 // B-202605-ids: reservedCodes acumula los códigos asignados en esta pasada para que
 // _getNextItemCode no repita el mismo número cuando hay múltiples [pendiente-ID] del
 // mismo tipo — los ítems nuevos aún no están en window.ITEMS en el momento de la asignación.
+// T-202605-140 T2: Paso 1 — asignar IDs reales y construir slugMap.
+//   slugMap mapea [tmp:slug] y [pendiente-ID] asignado → código real.
+//   Ítems con código real existente se registran como identidad: code → code.
+// T-202605-140 T2: Paso 2 — resolver referencias cruzadas (dependsOn, parentId,
+//   triggeredBy, origenP, promovida_a) usando slugMap. Referencia no resuelta → null/[].
 function _assignPendingIds(tgItems) {
   const validTypes = new Set(['P', 'T', 'R', 'B']);
   const reservedCodes = new Set();
-  return tgItems.map(item => {
-    if (item.code !== '[pendiente-ID]') return item; // AC-4/5: no es placeholder estándar
+
+  // T-202605-140 T2 · Paso 1: construir slugMap mientras se asignan IDs
+  const slugMap = new Map();
+
+  // Pre-poblar slugMap con códigos reales ya existentes (identidad: code → code)
+  tgItems.forEach(item => {
+    if (item.code && !_isPlaceholderCode(item.code)) {
+      slugMap.set(item.code, item.code);
+    }
+  });
+
+  // Asignar IDs a [pendiente-ID] y registrar [tmp:slug] en slugMap
+  const paso1 = tgItems.map(item => {
+    // [tmp:slug]: registrar en slugMap para resolución futura; pasan sin modificar (flujo _findTmpMatch)
+    if (item.code && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
+      // El [tmp:slug] en sí queda sin asignar — slugMap lo registra si ya tiene código previo asignado
+      // (solo aplica en flujos donde el slug ya fue resuelto externamente — aquí es identidad temporal)
+      return item;
+    }
+    if (item.code !== '[pendiente-ID]') return item; // AC-4: código real — sin modificación
     if (!item.type || !validTypes.has(item.type)) return item; // AC-3: type inválido — no asignar
     const newCode = _getNextItemCode(item.type, reservedCodes);
     reservedCodes.add(newCode);
-    return { ...item, code: newCode };
+    slugMap.set('[pendiente-ID]', newCode); // identidad de la última asignación — útil para bloques de un solo ítem
+    return { ...item, code: newCode, _wasAssigned: true };
+  });
+
+  // T-202605-140 T2 · Paso 2: resolver referencias cruzadas usando slugMap
+  // Campos de referencia: dependsOn, parentId, triggeredBy, origenP, promovida_a
+  // Referencia presente en slugMap → reemplazar. No presente y no en window.ITEMS → null/[] + _blogLog.
+  const _refFields = ['parentId', 'triggeredBy', 'origenP', 'promovida_a'];
+  const _listFields = ['dependsOn'];
+
+  return paso1.map(item => {
+    let changed = false;
+    const patch = {};
+
+    // Campos escalares de referencia
+    _refFields.forEach(field => {
+      const val = item[field];
+      if (!val) return;
+      if (_isPlaceholderCode(val)) {
+        const resolved = slugMap.get(val) || null;
+        if (resolved) {
+          patch[field] = resolved;
+          changed = true;
+        } else {
+          // No existe en slugMap ni en window.ITEMS → null + log
+          const existsInBacklog = window.ITEMS && window.ITEMS.find(i => i.code === val);
+          if (!existsInBacklog) {
+            _blogLog('ref-no-resuelta', item.code || '[sin-código]', field + ': ' + val + ' no se encontró en slugMap ni en backlog', 'backlog');
+            patch[field] = null;
+            changed = true;
+          }
+          // Si existe en backlog como código real, conservar (no es placeholder)
+        }
+      }
+    });
+
+    // Campos de lista de referencias (dependsOn)
+    _listFields.forEach(field => {
+      const arr = item[field];
+      if (!Array.isArray(arr) || !arr.length) return;
+      let listChanged = false;
+      const resolved = arr.map(val => {
+        if (!val || !_isPlaceholderCode(val)) return val; // código real — conservar
+        const mapped = slugMap.get(val) || null;
+        if (mapped) { listChanged = true; return mapped; }
+        // No existe en slugMap ni en backlog → null + log
+        const existsInBacklog = window.ITEMS && window.ITEMS.find(i => i.code === val);
+        if (!existsInBacklog) {
+          _blogLog('ref-no-resuelta', item.code || '[sin-código]', field + '[]: ' + val + ' no se encontró en slugMap ni en backlog', 'backlog');
+          listChanged = true;
+          return null;
+        }
+        return val;
+      }).filter(v => v !== null);
+      if (listChanged) { patch[field] = resolved; changed = true; }
+    });
+
+    return changed ? { ...item, ...patch } : item;
   });
 }
 
