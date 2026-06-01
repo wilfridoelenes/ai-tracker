@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:18 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:19 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -848,7 +848,7 @@ document.addEventListener('DOMContentLoaded', function() {
  *
  * @param {string} sprintId
  */
-function setSprintCurrent(sprintId) {
+export function setSprintCurrent(sprintId) {
   if (!sprintId) return;
 
   const allSprints = getActiveSprints();
