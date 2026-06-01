@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:21 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:22 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -306,10 +306,22 @@ function _renderSprintManager() {
       ? `<button class="sml-retro-btn" data-sprint-id="${sprint.id}" type="button">Ver retro</button>`
       : '';
 
+    // T-202605-134: badge "En curso" (current:true) y botón "Marcar en curso" (active + current:false)
+    const isCurrent    = isActive && !!sprint.current;
+    const canMarkCurrent = isActive && !sprint.current;
+    const currentBadge = isCurrent
+      ? `<span class="sml-badge sml-badge--current" data-sprint-current-badge="${sprint.id}">En curso</span>`
+      : `<span class="sml-badge sml-badge--current is-hidden" data-sprint-current-badge="${sprint.id}">En curso</span>`;
+    const currentBtn   = canMarkCurrent
+      ? `<button class="sml-current-btn" data-sprint-set-current="${sprint.id}" type="button" aria-pressed="false" title="Marcar como sprint en curso">Marcar en curso</button>`
+      : `<button class="sml-current-btn is-hidden" data-sprint-set-current="${sprint.id}" type="button" aria-pressed="${isCurrent}" title="${isCurrent ? 'Desmarcar sprint en curso' : 'Marcar como sprint en curso'}">Marcar en curso</button>`;
+
     return `<div class="${rowCls}">
   <div class="sml-row-top">
     <span class="sml-row-name">${label}</span>
     <span class="sml-badge ${statusCls}">${statusTxt}</span>
+    ${currentBadge}
+    ${currentBtn}
     ${retroBtn}
   </div>
   <div class="sml-row-bottom">
@@ -786,11 +798,22 @@ document.addEventListener('DOMContentLoaded', function() {
   const smlContainer = document.getElementById('sprint-manager-list');
   if (smlContainer) {
     smlContainer.addEventListener('click', function(e) {
-      const btn = e.target.closest('.sml-retro-btn');
-      if (!btn) return;
-      const sprintId = btn.dataset.sprintId;
-      if (sprintId && typeof openSprintRetroView === 'function') {
-        openSprintRetroView(sprintId);
+      // B-202605-050: Ver retro
+      const retroBtn = e.target.closest('.sml-retro-btn');
+      if (retroBtn) {
+        const sprintId = retroBtn.dataset.sprintId;
+        if (sprintId && typeof openSprintRetroView === 'function') {
+          openSprintRetroView(sprintId);
+        }
+        return;
+      }
+
+      // T-202605-134: Marcar / desmarcar sprint en curso
+      const currentBtn = e.target.closest('.sml-current-btn');
+      if (currentBtn) {
+        const sprintId = currentBtn.dataset.sprintSetCurrent;
+        if (sprintId) setSprintCurrent(sprintId);
+        return;
       }
     });
   }
