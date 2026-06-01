@@ -1,6 +1,6 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:15 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:16 · autor:Rune · 2026-05-31 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
-import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, toggleBacklogFocusMode, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogFocusMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
+import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, setFilter, updateBacklogFooter } from './locus-backlog-item.js';
 
@@ -56,7 +56,7 @@ export function updateClearFilterBtn() {
   const noSearch = !_getBacklogSearchQuery();
   const noRoleFilter = _getActiveRoleFilter() === null;
   const noPriorityFilter = _getActivePriorityFilter().size === 0; // T-202604-357
-  const isDefault = allTypes && defaultStatus && noSearch && noRoleFilter && noPriorityFilter && !_getBacklogFocusMode() && !_getBacklogNoAcMode();
+  const isDefault = allTypes && defaultStatus && noSearch && noRoleFilter && noPriorityFilter && !_getBacklogNoAcMode();
   btn.classList.toggle('is-hidden', isDefault);
 
   // R-202605-094: chips individuales limpiables por filtro activo
@@ -79,7 +79,6 @@ export function updateClearFilterBtn() {
       else if (act === 'effort')   { if (typeof toggleEffortFilter   === 'function') toggleEffortFilter(parseInt(val, 10)); }
       else if (act === 'search')   { if (typeof clearBacklogSearch   === 'function') clearBacklogSearch(); }
       else if (act === 'noac')     { if (typeof toggleBacklogNoAcMode  === 'function') toggleBacklogNoAcMode(); }
-      else if (act === 'focus')    { if (typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode(); }
     });
   }
 
@@ -118,7 +117,6 @@ export function updateClearFilterBtn() {
   }
   if (!noSearch) chips.push(_chip(`"${_getBacklogSearchQuery()}"`, 'search'));
   if (_getBacklogNoAcMode()) chips.push(_chip('Sin AC', 'noac'));
-  if (_getBacklogFocusMode()) chips.push(_chip('Focus top 10', 'focus'));
 
   wrap.innerHTML = chips.join('');
 }
@@ -195,7 +193,6 @@ export function renderBacklogList(onRendered) {
   // R-[tmp:toolbar-backlog-redesign]: botones de vista ya son estáticos en HTML — solo actualizar estado
   (function _updateViewBtns() {
     const treeBtn   = document.getElementById('fbar-tree-btn');
-    const focusBtn  = document.getElementById('fbar-focus-btn');
     const kanbanBtn = document.getElementById('fbar-kanban-btn');
     const mikeBtn   = document.getElementById('fbar-mike-btn');
 
@@ -207,13 +204,6 @@ export function renderBacklogList(onRendered) {
     if (kanbanBtn) {
       kanbanBtn.classList.toggle('active', _getBacklogKanbanMode());
       kanbanBtn.title = _getBacklogKanbanMode() ? 'Vista Kanban activa — click para desactivar' : 'Vista Kanban — columnas por status';
-    }
-    if (focusBtn) {
-      focusBtn.classList.toggle('active', _getBacklogFocusMode());
-      focusBtn.title = _getBacklogFocusMode()
-        ? 'Focus activo — Top 10 por: tipo · sprint · effort · antigüedad · click para desactivar'
-        : 'Activar Focus — Top 10 por: tipo · sprint · effort · antigüedad';
-      if (!_getBacklogFocusMode()) focusBtn.textContent = '🎯 Focus';
     }
     // Mi vista — visible solo con sprint activo + roles disponibles
     if (mikeBtn) {
@@ -387,40 +377,6 @@ export function renderBacklogList(onRendered) {
 
   updateClearFilterBtn();
 
-  // R-202605-165: Focus mode — Top-10 sprint-aware con .blf-hidden + aria-hidden (CSS collapse 150ms)
-  // AC: sprint activo + high→medium primero · sin sprint activo: score global · ≤10 = todos visibles
-  // AC: NO filtra filtered — aplica _blfHidden en ítems fuera del Top-10 → buildBacklogItem añade clase
-  filtered.forEach(item => { delete item._blfHidden; delete item._focusRank; });
-  if (_getBacklogFocusMode()) {
-    const pendienteFiltered = filtered.filter(i => i.status === 'pendiente');
-    const _focusActiveSprint = _getActiveSprint();
-    let sorted;
-    if (_focusActiveSprint) {
-      // Sprint activo: high→medium en sprint activo primero, luego resto por score
-      const _priVal = p => { const v = p || 'medium'; return (v === 'high' || v === 'important' || v === 'critical' || v === 'importante') ? 0 : (v === 'medium') ? 1 : 2; };
-      const inSprint  = pendienteFiltered.filter(i => (i.sprint || '').trim() === _focusActiveSprint.id && _priVal(i.priority) <= 1);
-      const outSprint = pendienteFiltered.filter(i => !((i.sprint || '').trim() === _focusActiveSprint.id && _priVal(i.priority) <= 1));
-      inSprint.sort((a, b) => _priVal(a.priority) - _priVal(b.priority) || (b._score || 0) - (a._score || 0));
-      outSprint.sort((a, b) => (b._score || 0) - (a._score || 0));
-      sorted = [...inSprint, ...outSprint];
-    } else {
-      sorted = [...pendienteFiltered].sort((a, b) => (b._score || 0) - (a._score || 0));
-    }
-    const showAll = sorted.length <= 10;
-    const top10Codes = new Set(sorted.slice(0, 10).map(i => i.code));
-    // Estampar rank y flag oculto — buildBacklogItem aplica .blf-hidden + aria-hidden
-    sorted.slice(0, 10).forEach((item, idx) => { item._focusRank = idx + 1; });
-    filtered.forEach(item => {
-      if (item.status !== 'pendiente' || !top10Codes.has(item.code)) item._blfHidden = true;
-    });
-    // AC: label dinámico en botón con conteo real
-    const focusBtn = document.getElementById('fbar-focus-btn');
-    if (focusBtn) {
-      const visibleCount = Math.min(sorted.length, 10);
-      focusBtn.textContent = `🎯 Focus (${showAll ? 'todos' : visibleCount})`;
-    }
-  }
-
   // T-202604-313/366: Mi vista — T's pendientes del rol activo en sprint activo
   if (_getBacklogMikeMode()) {
     const _activeSprint = _getActiveSprint();
@@ -505,7 +461,7 @@ export function renderBacklogList(onRendered) {
   // T-202604-424 eliminó 'sprint' como opción del selector de sort, pero la condición de entrada
   // quedó atada a _getBacklogSortMode() === 'sprint' — inalcanzable. Fix: agrupar siempre que no haya
   // un modo exclusivo activo que tome control del rendering (kanban, focus, mike, noAc).
-  const _useSprintGroups = _getBacklogSprintGroupMode() && !_getBacklogKanbanMode() && !_getBacklogFocusMode() && !_getBacklogMikeMode() && !_getBacklogNoAcMode();
+  const _useSprintGroups = _getBacklogSprintGroupMode() && !_getBacklogKanbanMode() && !_getBacklogMikeMode() && !_getBacklogNoAcMode();
 
   if (_useSprintGroups) {
     // ── Modo Sprint: agrupar pendientes por sprint ──
@@ -729,7 +685,7 @@ export function renderBacklogList(onRendered) {
     const _hasRoleFilter  = _getActiveRoleFilter() !== null;
     const _hasStatusFilter = !(_getActiveStatuses().has('pendiente') && _getActiveStatuses().size === 1);
     const _hasEffortFilter = _getActiveEfforts().size < 3;
-    const _hasAnyFilter = q || _hasTypeFilter || _hasRoleFilter || _hasStatusFilter || _hasEffortFilter || _getBacklogFocusMode() || _getBacklogMikeMode();
+    const _hasAnyFilter = q || _hasTypeFilter || _hasRoleFilter || _hasStatusFilter || _hasEffortFilter || _getBacklogMikeMode();
 
     let emptyIcon = '🔍', emptyTitle = '', emptyHint = '', emptyCTA = '';
 
@@ -744,25 +700,6 @@ export function renderBacklogList(onRendered) {
       emptyTitle = `Sin T's pendientes para ${_miRole} en ${_activeSprint.label || _activeSprint.id}`;
       emptyHint  = 'No hay tickets pendientes asignados a este rol en el sprint activo. Rota al siguiente rol o desactiva Mi vista.';
       emptyCTA   = `<button class="empty-state-btn" data-action="es-toggle-mike">↻ Rotar rol / desactivar</button>`;
-    } else if (_getBacklogFocusMode()) {
-      emptyIcon  = '🎯';
-      emptyTitle = 'Sin ítems en Focus';
-      emptyHint  = 'No hay ítems pendientes con los filtros actuales.';
-      emptyCTA   = `<button class="empty-state-btn" data-action="es-toggle-focus">✕ Desactivar Focus</button>`;
-    } else if (_getBacklogSortMode() === 'sprint' && _activeSprint) {
-      emptyIcon  = '📅';
-      emptyTitle = `Sin ítems en ${_activeSprint.label || _activeSprint.id}`;
-      emptyHint  = 'El sprint activo no tiene ítems con los filtros actuales. Asigna ítems desde el editor o cambia el sprint.';
-      emptyCTA   = `<button class="empty-state-btn" data-action="es-filter-all">Ver todos los ítems</button>`;
-    } else if (_hasAnyFilter) {
-      emptyTitle = 'Sin ítems con estos filtros';
-      emptyHint  = 'Los filtros activos no coinciden con ningún ítem. Limpia los filtros para ver el backlog completo.';
-      emptyCTA   = `<button class="empty-state-btn" data-action="es-clear-filters">✕ Limpiar filtros</button>`;
-    } else {
-      emptyIcon  = '📋';
-      emptyTitle = 'Sin ítems que mostrar';
-      emptyHint  = 'No hay ítems en el backlog con el estado actual.';
-    }
 
     html = `<div class="empty-state">
       <div class="empty-state-icon">${emptyIcon}</div>
