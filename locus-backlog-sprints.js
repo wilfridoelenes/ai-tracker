@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:23 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:24 · autor:Rune · 2026-06-01 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -609,6 +609,8 @@ export function setSprintStatus(id, newStatus) {
   if (newStatus === 'closed')  sp.closedAt  = sp.closedAt  || Date.now();
   if (newStatus === 'closed')  sp.endsAt    = sp.endsAt    || Date.now();
   if (newStatus !== 'closed') { delete sp.closedAt; delete sp.endsAt; }
+  // B-202606-005: limpiar current:true al cerrar — state no debe tener sprints cerrados marcados como en curso
+  if (newStatus === 'closed')  delete sp.current;
   // B-202605-210 guard: al cerrar un sprint directamente (sin modal), desasignar
   // ítems pendientes que quedaron huérfanos para evitar data inconsistente.
   if (newStatus === 'closed') {
