@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-14 · mod:8 · autor:Rune · 2026-05-31 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-14 · mod:9 · autor:Rune · 2026-06-01 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -4454,35 +4454,7 @@ er {
 
 /* ══ END R-202605-098 ══ */
 
-/* ══ R-202605-104: Jerarquía visual sección Ideas — indentado exclusivo padre-hijo ══ */
-
-/* ── Header sg-ideas diferenciado del header de sprint ─────────────────────── */
-
-/* Sprint header usa .version-header con background var(--surface2) y border completo.
-   Ideas header usa .section-group-header — diferenciamos con borde izquierdo de color idea
-   y background más cálido para comunicar que es una zona conceptual, no de ejecución. */
-.sg-ideas .section-group-header {
-  background:   var(--idea-bg, hsl(42deg 80% 96%));
-  border-left:  3px solid var(--idea-color, hsl(42deg 90% 52%));
-  color:        var(--idea-color-dim, hsl(42deg 70% 40%));
-  font-style:   italic;
-}
-
-.sg-ideas .section-group-header:hover {
-  background:   var(--idea-bg-hover, hsl(42deg 70% 92%));
-  color:        var(--idea-color, hsl(42deg 90% 52%));
-}
-
-[data-theme="dark"] .sg-ideas .section-group-header,
-.theme-dark .sg-ideas .section-group-header {
-  background:   var(--idea-bg, hsl(42deg 30% 12%));
-  border-left-color: var(--idea-badge-bg, hsl(42deg 80% 48%));
-  color:        var(--idea-color-dim, hsl(42deg 40% 55%));
-}
-
-/* ── Badge "sin sprint" — comunica ausencia de sprint en el ítem ──────────── */
-
-/* No usar indentado para este propósito — el badge va en bitem-subline */
+/* ── Badge "sin sprint" — comunica ausencia de sprint en ítem P sin asignar ── */
 .bitem-no-sprint {
   font-size: var(--text-3xs);
   font-family:  var(--mono);
@@ -4494,13 +4466,6 @@ er {
   opacity:      0.7;
   white-space:  nowrap;
 }
-
-/* ── Nivel visual: ítems dentro de sg-ideas al mismo nivel que ítems de sprint ─ */
-
-/* section-group-body ya tiene padding: 6px 0 — sin padding lateral adicional */
-
-/* Los ítems en version-group-body tampoco tienen padding-left — mismo nivel visual */
-/* ══ END R-202605-104 ══ */
 
 
 
