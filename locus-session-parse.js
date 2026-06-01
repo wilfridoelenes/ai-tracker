@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:13 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:14 · autor:Rune · 2026-06-01 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -395,7 +395,11 @@ export function parsePaste(id) {
           discardRef:    _it.ref    || '',
           blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : [],
           parentId:      _it.parentId || _it.parent || null,  // B-202605-055: schema usa "parent", campo interno es "parentId"
-          origin:        _it.origin   || null   // R-202605-004: trazabilidad de ítems derivados
+          origin:        _it.origin   || null,  // R-202605-004: trazabilidad de ítems derivados
+          dependsOn:     Array.isArray(_it.depends_on) ? _it.depends_on : [],  // T-202605-139
+          triggeredBy:   _it.triggered_by  || null,                            // T-202605-139
+          origenP:       _it.origen_p      || null,                            // T-202605-139
+          promovida_a:   _it.promovida_a   || null                             // T-202605-139
         });
         // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
         _normalizeSprint(tgItems[tgItems.length - 1]);
@@ -481,7 +485,11 @@ export function parsePaste(id) {
             discardRef:    _it.ref    || '',
             blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : [],
             parentId:      _it.parentId || _it.parent || null,  // B-202605-055: schema usa "parent", campo interno es "parentId"
-            origin:        _it.origin   || null   // R-202605-004: trazabilidad de ítems derivados
+            origin:        _it.origin   || null,  // R-202605-004: trazabilidad de ítems derivados
+            dependsOn:     Array.isArray(_it.depends_on) ? _it.depends_on : [],  // T-202605-139
+            triggeredBy:   _it.triggered_by  || null,                            // T-202605-139
+            origenP:       _it.origen_p      || null,                            // T-202605-139
+            promovida_a:   _it.promovida_a   || null                             // T-202605-139
           });
           // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
           _normalizeSprint(tgItems[tgItems.length - 1]);
