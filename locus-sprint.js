@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:23 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:24 · autor:Rune · 2026-05-31 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -901,6 +901,9 @@ export function setSprintCurrent(sprintId) {
 
   // Persistir
   if (typeof save === 'function') save();
+
+  // T-202605-142: sincronizar header y burndown del tab Sprint en tiempo real
+  renderSprintTab();
 
   // Actualizar DOM — sin reload
   _syncCurrentBadges(allSprints);
