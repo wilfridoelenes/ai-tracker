@@ -1,6 +1,6 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:16 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-14 · mod:17 · autor:Rune · 2026-05-31 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
-import { _buildRoleChips, _getMiViewLabel, _getMiViewRoles, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogMikeMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getMiViewRoleIndex, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogMikeMode, toggleBacklogNoAcMode } from './locus-backlog-core.js';
+import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, setFilter, updateBacklogFooter } from './locus-backlog-item.js';
 
@@ -194,7 +194,6 @@ export function renderBacklogList(onRendered) {
   (function _updateViewBtns() {
     const treeBtn   = document.getElementById('fbar-tree-btn');
     const kanbanBtn = document.getElementById('fbar-kanban-btn');
-    const mikeBtn   = document.getElementById('fbar-mike-btn');
 
     if (treeBtn) {
       treeBtn.classList.toggle('active', _getBacklogTreeMode());
@@ -204,17 +203,6 @@ export function renderBacklogList(onRendered) {
     if (kanbanBtn) {
       kanbanBtn.classList.toggle('active', _getBacklogKanbanMode());
       kanbanBtn.title = _getBacklogKanbanMode() ? 'Vista Kanban activa — click para desactivar' : 'Vista Kanban — columnas por status';
-    }
-    // Mi vista — visible solo con sprint activo + roles disponibles
-    if (mikeBtn) {
-      const activeSprint = _getActiveSprint();
-      const miRoles = _getMiViewRoles();
-      const show = !!(activeSprint && miRoles.length);
-      mikeBtn.classList.toggle('is-hidden', !show);
-      if (show) {
-        mikeBtn.classList.toggle('active', _getBacklogMikeMode());
-        mikeBtn.textContent = _getBacklogMikeMode() ? _getMiViewLabel() : 'Mi vista';
-      }
     }
     // Sin AC y bloqueados
     const noAcBtn = document.getElementById('fbar-no-ac-btn');
@@ -377,21 +365,6 @@ export function renderBacklogList(onRendered) {
 
   updateClearFilterBtn();
 
-  // T-202604-313/366: Mi vista — T's pendientes del rol activo en sprint activo
-  if (_getBacklogMikeMode()) {
-    const _activeSprint = _getActiveSprint();
-    if (_activeSprint) {
-      const _miRoles = _getMiViewRoles();
-      const _miRole = _miRoles[_getMiViewRoleIndex() % _miRoles.length] || null;
-      filtered = filtered.filter(i =>
-        itemType(i.code) === 'T' &&
-        i.status === 'pendiente' &&
-        i.sprint === _activeSprint.id &&
-        (!_miRole || (i.role || '').trim() === _miRole)
-      );
-    }
-  }
-
   // T-202604-065: sort dentro de cada grupo — T-072: respeta _getBacklogSortDir()
   const _priOrder = { high: 0, important: 0, critical: 0, importante: 0, medium: 1, low: 2, futura: 2, baja: 2 };
   const _typeOrder = { B: 0, T: 1, R: 2, I: 3 };
@@ -460,8 +433,8 @@ export function renderBacklogList(onRendered) {
   // B-202605-206: agrupación por sprint es el comportamiento por defecto.
   // T-202604-424 eliminó 'sprint' como opción del selector de sort, pero la condición de entrada
   // quedó atada a _getBacklogSortMode() === 'sprint' — inalcanzable. Fix: agrupar siempre que no haya
-  // un modo exclusivo activo que tome control del rendering (kanban, focus, mike, noAc).
-  const _useSprintGroups = _getBacklogSprintGroupMode() && !_getBacklogKanbanMode() && !_getBacklogMikeMode() && !_getBacklogNoAcMode();
+  // un modo exclusivo activo que tome control del rendering (kanban, noAc).
+  const _useSprintGroups = _getBacklogSprintGroupMode() && !_getBacklogKanbanMode() && !_getBacklogNoAcMode();
 
   if (_useSprintGroups) {
     // ── Modo Sprint: agrupar pendientes por sprint ──
@@ -685,7 +658,7 @@ export function renderBacklogList(onRendered) {
     const _hasRoleFilter  = _getActiveRoleFilter() !== null;
     const _hasStatusFilter = !(_getActiveStatuses().has('pendiente') && _getActiveStatuses().size === 1);
     const _hasEffortFilter = _getActiveEfforts().size < 3;
-    const _hasAnyFilter = q || _hasTypeFilter || _hasRoleFilter || _hasStatusFilter || _hasEffortFilter || _getBacklogMikeMode();
+    const _hasAnyFilter = q || _hasTypeFilter || _hasRoleFilter || _hasStatusFilter || _hasEffortFilter;
 
     let emptyIcon = '🔍', emptyTitle = '', emptyHint = '', emptyCTA = '';
 
@@ -693,13 +666,15 @@ export function renderBacklogList(onRendered) {
       emptyTitle = `Sin resultados para "${esc(q)}"`;
       emptyHint  = 'Prueba con otro término o limpia la búsqueda.';
       emptyCTA   = `<button class="empty-state-btn" data-action="es-clear-search">✕ Limpiar búsqueda</button>`;
-    } else if (_getBacklogMikeMode() && _activeSprint) {
-      const _miRoles = _getMiViewRoles();
-      const _miRole = _miRoles[_getMiViewRoleIndex() % _miRoles.length] || 'este rol';
-      emptyIcon  = '⚡';
-      emptyTitle = `Sin T's pendientes para ${_miRole} en ${_activeSprint.label || _activeSprint.id}`;
-      emptyHint  = 'No hay tickets pendientes asignados a este rol en el sprint activo. Rota al siguiente rol o desactiva Mi vista.';
-      emptyCTA   = `<button class="empty-state-btn" data-action="es-toggle-mike">↻ Rotar rol / desactivar</button>`;
+    } else if (_hasAnyFilter) {
+      emptyTitle = 'Sin resultados con los filtros activos';
+      emptyHint  = 'Prueba ajustando o limpiando los filtros.';
+      emptyCTA   = `<button class="empty-state-btn" data-action="es-clear-filters">✕ Limpiar filtros</button>`;
+    } else {
+      emptyIcon  = '📋';
+      emptyTitle = 'Sin ítems pendientes';
+      emptyHint  = 'Todos los ítems están completados o no hay trabajo asignado a este sprint.';
+    }
 
     html = `<div class="empty-state">
       <div class="empty-state-icon">${emptyIcon}</div>
