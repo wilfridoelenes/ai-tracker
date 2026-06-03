@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:5 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-10 · mod:6 · autor:Rune · 2026-06-03 UTC-6
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -102,7 +102,6 @@ function _buildSprintOption(sp) {
   const isActive = status === 'active';
   const isClosed = status === 'closed';
   const isSelected = _roadmapSprintFilter === id;
-  const getItems() = getItems();
   const total = getItems().filter(i => (i.sprint || '').trim() === id).length;
   const done  = getItems().filter(i => (i.sprint || '').trim() === id && i.status === 'done').length;
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
@@ -128,7 +127,6 @@ function _buildSprintOption(sp) {
 }
 
 function _buildSprintSelector() {
-  const getItems() = getItems();
   const allSprints = getActiveSprints() || [];
   if (!allSprints.length) return '';
 
@@ -183,7 +181,6 @@ function _buildSprintSelector() {
 
 // abrir dropdown del sprint selector
 function _blSprintOpen() {
-  const getItems() = getItems();
   const bar = document.getElementById('bl-sprint-bar');
   const trigger = document.getElementById('bl-sprint-trigger');
   if (!bar || !trigger) return;
@@ -322,7 +319,6 @@ export function _renderSprintRoadmap() {
 // R-202605-130: vista Planificación — layout dos columnas con drag & drop
 // T-202605-028: columna derecha muestra todos los sprints active como destinos
 export function _renderPlanningView(listEl, closeCallback) {
-  const getItems() = getItems();
   const activeSprint = _getActiveSprint();
   const allSprints   = getActiveSprints();
   // T-202605-028: todos los sprints con status active son destinos válidos
@@ -509,7 +505,6 @@ function _planDragLeave(e) {
 }
 
 function _planDrop(e, targetCol) {
-  const getItems() = getItems();
   e.preventDefault();
   // T-202605-028: limpiar en el destino exacto que recibió el drop
   const dropTarget = e.currentTarget;
