@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-15 · mod:30 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:32 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1762,7 +1762,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
   const tmpSuggestions = [];
 
   // Orden de avance: pendiente < done < descartado (descartado solo vía confirmación)
-  const _statusRank = { pendiente: 0, 'en-revision': 0.5, done: 1, descartado: 2 };
+  const _statusRank = { pendiente: 0, 'en-revision': 0.5, promovida: 0.8, done: 1, descartado: 2 }; // T-202606-032 / B-202606-016: promovida con rank 0.8
 
   // B-202605-007: snapshot antes de cualquier mutación — incluye cierre automático de P padre
   if (!_dryRun) _undoSnapshot();
@@ -2048,7 +2048,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           type: _incomingType,
           title: item.title || item.code,
           desc: '',
-          priority: 'medium',
+          priority: item.priority || 'medium',  // T-202606-032 / B-202606-015: tomar priority del ítem entrante — no hardcodear 'medium'
           area: item.area || '',
           effort: item.effort || 1,
           impact: 'Medio',
@@ -2063,6 +2063,16 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           triggeredBy: item.triggeredBy || null,
           origenP: item.origenP || null,
           promovida_a: item.promovida_a || null,
+          // T-202606-025: persistir discard_reason solo en P con status descartado
+          ...(_incomingType === 'P' && initialStatus === 'descartado' && item.discard_reason !== undefined
+            ? (() => {
+                const _VALID_DISCARD_REASONS = new Set(['duplicado', 'fuera de alcance', 'reemplazado', 'obsoleto']);
+                if (!_VALID_DISCARD_REASONS.has(item.discard_reason)) {
+                  _blogLog('discard-reason-no-canonico', item.code, 'discard_reason con valor no canónico: ' + item.discard_reason, 'backlog');
+                }
+                return { discard_reason: item.discard_reason };
+              })()
+            : {}),
           blockedBy: item.blockedBy || [],
           blocking: item.blocking || false,
           sessionId: sessionId || null,
@@ -2199,7 +2209,7 @@ function _isActiveRecently(item) {
 // AC-8: mezcla ítems + patches en mismo ---window.ITEMS--- → parser separa por type
 // AC-9: panel diff muestra solo campos del patch (changes array)
 // AC-11: sin regresión en mergeBacklogFromTG
-const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId', 'promovida_a', 'origenP']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable · T-202605-137: promovida_a + origenP patcheables
+const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId', 'promovida_a', 'origenP', 'discard_reason']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable · T-202605-137: promovida_a + origenP patcheables · T-202606-025: discard_reason patcheable
 const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version']);
 
 export function applyPatchesFromTG(patches, sessionId) {
@@ -2316,6 +2326,22 @@ export function applyPatchesFromTG(patches, sessionId) {
               _blogLog('origen-p-escrito', existing.code, existing.code + ' → origenP en ' + resolvedIncoming, 'backlog');
             }
           }
+        }
+        return;
+      }
+      // T-202606-025: discard_reason — solo persiste en P con status descartado
+      if (field === 'discard_reason') {
+        const _targetType = existing.type;
+        const _targetStatus = existing.status;
+        // AC-3: si el ítem no es P con status descartado → ignorar silenciosamente
+        if (_targetType !== 'P' || _targetStatus !== 'descartado') return;
+        if (incoming !== undefined && incoming !== null && incoming !== current) {
+          const _VALID_DISCARD_REASONS = new Set(['duplicado', 'fuera de alcance', 'reemplazado', 'obsoleto']);
+          if (!_VALID_DISCARD_REASONS.has(incoming)) {
+            _blogLog('discard-reason-no-canonico', code, 'discard_reason con valor no canónico: ' + incoming, 'backlog');
+          }
+          changes.push({ field, from: current !== undefined ? current : '—', to: incoming });
+          existing[field] = incoming;
         }
         return;
       }

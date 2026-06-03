@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-15 · mod:17 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:19 · autor:Rune · 2026-06-03 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -390,6 +390,7 @@ export function parsePaste(id) {
           code:          _it.code,
           title:         _it.title  || _it.desc  || '',
           desc:          _it.title  || _it.desc  || '',
+          priority:      _it.priority || 'medium',                             // T-202606-031
           status:        normStatus(_normSt),
           _noStatus:     false,
           effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
@@ -484,6 +485,7 @@ export function parsePaste(id) {
             code:          _it.code,
             title:         _it.title  || _it.desc  || '',
             desc:          _it.title  || _it.desc  || '',
+            priority:      _it.priority || 'medium',                             // T-202606-031
             status:        normStatus(_normSt2),
             _noStatus:     false,
             effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
