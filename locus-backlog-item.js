@@ -1,10 +1,10 @@
-// [PP] v1.0.7 · sprint:PP-S-09 · mod:34 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-10 · mod:35 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getBacklogSprintGroupMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, itemType, renderStats, setItemStatus, updateBacklogBanner } from './locus-backlog-core.js';
+import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getBacklogSprintGroupMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemType, renderStats, setItemStatus, updateBacklogBanner } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
 import { _normalizeSprint } from './locus-session-parse.js';
 import { _blogLog, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog } from './locus-storage.js';
@@ -90,7 +90,7 @@ export function _renderKanban(listEl) {
 
   // Filtrar aplicando los mismos filtros activos del backlog
   const q = backlogSearchQuery;
-  let allFiltered = window.ITEMS.filter(i => {
+  let allFiltered = getItems().filter(i => {
     const type = itemType(i.code);
     const typeOk = type ? _getActiveTypes().has(type) : true;
     const _rawEffortK = parseInt(i.effort) || 1;
@@ -193,7 +193,7 @@ function _kbDrop(event, toStatus) {
 function _kbCardClick(event, code) {
   // No abrir si fue un drag (el drag pone clase antes del click)
   if (event.defaultPrevented) return;
-  const item = window.ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
   _openItemEditorSafe(item.id || null, code); // B-202605-012
 }
@@ -233,7 +233,7 @@ export function _attachBacklogListDelegation() {
       e.stopPropagation();
       const code   = action.dataset.childCode;
       const safeId = action.dataset.safeId;
-      const ci = window.ITEMS.findIndex(x => x.code === code);
+      const ci = getItems().findIndex(x => x.code === code);
       if (ci >= 0) toggleItemExpand(ci);
       const arrow = document.getElementById('ciarrow-' + safeId);
       const body  = document.getElementById('ibody-'  + safeId);
@@ -542,12 +542,12 @@ export function _attachBacklogDnD() {
         const fromCode = e.dataTransfer.getData('text/plain');
         const toCode = el.dataset.code;
         if (!fromCode || fromCode === toCode) return;
-        const fromIdx = window.ITEMS.findIndex(i => i.code === fromCode);
-        const toIdx   = window.ITEMS.findIndex(i => i.code === toCode);
+        const fromIdx = getItems().findIndex(i => i.code === fromCode);
+        const toIdx   = getItems().findIndex(i => i.code === toCode);
         if (fromIdx < 0 || toIdx < 0) return;
-        if ((window.ITEMS[fromIdx].sprint || '') !== (window.ITEMS[toIdx].sprint || '')) return;
-        const [moved] = window.ITEMS.splice(fromIdx, 1);
-        window.ITEMS.splice(toIdx, 0, moved);
+        if ((getItems()[fromIdx].sprint || '') !== (getItems()[toIdx].sprint || '')) return;
+        const [moved] = getItems().splice(fromIdx, 1);
+        getItems().splice(toIdx, 0, moved);
         _undoSnapshot();
         saveBacklog();
         _markBacklogListDirty(); renderBacklogList();
@@ -560,7 +560,7 @@ export function _attachBacklogDnD() {
 function _inlineEditTitle(code, e) {
   e.stopPropagation(); // evitar toggleItemExpand
   const span = e.target.closest('[data-action="inline-edit-title"]');
-  const item = window.ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
 
   const originalTitle = item.title;
@@ -600,7 +600,7 @@ function _inlineEditTitle(code, e) {
 // T-202604-187/188: _buildChildrenBlock con colapsable y progreso
 function _buildChildrenBlock(rCode) {
   // B-202604-158: respetar filtros activos — solo mostrar hijos que pasan tipo y status
-  const allChildren = window.ITEMS.filter(i => i.parentId === rCode);
+  const allChildren = getItems().filter(i => i.parentId === rCode);
   if (!allChildren.length) return '';
   const children = allChildren.filter(i => {
     const t = itemType(i.code);
@@ -614,7 +614,7 @@ function _buildChildrenBlock(rCode) {
   const isCollapsed = _collapsedChildren.has(rCode);
 
   const childRows = children.map(child => {
-    // B-202605-011: IDs de DOM desde item.code — estables ante mutaciones de window.ITEMS
+    // B-202605-011: IDs de DOM desde item.code — estables ante mutaciones de getItems()
     const cSafeId = child.code.replace(/[^a-zA-Z0-9-_]/g, '_');
     const cType = itemType(child.code) || '';
     const isDoneC = child.status === 'done';
@@ -658,7 +658,7 @@ function _confirmUnlinkChild(childCode, rCode) {
     okLabel: 'Desvincular',
     danger: true
   }, () => {
-    const item = window.ITEMS.find(i => i.code === childCode);
+    const item = getItems().find(i => i.code === childCode);
     if (item) { item.parentId = null; saveBacklog(); _markBacklogListDirty(); renderBacklogList(); renderStats(); showToast('success', `${childCode} desvinculado`); }
   });
 }
@@ -696,7 +696,7 @@ function _buildItemTimestamps(item) {
 // R-[pendiente-ID]: bloque de origen P padre — muestra enlace al P que originó este ítem
 function _buildItemPOriginBlock(item) {
   if (!item.origin) return '';
-  const pItem = window.ITEMS.find(i => i.code === item.origin);
+  const pItem = getItems().find(i => i.code === item.origin);
   const pTitle = pItem ? esc(pItem.title) : '';
   return `<div class="bitem-origin-p-block">
     <span class="bitem-origin-p-label">Origen</span>
@@ -766,7 +766,7 @@ function _openStatusPopover(e, code) {
   if (_statusPopoverCode === code) { _statusPopoverCode = null; return; }
   _statusPopoverCode = code;
 
-  const item = window.ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) { _statusPopoverCode = null; return; }
 
   const isIdea = (itemType(code) || '') === 'P';
@@ -834,7 +834,7 @@ function _openStatusPopover(e, code) {
 
 // T-108: construir un ítem colapsado
 export function buildBacklogItem(item) {
-  const globalIdx = window.ITEMS.indexOf(item);
+  const globalIdx = getItems().indexOf(item);
   const isDone = item.status === 'done';
   const isDiscarded = item.status === 'descartado';
   const isHistorico = item.status === 'historico'; // B-202604-193: read-only
@@ -904,16 +904,16 @@ export function buildBacklogItem(item) {
     : '';
 
   // Children count + progreso para R type (T-188)
-  // B-202605-052: usar window.ITEMS sin filtrar como denominador — los filtros activos no afectan el porcentaje
-  const childCount = type === 'R' ? window.ITEMS.filter(i => i.parentId === item.code).length : 0;
-  const childDoneCount = type === 'R' ? window.ITEMS.filter(i => i.parentId === item.code && i.status === 'done').length : 0;
+  // B-202605-052: usar getItems() sin filtrar como denominador — los filtros activos no afectan el porcentaje
+  const childCount = type === 'R' ? getItems().filter(i => i.parentId === item.code).length : 0;
+  const childDoneCount = type === 'R' ? getItems().filter(i => i.parentId === item.code && i.status === 'done').length : 0;
   const childBadge = (type === 'R' && childCount > 0 && !isDone && !isDiscarded)
     ? `<span class="bitem-child-badge" title="${childDoneCount}/${childCount} tickets done">${childDoneCount}/${childCount} <span class="bitem-child-badge-label">tickets</span></span>`
     : '';
 
   // T-202604-288: badge "Bloqueado por [código]" — blockedBy explícito pendiente
   const blockedByItems = (!isDone && !isDiscarded && item.blockedBy && item.blockedBy.length)
-    ? item.blockedBy.filter(c => { const dep = window.ITEMS.find(i => i.code === c); return !dep || dep.status !== 'done'; })
+    ? item.blockedBy.filter(c => { const dep = getItems().find(i => i.code === c); return !dep || dep.status !== 'done'; })
     : [];
   const blockedByBadge = blockedByItems.length
     ? blockedByItems.map(c =>
@@ -1053,11 +1053,11 @@ export function buildBacklogItem(item) {
         </div>
         ${(type === 'T' || type === 'B') ? (() => {
           // T-202604-354: solo R pendientes, orden descendente por código, label ID · Título truncado 60 chars
-          const rItems = window.ITEMS
+          const rItems = getItems()
             .filter(i => itemType(i.code) === 'R' && i.status === 'pendiente')
             .sort((a, b) => b.code.localeCompare(a.code));
           const _rLabel = r => { const t = r.title || ''; return r.code + ' · ' + (t.length > 60 ? t.slice(0, 57) + '…' : t); };
-          const currentParent = item.parentId ? window.ITEMS.find(i => i.code === item.parentId) : null;
+          const currentParent = item.parentId ? getItems().find(i => i.code === item.parentId) : null;
           const ghostOption = (currentParent && !rItems.find(r => r.code === item.parentId))
             ? '<option value="' + esc(currentParent.code) + '" selected>' + esc(_rLabel(currentParent)) + ' [' + esc(currentParent.status) + ']</option>'
             : '';
@@ -1151,7 +1151,7 @@ export function buildBacklogItem(item) {
 
 // R-[pendiente-ID]: Promover ítem P → T o R con trazabilidad de origen
 function _promoteItem(code) {
-  const item = window.ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
 
   // R-202604-047: shell estático en index.html — inject content + classList
@@ -1203,7 +1203,7 @@ function _promoteSelectType(type) {
 
 function _promoteConfirm(originCode) {
   if (!_promoteTargetType) return;
-  const originItem = window.ITEMS.find(i => i.code === originCode);
+  const originItem = getItems().find(i => i.code === originCode);
   if (!originItem) return;
 
   const newCode = _getNextItemCode(_promoteTargetType);
@@ -1211,7 +1211,7 @@ function _promoteConfirm(originCode) {
 
   // Crear ítem hijo con campos heredados + origin
   // R-202605-098: ítem hijo nace sin esfuerzo — el campo no se hereda del P original
-  window.ITEMS.push({
+  getItems().push({
     id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2, 6),
     code: newCode,
     title: originItem.title,
@@ -1254,7 +1254,7 @@ function _promoteConfirm(originCode) {
 
 // T-202604-236: Promover T → R desde Backlog UI
 function _promoteTtoR(code) {
-  const item = window.ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
   // AC-5: solo en T pendiente o progreso
   if (item.status === 'done' || item.status === 'descartado') return;
@@ -1287,7 +1287,7 @@ function _promoteTtoR(code) {
 }
 
 function _promoteTtoRConfirm(originCode) {
-  const originItem = window.ITEMS.find(i => i.code === originCode);
+  const originItem = getItems().find(i => i.code === originCode);
   if (!originItem) return;
 
   const newCode = _getNextItemCode('R');
@@ -1295,7 +1295,7 @@ function _promoteTtoRConfirm(originCode) {
 
   // AC-2: R hereda desc · area · sprint · tags del T origen
   // AC-4: origin del R apunta al T
-  window.ITEMS.push({
+  getItems().push({
     id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2, 6),
     code: newCode,
     title: originItem.title,
@@ -1371,7 +1371,7 @@ function copyItemCode(e, code, idx) {
 // T-202604-178: copia ítem formateado para sesión FS
 function copyItemToClipboard(e, code) {
   e.stopPropagation();
-  const item = window.ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
 
   const lines = [];
@@ -1501,13 +1501,13 @@ export function updateBacklogFooter() {
 
   const d = new Date().toISOString().split('T')[0];
   const closedSprintIds = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
-  const countable = window.ITEMS.filter(i => _isCountableItem(i) && !i.sprint || !closedSprintIds.has(i.sprint));
-  const total    = window.ITEMS.filter(i => _isCountableItem(i)).length;
-  const pend     = window.ITEMS.filter(i => _isCountableItem(i) && i.status === 'pendiente').length;
-  const done     = window.ITEMS.filter(i => _isCountableItem(i) && i.status === 'done').length;
-  const pIdeas   = window.ITEMS.filter(i => itemType(i.code) === 'P' && i.status !== 'descartado').length;
+  const countable = getItems().filter(i => _isCountableItem(i) && !i.sprint || !closedSprintIds.has(i.sprint));
+  const total    = getItems().filter(i => _isCountableItem(i)).length;
+  const pend     = getItems().filter(i => _isCountableItem(i) && i.status === 'pendiente').length;
+  const done     = getItems().filter(i => _isCountableItem(i) && i.status === 'done').length;
+  const pIdeas   = getItems().filter(i => itemType(i.code) === 'P' && i.status !== 'descartado').length;
   const byType   = { B: 0, T: 0, R: 0, P: 0 };
-  window.ITEMS.forEach(i => { const t = itemType(i.code); if (t && byType[t] !== undefined) byType[t]++; });
+  getItems().forEach(i => { const t = itemType(i.code); if (t && byType[t] !== undefined) byType[t]++; });
   const activeSp = _getActiveSprint();
 
   footer.innerHTML = `
@@ -1526,7 +1526,7 @@ export function updateBacklogFooter() {
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Esfuerzo</span>
         ${[1,2,3].map(e => {
-          const cnt = window.ITEMS.filter(i => (parseInt(i.effort)||1) === e).length;
+          const cnt = getItems().filter(i => (parseInt(i.effort)||1) === e).length;
           return `<button class="bl-filter-chip${_getActiveEfforts().has(e) ? ' active' : ''}" data-action="footer-effort-filter" data-effort="${e}" title="Effort ${e}">E${e} <span>${cnt}</span></button>`;
         }).join('')}
       </div>
@@ -1581,7 +1581,7 @@ function _findTmpMatch(tmpCode, desc, existingItems, incomingType) {
 // AC-5: [tmp:slug] pasan sin modificación — tienen su propio flujo (_findTmpMatch).
 // B-202605-ids: reservedCodes acumula los códigos asignados en esta pasada para que
 // _getNextItemCode no repita el mismo número cuando hay múltiples [pendiente-ID] del
-// mismo tipo — los ítems nuevos aún no están en window.ITEMS en el momento de la asignación.
+// mismo tipo — los ítems nuevos aún no están en getItems() en el momento de la asignación.
 // T-202605-140 T2: Paso 1 — asignar IDs reales y construir slugMap.
 //   slugMap mapea [tmp:slug] y [pendiente-ID] asignado → código real.
 //   Ítems con código real existente se registran como identidad: code → code.
@@ -1687,7 +1687,7 @@ function _assignPendingIds(tgItems) {
         // [pendiente-ID] sin resolucion — conservar literal para pasadas posteriores
       } else {
         // Código con formato real: si no existe en backlog → null + log
-        const existsInBacklog = window.ITEMS && window.ITEMS.find(i => i.code === val);
+        const existsInBacklog = getItems() && getItems().find(i => i.code === val);
         if (!existsInBacklog) {
           _blogLog('ref-no-resuelta', item.code || '[sin-código]', field + ': ' + val + ' no existe en el backlog', 'backlog');
           patch[field] = null;
@@ -1719,7 +1719,7 @@ function _assignPendingIds(tgItems) {
           return val;
         } else {
           // Código con formato real: si no existe en backlog → null + log
-          const existsInBacklog = window.ITEMS && window.ITEMS.find(i => i.code === val);
+          const existsInBacklog = getItems() && getItems().find(i => i.code === val);
           if (!existsInBacklog) {
             _blogLog('ref-no-resuelta', item.code || '[sin-código]', field + '[]: ' + val + ' no existe en el backlog', 'backlog');
             listChanged = true;
@@ -1735,7 +1735,7 @@ function _assignPendingIds(tgItems) {
   });
 }
 
-// ── T-098: Merge TRACKER-GLOBAL → window.ITEMS en memoria ──
+// ── T-098: Merge TRACKER-GLOBAL → getItems() en memoria ──
 // Llamado desde saveSession(). Acumula múltiples sesiones sin exportar.
 // T-202604-121: retorna {created, updated, ignored} para super toast
 export function mergeBacklogFromTG(tgItems, sessionId, opts) {
@@ -1774,7 +1774,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // B-202605-XXX: ítem duplicado (título matchea existente via _assignPendingIds) —
       // aunque se ignore para status/creación, si trae AC se mergean sobre el existente.
       if (item.ac && item.ac.length && item._existingCode && !_dryRun) {
-        const dupExisting = window.ITEMS.find(i => i.code === item._existingCode);
+        const dupExisting = getItems().find(i => i.code === item._existingCode);
         if (dupExisting) {
           dupExisting.ac = item.ac;
           _acReplacedSet.add(dupExisting.id);
@@ -1789,7 +1789,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     }
 
     // B-202604-198: REGLA DE PLACEHOLDER — forzar rama "nuevo" sin intentar match
-    // Un [tmp:slug] o [pendiente-ID] NUNCA matchea contra window.ITEMS existentes.
+    // Un [tmp:slug] o [pendiente-ID] NUNCA matchea contra getItems() existentes.
     // Nota: _assignPendingIds ya habrá convertido [pendiente-ID] con type char real si tiene
     // suficiente info; si no pudo (sin type), sigue siendo placeholder.
     const isPlaceholder = _isPlaceholderCode(item.code);
@@ -1797,7 +1797,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     // B-202604-198: REGLA DE TMP — detectar si [tmp:slug] corresponde a un ID real existente
     // por similitud de título. Si hay match potencial, registrar sugerencia y NO crear duplicado.
     if (isPlaceholder && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
-      const tmpMatch = _findTmpMatch(item.code, item.title, window.ITEMS, item.type);
+      const tmpMatch = _findTmpMatch(item.code, item.title, getItems(), item.type);
       if (tmpMatch) {
         tmpSuggestions.push({
           tmpCode: item.code,
@@ -1812,7 +1812,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     }
 
     // B-202604-198: si es placeholder, saltar directamente a rama "nuevo"
-    const existing = isPlaceholder ? null : window.ITEMS.find(i => i.code === item.code);
+    const existing = isPlaceholder ? null : getItems().find(i => i.code === item.code);
     if (existing) {
       // B-202605-XXX: normalizar type si falta — inferir desde prefijo del código
       if (!existing.type && existing.code) {
@@ -1891,7 +1891,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           changed = true;
           // AC edge case: si promovida_a apunta a código real existente, escribir origenP en el destino
           if (!_isPlaceholderCode(item.promovida_a)) {
-            const destItem = window.ITEMS.find(i => i.code === item.promovida_a);
+            const destItem = getItems().find(i => i.code === item.promovida_a);
             if (destItem && !destItem.origenP) {
               destItem.origenP = existing.code;
               _blogLog('origen-p-escrito', existing.code, existing.code + ' → origenP en ' + item.promovida_a, 'backlog');
@@ -1947,7 +1947,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
       // T-202606-010: R sin Ts válidos → degradar a P antes de persistir.
       // Un R es válido como R solo si hay al menos un T (no descartado) que lo referencia.
-      // Se busca en: (a) el propio batch tgItems del CHECKPOINT, (b) window.ITEMS existentes.
+      // Se busca en: (a) el propio batch tgItems del CHECKPOINT, (b) getItems() existentes.
       // Si no hay ninguno → ingestar como P con campos preservados: title, area, priority, intencion.
       // Campos descartados: ac, kill_criteria, depends_on, parent, schema_version.
       const _incomingTypePreCheck = item.type || (item.code ? item.code.charAt(0) : '');
@@ -1958,7 +1958,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           const iParent = i.parentId || i.parent || null;
           return iType === 'T' && iParent === _rCode && i.status !== 'descartado' && i.status !== 'discarded';
         });
-        const _hasChildInBacklog = window.ITEMS && window.ITEMS.some(i =>
+        const _hasChildInBacklog = getItems() && getItems().some(i =>
           i.parentId === _rCode && i.type === 'T' && i.status !== 'descartado'
         );
         if (!_hasChildInBatch && !_hasChildInBacklog) {
@@ -1993,7 +1993,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
             ...(item.intencion ? { intencion: item.intencion } : {})
           };
           if (!_dryRun) {
-            window.ITEMS.push(_degradedItem);
+            getItems().push(_degradedItem);
             _blogLog('r-degradado-a-p', _rCode, _rCode + ' sin Ts válidos convertido a P — refinar antes de promover', 'backlog');
             changed = true;
           }
@@ -2026,7 +2026,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
         if (_incomingType === 'R') {
                       _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ítems tipo R no pueden tener padre. parentId recibido: ' + item.parentId, 'backlog');
         } else {
-          const _parentCandidate = window.ITEMS.find(p => p.code === item.parentId);
+          const _parentCandidate = getItems().find(p => p.code === item.parentId);
           if (!_parentCandidate) {
                           _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: código ' + item.parentId + ' no existe en el backlog', 'backlog');
           } else if (_parentCandidate.type !== 'R') {
@@ -2039,10 +2039,10 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
       // B-202604-015: heredar sprint del padre si el ítem no trae sprint propio
       const _parentSprint = (!item.sprint && _resolvedParentId)
-        ? (window.ITEMS.find(p => p.code === _resolvedParentId) || {}).sprint || ''
+        ? (getItems().find(p => p.code === _resolvedParentId) || {}).sprint || ''
         : '';
       if (!_dryRun) {
-        window.ITEMS.push({
+        getItems().push({
           id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
           code: item.code,
           type: _incomingType,
@@ -2085,7 +2085,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
         // R-[pendiente-ID]: si el nuevo ítem tiene origin → cerrar automáticamente el P padre
         if (item.origin) {
-          const pParent = window.ITEMS.find(p => p.code === item.origin);
+          const pParent = getItems().find(p => p.code === item.origin);
           if (pParent && pParent.status !== 'done') {
             pParent.status = 'done';
             pParent.doneAt = pParent.doneAt || nowTs;
@@ -2183,7 +2183,7 @@ function _isActiveRecently(item) {
 // AC-5: código no existe en backlog → advertencia DocLog, sin crash
 // AC-6: código placeholder → ignorado (manejado en parsePaste antes de llegar aquí)
 // AC-7: status done → mismas reglas de confirmación que done manual (vía setItemStatus)
-// AC-8: mezcla ítems + patches en mismo ---window.ITEMS--- → parser separa por type
+// AC-8: mezcla ítems + patches en mismo ---getItems()--- → parser separa por type
 // AC-9: panel diff muestra solo campos del patch (changes array)
 // AC-11: sin regresión en mergeBacklogFromTG
 const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId', 'promovida_a', 'origenP', 'discard_reason']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable · T-202605-137: promovida_a + origenP patcheables · T-202606-025: discard_reason patcheable
@@ -2203,7 +2203,7 @@ export function applyPatchesFromTG(patches, sessionId) {
     const code = patch.code;
 
     // AC-5: código no existe en backlog → advertencia DocLog
-    const existing = (typeof window.ITEMS !== 'undefined') ? window.ITEMS.find(i => i.code === code) : null;
+    const existing = (typeof getItems() !== 'undefined') ? getItems().find(i => i.code === code) : null;
     if (!existing) {
               _blogLog('patch-ignorado', code, 'Patch ignorado: código no existe en el backlog. code: ' + code, 'backlog');
       ignoredPatches.push({ code, reason: 'no-existe' });
@@ -2269,16 +2269,16 @@ export function applyPatchesFromTG(patches, sessionId) {
 
       // Resto de campos patcheables: title, priority, effort, area, role, origenP
       // T-202605-137: promovida_a — campo especial: al patchear en una P, escribir origenP en el destino
-      // T-202606-019: si promovida_a es placeholder → intentar resolver contra window.ITEMS (ítems recién ingresados)
+      // T-202606-019: si promovida_a es placeholder → intentar resolver contra getItems() (ítems recién ingresados)
       if (field === 'promovida_a') {
         if (incoming !== undefined && incoming !== null && incoming !== current) {
           let resolvedIncoming = incoming;
-          // T-202606-019 AC1: resolver placeholder contra ítems ya en window.ITEMS
+          // T-202606-019 AC1: resolver placeholder contra ítems ya en getItems()
           // mergeBacklogFromTG corre antes de applyPatchesFromTG — los ítems nuevos ya tienen código real
-          if (_isPlaceholderCode(incoming) && typeof window.ITEMS !== 'undefined') {
+          if (_isPlaceholderCode(incoming) && typeof getItems() !== 'undefined') {
             // Buscar ítem recién creado cuyo origenP apunta a esta P, o cuyo código es real y fue
             // creado en este CHECKPOINT (no tiene origenP aún pero puede inferirse si solo hay un candidato)
-            const candidates = window.ITEMS.filter(i =>
+            const candidates = getItems().filter(i =>
               !_isPlaceholderCode(i.code) &&
               (i.origenP === existing.code || (!i.origenP && i.code !== existing.code))
             );
@@ -2297,7 +2297,7 @@ export function applyPatchesFromTG(patches, sessionId) {
           existing[field] = resolvedIncoming;
           // AC edge case: si promovida_a apunta a código real existente, escribir origenP en el destino
           if (!_isPlaceholderCode(resolvedIncoming)) {
-            const destItem = (typeof window.ITEMS !== 'undefined') ? window.ITEMS.find(i => i.code === resolvedIncoming) : null;
+            const destItem = (typeof getItems() !== 'undefined') ? getItems().find(i => i.code === resolvedIncoming) : null;
             if (destItem && !destItem.origenP) {
               destItem.origenP = existing.code;
               _blogLog('origen-p-escrito', existing.code, existing.code + ' → origenP en ' + resolvedIncoming, 'backlog');
