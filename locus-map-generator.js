@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:12 · autor:Rune · 2026-06-02 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -13,7 +13,8 @@ import { editSprintInline } from './locus-backlog-sprints.js';
 import { _getMapContent, _importContextMdFromText, exportHtmlMapMd, importHtmlMap } from './locus-docs.js';
 import { _tryIngestPlan } from './locus-session-parse.js';
 import { buildBacklogMd } from './locus-session-save.js';
-import { _docPrefix, _generateFullHistoryContent, exportBacklogMd, exportContextMd, exportFullHistoryMd, getProjContext } from './locus-sprint-project.js';
+import { _docPrefix, getProjContext } from './locus-sprint-project.js';
+import { _generateFullHistoryContent, exportBacklogMd, exportContextMd, exportFullHistoryMd } from './locus-backlog-generator.js';
 import { _effectiveVersion, _tplKey, getAISessions, getActiveProject, getActiveSprints, save } from './locus-storage.js';
 import { showToast, showToastInline, toast } from './locus-toast.js';
 import { render } from './locus-sesiones.js';
