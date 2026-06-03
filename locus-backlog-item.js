@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-15 · mod:29 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-15 · mod:30 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1994,7 +1994,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           };
           if (!_dryRun) {
             window.ITEMS.push(_degradedItem);
-            _blogLog('r-degradado-a-p', _rCode, 'R ' + _rCode + ' sin Ts válidos convertido a P — refinar antes de promover', 'backlog');
+            _blogLog('r-degradado-a-p', _rCode, _rCode + ' sin Ts válidos convertido a P — refinar antes de promover', 'backlog');
             changed = true;
           }
           created.push({ code: _rCode, desc: item.title, _wasAssigned: isNew, _degradedFromR: true });
