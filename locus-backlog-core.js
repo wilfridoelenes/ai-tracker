@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:24 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:25 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -87,12 +87,10 @@ let ITEMS = (() => {
   return [];
 })();
 
-// Exponer ITEMS en window para módulos que acceden directamente (legacy pre-module).
-// _setITEMS(arr): reemplaza el contenido de ITEMS sin romper la referencia de window.ITEMS.
-window.ITEMS = ITEMS;
+// getItems(): acceso canónico al array ITEMS — reemplaza window.ITEMS (ESM-1 · T-202606-037)
+export function getItems() { return ITEMS; }
 function _setITEMS(arr) {
   ITEMS.splice(0, ITEMS.length, ...(Array.isArray(arr) ? arr : []));
-  // window.ITEMS apunta al mismo array — no necesita reasignación
 }
 
 // B-202604-002: undo/redo stack para ITEMS (20 niveles)
