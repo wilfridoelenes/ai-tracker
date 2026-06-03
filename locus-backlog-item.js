@@ -1,4 +1,4 @@
-// [PP] v1.0.7 · sprint:PP-S-09 · mod:32 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:33 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1819,7 +1819,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
         const inferredType = existing.code.charAt(0);
         if ('PTRB'.includes(inferredType)) existing.type = inferredType;
       }
-      const newStatus = _tgStatusToBacklog(item.status);
+      const newStatus = item.status; // T-202606-034: item.status ya canónico desde T1 — _tgStatusToBacklog eliminada
       const oldStatus = existing.status || 'pendiente';
       const changes = [];
 
@@ -1929,7 +1929,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
         }
       } else if (!advanced.find(a => a.code === item.code) && !retroceso.find(r => r.code === item.code) && !discarded.find(d => d.code === item.code)) {
         // Distinguir: ya tenía ese status (ok) vs no hubo cambio de status porque no llegó uno válido
-        const noStatusIncoming = !item.status || _normalizeStatus(item.status) === 'pendiente'; // B-202605-042: comparación canónica — normStatus() retorna 'pendiente', no '📤 Pendiente'
+        const noStatusIncoming = !item.status || item.status === 'pendiente'; // T-202606-034: item.status ya canónico — comparación directa
         const alreadyInStatus = newStatus === oldStatus;
         if (alreadyInStatus && !noStatusIncoming) {
           ignored.push({ code: item.code, reason: 'ya-en-status', desc: existing.title, status: oldStatus });
@@ -1943,7 +1943,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // AC-9: ítem nuevo — marcar si no tenía código real
       const isNew = item._wasAssigned;
       const nowTs = Date.now();
-      const initialStatus = _tgStatusToBacklog(item.status) || 'pendiente';
+      const initialStatus = item.status || 'pendiente'; // T-202606-034: item.status ya canónico desde T1
 
       // T-202606-010: R sin Ts válidos → degradar a P antes de persistir.
       // Un R es válido como R solo si hay al menos un T (no descartado) que lo referencia.
@@ -2096,7 +2096,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
         }
       }
       // B-202604-198: si el ítem nace con status done en el mismo CHECKPOINT → grupo propio
-      const initialStatusForGroup = _tgStatusToBacklog(item.status) || 'pendiente';
+      const initialStatusForGroup = item.status || 'pendiente'; // T-202606-034: item.status ya canónico desde T1
       if (initialStatusForGroup === 'done') {
         createdAndClosed.push({ code: item.code, desc: item.title, _wasAssigned: isNew });
       } else {
@@ -2133,30 +2133,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
 
 
-// Convierte estado del TRACKER-GLOBAL al formato del Backlog
-function _tgStatusToBacklog(raw) {
-  return _normalizeStatus(raw);
-}
-
-// Normaliza cualquier variante de status a los valores canónicos: 'pendiente' | 'done' | 'descartado' | 'historico' | 'promovida'
-// T-202606-018: 'promovida' es valor canónico para Ps — no degradar a 'pendiente'.
-export function _normalizeStatus(raw) {
-  if (!raw) return 'pendiente';
-  const s = raw.toLowerCase().trim();
-  // B-202604-193: 'historico' es valor canónico — NO normalizar a pendiente
-  if (s === 'historico') return 'historico';
-  if (s === 'done' || s.includes('done') || s.includes('listo')) return 'done';
-  if (s === 'descartado' || s.includes('descart') || s.includes('discard')) return 'descartado';
-  // R-202604-091: 'en curso' fusionado con 'pendiente' — decorador visual reemplaza al status
-  if (s === 'en curso' || s === 'en-curso' || s === 'progreso' || s === 'in-progress' || s === 'en progreso') return 'pendiente';
-  // T-202605-039: en-revision — valor canónico, no degradar a pendiente
-  if (s === 'en-revision' || s === 'en_revision') return 'en-revision';
-  // T-202606-018: promovida — valor canónico para Ps, no degradar a pendiente
-  if (s === 'promovida') return 'promovida';
-  // T-202606-023 AC3: '🔁 promovida' es el valor de display — normalizar a canónico 'promovida'
-  if (s === '🔁 promovida') return 'promovida';
-  return 'pendiente';
-}
+// T-202606-034: _tgStatusToBacklog y _normalizeStatus eliminadas — item.status llega canónico desde locus-session-parse.js (_canonicalStatus)
 
 // T-202605-083: _staleness — punto único de cálculo de días de estancamiento para staleness-pill
 // Retorna objeto { days, modifier, label } si el pill debe renderizar, null si no aplica.
@@ -2250,7 +2227,7 @@ export function applyPatchesFromTG(patches, sessionId) {
       const current  = existing[field];
 
       if (field === 'status') {
-        const normalized = _normalizeStatus(incoming);
+        const normalized = incoming; // T-202606-034: incoming ya canónico desde parser — _normalizeStatus eliminada
         if (normalized !== existing.status) {
           const _prevStatus = existing.status;
           if (normalized === 'done') {
