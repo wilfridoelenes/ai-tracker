@@ -1,9 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-30 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 
 import { TAG_COLORS, openTagModal } from './locus-tags.js';
+import { getItems } from './locus-backlog-core.js';
 import { _sessRelTsShared, render } from './locus-sesiones.js';
 import { _getActiveProjectFilter } from './locus-sprint-project.js';
 import { showToast, showToastInline, toast } from './locus-toast.js';
@@ -587,7 +588,7 @@ function renderBacklogRefs(s) {
   if (refs.length) {
     refs.forEach(code => {
       const type = code[0] || '';
-      const item = typeof ITEMS !== 'undefined' ? ITEMS.find(i => i.code === code) : null;
+      const item = typeof getItems() !== 'undefined' ? getItems().find(i => i.code === code) : null;
       const desc = item ? item.title : '—';
       const status = item ? item.status : '';
       const statusLabel = {'pendiente':'Pendiente','done':'Hecho'}[status] || status;
@@ -604,7 +605,7 @@ function renderBacklogRefs(s) {
   }
 
   // Selector — vacío si no hay backlog importado
-  if (typeof ITEMS === 'undefined' || !ITEMS.length) {
+  if (typeof getItems() === 'undefined' || !getItems().length) {
     html += `<div class="popup-ref-empty">Importa tu <code>Backlog.md</code> para vincular ítems.</div>`;
   } else {
     html += `<input class="popup-ref-search" id="pop-ref-input" type="text" placeholder="Buscar por código o título..." autocomplete="off">`;
@@ -641,7 +642,7 @@ function refreshPopupRefs() {
   });
 }
 
-// Filtra ITEMS según query y muestra sugerencias en el popup
+// Filtra getItems() según query y muestra sugerencias en el popup
 function onPopupRefSearch() {
   const inp = document.getElementById('pop-ref-input');
   const sugEl = document.getElementById('pop-ref-suggestions');
@@ -653,8 +654,8 @@ function onPopupRefSearch() {
 
   if (!q) { sugEl.innerHTML = ''; return; }
 
-  if (typeof ITEMS === 'undefined') { sugEl.innerHTML = ''; return; }
-  const matches = ITEMS.filter(i =>
+  if (typeof getItems() === 'undefined') { sugEl.innerHTML = ''; return; }
+  const matches = getItems().filter(i =>
     !refs.includes(i.code) && (
       i.code.toLowerCase().includes(q) ||
       i.title.toLowerCase().includes(q)
@@ -690,8 +691,8 @@ function linkBacklogItem(code) {
   if (s.trackerRefs.includes(code)) return;
   s.trackerRefs.push(code);
   // B-246 + B-245: registrar en history[] del ítem con aiId de la sesión
-  if (typeof ITEMS !== 'undefined') {
-    const item = ITEMS.find(i => i.code === code);
+  if (typeof getItems() !== 'undefined') {
+    const item = getItems().find(i => i.code === code);
     if (item) {
       if (!item.history) item.history = [];
       item.history.push({ type: 'session-linked', ts: Date.now(), aiId: popAIId, data: { sessId: popSessId } });
@@ -710,8 +711,8 @@ function unlinkBacklogItem(code) {
   if (!s) return;
   s.trackerRefs = (s.trackerRefs || []).filter(c => c !== code);
   // B-246 + B-245: registrar en history[] del ítem con aiId de la sesión
-  if (typeof ITEMS !== 'undefined') {
-    const item = ITEMS.find(i => i.code === code);
+  if (typeof getItems() !== 'undefined') {
+    const item = getItems().find(i => i.code === code);
     if (item) {
       if (!item.history) item.history = [];
       item.history.push({ type: 'session-unlinked', ts: Date.now(), aiId: popAIId, data: { sessId: popSessId } });

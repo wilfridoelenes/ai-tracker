@@ -1,8 +1,8 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:13 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:14 · autor:Rune · 2026-06-02 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
-import { loadBacklog, renderStats } from './locus-backlog-core.js';
+import { loadBacklog, renderStats, getItems} from './locus-backlog-core.js';
 import { applyPatchesFromTG, mergeBacklogFromTG } from './locus-backlog-item.js';
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
@@ -367,7 +367,7 @@ ${narrativeMd}
 }
 
 // B-202605-517: stub legacy reemplazado — delegación a _generateBacklogContent (ai-tracker-sprint-project.js)
-// La función anterior leía tracker.items (schema legacy, solo sesiones) en lugar de ITEMS (backlog global),
+// La función anterior leía tracker.items (schema legacy, solo sesiones) en lugar de getItems() (backlog global),
 // produciendo exports truncados con backlogs de 24+ ítems.
 export function buildBacklogMd(version) {
   {
@@ -491,19 +491,19 @@ function _showProjMismatchModal({ msg, onContinue }) {
 }
 
 // T-202605-120: construye una versión enriquecida de tgItems para visualización en el panel diff.
-// Para cada patchItem, busca el ítem real en ITEMS global y genera un objeto con los campos
+// Para cada patchItem, busca el ítem real en getItems() global y genera un objeto con los campos
 // del patch aplicados encima — permite que el panel muestre qué ítems serán actualizados
 // sin aplicar los cambios reales (eso ocurre en el callback vía applyPatchesFromTG).
-// Los patchItems que no tienen código real en ITEMS se omiten silenciosamente.
+// Los patchItems que no tienen código real en getItems() se omiten silenciosamente.
 function _buildPatchTgItems(patchItems, existingTgItems) {
   if (!patchItems || !patchItems.length) return existingTgItems || [];
   const base = (existingTgItems || []).slice();
-  if (typeof ITEMS === 'undefined' || !Array.isArray(ITEMS)) return base;
+  if (typeof getItems() === 'undefined' || !Array.isArray(getItems())) return base;
   const existingCodes = new Set(base.map(x => x.code));
   patchItems.forEach(patch => {
     if (!patch.code || /^\[/.test(patch.code)) return; // ignorar placeholders
     if (existingCodes.has(patch.code)) return; // ya está en tgItems — no duplicar
-    const real = ITEMS.find(x => x.code === patch.code);
+    const real = getItems().find(x => x.code === patch.code);
     if (!real) return;
     // Construir representación visual: ítem real con campos del patch aplicados
     const synthetic = Object.assign({}, real);
@@ -514,15 +514,15 @@ function _buildPatchTgItems(patchItems, existingTgItems) {
 }
 
 // B-202604-116: merge de backlog apuntando al proyecto del card, no al filtro global activo.
-// Sobrescribe temporalmente current-project-filter + recarga ITEMS del proyecto destino,
-// ejecuta el merge, y restaura el estado anterior (filtro + ITEMS del proyecto original).
+// Sobrescribe temporalmente current-project-filter + recarga getItems() del proyecto destino,
+// ejecuta el merge, y restaura el estado anterior (filtro + getItems() del proyecto original).
 // _setActiveProjectFilter no se usa porque tiene side-effects de UI.
 export function _mergeBacklogWithProject(tgItems, sessId, projId) {
   if (!tgItems || !tgItems.length) return { created:[], updated:[], ignored:[], advanced:[], retroceso:[], discarded:[] };
   const _prevFilter = localStorage.getItem('current-project-filter') || '';
   const _filterChanged = projId && projId !== _prevFilter;
   if (_filterChanged) {
-    // Apuntar al proyecto del card y recargar ITEMS correspondientes
+    // Apuntar al proyecto del card y recargar getItems() correspondientes
     localStorage.setItem('current-project-filter', projId);
     loadBacklog();
   }
@@ -531,7 +531,7 @@ export function _mergeBacklogWithProject(tgItems, sessId, projId) {
     result = mergeBacklogFromTG(tgItems, sessId);
   } finally {
     if (_filterChanged) {
-      // Restaurar filtro original y recargar ITEMS del proyecto original
+      // Restaurar filtro original y recargar getItems() del proyecto original
       if (_prevFilter) localStorage.setItem('current-project-filter', _prevFilter);
       else localStorage.removeItem('current-project-filter');
       loadBacklog();

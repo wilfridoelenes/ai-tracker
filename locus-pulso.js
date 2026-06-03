@@ -1,9 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-pulso.js
 // Última actualización: 2026-05-19 | Panel Pulso del Ecosistema
 // Extraído de: ai-tracker-checkpoint.js · ai-tracker-ai-notes.js
 // Fase A — Refactor JS modular
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
+import { getItems } from './locus-backlog-core.js';
 
 import { loadPlan } from './locus-sprint-plan.js';
 
@@ -18,14 +19,14 @@ const _PULSO_KEY = 'ai-tracker-pulso';
 // ════════════════════════════════════════════════════════════════════
 // _calcPulsoDotState — interno
 // Calcula estado del ecosistema: colores, velocidad, bloqueantes, sprints estancados
-// Dependencias: ITEMS (global), state (global)
+// Dependencias: getItems() (global), state (global)
 // ════════════════════════════════════════════════════════════════════
 
 function _calcPulsoDotState() {
   const now   = Date.now();
   const DAY   = 86400000;
   const WEEK  = 7 * DAY;
-  const allItems = typeof ITEMS !== 'undefined' ? ITEMS : [];
+  const allItems = typeof getItems() !== 'undefined' ? getItems() : [];
 
   // Proyectos con al menos una sesión
   const activeProjects = (state.projects || []).filter(p => (p.sessions || []).length > 0);

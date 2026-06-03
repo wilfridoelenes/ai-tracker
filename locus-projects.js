@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
 // Extraído de ai-tracker-ai-notes.js
 
-import { _calcRelevanceScore, loadBacklog } from './locus-backlog-core.js';
+import { _calcRelevanceScore, loadBacklog, getItems} from './locus-backlog-core.js';
 import { _getActiveSprint } from './locus-backlog-sprints.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { relDate } from './locus-session-hora.js';
@@ -682,7 +682,7 @@ function renderProject(query) {
     sprintEl.className = 'proj-sprint-health';
     const activeSprint = _getActiveSprint();
     if (activeSprint) {
-      const sprintItems = (typeof ITEMS !== 'undefined' ? ITEMS : [])
+      const sprintItems = (typeof getItems() !== 'undefined' ? getItems() : [])
         .filter(i => i.sprint === activeSprint.id && i.status !== 'descartado');
       const total = sprintItems.length;
       const done = sprintItems.filter(i => i.status === 'done').length;
@@ -793,7 +793,7 @@ function renderProject(query) {
     const suggestedEl = document.createElement('div');
     suggestedEl.id = 'project-suggested-items';
     suggestedEl.className = 'proj-suggested-section';
-    const candidateItems = (typeof ITEMS !== 'undefined' ? ITEMS : [])
+    const candidateItems = (typeof getItems() !== 'undefined' ? getItems() : [])
       .filter(i => i.status === 'pendiente')
       .map(i => ({ ...i, _score: _calcRelevanceScore(i) }))
       .sort((a, b) => b._score - a._score)
@@ -833,7 +833,7 @@ function renderProject(query) {
   if (filterId) {
     const BLOCKED_DAYS = 14;
     const blockedCutoff = Date.now() - BLOCKED_DAYS * 24 * 60 * 60 * 1000;
-    const blockedItems = (typeof ITEMS !== 'undefined' ? ITEMS : [])
+    const blockedItems = (typeof getItems() !== 'undefined' ? getItems() : [])
       .filter(i =>
         i.sprint &&
         i.status === 'pendiente' &&

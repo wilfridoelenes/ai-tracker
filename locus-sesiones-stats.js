@@ -1,9 +1,9 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-06-03 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
 
-import { _isCountableItem } from './locus-backlog-core.js';
+import { _isCountableItem, getItems} from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
 import { navigateToItem } from './locus-backlog-sprints.js';
 import { openPulsoPanel } from './locus-pulso.js';
@@ -33,7 +33,7 @@ export function _hasStaleSuggestion(ai) {
   if (isNaN(lastDate)) return false;
   const diffDays = (Date.now() - lastDate.getTime()) / 86400000;
   if (diffDays <= STALE_DAYS_THRESHOLD) return false;
-  const _items = (typeof ITEMS !== 'undefined' ? ITEMS : []);
+  const _items = (typeof getItems() !== 'undefined' ? getItems() : []);
   const hasInProgress = _items.some(i => i.status === 'pendiente'); // B-202605-046: 'en-progreso' es valor legacy — schema canónico usa 'pendiente'
   return hasInProgress;
 }
@@ -110,7 +110,7 @@ export function _updateHeaderProjectLabel() {
       itemBtn.textContent = label;
       itemBtn.title = 'Ver ítem ' + code;
       itemBtn.onclick = function () {
-        const _allItems = (typeof ITEMS !== 'undefined') ? ITEMS : [];
+        const _allItems = (typeof getItems() !== 'undefined') ? getItems() : [];
         const _target = _allItems.find(function(b) { return b.code === code; });
         if (_target) {
           openItemPanel(_target);
@@ -173,7 +173,7 @@ function _getActiveSprintStats() {
     const proj = getActiveProject();
     const sp = proj && proj.sprints ? proj.sprints.find(s => s.status === 'active') : null;
     if (!sp) return { sp: null, spItems: [], spDone: 0, spTotal: 0, spPct: 0, spLabel: '' };
-    const spItems = (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(i => i.sprint === sp.id);
+    const spItems = (typeof getItems() !== 'undefined' ? getItems() : []).filter(i => i.sprint === sp.id);
     const spDone  = spItems.filter(i => i.status === 'done').length;
     const spTotal = spItems.length;
     const spPct   = spTotal > 0 ? Math.round((spDone / spTotal) * 100) : 0;
@@ -244,7 +244,7 @@ export function renderStatusBar() {
   const gfSyncEl   = document.getElementById('gf-sync');
   if (gfSyncEl) gfSyncEl.classList.remove('is-hidden');
 
-  const _items = (typeof ITEMS !== 'undefined' ? ITEMS : []);
+  const _items = (typeof getItems() !== 'undefined' ? getItems() : []);
 
   if (gfProyecto) {
     try {

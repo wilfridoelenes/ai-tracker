@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:4 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:5 · autor:Rune · 2026-05-30 UTC-6
 // locus-sesiones-viz.js
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
 //   (_showItemVizPanel), corrección de hora (openCorrectHora).
@@ -6,6 +6,7 @@
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
 // Carga después de: locus-sesiones-stats.js · locus-sesiones-capture.js
 import { render } from './locus-sesiones.js';
+import { getItems } from './locus-backlog-core.js';
 import { switchSubTab, switchTab } from './locus-ui-shell.js';
 
 import { fmt12, interpretHora } from './locus-session-hora.js';
@@ -148,7 +149,7 @@ function _showItemVizPanel(tgItems, sessId, projId, onConfirm) {
   _itemVizExcluded  = new Set();
 
   tgItems.forEach((item, idx) => {
-    const bk = (typeof ITEMS !== 'undefined') ? ITEMS.find(i => i.code === item.code) || null : null;
+    const bk = (typeof getItems() !== 'undefined') ? getItems().find(i => i.code === item.code) || null : null;
     if (bk) {
       const unchanged =
         bk.status === item.status &&
@@ -243,8 +244,8 @@ function _itemVizRender() {
   const items = _itemVizItems;
 
   const _getBacklogItem = (code) => {
-    if (typeof ITEMS === 'undefined') return null;
-    return ITEMS.find(i => i.code === code) || null;
+    if (typeof getItems() === 'undefined') return null;
+    return getItems().find(i => i.code === code) || null;
   };
 
   const _isSinCambio = (item) => {

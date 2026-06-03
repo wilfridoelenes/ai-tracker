@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:18 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:19 · autor:Rune · 2026-06-01 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
-import { _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
+import { _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache, getItems} from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _markPulsoDotDirty, renderPulsoDot } from './locus-pulso.js';
@@ -691,7 +691,7 @@ export async function saveBacklog() {
     }
   }
 
-  const items = (typeof window.ITEMS !== 'undefined') ? window.ITEMS : [];
+  const items = (typeof window.getItems() !== 'undefined') ? window.getItems() : [];
   const key = _tplKey('backlog-items');
   const projId = _getActiveProjectFilter();
   const metaKey = _tplKey('backlog-meta');
@@ -915,10 +915,10 @@ export async function _loadFromSupabase() {
   }
 
   // R-202605-022 Fase 3 AC-1: snapshot del estado antes de cualquier mutación.
-  // Si _loadFromSupabase falla a mitad, restauramos ITEMS y state al estado previo.
+  // Si _loadFromSupabase falla a mitad, restauramos getItems() y state al estado previo.
   // T-202605-084: structuredClone garantiza deep clone — Object.assign shallow no es suficiente
   // para objetos anidados como items[i].ac o items[i].intencion.
-  const _itemsRef = (typeof window.ITEMS !== 'undefined') ? window.ITEMS : null;
+  const _itemsRef = (typeof window.getItems() !== 'undefined') ? window.getItems() : null;
   const _itemsSnapshot = _itemsRef ? structuredClone(_itemsRef) : null;
   const _stateSnapshot = structuredClone(state);
 
@@ -1194,9 +1194,9 @@ export async function _loadFromSupabase() {
     console.error('[AI Tracker] _loadFromSupabase() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
 
-    // R-202605-022 Fase 3 AC-1: rollback — restaurar ITEMS y state al snapshot pre-carga
+    // R-202605-022 Fase 3 AC-1: rollback — restaurar getItems() y state al snapshot pre-carga
     // para evitar que un fallo a mitad deje el backlog en estado parcialmente aplicado.
-    // T-202605-084: restaurar ITEMS con deep clone del snapshot — shallow spread no restaura propiedades anidadas.
+    // T-202605-084: restaurar getItems() con deep clone del snapshot — shallow spread no restaura propiedades anidadas.
     if (_itemsRef && _itemsSnapshot) {
       _itemsRef.length = 0;
       _itemsSnapshot.forEach(item => _itemsRef.push(structuredClone(item)));
@@ -1396,7 +1396,7 @@ function _renderAfterAuth() {
   _markTrackerDirty(); render();
   // B-202605-508: garantizar badges visibles al arranque
   updateTabNotifBadges();
-  // R-202604-072: panel de contexto diario — diferido para que window.ITEMS esté cargado
+  // R-202604-072: panel de contexto diario — diferido para que window.getItems() esté cargado
   if (typeof _showArranquePanel === 'function') setTimeout(_showArranquePanel, 400);
   // R-202604-073: dot Pulso — recalcular con datos reales
   // B-202605-079: mark antes del setTimeout — el guard requiere flag activo al ejecutar

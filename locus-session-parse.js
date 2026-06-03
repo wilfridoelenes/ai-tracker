@@ -1,10 +1,10 @@
-// [PP] v1.0.7 · sprint:PP-S-09 · mod:22 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:23 · autor:Rune · 2026-06-03 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
-import { renderStats } from './locus-backlog-core.js';
+import { renderStats, getItems} from './locus-backlog-core.js';
 import { _isPlaceholderCode, applyPatchesFromTG } from './locus-backlog-item.js';
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { renderBacklogList } from './locus-backlog-render.js';
@@ -331,7 +331,7 @@ export function _normalizeSprint(item) {
   }
   // T-202606-036 AC3: T con parentId — heredar sprint del parent si difiere
   if (item.parentId && item.code && item.code[0] === 'T') {
-    const _allItems = (typeof ITEMS !== 'undefined' ? ITEMS : (window.ITEMS || []));
+    const _allItems = (typeof getItems() !== 'undefined' ? getItems() : (window.getItems() || []));
     const parent = _allItems.find(i => i.code === item.parentId);
     if (parent) {
       const parentSprint = parent.sprint || '';
@@ -368,7 +368,7 @@ export function parsePaste(id) {
     if (ckpt._jsonParseError) {
       window[`_itemsJsonError_${id}`] = ckpt._jsonParseError;
     }
-    // R-202605-133: si el CHECKPOINT es JSON puro, los ítems ya están en ckpt._rawItems — no buscar ---ITEMS---
+    // R-202605-133: si el CHECKPOINT es JSON puro, los ítems ya están en ckpt._rawItems — no buscar ---getItems()---
     else if (ckpt._isJsonFormat) {
       delete window[`_itemsJsonError_${id}`];
       const _rawItems = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
@@ -447,13 +447,13 @@ export function parsePaste(id) {
         _rawItems.forEach(it => { if (it.contract) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract); });
       }
     }
-    // Path legacy: ---ITEMS--- / ---ITEMS-END---
+    // Path legacy: ---getItems()--- / ---getItems()-END---
     else {
-    // R-202604-038: parser JSON estructurado — bloque ---ITEMS--- / ---ITEMS-END---
+    // R-202604-038: parser JSON estructurado — bloque ---getItems()--- / ---getItems()-END---
     // El parser regex de texto libre fue eliminado. Los ítems P/T/R/B se ingresan
     // exclusivamente via bloque JSON. parseCheckpoint() conserva pItems/tItems/rItems/bItems
     // para mostrar texto legible en preview, pero no alimentan tgItems.
-    const _itemsBlockMatch = text.match(/---ITEMS---\s*([\s\S]*?)\s*---ITEMS-END---/);
+    const _itemsBlockMatch = text.match(/---getItems()---\s*([\s\S]*?)\s*---getItems()-END---/);
     const _hasItemsBlock = !!_itemsBlockMatch;
     if (_hasItemsBlock) {
       let _parsedJSON = null;
@@ -468,7 +468,7 @@ export function parsePaste(id) {
       if (_jsonError || !Array.isArray(_parsedJSON)) {
         // Error bloqueante — JSON inválido o no es array
         // Se acumula en _itemsJsonError para emitirlo en la sección de validaciones
-        window[`_itemsJsonError_${id}`] = _jsonError || 'El bloque ---ITEMS--- no contiene un array JSON válido';
+        window[`_itemsJsonError_${id}`] = _jsonError || 'El bloque ---getItems()--- no contiene un array JSON válido';
       } else {
         // Validar y construir tgItems desde el array JSON
         const _validTypes   = ['P', 'T', 'R', 'B'];
@@ -642,7 +642,7 @@ export function parsePaste(id) {
   const btn = document.getElementById('sbtn-' + id);
   const prev = document.getElementById('prev-' + id);
   if (text.trim()) {
-    // R-202605-133: en formato JSON puro no existe ---FIN-CHECKPOINT--- ni ---ITEMS---
+    // R-202605-133: en formato JSON puro no existe ---FIN-CHECKPOINT--- ni ---getItems()---
     const _isJsonFmt = !!(ckpt && ckpt._isJsonFormat);
     const hasFin = _isJsonFmt ? true : text.includes('---FIN-CHECKPOINT---');
     // T-202605-435: CHECKPOINT de transición — si campo WIP: presente y Resumen: ausente,
@@ -663,7 +663,7 @@ export function parsePaste(id) {
       return;
     }
 
-    // R-202604-038 / R-202605-133: validar resultado del parser JSON de ---ITEMS--- o ```json
+    // R-202604-038 / R-202605-133: validar resultado del parser JSON de ---getItems()--- o ```json
     // AC-2: JSON inválido → error bloqueante antes de procesar cualquier otra cosa
     const _itemsJsonErr = window[`_itemsJsonError_${id}`];
     if (_itemsJsonErr) {
@@ -672,12 +672,12 @@ export function parsePaste(id) {
       if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
-    // AC-3: no hay bloque ---ITEMS--- → aviso no bloqueante (solo en formato legacy)
-    const _hasItemsBlock = _isJsonFmt ? true : text.includes('---ITEMS---');
+    // AC-3: no hay bloque ---getItems()--- → aviso no bloqueante (solo en formato legacy)
+    const _hasItemsBlock = _isJsonFmt ? true : text.includes('---getItems()---');
     const _noItemsWarnKey = `_noItemsWarnSeen_${id}`;
     if (isCheckpoint && !_hasItemsBlock && !window[_noItemsWarnKey]) {
       prev.className = 'preview show';
-      prev.innerHTML = `<div class="paste-error paste-warn">⚠ No se detectaron ítems estructurados — falta el bloque <code>---ITEMS---</code>.<br><span class="paste-hint">El CHECKPOINT se guardará sin ítems. Si tienes ítems P/T/R/B, agrégalos en formato JSON dentro del bloque.</span><br><button class="btn-ghost paste-inline-btn">Continuar sin ítems</button></div>`;
+      prev.innerHTML = `<div class="paste-error paste-warn">⚠ No se detectaron ítems estructurados — falta el bloque <code>---getItems()---</code>.<br><span class="paste-hint">El CHECKPOINT se guardará sin ítems. Si tienes ítems P/T/R/B, agrégalos en formato JSON dentro del bloque.</span><br><button class="btn-ghost paste-inline-btn">Continuar sin ítems</button></div>`;
       const _noItemsBtn = prev.querySelector('.paste-inline-btn');
       if (_noItemsBtn) _noItemsBtn.addEventListener('click', () => { window[_noItemsWarnKey] = true; parsePaste(id); }, { once: true });
       if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
@@ -1019,10 +1019,10 @@ function parsePasteStandalone() {
   if (_isJsonFmt) {
     parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
   } else {
-    // Parsear bloque ---ITEMS---
-    const _itemsBlockMatch = text.match(/---ITEMS---\s*([\s\S]*?)\s*---ITEMS-END---/);
+    // Parsear bloque ---getItems()---
+    const _itemsBlockMatch = text.match(/---getItems()---\s*([\s\S]*?)\s*---getItems()-END---/);
     if (!_itemsBlockMatch) {
-      prev.innerHTML = '<div class="paste-error" class="paste-error paste-warn">⚠ No se detectó bloque <code>---ITEMS---</code>.<br><span class="paste-hint">El bloque es obligatorio en el flujo standalone.</span></div>';
+      prev.innerHTML = '<div class="paste-error" class="paste-error paste-warn">⚠ No se detectó bloque <code>---getItems()---</code>.<br><span class="paste-hint">El bloque es obligatorio en el flujo standalone.</span></div>';
       btn.disabled = true;
       return;
     }
@@ -1034,7 +1034,7 @@ function parsePasteStandalone() {
     }
   }
   if (jsonError || !Array.isArray(parsedJSON)) {
-    prev.innerHTML = `<div class="paste-error">⛔ Bloque <code>---ITEMS---</code> inválido — ${esc(jsonError || 'no es un array JSON válido')}.<br><span class="paste-hint">Corrige el JSON antes de aplicar.</span></div>`;
+    prev.innerHTML = `<div class="paste-error">⛔ Bloque <code>---getItems()---</code> inválido — ${esc(jsonError || 'no es un array JSON válido')}.<br><span class="paste-hint">Corrige el JSON antes de aplicar.</span></div>`;
     btn.disabled = true;
     return;
   }

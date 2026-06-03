@@ -1,4 +1,4 @@
-// [PP] v1.0.7 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -6,7 +6,7 @@
 import { _getActiveSprint } from './locus-backlog-sprints.js';
 import { _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
 
-import { _getNextItemCode, _undoSnapshot, renderStats, updateBacklogBanner } from './locus-backlog-core.js';
+import { _getNextItemCode, _undoSnapshot, renderStats, updateBacklogBanner, getItems} from './locus-backlog-core.js';
 
 import { renderBacklogList } from './locus-backlog-render.js';
 
@@ -28,7 +28,7 @@ function _refreshParentIdDropdown(selectedType, selectedParentId) {
   field.classList.toggle('is-hidden', !show);
   if (!show) { sel.value = ''; return; }
   // Poblar con R disponibles
-  const rItems = ITEMS.filter(i => i.code && i.code[0] === 'R');
+  const rItems = getItems().filter(i => i.code && i.code[0] === 'R');
   sel.innerHTML = '<option value="">— Sin R padre —</option>' +
     rItems.map(r => `<option value="${esc(r.code)}"${r.code === selectedParentId ? ' selected' : ''}>${esc(r.code)} · ${esc(r.title || r.desc || '')}</option>`).join('');
 }
@@ -57,8 +57,8 @@ export function openItemEditor(itemId = null, itemCode = null) {
   if (itemId || itemCode) {
     // Editar ítem existente — buscar por id primero, luego por code como fallback
     const item = itemId
-      ? (ITEMS.find(i => i.id === itemId) || ITEMS.find(i => i.code === itemId))
-      : ITEMS.find(i => i.code === itemCode);
+      ? (getItems().find(i => i.id === itemId) || getItems().find(i => i.code === itemId))
+      : getItems().find(i => i.code === itemCode);
     if (!item) return;
     _editorItemId = item.id || item.code; // guardar lo que tengamos
     title.textContent = '✎ Editar ítem';
@@ -312,12 +312,12 @@ function confirmItemEditor() {
 
   if (_editorItemId) {
     // Editar existente
-    const item = ITEMS.find(i => i.id === _editorItemId) || ITEMS.find(i => i.code === _editorItemId);
+    const item = getItems().find(i => i.id === _editorItemId) || getItems().find(i => i.code === _editorItemId);
     if (!item) return;
 
     // AC-10: detectar colisión de código (código cambiado a uno que ya existe en otro ítem)
     if (finalCode !== item.code) {
-      const collision = ITEMS.find(i => i.code === finalCode && i.code !== item.code);
+      const collision = getItems().find(i => i.code === finalCode && i.code !== item.code);
       if (collision) {
         showToast('warning', '⚠ El código ' + finalCode + ' ya existe en otro ítem');
         return;
@@ -343,7 +343,7 @@ function confirmItemEditor() {
     // T-202606-036 AC1+AC2: si se edita un R y cambia su sprint, propagar a todos sus Ts hijos
     if (item.type === 'R' || (!item.type && item.code && item.code[0] === 'R')) {
       const normalizedSprint = item.sprint || 'icebox';
-      ITEMS.forEach(child => {
+      getItems().forEach(child => {
         if (child.parentId === item.code && child.code && child.code[0] === 'T') {
           if ((child.sprint || 'icebox') !== normalizedSprint) {
             child.sprint = normalizedSprint;
@@ -359,7 +359,7 @@ function confirmItemEditor() {
   } else {
     // AC-9: crear nuevo — código generado o ingresado manualmente
     // Verificar colisión también en creación
-    const collision = ITEMS.find(i => i.code === finalCode);
+    const collision = getItems().find(i => i.code === finalCode);
     if (collision) {
       showToast('warning', '⚠ El código ' + finalCode + ' ya existe — edita el ítem existente');
       return;
@@ -367,9 +367,9 @@ function confirmItemEditor() {
     const id = 'item-' + Date.now() + '-' + Math.random().toString(36).slice(2,6);
     // B-202604-015: heredar sprint del padre si existe; T-202604-294: fallback a sprint activo
     const _newItemSprint = parentId
-      ? ((ITEMS.find(p => p.code === parentId) || {}).sprint || _activeSprint())
+      ? ((getItems().find(p => p.code === parentId) || {}).sprint || _activeSprint())
       : _activeSprint();
-    ITEMS.push({
+    getItems().push({
       id, code: finalCode, title, priority, effort, area, desc, ac,
       notes: notes || '',
       blockedBy: blockedBy,

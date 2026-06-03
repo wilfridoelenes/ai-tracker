@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:22 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:23 · autor:Rune · 2026-06-02 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -12,7 +12,7 @@ import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
 import { renderAnalytics } from './locus-analytics-render.js';
 
-import { loadBacklog, renderStats, updateBacklogBanner, updateStatusFilterUI } from './locus-backlog-core.js';
+import { loadBacklog, renderStats, updateBacklogBanner, updateStatusFilterUI, getItems} from './locus-backlog-core.js';
 import { closeQuickCapture } from './locus-sesiones-capture.js';
 
 import { updateBacklogFooter } from './locus-backlog-item.js';
@@ -651,7 +651,7 @@ function _filteredAIs() {
 }
 
 // Init backlog si hay ítems
-if (typeof ITEMS !== 'undefined' && ITEMS.length) {
+if (typeof getItems() !== 'undefined' && getItems().length) {
   const ftypes = document.getElementById('filter-bar-types');
   const fstatus = document.getElementById('filter-bar-status');
   if (ftypes) ftypes.classList.remove('is-hidden');

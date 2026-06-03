@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-29 UTC-6
 // locus-contracts.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
@@ -10,7 +10,7 @@
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
 // Extraído de ai-tracker-ai-notes.js
 
-import { renderStats } from './locus-backlog-core.js';
+import { renderStats, getItems} from './locus-backlog-core.js';
 import { _focusFirstInteractive, _restoreModalFocus } from './locus-modals.js';
 import { _offlineQueuePush, _tplKey, save, setSyncStatus } from './locus-storage.js';
 
@@ -140,7 +140,7 @@ export function renderContratos() {
     listEl.innerHTML = `<div class="ctr-empty">
       <span class="ctr-empty-icon">📐</span>
       <p class="ctr-empty-title">Sin contratos definidos</p>
-      <p class="ctr-empty-hint">Rune genera el contrato inicial de un módulo en el CHECKPOINT de la primera sesión que lo toca.<br>Agrega el campo <code>contract</code> en un ítem R o T del bloque <code>---ITEMS---</code>.</p>
+      <p class="ctr-empty-hint">Rune genera el contrato inicial de un módulo en el CHECKPOINT de la primera sesión que lo toca.<br>Agrega el campo <code>contract</code> en un ítem R o T del bloque <code>---getItems()---</code>.</p>
     </div>`;
     detailEl.innerHTML = '';
     return;

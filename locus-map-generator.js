@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:12 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:13 · autor:Rune · 2026-06-02 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -9,6 +9,7 @@
  */
 
 import { archiveClosedItems } from './locus-backlog-archive.js';
+import { getItems } from './locus-backlog-core.js';
 import { editSprintInline } from './locus-backlog-sprints.js';
 import { _getMapContent, _importContextMdFromText, exportHtmlMapMd, importHtmlMap } from './locus-docs.js';
 import { _tryIngestPlan } from './locus-session-parse.js';
@@ -156,14 +157,14 @@ function _mgLoadSprintReview() {
 }
 
 function _mgSessionInSprint(sess, sprintId) {
-  // B-202605-226: guard — si ITEMS no está en scope, omitir match por trackerRefs sin lanzar error
+  // B-202605-226: guard — si getItems() no está en scope, omitir match por trackerRefs sin lanzar error
   if (!sprintId) return false;
   if (sess.sprintId === sprintId) return true;
   const refs = sess.trackerRefs || sess.backlogRefs || [];
   if (!refs.length) return false;
-  if (typeof ITEMS === 'undefined') return false;
+  if (typeof getItems() === 'undefined') return false;
   return refs.some(code => {
-    const item = ITEMS.find(i => i.code === code);
+    const item = getItems().find(i => i.code === code);
     return item && item.sprint === sprintId;
   });
 }

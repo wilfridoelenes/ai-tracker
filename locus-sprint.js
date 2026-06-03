@@ -1,8 +1,8 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:27 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:28 · autor:Rune · 2026-06-02 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
-import { _isBlocked } from './locus-backlog-core.js';
+import { _isBlocked, getItems} from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, editSprintInline, openSprintRetroView, setSprintStatus } from './locus-backlog-sprints.js';
@@ -56,8 +56,8 @@ function _sprintItemHtml(item) {
 
   // Progreso de hijos (Ts)
   let childrenHtml = '';
-  if (typeof ITEMS !== 'undefined') {
-    const children = ITEMS.filter(i => i.parentCode === item.code && i.type === 'T');
+  if (typeof getItems() !== 'undefined') {
+    const children = getItems().filter(i => i.parentCode === item.code && i.type === 'T');
     if (children.length > 0) {
       const done = children.filter(c => c.status === 'done').length;
       childrenHtml = `<span class="spi-item-children">${done}/${children.length} T</span>`;
@@ -111,9 +111,9 @@ function _renderSprintPlanificar() {
 
 
 function _renderSprintItems(sprint) {
-  if (typeof ITEMS === 'undefined') return;
+  if (typeof getItems() === 'undefined') return;
 
-  const spItems = ITEMS.filter(i => {
+  const spItems = getItems().filter(i => {
     const t = i.type || (i.code ? i.code.charAt(0) : '');
     return i.sprint && i.sprint.startsWith(sprint.id) &&
       (t === 'R' || t === 'B') &&
@@ -190,8 +190,8 @@ function _renderSprintWorkers(sprint) {
 
   {
     const sessions = getAllSessions();
-    const sprintItemCodes = (typeof ITEMS !== 'undefined')
-      ? new Set(ITEMS.filter(i => i.sprint && i.sprint.startsWith(sprint.id)).map(i => i.code))
+    const sprintItemCodes = (typeof getItems() !== 'undefined')
+      ? new Set(getItems().filter(i => i.sprint && i.sprint.startsWith(sprint.id)).map(i => i.code))
       : new Set();
 
     const aiIds = new Set();
@@ -223,9 +223,9 @@ function _renderSprintScopeAdded(sprint) {
   const count   = _spEl('sca-count');
   if (!section || !body) return;
 
-  if (typeof ITEMS === 'undefined') return;
+  if (typeof getItems() === 'undefined') return;
 
-  const scopeItems = ITEMS.filter(i =>
+  const scopeItems = getItems().filter(i =>
     i.sprint && i.sprint.startsWith(sprint.id) &&
     i.scopeAdded === true &&
     i.status !== 'descartado'
@@ -280,11 +280,11 @@ function _renderSprintManager() {
     const isClosed  = !isActive;
     const hasRetro  = !!sprint.retroDoc;
 
-    // Calcular progreso desde ITEMS
+    // Calcular progreso desde getItems()
     let total = 0;
     let done  = 0;
-    if (typeof ITEMS !== 'undefined') {
-      const spItems = ITEMS.filter(i => {
+    if (typeof getItems() !== 'undefined') {
+      const spItems = getItems().filter(i => {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
         return i.sprint && i.sprint.startsWith(sprint.id) &&
           (t === 'R' || t === 'B') &&
@@ -470,12 +470,12 @@ function _spmToggle() {
 
 // Determina el sprint ID más frecuente en ítems no registrados — AC-2c
 function _spmGetUnregisteredSprintId() {
-  if (typeof ITEMS === 'undefined') return null;
+  if (typeof getItems() === 'undefined') return null;
   const allSprints = getActiveSprints();
   const registeredIds = new Set(allSprints.map(s => s.id));
   const freq = {};
   const order = [];
-  ITEMS.forEach(i => {
+  getItems().forEach(i => {
     if (!i.sprint || registeredIds.has(i.sprint)) return;
     if (!freq[i.sprint]) { freq[i.sprint] = 0; order.push(i.sprint); }
     freq[i.sprint]++;

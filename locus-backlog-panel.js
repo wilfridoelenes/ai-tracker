@@ -1,10 +1,10 @@
-// [PP] v1.0.7 · sprint:PP-S-09 · mod:14 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:15 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-toast.js
 
-import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemType, renderStats, setItemStatus, undoBacklog } from './locus-backlog-core.js';
+import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemType, renderStats, setItemStatus, undoBacklog, getItems} from './locus-backlog-core.js';
 import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import { getAI, getActiveSprints, getAllSessions, save, saveImmediate } from './locus-storage.js';
@@ -82,7 +82,7 @@ export function _buildItemMigratedBlock(item) {
 
 // T-202604-242: modal de selección de proyecto destino
 function _openMigrateItem(code) {
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
 
   const currentProjId = _getActiveProjectFilter();
@@ -134,7 +134,7 @@ function _confirmMigrateItem(code) {
   if (!selected) return;
   const targetProjId = selected.value;
 
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
 
   const currentProjId = _getActiveProjectFilter();
@@ -152,10 +152,10 @@ function _confirmMigrateItem(code) {
   });
 
   // AC-3: eliminar del origen primero — snapshot + splice + persist antes de tocar destino
-  const idx = ITEMS.indexOf(item);
+  const idx = getItems().indexOf(item);
   if (idx === -1) return;
   _undoSnapshot();
-  ITEMS.splice(idx, 1);
+  getItems().splice(idx, 1);
   saveBacklog();
   _setBacklogModified();
 
@@ -204,7 +204,7 @@ export function _backlogSetSelected(el) {
 
     if (!_backlogSelectedCode) return;
 
-    const item = typeof ITEMS !== 'undefined' ? ITEMS.find(i => i.code === _backlogSelectedCode) : null;
+    const item = typeof getItems() !== 'undefined' ? getItems().find(i => i.code === _backlogSelectedCode) : null;
     if (!item || item.status === 'done' || item.status === 'descartado') return;
 
     e.preventDefault();
@@ -251,7 +251,7 @@ let _backlogSelectedCode = null;
 let _itemPanelNotesTimer = null;
 
 export function openItemPanel(code) {
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
   _itemPanelCode = code;
 
@@ -354,7 +354,7 @@ function _renderItemPanel(item) {
     ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : '';
   // T-202606-036 AC4: T con parent — sprint heredado no editable
   const _isInheritedSprint = item.parentId && item.code && item.code[0] === 'T';
-  const _parentItem = _isInheritedSprint ? (window.ITEMS || []).find(i => i.code === item.parentId) : null;
+  const _parentItem = _isInheritedSprint ? (window.getItems() || []).find(i => i.code === item.parentId) : null;
   const _inheritedLabel = _parentItem
     ? ((_parentItem.sprint && getActiveSprints().find(s => s.id === _parentItem.sprint))
         ? (getActiveSprints().find(s => s.id === _parentItem.sprint).label || _parentItem.sprint)
@@ -478,12 +478,12 @@ function _renderItemPanel(item) {
 
   // T-202605-449: sección Dependencias — Bloqueado por / Bloquea a
   const allBlockedBy = (item.blockedBy || []);
-  const blockedByPending = allBlockedBy.filter(c => { const dep = ITEMS.find(i => i.code === c); return !dep || dep.status !== 'done'; });
-  const blockedByDone    = allBlockedBy.filter(c => { const dep = ITEMS.find(i => i.code === c); return dep && dep.status === 'done'; });
-  const blockingOthers = ITEMS.filter(i => i.blockedBy && i.blockedBy.includes(item.code) && i.status !== 'done' && i.status !== 'descartado');
+  const blockedByPending = allBlockedBy.filter(c => { const dep = getItems().find(i => i.code === c); return !dep || dep.status !== 'done'; });
+  const blockedByDone    = allBlockedBy.filter(c => { const dep = getItems().find(i => i.code === c); return dep && dep.status === 'done'; });
+  const blockingOthers = getItems().filter(i => i.blockedBy && i.blockedBy.includes(item.code) && i.status !== 'done' && i.status !== 'descartado');
 
   const _depsChip = (code, isDone) => {
-    const dep = ITEMS.find(i => i.code === code);
+    const dep = getItems().find(i => i.code === code);
     const title = dep ? esc(dep.title) : '';
     const cls = isDone ? 'idp-dep-chip idp-dep-chip--done' : 'idp-dep-chip';
     const icon = isDone ? '✓' : '🔒';
@@ -515,7 +515,7 @@ function _renderItemPanel(item) {
   // R-202605-004: chip "Generado desde [código]" — solo si item.origin tiene valor
   const originChipHtml = (() => {
     if (!item.origin) return '';
-    const originItem = (typeof ITEMS !== 'undefined') ? ITEMS.find(i => i.code === item.origin) : null;
+    const originItem = (typeof getItems() !== 'undefined') ? getItems().find(i => i.code === item.origin) : null;
     if (originItem) {
       // AC-4: código existe en backlog — chip navegable con foco visible y aria-label
       return `<div class="idp-meta-row idp-origin-row">
@@ -721,7 +721,7 @@ function _idpStartEditTitle(code) {
   const display = document.getElementById('idp-title-display');
   const input = document.getElementById('idp-title-input');
   if (!display || !input) return;
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
   input.value = item.title;
   display.classList.add("is-hidden");
@@ -734,7 +734,7 @@ function _idpSaveTitle(code) {
   const display = document.getElementById('idp-title-display');
   const input = document.getElementById('idp-title-input');
   if (!display || !input) return;
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
   const newTitle = input.value.trim();
   if (newTitle && newTitle !== item.title) {
@@ -765,7 +765,7 @@ function _idpCancelTitle() {
 
 // R-202604-015: actualizar campo genérico del ítem desde el panel
 function _idpSetField(code, field, value) {
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
   const prev = item[field];
   item[field] = value;
@@ -790,7 +790,7 @@ function _itemPanelNotesDirty() {
   _itemPanelNotesTimer = setTimeout(() => {
     const ta = document.getElementById('idp-notes-ta');
     if (!ta || !_itemPanelCode) return;
-    const item = ITEMS.find(i => i.code === _itemPanelCode);
+    const item = getItems().find(i => i.code === _itemPanelCode);
     if (!item) return;
     item.notes = ta.value;
     saveBacklog();
@@ -828,7 +828,7 @@ function _idpCopyCode(code) {
 // T-202604-307: marcar done desde botón rápido en panel
 function _idpMarkDone(code) {
   // T-202605-449: advertencia de bloqueadores delegada a setItemStatus — cubre todas las vías
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   setItemStatus(code, 'done');
   // Re-renderizar panel para ocultar el botón
   if (item && _itemPanelCode === code) _renderItemPanel(item);
@@ -842,14 +842,14 @@ function _idpUnlinkSession(itemCode, sessId) {
   sess.trackerRefs = (sess.trackerRefs || []).filter(c => c !== itemCode);
   save();
   // Re-renderizar panel
-  const item = ITEMS.find(i => i.code === itemCode);
+  const item = getItems().find(i => i.code === itemCode);
   if (item) _renderItemPanel(item);
   showToast('success', 'Sesión desvinculada');
 }
 
 // T-202604-307: añadir nota manual al historial desde input
 function _idpAddNote(code, text) {
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item || !text) return;
   if (!item.history) item.history = [];
   item.history.push({ type: 'note', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { text } });
@@ -885,7 +885,7 @@ function _acvToggle(panelId) {
 function _acvStartEdit(rowId, code, acIdx) {
   const row = document.getElementById(rowId);
   if (!row) return;
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item || !item.ac) return;
   const current = item.ac[acIdx] || '';
   row.innerHTML = `
@@ -905,7 +905,7 @@ function _acvSaveEdit(rowId, code, acIdx) {
   if (!ta) return;
   const newText = ta.value.trim();
   if (!newText) return;
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item || !item.ac) return;
   item.ac[acIdx] = newText;
   _undoSnapshot();
@@ -916,7 +916,7 @@ function _acvSaveEdit(rowId, code, acIdx) {
 }
 
 function _acvConfirm(code, panelId) {
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
   item.acReviewed = Date.now();
   saveBacklog();
@@ -1050,11 +1050,11 @@ function toggleTmplTriggerPanel(btn) {
       if (typeof setItemStatus === 'function') setItemStatus(code, value);
     } else if (field === 'sprint') {
       // T-202606-036 AC4: bloquear edición directa de sprint en T con parent
-      const _chItem = (window.ITEMS || []).find(i => i.code === code);
+      const _chItem = (window.getItems() || []).find(i => i.code === code);
       if (_chItem && _chItem.parentId && _chItem.code && _chItem.code[0] === 'T') {
         if (typeof showToast === 'function') showToast('warning', 'El sprint del T se hereda de su parent ' + _chItem.parentId);
         // Restaurar valor visual al sprint heredado del parent
-        const _pItem = (window.ITEMS || []).find(i => i.code === _chItem.parentId);
+        const _pItem = (window.getItems() || []).find(i => i.code === _chItem.parentId);
         sel.value = (_pItem && _pItem.sprint) || '';
         return;
       }

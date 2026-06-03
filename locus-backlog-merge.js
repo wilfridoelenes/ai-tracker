@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -29,7 +29,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
   // B-202606-001: separar type:patch antes del dry-run — no deben pasar por mergeBacklogFromTG.
   // Los patches actualizan campos de ítems existentes via applyPatchesFromTG y no generan diff visual.
-  // Se aplican en _mdiffDoApply después de onApply() para que ítems nuevos ya existan en ITEMS.
+  // Se aplican en _mdiffDoApply después de onApply() para que ítems nuevos ya existan en getItems().
   const _patchItems = tgItems.filter(i => i.type === 'patch');
   tgItems = tgItems.filter(i => i.type !== 'patch');
 
@@ -40,7 +40,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     return;
   }
 
-  // Dry-run: obtener diff sin mutar ITEMS
+  // Dry-run: obtener diff sin mutar getItems()
   const _prevFilter = localStorage.getItem('current-project-filter') || '';
   const _filterChanged = projId && projId !== _prevFilter;
   if (_filterChanged) {
@@ -71,7 +71,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   const _criticalReasons = ['duplicado', 'sin-status', 'tipo-invalido'];
   const _hasCriticalIgnored = (diff.ignored || []).some(i => _criticalReasons.includes(i.reason));
 
-  // B-202605-500: sprints asignados desde el DIFF a ítems nuevos (aún no existen en ITEMS durante dryRun)
+  // B-202605-500: sprints asignados desde el DIFF a ítems nuevos (aún no existen en getItems() durante dryRun)
   const _mdiffPendingSprints = {}; // { [code]: sprintId }
 
   if (total === 0 && !_hasCriticalIgnored) { onApply(); return; }
@@ -108,7 +108,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   };
 
   // T-202605-037: para ítems tipo T, muestra el campo parent debajo del título
-  // parentOverride: valor de parent del objeto diff cuando el ítem aún no existe en ITEMS (recién creado)
+  // parentOverride: valor de parent del objeto diff cuando el ítem aún no existe en getItems() (recién creado)
   const _parentHtml = (code, parentOverride) => {
     if ((code || '?')[0].toUpperCase() !== 'T') return '';
     const item = getItems().find(i => i.code === code);
@@ -375,7 +375,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   //   - projId del ítem activo en el DIFF (no el filtro global de proyecto)
   //   - Si createSprint falla, ítems con sprint: n/a (onCancel restaura select sin asignar)
   function _mdiffOpenNewSprintForm(sel, code) {
-    // Obtener projId del ítem en ITEMS; si es nuevo (aún no existe), usar projId de la sesión
+    // Obtener projId del ítem en getItems(); si es nuevo (aún no existe), usar projId de la sesión
     const _itemForSprint = getItems().find(i => i.code === code);
     const _projIdForForm = (_itemForSprint && _itemForSprint.projectId) || projId || null;
 
@@ -460,11 +460,11 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     return sel;
   }
 
-  // R-202605-148: persistir sprint en ITEMS + saveBacklog sin re-render del backlog ni del DIFF
+  // R-202605-148: persistir sprint en getItems() + saveBacklog sin re-render del backlog ni del DIFF
   function _mdiffPersistSprint(code, sprintId) {
     const item = getItems().find(i => i.code === code);
     if (!item) {
-      // B-202605-500: ítem nuevo aún no existe en ITEMS durante dryRun — guardar para aplicar en _mdiffDoApply
+      // B-202605-500: ítem nuevo aún no existe en getItems() durante dryRun — guardar para aplicar en _mdiffDoApply
       _mdiffPendingSprints[code] = sprintId || '';
       return;
     }
@@ -682,10 +682,10 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
     onApply();
 
-    // B-202606-001: aplicar patches después de onApply() — ítems nuevos ya existen en ITEMS
+    // B-202606-001: aplicar patches después de onApply() — ítems nuevos ya existen en getItems()
     if (_patchItems.length) applyPatchesFromTG(_patchItems);
 
-    // B-202605-500: aplicar sprints pendientes sobre ítems nuevos (ya existen en ITEMS tras onApply)
+    // B-202605-500: aplicar sprints pendientes sobre ítems nuevos (ya existen en getItems() tras onApply)
     const pendingEntries = Object.entries(_mdiffPendingSprints);
     if (pendingEntries.length) {
       let changed = false;

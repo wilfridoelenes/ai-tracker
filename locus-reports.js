@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
 // Extraído de ai-tracker-ai-notes.js
 
-import { loadBacklog, redoBacklog, renderStats, undoBacklog, updateBacklogBanner } from './locus-backlog-core.js';
+import { loadBacklog, redoBacklog, renderStats, undoBacklog, updateBacklogBanner, getItems} from './locus-backlog-core.js';
 import { renderBacklogList } from './locus-backlog-render.js';
 import { loadHtmlMap, renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
 import { _focusFirstInteractive, _gconfirmOpen, _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
@@ -206,7 +206,7 @@ document.querySelectorAll('.modal-overlay,.popup-overlay').forEach(el => {
 
 function exportData() {
   // Bundlear claves de localStorage por proyecto — context, html-map
-  // backlog viene de ITEMS en memoria (Supabase) + localStorage como fallback
+  // backlog viene de getItems() en memoria (Supabase) + localStorage como fallback
   const _DOC_KEYS = [
     'context-raw', 'context-sections', 'context-meta',
     'html-map-raw', 'html-map-sections', 'html-map-meta'
@@ -219,14 +219,14 @@ function exportData() {
       const val = localStorage.getItem(key + '-' + p.id);
       if (val) projDocs[key] = val;
     });
-    // Backlog: serializar ITEMS en memoria si corresponden a este proyecto
+    // Backlog: serializar getItems() en memoria si corresponden a este proyecto
     // Con Supabase activo el backlog no siempre vive en localStorage
     const activeProjId = _getActiveProjectFilter ? _getActiveProjectFilter() : null;
     if (activeProjId === p.id || (!activeProjId && p === (state.projects || [])[0])) {
-      if (typeof ITEMS !== 'undefined' && ITEMS.length > 0) {
+      if (typeof getItems() !== 'undefined' && getItems().length > 0) {
         const meta = JSON.parse(localStorage.getItem('backlog-meta-' + p.id) || '{}');
         meta._exportedAt = exportedAt;
-        projDocs['backlog-items'] = JSON.stringify(ITEMS);
+        projDocs['backlog-items'] = JSON.stringify(getItems());
         projDocs['backlog-meta']  = JSON.stringify(meta);
       }
     } else {
@@ -291,12 +291,12 @@ function closeResetBacklogModal() {
 function confirmResetBacklog() {
   const input = document.getElementById('reset-backlog-input');
   if (!input || input.value.trim() !== 'RESET') return;
-  // Vaciar ITEMS en memoria y persistir
-  ITEMS.length = 0;
+  // Vaciar getItems() en memoria y persistir
+  getItems().length = 0;
   localStorage.removeItem(_tplKey('backlog-items'));
   localStorage.removeItem(_tplKey('backlog-meta'));
   localStorage.removeItem('backlog-raw');
-  // saveBacklog persiste ITEMS=[] — también sincroniza a Supabase si el usuario está autenticado
+  // saveBacklog persiste getItems()=[] — también sincroniza a Supabase si el usuario está autenticado
   saveBacklog();
 
   // AC-9: borrar backlog en Supabase cuando el usuario está autenticado
@@ -465,8 +465,8 @@ async function confirmCleanProject() {
 
   if (doBacklog) {
     ops.push((async () => {
-      // Limpiar ITEMS en memoria
-      if (typeof ITEMS !== 'undefined') ITEMS.length = 0;
+      // Limpiar getItems() en memoria
+      if (typeof getItems() !== 'undefined') getItems().length = 0;
 
       // DELETE en Supabase
       if (_supabase && _supabaseUser) {
@@ -854,7 +854,7 @@ function confirmImport() {
   };
 
   save(); render(); applyTheme(state.theme || 'dark');
-  // Hidratar ITEMS desde localStorage restaurado
+  // Hidratar getItems() desde localStorage restaurado
   loadBacklog();
 
   const totalSess = mergedProjects.reduce((a, p) => a + (p.sessions || []).length, 0);

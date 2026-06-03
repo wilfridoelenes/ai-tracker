@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-29 15:00 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 15:00 UTC-6
 // locus-sesiones-arranque.js
 // Responsabilidad: Panel de Sesión de Arranque — contexto diario al abrir la app
 //   (R-202604-072). Muestra resumen de ayer, ítem sugerido, estado IA y sesión del plan.
@@ -7,6 +7,7 @@
 // Carga después de: locus-sesiones-viz.js · locus-sesiones-stats.js · locus-sprint-plan.js
 
 import { _copyTextSafe } from './locus-sesiones-viz.js';
+import { getItems } from './locus-backlog-core.js';
 import { _hoyCountdownLabel, _hoyMsUntilReset, selectTrackerAI } from './locus-sesiones.js';
 import { loadPlan } from './locus-sprint-plan.js';
 import { _tplKey, getActiveProject, getAllSessions } from './locus-storage.js';
@@ -96,7 +97,7 @@ export function _showArranquePanel() {
 
   // AC: no aparece si no hay proyectos ni ítems — onboarding tiene prioridad
   const allProjects = (state.projects || []).filter(p => (p.sessions || []).length > 0);
-  const allItems    = typeof ITEMS !== 'undefined' ? ITEMS : [];
+  const allItems    = typeof getItems() !== 'undefined' ? getItems() : [];
   if (allProjects.length === 0 && allItems.length === 0) return;
 
   // Persistir timestamp antes de mostrar

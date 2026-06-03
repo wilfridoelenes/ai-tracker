@@ -1,9 +1,9 @@
-// [PP] v1.0.7 · sprint:PP-S-09 · mod:26 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:27 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
 
-import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshot, itemType, renderStats, updateStatusFilterUI } from './locus-backlog-core.js';
+import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, getItems} from './locus-backlog-core.js';
 import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _templateTrigger } from './locus-session-hora.js';
 import { _docPrefix, getProjectById } from './locus-sprint-project.js';
@@ -302,8 +302,8 @@ export function createSprint(raw, goal, versionTarget, releaseType, projId) {
   if (_getSprintById(id)) { showToast('warning', 'Ya existe ' + id); return id; }
   // B-202605-XXX: guard — si el ID generado ya existe implícitamente en ítems del backlog
   // bloquear creación para evitar colisión. El founder debe usar "Registrar" en lugar de "Nuevo sprint".
-  if (typeof ITEMS !== 'undefined') {
-    const _implicitSprintIds = new Set(ITEMS.map(i => i.sprint).filter(Boolean));
+  if (typeof getItems() !== 'undefined') {
+    const _implicitSprintIds = new Set(getItems().map(i => i.sprint).filter(Boolean));
     if (_implicitSprintIds.has(id)) {
       showToast('warning', id + ' ya tiene ítems en el backlog. Usa "Registrar y activar ' + id + '" en lugar de crear uno nuevo.');
       return;
@@ -346,7 +346,7 @@ function _generateSprintRetroMd(id, notes) {
   // B-[tmp:retro-snapshot]: al momento de generar el MD, _scmExecuteClose ya mutó
   // los ítems done/descartado a 'historico'. Incluir 'historico' en doneItems para
   // reflejar la realidad post-cierre. pendItems son los reasignados (sprint vacío o nuevo).
-  const sprintItems = ITEMS.filter(i => i.sprint === id);
+  const sprintItems = getItems().filter(i => i.sprint === id);
   const doneItems    = sprintItems.filter(i => i.status === 'done' || i.status === 'historico');
   const pendItems    = sprintItems.filter(i => i.status === 'pendiente');
 
@@ -616,7 +616,7 @@ export function setSprintStatus(id, newStatus) {
   // ítems pendientes que quedaron huérfanos para evitar data inconsistente.
   if (newStatus === 'closed') {
     let guardCount = 0;
-    ITEMS.forEach(item => {
+    getItems().forEach(item => {
       if (item.status === 'pendiente' && item.sprint === id) {
         if (!item.history) item.history = [];
         item.history.push({
@@ -634,7 +634,7 @@ export function setSprintStatus(id, newStatus) {
     // B-202605-232: migrar done/descartado → historico al cerrar sprint directamente (sin modal 3 pasos)
     const closeTs = Date.now();
     let migratedCount = 0;
-    ITEMS.forEach(i => {
+    getItems().forEach(i => {
       if (i.sprint === id && (i.status === 'done' || i.status === 'descartado')) {
         i.status = 'historico';
         i.archivedAt = closeTs;
@@ -656,11 +656,11 @@ export function setSprintStatus(id, newStatus) {
 
 export function setItemSprint(code, sprintId) {
   if (sprintId === '__new__') { openNewSprintInline(code); return; }
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
   // T-202606-036 AC5: T con parent — bloquear asignación de sprint distinto al del parent
   if (item.parentId && item.code && item.code[0] === 'T') {
-    const parentItem = ITEMS.find(i => i.code === item.parentId);
+    const parentItem = getItems().find(i => i.code === item.parentId);
     if (parentItem) {
       const parentSprint = parentItem.sprint || 'icebox';
       const incomingSprint = sprintId || 'icebox';
@@ -693,7 +693,7 @@ export function setItemSprint(code, sprintId) {
 
   // T-202606-036 AC1+AC2: si el ítem es un R, propagar sprint a todos sus Ts hijos
   if (item.code && item.code[0] === 'R') {
-    ITEMS.forEach(child => {
+    getItems().forEach(child => {
       if (child.parentId === item.code && child.code && child.code[0] === 'T') {
         const prevChildSprint = child.sprint || 'icebox';
         child.sprint = normalizedId;
@@ -795,7 +795,7 @@ export function editSprintInline(sprintId) {
   const currentDescriptive = (sp.label || sp.id).replace(/^[A-Z]+[-\s]S\d+\s*·?\s*/i, '').trim() || (sp.label || sp.id);
   const currentGoal = sp.goal || '';
   // R-202605-134: leer o sugerir version_target y release_type
-  const spItems   = ITEMS.filter(i => i.sprint === sprintId);
+  const spItems   = getItems().filter(i => i.sprint === sprintId);
   const suggestRt = sp.release_type  || _suggestReleaseType(spItems);
   const suggestVt = sp.version_target || _suggestVersionTarget(suggestRt);
   const inputId = 'edit-sprint-inp-' + sprintId;
@@ -877,12 +877,12 @@ export function confirmCloseSprint(id) {
   // R-202604-089: abre modal de 3 pasos en lugar de confirm directo
   const sp = _getSprintById(id);
   if (!sp) return;
-  const pendingItems = ITEMS.filter(i => i.sprint === id && i.status !== 'done' && i.status !== 'descartado' && itemType(i.code) !== 'P');
-  const doneItems    = ITEMS.filter(i => i.sprint === id && (i.status === 'done' || i.status === 'descartado'));
+  const pendingItems = getItems().filter(i => i.sprint === id && i.status !== 'done' && i.status !== 'descartado' && itemType(i.code) !== 'P');
+  const doneItems    = getItems().filter(i => i.sprint === id && (i.status === 'done' || i.status === 'descartado'));
   const skipStep2    = pendingItems.length === 0;
 
   // R-202605-125: snapshot de effort al abrir modal de cierre
-  const allSprintItems     = ITEMS.filter(i => i.sprint === id && itemType(i.code) !== 'P');
+  const allSprintItems     = getItems().filter(i => i.sprint === id && itemType(i.code) !== 'P');
   const effortPlanned      = allSprintItems.reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
   const effortDone         = doneItems.filter(i => i.status === 'done').reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
   const effortScopeAdded   = allSprintItems.filter(i => i.scope_added).reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
@@ -1383,7 +1383,7 @@ function _scmExecuteClose() {
   // R-202605-134: resolver version_target del sprint antes de iterar
   const spForClose = _getSprintById(id);
   const versionTarget = spForClose && spForClose.version_target ? spForClose.version_target : null;
-  ITEMS.forEach(i => {
+  getItems().forEach(i => {
     if (i.sprint === id && !processedCodes.has(i.code) && (i.status === 'done' || i.status === 'descartado')) {
       const wasDone = i.status === 'done';
       i.status = 'historico';
@@ -1457,7 +1457,7 @@ export function createSprintFromGroup(id, name) {
 export function navigateToItem(code) {
   if (!code) return;
   // Asegurar que el filtro de status incluye el status del ítem
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (item && !activeStatuses.has(item.status)) {
     activeStatuses.add(item.status);
     updateStatusFilterUI();
@@ -1503,7 +1503,7 @@ export function renderSprintBurndown() {
     return;
   }
 
-  const spItems = (typeof ITEMS !== 'undefined' ? ITEMS : [])
+  const spItems = (typeof getItems() !== 'undefined' ? getItems() : [])
     .filter(i => i.sprint === sp.id && i.status !== 'descartado');
 
   // Solo ítems con effort declarado contribuyen al cálculo
@@ -1551,7 +1551,7 @@ function _updateCloseReadyState(sp, labelEl) {
   }
 
   // AC-6: solo Rs no descartados del sprint. Ts hijos excluidos. Sin Rs → no listo.
-  const spRs = (typeof ITEMS !== 'undefined' ? ITEMS : [])
+  const spRs = (typeof getItems() !== 'undefined' ? getItems() : [])
     .filter(i => i.sprint === sp.id && i.type === 'R' && i.status !== 'descartado');
 
   const isReady = spRs.length > 0 && spRs.every(i => i.status === 'done');
@@ -1587,7 +1587,7 @@ export function renderSprintItems() {
   if (headerEl) headerEl.classList.remove('is-hidden');
   listEl.classList.remove('is-hidden');
 
-  const allItems = typeof ITEMS !== 'undefined' ? ITEMS : [];
+  const allItems = typeof getItems() !== 'undefined' ? getItems() : [];
 
   // Solo Rs del sprint activo (excluir descartados)
   const spRs = allItems.filter(i =>

@@ -1,11 +1,11 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:20 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:21 · autor:Rune · 2026-06-01 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
 // Debe cargarse antes de ai-tracker-checkpoint.js y ai-tracker-ai-notes.js
 
 import { renderAnalytics } from './locus-analytics-render.js';
-import { importBacklog, loadBacklog, renderStats, updateBacklogBanner } from './locus-backlog-core.js';
+import { importBacklog, loadBacklog, renderStats, updateBacklogBanner, getItems} from './locus-backlog-core.js';
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { closeItemPanel, openItemPanel } from './locus-backlog-panel.js';
 import { renderBacklogList } from './locus-backlog-render.js';
@@ -276,7 +276,7 @@ export function onSearch() {
   });
 
   // ── 4. T-202604-420: Ítems de backlog coincidentes ──
-  const backlogMatches = (typeof ITEMS !== 'undefined' ? ITEMS : []).filter(item => {
+  const backlogMatches = (typeof getItems() !== 'undefined' ? getItems() : []).filter(item => {
     if (item.status === 'descartado') return false;
     const titleHit = (item.title || item.desc || '').toLowerCase().includes(q);
     const codeHit = (item.code || '').toLowerCase().includes(q);
@@ -547,7 +547,7 @@ export function renderSetupChecklist() {
   const state = getState();
   const workerDone  = (state.ais || []).length > 0;
   const projectDone = (state.projects || []).length > 0;
-  const itemDone    = (typeof ITEMS !== 'undefined' ? ITEMS : []).length > 0;
+  const itemDone    = (typeof getItems() !== 'undefined' ? getItems() : []).length > 0;
   const sessionDone = getAllSessions().length > 0;
   const allDone = workerDone && projectDone && itemDone && sessionDone;
 
@@ -837,7 +837,7 @@ document.addEventListener('keydown', e => {
       const _code = _selBL.dataset.code;
       if (_code) navigateToItem(_code);
       else {
-        const _item = _selBL.dataset.id && (typeof ITEMS !== 'undefined') && ITEMS.find(i => i.id === _selBL.dataset.id);
+        const _item = _selBL.dataset.id && (typeof getItems() !== 'undefined') && getItems().find(i => i.id === _selBL.dataset.id);
         if (_item) openItemPanel(_item);
       }
       return;

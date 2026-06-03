@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:4 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-10 · mod:5 · autor:Rune · 2026-06-03 UTC-6
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -102,9 +102,9 @@ function _buildSprintOption(sp) {
   const isActive = status === 'active';
   const isClosed = status === 'closed';
   const isSelected = _roadmapSprintFilter === id;
-  const ITEMS = getItems();
-  const total = ITEMS.filter(i => (i.sprint || '').trim() === id).length;
-  const done  = ITEMS.filter(i => (i.sprint || '').trim() === id && i.status === 'done').length;
+  const getItems() = getItems();
+  const total = getItems().filter(i => (i.sprint || '').trim() === id).length;
+  const done  = getItems().filter(i => (i.sprint || '').trim() === id && i.status === 'done').length;
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
   const mark  = isActive ? '★' : isClosed ? '·' : '○';
   const badgeCls = isActive ? 'bl-sprint-badge--active' : isClosed ? 'bl-sprint-badge--closed' : 'bl-sprint-badge--active';
@@ -128,7 +128,7 @@ function _buildSprintOption(sp) {
 }
 
 function _buildSprintSelector() {
-  const ITEMS = getItems();
+  const getItems() = getItems();
   const allSprints = getActiveSprints() || [];
   if (!allSprints.length) return '';
 
@@ -141,8 +141,8 @@ function _buildSprintSelector() {
   let triggerName = '', triggerPct = 0;
   if (activeSprint) {
     const id = activeSprint.id;
-    const total = ITEMS.filter(i => (i.sprint || '').trim() === id).length;
-    const done  = ITEMS.filter(i => (i.sprint || '').trim() === id && i.status === 'done').length;
+    const total = getItems().filter(i => (i.sprint || '').trim() === id).length;
+    const done  = getItems().filter(i => (i.sprint || '').trim() === id && i.status === 'done').length;
     triggerPct = total > 0 ? Math.round((done / total) * 100) : 0;
     triggerName = activeSprint.label || activeSprint.id;
   } else if (openSprints.length) {
@@ -183,7 +183,7 @@ function _buildSprintSelector() {
 
 // abrir dropdown del sprint selector
 function _blSprintOpen() {
-  const ITEMS = getItems();
+  const getItems() = getItems();
   const bar = document.getElementById('bl-sprint-bar');
   const trigger = document.getElementById('bl-sprint-trigger');
   if (!bar || !trigger) return;
@@ -322,7 +322,7 @@ export function _renderSprintRoadmap() {
 // R-202605-130: vista Planificación — layout dos columnas con drag & drop
 // T-202605-028: columna derecha muestra todos los sprints active como destinos
 export function _renderPlanningView(listEl, closeCallback) {
-  const ITEMS = getItems();
+  const getItems() = getItems();
   const activeSprint = _getActiveSprint();
   const allSprints   = getActiveSprints();
   // T-202605-028: todos los sprints con status active son destinos válidos
@@ -330,7 +330,7 @@ export function _renderPlanningView(listEl, closeCallback) {
 
   // Columna izquierda: ítems pendientes sin sprint (no done, no descartado, no historico)
   // T-202605-024: icebox es el valor canónico de "sin sprint asignado" (BR-Ecosystem V1.6)
-  const unassigned = ITEMS.filter(i =>
+  const unassigned = getItems().filter(i =>
     (!i.sprint || i.sprint === 'icebox') &&
     i.status !== 'done' &&
     i.status !== 'descartado' &&
@@ -374,7 +374,7 @@ export function _renderPlanningView(listEl, closeCallback) {
 
   // Helper: meter HTML para un sprint destino
   function _sprintMeterHtml(sprintId) {
-    const sprintEffort = ITEMS
+    const sprintEffort = getItems()
       .filter(i => i.sprint === sprintId && i.status !== 'done' && i.status !== 'descartado' && i.status !== 'historico')
       .reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
     if (velocityAvg === null) {
@@ -399,7 +399,7 @@ export function _renderPlanningView(listEl, closeCallback) {
   function _sprintDestCard(sprint) {
     const isCurrent = activeSprint && sprint.id === activeSprint.id;
     const label     = sprint.label || sprint.id;
-    const inSprint  = ITEMS.filter(i =>
+    const inSprint  = getItems().filter(i =>
       i.sprint === sprint.id &&
       i.status !== 'done' &&
       i.status !== 'descartado' &&
@@ -509,14 +509,14 @@ function _planDragLeave(e) {
 }
 
 function _planDrop(e, targetCol) {
-  const ITEMS = getItems();
+  const getItems() = getItems();
   e.preventDefault();
   // T-202605-028: limpiar en el destino exacto que recibió el drop
   const dropTarget = e.currentTarget;
   if (dropTarget) dropTarget.classList.remove('bl-plan-col--over');
   if (!_planDragCode) return;
 
-  const item = ITEMS.find(i => i.code === _planDragCode);
+  const item = getItems().find(i => i.code === _planDragCode);
   if (!item) return;
 
   if (targetCol === 'left') {
