@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:26 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:27 · autor:Rune · 2026-06-02 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -954,7 +954,6 @@ function _syncCurrentBadges(sprints, projId) {
 // ── Exposición pública ──────────────────────────────────────────────────────
 
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window.renderSprintTab          = renderSprintTab;
 window._renderSprintItems       = _renderSprintItems;
 window._renderSprintWorkers     = _renderSprintWorkers;
 window._renderSprintScopeAdded  = _renderSprintScopeAdded;
