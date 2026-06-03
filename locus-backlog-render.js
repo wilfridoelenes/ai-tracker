@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:24 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:25 · autor:Rune · 2026-06-03 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet } from './locus-backlog-core.js';
 
@@ -209,11 +209,10 @@ function _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems) {
   // ── Rs con Ts anidados ──────────────────────────────────────────────────
   rItems.forEach(r => {
     const children = childMap[r.code] || [];
-    // AC: si todos los hijos quedan excluidos por filtro de status, el header del R no renderiza
-    // children ya está filtrado (pendienteItems pasó el filtro de activeStatuses)
-    // pero un R puede aparecer en pendienteItems aunque todos sus hijos estén fuera del filtro
-    // si el R mismo pasó el filtro de tipo R. Verificamos que haya al menos 1 hijo visible
-    // o que el propio R sea visible (R sin Ts hijos sigue siendo visible como header)
+    // AC2: R con children.length === 0 no renderiza — ni header ni body.
+    // children ya está filtrado por activeStatuses vía pendienteItems,
+    // por lo que length === 0 significa que todos los Ts del R fueron excluidos por filtro.
+    if (children.length === 0) return;
 
     const isCollapsed = _vcCollapseGet(projectId, r.code);
     const collapseClass = isCollapsed ? ' bl-vc-r--collapsed' : '';
@@ -228,31 +227,27 @@ function _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems) {
     html += `</div>`; // header
 
     html += `<div class="bl-vc-r-body">`;
-    if (children.length) {
-      children.forEach(t => {
-        const depsCount  = Array.isArray(t.depends_on) ? t.depends_on.length : 0;
-        const isBlocked  = _hasDepsBlocked(t);
+    children.forEach(t => {
+      const depsCount  = Array.isArray(t.depends_on) ? t.depends_on.length : 0;
+      const isBlocked  = _hasDepsBlocked(t);
 
-        html += `<div class="bl-vc-t" data-t-code="${esc(t.code)}">`;
-        html += `<span class="bl-vc-t-code">${esc(t.code)}</span>`;
-        html += `<span class="bl-vc-t-title">${esc(t.title || '')}</span>`;
-        html += `<span class="bl-vc-t-indicators">`;
-        // badge parent
-        html += `<span class="bl-vc-badge bl-vc-badge--parent">${esc(r.code)}</span>`;
-        // badge depends_on — solo si hay dependencias
-        if (depsCount > 0) {
-          html += `<span class="bl-vc-badge bl-vc-badge--deps">${depsCount}</span>`;
-        }
-        // indicador de bloqueo — solo cuando activo (dos estados: presente o ausente)
-        if (isBlocked) {
-          html += `<span class="bl-vc-blocked"><span class="bl-vc-blocked-dot"></span>bloqueado</span>`;
-        }
-        html += `</span>`; // indicators
-        html += `</div>`; // bl-vc-t
-      });
-    } else {
-      html += `<div class="bl-vc-t"><span class="bl-vc-t-title bl-vc-t-empty">Sin Ts en este filtro</span></div>`;
-    }
+      html += `<div class="bl-vc-t" data-t-code="${esc(t.code)}">`;
+      html += `<span class="bl-vc-t-code">${esc(t.code)}</span>`;
+      html += `<span class="bl-vc-t-title">${esc(t.title || '')}</span>`;
+      html += `<span class="bl-vc-t-indicators">`;
+      // badge parent
+      html += `<span class="bl-vc-badge bl-vc-badge--parent">${esc(r.code)}</span>`;
+      // badge depends_on — solo si hay dependencias
+      if (depsCount > 0) {
+        html += `<span class="bl-vc-badge bl-vc-badge--deps">${depsCount}</span>`;
+      }
+      // indicador de bloqueo — solo cuando activo (dos estados: presente o ausente)
+      if (isBlocked) {
+        html += `<span class="bl-vc-blocked"><span class="bl-vc-blocked-dot"></span>bloqueado</span>`;
+      }
+      html += `</span>`; // indicators
+      html += `</div>`; // bl-vc-t
+    });
     html += `</div>`; // bl-vc-r-body
     html += `</div>`; // bl-vc-r
   });
