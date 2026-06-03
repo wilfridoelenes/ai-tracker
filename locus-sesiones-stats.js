@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-06-03 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -33,7 +33,8 @@ export function _hasStaleSuggestion(ai) {
   if (isNaN(lastDate)) return false;
   const diffDays = (Date.now() - lastDate.getTime()) / 86400000;
   if (diffDays <= STALE_DAYS_THRESHOLD) return false;
-  const hasInProgress = ITEMS.some(i => i.status === 'pendiente'); // B-202605-046: 'en-progreso' es valor legacy — schema canónico usa 'pendiente'
+  const _items = (typeof ITEMS !== 'undefined' ? ITEMS : []);
+  const hasInProgress = _items.some(i => i.status === 'pendiente'); // B-202605-046: 'en-progreso' es valor legacy — schema canónico usa 'pendiente'
   return hasInProgress;
 }
 
