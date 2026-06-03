@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-15 · mod:28 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-15 · mod:29 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1944,6 +1944,77 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       const isNew = item._wasAssigned;
       const nowTs = Date.now();
       const initialStatus = _tgStatusToBacklog(item.status) || 'pendiente';
+
+      // T-202606-010: R sin Ts válidos → degradar a P antes de persistir.
+      // Un R es válido como R solo si hay al menos un T (no descartado) que lo referencia.
+      // Se busca en: (a) el propio batch tgItems del CHECKPOINT, (b) window.ITEMS existentes.
+      // Si no hay ninguno → ingestar como P con campos preservados: title, area, priority, intencion.
+      // Campos descartados: ac, kill_criteria, depends_on, parent, schema_version.
+      const _incomingTypePreCheck = item.type || (item.code ? item.code.charAt(0) : '');
+      if (_incomingTypePreCheck === 'R') {
+        const _rCode = item.code;
+        const _hasChildInBatch = tgItems.some(i => {
+          const iType = i.type || (i.code ? i.code.charAt(0) : '');
+          const iParent = i.parentId || i.parent || null;
+          return iType === 'T' && iParent === _rCode && i.status !== 'descartado' && i.status !== 'discarded';
+        });
+        const _hasChildInBacklog = window.ITEMS && window.ITEMS.some(i =>
+          i.parentId === _rCode && i.type === 'T' && i.status !== 'descartado'
+        );
+        if (!_hasChildInBatch && !_hasChildInBacklog) {
+          // Degradar: ingestar como P
+          const _degradedItem = {
+            id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
+            code: _rCode,
+            type: 'P',
+            title: item.title || _rCode,
+            desc: '',
+            priority: item.priority || 'medium',
+            area: item.area || '',
+            effort: 1,
+            impact: 'Medio',
+            status: 'pendiente',
+            version: 'futura',
+            sprint: item.sprint || '',
+            ac: [],
+            role: item.role || '',
+            origin: null,
+            parentId: null,
+            dependsOn: [],
+            triggeredBy: null,
+            origenP: null,
+            promovida_a: null,
+            blockedBy: [],
+            blocking: false,
+            sessionId: sessionId || null,
+            createdAt: nowTs,
+            statusChangedAt: nowTs,
+            doneAt: null,
+            ...(item.intencion ? { intencion: item.intencion } : {})
+          };
+          if (!_dryRun) {
+            window.ITEMS.push(_degradedItem);
+            _blogLog('r-degradado-a-p', _rCode, 'R ' + _rCode + ' sin Ts válidos convertido a P — refinar antes de promover', 'backlog');
+            changed = true;
+          }
+          created.push({ code: _rCode, desc: item.title, _wasAssigned: isNew, _degradedFromR: true });
+          // Actualizar contadores
+          if (!_dryRun) {
+            const _numMatch = _rCode.match(/[PTRB]-\d{6}-(\d{3})/);
+            if (_numMatch) {
+              const _num = parseInt(_numMatch[1]);
+              const _metaDegrad = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
+              if (!_metaDegrad.counters) _metaDegrad.counters = { P:0, T:0, R:0, B:0 };
+              // Registrar en P (ítem degradado vive como P)
+              if (_num > (_metaDegrad.counters['P'] || 0)) {
+                _metaDegrad.counters['P'] = _num;
+                localStorage.setItem(_tplKey('backlog-meta'), JSON.stringify(_metaDegrad));
+              }
+            }
+          }
+          return; // saltar el resto del procesamiento de ítem nuevo
+        }
+      }
 
       // R-202605-021: resolver parentId para ítems nuevos
       // AC: solo T o B pueden tener parentId — R con parentId → ignorar + DocLog
