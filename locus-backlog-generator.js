@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:2 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:3 · autor:Rune · 2026-06-02 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -10,8 +10,16 @@ import { updateBacklogBanner } from './locus-backlog-core.js';
 import { showToast } from './locus-toast.js';
 
 // ── Versión canónica para naming de docs exportados ─────────────────────────
+// T-202606-022: usa version_target del sprint activo como fuente de verdad.
+// Fallback a _effectiveVersion() si no hay sprint activo o no tiene version_target declarado.
 function _backlogVersion() {
-  const _src = _effectiveVersion() || 'v0';
+  const sprints = getActiveSprints();
+  const activeSprint = sprints.find(s => s.status === 'active' && s.current === true)
+    || sprints.find(s => s.status === 'active');
+  const versionTarget = activeSprint && activeSprint.version_target
+    ? activeSprint.version_target.trim()
+    : null;
+  const _src = versionTarget || _effectiveVersion() || 'v0';
   const m = _src.replace(/^v/, '').match(/^(\d+\.\d+(?:\.\d+)?)/);
   return m ? `v${m[1]}` : (_src || 'v0');
 }
@@ -457,7 +465,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   const pfx = _docPrefix();
 
   const md = `# ${pfx}-BACKLOG_${newVersion}.md
-<!-- Versión: ${newVersion} | Última actualización: ${dateStr} | App: AI-Tracker-${newVersion} -->
+<!-- Versión: ${newVersion} | Última actualización: ${dateStr} | App: AI-Tracker-${_appVerStr} -->
 
 ---
 
