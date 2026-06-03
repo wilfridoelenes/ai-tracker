@@ -1,4 +1,4 @@
-// [PP] v1.0.7 · sprint:PP-S-09 · mod:20 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:21 · autor:Rune · 2026-06-03 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -385,6 +385,12 @@ export function parsePaste(id) {
           _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${_it.type === 'P' ? ' · promovida' : ''}`;
           break;
         }
+        // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
+        const _sprintRaw = _it.sprint ? _it.sprint.trim().toLowerCase() : '';
+        if (_normSt === 'en-revision' && _sprintRaw === 'icebox') {
+          _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
+          break;
+        }
         tgItems.push({
           type:          _it.type,
           code:          _it.code,
@@ -477,6 +483,12 @@ export function parsePaste(id) {
           const _normSt2 = _canonicalStatus(_it.status, _it.type);
           if (!_normSt2 || (!_validStatuses.includes(_normSt2) && _normSt2 !== 'promovida')) {
             _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${_it.type === 'P' ? ' · promovida' : ''}`;
+            break;
+          }
+          // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
+          const _sprintRaw2 = _it.sprint ? _it.sprint.trim().toLowerCase() : '';
+          if (_normSt2 === 'en-revision' && _sprintRaw2 === 'icebox') {
+            _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
             break;
           }
           // Construir objeto compatible con mergeBacklogFromTG (sin cambios en esa función)
@@ -1038,6 +1050,12 @@ function parsePasteStandalone() {
     const _normSt3 = _canonicalStatus(it.status, it.type);
     if (!_normSt3 || (!_validStatuses.includes(_normSt3) && _normSt3 !== 'promovida')) {
       itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${it.type === 'P' ? ' · promovida' : ''}`;
+      break;
+    }
+    // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
+    const _sprintRaw3 = it.sprint ? it.sprint.trim().toLowerCase() : '';
+    if (_normSt3 === 'en-revision' && _sprintRaw3 === 'icebox') {
+      itemError = `CHECKPOINT bloqueado: ${it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
       break;
     }
     tgItems.push({
