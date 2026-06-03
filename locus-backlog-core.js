@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:14 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:16 · autor:Rune · 2026-06-02 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -563,6 +563,14 @@ function _normalizeItems(items) {
     }
 
     // ── status ────────────────────────────────────────────────────────────────
+    // ── T-202606-024: migración explícita de status "en curso" ─────────────────
+    // "en curso" no es status válido según BR-Ecosystem §5. Migrar a "pendiente"
+    // con entrada nominada en DocLog antes de la normalización genérica.
+    if (item.status === 'en curso') {
+      _blogLog('migrate', item.code || '(sin código)', 'status "en curso" → "pendiente" — no válido según BR-Ecosystem §5', 'backlog');
+      item.status = 'pendiente';
+    }
+
     // Ausente o inválido → 'pendiente'. Usa _normalizeStatus si disponible.
     const rawStatus = item.status;
     let normalizedStatus;
@@ -745,8 +753,6 @@ export function updateStatusFilterUI() {
   if (doneBtn) doneBtn.classList.toggle('active', activeStatuses.has('done'));
   const discBtn = document.getElementById('fstatus-descartado');
   if (discBtn) discBtn.classList.toggle('active', activeStatuses.has('descartado'));
-  const enCursoBtn = document.getElementById('fstatus-en-curso');
-  if (enCursoBtn) enCursoBtn.classList.toggle('active', activeStatuses.has('en curso'));
   updateClearFilterBtn();
 }
 
@@ -1951,7 +1957,6 @@ document.addEventListener('DOMContentLoaded', function () {
     'fstatus-pendiente':  'pendiente',
     'fstatus-en-revision': 'en-revision',
     'fstatus-done':       'done',
-    'fstatus-en-curso':   'en curso',
     'fstatus-descartado': 'descartado'
   };
   Object.keys(_statusMap).forEach(function (id) {
