@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:13 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:14 · autor:Rune · 2026-06-02 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1972,4 +1972,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // Limpiar todos los filtros
   const _btnClearFilters = document.getElementById('filter-clear-btn');
   if (_btnClearFilters) _btnClearFilters.addEventListener('click', function () { if (typeof clearAllFilters === 'function') clearAllFilters(); });
+
+  // B-202606-008: sincronizar visibilidad del botón Limpiar filtros con el estado
+  // real de los filtros en la carga inicial — antes de cualquier interacción del usuario
+  if (typeof updateClearFilterBtn === 'function') updateClearFilterBtn();
 });

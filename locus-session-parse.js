@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:14 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-15 · mod:17 · autor:Rune · 2026-06-02 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -39,7 +39,8 @@ const TG_PARSER_CONFIG = {
     'en progreso':'🔄 En progreso', '🔄 en progreso':'🔄 En progreso',
     'in-progress':'🔄 En progreso', 'progreso':'🔄 En progreso',
     'descartado':'🗑 Descartado', '🗑 descartado':'🗑 Descartado',
-    'en-revision':'🔍 En revisión', 'en_revision':'🔍 En revisión', 'en revisión':'🔍 En revisión'
+    'en-revision':'🔍 En revisión', 'en_revision':'🔍 En revisión', 'en revisión':'🔍 En revisión',
+    'promovida':'🔁 Promovida', '🔁 promovida':'🔁 Promovida'                // T-202606-023 AC1+AC2
   }
 };
 
@@ -59,7 +60,10 @@ function normStatus(raw) {
 // 'En-Revision', 'en revisión', etc. que normStatus ya mapea correctamente.
 // AC-7: retorna null para valores no mapeados — nunca silencia a 'pendiente'.
 // Los bloques de validación rechazan con error cuando _canonicalStatus retorna null.
-function _canonicalStatus(raw) {
+// T-202606-018: 'promovida' es status válido exclusivamente para type P.
+// Si type P y status 'promovida' → retorna 'promovida'.
+// Si type T/R/B y status 'promovida' → retorna null (error bloqueante en validación).
+function _canonicalStatus(raw, type) {
   if (!raw) return null;
   const s = raw.trim().toLowerCase();
   if (s === 'done' || s.includes('done') || s.includes('listo')) return 'done';
@@ -67,6 +71,8 @@ function _canonicalStatus(raw) {
   if (s === 'en-revision' || s === 'en_revision' || s === 'en revisión' || s === 'en-revisión') return 'en-revision';
   if (s === 'historico' || s === 'histórico') return 'historico';
   if (s === 'pendiente') return 'pendiente';
+  // T-202606-018: promovida — solo válido para type P
+  if (s === 'promovida') return (type === 'P') ? 'promovida' : null;
   return null; // valor desconocido — rechazo estricto en validación
 }
 
@@ -374,9 +380,9 @@ export function parsePaste(id) {
           break;
         }
         // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
-        const _normSt = _canonicalStatus(_it.status);
-        if (!_normSt || !_validStatuses.includes(_normSt)) {
-          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision`;
+        const _normSt = _canonicalStatus(_it.status, _it.type);
+        if (!_normSt || (!_validStatuses.includes(_normSt) && _normSt !== 'promovida')) {
+          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${_it.type === 'P' ? ' · promovida' : ''}`;
           break;
         }
         tgItems.push({
@@ -403,6 +409,10 @@ export function parsePaste(id) {
         });
         // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
         _normalizeSprint(tgItems[tgItems.length - 1]);
+        // T-202606-018: advertencia si P tiene status promovida sin promovida_a
+        if (_it.type === 'P' && _normSt === 'promovida' && !_it.promovida_a) {
+          _blogLog('promovida-sin-ref', _it.code || '[pendiente-ID]', 'P ' + (_it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
+        }
       }
       if (_itemError) {
         window[`_itemsJsonError_${id}`] = _itemError;
@@ -463,9 +473,9 @@ export function parsePaste(id) {
             break;
           }
           // AC-7: status válido — R-202605-023: normalizar antes de validar
-          const _normSt2 = _canonicalStatus(_it.status);
-          if (!_normSt2 || !_validStatuses.includes(_normSt2)) {
-            _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision`;
+          const _normSt2 = _canonicalStatus(_it.status, _it.type);
+          if (!_normSt2 || (!_validStatuses.includes(_normSt2) && _normSt2 !== 'promovida')) {
+            _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${_it.type === 'P' ? ' · promovida' : ''}`;
             break;
           }
           // Construir objeto compatible con mergeBacklogFromTG (sin cambios en esa función)
@@ -493,6 +503,10 @@ export function parsePaste(id) {
           });
           // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
           _normalizeSprint(tgItems[tgItems.length - 1]);
+          // T-202606-018: advertencia si P tiene status promovida sin promovida_a
+          if (_it.type === 'P' && _normSt2 === 'promovida' && !_it.promovida_a) {
+            _blogLog('promovida-sin-ref', _it.code || '[pendiente-ID]', 'P ' + (_it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
+          }
         }
         if (_itemError) {
           window[`_itemsJsonError_${id}`] = _itemError;
@@ -1019,9 +1033,9 @@ function parsePasteStandalone() {
       break;
     }
     // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
-    const _normSt3 = _canonicalStatus(it.status);
-    if (!_normSt3 || !_validStatuses.includes(_normSt3)) {
-      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision`;
+    const _normSt3 = _canonicalStatus(it.status, it.type);
+    if (!_normSt3 || (!_validStatuses.includes(_normSt3) && _normSt3 !== 'promovida')) {
+      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${it.type === 'P' ? ' · promovida' : ''}`;
       break;
     }
     tgItems.push({
@@ -1038,8 +1052,13 @@ function parsePasteStandalone() {
       role:          it.role   || (ckpt.rol || ''),
       discardReason: it.reason || '',
       discardRef:    it.ref    || '',
-      blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : []
+      blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : [],
+      promovida_a:   it.promovida_a || null                              // T-202606-018 AC8
     });
+    // T-202606-018 AC9: advertencia si P tiene status promovida sin promovida_a en standalone parser
+    if (it.type === 'P' && _normSt3 === 'promovida' && !it.promovida_a) {
+      _blogLog('promovida-sin-ref', it.code || '[pendiente-ID]', 'P ' + (it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
+    }
     // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
     _normalizeSprint(tgItems[tgItems.length - 1]);
   }

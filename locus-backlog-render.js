@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:21 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:22 · autor:Rune · 2026-06-02 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
@@ -52,7 +52,8 @@ export function updateClearFilterBtn() {
   const btn = document.getElementById('filter-clear-btn');
   if (!btn) return;
   const allTypes = _getActiveTypes().size === 4;
-  const defaultStatus = _getActiveStatuses().size === 2 && _getActiveStatuses().has('pendiente') && _getActiveStatuses().has('en-revision') && !_getActiveStatuses().has('done') && !_getActiveStatuses().has('descartado');
+  const _as = _getActiveStatuses();
+  const defaultStatus = _as.size === 2 && _as.has('pendiente') && _as.has('en-revision'); // B-202606-008: size===2 + has ambos es suficiente — no puede haber otros si size es exactamente 2
   const noSearch = !_getBacklogSearchQuery();
   const noRoleFilter = _getActiveRoleFilter() === null;
   const noPriorityFilter = _getActivePriorityFilter().size === 0; // T-202604-357

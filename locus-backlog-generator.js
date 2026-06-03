@@ -1,0 +1,635 @@
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:1 · autor:Rune · 2026-06-02 UTC-6
+// locus-backlog-generator.js
+// Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
+// Extraído de locus-sprint-project.js — T-202606-016.
+// Dependencias: locus-storage.js · locus-sprint-project.js · locus-backlog-core.js · locus-toast.js
+
+import { _blogLog, _effectiveVersion, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState } from './locus-storage.js';
+import { _docPrefix } from './locus-sprint-project.js';
+import { updateBacklogBanner } from './locus-backlog-core.js';
+import { showToast } from './locus-toast.js';
+
+// ── Versión canónica para naming de docs exportados ─────────────────────────
+function _backlogVersion() {
+  const _src = _effectiveVersion() || 'v0';
+  const m = _src.replace(/^v/, '').match(/^(\d+\.\d+(?:\.\d+)?)/);
+  return m ? `v${m[1]}` : (_src || 'v0');
+}
+
+// R-202604-052: sprint cerrado más reciente del proyecto activo
+// R-202605-002: usa getActiveSprints() como fuente de verdad v3
+function _lastClosedSprint() {
+  const sprints = getActiveSprints();
+  const closed = sprints.filter(s => s.status === 'closed');
+  if (!closed.length) return null;
+  return closed.sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0))[0];
+}
+
+// ── Modal de confirmación de export ─────────────────────────────────────────
+function _showExportConfirmModal(label, filename, onConfirm) {
+  const overlay = document.getElementById('export-confirm-overlay');
+  if (!overlay) return;
+  const titleEl = document.getElementById('export-confirm-title');
+  const filenameEl = document.getElementById('export-confirm-filename');
+  if (titleEl) titleEl.textContent = `⬇ Exportar ${label}`;
+  if (filenameEl) filenameEl.textContent = filename;
+  overlay.classList.add('open');
+  const btn = document.getElementById('export-confirm-btn');
+  if (btn) {
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    newBtn.addEventListener('click', () => {
+      overlay.classList.remove('open');
+      onConfirm();
+    });
+  }
+}
+
+// ── Export Backlog ───────────────────────────────────────────────────────────
+export function exportBacklogMd() {
+  if (!ITEMS.length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
+  const pfx = _docPrefix();
+  const ver = _backlogVersion();
+  _showExportConfirmModal('Backlog', `${pfx}-BACKLOG_${ver}.md`, () => _generateBacklogMd(ver));
+}
+
+// AC-5: Exportar historial completo — todos los ítems sin filtro generacional
+export function exportFullHistoryMd() {
+  if (!ITEMS.length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
+  const pfx = _docPrefix();
+  const ver = _backlogVersion();
+  _showExportConfirmModal('Historial completo', `${pfx}-BACKLOG-FULL_${ver}.md`, () => _generateFullHistoryBySprintMd(ver));
+}
+
+// R-202605-132: Export "Por sprint"
+function exportSprintsMd() {
+  if (!ITEMS.length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
+  const pfx = _docPrefix();
+  const ver = _backlogVersion();
+  _showExportConfirmModal('Sprints — historial completo', `${pfx}-SPRINTS_${ver}.md`, () => _generateSprintsExportMd(ver));
+}
+
+// R-202605-132: genera Markdown por sprint
+function _generateSprintsContent(newVersion) {
+  const state = getState();
+  const now = new Date();
+  const utcM6 = new Date(now.getTime() - 6 * 3600000);
+  const pad = n => String(n).padStart(2, '0');
+  const dateStr = `${utcM6.getUTCFullYear()}-${pad(utcM6.getUTCMonth()+1)}-${pad(utcM6.getUTCDate())} ${pad(utcM6.getUTCHours())}:${pad(utcM6.getUTCMinutes())} UTC-6`;
+  const pfx = _docPrefix();
+  const _activeProj = getActiveProject();
+  const _projName = _activeProj ? (_activeProj.name || 'Sin proyecto') : 'Sin proyecto';
+
+  const allSprints = (state && Array.isArray(state.sprints)) ? state.sprints : [];
+  const closedSprints = allSprints
+    .filter(s => s.status === 'closed')
+    .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
+  const activeSprints = allSprints.filter(s => s.status === 'active');
+  const orderedSprints = [...closedSprints, ...activeSprints];
+
+  const _itemRow = (i, sprintOpenedAt) => {
+    const effortN = parseInt(i.effort) || 1;
+    const effortDots = '●'.repeat(effortN) + '○'.repeat(3 - effortN);
+    const typeLabel = i.code ? i.code[0] : '?';
+    let scopeNote = '';
+    if (sprintOpenedAt && i.createdAt) {
+      const createdTs = new Date(i.createdAt).getTime();
+      if (!isNaN(createdTs) && createdTs > sprintOpenedAt) scopeNote = ' ⊕';
+    }
+    return `| \`${i.code}\` | ${i.title || i.desc || '—'} | ${typeLabel} | ${effortDots} (${effortN}) | ${i.status || '—'} |${scopeNote ? ' scope added' : ''} |`;
+  };
+
+  const _itemRowHeader = () =>
+    `| Código | Título | Tipo | Effort | Status final | Nota |\n|--------|--------|------|--------|--------------|------|`;
+
+  let sprintSections = '';
+
+  orderedSprints.forEach(sp => {
+    const spItems = ITEMS.filter(i => i.sprint === sp.id);
+    const doneItems = spItems.filter(i => i.status === 'done' || i.status === 'historico');
+    const doneEffort = doneItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+    const totalEffort = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+    const pctEntrega = totalEffort > 0 ? Math.round((doneEffort / totalEffort) * 100) : 0;
+    const closedDate = sp.closedAt
+      ? (() => { const d = new Date(sp.closedAt); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; })()
+      : '—';
+
+    const metaRows = [
+      `| ID | ${sp.id} |`,
+      `| Nombre | ${sp.label || sp.name || sp.id} |`,
+      `| Status | ${sp.status || '—'} |`,
+      sp.goal ? `| Goal | ${sp.goal} |` : '',
+      sp.version_target ? `| Versión target | ${sp.version_target} |` : '',
+      sp.release_type ? `| Release type | ${sp.release_type} |` : '',
+      `| Cerrado | ${closedDate} |`,
+      `| Effort planeado | ${totalEffort} |`,
+      `| Effort done | ${doneEffort} |`,
+      `| % entrega | ${pctEntrega}% |`,
+    ].filter(Boolean).join('\n');
+
+    const sprintOpenedAt = sp.openedAt || sp.createdAt || 0;
+    const itemsBlock = spItems.length
+      ? `${_itemRowHeader()}\n${spItems.map(i => _itemRow(i, sprintOpenedAt)).join('\n')}`
+      : '_Sin ítems registrados._';
+
+    const retroBlock = (sp.retroMd || sp.retro)
+      ? `\n#### Retrospectiva\n\n${sp.retroMd || sp.retro}\n`
+      : '';
+
+    sprintSections += `\n### ${sp.label || sp.name || sp.id}\n\n| Campo | Valor |\n|---|---|\n${metaRows}\n\n${itemsBlock}\n${retroBlock}\n---\n`;
+  });
+
+  const noSprintItems = ITEMS.filter(i => !i.sprint || i.sprint === 'n/a');
+  let noSprintSection = '';
+  if (noSprintItems.length) {
+    noSprintSection = `\n### Sin sprint asignado\n\n${_itemRowHeader()}\n${noSprintItems.map(i => _itemRow(i, 0)).join('\n')}\n\n---\n`;
+  }
+
+  const velocityRows = closedSprints.map(sp => {
+    const spItems = ITEMS.filter(i => i.sprint === sp.id);
+    const doneEffort = spItems
+      .filter(i => i.status === 'done' || i.status === 'historico')
+      .reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+    const totalEffort = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+    const pct = totalEffort > 0 ? Math.round((doneEffort / totalEffort) * 100) : 0;
+    return `| ${sp.id} | ${sp.label || sp.name || sp.id} | ${totalEffort} | ${doneEffort} | ${pct}% |`;
+  }).join('\n');
+
+  const avgVelocity = closedSprints.length
+    ? (() => {
+        const totals = closedSprints.map(sp =>
+          ITEMS.filter(i => i.sprint === sp.id && (i.status === 'done' || i.status === 'historico'))
+               .reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0)
+        );
+        return Math.round(totals.reduce((a, b) => a + b, 0) / totals.length);
+      })()
+    : 0;
+
+  const md = `# ${pfx}-SPRINTS_${newVersion}.md
+<!-- Versión: ${newVersion} | Última actualización: ${dateStr} | Export estructurado de sprints -->
+
+---
+
+## Meta
+
+| Campo | Valor |
+|---|---|
+| Proyecto | ${_projName} |
+| Versión | ${newVersion} |
+| Última actualización | ${dateStr} |
+| Sprints totales | ${allSprints.length} |
+| Sprints cerrados | ${closedSprints.length} |
+| Velocidad promedio | ${avgVelocity} effort/sprint |
+
+---
+
+## Velocidad por sprint
+
+| Sprint | Nombre | Planeado | Done | % Entrega |
+|--------|--------|----------|------|-----------|
+${velocityRows || '_Sin sprints cerrados._'}
+
+---
+
+## Detalle por sprint
+${orderedSprints.length ? sprintSections : '\n_Sin sprints registrados._\n'}
+${noSprintSection}`;
+
+  return md;
+}
+
+function _generateSprintsExportMd(newVersion) {
+  const pfx = _docPrefix();
+  const md = _generateSprintsContent(newVersion);
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${pfx}-SPRINTS_${newVersion}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('download', `📥 ${pfx}-SPRINTS_${newVersion}.md descargado`);
+}
+
+// B-202605-515: _generateFullHistoryContent — función pura que retorna el string Markdown
+export function _generateFullHistoryContent(newVersion) {
+  const state = getState();
+  const now = new Date();
+  const utcM6 = new Date(now.getTime() - 6 * 3600000);
+  const pad = n => String(n).padStart(2, '0');
+  const dateStr = `${utcM6.getUTCFullYear()}-${pad(utcM6.getUTCMonth()+1)}-${pad(utcM6.getUTCDate())} ${pad(utcM6.getUTCHours())}:${pad(utcM6.getUTCMinutes())} UTC-6`;
+  const pfx = _docPrefix();
+  const _activeProj = getActiveProject();
+  const _projName = _activeProj ? (_activeProj.name || 'Sin proyecto') : 'Sin proyecto';
+
+  const SPRINT_DATA_THRESHOLD = 23;
+  const _sprintNum = id => {
+    if (!id) return null;
+    const m = String(id).match(/S-(\d+)/i);
+    return m ? parseInt(m[1], 10) : null;
+  };
+
+  const allSprints = (state && Array.isArray(state.sprints)) ? state.sprints : [];
+  const closedSprints = allSprints
+    .filter(s => s.status === 'closed')
+    .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
+
+  const sprintsWithData = closedSprints.filter(s => (_sprintNum(s.id) || 0) >= SPRINT_DATA_THRESHOLD);
+  const legacySprintIds = new Set(
+    closedSprints
+      .filter(s => (_sprintNum(s.id) || 0) < SPRINT_DATA_THRESHOLD)
+      .map(s => s.id)
+  );
+
+  const _itemRow = (i, sprintOpenedAt) => {
+    const effortN = parseInt(i.effort) || 1;
+    const effortDots = '●'.repeat(effortN) + '○'.repeat(3 - effortN);
+    const typeLabel = i.code ? i.code[0] : '?';
+    let scopeAdded = '';
+    if (sprintOpenedAt && i.createdAt) {
+      const createdTs = new Date(i.createdAt).getTime();
+      if (!isNaN(createdTs) && createdTs > sprintOpenedAt) scopeAdded = ' ⊕';
+    }
+    return `| \`${i.code}\` | ${i.title || i.desc || '—'} | ${typeLabel} | ${effortDots} (${effortN}) | ${i.status || '—'} |${scopeAdded ? ` _scope added_` : ''} |`;
+  };
+
+  const _itemRowHeader = () =>
+    `| Código | Título | Tipo | Effort | Status | Nota |\n|--------|--------|------|--------|--------|------|`;
+
+  let sprintSections = '';
+  sprintsWithData.forEach(sp => {
+    const spItems = ITEMS.filter(i => i.sprint === sp.id);
+    const doneItems = spItems.filter(i => i.status === 'done' || i.status === 'historico');
+    const doneEffort = doneItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+    const totalEffort = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+    const pctEntrega = totalEffort > 0 ? Math.round((doneEffort / totalEffort) * 100) : 0;
+    const closedDate = sp.closedAt
+      ? (() => { const d = new Date(sp.closedAt); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; })()
+      : '—';
+
+    const metaRows = [
+      `| ID | ${sp.id} |`,
+      `| Nombre | ${sp.label || sp.name || sp.id} |`,
+      sp.goal ? `| Goal | ${sp.goal} |` : '',
+      sp.version_target ? `| Versión | ${sp.version_target} |` : '',
+      sp.release_type ? `| Release | ${sp.release_type} |` : '',
+      `| Cerrado | ${closedDate} |`,
+      `| Effort done | ${doneEffort} / ${totalEffort} (${pctEntrega}%) |`,
+    ].filter(Boolean).join('\n');
+
+    const sprintOpenedAt = sp.openedAt || sp.createdAt || 0;
+    const itemsBlock = spItems.length
+      ? `${_itemRowHeader()}\n${spItems.map(i => _itemRow(i, sprintOpenedAt)).join('\n')}`
+      : '_Sin ítems registrados._';
+
+    const retroBlock = (sp.retroMd || sp.retro)
+      ? `\n#### Retrospectiva\n\n${sp.retroMd || sp.retro}\n`
+      : '';
+
+    sprintSections += `\n### ${sp.label || sp.name || sp.id}\n\n| Campo | Valor |\n|---|---|\n${metaRows}\n\n${itemsBlock}\n${retroBlock}\n---\n`;
+  });
+
+  const legacyItems = ITEMS.filter(i => i.sprint && legacySprintIds.has(i.sprint));
+  let legacySection = '';
+  if (legacyItems.length) {
+    legacySection = `\n### Histórico pre-S-${SPRINT_DATA_THRESHOLD} (sin datos de sprint)\n\n_Ítems de sprints anteriores sin datos de effort registrados._\n\n${_itemRowHeader()}\n${legacyItems.map(i => _itemRow(i, 0)).join('\n')}\n\n---\n`;
+  }
+
+  const noSprintItems = ITEMS.filter(i => !i.sprint || i.sprint === 'n/a');
+  let noSprintSection = '';
+  if (noSprintItems.length) {
+    noSprintSection = `\n### Sin sprint asignado\n\n${_itemRowHeader()}\n${noSprintItems.map(i => _itemRow(i, 0)).join('\n')}\n\n---\n`;
+  }
+
+  const md = `# ${pfx}-BACKLOG-FULL_${newVersion}.md
+<!-- Versión: ${newVersion} | Última actualización: ${dateStr} | Historial completo agrupado por sprint -->
+
+---
+
+## Meta
+
+| Campo | Valor |
+|---|---|
+| Proyecto | ${_projName} |
+| Versión del backlog | ${newVersion} |
+| Última actualización | ${dateStr} |
+| Generado por | TL — export historial completo |
+
+---
+
+## Sprints cerrados
+${sprintsWithData.length ? sprintSections : '\n_Sin sprints cerrados con datos completos._\n\n---\n'}
+${legacySection}${noSprintSection}
+## Estadísticas
+
+| Métrica | Valor |
+|---------|-------|
+| Total ítems | ${ITEMS.length} |
+| Sprints cerrados con datos | ${sprintsWithData.length} |
+| Sprints históricos (pre-S-${SPRINT_DATA_THRESHOLD}) | ${legacySprintIds.size} |
+`;
+
+  return md;
+}
+
+function _generateFullHistoryBySprintMd(newVersion) {
+  const md = _generateFullHistoryContent(newVersion);
+  if (!md) return;
+  const pfx = _docPrefix();
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${pfx}-BACKLOG-FULL_${newVersion}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('download', `📥 ${pfx}-BACKLOG-FULL_${newVersion}.md descargado`);
+}
+
+// R-202605-053: bloque ## Sprint activo — primera sección del backlog exportado
+function _buildSprintActivoMd() {
+  const all = getActiveSprints().filter(s => s.status === 'active');
+  const currentSprint = all.find(s => s.current === true) || null;
+  if (!currentSprint) return '';
+  const lines = [
+    '## Sprint activo',
+    '',
+    '| Campo | Valor |',
+    '|---|---|',
+    `| sprint | ${currentSprint.name || currentSprint.id} |`,
+    `| status | ${currentSprint.status} |`,
+    `| version_target | ${currentSprint.version_target || 'n/a'} |`,
+    `| release_type | ${currentSprint.release_type || 'n/a'} |`,
+    `| scope | ${currentSprint.scope || 'n/a'} |`,
+    '',
+    '---',
+    '',
+  ];
+  return lines.join('\n');
+}
+
+// R-202604-040: bloque de estado actual
+function _buildCurrentStateMd() {
+  const state = getState();
+  const lines = ['## Estado actual', ''];
+
+  const pendientes = ITEMS.filter(i => i.status === 'pendiente');
+  if (pendientes.length) {
+    const byType = {};
+    pendientes.forEach(i => {
+      if (!i.code) return;
+      const t = i.code[0];
+      byType[t] = (byType[t] || 0) + 1;
+    });
+    const pendStr = Object.entries(byType).map(([t, n]) => `${t}=${n}`).join(' | ');
+    lines.push(`**Pendientes:** ${pendStr} (${pendientes.length} total)`);
+  }
+
+  const allSessions = [];
+  (state.projects || []).forEach(p => (p.sessions || []).forEach(s => allSessions.push(s)));
+  allSessions.sort((a, b) => parseInt(b.id) - parseInt(a.id));
+  const lastWithBlocker = allSessions.find(s => s.bloqueantes);
+  if (lastWithBlocker) {
+    lines.push(`**Último bloqueante:** ${lastWithBlocker.bloqueantes}`);
+    lines.push(`*(registrado: ${lastWithBlocker.date || lastWithBlocker.dateShort || '—'})*`);
+  }
+
+  lines.push('', '---', '');
+  const hasContent = pendientes.length || lastWithBlocker;
+  return hasContent ? lines.join('\n') : '';
+}
+
+// ── Generación de contenido Backlog ─────────────────────────────────────────
+export function _generateBacklogContent(newVersion, opts = {}) {
+  const state = getState();
+  const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
+  const _activeProj = getActiveProject();
+  const _projName = _activeProj ? (_activeProj.name || 'Sin proyecto') : 'Sin proyecto';
+  const now = new Date();
+  const utcM6 = new Date(now.getTime() - 6 * 3600000);
+  const pad = n => String(n).padStart(2, '0');
+  const dateStr = `${utcM6.getUTCFullYear()}-${pad(utcM6.getUTCMonth()+1)}-${pad(utcM6.getUTCDate())} ${pad(utcM6.getUTCHours())}:${pad(utcM6.getUTCMinutes())} UTC-6`;
+
+  let exportItems;
+  if (opts.fullHistory) {
+    exportItems = ITEMS;
+  } else {
+    const lastClosed = _lastClosedSprint();
+    const lastClosedId = lastClosed ? lastClosed.id : null;
+    const activeSprint = (state.sprints || []).find(s => s.status === 'active');
+    const activeSprintId = activeSprint ? activeSprint.id : null;
+    exportItems = ITEMS.filter(i => {
+      if (i.status === 'historico') return false;
+      if (i.status === 'pendiente' || i.status === 'en curso') return true;
+      if (i.status === 'done' && lastClosedId && i.sprint === lastClosedId) return true;
+      if (activeSprintId && i.sprint === activeSprintId &&
+          (i.status === 'done' || i.status === 'descartado')) return true;
+      return false;
+    });
+  }
+
+  const counters = { P:0, T:0, R:0, B:0 };
+  ITEMS.forEach(i => {
+    if (!i.code) return;
+    const t = i.code[0];
+    const m = i.code.match(/[PITRB]-\d{6}-(\d{3})/);
+    if (m) { const n = parseInt(m[1]); if (n > counters[t]) counters[t] = n; }
+  });
+  const activeCounters = getActiveTracker().counters || {};
+  Object.keys(activeCounters).forEach(t => {
+    if (activeCounters[t] > (counters[t] || 0)) counters[t] = activeCounters[t];
+  });
+  const counterStr = `P=${String(counters.P).padStart(3,'0')} | T=${String(counters.T).padStart(3,'0')} | R=${String(counters.R).padStart(3,'0')} | B=${String(counters.B).padStart(3,'0')}`;
+
+  const statusMap = {};
+  exportItems.forEach(i => { statusMap[i.code] = { status: i.status, sprint: i.sprint || '' }; });
+  const indexLines = _buildIndexLines(statusMap);
+
+  const itemsMd = _buildItemsMd(exportItems);
+
+  const totalItems = exportItems.length;
+  const doneCount = exportItems.filter(i => i.status === 'done').length;
+  const backlogCount = exportItems.filter(i => i.status === 'backlog').length;
+
+  const currentStateMd = _buildCurrentStateMd();
+  const sprintActivoMd = _buildSprintActivoMd();
+  const _appVerStr = _effectiveVersion();
+  const pfx = _docPrefix();
+
+  const md = `# ${pfx}-BACKLOG_${newVersion}.md
+<!-- Versión: ${newVersion} | Última actualización: ${dateStr} | App: AI-Tracker-${newVersion} -->
+
+---
+
+${sprintActivoMd}## Meta
+
+| Campo | Valor |
+|---|---|
+| Proyecto | ${_projName} |
+| Versión del backlog | ${newVersion} |
+| Última actualización | ${dateStr} |
+| Generado por | TL — exportado desde app |
+
+---
+
+${currentStateMd}## Índice de estado
+
+\`\`\`
+${indexLines}
+Contadores: ${counterStr}
+App: ${_appVerStr} — exportado desde tracker
+\`\`\`
+
+---
+
+## Ítems
+
+---
+
+${itemsMd}
+
+---
+
+## Estadísticas finales
+
+| Métrica | Valor |
+|---------|-------|
+| Ítems totales | ${totalItems} |
+| Done | ${doneCount} |
+| Backlog | ${backlogCount} |
+| App version actual | ${_appVerStr} |
+| Próxima versión | ${newVersion} |
+`;
+
+  return { md, meta, counters, dateStr };
+}
+
+export function _generateBacklogMd(newVersion, opts = {}) {
+  const pfx = _docPrefix();
+  const { md, meta, counters, dateStr } = _generateBacklogContent(newVersion, opts);
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${pfx}-BACKLOG_${newVersion}.md`;
+  a.click();
+  URL.revokeObjectURL(url);
+
+  meta.version = newVersion;
+  meta.updated = dateStr;
+  meta.counters = counters;
+  localStorage.setItem(_tplKey('backlog-meta'), JSON.stringify(meta));
+  updateBacklogBanner();
+
+  showToast('download', `📥 ${pfx}-BACKLOG_${newVersion}.md descargado`);
+}
+
+function _buildIndexLines(itemMap) {
+  const groups = { T: [], R: [], B: [], P: [], '?': [] };
+  Object.keys(itemMap).forEach(code => {
+    const t = code[0];
+    const entry = itemMap[code];
+    const status = typeof entry === 'string' ? entry : (entry.status || '—');
+    const sprint = typeof entry === 'object' ? (entry.sprint || '') : '';
+    if (groups[t]) {
+      groups[t].push({ code, status, sprint });
+    } else {
+      groups['?'].push({ code, status, sprint });
+    }
+  });
+  const lines = [];
+  Object.keys(groups).forEach(t => {
+    if (!groups[t].length) return;
+    groups[t].sort((a, b) => a.code.localeCompare(b.code));
+    const chunks = [];
+    for (let i = 0; i < groups[t].length; i += 6) chunks.push(groups[t].slice(i, i+6));
+    const label = t === '?' ? 'Sin código asignado' : t;
+    chunks.forEach(chunk => {
+      lines.push(label + ': ' + chunk.map(x => {
+        const sprintTag = x.sprint ? ` [${x.sprint}]` : '';
+        return `${x.code} ${x.status}${sprintTag}`;
+      }).join(' | '));
+    });
+  });
+  return lines.join('\n');
+}
+
+function _buildItemsMd(items) {
+  const state = getState();
+  const src = items || ITEMS;
+  return src.map(item => {
+    let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}\n`;
+    md += `**Priority:** ${item.priority || 'medium'}\n`;
+    const _area = (item.area || '').includes('**') ? '' : (item.area || '').trim();
+    md += `**Area:** ${_area}\n`;
+    md += `**Effort:** ${item.effort || 1}\n`;
+    if (item.impact) md += `**Impact:** ${item.impact}\n`;
+    md += `**Status:** ${item.status || 'pendiente'}\n`;
+    if (item.discardReason) md += `**DiscardReason:** ${item.discardReason}\n`;
+    if (item.discardRef)    md += `**DiscardRef:** ${item.discardRef}\n`;
+    if (item.sprint) {
+      const _sprintObj = (state.sprints || []).find(s => s.id === item.sprint);
+      const _sprintLabel = _sprintObj ? (_sprintObj.name || item.sprint) : item.sprint;
+      md += `**SprintId:** ${item.sprint}\n`;
+      md += `**Sprint:** ${_sprintLabel}\n`;
+    }
+    if (item.role)   md += `**Role:** ${item.role}\n`;
+    if (item.parentId) md += `**ParentId:** ${item.parentId}\n`;
+    if (item.origin)   md += `**Origin:** ${item.origin}\n`;
+    if (item.blockedBy && item.blockedBy.length) md += `**BlockedBy:** ${item.blockedBy.join(', ')}\n`;
+    if (item.archivos && item.archivos.length) md += `**Archivos:** ${item.archivos.join(', ')}\n`;
+    if (item.version) md += `**Version:** ${item.version}\n`;
+    if (item.desc) md += `\n${item.desc}\n`;
+    if (item.ac && item.ac.length) {
+      md += `\n### Criterios de aceptación\n`;
+      item.ac.forEach(c => {
+        const checked = item.status === 'done' ? 'x' : ' ';
+        md += `- [${checked}] ${c}\n`;
+      });
+    }
+    if (item.notes) md += `\n**Notes:** ${item.notes}\n`;
+    if (item.createdAt)       md += `**CreatedAt:** ${item.createdAt}\n`;
+    if (item.statusChangedAt) md += `**StatusChangedAt:** ${item.statusChangedAt}\n`;
+    if (item.doneAt)          md += `**DoneAt:** ${item.doneAt}\n`;
+    return md;
+  }).join('\n---\n\n');
+}
+
+// ── Context export ────────────────────────────────────────────────────────────
+function _generateContextContent() {
+  const raw = localStorage.getItem(_tplKey('context-raw'));
+  if (!raw) return null;
+  const _ctxVer = _effectiveVersion();
+
+  let isJson = false;
+  try { const o = JSON.parse(raw.trim()); isJson = typeof o === 'object' && o !== null && 'version' in o; } catch(e) {}
+  const ext      = isJson ? 'json' : 'md';
+  const mime     = isJson ? 'application/json' : 'text/markdown';
+  const fileName = `${_docPrefix()}-CONTEXT_${_ctxVer}.${ext}`;
+  return { raw, ext, mime, fileName };
+}
+
+export function exportContextMd() {
+  const ctx = _generateContextContent();
+  if (!ctx) { showToast('warning', 'Sin datos — importa primero'); return; }
+  const { raw, mime, fileName } = ctx;
+
+  _showExportConfirmModal('CONTEXT', fileName, () => {
+    const b = new Blob([raw], { type: mime });
+    const u = URL.createObjectURL(b);
+    const a = document.createElement('a');
+    a.href = u; a.download = fileName;
+    a.click(); URL.revokeObjectURL(u);
+    _blogLog('exportado', fileName, '', 'context');
+    showToast('success', 'CONTEXT exportado');
+  });
+}
+
+// ── Exposición pública — compatibilidad con locus-api.js ─────────────────────
+window.exportBacklogMd             = exportBacklogMd;
+window.exportFullHistoryMd         = exportFullHistoryMd;
+window._generateFullHistoryContent = _generateFullHistoryContent;
+window.exportContextMd             = exportContextMd;
+window._generateBacklogMd          = _generateBacklogMd;
+window._generateBacklogContent     = _generateBacklogContent;
+window.exportSprintsMd             = exportSprintsMd;

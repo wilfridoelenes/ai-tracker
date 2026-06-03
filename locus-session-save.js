@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:13 · autor:Rune · 2026-06-02 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -9,7 +9,8 @@ import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _markRadarDirty, renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
 import { stopSessionTimer } from './locus-sesiones-utils.js';
-import { _docPrefix, _generateBacklogContent, _generateBacklogMd, _getLocalStorageUsage } from './locus-sprint-project.js';
+import { _docPrefix, _getLocalStorageUsage } from './locus-sprint-project.js';
+import { _generateBacklogContent, _generateBacklogMd } from './locus-backlog-generator.js';
 import { _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate } from './locus-storage.js';
 
 

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:25 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-15 · mod:28 · autor:Rune · 2026-06-02 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -2057,7 +2057,8 @@ function _tgStatusToBacklog(raw) {
   return _normalizeStatus(raw);
 }
 
-// Normaliza cualquier variante de status a los valores canónicos: 'pendiente' | 'done' | 'descartado' | 'historico'
+// Normaliza cualquier variante de status a los valores canónicos: 'pendiente' | 'done' | 'descartado' | 'historico' | 'promovida'
+// T-202606-018: 'promovida' es valor canónico para Ps — no degradar a 'pendiente'.
 export function _normalizeStatus(raw) {
   if (!raw) return 'pendiente';
   const s = raw.toLowerCase().trim();
@@ -2069,6 +2070,10 @@ export function _normalizeStatus(raw) {
   if (s === 'en curso' || s === 'en-curso' || s === 'progreso' || s === 'in-progress' || s === 'en progreso') return 'pendiente';
   // T-202605-039: en-revision — valor canónico, no degradar a pendiente
   if (s === 'en-revision' || s === 'en_revision') return 'en-revision';
+  // T-202606-018: promovida — valor canónico para Ps, no degradar a pendiente
+  if (s === 'promovida') return 'promovida';
+  // T-202606-023 AC3: '🔁 promovida' es el valor de display — normalizar a canónico 'promovida'
+  if (s === '🔁 promovida') return 'promovida';
   return 'pendiente';
 }
 
@@ -2206,16 +2211,38 @@ export function applyPatchesFromTG(patches, sessionId) {
 
       // Resto de campos patcheables: title, priority, effort, area, role, origenP
       // T-202605-137: promovida_a — campo especial: al patchear en una P, escribir origenP en el destino
+      // T-202606-019: si promovida_a es placeholder → intentar resolver contra window.ITEMS (ítems recién ingresados)
       if (field === 'promovida_a') {
         if (incoming !== undefined && incoming !== null && incoming !== current) {
-          changes.push({ field, from: current !== undefined ? current : '—', to: incoming });
-          existing[field] = incoming;
+          let resolvedIncoming = incoming;
+          // T-202606-019 AC1: resolver placeholder contra ítems ya en window.ITEMS
+          // mergeBacklogFromTG corre antes de applyPatchesFromTG — los ítems nuevos ya tienen código real
+          if (_isPlaceholderCode(incoming) && typeof window.ITEMS !== 'undefined') {
+            // Buscar ítem recién creado cuyo origenP apunta a esta P, o cuyo código es real y fue
+            // creado en este CHECKPOINT (no tiene origenP aún pero puede inferirse si solo hay un candidato)
+            const candidates = window.ITEMS.filter(i =>
+              !_isPlaceholderCode(i.code) &&
+              (i.origenP === existing.code || (!i.origenP && i.code !== existing.code))
+            );
+            // Preferir candidato con origenP ya escrito (resolución determinista)
+            const withOrigenP = candidates.find(i => i.origenP === existing.code);
+            if (withOrigenP) {
+              resolvedIncoming = withOrigenP.code;
+            } else {
+              // No resoluble con certeza — conservar placeholder + advertencia
+              _blogLog('promovida-a-placeholder-en-patch', existing.code,
+                'promovida_a en patch contiene placeholder ' + incoming + ' — no resoluble en applyPatchesFromTG. Usar código real en el patch.',
+                'backlog');
+            }
+          }
+          changes.push({ field, from: current !== undefined ? current : '—', to: resolvedIncoming });
+          existing[field] = resolvedIncoming;
           // AC edge case: si promovida_a apunta a código real existente, escribir origenP en el destino
-          if (!_isPlaceholderCode(incoming)) {
-            const destItem = (typeof window.ITEMS !== 'undefined') ? window.ITEMS.find(i => i.code === incoming) : null;
+          if (!_isPlaceholderCode(resolvedIncoming)) {
+            const destItem = (typeof window.ITEMS !== 'undefined') ? window.ITEMS.find(i => i.code === resolvedIncoming) : null;
             if (destItem && !destItem.origenP) {
               destItem.origenP = existing.code;
-              _blogLog('origen-p-escrito', existing.code, existing.code + ' → origenP en ' + incoming, 'backlog');
+              _blogLog('origen-p-escrito', existing.code, existing.code + ' → origenP en ' + resolvedIncoming, 'backlog');
             }
           }
         }
