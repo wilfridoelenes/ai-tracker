@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:18 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:19 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -527,7 +527,7 @@ function purgeAllHistorico() {
 function _normalizeItems(items) {
   if (!Array.isArray(items)) return [];
 
-  const VALID_STATUSES = new Set(['done', 'pendiente', 'descartado', 'historico']);
+  const VALID_STATUSES = new Set(['done', 'pendiente', 'en-revision', 'descartado', 'historico']);
 
   items.forEach(item => {
     // ── schema_version ────────────────────────────────────────────────────────
