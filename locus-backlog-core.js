@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:21 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:22 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1899,6 +1899,10 @@ export function _getActiveRoleFilter()       { return activeRoleFilter; }
 export function _getActivePriorityFilter()   { return activePriorityFilter; }
 export function _getBacklogBlockerFilter()   { return _backlogBlockerFilter; }
 export function _getDepsFilter()             { return _depsFilter; }
+export function getDoneItems(matchesQuery)   { // T-202606-028: computed global — evita ITEMS.filter() duplicado en renderBacklogList
+  const fn = typeof matchesQuery === 'function' ? matchesQuery : () => true;
+  return ITEMS.filter(i => i.status === 'done' && _isCountableItem(i) && fn(i));
+}
 export function _getBacklogSortMode()        { return backlogSortMode; }
 export function _getBacklogSortDir()         { return backlogSortDir; }
 export function _getMiViewRoleIndex()        { return _miViewRoleIndex; }

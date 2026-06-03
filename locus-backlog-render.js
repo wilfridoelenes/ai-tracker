@@ -1,6 +1,6 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:25 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:26 · autor:Rune · 2026-06-03 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
-import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet } from './locus-backlog-core.js';
+import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, setFilter, updateBacklogFooter } from './locus-backlog-item.js';
 
@@ -452,7 +452,6 @@ export function renderBacklogList(onRendered) {
     } else if (_getActiveRoleFilter() !== null) {
       roleOk = (i.role || '').trim() === _getActiveRoleFilter();
     }
-    const isChild = !!i.parentId; // en modo árbol, hijos aparecen bajo su R padre
     // T-202604-357: filtro por prioridad — vacío = todos
     let priorityOk = true;
     if (_getActivePriorityFilter().size > 0) {
@@ -550,7 +549,7 @@ export function renderBacklogList(onRendered) {
     ? (i => i.code.toLowerCase().includes(q) || i.title.toLowerCase().includes(q) || (i.area || '').toLowerCase().includes(q))
     : () => true;
   const doneItems      = _getActiveStatuses().has('done')
-    ? ITEMS.filter(i => i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
+    ? getDoneItems(_matchesQuery)  // T-202606-028: reutiliza getDoneItems global — evita ITEMS.filter() duplicado
     : [];
   const descartadoItems = _getActiveStatuses().has('descartado')
     ? ITEMS.filter(i => i.status === 'descartado' && _matchesQuery(i))
