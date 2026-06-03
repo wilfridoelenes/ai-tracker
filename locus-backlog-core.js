@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:16 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:17 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -611,6 +611,26 @@ function _normalizeItems(items) {
       if (item.statusChangedAt) {
         item.history.push({ type: 'status', ts: item.statusChangedAt, data: { to: item.status } });
       }
+    }
+  });
+
+  // T-202606-011: R existente sin Ts válidos → convertir a P automáticamente.
+  // Se ejecuta sobre el array ya normalizado (types y statuses canónicos).
+  // Un R es válido como R solo si tiene al menos un T (no descartado) con parentId apuntando a él.
+  // La conversión persiste: _normalizeItems retorna el array mutado → loadBacklog llama saveBacklog().
+  // Idempotente: un R ya convertido a P no vuelve a evaluarse (type !== 'R').
+  items.forEach(item => {
+    if (item.type !== 'R') return;
+    if (item.status === 'descartado') return; // Rs descartados no se convierten
+    const _hasValidChild = items.some(i =>
+      i.type === 'T' && i.parentId === item.code && i.status !== 'descartado'
+    );
+    if (!_hasValidChild) {
+      item.type = 'P';
+      item.ac = [];
+      _blogLog('r-degradado-a-p', item.code || '(sin código)',
+        (item.code || '(sin código)') + ' sin Ts válidos convertido a P — refinar antes de promover',
+        'backlog');
     }
   });
 
