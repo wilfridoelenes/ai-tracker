@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -6,7 +6,7 @@
 
 import { _blogLog, _effectiveVersion, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState } from './locus-storage.js';
 import { _docPrefix } from './locus-sprint-project.js';
-import { updateBacklogBanner } from './locus-backlog-core.js';
+import { getItems, updateBacklogBanner } from './locus-backlog-core.js';
 import { showToast } from './locus-toast.js';
 
 // ── Versión canónica para naming de docs exportados ─────────────────────────
@@ -55,7 +55,7 @@ function _showExportConfirmModal(label, filename, onConfirm) {
 
 // ── Export Backlog ───────────────────────────────────────────────────────────
 export function exportBacklogMd() {
-  if (!ITEMS.length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
+  if (!getItems().length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   _showExportConfirmModal('Backlog', `${pfx}-BACKLOG_${ver}.md`, () => _generateBacklogMd(ver));
@@ -63,7 +63,7 @@ export function exportBacklogMd() {
 
 // AC-5: Exportar historial completo — todos los ítems sin filtro generacional
 export function exportFullHistoryMd() {
-  if (!ITEMS.length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
+  if (!getItems().length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   _showExportConfirmModal('Historial completo', `${pfx}-BACKLOG-FULL_${ver}.md`, () => _generateFullHistoryBySprintMd(ver));
@@ -71,7 +71,7 @@ export function exportFullHistoryMd() {
 
 // R-202605-132: Export "Por sprint"
 function exportSprintsMd() {
-  if (!ITEMS.length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
+  if (!getItems().length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   _showExportConfirmModal('Sprints — historial completo', `${pfx}-SPRINTS_${ver}.md`, () => _generateSprintsExportMd(ver));
