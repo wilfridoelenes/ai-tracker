@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:19 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:20 · autor:Rune · 2026-06-01 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
-import { _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache, getItems} from './locus-backlog-core.js';
+import { _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _markPulsoDotDirty, renderPulsoDot } from './locus-pulso.js';
@@ -17,12 +17,12 @@ import { getProjectById } from './locus-sprint-project.js';
 
 import { applyTheme } from './locus-ui-shell.js';
 
-// ── Lazy references para romper ciclo storage ↔ sprint-project ────────────────
+// ── Lazy references para romper ciclos storage ↔ sprint-project y storage ↔ backlog-core ──
 // _getActiveProjectFilter y exportBacklogMd viven en locus-sprint-project.js,
 // que a su vez importa locus-storage.js → ciclo ES module → TDZ en _supabaseUser.
-// T2: declaradas como let para que _initApp(opts) pueda inyectar referencias directas
-// desde main.js eliminando la dependencia de window.*. Fallback window.* se mantiene
-// por compatibilidad con locus-api.js hasta que T6 complete la migración.
+// _getItems vive en locus-backlog-core.js, que importa locus-storage.js → mismo ciclo.
+// T2/T-202606-046: declaradas como let para que _initApp(opts) inyecte referencias directas
+// desde main.js. Fallback window.* se mantiene por compatibilidad hasta que T6 complete la migración.
 let _getActiveProjectFilter = function() {
   return typeof window._getActiveProjectFilter === 'function'
     ? window._getActiveProjectFilter()
@@ -31,6 +31,12 @@ let _getActiveProjectFilter = function() {
 let exportBacklogMd = function() {
   if (typeof window._exportBacklogMd === 'function') return window._exportBacklogMd();
   if (typeof window.Locus?.exportBacklogMd === 'function') return window.Locus.exportBacklogMd();
+};
+// T-202606-046: getItems inyectado via _initApp — no importar locus-backlog-core directamente
+let _getItems = function() {
+  if (typeof window.getItems === 'function') return window.getItems();
+  console.warn('[AI Tracker] _getItems: getItems no disponible — usando fallback []');
+  return [];
 };
 // No contiene lógica de UI, render, toast ni timer de sesión.
 
@@ -691,7 +697,7 @@ export async function saveBacklog() {
     }
   }
 
-  const items = (typeof window.getItems() !== 'undefined') ? window.getItems() : [];
+  const items = _getItems();
   const key = _tplKey('backlog-items');
   const projId = _getActiveProjectFilter();
   const metaKey = _tplKey('backlog-meta');
@@ -918,7 +924,7 @@ export async function _loadFromSupabase() {
   // Si _loadFromSupabase falla a mitad, restauramos getItems() y state al estado previo.
   // T-202605-084: structuredClone garantiza deep clone — Object.assign shallow no es suficiente
   // para objetos anidados como items[i].ac o items[i].intencion.
-  const _itemsRef = (typeof window.getItems() !== 'undefined') ? window.getItems() : null;
+  const _itemsRef = _getItems().length ? _getItems() : null;
   const _itemsSnapshot = _itemsRef ? structuredClone(_itemsRef) : null;
   const _stateSnapshot = structuredClone(state);
 
@@ -1365,6 +1371,9 @@ function load() {
 export function _initApp(opts = {}) {
   if (opts.getActiveProjectFilter) _getActiveProjectFilter = opts.getActiveProjectFilter;
   if (opts.exportBacklogMd) exportBacklogMd = opts.exportBacklogMd;
+  // T-202606-046: inyectar getItems para romper ciclo storage ↔ backlog-core
+  if (opts.getItems) _getItems = opts.getItems;
+  else console.warn('[AI Tracker] _initApp: getItems no recibido en opts — usando fallback window.getItems');
   // 1. Cargar estado desde localStorage en memoria (sin UI)
   load();
 
@@ -1396,7 +1405,7 @@ function _renderAfterAuth() {
   _markTrackerDirty(); render();
   // B-202605-508: garantizar badges visibles al arranque
   updateTabNotifBadges();
-  // R-202604-072: panel de contexto diario — diferido para que window.getItems() esté cargado
+  // R-202604-072: panel de contexto diario — diferido para que _getItems() esté disponible
   if (typeof _showArranquePanel === 'function') setTimeout(_showArranquePanel, 400);
   // R-202604-073: dot Pulso — recalcular con datos reales
   // B-202605-079: mark antes del setTimeout — el guard requiere flag activo al ejecutar
