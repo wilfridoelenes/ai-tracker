@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:1 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:2 · autor:Rune · 2026-06-02 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -554,45 +554,128 @@ function _buildIndexLines(itemMap) {
   return lines.join('\n');
 }
 
+// T-202606-017: determina si un T tiene bloqueo activo.
+// Un T está bloqueado cuando al menos un código en depends_on apunta a un T
+// cuyo status es 'pendiente' o 'en-revision'. 'descartado' equivale a done — no bloquea.
+function _isItemBlocked(item) {
+  if (!item.depends_on || !item.depends_on.length) return { blocked: false, blockers: [] };
+  const blockers = [];
+  item.depends_on.forEach(depCode => {
+    const dep = ITEMS.find(i => i.code === depCode);
+    if (!dep) return; // código no resuelto — no bloquea
+    const s = dep.status || 'pendiente';
+    if (s === 'pendiente' || s === 'en-revision') blockers.push(depCode);
+    // 'done', 'descartado', 'historico' — no bloquean
+  });
+  return { blocked: blockers.length > 0, blockers };
+}
+
+// T-202606-017: genera los campos de un ítem sin el encabezado de título.
+function _buildItemFieldsMd(item, state) {
+  let md = '';
+  md += `**Priority:** ${item.priority || 'medium'}\n`;
+  const _area = (item.area || '').includes('**') ? '' : (item.area || '').trim();
+  md += `**Area:** ${_area}\n`;
+  md += `**Effort:** ${item.effort || 1}\n`;
+  if (item.impact) md += `**Impact:** ${item.impact}\n`;
+  md += `**Status:** ${item.status || 'pendiente'}\n`;
+  if (item.discardReason) md += `**DiscardReason:** ${item.discardReason}\n`;
+  if (item.discardRef)    md += `**DiscardRef:** ${item.discardRef}\n`;
+  if (item.sprint) {
+    const _sprintObj = (state.sprints || []).find(s => s.id === item.sprint);
+    const _sprintLabel = _sprintObj ? (_sprintObj.name || item.sprint) : item.sprint;
+    md += `**SprintId:** ${item.sprint}\n`;
+    md += `**Sprint:** ${_sprintLabel}\n`;
+  }
+  if (item.role)     md += `**Role:** ${item.role}\n`;
+  if (item.parentId) md += `**ParentId:** ${item.parentId}\n`;
+  if (item.depends_on && item.depends_on.length) {
+    md += `**DependsOn:** ${item.depends_on.join(', ')}\n`;
+  }
+  if (item.origin)   md += `**Origin:** ${item.origin}\n`;
+  if (item.blockedBy && item.blockedBy.length) md += `**BlockedBy:** ${item.blockedBy.join(', ')}\n`;
+  if (item.archivos && item.archivos.length)   md += `**Archivos:** ${item.archivos.join(', ')}\n`;
+  if (item.version)  md += `**Version:** ${item.version}\n`;
+  if (item.desc)     md += `\n${item.desc}\n`;
+  if (item.ac && item.ac.length) {
+    md += `\n### Criterios de aceptación\n`;
+    item.ac.forEach(c => {
+      const checked = item.status === 'done' ? 'x' : ' ';
+      md += `- [${checked}] ${c}\n`;
+    });
+  }
+  if (item.notes)           md += `\n**Notes:** ${item.notes}\n`;
+  if (item.createdAt)       md += `**CreatedAt:** ${item.createdAt}\n`;
+  if (item.statusChangedAt) md += `**StatusChangedAt:** ${item.statusChangedAt}\n`;
+  if (item.doneAt)          md += `**DoneAt:** ${item.doneAt}\n`;
+  return md;
+}
+
+// T-202606-017: estructura nueva — Rs como headers H3 con Ts anidados (H4) e indicadores de bloqueo.
 function _buildItemsMd(items) {
   const state = getState();
   const src = items || ITEMS;
-  return src.map(item => {
-    let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}\n`;
-    md += `**Priority:** ${item.priority || 'medium'}\n`;
-    const _area = (item.area || '').includes('**') ? '' : (item.area || '').trim();
-    md += `**Area:** ${_area}\n`;
-    md += `**Effort:** ${item.effort || 1}\n`;
-    if (item.impact) md += `**Impact:** ${item.impact}\n`;
-    md += `**Status:** ${item.status || 'pendiente'}\n`;
-    if (item.discardReason) md += `**DiscardReason:** ${item.discardReason}\n`;
-    if (item.discardRef)    md += `**DiscardRef:** ${item.discardRef}\n`;
-    if (item.sprint) {
-      const _sprintObj = (state.sprints || []).find(s => s.id === item.sprint);
-      const _sprintLabel = _sprintObj ? (_sprintObj.name || item.sprint) : item.sprint;
-      md += `**SprintId:** ${item.sprint}\n`;
-      md += `**Sprint:** ${_sprintLabel}\n`;
+
+  // Índice de Ts por parentId para lookup O(1)
+  const tsByParent = {};
+  src.forEach(i => {
+    if (!i.code || i.code[0] !== 'T') return;
+    const pid = i.parentId || i.parent;
+    if (!pid) return;
+    if (!tsByParent[pid]) tsByParent[pid] = [];
+    tsByParent[pid].push(i);
+  });
+
+  // Ts con parent declarado — se renderizan bajo su R, no en la lista plana
+  const tsWithParent = new Set(
+    src.filter(i => i.code && i.code[0] === 'T' && (i.parentId || i.parent))
+       .map(i => i.code)
+  );
+
+  const sections = [];
+
+  src.forEach(item => {
+    if (!item.code) return;
+    const type = item.code[0];
+
+    // Ts con parent — se renderizan bajo su R
+    if (type === 'T' && tsWithParent.has(item.code)) return;
+
+    if (type === 'R') {
+      // ── R como header H3 con Ts anidados ──────────────────────────────
+      let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}\n`;
+      md += _buildItemFieldsMd(item, state);
+
+      const children = tsByParent[item.code] || [];
+      if (children.length) {
+        md += `\n#### Tickets\n\n`;
+        children.forEach(t => {
+          const { blocked, blockers } = _isItemBlocked(t);
+          const blockerTag = blocked ? ` ⚠ bloqueado por ${blockers.join(', ')}` : '';
+          md += `##### ${t.code} · ${t.title || t.desc || '(sin título)'}${blockerTag}\n`;
+          md += _buildItemFieldsMd(t, state);
+          md += '\n';
+        });
+      }
+      sections.push(md);
+
+    } else if (type === 'T') {
+      // ── T huérfano (sin R padre) ───────────────────────────────────────
+      const { blocked, blockers } = _isItemBlocked(item);
+      const blockerTag = blocked ? ` ⚠ bloqueado por ${blockers.join(', ')}` : '';
+      let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}${blockerTag}\n`;
+      md += _buildItemFieldsMd(item, state);
+      sections.push(md);
+
+    } else {
+      // ── P y B ─────────────────────────────────────────────────────────
+      let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}\n`;
+      md += _buildItemFieldsMd(item, state);
+      sections.push(md);
     }
-    if (item.role)   md += `**Role:** ${item.role}\n`;
-    if (item.parentId) md += `**ParentId:** ${item.parentId}\n`;
-    if (item.origin)   md += `**Origin:** ${item.origin}\n`;
-    if (item.blockedBy && item.blockedBy.length) md += `**BlockedBy:** ${item.blockedBy.join(', ')}\n`;
-    if (item.archivos && item.archivos.length) md += `**Archivos:** ${item.archivos.join(', ')}\n`;
-    if (item.version) md += `**Version:** ${item.version}\n`;
-    if (item.desc) md += `\n${item.desc}\n`;
-    if (item.ac && item.ac.length) {
-      md += `\n### Criterios de aceptación\n`;
-      item.ac.forEach(c => {
-        const checked = item.status === 'done' ? 'x' : ' ';
-        md += `- [${checked}] ${c}\n`;
-      });
-    }
-    if (item.notes) md += `\n**Notes:** ${item.notes}\n`;
-    if (item.createdAt)       md += `**CreatedAt:** ${item.createdAt}\n`;
-    if (item.statusChangedAt) md += `**StatusChangedAt:** ${item.statusChangedAt}\n`;
-    if (item.doneAt)          md += `**DoneAt:** ${item.doneAt}\n`;
-    return md;
-  }).join('\n---\n\n');
+  });
+
+  return sections.join('\n---\n\n');
 }
 
 // ── Context export ────────────────────────────────────────────────────────────

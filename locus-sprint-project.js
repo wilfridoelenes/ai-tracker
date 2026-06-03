@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:21 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:22 · autor:Rune · 2026-06-02 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -802,8 +802,6 @@ window._setActiveProjectFilter   = _setActiveProjectFilter;
 window._updateProjBreadcrumb     = _updateProjBreadcrumb;
 window._updateProjFilterBtn      = _updateProjFilterBtn;
 window.setProjContext            = setProjContext;
-window._generateBacklogMd        = window._generateBacklogMd;
-window._generateBacklogContent   = window._generateBacklogContent;
 window._getLocalStorageUsage     = _getLocalStorageUsage;
 window.openProjModal             = openProjModal;
 window.closeProjPanel            = closeProjPanel;
