@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -113,7 +113,7 @@ function _generateSprintsContent(newVersion) {
   let sprintSections = '';
 
   orderedSprints.forEach(sp => {
-    const spItems = ITEMS.filter(i => i.sprint === sp.id);
+    const spItems = getItems().filter(i => i.sprint === sp.id);
     const doneItems = spItems.filter(i => i.status === 'done' || i.status === 'historico');
     const doneEffort = doneItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
     const totalEffort = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
@@ -147,14 +147,14 @@ function _generateSprintsContent(newVersion) {
     sprintSections += `\n### ${sp.label || sp.name || sp.id}\n\n| Campo | Valor |\n|---|---|\n${metaRows}\n\n${itemsBlock}\n${retroBlock}\n---\n`;
   });
 
-  const noSprintItems = ITEMS.filter(i => !i.sprint || i.sprint === 'n/a');
+  const noSprintItems = getItems().filter(i => !i.sprint || i.sprint === 'n/a');
   let noSprintSection = '';
   if (noSprintItems.length) {
     noSprintSection = `\n### Sin sprint asignado\n\n${_itemRowHeader()}\n${noSprintItems.map(i => _itemRow(i, 0)).join('\n')}\n\n---\n`;
   }
 
   const velocityRows = closedSprints.map(sp => {
-    const spItems = ITEMS.filter(i => i.sprint === sp.id);
+    const spItems = getItems().filter(i => i.sprint === sp.id);
     const doneEffort = spItems
       .filter(i => i.status === 'done' || i.status === 'historico')
       .reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
@@ -166,7 +166,7 @@ function _generateSprintsContent(newVersion) {
   const avgVelocity = closedSprints.length
     ? (() => {
         const totals = closedSprints.map(sp =>
-          ITEMS.filter(i => i.sprint === sp.id && (i.status === 'done' || i.status === 'historico'))
+          getItems().filter(i => i.sprint === sp.id && (i.status === 'done' || i.status === 'historico'))
                .reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0)
         );
         return Math.round(totals.reduce((a, b) => a + b, 0) / totals.length);
@@ -266,7 +266,7 @@ export function _generateFullHistoryContent(newVersion) {
 
   let sprintSections = '';
   sprintsWithData.forEach(sp => {
-    const spItems = ITEMS.filter(i => i.sprint === sp.id);
+    const spItems = getItems().filter(i => i.sprint === sp.id);
     const doneItems = spItems.filter(i => i.status === 'done' || i.status === 'historico');
     const doneEffort = doneItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
     const totalEffort = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
@@ -297,13 +297,13 @@ export function _generateFullHistoryContent(newVersion) {
     sprintSections += `\n### ${sp.label || sp.name || sp.id}\n\n| Campo | Valor |\n|---|---|\n${metaRows}\n\n${itemsBlock}\n${retroBlock}\n---\n`;
   });
 
-  const legacyItems = ITEMS.filter(i => i.sprint && legacySprintIds.has(i.sprint));
+  const legacyItems = getItems().filter(i => i.sprint && legacySprintIds.has(i.sprint));
   let legacySection = '';
   if (legacyItems.length) {
     legacySection = `\n### Histórico pre-S-${SPRINT_DATA_THRESHOLD} (sin datos de sprint)\n\n_Ítems de sprints anteriores sin datos de effort registrados._\n\n${_itemRowHeader()}\n${legacyItems.map(i => _itemRow(i, 0)).join('\n')}\n\n---\n`;
   }
 
-  const noSprintItems = ITEMS.filter(i => !i.sprint || i.sprint === 'n/a');
+  const noSprintItems = getItems().filter(i => !i.sprint || i.sprint === 'n/a');
   let noSprintSection = '';
   if (noSprintItems.length) {
     noSprintSection = `\n### Sin sprint asignado\n\n${_itemRowHeader()}\n${noSprintItems.map(i => _itemRow(i, 0)).join('\n')}\n\n---\n`;
@@ -332,7 +332,7 @@ ${legacySection}${noSprintSection}
 
 | Métrica | Valor |
 |---------|-------|
-| Total ítems | ${ITEMS.length} |
+| Total ítems | ${getItems().length} |
 | Sprints cerrados con datos | ${sprintsWithData.length} |
 | Sprints históricos (pre-S-${SPRINT_DATA_THRESHOLD}) | ${legacySprintIds.size} |
 `;
@@ -381,7 +381,7 @@ function _buildCurrentStateMd() {
   const state = getState();
   const lines = ['## Estado actual', ''];
 
-  const pendientes = ITEMS.filter(i => i.status === 'pendiente');
+  const pendientes = getItems().filter(i => i.status === 'pendiente');
   if (pendientes.length) {
     const byType = {};
     pendientes.forEach(i => {
@@ -420,13 +420,13 @@ export function _generateBacklogContent(newVersion, opts = {}) {
 
   let exportItems;
   if (opts.fullHistory) {
-    exportItems = ITEMS;
+    exportItems = getItems();
   } else {
     const lastClosed = _lastClosedSprint();
     const lastClosedId = lastClosed ? lastClosed.id : null;
     const activeSprint = (state.sprints || []).find(s => s.status === 'active');
     const activeSprintId = activeSprint ? activeSprint.id : null;
-    exportItems = ITEMS.filter(i => {
+    exportItems = getItems().filter(i => {
       if (i.status === 'historico') return false;
       if (i.status === 'pendiente' || i.status === 'en curso') return true;
       if (i.status === 'done' && lastClosedId && i.sprint === lastClosedId) return true;
@@ -437,7 +437,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   }
 
   const counters = { P:0, T:0, R:0, B:0 };
-  ITEMS.forEach(i => {
+  getItems().forEach(i => {
     if (!i.code) return;
     const t = i.code[0];
     const m = i.code.match(/[PITRB]-\d{6}-(\d{3})/);
@@ -569,7 +569,7 @@ function _isItemBlocked(item) {
   if (!item.depends_on || !item.depends_on.length) return { blocked: false, blockers: [] };
   const blockers = [];
   item.depends_on.forEach(depCode => {
-    const dep = ITEMS.find(i => i.code === depCode);
+    const dep = getItems().find(i => i.code === depCode);
     if (!dep) return; // código no resuelto — no bloquea
     const s = dep.status || 'pendiente';
     if (s === 'pendiente' || s === 'en-revision') blockers.push(depCode);
@@ -622,7 +622,7 @@ function _buildItemFieldsMd(item, state) {
 // T-202606-017: estructura nueva — Rs como headers H3 con Ts anidados (H4) e indicadores de bloqueo.
 function _buildItemsMd(items) {
   const state = getState();
-  const src = items || ITEMS;
+  const src = items || getItems();
 
   // Índice de Ts por parentId para lookup O(1)
   const tsByParent = {};
