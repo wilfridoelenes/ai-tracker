@@ -1,9 +1,9 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:23 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:24 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
 
-import { _normalizeStatus, updateBacklogFooter } from './locus-backlog-item.js';
+import { updateBacklogFooter } from './locus-backlog-item.js';
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
 import { _getActiveSprint, _getSprintById, renderSprintBurndown, renderSprintItems } from './locus-backlog-sprints.js';
 import { openItemEditor } from './locus-backlog-editor.js';
@@ -591,15 +591,9 @@ function _normalizeItems(items) {
       item.status = 'pendiente';
     }
 
-    // Ausente o inválido → 'pendiente'. Usa _normalizeStatus si disponible.
+    // Ausente o inválido → 'pendiente'. T-202606-034: _normalizeStatus eliminada — lógica inline.
     const rawStatus = item.status;
-    let normalizedStatus;
-    if (typeof _normalizeStatus === 'function') {
-      normalizedStatus = _normalizeStatus(rawStatus);
-    } else {
-      // Fallback inline — misma lógica que _normalizeStatus para los valores canónicos
-      normalizedStatus = VALID_STATUSES.has(rawStatus) ? rawStatus : 'pendiente';
-    }
+    const normalizedStatus = VALID_STATUSES.has(rawStatus) ? rawStatus : 'pendiente';
     if (item.status !== normalizedStatus) {
       item.status = normalizedStatus;
       _blogLog('normalize', item.code || '(sin código)', `status "${rawStatus}" → "${normalizedStatus}"`, 'backlog');
@@ -677,12 +671,6 @@ export function loadBacklog() {
   }
   // R-202605-070: normalizar contrato de datos antes de cualquier uso downstream.
   // _normalizeItems absorbe: type, status, title/desc, id, history, schema_version.
-  // Guard: _normalizeStatus debe estar disponible (dependency de _normalizeItems).
-  if (typeof _normalizeStatus !== 'function') {
-    console.error('[AI Tracker] loadBacklog: _normalizeStatus no disponible — normalización abortada. Verificar orden de carga de módulos.');
-    showToast({ title: 'Error de carga', body: '_normalizeStatus no disponible. Recarga la página.', type: 'error' });
-    return;
-  }
   _setITEMS(_normalizeItems(ITEMS));
 
   // B-202605-210: sanear pendientes en sprints cerrados (migración retroactiva)
@@ -846,6 +834,8 @@ export function _getNextItemCode(typeChar, reservedCodes) {
 
 // Bug B-202604-002: parser estricto — solo acepta ### seguido de código exacto [TIPO]-[YYYYMM]-[NNN]
 function parseBacklogMd(text) {
+  // T-202606-034: _normalizeStatus eliminada — lógica inline con set local
+  const VALID_STATUSES_PARSE = new Set(['done', 'pendiente', 'en-revision', 'descartado', 'historico', 'promovida']);
   const items = [];
   const itemBlocks = text.split(/\n(?=###\s)/);
 
@@ -876,7 +866,7 @@ function parseBacklogMd(text) {
       const area     = areaRaw.includes('**') ? areaRaw.split('**')[0].trim() : areaRaw.trim();
       const effort   = parseInt(get('Effort')) || 1;
       const impact   = get('Impact') || 'Medio';
-      const status   = _normalizeStatus(get('Status'));
+      const status   = VALID_STATUSES_PARSE.has((get('Status') || '').trim().toLowerCase()) ? (get('Status') || '').trim().toLowerCase() : 'pendiente';
       const version  = get('Version') || 'futura';
       const sprint    = get('Sprint') || '';
       const parentId  = get('ParentId') || null;
