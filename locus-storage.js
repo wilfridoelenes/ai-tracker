@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:20 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:21 · autor:Rune · 2026-06-03 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
-import { _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
+// _localStorageUsageRatio · _migrateItemTypes · _purgeStaleBacklogCache — inyectadas via _initApp (ESM-B · romper ciclo storage↔backlog-core)
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _markPulsoDotDirty, renderPulsoDot } from './locus-pulso.js';
@@ -13,7 +13,7 @@ import { _markStatusBarDirty, renderStatusBar, updateStats } from './locus-sesio
 import { _markTrackerDirty, _updateAutoDownloadLabel, render } from './locus-sesiones.js';
 import { showToast, toast } from './locus-toast.js';
 
-import { getProjectById } from './locus-sprint-project.js';
+// getProjectById — inyectado via _initApp (ESM-B · romper ciclo storage↔sprint-project)
 
 import { applyTheme } from './locus-ui-shell.js';
 
@@ -37,6 +37,14 @@ let _getItems = function() {
   if (typeof window.getItems === 'function') return window.getItems();
   console.warn('[AI Tracker] _getItems: getItems no disponible — usando fallback []');
   return [];
+};
+// ESM-B: funciones de backlog-core inyectadas via _initApp — eliminado import estático circular
+let _localStorageUsageRatio = function() { return 0; };
+let _migrateItemTypes = function() {};
+let _purgeStaleBacklogCache = function() { return 0; };
+// ESM-B: getProjectById de sprint-project inyectada via _initApp — eliminado import estático circular
+let getProjectById = function(id) {
+  return (state.projects || []).find(p => p.id === id) || null;
 };
 // No contiene lógica de UI, render, toast ni timer de sesión.
 
@@ -1374,6 +1382,12 @@ export function _initApp(opts = {}) {
   // T-202606-046: inyectar getItems para romper ciclo storage ↔ backlog-core
   if (opts.getItems) _getItems = opts.getItems;
   else console.warn('[AI Tracker] _initApp: getItems no recibido en opts — usando fallback window.getItems');
+  // ESM-B: inyectar funciones de backlog-core para romper ciclo storage ↔ backlog-core
+  if (opts.localStorageUsageRatio) _localStorageUsageRatio = opts.localStorageUsageRatio;
+  if (opts.migrateItemTypes) _migrateItemTypes = opts.migrateItemTypes;
+  if (opts.purgeStaleBacklogCache) _purgeStaleBacklogCache = opts.purgeStaleBacklogCache;
+  // ESM-B: inyectar getProjectById para romper ciclo storage ↔ sprint-project
+  if (opts.getProjectById) getProjectById = opts.getProjectById;
   // 1. Cargar estado desde localStorage en memoria (sin UI)
   load();
 
