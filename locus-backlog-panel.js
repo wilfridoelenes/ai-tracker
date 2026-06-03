@@ -1,11 +1,12 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:12 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:13 · autor:Rune · 2026-06-02 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-toast.js
 
 import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemType, renderStats, setItemStatus, undoBacklog } from './locus-backlog-core.js';
-import { _getActiveProjectFilter, exportBacklogMd, getProjectById } from './locus-sprint-project.js';
+import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
+import { exportBacklogMd } from './locus-backlog-generator.js';
 import { getAI, getActiveSprints, getAllSessions, save, saveImmediate } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 
