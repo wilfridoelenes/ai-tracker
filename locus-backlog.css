@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-14 · mod:9 · autor:Rune · 2026-06-01 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-15 · mod:10 · autor:Nova · 2026-06-03 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -5150,3 +5150,291 @@ er {
 }
 
 /* ══ END T-202605-103 ══ */
+
+/* ══ R-202606-002 · Vista C colapsable — Nova · T-202606-013 ══════════════════ */
+
+/* ── bl-vc: contenedor raíz de la vista C ── */
+.bl-vc {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── bl-vc-r: bloque de R con Ts anidados ── */
+.bl-vc-r {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: border-color 0.15s var(--ease-out);
+}
+
+.bl-vc-r:focus-within {
+  border-color: var(--accent-border);
+}
+
+/* ── bl-vc-r-header: header colapsable del R ── */
+.bl-vc-r-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface2);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s var(--ease-out);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  /* foco accesible */
+  outline: none;
+}
+
+.bl-vc-r-header:hover {
+  background: var(--surface3);
+}
+
+.bl-vc-r-header:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* estado colapsado: cabecera sin borde inferior redondeado cuando está expandida */
+.bl-vc-r--collapsed .bl-vc-r-header {
+  border-radius: var(--radius-lg);
+}
+
+/* ── bl-vc-r-arrow: flecha indicadora de colapso ── */
+.bl-vc-r-arrow {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--hint);
+  transition: transform 0.15s var(--ease-out), color 0.12s var(--ease-out);
+  transform: rotate(0deg);
+}
+
+.bl-vc-r--collapsed .bl-vc-r-arrow {
+  transform: rotate(-90deg);
+}
+
+.bl-vc-r-header:hover .bl-vc-r-arrow {
+  color: var(--text2);
+}
+
+/* ── bl-vc-r-code: código del R ── */
+.bl-vc-r-code {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--hint);
+  flex-shrink: 0;
+}
+
+/* ── bl-vc-r-title: título del R ── */
+.bl-vc-r-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── bl-vc-r-meta: badges de meta del R (count, effort) ── */
+.bl-vc-r-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.bl-vc-r-count {
+  font-family: var(--mono);
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── bl-vc-r-body: contenedor de Ts anidados ── */
+.bl-vc-r-body {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
+  /* animación de apertura */
+  overflow: hidden;
+  transition: max-height 0.2s var(--ease-out), opacity 0.15s var(--ease-out);
+  max-height: 2000px;
+  opacity: 1;
+}
+
+.bl-vc-r--collapsed .bl-vc-r-body {
+  max-height: 0;
+  opacity: 0;
+  pointer-events: none;
+  border-top: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bl-vc-r-body {
+    transition: none;
+  }
+  .bl-vc-r-arrow {
+    transition: none;
+  }
+}
+
+/* ── bl-vc-t: fila de T anidado ── */
+.bl-vc-t {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px 6px 28px;
+  min-height: 32px;
+  transition: background 0.1s var(--ease-out);
+}
+
+.bl-vc-t:hover {
+  background: var(--surface2);
+}
+
+/* ── bl-vc-t-code: código del T ── */
+.bl-vc-t-code {
+  font-family: var(--mono);
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  min-width: 96px;
+}
+
+/* ── bl-vc-t-title: título del T ── */
+.bl-vc-t-title {
+  font-size: var(--text-sm);
+  color: var(--text2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── bl-vc-t-indicators: zona de badges inline ── */
+.bl-vc-t-indicators {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* ── bl-vc-badge: badge base inline (parent, depends_on) ── */
+.bl-vc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  font-family: var(--mono);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  border: 1px solid transparent;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* badge de parent: código del R padre */
+.bl-vc-badge--parent {
+  background: rgb(124 106 247 / 10%);
+  border-color: rgb(124 106 247 / 30%);
+  color: #a89cf7; /* dark: purple derivado con contraste > 4.5:1 sobre fondo */
+}
+
+/* badge de depends_on: cantidad de dependencias */
+.bl-vc-badge--deps {
+  background: var(--surface3);
+  border-color: var(--border);
+  color: var(--text2);
+}
+
+/* ── bl-vc-blocked: indicador de bloqueo activo ── */
+/* Dos estados: visible (bloqueo activo) / ausente (sin bloqueo) */
+/* Estado ausente: elemento no está en el DOM o tiene .is-hidden */
+.bl-vc-blocked {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  border: 1px solid var(--c-high-border);
+  background: var(--c-high-bg);
+  color: var(--c-high-text);
+  white-space: nowrap;
+}
+
+/* Punto pulsante dentro del indicador de bloqueo */
+.bl-vc-blocked-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: currentColor;
+  flex-shrink: 0;
+  animation: bl-vc-blocked-pulse 2s ease-in-out infinite;
+}
+
+@keyframes bl-vc-blocked-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bl-vc-blocked-dot {
+    animation: none;
+  }
+}
+
+/* ── bl-vc-orphans: grupo 'Sin R padre' ── */
+/* display:none cuando está vacío — JS agrega .is-hidden cuando no hay Ts sin parent */
+.bl-vc-orphans {
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.bl-vc-orphans-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface2);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.bl-vc-orphans-header-title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.bl-vc-orphans-body {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
+}
+
+/* Estado ausente del grupo: cuando no hay Ts sin parent */
+.bl-vc-orphans.is-hidden {
+  display: none !important;
+}
+
+/* Estado sin Ts visibles bajo un R */
+.bl-vc-t-empty {
+  color: var(--hint);
+  font-style: italic;
+}
+
+/* ══ END R-202606-002 · T-202606-013 ══ */

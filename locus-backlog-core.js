@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:19 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:20 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -189,6 +189,17 @@ const VERSION_LABELS = {
   'v2.0.0':'Sprint activo',
   'futura':'Versión futura — sin fecha'
 };
+
+// T-202606-014: colapso de Rs en vista C — clave canónica por proyecto+rCode
+export function _vcCollapseGet(projectId, rCode) {
+  try { return localStorage.getItem(`locus-vc-collapse-${projectId}-${rCode}`) === '1'; } catch { return false; }
+}
+export function _vcCollapseSet(projectId, rCode, collapsed) {
+  try {
+    if (collapsed) { localStorage.setItem(`locus-vc-collapse-${projectId}-${rCode}`, '1'); }
+    else { localStorage.removeItem(`locus-vc-collapse-${projectId}-${rCode}`); }
+  } catch {}
+}
 
 // T-049: colapso por versión — persiste en localStorage
 const _CV_KEY = 'backlog-collapsed-versions';

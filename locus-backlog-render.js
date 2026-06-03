@@ -1,6 +1,6 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:23 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:24 · autor:Rune · 2026-06-03 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
-import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode } from './locus-backlog-core.js';
+import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, setFilter, updateBacklogFooter } from './locus-backlog-item.js';
 
@@ -176,6 +176,141 @@ function _sprintVelocityLabel(sprintId) {
 let _backlogListDirty = false;
 export function _markBacklogListDirty() { _backlogListDirty = true; }
 window._markBacklogListDirty = _markBacklogListDirty;
+
+// T-202606-014: renderizado de vista C colapsable
+// Rs como headers colapsables con Ts anidados. Filtros de status, tipo, effort y búsqueda
+// ya aplicados sobre pendienteItems antes de llegar aquí.
+function _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems) {
+  const projectId = _getActiveProjectFilter() || 'default';
+
+  // Separar Rs, Ts con parent, Ts sin parent y otros tipos
+  const rItems   = pendienteItems.filter(i => itemType(i.code) === 'R');
+  const tItems   = pendienteItems.filter(i => itemType(i.code) === 'T');
+  const bItems   = pendienteItems.filter(i => itemType(i.code) === 'B');
+  const pItems   = pendienteItems.filter(i => itemType(i.code) === 'P');
+
+  // Ts con parent conocido y Ts sin parent
+  const rCodes   = new Set(rItems.map(r => r.code));
+  const tWithParent    = tItems.filter(t => t.parentId && rCodes.has(t.parentId));
+  const tOrphans       = tItems.filter(t => !t.parentId || !rCodes.has(t.parentId));
+
+  // Mapa R → Ts hijos visibles
+  const childMap = {};
+  tWithParent.forEach(t => {
+    if (!childMap[t.parentId]) childMap[t.parentId] = [];
+    childMap[t.parentId].push(t);
+  });
+
+  // Obtener lista de todos los ítems (para evaluar bloqueo de depends_on)
+  // _hasDepsBlocked ya vive en core e itera sobre ITEMS global
+
+  let html = '<div class="bl-vc">';
+
+  // ── Rs con Ts anidados ──────────────────────────────────────────────────
+  rItems.forEach(r => {
+    const children = childMap[r.code] || [];
+    // AC: si todos los hijos quedan excluidos por filtro de status, el header del R no renderiza
+    // children ya está filtrado (pendienteItems pasó el filtro de activeStatuses)
+    // pero un R puede aparecer en pendienteItems aunque todos sus hijos estén fuera del filtro
+    // si el R mismo pasó el filtro de tipo R. Verificamos que haya al menos 1 hijo visible
+    // o que el propio R sea visible (R sin Ts hijos sigue siendo visible como header)
+
+    const isCollapsed = _vcCollapseGet(projectId, r.code);
+    const collapseClass = isCollapsed ? ' bl-vc-r--collapsed' : '';
+    const arrowSvg = `<svg class="bl-vc-r-arrow" viewBox="0 0 10 10" fill="none" aria-hidden="true"><path d="M3 2l4 3-4 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+    html += `<div class="bl-vc-r${collapseClass}" data-r-code="${esc(r.code)}">`;
+    html += `<div class="bl-vc-r-header" data-action="vc-toggle-r" data-r-code="${esc(r.code)}" tabindex="0" role="button" aria-expanded="${isCollapsed ? 'false' : 'true'}">`;
+    html += arrowSvg;
+    html += `<span class="bl-vc-r-code">${esc(r.code)}</span>`;
+    html += `<span class="bl-vc-r-title">${esc(r.title || '')}</span>`;
+    html += `<span class="bl-vc-r-meta"><span class="bl-vc-r-count">${children.length} T${children.length !== 1 ? 's' : ''}</span></span>`;
+    html += `</div>`; // header
+
+    html += `<div class="bl-vc-r-body">`;
+    if (children.length) {
+      children.forEach(t => {
+        const depsCount  = Array.isArray(t.depends_on) ? t.depends_on.length : 0;
+        const isBlocked  = _hasDepsBlocked(t);
+
+        html += `<div class="bl-vc-t" data-t-code="${esc(t.code)}">`;
+        html += `<span class="bl-vc-t-code">${esc(t.code)}</span>`;
+        html += `<span class="bl-vc-t-title">${esc(t.title || '')}</span>`;
+        html += `<span class="bl-vc-t-indicators">`;
+        // badge parent
+        html += `<span class="bl-vc-badge bl-vc-badge--parent">${esc(r.code)}</span>`;
+        // badge depends_on — solo si hay dependencias
+        if (depsCount > 0) {
+          html += `<span class="bl-vc-badge bl-vc-badge--deps">${depsCount}</span>`;
+        }
+        // indicador de bloqueo — solo cuando activo (dos estados: presente o ausente)
+        if (isBlocked) {
+          html += `<span class="bl-vc-blocked"><span class="bl-vc-blocked-dot"></span>bloqueado</span>`;
+        }
+        html += `</span>`; // indicators
+        html += `</div>`; // bl-vc-t
+      });
+    } else {
+      html += `<div class="bl-vc-t"><span class="bl-vc-t-title bl-vc-t-empty">Sin Ts en este filtro</span></div>`;
+    }
+    html += `</div>`; // bl-vc-r-body
+    html += `</div>`; // bl-vc-r
+  });
+
+  // ── Bs y Ps sueltos (no anidados bajo R) ────────────────────────────────
+  const sueltos = [...bItems, ...pItems];
+  if (sueltos.length) {
+    sueltos.forEach(item => { html += buildBacklogItem(item); });
+  }
+
+  // ── Grupo 'Sin R padre' (Ts huérfanos) ──────────────────────────────────
+  const orphansHidden = tOrphans.length === 0 ? ' is-hidden' : '';
+  html += `<div class="bl-vc-orphans${orphansHidden}">`;
+  html += `<div class="bl-vc-orphans-header"><span class="bl-vc-orphans-header-title">Sin R padre</span></div>`;
+  html += `<div class="bl-vc-orphans-body">`;
+  tOrphans.forEach(t => {
+    const depsCount = Array.isArray(t.depends_on) ? t.depends_on.length : 0;
+    const isBlocked = _hasDepsBlocked(t);
+    html += `<div class="bl-vc-t" data-t-code="${esc(t.code)}">`;
+    html += `<span class="bl-vc-t-code">${esc(t.code)}</span>`;
+    html += `<span class="bl-vc-t-title">${esc(t.title || '')}</span>`;
+    html += `<span class="bl-vc-t-indicators">`;
+    if (depsCount > 0) html += `<span class="bl-vc-badge bl-vc-badge--deps">${depsCount}</span>`;
+    if (isBlocked)     html += `<span class="bl-vc-blocked"><span class="bl-vc-blocked-dot"></span>bloqueado</span>`;
+    html += `</span></div>`;
+  });
+  html += `</div></div>`; // orphans-body + orphans
+
+  html += `</div>`; // bl-vc
+
+  listEl.innerHTML = html;
+  _skelHide(listEl);
+
+  // Delegación de eventos para toggle de colapso de R
+  listEl.addEventListener('click', _vcHandleToggle, { once: true });
+  listEl.addEventListener('keydown', function _vcKeyToggle(e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      const btn = e.target.closest('[data-action="vc-toggle-r"]');
+      if (btn) { e.preventDefault(); _vcDoToggle(btn, projectId); }
+    }
+  }, { once: true });
+
+  function _vcHandleToggle(e) {
+    const btn = e.target.closest('[data-action="vc-toggle-r"]');
+    if (btn) _vcDoToggle(btn, projectId);
+  }
+}
+
+function _vcDoToggle(btn, projectId) {
+  const rCode = btn.dataset.rCode;
+  if (!rCode) return;
+  const rEl = btn.closest('.bl-vc-r');
+  if (!rEl) return;
+  const isNowCollapsed = !rEl.classList.contains('bl-vc-r--collapsed');
+  rEl.classList.toggle('bl-vc-r--collapsed', isNowCollapsed);
+  btn.setAttribute('aria-expanded', isNowCollapsed ? 'false' : 'true');
+  _vcCollapseSet(projectId, rCode, isNowCollapsed);
+}
 
 export function renderBacklogList(onRendered) {
   if (!_backlogListDirty) return;
@@ -427,6 +562,21 @@ export function renderBacklogList(onRendered) {
     : [];
 
   let html = '';
+
+  // T-202606-014: vista C colapsable — Rs como headers, Ts anidados
+  // Se activa cuando el sprint group mode está desactivado y no hay modo exclusivo activo
+  const _useVistaC = !_getBacklogSprintGroupMode() && !_getBacklogKanbanMode() && !_getBacklogNoAcMode();
+
+  if (_useVistaC) {
+    _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems);
+    _attachBacklogDnD();
+    _attachBacklogListDelegation();
+    _attachPlanViewDelegation();
+    if (typeof _updateDocLogCount === 'function') _updateDocLogCount('backlog');
+    _skelHide(listEl);
+    if (typeof onRendered === 'function') onRendered();
+    return;
+  }
 
   // B-202605-206: agrupación por sprint es el comportamiento por defecto.
   // T-202604-424 eliminó 'sprint' como opción del selector de sort, pero la condición de entrada
