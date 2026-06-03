@@ -1,8 +1,8 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:4 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:5 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
-import { renderStats } from './locus-backlog-core.js';
+import { renderStats, getItems } from './locus-backlog-core.js';
 import { buildBacklogItem } from './locus-backlog-item.js';
 
 import { renderBacklogList } from './locus-backlog-render.js';
@@ -19,7 +19,7 @@ import { esc } from './locus-ui-shell.js';
 // ─────────────────────────────────────────────────────────────────────────────
 export function archiveClosedItems() {
   let changed = false;
-  ITEMS.forEach(item => {
+  getItems().forEach(item => {
     if (item.status === 'done' || item.status === 'descartado') {
       item.status = 'historico';
       changed = true;
@@ -51,7 +51,7 @@ const _HISTORICO_KEY  = _ARCH_KEY;
 const LEGACY_BOUNDARY = 23;
 
 export function renderArchivoHistorico(listEl) {
-  const historicos = ITEMS.filter(i => i.status === 'historico');
+  const historicos = getItems().filter(i => i.status === 'historico');
   if (!historicos.length) return;
 
   const isOpen     = (() => { try { return localStorage.getItem(_ARCH_KEY) === '1'; } catch { return false; } })();
@@ -237,7 +237,7 @@ function _archSprintEntryHtml(sp, spItems, entryId, entryKey, entryOpen) {
 // Vista Por sprint — accordion de sprints cerrados
 // R-202605-124: sprints ≥ S-23 con datos completos · pre-S-23 agrupados como bloque único
 function _renderArchivoViewSprint(body) {
-  const historicos    = ITEMS.filter(i => i.status === 'historico');
+  const historicos    = getItems().filter(i => i.status === 'historico');
   const closedSprints = getActiveSprints()
     .filter(s => s.status === 'closed')
     .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0)); // más reciente primero
@@ -303,7 +303,7 @@ function _renderArchivoViewSprint(body) {
 
 // Vista Lista plana — todos los históricos sin agrupación
 function _renderArchivoViewFlat(body) {
-  const historicos = ITEMS.filter(i => i.status === 'historico')
+  const historicos = getItems().filter(i => i.status === 'historico')
     .sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0));
 
   if (!historicos.length) {
@@ -340,10 +340,10 @@ function _toggleArchSprintEntry(bodyId, storageKey) {
         const closedSprints = getActiveSprints().filter(s => s.status === 'closed');
         const registeredIds = new Set(closedSprints.map(s => s.id));
         const legacyIds     = new Set(closedSprints.filter(s => _sprintNum(s.id) > 0 && _sprintNum(s.id) < LEGACY_BOUNDARY).map(s => s.id));
-        spItems = ITEMS.filter(i => i.status === 'historico' && (!i.sprint || !registeredIds.has(i.sprint) || legacyIds.has(i.sprint)));
+        spItems = getItems().filter(i => i.status === 'historico' && (!i.sprint || !registeredIds.has(i.sprint) || legacyIds.has(i.sprint)));
       } else {
         const spId = storageKey.replace(/^arch-se-/, '');
-        spItems = ITEMS.filter(i => i.status === 'historico' && i.sprint === spId);
+        spItems = getItems().filter(i => i.status === 'historico' && i.sprint === spId);
       }
       el.innerHTML = `<div class="arch-items-list">${spItems.map(_archItemRow).join('')}</div>`;
     }
