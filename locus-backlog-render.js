@@ -1,6 +1,6 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:26 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:27 · autor:Rune · 2026-06-03 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
-import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems } from './locus-backlog-core.js';
+import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, setFilter, updateBacklogFooter } from './locus-backlog-item.js';
 
@@ -37,7 +37,7 @@ function toggleChildrenBlock(rCode) {
 
 // R-202604-016: asignar parent a un T/B desde item-body
 function setItemParent(code, parentCode) {
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
   item.parentId = parentCode || null;
   _undoSnapshot();
@@ -139,7 +139,7 @@ export function _calcEstimatedVelocity() {
     .slice(-5); // R-202605-126: últimos 5 cerrados (antes: 3)
   if (closedSprints.length < 2) return null;
   const sprintData = closedSprints.map(sp => {
-    const spItems = ITEMS.filter(i => i.sprint === sp.id && i.status !== 'descartado');
+    const spItems = getItems().filter(i => i.sprint === sp.id && i.status !== 'descartado');
     const planned = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
     const real    = spItems.filter(i => i.status === 'done' || i.status === 'historico')
                            .reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
@@ -163,7 +163,7 @@ export function _calcEstimatedVelocity() {
 // Retorna HTML con clase hsr-velocity, o '' si no hay sprint activo
 function _sprintVelocityLabel(sprintId) {
   if (!sprintId) return '';
-  const spItems = ITEMS.filter(i => (i.sprint || '').trim() === sprintId && i.status === 'pendiente');
+  const spItems = getItems().filter(i => (i.sprint || '').trim() === sprintId && i.status === 'pendiente');
   const effortTotal = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
   const vel = _calcEstimatedVelocity();
   const velLabel = (vel && typeof vel.avg === 'number') ? vel.avg : null;
@@ -377,7 +377,7 @@ export function renderBacklogList(onRendered) {
     return;
   }
 
-  if (!ITEMS.length) {
+  if (!getItems().length) {
     // B-202605-062: diferenciar backlog vacío real vs proyecto sin datos en localStorage
     const _activeFilter = _getActiveProjectFilter();
     const _projKey = _activeFilter ? 'backlog-items-' + _activeFilter : null;
@@ -437,7 +437,7 @@ export function renderBacklogList(onRendered) {
 
   // Filtrado por tipo + status + effort (T-071)
   // B-202604-193: excluir ítems históricos del plano activo — van a sección colapsada al fondo
-  let filtered = ITEMS.filter(i => {
+  let filtered = getItems().filter(i => {
     if (i.status === 'historico') return false;
     const type = itemType(i.code);
     const typeOk = type ? _getActiveTypes().has(type) : true;
@@ -549,10 +549,10 @@ export function renderBacklogList(onRendered) {
     ? (i => i.code.toLowerCase().includes(q) || i.title.toLowerCase().includes(q) || (i.area || '').toLowerCase().includes(q))
     : () => true;
   const doneItems      = _getActiveStatuses().has('done')
-    ? getDoneItems(_matchesQuery)  // T-202606-028: reutiliza getDoneItems global — evita ITEMS.filter() duplicado
+    ? getDoneItems(_matchesQuery)  // T-202606-028: reutiliza getDoneItems global — evita getItems().filter() duplicado
     : [];
   const descartadoItems = _getActiveStatuses().has('descartado')
-    ? ITEMS.filter(i => i.status === 'descartado' && _matchesQuery(i))
+    ? getItems().filter(i => i.status === 'descartado' && _matchesQuery(i))
     : [];
 
   let html = '';
@@ -612,14 +612,14 @@ export function renderBacklogList(onRendered) {
     const _allOpenSprints = getActiveSprints().filter(s => s.status !== 'closed');
     _allOpenSprints.forEach(s => {
       if (sprintMap[s.id]) return; // ya está en el mapa, se procesa abajo
-      const hasAnyItem = ITEMS.some(i => (i.sprint || '').trim() === s.id); // hasAnyItem: verifica cualquier ítem en el sprint, no solo done
+      const hasAnyItem = getItems().some(i => (i.sprint || '').trim() === s.id); // hasAnyItem: verifica cualquier ítem en el sprint, no solo done
       if (!hasAnyItem) return; // sprint vacío — ignorar
       const isClosed = s.status === 'closed'; // B-fix: no hardcodear false — usar status real del sprint
       if (isClosed) return; // sprint cerrado — no renderizar en este bloque, aparece en cerrados
       const isActive = s.status === 'active';
       const groupId = s.id.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const doneInGroup = ITEMS.filter(i => (i.sprint || '').trim() === s.id && i.status === 'done').length;
-      const totalInGroup = ITEMS.filter(i => (i.sprint || '').trim() === s.id).length;
+      const doneInGroup = getItems().filter(i => (i.sprint || '').trim() === s.id && i.status === 'done').length;
+      const totalInGroup = getItems().filter(i => (i.sprint || '').trim() === s.id).length;
       const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
       const progressBar = `<div class="version-progress-inline">
           <div class="version-progress-bar-wrap"><div class="version-progress-bar" style="--ver-bar-w:${pct}%"></div></div>
@@ -629,11 +629,11 @@ export function renderBacklogList(onRendered) {
       const sprintBadge = '';
       const sprintStatusLabel = isActive ? `<span class="sprint-badge-active" class="sprint-badge-ml">activo</span>` : '';
       // R-202605-007: sprintActions eliminado — header solo lectura
-      const _sprintAllItems = ITEMS.filter(i => (i.sprint || '').trim() === s.id);
+      const _sprintAllItems = getItems().filter(i => (i.sprint || '').trim() === s.id);
       const _sprintPills = _statusPills(_sprintAllItems);
       const _velLabel066a = isActive ? _sprintVelocityLabel(s.id) : '';
       const _doneInGroupItems = _getActiveStatuses().has('done')
-        ? ITEMS.filter(i => (i.sprint || '').trim() === s.id && i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
+        ? getItems().filter(i => (i.sprint || '').trim() === s.id && i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
         : [];
       const _doneGroupHtml = _doneInGroupItems.length
         ? _sortGroup(_doneInGroupItems).map(item => buildBacklogItem(item)).join('')
@@ -661,8 +661,8 @@ export function renderBacklogList(onRendered) {
       const label = isSinAsignar ? 'Sin asignar' : (sprintObj ? sprintObj.label : key);
       const groupId = isSinAsignar ? 'sin-asignar' : key.toLowerCase().replace(/[^a-z0-9]/g, '-');
       const isCollapsed = _getCollapsedVersions().has(groupId);
-      const doneInGroup = ITEMS.filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key) && i.status === 'done').length;
-      const totalInGroup = ITEMS.filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key)).length;
+      const doneInGroup = getItems().filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key) && i.status === 'done').length;
+      const totalInGroup = getItems().filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key)).length;
       const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
 
       const isActive = sprintObj && sprintObj.status === 'active';
@@ -683,7 +683,7 @@ export function renderBacklogList(onRendered) {
 
       // R-202605-007: sprintActions eliminado — header solo lectura (AC-2)
 
-      const _sprintAllItems = ITEMS.filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key));
+      const _sprintAllItems = getItems().filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key));
       const _pendCount  = group.length;
       const _doneCount  = _sprintAllItems.filter(i => i.status === 'done').length;
       const _descCount  = _sprintAllItems.filter(i => i.status === 'descartado').length;
@@ -693,7 +693,7 @@ export function renderBacklogList(onRendered) {
       const _velLabel066b = isActive ? _sprintVelocityLabel(key) : '';
       // T-202606-006: done items en posición natural dentro del sprint — sin sección separada
       const _doneInGroupItems = _getActiveStatuses().has('done')
-        ? ITEMS.filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key) && i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
+        ? getItems().filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key) && i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
         : [];
       const _doneGroupHtml = _doneInGroupItems.length
         ? _sortGroup(_doneInGroupItems).map(item => buildBacklogItem(item)).join('')

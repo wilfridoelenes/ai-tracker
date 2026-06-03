@@ -1,11 +1,11 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
 // Dependencias: locus-backlog-core.js · locus-backlog-item.js · locus-backlog-sprints.js · locus-storage.js · locus-toast.js
 // Carga: después de locus-backlog-item.js
 
-import { _calcPriority, _getActiveSessionAiId, _undoSnapshot, loadBacklog, renderStats, updateBacklogBanner } from './locus-backlog-core.js';
+import { _calcPriority, _getActiveSessionAiId, _undoSnapshot, loadBacklog, renderStats, updateBacklogBanner, getItems } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _buildNewSprintForm, _getSprintById } from './locus-backlog-sprints.js';
 import { _blogLog, getActiveProject, getActiveSprints, saveBacklog } from './locus-storage.js';
@@ -90,7 +90,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   // R-202605-148: select de sprint inline — persiste via _mdiffSetItemSprint sin re-render del DIFF
   const _sprintSelect = (code) => {
     const openSprints = getActiveSprints().filter(s => s.status !== 'closed');
-    const item = ITEMS.find(i => i.code === code);
+    const item = getItems().find(i => i.code === code);
     const rawSprint = item ? (item.sprint || '') : '';
     // R-202605-148 AC: si el sprint asignado ya no existe, mostrar 'Sin sprint' como fallback
     const sprintExists = rawSprint && openSprints.some(s => s.id === rawSprint);
@@ -111,7 +111,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   // parentOverride: valor de parent del objeto diff cuando el ítem aún no existe en ITEMS (recién creado)
   const _parentHtml = (code, parentOverride) => {
     if ((code || '?')[0].toUpperCase() !== 'T') return '';
-    const item = ITEMS.find(i => i.code === code);
+    const item = getItems().find(i => i.code === code);
     const parentVal = item
       ? (item.parent || null)
       : (parentOverride || null);
@@ -351,13 +351,13 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     const val = sel.value;
     if (val === '__new__') {
       // Revertir select a valor actual antes de reemplazarlo con el mini-form
-      sel.value = (ITEMS.find(i => i.code === code) || {}).sprint || '';
+      sel.value = (getItems().find(i => i.code === code) || {}).sprint || '';
       _mdiffOpenNewSprintForm(sel, code);
       return;
     }
     // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
     if (val === 'icebox') {
-      const _itemForBlock = ITEMS.find(i => i.code === code);
+      const _itemForBlock = getItems().find(i => i.code === code);
       if (_itemForBlock && _itemForBlock.status === 'en-revision') {
         if (typeof showToast === 'function') {
           showToast(`CHECKPOINT bloqueado: ${code} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`, 'error');
@@ -376,7 +376,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   //   - Si createSprint falla, ítems con sprint: n/a (onCancel restaura select sin asignar)
   function _mdiffOpenNewSprintForm(sel, code) {
     // Obtener projId del ítem en ITEMS; si es nuevo (aún no existe), usar projId de la sesión
-    const _itemForSprint = ITEMS.find(i => i.code === code);
+    const _itemForSprint = getItems().find(i => i.code === code);
     const _projIdForForm = (_itemForSprint && _itemForSprint.projectId) || projId || null;
 
     if (typeof _buildNewSprintForm !== 'function') {
@@ -427,7 +427,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   function _mdiffRestoreSelect(wrap, code, selectedId) {
     const openSprints = getActiveSprints().filter(s => s.status !== 'closed');
     const currentSprint = code
-      ? ((ITEMS.find(i => i.code === code) || {}).sprint || '')
+      ? ((getItems().find(i => i.code === code) || {}).sprint || '')
       : '';
     const effectiveSelected = selectedId || currentSprint;
 
@@ -462,7 +462,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
   // R-202605-148: persistir sprint en ITEMS + saveBacklog sin re-render del backlog ni del DIFF
   function _mdiffPersistSprint(code, sprintId) {
-    const item = ITEMS.find(i => i.code === code);
+    const item = getItems().find(i => i.code === code);
     if (!item) {
       // B-202605-500: ítem nuevo aún no existe en ITEMS durante dryRun — guardar para aplicar en _mdiffDoApply
       _mdiffPendingSprints[code] = sprintId || '';
@@ -624,7 +624,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
       diff.retroceso.forEach((retroItem, idx) => {
         const cb = document.getElementById(`mdiff-right-retro-cb-${idx}`);
         if (cb && cb.checked) {
-          const item = ITEMS.find(i => i.code === retroItem.code);
+          const item = getItems().find(i => i.code === retroItem.code);
           if (item) {
             const from = item.status;
             item.status = retroItem.to;
@@ -638,7 +638,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     // Descartes: aplicar con reason del selector de columna derecha o preestablecida
     if (diff.discarded.length) {
       diff.discarded.forEach((discItem, idx) => {
-        const item = ITEMS.find(i => i.code === discItem.code);
+        const item = getItems().find(i => i.code === discItem.code);
         if (!item) return;
         const sel = document.getElementById(`mdiff-right-discard-${idx}`);
         const finalReason = sel ? (sel.value || discItem.reason || '') : (discItem.reason || '');
@@ -690,7 +690,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     if (pendingEntries.length) {
       let changed = false;
       pendingEntries.forEach(([code, sprintId]) => {
-        const item = ITEMS.find(i => i.code === code);
+        const item = getItems().find(i => i.code === code);
         if (!item) return;
         item.sprint = sprintId || '';
         item.priority = _calcPriority(item);
@@ -811,7 +811,7 @@ function _showStatusConfirmModal({ title, body, okLabel, okClass, onConfirm }) {
 }
 
 export function _confirmRetroceso(code, toStatus) {
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
   const from = item.status;
   _showStatusConfirmModal({
@@ -850,7 +850,7 @@ export function _confirmRetroceso(code, toStatus) {
 }
 
 export function _confirmDiscard(code, reason, ref) {
-  const item = ITEMS.find(i => i.code === code);
+  const item = getItems().find(i => i.code === code);
   if (!item) return;
 
   // Si no viene razón preestablecida, mostrar selector inline
@@ -920,7 +920,7 @@ function _applyDiscardBatch(items) {
   if (!items || !items.length) return;
   let applied = 0;
   items.forEach(({ code, reason, ref }) => {
-    const item = ITEMS.find(i => i.code === code);
+    const item = getItems().find(i => i.code === code);
     if (!item) return;
     item.status = 'descartado';
     item.discardReason = reason || '';
