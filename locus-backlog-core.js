@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:22 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:23 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1181,6 +1181,22 @@ export function setItemStatus(code, newStatus) {
   _applyStatusChange(code, newStatus, _prevStatus);
 }
 
+// T-202606-027: C8 — animación de salida extraída para evitar duplicación entre _applyStatusChange y _applyDoneStatus
+function _applyExitAnimOrRender(code) {
+  if (!activeStatuses.has('done')) {
+    const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
+    if (el) {
+      el.classList.add('item-exit-anim');
+      setTimeout(() => { _markBacklogListDirty(); renderBacklogList(); renderStats(); renderSprintBurndown(); renderSprintItems(); }, 360); // T-202605-058 T-202605-044
+      return;
+    }
+  }
+  _markBacklogListDirty(); renderBacklogList();
+  renderStats();
+  renderSprintBurndown(); // T-202605-058
+  renderSprintItems(); // T-202605-044
+}
+
 // T-202605-008: lógica de mutación extraída para ser llamada desde _gconfirmOpen y flujo directo
 function _applyStatusChange(code, newStatus, prevStatus) {
   const item = ITEMS.find(i => i.code === code);
@@ -1223,19 +1239,9 @@ function _applyStatusChange(code, newStatus, prevStatus) {
   _undoSnapshot();
   _blogLog('status →', code, prevStatus + ' → ' + newStatus, 'backlog');
   saveBacklog();
-  // C8: animación salida si el ítem va a desaparecer del filtro activo
-  if (newStatus === 'done' && !activeStatuses.has('done')) {
-    const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
-    if (el) {
-      el.classList.add('item-exit-anim');
-      setTimeout(() => { _markBacklogListDirty(); renderBacklogList(); renderStats(); renderSprintBurndown(); renderSprintItems(); }, 360); // T-202605-058 T-202605-044
-      return;
-    }
-  }
-  _markBacklogListDirty(); renderBacklogList();
-  renderStats();
-  renderSprintBurndown(); // T-202605-058
-  renderSprintItems(); // T-202605-044
+  // C8: animación salida delegada — T-202606-027
+  if (newStatus === 'done') _applyExitAnimOrRender(code);
+  else { _markBacklogListDirty(); renderBacklogList(); renderStats(); renderSprintBurndown(); renderSprintItems(); }
 }
 
 function _resetStatusSelect(code, currentStatus) {
@@ -1360,19 +1366,8 @@ export function _applyDoneStatus(code) {
   // Micro-flash Variante A/B antes de que el render remueva el elemento
   _flashStatusConfirmed(code);
 
-  // C8: animación salida si el ítem va a desaparecer del filtro activo
-  if (!activeStatuses.has('done')) {
-    const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
-    if (el) {
-      el.classList.add('item-exit-anim');
-      setTimeout(() => { _markBacklogListDirty(); renderBacklogList(); renderStats(); renderSprintBurndown(); renderSprintItems(); }, 360); // T-202605-058 T-202605-044
-      return;
-    }
-  }
-  _markBacklogListDirty(); renderBacklogList();
-  renderStats();
-  renderSprintBurndown(); // T-202605-058
-  renderSprintItems(); // T-202605-044
+  // C8: animación salida delegada — T-202606-027
+  _applyExitAnimOrRender(code);
 }
 export function effortDots(n) {
   let h = '';
