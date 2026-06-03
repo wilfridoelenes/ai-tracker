@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:20 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:21 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -181,7 +181,21 @@ const _collapsedChildren = new Set();
 
 // T-049: window.state de filtros mixtos
 let activeTypes = new Set(['T','R','B','P']);
-let activeStatuses = new Set(['pendiente', 'en-revision']); // done oculto por defecto
+// T-202606-021: clave canónica para persistencia de activeStatuses
+const _ACTIVE_STATUSES_KEY = 'locus-active-statuses';
+function _loadActiveStatuses() {
+  try {
+    const raw = localStorage.getItem(_ACTIVE_STATUSES_KEY);
+    if (!raw) return new Set(['pendiente', 'en-revision']);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return new Set(['pendiente', 'en-revision']);
+    return new Set(parsed);
+  } catch { return new Set(['pendiente', 'en-revision']); }
+}
+function _saveActiveStatuses() {
+  try { localStorage.setItem(_ACTIVE_STATUSES_KEY, JSON.stringify([...activeStatuses])); } catch {}
+}
+let activeStatuses = _loadActiveStatuses(); // done oculto por defecto si no hay valor guardado
 let _blFooterCollapsed = false; // T-202604-360: footer fijo colapsable
 
 const VERSIONS_ORDER = ['v2.0.0','futura'];
@@ -761,6 +775,7 @@ export function toggleStatusFilter(status) {
       activeStatuses.add(status);
     }
   }
+  _saveActiveStatuses();
   updateStatusFilterUI();
   _markBacklogListDirty(); renderBacklogList();
   // T-202604-364: filter-pulse feedback
@@ -1567,6 +1582,7 @@ export function toggleSectionGroup(key) {
 function clearAllFilters() {
   activeTypes = new Set(['T','R','B','P']);
   activeStatuses = new Set(['pendiente', 'en-revision']);
+  try { localStorage.removeItem(_ACTIVE_STATUSES_KEY); } catch {} // T-202606-021: reset persiste
   activeEfforts = new Set([1, 2, 3]); // T-071
   activeRoleFilter = null; // T-202604-245
   activePriorityFilter = new Set(); // T-202604-357
