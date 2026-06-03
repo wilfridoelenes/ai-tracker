@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:26 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:27 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -73,7 +73,7 @@ export function normalizeStatus(raw, type) {
   return 'pendiente';
 }
 
-let ITEMS = (() => {
+var ITEMS = (() => { // ESM-B: var para evitar TDZ en grafo circular — migrar a módulo de estado en PP-S-10
   // T-202604-006: leer clave por proyecto activo sin depender de _tplKey (aún no definida)
   const _initProjId = localStorage.getItem('current-project-filter') || '';
   const _initKey = _initProjId ? 'backlog-items-' + _initProjId : null;

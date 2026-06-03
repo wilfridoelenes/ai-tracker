@@ -4,7 +4,7 @@
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
-// _localStorageUsageRatio · _migrateItemTypes · _purgeStaleBacklogCache — inyectadas via _initApp (ESM-B · romper ciclo storage↔backlog-core)
+import { _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _markPulsoDotDirty, renderPulsoDot } from './locus-pulso.js';
@@ -13,7 +13,7 @@ import { _markStatusBarDirty, renderStatusBar, updateStats } from './locus-sesio
 import { _markTrackerDirty, _updateAutoDownloadLabel, render } from './locus-sesiones.js';
 import { showToast, toast } from './locus-toast.js';
 
-// getProjectById — inyectado via _initApp (ESM-B · romper ciclo storage↔sprint-project)
+import { getProjectById } from './locus-sprint-project.js';
 
 import { applyTheme } from './locus-ui-shell.js';
 
@@ -37,14 +37,6 @@ let _getItems = function() {
   if (typeof window.getItems === 'function') return window.getItems();
   console.warn('[AI Tracker] _getItems: getItems no disponible — usando fallback []');
   return [];
-};
-// ESM-B: funciones de backlog-core inyectadas via _initApp — eliminado import estático circular
-let _localStorageUsageRatio = function() { return 0; };
-let _migrateItemTypes = function() {};
-let _purgeStaleBacklogCache = function() { return 0; };
-// ESM-B: getProjectById de sprint-project inyectada via _initApp — eliminado import estático circular
-let getProjectById = function(id) {
-  return (state.projects || []).find(p => p.id === id) || null;
 };
 // No contiene lógica de UI, render, toast ni timer de sesión.
 
@@ -103,7 +95,7 @@ const SUPABASE_URL  = (typeof window !== 'undefined') ? (window.__ENV?.SUPABASE_
 const SUPABASE_KEY  = (typeof window !== 'undefined') ? (window.__ENV?.SUPABASE_ANON_KEY  || window.SUPABASE_ANON_KEY)  : null;
 
 let _supabase           = null;   // cliente Supabase
-let _supabaseUser       = null;   // sesión activa del founder
+var _supabaseUser       = null;   // sesión activa del founder — ESM-B: var para evitar TDZ
 let _supabaseReady      = null;   // promesa: resuelve cuando onAuthStateChange dispara
 let _realtimeChannel    = null;   // T-202605-XXX: canal Realtime para sync multidispositivo
 let _realtimeLastTs     = null;   // timestamp del último update remoto procesado
@@ -1230,7 +1222,7 @@ export async function _loadFromSupabase() {
 // ── GRUPO 6 — GETTERS PUROS ───────────────────────────────────────────────────
 
 // v3.0.0: sessions, tracker y sprints viven en project — no en state global
-let state = {ais:[], theme:'dark', tags:[], projects:[], _stateVersion:3};
+var state = {ais:[], theme:'dark', tags:[], projects:[], _stateVersion:3}; // ESM-B: var para evitar TDZ
 // Exponer en window para módulos en scope T5 que usan `state` directamente — se elimina en T6 cuando todos los consumidores usen getState()
 window.state = state;
 // getState(): getter dinámico — siempre retorna la referencia actual de state.
@@ -1382,12 +1374,6 @@ export function _initApp(opts = {}) {
   // T-202606-046: inyectar getItems para romper ciclo storage ↔ backlog-core
   if (opts.getItems) _getItems = opts.getItems;
   else console.warn('[AI Tracker] _initApp: getItems no recibido en opts — usando fallback window.getItems');
-  // ESM-B: inyectar funciones de backlog-core para romper ciclo storage ↔ backlog-core
-  if (opts.localStorageUsageRatio) _localStorageUsageRatio = opts.localStorageUsageRatio;
-  if (opts.migrateItemTypes) _migrateItemTypes = opts.migrateItemTypes;
-  if (opts.purgeStaleBacklogCache) _purgeStaleBacklogCache = opts.purgeStaleBacklogCache;
-  // ESM-B: inyectar getProjectById para romper ciclo storage ↔ sprint-project
-  if (opts.getProjectById) getProjectById = opts.getProjectById;
   // 1. Cargar estado desde localStorage en memoria (sin UI)
   load();
 
