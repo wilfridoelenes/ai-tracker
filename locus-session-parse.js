@@ -1,7 +1,7 @@
-// [PP] v1.0.7 · sprint:PP-S-09 · mod:19 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:20 · autor:Rune · 2026-06-03 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
-//   normStatus, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
+//   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
 import { renderStats } from './locus-backlog-core.js';
@@ -44,12 +44,12 @@ const TG_PARSER_CONFIG = {
   }
 };
 
-function normStatus(raw) {
+function statusLabel(raw) {
   if (!raw) return '📤 Pendiente';
   const key = raw.trim().toLowerCase();
   const resolved = TG_PARSER_CONFIG.STATUS_ALIASES[key];
   if (!resolved) {
-    console.warn('[AI Tracker] normStatus: status desconocido "' + raw.trim() + '" — usando "📤 Pendiente"');
+    console.warn('[AI Tracker] statusLabel: status desconocido "' + raw.trim() + '" — usando "📤 Pendiente"');
     return '📤 Pendiente';
   }
   return resolved;
@@ -57,7 +57,7 @@ function normStatus(raw) {
 
 // R-202605-023: normaliza cualquier variante de status al valor canónico del backlog
 // antes de validar contra _validStatuses. Evita rechazo de variantes como 'en_revision',
-// 'En-Revision', 'en revisión', etc. que normStatus ya mapea correctamente.
+// 'En-Revision', 'en revisión', etc. que _canonicalStatus ya mapea correctamente.
 // AC-7: retorna null para valores no mapeados — nunca silencia a 'pendiente'.
 // Los bloques de validación rechazan con error cuando _canonicalStatus retorna null.
 // T-202606-018: 'promovida' es status válido exclusivamente para type P.
@@ -391,7 +391,7 @@ export function parsePaste(id) {
           title:         _it.title  || _it.desc  || '',
           desc:          _it.title  || _it.desc  || '',
           priority:      _it.priority || 'medium',                             // T-202606-031
-          status:        normStatus(_normSt),
+          status:        _normSt,
           _noStatus:     false,
           effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
           area:          _it.area   || '',
@@ -486,7 +486,7 @@ export function parsePaste(id) {
             title:         _it.title  || _it.desc  || '',
             desc:          _it.title  || _it.desc  || '',
             priority:      _it.priority || 'medium',                             // T-202606-031
-            status:        normStatus(_normSt2),
+            status:        _normSt2,
             _noStatus:     false,
             effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
             area:          _it.area   || '',
@@ -1045,7 +1045,7 @@ function parsePasteStandalone() {
       code:          it.code,
       title:         it.title  || it.desc   || '',
       desc:          it.title  || it.desc   || '',
-      status:        normStatus(_normSt3),
+      status:        _normSt3,
       _noStatus:     false,
       effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
       area:          it.area   || '',
