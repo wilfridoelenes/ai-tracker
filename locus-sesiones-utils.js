@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-10 · mod:11 · autor:Rune · 2026-06-03 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
@@ -10,6 +10,7 @@ import { getAI, getAISessions, getActiveProject, getState, save } from './locus-
 import { switchTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderStatusBar, updateStats } from './locus-sesiones-stats.js';
+import { getItems } from './locus-backlog-core.js'; // ESM-1 · T-202606-039
 
 // ══════════════════════════════════════════════════════════════════════════════
 // S-17: T-202605-446 · Cronómetro de sesión — card IA activa
@@ -185,7 +186,7 @@ function _computeSuggestionScore(ai) {
 
   // Peso 40%: ítems high pendientes asignados a esta IA
   const aiSigla = ai.role || '';
-  const highPending = (typeof window.ITEMS !== 'undefined' ? window.ITEMS : []).filter(i =>
+  const highPending = getItems().filter(i =>
     i.status === 'pendiente' && i.priority === 'high' &&
     aiSigla && i.role && i.role.includes(aiSigla)
   ).length;
@@ -219,7 +220,7 @@ function _getSuggestedAI() {
 
 function _highPendingCount(ai) {
   const aiSigla = ai.role || '';
-  return (typeof window.ITEMS !== 'undefined' ? window.ITEMS : []).filter(i =>
+  return getItems().filter(i =>
     i.status === 'pendiente' && i.priority === 'high' &&
     aiSigla && i.role && i.role.includes(aiSigla)
   ).length;
@@ -308,7 +309,7 @@ function _buildWeeklySummary() {
   const totalSessions = lastWeekSess.length;
 
   // Ítems cerrados (done en esa semana)
-  const allItems = typeof window.ITEMS !== 'undefined' ? window.ITEMS : [];
+  const allItems = getItems();
   const doneLast = allItems.filter(i => i.status === 'done').length;
   const pendingNow = allItems.filter(i => i.status === 'pendiente').length;
 
