@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:17 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:18 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -173,14 +173,9 @@ let _miViewRoleIndex = 0; // índice del rol activo en la rotación
 const _backlogSprintGroupRaw = localStorage.getItem('backlog-sprint-group-mode');
 let _backlogSprintGroupMode = _backlogSprintGroupRaw !== null ? _backlogSprintGroupRaw !== 'false' : true;
 
-// T-202604-187: toggle vista árbol (R con hijos colapsables) vs plana
-// B-202604-122: leer desde localStorage para persistir entre recargas
-// T-202604-287: backlog-view-mode extiende a 3 valores: 'true' | 'false' | 'kanban'
+// T-202606-012: vistas árbol y plana eliminadas — vista C colapsable es la vista por defecto
 const _backlogViewModeRaw = localStorage.getItem('backlog-view-mode');
 let _backlogKanbanMode = _backlogViewModeRaw === 'kanban';
-let _backlogTreeMode = !_backlogKanbanMode && (_backlogViewModeRaw !== null
-  ? _backlogViewModeRaw !== 'false'
-  : true); // default: árbol
 // T-202604-187: set de rCodes con bloque hijos colapsado
 const _collapsedChildren = new Set();
 
@@ -1776,12 +1771,11 @@ function toggleBacklogFooter() {
 function _syncViewAriaStates() {
   // Vistas de agrupación — aria-selected refleja estado de cada variable
   const sprintBtn   = document.getElementById('fbar-sprint-btn');
-  const treeBtn     = document.getElementById('fbar-tree-btn');
   const kanbanBtn   = document.getElementById('fbar-kanban-btn');
 
   // Determinar vista de agrupación activa
-  // Prioridad: Kanban > Árbol > Sprints (default)
-  const anyGroupActive = _backlogKanbanMode || _backlogTreeMode || _backlogSprintGroupMode;
+  // Prioridad: Kanban > Sprints (default)
+  const anyGroupActive = _backlogKanbanMode || _backlogSprintGroupMode;
   // Garantizar default: si ninguna activa, activar Sprints
   if (!anyGroupActive) {
     _backlogSprintGroupMode = true;
@@ -1790,16 +1784,13 @@ function _syncViewAriaStates() {
   }
 
   if (sprintBtn)   sprintBtn.setAttribute('aria-selected',   String(_backlogSprintGroupMode && !_backlogKanbanMode));
-  if (treeBtn)     treeBtn.setAttribute('aria-selected',     String(_backlogTreeMode && !_backlogKanbanMode));
   if (kanbanBtn)   kanbanBtn.setAttribute('aria-selected',   String(_backlogKanbanMode));
 
   // AC: aria tabpanel — #backlog-list labelledby refleja el tab activo
-  // B-202605-046: default fbar-tree-btn (fbar-sprint-btn eliminado del DOM)
   const backlogPanel = document.getElementById('backlog-list');
   if (backlogPanel) {
-    let activeTabId = 'fbar-tree-btn'; // default
-    if (_backlogKanbanMode)     activeTabId = 'fbar-kanban-btn';
-    else if (_backlogTreeMode)  activeTabId = 'fbar-tree-btn';
+    let activeTabId = 'fbar-sprint-btn'; // default
+    if (_backlogKanbanMode) activeTabId = 'fbar-kanban-btn';
     // Guard: solo aplicar si el tab existe en el DOM
     if (document.getElementById(activeTabId)) {
       backlogPanel.setAttribute('aria-labelledby', activeTabId);
@@ -1841,16 +1832,9 @@ export function toggleBacklogMikeMode() {
 function toggleBacklogKanbanMode() {
   _backlogKanbanMode = !_backlogKanbanMode;
   if (_backlogKanbanMode) {
-    _backlogTreeMode = false;
     localStorage.setItem('backlog-view-mode', 'kanban');
   } else {
-    localStorage.setItem('backlog-view-mode', 'false'); // plano al salir de kanban
-  }
-  // Actualizar botón árbol
-  const treeBtn = document.getElementById('fbar-tree-btn');
-  if (treeBtn) {
-    treeBtn.textContent = _backlogTreeMode ? '⊞ Árbol' : '☰ Plano';
-    treeBtn.classList.toggle('active', _backlogTreeMode);
+    localStorage.setItem('backlog-view-mode', 'false');
   }
   // Actualizar botón kanban
   const kbBtn = document.getElementById('fbar-kanban-btn');
@@ -1859,19 +1843,7 @@ function toggleBacklogKanbanMode() {
   _markBacklogListDirty(); renderBacklogList();
 }
 
-function toggleBacklogTreeMode() {
-  if (_backlogKanbanMode) { _backlogKanbanMode = false; }
-  _backlogTreeMode = !_backlogTreeMode;
-  localStorage.setItem('backlog-view-mode', String(_backlogTreeMode));
-  const btn = document.getElementById('fbar-tree-btn');
-  if (btn) {
-    btn.textContent = _backlogTreeMode ? '⊞ Árbol' : '☰ Plano';
-    btn.title = _backlogTreeMode ? 'Vista árbol activa — click para vista plana' : 'Vista plana activa — click para vista árbol';
-    btn.classList.toggle('active', _backlogTreeMode);
-  }
-  _syncViewAriaStates();
-  _markBacklogListDirty(); renderBacklogList();
-}
+
 
 // T-202604-363: toggle filtro Sin AC — pendientes sin criterios de aceptación
 export function toggleBacklogNoAcMode() {
@@ -1889,7 +1861,6 @@ export function toggleBacklogNoAcMode() {
 
 // Getters exportados para variables de estado — consumidos por locus-backlog-render.js.
 // Las variables son let/const privados (mutables), por lo que se exponen via getter en lugar de export let.
-export function _getBacklogTreeMode()        { return _backlogTreeMode; }
 export function _getBacklogKanbanMode()      { return _backlogKanbanMode; }
 export function _getBacklogMikeMode()        { return _backlogMikeMode; }
 export function _getBacklogSprintGroupMode() { return _backlogSprintGroupMode; }
@@ -1929,7 +1900,7 @@ window.toggleDepsFilter     = toggleDepsFilter;
 window.toggleSortDir        = toggleSortDir;
 
 // T-202605-053: Migrar handlers inline de index.html → addEventListener
-// Funciones cubiertas: undoBacklog · redoBacklog · toggleBacklogTreeMode · toggleBacklogKanbanMode
+// Funciones cubiertas: undoBacklog · redoBacklog · toggleBacklogKanbanMode
 // toggleBacklogMikeMode · toggleCollapseAll
 // toggleStatusFilter (×5) · toggleBacklogBlockerFilter
 // toggleBacklogNoAcMode · clearAllFilters
@@ -1941,10 +1912,7 @@ document.addEventListener('DOMContentLoaded', function () {
   const _btnRedo = document.getElementById('btn-redo-backlog');
   if (_btnRedo) _btnRedo.addEventListener('click', function () { if (typeof redoBacklog === 'function') redoBacklog(); });
 
-  // Vista — Árbol / Kanban / Focus / Mi vista
-  const _btnTree = document.getElementById('fbar-tree-btn');
-  if (_btnTree) _btnTree.addEventListener('click', function () { if (typeof toggleBacklogTreeMode === 'function') toggleBacklogTreeMode(); });
-
+  // Vista — Kanban / Focus / Mi vista
   const _btnKanban = document.getElementById('fbar-kanban-btn');
   if (_btnKanban) _btnKanban.addEventListener('click', function () { if (typeof toggleBacklogKanbanMode === 'function') toggleBacklogKanbanMode(); });
 

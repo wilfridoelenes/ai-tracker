@@ -1,6 +1,6 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:22 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-15 · mod:23 · autor:Rune · 2026-06-03 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
-import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogTreeMode, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode } from './locus-backlog-core.js';
+import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, setFilter, updateBacklogFooter } from './locus-backlog-item.js';
 
@@ -198,14 +198,8 @@ export function renderBacklogList(onRendered) {
 
   // R-[tmp:toolbar-backlog-redesign]: botones de vista ya son estáticos en HTML — solo actualizar estado
   (function _updateViewBtns() {
-    const treeBtn   = document.getElementById('fbar-tree-btn');
     const kanbanBtn = document.getElementById('fbar-kanban-btn');
 
-    if (treeBtn) {
-      treeBtn.classList.toggle('active', _getBacklogTreeMode());
-      treeBtn.textContent = _getBacklogTreeMode() ? '⊞ Árbol' : '☰ Plano';
-      treeBtn.title = _getBacklogTreeMode() ? 'Vista árbol activa — click para vista plana' : 'Vista plana activa — click para vista árbol';
-    }
     if (kanbanBtn) {
       kanbanBtn.classList.toggle('active', _getBacklogKanbanMode());
       kanbanBtn.title = _getBacklogKanbanMode() ? 'Vista Kanban activa — click para desactivar' : 'Vista Kanban — columnas por status';
@@ -312,7 +306,6 @@ export function renderBacklogList(onRendered) {
   })();
 
   // Filtrado por tipo + status + effort (T-071)
-  // T-202604-048/187: excluir T/B con parentId en modo árbol — en modo plano se muestran todos
   // B-202604-193: excluir ítems históricos del plano activo — van a sección colapsada al fondo
   let filtered = ITEMS.filter(i => {
     if (i.status === 'historico') return false;
@@ -341,7 +334,7 @@ export function renderBacklogList(onRendered) {
       else if (_getActivePriorityFilter().has('medium') && !isHigh && !isLow) priorityOk = true;
       else priorityOk = false;
     }
-    return typeOk && statusOk && effortOk && roleOk && priorityOk && (_getBacklogTreeMode() ? !isChild : true);
+    return typeOk && statusOk && effortOk && roleOk && priorityOk;
   });
 
   // T-202604-363: Sin AC — solo pendientes sin criterios de aceptación
@@ -621,7 +614,7 @@ export function renderBacklogList(onRendered) {
         ${_flatPills}
       </div>`;
     }
-    html += `<div class="items-grid" id="vbody-flat">`;
+    html += `<div class="items-grid" id="vbody-list">`;
     flatItems.forEach(item => { html += buildBacklogItem(item); });
     html += `</div>`;
   }
