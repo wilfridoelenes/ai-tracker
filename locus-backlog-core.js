@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:25 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:26 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -55,6 +55,24 @@ export function _skelHide(el) { if (el) el.classList.remove('is-loading'); }
 
 
 let currentFilter = 'all';
+// T-202606-047: normalizeStatus — punto canónico único de validación y normalización de status
+// Firma: normalizeStatus(raw: string, type?: string) → string
+// Consumidores: ITEMS IIFE · _normalizeItems · parseBacklogMd · locus-session-parse.js (T-202606-048)
+export function normalizeStatus(raw, type) {
+  const s = (raw || '').trim().toLowerCase();
+  // Aliases de entrada conocidos
+  if (s === 'en_revision' || s === 'en revisión' || s === 'en-revisión') return 'en-revision';
+  // Valores canónicos directos
+  if (s === 'done')        return 'done';
+  if (s === 'en-revision') return 'en-revision';
+  if (s === 'descartado')  return 'descartado';
+  if (s === 'historico')   return 'historico';
+  if (s === 'promovida')   return type === 'P' ? 'promovida' : 'pendiente';
+  if (s === 'pendiente')   return 'pendiente';
+  // Valor desconocido → pendiente
+  return 'pendiente';
+}
+
 let ITEMS = (() => {
   // T-202604-006: leer clave por proyecto activo sin depender de _tplKey (aún no definida)
   const _initProjId = localStorage.getItem('current-project-filter') || '';
@@ -69,10 +87,10 @@ let ITEMS = (() => {
     try {
       const items = JSON.parse(stored);
       // Migración inline: normalizar status legacy antes de que cualquier código use ITEMS
-      // B-202604-193: 'historico' es valor canónico — NO normalizar a pendiente
+      // T-202606-047: consume normalizeStatus() — punto canónico único
       let migrated = false;
       items.forEach(item => {
-        const norm = item.status === 'done' ? 'done' : item.status === 'descartado' ? 'descartado' : item.status === 'historico' ? 'historico' : 'pendiente';
+        const norm = normalizeStatus(item.status, item.type);
         if (item.status !== norm) { item.status = norm; migrated = true; }
       });
       if (migrated) {
@@ -550,8 +568,6 @@ function purgeAllHistorico() {
 function _normalizeItems(items) {
   if (!Array.isArray(items)) return [];
 
-  const VALID_STATUSES = new Set(['done', 'pendiente', 'en-revision', 'descartado', 'historico']);
-
   items.forEach(item => {
     // ── schema_version ────────────────────────────────────────────────────────
     // Ítems sin campo → versión 0. Migrar a 1 (schema actual).
@@ -589,9 +605,9 @@ function _normalizeItems(items) {
       item.status = 'pendiente';
     }
 
-    // Ausente o inválido → 'pendiente'. T-202606-034: _normalizeStatus eliminada — lógica inline.
+    // T-202606-047: normalizeStatus() es el punto canónico — VALID_STATUSES eliminado
     const rawStatus = item.status;
-    const normalizedStatus = VALID_STATUSES.has(rawStatus) ? rawStatus : 'pendiente';
+    const normalizedStatus = normalizeStatus(rawStatus, item.type);
     if (item.status !== normalizedStatus) {
       item.status = normalizedStatus;
       _blogLog('normalize', item.code || '(sin código)', `status "${rawStatus}" → "${normalizedStatus}"`, 'backlog');
@@ -832,8 +848,7 @@ export function _getNextItemCode(typeChar, reservedCodes) {
 
 // Bug B-202604-002: parser estricto — solo acepta ### seguido de código exacto [TIPO]-[YYYYMM]-[NNN]
 function parseBacklogMd(text) {
-  // T-202606-034: _normalizeStatus eliminada — lógica inline con set local
-  const VALID_STATUSES_PARSE = new Set(['done', 'pendiente', 'en-revision', 'descartado', 'historico', 'promovida']);
+  // T-202606-047: normalizeStatus() es el punto canónico — VALID_STATUSES_PARSE eliminado
   const items = [];
   const itemBlocks = text.split(/\n(?=###\s)/);
 
@@ -864,7 +879,7 @@ function parseBacklogMd(text) {
       const area     = areaRaw.includes('**') ? areaRaw.split('**')[0].trim() : areaRaw.trim();
       const effort   = parseInt(get('Effort')) || 1;
       const impact   = get('Impact') || 'Medio';
-      const status   = VALID_STATUSES_PARSE.has((get('Status') || '').trim().toLowerCase()) ? (get('Status') || '').trim().toLowerCase() : 'pendiente';
+      const status   = normalizeStatus((get('Status') || '').trim(), (get('Type') || code || '').charAt(0) === 'P' ? 'P' : undefined);
       const version  = get('Version') || 'futura';
       const sprint    = get('Sprint') || '';
       const parentId  = get('ParentId') || null;
