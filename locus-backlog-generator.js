@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:3 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -19,9 +19,9 @@ function _backlogVersion() {
   const versionTarget = activeSprint && activeSprint.version_target
     ? activeSprint.version_target.trim()
     : null;
-  const _src = versionTarget || _effectiveVersion() || 'v0';
+  const _src = versionTarget || _effectiveVersion() || 'v0.0.0'; // T-202606-029: fallback canónico
   const m = _src.replace(/^v/, '').match(/^(\d+\.\d+(?:\.\d+)?)/);
-  return m ? `v${m[1]}` : (_src || 'v0');
+  return m ? `v${m[1]}` : 'v0.0.0'; // T-202606-029: fallback canónico ante formato no semver
 }
 
 // R-202604-052: sprint cerrado más reciente del proyecto activo
