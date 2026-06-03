@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -354,6 +354,17 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
       sel.value = (ITEMS.find(i => i.code === code) || {}).sprint || '';
       _mdiffOpenNewSprintForm(sel, code);
       return;
+    }
+    // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
+    if (val === 'icebox') {
+      const _itemForBlock = ITEMS.find(i => i.code === code);
+      if (_itemForBlock && _itemForBlock.status === 'en-revision') {
+        if (typeof showToast === 'function') {
+          showToast(`CHECKPOINT bloqueado: ${code} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`, 'error');
+        }
+        sel.value = _itemForBlock.sprint || '';
+        return;
+      }
     }
     _mdiffPersistSprint(code, val);
   };

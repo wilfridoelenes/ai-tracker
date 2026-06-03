@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:10 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -340,6 +340,18 @@ function confirmItemEditor() {
     item.blockedBy = blockedBy;
     item.archivos = archivos;
     item.parentId = parentId || null;
+    // T-202606-036 AC1+AC2: si se edita un R y cambia su sprint, propagar a todos sus Ts hijos
+    if (item.type === 'R' || (!item.type && item.code && item.code[0] === 'R')) {
+      const normalizedSprint = item.sprint || 'icebox';
+      ITEMS.forEach(child => {
+        if (child.parentId === item.code && child.code && child.code[0] === 'T') {
+          if ((child.sprint || 'icebox') !== normalizedSprint) {
+            child.sprint = normalizedSprint;
+            if (typeof _blogLog === 'function') _blogLog('sprint-heredado', child.code, `${child.code} sprint ajustado al de su parent ${item.code}: ${normalizedSprint}`, 'backlog');
+          }
+        }
+      });
+    }
     _blogLog('editado', finalCode, title, 'backlog');
     _undoSnapshot();
     saveBacklog();

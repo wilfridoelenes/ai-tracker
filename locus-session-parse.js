@@ -1,4 +1,4 @@
-// [PP] v1.0.7 · sprint:PP-S-09 · mod:21 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:22 · autor:Rune · 2026-06-03 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -309,8 +309,9 @@ export function _setPhase(id, phase) {
 }
 
 // R-202605-046: normalizar campo sprint al ingestar ítems
-// Valores centinela → delete item.sprint (campo ausente = canónico para "sin sprint")
-// Sprint cerrado → delete item.sprint + advertencia DocLog
+// Valores centinela -> delete item.sprint (campo ausente = canónico para "sin sprint")
+// Sprint cerrado -> delete item.sprint + advertencia DocLog
+// T-202606-036 AC3: T con parentId cuyo sprint difiere del parent -> usar sprint del parent + señal informativa
 export function _normalizeSprint(item) {
   const raw = item.sprint;
   // AC-1: centinelas → campo ausente
@@ -326,6 +327,23 @@ export function _normalizeSprint(item) {
       _blogLog('sprint-normalizado', item.code || '', `Sprint cerrado normalizado a campo ausente: ${raw}`, 'backlog');
       delete item.sprint;
       return;
+    }
+  }
+  // T-202606-036 AC3: T con parentId — heredar sprint del parent si difiere
+  if (item.parentId && item.code && item.code[0] === 'T') {
+    const _allItems = (typeof ITEMS !== 'undefined' ? ITEMS : (window.ITEMS || []));
+    const parent = _allItems.find(i => i.code === item.parentId);
+    if (parent) {
+      const parentSprint = parent.sprint || '';
+      if (raw !== parentSprint) {
+        _blogLog('sprint-heredado', item.code, `${item.code} sprint ajustado al de su parent ${item.parentId}: ${parentSprint || '(sin sprint)'}`, 'backlog');
+        if (parentSprint) {
+          item.sprint = parentSprint;
+        } else {
+          delete item.sprint;
+        }
+        return;
+      }
     }
   }
   // AC-5: sprint válido — conservar sin modificar

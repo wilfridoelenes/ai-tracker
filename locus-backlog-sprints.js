@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:25 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:26 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -658,6 +658,18 @@ export function setItemSprint(code, sprintId) {
   if (sprintId === '__new__') { openNewSprintInline(code); return; }
   const item = ITEMS.find(i => i.code === code);
   if (!item) return;
+  // T-202606-036 AC5: T con parent — bloquear asignación de sprint distinto al del parent
+  if (item.parentId && item.code && item.code[0] === 'T') {
+    const parentItem = ITEMS.find(i => i.code === item.parentId);
+    if (parentItem) {
+      const parentSprint = parentItem.sprint || 'icebox';
+      const incomingSprint = sprintId || 'icebox';
+      if (incomingSprint !== parentSprint) {
+        if (typeof showToast === 'function') showToast('warning', 'El sprint del T se hereda de su parent ' + item.parentId);
+        return;
+      }
+    }
+  }
   const prevSprint = item.sprint || 'icebox';
   // Normalizar: sprint vacío o falsy → 'icebox' (valor canónico BR-Ecosystem V1.6)
   const normalizedId = sprintId || 'icebox';
@@ -678,6 +690,20 @@ export function setItemSprint(code, sprintId) {
   }
   if (!item.history) item.history = [];
   item.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: prevSprint || null, to: item.sprint || null } });
+
+  // T-202606-036 AC1+AC2: si el ítem es un R, propagar sprint a todos sus Ts hijos
+  if (item.code && item.code[0] === 'R') {
+    ITEMS.forEach(child => {
+      if (child.parentId === item.code && child.code && child.code[0] === 'T') {
+        const prevChildSprint = child.sprint || 'icebox';
+        child.sprint = normalizedId;
+        if (!child.history) child.history = [];
+        child.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: prevChildSprint, to: normalizedId, inherited_from: item.code } });
+        _blogLog('sprint-heredado', child.code, `${child.code} sprint ajustado al de su parent ${item.code}: ${normalizedId}`, 'backlog');
+      }
+    });
+  }
+
   _undoSnapshot();
   saveBacklog();
   _setBacklogModified();

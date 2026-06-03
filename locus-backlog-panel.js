@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:13 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-09 · mod:14 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -347,11 +347,27 @@ function _renderItemPanel(item) {
       ${doneBtn}
     </div>`;
 
-  // ── Metadata grid — campos editables ──
+  // ══ Metadata grid — campos editables ══
   const sprintOptions = getActiveSprints().filter(s => s.status !== 'closed')
     .map(s => `<option value="${esc(s.id)}"${item.sprint === s.id ? ' selected' : ''}>${esc(s.label || s.id)}${s.status === 'active' ? ' ★' : ''}</option>`).join('');
   const sprintOrphan = item.sprint && !getActiveSprints().find(s => s.id === item.sprint)
     ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : '';
+  // T-202606-036 AC4: T con parent — sprint heredado no editable
+  const _isInheritedSprint = item.parentId && item.code && item.code[0] === 'T';
+  const _parentItem = _isInheritedSprint ? (window.ITEMS || []).find(i => i.code === item.parentId) : null;
+  const _inheritedLabel = _parentItem
+    ? ((_parentItem.sprint && getActiveSprints().find(s => s.id === _parentItem.sprint))
+        ? (getActiveSprints().find(s => s.id === _parentItem.sprint).label || _parentItem.sprint)
+        : (_parentItem.sprint || '— Sin asignar'))
+    : '— Sin asignar';
+  const sprintCellHtml = _isInheritedSprint
+    ? `<span class="idp-meta-value idp-meta-value--inherited" title="El sprint del T se hereda de su parent ${esc(item.parentId)}">${esc(_inheritedLabel)} <span class="idp-inherited-badge">heredado</span></span>`
+    : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="sprint">
+          <option value="">— Sin asignar</option>
+          ${sprintOptions}
+          ${sprintOrphan}
+          <option value="__new__">＋ Nuevo...</option>
+        </select>`;
 
   const metaHtml = `
     <div class="idp-meta-grid">
@@ -373,12 +389,7 @@ function _renderItemPanel(item) {
       </div>
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Sprint</span>
-        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="sprint">
-          <option value="">— Sin asignar</option>
-          ${sprintOptions}
-          ${sprintOrphan}
-          <option value="__new__">＋ Nuevo...</option>
-        </select>
+        ${sprintCellHtml}
       </div>
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Effort</span>
@@ -1038,6 +1049,15 @@ function toggleTmplTriggerPanel(btn) {
     if (field === 'status') {
       if (typeof setItemStatus === 'function') setItemStatus(code, value);
     } else if (field === 'sprint') {
+      // T-202606-036 AC4: bloquear edición directa de sprint en T con parent
+      const _chItem = (window.ITEMS || []).find(i => i.code === code);
+      if (_chItem && _chItem.parentId && _chItem.code && _chItem.code[0] === 'T') {
+        if (typeof showToast === 'function') showToast('warning', 'El sprint del T se hereda de su parent ' + _chItem.parentId);
+        // Restaurar valor visual al sprint heredado del parent
+        const _pItem = (window.ITEMS || []).find(i => i.code === _chItem.parentId);
+        sel.value = (_pItem && _pItem.sprint) || '';
+        return;
+      }
       if (typeof setItemSprint === 'function') setItemSprint(code, value);
     } else {
       if (typeof _idpSetField === 'function') _idpSetField(code, field, value);
