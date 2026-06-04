@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:27 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-04 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -335,7 +335,7 @@ export function _normalizeSprint(item) {
   }
   // T-202606-036 AC3: T con parentId — heredar sprint del parent si difiere
   if (item.parentId && item.code && item.code[0] === 'T') {
-    const _allItems = (typeof getItems() !== 'undefined' ? getItems() : (window.getItems() || []));
+    const _allItems = getItems();
     const parent = _allItems.find(i => i.code === item.parentId);
     if (parent) {
       const parentSprint = parent.sprint || '';

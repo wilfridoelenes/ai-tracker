@@ -1,4 +1,4 @@
-// [PP] v1.0.7 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-01 · mod:17 · autor:Rune · 2026-06-04 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -354,7 +354,7 @@ function _renderItemPanel(item) {
     ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : '';
   // T-202606-036 AC4: T con parent — sprint heredado no editable
   const _isInheritedSprint = item.parentId && item.code && item.code[0] === 'T';
-  const _parentItem = _isInheritedSprint ? (window.getItems() || []).find(i => i.code === item.parentId) : null;
+  const _parentItem = _isInheritedSprint ? (getItems() || []).find(i => i.code === item.parentId) : null;
   const _inheritedLabel = _parentItem
     ? ((_parentItem.sprint && getActiveSprints().find(s => s.id === _parentItem.sprint))
         ? (getActiveSprints().find(s => s.id === _parentItem.sprint).label || _parentItem.sprint)
@@ -1050,11 +1050,11 @@ function toggleTmplTriggerPanel(btn) {
       setItemStatus(code, value);
     } else if (field === 'sprint') {
       // T-202606-036 AC4: bloquear edición directa de sprint en T con parent
-      const _chItem = (window.getItems() || []).find(i => i.code === code);
+      const _chItem = (getItems() || []).find(i => i.code === code);
       if (_chItem && _chItem.parentId && _chItem.code && _chItem.code[0] === 'T') {
         showToast('warning', 'El sprint del T se hereda de su parent ' + _chItem.parentId);
         // Restaurar valor visual al sprint heredado del parent
-        const _pItem = (window.getItems() || []).find(i => i.code === _chItem.parentId);
+        const _pItem = (getItems() || []).find(i => i.code === _chItem.parentId);
         sel.value = (_pItem && _pItem.sprint) || '';
         return;
       }
