@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:38 · autor:Rune · 2026-06-04 23:55 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:39 · autor:Rune · 2026-06-05 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1926,7 +1926,19 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       if (changes.length) {
         if (!advanced.find(a => a.code === item.code)) {
           // T-202604-414: emitir changes array estructurado + change string para backward compat
-          updated.push({ code: item.code, desc: existing.title, changes, change: changes.map(c => c.field).join(' · '), parent: item.parent || null });
+          // T-202606-018: changes[] en el objeto updated contiene solo campos auditados por AC-2:
+          //   status · priority · effort · sprint · title · area · role
+          //   from: null cuando el campo no existía en el backlog (era undefined o '—' placeholder)
+          //   El array interno `changes` sin filtrar se conserva para history[] (ya aplicado arriba)
+          const _AUDITED_FIELDS = new Set(['status', 'priority', 'effort', 'sprint', 'title', 'area', 'role']);
+          const changesForPanel = changes
+            .filter(c => _AUDITED_FIELDS.has(c.field))
+            .map(c => ({
+              field: c.field,
+              from: (c.from === '—' || c.from === undefined || c.from === null) ? null : c.from,
+              to: c.to
+            }));
+          updated.push({ code: item.code, desc: existing.title, changes: changesForPanel, change: changes.map(c => c.field).join(' · '), parent: item.parent || null });
         }
       } else if (!advanced.find(a => a.code === item.code) && !retroceso.find(r => r.code === item.code) && !discarded.find(d => d.code === item.code)) {
         // Distinguir: ya tenía ese status (ok) vs no hubo cambio de status porque no llegó uno válido
