@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-15 · mod:28 · autor:Rune · 2026-06-03 UTC-6 -->
+<!-- [PP] v0.0.0 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-03 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -1397,59 +1397,7 @@
   <div class="ckpt-progress"><div class="ckpt-progress-bar" id="ckpt-bar"></div></div>
 </div>
 
-<script>
-function toggleTheme(){applyTheme(document.documentElement.getAttribute('data-theme')=='dark'?'light':'dark');}
-// R-202605-014: toggleHeaderSearch y onSearchBlur eliminados — hdr-search-trigger invoca openCommandPalette() directamente
-// T-202604-210: badge en botón backup — activo cuando hay datos en localStorage
-function _updateBackupBadge() {
-  try {
-    const badge = document.getElementById('backup-badge');
-    if (!badge) return;
-    const raw = localStorage.getItem(LOCUS_KEYS.STATE);
-    const hasData = raw && raw.length > 50;
-    badge.classList.toggle('visible', !!hasData);
-    // También actualizar tooltip del logo con versión
-    const vp = document.getElementById('version-pill');
-    if (vp) {
-      const _ver = typeof _effectiveVersion === 'function' ? _effectiveVersion() : '';
-      vp.title = _ver + ' · Ver changelog';
-    }
-  } catch(e) {}
-}
-document.addEventListener('DOMContentLoaded', function() {
-  setTimeout(_updateBackupBadge, 800);
-  if (typeof initCommandPalette === 'function') initCommandPalette();
-  // T-202605-062: inline handlers → addEventListener (CSS Purity)
-  var _ivzConfirm = document.getElementById('item-viz-confirm-btn');
-  if (_ivzConfirm) _ivzConfirm.addEventListener('click', function() { if (typeof _itemVizConfirm === 'function') _itemVizConfirm(); });
-  var _ivzClose = document.getElementById('item-viz-close-btn');
-  if (_ivzClose) _ivzClose.addEventListener('click', function() { if (typeof _itemVizClose === 'function') _itemVizClose(); });
-  var _ckptClose = document.getElementById('ckpt-header-close-btn');
-  if (_ckptClose) _ckptClose.addEventListener('click', function() { if (typeof closeCkptPanel === 'function') closeCkptPanel(); });
-  // T-202605-448: panel de resumen semanal — se activa los lunes al abrir la app
-  setTimeout(function() {
-    if (typeof _maybeShowWeeklySummary === 'function') _maybeShowWeeklySummary();
-  }, 1200);
-});
-// B-202605-503: validación de reset-sessions-input — lógica extraída de oninput inline a función nombrada
-function _validateResetSessionsInput(el) {
-  const v = el.value.trim();
-  const ok = v === 'RESET';
-  document.getElementById('reset-sessions-confirm-btn').disabled = !ok;
-  const hint = document.getElementById('reset-sessions-hint');
-  if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('is-hidden'); }
-  else { hint.classList.add('is-hidden'); }
-}
-// B-202605-037: validación de reset-backlog-input — lógica extraída de oninput inline a función nombrada
-function _validateResetBacklogInput(el) {
-  const v = el.value.trim();
-  const ok = v === 'RESET';
-  document.getElementById('reset-backlog-confirm-btn').disabled = !ok;
-  const hint = document.getElementById('reset-backlog-hint');
-  if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('is-hidden'); }
-  else { hint.classList.add('is-hidden'); }
-}
-</script>
+<!-- T-202606-006: toggleTheme · _updateBackupBadge · _validateResetSessions/Backlog migrados a main.js -->
 <!-- ═══ DOCUMENT GENERATOR OVERLAY — R-202604-053 · UX R-202605-102 ═══ -->
 <div class="mg-overlay" id="mg-overlay" role="dialog" aria-modal="true" aria-label="Generador de documentos">
   <div class="mg-panel mg-panel--docgen">
@@ -1605,26 +1553,7 @@ function _validateResetBacklogInput(el) {
 <script type="module" src="locus-pend.js"></script>
 <script type="module" src="main.js"></script>
 
-<!-- [pendiente-ID]: patch extendido — actualiza aria-label del theme-toggle-btn al cambiar tema -->
-<script>
-(function patchApplyTheme() {
-  const _orig = typeof applyTheme === 'function' ? applyTheme : null;
-  function _syncToggleLabel(t) {
-    var btn = document.getElementById('theme-toggle-btn');
-    if (btn) btn.setAttribute('aria-label', t === 'dark' ? 'Cambiar a tema light' : 'Cambiar a tema dark');
-  }
-  window.applyTheme = function(t) {
-    if (_orig) _orig(t);
-    document.documentElement.setAttribute('data-theme', t);
-    _syncToggleLabel(t);
-  };
-  // Sincronizar aria-label con el tema activo al cargar
-  document.addEventListener('DOMContentLoaded', function() {
-    var t = document.documentElement.getAttribute('data-theme') || 'light';
-    _syncToggleLabel(t);
-  });
-})();
-</script>
+<!-- T-202606-006: patch window.applyTheme eliminado — _syncToggleLabel migrado a main.js -->
 
 <div class="pulso-overlay" id="pulso-overlay" role="dialog" aria-modal="true" aria-label="Pulso del Ecosistema">
   <div class="pulso-panel" id="pulso-panel">
