@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-04 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-04 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -5296,10 +5296,24 @@ er {
   padding: 4px 0;
   border-top: 1px solid var(--border);
   /* animación de apertura */
-  overflow: hidden;
   transition: max-height 0.2s var(--ease-out), opacity 0.15s var(--ease-out);
   max-height: 2000px;
   opacity: 1;
+  /* conector vertical R→T */
+  position: relative;
+}
+
+/* línea vertical — conecta R con todos sus Ts */
+.bl-vc-r-body::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 0;
+  bottom: 10px;
+  width: 1.5px;
+  background: linear-gradient(to bottom, var(--blue-border), transparent);
+  border-radius: var(--radius-2xs);
+  pointer-events: none;
 }
 
 .bl-vc-r--collapsed .bl-vc-r-body {
@@ -5307,6 +5321,7 @@ er {
   opacity: 0;
   pointer-events: none;
   border-top: none;
+  overflow: hidden;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -5323,9 +5338,22 @@ er {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 12px 6px 28px;
+  padding: 6px 12px 6px 36px;
   min-height: 32px;
   transition: background 0.1s var(--ease-out);
+  position: relative;
+}
+
+/* línea horizontal — conecta la vertical con el T */
+.bl-vc-t::before {
+  content: '';
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  width: 12px;
+  height: 1.5px;
+  background: var(--blue-border);
+  pointer-events: none;
 }
 
 .bl-vc-t:hover {
