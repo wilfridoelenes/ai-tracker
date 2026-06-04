@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-05 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -31,7 +31,6 @@ import { showToast } from './locus-toast.js';
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
 let _pendingTemplateDownload = false; // T5: variable de módulo — reemplaza window._pendingTemplateDownload
-let _pendingCompleteId = null;        // T-202604-190: ID de sesión quick a completar — seteado por openCompleteQuickSession en locus-session-popup.js
 const _confirmTimers = {};            // timers de confirmación por worker ID — clearTimeout en _doSaveSession y _doCompleteFinish
 
 function toggleTemplateTrigger(val) {
@@ -554,115 +553,7 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   const dateFull = now.toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'}) + ' ' +
                    now.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
 
-  // T-202604-190: si venimos de "Completar sesión", actualizar la sesión quick en lugar de crear una nueva
-  const completeTargetId = _pendingCompleteId;
-  _pendingCompleteId = null;
   const tgItems = parsed.tgItems || [];
-
-  if (completeTargetId) {
-    // Buscar y actualizar la sesión quick existente
-    const targetFound = _findSession(completeTargetId);
-    if (targetFound) {
-      const ts = targetFound.sess;
-      ts.title      = title;
-      ts.summary    = parsed.summary || ts.summary || '';
-      ts.files      = parsed.files   || ts.files   || '';
-      ts.nextStep   = parsed.nextStep || ts.nextStep || '';
-      // R-202604-039: campos de memoria narrativa
-      ts.decision    = parsed.decision    || ts.decision    || '';
-      ts.contexto    = parsed.contexto    || ts.contexto    || '';
-      ts.bloqueantes = parsed.bloqueantes || ts.bloqueantes || '';
-      ts.aprendizaje = parsed.aprendizaje || ts.aprendizaje || '';
-      ts.trackerRefs = trackerRefs.length ? trackerRefs : (ts.trackerRefs || []);
-      ts.resetAt    = horaResult ? horaResult.label : (ts.resetAt || '');
-      ts.quickCapture = false; // AC-3: pasa a sesión completa
-      // R-202605-049 AC-2: asignar sessionGroupId si la sesión aún no tiene uno
-      if (!ts.sessionGroupId) ts.sessionGroupId = 'sg-' + Date.now();
-
-      if (horaResult) { ai.status = 'exhausted'; ai.resetTime = horaResult.hhmm; ai.resetEpoch = horaResult.epoch; }
-      ai._parsed = {};
-      if (_confirmTimers[id]) { clearTimeout(_confirmTimers[id]); delete _confirmTimers[id]; }
-      // B-202605-NNN: clearTimeout antes de removeItem — mismo orden que _doApplyMergeAndFinish.
-      // Evita que el timer Supabase pendiente lea el draft de localStorage si se dispara
-      // en la ventana entre removeItem y clearTimeout.
-      clearTimeout(window['_draftSbTimer_' + id]);
-      localStorage.removeItem('draft-' + id);
-      localStorage.removeItem('draft-' + id + '-ts');
-      // R-3: eliminar borrador de Supabase al guardar sesión
-      if (typeof _supabase !== 'undefined' && _supabase && typeof _supabaseUser !== 'undefined' && _supabaseUser) {
-        _supabase.from('tracker_docs').delete().eq('user_id', _supabaseUser.id).eq('key', 'draft-' + id)
-          .then(({ error }) => { if (error) console.warn('[AI Tracker] draft delete Supabase error:', error); });
-      }
-      const _taClearC = document.getElementById('ta-' + id);
-      if (_taClearC) { _taClearC.value = ''; parsePaste(id); }
-
-      // Merge backlog y contexto igual que flujo normal
-      // B-202604-116: usar proyecto del card, no filtro global activo
-      // T-202604-201: panel de confirmación diff antes de aplicar el merge
-      const _doCompleteFinish = async () => {
-        _mergeBacklogWithProject(tgItems, ts.id, activeProj.id);
-        // R-202605-062: aplicar patches después del merge de ítems normales
-        if (parsed.patchItems && parsed.patchItems.length) {
-          applyPatchesFromTG(parsed.patchItems, ts.id);
-        }
-        // B-202604-XXX: sincronizar trackerRefs con códigos reales post-resolución
-        ts.trackerRefs = tgItems.map(x => x.code).filter(c => c && /^[PTRB]-\d{6}-\d{3}/.test(c));
-        const contextSections2 = extractContextSections(raw);
-        if (contextSections2.length) mergeContextSections(contextSections2, activeProj.id);
-        const mapSections2 = extractHtmlMapSections(raw);
-        if (mapSections2.length) mergeHtmlMapSections(mapSections2, activeProj.id);
-        // R-202604-076 + R-B: plan block — PLAN legacy y EXECUTION-PLAN nuevo
-        // B-202605-XXX: usar _tryIngestPlan en lugar de savePlan directo — preserva scope:sprint al guardar scope:sesion
-        if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
-        await saveImmediate(); render(); renderStats();
-        // B-202605-508: actualizar badges de tabs tras guardar sesión
-        updateTabNotifBadges();
-        if (getCurrentTab() === 'backlog') { _markBacklogListDirty(); renderBacklogList(); }
-        _rebuildLogBody();
-        _checkStorageQuota();
-        // B-202605-265: _setPhase(id,3) movido dentro de rAF — render() reconstruye el DOM con
-        // grid.innerHTML='', los elementos phase-* no existen hasta el siguiente frame
-        requestAnimationFrame(() => {
-          _setPhase(id, 3);
-          // segundo render garantiza sidebar y card con state final estabilizado
-          render();
-          _markRadarDirty(); renderGlobalRadarSidebar();
-          // B-202605-XXX: re-limpiar draft después del segundo render() — mismo fix que flujo principal
-          localStorage.removeItem('draft-' + id);
-          localStorage.removeItem('draft-' + id + '-ts');
-          const _dotRaf2 = document.getElementById('draft-' + id);
-          if (_dotRaf2) _dotRaf2.className = 'draft-dot';
-          const _taRaf2 = document.getElementById('ta-' + id);
-          if (_taRaf2 && _taRaf2.value.trim()) { _taRaf2.value = ''; parsePaste(id); }
-          const card2 = document.getElementById('card-' + id);
-          if (card2) {
-            card2.classList.remove('card-flash'); void card2.offsetWidth; card2.classList.add('card-flash');
-            setTimeout(() => card2.classList.remove('card-flash'), 650);
-            // R-202604-061 AC-1: feedback en botón guardar
-            const _sbtn2 = document.getElementById('sbtn-' + id);
-            if (_sbtn2) {
-              _sbtn2.classList.add('btn--saved');
-              setTimeout(() => _sbtn2.classList.remove('btn--saved'), 1800);
-            }
-          }
-        });
-        // T-202605-446: detener cronómetro y registrar tiempo total en la sesión
-        ts.durationMs = stopSessionTimer(id) || 0;
-        // G-04: card-flash + btn--saved + _setPhase(3) confirman inline — toast redundante eliminado.
-      };
-      // T-202605-120: enriquecer tgItems con representaciones de patches para visualización en el panel.
-      // patchItems se aplican realmente dentro de _doCompleteFinish — aquí solo se pre-visualizan.
-      const _patchItemsC = parsed.patchItems || [];
-      const _tgItemsForPanel = _buildPatchTgItems(_patchItemsC, tgItems);
-      if (_tgItemsForPanel.length) {
-        showMergeDiffPanel(_tgItemsForPanel, ts.id, activeProj.id, _doCompleteFinish);
-      } else {
-        _doCompleteFinish();
-      }
-      return;
-    }
-    // Si no se encuentra la sesión target, continuar con flujo normal
-  }
 
   // R-202605-049: sessionGroupId — hereda del checkpoint activo del worker o genera nuevo
   const _allSessForGroup = (activeProj.sessions || []).filter(s => s.aiId === ai.id && !s.resetAt);

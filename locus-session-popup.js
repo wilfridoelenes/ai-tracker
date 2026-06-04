@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-05 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -46,12 +46,6 @@ export function openDetail(aiId, sessId) {
   const reviewBadge = (s.inReview && isLastSess) ? `<span class="pop-header-badge review">🔍 en revisión</span>` : '';
   // T-087: Sección superior — siempre visible (resumen + pendiente + B-006 reset)
   let topFields = '';
-  // T-202604-190: botón "Completar sesión" para sesiones quick
-  if (s.quickCapture) {
-    topFields += `<div class="popup-section popup-section--sep">
-      <button class="btn-primary btn-primary--full" data-popup-action="completeQuick" data-ai-id="${esc(aiId)}" data-sess-id="${esc(s.id)}">⚡ Completar sesión</button>
-    </div>`;
-  }
   if (s.summary) topFields += `<div class="popup-section summary"><div class="popup-section-label">Resumen</div><div class="pop-editable popup-section-val" id="pop-field-summary" data-popup-edit="summary" title="Editar resumen">${esc(s.summary)}<span class="pop-edit-icon">✏</span></div></div>`;
   if (s.pending) topFields += `<div class="popup-section pending"><div class="popup-section-label">⏳ Pendiente</div><div class="pop-editable popup-section-val" id="pop-field-pending" data-popup-edit="pending" title="Editar pendiente">${esc(s.pending)}<span class="pop-edit-icon">✏</span></div></div>`;
 
@@ -295,13 +289,6 @@ export function openDetail(aiId, sessId) {
     const _pdUnlockNow = document.getElementById('pop-unlock-now-btn');
     if (_pdUnlockNow) _pdUnlockNow.addEventListener('click', unlockNowFromPopup);
 
-    // Quick capture complete
-    previewBody.querySelectorAll('[data-popup-action="completeQuick"]').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        openCompleteQuickSession(btn.dataset.aiId, btn.dataset.sessId);
-      });
-    });
-
     // Tags
     previewBody.querySelectorAll('[data-popup-action="openTag"]').forEach(function(btn) {
       btn.addEventListener('click', function() { openTagModal(btn.dataset.aiId, btn.dataset.sessId); });
@@ -330,37 +317,6 @@ export function closePopup() {
   popAIId = null; popSessId = null;
 }
 
-// T-202604-190: Completar sesión quick — pre-carga textarea y activa modo update
-function openCompleteQuickSession(aiId, sessId) {
-  const found = _findSessionByAI(aiId, sessId);
-  const s = found ? found.sess : null;
-  if (!s || !s.quickCapture) return;
-
-  closePopup();
-
-  // Pre-cargar textarea con datos existentes de la sesión quick
-  const ta = document.getElementById('ta-' + aiId);
-  if (ta) {
-    const lines = [];
-    if (s.title)   lines.push('---CHECKPOINT---');
-    if (s.title)   lines.push('Título: ' + s.title);
-    if (s.summary) lines.push('Resumen: ' + s.summary);
-    if (!s.summary) lines.push('Resumen: ');
-    lines.push('---FIN-CHECKPOINT---');
-    ta.value = lines.join('\n');
-    parsePaste(aiId);
-    ta.focus();
-  }
-
-  // Marcar sesión a actualizar — saveSession lo lee para hacer update en lugar de push
-  _pendingCompleteId = sessId;
-
-  // Scroll al card
-  const card = document.getElementById('card-' + aiId);
-  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-
-  showToast('info', 'Completando sesión rápida — edita el contenido y guarda');
-}
 function deleteCurrentSession() {
   if (!popAIId || !popSessId) return;
   const found = _findSession(popSessId);

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-05 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1038,7 +1038,6 @@ function buildCard(ai) {
         <input class="hora-input" id="hora-${ai.id}" type="text" maxlength="4" placeholder="--:--">
         <div class="hora-parsed" id="hdisp-${ai.id}">—</div>
       </div>
-      <button class="sc-save" id="sbtn-${ai.id}" data-action="confirm-save" data-ai-id="${ai.id}" disabled>guardar sesión</button>
       <div class="blind-exhaust-inline is-hidden" id="bexhaust-inline-${ai.id}">
         <div class="blind-exhaust-hora-row">
           <input class="hora-input blind-exhaust-hora-input" id="bexhaust-hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
@@ -1502,10 +1501,6 @@ document.addEventListener('DOMContentLoaded', () => {
       // Footer — assign hora / correct hora
       case 'open-correct-hora':
         if (typeof openCorrectHora === 'function') openCorrectHora(aiId);
-        break;
-      // Footer — confirm save
-      case 'confirm-save':
-        confirmSave(aiId);
         break;
       // Footer — blind exhaust
       case 'confirm-blind-exhaust':
