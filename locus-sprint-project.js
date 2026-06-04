@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:25 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:26 · autor:Rune · 2026-06-04 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -7,7 +7,7 @@
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _syncCleanProjectBtn } from './locus-reports.js';
 import { _blogLog, _effectiveVersion, _offlineQueuePush, _PREFIX_MAP, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getProjectSessions, getState, getSupabaseUserId, save } from './locus-storage.js';
-import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
+import { esc, switchSubTab, switchTab, getCurrentSubTab } from './locus-ui-shell.js';
 
 
 import { renderAnalytics } from './locus-analytics-render.js';
@@ -164,10 +164,7 @@ function clearProjectFilter() {
   if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   renderBacklogList(); renderStats();
   _renderTplProjBanner();
-  switchSubTab(currentSubTab);
-}
-
-export function openProjPanel() {
+  switchSubTab(getCurrentSubTab()); {
   renderProjPanel();
   document.getElementById('proj-panel-overlay').classList.add('open');
   const btn = document.getElementById('proj-filter-btn');
@@ -240,7 +237,7 @@ export function selectProjectFilter(projId) {
   if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   renderBacklogList(); renderStats();
   _renderTplProjBanner();
-  switchSubTab(currentSubTab);
+  switchSubTab(getCurrentSubTab());
   if (projId) {
     const proj = getProjectById(projId);
     showToast('info', proj ? `Filtro: ${proj.name}` : 'Filtro activo');

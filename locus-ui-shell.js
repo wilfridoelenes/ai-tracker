@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:21 · autor:Rune · 2026-06-01 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-13 · mod:22 · autor:Rune · 2026-06-04 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -56,6 +56,7 @@ let currentTab = localStorage.getItem('active-tab') || 'sesiones';
 let _surContratoActions = [];
 
 export function getCurrentTab() { return currentTab; }
+export function getCurrentSubTab() { return currentSubTab; }
 
 export function switchTab(tab) {
   // R-202605-067: guard — confirm si hay texto sin guardar en textarea de AI Card
