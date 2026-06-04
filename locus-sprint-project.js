@@ -164,7 +164,10 @@ function clearProjectFilter() {
   if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   renderBacklogList(); renderStats();
   _renderTplProjBanner();
-  switchSubTab(getCurrentSubTab()); {
+  switchSubTab(getCurrentSubTab());
+}
+
+export function openProjPanel() {
   renderProjPanel();
   document.getElementById('proj-panel-overlay').classList.add('open');
   const btn = document.getElementById('proj-filter-btn');
