@@ -1907,12 +1907,12 @@ document.addEventListener('DOMContentLoaded', () => {
   if (sprintPanelItems) {
     sprintPanelItems.addEventListener('click', e => {
       const row = e.target.closest('[data-action="spi-navigate"]');
-      if (row && typeof navigateToItem === 'function') navigateToItem(row.dataset.itemCode);
+      if (row) navigateToItem(row.dataset.itemCode);
     });
     sprintPanelItems.addEventListener('keydown', e => {
       if (e.key !== 'Enter') return;
       const row = e.target.closest('[data-action="spi-navigate"]');
-      if (row && typeof navigateToItem === 'function') navigateToItem(row.dataset.itemCode);
+      if (row) navigateToItem(row.dataset.itemCode);
     });
   }
 
