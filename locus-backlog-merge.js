@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-04 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -86,6 +86,35 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
   const _pill = (cls, label) =>
     `<span class="mdiff-pill mdiff-pill--${cls}">${label}</span>`;
+
+  // T-202606-019: chips individuales por campo en sección 'Campos actualizados'
+  // Consume changes[] — array de { field, from, to } del objeto diff.
+  // AC-7: from/to null → muestra '—' en lugar de crash.
+  // AC-2: campo status usa clase por valor canónico via lookup table.
+  const _STATUS_CHIP_CLS = {
+    'pendiente':   'pendiente',
+    'en-revision': 'en-revision',
+    'done':        'done',
+    'descartado':  'descartado',
+    'promovida':   'promovida',
+    'bloqueado':   'bloqueado',
+  };
+
+  const _fieldChips = (changes) => {
+    if (!changes || !changes.length) return '';
+    const chips = changes.map(({ field, from, to }) => {
+      const fromStr = from != null ? esc(String(from)) : '—';
+      const toStr   = to   != null ? esc(String(to))   : '—';
+      let extraCls = '';
+      if (field === 'status') {
+        const key = to != null ? String(to).toLowerCase() : '';
+        const variant = _STATUS_CHIP_CLS[key] || 'unknown';
+        extraCls = ` mdiff-field-chip--status-${variant}`;
+      }
+      return `<span class="mdiff-field-chip${extraCls}">${esc(field)}: ${fromStr} → ${toStr}</span>`;
+    }).join('');
+    return `<div class="mdiff-field-chips">${chips}</div>`;
+  };
 
   // R-202605-148: select de sprint inline — persiste via _mdiffSetItemSprint sin re-render del DIFF
   const _sprintSelect = (code) => {
@@ -240,7 +269,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   if (diff.updated.length) {
     const rows = _sortByType(diff.updated).map(i => _card(i.code, i.desc, 'accent',
       _pill('updated', '✎ actualizado'),
-      `<div class="mdiff-change-hint">${esc(i.change)}</div>`,
+      _fieldChips(i.changes),
       i.parent
     )).join('');
     sectionsHtml += _section('updated', 'accent', `Campos actualizados <span class="mdiff-sec-count">${diff.updated.length}</span>`, rows);

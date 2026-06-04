@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Nova · 2026-05-31 UTC-6 */
+/* [PP] v0.0.0 · sprint:PP-S-01 · mod:5 · autor:Nova · 2026-06-04 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -3586,6 +3586,73 @@ body {
 }
 
 /* ══ END R-202605-005 · A4-b · mdiff-* compactos ══ */
+
+/* ── T-202606-019: mdiff-field-chip — chips de campo en sección 'Campos actualizados' ── */
+/* Clase base distinta de mdiff-pill (pills de sección) y viz-field-chip (checkpoint viz) */
+.mdiff-field-chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-2xs-plus);
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: var(--radius-2xl);
+  border: 1px solid var(--border);
+  background: var(--surface3);
+  color: var(--text2);
+  gap: 0;
+  white-space: nowrap;
+}
+
+.mdiff-field-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+/* Variantes por valor de status canónico — AC-2 */
+.mdiff-field-chip--status-pendiente {
+  background: var(--surface3);
+  color: var(--text2);
+  border-color: var(--border);
+}
+
+.mdiff-field-chip--status-en-revision {
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  color: var(--amber);
+  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
+}
+
+.mdiff-field-chip--status-done {
+  background: var(--green-dim);
+  color: var(--green);
+  border-color: color-mix(in srgb, var(--green) 25%, transparent);
+}
+
+.mdiff-field-chip--status-descartado {
+  background: var(--red-dim);
+  color: var(--red);
+  border-color: var(--red-border);
+}
+
+.mdiff-field-chip--status-promovida {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
+.mdiff-field-chip--status-bloqueado {
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  color: var(--blue);
+  border-color: color-mix(in srgb, var(--blue) 25%, transparent);
+}
+
+.mdiff-field-chip--status-unknown {
+  background: var(--surface3);
+  color: var(--hint);
+  border-color: var(--border);
+}
+/* ── END T-202606-019 ── */
 
 /* ── R-202605-004: idp-dep-chip--origin · idp-pill--origin ── */
 /* Chip navegable: hereda idp-dep-chip base (definido en locus-backlog-item.css o proyectos.css) */
