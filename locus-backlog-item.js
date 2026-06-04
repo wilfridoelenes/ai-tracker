@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:40 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:41 · autor:Rune · 2026-06-05 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1758,7 +1758,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
   });
 
   let changed = false;
-  const created = [], advanced = [], retroceso = [], discarded = [], updated = [], ignored = [];
+  const created = [], advanced = [], retroceso = [], discarded = [], updated = [], ignored = [], invalidTransition = []; // invalidTransition: T-[pendiente-ID]
   // B-202604-198: grupo propio para ítems que nacen y cierran en el mismo CHECKPOINT
   const createdAndClosed = [];
   // B-202604-198: sugerencias de match [tmp:slug] → ID real existente (para confirmación del usuario)
@@ -1825,6 +1825,26 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       const newStatus = item.status; // T-202606-034: item.status ya canónico desde T1 — _tgStatusToBacklog eliminada
       const oldStatus = existing.status || 'pendiente';
       const changes = [];
+
+      // T-[pendiente-ID] · AC-1: filtro pre-clasificación — transición inválida interceptada antes de _statusRank
+      // AC-2: type desconocido → no interceptar. AC-3: sin status → no interceptar.
+      if (newStatus && newStatus !== oldStatus && !item._noStatus) {
+        const _existingType = existing.type || (existing.code ? existing.code.charAt(0) : '');
+        if (_existingType && typeof validateLifecycleTransitions === 'function' &&
+            Object.prototype.hasOwnProperty.call(
+              { R: 1, T: 1, B: 1, P: 1 }, _existingType
+            )) {
+          // Importar VALID_TRANSITIONS directamente para verificación inline (evita llamada costosa al array completo)
+          const _vtResult = validateLifecycleTransitions([{ code: item.code, type: _existingType, status: newStatus }]);
+          if (_vtResult.length > 0) {
+            // Transición inválida — registrar y saltar toda la lógica de status para este ítem
+            invalidTransition.push(_vtResult[0]);
+            // Continuar con campos no-status (title, effort, area, etc.) — solo status queda excluido
+            // Marcar item._noStatus para que el bloque de lógica de status no lo procese
+            item._noStatus = true;
+          }
+        }
+      }
 
       // --- Lógica de status ---
       if (!item._noStatus && newStatus && newStatus !== oldStatus) {
@@ -2142,7 +2162,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     renderStats(); // siempre actualizar stat bar aunque no estemos en tab Backlog
     if (getCurrentTab() === 'backlog') { _markBacklogListDirty(); renderBacklogList(); updateBacklogBanner(); }
   }
-  return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions, invalidTransition: validateLifecycleTransitions(tgItems) }; // T-202606-020
+  return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions, invalidTransition }; // T-[pendiente-ID]: invalidTransition poblado pre-clasificación
 }
 
 
