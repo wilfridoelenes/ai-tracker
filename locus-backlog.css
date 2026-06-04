@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-04 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-04 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -5322,6 +5322,11 @@ er {
   pointer-events: none;
   border-top: none;
   overflow: hidden;
+}
+
+/* AC-5 T-202606-017: hover sobre R intensifica el conector vertical — usa --blue sin introducir variable nueva */
+.bl-vc-r:hover > .bl-vc-r-body::before {
+  background: linear-gradient(to bottom, var(--blue), transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
