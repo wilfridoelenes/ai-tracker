@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:23 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:24 · autor:Rune · 2026-06-03 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -6,7 +6,7 @@
 // T-202606-016: funciones de export de backlog migradas a locus-backlog-generator.js
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _syncCleanProjectBtn } from './locus-reports.js';
-import { _blogLog, _effectiveVersion, _offlineQueuePush, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getProjectSessions, getState, getSupabaseUserId, save } from './locus-storage.js';
+import { _blogLog, _effectiveVersion, _offlineQueuePush, _PREFIX_MAP, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getProjectSessions, getState, getSupabaseUserId, save } from './locus-storage.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
 

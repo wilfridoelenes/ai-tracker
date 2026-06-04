@@ -69,7 +69,7 @@ const CANONICAL_PROJECTS = ['Obsidian Labs', 'Alisto', 'Content Manager', 'Locus
 window.CANONICAL_PROJECTS = CANONICAL_PROJECTS;
 
 // R-202605-002: prefijos de proyecto — fuente única de verdad
-const _PREFIX_MAP = {
+export const _PREFIX_MAP = {
   'Obsidian Labs':   'OL',
   'Alisto':          'AS',
   'Content Manager': 'CM',
