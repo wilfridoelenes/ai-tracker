@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:22 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-09 · mod:23 · autor:Rune · 2026-06-04 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -505,6 +505,10 @@ async function _saveFlush() {
         projects: (state.projects || []).map(p => { const { sessions, ...rest } = p; return rest; })
       };
       const _nowTs = new Date().toISOString();
+      // B-202606-XXX: registrar _realtimeLastTs ANTES del await — cierra race condition
+      // donde Supabase notificaba via Realtime antes de que _realtimeLastTs tuviera valor,
+      // causando que _loadFromSupabase() recargara el state y pisara cambios locales (ej: tema).
+      _realtimeLastTs = _nowTs;
       const { error } = await _supabase.from('tracker_state').upsert({
         user_id: _supabaseUser.id,
         key: 'main',
@@ -512,9 +516,6 @@ async function _saveFlush() {
         updated_at: _nowTs
       }, { onConflict: 'user_id,key' });
       if (error) throw error;
-      // T-202605-XXX: registrar el ts que acabamos de escribir
-      // para que el listener Realtime lo ignore (evita reload-loop)
-      _realtimeLastTs = _nowTs;
 
       // Sesiones — upsert en paralelo por proyecto
       const sessionWrites = [];
