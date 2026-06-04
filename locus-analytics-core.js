@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-30 23:00 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-analytics-core.js
 // Responsabilidad: State de analytics, período/rango, helpers de fecha,
 //   tooltip, delta, ítems abiertos/cerrados, export semanal MD.
@@ -443,10 +443,6 @@ export function exportWeeklySummary() {
   const range = { start, end };
 
   // B-202605-040: guard typeof — getAllSessions puede no estar disponible si el módulo no cargó
-  if (typeof getAllSessions !== 'function') {
-    showToast('error', 'Error al exportar — módulo de sesiones no disponible');
-    return;
-  }
   const allSess  = getAllSessions();
   const weekSess = _sessInRange(allSess, range);
 

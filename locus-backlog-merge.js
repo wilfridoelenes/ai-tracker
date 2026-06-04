@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -359,9 +359,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     if (val === 'icebox') {
       const _itemForBlock = getItems().find(i => i.code === code);
       if (_itemForBlock && _itemForBlock.status === 'en-revision') {
-        if (typeof showToast === 'function') {
-          showToast(`CHECKPOINT bloqueado: ${code} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`, 'error');
-        }
+        showToast(`CHECKPOINT bloqueado: ${code} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`, 'error');
         sel.value = _itemForBlock.sprint || '';
         return;
       }
@@ -379,11 +377,6 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     const _itemForSprint = getItems().find(i => i.code === code);
     const _projIdForForm = (_itemForSprint && _itemForSprint.projectId) || projId || null;
 
-    if (typeof _buildNewSprintForm !== 'function') {
-      // Fallback: no debería ocurrir si el orden de carga es correcto
-      console.error('B-202605-077: _buildNewSprintForm no disponible');
-      return;
-    }
 
     const form = _buildNewSprintForm(
       _projIdForForm,

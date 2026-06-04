@@ -1,4 +1,4 @@
-// [PP] v1.0.7 · sprint:PP-S-09 · mod:15 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -1047,18 +1047,18 @@ function toggleTmplTriggerPanel(btn) {
     const value = sel.value;
     if (!code || !field) return;
     if (field === 'status') {
-      if (typeof setItemStatus === 'function') setItemStatus(code, value);
+      setItemStatus(code, value);
     } else if (field === 'sprint') {
       // T-202606-036 AC4: bloquear edición directa de sprint en T con parent
       const _chItem = (window.getItems() || []).find(i => i.code === code);
       if (_chItem && _chItem.parentId && _chItem.code && _chItem.code[0] === 'T') {
-        if (typeof showToast === 'function') showToast('warning', 'El sprint del T se hereda de su parent ' + _chItem.parentId);
+        showToast('warning', 'El sprint del T se hereda de su parent ' + _chItem.parentId);
         // Restaurar valor visual al sprint heredado del parent
         const _pItem = (window.getItems() || []).find(i => i.code === _chItem.parentId);
         sel.value = (_pItem && _pItem.sprint) || '';
         return;
       }
-      if (typeof setItemSprint === 'function') setItemSprint(code, value);
+      setItemSprint(code, value);
     } else {
       if (typeof _idpSetField === 'function') _idpSetField(code, field, value);
     }
@@ -1132,8 +1132,8 @@ document.addEventListener('DOMContentLoaded', () => {
         _openItemEditorSafe(null, el.dataset.itemCode);
         break;
       case 'idp-goto-session':
-        if (typeof switchTab === 'function') switchTab('tracker');
-        setTimeout(() => { if (typeof openDetail === 'function') openDetail(el.dataset.aiId, el.dataset.sessId); }, 120);
+        switchTab('tracker');
+        setTimeout(() => { openDetail(el.dataset.aiId, el.dataset.sessId); }, 120);
         break;
       case 'idp-unlink-session':
         e.stopPropagation();
@@ -1151,11 +1151,11 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       case 'acv-cancel':
         e.stopPropagation();
-        if (typeof renderBacklogList === 'function') renderBacklogList();
+        renderBacklogList();
         break;
       case 'mention-goto-log':
         e.stopPropagation();
-        if (typeof switchTab === 'function') switchTab('tracker');
+        switchTab('tracker');
         if (typeof setViewMode === 'function') setViewMode('chrono');
         setTimeout(() => { if (typeof scrollToLogCard === 'function') scrollToLogCard(el.dataset.sessId); }, 150);
         break;
@@ -1179,7 +1179,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (toastStack) toastStack.addEventListener('click', e => {
     const btn = e.target.closest('[data-action="backlog-undo"]');
     if (btn) {
-      if (typeof undoBacklog === 'function') undoBacklog();
+      undoBacklog();
       btn.closest('.toast-item, [class*=toast]')?.remove?.();
     }
   });

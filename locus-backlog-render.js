@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:28 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-04 23:30 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
@@ -74,13 +74,13 @@ export function updateClearFilterBtn() {
       if (!chip) return;
       const act = chip.dataset.afc;
       const val = chip.dataset.afcVal;
-      if (act === 'type')          { if (typeof toggleTypeFilter     === 'function') toggleTypeFilter(val); }
-      else if (act === 'status')   { if (typeof toggleStatusFilter   === 'function') toggleStatusFilter(val); }
-      else if (act === 'role')     { if (typeof toggleRoleFilter     === 'function') toggleRoleFilter(val); }
+      if (act === 'type')          { toggleTypeFilter(val); }
+      else if (act === 'status')   { toggleStatusFilter(val); }
+      else if (act === 'role')     { toggleRoleFilter(val); }
       else if (act === 'priority') { if (typeof togglePriorityFilter === 'function') togglePriorityFilter(val); }
-      else if (act === 'effort')   { if (typeof toggleEffortFilter   === 'function') toggleEffortFilter(parseInt(val, 10)); }
+      else if (act === 'effort')   { toggleEffortFilter(parseInt(val, 10)); }
       else if (act === 'search')   { if (typeof clearBacklogSearch   === 'function') clearBacklogSearch(); }
-      else if (act === 'noac')     { if (typeof toggleBacklogNoAcMode  === 'function') toggleBacklogNoAcMode(); }
+      else if (act === 'noac')     { toggleBacklogNoAcMode(); }
     });
   }
 

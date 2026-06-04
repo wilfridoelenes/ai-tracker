@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:14 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -647,7 +647,7 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
           }
         });
         // T-202605-446: detener cronómetro y registrar tiempo total en la sesión
-        if (typeof stopSessionTimer === 'function') ts.durationMs = stopSessionTimer(id) || 0;
+        ts.durationMs = stopSessionTimer(id) || 0;
         // G-04: card-flash + btn--saved + _setPhase(3) confirman inline — toast redundante eliminado.
       };
       // T-202605-120: enriquecer tgItems con representaciones de patches para visualización en el panel.

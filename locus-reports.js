@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -529,7 +529,6 @@ async function confirmCleanProject() {
 // purgeOldSessions / openPurgeModal / closePurgeModal / confirmPurge → reemplazadas por openCleanProjectModal
 
 function resetContextData() {
-  if (typeof _gconfirmOpen !== 'function') return;
   _gconfirmOpen({
     title: '🗑 Resetear Context',
     msg: 'Se eliminará el Context importado. Tendrás que re-importar el CONTEXT.md desde cero. Esta acción es irreversible.',
@@ -550,7 +549,6 @@ function resetContextData() {
 }
 
 function resetHtmlMapData() {
-  if (typeof _gconfirmOpen !== 'function') return;
   _gconfirmOpen({
     title: '🗑 Resetear Module Map',
     msg: 'Se eliminará el Module Map importado. Tendrás que re-importar el HTML-MAP.md desde cero. Esta acción es irreversible.',

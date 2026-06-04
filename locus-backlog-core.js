@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:27 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -318,7 +318,7 @@ const _NO_SESSION_DAYS = 14;
 export function _hasRecentSession(item) {
   if (!item || item.status !== 'pendiente') return true; // no aplica
   if (!item.sprint) return true; // no aplica sin sprint — R-202605-046: campo ausente es canónico, guard 'n/a' eliminado
-  if (typeof hasRecentSession !== 'function') return true; // guardia — función canónica no disponible
+// guardia — función canónica no disponible
   // R-202605-041: excluir sesiones anteriores al createdAt del ítem al evaluar actividad reciente
   // Ítems legacy sin createdAt → comportamiento anterior sin cambio
   if (item.createdAt) {
@@ -448,7 +448,6 @@ function _recalcAllScores() {
 // backlog general sin asignar, conservando el status 'pendiente' y el history.
 // Retorna la cantidad de ítems saneados para el log.
 function _sanitizePendingInClosedSprints() {
-  if (typeof getActiveSprints !== 'function') return 0;
   const closedSprintIds = new Set(
     getActiveSprints()
       .filter(s => s.status === 'closed')
@@ -1123,7 +1122,7 @@ function statusLabel(s) {
 
 // B-245: helper para obtener el aiId de la sesión activa al momento de registrar en history[]
 export function _getActiveSessionAiId() {
-  if (typeof window.state === 'undefined' || typeof _isInSession !== 'function') return null;
+  if (typeof window.state === 'undefined') return null;
   const ai = (window.state.ais || []).find(a => !a.archived && _isInSession(a));
   return ai ? ai.id : null;
 }
@@ -1997,5 +1996,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // B-202606-008: sincronizar visibilidad del botón Limpiar filtros con el estado
   // real de los filtros en la carga inicial — antes de cualquier interacción del usuario
-  if (typeof updateClearFilterBtn === 'function') updateClearFilterBtn();
+  updateClearFilterBtn();
 });

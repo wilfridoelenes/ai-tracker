@@ -1,4 +1,4 @@
-// [PP] v1.0.7 · sprint:PP-S-09 · mod:27 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -97,7 +97,6 @@ export function _buildNewSprintForm(projId, onConfirm, onCancel) {
 
   // Comprobar si ya hay un sprint activo para el proyecto
   function _hasActiveSprint() {
-    if (typeof getActiveSprints !== 'function') return false;
     // T-202605-126: sprints no tienen campo projectId propio — si hay projId, leer desde proj.sprints
     if (projId) {
       const _projForCheck = getProjectById(projId);
@@ -428,7 +427,6 @@ function _generateSprintRetroMd(id, notes) {
 
   // R-202605-129: comparativa sprint anterior para el MD
   const prevMd = (() => {
-    if (typeof getActiveSprints !== 'function') return null;
     const closed = getActiveSprints()
       .filter(s => s.status === 'closed' && s.deliveryMetrics && s.id !== id)
       .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
@@ -665,7 +663,7 @@ export function setItemSprint(code, sprintId) {
       const parentSprint = parentItem.sprint || 'icebox';
       const incomingSprint = sprintId || 'icebox';
       if (incomingSprint !== parentSprint) {
-        if (typeof showToast === 'function') showToast('warning', 'El sprint del T se hereda de su parent ' + item.parentId);
+        showToast('warning', 'El sprint del T se hereda de su parent ' + item.parentId);
         return;
       }
     }
@@ -1891,7 +1889,7 @@ document.addEventListener('DOMContentLoaded', () => {
         _scmBulkApply();
         break;
       case 'scm-export-history':
-        if (typeof exportFullHistoryMd === 'function') exportFullHistoryMd();
+        exportFullHistoryMd();
         break;
     }
   });

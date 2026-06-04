@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:28 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -803,7 +803,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const retroBtn = e.target.closest('.sml-retro-btn');
       if (retroBtn) {
         const sprintId = retroBtn.dataset.sprintId;
-        if (sprintId && typeof openSprintRetroView === 'function') {
+        if (sprintId) {
           openSprintRetroView(sprintId);
         }
         return;
@@ -901,10 +901,10 @@ export function setSprintCurrent(sprintId) {
   });
 
   // Persistir
-  if (typeof save === 'function') save();
+  save();
 
   // T-202605-150: sincronizar status bar al cambiar sprint en curso
-  if (typeof _markStatusBarDirty === 'function') _markStatusBarDirty();
+  _markStatusBarDirty();
 
   // T-202605-142: sincronizar header y burndown del tab Sprint en tiempo real
   renderSprintTab();

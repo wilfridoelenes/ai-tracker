@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-13 · mod:22 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:23 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -372,7 +372,7 @@ export function onSearch() {
     sessSlice.forEach(({ sess, proj, ai }) => {
       const aiName = ai ? hlText(ai.name, q) : '\u2014';
       const projName = proj ? _esc((proj.icon || '\u{1F4C1}') + ' ' + proj.name) : '';
-      const dateLabel = (typeof relDate === 'function' ? relDate(sess.date, sess.savedAt || sess.createdAt) : '') || sess.dateShort || '';
+      const dateLabel = (relDate(sess.date, sess.savedAt || sess.createdAt)) || sess.dateShort || '';
       const summSnip = sess.summary ? `<span class="sur-meta">${hlText(sess.summary.slice(0, 80), q)}${sess.summary.length > 80 ? '\u2026' : ''}</span>` : '';
       html += `<div class="sur-row" data-action="openDetail" data-ai-id="${ai ? ai.id : ''}" data-sess-id="${sess.id}">
         <span class="sur-row-icon">📄</span>
@@ -395,7 +395,7 @@ export function onSearch() {
       <div class="sur-group-label">📝 Notas (${noteMatches.length})</div>
       <div class="sur-rows">`;
     noteMatches.slice(0, 20).forEach(n => {
-      const dateLabel = (typeof relDate === 'function' ? relDate(n.updatedAt || n.createdAt) : '') || '';
+      const dateLabel = (relDate(n.updatedAt || n.createdAt)) || '';
       const refBadge = n.itemRef ? `<span class="sur-badge">${hlText(n.itemRef, q)}</span>` : '';
       html += `<div class="sur-row" data-action="openQuickNote" data-note-id="${n.id}">
         <span class="sur-row-icon">🗒</span>
@@ -641,7 +641,7 @@ export function _escCascade() {
     () => { const el = document.getElementById('qc-modal-overlay'); if (el && el.classList.contains('open')) { closeQuickCapture(); return true; } },
     () => { const el = document.getElementById('item-detail-panel'); if (el && el.classList.contains('open')) { closeItemPanel(); return true; } },
     () => { const el = document.getElementById('item-editor-overlay'); if (el && el.offsetParent !== null) { closeItemEditor(); return true; } },
-    () => { const el = document.getElementById('merge-diff-overlay'); if (el && el.offsetParent !== null) { if (typeof showMergeDiffPanel === 'function') { const p = document.getElementById('item-viz-overlay'); if (p && !p.classList.contains('is-hidden')) { _itemVizClose(); return true; } } } },
+    () => { const el = document.getElementById('merge-diff-overlay'); if (el && el.offsetParent !== null) { { const p = document.getElementById('item-viz-overlay'); if (p && !p.classList.contains('is-hidden')) { _itemVizClose(); return true; } } } },
     () => { const el = document.getElementById('item-viz-overlay'); if (el && !el.classList.contains('is-hidden')) { _itemVizClose(); return true; } },
     () => { const el = document.getElementById('pend-overlay'); if (el && el.offsetParent !== null) { if (typeof closePendPanel === 'function') closePendPanel(); return true; } },
     () => { const el = document.getElementById('proj-modal-overlay'); if (el && el.offsetParent !== null) { closeProjModal(); return true; } },
@@ -1407,7 +1407,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // item-editor-overlay — click outside to close
   const itemEditorOverlay = document.getElementById('item-editor-overlay');
   if (itemEditorOverlay) itemEditorOverlay.addEventListener('click', function (e) {
-    if (e.target === this && typeof closeItemEditor === 'function') closeItemEditor();
+    if (e.target === this) closeItemEditor();
   });
 
   // ie-tpl-open-btn
@@ -1442,7 +1442,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // ie-cancel-btn
   const ieCancelBtn = document.getElementById('ie-cancel-btn');
   if (ieCancelBtn) ieCancelBtn.addEventListener('click', function () {
-    if (typeof closeItemEditor === 'function') closeItemEditor();
+    closeItemEditor();
   });
 
   // ie-tpl-save-btn

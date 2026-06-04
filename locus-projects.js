@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -1295,7 +1295,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     switch (action) {
       case 'open-proj-modal':
-        if (typeof openProjModal === 'function') openProjModal();
+        openProjModal();
         break;
       case 'toggle-archived-section': {
         const o = localStorage.getItem('proy2-archived-open') !== '0';
@@ -1304,11 +1304,11 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       }
       case 'go-to-tracker':
-        if (typeof switchTab === 'function') switchTab('tab-tracker');
+        switchTab('tab-tracker');
         break;
       case 'go-to-sprint-create':
-        if (typeof switchTab === 'function') switchTab('backlog');
-        if (typeof switchSubTab === 'function') switchSubTab('backlog');
+        switchTab('backlog');
+        switchSubTab('backlog');
         break;
       case 'toggle-ai-filter':
         if (typeof _projToggleAIFilter === 'function') _projToggleAIFilter(aiId);
@@ -1332,7 +1332,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeof _qnNavToItem === 'function') _qnNavToItem(code);
         break;
       case 'open-session-detail':
-        if (typeof openDetail === 'function') openDetail(aiId, sessId);
+        openDetail(aiId, sessId);
         break;
       case 'dec-edit':
         if (typeof _projEditDecision === 'function') _projEditDecision(projId, decId);

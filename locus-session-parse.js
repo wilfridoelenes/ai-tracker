@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:25 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:26 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -883,7 +883,6 @@ export function _tryIngestPlan(text) {
   const hasLegacy = text && text.includes('---PLAN---');
   const hasNew    = text && text.includes('---EXECUTION-PLAN---');
   if (!hasLegacy && !hasNew) return false;
-  if (typeof parsePlanBlock !== 'function' || typeof savePlan !== 'function') return false;
   const incoming = parsePlanBlock(text);
   if (!incoming || !incoming.length) return false;
   const proj = getActiveProject();

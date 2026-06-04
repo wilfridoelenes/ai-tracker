@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-11 · mod:10 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -636,8 +636,8 @@ export function render() {
     }
   }
 
-  if (typeof updateStats === 'function') updateStats();
-  if (typeof renderStatusBar === 'function') renderStatusBar();
+  updateStats();
+  renderStatusBar();
   renderGlobalRadarSidebar();
   if (!_radarSbInited) { _radarSbInited = true; _initRadarSidebarState(); }
   if (typeof renderProjDots === 'function') renderProjDots();
@@ -1150,7 +1150,7 @@ function buildCard(ai) {
   if (taEl) {
     taEl.addEventListener('paste', () => {
       if (typeof handlePaste === 'function') handlePaste(ai.id);
-      else if (typeof showToast === 'function') showToast('error', 'Módulo de ingesta no disponible');
+      else showToast('error', 'Módulo de ingesta no disponible');
     });
     taEl.addEventListener('input', function () {
       if (typeof handleInput === 'function') handleInput(ai.id);
@@ -1470,12 +1470,12 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       // Hoy card — navigate to card
       case 'navigate-to-card':
-        if (typeof navigateToCard === 'function') navigateToCard(aiId);
+        navigateToCard(aiId);
         break;
       // Hoy card — open quick capture (stopPropagation)
       case 'open-quick-capture':
         e.stopPropagation();
-        if (typeof openQuickCapture === 'function') openQuickCapture(aiId);
+        openQuickCapture(aiId);
         break;
       // Interrupted banner
       case 'dismiss-interrupted':
@@ -1484,7 +1484,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Popup ref pill (stopPropagation)
       case 'open-detail-stop':
         e.stopPropagation();
-        if (typeof openDetail === 'function') openDetail(aiId, sessId);
+        openDetail(aiId, sessId);
         break;
       // Toggle in review (stopPropagation)
       case 'toggle-in-review-stop':
@@ -1493,7 +1493,7 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       // Sess row — open detail
       case 'open-detail':
-        if (typeof openDetail === 'function') openDetail(aiId, el.closest('[data-sess-id]')?.dataset.sessId || sessId);
+        openDetail(aiId, el.closest('[data-sess-id]')?.dataset.sessId || sessId);
         break;
       // Show all toggle
       case 'toggle-show-all':
@@ -1505,7 +1505,7 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       // Footer — confirm save
       case 'confirm-save':
-        if (typeof confirmSave === 'function') confirmSave(aiId);
+        confirmSave(aiId);
         break;
       // Footer — blind exhaust
       case 'confirm-blind-exhaust':
@@ -1517,44 +1517,44 @@ document.addEventListener('DOMContentLoaded', () => {
       // Project chip (stopPropagation)
       case 'select-project-filter-stop':
         e.stopPropagation();
-        if (typeof selectProjectFilter === 'function') selectProjectFilter(projId);
+        selectProjectFilter(projId);
         break;
       // Card dot menu toggle
       case 'toggle-card-menu':
-        if (typeof toggleCardMenu === 'function') toggleCardMenu(aiId, el, e);
+        toggleCardMenu(aiId, el, e);
         break;
       // Card dot items — close menu then execute
       case 'dot-rename':
-        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
+        closeCardMenu(aiId);
         if (typeof startRename === 'function') startRename(aiId);
         break;
       case 'dot-blind-exhaust':
-        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
+        closeCardMenu(aiId);
         if (typeof openBlindExhaustMode === 'function') openBlindExhaustMode(aiId);
         break;
       case 'dot-correct-hora':
-        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
+        closeCardMenu(aiId);
         if (typeof openCorrectHora === 'function') openCorrectHora(aiId);
         break;
       case 'dot-download-report':
-        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
-        if (typeof downloadReport === 'function') downloadReport(aiId);
+        closeCardMenu(aiId);
+        downloadReport(aiId);
         break;
       case 'dot-avatar':
-        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
-        if (typeof openAvatarModal === 'function') openAvatarModal(aiId);
+        closeCardMenu(aiId);
+        openAvatarModal(aiId);
         break;
       case 'dot-archive':
-        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
-        if (typeof archiveAI === 'function') archiveAI(aiId);
+        closeCardMenu(aiId);
+        archiveAI(aiId);
         break;
       case 'dot-clear':
-        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
-        if (typeof confirmClear === 'function') confirmClear(aiId);
+        closeCardMenu(aiId);
+        confirmClear(aiId);
         break;
       case 'dot-delete':
-        if (typeof closeCardMenu === 'function') closeCardMenu(aiId);
-        if (typeof deleteAI === 'function') deleteAI(aiId);
+        closeCardMenu(aiId);
+        deleteAI(aiId);
         break;
     }
   });

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-04 23:30 UTC-6
 import { renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
 import { _closedItemsInRange, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, sessionDateKey } from './locus-analytics-core.js';
 
@@ -1102,7 +1102,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!btn) return;
     switch (btn.dataset.action) {
       case 'analytics-goto-tracker':
-        if (typeof switchTab === 'function') switchTab('tracker');
+        switchTab('tracker');
         break;
       case 'analytics-clear-comparison':
         clearComparison();

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:36 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:37 · autor:Rune · 2026-06-04 23:30 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -264,7 +264,7 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'edit-child') {
       e.stopPropagation();
-      if (typeof _openItemEditorSafe === 'function') _openItemEditorSafe(null, action.dataset.code);
+      _openItemEditorSafe(null, action.dataset.code);
       return;
     }
     if (act === 'toggle-children') {
@@ -274,7 +274,7 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'navigate-origin') {
       e.stopPropagation();
-      if (typeof navigateToItem === 'function') navigateToItem(action.dataset.origin);
+      navigateToItem(action.dataset.origin);
       return;
     }
     if (act === 'quick-assign-effort') {
@@ -284,7 +284,7 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'open-blocker') {
       e.stopPropagation();
-      if (typeof openItemPanel === 'function') openItemPanel(action.dataset.code);
+      openItemPanel(action.dataset.code);
       return;
     }
     if (act === 'promote-item') {
@@ -294,7 +294,7 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'discard-idea') {
       e.stopPropagation();
-      if (typeof setItemStatus === 'function') setItemStatus(action.dataset.code, 'descartado');
+      setItemStatus(action.dataset.code, 'descartado');
       return;
     }
     if (act === 'open-status-popover') {
@@ -303,11 +303,11 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'navigate-discard-ref') {
       e.stopPropagation();
-      if (typeof navigateToItem === 'function') navigateToItem(action.dataset.ref);
+      navigateToItem(action.dataset.ref);
       return;
     }
     if (act === 'bitem-edit') {
-      if (typeof _openItemEditorSafe === 'function') _openItemEditorSafe(null, action.dataset.code);
+      _openItemEditorSafe(null, action.dataset.code);
       return;
     }
     if (act === 'bitem-promote') {
@@ -350,7 +350,7 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'acv-open-editor') {
       e.stopPropagation();
-      if (typeof _openItemEditorSafe === 'function') _openItemEditorSafe(null, action.dataset.code);
+      _openItemEditorSafe(null, action.dataset.code);
       return;
     }
     if (act === 'acv-clarify') {
@@ -369,7 +369,7 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'status-change') {
       e.stopPropagation();
-      if (typeof setItemStatus === 'function') setItemStatus(action.dataset.code, action.value || action.dataset.value);
+      setItemStatus(action.dataset.code, action.value || action.dataset.value);
       return;
     }
     // Render-level actions (from locus-backlog-render.js)
@@ -438,12 +438,12 @@ export function _attachBacklogListDelegation() {
     if (type === 'role') {
       if (typeof setItemRole === 'function') setItemRole(code, sel.value);
     } else if (type === 'sprint') {
-      if (typeof setItemSprint === 'function') setItemSprint(code, sel.value);
+      setItemSprint(code, sel.value);
     } else if (type === 'parent') {
       if (typeof setItemParent === 'function') setItemParent(code, sel.value);
     } else {
       // status select (no data-select-type)
-      if (typeof setItemStatus === 'function') setItemStatus(code, sel.value);
+      setItemStatus(code, sel.value);
     }
   });
 

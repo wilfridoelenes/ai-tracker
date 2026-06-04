@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-04 23:30 UTC-6
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // T2: imports en el mismo orden que index.html declaraba los <script src>
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch(e) { document.title = 'Locus'; }
 
   // Inicializar command palette (reemplaza llamada del script inline L1429)
-  if (typeof initCommandPalette === 'function') initCommandPalette();
+  initCommandPalette();
 
   // T-202606-006: theme toggle — listener sobre #theme-toggle-btn (reemplaza toggleTheme global)
   const _themeBtn = document.getElementById('theme-toggle-btn');

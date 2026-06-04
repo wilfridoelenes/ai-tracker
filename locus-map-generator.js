@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-15 · mod:13 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-04 23:30 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -28,7 +28,6 @@ export function normalize(v) { return String(v || '').replace(/^v/, '').trim(); 
 // B-[pendiente-ID]: el generador se usa post-cierre de sprint — si no hay sprint
 // activo, tomar el último sprint cerrado (mayor closedAt) para el Sprint Review.
 function _mgActiveSprint() {
-  if (typeof getActiveSprints !== 'function') return null;
   const all = getActiveSprints();
   // Sprint activo
   const active = all.find(s => s.status === 'active');
