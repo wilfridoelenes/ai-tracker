@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-09 · mod:23 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:24 · autor:Rune · 2026-06-04 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -548,6 +548,10 @@ async function _saveFlush() {
       // AC-5 R-C1: upsert Supabase falla → localStorage como fallback + encolar + toast
       console.error('[AI Tracker] Supabase save() failed:', err);
       _stateDirty = true;
+      // B-202606-005 AC-3: upsert falló — el timestamp registrado antes del await no llegó
+      // a Supabase. Resetear a null para que la próxima notificación Realtime no sea ignorada
+      // por el guard (_realtimeLastTs && remoteTs === _realtimeLastTs) con un ts fantasma.
+      _realtimeLastTs = null;
       setSyncStatus('offline', '✕ sin conexión');
       try {
         localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
