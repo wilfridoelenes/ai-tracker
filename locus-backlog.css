@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-15 · mod:10 · autor:Nova · 2026-06-03 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-03 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -3126,12 +3126,46 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  ove/* === locus-backlog-item.js ===
-   Funciones: _renderKanban · _kanbanCard · _kbDrop */
-
-rflow: hidden;
+  overflow: hidden;
   transition: max-height 0.25s ease, opacity 0.2s ease;
 }
+
+/* ══ T-202606-008: Jerarquía visual R→T — conector de línea ══ */
+
+.r-children-inner {
+  position: relative;
+  padding: 0 12px 10px 52px;
+}
+
+.r-children-inner::before {
+  content: '';
+  position: absolute;
+  left: 30px;
+  top: 0;
+  bottom: 10px;
+  width: 1.5px;
+  background: linear-gradient(to bottom, var(--blue-border), transparent);
+  border-radius: var(--radius-2xs);
+  pointer-events: none;
+}
+
+.t-item {
+  position: relative;
+  margin-bottom: 4px;
+}
+
+.t-item::before {
+  content: '';
+  position: absolute;
+  left: -22px;
+  top: 18px;
+  width: 18px;
+  height: 1.5px;
+  background: var(--blue-border);
+  pointer-events: none;
+}
+
+/* ══ END T-202606-008 ══ */
 
 /* ══ T-202604-287: KANBAN VIEW ══ */
 
