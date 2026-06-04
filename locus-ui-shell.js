@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:24 · autor:Rune · 2026-06-04 23:55 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:25 · autor:Rune · 2026-06-04 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -29,7 +29,6 @@ import { renderPlan } from './locus-sprint-plan.js';
 import { _getActiveProjectFilter, closeProjModal, closeProjPanel, openProjModal, openProjPanel, selectProjectFilter } from './locus-sprint-project.js';
 import { renderSprintTab } from './locus-sprint.js';
 import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAISessions, getAllSessions, getState, save } from './locus-storage.js';
-import { showToast, toast } from './locus-toast.js';
 import { openAddAI } from './locus-workers.js';
 
 import { normalize } from './locus-map-generator.js';
