@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:39 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:40 · autor:Rune · 2026-06-05 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -17,6 +17,8 @@ import { _getActiveSprint, navigateToItem, setItemSprint, openSprintRetroView } 
 import { _setBacklogModified } from './locus-docs.js';
 
 import { _gconfirmOpen } from './locus-modals.js';
+
+import { validateLifecycleTransitions } from './locus-session-save.js'; // T-202606-020
 
 import { render } from './locus-sesiones.js';
 
@@ -1740,7 +1742,7 @@ function _assignPendingIds(tgItems) {
 // Llamado desde saveSession(). Acumula múltiples sesiones sin exportar.
 // T-202604-121: retorna {created, updated, ignored} para super toast
 export function mergeBacklogFromTG(tgItems, sessionId, opts) {
-  if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[] };
+  if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[], invalidTransition:[] };
   const _dryRun = !!(opts && opts.dryRun);
 
   // B-202604-198: Separar placeholders ANTES de _assignPendingIds para preservar su naturaleza.
@@ -2140,7 +2142,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     renderStats(); // siempre actualizar stat bar aunque no estemos en tab Backlog
     if (getCurrentTab() === 'backlog') { _markBacklogListDirty(); renderBacklogList(); updateBacklogBanner(); }
   }
-  return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions };
+  return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions, invalidTransition: validateLifecycleTransitions(tgItems) }; // T-202606-020
 }
 
 

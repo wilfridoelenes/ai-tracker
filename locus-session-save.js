@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:17 · autor:Rune · 2026-06-05 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -31,6 +31,50 @@ import { showToast } from './locus-toast.js';
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
 let _pendingTemplateDownload = false; // T5: variable de módulo — reemplaza window._pendingTemplateDownload
+// T-202606-020 · AC-5: tabla de transiciones válidas por tipo de ítem — BR-Core §4
+// Clave: tipo de ítem ('R' | 'T' | 'B' | 'P'). Valor: Set de status permitidos.
+// Nota: tipo desconocido → no validar (AC-6, ignorar silenciosamente).
+export const VALID_TRANSITIONS = {
+  R: new Set(['pendiente', 'en-revision', 'bloqueado', 'descartado']),
+  T: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
+  B: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
+  P: new Set(['pendiente', 'promovida', 'descartado'])
+};
+
+// T-202606-020 · AC-2 · AC-5 · AC-6
+// Recibe el array de tgItems ya procesado por mergeBacklogFromTG (post-clasificación).
+// Devuelve array de { code, type, status, reason } para ítems con transición inválida.
+// Solo evalúa ítems con type conocido y status declarado — el resto se ignora silenciosamente (AC-6).
+export function validateLifecycleTransitions(tgItems) {
+  if (!tgItems || !tgItems.length) return [];
+  const invalid = [];
+  tgItems.forEach(item => {
+    const type   = item.type || (item.code ? item.code.charAt(0) : '');
+    const status = item.status;
+    // AC-6: tipo desconocido → ignorar silenciosamente
+    if (!type || !VALID_TRANSITIONS[type]) return;
+    // Sin status declarado → no hay transición que validar
+    if (!status) return;
+    if (!VALID_TRANSITIONS[type].has(status)) {
+      // Construir motivo legible para el panel DIFF (AC-3)
+      let reason = '';
+      if (type === 'P' && status === 'done') {
+        reason = 'P no puede tener status done — solo promovida o descartado';
+      } else if (type === 'R' && status === 'done') {
+        reason = 'R no puede marcarse done directamente — requiere sesión de cierre de Finn';
+      } else if (type === 'T' && status === 'bloqueado') {
+        reason = 'T no puede tener status bloqueado — solo pendiente, en-revision, done o descartado';
+      } else if (type === 'B' && status === 'bloqueado') {
+        reason = 'B no puede tener status bloqueado — solo pendiente, en-revision, done o descartado';
+      } else {
+        reason = `${type} no puede tener status '${status}' según BR-Core §4`;
+      }
+      invalid.push({ code: item.code, type, status, reason });
+    }
+  });
+  return invalid;
+}
+
 const _confirmTimers = {};            // timers de confirmación por worker ID — clearTimeout en _doSaveSession y _doCompleteFinish
 
 function toggleTemplateTrigger(val) {

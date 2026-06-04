@@ -1,4 +1,4 @@
-/* [PP] v0.0.0 · sprint:PP-S-01 · mod:5 · autor:Nova · 2026-06-04 UTC-6 */
+/* [PP] v0.0.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-05 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -3746,3 +3746,15 @@ body {
 }
 /* ── END T-202605-105 ── */
 
+/* ══ T-202606-020: Sección Transiciones inválidas en panel DIFF ══ */
+.mdiff-section--invalid-transition .mdiff-section-title {
+  color: var(--amber);
+}
+
+.mdiff-section--invalid-transition .mdiff-card-desc {
+  font-size: 11px;
+  color: var(--text-muted, #888);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+/* ── END T-202606-020 ── */

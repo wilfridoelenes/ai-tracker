@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-05 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -66,7 +66,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
 
   const total = diff.created.length + diff.advanced.length + diff.updated.length +
                 diff.retroceso.length + diff.discarded.length + diff.ignored.length +
-                diff.createdAndClosed.length + diff.tmpSuggestions.length;
+                diff.createdAndClosed.length + diff.tmpSuggestions.length +
+                (diff.invalidTransition || []).length; // T-202606-020
 
   const _criticalReasons = ['duplicado', 'sin-status', 'tipo-invalido'];
   const _hasCriticalIgnored = (diff.ignored || []).some(i => _criticalReasons.includes(i.reason));
@@ -262,6 +263,18 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     )).join('');
     sectionsHtml += _section('tmp-suggestions', 'warn', `⚠ TMP sin match confirmado <span class="mdiff-sec-count">${diff.tmpSuggestions.length}</span>`, rows);
   }
+  // T-202606-020 · AC-3: sección Transiciones inválidas — advertencia, no bloquea aplicación (AC-4)
+  if ((diff.invalidTransition || []).length) {
+    const rows = (diff.invalidTransition).map(i =>
+      _card(i.code, i.reason, 'warn',
+        _pill('warn', `⚠ ${esc(i.type)} → ${esc(i.status)}`)
+      )
+    ).join('');
+    sectionsHtml += _section('invalid-transition', 'warn',
+      `⚠ Transiciones inválidas <span class="mdiff-pill mdiff-pill--warn mdiff-sec-count">${diff.invalidTransition.length}</span>`,
+      rows
+    );
+  }
   if (diff.advanced.length) {
     const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`))).join('');
     sectionsHtml += _section('advanced', 'blue', `Avance de status <span class="mdiff-sec-count">${diff.advanced.length}</span>`, rows);
@@ -339,6 +352,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     { key: 'retroceso',         id: 'retroceso',         label: 'retrocesos',         cls: 'warn',   count: diff.retroceso.length },
     { key: 'discarded',         id: 'discarded',         label: 'descartes',          cls: 'red',    count: diff.discarded.length },
     { key: 'tmpSuggestions',    id: 'tmp-suggestions',   label: 'tmp sin match',      cls: 'warn',   count: diff.tmpSuggestions.length },
+    { key: 'invalidTransition', id: 'invalid-transition', label: 'transiciones inv.', cls: 'warn',   count: (diff.invalidTransition || []).length }, // T-202606-020
     { key: 'unchanged',         id: 'unchanged',         label: 'sin cambios',        cls: 'muted',  count: diff.ignored.filter(i => !_criticalReasons.includes(i.reason)).length },
   ];
 
