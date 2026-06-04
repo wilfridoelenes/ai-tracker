@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:26 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:27 · autor:Rune · 2026-06-04 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -408,8 +408,9 @@ export function parsePaste(id) {
           break;
         }
         // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
+        // T-202606-012 AC-3: sprint ausente se trata como icebox
         const _sprintRaw = _it.sprint ? _it.sprint.trim().toLowerCase() : '';
-        if (_normSt === 'en-revision' && _sprintRaw === 'icebox') {
+        if (_normSt === 'en-revision' && (_sprintRaw === 'icebox' || _sprintRaw === '')) {
           _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
           break;
         }
@@ -510,8 +511,9 @@ export function parsePaste(id) {
             break;
           }
           // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
+          // T-202606-012 AC-3: sprint ausente se trata como icebox
           const _sprintRaw2 = _it.sprint ? _it.sprint.trim().toLowerCase() : '';
-          if (_normSt2 === 'en-revision' && _sprintRaw2 === 'icebox') {
+          if (_normSt2 === 'en-revision' && (_sprintRaw2 === 'icebox' || _sprintRaw2 === '')) {
             _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
             break;
           }
@@ -1077,8 +1079,9 @@ function parsePasteStandalone() {
       break;
     }
     // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
+    // T-202606-012 AC-3: sprint ausente se trata como icebox
     const _sprintRaw3 = it.sprint ? it.sprint.trim().toLowerCase() : '';
-    if (_normSt3 === 'en-revision' && _sprintRaw3 === 'icebox') {
+    if (_normSt3 === 'en-revision' && (_sprintRaw3 === 'icebox' || _sprintRaw3 === '')) {
       itemError = `CHECKPOINT bloqueado: ${it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
       break;
     }

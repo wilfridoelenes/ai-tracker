@@ -49,8 +49,6 @@ import './locus-map-generator.js';
 import { initCommandPalette } from './locus-command-palette.js';import { _maybeShowWeeklySummary } from './locus-sesiones-utils.js';
 import { _itemVizConfirm, _itemVizClose, closeCkptPanel } from './locus-sesiones-viz.js';
 
-import './locus-api.js';
-
 // ── Funciones migradas desde inline script de index.html (T-202606-006) ──────
 
 // toggleTheme: invoca applyTheme ESM — reemplaza función global del script no-module
