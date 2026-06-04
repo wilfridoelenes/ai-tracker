@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:23 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:24 · autor:Rune · 2026-06-04 23:55 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -33,6 +33,7 @@ import { showToast, toast } from './locus-toast.js';
 import { openAddAI } from './locus-workers.js';
 
 import { normalize } from './locus-map-generator.js';
+import { exportBacklogMd, exportFullHistoryMd, exportContextMd } from './locus-backlog-generator.js';
 
 // ── Global utility ────────────────────────────────────────────────────────
 // esc() usada por múltiples módulos (backlog, session, toast, checkpoint)
@@ -1302,13 +1303,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // btn-export-backlog
   const btnExportBacklog = document.getElementById('btn-export-backlog');
   if (btnExportBacklog) btnExportBacklog.addEventListener('click', function () {
-    if (typeof exportBacklogMd === 'function') exportBacklogMd();
+    exportBacklogMd();
   });
 
   // btn-export-backlog-full
   const btnExportBacklogFull = document.getElementById('btn-export-backlog-full');
   if (btnExportBacklogFull) btnExportBacklogFull.addEventListener('click', function () {
-    if (typeof exportFullHistoryMd === 'function') exportFullHistoryMd();
+    exportFullHistoryMd();
   });
 
   // btn-import-htmlmap
@@ -1365,7 +1366,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // ctx-export-btn
   const ctxExportBtn = document.getElementById('ctx-export-btn');
   if (ctxExportBtn) ctxExportBtn.addEventListener('click', function () {
-    if (typeof exportContextMd === 'function') exportContextMd();
+    exportContextMd();
   });
 
   // tag-new-input — Enter key
@@ -1543,19 +1544,19 @@ document.addEventListener('DOMContentLoaded', function () {
   // mg-export-backlog-btn
   const mgExportBacklogBtn = document.getElementById('mg-export-backlog-btn');
   if (mgExportBacklogBtn) mgExportBacklogBtn.addEventListener('click', function () {
-    if (typeof exportBacklogMd === 'function') exportBacklogMd();
+    exportBacklogMd();
   });
 
   // mg-export-history-btn
   const mgExportHistoryBtn = document.getElementById('mg-export-history-btn');
   if (mgExportHistoryBtn) mgExportHistoryBtn.addEventListener('click', function () {
-    if (typeof exportFullHistoryMd === 'function') exportFullHistoryMd();
+    exportFullHistoryMd();
   });
 
   // mg-export-context-btn
   const mgExportContextBtn = document.getElementById('mg-export-context-btn');
   if (mgExportContextBtn) mgExportContextBtn.addEventListener('click', function () {
-    if (typeof exportContextMd === 'function') exportContextMd();
+    exportContextMd();
   });
 
   // mg-export-all-btn

@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-04 23:55 UTC-6
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // T2: imports en el mismo orden que index.html declaraba los <script src>
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
@@ -46,7 +46,9 @@ import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import { getItems, _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
 import './locus-map-generator.js';
-import { initCommandPalette } from './locus-command-palette.js';
+import { initCommandPalette } from './locus-command-palette.js';import { _maybeShowWeeklySummary } from './locus-sesiones-utils.js';
+import { _itemVizConfirm, _itemVizClose, closeCkptPanel } from './locus-sesiones-viz.js';
+
 import './locus-api.js';
 
 // ── Funciones migradas desde inline script de index.html (T-202606-006) ──────
@@ -128,16 +130,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // T-202605-448: panel de resumen semanal — se activa los lunes al abrir la app
   setTimeout(function() {
-    if (typeof _maybeShowWeeklySummary === 'function') _maybeShowWeeklySummary();
+    _maybeShowWeeklySummary();
   }, 1200);
 
   // T-202605-062: inline handlers → addEventListener (CSS Purity)
   const _ivzConfirm = document.getElementById('item-viz-confirm-btn');
-  if (_ivzConfirm) _ivzConfirm.addEventListener('click', function() { if (typeof _itemVizConfirm === 'function') _itemVizConfirm(); });
+  if (_ivzConfirm) _ivzConfirm.addEventListener('click', function() { _itemVizConfirm(); });
   const _ivzClose = document.getElementById('item-viz-close-btn');
-  if (_ivzClose) _ivzClose.addEventListener('click', function() { if (typeof _itemVizClose === 'function') _itemVizClose(); });
+  if (_ivzClose) _ivzClose.addEventListener('click', function() { _itemVizClose(); });
   const _ckptClose = document.getElementById('ckpt-header-close-btn');
-  if (_ckptClose) _ckptClose.addEventListener('click', function() { if (typeof closeCkptPanel === 'function') closeCkptPanel(); });
+  if (_ckptClose) _ckptClose.addEventListener('click', function() { closeCkptPanel(); });
 
   // Arrancar app — inyectar referencias directas para romper ciclos storage↔sprint-project y storage↔backlog-core
   // ESM-B: getProjectById · _localStorageUsageRatio · _migrateItemTypes · _purgeStaleBacklogCache agregados

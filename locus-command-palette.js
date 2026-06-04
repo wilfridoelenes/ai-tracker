@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-14 · mod:10 · autor:Rune · 2026-06-02 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-04 23:55 UTC-6
 // locus-command-palette.js
 // Versión: 1.0.4 | Última actualización: 2026-05-23 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto · T-202605-067 nav-tab-sprint
 // Renombrado de ai-tracker-command-palette.js
@@ -15,6 +15,9 @@ import { getActiveProject, getActiveSprints, getState } from './locus-storage.js
 import { showToast, toast } from './locus-toast.js';
 import { openShortcutsRef, switchSubTab, switchTab, toggleTheme } from './locus-ui-shell.js';
 import { normalize } from './locus-map-generator.js';
+import { openStandaloneCheckpoint } from './locus-session-parse.js';
+import { openDocLog } from './locus-doc-log.js';
+import { openPendPanel } from './locus-pend.js';
 
 'use strict';
 
@@ -108,7 +111,7 @@ function _buildCommandRegistry() {
       icon: '📋',
       keywords: ['checkpoint', 'standalone', 'paste', 'importar'],
       group: 'Acciones',
-      action: () => { if (typeof openStandaloneCheckpoint === 'function') openStandaloneCheckpoint(); },
+      action: () => { openStandaloneCheckpoint(); },
     },
     {
       id: 'action-toggle-theme',
@@ -146,7 +149,7 @@ function _buildCommandRegistry() {
       icon: '📜',
       keywords: ['log', 'historial', 'documentos', 'doc'],
       group: 'Acciones',
-      action: () => { if (typeof openDocLog === 'function') openDocLog(); },
+      action: () => { openDocLog(); },
     },
     {
       id: 'action-quick-note',
@@ -202,7 +205,7 @@ function _buildCommandRegistry() {
       icon: '⏳',
       keywords: ['pendientes', 'pend', 'panel', 'ver', 'pendiente'],
       group: 'Acciones',
-      action: () => { if (typeof openPendPanel === 'function') openPendPanel(); },
+      action: () => { openPendPanel(); },
     },
     {
       id: 'shortcuts-ref',

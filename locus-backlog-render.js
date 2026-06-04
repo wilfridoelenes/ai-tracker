@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-04 23:55 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
@@ -16,6 +16,7 @@ import { showToast } from './locus-toast.js';
 
 import { esc, switchTab } from './locus-ui-shell.js';
 import { _renderPlanningView, _attachPlanViewDelegation, _statusPills, toggleClosedSprintsBody } from './locus-sprint-planificacion.js';
+import { _updateDocLogCount } from './locus-doc-log.js';
 
 // [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // Responsabilidad: Renderizado del backlog — vista árbol, sprint health panel,
@@ -566,7 +567,7 @@ export function renderBacklogList(onRendered) {
     _attachBacklogDnD();
     _attachBacklogListDelegation();
     _attachPlanViewDelegation();
-    if (typeof _updateDocLogCount === 'function') _updateDocLogCount('backlog');
+    _updateDocLogCount('backlog');
     _skelHide(listEl);
     if (typeof onRendered === 'function') onRendered();
     return;
@@ -838,7 +839,7 @@ export function renderBacklogList(onRendered) {
   _attachBacklogDnD();
   _attachBacklogListDelegation();
   _attachPlanViewDelegation();
-  if (typeof _updateDocLogCount === 'function') _updateDocLogCount('backlog');
+  _updateDocLogCount('backlog');
 
   // T-202604-362: placeholder del buscador refleja scope activo
   (function _updateSearchPlaceholder() {

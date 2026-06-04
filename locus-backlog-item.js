@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:37 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:38 · autor:Rune · 2026-06-04 23:55 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -12,7 +12,7 @@ import { _blogLog, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog
 
 import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel } from './locus-backlog-panel.js';
 
-import { _getActiveSprint, navigateToItem, setItemSprint } from './locus-backlog-sprints.js';
+import { _getActiveSprint, navigateToItem, setItemSprint, openSprintRetroView } from './locus-backlog-sprints.js';
 
 import { _setBacklogModified } from './locus-docs.js';
 
@@ -22,7 +22,8 @@ import { render } from './locus-sesiones.js';
 
 import { showToast } from './locus-toast.js';
 
-import { esc, getCurrentTab } from './locus-ui-shell.js';
+import { esc, getCurrentTab, switchTab } from './locus-ui-shell.js';
+import { openDetail } from './locus-session-popup.js';
 
 // Constantes canónicas del ecosistema — roles disponibles para el select de ítem
 // Fuente: OB-STRATEGY §6. Actualizar aquí si se agregan/eliminan roles.
@@ -253,8 +254,8 @@ export function _attachBacklogListDelegation() {
       return;
     }
     if (act === 'ref-chip-session') {
-      if (typeof switchTab === 'function') switchTab('sesiones');
-      setTimeout(() => { if (typeof openDetail === 'function') openDetail(action.dataset.aiId, action.dataset.sessId); }, 120);
+      switchTab('sesiones');
+      setTimeout(() => { openDetail(action.dataset.aiId, action.dataset.sessId); }, 120);
       return;
     }
     if (act === 'item-expand') {
@@ -375,7 +376,7 @@ export function _attachBacklogListDelegation() {
     // Render-level actions (from locus-backlog-render.js)
     if (act === 'bl-sprint-retro') {
       e.stopPropagation();
-      if (typeof openSprintRetroView === 'function') openSprintRetroView(action.dataset.sprintId);
+      openSprintRetroView(action.dataset.sprintId);
       return;
     }
     if (act === 'bl-plan-close') {
@@ -385,7 +386,7 @@ export function _attachBacklogListDelegation() {
       return;
     }
     if (act === 'es-switch-tab') {
-      if (typeof switchTab === 'function') switchTab(action.dataset.tab);
+      switchTab(action.dataset.tab);
       return;
     }
     if (act === 'es-open-proj-panel') {
