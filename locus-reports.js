@@ -13,7 +13,7 @@ import { updateStats } from './locus-sesiones-stats.js';
 import { render } from './locus-sesiones.js';
 import { _templateTrigger } from './locus-session-hora.js';
 import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
-import { _offlineQueuePush, _subscribeRealtime, _tplKey, _unsubscribeRealtime, getAI, getAISessions, getActiveTracker, getAllSessions, save, setSyncStatus } from './locus-storage.js';
+import { _offlineQueuePush, _subscribeRealtime, _tplKey, _unsubscribeRealtime, getAI, getAISessions, getActiveTracker, getAllSessions, save, saveImmediate, setSyncStatus } from './locus-storage.js';
 
 import { _updateSubTabButtons, renderContext, updateContextBanner } from './locus-docs.js';
 
@@ -492,7 +492,7 @@ async function confirmCleanProject() {
   await Promise.allSettled(ops);
 
   // Persistir state limpio
-  await save();
+  await saveImmediate();
 
   // AC-8: reconectar Realtime
   _subscribeRealtime();
