@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:24 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:25 · autor:Rune · 2026-06-03 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
-import { renderStats, getItems} from './locus-backlog-core.js';
+import { renderStats, getItems, normalizeStatus} from './locus-backlog-core.js';
 import { _isPlaceholderCode, applyPatchesFromTG } from './locus-backlog-item.js';
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { renderBacklogList } from './locus-backlog-render.js';
@@ -55,25 +55,29 @@ function statusLabel(raw) {
   return resolved;
 }
 
-// R-202605-023: normaliza cualquier variante de status al valor canónico del backlog
-// antes de validar contra _validStatuses. Evita rechazo de variantes como 'en_revision',
-// 'En-Revision', 'en revisión', etc. que _canonicalStatus ya mapea correctamente.
-// AC-7: retorna null para valores no mapeados — nunca silencia a 'pendiente'.
-// Los bloques de validación rechazan con error cuando _canonicalStatus retorna null.
-// T-202606-018: 'promovida' es status válido exclusivamente para type P.
-// Si type P y status 'promovida' → retorna 'promovida'.
-// Si type T/R/B y status 'promovida' → retorna null (error bloqueante en validación).
+// T-202606-002: _canonicalStatus es ahora wrapper de normalizeStatus (locus-backlog-core.js).
+// Preserva semántica de rechazo estricto: retorna null para valores desconocidos.
+// normalizeStatus retorna 'pendiente' para desconocidos — wrapper detecta ese caso
+// comparando el raw original contra la lista de entradas conocidas.
+// T-202606-018: 'promovida' con type T/R/B → null (rechazo bloqueante en validación).
+// Casos especiales no cubiertos por normalizeStatus:
+//   'histórico' (con acento) → mapear a 'historico' antes de delegar
+//   'listo' → alias de 'done' (usado en TG_PARSER_CONFIG)
+//   'promovida' con type≠P → null (normalizeStatus devuelve 'pendiente' — override requerido)
+const _KNOWN_STATUS_INPUTS = new Set([
+  'done', 'en-revision', 'en_revision', 'en revisión', 'en-revisión',
+  'descartado', 'historico', 'histórico', 'pendiente', 'promovida',
+  'listo',
+]);
 function _canonicalStatus(raw, type) {
   if (!raw) return null;
   const s = raw.trim().toLowerCase();
-  if (s === 'done' || s.includes('done') || s.includes('listo')) return 'done';
-  if (s === 'descartado' || s.includes('descart') || s.includes('discard')) return 'descartado';
-  if (s === 'en-revision' || s === 'en_revision' || s === 'en revisión' || s === 'en-revisión') return 'en-revision';
-  if (s === 'historico' || s === 'histórico') return 'historico';
-  if (s === 'pendiente') return 'pendiente';
-  // T-202606-018: promovida — solo válido para type P
-  if (s === 'promovida') return (type === 'P') ? 'promovida' : null;
-  return null; // valor desconocido — rechazo estricto en validación
+  if (!_KNOWN_STATUS_INPUTS.has(s)) return null; // valor desconocido — rechazo estricto
+  // Casos que normalizeStatus no cubre directamente
+  if (s === 'listo') return 'done';
+  if (s === 'histórico') return 'historico';
+  if (s === 'promovida' && type !== 'P') return null; // T-202606-018
+  return normalizeStatus(raw, type) || null;
 }
 
 function buildTGPreview(items, discrepancy) {

@@ -1,10 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:21 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:22 · autor:Rune · 2026-06-03 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
-import { _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
+
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _markPulsoDotDirty, renderPulsoDot } from './locus-pulso.js';
@@ -32,12 +32,16 @@ let exportBacklogMd = function() {
   if (typeof window._exportBacklogMd === 'function') return window._exportBacklogMd();
   if (typeof window.Locus?.exportBacklogMd === 'function') return window.Locus.exportBacklogMd();
 };
-// T-202606-046: getItems inyectado via _initApp — no importar locus-backlog-core directamente
+// T-202606-003 / T-202606-046: getItems, _localStorageUsageRatio, _migrateItemTypes y
+// _purgeStaleBacklogCache inyectados via _initApp — ciclo storage ↔ backlog-core eliminado.
+// Fallback seguro: _getItems devuelve [] (sin acceso a window); las demás son no-ops.
 let _getItems = function() {
-  if (typeof window.getItems === 'function') return window.getItems();
   console.warn('[AI Tracker] _getItems: getItems no disponible — usando fallback []');
   return [];
 };
+let _localStorageUsageRatio = function() { return 0; };
+let _migrateItemTypes = function() {};
+let _purgeStaleBacklogCache = function() { return 0; };
 // No contiene lógica de UI, render, toast ni timer de sesión.
 
 // ── VARIABLES DE MÓDULO ───────────────────────────────────────────────────────
@@ -1371,9 +1375,15 @@ function load() {
 export function _initApp(opts = {}) {
   if (opts.getActiveProjectFilter) _getActiveProjectFilter = opts.getActiveProjectFilter;
   if (opts.exportBacklogMd) exportBacklogMd = opts.exportBacklogMd;
-  // T-202606-046: inyectar getItems para romper ciclo storage ↔ backlog-core
+  // T-202606-003: inyectar las cuatro referencias de backlog-core para eliminar el import directo
   if (opts.getItems) _getItems = opts.getItems;
-  else console.warn('[AI Tracker] _initApp: getItems no recibido en opts — usando fallback window.getItems');
+  else console.warn('[AI Tracker] _initApp: getItems no recibido en opts — usando fallback []');
+  if (opts.localStorageUsageRatio) _localStorageUsageRatio = opts.localStorageUsageRatio;
+  else console.warn('[AI Tracker] _initApp: localStorageUsageRatio no recibido en opts — usando fallback 0');
+  if (opts.migrateItemTypes) _migrateItemTypes = opts.migrateItemTypes;
+  else console.warn('[AI Tracker] _initApp: migrateItemTypes no recibido en opts — usando no-op');
+  if (opts.purgeStaleBacklogCache) _purgeStaleBacklogCache = opts.purgeStaleBacklogCache;
+  else console.warn('[AI Tracker] _initApp: purgeStaleBacklogCache no recibido en opts — usando fallback 0');
   // 1. Cargar estado desde localStorage en memoria (sin UI)
   load();
 
