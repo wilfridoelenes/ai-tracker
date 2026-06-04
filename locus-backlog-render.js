@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:31 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:32 · autor:Rune · 2026-06-04 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
@@ -181,28 +181,38 @@ window._markBacklogListDirty = _markBacklogListDirty;
 // T-202606-014: renderizado de vista C colapsable
 // Rs como headers colapsables con Ts anidados. Filtros de status, tipo, effort y búsqueda
 // ya aplicados sobre pendienteItems antes de llegar aquí.
+// Fix: childMap construido desde getItems() completo — todos los Ts hijos se muestran
+// bajo su R independientemente de su status.
 function _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems) {
   const projectId = _getActiveProjectFilter() || 'default';
 
-  // Separar Rs, Ts con parent, Ts sin parent y otros tipos
+  // Helpers de status inline — statusClass/statusLabel no están exportadas desde item.js
+  const _statusLabel = s => ({ pendiente: 'Pendiente', 'en-revision': 'En revisión', done: 'Done', descartado: 'Descartado' }[s] || s || '—');
+  const _statusClass = s => 'badge-status-' + (s || 'pendiente');
+
+  // Separar tipos desde pendienteItems (Rs y sueltos filtrados)
   const rItems   = pendienteItems.filter(i => itemType(i.code) === 'R');
   const tItems   = pendienteItems.filter(i => itemType(i.code) === 'T');
   const bItems   = pendienteItems.filter(i => itemType(i.code) === 'B');
   const pItems   = pendienteItems.filter(i => itemType(i.code) === 'P');
 
-  // Ts con parent conocido y Ts sin parent
+  // Rs visibles — para saber qué parents mostrar
   const rCodes   = new Set(rItems.map(r => r.code));
-  const tWithParent    = tItems.filter(t => t.parentId && rCodes.has(t.parentId));
-  const tOrphans       = tItems.filter(t => !t.parentId || !rCodes.has(t.parentId));
 
-  // Mapa R → Ts hijos visibles
+  // childMap desde getItems() completo — incluye Ts con cualquier status (done, descartado, etc.)
+  // Solo excluye históricos y Ts cuyo R padre no es visible en la vista actual
   const childMap = {};
-  tWithParent.forEach(t => {
+  getItems().forEach(t => {
+    if (itemType(t.code) !== 'T') return;
+    if (t.status === 'historico') return;
+    if (!t.parentId || !rCodes.has(t.parentId)) return;
     if (!childMap[t.parentId]) childMap[t.parentId] = [];
     childMap[t.parentId].push(t);
   });
 
-  // Obtener lista de todos los ítems (para evaluar bloqueo de depends_on)
+  // Ts pendientes sin parent visible — huérfanos (solo los filtrados)
+  const tOrphans = tItems.filter(t => !t.parentId || !rCodes.has(t.parentId));
+
   // _hasDepsBlocked ya vive en core e itera sobre getItems() global
 
   let html = '<div class="bl-vc">';
@@ -236,8 +246,8 @@ function _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems) {
       html += `<span class="bl-vc-t-code">${esc(t.code)}</span>`;
       html += `<span class="bl-vc-t-title">${esc(t.title || '')}</span>`;
       html += `<span class="bl-vc-t-indicators">`;
-      // badge parent
-      html += `<span class="bl-vc-badge bl-vc-badge--parent">${esc(r.code)}</span>`;
+      // badge de status del T
+      html += `<span class="badge ${_statusClass(t.status)} badge--sm">${_statusLabel(t.status)}</span>`;
       // badge depends_on — solo si hay dependencias
       if (depsCount > 0) {
         html += `<span class="bl-vc-badge bl-vc-badge--deps">${depsCount}</span>`;
