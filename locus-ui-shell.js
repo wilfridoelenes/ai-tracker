@@ -188,7 +188,7 @@ export function onSearchDispatch() {
   if (_surPanel) _surPanel.remove();
 
   // Siempre invocar búsqueda global unificada
-  if (typeof onSearch === 'function') onSearch();
+  onSearch();
 }
 
 // ── Search (extraído de ai-tracker-ai-notes.js) ───────────────────────────
@@ -725,7 +725,7 @@ document.addEventListener('keydown', e => {
         'tab-analytics': 'analytics', 'tab-proyectos': 'proyectos'
       };
       const _dest = _tabIdMap[_chordDef.id];
-      if (_dest && typeof switchTab === 'function') switchTab(_dest);
+      if (_dest) switchTab(_dest);
     }
     return;
   }
@@ -797,9 +797,9 @@ document.addEventListener('keydown', e => {
 
   if (_pressedKey === _sk('paste-ckpt')) {
     e.preventDefault();
-    if (typeof switchTab === 'function') switchTab('backlog');
+    switchTab('backlog');
     setTimeout(() => {
-      if (typeof switchSubTab === 'function') switchSubTab('tracker');
+      switchSubTab('tracker');
       const _standalonePanel = document.getElementById('sspanel-tracker');
       if (_standalonePanel) _standalonePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
@@ -1164,7 +1164,7 @@ document.addEventListener('DOMContentLoaded', function () {
       const secIdx = parseInt(row.dataset.ctxIdx, 10);
       if (typeof switchTab === 'function') switchTab('backlog');
       setTimeout(function () {
-        if (typeof switchSubTab === 'function') switchSubTab('context');
+        switchSubTab('context');
         setTimeout(function () {
           if (typeof toggleContextSection === 'function') toggleContextSection(secIdx);
           const el = document.getElementById('ctx-sec-' + secIdx);
@@ -1510,19 +1510,19 @@ document.addEventListener('DOMContentLoaded', function () {
   // shortcuts-overlay — click outside (delegado al overlay)
   const shortcutsOverlay = document.getElementById('shortcuts-overlay');
   if (shortcutsOverlay) shortcutsOverlay.addEventListener('click', function (e) {
-    if (typeof closeShortcuts === 'function') closeShortcuts(e);
+    closeShortcuts(e);
   });
 
   // shortcuts-restore-btn
   const shortcutsRestoreBtn = document.getElementById('shortcuts-restore-btn');
   if (shortcutsRestoreBtn) shortcutsRestoreBtn.addEventListener('click', function () {
-    if (typeof restoreDefaultShortcuts === 'function') restoreDefaultShortcuts();
+    restoreDefaultShortcuts();
   });
 
   // shortcuts-close-btn
   const shortcutsCloseBtn = document.getElementById('shortcuts-close-btn');
   if (shortcutsCloseBtn) shortcutsCloseBtn.addEventListener('click', function () {
-    if (typeof closeShortcuts === 'function') closeShortcuts();
+    closeShortcuts();
   });
 
   // cp-overlay — click outside to close

@@ -1398,16 +1398,16 @@ export function renderStats() {
       if (act === 'stats-clear-types') {
         if (typeof clearTypeFilters === 'function') clearTypeFilters();
       } else if (act === 'stats-type-filter') {
-        if (typeof toggleTypeFilter === 'function') toggleTypeFilter(btn.dataset.type);
+        toggleTypeFilter(btn.dataset.type);
       } else if (act === 'stats-priority-filter') {
         if (typeof togglePriorityFilter === 'function') togglePriorityFilter(btn.dataset.priority);
       } else if (act === 'stats-effort-filter') {
-        if (typeof toggleEffortFilter === 'function') toggleEffortFilter(parseInt(btn.dataset.effort, 10));
+        toggleEffortFilter(parseInt(btn.dataset.effort, 10));
       } else if (act === 'stats-effort-missing') {
         if (typeof toggleBacklogBlockerFilter === 'function') toggleBacklogBlockerFilter();
-        if (typeof toggleEffortFilter === 'function') toggleEffortFilter(0);
+        toggleEffortFilter(0);
       } else if (act === 'stats-role-filter') {
-        if (typeof toggleRoleFilter === 'function') toggleRoleFilter(btn.dataset.role);
+        toggleRoleFilter(btn.dataset.role);
       }
     });
   }
@@ -1935,21 +1935,21 @@ window.toggleSortDir        = toggleSortDir;
 document.addEventListener('DOMContentLoaded', function () {
   // Undo / Redo
   const _btnUndo = document.getElementById('btn-undo-backlog');
-  if (_btnUndo) _btnUndo.addEventListener('click', function () { if (typeof undoBacklog === 'function') undoBacklog(); });
+  if (_btnUndo) _btnUndo.addEventListener('click', function () { undoBacklog(); });
 
   const _btnRedo = document.getElementById('btn-redo-backlog');
-  if (_btnRedo) _btnRedo.addEventListener('click', function () { if (typeof redoBacklog === 'function') redoBacklog(); });
+  if (_btnRedo) _btnRedo.addEventListener('click', function () { redoBacklog(); });
 
   // Vista — Kanban / Focus / Mi vista
   const _btnKanban = document.getElementById('fbar-kanban-btn');
   if (_btnKanban) _btnKanban.addEventListener('click', function () { if (typeof toggleBacklogKanbanMode === 'function') toggleBacklogKanbanMode(); });
 
   const _btnMike = document.getElementById('fbar-mike-btn');
-  if (_btnMike) _btnMike.addEventListener('click', function () { if (typeof toggleBacklogMikeMode === 'function') toggleBacklogMikeMode(); });
+  if (_btnMike) _btnMike.addEventListener('click', function () { toggleBacklogMikeMode(); });
 
   // Colapsar / expandir todos
   const _btnCollapse = document.getElementById('bl-collapse-all-btn');
-  if (_btnCollapse) _btnCollapse.addEventListener('click', function () { if (typeof toggleCollapseAll === 'function') toggleCollapseAll(); });
+  if (_btnCollapse) _btnCollapse.addEventListener('click', function () { toggleCollapseAll(); });
 
   // Búsqueda — B-202605-047: handler inline, no depende de onBacklogSearch global
   const _inputSearch = document.getElementById('backlog-search-input');
@@ -1978,7 +1978,7 @@ document.addEventListener('DOMContentLoaded', function () {
   Object.keys(_statusMap).forEach(function (id) {
     const _btn = document.getElementById(id);
     if (_btn) _btn.addEventListener('click', (function (val) {
-      return function () { if (typeof toggleStatusFilter === 'function') toggleStatusFilter(val); };
+      return function () { toggleStatusFilter(val); };
     }(_statusMap[id])));
   });
 
@@ -1988,7 +1988,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Filtro Sin AC
   const _btnNoAc = document.getElementById('fbar-no-ac-btn');
-  if (_btnNoAc) _btnNoAc.addEventListener('click', function () { if (typeof toggleBacklogNoAcMode === 'function') toggleBacklogNoAcMode(); });
+  if (_btnNoAc) _btnNoAc.addEventListener('click', function () { toggleBacklogNoAcMode(); });
 
   // Limpiar todos los filtros
   const _btnClearFilters = document.getElementById('filter-clear-btn');

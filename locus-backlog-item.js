@@ -410,7 +410,7 @@ export function _attachBacklogListDelegation() {
       return;
     }
     if (act === 'es-filter-all') {
-      if (typeof setFilter === 'function') setFilter('all');
+      setFilter('all');
       return;
     }
     if (act === 'es-clear-filters') {
