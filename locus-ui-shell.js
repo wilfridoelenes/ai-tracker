@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:25 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:26 · autor:Rune · 2026-06-04 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -30,6 +30,7 @@ import { _getActiveProjectFilter, closeProjModal, closeProjPanel, openProjModal,
 import { renderSprintTab } from './locus-sprint.js';
 import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAISessions, getAllSessions, getState, save } from './locus-storage.js';
 import { openAddAI } from './locus-workers.js';
+import { addNewTag } from './locus-tags.js';
 
 import { normalize } from './locus-map-generator.js';
 import { exportBacklogMd, exportFullHistoryMd, exportContextMd } from './locus-backlog-generator.js';
@@ -1371,13 +1372,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // tag-new-input — Enter key
   const tagNewInput = document.getElementById('tag-new-input');
   if (tagNewInput) tagNewInput.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && typeof Locus !== 'undefined' && typeof Locus.addNewTag === 'function') Locus.addNewTag();
+    if (e.key === 'Enter') addNewTag();
   });
 
   // tag-new-btn
   const tagNewBtn = document.getElementById('tag-new-btn');
   if (tagNewBtn) tagNewBtn.addEventListener('click', function () {
-    if (typeof Locus !== 'undefined' && typeof Locus.addNewTag === 'function') Locus.addNewTag();
+    addNewTag();
   });
 
   // qc-modal — stopPropagation
