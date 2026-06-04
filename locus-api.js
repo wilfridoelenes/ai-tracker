@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-04 23:55 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-05 00:00 UTC-6
 // locus-api.js
 // T-202606-007: window.* bridge eliminado — todos los consumidores migrados a ESM en main.js
 
@@ -20,6 +20,7 @@ import {
 } from './locus-map-viewer.js';
 import { renderGlobalRadarSidebar } from './locus-radar.js';
 import { _getActiveProjectFilter } from './locus-sprint-project.js';
+import { getItems } from './locus-backlog-core.js'; // T-202606-014: acceso canónico al array ITEMS
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import { _itemVizClose, _itemVizConfirm, closeCkptPanel } from './locus-sesiones-viz.js';
 import { initCommandPalette, openCommandPalette } from './locus-command-palette.js';
@@ -53,6 +54,8 @@ export {
   renderGlobalRadarSidebar,
   // locus-sprint-project.js
   _getActiveProjectFilter,
+  // locus-backlog-core.js
+  getItems,
   // locus-backlog-generator.js
   exportBacklogMd,
   // locus-sesiones-viz.js
