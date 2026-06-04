@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-06-03 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -492,7 +492,7 @@ async function confirmCleanProject() {
   await Promise.allSettled(ops);
 
   // Persistir state limpio
-  await saveImmediate();
+  await save();
 
   // AC-8: reconectar Realtime
   _subscribeRealtime();

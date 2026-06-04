@@ -1,4 +1,4 @@
-// [PP] v1.0.7 · sprint:PP-S-09 · mod:23 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:24 · autor:Rune · 2026-06-03 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -453,7 +453,9 @@ export function parsePaste(id) {
     // El parser regex de texto libre fue eliminado. Los ítems P/T/R/B se ingresan
     // exclusivamente via bloque JSON. parseCheckpoint() conserva pItems/tItems/rItems/bItems
     // para mostrar texto legible en preview, pero no alimentan tgItems.
-    const _itemsBlockMatch = text.match(/---getItems()---\s*([\s\S]*?)\s*---getItems()-END---/);
+    // Soporta tanto ---getItems()--- (legacy) como ---ITEMS--- (formato BR-Ecosystem §8 canónico)
+    const _itemsBlockMatch = text.match(/---getItems\(\)---\s*([\s\S]*?)\s*---getItems\(\)-END---/) ||
+                             text.match(/---ITEMS---\s*([\s\S]*?)\s*---ITEMS-END---/);
     const _hasItemsBlock = !!_itemsBlockMatch;
     if (_hasItemsBlock) {
       let _parsedJSON = null;
@@ -672,8 +674,8 @@ export function parsePaste(id) {
       if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
-    // AC-3: no hay bloque ---getItems()--- → aviso no bloqueante (solo en formato legacy)
-    const _hasItemsBlock = _isJsonFmt ? true : text.includes('---getItems()---');
+    // AC-3: no hay bloque ---getItems()--- ni ---ITEMS--- → aviso no bloqueante (solo en formato legacy)
+    const _hasItemsBlock = _isJsonFmt ? true : (text.includes('---getItems()---') || text.includes('---ITEMS---'));
     const _noItemsWarnKey = `_noItemsWarnSeen_${id}`;
     if (isCheckpoint && !_hasItemsBlock && !window[_noItemsWarnKey]) {
       prev.className = 'preview show';
@@ -1019,8 +1021,9 @@ function parsePasteStandalone() {
   if (_isJsonFmt) {
     parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
   } else {
-    // Parsear bloque ---getItems()---
-    const _itemsBlockMatch = text.match(/---getItems()---\s*([\s\S]*?)\s*---getItems()-END---/);
+    // Parsear bloque ---getItems()--- o ---ITEMS--- (alias canónico BR-Ecosystem §8)
+    const _itemsBlockMatch = text.match(/---getItems\(\)---\s*([\s\S]*?)\s*---getItems\(\)-END---/) ||
+                             text.match(/---ITEMS---\s*([\s\S]*?)\s*---ITEMS-END---/);
     if (!_itemsBlockMatch) {
       prev.innerHTML = '<div class="paste-error" class="paste-error paste-warn">⚠ No se detectó bloque <code>---getItems()---</code>.<br><span class="paste-hint">El bloque es obligatorio en el flujo standalone.</span></div>';
       btn.disabled = true;

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:24 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:25 · autor:Rune · 2026-06-03 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -160,7 +160,7 @@ export function _updateProjFilterBtn() {
 function clearProjectFilter() {
   _setActiveProjectFilter('');
   loadBacklog(); loadHtmlMap();
-  render(); renderHoy();
+  render(); if (typeof renderHoy === 'function') renderHoy();
   if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   renderBacklogList(); renderStats();
   _renderTplProjBanner();
@@ -236,7 +236,7 @@ export function selectProjectFilter(projId) {
   _setActiveProjectFilter(projId);
   closeProjPanel();
   loadBacklog(); loadHtmlMap();
-  render(); renderHoy();
+  render(); if (typeof renderHoy === 'function') renderHoy();
   if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   renderBacklogList(); renderStats();
   _renderTplProjBanner();
