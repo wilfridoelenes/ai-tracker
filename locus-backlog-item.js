@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:35 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:36 · autor:Rune · 2026-06-03 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -618,7 +618,7 @@ function _buildChildrenBlock(rCode) {
     const cSafeId = child.code.replace(/[^a-zA-Z0-9-_]/g, '_');
     const cType = itemType(child.code) || '';
     const isDoneC = child.status === 'done';
-    return `<div class="child-item${isDoneC ? ' is-done' : ''}">
+    return `<div class="child-item t-item${isDoneC ? ' is-done' : ''}">
       <span class="child-collapse-arrow" id="ciarrow-${cSafeId}" data-action="child-expand" data-child-code="${esc(child.code)}" data-safe-id="${cSafeId}">&#x25B8;</span>
       <span class="item-type-pill ${cType} item-type-pill--sm">${cType}</span>
       <span class="child-title" data-action="child-expand" data-child-code="${esc(child.code)}" data-safe-id="${cSafeId}">${esc(child.title)}</span>
@@ -646,7 +646,7 @@ function _buildChildrenBlock(rCode) {
       <span class="r-children-label">${doneCount}/${children.length} · ${pct}%</span>
       <span id="rchildren-arrow-${esc(rCode)}" class="r-children-arrow">${isCollapsed ? '▸' : '▾'}</span>
     </div>
-    <div class="r-children-list${isCollapsed ? ' collapsed' : ''}" id="rchildren-body-${esc(rCode)}">${childRows}</div>
+    <div class="r-children-list${isCollapsed ? ' collapsed' : ''}" id="rchildren-body-${esc(rCode)}"><div class="r-children-inner">${childRows}</div></div>
   </div>`;
 }
 
