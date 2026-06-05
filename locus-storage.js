@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:24 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:25 · autor:Rune · 2026-06-05 UTC-6
 // locus-storage.js
 // Última actualización: 2026-05-26 UTC-6
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1328,7 +1328,15 @@ function _applyStateData(raw) {
     delete ai.project; // v2 compat — eliminado en v3
   });
 
+  // B-202606-XXX: preservar tema local si hay un write pendiente en debounce.
+  // Race condition: toggleTheme() programa save() con debounce de 5 s. Si _loadFromSupabase()
+  // se ejecuta antes de que el flush llegue a Supabase, _applyStateData sobrescribe state.theme
+  // con el valor remoto (dark), revirtiendo el cambio local silenciosamente.
+  const _pendingTheme = (_saveDebounceTimer !== null) ? state.theme : null;
+
   Object.assign(state, raw);
+
+  if (_pendingTheme) state.theme = _pendingTheme;
   applyTheme(state.theme);
 }
 
