@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:31 · autor:Rune · 2026-06-04 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -297,12 +297,16 @@ export function toggleCollapseAll() {
       return;
     }
 
+    // T-202606-036 AC-2: filtrar wraps sin hijos — evitar operar sobre .bl-children-wrap vacíos
+    const childWrapsWithChildren = Array.from(childWraps).filter(w => w.children.length > 0);
+    if (!childWrapsWithChildren.length) return;
+
     // Detectar si algún .bl-children-wrap está expandido — para decidir colapsar o expandir
-    const anyRExpanded = Array.from(childWraps).some(w => !w.classList.contains('collapsed'));
+    const anyRExpanded = childWrapsWithChildren.some(w => !w.classList.contains('collapsed'));
 
     if (anyRExpanded) {
       // Colapsar todos los Rs con hijos — AC-2
-      childWraps.forEach(w => {
+      childWrapsWithChildren.forEach(w => {
         w.classList.add('collapsed');
         const rCode = w.id ? w.id.replace('bl-children-', '') : null;
         if (rCode) {
@@ -315,7 +319,7 @@ export function toggleCollapseAll() {
       if (icon) icon.textContent = '⊞';
     } else {
       // Expandir todos los Rs con hijos — AC-3
-      childWraps.forEach(w => {
+      childWrapsWithChildren.forEach(w => {
         w.classList.remove('collapsed');
         const rCode = w.id ? w.id.replace('bl-children-', '') : null;
         if (rCode) {
