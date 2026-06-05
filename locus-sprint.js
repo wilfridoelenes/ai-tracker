@@ -130,7 +130,6 @@ function _renderSprintMeta(sprint) {
     const isEmpty  = !value;
     const valClass = isEmpty ? 'spm-meta-value spm-meta-value--empty' : 'spm-meta-value';
     const valText  = isEmpty ? 'Sin declarar' : _escHtml(value);
-    const icon     = isEmpty ? '\u＋'.slice(-1) : '\u✎'.slice(-1);
     const btnTitle = isEmpty ? 'Agregar ' + label : 'Editar ' + label;
     return '<div class="spm-meta-row" data-spm-field="' + key + '">' +
       '<span class="spm-meta-label">' + label + '</span>' +
