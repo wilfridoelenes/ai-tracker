@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:31 · autor:Rune · 2026-06-04 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -179,8 +179,8 @@ function _spmMetaHandleEdit(e) {
 function _spmMetaOpenEdit(row, field, current, sprint) {
   const valEl = row.querySelector('.spm-meta-value, .spm-meta-value--empty');
   const editBtn = row.querySelector('.spm-meta-btn');
-  if (valEl)    valEl.style.display    = 'none';
-  if (editBtn)  editBtn.style.display  = 'none';
+  if (valEl)    valEl.classList.add('is-hidden');    // B-202606-007
+  if (editBtn)  editBtn.classList.add('is-hidden');  // B-202606-007
 
   let editWrap;
 
