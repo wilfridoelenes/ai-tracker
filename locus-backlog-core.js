@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-05 00:00 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-04 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -249,24 +249,85 @@ export function toggleCollapseAll() {
   const btn = document.getElementById('bl-collapse-all-btn');
   const label = btn ? btn.querySelector('.bl-collapse-btn-label') : null;
   const icon = btn ? btn.querySelector('.bl-collapse-btn-icon') : null;
-  // detectar estado actual — si alguno está expandido, colapsar todo; si todos colapsados, expandir
-  const anyExpanded = Array.from(bodies).some(b => !b.classList.contains('collapsed'));
-  bodies.forEach(b => {
-    const id = b.id ? b.id.replace('vbody-', '') : null;
-    b.classList.toggle('collapsed', anyExpanded);
-    if (id) anyExpanded ? collapsedVersions.add(id) : collapsedVersions.delete(id);
-  });
-  _cvSave();
-  arrows.forEach(a => {
-    if (a.classList.contains('section-group-arrow')) {
-      a.classList.toggle('collapsed', anyExpanded);
-    } else {
-      a.textContent = anyExpanded ? '▸' : '▾';
+
+  // T-202606-025: modo dual según contexto
+  // Modo sprint: si hay algún sprint expandido → colapsar sprints (comportamiento original)
+  // Modo R: si todos los sprints están colapsados → operar sobre .bl-children-wrap
+  const anySprintExpanded = Array.from(bodies).some(b => !b.classList.contains('collapsed'));
+
+  if (anySprintExpanded) {
+    // ── Modo sprint: comportamiento original ──
+    bodies.forEach(b => {
+      const id = b.id ? b.id.replace('vbody-', '') : null;
+      b.classList.add('collapsed');
+      if (id) collapsedVersions.add(id);
+    });
+    _cvSave();
+    arrows.forEach(a => {
+      if (a.classList.contains('section-group-arrow')) {
+        a.classList.add('collapsed');
+      } else {
+        a.textContent = '▸';
+      }
+    });
+    if (btn) btn.classList.add('is-collapsed');
+    if (label) label.textContent = 'Expandir';
+    if (icon) icon.textContent = '⊞';
+  } else {
+    // ── Modo R: operar sobre .bl-children-wrap ──
+    const childWraps = document.querySelectorAll('.bl-children-wrap');
+    if (!childWraps.length) {
+      // Sin hijos visibles — comportamiento fallback: expandir sprints
+      bodies.forEach(b => {
+        const id = b.id ? b.id.replace('vbody-', '') : null;
+        b.classList.remove('collapsed');
+        if (id) collapsedVersions.delete(id);
+      });
+      _cvSave();
+      arrows.forEach(a => {
+        if (a.classList.contains('section-group-arrow')) {
+          a.classList.remove('collapsed');
+        } else {
+          a.textContent = '▾';
+        }
+      });
+      if (btn) btn.classList.remove('is-collapsed');
+      if (label) label.textContent = 'Colapsar';
+      if (icon) icon.textContent = '⊟';
+      return;
     }
-  });
-  if (btn) btn.classList.toggle('is-collapsed', anyExpanded);
-  if (label) label.textContent = anyExpanded ? 'Expandir' : 'Colapsar';
-  if (icon) icon.textContent = anyExpanded ? '⊞' : '⊟';
+
+    // Detectar si algún .bl-children-wrap está expandido — para decidir colapsar o expandir
+    const anyRExpanded = Array.from(childWraps).some(w => !w.classList.contains('collapsed'));
+
+    if (anyRExpanded) {
+      // Colapsar todos los Rs con hijos — AC-2
+      childWraps.forEach(w => {
+        w.classList.add('collapsed');
+        const rCode = w.id ? w.id.replace('bl-children-', '') : null;
+        if (rCode) {
+          const toggleBtn = document.querySelector(`.bl-r-toggle[data-r-code="${CSS.escape(rCode)}"]`);
+          if (toggleBtn) toggleBtn.classList.add('collapsed');
+          localStorage.setItem('locus-r-collapsed-' + rCode, '1');
+        }
+      });
+      if (label) label.textContent = 'Expandir hijos';
+      if (icon) icon.textContent = '⊞';
+    } else {
+      // Expandir todos los Rs con hijos — AC-3
+      childWraps.forEach(w => {
+        w.classList.remove('collapsed');
+        const rCode = w.id ? w.id.replace('bl-children-', '') : null;
+        if (rCode) {
+          const toggleBtn = document.querySelector(`.bl-r-toggle[data-r-code="${CSS.escape(rCode)}"]`);
+          if (toggleBtn) toggleBtn.classList.remove('collapsed');
+          localStorage.removeItem('locus-r-collapsed-' + rCode);
+        }
+      });
+      if (label) label.textContent = 'Colapsar hijos';
+      if (icon) icon.textContent = '⊟';
+    }
+  }
 }
 
 // R-[tmp:toolbar-backlog-redesign]: filtro bloqueados — volátil

@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:5 · autor:Nova · 2026-06-04 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:6 · autor:Nova · 2026-06-04 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -1291,3 +1291,160 @@
 }
 
 /* ══ END T-202606-029 ══ */
+
+/* ── T-202606-030: .spm-meta-* — panel de metadatos del sub-tab Sprints ─── */
+/* Complementa y extiende T-202606-029. Sobreescribe en cascada las clases    */
+/* que ya existían con spec diferente.                                         */
+
+/* ── Layout contenedor ───────────────────────────────────────────────────── */
+
+.spm-meta-section {
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.spm-meta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── Tipografía ──────────────────────────────────────────────────────────── */
+
+.spm-meta-label {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--hint);
+}
+
+.spm-meta-value {
+  font-size: var(--text-sm);
+  color: var(--text);
+}
+
+.spm-meta-empty {
+  font-style: italic;
+  color: var(--hint);
+  font-size: var(--text-sm);
+}
+
+/* ── Botón editar ────────────────────────────────────────────────────────── */
+
+.spm-meta-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-xs);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: var(--trans-color);
+  line-height: 1.6;
+}
+
+.spm-meta-edit-btn:hover {
+  border-color: var(--border2);
+  color: var(--text);
+}
+
+.spm-meta-edit-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ── Controles inline ────────────────────────────────────────────────────── */
+
+.spm-meta-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* ── Inputs ──────────────────────────────────────────────────────────────── */
+
+.spm-meta-input {
+  font-size: var(--text-sm);
+  max-width: 160px;
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  color: var(--text);
+  padding: 3px 7px;
+  height: 26px;
+  outline: none;
+  transition: var(--trans-color);
+}
+
+.spm-meta-input:focus {
+  border-color: var(--accent);
+}
+
+.spm-meta-textarea {
+  width: 100%;
+  min-height: 56px;
+  resize: vertical;
+  font-size: var(--text-sm);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  color: var(--text);
+  padding: 6px 8px;
+  line-height: 1.5;
+  outline: none;
+  transition: var(--trans-color);
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.spm-meta-textarea:focus {
+  border-color: var(--accent);
+}
+
+/* ── Release-type pills ──────────────────────────────────────────────────── */
+
+.spm-meta-rt-pills {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  flex-wrap: nowrap;
+}
+
+.spm-meta-rt-opt {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-xs);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px 8px;
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: var(--trans-color);
+  line-height: 1.6;
+  user-select: none;
+}
+
+.spm-meta-rt-opt:hover {
+  border-color: var(--border2);
+  color: var(--text);
+}
+
+.spm-meta-rt-opt.is-active {
+  border-color: var(--accent-border);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+
+.spm-meta-rt-opt:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* ══ END T-202606-030 ══ */
