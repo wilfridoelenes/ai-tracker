@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-04 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -11,7 +11,7 @@ import { renderBacklogList } from './locus-backlog-render.js';
 import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections } from './locus-docs.js';
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
-import { _checkStorageQuota, _mergeBacklogWithProject } from './locus-session-save.js';
+import { _checkStorageQuota, _mergeBacklogWithProject, saveSession } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger
 import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
 import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, LOCUS_KEYS } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
@@ -761,6 +761,14 @@ export function parsePaste(id) {
 
   if (btn) { btn.disabled = false; btn.className = title ? 'sc-save ready' : 'sc-save'; }
 
+  // T-202606-032: auto-trigger — AC-1/AC-2/AC-3/AC-6/AC-7
+  // Parse completó sin avisos ni errores bloqueantes → lanzar saveSession directamente.
+  // horaRaw: saveSession lee document.getElementById('hora-' + id).value internamente (AC-2).
+  // Los gates de proyecto-no-seleccionado (AC-6) y mismatch de proyecto (AC-7) viven en saveSession.
+  if (isCheckpoint && title) {
+    saveSession(id);
+  }
+
   // T-409: atenuar textarea cuando hay ítems detectados en fase CONFIRMAR
   const _ta409 = document.getElementById('ta-' + id);
   if (_ta409) {
@@ -829,29 +837,29 @@ export function parsePaste(id) {
     prev.className = 'preview';
   }
 }
-// B-202605-NNN: flag para que oninput no corra antes de que el browser
-// inserte el texto del paste. onpaste lo activa; se limpia tras el setTimeout.
-const _pasteInFlight = {};
+// T-202606-032: _pasteInFlight (módulo) e isParseInFlight eliminados — AC-4/AC-5.
+// El guard de saveSession se eliminó. handlePaste usa su propia variable local _pasteRetry
+// para el mecanismo de retry del browser (esperar inserción del clipboard) — propósito distinto.
 
-// B-202605-018: guard para saveSession — evita que confirmSave corra antes de que parsePaste
-// complete cuando hay un paste en vuelo (race window de hasta 300ms).
-export function isParseInFlight(id) { return !!_pasteInFlight[id]; }
+// T-202606-032: _pasteRetry reemplaza _pasteInFlight en handlePaste — variable local al módulo.
+// Solo controla el mecanismo de retry del browser (clipboard insert delay) — no es el guard de saveSession.
+const _pasteRetry = {};
 
 function handlePaste(id) {
-  // Llamado desde onpaste — marcar que hay un paste en vuelo y diferir
+  // Llamado desde onpaste — diferir para que el browser inserte el texto del clipboard.
   // B-202605-NNN: 150ms en lugar de 60ms — algunos browsers (Chrome) insertan
   // el texto del clipboard después de los 60ms originales, dejando ta.value vacío
   // cuando parsePaste corre y provocando reset completo (preview en blanco).
   // Si ta.value todavía está vacío al ejecutar, se reintenta una vez a 300ms.
-  _pasteInFlight[id] = true;
+  _pasteRetry[id] = true;
   const _doParse = () => {
-    delete _pasteInFlight[id];
+    delete _pasteRetry[id];
     const ta = document.getElementById('ta-' + id);
     if (ta && !ta.value.trim()) {
       // Texto aún no insertado — reintentar una vez más
-      _pasteInFlight[id] = true;
+      _pasteRetry[id] = true;
       setTimeout(() => {
-        delete _pasteInFlight[id];
+        delete _pasteRetry[id];
         parsePaste(id);
         const ai = getAI(id);
         if (ai && ai._parsed && ai._parsed.title) {
@@ -875,8 +883,9 @@ function handlePaste(id) {
 }
 
 function handleInput(id) {
-  // Llamado desde oninput — ignorar si hay un paste en vuelo (el setTimeout lo cubrirá)
-  if (_pasteInFlight[id]) return;
+  // T-202606-032: guard _pasteInFlight eliminado — AC-4/AC-9.
+  // _pasteRetry no bloquea handleInput — handlePaste y handleInput son eventos distintos.
+  // parsePaste corre en cada keystroke; el auto-trigger solo se lanza cuando el parse es completo y válido.
   parsePaste(id);
 }
 

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:17 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:18 · autor:Rune · 2026-06-04 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -22,7 +22,7 @@ import { render } from './locus-sesiones.js';
 
 import { _showProjRequiredInPanel, _templateTrigger, interpretHora } from './locus-session-hora.js';
 
-import { _setPhase, _tryIngestPlan, isParseInFlight, parsePaste } from './locus-session-parse.js';
+import { _setPhase, _tryIngestPlan, parsePaste } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5
 
 import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js';
 
@@ -434,21 +434,10 @@ export function _checkStorageQuota() {
   }
 }
 
-export function saveSession(id, _retryCount = 0) {
-  // B-202605-018: si hay un paste en vuelo, parsePaste aún no corrió — diferir hasta que complete.
-  // Race window: handlePaste dispara un setTimeout(150ms) antes de parsePaste; si confirmSave
-  // se ejecuta dentro de ese window, ai._parsed.tgItems está vacío y el diff nunca se muestra.
-  // B-202605-052: límite de 10 reintentos (~500ms) — si _pasteInFlight nunca se limpia
-  // (ej: excepción en _doParse antes del delete), el loop se corta con feedback al usuario.
-  // El contador vive en el parámetro para garantizar reset automático entre invocaciones independientes.
-  if (isParseInFlight(id)) {
-    if (_retryCount >= 10) {
-      showToast('warning', 'Error al leer el paste — intenta guardar de nuevo');
-      return;
-    }
-    setTimeout(() => saveSession(id, _retryCount + 1), 50);
-    return;
-  }
+export function saveSession(id) {
+  // T-202606-032: guard isParseInFlight eliminado — AC-5.
+  // saveSession solo se llama desde dentro de parsePaste (auto-trigger) o desde el botón manual
+  // después de que parsePaste completó. El parámetro _retryCount ya no es necesario.
   // B-202605-054: getAI(id) puede devolver null si el worker fue eliminado entre el inicio
   // de la sesión y el guardado (ej: purge concurrente). Sin guard, ai._parsed explota.
   const ai = getAI(id);
