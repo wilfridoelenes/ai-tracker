@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:20 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:21 · autor:Rune · 2026-06-05 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -35,7 +35,7 @@ let _pendingTemplateDownload = false; // T5: variable de módulo — reemplaza w
 // Clave: tipo de ítem ('R' | 'T' | 'B' | 'P'). Valor: Set de status permitidos.
 // Nota: tipo desconocido → no validar (AC-6, ignorar silenciosamente).
 export const VALID_TRANSITIONS = {
-  R: new Set(['pendiente', 'en-revision', 'bloqueado', 'descartado']),
+  R: new Set(['pendiente', 'en-revision', 'bloqueado', 'descartado', 'done']),
   T: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
   B: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
   P: new Set(['pendiente', 'promovida', 'descartado'])
