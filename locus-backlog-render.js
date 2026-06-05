@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:32 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:34 · autor:Rune · 2026-06-04 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
@@ -22,6 +22,98 @@ import { _updateDocLogCount } from './locus-doc-log.js';
 // Responsabilidad: Renderizado del backlog — vista árbol, sprint health panel,
 //   roadmap, planning (drag & drop), renderBacklogList, sprint selector inline.
 // Dependencias: locus-backlog-core.js · locus-backlog-archive.js · locus-backlog-item.js · locus-backlog-sprints.js
+
+// T-202606-022: _buildChildMap — agrupación de hijos por R con sort topológico por depends_on
+// Recibe los ítems de un sprint y retorna Map: rCode → [hijos ordenados]
+export function _buildChildMap(sprintItems) {
+  // Conjunto de códigos R presentes en sprintItems — gate de parentId válido
+  const rCodesInSprint = new Set(
+    sprintItems.filter(i => itemType(i.code) === 'R').map(i => i.code)
+  );
+
+  // Recopilar hijos: Ts y Bs con parentId apuntando a un R del sprint, excluyendo históricos
+  const childrenByR = new Map();
+  for (const r of rCodesInSprint) childrenByR.set(r, []);
+
+  for (const item of sprintItems) {
+    const t = itemType(item.code);
+    if (t !== 'T' && t !== 'B') continue;
+    if (item.status === 'historico') continue;
+    if (!item.parentId || !rCodesInSprint.has(item.parentId)) continue;
+    childrenByR.get(item.parentId).push(item);
+  }
+
+  // Ordenar hijos de cada R por depends_on — sort topológico con detección de ciclos
+  for (const [rCode, children] of childrenByR) {
+    childrenByR.set(rCode, _topoSort(children));
+  }
+
+  return childrenByR;
+}
+
+// Sort topológico de un array de ítems por depends_on.
+// Ítems sin dependencias van primero, resolviendo la cadena completa.
+// Ciclos detectados: los ítems en ciclo van al final, ordenados por código.
+function _topoSort(items) {
+  if (items.length <= 1) return items;
+
+  const codeSet = new Set(items.map(i => i.code));
+  const byCode = Object.fromEntries(items.map(i => [i.code, i]));
+
+  // Construir grafo de dependencias — solo entre ítems del mismo grupo
+  const deps = {}; // code → Set de dependencias internas
+  for (const item of items) {
+    const internal = (Array.isArray(item.depends_on) ? item.depends_on : [])
+      .filter(d => codeSet.has(d));
+    deps[item.code] = new Set(internal);
+  }
+
+  // Kahn's algorithm para sort topológico
+  const inDegree = {};
+  const adjList = {}; // code → [codes que dependen de él]
+  for (const item of items) {
+    inDegree[item.code] = 0;
+    adjList[item.code] = [];
+  }
+  for (const item of items) {
+    for (const dep of deps[item.code]) {
+      adjList[dep].push(item.code);
+      inDegree[item.code]++;
+    }
+  }
+
+  // Cola: ítems sin dependencias internas, ordenados por código para determinismo
+  const queue = items
+    .filter(i => inDegree[i.code] === 0)
+    .map(i => i.code)
+    .sort();
+
+  const sorted = [];
+  while (queue.length) {
+    const code = queue.shift();
+    sorted.push(byCode[code]);
+    for (const dependent of (adjList[code] || [])) {
+      inDegree[dependent]--;
+      if (inDegree[dependent] === 0) {
+        // Insertar manteniendo orden alfabético en la cola
+        const insertIdx = queue.findIndex(c => c > dependent);
+        if (insertIdx === -1) queue.push(dependent);
+        else queue.splice(insertIdx, 0, dependent);
+      }
+    }
+  }
+
+  // Ítems restantes forman ciclos — van al final ordenados por código
+  if (sorted.length < items.length) {
+    const sortedCodes = new Set(sorted.map(i => i.code));
+    const cycleItems = items
+      .filter(i => !sortedCodes.has(i.code))
+      .sort((a, b) => a.code.localeCompare(b.code));
+    sorted.push(...cycleItems);
+  }
+
+  return sorted;
+}
 
 // T-202604-187: colapsar/expandir bloque de hijos de un R
 function toggleChildrenBlock(rCode) {
@@ -722,10 +814,85 @@ export function renderBacklogList(onRendered) {
           </div>
         </div>
         <div class="version-group-body items-grid${isCollapsed ? ' collapsed' : ''}" id="vbody-${groupId}">`;
-      _sortGroup(group).forEach(item => { html += buildBacklogItem(item); }); // T-202604-424: sort interno priority desc → effort asc
+
+      // T-202606-023: render jerárquico — Rs con hijos sangrados, huérfanos al nivel raíz
+      {
+        const _sprintCode = isSinAsignar ? null : key;
+        // Construir childMap para este sprint usando los ítems del grupo + getItems() completo
+        // sprintItems = todos los ítems del sprint (no solo los filtrados) para detectar hijos con cualquier status
+        const _allSprintItems = _sprintCode
+          ? getItems().filter(i => (i.sprint || '').trim() === _sprintCode)
+          : getItems().filter(i => !i.sprint || i.sprint === '' || i.sprint === 'icebox');
+        const _childMap = _buildChildMap(_allSprintItems);
+
+        // Rs presentes en el grupo visible (filtrado)
+        const _rCodesInGroup = new Set(group.filter(i => itemType(i.code) === 'R').map(i => i.code));
+
+        // Ítems de nivel raíz: Rs del grupo + huérfanos (Ts/Bs/Ps sin parent en el grupo)
+        const _rootItems = _sortGroup(group).filter(i => {
+          if (itemType(i.code) === 'R') return true; // Rs siempre al nivel raíz
+          // Ts/Bs/Ps: huérfanos si no tienen parentId apuntando a un R del grupo visible
+          return !i.parentId || !_rCodesInGroup.has(i.parentId);
+        });
+
+        _rootItems.forEach(item => {
+          if (itemType(item.code) !== 'R') {
+            // Huérfano — nivel raíz sin sangría
+            html += buildBacklogItem(item);
+            return;
+          }
+          // R — card al nivel raíz + hijos sangrados
+          const _children = _childMap.get(item.code) || [];
+          const _hasChildren = _children.length > 0;
+
+          if (_hasChildren) {
+            // Estado de colapso desde localStorage
+            const _collapseKey = 'locus-r-collapsed-' + item.code;
+            const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
+
+            // Wrapper del R con toggle
+            html += `<div class="bl-r-with-children" data-r-code="${esc(item.code)}">`;
+            // Card del R con botón toggle inyectado via wrapper — buildBacklogItem sin modificar
+            html += `<div class="bl-r-card-wrap">`;
+            html += buildBacklogItem(item);
+            html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="bl-r-toggle" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
+            html += `</div>`; // bl-r-card-wrap
+            // Wrapper de hijos con sangría
+            html += `<div class="bl-children-wrap${_isRCollapsed ? ' collapsed' : ''}" id="bl-children-${esc(item.code)}">`;
+            _children.forEach(child => {
+              html += `<div class="bl-child-row">${buildBacklogItem(child)}</div>`;
+            });
+            html += `</div>`; // bl-children-wrap
+            html += `</div>`; // bl-r-with-children
+          } else {
+            // R sin hijos — render normal sin toggle
+            html += buildBacklogItem(item);
+          }
+        });
+      }
+
       html += _doneGroupHtml;
       html += `</div></div>`;
     });
+
+    // T-202606-023: delegación del toggle .bl-r-toggle en modo sprint groups
+    listEl.addEventListener('click', function _blRToggleHandler(e) {
+      const btn = e.target.closest('[data-action="bl-r-toggle"]');
+      if (!btn) return;
+      const rCode = btn.dataset.rCode;
+      if (!rCode) return;
+      const childrenWrap = document.getElementById('bl-children-' + CSS.escape(rCode));
+      if (!childrenWrap) return;
+      const isNowCollapsed = !childrenWrap.classList.contains('collapsed');
+      childrenWrap.classList.toggle('collapsed', isNowCollapsed);
+      btn.classList.toggle('collapsed', isNowCollapsed);
+      const _collapseKey = 'locus-r-collapsed-' + rCode;
+      if (isNowCollapsed) {
+        localStorage.setItem(_collapseKey, '1');
+      } else {
+        localStorage.removeItem(_collapseKey);
+      }
+    }, { once: true });
 
     // R-202605-103: bloque sprints cerrados eliminado — absorbido por renderArchivoHistorico
 
