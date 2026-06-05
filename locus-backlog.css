@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:16 · autor:Nova · 2026-06-04 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:17 · autor:Finn · 2026-06-05 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -5363,6 +5363,22 @@ er {
 
 .bl-vc-t:hover {
   background: var(--surface2);
+}
+
+/* ── bl-vc-t--descartado: estado descartado — B-202606-017 ── */
+.bl-vc-t--descartado {
+  opacity: 0.45;
+}
+
+.bl-vc-t--descartado .bl-vc-t-title {
+  text-decoration: line-through;
+  text-decoration-color: var(--text2);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .bl-vc-t--descartado {
+    transition: opacity 0.15s var(--ease-out);
+  }
 }
 
 /* ── bl-vc-t-code: código del T ── */
