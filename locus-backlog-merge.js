@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:17 · autor:Rune · 2026-06-05 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -45,8 +45,6 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
 
   // Todo CHECKPOINT válido pasa por el DIFF — sin excepción por contenido.
   // Patches se aplican en _mdiffDoApply tras onApply() — comportamiento preservado.
-  const _hasMetaContent = _metaResumen || _metaAprendizaje || _metaBloqueantes || _metaDecision || _metaProxPaso;
-
   // Dry-run: obtener diff sin mutar getItems()
   const _prevFilter = localStorage.getItem('current-project-filter') || '';
   const _filterChanged = projId && projId !== _prevFilter;
