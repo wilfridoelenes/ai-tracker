@@ -1,4 +1,4 @@
-/* [PP] v0.0.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-05 UTC-6 */
+/* [PP] v0.0.0 · sprint:PP-S-01 · mod:7 · autor:Nova · 2026-06-05 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -1765,12 +1765,34 @@
 /* ══ R-202604-071: Merge Diff Panel — rediseño completo two-column ══ */
 
 /* Overlay — más generoso que el modal base */
+/* T-202606-033: transición de entrada opacity 0→1 + translateY(8px)→0 · 150ms ease-out */
+/* position:fixed garantiza que la animación no introduce layout shift (AC-6) */
 .mdiff-overlay {
+  position: fixed;
+  inset: 0;
   z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 60%);
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
 }
 
+/* AC-2: la transición inicia en el mismo frame en que .open se agrega al overlay */
 .mdiff-overlay.open {
-  display: flex;
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* AC-4: prefers-reduced-motion — overlay aparece sin animación */
+@media (prefers-reduced-motion: reduce) {
+  .mdiff-overlay {
+    transition: none;
+  }
 }
 
 /* Dialog — 92vw × 88vh */
