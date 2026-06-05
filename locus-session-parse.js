@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:31 · autor:Rune · 2026-06-05 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1234,8 +1234,16 @@ function saveStandaloneCheckpoint() {
   };
 
   // AC-1+2: pasar por showMergeDiffPanel — muestra panel de confirmación antes de aplicar
+  // Construir ckptMeta desde campos narrativos del CHECKPOINT parseado
+  const _ckptMetaStandalone = {
+    resumen:     ckpt.resumen      || '',
+    aprendizaje: ckpt.aprendizaje  || '',
+    bloqueantes: ckpt.bloqueantes  || '',
+    decision:    ckpt.decision     || '',
+    proximoPaso: ckpt.proximoPaso  || '',
+  };
   closeStandaloneCheckpoint();
-  showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _doApply);
+  showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _doApply, _ckptMetaStandalone);
 }
 
 

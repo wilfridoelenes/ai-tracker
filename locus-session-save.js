@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:20 · autor:Rune · 2026-06-05 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -637,22 +637,16 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   };
   const _patchItemsN = parsed.patchItems || [];
   const _tgItemsForPanel = _buildPatchTgItems(_patchItemsN, tgItems);
-  // T-202606-037: abrir el panel si hay ítems O si hay campos narrativos con contenido.
-  const _hasMeta = _ckptMeta.resumen || _ckptMeta.aprendizaje || _ckptMeta.bloqueantes || _ckptMeta.decision || _ckptMeta.proximoPaso;
-  if (_tgItemsForPanel.length || _hasMeta) {
-    // B-202605-NNN: cancelar timer Supabase de draft antes de abrir el panel diff.
-    // Si el usuario tarda >3s en confirmar, el timer se dispara y hace upsert del draft.
-    // Ese upsert puede llegar por realtime DESPUÉS del delete post-confirm → restoreDrafts restaura el textarea.
-    clearTimeout(window['_draftSbTimer_' + id]);
-    showMergeDiffPanel(_tgItemsForPanel, sessId, activeProj.id, (duration) => {
-      // T-202606-046: persistir duración ingresada en el DIFF en newSess antes de guardar.
-      if (duration !== undefined) newSess.duration = duration;
-      _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, sessId, tgItems, newSess);
-    }, _ckptMeta);
-    return;
-  }
-  // Fallback: merge directo si no hay ítems ni campos narrativos
-  _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, sessId, tgItems, newSess);
+  // Todo CHECKPOINT válido pasa por el DIFF — sin excepción.
+  // B-202605-NNN: cancelar timer Supabase de draft antes de abrir el panel diff.
+  // Si el usuario tarda >3s en confirmar, el timer se dispara y hace upsert del draft.
+  // Ese upsert puede llegar por realtime DESPUÉS del delete post-confirm → restoreDrafts restaura el textarea.
+  clearTimeout(window['_draftSbTimer_' + id]);
+  showMergeDiffPanel(_tgItemsForPanel, sessId, activeProj.id, (duration) => {
+    // T-202606-046: persistir duración ingresada en el DIFF en newSess antes de guardar.
+    if (duration !== undefined) newSess.duration = duration;
+    _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, sessId, tgItems, newSess);
+  }, _ckptMeta);
 }
 
 // T-202604-201: segunda mitad de _doSaveSession — ejecutada tras confirmación del panel de diff

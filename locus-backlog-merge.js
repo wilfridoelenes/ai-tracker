@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-05 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -43,16 +43,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   const _patchItems = tgItems.filter(i => i.type === 'patch');
   tgItems = tgItems.filter(i => i.type !== 'patch');
 
-  // T-202606-037 AC-4 / T-202606-039: solo-patches o sin ítems.
-  // Si no hay ckptMeta con contenido → comportamiento original (aplica + onApply directamente).
-  // Si hay ckptMeta con contenido → continuar para abrir el panel con campos narrativos.
+  // Todo CHECKPOINT válido pasa por el DIFF — sin excepción por contenido.
+  // Patches se aplican en _mdiffDoApply tras onApply() — comportamiento preservado.
   const _hasMetaContent = _metaResumen || _metaAprendizaje || _metaBloqueantes || _metaDecision || _metaProxPaso;
-  if (!tgItems.length && !_hasMetaContent) {
-    // Solo patches sin campos narrativos — aplicar directamente sin abrir el DIFF (AC-4)
-    if (_patchItems.length) applyPatchesFromTG(_patchItems);
-    onApply();
-    return;
-  }
 
   // Dry-run: obtener diff sin mutar getItems()
   const _prevFilter = localStorage.getItem('current-project-filter') || '';
@@ -89,9 +82,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // B-202605-500: sprints asignados desde el DIFF a ítems nuevos (aún no existen en getItems() durante dryRun)
   const _mdiffPendingSprints = {}; // { [code]: sprintId }
 
-  // T-202606-039: si no hay cambios de backlog Y no hay campos narrativos → guardar directamente (comportamiento anterior).
-  // Si hay campos narrativos → abrir el panel para mostrarlos antes de confirmar.
-  if (total === 0 && !_hasCriticalIgnored && !_hasMetaContent) { onApply(); return; }
+  // Todo CHECKPOINT válido abre el DIFF — sin excepción por total=0 ni por ausencia de narrativa.
 
   // ── Helpers de renderizado ──
   // R-202605-148: pill corto B/T/R/P — letra única con color semántico en .mdiff-type-badge
