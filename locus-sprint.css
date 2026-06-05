@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:6 · autor:Nova · 2026-06-04 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:7 · autor:Nova · 2026-06-04 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -1098,12 +1098,7 @@
 
 /* ── T-202606-029: spm-meta-* — Sprint metadatos editables ──────────────── */
 
-.spm-meta-section {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 0;
-}
+/* .spm-meta-section — eliminada de T-029; spec canónica en T-030 (padding 16px 24px) */
 
 .spm-meta-row {
   display: flex;
@@ -1111,12 +1106,7 @@
   gap: 8px;
 }
 
-.spm-meta-label {
-  font-size: var(--text-xs);
-  color: var(--hint);
-  min-width: 88px;
-  flex-shrink: 0;
-}
+/* .spm-meta-label — eliminada de T-029; spec canónica en T-030 (font-weight 500, uppercase) */
 
 .spm-meta-value {
   font-size: var(--text-sm);
@@ -1170,43 +1160,9 @@
   gap: 4px;
 }
 
-.spm-meta-input {
-  height: 26px;
-  font-size: var(--text-sm);
-  color: var(--text);
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 0 6px;
-  flex: 1;
-  outline: none;
-  transition: var(--trans-color);
-}
+/* .spm-meta-input — eliminada de T-029; spec canónica en T-030 (border 0.5px border2, max-width 160px) */
 
-.spm-meta-input:focus {
-  border-color: var(--accent);
-}
-
-.spm-meta-textarea {
-  width: 100%;
-  min-height: 56px;
-  resize: vertical;
-  font-size: var(--text-sm);
-  color: var(--text);
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  padding: 6px 8px;
-  line-height: 1.5;
-  outline: none;
-  transition: var(--trans-color);
-  box-sizing: border-box;
-  font-family: inherit;
-}
-
-.spm-meta-textarea:focus {
-  border-color: var(--accent);
-}
+/* .spm-meta-textarea — eliminada de T-029; spec canónica en T-030 (border 0.5px border2) */
 
 .spm-meta-confirm,
 .spm-meta-cancel {
