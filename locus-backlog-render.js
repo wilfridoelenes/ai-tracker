@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:34 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:35 · autor:Nova · 2026-06-05 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
@@ -892,7 +892,7 @@ export function renderBacklogList(onRendered) {
       } else {
         localStorage.removeItem(_collapseKey);
       }
-    }, { once: true });
+    });
 
     // R-202605-103: bloque sprints cerrados eliminado — absorbido por renderArchivoHistorico
 
