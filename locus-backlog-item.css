@@ -1,4 +1,4 @@
-/* [PP] v0.0.0 · sprint:PP-S-01 · mod:7 · autor:Nova · 2026-06-05 UTC-6 */
+/* [PP] v0.0.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-05 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -2277,6 +2277,15 @@
   margin-top: 1px;
 }
 
+/* T-202606-043: variante secundaria — tamaño reducido para notas de soporte */
+.mdiff-change-hint--secondary {
+  font-size: var(--text-3xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mdiff-change-hint--secondary { transition: none; }
+}
+
 /* T-202605-037: parent visible en ítems tipo T del panel Diff */
 .mdiff-parent-hint {
   font-size: var(--text-xs);
@@ -3780,3 +3789,96 @@ body {
   margin-top: 2px;
 }
 /* ── END T-202606-020 ── */
+
+/* ══ T-202606-038: Sección campos narrativos en panel DIFF ══ */
+.mdiff-narrative-section {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.mdiff-narrative-header {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.5rem 0 0.375rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0.5rem;
+}
+
+.mdiff-narrative-row {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.25rem 0;
+  align-items: flex-start;
+}
+
+.mdiff-narrative-label {
+  font-size: var(--text-sm);
+  color: var(--text2);
+  min-width: 6rem;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.mdiff-narrative-value {
+  font-size: var(--text-sm);
+  color: var(--text);
+  line-height: 1.45;
+}
+
+/* Próximo paso — separado visualmente como cierre de sesión */
+.mdiff-narrative-proxpaso-wrap {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.mdiff-narrative-proxpaso {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+/* ── END T-202606-038 ── */
+
+/* ══ T-202606-042: Input duración en panel DIFF ══ */
+.mdiff-duration-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0;
+}
+
+.mdiff-duration-label {
+  font-size: var(--text-sm);
+  color: var(--text2);
+  min-width: 5rem;
+  flex-shrink: 0;
+}
+
+.mdiff-duration-input {
+  font-size: var(--text-sm);
+  font-family: monospace;
+  color: var(--text);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 0.25rem 0.5rem;
+  width: 5rem;
+  transition: var(--trans-fast);
+}
+
+.mdiff-duration-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mdiff-duration-input {
+    transition: none;
+  }
+}
+/* ── END T-202606-042 ── */

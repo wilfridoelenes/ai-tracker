@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:18 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-05 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -75,7 +75,7 @@ export function validateLifecycleTransitions(tgItems) {
   return invalid;
 }
 
-const _confirmTimers = {};            // timers de confirmación por worker ID — clearTimeout en _doSaveSession y _doCompleteFinish
+const _confirmTimers = {};            // timers de confirmación por worker ID
 
 function toggleTemplateTrigger(val) {
   localStorage.setItem(_TMPL_TRIGGER_KEY, val);
@@ -626,21 +626,32 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // T-202604-121: recoger resultado detallado para super toast
   // B-202604-116: usar proyecto del card, no filtro global activo
   // T-202604-201: panel de confirmación diff antes de aplicar el merge
-  // T-202605-120: enriquecer tgItems con representaciones de patches para visualización en el panel.
-  // patchItems se aplican realmente dentro de _doApplyMergeAndFinish — aquí solo se pre-visualizan.
+  // T-202606-037 AC-3: extraer campos narrativos del CHECKPOINT parseado para pasarlos como ckptMeta.
+  // T-202606-046 AC-2+AC-3: el callback recibe duration del input del DIFF y lo asigna a newSess antes del guardado.
+  const _ckptMeta = {
+    resumen:     parsed.summary    || '',
+    aprendizaje: parsed.aprendizaje || '',
+    bloqueantes: parsed.bloqueantes || '',
+    decision:    parsed.decision    || '',
+    proximoPaso: parsed.nextStep    || '',
+  };
   const _patchItemsN = parsed.patchItems || [];
   const _tgItemsForPanel = _buildPatchTgItems(_patchItemsN, tgItems);
-  if (_tgItemsForPanel.length) {
+  // T-202606-037: abrir el panel si hay ítems O si hay campos narrativos con contenido.
+  const _hasMeta = _ckptMeta.resumen || _ckptMeta.aprendizaje || _ckptMeta.bloqueantes || _ckptMeta.decision || _ckptMeta.proximoPaso;
+  if (_tgItemsForPanel.length || _hasMeta) {
     // B-202605-NNN: cancelar timer Supabase de draft antes de abrir el panel diff.
     // Si el usuario tarda >3s en confirmar, el timer se dispara y hace upsert del draft.
     // Ese upsert puede llegar por realtime DESPUÉS del delete post-confirm → restoreDrafts restaura el textarea.
     clearTimeout(window['_draftSbTimer_' + id]);
-    showMergeDiffPanel(_tgItemsForPanel, sessId, activeProj.id, () => {
+    showMergeDiffPanel(_tgItemsForPanel, sessId, activeProj.id, (duration) => {
+      // T-202606-046: persistir duración ingresada en el DIFF en newSess antes de guardar.
+      if (duration !== undefined) newSess.duration = duration;
       _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, sessId, tgItems, newSess);
-    });
+    }, _ckptMeta);
     return;
   }
-  // Fallback: merge directo si showMergeDiffPanel no está disponible
+  // Fallback: merge directo si no hay ítems ni campos narrativos
   _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, sessId, tgItems, newSess);
 }
 

@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-05 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -24,8 +24,18 @@ import { downloadTemplates } from './locus-session-save.js';
 
 // R-202605-033: Extraído de locus-backlog-item.js
 
-export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
-  if (!tgItems || !tgItems.length) { onApply(); return; }
+// T-202606-037: ckptMeta — campos narrativos del CHECKPOINT para sección superior del panel.
+// Objeto con campos: { resumen, aprendizaje, bloqueantes, decision, proximoPaso } — todos string, todos opcionales.
+// Si es null/undefined, todos los campos se tratan como cadena vacía (AC-5).
+export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
+  // T-202606-037 AC-1: early-return sin ítems eliminado — el panel siempre abre cuando hay CHECKPOINT válido.
+  // AC-5: ckptMeta null/undefined normalizado a objeto vacío.
+  const _ckptMeta = (ckptMeta && typeof ckptMeta === 'object') ? ckptMeta : {};
+  const _metaResumen     = _ckptMeta.resumen      || '';
+  const _metaAprendizaje = _ckptMeta.aprendizaje  || '';
+  const _metaBloqueantes = _ckptMeta.bloqueantes  || '';
+  const _metaDecision    = _ckptMeta.decision     || '';
+  const _metaProxPaso    = _ckptMeta.proximoPaso  || '';
 
   // B-202606-001: separar type:patch antes del dry-run — no deben pasar por mergeBacklogFromTG.
   // Los patches actualizan campos de ítems existentes via applyPatchesFromTG y no generan diff visual.
@@ -33,8 +43,12 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   const _patchItems = tgItems.filter(i => i.type === 'patch');
   tgItems = tgItems.filter(i => i.type !== 'patch');
 
-  if (!tgItems.length) {
-    // Solo patches — aplicar directamente sin abrir el DIFF
+  // T-202606-037 AC-4 / T-202606-039: solo-patches o sin ítems.
+  // Si no hay ckptMeta con contenido → comportamiento original (aplica + onApply directamente).
+  // Si hay ckptMeta con contenido → continuar para abrir el panel con campos narrativos.
+  const _hasMetaContent = _metaResumen || _metaAprendizaje || _metaBloqueantes || _metaDecision || _metaProxPaso;
+  if (!tgItems.length && !_hasMetaContent) {
+    // Solo patches sin campos narrativos — aplicar directamente sin abrir el DIFF (AC-4)
     if (_patchItems.length) applyPatchesFromTG(_patchItems);
     onApply();
     return;
@@ -75,7 +89,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   // B-202605-500: sprints asignados desde el DIFF a ítems nuevos (aún no existen en getItems() durante dryRun)
   const _mdiffPendingSprints = {}; // { [code]: sprintId }
 
-  if (total === 0 && !_hasCriticalIgnored) { onApply(); return; }
+  // T-202606-039: si no hay cambios de backlog Y no hay campos narrativos → guardar directamente (comportamiento anterior).
+  // Si hay campos narrativos → abrir el panel para mostrarlos antes de confirmar.
+  if (total === 0 && !_hasCriticalIgnored && !_hasMetaContent) { onApply(); return; }
 
   // ── Helpers de renderizado ──
   // R-202605-148: pill corto B/T/R/P — letra única con color semántico en .mdiff-type-badge
@@ -259,7 +275,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
       i.tmpCode, i.desc, 'warn',
       _pill('warn', '⚠ tmp sin match aplicado'),
       `<div class="mdiff-change-hint">Posible coincidencia: <strong>${esc(i.suggestedCode)}</strong> — ${esc(i.suggestedTitle)}</div>
-       <div class="mdiff-change-hint" style="color:var(--text2);font-size:0.8em">Confirma manualmente en el backlog si corresponde al mismo ítem.</div>`
+       <div class="mdiff-change-hint mdiff-change-hint--secondary">Confirma manualmente en el backlog si corresponde al mismo ítem.</div>`
     )).join('');
     sectionsHtml += _section('tmp-suggestions', 'warn', `⚠ TMP sin match confirmado <span class="mdiff-sec-count">${diff.tmpSuggestions.length}</span>`, rows);
   }
@@ -328,19 +344,53 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
   if (header) {
     const projName = getActiveProject()
       ? getActiveProject().name : '';
+    // T-202606-038 AC-2: cuando no hay ítems, el header muestra '0 ítems' sin contador distorsionado
+    const totalLabel = total > 0 ? `${total} ítem${total !== 1 ? 's' : ''}` : '0 ítems';
     header.innerHTML = `
       <div class="mdiff-header-inner">
         <div class="mdiff-header-left">
           <div class="mdiff-step-label">Guardar sesión</div>
           <div class="mdiff-header-title">Revisión de cambios${projName ? ` · <span class="mdiff-proj-name">${esc(projName)}</span>` : ''}</div>
         </div>
-        <div class="mdiff-header-total">${total} ítem${total !== 1 ? 's' : ''}</div>
+        <div class="mdiff-header-total">${totalLabel}</div>
       </div>`;
   }
 
-  // Body: secciones
+  // T-202606-038: sección de campos narrativos — aparece antes de las secciones de backlog.
+  // AC-4: campos vacíos no renderizan fila. AC-3: Próximo paso al final con separador visual.
+  // AC-7: encabezado visualmente distinguible del encabezado de secciones de backlog.
+  const _buildNarrativeSection = () => {
+    const _rows = [
+      { label: 'Resumen',     value: _metaResumen     },
+      { label: 'Aprendizaje', value: _metaAprendizaje },
+      { label: 'Bloqueantes', value: _metaBloqueantes },
+      { label: 'Decisión',    value: _metaDecision    },
+    ].filter(r => r.value).map(r =>
+      `<div class="mdiff-narrative-row">
+        <span class="mdiff-narrative-label">${esc(r.label)}</span>
+        <span class="mdiff-narrative-value">${esc(r.value)}</span>
+      </div>`
+    ).join('');
+
+    const _proxPasoHtml = _metaProxPaso
+      ? `<div class="mdiff-narrative-proxpaso">
+          <span class="mdiff-narrative-label">Próximo paso</span>
+          <span class="mdiff-narrative-value">${esc(_metaProxPaso)}</span>
+        </div>`
+      : '';
+
+    if (!_rows && !_proxPasoHtml) return '';
+
+    return `<div class="mdiff-narrative-section">
+      <div class="mdiff-narrative-header">Contexto de sesión</div>
+      ${_rows}
+      ${_proxPasoHtml ? `<div class="mdiff-narrative-proxpaso-wrap">${_proxPasoHtml}</div>` : ''}
+    </div>`;
+  };
+
+  // Body: sección narrativa + secciones de backlog
   if (body) {
-    body.innerHTML = sectionsHtml;
+    body.innerHTML = _buildNarrativeSection() + sectionsHtml;
   }
 
   // Summary chips: clickeables con jump a sección
@@ -640,12 +690,28 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
     applyBtn.textContent = blocked ? '✓ Guardar sesión' : `✓ Guardar sesión (${totalApply})`;
   };
 
-  // Footer: botones de acción
+  // Footer: input duración + botones de acción
+  // T-202606-046: input HH:MM declarado por Nova en T-202606-042 — HTML conforme a spec de Nova.
   if (footer) {
     footer.innerHTML = `
-      <button id="mdiff-cancel-btn" class="mdiff-btn mdiff-btn--cancel">✕ Cancelar</button>
-      <button id="mdiff-backlog-btn" class="mdiff-btn mdiff-btn--secondary">Ver Backlog</button>
-      <button class="mdiff-btn mdiff-btn--primary" id="mdiff-apply-btn">✓ Guardar sesión</button>`;
+      <div class="mdiff-duration-row">
+        <label class="mdiff-duration-label" for="mdiff-duration-input">Duración</label>
+        <input
+          class="mdiff-duration-input"
+          id="mdiff-duration-input"
+          type="text"
+          inputmode="numeric"
+          placeholder="HH:MM"
+          maxlength="5"
+          autocomplete="off"
+          aria-label="Duración de la sesión en formato HH:MM"
+        >
+      </div>
+      <div class="mdiff-footer-actions">
+        <button id="mdiff-cancel-btn" class="mdiff-btn mdiff-btn--cancel">✕ Cancelar</button>
+        <button id="mdiff-backlog-btn" class="mdiff-btn mdiff-btn--secondary">Ver Backlog</button>
+        <button class="mdiff-btn mdiff-btn--primary" id="mdiff-apply-btn">✓ Guardar sesión</button>
+      </div>`;
   }
 
   overlay.classList.add('open');
@@ -704,6 +770,11 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
                        + diff.discarded.length
                        + diff.createdAndClosed.length;
 
+    // T-202606-046 AC-2+AC-4: leer valor del input de duración antes de cerrar el panel.
+    // Si está vacío → cadena vacía sin error (AC-4). El valor se pasa a onApply como argumento.
+    const _durationInput = document.getElementById('mdiff-duration-input');
+    const _durationVal = _durationInput ? (_durationInput.value.trim() || '') : '';
+
     overlay.classList.remove('open');
     document.removeEventListener('keydown', _mdiffKeyHandler);
     // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
@@ -716,7 +787,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply) {
       showToast('success', `Sesión guardada — ${appliedCount} ítem${appliedCount !== 1 ? 's' : ''} aplicado${appliedCount !== 1 ? 's' : ''}`);
     }
 
-    onApply();
+    // T-202606-046: pasar duración como primer argumento de onApply para persistencia en newSess.
+    onApply(_durationVal);
 
     // B-202606-001: aplicar patches después de onApply() — ítems nuevos ya existen en getItems()
     if (_patchItems.length) applyPatchesFromTG(_patchItems);
