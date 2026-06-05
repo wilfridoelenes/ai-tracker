@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:7 · autor:Nova · 2026-06-04 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:8 · autor:Nova · 2026-06-04 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -1274,7 +1274,7 @@
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--hint);
+  color: var(--text2);
 }
 
 .spm-meta-value {
@@ -1284,7 +1284,7 @@
 
 .spm-meta-empty {
   font-style: italic;
-  color: var(--hint);
+  color: var(--text2);
   font-size: var(--text-sm);
 }
 
