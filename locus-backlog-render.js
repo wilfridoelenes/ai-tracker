@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:35 · autor:Nova · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:36 · autor:Rune · 2026-06-05 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
@@ -333,8 +333,9 @@ function _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems) {
     children.forEach(t => {
       const depsCount  = Array.isArray(t.depends_on) ? t.depends_on.length : 0;
       const isBlocked  = _hasDepsBlocked(t);
+      const discClass  = t.status === 'descartado' ? ' bl-vc-t--descartado' : '';
 
-      html += `<div class="bl-vc-t" data-t-code="${esc(t.code)}">`;
+      html += `<div class="bl-vc-t${discClass}" data-t-code="${esc(t.code)}">`;
       html += `<span class="bl-vc-t-code">${esc(t.code)}</span>`;
       html += `<span class="bl-vc-t-title">${esc(t.title || '')}</span>`;
       html += `<span class="bl-vc-t-indicators">`;
@@ -369,7 +370,8 @@ function _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems) {
   tOrphans.forEach(t => {
     const depsCount = Array.isArray(t.depends_on) ? t.depends_on.length : 0;
     const isBlocked = _hasDepsBlocked(t);
-    html += `<div class="bl-vc-t" data-t-code="${esc(t.code)}">`;
+    const discClass = t.status === 'descartado' ? ' bl-vc-t--descartado' : '';
+    html += `<div class="bl-vc-t${discClass}" data-t-code="${esc(t.code)}">`;
     html += `<span class="bl-vc-t-code">${esc(t.code)}</span>`;
     html += `<span class="bl-vc-t-title">${esc(t.title || '')}</span>`;
     html += `<span class="bl-vc-t-indicators">`;
