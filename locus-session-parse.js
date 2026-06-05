@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-05 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -635,6 +635,7 @@ export function parsePaste(id) {
     delete window[`_noItemsWarnSeen_${id}`];
     delete window[`_rolFieldWarnSeen_${id}`];
     delete window[`_doneNoAcWarnSeen_${id}`];
+    delete window[`_discrepancyWarnSeen_${id}`];
     if (typeof dismissToast === 'function') dismissToast();
     // Resetear preview, botón y ta-has-items al estado inicial
     const _prevEl = document.getElementById('prev-' + id);
@@ -760,6 +761,23 @@ export function parsePaste(id) {
   }
 
   if (btn) { btn.disabled = false; btn.className = title ? 'sc-save ready' : 'sc-save'; }
+
+  // T-202606-034: aviso no bloqueante de discrepancia raw vs parseado
+  // AC-1: si no hay discrepancia o rawTotal === 0, silencio — auto-trigger corre normalmente.
+  // AC-2: si rawTotal !== parsedTotal y rawTotal > 0, mostrar aviso con botón "Continuar de todas formas".
+  // AC-3: al hacer click en "Continuar de todas formas", marcar flag visto y re-invocar parsePaste (auto-trigger corre en esa segunda pasada).
+  // AC-4: aviso usa clase CSS paste-warn — sin clase nueva.
+  // AC-5: reutiliza _discrepancy ya calculado — sin duplicar lógica.
+  const _discrepancyWarnKey = `_discrepancyWarnSeen_${id}`;
+  if (_discrepancy && !window[_discrepancyWarnKey]) {
+    prev.className = 'preview show';
+    prev.innerHTML = `<div class="paste-error paste-warn">⚠ ${_discrepancy.raw} línea${_discrepancy.raw !== 1 ? 's' : ''} detectada${_discrepancy.raw !== 1 ? 's' : ''} en el texto — solo ${_discrepancy.parsed} parseada${_discrepancy.parsed !== 1 ? 's' : ''} correctamente. Verifica el formato de los ítems no detectados.<br><button class="btn-ghost paste-inline-btn">Continuar de todas formas</button></div>`;
+    const _discBtn = prev.querySelector('.paste-inline-btn');
+    if (_discBtn) _discBtn.addEventListener('click', () => { window[_discrepancyWarnKey] = true; parsePaste(id); }, { once: true });
+    if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
+    return;
+  }
+  if (window[_discrepancyWarnKey]) delete window[_discrepancyWarnKey];
 
   // T-202606-032: auto-trigger — AC-1/AC-2/AC-3/AC-6/AC-7
   // Parse completó sin avisos ni errores bloqueantes → lanzar saveSession directamente.
