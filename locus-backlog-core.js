@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:31 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:32 · autor:Rune · 2026-06-05 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -274,6 +274,29 @@ export function toggleCollapseAll() {
     if (label) label.textContent = 'Expandir';
     if (icon) icon.textContent = '⊞';
   } else {
+    // ── Modo sprint invertido: el usuario colapso sprints y ahora quiere expandirlos ──
+    // Si el botón está en estado is-collapsed, el ciclo es colapsar↔expandir sprints.
+    // Expandir sprints directamente sin entrar al Modo R.
+    if (btn && btn.classList.contains('is-collapsed')) {
+      bodies.forEach(b => {
+        const id = b.id ? b.id.replace('vbody-', '') : null;
+        b.classList.remove('collapsed');
+        if (id) collapsedVersions.delete(id);
+      });
+      _cvSave();
+      arrows.forEach(a => {
+        if (a.classList.contains('section-group-arrow')) {
+          a.classList.remove('collapsed');
+        } else {
+          a.textContent = '▾';
+        }
+      });
+      btn.classList.remove('is-collapsed');
+      if (label) label.textContent = 'Colapsar';
+      if (icon) icon.textContent = '⊟';
+      return;
+    }
+
     // ── Modo R: operar sobre .bl-children-wrap ──
     const childWraps = document.querySelectorAll('.bl-children-wrap');
     if (!childWraps.length) {
