@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:15 · autor:Nova · 2026-06-04 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:16 · autor:Nova · 2026-06-04 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -5566,15 +5566,19 @@ er {
   padding-left: 24px;
   border-left: 1.5px solid var(--blue-border);
   margin-left: 12px;
-  overflow: hidden;
-  max-height: 2000px;
-  opacity: 1;
   transition: max-height 0.2s ease, opacity 0.2s ease;
 }
 
-/* Estado colapsado */
+/* AC-3: estado expandido explícito */
+.bl-children-wrap:not(.collapsed) {
+  max-height: 2000px;
+  opacity: 1;
+}
+
+/* AC-2: estado colapsado — overflow:hidden declarado aquí */
 .bl-children-wrap.collapsed {
   max-height: 0;
+  overflow: hidden;
   opacity: 0;
 }
 
