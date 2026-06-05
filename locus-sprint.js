@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:31 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:32 · autor:Rune · 2026-06-05 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -145,11 +145,11 @@ function _renderSprintMeta(sprint) {
     _fieldRow('scope',          'Scope',        scope),
   ].join('');
 
-  // Días abierto — solo lectura, ocultar botón editar
+  // Días abierto — solo lectura, marcar botón como inactivo (AC-4 CSS Purity)
   const daysRow = section.querySelector('[data-spm-field="days"]');
   if (daysRow) {
     const daysBtn = daysRow.querySelector('.spm-meta-btn');
-    if (daysBtn) daysBtn.style.visibility = 'hidden';
+    if (daysBtn) daysBtn.classList.add('spm-meta-btn--readonly');
   }
 
   // Delegation de edición inline
