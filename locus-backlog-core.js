@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:32 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:33 · autor:Rune · 2026-06-05 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -2038,6 +2038,16 @@ document.addEventListener('DOMContentLoaded', function () {
   // Colapsar / expandir todos
   const _btnCollapse = document.getElementById('bl-collapse-all-btn');
   if (_btnCollapse) _btnCollapse.addEventListener('click', function () { toggleCollapseAll(); });
+
+  // B-202606-011: sincronizar estado visual del botón con collapsedVersions al cargar
+  // collapsedVersions ya está cargado desde localStorage — si tiene entradas, hay sprints colapsados
+  if (_btnCollapse && collapsedVersions.size > 0) {
+    const _colLabel = _btnCollapse.querySelector('.bl-collapse-btn-label');
+    const _colIcon  = _btnCollapse.querySelector('.bl-collapse-btn-icon');
+    _btnCollapse.classList.add('is-collapsed');
+    if (_colLabel) _colLabel.textContent = 'Expandir';
+    if (_colIcon)  _colIcon.textContent  = '⊞';
+  }
 
   // Búsqueda — B-202605-047: handler inline, no depende de onBacklogSearch global
   const _inputSearch = document.getElementById('backlog-search-input');
