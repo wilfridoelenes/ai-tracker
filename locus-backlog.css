@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-04 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:15 · autor:Nova · 2026-06-04 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -5505,3 +5505,93 @@ er {
 }
 
 /* ══ END R-202606-002 · T-202606-013 ══ */
+
+/* ══ T-202606-026 · CSS — .bl-children-wrap, .bl-child-row, .bl-r-toggle ══ */
+
+/* ── bl-r-with-children: wrapper raíz del R con subordinados ── */
+.bl-r-with-children {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── bl-r-card-wrap: contiene el card del R + botón toggle posicionado ── */
+.bl-r-card-wrap {
+  position: relative;
+}
+
+/* ── bl-r-toggle: botón flecha para colapsar/expandir hijos ── */
+.bl-r-toggle {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--hint);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
+  z-index: var(--z-raised);
+}
+
+.bl-r-toggle::before {
+  content: '▾';
+  font-size: var(--text-xs);
+  line-height: 1;
+  display: block;
+  transition: transform 0.15s var(--ease-out);
+}
+
+.bl-r-toggle:hover {
+  color: var(--text2);
+}
+
+.bl-r-toggle:focus-visible {
+  outline: 2px solid var(--accent-border);
+  border-radius: var(--radius-2xs);
+}
+
+/* Estado colapsado: flecha rotada -90deg */
+.bl-r-toggle.collapsed::before {
+  transform: rotate(-90deg);
+}
+
+/* ── bl-children-wrap: contenedor sangrado de los hijos del R ── */
+.bl-children-wrap {
+  padding-left: 24px;
+  border-left: 1.5px solid var(--blue-border);
+  margin-left: 12px;
+  overflow: hidden;
+  max-height: 2000px;
+  opacity: 1;
+  transition: max-height 0.2s ease, opacity 0.2s ease;
+}
+
+/* Estado colapsado */
+.bl-children-wrap.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* ── bl-child-row: wrapper de cada ítem hijo ── */
+.bl-child-row {
+  /* Hereda la sangría del wrap — sin padding adicional */
+}
+
+/* prefers-reduced-motion: eliminar transiciones */
+@media (prefers-reduced-motion: reduce) {
+  .bl-children-wrap {
+    transition: none;
+  }
+  .bl-r-toggle,
+  .bl-r-toggle::before {
+    transition: none;
+  }
+}
+
+/* ══ END T-202606-026 ══ */
