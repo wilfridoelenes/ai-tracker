@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-05 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1031,13 +1031,6 @@ function buildCard(ai) {
   // T-202604-203: footer fijo — acciones primarias siempre en la misma posición
   const footerHTML = ai.status === 'available' ? `
     <div class="sc-footer" id="footer-${ai.id}">
-      <div class="sc-unlock">
-        <label class="sc-unlock-label" for="hora-${ai.id}">
-          <i class="sc-unlock-icon ti ti-lock" aria-hidden="true"></i>desbloqueo
-        </label>
-        <input class="hora-input" id="hora-${ai.id}" type="text" maxlength="4" placeholder="--:--">
-        <div class="hora-parsed" id="hdisp-${ai.id}">—</div>
-      </div>
       <div class="blind-exhaust-inline is-hidden" id="bexhaust-inline-${ai.id}">
         <div class="blind-exhaust-hora-row">
           <input class="hora-input blind-exhaust-hora-input" id="bexhaust-hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
@@ -1155,12 +1148,6 @@ function buildCard(ai) {
       if (typeof handleInput === 'function') handleInput(ai.id);
       this.closest('.paste-ta-wrap')?.classList.toggle('paste-ta-wrap--has-content', this.value.length > 0);
     });
-  }
-  // ── Hora input (desbloqueo) ──
-  const horaEl = el.querySelector(`#hora-${ai.id}`);
-  if (horaEl) {
-    horaEl.addEventListener('input', () => { if (typeof parseHora === 'function') parseHora(ai.id); });
-    horaEl.addEventListener('keydown', (e) => { if (typeof horaKey === 'function') horaKey(e, ai.id); });
   }
   // ── Blind exhaust hora input ──
   const bexhaustEl = el.querySelector(`#bexhaust-hora-${ai.id}`);
