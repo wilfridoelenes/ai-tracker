@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-05 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -788,7 +788,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     }
 
     // T-202606-046: pasar duración como primer argumento de onApply para persistencia en newSess.
-    onApply(_durationVal);
+    // T-202606-039: guard — onApply puede ser undefined si el caller no lo provee.
+    if (typeof onApply === 'function') onApply(_durationVal);
 
     // B-202606-001: aplicar patches después de onApply() — ítems nuevos ya existen en getItems()
     if (_patchItems.length) applyPatchesFromTG(_patchItems);
