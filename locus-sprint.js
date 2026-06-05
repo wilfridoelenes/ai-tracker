@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-04 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -78,7 +78,7 @@ function _sprintItemHtml(item) {
 // switchSubTab opera sobre sspanel-*/sstab-btn-* del tab Docs — contextos distintos.
 // _sptSwitch gestiona exclusivamente los paneles del tab Sprint.
 
-const _SPT_PANELS   = ['items', 'planificar', 'plan'];
+const _SPT_PANELS   = ['items', 'planificar', 'plan', 'sprints']; // T-202606-029: cuarto sub-tab
 
 function _sptSwitch(subtab, triggerBtn) {
   _SPT_PANELS.forEach(s => {
@@ -94,6 +94,7 @@ function _sptSwitch(subtab, triggerBtn) {
   // Render bajo demanda
   if (subtab === 'planificar') _renderSprintPlanificar();
   if (subtab === 'plan') renderPlanInto('sprint-plan-container');
+  if (subtab === 'sprints') _renderSprintMeta(_getActiveSprint()); // T-202606-029
 }
 
 // ── Render panel Planificar — R-202605-052 ──────────────────────────────────
@@ -108,6 +109,204 @@ function _renderSprintPlanificar() {
     container.innerHTML = '<div class="spi-section-empty">Vista Planificar no disponible.</div>';
   }
 }
+
+// ── T-202606-029: _renderSprintMeta — metadatos editables del sprint activo ──
+
+/**
+ * Renderiza en #spm-meta-section los campos editables del sprint:
+ * versión, release type, días abierto y scope.
+ */
+function _renderSprintMeta(sprint) {
+  const section = document.getElementById('spm-meta-section');
+  if (!section) return;
+  if (!sprint) { section.innerHTML = ''; return; }
+
+  const vt    = sprint.version_target || '';
+  const rt    = sprint.release_type   || sprint.releaseType || '';
+  const scope = sprint.scope          || '';
+  const days  = _sprintDaysLabel(sprint);
+
+  function _fieldRow(key, label, value) {
+    const isEmpty  = !value;
+    const valClass = isEmpty ? 'spm-meta-value spm-meta-value--empty' : 'spm-meta-value';
+    const valText  = isEmpty ? 'Sin declarar' : _escHtml(value);
+    const icon     = isEmpty ? '\u＋'.slice(-1) : '\u✎'.slice(-1);
+    const btnTitle = isEmpty ? 'Agregar ' + label : 'Editar ' + label;
+    return '<div class="spm-meta-row" data-spm-field="' + key + '">' +
+      '<span class="spm-meta-label">' + label + '</span>' +
+      '<span class="' + valClass + '">' + valText + '</span>' +
+      '<button class="spm-meta-btn" data-spm-edit="' + key + '" aria-label="' + btnTitle + '" title="' + btnTitle + '" type="button">' + (isEmpty ? '+' : '✎') + '</button>' +
+      '</div>';
+  }
+
+  section.innerHTML = [
+    _fieldRow('version_target', 'Versión',      vt),
+    _fieldRow('release_type',   'Release type', rt),
+    _fieldRow('days',           'Días abierto', days),
+    _fieldRow('scope',          'Scope',        scope),
+  ].join('');
+
+  // Días abierto — solo lectura, ocultar botón editar
+  const daysRow = section.querySelector('[data-spm-field="days"]');
+  if (daysRow) {
+    const daysBtn = daysRow.querySelector('.spm-meta-btn');
+    if (daysBtn) daysBtn.style.visibility = 'hidden';
+  }
+
+  // Delegation de edición inline
+  section.removeEventListener('click', _spmMetaHandleEdit);
+  section.addEventListener('click', _spmMetaHandleEdit);
+}
+
+function _spmMetaHandleEdit(e) {
+  const btn = e.target.closest('[data-spm-edit]');
+  if (!btn) return;
+  const field = btn.getAttribute('data-spm-edit');
+  if (field === 'days') return;
+  const row = btn.closest('.spm-meta-row');
+  if (!row) return;
+  const sprint = _getActiveSprint();
+  if (!sprint) return;
+
+  const currentVal = field === 'version_target' ? (sprint.version_target || '')
+                   : field === 'release_type'   ? (sprint.release_type || sprint.releaseType || '')
+                   : field === 'scope'           ? (sprint.scope || '')
+                   : '';
+
+  _spmMetaOpenEdit(row, field, currentVal, sprint);
+}
+
+function _spmMetaOpenEdit(row, field, current, sprint) {
+  const valEl = row.querySelector('.spm-meta-value, .spm-meta-value--empty');
+  const editBtn = row.querySelector('.spm-meta-btn');
+  if (valEl)    valEl.style.display    = 'none';
+  if (editBtn)  editBtn.style.display  = 'none';
+
+  let editWrap;
+
+  if (field === 'version_target') {
+    // AC-4: input text inline
+    editWrap = document.createElement('div');
+    editWrap.className = 'spm-meta-edit-wrap';
+    editWrap.innerHTML =
+      '<div class="spm-meta-edit-row">' +
+        '<input class="spm-meta-input" type="text" value="' + _escHtml(current) + '" aria-label="Editar versión" />' +
+        '<button class="spm-meta-confirm" aria-label="Confirmar" title="Confirmar" type="button">✓</button>' +
+        '<button class="spm-meta-cancel"  aria-label="Cancelar"  title="Cancelar"  type="button">✗</button>' +
+      '</div>';
+    row.appendChild(editWrap);
+    const input = editWrap.querySelector('.spm-meta-input');
+    input.focus();
+    input.addEventListener('keydown', function(ev) {
+      if (ev.key === 'Enter')  _spmMetaConfirm(row, field, input.value.trim(), sprint, current);
+      if (ev.key === 'Escape') _spmMetaCancel();
+    });
+    editWrap.querySelector('.spm-meta-confirm').addEventListener('click', function() {
+      _spmMetaConfirm(row, field, input.value.trim(), sprint, current);
+    });
+    editWrap.querySelector('.spm-meta-cancel').addEventListener('click', function() {
+      _spmMetaCancel();
+    });
+
+  } else if (field === 'release_type') {
+    // AC-5: pills seleccionables con role=radio
+    const types = ['Major', 'Minor', 'Patch'];
+    const pillsHtml = types.map(function(t) {
+      const sel = (t === current) ? ' is-selected' : '';
+      return '<button class="spm-meta-pill' + sel + '" role="radio" aria-checked="' + (t === current) + '" data-rt="' + t + '" type="button">' + t + '</button>';
+    }).join('');
+    editWrap = document.createElement('div');
+    editWrap.className = 'spm-meta-edit-wrap';
+    editWrap.innerHTML =
+      '<div class="spm-meta-edit-row">' +
+        '<div class="spm-meta-pills" role="radiogroup" aria-label="Release type">' + pillsHtml + '</div>' +
+        '<button class="spm-meta-confirm" aria-label="Confirmar" title="Confirmar" type="button">✓</button>' +
+        '<button class="spm-meta-cancel"  aria-label="Cancelar"  title="Cancelar"  type="button">✗</button>' +
+      '</div>';
+    row.appendChild(editWrap);
+    let selected = current;
+    editWrap.querySelectorAll('.spm-meta-pill').forEach(function(pill) {
+      pill.addEventListener('click', function() {
+        selected = pill.getAttribute('data-rt');
+        editWrap.querySelectorAll('.spm-meta-pill').forEach(function(p) {
+          p.classList.toggle('is-selected', p.getAttribute('data-rt') === selected);
+          p.setAttribute('aria-checked', String(p.getAttribute('data-rt') === selected));
+        });
+      });
+    });
+    editWrap.querySelector('.spm-meta-confirm').addEventListener('click', function() {
+      _spmMetaConfirm(row, field, selected, sprint, current);
+    });
+    editWrap.querySelector('.spm-meta-cancel').addEventListener('click', function() {
+      _spmMetaCancel();
+    });
+
+  } else if (field === 'scope') {
+    // AC-6: textarea — Enter no confirma
+    editWrap = document.createElement('div');
+    editWrap.className = 'spm-meta-edit-wrap';
+    editWrap.innerHTML =
+      '<textarea class="spm-meta-textarea" aria-label="Editar scope">' + _escHtml(current) + '</textarea>' +
+      '<div class="spm-meta-action-row">' +
+        '<button class="spm-meta-confirm" aria-label="Confirmar" title="Confirmar" type="button">✓</button>' +
+        '<button class="spm-meta-cancel"  aria-label="Cancelar"  title="Cancelar"  type="button">✗</button>' +
+      '</div>';
+    row.appendChild(editWrap);
+    const ta = editWrap.querySelector('.spm-meta-textarea');
+    ta.focus();
+    ta.addEventListener('keydown', function(ev) {
+      if (ev.key === 'Escape') _spmMetaCancel();
+      // Enter no confirma — solo ✓ confirma (AC-6)
+    });
+    editWrap.querySelector('.spm-meta-confirm').addEventListener('click', function() {
+      _spmMetaConfirm(row, field, ta.value.trim(), sprint, current);
+    });
+    editWrap.querySelector('.spm-meta-cancel').addEventListener('click', function() {
+      _spmMetaCancel();
+    });
+  }
+}
+
+// AC-7, AC-8, AC-9, AC-11
+function _spmMetaConfirm(row, field, newVal, sprint, oldVal) {
+  const sprintId   = sprint.id;
+  const allSprints = getActiveSprints();
+  const target     = allSprints.find(function(s) { return s.id === sprintId; });
+  if (!target) { _spmMetaCancel(); return; }
+
+  if (field === 'version_target') target.version_target = newVal;
+  if (field === 'release_type')   { target.release_type = newVal; target.releaseType = newVal; }
+  if (field === 'scope')          target.scope = newVal;
+
+  try {
+    save();
+  } catch (err) {
+    // AC-11: save() falla → toast de error, revertir
+    if (typeof showToast === 'function') showToast('Error al guardar. Intenta de nuevo.', 'error');
+    if (field === 'version_target') target.version_target = oldVal;
+    if (field === 'release_type')   { target.release_type = oldVal; target.releaseType = oldVal; }
+    if (field === 'scope')          target.scope = oldVal;
+    _spmMetaCancel();
+    return;
+  }
+
+  _renderSprintMeta(_getActiveSprint());
+}
+
+function _spmMetaCancel() {
+  _renderSprintMeta(_getActiveSprint());
+}
+
+// Helper: escapar HTML para valores en innerHTML
+function _escHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+// ── END T-202606-029 ─────────────────────────────────────────────────────────
 
 
 function _renderSprintItems(sprint) {
@@ -385,6 +584,8 @@ export function renderSprintTab() {
     if (panelItems)      panelItems.classList.add('is-hidden');
     if (panelPlan)       panelPlan.classList.add('is-hidden');
     if (panelPlanificar) panelPlanificar.classList.add('is-hidden');
+    const panelSprints = _spEl('sprint-panel-sprints'); // T-202606-029
+    if (panelSprints)    panelSprints.classList.add('is-hidden');
     return;
   }
 
@@ -418,6 +619,9 @@ export function renderSprintTab() {
 
   // Gestor de sprints — T-202605-123
   _renderSprintManager();
+
+  // Metadatos editables del sprint — T-202606-029
+  _renderSprintMeta(sprint);
 
   // Ítems
   if (itemsList) itemsList.classList.remove('is-hidden');
@@ -828,8 +1032,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Sub-tabs sprint: Ítems / Planificar / Plan
-  ['items', 'planificar', 'plan'].forEach(function(subtab) {
+  // Sub-tabs sprint: Ítems / Planificar / Plan / Sprints — T-202606-029
+  ['items', 'planificar', 'plan', 'sprints'].forEach(function(subtab) {
     const btn = document.getElementById('spt-tab-' + subtab);
     if (btn) {
       btn.addEventListener('click', function() {
@@ -960,6 +1164,7 @@ window._renderSprintScopeAdded  = _renderSprintScopeAdded;
 window._renderSprintManager     = _renderSprintManager;     // T-202605-123
 window._sptSwitch               = _sptSwitch;               // R-202605-052
 window._renderSprintPlanificar  = _renderSprintPlanificar;  // R-202605-052
+window._renderSprintMeta        = _renderSprintMeta;        // T-202606-029
 // R-202605-006
 window._spmToggle               = _spmToggle;
 window._spmRegistrar            = _spmRegistrar;
