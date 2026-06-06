@@ -1,6 +1,6 @@
-// [PP] v1.2.3 · sprint:PP-S-01 · mod:27 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-06 UTC-6
 // locus-storage.js
-// Última actualización: 2026-06-05 · T-202606-056: Romper ciclos — eliminar imports hacia módulos que importan locus-storage.js
+// Última actualización: 2026-06-06 · B-202606-XXX: render inicial del backlog faltante en _renderAfterAuth tras T-202606-056
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -1471,6 +1471,11 @@ function _renderAfterAuth() {
   setTimeout(() => _dispatch('shell:render-pulso-dot'), 600);
   // T-084: verificar umbral de sesiones
   if (typeof checkStorageWarn === 'function') setTimeout(checkStorageWarn, 500);
+  // B-202606-XXX: render inicial del backlog desde localStorage — garantiza items visibles
+  // aunque Supabase no responda. _loadFromSupabase re-renderiza si hay datos frescos.
+  // (a) event dispatch — locus-backlog-render.js escucha 'shell:mark-backlog-dirty' + 'shell:render-backlog-list'
+  _dispatch('shell:mark-backlog-dirty');
+  _dispatch('shell:render-backlog-list');
   // T-202605-482: sincronizar desde Supabase
   if (_supabase && typeof _loadFromSupabase === 'function') _loadFromSupabase();
 }
