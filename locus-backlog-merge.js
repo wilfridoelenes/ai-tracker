@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:18 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-05 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -368,7 +368,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         </div>`
       : '';
 
-    if (!_rows && !_proxPasoHtml) return '';
+    // B-202606-024: condición corregida — _rows es string, !_rows evalúa '' como falsy
+    // aunque _proxPasoHtml tenga valor. Evaluación explícita de ambos.
+    if (!_rows.length && !_proxPasoHtml) return '';
 
     return `<div class="mdiff-narrative-section">
       <div class="mdiff-narrative-header">Contexto de sesión</div>
