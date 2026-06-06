@@ -1,4 +1,4 @@
-// [PP] v1.0.7 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.0.7 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -340,11 +340,19 @@ function confirmItemEditor() {
     item.blockedBy = blockedBy;
     item.archivos = archivos;
     item.parentId = parentId || null;
-    // T-202606-036 AC1+AC2: si se edita un R y cambia su sprint, propagar a todos sus Ts hijos
+    // B-202606-025 AC-3: si se edita un T con parent R, forzar su sprint al del parent
+    if ((item.type === 'T' || (item.code && item.code[0] === 'T')) && item.parentId) {
+      const _parentR = getItems().find(p => p.code === item.parentId);
+      if (_parentR && _parentR.sprint && item.sprint !== _parentR.sprint) {
+        _blogLog('sprint-forzado', item.code, item.code + ' sprint forzado al de su parent ' + item.parentId + ': ' + _parentR.sprint, 'backlog');
+        item.sprint = _parentR.sprint;
+      }
+    }
+    // T-202606-036 AC1+AC2 · B-202606-025: si se edita un R y cambia su sprint, propagar a todos sus hijos T y B
     if (item.type === 'R' || (!item.type && item.code && item.code[0] === 'R')) {
       const normalizedSprint = item.sprint || 'icebox';
       getItems().forEach(child => {
-        if (child.parentId === item.code && child.code && child.code[0] === 'T') {
+        if (child.parentId === item.code && (child.type === 'T' || child.type === 'B' || (child.code && (child.code[0] === 'T' || child.code[0] === 'B')))) {
           if ((child.sprint || 'icebox') !== normalizedSprint) {
             child.sprint = normalizedSprint;
             _blogLog('sprint-heredado', child.code, `${child.code} sprint ajustado al de su parent ${item.code}: ${normalizedSprint}`, 'backlog');

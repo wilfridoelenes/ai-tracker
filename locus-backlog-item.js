@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:43 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:44 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -2299,6 +2299,20 @@ export function applyPatchesFromTG(patches, sessionId) {
           changes.push({ field: 'sprint', from: current || '—', to: normalizedSprint });
           if (normalizedSprint === undefined) delete existing.sprint;
           else existing.sprint = normalizedSprint;
+          // B-202606-025 AC-1: si el ítem patcheado es un R, propagar sprint a todos sus hijos T y B
+          // Sin restricción de status — todos los hijos heredan el sprint del parent
+          if (existing.type === 'R' && normalizedSprint !== undefined) {
+            const _targetSprint = normalizedSprint || 'icebox';
+            (typeof getItems() !== 'undefined' ? getItems() : []).forEach(child => {
+              if (child.parentId === existing.code && (child.type === 'T' || child.type === 'B')) {
+                if ((child.sprint || 'icebox') !== _targetSprint) {
+                  child.sprint = _targetSprint;
+                  _blogLog('sprint-heredado', child.code,
+                    child.code + ' sprint ajustado al de su parent ' + existing.code + ': ' + _targetSprint, 'backlog');
+                }
+              }
+            });
+          }
         }
         return;
       }
