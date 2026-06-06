@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:21 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:22 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -855,11 +855,25 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     });
     // B-202606-NNN: Enter en input de hora mueve foco al botón Guardar.
     // stopPropagation evita que _mdiffKeyHandler lo reciba y dispare _mdiffDoApply prematuramente.
+    // T-202606-082: si el botón está disabled, mover foco al primer pendiente bloqueante en lugar de focus() silencioso.
     _durationInputEl.addEventListener('keydown', (e) => {
       if (e.key !== 'Enter') return;
       e.preventDefault();
       e.stopPropagation();
-      document.getElementById('mdiff-apply-btn')?.focus();
+      const applyBtn = document.getElementById('mdiff-apply-btn');
+      if (applyBtn && !applyBtn.disabled) {
+        applyBtn.focus();
+        return;
+      }
+      // AC-2: retroceso pendiente — primer checkbox sin marcar
+      const firstUncheckedRetro = overlay.querySelector('.mdiff-right-retro-cb:not(:checked)');
+      if (firstUncheckedRetro) { firstUncheckedRetro.focus(); return; }
+      // AC-3: descarte pendiente sin razón — primer select vacío
+      const allDiscardSelects = overlay.querySelectorAll('.mdiff-right-discard-select');
+      for (const sel of allDiscardSelects) {
+        if (!sel.value) { sel.focus(); return; }
+      }
+      // AC-4: sin pendiente identificable — no hacer nada (silencioso)
     });
   }
 
