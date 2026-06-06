@@ -1,21 +1,25 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:25 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-01 · mod:26 · autor:Rune · 2026-06-05 UTC-6
 // locus-storage.js
-// Última actualización: 2026-05-26 UTC-6
+// Última actualización: 2026-06-05 · T-202606-056: Romper ciclos — eliminar imports hacia módulos que importan locus-storage.js
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
 
-import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
-import { updateTabNotifBadges } from './locus-notifications.js';
-import { _markPulsoDotDirty, renderPulsoDot } from './locus-pulso.js';
-import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js';
-import { _markStatusBarDirty, renderStatusBar, updateStats } from './locus-sesiones-stats.js';
-import { _markTrackerDirty, _updateAutoDownloadLabel, render } from './locus-sesiones.js';
-import { showToast, toast } from './locus-toast.js';
+// T-202606-056: imports cíclicos eliminados — reemplazados por event dispatch o acceso directo a state
+// Patrones aplicados:
+//   (a) event dispatch via _dispatch(event, detail?) — locus-backlog-render, locus-notifications,
+//       locus-pulso, locus-radar, locus-sesiones-stats, locus-sesiones, locus-toast, locus-ui-shell
+//   acceso directo a state.projects — locus-sprint-project (getProjectById)
 
-import { getProjectById } from './locus-sprint-project.js';
+function _dispatch(event, detail) {
+  window.dispatchEvent(detail !== undefined
+    ? new CustomEvent(event, { detail })
+    : new CustomEvent(event));
+}
 
-import { applyTheme } from './locus-ui-shell.js';
+function showToast(type, msg, body, duration) {
+  _dispatch('shell:toast', { type, msg, body, duration });
+}
 
 // ── Lazy references para romper ciclos storage ↔ sprint-project y storage ↔ backlog-core ──
 // _getActiveProjectFilter y exportBacklogMd viven en locus-sprint-project.js,
@@ -126,7 +130,8 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
           if (event === 'SIGNED_IN') {
             if (typeof closeAuthModal === 'function') closeAuthModal();
             if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
-            _markTrackerDirty(); render();
+            // (a) event dispatch — locus-sesiones.js escucha 'shell:mark-tracker-dirty' + 'shell:render-tracker'
+            _dispatch('shell:mark-tracker-dirty'); _dispatch('shell:render-tracker');
             // T-202605-XXX: activar sync Realtime al iniciar sesión
             _subscribeRealtime();
           }
@@ -153,7 +158,8 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
         setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
         if (typeof closeAuthModal === 'function') closeAuthModal();
         if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
-        _markTrackerDirty(); render();
+        // (a) event dispatch — locus-sesiones.js escucha 'shell:mark-tracker-dirty' + 'shell:render-tracker'
+        _dispatch('shell:mark-tracker-dirty'); _dispatch('shell:render-tracker');
         _subscribeRealtime();
         if (typeof _refreshMigrationBtnVisibility === 'function') _refreshMigrationBtnVisibility();
       }
@@ -565,12 +571,15 @@ async function _saveFlush() {
 
   // T-202605-118: AC-6 — renders post-debounce (online+auth path)
   // B-202605-079: activar dirty flags antes de llamar renders — sin mark los guards devuelven no-op
-  _markRadarDirty();
-  renderGlobalRadarSidebar();
-  _markPulsoDotDirty();
-  renderPulsoDot();
-  _markStatusBarDirty();
-  renderStatusBar();
+  // (a) event dispatch — locus-radar.js escucha 'shell:mark-radar-dirty' + 'shell:render-radar'
+  _dispatch('shell:mark-radar-dirty');
+  _dispatch('shell:render-radar');
+  // (a) event dispatch — locus-pulso.js escucha 'shell:mark-pulso-dirty' + 'shell:render-pulso-dot'
+  _dispatch('shell:mark-pulso-dirty');
+  _dispatch('shell:render-pulso-dot');
+  // (a) event dispatch — locus-sesiones-stats.js escucha 'shell:mark-statusbar-dirty' + 'shell:render-statusbar'
+  _dispatch('shell:mark-statusbar-dirty');
+  _dispatch('shell:render-statusbar');
 }
 
 // R-202604-035 / T-202604-299: save() — debounced
@@ -580,9 +589,12 @@ export function save() {
   _stateDirty = true;
 
   // T-202605-118: activar dirty flags — renders se ejecutan path-específico (AC-6: no antes del flush en online+auth)
-  _markRadarDirty();
-  _markPulsoDotDirty();
-  _markStatusBarDirty();
+  // (a) event dispatch — locus-radar.js escucha 'shell:mark-radar-dirty'
+  _dispatch('shell:mark-radar-dirty');
+  // (a) event dispatch — locus-pulso.js escucha 'shell:mark-pulso-dirty'
+  _dispatch('shell:mark-pulso-dirty');
+  // (a) event dispatch — locus-sesiones-stats.js escucha 'shell:mark-statusbar-dirty'
+  _dispatch('shell:mark-statusbar-dirty');
 
   // AC-3 R-C1: sin auth → localStorage inmediato. Supabase no se intenta.
   if (!_supabaseUser) {
@@ -602,8 +614,9 @@ export function save() {
       } else { throw err; }
     }
     // T-202605-118: render inmediato — sin auth, sin debounce
-    renderGlobalRadarSidebar();
-    renderPulsoDot();
+    // (a) event dispatch — locus-radar.js + locus-pulso.js escuchan respectivamente
+    _dispatch('shell:render-radar');
+    _dispatch('shell:render-pulso-dot');
     return;
   }
 
@@ -625,8 +638,9 @@ export function save() {
       } else { throw err; }
     }
     // T-202605-118: render inmediato — offline, sin debounce
-    renderGlobalRadarSidebar();
-    renderPulsoDot();
+    // (a) event dispatch — locus-radar.js + locus-pulso.js escuchan respectivamente
+    _dispatch('shell:render-radar');
+    _dispatch('shell:render-pulso-dot');
     _offlineQueuePush({ type: 'state' });
     return;
   }
@@ -1141,7 +1155,7 @@ export async function _loadFromSupabase() {
                 try { localStorage.setItem(_SHORTCUTS_KEY, JSON.stringify(prefs.shortcuts)); } catch {}
               }
               if (prefs.templateTrigger) {
-                try { localStorage.setItem(LOCUS_KEYS.TPL_TRIGGER, prefs.templateTrigger); _updateAutoDownloadLabel(); } catch {}
+                try { localStorage.setItem(LOCUS_KEYS.TPL_TRIGGER, prefs.templateTrigger); _dispatch('shell:update-auto-download-label'); } catch {}
               }
               if (prefs.onboardingSeen) {
                 try { localStorage.setItem(LOCUS_KEYS.ONBOARDING_SEEN, '1'); } catch {}
@@ -1193,14 +1207,19 @@ export async function _loadFromSupabase() {
       console.warn('[AI Tracker] Error procesando borradores:', draftErr);
     }
 
-    _markTrackerDirty(); render();
+    // (a) event dispatch — locus-sesiones.js escucha 'shell:mark-tracker-dirty' + 'shell:render-tracker'
+    _dispatch('shell:mark-tracker-dirty'); _dispatch('shell:render-tracker');
     if (typeof renderHoy === 'function') renderHoy();
-    updateStats();
-    _markRadarDirty();
-    renderGlobalRadarSidebar();
-    _markBacklogListDirty();
-    _markStatusBarDirty();
-    renderBacklogList();
+    // (a) event dispatch — locus-sesiones-stats.js escucha 'shell:update-stats'
+    _dispatch('shell:update-stats');
+    // (a) event dispatch — locus-radar.js escucha 'shell:mark-radar-dirty' + 'shell:render-radar'
+    _dispatch('shell:mark-radar-dirty');
+    _dispatch('shell:render-radar');
+    // (a) event dispatch — locus-backlog-render.js escucha 'shell:mark-backlog-dirty' + 'shell:render-backlog-list'
+    _dispatch('shell:mark-backlog-dirty');
+    // (a) event dispatch — locus-sesiones-stats.js escucha 'shell:mark-statusbar-dirty'
+    _dispatch('shell:mark-statusbar-dirty');
+    _dispatch('shell:render-backlog-list');
     // B: re-render tab Sprint tras carga Supabase — evita empty state en refresh
     if (typeof window.renderSprintTab === 'function') window.renderSprintTab();
     setSyncStatus('synced', '✓ sincronizado');
@@ -1337,7 +1356,8 @@ function _applyStateData(raw) {
   Object.assign(state, raw);
 
   if (_pendingTheme) state.theme = _pendingTheme;
-  applyTheme(state.theme);
+  // (a) event dispatch — locus-ui-shell.js escucha 'shell:apply-theme'
+  _dispatch('shell:apply-theme', { theme: state.theme });
 }
 
 // B-202604-011: clone nunca estuvo definida — fallback crasheaba silenciosamente
@@ -1425,15 +1445,18 @@ export function _initApp(opts = {}) {
 // Solo se llama cuando hay sesión activa confirmada.
 function _renderAfterAuth() {
   // B-202604-010: render inicial desde estado real
-  _markTrackerDirty(); render();
+  // (a) event dispatch — locus-sesiones.js escucha 'shell:mark-tracker-dirty' + 'shell:render-tracker'
+  _dispatch('shell:mark-tracker-dirty'); _dispatch('shell:render-tracker');
   // B-202605-508: garantizar badges visibles al arranque
-  updateTabNotifBadges();
+  // (a) event dispatch — locus-notifications.js escucha 'shell:update-notif-badges'
+  _dispatch('shell:update-notif-badges');
   // R-202604-072: panel de contexto diario — diferido para que _getItems() esté disponible
   if (typeof _showArranquePanel === 'function') setTimeout(_showArranquePanel, 400);
   // R-202604-073: dot Pulso — recalcular con datos reales
   // B-202605-079: mark antes del setTimeout — el guard requiere flag activo al ejecutar
-  _markPulsoDotDirty();
-  setTimeout(renderPulsoDot, 600);
+  // (a) event dispatch — locus-pulso.js escucha 'shell:mark-pulso-dirty' + 'shell:render-pulso-dot'
+  _dispatch('shell:mark-pulso-dirty');
+  setTimeout(() => _dispatch('shell:render-pulso-dot'), 600);
   // T-084: verificar umbral de sesiones
   if (typeof checkStorageWarn === 'function') setTimeout(checkStorageWarn, 500);
   // T-202605-482: sincronizar desde Supabase
@@ -1454,12 +1477,14 @@ export function getAI(id) { return state.ais.find(a => a.id === id); }
 // Proyecto activo (objeto)
 export function getActiveProject() {
   const id = _getActiveProjectFilter();
-  return id ? getProjectById(id) : null;
+  // acceso directo a state.projects — dato vive en locus-storage, no requiere import externo
+  return id ? (state.projects || []).find(p => p.id === id) || null : null;
 }
 
 // Todas las sesiones de un proyecto
 export function getProjectSessions(projId) {
-  const proj = getProjectById(projId);
+  // acceso directo a state.projects — dato vive en locus-storage, no requiere import externo
+  const proj = (state.projects || []).find(p => p.id === projId);
   return proj ? (proj.sessions || []) : [];
 }
 
