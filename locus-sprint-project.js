@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-06 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -663,7 +663,6 @@ if (typeof getItems() !== 'undefined' && getItems().length) {
   renderStats();
   updateBacklogBanner();
   updateStatusFilterUI();
-  updateBacklogFooter();
 }
 
 document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
@@ -677,6 +676,7 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
   if (typeof _updateProjBreadcrumb === 'function') _updateProjBreadcrumb();
   if (typeof _updateProjFilterBtn === 'function') _updateProjFilterBtn();
   _updateHeaderProjectLabel();
+  updateBacklogFooter(); // B-[pendiente-ID]: movida desde nivel raíz — espera inicialización completa de locus-backlog-item.js
 
   const _projPanelOverlay = document.getElementById('proj-panel-overlay');
   if (_projPanelOverlay) {
