@@ -1,4 +1,4 @@
-/* [PP] v0.0.0 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-05 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Nova · 2026-06-06 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -2798,6 +2798,15 @@
   align-items: center;
   gap: .3rem;
   flex-wrap: wrap;
+  padding-right: 10px;
+  margin-right: 10px;
+  border-right: 1px solid var(--border2);
+}
+
+.bl-footer-filter-group:last-of-type {
+  border-right: none;
+  padding-right: 0;
+  margin-right: 0;
 }
 
 .bl-filter-label {
