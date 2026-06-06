@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-06 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -421,3 +421,5 @@ window._notifConfigSetThreshold = _notifConfigSetThreshold;
 // T-[tmp:t-listeners-storage-render]: listeners shell:* — desacoplamiento de locus-storage.js
 // locus-storage.js despacha shell:update-notif-badges en lugar de llamar updateTabNotifBadges() directamente
 window.addEventListener('shell:update-notif-badges', () => { updateTabNotifBadges(); });
+// B-202606-020 fix: locus-ui-shell.js despacha shell:open-notif-config desde mm-btn-notif handler
+window.addEventListener('shell:open-notif-config', () => { openNotifConfig(); });

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-06 UTC-6
 // locus-sesiones-viz.js
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
 //   (_showItemVizPanel), corrección de hora (openCorrectHora).
@@ -583,3 +583,7 @@ export function closeCkptPanel() {
 // Sin esta asignación el guard `typeof openCorrectHora === 'function'` retorna false en ESM
 // y los botones open-correct-hora / dot-correct-hora nunca ejecutan nada.
 window.openCorrectHora = openCorrectHora;
+
+// B-202606-020 fix: locus-ui-shell.js despacha shell:show-checkpoint-panel desde ckpt-reopen-btn
+// getLastCheckpointResult() se invoca aquí — locus-ui-shell.js no importa este módulo
+window.addEventListener('shell:show-checkpoint-panel', () => { showCheckpointPanel(getLastCheckpointResult()); });
