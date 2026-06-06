@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:37 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:38 · autor:Rune · 2026-06-06 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
@@ -851,16 +851,19 @@ export function renderBacklogList(onRendered) {
             // Estado de colapso desde localStorage
             const _collapseKey = 'locus-r-collapsed-' + item.code;
             const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
+            // T-202606-087: respetar estado del pill 'Hijos' al re-renderizar
+            const _showChildren = localStorage.getItem('backlog-show-children') === '1';
+            const _childrenCollapsed = _isRCollapsed || !_showChildren;
 
             // Wrapper del R con toggle
             html += `<div class="bl-r-with-children" data-r-code="${esc(item.code)}">`;
             // Card del R con botón toggle inyectado via wrapper — buildBacklogItem sin modificar
             html += `<div class="bl-r-card-wrap">`;
             html += buildBacklogItem(item);
-            html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="bl-r-toggle" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
+            html += `<button class="bl-r-toggle${_childrenCollapsed ? ' collapsed' : ''}" data-action="bl-r-toggle" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
             html += `</div>`; // bl-r-card-wrap
             // Wrapper de hijos con sangría
-            html += `<div class="bl-children-wrap${_isRCollapsed ? ' collapsed' : ''}" id="bl-children-${esc(item.code)}">`;
+            html += `<div class="bl-children-wrap${_childrenCollapsed ? ' collapsed' : ''}" id="bl-children-${esc(item.code)}">`;
             _children.forEach(child => {
               html += `<div class="bl-child-row">${buildBacklogItem(child)}</div>`;
             });
