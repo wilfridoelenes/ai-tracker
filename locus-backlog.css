@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:17 · autor:Finn · 2026-06-05 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:18 · autor:Rune · 2026-06-05 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -14,7 +14,9 @@
   border-left-color: var(--hint);
 }
 
-.item.is-discarded .item-title-inline {
+/* B-202606-017: .bitem-title es la clase del título en buildBacklogItem — .item-title-inline era la clase anterior */
+.item.is-discarded .item-title-inline,
+.item.is-discarded .bitem-title {
   text-decoration: line-through;
   color: var(--hint);
 }
