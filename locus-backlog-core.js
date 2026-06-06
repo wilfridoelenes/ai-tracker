@@ -1,34 +1,44 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:35 · autor:Finn · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:36 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
 
-import { updateBacklogFooter } from './locus-backlog-item.js';
-import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
-import { _getActiveSprint, _getSprintById, renderSprintBurndown, renderSprintItems } from './locus-backlog-sprints.js';
-import { openItemEditor } from './locus-backlog-editor.js';
+// T-202606-057: imports hacia módulos que importan a locus-backlog-core eliminados.
+// Funciones desacopladas via _coreCallbacks (getters/acciones controladas)
+// y shell:* events (notificaciones de render — window per B-202606-021).
 import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
+import { esc } from './locus-ui-shell.js';
 
-import { _confirmDiscard, _confirmRetroceso } from './locus-backlog-merge.js';
+// ── Callback registry — T-202606-057 ─────────────────────────────────────────
+// Módulos consumidores registran sus funciones aquí al inicializarse.
+// locus-backlog-core no las importa directamente — elimina ciclos.
+//
+// Registro de callbacks obligatorios por módulo registrante:
+//   locus-backlog-editor.js  → openItemEditor
+//   locus-backlog-merge.js   → confirmDiscard, confirmRetroceso
+//   locus-backlog-panel.js   → backlogSetSelected, openItemPanel, closeItemPanel
+//   locus-modals.js          → gconfirmOpen
+//   locus-notifications.js   → hasRecentSession
+//   locus-backlog-sprints.js → getActiveSprint, getSprintById
+//   locus-sprint-project.js  → getActiveProjectFilter
+const _coreCallbacks = {};
 
-import { _backlogSetSelected, closeItemPanel, openItemPanel } from './locus-backlog-panel.js';
+export function _registerCoreCallback(name, fn) {
+  if (typeof fn !== 'function') {
+    console.warn('[locus-backlog-core] _registerCoreCallback: "' + name + '" no es función — ignorado');
+    return;
+  }
+  _coreCallbacks[name] = fn;
+}
 
-import { _setBacklogModified, _updateSubTabButtons } from './locus-docs.js';
-
-import { normalize } from './locus-map-generator.js';
-
-import { _gconfirmOpen } from './locus-modals.js';
-
-import { hasRecentSession } from './locus-notifications.js';
-
-import { render } from './locus-sesiones.js';
-
-import { openDetail } from './locus-session-popup.js';
-
-import { _getActiveProjectFilter } from './locus-sprint-project.js';
-
-import { esc, switchTab } from './locus-ui-shell.js';
+// shell:* events despachados por este módulo (todos en window per B-202606-021):
+//   shell:backlog-render-dirty  → listener: _markBacklogListDirty() + renderBacklogList()
+//   shell:backlog-filter-changed → listener: updateClearFilterBtn()
+//   shell:backlog-footer-update  → listener: updateBacklogFooter()
+//   shell:backlog-modified       → listener: _setBacklogModified()
+//   shell:backlog-subtab-update  → listener: _updateSubTabButtons(detail.tab)
+//   shell:sprint-render          → listener: renderSprintBurndown() + renderSprintItems()
 
 // T-202604-216: Skeleton helpers
 const _SKEL_HTML_4 = Array(4).fill('<div class="skel-row"></div>').join('');
@@ -123,8 +133,9 @@ const _acReplacedSet = new Set();
 
 // B-202605-012: wrapper para llamadas inline a openItemEditor
 export function _openItemEditorSafe(id, code) {
-  if (openItemEditor) {
-    openItemEditor(id, code);
+  const _openItemEditorCb = _coreCallbacks.openItemEditor;
+  if (_openItemEditorCb) {
+    _openItemEditorCb(id, code);
   } else {
     showToast({ title: 'No se pudo abrir el editor', body: 'Recarga la página.', type: 'error' });
     console.error('[AI Tracker] openItemEditor no disponible — módulo externo no cargado');
@@ -143,7 +154,7 @@ export function undoBacklog() {
   _redoStack.push(JSON.stringify(ITEMS));
   _setITEMS(JSON.parse(_undoStack.pop()));
   saveBacklog();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   renderStats();
   _updateUndoUI();
   showToast('info', '↩ Deshacer aplicado');
@@ -154,7 +165,7 @@ export function redoBacklog() {
   _undoStack.push(JSON.stringify(ITEMS));
   _setITEMS(JSON.parse(_redoStack.pop()));
   saveBacklog();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   renderStats();
   _updateUndoUI();
   showToast('info', '↪ Rehacer aplicado');
@@ -388,7 +399,7 @@ function toggleBacklogBlockerFilter() {
   _backlogBlockerFilter = !_backlogBlockerFilter;
   const btn = document.getElementById('fbar-blocker-btn');
   if (btn) btn.classList.toggle('active', _backlogBlockerFilter);
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 // T-202605-449: filtro por ítems con dependencias bloqueantes activas
@@ -402,7 +413,7 @@ function toggleDepsFilter() {
     btn.textContent = labels[_depsFilter];
     btn.classList.toggle('active', _depsFilter > 0);
   }
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 // T-202605-449: helper — ítems con blockedBy[] que aún no están done
@@ -443,7 +454,8 @@ export function _hasRecentSession(item) {
     );
     return hasPostCreation;
   }
-  return hasRecentSession(item, _NO_SESSION_DAYS);
+  const _hasRecentSessionCb = _coreCallbacks.hasRecentSession;
+  return _hasRecentSessionCb ? _hasRecentSessionCb(item, _NO_SESSION_DAYS) : false;
 }
 
 // T-202604-297: prioridad automática desde señales del ítem — retorna 'high' | 'medium' | 'low'
@@ -458,7 +470,7 @@ export function _calcPriority(item) {
   const type = (item.code || '')[0];
   if (type === 'B') return 'high';
   if (item.sprint) {
-    const sp = _getSprintById(item.sprint);
+    const sp = (_coreCallbacks.getSprintById || (() => null))(item.sprint);
     // T-202605-529: guard explícita — si el sprint asignado no tiene registro en getSprintById,
     // tratar el ítem como sin sprint asignado y continuar con lógica estándar por effort.
     // No retornar 'high' automáticamente por este caso (comportamiento implícito previo eliminado).
@@ -498,7 +510,7 @@ export function _calcRelevanceScore(item, allSessionsCache) { // B-202605-009: a
 
   // 2. SPRINT ASIGNADO (0–20)
   if (item.sprint) {
-    const sp = _getSprintById(item.sprint);
+    const sp = (_coreCallbacks.getSprintById || (() => null))(item.sprint);
     if (sp && sp.status === 'active') score += 20;   // sprint activo
     else if (item.sprint)                 score += 6;  // sprint no registrado — heredado de import
   }
@@ -654,7 +666,7 @@ function purgeAllHistorico() {
     showToast('info', 'No hay ítems históricos para purgar.');
     return;
   }
-  _gconfirmOpen({
+  (_coreCallbacks.gconfirmOpen || (() => {}))({
     title: 'Purgar archivo histórico',
     msg: `¿Eliminar permanentemente los ${historicos.length} ítem${historicos.length !== 1 ? 's' : ''} históricos? Esta acción no se puede deshacer después de guardar.`,
     okLabel: 'Purgar',
@@ -665,7 +677,7 @@ function purgeAllHistorico() {
     _setITEMS(ITEMS.filter(i => i.status !== 'historico'));
     const purged = before - ITEMS.length;
     saveBacklog();
-    _markBacklogListDirty(); renderBacklogList();
+    window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
     renderStats();
     console.log(`[AI Tracker] purgeAllHistorico: ${purged} ítem(s) histórico(s) eliminados permanentemente.`);
     showToast('success', `🗑 ${purged} ítem${purged !== 1 ? 's' : ''} histórico${purged !== 1 ? 's' : ''} eliminado${purged !== 1 ? 's' : ''}.`);
@@ -824,7 +836,7 @@ export function itemType(code) {
 function clearTypeFilters() {
   activeTypes = new Set(['T','R','B','P']);
   updateTypeFilterUI();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 export function toggleTypeFilter(type) {
@@ -844,7 +856,7 @@ export function toggleTypeFilter(type) {
     activeTypes.add(type);
   }
   updateTypeFilterUI();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   // T-202604-364: filter-pulse feedback
   requestAnimationFrame(() => {
     document.querySelectorAll('.bl-fc-type-' + type).forEach(el => {
@@ -870,7 +882,7 @@ function updateTypeFilterUI() {
   // B-UX: indicar visualmente cuando todos los tipos están activos = estado neutro "sin filtro"
   const sTypesEl = document.querySelector('.stat-card.s-types');
   if (sTypesEl) sTypesEl.classList.toggle('s-types--all-active', activeTypes.size === 4);
-  updateClearFilterBtn();
+  window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
 }
 
 // T-049: toggle filtros status
@@ -891,7 +903,7 @@ export function toggleStatusFilter(status) {
   }
   _saveActiveStatuses();
   updateStatusFilterUI();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   // T-202604-364: filter-pulse feedback
   requestAnimationFrame(() => {
     const btnId = status === 'done' ? 'fstatus-done' : status === 'descartado' ? 'fstatus-descartado' : status === 'en-revision' ? 'fstatus-en-revision' : 'fstatus-pendiente';
@@ -908,7 +920,7 @@ export function updateStatusFilterUI() {
   if (doneBtn) doneBtn.classList.toggle('active', activeStatuses.has('done'));
   const discBtn = document.getElementById('fstatus-descartado');
   if (discBtn) discBtn.classList.toggle('active', activeStatuses.has('descartado'));
-  updateClearFilterBtn();
+  window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
 }
 
 // T-051: colapso por versión
@@ -1076,7 +1088,7 @@ function relativeImportTime(ts) {
 export function updateBacklogBanner() {
   const banner = document.getElementById('backlog-meta-banner');
   const exportBtn = document.getElementById('export-backlog-btn');
-  if (!_getActiveProjectFilter() || !ITEMS.length) {
+  if (!(_coreCallbacks.getActiveProjectFilter || (() => null))() || !ITEMS.length) {
     if (banner) banner.classList.remove('visible');
     if (exportBtn) exportBtn.classList.add("is-hidden");
     return;
@@ -1178,9 +1190,9 @@ export function importBacklog(event) {
       updateBacklogBanner();
       updateStatusFilterUI();
       renderStats();
-      _markBacklogListDirty(); renderBacklogList();
-      updateBacklogFooter();
-      _setBacklogModified();
+      window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
+      window.dispatchEvent(new CustomEvent('shell:backlog-footer-update'));
+      window.dispatchEvent(new CustomEvent('shell:backlog-modified'));
       // Toast enriquecido con pills de color por tipo y sprint
       const TYPE_COLORS_TOAST = { B:'#e85555', T:'#2ecc78', R:'#38bdf8', I:'#7c6af7', P:'#7c6af7' };
       const byTypeTst = { B:0, T:0, R:0, I:0, P:0 };
@@ -1200,7 +1212,7 @@ export function importBacklog(event) {
       const autoHtml = autoAssigned ? '<div class="toast-auto-hint">' + autoAssigned + ' ID' + (autoAssigned !== 1 ? 's' : '') + ' auto-asignado' + (autoAssigned !== 1 ? 's' : '') + '</div>' : '';
       const toastMsg = '<div class="toast-import-title">✓ ' + parsed.length + ' ítem' + (parsed.length !== 1 ? 's' : '') + ' importado' + (parsed.length !== 1 ? 's' : '') + '</div><div class="toast-import-pills">' + pillsHtml + (sprintHtml ? ' ' + sprintHtml : '') + '</div>' + autoHtml;
       showToast('success', toastMsg, null, 5000);
-      _updateSubTabButtons('backlog'); // ocultar botón importar tras bootstrap exitoso
+      window.dispatchEvent(new CustomEvent('shell:backlog-subtab-update', { detail: { tab: 'backlog' } })); // ocultar botón importar tras bootstrap exitoso
     } catch(err) {
       console.error('[AI Tracker] importBacklog CATCH:', err.name, '—', err.message, err.stack);
       const errMsg = err.name === 'QuotaExceededError' 
@@ -1249,14 +1261,14 @@ export function setItemStatus(code, newStatus) {
   if (newStatus === 'descartado') {
     // Resetear el select visualmente antes de que el modal confirme
     _resetStatusSelect(code, item.status);
-    _confirmDiscard(code, '', '');
+    (_coreCallbacks.confirmDiscard || (() => {}))(code, '', '');
     return;
   }
 
   // Retroceso done → pendiente/backlog: requiere confirmación
   if (item.status === 'done' && (newStatus === 'pendiente' || newStatus === 'backlog' || newStatus === 'in-progress')) {
     _resetStatusSelect(code, item.status);
-    _confirmRetroceso(code, newStatus);
+    (_coreCallbacks.confirmRetroceso || (() => {}))(code, newStatus);
     return;
   }
 
@@ -1272,7 +1284,7 @@ export function setItemStatus(code, newStatus) {
     // T-202605-008: reemplazar confirm() nativo por _gconfirmOpen
     const prevStatus = item.status;
     _resetStatusSelect(code, prevStatus);
-    _gconfirmOpen({
+    (_coreCallbacks.gconfirmOpen || (() => {}))({
       msg,
       danger: false,
       okLabel: 'Marcar done',
@@ -1284,7 +1296,7 @@ export function setItemStatus(code, newStatus) {
 
   // T-A4b: marcar done en sprint activo — inline confirm no-bloqueante (Variante B)
   if (newStatus === 'done') {
-    const activeSprint = _getActiveSprint();
+    const activeSprint = (_coreCallbacks.getActiveSprint || (() => null))();
     const itemInActiveSprint = activeSprint && item.sprint && item.sprint === activeSprint.id;
     if (itemInActiveSprint) {
       _showInlineConfirmDone(code);
@@ -1302,14 +1314,13 @@ function _applyExitAnimOrRender(code) {
     const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
     if (el) {
       el.classList.add('item-exit-anim');
-      setTimeout(() => { _markBacklogListDirty(); renderBacklogList(); renderStats(); renderSprintBurndown(); renderSprintItems(); }, 360); // T-202605-058 T-202605-044
+      setTimeout(() => { window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty')); renderStats(); window.dispatchEvent(new CustomEvent('shell:sprint-render')); }, 360); // T-202605-058 T-202605-044
       return;
     }
   }
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   renderStats();
-  renderSprintBurndown(); // T-202605-058
-  renderSprintItems(); // T-202605-044
+  window.dispatchEvent(new CustomEvent('shell:sprint-render')); // T-202605-058 T-202605-044
 }
 
 // T-202605-008: lógica de mutación extraída para ser llamada desde _gconfirmOpen y flujo directo
@@ -1356,7 +1367,7 @@ function _applyStatusChange(code, newStatus, prevStatus) {
   saveBacklog();
   // C8: animación salida delegada — T-202606-027
   if (newStatus === 'done') _applyExitAnimOrRender(code);
-  else { _markBacklogListDirty(); renderBacklogList(); renderStats(); renderSprintBurndown(); renderSprintItems(); }
+  else { window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty')); renderStats(); window.dispatchEvent(new CustomEvent('shell:sprint-render')); }
 }
 
 function _resetStatusSelect(code, currentStatus) {
@@ -1498,7 +1509,7 @@ export function _isCountableItem(i) {
 }
 
 export function renderStats() {
-  if (!_getActiveProjectFilter() || !ITEMS.length) { document.getElementById('stats-bar').innerHTML = ''; return; }
+  if (!(_coreCallbacks.getActiveProjectFilter || (() => null))() || !ITEMS.length) { document.getElementById('stats-bar').innerHTML = ''; return; }
 
   // Delegation para stats-bar — se registra una sola vez
   const statsBarEl = document.getElementById('stats-bar');
@@ -1667,14 +1678,14 @@ function toggleItemExpand(idx) {
   const open = body.classList.toggle('open');
   if (arrow) arrow.textContent = open ? '▾' : '▸';
   // T-202604-253: marcar ítem como seleccionado al expandir/colapsar
-  _backlogSetSelected(body.closest ? body.closest('.item[data-code]') : null);
+  (_coreCallbacks.backlogSetSelected || (() => {}))(body.closest ? body.closest('.item[data-code]') : null);
   // R-202604-015: abrir/cerrar panel lateral al expandir ítem
   const itemEl = body.closest ? body.closest('.item[data-code]') : null;
   const code = itemEl ? itemEl.dataset.code : null;
   if (open && code) {
-    openItemPanel(code);
+    (_coreCallbacks.openItemPanel || (() => {}))(code);
   } else if (!open) {
-    closeItemPanel();
+    (_coreCallbacks.closeItemPanel || (() => {}))();
   }
 }
 
@@ -1714,8 +1725,8 @@ function clearAllFilters() {
   updateStatusFilterUI();
   updateEffortFilterUI(); // T-071
   updateRoleFilterUI();   // T-202604-245
-  updateClearFilterBtn();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 // R-202605-122 AC3: asignación rápida de effort desde badge sin abrir editor completo
@@ -1729,7 +1740,7 @@ function _quickAssignEffort(codeOrId) {
   if (item._needsEffortReview) delete item._needsEffortReview;
   _undoSnapshot();
   saveBacklog();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   renderStats();
   showToast('success', '✓ Effort ' + n + ' asignado a ' + (item.code || item.id));
 }
@@ -1753,7 +1764,7 @@ export function toggleEffortFilter(e) {
     activeEfforts.add(n);
   }
   updateEffortFilterUI();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   // T-202604-364: filter-pulse feedback
   requestAnimationFrame(() => {
     const el = document.getElementById('feff-' + n);
@@ -1766,7 +1777,7 @@ function updateEffortFilterUI() {
     const el = document.getElementById('feff-' + n);
     if (el) el.classList.toggle('active', activeEfforts.has(n));
   });
-  updateClearFilterBtn(); // B-202606-006
+  window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed')); // B-202606-006
 }
 
 // T-202604-065: sort handler
@@ -1786,8 +1797,8 @@ function setItemRole(code, role) {
   _undoSnapshot();
   _blogLog('rol →', code, role || '(vacío)', 'backlog');
   saveBacklog();
-  _setBacklogModified();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-modified'));
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   renderStats();
   showToast('success', role ? `${code} → ${role}` : `${code} rol limpiado`);
 }
@@ -1801,8 +1812,8 @@ export function toggleRoleFilter(role) {
     activeRoleFilter = role;
   }
   updateRoleFilterUI();
-  updateClearFilterBtn();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 // T-202604-357: toggle filtro por prioridad — acumulable, combina con otros filtros
@@ -1812,8 +1823,8 @@ function togglePriorityFilter(p) {
   } else {
     activePriorityFilter.add(p);
   }
-  updateClearFilterBtn();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   renderStats();
 }
 
@@ -1859,7 +1870,7 @@ function onBacklogSortChange(val) {
   // T-202604-424: ignorar 'sprint' si llega de localStorage legacy o select antiguo
   if (val === 'sprint') val = 'priority';
   backlogSortMode = val;
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 // T-072: toggle dirección de sort
@@ -1867,7 +1878,7 @@ function toggleSortDir() {
   backlogSortDir = backlogSortDir === 'asc' ? 'desc' : 'asc';
   const btn = document.getElementById('fbar-sort-dir-btn');
   if (btn) btn.textContent = backlogSortDir === 'asc' ? '↑' : '↓';
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 // T-202604-187: toggle árbol vs vista plana
@@ -1875,7 +1886,7 @@ function toggleSortDir() {
 // T-202604-287: toggle vista Kanban
 // T-202604-313/366: Mi vista — T's pendientes del rol activo en sprint activo, rotativo
 export function _getMiViewRoles() {
-  const activeSprint = _getActiveSprint();
+  const activeSprint = (_coreCallbacks.getActiveSprint || (() => null))();
   if (!activeSprint) return [];
   const roles = new Set();
   ITEMS.forEach(i => {
@@ -1961,9 +1972,9 @@ export function toggleBacklogMikeMode() {
       ? 'Mi vista activa · click para rotar al siguiente rol'
       : 'Mi vista — T\'s pendientes por rol en sprint activo';
   }
-  updateClearFilterBtn();
+  window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
   _syncViewAriaStates();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 function toggleBacklogKanbanMode() {
@@ -1977,7 +1988,7 @@ function toggleBacklogKanbanMode() {
   const kbBtn = document.getElementById('fbar-kanban-btn');
   if (kbBtn) kbBtn.classList.toggle('active', _backlogKanbanMode);
   _syncViewAriaStates();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 
@@ -1990,8 +2001,8 @@ export function toggleBacklogNoAcMode() {
     btn.classList.toggle('active', _backlogNoAcMode);
     btn.title = _backlogNoAcMode ? 'Sin AC activo — click para desactivar' : 'Filtrar ítems sin criterios de aceptación';
   }
-  updateClearFilterBtn();
-  _markBacklogListDirty(); renderBacklogList();
+  window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 // R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente
@@ -2081,7 +2092,7 @@ document.addEventListener('DOMContentLoaded', function () {
     backlogSearchQuery = _inputSearch.value.trim().toLowerCase();
     const _bsClear = document.getElementById('backlog-search-clear');
     if (_bsClear) _bsClear.classList.toggle('visible', backlogSearchQuery.length > 0);
-    _markBacklogListDirty(); renderBacklogList();
+    window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   });
 
   const _btnSearchClear = document.getElementById('backlog-search-clear');
@@ -2089,7 +2100,7 @@ document.addEventListener('DOMContentLoaded', function () {
     backlogSearchQuery = '';
     if (_inputSearch) _inputSearch.value = '';
     _btnSearchClear.classList.remove('visible');
-    _markBacklogListDirty(); renderBacklogList();
+    window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   });
 
   // Filtros de status
@@ -2141,5 +2152,5 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // B-202606-008: sincronizar visibilidad del botón Limpiar filtros con el estado
   // real de los filtros en la carga inicial — antes de cualquier interacción del usuario
-  updateClearFilterBtn();
+  window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
 });
