@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-06-05 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -1018,6 +1018,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 // ── END T-202605-031 locus-docs ──
+
+// ── B-[pendiente-ID]: listener shell:update-subtab-buttons ──────────────────
+window.addEventListener('shell:update-subtab-buttons', e => {
+  _updateSubTabButtons(e.detail?.sub || 'backlog');
+});
+// ── END B-[pendiente-ID] ──
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
