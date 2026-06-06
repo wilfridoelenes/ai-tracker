@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:31 · autor:Rune · 2026-06-06 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -1173,7 +1173,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const action = row.dataset.action;
     if (action === 'navigateToCard') {
       const _aiId = row.dataset.aiId;
-      import('./locus-sesiones-stats.js').then(function(m) { m.navigateToCard(_aiId); });
+      import('./locus-sesiones-stats.js').then(function(m) { if (typeof m.navigateToCard === 'function') m.navigateToCard(_aiId); });
     } else if (action === 'openDetail') {
       openDetail(row.dataset.aiId, row.dataset.sessId);
     } else if (action === 'openQuickNote') {
