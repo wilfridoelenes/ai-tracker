@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:37 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:38 · autor:Finn · 2026-06-06 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -381,13 +381,8 @@ export function toggleShowChildren(checked) {
     });
   } else {
     childWraps.forEach(w => {
-      if (w.classList.contains('bl-children-visible')) {
-        w.classList.remove('bl-children-visible');
-        const rCode = w.id ? w.id.replace('bl-children-', '') : null;
-        if (rCode && localStorage.getItem('locus-r-collapsed-' + rCode) === '1') {
-          w.classList.add('collapsed');
-        }
-      }
+      w.classList.remove('bl-children-visible');
+      w.classList.add('collapsed');
     });
   }
   try { localStorage.setItem('backlog-show-children', checked ? '1' : '0'); } catch {}
