@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-01 · mod:26 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-01 · mod:27 · autor:Rune · 2026-06-06 UTC-6
 // locus-storage.js
 // Última actualización: 2026-06-05 · T-202606-056: Romper ciclos — eliminar imports hacia módulos que importan locus-storage.js
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -927,10 +927,20 @@ export function _resetExpired(resetTime, resetEpoch) {
 // el segundo disparo detecta el flag activo y sale como no-op.
 let _loadFromSupabaseInFlight = false;
 
+// B-202606-028: flag que indica que _initApp() completó la inyección de referencias.
+// _loadFromSupabase puede dispararse via onAuthStateChange antes de _initApp —
+// en ese caso _getItems aún es el fallback [] y emitiría un warn incorrecto.
+// El retry de 200ms entra limpio una vez que _initApp termina.
+let _appReady = false;
+
 export async function _loadFromSupabase() {
   // AC-9 R-C2: si hay un write local pendiente en debounce, el state local es más reciente
   // que Supabase — cancelar la carga para evitar rollback silencioso del estado volátil.
   if (_saveDebounceTimer !== null) return;
+
+  // B-202606-028: si _initApp aún no completó la inyección de referencias,
+  // _getItems sigue siendo el fallback [] — postergar 200ms y reintentar.
+  if (!_appReady) { setTimeout(_loadFromSupabase, 200); return; }
 
   // R-202605-022 Fase 3 AC-2: guard anti-doble-load — el segundo disparo es no-op.
   if (_loadFromSupabaseInFlight) return;
@@ -1417,6 +1427,8 @@ export function _initApp(opts = {}) {
   else console.warn('[AI Tracker] _initApp: migrateItemTypes no recibido en opts — usando no-op');
   if (opts.purgeStaleBacklogCache) _purgeStaleBacklogCache = opts.purgeStaleBacklogCache;
   else console.warn('[AI Tracker] _initApp: purgeStaleBacklogCache no recibido en opts — usando fallback 0');
+  // B-202606-028: marcar referencias inyectadas — _loadFromSupabase puede reintentar ahora.
+  _appReady = true;
   // 1. Cargar estado desde localStorage en memoria (sin UI)
   load();
 
