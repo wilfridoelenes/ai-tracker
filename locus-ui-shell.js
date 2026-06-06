@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:27 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-05 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -635,7 +635,8 @@ function _scbOnStepComplete() {
 // Action buttons per step — routes to existing open functions
 function _scbStepAction(stepId) {
   switch (stepId) {
-    case 'worker':  openAddAI(); break;
+    // (a) event dispatch — locus-workers.js escucha 'shell:open-add-ai'
+    case 'worker':  window.dispatchEvent(new CustomEvent('shell:open-add-ai')); break;
     case 'project': openProjModal(); break;
     case 'item':    switchTab('backlog'); break;
     case 'session': /* Session created via CHECKPOINT paste — no direct action */ break;
@@ -1073,7 +1074,8 @@ export function openShortcuts() {
   if (overlay) {
     overlay.classList.remove('is-hidden');
     _shortcutsRender();
-    _focusFirstInteractive('shortcuts-panel');
+    // (b) lazy import dinámico — _focusFirstInteractive requiere ejecución síncrona post-render
+    import('./locus-modals.js').then(m => m._focusFirstInteractive('shortcuts-panel'));
   }
 }
 
@@ -1257,7 +1259,8 @@ document.addEventListener('DOMContentLoaded', function () {
     'mm-btn-import':    function () { const el = document.getElementById('imp'); if (el) el.click(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
     'mm-btn-report':    function () { if (typeof downloadGlobalReport === 'function') downloadGlobalReport(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
     'mm-btn-changelog': function () { if (typeof openChangelog === 'function') openChangelog(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
-    'mm-btn-notif':     function () { openNotifConfig(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
+    // (a) event dispatch — locus-notifications.js escucha 'shell:open-notif-config'
+    'mm-btn-notif':     function () { window.dispatchEvent(new CustomEvent('shell:open-notif-config')); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
     'mm-btn-sync':      function () { if (typeof handleSyncPillClick === 'function') handleSyncPillClick(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
     'mm-btn-migrate':   function () { if (typeof openMigrateFirebaseModal === 'function') openMigrateFirebaseModal(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
     'mm-btn-clean':     function () { if (typeof openCleanProjectModal === 'function') openCleanProjectModal(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
