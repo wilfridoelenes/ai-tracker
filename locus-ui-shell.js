@@ -1,39 +1,20 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:26 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:27 · autor:Rune · 2026-06-05 UTC-6
 // locus-ui-shell.js
-// Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
+// Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
 // Debe cargarse antes de ai-tracker-checkpoint.js y ai-tracker-ai-notes.js
+//
+// PATRÓN DE DESACOPLAMIENTO (T-202606-055):
+// Las funciones de render/UI que antes se importaban directamente ahora se invocan via:
+//   (a) event dispatch: window.dispatchEvent(new CustomEvent('shell:invoke', { detail: { fn, args } }))
+//       — usado para funciones de render de tab/subtab y acciones de UI que pueden ser asíncronas
+//   (b) lazy import dinámico import() — usado para funciones síncronas en handlers críticos
+//       donde el resultado debe procesarse en la misma pila (overlays, atajos de teclado)
+//   (c) acceso via window.* — para funciones que ya exponen contrato público en window
+//       (locus-api.js garantiza que el contrato público está disponible post-DOMContentLoaded)
+// Cada módulo consumidor es responsable de registrar listener 'shell:invoke' para sus propias funciones.
 
-import { renderAnalytics } from './locus-analytics-render.js';
-import { importBacklog, loadBacklog, renderStats, updateBacklogBanner, getItems} from './locus-backlog-core.js';
-import { showMergeDiffPanel } from './locus-backlog-merge.js';
-import { closeItemPanel, openItemPanel } from './locus-backlog-panel.js';
-import { renderBacklogList } from './locus-backlog-render.js';
-import { navigateToItem } from './locus-backlog-sprints.js';
-import { renderContratos } from './locus-contracts.js';
-import { _renderDocsOnboarding, _renderTplProjBanner, _updateSubTabButtons, renderContext, updateBacklogModificationBadge, updateHtmlMapModificationBadge } from './locus-docs.js';
-import { closeItemEditor, openItemEditor } from './locus-backlog-editor.js';
-import { renderHtmlMap } from './locus-map-viewer.js';
-import { _focusFirstInteractive } from './locus-modals.js';
-import { openNotifConfig } from './locus-notifications.js';
-import { renderProyectos } from './locus-projects.js';
-import { closePulsoPanel } from './locus-pulso.js';
-import { _markRadarDirty, renderGlobalRadarSidebar } from './locus-radar.js';
-import { closeQuickCapture } from './locus-sesiones-capture.js';
-import { navigateToCard } from './locus-sesiones-stats.js';
-import { _itemVizClose, getLastCheckpointResult, showCheckpointPanel } from './locus-sesiones-viz.js';
-import { _stopSidebarTicker, render } from './locus-sesiones.js';
-import { confirmSave, relDate } from './locus-session-hora.js';
-import { closePopup, openDetail } from './locus-session-popup.js';
-import { renderPlan } from './locus-sprint-plan.js';
-import { _getActiveProjectFilter, closeProjModal, closeProjPanel, openProjModal, openProjPanel, selectProjectFilter } from './locus-sprint-project.js';
-import { renderSprintTab } from './locus-sprint.js';
-import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAISessions, getAllSessions, getState, save } from './locus-storage.js';
-import { openAddAI } from './locus-workers.js';
-import { addNewTag } from './locus-tags.js';
-
-import { normalize } from './locus-map-generator.js';
-import { exportBacklogMd, exportFullHistoryMd, exportContextMd } from './locus-backlog-generator.js';
+import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save } from './locus-storage.js';
 
 // ── Global utility ────────────────────────────────────────────────────────
 // esc() usada por múltiples módulos (backlog, session, toast, checkpoint)
@@ -74,10 +55,14 @@ export function switchTab(tab) {
   }
 
   // DUP-05: cerrar preview de sesión al cambiar de tab
-  closePopup();
+  // (a) event dispatch — locus-session-popup.js escucha 'shell:close-popup'
+  window.dispatchEvent(new CustomEvent('shell:close-popup'));
   // B-202605-207: cerrar panel de detalle al cambiar de tab
+  // (a) event dispatch — locus-backlog-panel.js escucha 'shell:close-item-panel'
   const panel = document.getElementById('item-detail-panel');
-  if (panel && panel.classList.contains('open')) closeItemPanel();
+  if (panel && panel.classList.contains('open')) {
+    window.dispatchEvent(new CustomEvent('shell:close-item-panel'));
+  }
   // T-202604-254: tab 'hoy' eliminado — redirigir a 'tracker'
   if (tab === 'hoy') tab = 'tracker';
   currentTab = tab;
@@ -93,11 +78,13 @@ export function switchTab(tab) {
   document.querySelectorAll('.tracker-only').forEach(el => el.classList.toggle('is-hidden', tab !== 'tracker'));
   document.querySelectorAll('.analytics-only').forEach(el => el.classList.toggle('is-hidden', tab !== 'analytics'));
   // Templates toolbar: update buttons via _updateSubTabButtons
+  // (a) event dispatch — locus-docs.js escucha 'shell:update-subtab-buttons'
   if (tab === 'backlog') {
-    _updateSubTabButtons(currentSubTab || 'backlog');
+    window.dispatchEvent(new CustomEvent('shell:update-subtab-buttons', { detail: { sub: currentSubTab || 'backlog' } }));
   }
   if (typeof _stopHoyTicker === 'function') _stopHoyTicker();
-  if (tab !== 'tracker') _stopSidebarTicker();
+  // (a) event dispatch — locus-sesiones.js escucha 'shell:stop-sidebar-ticker'
+  if (tab !== 'tracker') window.dispatchEvent(new CustomEvent('shell:stop-sidebar-ticker'));
 
   // Update search placeholder — T-202605-460: conservar término, cerrar panel
   const si = document.getElementById('search-global');
@@ -112,16 +99,22 @@ export function switchTab(tab) {
   if (_surPanel) _surPanel.remove();
 
   if (tab === 'tracker') {
-    render(); // B-202605-[pendiente-ID]: applyViewMode eliminada en refactor — reemplazada por render()
+    // (a) event dispatch — locus-sesiones.js escucha 'shell:render-tracker'
+    window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   } else if (tab === 'backlog') {
-    updateBacklogBanner();
-    renderBacklogList();
+    // (a) event dispatch — locus-backlog-core.js escucha 'shell:update-backlog-banner'
+    window.dispatchEvent(new CustomEvent('shell:update-backlog-banner'));
+    // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-backlog-list'
+    window.dispatchEvent(new CustomEvent('shell:render-backlog-list'));
   } else if (tab === 'analytics') {
-    renderAnalytics();
+    // (a) event dispatch — locus-analytics-render.js escucha 'shell:render-analytics'
+    window.dispatchEvent(new CustomEvent('shell:render-analytics'));
   } else if (tab === 'sprint') {
-    renderSprintTab();
+    // (a) event dispatch — locus-sprint.js escucha 'shell:render-sprint-tab'
+    window.dispatchEvent(new CustomEvent('shell:render-sprint-tab'));
   } else if (tab === 'proyectos') {
-    renderProyectos();
+    // (a) event dispatch — locus-projects.js escucha 'shell:render-proyectos'
+    window.dispatchEvent(new CustomEvent('shell:render-proyectos'));
   }
 
   // B-[pendiente-ID]: cada tab-panel tiene su propio overflow-y:auto —
@@ -129,8 +122,8 @@ export function switchTab(tab) {
   if (tabEl) tabEl.scrollTop = 0;
 
   // Refresh radar sidebar
-  _markRadarDirty();
-  renderGlobalRadarSidebar();
+  // (a) event dispatch — locus-radar.js escucha 'shell:radar-refresh'
+  window.dispatchEvent(new CustomEvent('shell:radar-refresh'));
 }
 
 // ── Sub-tab switching (extraído de ai-tracker-ai-notes.js) ─────────────────
@@ -143,23 +136,41 @@ export function switchSubTab(sub) {
     if (btn) btn.classList.toggle('active', s === sub);
     if (panel) panel.classList.toggle('active', s === sub);
   });
-  _updateSubTabButtons(sub);
-  _renderTplProjBanner();
+  // (a) event dispatch — locus-docs.js escucha 'shell:update-subtab-buttons'
+  window.dispatchEvent(new CustomEvent('shell:update-subtab-buttons', { detail: { sub } }));
+  // (a) event dispatch — locus-docs.js escucha 'shell:render-tpl-proj-banner'
+  window.dispatchEvent(new CustomEvent('shell:render-tpl-proj-banner'));
   if (sub === 'htmlmap') {
-    renderHtmlMap();
-    updateHtmlMapModificationBadge();
+    // (a) event dispatch — locus-map-viewer.js escucha 'shell:render-html-map'
+    window.dispatchEvent(new CustomEvent('shell:render-html-map'));
+    // (a) event dispatch — locus-docs.js escucha 'shell:update-htmlmap-modification-badge'
+    window.dispatchEvent(new CustomEvent('shell:update-htmlmap-modification-badge'));
   }
   if (sub === 'backlog') {
-    loadBacklog();
-    renderBacklogList();
-    renderStats();
-    updateBacklogModificationBadge();
+    // (a) event dispatch — locus-backlog-core.js escucha 'shell:load-backlog'
+    window.dispatchEvent(new CustomEvent('shell:load-backlog'));
+    // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-backlog-list'
+    window.dispatchEvent(new CustomEvent('shell:render-backlog-list'));
+    // (a) event dispatch — locus-backlog-core.js escucha 'shell:render-stats'
+    window.dispatchEvent(new CustomEvent('shell:render-stats'));
+    // (a) event dispatch — locus-docs.js escucha 'shell:update-backlog-modification-badge'
+    window.dispatchEvent(new CustomEvent('shell:update-backlog-modification-badge'));
   }
-  if (sub === 'context') { renderContext(); }
-  if (sub === 'plan') { renderPlan(); }
-  if (sub === 'contratos') { renderContratos(); }
+  if (sub === 'context') {
+    // (a) event dispatch — locus-docs.js escucha 'shell:render-context'
+    window.dispatchEvent(new CustomEvent('shell:render-context'));
+  }
+  if (sub === 'plan') {
+    // (a) event dispatch — locus-sprint-plan.js escucha 'shell:render-plan'
+    window.dispatchEvent(new CustomEvent('shell:render-plan'));
+  }
+  if (sub === 'contratos') {
+    // (a) event dispatch — locus-contracts.js escucha 'shell:render-contratos'
+    window.dispatchEvent(new CustomEvent('shell:render-contratos'));
+  }
   if (typeof renderAIStatusBar === 'function') renderAIStatusBar();
-  _renderDocsOnboarding(); // T-202604-204
+  // (a) event dispatch — locus-docs.js escucha 'shell:render-docs-onboarding'
+  window.dispatchEvent(new CustomEvent('shell:render-docs-onboarding')); // T-202604-204
 }
 
 // ── Theme ──────────────────────────────────────────────────────────────────
@@ -217,14 +228,16 @@ export function onSearch() {
   if (prevPanel) prevPanel.remove();
 
   if (!q) {
-    render();
+    // (a) event dispatch — locus-sesiones.js escucha 'shell:render-tracker'
+    window.dispatchEvent(new CustomEvent('shell:render-tracker'));
     if (countEl) countEl.textContent = '';
     return;
   }
 
   // B-202605-236: proyecto activo para filtrar sesiones/proyectos
-  const _activeProjId = (!_searchScopeAll)
-    ? _getActiveProjectFilter()
+  // (c) acceso via window.* — _getActiveProjectFilter expuesto por locus-sprint-project.js
+  const _activeProjId = (!_searchScopeAll && typeof window._getActiveProjectFilter === 'function')
+    ? window._getActiveProjectFilter()
     : null;
 
   // B-202605-237: helper para resaltar término buscado en texto
@@ -278,7 +291,9 @@ export function onSearch() {
   });
 
   // ── 4. T-202604-420: Ítems de backlog coincidentes ──
-  const backlogMatches = (typeof getItems() !== 'undefined' ? getItems() : []).filter(item => {
+  // (c) acceso via window.* — getItems expuesto por locus-backlog-core.js
+  const _items = (typeof window.getItems === 'function') ? window.getItems() : [];
+  const backlogMatches = _items.filter(item => {
     if (item.status === 'descartado') return false;
     const titleHit = (item.title || item.desc || '').toLowerCase().includes(q);
     const codeHit = (item.code || '').toLowerCase().includes(q);
@@ -373,7 +388,7 @@ export function onSearch() {
     sessSlice.forEach(({ sess, proj, ai }) => {
       const aiName = ai ? hlText(ai.name, q) : '\u2014';
       const projName = proj ? _esc((proj.icon || '\u{1F4C1}') + ' ' + proj.name) : '';
-      const dateLabel = (relDate(sess.date, sess.savedAt || sess.createdAt)) || sess.dateShort || '';
+      const dateLabel = (typeof window.relDate === 'function' ? window.relDate(sess.date, sess.savedAt || sess.createdAt) : null) || sess.dateShort || '';
       const summSnip = sess.summary ? `<span class="sur-meta">${hlText(sess.summary.slice(0, 80), q)}${sess.summary.length > 80 ? '\u2026' : ''}</span>` : '';
       html += `<div class="sur-row" data-action="openDetail" data-ai-id="${ai ? ai.id : ''}" data-sess-id="${sess.id}">
         <span class="sur-row-icon">📄</span>
@@ -396,7 +411,7 @@ export function onSearch() {
       <div class="sur-group-label">📝 Notas (${noteMatches.length})</div>
       <div class="sur-rows">`;
     noteMatches.slice(0, 20).forEach(n => {
-      const dateLabel = (relDate(n.updatedAt || n.createdAt)) || '';
+      const dateLabel = (typeof window.relDate === 'function' ? window.relDate(n.updatedAt || n.createdAt) : null) || '';
       const refBadge = n.itemRef ? `<span class="sur-badge">${hlText(n.itemRef, q)}</span>` : '';
       html += `<div class="sur-row" data-action="openQuickNote" data-note-id="${n.id}">
         <span class="sur-row-icon">🗒</span>
@@ -549,7 +564,8 @@ export function renderSetupChecklist() {
   const state = getState();
   const workerDone  = (state.ais || []).length > 0;
   const projectDone = (state.projects || []).length > 0;
-  const itemDone    = (typeof getItems() !== 'undefined' ? getItems() : []).length > 0;
+  // (c) acceso via window.* — getItems expuesto por locus-backlog-core.js
+  const itemDone    = (typeof window.getItems === 'function' ? window.getItems() : []).length > 0;
   const sessionDone = getAllSessions().length > 0;
   const allDone = workerDone && projectDone && itemDone && sessionDone;
 
@@ -639,15 +655,22 @@ export function _escCascade() {
     () => { const el = document.getElementById('shortcuts-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcuts(); return true; } },
     () => { const el = document.getElementById('cp-overlay'); if (el && !el.classList.contains('is-hidden')) { if (typeof closeCommandPalette === 'function') closeCommandPalette(); return true; } },
     () => { const el = document.getElementById('quick-note-modal'); if (el && el.offsetParent !== null) { if (typeof closeQuickNote === 'function') closeQuickNote(); return true; } },
-    () => { const el = document.getElementById('qc-modal-overlay'); if (el && el.classList.contains('open')) { closeQuickCapture(); return true; } },
-    () => { const el = document.getElementById('item-detail-panel'); if (el && el.classList.contains('open')) { closeItemPanel(); return true; } },
-    () => { const el = document.getElementById('item-editor-overlay'); if (el && el.offsetParent !== null) { closeItemEditor(); return true; } },
-    () => { const el = document.getElementById('merge-diff-overlay'); if (el && el.offsetParent !== null) { { const p = document.getElementById('item-viz-overlay'); if (p && !p.classList.contains('is-hidden')) { _itemVizClose(); return true; } } } },
-    () => { const el = document.getElementById('item-viz-overlay'); if (el && !el.classList.contains('is-hidden')) { _itemVizClose(); return true; } },
+    // (a) event dispatch — locus-sesiones-capture.js escucha 'shell:close-quick-capture'
+    () => { const el = document.getElementById('qc-modal-overlay'); if (el && el.classList.contains('open')) { window.dispatchEvent(new CustomEvent('shell:close-quick-capture')); return true; } },
+    // (a) event dispatch — locus-backlog-panel.js escucha 'shell:close-item-panel'
+    () => { const el = document.getElementById('item-detail-panel'); if (el && el.classList.contains('open')) { window.dispatchEvent(new CustomEvent('shell:close-item-panel')); return true; } },
+    // (a) event dispatch — locus-backlog-editor.js escucha 'shell:close-item-editor'
+    () => { const el = document.getElementById('item-editor-overlay'); if (el && el.offsetParent !== null) { window.dispatchEvent(new CustomEvent('shell:close-item-editor')); return true; } },
+    // (a) event dispatch — locus-sesiones-viz.js escucha 'shell:item-viz-close'
+    () => { const el = document.getElementById('merge-diff-overlay'); if (el && el.offsetParent !== null) { { const p = document.getElementById('item-viz-overlay'); if (p && !p.classList.contains('is-hidden')) { window.dispatchEvent(new CustomEvent('shell:item-viz-close')); return true; } } } },
+    () => { const el = document.getElementById('item-viz-overlay'); if (el && !el.classList.contains('is-hidden')) { window.dispatchEvent(new CustomEvent('shell:item-viz-close')); return true; } },
     () => { const el = document.getElementById('pend-overlay'); if (el && el.offsetParent !== null) { if (typeof closePendPanel === 'function') closePendPanel(); return true; } },
-    () => { const el = document.getElementById('proj-modal-overlay'); if (el && el.offsetParent !== null) { closeProjModal(); return true; } },
-    () => { const el = document.getElementById('proj-panel-overlay'); if (el && el.offsetParent !== null) { closeProjPanel(); return true; } },
-    () => { const el = document.getElementById('pulso-panel'); if (el && el.offsetParent !== null) { closePulsoPanel(); return true; } },
+    // (a) event dispatch — locus-sprint-project.js escucha 'shell:close-proj-modal'
+    () => { const el = document.getElementById('proj-modal-overlay'); if (el && el.offsetParent !== null) { window.dispatchEvent(new CustomEvent('shell:close-proj-modal')); return true; } },
+    // (a) event dispatch — locus-sprint-project.js escucha 'shell:close-proj-panel'
+    () => { const el = document.getElementById('proj-panel-overlay'); if (el && el.offsetParent !== null) { window.dispatchEvent(new CustomEvent('shell:close-proj-panel')); return true; } },
+    // (a) event dispatch — locus-pulso.js escucha 'shell:close-pulso-panel'
+    () => { const el = document.getElementById('pulso-panel'); if (el && el.offsetParent !== null) { window.dispatchEvent(new CustomEvent('shell:close-pulso-panel')); return true; } },
     () => { if (window.focusActiveId) { window.focusActiveId = null; return true; } },
   ];
   for (const check of _overlayChecks) {
