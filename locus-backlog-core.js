@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:36 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:37 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -368,8 +368,8 @@ export function toggleCollapseAll() {
   }
 }
 
-// T-202606-040: toggleShowChildren — mostrar/ocultar hijos de Rs en vista C
-// Persiste en localStorage bajo 'locus-show-children' ('1' = activo, '0' = inactivo)
+// T-202606-087: toggleShowChildren — mostrar/ocultar hijos de Rs en vista árbol
+// Persiste en localStorage bajo 'backlog-show-children' ('1' = activo, '0' = inactivo)
 export function toggleShowChildren(checked) {
   const childWraps = document.querySelectorAll('.bl-children-wrap');
   if (checked) {
@@ -390,7 +390,7 @@ export function toggleShowChildren(checked) {
       }
     });
   }
-  try { localStorage.setItem('locus-show-children', checked ? '1' : '0'); } catch {}
+  try { localStorage.setItem('backlog-show-children', checked ? '1' : '0'); } catch {}
 }
 
 // R-[tmp:toolbar-backlog-redesign]: filtro bloqueados — volátil
@@ -2129,25 +2129,22 @@ document.addEventListener('DOMContentLoaded', function () {
   const _btnClearFilters = document.getElementById('filter-clear-btn');
   if (_btnClearFilters) _btnClearFilters.addEventListener('click', function () { if (typeof clearAllFilters === 'function') clearAllFilters(); });
 
-  // T-202606-041: Checkbox Mostrar hijos — init + listener
-  const _chkShowChildren = document.getElementById('bl-show-children-toggle');
-  if (_chkShowChildren) {
-    // Init: restaurar estado desde localStorage antes del primer render
-    const _scStored = localStorage.getItem('locus-show-children');
-    if (_scStored === '1') {
-      _chkShowChildren.checked = true;
-      toggleShowChildren(true);
-    }
-    // Listener: cambio de checkbox
-    _chkShowChildren.addEventListener('change', function () {
-      toggleShowChildren(_chkShowChildren.checked);
-      // Actualizar disabled: si no hay .bl-children-wrap con hijos en la vista activa
-      const _hasChildren = Array.from(document.querySelectorAll('.bl-children-wrap')).some(w => w.children.length > 0);
-      _chkShowChildren.disabled = !_hasChildren;
+  // T-202606-087: Pill 'Hijos' — init + listener (reemplaza checkbox bl-show-children-toggle)
+  const _btnShowChildren = document.getElementById('fbar-show-children-btn');
+  if (_btnShowChildren) {
+    // AC-6: si la clave no existe, estado inicial es inactivo (hijos ocultos)
+    const _scStored = localStorage.getItem('backlog-show-children');
+    const _scActive = _scStored === '1';
+    _btnShowChildren.classList.toggle('active', _scActive);
+    _btnShowChildren.textContent = _scActive ? 'Hijos ✓' : 'Hijos';
+    if (_scActive) toggleShowChildren(true);
+
+    _btnShowChildren.addEventListener('click', function () {
+      const nowActive = !_btnShowChildren.classList.contains('active');
+      _btnShowChildren.classList.toggle('active', nowActive);
+      _btnShowChildren.textContent = nowActive ? 'Hijos ✓' : 'Hijos';
+      toggleShowChildren(nowActive);
     });
-    // Disabled inicial si no hay hijos en DOM todavía — se re-evalúa post-render
-    const _hasChildrenInit = Array.from(document.querySelectorAll('.bl-children-wrap')).some(w => w.children.length > 0);
-    _chkShowChildren.disabled = !_hasChildrenInit;
   }
 
   // B-202606-008: sincronizar visibilidad del botón Limpiar filtros con el estado
