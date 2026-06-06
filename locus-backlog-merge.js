@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:20 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:21 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -853,6 +853,14 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     _durationInputEl.addEventListener('input', () => {
       _horaUpdate(_durationInputEl, _durationDispEl);
     });
+    // B-202606-NNN: Enter en input de hora mueve foco al botón Guardar.
+    // stopPropagation evita que _mdiffKeyHandler lo reciba y dispare _mdiffDoApply prematuramente.
+    _durationInputEl.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      e.stopPropagation();
+      document.getElementById('mdiff-apply-btn')?.focus();
+    });
   }
 
   overlay.querySelector('#mdiff-backlog-btn').addEventListener('click', () => {
@@ -870,6 +878,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   setTimeout(() => { _mdiffReady = true; }, 300);
   function _mdiffKeyHandler(e) {
     if (e.key === 'Enter' && _mdiffReady) {
+      // Guard: Enter en input de hora lo maneja su propio keydown — no apply aquí
+      if (e.target && e.target.id === 'mdiff-duration-input') return;
       const btn = document.getElementById('mdiff-apply-btn');
       if (btn && !btn.disabled) {
         e.preventDefault();
