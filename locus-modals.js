@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-31 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-06 UTC-6
 // locus-modals.js
 // Módulo: sistema de modal genérico y focus management
 // Extraído de: ai-tracker-ai-notes.js (_gconfirmCb, _gconfirmOpen, _gconfirmClose, _gconfirmOk)
@@ -7,6 +7,9 @@
 //              handlers de gconfirm-overlay (overlay-click, cancelar, ok, enter/escape en input)
 //              Elimina inline onclick/onkeydown de index.html para estas funciones.
 // Carga antes de: ai-tracker-checkpoint.js, ai-tracker-ai-notes.js
+
+// T-202606-077: registrar _gconfirmOpen en _coreCallbacks
+import { _registerCoreCallback } from './locus-backlog-core.js';
 
 // ── Generic confirm/prompt modal (T-090) ──
 // _gconfirmCb: interno del módulo — no expuesto públicamente
@@ -104,6 +107,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const gconfirmCancelBtn = document.getElementById('gconfirm-cancel-btn');
   if (gconfirmCancelBtn) gconfirmCancelBtn.addEventListener('click', _gconfirmClose);
+
+  // T-202606-077: registrar _gconfirmOpen en _coreCallbacks
+  // locus-backlog-core lo consume para confirms de discard y retroceso de ítems.
+  _registerCoreCallback('gconfirmOpen', _gconfirmOpen);
 
 });
 

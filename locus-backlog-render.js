@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:36 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:37 · autor:Rune · 2026-06-06 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
@@ -1041,3 +1041,10 @@ export function renderBacklogList(onRendered) {
   if (typeof onRendered === 'function') onRendered();
 }
 
+
+// T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
+// locus-storage.js despacha estos eventos en lugar de llamar directamente a las funciones
+window.addEventListener('shell:backlog-render-dirty', () => { _markBacklogListDirty(); renderBacklogList(); });
+window.addEventListener('shell:mark-backlog-dirty',   () => { _markBacklogListDirty(); });
+window.addEventListener('shell:render-backlog-list',  () => { renderBacklogList(); });
+window.addEventListener('shell:backlog-filter-changed', () => { updateClearFilterBtn(); });

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-06 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -1051,3 +1051,9 @@ window.toggleContextSection         = toggleContextSection;
 window.renderContextMd              = renderContextMd;
 window.renderContextInline          = renderContextInline;
 window.renderContextStatus          = renderContextStatus;
+
+// T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
+// locus-backlog-core.js despacha shell:backlog-modified y shell:backlog-subtab-update
+// en lugar de llamar directamente a las funciones de este módulo
+window.addEventListener('shell:backlog-modified',     () => { _setBacklogModified(); });
+window.addEventListener('shell:backlog-subtab-update', e => { _updateSubTabButtons(e.detail?.tab); });

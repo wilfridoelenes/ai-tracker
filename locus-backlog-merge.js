@@ -1,11 +1,11 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:20 · autor:Rune · 2026-06-05 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
 // Dependencias: locus-backlog-core.js · locus-backlog-item.js · locus-backlog-sprints.js · locus-storage.js · locus-toast.js
 // Carga: después de locus-backlog-item.js
 
-import { _calcPriority, _getActiveSessionAiId, _undoSnapshot, loadBacklog, renderStats, updateBacklogBanner, getItems } from './locus-backlog-core.js';
+import { _calcPriority, _getActiveSessionAiId, _undoSnapshot, loadBacklog, renderStats, updateBacklogBanner, getItems, _registerCoreCallback } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _buildNewSprintForm, _getSprintById } from './locus-backlog-sprints.js';
 import { _blogLog, getActiveProject, getActiveSprints, saveBacklog } from './locus-storage.js';
@@ -1063,3 +1063,9 @@ function _applyDiscardBatch(items) {
     }
   }
 }
+
+// T-202606-077: registrar callbacks en locus-backlog-core
+document.addEventListener('DOMContentLoaded', () => {
+  _registerCoreCallback('confirmDiscard',   _confirmDiscard);
+  _registerCoreCallback('confirmRetroceso', _confirmRetroceso);
+});

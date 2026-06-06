@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-06 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -7,7 +7,7 @@
 // Carga antes de: locus-sesiones-stats.js · locus-radar.js
 
 import { setFilter } from './locus-backlog-item.js';
-import { getItems } from './locus-backlog-core.js';
+import { getItems, _registerCoreCallback } from './locus-backlog-core.js';
 import { navigateToItem } from './locus-backlog-sprints.js';
 import { renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
@@ -385,6 +385,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   var _notifConfigListoBtn = document.getElementById('notif-config-listo-btn');
   if (_notifConfigListoBtn) _notifConfigListoBtn.addEventListener('click', closeNotifConfig);
+
+  // T-202606-077: registrar hasRecentSession en _coreCallbacks
+  // locus-backlog-core lo consume para cálculo de prioridad automática de ítems.
+  _registerCoreCallback('hasRecentSession', hasRecentSession);
 });
 
 const _notifActionMap = {};

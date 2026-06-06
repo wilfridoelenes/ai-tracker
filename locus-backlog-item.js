@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:44 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:45 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -2413,3 +2413,7 @@ export function applyPatchesFromTG(patches, sessionId) {
 }
 
 
+
+// T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
+// locus-backlog-core.js despacha shell:backlog-footer-update en lugar de llamar directamente
+window.addEventListener('shell:backlog-footer-update', () => { updateBacklogFooter(); });

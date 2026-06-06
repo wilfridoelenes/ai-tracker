@@ -4,7 +4,7 @@
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-toast.js
 
-import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemType, renderStats, setItemStatus, undoBacklog, getItems} from './locus-backlog-core.js';
+import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemType, renderStats, setItemStatus, undoBacklog, getItems, _registerCoreCallback } from './locus-backlog-core.js';
 import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import { getAI, getActiveSprints, getAllSessions, save, saveImmediate } from './locus-storage.js';
@@ -1191,3 +1191,10 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 // ─────────────────────────────────────────────────────────────────────────
+
+// T-202606-077: registrar callbacks en locus-backlog-core
+document.addEventListener('DOMContentLoaded', () => {
+  _registerCoreCallback('backlogSetSelected', _backlogSetSelected);
+  _registerCoreCallback('openItemPanel',      openItemPanel);
+  _registerCoreCallback('closeItemPanel',     closeItemPanel);
+});

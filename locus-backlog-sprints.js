@@ -1,9 +1,9 @@
-// [PP] v1.0.7 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
 
-import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, getItems} from './locus-backlog-core.js';
+import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, getItems, _registerCoreCallback } from './locus-backlog-core.js';
 import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _templateTrigger } from './locus-session-hora.js';
 import { _docPrefix, getProjectById } from './locus-sprint-project.js';
@@ -1924,3 +1924,15 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─────────────────────────────────────────────────────────────────────────
 window.setItemSprint      = setItemSprint;
 window.navigateToItem     = navigateToItem;
+
+// T-202606-077: registrar getActiveSprint y getSprintById en _coreCallbacks
+// locus-backlog-core los consume para asignación de sprint a ítems y render de badges.
+document.addEventListener('DOMContentLoaded', () => {
+  _registerCoreCallback('getActiveSprint', _getActiveSprint);
+  _registerCoreCallback('getSprintById',   _getSprintById);
+}, { once: true });
+// ── END T-202606-077 ─────────────────────────────────────────────────────────
+
+// T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
+// locus-backlog-core.js despacha shell:sprint-render en lugar de llamar directamente
+window.addEventListener('shell:sprint-render', () => { renderSprintBurndown(); renderSprintItems(); });
