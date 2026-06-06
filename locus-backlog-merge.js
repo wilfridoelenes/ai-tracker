@@ -18,7 +18,7 @@ import { _setBacklogModified } from './locus-docs.js';
 
 import { render } from './locus-sesiones.js';
 
-import { _templateTrigger } from './locus-session-hora.js';
+import { _templateTrigger, interpretHora, _horaUpdate } from './locus-session-hora.js';
 
 import { downloadTemplates } from './locus-session-save.js';
 
@@ -684,18 +684,18 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   if (footer) {
     footer.innerHTML = `
       <div class="mdiff-duration-row">
-        <label class="mdiff-duration-label" for="mdiff-duration-input">Duración</label>
+        <label class="mdiff-duration-label" for="mdiff-duration-input">Hora de sesión</label>
         <input
           class="mdiff-duration-input"
           id="mdiff-duration-input"
           type="text"
           inputmode="numeric"
-          placeholder="HH:MM"
-          maxlength="5"
+          placeholder="HHMM"
+          maxlength="4"
           autocomplete="off"
-          aria-label="Duración de la sesión en formato HH:MM"
+          aria-label="Hora de la sesión en formato HHMM (ej: 2130)"
         >
-        <div class="mdiff-duration-hint">formato HH:MM · ej: 01:30</div>
+        <div class="mdiff-duration-hint" id="mdiff-duration-disp">—</div>
       </div>
       <div class="mdiff-footer-actions">
         <button id="mdiff-cancel-btn" class="mdiff-btn mdiff-btn--cancel">✕ Cancelar</button>
@@ -843,6 +843,15 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     delete window._mdiffSetItemSprint;
     // Sin toast — el usuario canceló deliberadamente
   });
+
+  // AC-7: parseo de hora de sesión — feedback visual inline con interpretHora
+  const _durationInputEl = overlay.querySelector('#mdiff-duration-input');
+  const _durationDispEl  = overlay.querySelector('#mdiff-duration-disp');
+  if (_durationInputEl && _durationDispEl) {
+    _durationInputEl.addEventListener('input', () => {
+      _horaUpdate(_durationInputEl, _durationDispEl);
+    });
+  }
 
   overlay.querySelector('#mdiff-backlog-btn').addEventListener('click', () => {
     if (overlay.querySelector('#mdiff-backlog-btn').disabled) return;
