@@ -5131,6 +5131,12 @@ er {
 }
 /* END R-202605-066 */
 
+/* B-202606-015: contraste insuficiente .hsr-velocity dark mode */
+[data-theme="dark"] .hsr-velocity {
+  color: var(--text);
+}
+/* END B-202606-015 */
+
 /* ══ T-202605-103: Sección Icebox — bl-icebox-* ══ */
 /* Clases independientes — no reutilizan .version-group ni .version-header */
 
