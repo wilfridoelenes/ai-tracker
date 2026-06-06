@@ -1,6 +1,6 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-06 UTC-6
 // locus-sesiones.js
-// Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
+// Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
 //   sidebar ticker, auto-download preference.
 // Requiere: locus-storage.js, locus-toast.js, locus-tracker-utils.js cargados ANTES en index.html
@@ -15,7 +15,9 @@ import { fmt12, _templateTrigger, confirmSave, interpretHora, relDate } from './
 // getCD — exportado desde locus-misc-ui.js (no disponible en T5); fallback window conservado hasta T6
 const getCD  = (...a) => typeof window.getCD  === 'function' ? window.getCD(...a)  : '';
 import { closeLogCard, closePopup, openDetail } from './locus-session-popup.js';
-import { _getActiveProjectFilter, getProjectById, openProjModal, selectProjectFilter } from './locus-sprint-project.js';
+// T-202606-058: import de locus-sprint-project eliminado — ciclo A↔B roto.
+// _getActiveProjectFilter · getProjectById · openProjModal · selectProjectFilter
+// consumidas via _sesSPCallbacks registry (registradas por locus-sprint-project en DOMContentLoaded).
 import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc, renderSetupChecklist } from './locus-ui-shell.js';
@@ -26,8 +28,14 @@ import { downloadReport } from './locus-reports.js';
 import { openQuickCapture, confirmInterruptInline } from './locus-sesiones-capture.js';
 
 import { STATUS_LABELS } from './locus-session-parse.js';
+// T-202606-058: registry extraído a locus-sesiones-registry.js (módulo sin dependencias).
+// locus-sprint-project importa _registerSesSPCallback desde registry — no desde aquí.
+import { _sesSPCallbacks } from './locus-sesiones-registry.js';
 
 let _trackerSelectedId = null;
+// shell:sesiones-render — listener en window per B-202606-021
+window.addEventListener('shell:sesiones-render', () => { _markTrackerDirty(); render(); });
+// ── END T-202606-058 ─────────────────────────────────────────────────────────
 
 
 // ── R-202605-162: Helper compartido — timestamp relativo para filas de sesión ─
@@ -195,7 +203,7 @@ function _trackerRenderMiniHist(aiId) {
   const _inProgressSess = _getCurrentSession(aiId);
 
   const _renderRow = (s, group) => {
-    const proj     = s.projectId ? getProjectById(s.projectId) : null;
+    const proj     = s.projectId ? (_sesSPCallbacks.getProjectById || (() => undefined))(s.projectId) : null;
     const isActive = s.id === _trackerHistSelectedSessId;
     const isInProg = _inProgressSess && s.id === _inProgressSess.id;
 
@@ -737,7 +745,7 @@ function buildHoyCard(ai, idx = 0, opts = {}) {
 
   // T-316: pill de proyecto de la última sesión global (sin filtro de proyecto activo)
   const _lastSessGlobal = getAllSessions().filter(s => s.aiId === ai.id).slice(-1)[0] || null;
-  const _lastProjGlobal = _lastSessGlobal ? getProjectById(_lastSessGlobal.projectId) : null;
+  const _lastProjGlobal = _lastSessGlobal ? (_sesSPCallbacks.getProjectById || (() => undefined))(_lastSessGlobal.projectId) : null;
   const projPill = _lastProjGlobal
     ? `<span class="hoy-mini-proj-pill" title="${esc(_lastProjGlobal.name)}">${esc(_lastProjGlobal.icon || '📁')} ${esc(_lastProjGlobal.name)}</span>`
     : '';
@@ -972,7 +980,7 @@ function buildCard(ai) {
 
   // Selector de proyecto — inline en paste-label
   const _activeProjects = (getState().projects || []).filter(p => p.status !== 'paused');
-  const _activeProjId = _getActiveProjectFilter() || '';
+  const _activeProjId = (_sesSPCallbacks.getActiveProjectFilter || (() => ''))() || '';
   const _projOptions = _activeProjects.map(p =>
     `<option value="${esc(p.id)}" ${p.id === _activeProjId ? 'selected' : ''}>${esc(p.icon || '📁')} ${esc(p.name)}</option>`
   ).join('');
@@ -1070,7 +1078,7 @@ function buildCard(ai) {
 
   // Project chip — basado en la última sesión de la IA
   const _lastSess = getLastAISession(ai.id);
-  const _cardProj = _lastSess ? getProjectById(_lastSess.projectId) : null;
+  const _cardProj = _lastSess ? (_sesSPCallbacks.getProjectById || (() => undefined))(_lastSess.projectId) : null;
   const _projChipHTML = _cardProj
     ? `<span class="card-proj-chip" title="${esc(_cardProj.name)}" data-action="select-project-filter-stop" data-proj-id="${_cardProj.id}">${esc(_cardProj.icon || '📁')} ${esc(_cardProj.name)}</span>`
     : '';
@@ -1425,7 +1433,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (action === 'openAddAI') {
       openAddAI();
     } else if (action === 'openProjModal') {
-      openProjModal(false);
+      (_sesSPCallbacks.openProjModal || (() => {}))(false);
     }
   });
 
@@ -1499,7 +1507,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Project chip (stopPropagation)
       case 'select-project-filter-stop':
         e.stopPropagation();
-        selectProjectFilter(projId);
+        (_sesSPCallbacks.selectProjectFilter || (() => {}))(projId);
         break;
       // Card dot menu toggle
       case 'toggle-card-menu':

@@ -1,6 +1,6 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:26 · autor:Rune · 2026-06-04 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-06 UTC-6
 // locus-sprint-project.js
-// Última actualización: 2026-05-19 UTC-6
+// Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
 // Renombrado de ai-tracker-sprint-project.js
 // T-202606-016: funciones de export de backlog migradas a locus-backlog-generator.js
@@ -27,12 +27,16 @@ import { _gconfirmOpen, closeModal } from './locus-modals.js';
 import { renderProyectos } from './locus-projects.js';
 
 import { _updateHeaderProjectLabel } from './locus-sesiones-stats.js';
-
-import { render } from './locus-sesiones.js';
+// T-202606-058: import { render } from './locus-sesiones.js' eliminado — ciclo A↔B roto.
+// render() reemplazado por window.dispatchEvent(new CustomEvent('shell:sesiones-render'))
+// per B-202606-021. locus-sprint-project registra sus funciones en locus-sesiones
+// via _registerSesSPCallback en DOMContentLoaded.
 
 import { closePopup } from './locus-session-popup.js';
 
 import { showToast, showToastInline } from './locus-toast.js';
+// T-202606-058: import desde locus-sesiones-registry.js (módulo sin dependencias) — no desde locus-sesiones.js
+import { _registerSesSPCallback } from './locus-sesiones-registry.js';
 
 // ── Utilidades de módulo — T3.bis ─────────────────────────────────────────────
 export function pad(n) { return String(n).padStart(2, '0'); }
@@ -160,7 +164,7 @@ export function _updateProjFilterBtn() {
 function clearProjectFilter() {
   _setActiveProjectFilter('');
   loadBacklog(); loadHtmlMap();
-  render(); if (typeof renderHoy === 'function') renderHoy();
+  window.dispatchEvent(new CustomEvent('shell:sesiones-render')); if (typeof renderHoy === 'function') renderHoy();
   if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   renderBacklogList(); renderStats();
   _renderTplProjBanner();
@@ -236,7 +240,7 @@ export function selectProjectFilter(projId) {
   _setActiveProjectFilter(projId);
   closeProjPanel();
   loadBacklog(); loadHtmlMap();
-  render(); if (typeof renderHoy === 'function') renderHoy();
+  window.dispatchEvent(new CustomEvent('shell:sesiones-render')); if (typeof renderHoy === 'function') renderHoy();
   if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   renderBacklogList(); renderStats();
   _renderTplProjBanner();
@@ -823,3 +827,13 @@ window.createNote                = createNote;
 window.editNote                  = editNote;
 window.deleteNote                = deleteNote;
 window.getActiveProjectNotes     = getActiveProjectNotes;
+
+// T-202606-058: registrar funciones de locus-sprint-project en locus-sesiones
+// para romper el ciclo A↔B. locus-sesiones las consume via _sesSPCallbacks.
+document.addEventListener('DOMContentLoaded', () => {
+  _registerSesSPCallback('getProjectById',          getProjectById);
+  _registerSesSPCallback('getActiveProjectFilter',  _getActiveProjectFilter);
+  _registerSesSPCallback('openProjModal',           openProjModal);
+  _registerSesSPCallback('selectProjectFilter',     selectProjectFilter);
+}, { once: true });
+// ── END T-202606-058 ─────────────────────────────────────────────────────────
