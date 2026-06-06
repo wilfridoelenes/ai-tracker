@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:4 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-05 UTC-6
 // locus-session-hora.js
 import { _doSaveSession, saveSession } from './locus-session-save.js';
 import { getAI } from './locus-storage.js';
@@ -11,7 +11,12 @@ import { esc } from './locus-ui-shell.js';
 
 export function _horaUpdate(inputEl, dispEl) {
   if (!dispEl) return;
-  const raw = inputEl ? inputEl.value.replace(/\D/g, '') : '';
+  // B-202606-018: truncar a 4 dígitos en tiempo real — previene 'hora inválida' por exceso de dígitos
+  let raw = inputEl ? inputEl.value.replace(/\D/g, '') : '';
+  if (inputEl && raw.length > 4) {
+    raw = raw.slice(0, 4);
+    inputEl.value = raw;
+  }
   const result = interpretHora(raw);
   if (result) {
     dispEl.textContent = result.label;

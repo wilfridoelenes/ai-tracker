@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:5 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-05 UTC-6
 // locus-sesiones-viz.js
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
 //   (_showItemVizPanel), corrección de hora (openCorrectHora).
@@ -37,6 +37,7 @@ function openCorrectHora(id) {
     <div class="correct-hora-input-row">
       <input id="correct-hora-input" class="hora-input correct-hora-input" type="text" maxlength="4" placeholder="--:--">
       <div id="correct-hora-disp" class="correct-hora-disp">—</div>
+      <div id="correct-hora-warn" class="correct-hora-warn is-hidden" aria-live="polite"></div>
     </div>
     <div class="correct-hora-unlock-row">
       <button class="btn-ghost correct-hora-unlock-btn" id="correct-hora-unlock-btn">✅ Desbloquear ahora</button>
@@ -46,12 +47,25 @@ function openCorrectHora(id) {
   const _chInput = document.getElementById('correct-hora-input');
   if (_chInput) {
     _chInput.addEventListener('input', function() {
-      const raw = (_chInput.value || '').replace(/\D/g, '');
+      // B-202606-018: truncar a 4 dígitos en tiempo real
+      let raw = (_chInput.value || '').replace(/\D/g, '');
+      if (raw.length > 4) { raw = raw.slice(0, 4); _chInput.value = raw; }
       const disp = document.getElementById('correct-hora-disp');
+      const warn = document.getElementById('correct-hora-warn');
       const r = interpretHora(raw);
       if (disp) {
         disp.textContent = r ? r.label : (raw.length >= 3 ? 'hora inválida' : (raw.length ? '...' : '—'));
         disp.className = r ? 'hora-disp--valid' : (raw.length >= 3 ? 'hora-disp--error' : 'hora-disp--hint');
+      }
+      // T-202606-065: advertencia no bloqueante si hora > 5h desde ahora
+      if (warn) {
+        if (r && (r.epoch - Date.now()) > 5 * 3600000) {
+          warn.textContent = '⚠ ¿Más de 5h?';
+          warn.classList.remove('is-hidden');
+        } else {
+          warn.textContent = '';
+          warn.classList.add('is-hidden');
+        }
       }
     });
     _chInput.addEventListener('keydown', function(event) {
@@ -95,6 +109,8 @@ function confirmCorrectHora() {
   const result = interpretHora(raw);
 
   if (result) {
+    // B-202606-019: asegurar que la IA queda exhausted al guardar hora desde modal diff
+    ai.status = 'exhausted';
     ai.resetTime = result.hhmm;
     ai.resetEpoch = result.epoch;
     const aiSessions = getAISessions(id);
@@ -562,3 +578,8 @@ export function closeCkptPanel() {
 }
 
 // ══ END showCheckpointPanel ══
+
+// ── Exposición pública — locus-sesiones.js invoca openCorrectHora via guard typeof ──
+// Sin esta asignación el guard `typeof openCorrectHora === 'function'` retorna false en ESM
+// y los botones open-correct-hora / dot-correct-hora nunca ejecutan nada.
+window.openCorrectHora = openCorrectHora;
