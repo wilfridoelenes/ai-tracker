@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-05 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-05-28 · T-202605-068: Migrar typeof guards → ES module imports
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1543,3 +1543,10 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 window.blindExhaustHoraInput = blindExhaustHoraInput;
 window.blindExhaustHoraKey   = blindExhaustHoraKey;
+
+// T-[tmp:t-listeners-storage-sesiones]: listeners shell:* — desacoplamiento de locus-storage.js
+// locus-storage.js despacha shell:mark-tracker-dirty + shell:render-tracker + shell:update-auto-download-label
+// en lugar de llamar directamente a las funciones de este módulo
+window.addEventListener('shell:mark-tracker-dirty', () => { _markTrackerDirty(); });
+window.addEventListener('shell:render-tracker', () => { render(); });
+window.addEventListener('shell:update-auto-download-label', () => { _updateAutoDownloadLabel(); });

@@ -1,5 +1,5 @@
 import { esc } from './locus-ui-shell.js';
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-05 UTC-6
 // locus-toast.js
 // Última actualización: 2026-05-19 00:00 UTC-6
 // Toast stack system — extraído de ai-tracker-checkpoint.js (R-202605-003)
@@ -285,3 +285,11 @@ window._toastRender     = _toastRender;
 window._dismissToast    = _dismissToast;
 window._toastNext       = _toastNext;
 window.toast            = toast;
+
+// T-[tmp:t-listeners-storage-sesiones]: listener shell:toast — desacoplamiento de locus-storage.js
+// locus-storage.js despacha shell:toast con detail: { type, msg, body, duration }
+// en lugar de llamar showToast() directamente
+window.addEventListener('shell:toast', (e) => {
+  const { type, msg, body, duration } = e.detail || {};
+  showToast(type, msg, body, duration);
+});

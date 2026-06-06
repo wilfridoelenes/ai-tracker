@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:8 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-05 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -715,3 +715,8 @@ window._initRadarSidebarState   = _initRadarSidebarState;
 window.rsbFilterAIs             = rsbFilterAIs;
 window.rsbClearSearch           = rsbClearSearch;
 window.rsbTogglePin             = rsbTogglePin;
+
+// T-[tmp:t-listeners-storage-render]: listeners shell:* — desacoplamiento de locus-storage.js
+// locus-storage.js despacha shell:mark-radar-dirty + shell:render-radar en lugar de llamar directamente
+window.addEventListener('shell:mark-radar-dirty', () => { _markRadarDirty(); });
+window.addEventListener('shell:render-radar', () => { renderGlobalRadarSidebar(); });

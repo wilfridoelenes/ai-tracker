@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-05 UTC-6
 // locus-pulso.js
 // Última actualización: 2026-05-19 | Panel Pulso del Ecosistema
 // Extraído de: ai-tracker-checkpoint.js · ai-tracker-ai-notes.js
@@ -329,3 +329,8 @@ function _initPulsoHandlers() {
   const closeBtn = document.querySelector('.pulso-close-btn');
   if (closeBtn) closeBtn.addEventListener('click', closePulsoPanel);
 }
+
+// T-[tmp:t-listeners-storage-render]: listeners shell:* — desacoplamiento de locus-storage.js
+// locus-storage.js despacha shell:mark-pulso-dirty + shell:render-pulso-dot en lugar de llamar directamente
+window.addEventListener('shell:mark-pulso-dirty', () => { _markPulsoDotDirty(); });
+window.addEventListener('shell:render-pulso-dot', () => { renderPulsoDot(); });

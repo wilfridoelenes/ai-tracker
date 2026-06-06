@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-05 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -333,3 +333,10 @@ export function toggleCollapseAll() {
 // hasRecentSession — fuente de verdad: locus-notifications.js
 // B-202605-012: definición eliminada de este archivo para resolver duplicación.
 // Call sites existentes consumen la función de locus-notifications.js (carga antes).
+
+// T-[tmp:t-listeners-storage-render]: listeners shell:* — desacoplamiento de locus-storage.js
+// locus-storage.js despacha shell:mark-statusbar-dirty + shell:render-statusbar + shell:update-stats
+// en lugar de llamar directamente a las funciones de este módulo
+window.addEventListener('shell:mark-statusbar-dirty', () => { _markStatusBarDirty(); });
+window.addEventListener('shell:render-statusbar', () => { renderStatusBar(); });
+window.addEventListener('shell:update-stats', () => { updateStats(); });
