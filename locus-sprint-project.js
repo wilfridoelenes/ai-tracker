@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-06 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -12,7 +12,7 @@ import { esc, switchSubTab, switchTab, getCurrentSubTab } from './locus-ui-shell
 
 import { renderAnalytics } from './locus-analytics-render.js';
 
-import { loadBacklog, renderStats, updateBacklogBanner, updateStatusFilterUI, getItems} from './locus-backlog-core.js';
+import { loadBacklog, renderStats, updateBacklogBanner, updateStatusFilterUI, getItems, _registerCoreCallback } from './locus-backlog-core.js';
 import { closeQuickCapture } from './locus-sesiones-capture.js';
 
 import { updateBacklogFooter } from './locus-backlog-item.js';
@@ -830,10 +830,13 @@ window.getActiveProjectNotes     = getActiveProjectNotes;
 
 // T-202606-058: registrar funciones de locus-sprint-project en locus-sesiones
 // para romper el ciclo A↔B. locus-sesiones las consume via _sesSPCallbacks.
+// T-202606-077: también registrar getActiveProjectFilter en _coreCallbacks
+// para que locus-backlog-core pueda filtrar por proyecto sin importar locus-sprint-project.
 document.addEventListener('DOMContentLoaded', () => {
   _registerSesSPCallback('getProjectById',          getProjectById);
   _registerSesSPCallback('getActiveProjectFilter',  _getActiveProjectFilter);
   _registerSesSPCallback('openProjModal',           openProjModal);
   _registerSesSPCallback('selectProjectFilter',     selectProjectFilter);
+  _registerCoreCallback('getActiveProjectFilter',   _getActiveProjectFilter);
 }, { once: true });
-// ── END T-202606-058 ─────────────────────────────────────────────────────────
+// ── END T-202606-058 / T-202606-077 ──────────────────────────────────────────
