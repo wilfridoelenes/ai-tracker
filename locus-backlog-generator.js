@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -54,11 +54,36 @@ function _showExportConfirmModal(label, filename, onConfirm) {
 }
 
 // ── Export Backlog ───────────────────────────────────────────────────────────
+// T-202606-108: verifica si version_target, release_type o scope del sprint activo son n/a o ausentes.
+// Retorna true si alguno falla — false si todos están completos o no hay sprint activo (AC-4).
+function _sprintHasIncompleteFields() {
+  const sprints = getActiveSprints();
+  const activeSprint = sprints.find(s => s.status === 'active' && s.current === true)
+    || sprints.find(s => s.status === 'active');
+  if (!activeSprint) return false; // AC-4: sin sprint activo → no advertir
+  const _isEmpty = v => !v || v === 'n/a';
+  return _isEmpty(activeSprint.version_target)
+    || _isEmpty(activeSprint.release_type)
+    || _isEmpty(activeSprint.scope);
+}
+
 export function exportBacklogMd() {
   if (!getItems().length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
   const pfx = _docPrefix();
   const ver = _backlogVersion();
-  _showExportConfirmModal('Backlog', `${pfx}-BACKLOG_${ver}.md`, () => _generateBacklogMd(ver));
+  const _doExport = () => _showExportConfirmModal('Backlog', `${pfx}-BACKLOG_${ver}.md`, () => _generateBacklogMd(ver));
+  // T-202606-108: AC-1/AC-2 — advertir si sprint activo tiene campos incompletos
+  if (_sprintHasIncompleteFields()) {
+    showToast(
+      'warning',
+      'Sprint sin version_target / release_type / scope — el backlog exportado tendrá campos incompletos.',
+      'Continuar de todas formas',
+      0,        // AC-2: sin auto-dismiss
+      _doExport // AC-3: onClick dispara el export
+    );
+    return;
+  }
+  _doExport(); // AC-5: sprint completo → export directo sin toast
 }
 
 // AC-5: Exportar historial completo — todos los ítems sin filtro generacional
