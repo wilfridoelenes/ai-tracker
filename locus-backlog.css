@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:20 · autor:Nova · 2026-06-06 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:21 · autor:Rune · 2026-06-06 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -724,48 +724,6 @@
   color: var(--hint);
   border-color: var(--hint);
   background: rgb(120 120 120 / 8%);
-}
-
-.fbtn.ftype-btn {
-  padding: 4px 9px;
-  font-family: var(--mono);
-  font-weight: 700;
-  font-size: var(--text-xs);
-  opacity: 0.4;
-}
-
-.fbtn.ftype-btn.active {
-  opacity: 1;
-}
-
-.fbtn.ftype-btn.tc-T-btn.active {
-  color: var(--green);
-  border-color: var(--green);
-  background: rgb(46 204 120 / 10%);
-}
-
-.fbtn.ftype-btn.tc-B-btn.active {
-  color: var(--red);
-  border-color: var(--red);
-  background: rgb(232 85 85 / 10%);
-}
-
-.fbtn.ftype-btn.tc-R-btn.active {
-  color: var(--blue);
-  border-color: var(--blue);
-  background: rgb(56 189 248 / 10%);
-}
-
-.fbtn.ftype-btn.tc-I-btn.active {
-  color: var(--purple);
-  border-color: var(--purple);
-  background: rgb(124 106 247 / 10%);
-}
-
-.fbtn.ftype-btn.tc-P-btn.active {
-  color: var(--purple);
-  border-color: var(--purple);
-  background: rgb(124 106 247 / 10%);
 }
 
 .fbar-sort-select {
