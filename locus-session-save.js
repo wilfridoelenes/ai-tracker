@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:21 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:22 · autor:Rune · 2026-06-06 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -458,8 +458,8 @@ export function saveSession(id) {
     return;
   }
 
-  const horaRaw = (document.getElementById('hora-' + id) || {value:''}).value.replace(/\D/g, '');
-  const horaResult = interpretHora(horaRaw);
+  // B-202606-037: horaRaw se lee dentro del callback del DIFF — no aquí.
+  // El input hora-[id] del card fue reemplazado por mdiff-duration-input en el DIFF.
 
   // Proyecto: leer del selector del card, con fallback al activo global
   const projSelectEl = document.getElementById('sess-proj-' + id);
@@ -473,7 +473,8 @@ export function saveSession(id) {
     // Marcar el selector con error visual (sin toast)
     if (projSelectEl) { projSelectEl.classList.add('input-outline-error'); setTimeout(() => { projSelectEl.classList.remove('input-outline-error'); }, 2000); }
     // Abrir el panel con banner bloqueante — el usuario debe seleccionar proyecto desde el card
-    _showProjRequiredInPanel(id, parsed, horaResult);
+    // B-202606-037: horaResult aún no disponible en este gate — se resuelve en el DIFF
+    _showProjRequiredInPanel(id, parsed, null);
     return;
   }
 
@@ -493,13 +494,15 @@ export function saveSession(id) {
         : `El CHECKPOINT declara <strong>${esc(_ckptProj)}</strong> pero el card tiene seleccionado <strong>${esc(_cardProjName)}</strong>.`;
       _showProjMismatchModal({
         msg: _msg,
-        onContinue: () => _doSaveSession(id, ai, parsed, activeProj, horaResult)
+        // B-202606-037: horaResult aún no disponible — se resuelve en el DIFF
+        onContinue: () => _doSaveSession(id, ai, parsed, activeProj, null)
       });
       return;
     }
   }
 
-  _doSaveSession(id, ai, parsed, activeProj, horaResult);
+  // B-202606-037: horaResult ya no se pasa desde aquí — se resuelve dentro del DIFF
+  _doSaveSession(id, ai, parsed, activeProj, null);
 }
 
 // P-202604-115: modal Continuar/Cancelar para discrepancia de proyecto
@@ -610,10 +613,12 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     contexto:    parsed.contexto    || '',
     bloqueantes: parsed.bloqueantes || '',
     aprendizaje: parsed.aprendizaje || '',
-    resetAt: horaResult ? horaResult.label : '',
+    resetAt: '',  // B-202606-037: se completa en el callback del DIFF tras leer mdiff-duration-input
     // R-202605-049: sessionGroupId — agrupa checkpoints bajo sesión como contenedor
     sessionGroupId: _sessionGroupId,
     // T-202605-446: tiempo cronometrado de la sesión en ms
+    // B-202606-037: stopSessionTimer se llama aquí para capturar elapsed antes de que el usuario
+    // interactúe con el DIFF. durationMs se recalcula en el callback si hay horaResult.
     durationMs: (typeof stopSessionTimer === 'function') ? stopSessionTimer(id) : 0,
     dateShort, date: dateFull
   };
@@ -627,7 +632,8 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // B-202604-116: usar proyecto del card, no filtro global activo
   // T-202604-201: panel de confirmación diff antes de aplicar el merge
   // T-202606-037 AC-3: extraer campos narrativos del CHECKPOINT parseado para pasarlos como ckptMeta.
-  // T-202606-046 AC-2+AC-3: el callback recibe duration del input del DIFF y lo asigna a newSess antes del guardado.
+  // B-202606-037: el callback recibe horaRaw desde mdiff-duration-input, interpreta horaResult,
+  // completa newSess.resetAt y recalcula durationMs como horaResult.epoch - (Date.now() - newSess.durationMs).
   const _ckptMeta = {
     resumen:     parsed.summary    || '',
     aprendizaje: parsed.aprendizaje || '',
@@ -642,9 +648,18 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // Si el usuario tarda >3s en confirmar, el timer se dispara y hace upsert del draft.
   // Ese upsert puede llegar por realtime DESPUÉS del delete post-confirm → restoreDrafts restaura el textarea.
   clearTimeout(window['_draftSbTimer_' + id]);
-  showMergeDiffPanel(_tgItemsForPanel, sessId, activeProj.id, (duration) => {
-    // T-202606-046: persistir duración ingresada en el DIFF en newSess antes de guardar.
-    if (duration !== undefined) newSess.duration = duration;
+  showMergeDiffPanel(_tgItemsForPanel, sessId, activeProj.id, (horaRaw) => {
+    // B-202606-037: leer horaRaw desde el input del DIFF (mdiff-duration-input).
+    // interpretHora convierte HHMM → { label, hhmm, epoch }. Si vacío → null → worker disponible.
+    const horaResult = interpretHora((horaRaw || '').replace(/\D/g, ''));
+    if (horaResult) {
+      newSess.resetAt = horaResult.label;
+      // Recalcular durationMs: desde inicio de sesión (epoch estimado) hasta hora de desbloqueo.
+      // startEpoch estimado = Date.now() - elapsed acumulado (stopSessionTimer ya lo detuvo).
+      const _estimatedStartEpoch = Date.now() - (newSess.durationMs || 0);
+      const _calcDuration = horaResult.epoch - _estimatedStartEpoch;
+      if (_calcDuration > 0) newSess.durationMs = _calcDuration;
+    }
     _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, sessId, tgItems, newSess);
   }, _ckptMeta);
 }

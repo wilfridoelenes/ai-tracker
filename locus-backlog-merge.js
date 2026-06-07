@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:22 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:23 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -686,7 +686,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   if (footer) {
     footer.innerHTML = `
       <div class="mdiff-duration-row">
-        <label class="mdiff-duration-label" for="mdiff-duration-input">Hora de sesión</label>
+        <label class="mdiff-duration-label" for="mdiff-duration-input">Hora de desbloqueo</label>
         <input
           class="mdiff-duration-input"
           id="mdiff-duration-input"
@@ -695,7 +695,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           placeholder="HHMM"
           maxlength="4"
           autocomplete="off"
-          aria-label="Hora de la sesión en formato HHMM (ej: 2130)"
+          aria-label="Hora de desbloqueo del worker en formato HHMM (ej: 2130)"
         >
         <div class="mdiff-duration-hint" id="mdiff-duration-disp">—</div>
       </div>
@@ -762,10 +762,11 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
                        + diff.discarded.length
                        + diff.createdAndClosed.length;
 
-    // T-202606-046 AC-2+AC-4: leer valor del input de duración antes de cerrar el panel.
-    // Si está vacío → cadena vacía sin error (AC-4). El valor se pasa a onApply como argumento.
+    // B-202606-037: leer valor raw del input de hora de desbloqueo antes de cerrar el panel.
+    // Se pasa sin procesar a onApply — el caller (saveSession) llama a interpretHora internamente.
+    // Si está vacío → string vacío → horaResult null → worker permanece disponible.
     const _durationInput = document.getElementById('mdiff-duration-input');
-    const _durationVal = _durationInput ? (_durationInput.value.trim() || '') : '';
+    const _horaRaw = _durationInput ? (_durationInput.value.trim() || '') : '';
 
     overlay.classList.remove('open');
     document.removeEventListener('keydown', _mdiffKeyHandler);
@@ -779,9 +780,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       showToast('success', `Sesión guardada — ${appliedCount} ítem${appliedCount !== 1 ? 's' : ''} aplicado${appliedCount !== 1 ? 's' : ''}`);
     }
 
-    // T-202606-046: pasar duración como primer argumento de onApply para persistencia en newSess.
+    // B-202606-037: pasar horaRaw como argumento de onApply — saveSession resuelve horaResult.
     // T-202606-039: guard — onApply puede ser undefined si el caller no lo provee.
-    if (typeof onApply === 'function') onApply(_durationVal);
+    if (typeof onApply === 'function') onApply(_horaRaw);
 
     // B-202606-001: aplicar patches después de onApply() — ítems nuevos ya existen en getItems()
     if (_patchItems.length) applyPatchesFromTG(_patchItems);
