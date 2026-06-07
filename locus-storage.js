@@ -1,4 +1,4 @@
-// [PP] v1.2.3 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-07 UTC-6
 // locus-storage.js
 // Última actualización: 2026-06-06 · T-202606-101: guard de salida para retries de _loadFromSupabase (_LOAD_RETRY_MAX)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -185,25 +185,25 @@ export function setSyncStatus(status, label) {
   // R-202604-060: mirror en global footer
   const gfSync = document.getElementById('gf-sync');
   if (gfSync) { gfSync.className = 'gf-sync gf-sync--' + status; gfSync.textContent = label; }
-  // T-202605-USR: chip de usuario en header
-  const chip = document.getElementById('user-chip');
-  const chipDot = document.getElementById('user-chip-dot');
-  const chipName = document.getElementById('user-chip-name');
-  if (chip && chipDot && chipName) {
-    if (_supabaseUser) {
-      const name = (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || '').split(' ')[0];
-      chipName.textContent = name;
-      chipDot.className = 'user-chip-dot user-chip-dot--' + status;
-      chip.classList.remove('is-hidden');
-    } else {
-      chip.classList.add('is-hidden');
-    }
+  // actualizar ítem de usuario en menú ⋯
+  _updateUserMenuItem();
+}
+
+function _updateUserMenuItem() {
+  const btn = document.getElementById('mm-btn-user');
+  const nameEl = document.getElementById('mm-user-name');
+  if (!btn) return;
+  if (_supabaseUser) {
+    const name = (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || '').split(' ')[0];
+    if (nameEl) nameEl.textContent = name;
+    btn.classList.remove('is-hidden');
+  } else {
+    btn.classList.add('is-hidden');
   }
 }
 
 function handleSyncPillClick() {
   if (!_supabaseUser) { if (typeof openAuthModal === 'function') openAuthModal(); else signInWithSupabase(); }
-  else { signOutSupabase(); }
 }
 
 // ── SHORTCUTS + USER PREFS ───────────────────────────────────────────────────
@@ -1709,6 +1709,10 @@ function _initStorageListeners() {
   // Sync pill
   const syncPill = document.getElementById('mm-btn-sync');
   if (syncPill) syncPill.addEventListener('click', handleSyncPillClick);
+
+  // User menu item — cerrar sesión
+  const userBtn = document.getElementById('mm-btn-user');
+  if (userBtn) userBtn.addEventListener('click', () => { signOutSupabase(); });
 }
 
 document.addEventListener('DOMContentLoaded', _initStorageListeners);

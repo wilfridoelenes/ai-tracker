@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-01 · mod:39 · autor:Rune · 2026-06-07 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-01 · mod:40 · autor:Rune · 2026-06-07 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -93,13 +93,6 @@
 
 
 
-
-      <!-- user-chip: identidad de usuario Supabase auth — sesión de cuenta activa, oculto cuando no hay sesión autenticada -->
-      <div class="user-chip is-hidden" id="user-chip" title="Sesión activa · click para cerrar sesión">
-        <span class="user-chip-dot" id="user-chip-dot">●</span>
-        <span class="user-chip-name" id="user-chip-name"></span>
-      </div>
-
       <!-- Menú ⋯ — R-202605-012: grupos semánticos con separadores — Datos · Navegación · Configuración · Zona peligrosa -->
       <div class="more-menu-wrap" id="more-menu-wrap">
         <button class="btn-ghost btn-icon" title="Más opciones" id="more-menu-btn">⋯</button>
@@ -134,6 +127,7 @@
           <button type="button" id="mm-btn-changelog"><span class="mm-icon">📋</span> Changelog</button>
           <button type="button" id="mm-btn-notif"><span class="mm-icon">🔔</span> Configurar notificaciones</button>
           <button type="button" id="mm-btn-sync"><span class="mm-icon sync-status-dot" id="sync-status-dot">●</span> <span id="sync-status-label">Sync: local</span></button>
+          <button type="button" id="mm-btn-user" class="is-hidden"><span class="mm-icon">👤</span> <span id="mm-user-name"></span> · Cerrar sesión</button>
           <button id="btn-migrate-fb-sb" id="mm-btn-migrate" class="is-hidden"><span class="mm-icon">🔄</span> Migrar Firebase → Supabase</button>
           <!-- Grupo: Zona peligrosa -->
           <hr class="mm-separator">
