@@ -1115,7 +1115,169 @@
   gap: 8px;
 }
 
-/* END R-202605-005 · A4-b · scm-* *//* === locus-backlog-sprints.js ===
+/* END R-202605-005 · A4-b · scm-* */
+
+/* ══ T-202606-120: Paso 2 DOC-UPDATEs — lista de resolución inline ══ */
+
+/* ── Contenedor del paso ── */
+.scm-du-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+/* ── Fila de DOC-UPDATE ── */
+.scm-du-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: var(--trans-color);
+}
+
+/* ── Fila aplicada ── */
+.scm-du-row.is-aplicado {
+  background: var(--c-low-bg);
+  border-color: var(--c-low-border);
+}
+
+/* ── Fila descartada ── */
+.scm-du-row.is-descartado {
+  background: var(--surface);
+  border-color: var(--border);
+  opacity: 0.55;
+}
+
+/* ── Sin resolución — indicador pendiente ── */
+.scm-du-row.is-pending-indicator {
+  border-color: var(--c-medium-border);
+}
+
+/* ── Metadatos de la fila ── */
+.scm-du-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.scm-du-doc {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scm-du-seccion {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.scm-du-escalar {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  margin-top: 2px;
+}
+
+/* ── Acciones de la fila ── */
+.scm-du-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Botón base de resolución ── */
+.scm-du-btn {
+  padding: 4px 10px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface3);
+  color: var(--text2);
+  cursor: pointer;
+  transition: var(--trans-color);
+}
+
+.scm-du-btn:hover {
+  background: var(--surface3);
+  color: var(--text);
+  border-color: var(--hint);
+}
+
+/* ── Botón "Aplicado" — activo ── */
+.scm-du-btn.aplicado.active {
+  background: var(--c-low-bg);
+  border-color: var(--c-low-border);
+  color: var(--c-low-text);
+}
+
+/* ── Botón "Descartado" — activo ── */
+.scm-du-btn.descartado.active {
+  background: var(--surface);
+  border-color: var(--hint);
+  color: var(--text2);
+}
+
+/* ── Badge de estado por fila ── */
+.scm-du-badge {
+  display: none;
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  white-space: nowrap;
+}
+
+.scm-du-row.is-aplicado .scm-du-badge {
+  display: inline-flex;
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border: 1px solid var(--c-low-border);
+}
+
+.scm-du-row.is-descartado .scm-du-badge {
+  display: inline-flex;
+  background: var(--surface);
+  color: var(--hint);
+  border: 1px solid var(--border);
+}
+
+/* ── Estado vacío del paso ── */
+.scm-du-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 28px 16px;
+  font-size: var(--text-sm);
+  color: var(--hint);
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scm-du-row,
+  .scm-du-btn {
+    transition: none;
+  }
+}
+
+/* ══ END T-202606-120 ══ */
+
+/* === locus-backlog-sprints.js ===
    Funciones: confirmCloseSprint · _scmRender · _scmStep1Html · _scmStep2Html · _scmStep3Html · _scmExecuteClose · openSprintRetroView · _generateSprintRetroMd */
 
 

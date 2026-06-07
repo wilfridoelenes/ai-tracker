@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:32 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:35 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -877,15 +877,15 @@ function confirmEditSprint(sprintId) {
 }
 
 // R-202604-089: estado del modal de cierre de sprint
-let _scmState = null; // { id, step, pendingItems, doneItems, migrations: { [code]: '' | sprintId | '__discard__' } }
+let _scmState = null; // { id, step, pendingItems, doneItems, migrations, docUpdates, retroNotes, ... }
 
 export function confirmCloseSprint(id) {
-  // R-202604-089: abre modal de 3 pasos en lugar de confirm directo
+  // R-202604-089: abre modal de 4 pasos en lugar de confirm directo
   const sp = _getSprintById(id);
   if (!sp) return;
   const pendingItems = getItems().filter(i => i.sprint === id && i.status !== 'done' && i.status !== 'descartado' && itemType(i.code) !== 'P');
   const doneItems    = getItems().filter(i => i.sprint === id && (i.status === 'done' || i.status === 'descartado'));
-  const skipStep2    = pendingItems.length === 0;
+  const skipStep3    = pendingItems.length === 0; // antiguo skipStep2 — ahora es el Paso 3 (migración)
 
   // R-202605-125: snapshot de effort al abrir modal de cierre
   const allSprintItems     = getItems().filter(i => i.sprint === id && itemType(i.code) !== 'P');
@@ -895,13 +895,24 @@ export function confirmCloseSprint(id) {
   const effortNotDone      = pendingItems.reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
   const hasItemsWithoutEffort = allSprintItems.some(i => !i.effort || parseInt(i.effort) === 0);
 
+  // T-202606-120 AC-6: leer DOC-UPDATEs desde sprint.docUpdates — array de { doc, seccion, escalarA }
+  const rawDu = Array.isArray(sp.docUpdates) ? sp.docUpdates : [];
+  const docUpdates = rawDu.map((du, idx) => ({
+    id:         idx,
+    doc:        du.doc        || '—',
+    seccion:    du.seccion    || '—',
+    escalarA:   du.escalarA   || du.escalar_a || '',
+    resolucion: null, // 'aplicado' | 'descartado' | null
+  }));
+
   _scmState = {
     id,
     step: 1,
-    skipStep2,
+    skipStep3,
     pendingItems,
     doneItems,
     migrations: {},
+    docUpdates,   // T-202606-120 AC-3
     retroNotes: '',
     effortPlanned,
     effortDone,
@@ -914,7 +925,7 @@ export function confirmCloseSprint(id) {
 
   const overlay = document.getElementById('sprint-close-overlay');
   if (!overlay) return;
-  overlay.classList.toggle('skip-step2', skipStep2);
+  overlay.classList.toggle('skip-step3', skipStep3); // renombrado de skip-step2
   const titleEl = document.getElementById('sprint-close-title');
   if (titleEl) titleEl.textContent = 'Cerrar sprint ' + id;
 
@@ -932,19 +943,22 @@ function _scmBack() {
   if (!_scmState) return;
   if (_scmState.step <= 1) return;
   _scmState.step--;
-  if (_scmState.skipStep2 && _scmState.step === 2) _scmState.step--;
+  // T-202606-120 AC-1: Paso 3 (migración) se salta si skipStep3 — Paso 2 (DOC-UPDATEs) nunca se salta
+  if (_scmState.skipStep3 && _scmState.step === 3) _scmState.step--;
   _scmRender();
 }
 
 function _scmNext() {
   if (!_scmState) return;
-  const totalSteps = _scmState.skipStep2 ? 2 : 3;
+  // T-202606-120 AC-1: 4 pasos base, 3 si skipStep3 (migración omitida)
+  const totalSteps = _scmState.skipStep3 ? 3 : 4;
   if (_scmState.step >= totalSteps) {
     _scmExecuteClose();
     return;
   }
   _scmState.step++;
-  if (_scmState.skipStep2 && _scmState.step === 2) _scmState.step++;
+  // Paso 3 (migración) se salta si skipStep3 — Paso 2 (DOC-UPDATEs) nunca se salta
+  if (_scmState.skipStep3 && _scmState.step === 3) _scmState.step++;
   _scmRender();
 }
 
@@ -962,20 +976,20 @@ function _scmBulkApply() {
 
 function _scmRender() {
   if (!_scmState) return;
-  const { step, skipStep2, pendingItems, doneItems, migrations, id } = _scmState;
-  const totalSteps = skipStep2 ? 2 : 3;
+  const { step, skipStep3, pendingItems, doneItems, migrations, id, docUpdates } = _scmState;
+  // T-202606-120 AC-1: 4 pasos base, 3 si skipStep3 (migración omitida — Paso 2 DOC-UPDATEs nunca se salta)
+  const totalSteps = skipStep3 ? 3 : 4;
   const sp = _getSprintById(id);
   const spLabel = sp ? (sp.label || sp.id) : id;
 
-  // actualizar indicadores de paso
-  const steps = [1, 2, 3];
-  steps.forEach(n => {
+  // actualizar indicadores de paso (scs-step-1..4)
+  [1, 2, 3, 4].forEach(n => {
     const el = document.getElementById('scs-step-' + n);
     if (!el) return;
-    el.classList.remove('active', 'done');
-    const mappedStep = (skipStep2 && n === 2) ? null : n; // step 2 skipped
-    if (mappedStep === null) return;
-    const effectiveN = skipStep2 && n === 3 ? 2 : n;
+    el.classList.remove('active', 'done', 'skipped');
+    // Paso 3 se salta si skipStep3
+    if (n === 3 && skipStep3) { el.classList.add('skipped'); return; }
+    // Calcular n efectivo para comparar con step (cuando skipStep3, step salta de 2 a 4)
     if (step === n) el.classList.add('active');
     else if (step > n) el.classList.add('done');
   });
@@ -984,7 +998,7 @@ function _scmRender() {
   const backBtn = document.getElementById('sprint-close-back-btn');
   const nextBtn = document.getElementById('sprint-close-next-btn');
   const isFirst = step === 1;
-  const isLast  = step >= totalSteps; // B-202605-007: usar totalSteps en lugar de magic number 3 — con skipStep2=true totalSteps=2 y step salta a 3 (≥2), isLast=true en ambos flujos
+  const isLast  = step >= totalSteps;
 
   if (backBtn) {
     backBtn.hidden = isFirst;
@@ -1005,7 +1019,6 @@ function _scmRender() {
   if (!body) return;
 
   // B-202605-067: extraer métricas de _scmState antes de llamar a _scmStep1Html
-  // para eliminar la referencia directa al global dentro de la función
   const _step1Metrics = {
     effortPlanned:         _scmState.effortPlanned          || 0,
     effortDone:            _scmState.effortDone             || 0,
@@ -1013,21 +1026,38 @@ function _scmRender() {
     effortNotDone:         _scmState.effortNotDone          || 0,
     hasItemsWithoutEffort: _scmState.hasItemsWithoutEffort  || false,
   };
+
   if (step === 1) {
     body.innerHTML = _scmStep1Html(sp, spLabel, pendingItems, doneItems, _step1Metrics);
-    // T-202606-118: deshabilitar avance si gate de campos obligatorios no está completo
+    // T-202606-118: gate de campos obligatorios
     const _gv = (v) => v && v !== 'n/a' && String(v).trim() !== '';
     const gateOk = sp && _gv(sp.version_target) && _gv(sp.release_type) && _gv(sp.scope);
     if (nextBtn) nextBtn.disabled = !gateOk;
-  } else if (step === 2 && !skipStep2) {
+  } else if (step === 2) {
+    // T-202606-120 AC-2/AC-4/AC-5: Paso 2 siempre presente — DOC-UPDATEs
+    body.innerHTML = _scmStepDuHtml(docUpdates || []);
+    // T-202606-120 AC-4: gate — Siguiente habilitado solo si todos tienen resolución
+    _scmUpdateDuNextBtn(nextBtn);
+  } else if (step === 3 && !skipStep3) {
+    // Paso 3: migración de ítems pendientes (solo si !skipStep3)
     if (nextBtn) nextBtn.disabled = false;
     body.innerHTML = _scmStep2Html(pendingItems, migrations, id);
-  } else if (step === 3) {
-    body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep2); // T-A1: cubre step===3 en ambos casos (skipStep2=true y false)
-    // Listener directo para #scm-retro-notes-ta (reemplaza oninput inline)
+  } else if (step === 4 || (step === 3 && skipStep3)) {
+    // Paso 4 (o 3 si skipStep3): retro
+    body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep3);
     const notesTA = document.getElementById('scm-retro-notes-ta');
     if (notesTA) notesTA.addEventListener('input', () => { if (_scmState) _scmState.retroNotes = notesTA.value; });
+    if (nextBtn) nextBtn.disabled = false;
   }
+}
+
+// T-202606-120 AC-4: evalúa si todos los DOC-UPDATEs tienen resolución y actualiza el botón Siguiente
+function _scmUpdateDuNextBtn(nextBtn) {
+  if (!_scmState || !nextBtn) return;
+  const du = _scmState.docUpdates || [];
+  // Si no hay DOC-UPDATEs, el estado vacío (AC-5) permite avanzar libremente
+  const allResolved = du.length === 0 || du.every(d => d.resolucion !== null);
+  nextBtn.disabled = !allResolved;
 }
 
 // B-202605-067: métricas de entrega recibidas como parámetro — sin acceso a _scmState global
@@ -1156,6 +1186,43 @@ function _scmStep1Html(sp, spLabel, pendingItems, doneItems, metrics) {
   `;
 }
 
+// T-202606-120 AC-2: Paso 2 — lista de DOC-UPDATEs pendientes con resolución por fila
+// AC-5: estado vacío si docUpdates es array vacío — muestra mensaje, Siguiente habilitado
+// AC-7/AC-8/AC-9/AC-10: botones aplicado/descartado por fila con actualización visual sin recargar
+function _scmStepDuHtml(docUpdates) {
+  if (!docUpdates || docUpdates.length === 0) {
+    // AC-5: estado vacío
+    return `<div class="scm-du-empty">No hay DOC-UPDATEs pendientes en este sprint.</div>`;
+  }
+
+  const rows = docUpdates.map(du => {
+    const res = du.resolucion; // 'aplicado' | 'descartado' | null
+    const escAl = du.escalarA ? `<span class="scm-du-escalar">→ ${esc(du.escalarA)}</span>` : '';
+    const badgeHtml = res
+      ? `<span class="scm-du-badge scm-du-badge--${res}">${res === 'aplicado' ? '✓ Aplicado' : '✗ Descartado'}</span>`
+      : '';
+    return `
+      <div class="scm-du-row${res ? ' scm-du-row--resolved' : ''}" data-du-id="${du.id}">
+        <div class="scm-du-meta">
+          <span class="scm-du-doc">${esc(du.doc)}</span>
+          <span class="scm-du-seccion">${esc(du.seccion)}</span>
+          ${escAl}
+          ${badgeHtml}
+        </div>
+        <div class="scm-du-actions">
+          <button class="scm-du-btn scm-du-btn--aplicado${res === 'aplicado' ? ' is-active' : ''}"
+            data-action="scm-du-resolve" data-du-id="${du.id}" data-resolucion="aplicado"
+            type="button">Aplicado</button>
+          <button class="scm-du-btn scm-du-btn--descartado${res === 'descartado' ? ' is-active' : ''}"
+            data-action="scm-du-resolve" data-du-id="${du.id}" data-resolucion="descartado"
+            type="button">Descartado</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  return `<div class="scm-du-list">${rows}</div>`;
+}
+
 function _scmStep2Html(pendingItems, migrations, currentId) {
   const otherSprints = getActiveSprints().filter(s => s.id !== currentId && s.status !== 'closed');
   const activeSp     = otherSprints.find(s => s.status === 'active');
@@ -1224,7 +1291,7 @@ function _scmDownloadRetro() {
   showToast('download', 'Retro descargada', fname);
 }
 
-function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
+function _scmStep3Html(pendingItems, doneItems, migrations, skipStep3) {
   const doneCount      = doneItems.filter(i => i.status === 'done').length;
   const discardedCount = doneItems.filter(i => i.status === 'descartado').length;
 
@@ -1361,7 +1428,7 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep2) {
       ${doneItems.filter(i => i.status === 'descartado').map(i => itemRow(i, 'histórico', '')).join('')}
     </div>`;
 
-  if (!skipStep2) {
+  if (!skipStep3) {
     const byDest = {};
     toSprint.forEach(i => {
       const d = migrations[i.code];
@@ -1427,6 +1494,8 @@ function _scmExecuteClose() {
   // R-202605-134: resolver version_target del sprint antes de iterar
   const spForClose = _getSprintById(id);
   const versionTarget = spForClose && spForClose.version_target ? spForClose.version_target : null;
+  // T-202606-119 AC-3: version_target inválido — no asignar version, registrar en consola. Cierre continúa.
+  if (!versionTarget) console.log('version_target no válido — campo version no aplicado a ítems done');
   getItems().forEach(i => {
     if (i.sprint === id && !processedCodes.has(i.code) && (i.status === 'done' || i.status === 'descartado')) {
       const wasDone = i.status === 'done';
@@ -1931,6 +2000,41 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'scm-open-map-generator':
         if (typeof openMapGenerator === 'function') openMapGenerator();
         break;
+      case 'scm-du-resolve': {
+        // T-202606-120 AC-7/AC-8/AC-9/AC-10: resolución de DOC-UPDATE por fila sin recargar stepper
+        if (!_scmState) break;
+        const duId  = parseInt(btn.dataset.duId, 10);
+        const resol = btn.dataset.resolucion; // 'aplicado' | 'descartado'
+        const du = (_scmState.docUpdates || []).find(d => d.id === duId);
+        if (!du) break;
+        // AC-9: toggle — si ya tenía la misma resolución, limpiar (vuelve a null)
+        du.resolucion = du.resolucion === resol ? null : resol;
+        // AC-7: actualizar visual de la fila sin rerender completo
+        const row = btn.closest('[data-du-id]');
+        if (row) {
+          row.classList.toggle('scm-du-row--resolved', du.resolucion !== null);
+          // actualizar badge
+          const meta = row.querySelector('.scm-du-meta');
+          if (meta) {
+            const existing = meta.querySelector('.scm-du-badge');
+            if (existing) existing.remove();
+            if (du.resolucion) {
+              const badge = document.createElement('span');
+              badge.className = `scm-du-badge scm-du-badge--${du.resolucion}`;
+              badge.textContent = du.resolucion === 'aplicado' ? '✓ Aplicado' : '✗ Descartado';
+              meta.appendChild(badge);
+            }
+          }
+          // actualizar estado is-active de botones de la fila
+          row.querySelectorAll('[data-action="scm-du-resolve"]').forEach(b => {
+            b.classList.toggle('is-active', b.dataset.resolucion === du.resolucion);
+          });
+        }
+        // AC-4: re-evaluar gate del botón Siguiente
+        const nBtn = document.getElementById('sprint-close-next-btn');
+        _scmUpdateDuNextBtn(nBtn);
+        break;
+      }
       case 'scm-bulk-apply':
         _scmBulkApply();
         break;
