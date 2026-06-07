@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:22 · autor:Nova · 2026-06-07 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:23 · autor:Rune · 2026-06-07 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -364,8 +364,12 @@
 .stat-mini-fill {
   height: 100%;
   border-radius: var(--radius-sm);
-  background: var(--green,var(--green));
+  background: var(--green);
   transition: width 0.3s;
+}
+
+:root[data-theme="light"] .stat-mini-fill {
+  background: var(--green-dark); /* contraste 4.77:1 sobre --surface3 light · T-202606-068 */
 }
 
 /* Nivel 2: chips de tipo — accionables, compactos */

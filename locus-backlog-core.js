@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:42 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:43 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1627,7 +1627,7 @@ export function renderStats() {
               <span class="stat-progress-l">Descartado</span>
             </div>` : ''}
           </div>
-          <span class="stat-progress-pct">${pct}%</span>
+          ${total > 0 ? `<span class="stat-progress-pct">${pct}% completado</span>` : ''}
         </div>
         <div class="stat-mini-track"><div class="stat-mini-fill" style="--stat-mini-w:${pct}%"></div></div>
       </div>

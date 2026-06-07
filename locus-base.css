@@ -296,6 +296,7 @@
   --green:       #1aab5a;
   --green-dim:   #e6f9ef;
   --green-border:#99ddb8;
+  --green-dark:  #0d7a3e;  /* fills de barras de progreso — contraste 4.77:1 sobre --surface3 light · T-202606-068 */
   --red:         #d93050;
   --red-dim:     #fdf0f3;
   --red-border:  #f0b0bc;
