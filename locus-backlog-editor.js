@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:19 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:20 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -84,6 +84,15 @@ function _refreshNoIncluye(selectedType) {
   field.classList.toggle('is-hidden', selectedType !== 'T');
 }
 
+// T-202606-112: mostrar/ocultar bloque intencion según tipo de ítem
+// AC-1: visible solo cuando type === 'R' — oculto para T, B, P
+// AC-6: al cambiar tipo → se oculta o muestra correctamente
+function _refreshIntencion(selectedType) {
+  const field = document.getElementById('field-intencion');
+  if (!field) return;
+  field.classList.toggle('is-hidden', selectedType !== 'R');
+}
+
 // T-202604-294: helper — retorna id del sprint activo si existe, '' si no
 function _activeSprint() {
   const s = _getActiveSprint();
@@ -137,6 +146,15 @@ export function openItemEditor(itemId = null, itemCode = null) {
     const noIncluyeElEdit = document.getElementById('item-no-incluye');
     if (noIncluyeElEdit) noIncluyeElEdit.value = (item.no_incluye || []).join('\n');
     _refreshNoIncluye(item.code[0]);
+    // T-202606-112 AC-4: poblar intencion si existe, vaciar si no
+    const _int = item.intencion || {};
+    const intProblemaEl = document.getElementById('item-intencion-problema');
+    const intDoneEl     = document.getElementById('item-intencion-done');
+    const intNoIncEl    = document.getElementById('item-intencion-no-incluye');
+    if (intProblemaEl) intProblemaEl.value = _int.problema     || '';
+    if (intDoneEl)     intDoneEl.value     = _int.done_cuando  || '';
+    if (intNoIncEl)    intNoIncEl.value    = _int.no_incluye   || '';
+    _refreshIntencion(item.code[0]);
   } else {
     // Nuevo ítem
     _editorItemId = null;
@@ -163,6 +181,14 @@ export function openItemEditor(itemId = null, itemCode = null) {
     const noIncluyeElNew = document.getElementById('item-no-incluye');
     if (noIncluyeElNew) noIncluyeElNew.value = '';
     _refreshNoIncluye('T');
+    // T-202606-112 AC-5: campos intencion vacíos en ítem nuevo
+    const intProblemaElNew = document.getElementById('item-intencion-problema');
+    const intDoneElNew     = document.getElementById('item-intencion-done');
+    const intNoIncElNew    = document.getElementById('item-intencion-no-incluye');
+    if (intProblemaElNew) intProblemaElNew.value = '';
+    if (intDoneElNew)     intDoneElNew.value     = '';
+    if (intNoIncElNew)    intNoIncElNew.value     = '';
+    _refreshIntencion(typeSelect.value);
   }
 
   // Actualizar dropdown al cambiar tipo
@@ -171,6 +197,7 @@ export function openItemEditor(itemId = null, itemCode = null) {
     _refreshSprintInherited(document.getElementById('item-parentid').value);
     _refreshSprintSelect(document.getElementById('item-sprint') ? document.getElementById('item-sprint').value : 'icebox');  // B-202606-043
     _refreshNoIncluye(typeSelect.value); // T-202606-111 AC-6
+    _refreshIntencion(typeSelect.value); // T-202606-112 AC-6
   };
 
   // B-202606-036: actualizar sprint heredado cuando el usuario cambia el R padre
@@ -383,6 +410,15 @@ function confirmItemEditor() {
   const no_incluye = (type === 'T' && noIncluyeEl)
     ? noIncluyeEl.value.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 3)
     : [];
+  // T-202606-112 AC-2/AC-3: leer intencion — solo para R
+  let intencion = null;
+  if (type === 'R') {
+    const _p  = (document.getElementById('item-intencion-problema')?.value  || '').trim();
+    const _d  = (document.getElementById('item-intencion-done')?.value      || '').trim();
+    const _ni = (document.getElementById('item-intencion-no-incluye')?.value || '').trim();
+    // AC-2: si los tres vacíos → null. AC-3: parciales → objeto con strings vacíos
+    intencion = (_p || _d || _ni) ? { problema: _p, done_cuando: _d, no_incluye: _ni } : null;
+  }
   
   // Generar código si está vacío — usa _getNextItemCode() para consistencia con el sistema
   let finalCode = code;
@@ -422,6 +458,8 @@ function confirmItemEditor() {
     item.parentId = parentId || null;
     // T-202606-111 AC-3: persistir no_incluye solo en T
     if (type === 'T') item.no_incluye = no_incluye;
+    // T-202606-112 AC-2/AC-3: persistir intencion solo en R
+    if (type === 'R') item.intencion = intencion;
     // B-202606-043: leer sprint del select editable — solo cuando no hay parent (herencia lo gestiona el bloque siguiente)
     if (!parentId) {
       const sprintSelEl = document.getElementById('item-sprint');
@@ -471,7 +509,8 @@ function confirmItemEditor() {
       notes: notes || '',
       blockedBy: blockedBy,
       archivos: archivos,
-      no_incluye: no_incluye, // T-202606-111 AC-3
+      no_incluye: no_incluye,   // T-202606-111 AC-3
+      intencion: intencion,     // T-202606-112 AC-2/AC-3
       parentId: parentId || null,
       sprint: _newItemSprint,
       status: 'pendiente', version: 'futura',
