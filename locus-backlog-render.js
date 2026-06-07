@@ -1,6 +1,6 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:40 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:41 · autor:Rune · 2026-06-07 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
-import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
+import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, updateBacklogFooter } from './locus-backlog-item.js';
 
@@ -18,7 +18,7 @@ import { esc } from './locus-ui-shell.js';
 import { _renderPlanningView, _attachPlanViewDelegation, _statusPills, toggleClosedSprintsBody } from './locus-sprint-planificacion.js';
 import { _updateDocLogCount } from './locus-doc-log.js';
 
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:40 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:41 · autor:Rune · 2026-06-07 UTC-6
 // Responsabilidad: Renderizado del backlog — vista Lista (sprint groups + jerarquía R→T/B),
 //   sprint health panel, roadmap, planning (drag & drop), renderBacklogList, sprint selector inline.
 // Dependencias: locus-backlog-core.js · locus-backlog-archive.js · locus-backlog-item.js · locus-backlog-sprints.js
@@ -707,12 +707,7 @@ export function renderBacklogList(onRendered) {
     if (noAcBtn) noAcBtn.classList.toggle('active', _getBacklogNoAcMode());
     const blockerBtn = document.getElementById('fbar-blocker-btn');
     if (blockerBtn) blockerBtn.classList.toggle('active', _getBacklogBlockerFilter());
-    // R-[tmp:sprint-group-toggle]: botón agrupación por sprint
-    const sprintBtn = document.getElementById('fbar-sprint-btn');
-    if (sprintBtn) {
-      sprintBtn.classList.toggle('active', _getBacklogSprintGroupMode());
-      sprintBtn.title = _getBacklogSprintGroupMode() ? 'Agrupación por sprint activa — click para vista plana' : 'Vista plana activa — click para agrupar por sprint';
-    }
+    // T-202606-062: bloque fbar-sprint-btn eliminado — _backlogSprintGroupMode ya no existe
   })();
 
   // Guard: backlog requiere proyecto activo
@@ -1137,30 +1132,7 @@ export function renderBacklogList(onRendered) {
       html += `</div></div>`;
     });
 
-    // T-202606-023: delegación del toggle .bl-r-toggle en modo sprint groups
-    // B-202606-035: el toggle individual no puede expandir cuando el pill Hijos está inactivo —
-    // el pill es el control maestro de visibilidad. Solo colapsar siempre es válido.
-    listEl.addEventListener('click', function _blRToggleHandler(e) {
-      const btn = e.target.closest('[data-action="bl-r-toggle"]');
-      if (!btn) return;
-      const rCode = btn.dataset.rCode;
-      if (!rCode) return;
-      const childrenWrap = document.getElementById('bl-children-' + CSS.escape(rCode));
-      if (!childrenWrap) return;
-      const isNowCollapsed = !childrenWrap.classList.contains('collapsed');
-      // B-202606-035 AC-1: si el pill Hijos está inactivo, el toggle solo puede colapsar —
-      // nunca expandir, para no contradecir el estado maestro del pill.
-      const _pillActive = localStorage.getItem('backlog-show-children') === '1';
-      if (!isNowCollapsed && !_pillActive) return;
-      childrenWrap.classList.toggle('collapsed', isNowCollapsed);
-      btn.classList.toggle('collapsed', isNowCollapsed);
-      const _collapseKey = 'locus-r-collapsed-' + rCode;
-      if (isNowCollapsed) {
-        localStorage.setItem(_collapseKey, '1');
-      } else {
-        localStorage.removeItem(_collapseKey);
-      }
-    });
+    // T-202606-062: bloque bl-r-toggle eliminado — reemplazado por vl-toggle-r en _renderVistaLista (T1)
 
     // R-202605-103: bloque sprints cerrados eliminado — absorbido por renderArchivoHistorico
 

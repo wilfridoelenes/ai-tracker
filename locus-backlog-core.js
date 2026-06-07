@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:41 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:42 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -196,10 +196,7 @@ let _backlogNoAcMode = false;
 let _backlogMikeMode = false;
 let _miViewRoleIndex = 0; // índice del rol activo en la rotación
 
-// R-[tmp:sprint-group-toggle]: agrupación por sprint en backlog activo — activo por defecto
-const _backlogSprintGroupRaw = localStorage.getItem('backlog-sprint-group-mode');
-let _backlogSprintGroupMode = _backlogSprintGroupRaw !== null ? _backlogSprintGroupRaw !== 'false' : true;
-
+// T-202606-062: _backlogSprintGroupMode eliminado — _renderVistaLista es la vista por defecto
 // T-202606-012: vistas árbol y plana eliminadas — vista C colapsable es la vista por defecto
 const _backlogViewModeRaw = localStorage.getItem('backlog-view-mode');
 let _backlogKanbanMode = _backlogViewModeRaw === 'kanban';
@@ -1937,31 +1934,19 @@ function toggleBacklogFooter() {
 }
 
 // AC: aria tablist — sincroniza atributos aria-selected (vistas de agrupación) y aria-checked (modificadores)
-// Vistas de agrupación mutuamente excluyentes: Sprints · Árbol · Kanban · Planificar
+// Vistas de agrupación: Kanban · Vista Lista (default)
 // Modificadores combinables: Focus · Mi vista
-// Regla: nunca todas las vistas de agrupación inactivas — default Sprints
+// T-202606-062: sprintBtn y _backlogSprintGroupMode eliminados — _renderVistaLista es la vista por defecto
 function _syncViewAriaStates() {
-  // Vistas de agrupación — aria-selected refleja estado de cada variable
-  const sprintBtn   = document.getElementById('fbar-sprint-btn');
   const kanbanBtn   = document.getElementById('fbar-kanban-btn');
 
-  // Determinar vista de agrupación activa
-  // Prioridad: Kanban > Sprints (default)
-  const anyGroupActive = _backlogKanbanMode || _backlogSprintGroupMode;
-  // Garantizar default: si ninguna activa, activar Sprints
-  if (!anyGroupActive) {
-    _backlogSprintGroupMode = true;
-    localStorage.setItem('backlog-sprint-group-mode', 'true');
-    if (sprintBtn) sprintBtn.classList.add('active');
-  }
-
-  if (sprintBtn)   sprintBtn.setAttribute('aria-selected',   String(_backlogSprintGroupMode && !_backlogKanbanMode));
   if (kanbanBtn)   kanbanBtn.setAttribute('aria-selected',   String(_backlogKanbanMode));
 
   // AC: aria tabpanel — #backlog-list labelledby refleja el tab activo
   const backlogPanel = document.getElementById('backlog-list');
   if (backlogPanel) {
-    let activeTabId = 'fbar-sprint-btn'; // default
+    let activeTabId = 'fbar-kanban-btn';
+    if (!_backlogKanbanMode) activeTabId = 'fbar-kanban-btn'; // default — Vista Lista no tiene btn propio
     if (_backlogKanbanMode) activeTabId = 'fbar-kanban-btn';
     // Guard: solo aplicar si el tab existe en el DOM
     if (document.getElementById(activeTabId)) {
@@ -2035,7 +2020,7 @@ export function toggleBacklogNoAcMode() {
 // Las variables son let/const privados (mutables), por lo que se exponen via getter en lugar de export let.
 export function _getBacklogKanbanMode()      { return _backlogKanbanMode; }
 export function _getBacklogMikeMode()        { return _backlogMikeMode; }
-export function _getBacklogSprintGroupMode() { return _backlogSprintGroupMode; }
+// T-202606-062: _getBacklogSprintGroupMode() eliminada — R-202606-017
 export function _getBacklogNoAcMode()        { return _backlogNoAcMode; }
 export function _getActiveTypes()            { return activeTypes; }
 export function _getActiveStatuses()         { return activeStatuses; }
