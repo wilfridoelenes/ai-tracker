@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:44 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:45 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -2167,4 +2167,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // B-202606-008: sincronizar visibilidad del botón Limpiar filtros con el estado
   // real de los filtros en la carga inicial — antes de cualquier interacción del usuario
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
+
+  // T-202606-099: toggle de filtros del backlog desde footer global
+  const _btnGfToggle = document.getElementById('gf-footer-toggle');
+  if (_btnGfToggle) _btnGfToggle.addEventListener('click', function () { toggleBacklogFooter(); });
 });
