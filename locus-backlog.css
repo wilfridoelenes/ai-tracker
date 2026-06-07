@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:24 · autor:Rune · 2026-06-07 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:25 · autor:Rune · 2026-06-07 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -2488,11 +2488,12 @@
   margin: 0 2px;
 }
 
+/* T-202606-100: divisor de la barra fusionada */
 .bl-toolbar-divider {
   width: 1px;
-  height: 18px;
   background: var(--border);
-  margin: 0 4px;
+  align-self: stretch;
+  margin: 0 var(--space-sm);
   flex-shrink: 0;
 }
 
