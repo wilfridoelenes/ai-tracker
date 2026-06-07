@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:25 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:26 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -130,7 +130,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     // B-202606-032: para ítems nuevos (item === null), usar sprintOverride del objeto diff como fuente
     const rawSprint = item ? (item.sprint || '') : (sprintOverride || '');
     // R-202605-148 AC: si el sprint asignado ya no existe, mostrar 'Sin sprint' como fallback
-    const sprintExists = rawSprint && openSprints.some(s => s.id === rawSprint);
+    // B-202606-032 AC-2: icebox no es sprint real — se trata como opción especial, no como fallback a ''
+    const isIcebox = rawSprint === 'icebox';
+    const sprintExists = rawSprint && !isIcebox && openSprints.some(s => s.id === rawSprint);
     const currentSprint = sprintExists ? rawSprint : '';
     const options = openSprints.map(s =>
       `<option value="${esc(s.id)}" ${currentSprint === s.id ? 'selected' : ''}>${esc(s.label || s.id)}</option>`
@@ -138,7 +140,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     return `<select class="mdiff-sprint-select" data-item-code="${esc(code)}"
       onchange="_mdiffSetItemSprint(this)"
       data-stop-propagation="true">
-      <option value="" ${!currentSprint ? 'selected' : ''}>Sin sprint</option>
+      <option value="" ${!currentSprint && !isIcebox ? 'selected' : ''}>Sin sprint</option>
+      <option value="icebox" ${isIcebox ? 'selected' : ''}>icebox</option>
       ${options}
       <option value="__new__">＋ Nuevo sprint...</option>
     </select>`;
