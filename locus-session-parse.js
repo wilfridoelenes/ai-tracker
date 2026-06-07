@@ -1,6 +1,6 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:32 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:34 · autor:Rune · 2026-06-07 UTC-6
 // locus-session-parse.js
-// Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
+// Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
@@ -885,6 +885,7 @@ function handlePaste(id) {
           if (horaEl) horaEl.focus();
         }
         if (ta && (ta.value.includes('---PLAN---') || ta.value.includes('---EXECUTION-PLAN---'))) _tryIngestPlan(ta.value);
+        if (ta && ta.value.includes('---SPRINT-PROPOSAL---')) _tryIngestSprintProposal(ta.value);
       }, 150);
       return;
     }
@@ -896,6 +897,8 @@ function handlePaste(id) {
     }
     // R-202604-085 + R-B: detectar ---PLAN--- o ---EXECUTION-PLAN--- embebido en el CHECKPOINT pegado
     if (ta && (ta.value.includes('---PLAN---') || ta.value.includes('---EXECUTION-PLAN---'))) _tryIngestPlan(ta.value);
+    // T-202606-129: detectar ---SPRINT-PROPOSAL--- embebido en el CHECKPOINT pegado
+    if (ta && ta.value.includes('---SPRINT-PROPOSAL---')) _tryIngestSprintProposal(ta.value);
   };
   setTimeout(_doParse, 150);
 }
@@ -949,6 +952,55 @@ export function _tryIngestPlan(text) {
     : '✓ Plan importado — ' + incoming.length + ' sprint(s)';
   showToast('success', label);
   renderPlan();
+  return true;
+}
+
+// T-202606-129: ingesta de bloque ---SPRINT-PROPOSAL--- → crea sprint con formallyOpened: false
+// Flujo: parseSprintProposal(text) → validar campos → guard duplicado → push a proj.sprints → save()
+export function _tryIngestSprintProposal(text) {
+  if (!text || !text.includes('---SPRINT-PROPOSAL---')) return false;
+
+  const result = parseSprintProposal(text);
+
+  // AC-3: campos faltantes → toast con lista y retorno temprano sin persistir
+  if (!result) return false; // bloque ausente o sin terminador (parseSprintProposal retorna null)
+  if (result.error) {
+    const list = result.missing.join(', ');
+    showToast('error', `Campos obligatorios faltantes: ${list}`);
+    return false;
+  }
+
+  const proj = getActiveProject();
+  if (!proj) return false;
+
+  if (!proj.sprints) proj.sprints = [];
+
+  // AC-2: guard de duplicado — ID es el campo sprint (string canónico)
+  const exists = proj.sprints.some(sp => sp.id === result.sprint || sp.name === result.sprint);
+  if (exists) {
+    showToast('error', 'Ya existe un sprint con este ID');
+    return false;
+  }
+
+  // AC-1: construir objeto sprint con formallyOpened: false
+  const newSprint = {
+    id:             result.sprint,
+    name:           result.sprint,
+    version_target: result.version_target,
+    release_type:   result.release_type,
+    scope:          result.scope,
+    goal:           result.goal,
+    out_of_scope:   result.out_of_scope || [],
+    status:         'active',
+    current:        false,
+    formallyOpened: false,
+  };
+
+  proj.sprints.push(newSprint);
+  save();
+
+  // AC-4: sprint accesible inmediatamente via locus-storage tras persistir
+  showToast('success', `✓ Sprint "${result.sprint}" creado — pendiente de aprobación`);
   return true;
 }
 
@@ -1150,6 +1202,8 @@ function parsePasteStandalone() {
 
   // R-202604-085 + R-B: detectar ---PLAN--- o ---EXECUTION-PLAN--- embebido en el CHECKPOINT standalone
   if (text.includes('---PLAN---') || text.includes('---EXECUTION-PLAN---')) _tryIngestPlan(text);
+  // T-202606-129: detectar ---SPRINT-PROPOSAL--- embebido en el CHECKPOINT standalone
+  if (text.includes('---SPRINT-PROPOSAL---')) _tryIngestSprintProposal(text);
 
   // Éxito — guardar parsed y habilitar botón
   _standaloneLastParsed = { ckpt, tgItems, patchItems, raw: text };
@@ -1211,6 +1265,8 @@ function saveStandaloneCheckpoint() {
     // R-202604-076 + R-B: plan block — PLAN legacy y EXECUTION-PLAN nuevo
     // B-202605-XXX: usar _tryIngestPlan en lugar de savePlan directo — preserva scope:sprint al guardar scope:sesion
     if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
+    // T-202606-129: detectar ---SPRINT-PROPOSAL--- en CHECKPOINT standalone guardado
+    if (raw.includes('---SPRINT-PROPOSAL---')) _tryIngestSprintProposal(raw);
 
     closeStandaloneCheckpoint();
 
@@ -1248,6 +1304,68 @@ function saveStandaloneCheckpoint() {
 
 
 
+
+// T-202606-128: parser de bloque ---SPRINT-PROPOSAL--- / ---SPRINT-PROPOSAL-END---
+// Solo extrae y retorna el objeto — no modifica storage ni UI.
+// Retorna { sprint, version_target, release_type, scope, goal, out_of_scope }
+// o       { error: true, missing: [...campos] } si falta algún campo obligatorio.
+// Retorna null si el bloque está ausente o malformado (sin terminador).
+export function parseSprintProposal(text) {
+  // AC-4: bloque ausente o sin terminador → null
+  const match = text.match(/---SPRINT-PROPOSAL---\s*([\s\S]*?)\s*---SPRINT-PROPOSAL-END---/);
+  if (!match) return null;
+
+  const body  = match[1];
+  const lines = body.split('\n');
+
+  let sprint         = '';
+  let version_target = '';
+  let release_type   = '';
+  let scope          = '';
+  let goal           = '';
+  const out_of_scope = [];
+
+  let inOutOfScope = false;
+
+  for (const rawLine of lines) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) continue;
+
+    // out_of_scope: bloque multi-línea (ítems con guión)
+    if (/^out_of_scope\s*:/i.test(trimmed)) {
+      inOutOfScope = true;
+      // inline value after colon — ignorar, los ítems van en líneas con guión
+      continue;
+    }
+    if (inOutOfScope) {
+      // AC-3: cada ítem es "  - código: justificación"
+      const itemM = trimmed.match(/^-\s+(.+)$/);
+      if (itemM) { out_of_scope.push(itemM[1].trim()); continue; }
+      // Línea sin guión dentro de out_of_scope → fin del bloque
+      inOutOfScope = false;
+    }
+
+    const sprintM         = trimmed.match(/^sprint\s*:\s*(.+)$/i);
+    const versionM        = trimmed.match(/^version_target\s*:\s*(.+)$/i);
+    const releaseM        = trimmed.match(/^release_type\s*:\s*(.+)$/i);
+    const scopeM          = trimmed.match(/^scope\s*:\s*(.+)$/i);
+    const goalM           = trimmed.match(/^goal\s*:\s*(.+)$/i);
+
+    if (sprintM)  { sprint         = sprintM[1].trim();  continue; }
+    if (versionM) { version_target = versionM[1].trim(); continue; }
+    if (releaseM) { release_type   = releaseM[1].trim(); continue; }
+    if (scopeM)   { scope          = scopeM[1].trim();   continue; }
+    if (goalM)    { goal           = goalM[1].trim();     continue; }
+  }
+
+  // AC-3: campos obligatorios — retornar error con lista de faltantes
+  const REQUIRED = { sprint, version_target, release_type, scope, goal };
+  const missing  = Object.entries(REQUIRED).filter(([, v]) => !v).map(([k]) => k);
+  if (missing.length) return { error: true, missing };
+
+  // AC-1 + AC-2: objeto completo
+  return { sprint, version_target, release_type, scope, goal, out_of_scope };
+}
 
 // R-202604-076 + R-B: parser de bloque ---PLAN--- / ---EXECUTION-PLAN---
 // Backward compatible: ---PLAN--- se trata como scope 'sprint' implícito

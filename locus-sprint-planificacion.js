@@ -1,9 +1,10 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:6 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:7 · autor:Rune · 2026-06-07 UTC-6
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
 
-import { _getActiveSprint, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
+import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
+import { showToast } from './locus-toast.js';
 import { getItems, itemType, _getActiveStatuses, updateStatusFilterUI } from './locus-backlog-core.js';
 import { getActiveSprints } from './locus-storage.js';
 import { esc } from './locus-ui-shell.js';
@@ -524,6 +525,12 @@ function _planDrop(e, targetCol) {
     const targetSprintId = targetCol;
     if (!targetSprintId) return;
     if (item.sprint === targetSprintId) return; // ya está asignado a este sprint
+    // T-202606-133: gate formallyOpened — bloquear drop sobre sprint no aprobado
+    const destSprint = _getSprintById(targetSprintId);
+    if (destSprint && destSprint.formallyOpened === false) {
+      showToast('warning', 'Sprint pendiente de aprobación — el founder debe aprobarlo antes de asignar ítems');
+      return;
+    }
     setItemSprint(item.code, targetSprintId);
   }
 

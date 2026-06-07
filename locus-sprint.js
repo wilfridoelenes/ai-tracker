@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:34 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:37 · autor:Rune · 2026-06-07 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -307,8 +307,94 @@ function _escHtml(str) {
 
 // ── END T-202606-029 ─────────────────────────────────────────────────────────
 
+// ── T-202606-131: Modal de aprobación de sprint ──────────────────────────────
 
-function _renderSprintItems(sprint) {
+/**
+ * Abre el modal #sprint-approve-overlay con los campos del sprint pendiente.
+ * AC: nombre, version_target, release_type, scope, goal visibles.
+ * Confirmar y Cancelar funcionales.
+ */
+function _sprintApproveOpen() {
+  const sprint = _getActiveSprint();
+  if (!sprint || sprint.formallyOpened !== false) return;
+
+  const overlay = document.getElementById('sprint-approve-overlay');
+  const body    = document.getElementById('sprint-approve-body');
+  if (!overlay || !body) return;
+
+  // Inyectar campos del sprint
+  const fields = [
+    { label: 'Nombre',        value: sprint.label || sprint.name || sprint.id || '' },
+    { label: 'Versión',       value: sprint.version_target || '' },
+    { label: 'Release type',  value: sprint.release_type || sprint.releaseType || '' },
+    { label: 'Scope',         value: sprint.scope || '' },
+    { label: 'Goal',          value: sprint.goal || '' },
+  ];
+
+  body.innerHTML = fields.map(function(f) {
+    const isEmpty = !f.value;
+    return '<div class="sam-field">' +
+      '<span class="sam-field-label">' + _escHtml(f.label) + '</span>' +
+      '<span class="sam-field-value' + (isEmpty ? ' sam-field-value--empty' : '') + '">' +
+        (isEmpty ? 'Sin declarar' : _escHtml(f.value)) +
+      '</span>' +
+    '</div>';
+  }).join('');
+
+  overlay.classList.remove('is-hidden');
+  overlay.setAttribute('aria-hidden', 'false');
+
+  // Focus en botón Confirmar — AC: botón visible y clickeable
+  const confirmBtn = document.getElementById('sprint-approve-confirm');
+  if (confirmBtn) confirmBtn.focus();
+}
+
+/**
+ * T-202606-132: Confirma la aprobación del sprint — persiste formallyOpened: true en storage.
+ * AC-1: actualiza el sprint y llama save().
+ * AC-2: re-renderiza el tab Sprint para que badge y botón desaparezcan.
+ * AC-3: si save() falla, muestra toast de error y revierte formallyOpened a false.
+ */
+function _sprintApproveConfirm() {
+  const sprint = _getActiveSprint();
+  if (!sprint || sprint.formallyOpened !== false) return;
+
+  const allSprints = getActiveSprints();
+  const target = allSprints.find(function(s) { return s.id === sprint.id; });
+  if (!target) return;
+
+  // Mutar modelo
+  target.formallyOpened = true;
+
+  try {
+    save();
+  } catch (err) {
+    // AC-3: revertir y notificar
+    target.formallyOpened = false;
+    if (typeof showToast === 'function') showToast('Error al aprobar sprint. Intenta de nuevo.', 'error');
+    return;
+  }
+
+  // Cerrar modal
+  _sprintApproveCancel();
+
+  // AC-2: re-render para que badge y botón desaparezcan
+  renderSprintTab();
+}
+
+/**
+ * Cierra el modal sin cambios — AC: Cancelar cierra sin modificar el sprint.
+ */
+function _sprintApproveCancel() {
+  const overlay = document.getElementById('sprint-approve-overlay');
+  if (!overlay) return;
+  overlay.classList.add('is-hidden');
+  overlay.setAttribute('aria-hidden', 'true');
+}
+
+// ── END T-202606-131 ─────────────────────────────────────────────────────────
+
+
   if (typeof getItems() === 'undefined') return;
 
   const spItems = getItems().filter(i => {
@@ -614,6 +700,20 @@ export function renderSprintTab() {
       pillEl.className   = `sph-release-pill ${_sprintReleaseClass(rt)}`;
     }
     if (daysEl) daysEl.textContent = _sprintDaysLabel(sprint);
+
+    // T-202606-130: badge 'Pendiente aprobación' — visible solo cuando formallyOpened === false
+    const pendingBadge = _spEl('sph-pending-badge');
+    if (pendingBadge) {
+      const isPending = sprint.formallyOpened === false;
+      pendingBadge.classList.toggle('is-hidden', !isPending);
+    }
+
+    // T-202606-131: botón 'Aprobar apertura' — visible solo cuando formallyOpened === false
+    const approveBtn = _spEl('sph-approve-btn');
+    if (approveBtn) {
+      const isPending = sprint.formallyOpened === false;
+      approveBtn.classList.toggle('is-hidden', !isPending);
+    }
   }
 
   // Gestor de sprints — T-202605-123
@@ -1063,6 +1163,38 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   }
+
+  // T-202606-131: botón 'Aprobar apertura' → abre modal de confirmación
+  const approveBtn = document.getElementById('sph-approve-btn');
+  if (approveBtn) {
+    approveBtn.addEventListener('click', function() {
+      _sprintApproveOpen();
+    });
+  }
+
+  // T-202606-131: botón Cancelar del modal de aprobación
+  const approveCancelBtn = document.getElementById('sprint-approve-cancel');
+  if (approveCancelBtn) {
+    approveCancelBtn.addEventListener('click', function() {
+      _sprintApproveCancel();
+    });
+  }
+
+  // T-202606-132: botón Confirmar del modal de aprobación
+  const approveConfirmBtn = document.getElementById('sprint-approve-confirm');
+  if (approveConfirmBtn) {
+    approveConfirmBtn.addEventListener('click', function() {
+      _sprintApproveConfirm();
+    });
+  }
+
+  // T-202606-131: cerrar modal al hacer click en el overlay fuera del dialog
+  const approveOverlay = document.getElementById('sprint-approve-overlay');
+  if (approveOverlay) {
+    approveOverlay.addEventListener('click', function(e) {
+      if (e.target === approveOverlay) _sprintApproveCancel();
+    });
+  }
 });
 
 // ── T-202605-107: setSprintCurrent — marcar / desmarcar sprint en curso ────────
@@ -1170,6 +1302,9 @@ window._renderSprintManager     = _renderSprintManager;     // T-202605-123
 window._sptSwitch               = _sptSwitch;               // R-202605-052
 window._renderSprintPlanificar  = _renderSprintPlanificar;  // R-202605-052
 window._renderSprintMeta        = _renderSprintMeta;        // T-202606-029
+window._sprintApproveOpen       = _sprintApproveOpen;       // T-202606-131
+window._sprintApproveCancel     = _sprintApproveCancel;     // T-202606-131
+window._sprintApproveConfirm    = _sprintApproveConfirm;    // T-202606-132
 // R-202605-006
 window._spmToggle               = _spmToggle;
 window._spmRegistrar            = _spmRegistrar;

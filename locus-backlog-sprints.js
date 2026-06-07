@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:31 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -654,6 +654,14 @@ export function setSprintStatus(id, newStatus) {
 
 export function setItemSprint(code, sprintId) {
   if (sprintId === '__new__') { openNewSprintInline(code); return; }
+  // T-202606-133: gate formallyOpened — bloquear asignación a sprint no aprobado
+  if (sprintId && sprintId !== 'icebox') {
+    const targetSprint = _getSprintById(sprintId);
+    if (targetSprint && targetSprint.formallyOpened === false) {
+      showToast('warning', 'Sprint pendiente de aprobación — el founder debe aprobarlo antes de asignar ítems');
+      return;
+    }
+  }
   const item = getItems().find(i => i.code === code);
   if (!item) return;
   // T-202606-036 AC5: T con parent — bloquear asignación de sprint distinto al del parent

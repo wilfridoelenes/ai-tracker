@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-01 · mod:43 · autor:Rune · 2026-06-07 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-03 · mod:45 · autor:Rune · 2026-06-07 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -546,6 +546,12 @@
   <div class="sph-header is-hidden" id="sprint-panel-header">
     <div class="sph-inner">
       <div class="sph-name" id="sph-name"></div>
+      <!-- T-202606-130: badge visible solo cuando sprint.formallyOpened === false -->
+      <span class="sph-pending-badge is-hidden" id="sph-pending-badge">Pendiente aprobación</span>
+      <!-- T-202606-131: botón visible solo cuando sprint.formallyOpened === false -->
+      <button class="sph-approve-btn is-hidden" id="sph-approve-btn" type="button" aria-label="Aprobar apertura del sprint">
+        Aprobar apertura
+      </button>
       <div class="sph-burndown">
         <div class="sph-bd-labels">
           <span class="sph-bd-label" id="sph-bd-label">Effort: 0 / 0</span>
@@ -1651,5 +1657,21 @@
   </div>
 </div>
 <!-- /MODAL LIMPIAR PROYECTO -->
+
+<!-- T-202606-131: Modal aprobación de sprint — shell estático, contenido inyectado por JS -->
+<div class="modal-overlay is-hidden" id="sprint-approve-overlay"
+     role="dialog" aria-modal="true" aria-labelledby="sprint-approve-title" aria-hidden="true">
+  <div class="modal sprint-approve-modal">
+    <div class="modal-title" id="sprint-approve-title">Aprobar apertura de sprint</div>
+    <div class="sam-fields" id="sprint-approve-body">
+      <!-- Campos inyectados por _sprintApproveOpen() -->
+    </div>
+    <div class="modal-actions">
+      <button type="button" id="sprint-approve-cancel">Cancelar</button>
+      <button type="button" class="btn-primary" id="sprint-approve-confirm">Confirmar</button>
+    </div>
+  </div>
+</div>
+<!-- /T-202606-131 -->
 
 </body></html>
