@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:36 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:37 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -1464,6 +1464,18 @@ function _scmExecuteClose() {
       if (wasDone && versionTarget) i.version = versionTarget;
     }
   });
+
+  // T-202606-122: migrar ítems pendientes/en-revision a icebox + registrar en DocLog del sprint
+  {
+    const spDoc = _getSprintById(id);
+    if (!Array.isArray(spDoc.docLog)) spDoc.docLog = [];
+    getItems().forEach(i => {
+      if (i.sprint === id && (i.status === 'pendiente' || i.status === 'en-revision')) {
+        i.sprint = 'icebox';
+        spDoc.docLog.push(`${i.code} migrado a icebox desde ${id} al cerrar`);
+      }
+    });
+  }
 
   _undoSnapshot();
   saveBacklog();
