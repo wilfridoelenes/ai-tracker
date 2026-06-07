@@ -1,11 +1,11 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-02 · mod:14 · autor:Rune · 2026-06-07 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 
 import { TAG_COLORS, openTagModal } from './locus-tags.js';
 import { getItems } from './locus-backlog-core.js';
-import { _sessRelTsShared } from './locus-sesiones.js';
+import { _sessRelTsShared } from './locus-sesiones-utils.js';
 import { _getActiveProjectFilter } from './locus-sprint-project.js';
 import { showToast, showToastInline, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';

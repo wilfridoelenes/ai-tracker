@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-02 · mod:18 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-02 · mod:19 · autor:Rune · 2026-06-07 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -38,32 +38,9 @@ window.addEventListener('shell:sesiones-render', () => { _markTrackerDirty(); re
 // ── END T-202606-058 ─────────────────────────────────────────────────────────
 
 
-// ── R-202605-162: Helper compartido — timestamp relativo para filas de sesión ─
-// Usado por _trackerRenderMiniHist y _buildLogRow
-// Formato: mismo día → 'Hoy · HH:MM' | ayer → 'Ayer · HH:MM' |
-//          2–6 días → 'Hace N días' | 7–13 días → 'Hace 1 semana' |
-//          14–29 días → 'Hace N semanas' | 30+ días → 'DD mmm'
-export function _sessRelTsShared(s) {
-  const ts = s.updatedAt || s.createdAt || 0;
-  if (!ts) return s.date ? relDate(s.date) : (s.dateShort || '');
-  const diffMs = Date.now() - ts;
-  const diffD  = Math.floor(diffMs / 86400000);
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const dateKey  = new Date(ts).toISOString().slice(0, 10);
-  try {
-    const hhmm = new Date(ts).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false });
-    if (dateKey === todayKey)      return `Hoy · ${hhmm}`;
-    if (diffD === 1)               return `Ayer · ${hhmm}`;
-  } catch(_) { /* fallthrough */ }
-  if (diffD >= 2  && diffD <= 6)  return `Hace ${diffD} días`;
-  if (diffD >= 7  && diffD <= 13) return 'Hace 1 semana';
-  if (diffD >= 14 && diffD <= 29) return `Hace ${Math.floor(diffD / 7)} semanas`;
-  try {
-    return new Date(ts).toLocaleDateString('es', { day: 'numeric', month: 'short' });
-  } catch(_) {
-    return s.date ? relDate(s.date) : (s.dateShort || '');
-  }
-}
+// T-202606-086: re-export para preservar compatibilidad — implementaciones movidas a locus-sesiones-utils.js
+export { _sessRelTsShared, _cscardRelTs } from './locus-sesiones-utils.js';
+// ── END R-202605-162 helper ──────────────────────────────────────────────
 
 // Helper: hora fija por grupo — mini historial
 // hoy   → 'HH:MM'
@@ -87,21 +64,6 @@ function _sessFixedTs(s, group) {
     return (s.dateShort || '—'); // B-[pendiente-ID]: fallback '—' en catch
   }
 }
-
-// Helper: timestamp relativo dinámico para card sesión en curso
-// 'ahora' · 'hace 1 minuto' · 'hace 3 horas' · 'hace 1 día'
-export function _cscardRelTs(ts) {
-  if (!ts) return '';
-  const diffMs  = Date.now() - ts;
-  const diffMin = Math.floor(diffMs / 60000);
-  const diffH   = Math.floor(diffMs / 3600000);
-  const diffD   = Math.floor(diffMs / 86400000);
-  if (diffMin < 1)  return 'ahora';
-  if (diffMin < 60) return `hace ${diffMin} minuto${diffMin !== 1 ? 's' : ''}`;
-  if (diffH   < 24) return `hace ${diffH} hora${diffH !== 1 ? 's' : ''}`;
-  return `hace ${diffD} día${diffD !== 1 ? 's' : ''}`;
-}
-// ── END R-202605-162 helper ──────────────────────────────────────────────
 
 // ── R-202604-078 Fase 2: Mini-historial de IA en Col2 (modo Por IA) ─────
 
