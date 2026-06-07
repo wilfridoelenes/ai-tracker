@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:22 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:23 · autor:Rune · 2026-06-06 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -640,6 +640,9 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     bloqueantes: parsed.bloqueantes || '',
     decision:    parsed.decision    || '',
     proximoPaso: parsed.nextStep    || '',
+    // B-202606-037 AC-3: resetTime del worker para pre-llenar mdiff-duration-input en el DIFF.
+    // Formato "HH:MM" — el DIFF stripea el separador antes de asignarlo al input.
+    resetTime:   ai.resetTime || '',
   };
   const _patchItemsN = parsed.patchItems || [];
   const _tgItemsForPanel = _buildPatchTgItems(_patchItemsN, tgItems);

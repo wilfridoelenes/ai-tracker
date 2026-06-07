@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:23 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:24 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -847,10 +847,17 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     // Sin toast — el usuario canceló deliberadamente
   });
 
-  // AC-7: parseo de hora de sesión — feedback visual inline con interpretHora
+  // AC-7: parseo de hora de desbloqueo — feedback visual inline con interpretHora
   const _durationInputEl = overlay.querySelector('#mdiff-duration-input');
   const _durationDispEl  = overlay.querySelector('#mdiff-duration-disp');
   if (_durationInputEl && _durationDispEl) {
+    // B-202606-037 AC-3: pre-llenar con ai.resetTime si el worker ya tenía hora declarada.
+    // ckptMeta.resetTime viene en formato "HH:MM" — se stripea el separador para HHMM.
+    const _existingReset = (_ckptMeta.resetTime || '').replace(/\D/g, '');
+    if (_existingReset) {
+      _durationInputEl.value = _existingReset;
+      _horaUpdate(_durationInputEl, _durationDispEl);
+    }
     _durationInputEl.addEventListener('input', () => {
       _horaUpdate(_durationInputEl, _durationDispEl);
     });
