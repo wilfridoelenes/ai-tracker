@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:38 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:39 · autor:Rune · 2026-06-07 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -394,7 +394,7 @@ function _sprintApproveCancel() {
 
 // ── END T-202606-131 ─────────────────────────────────────────────────────────
 
-
+function _renderSprintItems(sprint) {
   if (typeof getItems() === 'undefined') return;
 
   const spItems = getItems().filter(i => {
