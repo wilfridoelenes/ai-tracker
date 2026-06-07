@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:17 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -8,7 +8,7 @@ import { _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
 
 import { _getNextItemCode, _undoSnapshot, renderStats, updateBacklogBanner, getItems, _registerCoreCallback } from './locus-backlog-core.js';
 
-import { renderBacklogList } from './locus-backlog-render.js';
+import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 
 import { _blogLog, _tplKey, save } from './locus-storage.js';
 
@@ -425,7 +425,7 @@ function confirmItemEditor() {
   }
 
   closeItemEditor();
-  renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList(); // B-202606-038: sin markDirty renderBacklogList retorna inmediatamente por guard _backlogListDirty
   updateBacklogBanner();
 }
 
