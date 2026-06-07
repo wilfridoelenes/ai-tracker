@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-02 · mod:17 · autor:Rune · 2026-06-07 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1558,3 +1558,5 @@ window.blindExhaustHoraKey   = blindExhaustHoraKey;
 window.addEventListener('shell:mark-tracker-dirty', () => { _markTrackerDirty(); });
 window.addEventListener('shell:render-tracker', () => { render(); });
 window.addEventListener('shell:update-auto-download-label', () => { _updateAutoDownloadLabel(); });
+// T-202606-084: selectTrackerAI desacoplado de stats y utils vía event
+window.addEventListener('shell:select-tracker-ai', (e) => { selectTrackerAI(e.detail.aiId); });

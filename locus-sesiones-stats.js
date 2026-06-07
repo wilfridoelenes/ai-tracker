@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-02 · mod:14 · autor:Rune · 2026-06-07 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -7,7 +7,7 @@ import { _isCountableItem, getItems} from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
 import { navigateToItem } from './locus-backlog-sprints.js';
 import { openPulsoPanel } from './locus-pulso.js';
-import { _markTrackerDirty, selectTrackerAI } from './locus-sesiones.js';
+// selectTrackerAI y _markTrackerDirty desacoplados vía shell:* events (T-202606-084)
 import { openDetail } from './locus-session-popup.js';
 import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
 import { _effectiveVersion, getAISessions, getActiveProject, getActiveTracker, getAllSessions, save, _isInSession } from './locus-storage.js';
@@ -143,7 +143,7 @@ export function _scrollToCard(aiId) {
 export function navigateToCard(aiId) {
   switchTab('sesiones');
   setTimeout(() => {
-    selectTrackerAI(aiId);
+    window.dispatchEvent(new CustomEvent('shell:select-tracker-ai', { detail: { aiId } }));
     const ta = document.getElementById('ta-' + aiId);
     if (ta) setTimeout(() => { ta.focus(); }, 80);
   }, 80);
@@ -326,7 +326,7 @@ export function toggleCollapseAll() {
   const allCollapsed = active.every(a => !a.showAll);
   active.forEach(a => { a.showAll = allCollapsed; });
   save();
-  _markTrackerDirty();
+  window.dispatchEvent(new CustomEvent('shell:mark-tracker-dirty'));
   window.dispatchEvent(new CustomEvent('shell:render-tracker'));
 }
 

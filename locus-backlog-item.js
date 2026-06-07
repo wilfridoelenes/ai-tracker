@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:47 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:49 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -2100,8 +2100,8 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           triggeredBy: item.triggeredBy || null,
           origenP: item.origenP || null,
           promovida_a: item.promovida_a || null,
-          // T-202606-025: persistir discard_reason solo en P con status descartado
-          ...(_incomingType === 'P' && initialStatus === 'descartado' && item.discard_reason !== undefined
+          // T-202606-025: persistir discard_reason en cualquier tipo con status descartado
+          ...(initialStatus === 'descartado' && item.discard_reason !== undefined
             ? (() => {
                 const _VALID_DISCARD_REASONS = new Set(['duplicado', 'fuera de alcance', 'reemplazado', 'obsoleto']);
                 if (!_VALID_DISCARD_REASONS.has(item.discard_reason)) {
@@ -2357,12 +2357,11 @@ export function applyPatchesFromTG(patches, sessionId) {
         }
         return;
       }
-      // T-202606-025: discard_reason — solo persiste en P con status descartado
+      // T-202606-025: discard_reason — persiste en cualquier tipo con status descartado
       if (field === 'discard_reason') {
-        const _targetType = existing.type;
         const _targetStatus = existing.status;
-        // AC-3: si el ítem no es P con status descartado → ignorar silenciosamente
-        if (_targetType !== 'P' || _targetStatus !== 'descartado') return;
+        // AC-3: si el ítem no tiene status descartado → ignorar silenciosamente
+        if (_targetStatus !== 'descartado') return;
         if (incoming !== undefined && incoming !== null && incoming !== current) {
           const _VALID_DISCARD_REASONS = new Set(['duplicado', 'fuera de alcance', 'reemplazado', 'obsoleto']);
           if (!_VALID_DISCARD_REASONS.has(incoming)) {
