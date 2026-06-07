@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-02 · mod:10 · autor:Rune · 2026-06-07 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -22,7 +22,7 @@ import { openAddAI } from './locus-workers.js';
 
 import { toast } from './locus-toast.js';
 import { fmt12 } from './locus-session-hora.js';
-import { _hoyMsUntilReset } from './locus-sesiones.js';
+import { _hoyMsUntilReset } from './locus-sesiones-utils.js';
 
 // T-202605-083: fmt12 y _hoyMsUntilReset — import directo desde módulo canónico (sin ciclo confirmado).
 // getCD — módulo fuente locus-misc-ui.js; window fallback mantenido (fuera de scope T-202605-083)

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-02 · mod:17 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-02 · mod:18 · autor:Rune · 2026-06-07 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1286,22 +1286,8 @@ document.addEventListener('DOMContentLoaded', function _initAutoDlLabel() {
   if (btn) btn.addEventListener('click', toggleAutoDownload);
 }, { once: true });
 
-// Utilidades de countdown para IAs agotadas
-export function _hoyMsUntilReset(ai) {
-  if (!ai.resetTime) return Infinity;
-  const [h, m] = ai.resetTime.split(':').map(Number);
-  const r = new Date(); r.setHours(h, m, 0, 0);
-  if (r <= new Date()) r.setDate(r.getDate() + 1);
-  return r - new Date();
-}
-export function _hoyCountdownLabel(ms) {
-  if (!isFinite(ms) || ms <= 0) return '—';
-  const totalSec = Math.floor(ms / 1000);
-  const h = Math.floor(totalSec / 3600);
-  const min = Math.floor((totalSec % 3600) / 60);
-  const sec = totalSec % 60;
-  return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
-}
+// T-202606-085: re-export para preservar compatibilidad — implementación movida a locus-sesiones-utils.js
+export { _hoyMsUntilReset, _hoyCountdownLabel } from './locus-sesiones-utils.js';
 
 // Ticker de countdown para IAs agotadas en el sidebar del Tab Tracker
 let _sidebarTickerInterval = null;

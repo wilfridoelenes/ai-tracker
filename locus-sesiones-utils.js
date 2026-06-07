@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-02 · mod:13 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-02 · mod:14 · autor:Rune · 2026-06-07 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
@@ -486,3 +486,20 @@ if (document.readyState === 'loading') {
 window.getCD             = getCD;
 window._resetExpired     = _resetExpired;
 window.getNextOccurrence = getNextOccurrence;
+
+// T-202606-085: _hoyMsUntilReset movida desde locus-sesiones.js — elimina ciclo con locus-radar.js
+export function _hoyMsUntilReset(ai) {
+  if (!ai.resetTime) return Infinity;
+  const [h, m] = ai.resetTime.split(':').map(Number);
+  const r = new Date(); r.setHours(h, m, 0, 0);
+  if (r <= new Date()) r.setDate(r.getDate() + 1);
+  return r - new Date();
+}
+export function _hoyCountdownLabel(ms) {
+  if (!isFinite(ms) || ms <= 0) return '—';
+  const totalSec = Math.floor(ms / 1000);
+  const h = Math.floor(totalSec / 3600);
+  const min = Math.floor((totalSec % 3600) / 60);
+  const sec = totalSec % 60;
+  return `${String(h).padStart(2,'0')}:${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+}
