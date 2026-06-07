@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:45 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:46 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -249,7 +249,7 @@ function _cvSave() {
 }
 const collapsedVersions = _cvLoad();
 
-// R-[tmp:toolbar-backlog-redesign]: collapse all — volátil, no persiste entre sesiones
+// T-202606-104: Modo R eliminado — Colapsar opera solo sobre headers de sección
 export function toggleCollapseAll() {
   // T-202605-112: incluir section-group-body para icebox y pendientes
   const bodies = document.querySelectorAll('.version-group-body, .section-group-body');
@@ -258,13 +258,10 @@ export function toggleCollapseAll() {
   const label = btn ? btn.querySelector('.bl-collapse-btn-label') : null;
   const icon = btn ? btn.querySelector('.bl-collapse-btn-icon') : null;
 
-  // T-202606-025: modo dual según contexto
-  // Modo sprint: si hay algún sprint expandido → colapsar sprints (comportamiento original)
-  // Modo R: si todos los sprints están colapsados → operar sobre .bl-vl-r-body
   const anySprintExpanded = Array.from(bodies).some(b => !b.classList.contains('collapsed'));
 
   if (anySprintExpanded) {
-    // ── Modo sprint: comportamiento original ──
+    // Colapsar todos los sprints/secciones
     bodies.forEach(b => {
       const id = b.id ? b.id.replace('vbody-', '') : null;
       b.classList.add('collapsed');
@@ -282,86 +279,23 @@ export function toggleCollapseAll() {
     if (label) label.textContent = 'Expandir';
     if (icon) icon.textContent = '⊞';
   } else {
-    // ── Modo sprint invertido: el usuario colapso sprints y ahora quiere expandirlos ──
-    // Si el botón está en estado is-collapsed, el ciclo es colapsar↔expandir sprints.
-    // Expandir sprints directamente sin entrar al Modo R.
-    if (btn && btn.classList.contains('is-collapsed')) {
-      bodies.forEach(b => {
-        const id = b.id ? b.id.replace('vbody-', '') : null;
-        b.classList.remove('collapsed');
-        if (id) collapsedVersions.delete(id);
-      });
-      _cvSave();
-      arrows.forEach(a => {
-        if (a.classList.contains('section-group-arrow')) {
-          a.classList.remove('collapsed');
-        } else {
-          a.textContent = '▾';
-        }
-      });
-      btn.classList.remove('is-collapsed');
-      if (label) label.textContent = 'Colapsar';
-      if (icon) icon.textContent = '⊟';
-      return;
-    }
-
-    // ── Modo R: operar sobre .bl-vl-r-body ── (T-202606-103: migrado de .bl-children-wrap)
-    const childWraps = document.querySelectorAll('.bl-vl-r-body');
-    if (!childWraps.length) {
-      // Sin hijos visibles — comportamiento fallback: expandir sprints
-      bodies.forEach(b => {
-        const id = b.id ? b.id.replace('vbody-', '') : null;
-        b.classList.remove('collapsed');
-        if (id) collapsedVersions.delete(id);
-      });
-      _cvSave();
-      arrows.forEach(a => {
-        if (a.classList.contains('section-group-arrow')) {
-          a.classList.remove('collapsed');
-        } else {
-          a.textContent = '▾';
-        }
-      });
-      if (btn) btn.classList.remove('is-collapsed');
-      if (label) label.textContent = 'Colapsar';
-      if (icon) icon.textContent = '⊟';
-      return;
-    }
-
-    // T-202606-036 AC-2: filtrar wraps sin hijos — evitar operar sobre .bl-vl-r-body vacíos
-    const childWrapsWithChildren = Array.from(childWraps).filter(w => w.children.length > 0);
-    if (!childWrapsWithChildren.length) return;
-
-    // Detectar si algún .bl-vl-r-body está expandido — para decidir colapsar o expandir
-    const anyRExpanded = childWrapsWithChildren.some(w => !w.classList.contains('collapsed'));
-
-    if (anyRExpanded) {
-      // Colapsar todos los Rs con hijos — AC-2
-      childWrapsWithChildren.forEach(w => {
-        w.classList.add('collapsed');
-        const rCode = w.id ? w.id.replace('bl-children-', '') : null;
-        if (rCode) {
-          const toggleBtn = document.querySelector(`[data-action="vl-toggle-r"][data-r-code="${CSS.escape(rCode)}"]`);
-          if (toggleBtn) toggleBtn.classList.add('collapsed');
-          localStorage.setItem('locus-r-collapsed-' + rCode, '1');
-        }
-      });
-      if (label) label.textContent = 'Expandir hijos';
-      if (icon) icon.textContent = '⊞';
-    } else {
-      // Expandir todos los Rs con hijos — AC-3
-      childWrapsWithChildren.forEach(w => {
-        w.classList.remove('collapsed');
-        const rCode = w.id ? w.id.replace('bl-children-', '') : null;
-        if (rCode) {
-          const toggleBtn = document.querySelector(`[data-action="vl-toggle-r"][data-r-code="${CSS.escape(rCode)}"]`);
-          if (toggleBtn) toggleBtn.classList.remove('collapsed');
-          localStorage.removeItem('locus-r-collapsed-' + rCode);
-        }
-      });
-      if (label) label.textContent = 'Colapsar hijos';
-      if (icon) icon.textContent = '⊟';
-    }
+    // Expandir todos los sprints/secciones
+    bodies.forEach(b => {
+      const id = b.id ? b.id.replace('vbody-', '') : null;
+      b.classList.remove('collapsed');
+      if (id) collapsedVersions.delete(id);
+    });
+    _cvSave();
+    arrows.forEach(a => {
+      if (a.classList.contains('section-group-arrow')) {
+        a.classList.remove('collapsed');
+      } else {
+        a.textContent = '▾';
+      }
+    });
+    if (btn) btn.classList.remove('is-collapsed');
+    if (label) label.textContent = 'Colapsar';
+    if (icon) icon.textContent = '⊟';
   }
 }
 
