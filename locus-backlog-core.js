@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:40 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:41 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -263,7 +263,7 @@ export function toggleCollapseAll() {
 
   // T-202606-025: modo dual según contexto
   // Modo sprint: si hay algún sprint expandido → colapsar sprints (comportamiento original)
-  // Modo R: si todos los sprints están colapsados → operar sobre .bl-children-wrap
+  // Modo R: si todos los sprints están colapsados → operar sobre .bl-vl-r-body
   const anySprintExpanded = Array.from(bodies).some(b => !b.classList.contains('collapsed'));
 
   if (anySprintExpanded) {
@@ -308,8 +308,8 @@ export function toggleCollapseAll() {
       return;
     }
 
-    // ── Modo R: operar sobre .bl-children-wrap ──
-    const childWraps = document.querySelectorAll('.bl-children-wrap');
+    // ── Modo R: operar sobre .bl-vl-r-body ── (T-202606-103: migrado de .bl-children-wrap)
+    const childWraps = document.querySelectorAll('.bl-vl-r-body');
     if (!childWraps.length) {
       // Sin hijos visibles — comportamiento fallback: expandir sprints
       bodies.forEach(b => {
@@ -331,11 +331,11 @@ export function toggleCollapseAll() {
       return;
     }
 
-    // T-202606-036 AC-2: filtrar wraps sin hijos — evitar operar sobre .bl-children-wrap vacíos
+    // T-202606-036 AC-2: filtrar wraps sin hijos — evitar operar sobre .bl-vl-r-body vacíos
     const childWrapsWithChildren = Array.from(childWraps).filter(w => w.children.length > 0);
     if (!childWrapsWithChildren.length) return;
 
-    // Detectar si algún .bl-children-wrap está expandido — para decidir colapsar o expandir
+    // Detectar si algún .bl-vl-r-body está expandido — para decidir colapsar o expandir
     const anyRExpanded = childWrapsWithChildren.some(w => !w.classList.contains('collapsed'));
 
     if (anyRExpanded) {
@@ -344,7 +344,7 @@ export function toggleCollapseAll() {
         w.classList.add('collapsed');
         const rCode = w.id ? w.id.replace('bl-children-', '') : null;
         if (rCode) {
-          const toggleBtn = document.querySelector(`.bl-r-toggle[data-r-code="${CSS.escape(rCode)}"]`);
+          const toggleBtn = document.querySelector(`[data-action="vl-toggle-r"][data-r-code="${CSS.escape(rCode)}"]`);
           if (toggleBtn) toggleBtn.classList.add('collapsed');
           localStorage.setItem('locus-r-collapsed-' + rCode, '1');
         }
@@ -357,7 +357,7 @@ export function toggleCollapseAll() {
         w.classList.remove('collapsed');
         const rCode = w.id ? w.id.replace('bl-children-', '') : null;
         if (rCode) {
-          const toggleBtn = document.querySelector(`.bl-r-toggle[data-r-code="${CSS.escape(rCode)}"]`);
+          const toggleBtn = document.querySelector(`[data-action="vl-toggle-r"][data-r-code="${CSS.escape(rCode)}"]`);
           if (toggleBtn) toggleBtn.classList.remove('collapsed');
           localStorage.removeItem('locus-r-collapsed-' + rCode);
         }
@@ -370,8 +370,9 @@ export function toggleCollapseAll() {
 
 // T-202606-087: toggleShowChildren — mostrar/ocultar hijos de Rs en vista árbol
 // Persiste en localStorage bajo 'backlog-show-children' ('1' = activo, '0' = inactivo)
+// T-202606-103: migrado de .bl-children-wrap → .bl-vl-r-body
 export function toggleShowChildren(checked) {
-  const childWraps = document.querySelectorAll('.bl-children-wrap');
+  const childWraps = document.querySelectorAll('.bl-vl-r-body');
   if (checked) {
     childWraps.forEach(w => {
       if (w.children.length > 0) {
