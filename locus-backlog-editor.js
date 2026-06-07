@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:18 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:19 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -75,6 +75,15 @@ function _refreshSprintSelect(currentSprintId) {
       : '');
 }
 
+// T-202606-111: mostrar/ocultar campo no_incluye según tipo de ítem
+// AC-1: visible solo cuando type === 'T' — oculto para R, B, P
+// AC-6: al cambiar tipo → se oculta o muestra correctamente
+function _refreshNoIncluye(selectedType) {
+  const field = document.getElementById('field-no-incluye');
+  if (!field) return;
+  field.classList.toggle('is-hidden', selectedType !== 'T');
+}
+
 // T-202604-294: helper — retorna id del sprint activo si existe, '' si no
 function _activeSprint() {
   const s = _getActiveSprint();
@@ -124,6 +133,10 @@ export function openItemEditor(itemId = null, itemCode = null) {
     _refreshParentIdDropdown(item.code[0], item.parentId || '');
     _refreshSprintSelect(item.sprint || 'icebox');  // B-202606-043
     _refreshSprintInherited(item.parentId || '');
+    // T-202606-111 AC-4: poblar no_incluye si existe, vaciar si no
+    const noIncluyeElEdit = document.getElementById('item-no-incluye');
+    if (noIncluyeElEdit) noIncluyeElEdit.value = (item.no_incluye || []).join('\n');
+    _refreshNoIncluye(item.code[0]);
   } else {
     // Nuevo ítem
     _editorItemId = null;
@@ -146,6 +159,10 @@ export function openItemEditor(itemId = null, itemCode = null) {
     _refreshParentIdDropdown('T', '');
     _refreshSprintSelect(_activeSprint() || 'icebox');  // B-202606-043
     _refreshSprintInherited('');
+    // T-202606-111 AC-5: campo vacío en ítem nuevo
+    const noIncluyeElNew = document.getElementById('item-no-incluye');
+    if (noIncluyeElNew) noIncluyeElNew.value = '';
+    _refreshNoIncluye('T');
   }
 
   // Actualizar dropdown al cambiar tipo
@@ -153,6 +170,7 @@ export function openItemEditor(itemId = null, itemCode = null) {
     _refreshParentIdDropdown(typeSelect.value, document.getElementById('item-parentid').value);
     _refreshSprintInherited(document.getElementById('item-parentid').value);
     _refreshSprintSelect(document.getElementById('item-sprint') ? document.getElementById('item-sprint').value : 'icebox');  // B-202606-043
+    _refreshNoIncluye(typeSelect.value); // T-202606-111 AC-6
   };
 
   // B-202606-036: actualizar sprint heredado cuando el usuario cambia el R padre
@@ -360,6 +378,11 @@ function confirmItemEditor() {
   const archivos = archivosEl2
     ? archivosEl2.value.split(',').map(s => s.trim()).filter(Boolean)
     : [];
+  // T-202606-111 AC-3: leer no_incluye — solo para T, máx 3 elementos, sin líneas vacías
+  const noIncluyeEl = document.getElementById('item-no-incluye');
+  const no_incluye = (type === 'T' && noIncluyeEl)
+    ? noIncluyeEl.value.split('\n').map(l => l.trim()).filter(Boolean).slice(0, 3)
+    : [];
   
   // Generar código si está vacío — usa _getNextItemCode() para consistencia con el sistema
   let finalCode = code;
@@ -397,6 +420,8 @@ function confirmItemEditor() {
     item.blockedBy = blockedBy;
     item.archivos = archivos;
     item.parentId = parentId || null;
+    // T-202606-111 AC-3: persistir no_incluye solo en T
+    if (type === 'T') item.no_incluye = no_incluye;
     // B-202606-043: leer sprint del select editable — solo cuando no hay parent (herencia lo gestiona el bloque siguiente)
     if (!parentId) {
       const sprintSelEl = document.getElementById('item-sprint');
@@ -446,6 +471,7 @@ function confirmItemEditor() {
       notes: notes || '',
       blockedBy: blockedBy,
       archivos: archivos,
+      no_incluye: no_incluye, // T-202606-111 AC-3
       parentId: parentId || null,
       sprint: _newItemSprint,
       status: 'pendiente', version: 'futura',
