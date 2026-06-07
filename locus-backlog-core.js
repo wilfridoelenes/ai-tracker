@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:43 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:44 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1077,11 +1077,15 @@ function relativeImportTime(ts) {
 
 // T-048: actualizar banner
 export function updateBacklogBanner() {
-  const banner = document.getElementById('backlog-meta-banner');
+  const banner    = document.getElementById('backlog-meta-banner');
   const exportBtn = document.getElementById('export-backlog-btn');
+  const gfItems   = document.getElementById('gf-items');
+  const gfToggle  = document.getElementById('gf-footer-toggle');
   if (!(_coreCallbacks.getActiveProjectFilter || (() => null))() || !ITEMS.length) {
-    if (banner) banner.classList.remove('visible');
+    if (banner)    banner.classList.remove('visible');
     if (exportBtn) exportBtn.classList.add("is-hidden");
+    if (gfItems)   gfItems.classList.add('is-hidden');
+    if (gfToggle)  gfToggle.classList.add('is-hidden');
     return;
   }
   if (banner) banner.classList.add('visible');
@@ -1091,7 +1095,10 @@ export function updateBacklogBanner() {
   const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
   const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
   el('bmeta-version', meta.version || '—');
-  el('bmeta-total', ITEMS.length + ' ítem' + (ITEMS.length !== 1 ? 's' : ''));
+  // T-202606-099: badge de conteo en gf-* — misma lógica que bmeta-total
+  const label = ITEMS.length + ' ítem' + (ITEMS.length !== 1 ? 's' : '');
+  if (gfItems)  { gfItems.textContent = label; gfItems.classList.remove('is-hidden'); }
+  if (gfToggle) gfToggle.classList.remove('is-hidden');
 }
 
 // Actualizar el indicador de importado cada minuto
@@ -1925,10 +1932,11 @@ export function _getMiViewLabel() {
 }
 
 // T-202604-360: toggle footer fijo colapsable
+// T-202606-099: toggleBtn migrado a #gf-footer-toggle en global-footer
 function toggleBacklogFooter() {
   _blFooterCollapsed = !_blFooterCollapsed;
   const filtersRow = document.getElementById('bl-footer-filters');
-  const toggleBtn  = document.getElementById('bl-footer-toggle');
+  const toggleBtn  = document.getElementById('gf-footer-toggle');
   if (filtersRow) filtersRow.classList.toggle('bl-footer-row--hidden', _blFooterCollapsed);
   if (toggleBtn)  toggleBtn.textContent = _blFooterCollapsed ? '▼' : '▲';
 }

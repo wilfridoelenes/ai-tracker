@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-06 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:13 · autor:Nova · 2026-06-07 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -3045,6 +3045,31 @@ body:not([data-theme]) .theme-toggle-btn::before {
 
 .gf-done {
   color: var(--c-done, var(--green));
+}
+
+/* T-202606-099: badge de conteo de ítems en footer global */
+.gf-items {
+  font-size: var(--text-xs);
+  color: var(--text-muted, var(--text2));
+  pointer-events: none;
+}
+
+/* T-202606-099: toggle de filtros del backlog en footer global */
+.gf-footer-toggle {
+  font-size: var(--text-3xs);
+  color: var(--text2);
+  background: none;
+  border: none;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  pointer-events: auto;
+  transition: var(--trans-color);
+}
+
+.gf-footer-toggle:hover {
+  background: var(--surface3);
+  color: var(--text);
 }
 
 .gf-ckpt {
