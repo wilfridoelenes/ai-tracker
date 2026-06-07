@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:45 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:46 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -442,6 +442,7 @@ export function _attachBacklogListDelegation() {
       if (typeof setItemRole === 'function') setItemRole(code, sel.value);
     } else if (type === 'sprint') {
       setItemSprint(code, sel.value);
+      _markBacklogListDirty(); renderBacklogList(); // B-202606-038: re-render en live tras reasignación desde card
     } else if (type === 'parent') {
       if (typeof setItemParent === 'function') setItemParent(code, sel.value);
     } else {

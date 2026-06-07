@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:39 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:40 · autor:Rune · 2026-06-07 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogSprintGroupMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
@@ -18,9 +18,9 @@ import { esc } from './locus-ui-shell.js';
 import { _renderPlanningView, _attachPlanViewDelegation, _statusPills, toggleClosedSprintsBody } from './locus-sprint-planificacion.js';
 import { _updateDocLogCount } from './locus-doc-log.js';
 
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
-// Responsabilidad: Renderizado del backlog — vista árbol, sprint health panel,
-//   roadmap, planning (drag & drop), renderBacklogList, sprint selector inline.
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:40 · autor:Rune · 2026-06-07 UTC-6
+// Responsabilidad: Renderizado del backlog — vista Lista (sprint groups + jerarquía R→T/B),
+//   sprint health panel, roadmap, planning (drag & drop), renderBacklogList, sprint selector inline.
 // Dependencias: locus-backlog-core.js · locus-backlog-archive.js · locus-backlog-item.js · locus-backlog-sprints.js
 
 // T-202606-022: _buildChildMap — agrupación de hijos por R con sort topológico por depends_on
@@ -412,6 +412,269 @@ function _vcDoToggle(btn, projectId) {
   _vcCollapseSet(projectId, rCode, isNowCollapsed);
 }
 
+// R-202606-017 · T-202606-061: Vista Lista — sprint groups + jerarquía R→T/B por defecto
+// Reemplaza la lógica combinada de _renderVistaC + bloque _useSprintGroups.
+// Parámetros: listEl, pendienteItems, doneItems, descartadoItems ya filtrados por renderBacklogList;
+//   _matchesQuery y _sortGroup vienen de renderBacklogList para reutilizar la lógica existente.
+function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _matchesQuery, _sortGroup, q, onRendered) {
+  const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
+
+  // AC6: ítems sin sprint → bloque Icebox al final
+  const iceboxItems = pendienteItems.filter(_isIcebox);
+  const sprintableItems = pendienteItems.filter(i => !_isIcebox(i));
+
+  // Agrupar por sprint
+  const sprintMap = {};
+  sprintableItems.forEach(i => {
+    const key = (i.sprint || '').trim();
+    if (!sprintMap[key]) sprintMap[key] = [];
+    sprintMap[key].push(i);
+  });
+
+  // AC2: orden descendente de sprint ID — más reciente primero
+  // Sprints sin objeto en getActiveSprints() (solo ítems con sprint string) también se ordenan por número
+  const sprintKeys = Object.keys(sprintMap).sort((a, b) => {
+    const sa = _getSprintById(a), sb = _getSprintById(b);
+    // Activo siempre primero, luego descendente por número de sprint
+    const rankA = sa?.status === 'active' ? 0 : 1;
+    const rankB = sb?.status === 'active' ? 0 : 1;
+    if (rankA !== rankB) return rankA - rankB;
+    const na = parseInt(a.replace(/\D/g, '')) || 0;
+    const nb = parseInt(b.replace(/\D/g, '')) || 0;
+    return nb - na; // descendente
+  });
+
+  let html = '';
+
+  // ── Sprint groups ─────────────────────────────────────────────────────────
+  sprintKeys.forEach(sprintId => {
+    const group = sprintMap[sprintId];
+    if (!group || !group.length) return;
+
+    const sprintObj = _getSprintById(sprintId);
+    const isActive  = sprintObj?.status === 'active';
+    const isClosed  = sprintObj?.status === 'closed';
+    const label     = sprintObj ? (sprintObj.label || sprintId) : sprintId;
+    const groupId   = 'vl-' + sprintId.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+    // Colapso de sprint group — usa misma clave que version-group existente para compatibilidad
+    const isCollapsed = _getCollapsedVersions().has(groupId);
+
+    // Progress
+    const doneInGroup  = getItems().filter(i => (i.sprint || '').trim() === sprintId && i.status === 'done').length;
+    const totalInGroup = getItems().filter(i => (i.sprint || '').trim() === sprintId).length;
+    const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
+
+    const sprintBadge       = isClosed ? ' ·' : '';
+    const sprintStatusLabel = isActive
+      ? `<span class="sprint-badge-active">activo</span>`
+      : isClosed
+        ? `<span class="sprint-badge-closed">cerrado</span>`
+        : '';
+
+    const progressBar = `<div class="version-progress-inline">
+      <div class="version-progress-bar-wrap"><div class="version-progress-bar" style="--ver-bar-w:${pct}%"></div></div>
+      <span class="version-progress-label">${doneInGroup}/${totalInGroup} · ${pct}%</span>
+    </div>`;
+
+    const _velLabel = isActive ? _sprintVelocityLabel(sprintId) : '';
+
+    // Done items dentro del sprint si el filtro lo permite
+    const _doneInGroup = _getActiveStatuses().has('done')
+      ? getItems().filter(i => (i.sprint || '').trim() === sprintId && i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
+      : [];
+    const _doneGroupHtml = _doneInGroup.length
+      ? _sortGroup(_doneInGroup).map(item => buildBacklogItem(item)).join('')
+      : '';
+
+    html += `<div class="bl-vl-sprint-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}" data-sprint-id="${esc(sprintId)}">`;
+    html += `<div class="bl-vl-sprint-header version-collapse-trigger" data-action="version-collapse" data-group-id="${groupId}">`;
+    html += `<div class="version-header">`;
+    html += `<span id="sprint-label-wrap-${esc(sprintId)}"><span class="version-tag">${esc(sprintId)}${sprintBadge}</span>${(label && label !== sprintId) ? `<span class="sprint-name-label">${esc(label.replace(/^[A-Za-z]+[-\s]S\d+\s*·?\s*/i, ''))}</span>` : ''}</span>`;
+    html += sprintStatusLabel;
+    html += progressBar;
+    html += _velLabel;
+    html += `<span class="version-collapse-arrow" id="varrow-${groupId}">${isCollapsed ? '▸' : '▾'}</span>`;
+    html += `</div></div>`; // version-header + bl-vl-sprint-header
+
+    html += `<div class="bl-vl-sprint-body${isCollapsed ? ' collapsed' : ''}" id="vbody-${groupId}">`;
+
+    // AC3: Rs con hijos anidados + Ts/Bs sueltos + Ps sueltas
+    {
+      // childMap desde getItems() completo — todos los Ts hijos con cualquier status
+      const _allSprintItems = getItems().filter(i => (i.sprint || '').trim() === sprintId);
+      const _childMap = _buildChildMap(_allSprintItems);
+
+      const _rCodesInGroup = new Set(group.filter(i => itemType(i.code) === 'R').map(i => i.code));
+
+      // Nivel raíz: Rs del grupo + huérfanos (T/B/P sin parentId en el grupo)
+      const _rootItems = _sortGroup(group).filter(i => {
+        if (itemType(i.code) === 'R') return true;
+        return !i.parentId || !_rCodesInGroup.has(i.parentId);
+      });
+
+      _rootItems.forEach(item => {
+        const t = itemType(item.code);
+
+        // AC4: Ps siempre sueltas con buildBacklogItem — nunca anidadas
+        if (t !== 'R') {
+          html += buildBacklogItem(item);
+          return;
+        }
+
+        // R — jerarquía con hijos
+        const _children = _childMap.get(item.code) || [];
+
+        if (_children.length > 0) {
+          // AC5: colapso de R en localStorage bajo clave 'locus-r-collapsed-[rCode]'
+          const _collapseKey = 'locus-r-collapsed-' + item.code;
+          const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
+
+          html += `<div class="bl-vl-r" data-r-code="${esc(item.code)}">`;
+          html += buildBacklogItem(item);
+          // AC9: data-action='vl-toggle-r' — sin conflicto con bl-r-toggle deprecado
+          html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
+          html += `<div class="bl-vl-r-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-rbody-${esc(item.code)}">`;
+          _children.forEach(child => {
+            html += `<div class="bl-child-row">${buildBacklogItem(child)}</div>`;
+          });
+          html += `</div>`; // bl-vl-r-body
+          html += `</div>`; // bl-vl-r
+        } else {
+          // R sin hijos — render normal
+          html += buildBacklogItem(item);
+        }
+      });
+    }
+
+    html += _doneGroupHtml;
+    html += `</div>`; // bl-vl-sprint-body
+    html += `</div>`; // bl-vl-sprint-group
+  });
+
+  // AC7: Icebox al final si hay ítems sin sprint
+  if (iceboxItems.length) {
+    const iceboxOpen = localStorage.getItem('backlog-icebox-open') !== '0';
+    html += `<div class="section-group sg-icebox bl-icebox-group" id="sg-icebox">
+      <div class="section-group-header bl-icebox-header" data-action="section-group-toggle" data-group="icebox">
+        <span class="section-group-arrow bl-icebox-arrow${iceboxOpen ? '' : ' collapsed'}" id="sgarrow-icebox">▾</span>
+        <span>📥 Icebox</span>
+        <span class="section-group-count bl-icebox-count">${iceboxItems.length} ítem${iceboxItems.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="section-group-body items-grid bl-icebox-body${iceboxOpen ? '' : ' collapsed'}" id="sgbody-icebox">`;
+    _sortGroup(iceboxItems).forEach(item => { html += buildBacklogItem(item); });
+    html += `</div></div>`;
+  }
+
+  // Descartados — igual que en el modo previo
+  if (descartadoItems.length && _getActiveStatuses().has('descartado')) {
+    const discOpen = localStorage.getItem('backlog-discarded-open') === '1';
+    html += `<div class="section-group sg-discarded" id="sg-discarded">
+      <div class="section-group-header" data-action="section-group-toggle" data-group="discarded">
+        <span class="section-group-arrow" id="sgarrow-discarded">${discOpen ? '▾' : '▸'}</span>
+        <span>Descartados</span>
+        <span class="section-group-count">${descartadoItems.length} ítem${descartadoItems.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="section-group-body items-grid${discOpen ? '' : ' collapsed'}" id="sgbody-discarded">`;
+    descartadoItems.forEach(item => { html += buildBacklogItem(item); });
+    html += `</div></div>`;
+  }
+
+  // Empty state
+  const _hasVisible = pendienteItems.length || doneItems.length || (descartadoItems.length && _getActiveStatuses().has('descartado'));
+  if (!_hasVisible) {
+    const _activeSprint = _getActiveSprint();
+    const _hasTypeFilter   = _getActiveTypes().size < 4;
+    const _hasRoleFilter   = _getActiveRoleFilter() !== null;
+    const _hasStatusFilter = !(_getActiveStatuses().has('pendiente') && _getActiveStatuses().size === 1);
+    const _hasEffortFilter = _getActiveEfforts().size < 3;
+    const _hasAnyFilter    = q || _hasTypeFilter || _hasRoleFilter || _hasStatusFilter || _hasEffortFilter;
+    let emptyIcon = '🔍', emptyTitle = '', emptyHint = '', emptyCTA = '';
+    if (q) {
+      emptyTitle = `Sin resultados para "${esc(q)}"`;
+      emptyHint  = 'Prueba con otro término o limpia la búsqueda.';
+      emptyCTA   = `<button class="empty-state-btn" data-action="es-clear-search">✕ Limpiar búsqueda</button>`;
+    } else if (_hasAnyFilter) {
+      emptyTitle = 'Sin resultados con los filtros activos';
+      emptyHint  = 'Prueba ajustando o limpiando los filtros.';
+      emptyCTA   = `<button class="empty-state-btn" data-action="es-clear-filters">✕ Limpiar filtros</button>`;
+    } else {
+      emptyIcon  = '📋';
+      emptyTitle = 'Sin ítems pendientes';
+      emptyHint  = 'Todos los ítems están completados o no hay trabajo asignado a este sprint.';
+    }
+    html = `<div class="empty-state">
+      <div class="empty-state-icon">${emptyIcon}</div>
+      <div class="empty-state-title">${emptyTitle}</div>
+      <div class="empty-state-hint">${emptyHint}</div>
+      ${emptyCTA}
+    </div>`;
+  }
+
+  updateBacklogFooter();
+
+  listEl.classList.remove('kb-active');
+  listEl.innerHTML = html;
+  _skelHide(listEl);
+
+  renderArchivoHistorico(listEl);
+
+  // search-count
+  const countEl = document.getElementById('search-count');
+  if (countEl) {
+    if (q) {
+      const total = pendienteItems.length + doneItems.length + descartadoItems.length;
+      countEl.textContent = `${total} resultado${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`;
+    } else {
+      countEl.textContent = '';
+    }
+  }
+
+  _attachBacklogDnD();
+  _attachBacklogListDelegation();
+  _attachPlanViewDelegation();
+  _updateDocLogCount('backlog');
+
+  // AC9: delegación vl-toggle-r — toggle de colapso de hijos de R en Vista Lista
+  // AC5: persiste en localStorage bajo clave 'locus-r-collapsed-[rCode]'
+  listEl.addEventListener('click', function _vlToggleHandler(e) {
+    const btn = e.target.closest('[data-action="vl-toggle-r"]');
+    if (!btn) return;
+    const rCode = btn.dataset.rCode;
+    if (!rCode) return;
+    const body = document.getElementById('bl-vl-rbody-' + CSS.escape(rCode));
+    if (!body) return;
+    const isNowCollapsed = !body.classList.contains('collapsed');
+    body.classList.toggle('collapsed', isNowCollapsed);
+    btn.classList.toggle('collapsed', isNowCollapsed);
+    const _collapseKey = 'locus-r-collapsed-' + rCode;
+    if (isNowCollapsed) {
+      localStorage.setItem(_collapseKey, '1');
+    } else {
+      localStorage.removeItem(_collapseKey);
+    }
+  });
+
+  // search placeholder
+  (function _updateSearchPlaceholder() {
+    const inp = document.getElementById('backlog-search-input');
+    if (!inp) return;
+    const parts = [];
+    const activeSprint = _getActiveSprint();
+    if (activeSprint) parts.push(activeSprint.label || activeSprint.id);
+    if (_getActiveTypes().size < 4) parts.push([..._getActiveTypes()].join('/'));
+    if (_getActivePriorityFilter().size > 0) parts.push('pri:' + [..._getActivePriorityFilter()].join('/'));
+    const scopeCount = pendienteItems.length + doneItems.length + (descartadoItems.length && _getActiveStatuses().has('descartado') ? descartadoItems.length : 0);
+    if (parts.length) {
+      inp.placeholder = '🔍 Buscando en ' + parts.join(' · ') + ' · ' + scopeCount + ' ítem' + (scopeCount !== 1 ? 's' : '');
+    } else {
+      inp.placeholder = '🔍 Buscar…';
+    }
+  })();
+
+  if (typeof onRendered === 'function') onRendered();
+}
+
 export function renderBacklogList(onRendered) {
   if (!_backlogListDirty) return;
   // AC-3 T-202605-118: skip si el item editor está abierto
@@ -662,28 +925,22 @@ export function renderBacklogList(onRendered) {
 
   let html = '';
 
-  // T-202606-014: vista C colapsable — Rs como headers, Ts anidados
-  // Se activa cuando el sprint group mode está desactivado y no hay modo exclusivo activo
-  const _useVistaC = !_getBacklogSprintGroupMode() && !_getBacklogKanbanMode() && !_getBacklogNoAcMode();
+  // R-202606-017: vista Lista — vista por defecto del backlog (reemplaza _useVistaC + _useSprintGroups)
+  // Se activa siempre que no haya un modo exclusivo activo (kanban, noAc)
+  const _useVistaLista = !_getBacklogKanbanMode() && !_getBacklogNoAcMode();
 
-  if (_useVistaC) {
-    _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems);
-    _attachBacklogDnD();
-    _attachBacklogListDelegation();
-    _attachPlanViewDelegation();
-    _updateDocLogCount('backlog');
-    _skelHide(listEl);
-    if (typeof onRendered === 'function') onRendered();
+  if (_useVistaLista) {
+    _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _matchesQuery, _sortGroup, q, onRendered);
     return;
   }
 
-  // B-202605-206: agrupación por sprint es el comportamiento por defecto.
-  // T-202604-424 eliminó 'sprint' como opción del selector de sort, pero la condición de entrada
-  // quedó atada a _getBacklogSortMode() === 'sprint' — inalcanzable. Fix: agrupar siempre que no haya
-  // un modo exclusivo activo que tome control del rendering (kanban, noAc).
-  const _useSprintGroups = _getBacklogSprintGroupMode() && !_getBacklogKanbanMode() && !_getBacklogNoAcMode();
+  // Modo exclusivo restante: noAc (kanban ya desvía antes de llegar aquí)
+  const _useSprintGroups = false; // R-202606-017: nunca se activa — _useVistaLista cubre todos los casos normales
 
-  if (_useSprintGroups) {
+  // R-202606-017: el bloque _useSprintGroups fue eliminado — _renderVistaLista cubre sprint groups + jerarquía.
+  // El código siguiente solo alcanza cuando _getBacklogNoAcMode() está activo (modo exclusivo).
+
+  if (false) {
     // ── Modo Sprint: agrupar pendientes por sprint ──
     // T-202605-104: ítems icebox separados del sprintMap — sección propia al final
     const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
