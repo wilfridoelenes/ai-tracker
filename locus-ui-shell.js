@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:33 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:34 · autor:Rune · 2026-06-07 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -184,11 +184,12 @@ export function toggleTheme() {
 
 export function applyTheme(t) {
   document.documentElement.setAttribute('data-theme', t);
-  // T-202605-433: theme-btn eliminado — nuevo ID en menú ⋯
   const btn = document.getElementById('more-menu-theme');
   if (btn) {
     const icon = btn.querySelector('.mm-icon');
     if (icon) icon.textContent = t === 'dark' ? '☀' : '🌙';
+    // actualizar texto del label según tema activo
+    btn.childNodes[btn.childNodes.length - 1].textContent = t === 'dark' ? ' Tema claro' : ' Tema oscuro';
   }
 }
 
@@ -1094,7 +1095,7 @@ function _sk(id) { return _shortcutKey(id); }
 
 // ── T-202605-044: Migración de handlers inline → addEventListener ──────────
 // Reemplaza los onclick declarados en index.html para los elementos de shell:
-// logo-btn, tab-btn (×5), sstab-btn (×5), theme-toggle-btn,
+// logo-btn, tab-btn (×5), sstab-btn (×5), more-menu-theme,
 // botón Shortcuts en more-menu, botón Templates en proj-panel.
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -1114,8 +1115,8 @@ document.addEventListener('DOMContentLoaded', function () {
     btn.addEventListener('click', function () { switchSubTab(stab); });
   });
 
-  // #theme-toggle-btn → toggleTheme()
-  const themeBtn = document.getElementById('theme-toggle-btn');
+  // #more-menu-theme → toggleTheme()
+  const themeBtn = document.getElementById('more-menu-theme');
   if (themeBtn) themeBtn.addEventListener('click', function () { toggleTheme(); });
 
   // Botón Shortcuts en more-menu — delegation sobre document en capture

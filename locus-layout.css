@@ -1,3 +1,4 @@
+/* [PP] v1.2.3 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-07 */
 /* locus-layout.css */
 
 /* Versión: 2.1 | Última actualización: 2026-05-22 | Selectores compartidos consolidados — T-202605-031 */
@@ -508,6 +509,17 @@ body:not([data-theme]) .theme-icon-light {
   font-weight: 600;
   line-height: 14px;
   text-align: center;
+  pointer-events: none;
+}
+
+/* Nota CSS-06: .is-hidden aquí NO es display:none — reserva espacio con visibility:hidden
+   para que theme-toggle-btn no se desplace horizontalmente al aparecer/desaparecer
+   header-pend-btn o header-active-worker. Excepción calificada idéntica a
+   .tmpl-trigger-body.is-hidden (CSS-04). T-202606-091. */
+.header-pend-btn.is-hidden,
+.header-active-worker.is-hidden {
+  display: block !important;
+  visibility: hidden;
   pointer-events: none;
 }
 
