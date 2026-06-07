@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:31 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:32 · autor:Rune · 2026-06-07 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -16,7 +16,7 @@ import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
 import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, LOCUS_KEYS } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 
-import { render } from './locus-sesiones.js';
+
 
 import { esc } from './locus-ui-shell.js';
 
@@ -1216,7 +1216,7 @@ function saveStandaloneCheckpoint() {
 
     renderBacklogList();
     renderStats();
-    render(); // B-202605-051: actualizar estado insession del radar tras CHECKPOINT standalone
+    window.dispatchEvent(new CustomEvent('shell:render-tracker')); // B-202605-051: actualizar estado insession del radar tras CHECKPOINT standalone
 
     // Mostrar resultado en panel CHECKPOINT igual que el flujo sesión
     const hasMergeData = mergeResult.created.length || mergeResult.advanced.length ||

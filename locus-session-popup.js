@@ -1,11 +1,11 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-07 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 
 import { TAG_COLORS, openTagModal } from './locus-tags.js';
 import { getItems } from './locus-backlog-core.js';
-import { _sessRelTsShared, render } from './locus-sesiones.js';
+import { _sessRelTsShared } from './locus-sesiones.js';
 import { _getActiveProjectFilter } from './locus-sprint-project.js';
 import { showToast, showToastInline, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
@@ -23,10 +23,10 @@ function toggleStatus(id) {
   const ai = getAI(id);
   ai.status = ai.status === 'available' ? 'exhausted' : 'available';
   if (ai.status === 'available') { ai.resetTime = ''; /* interrupted se limpia solo con dismissInterrupted */ }
-  save(); render(); _rebuildLogBody();
+  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); _rebuildLogBody();
 }
 
-function toggleShowAll(id) { const ai = getAI(id); ai.showAll = !ai.showAll; save(); render(); }
+function toggleShowAll(id) { const ai = getAI(id); ai.showAll = !ai.showAll; save(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); }
 
 export function openDetail(aiId, sessId) {
   const ai = getAI(aiId);
@@ -322,7 +322,7 @@ function deleteCurrentSession() {
   const found = _findSession(popSessId);
   if (!found) return;
   found.proj.sessions = found.proj.sessions.filter(s => s.id !== popSessId);
-  save(); render(); closePopup(); _rebuildLogBody(); showToast('success', 'Sesión eliminada');
+  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); closePopup(); _rebuildLogBody(); showToast('success', 'Sesión eliminada');
 }
 // T-087: confirmación inline
 function openDeleteConfirm() {
@@ -351,14 +351,14 @@ function toggleInReview(aiId, sessId) {
   const latestId = aiSess.length > 0 ? aiSess[aiSess.length - 1].id : null;
   if (s.id !== latestId) return;
   s.inReview = !s.inReview;
-  save(); render();
+  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
 }
 // T-026: Destacar sesión
 function starSession(aiId, sessId) {
   const found = _findSessionByAI(aiId, sessId);
   if (!found) return;
   found.sess.starred = !found.sess.starred;
-  save(); render();
+  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
 }
 function starCurrentSession() {
   if (!popAIId || !popSessId) return;
@@ -413,7 +413,7 @@ function saveResetFromPopup() {
     ai.resetTime = '';
     ai.resetEpoch = null;
   }
-  save(); render();
+  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   if (currentTab === 'sesiones') renderHoy();
   closePopup();
   showToast('success', result ? `${ai.name} marcada agotada · desbloquea a las ${result.label}` : `${ai.name} marcada agotada`);
@@ -483,7 +483,7 @@ function savePreviewProject(aiId, sessId, newProjId) {
   if (fromProj) fromProj.sessions = (fromProj.sessions || []).filter(x => x.id !== sessId);
   if (!toProj.sessions) toProj.sessions = [];
   toProj.sessions.push(sess);
-  save(); render();
+  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   showToast('success', `Sesión movida a ${esc(toProj.icon || '📁')} ${esc(toProj.name)}`);
 }
 
@@ -514,7 +514,7 @@ function saveCorrectHoraFromPopup() {
   ai.resetTime = result.hhmm;
   ai.resetEpoch = result.epoch;
   s.resetAt = result.label;
-  save(); render();
+  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   if (currentTab === 'sesiones') renderHoy();
   closePopup();
   showToast('success', `Hora corregida · ${ai.name} desbloquea a las ${result.label}`);
@@ -529,7 +529,7 @@ function unlockNowFromPopup() {
   ai.status = 'available';
   ai.resetTime = '';
   ai.resetEpoch = null;
-  save(); render();
+  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   if (currentTab === 'sesiones') renderHoy();
   closePopup();
   showToast('success', `${ai.name} marcada como disponible`);
@@ -728,7 +728,7 @@ function startPopupEdit(field) {
     if (newVal !== currentVal) {
       s[field] = newVal;
       save();
-      render();
+      window.dispatchEvent(new CustomEvent('shell:render-tracker'));
       showToast('success', 'Sesión actualizada');
     }
     openDetail(popAIId, popSessId);
@@ -764,19 +764,19 @@ function startRename(id) {
     const newName = inp.value.trim();
     if (!newName) {
       showToast('warning', 'El nombre no puede estar vacío');
-      render(); return;
+      window.dispatchEvent(new CustomEvent('shell:render-tracker')); return;
     }
     // T-092: validar duplicados case-insensitive (excluir la propia IA)
     const nameLower = newName.toLowerCase();
     const duplicate = getState().ais.find(a => a.id !== id && a.name.toLowerCase() === nameLower);
     if (duplicate) {
       showToast('warning', `Ya existe una IA llamada "${duplicate.name}"`);
-      render(); return;
+      window.dispatchEvent(new CustomEvent('shell:render-tracker')); return;
     }
     ai.name = newName;
-    save(); render();
+    save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   };
-  const cancel = () => { if (committed) return; committed = true; render(); };
+  const cancel = () => { if (committed) return; committed = true; window.dispatchEvent(new CustomEvent('shell:render-tracker')); };
   inp.addEventListener('blur', commit);
   inp.addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }

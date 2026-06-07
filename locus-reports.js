@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-07 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -10,7 +10,7 @@ import { loadHtmlMap, renderHtmlMap, updateHtmlMapBanner } from './locus-map-vie
 import { _focusFirstInteractive, _gconfirmOpen, _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
 import { renderGlobalRadarSidebar } from './locus-radar.js';
 import { updateStats } from './locus-sesiones-stats.js';
-import { render } from './locus-sesiones.js';
+
 import { _templateTrigger } from './locus-session-hora.js';
 import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
 import { _offlineQueuePush, _subscribeRealtime, _tplKey, _unsubscribeRealtime, getAI, getAISessions, getActiveTracker, getAllSessions, save, saveImmediate, setSyncStatus } from './locus-storage.js';
@@ -517,7 +517,7 @@ async function confirmCleanProject() {
   showToast('success', `✓ ${projName} — ${cleaned} eliminados`);
 
   renderBacklogList();
-  render();
+  window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   updateStats();
   renderGlobalRadarSidebar();
 }
@@ -612,7 +612,7 @@ function confirmPurge() {
       return isNaN(d.getTime()) || d >= cutoff;
     });
   });
-  save(); render(); closePurgeModal();
+  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); closePurgeModal();
   showToast('success', `${total} sesión${total !== 1 ? 'es' : ''} eliminadas`);
 }
 let _pendingImportData = null;
@@ -851,7 +851,7 @@ function confirmImport() {
     _stateVersion: d._stateVersion || state._stateVersion
   };
 
-  save(); render(); applyTheme(state.theme || 'dark');
+  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); applyTheme(state.theme || 'dark');
   // Hidratar getItems() desde localStorage restaurado
   loadBacklog();
 

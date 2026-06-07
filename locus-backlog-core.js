@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:47 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:48 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1286,10 +1286,12 @@ function _applyExitAnimOrRender(code) {
 }
 
 // B-202606-039: transiciones automáticas de status en R padre al avanzar T hijo
+// B-202606-040: retroceso en-revision → en-proceso cuando T hijo sale de done
 // Reglas (BR-Ecosystem §5):
 //   pendiente → en-proceso: cuando cualquier T hijo cambia desde pendiente a cualquier status ≠ descartado
 //   en-proceso → en-revision: cuando todos los Ts hijos no-descartados están done
-// Idempotente: no modifica R en done/descartado. T descartado ignorado en ambas transiciones.
+//   en-revision → en-proceso: cuando un T hijo retrocede de done — ya no todos los hijos están done
+// Idempotente: no modifica R en done/descartado. T descartado ignorado en todas las transiciones.
 // Batch-safe: evalúa el estado completo de hijos en el momento de la llamada — no acumula.
 function _syncParentRStatus(changedItemCode, newTStatus) {
   // Solo aplica cuando el ítem que cambió es un T con parentId
@@ -1299,21 +1301,21 @@ function _syncParentRStatus(changedItemCode, newTStatus) {
   const parent = ITEMS.find(i => i.code === changedItem.parentId && i.type === 'R');
   if (!parent) return;
 
-  // AC-5: R ya en done o descartado — no modificar
+  // AC-5 (B-039): R ya en done o descartado — no modificar
   if (parent.status === 'done' || parent.status === 'descartado') return;
 
-  // Obtener todos los Ts hijos del R, excluyendo descartados (AC-3)
+  // Obtener todos los Ts hijos del R, excluyendo descartados
   const activeSiblings = ITEMS.filter(i =>
     i.type === 'T' && i.parentId === parent.code && i.status !== 'descartado'
   );
 
-  // AC-4: R sin Ts activos — no ejecutar ninguna transición
+  // AC-4 (B-039): R sin Ts activos — no ejecutar ninguna transición
   if (activeSiblings.length === 0) return;
 
   const prevParentStatus = parent.status;
-
-  // AC-2: en-proceso → en-revision — todos los Ts activos están done
   const allDone = activeSiblings.every(i => i.status === 'done');
+
+  // AC-2 (B-039): → en-revision — todos los Ts activos están done
   if (allDone) {
     if (parent.status !== 'en-revision') {
       parent.status = 'en-revision';
@@ -1325,7 +1327,17 @@ function _syncParentRStatus(changedItemCode, newTStatus) {
     return;
   }
 
-  // AC-1: pendiente → en-proceso — el T que cambió salió de pendiente y no es descartado
+  // B-202606-040: en-revision → en-proceso — algún T retrocedió de done, ya no todos están done
+  if (parent.status === 'en-revision') {
+    parent.status = 'en-proceso';
+    parent.statusChangedAt = Date.now();
+    if (!parent.history) parent.history = [];
+    parent.history.push({ type: 'status', ts: parent.statusChangedAt, data: { from: 'en-revision', to: 'en-proceso', reason: 'auto-child-retroceded' } });
+    _blogLog('status-auto →', parent.code, 'en-revision → en-proceso (T hijo retrocedió de done)', 'backlog');
+    return;
+  }
+
+  // AC-1 (B-039): pendiente → en-proceso — el T que cambió salió de pendiente y no es descartado
   if (parent.status === 'pendiente' && newTStatus !== 'descartado') {
     parent.status = 'en-proceso';
     parent.statusChangedAt = Date.now();

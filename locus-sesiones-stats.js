@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-07 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -7,7 +7,7 @@ import { _isCountableItem, getItems} from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
 import { navigateToItem } from './locus-backlog-sprints.js';
 import { openPulsoPanel } from './locus-pulso.js';
-import { _markTrackerDirty, render, selectTrackerAI } from './locus-sesiones.js';
+import { _markTrackerDirty, selectTrackerAI } from './locus-sesiones.js';
 import { openDetail } from './locus-session-popup.js';
 import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
 import { _effectiveVersion, getAISessions, getActiveProject, getActiveTracker, getAllSessions, save, _isInSession } from './locus-storage.js';
@@ -327,7 +327,7 @@ export function toggleCollapseAll() {
   active.forEach(a => { a.showAll = allCollapsed; });
   save();
   _markTrackerDirty();
-  render();
+  window.dispatchEvent(new CustomEvent('shell:render-tracker'));
 }
 
 // hasRecentSession — fuente de verdad: locus-notifications.js

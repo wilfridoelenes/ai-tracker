@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-04 23:45 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-07 UTC-6
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm.
 //   Define AVATAR_LOGOS (SVGs de avatares) — movido desde locus-checkpoint-stats.js.
@@ -8,7 +8,7 @@
 // Carga antes de: locus-sesiones-stats.js · locus-sesiones-capture.js
 
 import { _restoreModalFocus, _saveModalTrigger, closeModal } from './locus-modals.js';
-import { render } from './locus-sesiones.js';
+
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchTab } from './locus-ui-shell.js';
 
@@ -72,7 +72,7 @@ export function confirmAvatarModal() {
   ai.avatar = AVATAR_LOGOS[selectedAvatarKey] || AVATAR_LOGOS.default;
   closeAvatarModal();
   save();
-  render();
+  window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   if (popAIId === avatarModalAIId) {
     const popAvatar = document.getElementById('pop-avatar');
     if (popAvatar) popAvatar.innerHTML = ai.avatar;
@@ -114,7 +114,7 @@ export function confirmAddAI() {
   closeModal('add-modal');
   document.getElementById('add-modal').classList.remove('open');
   save();
-  if (currentTab !== 'tracker') switchTab('tracker'); else render();
+  if (currentTab !== 'tracker') switchTab('tracker'); else window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   showToast('success', 'IA agregada');
 }
 
@@ -137,7 +137,7 @@ export function deleteAI(id) {
     showInlineConfirm(id, 'delete', '¿Eliminar esta IA y todo su historial?');
   } else {
     state.ais = state.ais.filter(a => a.id !== id);
-    saveImmediate(); render();
+    saveImmediate(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   }
 }
 
@@ -246,7 +246,7 @@ export function archiveAI(id) {
   const ai = getAI(id);
   if (!ai) return;
   ai.archived = !ai.archived;
-  saveImmediate(); render();
+  saveImmediate(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   showToast('info', ai.archived ? `${ai.name} archivada` : `${ai.name} restaurada`);
 }
 
@@ -294,10 +294,10 @@ export function executeConfirm(id, action) {
     (state.projects || []).forEach(proj => {
       if (proj.sessions) proj.sessions = proj.sessions.filter(s => s.aiId !== id);
     });
-    saveImmediate(); render(); showToast('success', `Historial de ${ai.name} limpiado`);
+    saveImmediate(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); showToast('success', `Historial de ${ai.name} limpiado`);
   } else if (action === 'delete') {
     state.ais = state.ais.filter(a => a.id !== id);
-    saveImmediate(); render();
+    saveImmediate(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   }
 }
 

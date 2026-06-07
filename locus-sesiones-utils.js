@@ -1,11 +1,11 @@
-// [PP] v1.2.4 · sprint:PP-S-10 · mod:11 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-02 · mod:12 · autor:Rune · 2026-06-07 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
 // Requiere: locus-storage.js, locus-ui-shell.js (switchTab) cargados ANTES en index.html
 // Debe cargarse ANTES de locus-sesiones.js
 
-import { _cscardRelTs, render, selectTrackerAI } from './locus-sesiones.js';
+import { _cscardRelTs, selectTrackerAI } from './locus-sesiones.js';
 import { getAI, getAISessions, getActiveProject, getState, save } from './locus-storage.js';
 import { switchTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
@@ -260,7 +260,7 @@ function startSuggestedSession(aiId) {
   if (typeof _trackerSelectAI === 'function') _trackerSelectAI(aiId);
   else if (typeof _trackerSelectedId !== 'undefined') {
     _trackerSelectedId = aiId;
-    render();
+    window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   }
   startSessionTimer(aiId);
 }
@@ -443,7 +443,7 @@ setInterval(() => {
   });
   if (changed) {
     save();
-    render();
+    window.dispatchEvent(new CustomEvent('shell:render-tracker'));
     const currentTab = typeof window.currentTab !== 'undefined' ? window.currentTab : '';
     if (currentTab === 'sesiones' && typeof window.renderHoy === 'function') window.renderHoy();
   }
