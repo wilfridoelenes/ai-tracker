@@ -1,4 +1,4 @@
-// [PP] v1.0.7 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -31,6 +31,25 @@ function _refreshParentIdDropdown(selectedType, selectedParentId) {
   const rItems = getItems().filter(i => i.code && i.code[0] === 'R');
   sel.innerHTML = '<option value="">— Sin R padre —</option>' +
     rItems.map(r => `<option value="${esc(r.code)}"${r.code === selectedParentId ? ' selected' : ''}>${esc(r.code)} · ${esc(r.title || r.desc || '')}</option>`).join('');
+}
+
+// B-202606-036: mostrar sprint heredado del R padre en el IDP — solo cuando T tiene parentId
+// AC-1: campo visible con texto '[sprint] (heredado de [rCode])' — no editable
+// AC-2: solo visible cuando parentId tiene valor y el ítem es T o B
+// AC-3: si el parent está en icebox, muestra 'icebox (heredado de [rCode])'
+function _refreshSprintInherited(parentId) {
+  const fieldEl = document.getElementById('field-sprint-inherited');
+  const valEl   = document.getElementById('item-sprint-inherited-val');
+  if (!fieldEl || !valEl) return;
+  if (!parentId) {
+    fieldEl.classList.add('is-hidden');
+    valEl.textContent = '—';
+    return;
+  }
+  const parentR = getItems().find(i => i.code === parentId);
+  const sprintVal = parentR ? (parentR.sprint || 'icebox') : 'icebox';
+  valEl.textContent = sprintVal + ' (heredado de ' + parentId + ')';
+  fieldEl.classList.remove('is-hidden');
 }
 
 // T-202604-294: helper — retorna id del sprint activo si existe, '' si no
@@ -80,6 +99,7 @@ export function openItemEditor(itemId = null, itemCode = null) {
     const archivosEl = document.getElementById('item-archivos');
     if (archivosEl) archivosEl.value = (item.archivos || []).join(', ');
     _refreshParentIdDropdown(item.code[0], item.parentId || '');
+    _refreshSprintInherited(item.parentId || '');
   } else {
     // Nuevo ítem
     _editorItemId = null;
@@ -100,10 +120,20 @@ export function openItemEditor(itemId = null, itemCode = null) {
     const archivosElNew = document.getElementById('item-archivos');
     if (archivosElNew) archivosElNew.value = '';
     _refreshParentIdDropdown('T', '');
+    _refreshSprintInherited('');
   }
 
   // Actualizar dropdown al cambiar tipo
-  typeSelect.onchange = () => _refreshParentIdDropdown(typeSelect.value, document.getElementById('item-parentid').value);
+  typeSelect.onchange = () => {
+    _refreshParentIdDropdown(typeSelect.value, document.getElementById('item-parentid').value);
+    _refreshSprintInherited(document.getElementById('item-parentid').value);
+  };
+
+  // B-202606-036: actualizar sprint heredado cuando el usuario cambia el R padre
+  const _parentIdSel = document.getElementById('item-parentid');
+  if (_parentIdSel) {
+    _parentIdSel.onchange = () => _refreshSprintInherited(_parentIdSel.value);
+  }
 
   // Paste-to-autofill en campo Prompt/Descripción
   const descTA = document.getElementById('item-desc');
@@ -114,6 +144,7 @@ export function openItemEditor(itemId = null, itemCode = null) {
     if (filled) {
       e.preventDefault();
       _refreshParentIdDropdown(document.getElementById('item-type').value, document.getElementById('item-parentid').value);
+      _refreshSprintInherited(document.getElementById('item-parentid').value);
     }
   };
   
@@ -571,6 +602,7 @@ function _applyTemplate(tplId) {
 
   if (typeof _refreshParentIdDropdown === 'function') {
     _refreshParentIdDropdown(tpl.type, '');
+    _refreshSprintInherited('');
   }
 
   closeTemplatePicker();

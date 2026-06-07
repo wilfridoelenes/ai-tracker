@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:38 · autor:Finn · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:39 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1146,6 +1146,36 @@ export function importBacklog(event) {
         }
       });
       
+      // T-202606-074: herencia de sprint parent R → Ts hijos post-merge
+      // AC-1: R que cambia de icebox a sprint real propaga a Ts hijos con sprint: icebox
+      // AC-2: T con sprint distinto al parent declarado en el mismo CHECKPOINT → se corrige al del parent
+      // AC-3: R que migra de sprint A a sprint B → todos sus Ts hijos migran también
+      // AC-4: Ts con status done no se modifican
+      (function _propagateSprintToChildren() {
+        // Construir mapa rCode → sprint del R tras el merge
+        const rSprintMap = {};
+        ITEMS.forEach(item => {
+          if (item.code && item.code[0] === 'R' && item.status !== 'descartado') {
+            rSprintMap[item.code] = item.sprint || 'icebox';
+          }
+        });
+        // Segunda pasada: corregir Ts hijos cuyo sprint difiere del parent R
+        ITEMS.forEach(item => {
+          if (!item.parentId) return;
+          if (item.code && item.code[0] !== 'T') return;
+          // AC-4: Ts done no se modifican
+          if (item.status === 'done') return;
+          const parentSprint = rSprintMap[item.parentId];
+          if (parentSprint === undefined) return; // parent no encontrado — no modificar
+          const currentSprint = item.sprint || 'icebox';
+          if (currentSprint !== parentSprint) {
+            _blogLog('sprint-heredado', item.code,
+              item.code + ' sprint ajustado al de su parent ' + item.parentId + ': ' + parentSprint + ' (post-import)',
+              'backlog');
+            item.sprint = parentSprint;
+          }
+        });
+      })();
       console.log('[AI Tracker] importBacklog: items merged en ITEMS, total:', ITEMS.length);
       
       const meta = parseBacklogMeta(text);
