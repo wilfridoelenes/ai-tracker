@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Nova · 2026-06-06 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-06 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -2018,11 +2018,12 @@
 }
 
 /* Footer dentro del panel derecho */
+/* B-202606-033: footer anclado al fondo de .mdiff-summary-col — fuera de .mdiff-summary-inner */
 .mdiff-summary-footer {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding-top: 8px;
+  padding: 12px 16px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }

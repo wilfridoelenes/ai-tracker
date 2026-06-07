@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:24 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v0.0.0 · sprint:PP-S-01 · mod:25 · autor:Rune · 2026-06-06 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -123,10 +123,12 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   };
 
   // R-202605-148: select de sprint inline — persiste via _mdiffSetItemSprint sin re-render del DIFF
-  const _sprintSelect = (code) => {
+  // B-202606-032: sprintOverride — sprint del objeto diff para ítems nuevos que aún no existen en getItems()
+  const _sprintSelect = (code, sprintOverride) => {
     const openSprints = getActiveSprints().filter(s => s.status !== 'closed');
     const item = getItems().find(i => i.code === code);
-    const rawSprint = item ? (item.sprint || '') : '';
+    // B-202606-032: para ítems nuevos (item === null), usar sprintOverride del objeto diff como fuente
+    const rawSprint = item ? (item.sprint || '') : (sprintOverride || '');
     // R-202605-148 AC: si el sprint asignado ya no existe, mostrar 'Sin sprint' como fallback
     const sprintExists = rawSprint && openSprints.some(s => s.id === rawSprint);
     const currentSprint = sprintExists ? rawSprint : '';
@@ -154,7 +156,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     return `<div class="mdiff-parent-hint">Parent: ${label}</div>`;
   };
 
-  const _card = (code, desc, accentClass, pillsHtml, extraHtml = '', parentOverride = undefined) => {
+  const _card = (code, desc, accentClass, pillsHtml, extraHtml = '', parentOverride = undefined, sprintOverride = undefined) => {
     const typeChar  = (code || '?')[0].toUpperCase();
     const typeCls   = _typeClass[typeChar] || 'mdiff-type--unknown';
     // R-202605-148: ítem sin tipo declarado muestra '?' — no rompe el render
@@ -167,7 +169,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           <span class="mdiff-type-badge">${typeName}</span>
           <span class="mdiff-code mdiff-card-title">${esc(code)}</span>
           ${pillsHtml}
-          ${_sprintSelect(code)}
+          ${_sprintSelect(code, sprintOverride)}
         </div>
         ${_parentHtml(code, parentOverride)}
         <div class="mdiff-desc">${esc(desc || '')}</div>
@@ -190,7 +192,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           <span class="mdiff-type-badge">${typeName}</span>
           <span class="mdiff-code mdiff-card-title">${esc(i.code)}</span>
           ${_pill('retroceso', `${esc(i.from)} → ${esc(i.to)}`)}
-          ${_sprintSelect(i.code)}
+          ${_sprintSelect(i.code, i.sprint)}
         </div>
         <div class="mdiff-desc">${esc(i.desc || '')}</div>
       </div>
@@ -217,7 +219,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           <span class="mdiff-code mdiff-card-title">${esc(i.code)}</span>
           ${_pill('discarded', 'descartado')}
           ${reasonHtml}
-          ${_sprintSelect(i.code)}
+          ${_sprintSelect(i.code, i.sprint)}
         </div>
         <div class="mdiff-desc">${esc(i.desc || '')}</div>
       </div>
@@ -245,7 +247,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   let sectionsHtml = '';
 
   if (diff.created.length) {
-    const rows = _sortByType(diff.created).map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), '', i.parent)).join('');
+    const rows = _sortByType(diff.created).map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), '', i.parent, i.sprint)).join('');
     sectionsHtml += _section('created', 'green', `Creados <span class="mdiff-sec-count">${diff.created.length}</span>`, rows);
   }
   // B-202604-198: ítems que nacen y cierran en el mismo CHECKPOINT — grupo diferenciado
@@ -254,7 +256,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       i.code, i.desc, 'green',
       _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'),
       `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>`,
-      i.parent
+      i.parent, i.sprint
     )).join('');
     sectionsHtml += _section('created-and-closed', 'green', `Creados y cerrados <span class="mdiff-sec-count">${diff.createdAndClosed.length}</span>`, rows);
   }
@@ -281,14 +283,14 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     );
   }
   if (diff.advanced.length) {
-    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`))).join('');
+    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), '', undefined, i.sprint)).join('');
     sectionsHtml += _section('advanced', 'blue', `Avance de status <span class="mdiff-sec-count">${diff.advanced.length}</span>`, rows);
   }
   if (diff.updated.length) {
     const rows = _sortByType(diff.updated).map(i => _card(i.code, i.desc, 'accent',
       _pill('updated', '✎ actualizado'),
       _fieldChips(i.changes),
-      i.parent
+      i.parent, i.sprint
     )).join('');
     sectionsHtml += _section('updated', 'accent', `Campos actualizados <span class="mdiff-sec-count">${diff.updated.length}</span>`, rows);
   }
