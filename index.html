@@ -1,4 +1,4 @@
-<!-- [PP] v1.2.4 · sprint:PP-S-01 · mod:40 · autor:Rune · 2026-06-07 UTC-6 -->
+<!-- [PP] v1.2.4 · sprint:PP-S-01 · mod:41 · autor:Rune · 2026-06-07 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -378,31 +378,20 @@
     <div class="stats-bar" id="stats-bar"></div>
     <div class="active-filter-chips" id="active-filter-chips"></div>
 
-    <!-- R-[tmp:toolbar-backlog-redesign]: 3-layer toolbar -->
-
-    <!-- Capa 1: Toolbar principal — layout + vistas + collapse + búsqueda -->
-    <div class="bl-toolbar" id="bl-toolbar">
+    <!-- T-202606-097: barra fusionada — G1: vistas+collapse | G2: filtros status+secundarios+sort | G3: search+doc-log -->
+    <div class="bl-toolbar" id="filter-bar-status">
+      <!-- G1: vistas + collapse -->
       <div class="bl-toolbar-views" role="tablist" aria-label="Vista del backlog">
         <button class="bl-toolbar-view-btn" id="fbar-kanban-btn" title="Vista Kanban" role="tab" aria-selected="false">⬛ Kanban</button>
-
         <button class="bl-toolbar-view-btn is-hidden" id="fbar-mike-btn" title="Mi vista — T's pendientes por rol en sprint activo" role="checkbox" aria-checked="false">Mi vista</button>
       </div>
-      <div class="bl-toolbar-divider"></div>
       <button class="bl-collapse-btn" id="bl-collapse-all-btn" title="Colapsar / expandir todos los grupos">
         <span class="bl-collapse-btn-icon">⊟</span>
         <span class="bl-collapse-btn-label">Colapsar</span>
       </button>
-
-      <div class="bl-toolbar-spacer"></div>
-      <div class="fbar-search-wrap">
-        <input class="fbar-search-input" id="backlog-search-input" type="text" placeholder="🔍 Buscar…" autocomplete="off">
-        <button class="fbar-search-clear" id="backlog-search-clear" title="Limpiar búsqueda">✕</button>
-      </div>
-      <button class="doc-log-btn" id="doc-log-btn-backlog" title="Historial de acciones del Backlog">🕐<span class="doc-log-count"></span></button>
-    </div>
-
-    <!-- Capa 2: Filter strip — status + sort + filtros secundarios -->
-    <div class="bl-filter-strip" id="filter-bar-status">
+      <!-- Divisor G1→G2 -->
+      <div class="bl-toolbar-divider"></div>
+      <!-- G2: filtros status + secundarios + sort -->
       <button class="bl-strip-btn active" id="fstatus-pendiente">Pendiente</button>
       <button class="bl-strip-btn s-en-revision active" id="fstatus-en-revision">En revisión</button>
       <button class="bl-strip-btn" id="fstatus-done">Hecho</button>
@@ -424,6 +413,15 @@
         <button class="bl-sort-dir-btn" id="fbar-sort-dir-btn" title="Invertir dirección">↓</button>
       </div>
       <button class="fbar-clear-btn is-hidden" id="filter-clear-btn" title="Limpiar todos los filtros">✕ Limpiar</button>
+      <!-- Divisor G2→G3 -->
+      <div class="bl-toolbar-divider"></div>
+      <!-- G3: search + doc-log — margin-left:auto via bl-toolbar-spacer -->
+      <div class="bl-toolbar-spacer"></div>
+      <div class="fbar-search-wrap">
+        <input class="fbar-search-input" id="backlog-search-input" type="text" placeholder="🔍 Buscar…" autocomplete="off">
+        <button class="fbar-search-clear" id="backlog-search-clear" title="Limpiar búsqueda">✕</button>
+      </div>
+      <button class="doc-log-btn" id="doc-log-btn-backlog" title="Historial de acciones del Backlog">🕐<span class="doc-log-count"></span></button>
     </div>
 
     <!-- Capa 3: Sprint selector — colapsado por defecto, despliega al click -->
