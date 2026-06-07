@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:32 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:33 · autor:Rune · 2026-06-07 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -1228,12 +1228,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const headerPendBtn = document.getElementById('header-pend-btn');
   if (headerPendBtn) headerPendBtn.addEventListener('click', function () {
     if (typeof openPendPanel === 'function') openPendPanel();
-  });
-
-  // cmd-k-pill → openCommandPalette()
-  const cmdKPill = document.getElementById('cmd-k-pill');
-  if (cmdKPill) cmdKPill.addEventListener('click', function () {
-    if (typeof openCommandPalette === 'function') openCommandPalette();
   });
 
   // ckpt-reopen-btn → shell:show-checkpoint-panel — locus-sesiones-viz.js escucha y llama showCheckpointPanel internamente
