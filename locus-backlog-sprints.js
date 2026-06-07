@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:35 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:36 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -330,162 +330,121 @@ export function createSprint(raw, goal, versionTarget, releaseType, projId) {
   return id;
 }
 
-// T-202604-262: generar MD de retrospectiva del sprint cerrado
-// T-202604-417: acepta parámetro notes (string) para notas manuales editadas antes de confirmar
-// R-202605-129: generar MD de retrospectiva enriquecida del sprint
-// T-202604-417: acepta parámetro notes (string) para notas manuales editadas antes de confirmar
+// T-202606-121: generar MD de retrospectiva con schema canónico del BR
+// Secciones: ## Retro · [Prefijo]-S-XX → Done · Migrado · Descartado ·
+//   Doc-Updates aplicados · Doc-Updates pendientes → ## Narrativa · [Prefijo]-S-XX
+// AC-8: el string se asigna a sprint.retroDoc antes de save() en _scmExecuteClose.
+// Accede a _scmState vía closure de módulo para leer docUpdates con resolución.
 function _generateSprintRetroMd(id, notes) {
-  const sp = _getSprintById(id);
+  const sp         = _getSprintById(id);
   const sprintLabel = sp ? (sp.label || sp.id) : id;
-  const now = new Date();
-  const utcM6 = new Date(now.getTime() - 6 * 3600000);
-  const pad = n => String(n).padStart(2, '0');
-  const dateStr = `${utcM6.getUTCFullYear()}-${pad(utcM6.getUTCMonth()+1)}-${pad(utcM6.getUTCDate())} ${pad(utcM6.getUTCHours())}:${pad(utcM6.getUTCMinutes())} UTC-6`;
 
-  // B-[tmp:retro-snapshot]: al momento de generar el MD, _scmExecuteClose ya mutó
-  // los ítems done/descartado a 'historico'. Incluir 'historico' en doneItems para
-  // reflejar la realidad post-cierre. pendItems son los reasignados (sprint vacío o nuevo).
-  const sprintItems = getItems().filter(i => i.sprint === id);
+  // ── AC-2: Done — ítems que estaban done al cerrar el sprint.
+  // _scmExecuteClose ya mutó done/descartado → historico antes de llamar esta función.
+  // Incluir 'historico' para reflejar la realidad post-cierre.
+  const sprintItems  = getItems().filter(i => i.sprint === id);
   const doneItems    = sprintItems.filter(i => i.status === 'done' || i.status === 'historico');
-  const pendItems    = sprintItems.filter(i => i.status === 'pendiente');
 
-  const totalEffort  = sprintItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
-  const doneEffort   = doneItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
-  const pendEffort   = pendItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
-  const pctItems     = sprintItems.length > 0 ? Math.round((doneItems.length / sprintItems.length) * 100) : 0;
-  const pctEffort    = totalEffort > 0 ? Math.round((doneEffort / totalEffort) * 100) : 0;
-
-  const closedAt = sp && sp.closedAt ? new Date(sp.closedAt) : now;
-  const closedStr = `${closedAt.getFullYear()}-${pad(closedAt.getMonth()+1)}-${pad(closedAt.getDate())}`;
-  const createdAt = sp && sp.createdAt ? new Date(sp.createdAt) : null;
-  const daysElapsed = createdAt ? Math.floor((closedAt - createdAt) / 86400000) : null;
-
-  const _itemRow = i => {
-    const effortN = parseInt(i.effort) || 1;
-    const effortDots = '●'.repeat(effortN) + '○'.repeat(3 - effortN);
-    return `| \`${i.code}\` | ${i.title || '—'} | ${effortDots} (${effortN}) |`;
-  };
-
-  const doneSection = doneItems.length
-    ? `## ✅ Completados (${doneItems.length})\n\n| Código | Título | Effort |\n|--------|--------|--------|\n${doneItems.map(_itemRow).join('\n')}\n`
-    : `## ✅ Completados\n\n_Sin ítems completados en este sprint._\n`;
-
-  const pendSection = pendItems.length
-    ? `## ⏳ No completados (${pendItems.length})\n\n| Código | Título | Effort |\n|--------|--------|--------|\n${pendItems.map(_itemRow).join('\n')}\n`
-    : `## ⏳ No completados\n\n_Todos los ítems fueron completados. 🎉_\n`;
-
-  // T-202604-417: sesiones del período del sprint
-  let sessionsSection = '';
-  {
-    const allSessions = getAllSessions();
-    const spStart = sp && sp.createdAt ? sp.createdAt : 0;
-    const spEnd   = sp && sp.closedAt  ? sp.closedAt  : Date.now();
-    const spSessions = allSessions.filter(s => {
-      const ts = s.hora ? new Date(s.hora).getTime() : (s.timestamp || 0);
-      return ts >= spStart && ts <= spEnd;
+  // ── AC-3: Migrado — ítems pendientes reasignados a otro sprint o a icebox.
+  // _scmExecuteClose asignó i.sprint = dest || '' para no-__discard__.
+  // Los que quedaron sin sprint (dest='') aparecen con sprint='' → tratar como icebox.
+  // Los ítems con dest='__discard__' tienen status=historico y sprint=id — se excluyen aquí.
+  // Identificamos migrados como ítems que estaban en pendingItems de _scmState y cuyo sprint
+  // ya no es id (el cierre los movió a otro sprint o los dejó sin asignar).
+  // Fallback si _scmState no está disponible: pendientes con sprint distinto a id.
+  let migratedItems = [];
+  if (_scmState && Array.isArray(_scmState.pendingItems)) {
+    _scmState.pendingItems.forEach(pi => {
+      const live = getItems().find(i => i.code === pi.code);
+      if (!live) return;
+      const dest = _scmState.migrations[pi.code];
+      // __discard__ → va a Descartado, no Migrado
+      if (dest === '__discard__') return;
+      migratedItems.push({ code: pi.code, dest: live.sprint || 'icebox' });
     });
-    if (spSessions.length) {
-      const sessRows = spSessions.map(s => {
-        const dateLabel = s.hora ? s.hora.slice(0, 10) : '—';
-        const title = s.title || s.titulo || '—';
-        const ai = s.aiName || s.ai || '—';
-        return `| ${dateLabel} | ${ai} | ${title} |`;
-      }).join('\n');
-      sessionsSection = `## 🗂 Sesiones del sprint (${spSessions.length})\n\n| Fecha | IA / Rol | Título |\n|-------|----------|--------|\n${sessRows}\n`;
-    }
+  } else {
+    // Fallback: ítems pendientes que ya no están en este sprint
+    sprintItems
+      .filter(i => i.status === 'pendiente' && i.sprint !== id)
+      .forEach(i => migratedItems.push({ code: i.code, dest: i.sprint || 'icebox' }));
   }
 
-  // T-202604-417: aprendizajes registrados en CHECKPOINTs del sprint
-  let learningsSection = '';
+  // ── AC-4: Descartado — ítems descartados con justificación.
+  // Incluye: ítems del sprint que tenían status=descartado + pendientes con dest=__discard__.
+  const discardedItems = [];
   {
-    const allSessions = getAllSessions();
-    const spStart = sp && sp.createdAt ? sp.createdAt : 0;
-    const spEnd   = sp && sp.closedAt  ? sp.closedAt  : Date.now();
-    const learnings = allSessions
-      .filter(s => {
-        const ts = s.hora ? new Date(s.hora).getTime() : (s.timestamp || 0);
-        return ts >= spStart && ts <= spEnd && s.learning && s.learning.trim();
-      })
-      .map(s => `- ${s.learning.trim()}`);
-    if (learnings.length) {
-      learningsSection = `## 💡 Aprendizajes del sprint\n\n${learnings.join('\n')}\n`;
+    // Ítems que ya eran descartado en el backlog (status descartado al cierre)
+    sprintItems
+      .filter(i => i.status === 'descartado')
+      .forEach(i => discardedItems.push(i));
+    // Pendientes que el founder eligió descartar en el stepper (dest=__discard__)
+    if (_scmState && Array.isArray(_scmState.pendingItems)) {
+      _scmState.pendingItems.forEach(pi => {
+        const dest = _scmState.migrations[pi.code];
+        if (dest !== '__discard__') return;
+        const live = getItems().find(i => i.code === pi.code);
+        if (live && !discardedItems.some(d => d.code === live.code)) {
+          discardedItems.push(live);
+        }
+      });
     }
   }
 
-  // T-202604-417: notas manuales editadas por el founder
-  const notesSection = notes && notes.trim()
-    ? `## 📝 Notas\n\n${notes.trim()}\n`
-    : '';
+  // ── AC-5/AC-6: Doc-Updates — leer desde _scmState.docUpdates con resolución aplicada en Paso 2.
+  const docUpdates = (_scmState && Array.isArray(_scmState.docUpdates))
+    ? _scmState.docUpdates
+    : [];
+  const duAplicados   = docUpdates.filter(d => d.resolucion === 'aplicado');
+  const duDescartados = docUpdates.filter(d => d.resolucion === 'descartado');
 
-  // R-202605-131: sección de scope added en retro
-  const scopeAddedRetroItems = sprintItems.filter(i => i.scope_added);
-  const scopeAddedRetroSection = scopeAddedRetroItems.length
-    ? `## ➕ Scope añadido durante el sprint (${scopeAddedRetroItems.length})\n\n| Código | Título | Effort |\n|--------|--------|--------|\n${scopeAddedRetroItems.map(_itemRow).join('\n')}\n`
-    : '';
+  // ── Helpers de serialización ──
 
-  const pfx = _docPrefix();
+  // AC-2: lista de códigos
+  const _doneList = doneItems.length
+    ? doneItems.map(i => `- ${i.code}`).join('\n')
+    : 'ninguno';
 
-  // R-202605-129: comparativa sprint anterior para el MD
-  const prevMd = (() => {
-    const closed = getActiveSprints()
-      .filter(s => s.status === 'closed' && s.deliveryMetrics && s.id !== id)
-      .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
-    const prev = closed[0];
-    if (!prev) return null;
-    const dm = prev.deliveryMetrics;
-    const prevDn   = dm.effortDone    || 0;
-    const prevDnom = (dm.effortPlanned || 0) + (dm.effortScopeAdded || 0);
-    const prevPct  = prevDnom > 0 ? Math.round(prevDn / prevDnom * 100) : 0;
-    const delta    = pctEffort - prevPct;
-    return { label: prev.label || prev.id, prevPct, pctDel: pctEffort, delta, sign: delta > 0 ? '+' : '' };
-  })();
+  // AC-3: lista con destino '[código]: [sprint destino]'
+  const _migratedList = migratedItems.length
+    ? migratedItems.map(m => `- ${m.code}: ${m.dest}`).join('\n')
+    : 'ninguno';
 
-  // R-202605-129: sección de descartados en el MD
-  const discardedMdItems = sprintItems.filter(i => i.status === 'descartado');
-  const discardedMdSection = discardedMdItems.length
-    ? `## 🗑 Descartados (${discardedMdItems.length})\n\n| Código | Título | Effort |\n|--------|--------|--------|\n${discardedMdItems.map(_itemRow).join('\n')}\n`
-    : '';
+  // AC-4: lista con justificación — si no tiene discard_reason → 'sin justificación declarada'
+  const _discardedList = discardedItems.length
+    ? discardedItems.map(i => {
+        const reason = i.discard_reason ? i.discard_reason : 'sin justificación declarada';
+        return `- ${i.code}: ${reason}`;
+      }).join('\n')
+    : 'ninguno';
 
-  return `# ${pfx}-Retrospectiva-${id}-${closedStr}.md
-<!-- Sprint: ${sprintLabel} | Cerrado: ${closedStr} | Generado: ${dateStr} -->
+  // AC-5: Doc-Updates aplicados — 'doc: [nombre] · sección: [sección] · aplicado-por: [escalarA]'
+  const _duAplicadosList = duAplicados.length
+    ? duAplicados.map(d => `- doc: ${d.doc} · sección: ${d.seccion} · aplicado-por: ${d.escalarA || 'n/a'}`).join('\n')
+    : 'ninguno';
 
----
+  // AC-6: Doc-Updates pendientes (marcados como descartados en el stepper) —
+  // 'doc: [nombre] · sección: [sección] · escalar-a: [escalarA] · descartado en cierre'
+  const _duDescartadosList = duDescartados.length
+    ? duDescartados.map(d => `- doc: ${d.doc} · sección: ${d.seccion} · escalar-a: ${d.escalarA || 'n/a'} · descartado en cierre`).join('\n')
+    : 'ninguno';
 
-## Sprint
+  // AC-7: sección Narrativa — placeholder vacío
+  const narrativaSection = `## Narrativa · ${sprintLabel}\n\n[Agregar narrativa por rol]`;
 
-| Campo | Valor |
-|---|---|
-| ID | ${id} |
-| Nombre | ${sprintLabel} |
-${sp && sp.goal ? `| Goal | ${sp.goal} |` : ''}
-${sp && sp.version_target ? `| Versión | ${sp.version_target} |` : ''}
-${sp && sp.release_type   ? `| Release  | ${sp.release_type} |` : ''}
-| Cerrado | ${closedStr} |
-${daysElapsed !== null ? `| Duración | ${daysElapsed} día${daysElapsed !== 1 ? 's' : ''} |` : ''}
+  // ── Componer output ──
+  // Orden exacto de AC-1: ## Retro · [label] → Done · Migrado · Descartado ·
+  //   Doc-Updates aplicados · Doc-Updates pendientes → ## Narrativa · [label]
+  return `## Retro · ${sprintLabel}
 
----
+Done: ${_doneList}
+Migrado: ${_migratedList}
+Descartado: ${_discardedList}
+Doc-Updates aplicados:
+${_duAplicadosList}
+Doc-Updates pendientes:
+${_duDescartadosList}
 
-## Resumen de progreso
-
-| Métrica | Valor |
-|---|---|
-| Ítems comprometidos | ${sprintItems.length} |
-| Ítems completados | ${doneItems.length} (${pctItems}%) |
-| Ítems no completados | ${pendItems.length} |
-| Effort total estimado | ${totalEffort} |
-| Effort completado | ${doneEffort} (${pctEffort}%) |
-| Effort pendiente | ${pendEffort} |
-${prevMd ? `| Vs sprint anterior | ${prevMd.label}: ${prevMd.prevPct}% effort → este sprint ${prevMd.pctDel}% (${prevMd.sign}${prevMd.delta}%) |` : '| Vs sprint anterior | Primer sprint con datos completos |'}
-
----
-
-${doneSection}
----
-
-${pendSection}
----
-
-${discardedMdSection ? discardedMdSection + '\n---\n\n' : ''}${scopeAddedRetroSection ? scopeAddedRetroSection + '\n---\n\n' : ''}${sessionsSection ? sessionsSection + '\n---\n\n' : ''}${learningsSection ? learningsSection + '\n---\n\n' : ''}${notesSection ? notesSection + '\n---\n\n' : ''}_Generado por Locus ${_effectiveVersion()} · ${dateStr}_
+${narrativaSection}
 `;
 }
 
