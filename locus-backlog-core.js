@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:46 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:47 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1285,6 +1285,56 @@ function _applyExitAnimOrRender(code) {
   window.dispatchEvent(new CustomEvent('shell:sprint-render')); // T-202605-058 T-202605-044
 }
 
+// B-202606-039: transiciones automáticas de status en R padre al avanzar T hijo
+// Reglas (BR-Ecosystem §5):
+//   pendiente → en-proceso: cuando cualquier T hijo cambia desde pendiente a cualquier status ≠ descartado
+//   en-proceso → en-revision: cuando todos los Ts hijos no-descartados están done
+// Idempotente: no modifica R en done/descartado. T descartado ignorado en ambas transiciones.
+// Batch-safe: evalúa el estado completo de hijos en el momento de la llamada — no acumula.
+function _syncParentRStatus(changedItemCode, newTStatus) {
+  // Solo aplica cuando el ítem que cambió es un T con parentId
+  const changedItem = ITEMS.find(i => i.code === changedItemCode);
+  if (!changedItem || changedItem.type !== 'T' || !changedItem.parentId) return;
+
+  const parent = ITEMS.find(i => i.code === changedItem.parentId && i.type === 'R');
+  if (!parent) return;
+
+  // AC-5: R ya en done o descartado — no modificar
+  if (parent.status === 'done' || parent.status === 'descartado') return;
+
+  // Obtener todos los Ts hijos del R, excluyendo descartados (AC-3)
+  const activeSiblings = ITEMS.filter(i =>
+    i.type === 'T' && i.parentId === parent.code && i.status !== 'descartado'
+  );
+
+  // AC-4: R sin Ts activos — no ejecutar ninguna transición
+  if (activeSiblings.length === 0) return;
+
+  const prevParentStatus = parent.status;
+
+  // AC-2: en-proceso → en-revision — todos los Ts activos están done
+  const allDone = activeSiblings.every(i => i.status === 'done');
+  if (allDone) {
+    if (parent.status !== 'en-revision') {
+      parent.status = 'en-revision';
+      parent.statusChangedAt = Date.now();
+      if (!parent.history) parent.history = [];
+      parent.history.push({ type: 'status', ts: parent.statusChangedAt, data: { from: prevParentStatus, to: 'en-revision', reason: 'auto-all-children-done' } });
+      _blogLog('status-auto →', parent.code, prevParentStatus + ' → en-revision (todos los Ts hijos done)', 'backlog');
+    }
+    return;
+  }
+
+  // AC-1: pendiente → en-proceso — el T que cambió salió de pendiente y no es descartado
+  if (parent.status === 'pendiente' && newTStatus !== 'descartado') {
+    parent.status = 'en-proceso';
+    parent.statusChangedAt = Date.now();
+    if (!parent.history) parent.history = [];
+    parent.history.push({ type: 'status', ts: parent.statusChangedAt, data: { from: 'pendiente', to: 'en-proceso', reason: 'auto-child-advanced' } });
+    _blogLog('status-auto →', parent.code, 'pendiente → en-proceso (T hijo avanzó)', 'backlog');
+  }
+}
+
 // T-202605-008: lógica de mutación extraída para ser llamada desde _gconfirmOpen y flujo directo
 function _applyStatusChange(code, newStatus, prevStatus) {
   const item = ITEMS.find(i => i.code === code);
@@ -1301,6 +1351,8 @@ function _applyStatusChange(code, newStatus, prevStatus) {
   item.history.push({ type: 'status', ts: item.statusChangedAt, aiId: _getActiveSessionAiId() || undefined, data: { from: prevStatus, to: newStatus, role: item.role || '' } });
   if (newStatus === 'pendiente') item.priority = _calcPriority(item); // T-202604-297
   _recalcAllScores(); // T-202604-257: recalcular scores tras cambio de status
+  // B-202606-039: sincronizar status del R padre si el ítem cambiado es un T hijo
+  _syncParentRStatus(code, newStatus);
   // R-202604-051 + T-202605-449: al marcar done, notificar ítems que quedaron desbloqueados
   if (newStatus === 'done') {
     const nowUnblocked = [];
