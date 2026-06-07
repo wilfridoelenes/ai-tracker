@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -621,14 +621,17 @@ function _isItemBlocked(item) {
 }
 
 // T-202606-017: genera los campos de un ítem sin el encabezado de título.
+// T-202606-109: campos no canónicos movidos a bloque metadata al final.
+//   Campos nuevos: schema_version (AC-2), depends_on array vacío (AC-3), no_incluye (AC-4), intencion (AC-5).
+//   AC-3: campo canónico verificado = depends_on (snake_case).
 function _buildItemFieldsMd(item, state) {
   let md = '';
   md += `**Priority:** ${item.priority || 'medium'}\n`;
   const _area = (item.area || '').includes('**') ? '' : (item.area || '').trim();
   md += `**Area:** ${_area}\n`;
   md += `**Effort:** ${item.effort || 1}\n`;
-  if (item.impact) md += `**Impact:** ${item.impact}\n`;
   md += `**Status:** ${item.status || 'pendiente'}\n`;
+  if (item.schema_version != null) md += `**SchemaVersion:** ${item.schema_version}\n`; // AC-2
   if (item.discardReason) md += `**DiscardReason:** ${item.discardReason}\n`;
   if (item.discardRef)    md += `**DiscardRef:** ${item.discardRef}\n`;
   if (item.sprint) {
@@ -639,14 +642,26 @@ function _buildItemFieldsMd(item, state) {
   }
   if (item.role)     md += `**Role:** ${item.role}\n`;
   if (item.parentId) md += `**ParentId:** ${item.parentId}\n`;
-  if (item.depends_on && item.depends_on.length) {
-    md += `**DependsOn:** ${item.depends_on.join(', ')}\n`;
+  // AC-3: depends_on snake_case — emitir siempre en Ts (array vacío → DependsOn: [])
+  if (item.depends_on != null) {
+    md += `**DependsOn:** ${item.depends_on.length ? item.depends_on.join(', ') : '[]'}\n`;
   }
   if (item.origin)   md += `**Origin:** ${item.origin}\n`;
   if (item.blockedBy && item.blockedBy.length) md += `**BlockedBy:** ${item.blockedBy.join(', ')}\n`;
   if (item.archivos && item.archivos.length)   md += `**Archivos:** ${item.archivos.join(', ')}\n`;
-  if (item.version)  md += `**Version:** ${item.version}\n`;
   if (item.desc)     md += `\n${item.desc}\n`;
+  // AC-5: bloque intencion estructurado — solo si existe
+  if (item.intencion) {
+    md += `\n**Intención:**\n`;
+    if (item.intencion.problema)    md += `- Problema: ${item.intencion.problema}\n`;
+    if (item.intencion.done_cuando) md += `- Done cuando: ${item.intencion.done_cuando}\n`;
+    if (item.intencion.no_incluye)  md += `- No incluye: ${item.intencion.no_incluye}\n`;
+  }
+  // AC-4: no_incluye como lista — solo si existe y tiene elementos
+  if (item.no_incluye && item.no_incluye.length) {
+    md += `\n**No incluye:**\n`;
+    item.no_incluye.forEach(n => { md += `- ${n}\n`; });
+  }
   if (item.ac && item.ac.length) {
     md += `\n### Criterios de aceptación\n`;
     item.ac.forEach(c => {
@@ -654,10 +669,15 @@ function _buildItemFieldsMd(item, state) {
       md += `- [${checked}] ${c}\n`;
     });
   }
-  if (item.notes)           md += `\n**Notes:** ${item.notes}\n`;
-  if (item.createdAt)       md += `**CreatedAt:** ${item.createdAt}\n`;
-  if (item.statusChangedAt) md += `**StatusChangedAt:** ${item.statusChangedAt}\n`;
-  if (item.doneAt)          md += `**DoneAt:** ${item.doneAt}\n`;
+  if (item.notes) md += `\n**Notes:** ${item.notes}\n`;
+  // AC-1: createdAt, statusChangedAt, impact, version → bloque metadata al final
+  const _metaParts = [];
+  if (item.createdAt)       _metaParts.push(`CreatedAt:${item.createdAt}`);
+  if (item.statusChangedAt) _metaParts.push(`StatusChangedAt:${item.statusChangedAt}`);
+  if (item.impact)          _metaParts.push(`Impact:${item.impact}`);
+  if (item.version)         _metaParts.push(`Version:${item.version}`);
+  if (item.doneAt)          _metaParts.push(`DoneAt:${item.doneAt}`);
+  if (_metaParts.length)    md += `<!-- metadata: ${_metaParts.join(' · ')} -->\n`;
   return md;
 }
 
