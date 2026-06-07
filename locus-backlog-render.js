@@ -1,6 +1,6 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:41 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:42 · autor:Rune · 2026-06-07 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
-import { _buildRoleChips, _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActiveRoleFilter, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleRoleFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, updateBacklogFooter } from './locus-backlog-item.js';
 
@@ -148,10 +148,9 @@ export function updateClearFilterBtn() {
   const _as = _getActiveStatuses();
   const defaultStatus = _as.size === 2 && _as.has('pendiente') && _as.has('en-revision'); // B-202606-008: size===2 + has ambos es suficiente — no puede haber otros si size es exactamente 2
   const noSearch = !_getBacklogSearchQuery();
-  const noRoleFilter = _getActiveRoleFilter() === null;
   const noPriorityFilter = _getActivePriorityFilter().size === 0; // T-202604-357
   const allEfforts = _getActiveEfforts().size === 3; // B-202606-006
-  const isDefault = allTypes && defaultStatus && noSearch && noRoleFilter && noPriorityFilter && allEfforts && !_getBacklogNoAcMode();
+  const isDefault = allTypes && defaultStatus && noSearch && noPriorityFilter && allEfforts && !_getBacklogNoAcMode(); // T-202606-098: noRoleFilter eliminado
   btn.classList.toggle('is-hidden', isDefault);
 
   // R-202605-094: chips individuales limpiables por filtro activo
@@ -169,7 +168,6 @@ export function updateClearFilterBtn() {
       const val = chip.dataset.afcVal;
       if (act === 'type')          { toggleTypeFilter(val); }
       else if (act === 'status')   { toggleStatusFilter(val); }
-      else if (act === 'role')     { toggleRoleFilter(val); }
       else if (act === 'priority') { if (typeof togglePriorityFilter === 'function') togglePriorityFilter(val); }
       else if (act === 'effort')   { toggleEffortFilter(parseInt(val, 10)); }
       else if (act === 'search')   { if (typeof clearBacklogSearch   === 'function') clearBacklogSearch(); }
@@ -199,10 +197,6 @@ export function updateClearFilterBtn() {
     if (!_getActiveStatuses().has('en-revision')) {
       chips.push(_chip('−En revisión', 'status', 'en-revision'));
     }
-  }
-  if (!noRoleFilter) {
-    const label = _getActiveRoleFilter() === '__none__' ? 'Sin rol' : _getActiveRoleFilter();
-    chips.push(_chip(`Rol: ${label}`, 'role', _getActiveRoleFilter()));
   }
   if (!noPriorityFilter) {
     [..._getActivePriorityFilter()].forEach(p => {
@@ -585,10 +579,9 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
   if (!_hasVisible) {
     const _activeSprint = _getActiveSprint();
     const _hasTypeFilter   = _getActiveTypes().size < 4;
-    const _hasRoleFilter   = _getActiveRoleFilter() !== null;
     const _hasStatusFilter = !(_getActiveStatuses().has('pendiente') && _getActiveStatuses().size === 1);
     const _hasEffortFilter = _getActiveEfforts().size < 3;
-    const _hasAnyFilter    = q || _hasTypeFilter || _hasRoleFilter || _hasStatusFilter || _hasEffortFilter;
+    const _hasAnyFilter    = q || _hasTypeFilter || _hasStatusFilter || _hasEffortFilter; // T-202606-098: _hasRoleFilter eliminado
     let emptyIcon = '🔍', emptyTitle = '', emptyHint = '', emptyCTA = '';
     if (q) {
       emptyTitle = `Sin resultados para "${esc(q)}"`;
@@ -788,16 +781,6 @@ export function renderBacklogList(onRendered) {
     return;
   }
 
-  // T-202604-245: inyectar/actualizar barra de chips de rol
-  (function _ensureRoleBar() {
-    const filterBar = document.getElementById('filter-bar-status'); // bl-filter-strip
-    if (!filterBar) return;
-    const existing = document.getElementById('frole-bar');
-    const newHtml = _buildRoleChips();
-    if (!newHtml) { if (existing) existing.remove(); return; }
-    if (existing) { existing.outerHTML = newHtml; } else { filterBar.insertAdjacentHTML('afterend', newHtml); }
-  })();
-
   // Filtrado por tipo + status + effort (T-071)
   // B-202604-193: excluir ítems históricos del plano activo — van a sección colapsada al fondo
   let filtered = getItems().filter(i => {
@@ -808,13 +791,6 @@ export function renderBacklogList(onRendered) {
     const _rawEffort = parseInt(i.effort) || 1;
     const _normEffort = _rawEffort > 3 ? 3 : _rawEffort < 1 ? 1 : _rawEffort;
     const effortOk = _getActiveEfforts().has(_normEffort); // T-071 · B-202605-233: effort >3 normalizado a 3
-    // T-202604-245: filtro de rol
-    let roleOk = true;
-    if (_getActiveRoleFilter() === '__none__') {
-      roleOk = !i.role || !i.role.trim();
-    } else if (_getActiveRoleFilter() !== null) {
-      roleOk = (i.role || '').trim() === _getActiveRoleFilter();
-    }
     // T-202604-357: filtro por prioridad — vacío = todos
     let priorityOk = true;
     if (_getActivePriorityFilter().size > 0) {
@@ -826,7 +802,7 @@ export function renderBacklogList(onRendered) {
       else if (_getActivePriorityFilter().has('medium') && !isHigh && !isLow) priorityOk = true;
       else priorityOk = false;
     }
-    return typeOk && statusOk && effortOk && roleOk && priorityOk;
+    return typeOk && statusOk && effortOk && priorityOk; // T-202606-098: roleOk eliminado
   });
 
   // T-202604-363: Sin AC — solo pendientes sin criterios de aceptación
@@ -1204,10 +1180,9 @@ export function renderBacklogList(onRendered) {
     // T-202604-319: empty state contextual según causa
     const _activeSprint = _getActiveSprint();
     const _hasTypeFilter  = _getActiveTypes().size < 4;
-    const _hasRoleFilter  = _getActiveRoleFilter() !== null;
     const _hasStatusFilter = !(_getActiveStatuses().has('pendiente') && _getActiveStatuses().size === 1);
     const _hasEffortFilter = _getActiveEfforts().size < 3;
-    const _hasAnyFilter = q || _hasTypeFilter || _hasRoleFilter || _hasStatusFilter || _hasEffortFilter;
+    const _hasAnyFilter = q || _hasTypeFilter || _hasStatusFilter || _hasEffortFilter; // T-202606-098: _hasRoleFilter eliminado
 
     let emptyIcon = '🔍', emptyTitle = '', emptyHint = '', emptyCTA = '';
 
