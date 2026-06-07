@@ -1,6 +1,6 @@
-// [PP] v1.2.3 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.3 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-06 UTC-6
 // locus-storage.js
-// Última actualización: 2026-06-06 · B-202606-XXX: render inicial del backlog faltante en _renderAfterAuth tras T-202606-056
+// Última actualización: 2026-06-06 · T-202606-101: guard de salida para retries de _loadFromSupabase (_LOAD_RETRY_MAX)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -933,14 +933,31 @@ let _loadFromSupabaseInFlight = false;
 // El retry de 200ms entra limpio una vez que _initApp termina.
 let _appReady = false;
 
+// T-202606-101: contador y límite de retries para el guard _appReady.
+// Previene acumulación indefinida de setTimeouts si _initApp nunca completa.
+const _LOAD_RETRY_MAX = 50; // 50 × 200ms = 10 segundos de espera máxima
+let _loadRetryCount = 0;
+
 export async function _loadFromSupabase() {
   // AC-9 R-C2: si hay un write local pendiente en debounce, el state local es más reciente
   // que Supabase — cancelar la carga para evitar rollback silencioso del estado volátil.
   if (_saveDebounceTimer !== null) return;
 
-  // B-202606-028: si _initApp aún no completó la inyección de referencias,
+  // B-202606-028 / T-202606-101: si _initApp aún no completó la inyección de referencias,
   // _getItems sigue siendo el fallback [] — postergar 200ms y reintentar.
-  if (!_appReady) { setTimeout(_loadFromSupabase, 200); return; }
+  // Guard de salida: detener retries tras _LOAD_RETRY_MAX intentos (~10 s) para
+  // evitar acumulación indefinida de setTimeouts cuando _appReady nunca se activa.
+  if (!_appReady) {
+    if (_loadRetryCount >= _LOAD_RETRY_MAX) {
+      console.error('[AI Tracker] _loadFromSupabase: _appReady no se activó tras ' + _LOAD_RETRY_MAX + ' intentos — retries detenidos.');
+      _loadRetryCount = 0;
+      return;
+    }
+    _loadRetryCount++;
+    setTimeout(_loadFromSupabase, 200);
+    return;
+  }
+  _loadRetryCount = 0; // resetear contador al entrar limpio
 
   // R-202605-022 Fase 3 AC-2: guard anti-doble-load — el segundo disparo es no-op.
   if (_loadFromSupabaseInFlight) return;
