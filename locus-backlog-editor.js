@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:20 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:21 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -514,7 +514,7 @@ function confirmItemEditor() {
       parentId: parentId || null,
       sprint: _newItemSprint,
       status: 'pendiente', version: 'futura',
-      schema_version: 1,
+      schema_version: 2, // T-202606-113 AC-1
     });
     _blogLog('creado', finalCode, title, 'backlog');
     _undoSnapshot();
