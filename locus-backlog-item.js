@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:49 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-05 · mod:50 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -926,6 +926,18 @@ export function buildBacklogItem(item) {
       ).join('')
     : '';
 
+  // T-202606-142: badge "bloqueado por T-XXX" — depends_on con T bloqueante no done
+  // Solo aplica a Ts no done ni descartados con dependencias activas no resueltas.
+  const _depBlockedCodes = (!isDone && !isDiscarded && type === 'T' && Array.isArray(item.dependsOn) && item.dependsOn.length)
+    ? item.dependsOn.filter(c => { const dep = getItems().find(i => i.code === c); return !dep || dep.status !== 'done'; })
+    : [];
+  const depBlockedBadge = _depBlockedCodes.length
+    ? _depBlockedCodes.map(c =>
+        `<span class="badge-missing badge-missing--dep-blocked" title="Depende de ${esc(c)} — no completado">⛔ bloqueado por ${esc(c)}</span>`
+      ).join('')
+    : '';
+  const _isDepBlocked = _depBlockedCodes.length > 0;
+
   // R-202604-051: badge blocking:true — ítem bloqueante activo
   const blockingBadge = (!isDone && !isDiscarded && item.blocking)
     ? `<span class="badge-blocking" title="Este ítem bloquea a otros — debe resolverse primero">⚠ bloqueante</span>`
@@ -962,7 +974,7 @@ export function buildBacklogItem(item) {
       ? `<span class="bitem-done-check">✓</span>`
       : isIdea
         ? `<div class="bitem-header-right">${_ideaQuickActions}</div>`
-        : `<div class="bitem-header-right">${_statusChipHtml}${scopeAddedBadge}${noAcBadge}${acReplacedBadge}${blockingBadge}${blockedBadge}${blockedByBadge}${noSessionBadge}${childBadge}${prioBadgeHtml}${effortDotsHtml}</div>`;
+        : `<div class="bitem-header-right">${_statusChipHtml}${scopeAddedBadge}${noAcBadge}${acReplacedBadge}${blockingBadge}${blockedBadge}${blockedByBadge}${depBlockedBadge}${noSessionBadge}${childBadge}${prioBadgeHtml}${effortDotsHtml}</div>`;
 
   // R-202605-098: subline discard reason diferenciado para P
   // P descartado por promoción → chip con ref; P descartado manual → razón libre
@@ -998,7 +1010,7 @@ export function buildBacklogItem(item) {
   // R-202605-165: .blf-hidden colapsa ítems fuera del Top-10 con transición 150ms ease-out
   const _blfHiddenClass = item._blfHidden ? ' blf-hidden' : '';
   const _blfAriaHidden  = item._blfHidden ? ' aria-hidden="true"' : '';
-  return `<div class="item bitem${isDone ? ' is-done' : ''}${isDiscarded ? ' is-discarded' : ''}${isActive ? ' bitem--active' : ''}${isIdea ? ' bitem--idea' : ''}${isPromoted ? ' bitem--promoted' : ''}${_blfHiddenClass}" data-type="${type}" data-code="${esc(item.code)}"${_blfAriaHidden}>
+  return `<div class="item bitem${isDone ? ' is-done' : ''}${isDiscarded ? ' is-discarded' : ''}${isActive ? ' bitem--active' : ''}${isIdea ? ' bitem--idea' : ''}${isPromoted ? ' bitem--promoted' : ''}${_isDepBlocked ? ' bitem--dep-blocked' : ''}${_blfHiddenClass}" data-type="${type}" data-code="${esc(item.code)}"${_blfAriaHidden}>
     <div class="item-header bitem-header" data-action="item-expand" data-idx="${globalIdx}">
       ${(!isDone && !isDiscarded && item.sprint) ? `<span class="item-drag-handle" data-action="drag-handle" title="Arrastrar para reordenar en sprint">⠿</span>` : ''}
       ${isActive ? '<span class="bitem-activity-dot" title="Actividad reciente — sesión vinculada en los últimos 7 días"></span>' : ''}

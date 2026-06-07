@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:13 · autor:Nova · 2026-06-07 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-05 · mod:14 · autor:Rune · 2026-06-07 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -4079,3 +4079,24 @@ body {
   }
 }
 /* ── END T-202606-141 ── */
+
+/* ══ T-202606-142: Fila bloqueada por depends_on en backlog list ══ */
+
+/* Línea izquierda roja — sobreescribe border-left-color del tipo T (var(--green)) */
+.item.bitem.bitem--dep-blocked[data-type="T"] {
+  border-left-color: var(--red);
+  box-shadow: -2px 0 8px rgb(232 85 85 / 20%);
+}
+
+/* Opacidad reducida en código y título — señal visual de bloqueo sin ocultar contenido */
+.bitem--dep-blocked .bitem-code,
+.bitem--dep-blocked .bitem-title {
+  opacity: 0.7;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .item.bitem.bitem--dep-blocked {
+    transition: border-left-color 0.2s var(--ease-out), box-shadow 0.2s var(--ease-out);
+  }
+}
+/* ── END T-202606-142 ── */

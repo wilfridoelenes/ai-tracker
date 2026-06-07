@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-03 · mod:27 · autor:Rune · 2026-06-07 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-05 · mod:28 · autor:Rune · 2026-06-07 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -4777,6 +4777,13 @@ er {
 .badge-missing--blocked {
   color: var(--amber);
   font-size: var(--text-xs);
+}
+
+/* T-202606-142: badge de dep bloqueado — rojo (distinto de blocked amber) */
+.badge-missing--dep-blocked {
+  color: var(--red);
+  font-size: var(--text-xs);
+  font-weight: 600;
 }
 
 .badge-missing--effort {
