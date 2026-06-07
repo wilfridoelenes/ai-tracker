@@ -1,5 +1,4 @@
-/* locus-sesiones-card.css */
-/* Versión: 1.0 | Última actualización: 2026-05-25 | Estilos del rediseño AI Card (sc-*) — extraído de locus-sesiones.css */
+/* [PP] v1.2.4 · sprint:PP-S-04 · mod:2 · autor:Nova · 2026-06-07 */
 
 /* === locus-tracker.js ===
    Funciones: buildCard · _buildCurrentSessionCard (sc-* rediseño) */
@@ -149,6 +148,8 @@
 .card-dot-dropdown {
   display: none;
   position: fixed;
+  top: var(--card-menu-top, auto);
+  left: var(--card-menu-left, auto);
   z-index: var(--z-toast);
   min-width: 188px;
   background: var(--surface2);

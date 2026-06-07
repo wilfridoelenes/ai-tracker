@@ -1,4 +1,4 @@
-/* [PP] v1.2.3 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-07 */
+/* [PP] v1.2.4 · sprint:PP-S-04 · mod:2 · autor:Nova · 2026-06-07 */
 /* locus-layout.css */
 
 /* Versión: 2.1 | Última actualización: 2026-05-22 | Selectores compartidos consolidados — T-202605-031 */
@@ -914,8 +914,9 @@ header {
 
 .more-menu {
   position: fixed;
-  top: auto; /* sobreescrito por JS via style.top */
-  right: auto; /* sobreescrito por JS via style.right */
+  top: var(--menu-top, auto);
+  right: var(--menu-right, auto);
+  left: var(--menu-left, auto);
   z-index: var(--z-supreme-2); /* B-202605-019 — nivel suficiente para estar sobre overlays activos (--z-overlay: 900, tooltips, toasts). --z-top (9999) solo lo usa #pepe-splash en runtime. */
   min-width: 220px;
   max-height: calc(100vh - 60px);
