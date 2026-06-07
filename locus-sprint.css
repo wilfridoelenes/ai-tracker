@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:10 · autor:Nova · 2026-06-05 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-06 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -118,7 +118,7 @@
   height: 100%;
   width: var(--sph-bd-width, 0%);
   background: var(--c-low-border);
-  border-radius: var(--radius-pill);
+  /* B-202606-026: border-radius eliminado — el track tiene overflow:hidden, el border-radius en el fill producía clip en extremo derecho al llegar a 100% */
   transition: width var(--trans-medium);
 }
 
@@ -1019,7 +1019,7 @@
   height: 100%;
   width: var(--sml-bar-width, 0%);
   background: var(--c-low-border);
-  border-radius: var(--radius-pill);
+  /* B-202606-026: border-radius eliminado — el track tiene overflow:hidden, el border-radius en el fill producía clip en extremo derecho al llegar a 100% */
   transition: width var(--trans-medium);
 }
 
