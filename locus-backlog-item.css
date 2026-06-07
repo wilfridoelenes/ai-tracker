@@ -4021,3 +4021,61 @@ body {
   }
 }
 /* ── END T-202606-038 ── */
+
+/* ══ T-202606-141: Capa visual depends_on en panel DIFF ══ */
+
+/* Contenedor de pills de dependencia — row inline bajo el título */
+.mdiff-deps-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+/* Pill individual por dep */
+.mdiff-dep-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-2xs-plus);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  background: transparent;
+  flex-shrink: 0;
+}
+
+/* Dep done — verde */
+.mdiff-dep-pill--done {
+  background: var(--green-dim);
+  border-color: color-mix(in srgb, var(--green) 30%, transparent);
+  color: var(--green);
+}
+
+/* Dep no done (pendiente / en-revision / etc.) — rojo */
+.mdiff-dep-pill--blocked {
+  background: var(--red-dim);
+  border-color: color-mix(in srgb, var(--red) 30%, transparent);
+  color: var(--red);
+}
+
+/* Card con al menos un dep bloqueado — alerta visual sobre la card completa */
+.mdiff-card:has(.mdiff-deps-row--blocked) {
+  background: color-mix(in srgb, var(--red) 4%, transparent);
+  border-left: 2px solid var(--red);
+}
+
+/* Compensar el borde izquierdo de 2px para que el accent stripe no se desplace */
+.mdiff-card:has(.mdiff-deps-row--blocked) .mdiff-card-accent {
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mdiff-dep-pill {
+    transition: none;
+  }
+}
+/* ── END T-202606-141 ── */

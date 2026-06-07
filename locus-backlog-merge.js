@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:27 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-05 · mod:28 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -164,6 +164,26 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     return `<div class="mdiff-parent-hint">Parent: ${label}</div>`;
   };
 
+  // T-202606-141: capa visual de depends_on — pills inline bajo el título, alerta cuando hay dep bloqueado.
+  // dependsOn: array de códigos. Status resuelto contra getItems() en memoria — sin llamada a Supabase.
+  // Ítems aún no persistidos (recién creados en el mismo CHECKPOINT) no existen en getItems() → tratados como bloqueados.
+  const _depsHtml = (dependsOn) => {
+    if (!Array.isArray(dependsOn) || dependsOn.length === 0) return '';
+    const allItems = getItems();
+    let hasBlocked = false;
+    const pills = dependsOn.map(depCode => {
+      const depItem = allItems.find(i => i.code === depCode);
+      const depStatus = depItem ? (depItem.status || 'pendiente') : 'pendiente';
+      const isDone = depStatus === 'done';
+      if (!isDone) hasBlocked = true;
+      const cls = isDone ? 'mdiff-dep-pill--done' : 'mdiff-dep-pill--blocked';
+      const statusLabel = isDone ? '✓ done' : depStatus;
+      return `<span class="mdiff-dep-pill ${cls}">${esc(depCode)} · ${statusLabel}</span>`;
+    }).join('');
+    const rowCls = hasBlocked ? 'mdiff-deps-row mdiff-deps-row--blocked' : 'mdiff-deps-row';
+    return `<div class="${rowCls}">${pills}</div>`;
+  };
+
   const _card = (code, desc, accentClass, pillsHtml, extraHtml = '', parentOverride = undefined, sprintOverride = undefined) => {
     const typeChar  = (code || '?')[0].toUpperCase();
     const typeCls   = _typeClass[typeChar] || 'mdiff-type--unknown';
@@ -255,7 +275,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   let sectionsHtml = '';
 
   if (diff.created.length) {
-    const rows = _sortByType(diff.created).map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), '', i.parent, i.sprint)).join('');
+    const rows = _sortByType(diff.created).map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint)).join('');
     sectionsHtml += _section('created', 'green', `Creados <span class="mdiff-sec-count">${diff.created.length}</span>`, rows);
   }
   // B-202604-198: ítems que nacen y cierran en el mismo CHECKPOINT — grupo diferenciado
@@ -263,7 +283,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     const rows = _sortByType(diff.createdAndClosed).map(i => _card(
       i.code, i.desc, 'green',
       _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'),
-      `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>`,
+      `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>` + _depsHtml(i.dependsOn),
       i.parent, i.sprint
     )).join('');
     sectionsHtml += _section('created-and-closed', 'green', `Creados y cerrados <span class="mdiff-sec-count">${diff.createdAndClosed.length}</span>`, rows);
@@ -291,13 +311,13 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     );
   }
   if (diff.advanced.length) {
-    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), '', undefined, i.sprint)).join('');
+    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint)).join('');
     sectionsHtml += _section('advanced', 'blue', `Avance de status <span class="mdiff-sec-count">${diff.advanced.length}</span>`, rows);
   }
   if (diff.updated.length) {
     const rows = _sortByType(diff.updated).map(i => _card(i.code, i.desc, 'accent',
       _pill('updated', '✎ actualizado'),
-      _fieldChips(i.changes),
+      _fieldChips(i.changes) + _depsHtml(i.dependsOn),
       i.parent, i.sprint
     )).join('');
     sectionsHtml += _section('updated', 'accent', `Campos actualizados <span class="mdiff-sec-count">${diff.updated.length}</span>`, rows);

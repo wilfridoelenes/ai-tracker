@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:35 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:36 · autor:Rune · 2026-06-07 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -107,10 +107,20 @@ function buildTGPreview(items, discrepancy) {
     const noAcTag = (!existing && (!item.ac || item.ac.length === 0))
       ? `<span class="preview-tg-tag preview-tg-tag--warn" title="Ítem nuevo sin criterios de aceptación">sin AC</span>`
       : '';
+    // T-202606-106: badges --info para campos obligatorios ausentes en ítems nuevos
+    const noNoIncluyeTag = (!existing && item.type === 'T' && (!item.no_incluye || item.no_incluye.length === 0))
+      ? `<span class="preview-tg-tag preview-tg-tag--info" title="T nuevo sin campo no_incluye">sin no_incluye</span>`
+      : '';
+    const noIntencionTag = (!existing && item.type === 'R' && !item.intencion)
+      ? `<span class="preview-tg-tag preview-tg-tag--info" title="R nuevo sin campo intencion">sin intencion</span>`
+      : '';
+    const noTriggeredByTag = (!existing && item.type === 'B' && !item.triggeredBy)
+      ? `<span class="preview-tg-tag preview-tg-tag--info" title="B nuevo sin campo triggered_by">sin triggered_by</span>`
+      : '';
     html += `<div class="preview-tg-row">
       <span class="preview-tg-badge ${item.type}">${item.type}</span>
       <span class="preview-tg-code">${esc(item.code)}</span>
-      <span class="preview-tg-desc">${esc(item.title)}${tag}${noAcTag}</span>
+      <span class="preview-tg-desc">${esc(item.title)}${tag}${noAcTag}${noNoIncluyeTag}${noIntencionTag}${noTriggeredByTag}</span>
       <span class="preview-tg-status">${esc(item.status)}</span>
     </div>`;
   });
