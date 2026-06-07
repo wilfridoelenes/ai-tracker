@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-04 · mod:14 · autor:Rune · 2026-06-07 UTC-6
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm.
 //   Define AVATAR_LOGOS (SVGs de avatares) — movido desde locus-checkpoint-stats.js.
@@ -165,15 +165,15 @@ export function toggleCardMenu(id, btn, e) {
     // stale visible, luego recibe las nuevas coordenadas y .open en el mismo tick sincrónico.
     // B-202605-020: min-width declarado en CSS (188px) — offsetWidth es 0 con display:none
     const menuWidth = 188;
-    dd.style.top  = '';
-    dd.style.left = '';
+    dd.style.removeProperty('--card-menu-top');
+    dd.style.removeProperty('--card-menu-left');
     dd.dataset.wrapId = 'dotmenu-wrap-' + id;
     // B-202605-044: guardar referencia al trigger para devolver foco al cerrar por Escape
     dd.dataset.triggerId = id;
     document.body.appendChild(dd);
     // Coordenadas post-appendChild — previene flash de posición stale
-    dd.style.top  = (rect.bottom + 4) + 'px';
-    dd.style.left = (rect.right - menuWidth) + 'px';
+    dd.style.setProperty('--card-menu-top',  (rect.bottom + 4) + 'px');
+    dd.style.setProperty('--card-menu-left', (rect.right - menuWidth) + 'px');
     dd.classList.add('open');
 
     // B-202605-049: cerrar menú al hacer scroll en .tracker-col--card

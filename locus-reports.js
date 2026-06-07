@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-04 · mod:11 · autor:Rune · 2026-06-07 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -175,9 +175,9 @@ function toggleMoreMenu() {
     // Anclar coords relativas al viewport — necesario porque .more-menu usa position:fixed
     if (btn) {
       const rect = btn.getBoundingClientRect();
-      m.style.top   = rect.bottom + 6 + 'px';
-      m.style.right = window.innerWidth - rect.right + 'px';
-      m.style.left  = 'auto';
+      m.style.setProperty('--menu-top',   rect.bottom + 6 + 'px');
+      m.style.setProperty('--menu-right', window.innerWidth - rect.right + 'px');
+      m.style.setProperty('--menu-left',  'auto');
     }
     m.classList.remove('is-hidden');
 
