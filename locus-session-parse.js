@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:34 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:35 · autor:Rune · 2026-06-07 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -435,7 +435,10 @@ export function parsePaste(id) {
           dependsOn:     Array.isArray(_it.depends_on) ? _it.depends_on : [],  // T-202605-139
           triggeredBy:   _it.triggered_by  || null,                            // T-202605-139
           origenP:       _it.origen_p      || null,                            // T-202605-139
-          promovida_a:   _it.promovida_a   || null                             // T-202605-139
+          promovida_a:   _it.promovida_a   || null,                            // T-202605-139
+          intencion:     _it.intencion     || null,                            // T-202606-105
+          no_incluye:    Array.isArray(_it.no_incluye) ? _it.no_incluye : [], // T-202606-105
+          schema_version: _it.schema_version || null                          // T-202606-105
         });
         // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
         _normalizeSprint(tgItems[tgItems.length - 1]);
@@ -539,7 +542,10 @@ export function parsePaste(id) {
             dependsOn:     Array.isArray(_it.depends_on) ? _it.depends_on : [],  // T-202605-139
             triggeredBy:   _it.triggered_by  || null,                            // T-202605-139
             origenP:       _it.origen_p      || null,                            // T-202605-139
-            promovida_a:   _it.promovida_a   || null                             // T-202605-139
+            promovida_a:   _it.promovida_a   || null,                            // T-202605-139
+            intencion:     _it.intencion     || null,                            // T-202606-105
+            no_incluye:    Array.isArray(_it.no_incluye) ? _it.no_incluye : [], // T-202606-105
+            schema_version: _it.schema_version || null                          // T-202606-105
           });
           // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
           _normalizeSprint(tgItems[tgItems.length - 1]);
