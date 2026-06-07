@@ -530,6 +530,13 @@
   color: var(--text2);
 }
 
+/* T-202606-118: badge "requerido" para campos obligatorios sin valor en gate del Paso 1 */
+.scm-release-tag--required {
+  background: rgb(232 171 50 / 15%);
+  color: var(--amber);
+  border: 1px solid rgb(232 171 50 / 30%);
+}
+
 /* Listas mini de ítems */
 .scm-retro3-list-wrap {
   border-top: 1px solid var(--border);
@@ -937,6 +944,13 @@
   font-size: var(--text-sm);
 }
 
+/* T-202606-118: variante de tabla para el bloque de gate de campos obligatorios */
+.scm-gate-table {
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+
 .scm-effort-val {
   font-size: var(--text-md);
   font-weight: 600;
@@ -948,9 +962,21 @@
   color: var(--green);
 }
 
+/* T-202606-118: valor de campo faltante en tabla de gate */
+.scm-gate-val--missing {
+  color: var(--hint);
+  font-style: italic;
+}
+
 .scm-effort-warn {
   color: var(--amber);
   font-size: var(--text-xs);
+}
+
+/* T-202606-118: hint de ayuda bajo la tabla de gate cuando hay campos sin completar */
+.scm-gate-hint {
+  margin-top: 4px;
+  margin-bottom: 8px;
 }
 
 .scm-empty-hint {

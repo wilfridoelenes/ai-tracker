@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:26 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:27 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -131,9 +131,14 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     const rawSprint = item ? (item.sprint || '') : (sprintOverride || '');
     // R-202605-148 AC: si el sprint asignado ya no existe, mostrar 'Sin sprint' como fallback
     // B-202606-032 AC-2: icebox no es sprint real — se trata como opción especial, no como fallback a ''
+    // B-202606-044: el CHECKPOINT puede declarar sprint como label completo ('PP-S-04 · Nombre')
+    //   o como id corto ('PP-S-04'). Buscar por id primero, luego por label como fallback.
     const isIcebox = rawSprint === 'icebox';
-    const sprintExists = rawSprint && !isIcebox && openSprints.some(s => s.id === rawSprint);
-    const currentSprint = sprintExists ? rawSprint : '';
+    const _matchById    = rawSprint && !isIcebox ? openSprints.find(s => s.id    === rawSprint) : null;
+    const _matchByLabel = !_matchById && rawSprint && !isIcebox ? openSprints.find(s => s.label === rawSprint) : null;
+    const _matched      = _matchById || _matchByLabel || null;
+    const sprintExists  = !!_matched;
+    const currentSprint = sprintExists ? _matched.id : '';
     const options = openSprints.map(s =>
       `<option value="${esc(s.id)}" ${currentSprint === s.id ? 'selected' : ''}>${esc(s.label || s.id)}</option>`
     ).join('');

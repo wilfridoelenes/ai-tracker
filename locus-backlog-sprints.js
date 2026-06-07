@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:31 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:32 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -1013,9 +1013,16 @@ function _scmRender() {
     effortNotDone:         _scmState.effortNotDone          || 0,
     hasItemsWithoutEffort: _scmState.hasItemsWithoutEffort  || false,
   };
-  if (step === 1) body.innerHTML = _scmStep1Html(sp, spLabel, pendingItems, doneItems, _step1Metrics);
-  else if (step === 2 && !skipStep2) body.innerHTML = _scmStep2Html(pendingItems, migrations, id);
-  else if (step === 3) {
+  if (step === 1) {
+    body.innerHTML = _scmStep1Html(sp, spLabel, pendingItems, doneItems, _step1Metrics);
+    // T-202606-118: deshabilitar avance si gate de campos obligatorios no está completo
+    const _gv = (v) => v && v !== 'n/a' && String(v).trim() !== '';
+    const gateOk = sp && _gv(sp.version_target) && _gv(sp.release_type) && _gv(sp.scope);
+    if (nextBtn) nextBtn.disabled = !gateOk;
+  } else if (step === 2 && !skipStep2) {
+    if (nextBtn) nextBtn.disabled = false;
+    body.innerHTML = _scmStep2Html(pendingItems, migrations, id);
+  } else if (step === 3) {
     body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep2); // T-A1: cubre step===3 en ambos casos (skipStep2=true y false)
     // Listener directo para #scm-retro-notes-ta (reemplaza oninput inline)
     const notesTA = document.getElementById('scm-retro-notes-ta');
@@ -1065,12 +1072,43 @@ function _scmStep1Html(sp, spLabel, pendingItems, doneItems, metrics) {
       ${rt ? `<span class="scm-release-tag scm-release-type scm-release-type--${(rt||'').toLowerCase()}">${esc(rt)}</span>` : ''}
     </div>` : '';
 
+  // T-202606-118: gate de campos obligatorios antes de avanzar al Paso 2
+  const _gateVal = (v) => v && v !== 'n/a' && String(v).trim() !== '';
+  const gateVt    = _gateVal(sp && sp.version_target);
+  const gateRt    = _gateVal(sp && sp.release_type);
+  const gateSc    = _gateVal(sp && sp.scope);
+  const gateAllOk = gateVt && gateRt && gateSc;
+
+  const _gateRow = (label, ok, val) => `
+    <tr>
+      <td class="scm-effort-label">${label}</td>
+      <td class="scm-effort-val">
+        ${ok
+          ? `<span>${esc(val)}</span>`
+          : `<span class="scm-gate-val--missing">${val ? esc(val) : '—'}</span>
+             <span class="scm-release-tag scm-release-tag--required">requerido</span>`
+        }
+      </td>
+    </tr>`;
+
+  const gateBlock = `
+    <table class="scm-effort-table scm-gate-table">
+      <tbody>
+        ${_gateRow('version_target', gateVt, sp && sp.version_target)}
+        ${_gateRow('release_type',   gateRt, sp && sp.release_type)}
+        ${_gateRow('scope',          gateSc, sp && sp.scope)}
+      </tbody>
+    </table>
+    ${!gateAllOk ? `<div class="scm-effort-warn scm-gate-hint">Editá estos campos en el panel del sprint antes de cerrar.</div>` : ''}
+  `;
+
   // R-202605-125: advertencia si hay ítems sin effort
   const effortWarn = hasNoEffort
     ? `<div class="scm-effort-warn">⚠ Algunos ítems no tienen effort asignado — % de entrega puede ser inexacto.</div>`
     : '';
 
   return `
+    ${gateBlock}
     ${releaseRow}
     <div class="scm-summary-grid">
       <div class="scm-kpi scm-kpi--good">
