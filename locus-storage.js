@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:31 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-05 · mod:32 · autor:Rune · 2026-06-08 UTC-6
 // locus-storage.js
 // Última actualización: 2026-06-06 · T-202606-101: guard de salida para retries de _loadFromSupabase (_LOAD_RETRY_MAX)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -22,16 +22,11 @@ function showToast(type, msg, body, duration) {
 }
 
 // ── Lazy references para romper ciclos storage ↔ sprint-project y storage ↔ backlog-core ──
-// _getActiveProjectFilter y exportBacklogMd viven en locus-sprint-project.js,
-// que a su vez importa locus-storage.js → ciclo ES module → TDZ en _supabaseUser.
-// _getItems vive en locus-backlog-core.js, que importa locus-storage.js → mismo ciclo.
+// exportBacklogMd vive en locus-sprint-project.js — ciclo ES module → TDZ en _supabaseUser.
+// _getItems vive en locus-backlog-core.js — mismo ciclo.
 // T2/T-202606-046: declaradas como let para que _initApp(opts) inyecte referencias directas
 // desde main.js. Fallback window.* se mantiene por compatibilidad hasta que T6 complete la migración.
-let _getActiveProjectFilter = function() {
-  return typeof window._getActiveProjectFilter === 'function'
-    ? window._getActiveProjectFilter()
-    : (window.Locus?._getActiveProjectFilter?.() ?? null);
-};
+// _getActiveProjectFilter: movida a export function en este módulo (T-202606-166) — sin lazy ref.
 let exportBacklogMd = function() {
   if (typeof window._exportBacklogMd === 'function') return window._exportBacklogMd();
   if (typeof window.Locus?.exportBacklogMd === 'function') return window.Locus.exportBacklogMd();
@@ -1433,7 +1428,7 @@ function load() {
 // Gate de auth: si no hay sesión activa → openAuthModal() bloqueante, sin render.
 // Si hay sesión activa → render completo + sync Supabase.
 export function _initApp(opts = {}) {
-  if (opts.getActiveProjectFilter) _getActiveProjectFilter = opts.getActiveProjectFilter;
+  // _getActiveProjectFilter: export function local (T-202606-166) — no requiere inyección via opts.
   if (opts.exportBacklogMd) exportBacklogMd = opts.exportBacklogMd;
   // T-202606-003: inyectar las cuatro referencias de backlog-core para eliminar el import directo
   if (opts.getItems) _getItems = opts.getItems;
