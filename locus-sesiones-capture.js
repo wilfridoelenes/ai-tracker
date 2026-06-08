@@ -1,8 +1,8 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-05 · mod:13 · autor:Rune · 2026-06-08 UTC-6
 // locus-sesiones-capture.js
 // Responsabilidad: Quick Capture modal (stepper de 2 pasos) + Sesión interrumpida (T-055).
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
-import { openProjPanel } from './locus-sprint-project.js';
+// T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 import { showToast, toast } from './locus-toast.js';
 
 
@@ -214,7 +214,7 @@ function confirmQuickCapture() {
   const activeProj = getActiveProject();
   if (!activeProj) {
     showToast('warning', '⚠ Selecciona un proyecto antes de guardar la sesión');
-    openProjPanel();
+    window.dispatchEvent(new CustomEvent('shell:open-proj-panel')); // T-202606-167
     return;
   }
   if (!activeProj.sessions) activeProj.sessions = [];

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:30 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-05 · mod:31 · autor:Rune · 2026-06-08 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -838,3 +838,9 @@ document.addEventListener('DOMContentLoaded', () => {
   _registerSesSPCallback('selectProjectFilter',     selectProjectFilter);
 }, { once: true });
 // ── END T-202606-058 ─────────────────────────────────────────────────────────
+
+// ── T-202606-167: listener shell:open-proj-panel ─────────────────────────────
+// Desacopla locus-sesiones-capture y locus-backlog-render de import directo de openProjPanel.
+// Cualquier módulo puede despachar shell:open-proj-panel para abrir el panel de proyectos.
+window.addEventListener('shell:open-proj-panel', () => { openProjPanel(); });
+// ── END T-202606-167 ─────────────────────────────────────────────────────────

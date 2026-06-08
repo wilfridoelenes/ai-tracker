@@ -1,4 +1,6 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:43 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-05 · mod:44 · autor:Rune · 2026-06-08 UTC-6
+// T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
+// T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
@@ -8,9 +10,7 @@ import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } 
 
 import { _setBacklogModified } from './locus-docs.js';
 
-import { _getActiveProjectFilter, openProjPanel } from './locus-sprint-project.js';
-
-import { getActiveSprints } from './locus-storage.js';
+import { _getActiveProjectFilter, getActiveSprints } from './locus-storage.js';
 
 import { showToast } from './locus-toast.js';
 
