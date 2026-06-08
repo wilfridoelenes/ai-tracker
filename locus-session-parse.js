@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:36 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:37 · autor:Rune · 2026-06-08 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -972,9 +972,29 @@ export function _tryIngestPlan(text) {
 }
 
 // T-202606-129: ingesta de bloque ---SPRINT-PROPOSAL--- → crea sprint con formallyOpened: false
-// Flujo: parseSprintProposal(text) → validar campos → guard duplicado → push a proj.sprints → save()
+// Flujo: parseSprintProposal(text) → validar rol emisor → validar campos → guard duplicado → push a proj.sprints → save()
 export function _tryIngestSprintProposal(text) {
   if (!text || !text.includes('---SPRINT-PROPOSAL---')) return false;
+
+  // T-202606-154 AC-4: validar rol emisor — solo Cael (PO) puede proponer apertura de sprint
+  // Extraer campo Rol: del CHECKPOINT envolvente (si existe)
+  const _rolMatch = text.match(/^\s*Rol\s*:\s*(.+)$/m);
+  if (_rolMatch) {
+    const _rolRaw = _rolMatch[1].trim();
+    // Cael usa sigla PO — aceptar "PO · Cael", "PO", "Cael" como emisores válidos
+    const _esCael = /\bPO\b/i.test(_rolRaw) || /\bCael\b/i.test(_rolRaw);
+    if (!_esCael) {
+      _blogLog(
+        'sprint-proposal-ignorado',
+        '',
+        `---SPRINT-PROPOSAL--- ignorado: solo Cael puede proponer apertura de sprint. Rol detectado: "${_rolRaw}"`,
+        'parser'
+      );
+      return false;
+    }
+  }
+  // Si no hay campo Rol: en el texto (CHECKPOINT sin header de rol o texto plano)
+  // → dejar pasar sin bloquear (comportamiento conservador — no rompe flujos existentes)
 
   const result = parseSprintProposal(text);
 
