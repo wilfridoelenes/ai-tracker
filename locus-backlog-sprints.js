@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:38 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:39 · autor:Rune · 2026-06-08 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -6,10 +6,9 @@
 import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, getItems, _registerCoreCallback } from './locus-backlog-core.js';
 import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _templateTrigger } from './locus-session-hora.js';
-import { _docPrefix, getProjectById } from './locus-sprint-project.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, save, saveBacklog, saveImmediate } from './locus-storage.js';
+import { _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 

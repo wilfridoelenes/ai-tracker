@@ -1,9 +1,9 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-04 23:55 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-06-08 UTC-6
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // T2: imports en el mismo orden que index.html declaraba los <script src>
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
 
-import { _initApp, _effectiveVersion, LOCUS_KEYS } from './locus-storage.js';
+import { _getActiveProjectFilter, _initApp, _effectiveVersion, getProjectById, LOCUS_KEYS } from './locus-storage.js';
 import { applyTheme } from './locus-ui-shell.js';
 import './locus-analytics-core.js';
 import './locus-analytics-digest.js';
@@ -42,7 +42,6 @@ import './locus-backlog-render.js';
 import './locus-backlog-sprints.js';
 import './locus-backlog-archive.js';
 import './locus-sprint.js';
-import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import { getItems, _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
 import './locus-map-generator.js';

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-04 23:55 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-06-08 UTC-6
 // locus-command-palette.js
 // Versión: 1.0.4 | Última actualización: 2026-05-23 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto · T-202605-067 nav-tab-sprint
 // Renombrado de ai-tracker-command-palette.js
@@ -9,9 +9,9 @@ import { openItemEditor, openTemplatePicker } from './locus-backlog-editor.js';
 import { toggleRadarSidebar } from './locus-radar.js';
 import { openQuickCapture } from './locus-sesiones-capture.js';
 import { openDetail } from './locus-session-popup.js';
-import { _getActiveProjectFilter, openProjPanel, selectProjectFilter } from './locus-sprint-project.js';
+import { openProjPanel, selectProjectFilter } from './locus-sprint-project.js';
 import { exportBacklogMd } from './locus-backlog-generator.js';
-import { getActiveProject, getActiveSprints, getState } from './locus-storage.js';
+import { _getActiveProjectFilter, getActiveProject, getActiveSprints, getState } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { openShortcutsRef, switchSubTab, switchTab, toggleTheme } from './locus-ui-shell.js';
 import { normalize } from './locus-map-generator.js';
