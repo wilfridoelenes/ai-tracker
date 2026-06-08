@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-05 · mod:31 · autor:Rune · 2026-06-08 UTC-6
 // locus-storage.js
 // Última actualización: 2026-06-06 · T-202606-101: guard de salida para retries de _loadFromSupabase (_LOAD_RETRY_MAX)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1716,3 +1716,25 @@ function _initStorageListeners() {
 }
 
 document.addEventListener('DOMContentLoaded', _initStorageListeners);
+
+// ── T-202606-166: funciones de proyecto movidas desde locus-sprint-project.js ─
+// Ownership: locus-storage.js — consumen getState(), getActiveProject() y _PREFIX_MAP
+// que ya viven aquí. Eliminadas de exports en sprint-project para romper ciclos Patrón A.
+
+export function _getActiveProjectFilter() {
+  return localStorage.getItem('current-project-filter') || '';
+}
+
+export function getProjectById(id) {
+  const state = getState();
+  return (state.projects || []).find(p => p.id === id);
+}
+
+export function _docPrefix() {
+  const proj = getActiveProject();
+  if (!proj) return 'XX';
+  if (proj.prefix) return proj.prefix;
+  const name = proj.name || '';
+  return _PREFIX_MAP[name] || (name.slice(0, 2).toUpperCase() || 'XX');
+}
+// ── END T-202606-166 ──────────────────────────────────────────────────────────

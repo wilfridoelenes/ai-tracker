@@ -6,10 +6,10 @@
 import { TAG_COLORS, openTagModal } from './locus-tags.js';
 import { getItems } from './locus-backlog-core.js';
 import { _sessRelTsShared } from './locus-sesiones-utils.js';
-import { _getActiveProjectFilter } from './locus-sprint-project.js';
+// T-202606-166: _getActiveProjectFilter movida a locus-storage.js
 import { showToast, showToastInline, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
-import { _findSession, _findSessionByAI, getAI, getAISessions, getActiveTracker, getState, save } from './locus-storage.js';
+import { _findSession, _findSessionByAI, _getActiveProjectFilter, getAI, getAISessions, getActiveTracker, getState, save } from './locus-storage.js';
 
 import { fmt12, interpretHora } from './locus-session-hora.js';
 

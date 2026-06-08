@@ -12,8 +12,8 @@ import { renderGlobalRadarSidebar } from './locus-radar.js';
 import { updateStats } from './locus-sesiones-stats.js';
 
 import { _templateTrigger } from './locus-session-hora.js';
-import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
-import { _offlineQueuePush, _subscribeRealtime, _tplKey, _unsubscribeRealtime, getAI, getAISessions, getActiveTracker, getAllSessions, save, saveImmediate, setSyncStatus } from './locus-storage.js';
+// T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
+import { _getActiveProjectFilter, _offlineQueuePush, _subscribeRealtime, _tplKey, _unsubscribeRealtime, getAI, getAISessions, getActiveTracker, getAllSessions, getProjectById, save, saveImmediate, setSyncStatus } from './locus-storage.js';
 
 import { _updateSubTabButtons, renderContext, updateContextBanner } from './locus-docs.js';
 

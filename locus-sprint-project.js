@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:29 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-05 · mod:30 · autor:Rune · 2026-06-08 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -46,9 +46,8 @@ export function _sprintNum(id) {
   return m ? parseInt(m[1], 10) : null;
 }
 
-// T-202604-243: prefijo de documento vivo según proyecto activo — OL-CONTEXT §7
-// R-202605-002: _PREFIX_MAP consumida desde locus-storage.js — sin declaración local
-export function _docPrefix() {
+// T-202606-166: export eliminado — función movida a locus-storage.js. Conservada internamente para call sites locales.
+function _docPrefix() {
   const proj = getActiveProject();
   if (!proj) return 'XX';
   if (proj.prefix) return proj.prefix;
@@ -117,7 +116,8 @@ function _projListDropHandler(e) {
   if (row) projDrop(e, row.dataset.dragProjId, row);
 }
 
-export function _getActiveProjectFilter() {
+// T-202606-166: export eliminado — función movida a locus-storage.js. Conservada internamente para call sites locales.
+function _getActiveProjectFilter() {
   return localStorage.getItem('current-project-filter') || '';
 }
 
@@ -544,7 +544,8 @@ function projDrop(e, toId, rowEl) {
   _renderProjList();
 }
 
-export function getProjectById(id) {
+// T-202606-166: export eliminado — función movida a locus-storage.js. Conservada internamente para call sites locales.
+function getProjectById(id) {
   const state = getState();
   return (state.projects || []).find(p => p.id === id);
 }

@@ -8,9 +8,9 @@ import { _updateUndoUI, importBacklog } from './locus-backlog-core.js';
 import { closeDocLog } from './locus-doc-log.js';
 import { _mgGetVersion } from './locus-map-generator.js';
 import { parseHtmlMapMd, renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
-import { _blogLog, _effectiveVersion, _projKey, _tplKey, getActiveProject, saveContextDocs } from './locus-storage.js';
+import { _blogLog, _docPrefix, _effectiveVersion, _projKey, _tplKey, getActiveProject, saveContextDocs } from './locus-storage.js';
 
-import { _docPrefix } from './locus-sprint-project.js';
+// T-202606-166: _docPrefix movida a locus-storage.js
 
 import { showToast } from './locus-toast.js';
 

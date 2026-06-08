@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-06 · mod:30 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-06 · mod:31 · autor:Rune · 2026-06-08 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -991,6 +991,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       const btn = document.getElementById('mdiff-apply-btn');
       if (btn && !btn.disabled) {
         e.preventDefault();
+        e.stopPropagation(); // B-[pendiente-ID]: Enter propagado a otros listeners del documento cuando el diff está activo
         _mdiffDoApply(false);
       }
     } else if (e.key === 'Escape') {

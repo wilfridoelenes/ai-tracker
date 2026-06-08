@@ -9,8 +9,8 @@ import { navigateToItem } from './locus-backlog-sprints.js';
 import { openPulsoPanel } from './locus-pulso.js';
 // selectTrackerAI y _markTrackerDirty desacoplados vía shell:* events (T-202606-084)
 import { openDetail } from './locus-session-popup.js';
-import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
-import { _effectiveVersion, getAISessions, getActiveProject, getActiveTracker, getAllSessions, save, _isInSession } from './locus-storage.js';
+// T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
+import { _effectiveVersion, _getActiveProjectFilter, _isInSession, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getProjectById, save } from './locus-storage.js';
 
 import { switchTab } from './locus-ui-shell.js';
 

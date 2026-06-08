@@ -4,9 +4,9 @@ import { _closedItemsInRange, _delta, _getIntervalsInPeriod, _getPeriodBounds, _
 
 import { navigateToItem } from './locus-backlog-sprints.js';
 
-import { _getActiveProjectFilter, getProjectById } from './locus-sprint-project.js';
+// T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
 
-import { getAllSessions } from './locus-storage.js';
+import { _getActiveProjectFilter, getAllSessions, getProjectById } from './locus-storage.js';
 
 import { esc, switchTab } from './locus-ui-shell.js';
 
