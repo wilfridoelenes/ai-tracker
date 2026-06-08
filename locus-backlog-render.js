@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:42 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:43 · autor:Rune · 2026-06-08 UTC-6
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
@@ -474,8 +474,23 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
     const _velLabel = isActive ? _sprintVelocityLabel(sprintId) : '';
 
     // Done items dentro del sprint si el filtro lo permite
+    // B-202606-048: excluir Ts/Bs done que tienen parentId apuntando a un R visible en el grupo
+    // — ya se renderizan anidados bajo su R padre en el bloque de children (L532-534).
+    // Sin esta exclusión, esos ítems aparecen duplicados: una vez como child y otra vez sueltos aquí.
+    const _rCodesInGroupForDone = new Set(
+      (sprintMap[sprintId] || []).filter(i => itemType(i.code) === 'R').map(i => i.code)
+    );
     const _doneInGroup = _getActiveStatuses().has('done')
-      ? getItems().filter(i => (i.sprint || '').trim() === sprintId && i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
+      ? getItems().filter(i => {
+          if ((i.sprint || '').trim() !== sprintId) return false;
+          if (i.status !== 'done') return false;
+          if (!_isCountableItem(i)) return false;
+          if (!_matchesQuery(i)) return false;
+          // Excluir children ya renderizados bajo su R padre
+          const t = itemType(i.code);
+          if ((t === 'T' || t === 'B') && i.parentId && _rCodesInGroupForDone.has(i.parentId)) return false;
+          return true;
+        })
       : [];
     const _doneGroupHtml = _doneInGroup.length
       ? _sortGroup(_doneInGroup).map(item => buildBacklogItem(item)).join('')
