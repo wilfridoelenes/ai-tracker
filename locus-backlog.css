@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-05 · mod:28 · autor:Rune · 2026-06-07 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-08 · mod:29 · autor:Rune · 2026-06-08 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -2466,6 +2466,7 @@
   position: sticky;
   top: var(--header-h);
   z-index: var(--z-sticky);
+  background: var(--surface); /* B-202606-049: fondo sólido — oculta contenido scroll detrás */
 }
 
 .bl-toolbar-group {
