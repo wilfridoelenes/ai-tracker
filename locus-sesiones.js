@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-02 · mod:20 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-04 · mod:21 · autor:Rune · 2026-06-08 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -10,7 +10,7 @@
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _initRadarSidebarState, renderGlobalRadarSidebar } from './locus-radar.js';
 import { _scrollToCard, _updateHeaderProjectLabel, navigateToCard, renderStatusBar, updateStats, _hasStaleSuggestion } from './locus-sesiones-stats.js';
-import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer, _buildSuggestionReason, _sessRelTsShared, _cscardRelTs } from './locus-sesiones-utils.js';
+import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer, _buildSuggestionReason, _sessRelTsShared, _cscardRelTs, _hoyMsUntilReset } from './locus-sesiones-utils.js';
 import { fmt12, _templateTrigger, confirmSave, interpretHora, relDate } from './locus-session-hora.js';
 // getCD — exportado desde locus-misc-ui.js (no disponible en T5); fallback window conservado hasta T6
 const getCD  = (...a) => typeof window.getCD  === 'function' ? window.getCD(...a)  : '';

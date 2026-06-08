@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-06-07 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -499,6 +499,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   const totalItems = exportItems.length;
   const doneCount = exportItems.filter(i => i.status === 'done').length;
   const backlogCount = exportItems.filter(i => i.status === 'backlog').length;
+  const enRevisionCount = exportItems.filter(i => i.status === 'en-revision').length; // T-202606-110
 
   const currentStateMd = _buildCurrentStateMd();
   const sprintActivoMd = _buildSprintActivoMd();
@@ -546,6 +547,7 @@ ${itemsMd}
 |---------|-------|
 | Ítems totales | ${totalItems} |
 | Done | ${doneCount} |
+| En revisión | ${enRevisionCount} |
 | Backlog | ${backlogCount} |
 | App version actual | ${_appVerStr} |
 | Próxima versión | ${newVersion} |
