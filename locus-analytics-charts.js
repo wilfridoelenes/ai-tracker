@@ -1,13 +1,12 @@
+// T-202606-166: getProjectById movida a locus-storage.js — import actualizado.
 import { _getPeriodBounds, _parseSpanishDate, _sessInRange, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionYM } from './locus-analytics-core.js';
-import { getProjectById } from './locus-sprint-project.js';
-
-import { getAISessions, getAllSessions } from './locus-storage.js';
+import { getAISessions, getAllSessions, getProjectById } from './locus-storage.js';
 
 import { showToast } from './locus-toast.js';
 
 import { esc } from './locus-ui-shell.js';
 
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-06-08 UTC-6
 // locus-analytics-charts.js
 // Responsabilidad: Heatmap, distribución horaria, patrones de productividad,
 //   checkpoints por proyecto, exportAnalyticsMd.
