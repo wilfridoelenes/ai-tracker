@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:28 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-06 · mod:30 · autor:Rune · 2026-06-08 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -359,6 +359,61 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   const summaryChips = document.getElementById('mdiff-summary-chips');
   const pendingList  = document.getElementById('mdiff-pending-list');
 
+  // T-202606-155: Step 0 condicional — ---SPRINT-PROPOSAL--- detectado en el CHECKPOINT
+  // sprintProposal y onApproveProposal llegan via ckptMeta (campos opcionales)
+  // AC-4: Step 0 no genera estado persistente — el sprint se crea solo al aprobar aquí
+  const _sprintProposal   = _ckptMeta.sprintProposal   || null;
+  const _onApproveProposal = _ckptMeta.onApproveProposal || null;
+
+  if (_sprintProposal && body) {
+    // Renderizar Step 0 antes del contenido normal — reemplaza body temporalmente
+    const _step0Html = `
+      <div class="mdiff-step0" id="mdiff-step0">
+        <div class="mdiff-step0-header">
+          <span class="mdiff-step0-badge">Step 0</span>
+          <span class="mdiff-step0-title">Apertura de sprint</span>
+        </div>
+        <div class="mdiff-step0-fields">
+          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Sprint</span><span class="mdiff-step0-value">${esc(_sprintProposal.sprint)}</span></div>
+          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Versión</span><span class="mdiff-step0-value">${esc(_sprintProposal.version_target)}</span></div>
+          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Tipo</span><span class="mdiff-step0-value">${esc(_sprintProposal.release_type)}</span></div>
+          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Scope</span><span class="mdiff-step0-value">${esc(_sprintProposal.scope)}</span></div>
+          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Goal</span><span class="mdiff-step0-value">${esc(_sprintProposal.goal)}</span></div>
+          ${(_sprintProposal.out_of_scope && _sprintProposal.out_of_scope.length)
+            ? `<div class="mdiff-step0-row"><span class="mdiff-step0-label">Out of scope</span><span class="mdiff-step0-value">${_sprintProposal.out_of_scope.map(s => esc(s)).join(' · ')}</span></div>`
+            : ''}
+        </div>
+        <div class="mdiff-step0-actions">
+          <button class="mdiff-btn mdiff-btn--primary" id="mdiff-step0-approve">✓ Aprobar apertura</button>
+          <button class="mdiff-btn mdiff-btn--cancel" id="mdiff-step0-reject">✕ Rechazar</button>
+        </div>
+      </div>`;
+    body.innerHTML = _step0Html + _buildNarrativeSection() + sectionsHtml;
+
+    // Handlers Step 0 — un solo listener por botón via getElementById post-render
+    const _approveBtn = document.getElementById('mdiff-step0-approve');
+    const _rejectBtn  = document.getElementById('mdiff-step0-reject');
+    if (_approveBtn) {
+      _approveBtn.addEventListener('click', () => {
+        if (typeof _onApproveProposal === 'function') _onApproveProposal(_sprintProposal);
+        const step0El = document.getElementById('mdiff-step0');
+        if (step0El) step0El.remove();
+      }, { once: true });
+    }
+    if (_rejectBtn) {
+      // T-202606-156 AC-4: rechazar Step 0 cierra el panel completo — DIFF no se aplica.
+      // Mismo comportamiento que el botón Cancel: sin toast, sin aplicar ítems.
+      _rejectBtn.addEventListener('click', () => {
+        overlay.classList.remove('open');
+        document.removeEventListener('keydown', _mdiffKeyHandler);
+        delete window._mdiffUpdateConfirmBtn;
+        delete window._mdiffToggleSection;
+        delete window._mdiffJumpTo;
+        delete window._mdiffSetItemSprint;
+      }, { once: true });
+    }
+  }
+
   // Header: título + contexto de paso
   if (header) {
     const projName = getActiveProject()
@@ -410,7 +465,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   };
 
   // Body: sección narrativa + secciones de backlog
-  if (body) {
+  // T-202606-155: si hay Step 0, body.innerHTML ya fue asignado arriba — no sobreescribir
+  if (body && !_sprintProposal) {
     body.innerHTML = _buildNarrativeSection() + sectionsHtml;
   }
 

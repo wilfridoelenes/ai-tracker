@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:37 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-06 · mod:39 · autor:Rune · 2026-06-08 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -901,7 +901,7 @@ function handlePaste(id) {
           if (horaEl) horaEl.focus();
         }
         if (ta && (ta.value.includes('---PLAN---') || ta.value.includes('---EXECUTION-PLAN---'))) _tryIngestPlan(ta.value);
-        if (ta && ta.value.includes('---SPRINT-PROPOSAL---')) _tryIngestSprintProposal(ta.value);
+        // T-202606-155: _tryIngestSprintProposal removido del pre-DIFF — Step 0 en showMergeDiffPanel es el gate
       }, 150);
       return;
     }
@@ -913,8 +913,7 @@ function handlePaste(id) {
     }
     // R-202604-085 + R-B: detectar ---PLAN--- o ---EXECUTION-PLAN--- embebido en el CHECKPOINT pegado
     if (ta && (ta.value.includes('---PLAN---') || ta.value.includes('---EXECUTION-PLAN---'))) _tryIngestPlan(ta.value);
-    // T-202606-129: detectar ---SPRINT-PROPOSAL--- embebido en el CHECKPOINT pegado
-    if (ta && ta.value.includes('---SPRINT-PROPOSAL---')) _tryIngestSprintProposal(ta.value);
+    // T-202606-155: _tryIngestSprintProposal removido del pre-DIFF — Step 0 en showMergeDiffPanel es el gate
   };
   setTimeout(_doParse, 150);
 }
@@ -1238,8 +1237,8 @@ function parsePasteStandalone() {
 
   // R-202604-085 + R-B: detectar ---PLAN--- o ---EXECUTION-PLAN--- embebido en el CHECKPOINT standalone
   if (text.includes('---PLAN---') || text.includes('---EXECUTION-PLAN---')) _tryIngestPlan(text);
-  // T-202606-129: detectar ---SPRINT-PROPOSAL--- embebido en el CHECKPOINT standalone
-  if (text.includes('---SPRINT-PROPOSAL---')) _tryIngestSprintProposal(text);
+  // T-202606-156: _tryIngestSprintProposal removido de parsePasteStandalone —
+  // Step 0 en showMergeDiffPanel es el gate. El sprint se crea solo al aprobar en el DIFF.
 
   // Éxito — guardar parsed y habilitar botón
   _standaloneLastParsed = { ckpt, tgItems, patchItems, raw: text };
@@ -1301,8 +1300,8 @@ function saveStandaloneCheckpoint() {
     // R-202604-076 + R-B: plan block — PLAN legacy y EXECUTION-PLAN nuevo
     // B-202605-XXX: usar _tryIngestPlan en lugar de savePlan directo — preserva scope:sprint al guardar scope:sesion
     if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
-    // T-202606-129: detectar ---SPRINT-PROPOSAL--- en CHECKPOINT standalone guardado
-    if (raw.includes('---SPRINT-PROPOSAL---')) _tryIngestSprintProposal(raw);
+    // T-202606-156: _tryIngestSprintProposal removido de _doApply standalone —
+    // ya se ejecutó al aprobar Step 0. Llamarlo aquí crearía un sprint duplicado.
 
     closeStandaloneCheckpoint();
 
@@ -1334,6 +1333,21 @@ function saveStandaloneCheckpoint() {
     decision:    ckpt.decision     || '',
     proximoPaso: ckpt.proximoPaso  || '',
   };
+  // T-202606-156: si el CHECKPOINT standalone tiene ---SPRINT-PROPOSAL--- válido,
+  // pasarlo a showMergeDiffPanel como ckptMeta.sprintProposal — Step 0 es el gate.
+  // El sprint NO se crea aquí — se crea solo al aprobar Step 0 en el DIFF.
+  // Eliminado el _tryIngestSprintProposal(text) previo (línea ~1241) que creaba el sprint
+  // antes del DIFF — reemplazado por este flujo que lo crea solo al aprobar.
+  const _spProposalSa = (raw && raw.includes('---SPRINT-PROPOSAL---'))
+    ? parseSprintProposal(raw)
+    : null;
+  const _validSpProposalSa = (_spProposalSa && !_spProposalSa.error) ? _spProposalSa : null;
+  if (_validSpProposalSa) {
+    _ckptMetaStandalone.sprintProposal    = _validSpProposalSa;
+    _ckptMetaStandalone.onApproveProposal = function() {
+      _tryIngestSprintProposal(raw);
+    };
+  }
   closeStandaloneCheckpoint();
   showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _doApply, _ckptMetaStandalone);
 }

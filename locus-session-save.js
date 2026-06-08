@@ -1,4 +1,4 @@
-// [PP] v0.0.0 · sprint:PP-S-01 · mod:23 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:24 · autor:Rune · 2026-06-08 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -22,7 +22,7 @@ import { render } from './locus-sesiones.js';
 
 import { _showProjRequiredInPanel, _templateTrigger, interpretHora } from './locus-session-hora.js';
 
-import { _setPhase, _tryIngestPlan, parsePaste } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5
+import { _setPhase, _tryIngestPlan, _tryIngestSprintProposal, parseSprintProposal, parsePaste } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5
 
 import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js';
 
@@ -646,6 +646,19 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   };
   const _patchItemsN = parsed.patchItems || [];
   const _tgItemsForPanel = _buildPatchTgItems(_patchItemsN, tgItems);
+  // T-202606-155: si el CHECKPOINT tiene ---SPRINT-PROPOSAL--- válido, pasarlo a showMergeDiffPanel
+  // como ckptMeta.sprintProposal para que Step 0 sea el gate de creación del sprint.
+  // El sprint NO se crea aquí — se crea solo al aprobar Step 0 en el DIFF.
+  const _spProposal = (raw && raw.includes('---SPRINT-PROPOSAL---'))
+    ? parseSprintProposal(raw)
+    : null;
+  const _validSpProposal = (_spProposal && !_spProposal.error) ? _spProposal : null;
+  if (_validSpProposal) {
+    _ckptMeta.sprintProposal = _validSpProposal;
+    _ckptMeta.onApproveProposal = function(proposal) {
+      _tryIngestSprintProposal(raw);
+    };
+  }
   // Todo CHECKPOINT válido pasa por el DIFF — sin excepción.
   // B-202605-NNN: cancelar timer Supabase de draft antes de abrir el panel diff.
   // Si el usuario tarda >3s en confirmar, el timer se dispara y hace upsert del draft.
