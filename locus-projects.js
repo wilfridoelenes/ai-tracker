@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-06-08 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -8,14 +8,14 @@ import { _calcRelevanceScore, loadBacklog, getItems} from './locus-backlog-core.
 import { _getActiveSprint } from './locus-backlog-sprints.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { relDate } from './locus-session-hora.js';
-import { _countProjSessions, _getActiveProjectFilter, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, getProjectById, openProjModal, selectProjectFilter, setProjContext } from './locus-sprint-project.js';
+import { _countProjSessions, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, openProjModal, selectProjectFilter, setProjContext } from './locus-sprint-project.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
 import { _animateCountUp, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionYM } from './locus-analytics-core.js';
 
 import { openDetail } from './locus-session-popup.js';
 
-import { _projKey, getAI, getAISessions, getProjectSessions, save } from './locus-storage.js';
+import { _getActiveProjectFilter, _projKey, getAI, getAISessions, getProjectById, getProjectSessions, save } from './locus-storage.js';
 
 import { showToast } from './locus-toast.js';
 
