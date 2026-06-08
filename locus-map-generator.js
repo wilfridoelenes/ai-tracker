@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-07 · mod:15 · autor:Rune · 2026-06-08 00:00 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -392,8 +392,14 @@ function _mgParseFile(name, text) {
       }
     });
   } else if (ext === 'css') {
-    // R1: CSS reducido a metadata — no se extraen secciones ni selectores
-    // entries queda vacío; _generateMap renderiza solo nombre + líneas + changed_in
+    // T-202606-144: extraer secciones CSS via comentarios de sección
+    // Detecta: /* ── Nombre ── */ · /* === Nombre === */ · /* --- Nombre --- */
+    lines.forEach((line, i) => {
+      const secMatch = line.match(/\/\*\s*[─\-═=]{2,}\s*(.+?)\s*[─\-═=]{2,}\s*\*\//);
+      if (secMatch) entries.push({ line: `L${i + 1}`, fn: secMatch[1].trim() });
+    });
+    // Fallback: sin secciones declaradas → fila única
+    if (!entries.length) entries.push({ line: 'L1', fn: '(sin secciones declaradas)' });
   } else if (ext === 'html') {
     lines.forEach((line, i) => {
       const secMatch = line.match(/<!--\s*[═=]{2,}\s*(.+?)\s*[═=]{2,}\s*-->/);
@@ -1044,8 +1050,16 @@ function _generateMap(ver) {
         });
         md += '\n';
       }
+    } else if (f.type === 'css') {
+      // T-202606-144: tabla Línea|Sección para entradas CSS
+      md += `| Línea | Sección |\n`;
+      md += `|-------|----------|\n`;
+      f.functions.forEach(fn => {
+        md += `| ${fn.line} | ${fn.name} |\n`;
+      });
+      md += '\n';
     }
-    // CSS: solo metadata (nombre + líneas + changed_in) — sin tabla de secciones (R1)
+    // CSS: tabla Línea|Sección — HTML: tabla Línea|Sección/Selector (R1)
   });
 
   return md.trimEnd() + '\n';
