@@ -1,11 +1,11 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-06-08 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
-// Dependencias: locus-storage.js · locus-sprint-project.js · locus-backlog-core.js · locus-toast.js
+// Dependencias: locus-storage.js · locus-backlog-core.js · locus-toast.js
+// T-202606-166: _docPrefix movida a locus-storage.js — import actualizado.
 
-import { _blogLog, _effectiveVersion, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState } from './locus-storage.js';
-import { _docPrefix } from './locus-sprint-project.js';
+import { _blogLog, _docPrefix, _effectiveVersion, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState } from './locus-storage.js';
 import { getItems, updateBacklogBanner } from './locus-backlog-core.js';
 import { showToast } from './locus-toast.js';
 
