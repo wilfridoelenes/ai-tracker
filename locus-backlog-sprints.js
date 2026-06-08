@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:37 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:38 · autor:Rune · 2026-06-08 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -323,6 +323,7 @@ export function createSprint(raw, goal, versionTarget, releaseType, projId) {
     // B-202605-057: status 'active' desde creación — _getActiveSprint() lo detecta inmediatamente
     // B-202605-028: marcar current:true si ningún sprint activo del proyecto lo tiene aún
     status: 'active', current: !hasCurrentSprint ? true : undefined,
+    formallyOpened: false,
     startedAt: Date.now(), createdAt: Date.now()
   });
   // B-202605-058: saveImmediate() evita perder el sprint si el usuario recarga antes del debounce
@@ -1529,7 +1530,7 @@ export function createSprintFromGroup(id, name) {
   if (!proj.sprints) proj.sprints = [];
   // B-202605-036: current:true si ningún sprint activo lo tiene — mismo patrón que createSprint
   const hasCurrentSprint = proj.sprints.some(s => s.status === 'active' && s.current === true);
-  proj.sprints.push({ id, label: name || id, status: 'active', current: !hasCurrentSprint ? true : undefined, createdAt: Date.now() });
+  proj.sprints.push({ id, label: name || id, status: 'active', current: !hasCurrentSprint ? true : undefined, formallyOpened: false, createdAt: Date.now() });
   save();
   _markBacklogListDirty(); renderBacklogList();
   // T-202605-147: import nombrado — circular ESM seguro (llamada en runtime, no top-level)
