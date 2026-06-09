@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-08 · mod:53 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-08 · mod:54 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -400,7 +400,7 @@ export function _attachBacklogListDelegation() {
       return;
     }
     if (act === 'es-clear-search') {
-      if (typeof clearBacklogSearch === 'function') clearBacklogSearch();
+      clearBacklogSearch();
       return;
     }
     if (act === 'es-toggle-mike') {
@@ -1519,7 +1519,7 @@ function onBacklogSearch() {
   renderStats(); // B-202605-205: actualizar contadores de tipo con búsqueda activa
 }
 
-function clearBacklogSearch() {
+export function clearBacklogSearch() {
   const input = document.getElementById('backlog-search-input');
   if (input) input.value = '';
   _setBacklogSearch('');
