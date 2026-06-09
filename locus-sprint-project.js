@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-07 · mod:35 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.4.0 · sprint:PP-S-07 · mod:36 · autor:Rune · 2026-06-09 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -310,7 +310,7 @@ function confirmProjForm() {
   } else {
     const id = 'proj-' + Math.random().toString(36).slice(2, 8);
     const prefix = (document.getElementById('proj-prefix-input') || {value:''}).value.trim().toUpperCase().slice(0, 3);
-    state.projects.push({ id, name, color, icon: emoji, prefix, notes, status: 'active', context: '', contextVersion: '', backlog: [], backlogVersion: '' });
+    state.projects.push({ id, name, color, icon: emoji, prefix, notes, status: 'active', context: '', contextVersion: '', backlog: [], backlogVersion: '', infraVersion: 0 }); // T-202606-209
     showToastInline('success', `Proyecto "${name}" creado`, document.getElementById('proj-form-confirm-btn'));
   }
 
