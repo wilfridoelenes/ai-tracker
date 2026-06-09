@@ -1,6 +1,7 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:44 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-06 · mod:45 · autor:Rune · 2026-06-08 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
+// T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
@@ -406,6 +407,26 @@ function _vcDoToggle(btn, projectId) {
   _vcCollapseSet(projectId, rCode, isNowCollapsed);
 }
 
+// T-202606-163: _iceboxStaleness — umbral de alerta por tipo de ítem en vista icebox
+// Umbrales: R y T → 14d · P → 30d · B priority:high → 7d · B priority no-high → sin alerta
+// Referencia: statusChangedAt || createdAt. Retorna { days, label } o null si no aplica.
+function _iceboxStaleness(item) {
+  if (!item) return null;
+  const type = itemType(item.code);
+  const priority = (item.priority || '').toLowerCase();
+  let threshold;
+  if (type === 'R' || type === 'T') threshold = 14;
+  else if (type === 'P') threshold = 30;
+  else if (type === 'B' && priority === 'high') threshold = 7;
+  else return null;
+  const refTs = item.statusChangedAt || item.createdAt;
+  if (!refTs) return null;
+  const days = Math.floor((Date.now() - refTs) / 86400000);
+  if (days < threshold) return null;
+  const label = days === 1 ? '1d' : days + 'd';
+  return { days, label };
+}
+
 // R-202606-017 · T-202606-061: Vista Lista — sprint groups + jerarquía R→T/B por defecto
 // Reemplaza la lógica combinada de _renderVistaC + bloque _useSprintGroups.
 // Parámetros: listEl, pendienteItems, doneItems, descartadoItems ya filtrados por renderBacklogList;
@@ -564,14 +585,27 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
   // AC7: Icebox al final si hay ítems sin sprint
   if (iceboxItems.length) {
     const iceboxOpen = localStorage.getItem('backlog-icebox-open') !== '0';
+    // T-202606-163: contar ítems con alerta para el header
+    const _iceboxAlertCount = iceboxItems.filter(i => _iceboxStaleness(i) !== null).length;
+    const _iceboxAlertBadge = _iceboxAlertCount > 0
+      ? `<span class="staleness-pill staleness--stale bl-icebox-alert-count" title="${_iceboxAlertCount} ítem${_iceboxAlertCount !== 1 ? 's' : ''} sin movimiento — revisar">⚠ ${_iceboxAlertCount}</span>`
+      : '';
     html += `<div class="section-group sg-icebox bl-icebox-group" id="sg-icebox">
       <div class="section-group-header bl-icebox-header" data-action="section-group-toggle" data-group="icebox">
         <span class="section-group-arrow bl-icebox-arrow${iceboxOpen ? '' : ' collapsed'}" id="sgarrow-icebox">▾</span>
         <span>📥 Icebox</span>
         <span class="section-group-count bl-icebox-count">${iceboxItems.length} ítem${iceboxItems.length !== 1 ? 's' : ''}</span>
+        ${_iceboxAlertBadge}
       </div>
       <div class="section-group-body items-grid bl-icebox-body${iceboxOpen ? '' : ' collapsed'}" id="sgbody-icebox">`;
-    _sortGroup(iceboxItems).forEach(item => { html += buildBacklogItem(item); });
+    _sortGroup(iceboxItems).forEach(item => {
+      // T-202606-163: badge de alerta inline por ítem
+      const _stale = _iceboxStaleness(item);
+      const _alertHtml = _stale
+        ? `<div class="bl-icebox-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d en icebox">${_stale.label} en icebox</span></div>`
+        : '';
+      html += _alertHtml + buildBacklogItem(item);
+    });
     html += `</div></div>`;
   }
 
@@ -1131,14 +1165,27 @@ export function renderBacklogList(onRendered) {
     if (iceboxItems.length) {
       // B-202605-030: default expandido — clave ausente (null) → expandido; '0' → colapsado
       const iceboxOpen = localStorage.getItem('backlog-icebox-open') !== '0';
+      // T-202606-163: contar ítems con alerta para el header
+      const _iceboxAlertCount = iceboxItems.filter(i => _iceboxStaleness(i) !== null).length;
+      const _iceboxAlertBadge = _iceboxAlertCount > 0
+        ? `<span class="staleness-pill staleness--stale bl-icebox-alert-count" title="${_iceboxAlertCount} ítem${_iceboxAlertCount !== 1 ? 's' : ''} sin movimiento — revisar">⚠ ${_iceboxAlertCount}</span>`
+        : '';
       html += `<div class="section-group sg-icebox bl-icebox-group" id="sg-icebox">
         <div class="section-group-header bl-icebox-header" data-action="section-group-toggle" data-group="icebox">
           <span class="section-group-arrow bl-icebox-arrow${iceboxOpen ? '' : ' collapsed'}" id="sgarrow-icebox">▾</span>
           <span>📥 Icebox</span>
           <span class="section-group-count bl-icebox-count">${iceboxItems.length} ítem${iceboxItems.length !== 1 ? 's' : ''}</span>
+          ${_iceboxAlertBadge}
         </div>
         <div class="section-group-body items-grid bl-icebox-body${iceboxOpen ? '' : ' collapsed'}" id="sgbody-icebox">`;
-      _sortGroup(iceboxItems).forEach(item => { html += buildBacklogItem(item); });
+      _sortGroup(iceboxItems).forEach(item => {
+        // T-202606-163: badge de alerta inline por ítem
+        const _stale = _iceboxStaleness(item);
+        const _alertHtml = _stale
+          ? `<div class="bl-icebox-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d en icebox">${_stale.label} en icebox</span></div>`
+          : '';
+        html += _alertHtml + buildBacklogItem(item);
+      });
       html += `</div></div>`;
     }
 

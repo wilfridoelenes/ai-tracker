@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:39 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:40 · autor:Rune · 2026-06-08 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -656,17 +656,28 @@ export function setItemSprint(code, sprintId) {
   if (!item.history) item.history = [];
   item.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: prevSprint || null, to: item.sprint || null } });
 
-  // T-202606-036 AC1+AC2: si el ítem es un R, propagar sprint a todos sus Ts hijos
+  // T-202606-036 AC1+AC2 · T-202606-161: mover Ts hijos en icebox al nuevo sprint del R
+  // T-202606-161 AC-2: Ts con sprint ya asignado (distinto de icebox) no se sobreescriben
   if (item.code && item.code[0] === 'R') {
+    const _movedChildren = [];
     getItems().forEach(child => {
       if (child.parentId === item.code && child.code && child.code[0] === 'T') {
         const prevChildSprint = child.sprint || 'icebox';
+        if (prevChildSprint !== 'icebox') return; // T-202606-161 AC-2: conservar sprint ya asignado
         child.sprint = normalizedId;
+        _movedChildren.push(child.code);
         if (!child.history) child.history = [];
         child.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: prevChildSprint, to: normalizedId, inherited_from: item.code } });
-        _blogLog('sprint-heredado', child.code, `${child.code} sprint ajustado al de su parent ${item.code}: ${normalizedId}`, 'backlog');
       }
     });
+    // T-202606-161 AC-3: DocLog entry consolidada en el sprint destino
+    if (_movedChildren.length > 0 && normalizedId && normalizedId !== 'icebox') {
+      const _targetSprint = _getSprintById(normalizedId);
+      if (_targetSprint) {
+        if (!Array.isArray(_targetSprint.docLog)) _targetSprint.docLog = [];
+        _targetSprint.docLog.push(`${_movedChildren.length} Ts movidos a sprint ${normalizedId} por asignación de parent ${item.code}: ${_movedChildren.join(', ')}`);
+      }
+    }
   }
 
   _undoSnapshot();

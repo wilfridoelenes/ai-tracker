@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-08 · mod:52 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-08 · mod:53 · autor:Rune · 2026-06-08 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -7,7 +7,7 @@
 import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemType, renderStats, setItemStatus, updateBacklogBanner } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
 import { _normalizeSprint } from './locus-session-parse.js';
-import { _blogLog, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog } from './locus-storage.js';
+import { _blogLog, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog, getActivePlan } from './locus-storage.js';
 
 
 import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel } from './locus-backlog-panel.js';
@@ -1435,6 +1435,32 @@ function copyItemToClipboard(e, code) {
       return t ? t.name : tid;
     });
     lines.push(`Tags: ${tagNames.join(', ')}`);
+  }
+
+  // T-202606-200: sección EXECUTION-PLAN — busca la sesión del ítem en el plan activo
+  const _plan = getActivePlan();
+  if (_plan) {
+    const _sesiones = Array.isArray(_plan.sesiones) ? _plan.sesiones : [];
+    const _sesion = _sesiones.find(s => Array.isArray(s.items) && s.items.includes(item.code));
+    if (_sesion) {
+      lines.push('');
+      lines.push('---EXECUTION-PLAN---');
+      lines.push('scope: sesion');
+      lines.push('sesiones:');
+      lines.push('  - id: ' + (_sesion.id || ''));
+      lines.push('    rol: ' + (_sesion.rol || ''));
+      const _items = Array.isArray(_sesion.items) ? _sesion.items.join(', ') : '';
+      lines.push('    items: [' + _items + ']');
+      const _archivos = Array.isArray(_sesion.archivos) && _sesion.archivos.length
+        ? _sesion.archivos.join(' · ')
+        : '';
+      lines.push('    archivos: ' + (_archivos ? _archivos : '[]'));
+      const _depende = Array.isArray(_sesion.depende_de) && _sesion.depende_de.length
+        ? _sesion.depende_de.join(', ')
+        : '';
+      lines.push('    depende_de: [' + _depende + ']');
+      lines.push('---EXECUTION-PLAN-END---');
+    }
   }
 
   const text = lines.join('\n');

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -496,10 +496,23 @@ export function _generateBacklogContent(newVersion, opts = {}) {
     const lastClosedId = lastClosed ? lastClosed.id : null;
     const activeSprint = (state.sprints || []).find(s => s.status === 'active');
     const activeSprintId = activeSprint ? activeSprint.id : null;
-    exportItems = getItems().filter(i => {
+    // Pre-computar set de Rs activos para regla de hijos (T/B con parent en R no cerrado)
+    const allItems = getItems();
+    const activeRCodes = new Set(
+      allItems
+        .filter(i => i.code && i.code.startsWith('R-') && i.status !== 'done' && i.status !== 'descartado')
+        .map(i => i.code)
+    );
+    exportItems = allItems.filter(i => {
       if (i.status === 'historico') return false;
-      if (i.status === 'pendiente' || i.status === 'en curso') return true;
+      // Regla 1: status activos directos — incluye en-revision
+      if (i.status === 'pendiente' || i.status === 'en-revision') return true;
+      // Regla 2: hijos (T o B) de R activo — exportar sin importar su status
+      if ((i.code && (i.code.startsWith('T-') || i.code.startsWith('B-'))) &&
+          i.parent && activeRCodes.has(i.parent)) return true;
+      // Sprint cerrado más reciente: ítems done
       if (i.status === 'done' && lastClosedId && i.sprint === lastClosedId) return true;
+      // Sprint activo: ítems done o descartados
       if (activeSprintId && i.sprint === activeSprintId &&
           (i.status === 'done' || i.status === 'descartado')) return true;
       return false;
