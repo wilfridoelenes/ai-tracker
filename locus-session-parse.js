@@ -1,4 +1,4 @@
-// [PP] v1.4.0 · sprint:PP-S-07 · mod:47 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.4.0 · sprint:PP-S-07 · mod:48 · autor:Rune · 2026-06-09 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -847,7 +847,14 @@ export function parsePaste(id) {
   // Parse completó sin avisos ni errores bloqueantes → lanzar saveSession directamente.
   // horaRaw: saveSession lee document.getElementById('hora-' + id).value internamente (AC-2).
   // Los gates de proyecto-no-seleccionado (AC-6) y mismatch de proyecto (AC-7) viven en saveSession.
-  if (isCheckpoint && title) {
+  // B-202606-068 AC1+AC2: guard _saveSessionInFlight — evita doble invocación de saveSession
+  // cuando handleInput y handlePaste disparan parsePaste concurrentemente en el mismo paste.
+  // El flag se limpia con queueMicrotask para permitir re-saves legítimos en parsePastes
+  // subsecuentes (ej: el usuario edita el textarea después del paste).
+  const _saveGuardKey = `_saveSessionInFlight_${id}`;
+  if (isCheckpoint && title && !window[_saveGuardKey]) {
+    window[_saveGuardKey] = true;
+    queueMicrotask(() => { delete window[_saveGuardKey]; });
     _processedCheckpointHashes.add(text.trim()); // T-202606-210: registrar hash al procesar
     saveSession(id);
   }
