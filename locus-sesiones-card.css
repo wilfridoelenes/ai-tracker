@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-08 · mod:3 · autor:Nova · 2026-06-08 */
+/* [PP] v1.2.4 · sprint:PP-S-08 · mod:4 · autor:Nova · 2026-06-08 */
 
 /* === locus-tracker.js ===
    Funciones: buildCard · _buildCurrentSessionCard (sc-* rediseño) */
@@ -98,9 +98,9 @@
 /* B-202606-047 · PP-S-08 */
 
 .sc-badge--avail {
-  background: var(--c-low-bg);
-  color: var(--c-low-text);
-  border-color: var(--c-low-border);
+  background: var(--c-pulido-bg);
+  color: var(--c-pulido-text);
+  border-color: var(--c-pulido-border);
 }
 
 .sc-badge--exhausted {
