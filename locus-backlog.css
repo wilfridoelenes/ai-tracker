@@ -1,4 +1,4 @@
-/* [PP] v1.3.0 · sprint:PP-S-08 · mod:30 · autor:Rune · 2026-06-08 UTC-6 */
+/* [PP] v1.4.0 · sprint:PP-S-07 · mod:31 · autor:Nova · 2026-06-09 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -5180,6 +5180,19 @@ er {
 
 .bl-icebox-body.collapsed {
   display: none;
+}
+
+/* bl-icebox-item-alert — contenedor de alerta por ítem individual en icebox
+   Precede al buildBacklogItem() del ítem. Visible solo cuando _iceboxStaleness() retorna valor. */
+.bl-icebox-item-alert {
+  padding: 4px 14px 0;
+}
+
+/* bl-icebox-alert-count — clase adicional sobre staleness-pill en el header del grupo icebox
+   Muestra conteo total de ítems con alerta (⚠ N). No agrega estilos propios —
+   hereda color y forma de staleness--stale. Selector disponible para targeting específico. */
+.staleness-pill.bl-icebox-alert-count {
+  margin-left: auto;
 }
 
 /* ══ END T-202605-103 ══ */
