@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:21 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:22 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -776,6 +776,55 @@ window.openItemEditor       = openItemEditor;
 // T-202606-077: registrar callback en locus-backlog-core
 document.addEventListener('DOMContentLoaded', () => {
   _registerCoreCallback('openItemEditor', openItemEditor);
+});
+
+// B-202606-056: capturar Enter y Tab en el overlay del IDP para evitar que eventos
+// burbujeen al document y disparen handlers de textarea de sesiones.
+document.addEventListener('DOMContentLoaded', () => {
+  const overlay = document.getElementById('item-editor-overlay');
+  if (!overlay) return;
+
+  overlay.addEventListener('keydown', (e) => {
+    // Enter sin Shift dentro del overlay → confirmar IDP, nunca propagar
+    if (e.key === 'Enter' && !e.shiftKey) {
+      // Excepción: textareas dentro del IDP (ej. #item-ac, #item-notes) necesitan Enter para salto de línea
+      if (e.target && e.target.tagName === 'TEXTAREA') return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof confirmItemEditor === 'function') confirmItemEditor();
+      return;
+    }
+
+    // Tab dentro del overlay → contener el foco dentro del IDP
+    if (e.key === 'Tab') {
+      const focusable = Array.from(
+        overlay.querySelectorAll(
+          'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      ).filter(el => el.offsetParent !== null); // solo elementos visibles
+
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last  = focusable[focusable.length - 1];
+
+      if (e.shiftKey) {
+        // Shift+Tab desde el primer campo → ir al último (ciclo inverso)
+        if (document.activeElement === first) {
+          e.preventDefault();
+          e.stopPropagation();
+          last.focus();
+        }
+      } else {
+        // Tab desde el último campo → ir al primero (ciclo directo), nunca salir del overlay
+        if (document.activeElement === last) {
+          e.preventDefault();
+          e.stopPropagation();
+          first.focus();
+        }
+      }
+    }
+  });
 });
 
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
