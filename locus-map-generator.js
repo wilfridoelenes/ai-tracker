@@ -462,6 +462,22 @@ export function _mgGetVersion() {
   return _effectiveVersion();
 }
 
+// T-202606-148: versión canónica para el MAP — version_target del sprint activo
+// Fallback: input mg-version-input (configurable) + toast de advertencia al founder
+// El MAP siempre refleja la versión del sprint en curso, no la del último sprint cerrado.
+function _mgGetMapVersion() {
+  const activeSp = _mgActiveSprint();
+  if (activeSp && activeSp.status === 'active' && activeSp.version_target && activeSp.version_target.trim() && activeSp.version_target.trim() !== 'undefined') {
+    return activeSp.version_target.trim();
+  }
+  // Sin sprint activo — fallback a input configurable + toast
+  const input = document.getElementById('mg-version-input');
+  const raw = input ? input.value.trim() : '';
+  const fallback = (raw && raw !== 'undefined') ? raw : _effectiveVersion();
+  showToast('warning', 'Sin sprint activo — versión del MAP tomada del campo de versión. Verifica antes de descargar.');
+  return fallback || '—';
+}
+
 // ─── Generador PLAN ──────────────────────────────────────────────────────────
 // T-202605-487: _mgBuildPlan() — agrupa ítems del sprint siguiente por rol,
 // detecta conflictos de archivo, resuelve deps, emite bloque ---PLAN---.
@@ -768,7 +784,7 @@ function _generateMap(ver) {
     return (order[ea] ?? 9) - (order[eb] ?? 9);
   });
 
-  const version = (ver && ver !== 'undefined') ? ver : _mgGetVersion();
+  const version = _mgGetMapVersion(); // T-202606-148: version_target del sprint activo — fallback a input + toast
   const now = _mgNow();
   const project = _docPrefix();
 
