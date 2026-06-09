@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-06 · mod:36 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.3.1 · sprint:PP-S-06 · mod:37 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -49,13 +49,29 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // Se valida contra la lista completa — sprints cerrados incluidos — para no bloquear
   // CHECKPOINTs históricos con sprint ya cerrado que lleguen por retomada.
   // B-202606-044 compat: buscar por id primero, luego por label (mismo criterio que _sprintSelect).
+  // B-202606-063: excluir sprints declarados en la ---SPRINT-PROPOSAL--- del mismo CHECKPOINT —
+  // el gate corre antes del Step 0, cuando el sprint aún no existe en getActiveSprints().
+  // Si el CHECKPOINT crea el sprint via proposal, los ítems que lo referencian son válidos.
   {
     const _allSprints = getActiveSprints(); // incluye closed
+
+    // Extraer prefijos cortos de sprints declarados en la proposal del mismo CHECKPOINT
+    const _proposal = _ckptMeta.sprintProposal || null;
+    const _proposalSprintIds = [];
+    if (_proposal && _proposal.sprint) {
+      // Prefijo corto: "PP-S-06 · nombre" → "PP-S-06"
+      _proposalSprintIds.push(_proposal.sprint.split(/\s*·\s*/)[0].trim());
+      // String completo también — por si el ítem usa el label completo
+      _proposalSprintIds.push(_proposal.sprint);
+    }
+
     const _allItems   = [...tgItems, ..._patchItems];
     const _unknownSprints = [];
     for (const it of _allItems) {
       const s = it.sprint;
       if (!s || s === 'icebox') continue;
+      // B-202606-063: sprint declarado en la proposal del mismo CHECKPOINT — no es desconocido
+      if (_proposalSprintIds.includes(s)) continue;
       const _byId    = _allSprints.find(sp => sp.id    === s);
       const _byLabel = !_byId ? _allSprints.find(sp => sp.label === s) : null;
       if (!_byId && !_byLabel && !_unknownSprints.includes(s)) {
