@@ -1,4 +1,4 @@
-// [PP] v1.3.1 · sprint:PP-S-06 · mod:37 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.3.1 · sprint:PP-S-06 · mod:38 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -72,9 +72,14 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       if (!s || s === 'icebox') continue;
       // B-202606-063: sprint declarado en la proposal del mismo CHECKPOINT — no es desconocido
       if (_proposalSprintIds.includes(s)) continue;
-      const _byId    = _allSprints.find(sp => sp.id    === s);
-      const _byLabel = !_byId ? _allSprints.find(sp => sp.label === s) : null;
-      if (!_byId && !_byLabel && !_unknownSprints.includes(s)) {
+      const _byId     = _allSprints.find(sp => sp.id    === s);
+      const _byLabel  = !_byId ? _allSprints.find(sp => sp.label === s) : null;
+      // B-202606-063: sprint guardado con id largo antes del fix de mod:43 — buscar por prefijo también.
+      // "PP-S-06" coincide con id "PP-S-06 · IDP fixes..." via startsWith del id guardado.
+      const _byPrefix = (!_byId && !_byLabel)
+        ? _allSprints.find(sp => (sp.id || '').startsWith(s + ' ') || (sp.id || '') === s || (sp.name || '').startsWith(s + ' '))
+        : null;
+      if (!_byId && !_byLabel && !_byPrefix && !_unknownSprints.includes(s)) {
         _unknownSprints.push(s);
       }
     }
