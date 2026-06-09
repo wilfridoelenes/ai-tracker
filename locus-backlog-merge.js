@@ -1,4 +1,4 @@
-// [PP] v1.3.1 · sprint:PP-S-08 · mod:39 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.3.1 · sprint:PP-S-08 · mod:40 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -486,7 +486,24 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     const _rejectBtn  = document.getElementById('mdiff-step0-reject');
     if (_approveBtn) {
       _approveBtn.addEventListener('click', () => {
-        if (typeof _onApproveProposal === 'function') _onApproveProposal(_sprintProposal);
+        // B-202606-060: wrap en try/catch — si _onApproveProposal lanza, mostrar error inline
+        // y abortar: el DIFF no avanza, el Step 0 permanece visible con el mensaje de error.
+        if (typeof _onApproveProposal === 'function') {
+          try {
+            _onApproveProposal(_sprintProposal);
+          } catch (err) {
+            const _actionsEl = document.querySelector('#mdiff-step0 .mdiff-step0-actions');
+            if (_actionsEl) {
+              const _existing = _actionsEl.querySelector('.mdiff-step0-error');
+              if (_existing) _existing.remove();
+              const _errEl = document.createElement('p');
+              _errEl.className = 'mdiff-step0-error';
+              _errEl.textContent = `Error al aprobar: ${err.message || 'error desconocido'}`;
+              _actionsEl.appendChild(_errEl);
+            }
+            return; // AC-1 + AC-2: DIFF no avanza, Step 0 permanece con estado de error
+          }
+        }
         const step0El = document.getElementById('mdiff-step0');
         if (step0El) step0El.remove();
 
