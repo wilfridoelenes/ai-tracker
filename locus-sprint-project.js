@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:32 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-05 · mod:33 · autor:Rune · 2026-06-08 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -756,7 +756,7 @@ window.getActiveProjectNotes     = getActiveProjectNotes;
 // para romper el ciclo A↔B. locus-sesiones las consume via _sesSPCallbacks.
 document.addEventListener('DOMContentLoaded', () => {
   _registerSesSPCallback('getProjectById',          getProjectById);
-  _registerSesSPCallback('getActiveProjectFilter',  _getActiveProjectFilter);
+  // _registerSesSPCallback('getActiveProjectFilter') eliminado — T-202606-197: _getActiveProjectFilter movida a locus-proj-core.js
   _registerSesSPCallback('openProjModal',           openProjModal);
   _registerSesSPCallback('selectProjectFilter',     selectProjectFilter);
 }, { once: true });
