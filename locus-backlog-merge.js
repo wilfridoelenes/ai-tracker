@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-08 · mod:32 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-06 · mod:33 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -398,6 +398,54 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         if (typeof _onApproveProposal === 'function') _onApproveProposal(_sprintProposal);
         const step0El = document.getElementById('mdiff-step0');
         if (step0El) step0El.remove();
+
+        // T-202606-164: gate de revisión icebox — prompt no-bloqueante post-aprobación
+        // AC-1: aparece al confirmar Step 0, antes de que el founder interactúe con el DIFF
+        // AC-2: no-bloqueante — el founder puede cerrarlo y el sprint ya está activo
+        // AC-3: lista ítems icebox cuya area aparece en el scope del sprint (case-insensitive)
+        const _scopeRaw = (_sprintProposal && _sprintProposal.scope) ? _sprintProposal.scope.toLowerCase() : '';
+        const _iceboxRelated = _scopeRaw
+          ? getItems().filter(it =>
+              (it.sprint === 'icebox') &&
+              it.area &&
+              _scopeRaw.includes(it.area.toLowerCase())
+            )
+          : [];
+
+        if (_iceboxRelated.length > 0 && body) {
+          const _iceboxRows = _iceboxRelated.map(it =>
+            `<div class="mdiff-icebox-row">
+              <span class="mdiff-type-badge ${_typeClass[((it.code||'?')[0].toUpperCase())] || 'mdiff-type--unknown'}">${_typeName[((it.code||'?')[0].toUpperCase())] || '?'}</span>
+              <span class="mdiff-icebox-code">${esc(it.code || '—')}</span>
+              <span class="mdiff-icebox-title">${esc(it.title || '—')}</span>
+              <span class="mdiff-icebox-area">${esc(it.area || '')}</span>
+            </div>`
+          ).join('');
+
+          const _iceboxPromptHtml = `
+            <div class="mdiff-icebox-gate" id="mdiff-icebox-gate">
+              <div class="mdiff-icebox-gate-header">
+                <span class="mdiff-step0-badge">Icebox</span>
+                <span class="mdiff-step0-title">Ítems relacionados en icebox</span>
+              </div>
+              <p class="mdiff-icebox-gate-desc">Hay ${_iceboxRelated.length} ítem${_iceboxRelated.length !== 1 ? 's' : ''} en icebox con área relacionada al scope de este sprint. ¿Querés moverlos al sprint?</p>
+              <div class="mdiff-icebox-list">${_iceboxRows}</div>
+              <div class="mdiff-step0-actions">
+                <button class="mdiff-btn mdiff-btn--cancel" id="mdiff-icebox-gate-dismiss">Ignorar</button>
+              </div>
+            </div>`;
+
+          // Insertar el prompt al inicio del body, antes del contenido del DIFF
+          body.insertAdjacentHTML('afterbegin', _iceboxPromptHtml);
+
+          const _dismissBtn = document.getElementById('mdiff-icebox-gate-dismiss');
+          if (_dismissBtn) {
+            _dismissBtn.addEventListener('click', () => {
+              const _gateEl = document.getElementById('mdiff-icebox-gate');
+              if (_gateEl) _gateEl.remove();
+            }, { once: true });
+          }
+        }
       }, { once: true });
     }
     if (_rejectBtn) {
