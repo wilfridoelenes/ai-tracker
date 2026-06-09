@@ -1,4 +1,4 @@
-// [PP] v1.3.1 · sprint:PP-S-06 · mod:45 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.4.0 · sprint:PP-S-07 · mod:46 · autor:Rune · 2026-06-09 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -19,6 +19,10 @@ import { showToast, toast } from './locus-toast.js';
 
 
 import { esc } from './locus-ui-shell.js';
+
+// T-202606-210: Set en memoria para detección de CHECKPOINTs duplicados en sesión activa.
+// Scope: por carga de página (sesión activa del navegador). Se resetea con recarga.
+const _processedCheckpointHashes = new Set();
 
 // T-202604-215: Labels de status en español — fuente de verdad para UI
 // Movido desde locus-checkpoint-hoy.js
@@ -802,11 +806,29 @@ export function parsePaste(id) {
   }
   if (window[_discrepancyWarnKey]) delete window[_discrepancyWarnKey];
 
+  // T-202606-210: detección de CHECKPOINT duplicado — AC-1/AC-2/AC-3
+  // Hash = texto completo trimmed (coincidencia exacta según AC-1).
+  // Guard usa patrón warn-key idéntico al de _discrepancyWarnKey.
+  const _dupWarnKey = `_dupCheckpointWarnSeen_${id}`;
+  if (isCheckpoint && title) {
+    const _ckptHash = text.trim();
+    if (_processedCheckpointHashes.has(_ckptHash) && !window[_dupWarnKey]) {
+      prev.className = 'preview show';
+      prev.innerHTML = `<div class="paste-error paste-warn">⚠ Este CHECKPOINT ya fue procesado. ¿Continuar de todas formas?<br><button class="btn-ghost paste-inline-btn">Continuar de todas formas</button></div>`;
+      const _dupBtn = prev.querySelector('.paste-inline-btn');
+      if (_dupBtn) _dupBtn.addEventListener('click', () => { window[_dupWarnKey] = true; parsePaste(id); }, { once: true });
+      if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
+      return;
+    }
+    if (window[_dupWarnKey]) delete window[_dupWarnKey];
+  }
+
   // T-202606-032: auto-trigger — AC-1/AC-2/AC-3/AC-6/AC-7
   // Parse completó sin avisos ni errores bloqueantes → lanzar saveSession directamente.
   // horaRaw: saveSession lee document.getElementById('hora-' + id).value internamente (AC-2).
   // Los gates de proyecto-no-seleccionado (AC-6) y mismatch de proyecto (AC-7) viven en saveSession.
   if (isCheckpoint && title) {
+    _processedCheckpointHashes.add(text.trim()); // T-202606-210: registrar hash al procesar
     saveSession(id);
   }
 

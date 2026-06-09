@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:14 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.4.0 · sprint:PP-S-07 · mod:15 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -520,6 +520,16 @@ export function _generateBacklogContent(newVersion, opts = {}) {
     });
   }
 
+  // T-202606-202: itemCounters — conteo real de ítems por tipo, sin filtro de status (AC-1)
+  const itemCounters = { P:0, T:0, R:0, B:0 };
+  getItems().forEach(i => {
+    if (!i.code) return;
+    const t = i.code[0];
+    if (itemCounters[t] !== undefined) itemCounters[t]++;
+  });
+  const itemCounterStr = `P=${itemCounters.P} | T=${itemCounters.T} | R=${itemCounters.R} | B=${itemCounters.B}`;
+
+  // counters — max-tracker de IDs (lógica original sin modificar — AC-3)
   const counters = { P:0, T:0, R:0, B:0 };
   getItems().forEach(i => {
     if (!i.code) return;
@@ -570,7 +580,8 @@ ${currentStateMd}## Índice de estado
 
 \`\`\`
 ${indexLines}
-Contadores: ${counterStr}
+Ítems: ${itemCounterStr}
+Últimos IDs: ${counterStr}
 App: ${_appVerStr} — exportado desde tracker
 \`\`\`
 
