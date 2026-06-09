@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:14 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -505,6 +505,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
     );
     exportItems = allItems.filter(i => {
       if (i.status === 'historico') return false;
+      if (i.status === 'en curso') return false; // B-202606-052: status no canónico — fuera de BR-Ecosystem §5
       // Regla 1: status activos directos — incluye en-revision
       if (i.status === 'pendiente' || i.status === 'en-revision') return true;
       // Regla 2: hijos (T o B) de R activo — exportar sin importar su status
