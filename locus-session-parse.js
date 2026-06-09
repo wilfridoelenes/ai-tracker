@@ -1,4 +1,4 @@
-// [PP] v1.3.1 · sprint:PP-S-06 · mod:44 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.3.1 · sprint:PP-S-06 · mod:45 · autor:Rune · 2026-06-09 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -977,7 +977,7 @@ export function _tryIngestPlan(text) {
   return true;
 }
 
-// T-202606-129: ingesta de bloque ---SPRINT-PROPOSAL--- → crea sprint con formallyOpened: false
+// T-202606-129: ingesta de bloque ---SPRINT-PROPOSAL--- → crea sprint con formallyOpened: true
 // Flujo: parseSprintProposal(text) → validar rol emisor → validar campos → guard duplicado → push a proj.sprints → save()
 export function _tryIngestSprintProposal(text) {
   if (!text || !text.includes('---SPRINT-PROPOSAL---')) return false;
@@ -1029,7 +1029,7 @@ export function _tryIngestSprintProposal(text) {
     return false;
   }
 
-  // AC-1: construir objeto sprint con formallyOpened: false
+  // AC-1: construir objeto sprint con formallyOpened: true — B-202606-063: Step 0 del DIFF es el gate de aprobación
   // B-202606-063: extraer prefijo corto como id — el string completo va en label y name.
   // "PP-S-06 · IDP fixes" → id: "PP-S-06", label: "PP-S-06 · IDP fixes"
   // El gate en locus-backlog-merge.js busca por id y label — sin este split,
@@ -1047,7 +1047,7 @@ export function _tryIngestSprintProposal(text) {
     out_of_scope:   result.out_of_scope || [],
     status:         'active',
     current:        false,
-    formallyOpened: false,
+    formallyOpened: true,  // B-202606-063: aprobado via Step 0 — sprint existe formalmente
   };
 
   proj.sprints.push(newSprint);
