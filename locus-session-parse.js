@@ -1,4 +1,4 @@
-// [PP] v1.3.1 · sprint:PP-S-06 · mod:43 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.3.1 · sprint:PP-S-06 · mod:44 · autor:Rune · 2026-06-09 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -13,7 +13,7 @@ import { extractContextSections, extractHtmlMapSections, mergeContextSections, m
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger
 import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
-import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, LOCUS_KEYS } from './locus-storage.js';
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, LOCUS_KEYS } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 
 
@@ -1051,7 +1051,10 @@ export function _tryIngestSprintProposal(text) {
   };
 
   proj.sprints.push(newSprint);
-  save();
+  // B-202606-063: saveImmediate() — los sprints son eventos críticos.
+  // save() tiene debounce de 5s — si el founder pega el siguiente CHECKPOINT antes de que
+  // el debounce se dispare, el sprint no está en Supabase y getActiveSprints() no lo ve → bloqueo falso.
+  saveImmediate();
 
   // AC-4: sprint accesible inmediatamente via locus-storage tras persistir
   showToast('success', `✓ Sprint "${result.sprint}" creado — pendiente de aprobación`);
