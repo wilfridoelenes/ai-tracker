@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-06 · mod:35 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-06 · mod:36 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -395,6 +395,41 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   const _sprintProposal   = _ckptMeta.sprintProposal   || null;
   const _onApproveProposal = _ckptMeta.onApproveProposal || null;
 
+  // T-202606-038: sección de campos narrativos — aparece antes de las secciones de backlog.
+  // AC-4: campos vacíos no renderizan fila. AC-3: Próximo paso al final con separador visual.
+  // AC-7: encabezado visualmente distinguible del encabezado de secciones de backlog.
+  // B-202606-062: movida antes de if (_sprintProposal) — const no hace hoisting, ReferenceError garantizado si se invoca antes de declaración
+  const _buildNarrativeSection = () => {
+    const _rows = [
+      { label: 'Resumen',     value: _metaResumen     },
+      { label: 'Aprendizaje', value: _metaAprendizaje },
+      { label: 'Bloqueantes', value: _metaBloqueantes },
+      { label: 'Decisión',    value: _metaDecision    },
+    ].filter(r => r.value).map(r =>
+      `<div class="mdiff-narrative-row">
+        <span class="mdiff-narrative-label">${esc(r.label)}</span>
+        <span class="mdiff-narrative-value">${esc(r.value)}</span>
+      </div>`
+    ).join('');
+
+    const _proxPasoHtml = _metaProxPaso
+      ? `<div class="mdiff-narrative-proxpaso">
+          <span class="mdiff-narrative-label">Próximo paso</span>
+          <span class="mdiff-narrative-value">${esc(_metaProxPaso)}</span>
+        </div>`
+      : '';
+
+    // B-202606-024: condición corregida — _rows es string, !_rows evalúa '' como falsy
+    // aunque _proxPasoHtml tenga valor. Evaluación explícita de ambos.
+    if (!_rows.length && !_proxPasoHtml) return '';
+
+    return `<div class="mdiff-narrative-section">
+      <div class="mdiff-narrative-header">Contexto de sesión</div>
+      ${_rows}
+      ${_proxPasoHtml ? `<div class="mdiff-narrative-proxpaso-wrap">${_proxPasoHtml}</div>` : ''}
+    </div>`;
+  };
+
   if (_sprintProposal && body) {
     // Renderizar Step 0 antes del contenido normal — reemplaza body temporalmente
     const _step0Html = `
@@ -509,40 +544,6 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         <div class="mdiff-header-total">${totalLabel}</div>
       </div>`;
   }
-
-  // T-202606-038: sección de campos narrativos — aparece antes de las secciones de backlog.
-  // AC-4: campos vacíos no renderizan fila. AC-3: Próximo paso al final con separador visual.
-  // AC-7: encabezado visualmente distinguible del encabezado de secciones de backlog.
-  const _buildNarrativeSection = () => {
-    const _rows = [
-      { label: 'Resumen',     value: _metaResumen     },
-      { label: 'Aprendizaje', value: _metaAprendizaje },
-      { label: 'Bloqueantes', value: _metaBloqueantes },
-      { label: 'Decisión',    value: _metaDecision    },
-    ].filter(r => r.value).map(r =>
-      `<div class="mdiff-narrative-row">
-        <span class="mdiff-narrative-label">${esc(r.label)}</span>
-        <span class="mdiff-narrative-value">${esc(r.value)}</span>
-      </div>`
-    ).join('');
-
-    const _proxPasoHtml = _metaProxPaso
-      ? `<div class="mdiff-narrative-proxpaso">
-          <span class="mdiff-narrative-label">Próximo paso</span>
-          <span class="mdiff-narrative-value">${esc(_metaProxPaso)}</span>
-        </div>`
-      : '';
-
-    // B-202606-024: condición corregida — _rows es string, !_rows evalúa '' como falsy
-    // aunque _proxPasoHtml tenga valor. Evaluación explícita de ambos.
-    if (!_rows.length && !_proxPasoHtml) return '';
-
-    return `<div class="mdiff-narrative-section">
-      <div class="mdiff-narrative-header">Contexto de sesión</div>
-      ${_rows}
-      ${_proxPasoHtml ? `<div class="mdiff-narrative-proxpaso-wrap">${_proxPasoHtml}</div>` : ''}
-    </div>`;
-  };
 
   // Body: sección narrativa + secciones de backlog
   // T-202606-155: si hay Step 0, body.innerHTML ya fue asignado arriba — no sobreescribir
