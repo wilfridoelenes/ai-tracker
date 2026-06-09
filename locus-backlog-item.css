@@ -1,4 +1,4 @@
-/* [PP] v1.4.0 · sprint:PP-S-07 · mod:17 · autor:Nova · 2026-06-09 UTC-6 */
+/* [PP] v1.4.0 · sprint:PP-S-07 · mod:18 · autor:Rune · 2026-06-09 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -765,6 +765,8 @@
   flex-direction: column;
   gap: 0;
   min-height: 0; /* B-202605-034: flex child containment — impide que column-flex rompa el max-height del parent */
+  overflow-y: auto; /* B-202606-057: scroll vertical cuando contenido supera max-height del panel */
+  height: 100%;    /* B-202606-057: ocupa todo el panel para que overflow-y sea efectivo */
 }
 
 /* Header */

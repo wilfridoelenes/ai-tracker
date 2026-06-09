@@ -1,4 +1,4 @@
-// [PP] v1.3.1 · sprint:PP-S-06 · mod:38 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.3.1 · sprint:PP-S-08 · mod:39 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -193,11 +193,12 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     const options = openSprints.map(s =>
       `<option value="${esc(s.id)}" ${currentSprint === s.id ? 'selected' : ''}>${esc(s.label || s.id)}</option>`
     ).join('');
+    // B-202606-054: 'Sin sprint' (value='') eliminado — valor inválido según BR-Ecosystem §5.
+    // El select solo expone icebox y sprints formales abiertos.
     return `<select class="mdiff-sprint-select" data-item-code="${esc(code)}"
       onchange="_mdiffSetItemSprint(this)"
       data-stop-propagation="true">
-      <option value="" ${!currentSprint && !isIcebox ? 'selected' : ''}>Sin sprint</option>
-      <option value="icebox" ${isIcebox ? 'selected' : ''}>icebox</option>
+      <option value="icebox" ${isIcebox || !currentSprint ? 'selected' : ''}>icebox</option>
       ${options}
       <option value="__new__">＋ Nuevo sprint...</option>
     </select>`;
@@ -285,9 +286,13 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     const typeCls   = _typeClass[typeChar] || 'mdiff-type--unknown';
     // R-202605-148: ítem sin tipo declarado muestra '?'
     const typeName  = _typeName[typeChar]  || '?';
-    const hasReason = !!(i.reason);
+    // B-202606-053: i.reason viene del diff (CHECKPOINT); si está ausente,
+    // consultar discardReason del ítem en getItems() — ítem ya descartado en el backlog.
+    const _existingItem = !i.reason ? getItems().find(it => it.code === i.code) : null;
+    const _resolvedReason = i.reason || (_existingItem && _existingItem.discardReason) || null;
+    const hasReason = !!_resolvedReason;
     const reasonHtml = hasReason
-      ? `<span class="mdiff-discard-reason-pill">${esc(i.reason)}${i.ref ? ' · ' + esc(i.ref) : ''}</span>`
+      ? `<span class="mdiff-discard-reason-pill">${esc(_resolvedReason)}${i.ref ? ' · ' + esc(i.ref) : ''}</span>`
       : '';
     return `
     <div class="mdiff-card mdiff-card--red mdiff-card--discard ${typeCls}" data-discard-idx="${idx}">
@@ -702,11 +707,12 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     sel.addEventListener('change', function() { window._mdiffSetItemSprint && window._mdiffSetItemSprint(sel); });
     sel.addEventListener('click', function(e) { e.stopPropagation(); });
 
-    const noSprint = document.createElement('option');
-    noSprint.value = '';
-    noSprint.textContent = 'Sin sprint';
-    if (!effectiveSelected) noSprint.selected = true;
-    sel.appendChild(noSprint);
+    // B-202606-054: 'Sin sprint' (value='') eliminado — valor inválido según BR-Ecosystem §5.
+    const iceboxOpt = document.createElement('option');
+    iceboxOpt.value = 'icebox';
+    iceboxOpt.textContent = 'icebox';
+    if (!effectiveSelected || effectiveSelected === 'icebox') iceboxOpt.selected = true;
+    sel.appendChild(iceboxOpt);
 
     openSprints.forEach(s => {
       const opt = document.createElement('option');
