@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-08 · mod:42 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.3.1 · sprint:PP-S-06 · mod:43 · autor:Rune · 2026-06-09 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1017,17 +1017,29 @@ export function _tryIngestSprintProposal(text) {
 
   if (!proj.sprints) proj.sprints = [];
 
-  // AC-2: guard de duplicado — ID es el campo sprint (string canónico)
-  const exists = proj.sprints.some(sp => sp.id === result.sprint || sp.name === result.sprint);
+  // AC-2: guard de duplicado — comparar contra prefijo corto (id) y string completo (label/name)
+  // B-202606-063: id es ahora el prefijo corto — el guard debe cubrir ambas formas
+  const _dupIdShort = result.sprint.split(/\s*·\s*/)[0].trim();
+  const exists = proj.sprints.some(sp =>
+    sp.id === _dupIdShort || sp.id === result.sprint ||
+    sp.name === result.sprint || sp.label === result.sprint
+  );
   if (exists) {
     showToast('error', 'Ya existe un sprint con este ID');
     return false;
   }
 
   // AC-1: construir objeto sprint con formallyOpened: false
+  // B-202606-063: extraer prefijo corto como id — el string completo va en label y name.
+  // "PP-S-06 · IDP fixes" → id: "PP-S-06", label: "PP-S-06 · IDP fixes"
+  // El gate en locus-backlog-merge.js busca por id y label — sin este split,
+  // ítems con sprint: "PP-S-06" (prefijo corto) nunca coinciden con id completo → bloqueo falso.
+  const _sprintIdFull  = result.sprint;
+  const _sprintIdShort = _sprintIdFull.split(/\s*·\s*/)[0].trim();
   const newSprint = {
-    id:             result.sprint,
-    name:           result.sprint,
+    id:             _sprintIdShort,
+    label:          _sprintIdFull,
+    name:           _sprintIdFull,
     version_target: result.version_target,
     release_type:   result.release_type,
     scope:          result.scope,
