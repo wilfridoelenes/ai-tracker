@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:1 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-05 · mod:2 · autor:Rune · 2026-06-08 UTC-6
 // locus-proj-core.js
 // Módulo compartido — símbolos de proyecto sin deps circulares
 // Creado en T-202606-197 (opción d): rompe ciclo locus-projects ↔ locus-sprint-project
@@ -9,7 +9,8 @@ import { getProjectSessions, getState, save } from './locus-storage.js';
 import { esc, switchSubTab, getCurrentSubTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderAnalytics } from './locus-analytics-render.js';
-import { loadBacklog, renderStats, renderBacklogList } from './locus-backlog-core.js';
+import { loadBacklog, renderStats } from './locus-backlog-core.js';
+import { renderBacklogList } from './locus-backlog-render.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _renderTplProjBanner } from './locus-docs.js';
 
