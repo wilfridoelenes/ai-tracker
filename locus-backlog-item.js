@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:50 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-08 · mod:51 · autor:Rune · 2026-06-08 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1007,10 +1007,11 @@ export function buildBacklogItem(item) {
 
   // R-202605-098: isPromoted — P descartado por promoción (tiene discardRef)
   const isPromoted = isIdea && isDiscarded && !!item.discardRef;
+  const isBloqueado = item.status === 'bloqueado';
   // R-202605-165: .blf-hidden colapsa ítems fuera del Top-10 con transición 150ms ease-out
   const _blfHiddenClass = item._blfHidden ? ' blf-hidden' : '';
   const _blfAriaHidden  = item._blfHidden ? ' aria-hidden="true"' : '';
-  return `<div class="item bitem${isDone ? ' is-done' : ''}${isDiscarded ? ' is-discarded' : ''}${isActive ? ' bitem--active' : ''}${isIdea ? ' bitem--idea' : ''}${isPromoted ? ' bitem--promoted' : ''}${_isDepBlocked ? ' bitem--dep-blocked' : ''}${_blfHiddenClass}" data-type="${type}" data-code="${esc(item.code)}"${_blfAriaHidden}>
+  return `<div class="item bitem${isDone ? ' is-done' : ''}${isDiscarded ? ' is-discarded' : ''}${isBloqueado ? ' is-bloqueado' : ''}${isActive ? ' bitem--active' : ''}${isIdea ? ' bitem--idea' : ''}${isPromoted ? ' bitem--promoted' : ''}${_isDepBlocked ? ' bitem--dep-blocked' : ''}${_blfHiddenClass}" data-type="${type}" data-code="${esc(item.code)}"${_blfAriaHidden}>
     <div class="item-header bitem-header" data-action="item-expand" data-idx="${globalIdx}">
       ${(!isDone && !isDiscarded && item.sprint) ? `<span class="item-drag-handle" data-action="drag-handle" title="Arrastrar para reordenar en sprint">⠿</span>` : ''}
       ${isActive ? '<span class="bitem-activity-dot" title="Actividad reciente — sesión vinculada en los últimos 7 días"></span>' : ''}
