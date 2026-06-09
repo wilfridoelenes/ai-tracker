@@ -351,11 +351,21 @@ function _mgUpdateBtn() {
 
 // AC-17: _mgParseFile realiza Pasada 1 — construye lista de funciones con área heredada de sección.
 // Pasada 2 (exports + calls) se ejecuta en _generateMap() sobre el índice global de todas las funciones.
+// T-202606-145 F-02: lee campo mod del header de identidad (primera línea no-import del archivo).
 function _mgParseFile(name, text) {
   const ext = name.split('.').pop().toLowerCase();
   const lines = text.split('\n');
   const total = lines.length;
   const entries = [];
+
+  // T-202606-145 F-02: extraer mod del header de identidad
+  // El header tiene formato: // [XX] vN.N · sprint:XX-S-NN · mod:N · autor:Rol · timestamp
+  // Para ESM el header puede estar después de los imports — buscar en las primeras 10 líneas
+  let modValue = null;
+  for (let i = 0; i < Math.min(10, lines.length); i++) {
+    const modMatch = lines[i].match(/\bmod:(\d+)\b/);
+    if (modMatch) { modValue = parseInt(modMatch[1], 10); break; }
+  }
 
   if (ext === 'js') {
     // AC-02: rastrear la sección más cercana hacia arriba para herencia de área
@@ -407,7 +417,7 @@ function _mgParseFile(name, text) {
     });
   }
 
-  return { name, ext, total, entries, lines };
+  return { name, ext, total, entries, lines, mod: modValue };
 }
 
 function _mgGuessArea(fnName, _line) {
@@ -946,6 +956,7 @@ function _generateMap(ver) {
       name: p.name,
       type: p.ext,
       lines: p.total,
+      mod: p.mod !== null ? p.mod : null,   // T-202606-145 F-02: del header de identidad; null si ausente
       exports: exportsArr,          // AC-03
       calls: callsArr,              // AC-04 nivel archivo
       changed_in: changedIn,        // AC-06
@@ -1006,8 +1017,9 @@ function _generateMap(ver) {
 
   files.forEach(f => {
     const changedStr = f.changed_in ? f.changed_in : '—';
+    const modStr = f.mod !== null && f.mod !== undefined ? String(f.mod) : 'n/a'; // T-202606-145 F-02
     md += `## ${f.name}\n`;
-    md += `**Líneas:** ${f.lines} · **Size:** ${f.size_signal} · **Changed in:** ${changedStr}\n\n`;
+    md += `**Líneas:** ${f.lines} · **mod:** ${modStr} · **Size:** ${f.size_signal} · **Changed in:** ${changedStr}\n\n`;
 
     if (f.type === 'js') {
       // R3-T3: separar en públicas e internas
