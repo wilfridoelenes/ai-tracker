@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-08 · mod:33 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.4.0 · sprint:PP-S-07 · mod:34 · autor:Rune · 2026-06-09 UTC-6
 // locus-storage.js
 // Última actualización: 2026-06-06 · T-202606-101: guard de salida para retries de _loadFromSupabase (_LOAD_RETRY_MAX)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1297,6 +1297,7 @@ function _applyStateData(raw) {
     if (proj.htmlMapVersion === undefined) proj.htmlMapVersion = '';
     if (proj.notes === undefined) proj.notes = '';
     if (proj.status === undefined) proj.status = 'active';
+    if (proj.infraVersion === undefined) proj.infraVersion = 0; // T-202606-209: campo infra_version del proyecto
     // AC-4 [R — Eliminar status 'open']: migración de sprints 'open' → 'active' o 'closed'
     // Corre en cada _applyStateData() — idempotente, no requiere flag.
     const _hasActiveSprint = proj.sprints.some(sp => sp.status === 'active');
