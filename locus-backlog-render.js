@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-07 · mod:48 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-08 · mod:49 · autor:Rune · 2026-06-09 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -137,7 +137,7 @@ function setItemParent(code, parentCode) {
   _undoSnapshot();
   saveBacklog();
   _setBacklogModified();
-  if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty(); renderBacklogList();
+  _markBacklogListDirty(); renderBacklogList();
   renderStats();
   showToast('success', parentCode ? `${code} vinculado a ${parentCode}` : `${code} desvinculado`);
 }
@@ -727,7 +727,7 @@ export function renderBacklogList(onRendered) {
   const _ae = document.activeElement;
   if (listEl && _ae && listEl.contains(_ae) && (_ae.tagName === 'INPUT' || _ae.tagName === 'TEXTAREA')) {
     _ae.addEventListener('blur', function _deferRender() {
-      if (typeof _markBacklogListDirty === 'function') _markBacklogListDirty();
+      _markBacklogListDirty();
       renderBacklogList(onRendered);
     }, { once: true });
     return;

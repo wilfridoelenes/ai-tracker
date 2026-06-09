@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-07 · mod:49 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-08 · mod:50 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -746,7 +746,7 @@ export function loadBacklog() {
   // Guardar siempre tras normalización — _normalizeItems puede haber corregido campos
   saveBacklog();
   // AC aria tablist: sincronizar estado inicial de atributos aria desde variables de estado
-  if (typeof _syncViewAriaStates === 'function') _syncViewAriaStates();
+  _syncViewAriaStates();
 }
 
 // T-049: derivar tipo del código
@@ -1546,7 +1546,7 @@ export function renderStats() {
       if (!btn) return;
       const act = btn.dataset.action;
       if (act === 'stats-clear-types') {
-        if (typeof clearTypeFilters === 'function') clearTypeFilters();
+        clearTypeFilters();
       } else if (act === 'stats-type-filter') {
         toggleTypeFilter(btn.dataset.type);
       } else if (act === 'stats-priority-filter') {
@@ -1554,7 +1554,7 @@ export function renderStats() {
       } else if (act === 'stats-effort-filter') {
         toggleEffortFilter(parseInt(btn.dataset.effort, 10));
       } else if (act === 'stats-effort-missing') {
-        if (typeof toggleBacklogBlockerFilter === 'function') toggleBacklogBlockerFilter();
+        toggleBacklogBlockerFilter();
         toggleEffortFilter(0);
       } else if (act === 'stats-role-filter') {
         toggleRoleFilter(btn.dataset.role);
@@ -2082,7 +2082,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Vista — Kanban / Focus / Mi vista
   const _btnKanban = document.getElementById('fbar-kanban-btn');
-  if (_btnKanban) _btnKanban.addEventListener('click', function () { if (typeof toggleBacklogKanbanMode === 'function') toggleBacklogKanbanMode(); });
+  if (_btnKanban) _btnKanban.addEventListener('click', function () { toggleBacklogKanbanMode(); });
 
   const _btnMike = document.getElementById('fbar-mike-btn');
   if (_btnMike) _btnMike.addEventListener('click', function () { toggleBacklogMikeMode(); });
@@ -2134,7 +2134,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Filtro Bloqueados
   const _btnBlocker = document.getElementById('fbar-blocker-btn');
-  if (_btnBlocker) _btnBlocker.addEventListener('click', function () { if (typeof toggleBacklogBlockerFilter === 'function') toggleBacklogBlockerFilter(); });
+  if (_btnBlocker) _btnBlocker.addEventListener('click', function () { toggleBacklogBlockerFilter(); });
 
   // Filtro Sin AC
   const _btnNoAc = document.getElementById('fbar-no-ac-btn');
@@ -2142,7 +2142,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Limpiar todos los filtros
   const _btnClearFilters = document.getElementById('filter-clear-btn');
-  if (_btnClearFilters) _btnClearFilters.addEventListener('click', function () { if (typeof clearAllFilters === 'function') clearAllFilters(); });
+  if (_btnClearFilters) _btnClearFilters.addEventListener('click', function () { clearAllFilters(); });
 
   // T-202606-087: Pill 'Hijos' — init + listener (reemplaza checkbox bl-show-children-toggle)
   const _btnShowChildren = document.getElementById('fbar-show-children-btn');
@@ -2168,7 +2168,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // T-202606-218: listener shell:togglePriorityFilter — invocación cross-módulo sin export
   window.addEventListener('shell:togglePriorityFilter', function (e) {
-    if (typeof togglePriorityFilter === 'function') togglePriorityFilter(e.detail && e.detail.val);
+    togglePriorityFilter(e.detail && e.detail.val);
   });
 
   // T-202606-099: toggle de filtros del backlog desde footer global
