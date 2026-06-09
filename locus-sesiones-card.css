@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-04 · mod:2 · autor:Nova · 2026-06-07 */
+/* [PP] v1.2.4 · sprint:PP-S-08 · mod:3 · autor:Nova · 2026-06-08 */
 
 /* === locus-tracker.js ===
    Funciones: buildCard · _buildCurrentSessionCard (sc-* rediseño) */
@@ -92,6 +92,27 @@
 @keyframes sc-pulse-dot {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
+}
+
+/* ── sc-badge — modificadores de estado avail y exhausted ── */
+/* B-202606-047 · PP-S-08 */
+
+.sc-badge--avail {
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border-color: var(--c-low-border);
+}
+
+.sc-badge--exhausted {
+  background: var(--c-won-bg);
+  color: var(--c-won-text);
+  border-color: var(--c-won-border);
+}
+
+/* avail y exhausted no tienen dot animado — el worker no está en sesión activa */
+.sc-badge--avail .sc-badge-dot,
+.sc-badge--exhausted .sc-badge-dot {
+  display: none;
 }
 
 /* ── sc-sprint-id ── */
