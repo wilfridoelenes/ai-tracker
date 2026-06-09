@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:48 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-07 · mod:49 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1550,7 +1550,7 @@ export function renderStats() {
       } else if (act === 'stats-type-filter') {
         toggleTypeFilter(btn.dataset.type);
       } else if (act === 'stats-priority-filter') {
-        if (typeof togglePriorityFilter === 'function') togglePriorityFilter(btn.dataset.priority);
+        window.dispatchEvent(new CustomEvent('shell:togglePriorityFilter', { detail: { val: btn.dataset.priority } }));
       } else if (act === 'stats-effort-filter') {
         toggleEffortFilter(parseInt(btn.dataset.effort, 10));
       } else if (act === 'stats-effort-missing') {
@@ -2165,6 +2165,11 @@ document.addEventListener('DOMContentLoaded', function () {
   // B-202606-008: sincronizar visibilidad del botón Limpiar filtros con el estado
   // real de los filtros en la carga inicial — antes de cualquier interacción del usuario
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
+
+  // T-202606-218: listener shell:togglePriorityFilter — invocación cross-módulo sin export
+  window.addEventListener('shell:togglePriorityFilter', function (e) {
+    if (typeof togglePriorityFilter === 'function') togglePriorityFilter(e.detail && e.detail.val);
+  });
 
   // T-202606-099: toggle de filtros del backlog desde footer global
   const _btnGfToggle = document.getElementById('gf-footer-toggle');

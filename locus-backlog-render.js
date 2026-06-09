@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-06 · mod:46 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-07 · mod:47 · autor:Rune · 2026-06-09 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -169,7 +169,7 @@ export function updateClearFilterBtn() {
       const val = chip.dataset.afcVal;
       if (act === 'type')          { toggleTypeFilter(val); }
       else if (act === 'status')   { toggleStatusFilter(val); }
-      else if (act === 'priority') { if (typeof togglePriorityFilter === 'function') togglePriorityFilter(val); }
+      else if (act === 'priority') { window.dispatchEvent(new CustomEvent('shell:togglePriorityFilter', { detail: { val } })); }
       else if (act === 'effort')   { toggleEffortFilter(parseInt(val, 10)); }
       else if (act === 'search')   { clearBacklogSearch(); }
       else if (act === 'noac')     { toggleBacklogNoAcMode(); }
