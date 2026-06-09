@@ -1,4 +1,4 @@
-// [PP] v1.3.1 · sprint:PP-S-08 · mod:40 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.3.1 · sprint:PP-S-08 · mod:41 · autor:Rune · 2026-06-09 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -16,6 +16,7 @@ import { _markStatusBarDirty } from './locus-sesiones-stats.js';
 
 // ── Estado interno ──────────────────────────────────────────────────────────
 let _sprintTabActiveSprint = null;
+let _sptActiveSubtab = 'items'; // B-202606-065: persiste el subtab activo entre renders
 
 // ── Helpers internos ────────────────────────────────────────────────────────
 
@@ -81,6 +82,7 @@ function _sprintItemHtml(item) {
 const _SPT_PANELS   = ['items', 'planificar', 'plan', 'sprints']; // T-202606-029: cuarto sub-tab
 
 function _sptSwitch(subtab, triggerBtn) {
+  _sptActiveSubtab = subtab; // B-202606-065: persiste para sobrevivir re-renders
   _SPT_PANELS.forEach(s => {
     const panel = document.getElementById('sprint-panel-' + s);
     const btn   = document.getElementById('spt-tab-' + s);
@@ -680,12 +682,7 @@ export function renderSprintTab() {
   // Mostrar subtab nav y resetear a "Ítems" — R-202605-043
   if (sptNav) {
     sptNav.classList.remove('is-hidden');
-    // Respetar subtab activo — solo resetear a items si ninguno está activo — B-202606-065
-    const _activeSubtab = _SPT_PANELS.find(s => {
-      const btn = _spEl('spt-tab-' + s);
-      return btn && btn.classList.contains('is-active');
-    }) || 'items';
-    _sptSwitch(_activeSubtab, _spEl('spt-tab-' + _activeSubtab));
+    _sptSwitch(_sptActiveSubtab, _spEl('spt-tab-' + _sptActiveSubtab)); // B-202606-065: usa estado persistido — no lee DOM
   }
 
   // Header
