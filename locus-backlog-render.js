@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-07 · mod:47 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-07 · mod:48 · autor:Rune · 2026-06-09 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -11,7 +11,7 @@ import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } 
 
 import { _setBacklogModified } from './locus-docs.js';
 
-import { _getActiveProjectFilter, getActiveSprints } from './locus-storage.js';
+import { _getActiveProjectFilter, getActiveSprints, saveBacklog } from './locus-storage.js';
 
 import { showToast } from './locus-toast.js';
 
