@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:16 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:17 · autor:Rune · 2026-06-08 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -1729,7 +1729,8 @@ function _doConfirmGenerate() {
 
   const fileDefs = [];
   if (docs.map) {
-    const name = `${prefix}-MAP_${bumpedVer}.md`;
+    const mapVer = _mgGetMapVersion(); // T-202606-148: nombre del archivo MAP coincide con header interno
+    const name = `${prefix}-MAP_${mapVer}.md`;
     fileDefs.push({
       filename: name,
       content:  docs.map,
