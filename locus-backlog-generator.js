@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-06-08 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -449,6 +449,35 @@ function _infraVersionStr() {
 }
 
 // ── Generación de contenido Backlog ─────────────────────────────────────────
+// T-202606-149: ## Historial de sprints — sección del backlog exportado
+// Entrada: sprints cerrados de getActiveSprints(). Salida: bloque Markdown con entrada por sprint.
+// Sin sprints cerrados: sección presente con texto `(sin sprints cerrados)`.
+// Formato: ### [Prefijo]-S-XX · [Nombre] | version_target: vX.X.X | cerrado: YYYY-MM-DD
+//          scope: [descripción]
+function _buildSprintHistorialMd() {
+  const pad = n => String(n).padStart(2, '0');
+  const sprints = getActiveSprints();
+  const closed = sprints
+    .filter(s => s.status === 'closed')
+    .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
+
+  if (!closed.length) {
+    return `## Historial de sprints\n\n(sin sprints cerrados)\n`;
+  }
+
+  const lines = closed.map(sp => {
+    const name = sp.label || sp.name || sp.id;
+    const vt = sp.version_target ? sp.version_target.trim() : '—';
+    const closedDate = sp.closedAt
+      ? (() => { const d = new Date(sp.closedAt); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; })()
+      : '—';
+    const scope = (sp.scope && sp.scope.trim()) ? sp.scope.trim() : '—';
+    return `### ${sp.id} · ${name} | version_target: ${vt} | cerrado: ${closedDate}\n\nscope: ${scope}\n`;
+  });
+
+  return `## Historial de sprints\n\n${lines.join('\n---\n\n')}\n`;
+}
+
 export function _generateBacklogContent(newVersion, opts = {}) {
   const state = getState();
   const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
@@ -539,6 +568,9 @@ App: ${_appVerStr} — exportado desde tracker
 
 ${itemsMd}
 
+---
+
+${_buildSprintHistorialMd()}
 ---
 
 ## Estadísticas finales
