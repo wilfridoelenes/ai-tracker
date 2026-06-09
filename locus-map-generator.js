@@ -793,7 +793,7 @@ function _generateMap(ver) {
   const _activeSpForMap = _mgActiveSprint();
   const mapStatus = (typeof _mgInferStatus === 'function')
     ? _mgInferStatus(_activeSpForMap, _blItemsForMap)
-    : 'between_sprints';
+    : 'icebox'; // T-202606-146: between_sprints eliminado — icebox es el valor canónico (BR-Ecosystem §5)
 
   // Nombres de archivos en el MAP para validar calls (AC-12: solo archivos presentes en el MAP)
   const mapFileNames = new Set(parsed.map(p => p.name));
@@ -1152,7 +1152,8 @@ function _mgGetFunctionBody(allLines, bodyStartLine, nextBodyStart, prevLines) {
 
 // R-202605-147: inferir status operativo del proyecto
 // Tabla: SCM modal activo → closing · sprint abierto (con o sin ítems) → active
-//        sin sprint + ítems sin asignar → planning · sin sprint + backlog vacío → between_sprints
+//        sin sprint + ítems sin asignar → planning · sin sprint + backlog vacío → icebox
+// T-202606-146: between_sprints eliminado — reemplazado por icebox (valor canónico BR-Ecosystem §5)
 function _mgInferStatus(activeSp, blItems) {
   // closing: SCM modal visible
   const scmModal = document.getElementById('close-sprint-modal');
@@ -1166,7 +1167,7 @@ function _mgInferStatus(activeSp, blItems) {
     i.status === 'pendiente' && (!i.sprint || i.sprint === '' || i.sprint === 'n/a' || i.sprint === 'futura')
   );
   if (unassigned.length > 0) return 'planning';
-  return 'between_sprints';
+  return 'icebox'; // T-202606-146: era between_sprints — icebox es el valor canónico
 }
 
 function _generateContext(ver) {
