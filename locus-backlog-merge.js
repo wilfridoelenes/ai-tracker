@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-06 · mod:34 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-06 · mod:35 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -42,6 +42,36 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // Se aplican en _mdiffDoApply después de onApply() para que ítems nuevos ya existan en getItems().
   const _patchItems = tgItems.filter(i => i.type === 'patch');
   tgItems = tgItems.filter(i => i.type !== 'patch');
+
+  // T-202606-165: validar sprints no registrados antes del dry-run.
+  // Cualquier ítem (incluidos patches del CHECKPOINT original) con sprint distinto de icebox/''
+  // que no exista en getActiveSprints() bloquea el CHECKPOINT completo sin aplicar nada.
+  // Se valida contra la lista completa — sprints cerrados incluidos — para no bloquear
+  // CHECKPOINTs históricos con sprint ya cerrado que lleguen por retomada.
+  // B-202606-044 compat: buscar por id primero, luego por label (mismo criterio que _sprintSelect).
+  {
+    const _allSprints = getActiveSprints(); // incluye closed
+    const _allItems   = [...tgItems, ..._patchItems];
+    const _unknownSprints = [];
+    for (const it of _allItems) {
+      const s = it.sprint;
+      if (!s || s === 'icebox') continue;
+      const _byId    = _allSprints.find(sp => sp.id    === s);
+      const _byLabel = !_byId ? _allSprints.find(sp => sp.label === s) : null;
+      if (!_byId && !_byLabel && !_unknownSprints.includes(s)) {
+        _unknownSprints.push(s);
+      }
+    }
+    if (_unknownSprints.length > 0) {
+      const _sprintList = _unknownSprints.map(s => `"${s}"`).join(', ');
+      const _msg = _unknownSprints.length === 1
+        ? `CHECKPOINT bloqueado: sprint ${_sprintList} no registrado. Registrar el sprint antes de continuar.`
+        : `CHECKPOINT bloqueado: sprints ${_sprintList} no registrados. Registrar los sprints antes de continuar.`;
+      showToast({ title: 'CHECKPOINT bloqueado', body: _msg, type: 'error' });
+      console.warn('[Locus] showMergeDiffPanel:', _msg);
+      return; // AC-2: ningún ítem aplicado — early-return antes de cualquier mutación
+    }
+  }
 
   // Todo CHECKPOINT válido pasa por el DIFF — sin excepción por contenido.
   // Patches se aplican en _mdiffDoApply tras onApply() — comportamiento preservado.
