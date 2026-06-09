@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:39 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.3.1 · sprint:PP-S-08 · mod:40 · autor:Rune · 2026-06-09 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -680,8 +680,12 @@ export function renderSprintTab() {
   // Mostrar subtab nav y resetear a "Ítems" — R-202605-043
   if (sptNav) {
     sptNav.classList.remove('is-hidden');
-    // Reset al subtab Ítems por defecto — R-202605-052: usa _sptSwitch
-    _sptSwitch('items', _spEl('spt-tab-items'));
+    // Respetar subtab activo — solo resetear a items si ninguno está activo — B-202606-065
+    const _activeSubtab = _SPT_PANELS.find(s => {
+      const btn = _spEl('spt-tab-' + s);
+      return btn && btn.classList.contains('is-active');
+    }) || 'items';
+    _sptSwitch(_activeSubtab, _spEl('spt-tab-' + _activeSubtab));
   }
 
   // Header
