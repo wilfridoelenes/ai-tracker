@@ -645,7 +645,7 @@ function _buildChildrenBlock(rCode) {
 
   return `<div class="r-children-block">
     <div class="r-children-header" data-action="toggle-children" data-r-code="${esc(rCode)}">>
-      <span class="r-children-tickets-label">Tickets</span>
+      <span class="r-children-tickets-label">Ítems</span>
       <div class="r-children-bar-wrap"><div class="r-children-bar" style="--rch-bar-w:${pct}%"></div></div>
       <span class="r-children-label">${doneCount}/${children.length} · ${pct}%</span>
       <span id="rchildren-arrow-${esc(rCode)}" class="r-children-arrow">${isCollapsed ? '▸' : '▾'}</span>
@@ -913,7 +913,7 @@ export function buildBacklogItem(item) {
   const childCount = type === 'R' ? getItems().filter(i => i.parentId === item.code).length : 0;
   const childDoneCount = type === 'R' ? getItems().filter(i => i.parentId === item.code && (i.status === 'done' || i.status === 'descartado')).length : 0;
   const childBadge = (type === 'R' && childCount > 0 && !isDone && !isDiscarded)
-    ? `<span class="bitem-child-badge" title="${childDoneCount}/${childCount} tickets done">${childDoneCount}/${childCount} <span class="bitem-child-badge-label">tickets</span></span>`
+    ? `<span class="bitem-child-badge" title="${childDoneCount}/${childCount} ítems done">${childDoneCount}/${childCount} <span class="bitem-child-badge-label">ítems</span></span>`
     : '';
 
   // T-202604-288: badge "Bloqueado por [código]" — blockedBy explícito pendiente
