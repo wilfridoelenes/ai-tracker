@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-06 · mod:33 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-06 · mod:34 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -404,12 +404,14 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         // AC-2: no-bloqueante — el founder puede cerrarlo y el sprint ya está activo
         // AC-3: lista ítems icebox cuya area aparece en el scope del sprint (case-insensitive)
         const _scopeRaw = (_sprintProposal && _sprintProposal.scope) ? _sprintProposal.scope.toLowerCase() : '';
+        // T-202606-164 AC-4: tokenizar area por · para matching de áreas compuestas
+        // Cualquier token del area que aparezca en el scope → ítem relevante
         const _iceboxRelated = _scopeRaw
-          ? getItems().filter(it =>
-              (it.sprint === 'icebox') &&
-              it.area &&
-              _scopeRaw.includes(it.area.toLowerCase())
-            )
+          ? getItems().filter(it => {
+              if (it.sprint !== 'icebox' || !it.area) return false;
+              const _areaTokens = it.area.split('·').map(t => t.trim().toLowerCase()).filter(Boolean);
+              return _areaTokens.some(token => _scopeRaw.includes(token));
+            })
           : [];
 
         if (_iceboxRelated.length > 0 && body) {
