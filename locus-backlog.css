@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-08 · mod:29 · autor:Rune · 2026-06-08 UTC-6 */
+/* [PP] v1.3.0 · sprint:PP-S-08 · mod:30 · autor:Rune · 2026-06-08 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -21,6 +21,23 @@
 }
 
 .item.is-discarded:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* .item.is-bloqueado — rayas diagonales rojas, par del patrón is-discarded */
+.item.is-bloqueado {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--surface) 0,
+    var(--surface) 8px,
+    rgb(from var(--red) r g b / 0.06) 8px,
+    rgb(from var(--red) r g b / 0.06) 16px
+  );
+  border-left-color: var(--red);
+}
+
+.item.is-bloqueado:hover {
   transform: none;
   box-shadow: none;
 }
