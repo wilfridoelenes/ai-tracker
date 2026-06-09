@@ -1,4 +1,4 @@
-// [PP] v1.4.0 · sprint:PP-S-07 · mod:46 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.4.0 · sprint:PP-S-07 · mod:47 · autor:Rune · 2026-06-09 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -19,6 +19,10 @@ import { showToast, toast } from './locus-toast.js';
 
 
 import { esc } from './locus-ui-shell.js';
+
+// T-202606-203: valor activo de infra_version — fuente de verdad hardcodeada en el módulo.
+// Actualizar manualmente cuando BR-Core §1 incremente infra_version.
+const _INFRA_VERSION_ACTIVE = 14;
 
 // T-202606-210: Set en memoria para detección de CHECKPOINTs duplicados en sesión activa.
 // Scope: por carga de página (sesión activa del navegador). Se resetea con recarga.
@@ -781,6 +785,22 @@ export function parsePaste(id) {
         }
       }
       return;
+    }
+
+    // T-202606-203: detección de desfase de infra_version — aviso informativo no bloqueante
+    // AC-1: extraer infra_version del header del texto pegado — formato: <!-- **infra_version: N** | ... -->
+    // AC-2: si el valor difiere del activo → mostrar alerta con formato exacto de BR-Core §1
+    // AC-3: si el header no contiene infra_version → silencio
+    // AC-4: la ingesta continúa normalmente — no bloquea
+    {
+      const _infraMatch = text.match(/<!--\s*\*\*infra_version:\s*(\d+)\*\*/);
+      if (_infraMatch) {
+        const _infraDoc = parseInt(_infraMatch[1], 10);
+        if (_infraDoc !== _INFRA_VERSION_ACTIVE) {
+          const _docName = (ckpt && ckpt.titulo) ? ckpt.titulo : (ckpt && ckpt.proyecto) ? ckpt.proyecto : 'doc';
+          showToast('warn', `infra_version desactualizada: ${_docName} declara infra_version:${_infraDoc}, valor activo es infra_version:${_INFRA_VERSION_ACTIVE}. Verificar consistencia antes de continuar.`);
+        }
+      }
     }
 
     // G-04: parse exitoso → silencio. El preview renderizado es la confirmación.
