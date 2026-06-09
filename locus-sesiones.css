@@ -1,4 +1,5 @@
 /* locus-sesiones.css */
+/* [PP] v1.4.0 · sprint:PP-S-07 · mod:1 · autor:Rune · 2026-06-09 UTC-6 */
 
 /* Versión: 2.2 | Última actualización: 2026-05-13 | log-* migrado desde locus-radar.css */
 
@@ -7574,3 +7575,10 @@ body.radar-sb-open .tracker-sidebar {
   background: var(--accent-dim);
 }
 /* ── END T-053 ────────────────────────────────────────────────────────────── */
+
+/* ── T-202606-201: item-viz-overlay · CSS Purity — movido desde locus-backlog-item.css §15 ── */
+/* showMergeDiffPanel / _itemVizClose — overlay flex via clase */
+#item-viz-overlay.item-viz--flex {
+  display: flex;
+}
+/* ── END T-202606-201 ─────────────────────────────────────────────────────── */

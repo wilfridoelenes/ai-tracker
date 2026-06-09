@@ -1,4 +1,4 @@
-/* [PP] v1.4.0 · sprint:PP-S-07 · mod:18 · autor:Rune · 2026-06-09 UTC-6 */
+/* [PP] v1.4.0 · sprint:PP-S-07 · mod:19 · autor:Rune · 2026-06-09 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -1649,11 +1649,6 @@
   padding: 4px 12px;
   color: var(--accent);
   border-color: var(--accent);
-}
-
-/* showMergeDiffPanel / _itemVizClose — overlay flex via clase */
-#item-viz-overlay.item-viz--flex {
-  display: flex;
 }
 
 /* ═══ END §15 CSS Purity — checkpoint.js parte 2 ═══ */
