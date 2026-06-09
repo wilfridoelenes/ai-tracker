@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-08 · mod:41 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-08 · mod:42 · autor:Rune · 2026-06-08 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -326,7 +326,9 @@ export function _setPhase(id, phase) {
 // Valores centinela -> delete item.sprint (campo ausente = canónico para "sin sprint")
 // Sprint cerrado -> delete item.sprint + advertencia DocLog
 // T-202606-036 AC3: T con parentId cuyo sprint difiere del parent -> usar sprint del parent + señal informativa
-export function _normalizeSprint(item) {
+// T-202606-158: pendingItems — ítems del CHECKPOINT actual aún no persistidos.
+// Permite heredar sprint del parent R cuando R y T vienen en el mismo CHECKPOINT.
+export function _normalizeSprint(item, pendingItems) {
   const raw = item.sprint;
   // AC-1: centinelas → campo ausente
   if (!raw || raw === 'n/a' || raw === 'N/A' || String(raw).trim() === '') {
@@ -343,10 +345,13 @@ export function _normalizeSprint(item) {
       return;
     }
   }
-  // T-202606-036 AC3: T con parentId — heredar sprint del parent si difiere
+  // T-202606-036 AC3 / T-202606-158: T con parentId — heredar sprint del parent si difiere.
+  // Busca el parent primero en pendingItems (ítems del CHECKPOINT actual aún no persistidos)
+  // y luego en getItems() (backlog persistido), para cubrir el caso en que R y T vienen en el mismo CHECKPOINT.
   if (item.parentId && item.code && item.code[0] === 'T') {
     const _allItems = getItems();
-    const parent = _allItems.find(i => i.code === item.parentId);
+    const parent = (pendingItems && pendingItems.find(i => i.code === item.parentId)) ||
+                   _allItems.find(i => i.code === item.parentId);
     if (parent) {
       const parentSprint = parent.sprint || '';
       if (raw !== parentSprint) {
@@ -451,7 +456,8 @@ export function parsePaste(id) {
           schema_version: _it.schema_version || null                          // T-202606-105
         });
         // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
-        _normalizeSprint(tgItems[tgItems.length - 1]);
+        // T-202606-158: pasar tgItems para heredar sprint de parent R en mismo CHECKPOINT
+        _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
         // T-202606-018: advertencia si P tiene status promovida sin promovida_a
         if (_it.type === 'P' && _normSt === 'promovida' && !_it.promovida_a) {
           _blogLog('promovida-sin-ref', _it.code || '[pendiente-ID]', 'P ' + (_it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
@@ -558,7 +564,8 @@ export function parsePaste(id) {
             schema_version: _it.schema_version || null                          // T-202606-105
           });
           // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
-          _normalizeSprint(tgItems[tgItems.length - 1]);
+          // T-202606-158: pasar tgItems para heredar sprint de parent R en mismo CHECKPOINT
+          _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
           // T-202606-018: advertencia si P tiene status promovida sin promovida_a
           if (_it.type === 'P' && _normSt2 === 'promovida' && !_it.promovida_a) {
             _blogLog('promovida-sin-ref', _it.code || '[pendiente-ID]', 'P ' + (_it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
@@ -1221,7 +1228,8 @@ function parsePasteStandalone() {
       _blogLog('promovida-sin-ref', it.code || '[pendiente-ID]', 'P ' + (it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
     }
     // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
-    _normalizeSprint(tgItems[tgItems.length - 1]);
+    // T-202606-158: pasar tgItems para heredar sprint de parent R en mismo CHECKPOINT
+    _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
   }
 
   if (itemError) {

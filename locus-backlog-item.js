@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-08 · mod:51 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-08 · mod:52 · autor:Rune · 2026-06-08 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -549,7 +549,18 @@ export function _attachBacklogDnD() {
         const fromIdx = getItems().findIndex(i => i.code === fromCode);
         const toIdx   = getItems().findIndex(i => i.code === toCode);
         if (fromIdx < 0 || toIdx < 0) return;
-        if ((getItems()[fromIdx].sprint || '') !== (getItems()[toIdx].sprint || '')) return;
+        const fromItem = getItems()[fromIdx];
+        const toItem   = getItems()[toIdx];
+        // T-202606-160: T con parent — bloquear drop a sprint distinto al del parent R con mensaje
+        if (fromItem.parentId && fromItem.code && fromItem.code[0] === 'T') {
+          const _dndParent = getItems().find(i => i.code === fromItem.parentId);
+          if (_dndParent && ((_dndParent.sprint || '') !== (toItem.sprint || ''))) {
+            showToast('warning', 'El sprint del T se hereda de su parent ' + fromItem.parentId);
+            return;
+          }
+        }
+        // T sin parent — bloqueo genérico cross-sprint (reordenación dentro del mismo sprint)
+        if ((fromItem.sprint || '') !== (toItem.sprint || '')) return;
         const [moved] = getItems().splice(fromIdx, 1);
         getItems().splice(toIdx, 0, moved);
         _undoSnapshot();
