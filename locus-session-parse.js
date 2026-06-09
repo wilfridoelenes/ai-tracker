@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-06 · mod:39 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-08 · mod:40 · autor:Rune · 2026-06-08 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1333,23 +1333,36 @@ function saveStandaloneCheckpoint() {
     decision:    ckpt.decision     || '',
     proximoPaso: ckpt.proximoPaso  || '',
   };
-  // T-202606-156: si el CHECKPOINT standalone tiene ---SPRINT-PROPOSAL--- válido,
-  // pasarlo a showMergeDiffPanel como ckptMeta.sprintProposal — Step 0 es el gate.
-  // El sprint NO se crea aquí — se crea solo al aprobar Step 0 en el DIFF.
-  // Eliminado el _tryIngestSprintProposal(text) previo (línea ~1241) que creaba el sprint
-  // antes del DIFF — reemplazado por este flujo que lo crea solo al aprobar.
+  // T-202606-181: gate Step 0 — detectar ---SPRINT-PROPOSAL--- y presentarlo como Step 0
+  // antes de cualquier otro cambio del DIFF. El sprint se crea solo al aprobar Step 0.
+  // Si el founder rechaza Step 0: sprint no creado y ningún ítem aplicado (AC-3).
   const _spProposalSa = (raw && raw.includes('---SPRINT-PROPOSAL---'))
     ? parseSprintProposal(raw)
     : null;
   const _validSpProposalSa = (_spProposalSa && !_spProposalSa.error) ? _spProposalSa : null;
+
+  // Gate: auto-abierto si no hay proposal — bloqueado hasta aprobación si la hay (AC-2 · AC-3)
+  let _spStep0Approved = !_validSpProposalSa;
+
+  // Wrapper: _doApply solo corre si el gate está abierto
+  const _gatedDoApply = () => {
+    if (!_spStep0Approved) return;
+    _doApply();
+  };
+
   if (_validSpProposalSa) {
     _ckptMetaStandalone.sprintProposal    = _validSpProposalSa;
     _ckptMetaStandalone.onApproveProposal = function() {
-      _tryIngestSprintProposal(raw);
+      _spStep0Approved = true;          // abre el gate — founder aprobó Step 0
+      _tryIngestSprintProposal(raw);    // crea el sprint en estado activo
+    };
+    _ckptMetaStandalone.onRejectProposal = function() {
+      _spStep0Approved = false;         // gate queda cerrado — panel cierra sin aplicar nada
     };
   }
+
   closeStandaloneCheckpoint();
-  showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _doApply, _ckptMetaStandalone);
+  showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _gatedDoApply, _ckptMetaStandalone);
 }
 
 
