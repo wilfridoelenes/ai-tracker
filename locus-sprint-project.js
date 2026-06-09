@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:31 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-05 · mod:32 · autor:Rune · 2026-06-08 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -8,6 +8,8 @@ import { loadHtmlMap } from './locus-map-viewer.js';
 import { _syncCleanProjectBtn } from './locus-reports.js';
 import { _blogLog, _effectiveVersion, _offlineQueuePush, _PREFIX_MAP, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getProjectSessions, getState, getSupabaseUserId, save } from './locus-storage.js';
 import { esc, switchSubTab, switchTab, getCurrentSubTab } from './locus-ui-shell.js';
+// Símbolos movidos a locus-proj-core.js en T-202606-197 (opción d — ESM puro)
+import { _getActiveProjectFilter, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, _countProjSessions, closeProjPanel, selectProjectFilter, getProjectById, getProjContext, setProjContext } from './locus-proj-core.js';
 
 
 import { renderAnalytics } from './locus-analytics-render.js';
@@ -24,7 +26,7 @@ import { _renderTplProjBanner } from './locus-docs.js';
 
 import { _gconfirmOpen, closeModal } from './locus-modals.js';
 
-import { renderProyectos } from './locus-projects.js';
+// renderProyectos — accedida via window.* para evitar ciclo con locus-projects.js (T-202606-197)
 
 import { _updateHeaderProjectLabel } from './locus-sesiones-stats.js';
 // T-202606-058: import { render } from './locus-sesiones.js' eliminado — ciclo A↔B roto.
@@ -116,50 +118,13 @@ function _projListDropHandler(e) {
   if (row) projDrop(e, row.dataset.dragProjId, row);
 }
 
-// T-202606-166: export eliminado — función movida a locus-storage.js. Conservada internamente para call sites locales.
-function _getActiveProjectFilter() {
-  return localStorage.getItem('current-project-filter') || '';
-}
+// _getActiveProjectFilter — movida a locus-proj-core.js en T-202606-197
 
-export function _setActiveProjectFilter(projId) {
-  if (projId) localStorage.setItem('current-project-filter', projId);
-  else localStorage.removeItem('current-project-filter');
-  _updateProjBreadcrumb();
-  _updateProjFilterBtn();
-  _updateHeaderProjectLabel();
-  _syncCleanProjectBtn();
-}
+// _setActiveProjectFilter — movida a locus-proj-core.js en T-202606-197
 
-export function _updateProjBreadcrumb() {
-  // absorbido por _updateProjFilterBtn — no-op
-}
+// _updateProjBreadcrumb — movida a locus-proj-core.js en T-202606-197
 
-export function _updateProjFilterBtn() {
-  const btn = document.getElementById('proj-filter-btn');
-  if (!btn) return;
-  const filterId = _getActiveProjectFilter();
-  if (filterId) {
-    const proj = getProjectById(filterId);
-    const avatar = proj
-      ? (proj.icon
-          ? `<span class="proj-filter-icon">${esc(proj.icon)}</span>`
-          : `<span class="proj-filter-initial" style="--proj-color:${proj.color || '#7c6af7'}">${esc((proj.name||'P')[0].toUpperCase())}</span>`)
-      : '';
-    const name = proj ? esc(proj.name) : 'Proyecto';
-    btn.innerHTML = `${avatar}${name} <span title="Limpiar filtro" class="proj-filter-clear">✕</span>`;
-    btn.classList.add('active');
-    const clearSpan = btn.querySelector('.proj-filter-clear');
-    if (clearSpan) {
-      clearSpan.addEventListener('click', function(e) {
-        e.stopPropagation();
-        clearProjectFilter();
-      });
-    }
-  } else {
-    btn.innerHTML = '📁 Proyectos';
-    btn.classList.remove('active');
-  }
-}
+// _updateProjFilterBtn — movida a locus-proj-core.js en T-202606-197
 
 function clearProjectFilter() {
   _setActiveProjectFilter('');
@@ -178,11 +143,7 @@ export function openProjPanel() {
   if (btn) btn.classList.add('active');
 }
 
-export function closeProjPanel() {
-  document.getElementById('proj-panel-overlay').classList.remove('open');
-  const btn = document.getElementById('proj-filter-btn');
-  if (btn) btn.classList.remove('active');
-}
+// closeProjPanel — movida a locus-proj-core.js en T-202606-197
 
 function renderProjPanel() {
   const state = getState();
@@ -232,26 +193,9 @@ function renderProjPanel() {
   }, { once: true });
 }
 
-export function _countProjSessions(proj) {
-  return getProjectSessions(proj.id).length;
-}
+// _countProjSessions — movida a locus-proj-core.js en T-202606-197
 
-export function selectProjectFilter(projId) {
-  _setActiveProjectFilter(projId);
-  closeProjPanel();
-  loadBacklog(); loadHtmlMap();
-  window.dispatchEvent(new CustomEvent('shell:sesiones-render')); if (typeof renderHoy === 'function') renderHoy();
-  if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
-  renderBacklogList(); renderStats();
-  _renderTplProjBanner();
-  switchSubTab(getCurrentSubTab());
-  if (projId) {
-    const proj = getProjectById(projId);
-    showToast('info', proj ? `Filtro: ${proj.name}` : 'Filtro activo');
-  } else {
-    showToast('info', 'Filtro limpiado');
-  }
-}
+// selectProjectFilter — movida a locus-proj-core.js en T-202606-197
 
 // ── T-080: Modal gestión proyectos CRUD ──
 
@@ -488,7 +432,7 @@ function toggleProjArchive(projId) {
   }
   save();
   _renderProjList();
-  renderProyectos();
+  if (typeof window.renderProyectos === 'function') window.renderProyectos();
   showToast('info', !wasArchived ? `"${proj.name}" archivado` : `"${proj.name}" restaurado`);
 }
 
@@ -544,27 +488,13 @@ function projDrop(e, toId, rowEl) {
   _renderProjList();
 }
 
-// T-202606-166: export eliminado — función movida a locus-storage.js. Conservada internamente para call sites locales.
-function getProjectById(id) {
-  const state = getState();
-  return (state.projects || []).find(p => p.id === id);
-}
+// getProjectById — movida a locus-proj-core.js en T-202606-197
 function getProjectsByAI(aiId) {
   const state = getState();
   return (state.projects || []).filter(p => (p.sessions || []).some(s => s.aiId === aiId));
 }
 
-export function getProjContext(projId) {
-  const proj = getProjectById(projId);
-  return proj ? (proj.context || '') : '';
-}
-export function setProjContext(projId, text, version) {
-  const proj = getProjectById(projId);
-  if (!proj) return;
-  proj.context = text || '';
-  if (version !== undefined) proj.contextVersion = version || '';
-  save();
-}
+// getProjContext / setProjContext — movidas a locus-proj-core.js en T-202606-197
 
 function _notesKey(projId) {
   return projId ? 'notes-' + projId : 'notes';
@@ -793,23 +723,16 @@ export function _getLocalStorageUsage() {
 })();
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
+// Nota T-202606-197: getProjectById · _getActiveProjectFilter · _setActiveProjectFilter ·
+// _updateProjBreadcrumb · _updateProjFilterBtn · _countProjSessions · closeProjPanel ·
+// selectProjectFilter · getProjContext · setProjContext — expuestos via locus-proj-core.js
 // T-202606-016: funciones de export removidas de window.* — viven en locus-backlog-generator.js
-window.getProjectById            = getProjectById;
-window._getActiveProjectFilter   = _getActiveProjectFilter;
 window.pad                       = window.pad || pad;
 window._sprintNum                = _sprintNum;
 window.openProjPanel             = openProjPanel;
-window.selectProjectFilter       = selectProjectFilter;
 window._docPrefix                = _docPrefix;
-window.getProjContext            = getProjContext;
-window._countProjSessions        = _countProjSessions;
-window._setActiveProjectFilter   = _setActiveProjectFilter;
-window._updateProjBreadcrumb     = _updateProjBreadcrumb;
-window._updateProjFilterBtn      = _updateProjFilterBtn;
-window.setProjContext            = setProjContext;
 window._getLocalStorageUsage     = _getLocalStorageUsage;
 window.openProjModal             = openProjModal;
-window.closeProjPanel            = closeProjPanel;
 window.closeProjModal            = closeProjModal;
 window.clearProjectFilter        = clearProjectFilter;
 window.renderProjPanel           = renderProjPanel;
