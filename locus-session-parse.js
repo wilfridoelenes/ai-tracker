@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-08 · mod:40 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-08 · mod:41 · autor:Rune · 2026-06-08 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1353,8 +1353,11 @@ function saveStandaloneCheckpoint() {
   if (_validSpProposalSa) {
     _ckptMetaStandalone.sprintProposal    = _validSpProposalSa;
     _ckptMetaStandalone.onApproveProposal = function() {
-      _spStep0Approved = true;          // abre el gate — founder aprobó Step 0
-      _tryIngestSprintProposal(raw);    // crea el sprint en estado activo
+      // T-202606-206: atomicidad sprint + ítems — gate solo se abre si el sprint se crea con éxito.
+      // Si _tryIngestSprintProposal retorna false (duplicado, campos faltantes u otro error),
+      // _spStep0Approved permanece false y _doApply no corre (AC-1).
+      const _spCreated = _tryIngestSprintProposal(raw); // crea el sprint en estado activo
+      if (_spCreated) _spStep0Approved = true;          // abre el gate solo si el sprint se creó (AC-2)
     };
     _ckptMetaStandalone.onRejectProposal = function() {
       _spStep0Approved = false;         // gate queda cerrado — panel cierra sin aplicar nada
