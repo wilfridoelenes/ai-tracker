@@ -1,4 +1,4 @@
-/* [PP] v1.4.0 · sprint:PP-S-07 · mod:31 · autor:Nova · 2026-06-09 UTC-6 */
+/* [PP] v1.4.0 · sprint:PP-S-07 · mod:32 · autor:Nova · 2026-06-09 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -1788,7 +1788,7 @@
 .item-title-inline {
   font-size: var(--text-base);
   font-weight: 500;
-  color: var(--text1);
+  color: var(--text);
   flex: 1;
   min-width: 0;
   overflow: hidden;
@@ -1799,7 +1799,7 @@
 .item-title-edit-input {
   font-size: var(--text-base);
   font-weight: 500;
-  color: var(--text1);
+  color: var(--text);
   flex: 1;
   min-width: 0;
   background: var(--surface2);
@@ -1874,7 +1874,7 @@
 
 .section-group-header:hover {
   background: var(--surface3, var(--surface2));
-  color: var(--text1);
+  color: var(--text);
 }
 
 .section-group-arrow {
@@ -3826,7 +3826,7 @@
 .arranque-close-btn {
   background: none;
   border: none;
-  color: var(--text3);
+  color: var(--hint);
   font-size: var(--text-lg);
   cursor: pointer;
   padding: 4px 6px;
@@ -3860,7 +3860,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--text3);
+  color: var(--hint);
 }
 
 .arr-value {
@@ -3943,7 +3943,7 @@
 
 .arr-value--muted {
   font-size: var(--text-sm);
-  color: var(--text3);
+  color: var(--hint);
   font-style: italic;
 }
 
@@ -3955,7 +3955,7 @@
 
 .arr-item--more {
   font-size: var(--text-xs);
-  color: var(--text3);
+  color: var(--hint);
   padding-left: 2px;
 }
 
@@ -4065,7 +4065,7 @@
 }
 
 .arr-plan-indicator--blocked {
-  color: var(--text3);
+  color: var(--hint);
 }
 
 .arr-plan-rol {
@@ -4077,7 +4077,7 @@
 .arr-plan-sprint {
   font-size: var(--text-xs);
   font-weight: 500;
-  color: var(--text3);
+  color: var(--hint);
   background: var(--surface3, var(--surface));
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -4093,7 +4093,7 @@
 
 .arr-plan-no-items {
   font-size: var(--text-sm);
-  color: var(--text3);
+  color: var(--hint);
   font-style: italic;
 }
 
@@ -4109,7 +4109,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
-  color: var(--text3);
+  color: var(--hint);
 }
 
 .arr-plan-files-row {
@@ -4191,12 +4191,12 @@
 }
 
 .arr-plan-row-count {
-  color: var(--text3);
+  color: var(--hint);
   font-size: var(--text-xs);
 }
 
 .arr-plan-row-blocker {
-  color: var(--text3);
+  color: var(--hint);
   font-size: var(--text-xs);
   font-style: italic;
 }
@@ -4204,7 +4204,7 @@
 /* Estados vacíos */
 .arr-plan-empty {
   font-size: var(--text-sm);
-  color: var(--text3);
+  color: var(--hint);
   font-style: italic;
   padding: 6px 0;
 }
@@ -4231,7 +4231,7 @@
   opacity: 0.45;
   cursor: not-allowed;
   background: var(--surface3, var(--surface2));
-  color: var(--text3);
+  color: var(--hint);
 }
 
 .arr-plan-copy-btn--disabled:hov/* === locus-backlog-sprints.js ===
@@ -4664,14 +4664,14 @@ er {
 /* R-202605-005 · A4-b · bitem-* */
 
 .bitem-ac-header--empty {
-  color: var(--text-muted);
+  color: var(--text2);
   font-size: var(--text-sm);
   font-style: italic;
 }
 
 .bitem-child-badge-label {
   font-size: var(--text-2xs);
-  color: var(--text-muted);
+  color: var(--text2);
 }
 
 .bitem-notes-block {
@@ -4683,7 +4683,7 @@ er {
 .bitem-notes-label {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text2);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 2px;
@@ -4713,7 +4713,7 @@ er {
 
 .bitem-origin-p-name {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--text2);
   font-style: italic;
 }
 
@@ -4739,7 +4739,7 @@ er {
 
 .bitem-subline-role {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--text2);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -4747,7 +4747,7 @@ er {
 
 .bitem-timestamps {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--text2);
   display: flex;
   gap: 12px;
   flex-wrap: wrap;
@@ -4783,7 +4783,7 @@ er {
   border-radius: var(--radius-pill);
   border: 1px solid var(--border);
   background: var(--bg-subtle);
-  color: var(--text-muted);
+  color: var(--text2);
   transition: var(--trans-fast);
 }
 
@@ -4805,12 +4805,12 @@ er {
 }
 
 .badge-missing--effort {
-  color: var(--text-muted);
+  color: var(--text2);
   font-size: var(--text-xs);
 }
 
 .badge-missing--idle {
-  color: var(--text-muted);
+  color: var(--text2);
   font-size: var(--text-xs);
   opacity: 0.7;
 }
@@ -4834,7 +4834,7 @@ er {
 
 .promote-type-hint {
   font-size: var(--text-xs);
-  color: var(--text-muted);
+  color: var(--text2);
   margin-top: 2px;
 }
 
@@ -4865,7 +4865,7 @@ er {
   background: var(--bg-subtle);
   padding: 1px 5px;
   border-radius: var(--radius-sm);
-  color: var(--text-muted);
+  color: var(--text2);
   letter-spacing: 0.02em;
 }
 
@@ -4901,7 +4901,7 @@ er {
 /* R-202605-005 · A4-b · btn-ghost-* */
 
 .btn-ghost--muted {
-  color: var(--text-muted);
+  color: var(--text2);
   background: transparent;
   border: none;
   opacity: 0.8;
@@ -4950,7 +4950,7 @@ er {
 /* R-202605-005 · A4-b · r-children-* */
 
 .r-children-arrow {
-  color: var(--text-muted);
+  color: var(--text2);
   font-size: var(--text-xs);
   flex-shrink: 0;
 }
@@ -4958,7 +4958,7 @@ er {
 .r-children-tickets-label {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text2);
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
@@ -4979,7 +4979,7 @@ er {
 }
 
 .effort-missing {
-  color: var(--text-muted);
+  color: var(--text2);
   font-size: var(--text-xs);
   opacity: 0.7;
 }
@@ -5085,7 +5085,7 @@ er {
   padding: 2px 8px;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-muted);
+  color: var(--text2);
   border: 1px solid var(--border);
   cursor: pointer;
   transition: var(--trans-fast);
