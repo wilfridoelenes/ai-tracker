@@ -1015,13 +1015,13 @@ export function buildBacklogItem(item) {
     <div class="item-header bitem-header" data-action="item-expand" data-idx="${globalIdx}">
       ${(!isDone && !isDiscarded && item.sprint) ? `<span class="item-drag-handle" data-action="drag-handle" title="Arrastrar para reordenar en sprint">⠿</span>` : ''}
       ${isActive ? '<span class="bitem-activity-dot" title="Actividad reciente — sesión vinculada en los últimos 7 días"></span>' : ''}
+      <button id="copy-item-btn-${esc(item.code)}" class="copy-item-btn" data-action="copy-item" data-code="${esc(item.code)}" aria-label="Copiar ítem" title="Copiar ítem para sesión FS"><svg class="copy-btn-icon copy-btn-icon--clipboard" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="5" y="2" width="9" height="12" rx="1.5"/><path d="M5 4H4a1.5 1.5 0 0 0-1.5 1.5v8A1.5 1.5 0 0 0 4 15h7a1.5 1.5 0 0 0 1.5-1.5V13"/></svg><svg class="copy-btn-icon copy-btn-icon--check is-hidden" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 8l4 4 6-6"/></svg></button>
       ${typeBlock}
       <div class="bitem-title-col">
         <span class="bitem-code" id="code-badge-${globalIdx}" data-action="copy-code" data-code="${esc(item.code)}" data-idx="${globalIdx}" title="Click para copiar ID">${item._focusRank ? `<span class="bitem-focus-rank" title="Posición en Focus">#${item._focusRank}</span> ` : ''}${esc(item.code)}</span>
         <span class="bitem-title"${(!isDone && !isDiscarded) ? ' data-action="inline-edit-title" data-code="${esc(item.code)}" title="Doble click para editar título"' : ''}>${esc(item.title)}</span>${isDiscarded && (!item.title || item.title.trim() === item.code) ? '<span class="bitem-ghost-note" title="Ítem sin título — posiblemente generado por un CHECKPOINT malformado">⚠ ítem fantasma — generado por CHECKPOINT malformado</span>' : ''}
         ${subline}
       </div>
-      <button id="copy-item-btn-${esc(item.code)}" class="copy-item-btn" data-action="copy-item" data-code="${esc(item.code)}" aria-label="Copiar ítem" title="Copiar ítem para sesión FS"><svg class="copy-btn-icon copy-btn-icon--clipboard" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="5" y="2" width="9" height="12" rx="1.5"/><path d="M5 4H4a1.5 1.5 0 0 0-1.5 1.5v8A1.5 1.5 0 0 0 4 15h7a1.5 1.5 0 0 0 1.5-1.5V13"/></svg><svg class="copy-btn-icon copy-btn-icon--check is-hidden" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 8l4 4 6-6"/></svg></button>
       <span class="bitem-collapse-arrow" id="iarrow-${globalIdx}">▸</span>
       ${headerRight}
     </div>
