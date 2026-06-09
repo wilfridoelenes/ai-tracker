@@ -17,7 +17,6 @@ import { _animateCountUp, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionY
 import { openDetail } from './locus-session-popup.js';
 
 import { _projKey, getAI, getAISessions, getProjectSessions, save } from './locus-storage.js';
-import { _countProjSessions, _getActiveProjectFilter, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, getProjectById, selectProjectFilter, setProjContext } from './locus-proj-core.js';
 
 import { showToast } from './locus-toast.js';
 

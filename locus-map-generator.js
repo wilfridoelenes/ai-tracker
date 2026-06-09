@@ -14,7 +14,7 @@ import { editSprintInline } from './locus-backlog-sprints.js';
 import { _getMapContent, _importContextMdFromText, exportHtmlMapMd, importHtmlMap } from './locus-docs.js';
 import { _tryIngestPlan } from './locus-session-parse.js';
 import { buildBacklogMd } from './locus-session-save.js';
-import { getProjContext } from './locus-sprint-project.js';
+import { getProjContext } from './locus-proj-core.js';
 import { _generateFullHistoryContent, exportBacklogMd, exportContextMd, exportFullHistoryMd } from './locus-backlog-generator.js';
 import { _docPrefix, _effectiveVersion, _tplKey, getAISessions, getActiveProject, getActiveSprints, save } from './locus-storage.js';
 import { showToast, showToastInline, toast } from './locus-toast.js';
