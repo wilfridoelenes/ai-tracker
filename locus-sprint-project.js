@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:33 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-07 · mod:35 · autor:Rune · 2026-06-09 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -732,8 +732,6 @@ window._sprintNum                = _sprintNum;
 window.openProjPanel             = openProjPanel;
 window._docPrefix                = _docPrefix;
 window._getLocalStorageUsage     = _getLocalStorageUsage;
-window.openProjModal             = openProjModal;
-window.closeProjModal            = closeProjModal;
 window.clearProjectFilter        = clearProjectFilter;
 window.renderProjPanel           = renderProjPanel;
 window.cancelProjForm            = cancelProjForm;

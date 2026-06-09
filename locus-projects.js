@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:13 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-07 · mod:14 · autor:Rune · 2026-06-09 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -9,7 +9,7 @@ import { _getActiveSprint } from './locus-backlog-sprints.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { relDate } from './locus-session-hora.js';
 import { _countProjSessions, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, selectProjectFilter, setProjContext } from './locus-proj-core.js';
-// openProjModal — accedida via window.* para evitar ciclo con locus-sprint-project.js (T-202606-197)
+import { openProjModal } from './locus-sprint-project.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
 import { _animateCountUp, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionYM } from './locus-analytics-core.js';
@@ -1296,7 +1296,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     switch (action) {
       case 'open-proj-modal':
-        if (typeof window.openProjModal === 'function') window.openProjModal();
+        openProjModal();
         break;
       case 'toggle-archived-section': {
         const o = localStorage.getItem('proy2-archived-open') !== '0';
