@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:17 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:18 · autor:Rune · 2026-06-08 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -1042,7 +1042,7 @@ function _generateMap(ver) {
 
   files.forEach(f => {
     const changedStr = f.changed_in ? f.changed_in : '—';
-    const modStr = f.mod !== null && f.mod !== undefined ? String(f.mod) : 'n/a'; // T-202606-145 F-02
+    const modStr = f.mod !== null && f.mod !== undefined ? String(f.mod) : '1'; // T-202606-145 F-02 · gap G1: CSS sin header emite mod:1 como inicial
     md += `## ${f.name}\n`;
     md += `**Líneas:** ${f.lines} · **mod:** ${modStr} · **Size:** ${f.size_signal} · **Changed in:** ${changedStr}\n\n`;
 
