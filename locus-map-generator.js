@@ -71,6 +71,14 @@ function openMapGenerator() {
   if (vInput) vInput.value = ver;
   if (fPreview) fPreview.textContent = `${prefix}-MAP_${ver}.md`;
 
+  // T-202606-147: pre-poblar infra_version desde campo del proyecto activo
+  // El founder actualiza el valor en el input cuando sube infra_version en el ecosistema
+  const ivInput = document.getElementById('mg-infra-version-input');
+  if (ivInput) {
+    const proj = getActiveProject();
+    ivInput.value = (proj && proj.infraVersion) ? String(proj.infraVersion) : '';
+  }
+
   // R-202605-147: inferir status al abrir — calculado una sola vez
   let _blItemsForStatus = [];
   try {
@@ -1013,7 +1021,15 @@ function _generateMap(ver) {
   });
 
   let md = `# ${project}-MAP_${version}.md\n`;
-  md += `<!-- Versión: ${version} | Actualizado: ${now} UTC-6 | Proyecto: ${project} | Status: ${mapStatus} -->\n\n`;
+  md += `<!-- Versión: ${version} | Actualizado: ${now} UTC-6 | Proyecto: ${project} | Status: ${mapStatus} -->\n`;
+  // T-202606-147: segunda línea de header — infra_version si está declarado en el input
+  // Formato canónico OB-Strategy §5b: <!-- **infra_version: [N]** | BR-Core vX.X · ... -->
+  const _ivEl = document.getElementById('mg-infra-version-input');
+  const _ivRaw = _ivEl ? _ivEl.value.trim() : '';
+  if (_ivRaw) {
+    md += `<!-- **infra_version: ${_ivRaw}** -->\n`;
+  }
+  md += '\n';
 
   files.forEach(f => {
     const changedStr = f.changed_in ? f.changed_in : '—';

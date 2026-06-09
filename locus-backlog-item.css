@@ -1,4 +1,4 @@
-/* [PP] v1.3.0 · sprint:PP-S-08 · mod:15 · autor:Nova · 2026-06-08 UTC-6 */
+/* [PP] v1.3.0 · sprint:PP-S-08 · mod:16 · autor:Rune · 2026-06-08 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -3892,7 +3892,7 @@ body {
 }
 
 .mdiff-duration-input {
-  font-size: var(--text-sm);
+  font-size: var(--text-md); /* T-202606-173 AC-3: ≥14px — era --text-sm (12px) */
   font-family: monospace;
   color: var(--text);
   background: var(--surface2);

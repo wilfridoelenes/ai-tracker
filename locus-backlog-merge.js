@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-06 · mod:31 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.3.0 · sprint:PP-S-08 · mod:32 · autor:Rune · 2026-06-08 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -778,7 +778,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           id="mdiff-duration-input"
           type="text"
           inputmode="numeric"
-          placeholder="HHMM"
+          placeholder="ej: 2130"
           maxlength="4"
           autocomplete="off"
           aria-label="Hora de desbloqueo del worker en formato HHMM (ej: 2130)"
@@ -793,6 +793,12 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   }
 
   overlay.classList.add('open');
+
+  // T-202606-173 AC-1: foco inicial en input de hora al abrir el modal
+  requestAnimationFrame(() => {
+    const _focusInput = overlay.querySelector('#mdiff-duration-input');
+    if (_focusInput) _focusInput.focus();
+  });
 
   // Evaluar estado inicial del botón
   _mdiffUpdateConfirmBtn();
