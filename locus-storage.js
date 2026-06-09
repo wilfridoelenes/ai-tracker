@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:32 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-08 · mod:33 · autor:Rune · 2026-06-08 UTC-6
 // locus-storage.js
 // Última actualización: 2026-06-06 · T-202606-101: guard de salida para retries de _loadFromSupabase (_LOAD_RETRY_MAX)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1733,3 +1733,25 @@ export function _docPrefix() {
   return _PREFIX_MAP[name] || (name.slice(0, 2).toUpperCase() || 'XX');
 }
 // ── END T-202606-166 ──────────────────────────────────────────────────────────
+
+// ── T-202606-199: getActivePlan() — retorna plan del proyecto activo desde localStorage ──
+// Firma: getActivePlan() → Object | null
+// Ownership: locus-storage.js — consume LOCUS_KEYS.PLAN_PREFIX y window.state.activeProjectId
+// Accesible desde locus-backlog-item.js en el mismo ciclo de carga sin guard typeof requerido.
+export function getActivePlan() {
+  try {
+    const projId = window.state && window.state.activeProjectId != null
+      ? window.state.activeProjectId
+      : null;
+    if (projId == null) return null;
+    const raw = localStorage.getItem(LOCUS_KEYS.PLAN_PREFIX + projId);
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return null;
+    }
+  } catch (_) {
+    return null;
+  }
+}
