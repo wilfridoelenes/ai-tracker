@@ -383,7 +383,7 @@ export function parsePaste(id) {
   const ta = document.getElementById('ta-' + id);
   const text = ta ? ta.value : '';
   // R-202605-133: detectar CHECKPOINT en formato JSON puro (```json) o Markdown legacy
-  const isCheckpoint = text.includes('---CHECKPOINT---') || /```json\s*\{/.test(text);
+const isCheckpoint = text.includes('---CHECKPOINT---') || /^\s*```json\s*\{/.test(text);
 
   let title = '', summary = '', files = '', nextStep = '', bloqueantesRaw = '', tgItems = [], ckpt = null;
   if (isCheckpoint) {
