@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 08:00 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -889,7 +889,6 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     const totalApply = diff.created.length + diff.advanced.length + diff.updated.length
                      + diff.retroceso.length + diff.discarded.length + diff.createdAndClosed.length;
     applyBtn.textContent = blocked ? '✓ Guardar sesión' : `✓ Guardar sesión (${totalApply})`;
-  };
 
   // Footer: input duración + botones de acción
   // T-202606-046: input HH:MM declarado por Nova en T-202606-042 — HTML conforme a spec de Nova.
