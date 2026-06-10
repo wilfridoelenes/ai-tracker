@@ -1,4 +1,4 @@
-// [PP] v1.3.1 · sprint:PP-S-07 · mod:42 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:43 · autor:Rune · 2026-06-10 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -61,7 +61,7 @@ function _sprintItemHtml(item) {
 
   // Progreso de hijos (Ts)
   let childrenHtml = '';
-  if (typeof getItems() !== 'undefined') {
+  if (Array.isArray(getItems())) {
     const children = getItems().filter(i => i.parentCode === item.code && i.type === 'T');
     if (children.length > 0) {
       const done = children.filter(c => c.status === 'done').length;
@@ -317,12 +317,13 @@ function _escHtml(str) {
 // ── B-202606-064: T-202606-131/132 eliminados — aprobación de sprint ocurre via Step 0 del DIFF ──
 
 function _renderSprintItems(sprint) {
-  if (typeof getItems() === 'undefined') return;
+  // B-202606-006: guard corregido — getItems() siempre retorna array, nunca undefined
+  if (!Array.isArray(getItems())) return;
 
   const spItems = getItems().filter(i => {
     const t = i.type || (i.code ? i.code.charAt(0) : '');
     return i.sprint && i.sprint.startsWith(sprint.id) &&
-      (t === 'R' || t === 'B') &&
+      (t === 'R' || t === 'B' || t === 'T') &&
       i.status !== 'descartado';
   });
 
@@ -396,7 +397,7 @@ function _renderSprintWorkers(sprint) {
 
   {
     const sessions = getAllSessions();
-    const sprintItemCodes = (typeof getItems() !== 'undefined')
+    const sprintItemCodes = Array.isArray(getItems())
       ? new Set(getItems().filter(i => i.sprint && i.sprint.startsWith(sprint.id)).map(i => i.code))
       : new Set();
 
@@ -429,7 +430,7 @@ function _renderSprintScopeAdded(sprint) {
   const count   = _spEl('sca-count');
   if (!section || !body) return;
 
-  if (typeof getItems() === 'undefined') return;
+  if (!Array.isArray(getItems())) return;
 
   const scopeItems = getItems().filter(i =>
     i.sprint && i.sprint.startsWith(sprint.id) &&
@@ -489,11 +490,12 @@ function _renderSprintManager() {
     // Calcular progreso desde getItems()
     let total = 0;
     let done  = 0;
-    if (typeof getItems() !== 'undefined') {
+    if (Array.isArray(getItems())) {
+      // B-202606-006: incluir T en el conteo — el filtro anterior excluía Ts del burndown
       const spItems = getItems().filter(i => {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
         return i.sprint && i.sprint.startsWith(sprint.id) &&
-          (t === 'R' || t === 'B') &&
+          (t === 'R' || t === 'B' || t === 'T') &&
           i.status !== 'descartado';
       });
       total = spItems.length;
@@ -689,7 +691,7 @@ function _spmToggle() {
 
 // Determina el sprint ID más frecuente en ítems no registrados — AC-2c
 function _spmGetUnregisteredSprintId() {
-  if (typeof getItems() === 'undefined') return null;
+  if (!Array.isArray(getItems())) return null;
   const allSprints = getActiveSprints();
   const registeredIds = new Set(allSprints.map(s => s.id));
   const freq = {};
