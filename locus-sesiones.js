@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-04 · mod:21 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:22 · autor:Rune · 2026-06-10 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -379,89 +379,6 @@ export function selectTrackerAI(aiId) {
   }, 80);
 }
 
-function _renderTrackerSidebar() {
-  const nonArchived = getState().ais.filter(ai => !ai.archived);
-  const inSession = nonArchived.filter(ai => ai.status !== 'exhausted' && !ai.interrupted && _isInSession(ai));
-  const available = nonArchived.filter(ai => ai.status !== 'exhausted' && !_isInSession(ai));
-  const exhausted = nonArchived.filter(ai => ai.status === 'exhausted');
-  const archived  = getState().ais.filter(ai => ai.archived);
-
-  const mkRow = (ai, forceInSession = false) => {
-    const sel = _trackerSelectedId === ai.id ? ' selected' : '';
-    const dot = ai.status === 'exhausted' ? 'exhausted'
-              : ai.interrupted            ? 'interrupted'
-              : forceInSession            ? 'insession'
-              : 'available';
-    // countdown para agotadas
-    let cd = '';
-    if (ai.status === 'exhausted' && ai.resetTime) {
-      const [hh, mm] = ai.resetTime.split(':').map(Number);
-      const now = new Date();
-      const reset = new Date(now); reset.setHours(hh, mm, 0, 0);
-      if (reset <= now) reset.setDate(reset.getDate() + 1);
-      const diff = Math.max(0, Math.round((reset - now) / 60000));
-      const h = Math.floor(diff / 60), m = diff % 60;
-      cd = `<span class="tsb-ai-cd">${h}h${String(m).padStart(2,'0')}</span>`;
-    }
-    // T-202604-206: info secundaria — N sesiones · hace X
-    const _aiSess = getAISessions(ai.id);
-    const _sessCount = _aiSess.length;
-    const _lastSess = _aiSess.length ? _aiSess[_aiSess.length - 1] : null;
-    const _lastDate = _lastSess ? (_lastSess.date || _lastSess.dateShort || '') : '';
-    const _rel = _lastDate ? relDate(_lastDate) : '';
-    const _meta = _sessCount
-      ? `<span class="tsb-ai-meta">${_sessCount} ckpt${_rel ? ' · ' + _rel : ''}</span>`
-      : '';
-    return `<div class="tsb-ai-row${sel}" data-action="select-tracker-ai" data-ai-id="${ai.id}" id="tsb-row-${ai.id}">
-      <span class="tsb-ai-dot ${dot}"></span>
-      <span class="tsb-ai-name">${esc(ai.name)}</span>
-      ${_meta}
-      ${cd}
-    </div>`;
-  };
-
-  const isEl = document.getElementById('tsb-insession');
-  const avEl = document.getElementById('tsb-available');
-  const exEl = document.getElementById('tsb-exhausted');
-  if (!avEl || !exEl) return;
-
-  if (!getState().ais.length) {
-    if (isEl) isEl.innerHTML = '';
-    avEl.innerHTML = `<div class="tsb-empty-hint">Sin IAs</div>`;
-    exEl.innerHTML = '';
-    return;
-  }
-
-  // En curso — ocultar sección si vacía
-  if (isEl) {
-    const isSection = isEl.closest('.tracker-sidebar-section');
-    if (inSession.length) {
-      isEl.innerHTML = inSession.map(ai => mkRow(ai, true)).join('');
-      if (isSection) isSection.classList.remove('is-hidden');
-    } else {
-      isEl.innerHTML = '';
-      if (isSection) isSection.classList.add('is-hidden');
-    }
-  }
-
-  avEl.innerHTML = available.length
-    ? available.map(ai => mkRow(ai)).join('')
-    : `<div class="tsb-empty-hint">—</div>`;
-
-  let exHtml = exhausted.map(ai => mkRow(ai)).join('');
-  if (archived.length) {
-    const isOpen = localStorage.getItem('archived-open') === '1';
-    exHtml += `<div class="tsb-archived-toggle">
-      ${isOpen ? '▼' : '▶'} Archivadas (${archived.length})</div>`;
-    if (isOpen) exHtml += archived.map(ai => mkRow(ai)).join('');
-  }
-  exEl.innerHTML = exHtml || `<div class="tsb-empty-hint">—</div>`;
-
-  // arrancar ticker dinámico si hay agotadas con resetTime
-  if (exhausted.some(ai => ai.resetTime)) _startSidebarTicker();
-  else _stopSidebarTicker();
-}
-
 
 // B-202605-082: dirty flag — evita renders redundantes sin cambio de estado
 let _trackerDirty = false;
@@ -481,7 +398,6 @@ export function render() {
   const grid = document.getElementById('grid');
   const emptyEl = document.getElementById('tracker-detail-empty');
 
-  _renderTrackerSidebar();
 
   if (!getState().ais.length) {
     if (grid) grid.innerHTML = '';
@@ -1251,64 +1167,6 @@ document.addEventListener('DOMContentLoaded', function _initAutoDlLabel() {
 // T-202606-085: re-export para preservar compatibilidad — implementación movida a locus-sesiones-utils.js
 export { _hoyMsUntilReset, _hoyCountdownLabel } from './locus-sesiones-utils.js';
 
-// Ticker de countdown para IAs agotadas en el sidebar del Tab Tracker
-let _sidebarTickerInterval = null;
-function _startSidebarTicker() {
-  _stopSidebarTicker();
-  const _expiredThisTick = new Set();
-  _sidebarTickerInterval = setInterval(() => {
-    const exhausted = getState().ais.filter(ai => !ai.archived && ai.status === 'exhausted' && ai.resetTime);
-    if (!exhausted.length) { _stopSidebarTicker(); return; }
-    exhausted.forEach(ai => {
-      if (_expiredThisTick.has(ai.id)) return;
-      const el = document.getElementById('tsb-row-' + ai.id);
-      if (el) {
-        let cdEl = el.querySelector('.tsb-ai-cd');
-        const [hh, mm] = ai.resetTime.split(':').map(Number);
-        const now = new Date();
-        const reset = new Date(now); reset.setHours(hh, mm, 0, 0);
-        if (reset <= now) reset.setDate(reset.getDate() + 1);
-        const diff = Math.max(0, Math.round((reset - now) / 60000));
-        if (diff === 0) {
-          _expiredThisTick.add(ai.id);
-          ai.status = 'available';
-          ai.resetTime = '';
-          ai.resetEpoch = null;
-          saveImmediate().then(() => { render(); });
-          return;
-        } else {
-          const h = Math.floor(diff / 60), m = diff % 60;
-          const label = `${h}h${String(m).padStart(2,'0')}`;
-          if (!cdEl) { cdEl = document.createElement('span'); cdEl.className = 'tsb-ai-cd'; el.appendChild(cdEl); }
-          cdEl.textContent = label;
-        }
-      }
-      const rsbCard = document.getElementById('rsb-card-' + ai.id);
-      if (rsbCard) {
-        const cdEl = rsbCard.querySelector('.rsb-countdown');
-        if (cdEl) { cdEl.textContent = getCD(ai.resetTime, ai.resetEpoch) || '--:--:--'; }
-      }
-      const unlockLblEl = document.getElementById('unlock-lbl-' + ai.id);
-      if (unlockLblEl) {
-        const msLeft = _hoyMsUntilReset(ai);
-        if (!isFinite(msLeft) || msLeft <= 0) {
-          unlockLblEl.textContent = 'Disponible ahora';
-        } else {
-          const totalMin = Math.floor(msLeft / 60000);
-          const h = Math.floor(totalMin / 60);
-          const m = totalMin % 60;
-          unlockLblEl.textContent = h === 0
-            ? `Disponible en ${m}min`
-            : `Disponible en ${h}h ${String(m).padStart(2,'0')}min`;
-        }
-      }
-    });
-  }, 1000);
-}
-export function _stopSidebarTicker() {
-  if (_sidebarTickerInterval) { clearInterval(_sidebarTickerInterval); _sidebarTickerInterval = null; }
-}
-
 // ── B-202605-017: Delegación para [data-action="interrupt"] ──
 // Reemplaza onclick="confirmInterruptInline('${ai.id}',this)" en el template del dropdown.
 // Delegación en #tab-sesiones (contenedor estático raíz) — el dotmenu es dinámico.
@@ -1350,19 +1208,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
 
 // ── B-202605-019: Listeners — on* migrados desde templates de locus-sesiones.js ──
-// Cubre: tsb-archived-toggle, archived-toggle, empty-state-btn openAddAI/openProjModal.
+// Cubre: archived-toggle, empty-state-btn openAddAI/openProjModal.
 document.addEventListener('DOMContentLoaded', function () {
-
-  // .tsb-archived-toggle → toggle open + localStorage + _renderTrackerSidebar()
-  // Delegación en document — el elemento se genera dinámicamente en _renderTrackerSidebar.
-  document.addEventListener('click', function _tsbArchivedToggleDelegate(e) {
-    const el = e.target.closest('.tsb-archived-toggle');
-    if (!el) return;
-    el.classList.toggle('open');
-    localStorage.setItem('archived-open', el.classList.contains('open') ? '1' : '0');
-    if (typeof _renderTrackerSidebar === 'function') _renderTrackerSidebar();
-  });
-
   // .archived-toggle → toggleArchivedSection(el)
   // Delegación en document — el elemento se genera dinámicamente en render().
   document.addEventListener('click', function _archivedToggleDelegate(e) {
