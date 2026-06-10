@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:51 · autor:Rune · 2026-06-10 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:52 · autor:Rune · 2026-06-10 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1015,7 +1015,8 @@ export function updateBacklogBanner() {
   const exportBtn = document.getElementById('export-backlog-btn');
   const gfItems   = document.getElementById('gf-items');
   const gfToggle  = document.getElementById('gf-footer-toggle');
-  if (!(_coreCallbacks.getActiveProjectFilter || (() => null))() || !ITEMS.length) {
+  // B-fix-T202606-197: _coreCallbacks.getActiveProjectFilter nunca registrado post T-202606-197 — leer localStorage directamente
+  if (!(localStorage.getItem('current-project-filter') || '') || !ITEMS.length) {
     if (banner)    banner.classList.remove('visible');
     if (exportBtn) exportBtn.classList.add("is-hidden");
     if (gfItems)   gfItems.classList.add('is-hidden');
@@ -1543,7 +1544,8 @@ export function _isCountableItem(i) {
 }
 
 export function renderStats() {
-  if (!(_coreCallbacks.getActiveProjectFilter || (() => null))() || !ITEMS.length) { document.getElementById('stats-bar').innerHTML = ''; return; }
+  // B-fix-T202606-197: _coreCallbacks.getActiveProjectFilter nunca registrado post T-202606-197 — leer localStorage directamente
+  if (!(localStorage.getItem('current-project-filter') || '') || !ITEMS.length) { document.getElementById('stats-bar').innerHTML = ''; return; }
 
   // Delegation para stats-bar — se registra una sola vez
   const statsBarEl = document.getElementById('stats-bar');
