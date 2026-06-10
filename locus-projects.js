@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-07 · mod:14 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:15 · autor:Rune · 2026-06-09 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -1366,4 +1366,9 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
     }
   });
+});
+
+// B-[pendiente-ID]: listener para shell:render-proyectos — switchTab lo despacha pero no había listener
+window.addEventListener('shell:render-proyectos', () => {
+  renderProyectos();
 });
