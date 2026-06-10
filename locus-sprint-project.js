@@ -14,7 +14,7 @@ import { _getActiveProjectFilter, _setActiveProjectFilter, _updateProjBreadcrumb
 
 import { renderAnalytics } from './locus-analytics-render.js';
 
-import { loadBacklog, renderStats, updateBacklogBanner, updateStatusFilterUI, getItems} from './locus-backlog-core.js';
+import { loadBacklog, renderStats, updateBacklogBanner, updateStatusFilterUI, getItems, _registerCoreCallback } from './locus-backlog-core.js';
 import { closeQuickCapture } from './locus-sesiones-capture.js';
 
 import { updateBacklogFooter } from './locus-backlog-item.js';
@@ -755,6 +755,8 @@ window.getActiveProjectNotes     = getActiveProjectNotes;
 document.addEventListener('DOMContentLoaded', () => {
   _registerSesSPCallback('getProjectById',          getProjectById);
   // _registerSesSPCallback('getActiveProjectFilter') eliminado — T-202606-197: _getActiveProjectFilter movida a locus-proj-core.js
+  // B-202606-XXX: registrar como coreCallback para renderStats — se perdió en T-202606-197
+  _registerCoreCallback('getActiveProjectFilter', _getActiveProjectFilter);
   _registerSesSPCallback('openProjModal',           openProjModal);
   _registerSesSPCallback('selectProjectFilter',     selectProjectFilter);
 }, { once: true });
