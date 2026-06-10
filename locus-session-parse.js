@@ -1,4 +1,4 @@
-// [PP] v1.4.0 · sprint:PP-S-07 · mod:48 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.4.0 · sprint:PP-S-07 · mod:49 · autor:Rune · 2026-06-09 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -171,7 +171,10 @@ function _suggestCanonical(raw) {
 function parseCheckpoint(text) {
   // ── Path primario: JSON puro ──────────────────────────────────────────────────
   // Detectar bloque ```json ... ``` que contiene el objeto CHECKPOINT
-  const _jsonFenceMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
+  // T-202606-XXX: anclar detección al inicio del texto — evita falso positivo con bloques
+  // ```json embebidos en campos de texto (doc_updates, ejemplos en ---ITEMS---).
+  // Solo activa el path JSON cuando el bloque ```json es el primer contenido del texto.
+  const _jsonFenceMatch = /^\s*```json/.test(text) ? text.match(/```json\s*([\s\S]*?)\s*```/) : null;
   if (_jsonFenceMatch) {
     let _parsed = null;
     let _jsonErr = null;
