@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:13 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-10 UTC-6
 // locus-sesiones-capture.js
 // Responsabilidad: Quick Capture modal (stepper de 2 pasos) + Sesión interrumpida (T-055).
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
@@ -231,7 +231,7 @@ function confirmQuickCapture() {
   // B-202605-XXX: usar saveImmediate() para garantizar escritura en Supabase antes de
   // cualquier recarga. save() con debounce de 5s podía perder resetTime/resetEpoch/status
   // si el usuario recargaba la tab antes de que el timer disparara.
-  saveImmediate().then(() => { window.dispatchEvent(new CustomEvent('shell:render-tracker')); if (currentTab === 'sesiones') renderHoy(); });
+  saveImmediate().then(() => { window.dispatchEvent(new CustomEvent('shell:render-tracker')); if (currentTab === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render')); });
   showToast('success', `${ai.name} — sesión rápida guardada`);
 }
 
@@ -293,7 +293,7 @@ function interruptSession(id) {
     if (_intCard) _intCard.classList.add('tracker-card--interrupting');
     setTimeout(() => {
       save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-      if (currentTab === 'sesiones') renderHoy();
+      if (currentTab === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
     }, 200);
     showToast('info', `${ai.name} — sesión interrumpida`);
   });
@@ -303,7 +303,7 @@ function dismissInterrupted(id) {
   const ai = getAI(id);
   ai.interrupted = false;
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-  if (currentTab === 'sesiones') renderHoy();
+  if (currentTab === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
 }
 
 // T-058 ya maneja auto-disponible; al desbloquearse, si tenía interrupted, lo conservamos

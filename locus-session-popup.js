@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-02 · mod:14 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-10 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -414,7 +414,7 @@ function saveResetFromPopup() {
     ai.resetEpoch = null;
   }
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-  if (currentTab === 'sesiones') renderHoy();
+  if (currentTab === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   closePopup();
   showToast('success', result ? `${ai.name} marcada agotada · desbloquea a las ${result.label}` : `${ai.name} marcada agotada`);
 }
@@ -515,7 +515,7 @@ function saveCorrectHoraFromPopup() {
   ai.resetEpoch = result.epoch;
   s.resetAt = result.label;
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-  if (currentTab === 'sesiones') renderHoy();
+  if (currentTab === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   closePopup();
   showToast('success', `Hora corregida · ${ai.name} desbloquea a las ${result.label}`);
 }
@@ -530,7 +530,7 @@ function unlockNowFromPopup() {
   ai.resetTime = '';
   ai.resetEpoch = null;
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-  if (currentTab === 'sesiones') renderHoy();
+  if (currentTab === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   closePopup();
   showToast('success', `${ai.name} marcada como disponible`);
 }

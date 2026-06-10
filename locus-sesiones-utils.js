@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-02 · mod:15 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-10 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
@@ -445,7 +445,7 @@ setInterval(() => {
     save();
     window.dispatchEvent(new CustomEvent('shell:render-tracker'));
     const currentTab = typeof window.currentTab !== 'undefined' ? window.currentTab : '';
-    if (currentTab === 'sesiones' && typeof window.renderHoy === 'function') window.renderHoy();
+    if (currentTab === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   }
   updateStats();
   renderStatusBar();
