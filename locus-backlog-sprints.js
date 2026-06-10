@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:40 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-09 · mod:41 · autor:Rune · 2026-06-09 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -342,7 +342,7 @@ function _generateSprintRetroMd(id, notes) {
   // ── AC-2: Done — ítems que estaban done al cerrar el sprint.
   // _scmExecuteClose ya mutó done/descartado → historico antes de llamar esta función.
   // Incluir 'historico' para reflejar la realidad post-cierre.
-  const sprintItems  = getItems().filter(i => i.sprint === id);
+  const sprintItems  = getItems().filter(i => _sprintIdOf(i) === id);
   const doneItems    = sprintItems.filter(i => i.status === 'done' || i.status === 'historico');
 
   // ── AC-3: Migrado — ítems pendientes reasignados a otro sprint o a icebox.
@@ -592,7 +592,7 @@ export function setSprintStatus(id, newStatus) {
     const closeTs = Date.now();
     let migratedCount = 0;
     getItems().forEach(i => {
-      if (i.sprint === id && (i.status === 'done' || i.status === 'descartado')) {
+      if (_sprintIdOf(i) === id && (i.status === 'done' || i.status === 'descartado')) {
         i.status = 'historico';
         i.archivedAt = closeTs;
         migratedCount++;
@@ -849,16 +849,25 @@ function confirmEditSprint(sprintId) {
 // R-202604-089: estado del modal de cierre de sprint
 let _scmState = null; // { id, step, pendingItems, doneItems, migrations, docUpdates, retroNotes, ... }
 
+// B-[pendiente-ID]: normaliza el campo sprint de un ítem al ID canónico (PP-S-XX).
+// Ítems legacy pueden tener sprint: "PP-S-07 · label completo" — extraer solo el prefijo.
+// Si el valor ya es un ID canónico o no matchea el patrón, devuelve el valor original.
+function _sprintIdOf(item) {
+  if (!item.sprint) return item.sprint;
+  const m = item.sprint.match(/^([A-Za-z]+-S-\d+)/i);
+  return m ? m[1] : item.sprint;
+}
+
 export function confirmCloseSprint(id) {
   // R-202604-089: abre modal de 4 pasos en lugar de confirm directo
   const sp = _getSprintById(id);
   if (!sp) return;
-  const pendingItems = getItems().filter(i => i.sprint === id && i.status !== 'done' && i.status !== 'descartado' && itemType(i.code) !== 'P');
-  const doneItems    = getItems().filter(i => i.sprint === id && (i.status === 'done' || i.status === 'descartado'));
+  const pendingItems = getItems().filter(i => _sprintIdOf(i) === id && i.status !== 'done' && i.status !== 'descartado' && itemType(i.code) !== 'P');
+  const doneItems    = getItems().filter(i => _sprintIdOf(i) === id && (i.status === 'done' || i.status === 'descartado'));
   const skipStep3    = pendingItems.length === 0; // antiguo skipStep2 — ahora es el Paso 3 (migración)
 
   // R-202605-125: snapshot de effort al abrir modal de cierre
-  const allSprintItems     = getItems().filter(i => i.sprint === id && itemType(i.code) !== 'P');
+  const allSprintItems     = getItems().filter(i => _sprintIdOf(i) === id && itemType(i.code) !== 'P');
   const effortPlanned      = allSprintItems.reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
   const effortDone         = doneItems.filter(i => i.status === 'done').reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
   const effortScopeAdded   = allSprintItems.filter(i => i.scope_added).reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
@@ -1467,7 +1476,7 @@ function _scmExecuteClose() {
   // T-202606-119 AC-3: version_target inválido — no asignar version, registrar en consola. Cierre continúa.
   if (!versionTarget) console.log('version_target no válido — campo version no aplicado a ítems done');
   getItems().forEach(i => {
-    if (i.sprint === id && !processedCodes.has(i.code) && (i.status === 'done' || i.status === 'descartado')) {
+    if (_sprintIdOf(i) === id && !processedCodes.has(i.code) && (i.status === 'done' || i.status === 'descartado')) {
       const wasDone = i.status === 'done';
       i.status = 'historico';
       i.archivedAt = closeTs;
@@ -1481,7 +1490,7 @@ function _scmExecuteClose() {
     const spDoc = _getSprintById(id);
     if (!Array.isArray(spDoc.docLog)) spDoc.docLog = [];
     getItems().forEach(i => {
-      if (i.sprint === id && (i.status === 'pendiente' || i.status === 'en-revision')) {
+      if (_sprintIdOf(i) === id && (i.status === 'pendiente' || i.status === 'en-revision')) {
         i.sprint = 'icebox';
         spDoc.docLog.push(`${i.code} migrado a icebox desde ${id} al cerrar`);
       }
