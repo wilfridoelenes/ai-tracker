@@ -1321,5 +1321,5 @@ export function renderBacklogList(onRendered) {
 // locus-storage.js despacha estos eventos en lugar de llamar directamente a las funciones
 window.addEventListener('shell:backlog-render-dirty', () => { _markBacklogListDirty(); renderBacklogList(); });
 window.addEventListener('shell:mark-backlog-dirty',   () => { _markBacklogListDirty(); });
-window.addEventListener('shell:render-backlog-list',  () => { renderBacklogList(); });
+window.addEventListener('shell:render-backlog-list',  () => { renderBacklogList(); renderStats(); }); // B-202606-XXX: renderStats ausente — stats bar no renderizaba al cargar
 window.addEventListener('shell:backlog-filter-changed', () => { updateClearFilterBtn(); });
