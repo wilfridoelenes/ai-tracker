@@ -714,6 +714,14 @@ function _normalizeItems(items) {
   return items;
 }
 
+// B-202606-XXX: revelar filter cards cuando hay datos cargados — antes solo ocurría al importar
+function _showFilterBar() {
+  const ftypes  = document.getElementById('filter-bar-types');
+  const fstatus = document.getElementById('filter-bar-status');
+  if (ftypes)  ftypes.classList.remove('is-hidden');
+  if (fstatus) fstatus.classList.remove('is-hidden');
+}
+
 export function loadBacklog() {
   // R-[pendiente-ID]: Supabase-first — si el usuario está autenticado, delegar a
   // _loadFromSupabase() que implementa lógica timestamp-first en su paso 5.
@@ -745,6 +753,8 @@ export function loadBacklog() {
   _recalcAllScores();    // T-202604-257: estampar score en memoria tras cargar
   // Guardar siempre tras normalización — _normalizeItems puede haber corregido campos
   saveBacklog();
+  // B-202606-XXX: revelar filter cards si hay ítems — carga desde storage no pasaba por importBacklog
+  if (ITEMS.length > 0) _showFilterBar();
   // AC aria tablist: sincronizar estado inicial de atributos aria desde variables de estado
   _syncViewAriaStates();
 }
@@ -1144,10 +1154,7 @@ export function importBacklog(event) {
       }
 
       // T-049: mostrar filtros
-      const ftypes = document.getElementById('filter-bar-types');
-      const fstatus = document.getElementById('filter-bar-status');
-      if (ftypes) ftypes.classList.remove('is-hidden');
-      if (fstatus) fstatus.classList.remove('is-hidden');
+      _showFilterBar();
 
       updateBacklogBanner();
       updateStatusFilterUI();
@@ -2053,6 +2060,8 @@ export function _migrateItemTypes() {
   if (typeof ITEMS === 'undefined') return;
   _setITEMS(_normalizeItems(ITEMS));
   saveBacklog();
+  // B-202606-XXX: revelar filter cards tras carga remota de Supabase
+  if (ITEMS.length > 0) _showFilterBar();
 }
 window.getItems          = getItems; // SCB — renderSetupChecklist en locus-ui-shell.js
 window._migrateItemTypes = _migrateItemTypes;
