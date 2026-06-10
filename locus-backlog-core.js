@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-08 · mod:50 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:51 · autor:Rune · 2026-06-10 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1358,6 +1358,10 @@ function _applyStatusChange(code, newStatus, prevStatus) {
   if (newStatus === 'done' || newStatus === 'descartado') {
     item.closedInVersion = _effectiveVersion();
   }
+  // Capa 2 — done+icebox: alerta informativa per BR-Ecosystem §5 (suave — no bloquea)
+  if (newStatus === 'done' && (!item.sprint || item.sprint === 'icebox')) {
+    setTimeout(() => showToast('warning', `${code} marcado done sin sprint asignado — asignar a sprint para trazabilidad correcta.`, null, 6000), 400);
+  }
   // R-202604-015: registrar cambio en history[]
   if (!item.history) item.history = [];
   item.history.push({ type: 'status', ts: item.statusChangedAt, aiId: _getActiveSessionAiId() || undefined, data: { from: prevStatus, to: newStatus, role: item.role || '' } });
@@ -1486,6 +1490,10 @@ export function _applyDoneStatus(code) {
   item.statusChangedAt = Date.now();
   if (!item.doneAt) item.doneAt = Date.now();
   item.closedInVersion = _effectiveVersion();
+  // Capa 2 — done+icebox: alerta informativa per BR-Ecosystem §5 (suave — no bloquea)
+  if (!item.sprint || item.sprint === 'icebox') {
+    setTimeout(() => showToast('warning', `${code} marcado done sin sprint asignado — asignar a sprint para trazabilidad correcta.`, null, 6000), 400);
+  }
   if (!item.history) item.history = [];
   item.history.push({ type: 'status', ts: item.statusChangedAt, aiId: _getActiveSessionAiId() || undefined, data: { from: _prevStatus, to: 'done', role: item.role || '' } });
   _recalcAllScores();
@@ -1568,7 +1576,8 @@ export function renderStats() {
 
   const _countable = i => _isCountableItem(i);
 
-  const countableItems = ITEMS.filter(i => _countable(i) && !isInClosedSprint(i) && i.status !== 'descartado' && i.status !== 'historico');
+  const countableItems = ITEMS.filter(i => _countable(i) && !isInClosedSprint(i) && i.status !== 'descartado' && i.status !== 'historico'
+    && !(i.status === 'done' && (!i.sprint || i.sprint === 'icebox'))); // Capa 3 — done+icebox no contabiliza per BR-Ecosystem §5
 
   // B-202605-205: incluir búsqueda activa — los contadores deben reflejar
   // los mismos ítems que aparecen en la lista, incluyendo el filtro de búsqueda.
