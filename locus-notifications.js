@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -340,7 +340,6 @@ export function openNotifConfig() {
   if (sidebar.classList.contains('collapsed')) {
     toggleRadarSidebar();
   }
-  window._rsbCfgExpanded = true;
   renderGlobalRadarSidebar();
   setTimeout(function() {
     var body = document.getElementById('rsb-cfg-body');
@@ -403,20 +402,6 @@ export function _notifGoto(id) {
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window.hasRecentSession       = hasRecentSession;
-window._notifReadSet          = _notifReadSet;
-window._computeNotifications  = _computeNotifications;
-window.markNotifRead          = markNotifRead;
-window.markAllNotifsRead      = markAllNotifsRead;
-window._registerNotifActions  = _registerNotifActions;
-window._notifGoto             = _notifGoto;
-window._notifConfig           = _notifConfig;
-window.updateTabNotifBadges   = updateTabNotifBadges;
-window.openNotifConfig        = openNotifConfig;
-window.closeNotifConfig       = closeNotifConfig;
-window._notifConfigReset      = _notifConfigReset;
-window._notifConfigSetEnabled = _notifConfigSetEnabled;
-window._notifConfigSetThreshold = _notifConfigSetThreshold;
 
 // T-[tmp:t-listeners-storage-render]: listeners shell:* — desacoplamiento de locus-storage.js
 // locus-storage.js despacha shell:update-notif-badges en lugar de llamar updateTabNotifBadges() directamente

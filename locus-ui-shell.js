@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:34 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -729,14 +729,11 @@ document.addEventListener('keydown', e => {
   // Chord G + letra — navegar entre tabs (configurable)
   const _hasChordWithG = _SHORTCUT_DEFS && _SHORTCUT_DEFS.some(d => d.chord && (_shortcutKey(d.id) || '').startsWith('g'));
   if (!_inInput && !e.ctrlKey && !e.metaKey && !e.altKey && e.key === 'g' && _hasChordWithG) {
-    window._gChordPending = true;
     clearTimeout(window._gChordTimer);
-    window._gChordTimer = setTimeout(() => { window._gChordPending = false; }, 1000);
     e.preventDefault();
     return;
   }
   if (window._gChordPending && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    window._gChordPending = false;
     clearTimeout(window._gChordTimer);
     const _letter = e.key.toLowerCase();
     const _chordDef = _SHORTCUT_DEFS && _SHORTCUT_DEFS.find(d => {
@@ -1298,19 +1295,6 @@ document.addEventListener('DOMContentLoaded', function () {
 // ── END B-202605-019 ─────────────────────────────────────────────────────────
 
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window.esc                = esc;
-window.switchTab          = switchTab;
-window.switchSubTab       = switchSubTab;
-window.toggleTheme        = toggleTheme;
-window.applyTheme         = applyTheme;
-window.openShortcutsRef   = openShortcutsRef;
-window.renderSetupChecklist = renderSetupChecklist;
-window.onSearchDispatch   = onSearchDispatch;
-window.onSearch           = onSearch;
-window._escCascade        = _escCascade;
-window.openShortcuts      = openShortcuts;
-window.closeShortcuts     = closeShortcuts;
-window.restoreDefaultShortcuts = restoreDefaultShortcuts;
 
 // ── T-202605-078: Migración handlers inline index.html → addEventListener ───
 document.addEventListener('DOMContentLoaded', function () {

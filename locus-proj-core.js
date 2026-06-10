@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:2 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-proj-core.js
 // Módulo compartido — símbolos de proyecto sin deps circulares
 // Creado en T-202606-197 (opción d): rompe ciclo locus-projects ↔ locus-sprint-project
@@ -123,12 +123,3 @@ export function setProjContext(projId, text, version) {
 
 // ── Exposición window.* — compatibilidad con call sites HTML y módulos legacy ─
 window._getActiveProjectFilter = _getActiveProjectFilter;
-window._setActiveProjectFilter = _setActiveProjectFilter;
-window.getProjectById          = getProjectById;
-window._countProjSessions      = _countProjSessions;
-window._updateProjBreadcrumb   = _updateProjBreadcrumb;
-window._updateProjFilterBtn    = _updateProjFilterBtn;
-window.closeProjPanel          = closeProjPanel;
-window.selectProjectFilter     = selectProjectFilter;
-window.getProjContext          = getProjContext;
-window.setProjContext          = setProjContext;

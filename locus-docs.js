@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -1027,30 +1027,6 @@ window.addEventListener('shell:update-subtab-buttons', e => {
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window._setBacklogModified          = _setBacklogModified;
-window._updateSubTabButtons         = _updateSubTabButtons;
-window.importHtmlMap                = importHtmlMap;
-window._importContextMdFromText     = _importContextMdFromText;
-window._getMapContent               = _getMapContent;
-window.exportHtmlMapMd              = exportHtmlMapMd;
-window.updateContextBanner          = updateContextBanner;
-window.renderContext                = renderContext;
-window.extractContextSections       = extractContextSections;
-window.mergeContextSections         = mergeContextSections;
-window.extractHtmlMapSections       = extractHtmlMapSections;
-window.mergeHtmlMapSections         = mergeHtmlMapSections;
-window._renderTplProjBanner         = _renderTplProjBanner;
-window._renderDocsOnboarding        = _renderDocsOnboarding;
-window.updateHtmlMapModificationBadge = updateHtmlMapModificationBadge;
-window.updateBacklogModificationBadge = updateBacklogModificationBadge;
-window.importContextMd              = importContextMd;
-window.onContextSearch              = onContextSearch;
-window.clearContextSearch           = clearContextSearch;
-window.contextShowImport            = contextShowImport;
-window.toggleContextSection         = toggleContextSection;
-window.renderContextMd              = renderContextMd;
-window.renderContextInline          = renderContextInline;
-window.renderContextStatus          = renderContextStatus;
 
 // T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
 // locus-backlog-core.js despacha shell:backlog-modified y shell:backlog-subtab-update

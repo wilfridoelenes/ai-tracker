@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:22 · autor:Rune · 2026-06-10 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1344,8 +1344,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
-window.blindExhaustHoraInput = blindExhaustHoraInput;
-window.blindExhaustHoraKey   = blindExhaustHoraKey;
 
 // T-[tmp:t-listeners-storage-sesiones]: listeners shell:* — desacoplamiento de locus-storage.js
 // locus-storage.js despacha shell:mark-tracker-dirty + shell:render-tracker + shell:update-auto-download-label

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:1 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-doc-log.js
 // Módulo: Doc Activity Log — openDocLog · closeDocLog · _updateDocLogCount · _renderDocLog · clearDocLog
 // Migrado desde locus-misc-ui.js (T-202605-074)
@@ -97,7 +97,3 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─────────────────────────────────────────────────────────────────────────
 
 // ── Exposición pública ───────────────────────────────────────────────────
-window._updateDocLogCount = _updateDocLogCount;
-window.openDocLog         = openDocLog;
-window.clearDocLog        = clearDocLog;
-window.closeDocLog        = closeDocLog;

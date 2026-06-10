@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:6 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-sprint-plan.js
 // Versión: 1.1 | Última actualización: 2026-05-28 UTC-6 | R-202605-043: renderPlanInto + _buildPlanContent
 // Módulo: Bloque PLAN — savePlan, loadPlan, renderPlan, togglePlanZoneDone
@@ -494,10 +494,3 @@ function _buildPlanContent(panel) {
 (function() { try { _migratePlanKeys(); } catch(e) { console.warn('[locus-sprint-plan] migración fallida:', e); } })();
 
 // ── Exposición pública ──────────────────────────────────────────────────────
-window.renderPlan           = renderPlan;
-window.renderPlanInto       = renderPlanInto;       // R-202605-043
-window.savePlan             = savePlan;              // T-202605-068
-window.loadPlan             = loadPlan;              // T-202605-068
-window.togglePlanZoneDone   = togglePlanZoneDone;   // T-202605-068
-window._liveStatus          = _liveStatus;           // T3.bis
-window._sessIsDone          = _sessIsDone;           // T3.bis

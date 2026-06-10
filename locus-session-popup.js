@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-10 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -1314,4 +1314,3 @@ function navigateToBacklogItem(code) {
     setTimeout(() => el.classList.remove('bitem--nav-highlight'), 1800);
   }, 120);
 }
-window.startRename = startRename;

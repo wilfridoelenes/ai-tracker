@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-02 · mod:10 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -311,7 +311,6 @@ function _buildExhaustedCard(ai) {
 let _radarDirty = false;
 export function _markRadarDirty() { _radarDirty = true; }
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window._markRadarDirty = _markRadarDirty;
 
 export function renderGlobalRadarSidebar() {
   if (!_radarDirty) return;
@@ -473,7 +472,6 @@ export function _rsbToggleCollapseAll() {
     }
   });
 }
-window._rsbToggleCollapseAll = _rsbToggleCollapseAll;
 
 // Toggle sección Agotadas (colapsable por defecto)
 function _rsbToggleAgotadas() {
@@ -709,12 +707,6 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
-window.toggleRadarSidebar       = toggleRadarSidebar;
-window.renderGlobalRadarSidebar = renderGlobalRadarSidebar;
-window._initRadarSidebarState   = _initRadarSidebarState;
-window.rsbFilterAIs             = rsbFilterAIs;
-window.rsbClearSearch           = rsbClearSearch;
-window.rsbTogglePin             = rsbTogglePin;
 
 // T-[tmp:t-listeners-storage-render]: listeners shell:* — desacoplamiento de locus-storage.js
 // locus-storage.js despacha shell:mark-radar-dirty + shell:render-radar en lugar de llamar directamente

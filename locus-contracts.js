@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-05-29 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-contracts.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
@@ -434,16 +434,3 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
-window.padEnd                   = window.padEnd || padEnd;
-window._ctrMergeFromItem        = _ctrMergeFromItem;
-window.renderContratos          = renderContratos;
-window._esc                     = _esc;
-window.onContratosSearch        = onContratosSearch;
-window.clearContratosSearch     = clearContratosSearch;
-window.openContratoDetail       = openContratoDetail;
-window.exportContratosMd        = exportContratosMd;
-window.resetContratosData       = resetContratosData;
-window.searchContratos          = searchContratos;
-window.openResetSessionsModal   = openResetSessionsModal;
-window.closeResetSessionsModal  = closeResetSessionsModal;
-window.confirmResetSessions     = confirmResetSessions;

@@ -1,4 +1,4 @@
-// [PP] v1.3.0 · sprint:PP-S-08 · mod:54 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -67,10 +67,9 @@ const _acReplacedSet = new Set();
 // ── Estado del módulo ──────────────────────────────────────────────────────
 // Búsqueda activa — compartida con locus-backlog-render.js via window.backlogSearchQuery
 let backlogSearchQuery = '';
-window.backlogSearchQuery = backlogSearchQuery;
 // Getter/setter para mantener window sincronizado
 function _getBacklogSearch() { return backlogSearchQuery; }
-function _setBacklogSearch(v) { backlogSearchQuery = v; window.backlogSearchQuery = v; }
+function _setBacklogSearch(v) { backlogSearchQuery = v; }
 // Filtro de tipo activo
 let currentFilter = 'all';
 // ──────────────────────────────────────────────────────────────────────────

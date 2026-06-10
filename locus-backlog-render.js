@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-08 · mod:49 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -19,7 +19,6 @@ import { esc } from './locus-ui-shell.js';
 import { _renderPlanningView, _attachPlanViewDelegation, _statusPills, toggleClosedSprintsBody } from './locus-sprint-planificacion.js';
 import { _updateDocLogCount } from './locus-doc-log.js';
 
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:41 · autor:Rune · 2026-06-07 UTC-6
 // Responsabilidad: Renderizado del backlog — vista Lista (sprint groups + jerarquía R→T/B),
 //   sprint health panel, roadmap, planning (drag & drop), renderBacklogList, sprint selector inline.
 // Dependencias: locus-backlog-core.js · locus-backlog-archive.js · locus-backlog-item.js · locus-backlog-sprints.js
@@ -263,7 +262,6 @@ function _sprintVelocityLabel(sprintId) {
 // T-202605-118: dirty flag — render quirúrgico
 let _backlogListDirty = false;
 export function _markBacklogListDirty() { _backlogListDirty = true; }
-window._markBacklogListDirty = _markBacklogListDirty;
 
 // T-202606-014: renderizado de vista C colapsable
 // Rs como headers colapsables con Ts anidados. Filtros de status, tipo, effort y búsqueda

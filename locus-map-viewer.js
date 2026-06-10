@@ -1,9 +1,9 @@
 import { _skelHide, _skelShow } from './locus-backlog-core.js';
 import { _tplKey } from './locus-storage.js';
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 
 import { esc } from './locus-ui-shell.js';
 
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:5 · autor:Rune · 2026-05-28 UTC-6
 // locus-map-viewer.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: HTML MAP viewer — render, filtro, búsqueda y toggle de módulos
@@ -382,9 +382,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── AC-11: exponer como window.* para inline handlers y callers en ai-notes ──
-window.renderHtmlMap       = renderHtmlMap;
-window.setHtmlMapFilter    = setHtmlMapFilter;
-window.updateHtmlMapBanner = updateHtmlMapBanner;
-window.loadHtmlMap         = loadHtmlMap;
 // parseHtmlMapMd — expuesta para callers externos
-window.parseHtmlMapMd  = parseHtmlMapMd;

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-pulso.js
 // Última actualización: 2026-05-19 | Panel Pulso del Ecosistema
 // Extraído de: ai-tracker-checkpoint.js · ai-tracker-ai-notes.js
@@ -170,7 +170,6 @@ function _buildPulsoPlanesHtml() {
 // T-202605-118: dirty flag — render quirúrgico
 let _pulsoDotDirty = false;
 export function _markPulsoDotDirty() { _pulsoDotDirty = true; }
-window._markPulsoDotDirty = _markPulsoDotDirty;
 
 export function renderPulsoDot() {
   if (!_pulsoDotDirty) return;
@@ -307,9 +306,6 @@ export function closePulsoPanel() {
 // Si locus-pulso.js falla al cargar, los onclick HTML no producen ReferenceError.
 // ════════════════════════════════════════════════════════════════════
 
-window.openPulsoPanel  = window.openPulsoPanel  || openPulsoPanel;
-window.closePulsoPanel = window.closePulsoPanel || closePulsoPanel;
-window.renderPulsoDot  = window.renderPulsoDot  || renderPulsoDot;
 
 // T-202605-045: Migrar handlers inline de index.html → addEventListener
 // #gf-pulso, #pulso-overlay (guard event.target===this), .pulso-close-btn

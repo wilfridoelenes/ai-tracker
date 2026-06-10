@@ -1,4 +1,4 @@
-// [PP] v1.4.0 · sprint:PP-S-07 · mod:50 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1646,8 +1646,4 @@ function parsePlanBlock(text) {
 }
 
 // T-202605-430: componente reutilizable de hora — aplica en guardar sesión, sesiones rápidas y correctHora
-window.handlePaste = handlePaste;
-window.handleInput = handleInput;
 // T-202605-019: exponer funciones migradas desde misc-ui para compatibilidad con locus-api.js
-window.openStandaloneCheckpoint  = openStandaloneCheckpoint;
-window.closeStandaloneCheckpoint = closeStandaloneCheckpoint;

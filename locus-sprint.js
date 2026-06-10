@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:43 · autor:Rune · 2026-06-10 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1183,26 +1183,9 @@ function _syncCurrentBadges(sprints, projId) {
 // ── Exposición pública ──────────────────────────────────────────────────────
 
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window._renderSprintItems       = _renderSprintItems;
-window._renderSprintWorkers     = _renderSprintWorkers;
-window._renderSprintScopeAdded  = _renderSprintScopeAdded;
-window._renderSprintManager     = _renderSprintManager;     // T-202605-123
 window._sptSwitch               = _sptSwitch;               // R-202605-052
-window._renderSprintPlanificar  = _renderSprintPlanificar;  // R-202605-052
-window._renderSprintMeta        = _renderSprintMeta;        // T-202606-029
 // B-202606-064: _sprintApproveOpen/Cancel/Confirm eliminados de window.*
 // R-202605-006
-window._spmToggle               = _spmToggle;
-window._spmRegistrar            = _spmRegistrar;
-window._spmReactivar            = _spmReactivar;
-window._spmRetro                = _spmRetro;
-window._spmEditar               = _spmEditar;
-window._spmCancelEdit           = _spmCancelEdit;      // B-202605-008
-window._spmActivarExistente     = _spmActivarExistente;
-window._spmPickerSelect         = _spmPickerSelect;    // R-202605-008
-window._spmPickerKey            = _spmPickerKey;       // R-202605-008
-window._spmPickerClose          = _spmPickerClose;     // R-202605-008
-window._spmUpdateButtons        = _spmUpdateButtons;
 window.setSprintCurrent         = setSprintCurrent; // T-202605-107
 
 // ── B-202605-019: Listeners — sprint management panel (_spm*) ───────────────

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:1 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-pend.js
 // Módulo: Panel de Pendientes — openPendPanel · closePendPanel
 // Extraído de locus-misc-ui.js (T2 · T-202605-073)
@@ -57,5 +57,3 @@ document.addEventListener('DOMContentLoaded', () => {
 // ─────────────────────────────────────────────────────────────────────────
 
 // ── Exposición pública ───────────────────────────────────────────────────
-window.openPendPanel  = openPendPanel;
-window.closePendPanel = closePendPanel;

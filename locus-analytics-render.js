@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 import { renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
 import { _closedItemsInRange, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, sessionDateKey } from './locus-analytics-core.js';
 
@@ -10,7 +10,6 @@ import { _getActiveProjectFilter, getAllSessions, getProjectById } from './locus
 
 import { esc, switchTab } from './locus-ui-shell.js';
 
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-05-28 UTC-6
 // locus-analytics-render.js
 // Responsabilidad: renderAnalytics — función principal del tab de analytics.
 // Dependencias: locus-analytics-core.js · locus-analytics-digest.js · locus-analytics-charts.js
@@ -19,7 +18,6 @@ import { esc, switchTab } from './locus-ui-shell.js';
 let _analyticsDirty = false;
 export function _markAnalyticsDirty() { _analyticsDirty = true; }
 // window.* — solo para locus-api.js (T6)
-window._markAnalyticsDirty = _markAnalyticsDirty;
 
 export function renderAnalytics() {
   if (!_analyticsDirty) return;

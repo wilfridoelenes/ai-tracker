@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-04 · mod:14 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm.
 //   Define AVATAR_LOGOS (SVGs de avatares) — movido desde locus-checkpoint-stats.js.
@@ -328,22 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // ── Window fallback para inline handlers de index.html ──
 // closeModal tiene callers inline en index.html (L648, L679) — fallback evita ReferenceError si locus-workers.js no cargó.
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
-window.openAddAI              = openAddAI;
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window.confirmAddAI           = confirmAddAI;
-window.confirmClear           = confirmClear;
-window.deleteAI               = deleteAI;
-window.archiveAI              = archiveAI;
-window.toggleArchivedSection  = toggleArchivedSection;
-window.toggleCardMenu         = toggleCardMenu;
-window.closeCardMenu          = closeCardMenu;
-window.showInlineConfirm      = showInlineConfirm;
-window.closeInlineConfirm     = closeInlineConfirm;
-window.executeConfirm         = executeConfirm;
-window.openAvatarModal        = openAvatarModal;
-window.selectAvatarOption     = selectAvatarOption;
-window.confirmAvatarModal     = confirmAvatarModal;
-window.closeAvatarModal       = closeAvatarModal;
 
 // ── B-202605-019: Listener — #add-ai-confirm-btn ─────────────────────────────
 document.addEventListener('DOMContentLoaded', function () {

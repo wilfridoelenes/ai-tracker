@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:22 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -772,7 +772,6 @@ function toggleTplSavePanel() {
 // Siempre retorna un Date futuro: si la hora ya pasó hoy, proyecta a mañana (+24h)
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
-window.openItemEditor       = openItemEditor;
 // T-202606-077: registrar callback en locus-backlog-core
 document.addEventListener('DOMContentLoaded', () => {
   _registerCoreCallback('openItemEditor', openItemEditor);
@@ -828,10 +827,3 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window.closeItemEditor      = closeItemEditor;
-window.openTemplatePicker   = openTemplatePicker;
-window.confirmItemEditor    = confirmItemEditor;
-window.saveCurrentItemAsTemplate = saveCurrentItemAsTemplate;
-window.toggleTplSavePanel   = toggleTplSavePanel;
-window.closeTemplatePicker  = closeTemplatePicker;
-window._applyTemplate       = _applyTemplate;

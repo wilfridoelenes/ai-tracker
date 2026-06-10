@@ -1,5 +1,5 @@
 import { esc } from './locus-ui-shell.js';
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-05 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-toast.js
 // Última actualización: 2026-05-19 00:00 UTC-6
 // Toast stack system — extraído de ai-tracker-checkpoint.js (R-202605-003)
@@ -278,13 +278,6 @@ export function showToastInline(anchorEl, actionsOrType, title, opts = {}) {
 }
 
 // ── window.* — solo para compatibilidad con locus-api.js (T5) ────────────────
-window.showToast        = showToast;
-window.showToastDigest  = showToastDigest;
-window.showToastInline  = showToastInline;
-window._toastRender     = _toastRender;
-window._dismissToast    = _dismissToast;
-window._toastNext       = _toastNext;
-window.toast            = toast;
 
 // T-[tmp:t-listeners-storage-sesiones]: listener shell:toast — desacoplamiento de locus-storage.js
 // locus-storage.js despacha shell:toast con detail: { type, msg, body, duration }

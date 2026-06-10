@@ -1,4 +1,4 @@
-// [PP] v1.4.0 · sprint:PP-S-07 · mod:34 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-storage.js
 // Última actualización: 2026-06-06 · T-202606-101: guard de salida para retries de _loadFromSupabase (_LOAD_RETRY_MAX)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -69,7 +69,6 @@ export const LOCUS_KEYS = {
 
 // R-202605-002: strings canónicos de proyecto — fuente única de verdad
 const CANONICAL_PROJECTS = ['Obsidian Labs', 'Alisto', 'Content Manager', 'Locus'];
-window.CANONICAL_PROJECTS = CANONICAL_PROJECTS;
 
 // R-202605-002: prefijos de proyecto — fuente única de verdad
 export const _PREFIX_MAP = {

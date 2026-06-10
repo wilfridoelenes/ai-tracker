@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-04 23:30 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-analytics-core.js
 // Responsabilidad: State de analytics, período/rango, helpers de fecha,
 //   tooltip, delta, ítems abiertos/cerrados, export semanal MD.
@@ -545,5 +545,3 @@ ${weeklyInsightMd}`;
 }
 
 // ── T-202604-271: Digest contextual al abrir app ──
-window.setCfProject = setCfProject;
-window.setCfType    = setCfType;

@@ -1,4 +1,4 @@
-// [PP] v1.4.0 · sprint:PP-S-09 · mod:37 · autor:Rune · 2026-06-09 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -727,28 +727,7 @@ export function _getLocalStorageUsage() {
 // _updateProjBreadcrumb · _updateProjFilterBtn · _countProjSessions · closeProjPanel ·
 // selectProjectFilter · getProjContext · setProjContext — expuestos via locus-proj-core.js
 // T-202606-016: funciones de export removidas de window.* — viven en locus-backlog-generator.js
-window.pad                       = window.pad || pad;
-window._sprintNum                = _sprintNum;
-window.openProjPanel             = openProjPanel;
-window._docPrefix                = _docPrefix;
-window._getLocalStorageUsage     = _getLocalStorageUsage;
 window.clearProjectFilter        = clearProjectFilter;
-window.renderProjPanel           = renderProjPanel;
-window.cancelProjForm            = cancelProjForm;
-window.selectProjColor           = selectProjColor;
-window.confirmProjForm           = confirmProjForm;
-window.editProjInline            = editProjInline;
-window.toggleProjArchive         = toggleProjArchive;
-window.deleteProjConfirm         = deleteProjConfirm;
-window.projDragStart             = projDragStart;
-window.projDragEnd               = projDragEnd;
-window.projDragOver              = projDragOver;
-window.projDragLeave             = projDragLeave;
-window.projDrop                  = projDrop;
-window.createNote                = createNote;
-window.editNote                  = editNote;
-window.deleteNote                = deleteNote;
-window.getActiveProjectNotes     = getActiveProjectNotes;
 
 // T-202606-058: registrar funciones de locus-sprint-project en locus-sesiones
 // para romper el ciclo A↔B. locus-sesiones las consume via _sesSPCallbacks.

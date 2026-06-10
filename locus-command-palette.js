@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-05 · mod:13 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-command-palette.js
 // Versión: 1.0.4 | Última actualización: 2026-05-23 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto · T-202605-067 nav-tab-sprint
 // Renombrado de ai-tracker-command-palette.js
@@ -824,5 +824,3 @@ export function initCommandPalette() {
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window.closeCommandPalette  = closeCommandPalette;
-window.openCommandPalette   = openCommandPalette;

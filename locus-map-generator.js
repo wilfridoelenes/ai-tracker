@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:18 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -1962,16 +1962,3 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window.esc                  = window.esc || esc;
-window.normalize            = window.normalize || normalize;
-window._mgGetVersion        = _mgGetVersion;
-window.openMapGenerator     = openMapGenerator;
-window.closeMapGenerator    = closeMapGenerator;
-window.generateDocuments    = generateDocuments;
-window.generateMap          = generateMap;
-window.confirmMapGenerator  = confirmMapGenerator;
-window._mgSwitchReviewTab   = _mgSwitchReviewTab;
-window._mgToggleDecisionTranscends  = _mgToggleDecisionTranscends;
-window._mgToggleLearningTranscends  = _mgToggleLearningTranscends;
-window._mgRemoveFile        = _mgRemoveFile;
-window._mgExportAllZip      = _mgExportAllZip;

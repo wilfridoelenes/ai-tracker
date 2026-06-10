@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-04 · mod:11 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -914,24 +914,4 @@ document.addEventListener('DOMContentLoaded', _initReportsListeners);
 
 // ── Exposición pública — T-202605-068 ───────────────────────────────────────
 // ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window.downloadReport          = downloadReport;
 window._syncCleanProjectBtn    = _syncCleanProjectBtn;
-window.downloadGlobalReport    = downloadGlobalReport;
-window.toggleMoreMenu          = toggleMoreMenu;
-window.exportData              = exportData;
-window.openPurgeModal          = openPurgeModal;
-window.closePurgeModal         = closePurgeModal;
-window.toggleBacklogDangerZone = toggleBacklogDangerZone;
-window.openResetBacklogModal   = openResetBacklogModal;
-window.closeResetBacklogModal  = closeResetBacklogModal;
-window.confirmResetBacklog     = confirmResetBacklog;
-window.toggleSidebarDanger     = toggleSidebarDanger;
-window.openCleanProjectModal   = openCleanProjectModal;
-window.closeCleanProjectModal  = closeCleanProjectModal;
-window.resetContextData        = resetContextData;
-window.resetHtmlMapData        = resetHtmlMapData;
-window.updatePurgePreview      = updatePurgePreview;
-window.confirmPurge            = confirmPurge;
-window.importData              = importData;
-window.closeImportDiff         = closeImportDiff;
-window.confirmImport           = confirmImport;

@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-06-08 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // T2: imports en el mismo orden que index.html declaraba los <script src>
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
@@ -84,7 +84,6 @@ function _updateBackupBadge() {
 // _validateResetSessionsInput / _validateResetBacklogInput: expuestas en window
 // porque son invocadas desde HTML dinámico generado por locus-modals.js
 // B-202605-503 / B-202605-037: migradas desde inline script
-window._validateResetSessionsInput = function(el) {
   const v = el.value.trim();
   const ok = v === 'RESET';
   document.getElementById('reset-sessions-confirm-btn').disabled = !ok;
@@ -93,7 +92,6 @@ window._validateResetSessionsInput = function(el) {
   else { hint.classList.add('is-hidden'); }
 };
 
-window._validateResetBacklogInput = function(el) {
   const v = el.value.trim();
   const ok = v === 'RESET';
   document.getElementById('reset-backlog-confirm-btn').disabled = !ok;

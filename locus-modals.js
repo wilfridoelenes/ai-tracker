@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-06 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-modals.js
 // Módulo: sistema de modal genérico y focus management
 // Extraído de: ai-tracker-ai-notes.js (_gconfirmCb, _gconfirmOpen, _gconfirmClose, _gconfirmOk)
@@ -115,10 +115,3 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── window.* — para callers externos que aún no usan import ──────────────────
-window._gconfirmOpen         = _gconfirmOpen;
-window._gconfirmClose        = _gconfirmClose;
-window._gconfirmOk           = _gconfirmOk;
-window.closeModal            = closeModal;
-window._saveModalTrigger     = _saveModalTrigger;
-window._restoreModalFocus    = _restoreModalFocus;
-window._focusFirstInteractive = _focusFirstInteractive;
