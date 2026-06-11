@@ -1755,7 +1755,8 @@ export function _setDocUpdateIndex(index) {
   save();
 }
 // ── END T-202606-032 ──────────────────────────────────────────────────────────
- — retorna plan del proyecto activo desde localStorage ──
+
+// ── T-202606-199: getActivePlan() — retorna plan del proyecto activo desde localStorage ──
 // Firma: getActivePlan() → Object | null
 // Ownership: locus-storage.js — consume LOCUS_KEYS.PLAN_PREFIX y window.state.activeProjectId
 // Accesible desde locus-backlog-item.js en el mismo ciclo de carga sin guard typeof requerido.
