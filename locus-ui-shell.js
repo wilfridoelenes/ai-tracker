@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 UTC-6 
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -1128,7 +1128,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (btn.dataset.action === 'open-shortcuts') {
       e.stopPropagation();
       openShortcuts();
-      if (typeof toggleMoreMenu === 'function') toggleMoreMenu();
+      window.dispatchEvent(new CustomEvent('shell:toggle-more-menu'));
     }
   }, true);
 
@@ -1248,20 +1248,20 @@ document.addEventListener('DOMContentLoaded', function () {
   // more-menu-btn → toggleMoreMenu()
   const moreMenuBtn = document.getElementById('more-menu-btn');
   if (moreMenuBtn) moreMenuBtn.addEventListener('click', function () {
-    if (typeof toggleMoreMenu === 'function') toggleMoreMenu();
+    window.dispatchEvent(new CustomEvent('shell:toggle-more-menu'));
   });
 
   // more-menu items por ID
   const mm = {
-    'mm-btn-backup':    function () { if (typeof exportData === 'function') exportData(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
-    'mm-btn-import':    function () { const el = document.getElementById('imp'); if (el) el.click(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
-    'mm-btn-report':    function () { if (typeof downloadGlobalReport === 'function') downloadGlobalReport(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
-    'mm-btn-changelog': function () { if (typeof openChangelog === 'function') openChangelog(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
+    'mm-btn-backup':    function () { if (typeof exportData === 'function') exportData(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
+    'mm-btn-import':    function () { const el = document.getElementById('imp'); if (el) el.click(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
+    'mm-btn-report':    function () { if (typeof downloadGlobalReport === 'function') downloadGlobalReport(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
+    'mm-btn-changelog': function () { if (typeof openChangelog === 'function') openChangelog(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
     // (a) event dispatch — locus-notifications.js escucha 'shell:open-notif-config'
-    'mm-btn-notif':     function () { window.dispatchEvent(new CustomEvent('shell:open-notif-config')); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
-    'mm-btn-sync':      function () { if (typeof handleSyncPillClick === 'function') handleSyncPillClick(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
-    'mm-btn-migrate':   function () { if (typeof openMigrateFirebaseModal === 'function') openMigrateFirebaseModal(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
-    'mm-btn-clean':     function () { if (typeof openCleanProjectModal === 'function') openCleanProjectModal(); if (typeof toggleMoreMenu === 'function') toggleMoreMenu(); },
+    'mm-btn-notif':     function () { window.dispatchEvent(new CustomEvent('shell:open-notif-config')); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
+    'mm-btn-sync':      function () { if (typeof handleSyncPillClick === 'function') handleSyncPillClick(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
+    'mm-btn-migrate':   function () { if (typeof openMigrateFirebaseModal === 'function') openMigrateFirebaseModal(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
+    'mm-btn-clean':     function () { if (typeof openCleanProjectModal === 'function') openCleanProjectModal(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
   };
   Object.keys(mm).forEach(function (id) {
     const btn = document.getElementById(id);
