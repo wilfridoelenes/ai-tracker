@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-10 20:00 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:5 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -105,7 +105,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   }
   let diff;
   try {
-    diff = mergeBacklogFromTG(tgItems, sessId, { dryRun: true });
+    diff = mergeBacklogFromTG(tgItems, sessId, { dryRun: true, ckptRol: _ckptMeta.rol || '' });
   } finally {
     if (_filterChanged) {
       // B-202605-010: restaurar filter antes de loadBacklog — si loadBacklog lanza, el filter ya está restaurado

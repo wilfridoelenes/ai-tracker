@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-02 · mod:4 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:5 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1797,7 +1797,8 @@ function _assignPendingIds(tgItems) {
 // T-202604-121: retorna {created, updated, ignored} para super toast
 export function mergeBacklogFromTG(tgItems, sessionId, opts) {
   if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[], invalidTransition:[] };
-  const _dryRun = !!(opts && opts.dryRun);
+  const _dryRun   = !!(opts && opts.dryRun);
+  const _ckptRol  = (opts && opts.ckptRol) || '';
 
   // B-202604-198: Separar placeholders ANTES de _assignPendingIds para preservar su naturaleza.
   // Los placeholders siempre son ítems nuevos — nunca matchean contra el backlog.
@@ -1895,6 +1896,20 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
             invalidTransition.push(_vtResult[0]);
             // Continuar con campos no-status (title, effort, area, etc.) — solo status queda excluido
             // Marcar item._noStatus para que el bloque de lógica de status no lo procese
+            item._noStatus = true;
+          }
+
+          // T-202606-031: validación de rol autorizado para R → bloqueado
+          // AC-1/AC-4: solo 'QA · Finn' puede mover un R a status 'bloqueado'.
+          // Si el rol no es el autorizado — registrar en invalidTransition y excluir el cambio de status.
+          // AC-3: si no hay status entrante o no es 'bloqueado' — no interceptar.
+          if (!item._noStatus && _existingType === 'R' && newStatus === 'bloqueado' && _ckptRol !== 'QA · Finn') {
+            invalidTransition.push({
+              code: item.code,
+              type: 'R',
+              status: 'bloqueado',
+              reason: `rol no autorizado: solo QA · Finn puede mover un R a bloqueado (recibido: ${_ckptRol || '(sin rol)'})`
+            });
             item._noStatus = true;
           }
         }

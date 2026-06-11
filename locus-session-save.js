@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:28 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:29 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -22,7 +22,7 @@ import { render } from './locus-sesiones.js';
 
 import { _showProjRequiredInPanel, _templateTrigger, interpretHora } from './locus-session-hora.js';
 
-import { _setPhase, _tryIngestPlan, _tryIngestSprintProposal, parseSprintProposal, parsePaste } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5
+import { _setPhase, _tryIngestPlan, _tryIngestSprintProposal, _applySprintInheritanceToItems, parseSprintProposal, parsePaste } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-020: _applySprintInheritanceToItems
 
 import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js';
 
@@ -660,7 +660,11 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   if (_validSpProposal) {
     _ckptMeta.sprintProposal = _validSpProposal;
     _ckptMeta.onApproveProposal = function(proposal) {
-      _tryIngestSprintProposal(raw);
+      // T-202606-020 AC-1/AC-2/AC-3/AC-4: herencia automática de sprint a ítems del CHECKPOINT.
+      // _tryIngestSprintProposal retorna el id del sprint creado (string) o false.
+      // Mutar _tgItemsForPanel in-place → el DIFF refleja el sprint asignado antes de que el founder confirme.
+      const _spCreated = _tryIngestSprintProposal(raw);
+      if (_spCreated) _applySprintInheritanceToItems(_tgItemsForPanel, _spCreated);
     };
   }
   // Todo CHECKPOINT válido pasa por el DIFF — sin excepción.

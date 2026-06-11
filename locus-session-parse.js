@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:11 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:12 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1190,7 +1190,37 @@ export function _tryIngestSprintProposal(text) {
 
   // AC-4: sprint accesible inmediatamente via locus-storage tras persistir
   showToast('success', `✓ Sprint "${result.sprint}" creado — pendiente de aprobación`);
-  return true;
+  // T-202606-020: retornar el id del sprint creado (prefijo corto) en lugar de true.
+  // Los callers existentes hacen `if (_spCreated)` — un string no-vacío sigue siendo truthy.
+  // El id retornado permite que el caller aplique la herencia de sprint a los ítems del CHECKPOINT.
+  return _sprintIdShort;
+}
+
+// T-202606-020: herencia automática de sprint al confirmar Step 0 de sprint proposal — Trigger 1.
+// Recibe el array de ítems del CHECKPOINT y el id del sprint recién creado.
+// Muta in-place los ítems R/T/B cuyo sprint sea 'icebox' o ausente → asigna el sprint nuevo.
+// Ps no se tocan — permanecen en icebox según BR-Ecosystem §5 y §13.
+// AC-1: R/T/B con sprint: icebox → sprint asignado al id del sprint recién creado.
+// AC-2: P con sprint: icebox → no se mueve, permanece en icebox.
+// AC-3: ítem con sprint explícito distinto de icebox → no se toca.
+// AC-4: el movimiento ocurre sobre tgItems en memoria — visible en el DIFF antes de confirmar.
+export function _applySprintInheritanceToItems(tgItems, sprintId) {
+  if (!Array.isArray(tgItems) || !sprintId) return;
+  tgItems.forEach(item => {
+    if (item.type === 'P') return; // AC-2: Ps permanecen en icebox sin excepción
+    const _sprintRaw = item.sprint ? String(item.sprint).trim().toLowerCase() : '';
+    if (_sprintRaw === 'icebox' || _sprintRaw === '') {
+      // AC-1: asignar sprint del proposal — ítem movido automáticamente
+      item.sprint = sprintId;
+      _blogLog(
+        'sprint-heredado-trigger1',
+        item.code || '[pendiente-ID]',
+        `${item.type} ${item.code || '[pendiente-ID]'} sprint asignado via Trigger 1: ${sprintId}`,
+        'backlog'
+      );
+    }
+    // AC-3: sprint explícito distinto de icebox → conservar sin modificar
+  });
 }
 
 // T-202605-019: Migrado desde locus-misc-ui.js — modal standalone de CHECKPOINT
@@ -1513,8 +1543,14 @@ function saveStandaloneCheckpoint() {
       // T-202606-206: atomicidad sprint + ítems — gate solo se abre si el sprint se crea con éxito.
       // Si _tryIngestSprintProposal retorna false (duplicado, campos faltantes u otro error),
       // _spStep0Approved permanece false y _doApply no corre (AC-1).
-      const _spCreated = _tryIngestSprintProposal(raw); // crea el sprint en estado activo
-      if (_spCreated) _spStep0Approved = true;          // abre el gate solo si el sprint se creó (AC-2)
+      const _spCreated = _tryIngestSprintProposal(raw); // crea el sprint — retorna id string o false
+      if (_spCreated) {
+        // T-202606-020 AC-1/AC-2/AC-3/AC-4: herencia automática de sprint a ítems del CHECKPOINT.
+        // _spCreated es el id del sprint (prefijo corto, ej. "PP-S-03") — truthy siempre que el sprint se creó.
+        // Mutar tgItems in-place antes de que _doApply aplique → el DIFF refleja el sprint asignado.
+        _applySprintInheritanceToItems(tgItems, _spCreated);
+        _spStep0Approved = true; // abre el gate solo si el sprint se creó (AC-2)
+      }
     };
     _ckptMetaStandalone.onRejectProposal = function() {
       _spStep0Approved = false;         // gate queda cerrado — panel cierra sin aplicar nada
