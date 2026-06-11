@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-06 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-03 · mod:12 · autor:Nova · 2026-06-11 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -1424,6 +1424,13 @@
 .spm-meta-btn--readonly {
   visibility: hidden;
   pointer-events: none;
+}
+
+/* Error inline bajo input de version_target — T-202606-022 */
+.spm-meta-input-error {
+  font-size: 0.75rem;
+  color: var(--red);
+  margin-top: 4px;
 }
 
 /* ── END R-202606-009 ──────────────────────────────────────────────────────── */
