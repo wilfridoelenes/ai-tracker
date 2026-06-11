@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -474,6 +474,8 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
     const sprintObj = _getSprintById(sprintId);
     const isActive  = sprintObj?.status === 'active';
     const isClosed  = sprintObj?.status === 'closed';
+    // T-202606-040: planificado = sprint sin registrar en getActiveSprints(), o registrado con status distinto a active/closed
+    const isPlanned = !isActive && !isClosed;
     const label     = sprintObj ? (sprintObj.label || sprintId) : sprintId;
     const groupId   = 'vl-' + sprintId.toLowerCase().replace(/[^a-z0-9]/g, '-');
 
@@ -491,7 +493,9 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
       ? `<span class="sprint-badge-active">activo</span>`
       : isClosed
         ? `<span class="sprint-badge-closed">cerrado</span>`
-        : '';
+        : isPlanned
+          ? `<span class="sprint-badge-planned">planificado</span>`
+          : '';
 
     const progressBar = `<div class="version-progress-inline">
       <div class="version-progress-bar-wrap"><div class="version-progress-bar" style="--ver-bar-w:${pct}%"></div></div>
@@ -523,7 +527,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
       ? _sortGroup(_doneInGroup).map(item => buildBacklogItem(item)).join('')
       : '';
 
-    html += `<div class="bl-vl-sprint-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}" data-sprint-id="${esc(sprintId)}">`;
+    html += `<div class="bl-vl-sprint-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}${isPlanned ? ' sprint-group-planned' : ''}" data-sprint-id="${esc(sprintId)}">`;
     html += `<div class="bl-vl-sprint-header version-collapse-trigger" data-action="version-collapse" data-group-id="${groupId}">`;
     html += `<div class="version-header">`;
     html += `<span id="sprint-label-wrap-${esc(sprintId)}"><span class="version-tag">${esc(sprintId)}${sprintBadge}</span>${(label && label !== sprintId) ? `<span class="sprint-name-label">${esc(label.replace(/^[A-Za-z]+[-\s]S\d+\s*·?\s*/i, ''))}</span>` : ''}</span>`;
