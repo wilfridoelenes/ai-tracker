@@ -1,4 +1,4 @@
-// [PP] v0.3.0 · sprint:PP-S-05 · mod:14 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.3.0 · sprint:PP-S-08 · mod:15 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -799,6 +799,69 @@ function _isItemBlocked(item) {
 // T-202606-109: campos no canónicos movidos a bloque metadata al final.
 //   Campos nuevos: schema_version (AC-2), depends_on array vacío (AC-3), no_incluye (AC-4), intencion (AC-5).
 //   AC-3: campo canónico verificado = depends_on (snake_case).
+// T-202606-071: campos calculados para Ts y Bs del sprint activo.
+// Entrada: item (T o B), sessions (array flat de todas las sesiones del proyecto activo).
+// Retorna objeto con last_checkpoint, last_mod, gap_activo, qa_iteracion — ausente si no aplica.
+function _computeCalcFields(item, sessions) {
+  if (!item.code) return {};
+  const code = item.code;
+
+  // Sesiones que referencian este ítem — ordenadas cronológicamente ascendente por id numérico
+  const refs = sessions
+    .filter(s => Array.isArray(s.trackerRefs) && s.trackerRefs.includes(code))
+    .sort((a, b) => parseInt(a.id) - parseInt(b.id));
+
+  if (!refs.length) return {};
+
+  const result = {};
+
+  // last_checkpoint: título de la sesión más reciente con trackerRefs que incluye el código
+  const lastRef = refs[refs.length - 1];
+  if (lastRef.title) result.last_checkpoint = lastRef.title;
+
+  // last_mod: 'mod:N · autor:Rol' del primer objeto archivos de la sesión más reciente con archivos no vacío
+  const lastWithArchivos = [...refs].reverse().find(s => Array.isArray(s.archivos) && s.archivos.length > 0);
+  if (lastWithArchivos) {
+    const first = lastWithArchivos.archivos[0];
+    if (first && first.mod !== undefined && first.autor) {
+      result.last_mod = `mod:${first.mod} · autor:${first.autor}`;
+    }
+  }
+
+  // gap_activo — señal primaria: devolucion_cael explícita
+  const refsWithDC = refs.filter(s => s.devolucion_cael !== undefined && s.devolucion_cael !== null);
+  if (refsWithDC.length > 0) {
+    // Usar la sesión más reciente con devolucion_cael declarado
+    const lastDC = [...refsWithDC].sort((a, b) => parseInt(a.id) - parseInt(b.id));
+    const latestDC = lastDC[lastDC.length - 1];
+    if (latestDC.devolucion_cael === true) {
+      // true: verificar si hay sesión posterior con rol PO
+      const laterPO = refs.find(s =>
+        parseInt(s.id) > parseInt(latestDC.id) &&
+        typeof s.rol === 'string' && s.rol.startsWith('PO')
+      );
+      result.gap_activo = !laterPO;
+    } else {
+      result.gap_activo = false;
+    }
+  } else {
+    // Fallback: sin devolucion_cael en ninguna sesión del ítem
+    const lastSess = refs[refs.length - 1];
+    const isLastQA = typeof lastSess.rol === 'string' && lastSess.rol.startsWith('QA');
+    const hasPriorPO = refs.some(s =>
+      s !== lastSess &&
+      typeof s.rol === 'string' && s.rol.startsWith('PO')
+    );
+    result.gap_activo = isLastQA && hasPriorPO;
+  }
+
+  // qa_iteracion: conteo de sesiones con rol que comienza con 'QA'
+  const qaCount = refs.filter(s => typeof s.rol === 'string' && s.rol.startsWith('QA')).length;
+  if (qaCount > 0) result.qa_iteracion = qaCount;
+
+  return result;
+}
+
 function _buildItemFieldsMd(item, state) {
   let md = '';
   md += `**Priority:** ${item.priority || 'medium'}\n`;
@@ -858,6 +921,27 @@ function _buildItemFieldsMd(item, state) {
     });
   }
   if (item.notes) md += `\n**Notes:** ${item.notes}\n`;
+  // T-202606-071: campos calculados — solo Ts y Bs del sprint activo (no icebox, no R, no P)
+  if (item.code && (item.code[0] === 'T' || item.code[0] === 'B') && item.sprint && item.sprint !== 'icebox') {
+    const _activeSprint = (state.sprints || []).find(s => s.status === 'active');
+    const _activeSprintId = _activeSprint ? _activeSprint.id : null;
+    const _normSId = val => {
+      if (!val) return val;
+      const m = String(val).match(/^([A-Za-z]+-S\d+)/i);
+      return m ? m[1] : val;
+    };
+    if (_activeSprintId && _normSId(item.sprint) === _normSId(_activeSprintId)) {
+      const _activeProj = getActiveProject();
+      const _allSessions = _activeProj ? (_activeProj.sessions || []) : [];
+      const calc = _computeCalcFields(item, _allSessions);
+      const _calcParts = [];
+      if (calc.last_checkpoint !== undefined) _calcParts.push(`LastCheckpoint:${calc.last_checkpoint}`);
+      if (calc.last_mod        !== undefined) _calcParts.push(`LastMod:${calc.last_mod}`);
+      if (calc.gap_activo      !== undefined) _calcParts.push(`GapActivo:${calc.gap_activo}`);
+      if (calc.qa_iteracion    !== undefined) _calcParts.push(`QaIteracion:${calc.qa_iteracion}`);
+      if (_calcParts.length) md += `<!-- calc: ${_calcParts.join(' · ')} -->\n`;
+    }
+  }
   // AC-1: createdAt, statusChangedAt, impact, version → bloque metadata al final
   const _metaParts = [];
   if (item.createdAt)       _metaParts.push(`CreatedAt:${item.createdAt}`);

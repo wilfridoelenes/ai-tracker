@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-08 · mod:27 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-08 · mod:28 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -841,6 +841,13 @@ export function parsePaste(id) {
     // T-202606-070: persistir rol y archivos del CHECKPOINT — ambos paths JSON y legacy
     rol:      ckpt ? (ckpt.rol      || '') : '',
     archivos: ckpt ? (ckpt.archivos || '') : '',
+    // T-202606-072: detectar devolución Finn→Cael — presente solo cuando rol comienza con 'QA' y texto contiene patrón
+    ...(() => {
+      const _rol = ckpt ? (ckpt.rol || '') : '';
+      if (!_rol.startsWith('QA')) return {};
+      const _hasDev = /pasar a cael|devolver a cael/i.test(text);
+      return { devolucion_cael: _hasDev };
+    })(),
   };
 
   // Calcular discrepancia raw vs parseado

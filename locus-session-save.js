@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:32 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-08 · mod:33 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -646,6 +646,8 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     // T-202606-070: rol y archivos del CHECKPOINT persistidos en sesión
     rol:      parsed.rol      || '',
     archivos: _parseFilesField(parsed.archivos || ''),
+    // T-202606-072: señal de devolución Finn→Cael — presente solo cuando parsed.devolucion_cael está definido
+    ...(parsed.devolucion_cael !== undefined ? { devolucion_cael: parsed.devolucion_cael } : {}),
     resetAt: '',  // B-202606-037: se completa en el callback del DIFF tras leer mdiff-duration-input
     // R-202605-049: sessionGroupId — agrupa checkpoints bajo sesión como contenedor
     sessionGroupId: _sessionGroupId,
