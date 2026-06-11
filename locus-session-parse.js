@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:18 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:19 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1713,7 +1713,7 @@ function saveStandaloneCheckpoint() {
 //  - triggered_by debe apuntar a un ítem cuyo sprint esté en estado 'active'.
 //  - Si triggered_by apunta a icebox o sprint cerrado/programado → no se sugiere.
 //  - Si el B ya declara sprint explícito ≠ icebox → no se sugiere (respetar lo declarado).
-function _buildTriggeredBySuggestion(tgItems) {
+export function _buildTriggeredBySuggestion(tgItems) {
   if (!Array.isArray(tgItems) || !tgItems.length) return null;
 
   const activeSprints = getActiveSprints().filter(sp => sp.status === 'active');

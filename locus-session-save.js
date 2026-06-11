@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:31 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:32 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -22,7 +22,7 @@ import { render } from './locus-sesiones.js';
 
 import { _showProjRequiredInPanel, _templateTrigger, interpretHora } from './locus-session-hora.js';
 
-import { _setPhase, _tryIngestPlan, _tryIngestPlanFromParsed, _tryIngestSprintProposal, _applySprintInheritanceToItems, parseSprintProposal, parsePaste } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-020: _applySprintInheritanceToItems | T-202606-018: _tryIngestPlanFromParsed
+import { _setPhase, _tryIngestPlan, _tryIngestPlanFromParsed, _tryIngestSprintProposal, _applySprintInheritanceToItems, parseSprintProposal, parsePaste, _buildTriggeredBySuggestion } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-020: _applySprintInheritanceToItems | T-202606-018: _tryIngestPlanFromParsed | T-202606-021: _buildTriggeredBySuggestion
 
 import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js';
 
@@ -669,6 +669,17 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
       // Mutar _tgItemsForPanel in-place → el DIFF refleja el sprint asignado antes de que el founder confirme.
       const _spCreated = _tryIngestSprintProposal(raw);
       if (_spCreated) _applySprintInheritanceToItems(_tgItemsForPanel, _spCreated);
+    };
+  }
+  // T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para B con triggered_by en sprint activo.
+  // No-bloqueante: si el founder ignora, el B se ingesta con sprint: icebox (default).
+  const _tgSuggestion = _buildTriggeredBySuggestion(_tgItemsForPanel);
+  if (_tgSuggestion) {
+    _ckptMeta.triggeredBySuggestion = {
+      ..._tgSuggestion,
+      onAccept: function() {
+        _tgSuggestion.b.sprint = _tgSuggestion.suggestedSprint;
+      },
     };
   }
   // Todo CHECKPOINT válido pasa por el DIFF — sin excepción.

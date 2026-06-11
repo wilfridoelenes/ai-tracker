@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:5 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:6 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -456,6 +456,44 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     </div>`;
   };
 
+  // T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para B con triggered_by en sprint activo.
+  // Llega via ckptMeta.triggeredBySuggestion: { b, suggestedSprint, onAccept }. No-bloqueante:
+  // ignorar deja el B en icebox (default). Inserta el prompt al inicio del body.
+  const _tgSuggestion = _ckptMeta.triggeredBySuggestion || null;
+  const _renderTriggeredBySuggestion = () => {
+    if (!_tgSuggestion || !body) return;
+    const { b, suggestedSprint, onAccept } = _tgSuggestion;
+    const _promptHtml = `
+      <div class="mdiff-tgsugg-gate" id="mdiff-tgsugg-gate">
+        <div class="mdiff-icebox-gate-header">
+          <span class="mdiff-step0-badge">Sugerencia</span>
+          <span class="mdiff-step0-title">Mover B a sprint activo</span>
+        </div>
+        <p class="mdiff-icebox-gate-desc">${esc(b.code || '[pendiente-ID]')} — ${esc(b.title || '')} fue disparado por un ítem en ${esc(suggestedSprint)}. ¿Asignar este B al mismo sprint?</p>
+        <div class="mdiff-step0-actions">
+          <button class="mdiff-btn mdiff-btn--primary" id="mdiff-tgsugg-accept">✓ Mover a ${esc(suggestedSprint)}</button>
+          <button class="mdiff-btn mdiff-btn--cancel" id="mdiff-tgsugg-dismiss">Ignorar</button>
+        </div>
+      </div>`;
+    body.insertAdjacentHTML('afterbegin', _promptHtml);
+
+    const _acceptBtn  = document.getElementById('mdiff-tgsugg-accept');
+    const _dismissBtn = document.getElementById('mdiff-tgsugg-dismiss');
+    if (_acceptBtn) {
+      _acceptBtn.addEventListener('click', () => {
+        if (typeof onAccept === 'function') onAccept();
+        const _gateEl = document.getElementById('mdiff-tgsugg-gate');
+        if (_gateEl) _gateEl.remove();
+      }, { once: true });
+    }
+    if (_dismissBtn) {
+      _dismissBtn.addEventListener('click', () => {
+        const _gateEl = document.getElementById('mdiff-tgsugg-gate');
+        if (_gateEl) _gateEl.remove();
+      }, { once: true });
+    }
+  };
+
   if (_sprintProposal && body) {
     // Renderizar Step 0 antes del contenido normal — reemplaza body temporalmente
     const _step0Html = `
@@ -511,6 +549,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
 
         // B-202606-003 AC-2: inyectar narrativa + secciones ahora que Step 0 fue aprobado
         if (body) body.innerHTML = _buildNarrativeSection() + sectionsHtml;
+        _renderTriggeredBySuggestion();
 
         // T-202606-164: gate de revisión icebox — prompt no-bloqueante post-aprobación
         // AC-1: aparece al confirmar Step 0, antes de que el founder interactúe con el DIFF
@@ -597,6 +636,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // T-202606-155: si hay Step 0, body.innerHTML ya fue asignado arriba — no sobreescribir
   if (body && !_sprintProposal) {
     body.innerHTML = _buildNarrativeSection() + sectionsHtml;
+    _renderTriggeredBySuggestion();
   }
 
   // Summary chips: clickeables con jump a sección
