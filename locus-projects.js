@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-02 · mod:4 · autor:Rune · 2026-06-11 10:00 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -16,7 +16,7 @@ import { _animateCountUp, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionY
 
 import { openDetail } from './locus-session-popup.js';
 
-import { _projKey, getAI, getAISessions, getProjectSessions, save } from './locus-storage.js';
+import { _projKey, _getActiveProjectFilter, getAI, getAISessions, getProjectSessions, save } from './locus-storage.js'; // inline_fix T-202606-023: _getActiveProjectFilter añadido al import — faltaba en ESM
 
 import { showToast } from './locus-toast.js';
 
