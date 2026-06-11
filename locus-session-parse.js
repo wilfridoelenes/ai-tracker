@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:22 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:23 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -261,7 +261,7 @@ function parseCheckpoint(text) {
         _blogLog(
           'sprint-proposal-vacio',
           '',
-          'sprint_proposal recibido como objeto vacío ({}) — campo ignorado. Usar null u omitir el campo cuando no hay proposal.',
+          'sprint_proposal vacío ignorado — omitir campo cuando no hay propuesta.',
           'parser'
         );
         return null;
@@ -1053,7 +1053,7 @@ export function parsePaste(id) {
         // Entrada: CHECKPOINT sin <!-- **infra_version: N** --> en encabezado
         // Salida: alerta visible en UI — la ingesta continúa normalmente
         const _docName2e = (ckpt && ckpt.titulo) ? ckpt.titulo : (ckpt && ckpt.proyecto) ? ckpt.proyecto : 'doc';
-        showToast('info', `infra_version no declarada en ${_docName2e} — verificar que el doc esté actualizado.`);
+        showToast('info', `Doc ${_docName2e} sin infra_version declarado — campo obligatorio en Docs vivos.`);
       }
     }
 

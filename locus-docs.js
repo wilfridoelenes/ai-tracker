@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-04 · mod:6 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-04 · mod:7 · autor:Rune · 2026-06-11 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -865,7 +865,7 @@ export function renderDocUpdatesPending() {
             <span class="du-meta-sep">·</span>
             <span class="du-meta-section">${esc(seccion)}</span>
           </div>
-          <div class="du-transitorio-note">⚠ Regla transitoria — adjuntar el MD editable de <strong>${esc(doc)}</strong> antes de aplicar. El rol aplica los cambios sobre el MD adjunto y entrega el MD completo actualizado.</div>
+          <div class="du-transitorio-note">Regla transitoria activa — verificar que el MD actualizado está adjunto al CHECKPOINT de origen.</div>
           <div class="du-conflict-options" role="group" aria-label="Elegir propuesta">
             ${optionsHtml}
           </div>
@@ -880,7 +880,7 @@ export function renderDocUpdatesPending() {
     const entry = entries[0];
     // T-202606-034-2g: recordatorio de regla transitoria BR-Core §8 — visible en cada entrada
     // Entrada: DOC-UPDATE pendiente; Salida: recordatorio visible en la tarjeta
-    const _duTransitorioHtml = `<div class="du-transitorio-note">⚠ Regla transitoria — adjuntar el MD editable de <strong>${esc(doc)}</strong> antes de aplicar. El rol aplica los cambios sobre el MD adjunto y entrega el MD completo actualizado.</div>`;
+    const _duTransitorioHtml = `<div class="du-transitorio-note">Regla transitoria activa — verificar que el MD actualizado está adjunto al CHECKPOINT de origen.</div>`;
     return `
       <div class="du-entry" data-du-key="${keyAttr}">
         <div class="du-meta">
