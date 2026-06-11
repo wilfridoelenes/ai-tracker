@@ -1,4 +1,4 @@
-// [PP] v0.3.0 · sprint:PP-S-05 · mod:13 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.3.0 · sprint:PP-S-05 · mod:14 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -1036,3 +1036,8 @@ export function exportContextMd() {
 }
 
 // B-202606-024: window.export* eliminados — todos los consumidores usan ESM import
+// B-202606-XXX: locus-ui-shell.js no puede importar directamente (ciclo T-202606-055)
+// — registrar listeners shell: para que ui-shell pueda invocar via dispatch
+window.addEventListener('shell:export-backlog', () => exportBacklogMd());
+window.addEventListener('shell:export-history', () => exportFullHistoryMd());
+window.addEventListener('shell:export-context', () => exportContextMd());

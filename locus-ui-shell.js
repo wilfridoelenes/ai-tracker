@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6 
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -1314,13 +1314,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // btn-export-backlog
   const btnExportBacklog = document.getElementById('btn-export-backlog');
   if (btnExportBacklog) btnExportBacklog.addEventListener('click', function () {
-    exportBacklogMd();
+    window.dispatchEvent(new CustomEvent('shell:export-backlog'));
   });
 
   // btn-export-backlog-full
   const btnExportBacklogFull = document.getElementById('btn-export-backlog-full');
   if (btnExportBacklogFull) btnExportBacklogFull.addEventListener('click', function () {
-    exportFullHistoryMd();
+    window.dispatchEvent(new CustomEvent('shell:export-history'));
   });
 
   // btn-import-htmlmap
@@ -1377,7 +1377,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // ctx-export-btn
   const ctxExportBtn = document.getElementById('ctx-export-btn');
   if (ctxExportBtn) ctxExportBtn.addEventListener('click', function () {
-    exportContextMd();
+    window.dispatchEvent(new CustomEvent('shell:export-context'));
   });
 
   // tag-new-input — Enter key
@@ -1555,19 +1555,19 @@ document.addEventListener('DOMContentLoaded', function () {
   // mg-export-backlog-btn
   const mgExportBacklogBtn = document.getElementById('mg-export-backlog-btn');
   if (mgExportBacklogBtn) mgExportBacklogBtn.addEventListener('click', function () {
-    exportBacklogMd();
+    window.dispatchEvent(new CustomEvent('shell:export-backlog'));
   });
 
   // mg-export-history-btn
   const mgExportHistoryBtn = document.getElementById('mg-export-history-btn');
   if (mgExportHistoryBtn) mgExportHistoryBtn.addEventListener('click', function () {
-    exportFullHistoryMd();
+    window.dispatchEvent(new CustomEvent('shell:export-history'));
   });
 
   // mg-export-context-btn
   const mgExportContextBtn = document.getElementById('mg-export-context-btn');
   if (mgExportContextBtn) mgExportContextBtn.addEventListener('click', function () {
-    exportContextMd();
+    window.dispatchEvent(new CustomEvent('shell:export-context'));
   });
 
   // mg-export-all-btn
