@@ -1,4 +1,4 @@
-/* [PP] v1.4.0 · sprint:PP-S-07 · mod:32 · autor:Nova · 2026-06-09 UTC-6 */
+/* [PP] v1.4.0 · sprint:PP-S-07 · mod:33 · autor:Nova · 2026-06-11 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -975,6 +975,28 @@
 
 .sprint-group-closed {
   opacity: 0.6;
+}
+
+/* T-202606-040: sprint planificado — sin apertura formal, ítems ya asignados */
+.sprint-group-planned > div:first-child .version-header {
+  background: rgb(2 136 209 / 6%);
+  border-color: rgb(2 136 209 / 30%);
+}
+
+.sprint-group-planned > div:first-child .sprint-name-label {
+  color: var(--blue);
+}
+
+.sprint-group-planned > div:first-child .version-tag {
+  color: var(--blue);
+  background: rgb(2 136 209 / 10%);
+  border-color: rgb(2 136 209 / 35%);
+}
+
+.sprint-badge-planned {
+  font-size: var(--text-2xs); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  color: var(--blue); background: rgb(2 136 209 / 12%); border: 1px solid rgb(2 136 209 / 35%);
+  border-radius: var(--radius-sm); padding: 1px 6px;
 }
 
 /* T-202604-004: ítems dentro de sprint activo — diferenciación visual */
