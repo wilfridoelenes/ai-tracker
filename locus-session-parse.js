@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-08 · mod:26 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-08 · mod:27 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -838,6 +838,9 @@ export function parsePaste(id) {
     // T-202606-018: finn_observations y execution_plan — path JSON puro
     finnObservations: (ckpt && ckpt._isJsonFormat) ? (ckpt._rawFinnObservations || null) : null,
     executionPlan:    (ckpt && ckpt._isJsonFormat) ? (ckpt._rawExecutionPlan    || null) : null,
+    // T-202606-070: persistir rol y archivos del CHECKPOINT — ambos paths JSON y legacy
+    rol:      ckpt ? (ckpt.rol      || '') : '',
+    archivos: ckpt ? (ckpt.archivos || '') : '',
   };
 
   // Calcular discrepancia raw vs parseado

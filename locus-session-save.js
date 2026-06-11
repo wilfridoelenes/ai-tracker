@@ -575,6 +575,30 @@ export function _mergeBacklogWithProject(tgItems, sessId, projId) {
   return result;
 }
 
+// T-202606-070: parsea el campo archivos del CHECKPOINT al formato de array estructurado.
+// Entrada: string con segmentos separados por ' | ', cada segmento con formato
+//   "nombre · mod:N · autor:Nombre" o solo "nombre" (sin mod/autor).
+// Segmentos sin mod: o sin autor: se omiten. Segmentos sin separadores → campo ausente → [].
+// Retorna array de { nombre, mod, autor }.
+function _parseFilesField(raw) {
+  if (!raw || typeof raw !== 'string') return [];
+  const result = [];
+  const segments = raw.split(/\s*\|\s*/);
+  for (const seg of segments) {
+    const trimmed = seg.trim();
+    if (!trimmed) continue;
+    const modM   = trimmed.match(/mod\s*:\s*(\d+)/i);
+    const autorM = trimmed.match(/autor\s*:\s*([^·|]+)/i);
+    // AC-7/AC-8: segmento sin mod: o sin autor: → omitir
+    if (!modM || !autorM) continue;
+    // Extraer nombre: todo antes del primer ' · '
+    const nombreM = trimmed.match(/^([^·]+)/);
+    const nombre = nombreM ? nombreM[1].trim() : trimmed;
+    result.push({ nombre, mod: parseInt(modM[1]), autor: autorM[1].trim() });
+  }
+  return result;
+}
+
 // R-202604-017 + P-202604-115: lógica central de guardado extraída para reutilización
 export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   const ta = document.getElementById('ta-' + id);
@@ -619,6 +643,9 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     tensionsResolved: parsed.tensionsResolved  || '',
     // T-202606-018: finn_observations — almacenadas en sesión como campo informativo
     finnObservations: parsed.finnObservations  || null,
+    // T-202606-070: rol y archivos del CHECKPOINT persistidos en sesión
+    rol:      parsed.rol      || '',
+    archivos: _parseFilesField(parsed.archivos || ''),
     resetAt: '',  // B-202606-037: se completa en el callback del DIFF tras leer mdiff-duration-input
     // R-202605-049: sessionGroupId — agrupa checkpoints bajo sesión como contenedor
     sessionGroupId: _sessionGroupId,
