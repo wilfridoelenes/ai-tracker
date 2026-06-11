@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 00:58 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-04 · mod:6 · autor:Rune · 2026-06-11 10:00 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -389,7 +389,7 @@ function _buildSprintActivoMd() {
     '',
     '| Campo | Valor |',
     '|---|---|',
-    `| sprint | ${currentSprint.name || currentSprint.id} |`,
+    `| sprint | ${currentSprint.label || currentSprint.name || currentSprint.id} |`,
     `| status | ${currentSprint.status} |`,
     `| version_target | ${currentSprint.version_target || 'n/a'} |`,
     `| release_type | ${currentSprint.release_type || 'n/a'} |`,
