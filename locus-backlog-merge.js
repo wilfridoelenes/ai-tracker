@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 08:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-10 19:15 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
