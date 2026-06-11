@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:21 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:22 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -248,9 +248,26 @@ function parseCheckpoint(text) {
     // T-202606-017: extraer doc_updates — array de objetos DOC-UPDATE del schema JSON
     const _rawDocUpdates = Array.isArray(_parsed.doc_updates) ? _parsed.doc_updates : [];
     // T-202606-017: extraer sprint_proposal — objeto del schema JSON (null si ausente)
-    const _rawSprintProposal = (_parsed.sprint_proposal && typeof _parsed.sprint_proposal === 'object' && !Array.isArray(_parsed.sprint_proposal))
+    // T-202606-034-2f: sprint_proposal: null → tratar como ausente (falsy — ya cubierto por &&)
+    // T-202606-034-2f: sprint_proposal: {} (objeto vacío) → advertencia DocLog + tratar como ausente
+    //   Entrada: sprint_proposal: {}; Salida: advertencia en DocLog, _rawSprintProposal = null, sin Step 0
+    const _rawSprintProposalCandidate = (_parsed.sprint_proposal !== null && _parsed.sprint_proposal !== undefined && typeof _parsed.sprint_proposal === 'object' && !Array.isArray(_parsed.sprint_proposal))
       ? _parsed.sprint_proposal
       : null;
+    const _rawSprintProposal = (() => {
+      if (!_rawSprintProposalCandidate) return null; // null/undefined/array → ausente
+      if (Object.keys(_rawSprintProposalCandidate).length === 0) {
+        // T-202606-034-2f: objeto vacío → advertencia canónica en DocLog, tratar como ausente
+        _blogLog(
+          'sprint-proposal-vacio',
+          '',
+          'sprint_proposal recibido como objeto vacío ({}) — campo ignorado. Usar null u omitir el campo cuando no hay proposal.',
+          'parser'
+        );
+        return null;
+      }
+      return _rawSprintProposalCandidate;
+    })();
     // T-202606-018: extraer finn_observations — array de objetos tipados (null si ausente o vacío)
     const _rawFinnObservations = Array.isArray(_parsed.finn_observations) && _parsed.finn_observations.length
       ? _parsed.finn_observations
@@ -1021,7 +1038,7 @@ export function parsePaste(id) {
     // T-202606-203: detección de desfase de infra_version — aviso informativo no bloqueante
     // AC-1: extraer infra_version del header del texto pegado — formato: <!-- **infra_version: N** | ... -->
     // AC-2: si el valor difiere del activo → mostrar alerta con formato exacto de BR-Core §1
-    // AC-3: si el header no contiene infra_version → silencio
+    // AC-3 (actualizado T-202606-034-2e): si el header no contiene infra_version: → alerta informativa en UI
     // AC-4: la ingesta continúa normalmente — no bloquea
     {
       const _infraMatch = text.match(/<!--\s*\*\*infra_version:\s*(\d+)\*\*/);
@@ -1031,6 +1048,12 @@ export function parsePaste(id) {
           const _docName = (ckpt && ckpt.titulo) ? ckpt.titulo : (ckpt && ckpt.proyecto) ? ckpt.proyecto : 'doc';
           showToast('warn', `infra_version desactualizada: ${_docName} declara infra_version:${_infraDoc}, valor activo es infra_version:${_INFRA_VERSION_ACTIVE}. Verificar consistencia antes de continuar.`);
         }
+      } else if (isCheckpoint) {
+        // T-202606-034-2e: doc adjunto sin campo infra_version: → alerta informativa (no bloqueante)
+        // Entrada: CHECKPOINT sin <!-- **infra_version: N** --> en encabezado
+        // Salida: alerta visible en UI — la ingesta continúa normalmente
+        const _docName2e = (ckpt && ckpt.titulo) ? ckpt.titulo : (ckpt && ckpt.proyecto) ? ckpt.proyecto : 'doc';
+        showToast('info', `infra_version no declarada en ${_docName2e} — verificar que el doc esté actualizado.`);
       }
     }
 

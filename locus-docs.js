@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-04 · mod:4 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-04 · mod:6 · autor:Rune · 2026-06-11 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -852,6 +852,7 @@ export function renderDocUpdatesPending() {
           <span class="du-conflict-option-title">${esc(e.titulo || '—')}</span>
           <span class="du-conflict-option-preview">${esc((e.contenido || '').slice(0, 120))}${(e.contenido || '').length > 120 ? '…' : ''}</span>
         </label>`).join('');
+      // T-202606-034-2g (revisado): recordatorio de regla transitoria — aplica a todas las entradas, con y sin conflicto
 
       return `
         <div class="du-entry du-entry--conflict" data-du-key="${keyAttr}">
@@ -864,6 +865,7 @@ export function renderDocUpdatesPending() {
             <span class="du-meta-sep">·</span>
             <span class="du-meta-section">${esc(seccion)}</span>
           </div>
+          <div class="du-transitorio-note">⚠ Regla transitoria — adjuntar el MD editable de <strong>${esc(doc)}</strong> antes de aplicar. El rol aplica los cambios sobre el MD adjunto y entrega el MD completo actualizado.</div>
           <div class="du-conflict-options" role="group" aria-label="Elegir propuesta">
             ${optionsHtml}
           </div>
@@ -876,6 +878,9 @@ export function renderDocUpdatesPending() {
 
     // Sin conflicto — botón Aplicar habilitado
     const entry = entries[0];
+    // T-202606-034-2g: recordatorio de regla transitoria BR-Core §8 — visible en cada entrada
+    // Entrada: DOC-UPDATE pendiente; Salida: recordatorio visible en la tarjeta
+    const _duTransitorioHtml = `<div class="du-transitorio-note">⚠ Regla transitoria — adjuntar el MD editable de <strong>${esc(doc)}</strong> antes de aplicar. El rol aplica los cambios sobre el MD adjunto y entrega el MD completo actualizado.</div>`;
     return `
       <div class="du-entry" data-du-key="${keyAttr}">
         <div class="du-meta">
@@ -885,6 +890,7 @@ export function renderDocUpdatesPending() {
           <span class="du-meta-sep">·</span>
           <span class="du-meta-titulo">${esc(entry.titulo || '—')}</span>
         </div>
+        ${_duTransitorioHtml}
         <div class="du-content-preview">${esc((entry.contenido || '').slice(0, 200))}${(entry.contenido || '').length > 200 ? '…' : ''}</div>
         <div class="du-actions">
           <button class="du-btn-apply" data-du-key="${keyAttr}">Aplicar</button>
