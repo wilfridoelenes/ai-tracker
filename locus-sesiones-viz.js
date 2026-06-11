@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 00:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:3 · autor:Rune · 2026-06-11 UTC-6
 // locus-sesiones-viz.js
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
 //   (_showItemVizPanel), corrección de hora (openCorrectHora).
@@ -532,6 +532,20 @@ export function showCheckpointPanel(data) {
     html += `<ul class="ckpt-item-list">`;
     data.contextSections.forEach(s => {
       html += `<li class="ckpt-item-row"><span class="ckpt-item-title">${esc(s)}</span></li>`;
+    });
+    html += `</ul></div>`;
+  }
+
+  // T-202606-039 AC nuevo 1: sección informativa de fixes inline — sin crear ítem en backlog
+  if (data.inlineFixes && data.inlineFixes.length) {
+    html += `<div class="ckpt-section ckpt-inline-fix">`;
+    html += `<div class="ckpt-section-label">🔧 Fixes inline</div>`;
+    html += `<ul class="ckpt-item-list">`;
+    data.inlineFixes.forEach(fix => {
+      const desc    = esc(fix.descripcion  || '');
+      const archivo = fix.archivo    ? `<span class="ckpt-item-code">${esc(fix.archivo)}</span>` : '';
+      const ref     = fix.triggered_by ? `<span class="ckpt-item-code">${esc(fix.triggered_by)}</span>` : '';
+      html += `<li class="ckpt-item-row">${archivo}${ref}<span class="ckpt-item-title">${desc}</span></li>`;
     });
     html += `</ul></div>`;
   }

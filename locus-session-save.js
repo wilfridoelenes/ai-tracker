@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:26 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:27 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -613,8 +613,6 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     contexto:    parsed.contexto    || '',
     bloqueantes: parsed.bloqueantes || '',
     aprendizaje: parsed.aprendizaje || '',
-    // T-202606-039: inline_fixes indexados para trazabilidad — sin crear ítem en backlog
-    inlineFixes: Array.isArray(parsed.inlineFixes) && parsed.inlineFixes.length ? parsed.inlineFixes : undefined,
     resetAt: '',  // B-202606-037: se completa en el callback del DIFF tras leer mdiff-duration-input
     // R-202605-049: sessionGroupId — agrupa checkpoints bajo sesión como contenedor
     sessionGroupId: _sessionGroupId,
@@ -841,11 +839,13 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // R-202605-140: proximoPaso y decision abren el panel aunque no haya ítems
   const _ckptProximoPaso = parsed.nextStep  || '';
   const _ckptDecision    = parsed.decision  || '';
+  // T-202606-039 AC nuevo 1: inlineFixes del CHECKPOINT → panel para visibilidad al founder
+  const _ckptInlineFixes = Array.isArray(parsed.inlineFixes) && parsed.inlineFixes.length ? parsed.inlineFixes : null;
   const _isInfoOnly = (v) => !v || v.trim().toLowerCase() === 'n/a';
   const _hasInfoFields = !_isInfoOnly(_ckptProximoPaso) || !_isInfoOnly(_ckptDecision);
-  const hasMergeData = mergeResult.created.length || mergeResult.advanced.length || mergeResult.retroceso.length || mergeResult.discarded.length || mergeResult.updated.length || mergeResult.ignored.length || mergedCtxNames.length || _hasInfoFields;
+  const hasMergeData = mergeResult.created.length || mergeResult.advanced.length || mergeResult.retroceso.length || mergeResult.discarded.length || mergeResult.updated.length || mergeResult.ignored.length || mergedCtxNames.length || _hasInfoFields || !!_ckptInlineFixes;
   if (hasMergeData) {
-    showCheckpointPanel({ ...mergeResult, contextSections: mergedCtxNames, proximoPaso: _ckptProximoPaso, decision: _ckptDecision });
+    showCheckpointPanel({ ...mergeResult, contextSections: mergedCtxNames, proximoPaso: _ckptProximoPaso, decision: _ckptDecision, inlineFixes: _ckptInlineFixes });
   }
   const _hasPending = mergeResult.retroceso?.length || mergeResult.discarded?.length;
   const _baseMsg = horaResult ? `Sesión guardada · desbloquea a las ${horaResult.label}` : 'Sesión guardada';
