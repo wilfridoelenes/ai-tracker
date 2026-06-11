@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-02 · mod:5 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-04 · mod:6 · autor:Rune · 2026-06-11 10:30 UTC-6
 // locus-storage.js
 // Última actualización: 2026-06-06 · T-202606-101: guard de salida para retries de _loadFromSupabase (_LOAD_RETRY_MAX)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -64,6 +64,8 @@ export const LOCUS_KEYS = {
   HM_DOCS_PREFIX:   'tracker-hm-docs',
   ONBOARDING_SEEN:  'onboarding-seen',
   DRAFT_KEY_PREFIX: 'draft-',
+  // T-202606-032: índice de DOC-UPDATEs por sprint — persiste en state.projects[i].docUpdateIndex
+  DOC_UPDATE_INDEX: 'docUpdateIndex',
 };
 
 // R-202605-002: strings canónicos de proyecto — fuente única de verdad
@@ -1735,7 +1737,25 @@ export function _docPrefix() {
 }
 // ── END T-202606-166 ──────────────────────────────────────────────────────────
 
-// ── T-202606-199: getActivePlan() — retorna plan del proyecto activo desde localStorage ──
+// ── T-202606-032: Índice de DOC-UPDATEs por proyecto ─────────────────────────
+// El índice vive en proj.docUpdateIndex — persistido en state via save().
+// Estructura: { 'doc::sección': [ { contenido, titulo, conflicto } ] }
+// Por proyecto activo — _getActiveProjectFilter() determina el proyecto.
+
+export function _getDocUpdateIndex() {
+  const proj = getActiveProject();
+  if (!proj) return {};
+  return proj.docUpdateIndex || {};
+}
+
+export function _setDocUpdateIndex(index) {
+  const proj = getActiveProject();
+  if (!proj) return;
+  proj.docUpdateIndex = index;
+  save();
+}
+// ── END T-202606-032 ──────────────────────────────────────────────────────────
+ — retorna plan del proyecto activo desde localStorage ──
 // Firma: getActivePlan() → Object | null
 // Ownership: locus-storage.js — consume LOCUS_KEYS.PLAN_PREFIX y window.state.activeProjectId
 // Accesible desde locus-backlog-item.js en el mismo ciclo de carga sin guard typeof requerido.

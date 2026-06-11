@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-04 · mod:2 · autor:Rune · 2026-06-11 10:30 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -8,7 +8,7 @@ import { _updateUndoUI, importBacklog } from './locus-backlog-core.js';
 import { closeDocLog } from './locus-doc-log.js';
 import { _mgGetVersion } from './locus-map-generator.js';
 import { parseHtmlMapMd, renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
-import { _blogLog, _docPrefix, _effectiveVersion, _projKey, _tplKey, getActiveProject, saveContextDocs } from './locus-storage.js';
+import { _blogLog, _docPrefix, _effectiveVersion, _getDocUpdateIndex, _projKey, _setDocUpdateIndex, _tplKey, getActiveProject, saveContextDocs } from './locus-storage.js';
 
 // T-202606-166: _docPrefix movida a locus-storage.js
 
@@ -724,6 +724,89 @@ export function mergeHtmlMapSections(sections, projId) {
   if (currentSubTab === 'htmlmap') renderHtmlMap();
   showToast('success', `✓ Module Map actualizado — ${sections.length} sección(es) mergeada(s)`);
 }
+
+// ── T-202606-032: Extracción y procesamiento de DOC-UPDATEs desde CHECKPOINT ──
+
+// extractDocUpdates — extrae bloques ---DOC-UPDATE--- del texto pegado.
+// Solo procesa dentro del bloque ---CHECKPOINT--- / ---FIN-CHECKPOINT---.
+// Retorna array de { doc, seccion, accion, contenido } — un objeto por bloque.
+export function extractDocUpdates(text) {
+  const updates = [];
+  const ckptMatch = text.match(/---CHECKPOINT---([\s\S]*?)---FIN-CHECKPOINT---/);
+  const scope = ckptMatch ? ckptMatch[1] : '';
+  if (!scope) return updates;
+  const re = /---DOC-UPDATE---([\s\S]*?)---DOC-UPDATE-END---/g;
+  let m;
+  while ((m = re.exec(scope)) !== null) {
+    const block = m[1];
+    const doc     = (block.match(/^doc:\s*(.+)/m)     || [])[1]?.trim() || '';
+    const seccion = (block.match(/^seccion:\s*(.+)/m) || [])[1]?.trim() || '';
+    const accion  = (block.match(/^accion:\s*(.+)/m)  || [])[1]?.trim() || '';
+    // contenido: todo lo que sigue a la línea "contenido:"
+    const contenidoMatch = block.match(/^contenido:\s*\n([\s\S]*)/m);
+    const contenido = contenidoMatch ? contenidoMatch[1].trim() : '';
+    if (doc && seccion) updates.push({ doc, seccion, accion, contenido });
+  }
+  return updates;
+}
+
+// processDocUpdate — registra un DOC-UPDATE en el índice del proyecto activo.
+// Detecta conflicto (misma key, contenido distinto), actualiza flags y llama save().
+// checkpointTitle: campo Título del CHECKPOINT de origen — para el mensaje de conflicto.
+// Retorna { key, conflicto, msg } — msg es la alerta de conflicto si aplica.
+export function processDocUpdate(update, checkpointTitle) {
+  const { doc, seccion, contenido } = update;
+  const key = doc + '::' + seccion;
+  const index = _getDocUpdateIndex();
+
+  if (!index[key]) {
+    // Primera entrada para esta key en el sprint — sin conflicto
+    index[key] = [{ contenido, titulo: checkpointTitle, conflicto: false }];
+    _setDocUpdateIndex(index);
+    _blogLog('ckpt-creado', key, checkpointTitle, 'backlog');
+    return { key, conflicto: false, msg: null };
+  }
+
+  const existing = index[key];
+
+  // AC-4: entrada idempotente — mismo contenido exacto, no genera conflicto
+  const duplicate = existing.find(e => e.contenido === contenido);
+  if (duplicate) {
+    // Sin cambio en el índice — entrada ya presente
+    return { key, conflicto: false, msg: null };
+  }
+
+  // AC-2: contenido distinto → conflicto — marcar ambas entradas existentes y la nueva
+  existing.forEach(e => { e.conflicto = true; });
+  existing.push({ contenido, titulo: checkpointTitle, conflicto: true });
+  _setDocUpdateIndex(index);
+  _blogLog('ckpt-creado', key, 'conflicto: ' + checkpointTitle, 'backlog');
+
+  const titulos = existing.map(e => e.titulo).filter(Boolean);
+  const msg = 'Conflicto DOC-UPDATE: ' + seccion + ' de ' + doc +
+    ' tiene dos propuestas contradictorias — ' + titulos[0] + ' vs ' + titulos[titulos.length - 1] +
+    '. Resolver antes de aplicar.';
+  return { key, conflicto: true, msg };
+}
+
+// resolveDocUpdate — el dueño elige una propuesta; descarta las demás.
+// chosenIndex: índice dentro del array index[key] de la propuesta elegida.
+// Registra descarte en DocLog para cada entrada no elegida.
+export function resolveDocUpdate(key, chosenIndex) {
+  const index = _getDocUpdateIndex();
+  if (!index[key]) return;
+  const entries = index[key];
+  entries.forEach((e, i) => {
+    if (i !== chosenIndex) {
+      _blogLog('descartado', key, 'descartado · conflicto resuelto a favor de: ' + (entries[chosenIndex]?.titulo || ''), 'backlog');
+    }
+  });
+  // Conservar solo la entrada elegida, sin flag de conflicto
+  const chosen = { ...entries[chosenIndex], conflicto: false };
+  index[key] = [chosen];
+  _setDocUpdateIndex(index);
+}
+// ── END T-202606-032 ──────────────────────────────────────────────────────────
 
 // T-202604-108: renderContext — two states: empty / loaded
 export function renderContext() {
