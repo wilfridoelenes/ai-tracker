@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-04 · mod:7 · autor:Rune · 2026-06-11 12:30 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-04 · mod:8 · autor:Rune · 2026-06-11 12:30 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -420,6 +420,8 @@ export function _normalizeSprint(item, pendingItems) {
 export function parsePaste(id) {
   const ta = document.getElementById('ta-' + id);
   const text = ta ? ta.value : '';
+  const ai = getAI(id); // B-202606-017: declarado al inicio de parsePaste — disponible en todos los branches (incluido el else de texto vacío, línea ~729)
+  if (!ai) return;
   // R-202605-133: detectar CHECKPOINT en formato JSON puro (```json) o Markdown legacy
   const isCheckpoint = text.includes('---CHECKPOINT---') || /^\s*```json\s*\{/.test(text);
 
@@ -650,8 +652,6 @@ export function parsePaste(id) {
 
   const _pendingPatches = window[`_patchItems_${id}`] || [];
   delete window[`_patchItems_${id}`];
-  const ai = getAI(id); // B-202606-XXX: ai no estaba declarada en parsePaste — ReferenceError en línea 653
-  if (!ai) return;
   ai._parsed = { title, summary, files, tgItems, patchItems: _pendingPatches, isCheckpoint, nextStep, ckptProyecto: ckpt ? (ckpt.proyecto || '') : '', inlineFixes: _inlineFixes };
 
   // Calcular discrepancia raw vs parseado
