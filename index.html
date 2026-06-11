@@ -1,4 +1,4 @@
-<!-- [PP] v0.2.0 · sprint:PP-S-01 · mod:50 · autor:Rune · 2026-06-10 UTC-6 -->
+<!-- [PP] v0.2.0 · sprint:PP-S-04 · mod:51 · autor:Rune · 2026-06-11 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -316,6 +316,10 @@
           <span class="tpl-nav-icon">📄</span><span class="tpl-nav-text">Context</span>
           <span class="tpl-nav-badge" id="tpl-badge-context"></span>
         </button>
+        <button class="tpl-nav-btn" id="sstab-btn-docupdates">
+          <span class="tpl-nav-icon">📝</span><span class="tpl-nav-text">DOC-UPDATEs</span>
+          <span class="tpl-nav-badge" id="tpl-badge-docupdates"></span>
+        </button>
         <button class="tpl-nav-btn is-hidden" id="sstab-btn-contratos">
           <span class="tpl-nav-icon">📐</span><span class="tpl-nav-text">Contratos</span>
           <span class="tpl-nav-badge" id="tpl-badge-contratos"></span>
@@ -505,6 +509,15 @@
       <div id="context-conflict-area"></div>
 
     </div><!-- /sspanel-context -->
+
+    <!-- Sub-panel: DOC-UPDATEs pendientes — T-202606-033 -->
+    <div class="session-subpanel" id="sspanel-docupdates">
+      <div class="du-panel-header">
+        <div class="du-panel-title">DOC-UPDATEs pendientes</div>
+        <span class="du-conflict-summary is-hidden" id="du-conflict-summary"></span>
+      </div>
+      <div id="doc-updates-list" class="du-list"></div>
+    </div><!-- /sspanel-docupdates -->
 
     <!-- Sub-panel: Plan — R-202604-076 -->
     <div class="session-subpanel" id="sspanel-plan">

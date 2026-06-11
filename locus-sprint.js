@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:6 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:7 · autor:Rune · 2026-06-11 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -479,6 +479,93 @@ function _renderSprintScopeAdded(sprint) {
 
   section.classList.remove('is-hidden');
 }
+
+// ── T-202606-040: _renderPlannedSprints — sección Sprints planificados ──────
+//
+// Muestra en #sprint-planned-list los sprints que tienen ítems asignados
+// y cuyo status es distinto a 'active' o 'closed' (sprints no registrados
+// en getActiveSprints() o registrados con otro status).
+//
+// AC1: sprint con ítems aparece con conteo R=N · T=N · B=N y effort total.
+// AC2: ítems en sprint activo (active) no aparecen aquí — solo sprints planificados.
+// AC3: sprint sin ítems asignados no aparece.
+// AC4: al abrir formalmente un sprint planificado, desaparece de esta sección.
+// AC5: sprint activo excluido de esta sección.
+
+function _renderPlannedSprints() {
+  const container = document.getElementById('sprint-planned-list');
+  if (!container) return;
+
+  if (!Array.isArray(getItems())) {
+    container.innerHTML = '';
+    return;
+  }
+
+  const allSprints    = getActiveSprints();
+  const activeIds     = new Set(allSprints.filter(s => s.status === 'active').map(s => s.id));
+  const closedIds     = new Set(allSprints.filter(s => s.status === 'closed').map(s => s.id));
+  const _extractId    = s => (s || '').split(' · ')[0].trim();
+
+  // Agrupar ítems no descartados por sprint, excluyendo active, closed e icebox
+  const plannedMap = {};
+  getItems().forEach(i => {
+    const raw = (i.sprint || '').trim();
+    if (!raw || raw === 'icebox') return;
+    const id = _extractId(raw);
+    if (!id) return;
+    if (activeIds.has(id) || closedIds.has(id)) return;
+    if (i.status === 'descartado') return;
+    if (!plannedMap[id]) plannedMap[id] = [];
+    plannedMap[id].push(i);
+  });
+
+  const keys = Object.keys(plannedMap);
+  if (!keys.length) {
+    container.innerHTML = '';
+    return;
+  }
+
+  // Ordenar por número de sprint ascendente (próximos primero)
+  keys.sort((a, b) => {
+    const na = parseInt(a.replace(/\D/g, '')) || 0;
+    const nb = parseInt(b.replace(/\D/g, '')) || 0;
+    return na - nb;
+  });
+
+  let html = `<div class="spl-section">
+    <div class="spl-header">
+      <span class="spl-title">Sprints planificados</span>
+      <span class="spl-count">${keys.length}</span>
+    </div>
+    <div class="spl-list">`;
+
+  keys.forEach(sprintId => {
+    const items  = plannedMap[sprintId];
+    const spObj  = allSprints.find(s => s.id === sprintId);
+    const label  = spObj ? (spObj.label || sprintId) : sprintId;
+    const countR = items.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'R').length;
+    const countT = items.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'T').length;
+    const countB = items.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'B').length;
+    const effort = items.reduce((acc, i) => acc + (parseInt(i.effort) || 0), 0);
+
+    const countParts = [];
+    if (countR) countParts.push(`<span class="spl-type spl-type--r">R=${countR}</span>`);
+    if (countT) countParts.push(`<span class="spl-type spl-type--t">T=${countT}</span>`);
+    if (countB) countParts.push(`<span class="spl-type spl-type--b">B=${countB}</span>`);
+
+    html += `<div class="spl-row" data-sprint-id="${_escHtml(sprintId)}">
+      <span class="spl-row-id">${_escHtml(sprintId)}</span>
+      ${label !== sprintId ? `<span class="spl-row-name">${_escHtml(label.replace(/^[A-Za-z]+-S-\d+\s*·?\s*/i, ''))}</span>` : ''}
+      <span class="spl-row-counts">${countParts.join('')}</span>
+      <span class="spl-row-effort">effort ${effort}</span>
+    </div>`;
+  });
+
+  html += `</div></div>`;
+  container.innerHTML = html;
+}
+
+// ── END T-202606-040 ──────────────────────────────────────────────────────────
 
 // ── T-202605-123: Gestor de sprints — lista completa con progreso y acceso a retro ──
 

@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-04 · mod:2 · autor:Rune · 2026-06-11 10:30 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-04 · mod:3 · autor:Rune · 2026-06-11 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -94,11 +94,19 @@ export function _updateSubTabButtons(sub) {
     btnExpContratos.disabled = !hasContratos;
     btnExpContratos.title = hasContratos ? 'Exportar Contratos.md' : 'Sin contratos definidos aún';
   }
+  // AC-3 (T-202606-033): sub docupdates — renderizar al activar
+  if (sub === 'docupdates') {
+    if (typeof renderDocUpdatesPending === 'function') renderDocUpdatesPending();
+  }
   // Collapse danger body when switching tabs
   const dangerBody = document.getElementById('tpl-danger-body');
   if (dangerBody) dangerBody.classList.remove('open');
   // sub-tab plan — no tiene botones de acción ni danger zone (read-only)
   if (sub === 'plan') {
+    if (dangerZone) dangerZone.classList.add('is-hidden');
+  }
+  // sub-tab docupdates — sin danger zone
+  if (sub === 'docupdates') {
     if (dangerZone) dangerZone.classList.add('is-hidden');
   }
   // Hide actions section label if no buttons visible
@@ -808,6 +816,172 @@ export function resolveDocUpdate(key, chosenIndex) {
 }
 // ── END T-202606-032 ──────────────────────────────────────────────────────────
 
+// ── T-202606-033: UI de alerta y resolución de conflicto DOC-UPDATE ──────────
+
+// renderDocUpdatesPending — renderiza la lista de DOC-UPDATEs pendientes en #doc-updates-list.
+// Entradas en conflicto muestran bandera visual + títulos de ambos CHECKPOINTs.
+// Botón Aplicar deshabilitado mientras el conflicto no esté resuelto.
+export function renderDocUpdatesPending() {
+  const container = document.getElementById('doc-updates-list');
+  if (!container) return;
+
+  const index = _getDocUpdateIndex();
+  const keys = Object.keys(index);
+
+  if (!keys.length) {
+    container.innerHTML = '<div class="du-empty-state">Sin DOC-UPDATEs pendientes en este sprint.</div>';
+    _updateDocUpdatesBadge(0, 0);
+    return;
+  }
+
+  let conflictCount = 0;
+  const html = keys.map(key => {
+    const entries = index[key];
+    const hasConflict = entries.some(e => e.conflicto);
+    if (hasConflict) conflictCount++;
+
+    const [doc, seccion] = key.split('::');
+    const keyAttr = esc(key);
+
+    if (hasConflict) {
+      // AC-1 + AC-2: bandera visual con mensaje canónico y títulos de los CHECKPOINTs
+      const titulos = entries.map(e => esc(e.titulo || '—'));
+      const optionsHtml = entries.map((e, i) => `
+        <label class="du-conflict-option">
+          <input type="radio" name="du-resolve-${keyAttr}" value="${i}" class="du-conflict-radio">
+          <span class="du-conflict-option-title">${esc(e.titulo || '—')}</span>
+          <span class="du-conflict-option-preview">${esc((e.contenido || '').slice(0, 120))}${(e.contenido || '').length > 120 ? '…' : ''}</span>
+        </label>`).join('');
+
+      return `
+        <div class="du-entry du-entry--conflict" data-du-key="${keyAttr}">
+          <div class="du-conflict-flag">
+            <span class="du-conflict-icon">⚠</span>
+            <span class="du-conflict-msg">Conflicto DOC-UPDATE: <strong>${esc(seccion)}</strong> de <strong>${esc(doc)}</strong> tiene dos propuestas contradictorias — ${titulos[0]} vs ${titulos[titulos.length - 1]}. Resolver antes de aplicar.</span>
+          </div>
+          <div class="du-meta">
+            <span class="du-meta-doc">${esc(doc)}</span>
+            <span class="du-meta-sep">·</span>
+            <span class="du-meta-section">${esc(seccion)}</span>
+          </div>
+          <div class="du-conflict-options" role="group" aria-label="Elegir propuesta">
+            ${optionsHtml}
+          </div>
+          <div class="du-actions">
+            <button class="du-btn-resolve" data-du-key="${keyAttr}" disabled aria-disabled="true">Resolver conflicto</button>
+            <button class="du-btn-apply is-hidden" data-du-key="${keyAttr}" disabled aria-disabled="true">Aplicar</button>
+          </div>
+        </div>`;
+    }
+
+    // Sin conflicto — botón Aplicar habilitado
+    const entry = entries[0];
+    return `
+      <div class="du-entry" data-du-key="${keyAttr}">
+        <div class="du-meta">
+          <span class="du-meta-doc">${esc(doc)}</span>
+          <span class="du-meta-sep">·</span>
+          <span class="du-meta-section">${esc(seccion)}</span>
+          <span class="du-meta-sep">·</span>
+          <span class="du-meta-titulo">${esc(entry.titulo || '—')}</span>
+        </div>
+        <div class="du-content-preview">${esc((entry.contenido || '').slice(0, 200))}${(entry.contenido || '').length > 200 ? '…' : ''}</div>
+        <div class="du-actions">
+          <button class="du-btn-apply" data-du-key="${keyAttr}">Aplicar</button>
+          <button class="du-btn-discard" data-du-key="${keyAttr}">Descartar</button>
+        </div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = html;
+  _updateDocUpdatesBadge(keys.length, conflictCount);
+}
+
+// _updateDocUpdatesBadge — actualiza el badge del nav btn y el contador de conflictos.
+function _updateDocUpdatesBadge(total, conflicts) {
+  const badge = document.getElementById('tpl-badge-docupdates');
+  if (badge) {
+    badge.textContent = total > 0 ? String(total) : '';
+    badge.classList.toggle('du-badge--conflict', conflicts > 0);
+  }
+  const conflictSummary = document.getElementById('du-conflict-summary');
+  if (conflictSummary) {
+    conflictSummary.textContent = conflicts > 0
+      ? `${conflicts} conflicto${conflicts > 1 ? 's' : ''} sin resolver`
+      : '';
+    conflictSummary.classList.toggle('is-hidden', conflicts === 0);
+  }
+}
+
+// _initDocUpdatesListeners — delega clicks en #doc-updates-list.
+function _initDocUpdatesListeners() {
+  const list = document.getElementById('doc-updates-list');
+  if (!list) return;
+
+  // Radio change → habilitar "Resolver conflicto" cuando hay selección
+  list.addEventListener('change', function(e) {
+    const radio = e.target.closest('.du-conflict-radio');
+    if (!radio) return;
+    const entry = radio.closest('.du-entry--conflict');
+    if (!entry) return;
+    const btnResolve = entry.querySelector('.du-btn-resolve');
+    if (btnResolve) {
+      btnResolve.disabled = false;
+      btnResolve.removeAttribute('aria-disabled');
+    }
+  });
+
+  list.addEventListener('click', function(e) {
+
+    // AC-2: "Resolver conflicto" → elige la propuesta seleccionada, descarta las demás
+    const btnResolve = e.target.closest('.du-btn-resolve');
+    if (btnResolve && !btnResolve.disabled) {
+      const key = btnResolve.dataset.duKey;
+      const entry = btnResolve.closest('.du-entry--conflict');
+      const selected = entry?.querySelector('.du-conflict-radio:checked');
+      if (!selected) return;
+      const chosenIndex = parseInt(selected.value, 10);
+      resolveDocUpdate(key, chosenIndex);
+      showToast('success', 'Conflicto resuelto — propuesta seleccionada lista para aplicar.');
+      renderDocUpdatesPending();
+      return;
+    }
+
+    // AC-1: "Aplicar" → marca como aplicado y elimina del índice
+    const btnApply = e.target.closest('.du-btn-apply');
+    if (btnApply && !btnApply.disabled) {
+      const key = btnApply.dataset.duKey;
+      const idx = _getDocUpdateIndex();
+      const entry = (idx[key] || [])[0];
+      if (entry) {
+        _blogLog('aplicado', key, entry.titulo || '', 'backlog');
+      }
+      delete idx[key];
+      _setDocUpdateIndex(idx);
+      showToast('success', 'DOC-UPDATE aplicado y registrado en DocLog.');
+      renderDocUpdatesPending();
+      return;
+    }
+
+    // "Descartar" → elimina del índice sin aplicar
+    const btnDiscard = e.target.closest('.du-btn-discard');
+    if (btnDiscard) {
+      const key = btnDiscard.dataset.duKey;
+      const idx = _getDocUpdateIndex();
+      const entry = (idx[key] || [])[0];
+      if (entry) {
+        _blogLog('descartado', key, entry.titulo || '', 'backlog');
+      }
+      delete idx[key];
+      _setDocUpdateIndex(idx);
+      showToast('info', 'DOC-UPDATE descartado.');
+      renderDocUpdatesPending();
+    }
+  });
+}
+
+// ── END T-202606-033 ──────────────────────────────────────────────────────────
+
 // T-202604-108: renderContext — two states: empty / loaded
 export function renderContext() {
   const emptyEl = document.getElementById('context-empty-state');
@@ -1075,6 +1249,9 @@ document.addEventListener('DOMContentLoaded', () => {
       _dismissDocsOnboarding();
     }
   });
+
+  // T-202606-033: inicializar listeners de DOC-UPDATEs pendientes
+  _initDocUpdatesListeners();
 
   // .conflict-banner-dismiss → remove banner — delegado en #context-conflict-area
   const conflictArea = document.getElementById('context-conflict-area');

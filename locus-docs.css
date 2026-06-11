@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 14:00 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-04 · mod:2 · autor:Nova · 2026-06-11 UTC-6 */
 /* locus-docs.css */
 /* Versión: 1.0 | Última actualización: 2026-05-25 | Estilos HTML-MAP y Context — extraídos de locus-backlog.css (T-202605-112) */
 
@@ -655,3 +655,251 @@
     animation: none;
   }
 }
+
+/* ── T-202606-033: DOC-UPDATEs pendientes — familia du-* ───────────────────── */
+
+/* Panel header */
+.du-panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.du-panel-title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.du-conflict-summary {
+  font-size: var(--text-xs);
+  color: var(--red);
+  font-weight: 600;
+  background: rgb(232 85 85 / 10%);
+  border: 1px solid rgb(232 85 85 / 30%);
+  border-radius: var(--radius-pill);
+  padding: 2px 10px;
+}
+
+/* Lista principal */
+.du-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 16px;
+}
+
+/* Empty state */
+.du-empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--hint);
+  font-size: var(--text-sm);
+}
+
+/* Entrada individual */
+.du-entry {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md-plus);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* AC-1: entrada en conflicto — bandera visual */
+.du-entry--conflict {
+  border-color: rgb(232 85 85 / 40%);
+  background: rgb(232 85 85 / 4%);
+}
+
+.du-conflict-flag {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgb(232 85 85 / 10%);
+  border: 1px solid rgb(232 85 85 / 30%);
+  border-radius: var(--radius-md);
+}
+
+.du-conflict-icon {
+  font-size: var(--text-md);
+  color: var(--red);
+  flex-shrink: 0;
+  line-height: 1.4;
+}
+
+.du-conflict-msg {
+  font-size: var(--text-sm);
+  color: var(--red);
+  line-height: 1.5;
+}
+
+/* Metadatos de la entrada */
+.du-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.du-meta-doc {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.du-meta-sep {
+  color: var(--border2);
+}
+
+.du-meta-section {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--text2);
+}
+
+.du-meta-titulo {
+  font-size: var(--text-xs);
+  color: var(--hint);
+}
+
+/* Preview del contenido */
+.du-content-preview {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--text2);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 80px;
+  overflow: hidden;
+}
+
+/* AC-2: opciones de resolución de conflicto */
+.du-conflict-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.du-conflict-option {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--trans-color);
+}
+
+.du-conflict-option:has(.du-conflict-radio:checked) {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.du-conflict-option:hover {
+  border-color: var(--border2);
+  background: var(--surface);
+}
+
+.du-conflict-radio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.du-conflict-option-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.du-conflict-option-preview {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--hint);
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Acciones */
+.du-actions {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+/* AC-3: botón Aplicar deshabilitado mientras hay conflicto */
+.du-btn-apply,
+.du-btn-resolve,
+.du-btn-discard {
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text2);
+  transition: var(--trans-color);
+}
+
+.du-btn-apply:not(:disabled):hover,
+.du-btn-discard:hover {
+  border-color: var(--hint);
+  color: var(--text);
+}
+
+.du-btn-apply:not(:disabled) {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.du-btn-apply:disabled,
+.du-btn-resolve:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.du-btn-resolve:not(:disabled) {
+  background: var(--accent-dim);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.du-btn-resolve:not(:disabled):hover {
+  opacity: 0.85;
+}
+
+/* Badge del nav btn con conflicto activo */
+.tpl-nav-badge.du-badge--conflict {
+  background: var(--red);
+  color: var(--text-on-danger);
+}
+
+/* prefers-reduced-motion — sin transiciones */
+@media (prefers-reduced-motion: reduce) {
+  .du-entry,
+  .du-conflict-option,
+  .du-btn-apply,
+  .du-btn-resolve,
+  .du-btn-discard {
+    transition: none;
+  }
+}
+
+/* ── END T-202606-033 ─────────────────────────────────────────────────────── */
