@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 08:00 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -958,6 +958,7 @@ function toggleTmplTriggerPanel(btn) {
       return;
     }
     const _orig = window.toggleMoreMenu;
+    window.toggleMoreMenu = function() {
       _orig.apply(this, arguments);
       // Tras abrir/cerrar el menú, forzar colapso del sub-panel.
       _resetTmplTriggerPanel();
