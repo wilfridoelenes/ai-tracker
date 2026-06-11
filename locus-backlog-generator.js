@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-04 · mod:9 · autor:Rune · 2026-06-11 12:00 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-04 · mod:10 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -543,7 +543,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
     // Extraer solo el segmento "[Prefijo]-S-XX" antes de comparar.
     const _normSprintId = val => {
       if (!val) return val;
-      const m = String(val).match(/^([A-Za-z]+-S-?\d+)/i);
+      const m = String(val).match(/^([A-Za-z]+-S\d+)/i); // T-202606-063: guion canónico obligatorio — sin '?'
       return m ? m[1] : val;
     };
     const _normActiveSprintId = _normSprintId(activeSprintId);
