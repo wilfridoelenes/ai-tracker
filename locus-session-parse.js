@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:13 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:14 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -467,6 +467,7 @@ export function parsePaste(id) {
       const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
       const ckptHeaderRole = ckpt.rol || '';
       let _itemError = null;
+      const _rsNoAc = []; // T-202606-030 fix AC-3: acumular Rs sin AC — no hacer break en el primero
       for (let _i = 0; _i < _rawItems.length; _i++) {
         const _it = _rawItems[_i];
         // R-202605-062: patch — instrucción de operación, no tipo de ítem
@@ -504,12 +505,12 @@ export function parsePaste(id) {
           break;
         }
         // T-202606-030: bloqueo R sin AC — BR-Ecosystem §5 + BR-Core §8 regla dura
-        // AC-1: R con ac ausente o vacío → _itemError bloqueante
-        // AC-2: mensaje canónico con título del R para que Cael identifique el ítem
-        // AC-3: bloqueo es total — ningún ítem del CHECKPOINT se aplica
+        // AC-1: R con ac ausente o vacío → acumular en _rsNoAc (AC-3: no break — seguir loop)
+        // AC-2: mensaje canónico con título del R + Origen: [título del CHECKPOINT]
+        // AC-3: acumular todos los Rs sin AC — emitir mensaje consolidado al final del loop
         if (_it.type === 'R' && (!Array.isArray(_it.ac) || _it.ac.length === 0)) {
-          _itemError = `CHECKPOINT bloqueado: R ${_it.code || '[pendiente-ID]'} "${_it.title || _it.desc || ''}" no tiene AC de coherencia de conjunto. Adjuntar CHECKPOINT corregido antes de continuar.`;
-          break;
+          _rsNoAc.push(`R ${_it.code || '[pendiente-ID]'} "${_it.title || _it.desc || ''}"`);
+          continue;
         }
         tgItems.push({
           type:          _it.type,
@@ -552,6 +553,12 @@ export function parsePaste(id) {
           }
         }
       }
+      // T-202606-030 fix AC-2+AC-3: emitir _itemError consolidado si hay Rs sin AC
+      // Origen: título del CHECKPOINT — disponible en ckpt.titulo
+      if (!_itemError && _rsNoAc.length > 0) {
+        const _ckptOrigen = ckpt.titulo || '';
+        _itemError = `CHECKPOINT bloqueado: ${_rsNoAc.join(' · ')} no tiene${_rsNoAc.length !== 1 ? 'n' : ''} AC de coherencia de conjunto. Origen: ${_ckptOrigen}. Adjuntar CHECKPOINT corregido antes de continuar.`;
+      }
       if (_itemError) {
         window[`_itemsJsonError_${id}`] = _itemError;
         tgItems = [];
@@ -590,6 +597,7 @@ export function parsePaste(id) {
         const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
         const ckptHeaderRole = ckpt ? (ckpt.rol || '') : '';
         let _itemError = null;
+        const _rsNoAc2 = []; // T-202606-030 fix AC-3: acumular Rs sin AC — no hacer break en el primero
         for (let _i = 0; _i < _parsedJSON.length; _i++) {
           const _it = _parsedJSON[_i];
           // R-202605-062: patch — instrucción de operación, no tipo de ítem
@@ -628,12 +636,12 @@ export function parsePaste(id) {
             break;
           }
           // T-202606-030: bloqueo R sin AC — BR-Ecosystem §5 + BR-Core §8 regla dura
-          // AC-1: R con ac ausente o vacío → _itemError bloqueante
-          // AC-2: mensaje canónico con título del R para que Cael identifique el ítem
-          // AC-3: bloqueo es total — ningún ítem del CHECKPOINT se aplica
+          // AC-1: R con ac ausente o vacío → acumular en _rsNoAc2 (AC-3: no break — seguir loop)
+          // AC-2: mensaje canónico con título del R + Origen: [título del CHECKPOINT]
+          // AC-3: acumular todos los Rs sin AC — emitir mensaje consolidado al final del loop
           if (_it.type === 'R' && (!Array.isArray(_it.ac) || _it.ac.length === 0)) {
-            _itemError = `CHECKPOINT bloqueado: R ${_it.code || '[pendiente-ID]'} "${_it.title || _it.desc || ''}" no tiene AC de coherencia de conjunto. Adjuntar CHECKPOINT corregido antes de continuar.`;
-            break;
+            _rsNoAc2.push(`R ${_it.code || '[pendiente-ID]'} "${_it.title || _it.desc || ''}"`);
+            continue;
           }
           // Construir objeto compatible con mergeBacklogFromTG (sin cambios en esa función)
           tgItems.push({
@@ -676,6 +684,12 @@ export function parsePaste(id) {
               _blogLog('dep-placeholder-ambiguo', _it.code || '[pendiente-ID]', (_it.code || '[pendiente-ID]') + ' depends_on contiene [pendiente-ID] no resoluble — usar [tmp:slug] para referencias cruzadas.', 'backlog');
             }
           }
+        }
+        // T-202606-030 fix AC-2+AC-3: emitir _itemError consolidado si hay Rs sin AC
+        // Origen: título del CHECKPOINT — disponible en ckpt.titulo (path legacy)
+        if (!_itemError && _rsNoAc2.length > 0) {
+          const _ckptOrigen2 = ckpt ? (ckpt.titulo || '') : '';
+          _itemError = `CHECKPOINT bloqueado: ${_rsNoAc2.join(' · ')} no tiene${_rsNoAc2.length !== 1 ? 'n' : ''} AC de coherencia de conjunto. Origen: ${_ckptOrigen2}. Adjuntar CHECKPOINT corregido antes de continuar.`;
         }
         if (_itemError) {
           window[`_itemsJsonError_${id}`] = _itemError;
