@@ -1,3 +1,4 @@
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 14:00 UTC-6
 // T-202606-166: getProjectById movida a locus-storage.js — import actualizado.
 import { _getPeriodBounds, _parseSpanishDate, _sessInRange, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionYM } from './locus-analytics-core.js';
 import { getAISessions, getAllSessions, getProjectById } from './locus-storage.js';

@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-02 · mod:4 · autor:Rune · 2026-06-10 21:00 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -436,11 +436,11 @@ function _buildCurrentStateMd() {
 // AC-2: valores declarados aquí, no hardcodeados en el template literal.
 // AC-3: helper _infraVersionStr() valida cada campo — undefined/null → 'n/a'.
 const INFRA_VERSIONS = {
-  infraVersion: 8,
-  brCore: '2.1',
-  brEcosystem: '3.8',
-  brExecution: '2.4',
-  obStrategy: '4.3',
+  infraVersion: 16,
+  brCore: '2.2',
+  brEcosystem: '3.15',
+  brExecution: '2.6',
+  obStrategy: '4.7',
 };
 
 function _infraVersionStr() {

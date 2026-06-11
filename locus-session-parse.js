@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-10 20:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-02 · mod:5 · autor:Rune · 2026-06-10 21:00 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -22,7 +22,7 @@ import { esc } from './locus-ui-shell.js';
 
 // T-202606-203: valor activo de infra_version — fuente de verdad hardcodeada en el módulo.
 // Actualizar manualmente cuando BR-Core §1 incremente infra_version.
-const _INFRA_VERSION_ACTIVE = 14;
+const _INFRA_VERSION_ACTIVE = 16;
 
 // T-202606-210: Set en memoria para detección de CHECKPOINTs duplicados en sesión activa.
 // Scope: por carga de página (sesión activa del navegador). Se resetea con recarga.
