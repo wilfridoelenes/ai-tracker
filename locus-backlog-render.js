@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:30 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -250,7 +250,9 @@ export function _calcEstimatedVelocity() {
 // Retorna HTML con clase hsr-velocity, o '' si no hay sprint activo
 function _sprintVelocityLabel(sprintId) {
   if (!sprintId) return '';
-  const spItems = getItems().filter(i => (i.sprint || '').trim() === sprintId && i.status === 'pendiente');
+  // B-202606-018: normalizar campo sprint del ítem para incluir ítems con label completo
+  const _extId = s => s.split(' · ')[0].trim();
+  const spItems = getItems().filter(i => _extId((i.sprint || '').trim()) === sprintId && i.status === 'pendiente');
   const effortTotal = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
   const vel = _calcEstimatedVelocity();
   const velLabel = (vel && typeof vel.avg === 'number') ? vel.avg : null;
@@ -437,9 +439,14 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
   const sprintableItems = pendienteItems.filter(i => !_isIcebox(i));
 
   // Agrupar por sprint
+  // B-202606-018: normalizar la clave a solo el ID del sprint — algunos ítems almacenan
+  // el campo sprint con el label completo ("PP-S-01 · Nombre del sprint") mientras otros
+  // solo almacenan el ID ("PP-S-01"). Sin normalización, Object.keys produce dos entradas
+  // distintas para el mismo sprint → dos headers en la vista Lista.
+  const _extractSprintId = s => s.split(' · ')[0].trim();
   const sprintMap = {};
   sprintableItems.forEach(i => {
-    const key = (i.sprint || '').trim();
+    const key = _extractSprintId((i.sprint || '').trim());
     if (!sprintMap[key]) sprintMap[key] = [];
     sprintMap[key].push(i);
   });
@@ -474,8 +481,9 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
     const isCollapsed = _getCollapsedVersions().has(groupId);
 
     // Progress
-    const doneInGroup  = getItems().filter(i => (i.sprint || '').trim() === sprintId && i.status === 'done').length;
-    const totalInGroup = getItems().filter(i => (i.sprint || '').trim() === sprintId).length;
+    // B-202606-018: usar _extractSprintId para comparar — ítems con label completo también se cuentan
+    const doneInGroup  = getItems().filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId && i.status === 'done').length;
+    const totalInGroup = getItems().filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId).length;
     const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
 
     const sprintBadge       = isClosed ? ' ·' : '';
@@ -501,7 +509,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
     );
     const _doneInGroup = _getActiveStatuses().has('done')
       ? getItems().filter(i => {
-          if ((i.sprint || '').trim() !== sprintId) return false;
+          if (_extractSprintId((i.sprint || '').trim()) !== sprintId) return false;
           if (i.status !== 'done') return false;
           if (!_isCountableItem(i)) return false;
           if (!_matchesQuery(i)) return false;
@@ -530,7 +538,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
     // AC3: Rs con hijos anidados + Ts/Bs sueltos + Ps sueltas
     {
       // childMap desde getItems() completo — todos los Ts hijos con cualquier status
-      const _allSprintItems = getItems().filter(i => (i.sprint || '').trim() === sprintId);
+      const _allSprintItems = getItems().filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId);
       const _childMap = _buildChildMap(_allSprintItems);
 
       const _rCodesInGroup = new Set(group.filter(i => itemType(i.code) === 'R').map(i => i.code));

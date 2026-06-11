@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -920,8 +920,9 @@ export function buildBacklogItem(item) {
   // Children count + progreso para R type (T-188)
   // B-202605-052: usar getItems() sin filtrar como denominador — los filtros activos no afectan el porcentaje
   // B-202606-016: denominador = todos los hijos sin filtro · numerador = done + descartado (ambos cuentan como cerrados)
-  const childCount = type === 'R' ? getItems().filter(i => i.parentId === item.code).length : 0;
-  const childDoneCount = type === 'R' ? getItems().filter(i => i.parentId === item.code && (i.status === 'done' || i.status === 'descartado')).length : 0;
+  // B-202606-019: denominador excluye hijos descartados — solo Ts no descartados forman el total
+  const childCount = type === 'R' ? getItems().filter(i => i.parentId === item.code && i.status !== 'descartado').length : 0;
+  const childDoneCount = type === 'R' ? getItems().filter(i => i.parentId === item.code && i.status === 'done').length : 0;
   const childBadge = (type === 'R' && childCount > 0 && !isDone && !isDiscarded)
     ? `<span class="bitem-child-badge" title="${childDoneCount}/${childCount} ítems done">${childDoneCount}/${childCount} <span class="bitem-child-badge-label">ítems</span></span>`
     : '';
