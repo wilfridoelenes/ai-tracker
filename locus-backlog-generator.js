@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-04 · mod:11 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.3.0 · sprint:PP-S-05 · mod:12 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -71,7 +71,9 @@ export function exportBacklogMd() {
   if (!getItems().length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
   const pfx = _docPrefix();
   const ver = _backlogVersion();
-  const _doExport = () => _showExportConfirmModal('Backlog', `${pfx}-BACKLOG_${ver}.md`, () => _generateBacklogMd(ver));
+  // T-202606-069: separador canónico punto — reemplazar _ por . en segmento de versión
+  const _canonVer = ver => ver.replace(/_/g, '.');
+  const _doExport = () => _showExportConfirmModal('Backlog', `${pfx}-BACKLOG_${_canonVer(ver)}.md`, () => _generateBacklogMd(ver));
   // T-202606-108: AC-1/AC-2 — advertir si sprint activo tiene campos incompletos
   if (_sprintHasIncompleteFields()) {
     showToast(
@@ -91,7 +93,8 @@ export function exportFullHistoryMd() {
   if (!getItems().length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
   const pfx = _docPrefix();
   const ver = _backlogVersion();
-  _showExportConfirmModal('Historial completo', `${pfx}-BACKLOG-FULL_${ver}.md`, () => _generateFullHistoryBySprintMd(ver));
+  const _canonVer2 = v => v.replace(/_/g, '.');
+  _showExportConfirmModal('Historial completo', `${pfx}-BACKLOG-FULL_${_canonVer2(ver)}.md`, () => _generateFullHistoryBySprintMd(ver));
 }
 
 // R-202605-132: Export "Por sprint"
@@ -99,7 +102,8 @@ function exportSprintsMd() {
   if (!getItems().length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
   const pfx = _docPrefix();
   const ver = _backlogVersion();
-  _showExportConfirmModal('Sprints — historial completo', `${pfx}-SPRINTS_${ver}.md`, () => _generateSprintsExportMd(ver));
+  const _canonVer3 = v => v.replace(/_/g, '.');
+  _showExportConfirmModal('Sprints — historial completo', `${pfx}-SPRINTS_${_canonVer3(ver)}.md`, () => _generateSprintsExportMd(ver));
 }
 
 // R-202605-132: genera Markdown por sprint
@@ -198,7 +202,7 @@ function _generateSprintsContent(newVersion) {
       })()
     : 0;
 
-  const md = `# ${pfx}-SPRINTS_${newVersion}.md
+  const md = `# ${pfx}-SPRINTS_${newVersion.replace(/_/g, ".")}.md // T-202606-069
 <!-- Versión: ${newVersion} | Última actualización: ${dateStr} | Export estructurado de sprints -->
 
 ---
@@ -238,7 +242,7 @@ function _generateSprintsExportMd(newVersion) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${pfx}-SPRINTS_${newVersion}.md`;
+  a.download = `${pfx}-SPRINTS_${newVersion.replace(/_/g, ".")}.md`; // T-202606-069
   a.click();
   URL.revokeObjectURL(url);
   showToast('download', `📥 ${pfx}-SPRINTS_${newVersion}.md descargado`);
@@ -334,7 +338,7 @@ export function _generateFullHistoryContent(newVersion) {
     noSprintSection = `\n### Sin sprint asignado\n\n${_itemRowHeader()}\n${noSprintItems.map(i => _itemRow(i, 0)).join('\n')}\n\n---\n`;
   }
 
-  const md = `# ${pfx}-BACKLOG-FULL_${newVersion}.md
+  const md = `# ${pfx}-BACKLOG-FULL_${newVersion.replace(/_/g, ".")}.md // T-202606-069
 <!-- Versión: ${newVersion} | Última actualización: ${dateStr} | Historial completo agrupado por sprint -->
 
 ---
@@ -373,7 +377,7 @@ function _generateFullHistoryBySprintMd(newVersion) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${pfx}-BACKLOG-FULL_${newVersion}.md`;
+  a.download = `${pfx}-BACKLOG-FULL_${newVersion.replace(/_/g, ".")}.md`; // T-202606-069
   a.click();
   URL.revokeObjectURL(url);
   showToast('download', `📥 ${pfx}-BACKLOG-FULL_${newVersion}.md descargado`);
@@ -394,6 +398,14 @@ function _buildSprintActivoMd() {
     `| version_target | ${currentSprint.version_target || 'n/a'} |`,
     `| release_type | ${currentSprint.release_type || 'n/a'} |`,
     `| scope | ${currentSprint.scope || 'n/a'} |`,
+    // T-202606-067: campo goal — 'n/a' si no declarado + warn en consola
+    (() => {
+      if (!currentSprint.goal) {
+        console.warn(`[locus-backlog-generator] Sprint ${currentSprint.id} sin goal declarado — exportando como n/a`);
+        return `| goal | n/a |`;
+      }
+      return `| goal | ${currentSprint.goal} |`;
+    })(),
     '',
     '---',
     '',
@@ -585,27 +597,27 @@ export function _generateBacklogContent(newVersion, opts = {}) {
     });
   }
 
-  // T-202606-202: itemCounters — conteo real de ítems por tipo, sin filtro de status (AC-1)
-  const itemCounters = { P:0, T:0, R:0, B:0 };
-  getItems().forEach(i => {
-    if (!i.code) return;
-    const t = i.code[0];
-    if (itemCounters[t] !== undefined) itemCounters[t]++;
-  });
+  // T-202606-068: _computeBacklogCounters — fuente única para itemCounters y counters (max-ID).
+  // Los tres bloques (Estado actual · Índice · Estadísticas) derivan de esta misma llamada.
+  const _computeBacklogCounters = () => {
+    const allForCount = getItems();
+    const itemC = { P:0, T:0, R:0, B:0 };
+    const maxId  = { P:0, T:0, R:0, B:0 };
+    allForCount.forEach(i => {
+      if (!i.code) return;
+      const t = i.code[0];
+      if (itemC[t] !== undefined) itemC[t]++;
+      const m = i.code.match(/[PITRB]-\d{6}-(\d{3})/);
+      if (m) { const n = parseInt(m[1]); if (n > maxId[t]) maxId[t] = n; }
+    });
+    const activeC = getActiveTracker().counters || {};
+    Object.keys(activeC).forEach(t => {
+      if (activeC[t] > (maxId[t] || 0)) maxId[t] = activeC[t];
+    });
+    return { itemC, maxId };
+  };
+  const { itemC: itemCounters, maxId: counters } = _computeBacklogCounters();
   const itemCounterStr = `P=${itemCounters.P} | T=${itemCounters.T} | R=${itemCounters.R} | B=${itemCounters.B}`;
-
-  // counters — max-tracker de IDs (lógica original sin modificar — AC-3)
-  const counters = { P:0, T:0, R:0, B:0 };
-  getItems().forEach(i => {
-    if (!i.code) return;
-    const t = i.code[0];
-    const m = i.code.match(/[PITRB]-\d{6}-(\d{3})/);
-    if (m) { const n = parseInt(m[1]); if (n > counters[t]) counters[t] = n; }
-  });
-  const activeCounters = getActiveTracker().counters || {};
-  Object.keys(activeCounters).forEach(t => {
-    if (activeCounters[t] > (counters[t] || 0)) counters[t] = activeCounters[t];
-  });
   const counterStr = `P=${String(counters.P).padStart(3,'0')} | T=${String(counters.T).padStart(3,'0')} | R=${String(counters.R).padStart(3,'0')} | B=${String(counters.B).padStart(3,'0')}`;
 
   const statusMap = {};
@@ -664,7 +676,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   const _appVerStr = _effectiveVersion();
   const pfx = _docPrefix();
 
-  const md = `# ${pfx}-BACKLOG_${newVersion}.md
+  const md = `# ${pfx}-BACKLOG_${newVersion.replace(/_/g, ".")}.md // T-202606-069
 <!-- Versión: ${newVersion} | Última actualización: ${dateStr} | App: AI-Tracker-${_appVerStr} -->
 ${_infraVersionStr()}
 
@@ -724,7 +736,7 @@ export function _generateBacklogMd(newVersion, opts = {}) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${pfx}-BACKLOG_${newVersion}.md`;
+  a.download = `${pfx}-BACKLOG_${newVersion.replace(/_/g, ".")}.md`; // T-202606-069: separador canónico
   a.click();
   URL.revokeObjectURL(url);
 
@@ -794,23 +806,32 @@ function _buildItemFieldsMd(item, state) {
   md += `**Area:** ${_area}\n`;
   md += `**Effort:** ${item.effort || 1}\n`;
   md += `**Status:** ${item.status || 'pendiente'}\n`;
-  if (item.schema_version != null) md += `**SchemaVersion:** ${item.schema_version}\n`; // AC-2
+  md += `**SchemaVersion:** 2\n`; // T-202606-065: siempre schema_version 2 — independiente del valor en storage
   if (item.discardReason) md += `**DiscardReason:** ${item.discardReason}\n`;
   if (item.discardRef)    md += `**DiscardRef:** ${item.discardRef}\n`;
   if (item.sprint) {
-    const _sprintObj = (state.sprints || []).find(s => s.id === item.sprint);
-    const _sprintLabel = _sprintObj ? (_sprintObj.name || item.sprint) : item.sprint;
-    md += `**SprintId:** ${item.sprint}\n`;
+    // T-202606-067: Ps siempre exportan con sprint: icebox — independiente del valor en storage
+    const _sprintVal = (item.code && item.code[0] === 'P') ? 'icebox' : item.sprint;
+    const _sprintObj = (state.sprints || []).find(s => s.id === _sprintVal);
+    const _sprintLabel = _sprintObj ? (_sprintObj.name || _sprintVal) : _sprintVal;
+    md += `**SprintId:** ${_sprintVal}\n`;
     md += `**Sprint:** ${_sprintLabel}\n`;
   }
   if (item.role)     md += `**Role:** ${item.role}\n`;
   if (item.parentId) md += `**ParentId:** ${item.parentId}\n`;
-  // AC-3: depends_on snake_case — emitir siempre en Ts (array vacío → DependsOn: [])
-  if (item.depends_on != null) {
+  // T-202606-065: depends_on — emitir siempre en Ts con [] si no existe
+  if (item.code && item.code[0] === 'T') {
+    const _deps = Array.isArray(item.depends_on) ? item.depends_on : [];
+    md += `**DependsOn:** ${_deps.length ? _deps.join(', ') : '[]'}\n`;
+  } else if (item.depends_on != null) {
     md += `**DependsOn:** ${item.depends_on.length ? item.depends_on.join(', ') : '[]'}\n`;
   }
   if (item.origin)   md += `**Origin:** ${item.origin}\n`;
   if (item.blockedBy && item.blockedBy.length) md += `**BlockedBy:** ${item.blockedBy.join(', ')}\n`;
+  // T-202606-065: triggered_by — emitir siempre en Bs con n/a si no existe
+  if (item.code && item.code[0] === 'B') {
+    md += `**TriggeredBy:** ${item.triggered_by || 'n/a'}\n`;
+  }
   if (item.archivos && item.archivos.length)   md += `**Archivos:** ${item.archivos.join(', ')}\n`;
   if (item.desc)     md += `\n${item.desc}\n`;
   // AC-5: bloque intencion estructurado — solo si existe
@@ -820,10 +841,14 @@ function _buildItemFieldsMd(item, state) {
     if (item.intencion.done_cuando) md += `- Done cuando: ${item.intencion.done_cuando}\n`;
     if (item.intencion.no_incluye)  md += `- No incluye: ${item.intencion.no_incluye}\n`;
   }
-  // AC-4: no_incluye como lista — solo si existe y tiene elementos
-  if (item.no_incluye && item.no_incluye.length) {
-    md += `\n**No incluye:**\n`;
-    item.no_incluye.forEach(n => { md += `- ${n}\n`; });
+  // T-202606-065: no_incluye — emitir siempre en Ts. Lista si existe, 'n/a' si no.
+  if (item.code && item.code[0] === 'T') {
+    if (item.no_incluye && item.no_incluye.length) {
+      md += `\n**No incluye:**\n`;
+      item.no_incluye.forEach(n => { md += `- ${n}\n`; });
+    } else {
+      md += `\n**No incluye:** n/a\n`;
+    }
   }
   if (item.ac && item.ac.length) {
     md += `\n### Criterios de aceptación\n`;
