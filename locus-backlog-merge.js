@@ -775,6 +775,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   }
 
   // Helper: validar pendientes y actualizar panel derecho
+  window._mdiffUpdateConfirmBtn = function() {
     const applyBtn   = document.getElementById('mdiff-apply-btn');
     const backlogBtn = document.getElementById('mdiff-backlog-btn');
     if (!applyBtn) return;
@@ -889,6 +890,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     const totalApply = diff.created.length + diff.advanced.length + diff.updated.length
                      + diff.retroceso.length + diff.discarded.length + diff.createdAndClosed.length;
     applyBtn.textContent = blocked ? '✓ Guardar sesión' : `✓ Guardar sesión (${totalApply})`;
+     };
 
   // Footer: input duración + botones de acción
   // T-202606-046: input HH:MM declarado por Nova en T-202606-042 — HTML conforme a spec de Nova.
