@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-11 UTC-6 
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -199,6 +199,50 @@ export function applyTheme(t) {
     if (icon) icon.textContent = t === 'dark' ? '☀' : '🌙';
     // actualizar texto del label según tema activo
     btn.childNodes[btn.childNodes.length - 1].textContent = t === 'dark' ? ' Tema claro' : ' Tema oscuro';
+  }
+}
+
+// B-202606-021: movida desde locus-reports.js — evita ciclo ESM
+// locus-reports.js importa applyTheme de locus-ui-shell.js, por lo que no puede
+// ser importada desde aquí. _templateTrigger() inlineada (getter de localStorage, una línea).
+// T-202604-009: toggle ⋯ dropdown
+// B — position:fixed para escapar overflow:hidden del header (Nova 2026-05-12)
+// T-202606-042: exportada para consumo directo en locus-backlog-panel.js sin pasar por window
+export function toggleMoreMenu() {
+  const m   = document.getElementById('more-menu');
+  const btn = document.getElementById('more-menu-btn');
+  if (!m) return;
+
+  const isHidden = m.classList.contains('is-hidden');
+
+  if (isHidden) {
+    // Anclar coords relativas al viewport — necesario porque .more-menu usa position:fixed
+    if (btn) {
+      const rect = btn.getBoundingClientRect();
+      m.style.setProperty('--menu-top',   rect.bottom + 6 + 'px');
+      m.style.setProperty('--menu-right', window.innerWidth - rect.right + 'px');
+      m.style.setProperty('--menu-left',  'auto');
+    }
+    m.classList.remove('is-hidden');
+
+    // T-202604-295: sync checked state desde localStorage — shell estático en index.html
+    // _templateTrigger() inlineada — evita import de locus-session-hora.js (ciclo ESM)
+    const cur = localStorage.getItem('template-download-trigger') || 'session';
+    const sesRad = document.getElementById('tmpl-trigger-session');
+    const sprRad = document.getElementById('tmpl-trigger-sprint');
+    if (sesRad) sesRad.checked = cur === 'session';
+    if (sprRad) sprRad.checked = cur === 'sprint';
+
+    // Cerrar al hacer click fuera del menú
+    const _closeOnOutside = (e) => {
+      if (!m.contains(e.target) && e.target !== btn) {
+        m.classList.add('is-hidden');
+        document.removeEventListener('mousedown', _closeOnOutside);
+      }
+    };
+    setTimeout(() => document.addEventListener('mousedown', _closeOnOutside), 0);
+  } else {
+    m.classList.add('is-hidden');
   }
 }
 
@@ -1128,7 +1172,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (btn.dataset.action === 'open-shortcuts') {
       e.stopPropagation();
       openShortcuts();
-      window.dispatchEvent(new CustomEvent('shell:toggle-more-menu'));
+      toggleMoreMenu();
     }
   }, true);
 
@@ -1248,20 +1292,20 @@ document.addEventListener('DOMContentLoaded', function () {
   // more-menu-btn → toggleMoreMenu()
   const moreMenuBtn = document.getElementById('more-menu-btn');
   if (moreMenuBtn) moreMenuBtn.addEventListener('click', function () {
-    window.dispatchEvent(new CustomEvent('shell:toggle-more-menu'));
+    toggleMoreMenu();
   });
 
   // more-menu items por ID
   const mm = {
-    'mm-btn-backup':    function () { if (typeof exportData === 'function') exportData(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
-    'mm-btn-import':    function () { const el = document.getElementById('imp'); if (el) el.click(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
-    'mm-btn-report':    function () { if (typeof downloadGlobalReport === 'function') downloadGlobalReport(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
-    'mm-btn-changelog': function () { if (typeof openChangelog === 'function') openChangelog(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
+    'mm-btn-backup':    function () { if (typeof exportData === 'function') exportData(); toggleMoreMenu(); },
+    'mm-btn-import':    function () { const el = document.getElementById('imp'); if (el) el.click(); toggleMoreMenu(); },
+    'mm-btn-report':    function () { if (typeof downloadGlobalReport === 'function') downloadGlobalReport(); toggleMoreMenu(); },
+    'mm-btn-changelog': function () { if (typeof openChangelog === 'function') openChangelog(); toggleMoreMenu(); },
     // (a) event dispatch — locus-notifications.js escucha 'shell:open-notif-config'
-    'mm-btn-notif':     function () { window.dispatchEvent(new CustomEvent('shell:open-notif-config')); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
-    'mm-btn-sync':      function () { if (typeof handleSyncPillClick === 'function') handleSyncPillClick(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
-    'mm-btn-migrate':   function () { if (typeof openMigrateFirebaseModal === 'function') openMigrateFirebaseModal(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
-    'mm-btn-clean':     function () { if (typeof openCleanProjectModal === 'function') openCleanProjectModal(); window.dispatchEvent(new CustomEvent('shell:toggle-more-menu')); },
+    'mm-btn-notif':     function () { window.dispatchEvent(new CustomEvent('shell:open-notif-config')); toggleMoreMenu(); },
+    'mm-btn-sync':      function () { if (typeof handleSyncPillClick === 'function') handleSyncPillClick(); toggleMoreMenu(); },
+    'mm-btn-migrate':   function () { if (typeof openMigrateFirebaseModal === 'function') openMigrateFirebaseModal(); toggleMoreMenu(); },
+    'mm-btn-clean':     function () { if (typeof openCleanProjectModal === 'function') openCleanProjectModal(); toggleMoreMenu(); },
   };
   Object.keys(mm).forEach(function (id) {
     const btn = document.getElementById(id);
