@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -37,6 +37,7 @@ import { _updateHeaderProjectLabel } from './locus-sesiones-stats.js';
 import { closePopup } from './locus-session-popup.js';
 
 import { showToast } from './locus-toast.js';
+import { ensureHotfixSprint } from './locus-sprint.js';
 // T-202606-058: import desde locus-sesiones-registry.js (módulo sin dependencias) — no desde locus-sesiones.js
 import { _registerSesSPCallback } from './locus-sesiones-registry.js';
 
@@ -312,6 +313,7 @@ function confirmProjForm() {
     const id = 'proj-' + Math.random().toString(36).slice(2, 8);
     const prefix = (document.getElementById('proj-prefix-input') || {value:''}).value.trim().toUpperCase().slice(0, 3);
     state.projects.push({ id, name, color, icon: emoji, prefix, notes, status: 'active', context: '', contextVersion: '', backlog: [], backlogVersion: '', infraVersion: 0 }); // T-202606-209
+    ensureHotfixSprint(id); // T-202606-038 AC-1: crea [Prefijo]-S-HOTFIX al inicializar proyecto
     showToast('success', `Proyecto "${name}" creado`);
   }
 

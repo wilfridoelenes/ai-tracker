@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:30 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 UTC-6 
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -688,6 +688,27 @@ function _normalizeItems(items) {
       if (item.statusChangedAt) {
         item.history.push({ type: 'status', ts: item.statusChangedAt, data: { to: item.status } });
       }
+    }
+  });
+
+  // T-202606-038: validar asignación a sprint HOTFIX — solo B con priority: high
+  // Cualquier ítem que no cumpla ambas condiciones: sprint limpiado a icebox con DocLog.
+  // BR-Core §6: [Prefijo]-S-HOTFIX solo acepta Bs con priority: high.
+  items.forEach(item => {
+    if (!item.sprint || !item.sprint.endsWith('-S-HOTFIX')) return;
+    const isValidB    = item.type === 'B';
+    const isValidPrio = item.priority === 'high';
+    if (!isValidB || !isValidPrio) {
+      const reason = !isValidB
+        ? `tipo ${item.type} — S-HOTFIX solo acepta Bs`
+        : `priority ${item.priority} — S-HOTFIX solo acepta priority: high`;
+      _blogLog(
+        'hotfix-rejected',
+        item.code || '(sin código)',
+        `${item.sprint} rechazado: ${reason} → sprint limpiado a icebox`,
+        'backlog'
+      );
+      delete item.sprint; // icebox canónico = ausencia de campo
     }
   });
 

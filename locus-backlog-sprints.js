@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 07:50 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -397,11 +397,30 @@ function _generateSprintRetroMd(id, notes) {
   const duAplicados   = docUpdates.filter(d => d.resolucion === 'aplicado');
   const duDescartados = docUpdates.filter(d => d.resolucion === 'descartado');
 
+  // T-202606-038 AC-4: Bs `done` en [Prefijo]-S-HOTFIX se listan en esta retro con nota 'hotfix · [fecha]'.
+  // El sprint HOTFIX nunca cierra (AC-3) — sus ítems done permanecen status:'done', no migran a 'historico'.
+  const hotfixPrefix = id.includes('-S-') ? id.split('-S-')[0] : id;
+  const hotfixId = hotfixPrefix + '-S-HOTFIX';
+  const hotfixDoneItems = (hotfixId !== id)
+    ? getItems().filter(i => i.sprint === hotfixId && i.status === 'done')
+    : [];
+  const _pad = n => String(n).padStart(2, '0');
+  const _hotfixDate = ts => {
+    const d = new Date(ts || Date.now());
+    return `${d.getFullYear()}-${_pad(d.getMonth()+1)}-${_pad(d.getDate())}`;
+  };
+  const _hotfixDoneList = hotfixDoneItems.length
+    ? hotfixDoneItems.map(i => `- ${i.code}: hotfix · ${_hotfixDate(i.doneAt || i.statusChangedAt)}`).join('\n')
+    : '';
+
   // ── Helpers de serialización ──
 
   // AC-2: lista de códigos
-  const _doneList = doneItems.length
-    ? doneItems.map(i => `- ${i.code}`).join('\n')
+  const _doneList = (doneItems.length || hotfixDoneItems.length)
+    ? [
+        ...doneItems.map(i => `- ${i.code}`),
+        ..._hotfixDoneList ? [_hotfixDoneList] : [],
+      ].join('\n')
     : 'ninguno';
 
   // AC-3: lista con destino '[código]: [sprint destino]'
@@ -556,9 +575,15 @@ function _openRetroDownloadPrompt(id) {
 
 export function setSprintStatus(id, newStatus) {
   // newStatus: 'active' | 'closed'
+  // T-202606-038 AC-3: [Prefijo]-S-HOTFIX no se marca 'closed' por el flujo regular — permanece 'active'
+  if (newStatus === 'closed') {
+    const target = _getSprintById(id);
+    if (target && target.isHotfix) return;
+  }
   if (newStatus === 'active') {
     // Solo un sprint activo a la vez — el anterior pasa a 'closed', no a 'open'
-    getActiveSprints().forEach(s => { if (s.status === 'active') s.status = 'closed'; });
+    // T-202606-038 AC-3: [Prefijo]-S-HOTFIX nunca pasa a 'closed' por este flujo — permanece siempre 'active'
+    getActiveSprints().forEach(s => { if (s.status === 'active' && !s.isHotfix) s.status = 'closed'; });
   }
   const sp = _getSprintById(id);
   if (!sp) return;

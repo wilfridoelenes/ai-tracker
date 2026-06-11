@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6 
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -9,6 +9,7 @@ import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGro
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto } from './locus-sprint-plan.js';
 import { getAI, getActiveSprints, getAllSessions, save } from './locus-storage.js';
+import { getProjectById, _getActiveProjectFilter } from './locus-proj-core.js';
 import { showToast, toast } from './locus-toast.js';
 
 import { render } from './locus-sesiones.js';
@@ -939,6 +940,81 @@ function _spmPickerClose() {
 
 // ── END R-202605-008 ──────────────────────────────────────────────────────
 
+// ── T-202606-038: Sprint HOTFIX persistente ───────────────────────────────
+//
+// ensureHotfixSprint(projId) — crea el sprint [Prefix]-S-HOTFIX para el proyecto
+// si no existe. Idempotente: si ya existe no hace nada.
+// El prefix se deriva de los sprints existentes del proyecto, o de projId como fallback.
+//
+// Condiciones del sprint HOTFIX creado:
+//   - id:              [Prefix]-S-HOTFIX
+//   - label:           [Prefix]-S-HOTFIX
+//   - status:          active
+//   - version_target:  n/a  (única excepción a la regla dura — BR-Core §6)
+//   - projId:          projId recibido
+//   - isHotfix:        true  (flag interno — protege de cierre normal)
+//
+export function ensureHotfixSprint(projId) {
+  if (!projId) return;
+
+  const proj = getProjectById(projId);
+  if (!proj) return;
+  if (!Array.isArray(proj.sprints)) proj.sprints = [];
+
+  // Prefix: campo proj.prefix es la fuente de verdad. Fallback: derivar de sprints existentes,
+  // luego projId en mayúsculas.
+  let prefix = (proj.prefix || '').toUpperCase();
+  if (!prefix && proj.sprints.length) {
+    const parts = proj.sprints[0].id.split('-S-');
+    if (parts.length >= 2) prefix = parts[0];
+  }
+  if (!prefix) prefix = projId.toUpperCase();
+
+  const hotfixId = prefix + '-S-HOTFIX';
+
+  // Idempotente — si ya existe no hacer nada
+  if (proj.sprints.some(s => s.id === hotfixId)) return;
+
+  const hasCurrentSprint = proj.sprints.some(s => s.status === 'active' && s.current === true);
+
+  proj.sprints.push({
+    id: hotfixId,
+    label: hotfixId,
+    status: 'active',
+    version_target: 'n/a',
+    isHotfix: true,
+    projId,
+    current: !hasCurrentSprint ? true : undefined,
+    formallyOpened: false,
+    createdAt: Date.now(),
+  });
+  save();
+}
+
+// Crea el sprint HOTFIX del proyecto activo desde la UI (botón 1-tap)
+function _spmCreateHotfix() {
+  const projId = _getActiveProjectFilter();
+  const proj   = projId ? getProjectById(projId) : null;
+
+  if (!proj) {
+    showToast('info', 'No hay proyecto activo para crear el sprint HOTFIX.');
+    return;
+  }
+
+  const prefix   = (proj.prefix || projId.toUpperCase());
+  const hotfixId = prefix + '-S-HOTFIX';
+
+  if ((proj.sprints || []).some(s => s.id === hotfixId)) {
+    showToast('info', `${hotfixId} ya existe.`);
+    return;
+  }
+
+  ensureHotfixSprint(projId);
+  showToast('success', `Sprint ${hotfixId} creado.`);
+  renderSprintTab();
+}
+// ── END T-202606-038 ─────────────────────────────────────────────────────
+
 // Actualiza visibilidad de botones según estado — llamado desde renderSprintTab
 function _spmUpdateButtons(sprint) {
   const section       = document.getElementById('sprint-mgmt-section');
@@ -1004,6 +1080,17 @@ function _spmUpdateButtons(sprint) {
 
   // AC-4: Retro — solo cuando sprint cerrado con retroDoc
   if (btnRetro) btnRetro.classList.toggle('is-hidden', !(isClosed && hasRetro));
+
+  // AC-5: HOTFIX — oculto si el sprint HOTFIX del proyecto ya existe (T-202606-038)
+  const btnHotfix = document.getElementById('spm-btn-hotfix');
+  if (btnHotfix) {
+    const projId = _getActiveProjectFilter();
+    const proj   = projId ? getProjectById(projId) : null;
+    const prefix = proj ? (proj.prefix || projId.toUpperCase()) : null;
+    const hotfixId = prefix ? prefix + '-S-HOTFIX' : null;
+    const exists = (proj && hotfixId) ? (proj.sprints || []).some(s => s.id === hotfixId) : false;
+    btnHotfix.classList.toggle('is-hidden', !proj || exists);
+  }
 
   // AC-5: Editar nombre — solo cuando sprint activo
   if (btnEditar) btnEditar.classList.toggle('is-hidden', !isActive);
@@ -1213,6 +1300,12 @@ document.addEventListener('DOMContentLoaded', function () {
   const spmReactivar = document.getElementById('spm-btn-reactivar');
   if (spmReactivar) spmReactivar.addEventListener('click', function () {
     if (typeof _spmReactivar === 'function') _spmReactivar();
+  });
+
+  // spm-btn-hotfix → _spmCreateHotfix() — T-202606-038
+  const spmHotfix = document.getElementById('spm-btn-hotfix');
+  if (spmHotfix) spmHotfix.addEventListener('click', function () {
+    if (typeof _spmCreateHotfix === 'function') _spmCreateHotfix();
   });
 
   // spm-btn-retro → _spmRetro()
