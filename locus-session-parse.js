@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:20 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:21 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -509,6 +509,28 @@ export function parsePaste(id) {
             // T-202606-XXX AC-1: toast visible al founder — el _blogLog solo no es suficiente
             showToast('warn', `Patch descartado: código placeholder no patcheable — ${_it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
           } else {
+            // T-202606-080: validación de rol para patch con status: bloqueado sobre R
+            // AC-1: si status normalizado es 'bloqueado' y el ítem target en backlog es type R,
+            //       verificar que ckptHeaderRole === 'QA · Finn' antes de acumular
+            // AC-2: al fallar → _blogLog con mensaje canónico + patch descartado
+            // AC-3: patch autorizado ('QA · Finn') → acumular normalmente sin advertencia
+            // AC-4: patches con status distinto a bloqueado → flujo normal sin modificar
+            const _patchNormSt = _it.status ? _canonicalStatus(_it.status, 'R') : null;
+            if (_patchNormSt === 'bloqueado') {
+              const _patchTarget = (getItems() || []).find(x => x.code === _it.code);
+              if (_patchTarget && _patchTarget.type === 'R') {
+                const _patchAuthorizedRole = 'QA · Finn';
+                if (ckptHeaderRole !== _patchAuthorizedRole) {
+                  _blogLog(
+                    'rol-no-autorizado-bloqueado',
+                    _it.code,
+                    `Transición bloqueado en R ${_it.code} rechazada: solo Finn puede mover un R a bloqueado. Origen: ${ckpt ? (ckpt.titulo || '') : ''}`,
+                    'backlog'
+                  );
+                  continue; // AC-2: patch descartado — no acumular en _patchItems
+                }
+              }
+            }
             window[`_patchItems_${id}`] = window[`_patchItems_${id}`] || [];
             window[`_patchItems_${id}`].push(_it);
           }
@@ -546,7 +568,7 @@ export function parsePaste(id) {
             _blogLog(
               'rol-no-autorizado-bloqueado',
               _it.code || '[pendiente-ID]',
-              `${_it.code || '[pendiente-ID]'} transición R → bloqueado ignorada: rol "${ckptHeaderRole || '(ausente)'}" no autorizado. Solo "${_authorizedRole}" puede emitir status bloqueado en R.`,
+              `Transición bloqueado en R ${_it.code || '[pendiente-ID]'} rechazada: solo Finn puede mover un R a bloqueado. Origen: ${ckpt ? (ckpt.titulo || '') : ''}`,
               'backlog'
             );
             continue; // AC-2+AC-3: omitir este ítem — resto del CHECKPOINT continúa
@@ -655,6 +677,23 @@ export function parsePaste(id) {
               // T-202606-XXX AC-1+AC-3: toast visible — consistente con path JSON primario
               showToast('warn', `Patch descartado: código placeholder no patcheable — ${_it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
             } else {
+              // T-202606-080: validación de rol para patch con status: bloqueado sobre R (path legacy)
+              const _patchNormSt2 = _it.status ? _canonicalStatus(_it.status, 'R') : null;
+              if (_patchNormSt2 === 'bloqueado') {
+                const _patchTarget2 = (getItems() || []).find(x => x.code === _it.code);
+                if (_patchTarget2 && _patchTarget2.type === 'R') {
+                  const _patchAuthorizedRole2 = 'QA · Finn';
+                  if (ckptHeaderRole !== _patchAuthorizedRole2) {
+                    _blogLog(
+                      'rol-no-autorizado-bloqueado',
+                      _it.code,
+                      `Transición bloqueado en R ${_it.code} rechazada: solo Finn puede mover un R a bloqueado. Origen: ${ckpt ? (ckpt.titulo || '') : ''}`,
+                      'backlog'
+                    );
+                    continue; // AC-2: patch descartado — no acumular en _patchItems
+                  }
+                }
+              }
               window[`_patchItems_${id}`] = window[`_patchItems_${id}`] || [];
               window[`_patchItems_${id}`].push(_it);
             }
@@ -694,7 +733,7 @@ export function parsePaste(id) {
               _blogLog(
                 'rol-no-autorizado-bloqueado',
                 _it.code || '[pendiente-ID]',
-                `${_it.code || '[pendiente-ID]'} transición R → bloqueado ignorada: rol "${ckptHeaderRole || '(ausente)'}" no autorizado. Solo "${_authorizedRole2}" puede emitir status bloqueado en R.`,
+                `Transición bloqueado en R ${_it.code || '[pendiente-ID]'} rechazada: solo Finn puede mover un R a bloqueado. Origen: ${ckpt ? (ckpt.titulo || '') : ''}`,
                 'backlog'
               );
               continue; // AC-2+AC-3: omitir este ítem — resto del CHECKPOINT continúa
