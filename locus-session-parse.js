@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-04 · mod:8 · autor:Rune · 2026-06-11 12:30 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-04 · mod:9 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -206,7 +206,8 @@ function parseCheckpoint(text) {
   // T-202606-XXX: anclar detección al inicio del texto — evita falso positivo con bloques
   // ```json embebidos en campos de texto (doc_updates, ejemplos en ---ITEMS---).
   // Solo activa el path JSON cuando el bloque ```json es el primer contenido del texto.
-  const _jsonFenceMatch = /^\s*```json/.test(text) ? text.match(/```json\s*([\s\S]*?)\s*```/) : null;
+  // T-202606-019: anclar match al inicio — evita captura prematura por ``` en doc_updates.content
+  const _jsonFenceMatch = /^\s*```json/.test(text) ? text.match(/^\s*```json\s*([\s\S]*?)\s*```/) : null;
   if (_jsonFenceMatch) {
     let _parsed = null;
     let _jsonErr = null;
