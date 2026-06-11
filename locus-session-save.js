@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:29 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:30 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -14,7 +14,7 @@ import { _generateBacklogContent, _generateBacklogMd } from './locus-backlog-gen
 import { _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate } from './locus-storage.js';
 
 
-import { extractContextSections, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections } from './locus-docs.js';
+import { extractContextSections, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
 
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 
@@ -748,6 +748,19 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // R-202604-076 + R-B: parsear y guardar bloque ---PLAN--- / ---EXECUTION-PLAN--- si existe
   // B-202605-XXX: usar _tryIngestPlan en lugar de savePlan directo — preserva scope:sprint al guardar scope:sesion
   if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
+
+  // T-202606-017 AC-1: registrar doc_updates en el índice de DOC-UPDATEs del proyecto.
+  // Path JSON puro: usar parsed.docUpdates (array ya extraído en parsePaste).
+  // Espeja el patrón de saveStandaloneCheckpoint (locus-session-parse.js).
+  {
+    const _ckptTitle = (parsed && parsed.title) ? parsed.title : '';
+    const _docUpdates = (parsed && Array.isArray(parsed.docUpdates)) ? parsed.docUpdates : [];
+    _docUpdates.forEach(update => {
+      const { conflicto, msg } = processDocUpdate(update, _ckptTitle);
+      if (conflicto && msg) showToast('warn', msg);
+    });
+  }
+  // ── END T-202606-017 ──
 
   if (horaResult) { ai.status = 'exhausted'; ai.resetTime = horaResult.hhmm; ai.resetEpoch = horaResult.epoch; }
   ai._parsed = {};
