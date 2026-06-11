@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:24 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-08 · mod:26 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -249,25 +249,14 @@ function parseCheckpoint(text) {
     const _rawDocUpdates = Array.isArray(_parsed.doc_updates) ? _parsed.doc_updates : [];
     // T-202606-017: extraer sprint_proposal — objeto del schema JSON (null si ausente)
     // T-202606-034-2f: sprint_proposal: null → tratar como ausente (falsy — ya cubierto por &&)
-    // T-202606-034-2f: sprint_proposal: {} (objeto vacío) → advertencia DocLog + tratar como ausente
-    //   Entrada: sprint_proposal: {}; Salida: advertencia en DocLog, _rawSprintProposal = null, sin Step 0
+    // T-202606-079: sprint_proposal: {} (objeto vacío) → tratar como ausente, sin advertencia DocLog
+    //   Entrada: sprint_proposal: {}; Salida: _rawSprintProposal = null, sin Step 0, sin advertencia
     const _rawSprintProposalCandidate = (_parsed.sprint_proposal !== null && _parsed.sprint_proposal !== undefined && typeof _parsed.sprint_proposal === 'object' && !Array.isArray(_parsed.sprint_proposal))
       ? _parsed.sprint_proposal
       : null;
-    const _rawSprintProposal = (() => {
-      if (!_rawSprintProposalCandidate) return null; // null/undefined/array → ausente
-      if (Object.keys(_rawSprintProposalCandidate).length === 0) {
-        // T-202606-034-2f: objeto vacío → advertencia canónica en DocLog, tratar como ausente
-        _blogLog(
-          'sprint-proposal-vacio',
-          '',
-          'sprint_proposal vacío ignorado — omitir campo cuando no hay propuesta.',
-          'parser'
-        );
-        return null;
-      }
-      return _rawSprintProposalCandidate;
-    })();
+    const _rawSprintProposal = (_rawSprintProposalCandidate && Object.keys(_rawSprintProposalCandidate).length > 0)
+      ? _rawSprintProposalCandidate
+      : null;
     // T-202606-018: extraer finn_observations — array de objetos tipados (null si ausente o vacío)
     const _rawFinnObservations = Array.isArray(_parsed.finn_observations) && _parsed.finn_observations.length
       ? _parsed.finn_observations
@@ -523,7 +512,7 @@ export function parsePaste(id) {
           if (!_it.code || _isPlaceholderCode(_it.code)) {
             // AC-7: patch sobre código placeholder → ignorar + advertencia DocLog
             _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
-            // T-202606-XXX AC-1: toast visible al founder — el _blogLog solo no es suficiente
+            // T-202606-055 AC-1: toast visible al founder — el _blogLog solo no es suficiente
             showToast('warn', `Patch descartado: código placeholder no patcheable — ${_it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
           } else {
             // T-202606-080: validación de rol para patch con status: bloqueado sobre R
@@ -691,7 +680,7 @@ export function parsePaste(id) {
           if (_it.type === 'patch') {
             if (!_it.code || _isPlaceholderCode(_it.code)) {
               _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
-              // T-202606-XXX AC-1+AC-3: toast visible — consistente con path JSON primario
+              // T-202606-055 AC-1+AC-3: toast visible — consistente con path JSON primario
               showToast('warn', `Patch descartado: código placeholder no patcheable — ${_it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
             } else {
               // T-202606-080: validación de rol para patch con status: bloqueado sobre R (path legacy)
