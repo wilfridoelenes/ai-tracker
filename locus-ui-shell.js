@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-11 UTC-6 
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -1289,11 +1289,8 @@ document.addEventListener('DOMContentLoaded', function () {
     if (typeof handleSyncPillClick === 'function') handleSyncPillClick();
   });
 
-  // more-menu-btn → toggleMoreMenu()
-  const moreMenuBtn = document.getElementById('more-menu-btn');
-  if (moreMenuBtn) moreMenuBtn.addEventListener('click', function () {
-    toggleMoreMenu();
-  });
+  // more-menu-btn — listener gestionado por locus-backlog-panel.js (_wrappedToggleMoreMenu)
+  // B-202606-021: listener duplicado aquí causaba toggle doble (abrir → cerrar en el mismo click)
 
   // more-menu items por ID
   const mm = {
