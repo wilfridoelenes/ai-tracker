@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:7 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:8 · autor:Rune · 2026-06-11 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -572,6 +572,10 @@ function _renderPlannedSprints() {
 function _renderSprintManager() {
   const container = document.getElementById('sprint-manager-list');
   if (!container) return;
+
+  // T-202606-040: sección "Sprints planificados" — independiente de si hay
+  // sprints registrados en getActiveSprints(), por eso va antes del early-return
+  _renderPlannedSprints();
 
   const allSprints = getActiveSprints();
   if (!allSprints || allSprints.length === 0) {
