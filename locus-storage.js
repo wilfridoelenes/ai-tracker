@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-02 · mod:5 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-storage.js
 // Última actualización: 2026-06-06 · T-202606-101: guard de salida para retries de _loadFromSupabase (_LOAD_RETRY_MAX)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1270,7 +1270,7 @@ export async function _loadFromSupabase() {
 // ── GRUPO 6 — GETTERS PUROS ───────────────────────────────────────────────────
 
 // v3.0.0: sessions, tracker y sprints viven en project — no en state global
-var state = {ais:[], theme:'dark', tags:[], projects:[], _stateVersion:3}; // ESM-B: var para evitar TDZ
+export var state = {ais:[], theme:'dark', tags:[], projects:[], _stateVersion:3}; // ESM-B: var para evitar TDZ — T-202606-023: export añadido para consumo ESM directo
 // Exponer en window para módulos en scope T5 que usan `state` directamente — se elimina en T6 cuando todos los consumidores usen getState()
 window.state = state;
 // getState(): getter dinámico — siempre retorna la referencia actual de state.

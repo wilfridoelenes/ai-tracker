@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-02 · mod:3 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-02 · mod:4 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -7,7 +7,7 @@
 import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemType, renderStats, setItemStatus, updateBacklogBanner } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
 import { _normalizeSprint } from './locus-session-parse.js';
-import { _blogLog, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog, getActivePlan } from './locus-storage.js';
+import { _blogLog, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
 
 
 import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel } from './locus-backlog-panel.js';
@@ -1433,7 +1433,7 @@ function copyItemToClipboard(e, code) {
   // Tags (si el ítem los tiene)
   if (item.tags && item.tags.length) {
     const tagNames = item.tags.map(tid => {
-      const t = (window.state.tags || []).find(t => t.id === tid);
+      const t = (getState().tags || []).find(t => t.id === tid); // T-202606-023: window.state → getState()
       return t ? t.name : tid;
     });
     lines.push(`Tags: ${tagNames.join(', ')}`);
