@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-04 · mod:10 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-04 · mod:11 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -867,12 +867,38 @@ function _buildItemsMd(items) {
        .map(i => i.code)
   );
 
+    // T-202606-064: AC-1 — triggerBSet: Bs en src sin parentId con triggered_by apuntando a T hijo de R activo.
+  // activeTCodes proviene de _generateBacklogContent via el array ya filtrado en exportItems —
+  // reconstruimos el set localmente desde src para que _buildItemsMd sea autónoma.
+  const _activeTCodesLocal = (() => {
+    const activeRCodesLocal = new Set(
+      src
+        .filter(i => i.code && i.code.startsWith('R-') && i.status !== 'done' && i.status !== 'descartado')
+        .map(i => i.code)
+    );
+    return new Set(
+      src
+        .filter(i => i.code && i.code.startsWith('T-') &&
+          activeRCodesLocal.has(i.parentId || i.parent))
+        .map(i => i.code)
+    );
+  })();
+  const triggerBSet = new Set(
+    src
+      .filter(i => i.code && i.code[0] === 'B' &&
+        !(i.parentId || i.parent) &&
+        i.triggered_by && _activeTCodesLocal.has(i.triggered_by))
+      .map(i => i.code)
+  );
+
   // T-202606-059: AC-1 — huérfanos: T o B en src sin parentId y sin parent declarado
+  // T-202606-064: AC-3 — Bs en triggerBSet excluidos de orphanCodes
   const orphanCodes = new Set(
     src
       .filter(i => i.code &&
         (i.code[0] === 'T' || i.code[0] === 'B') &&
-        !(i.parentId || i.parent))
+        !(i.parentId || i.parent) &&
+        !triggerBSet.has(i.code))
       .map(i => i.code)
   );
 
@@ -909,6 +935,21 @@ function _buildItemsMd(items) {
           const blockerTag = blocked ? ` ⚠ bloqueado por ${blockers.join(', ')}` : '';
           md += `##### ${t.code} · ${t.title || t.desc || '(sin título)'}${blockerTag}\n`;
           md += _buildItemFieldsMd(t, state);
+          md += '\n';
+        });
+      }
+      // T-202606-064: AC-2 — Bs en triggerBSet cuyo triggered_by apunta a T hijo de este R
+      // se renderizan después del último T hijo, bajo el mismo encabezado del R
+      const triggerBsForR = src.filter(i =>
+        triggerBSet.has(i.code) &&
+        i.triggered_by && _activeTCodesLocal.has(i.triggered_by) &&
+        (tsByParent[item.code] || []).some(t => t.code === i.triggered_by)
+      );
+      if (triggerBsForR.length) {
+        if (!children.length) md += `\n#### Tickets\n\n`;
+        triggerBsForR.forEach(b => {
+          md += `##### ${b.code} · ${b.title || b.desc || '(sin título)'}\n`;
+          md += _buildItemFieldsMd(b, state);
           md += '\n';
         });
       }
