@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:6 · autor:Rune · 2026-06-11 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -276,6 +276,23 @@ function _spmMetaOpenEdit(row, field, current, sprint) {
 
 // AC-7, AC-8, AC-9, AC-11
 function _spmMetaConfirm(row, field, newVal, sprint, oldVal) {
+  // AC-5: version_target vacío → error inline, no persistir
+  if (field === 'version_target' && !newVal) {
+    const editWrap = row.querySelector('.spm-meta-edit-wrap');
+    if (editWrap) {
+      let errEl = editWrap.querySelector('.spm-meta-input-error');
+      if (!errEl) {
+        errEl = document.createElement('div');
+        errEl.className = 'spm-meta-input-error';
+        errEl.textContent = 'La versión no puede estar vacía.';
+        editWrap.appendChild(errEl);
+      }
+      const input = editWrap.querySelector('.spm-meta-input');
+      if (input) input.focus();
+    }
+    return;
+  }
+
   const sprintId   = sprint.id;
   const allSprints = getActiveSprints();
   const target     = allSprints.find(function(s) { return s.id === sprintId; });
