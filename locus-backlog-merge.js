@@ -479,7 +479,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           <button class="mdiff-btn mdiff-btn--cancel" id="mdiff-step0-reject">✕ Rechazar</button>
         </div>
       </div>`;
-    body.innerHTML = _step0Html + _buildNarrativeSection() + sectionsHtml;
+    // B-202606-003: body contiene únicamente Step 0 hasta aprobación —
+    // narrativa y sectionsHtml se inyectan en el handler de aprobación.
+    body.innerHTML = _step0Html;
 
     // Handlers Step 0 — un solo listener por botón via getElementById post-render
     const _approveBtn = document.getElementById('mdiff-step0-approve');
@@ -506,6 +508,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         }
         const step0El = document.getElementById('mdiff-step0');
         if (step0El) step0El.remove();
+
+        // B-202606-003 AC-2: inyectar narrativa + secciones ahora que Step 0 fue aprobado
+        if (body) body.innerHTML = _buildNarrativeSection() + sectionsHtml;
 
         // T-202606-164: gate de revisión icebox — prompt no-bloqueante post-aprobación
         // AC-1: aparece al confirmar Step 0, antes de que el founder interactúe con el DIFF
