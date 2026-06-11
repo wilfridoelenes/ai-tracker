@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-04 · mod:3 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-04 · mod:4 · autor:Rune · 2026-06-11 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -901,7 +901,7 @@ export function renderDocUpdatesPending() {
 function _updateDocUpdatesBadge(total, conflicts) {
   const badge = document.getElementById('tpl-badge-docupdates');
   if (badge) {
-    badge.textContent = total > 0 ? String(total) : '';
+    badge.textContent = conflicts > 0 ? String(conflicts) : '';
     badge.classList.toggle('du-badge--conflict', conflicts > 0);
   }
   const conflictSummary = document.getElementById('du-conflict-summary');
