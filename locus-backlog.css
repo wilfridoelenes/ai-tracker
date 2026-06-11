@@ -914,10 +914,41 @@
 
 .version-header {
   display: flex; align-items: center; gap: 10px;
-  margin-bottom: 10px; padding: 10px 14px;
+  padding: 10px 14px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius-md-plus);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Cuerpo del grupo sprint — separado del header con gap */
+.version-group-body {
+  margin-top: 6px;
+}
+
+.version-group-body.collapsed {
+  display: none;
+}
+
+/* Flecha de colapso en header de sprint — mismo patrón que .bl-icebox-arrow */
+.version-header-arrow {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  transition: transform 0.15s var(--ease-out);
+  width: 12px;
+  display: inline-block;
+}
+
+.version-header-arrow.collapsed {
+  transform: rotate(-90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .version-header-arrow {
+    transition: none;
+  }
 }
 
 .sprint-group-active > div:first-child .version-header {
