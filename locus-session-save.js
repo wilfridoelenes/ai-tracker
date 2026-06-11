@@ -14,7 +14,7 @@ import { _generateBacklogContent, _generateBacklogMd } from './locus-backlog-gen
 import { _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate } from './locus-storage.js';
 
 
-import { extractContextSections, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
+import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
 
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 
@@ -768,9 +768,26 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   }
   // ── END T-202606-018 ──
 
+  // T-202606-017 AC-1: path Markdown — extraer y registrar DOC-UPDATEs del texto crudo.
+  // Complementa el path JSON (AC-2). Se ejecuta solo si raw contiene el bloque.
+  // No bloquea el resto del flujo (AC-5).
+  // T-202606-073 AC-1: integración de ingesta de DOC-UPDATEs en flujo de save.
+  {
+    const _ckptTitleMd = (parsed && parsed.title) ? parsed.title : '';
+    if (raw && raw.includes('---DOC-UPDATE---')) {
+      const _mdDocUpdates = extractDocUpdates(raw);
+      _mdDocUpdates.forEach(update => {
+        const { conflicto, msg } = processDocUpdate(update, _ckptTitleMd);
+        if (conflicto && msg) showToast('warn', msg);
+      });
+    }
+  }
+  // ── END T-202606-073 AC-1 ──
+
   // T-202606-017 AC-1: registrar doc_updates en el índice de DOC-UPDATEs del proyecto.
   // Path JSON puro: usar parsed.docUpdates (array ya extraído en parsePaste).
   // Espeja el patrón de saveStandaloneCheckpoint (locus-session-parse.js).
+  // T-202606-073 AC-2: path JSON — cubre parsed.docUpdates.
   {
     const _ckptTitle = (parsed && parsed.title) ? parsed.title : '';
     const _docUpdates = (parsed && Array.isArray(parsed.docUpdates)) ? parsed.docUpdates : [];
@@ -779,7 +796,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
       if (conflicto && msg) showToast('warn', msg);
     });
   }
-  // ── END T-202606-017 ──
+  // ── END T-202606-017 / T-202606-073 AC-2 ──
 
   if (horaResult) { ai.status = 'exhausted'; ai.resetTime = horaResult.hhmm; ai.resetEpoch = horaResult.epoch; }
   ai._parsed = {};
