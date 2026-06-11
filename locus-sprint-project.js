@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -730,7 +730,7 @@ export function _getLocalStorageUsage() {
 // _updateProjBreadcrumb · _updateProjFilterBtn · _countProjSessions · closeProjPanel ·
 // selectProjectFilter · getProjContext · setProjContext — expuestos via locus-proj-core.js
 // T-202606-016: funciones de export removidas de window.* — viven en locus-backlog-generator.js
-window.clearProjectFilter        = clearProjectFilter;
+// B-202606-024: window.clearProjectFilter eliminado — consumida via _setClearProjFilter() callback
 
 // T-202606-058: registrar funciones de locus-sprint-project en locus-sesiones
 // para romper el ciclo A↔B. locus-sesiones las consume via _sesSPCallbacks.

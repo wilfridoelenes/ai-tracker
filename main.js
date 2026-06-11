@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // T2: imports en el mismo orden que index.html declaraba los <script src>
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
@@ -104,12 +104,7 @@ window._validateResetBacklogInput = function(el) {
   else { hint.classList.add('is-hidden'); }
 };
 
-// B-202606-011: parsePaste · handlePaste · handleInput expuestas en window
-// — locus-session-parse.js es ESM; sin esta exposición los onpaste/oninput
-//   generados dinámicamente en locus-sesiones.js / locus-workers.js lanzan ReferenceError.
-window.parsePaste  = parsePaste;
-window.handlePaste = handlePaste;
-window.handleInput = handleInput;
+// B-202606-024: window.parsePaste · handlePaste · handleInput eliminados — todos los consumidores usan ESM import
 
 // ─────────────────────────────────────────────────────────────────────────────
 

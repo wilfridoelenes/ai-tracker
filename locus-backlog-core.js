@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6 
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -2097,7 +2097,7 @@ export function _migrateItemTypes() {
   _setITEMS(_normalizeItems(ITEMS));
   saveBacklog();
 }
-window.getItems          = getItems; // SCB — renderSetupChecklist en locus-ui-shell.js
+// B-202606-024: window.getItems eliminado — consumidores migrados a import o _getItemsFn()
 
 // Inline handlers dinámicos — no tienen ID fijo, no pueden migrar a addEventListener
 // Se exponen en window para que onclick="fn()" en HTML generado en runtime funcione

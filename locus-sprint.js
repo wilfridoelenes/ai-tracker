@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:8 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:9 · autor:Rune · 2026-06-11 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1383,11 +1383,7 @@ function _syncCurrentBadges(sprints, projId) {
 
 // ── Exposición pública ──────────────────────────────────────────────────────
 
-// ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window._sptSwitch               = _sptSwitch;               // R-202605-052
-// B-202606-064: _sprintApproveOpen/Cancel/Confirm eliminados de window.*
-// R-202605-006
-window.setSprintCurrent         = setSprintCurrent; // T-202605-107
+// B-202606-024: window._sptSwitch · window.setSprintCurrent eliminados — no hay consumidores en HTML ni window.*
 
 // ── B-202605-019: Listeners — sprint management panel (_spm*) ───────────────
 document.addEventListener('DOMContentLoaded', function () {
