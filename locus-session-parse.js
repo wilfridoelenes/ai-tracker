@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 19:30 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 07:00 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -13,7 +13,7 @@ import { extractContextSections, extractHtmlMapSections, mergeContextSections, m
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger
 import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
-import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, LOCUS_KEYS } from './locus-storage.js';
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, LOCUS_KEYS, CANONICAL_PROJECTS } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 
 
