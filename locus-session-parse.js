@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:12 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:13 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -503,6 +503,14 @@ export function parsePaste(id) {
           _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
           break;
         }
+        // T-202606-030: bloqueo R sin AC — BR-Ecosystem §5 + BR-Core §8 regla dura
+        // AC-1: R con ac ausente o vacío → _itemError bloqueante
+        // AC-2: mensaje canónico con título del R para que Cael identifique el ítem
+        // AC-3: bloqueo es total — ningún ítem del CHECKPOINT se aplica
+        if (_it.type === 'R' && (!Array.isArray(_it.ac) || _it.ac.length === 0)) {
+          _itemError = `CHECKPOINT bloqueado: R ${_it.code || '[pendiente-ID]'} "${_it.title || _it.desc || ''}" no tiene AC de coherencia de conjunto. Adjuntar CHECKPOINT corregido antes de continuar.`;
+          break;
+        }
         tgItems.push({
           type:          _it.type,
           code:          _it.code,
@@ -617,6 +625,14 @@ export function parsePaste(id) {
           const _sprintRaw2 = _it.sprint ? _it.sprint.trim().toLowerCase() : '';
           if (_normSt2 === 'en-revision' && (_sprintRaw2 === 'icebox' || _sprintRaw2 === '')) {
             _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
+            break;
+          }
+          // T-202606-030: bloqueo R sin AC — BR-Ecosystem §5 + BR-Core §8 regla dura
+          // AC-1: R con ac ausente o vacío → _itemError bloqueante
+          // AC-2: mensaje canónico con título del R para que Cael identifique el ítem
+          // AC-3: bloqueo es total — ningún ítem del CHECKPOINT se aplica
+          if (_it.type === 'R' && (!Array.isArray(_it.ac) || _it.ac.length === 0)) {
+            _itemError = `CHECKPOINT bloqueado: R ${_it.code || '[pendiente-ID]'} "${_it.title || _it.desc || ''}" no tiene AC de coherencia de conjunto. Adjuntar CHECKPOINT corregido antes de continuar.`;
             break;
           }
           // Construir objeto compatible con mergeBacklogFromTG (sin cambios en esa función)
