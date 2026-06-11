@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:30 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -1319,5 +1319,5 @@ export function renderBacklogList(onRendered) {
 // locus-storage.js despacha estos eventos en lugar de llamar directamente a las funciones
 window.addEventListener('shell:backlog-render-dirty', () => { _markBacklogListDirty(); renderBacklogList(); });
 window.addEventListener('shell:mark-backlog-dirty',   () => { _markBacklogListDirty(); });
-window.addEventListener('shell:render-backlog-list',  () => { renderBacklogList(); renderStats(); }); // B-202606-XXX: renderStats ausente — stats bar no renderizaba al cargar
+window.addEventListener('shell:render-backlog-list',  () => { _markBacklogListDirty(); renderBacklogList(); renderStats(); }); // B-202606-008: _markBacklogListDirty ausente — guard cortaba render cuando dirty=false
 window.addEventListener('shell:backlog-filter-changed', () => { updateClearFilterBtn(); });

@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:30 UTC-6 
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1016,12 +1016,17 @@ export function updateBacklogBanner() {
   const gfItems   = document.getElementById('gf-items');
   const gfToggle  = document.getElementById('gf-footer-toggle');
   // B-fix-T202606-197: _coreCallbacks.getActiveProjectFilter nunca registrado post T-202606-197 — leer localStorage directamente
-  if (!(localStorage.getItem('current-project-filter') || '') || !ITEMS.length) {
-    if (banner)    banner.classList.remove('visible');
-    if (exportBtn) exportBtn.classList.add("is-hidden");
-    if (gfItems)   gfItems.classList.add('is-hidden');
-    if (gfToggle)  gfToggle.classList.add('is-hidden');
-    return;
+  const _bannProjId = localStorage.getItem('current-project-filter') || '';
+  if (!_bannProjId || !ITEMS.length) {
+    // B-202606-008: misma lógica que renderStats — forzar recarga si hay proyecto activo con ITEMS vacío
+    if (_bannProjId && !ITEMS.length) { loadBacklog(); }
+    if (!_bannProjId || !ITEMS.length) {
+      if (banner)    banner.classList.remove('visible');
+      if (exportBtn) exportBtn.classList.add("is-hidden");
+      if (gfItems)   gfItems.classList.add('is-hidden');
+      if (gfToggle)  gfToggle.classList.add('is-hidden');
+      return;
+    }
   }
   if (banner) banner.classList.add('visible');
   // Mostrar botón exportar solo si estamos en tab backlog
@@ -1546,7 +1551,12 @@ export function _isCountableItem(i) {
 
 export function renderStats() {
   // B-fix-T202606-197: _coreCallbacks.getActiveProjectFilter nunca registrado post T-202606-197 — leer localStorage directamente
-  if (!(localStorage.getItem('current-project-filter') || '') || !ITEMS.length) { document.getElementById('stats-bar').innerHTML = ''; return; }
+  const _rsProjId = localStorage.getItem('current-project-filter') || '';
+  if (!_rsProjId) { document.getElementById('stats-bar').innerHTML = ''; return; }
+  // B-202606-008: ITEMS puede estar vacío si el módulo cargó antes de que loadBacklog() corriera.
+  // Forzar recarga cuando hay proyecto activo con ITEMS vacío — evita que stats-bar se limpie en carga inicial.
+  if (!ITEMS.length) { loadBacklog(); }
+  if (!ITEMS.length) { document.getElementById('stats-bar').innerHTML = ''; return; }
 
   // Delegation para stats-bar — se registra una sola vez
   const statsBarEl = document.getElementById('stats-bar');
