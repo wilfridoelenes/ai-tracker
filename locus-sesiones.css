@@ -1,3 +1,4 @@
+/* [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 00:00 UTC-6 */
 /* locus-sesiones.css */
 /* [PP] v0.2.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 UTC-6 */
 
@@ -7411,3 +7412,16 @@ body.radar-sb-open .tracker-sidebar {
   display: flex;
 }
 /* ── END T-202606-201 ─────────────────────────────────────────────────────── */
+
+/* ── T-202606-035: ckpt-bar — CSS custom property + animación CSS (CSS Purity) ── */
+/* Reemplaza style.transition + style.width en locus-sesiones-viz.js              */
+#ckpt-bar {
+  width: 100%;
+  transition: none;
+}
+
+#ckpt-bar.ckpt-bar--animating {
+  width: 0%;
+  transition: width var(--ckpt-duration, 12000ms) linear;
+}
+/* ── END T-202606-035 ─────────────────────────────────────────────────────── */

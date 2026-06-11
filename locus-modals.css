@@ -1,6 +1,7 @@
+/* [PP] v1.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 UTC-6 */
 /* locus-modals.css */
 
-/* Versión: 2.1 | Última actualización: 2026-05-22 | T-202605-033: hex hardcodeados → tokens semánticos */
+/* Versión: 2.2 | Última actualización: 2026-06-10 | B-202606-009: .modal-overlay base declarada · ie-body scroll */
 
 /* === locus-toast.js ===
    Funciones: showToast · showToastInline · showToastDigest · _toastRender · _dismissToast */
@@ -1146,6 +1147,22 @@
   display: none;
   align-items: center;
   justify-content: center;
+}
+
+/* --- Base overlay centrado — B-202606-009: declaración migrada desde locus-tracker.css (eliminado) --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-overlay);
+  background: rgb(0 0 0 / 55%);
+  padding: 1rem;
+  box-sizing: border-box;
 }
 
 /* --- Animación de entrada para overlay --- */
@@ -3662,11 +3679,20 @@
 /* #item-editor-overlay .modal — override: pisa .modal en locus-modals.css porque item-editor requiere max-width mayor y overflow hidden */
 #item-editor-overlay .modal {
   max-width: 560px;
+  max-height: min(92vh, 800px);
   padding: 0;
   border-radius: var(--radius-xl);
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* B-202606-009: ie-body scrollable — ie-header e ie-footer quedan fijos */
+.ie-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 1.25rem 1.5rem;
 }
 
 /* .avatar-modal-actions */

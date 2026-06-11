@@ -21,7 +21,7 @@ import './locus-sesiones-capture.js';
 import './locus-sesiones-viz.js';
 import './locus-sesiones-arranque.js';
 import './locus-radar.js';
-import './locus-session-parse.js';
+import { parsePaste, handlePaste, handleInput } from './locus-session-parse.js';
 import './locus-session-hora.js';
 import './locus-session-save.js';
 import './locus-tags.js';
@@ -103,6 +103,13 @@ window._validateResetBacklogInput = function(el) {
   if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('is-hidden'); }
   else { hint.classList.add('is-hidden'); }
 };
+
+// B-202606-011: parsePaste · handlePaste · handleInput expuestas en window
+// — locus-session-parse.js es ESM; sin esta exposición los onpaste/oninput
+//   generados dinámicamente en locus-sesiones.js / locus-workers.js lanzan ReferenceError.
+window.parsePaste  = parsePaste;
+window.handlePaste = handlePaste;
+window.handleInput = handleInput;
 
 // ─────────────────────────────────────────────────────────────────────────────
 

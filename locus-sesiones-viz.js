@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 00:00 UTC-6
 // locus-sesiones-viz.js
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
 //   (_showItemVizPanel), corrección de hora (openCorrectHora).
@@ -555,11 +555,10 @@ export function showCheckpointPanel(data) {
   if (reopen) reopen.classList.add('is-hidden');
 
   if (bar) {
-    bar.style.transition = 'none';
-    bar.style.width = '100%';
+    bar.classList.remove('ckpt-bar--animating');
+    bar.style.setProperty('--ckpt-duration', _CKPT_PANEL_DURATION + 'ms');
     void bar.offsetWidth;
-    bar.style.transition = `width ${_CKPT_PANEL_DURATION}ms linear`;
-    bar.style.width = '0%';
+    bar.classList.add('ckpt-bar--animating');
   }
 
   if (_ckptPanelTimer) clearTimeout(_ckptPanelTimer);
@@ -572,7 +571,7 @@ export function closeCkptPanel() {
   const reopen = document.getElementById('ckpt-reopen-btn');
 
   if (panel) panel.classList.remove('open');
-  if (bar)   { bar.style.transition = 'none'; bar.style.width = '0%'; }
+  if (bar)   { bar.classList.remove('ckpt-bar--animating'); }
   if (reopen && _lastCheckpointResult) reopen.classList.remove('is-hidden');
 
   if (_ckptPanelTimer) { clearTimeout(_ckptPanelTimer); _ckptPanelTimer = null; }
