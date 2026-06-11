@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-storage.js
 // Última actualización: 2026-06-06 · T-202606-101: guard de salida para retries de _loadFromSupabase (_LOAD_RETRY_MAX)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -41,6 +41,8 @@ let _getItems = function() {
 let _localStorageUsageRatio = function() { return 0; };
 let _migrateItemTypes = function() {};
 let _purgeStaleBacklogCache = function() { return 0; };
+// T-202606-006 T3: renderSprintTab inyectado via _initApp — ciclo storage ↔ sprint eliminado.
+let _renderSprintTabFn = function() {};
 // No contiene lógica de UI, render, toast ni timer de sesión.
 
 // ── VARIABLES DE MÓDULO ───────────────────────────────────────────────────────
@@ -1242,7 +1244,7 @@ export async function _loadFromSupabase() {
     _dispatch('shell:mark-statusbar-dirty');
     _dispatch('shell:render-backlog-list');
     // B: re-render tab Sprint tras carga Supabase — evita empty state en refresh
-    if (typeof window.renderSprintTab === 'function') window.renderSprintTab();
+    _renderSprintTabFn();
     setSyncStatus('synced', '✓ sincronizado');
 
   } catch (err) {
@@ -1439,6 +1441,8 @@ export function _initApp(opts = {}) {
   else console.warn('[AI Tracker] _initApp: migrateItemTypes no recibido en opts — usando no-op');
   if (opts.purgeStaleBacklogCache) _purgeStaleBacklogCache = opts.purgeStaleBacklogCache;
   else console.warn('[AI Tracker] _initApp: purgeStaleBacklogCache no recibido en opts — usando fallback 0');
+  // T-202606-006 T3: renderSprintTab inyectado para eliminar window.renderSprintTab
+  if (opts.renderSprintTab) _renderSprintTabFn = opts.renderSprintTab;
   // B-202606-028: marcar referencias inyectadas — _loadFromSupabase puede reintentar ahora.
   _appReady = true;
   // 1. Cargar estado desde localStorage en memoria (sin UI)

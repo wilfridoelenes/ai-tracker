@@ -1,10 +1,10 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 08:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // T2: imports en el mismo orden que index.html declaraba los <script src>
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
 
 import { _getActiveProjectFilter, _initApp, _effectiveVersion, getProjectById, LOCUS_KEYS } from './locus-storage.js';
-import { applyTheme } from './locus-ui-shell.js';
+import { applyTheme, _initUiShellRefs } from './locus-ui-shell.js';
 import './locus-analytics-core.js';
 import './locus-analytics-digest.js';
 import './locus-analytics-render.js';
@@ -44,6 +44,8 @@ import './locus-backlog-archive.js';
 import './locus-sprint.js';
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import { getItems, _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
+import { renderSprintTab } from './locus-sprint.js';
+import { relDate } from './locus-session-hora.js';
 import './locus-map-generator.js';
 import { initCommandPalette } from './locus-command-palette.js';import { _maybeShowWeeklySummary } from './locus-sesiones-utils.js';
 import { _itemVizConfirm, _itemVizClose, closeCkptPanel } from './locus-sesiones-viz.js';
@@ -140,6 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Arrancar app — inyectar referencias directas para romper ciclos storage↔sprint-project y storage↔backlog-core
   // ESM-B: getProjectById · _localStorageUsageRatio · _migrateItemTypes · _purgeStaleBacklogCache agregados
+  // T-202606-006 T3: renderSprintTab agregado — elimina window.renderSprintTab en storage
   _initApp({
     getActiveProjectFilter: _getActiveProjectFilter,
     exportBacklogMd,
@@ -148,5 +151,9 @@ document.addEventListener('DOMContentLoaded', () => {
     migrateItemTypes: _migrateItemTypes,
     purgeStaleBacklogCache: _purgeStaleBacklogCache,
     getProjectById,
+    renderSprintTab,
   });
+
+  // T-202606-006 T3: inyectar refs en ui-shell — rompe ciclos ui-shell ↔ backlog-core y ui-shell ↔ session-hora
+  _initUiShellRefs({ getItems, relDate });
 });

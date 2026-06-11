@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 08:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 08:00 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -410,8 +410,7 @@ function _renderItemPanel(item) {
   const notesHtml = `
     <div class="idp-section">
       <div class="idp-section-label">Notas</div>
-      <textarea class="idp-notes-ta" id="idp-notes-ta" placeholder="Añade notas sobre este ítem..."
-        oninput="_itemPanelNotesDirty()">${esc(item.notes || '')}</textarea>
+      <textarea class="idp-notes-ta" id="idp-notes-ta" placeholder="Añade notas sobre este ítem...">${esc(item.notes || '')}</textarea>
       <div class="idp-notes-status" id="idp-notes-status"></div>
     </div>`;
 
@@ -540,6 +539,10 @@ function _renderItemPanel(item) {
       ${acHtml}
       ${timelineHtml}
     </div>`;
+
+  // T-202606-009: adjuntar listener de notas via addEventListener — sin oninput inline
+  const _notesTa = panel.querySelector('#idp-notes-ta');
+  if (_notesTa) _notesTa.addEventListener('input', _itemPanelNotesDirty);
 }
 
 function _buildPanelTimeline(item) {

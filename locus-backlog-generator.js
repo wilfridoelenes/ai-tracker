@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -510,7 +510,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
       if (i.status === 'pendiente' || i.status === 'en-revision') return true;
       // Regla 2: hijos (T o B) de R activo — exportar sin importar su status
       if ((i.code && (i.code.startsWith('T-') || i.code.startsWith('B-'))) &&
-          i.parent && activeRCodes.has(i.parent)) return true;
+          (i.parentId || i.parent) && activeRCodes.has(i.parentId || i.parent)) return true;
       // Sprint cerrado más reciente: ítems done
       if (i.status === 'done' && lastClosedId && i.sprint === lastClosedId) return true;
       // Sprint activo: ítems done o descartados
@@ -838,3 +838,6 @@ export function exportContextMd() {
 }
 
 // ── Exposición pública — compatibilidad con locus-api.js ─────────────────────
+window.exportBacklogMd      = exportBacklogMd;
+window.exportFullHistoryMd  = exportFullHistoryMd;
+window.exportContextMd      = exportContextMd;

@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1063,6 +1063,12 @@ document.addEventListener('DOMContentLoaded', function() {
   // emitidos por otros módulos (locus-backlog-core, locus-storage, etc.) sin acoplamiento directo.
   window.addEventListener('shell:render-sprint-tab', function() {
     renderSprintTab();
+  });
+
+  // T-202606-006 T3: listener para sprint:switch-subtab — reemplaza window._sptSwitch en planificacion
+  window.addEventListener('sprint:switch-subtab', function(e) {
+    const { subtab, triggerBtn } = (e.detail || {});
+    if (subtab) _sptSwitch(subtab, triggerBtn || null);
   });
 
   // T-202605-051: Event delegation en #sprint-items-list para ítems generados dinámicamente

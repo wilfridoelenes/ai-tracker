@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 19:30 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -10,10 +10,8 @@
 import { updateTabNotifBadges } from './locus-notifications.js';
 import { _initRadarSidebarState, renderGlobalRadarSidebar } from './locus-radar.js';
 import { _scrollToCard, _updateHeaderProjectLabel, navigateToCard, renderStatusBar, updateStats, _hasStaleSuggestion } from './locus-sesiones-stats.js';
-import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer, _buildSuggestionReason, _sessRelTsShared, _cscardRelTs, _hoyMsUntilReset } from './locus-sesiones-utils.js';
+import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer, _buildSuggestionReason, _sessRelTsShared, _cscardRelTs, _hoyMsUntilReset, getCD } from './locus-sesiones-utils.js';
 import { fmt12, _templateTrigger, confirmSave, interpretHora, relDate } from './locus-session-hora.js';
-// getCD — exportado desde locus-misc-ui.js (no disponible en T5); fallback window conservado hasta T6
-const getCD  = (...a) => typeof window.getCD  === 'function' ? window.getCD(...a)  : '';
 import { closeLogCard, closePopup, openDetail } from './locus-session-popup.js';
 // T-202606-058: import de locus-sprint-project eliminado — ciclo A↔B roto.
 // _getActiveProjectFilter · getProjectById · openProjModal · selectProjectFilter

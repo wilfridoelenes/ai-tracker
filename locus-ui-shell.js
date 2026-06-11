@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -14,7 +14,7 @@
 //       (locus-api.js garantiza que el contrato público está disponible post-DOMContentLoaded)
 // Cada módulo consumidor es responsable de registrar listener 'shell:invoke' para sus propias funciones.
 
-import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save } from './locus-storage.js';
+import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter } from './locus-storage.js';
 
 // ── Global utility ────────────────────────────────────────────────────────
 // esc() usada por múltiples módulos (backlog, session, toast, checkpoint)
@@ -36,6 +36,15 @@ let currentTab = localStorage.getItem('active-tab') || 'sesiones';
 // B-202605-019: array module-level para acciones de contratos en panel de búsqueda
 // Se repuebla en cada llamada a onSearch — delegation usa índice via data-contrato-idx
 let _surContratoActions = [];
+
+// T-202606-006 T3: lazy refs para romper ciclos ui-shell ↔ backlog-core y ui-shell ↔ session-hora
+// Inyectadas desde main.js via _initUiShellRefs() — misma estrategia que _initApp opts en storage.
+let _getItemsFn = function() { return []; };
+let _relDateFn  = function() { return null; };
+export function _initUiShellRefs(opts) {
+  if (opts.getItems) _getItemsFn = opts.getItems;
+  if (opts.relDate)  _relDateFn  = opts.relDate;
+}
 
 export function getCurrentTab() { return currentTab; }
 export function getCurrentSubTab() { return currentSubTab; }
@@ -236,10 +245,7 @@ export function onSearch() {
   }
 
   // B-202605-236: proyecto activo para filtrar sesiones/proyectos
-  // (c) acceso via window.* — _getActiveProjectFilter expuesto por locus-sprint-project.js
-  const _activeProjId = (!_searchScopeAll && typeof window._getActiveProjectFilter === 'function')
-    ? window._getActiveProjectFilter()
-    : null;
+  const _activeProjId = (!_searchScopeAll && _getActiveProjectFilter()) || null;
 
   // B-202605-237: helper para resaltar término buscado en texto
   const _esc = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -292,8 +298,7 @@ export function onSearch() {
   });
 
   // ── 4. T-202604-420: Ítems de backlog coincidentes ──
-  // (c) acceso via window.* — getItems expuesto por locus-backlog-core.js
-  const _items = (typeof window.getItems === 'function') ? window.getItems() : [];
+  const _items = _getItemsFn();
   const backlogMatches = _items.filter(item => {
     if (item.status === 'descartado') return false;
     const titleHit = (item.title || item.desc || '').toLowerCase().includes(q);
@@ -389,7 +394,7 @@ export function onSearch() {
     sessSlice.forEach(({ sess, proj, ai }) => {
       const aiName = ai ? hlText(ai.name, q) : '\u2014';
       const projName = proj ? _esc((proj.icon || '\u{1F4C1}') + ' ' + proj.name) : '';
-      const dateLabel = (typeof window.relDate === 'function' ? window.relDate(sess.date, sess.savedAt || sess.createdAt) : null) || sess.dateShort || '';
+      const dateLabel = _relDateFn(sess.date, sess.savedAt || sess.createdAt) || sess.dateShort || '';
       const summSnip = sess.summary ? `<span class="sur-meta">${hlText(sess.summary.slice(0, 80), q)}${sess.summary.length > 80 ? '\u2026' : ''}</span>` : '';
       html += `<div class="sur-row" data-action="openDetail" data-ai-id="${ai ? ai.id : ''}" data-sess-id="${sess.id}">
         <span class="sur-row-icon">📄</span>
@@ -412,7 +417,7 @@ export function onSearch() {
       <div class="sur-group-label">📝 Notas (${noteMatches.length})</div>
       <div class="sur-rows">`;
     noteMatches.slice(0, 20).forEach(n => {
-      const dateLabel = (typeof window.relDate === 'function' ? window.relDate(n.updatedAt || n.createdAt) : null) || '';
+      const dateLabel = _relDateFn(n.updatedAt || n.createdAt) || '';
       const refBadge = n.itemRef ? `<span class="sur-badge">${hlText(n.itemRef, q)}</span>` : '';
       html += `<div class="sur-row" data-action="openQuickNote" data-note-id="${n.id}">
         <span class="sur-row-icon">🗒</span>
@@ -566,7 +571,7 @@ export function renderSetupChecklist() {
   const workerDone  = (state.ais || []).length > 0;
   const projectDone = (state.projects || []).length > 0;
   // (c) acceso via window.* — getItems expuesto por locus-backlog-core.js
-  const itemDone    = (typeof window.getItems === 'function' ? window.getItems() : []).length > 0;
+  const itemDone    = _getItemsFn().length > 0;
   const sessionDone = getAllSessions().length > 0;
   const allDone = workerDone && projectDone && itemDone && sessionDone;
 

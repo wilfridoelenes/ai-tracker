@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -7,9 +7,9 @@
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _syncCleanProjectBtn } from './locus-reports.js';
 import { _blogLog, _effectiveVersion, _offlineQueuePush, _PREFIX_MAP, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getProjectSessions, getState, getSupabaseUserId, save } from './locus-storage.js';
-import { esc, switchSubTab, switchTab, getCurrentSubTab } from './locus-ui-shell.js';
+import { esc, switchSubTab, switchTab, getCurrentSubTab, getCurrentTab } from './locus-ui-shell.js';
 // Símbolos movidos a locus-proj-core.js en T-202606-197 (opción d — ESM puro)
-import { _getActiveProjectFilter, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, _countProjSessions, closeProjPanel, selectProjectFilter, getProjectById, getProjContext, setProjContext } from './locus-proj-core.js';
+import { _getActiveProjectFilter, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, _countProjSessions, closeProjPanel, selectProjectFilter, getProjectById, getProjContext, setProjContext, _setClearProjFilter } from './locus-proj-core.js';
 
 
 import { renderAnalytics } from './locus-analytics-render.js';
@@ -126,15 +126,16 @@ function _projListDropHandler(e) {
 
 // _updateProjFilterBtn — movida a locus-proj-core.js en T-202606-197
 
-function clearProjectFilter() {
+export function clearProjectFilter() {
   _setActiveProjectFilter('');
   loadBacklog(); loadHtmlMap();
-  window.dispatchEvent(new CustomEvent('shell:sesiones-render')); if (typeof renderHoy === 'function') renderHoy();
-  if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
+  window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
+  if (getCurrentTab() === 'analytics') renderAnalytics();
   renderBacklogList(); renderStats();
   _renderTplProjBanner();
   switchSubTab(getCurrentSubTab());
 }
+_setClearProjFilter(clearProjectFilter);
 
 export function openProjPanel() {
   renderProjPanel();
@@ -432,7 +433,7 @@ function toggleProjArchive(projId) {
   }
   save();
   _renderProjList();
-  if (typeof window.renderProyectos === 'function') window.renderProyectos();
+  window.dispatchEvent(new CustomEvent('shell:render-proyectos'));
   showToast('info', !wasArchived ? `"${proj.name}" archivado` : `"${proj.name}" restaurado`);
 }
 

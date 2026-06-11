@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -6,7 +6,7 @@
 // T-202606-057: imports hacia módulos que importan a locus-backlog-core eliminados.
 // Funciones desacopladas via _coreCallbacks (getters/acciones controladas)
 // y shell:* events (notificaciones de render — window per B-202606-021).
-import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog } from './locus-storage.js';
+import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _tplKey, getAI, getActiveSprints, getAllSessions, getState, saveBacklog } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc } from './locus-ui-shell.js';
 
@@ -1210,8 +1210,9 @@ function statusLabel(s) {
 
 // B-245: helper para obtener el aiId de la sesión activa al momento de registrar en history[]
 export function _getActiveSessionAiId() {
-  if (typeof window.state === 'undefined') return null;
-  const ai = (window.state.ais || []).find(a => !a.archived && _isInSession(a));
+  const _st = getState();
+  if (!_st) return null;
+  const ai = (_st.ais || []).find(a => !a.archived && _isInSession(a));
   return ai ? ai.id : null;
 }
 

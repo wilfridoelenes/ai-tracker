@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-10 19:15 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-10 20:00 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -196,7 +196,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     // B-202606-054: 'Sin sprint' (value='') eliminado — valor inválido según BR-Ecosystem §5.
     // El select solo expone icebox y sprints formales abiertos.
     return `<select class="mdiff-sprint-select" data-item-code="${esc(code)}"
-      onchange="_mdiffSetItemSprint(this)"
+      data-action="mdiff-set-sprint"
       data-stop-propagation="true">
       <option value="icebox" ${isIcebox || !currentSprint ? 'selected' : ''}>icebox</option>
       ${options}
@@ -840,7 +840,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           html += `
             <label class="mdiff-right-retro-row ${isChecked ? 'is-confirmed' : ''}">
               <input type="checkbox" id="${cbId}" class="mdiff-right-retro-cb"
-                     data-retroceso-idx="${idx}" onchange="_mdiffUpdateConfirmBtn()"
+                     data-retroceso-idx="${idx}"
                      ${isChecked ? 'checked' : ''}>
               <span class="mdiff-right-retro-info">
                 <span class="mdiff-code mdiff-code--sm">${esc(item.code)}</span>
@@ -863,7 +863,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
               <span class="mdiff-code mdiff-code--sm">${esc(item.code)}</span>
               <span class="mdiff-right-discard-desc">${esc(item.desc || '')}</span>
               <select id="${selId}" class="mdiff-right-discard-select"
-                      data-discard-idx="${idx}" onchange="_mdiffUpdateConfirmBtn()">
+                      data-discard-idx="${idx}">
                 <option value="">— razón —</option>
                 ${_DISCARD_REASONS.map(r => `<option value="${esc(r)}" ${currentVal === r ? 'selected' : ''}>${esc(r)}</option>`).join('')}
               </select>
@@ -1050,6 +1050,25 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       window._mdiffToggleSection && window._mdiffToggleSection(btn);
     } else if (action === 'mdiff-jump-to') {
       window._mdiffJumpTo && window._mdiffJumpTo(btn.dataset.secId);
+    }
+  });
+
+  // T-202606-008: delegation change — reemplaza onchange= inline en templates de pendingList y _sprintSelect
+  overlay.addEventListener('change', function(e) {
+    // Sprint select — data-action="mdiff-set-sprint" (generado por _sprintSelect)
+    if (e.target.classList.contains('mdiff-sprint-select') && e.target.dataset.action === 'mdiff-set-sprint') {
+      window._mdiffSetItemSprint && window._mdiffSetItemSprint(e.target);
+      return;
+    }
+    // Retroceso checkbox — data-retroceso-idx (generado en _mdiffUpdateConfirmBtn)
+    if (e.target.classList.contains('mdiff-right-retro-cb')) {
+      window._mdiffUpdateConfirmBtn && window._mdiffUpdateConfirmBtn();
+      return;
+    }
+    // Discard select — data-discard-idx (generado en _mdiffUpdateConfirmBtn)
+    if (e.target.classList.contains('mdiff-right-discard-select')) {
+      window._mdiffUpdateConfirmBtn && window._mdiffUpdateConfirmBtn();
+      return;
     }
   });
 

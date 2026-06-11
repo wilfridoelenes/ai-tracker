@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:7 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:8 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -9,6 +9,7 @@ import { getItems, itemType, _getActiveStatuses, updateStatusFilterUI } from './
 import { getActiveSprints } from './locus-storage.js';
 import { esc } from './locus-ui-shell.js';
 import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
+import { toggleArchivoHistorico } from './locus-backlog-archive.js';
 
 // ---------------------------------------------------------------------------
 // Estado interno
@@ -45,7 +46,7 @@ export function _statusPills(items) {
 // R-202605-103: toggleClosedSprintsBody reemplazada por toggleArchivoHistorico
 // Alias de compatibilidad — invocado desde renderBacklogList
 export function toggleClosedSprintsBody() {
-  if (typeof window.toggleArchivoHistorico === 'function') window.toggleArchivoHistorico();
+  toggleArchivoHistorico();
 }
 
 // ---------------------------------------------------------------------------
@@ -581,11 +582,8 @@ export function _attachPlanViewDelegation() {
   listEl.addEventListener('click', function _planViewClick(e) {
     const btn = e.target.closest('[data-action="bl-plan-close"]');
     if (!btn) return;
-    // Volver al sub-tab Ítems — window._sptSwitch expuesto por locus-sprint.js
-    if (typeof window._sptSwitch === 'function') {
-      const itemsBtn = document.getElementById('spt-tab-items');
-      window._sptSwitch('items', itemsBtn || null);
-    }
+    // Volver al sub-tab Ítems — event dispatch para evitar ciclo con locus-sprint.js
+    window.dispatchEvent(new CustomEvent('sprint:switch-subtab', { detail: { subtab: 'items', triggerBtn: document.getElementById('spt-tab-items') || null } }));
   });
 }
 
@@ -598,9 +596,6 @@ export function _attachPlanCloseHandler() {
   container.addEventListener('click', function(e) {
     const btn = e.target.closest('[data-action="bl-plan-close"]');
     if (!btn) return;
-    if (typeof window._sptSwitch === 'function') {
-      const itemsBtn = document.getElementById('spt-tab-items');
-      window._sptSwitch('items', itemsBtn || null);
-    }
+    window.dispatchEvent(new CustomEvent('sprint:switch-subtab', { detail: { subtab: 'items', triggerBtn: document.getElementById('spt-tab-items') || null } }));
   });
 }

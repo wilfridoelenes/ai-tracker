@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 UTC-6
 import { renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
 import { _closedItemsInRange, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, sessionDateKey } from './locus-analytics-core.js';
 
@@ -487,7 +487,7 @@ export function renderAnalytics() {
       .filter(p => p.id && p.name)
       .map(p => `<option value="${esc(p.id)}"${p.id === currentId ? ' selected' : ''}>${esc(p.icon || '📁')} ${esc(p.name)}</option>`)
       .join('');
-    return `<select class="period-btn compare-proj-select compare-proj-select--${slot}" onchange="setCompareProject${slot.toUpperCase()}(this.value || null)" title="Proyecto ${slot.toUpperCase()}">
+    return `<select class="period-btn compare-proj-select compare-proj-select--${slot}" title="Proyecto ${slot.toUpperCase()}">
       <option value="">＋ Proyecto ${slot.toUpperCase()}</option>
       ${opts}
     </select>`;
@@ -930,11 +930,11 @@ export function renderAnalytics() {
           <div class="analytics-section-sub">Ítems creados vs cerrados · todos los períodos</div>
         </div>
         <div class="acf-toolbar">
-          <select class="acf-select" onchange="setCfProject(this.value)" aria-label="Filtrar por proyecto">
+          <select class="acf-select" aria-label="Filtrar por proyecto">
             <option value="">Todos los proyectos</option>
             ${(state.projects || []).map(p => `<option value="${esc(p.id)}" ${_cfProjId === p.id ? 'selected' : ''}>${esc(p.name || p.id)}</option>`).join('')}
           </select>
-          <select class="acf-select" onchange="setCfType(this.value)" aria-label="Filtrar por tipo">
+          <select class="acf-select" aria-label="Filtrar por tipo">
             <option value="">Todos los tipos</option>
             <option value="R" ${_cfTypeFilter === 'R' ? 'selected' : ''}>R — Requerimientos</option>
             <option value="T" ${_cfTypeFilter === 'T' ? 'selected' : ''}>T — Tickets</option>
@@ -1114,6 +1114,21 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'analytics-export-weekly':
         exportWeeklySummary();
         break;
+    }
+  });
+  // T-202606-007: Migración inline handlers → event delegation
+  analyticsInner.addEventListener('change', e => {
+    const sel = e.target;
+    if (sel.classList.contains('compare-proj-select--a')) {
+      setCompareProjectA(sel.value || null);
+    } else if (sel.classList.contains('compare-proj-select--b')) {
+      setCompareProjectB(sel.value || null);
+    } else if (sel.classList.contains('acf-select')) {
+      if (sel.getAttribute('aria-label') === 'Filtrar por proyecto') {
+        setCfProject(sel.value);
+      } else if (sel.getAttribute('aria-label') === 'Filtrar por tipo') {
+        setCfType(sel.value);
+      }
     }
   });
 });

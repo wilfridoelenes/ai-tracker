@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-proj-core.js
 // Módulo compartido — símbolos de proyecto sin deps circulares
 // Creado en T-202606-197 (opción d): rompe ciclo locus-projects ↔ locus-sprint-project
@@ -13,8 +13,15 @@ import { loadBacklog, renderStats } from './locus-backlog-core.js';
 import { renderBacklogList } from './locus-backlog-render.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _renderTplProjBanner } from './locus-docs.js';
+import { _updateHeaderProjectLabel } from './locus-sesiones-stats.js';
+import { _syncCleanProjectBtn } from './locus-reports.js';
 
 // ── Filtro de proyecto activo ────────────────────────────────────────────────
+
+// T-202606-006 T3: clearProjectFilter vive en locus-sprint-project — ciclo si se importa directo.
+// locus-sprint-project llama _setClearProjFilter(clearProjectFilter) al cargarse.
+let _clearProjFilterFn = null;
+export function _setClearProjFilter(fn) { _clearProjFilterFn = fn; }
 
 export function _getActiveProjectFilter() {
   return localStorage.getItem('current-project-filter') || '';
@@ -25,9 +32,8 @@ export function _setActiveProjectFilter(projId) {
   else localStorage.removeItem('current-project-filter');
   _updateProjBreadcrumb();
   _updateProjFilterBtn();
-  // via window.* — evita imports que crearían ciclos con locus-sesiones-stats y locus-reports
-  if (typeof window._updateHeaderProjectLabel === 'function') window._updateHeaderProjectLabel();
-  if (typeof window._syncCleanProjectBtn === 'function') window._syncCleanProjectBtn();
+  _updateHeaderProjectLabel();
+  _syncCleanProjectBtn();
 }
 
 // ── Lookup de proyecto ───────────────────────────────────────────────────────
@@ -67,7 +73,7 @@ export function _updateProjFilterBtn() {
     if (clearSpan) {
       clearSpan.addEventListener('click', function (e) {
         e.stopPropagation();
-        if (typeof window.clearProjectFilter === 'function') window.clearProjectFilter();
+        if (_clearProjFilterFn) _clearProjFilterFn();
       });
     }
   } else {

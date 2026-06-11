@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -642,10 +642,13 @@ function renderProject(query) {
     <div class="proj-filters-row">
       ${aiChips}
       <input class="proj-search-input" type="text" placeholder="Buscar en proyecto…"
-        value="${esc(q)}" oninput="_projViewSearchInput(this.value)"
+        value="${esc(q)}"
         autocomplete="off">
     </div>`;
   trackerPanel.appendChild(headerEl);
+  // T-[pendiente-ID]: event delegation — search input listener adjunto post-render
+  const searchInput = headerEl.querySelector('.proj-search-input');
+  if (searchInput) searchInput.addEventListener('input', e => _projViewSearchInput(e.target.value));
 
   // T-079: Botón toggle analytics + sección analytics
   if (filterId) {

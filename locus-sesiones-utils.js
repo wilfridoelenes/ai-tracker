@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
@@ -7,7 +7,7 @@
 
 import { relDate } from './locus-session-hora.js';
 import { getAI, getAISessions, getActiveProject, getState, save } from './locus-storage.js';
-import { switchTab } from './locus-ui-shell.js';
+import { switchTab, getCurrentTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderStatusBar, updateStats } from './locus-sesiones-stats.js';
 import { getItems } from './locus-backlog-core.js'; // ESM-1 · T-202606-039
@@ -444,7 +444,7 @@ setInterval(() => {
   if (changed) {
     save();
     window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-    const currentTab = typeof window.currentTab !== 'undefined' ? window.currentTab : '';
+    const currentTab = getCurrentTab();
     if (currentTab === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   }
   updateStats();
