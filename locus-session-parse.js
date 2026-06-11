@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:17 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:18 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1685,12 +1685,68 @@ function saveStandaloneCheckpoint() {
     };
   }
 
+  // T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para B con triggered_by en sprint activo.
+  // No-bloqueante: si el founder ignora, el B se ingesta con sprint: icebox (comportamiento default).
+  const _tgSuggestionSa = _buildTriggeredBySuggestion(tgItems);
+  if (_tgSuggestionSa) {
+    _ckptMetaStandalone.triggeredBySuggestion = {
+      ..._tgSuggestionSa,
+      onAccept: function() {
+        _tgSuggestionSa.b.sprint = _tgSuggestionSa.suggestedSprint;
+      },
+      // onIgnore: no-op — el B conserva sprint: icebox (default ya presente en el ítem)
+    };
+  }
+
   closeStandaloneCheckpoint();
   showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _gatedDoApply, _ckptMetaStandalone);
 }
 
 
 
+
+// T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para B nuevo con triggered_by
+// apuntando a un ítem en sprint activo. No es automático (a diferencia de Trigger 1/2):
+// retorna { b, suggestedSprint } para que el DIFF muestre la sugerencia, o null si no aplica.
+// Reglas (AC T-202606-021):
+//  - Solo Bs nuevos ([pendiente-ID] o [tmp:slug]) sin sprint explícito distinto de icebox.
+//  - triggered_by debe apuntar a un ítem cuyo sprint esté en estado 'active'.
+//  - Si triggered_by apunta a icebox o sprint cerrado/programado → no se sugiere.
+//  - Si el B ya declara sprint explícito ≠ icebox → no se sugiere (respetar lo declarado).
+function _buildTriggeredBySuggestion(tgItems) {
+  if (!Array.isArray(tgItems) || !tgItems.length) return null;
+
+  const activeSprints = getActiveSprints().filter(sp => sp.status === 'active');
+  if (!activeSprints.length) return null;
+  const activeSprintIds = new Set(activeSprints.map(sp => sp.id));
+
+  // Mapa code -> sprint, para resolver triggered_by tanto contra ítems existentes
+  // como contra otros ítems nuevos del mismo CHECKPOINT (referencias [tmp:slug]).
+  const codeToSprint = new Map();
+  (getActiveTracker().items || []).forEach(it => {
+    if (it.code) codeToSprint.set(it.code, it.sprint);
+  });
+  tgItems.forEach(it => {
+    if (it.code) codeToSprint.set(it.code, it.sprint || 'icebox');
+  });
+
+  for (const item of tgItems) {
+    if (item.type !== 'B') continue;
+    if (!_isPlaceholderCode(item.code)) continue; // solo B nuevo
+    if (!item.triggeredBy && !item.triggered_by) continue;
+
+    const sprintDeclared = item.sprint || 'icebox';
+    if (sprintDeclared !== 'icebox') continue; // B ya declara sprint explícito — respetar
+
+    const tgCode = item.triggeredBy || item.triggered_by;
+    const targetSprint = codeToSprint.get(tgCode);
+    if (!targetSprint || !activeSprintIds.has(targetSprint)) continue; // icebox / cerrado / no resuelto
+
+    return { b: item, suggestedSprint: targetSprint };
+  }
+
+  return null;
+}
 
 // T-202606-128: parser de bloque ---SPRINT-PROPOSAL--- / ---SPRINT-PROPOSAL-END---
 // Solo extrae y retorna el objeto — no modifica storage ni UI.
