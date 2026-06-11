@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-04 · mod:7 · autor:Rune · 2026-06-11 10:15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-04 · mod:8 · autor:Rune · 2026-06-11 10:45 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -570,7 +570,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   exportItems.forEach(i => { statusMap[i.code] = { status: i.status, sprint: i.sprint || '' }; });
   const indexLines = _buildIndexLines(statusMap);
 
-  const itemsMd = _buildItemsMd(exportItems);
+  const { mainMd, orphansMd } = _buildItemsMd(exportItems);
 
   const totalItems = exportItems.length;
   const doneCount = exportItems.filter(i => i.status === 'done').length;
@@ -614,11 +614,11 @@ App: ${_appVerStr} — exportado desde tracker
 
 ---
 
-${itemsMd}
+${mainMd}
 
 ---
 
-${_buildSprintHistorialMd()}
+${orphansMd ? `## Ítems huérfanos\n\n> Ts y Bs sin parent declarado — requieren revisión de Cael antes del próximo sprint.\n\n---\n\n${orphansMd}\n\n---\n\n` : ''}${_buildSprintHistorialMd()}
 ---
 
 ## Estadísticas finales
@@ -764,6 +764,8 @@ function _buildItemFieldsMd(item, state) {
 }
 
 // T-202606-017: estructura nueva — Rs como headers H3 con Ts anidados (H4) e indicadores de bloqueo.
+// T-202606-059: retorna { mainMd, orphansMd } — orphansMd contiene T y B sin parent declarado.
+//   orphansMd es string vacío cuando no hay huérfanos.
 function _buildItemsMd(items) {
   const state = getState();
   const src = items || getItems();
@@ -784,7 +786,17 @@ function _buildItemsMd(items) {
        .map(i => i.code)
   );
 
+  // T-202606-059: AC-1 — huérfanos: T o B en src sin parentId y sin parent declarado
+  const orphanCodes = new Set(
+    src
+      .filter(i => i.code &&
+        (i.code[0] === 'T' || i.code[0] === 'B') &&
+        !(i.parentId || i.parent))
+      .map(i => i.code)
+  );
+
   const sections = [];
+  const orphanSections = [];
 
   src.forEach(item => {
     if (!item.code) return;
@@ -792,6 +804,16 @@ function _buildItemsMd(items) {
 
     // Ts con parent — se renderizan bajo su R
     if (type === 'T' && tsWithParent.has(item.code)) return;
+
+    // T-202606-059: AC-2 — huérfanos excluidos del loop normal, acumulados en orphanSections
+    if (orphanCodes.has(item.code)) {
+      const { blocked, blockers } = type === 'T' ? _isItemBlocked(item) : { blocked: false, blockers: [] };
+      const blockerTag = blocked ? ` ⚠ bloqueado por ${blockers.join(', ')}` : '';
+      let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}${blockerTag}\n`;
+      md += _buildItemFieldsMd(item, state);
+      orphanSections.push(md);
+      return;
+    }
 
     if (type === 'R') {
       // ── R como header H3 con Ts anidados ──────────────────────────────
@@ -812,7 +834,7 @@ function _buildItemsMd(items) {
       sections.push(md);
 
     } else if (type === 'T') {
-      // ── T huérfano (sin R padre) ───────────────────────────────────────
+      // ── T sin R padre pero con parent declarado — no debería llegar aquí post-059
       const { blocked, blockers } = _isItemBlocked(item);
       const blockerTag = blocked ? ` ⚠ bloqueado por ${blockers.join(', ')}` : '';
       let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}${blockerTag}\n`;
@@ -820,14 +842,20 @@ function _buildItemsMd(items) {
       sections.push(md);
 
     } else {
-      // ── P y B ─────────────────────────────────────────────────────────
+      // ── P y B con parent (o P sin parent — P no es huérfana por diseño) ─
       let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}\n`;
       md += _buildItemFieldsMd(item, state);
       sections.push(md);
     }
   });
 
-  return sections.join('\n---\n\n');
+  // T-202606-059: AC-6 — orphansMd usa mismo formato _buildItemFieldsMd (ya aplicado arriba)
+  const mainMd = sections.join('\n---\n\n');
+  const orphansMd = orphanSections.length
+    ? orphanSections.join('\n---\n\n')
+    : '';
+
+  return { mainMd, orphansMd };
 }
 
 // ── Context export ────────────────────────────────────────────────────────────
