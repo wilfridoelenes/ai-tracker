@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-04 · mod:9 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-02 · mod:10 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -516,6 +516,13 @@ export function parsePaste(id) {
         if (_it.type === 'P' && _normSt === 'promovida' && !_it.promovida_a) {
           _blogLog('promovida-sin-ref', _it.code || '[pendiente-ID]', 'P ' + (_it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
         }
+        // T-202606-014: advertencia si depends_on contiene [pendiente-ID] literal con 2+ ítems nuevos en el CHECKPOINT
+        if (Array.isArray(_it.depends_on) && _it.depends_on.includes('[pendiente-ID]')) {
+          const _newItemCount = _rawItems.filter(i => i.type !== 'patch' && _isPlaceholderCode(i.code || '')).length;
+          if (_newItemCount >= 2) {
+            _blogLog('dep-placeholder-ambiguo', _it.code || '[pendiente-ID]', (_it.code || '[pendiente-ID]') + ' depends_on contiene [pendiente-ID] no resoluble — usar [tmp:slug] para referencias cruzadas.', 'backlog');
+          }
+        }
       }
       if (_itemError) {
         window[`_itemsJsonError_${id}`] = _itemError;
@@ -625,6 +632,13 @@ export function parsePaste(id) {
           // T-202606-018: advertencia si P tiene status promovida sin promovida_a
           if (_it.type === 'P' && _normSt2 === 'promovida' && !_it.promovida_a) {
             _blogLog('promovida-sin-ref', _it.code || '[pendiente-ID]', 'P ' + (_it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
+          }
+          // T-202606-014: advertencia si depends_on contiene [pendiente-ID] literal con 2+ ítems nuevos en el CHECKPOINT
+          if (Array.isArray(_it.depends_on) && _it.depends_on.includes('[pendiente-ID]')) {
+            const _newItemCount = _parsedJSON.filter(i => i.type !== 'patch' && _isPlaceholderCode(i.code || '')).length;
+            if (_newItemCount >= 2) {
+              _blogLog('dep-placeholder-ambiguo', _it.code || '[pendiente-ID]', (_it.code || '[pendiente-ID]') + ' depends_on contiene [pendiente-ID] no resoluble — usar [tmp:slug] para referencias cruzadas.', 'backlog');
+            }
           }
         }
         if (_itemError) {
