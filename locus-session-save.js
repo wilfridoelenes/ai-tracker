@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:27 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:28 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -613,6 +613,10 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     contexto:    parsed.contexto    || '',
     bloqueantes: parsed.bloqueantes || '',
     aprendizaje: parsed.aprendizaje || '',
+    // T-202606-016: campos informativos adicionales del CHECKPOINT
+    duration:         parsed.duration         || '',
+    docsVerified:     parsed.docsVerified      || '',
+    tensionsResolved: parsed.tensionsResolved  || '',
     resetAt: '',  // B-202606-037: se completa en el callback del DIFF tras leer mdiff-duration-input
     // R-202605-049: sessionGroupId — agrupa checkpoints bajo sesión como contenedor
     sessionGroupId: _sessionGroupId,

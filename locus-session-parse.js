@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-02 · mod:10 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:11 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -258,7 +258,11 @@ function parseCheckpoint(text) {
       proximoPaso:  _parsed.next_step    || '',
       contexto:     _parsed.context      || '',
       bloqueantes:  _parsed.blockers     || '',
-      aprendizaje:  _parsed.learning     || '',
+      aprendizaje:  _parsed.learning      || '',
+      // T-202606-016: campos informativos adicionales del schema JSON
+      duration:      _parsed.duration       || '',
+      docsVerified:  _parsed.docs_verified  || '',
+      tensionsResolved: _parsed.tensions_resolved || '',
       isCheckpoint: true,
       _isJsonFormat: true,
       _rawItems:    items,   // ítems ya parseados — parsePaste los usa directamente
@@ -325,6 +329,10 @@ function parseCheckpoint(text) {
   const contexto     = extractField('Contexto');
   const bloqueantes  = extractField('Bloqueantes');
   const aprendizaje  = extractField('Aprendizaje');
+  // T-202606-016: campos informativos adicionales (formato Markdown legacy)
+  const duration         = extractField('Duración') || extractField('Duration') || '';
+  const docsVerified     = extractField('Docs verificados') || '';
+  const tensionsResolved = extractField('Tensiones resueltas') || '';
   
   const _itemLineRe = /(\[pendiente-ID\]|\[tmp:[a-z0-9_-]+\]|[PTRB]-\d{6}-\d{3}(?:-[A-Z]+)?)\s*:?\s*.+/i;
   const _countParseable = (raw) => raw ? raw.split('\n').filter(l => l.trim() && _itemLineRe.test(l.trim())).length : 0;
@@ -345,6 +353,10 @@ function parseCheckpoint(text) {
     contexto,
     bloqueantes,
     aprendizaje,
+    // T-202606-016: campos informativos adicionales
+    duration,
+    docsVerified,
+    tensionsResolved,
     isCheckpoint: true,
     rawCounts: {
       P: _countParseable(pItems),
@@ -667,7 +679,12 @@ export function parsePaste(id) {
 
   const _pendingPatches = window[`_patchItems_${id}`] || [];
   delete window[`_patchItems_${id}`];
-  ai._parsed = { title, summary, files, tgItems, patchItems: _pendingPatches, isCheckpoint, nextStep, ckptProyecto: ckpt ? (ckpt.proyecto || '') : '', inlineFixes: _inlineFixes };
+  ai._parsed = { title, summary, files, tgItems, patchItems: _pendingPatches, isCheckpoint, nextStep, ckptProyecto: ckpt ? (ckpt.proyecto || '') : '', inlineFixes: _inlineFixes,
+    // T-202606-016: campos informativos adicionales
+    duration:         ckpt ? (ckpt.duration         || '') : '',
+    docsVerified:     ckpt ? (ckpt.docsVerified      || '') : '',
+    tensionsResolved: ckpt ? (ckpt.tensionsResolved  || '') : ''
+  };
 
   // Calcular discrepancia raw vs parseado
   let rawTotal = 0, parsedTotal = tgItems.length;
