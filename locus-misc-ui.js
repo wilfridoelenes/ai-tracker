@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:15 · autor:Rune · 2026-05-30 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-11 UTC-6
 // locus-misc-ui.js
 // Módulo: Helpers de UI — getNextOccurrence, _resetExpired
 // Extraído de ai-tracker-ai-notes.js — Tags migrado a locus-tags.js (T-202605-072)
@@ -9,7 +9,6 @@ import { getNextOccurrence, _resetExpired, getCD } from './locus-sesiones-utils.
 // openPendPanel / closePendPanel viven en locus-pend.js — no se re-exportan desde aquí
 
 const _getCurrentTab = () => window.currentTab || '';
-const _renderHoy = () => { if (typeof window.renderHoy === 'function') window.renderHoy(); };
 
 // ── Listeners ────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
