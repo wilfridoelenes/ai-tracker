@@ -1,6 +1,6 @@
-// [PP] v1.0.0 · sprint:PP-S-04 · mod:6 · autor:Rune · 2026-06-11 10:30 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-12 UTC-6
 // locus-storage.js
-// Última actualización: 2026-06-06 · T-202606-101: guard de salida para retries de _loadFromSupabase (_LOAD_RETRY_MAX)
+// Última actualización: T-202606-076 · T-202606-077: export ESM BACKLOG_LOG_MAX y _DOC_LOG_KEYS
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -683,8 +683,10 @@ async function _saveSessions(proj) {
 // ── GRUPO 7 — STORAGE HEALTH ──────────────────────────────────────────────────
 
 // T-202604-055: Log de acciones del backlog
-const BACKLOG_LOG_MAX = 100;
-const _DOC_LOG_KEYS = { backlog: 'backlog-log', context: 'context-log', htmlmap: 'html-map-log' };
+// T-202606-076: export ESM — consumidores importan explícitamente en lugar de acceder via window
+export const BACKLOG_LOG_MAX = 100;
+// T-202606-077: export ESM — consumidores importan explícitamente en lugar de acceder via window
+export const _DOC_LOG_KEYS = { backlog: 'backlog-log', context: 'context-log', htmlmap: 'html-map-log' };
 
 export function _blogLog(action, code, detail, doc) {
   const key = _DOC_LOG_KEYS[doc] || _DOC_LOG_KEYS.backlog;
