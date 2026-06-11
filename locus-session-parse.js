@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:23 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:24 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1038,7 +1038,9 @@ export function parsePaste(id) {
     // T-202606-203: detección de desfase de infra_version — aviso informativo no bloqueante
     // AC-1: extraer infra_version del header del texto pegado — formato: <!-- **infra_version: N** | ... -->
     // AC-2: si el valor difiere del activo → mostrar alerta con formato exacto de BR-Core §1
-    // AC-3 (actualizado T-202606-034-2e): si el header no contiene infra_version: → alerta informativa en UI
+    // T-202606-083: la validación aplica solo a Docs vivos (context, strategy, backlog) — no a CHECKPOINTs.
+    //   Rama else-if (isCheckpoint) eliminada: los CHECKPOINTs no declaran infra_version y no deben
+    //   disparar ninguna alerta por su ausencia. Sin regresión en la validación de Docs vivos.
     // AC-4: la ingesta continúa normalmente — no bloquea
     {
       const _infraMatch = text.match(/<!--\s*\*\*infra_version:\s*(\d+)\*\*/);
@@ -1048,12 +1050,6 @@ export function parsePaste(id) {
           const _docName = (ckpt && ckpt.titulo) ? ckpt.titulo : (ckpt && ckpt.proyecto) ? ckpt.proyecto : 'doc';
           showToast('warn', `infra_version desactualizada: ${_docName} declara infra_version:${_infraDoc}, valor activo es infra_version:${_INFRA_VERSION_ACTIVE}. Verificar consistencia antes de continuar.`);
         }
-      } else if (isCheckpoint) {
-        // T-202606-034-2e: doc adjunto sin campo infra_version: → alerta informativa (no bloqueante)
-        // Entrada: CHECKPOINT sin <!-- **infra_version: N** --> en encabezado
-        // Salida: alerta visible en UI — la ingesta continúa normalmente
-        const _docName2e = (ckpt && ckpt.titulo) ? ckpt.titulo : (ckpt && ckpt.proyecto) ? ckpt.proyecto : 'doc';
-        showToast('info', `Doc ${_docName2e} sin infra_version declarado — campo obligatorio en Docs vivos.`);
       }
     }
 
