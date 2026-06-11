@@ -1,7 +1,6 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 14:00 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 14:30 UTC-6
 import { _skelHide, _skelShow } from './locus-backlog-core.js';
 import { _tplKey } from './locus-storage.js';
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
 
 import { esc } from './locus-ui-shell.js';
 

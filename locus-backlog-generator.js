@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-02 · mod:4 · autor:Rune · 2026-06-10 21:00 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 00:58 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -436,7 +436,7 @@ function _buildCurrentStateMd() {
 // AC-2: valores declarados aquí, no hardcodeados en el template literal.
 // AC-3: helper _infraVersionStr() valida cada campo — undefined/null → 'n/a'.
 const INFRA_VERSIONS = {
-  infraVersion: 16,
+  infraVersion: 17, // B-202606-015
   brCore: '2.2',
   brEcosystem: '3.15',
   brExecution: '2.6',
@@ -496,6 +496,16 @@ export function _generateBacklogContent(newVersion, opts = {}) {
     const lastClosedId = lastClosed ? lastClosed.id : null;
     const activeSprint = (state.sprints || []).find(s => s.status === 'active');
     const activeSprintId = activeSprint ? activeSprint.id : null;
+    // B-202606-014: normalizar ID de sprint — i.sprint puede almacenarse como label completo
+    // ("PP-S-01 · ESM Migration...") en lugar del ID canónico ("PP-S-01").
+    // Extraer solo el segmento "[Prefijo]-S-XX" antes de comparar.
+    const _normSprintId = val => {
+      if (!val) return val;
+      const m = String(val).match(/^([A-Za-z]+-S-?\d+)/i);
+      return m ? m[1] : val;
+    };
+    const _normActiveSprintId = _normSprintId(activeSprintId);
+    const _normLastClosedId   = _normSprintId(lastClosedId);
     // Pre-computar set de Rs activos para regla de hijos (T/B con parent en R no cerrado)
     const allItems = getItems();
     const activeRCodes = new Set(
@@ -512,9 +522,11 @@ export function _generateBacklogContent(newVersion, opts = {}) {
       if ((i.code && (i.code.startsWith('T-') || i.code.startsWith('B-'))) &&
           (i.parentId || i.parent) && activeRCodes.has(i.parentId || i.parent)) return true;
       // Sprint cerrado más reciente: ítems done
-      if (i.status === 'done' && lastClosedId && i.sprint === lastClosedId) return true;
+      // B-202606-014: normalizar i.sprint antes de comparar
+      if (i.status === 'done' && _normLastClosedId && _normSprintId(i.sprint) === _normLastClosedId) return true;
       // Sprint activo: ítems done o descartados
-      if (activeSprintId && i.sprint === activeSprintId &&
+      // B-202606-014: normalizar i.sprint antes de comparar
+      if (_normActiveSprintId && _normSprintId(i.sprint) === _normActiveSprintId &&
           (i.status === 'done' || i.status === 'descartado')) return true;
       return false;
     });
