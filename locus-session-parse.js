@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:19 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:20 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -76,6 +76,7 @@ const _KNOWN_STATUS_INPUTS = new Set([
   'done', 'en-revision', 'en_revision', 'en revisión', 'en-revisión',
   'descartado', 'historico', 'histórico', 'pendiente', 'promovida',
   'listo',
+  'bloqueado', // T-202606-031: válido solo para R — validación de rol en parsePaste
 ]);
 function _canonicalStatus(raw, type) {
   if (!raw) return null;
@@ -85,6 +86,7 @@ function _canonicalStatus(raw, type) {
   if (s === 'listo') return 'done';
   if (s === 'histórico') return 'historico';
   if (s === 'promovida' && type !== 'P') return null; // T-202606-018
+  if (s === 'bloqueado') return type === 'R' ? 'bloqueado' : null; // T-202606-031: solo válido para R
   return normalizeStatus(raw, type) || null;
 }
 
@@ -522,8 +524,8 @@ export function parsePaste(id) {
         }
         // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
         const _normSt = _canonicalStatus(_it.status, _it.type);
-        if (!_normSt || (!_validStatuses.includes(_normSt) && _normSt !== 'promovida')) {
-          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${_it.type === 'P' ? ' · promovida' : ''}`;
+        if (!_normSt || (!_validStatuses.includes(_normSt) && _normSt !== 'promovida' && _normSt !== 'bloqueado')) {
+          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${_it.type === 'P' ? ' · promovida' : ''}${_it.type === 'R' ? ' · bloqueado' : ''}`;
           break;
         }
         // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
@@ -532,6 +534,23 @@ export function parsePaste(id) {
         if (_normSt === 'en-revision' && (_sprintRaw === 'icebox' || _sprintRaw === '')) {
           _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
           break;
+        }
+        // T-202606-031: validación de rol autorizado para transición R → bloqueado
+        // AC-1: solo 'QA · Finn' puede emitir R con status bloqueado
+        // AC-2: al fallar → advertencia en DocLog con mensaje canónico + omitir cambio de status
+        // AC-3: otros cambios del CHECKPOINT continúan aplicándose (continue, no break)
+        // AC-4: misma validación aplica a ítem R completo (no solo patch) con status: bloqueado
+        if (_it.type === 'R' && _normSt === 'bloqueado') {
+          const _authorizedRole = 'QA · Finn';
+          if (ckptHeaderRole !== _authorizedRole) {
+            _blogLog(
+              'rol-no-autorizado-bloqueado',
+              _it.code || '[pendiente-ID]',
+              `${_it.code || '[pendiente-ID]'} transición R → bloqueado ignorada: rol "${ckptHeaderRole || '(ausente)'}" no autorizado. Solo "${_authorizedRole}" puede emitir status bloqueado en R.`,
+              'backlog'
+            );
+            continue; // AC-2+AC-3: omitir este ítem — resto del CHECKPOINT continúa
+          }
         }
         // T-202606-030: bloqueo R sin AC — BR-Ecosystem §5 + BR-Core §8 regla dura
         // AC-1: R con ac ausente o vacío → acumular en _rsNoAc (AC-3: no break — seguir loop)
@@ -653,8 +672,8 @@ export function parsePaste(id) {
           }
           // AC-7: status válido — R-202605-023: normalizar antes de validar
           const _normSt2 = _canonicalStatus(_it.status, _it.type);
-          if (!_normSt2 || (!_validStatuses.includes(_normSt2) && _normSt2 !== 'promovida')) {
-            _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${_it.type === 'P' ? ' · promovida' : ''}`;
+          if (!_normSt2 || (!_validStatuses.includes(_normSt2) && _normSt2 !== 'promovida' && _normSt2 !== 'bloqueado')) {
+            _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${_it.type === 'P' ? ' · promovida' : ''}${_it.type === 'R' ? ' · bloqueado' : ''}`;
             break;
           }
           // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
@@ -663,6 +682,23 @@ export function parsePaste(id) {
           if (_normSt2 === 'en-revision' && (_sprintRaw2 === 'icebox' || _sprintRaw2 === '')) {
             _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
             break;
+          }
+          // T-202606-031: validación de rol autorizado para transición R → bloqueado (path legacy)
+          // AC-1: solo 'QA · Finn' puede emitir R con status bloqueado
+          // AC-2: al fallar → advertencia en DocLog con mensaje canónico + omitir cambio de status
+          // AC-3: otros cambios del CHECKPOINT continúan aplicándose (continue, no break)
+          // AC-4: misma validación aplica a ítem R completo con status: bloqueado desde rol no autorizado
+          if (_it.type === 'R' && _normSt2 === 'bloqueado') {
+            const _authorizedRole2 = 'QA · Finn';
+            if (ckptHeaderRole !== _authorizedRole2) {
+              _blogLog(
+                'rol-no-autorizado-bloqueado',
+                _it.code || '[pendiente-ID]',
+                `${_it.code || '[pendiente-ID]'} transición R → bloqueado ignorada: rol "${ckptHeaderRole || '(ausente)'}" no autorizado. Solo "${_authorizedRole2}" puede emitir status bloqueado en R.`,
+                'backlog'
+              );
+              continue; // AC-2+AC-3: omitir este ítem — resto del CHECKPOINT continúa
+            }
           }
           // T-202606-030: bloqueo R sin AC — BR-Ecosystem §5 + BR-Core §8 regla dura
           // AC-1: R con ac ausente o vacío → acumular en _rsNoAc2 (AC-3: no break — seguir loop)
