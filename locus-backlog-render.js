@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -484,8 +484,9 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
 
     // Progress
     // B-202606-018: usar _extractSprintId para comparar — ítems con label completo también se cuentan
+    // B-202606-028: excluir descartados de totalInGroup — consistente con sml-row-count y _renderSprintItems
     const doneInGroup  = getItems().filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId && i.status === 'done').length;
-    const totalInGroup = getItems().filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId).length;
+    const totalInGroup = getItems().filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId && i.status !== 'descartado').length;
     const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
 
     const sprintBadge       = isClosed ? ' ·' : '';

@@ -10,7 +10,7 @@ import { openPulsoPanel } from './locus-pulso.js';
 // selectTrackerAI y _markTrackerDirty desacoplados vía shell:* events (T-202606-084)
 import { openDetail } from './locus-session-popup.js';
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
-import { _effectiveVersion, _getActiveProjectFilter, _isInSession, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getProjectById, save } from './locus-storage.js';
+import { _effectiveVersion, _getActiveProjectFilter, _isInSession, getActiveSprints, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getProjectById, save } from './locus-storage.js';
 
 import { switchTab } from './locus-ui-shell.js';
 
@@ -173,7 +173,13 @@ function _getActiveSprintStats() {
     const proj = getActiveProject();
     const sp = proj && proj.sprints ? proj.sprints.find(s => s.status === 'active') : null;
     if (!sp) return { sp: null, spItems: [], spDone: 0, spTotal: 0, spPct: 0, spLabel: '' };
-    const spItems = (typeof getItems() !== 'undefined' ? getItems() : []).filter(i => i.sprint === sp.id);
+    // B-202606-026: alinear criterio con _renderSprintItems — excluir descartados, incluir solo R·B·T
+    const spItems = (typeof getItems() !== 'undefined' ? getItems() : []).filter(i => {
+      const t = i.type || (i.code ? i.code.charAt(0) : '');
+      return i.sprint && i.sprint.startsWith(sp.id) &&
+        (t === 'R' || t === 'B' || t === 'T') &&
+        i.status !== 'descartado';
+    });
     const spDone  = spItems.filter(i => i.status === 'done').length;
     const spTotal = spItems.length;
     const spPct   = spTotal > 0 ? Math.round((spDone / spTotal) * 100) : 0;
@@ -264,8 +270,15 @@ export function renderStatusBar() {
   }
 
   if (gfTotal || gfDone) {
-    const total = _items.filter(i => _isCountableItem(i)).length;
-    const done  = _items.filter(i => _isCountableItem(i) && i.status === 'done').length;
+    // B-202606-027: alinear criterio con renderStats() en locus-backlog-core.js
+    // excluir done+icebox y done en sprints cerrados — mismo criterio que stats-bar del backlog
+    const _closedSprintIds = new Set(
+      (typeof getActiveSprints !== 'undefined' ? getActiveSprints() : [])
+        .filter(s => s.status === 'closed').map(s => s.id)
+    );
+    const _isInClosedSprint = i => i.sprint && _closedSprintIds.has(i.sprint);
+    const total = _items.filter(i => _isCountableItem(i) && !_isInClosedSprint(i) && i.status !== 'descartado' && i.status !== 'historico').length;
+    const done  = _items.filter(i => _isCountableItem(i) && i.status === 'done' && !_isInClosedSprint(i) && i.sprint && i.sprint !== 'icebox').length;
     if (gfTotal) { gfTotal.textContent = total + ' ítems'; gfTotal.classList.remove('is-hidden'); }
     if (gfDone)  { gfDone.textContent  = '✓ ' + done;   gfDone.classList.remove('is-hidden'); }
   }
