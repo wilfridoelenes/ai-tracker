@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 19:30 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -938,7 +938,7 @@ export function parsePaste(id) {
 // Solo controla el mecanismo de retry del browser (clipboard insert delay) — no es el guard de saveSession.
 const _pasteRetry = {};
 
-function handlePaste(id) {
+export function handlePaste(id) {
   // Llamado desde onpaste — diferir para que el browser inserte el texto del clipboard.
   // B-202605-NNN: 150ms en lugar de 60ms — algunos browsers (Chrome) insertan
   // el texto del clipboard después de los 60ms originales, dejando ta.value vacío
@@ -977,7 +977,7 @@ function handlePaste(id) {
   setTimeout(_doParse, 150);
 }
 
-function handleInput(id) {
+export function handleInput(id) {
   // T-202606-032: guard _pasteInFlight eliminado — AC-4/AC-9.
   // _pasteRetry no bloquea handleInput — handlePaste y handleInput son eventos distintos.
   // parsePaste corre en cada keystroke; el auto-trigger solo se lanza cuando el parse es completo y válido.

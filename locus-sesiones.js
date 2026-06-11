@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 19:30 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -27,7 +27,7 @@ import { downloadReport } from './locus-reports.js';
 
 import { openQuickCapture, confirmInterruptInline } from './locus-sesiones-capture.js';
 
-import { STATUS_LABELS } from './locus-session-parse.js';
+import { STATUS_LABELS, handlePaste, handleInput } from './locus-session-parse.js';
 // T-202606-058: registry extraído a locus-sesiones-registry.js (módulo sin dependencias).
 // locus-sprint-project importa _registerSesSPCallback desde registry — no desde aquí.
 import { _sesSPCallbacks } from './locus-sesiones-registry.js';
