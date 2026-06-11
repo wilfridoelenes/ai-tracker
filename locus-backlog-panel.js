@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -18,7 +18,7 @@ import { _setBacklogModified } from './locus-docs.js';
 import { openDetail } from './locus-session-popup.js';
 
 import { esc, switchTab } from './locus-ui-shell.js';
-import { toggleMoreMenu } from './locus-reports.js';
+import { toggleMoreMenu } from './locus-ui-shell.js'; // B-202606-021: movida desde locus-reports.js
 
 // ── T-098: Exportar Backlog.md ──
 
