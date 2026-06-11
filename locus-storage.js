@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-storage.js
 // Última actualización: 2026-06-06 · T-202606-101: guard de salida para retries de _loadFromSupabase (_LOAD_RETRY_MAX)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -21,16 +21,13 @@ function showToast(type, msg, body, duration) {
   _dispatch('shell:toast', { type, msg, body, duration });
 }
 
-// ── Lazy references para romper ciclos storage ↔ sprint-project y storage ↔ backlog-core ──
-// exportBacklogMd vive en locus-sprint-project.js — ciclo ES module → TDZ en _supabaseUser.
+// ── Lazy references para romper ciclos storage ↔ backlog-generator y storage ↔ backlog-core ──
+// exportBacklogMd vive en locus-backlog-generator.js — ciclo ESM: backlog-generator importa storage.
 // _getItems vive en locus-backlog-core.js — mismo ciclo.
 // T2/T-202606-046: declaradas como let para que _initApp(opts) inyecte referencias directas
-// desde main.js. Fallback window.* se mantiene por compatibilidad hasta que T6 complete la migración.
+// desde main.js. Fallbacks window.* eliminados en T-202606-049.
 // _getActiveProjectFilter: movida a export function en este módulo (T-202606-166) — sin lazy ref.
-let exportBacklogMd = function() {
-  if (typeof window._exportBacklogMd === 'function') return window._exportBacklogMd();
-  if (typeof window.Locus?.exportBacklogMd === 'function') return window.Locus.exportBacklogMd();
-};
+let exportBacklogMd = function() {};
 // T-202606-003 / T-202606-046: getItems, _localStorageUsageRatio, _migrateItemTypes y
 // _purgeStaleBacklogCache inyectados via _initApp — ciclo storage ↔ backlog-core eliminado.
 // Fallback seguro: _getItems devuelve [] (sin acceso a window); las demás son no-ops.

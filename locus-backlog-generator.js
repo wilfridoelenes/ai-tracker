@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-04 · mod:6 · autor:Rune · 2026-06-11 10:00 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-04 · mod:7 · autor:Rune · 2026-06-11 10:15 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -513,6 +513,13 @@ export function _generateBacklogContent(newVersion, opts = {}) {
         .filter(i => i.code && i.code.startsWith('R-') && i.status !== 'done' && i.status !== 'descartado')
         .map(i => i.code)
     );
+    // T-202606-058: pre-computar set de Ts hijos de Rs activos para Regla 3
+    const activeTCodes = new Set(
+      allItems
+        .filter(i => i.code && i.code.startsWith('T-') &&
+          activeRCodes.has(i.parentId || i.parent))
+        .map(i => i.code)
+    );
     exportItems = allItems.filter(i => {
       if (i.status === 'historico') return false;
       if (i.status === 'en curso') return false; // B-202606-052: status no canónico — fuera de BR-Ecosystem §5
@@ -521,6 +528,10 @@ export function _generateBacklogContent(newVersion, opts = {}) {
       // Regla 2: hijos (T o B) de R activo — exportar sin importar su status
       if ((i.code && (i.code.startsWith('T-') || i.code.startsWith('B-'))) &&
           (i.parentId || i.parent) && activeRCodes.has(i.parentId || i.parent)) return true;
+      // Regla 3 (T-202606-058): B con triggered_by apuntando a T del R activo y status pendiente o en-revision
+      if (i.code && i.code.startsWith('B-') &&
+          (i.status === 'pendiente' || i.status === 'en-revision') &&
+          i.triggered_by && activeTCodes.has(i.triggered_by)) return true;
       // Sprint cerrado más reciente: ítems done
       // B-202606-014: normalizar i.sprint antes de comparar
       if (i.status === 'done' && _normLastClosedId && _normSprintId(i.sprint) === _normLastClosedId) return true;
