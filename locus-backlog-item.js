@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-02 · mod:3 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -939,8 +939,10 @@ export function buildBacklogItem(item) {
 
   // T-202606-142: badge "bloqueado por T-XXX" — depends_on con T bloqueante no done
   // Solo aplica a Ts no done ni descartados con dependencias activas no resueltas.
+  // T-202606-013: filtrar valores placeholder ([pendiente-ID], [tmp:slug]) antes de evaluar existencia en backlog
+  const _depPlaceholderRe = /^\[pendiente-ID\]$|^\[tmp:.+\]$/;
   const _depBlockedCodes = (!isDone && !isDiscarded && type === 'T' && Array.isArray(item.dependsOn) && item.dependsOn.length)
-    ? item.dependsOn.filter(c => { const dep = getItems().find(i => i.code === c); return !dep || dep.status !== 'done'; })
+    ? item.dependsOn.filter(c => !_depPlaceholderRe.test(c)).filter(c => { const dep = getItems().find(i => i.code === c); return !dep || dep.status !== 'done'; })
     : [];
   const depBlockedBadge = _depBlockedCodes.length
     ? _depBlockedCodes.map(c =>
