@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-02 · mod:5 · autor:Rune · 2026-06-10 21:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:6 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -165,6 +165,38 @@ function _suggestCanonical(raw) {
   return { suggestion: best, distance: bestDist };
 }
 
+// T-202606-039: extrae bloques inline_fix del texto crudo del CHECKPOINT (formato Markdown legacy).
+// Retorna array de { descripcion, archivo, triggered_by } — vacío si no hay bloques.
+// Un CHECKPOINT puede tener múltiples bloques inline_fix consecutivos — todos se indexan como array.
+// Formato esperado (por bloque):
+//   inline_fix:
+//     descripcion: [texto]
+//     archivo: [nombre]
+//     triggered_by: [código]
+function _parseInlineFixes(text) {
+  if (!text || !text.includes('inline_fix:')) return [];
+  const fixes = [];
+  // Detectar cada bloque inline_fix: con sus campos anidados (indentados con espacios o tabs)
+  // Captura desde "inline_fix:" hasta la siguiente línea no indentada o fin de texto
+  const blockRe = /^inline_fix:\s*\n((?:[ \t]+.+\n?)+)/gm;
+  let match;
+  while ((match = blockRe.exec(text)) !== null) {
+    const body = match[1];
+    const descM      = body.match(/^\s+descripcion\s*:\s*(.+)$/m);
+    const archivoM   = body.match(/^\s+archivo\s*:\s*(.+)$/m);
+    const triggeredM = body.match(/^\s+triggered_by\s*:\s*(.+)$/m);
+    // Solo indexar si tiene al menos descripcion y triggered_by (campos mínimos útiles para trazabilidad)
+    if (descM && triggeredM) {
+      fixes.push({
+        descripcion:  descM[1].trim(),
+        archivo:      archivoM ? archivoM[1].trim() : '',
+        triggered_by: triggeredM[1].trim()
+      });
+    }
+  }
+  return fixes;
+}
+
 // R-202605-133: parseCheckpoint — path primario JSON puro + path legacy regex
 // Path primario: bloque ```json { ... } ``` con schema completo
 // Path legacy:   formato Markdown ---CHECKPOINT--- (read-only — CHECKPOINTs históricos)
@@ -205,6 +237,11 @@ function parseCheckpoint(text) {
       .filter(i => i.type === t)
       .map(i => `${i.code}: ${i.title || i.desc || ''}`)
       .join('\n');
+    // T-202606-039: extraer inline_fix(es) del schema JSON — acepta campo singular o array
+    const _inlineFixRaw = _parsed.inline_fix || _parsed.inline_fixes || null;
+    const _inlineFixes = Array.isArray(_inlineFixRaw)
+      ? _inlineFixRaw
+      : (_inlineFixRaw && typeof _inlineFixRaw === 'object' ? [_inlineFixRaw] : []);
     return {
       titulo:       _parsed.title        || '',
       proyecto:     _parsed.project      || '',
@@ -224,6 +261,7 @@ function parseCheckpoint(text) {
       isCheckpoint: true,
       _isJsonFormat: true,
       _rawItems:    items,   // ítems ya parseados — parsePaste los usa directamente
+      _inlineFixes,          // T-202606-039: array de inline_fix extraídos del schema JSON
       rawCounts: {
         P: _countByType('P'),
         T: _countByType('T'),
@@ -604,11 +642,15 @@ export function parsePaste(id) {
     } // end path legacy else
   }
 
-  const ai = getAI(id);
-  // R-202605-062: propagar patches acumulados en window[_patchItems_${id}] a _parsed
+  // T-202606-039: extraer inline_fix del CHECKPOINT — path JSON usa ckpt._inlineFixes,
+  // path legacy usa _parseInlineFixes sobre el texto crudo.
+  const _inlineFixes = (ckpt && ckpt._isJsonFormat)
+    ? (ckpt._inlineFixes || [])
+    : (isCheckpoint ? _parseInlineFixes(text) : []);
+
   const _pendingPatches = window[`_patchItems_${id}`] || [];
   delete window[`_patchItems_${id}`];
-  ai._parsed = { title, summary, files, tgItems, patchItems: _pendingPatches, isCheckpoint, nextStep, ckptProyecto: ckpt ? (ckpt.proyecto || '') : '' };
+  ai._parsed = { title, summary, files, tgItems, patchItems: _pendingPatches, isCheckpoint, nextStep, ckptProyecto: ckpt ? (ckpt.proyecto || '') : '', inlineFixes: _inlineFixes };
 
   // Calcular discrepancia raw vs parseado
   let rawTotal = 0, parsedTotal = tgItems.length;
