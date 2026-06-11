@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 08:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -18,6 +18,7 @@ import { _setBacklogModified } from './locus-docs.js';
 import { openDetail } from './locus-session-popup.js';
 
 import { esc, switchTab } from './locus-ui-shell.js';
+import { toggleMoreMenu } from './locus-reports.js';
 
 // ── T-098: Exportar Backlog.md ──
 
@@ -942,7 +943,7 @@ function toggleTmplTriggerPanel(btn) {
 }
 
 // Reset: el sub-panel siempre abre colapsado al abrir el menú ···.
-// Patch sobre toggleMoreMenu — se engancha sin modificar el archivo que lo define.
+// T-202606-042: toggleMoreMenu importada desde locus-reports.js — gestión interna sin window
 (function _patchMoreMenuReset() {
   function _resetTmplTriggerPanel() {
     const btn  = document.querySelector('.tmpl-trigger-toggle');
@@ -954,24 +955,25 @@ function toggleTmplTriggerPanel(btn) {
     if (arrow) arrow.textContent = '▸';
   }
 
-  // Esperar a que toggleMoreMenu esté definido, luego parcharlo.
-  function _tryPatch() {
-    if (typeof window.toggleMoreMenu !== 'function') {
-      setTimeout(_tryPatch, 100);
-      return;
-    }
-    const _orig = window.toggleMoreMenu;
-    window.toggleMoreMenu = function() {
-      _orig.apply(this, arguments);
-      // Tras abrir/cerrar el menú, forzar colapso del sub-panel.
-      _resetTmplTriggerPanel();
-    };
+  function _wrappedToggleMoreMenu() {
+    toggleMoreMenu();
+    _resetTmplTriggerPanel();
+  }
+
+  // Reemplazar los call sites del more-menu-btn y los mm-btn-* que invocan toggleMoreMenu
+  // usando delegación sobre #more-menu-btn — se registra una sola vez
+  function _attach() {
+    const btn = document.getElementById('more-menu-btn');
+    if (!btn) return;
+    // Remover listener previo si existía (hot reload guard)
+    btn.removeEventListener('click', _wrappedToggleMoreMenu);
+    btn.addEventListener('click', _wrappedToggleMoreMenu);
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _tryPatch);
+    document.addEventListener('DOMContentLoaded', _attach);
   } else {
-    _tryPatch();
+    _attach();
   }
 })();
 

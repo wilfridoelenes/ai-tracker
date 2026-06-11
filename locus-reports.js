@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -164,7 +164,8 @@ document.addEventListener('click', e => {
 
 // T-202604-009: toggle ⋯ dropdown
 // B — position:fixed para escapar overflow:hidden del header (Nova 2026-05-12)
-function toggleMoreMenu() {
+// T-202606-042: exportada para consumo directo en locus-backlog-panel.js sin pasar por window
+export function toggleMoreMenu() {
   const m   = document.getElementById('more-menu');
   const btn = document.getElementById('more-menu-btn');
   if (!m) return;
