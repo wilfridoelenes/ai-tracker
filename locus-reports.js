@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -862,6 +862,11 @@ function confirmImport() {
   showToast('success', `Importado — ${mergedAIs.length} IAs · ${totalSess} sesiones${docsMsg} · backup guardado`, null, 5000);
 }
 
+// B-202606-021: shell:toggle-more-menu — nivel de módulo (no requiere DOMContentLoaded)
+// locus-ui-shell.js despacha shell:toggle-more-menu en lugar de invocar toggleMoreMenu() directamente
+// (evita ciclo ESM: locus-reports.js importa applyTheme de locus-ui-shell.js)
+window.addEventListener('shell:toggle-more-menu', () => toggleMoreMenu());
+
 // T-202605-060: Migración inline handlers — locus-reports.js
 function _initReportsListeners() {
   // Storage warn banner — Limpiar proyecto
@@ -909,11 +914,6 @@ function _initReportsListeners() {
 
   const inputConfirm = document.getElementById('clean-project-input');
   if (inputConfirm) inputConfirm.addEventListener('input', _cleanProjectValidate);
-
-  // B-202606-021: shell:toggle-more-menu — desacoplamiento de locus-ui-shell.js
-  // locus-ui-shell.js despacha shell:toggle-more-menu en lugar de invocar toggleMoreMenu() directamente
-  // (evita ciclo ESM: locus-reports.js importa de locus-ui-shell.js)
-  window.addEventListener('shell:toggle-more-menu', () => toggleMoreMenu());
 }
 
 document.addEventListener('DOMContentLoaded', _initReportsListeners);
