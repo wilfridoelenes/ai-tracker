@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-10 20:00 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -413,6 +413,8 @@ export function parsePaste(id) {
           if (!_it.code || _isPlaceholderCode(_it.code)) {
             // AC-7: patch sobre código placeholder → ignorar + advertencia DocLog
             _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
+            // T-202606-XXX AC-1: toast visible al founder — el _blogLog solo no es suficiente
+            showToast('warn', `Patch descartado: código placeholder no patcheable — ${_it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
           } else {
             window[`_patchItems_${id}`] = window[`_patchItems_${id}`] || [];
             window[`_patchItems_${id}`].push(_it);
@@ -518,6 +520,8 @@ export function parsePaste(id) {
           if (_it.type === 'patch') {
             if (!_it.code || _isPlaceholderCode(_it.code)) {
               _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
+              // T-202606-XXX AC-1+AC-3: toast visible — consistente con path JSON primario
+              showToast('warn', `Patch descartado: código placeholder no patcheable — ${_it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
             } else {
               window[`_patchItems_${id}`] = window[`_patchItems_${id}`] || [];
               window[`_patchItems_${id}`].push(_it);
@@ -1247,6 +1251,8 @@ function parsePasteStandalone() {
     if (it.type === 'patch') {
       if (!it.code || _isPlaceholderCode(it.code)) {
         _blogLog('patch-ignorado', it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (it.code || '(vacío)'), 'backlog');
+        // T-202606-XXX AC-1+AC-3: toast visible — consistente con path JSON primario y legacy
+        showToast('warn', `Patch descartado: código placeholder no patcheable — ${it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
       } else {
         patchItems.push(it);
       }
