@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -1259,9 +1259,6 @@ function toggleProjectSection(key) {
   renderProject._collapsed[key] = isOpen;
 }
 
-// ── Exposición pública — T-202605-068 ───────────────────────────────────────
-// ── window.* — solo para compatibilidad con locus-api.js (T6) ────────────────
-window.renderProyectos          = renderProyectos;
 
 // --- Delegation: locus-projects.js ---
 document.addEventListener('DOMContentLoaded', () => {

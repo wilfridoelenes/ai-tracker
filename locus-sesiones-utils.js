@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6 
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
@@ -482,8 +482,6 @@ if (document.readyState === 'loading') {
 })();
 // ── END B-202605-019 ─────────────────────────────────────────────────────────
 
-// T-202605-019: exponer funciones migradas desde misc-ui para compatibilidad con locus-api.js
-window.getCD             = getCD;
 
 // T-202606-086: _sessRelTsShared y _cscardRelTs movidas desde locus-sesiones.js — elimina ciclos con popup y utils
 export function _sessRelTsShared(s) {
