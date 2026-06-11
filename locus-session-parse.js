@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-04 · mod:16 · autor:Rune · 2026-06-11 11:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:17 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -249,6 +249,14 @@ function parseCheckpoint(text) {
     const _rawSprintProposal = (_parsed.sprint_proposal && typeof _parsed.sprint_proposal === 'object' && !Array.isArray(_parsed.sprint_proposal))
       ? _parsed.sprint_proposal
       : null;
+    // T-202606-018: extraer finn_observations — array de objetos tipados (null si ausente o vacío)
+    const _rawFinnObservations = Array.isArray(_parsed.finn_observations) && _parsed.finn_observations.length
+      ? _parsed.finn_observations
+      : null;
+    // T-202606-018: extraer execution_plan — objeto {scope, sessions} (null si ausente)
+    const _rawExecutionPlan = (_parsed.execution_plan && typeof _parsed.execution_plan === 'object' && !Array.isArray(_parsed.execution_plan))
+      ? _parsed.execution_plan
+      : null;
     return {
       titulo:       _parsed.title        || '',
       proyecto:     _parsed.project      || '',
@@ -275,6 +283,8 @@ function parseCheckpoint(text) {
       _inlineFixes,                     // T-202606-039: array de inline_fix extraídos del schema JSON
       _rawDocUpdates,                   // T-202606-017: array de doc_updates del schema JSON
       _rawSprintProposal,               // T-202606-017: objeto sprint_proposal del schema JSON (null si ausente)
+      _rawFinnObservations,             // T-202606-018: array de finn_observations del schema JSON (null si ausente)
+      _rawExecutionPlan,                // T-202606-018: objeto execution_plan del schema JSON (null si ausente)
       rawCounts: {
         P: _countByType('P'),
         T: _countByType('T'),
@@ -744,6 +754,9 @@ export function parsePaste(id) {
     // T-202606-017: doc_updates y sprint_proposal — path JSON puro
     docUpdates:       (ckpt && ckpt._isJsonFormat) ? (ckpt._rawDocUpdates   || []) : [],
     sprintProposal:   (ckpt && ckpt._isJsonFormat) ? (ckpt._rawSprintProposal || null) : null,
+    // T-202606-018: finn_observations y execution_plan — path JSON puro
+    finnObservations: (ckpt && ckpt._isJsonFormat) ? (ckpt._rawFinnObservations || null) : null,
+    executionPlan:    (ckpt && ckpt._isJsonFormat) ? (ckpt._rawExecutionPlan    || null) : null,
   };
 
   // Calcular discrepancia raw vs parseado
@@ -1169,7 +1182,39 @@ export function _tryIngestPlan(text) {
   return true;
 }
 
-// T-202606-129: ingesta de bloque ---SPRINT-PROPOSAL--- → crea sprint con formallyOpened: true
+// T-202606-018: ingesta de execution_plan desde objeto ya parseado (path JSON puro).
+// Equivalente a _tryIngestPlan pero acepta el objeto {scope, sessions} directamente
+// — en path JSON el raw no contiene ---EXECUTION-PLAN--- por lo que _tryIngestPlan(raw) falla silenciosamente.
+// Retorna true si el plan se guardó, false si no hay proyecto activo o el objeto es inválido.
+export function _tryIngestPlanFromParsed(planObj) {
+  if (!planObj || typeof planObj !== 'object' || Array.isArray(planObj)) return false;
+  const proj = getActiveProject();
+  if (!proj) return false;
+
+  // Normalizar al mismo formato que parsePlanBlock produce: array de sprints con scope + sessions
+  const scope    = (planObj.scope    || 'sesion').toLowerCase();
+  const sessions = Array.isArray(planObj.sessions) ? planObj.sessions : [];
+  const incoming = [{ id: null, scope, sessions }];
+
+  const incomingHasSesion = scope === 'sesion';
+  const incomingHasSprint = scope !== 'sesion';
+
+  let merged = incoming;
+  {
+    const existing = loadPlan(proj.id) || [];
+    if (incomingHasSesion && !incomingHasSprint) {
+      const keepSprint = existing.filter(sp => sp.scope !== 'sesion');
+      merged = [...incoming, ...keepSprint];
+    } else if (incomingHasSprint && !incomingHasSesion) {
+      const keepSesion = existing.filter(sp => sp.scope === 'sesion');
+      merged = [...keepSesion, ...incoming];
+    }
+  }
+  savePlan(proj.id, merged);
+  renderPlan();
+  return true;
+}
+// ── END T-202606-018 ──
 // Flujo: parseSprintProposal(text) → validar rol emisor → validar campos → guard duplicado → push a proj.sprints → save()
 export function _tryIngestSprintProposal(text) {
   if (!text || !text.includes('---SPRINT-PROPOSAL---')) return false;
@@ -1490,8 +1535,11 @@ function parsePasteStandalone() {
   // Éxito — guardar parsed y habilitar botón
   _standaloneLastParsed = { ckpt, tgItems, patchItems, raw: text,
     // T-202606-017: doc_updates y sprint_proposal del path JSON — disponibles en saveStandaloneCheckpoint
-    docUpdates:     (_isJsonFmt && ckpt._rawDocUpdates)    ? ckpt._rawDocUpdates    : [],
-    sprintProposal: (_isJsonFmt && ckpt._rawSprintProposal) ? ckpt._rawSprintProposal : null,
+    docUpdates:       (_isJsonFmt && ckpt._rawDocUpdates)     ? ckpt._rawDocUpdates     : [],
+    sprintProposal:   (_isJsonFmt && ckpt._rawSprintProposal) ? ckpt._rawSprintProposal : null,
+    // T-202606-018: finn_observations y execution_plan del path JSON — disponibles en saveStandaloneCheckpoint
+    finnObservations: (_isJsonFmt && ckpt._rawFinnObservations) ? ckpt._rawFinnObservations : null,
+    executionPlan:    (_isJsonFmt && ckpt._rawExecutionPlan)    ? ckpt._rawExecutionPlan    : null,
   };
 
   const _assignedIds = (typeof _assignPendingIds === 'function') ? _assignPendingIds(tgItems) : 0;

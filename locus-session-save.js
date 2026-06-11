@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:30 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:31 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -22,7 +22,7 @@ import { render } from './locus-sesiones.js';
 
 import { _showProjRequiredInPanel, _templateTrigger, interpretHora } from './locus-session-hora.js';
 
-import { _setPhase, _tryIngestPlan, _tryIngestSprintProposal, _applySprintInheritanceToItems, parseSprintProposal, parsePaste } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-020: _applySprintInheritanceToItems
+import { _setPhase, _tryIngestPlan, _tryIngestPlanFromParsed, _tryIngestSprintProposal, _applySprintInheritanceToItems, parseSprintProposal, parsePaste } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-020: _applySprintInheritanceToItems | T-202606-018: _tryIngestPlanFromParsed
 
 import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js';
 
@@ -617,6 +617,8 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     duration:         parsed.duration         || '',
     docsVerified:     parsed.docsVerified      || '',
     tensionsResolved: parsed.tensionsResolved  || '',
+    // T-202606-018: finn_observations — almacenadas en sesión como campo informativo
+    finnObservations: parsed.finnObservations  || null,
     resetAt: '',  // B-202606-037: se completa en el callback del DIFF tras leer mdiff-duration-input
     // R-202605-049: sessionGroupId — agrupa checkpoints bajo sesión como contenedor
     sessionGroupId: _sessionGroupId,
@@ -748,6 +750,12 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // R-202604-076 + R-B: parsear y guardar bloque ---PLAN--- / ---EXECUTION-PLAN--- si existe
   // B-202605-XXX: usar _tryIngestPlan en lugar de savePlan directo — preserva scope:sprint al guardar scope:sesion
   if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
+  // T-202606-018 AC-2: path JSON puro — execution_plan no produce ---EXECUTION-PLAN--- en raw.
+  // Si parsed.executionPlan existe y raw no tiene el bloque texto → ingestar desde objeto parseado.
+  if (parsed.executionPlan && !raw.includes('---EXECUTION-PLAN---') && !raw.includes('---PLAN---')) {
+    _tryIngestPlanFromParsed(parsed.executionPlan);
+  }
+  // ── END T-202606-018 ──
 
   // T-202606-017 AC-1: registrar doc_updates en el índice de DOC-UPDATEs del proyecto.
   // Path JSON puro: usar parsed.docUpdates (array ya extraído en parsePaste).
