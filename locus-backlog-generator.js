@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-04 · mod:8 · autor:Rune · 2026-06-11 10:45 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-04 · mod:9 · autor:Rune · 2026-06-11 12:00 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -401,7 +401,49 @@ function _buildSprintActivoMd() {
   return lines.join('\n');
 }
 
-// R-202604-040: bloque de estado actual
+// T-202606-060: sección ## Sprints programados — solo si existen sprints con status 'programado'.
+// Campos: Sprint · Orden activación · Ítems asignados (R=N · T=N · B=N) · Effort total · Adelantados.
+// Se omite completamente si no hay sprints programados.
+// Aparece después de ## Sprint activo y antes de ## Meta.
+function _buildSprintsProgramadosMd() {
+  const sprints = getActiveSprints();
+  const programados = sprints.filter(s => s.status === 'programado' || s.status === 'scheduled');
+  if (!programados.length) return '';
+
+  const allItems = getItems();
+
+  // Orden de activación: si el objeto sprint tiene campo de orden, usarlo; sino usar posición en array
+  const rows = programados.map((sp, idx) => {
+    const spItems = allItems.filter(i => {
+      if (!i.sprint) return false;
+      const m = String(i.sprint).match(/^([A-Za-z]+-S-?\d+)/i);
+      const normId = m ? m[1] : i.sprint;
+      return normId === sp.id;
+    });
+    const rCount = spItems.filter(i => i.code && i.code.startsWith('R-')).length;
+    const tCount = spItems.filter(i => i.code && i.code.startsWith('T-')).length;
+    const bCount = spItems.filter(i => i.code && i.code.startsWith('B-')).length;
+    const effortTotal = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+    const doneCount = spItems.filter(i => i.status === 'done').length;
+
+    const orden = sp.activationOrder != null ? sp.activationOrder : (idx + 1);
+    const label = sp.label || sp.name || sp.id;
+    return `| ${label} | ${orden} | R=${rCount} · T=${tCount} · B=${bCount} | ${effortTotal} | ${doneCount} done |`;
+  });
+
+  return [
+    '## Sprints programados',
+    '',
+    '| Sprint | Orden activación | Ítems asignados | Effort total | Adelantados |',
+    '|--------|-----------------|-----------------|--------------|-------------|',
+    ...rows,
+    '',
+    '---',
+    '',
+  ].join('\n');
+}
+
+
 function _buildCurrentStateMd() {
   const state = getState();
   const lines = ['## Estado actual', ''];
@@ -570,7 +612,46 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   exportItems.forEach(i => { statusMap[i.code] = { status: i.status, sprint: i.sprint || '' }; });
   const indexLines = _buildIndexLines(statusMap);
 
-  const { mainMd, orphansMd } = _buildItemsMd(exportItems);
+  // T-202606-061: orden canónico OBDS §3 §6 en ## Ítems
+  // (1) Rs sprint activo + hijos, (2) T/B sprint activo huérfanos,
+  // (3) Rs sprints programados/otros + hijos, (4) Rs icebox + hijos, (5) Ps icebox
+  const _normSprintIdForSort = val => {
+    if (!val) return null;
+    const m = String(val).match(/^([A-Za-z]+-S-?\d+)/i);
+    return m ? m[1] : val;
+  };
+  const _activeSprintIdForSort = (() => {
+    const sp = (state.sprints || []).find(s => s.status === 'active' && s.current === true)
+            || (state.sprints || []).find(s => s.status === 'active');
+    return sp ? sp.id : null;
+  })();
+  const _programadosIdsForSort = new Set(
+    (state.sprints || [])
+      .filter(s => s.status === 'programado' || s.status === 'scheduled')
+      .map(s => s.id)
+  );
+  const _sprintGroup = item => {
+    const normId = _normSprintIdForSort(item.sprint);
+    if (normId && normId === _activeSprintIdForSort) return 0;   // sprint activo
+    if (normId && _programadosIdsForSort.has(normId)) return 1;  // programado
+    if (!normId || item.sprint === 'icebox') return 2;           // icebox
+    return 1; // sprint asignado no activo ni icebox → grupo otros
+  };
+  const _typeOrder = code => {
+    if (!code) return 4;
+    if (code[0] === 'R') return 0;
+    if (code[0] === 'T') return 1;
+    if (code[0] === 'B') return 2;
+    if (code[0] === 'P') return 3;
+    return 4;
+  };
+  const sortedExportItems = [...exportItems].sort((a, b) => {
+    const ga = _sprintGroup(a), gb = _sprintGroup(b);
+    if (ga !== gb) return ga - gb;
+    return _typeOrder(a.code) - _typeOrder(b.code);
+  });
+
+  const { mainMd, orphansMd } = _buildItemsMd(sortedExportItems);
 
   const totalItems = exportItems.length;
   const doneCount = exportItems.filter(i => i.status === 'done').length;
@@ -579,6 +660,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
 
   const currentStateMd = _buildCurrentStateMd();
   const sprintActivoMd = _buildSprintActivoMd();
+  const sprintsProgramadosMd = _buildSprintsProgramadosMd(); // T-202606-060
   const _appVerStr = _effectiveVersion();
   const pfx = _docPrefix();
 
@@ -588,14 +670,14 @@ ${_infraVersionStr()}
 
 ---
 
-${sprintActivoMd}## Meta
+${sprintActivoMd}${sprintsProgramadosMd}## Meta
 
 | Campo | Valor |
 |---|---|
 | Proyecto | ${_projName} |
 | Versión del backlog | ${newVersion} |
 | Última actualización | ${dateStr} |
-| Generado por | TL — exportado desde app |
+| Generado por | Locus — exportado desde app |
 
 ---
 
@@ -628,8 +710,7 @@ ${orphansMd ? `## Ítems huérfanos\n\n> Ts y Bs sin parent declarado — requie
 | Ítems totales | ${totalItems} |
 | Done | ${doneCount} |
 | En revisión | ${enRevisionCount} |
-| Backlog | ${backlogCount} |
-| App version actual | ${_appVerStr} |
+| Pendientes | ${exportItems.filter(i => i.status === 'pendiente').length} |
 | Próxima versión | ${newVersion} |
 `;
 
