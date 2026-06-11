@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-04 · mod:15 · autor:Rune · 2026-06-11 11:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-04 · mod:16 · autor:Rune · 2026-06-11 11:00 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -418,13 +418,29 @@ export function _normalizeSprint(item, pendingItems) {
   // T-202606-036 AC3 / T-202606-158: T con parentId — heredar sprint del parent si difiere.
   // Busca el parent primero en pendingItems (ítems del CHECKPOINT actual aún no persistidos)
   // y luego en getItems() (backlog persistido), para cubrir el caso en que R y T vienen en el mismo CHECKPOINT.
+  // T-202606-015: guards AC4 (placeholder parentId), AC5 (parent inexistente + advertencia),
+  //   y verificación de status active/programado antes de heredar (AC1).
   if (item.parentId && item.code && item.code[0] === 'T') {
+    // AC-4: parentId placeholder → sin herencia automática
+    if (_isPlaceholderCode(item.parentId)) return;
     const _allItems = getItems();
     const parent = (pendingItems && pendingItems.find(i => i.code === item.parentId)) ||
                    _allItems.find(i => i.code === item.parentId);
     if (parent) {
       const parentSprint = parent.sprint || '';
       if (raw !== parentSprint) {
+        // AC-1: solo heredar si el sprint del parent está en estado active o programado.
+        // Si parentSprint está vacío (icebox), la herencia aplica sin verificación de status (AC-2).
+        // Si parentSprint apunta a un sprint cerrado, ya fue normalizado a campo ausente antes
+        // de llegar aquí (bloque AC-6 líneas 409-416), por lo que parentSprint vacío = icebox (AC-3).
+        if (parentSprint) {
+          const _allSprints = getActiveSprints();
+          const _parentSprintObj = _allSprints.find(s => s.id === parentSprint);
+          if (_parentSprintObj && _parentSprintObj.status !== 'active' && _parentSprintObj.status !== 'programado') {
+            // Sprint del parent no está en active ni programado — no heredar, dejar sprint del T sin modificar
+            return;
+          }
+        }
         _blogLog('sprint-heredado', item.code, `${item.code} sprint ajustado al de su parent ${item.parentId}: ${parentSprint || '(sin sprint)'}`, 'backlog');
         if (parentSprint) {
           item.sprint = parentSprint;
@@ -433,6 +449,9 @@ export function _normalizeSprint(item, pendingItems) {
         }
         return;
       }
+    } else {
+      // AC-5: parent no encontrado en backlog ni en pendingItems — advertencia informativa en DocLog
+      _blogLog('parent-no-encontrado', item.code, `${item.code} parent ${item.parentId} no encontrado en backlog — herencia no aplicada`, 'backlog');
     }
   }
   // AC-5: sprint válido — conservar sin modificar
