@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:14 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-04 · mod:15 · autor:Rune · 2026-06-11 11:00 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -9,7 +9,7 @@ import { _isPlaceholderCode, applyPatchesFromTG } from './locus-backlog-item.js'
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { renderBacklogList } from './locus-backlog-render.js';
 import { _ctrMergeFromItem } from './locus-contracts.js';
-import { extractContextSections, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections } from './locus-docs.js';
+import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger
 import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
@@ -1531,6 +1531,22 @@ function saveStandaloneCheckpoint() {
     // R-202604-076 + R-B: plan block — PLAN legacy y EXECUTION-PLAN nuevo
     // B-202605-XXX: usar _tryIngestPlan en lugar de savePlan directo — preserva scope:sprint al guardar scope:sesion
     if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
+
+    // T-202606-032: registrar DOC-UPDATEs en el índice por proyecto — detectar conflictos.
+    // Path JSON puro: usar docUpdates ya extraídos en _standaloneLastParsed.
+    // Path legacy Markdown: extraer desde el texto crudo via extractDocUpdates.
+    {
+      const _ckptTitle = ckpt.titulo || '';
+      const _isJsonFmtDoApply = !!(ckpt._isJsonFormat);
+      const _docUpdates = _isJsonFmtDoApply
+        ? (_standaloneLastParsed.docUpdates || [])
+        : extractDocUpdates(raw);
+      _docUpdates.forEach(update => {
+        const { conflicto, msg } = processDocUpdate(update, _ckptTitle);
+        if (conflicto && msg) showToast('warn', msg);
+      });
+    }
+    // ── END T-202606-032 ──
     // T-202606-156: _tryIngestSprintProposal removido de _doApply standalone —
     // ya se ejecutó al aprobar Step 0. Llamarlo aquí crearía un sprint duplicado.
 
