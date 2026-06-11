@@ -653,9 +653,11 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // T-202606-155: si el CHECKPOINT tiene ---SPRINT-PROPOSAL--- válido, pasarlo a showMergeDiffPanel
   // como ckptMeta.sprintProposal para que Step 0 sea el gate de creación del sprint.
   // El sprint NO se crea aquí — se crea solo al aprobar Step 0 en el DIFF.
-  const _spProposal = (raw && raw.includes('---SPRINT-PROPOSAL---'))
-    ? parseSprintProposal(raw)
-    : null;
+  // T-202606-017 AC-2: path JSON puro — leer sprint_proposal del objeto parsed (fuente primaria).
+  // En el path JSON, raw no contiene '---SPRINT-PROPOSAL---' — la detección por raw falla silenciosamente.
+  // Fallback al path Markdown legacy: parseSprintProposal(raw) cuando parsed.sprintProposal no existe.
+  const _spProposal = parsed.sprintProposal  // path JSON puro (T-202606-017)
+    || ((raw && raw.includes('---SPRINT-PROPOSAL---')) ? parseSprintProposal(raw) : null);
   const _validSpProposal = (_spProposal && !_spProposal.error) ? _spProposal : null;
   if (_validSpProposal) {
     _ckptMeta.sprintProposal = _validSpProposal;

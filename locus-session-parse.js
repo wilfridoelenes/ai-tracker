@@ -243,6 +243,12 @@ function parseCheckpoint(text) {
     const _inlineFixes = Array.isArray(_inlineFixRaw)
       ? _inlineFixRaw
       : (_inlineFixRaw && typeof _inlineFixRaw === 'object' ? [_inlineFixRaw] : []);
+    // T-202606-017: extraer doc_updates — array de objetos DOC-UPDATE del schema JSON
+    const _rawDocUpdates = Array.isArray(_parsed.doc_updates) ? _parsed.doc_updates : [];
+    // T-202606-017: extraer sprint_proposal — objeto del schema JSON (null si ausente)
+    const _rawSprintProposal = (_parsed.sprint_proposal && typeof _parsed.sprint_proposal === 'object' && !Array.isArray(_parsed.sprint_proposal))
+      ? _parsed.sprint_proposal
+      : null;
     return {
       titulo:       _parsed.title        || '',
       proyecto:     _parsed.project      || '',
@@ -265,8 +271,10 @@ function parseCheckpoint(text) {
       tensionsResolved: _parsed.tensions_resolved || '',
       isCheckpoint: true,
       _isJsonFormat: true,
-      _rawItems:    items,   // ítems ya parseados — parsePaste los usa directamente
-      _inlineFixes,          // T-202606-039: array de inline_fix extraídos del schema JSON
+      _rawItems:        items,          // ítems ya parseados — parsePaste los usa directamente
+      _inlineFixes,                     // T-202606-039: array de inline_fix extraídos del schema JSON
+      _rawDocUpdates,                   // T-202606-017: array de doc_updates del schema JSON
+      _rawSprintProposal,               // T-202606-017: objeto sprint_proposal del schema JSON (null si ausente)
       rawCounts: {
         P: _countByType('P'),
         T: _countByType('T'),
@@ -683,7 +691,10 @@ export function parsePaste(id) {
     // T-202606-016: campos informativos adicionales
     duration:         ckpt ? (ckpt.duration         || '') : '',
     docsVerified:     ckpt ? (ckpt.docsVerified      || '') : '',
-    tensionsResolved: ckpt ? (ckpt.tensionsResolved  || '') : ''
+    tensionsResolved: ckpt ? (ckpt.tensionsResolved  || '') : '',
+    // T-202606-017: doc_updates y sprint_proposal — path JSON puro
+    docUpdates:       (ckpt && ckpt._isJsonFormat) ? (ckpt._rawDocUpdates   || []) : [],
+    sprintProposal:   (ckpt && ckpt._isJsonFormat) ? (ckpt._rawSprintProposal || null) : null,
   };
 
   // Calcular discrepancia raw vs parseado
@@ -1428,7 +1439,11 @@ function parsePasteStandalone() {
   // Step 0 en showMergeDiffPanel es el gate. El sprint se crea solo al aprobar en el DIFF.
 
   // Éxito — guardar parsed y habilitar botón
-  _standaloneLastParsed = { ckpt, tgItems, patchItems, raw: text };
+  _standaloneLastParsed = { ckpt, tgItems, patchItems, raw: text,
+    // T-202606-017: doc_updates y sprint_proposal del path JSON — disponibles en saveStandaloneCheckpoint
+    docUpdates:     (_isJsonFmt && ckpt._rawDocUpdates)    ? ckpt._rawDocUpdates    : [],
+    sprintProposal: (_isJsonFmt && ckpt._rawSprintProposal) ? ckpt._rawSprintProposal : null,
+  };
 
   const _assignedIds = (typeof _assignPendingIds === 'function') ? _assignPendingIds(tgItems) : 0;
   const previewHtml = buildTGPreview(tgItems, null);
@@ -1459,8 +1474,7 @@ function saveStandaloneCheckpoint() {
   // sessId sintético — no crea sesión real, solo referencia para mergeBacklogFromTG
   const syntheticSessId = 'standalone-' + Date.now();
 
-  const _doApply = () => {
-    const mergeResult = _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id);
+  const _doApply = () => {    const mergeResult = _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id);
 
     // R-202605-062: aplicar patches después del merge de ítems normales
     if (patchItems && patchItems.length) {
@@ -1523,9 +1537,10 @@ function saveStandaloneCheckpoint() {
   // T-202606-181: gate Step 0 — detectar ---SPRINT-PROPOSAL--- y presentarlo como Step 0
   // antes de cualquier otro cambio del DIFF. El sprint se crea solo al aprobar Step 0.
   // Si el founder rechaza Step 0: sprint no creado y ningún ítem aplicado (AC-3).
-  const _spProposalSa = (raw && raw.includes('---SPRINT-PROPOSAL---'))
-    ? parseSprintProposal(raw)
-    : null;
+  // T-202606-017 AC-2: path JSON puro — leer sprint_proposal del objeto ya extraído en _standaloneLastParsed.
+  // Fallback al path Markdown legacy: buscar ---SPRINT-PROPOSAL--- en raw.
+  const _spProposalSa = _standaloneLastParsed.sprintProposal  // path JSON puro (T-202606-017)
+    || ((raw && raw.includes('---SPRINT-PROPOSAL---')) ? parseSprintProposal(raw) : null);
   const _validSpProposalSa = (_spProposalSa && !_spProposalSa.error) ? _spProposalSa : null;
 
   // Gate: auto-abierto si no hay proposal — bloqueado hasta aprobación si la hay (AC-2 · AC-3)
