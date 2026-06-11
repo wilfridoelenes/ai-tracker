@@ -202,7 +202,7 @@ function _generateSprintsContent(newVersion) {
       })()
     : 0;
 
-  const md = `# ${pfx}-SPRINTS_${newVersion.replace(/_/g, ".")}.md // T-202606-069
+  const md = `# ${pfx}-SPRINTS_${newVersion.replace(/_/g, ".")}.md
 <!-- Versión: ${newVersion} | Última actualización: ${dateStr} | Export estructurado de sprints -->
 
 ---
@@ -338,7 +338,7 @@ export function _generateFullHistoryContent(newVersion) {
     noSprintSection = `\n### Sin sprint asignado\n\n${_itemRowHeader()}\n${noSprintItems.map(i => _itemRow(i, 0)).join('\n')}\n\n---\n`;
   }
 
-  const md = `# ${pfx}-BACKLOG-FULL_${newVersion.replace(/_/g, ".")}.md // T-202606-069
+  const md = `# ${pfx}-BACKLOG-FULL_${newVersion.replace(/_/g, ".")}.md
 <!-- Versión: ${newVersion} | Última actualización: ${dateStr} | Historial completo agrupado por sprint -->
 
 ---
@@ -676,7 +676,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   const _appVerStr = _effectiveVersion();
   const pfx = _docPrefix();
 
-  const md = `# ${pfx}-BACKLOG_${newVersion.replace(/_/g, ".")}.md // T-202606-069
+  const md = `# ${pfx}-BACKLOG_${newVersion.replace(/_/g, ".")}.md
 <!-- Versión: ${newVersion} | Última actualización: ${dateStr} | App: AI-Tracker-${_appVerStr} -->
 ${_infraVersionStr()}
 
