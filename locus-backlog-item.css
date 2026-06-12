@@ -1,4 +1,4 @@
-/* [PP] v1.4.0 · sprint:PP-S-07 · mod:20 · autor:Rune · 2026-06-11 UTC-6 */
+/* [PP] v1.4.0 · sprint:PP-S-07 · mod:21 · autor:Nova · 2026-06-11 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -76,6 +76,45 @@
 .item.bitem {
   padding: 11px 14px;
   border-left-width: 3px;
+}
+
+/* ── T-[pendiente-ID]: Header accent por tipo — border-left sólido + tint de fondo ── */
+/* T → verde */
+.item.bitem[data-type="T"] { border-left-color: var(--green); }
+.item.bitem[data-type="T"] .bitem-header {
+  background: color-mix(in srgb, var(--green) 5%, transparent);
+  border-radius: var(--radius-md);
+}
+
+/* R → azul */
+.item.bitem[data-type="R"] { border-left-color: var(--blue); }
+.item.bitem[data-type="R"] .bitem-header {
+  background: color-mix(in srgb, var(--blue) 5%, transparent);
+  border-radius: var(--radius-md);
+}
+
+/* B → rojo */
+.item.bitem[data-type="B"] { border-left-color: var(--red); }
+.item.bitem[data-type="B"] .bitem-header {
+  background: color-mix(in srgb, var(--red) 6%, transparent);
+  border-radius: var(--radius-md);
+}
+
+/* P → púrpura */
+.item.bitem[data-type="P"] { border-left-color: var(--purple); }
+.item.bitem[data-type="P"] .bitem-header {
+  background: color-mix(in srgb, var(--purple) 5%, transparent);
+  border-radius: var(--radius-md);
+}
+
+/* Descartados y done: anular tint — no compiten con los patrones de rayas */
+.item.bitem.is-discarded .bitem-header,
+.item.bitem.is-done .bitem-header {
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .item.bitem[data-type] .bitem-header { transition: none; }
 }
 
 /* Header layout */
