@@ -1,7 +1,8 @@
-// [PP] v1.2.4 · sprint:PP-S-HOTFIX · mod:15 · autor:Rune · 2026-06-12 UTC-6 
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:16 · autor:Rune · 2026-06-12 UTC-6 
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
+// T-202606-091: headers colapsables en sprints destino — delegación en bl-plan-col-header
 
 import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
 import { showToast } from './locus-toast.js';
@@ -408,12 +409,14 @@ export function _renderPlanningView(listEl, closeCallback) {
     const currentBadge = isCurrent
       ? `<span class="bl-plan-dest-current-badge" aria-label="Sprint en curso">en curso</span>`
       : '';
+    // T-202606-091: header colapsable — data-action en el header completo, chevron visible
     return `<div class="bl-plan-dest-sprint bl-plan-col${isCurrent ? ' bl-plan-dest-sprint--current' : ''}"
                data-plan-col="${esc(sprint.id)}">
-      <div class="bl-plan-col-header">
+      <div class="bl-plan-col-header" data-action="bl-plan-dest-collapse">
         <span class="bl-plan-col-title">${esc(label)}</span>
         ${currentBadge}
         <span class="bl-plan-col-count">${inSprint.length} ítems</span>
+        <span class="bl-plan-dest-chevron" aria-hidden="true">▾</span>
       </div>
       ${_sprintMeterHtml(sprint.id)}
       <div class="bl-plan-col-body">
@@ -606,6 +609,21 @@ export function _attachPlanViewDelegation(listEl) {
   });
 
   listEl.addEventListener('click', function _planViewClick(e) {
+    // T-202606-091: toggle colapso de sprint destino — delegación en el header completo
+    const collapseBtn = e.target.closest('[data-action="bl-plan-dest-collapse"]');
+    if (collapseBtn) {
+      const destSprint = collapseBtn.closest('.bl-plan-dest-sprint');
+      if (!destSprint) return;
+      const body    = destSprint.querySelector('.bl-plan-col-body');
+      const chevron = collapseBtn.querySelector('.bl-plan-dest-chevron');
+      if (!body) return;
+      const isCollapsed = destSprint.classList.contains('is-collapsed');
+      destSprint.classList.toggle('is-collapsed', !isCollapsed);
+      body.classList.toggle('is-hidden', !isCollapsed);
+      if (chevron) chevron.classList.toggle('is-rotated', !isCollapsed);
+      return;
+    }
+
     const btn = e.target.closest('[data-action="bl-plan-close"]');
     if (!btn) return;
     // Volver al sub-tab Ítems — event dispatch para evitar ciclo con locus-sprint.js

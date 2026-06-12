@@ -1,4 +1,4 @@
-/* [PP] v1.2.3 · sprint:PP-S-03 · mod:4 · autor:Rune · 2026-06-12 UTC-6 */
+/* [PP] v1.2.4 · sprint:PP-S-03 · mod:5 · autor:Rune · 2026-06-12 UTC-6 */
 
 /* === locus-backlog-render.js ===
    Funciones: _renderPlanningView · _planCard · _planDragStart · _planDragEnd · _planDrop */
@@ -431,6 +431,45 @@
 }
 
 /* ══ END T-202605-028 ══ */
+
+
+/* ══ T-202606-091: Headers colapsables en sprints destino ══ */
+
+/* Cursor pointer en header completo — zona clickeable */
+.bl-plan-dest-sprint .bl-plan-col-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.bl-plan-dest-sprint .bl-plan-col-header:hover .bl-plan-dest-chevron {
+  color: var(--text);
+}
+
+/* Chevron — reposo en var(--hint), rotado cuando colapsado */
+.bl-plan-dest-chevron {
+  color: var(--hint);
+  font-size: var(--text-xs);
+  transition: transform var(--trans-fast), color var(--trans-fast);
+  flex-shrink: 0;
+  margin-left: auto;
+  line-height: 1;
+}
+
+.bl-plan-dest-chevron.is-rotated {
+  transform: rotate(-180deg);
+}
+
+/* Body oculto cuando sprint colapsado */
+.bl-plan-dest-sprint.is-collapsed .bl-plan-col-body {
+  display: none;
+}
+
+/* Ocultar también el meter al colapsar */
+.bl-plan-dest-sprint.is-collapsed .bl-plan-meter {
+  display: none;
+}
+
+/* ══ END T-202606-091 ══ */
 
 
 /* .is-hidden como utilitaria global — toggle via classList, sin style.display en JS */
