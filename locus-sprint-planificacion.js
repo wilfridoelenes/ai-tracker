@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:12 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:13 · autor:Rune · 2026-06-11 UTC-6 
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -508,7 +508,7 @@ function _planDragLeave(e) {
   e.currentTarget.classList.remove('bl-plan-col--over');
 }
 
-function _planDrop(e, targetCol) {
+function _planDrop(e, targetCol, listEl) {
   e.preventDefault();
   // T-202605-028: limpiar en el destino exacto que recibió el drop
   const dropTarget = e.currentTarget;
@@ -519,15 +519,13 @@ function _planDrop(e, targetCol) {
   if (!item) return;
 
   if (targetCol === 'left') {
-    // Desasignar del sprint — solo si venía con sprint asignado
     const currentSprint = item.sprint;
     if (!currentSprint || currentSprint === 'icebox') return;
     setItemSprint(item.code, 'icebox');
   } else {
-    // T-202605-028: targetCol es el sprintId del card destino (no 'right' genérico)
     const targetSprintId = targetCol;
     if (!targetSprintId) return;
-    if (item.sprint === targetSprintId) return; // ya está asignado a este sprint
+    if (item.sprint === targetSprintId) return;
     // T-202606-133: gate formallyOpened — bloquear drop sobre sprint no aprobado
     const destSprint = _getSprintById(targetSprintId);
     if (destSprint && destSprint.formallyOpened === false) {
@@ -537,15 +535,10 @@ function _planDrop(e, targetCol) {
     setItemSprint(item.code, targetSprintId);
   }
 
-  // Re-renderizar la vista planificación inmediatamente
-  // B-202606-034: resolver el container activo — puede ser #backlog-list (tab Backlog)
-  // o #sprint-planificar-container (tab Sprint). Los listeners de delegación viven en
-  // el container y sobreviven al innerHTML replace de _renderPlanningView.
-  const _planListEl = document.getElementById('backlog-list') ||
-                      document.getElementById('sprint-planificar-container');
-  if (_planListEl) {
-    _renderPlanningView(_planListEl);
-  }
+  // B-202606-034: re-renderizar usando el listEl del closure de _attachPlanViewDelegation.
+  // getElementById('backlog-list') existe en el DOM aunque oculto — resolverlo desde
+  // el closure garantiza que el re-render va al container visible correcto.
+  if (listEl) _renderPlanningView(listEl);
 }
 
 // T-202605-054: delegación de eventos para #backlog-list — plan view drag handlers
@@ -601,7 +594,7 @@ export function _attachPlanViewDelegation(listEl) {
   listEl.addEventListener('drop', function _planViewDrop(e) {
     const col = e.target.closest('[data-plan-col]');
     if (!col) return;
-    _planDrop(Object.assign(e, { currentTarget: col }), col.dataset.planCol);
+    _planDrop(Object.assign(e, { currentTarget: col }), col.dataset.planCol, listEl);
   });
 
   listEl.addEventListener('click', function _planViewClick(e) {
