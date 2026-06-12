@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-12 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-076 · T-202606-077: export ESM BACKLOG_LOG_MAX y _DOC_LOG_KEYS
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1261,7 +1261,7 @@ export async function _loadFromSupabase() {
     }
     // T-202605-084: Object.assign(state, snapshot) restaura propiedades top-level correctamente
     // porque _stateSnapshot es un deep clone (structuredClone) — cada propiedad anidada es
-    // una copia independiente. La referencia de state (window.state) se preserva.
+    // una copia independiente. La referencia del módulo-local state se preserva.
     Object.assign(state, _stateSnapshot);
 
     showToast('warning', '⚠️ No se pudo cargar desde Supabase — operando en modo local', null, 6000);
@@ -1275,8 +1275,7 @@ export async function _loadFromSupabase() {
 
 // v3.0.0: sessions, tracker y sprints viven en project — no en state global
 export var state = {ais:[], theme:'dark', tags:[], projects:[], _stateVersion:3}; // ESM-B: var para evitar TDZ — T-202606-023: export añadido para consumo ESM directo
-// Exponer en window para módulos en scope T5 que usan `state` directamente — se elimina en T6 cuando todos los consumidores usen getState()
-window.state = state;
+
 // getState(): getter dinámico — siempre retorna la referencia actual de state.
 export function getState() { return state; }
 
@@ -1760,12 +1759,13 @@ export function _setDocUpdateIndex(index) {
 
 // ── T-202606-199: getActivePlan() — retorna plan del proyecto activo desde localStorage ──
 // Firma: getActivePlan() → Object | null
-// Ownership: locus-storage.js — consume LOCUS_KEYS.PLAN_PREFIX y window.state.activeProjectId
+// Ownership: locus-storage.js — consume LOCUS_KEYS.PLAN_PREFIX y getState().activeProjectId
 // Accesible desde locus-backlog-item.js en el mismo ciclo de carga sin guard typeof requerido.
 export function getActivePlan() {
   try {
-    const projId = window.state && window.state.activeProjectId != null
-      ? window.state.activeProjectId
+    const _s = getState();
+    const projId = _s && _s.activeProjectId != null
+      ? _s.activeProjectId
       : null;
     if (projId == null) return null;
     const raw = localStorage.getItem(LOCUS_KEYS.PLAN_PREFIX + projId);
