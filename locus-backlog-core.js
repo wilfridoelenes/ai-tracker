@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1073,17 +1073,10 @@ function relativeImportTime(ts) {
   return remHours > 0 ? `hace ${days}d ${remHours}h` : `hace ${days}d`;
 }
 
-// B-202606-032: helper compartido — mismo filtro que countableItems en renderStats()
-// Excluye: históricos, descartados, ítems de sprints cerrados, done+icebox
+// B-202606-032: helper compartido — consume _getCountableBase() (T-202606-100)
+// Misma fuente canónica que renderStats() — garantiza universo idéntico entre banner y stats.
 function _getCountableForBanner() {
-  const closedSprintIds = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
-  return ITEMS.filter(i =>
-    _isCountableItem(i) &&
-    i.status !== 'descartado' &&
-    i.status !== 'historico' &&
-    !(i.sprint && closedSprintIds.has(i.sprint)) &&
-    !(i.status === 'done' && (!i.sprint || i.sprint === 'icebox'))
-  );
+  return _getCountableBase();
 }
 
 // T-048: actualizar banner
@@ -1628,6 +1621,22 @@ export function _isCountableItem(i) {
   return !(itemType(i.code) === 'R' && rCodesWithChildren.has(i.code));
 }
 
+// T-202606-100: _getCountableBase() — función canónica compartida entre renderStats() y _getCountableForBanner()
+// Retorna ITEMS filtrado por: _isCountableItem === true · status !== descartado · status !== historico
+//   · sprint no en closedSprintIds · NOT (status === done AND sin sprint o sprint === icebox)
+// renderStats() y updateBacklogBanner()/_getCountableForBanner() consumen este array base
+// antes de aplicar sus propios filtros internos — garantiza universo idéntico entre ambas funciones.
+export function _getCountableBase() {
+  const closedSprintIds = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
+  return ITEMS.filter(i =>
+    _isCountableItem(i) &&
+    i.status !== 'descartado' &&
+    i.status !== 'historico' &&
+    !(i.sprint && closedSprintIds.has(i.sprint)) &&
+    !(i.status === 'done' && (!i.sprint || i.sprint === 'icebox'))
+  );
+}
+
 export function renderStats() {
   // B-fix-T202606-197: _coreCallbacks.getActiveProjectFilter nunca registrado post T-202606-197 — leer localStorage directamente
   const _rsProjId = localStorage.getItem('current-project-filter') || '';
@@ -1662,14 +1671,8 @@ export function renderStats() {
     });
   }
 
-  // T-202604-106: excluir ítems de sprints cerrados del módulo principal
-  const closedSprintIds = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
-  const isInClosedSprint = i => i.sprint && closedSprintIds.has(i.sprint);
-
-  const _countable = i => _isCountableItem(i);
-
-  const countableItems = ITEMS.filter(i => _countable(i) && !isInClosedSprint(i) && i.status !== 'descartado' && i.status !== 'historico'
-    && !(i.status === 'done' && (!i.sprint || i.sprint === 'icebox'))); // Capa 3 — done+icebox no contabiliza per BR-Ecosystem §5
+  // T-202606-100: usar _getCountableBase() como universo canónico — mismo filtro que updateBacklogBanner()
+  const countableItems = _getCountableBase();
 
   // B-202605-205: incluir búsqueda activa — los contadores deben reflejar
   // los mismos ítems que aparecen en la lista, incluyendo el filtro de búsqueda.
@@ -1711,13 +1714,21 @@ export function renderStats() {
   const total = backlogCount + enRevisionCount + done;
   const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
   // Contador separado de P (ideas) — visible pero fuera del flujo de trabajo activo
-  const pIdeasCount = ITEMS.filter(i => itemType(i.code) === 'P' && !isInClosedSprint(i) && i.status !== 'descartado' && i.status !== 'historico').length;
-  // T-202606-096: desglose histórico — emitidos desde meta.counters (lastIds), descartados desde ITEMS
-  const _metaForStats = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
-  const _lastIds = _metaForStats.counters || {};
-  const _emitidos = (_lastIds.P || 0) + (_lastIds.T || 0) + (_lastIds.R || 0) + (_lastIds.B || 0);
+  // T-202606-100: closedSprintIds disponible via _getCountableBase() — recalcular inline para Ps (no pasan _isCountableItem)
+  const _closedIdsForP = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
+  const pIdeasCount = ITEMS.filter(i => itemType(i.code) === 'P' && !(_closedIdsForP.size && _closedIdsForP.has(i.sprint)) && i.status !== 'descartado' && i.status !== 'historico').length;
+  // T-202606-101: desglose histórico — fuente real: ITEMS en memoria
+  // _emitidos = ITEMS.length (no _lastIds — refleja ID más alto, no conteo real)
+  // _descartadosTotal = filtro directo sobre ITEMS
+  // _activosTotal = pendiente + en-revision, excluyendo sprints cerrados, excluyendo P con status promovida
+  const _emitidos = ITEMS.length;
   const _descartadosTotal = ITEMS.filter(i => i.status === 'descartado').length;
-  const _activosTotal = _emitidos > 0 ? (_emitidos - _descartadosTotal) : 0;
+  const _closedIdsForActivos = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
+  const _activosTotal = ITEMS.filter(i =>
+    (i.status === 'pendiente' || i.status === 'en-revision') &&
+    !(_closedIdsForActivos.size && _closedIdsForActivos.has(i.sprint)) &&
+    !(itemType(i.code) === 'P' && i.status === 'promovida')
+  ).length;
 
   document.getElementById('stats-bar').innerHTML = `
     <div class="stats-row">
@@ -1741,7 +1752,7 @@ export function renderStats() {
           ${total > 0 ? `<span class="stat-progress-pct">${pct}% completado</span>` : ''}
         </div>
         <div class="stat-mini-track"><div class="stat-mini-fill" style="--stat-mini-w:${pct}%"></div></div>
-        ${_emitidos > 0 ? `<div class="stat-progress-historical"><span class="sph-item">${_emitidos} emitidos</span><span class="sph-sep">·</span><span class="sph-item">${_descartadosTotal} descartados</span><span class="sph-sep">·</span><span class="sph-item sph-activos">${_activosTotal} activos</span></div>` : ''}
+        ${ITEMS.length > 0 ? `<div class="stat-progress-historical"><span class="sph-item">${_emitidos} emitidos</span><span class="sph-sep">·</span><span class="sph-item">${_descartadosTotal} descartados</span><span class="sph-sep">·</span><span class="sph-item sph-activos">${_activosTotal} activos</span></div>` : ''}
       </div>
       <!-- Nivel 2: chips de tipo accionables — P (ideas) separado del flujo activo -->
       <div class="stat-card s-types">

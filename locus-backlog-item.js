@@ -1,10 +1,10 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-09 · mod:15 · autor:Rune · 2026-06-12 00:00 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemType, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones agregadas
+import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemType, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters, _getBacklogSearchQuery } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent } from './locus-backlog-render.js'; // T-202606-089 AC-3
 import { _normalizeSprint } from './locus-session-parse.js';
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -66,11 +66,7 @@ function statusClass(status) {
 const _acReplacedSet = new Set();
 
 // ── Estado del módulo ──────────────────────────────────────────────────────
-// Búsqueda activa — compartida con locus-backlog-render.js via window.backlogSearchQuery
-let backlogSearchQuery = '';
-// Getter/setter para mantener window sincronizado
-function _getBacklogSearch() { return backlogSearchQuery; }
-function _setBacklogSearch(v) { backlogSearchQuery = v; }
+// T-202606-099: backlogSearchQuery local eliminado — consumir _getBacklogSearchQuery() desde locus-backlog-core.js
 // Filtro de tipo activo
 let currentFilter = 'all';
 // ──────────────────────────────────────────────────────────────────────────
@@ -92,7 +88,7 @@ export function _renderKanban(listEl) {
   }
 
   // Filtrar aplicando los mismos filtros activos del backlog
-  const q = backlogSearchQuery;
+  const q = _getBacklogSearchQuery();
   let allFiltered = getItems().filter(i => {
     const type = itemType(i.code);
     const typeOk = type ? _getActiveTypes().has(type) : true;
@@ -1514,9 +1510,9 @@ export function setFilter(f) {
 
 function onBacklogSearch() {
   const input = document.getElementById('backlog-search-input');
-  _setBacklogSearch((input ? input.value : '').toLowerCase().trim());
+  // T-202606-099: valor de búsqueda vive en core — el listener de core actualiza backlogSearchQuery
   const clearBtn = document.getElementById('backlog-search-clear');
-  if (clearBtn) clearBtn.classList.toggle('visible', !!backlogSearchQuery);
+  if (clearBtn) clearBtn.classList.toggle('visible', !!_getBacklogSearchQuery());
   updateClearFilterBtn();
   _markBacklogListDirty(); renderBacklogList();
   renderStats(); // B-202605-205: actualizar contadores de tipo con búsqueda activa
@@ -1525,7 +1521,6 @@ function onBacklogSearch() {
 export function clearBacklogSearch() {
   const input = document.getElementById('backlog-search-input');
   if (input) input.value = '';
-  _setBacklogSearch('');
   const clearBtn = document.getElementById('backlog-search-clear');
   if (clearBtn) clearBtn.classList.remove('visible');
   updateClearFilterBtn();
