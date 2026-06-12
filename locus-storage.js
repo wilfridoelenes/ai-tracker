@@ -1,8 +1,10 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-12 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-076 · T-202606-077: export ESM BACKLOG_LOG_MAX y _DOC_LOG_KEYS
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
+
+import { _showArranquePanel } from './locus-sesiones-arranque.js'; // B-202606-044 — ciclo seguro: uso solo dentro de setTimeout en handler
 
 
 // T-202606-056: imports cíclicos eliminados — reemplazados por event dispatch o acceso directo a state
@@ -1479,7 +1481,7 @@ function _renderAfterAuth() {
   // (a) event dispatch — locus-notifications.js escucha 'shell:update-notif-badges'
   _dispatch('shell:update-notif-badges');
   // R-202604-072: panel de contexto diario — diferido para que _getItems() esté disponible
-  if (typeof _showArranquePanel === 'function') setTimeout(_showArranquePanel, 400);
+  setTimeout(_showArranquePanel, 400);
   // R-202604-073: dot Pulso — recalcular con datos reales
   // B-202605-079: mark antes del setTimeout — el guard requiere flag activo al ejecutar
   // (a) event dispatch — locus-pulso.js escucha 'shell:mark-pulso-dirty' + 'shell:render-pulso-dot'

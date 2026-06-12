@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-05-29 15:00 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-12 UTC-6
 // locus-sesiones-arranque.js
 // Responsabilidad: Panel de Sesión de Arranque — contexto diario al abrir la app
 //   (R-202604-072). Muestra resumen de ayer, ítem sugerido, estado IA y sesión del plan.
