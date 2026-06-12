@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:9 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:10 · autor:Rune · 2026-06-11 UTC-6 
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -563,23 +563,30 @@ export function _attachPlanViewDelegation() {
     _planDragEnd(Object.assign(e, { currentTarget: card }));
   });
   listEl.addEventListener('dragenter', function _planViewDragEnter(e) {
-    // B-202606-XXX: dragenter con preventDefault estabiliza el feedback visual —
-    // sin él el browser dispara dragleave al entrar en hijos y bl-plan-col--over parpadea
+    // B-202606-034: preventDefault en toda la zona del listEl — el browser requiere
+    // que dragenter (además de dragover) no cancele para mantener el drop habilitado.
+    // Se llama antes del guard de col para que contenedores intermedios sin
+    // data-plan-col (bl-plan-col-header, bl-plan-dest-list) no cancelen la operación.
+    e.preventDefault();
     const col = e.target.closest('[data-plan-col]');
     if (!col) return;
-    e.preventDefault();
     col.classList.add('bl-plan-col--over');
   });
   listEl.addEventListener('dragover', function _planViewDragOver(e) {
-    // T-202605-028: aceptar drop en sprint-dest cards individuales o en columna izquierda
+    // B-202606-034: preventDefault antes del guard — si el cursor pasa por un
+    // contenedor intermedio sin data-plan-col (bl-plan-col-header, bl-plan-dest-list)
+    // el browser cancelaba el drop. Llamar preventDefault() siempre dentro del listEl
+    // mantiene la operación activa en toda la zona de drop válida.
+    e.preventDefault();
     const col = e.target.closest('[data-plan-col]');
     if (!col) return;
-    _planDragOver(Object.assign(e, { currentTarget: col }));
+    e.dataTransfer.dropEffect = 'move';
+    col.classList.add('bl-plan-col--over');
   });
   listEl.addEventListener('dragleave', function _planViewDragLeave(e) {
     const col = e.target.closest('[data-plan-col]');
     if (!col) return;
-    // B-202606-XXX: solo quitar --over si el mouse sale hacia fuera del col —
+    // B-202606-034: solo quitar --over si el mouse sale hacia fuera del col —
     // relatedTarget null o fuera del col indica salida real, no entrada a hijo
     if (col.contains(e.relatedTarget)) return;
     _planDragLeave(Object.assign(e, { currentTarget: col }));
