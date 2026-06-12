@@ -1195,6 +1195,7 @@ function downloadProjectReport(projId) {
   const projSess = getProjectSessions(projId);
   const projAIIds = new Set(projSess.map(s => s.aiId).filter(Boolean));
   const projAIs = getState().ais.filter(ai => projAIIds.has(ai.id) && !ai.archived);
+  const allSess = projSess
     .map(s => ({ ai: getAI(s.aiId), s }))
     .filter(x => x.ai)
     .sort((a, b) => new Date(b.s.date||0) - new Date(a.s.date||0));
