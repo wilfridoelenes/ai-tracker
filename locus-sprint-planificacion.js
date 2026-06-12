@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:13 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.2.4 · sprint:PP-S-HOTFIX · mod:15 · autor:Rune · 2026-06-12 UTC-6 
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -570,6 +570,11 @@ export function _attachPlanViewDelegation(listEl) {
     e.preventDefault();
     const col = e.target.closest('[data-plan-col]');
     if (!col) return;
+    // B-202606-040: limpiar --over en todos los destinos antes de activar el nuevo —
+    // dragleave no se dispara de forma confiable al moverse entre sprints destino,
+    // lo que deja la clase activa en el sprint de origen. dragenter es el único
+    // punto donde se conoce el destino nuevo con certeza.
+    listEl.querySelectorAll('[data-plan-col]').forEach(c => c.classList.remove('bl-plan-col--over'));
     col.classList.add('bl-plan-col--over');
   });
   listEl.addEventListener('dragover', function _planViewDragOver(e) {
@@ -592,8 +597,11 @@ export function _attachPlanViewDelegation(listEl) {
     _planDragLeave(Object.assign(e, { currentTarget: col }));
   });
   listEl.addEventListener('drop', function _planViewDrop(e) {
-    const col = e.target.closest('[data-plan-col]');
-    if (!col) return;
+    // B-202606-039: e.target puede ser el wrapper .bl-plan-col--right (sin data-plan-col)
+    // cuando el drop cae en el gap entre sprint cards. Intentar también con
+    // .bl-plan-dest-sprint que sí declara data-plan-col con el sprintId.
+    const col = e.target.closest('[data-plan-col]') || e.target.closest('.bl-plan-dest-sprint');
+    if (!col || !col.dataset.planCol) return;
     _planDrop(Object.assign(e, { currentTarget: col }), col.dataset.planCol, listEl);
   });
 
