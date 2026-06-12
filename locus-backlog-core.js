@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -689,6 +689,49 @@ function _normalizeItems(items) {
         item.history.push({ type: 'status', ts: item.statusChangedAt, data: { to: item.status } });
       }
     }
+  });
+
+  // T-202606-084: migración sprint → sprint_id + sprint_name
+  // Separa el campo sprint compuesto ('PP-S-01 · Nombre') en dos campos atómicos.
+  // Idempotente: ítems ya migrados (sprint_id presente) no se retocan.
+  // item.sprint se conserva como alias de solo lectura = sprint_id (AC-4).
+  items.forEach(item => {
+    // Idempotente: si sprint_id ya existe, skip.
+    if (item.sprint_id !== undefined) return;
+
+    const raw = item.sprint; // puede ser string, undefined, null
+    if (raw && typeof raw === 'string' && raw.trim() !== '') {
+      const idx = raw.indexOf(' · ');
+      if (idx !== -1) {
+        item.sprint_id   = raw.slice(0, idx);
+        item.sprint_name = raw.slice(idx + 3); // ' · ' es 3 chars
+      } else {
+        item.sprint_id   = raw;
+        item.sprint_name = '';
+      }
+    } else {
+      // Sin sprint (icebox canónico = campo ausente o vacío)
+      item.sprint_id   = '';
+      item.sprint_name = '';
+    }
+
+    // AC-4: item.sprint es alias de solo lectura de sprint_id.
+    // Se redefine como getter para que cualquier lectura de item.sprint
+    // devuelva siempre el valor actual de sprint_id sin duplicar el dato.
+    const _id = item.sprint_id;
+    Object.defineProperty(item, 'sprint', {
+      get() { return this.sprint_id; },
+      set(v) { this.sprint_id = v; },
+      configurable: true,
+      enumerable: true,
+    });
+    // Sincronizar sprint_id con el valor derivado (el defineProperty ya captó _id,
+    // pero sprint_id puede haber sido reescrito — reasignar para consistencia).
+    item.sprint_id = _id;
+
+    _blogLog('migrate', item.code || '(sin código)',
+      `sprint → sprint_id:"${item.sprint_id}" sprint_name:"${item.sprint_name}"`,
+      'backlog');
   });
 
   // T-202606-038: validar asignación a sprint HOTFIX — solo B con priority: high

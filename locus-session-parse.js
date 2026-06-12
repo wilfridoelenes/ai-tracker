@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-08 · mod:30 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:31 · autor:Rune · 2026-06-12 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -473,6 +473,45 @@ export function _normalizeSprint(item, pendingItems) {
     }
   }
   // AC-5: sprint válido — conservar sin modificar
+  // T-202606-085 AC-4: sprint_id no coincidente con ningún sprint registrado → advertencia DocLog, ítem se aplica igual
+  {
+    const _allSprints = getActiveSprints();
+    const _found = _allSprints.find(s => s.id === raw);
+    if (!_found) {
+      _blogLog('sprint-id-no-registrado', item.code || '', `sprint_id "${raw}" no coincide con ningún sprint registrado — ítem aplicado igual`, 'backlog');
+    }
+  }
+}
+
+// T-202606-085: resolver campos sprint_id y sprint_name desde un ítem raw del CHECKPOINT.
+// Acepta tres formatos de entrada:
+//   (a) sprint_id + sprint_name separados (formato nuevo)
+//   (b) sprint como string compuesto legacy 'PP-S-01 · Nombre' → descompone en sprint_id + sprint_name
+//   (c) sprint: 'icebox' → sprint_id: 'icebox', sprint_name: ''
+// Devuelve { sprintAlias, sprint_id, sprint_name } donde sprintAlias es el valor para item.sprint
+// (compatibilidad con _normalizeSprint que sigue operando sobre item.sprint).
+function _resolveSprintFields(it) {
+  // Formato (a): campos separados presentes — tienen precedencia
+  if (it.sprint_id !== undefined) {
+    const _id   = String(it.sprint_id  || '').trim();
+    const _name = String(it.sprint_name || '').trim();
+    return { sprintAlias: _id || undefined, sprint_id: _id, sprint_name: _name };
+  }
+  // Formato (b)/(c): solo campo sprint
+  const raw = it.sprint;
+  if (!raw || String(raw).trim() === '' || raw === 'n/a' || raw === 'N/A') {
+    return { sprintAlias: undefined, sprint_id: '', sprint_name: '' };
+  }
+  const _rawStr = String(raw).trim();
+  const _idx = _rawStr.indexOf(' · ');
+  if (_idx !== -1) {
+    // Formato compuesto legacy: 'PP-S-01 · Nombre'
+    const _id   = _rawStr.slice(0, _idx).trim();
+    const _name = _rawStr.slice(_idx + 3).trim();
+    return { sprintAlias: _id, sprint_id: _id, sprint_name: _name };
+  }
+  // Valor simple: 'icebox' u otro sprint_id sin nombre
+  return { sprintAlias: _rawStr, sprint_id: _rawStr, sprint_name: '' };
 }
 
 // B-202606-022: resolver [tmp:slug] en campo parent/parentId de un patch contra tgItems del mismo CHECKPOINT.
@@ -560,7 +599,8 @@ export function parsePaste(id) {
         }
         // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
         // T-202606-012 AC-3: sprint ausente se trata como icebox
-        const _sprintRaw = _it.sprint ? _it.sprint.trim().toLowerCase() : '';
+        // T-202606-085: leer sprint_id como fallback cuando sprint no está presente (formato nuevo)
+        const _sprintRaw = (_it.sprint || _it.sprint_id || '').trim().toLowerCase();
         if (_normSt === 'en-revision' && (_sprintRaw === 'icebox' || _sprintRaw === '')) {
           _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
           break;
@@ -590,6 +630,8 @@ export function parsePaste(id) {
           _rsNoAc.push(`R ${_it.code || '[pendiente-ID]'} "${_it.title || _it.desc || ''}"`);
           continue;
         }
+        // T-202606-085: resolver sprint_id y sprint_name antes de construir el ítem
+        const _sprintF = _resolveSprintFields(_it);
         tgItems.push({
           type:          _it.type,
           code:          _it.code,
@@ -600,7 +642,9 @@ export function parsePaste(id) {
           _noStatus:     false,
           effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
           area:          _it.area   || '',
-          sprint:        _it.sprint,
+          sprint:        _sprintF.sprintAlias,                                 // T-202606-085: alias → _normalizeSprint opera sobre este campo
+          sprint_id:     _sprintF.sprint_id,                                   // T-202606-085
+          sprint_name:   _sprintF.sprint_name,                                 // T-202606-085
           ac:            Array.isArray(_it.ac) ? _it.ac : [],
           role:          _it.role   || ckptHeaderRole,
           discardReason: _it.discard_reason || _it.reason || '',
@@ -725,7 +769,8 @@ export function parsePaste(id) {
           }
           // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
           // T-202606-012 AC-3: sprint ausente se trata como icebox
-          const _sprintRaw2 = _it.sprint ? _it.sprint.trim().toLowerCase() : '';
+          // T-202606-085: leer sprint_id como fallback cuando sprint no está presente (formato nuevo)
+          const _sprintRaw2 = (_it.sprint || _it.sprint_id || '').trim().toLowerCase();
           if (_normSt2 === 'en-revision' && (_sprintRaw2 === 'icebox' || _sprintRaw2 === '')) {
             _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
             break;
@@ -756,6 +801,8 @@ export function parsePaste(id) {
             continue;
           }
           // Construir objeto compatible con mergeBacklogFromTG (sin cambios en esa función)
+          // T-202606-085: resolver sprint_id y sprint_name antes de construir el ítem
+          const _sprintF2 = _resolveSprintFields(_it);
           tgItems.push({
             type:          _it.type,
             code:          _it.code,
@@ -766,7 +813,9 @@ export function parsePaste(id) {
             _noStatus:     false,
             effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
             area:          _it.area   || '',
-            sprint:        _it.sprint,
+            sprint:        _sprintF2.sprintAlias,                                // T-202606-085: alias → _normalizeSprint opera sobre este campo
+            sprint_id:     _sprintF2.sprint_id,                                  // T-202606-085
+            sprint_name:   _sprintF2.sprint_name,                                // T-202606-085
             ac:            Array.isArray(_it.ac) ? _it.ac : [],
             role:          _it.role   || ckptHeaderRole,
             discardReason: _it.discard_reason || _it.reason || '',

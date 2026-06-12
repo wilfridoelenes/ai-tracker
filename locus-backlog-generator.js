@@ -1,4 +1,4 @@
-// [PP] v0.3.0 · sprint:PP-S-08 · mod:15 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.3.0 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -393,7 +393,8 @@ function _buildSprintActivoMd() {
     '',
     '| Campo | Valor |',
     '|---|---|',
-    `| sprint | ${currentSprint.label || currentSprint.name || currentSprint.id} |`,
+    `| sprint_id | ${currentSprint.id} |`,
+    `| sprint_name | ${currentSprint.name || currentSprint.label || 'n/a'} |`,
     `| status | ${currentSprint.status} |`,
     `| version_target | ${currentSprint.version_target || 'n/a'} |`,
     `| release_type | ${currentSprint.release_type || 'n/a'} |`,
@@ -771,7 +772,7 @@ function _buildIndexLines(itemMap) {
     const label = t === '?' ? 'Sin código asignado' : t;
     chunks.forEach(chunk => {
       lines.push(label + ': ' + chunk.map(x => {
-        const sprintTag = x.sprint ? ` [${x.sprint}]` : '';
+        const sprintTag = x.sprint ? ` [${String(x.sprint).split(' · ')[0]}]` : '';
         return `${x.code} ${x.status}${sprintTag}`;
       }).join(' | '));
     });
@@ -875,10 +876,12 @@ function _buildItemFieldsMd(item, state) {
   if (item.sprint) {
     // T-202606-067: Ps siempre exportan con sprint: icebox — independiente del valor en storage
     const _sprintVal = (item.code && item.code[0] === 'P') ? 'icebox' : item.sprint;
-    const _sprintObj = (state.sprints || []).find(s => s.id === _sprintVal);
-    const _sprintLabel = _sprintObj ? (_sprintObj.name || _sprintVal) : _sprintVal;
-    md += `**SprintId:** ${_sprintVal}\n`;
-    md += `**Sprint:** ${_sprintLabel}\n`;
+    // T-202606-086: split en sprint_id / sprint_name — campo Sprint legacy eliminado
+    const _sprintParts = String(_sprintVal).split(' · ');
+    const _sprintId = _sprintParts[0];
+    const _sprintName = _sprintParts.length > 1 ? _sprintParts.slice(1).join(' · ') : '';
+    md += `**SprintId:** ${_sprintId}\n`;
+    if (_sprintId !== 'icebox' && _sprintName) md += `**SprintName:** ${_sprintName}\n`;
   }
   if (item.role)     md += `**Role:** ${item.role}\n`;
   if (item.parentId) md += `**ParentId:** ${item.parentId}\n`;
