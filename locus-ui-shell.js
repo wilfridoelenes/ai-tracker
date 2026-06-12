@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-06-12 00:00 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -37,6 +37,8 @@ let currentTab = localStorage.getItem('active-tab') || 'sesiones';
 // B-202605-019: array module-level para acciones de contratos en panel de búsqueda
 // Se repuebla en cada llamada a onSearch — delegation usa índice via data-contrato-idx
 let _surContratoActions = [];
+let _gChordTimer = null;    // T-202606-098: ESM Pure — reemplaza window._gChordTimer
+let _gChordPending = false; // T-202606-098: ESM Pure — reemplaza window._gChordPending
 
 // T-202606-006 T3: lazy refs para romper ciclos ui-shell ↔ backlog-core y ui-shell ↔ session-hora
 // Inyectadas desde main.js via _initUiShellRefs() — misma estrategia que _initApp opts en storage.
@@ -778,12 +780,15 @@ document.addEventListener('keydown', e => {
   // Chord G + letra — navegar entre tabs (configurable)
   const _hasChordWithG = _SHORTCUT_DEFS && _SHORTCUT_DEFS.some(d => d.chord && (_shortcutKey(d.id) || '').startsWith('g'));
   if (!_inInput && !e.ctrlKey && !e.metaKey && !e.altKey && e.key === 'g' && _hasChordWithG) {
-    clearTimeout(window._gChordTimer);
+    clearTimeout(_gChordTimer);
+    _gChordPending = true;
+    _gChordTimer = setTimeout(() => { _gChordPending = false; }, 1000);
     e.preventDefault();
     return;
   }
-  if (window._gChordPending && !e.ctrlKey && !e.metaKey && !e.altKey) {
-    clearTimeout(window._gChordTimer);
+  if (_gChordPending && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    clearTimeout(_gChordTimer);
+    _gChordPending = false;
     const _letter = e.key.toLowerCase();
     const _chordDef = _SHORTCUT_DEFS && _SHORTCUT_DEFS.find(d => {
       if (!d.chord) return false;
