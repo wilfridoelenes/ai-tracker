@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -15,7 +15,7 @@ import { setItemSprint } from './locus-backlog-sprints.js';
 
 import { _setBacklogModified } from './locus-docs.js';
 
-import { openDetail } from './locus-session-popup.js';
+import { openDetail, scrollToLogCard } from './locus-session-popup.js'; // T-202606-089 AC-3
 
 import { esc, switchTab } from './locus-ui-shell.js';
 import { toggleMoreMenu } from './locus-ui-shell.js'; // B-202606-021: movida desde locus-reports.js
@@ -81,7 +81,7 @@ export function _buildItemMigratedBlock(item) {
 }
 
 // T-202604-242: modal de selección de proyecto destino
-function _openMigrateItem(code) {
+export function _openMigrateItem(code) {
   const item = getItems().find(i => i.code === code);
   if (!item) return;
 
@@ -874,7 +874,7 @@ function _idpAddNote_fromBtn(code) {
 // R-202604-074 · AC Vivo — helpers de interacción
 // ════════════════════════════════════════════════════════════════════
 
-function _acvToggle(panelId) {
+export function _acvToggle(panelId) {
   const wrap = document.getElementById(panelId);
   if (!wrap) return;
   const body  = wrap.querySelector('.acv-body');
@@ -885,7 +885,7 @@ function _acvToggle(panelId) {
   if (arrow) arrow.textContent = open ? '▸' : '▾';
 }
 
-function _acvStartEdit(rowId, code, acIdx) {
+export function _acvStartEdit(rowId, code, acIdx) {
   const row = document.getElementById(rowId);
   if (!row) return;
   const item = getItems().find(i => i.code === code);
@@ -918,7 +918,7 @@ function _acvSaveEdit(rowId, code, acIdx) {
   renderBacklogList();
 }
 
-function _acvConfirm(code, panelId) {
+export function _acvConfirm(code, panelId) {
   const item = getItems().find(i => i.code === code);
   if (!item) return;
   item.acReviewed = Date.now();
@@ -1157,7 +1157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         switchTab('tracker');
         if (typeof setViewMode === 'function') setViewMode('chrono');
-        setTimeout(() => { if (typeof scrollToLogCard === 'function') scrollToLogCard(el.dataset.sessId); }, 150);
+        setTimeout(() => { scrollToLogCard(el.dataset.sessId); }, 150);
         break;
     }
   });

@@ -1,18 +1,19 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemType, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner } from './locus-backlog-core.js';
-import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
+import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemType, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones agregadas
+import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent } from './locus-backlog-render.js'; // T-202606-089 AC-3
 import { _normalizeSprint } from './locus-session-parse.js';
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
 
 
-import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel } from './locus-backlog-panel.js';
+import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel, _openMigrateItem, _acvToggle, _acvStartEdit, _acvConfirm } from './locus-backlog-panel.js'; // T-202606-089 AC-3
 
-import { _getActiveSprint, navigateToItem, setItemSprint, openSprintRetroView } from './locus-backlog-sprints.js';
+import { _getActiveSprint, navigateToItem, setItemSprint, openSprintRetroView, openNewSprintInline } from './locus-backlog-sprints.js'; // T-202606-089 AC-3
+import { openProjPanel } from './locus-sprint-project.js'; // T-202606-089 AC-1
 
 import { _setBacklogModified } from './locus-docs.js';
 
@@ -261,7 +262,7 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'item-expand') {
       const idx = parseInt(action.dataset.idx, 10);
-      if (typeof toggleItemExpand === 'function') toggleItemExpand(idx);
+      toggleItemExpand(idx);
       return;
     }
     if (act === 'edit-child') {
@@ -271,7 +272,7 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'toggle-children') {
       e.stopPropagation();
-      if (typeof toggleChildrenBlock === 'function') toggleChildrenBlock(action.dataset.rCode);
+      toggleChildrenBlock(action.dataset.rCode);
       return;
     }
     if (act === 'navigate-origin') {
@@ -281,7 +282,7 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'quick-assign-effort') {
       e.stopPropagation();
-      if (typeof _quickAssignEffort === 'function') _quickAssignEffort(action.dataset.code);
+      _quickAssignEffort(action.dataset.code);
       return;
     }
     if (act === 'open-blocker') {
@@ -324,7 +325,7 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'bitem-migrate') {
       e.stopPropagation();
-      if (typeof _openMigrateItem === 'function') _openMigrateItem(action.dataset.code);
+      _openMigrateItem(action.dataset.code);
       return;
     }
     if (act === 'promote-modal-cancel') {
@@ -347,7 +348,7 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'acv-toggle') {
       e.stopPropagation();
-      if (typeof _acvToggle === 'function') _acvToggle(action.dataset.panelId);
+      _acvToggle(action.dataset.panelId);
       return;
     }
     if (act === 'acv-open-editor') {
@@ -357,12 +358,12 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'acv-clarify') {
       e.stopPropagation();
-      if (typeof _acvStartEdit === 'function') _acvStartEdit(action.dataset.rowId, action.dataset.code, parseInt(action.dataset.ci, 10));
+      _acvStartEdit(action.dataset.rowId, action.dataset.code, parseInt(action.dataset.ci, 10));
       return;
     }
     if (act === 'acv-confirm') {
       e.stopPropagation();
-      if (typeof _acvConfirm === 'function') _acvConfirm(action.dataset.code, action.dataset.panelId);
+      _acvConfirm(action.dataset.code, action.dataset.panelId);
       return;
     }
     if (act === 'bitem-meta-stop') {
@@ -391,11 +392,11 @@ export function _attachBacklogListDelegation() {
       return;
     }
     if (act === 'es-open-proj-panel') {
-      if (typeof openProjPanel === 'function') openProjPanel();
+      openProjPanel();
       return;
     }
     if (act === 'es-open-new-sprint') {
-      if (typeof openNewSprintInline === 'function') openNewSprintInline();
+      openNewSprintInline();
       return;
     }
     if (act === 'es-clear-search') {
@@ -403,7 +404,7 @@ export function _attachBacklogListDelegation() {
       return;
     }
     if (act === 'es-toggle-mike') {
-      if (typeof toggleBacklogMikeMode === 'function') toggleBacklogMikeMode();
+      toggleBacklogMikeMode();
       return;
     }
     if (act === 'es-toggle-focus') {
@@ -438,12 +439,12 @@ export function _attachBacklogListDelegation() {
     const type = sel.dataset.selectType;
     if (!code) return;
     if (type === 'role') {
-      if (typeof setItemRole === 'function') setItemRole(code, sel.value);
+      setItemRole(code, sel.value);
     } else if (type === 'sprint') {
       setItemSprint(code, sel.value);
       _markBacklogListDirty(); renderBacklogList(); // B-202606-038: re-render en live tras reasignación desde card
     } else if (type === 'parent') {
-      if (typeof setItemParent === 'function') setItemParent(code, sel.value);
+      setItemParent(code, sel.value);
     } else {
       // status select (no data-select-type)
       setItemStatus(code, sel.value);
@@ -1545,13 +1546,13 @@ export function updateBacklogFooter() {
       if (!btn) return;
       const act = btn.dataset.action;
       if (act === 'footer-type-filter') {
-        if (typeof toggleTypeFilter === 'function') toggleTypeFilter(btn.dataset.type);
+        toggleTypeFilter(btn.dataset.type);
       } else if (act === 'footer-status-filter') {
-        if (typeof toggleStatusFilter === 'function') toggleStatusFilter(btn.dataset.status);
+        toggleStatusFilter(btn.dataset.status);
       } else if (act === 'footer-effort-filter') {
-        if (typeof toggleEffortFilter === 'function') toggleEffortFilter(parseInt(btn.dataset.effort, 10));
+        toggleEffortFilter(parseInt(btn.dataset.effort, 10));
       } else if (act === 'footer-clear-filters') {
-        if (typeof clearAllFilters === 'function') clearAllFilters();
+        clearAllFilters();
       }
     });
   }
@@ -1651,7 +1652,7 @@ function _findTmpMatch(tmpCode, desc, existingItems, incomingType) {
 //   Ítems con código real existente se registran como identidad: code → code.
 // T-202605-140 T2: Paso 2 — resolver referencias cruzadas (dependsOn, parentId,
 //   triggeredBy, origenP, promovida_a) usando slugMap. Referencia no resuelta → null/[].
-function _assignPendingIds(tgItems) {
+export function _assignPendingIds(tgItems) {
   const validTypes = new Set(['P', 'T', 'R', 'B']);
   const reservedCodes = new Set();
 

@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-12 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -12,7 +12,8 @@ import { _initRadarSidebarState, renderGlobalRadarSidebar } from './locus-radar.
 import { _scrollToCard, _updateHeaderProjectLabel, navigateToCard, renderStatusBar, updateStats, _hasStaleSuggestion } from './locus-sesiones-stats.js';
 import { _renderActiveWorkerChip, renderSuggestionBanner, startSessionTimer, _buildSuggestionReason, _sessRelTsShared, _cscardRelTs, _hoyMsUntilReset, getCD } from './locus-sesiones-utils.js';
 import { fmt12, _templateTrigger, confirmSave, interpretHora, relDate } from './locus-session-hora.js';
-import { closeLogCard, closePopup, openDetail } from './locus-session-popup.js';
+import { openCorrectHora } from './locus-sesiones-viz.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handlers
+import { closeLogCard, closePopup, openDetail, startRename, toggleInReview, toggleShowAll } from './locus-session-popup.js'; // T-202606-089 AC-3
 // T-202606-058: import de locus-sprint-project eliminado — ciclo A↔B roto.
 // _getActiveProjectFilter · getProjectById · openProjModal · selectProjectFilter
 // consumidas via _sesSPCallbacks registry (registradas por locus-sprint-project en DOMContentLoaded).
@@ -23,7 +24,7 @@ import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatar
 
 import { downloadReport } from './locus-reports.js';
 
-import { openQuickCapture, confirmInterruptInline } from './locus-sesiones-capture.js';
+import { openQuickCapture, confirmInterruptInline, dismissInterrupted } from './locus-sesiones-capture.js'; // T-202606-089 AC-3
 
 import { STATUS_LABELS, handlePaste, handleInput } from './locus-session-parse.js';
 // T-202606-058: registry extraído a locus-sesiones-registry.js (módulo sin dependencias).
@@ -1187,7 +1188,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const el = e.target.closest('[data-action="dblclick-avatar"]');
     if (!el) return;
     const aiId = el.dataset.aiId;
-    if (aiId && typeof startRename === 'function') startRename(aiId);
+    if (aiId) startRename(aiId);
   });
 });
 // ── END T-202605-057 ─────────────────────────────────────────────────────
@@ -1265,7 +1266,7 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       // Interrupted banner
       case 'dismiss-interrupted':
-        if (typeof dismissInterrupted === 'function') dismissInterrupted(aiId);
+        dismissInterrupted(aiId);
         break;
       // Popup ref pill (stopPropagation)
       case 'open-detail-stop':
@@ -1275,7 +1276,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Toggle in review (stopPropagation)
       case 'toggle-in-review-stop':
         e.stopPropagation();
-        if (typeof toggleInReview === 'function') toggleInReview(aiId, sessId);
+        toggleInReview(aiId, sessId);
         break;
       // Sess row — open detail
       case 'open-detail':
@@ -1283,11 +1284,11 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       // Show all toggle
       case 'toggle-show-all':
-        if (typeof toggleShowAll === 'function') toggleShowAll(aiId);
+        toggleShowAll(aiId);
         break;
       // Footer — assign hora / correct hora
       case 'open-correct-hora':
-        if (typeof openCorrectHora === 'function') openCorrectHora(aiId);
+        openCorrectHora(aiId);
         break;
       // Footer — blind exhaust
       case 'confirm-blind-exhaust':
@@ -1308,7 +1309,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Card dot items — close menu then execute
       case 'dot-rename':
         closeCardMenu(aiId);
-        if (typeof startRename === 'function') startRename(aiId);
+        startRename(aiId);
         break;
       case 'dot-blind-exhaust':
         closeCardMenu(aiId);
@@ -1316,7 +1317,7 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       case 'dot-correct-hora':
         closeCardMenu(aiId);
-        if (typeof openCorrectHora === 'function') openCorrectHora(aiId);
+        openCorrectHora(aiId);
         break;
       case 'dot-download-report':
         closeCardMenu(aiId);

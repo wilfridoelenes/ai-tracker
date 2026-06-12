@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-08 · mod:6 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-12 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -116,7 +116,7 @@ function _topoSort(items) {
 }
 
 // T-202604-187: colapsar/expandir bloque de hijos de un R
-function toggleChildrenBlock(rCode) {
+export function toggleChildrenBlock(rCode) {
   if (_collapsedChildren.has(rCode)) {
     _collapsedChildren.delete(rCode);
   } else {
@@ -129,7 +129,7 @@ function toggleChildrenBlock(rCode) {
 }
 
 // R-202604-016: asignar parent a un T/B desde item-body
-function setItemParent(code, parentCode) {
+export function setItemParent(code, parentCode) {
   const item = getItems().find(i => i.code === code);
   if (!item) return;
   item.parentId = parentCode || null;

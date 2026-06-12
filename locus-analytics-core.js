@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-12 UTC-6
 // locus-analytics-core.js
 // Responsabilidad: State de analytics, período/rango, helpers de fecha,
 //   tooltip, delta, ítems abiertos/cerrados, export semanal MD.
@@ -62,7 +62,7 @@ function setAnalyticsPeriod(p) {
 
 // Legacy — mantenido para compatibilidad con exportAnalyticsMd y otros llamadores
 let _analyticsRange = 3;
-function setAnalyticsRange(n) { _analyticsRange = n; _markAnalyticsDirty(); renderAnalytics(); }
+export function setAnalyticsRange(n) { _analyticsRange = n; _markAnalyticsDirty(); renderAnalytics(); }
 
 // T-202605-452: Gráfico de flujo acumulativo — filtros de proyecto y tipo
 let _cfProjId   = '';

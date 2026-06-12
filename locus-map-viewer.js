@@ -1,8 +1,9 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 14:30 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-12 UTC-6
 import { _skelHide, _skelShow } from './locus-backlog-core.js';
 import { _tplKey } from './locus-storage.js';
 
 import { esc } from './locus-ui-shell.js';
+import { _dropzoneHandle } from './locus-docs.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
 
 // locus-map-viewer.js
 // Última actualización: 2026-05-28 UTC-6
@@ -20,7 +21,7 @@ import { esc } from './locus-ui-shell.js';
 //
 // Dependencias externas consumidas sin mover:
 //   _skelShow / _skelHide   → locus-backlog-core.js
-//   _dropzoneHandle         → locus-docs.js  (typeof guard — no se mueve)
+//   _dropzoneHandle         → locus-docs.js  (import directo — T-202606-089)
 //   _tplKey / esc           → locus-storage.js
 //   showToast               → locus-toast.js
 //
@@ -186,7 +187,7 @@ export function renderHtmlMap() {
       dz.addEventListener('dragleave', () => dz.classList.remove('doc-dropzone--over'));
       dz.addEventListener('drop', e => {
         dz.classList.remove('doc-dropzone--over');
-        if (typeof _dropzoneHandle === 'function') _dropzoneHandle(e, 'htmlmap');
+        _dropzoneHandle(e, 'htmlmap');
       });
       dz.addEventListener('click', () => {
         const fi = document.getElementById('htmlmap-file-input');

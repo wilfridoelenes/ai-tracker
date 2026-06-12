@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:3 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-12 UTC-6
 // locus-sesiones-viz.js
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
 //   (_showItemVizPanel), corrección de hora (openCorrectHora).
@@ -16,7 +16,7 @@ import { getAI, getAISessions, save } from './locus-storage.js';
 // ── B-202604-094: Corregir hora de desbloqueo desde card ──
 let _correctHoraAIId = null;
 
-function openCorrectHora(id) {
+export function openCorrectHora(id) {
   const ai = getAI(id);
   if (!ai) return;
   _correctHoraAIId = id;
@@ -593,9 +593,7 @@ export function closeCkptPanel() {
 
 // ══ END showCheckpointPanel ══
 
-// ── Exposición pública — locus-sesiones.js invoca openCorrectHora via guard typeof ──
-// Sin esta asignación el guard `typeof openCorrectHora === 'function'` retorna false en ESM
-// y los botones open-correct-hora / dot-correct-hora nunca ejecutan nada.
+// T-202606-089: openCorrectHora se exporta — locus-sesiones.js la importa directamente (sin guard typeof)
 
 // B-202606-020 fix: locus-ui-shell.js despacha shell:show-checkpoint-panel desde ckpt-reopen-btn
 // getLastCheckpointResult() se invoca aquí — locus-ui-shell.js no importa este módulo

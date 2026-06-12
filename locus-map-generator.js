@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-12 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -52,7 +52,7 @@ const _mapGen = {
 
 // ─── Apertura / cierre ───────────────────────────────────────────────────────
 
-function openMapGenerator() {
+export function openMapGenerator() {
   _mapGen.files = [];
   _mapGen.previewMd = '';
   _mapGen.generatedDocs = {};

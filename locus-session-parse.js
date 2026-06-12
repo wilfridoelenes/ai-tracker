@@ -1,11 +1,11 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:33 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:34 · autor:Rune · 2026-06-12 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
 import { renderStats, getItems, normalizeStatus} from './locus-backlog-core.js';
-import { _isPlaceholderCode, applyPatchesFromTG } from './locus-backlog-item.js';
+import { _isPlaceholderCode, applyPatchesFromTG, _assignPendingIds } from './locus-backlog-item.js'; // T-202606-089 AC-3
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { renderBacklogList } from './locus-backlog-render.js';
 import { _ctrMergeFromItem } from './locus-contracts.js';
@@ -1686,7 +1686,7 @@ function parsePasteStandalone() {
     executionPlan:    (_isJsonFmt && ckpt._rawExecutionPlan)    ? ckpt._rawExecutionPlan    : null,
   };
 
-  const _assignedIds = (typeof _assignPendingIds === 'function') ? _assignPendingIds(tgItems) : 0;
+  const _assignedIds = _assignPendingIds(tgItems);
   const previewHtml = buildTGPreview(tgItems, null);
   prev.innerHTML = `
     <div class="ckpt-pill ckpt-pill--ok ckpt-pill--mb">✓ CHECKPOINT · ${tgItems.length} ítem${tgItems.length !== 1 ? 's' : ''}</div>

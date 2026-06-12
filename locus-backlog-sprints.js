@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -13,6 +13,7 @@ import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
 import { _setBacklogModified } from './locus-docs.js';
+import { openMapGenerator } from './locus-map-generator.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
 
 import { render } from './locus-sesiones.js';
 
@@ -741,7 +742,7 @@ function _sprintInlineInit(wrapEl, form, velocityData) {
   form.init(wrapEl);
 }
 
-function openNewSprintInline(code) {
+export function openNewSprintInline(code) {
   const wrap = document.getElementById('sprint-select-wrap-' + CSS.escape(code));
   if (!wrap) return;
 
@@ -2007,7 +2008,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!btn) return;
     switch (btn.dataset.action) {
       case 'scm-open-map-generator':
-        if (typeof openMapGenerator === 'function') openMapGenerator();
+        openMapGenerator();
         break;
       case 'scm-du-resolve': {
         // T-202606-120 AC-7/AC-8/AC-9/AC-10: resolución de DOC-UPDATE por fila sin recargar stepper

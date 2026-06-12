@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1804,7 +1804,7 @@ export function buildItemRefs(code) {
 const TYPE_LABELS = { I: 'Posibilidad', P: 'Pendiente', T: 'Ticket', R: 'Requerimiento', B: 'Bug' };
 
 // T-108: toggle colapso de ítem individual
-function toggleItemExpand(idx) {
+export function toggleItemExpand(idx) {
   const body = document.getElementById('ibody-' + idx);
   const arrow = document.getElementById('iarrow-' + idx);
   if (!body) return;
@@ -1833,7 +1833,7 @@ export function toggleSectionGroup(key) {
 }
 
 // T-109: limpiar todos los filtros
-function clearAllFilters() {
+export function clearAllFilters() {
   activeTypes = new Set(['T','R','B','P']);
   activeStatuses = new Set(['pendiente', 'en-revision']);
   try { localStorage.removeItem(_ACTIVE_STATUSES_KEY); } catch {} // T-202606-021: reset persiste
@@ -1863,7 +1863,7 @@ function clearAllFilters() {
 }
 
 // R-202605-122 AC3: asignación rápida de effort desde badge sin abrir editor completo
-function _quickAssignEffort(codeOrId) {
+export function _quickAssignEffort(codeOrId) {
   const item = ITEMS.find(i => i.code === codeOrId || i.id === codeOrId);
   if (!item) return;
   const val = prompt('Asignar effort a ' + (item.code || item.id) + ' (1 = simple · 2 = medio · 3 = complejo):', '1');
@@ -1923,7 +1923,7 @@ const _ECOSYSTEM_ROLES = [
 ];
 
 // T-202604-245: cambio de rol inline desde meta-grid
-function setItemRole(code, role) {
+export function setItemRole(code, role) {
   const item = ITEMS.find(i => i.code === code);
   if (!item) return;
   item.role = role || '';

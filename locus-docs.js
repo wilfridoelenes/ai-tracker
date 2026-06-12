@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-04 · mod:7 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-12 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -493,7 +493,7 @@ function _importContextMdFromFile(event) {
 }
 
 // Handler unificado para dropzones — context, htmlmap, backlog
-function _dropzoneHandle(event, doc) {
+export function _dropzoneHandle(event, doc) {
   event.preventDefault();
   const file = event.dataTransfer?.files?.[0];
   if (!file) return;

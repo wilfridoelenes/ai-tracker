@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-12 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -13,6 +13,7 @@ import { _getActiveProjectFilter, _setActiveProjectFilter, _updateProjBreadcrumb
 
 
 import { renderAnalytics } from './locus-analytics-render.js';
+import { setAnalyticsRange } from './locus-analytics-core.js'; // T-202606-089 AC-3
 
 import { loadBacklog, renderStats, updateBacklogBanner, updateStatusFilterUI, getItems} from './locus-backlog-core.js';
 import { closeQuickCapture } from './locus-sesiones-capture.js';
@@ -644,7 +645,7 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
 // T-047: inicializar botón de rango activo al cargar
 (function() {
   const saved = parseInt(localStorage.getItem('analytics-range') || '3', 10);
-  if (typeof setAnalyticsRange === 'function') setAnalyticsRange(saved);
+  setAnalyticsRange(saved);
   document.querySelectorAll('.range-btn').forEach(b => {
     b.classList.toggle('active', parseInt(b.dataset.range) === saved);
   });

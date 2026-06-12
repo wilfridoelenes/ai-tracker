@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-12 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -15,6 +15,7 @@
 // Cada módulo consumidor es responsable de registrar listener 'shell:invoke' para sus propias funciones.
 
 import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter } from './locus-storage.js';
+import { _dropzoneHandle } from './locus-docs.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
 
 // ── Global utility ────────────────────────────────────────────────────────
 // esc() usada por múltiples módulos (backlog, session, toast, checkpoint)
@@ -1404,7 +1405,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
     ctxDropzone.addEventListener('drop', function (e) {
       this.classList.remove('doc-dropzone--over');
-      if (typeof _dropzoneHandle === 'function') _dropzoneHandle(e, 'context');
+      _dropzoneHandle(e, 'context');
     });
     ctxDropzone.addEventListener('click', function () {
       const fi = document.getElementById('context-file-input');

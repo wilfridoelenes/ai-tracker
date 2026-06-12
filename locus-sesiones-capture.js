@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-10 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-12 UTC-6
 // locus-sesiones-capture.js
 // Responsabilidad: Quick Capture modal (stepper de 2 pasos) + Sesión interrumpida (T-055).
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
@@ -299,7 +299,7 @@ function interruptSession(id) {
   });
 }
 
-function dismissInterrupted(id) {
+export function dismissInterrupted(id) {
   const ai = getAI(id);
   ai.interrupted = false;
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));

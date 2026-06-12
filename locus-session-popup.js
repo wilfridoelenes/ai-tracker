@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-12 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -26,7 +26,7 @@ function toggleStatus(id) {
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); _rebuildLogBody();
 }
 
-function toggleShowAll(id) { const ai = getAI(id); ai.showAll = !ai.showAll; save(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); }
+export function toggleShowAll(id) { const ai = getAI(id); ai.showAll = !ai.showAll; save(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); }
 
 export function openDetail(aiId, sessId) {
   const ai = getAI(aiId);
@@ -342,7 +342,7 @@ function togglePopupMid(sessId) {
   sessionStorage.setItem(`pop-mid-${sessId}`, isOpen ? 'open' : 'closed');
 }
 // T-202604-098: Toggle estado inReview en sesión más reciente
-function toggleInReview(aiId, sessId) {
+export function toggleInReview(aiId, sessId) {
   const found = _findSessionByAI(aiId, sessId);
   if (!found) return;
   const s = found.sess;
@@ -740,7 +740,7 @@ function startPopupEdit(field) {
   });
 }
 
-function startRename(id) {
+export function startRename(id) {
   const ai = getAI(id);
   const el = document.getElementById('name-' + id);
   if (!el) return;
@@ -1167,7 +1167,7 @@ function _logScrollTop() {
   if (body) body.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function scrollToLogCard(highlightSessId) {
+export function scrollToLogCard(highlightSessId) {
   if (currentTab !== 'sesiones') switchTab('sesiones');
 
   const grid = document.getElementById('grid');

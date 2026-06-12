@@ -1,11 +1,11 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-12 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
 import { _isBlocked, getItems} from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
-import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, editSprintInline, openSprintRetroView, setSprintStatus } from './locus-backlog-sprints.js';
+import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, editSprintInline, openSprintRetroView, setSprintStatus, openNewSprintInline } from './locus-backlog-sprints.js'; // T-202606-089 AC-3
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto } from './locus-sprint-plan.js';
 import { getAI, getActiveSprints, getAllSessions, save } from './locus-storage.js';
@@ -1436,7 +1436,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // spm-new-sprint-btn → openNewSprintInline()
   const spmNewSprint = document.getElementById('spm-new-sprint-btn');
   if (spmNewSprint) spmNewSprint.addEventListener('click', function () {
-    if (typeof openNewSprintInline === 'function') openNewSprintInline();
+    openNewSprintInline();
   });
 
   // spm-empty-btn-registrar → _spmRegistrar()
