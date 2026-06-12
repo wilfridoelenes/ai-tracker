@@ -1,4 +1,4 @@
-// [PP] v0.3.0 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.3.0 · sprint:PP-S-01 · mod:17 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -876,10 +876,17 @@ function _buildItemFieldsMd(item, state) {
   if (item.sprint) {
     // T-202606-067: Ps siempre exportan con sprint: icebox — independiente del valor en storage
     const _sprintVal = (item.code && item.code[0] === 'P') ? 'icebox' : item.sprint;
-    // T-202606-086: split en sprint_id / sprint_name — campo Sprint legacy eliminado
-    const _sprintParts = String(_sprintVal).split(' · ');
-    const _sprintId = _sprintParts[0];
-    const _sprintName = _sprintParts.length > 1 ? _sprintParts.slice(1).join(' · ') : '';
+    // [pendiente-ID]: leer sprint_id y sprint_name directamente si están presentes (formato nuevo).
+    // Fallback a split de item.sprint para ítems legacy sin campos separados.
+    let _sprintId, _sprintName;
+    if (item.sprint_id) {
+      _sprintId   = item.sprint_id;
+      _sprintName = item.sprint_name || '';
+    } else {
+      const _sprintParts = String(_sprintVal).split(' · ');
+      _sprintId   = _sprintParts[0];
+      _sprintName = _sprintParts.length > 1 ? _sprintParts.slice(1).join(' · ') : '';
+    }
     md += `**SprintId:** ${_sprintId}\n`;
     if (_sprintId !== 'icebox' && _sprintName) md += `**SprintName:** ${_sprintName}\n`;
   }
