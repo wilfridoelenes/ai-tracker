@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1564,8 +1564,10 @@ export function updateBacklogFooter() {
   const done        = getItems().filter(i => _isActive(i) && i.status === 'done' && !(!i.sprint || i.sprint === 'icebox')).length;
   const byType      = { B: 0, T: 0, R: 0, P: 0 };
   // T-202606-096: byType usa mismo universo activos — status ≠ descartado ≠ promovida ≠ historico
+  // + excluye done+icebox (Capa 3 BR-Ecosystem §5) para que B+T+R+P = Pendiente+EnRevisión+Done
   getItems().forEach(i => {
     if (!_isActive(i)) return;
+    if (i.status === 'done' && (!i.sprint || i.sprint === 'icebox')) return;
     const t = itemType(i.code); if (t && byType[t] !== undefined) byType[t]++;
   });
   const activeSp = _getActiveSprint();
