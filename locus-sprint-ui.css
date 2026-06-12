@@ -1,4 +1,4 @@
-/* [PP] v1.2.3 · sprint:PP-S-11 · mod:3 · autor:Rune · 2026-05-30 UTC-6 */
+/* [PP] v1.2.3 · sprint:PP-S-03 · mod:4 · autor:Rune · 2026-06-12 UTC-6 */
 
 /* === locus-backlog-render.js ===
    Funciones: _renderPlanningView · _planCard · _planDragStart · _planDragEnd · _planDrop */
@@ -199,6 +199,7 @@
 }
 
 /* — Cuerpo de la columna — */
+/* T-202606-090: max-height acotada al viewport — scroll independiente sin propagación */
 .bl-plan-col-body {
   display: flex;
   flex-direction: column;
@@ -206,7 +207,9 @@
   padding: 8px;
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
   min-height: 160px;
+  max-height: calc(100dvh - var(--header-h, 53px) - 180px);
 }
 
 /* — Estado vacío en columna — */
@@ -357,10 +360,18 @@
 /* Columna derecha: scroll vertical cuando hay múltiples sprints */
 .bl-plan-col--dest-stack .bl-plan-col-body {
   overflow-y: auto;
+  overscroll-behavior: contain;
   gap: 8px;
   padding: 8px;
   display: flex;
   flex-direction: column;
+}
+
+/* T-202606-090: cuerpo de cada sprint-dest con scroll propio — no afecta .bl-plan-col-body global */
+.bl-plan-dest-sprint .bl-plan-col-body {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  max-height: calc(100dvh - var(--header-h, 53px) - 180px);
 }
 
 /* Lista de sprint-dest cards dentro del col-body */
