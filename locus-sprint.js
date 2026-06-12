@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:9 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:10 · autor:Rune · 2026-06-11 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -56,8 +56,9 @@ function _sprintItemHtml(item) {
   if (isBlocked) cls += ' spi-item--blocked';
   if (isDone)    cls += ' spi-item--done';
 
-  const statusLabel = isDone ? 'Done' : isBlocked ? 'Bloqueado' : 'Pendiente';
-  const statusCls   = isDone ? 'spi-item-status--done' : isBlocked ? 'spi-item-status--blocked' : 'spi-item-status--pendiente';
+  const isEnRevision = !isDone && !isBlocked && item.status === 'en-revision';
+  const statusLabel = isDone ? 'Done' : isBlocked ? 'Bloqueado' : isEnRevision ? 'En revisión' : 'Pendiente';
+  const statusCls   = isDone ? 'spi-item-status--done' : isBlocked ? 'spi-item-status--blocked' : isEnRevision ? 'spi-item-status--en-revision' : 'spi-item-status--pendiente';
   const blockedIcon = isBlocked ? `<span class="spi-item-blocked-icon" aria-hidden="true">⚠</span>` : '';
 
   // Progreso de hijos (Ts)
@@ -345,9 +346,10 @@ function _renderSprintItems(sprint) {
       i.status !== 'descartado';
   });
 
-  const pendiente = spItems.filter(i => i.status !== 'done' && !_sprintIsBlocked(i));
-  const bloqueado = spItems.filter(i => i.status !== 'done' &&  _sprintIsBlocked(i));
-  const done      = spItems.filter(i => i.status === 'done');
+  const pendiente   = spItems.filter(i => i.status === 'pendiente' && !_sprintIsBlocked(i));
+  const enRevision  = spItems.filter(i => i.status === 'en-revision' && !_sprintIsBlocked(i));
+  const bloqueado   = spItems.filter(i => i.status !== 'done' &&  _sprintIsBlocked(i));
+  const done        = spItems.filter(i => i.status === 'done');
 
   // Sección pendiente
   const bodyPend = _spEl('spi-body-pendiente');
@@ -356,6 +358,14 @@ function _renderSprintItems(sprint) {
     ? pendiente.map(_sprintItemHtml).join('')
     : '<div class="spi-section-empty">Sin ítems pendientes</div>';
   if (cntPend) cntPend.textContent = pendiente.length;
+
+  // Sección en-revision — B-202606-031
+  const bodyRev = _spEl('spi-body-en-revision');
+  const cntRev  = _spEl('spi-count-en-revision');
+  if (bodyRev) bodyRev.innerHTML = enRevision.length
+    ? enRevision.map(_sprintItemHtml).join('')
+    : '<div class="spi-section-empty">Sin ítems en revisión</div>';
+  if (cntRev) cntRev.textContent = enRevision.length;
 
   // Sección bloqueado
   const bodyBlk = _spEl('spi-body-bloqueado');
@@ -399,7 +409,7 @@ function _renderSprintItems(sprint) {
   // Botón cierre: visible si hay sprint activo con ítems
   const btnClose = _spEl('btn-close-sprint');
   if (btnClose) {
-    const allDone = spItems.length > 0 && bloqueado.length === 0 && pendiente.length === 0;
+    const allDone = spItems.length > 0 && bloqueado.length === 0 && pendiente.length === 0 && enRevision.length === 0;
     btnClose.classList.toggle('is-hidden', false);
     btnClose.classList.toggle('is-ready', allDone);
   }
