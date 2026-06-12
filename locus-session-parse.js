@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-08 · mod:29 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-08 · mod:30 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -477,30 +477,6 @@ export function _normalizeSprint(item, pendingItems) {
 
 // B-202606-022: resolver [tmp:slug] en campo parent/parentId de un patch contra tgItems del mismo CHECKPOINT.
 // Llama antes de acumular el patch en _patchItems_${id}.
-// AC-1: parent es [tmp:slug] y slug existe en tgItems → reemplazar con código real del ítem encontrado.
-// AC-2: parent es [tmp:slug] y slug NO existe en tgItems → _blogLog + retornar false (patch descartado).
-// AC-3: parent no es placeholder → no modificar, retornar true (patch válido).
-// Muta patch.parentId en AC-1 para que applyPatchesFromTG reciba el código real.
-function _resolvePatchParentSlug(patch, tgItems, blogLog) {
-  const raw = patch.parent || patch.parentId;
-  if (!raw || !/^\[tmp:[a-z0-9_-]+\]$/i.test(raw)) return true; // AC-3: no es slug — válido sin cambio
-  const resolved = tgItems.find(i => i.code === raw);
-  if (!resolved) {
-    // AC-2: slug no encontrado → descartar patch + advertencia DocLog
-    blogLog(
-      'patch-parent-slug-no-resoluble',
-      patch.code,
-      `Patch ${patch.code} descartado: parent "${raw}" no encontrado en ítems del CHECKPOINT — slug sin ítem coincidente.`,
-      'backlog'
-    );
-    return false;
-  }
-  // AC-1: slug resuelto → reemplazar con código real
-  patch.parentId = resolved.code;
-  if (patch.parent) patch.parent = resolved.code;
-  return true;
-}
-
 export function parsePaste(id) {
   const ta = document.getElementById('ta-' + id);
   const text = ta ? ta.value : '';
@@ -563,8 +539,6 @@ export function parsePaste(id) {
                 }
               }
             }
-            // B-202606-022: resolver [tmp:slug] en parent/parentId contra tgItems del CHECKPOINT
-            if (!_resolvePatchParentSlug(_it, tgItems, _blogLog)) continue; // AC-2: slug no resoluble → descartar
             window[`_patchItems_${id}`] = window[`_patchItems_${id}`] || [];
             window[`_patchItems_${id}`].push(_it);
           }
@@ -728,8 +702,6 @@ export function parsePaste(id) {
                   }
                 }
               }
-              // B-202606-022: resolver [tmp:slug] en parent/parentId contra tgItems del CHECKPOINT
-              if (!_resolvePatchParentSlug(_it, tgItems, _blogLog)) continue; // AC-2: slug no resoluble → descartar
               window[`_patchItems_${id}`] = window[`_patchItems_${id}`] || [];
               window[`_patchItems_${id}`].push(_it);
             }
@@ -1697,8 +1669,9 @@ function saveStandaloneCheckpoint() {
   const _doApply = () => {    const mergeResult = _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id);
 
     // R-202605-062: aplicar patches después del merge de ítems normales
+    // B-202606-022: pasar slugMap para resolver [tmp:slug] en parentId de patches
     if (patchItems && patchItems.length) {
-      const patchResult = applyPatchesFromTG(patchItems, syntheticSessId);
+      const patchResult = applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: mergeResult.slugMap });
       // Incorporar patches al mergeResult para que el panel diff los muestre (AC-10)
       if (patchResult.patched && patchResult.patched.length) {
         mergeResult.updated = [...(mergeResult.updated || []), ...patchResult.patched];

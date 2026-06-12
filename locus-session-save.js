@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-08 · mod:33 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-08 · mod:34 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -572,7 +572,7 @@ export function _mergeBacklogWithProject(tgItems, sessId, projId) {
       loadBacklog();
     }
   }
-  return result;
+  return result; // B-202606-022: result ya incluye slugMap desde mergeBacklogFromTG
 }
 
 // T-202606-070: parsea el campo archivos del CHECKPOINT al formato de array estructurado.
@@ -764,8 +764,9 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   const raw = (document.getElementById('ta-' + id) || {}).value || '';
   const mergeResult = _mergeBacklogWithProject(tgItems, sessId, activeProj.id);
   // R-202605-062: aplicar patches después del merge de ítems normales
+  // B-202606-022: pasar slugMap para resolver [tmp:slug] en parentId de patches
   if (parsed.patchItems && parsed.patchItems.length) {
-    applyPatchesFromTG(parsed.patchItems, sessId);
+    applyPatchesFromTG(parsed.patchItems, sessId, { slugMap: mergeResult.slugMap });
   }
 
   // B-202604-XXX: actualizar trackerRefs con códigos reales post-_assignPendingIds

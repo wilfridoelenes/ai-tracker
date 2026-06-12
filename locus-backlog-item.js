@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-08 · mod:7 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -260,13 +260,8 @@ export function _attachBacklogListDelegation() {
       return;
     }
     if (act === 'item-expand') {
-      // B-202606-NNN: toggleItemExpand no existe — lógica inline de toggle
       const idx = parseInt(action.dataset.idx, 10);
-      const body  = document.getElementById('ibody-'  + idx);
-      const arrow = document.getElementById('iarrow-' + idx);
-      if (!body) return;
-      const isOpen = body.classList.toggle('open');
-      if (arrow) arrow.textContent = isOpen ? '▾' : '▸';
+      if (typeof toggleItemExpand === 'function') toggleItemExpand(idx);
       return;
     }
     if (act === 'edit-child') {
@@ -1717,7 +1712,7 @@ function _assignPendingIds(tgItems) {
   const _refFields = ['parentId', 'triggeredBy', 'origenP', 'promovida_a'];
   const _listFields = ['dependsOn'];
 
-  return paso1.map(item => {
+  const resolvedItems = paso1.map(item => {
     let changed = false;
     const patch = {};
 
@@ -1795,6 +1790,8 @@ function _assignPendingIds(tgItems) {
 
     return changed ? { ...item, ...patch } : item;
   });
+  // B-202606-022: exponer slugMap para que mergeBacklogFromTG lo propague hasta applyPatchesFromTG
+  return { items: resolvedItems, slugMap };
 }
 
 // ── T-098: Merge TRACKER-GLOBAL → getItems() en memoria ──
@@ -1808,7 +1805,9 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // B-202604-198: Separar placeholders ANTES de _assignPendingIds para preservar su naturaleza.
   // Los placeholders siempre son ítems nuevos — nunca matchean contra el backlog.
   // _assignPendingIds se aplica solo a los que tienen type char válido (P/T/R/B) y código real.
-  tgItems = _assignPendingIds(tgItems);
+  // B-202606-022: _assignPendingIds retorna { items, slugMap } — slugMap se propaga hasta applyPatchesFromTG
+  const { items: _assignedItems, slugMap: _slugMap } = _assignPendingIds(tgItems);
+  tgItems = _assignedItems;
 
   // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)
   // El schema declara "parent" pero el código usa parentId — mapear antes del loop
@@ -2236,7 +2235,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     renderStats(); // siempre actualizar stat bar aunque no estemos en tab Backlog
     if (getCurrentTab() === 'backlog') { _markBacklogListDirty(); renderBacklogList(); updateBacklogBanner(); }
   }
-  return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions, invalidTransition }; // T-[pendiente-ID]: invalidTransition poblado pre-clasificación
+  return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions, invalidTransition, slugMap: _slugMap }; // T-[pendiente-ID]: invalidTransition poblado pre-clasificación · B-202606-022: slugMap para resolución de [tmp:slug] en applyPatchesFromTG
 }
 
 
@@ -2298,8 +2297,11 @@ function _isActiveRecently(item) {
 const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId', 'promovida_a', 'origenP', 'discard_reason']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable · T-202605-137: promovida_a + origenP patcheables · T-202606-025: discard_reason patcheable
 const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version']);
 
-export function applyPatchesFromTG(patches, sessionId) {
+export function applyPatchesFromTG(patches, sessionId, opts) {
   if (!patches || !patches.length) return { patched: [], ignored: [] };
+
+  // B-202606-022: slugMap pasado desde mergeBacklogFromTG via llamador — resuelve [tmp:slug] en parentId
+  const _slugMap = (opts && opts.slugMap instanceof Map) ? opts.slugMap : null;
 
   const patched = [];
   const ignoredPatches = [];
@@ -2309,6 +2311,19 @@ export function applyPatchesFromTG(patches, sessionId) {
   patches.forEach(patch => {
     // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)
     if (patch.parent && !patch.parentId) { patch.parentId = patch.parent; }
+
+    // B-202606-022: resolver [tmp:slug] en parentId usando slugMap post-mergeBacklogFromTG
+    if (_slugMap && patch.parentId && _isPlaceholderCode(patch.parentId)) {
+      const resolved = _slugMap.get(patch.parentId);
+      if (resolved && !_isPlaceholderCode(resolved)) {
+        patch.parentId = resolved;
+      } else if (!resolved) {
+        _blogLog('patch-parent-slug-no-resuelto', patch.code || '[sin-código]',
+          'parentId: ' + patch.parentId + ' no encontrado en slugMap — campo ignorado', 'backlog');
+        delete patch.parentId;
+      }
+    }
+
     const code = patch.code;
 
     // AC-5: código no existe en backlog → advertencia DocLog
