@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:8 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:9 · autor:Rune · 2026-06-11 UTC-6 
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -562,6 +562,14 @@ export function _attachPlanViewDelegation() {
     if (!card) return;
     _planDragEnd(Object.assign(e, { currentTarget: card }));
   });
+  listEl.addEventListener('dragenter', function _planViewDragEnter(e) {
+    // B-202606-XXX: dragenter con preventDefault estabiliza el feedback visual —
+    // sin él el browser dispara dragleave al entrar en hijos y bl-plan-col--over parpadea
+    const col = e.target.closest('[data-plan-col]');
+    if (!col) return;
+    e.preventDefault();
+    col.classList.add('bl-plan-col--over');
+  });
   listEl.addEventListener('dragover', function _planViewDragOver(e) {
     // T-202605-028: aceptar drop en sprint-dest cards individuales o en columna izquierda
     const col = e.target.closest('[data-plan-col]');
@@ -571,6 +579,9 @@ export function _attachPlanViewDelegation() {
   listEl.addEventListener('dragleave', function _planViewDragLeave(e) {
     const col = e.target.closest('[data-plan-col]');
     if (!col) return;
+    // B-202606-XXX: solo quitar --over si el mouse sale hacia fuera del col —
+    // relatedTarget null o fuera del col indica salida real, no entrada a hijo
+    if (col.contains(e.relatedTarget)) return;
     _planDragLeave(Object.assign(e, { currentTarget: col }));
   });
   listEl.addEventListener('drop', function _planViewDrop(e) {
