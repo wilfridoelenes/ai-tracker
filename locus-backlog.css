@@ -1,4 +1,4 @@
-/* [PP] v1.4.0 · sprint:PP-S-07 · mod:33 · autor:Nova · 2026-06-11 UTC-6 */
+/* [PP] v1.4.0 · sprint:PP-S-07 · mod:34 · autor:Nova · 2026-06-11 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -5601,15 +5601,30 @@ er {
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background: var(--surface1);
+  background: var(--surface2);
   border: 1px solid var(--border);
+  border-bottom: 2px solid var(--border);
   border-radius: var(--radius-md-plus);
   cursor: pointer;
   user-select: none;
 }
 
 .bl-vl-sprint-header:hover {
-  background: var(--surface2);
+  background: var(--surface3);
+}
+
+/* T-[pendiente-ID]: borde-bottom de color por estado del sprint — opción A */
+.sprint-group-active .bl-vl-sprint-header {
+  border-bottom-color: var(--amber);
+}
+
+.sprint-group-planned .bl-vl-sprint-header {
+  border-bottom-color: var(--blue);
+}
+
+.sprint-group-closed .bl-vl-sprint-header {
+  border-bottom-color: var(--hint);
+  opacity: 0.8;
 }
 
 /* ── bl-vl-sprint-body: cuerpo colapsable del grupo de sprint ── */
