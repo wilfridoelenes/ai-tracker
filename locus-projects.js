@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-02 · mod:4 · autor:Rune · 2026-06-11 10:00 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -16,7 +16,7 @@ import { _animateCountUp, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionY
 
 import { openDetail } from './locus-session-popup.js';
 
-import { _projKey, _getActiveProjectFilter, getAI, getAISessions, getProjectSessions, save } from './locus-storage.js'; // inline_fix T-202606-023: _getActiveProjectFilter añadido al import — faltaba en ESM
+import { _projKey, _getActiveProjectFilter, getAI, getAISessions, getProjectSessions, getState, save } from './locus-storage.js'; // inline_fix T-202606-023: _getActiveProjectFilter añadido al import — faltaba en ESM | B-202606-043: getState añadido — migración state global → getState()
 
 import { showToast } from './locus-toast.js';
 
@@ -36,7 +36,7 @@ export function renderProyectos() {
   const el = document.getElementById('tab-proyectos-inner');
   if (!el) return;
 
-  const allProjects = state.projects || [];
+  const allProjects = getState().projects || [];
   const activeProjects = allProjects.filter(p => p.status !== 'archived');
   const archivedProjects = allProjects.filter(p => p.status === 'archived');
   const activeProjId = _getActiveProjectFilter();
@@ -299,7 +299,7 @@ export function renderProyectos() {
     let lastSessHtml = '';
     if (!isArchived) {
       if (last) {
-        const lastAI = state.ais.find(a => a.id === last.aiId);
+        const lastAI = getState().ais.find(a => a.id === last.aiId);
         const lastAIName = lastAI ? lastAI.name : (last.aiId || '—');
         const lastDate = relDate(last.date, last.savedAt || last.createdAt) || _relTimeShort(last.date) || '';
         lastSessHtml = `<div class="proy2-last-sess">
@@ -431,7 +431,7 @@ export function renderProyectos() {
   const suggestion = _suggestionProj();
 
   // R-202604-063 AC-01: header ecosistema — total activos + sesiones globales + high priority urgente
-  const totalGlobalSess = (state.ais || []).reduce((acc, ai) => {
+  const totalGlobalSess = (getState().ais || []).reduce((acc, ai) => {
     return acc + (getAISessions ? getAISessions(ai.id).length : 0);
   }, 0);
   const allHighPending = activeProjects.reduce((acc, p) => {
@@ -479,7 +479,7 @@ function _proyDeleteInline(projId) {
 function _proyDeleteExecute(projId) {
   const proj = getProjectById(projId);
   if (!proj) return;
-  state.projects = (state.projects || []).filter(p => p.id !== projId);
+  getState().projects = (getState().projects || []).filter(p => p.id !== projId);
   if (_getActiveProjectFilter() === projId) {
     _setActiveProjectFilter('');
   }
@@ -509,7 +509,7 @@ function _proyAbrir(projId) {
 const CHRONO_COLORS = ['#7c6af7','#2ecc78','#38bdf8','#e8a832','#e85555','#f472b6','#a3e635','#fb923c'];
 
 function getAIColor(aiId) {
-  const idx = state.ais.findIndex(a => a.id === aiId);
+  const idx = getState().ais.findIndex(a => a.id === aiId);
   return CHRONO_COLORS[idx % CHRONO_COLORS.length] || '#7c6af7';
 }
 
@@ -532,7 +532,7 @@ function renderProject(query) {
 
   // Construir lista plana de sesiones según filtro global de proyecto
   const filterId = _getActiveProjectFilter();
-  const sourceAIs = state.ais.filter(a => !a.archived);
+  const sourceAIs = getState().ais.filter(a => !a.archived);
   const _projForFilter = filterId ? getProjectById(filterId) : null;
   const _aiIdsInProj = _projForFilter ? new Set((_projForFilter.sessions || []).map(s => s.aiId).filter(Boolean)) : null;
   let filteredAIs = (_aiIdsInProj)
@@ -1100,9 +1100,7 @@ function renderProjectAnalytics(projId) {
 
   const allSess = getProjectSessions(projId);
   const projAIIds = new Set(allSess.map(s => s.aiId).filter(Boolean));
-  const projAIs = state.ais.filter(ai => projAIIds.has(ai.id) && !ai.archived);
-
-  if (!allSess.length) {
+  const projAIs = getState().ais.filter(ai => projAIIds.has(ai.id) && !ai.archived);
     section.innerHTML = `<div class="proj-analytics-block"><div class="proj-analytics-block-title">Sin datos</div>
       <div class="proj-no-data-hint">Este proyecto no tiene sesiones registradas aún.</div></div>`;
     return;
@@ -1196,8 +1194,7 @@ function downloadProjectReport(projId) {
   if (!proj) return;
   const projSess = getProjectSessions(projId);
   const projAIIds = new Set(projSess.map(s => s.aiId).filter(Boolean));
-  const projAIs = state.ais.filter(ai => projAIIds.has(ai.id) && !ai.archived);
-  const allSess = projSess
+  const projAIs = getState().ais.filter(ai => projAIIds.has(ai.id) && !ai.archived);
     .map(s => ({ ai: getAI(s.aiId), s }))
     .filter(x => x.ai)
     .sort((a, b) => new Date(b.s.date||0) - new Date(a.s.date||0));

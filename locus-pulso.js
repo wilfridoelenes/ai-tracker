@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 UTC-6
 // locus-pulso.js
 // Última actualización: 2026-05-19 | Panel Pulso del Ecosistema
 // Extraído de: ai-tracker-checkpoint.js · ai-tracker-ai-notes.js
@@ -8,7 +8,7 @@ import { getItems } from './locus-backlog-core.js';
 
 import { loadPlan } from './locus-sprint-plan.js';
 
-import { _tplKey } from './locus-storage.js';
+import { _tplKey, getState } from './locus-storage.js'; // B-202606-042: getState añadido — migración state global → getState()
 
 // ════════════════════════════════════════════════════════════════════
 // CONSTANTE INTERNA
@@ -29,7 +29,7 @@ function _calcPulsoDotState() {
   const allItems = typeof getItems() !== 'undefined' ? getItems() : [];
 
   // Proyectos con al menos una sesión
-  const activeProjects = (state.projects || []).filter(p => (p.sessions || []).length > 0);
+  const activeProjects = (getState().projects || []).filter(p => (p.sessions || []).length > 0);
 
   const projData = activeProjects.map(p => {
     const sessions = p.sessions || [];
@@ -93,7 +93,7 @@ function _calcPulsoDotState() {
 // ════════════════════════════════════════════════════════════════════
 
 function _buildPulsoPlanesHtml() {
-  const projects = (state.projects || []).filter(p => !p.archived);
+  const projects = (getState().projects || []).filter(p => !p.archived);
   const rows = [];
 
   const backlog = (() => {
