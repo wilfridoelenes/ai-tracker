@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6 
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // T2: imports en el mismo orden que index.html declaraba los <script src>
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
@@ -83,26 +83,26 @@ function _updateBackupBadge() {
   } catch(e) {}
 }
 
-// _validateResetSessionsInput / _validateResetBacklogInput: expuestas en window
-// porque son invocadas desde HTML dinámico generado por locus-modals.js
-// B-202605-503 / B-202605-037: migradas desde inline script
-window._validateResetSessionsInput = function(el) {
+// R-202606-002: _validateResetSessionsInput / _validateResetBacklogInput
+// Los overlays reset-sessions-overlay y reset-backlog-overlay no existen en index.html aún —
+// se registran por delegation para cuando sean añadidos al DOM.
+function _validateResetSessionsInput(el) {
   const v = el.value.trim();
   const ok = v === 'RESET';
   document.getElementById('reset-sessions-confirm-btn').disabled = !ok;
   const hint = document.getElementById('reset-sessions-hint');
   if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('is-hidden'); }
   else { hint.classList.add('is-hidden'); }
-};
+}
 
-window._validateResetBacklogInput = function(el) {
+function _validateResetBacklogInput(el) {
   const v = el.value.trim();
   const ok = v === 'RESET';
   document.getElementById('reset-backlog-confirm-btn').disabled = !ok;
   const hint = document.getElementById('reset-backlog-hint');
   if (v.length > 0 && !ok) { hint.textContent = 'Debe ser exactamente: RESET (mayúsculas)'; hint.classList.remove('is-hidden'); }
   else { hint.classList.add('is-hidden'); }
-};
+}
 
 // B-202606-024: window.parsePaste · handlePaste · handleInput eliminados — todos los consumidores usan ESM import
 
@@ -158,4 +158,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // T-202606-006 T3: inyectar refs en ui-shell — rompe ciclos ui-shell ↔ backlog-core y ui-shell ↔ session-hora
   _initUiShellRefs({ getItems, relDate });
+
+  // R-202606-002: registrar listeners de validación de reset — delegation para overlays futuros
+  const _rsInput = document.getElementById('reset-sessions-input');
+  if (_rsInput) _rsInput.addEventListener('input', function() { _validateResetSessionsInput(this); });
+  const _rbInput = document.getElementById('reset-backlog-input');
+  if (_rbInput) _rbInput.addEventListener('input', function() { _validateResetBacklogInput(this); });
 });

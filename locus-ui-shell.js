@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-11 UTC-6 
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -722,7 +722,6 @@ export function _escCascade() {
     () => { const el = document.getElementById('proj-panel-overlay'); if (el && el.offsetParent !== null) { window.dispatchEvent(new CustomEvent('shell:close-proj-panel')); return true; } },
     // (a) event dispatch — locus-pulso.js escucha 'shell:close-pulso-panel'
     () => { const el = document.getElementById('pulso-panel'); if (el && el.offsetParent !== null) { window.dispatchEvent(new CustomEvent('shell:close-pulso-panel')); return true; } },
-    () => { if (window.focusActiveId) { window.focusActiveId = null; return true; } },
   ];
   for (const check of _overlayChecks) {
     if (check()) return;
@@ -841,8 +840,6 @@ document.addEventListener('keydown', e => {
         ? document.getElementById(`sbtn-${_aiId}`)
         : document.querySelector('.sc-save');
       if (_sbtn) _sbtn.click();
-    } else {
-      if (window.focusActiveId) confirmSave(window.focusActiveId);
     }
     return;
   }

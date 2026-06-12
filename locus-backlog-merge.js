@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-07 · mod:7 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -20,9 +20,16 @@ import { render } from './locus-sesiones.js';
 
 import { _templateTrigger, interpretHora, _horaUpdate } from './locus-session-hora.js';
 
-import { downloadTemplates } from './locus-session-save.js';
+import { downloadTemplates, getPendingTemplateDownload, setPendingTemplateDownload } from './locus-session-save.js';
 
 // R-202605-033: Extraído de locus-backlog-item.js
+
+// R-202606-002: _mdiff* convertidas de window.* a variables let de módulo
+// El closure showMergeDiffPanel las asigna al abrir y null al cerrar — mismo ciclo de vida
+let _mdiffToggleSection = null;
+let _mdiffJumpTo = null;
+let _mdiffSetItemSprint = null;
+let _mdiffUpdateConfirmBtn = null;
 
 // T-202606-037: ckptMeta — campos narrativos del CHECKPOINT para sección superior del panel.
 // Objeto con campos: { resumen, aprendizaje, bloqueantes, decision, proximoPaso } — todos string, todos opcionales.
@@ -608,10 +615,10 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       _rejectBtn.addEventListener('click', () => {
         overlay.classList.remove('open');
         document.removeEventListener('keydown', _mdiffKeyHandler);
-        delete window._mdiffUpdateConfirmBtn;
-        delete window._mdiffToggleSection;
-        delete window._mdiffJumpTo;
-        delete window._mdiffSetItemSprint;
+        _mdiffUpdateConfirmBtn = null;
+        _mdiffToggleSection = null;
+        _mdiffJumpTo = null;
+        _mdiffSetItemSprint = null;
       }, { once: true });
     }
   }
@@ -663,14 +670,14 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   }
 
   // Helper: toggle sección
-  window._mdiffToggleSection = function(btn) {
+  _mdiffToggleSection = function(btn) {
     const body = btn.nextElementSibling;
     const collapsed = btn.classList.toggle('is-collapsed');
     body.classList.toggle('is-hidden', collapsed);
   };
 
   // Helper: jump a sección
-  window._mdiffJumpTo = function(secId) {
+  _mdiffJumpTo = function(secId) {
     const el = document.getElementById('mdiff-sec-' + secId);
     if (!el) return;
     // Si está colapsada, expandir
@@ -684,7 +691,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   };
 
   // R-202605-148: persistir sprint desde select inline del DIFF sin re-render del panel
-  window._mdiffSetItemSprint = function(sel) {
+  _mdiffSetItemSprint = function(sel) {
     const code = sel.dataset.itemCode;
     if (!code) return;
     const val = sel.value;
@@ -766,7 +773,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     const sel = document.createElement('select');
     sel.className = 'mdiff-sprint-select';
     if (code) sel.dataset.itemCode = code;
-    sel.addEventListener('change', function() { window._mdiffSetItemSprint && window._mdiffSetItemSprint(sel); });
+    sel.addEventListener('change', function() { if (_mdiffSetItemSprint) _mdiffSetItemSprint(sel); });
     sel.addEventListener('click', function(e) { e.stopPropagation(); });
 
     // B-202606-054: 'Sin sprint' (value='') eliminado — valor inválido según BR-Ecosystem §5.
@@ -820,7 +827,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   }
 
   // Helper: validar pendientes y actualizar panel derecho
-  window._mdiffUpdateConfirmBtn = function() {
+  _mdiffUpdateConfirmBtn = function() {
     const applyBtn   = document.getElementById('mdiff-apply-btn');
     const backlogBtn = document.getElementById('mdiff-backlog-btn');
     if (!applyBtn) return;
@@ -1033,10 +1040,10 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     overlay.classList.remove('open');
     document.removeEventListener('keydown', _mdiffKeyHandler);
     // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
-    delete window._mdiffUpdateConfirmBtn;
-    delete window._mdiffToggleSection;
-    delete window._mdiffJumpTo;
-    delete window._mdiffSetItemSprint;
+    _mdiffUpdateConfirmBtn = null;
+    _mdiffToggleSection = null;
+    _mdiffJumpTo = null;
+    _mdiffSetItemSprint = null;
 
     if (appliedCount > 0) {
       showToast('success', `Sesión guardada — ${appliedCount} ítem${appliedCount !== 1 ? 's' : ''} aplicado${appliedCount !== 1 ? 's' : ''}`);
@@ -1092,9 +1099,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     }
     const action = btn.dataset.action;
     if (action === 'mdiff-toggle-section') {
-      window._mdiffToggleSection && window._mdiffToggleSection(btn);
+      if (_mdiffToggleSection) _mdiffToggleSection(btn);
     } else if (action === 'mdiff-jump-to') {
-      window._mdiffJumpTo && window._mdiffJumpTo(btn.dataset.secId);
+      if (_mdiffJumpTo) _mdiffJumpTo(btn.dataset.secId);
     }
   });
 
@@ -1102,17 +1109,17 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   overlay.addEventListener('change', function(e) {
     // Sprint select — data-action="mdiff-set-sprint" (generado por _sprintSelect)
     if (e.target.classList.contains('mdiff-sprint-select') && e.target.dataset.action === 'mdiff-set-sprint') {
-      window._mdiffSetItemSprint && window._mdiffSetItemSprint(e.target);
+      if (_mdiffSetItemSprint) _mdiffSetItemSprint(e.target);
       return;
     }
     // Retroceso checkbox — data-retroceso-idx (generado en _mdiffUpdateConfirmBtn)
     if (e.target.classList.contains('mdiff-right-retro-cb')) {
-      window._mdiffUpdateConfirmBtn && window._mdiffUpdateConfirmBtn();
+      if (_mdiffUpdateConfirmBtn) _mdiffUpdateConfirmBtn();
       return;
     }
     // Discard select — data-discard-idx (generado en _mdiffUpdateConfirmBtn)
     if (e.target.classList.contains('mdiff-right-discard-select')) {
-      window._mdiffUpdateConfirmBtn && window._mdiffUpdateConfirmBtn();
+      if (_mdiffUpdateConfirmBtn) _mdiffUpdateConfirmBtn();
       return;
     }
   });
@@ -1121,10 +1128,10 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     overlay.classList.remove('open');
     document.removeEventListener('keydown', _mdiffKeyHandler);
     // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
-    delete window._mdiffUpdateConfirmBtn;
-    delete window._mdiffToggleSection;
-    delete window._mdiffJumpTo;
-    delete window._mdiffSetItemSprint;
+    _mdiffUpdateConfirmBtn = null;
+    _mdiffToggleSection = null;
+    _mdiffJumpTo = null;
+    _mdiffSetItemSprint = null;
     // Sin toast — el usuario canceló deliberadamente
   });
 
@@ -1193,10 +1200,10 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       document.removeEventListener('keydown', _mdiffKeyHandler);
       overlay.classList.remove('open');
       // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
-      delete window._mdiffUpdateConfirmBtn;
-      delete window._mdiffToggleSection;
-      delete window._mdiffJumpTo;
-      delete window._mdiffSetItemSprint;
+      _mdiffUpdateConfirmBtn = null;
+      _mdiffToggleSection = null;
+      _mdiffJumpTo = null;
+      _mdiffSetItemSprint = null;
     }
   }
   document.addEventListener('keydown', _mdiffKeyHandler);
@@ -1264,10 +1271,10 @@ export function _confirmRetroceso(code, toStatus) {
         renderBacklogList(); updateBacklogBanner(); renderStats();
       }
       // Disparar descarga diferida si no quedan retrocesos ni descartes pendientes
-      if (window._pendingTemplateDownload) {
+      if (getPendingTemplateDownload()) {
         const panel = document.getElementById('ckpt-panel-body');
         const stillPending = panel && (panel.querySelector('.ckpt-section.retroceso') || panel.querySelector('.ckpt-section.discarded'));
-        if (!stillPending) { window._pendingTemplateDownload = false; if (_templateTrigger() === 'session') downloadTemplates(); }
+        if (!stillPending) { setPendingTemplateDownload(false); if (_templateTrigger() === 'session') downloadTemplates(); }
       }
     }
   });
@@ -1369,7 +1376,7 @@ function _applyDiscardBatch(items) {
     if (sec) sec.remove();
   }
   // Disparar descarga diferida si no quedan retrocesos pendientes
-  if (window._pendingTemplateDownload) {
+  if (getPendingTemplateDownload()) {
     const stillPending = panel && panel.querySelector('.ckpt-section.retroceso');
     if (!stillPending) {
       if (_templateTrigger() === 'session') downloadTemplates();

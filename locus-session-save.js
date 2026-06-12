@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-08 · mod:34 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:35 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -31,6 +31,8 @@ import { showToast } from './locus-toast.js';
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
 let _pendingTemplateDownload = false; // T5: variable de módulo — reemplaza window._pendingTemplateDownload
+export function getPendingTemplateDownload() { return _pendingTemplateDownload; }
+export function setPendingTemplateDownload(v) { _pendingTemplateDownload = v; }
 // T-202606-020 · AC-5: tabla de transiciones válidas por tipo de ítem — BR-Core §4
 // Clave: tipo de ítem ('R' | 'T' | 'B' | 'P'). Valor: Set de status permitidos.
 // Nota: tipo desconocido → no validar (AC-6, ignorar silenciosamente).
