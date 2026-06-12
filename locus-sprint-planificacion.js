@@ -1,8 +1,9 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:16 · autor:Rune · 2026-06-12 UTC-6 
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:17 · autor:Rune · 2026-06-12 UTC-6 
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
 // T-202606-091: headers colapsables en sprints destino — delegación en bl-plan-col-header
+// T-202606-092: drop de R mueve Ts hijos activos al mismo sprint destino
 
 import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
 import { showToast } from './locus-toast.js';
@@ -536,6 +537,19 @@ function _planDrop(e, targetCol, listEl) {
       return;
     }
     setItemSprint(item.code, targetSprintId);
+    // T-202606-092: si el ítem es R, mover Ts hijos activos al mismo sprint
+    if (itemType(item.code) === 'R') {
+      const activeStatuses = new Set(['pendiente', 'en-revision']);
+      const childTs = getItems().filter(i =>
+        i.parent === item.code &&
+        itemType(i.code) === 'T' &&
+        activeStatuses.has(i.status)
+      );
+      childTs.forEach(t => setItemSprint(t.code, targetSprintId));
+      if (childTs.length > 3) {
+        showToast('t-neutral', `R movido · ${childTs.length} Ts al sprint ${targetSprintId}`);
+      }
+    }
   }
 
   // B-202606-034: re-renderizar usando el listEl del closure de _attachPlanViewDelegation.
