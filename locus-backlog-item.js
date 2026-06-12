@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-08 · mod:9 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1561,10 +1561,15 @@ export function updateBacklogFooter() {
   const countable = getItems().filter(i => _isCountableItem(i) && !i.sprint || !closedSprintIds.has(i.sprint));
   const total    = getItems().filter(i => _isCountableItem(i)).length;
   const pend     = getItems().filter(i => _isCountableItem(i) && i.status === 'pendiente').length;
-  const done     = getItems().filter(i => _isCountableItem(i) && i.status === 'done').length;
+  // B-202606-036: done+icebox no contabiliza — consistente con stats-bar (Capa 3 per BR-Ecosystem §5)
+  const done     = getItems().filter(i => _isCountableItem(i) && i.status === 'done' && !(!i.sprint || i.sprint === 'icebox')).length;
   const pIdeas   = getItems().filter(i => itemType(i.code) === 'P' && i.status !== 'descartado').length;
   const byType   = { B: 0, T: 0, R: 0, P: 0 };
-  getItems().forEach(i => { const t = itemType(i.code); if (t && byType[t] !== undefined) byType[t]++; });
+  // B-202606-037: excluir descartado/historico — consistente con stats-bar (renderStats usa countableItems)
+  getItems().forEach(i => {
+    if (i.status === 'descartado' || i.status === 'historico') return;
+    const t = itemType(i.code); if (t && byType[t] !== undefined) byType[t]++;
+  });
   const activeSp = _getActiveSprint();
 
   footer.innerHTML = `
@@ -1583,7 +1588,8 @@ export function updateBacklogFooter() {
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Esfuerzo</span>
         ${[1,2,3].map(e => {
-          const cnt = getItems().filter(i => (parseInt(i.effort)||1) === e).length;
+          // B-202606-037: excluir descartado/historico — consistente con stats-bar
+          const cnt = getItems().filter(i => i.status !== 'descartado' && i.status !== 'historico' && (parseInt(i.effort)||1) === e).length;
           return `<button class="bl-filter-chip${_getActiveEfforts().has(e) ? ' active' : ''}" data-action="footer-effort-filter" data-effort="${e}" title="Effort ${e}">E${e} <span>${cnt}</span></button>`;
         }).join('')}
       </div>
@@ -1889,7 +1895,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // AC-2: type desconocido → no interceptar. AC-3: sin status → no interceptar.
       if (newStatus && newStatus !== oldStatus && !item._noStatus) {
         const _existingType = existing.type || (existing.code ? existing.code.charAt(0) : '');
-        if (_existingType &&
+        if (_existingType && typeof validateLifecycleTransitions === 'function' &&
             Object.prototype.hasOwnProperty.call(
               { R: 1, T: 1, B: 1, P: 1 }, _existingType
             )) {
