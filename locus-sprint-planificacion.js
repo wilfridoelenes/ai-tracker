@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:10 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:11 · autor:Rune · 2026-06-11 UTC-6 
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -486,6 +486,8 @@ function _planDragStart(e) {
   _planDragCode = card.dataset.code;
   card.classList.add('bl-plan-card--dragging');
   e.dataTransfer.effectAllowed = 'move';
+  // B-202606-034: setData requerido — sin él el browser no dispara el evento drop
+  e.dataTransfer.setData('text/plain', _planDragCode);
 }
 
 function _planDragEnd(e) {
