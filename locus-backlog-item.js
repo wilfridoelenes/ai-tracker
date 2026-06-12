@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-08 · mod:9 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -7,7 +7,7 @@
 import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemType, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn } from './locus-backlog-render.js';
 import { _normalizeSprint } from './locus-session-parse.js';
-import { _blogLog, _tplKey, getAI, getActiveSprints, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
+import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
 
 
 import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel } from './locus-backlog-panel.js';
@@ -1005,7 +1005,7 @@ export function buildBacklogItem(item) {
     ${item.role && item.area ? `<span class="bitem-subline-sep">·</span>` : ''}
     ${item.area ? `<span class="bitem-subline-area" title="${esc(item.area)}">${esc(item.area)}</span>` : ''}
     ${item.area && (item.sprint || isIdea) ? `<span class="bitem-subline-sep">·</span>` : ''}
-    ${item.sprint ? `<span class="bitem-subline-sprint" title="${esc((() => { const _s = getActiveSprints().find(s => s.id === item.sprint); return _s ? (_s.label || item.sprint) : item.sprint; })())}">${esc((() => { const _s = getActiveSprints().find(s => s.id === item.sprint); return _s ? _s.id : item.sprint; })())}</span>` : (isIdea && !isDone && !isDiscarded ? '<span class="bitem-no-sprint" title="Sin sprint asignado">sin sprint</span>' : '')}
+    ${item.sprint ? `<span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>` : (isIdea && !isDone && !isDiscarded ? '<span class="bitem-no-sprint" title="Sin sprint asignado">sin sprint</span>' : '')}
     ${_discardReasonHtml}
     ${missingFields.length ? `<span class="bitem-missing-warn" title="Faltan: ${missingFields.join(', ')}">⚠</span>` : ''}
   </div>`;

@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-12 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-076 · T-202606-077: export ESM BACKLOG_LOG_MAX y _DOC_LOG_KEYS
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1561,6 +1561,15 @@ export function getActiveSprints(currentOnly = false) {
   const sprints = proj.sprints || [];
   if (currentOnly) return sprints.find(sp => sp.current === true) || null;
   return sprints;
+}
+
+// T-202606-087: display canónico 'id · nombre' para sprint — usado en card subline e IDP.
+// Si el sprint no está registrado en getActiveSprints() o su label coincide con el id, retorna solo el id.
+export function _sprintDisplay(sprintId) {
+  if (!sprintId) return sprintId;
+  const sp = getActiveSprints().find(s => s.id === sprintId);
+  const label = sp && sp.label;
+  return (label && label !== sprintId) ? `${sprintId} · ${label}` : sprintId;
 }
 
 // Contar sesiones de una IA en todos los proyectos

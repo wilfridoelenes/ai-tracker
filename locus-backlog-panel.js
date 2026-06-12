@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -6,7 +6,7 @@
 
 import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemType, renderStats, setItemStatus, undoBacklog, getItems, _registerCoreCallback } from './locus-backlog-core.js';
 import { exportBacklogMd } from './locus-backlog-generator.js';
-import { _getActiveProjectFilter, getAI, getActiveSprints, getAllSessions, getProjectById, save, saveImmediate } from './locus-storage.js';
+import { _getActiveProjectFilter, getAI, getActiveSprints, _sprintDisplay, getAllSessions, getProjectById, save, saveImmediate } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 
 import { renderBacklogList } from './locus-backlog-render.js';
@@ -349,7 +349,7 @@ function _renderItemPanel(item) {
 
   // ══ Metadata grid — campos editables ══
   const sprintOptions = getActiveSprints().filter(s => s.status !== 'closed')
-    .map(s => `<option value="${esc(s.id)}"${item.sprint === s.id ? ' selected' : ''}>${esc(s.label || s.id)}${s.status === 'active' ? ' ★' : ''}</option>`).join('');
+    .map(s => `<option value="${esc(s.id)}"${item.sprint === s.id ? ' selected' : ''}>${esc(_sprintDisplay(s.id))}${s.status === 'active' ? ' ★' : ''}</option>`).join('');
   const sprintOrphan = item.sprint && !getActiveSprints().find(s => s.id === item.sprint)
     ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : '';
   // T-202606-036 AC4: T con parent — sprint heredado no editable
