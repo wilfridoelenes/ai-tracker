@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1716,7 +1716,8 @@ export function renderStats() {
   // Contador separado de P (ideas) — visible pero fuera del flujo de trabajo activo
   // T-202606-100: closedSprintIds disponible via _getCountableBase() — recalcular inline para Ps (no pasan _isCountableItem)
   const _closedIdsForP = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
-  const pIdeasCount = ITEMS.filter(i => itemType(i.code) === 'P' && !(_closedIdsForP.size && _closedIdsForP.has(i.sprint)) && i.status !== 'descartado' && i.status !== 'historico').length;
+  // T-202606-102: excluir promovidas — pIdeasCount solo cuenta Ps con status pendiente
+  const pIdeasCount = ITEMS.filter(i => itemType(i.code) === 'P' && !(_closedIdsForP.size && _closedIdsForP.has(i.sprint)) && i.status === 'pendiente').length;
   // T-202606-101: desglose histórico — fuente real: ITEMS en memoria
   // _emitidos = ITEMS.length (no _lastIds — refleja ID más alto, no conteo real)
   // _descartadosTotal = filtro directo sobre ITEMS
