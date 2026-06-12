@@ -1101,6 +1101,7 @@ function renderProjectAnalytics(projId) {
   const allSess = getProjectSessions(projId);
   const projAIIds = new Set(allSess.map(s => s.aiId).filter(Boolean));
   const projAIs = getState().ais.filter(ai => projAIIds.has(ai.id) && !ai.archived);
+  if (!allSess.length) {
     section.innerHTML = `<div class="proj-analytics-block"><div class="proj-analytics-block-title">Sin datos</div>
       <div class="proj-no-data-hint">Este proyecto no tiene sesiones registradas aún.</div></div>`;
     return;
