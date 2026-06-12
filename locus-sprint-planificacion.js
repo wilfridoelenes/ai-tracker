@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:17 · autor:Rune · 2026-06-12 UTC-6 
+// [PP] v1.2.4 · sprint:PP-S-HOTFIX · mod:18 · autor:Rune · 2026-06-12 UTC-6
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -606,12 +606,11 @@ export function _attachPlanViewDelegation(listEl) {
     col.classList.add('bl-plan-col--over');
   });
   listEl.addEventListener('dragleave', function _planViewDragLeave(e) {
-    const col = e.target.closest('[data-plan-col]');
-    if (!col) return;
-    // B-202606-034: solo quitar --over si el mouse sale hacia fuera del col —
-    // relatedTarget null o fuera del col indica salida real, no entrada a hijo
-    if (col.contains(e.relatedTarget)) return;
-    _planDragLeave(Object.assign(e, { currentTarget: col }));
+    // B-202606-034: dragleave solo actúa cuando el cursor sale del listEl completo —
+    // dragenter ya limpia --over entre columnas en §594. Si relatedTarget sigue dentro
+    // de listEl el movimiento es inter-columna y no hay nada que limpiar aquí.
+    if (listEl.contains(e.relatedTarget)) return;
+    listEl.querySelectorAll('[data-plan-col]').forEach(c => c.classList.remove('bl-plan-col--over'));
   });
   listEl.addEventListener('drop', function _planViewDrop(e) {
     // B-202606-039: e.target puede ser el wrapper .bl-plan-col--right (sin data-plan-col)
