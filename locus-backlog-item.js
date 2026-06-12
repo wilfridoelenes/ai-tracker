@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1556,18 +1556,16 @@ export function updateBacklogFooter() {
     });
   }
 
-  const d = new Date().toISOString().split('T')[0];
-  const closedSprintIds = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
-  const countable = getItems().filter(i => _isCountableItem(i) && !i.sprint || !closedSprintIds.has(i.sprint));
-  const total    = getItems().filter(i => _isCountableItem(i)).length;
-  const pend     = getItems().filter(i => _isCountableItem(i) && i.status === 'pendiente').length;
+  // T-202606-096: universo canónico activos = status ≠ descartado AND status ≠ promovida
+  const _isActive = i => i.status !== 'descartado' && i.status !== 'promovida' && i.status !== 'historico';
+  const pend        = getItems().filter(i => _isActive(i) && i.status === 'pendiente').length;
+  const enRevision  = getItems().filter(i => _isActive(i) && i.status === 'en-revision').length;
   // B-202606-036: done+icebox no contabiliza — consistente con stats-bar (Capa 3 per BR-Ecosystem §5)
-  const done     = getItems().filter(i => _isCountableItem(i) && i.status === 'done' && !(!i.sprint || i.sprint === 'icebox')).length;
-  const pIdeas   = getItems().filter(i => itemType(i.code) === 'P' && i.status !== 'descartado').length;
-  const byType   = { B: 0, T: 0, R: 0, P: 0 };
-  // B-202606-037: excluir descartado/historico — consistente con stats-bar (renderStats usa countableItems)
+  const done        = getItems().filter(i => _isActive(i) && i.status === 'done' && !(!i.sprint || i.sprint === 'icebox')).length;
+  const byType      = { B: 0, T: 0, R: 0, P: 0 };
+  // T-202606-096: byType usa mismo universo activos — status ≠ descartado ≠ promovida ≠ historico
   getItems().forEach(i => {
-    if (i.status === 'descartado' || i.status === 'historico') return;
+    if (!_isActive(i)) return;
     const t = itemType(i.code); if (t && byType[t] !== undefined) byType[t]++;
   });
   const activeSp = _getActiveSprint();
@@ -1583,13 +1581,14 @@ export function updateBacklogFooter() {
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Status</span>
         <button class="bl-filter-chip${_getActiveStatuses().has('pendiente') ? ' active' : ''}" data-action="footer-status-filter" data-status="pendiente">Pendiente <span>${pend}</span></button>
+        <button class="bl-filter-chip${_getActiveStatuses().has('en-revision') ? ' active' : ''}" data-action="footer-status-filter" data-status="en-revision">En revisión <span>${enRevision}</span></button>
         <button class="bl-filter-chip${_getActiveStatuses().has('done') ? ' active' : ''}" data-action="footer-status-filter" data-status="done">Done <span>${done}</span></button>
       </div>
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Esfuerzo</span>
         ${[1,2,3].map(e => {
-          // B-202606-037: excluir descartado/historico — consistente con stats-bar
-          const cnt = getItems().filter(i => i.status !== 'descartado' && i.status !== 'historico' && (parseInt(i.effort)||1) === e).length;
+          // T-202606-096: excluir descartado/promovida/historico — universo activos
+          const cnt = getItems().filter(i => _isActive(i) && (parseInt(i.effort)||1) === e).length;
           return `<button class="bl-filter-chip${_getActiveEfforts().has(e) ? ' active' : ''}" data-action="footer-effort-filter" data-effort="${e}" title="Effort ${e}">E${e} <span>${cnt}</span></button>`;
         }).join('')}
       </div>

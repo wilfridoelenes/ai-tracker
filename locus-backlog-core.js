@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1704,38 +1704,44 @@ export function renderStats() {
   // R-202605-122 AC5: contador de ítems sin effort (excluye P e históricos)
   const noEffortCount = countableItems.filter(i => !i.effort && itemType(i.code) !== 'P' && i.status !== 'historico').length;
 
-  // Nivel 1: totales globales — P (ideas) excluidas de todos los contadores de trabajo activo
-  const backlogCount = countableItems.filter(i => i.status === 'pendiente').length;
-  const done     = countableItems.filter(i => i.status === 'done').length;
-  // T-202604-358: descartados — discreto, no afecta pct
-  const descartadoCount = ITEMS.filter(i => _isCountableItem(i) && i.status === 'descartado').length;
-  const total    = backlogCount + done;
-  const pct      = total > 0 ? Math.round((done / total) * 100) : 0;
+  // T-202606-096: universo canónico — activos = countableItems (pendiente + en-revision + done)
+  const backlogCount    = countableItems.filter(i => i.status === 'pendiente').length;
+  const enRevisionCount = countableItems.filter(i => i.status === 'en-revision').length;
+  const done            = countableItems.filter(i => i.status === 'done').length;
+  const total = backlogCount + enRevisionCount + done;
+  const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
   // Contador separado de P (ideas) — visible pero fuera del flujo de trabajo activo
   const pIdeasCount = ITEMS.filter(i => itemType(i.code) === 'P' && !isInClosedSprint(i) && i.status !== 'descartado' && i.status !== 'historico').length;
+  // T-202606-096: desglose histórico — emitidos desde meta.counters (lastIds), descartados desde ITEMS
+  const _metaForStats = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
+  const _lastIds = _metaForStats.counters || {};
+  const _emitidos = (_lastIds.P || 0) + (_lastIds.T || 0) + (_lastIds.R || 0) + (_lastIds.B || 0);
+  const _descartadosTotal = ITEMS.filter(i => i.status === 'descartado').length;
+  const _activosTotal = _emitidos > 0 ? (_emitidos - _descartadosTotal) : 0;
 
   document.getElementById('stats-bar').innerHTML = `
     <div class="stats-row">
-      <!-- Nivel 1: progreso global -->
+      <!-- Nivel 1: progreso global — universo activos (done + en-revision + pendiente) -->
       <div class="stat-card s-progress">
         <div class="stat-progress-top">
           <div class="stat-progress-nums">
             <div class="stat-progress-item">
-              <span class="stat-progress-n">${backlogCount}</span>
-              <span class="stat-progress-l">Pendiente</span>
-            </div>
-            <div class="stat-progress-item">
               <span class="stat-progress-n s-done">${done}</span>
               <span class="stat-progress-l">Hecho</span>
             </div>
-            ${descartadoCount > 0 ? `<div class="stat-progress-item stat-progress-item--discarded">
-              <span class="stat-progress-n s-discarded">${descartadoCount}</span>
-              <span class="stat-progress-l">Descartado</span>
+            ${enRevisionCount > 0 ? `<div class="stat-progress-item">
+              <span class="stat-progress-n s-enrevision">${enRevisionCount}</span>
+              <span class="stat-progress-l">En revisión</span>
             </div>` : ''}
+            <div class="stat-progress-item">
+              <span class="stat-progress-n">${backlogCount}</span>
+              <span class="stat-progress-l">Pendiente</span>
+            </div>
           </div>
           ${total > 0 ? `<span class="stat-progress-pct">${pct}% completado</span>` : ''}
         </div>
         <div class="stat-mini-track"><div class="stat-mini-fill" style="--stat-mini-w:${pct}%"></div></div>
+        ${_emitidos > 0 ? `<div class="stat-progress-historical"><span class="sph-item">${_emitidos} emitidos</span><span class="sph-sep">·</span><span class="sph-item">${_descartadosTotal} descartados</span><span class="sph-sep">·</span><span class="sph-item sph-activos">${_activosTotal} activos</span></div>` : ''}
       </div>
       <!-- Nivel 2: chips de tipo accionables — P (ideas) separado del flujo activo -->
       <div class="stat-card s-types">
