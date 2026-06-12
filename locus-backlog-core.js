@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-11 UTC-6 
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1030,6 +1030,19 @@ function relativeImportTime(ts) {
   return remHours > 0 ? `hace ${days}d ${remHours}h` : `hace ${days}d`;
 }
 
+// B-202606-032: helper compartido — mismo filtro que countableItems en renderStats()
+// Excluye: históricos, descartados, ítems de sprints cerrados, done+icebox
+function _getCountableForBanner() {
+  const closedSprintIds = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
+  return ITEMS.filter(i =>
+    _isCountableItem(i) &&
+    i.status !== 'descartado' &&
+    i.status !== 'historico' &&
+    !(i.sprint && closedSprintIds.has(i.sprint)) &&
+    !(i.status === 'done' && (!i.sprint || i.sprint === 'icebox'))
+  );
+}
+
 // T-048: actualizar banner
 export function updateBacklogBanner() {
   const banner    = document.getElementById('backlog-meta-banner');
@@ -1057,7 +1070,9 @@ export function updateBacklogBanner() {
   const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
   el('bmeta-version', meta.version || '—');
   // T-202606-099: badge de conteo en gf-* — misma lógica que bmeta-total
-  const label = ITEMS.length + ' ítem' + (ITEMS.length !== 1 ? 's' : '');
+  // B-202606-032: usar _getCountableForBanner() — excluye históricos, descartados y sprints cerrados
+  const _countForBanner = _getCountableForBanner().length;
+  const label = _countForBanner + ' ítem' + (_countForBanner !== 1 ? 's' : '');
   if (gfItems)  { gfItems.textContent = label; gfItems.classList.remove('is-hidden'); }
   if (gfToggle) gfToggle.classList.remove('is-hidden');
 }
