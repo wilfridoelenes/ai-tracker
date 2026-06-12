@@ -1,14 +1,13 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-06-12 00:00 UTC-6
 // locus-pend.js
 // Módulo: Panel de Pendientes — openPendPanel · closePendPanel
 // Extraído de locus-misc-ui.js (T2 · T-202605-073)
 import { _restoreModalFocus } from './locus-modals.js';
-import { getState, getAISessions } from './locus-storage.js';
+import { getState, getAISessions, _relTs } from './locus-storage.js'; // T-202606-097: _relTs importada via ESM — reemplaza fallback window._relTs
 import { openDetail } from './locus-session-popup.js';
 import { esc } from './locus-ui-shell.js';
 
 const _esc = (s) => esc(s);
-const _relTs = (ts) => window._relTs ? window._relTs(ts) : '';
 
 // ── Pendientes panel ──
 export function openPendPanel() {

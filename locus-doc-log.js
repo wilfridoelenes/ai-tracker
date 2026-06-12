@@ -1,13 +1,13 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-06-12 00:00 UTC-6
 // locus-doc-log.js
 // Módulo: Doc Activity Log — openDocLog · closeDocLog · _updateDocLogCount · _renderDocLog · clearDocLog
 // Migrado desde locus-misc-ui.js (T-202605-074)
 
 import { _restoreModalFocus } from './locus-modals.js';
 import { esc } from './locus-ui-shell.js';
+import { _relTs } from './locus-storage.js'; // T-202606-097: ESM Pure — reemplaza fallback window._relTs
 
 const _esc = (s) => esc(s);
-const _relTs = (ts) => window._relTs ? window._relTs(ts) : '';
 
 // ── Doc Activity Drawer ──
 

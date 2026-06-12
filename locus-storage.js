@@ -699,7 +699,7 @@ export function _blogLog(action, code, detail, doc) {
   try { localStorage.setItem(key, JSON.stringify(log)); } catch {}
 }
 
-function _relTs(ts) {
+export function _relTs(ts) {
   const diff = Math.floor((Date.now() - ts) / 1000);
   if (diff < 60) return 'ahora';
   if (diff < 3600) return 'hace ' + Math.floor(diff / 60) + ' min';
