@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-08 · mod:7 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-08 · mod:8 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -2158,7 +2158,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           desc: '',
           priority: item.priority || 'medium',  // T-202606-032 / B-202606-015: tomar priority del ítem entrante — no hardcodear 'medium'
           area: item.area || '',
-          effort: item.effort || 1,
+          effort: item.effort != null ? item.effort : 1, // B-202606-023: preservar effort declarado — null || 1 pisaba el valor con default
           impact: 'Medio',
           status: initialStatus,
           version: 'futura',
