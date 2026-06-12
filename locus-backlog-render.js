@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-08 · mod:6 · autor:Rune · 2026-06-11 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -286,12 +286,12 @@ function _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems) {
   // Rs visibles — para saber qué parents mostrar
   const rCodes   = new Set(rItems.map(r => r.code));
 
-  // childMap desde getItems() completo — incluye Ts con cualquier status (done, descartado, etc.)
-  // Solo excluye históricos y Ts cuyo R padre no es visible en la vista actual
+  // childMap desde getItems() completo — incluye Ts con cualquier status excepto historico/descartado
+  // B-202606-041: excluye 'descartado' además de 'historico' — Ts descartados no cuentan en bl-vc-r-count
   const childMap = {};
   getItems().forEach(t => {
     if (itemType(t.code) !== 'T') return;
-    if (t.status === 'historico') return;
+    if (t.status === 'historico' || t.status === 'descartado') return;
     if (!t.parentId || !rCodes.has(t.parentId)) return;
     if (!childMap[t.parentId]) childMap[t.parentId] = [];
     childMap[t.parentId].push(t);
