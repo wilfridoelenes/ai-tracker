@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -435,35 +435,25 @@ function _previewProjConfirmChange(aiId, sessId, selectEl) {
   const newProj = (getState().projects || []).find(p => p.id === newProjId);
   const projName = newProj ? `${newProj.icon || '📁'} ${newProj.name}` : 'sin proyecto';
 
-  // Usar el confirm inline de la app si está disponible, sino confirm nativo como fallback
-  if (typeof showToastInline === 'function') {
-    // Guardar referencia para confirmar/cancelar
-    selectEl.dataset.pendingProj = newProjId;
-    selectEl.dataset.prevProj    = prevProjId;
-    showToastInline(
-      selectEl,
-      `¿Mover a ${projName}?`,
-      [
-        { label: 'Confirmar', cls: 'btn-confirm', cb: () => {
-            savePreviewProject(aiId, sessId, newProjId);
-            delete selectEl.dataset.pendingProj;
-          }
-        },
-        { label: 'Cancelar',  cls: 'btn-cancel',  cb: () => {
-            selectEl.value = prevProjId;
-            delete selectEl.dataset.pendingProj;
-          }
+  // T-202606-088: guard typeof eliminado — showToastInline importada explícitamente vía ESM.
+  selectEl.dataset.pendingProj = newProjId;
+  selectEl.dataset.prevProj    = prevProjId;
+  showToastInline(
+    selectEl,
+    `¿Mover a ${projName}?`,
+    [
+      { label: 'Confirmar', cls: 'btn-confirm', cb: () => {
+          savePreviewProject(aiId, sessId, newProjId);
+          delete selectEl.dataset.pendingProj;
         }
-      ]
-    );
-  } else {
-    // Fallback: confirm nativo
-    if (window.confirm(`¿Cambiar proyecto a "${projName}"?`)) {
-      savePreviewProject(aiId, sessId, newProjId);
-    } else {
-      selectEl.value = prevProjId;
-    }
-  }
+      },
+      { label: 'Cancelar',  cls: 'btn-cancel',  cb: () => {
+          selectEl.value = prevProjId;
+          delete selectEl.dataset.pendingProj;
+        }
+      }
+    ]
+  );
 }
 
 function savePreviewProject(aiId, sessId, newProjId) {

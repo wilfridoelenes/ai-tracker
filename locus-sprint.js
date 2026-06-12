@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:11 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-11 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -111,15 +111,11 @@ function _sptSwitch(subtab, triggerBtn) {
 function _renderSprintPlanificar() {
   const container = document.getElementById('sprint-planificar-container');
   if (!container) return;
-  if (typeof _renderPlanningView === 'function') {
-    _renderPlanningView(container);
-    // B-202606-034: adjuntar delegación de drag & drop al container correcto —
-    // antes se adjuntaba a #backlog-list (que no existe en el tab Sprint)
-    _attachPlanViewDelegation(container);
-    _attachPlanCloseHandler();
-  } else {
-    container.innerHTML = '<div class="spi-section-empty">Vista Planificar no disponible.</div>';
-  }
+  _renderPlanningView(container);
+  // B-202606-034: adjuntar delegación de drag & drop al container correcto —
+  // antes se adjuntaba a #backlog-list (que no existe en el tab Sprint)
+  _attachPlanViewDelegation(container);
+  _attachPlanCloseHandler();
 }
 
 // ── T-202606-029: _renderSprintMeta — metadatos editables del sprint activo ──
@@ -310,7 +306,7 @@ function _spmMetaConfirm(row, field, newVal, sprint, oldVal) {
     save();
   } catch (err) {
     // AC-11: save() falla → toast de error, revertir
-    if (typeof showToast === 'function') showToast('Error al guardar. Intenta de nuevo.', 'error');
+    showToast('Error al guardar. Intenta de nuevo.', 'error');
     if (field === 'version_target') target.version_target = oldVal;
     if (field === 'release_type')   { target.release_type = oldVal; target.releaseType = oldVal; }
     if (field === 'scope')          target.scope = oldVal;

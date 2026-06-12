@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-08 · mod:8 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1889,7 +1889,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // AC-2: type desconocido → no interceptar. AC-3: sin status → no interceptar.
       if (newStatus && newStatus !== oldStatus && !item._noStatus) {
         const _existingType = existing.type || (existing.code ? existing.code.charAt(0) : '');
-        if (_existingType && typeof validateLifecycleTransitions === 'function' &&
+        if (_existingType &&
             Object.prototype.hasOwnProperty.call(
               { R: 1, T: 1, B: 1, P: 1 }, _existingType
             )) {

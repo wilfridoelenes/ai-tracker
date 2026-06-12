@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-11 UTC-6 
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1025,11 +1025,10 @@ function buildCard(ai) {
   const taEl = el.querySelector(`#ta-${ai.id}`);
   if (taEl) {
     taEl.addEventListener('paste', () => {
-      if (typeof handlePaste === 'function') handlePaste(ai.id);
-      else showToast('error', 'Módulo de ingesta no disponible');
+      handlePaste(ai.id);
     });
     taEl.addEventListener('input', function () {
-      if (typeof handleInput === 'function') handleInput(ai.id);
+      handleInput(ai.id);
       this.closest('.paste-ta-wrap')?.classList.toggle('paste-ta-wrap--has-content', this.value.length > 0);
     });
   }

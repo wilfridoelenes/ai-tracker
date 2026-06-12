@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:35 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:36 · autor:Rune · 2026-06-11 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -656,7 +656,7 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     // T-202605-446: tiempo cronometrado de la sesión en ms
     // B-202606-037: stopSessionTimer se llama aquí para capturar elapsed antes de que el usuario
     // interactúe con el DIFF. durationMs se recalcula en el callback si hay horaResult.
-    durationMs: (typeof stopSessionTimer === 'function') ? stopSessionTimer(id) : 0,
+    durationMs: stopSessionTimer(id),
     dateShort, date: dateFull
   };
   // B-202605-004: newSess NO se persiste aquí. El push de sessions[] y el populate de
