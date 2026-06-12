@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:6 · autor:Finn · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-11 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -260,8 +260,13 @@ export function _attachBacklogListDelegation() {
       return;
     }
     if (act === 'item-expand') {
+      // B-202606-NNN: toggleItemExpand no existe — lógica inline de toggle
       const idx = parseInt(action.dataset.idx, 10);
-      if (typeof toggleItemExpand === 'function') toggleItemExpand(idx);
+      const body  = document.getElementById('ibody-'  + idx);
+      const arrow = document.getElementById('iarrow-' + idx);
+      if (!body) return;
+      const isOpen = body.classList.toggle('open');
+      if (arrow) arrow.textContent = isOpen ? '▾' : '▸';
       return;
     }
     if (act === 'edit-child') {
