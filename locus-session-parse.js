@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:31 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:32 · autor:Rune · 2026-06-12 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1606,7 +1606,7 @@ function parsePasteStandalone() {
     if (it.type === 'patch') {
       if (!it.code || _isPlaceholderCode(it.code)) {
         _blogLog('patch-ignorado', it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (it.code || '(vacío)'), 'backlog');
-        // T-202606-XXX AC-1+AC-3: toast visible — consistente con path JSON primario y legacy
+        // T-202606-055 AC-1+AC-3: toast visible — consistente con path JSON primario y legacy
         showToast('warn', `Patch descartado: código placeholder no patcheable — ${it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
       } else {
         patchItems.push(it);
