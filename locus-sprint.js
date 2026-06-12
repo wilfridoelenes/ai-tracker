@@ -1,10 +1,10 @@
-// [PP] v1.0.0 · sprint:PP-S-03 · mod:10 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:11 · autor:Rune · 2026-06-11 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
 import { _isBlocked, getItems} from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
-import { _renderPlanningView, _attachPlanCloseHandler } from './locus-sprint-planificacion.js';
+import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, editSprintInline, openSprintRetroView, setSprintStatus } from './locus-backlog-sprints.js';
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto } from './locus-sprint-plan.js';
@@ -113,6 +113,9 @@ function _renderSprintPlanificar() {
   if (!container) return;
   if (typeof _renderPlanningView === 'function') {
     _renderPlanningView(container);
+    // B-202606-034: adjuntar delegación de drag & drop al container correcto —
+    // antes se adjuntaba a #backlog-list (que no existe en el tab Sprint)
+    _attachPlanViewDelegation(container);
     _attachPlanCloseHandler();
   } else {
     container.innerHTML = '<div class="spi-section-empty">Vista Planificar no disponible.</div>';

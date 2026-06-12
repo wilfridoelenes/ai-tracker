@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-03 · mod:11 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v1.2.4 · sprint:PP-S-03 · mod:12 · autor:Rune · 2026-06-11 UTC-6 
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -538,9 +538,11 @@ function _planDrop(e, targetCol) {
   }
 
   // Re-renderizar la vista planificación inmediatamente
-  // Nota: _attachPlanViewDelegation() no se re-invoca — los listeners de delegación
-  // viven en #backlog-list (el contenedor) y sobreviven al innerHTML replace de _renderPlanningView.
-  const _planListEl = document.getElementById('backlog-list');
+  // B-202606-034: resolver el container activo — puede ser #backlog-list (tab Backlog)
+  // o #sprint-planificar-container (tab Sprint). Los listeners de delegación viven en
+  // el container y sobreviven al innerHTML replace de _renderPlanningView.
+  const _planListEl = document.getElementById('backlog-list') ||
+                      document.getElementById('sprint-planificar-container');
   if (_planListEl) {
     _renderPlanningView(_planListEl);
   }
@@ -549,8 +551,11 @@ function _planDrop(e, targetCol) {
 // T-202605-054: delegación de eventos para #backlog-list — plan view drag handlers
 // Cubre: _planDragStart · _planDragEnd · _planDragOver · _planDragLeave · _planDrop
 // T-202605-028: data-plan-col ahora puede ser 'left' o un sprintId real
-export function _attachPlanViewDelegation() {
-  const listEl = document.getElementById('backlog-list');
+// B-202606-034: acepta listEl como parámetro — desde tab Sprint el container es
+// #sprint-planificar-container, no #backlog-list. Sin el parámetro los listeners
+// se adjuntaban al elemento equivocado y el drop nunca disparaba.
+export function _attachPlanViewDelegation(listEl) {
+  if (!listEl) listEl = document.getElementById('backlog-list');
   if (!listEl || listEl._planDelegationAttached) return;
   listEl._planDelegationAttached = true;
 
