@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:17 · autor:Rune · 2026-06-13 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -587,18 +587,30 @@ function _renderSprintManager() {
   _renderPlannedSprints();
 
   const allSprints = getActiveSprints();
+
+  // T-202606-001: Sección HOTFIX — siempre antes de la lista normal
+  _renderHotfixSection(allSprints);
+
+  // T-202606-002: Resumen agregado — sprints normales (isHotfix falsy)
+  _renderSprintSummaryTable(allSprints);
+
   if (!allSprints || allSprints.length === 0) {
     container.innerHTML = '<div class="sml-empty">No hay sprints registrados</div>';
     return;
   }
 
-  // Separar activo de cerrados — cerrados ordenados por fecha descendente
-  const active  = allSprints.filter(s => s.status === 'active');
+  // Excluir HOTFIX de la lista principal — T-202606-001 AC-6 no-regresión
+  const active  = allSprints.filter(s => s.status === 'active' && !s.isHotfix);
   const closed  = allSprints
-    .filter(s => s.status !== 'active')
+    .filter(s => s.status !== 'active' && !s.isHotfix)
     .sort((a, b) => (b.closedAt || b.createdAt || 0) - (a.closedAt || a.createdAt || 0));
 
   const ordered = [...active, ...closed];
+
+  if (!ordered.length) {
+    container.innerHTML = '<div class="sml-empty">No hay sprints registrados</div>';
+    return;
+  }
 
   const rows = ordered.map(sprint => {
     const isActive  = sprint.status === 'active';
@@ -664,6 +676,282 @@ function _renderSprintManager() {
 }
 
 // ── END T-202605-123 ─────────────────────────────────────────────────────────
+
+// ── T-202606-001: Sección HOTFIX diferenciada en subtab Ítems ────────────────
+//
+// Renderiza en #sprint-hotfix-list una sección con label fija 'PP-S-HOTFIX · Sprint persistente'
+// visible siempre cuando isHotfix:true existe en proj.sprints — sin burndown ni botón cierre.
+// Si no existe ningún sprint con isHotfix:true, la sección no aparece.
+
+function _renderHotfixSection(allSprints) {
+  const container = document.getElementById('sprint-hotfix-list');
+  if (!container) return;
+
+  // AC-4: sin sprint con isHotfix:true → sección ausente, sin error
+  const hotfixSprint = allSprints ? allSprints.find(s => s.isHotfix === true) : null;
+  if (!hotfixSprint) {
+    container.innerHTML = '';
+    return;
+  }
+
+  // AC-2: conteo de ítems por status usando patrón .spi-count-*
+  let pendiente = 0;
+  let done = 0;
+  if (Array.isArray(getItems())) {
+    const hotfixItems = getItems().filter(i => {
+      const t = i.type || (i.code ? i.code.charAt(0) : '');
+      return i.sprint && i.sprint.startsWith(hotfixSprint.id) &&
+        (t === 'R' || t === 'B' || t === 'T') &&
+        i.status !== 'descartado';
+    });
+    pendiente = hotfixItems.filter(i => i.status !== 'done').length;
+    done      = hotfixItems.filter(i => i.status === 'done').length;
+    const total = hotfixItems.length;
+
+    // AC-3: 0 ítems → visible con '0 ítems'
+    // AC-2: N ítems → 'N pendiente · N done'
+    const countText = total === 0
+      ? '0 ítems'
+      : `${pendiente} pendiente · ${done} done`;
+
+    container.innerHTML = `<div class="sml-hotfix-section">
+  <div class="sml-hotfix-header">
+    <span class="sml-hotfix-label">${_escHtml(hotfixSprint.id)} · Sprint persistente</span>
+    <span class="sml-hotfix-count">${countText}</span>
+  </div>
+</div>`;
+  } else {
+    container.innerHTML = `<div class="sml-hotfix-section">
+  <div class="sml-hotfix-header">
+    <span class="sml-hotfix-label">${_escHtml(hotfixSprint.id)} · Sprint persistente</span>
+    <span class="sml-hotfix-count">0 ítems</span>
+  </div>
+</div>`;
+  }
+}
+
+// ── END T-202606-001 ─────────────────────────────────────────────────────────
+
+// ── T-202606-002 / T-202606-003: Resumen agregado de sprints normales + edición inline ──
+//
+// T2: lista todos los sprints normales (isHotfix falsy) con id, nombre, status badge,
+//     conteo R/T/B, effort total. Escribe en #sprint-summary-list.
+// T3: goal, scope, version_target editables inline — click activa input/textarea in-place,
+//     blur/Enter guarda, Escape cancela.
+
+function _renderSprintSummaryTable(allSprints) {
+  const container = document.getElementById('sprint-summary-list');
+  if (!container) return;
+
+  // AC-4 T2: solo sprints normales (isHotfix falsy)
+  const normalSprints = allSprints
+    ? allSprints.filter(s => !s.isHotfix)
+    : [];
+
+  // AC-4 T2: sin sprints normales → empty state
+  if (!normalSprints.length) {
+    container.innerHTML = '<div class="ssm-empty">Sin sprints creados</div>';
+    return;
+  }
+
+  // Ordenar: activos primero, luego por fecha desc
+  const ordered = [
+    ...normalSprints.filter(s => s.status === 'active'),
+    ...normalSprints
+      .filter(s => s.status !== 'active')
+      .sort((a, b) => (b.closedAt || b.createdAt || 0) - (a.closedAt || a.createdAt || 0)),
+  ];
+
+  const rows = ordered.map(sprint => {
+    const isActive  = sprint.status === 'active';
+    const statusBadgeCls = isActive ? 'sprint-badge-active' : 'sprint-badge-closed';
+    const statusTxt      = isActive ? 'Activo' : 'Cerrado';
+
+    // Conteo R/T/B y effort — AC-2 T2
+    let countR = 0, countT = 0, countB = 0, effort = 0;
+    if (Array.isArray(getItems())) {
+      const spItems = getItems().filter(i => {
+        const t = i.type || (i.code ? i.code.charAt(0) : '');
+        return i.sprint && i.sprint.startsWith(sprint.id) &&
+          (t === 'R' || t === 'B' || t === 'T') &&
+          i.status !== 'descartado';
+      });
+      countR = spItems.filter(i => (i.type || i.code.charAt(0)) === 'R').length;
+      countT = spItems.filter(i => (i.type || i.code.charAt(0)) === 'T').length;
+      countB = spItems.filter(i => (i.type || i.code.charAt(0)) === 'B').length;
+      effort = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 0), 0);
+    }
+
+    const countParts = [];
+    if (countR) countParts.push(`<span class="ssm-type ssm-type--r">${countR} R</span>`);
+    if (countT) countParts.push(`<span class="ssm-type ssm-type--t">${countT} T</span>`);
+    if (countB) countParts.push(`<span class="ssm-type ssm-type--b">${countB} B</span>`);
+    const countsHtml = countParts.length ? countParts.join('') : '<span class="ssm-type ssm-type--empty">0 ítems</span>';
+
+    // T3: campos editables — goal, scope, version_target
+    const vt    = sprint.version_target || '';
+    const goal  = sprint.goal  || '';
+    const scope = sprint.scope || '';
+
+    function _editableField(field, value, labelText) {
+      const isEmpty   = !value;
+      const valCls    = isEmpty ? 'ssm-field-value ssm-field-value--empty' : 'ssm-field-value';
+      const valText   = isEmpty ? 'Sin definir — click para editar' : _escHtml(value);
+      return `<div class="ssm-field" data-ssm-sprint="${_escHtml(sprint.id)}" data-ssm-field="${field}">
+  <span class="ssm-field-label">${labelText}</span>
+  <span class="${valCls}" tabindex="0" role="button" aria-label="Editar ${labelText} de ${sprint.id}">${valText}</span>
+</div>`;
+    }
+
+    const fieldsHtml = isActive ? [
+      _editableField('version_target', vt,    'Versión'),
+      _editableField('goal',           goal,  'Goal'),
+      _editableField('scope',          scope, 'Scope'),
+    ].join('') : '';
+
+    return `<div class="ssm-row" data-sprint-id="${_escHtml(sprint.id)}">
+  <div class="ssm-row-top">
+    <span class="ssm-row-id">${_escHtml(sprint.id)}</span>
+    <span class="ssm-row-name">${_escHtml((sprint.label || sprint.name || sprint.id).replace(/^[A-Za-z]+-S-\d+\s*·?\s*/i, ''))}</span>
+    <span class="ssm-badge ${statusBadgeCls}">${statusTxt}</span>
+    <span class="ssm-counts">${countsHtml}</span>
+    <span class="ssm-effort">effort ${effort}</span>
+  </div>
+  ${fieldsHtml ? `<div class="ssm-fields">${fieldsHtml}</div>` : ''}
+</div>`;
+  }).join('');
+
+  container.innerHTML = rows;
+
+  // T3: Event delegation para edición inline
+  container.removeEventListener('click',   _ssmHandleEdit);
+  container.removeEventListener('keydown', _ssmHandleEditKeydown);
+  container.addEventListener('click',   _ssmHandleEdit);
+  container.addEventListener('keydown', _ssmHandleEditKeydown);
+}
+
+// T3: activar edición al click en .ssm-field-value
+function _ssmHandleEdit(e) {
+  const valEl = e.target.closest('.ssm-field-value');
+  if (!valEl) return;
+  const fieldEl = valEl.closest('[data-ssm-field]');
+  if (!fieldEl) return;
+  // No abrir si ya hay input activo en esta celda
+  if (fieldEl.querySelector('.ssm-edit-input, .ssm-edit-textarea')) return;
+
+  const sprintId = fieldEl.dataset.ssmSprint;
+  const field    = fieldEl.dataset.ssmField;
+  _ssmOpenEdit(fieldEl, sprintId, field);
+}
+
+// T3: activar edición con Enter/Space desde .ssm-field-value (accesibilidad)
+function _ssmHandleEditKeydown(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const valEl = e.target.closest('.ssm-field-value');
+  if (!valEl) return;
+  e.preventDefault();
+  valEl.click();
+}
+
+// T3: abrir input/textarea in-place
+function _ssmOpenEdit(fieldEl, sprintId, field) {
+  const allSprints = getActiveSprints();
+  const sprint     = allSprints ? allSprints.find(s => s.id === sprintId) : null;
+  if (!sprint) return;
+
+  const currentVal = field === 'version_target' ? (sprint.version_target || '')
+                   : field === 'goal'            ? (sprint.goal  || '')
+                   : field === 'scope'           ? (sprint.scope || '')
+                   : '';
+
+  const valEl = fieldEl.querySelector('.ssm-field-value, .ssm-field-value--empty');
+  if (valEl) valEl.classList.add('is-hidden');
+
+  let editEl;
+
+  if (field === 'scope' || field === 'goal') {
+    // Textarea para campos multilinea
+    editEl = document.createElement('textarea');
+    editEl.className = 'ssm-edit-textarea';
+    editEl.value = currentVal;
+    editEl.setAttribute('aria-label', `Editar ${field} de ${sprintId}`);
+    editEl.rows = 2;
+  } else {
+    // Input text para version_target
+    editEl = document.createElement('input');
+    editEl.type = 'text';
+    editEl.className = 'ssm-edit-input';
+    editEl.value = currentVal;
+    editEl.setAttribute('aria-label', `Editar ${field} de ${sprintId}`);
+  }
+
+  // AC-2/AC-3 T3: blur guarda, Enter guarda (solo en input — no en textarea)
+  editEl.addEventListener('blur', function() {
+    _ssmCommit(fieldEl, sprintId, field, editEl.value.trim(), currentVal);
+  });
+  editEl.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Escape') {
+      ev.preventDefault();
+      ev.stopPropagation();
+      _ssmCancel(fieldEl, currentVal);
+    }
+    if (ev.key === 'Enter' && editEl.tagName === 'INPUT') {
+      ev.preventDefault();
+      editEl.blur(); // dispara commit via blur
+    }
+  });
+
+  fieldEl.appendChild(editEl);
+  editEl.focus();
+  if (editEl.tagName === 'INPUT') editEl.select();
+}
+
+// T3: persistir valor
+function _ssmCommit(fieldEl, sprintId, field, newVal, oldVal) {
+  // Ignorar si el editEl ya fue retirado (doble blur)
+  if (!fieldEl.querySelector('.ssm-edit-input, .ssm-edit-textarea')) return;
+
+  const allSprints = getActiveSprints();
+  const sprint     = allSprints ? allSprints.find(s => s.id === sprintId) : null;
+  if (!sprint) { _renderSprintSummaryTable(allSprints); return; }
+
+  if (field === 'version_target') sprint.version_target = newVal || oldVal; // no permitir vacío
+  if (field === 'goal')           sprint.goal  = newVal;
+  if (field === 'scope')          sprint.scope = newVal;
+
+  try {
+    save();
+    // AC-6 T3: micro-flash de confirmación
+    _ssmFlash(fieldEl);
+  } catch (err) {
+    // AC-7 T3: save() falla → revertir y toast
+    if (field === 'version_target') sprint.version_target = oldVal;
+    if (field === 'goal')           sprint.goal  = oldVal;
+    if (field === 'scope')          sprint.scope = oldVal;
+    showToast('Error al guardar. Intenta de nuevo.', 'error');
+  }
+
+  // Re-renderizar la tabla para reflejar el nuevo valor
+  _renderSprintSummaryTable(getActiveSprints());
+}
+
+// T3: cancelar — restaurar valor original
+function _ssmCancel(fieldEl, originalVal) {
+  const editEl = fieldEl.querySelector('.ssm-edit-input, .ssm-edit-textarea');
+  if (editEl) editEl.remove();
+  const valEl = fieldEl.querySelector('.ssm-field-value, .ssm-field-value--empty');
+  if (valEl) valEl.classList.remove('is-hidden');
+}
+
+// T3 AC-6: micro-flash vía clase .item-status-confirmed
+function _ssmFlash(fieldEl) {
+  const valEl = fieldEl.querySelector('.ssm-field-value, .ssm-field-value--empty');
+  if (!valEl) return;
+  valEl.classList.add('item-status-confirmed');
+  setTimeout(() => valEl.classList.remove('item-status-confirmed'), 800);
+}
+
+// ── END T-202606-002 / T-202606-003 ─────────────────────────────────────────
 
 // ── T-202606-105: Banner de sprints activos en conflicto ─────────────────────
 
@@ -935,6 +1223,30 @@ function _spmRegistrar() {
 function _spmReactivar() {
   const sprint = _sprintTabActiveSprint;
   if (!sprint || sprint.status !== 'closed') return;
+
+  // T-202606-106 AC-4/5/6: si hay sprint active distinto → diálogo de confirmación 1-click
+  const activoDistinto = getActiveSprints().find(s =>
+    s.status === 'active' && s.id !== sprint.id && !s.isHotfix
+  );
+
+  if (activoDistinto) {
+    // AC-4: mostrar diálogo con ambos nombres antes de ejecutar
+    _gconfirmOpen({
+      title: 'Reactivar sprint',
+      msg: `Cerrar “${activoDistinto.label || activoDistinto.id}” y activar “${sprint.label || sprint.id}”`,
+      okLabel: 'Confirmar',
+      danger: false
+    }, () => {
+      // AC-5: founder confirma — cerrar activo primero, luego activar
+      setSprintStatus(activoDistinto.id, 'closed');
+      setSprintStatus(sprint.id, 'active');
+      renderSprintTab();
+    });
+    // AC-6: founder cancela — _gconfirmOpen no llama el callback — sin modificación
+    return;
+  }
+
+  // Sin sprint activo distinto — flujo normal
   setSprintStatus(sprint.id, 'active');
   renderSprintTab();
 }
