@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:18 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-13 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1678,6 +1678,24 @@ document.addEventListener('DOMContentLoaded', function() {
   // T-202605-051: Event delegation en #sprint-items-list para ítems generados dinámicamente
   const itemsList = document.getElementById('sprint-items-list');
   if (itemsList) {
+    // B-202606-006 AC-4: toggle colapso/expansión de grupo R — debe evaluarse antes de data-item-code
+    itemsList.addEventListener('click', function(e) {
+      const toggle = e.target.closest('[data-r-toggle]');
+      if (!toggle) return;
+      const code     = toggle.dataset.rToggle;
+      const children = document.getElementById('spi-r-children-' + code);
+      if (!children) return;
+      const expanded = toggle.getAttribute('aria-expanded') !== 'false';
+      children.classList.toggle('is-hidden', expanded);
+      toggle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+    });
+    itemsList.addEventListener('keydown', function(e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const toggle = e.target.closest('[data-r-toggle]');
+      if (!toggle) return;
+      e.preventDefault();
+      toggle.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
     itemsList.addEventListener('click', function(e) {
       const item = e.target.closest('[data-item-code]');
       if (item) openItemPanel(item.dataset.itemCode);
