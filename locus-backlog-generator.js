@@ -1,4 +1,4 @@
-// [PP] v0.3.0 · sprint:PP-S-01 · mod:17 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.3.0 · sprint:PP-S-01 · mod:18 · autor:Rune · 2026-06-13 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -600,16 +600,22 @@ export function _generateBacklogContent(newVersion, opts = {}) {
 
   // T-202606-068: _computeBacklogCounters — fuente única para itemCounters y counters (max-ID).
   // Los tres bloques (Estado actual · Índice · Estadísticas) derivan de esta misma llamada.
+  // B-202606-005: itemC cuenta desde exportItems para que el índice refleje solo los ítems
+  // efectivamente renderizados en ## Ítems. maxId sigue usando getItems() completo para
+  // preservar los contadores máximos de ID sin importar el status del ítem.
   const _computeBacklogCounters = () => {
     const allForCount = getItems();
     const itemC = { P:0, T:0, R:0, B:0 };
     const maxId  = { P:0, T:0, R:0, B:0 };
-    allForCount.forEach(i => {
+    exportItems.forEach(i => {
       if (!i.code) return;
       const t = i.code[0];
       if (itemC[t] !== undefined) itemC[t]++;
+    });
+    allForCount.forEach(i => {
+      if (!i.code) return;
       const m = i.code.match(/[PITRB]-\d{6}-(\d{3})/);
-      if (m) { const n = parseInt(m[1]); if (n > maxId[t]) maxId[t] = n; }
+      if (m) { const n = parseInt(m[1]); if (n > maxId[i.code[0]]) maxId[i.code[0]] = n; }
     });
     const activeC = getActiveTracker().counters || {};
     Object.keys(activeC).forEach(t => {
