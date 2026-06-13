@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:5 · autor:Rune · 2026-06-03 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:6 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -50,19 +50,40 @@ const _HISTORICO_KEY  = _ARCH_KEY;
 // Cambiar este valor si el proyecto PP resetea el catálogo de sprints en el futuro.
 const LEGACY_BOUNDARY = 23;
 
+// T-202606-103: Derivar ítems del archivo histórico desde sprints cerrados, no desde status historico.
+// closedSprintIds: Set de ids de sprints con status === 'closed'.
+// archivoItems: ítems cuyo sprint está en closedSprintIds (cualquier status).
+// _legacyHistoricos: ítems con status === 'historico' NO en closedSprintIds — huérfanos del criterio nuevo.
+//   Disponible para T2 (sección legacy con botón Purgar).
+export let _legacyHistoricos = [];
+
+function _buildArchivoPartitions() {
+  const allItems      = getItems();
+  const closedSprints = getActiveSprints().filter(s => s.status === 'closed');
+  const closedSprintIds = new Set(closedSprints.map(s => s.id));
+
+  // AC-1: ítems de sprints cerrados — cualquier status válido
+  const archivoItems = allItems.filter(i => i.sprint && closedSprintIds.has(i.sprint));
+
+  // AC-3: ítems legacy — status historico pero sprint NO en cerrados
+  _legacyHistoricos = allItems.filter(i => i.status === 'historico' && (!i.sprint || !closedSprintIds.has(i.sprint)));
+
+  return { archivoItems, closedSprints, closedSprintIds };
+}
+
 export function renderArchivoHistorico(listEl) {
-  const historicos = getItems().filter(i => i.status === 'historico');
-  if (!historicos.length) return;
+  const { archivoItems, closedSprints } = _buildArchivoPartitions();
+
+  // AC-2: contador refleja solo ítems de sprints cerrados
+  const total = archivoItems.length;
+  if (!total && !_legacyHistoricos.length) return;
 
   const isOpen     = (() => { try { return localStorage.getItem(_ARCH_KEY) === '1'; } catch { return false; } })();
   const activeView = (() => { try { return localStorage.getItem(_ARCH_VIEW_KEY) || 'sprint'; } catch { return 'sprint'; } })();
-  const total      = historicos.length;
 
   // Sprint más antiguo como referencia de "desde cuándo"
-  const closedSprints = getActiveSprints()
-    .filter(s => s.status === 'closed')
-    .sort((a, b) => (a.closedAt || 0) - (b.closedAt || 0));
-  const oldestSprintId = closedSprints.length ? esc(closedSprints[0].label || closedSprints[0].id) : '';
+  const sortedClosed = [...closedSprints].sort((a, b) => (a.closedAt || 0) - (b.closedAt || 0));
+  const oldestSprintId = sortedClosed.length ? esc(sortedClosed[0].label || sortedClosed[0].id) : '';
   const sinceHtml = oldestSprintId
     ? `<span class="arch-historico-since">desde ${oldestSprintId}</span>`
     : '';
@@ -235,33 +256,32 @@ function _archSprintEntryHtml(sp, spItems, entryId, entryKey, entryOpen) {
 }
 
 // Vista Por sprint — accordion de sprints cerrados
+// T-202606-103: filtra por sprint_id en closedSprintIds — no por status historico
 // R-202605-124: sprints ≥ S-23 con datos completos · pre-S-23 agrupados como bloque único
 function _renderArchivoViewSprint(body) {
-  const historicos    = getItems().filter(i => i.status === 'historico');
-  const closedSprints = getActiveSprints()
-    .filter(s => s.status === 'closed')
-    .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0)); // más reciente primero
+  const { archivoItems, closedSprints } = _buildArchivoPartitions();
+  const sortedClosed = [...closedSprints].sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0)); // más reciente primero
 
   // R-202605-124: frontera de sprints con datos completos vs. legado — usa LEGACY_BOUNDARY del módulo
-  const recentSprints = closedSprints.filter(s => _sprintNum(s.id) >= LEGACY_BOUNDARY);
-  const legacySprints = closedSprints.filter(s => _sprintNum(s.id) > 0 && _sprintNum(s.id) < LEGACY_BOUNDARY);
+  const recentSprints = sortedClosed.filter(s => _sprintNum(s.id) >= LEGACY_BOUNDARY);
+  const legacySprints = sortedClosed.filter(s => _sprintNum(s.id) > 0 && _sprintNum(s.id) < LEGACY_BOUNDARY);
 
-  // Ítems huérfanos (sin sprint registrado o sprint que ya no existe en catálogo)
+  // Ítems de sprints cerrados sin sprint registrado (no debería ocurrir, pero es defensivo)
   const registeredIds = new Set(closedSprints.map(s => s.id));
-  const noSprint = historicos.filter(i => !i.sprint || !registeredIds.has(i.sprint));
+  const noSprint = archivoItems.filter(i => !i.sprint || !registeredIds.has(i.sprint));
 
   // Ítems de sprints legado (sprint id < S-23 que sí está en catálogo)
   const legacySprintIds = new Set(legacySprints.map(s => s.id));
-  const legacyItems = historicos.filter(i => legacySprintIds.has(i.sprint));
+  const legacyItems = archivoItems.filter(i => legacySprintIds.has(i.sprint));
 
   // Total de ítems sin agrupación moderna
   const preLegacyItems = [...legacyItems, ...noSprint];
 
-  const hasData = recentSprints.some(s => historicos.filter(i => i.sprint === s.id).length > 0)
+  const hasData = recentSprints.some(s => archivoItems.filter(i => i.sprint === s.id).length > 0)
                || preLegacyItems.length > 0;
 
   if (!hasData) {
-    body.innerHTML = `<div class="arch-view"><div class="arch-empty">Sin sprints cerrados con ítems históricos.</div></div>`;
+    body.innerHTML = `<div class="arch-view"><div class="arch-empty">Sin sprints cerrados con ítems.</div></div>`;
     return;
   }
 
@@ -269,7 +289,7 @@ function _renderArchivoViewSprint(body) {
 
   // ── Sprints ≥ S-23 con datos completos ──────────────────────────────
   recentSprints.forEach(sp => {
-    const spItems = historicos.filter(i => i.sprint === sp.id);
+    const spItems = archivoItems.filter(i => i.sprint === sp.id);
     if (!spItems.length) return;
 
     const entryKey  = 'arch-se-' + sp.id;
@@ -301,18 +321,19 @@ function _renderArchivoViewSprint(body) {
   body.innerHTML = html;
 }
 
-// Vista Lista plana — todos los históricos sin agrupación
+// Vista Lista plana — todos los ítems de sprints cerrados sin agrupación
+// T-202606-103: fuente de datos son archivoItems (sprint en closedSprintIds), no status historico
 function _renderArchivoViewFlat(body) {
-  const historicos = getItems().filter(i => i.status === 'historico')
-    .sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0));
+  const { archivoItems } = _buildArchivoPartitions();
+  const sorted = [...archivoItems].sort((a, b) => (b.archivedAt || 0) - (a.archivedAt || 0));
 
-  if (!historicos.length) {
-    body.innerHTML = `<div class="arch-view"><div class="arch-empty">Sin ítems históricos.</div></div>`;
+  if (!sorted.length) {
+    body.innerHTML = `<div class="arch-view"><div class="arch-empty">Sin ítems en sprints cerrados.</div></div>`;
     return;
   }
 
   body.innerHTML = `<div class="arch-view" id="arch-view-flat">
-    ${historicos.map(i => buildBacklogItem(i)).join('')}
+    ${sorted.map(i => buildBacklogItem(i)).join('')}
   </div>`;
 }
 
@@ -336,14 +357,16 @@ function _toggleArchSprintEntry(bodyId, storageKey) {
     if (!el.querySelector('.arch-items-list')) {
       let spItems;
       if (bodyId === 'arch-se-body-legacy') {
-        // Bloque legado: históricos sin sprint en catálogo o sprint < LEGACY_BOUNDARY
-        const closedSprints = getActiveSprints().filter(s => s.status === 'closed');
+        // Bloque legado: ítems de sprints cerrados con id < LEGACY_BOUNDARY + huérfanos sin sprint registrado
+        const { archivoItems, closedSprints } = _buildArchivoPartitions();
         const registeredIds = new Set(closedSprints.map(s => s.id));
         const legacyIds     = new Set(closedSprints.filter(s => _sprintNum(s.id) > 0 && _sprintNum(s.id) < LEGACY_BOUNDARY).map(s => s.id));
-        spItems = getItems().filter(i => i.status === 'historico' && (!i.sprint || !registeredIds.has(i.sprint) || legacyIds.has(i.sprint)));
+        spItems = archivoItems.filter(i => !i.sprint || !registeredIds.has(i.sprint) || legacyIds.has(i.sprint));
       } else {
         const spId = storageKey.replace(/^arch-se-/, '');
-        spItems = getItems().filter(i => i.status === 'historico' && i.sprint === spId);
+        const { closedSprintIds } = _buildArchivoPartitions();
+        // AC-4: mostrar todos los ítems del sprint cerrado independientemente de su status
+        spItems = getItems().filter(i => i.sprint === spId && closedSprintIds.has(i.sprint));
       }
       el.innerHTML = `<div class="arch-items-list">${spItems.map(_archItemRow).join('')}</div>`;
     }
