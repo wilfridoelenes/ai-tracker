@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-12 UTC-6 
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
@@ -427,7 +427,7 @@ export function getCD(resetTime, resetEpoch) {
 // T-058 + T-082: intervalo de reset de IAs — migrado desde locus-misc-ui.js
 setInterval(() => {
   let changed = false;
-  getState().ais.forEach(ai => {
+  (getState()?.ais || []).forEach(ai => {
     if (ai.status !== 'exhausted' || !ai.resetTime) return;
     if (_resetExpired(ai.resetTime, ai.resetEpoch)) {
       ai.status = 'available';

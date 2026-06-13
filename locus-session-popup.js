@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-12 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -758,7 +758,7 @@ export function startRename(id) {
     }
     // T-092: validar duplicados case-insensitive (excluir la propia IA)
     const nameLower = newName.toLowerCase();
-    const duplicate = getState().ais.find(a => a.id !== id && a.name.toLowerCase() === nameLower);
+    const duplicate = (getState()?.ais || []).find(a => a.id !== id && a.name.toLowerCase() === nameLower);
     if (duplicate) {
       showToast('warning', `Ya existe una IA llamada "${duplicate.name}"`);
       window.dispatchEvent(new CustomEvent('shell:render-tracker')); return;
@@ -886,9 +886,9 @@ let _logScrollHandler = null;   // B-202605-053: referencia de módulo — sobre
 // Recopila todas las sesiones de todos los proyectos, cronológicas inversas
 export function _getAllSessionsChron() {
   const rows = [];
-  (getState().projects || []).forEach(proj => {
+  (getState()?.projects || []).forEach(proj => {
     (proj.sessions || []).forEach(s => {
-      const ai = (getState().ais || []).find(a => a.id === s.aiId) || null;
+      const ai = (getState()?.ais || []).find(a => a.id === s.aiId) || null;
       rows.push({ sess: s, proj, ai });
     });
   });

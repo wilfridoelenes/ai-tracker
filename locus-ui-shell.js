@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-09 · mod:10 · autor:Rune · 2026-06-12 00:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-09 · mod:11 · autor:Rune · 2026-06-12 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -31,7 +31,7 @@ let currentSubTab = 'backlog';
 // R-202605-067: estado sucio del textarea de AI Card
 // El flag es escrito por locus-tracker.js cuando el textarea tiene texto no guardado.
 // Si locus-tracker.js aún no lo declara, se usa detección DOM como fallback.
-let _trackerTextareaDirty = false;
+var _trackerTextareaDirty = false; // ESM-B: var para evitar TDZ en ciclo ui-shell ↔ docs
 let currentTab = localStorage.getItem('active-tab') || 'sesiones';
 
 // B-202605-019: array module-level para acciones de contratos en panel de búsqueda

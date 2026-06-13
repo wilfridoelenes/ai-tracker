@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-12 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-076 · T-202606-077: export ESM BACKLOG_LOG_MAX y _DOC_LOG_KEYS
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -992,7 +992,7 @@ export async function _loadFromSupabase() {
     if (stateRows && stateRows.value) {
       const remote = stateRows.value;
       _applyStateData(remote);
-      state.ais.forEach(ai => {
+      (state?.ais || []).forEach(ai => {
         if (ai.status === 'exhausted' && ai.resetTime && _resetExpired(ai.resetTime, ai.resetEpoch)) {
           ai.status = 'available'; ai.resetTime = ''; ai.resetEpoch = null;
         }
@@ -1410,7 +1410,7 @@ function load() {
     _applyStateData({ais: clone(DEFAULT_AIS), theme:'dark', tags:[]});
   }
   // B-202604-009: limpiar IAs expiradas antes del primer render — usar epoch cuando existe
-  state.ais.forEach(ai => {
+  (state?.ais || []).forEach(ai => {
     if (ai.status === 'exhausted' && ai.resetTime) {
       if (_resetExpired(ai.resetTime, ai.resetEpoch)) {
         ai.status = 'available';
@@ -1507,7 +1507,7 @@ export function _tplKey(base) {
   return projId ? base + '-' + projId : base;
 }
 
-export function getAI(id) { return state.ais.find(a => a.id === id); }
+export function getAI(id) { return (state?.ais || []).find(a => a.id === id); }
 
 // Proyecto activo (objeto)
 export function getActiveProject() {
@@ -1526,7 +1526,7 @@ export function getProjectSessions(projId) {
 // Todas las sesiones de todos los proyectos (vista global)
 export function getAllSessions() {
   // Guardia: detectar sesiones corruptas en ai.sessions (nunca debería ocurrir en v3)
-  (state.ais || []).forEach(ai => {
+  (state?.ais || []).forEach(ai => {
     if (ai.sessions && ai.sessions.length > 0) {
       console.warn(`[AI Tracker] ATENCIÓN: ai "${ai.name}" tiene ${ai.sessions.length} sesión(es) en ai.sessions — debería estar vacío en v3. Recarga la app para normalizar.`);
     }
