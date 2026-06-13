@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-12 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -842,8 +842,10 @@ export function renderBacklogList(onRendered) {
 
   // Filtrado por tipo + status + effort (T-071)
   // B-202604-193: excluir ítems históricos del plano activo — van a sección colapsada al fondo
+  // T-202606-102: excluir Ps promovidas del listado — no son trabajo activo ni ideas pendientes
   let filtered = getItems().filter(i => {
     if (i.status === 'historico') return false;
+    if (itemType(i.code) === 'P' && i.status === 'promovida') return false;
     const type = itemType(i.code);
     const typeOk = type ? _getActiveTypes().has(type) : true;
     const statusOk = _getActiveStatuses().has(i.status);
