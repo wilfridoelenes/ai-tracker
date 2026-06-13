@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -599,9 +599,21 @@ export function setSprintStatus(id, newStatus) {
     if (target && target.isHotfix) return;
   }
   if (newStatus === 'active') {
-    // Solo un sprint activo a la vez — el anterior pasa a 'closed', no a 'open'
-    // T-202606-038 AC-3: [Prefijo]-S-HOTFIX nunca pasa a 'closed' por este flujo — permanece siempre 'active'
-    getActiveSprints().forEach(s => { if (s.status === 'active' && !s.isHotfix) s.status = 'closed'; });
+    // T-202606-106: gate — rechazar si ya existe sprint active para el proyecto distinto al id recibido
+    const _targetForGate = _getSprintById(id);
+    const _projIdForGate = _targetForGate ? (_targetForGate.projId || _targetForGate.projectId || null) : null;
+    const _existingActive = getActiveSprints().find(s => {
+      if (s.status !== 'active') return false;
+      if (s.id === id) return false;          // el mismo sprint — no es conflicto
+      if (s.isHotfix) return false;           // S-HOTFIX nunca bloquea
+      if (!_projIdForGate) return false;      // sin projId no se puede filtrar — no bloquear
+      return (s.projId === _projIdForGate || s.projectId === _projIdForGate);
+    });
+    if (_existingActive) {
+      // AC: rechazar sin modificar nada — toast con nombre del sprint en conflicto
+      showToast('error', `Ya hay un sprint activo: ${_existingActive.label || _existingActive.name || _existingActive.id}. Ciérralo antes de activar otro.`);
+      return;
+    }
   }
   const sp = _getSprintById(id);
   if (!sp) return;

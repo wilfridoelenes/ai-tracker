@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-12 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -689,12 +689,18 @@ function _renderConflictBanner() {
     banner.className = 'sprint-conflict-banner';
   }
 
-  const names = conflicts.map(s => s.label || s.name || s.id).join(', ');
+  // AC: formato '[nombre] · abierto [DD/MM/YYYY]' — startedAt nulo → 'fecha desconocida'
+  function _fmtDate(ts) {
+    if (!ts) return 'fecha desconocida';
+    const d = new Date(ts);
+    return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  }
+  const items = conflicts.map(s => `${s.label || s.name || s.id} · abierto ${_fmtDate(s.startedAt)}`).join('<br>');
   const count = conflicts.length;
   banner.innerHTML = `
     <span class="scb-icon">⚠</span>
     <span class="scb-text">${count} sprint${count > 1 ? 's' : ''} activo${count > 1 ? 's' : ''} simultáneamente — solo puede haber uno<br>
-      <span class="scb-list">${names}</span>
+      <span class="scb-list">${items}</span>
     </span>
     <button class="scb-btn" type="button" data-scb-resolve>Resolver en sub-tab Sprints</button>
   `;
@@ -709,10 +715,13 @@ function _renderConflictBanner() {
     if (tabContainer) tabContainer.prepend(banner);
   }
 
-  // Delegar click en el botón — AC: ejecuta _sptSwitch('sprints')
-  banner.querySelector('[data-scb-resolve]')?.addEventListener('click', () => {
-    _sptSwitch('sprints');
-  }, { once: true });
+  // AC: delegación en el banner — listener único persistente, funciona en rerenders sucesivos.
+  // innerHTML se actualiza en cada render → se re-asigna el delegador cada vez para
+  // garantizar que el botón recién creado responde. El handler previo no acumula
+  // porque se asigna a la propiedad onclick del banner (no addEventListener).
+  banner.onclick = (e) => {
+    if (e.target.closest('[data-scb-resolve]')) _sptSwitch('sprints');
+  };
 }
 
 // ── Función principal ───────────────────────────────────────────────────────
