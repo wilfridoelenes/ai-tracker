@@ -1359,3 +1359,17 @@ window.addEventListener('shell:backlog-render-dirty', () => { _markBacklogListDi
 window.addEventListener('shell:mark-backlog-dirty',   () => { _markBacklogListDirty(); });
 window.addEventListener('shell:render-backlog-list',  () => { _markBacklogListDirty(); renderBacklogList(); renderStats(); }); // B-202606-008: _markBacklogListDirty ausente — guard cortaba render cuando dirty=false
 window.addEventListener('shell:backlog-filter-changed', () => { updateClearFilterBtn(); });
+// B-202606-009: micro-flash en pill del R padre cuando su status avanza automáticamente
+// requestAnimationFrame garantiza que el DOM post-render ya está pintado antes de aplicar la clase
+window.addEventListener('shell:backlog-r-auto-advanced', e => {
+  const rCode = e.detail && e.detail.rCode;
+  if (!rCode) return;
+  requestAnimationFrame(() => {
+    const pill = document.querySelector(`.bitem-status-chip[data-code="${CSS.escape(rCode)}"]`);
+    if (!pill) return;
+    pill.classList.remove('item-status-confirmed');
+    void pill.offsetWidth; // forzar reflow para reiniciar animación si ya estaba activa
+    pill.classList.add('item-status-confirmed');
+    pill.addEventListener('animationend', () => pill.classList.remove('item-status-confirmed'), { once: true });
+  });
+});

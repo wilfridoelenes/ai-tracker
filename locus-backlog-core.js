@@ -1353,16 +1353,22 @@ export function setItemStatus(code, newStatus) {
 }
 
 // T-202606-027: C8 — animación de salida extraída para evitar duplicación entre _applyStatusChange y _applyDoneStatus
-function _applyExitAnimOrRender(code) {
+function _applyExitAnimOrRender(code, rCode) {
   if (!activeStatuses.has('done')) {
     const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
     if (el) {
       el.classList.add('item-exit-anim');
-      setTimeout(() => { window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty')); renderStats(); window.dispatchEvent(new CustomEvent('shell:sprint-render')); }, 360); // T-202605-058 T-202605-044
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
+        if (rCode) window.dispatchEvent(new CustomEvent('shell:backlog-r-auto-advanced', { detail: { rCode } }));
+        renderStats();
+        window.dispatchEvent(new CustomEvent('shell:sprint-render'));
+      }, 360); // T-202605-058 T-202605-044
       return;
     }
   }
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
+  if (rCode) window.dispatchEvent(new CustomEvent('shell:backlog-r-auto-advanced', { detail: { rCode } }));
   renderStats();
   window.dispatchEvent(new CustomEvent('shell:sprint-render')); // T-202605-058 T-202605-044
 }
@@ -1405,8 +1411,9 @@ function _syncParentRStatus(changedItemCode, newTStatus) {
       if (!parent.history) parent.history = [];
       parent.history.push({ type: 'status', ts: parent.statusChangedAt, data: { from: prevParentStatus, to: 'en-revision', reason: 'auto-all-children-done' } });
       _blogLog('status-auto →', parent.code, prevParentStatus + ' → en-revision (todos los Ts hijos done)', 'backlog');
+      return parent.code; // B-202606-009: señal para micro-flash en pill del R
     }
-    return;
+    return null;
   }
 
   // B-202606-040: en-revision → en-proceso — algún T retrocedió de done, ya no todos están done
@@ -1416,7 +1423,7 @@ function _syncParentRStatus(changedItemCode, newTStatus) {
     if (!parent.history) parent.history = [];
     parent.history.push({ type: 'status', ts: parent.statusChangedAt, data: { from: 'en-revision', to: 'en-proceso', reason: 'auto-child-retroceded' } });
     _blogLog('status-auto →', parent.code, 'en-revision → en-proceso (T hijo retrocedió de done)', 'backlog');
-    return;
+    return parent.code; // B-202606-009: señal para micro-flash en pill del R
   }
 
   // AC-1 (B-039): pendiente → en-proceso — el T que cambió salió de pendiente y no es descartado
@@ -1426,7 +1433,10 @@ function _syncParentRStatus(changedItemCode, newTStatus) {
     if (!parent.history) parent.history = [];
     parent.history.push({ type: 'status', ts: parent.statusChangedAt, data: { from: 'pendiente', to: 'en-proceso', reason: 'auto-child-advanced' } });
     _blogLog('status-auto →', parent.code, 'pendiente → en-proceso (T hijo avanzó)', 'backlog');
+    return parent.code; // B-202606-009: señal para micro-flash en pill del R
   }
+
+  return null;
 }
 
 // T-202605-008: lógica de mutación extraída para ser llamada desde _gconfirmOpen y flujo directo
@@ -1450,7 +1460,8 @@ function _applyStatusChange(code, newStatus, prevStatus) {
   if (newStatus === 'pendiente') item.priority = _calcPriority(item); // T-202604-297
   _recalcAllScores(); // T-202604-257: recalcular scores tras cambio de status
   // B-202606-039: sincronizar status del R padre si el ítem cambiado es un T hijo
-  _syncParentRStatus(code, newStatus);
+  // B-202606-009: capturar rCode si hubo transición automática para micro-flash post-render
+  const _autoAdvancedRCode = _syncParentRStatus(code, newStatus);
   // R-202604-051 + T-202605-449: al marcar done, notificar ítems que quedaron desbloqueados
   if (newStatus === 'done') {
     const nowUnblocked = [];
@@ -1478,8 +1489,14 @@ function _applyStatusChange(code, newStatus, prevStatus) {
   _blogLog('status →', code, prevStatus + ' → ' + newStatus, 'backlog');
   saveBacklog();
   // C8: animación salida delegada — T-202606-027
-  if (newStatus === 'done') _applyExitAnimOrRender(code);
-  else { window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty')); renderStats(); window.dispatchEvent(new CustomEvent('shell:sprint-render')); }
+  // B-202606-009: emitir shell:backlog-r-auto-advanced si el R padre avanzó automáticamente
+  if (newStatus === 'done') _applyExitAnimOrRender(code, _autoAdvancedRCode);
+  else {
+    window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
+    if (_autoAdvancedRCode) window.dispatchEvent(new CustomEvent('shell:backlog-r-auto-advanced', { detail: { rCode: _autoAdvancedRCode } }));
+    renderStats();
+    window.dispatchEvent(new CustomEvent('shell:sprint-render'));
+  }
 }
 
 function _resetStatusSelect(code, currentStatus) {

@@ -1,4 +1,4 @@
-// [PP] v0.3.0 · sprint:PP-S-01 · mod:18 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.3.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-13 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -472,6 +472,18 @@ function _buildCurrentStateMd() {
     const pendStr = Object.entries(byType).map(([t, n]) => `${t}=${n}`).join(' | ');
     lines.push(`**Pendientes:** ${pendStr} (${pendientes.length} total)`);
   }
+  // B-202606-011 AC-2: en-revision como categoría propia en ## Estado actual
+  const enRevision = getItems().filter(i => i.status === 'en-revision');
+  if (enRevision.length) {
+    const byTypeER = {};
+    enRevision.forEach(i => {
+      if (!i.code) return;
+      const t = i.code[0];
+      byTypeER[t] = (byTypeER[t] || 0) + 1;
+    });
+    const erStr = Object.entries(byTypeER).map(([t, n]) => `${t}=${n}`).join(' | ');
+    lines.push(`**En revisión:** ${erStr} (${enRevision.length} total)`);
+  }
 
   const allSessions = [];
   (state.projects || []).forEach(p => (p.sessions || []).forEach(s => allSessions.push(s)));
@@ -680,6 +692,7 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   const currentStateMd = _buildCurrentStateMd();
   const sprintActivoMd = _buildSprintActivoMd();
   const sprintsProgramadosMd = _buildSprintsProgramadosMd(); // T-202606-060
+  const historialItemsMd = _buildHistorialItemsMd(exportItems); // B-202606-010
   const _appVerStr = _effectiveVersion();
   const pfx = _docPrefix();
 
@@ -719,7 +732,7 @@ ${mainMd}
 
 ---
 
-${orphansMd ? `## Ítems huérfanos\n\n> Ts y Bs sin parent declarado — requieren revisión de Cael antes del próximo sprint.\n\n---\n\n${orphansMd}\n\n---\n\n` : ''}${_buildSprintHistorialMd()}
+${orphansMd ? `## Ítems huérfanos\n\n> Ts y Bs sin parent declarado — requieren revisión de Cael antes del próximo sprint.\n\n---\n\n${orphansMd}\n\n---\n\n` : ''}${historialItemsMd ? `${historialItemsMd}\n---\n\n` : ''}${_buildSprintHistorialMd()}
 ---
 
 ## Estadísticas finales
@@ -756,30 +769,50 @@ export function _generateBacklogMd(newVersion, opts = {}) {
   showToast('download', `📥 ${pfx}-BACKLOG_${newVersion}.md descargado`);
 }
 
+// B-202606-011 AC-1: agrupar por tipo+status para que en-revision tenga línea propia.
+// Cada combinación tipo+status produce su propia línea en el índice — en-revision no se mezcla con pendiente.
 function _buildIndexLines(itemMap) {
-  const groups = { T: [], R: [], B: [], P: [], '?': [] };
+  // groups key: `${type}:${status}` — permite línea propia por tipo+status
+  const groups = {};
+  const TYPE_ORDER = ['R', 'T', 'B', 'P'];
+  // B-202606-011: status con línea propia en orden canónico de aparición
+  const STATUS_ORDER = ['pendiente', 'en-revision', 'done', 'descartado'];
+
   Object.keys(itemMap).forEach(code => {
-    const t = code[0];
+    const t = code[0] || '?';
     const entry = itemMap[code];
     const status = typeof entry === 'string' ? entry : (entry.status || '—');
     const sprint = typeof entry === 'object' ? (entry.sprint || '') : '';
-    if (groups[t]) {
-      groups[t].push({ code, status, sprint });
-    } else {
-      groups['?'].push({ code, status, sprint });
-    }
+    const key = `${t}:${status}`;
+    if (!groups[key]) groups[key] = { type: t, status, items: [] };
+    groups[key].items.push({ code, status, sprint });
   });
+
+  // Ordenar grupos: primero por tipo (R T B P ?), luego por status canónico
+  const sortedKeys = Object.keys(groups).sort((a, b) => {
+    const [ta, sa] = a.split(':');
+    const [tb, sb] = b.split(':');
+    const tia = TYPE_ORDER.indexOf(ta) !== -1 ? TYPE_ORDER.indexOf(ta) : 99;
+    const tib = TYPE_ORDER.indexOf(tb) !== -1 ? TYPE_ORDER.indexOf(tb) : 99;
+    if (tia !== tib) return tia - tib;
+    const sia = STATUS_ORDER.indexOf(sa) !== -1 ? STATUS_ORDER.indexOf(sa) : 99;
+    const sib = STATUS_ORDER.indexOf(sb) !== -1 ? STATUS_ORDER.indexOf(sb) : 99;
+    return sia - sib;
+  });
+
   const lines = [];
-  Object.keys(groups).forEach(t => {
-    if (!groups[t].length) return;
-    groups[t].sort((a, b) => a.code.localeCompare(b.code));
+  sortedKeys.forEach(key => {
+    const g = groups[key];
+    if (!g.items.length) return;
+    g.items.sort((a, b) => a.code.localeCompare(b.code));
     const chunks = [];
-    for (let i = 0; i < groups[t].length; i += 6) chunks.push(groups[t].slice(i, i+6));
-    const label = t === '?' ? 'Sin código asignado' : t;
+    for (let i = 0; i < g.items.length; i += 6) chunks.push(g.items.slice(i, i + 6));
+    const typeLabel = g.type === '?' ? 'Sin código asignado' : g.type;
+    const label = `${typeLabel} (${g.status})`;
     chunks.forEach(chunk => {
       lines.push(label + ': ' + chunk.map(x => {
         const sprintTag = x.sprint ? ` [${String(x.sprint).split(' · ')[0]}]` : '';
-        return `${x.code} ${x.status}${sprintTag}`;
+        return `${x.code}${sprintTag}`;
       }).join(' | '));
     });
   });
@@ -1103,6 +1136,44 @@ function _buildItemsMd(items) {
     : '';
 
   return { mainMd, orphansMd };
+}
+
+// B-202606-010: ## Historial — ítems con status done que no aparecen en ## Ítems.
+// exportItems ya incluye done del sprint activo y del último sprint cerrado — esos no se duplican aquí.
+// Entrada: exportItems (array ya filtrado para ## Ítems).
+// Salida: string con sección ## Historial, o '' si no hay ítems done adicionales (AC-2).
+function _buildHistorialItemsMd(exportItems) {
+  const exportCodes = new Set(exportItems.map(i => i.code));
+  const doneItems = getItems().filter(i =>
+    i.status === 'done' &&
+    i.code &&
+    !exportCodes.has(i.code)
+  );
+  if (!doneItems.length) return ''; // AC-2: sin sección vacía
+
+  // Ordenar por tipo luego por código
+  const _typeOrder = code => {
+    if (!code) return 4;
+    if (code[0] === 'R') return 0;
+    if (code[0] === 'T') return 1;
+    if (code[0] === 'B') return 2;
+    if (code[0] === 'P') return 3;
+    return 4;
+  };
+  const sorted = [...doneItems].sort((a, b) => {
+    const to = _typeOrder(a.code) - _typeOrder(b.code);
+    if (to !== 0) return to;
+    return (a.code || '').localeCompare(b.code || '');
+  });
+
+  const state = getState();
+  const sections = sorted.map(item => {
+    let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}\n`;
+    md += _buildItemFieldsMd(item, state);
+    return md;
+  });
+
+  return `## Historial\n\n${sections.join('\n---\n\n')}\n`;
 }
 
 // ── Context export ────────────────────────────────────────────────────────────
