@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-12 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -633,20 +633,28 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
     html += `</div></div>`;
   }
 
-  // Empty state
+  // T-202606-107: empty state diferenciado — backlog vacío real vs filtros ocultan todo
   const _hasVisible = pendienteItems.length || doneItems.length || (descartadoItems.length && _getActiveStatuses().has('descartado'));
   if (!_hasVisible) {
-    const _activeSprint = _getActiveSprint();
-    const _hasTypeFilter   = _getActiveTypes().size < 4;
-    const _hasStatusFilter = !(_getActiveStatuses().has('pendiente') && _getActiveStatuses().size === 1);
-    const _hasEffortFilter = _getActiveEfforts().size < 3;
-    const _hasAnyFilter    = q || _hasTypeFilter || _hasStatusFilter || _hasEffortFilter; // T-202606-098: _hasRoleFilter eliminado
+    // hasItems: hay ítems contables antes de aplicar cualquier filtro
+    const hasItems = getItems().length > 0;
+    // hasFiltersActive: al menos un filtro no-default está activo (criterio exacto del AC)
+    const _as = _getActiveStatuses();
+    const hasFiltersActive = _getActiveTypes().size < 4
+      || !_as.has('pendiente')
+      || !_as.has('en-revision')
+      || !!q
+      || _getActiveEfforts().size < 3;
+
     let emptyIcon = '🔍', emptyTitle = '', emptyHint = '', emptyCTA = '';
-    if (q) {
-      emptyTitle = `Sin resultados para "${esc(q)}"`;
-      emptyHint  = 'Prueba con otro término o limpia la búsqueda.';
-      emptyCTA   = `<button class="empty-state-btn" data-action="es-clear-search">✕ Limpiar búsqueda</button>`;
-    } else if (_hasAnyFilter) {
+    if (!hasItems) {
+      // Backlog vacío real — ningún ítem en ITEMS
+      emptyIcon  = '📋';
+      emptyTitle = 'El backlog está vacío';
+      emptyHint  = 'Importa un backlog para comenzar.';
+      emptyCTA   = `<button class="empty-state-btn" data-action="es-import">Importar backlog</button>`;
+    } else if (hasFiltersActive) {
+      // Hay ítems pero los filtros ocultan todo
       emptyTitle = 'Sin resultados con los filtros activos';
       emptyHint  = 'Prueba ajustando o limpiando los filtros.';
       emptyCTA   = `<button class="empty-state-btn" data-action="es-clear-filters">✕ Limpiar filtros</button>`;
@@ -1249,22 +1257,25 @@ export function renderBacklogList(onRendered) {
   }
 
   // B-202604-NNN: evaluar empty state sobre pendientes+done+descartados — no solo filtered (pendientes)
+  // T-202606-107: empty state diferenciado — backlog vacío real vs filtros ocultan todo
   const _hasVisible = pendienteItems.length || doneItems.length || (descartadoItems.length && _getActiveStatuses().has('descartado'));
   if (!_hasVisible) {
-    // T-202604-319: empty state contextual según causa
-    const _activeSprint = _getActiveSprint();
-    const _hasTypeFilter  = _getActiveTypes().size < 4;
-    const _hasStatusFilter = !(_getActiveStatuses().has('pendiente') && _getActiveStatuses().size === 1);
-    const _hasEffortFilter = _getActiveEfforts().size < 3;
-    const _hasAnyFilter = q || _hasTypeFilter || _hasStatusFilter || _hasEffortFilter; // T-202606-098: _hasRoleFilter eliminado
+    const hasItems = getItems().length > 0;
+    const _as = _getActiveStatuses();
+    const hasFiltersActive = _getActiveTypes().size < 4
+      || !_as.has('pendiente')
+      || !_as.has('en-revision')
+      || !!q
+      || _getActiveEfforts().size < 3;
 
     let emptyIcon = '🔍', emptyTitle = '', emptyHint = '', emptyCTA = '';
 
-    if (q) {
-      emptyTitle = `Sin resultados para "${esc(q)}"`;
-      emptyHint  = 'Prueba con otro término o limpia la búsqueda.';
-      emptyCTA   = `<button class="empty-state-btn" data-action="es-clear-search">✕ Limpiar búsqueda</button>`;
-    } else if (_hasAnyFilter) {
+    if (!hasItems) {
+      emptyIcon  = '📋';
+      emptyTitle = 'El backlog está vacío';
+      emptyHint  = 'Importa un backlog para comenzar.';
+      emptyCTA   = `<button class="empty-state-btn" data-action="es-import">Importar backlog</button>`;
+    } else if (hasFiltersActive) {
       emptyTitle = 'Sin resultados con los filtros activos';
       emptyHint  = 'Prueba ajustando o limpiando los filtros.';
       emptyCTA   = `<button class="empty-state-btn" data-action="es-clear-filters">✕ Limpiar filtros</button>`;

@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-09 · mod:15 · autor:Rune · 2026-06-12 00:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-09 · mod:16 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -414,6 +414,12 @@ export function _attachBacklogListDelegation() {
     if (act === 'es-clear-filters') {
       const btn = document.getElementById('filter-clear-btn');
       if (btn) btn.click();
+      return;
+    }
+    if (act === 'es-import') {
+      // T-202606-107: CTA de empty state vacío real — dispara click en el input de importar
+      const fileInput = document.getElementById('backlog-file-input');
+      if (fileInput) fileInput.click();
       return;
     }
     if (act === 'version-collapse') {
