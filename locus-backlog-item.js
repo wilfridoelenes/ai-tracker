@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:22 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:23 · autor:Rune · 2026-06-13 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1952,6 +1952,8 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
             existing.history.push({ type: 'status', ts: Date.now(), origin: 'checkpoint', aiId: _getActiveSessionAiId() || null, data: { from: oldStatus, to: newStatus } }); // B-202606-012
             _blogLog('ckpt-avance', item.code, oldStatus + ' → ' + newStatus, 'backlog');
             changed = true;
+            // B-202606-017 AC-1+AC-2: transición automática del R padre tras avance de T/B via CHECKPOINT
+            _checkAndAdvanceParentR(item.code, Date.now());
           }
           advanced.push({ code: item.code, desc: existing.title, from: oldStatus, to: newStatus });
         } else if (newRank < oldRank) {
@@ -2161,6 +2163,11 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
         });
         _blogLog('ckpt-creado', item.code, item.title || '', 'backlog');
         changed = true;
+
+        // B-202606-017 AC-1+AC-2: transición automática del R padre si el nuevo T/B nace con status != pendiente
+        if (initialStatus !== 'pendiente') {
+          _checkAndAdvanceParentR(item.code, nowTs);
+        }
 
         // R-[pendiente-ID]: si el nuevo ítem tiene origin → cerrar automáticamente el P padre
         if (item.origin) {

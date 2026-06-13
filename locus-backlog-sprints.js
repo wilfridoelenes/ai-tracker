@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-13 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -680,14 +680,18 @@ export function setItemSprint(code, sprintId) {
   const item = getItems().find(i => i.code === code);
   if (!item) return;
   // T-202606-036 AC5: T con parent — bloquear asignación de sprint distinto al del parent
+  // B-202606-018: eximir S-HOTFIX — Ts pueden asignarse a S-HOTFIX independientemente del sprint del R parent
   if (item.parentId && item.code && item.code[0] === 'T') {
-    const parentItem = getItems().find(i => i.code === item.parentId);
-    if (parentItem) {
-      const parentSprint = parentItem.sprint || 'icebox';
-      const incomingSprint = sprintId || 'icebox';
-      if (incomingSprint !== parentSprint) {
-        showToast('warning', 'El sprint del T se hereda de su parent ' + item.parentId);
-        return;
+    const targetSprintForParentGate = _getSprintById(sprintId);
+    if (!targetSprintForParentGate || !targetSprintForParentGate.isHotfix) {
+      const parentItem = getItems().find(i => i.code === item.parentId);
+      if (parentItem) {
+        const parentSprint = parentItem.sprint || 'icebox';
+        const incomingSprint = sprintId || 'icebox';
+        if (incomingSprint !== parentSprint) {
+          showToast('warning', 'El sprint del T se hereda de su parent ' + item.parentId);
+          return;
+        }
       }
     }
   }
