@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-13 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-076 · T-202606-077: export ESM BACKLOG_LOG_MAX y _DOC_LOG_KEYS
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -72,6 +72,10 @@ export const LOCUS_KEYS = {
 
 // R-202605-002: strings canónicos de proyecto — fuente única de verdad
 export const CANONICAL_PROJECTS = ['Obsidian Labs', 'Alisto', 'Content Manager', 'Locus'];
+
+// T-202606-012: versión activa de infra_version — fuente de verdad en __OB-Strategy §5
+// Actualizar cuando Vera incremente infra_version en __OB-Strategy §5
+export const INFRA_VERSION_ACTIVE = 17;
 
 // R-202605-002: prefijos de proyecto — fuente única de verdad
 export const _PREFIX_MAP = {

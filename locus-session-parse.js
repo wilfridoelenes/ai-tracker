@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:34 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:35 · autor:Rune · 2026-06-13 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -13,16 +13,14 @@ import { extractContextSections, extractDocUpdates, extractHtmlMapSections, merg
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger
 import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
-import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, LOCUS_KEYS, CANONICAL_PROJECTS } from './locus-storage.js';
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, LOCUS_KEYS, CANONICAL_PROJECTS, INFRA_VERSION_ACTIVE } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 
 
 
 import { esc } from './locus-ui-shell.js';
 
-// T-202606-203: valor activo de infra_version — fuente de verdad hardcodeada en el módulo.
-// Actualizar manualmente cuando BR-Core §1 incremente infra_version.
-const _INFRA_VERSION_ACTIVE = 16;
+// T-202606-012: _INFRA_VERSION_ACTIVE eliminada — importada como INFRA_VERSION_ACTIVE desde locus-storage.js
 
 // T-202606-210: Set en memoria para detección de CHECKPOINTs duplicados en sesión activa.
 // Scope: por carga de página (sesión activa del navegador). Se resetea con recarga.
@@ -1096,9 +1094,9 @@ export function parsePaste(id) {
       const _infraMatch = text.match(/<!--\s*\*\*infra_version:\s*(\d+)\*\*/);
       if (_infraMatch) {
         const _infraDoc = parseInt(_infraMatch[1], 10);
-        if (_infraDoc !== _INFRA_VERSION_ACTIVE) {
+        if (_infraDoc !== INFRA_VERSION_ACTIVE) {
           const _docName = (ckpt && ckpt.titulo) ? ckpt.titulo : (ckpt && ckpt.proyecto) ? ckpt.proyecto : 'doc';
-          showToast('warn', `infra_version desactualizada: ${_docName} declara infra_version:${_infraDoc}, valor activo es infra_version:${_INFRA_VERSION_ACTIVE}. Verificar consistencia antes de continuar.`);
+          showToast('warn', `infra_version desactualizada: ${_docName} declara infra_version:${_infraDoc}, valor activo es infra_version:${INFRA_VERSION_ACTIVE}. Verificar consistencia antes de continuar.`);
         }
       }
     }
