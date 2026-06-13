@@ -1,4 +1,4 @@
-/* [PP] v1.4.0 · sprint:PP-S-07 · mod:21 · autor:Nova · 2026-06-11 UTC-6 */
+/* [PP] v0.1.0 · sprint:PP-S-01 · mod:22 · autor:Nova · 2026-06-13 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -4183,6 +4183,13 @@ body {
   color: var(--red);
   background: color-mix(in srgb, var(--red) 10%, transparent);
   border-color: color-mix(in srgb, var(--red) 28%, transparent);
+}
+
+/* R sin Ts hijos válidos — B-202606-015 */
+.staleness-pill.staleness--orphaned {
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,6 +1,6 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:22 · autor:Rune · 2026-06-13 UTC-6
 // locus-backlog-item.js
-// Última actualización: B-202606-012 · history[] en avance de status por CHECKPOINT
+// Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
@@ -919,6 +919,11 @@ export function buildBacklogItem(item) {
     ? `<span class="staleness-pill staleness--${_stalenessData.modifier}" title="Sin sesión vinculada — ${_stalenessData.days}d desde último cambio de status">${_stalenessData.label}</span>`
     : '';
 
+  // B-202606-015: badge "Sin Ts" — R con orphaned:true (sin Ts válidos)
+  const orphanedBadge = (!isDone && !isDiscarded && type === 'R' && item.orphaned)
+    ? '<span class="staleness-pill staleness--orphaned" title="R sin Ts válidos — especificar T1 antes de ejecutar">Sin Ts</span>'
+    : '';
+
   // Children count + progreso para R type (T-188)
   // B-202605-052: usar getItems() sin filtrar como denominador — los filtros activos no afectan el porcentaje
   // B-202606-016: denominador = todos los hijos sin filtro · numerador = done + descartado (ambos cuentan como cerrados)
@@ -989,7 +994,7 @@ export function buildBacklogItem(item) {
       ? `<span class="bitem-done-check">✓</span>`
       : isIdea
         ? `<div class="bitem-header-right">${_ideaQuickActions}</div>`
-        : `<div class="bitem-header-right">${_statusChipHtml}${scopeAddedBadge}${noAcBadge}${acReplacedBadge}${blockingBadge}${blockedBadge}${blockedByBadge}${depBlockedBadge}${noSessionBadge}${childBadge}${prioBadgeHtml}${effortDotsHtml}</div>`;
+        : `<div class="bitem-header-right">${_statusChipHtml}${scopeAddedBadge}${noAcBadge}${acReplacedBadge}${blockingBadge}${blockedBadge}${blockedByBadge}${depBlockedBadge}${orphanedBadge}${noSessionBadge}${childBadge}${prioBadgeHtml}${effortDotsHtml}</div>`;
 
   // R-202605-098: subline discard reason diferenciado para P
   // P descartado por promoción → chip con ref; P descartado manual → razón libre
@@ -1943,6 +1948,8 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
             existing.status = newStatus;
             existing.statusChangedAt = Date.now();
             if (newStatus === 'done' && !existing.doneAt) existing.doneAt = Date.now();
+            if (!existing.history) existing.history = [];
+            existing.history.push({ type: 'status', ts: Date.now(), origin: 'checkpoint', aiId: _getActiveSessionAiId() || null, data: { from: oldStatus, to: newStatus } }); // B-202606-012
             _blogLog('ckpt-avance', item.code, oldStatus + ' → ' + newStatus, 'backlog');
             changed = true;
           }
@@ -2246,6 +2253,56 @@ function _isActiveRecently(item) {
 }
 
 
+// B-202606-014: helper de transición automática del R padre tras cambio de status en T/B.
+// Implementa las transiciones declaradas en BR-Ecosystem §5 (gestionadas por Locus):
+//   - primer T hijo != pendiente  → R: pendiente → en-proceso
+//   - último T hijo done          → R: en-proceso → en-revision
+//   - T hijo retrocede desde done → R: en-revision → en-proceso (AC-2 simétrico)
+// Solo aplica cuando el ítem modificado tiene parentId y su parent es tipo R.
+// AC-3: ítems sin parentId → no-op.
+// nowTs: timestamp para statusChangedAt del R.
+function _checkAndAdvanceParentR(childCode, nowTs) {
+  const allItems = typeof getItems() !== 'undefined' ? getItems() : [];
+  const child = allItems.find(i => i.code === childCode);
+  if (!child || !child.parentId) return; // AC-3: sin parent → no-op
+
+  const parent = allItems.find(i => i.code === child.parentId);
+  if (!parent || parent.type !== 'R') return; // parent debe ser R
+
+  // Hijos válidos: T y B no descartados del mismo R
+  const children = allItems.filter(i =>
+    i.parentId === parent.code &&
+    (i.type === 'T' || i.type === 'B') &&
+    i.status !== 'descartado'
+  );
+  if (!children.length) return;
+
+  const allDone  = children.every(i => i.status === 'done');
+  const anyActive = children.some(i => i.status !== 'pendiente');
+
+  const prevStatus = parent.status;
+
+  if (allDone && prevStatus !== 'en-revision' && prevStatus !== 'done' && prevStatus !== 'bloqueado') {
+    // Último T done → R avanza a en-revision
+    parent.status = 'en-revision';
+    parent.statusChangedAt = nowTs;
+    _blogLog('r-auto-transition', parent.code,
+      parent.code + ' ' + prevStatus + ' → en-revision (todos los Ts done via patch)', 'backlog');
+  } else if (!allDone && anyActive && prevStatus === 'pendiente') {
+    // Primer T != pendiente → R avanza a en-proceso
+    parent.status = 'en-proceso';
+    parent.statusChangedAt = nowTs;
+    _blogLog('r-auto-transition', parent.code,
+      parent.code + ' pendiente → en-proceso (T activo via patch)', 'backlog');
+  } else if (!allDone && prevStatus === 'en-revision') {
+    // T retrocedió desde done → R retrocede a en-proceso (AC-2)
+    parent.status = 'en-proceso';
+    parent.statusChangedAt = nowTs;
+    _blogLog('r-auto-transition', parent.code,
+      parent.code + ' en-revision → en-proceso (T retrocedió via patch)', 'backlog');
+  }
+}
+
 // R-202605-062: applyPatchesFromTG — aplica patches de campo individual sobre ítems existentes
 // AC-1: type: "patch" es instrucción de operación — no tipo de ítem
 // AC-2: solo requiere code + campos a patchear
@@ -2324,10 +2381,15 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
             // lo que requiere interacción del usuario y cancela el patch silenciosamente.
             _applyDoneStatus(existing.code);
             changes.push({ field: 'status', from: _prevStatus, to: normalized });
+            // B-202606-014 AC-1: transición automática del R padre tras T/B → done
+            _checkAndAdvanceParentR(existing.code, nowTs);
           } else if (normalized && normalized !== existing.status) {
             changes.push({ field: 'status', from: existing.status, to: normalized });
             existing.status = normalized;
             existing.statusChangedAt = nowTs;
+            // B-202606-014 AC-2: transición automática del R padre tras cambio de status no-done
+            // cubre retroceso desde done (en-revision → en-proceso) y avance a en-revision
+            _checkAndAdvanceParentR(existing.code, nowTs);
           }
         }
         return;
