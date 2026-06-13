@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-13 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -1253,6 +1253,8 @@ export function _confirmRetroceso(code, toStatus) {
     onConfirm: () => {
       item.status = toStatus;
       item.statusChangedAt = Date.now();
+      // B-202606-007: limpiar doneAt al retroceder desde done — AC-1
+      if (from === 'done') item.doneAt = null;
       _blogLog('retroceso', code, from + ' → ' + toStatus, 'backlog');
       _undoSnapshot();
       saveBacklog();
