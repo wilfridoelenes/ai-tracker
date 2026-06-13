@@ -1,11 +1,11 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-12 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
 import { _isBlocked, getItems} from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
-import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, editSprintInline, openSprintRetroView, setSprintStatus, openNewSprintInline } from './locus-backlog-sprints.js'; // T-202606-089 AC-3
+import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, editSprintInline, openSprintRetroView, setSprintStatus, openNewSprintInline, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto } from './locus-sprint-plan.js';
 import { getAI, getActiveSprints, getAllSessions, save } from './locus-storage.js';
@@ -665,6 +665,56 @@ function _renderSprintManager() {
 
 // ── END T-202605-123 ─────────────────────────────────────────────────────────
 
+// ── T-202606-105: Banner de sprints activos en conflicto ─────────────────────
+
+// Inyecta o elimina #sprint-conflict-banner antes del contenido principal del tab.
+// AC: si _getConflictingSprints() retorna > 0 ítems → banner visible con lista de códigos.
+//     si retorna 0 → banner ausente del DOM.
+function _renderConflictBanner() {
+  const BANNER_ID   = 'sprint-conflict-banner';
+  const ANCHOR_ID   = 'sprint-panel-header'; // se inserta antes de este elemento
+  const conflicts   = _getConflictingSprints();
+  let banner        = document.getElementById(BANNER_ID);
+
+  if (!conflicts.length) {
+    // AC: 0 conflictos → banner ausente del DOM
+    if (banner) banner.remove();
+    return;
+  }
+
+  // Construir o reusar el banner
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = BANNER_ID;
+    banner.className = 'sprint-conflict-banner';
+  }
+
+  const names = conflicts.map(s => s.label || s.name || s.id).join(', ');
+  const count = conflicts.length;
+  banner.innerHTML = `
+    <span class="scb-icon">⚠</span>
+    <span class="scb-text">${count} sprint${count > 1 ? 's' : ''} activo${count > 1 ? 's' : ''} simultáneamente — solo puede haber uno<br>
+      <span class="scb-list">${names}</span>
+    </span>
+    <button class="scb-btn" type="button" data-scb-resolve>Resolver en sub-tab Sprints</button>
+  `;
+
+  // Insertar antes del anchor si no está ya en el DOM
+  const anchor = document.getElementById(ANCHOR_ID);
+  if (anchor && anchor.parentNode && !document.getElementById(BANNER_ID)) {
+    anchor.parentNode.insertBefore(banner, anchor);
+  } else if (!anchor && !document.getElementById(BANNER_ID)) {
+    // Fallback: primer hijo del contenedor del tab Sprint
+    const tabContainer = document.getElementById('sprint-tab-container') || document.getElementById('tab-sprint');
+    if (tabContainer) tabContainer.prepend(banner);
+  }
+
+  // Delegar click en el botón — AC: ejecuta _sptSwitch('sprints')
+  banner.querySelector('[data-scb-resolve]')?.addEventListener('click', () => {
+    _sptSwitch('sprints');
+  }, { once: true });
+}
+
 // ── Función principal ───────────────────────────────────────────────────────
 
 export function renderSprintTab() {
@@ -688,6 +738,9 @@ export function renderSprintTab() {
   const itemsList = _spEl('sprint-items-list');
   const emptyEl   = _spEl('tab-sprint-empty');
   const sptNav    = _spEl('spt-nav'); // R-202605-043
+
+  // T-202606-105: banner de conflicto — sprints activos simultáneos
+  _renderConflictBanner();
 
   const sprint = _sprintNow;
 

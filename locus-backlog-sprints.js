@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -28,6 +28,23 @@ export function _getActiveSprint() {
 
 export function _getSprintById(id) {
   return getActiveSprints().find(s => s.id === id) || null;
+}
+
+// T-202606-105: Retorna sprints activos en conflicto del proyecto activo.
+// El primero por startedAt más reciente se considera el activo canonical — se excluye.
+// Retorna el resto de sprints con status 'active' del mismo proyecto.
+export function _getConflictingSprints() {
+  const proj = getActiveProject();
+  const projId = proj ? proj.id : null;
+  const active = getActiveSprints().filter(s => {
+    if (s.status !== 'active') return false;
+    if (!projId) return true;
+    return (s.projId === projId || s.projectId === projId);
+  });
+  if (active.length <= 1) return [];
+  // Ordenar por startedAt desc — el más reciente es el canonical
+  const sorted = [...active].sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
+  return sorted.slice(1);
 }
 
 // T-202605-500: ID con prefijo de proyecto — [PREFIJO]-S[NN], consecutivo por proyecto
