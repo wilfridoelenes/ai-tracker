@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:20 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:21 · autor:Rune · 2026-06-13 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -47,6 +47,13 @@ function _sprintReleaseClass(type) {
 
 function _sprintIsBlocked(item) {
   return _isBlocked(item);
+}
+
+// B-202606-008: normaliza sprint.id extrayendo solo el prefijo base (antes del ' · ')
+// Necesario porque sprint.id puede contener el label completo ("PP-S-01 · Nombre")
+// mientras que i.sprint almacena solo el prefijo base ("PP-S-01").
+function _spIdBase(sprintId) {
+  return (sprintId || '').split(' · ')[0].trim();
 }
 
 function _sprintItemHtml(item) {
@@ -357,9 +364,14 @@ function _renderSprintItems(sprint) {
   // B-202606-006: guard corregido — getItems() siempre retorna array, nunca undefined
   if (!Array.isArray(getItems())) return;
 
+  // B-202606-008: normalizar sprint.id — puede contener el label completo ("PP-S-01 · Nombre")
+  // mientras que i.sprint almacena solo el prefijo base ("PP-S-01"). Sin normalización el
+  // startsWith falla y spItems queda vacío aunque haya ítems en el sprint.
+  const _sid = _spIdBase(sprint.id);
+
   const spItems = getItems().filter(i => {
     const t = i.type || (i.code ? i.code.charAt(0) : '');
-    return i.sprint && i.sprint.startsWith(sprint.id) &&
+    return i.sprint && i.sprint.startsWith(_sid) &&
       (t === 'R' || t === 'B' || t === 'T') &&
       i.status !== 'descartado';
   });
@@ -489,8 +501,9 @@ function _renderSprintWorkers(sprint) {
 
   {
     const sessions = getAllSessions();
+    const _sid = _spIdBase(sprint.id); // B-202606-008
     const sprintItemCodes = Array.isArray(getItems())
-      ? new Set(getItems().filter(i => i.sprint && i.sprint.startsWith(sprint.id)).map(i => i.code))
+      ? new Set(getItems().filter(i => i.sprint && i.sprint.startsWith(_sid)).map(i => i.code))
       : new Set();
 
     const aiIds = new Set();
@@ -524,8 +537,9 @@ function _renderSprintScopeAdded(sprint) {
 
   if (!Array.isArray(getItems())) return;
 
+  const _sid = _spIdBase(sprint.id); // B-202606-008
   const scopeItems = getItems().filter(i =>
-    i.sprint && i.sprint.startsWith(sprint.id) &&
+    i.sprint && i.sprint.startsWith(_sid) &&
     i.scopeAdded === true &&
     i.status !== 'descartado'
   );
@@ -687,9 +701,10 @@ function _renderSprintManager() {
     let done  = 0;
     if (Array.isArray(getItems())) {
       // B-202606-006: incluir T en el conteo — el filtro anterior excluía Ts del burndown
+      const _sid = _spIdBase(sprint.id); // B-202606-008
       const spItems = getItems().filter(i => {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
-        return i.sprint && i.sprint.startsWith(sprint.id) &&
+        return i.sprint && i.sprint.startsWith(_sid) &&
           (t === 'R' || t === 'B' || t === 'T') &&
           i.status !== 'descartado';
       });
@@ -763,9 +778,10 @@ function _renderHotfixSection(allSprints) {
   let pendiente = 0;
   let done = 0;
   if (Array.isArray(getItems())) {
+    const _hsid = _spIdBase(hotfixSprint.id); // B-202606-008
     const hotfixItems = getItems().filter(i => {
       const t = i.type || (i.code ? i.code.charAt(0) : '');
-      return i.sprint && i.sprint.startsWith(hotfixSprint.id) &&
+      return i.sprint && i.sprint.startsWith(_hsid) &&
         (t === 'R' || t === 'B' || t === 'T') &&
         i.status !== 'descartado';
     });
@@ -842,9 +858,10 @@ function _renderSprintSummaryTable(allSprints) {
     // Conteo R/T/B y effort — AC-2 T2
     let countR = 0, countT = 0, countB = 0, effort = 0;
     if (Array.isArray(getItems())) {
+      const _sid = _spIdBase(sprint.id); // B-202606-008
       const spItems = getItems().filter(i => {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
-        return i.sprint && i.sprint.startsWith(sprint.id) &&
+        return i.sprint && i.sprint.startsWith(_sid) &&
           (t === 'R' || t === 'B' || t === 'T') &&
           i.status !== 'descartado';
       });
