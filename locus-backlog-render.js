@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-13 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -451,6 +451,17 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
     sprintMap[key].push(i);
   });
 
+  // B-202606-002: sprints que solo tienen done items visibles no aparecen en sprintMap
+  // (construido solo desde sprintableItems = pendientes). Registrarlos con array vacío
+  // para que el loop de sprint groups los incluya y emita _doneInGroup.
+  if (_getActiveStatuses().has('done')) {
+    doneItems.forEach(i => {
+      if (_isIcebox(i)) return;
+      const key = _extractSprintId((i.sprint || '').trim());
+      if (!sprintMap[key]) sprintMap[key] = [];
+    });
+  }
+
   // AC2: orden descendente de sprint ID — más reciente primero
   // Sprints sin objeto en getActiveSprints() (solo ítems con sprint string) también se ordenan por número
   const sprintKeys = Object.keys(sprintMap).sort((a, b) => {
@@ -469,7 +480,9 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
   // ── Sprint groups ─────────────────────────────────────────────────────────
   sprintKeys.forEach(sprintId => {
     const group = sprintMap[sprintId];
-    if (!group || !group.length) return;
+    // B-202606-002: no descartar el grupo si tiene done items visibles aunque no tenga pendientes
+    const _hasDoneInGroup = _getActiveStatuses().has('done') && doneItems.some(i => _extractSprintId((i.sprint || '').trim()) === sprintId);
+    if ((!group || !group.length) && !_hasDoneInGroup) return;
 
     const sprintObj = _getSprintById(sprintId);
     const isActive  = sprintObj?.status === 'active';
