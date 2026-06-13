@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:17 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:18 · autor:Rune · 2026-06-13 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -764,8 +764,15 @@ function _renderSprintSummaryTable(allSprints) {
 
   const rows = ordered.map(sprint => {
     const isActive  = sprint.status === 'active';
-    const statusBadgeCls = isActive ? 'sprint-badge-active' : 'sprint-badge-closed';
-    const statusTxt      = isActive ? 'Activo' : 'Cerrado';
+    // AC-2b T-202606-002: badge multi-status — programado y pausado tienen clases propias
+    const statusBadgeCls = sprint.status === 'active'     ? 'sprint-badge-active'
+                         : sprint.status === 'programado' ? 'sprint-badge-programado'
+                         : sprint.status === 'pausado'    ? 'sprint-badge-paused'
+                         :                                  'sprint-badge-closed';
+    const statusTxt      = sprint.status === 'active'     ? 'Activo'
+                         : sprint.status === 'programado' ? 'Programado'
+                         : sprint.status === 'pausado'    ? 'Pausado'
+                         :                                  'Cerrado';
 
     // Conteo R/T/B y effort — AC-2 T2
     let countR = 0, countT = 0, countB = 0, effort = 0;
