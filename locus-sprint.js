@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:22 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:23 · autor:Rune · 2026-06-13 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -94,7 +94,7 @@ function _sprintItemHtml(item) {
 
 const _SPT_PANELS   = ['items', 'planificar', 'plan', 'sprints']; // T-202606-029: cuarto sub-tab
 
-function _sptSwitch(subtab, triggerBtn) {
+function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
   _sptActiveSubtab = subtab; // B-202606-065/066: persiste entre renders y recargas de página
   localStorage.setItem(_SPT_SUBTAB_KEY, subtab);
   _SPT_PANELS.forEach(s => {
@@ -108,7 +108,7 @@ function _sptSwitch(subtab, triggerBtn) {
     }
   });
   // Render bajo demanda
-  if (subtab === 'items') { // B-202606-008: re-render al volver al subtab Ítems
+  if (subtab === 'items' && !skipItemsRender) { // B-202606-008: re-render al volver al subtab Ítems — skip si viene desde renderSprintTab (evita doble render)
     const sprint = _getActiveSprint();
     if (sprint) {
       const itemsList = document.getElementById('sprint-items-list');
@@ -1171,7 +1171,7 @@ export function renderSprintTab() {
   // Mostrar subtab nav y resetear a "Ítems" — R-202605-043
   if (sptNav) {
     sptNav.classList.remove('is-hidden');
-    _sptSwitch(_sptActiveSubtab, _spEl('spt-tab-' + _sptActiveSubtab)); // B-202606-065: usa estado persistido — no lee DOM
+    _sptSwitch(_sptActiveSubtab, _spEl('spt-tab-' + _sptActiveSubtab), true); // B-202606-065: usa estado persistido — no lee DOM. true = skip items render (renderSprintTab lo hace directamente)
   }
 
   // Header
