@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:18 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-13 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -802,6 +802,29 @@ export function loadBacklog() {
   // R-202605-070: normalizar contrato de datos antes de cualquier uso downstream.
   // _normalizeItems absorbe: type, status, title/desc, id, history, schema_version.
   _setITEMS(_normalizeItems(ITEMS));
+
+  // B-202606-016: sanear ítems con status:'historico' cuyo sprint no está cerrado.
+  // Origen: normalizeStatus acepta 'historico' como canónico — si el dato llegó con
+  // ese valor sin tener sprint cerrado, _normalizeItems lo pasa sin mutar.
+  // Fix: detectar post-normalización, resetear a 'pendiente' y registrar en DocLog.
+  {
+    const closedIds = new Set(
+      getActiveSprints().filter(s => s.status === 'closed').map(s => s.id)
+    );
+    let sanitizedHistorico = 0;
+    ITEMS.forEach(i => {
+      if (i.status === 'historico' && !closedIds.has(i.sprint)) {
+        i.status = 'pendiente';
+        sanitizedHistorico++;
+        _blogLog('fix', i.code || '(sin código)',
+          `B-202606-016: status:historico sin sprint cerrado → pendiente (sprint: ${i.sprint || 'icebox'})`,
+          'backlog');
+      }
+    });
+    if (sanitizedHistorico > 0) {
+      console.log(`[AI Tracker] B-202606-016: ${sanitizedHistorico} ítem(s) con status:historico inválido → pendiente`);
+    }
+  }
 
   // B-202605-210: sanear pendientes en sprints cerrados (migración retroactiva)
   const sanitized = _sanitizePendingInClosedSprints();
