@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-13 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -12,7 +12,7 @@ import { _blogLog, getActiveProject, getActiveSprints, saveBacklog } from './loc
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
-import { applyPatchesFromTG, mergeBacklogFromTG } from './locus-backlog-item.js';
+import { applyPatchesFromTG, mergeBacklogFromTG, _checkAndOrphanParentR } from './locus-backlog-item.js';
 
 import { _setBacklogModified } from './locus-docs.js';
 
@@ -1328,6 +1328,7 @@ export function _confirmDiscard(code, reason, ref) {
       item.discardReason = finalReason;
       item.discardRef = finalRef;
       _blogLog('descartado', code, finalReason || '', 'backlog');
+      _checkAndOrphanParentR(code, Date.now()); // T-202606-017 AC-1
       _undoSnapshot();
       saveBacklog();
       _setBacklogModified();
@@ -1360,6 +1361,7 @@ function _applyDiscardBatch(items) {
     item.discardRef = ref || '';
     item.statusChangedAt = Date.now();
     _blogLog('ckpt-descarte', code, reason || '', 'backlog');
+    _checkAndOrphanParentR(code, Date.now()); // T-202606-017 AC-1
     applied++;
   });
   if (!applied) return;

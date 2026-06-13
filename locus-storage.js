@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-13 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-076 · T-202606-077: export ESM BACKLOG_LOG_MAX y _DOC_LOG_KEYS
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -75,7 +75,7 @@ export const CANONICAL_PROJECTS = ['Obsidian Labs', 'Alisto', 'Content Manager',
 
 // T-202606-012: versión activa de infra_version — fuente de verdad en __OB-Strategy §5
 // Actualizar cuando Vera incremente infra_version en __OB-Strategy §5
-export const INFRA_VERSION_ACTIVE = 17;
+export const INFRA_VERSION_ACTIVE = 18;
 
 // R-202605-002: prefijos de proyecto — fuente única de verdad
 export const _PREFIX_MAP = {
@@ -1293,6 +1293,41 @@ function _applyStateData(raw) {
   if (!raw._stateVersion) raw._stateVersion = 3;
   if (!raw.quickNotes) raw.quickNotes = [];
 
+  // T-202606-016: _ensureHotfixSprint — crea sprint S-HOTFIX si el proyecto no lo tiene.
+  // Idempotente: AC-3 — si ya existe isHotfix:true no crea otro.
+  // AC-4: no modifica sprints regulares existentes.
+  // Se llama dentro del forEach de migración — cubre proyectos nuevos (AC-1) y existentes (AC-2).
+  function _ensureHotfixSprint(proj) {
+    if (!proj.sprints) proj.sprints = [];
+    if (proj.sprints.some(sp => sp.isHotfix === true)) return; // AC-3: ya existe
+    // Derivar prefijo: desde sprints regulares → proj.prefix → iniciales del nombre → 'XX'
+    let prefix = 'XX';
+    const regularSprint = proj.sprints.find(sp => /^[A-Za-z]+-S\d+$/i.test(sp.id || ''));
+    if (regularSprint) {
+      const m = (regularSprint.id || '').match(/^([A-Za-z]+)-S\d+$/i);
+      if (m) prefix = m[1].toUpperCase();
+    } else if (proj.prefix) {
+      prefix = String(proj.prefix).toUpperCase();
+    } else if (proj.name) {
+      prefix = proj.name.split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 3) || 'XX';
+    }
+    const hotfixId = prefix + '-S-HOTFIX';
+    proj.sprints.push({
+      id: hotfixId,
+      label: hotfixId,
+      goal: '',
+      version_target: 'n/a',
+      release_type: null,
+      status: 'active',
+      current: false,
+      formallyOpened: true,
+      isHotfix: true,
+      startedAt: Date.now(),
+      createdAt: Date.now()
+    });
+    console.log('[Locus] T-202606-016: sprint HOTFIX creado —', hotfixId);
+  }
+
   // v3: migración de proyectos — asegurar campos v3
   (raw.projects || []).forEach(proj => {
     if (!proj.sessions) proj.sessions = [];
@@ -1315,11 +1350,15 @@ function _applyStateData(raw) {
         sp.status = newStatus;
       }
     });
+    // T-202606-016: asegurar sprint S-HOTFIX — después de migración open→active/closed
+    // para no alterar _hasActiveSprint ni la lógica de migración legacy.
+    _ensureHotfixSprint(proj);
     // T-202605-025: campo current — default false + migración automática
     // B-202605-028: si hay múltiples activos sin current, marcar el más reciente (por startedAt).
-    // Idempotente: corre en cada _applyStateData().
+    // Idempotente: corre en cada _applyStateData().\
     proj.sprints.forEach(sp => { if (sp.current === undefined) sp.current = false; });
-    const activeSprints = proj.sprints.filter(sp => sp.status === 'active');
+    // T-202606-016: excluir sprint HOTFIX de la selección de current — nunca debe ser current
+    const activeSprints = proj.sprints.filter(sp => sp.status === 'active' && !sp.isHotfix);
     const hasCurrentActive = activeSprints.some(sp => sp.current === true);
     if (!hasCurrentActive && activeSprints.length > 0) {
       const mostRecent = activeSprints.reduce((a, b) => ((a.startedAt || 0) >= (b.startedAt || 0) ? a : b));

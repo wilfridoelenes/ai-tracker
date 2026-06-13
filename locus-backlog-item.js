@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:23 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:25 · autor:Rune · 2026-06-13 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1824,8 +1824,12 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
   // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)
   // El schema declara "parent" pero el código usa parentId — mapear antes del loop
+  // T-202606-009: normalizar depends_on (schema) → dependsOn (campo interno) — mismo patrón.
+  // Sin esta normalización los slugs en depends_on nunca llegan a _listFields de _assignPendingIds
+  // y se pierden silenciosamente: el campo queda undefined en lugar de [] con slugs resueltos.
   tgItems = tgItems.map(item => {
     if (item.parent && !item.parentId) { item.parentId = item.parent; }
+    if (Array.isArray(item.depends_on) && !item.dependsOn) { item.dependsOn = item.depends_on; }
     return item;
   });
 
@@ -2308,6 +2312,40 @@ function _checkAndAdvanceParentR(childCode, nowTs) {
     _blogLog('r-auto-transition', parent.code,
       parent.code + ' en-revision → en-proceso (T retrocedió via patch)', 'backlog');
   }
+}
+
+// T-202606-017: helper de transición a orphaned del R padre cuando todos sus Ts hijos quedan descartados.
+// AC-1: invocado tras marcar un T/B hijo como 'descartado' — si todos los hijos (T/B) del R
+//   están en 'descartado', el R pasa a status:'orphaned'.
+// AC-3: si al menos un T/B hijo no está descartado → no-op, el R conserva su status actual.
+// AC-4: al transicionar, registra en _blogLog el mensaje canónico.
+// Solo aplica cuando el ítem modificado tiene parentId y su parent es tipo R.
+// nowTs: timestamp para statusChangedAt del R.
+export function _checkAndOrphanParentR(childCode, nowTs) {
+  const allItems = typeof getItems() !== 'undefined' ? getItems() : [];
+  const child = allItems.find(i => i.code === childCode);
+  if (!child || !child.parentId) return; // sin parent → no-op
+
+  const parent = allItems.find(i => i.code === child.parentId);
+  if (!parent || parent.type !== 'R') return; // parent debe ser R
+
+  // Hijos del R (T y B) — incluye descartados para evaluar si TODOS lo están
+  const children = allItems.filter(i =>
+    i.parentId === parent.code &&
+    (i.type === 'T' || i.type === 'B')
+  );
+  if (!children.length) return; // sin hijos declarados → no-op (gate de parser cubre R sin Ts al ingestar)
+
+  const allDiscarded = children.every(i => i.status === 'descartado');
+  if (!allDiscarded) return; // AC-3: al menos un hijo no descartado → R conserva status
+
+  if (parent.status === 'orphaned') return; // ya orphaned — no duplicar transición/log
+
+  parent.status = 'orphaned';
+  parent.orphaned = true;
+  parent.statusChangedAt = nowTs;
+  _blogLog('r-orphaned', parent.code,
+    'R ' + parent.code + ' en orphaned — todos los Ts descartados. Cael puede re-especificar o descartar', 'backlog');
 }
 
 // R-202605-062: applyPatchesFromTG — aplica patches de campo individual sobre ítems existentes

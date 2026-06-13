@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:35 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:42 · autor:Rune · 2026-06-13 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -75,6 +75,7 @@ const _KNOWN_STATUS_INPUTS = new Set([
   'descartado', 'historico', 'histórico', 'pendiente', 'promovida',
   'listo',
   'bloqueado', // T-202606-031: válido solo para R — validación de rol en parsePaste
+  'orphaned', // T-202606-017: válido solo para R — sin Ts válidos
 ]);
 function _canonicalStatus(raw, type) {
   if (!raw) return null;
@@ -85,6 +86,7 @@ function _canonicalStatus(raw, type) {
   if (s === 'histórico') return 'historico';
   if (s === 'promovida' && type !== 'P') return null; // T-202606-018
   if (s === 'bloqueado') return type === 'R' ? 'bloqueado' : null; // T-202606-031: solo válido para R
+  if (s === 'orphaned') return type === 'R' ? 'orphaned' : null; // T-202606-017: solo válido para R
   return normalizeStatus(raw, type) || null;
 }
 
@@ -197,17 +199,16 @@ function _parseInlineFixes(text) {
   return fixes;
 }
 
-// R-202605-133: parseCheckpoint — path primario JSON puro + path legacy regex
-// Path primario: bloque ```json { ... } ``` con schema completo
-// Path legacy:   formato Markdown ---CHECKPOINT--- (read-only — CHECKPOINTs históricos)
+// T-202606-005: parseCheckpoint — path único JSON puro (fence sin especificador de lenguaje)
+// Path único: bloque ``` { ... } ``` sin especificador de lenguaje con schema completo
 function parseCheckpoint(text) {
-  // ── Path primario: JSON puro ──────────────────────────────────────────────────
-  // Detectar bloque ```json ... ``` que contiene el objeto CHECKPOINT
+  // ── Path único: JSON puro ─────────────────────────────────────────────────────
+  // Detectar bloque ``` { ... } ``` sin especificador de lenguaje
   // T-202606-055: anclar detección al inicio del texto — evita falso positivo con bloques
-  // ```json embebidos en campos de texto (doc_updates, ejemplos en ---ITEMS---).
-  // Solo activa el path JSON cuando el bloque ```json es el primer contenido del texto.
+  // embebidos en campos de texto (doc_updates, ejemplos en ---ITEMS---).
+  // Solo activa el path JSON cuando el bloque ``` es el primer contenido del texto.
   // T-202606-019: anclar match al inicio — evita captura prematura por ``` en doc_updates.content
-  const _jsonFenceMatch = /^\s*```json/.test(text) ? text.match(/^\s*```json\s*([\s\S]*?)\s*```/) : null;
+  const _jsonFenceMatch = /^\s*```\s*\{/.test(text) ? text.match(/^\s*```\s*([\s\S]*?)\s*```/) : null;
   if (_jsonFenceMatch) {
     let _parsed = null;
     let _jsonErr = null;
@@ -238,11 +239,19 @@ function parseCheckpoint(text) {
       .filter(i => i.type === t)
       .map(i => `${i.code}: ${i.title || i.desc || ''}`)
       .join('\n');
-    // T-202606-039: extraer inline_fix(es) del schema JSON — acepta campo singular o array
+    // T-202606-039: extraer inline_fix(es) del schema JSON — debe ser array
+    // T1-parser-validaciones: objeto singular rechazado con DocLog canónico — no normalizar
     const _inlineFixRaw = _parsed.inline_fix || _parsed.inline_fixes || null;
-    const _inlineFixes = Array.isArray(_inlineFixRaw)
-      ? _inlineFixRaw
-      : (_inlineFixRaw && typeof _inlineFixRaw === 'object' ? [_inlineFixRaw] : []);
+    let _inlineFixes = [];
+    if (_inlineFixRaw !== null && _inlineFixRaw !== undefined) {
+      if (Array.isArray(_inlineFixRaw)) {
+        _inlineFixes = _inlineFixRaw;
+      } else {
+        // objeto singular — rechazar, no normalizar
+        _blogLog('inline-fix-objeto-singular', '', 'inline_fix debe ser array — objeto singular no válido', 'backlog');
+        // _inlineFixes queda [] — no se indexa
+      }
+    }
     // T-202606-017: extraer doc_updates — array de objetos DOC-UPDATE del schema JSON
     const _rawDocUpdates = Array.isArray(_parsed.doc_updates) ? _parsed.doc_updates : [];
     // T-202606-017: extraer sprint_proposal — objeto del schema JSON (null si ausente)
@@ -291,6 +300,7 @@ function parseCheckpoint(text) {
       _rawSprintProposal,               // T-202606-017: objeto sprint_proposal del schema JSON (null si ausente)
       _rawFinnObservations,             // T-202606-018: array de finn_observations del schema JSON (null si ausente)
       _rawExecutionPlan,                // T-202606-018: objeto execution_plan del schema JSON (null si ausente)
+      draft: _parsed.draft === true,    // T-202606-006: exponer draft para guard en parsePaste
       rawCounts: {
         P: _countByType('P'),
         T: _countByType('T'),
@@ -300,95 +310,8 @@ function parseCheckpoint(text) {
     };
   }
 
-  // ── Path legacy: formato Markdown ---CHECKPOINT--- (read-only) ───────────────
-  // Extrae campos del bloque CHECKPOINT en formato:
-  // Título: ...
-  // Resumen: ... | Archivos: ...
-  // P: ...
-  // T: ...
-  // R: ...
-  // B: ...
-  // Contadores: P=NNN | T=NNN | R=NNN | B=NNN
-  // Estado: ...
-  // Decisión: ...
-  // Próximo paso: ...
-  
-  const extractField = (fieldName) => {
-    const r = new RegExp(`^\\s*${fieldName}:\\s*(.+?)$`, 'mi');
-    const m = text.match(r);
-    return m ? m[1].trim() : '';
-  };
-  
-  const titulo = extractField('Título');
-  const proyecto = extractField('Proyecto');
-  const resumenRaw = extractField('Resumen');
-  // Archivos: campo propio (línea independiente) — fallback a sufijo del Resumen
-  const archivosPropio = extractField('Archivos');
-  const resumenMatch = resumenRaw.match(/^(.+?)\s*(?:\|\s*Archivos:\s*(.+))?$/i);
-  const resumen = resumenMatch ? resumenMatch[1].trim() : resumenRaw;
-  const archivos = archivosPropio || (resumenMatch ? (resumenMatch[2] || '') : '');
-  
-  // T-202604-122 fix: capturar TODAS las líneas de cada tipo (no solo la primera)
-  // R-202604-029 fix: dos correcciones combinadas:
-  //   1. negative lookahead (?![\w]) impide que 'P' capture 'Proyecto:' o 'Próximo paso:'
-  //   2. [^\S\n]* en lugar de \s* después de ':' — evita consumir el newline cuando el campo está vacío
-  //      (con \s*, 'P:\n' + \s* tragaba el \n y .+ capturaba la línea siguiente)
-  const extractAllLines = (fieldName) => {
-    const r = new RegExp(`^[^\\S\\n]*${fieldName}(?![\\w]):[^\\S\\n]*(.+)`, 'gmi');
-    const results = [];
-    let m;
-    while ((m = r.exec(text)) !== null) results.push(m[1].trim());
-    return results.join('\n');
-  };
-  const pItems = extractAllLines('P');
-  const tItems = extractAllLines('T');
-  const rItems = extractAllLines('R');
-  const bItems = extractAllLines('B');
-  
-  const rol = extractField('Rol');
-  const estado = extractField('Estado');
-  const decision = extractField('Decisión') || extractField('Decision');
-  const proximoPaso = extractField('Próximo paso');
-  // R-202604-039: campos de memoria narrativa
-  const contexto     = extractField('Contexto');
-  const bloqueantes  = extractField('Bloqueantes');
-  const aprendizaje  = extractField('Aprendizaje');
-  // T-202606-016: campos informativos adicionales (formato Markdown legacy)
-  const duration         = extractField('Duración') || extractField('Duration') || '';
-  const docsVerified     = extractField('Docs verificados') || '';
-  const tensionsResolved = extractField('Tensiones resueltas') || '';
-  
-  const _itemLineRe = /(\[pendiente-ID\]|\[tmp:[a-z0-9_-]+\]|[PTRB]-\d{6}-\d{3}(?:-[A-Z]+)?)\s*:?\s*.+/i;
-  const _countParseable = (raw) => raw ? raw.split('\n').filter(l => l.trim() && _itemLineRe.test(l.trim())).length : 0;
-
-  return {
-    titulo,
-    proyecto,
-    rol,
-    resumen,
-    archivos,
-    pItems,
-    tItems,
-    rItems,
-    bItems,
-    estado,
-    decision,
-    proximoPaso,
-    contexto,
-    bloqueantes,
-    aprendizaje,
-    // T-202606-016: campos informativos adicionales
-    duration,
-    docsVerified,
-    tensionsResolved,
-    isCheckpoint: true,
-    rawCounts: {
-      P: _countParseable(pItems),
-      T: _countParseable(tItems),
-      R: _countParseable(rItems),
-      B: _countParseable(bItems),
-    }
-  };
+  // T-202606-005: texto sin fence ``` → devolver null (no es CHECKPOINT)
+  return null;
 }
 
 // T-202604-200: actualiza la mini barra de progreso 3 fases del card
@@ -519,8 +442,8 @@ export function parsePaste(id) {
   const text = ta ? ta.value : '';
   const ai = getAI(id); // B-202606-017: declarado al inicio de parsePaste — disponible en todos los branches (incluido el else de texto vacío, línea ~729)
   if (!ai) return;
-  // R-202605-133: detectar CHECKPOINT en formato JSON puro (```json) o Markdown legacy
-  const isCheckpoint = text.includes('---CHECKPOINT---') || /^\s*```json\s*\{/.test(text);
+  // T-202606-005: detectar CHECKPOINT únicamente via fence sin especificador de lenguaje
+  const isCheckpoint = /^\s*```\s*\{/.test(text);
 
   let title = '', summary = '', files = '', nextStep = '', bloqueantesRaw = '', tgItems = [], ckpt = null;
   if (isCheckpoint) {
@@ -531,8 +454,18 @@ export function parsePaste(id) {
     nextStep = ckpt.proximoPaso;
     bloqueantesRaw = ckpt.bloqueantes || '';
 
+    // T-202606-006: guard draft:true — bloquear ingesta antes de cualquier validación de ítems
+    // AC-4: evaluado antes de _jsonParseError y _isJsonFormat — entrada: JSON con draft:true → bloqueo inmediato
+    // AC-1: parsePaste no ejecuta ningún path de ingesta — tgItems queda vacío
+    // AC-2: error visible al founder con mensaje canónico
+    // AC-3: draft ausente o false → sin efecto
+    if (ckpt.draft === true) {
+      window[`_itemsJsonError_${id}`] = 'Borrador detectado — pegar CHECKPOINT final emitido por Finn';
+      // tgItems ya es [] — no se modifica
+      // No continuar con ningún path de ingesta
+    }
     // R-202605-133: si parseCheckpoint detectó error en el bloque ```json, marcar error bloqueante
-    if (ckpt._jsonParseError) {
+    else if (ckpt._jsonParseError) {
       window[`_itemsJsonError_${id}`] = ckpt._jsonParseError;
     }
     // R-202605-133: si el CHECKPOINT es JSON puro, los ítems ya están en ckpt._rawItems — no buscar ---getItems()---
@@ -589,6 +522,17 @@ export function parsePaste(id) {
           _itemError = `Ítem [${_i}]: type inválido "${_it.type}". Valores válidos: P · T · R · B`;
           break;
         }
+        // T2-parser-validaciones: status 'historico' no es emitible en CHECKPOINT — asignado exclusivamente por Locus al cerrar sprint
+        // Aplica a todos los tipos (R, T, B, P) — campo status ignorado, ítem omitido, resto del CHECKPOINT continúa
+        if (_it.status && (_it.status.trim().toLowerCase() === 'historico' || _it.status.trim().toLowerCase() === 'histórico')) {
+          _blogLog(
+            'status-historico-emitido',
+            _it.code || '[pendiente-ID]',
+            `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint`,
+            'backlog'
+          );
+          continue; // ítem omitido — resto del CHECKPOINT continúa
+        }
         // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
         const _normSt = _canonicalStatus(_it.status, _it.type);
         if (!_normSt || (!_validStatuses.includes(_normSt) && _normSt !== 'promovida' && _normSt !== 'bloqueado')) {
@@ -628,6 +572,21 @@ export function parsePaste(id) {
           _rsNoAc.push(`R ${_it.code || '[pendiente-ID]'} "${_it.title || _it.desc || ''}"`);
           continue;
         }
+        // T3-parser-validaciones: bloqueo B sin comportamiento_actual — BR-Ecosystem §5 schema de B
+        // AC-1: B sin campo comportamiento_actual o con string vacío → _itemError bloqueante, no aplica ítem
+        // AC-2: valor literal de excepción aceptado sin alerta
+        // AC-3: aplica a Bs nuevos ([pendiente-ID]/[tmp:slug]) y a patches con status sobre Bs existentes
+        //   — pero los patches ya se manejan en el branch 'patch' arriba; aquí solo Bs completos
+        if (_it.type === 'B') {
+          const _comportamiento = (_it.comportamiento_actual || '').trim();
+          const _EXCEPCION = 'no observado directamente — síntoma reportado por founder';
+          if (!_comportamiento || (_comportamiento.toLowerCase() !== _EXCEPCION)) {
+            if (!_comportamiento) {
+              _itemError = `B ${_it.code || '[pendiente-ID]'} sin comportamiento_actual — campo obligatorio. Adjuntar CHECKPOINT corregido.`;
+              break;
+            }
+          }
+        }
         // T-202606-085: resolver sprint_id y sprint_name antes de construir el ítem
         const _sprintF = _resolveSprintFields(_it);
         tgItems.push({
@@ -661,6 +620,24 @@ export function parsePaste(id) {
         // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
         // T-202606-158: pasar tgItems para heredar sprint de parent R en mismo CHECKPOINT
         _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
+        // T-202606-008: alerta DocLog si T tiene contract_update: 'sí' y doc_updates ausente o vacío
+        // AC-1: extraer campo contract_update del ítem T
+        // AC-2: si valor es 'sí' y _rawDocUpdates está vacío → entrada en DocLog
+        // AC-3: si doc_updates tiene al menos una entrada → sin alerta
+        // AC-4: valores 'no' y 'n/a' no activan verificación
+        // AC-5: ingesta continúa en ambos casos — no es bloqueo
+        if (_it.type === 'T' && (_it.contract_update || '').toLowerCase() === 'sí') {
+          const _hasDocUpdates = Array.isArray(ckpt._rawDocUpdates) && ckpt._rawDocUpdates.length > 0;
+          if (!_hasDocUpdates) {
+            _blogLog(
+              'contract-update-sin-doc-update',
+              _it.code || '[pendiente-ID]',
+              `contract_update declarado sí — DOC-UPDATE de module-contracts ausente en CHECKPOINT ${ckpt.titulo || ''}`,
+              'backlog'
+            );
+          }
+        }
+
         // T-202606-018: advertencia si P tiene status promovida sin promovida_a
         if (_it.type === 'P' && _normSt === 'promovida' && !_it.promovida_a) {
           _blogLog('promovida-sin-ref', _it.code || '[pendiente-ID]', 'P ' + (_it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
@@ -685,187 +662,17 @@ export function parsePaste(id) {
         delete window[`_patchItems_${id}`];
       } else {
         _rawItems.forEach(it => { if (it.contract) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract); });
-      }
-    }
-    // Path legacy: ---getItems()--- / ---getItems()-END---
-    else {
-    // R-202604-038: parser JSON estructurado — bloque ---getItems()--- / ---getItems()-END---
-    // El parser regex de texto libre fue eliminado. Los ítems P/T/R/B se ingresan
-    // exclusivamente via bloque JSON. parseCheckpoint() conserva pItems/tItems/rItems/bItems
-    // para mostrar texto legible en preview, pero no alimentan tgItems.
-    // Soporta tanto ---getItems()--- (legacy) como ---ITEMS--- (formato BR-Ecosystem §8 canónico)
-    const _itemsBlockMatch = text.match(/---getItems\(\)---\s*([\s\S]*?)\s*---getItems\(\)-END---/) ||
-                             text.match(/---ITEMS---\s*([\s\S]*?)\s*---ITEMS-END---/);
-    const _hasItemsBlock = !!_itemsBlockMatch;
-    if (_hasItemsBlock) {
-      let _parsedJSON = null;
-      let _jsonError = null;
-      try {
-        // Limpiar posibles backtick-fences si el usuario los incluyó accidentalmente
-        const _jsonRaw = _itemsBlockMatch[1].replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-        _parsedJSON = JSON.parse(_jsonRaw);
-      } catch (e) {
-        _jsonError = e.message || 'JSON inválido';
-      }
-      if (_jsonError || !Array.isArray(_parsedJSON)) {
-        // Error bloqueante — JSON inválido o no es array
-        // Se acumula en _itemsJsonError para emitirlo en la sección de validaciones
-        window[`_itemsJsonError_${id}`] = _jsonError || 'El bloque ---getItems()--- no contiene un array JSON válido';
-      } else {
-        // Validar y construir tgItems desde el array JSON
-        const _validTypes   = ['P', 'T', 'R', 'B'];
-        const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
-        const ckptHeaderRole = ckpt ? (ckpt.rol || '') : '';
-        let _itemError = null;
-        const _rsNoAc2 = []; // T-202606-030 fix AC-3: acumular Rs sin AC — no hacer break en el primero
-        for (let _i = 0; _i < _parsedJSON.length; _i++) {
-          const _it = _parsedJSON[_i];
-          // R-202605-062: patch — instrucción de operación, no tipo de ítem
-          if (_it.type === 'patch') {
-            if (!_it.code || _isPlaceholderCode(_it.code)) {
-              _blogLog('patch-ignorado', _it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (_it.code || '(vacío)'), 'backlog');
-              // T-202606-055 AC-1+AC-3: toast visible — consistente con path JSON primario
-              showToast('warn', `Patch descartado: código placeholder no patcheable — ${_it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
-            } else {
-              // T-202606-080: validación de rol para patch con status: bloqueado sobre R (path legacy)
-              const _patchNormSt2 = _it.status ? _canonicalStatus(_it.status, 'R') : null;
-              if (_patchNormSt2 === 'bloqueado') {
-                const _patchTarget2 = (getItems() || []).find(x => x.code === _it.code);
-                if (_patchTarget2 && _patchTarget2.type === 'R') {
-                  const _patchAuthorizedRole2 = 'QA · Finn';
-                  if (ckptHeaderRole !== _patchAuthorizedRole2) {
-                    _blogLog(
-                      'rol-no-autorizado-bloqueado',
-                      _it.code,
-                      `Transición bloqueado en R ${_it.code} rechazada: solo Finn puede mover un R a bloqueado. Origen: ${ckpt ? (ckpt.titulo || '') : ''}`,
-                      'backlog'
-                    );
-                    continue; // AC-2: patch descartado — no acumular en _patchItems
-                  }
-                }
-              }
-              window[`_patchItems_${id}`] = window[`_patchItems_${id}`] || [];
-              window[`_patchItems_${id}`].push(_it);
-            }
-            continue;
-          }
-          // AC-5: campos obligatorios
-          if (!_it.type || !_it.code || !_it.status) {
-            _itemError = `Ítem [${_i}]: faltan campos obligatorios (type, code, status). Recibido: ${JSON.stringify(_it)}`;
-            break;
-          }
-          // AC-6: type válido
-          if (!_validTypes.includes(_it.type)) {
-            _itemError = `Ítem [${_i}]: type inválido "${_it.type}". Valores válidos: P · T · R · B`;
-            break;
-          }
-          // AC-7: status válido — R-202605-023: normalizar antes de validar
-          const _normSt2 = _canonicalStatus(_it.status, _it.type);
-          if (!_normSt2 || (!_validStatuses.includes(_normSt2) && _normSt2 !== 'promovida' && _normSt2 !== 'bloqueado')) {
-            _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${_it.type === 'P' ? ' · promovida' : ''}${_it.type === 'R' ? ' · bloqueado' : ''}`;
-            break;
-          }
-          // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
-          // T-202606-012 AC-3: sprint ausente se trata como icebox
-          // T-202606-085: leer sprint_id como fallback cuando sprint no está presente (formato nuevo)
-          const _sprintRaw2 = (_it.sprint || _it.sprint_id || '').trim().toLowerCase();
-          if (_normSt2 === 'en-revision' && (_sprintRaw2 === 'icebox' || _sprintRaw2 === '')) {
-            _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
-            break;
-          }
-          // T-202606-031: validación de rol autorizado para transición R → bloqueado (path legacy)
-          // AC-1: solo 'QA · Finn' puede emitir R con status bloqueado
-          // AC-2: al fallar → advertencia en DocLog con mensaje canónico + omitir cambio de status
-          // AC-3: otros cambios del CHECKPOINT continúan aplicándose (continue, no break)
-          // AC-4: misma validación aplica a ítem R completo con status: bloqueado desde rol no autorizado
-          if (_it.type === 'R' && _normSt2 === 'bloqueado') {
-            const _authorizedRole2 = 'QA · Finn';
-            if (ckptHeaderRole !== _authorizedRole2) {
-              _blogLog(
-                'rol-no-autorizado-bloqueado',
-                _it.code || '[pendiente-ID]',
-                `Transición bloqueado en R ${_it.code || '[pendiente-ID]'} rechazada: solo Finn puede mover un R a bloqueado. Origen: ${ckpt ? (ckpt.titulo || '') : ''}`,
-                'backlog'
-              );
-              continue; // AC-2+AC-3: omitir este ítem — resto del CHECKPOINT continúa
-            }
-          }
-          // T-202606-030: bloqueo R sin AC — BR-Ecosystem §5 + BR-Core §8 regla dura
-          // AC-1: R con ac ausente o vacío → acumular en _rsNoAc2 (AC-3: no break — seguir loop)
-          // AC-2: mensaje canónico con título del R + Origen: [título del CHECKPOINT]
-          // AC-3: acumular todos los Rs sin AC — emitir mensaje consolidado al final del loop
-          if (_it.type === 'R' && (!Array.isArray(_it.ac) || _it.ac.length === 0)) {
-            _rsNoAc2.push(`R ${_it.code || '[pendiente-ID]'} "${_it.title || _it.desc || ''}"`);
-            continue;
-          }
-          // Construir objeto compatible con mergeBacklogFromTG (sin cambios en esa función)
-          // T-202606-085: resolver sprint_id y sprint_name antes de construir el ítem
-          const _sprintF2 = _resolveSprintFields(_it);
-          tgItems.push({
-            type:          _it.type,
-            code:          _it.code,
-            title:         _it.title  || _it.desc  || '',
-            desc:          _it.title  || _it.desc  || '',
-            priority:      _it.priority || 'medium',                             // T-202606-031
-            status:        _normSt2,
-            _noStatus:     false,
-            effort:        _it.effort != null ? (parseInt(_it.effort) || null) : null,
-            area:          _it.area   || '',
-            sprint:        _sprintF2.sprintAlias,                                // T-202606-085: alias → _normalizeSprint opera sobre este campo
-            sprint_id:     _sprintF2.sprint_id,                                  // T-202606-085
-            sprint_name:   _sprintF2.sprint_name,                                // T-202606-085
-            ac:            Array.isArray(_it.ac) ? _it.ac : [],
-            role:          _it.role   || ckptHeaderRole,
-            discardReason: _it.discard_reason || _it.reason || '',
-            discardRef:    _it.ref    || '',
-            blockedBy:     Array.isArray(_it.blockedBy) ? _it.blockedBy : [],
-            parentId:      _it.parentId || _it.parent || null,  // B-202605-055: schema usa "parent", campo interno es "parentId"
-            origin:        _it.origin   || null,  // R-202605-004: trazabilidad de ítems derivados
-            dependsOn:     Array.isArray(_it.depends_on) ? _it.depends_on : [],  // T-202605-139
-            triggeredBy:   _it.triggered_by  || null,                            // T-202605-139
-            origenP:       _it.origen_p      || null,                            // T-202605-139
-            promovida_a:   _it.promovida_a   || null,                            // T-202605-139
-            intencion:     _it.intencion     || null,                            // T-202606-105
-            no_incluye:    Array.isArray(_it.no_incluye) ? _it.no_incluye : [], // T-202606-105
-            schema_version: _it.schema_version || null                          // T-202606-105
+        // T-202606-010 AC-7: llamar processDocUpdate por cada entrada de doc_updates antes de finalizar ingesta.
+        // AC-7b: si retorna conflicto:true → toast visible pero ingesta continúa normalmente (no bloquea).
+        if (Array.isArray(ckpt._rawDocUpdates) && ckpt._rawDocUpdates.length > 0) {
+          const _ckptTitleForDu = ckpt.titulo || '';
+          ckpt._rawDocUpdates.forEach(du => {
+            const { conflicto, msg } = processDocUpdate(du, _ckptTitleForDu);
+            if (conflicto && msg) showToast('warn', msg);
           });
-          // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
-          // T-202606-158: pasar tgItems para heredar sprint de parent R en mismo CHECKPOINT
-          _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
-          // T-202606-018: advertencia si P tiene status promovida sin promovida_a
-          if (_it.type === 'P' && _normSt2 === 'promovida' && !_it.promovida_a) {
-            _blogLog('promovida-sin-ref', _it.code || '[pendiente-ID]', 'P ' + (_it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
-          }
-          // T-202606-014: advertencia si depends_on contiene [pendiente-ID] literal con 2+ ítems nuevos en el CHECKPOINT
-          if (Array.isArray(_it.depends_on) && _it.depends_on.includes('[pendiente-ID]')) {
-            const _newItemCount = _parsedJSON.filter(i => i.type !== 'patch' && _isPlaceholderCode(i.code || '')).length;
-            if (_newItemCount >= 2) {
-              _blogLog('dep-placeholder-ambiguo', _it.code || '[pendiente-ID]', (_it.code || '[pendiente-ID]') + ' depends_on contiene [pendiente-ID] no resoluble — usar [tmp:slug] para referencias cruzadas.', 'backlog');
-            }
-          }
-        }
-        // T-202606-030 fix AC-2+AC-3: emitir _itemError consolidado si hay Rs sin AC
-        // Origen: título del CHECKPOINT — disponible en ckpt.titulo (path legacy)
-        if (!_itemError && _rsNoAc2.length > 0) {
-          const _ckptOrigen2 = ckpt ? (ckpt.titulo || '') : '';
-          _itemError = `CHECKPOINT bloqueado: ${_rsNoAc2.join(' · ')} no tiene${_rsNoAc2.length !== 1 ? 'n' : ''} AC de coherencia de conjunto. Origen: ${_ckptOrigen2}. Adjuntar CHECKPOINT corregido antes de continuar.`;
-        }
-        if (_itemError) {
-          window[`_itemsJsonError_${id}`] = _itemError;
-          tgItems = []; // reset — no procesar parcialmente
-          delete window[`_patchItems_${id}`];
-        } else {
-          delete window[`_itemsJsonError_${id}`];
-          // R-202604-075: extraer campo contract de cada ítem y aplicar a Contratos de Módulo
-          _parsedJSON.forEach(it => {
-              if (it.contract) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract);
-            });
         }
       }
-    } else {
-      delete window[`_itemsJsonError_${id}`];
     }
-    } // end path legacy else
   }
 
   // T-202606-039: extraer inline_fix del CHECKPOINT — path JSON usa ckpt._inlineFixes,
@@ -978,18 +785,17 @@ export function parsePaste(id) {
   const btn = document.getElementById('sbtn-' + id);
   const prev = document.getElementById('prev-' + id);
   if (text.trim()) {
-    // R-202605-133: en formato JSON puro no existe ---FIN-CHECKPOINT--- ni ---getItems()---
+    // T-202606-005: gate de validación — presencia de field 'title' + JSON válido
+    // ---FIN-CHECKPOINT--- no requerido · path legacy eliminado
     const _isJsonFmt = !!(ckpt && ckpt._isJsonFormat);
-    const hasFin = _isJsonFmt ? true : text.includes('---FIN-CHECKPOINT---');
     // T-202605-435: CHECKPOINT de transición — si campo WIP: presente y Resumen: ausente,
     // inferir summary como 'WIP' para no bloquear la validación.
     const hasWip = /^\s*WIP\s*:/mi.test(text);
     const effectiveSummary = summary || (hasWip ? 'WIP' : '');
     const checks = [
-      { test: !isCheckpoint,      msg: 'Falta el bloque de apertura <code>---CHECKPOINT---</code> o el bloque <code>```json</code>.' },
-      { test: !title,             msg: 'Falta el campo <code>T\xEDtulo:</code> / <code>title</code> dentro del bloque.' },
-      { test: !effectiveSummary,  msg: 'Falta el campo <code>Resumen:</code> / <code>summary</code> dentro del bloque.' },
-      { test: !hasFin,            msg: 'Falta el cierre <code>---FIN-CHECKPOINT---</code>.' },
+      { test: !isCheckpoint,      msg: 'Formato inv\xE1lido \u2014 se esperaba bloque JSON sin especificador de lenguaje.' },
+      { test: !title,             msg: 'Falta el campo <code>title</code> dentro del bloque JSON.' },
+      { test: !effectiveSummary,  msg: 'Falta el campo <code>summary</code> dentro del bloque JSON.' },
     ];
     const failed = checks.find(c => c.test);
     if (failed) {
@@ -1008,18 +814,8 @@ export function parsePaste(id) {
       if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
-    // AC-3: no hay bloque ---getItems()--- ni ---ITEMS--- → aviso no bloqueante (solo en formato legacy)
-    const _hasItemsBlock = _isJsonFmt ? true : (text.includes('---getItems()---') || text.includes('---ITEMS---'));
-    const _noItemsWarnKey = `_noItemsWarnSeen_${id}`;
-    if (isCheckpoint && !_hasItemsBlock && !window[_noItemsWarnKey]) {
-      prev.className = 'preview show';
-      prev.innerHTML = `<div class="paste-error paste-warn">⚠ No se detectaron ítems estructurados — falta el bloque <code>---getItems()---</code>.<br><span class="paste-hint">El CHECKPOINT se guardará sin ítems. Si tienes ítems P/T/R/B, agrégalos en formato JSON dentro del bloque.</span><br><button class="btn-ghost paste-inline-btn">Continuar sin ítems</button></div>`;
-      const _noItemsBtn = prev.querySelector('.paste-inline-btn');
-      if (_noItemsBtn) _noItemsBtn.addEventListener('click', () => { window[_noItemsWarnKey] = true; parsePaste(id); }, { once: true });
-      if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
-      return;
-    }
-    if (window[_noItemsWarnKey]) delete window[_noItemsWarnKey];
+    // T-202606-005: path único JSON — ítems van dentro del bloque JSON (campo items: [])
+    // Si items está ausente o vacío el CHECKPOINT se guarda sin ítems — comportamiento esperado.
 
     // T-202604-350: CONTEXT-SECTION eliminado del modelo — parser no lo busca ni procesa.
     // T-202604-351: CHECKPOINTs históricos con CONTEXT-SECTION pasan en silencio — degradación silenciosa.
@@ -1517,11 +1313,12 @@ function parsePasteStandalone() {
   }
 
   // Reutilizar parseCheckpoint para extraer campos y validar estructura
-  // R-202605-133: parseCheckpoint detecta JSON puro o Markdown legacy automáticamente
   // T-202605-524: EXECUTION-PLAN standalone — sin CHECKPOINT envolvente
+  // T-202606-005: parseCheckpoint opera en path único JSON — no detecta Markdown legacy
   // Si el texto contiene solo un bloque ---EXECUTION-PLAN--- sin CHECKPOINT, procesarlo directamente
   const _hasEP  = text.includes('---EXECUTION-PLAN---');
-  const _hasCKP = text.includes('---CHECKPOINT---') || /```json\s*\{/.test(text);
+  // T-202606-005: detectar CHECKPOINT únicamente via fence sin especificador de lenguaje
+  const _hasCKP = /^\s*```\s*\{/.test(text);
   if (_hasEP && !_hasCKP) {
     const _epResult = _tryIngestPlan(text);
     if (_epResult) {
@@ -1542,55 +1339,35 @@ function parsePasteStandalone() {
 
   const ckpt = parseCheckpoint(text);
 
-  // Validación: bloque de apertura (cualquier formato)
+  // Validación: bloque de apertura — gate es fence JSON sin especificador + campo title
+  // T-202606-005: path único JSON — ---CHECKPOINT--- y ---FIN-CHECKPOINT--- no requeridos
   if (!ckpt || !ckpt.isCheckpoint || !ckpt.titulo) {
-    prev.innerHTML = '<div class="paste-error">⚠ Falta el bloque <code>---CHECKPOINT---</code> o el bloque <code>```json</code>, o falta el campo <code>Título:</code> / <code>title</code>.</div>';
+    prev.innerHTML = '<div class="paste-error">⚠ Formato inválido — se esperaba bloque JSON sin especificador de lenguaje.</div>';
     btn.disabled = true;
     return;
   }
 
   // R-202605-133: error de parseo JSON — bloqueante
   if (ckpt._jsonParseError) {
-    prev.innerHTML = `<div class="paste-error">&#9940; Bloque <code>\`\`\`json</code> inválido — ${esc(ckpt._jsonParseError)}.<br><span class="paste-hint">Corrige el JSON antes de aplicar.</span></div>`;
+    prev.innerHTML = `<div class="paste-error">&#9940; Bloque <code>\`\`\`</code> inválido — ${esc(ckpt._jsonParseError)}.<br><span class="paste-hint">Corrige el JSON antes de aplicar.</span></div>`;
     btn.disabled = true;
     return;
   }
 
-  // Validación: cierre (solo formato legacy)
-  const _isJsonFmt = !!ckpt._isJsonFormat;
-  if (!_isJsonFmt && !text.includes('---FIN-CHECKPOINT---')) {
-    prev.innerHTML = '<div class="paste-error">⚠ Falta el cierre <code>---FIN-CHECKPOINT---</code>.</div>';
+  // T-202606-013: guard draft:true — bloquear ingesta en path standalone antes de parsear ítems
+  // AC-1: _mergeBacklogWithProject nunca se llama si draft:true — tgItems/patchItems nunca se llenan
+  // AC-2: feedback visible en prev.innerHTML + btn deshabilitado
+  // AC-3: toast con mensaje canónico idéntico al path de sesión
+  // AC-4: ckpt.draft es true solo si _parsed.draft === true — undefined→false, legacy sin campo→false
+  if (ckpt.draft === true) {
+    prev.innerHTML = '<div class="paste-error">📋 Borrador detectado — pegar CHECKPOINT final emitido por Finn</div>';
     btn.disabled = true;
+    showToast('warning', 'Borrador detectado — pegar CHECKPOINT final emitido por Finn');
     return;
   }
 
-  // R-202605-133: en formato JSON puro, ítems ya están en ckpt._rawItems
-  let parsedJSON = null;
-  let jsonError  = null;
-
-  if (_isJsonFmt) {
-    parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
-  } else {
-    // Parsear bloque ---getItems()--- o ---ITEMS--- (alias canónico BR-Ecosystem §8)
-    const _itemsBlockMatch = text.match(/---getItems\(\)---\s*([\s\S]*?)\s*---getItems\(\)-END---/) ||
-                             text.match(/---ITEMS---\s*([\s\S]*?)\s*---ITEMS-END---/);
-    if (!_itemsBlockMatch) {
-      prev.innerHTML = '<div class="paste-error" class="paste-error paste-warn">⚠ No se detectó bloque <code>---getItems()---</code>.<br><span class="paste-hint">El bloque es obligatorio en el flujo standalone.</span></div>';
-      btn.disabled = true;
-      return;
-    }
-    try {
-      const raw = _itemsBlockMatch[1].replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-      parsedJSON = JSON.parse(raw);
-    } catch (e) {
-      jsonError = e.message || 'JSON inválido';
-    }
-  }
-  if (jsonError || !Array.isArray(parsedJSON)) {
-    prev.innerHTML = `<div class="paste-error">⛔ Bloque <code>---getItems()---</code> inválido — ${esc(jsonError || 'no es un array JSON válido')}.<br><span class="paste-hint">Corrige el JSON antes de aplicar.</span></div>`;
-    btn.disabled = true;
-    return;
-  }
+  // T-202606-005: path único JSON — ítems ya están en ckpt._rawItems, no hay path legacy
+  const parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
 
   const _validTypes    = ['P', 'T', 'R', 'B'];
   const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
@@ -1618,6 +1395,16 @@ function parsePasteStandalone() {
     if (!_validTypes.includes(it.type)) {
       itemError = `Ítem [${i}]: type inválido "${it.type}". Válidos: P · T · R · B`;
       break;
+    }
+    // T2-parser-validaciones (standalone): guard simétrico a parsePaste() — mismo mensaje canónico
+    if (it.status && (it.status.trim().toLowerCase() === 'historico' || it.status.trim().toLowerCase() === 'histórico')) {
+      _blogLog(
+        'status-historico-emitido',
+        it.code || '[pendiente-ID]',
+        `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint`,
+        'backlog'
+      );
+      continue; // ítem omitido — resto del CHECKPOINT continúa
     }
     // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
     const _normSt3 = _canonicalStatus(it.status, it.type);
@@ -1675,13 +1462,15 @@ function parsePasteStandalone() {
   // Step 0 en showMergeDiffPanel es el gate. El sprint se crea solo al aprobar en el DIFF.
 
   // Éxito — guardar parsed y habilitar botón
+  // T-202606-005: path único JSON — ckpt._isJsonFormat siempre true aquí (parseCheckpoint solo retorna JSON válido)
+  const _isJsonFmtSa = !!(ckpt && ckpt._isJsonFormat);
   _standaloneLastParsed = { ckpt, tgItems, patchItems, raw: text,
     // T-202606-017: doc_updates y sprint_proposal del path JSON — disponibles en saveStandaloneCheckpoint
-    docUpdates:       (_isJsonFmt && ckpt._rawDocUpdates)     ? ckpt._rawDocUpdates     : [],
-    sprintProposal:   (_isJsonFmt && ckpt._rawSprintProposal) ? ckpt._rawSprintProposal : null,
+    docUpdates:       (_isJsonFmtSa && ckpt._rawDocUpdates)     ? ckpt._rawDocUpdates     : [],
+    sprintProposal:   (_isJsonFmtSa && ckpt._rawSprintProposal) ? ckpt._rawSprintProposal : null,
     // T-202606-018: finn_observations y execution_plan del path JSON — disponibles en saveStandaloneCheckpoint
-    finnObservations: (_isJsonFmt && ckpt._rawFinnObservations) ? ckpt._rawFinnObservations : null,
-    executionPlan:    (_isJsonFmt && ckpt._rawExecutionPlan)    ? ckpt._rawExecutionPlan    : null,
+    finnObservations: (_isJsonFmtSa && ckpt._rawFinnObservations) ? ckpt._rawFinnObservations : null,
+    executionPlan:    (_isJsonFmtSa && ckpt._rawExecutionPlan)    ? ckpt._rawExecutionPlan    : null,
   };
 
   const _assignedIds = _assignPendingIds(tgItems);

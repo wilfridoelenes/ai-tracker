@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-13 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -8,7 +8,7 @@ import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate } from './locus-storage.js';
+import { _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, _getDocUpdateIndex, _setDocUpdateIndex } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
@@ -216,7 +216,9 @@ export function _buildNewSprintForm(projId, onConfirm, onCancel) {
         return;
       }
 
-      const newId = createSprint(name, goal, vt, rt, projId || undefined);
+      // T-202606-015 AC-1: si ya hay sprint activo para el proyecto, el nuevo nace como 'scheduled'
+      const _initialStatus = _hasActiveSprint() ? 'scheduled' : undefined;
+      const newId = createSprint(name, goal, vt, rt, projId || undefined, _initialStatus);
       if (!newId) {
         // createSprint falló (sin proyecto activo u otro error) — no asignar sprint
         onCancel();
@@ -302,7 +304,7 @@ function _suggestVersionTarget(releaseType) {
 // R-202605-123: createSprint acepta goal opcional (máx 120 chars)
 // R-202605-134: acepta version_target y release_type — se calculan con sugerencia automática si no se pasan
 // T-202605-500: ID generado internamente con prefijo de proyecto — founder solo pasa nombre descriptivo
-export function createSprint(raw, goal, versionTarget, releaseType, projId) {
+export function createSprint(raw, goal, versionTarget, releaseType, projId, initialStatus) {
   // B-202605-077: si se pasa projId, operar sobre ese proyecto en lugar del filtro global
   const _activeProjForSprint = projId ? getProjectById(projId) : getActiveProject();
   if (!_activeProjForSprint) { showToast('warning', 'Selecciona un proyecto primero'); return; }
@@ -339,7 +341,9 @@ export function createSprint(raw, goal, versionTarget, releaseType, projId) {
     version_target: vt, release_type: rt,
     // B-202605-057: status 'active' desde creación — _getActiveSprint() lo detecta inmediatamente
     // B-202605-028: marcar current:true si ningún sprint activo del proyecto lo tiene aún
-    status: 'active', current: !hasCurrentSprint ? true : undefined,
+    // T-202606-015 AC-1: initialStatus permite crear sprint en 'scheduled' si ya hay uno activo
+    status: initialStatus || 'active',
+    current: (!hasCurrentSprint && (initialStatus || 'active') === 'active') ? true : undefined,
     formallyOpened: false,
     startedAt: Date.now(), createdAt: Date.now()
   });
@@ -592,11 +596,21 @@ function _openRetroDownloadPrompt(id) {
 }
 
 export function setSprintStatus(id, newStatus) {
-  // newStatus: 'active' | 'closed'
-  // T-202606-038 AC-3: [Prefijo]-S-HOTFIX no se marca 'closed' por el flujo regular — permanece 'active'
+  // T-202606-015 AC-2: valores válidos extendidos — 'active' | 'closed' | 'scheduled' | 'discarded'
+  // T-202606-038 AC-4 (guard intacta): [Prefijo]-S-HOTFIX no se marca 'closed' — isHotfix guard sin cambios
   if (newStatus === 'closed') {
     const target = _getSprintById(id);
     if (target && target.isHotfix) return;
+  }
+  // T-202606-015 AC-3: 'discarded' solo opera sobre sprints con status 'scheduled'
+  // sprints 'active' o 'closed' no pueden descartarse — toast de error + retorno temprano sin modificar
+  if (newStatus === 'discarded') {
+    const target = _getSprintById(id);
+    if (!target) return;
+    if (target.status !== 'scheduled') {
+      showToast('error', 'Solo sprints programados pueden descartarse');
+      return;
+    }
   }
   if (newStatus === 'active') {
     // T-202606-106: gate — rechazar si ya existe sprint active para el proyecto distinto al id recibido
@@ -618,12 +632,17 @@ export function setSprintStatus(id, newStatus) {
   const sp = _getSprintById(id);
   if (!sp) return;
   sp.status = newStatus;
-  if (newStatus === 'active')  sp.startedAt = sp.startedAt || Date.now();
-  if (newStatus === 'closed')  sp.closedAt  = sp.closedAt  || Date.now();
-  if (newStatus === 'closed')  sp.endsAt    = sp.endsAt    || Date.now();
+  if (newStatus === 'active')     sp.startedAt   = sp.startedAt   || Date.now();
+  if (newStatus === 'closed')     sp.closedAt    = sp.closedAt    || Date.now();
+  if (newStatus === 'closed')     sp.endsAt      = sp.endsAt      || Date.now();
+  // T-202606-015 AC-2: timestamps para nuevos valores
+  if (newStatus === 'scheduled')  sp.scheduledAt = sp.scheduledAt || Date.now();
+  if (newStatus === 'discarded')  sp.discardedAt = sp.discardedAt || Date.now();
   if (newStatus !== 'closed') { delete sp.closedAt; delete sp.endsAt; }
   // B-202606-005: limpiar current:true al cerrar — state no debe tener sprints cerrados marcados como en curso
-  if (newStatus === 'closed')  delete sp.current;
+  if (newStatus === 'closed')    delete sp.current;
+  // inline_fix: limpiar current:true al descartar — sprint descartado no puede estar en curso
+  if (newStatus === 'discarded') delete sp.current;
   // B-202605-210 guard: al cerrar un sprint directamente (sin modal), desasignar
   // ítems pendientes que quedaron huérfanos para evitar data inconsistente.
   if (newStatus === 'closed') {
@@ -1573,6 +1592,27 @@ function _scmExecuteClose() {
   if (sp) {
     sp.retroNotes = retroNotes || '';
     sp.retroDoc   = _generateSprintRetroMd(id, retroNotes || '');
+    // T-202606-010 AC-8 / AC-8b: limpiar índice de doc_updates después de _generateSprintRetroMd
+    // y antes del save() final — nota en DocLog por cada entrada pendiente antes de vaciar.
+    // AC-8b: este bloque se ejecuta aquí — después de retroDoc y antes de deliveryMetrics + save().
+    {
+      const _duIndex = _getDocUpdateIndex();
+      const _duKeys  = Object.keys(_duIndex);
+      if (_duKeys.length > 0) {
+        _duKeys.forEach(k => {
+          const entries = _duIndex[k] || [];
+          entries.forEach(e => {
+            _blogLog(
+              'descartado · sprint cerrado',
+              k,
+              `DOC-UPDATE pendiente descartado al cerrar ${id}: ${e.titulo || '(sin título)'}`,
+              'backlog'
+            );
+          });
+        });
+        _setDocUpdateIndex({});
+      }
+    }
     // R-202605-125: métricas de entrega para Analytics (Nivel 2)
     const denominator = (effortPlanned || 0) + (effortScopeAdded || 0);
     sp.deliveryMetrics = {
