@@ -2061,11 +2061,11 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       const nowTs = Date.now();
       const initialStatus = item.status || 'pendiente'; // T-202606-034: item.status ya canónico desde T1
 
-      // T-202606-010: R sin Ts válidos → degradar a P antes de persistir.
-      // Un R es válido como R solo si hay al menos un T (no descartado) que lo referencia.
-      // Se busca en: (a) el propio batch tgItems del CHECKPOINT, (b) getItems() existentes.
-      // Si no hay ninguno → ingestar como P con campos preservados: title, area, priority, intencion.
-      // Campos descartados: ac, kill_criteria, depends_on, parent, schema_version.
+      // T-202606-010: SUSPENDIDO — P pendiente de Vera (ciclo de vida de R sin Ts).
+      // Degradación silenciosa R→P desactivada hasta que BR-Core §4 y BR-Ecosystem §5
+      // definan el nuevo modelo: gate en parser + flag orphaned + P como único origen de R.
+      // R nuevo sin Ts → bloqueo en parser (aún no implementado) — por ahora se ingesta como R
+      // con flag orphaned:true hasta que se emita T1.
       const _incomingTypePreCheck = item.type || (item.code ? item.code.charAt(0) : '');
       if (_incomingTypePreCheck === 'R') {
         const _rCode = item.code;
@@ -2078,57 +2078,9 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           i.parentId === _rCode && i.type === 'T' && i.status !== 'descartado'
         );
         if (!_hasChildInBatch && !_hasChildInBacklog) {
-          // Degradar: ingestar como P
-          const _degradedItem = {
-            id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
-            code: _rCode,
-            type: 'P',
-            title: item.title || _rCode,
-            desc: '',
-            priority: item.priority || 'medium',
-            area: item.area || '',
-            effort: 1,
-            impact: 'Medio',
-            status: 'pendiente',
-            version: 'futura',
-            sprint: item.sprint || '',
-            ac: [],
-            role: item.role || '',
-            origin: null,
-            parentId: null,
-            dependsOn: [],
-            triggeredBy: null,
-            origenP: null,
-            promovida_a: null,
-            blockedBy: [],
-            blocking: false,
-            sessionId: sessionId || null,
-            createdAt: nowTs,
-            statusChangedAt: nowTs,
-            doneAt: null,
-            ...(item.intencion ? { intencion: item.intencion } : {})
-          };
-          if (!_dryRun) {
-            getItems().push(_degradedItem);
-            _blogLog('r-degradado-a-p', _rCode, _rCode + ' sin Ts válidos convertido a P — refinar antes de promover', 'backlog');
-            changed = true;
-          }
-          created.push({ code: _rCode, desc: item.title, _wasAssigned: isNew, _degradedFromR: true });
-          // Actualizar contadores
-          if (!_dryRun) {
-            const _numMatch = _rCode.match(/[PTRB]-\d{6}-(\d{3})/);
-            if (_numMatch) {
-              const _num = parseInt(_numMatch[1]);
-              const _metaDegrad = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
-              if (!_metaDegrad.counters) _metaDegrad.counters = { P:0, T:0, R:0, B:0 };
-              // Registrar en P (ítem degradado vive como P)
-              if (_num > (_metaDegrad.counters['P'] || 0)) {
-                _metaDegrad.counters['P'] = _num;
-                localStorage.setItem(_tplKey('backlog-meta'), JSON.stringify(_metaDegrad));
-              }
-            }
-          }
-          return; // saltar el resto del procesamiento de ítem nuevo
+          // Marcar orphaned — no degradar
+          item.orphaned = true;
+          _blogLog('r-sin-ts', _rCode, _rCode + ' sin Ts válidos — marcado orphaned:true (degradación suspendida)', 'backlog');
         }
       }
 

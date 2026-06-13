@@ -757,23 +757,24 @@ function _normalizeItems(items) {
     }
   });
 
-  // T-202606-011: R existente sin Ts válidos → convertir a P automáticamente.
-  // Se ejecuta sobre el array ya normalizado (types y statuses canónicos).
-  // Un R es válido como R solo si tiene al menos un T (no descartado) con parentId apuntando a él.
-  // La conversión persiste: _normalizeItems retorna el array mutado → loadBacklog llama saveBacklog().
-  // Idempotente: un R ya convertido a P no vuelve a evaluarse (type !== 'R').
+  // T-202606-011: SUSPENDIDO — P pendiente de Vera (ciclo de vida de R sin Ts).
+  // Degradación silenciosa R→P desactivada hasta que BR-Core §4 y BR-Ecosystem §5
+  // definan el nuevo modelo: gate en parser + flag orphaned + P como único origen de R.
+  // R existente sin Ts → flag orphaned:true, sin degradación de type.
   items.forEach(item => {
     if (item.type !== 'R') return;
-    if (item.status === 'descartado') return; // Rs descartados no se convierten
+    if (item.status === 'descartado') return;
     const _hasValidChild = items.some(i =>
       i.type === 'T' && i.parentId === item.code && i.status !== 'descartado'
     );
     if (!_hasValidChild) {
-      item.type = 'P';
-      item.ac = [];
-      _blogLog('r-degradado-a-p', item.code || '(sin código)',
-        (item.code || '(sin código)') + ' sin Ts válidos convertido a P — refinar antes de promover',
+      item.orphaned = true;
+      _blogLog('r-sin-ts', item.code || '(sin código)',
+        (item.code || '(sin código)') + ' sin Ts válidos — marcado orphaned:true (degradación suspendida)',
         'backlog');
+    } else {
+      // Limpiar flag si el R recuperó hijos válidos
+      if (item.orphaned) delete item.orphaned;
     }
   });
 
