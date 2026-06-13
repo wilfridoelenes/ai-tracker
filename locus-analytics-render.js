@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-12 UTC-6
 import { renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
 import { _closedItemsInRange, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, sessionDateKey } from './locus-analytics-core.js';
 
@@ -6,7 +6,7 @@ import { navigateToItem } from './locus-backlog-sprints.js';
 
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
 
-import { _getActiveProjectFilter, getAllSessions, getProjectById } from './locus-storage.js';
+import { _getActiveProjectFilter, getAllSessions, getProjectById, getState } from './locus-storage.js';
 
 import { esc, switchTab } from './locus-ui-shell.js';
 
@@ -40,7 +40,7 @@ export function renderAnalytics() {
 
   const bounds = _getPeriodBounds();
   const allSess = getAllSessions();
-  const allProjects = state.projects || [];
+  const allProjects = getState()?.projects || [];
 
   const currSess = _sessInRange(allSess, bounds.current);
   const prevSess = _sessInRange(allSess, bounds.previous);
@@ -286,7 +286,7 @@ export function renderAnalytics() {
   // Más alto = peor (semanticDir = -1)
   function _totalPendingItems() {
     let count = 0;
-    (state.projects || []).forEach(p => {
+    (getState()?.projects || []).forEach(p => {
       try {
         const raw = localStorage.getItem(`backlog-items-${p.id}`);
         if (!raw) return;
@@ -383,7 +383,7 @@ export function renderAnalytics() {
 
   // ── R-202604-070: Comparación side-by-side — dos proyectos independientes ──
   let compColHtml = '';
-  const _projects = state.projects || [];
+  const _projects = getState()?.projects || [];
   const _hasComparison = _compareProjectIdA || _compareProjectIdB;
 
   if (_hasComparison) {
@@ -507,7 +507,7 @@ export function renderAnalytics() {
     const byEffort = { 1: [], 2: [], 3: [] };
     const outlierCandidates = [];
 
-    (state.projects || []).forEach(p => {
+    (getState()?.projects || []).forEach(p => {
       try {
         const raw = localStorage.getItem(`backlog-items-${p.id}`);
         if (!raw) return;
@@ -556,7 +556,7 @@ export function renderAnalytics() {
 
     // Recolecta tendencia: sprints con avg cycle time
     const sprintAvgs = [];
-    (state.projects || []).forEach(p => {
+    (getState()?.projects || []).forEach(p => {
       try {
         const raw = localStorage.getItem(`backlog-items-${p.id}`);
         if (!raw) return;
@@ -738,7 +738,7 @@ export function renderAnalytics() {
     // Recolectar sprints cerrados con effort_done calculado desde ítems
     const closedSprintEffort = {};
 
-    (state.projects || []).forEach(p => {
+    (getState()?.projects || []).forEach(p => {
       try {
         const raw = localStorage.getItem(`backlog-items-${p.id}`);
         if (!raw) return;
@@ -757,7 +757,7 @@ export function renderAnalytics() {
 
     // Obtener IDs de sprints cerrados desde state
     const closedSprintIds = new Set(
-      (state.projects || [])
+      (getState()?.projects || [])
         .flatMap(p => (p.sprints || []))
         .filter(s => s.status === 'closed')
         .map(s => s.id)
@@ -780,7 +780,7 @@ export function renderAnalytics() {
 
     // Backlog pendiente: T + R + B con effort, sin sprint cerrado, sin descartado
     let pendingEffort = 0;
-    (state.projects || []).forEach(p => {
+    (getState()?.projects || []).forEach(p => {
       try {
         const raw = localStorage.getItem(`backlog-items-${p.id}`);
         if (!raw) return;
@@ -932,7 +932,7 @@ export function renderAnalytics() {
         <div class="acf-toolbar">
           <select class="acf-select" aria-label="Filtrar por proyecto">
             <option value="">Todos los proyectos</option>
-            ${(state.projects || []).map(p => `<option value="${esc(p.id)}" ${_cfProjId === p.id ? 'selected' : ''}>${esc(p.name || p.id)}</option>`).join('')}
+            ${(getState()?.projects || []).map(p => `<option value="${esc(p.id)}" ${_cfProjId === p.id ? 'selected' : ''}>${esc(p.name || p.id)}</option>`).join('')}
           </select>
           <select class="acf-select" aria-label="Filtrar por tipo">
             <option value="">Todos los tipos</option>
@@ -1080,11 +1080,11 @@ export function renderAnalytics() {
 // T-088: Helper — retorna AIs respetando filtro activo de proyecto (legacy)
 function _getAnalyticsAIs() {
   const filterId = _getActiveProjectFilter();
-  if (!filterId) return state.ais;
+  if (!filterId) return getState()?.ais;
   const proj = getProjectById(filterId);
-  if (!proj) return state.ais;
+  if (!proj) return getState()?.ais;
   const aiIdsInProj = new Set((proj.sessions || []).map(s => s.aiId).filter(Boolean));
-  return state.ais.filter(ai => aiIdsInProj.has(ai.id));
+  return getState()?.ais.filter(ai => aiIdsInProj.has(ai.id));
 }
 
 // renderRanking y renderStreak eliminados — reemplazados por KPI cards en renderAnalytics v2

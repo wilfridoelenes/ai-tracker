@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-09 · mod:12 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-06-12 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -24,7 +24,7 @@ import { _dropzoneHandle } from './locus-docs.js'; // T-202606-089 AC-3 — cicl
 export function esc(s) { return s ? (s + '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : ''; }
 
 // ── Sub-tab state ──────────────────────────────────────────────────────────
-let currentSubTab = 'backlog';
+var currentSubTab = 'backlog'; // ESM-B: var para evitar TDZ en ciclo ui-shell ↔ docs
 
 // ── Tab switching ──────────────────────────────────────────────────────────
 

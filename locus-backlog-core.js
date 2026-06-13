@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -22,9 +22,10 @@ import { esc } from './locus-ui-shell.js';
 //   locus-notifications.js   → hasRecentSession
 //   locus-backlog-sprints.js → getActiveSprint, getSprintById
 //   locus-sprint-project.js  → getActiveProjectFilter
-var _coreCallbacks = {}; // ESM-B: var para evitar TDZ en ciclo locus-ui-shell ↔ locus-docs ↔ locus-backlog-core
+var _coreCallbacks; // ESM-B: var + lazy init — evita TDZ en ciclo locus-ui-shell ↔ locus-docs ↔ locus-backlog-core
 
 export function _registerCoreCallback(name, fn) {
+  if (!_coreCallbacks) _coreCallbacks = {}; // lazy init — var hoist como undefined en ciclo ESM
   if (typeof fn !== 'function') {
     console.warn('[locus-backlog-core] _registerCoreCallback: "' + name + '" no es función — ignorado');
     return;
@@ -133,7 +134,7 @@ const _acReplacedSet = new Set();
 
 // B-202605-012: wrapper para llamadas inline a openItemEditor
 export function _openItemEditorSafe(id, code) {
-  const _openItemEditorCb = _coreCallbacks.openItemEditor;
+  const _openItemEditorCb = (_coreCallbacks || {}).openItemEditor;
   if (_openItemEditorCb) {
     _openItemEditorCb(id, code);
   } else {
@@ -379,7 +380,7 @@ export function _hasRecentSession(item) {
     );
     return hasPostCreation;
   }
-  const _hasRecentSessionCb = _coreCallbacks.hasRecentSession;
+  const _hasRecentSessionCb = (_coreCallbacks || {}).hasRecentSession;
   return _hasRecentSessionCb ? _hasRecentSessionCb(item, _NO_SESSION_DAYS) : false;
 }
 
