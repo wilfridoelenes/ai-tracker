@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:23 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:24 · autor:Rune · 2026-06-13 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -356,12 +356,19 @@ function _escHtml(str) {
 function _sprintRGroupHtml(rItem, childTs) {
   const code  = rItem.code  || '';
   const title = rItem.title || '';
+  // B-202606-013: indicador de progreso X/N Ts done — solo cuando hay Ts en el sprint
+  const tDone  = childTs.filter(t => t.status === 'done').length;
+  const tTotal = childTs.length;
+  const progressHtml = tTotal > 0
+    ? `<span class="spi-r-header-progress">${tDone}/${tTotal} T</span>`
+    : '';
   return `<div class="spi-r-group" data-r-group="${code}">
   <div class="spi-r-header" role="button" tabindex="0"
        aria-expanded="true" aria-controls="spi-r-children-${code}"
        data-r-toggle="${code}">
     <span class="spi-r-header-code">${code}</span>
     <span class="spi-r-header-title">${title}</span>
+    ${progressHtml}
     <span class="spi-r-header-toggle" aria-hidden="true">▾</span>
   </div>
   <div class="spi-r-children" id="spi-r-children-${code}">
