@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-09 · mod:17 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-09 · mod:18 · autor:Rune · 2026-06-13 UTC-6
 // locus-backlog-item.js
 // Última actualización: 2026-05-24 | Renderizado de ítems individuales del backlog
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1972,6 +1972,10 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       if (item.role && item.role !== existing.role) { changes.push({ field: 'role', from: existing.role || '—', to: item.role }); if (!_dryRun) { existing.role = item.role; changed = true; } }
       // parentId: entrante gana si trae valor; si vacío no degrada el existente
       if (item.parentId && item.parentId !== existing.parentId) { changes.push({ field: 'parentId', from: existing.parentId || '—', to: item.parentId }); if (!_dryRun) { existing.parentId = item.parentId; changed = true; } }
+      // B-202606-004 AC-2: advertencia cuando T existente con parentId recibe merge sin parent declarado
+      if (!item.parentId && existing.parentId && (existing.type === 'T' || existing.type === 'B') && !_dryRun) {
+        _blogLog('parent-ausente-en-merge', existing.code, existing.code + ' tiene parentId ' + existing.parentId + ' — merge entrante no declara parent. parentId conservado.', 'backlog');
+      }
       // origin: entrante gana si trae valor; si vacío no degrada el existente
       if (item.origin && item.origin !== existing.origin) { changes.push({ field: 'origin', from: existing.origin || '—', to: item.origin }); if (!_dryRun) { existing.origin = item.origin; changed = true; } }
       // notes: entrante gana si trae valor; si vacío no degrada el existente
