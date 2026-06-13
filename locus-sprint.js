@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:21 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:22 · autor:Rune · 2026-06-13 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -108,6 +108,16 @@ function _sptSwitch(subtab, triggerBtn) {
     }
   });
   // Render bajo demanda
+  if (subtab === 'items') { // B-202606-008: re-render al volver al subtab Ítems
+    const sprint = _getActiveSprint();
+    if (sprint) {
+      const itemsList = document.getElementById('sprint-items-list');
+      if (itemsList) itemsList.classList.remove('is-hidden');
+      _renderSprintItems(sprint);
+      _renderSprintWorkers(sprint);
+      _renderSprintScopeAdded(sprint);
+    }
+  }
   if (subtab === 'planificar') _renderSprintPlanificar();
   if (subtab === 'plan') renderPlanInto('sprint-plan-container');
   if (subtab === 'sprints') _renderSprintMeta(_getActiveSprint()); // T-202606-029
