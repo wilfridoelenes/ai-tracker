@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:18 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -583,10 +583,11 @@ export function _purgeStaleBacklogCache() {
   return purged;
 }
 
-// T-[pendiente-ID]: Purge permanente de ítems históricos pre-reset
+// T-202606-104: Purge permanente de ítems legacy (status historico sin sprint cerrado).
+// Exportada para que locus-backlog-archive.js pueda invocarla desde el botón Purgar de la sección legacy.
 // Elimina del array en memoria todos los ítems con status 'historico'.
 // Acción irreversible (salvo undo inmediato) — requiere confirmación explícita.
-function purgeAllHistorico() {
+export function purgeAllHistorico() {
   const historicos = ITEMS.filter(i => i.status === 'historico');
   if (!historicos.length) {
     showToast('info', 'No hay ítems históricos para purgar.');
@@ -1615,11 +1616,11 @@ export function effortDots(n) {
   return h;
 }
 
-// Lógica R-con-hijos: si un R tiene hijos → no contable (se cuentan los hijos). R sin hijos → contable.
+// R-202606-033: Rs con hijos cuentan como ítems vivos — tienen AC de coherencia propios.
+// Solo P queda excluida de contadores de trabajo activo.
 export function _isCountableItem(i) {
-  const rCodesWithChildren = new Set(ITEMS.filter(x => x.parentId).map(x => x.parentId));
   if (itemType(i.code) === 'P') return false; // P (posibilidades) no contaminan contadores de trabajo activo
-  return !(itemType(i.code) === 'R' && rCodesWithChildren.has(i.code));
+  return true;
 }
 
 // T-202606-100: _getCountableBase() — función canónica compartida entre renderStats() y _getCountableForBanner()

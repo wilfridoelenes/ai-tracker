@@ -1,8 +1,8 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:6 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-12 · mod:7 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
-import { renderStats, getItems } from './locus-backlog-core.js';
+import { renderStats, getItems, purgeAllHistorico } from './locus-backlog-core.js';
 import { buildBacklogItem } from './locus-backlog-item.js';
 
 import { renderBacklogList } from './locus-backlog-render.js';
@@ -116,6 +116,9 @@ export function renderArchivoHistorico(listEl) {
   zoneDivider.className = 'arch-zone-divider';
   listEl.appendChild(zoneDivider);
   listEl.appendChild(section);
+
+  // T-202606-104: sección legacy — ítems con status historico sin sprint cerrado
+  _renderLegacySection(listEl);
 
   // Delegation — listener en listEl (#backlog-list), ancestro estático que existe en el DOM inicial
   // Evita onclick= y onkeydown= en HTML generado; funciones locales accesibles en scope
@@ -377,5 +380,43 @@ function _toggleArchSprintEntry(bodyId, storageKey) {
 }
 
 // ─── fin R-202605-103 ──────────────────────────────────────────────────────
+
+// T-202606-104: Sección legacy — ítems con status === 'historico' sin sprint cerrado.
+// AC-1: si _legacyHistoricos.length > 0 → renderiza sección con conteo y botón Purgar.
+// AC-3: si _legacyHistoricos.length === 0 → no renderiza nada (sin contenedor vacío).
+// AC-4: el contador del encabezado principal (#arch-historico-count) no incluye legacy —
+//       solo archivoItems. Legacy se cuenta en su propio encabezado.
+function _renderLegacySection(listEl) {
+  // Eliminar sección legacy anterior si existe — evita duplicados en re-renders
+  const existing = listEl.querySelector('#arch-legacy-section');
+  if (existing) existing.remove();
+
+  // AC-3: sin ítems legacy → no renderizar contenedor
+  if (!_legacyHistoricos.length) return;
+
+  const count = _legacyHistoricos.length;
+
+  const legacy = document.createElement('div');
+  legacy.id        = 'arch-legacy-section';
+  legacy.className = 'arch-legacy-section';
+
+  legacy.innerHTML = `
+    <div class="arch-legacy-header">
+      <span class="arch-legacy-title">Ítems legacy (sin sprint cerrado)</span>
+      <span class="arch-legacy-count">${count} ítem${count !== 1 ? 's' : ''}</span>
+      <button class="arch-legacy-purge-btn" data-action="arch-legacy-purge"
+              title="Eliminar permanentemente estos ítems del backlog">Purgar</button>
+    </div>`;
+
+  listEl.appendChild(legacy);
+
+  // AC-2: click en Purgar → purgeAllHistorico() con confirmación via modal (gconfirmOpen en core)
+  // Delegación en el propio nodo legacy — no en listEl para no interferir con _archDelegationAttached
+  legacy.addEventListener('click', function _legacyClick(e) {
+    const btn = e.target.closest('[data-action="arch-legacy-purge"]');
+    if (!btn) return;
+    purgeAllHistorico();
+  });
+}
 
 // T-202604-287: Vista Kanban — 4 columnas: pendiente · progreso · done · descartado
