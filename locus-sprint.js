@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:20 · autor:Rune · 2026-06-13 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -369,36 +369,82 @@ function _renderSprintItems(sprint) {
   const bloqueado   = spItems.filter(i => i.status !== 'done' &&  _sprintIsBlocked(i));
   const done        = spItems.filter(i => i.status === 'done');
 
+  // B-202606-006 AC-1: helper — renderiza una sección agrupando Rs con sus Ts hijos.
+  // Un R se renderiza como contenedor (_sprintRGroupHtml) solo si tiene al menos un T
+  // hijo en la misma sección. R sin Ts en la sección → ítem plano, no contenedor vacío (AC-3).
+  // Ts huérfanos (sin R padre en spItems) y Bs siempre se renderizan como ítems planos (AC-2).
+  function _renderSection(sectionItems) {
+    if (!sectionItems.length) return null; // null = señal de empty state al llamador
+
+    const rItems = sectionItems.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'R');
+    const tItems = sectionItems.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'T');
+    const bItems = sectionItems.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'B');
+
+    const rCodesInSection = new Set(rItems.map(r => r.code));
+
+    // Ts con R padre presente en esta sección → agrupados bajo el R
+    // Ts sin R padre en esta sección (huérfanos) → ítem plano (AC-2)
+    const tByParent = {};
+    const tOrphans  = [];
+    tItems.forEach(t => {
+      const parentCode = t.parentCode || t.parent || null;
+      if (parentCode && rCodesInSection.has(parentCode)) {
+        if (!tByParent[parentCode]) tByParent[parentCode] = [];
+        tByParent[parentCode].push(t);
+      } else {
+        tOrphans.push(t);
+      }
+    });
+
+    const parts = [];
+
+    // Rs con Ts hijos → grupo contenedor; Rs sin Ts en esta sección → ítem plano (AC-3)
+    rItems.forEach(r => {
+      const childTs = tByParent[r.code] || [];
+      parts.push(childTs.length ? _sprintRGroupHtml(r, childTs) : _sprintItemHtml(r));
+    });
+
+    // Ts huérfanos y Bs siempre planos (AC-2)
+    tOrphans.forEach(t => parts.push(_sprintItemHtml(t)));
+    bItems.forEach(b  => parts.push(_sprintItemHtml(b)));
+
+    return parts.join('');
+  }
+
   // Sección pendiente
   const bodyPend = _spEl('spi-body-pendiente');
   const cntPend  = _spEl('spi-count-pendiente');
-  if (bodyPend) bodyPend.innerHTML = pendiente.length
-    ? pendiente.map(_sprintItemHtml).join('')
-    : '<div class="spi-section-empty">Sin ítems pendientes</div>';
+  if (bodyPend) {
+    const html = _renderSection(pendiente);
+    bodyPend.innerHTML = html !== null ? html : '<div class="spi-section-empty">Sin ítems pendientes</div>';
+  }
   if (cntPend) cntPend.textContent = pendiente.length;
 
   // Sección en-revision — B-202606-031
   const bodyRev = _spEl('spi-body-en-revision');
   const cntRev  = _spEl('spi-count-en-revision');
-  if (bodyRev) bodyRev.innerHTML = enRevision.length
-    ? enRevision.map(_sprintItemHtml).join('')
-    : '<div class="spi-section-empty">Sin ítems en revisión</div>';
+  if (bodyRev) {
+    const html = _renderSection(enRevision);
+    bodyRev.innerHTML = html !== null ? html : '<div class="spi-section-empty">Sin ítems en revisión</div>';
+  }
   if (cntRev) cntRev.textContent = enRevision.length;
 
   // Sección bloqueado
   const bodyBlk = _spEl('spi-body-bloqueado');
   const cntBlk  = _spEl('spi-count-bloqueado');
-  if (bodyBlk) bodyBlk.innerHTML = bloqueado.length
-    ? bloqueado.map(_sprintItemHtml).join('')
-    : '<div class="spi-section-empty">Sin ítems bloqueados</div>';
+  if (bodyBlk) {
+    const html = _renderSection(bloqueado);
+    bodyBlk.innerHTML = html !== null ? html : '<div class="spi-section-empty">Sin ítems bloqueados</div>';
+  }
   if (cntBlk) cntBlk.textContent = bloqueado.length;
 
   // Sección done
   const bodyDone = _spEl('spi-body-done');
   const cntDone  = _spEl('spi-count-done');
-  if (bodyDone) bodyDone.innerHTML = done.length
-    ? done.map(_sprintItemHtml).join('')
-    : '<div class="spi-section-empty">Sin ítems completados</div>';
+  if (bodyDone) {
+    const html = _renderSection(done);
+    bodyDone.innerHTML = html !== null ? html : '<div class="spi-section-empty">Sin ítems completados</div>';
+  }
   if (cntDone) cntDone.textContent = done.length;
 
   // Burndown
