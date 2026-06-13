@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:11 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-12 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-076 · T-202606-077: export ESM BACKLOG_LOG_MAX y _DOC_LOG_KEYS
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1531,7 +1531,7 @@ export function getAllSessions() {
       console.warn(`[AI Tracker] ATENCIÓN: ai "${ai.name}" tiene ${ai.sessions.length} sesión(es) en ai.sessions — debería estar vacío en v3. Recarga la app para normalizar.`);
     }
   });
-  return (state.projects || []).flatMap(p => (p.sessions || []).map(s => ({ ...s, projectId: p.id })));
+  return (state?.projects || []).flatMap(p => (p.sessions || []).map(s => ({ ...s, projectId: p.id })));
 }
 // R-202605-050: alias canónico — getAllCheckpoints
 function getAllCheckpoints() { return getAllSessions(); }

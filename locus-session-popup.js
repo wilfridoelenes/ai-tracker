@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-12 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -931,7 +931,7 @@ function _sessTypePill(s) {
 // Renderiza el header del log card (pills IA + pills tipo + buscador + contador)
 function _buildLogHeader(total, filtered) {
   const aiList = _logAIList();
-  const projList = (getState().projects || []);
+  const projList = (getState()?.projects || []);
 
   const aiPills = aiList.map(ai => {
     const active = _logFilterAI === ai.id ? ' log-ai-pill--active' : '';

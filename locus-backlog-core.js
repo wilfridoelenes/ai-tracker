@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-12 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -22,7 +22,7 @@ import { esc } from './locus-ui-shell.js';
 //   locus-notifications.js   → hasRecentSession
 //   locus-backlog-sprints.js → getActiveSprint, getSprintById
 //   locus-sprint-project.js  → getActiveProjectFilter
-let _coreCallbacks = {}; // ESM-B: let evita TDZ en ciclo locus-ui-shell ↔ locus-docs ↔ locus-backlog-core
+var _coreCallbacks = {}; // ESM-B: var para evitar TDZ en ciclo locus-ui-shell ↔ locus-docs ↔ locus-backlog-core
 
 export function _registerCoreCallback(name, fn) {
   if (typeof fn !== 'function') {
