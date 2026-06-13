@@ -334,6 +334,25 @@ function _escHtml(str) {
 
 // ── B-202606-064: T-202606-131/132 eliminados — aprobación de sprint ocurre via Step 0 del DIFF ──
 
+// ── B-202606-006: helper — HTML del contenedor R con Ts hijos ────────────────
+
+function _sprintRGroupHtml(rItem, childTs) {
+  const code  = rItem.code  || '';
+  const title = rItem.title || '';
+  return `<div class="spi-r-group" data-r-group="${code}">
+  <div class="spi-r-header" role="button" tabindex="0"
+       aria-expanded="true" aria-controls="spi-r-children-${code}"
+       data-r-toggle="${code}">
+    <span class="spi-r-header-code">${code}</span>
+    <span class="spi-r-header-title">${title}</span>
+    <span class="spi-r-header-toggle" aria-hidden="true">▾</span>
+  </div>
+  <div class="spi-r-children" id="spi-r-children-${code}">
+    ${childTs.map(_sprintItemHtml).join('')}
+  </div>
+</div>`;
+}
+
 function _renderSprintItems(sprint) {
   // B-202606-006: guard corregido — getItems() siempre retorna array, nunca undefined
   if (!Array.isArray(getItems())) return;
