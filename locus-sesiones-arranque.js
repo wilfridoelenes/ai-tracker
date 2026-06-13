@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-01 · mod:9 · autor:Rune · 2026-06-12 UTC-6
 // locus-sesiones-arranque.js
 // Responsabilidad: Panel de Sesión de Arranque — contexto diario al abrir la app
 //   (R-202604-072). Muestra resumen de ayer, ítem sugerido, estado IA y sesión del plan.
@@ -10,7 +10,7 @@ import { _copyTextSafe } from './locus-sesiones-viz.js';
 import { getItems } from './locus-backlog-core.js';
 import { _hoyCountdownLabel, _hoyMsUntilReset, selectTrackerAI } from './locus-sesiones.js';
 import { loadPlan } from './locus-sprint-plan.js';
-import { _tplKey, getActiveProject, getAllSessions } from './locus-storage.js';
+import { _tplKey, getActiveProject, getAllSessions, getState } from './locus-storage.js';
 import { esc, switchTab } from './locus-ui-shell.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -96,7 +96,7 @@ export function _showArranquePanel() {
   if (Date.now() - lastShown < _ARRANQUE_6H) return;
 
   // AC: no aparece si no hay proyectos ni ítems — onboarding tiene prioridad
-  const allProjects = (state.projects || []).filter(p => (p.sessions || []).length > 0);
+  const allProjects = (getState()?.projects || []).filter(p => (p.sessions || []).length > 0);
   const allItems    = typeof getItems() !== 'undefined' ? getItems() : [];
   if (allProjects.length === 0 && allItems.length === 0) return;
 
@@ -120,9 +120,9 @@ export function _showArranquePanel() {
   if (lastSess) {
     const lastSessDate = new Date(lastSess.date || 0);
     const daysDiff = Math.floor((now - lastSessDate.getTime()) / DAY);
-    const lastProjObj = (state.projects || []).find(p => p.id === lastSess.projectId);
+    const lastProjObj = (getState()?.projects || []).find(p => p.id === lastSess.projectId);
     const lastProjName = lastProjObj ? (lastProjObj.name || lastProjObj.id) : '';
-    const lastAIObj = (state.ais || []).find(a => a.id === lastSess.aiId);
+    const lastAIObj = (getState()?.ais || []).find(a => a.id === lastSess.aiId);
     const lastAIName = lastAIObj ? lastAIObj.name : '';
 
     const closedInSess = allItems.filter(i =>
@@ -186,7 +186,7 @@ export function _showArranquePanel() {
   }
 
   // ── Bloque 3: Estado IA ──────────────────────────────────────────────────
-  const nonArchived = (state.ais || []).filter(a => !a.archived);
+  const nonArchived = (getState()?.ais || []).filter(a => !a.archived);
   const available = nonArchived.filter(a => a.status === 'available' && !a.interrupted);
   const inSession  = nonArchived.filter(a => a.interrupted || (a.status === 'available' && allSess.some(s => s.aiId === a.id && new Date(s.date||0).getTime() > now - 3*60*60*1000)));
   const exhausted  = nonArchived.filter(a => a.status === 'exhausted');
@@ -223,8 +223,8 @@ export function _showArranquePanel() {
   let bloque4Html = '';
   let _planPromptText = null;
 
-  const _activeProj = (state.projects || []).find(p => p.id === (getActiveProject && getActiveProject() ? getActiveProject().id : null))
-    || (state.projects || []).filter(p => !p.archived)[0]
+  const _activeProj = (getState()?.projects || []).find(p => p.id === (getActiveProject && getActiveProject() ? getActiveProject().id : null))
+    || (getState()?.projects || []).filter(p => !p.archived)[0]
     || null;
 
   if (_activeProj) {
