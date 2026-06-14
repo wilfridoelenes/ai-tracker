@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:47 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:49 · autor:Rune · 2026-06-13 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -835,7 +835,7 @@ export function parsePaste(id) {
 
     // Base Rules V2.0.1 §11: campo Rol: obligatorio — aviso no bloqueante si ausente
     // No retroactivo: CHECKPOINTs históricos sin Rol: pasan con aviso
-    const _hasRolField = /^\s*Rol\s*:/m.test(text);
+    const _hasRolField = /^\s*Rol\s*:/m.test(text) || !!(ckpt && ckpt._isJsonFormat && ckpt.rol);
     const _rolWarnKey  = `_rolFieldWarnSeen_${id}`;
     if (isCheckpoint && !_hasRolField && !window[_rolWarnKey]) {
       prev.className = 'preview show';
@@ -1330,8 +1330,8 @@ function parsePasteStandalone() {
   // T-202606-005: parseCheckpoint opera en path único JSON — no detecta Markdown legacy
   // Si el texto contiene solo un bloque ---EXECUTION-PLAN--- sin CHECKPOINT, procesarlo directamente
   const _hasEP  = text.includes('---EXECUTION-PLAN---');
-  // T-202606-005: detectar CHECKPOINT únicamente via fence sin especificador de lenguaje
-  const _hasCKP = /^\s*```\s*\{/.test(text);
+  // T-202606-005: detectar CHECKPOINT via fence (con o sin especificador json) o JSON puro sin fence
+  const _hasCKP = /^\s*```(?:json)?\s*\{/.test(text) || (text.trim().startsWith('{') && text.trim().endsWith('}'));
   if (_hasEP && !_hasCKP) {
     const _epResult = _tryIngestPlan(text);
     if (_epResult) {
