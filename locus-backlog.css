@@ -1,4 +1,4 @@
-/* [PP] v1.4.0 · sprint:PP-S-07 · mod:34 · autor:Nova · 2026-06-11 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-02 · mod:35 · autor:Nova · 2026-06-14 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -1571,9 +1571,9 @@
   font-size: var(--text-base);
 }
 
-.backlog-footer {
-  text-align: center; padding: 2rem; font-size: var(--text-xs); color: var(--hint);
-  font-family: var(--mono); border-top: 1px solid var(--border); margin-top: 2rem;
+/* .backlog-footer — estilos base movidos a bloque B-202606-sprint-fix abajo */
+.backlog-footer-legacy-placeholder {
+  display: none;
 }
 
 .backlog-search-count {
@@ -5876,6 +5876,43 @@ er {
 }
 
 /* ══ END T-202606-070 ══ */
+
+/* ══ B-202606-sprint-fix · Footer histórico + sticky backlog-footer ══ */
+
+.backlog-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-raised);
+  background: var(--surface1);
+  border-top: 1px solid var(--border);
+}
+
+.bl-footer-row--historical {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 4px 10px;
+  font-size: var(--text-2xs);
+  font-family: var(--mono);
+  color: var(--hint);
+  border-bottom: 1px solid var(--border2);
+}
+
+.bl-footer-row--historical .sph-item {
+  color: var(--text2);
+}
+
+.bl-footer-row--historical .sph-item.sph-activos {
+  color: var(--green);
+  font-weight: 600;
+}
+
+.bl-footer-row--historical .sph-sep {
+  margin: 0 6px;
+  color: var(--border2);
+}
+
+/* ══ END B-202606-sprint-fix ══ */
 
 /* ══ T-202606-130: badge 'Pendiente aprobación' en header del sprint ══ */
 

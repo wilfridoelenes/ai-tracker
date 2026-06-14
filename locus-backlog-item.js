@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:26 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:27 · autor:Rune · 2026-06-14 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1595,12 +1595,7 @@ export function updateBacklogFooter() {
           `<button class="bl-filter-chip bl-fc-type-${t}${_getActiveTypes().has(t) ? ' active' : ''}" data-action="footer-type-filter" data-type="${t}" title="${l}">${t} <span>${byType[t]}</span></button>`
         ).join('')}
       </div>
-      <div class="bl-footer-filter-group">
-        <span class="bl-filter-label">Status</span>
-        <button class="bl-filter-chip${_getActiveStatuses().has('pendiente') ? ' active' : ''}" data-action="footer-status-filter" data-status="pendiente">Pendiente <span>${pend}</span></button>
-        <button class="bl-filter-chip${_getActiveStatuses().has('en-revision') ? ' active' : ''}" data-action="footer-status-filter" data-status="en-revision">En revisión <span>${enRevision}</span></button>
-        <button class="bl-filter-chip${_getActiveStatuses().has('done') ? ' active' : ''}" data-action="footer-status-filter" data-status="done">Done <span>${done}</span></button>
-      </div>
+
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Esfuerzo</span>
         ${[1,2,3].map(e => {
