@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:20 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:21 · autor:Rune · 2026-06-14 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1799,7 +1799,6 @@ export function renderStats() {
           ${total > 0 ? `<span class="stat-progress-pct">${pct}% completado</span>` : ''}
         </div>
         <div class="stat-mini-track"><div class="stat-mini-fill" style="--stat-mini-w:${pct}%"></div></div>
-        ${ITEMS.length > 0 ? `<div class="stat-progress-historical"><span class="sph-item">${_emitidos} emitidos</span><span class="sph-sep">·</span><span class="sph-item sph-activos">${_doneTotal} hechos</span><span class="sph-sep">·</span><span class="sph-item" title="${_descartadosTotal} descartados · ${_promovidasTotal} promovidas">${_cerradosSinTrabajo} cerrados sin trabajo</span></div>` : ''}
       </div>
       <!-- Nivel 2: chips de tipo accionables — P (ideas) separado del flujo activo -->
       <div class="stat-card s-types">

@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:25 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:26 · autor:Rune · 2026-06-14 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1578,7 +1578,16 @@ export function updateBacklogFooter() {
   });
   const activeSp = _getActiveSprint();
 
+  const _emitidosF = getItems().length;
+  const _doneF = getItems().filter(i => i.status === 'done').length;
+  const _descartadosF = getItems().filter(i => i.status === 'descartado').length;
+  const _promovidasF = getItems().filter(i => i.status === 'promovida').length;
+  const _cerradosF = _descartadosF + _promovidasF;
+
   footer.innerHTML = `
+    <div class="bl-footer-row bl-footer-row--historical">
+      <span class="sph-item">${_emitidosF} emitidos</span><span class="sph-sep">·</span><span class="sph-item sph-activos">${_doneF} hechos</span><span class="sph-sep">·</span><span class="sph-item" title="${_descartadosF} descartados · ${_promovidasF} promovidas">${_cerradosF} cerrados sin trabajo</span>
+    </div>
     <div class="bl-footer-row bl-footer-row--filters" id="bl-footer-filters">
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Tipo</span>
