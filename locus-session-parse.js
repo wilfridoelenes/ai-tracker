@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:49 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:50 · autor:Rune · 2026-06-13 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -474,6 +474,8 @@ export function parsePaste(id) {
     // AC-3: draft ausente o false → sin efecto
     if (ckpt.draft === true) {
       window[`_itemsJsonError_${id}`] = 'Borrador detectado — pegar CHECKPOINT final emitido por Finn';
+      // AC-3: toast visible al founder con texto canónico
+      showToast('warn', 'Borrador detectado — pegar CHECKPOINT final emitido por Finn');
       // tgItems ya es [] — no se modifica
       // No continuar con ningún path de ingesta
     }
@@ -710,6 +712,8 @@ export function parsePaste(id) {
     // T-202606-070: persistir rol y archivos del CHECKPOINT — ambos paths JSON y legacy
     rol:      ckpt ? (ckpt.rol      || '') : '',
     archivos: ckpt ? (ckpt.archivos || '') : '',
+    // T-202606-013: propagar draft a ai._parsed — necesario para guard secundario en _doApplyMergeAndFinish
+    draft: ckpt ? (ckpt.draft === true) : false,
     // T-202606-072: detectar devolución Finn→Cael — presente solo cuando rol comienza con 'QA' y texto contiene patrón
     ...(() => {
       const _rol = ckpt ? (ckpt.rol || '') : '';

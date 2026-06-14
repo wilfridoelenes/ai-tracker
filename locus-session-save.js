@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:36 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:37 · autor:Rune · 2026-06-13 UTC-6
 // locus-session-save.js
 // Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -764,6 +764,14 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   });
 
   const raw = (document.getElementById('ta-' + id) || {}).value || '';
+  // T-202606-013 AC-1: guard draft:true — defensa secundaria antes de mergeBacklogFromTG.
+  // La primera línea de defensa está en parsePaste (bloquea el botón Guardar).
+  // Este guard cubre el caso en que _doApplyMergeAndFinish se llama con un parsed que tiene draft:true.
+  // AC-1: retorna sin ejecutar merge · AC-3: toast visible con texto canónico
+  if (parsed.draft === true) {
+    showToast('warn', 'Borrador detectado — pegar CHECKPOINT final emitido por Finn');
+    return;
+  }
   const mergeResult = _mergeBacklogWithProject(tgItems, sessId, activeProj.id);
   // R-202605-062: aplicar patches después del merge de ítems normales
   // B-202606-022: pasar slugMap para resolver [tmp:slug] en parentId de patches
