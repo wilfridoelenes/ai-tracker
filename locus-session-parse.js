@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:54 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:56 · autor:Rune · 2026-06-14 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1424,6 +1424,18 @@ function parsePasteStandalone() {
       itemError = `Ítem [${i}]: type inválido "${it.type}". Válidos: P · T · R · B`;
       break;
     }
+    // T3-parser-validaciones (standalone): guard simétrico a parsePaste() líneas 595-604 — mismo mensaje canónico
+    // AC-4/AC-5 T-202606-021: B sin comportamiento_actual bloquea; excepción literal aceptada sin alerta
+    if (it.type === 'B') {
+      const _comportamiento3 = (it.comportamiento_actual || '').trim();
+      const _EXCEPCION3 = 'no observado directamente — síntoma reportado por founder';
+      if (!_comportamiento3 || (_comportamiento3.toLowerCase() !== _EXCEPCION3)) {
+        if (!_comportamiento3) {
+          itemError = `B ${it.code || '[pendiente-ID]'} sin comportamiento_actual — campo obligatorio. Adjuntar CHECKPOINT corregido.`;
+          break;
+        }
+      }
+    }
     // T2-parser-validaciones (standalone): guard simétrico a parsePaste() — mismo mensaje canónico
     if (it.status && (it.status.trim().toLowerCase() === 'historico' || it.status.trim().toLowerCase() === 'histórico')) {
       _blogLog(
@@ -1497,6 +1509,7 @@ function parsePasteStandalone() {
       code:          it.code,
       title:         it.title  || it.desc   || '',
       desc:          it.title  || it.desc   || '',
+      priority:      it.priority || 'medium',                  // T-202606-026
       status:        _normSt3,
       _noStatus:     false,
       effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
