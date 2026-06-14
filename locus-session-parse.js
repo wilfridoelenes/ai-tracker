@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:44 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:45 · autor:Rune · 2026-06-13 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -308,6 +308,19 @@ function parseCheckpoint(text) {
         B: _countByType('B'),
       }
     };
+  }
+
+  // Path alternativo: JSON puro sin fence — texto pegado desde botón copiar de Claude.ai
+  // El botón copiar entrega el contenido del bloque sin los backticks del fence.
+  const _trimmed = text.trim();
+  if (_trimmed.startsWith('{') && _trimmed.endsWith('}')) {
+    let _parsedRaw = null;
+    let _jsonErrRaw = null;
+    try { _parsedRaw = JSON.parse(_trimmed); } catch (e) { _jsonErrRaw = e.message; }
+    if (!_jsonErrRaw && _parsedRaw && typeof _parsedRaw === 'object' && !Array.isArray(_parsedRaw) && _parsedRaw.title) {
+      // Reusar path fence — reconstruir fence mínimo y re-invocar para evitar duplicación de lógica
+      return parseCheckpoint('```\n' + _trimmed + '\n```');
+    }
   }
 
   // T-202606-005: texto sin fence ``` → devolver null (no es CHECKPOINT)
