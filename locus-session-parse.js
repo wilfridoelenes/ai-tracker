@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:46 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:47 · autor:Rune · 2026-06-13 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -455,8 +455,8 @@ export function parsePaste(id) {
   const text = ta ? ta.value : '';
   const ai = getAI(id); // B-202606-017: declarado al inicio de parsePaste — disponible en todos los branches (incluido el else de texto vacío, línea ~729)
   if (!ai) return;
-  // T-202606-005: detectar CHECKPOINT únicamente via fence sin especificador de lenguaje
-  const isCheckpoint = /^\s*```\s*\{/.test(text);
+  // T-202606-005: detectar CHECKPOINT via fence (con o sin especificador json) o JSON puro sin fence
+  const isCheckpoint = /^\s*```(?:json)?\s*\{/.test(text) || (text.trim().startsWith('{') && text.trim().endsWith('}'));
 
   let title = '', summary = '', files = '', nextStep = '', bloqueantesRaw = '', tgItems = [], ckpt = null;
   if (isCheckpoint) {
