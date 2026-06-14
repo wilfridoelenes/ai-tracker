@@ -1,4 +1,4 @@
-// [PP] v0.3.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:20 · autor:Rune · 2026-06-14 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -599,6 +599,11 @@ export function _generateBacklogContent(newVersion, opts = {}) {
       if (i.code && i.code.startsWith('B-') &&
           (i.status === 'pendiente' || i.status === 'en-revision') &&
           i.triggered_by && activeTCodes.has(i.triggered_by)) return true;
+      // Regla HOTFIX (B-202606-020): todos los ítems asignados a [Prefijo]-S-HOTFIX —
+      // cualquier status válido (pendiente, en-revision, done, descartado).
+      // HOTFIX no tiene status 'active' ni 'closed' en state.sprints — cae fuera de
+      // Regla 4 y 5. Se detecta por sufijo '-S-HOTFIX' en el ID de sprint normalizado.
+      if (i.sprint && /[A-Za-z]+-S-HOTFIX$/i.test(String(i.sprint).trim())) return true;
       // Sprint cerrado más reciente: ítems done
       // B-202606-014: normalizar i.sprint antes de comparar
       if (i.status === 'done' && _normLastClosedId && _normSprintId(i.sprint) === _normLastClosedId) return true;
