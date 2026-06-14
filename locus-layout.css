@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-04 · mod:2 · autor:Nova · 2026-06-07 */
+/* [PP] v0.2.0 · sprint:PP-S-01 · mod:3 · autor:Nova · 2026-06-14 */
 /* locus-layout.css */
 
 /* Versión: 2.1 | Última actualización: 2026-05-22 | Selectores compartidos consolidados — T-202605-031 */
@@ -824,6 +824,103 @@ header {
   border: none;
   border-top: 1px solid var(--border);
   margin: 5px 4px;
+}
+
+/* ─── hdr-menu-subpanel — bloque inline "Sincronizar infra_version" en #more-menu ── */
+/* T-202606-028 · sprint: PP-S-01 · Nova */
+
+.hdr-menu-subpanel {
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 12px 10px;
+}
+
+.hdr-menu-subpanel.open {
+  display: flex;
+}
+
+.hdr-menu-textarea {
+  width: 100%;
+  min-height: 80px;
+  resize: none;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: var(--text-sm);
+  font-family: inherit;
+  padding: 8px 10px;
+  box-sizing: border-box;
+  transition: border-color 0.12s var(--ease-out);
+  outline: none;
+}
+
+.hdr-menu-textarea:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.hdr-menu-textarea--error {
+  border-color: var(--red);
+}
+
+.hdr-menu-error-msg {
+  font-size: var(--text-xs);
+  color: var(--red);
+  margin-top: 4px;
+  line-height: 1.4;
+}
+
+.hdr-menu-apply-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-dim);
+  color: var(--accent);
+  cursor: pointer;
+  transition: var(--trans-fast);
+  align-self: flex-end;
+}
+
+.hdr-menu-apply-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--text-on-accent);
+  border-color: var(--accent);
+}
+
+.hdr-menu-apply-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.hdr-menu-apply-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* D-04 — estado deshabilitado */
+.hdr-menu-apply-btn:disabled,
+.hdr-menu-apply-btn.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hdr-menu-subpanel,
+  .hdr-menu-textarea,
+  .hdr-menu-apply-btn {
+    transition: none;
+  }
+  .hdr-menu-apply-btn:active:not(:disabled) {
+    transform: none;
+  }
 }
 
 /* ══ TAB SCROLL PROGRESS BAR ══ */
