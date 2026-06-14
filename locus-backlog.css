@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-02 · mod:36 · autor:Nova · 2026-06-14 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-01 · mod:37 · autor:Nova · 2026-06-14 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -5880,11 +5880,17 @@ er {
 /* ══ B-202606-sprint-fix · Footer histórico + sticky backlog-footer ══ */
 
 .backlog-footer {
-  position: sticky;
-  bottom: 0;
+  position: fixed;
+  bottom: var(--global-footer-h, 28px);
+  left: 0;
+  right: 0;
   z-index: var(--z-raised);
   background: var(--surface1);
   border-top: 1px solid var(--border);
+}
+
+.backlog-footer.is-hidden {
+  display: none;
 }
 
 .bl-footer-row--single {
