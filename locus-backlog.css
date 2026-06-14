@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-02 · mod:35 · autor:Nova · 2026-06-14 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-02 · mod:36 · autor:Nova · 2026-06-14 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -5887,29 +5887,37 @@ er {
   border-top: 1px solid var(--border);
 }
 
-.bl-footer-row--historical {
+.bl-footer-row--single {
   display: flex;
   align-items: center;
-  gap: 0;
-  padding: 4px 10px;
-  font-size: var(--text-2xs);
-  font-family: var(--mono);
-  color: var(--hint);
-  border-bottom: 1px solid var(--border2);
+  flex-wrap: wrap;
+  gap: 4px 0;
+  padding: 5px 8px;
 }
 
-.bl-footer-row--historical .sph-item {
+.bl-footer-group--historical {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding-right: 10px;
+  margin-right: 10px;
+  border-right: 1px solid var(--border2);
+}
+
+.bl-footer-group--historical .sph-item {
+  font-size: var(--text-xs);
+  font-family: var(--mono);
   color: var(--text2);
 }
 
-.bl-footer-row--historical .sph-item.sph-activos {
-  color: var(--green);
-  font-weight: 600;
+.bl-footer-group--historical .sph-cerrados {
+  color: var(--hint);
 }
 
-.bl-footer-row--historical .sph-sep {
-  margin: 0 6px;
+.bl-footer-group--historical .sph-sep {
+  font-size: var(--text-xs);
   color: var(--border2);
+  margin: 0 3px;
 }
 
 /* ══ END B-202606-sprint-fix ══ */

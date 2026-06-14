@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:27 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:28 · autor:Rune · 2026-06-14 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1585,26 +1585,24 @@ export function updateBacklogFooter() {
   const _cerradosF = _descartadosF + _promovidasF;
 
   footer.innerHTML = `
-    <div class="bl-footer-row bl-footer-row--historical">
-      <span class="sph-item">${_emitidosF} emitidos</span><span class="sph-sep">·</span><span class="sph-item sph-activos">${_doneF} hechos</span><span class="sph-sep">·</span><span class="sph-item" title="${_descartadosF} descartados · ${_promovidasF} promovidas">${_cerradosF} cerrados sin trabajo</span>
-    </div>
-    <div class="bl-footer-row bl-footer-row--filters" id="bl-footer-filters">
+    <div class="bl-footer-row bl-footer-row--single" id="bl-footer-filters">
+      <div class="bl-footer-filter-group bl-footer-group--historical">
+        <span class="bl-filter-label">Histórico</span>
+        <span class="sph-item" title="${_emitidosF} ítems totales">${_emitidosF} emitidos</span><span class="sph-sep">·</span><span class="sph-item">${_doneF} hechos</span><span class="sph-sep">·</span><span class="sph-item sph-cerrados" title="${_descartadosF} descartados · ${_promovidasF} promovidas">${_cerradosF} cerrados sin trabajo</span>
+      </div>
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Tipo</span>
         ${[['B','Bug'],['T','Ticket'],['R','Req'],['P','Pos.']].map(([t,l]) =>
           `<button class="bl-filter-chip bl-fc-type-${t}${_getActiveTypes().has(t) ? ' active' : ''}" data-action="footer-type-filter" data-type="${t}" title="${l}">${t} <span>${byType[t]}</span></button>`
         ).join('')}
       </div>
-
       <div class="bl-footer-filter-group">
         <span class="bl-filter-label">Esfuerzo</span>
         ${[1,2,3].map(e => {
-          // T-202606-096: excluir descartado/promovida/historico — universo activos
           const cnt = getItems().filter(i => _isActive(i) && (parseInt(i.effort)||1) === e).length;
           return `<button class="bl-filter-chip${_getActiveEfforts().has(e) ? ' active' : ''}" data-action="footer-effort-filter" data-effort="${e}" title="Effort ${e}">E${e} <span>${cnt}</span></button>`;
         }).join('')}
       </div>
-      <button class="bl-footer-clear" data-action="footer-clear-filters" title="Limpiar todos los filtros">✕ Limpiar</button>
     </div>
   `;
 
