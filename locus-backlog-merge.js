@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:10 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-13 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -502,6 +502,14 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   };
 
   if (_sprintProposal && body) {
+    // T-202606-023 AC-3: calcular estado resultante en el momento de renderizar Step 0.
+    // getActiveSprints() refleja el estado actual — si hay sprint active, el nuevo será scheduled.
+    // Nota: _tryIngestSprintProposal aplica la misma lógica al aprobar → ambos son coherentes.
+    const _existsActive = getActiveSprints().some(sp => sp.status === 'active' && !sp.isHotfix);
+    const _resultingStatusLabel = _existsActive
+      ? 'Programado — se activa al cerrar el sprint activo'
+      : 'Activo — se abre inmediatamente';
+
     // Renderizar Step 0 antes del contenido normal — reemplaza body temporalmente
     const _step0Html = `
       <div class="mdiff-step0" id="mdiff-step0">
@@ -518,6 +526,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           ${(_sprintProposal.out_of_scope && _sprintProposal.out_of_scope.length)
             ? `<div class="mdiff-step0-row"><span class="mdiff-step0-label">Out of scope</span><span class="mdiff-step0-value">${_sprintProposal.out_of_scope.map(s => esc(s)).join(' · ')}</span></div>`
             : ''}
+          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Estado</span><span class="mdiff-step0-value">${esc(_resultingStatusLabel)}</span></div>
         </div>
         <div class="mdiff-step0-actions">
           <button class="mdiff-btn mdiff-btn--primary" id="mdiff-step0-approve">✓ Aprobar apertura</button>

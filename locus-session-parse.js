@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:51 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:53 · autor:Rune · 2026-06-13 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1221,7 +1221,13 @@ export function _tryIngestSprintProposal(text) {
     return false;
   }
 
-  // AC-1: construir objeto sprint con formallyOpened: true — B-202606-063: Step 0 del DIFF es el gate de aprobación
+  // T-202606-023 AC-1/AC-2: determinar status del nuevo sprint según existencia de sprint activo.
+  // Si existe sprint con status:'active' → nuevo sprint nace como 'scheduled' (AC-1).
+  // Si no existe sprint activo → nuevo sprint nace como 'active' (AC-2 — comportamiento anterior).
+  // AC-4: esta lógica garantiza que sprints.filter(s => s.status === 'active').length ≤ 1.
+  const _hasActiveSprint = proj.sprints.some(sp => sp.status === 'active' && !sp.isHotfix);
+  const _newSprintStatus = _hasActiveSprint ? 'scheduled' : 'active';
+
   // B-202606-063: extraer prefijo corto como id — el string completo va en label y name.
   // "PP-S-06 · IDP fixes" → id: "PP-S-06", label: "PP-S-06 · IDP fixes"
   // El gate en locus-backlog-merge.js busca por id y label — sin este split,
@@ -1237,7 +1243,7 @@ export function _tryIngestSprintProposal(text) {
     scope:          result.scope,
     goal:           result.goal,
     out_of_scope:   result.out_of_scope || [],
-    status:         'active',
+    status:         _newSprintStatus,  // T-202606-023: 'scheduled' si hay activo, 'active' si no
     current:        false,
     formallyOpened: true,  // B-202606-063: aprobado via Step 0 — sprint existe formalmente
   };
@@ -1248,8 +1254,13 @@ export function _tryIngestSprintProposal(text) {
   // el debounce se dispare, el sprint no está en Supabase y getActiveSprints() no lo ve → bloqueo falso.
   saveImmediate();
 
-  // AC-4: sprint accesible inmediatamente via locus-storage tras persistir
-  showToast('success', `✓ Sprint "${result.sprint}" creado — pendiente de aprobación`);
+  // T-202606-023 AC-3: toast refleja el estado resultante.
+  // 'scheduled': indica activación al cerrar sprint activo.
+  // 'active': mensaje original sin cambio.
+  const _toastMsg = _newSprintStatus === 'scheduled'
+    ? `✓ Sprint "${result.sprint}" creado como programado — se activará al cerrar el sprint activo`
+    : `✓ Sprint "${result.sprint}" creado — pendiente de aprobación`;
+  showToast('success', _toastMsg);
   // T-202606-020: retornar el id del sprint creado (prefijo corto) en lugar de true.
   // Los callers existentes hacen `if (_spCreated)` — un string no-vacío sigue siendo truthy.
   // El id retornado permite que el caller aplique la herencia de sprint a los ítems del CHECKPOINT.
@@ -1425,7 +1436,8 @@ function parsePasteStandalone() {
     }
     // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
     const _normSt3 = _canonicalStatus(it.status, it.type);
-    if (!_normSt3 || (!_validStatuses.includes(_normSt3) && _normSt3 !== 'promovida')) {
+    // T-202606-022 AC-1: excepción bloqueado para R — simétrico a parsePaste
+    if (!_normSt3 || (!_validStatuses.includes(_normSt3) && _normSt3 !== 'promovida' && _normSt3 !== 'bloqueado')) {
       itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${it.type === 'P' ? ' · promovida' : ''}`;
       break;
     }
