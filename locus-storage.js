@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-14 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-076 · T-202606-077: export ESM BACKLOG_LOG_MAX y _DOC_LOG_KEYS
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -73,9 +73,30 @@ export const LOCUS_KEYS = {
 // R-202605-002: strings canónicos de proyecto — fuente única de verdad
 export const CANONICAL_PROJECTS = ['Obsidian Labs', 'Alisto', 'Content Manager', 'Locus'];
 
-// T-202606-012: versión activa de infra_version — fuente de verdad en __OB-Strategy §5
-// Actualizar cuando Vera incremente infra_version en __OB-Strategy §5
-export const INFRA_VERSION_ACTIVE = 18;
+// T-202606-027: INFRA_VERSION_ACTIVE migrado de constante a valor mutable con getter/setter.
+// Getter/setter canónicos: getInfraVersionActive() · setInfraVersionActive(n).
+// Valor inicial: seed 18 — sobrescrito por state.infraVersionActive al cargar (load/_applyStateData).
+// Fuente de verdad: state.infraVersionActive → persistido via save().
+// Referencia: __OB-Strategy §5.
+let _infraVersionActive = 18;
+
+export function getInfraVersionActive() {
+  return _infraVersionActive;
+}
+
+export function setInfraVersionActive(n) {
+  // AC-3: n no numérico o n ≤ 0 → no modifica, retorna false
+  if (typeof n !== 'number' || !Number.isFinite(n) || n <= 0) return false;
+  const intN = Math.floor(n);
+  if (intN <= 0) return false;
+  // AC-5: n igual al valor actual → retorna true sin error
+  _infraVersionActive = intN;
+  if (typeof state !== 'undefined') {
+    state.infraVersionActive = intN;
+    save();
+  }
+  return true;
+}
 
 // R-202605-002: prefijos de proyecto — fuente única de verdad
 export const _PREFIX_MAP = {
@@ -1292,6 +1313,15 @@ function _applyStateData(raw) {
   if (!raw.projects) raw.projects = [];
   if (!raw._stateVersion) raw._stateVersion = 3;
   if (!raw.quickNotes) raw.quickNotes = [];
+  // T-202606-027: seed infraVersionActive — AC-2: proyectos sin la clave reciben seed 18
+  // sin escritura adicional hasta el próximo save natural.
+  if (raw.infraVersionActive === undefined || raw.infraVersionActive === null) {
+    raw.infraVersionActive = 18;
+  }
+  // Sincronizar _infraVersionActive con el valor del state cargado
+  if (typeof raw.infraVersionActive === 'number' && raw.infraVersionActive > 0) {
+    _infraVersionActive = raw.infraVersionActive;
+  }
 
   // T-202606-016: _ensureHotfixSprint — crea sprint S-HOTFIX si el proyecto no lo tiene.
   // Idempotente: AC-3 — si ya existe isHotfix:true no crea otro.
