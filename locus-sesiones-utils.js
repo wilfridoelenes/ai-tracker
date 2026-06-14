@@ -48,7 +48,6 @@ export function stopSessionTimer(aiId) {
   const elapsed = d.elapsed + (d.running ? (Date.now() - d.startEpoch) : 0);
   _setTimerData(aiId, { running: false, elapsed, startEpoch: null });
   _refreshTimerTick();
-  _renderActiveWorkerChip();
   return elapsed;
 }
 
@@ -123,46 +122,7 @@ function _timerWidgetHtml(aiId) {
 // R-202605-170: Worker activo chip — nombre y cronómetro en header
 // ══════════════════════════════════════════════════════════════════════════════
 
-export function _renderActiveWorkerChip() {
-  const chip = document.getElementById('header-active-worker');
-  if (!chip) return;
 
-  // Buscar el Worker con timer activo — si hay más de uno, el de mayor elapsed
-  let best = null;
-  let bestElapsed = -1;
-  (getState().ais || []).forEach(ai => {
-    const d = _getTimerData(ai.id);
-    if (!d || !d.running) return;
-    const elapsed = d.elapsed + (Date.now() - d.startEpoch);
-    if (elapsed > bestElapsed) { best = ai; bestElapsed = elapsed; }
-  });
-
-  if (!best) {
-    chip.classList.add('is-hidden');
-    return;
-  }
-
-  const h = Math.floor(bestElapsed / 3600000);
-  const m = Math.floor((bestElapsed % 3600000) / 60000);
-  const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
-
-  chip.querySelector('.hwc-name').textContent = best.name || best.id;
-  chip.querySelector('.hwc-time').textContent = timeStr;
-  chip.dataset.hwcAiId = best.id;
-  chip.classList.remove('is-hidden');
-}
-
-function _hwcClick() {
-  const chip = document.getElementById('header-active-worker');
-  const aiId = chip && chip.dataset.hwcAiId;
-  if (!aiId) return;
-  window.dispatchEvent(new CustomEvent('shell:select-tracker-ai', { detail: { aiId } }));
-  if (document.querySelector('.tab-btn.active')?.dataset.tab !== 'sesiones') {
-    switchTab('sesiones');
-  }
-}
-// window fallback para inline handler en index.html
-// _hwcClick — función privada del módulo, accedida via addEventListener (T5)
 
 // ══════════════════════════════════════════════════════════════════════════════
 // S-17: T-202605-447 · Sesión sugerida — banner de arranque
@@ -452,17 +412,6 @@ setInterval(() => {
 }, 1000);
 
 // ── END T-202605-019 ─────────────────────────────────────────────────────────
-
-// T-202605-045: Migrar handler inline #header-active-worker → addEventListener
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function _initHwcHandler() {
-    const chip = document.getElementById('header-active-worker');
-    if (chip) chip.addEventListener('click', _hwcClick);
-  }, { once: true });
-} else {
-  const chip = document.getElementById('header-active-worker');
-  if (chip) chip.addEventListener('click', _hwcClick);
-}
 
 // ── B-202605-019: Listeners — weekly-summary-modal on* migrados desde index.html ──
 (function _initWeeklySummaryHandlers() {
