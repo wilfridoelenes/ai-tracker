@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-09 · mod:13 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-14 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -14,7 +14,7 @@
 //       (locus-api.js garantiza que el contrato público está disponible post-DOMContentLoaded)
 // Cada módulo consumidor es responsable de registrar listener 'shell:invoke' para sus propias funciones.
 
-import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter } from './locus-storage.js';
+import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, getInfraVersionActive, setInfraVersionActive } from './locus-storage.js';
 import { _dropzoneHandle } from './locus-docs.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
 
 // ── Global utility ────────────────────────────────────────────────────────
@@ -247,6 +247,54 @@ export function toggleMoreMenu() {
   } else {
     m.classList.add('is-hidden');
   }
+}
+
+// ── T-202606-031: handler de #hdr-menu-infra-subpanel ─────────────────────
+// Reemplaza por completo el handler de T-202606-029 (eliminado de locus-session-parse.js).
+// Toggle via #mm-btn-sync-infra · validación numérica de #hdr-menu-infra-textarea ·
+// apply via #hdr-menu-infra-apply → setInfraVersionActive(N).
+export function initInfraVersionHandler() {
+  const toggleBtn = document.getElementById('mm-btn-sync-infra');
+  const subpanel  = document.getElementById('hdr-menu-infra-subpanel');
+  const textarea  = document.getElementById('hdr-menu-infra-textarea');
+  const applyBtn  = document.getElementById('hdr-menu-infra-apply');
+  const errMsg    = document.getElementById('hdr-menu-infra-error');
+
+  if (!toggleBtn || !subpanel || !textarea || !applyBtn || !errMsg) return;
+
+  // Toggle del subpanel — AC toggle/cierre
+  toggleBtn.addEventListener('click', function () {
+    subpanel.classList.toggle('open');
+  });
+
+  // Habilitación/deshabilitación de Aplicar según contenido del textarea — AC habilitación / error textarea vacío
+  textarea.addEventListener('input', function () {
+    if (textarea.value.trim() === '') {
+      applyBtn.disabled = true;
+    } else {
+      applyBtn.disabled = false;
+    }
+  });
+
+  // Validación + apply
+  applyBtn.addEventListener('click', function () {
+    const raw = textarea.value.trim();
+    const N = Number(raw);
+
+    if (raw === '' || !Number.isFinite(N) || !/^-?\d+$/.test(raw)) {
+      textarea.classList.add('hdr-menu-textarea--error');
+      errMsg.textContent = 'Valor debe ser numérico';
+      errMsg.classList.remove('is-hidden');
+      return;
+    }
+
+    // Limpiar estado de error previo
+    textarea.classList.remove('hdr-menu-textarea--error');
+    errMsg.textContent = '';
+    errMsg.classList.add('is-hidden');
+
+    setInfraVersionActive(N);
+  });
 }
 
 // ── Search dispatch (extraído de ai-tracker-checkpoint.js) ────────────────
@@ -1311,6 +1359,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const btn = document.getElementById(id);
     if (btn) btn.addEventListener('click', mm[id]);
   });
+
+  // #hdr-menu-infra-subpanel — toggle + validación + apply (T-202606-031)
+  initInfraVersionHandler();
 
   // tmpl-trigger radios → toggleTemplateTrigger()
   const tmplSession = document.getElementById('tmpl-trigger-session');

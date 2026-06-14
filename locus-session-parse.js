@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:56 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:57 · autor:Rune · 2026-06-14 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -13,7 +13,7 @@ import { extractContextSections, extractDocUpdates, extractHtmlMapSections, merg
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger
 import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
-import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, LOCUS_KEYS, CANONICAL_PROJECTS, getInfraVersionActive, setInfraVersionActive } from './locus-storage.js';
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, LOCUS_KEYS, CANONICAL_PROJECTS, getInfraVersionActive } from './locus-storage.js';
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) reemplazada por getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027
 import { showToast, toast } from './locus-toast.js';
 
@@ -1977,78 +1977,4 @@ function parsePlanBlock(text) {
 // T-202605-430: componente reutilizable de hora — aplica en guardar sesión, sesiones rápidas y correctHora
 // T-202605-019: exponer funciones migradas desde misc-ui para compatibilidad con locus-api.js
 
-// ── T-202606-029: handler infra_version en menú overflow ─────────────────────
-// Binds el botón .hdr-menu-apply-btn dentro del dropdown .hdr-menu-dropdown.
-// Lee textarea .hdr-menu-textarea, extrae N del patrón infra_version:\s*(\d+)
-// dentro de un bloque HTML comment, llama setInfraVersionActive(N) y cierra el dropdown.
-// AC-5: aria-expanded de #more-menu-btn se sincroniza en cada toggle de .open.
-//
-// Debe invocarse una vez tras DOMContentLoaded desde locus-ui-shell.js o main.js.
-export function initInfraVersionHandler() {
-  const btn      = document.getElementById('more-menu-btn');
-  const dropdown = btn ? btn.closest('.hdr-menu-dropdown') || document.querySelector('.hdr-menu-dropdown') : document.querySelector('.hdr-menu-dropdown');
-  const applyBtn = document.querySelector('.hdr-menu-apply-btn');
-  const textarea = document.querySelector('.hdr-menu-textarea');
-
-  if (!dropdown || !applyBtn || !textarea) return;
-
-  // Sincroniza aria-expanded con presencia de .open en dropdown — AC-5
-  function _syncAria() {
-    if (btn) btn.setAttribute('aria-expanded', dropdown.classList.contains('open') ? 'true' : 'false');
-  }
-
-  // Observar cambios de clase .open en dropdown para mantener aria-expanded sincronizado
-  const _ariaObserver = new MutationObserver(() => _syncAria());
-  _ariaObserver.observe(dropdown, { attributes: true, attributeFilter: ['class'] });
-  _syncAria(); // estado inicial
-
-  // Handler del botón Aplicar
-  applyBtn.addEventListener('click', () => {
-    const text = textarea.value || '';
-
-    // AC-1: extraer N del patrón infra_version:\s*(\d+) dentro de bloque <!-- ... -->
-    const match = text.match(/<!--[\s\S]*?\*\*infra_version:\s*(\d+)\*\*[\s\S]*?-->/);
-
-    if (!match) {
-      // AC-2: patrón no encontrado — error visual + toast + dropdown permanece abierto
-      textarea.classList.add('hdr-menu-textarea--error');
-      const errMsg = textarea.parentElement && textarea.parentElement.querySelector('.hdr-menu-error-msg');
-      if (errMsg) {
-        errMsg.textContent = 'Formato no reconocido — pegar el bloque infra_version completo';
-        errMsg.hidden = false;
-      }
-      showToast('error', 'Formato no reconocido — pegar el bloque infra_version completo');
-      return; // dropdown permanece .open
-    }
-
-    // Limpiar estado de error previo
-    textarea.classList.remove('hdr-menu-textarea--error');
-    const errMsg = textarea.parentElement && textarea.parentElement.querySelector('.hdr-menu-error-msg');
-    if (errMsg) { errMsg.textContent = ''; errMsg.hidden = true; }
-
-    const N = parseInt(match[1], 10);
-    const current = getInfraVersionActive();
-
-    if (N === current) {
-      // AC-3: N igual al actual → setInfraVersionActive(N) retorna true sin cambio (AC-5 de T-202606-027)
-      setInfraVersionActive(N);
-      dropdown.classList.remove('open'); // cierra dropdown
-      showToast('info', `infra_version ya está al día (${N})`);
-      return;
-    }
-
-    // AC-4: N distinto del actual — actualizar y cerrar
-    const ok = setInfraVersionActive(N);
-    if (ok) {
-      dropdown.classList.remove('open'); // cierra dropdown
-      showToast('confirm', `infra_version actualizado a ${N}`);
-    }
-    // Si setInfraVersionActive retorna false (N ≤ 0 o no numérico — no debería ocurrir si el regex extrajo correctamente)
-    // no cerramos dropdown y mostramos error por seguridad
-    else {
-      textarea.classList.add('hdr-menu-textarea--error');
-      showToast('error', `Valor extraído inválido: ${N}`);
-    }
-  });
-}
-// ── END T-202606-029 ──────────────────────────────────────────────────────────
+// T-202606-031: handler de #hdr-menu-infra-subpanel movido a locus-ui-shell.js — initInfraVersionHandler() eliminado de este módulo.
