@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-14 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -89,9 +89,6 @@ export function switchTab(tab) {
   // Visibility of tab-specific header buttons
   document.querySelectorAll('.tracker-only').forEach(el => el.classList.toggle('is-hidden', tab !== 'tracker'));
   document.querySelectorAll('.analytics-only').forEach(el => el.classList.toggle('is-hidden', tab !== 'analytics'));
-  // B-backlog-footer-fixed: ocultar footer cuando no es tab backlog
-  const _bf = document.getElementById('backlog-footer');
-  if (_bf) _bf.classList.toggle('is-hidden', tab !== 'backlog');
   // Templates toolbar: update buttons via _updateSubTabButtons
   // (a) event dispatch — locus-docs.js escucha 'shell:update-subtab-buttons'
   if (tab === 'backlog') {
