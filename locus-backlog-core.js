@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:20 · autor:Rune · 2026-06-14 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1767,6 +1767,9 @@ export function renderStats() {
   // _activosTotal = pendiente + en-revision, excluyendo sprints cerrados, excluyendo P con status promovida
   const _emitidos = ITEMS.length;
   const _descartadosTotal = ITEMS.filter(i => i.status === 'descartado').length;
+  const _promovidasTotal = ITEMS.filter(i => i.status === 'promovida').length; // B-202606-sprint-fix: promovidas = cierre sin trabajo
+  const _cerradosSinTrabajo = _descartadosTotal + _promovidasTotal;
+  const _doneTotal = ITEMS.filter(i => i.status === 'done').length;
   const _closedIdsForActivos = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
   const _activosTotal = ITEMS.filter(i =>
     (i.status === 'pendiente' || i.status === 'en-revision') &&
@@ -1796,7 +1799,7 @@ export function renderStats() {
           ${total > 0 ? `<span class="stat-progress-pct">${pct}% completado</span>` : ''}
         </div>
         <div class="stat-mini-track"><div class="stat-mini-fill" style="--stat-mini-w:${pct}%"></div></div>
-        ${ITEMS.length > 0 ? `<div class="stat-progress-historical"><span class="sph-item">${_emitidos} emitidos</span><span class="sph-sep">·</span><span class="sph-item">${_descartadosTotal} descartados</span><span class="sph-sep">·</span><span class="sph-item sph-activos">${_activosTotal} activos</span></div>` : ''}
+        ${ITEMS.length > 0 ? `<div class="stat-progress-historical"><span class="sph-item">${_emitidos} emitidos</span><span class="sph-sep">·</span><span class="sph-item sph-activos">${_doneTotal} hechos</span><span class="sph-sep">·</span><span class="sph-item" title="${_descartadosTotal} descartados · ${_promovidasTotal} promovidas">${_cerradosSinTrabajo} cerrados sin trabajo</span></div>` : ''}
       </div>
       <!-- Nivel 2: chips de tipo accionables — P (ideas) separado del flujo activo -->
       <div class="stat-card s-types">

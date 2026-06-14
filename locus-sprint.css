@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:18 · autor:Nova · 2026-06-13 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-01 · mod:19 · autor:Nova · 2026-06-14 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -1063,6 +1063,18 @@
   background: var(--surface2, var(--surface));
   color: var(--text2);
   border: 1px solid var(--border);
+}
+
+/* T-202606-033 · Sprint programado — diferenciado de active (c-pulido sólido) y closed (neutro) */
+.sml-badge--scheduled {
+  background: rgb(from var(--blue) r g b / 0.10);
+  color: var(--blue);
+  border: 1px solid rgb(from var(--blue) r g b / 0.28);
+}
+
+.sml-row--scheduled {
+  border-color: rgb(from var(--blue) r g b / 0.35);
+  opacity: 0.82;
 }
 
 /* Botón Ver retro — estilo secundario, no CTA primario */
