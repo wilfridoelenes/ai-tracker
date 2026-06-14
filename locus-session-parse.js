@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:53 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:54 · autor:Rune · 2026-06-13 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1479,7 +1479,14 @@ function parsePasteStandalone() {
           discardReason: it.reason || '',
           discardRef:    it.ref    || '',
           blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : [],
-          promovida_a:   it.promovida_a || null
+          promovida_a:   it.promovida_a || null,
+          parentId:      it.parent      || null,               // T-202606-024 AC-1
+          dependsOn:     Array.isArray(it.depends_on) ? it.depends_on : [],  // T-202606-024 AC-2
+          triggeredBy:   it.triggered_by  || null,             // T-202606-024 AC-3
+          origenP:       it.origen_p      || null,             // T-202606-024 AC-4
+          intencion:     it.intencion     || null,             // T-202606-024 AC-5
+          no_incluye:    Array.isArray(it.no_incluye) ? it.no_incluye : [],  // T-202606-024 AC-6
+          schema_version: it.schema_version != null ? Number(it.schema_version) : 0  // T-202606-024 AC-7
         });
         _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
         continue;
@@ -1500,7 +1507,14 @@ function parsePasteStandalone() {
       discardReason: it.reason || '',
       discardRef:    it.ref    || '',
       blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : [],
-      promovida_a:   it.promovida_a || null                              // T-202606-018 AC8
+      promovida_a:   it.promovida_a || null,                   // T-202606-018 AC8
+      parentId:      it.parent      || null,                   // T-202606-024 AC-1
+      dependsOn:     Array.isArray(it.depends_on) ? it.depends_on : [],  // T-202606-024 AC-2
+      triggeredBy:   it.triggered_by  || null,                 // T-202606-024 AC-3
+      origenP:       it.origen_p      || null,                 // T-202606-024 AC-4
+      intencion:     it.intencion     || null,                 // T-202606-024 AC-5
+      no_incluye:    Array.isArray(it.no_incluye) ? it.no_incluye : [],  // T-202606-024 AC-6
+      schema_version: it.schema_version != null ? Number(it.schema_version) : 0  // T-202606-024 AC-7
     });
     // T-202606-018 AC9: advertencia si P tiene status promovida sin promovida_a en standalone parser
     if (it.type === 'P' && _normSt3 === 'promovida' && !it.promovida_a) {
