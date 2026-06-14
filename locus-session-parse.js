@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:57 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:58 · autor:Rune · 2026-06-14 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1269,6 +1269,69 @@ export function _tryIngestSprintProposal(text) {
   return _sprintIdShort;
 }
 
+// B-202606-019: variante de _tryIngestSprintProposal que acepta el objeto proposal ya parseado.
+// Necesaria para CHECKPOINTs en formato JSON puro — en ese path, raw no contiene
+// '---SPRINT-PROPOSAL---' y _tryIngestSprintProposal(raw) retorna false silenciosamente.
+// El objeto proposal viene de _rawSprintProposal (parseCheckpoint) via ai._parsed.sprintProposal.
+// La validación de rol emisor se omite aquí porque ya se verificó al construir _validSpProposal
+// en locus-session-save.js y saveStandaloneCheckpoint (solo pasan propuestas válidas).
+// Retorna el id del sprint creado (string) o false — mismo contrato que _tryIngestSprintProposal.
+export function _tryIngestSprintProposalFromParsed(proposalObj) {
+  if (!proposalObj || typeof proposalObj !== 'object' || Array.isArray(proposalObj)) return false;
+
+  // Validar campos obligatorios — mismo criterio que parseSprintProposal
+  const { sprint, version_target, release_type, scope, goal } = proposalObj;
+  const missing = ['sprint', 'version_target', 'release_type', 'scope', 'goal']
+    .filter(k => !proposalObj[k]);
+  if (missing.length) {
+    showToast('error', `Campos obligatorios faltantes: ${missing.join(', ')}`);
+    return false;
+  }
+
+  const proj = getActiveProject();
+  if (!proj) return false;
+  if (!proj.sprints) proj.sprints = [];
+
+  // Guard de duplicado — mismo criterio que _tryIngestSprintProposal
+  const _dupIdShort = sprint.split(/\s*·\s*/)[0].trim();
+  const exists = proj.sprints.some(sp =>
+    sp.id === _dupIdShort || sp.id === sprint ||
+    sp.name === sprint || sp.label === sprint
+  );
+  if (exists) {
+    showToast('error', 'Ya existe un sprint con este ID');
+    return false;
+  }
+
+  const _hasActiveSprint = proj.sprints.some(sp => sp.status === 'active' && !sp.isHotfix);
+  const _newSprintStatus = _hasActiveSprint ? 'scheduled' : 'active';
+
+  const _sprintIdFull  = sprint;
+  const _sprintIdShort = _sprintIdFull.split(/\s*·\s*/)[0].trim();
+  const newSprint = {
+    id:             _sprintIdShort,
+    label:          _sprintIdFull,
+    name:           _sprintIdFull,
+    version_target: version_target,
+    release_type:   release_type,
+    scope:          scope,
+    goal:           goal,
+    out_of_scope:   Array.isArray(proposalObj.out_of_scope) ? proposalObj.out_of_scope : [],
+    status:         _newSprintStatus,
+    current:        false,
+    formallyOpened: true,
+  };
+
+  proj.sprints.push(newSprint);
+  saveImmediate();
+
+  const _toastMsg = _newSprintStatus === 'scheduled'
+    ? `✓ Sprint "${sprint}" creado como programado — se activará al cerrar el sprint activo`
+    : `✓ Sprint "${sprint}" creado — pendiente de aprobación`;
+  showToast('success', _toastMsg);
+  return _sprintIdShort;
+}
+
 // T-202606-020: herencia automática de sprint al confirmar Step 0 de sprint proposal — Trigger 1.
 // Recibe el array de ítems del CHECKPOINT y el id del sprint recién creado.
 // Muta in-place los ítems R/T/B cuyo sprint sea 'icebox' o ausente → asigna el sprint nuevo.
@@ -1696,9 +1759,10 @@ function saveStandaloneCheckpoint() {
     _ckptMetaStandalone.sprintProposal    = _validSpProposalSa;
     _ckptMetaStandalone.onApproveProposal = function() {
       // T-202606-206: atomicidad sprint + ítems — gate solo se abre si el sprint se crea con éxito.
-      // Si _tryIngestSprintProposal retorna false (duplicado, campos faltantes u otro error),
-      // _spStep0Approved permanece false y _doApply no corre (AC-1).
-      const _spCreated = _tryIngestSprintProposal(raw); // crea el sprint — retorna id string o false
+      // B-202606-019: usar _tryIngestSprintProposalFromParsed en lugar de _tryIngestSprintProposal(raw).
+      // En path JSON puro, raw no contiene '---SPRINT-PROPOSAL---' — la variante de texto retorna
+      // false silenciosamente. La variante FromParsed opera sobre el objeto ya extraído por parseCheckpoint.
+      const _spCreated = _tryIngestSprintProposalFromParsed(_validSpProposalSa);
       if (_spCreated) {
         // T-202606-020 AC-1/AC-2/AC-3/AC-4: herencia automática de sprint a ítems del CHECKPOINT.
         // _spCreated es el id del sprint (prefijo corto, ej. "PP-S-03") — truthy siempre que el sprint se creó.

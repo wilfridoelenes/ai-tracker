@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:24 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:25 · autor:Rune · 2026-06-14 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -696,12 +696,17 @@ function _renderSprintManager() {
   }
 
   // Excluir HOTFIX de la lista principal — T-202606-001 AC-6 no-regresión
-  const active  = allSprints.filter(s => s.status === 'active' && !s.isHotfix);
-  const closed  = allSprints
-    .filter(s => s.status !== 'active' && !s.isHotfix)
+  // B-202606-019: incluir 'scheduled' en ordered — antes quedaban excluidos y no aparecían en Tab Sprints.
+  // El filtro de closed usaba status !== 'active' (capturaba scheduled + closed), pero la construcción
+  // de rows trataba todo lo que no es active como 'Cerrado', haciendo scheduled invisible.
+  // Separar en tres grupos explícitos: active, scheduled, closed.
+  const active    = allSprints.filter(s => s.status === 'active' && !s.isHotfix);
+  const scheduled = allSprints.filter(s => s.status === 'scheduled' && !s.isHotfix);
+  const closed    = allSprints
+    .filter(s => s.status === 'closed' && !s.isHotfix)
     .sort((a, b) => (b.closedAt || b.createdAt || 0) - (a.closedAt || a.createdAt || 0));
 
-  const ordered = [...active, ...closed];
+  const ordered = [...active, ...scheduled, ...closed];
 
   if (!ordered.length) {
     container.innerHTML = '<div class="sml-empty">No hay sprints registrados</div>';
@@ -710,7 +715,6 @@ function _renderSprintManager() {
 
   const rows = ordered.map(sprint => {
     const isActive  = sprint.status === 'active';
-    const isClosed  = !isActive;
     const hasRetro  = !!sprint.retroDoc;
 
     // Calcular progreso desde getItems()
@@ -730,12 +734,22 @@ function _renderSprintManager() {
     }
 
     const pct       = total > 0 ? Math.round((done / total) * 100) : 0;
+    // B-202606-019: declarar isScheduled e isClosed antes de isFullDone — isFullDone los referencia.
+    const isScheduled = sprint.status === 'scheduled';
+    const isClosed    = !isActive && !isScheduled;
     const isFullDone = isClosed && pct === 100;
 
     const label     = sprint.label || sprint.name || sprint.id || '';
-    const statusCls = isActive ? 'sml-badge--active' : 'sml-badge--closed';
-    const statusTxt = isActive ? 'Activo' : 'Cerrado';
-    const rowCls    = isActive ? 'sml-row sml-row--active' : 'sml-row';
+    // B-202606-019: status 'scheduled' recibe label y clase propios — no colapsado en 'Cerrado'.
+    const statusCls = isActive    ? 'sml-badge--active'
+                    : isScheduled ? 'sml-badge--scheduled'
+                    : 'sml-badge--closed';
+    const statusTxt = isActive    ? 'Activo'
+                    : isScheduled ? 'Programado'
+                    : 'Cerrado';
+    const rowCls    = isActive    ? 'sml-row sml-row--active'
+                    : isScheduled ? 'sml-row sml-row--scheduled'
+                    : 'sml-row';
     const barCls    = isFullDone ? 'sml-bar-fill sml-bar-fill--done' : 'sml-bar-fill';
 
     const retroBtn  = (isClosed && hasRetro)
