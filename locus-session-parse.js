@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:50 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:51 · autor:Rune · 2026-06-13 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1435,6 +1435,43 @@ function parsePasteStandalone() {
     if (_normSt3 === 'en-revision' && (_sprintRaw3 === 'icebox' || _sprintRaw3 === '')) {
       itemError = `CHECKPOINT bloqueado: ${it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
       break;
+    }
+    // T-202606-022: guard de rol para R con status bloqueado — simétrico a parsePaste()
+    // AC-1/AC-2: precedencia de rol: (1) it.role si no vacío, (2) ckpt.rol (raíz del CHECKPOINT)
+    // AC-1: role resuelto !== 'QA · Finn' → _blogLog + forzar status a 'pendiente'
+    // AC-3: role resuelto === 'QA · Finn' → status 'bloqueado' preservado sin modificación
+    // AC-4: aplica solo a R con status bloqueado — T, B, P no afectados
+    if (it.type === 'R' && _normSt3 === 'bloqueado') {
+      const _resolvedRole = (it.role && it.role.trim()) ? it.role.trim() : (ckpt.rol || '');
+      const _authorizedRole = 'QA · Finn';
+      if (_resolvedRole !== _authorizedRole) {
+        _blogLog(
+          'rol-no-autorizado-bloqueado',
+          it.code || '[pendiente-ID]',
+          `Transición bloqueado en R ${it.code || '[pendiente-ID]'} rechazada: solo Finn puede mover un R a bloqueado. Rol resuelto: "${_resolvedRole}". Origen: ${ckpt.titulo || ''}`,
+          'backlog'
+        );
+        // Forzar status a 'pendiente' — el ítem se ingesta pero no como bloqueado
+        tgItems.push({
+          type:          it.type,
+          code:          it.code,
+          title:         it.title  || it.desc   || '',
+          desc:          it.title  || it.desc   || '',
+          status:        'pendiente',
+          _noStatus:     false,
+          effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
+          area:          it.area   || '',
+          sprint:        it.sprint,
+          ac:            Array.isArray(it.ac) ? it.ac : [],
+          role:          _resolvedRole,
+          discardReason: it.reason || '',
+          discardRef:    it.ref    || '',
+          blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : [],
+          promovida_a:   it.promovida_a || null
+        });
+        _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
+        continue;
+      }
     }
     tgItems.push({
       type:          it.type,
