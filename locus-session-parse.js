@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:45 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:46 · autor:Rune · 2026-06-13 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -201,7 +201,7 @@ function _parseInlineFixes(text) {
 
 // T-202606-005: parseCheckpoint — path único JSON puro (fence sin especificador de lenguaje)
 // Path único: bloque ``` { ... } ``` sin especificador de lenguaje con schema completo
-function parseCheckpoint(text) {
+export function parseCheckpoint(text) {
   // ── Path único: JSON puro ─────────────────────────────────────────────────────
   // Detectar bloque ``` { ... } ``` sin especificador de lenguaje
   // T-202606-055: anclar detección al inicio del texto — evita falso positivo con bloques
