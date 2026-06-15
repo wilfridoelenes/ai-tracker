@@ -2754,6 +2754,12 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   flex-shrink: 0;
 }
 
+/* ── Menú wrap — contexto de posicionamiento para el dropdown ── */
+.sps-menu-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
 /* ── Botón menú ··· ── */
 .sps-btn-menu {
   width: 28px;
@@ -2795,7 +2801,9 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   overflow: hidden;
 }
 
-.sps-dropdown.is-open {
+/* B-202606-XXX: JS controla visibilidad con [hidden] — display:none base,
+   :not([hidden]) activa el flex. La clase .is-open no se usa. */
+.sps-dropdown:not([hidden]) {
   display: flex;
 }
 
