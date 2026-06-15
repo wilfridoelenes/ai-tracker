@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:27 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-14 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -498,7 +498,14 @@ function _spsOpenEdit(editEl, field, current, sprint) {
   input.focus();
 
   function commit() {
-    _spsSaveField(sprint, field, input.value.trim(), current);
+    const trimmed = input.value.trim();
+    if (!trimmed) {
+      // AC-4/AC-5: vacío descarta el cambio y restaura el valor anterior — no persiste
+      input.remove();
+      editEl.classList.remove('is-hidden');
+      return;
+    }
+    _spsSaveField(sprint, field, trimmed, current);
   }
   function cancel() {
     input.remove();
