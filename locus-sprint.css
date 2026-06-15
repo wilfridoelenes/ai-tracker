@@ -2843,13 +2843,24 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 }
 
 /* ── Mini-barra de progreso (programados) ── */
+/* B: reordenar elementos de fila programados al extremo derecho.
+   Orden HTML: drag · id · name · pill-prog · pill-adv · sps-menu-wrap · sps-bd-mini · count
+   Orden visual: drag · id · name · pill-prog · [auto spacer] · sps-bd-mini · count · pill-adv · ··· */
 .sps-bd-mini {
   height: 3px;
   background: var(--border2, var(--border));
   border-radius: var(--radius-pill);
   overflow: hidden;
-  flex: 1;
+  width: 72px;
+  flex-shrink: 0;
+  margin-left: auto;
+  order: 10;
 }
+
+.sps-scheduled-row .sps-scheduled-count { order: 11; }
+.sps-scheduled-row .pill-adv,
+.sps-scheduled-row .pill-adv-zero       { order: 12; }
+.sps-scheduled-row .sps-menu-wrap       { order: 13; }
 
 .sps-bd-mini-fill {
   height: 100%;
