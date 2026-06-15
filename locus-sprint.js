@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:26 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:27 · autor:Rune · 2026-06-14 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -385,6 +385,7 @@ function _renderSpsActivo() {
   const vt    = sprint.version_target || '';
   const rt    = sprint.release_type || sprint.releaseType || '';
   const goal  = sprint.goal || '';
+  const scope = sprint.scope || '';
 
   const badgeCls = isPausado ? 'sprint-badge-paused' : 'sprint-badge-active';
   const badgeTxt = isPausado ? 'Pausado' : 'Activo';
@@ -427,6 +428,7 @@ function _renderSpsActivo() {
         _metaItem('version_target', 'Versión', vt) +
         _metaItem('release_type', 'Release type', rt) +
         _metaItem('goal', 'Goal', goal, 'sps-inline-input--goal') +
+        _metaItem('scope', 'Scope', scope, 'sps-inline-input--scope') +
       '</div>' +
       '<div class="sps-burndown-wrap">' +
         '<div class="sps-burndown-bar" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="Burndown del sprint: ' + pct + '% completado">' +
@@ -475,6 +477,7 @@ function _spsHandleClick(e) {
                    : field === 'version_target'  ? (sprint.version_target || '')
                    : field === 'release_type'    ? (sprint.release_type || sprint.releaseType || '')
                    : field === 'goal'            ? (sprint.goal || '')
+                   : field === 'scope'           ? (sprint.scope || '')
                    : '';
 
   _spsOpenEdit(editEl, field, currentVal, sprint);
@@ -483,7 +486,9 @@ function _spsHandleClick(e) {
 function _spsOpenEdit(editEl, field, current, sprint) {
   editEl.classList.add('is-hidden');
 
-  const inputCls = field === 'goal' ? 'sps-inline-input sps-inline-input--goal' : 'sps-inline-input';
+  const inputCls = field === 'goal'  ? 'sps-inline-input sps-inline-input--goal'
+                  : field === 'scope' ? 'sps-inline-input sps-inline-input--scope'
+                  : 'sps-inline-input';
   const input = document.createElement('input');
   input.type = 'text';
   input.className = inputCls;
@@ -516,6 +521,7 @@ function _spsSaveField(sprint, field, newVal, oldVal) {
   if (field === 'version_target')  target.version_target = newVal;
   if (field === 'release_type')    { target.release_type = newVal; target.releaseType = newVal; }
   if (field === 'goal')             target.goal = newVal;
+  if (field === 'scope')            target.scope = newVal;
 
   try {
     save();
@@ -525,6 +531,7 @@ function _spsSaveField(sprint, field, newVal, oldVal) {
     if (field === 'version_target')  target.version_target = oldVal;
     if (field === 'release_type')    { target.release_type = oldVal; target.releaseType = oldVal; }
     if (field === 'goal')             target.goal = oldVal;
+    if (field === 'scope')            target.scope = oldVal;
   }
 
   _renderSpsActivo();
