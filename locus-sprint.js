@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:30 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:31 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -124,6 +124,7 @@ function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
     _renderSprintMeta(_getActiveSprint()); // T-202606-029
     _renderSpsActivo(); // T-202606-036
     _renderSpsProgramados(); // T-202606-037
+    _renderSpsHotfix(); // T-202606-038
   }
 }
 
@@ -2074,6 +2075,82 @@ function _spmCreateHotfix() {
   renderSprintTab();
 }
 // ── END T-202606-038 ─────────────────────────────────────────────────────
+
+// ── T-202606-038 T5: _renderSpsHotfix — card persistente HOTFIX en sub-tab Sprints ──
+//
+// Renderiza en #sps-hotfix una card siempre visible con los Bs priority:high
+// en status pendiente o en-revision del sprint S-HOTFIX del proyecto activo.
+// La card nunca se oculta — muestra 'Sin bugs críticos activos' cuando no hay ítems.
+// Clic en una fila de B abre el Item Editor (#item-editor-overlay) via openItemPanel.
+
+function _renderSpsHotfix() {
+  const container = document.getElementById('sps-hotfix');
+  if (!container) return;
+
+  // Localizar sprint HOTFIX del proyecto activo
+  const allSprints = getActiveSprints();
+  const hotfixSprint = allSprints ? allSprints.find(s => s.isHotfix === true) : null;
+
+  // Bs activos: priority high + sprint S-HOTFIX + status pendiente o en-revision
+  let activeBugs = [];
+  if (hotfixSprint && Array.isArray(getItems())) {
+    const _hsid = _spIdBase(hotfixSprint.id);
+    activeBugs = getItems().filter(i => {
+      const t = i.type || (i.code ? i.code.charAt(0) : '');
+      return t === 'B' &&
+        i.priority === 'high' &&
+        i.sprint && i.sprint.startsWith(_hsid) &&
+        (i.status === 'pendiente' || i.status === 'en-revision');
+    });
+  }
+
+  // Filas de bugs o mensaje vacío
+  let bodyHtml;
+  if (activeBugs.length === 0) {
+    bodyHtml = '<p class="sps-hotfix-empty">Sin bugs críticos activos</p>';
+  } else {
+    const rows = activeBugs.map(b =>
+      '<div class="sps-hotfix-row" data-item-code="' + _escHtml(b.code) + '" tabindex="0" role="button" aria-label="Abrir ' + _escHtml(b.code) + '">' +
+        '<span class="sps-hotfix-code">' + _escHtml(b.code) + '</span>' +
+        '<span class="sps-hotfix-title">' + _escHtml(b.title || '') + '</span>' +
+        '<span class="sps-hotfix-status">' + _escHtml(b.status) + '</span>' +
+      '</div>'
+    ).join('');
+    bodyHtml = '<div class="sps-hotfix-list">' + rows + '</div>';
+  }
+
+  const sprintLabel = hotfixSprint ? _escHtml(hotfixSprint.id) : 'S-HOTFIX';
+
+  container.innerHTML =
+    '<div class="sps-card sps-card--hotfix">' +
+      '<div class="sps-header">' +
+        '<span class="sps-title">' + sprintLabel + ' · Sprint persistente</span>' +
+        '<span class="sml-badge sprint-badge-hotfix">HOTFIX</span>' +
+      '</div>' +
+      bodyHtml +
+    '</div>';
+
+  // Event delegation — clic y teclado en filas de B
+  container.removeEventListener('click', _spsHotfixHandleClick);
+  container.addEventListener('click', _spsHotfixHandleClick);
+  container.removeEventListener('keydown', _spsHotfixHandleKeydown);
+  container.addEventListener('keydown', _spsHotfixHandleKeydown);
+}
+
+function _spsHotfixHandleClick(e) {
+  const row = e.target.closest('[data-item-code]');
+  if (row) openItemPanel(row.dataset.itemCode);
+}
+
+function _spsHotfixHandleKeydown(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const row = e.target.closest('[data-item-code]');
+  if (row) {
+    e.preventDefault();
+    openItemPanel(row.dataset.itemCode);
+  }
+}
+// ── END T-202606-038 T5 ──────────────────────────────────────────────────
 
 // Actualiza visibilidad de botones según estado — llamado desde renderSprintTab
 function _spmUpdateButtons(sprint) {
