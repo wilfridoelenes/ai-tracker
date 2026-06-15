@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:40 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:41 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -215,9 +215,9 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
         }
         try {
           save();
-          showToast('Sprint actualizado.', 'success');
+          showToast('success', 'Sprint actualizado.');
         } catch (err) {
-          showToast('Error al guardar. Intenta de nuevo.', 'error');
+          showToast('error', 'Error al guardar. Intenta de nuevo.');
         }
       }
     }
@@ -589,7 +589,7 @@ function _sppHandleClick(e) {
       try {
         save();
       } catch (err) {
-        showToast('Error al guardar. Intenta de nuevo.', 'error');
+        showToast('error', 'Error al guardar. Intenta de nuevo.');
         sprint.status = 'programado';
       }
       _renderSpsProgramados();
