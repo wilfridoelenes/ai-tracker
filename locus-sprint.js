@@ -1,11 +1,11 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:39 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:40 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
 import { _isBlocked, getItems} from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
-import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, editSprintInline, openSprintRetroView, setSprintStatus, openNewSprintInline, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
+import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, openNewSprintInline, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto } from './locus-sprint-plan.js';
 import { getAI, getActiveSprints, getAllSessions, save } from './locus-storage.js';
@@ -156,7 +156,7 @@ function _escHtml(str) {
 // ── T-202606-XXX: _spsFieldEdit — edit inline click-directo en sub-tab Sprints ──
 //
 // Convierte un elemento de texto (.sps-meta-value, .sps-scheduled-name) en un
-// <input> inline. blur/Enter → commit. Escape → cancelar. Llama editSprintInline
+// <input> inline. blur/Enter → commit. Escape → cancelar. Muta sprint en getActiveSprints()
 // para persistir. Renderiza la sección correspondiente al confirmar.
 //
 // @param {Element}  el         — elemento de texto a convertir
@@ -205,12 +205,20 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
     el.style.display = '';
     delete el.dataset.spsEditing;
     if (newVal && newVal !== original && newVal !== '—') {
-      const patch = {};
-      patch[field] = newVal;
-      try {
-        editSprintInline(sprintId, patch);
-      } catch (err) {
-        showToast('Error al guardar el campo. Intenta de nuevo.', 'error');
+      const sp = getActiveSprints().find(function(s) { return s.id === sprintId; });
+      if (sp) {
+        // label: reconstruir canónico 'ID · Nombre descriptivo' — patrón de confirmEditSprint
+        if (field === 'label') {
+          sp.label = sprintId + ' · ' + newVal;
+        } else {
+          sp[field] = newVal;
+        }
+        try {
+          save();
+          showToast('Sprint actualizado.', 'success');
+        } catch (err) {
+          showToast('Error al guardar. Intenta de nuevo.', 'error');
+        }
       }
     }
     onDone();
