@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:34 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:35 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -97,6 +97,9 @@ const _SPT_PANELS   = ['items', 'planificar', 'plan', 'sprints']; // T-202606-02
 function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
   _sptActiveSubtab = subtab; // B-202606-065/066: persiste entre renders y recargas de página
   localStorage.setItem(_SPT_SUBTAB_KEY, subtab);
+  // T-202606-042: ocultar header en sub-tab Sprints, visible en Ítems/Planificar/Plan
+  const _sphHeader = document.getElementById('sprint-panel-header');
+  if (_sphHeader) _sphHeader.classList.toggle('is-hidden', subtab === 'sprints');
   _SPT_PANELS.forEach(s => {
     const panel = document.getElementById('sprint-panel-' + s);
     const btn   = document.getElementById('spt-tab-' + s);
@@ -959,19 +962,13 @@ function _renderSprintItems(sprint) {
     bdFill.classList.toggle('is-ready',    pct === 100);
   }
   if (bdPct)   bdPct.textContent   = `${pct}%`;
-  if (bdLabel) bdLabel.textContent = `Effort: ${effortDone} / ${effort}`;
+  if (bdLabel) bdLabel.textContent = `${done.length} / ${total}`; // T-202606-042: ítems done / total (no effort)
   if (bdTrack) {
     bdTrack.setAttribute('aria-valuenow', pct);
     bdTrack.setAttribute('aria-valuetext', `${pct}% completado`);
   }
 
-  // Botón cierre: visible si hay sprint activo con ítems
-  const btnClose = _spEl('btn-close-sprint');
-  if (btnClose) {
-    const allDone = spItems.length > 0 && bloqueado.length === 0 && pendiente.length === 0 && enRevision.length === 0;
-    btnClose.classList.toggle('is-hidden', false);
-    btnClose.classList.toggle('is-ready', allDone);
-  }
+  // T-202606-042: bloque btnClose eliminado — #btn-close-sprint removido del HTML. Acción vive en .sps-actions (sub-tab Sprints)
 }
 
 function _renderSprintWorkers(sprint) {
@@ -1658,10 +1655,9 @@ export function renderSprintTab() {
   // Mostrar subtab nav y resetear a "Ítems" — R-202605-043
   if (sptNav) {
     sptNav.classList.remove('is-hidden');
-    _sptSwitch(_sptActiveSubtab, _spEl('spt-tab-' + _sptActiveSubtab), true); // B-202606-065: usa estado persistido — no lee DOM. true = skip items render (renderSprintTab lo hace directamente)
   }
 
-  // Header
+  // Header — T-202606-042: remove is-hidden base antes de _sptSwitch para que el toggle por subtab tenga la última palabra
   if (header) {
     header.classList.remove('is-hidden');
     const nameEl    = _spEl('sph-name');
@@ -1687,6 +1683,9 @@ export function renderSprintTab() {
 
     // B-202606-064: botón 'Aprobar apertura' eliminado — aprobación ocurre via Step 0 del DIFF
   }
+
+  // T-202606-042: _sptSwitch después de header.classList.remove — el toggle de subtab tiene la última palabra sobre visibilidad del header
+  _sptSwitch(_sptActiveSubtab, _spEl('spt-tab-' + _sptActiveSubtab), true); // B-202606-065: usa estado persistido — no lee DOM. true = skip items render (renderSprintTab lo hace directamente)
 
   // Gestor de sprints — T-202605-123
   _renderSprintManager();
