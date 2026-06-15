@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:31 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:32 · autor:Rune · 2026-06-15 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -73,7 +73,12 @@ let currentFilter = 'all';
 // persista entre renders cuando renderBacklogList reemplaza innerHTML de #backlog-list.
 // renderBacklogList llama _resetBacklogListDelegation() antes de llamar _attachBacklogListDelegation().
 let _blListDelegationAttached = false;
-export function _resetBacklogListDelegation() { _blListDelegationAttached = false; }
+let _blListAbortCtrl = null;
+export function _resetBacklogListDelegation() {
+  if (_blListAbortCtrl) { _blListAbortCtrl.abort(); }
+  _blListAbortCtrl = new AbortController();
+  _blListDelegationAttached = false;
+}
 // ──────────────────────────────────────────────────────────────────────────
 
 export function _renderKanban(listEl) {
@@ -208,6 +213,7 @@ function _kbCardClick(event, code) {
 export function _attachBacklogListDelegation() {
   const listEl = document.getElementById('backlog-list');
   if (!listEl || _blListDelegationAttached) return;
+  if (!_blListAbortCtrl) { _blListAbortCtrl = new AbortController(); }
   _blListDelegationAttached = true;
 
   // --- Click delegation ---
@@ -453,7 +459,7 @@ export function _attachBacklogListDelegation() {
       }
       return;
     }
-  });
+  }, { signal: _blListAbortCtrl.signal });
 
   // --- Change delegation (status-select, role, sprint, parent) ---
   listEl.addEventListener('change', function _blListChange(e) {
@@ -474,7 +480,7 @@ export function _attachBacklogListDelegation() {
       // status select (no data-select-type)
       setItemStatus(code, sel.value);
     }
-  });
+  }, { signal: _blListAbortCtrl.signal });
 
   // --- Dblclick delegation (inline edit title) ---
   listEl.addEventListener('dblclick', function _blListDblClick(e) {
@@ -482,7 +488,7 @@ export function _attachBacklogListDelegation() {
     if (!action) return;
     e.stopPropagation();
     if (typeof _inlineEditTitle === 'function') _inlineEditTitle(action.dataset.code, e);
-  });
+  }, { signal: _blListAbortCtrl.signal });
 
   // --- Kanban card drag ---
   listEl.addEventListener('dragstart', function _blListDragStart(e) {
@@ -493,21 +499,21 @@ export function _attachBacklogListDelegation() {
       card.classList.add('kanban-card--dragging');
       return;
     }
-  });
+  }, { signal: _blListAbortCtrl.signal });
   listEl.addEventListener('dragend', function _blListDragEnd(e) {
     const card = e.target.closest('.kb-card');
     if (card) { card.classList.remove('kanban-card--dragging'); return; }
-  });
+  }, { signal: _blListAbortCtrl.signal });
 
   // --- Kanban column drag (kb-col) ---
   listEl.addEventListener('dragover', function _blListDragOver(e) {
     const col = e.target.closest('.kb-col');
     if (col) { e.preventDefault(); col.classList.add('kb-col-dragover'); }
-  });
+  }, { signal: _blListAbortCtrl.signal });
   listEl.addEventListener('dragleave', function _blListDragLeave(e) {
     const col = e.target.closest('.kb-col');
     if (col) col.classList.remove('kb-col-dragover');
-  });
+  }, { signal: _blListAbortCtrl.signal });
   listEl.addEventListener('drop', function _blListDrop(e) {
     const col = e.target.closest('.kb-col');
     if (col) {
@@ -515,7 +521,7 @@ export function _attachBacklogListDelegation() {
       col.classList.remove('kb-col-dragover');
       if (typeof _kbDrop === 'function') _kbDrop(e, col.dataset.colStatus);
     }
-  });
+  }, { signal: _blListAbortCtrl.signal });
 }
 
 // _attachBacklogListDelegation: llamado al final de renderBacklogList (ver locus-backlog-render.js)
