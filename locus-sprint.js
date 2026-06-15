@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:38 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:39 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -124,7 +124,6 @@ function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
   if (subtab === 'planificar') _renderSprintPlanificar();
   if (subtab === 'plan') renderPlanInto('sprint-plan-container');
   if (subtab === 'sprints') {
-    _renderSprintMeta(_getActiveSprint()); // T-202606-029
     _renderSpsActivo(); // T-202606-036
     _renderSpsProgramados(); // T-202606-037
     _renderSpsPausados(); // T-202606-041
@@ -145,209 +144,6 @@ function _renderSprintPlanificar() {
   _attachPlanCloseHandler();
 }
 
-// ── T-202606-029: _renderSprintMeta — metadatos editables del sprint activo ──
-
-/**
- * Renderiza en #spm-meta-section los campos editables del sprint:
- * versión, release type, días abierto y scope.
- */
-function _renderSprintMeta(sprint) {
-  const section = document.getElementById('spm-meta-section');
-  if (!section) return;
-  if (!sprint) { section.innerHTML = ''; return; }
-
-  const vt    = sprint.version_target || '';
-  const rt    = sprint.release_type   || sprint.releaseType || '';
-  const scope = sprint.scope          || '';
-  const days  = _sprintDaysLabel(sprint);
-
-  function _fieldRow(key, label, value) {
-    const isEmpty  = !value;
-    const valClass = isEmpty ? 'spm-meta-value spm-meta-value--empty' : 'spm-meta-value';
-    const valText  = isEmpty ? 'Sin declarar' : _escHtml(value);
-    const btnTitle = isEmpty ? 'Agregar ' + label : 'Editar ' + label;
-    return '<div class="spm-meta-row" data-spm-field="' + key + '">' +
-      '<span class="spm-meta-label">' + label + '</span>' +
-      '<span class="' + valClass + '">' + valText + '</span>' +
-      '<button class="spm-meta-btn" data-spm-edit="' + key + '" aria-label="' + btnTitle + '" title="' + btnTitle + '" type="button">' + (isEmpty ? '+' : '✎') + '</button>' +
-      '</div>';
-  }
-
-  section.innerHTML = [
-    _fieldRow('version_target', 'Versión',      vt),
-    _fieldRow('release_type',   'Release type', rt),
-    _fieldRow('days',           'Días abierto', days),
-    _fieldRow('scope',          'Scope',        scope),
-  ].join('');
-
-  // Días abierto — solo lectura, marcar botón como inactivo (AC-4 CSS Purity)
-  const daysRow = section.querySelector('[data-spm-field="days"]');
-  if (daysRow) {
-    const daysBtn = daysRow.querySelector('.spm-meta-btn');
-    if (daysBtn) daysBtn.classList.add('spm-meta-btn--readonly');
-  }
-
-  // Delegation de edición inline
-  section.removeEventListener('click', _spmMetaHandleEdit);
-  section.addEventListener('click', _spmMetaHandleEdit);
-}
-
-function _spmMetaHandleEdit(e) {
-  const btn = e.target.closest('[data-spm-edit]');
-  if (!btn) return;
-  const field = btn.getAttribute('data-spm-edit');
-  if (field === 'days') return;
-  const row = btn.closest('.spm-meta-row');
-  if (!row) return;
-  const sprint = _getActiveSprint();
-  if (!sprint) return;
-
-  const currentVal = field === 'version_target' ? (sprint.version_target || '')
-                   : field === 'release_type'   ? (sprint.release_type || sprint.releaseType || '')
-                   : field === 'scope'           ? (sprint.scope || '')
-                   : '';
-
-  _spmMetaOpenEdit(row, field, currentVal, sprint);
-}
-
-function _spmMetaOpenEdit(row, field, current, sprint) {
-  const valEl = row.querySelector('.spm-meta-value, .spm-meta-value--empty');
-  const editBtn = row.querySelector('.spm-meta-btn');
-  if (valEl)    valEl.classList.add('is-hidden');    // B-202606-007
-  if (editBtn)  editBtn.classList.add('is-hidden');  // B-202606-007
-
-  let editWrap;
-
-  if (field === 'version_target') {
-    // AC-4: input text inline
-    editWrap = document.createElement('div');
-    editWrap.className = 'spm-meta-edit-wrap';
-    editWrap.innerHTML =
-      '<div class="spm-meta-edit-row">' +
-        '<input class="spm-meta-input" type="text" value="' + _escHtml(current) + '" aria-label="Editar versión" />' +
-        '<button class="spm-meta-confirm" aria-label="Confirmar" title="Confirmar" type="button">✓</button>' +
-        '<button class="spm-meta-cancel"  aria-label="Cancelar"  title="Cancelar"  type="button">✗</button>' +
-      '</div>';
-    row.appendChild(editWrap);
-    const input = editWrap.querySelector('.spm-meta-input');
-    input.focus();
-    input.addEventListener('keydown', function(ev) {
-      if (ev.key === 'Enter')  _spmMetaConfirm(row, field, input.value.trim(), sprint, current);
-      if (ev.key === 'Escape') _spmMetaCancel();
-    });
-    editWrap.querySelector('.spm-meta-confirm').addEventListener('click', function() {
-      _spmMetaConfirm(row, field, input.value.trim(), sprint, current);
-    });
-    editWrap.querySelector('.spm-meta-cancel').addEventListener('click', function() {
-      _spmMetaCancel();
-    });
-
-  } else if (field === 'release_type') {
-    // AC-5: pills seleccionables con role=radio
-    const types = ['Major', 'Minor', 'Patch'];
-    const pillsHtml = types.map(function(t) {
-      const sel = (t === current) ? ' is-selected' : '';
-      return '<button class="spm-meta-pill' + sel + '" role="radio" aria-checked="' + (t === current) + '" data-rt="' + t + '" type="button">' + t + '</button>';
-    }).join('');
-    editWrap = document.createElement('div');
-    editWrap.className = 'spm-meta-edit-wrap';
-    editWrap.innerHTML =
-      '<div class="spm-meta-edit-row">' +
-        '<div class="spm-meta-pills" role="radiogroup" aria-label="Release type">' + pillsHtml + '</div>' +
-        '<button class="spm-meta-confirm" aria-label="Confirmar" title="Confirmar" type="button">✓</button>' +
-        '<button class="spm-meta-cancel"  aria-label="Cancelar"  title="Cancelar"  type="button">✗</button>' +
-      '</div>';
-    row.appendChild(editWrap);
-    let selected = current;
-    editWrap.querySelectorAll('.spm-meta-pill').forEach(function(pill) {
-      pill.addEventListener('click', function() {
-        selected = pill.getAttribute('data-rt');
-        editWrap.querySelectorAll('.spm-meta-pill').forEach(function(p) {
-          p.classList.toggle('is-selected', p.getAttribute('data-rt') === selected);
-          p.setAttribute('aria-checked', String(p.getAttribute('data-rt') === selected));
-        });
-      });
-    });
-    editWrap.querySelector('.spm-meta-confirm').addEventListener('click', function() {
-      _spmMetaConfirm(row, field, selected, sprint, current);
-    });
-    editWrap.querySelector('.spm-meta-cancel').addEventListener('click', function() {
-      _spmMetaCancel();
-    });
-
-  } else if (field === 'scope') {
-    // AC-6: textarea — Enter no confirma
-    editWrap = document.createElement('div');
-    editWrap.className = 'spm-meta-edit-wrap';
-    editWrap.innerHTML =
-      '<textarea class="spm-meta-textarea" aria-label="Editar scope">' + _escHtml(current) + '</textarea>' +
-      '<div class="spm-meta-action-row">' +
-        '<button class="spm-meta-confirm" aria-label="Confirmar" title="Confirmar" type="button">✓</button>' +
-        '<button class="spm-meta-cancel"  aria-label="Cancelar"  title="Cancelar"  type="button">✗</button>' +
-      '</div>';
-    row.appendChild(editWrap);
-    const ta = editWrap.querySelector('.spm-meta-textarea');
-    ta.focus();
-    ta.addEventListener('keydown', function(ev) {
-      if (ev.key === 'Escape') _spmMetaCancel();
-      // Enter no confirma — solo ✓ confirma (AC-6)
-    });
-    editWrap.querySelector('.spm-meta-confirm').addEventListener('click', function() {
-      _spmMetaConfirm(row, field, ta.value.trim(), sprint, current);
-    });
-    editWrap.querySelector('.spm-meta-cancel').addEventListener('click', function() {
-      _spmMetaCancel();
-    });
-  }
-}
-
-// AC-7, AC-8, AC-9, AC-11
-function _spmMetaConfirm(row, field, newVal, sprint, oldVal) {
-  // AC-5: version_target vacío → error inline, no persistir
-  if (field === 'version_target' && !newVal) {
-    const editWrap = row.querySelector('.spm-meta-edit-wrap');
-    if (editWrap) {
-      let errEl = editWrap.querySelector('.spm-meta-input-error');
-      if (!errEl) {
-        errEl = document.createElement('div');
-        errEl.className = 'spm-meta-input-error';
-        errEl.textContent = 'La versión no puede estar vacía.';
-        editWrap.appendChild(errEl);
-      }
-      const input = editWrap.querySelector('.spm-meta-input');
-      if (input) input.focus();
-    }
-    return;
-  }
-
-  const sprintId   = sprint.id;
-  const allSprints = getActiveSprints();
-  const target     = allSprints.find(function(s) { return s.id === sprintId; });
-  if (!target) { _spmMetaCancel(); return; }
-
-  if (field === 'version_target') target.version_target = newVal;
-  if (field === 'release_type')   { target.release_type = newVal; target.releaseType = newVal; }
-  if (field === 'scope')          target.scope = newVal;
-
-  try {
-    save();
-  } catch (err) {
-    // AC-11: save() falla → toast de error, revertir
-    showToast('Error al guardar. Intenta de nuevo.', 'error');
-    if (field === 'version_target') target.version_target = oldVal;
-    if (field === 'release_type')   { target.release_type = oldVal; target.releaseType = oldVal; }
-    if (field === 'scope')          target.scope = oldVal;
-    _spmMetaCancel();
-    return;
-  }
-
-  _renderSprintMeta(_getActiveSprint());
-}
-
-function _spmMetaCancel() {
-  _renderSprintMeta(_getActiveSprint());
-}
-
 // Helper: escapar HTML para valores en innerHTML
 function _escHtml(str) {
   return String(str)
@@ -357,7 +153,87 @@ function _escHtml(str) {
     .replace(/"/g, '&quot;');
 }
 
-// ── END T-202606-029 ─────────────────────────────────────────────────────────
+// ── T-202606-XXX: _spsFieldEdit — edit inline click-directo en sub-tab Sprints ──
+//
+// Convierte un elemento de texto (.sps-meta-value, .sps-scheduled-name) en un
+// <input> inline. blur/Enter → commit. Escape → cancelar. Llama editSprintInline
+// para persistir. Renderiza la sección correspondiente al confirmar.
+//
+// @param {Element}  el         — elemento de texto a convertir
+// @param {string}   sprintId   — ID del sprint a editar
+// @param {string}   field      — clave del campo ('label' | 'version_target' | 'release_type' | 'goal')
+// @param {Function} onDone     — callback post-commit/cancel → re-render del contenedor
+// @param {Object}   [opts]     — { inputType: 'text'|'select', options: [{v,t}] }
+
+function _spsFieldEdit(el, sprintId, field, onDone, opts) {
+  if (el.dataset.spsEditing === '1') return;
+  el.dataset.spsEditing = '1';
+
+  const original = el.textContent;
+  const isSelect = opts && opts.inputType === 'select';
+  let input;
+
+  if (isSelect) {
+    input = document.createElement('select');
+    input.className = 'sps-field-input sps-field-select';
+    (opts.options || []).forEach(function(o) {
+      const opt = document.createElement('option');
+      opt.value = o.v;
+      opt.textContent = o.t;
+      if (o.v === original || o.t === original) opt.selected = true;
+      input.appendChild(opt);
+    });
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'sps-field-input';
+    input.value = original === '—' ? '' : original;
+  }
+
+  el.style.display = 'none';
+  el.parentNode.insertBefore(input, el.nextSibling);
+  input.focus();
+  if (!isSelect) input.select();
+
+  let committed = false;
+
+  function _commit() {
+    if (committed) return;
+    committed = true;
+    const newVal = isSelect ? input.value : input.value.trim();
+    input.remove();
+    el.style.display = '';
+    delete el.dataset.spsEditing;
+    if (newVal && newVal !== original && newVal !== '—') {
+      const patch = {};
+      patch[field] = newVal;
+      try {
+        editSprintInline(sprintId, patch);
+      } catch (err) {
+        showToast('Error al guardar el campo. Intenta de nuevo.', 'error');
+      }
+    }
+    onDone();
+  }
+
+  function _cancel() {
+    if (committed) return;
+    committed = true;
+    input.remove();
+    el.style.display = '';
+    delete el.dataset.spsEditing;
+    // sin save — solo re-render para limpiar estado visual
+    onDone();
+  }
+
+  input.addEventListener('blur', _commit);
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+    if (e.key === 'Escape') { e.preventDefault(); input.removeEventListener('blur', _commit); _cancel(); }
+  });
+}
+
+// ── END T-202606-XXX ─────────────────────────────────────────────────────────
 
 // ── T-202606-036 / T-202606-043: _renderSpsActivo — card del sprint activo ──
 //
@@ -411,7 +287,7 @@ function _renderSpsActivo() {
     '<div class="sps-card" data-sprint-id="' + _escHtml(id) + '">' +
       '<div class="sps-card-header">' +
         '<span class="sps-card-id font-mono">' + _escHtml(id) + '</span>' +
-        '<span class="sps-card-title">' + _escHtml(label) + '</span>' +
+        '<span class="sps-card-title sps-meta-editable" tabindex="0" title="Click para editar título">' + _escHtml(label) + '</span>' +
         '<span class="sml-badge sprint-badge-active">Activo</span>' +
         '<div class="sps-menu-wrap">' +
           '<button class="sps-btn-menu" type="button" aria-label="Acciones del sprint activo" aria-expanded="false" aria-haspopup="true" data-sps-activo-menu>···</button>' +
@@ -423,9 +299,9 @@ function _renderSpsActivo() {
         '</div>' +
       '</div>' +
       '<div class="sps-meta">' +
-        '<div class="sps-meta-item"><span class="sps-meta-label">Versión</span><span class="sps-meta-value">' + _escHtml(vt) + '</span></div>' +
-        '<div class="sps-meta-item"><span class="sps-meta-label">Release</span><span class="sps-meta-value">' + _escHtml(rt) + '</span></div>' +
-        '<div class="sps-meta-item sps-meta-item--goal"><span class="sps-meta-label">Goal</span><span class="sps-meta-value">' + _escHtml(goal) + '</span></div>' +
+        '<div class="sps-meta-item"><span class="sps-meta-label">Versión</span><span class="sps-meta-value sps-meta-editable" tabindex="0" title="Click para editar">' + _escHtml(vt) + '</span></div>' +
+        '<div class="sps-meta-item"><span class="sps-meta-label">Release</span><span class="sps-meta-value sps-meta-editable" tabindex="0" title="Click para editar">' + _escHtml(rt) + '</span></div>' +
+        '<div class="sps-meta-item sps-meta-item--goal"><span class="sps-meta-label">Goal</span><span class="sps-meta-value sps-meta-editable" tabindex="0" title="Click para editar">' + _escHtml(goal) + '</span></div>' +
       '</div>' +
       '<div class="sps-progress-wrap">' +
         '<div class="sps-burndown-bar" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso del sprint: ' + done + ' de ' + total + ' ítems done">' +
@@ -442,9 +318,51 @@ function _renderSpsActivo() {
   // Menú ···
   container.removeEventListener('click', _spsActivoHandleClick);
   container.addEventListener('click', _spsActivoHandleClick);
+  container.removeEventListener('keydown', _spsActivoHandleKeydown);
+  container.addEventListener('keydown', _spsActivoHandleKeydown);
+}
+
+function _spsActivoHandleKeydown(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const editable = e.target.closest('.sps-meta-editable');
+  if (editable) { e.preventDefault(); editable.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
 }
 
 function _spsActivoHandleClick(e) {
+  // Edit inline — click en .sps-meta-value
+  // Campos editables: Versión (version_target), Release (release_type), Goal (goal)
+  // El campo Título (label) se edita haciendo click en .sps-card-title
+  const metaVal = e.target.closest('.sps-meta-value, .sps-card-title');
+  if (metaVal && !e.target.closest('[data-sps-activo-menu]') && !e.target.closest('.sps-dropdown')) {
+    const sprint = _getActiveSprint();
+    if (!sprint) return;
+
+    const metaItem = metaVal.closest('.sps-meta-item');
+    const isTitle  = metaVal.classList.contains('sps-card-title');
+    let field, opts;
+
+    if (isTitle) {
+      field = 'label';
+    } else if (metaItem) {
+      const label = metaItem.querySelector('.sps-meta-label');
+      const labelTxt = label ? label.textContent.trim() : '';
+      if (labelTxt === 'Versión')  { field = 'version_target'; }
+      else if (labelTxt === 'Release') {
+        field = 'release_type';
+        opts = { inputType: 'select', options: [
+          { v: 'Major', t: 'Major' },
+          { v: 'Minor', t: 'Minor' },
+          { v: 'Patch', t: 'Patch' },
+        ]};
+      } else if (labelTxt === 'Goal') { field = 'goal'; }
+    }
+
+    if (field) {
+      _spsFieldEdit(metaVal, sprint.id, field, function() { _renderSpsActivo(); }, opts);
+      return;
+    }
+  }
+
   // Toggle menú
   const menuBtn = e.target.closest('[data-sps-activo-menu]');
   if (menuBtn) {
@@ -567,7 +485,7 @@ function _renderSpsProgramados() {
     return '<div class="sps-scheduled-row" draggable="false" data-sprint-id="' + _escHtml(id) + '">' +
         '<span class="drag-handle" tabindex="0" role="button" aria-label="Reordenar sprint ' + _escHtml(id) + '"></span>' +
         '<span class="sps-scheduled-id font-mono">' + _escHtml(id) + '</span>' +
-        '<span class="sps-scheduled-name">' + _escHtml(label) + '</span>' +
+        '<span class="sps-scheduled-name sps-meta-editable" tabindex="0" title="Click para editar título">' + _escHtml(label) + '</span>' +
         '<span class="pill-prog">Programado</span>' +
         '<span class="' + advClass + '">' + advText + '</span>' +
         '<div class="sps-menu-wrap">' +
@@ -589,11 +507,29 @@ function _renderSpsProgramados() {
 
   container.removeEventListener('click', _sppHandleClick);
   container.addEventListener('click', _sppHandleClick);
+  container.removeEventListener('keydown', _sppHandleKeydown);
+  container.addEventListener('keydown', _sppHandleKeydown);
 
   _sppAttachDrag(container);
 }
 
+function _sppHandleKeydown(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const editable = e.target.closest('.sps-meta-editable');
+  if (editable) { e.preventDefault(); editable.dispatchEvent(new MouseEvent('click', { bubbles: true })); }
+}
+
 function _sppHandleClick(e) {
+  // Edit inline — click en .sps-scheduled-name (título del sprint programado)
+  const nameEl = e.target.closest('.sps-scheduled-name');
+  if (nameEl && !e.target.closest('.sps-menu-wrap')) {
+    const row = nameEl.closest('.sps-scheduled-row');
+    const sprintId = row ? row.getAttribute('data-sprint-id') : null;
+    if (!sprintId) return;
+    _spsFieldEdit(nameEl, sprintId, 'label', function() { _renderSpsProgramados(); });
+    return;
+  }
+
   // Toggle menú ···
   const menuBtn = e.target.closest('[data-spp-menu]');
   if (menuBtn) {
@@ -1228,12 +1164,12 @@ function _renderHotfixSection(allSprints) {
 
 // ── END T-202606-001 ─────────────────────────────────────────────────────────
 
-// ── T-202606-002 / T-202606-003: Resumen agregado de sprints normales + edición inline ──
+// ── T-202606-002: Resumen agregado de sprints normales ──────────────────────
 //
-// T2: lista todos los sprints normales (isHotfix falsy) con id, nombre, status badge,
-//     conteo R/T/B, effort total. Escribe en #sprint-summary-list.
-// T3: goal, scope, version_target editables inline — click activa input/textarea in-place,
-//     blur/Enter guarda, Escape cancela.
+// Lista todos los sprints normales (isHotfix falsy) con id, nombre, status badge,
+// conteo R/T/B, effort total. Escribe en #sprint-summary-list. Solo lectura —
+// edición de campos de sprint vive en sub-tab Sprints (_renderSpsActivo /
+// _renderSpsProgramados).
 
 function _renderSprintSummaryTable(allSprints) {
   const container = document.getElementById('sprint-summary-list');
@@ -1259,7 +1195,6 @@ function _renderSprintSummaryTable(allSprints) {
   ];
 
   const rows = ordered.map(sprint => {
-    const isActive  = sprint.status === 'active';
     // AC-2b T-202606-002: badge multi-status — programado y pausado tienen clases propias
     const statusBadgeCls = sprint.status === 'active'     ? 'sprint-badge-active'
                          : sprint.status === 'programado' ? 'sprint-badge-programado'
@@ -1292,27 +1227,6 @@ function _renderSprintSummaryTable(allSprints) {
     if (countB) countParts.push(`<span class="ssm-type ssm-type--b">${countB} B</span>`);
     const countsHtml = countParts.length ? countParts.join('') : '<span class="ssm-type ssm-type--empty">0 ítems</span>';
 
-    // T3: campos editables — goal, scope, version_target
-    const vt    = sprint.version_target || '';
-    const goal  = sprint.goal  || '';
-    const scope = sprint.scope || '';
-
-    function _editableField(field, value, labelText) {
-      const isEmpty   = !value;
-      const valCls    = isEmpty ? 'ssm-field-value ssm-field-value--empty' : 'ssm-field-value';
-      const valText   = isEmpty ? 'Sin definir — click para editar' : _escHtml(value);
-      return `<div class="ssm-field" data-ssm-sprint="${_escHtml(sprint.id)}" data-ssm-field="${field}">
-  <span class="ssm-field-label">${labelText}</span>
-  <span class="${valCls}" tabindex="0" role="button" aria-label="Editar ${labelText} de ${sprint.id}">${valText}</span>
-</div>`;
-    }
-
-    const fieldsHtml = isActive ? [
-      _editableField('version_target', vt,    'Versión'),
-      _editableField('goal',           goal,  'Goal'),
-      _editableField('scope',          scope, 'Scope'),
-    ].join('') : '';
-
     return `<div class="ssm-row" data-sprint-id="${_escHtml(sprint.id)}">
   <div class="ssm-row-top">
     <span class="ssm-row-id">${_escHtml(sprint.id)}</span>
@@ -1321,141 +1235,13 @@ function _renderSprintSummaryTable(allSprints) {
     <span class="ssm-counts">${countsHtml}</span>
     <span class="ssm-effort">effort ${effort}</span>
   </div>
-  ${fieldsHtml ? `<div class="ssm-fields">${fieldsHtml}</div>` : ''}
 </div>`;
   }).join('');
 
   container.innerHTML = rows;
 
-  // T3: Event delegation para edición inline
-  container.removeEventListener('click',   _ssmHandleEdit);
-  container.removeEventListener('keydown', _ssmHandleEditKeydown);
-  container.addEventListener('click',   _ssmHandleEdit);
-  container.addEventListener('keydown', _ssmHandleEditKeydown);
 }
-
-// T3: activar edición al click en .ssm-field-value
-function _ssmHandleEdit(e) {
-  const valEl = e.target.closest('.ssm-field-value');
-  if (!valEl) return;
-  const fieldEl = valEl.closest('[data-ssm-field]');
-  if (!fieldEl) return;
-  // No abrir si ya hay input activo en esta celda
-  if (fieldEl.querySelector('.ssm-edit-input, .ssm-edit-textarea')) return;
-
-  const sprintId = fieldEl.dataset.ssmSprint;
-  const field    = fieldEl.dataset.ssmField;
-  _ssmOpenEdit(fieldEl, sprintId, field);
-}
-
-// T3: activar edición con Enter/Space desde .ssm-field-value (accesibilidad)
-function _ssmHandleEditKeydown(e) {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  const valEl = e.target.closest('.ssm-field-value');
-  if (!valEl) return;
-  e.preventDefault();
-  valEl.click();
-}
-
-// T3: abrir input/textarea in-place
-function _ssmOpenEdit(fieldEl, sprintId, field) {
-  const allSprints = getActiveSprints();
-  const sprint     = allSprints ? allSprints.find(s => s.id === sprintId) : null;
-  if (!sprint) return;
-
-  const currentVal = field === 'version_target' ? (sprint.version_target || '')
-                   : field === 'goal'            ? (sprint.goal  || '')
-                   : field === 'scope'           ? (sprint.scope || '')
-                   : '';
-
-  const valEl = fieldEl.querySelector('.ssm-field-value, .ssm-field-value--empty');
-  if (valEl) valEl.classList.add('is-hidden');
-
-  let editEl;
-
-  if (field === 'scope' || field === 'goal') {
-    // Textarea para campos multilinea
-    editEl = document.createElement('textarea');
-    editEl.className = 'ssm-edit-textarea';
-    editEl.value = currentVal;
-    editEl.setAttribute('aria-label', `Editar ${field} de ${sprintId}`);
-    editEl.rows = 2;
-  } else {
-    // Input text para version_target
-    editEl = document.createElement('input');
-    editEl.type = 'text';
-    editEl.className = 'ssm-edit-input';
-    editEl.value = currentVal;
-    editEl.setAttribute('aria-label', `Editar ${field} de ${sprintId}`);
-  }
-
-  // AC-2/AC-3 T3: blur guarda, Enter guarda (solo en input — no en textarea)
-  editEl.addEventListener('blur', function() {
-    _ssmCommit(fieldEl, sprintId, field, editEl.value.trim(), currentVal);
-  });
-  editEl.addEventListener('keydown', function(ev) {
-    if (ev.key === 'Escape') {
-      ev.preventDefault();
-      ev.stopPropagation();
-      _ssmCancel(fieldEl, currentVal);
-    }
-    if (ev.key === 'Enter' && editEl.tagName === 'INPUT') {
-      ev.preventDefault();
-      editEl.blur(); // dispara commit via blur
-    }
-  });
-
-  fieldEl.appendChild(editEl);
-  editEl.focus();
-  if (editEl.tagName === 'INPUT') editEl.select();
-}
-
-// T3: persistir valor
-function _ssmCommit(fieldEl, sprintId, field, newVal, oldVal) {
-  // Ignorar si el editEl ya fue retirado (doble blur)
-  if (!fieldEl.querySelector('.ssm-edit-input, .ssm-edit-textarea')) return;
-
-  const allSprints = getActiveSprints();
-  const sprint     = allSprints ? allSprints.find(s => s.id === sprintId) : null;
-  if (!sprint) { _renderSprintSummaryTable(allSprints); return; }
-
-  if (field === 'version_target') sprint.version_target = newVal || oldVal; // no permitir vacío
-  if (field === 'goal')           sprint.goal  = newVal;
-  if (field === 'scope')          sprint.scope = newVal;
-
-  try {
-    save();
-    // AC-6 T3: micro-flash de confirmación
-    _ssmFlash(fieldEl);
-  } catch (err) {
-    // AC-7 T3: save() falla → revertir y toast
-    if (field === 'version_target') sprint.version_target = oldVal;
-    if (field === 'goal')           sprint.goal  = oldVal;
-    if (field === 'scope')          sprint.scope = oldVal;
-    showToast('Error al guardar. Intenta de nuevo.', 'error');
-  }
-
-  // Re-renderizar la tabla para reflejar el nuevo valor
-  _renderSprintSummaryTable(getActiveSprints());
-}
-
-// T3: cancelar — restaurar valor original
-function _ssmCancel(fieldEl, originalVal) {
-  const editEl = fieldEl.querySelector('.ssm-edit-input, .ssm-edit-textarea');
-  if (editEl) editEl.remove();
-  const valEl = fieldEl.querySelector('.ssm-field-value, .ssm-field-value--empty');
-  if (valEl) valEl.classList.remove('is-hidden');
-}
-
-// T3 AC-6: micro-flash vía clase .item-status-confirmed
-function _ssmFlash(fieldEl) {
-  const valEl = fieldEl.querySelector('.ssm-field-value, .ssm-field-value--empty');
-  if (!valEl) return;
-  valEl.classList.add('item-status-confirmed');
-  setTimeout(() => valEl.classList.remove('item-status-confirmed'), 800);
-}
-
-// ── END T-202606-002 / T-202606-003 ─────────────────────────────────────────
+// ── END T-202606-002 ─────────────────────────────────────────────────────────
 
 // ── T-202606-105: Banner de sprints activos en conflicto ─────────────────────
 
@@ -1611,9 +1397,6 @@ export function renderSprintTab() {
   // Gestor de sprints — T-202605-123
   _renderSprintManager();
 
-  // Metadatos editables del sprint — T-202606-029
-  _renderSprintMeta(sprint);
-
   // Ítems
   if (itemsList) itemsList.classList.remove('is-hidden');
   _renderSprintItems(sprint);
@@ -1762,56 +1545,6 @@ function _spmRetro() {
   const sprint = _sprintTabActiveSprint;
   if (!sprint || !sprint.retroDoc) return;
   openSprintRetroView(sprint.id);
-}
-
-// AC-5: Editar nombre — abre editSprintInline en el área spm-edit-area
-function _spmEditar() {
-  const sprint = _sprintTabActiveSprint;
-  if (!sprint || sprint.status !== 'active') return;
-  {
-    // editSprintInline espera un elemento con id sprint-label-wrap-[id]
-    // En el tab Sprint no existe ese elemento — creamos uno temporal en spm-edit-area
-    const area = document.getElementById('spm-edit-area');
-    if (!area) return;
-    area.classList.remove('is-hidden');
-    const wrapId = 'sprint-label-wrap-' + sprint.id;
-    if (!document.getElementById(wrapId)) {
-      const wrap = document.createElement('div');
-      wrap.id = wrapId;
-      area.innerHTML = '';
-      area.appendChild(wrap);
-    }
-    editSprintInline(sprint.id);
-    // B-202605-008: editSprintInline inyecta onkeydown con renderBacklogList() como cancelación.
-    // En el tab Sprint el comportamiento correcto al cancelar es cerrar spm-edit-area y
-    // recuperar visibilidad del botón — sin re-renderizar el backlog.
-    // Reemplazamos el handler de Escape en los inputs inyectados por editSprintInline.
-    setTimeout(() => {
-      const wrap = document.getElementById(wrapId);
-      if (!wrap) return;
-      wrap.querySelectorAll('input, select').forEach(el => {
-        el.addEventListener('keydown', function(e) {
-          if (e.key === 'Escape') {
-            e.stopImmediatePropagation();
-            _spmCancelEdit();
-          }
-        }, true); // capture: true — intercepta antes del handler inline
-      });
-    }, 40); // después de que editSprintInline inyecta el HTML (usa setTimeout 30ms internamente)
-  }
-}
-
-// B-202605-008: cerrar área de edición limpiamente sin re-renderizar el tab
-function _spmCancelEdit() {
-  const area = document.getElementById('spm-edit-area');
-  if (area) {
-    area.innerHTML = '';
-    area.classList.add('is-hidden');
-  }
-  // Recuperar visibilidad del botón Editar si el sprint sigue activo
-  const sprint = _sprintTabActiveSprint;
-  const btnEditar = document.getElementById('spm-btn-editar');
-  if (btnEditar) btnEditar.classList.toggle('is-hidden', !(sprint && sprint.status === 'active'));
 }
 
 // AC-6 / R-202605-008: Activar sprint existente (desde empty state)
@@ -2295,7 +2028,6 @@ function _spmUpdateButtons(sprint) {
   const btnRegistrar  = document.getElementById('spm-btn-registrar');
   const btnReactivar  = document.getElementById('spm-btn-reactivar');
   const btnRetro      = document.getElementById('spm-btn-retro');
-  const btnEditar     = document.getElementById('spm-btn-editar');
 
   // Botones del empty state
   const emptyRegistrar = document.getElementById('spm-empty-btn-registrar');
@@ -2339,7 +2071,6 @@ function _spmUpdateButtons(sprint) {
 
   const isRegistered = sprint ? registeredIds.has(sprint.id) : false;
   const isClosed     = sprint ? sprint.status === 'closed' : false;
-  const isActive     = sprint ? sprint.status === 'active' : false;
   const hasRetro     = sprint ? !!sprint.retroDoc : false;
 
   // AC-2: Registrar y activar — solo si el sprint no está registrado en el catálogo
@@ -2365,9 +2096,6 @@ function _spmUpdateButtons(sprint) {
     const exists = (proj && hotfixId) ? (proj.sprints || []).some(s => s.id === hotfixId) : false;
     btnHotfix.classList.toggle('is-hidden', !proj || exists);
   }
-
-  // AC-5: Editar nombre — solo cuando sprint activo
-  if (btnEditar) btnEditar.classList.toggle('is-hidden', !isActive);
 }
 
 // ── END R-202605-006 ──────────────────────────────────────────────────────
@@ -2592,12 +2320,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const spmRetro = document.getElementById('spm-btn-retro');
   if (spmRetro) spmRetro.addEventListener('click', function () {
     if (typeof _spmRetro === 'function') _spmRetro();
-  });
-
-  // spm-btn-editar → _spmEditar()
-  const spmEditar = document.getElementById('spm-btn-editar');
-  if (spmEditar) spmEditar.addEventListener('click', function () {
-    if (typeof _spmEditar === 'function') _spmEditar();
   });
 
   // spm-new-sprint-btn → openNewSprintInline()
