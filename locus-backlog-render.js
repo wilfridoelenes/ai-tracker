@@ -554,7 +554,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
     html += `<div class="bl-vl-sprint-header version-collapse-trigger" data-action="version-collapse" data-group-id="${groupId}" tabindex="0" role="button" aria-expanded="${isCollapsed ? 'false' : 'true'}">`;
     html += `<div class="bl-vl-sprint-header-row1">`;
     html += `<span class="version-header-arrow${isCollapsed ? ' collapsed' : ''}" id="varrow-${groupId}" aria-hidden="true">${isCollapsed ? '▸' : '▾'}</span>`;
-    html += `<span id="sprint-label-wrap-${esc(sprintId)}"><span class="version-tag">${esc(sprintId)}</span>${(label && label !== sprintId) ? `<span class="sprint-name-label">${esc(label.replace(/^[A-Za-z]+[-\s]S\d+\s*·?\s*/i, ''))}</span>` : ''}</span>`;
+    html += `<span id="sprint-label-wrap-${esc(sprintId)}"><span class="version-tag">${esc(sprintId)}</span>${(label && label !== sprintId) ? `<span class="sprint-name-label">${esc(label)}</span>` : ''}</span>`;
     html += sprintStatusLabel;
     html += `</div>`; // bl-vl-sprint-header-row1
     if (_velLabel || _metaText) {
@@ -1071,7 +1071,7 @@ export function renderBacklogList(onRendered) {
       html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}">
         <div data-action="version-collapse" data-group-id="${groupId}" class="version-collapse-trigger">
           <div class="version-header">
-            <span id="sprint-label-wrap-${esc(s.id)}"><span class="version-tag">${esc(s.id)}${sprintBadge}</span>${(s.label && s.label !== s.id) ? `<span class="sprint-name-label">${esc(s.label.replace(/^[A-Za-z]+[-\s]S\d+\s*·?\s*/i, ''))}</span>` : ''}</span>${sprintStatusLabel}
+            <span id="sprint-label-wrap-${esc(s.id)}"><span class="version-tag">${esc(s.id)}${sprintBadge}</span>${(s.label && s.label !== s.id) ? `<span class="sprint-name-label">${esc(s.label)}</span>` : ''}</span>${sprintStatusLabel}
             ${progressBar}
             ${_velLabel066a}
             ${_sprintPills ? `<span class="sprint-pills-secondary">${_sprintPills}</span>` : ''}
@@ -1130,7 +1130,7 @@ export function renderBacklogList(onRendered) {
       html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}">
         <div data-action="version-collapse" data-group-id="${groupId}" class="version-collapse-trigger">
           <div class="version-header">
-            ${!isSinAsignar ? `<span id="sprint-label-wrap-${esc(key)}"><span class="version-tag">${esc(key)}</span>${(label && label !== key) ? `<span class="sprint-name-label">${esc(label.replace(/^[A-Za-z]+[-\s]S\d+\s*[·]?\s*/i, ''))}</span>` : ''}</span>${sprintStatusLabel}` : ''}
+            ${!isSinAsignar ? `<span id="sprint-label-wrap-${esc(key)}"><span class="version-tag">${esc(key)}</span>${(label && label !== key) ? `<span class="sprint-name-label">${esc(label)}</span>` : ''}</span>${sprintStatusLabel}` : ''}
             ${_pendPill}
             ${isSinAsignar ? `<span class="version-label">Sin asignar</span>` : ''}
             ${progressBar}
