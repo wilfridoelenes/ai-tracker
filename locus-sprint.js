@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:36 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:37 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -2203,6 +2203,7 @@ function _renderSpsCerrados() {
           '<span class="sps-cerrados-id">' + _escHtml(sprint.id) + '</span>' +
           '<span class="sps-cerrados-label">' + _escHtml(label) + '</span>' +
           '<span class="sps-cerrados-date">' + closedDate + '</span>' +
+          '<span class="pill-closed">Cerrado</span>' +
           '<span class="sps-cerrados-counts">' +
             '<span class="sps-count-done">' + doneCnt + ' done</span>' +
             '<span class="sps-count-migrado">' + migradoCnt + ' migrado</span>' +
