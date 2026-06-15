@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:39 · autor:Nova · 2026-06-14 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-01 · mod:40 · autor:Nova · 2026-06-14 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -977,9 +977,8 @@
 
 .sprint-name-label {
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 400;
   color: var(--text2);
-  font-family: var(--mono);
 }
 
 .sprint-group-active > div:first-child .sprint-name-label {
@@ -6153,24 +6152,8 @@ er {
   margin-top: 2px;
 }
 
-/* ── Punto 4: sprint header — version-tag solo con ID, sin decoración extra ── */
-.version-tag {
-  font-size: 11px;
-  font-weight: 500;
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: var(--surface2, var(--sidebar-bg));
-  color: var(--accent, #38bdf8);
-  border: 1px solid var(--border);
-  white-space: nowrap;
-  letter-spacing: 0.02em;
-}
-
-.sprint-name-label {
-  font-size: 12px;
-  color: var(--text);
-  font-weight: 400;
-  margin-left: 4px;
-}
+/* ── Punto 4: sprint header — badge solo ID, título como texto plano ──
+   No requiere nuevo CSS para .version-tag — estilos existentes (línea 959) son correctos.
+   Solo se actualiza .sprint-name-label para quitar mono + bold del diseño original. */
 
 /* ══ END UX-redesign ══ */
