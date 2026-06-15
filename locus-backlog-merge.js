@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-14 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -65,11 +65,15 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     // Extraer prefijos cortos de sprints declarados en la proposal del mismo CHECKPOINT
     const _proposal = _ckptMeta.sprintProposal || null;
     const _proposalSprintIds = [];
-    if (_proposal && _proposal.sprint) {
-      // Prefijo corto: "PP-S-06 · nombre" → "PP-S-06"
-      _proposalSprintIds.push(_proposal.sprint.split(/\s*·\s*/)[0].trim());
-      // String completo también — por si el ítem usa el label completo
-      _proposalSprintIds.push(_proposal.sprint);
+    if (_proposal) {
+      // Schema JSON usa campo "id" — schema legado usa "sprint"
+      const _pId = _proposal.id || _proposal.sprint || null;
+      if (_pId) {
+        // Prefijo corto: "PP-S-06 · nombre" → "PP-S-06"
+        _proposalSprintIds.push(_pId.split(/\s*·\s*/)[0].trim());
+        // String completo también — por si el ítem usa el label completo
+        _proposalSprintIds.push(_pId);
+      }
     }
 
     const _allItems   = [...tgItems, ..._patchItems];
@@ -518,7 +522,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           <span class="mdiff-step0-title">Apertura de sprint</span>
         </div>
         <div class="mdiff-step0-fields">
-          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Sprint</span><span class="mdiff-step0-value">${esc(_sprintProposal.sprint)}</span></div>
+          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Sprint</span><span class="mdiff-step0-value">${esc(_sprintProposal.id || _sprintProposal.sprint)}</span></div>
           <div class="mdiff-step0-row"><span class="mdiff-step0-label">Versión</span><span class="mdiff-step0-value">${esc(_sprintProposal.version_target)}</span></div>
           <div class="mdiff-step0-row"><span class="mdiff-step0-label">Tipo</span><span class="mdiff-step0-value">${esc(_sprintProposal.release_type)}</span></div>
           <div class="mdiff-step0-row"><span class="mdiff-step0-label">Scope</span><span class="mdiff-step0-value">${esc(_sprintProposal.scope)}</span></div>
