@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:29 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:30 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -727,18 +727,31 @@ function _sppAttachDrag(container) {
     const handle = row.querySelector('.drag-handle');
     if (!handle) return;
 
+    var _dragStarted = false;
+
     handle.addEventListener('mousedown', function() {
+      _dragStarted = false;
       row.setAttribute('draggable', 'true');
+    });
+
+    handle.addEventListener('mouseup', function() {
+      if (!_dragStarted) row.setAttribute('draggable', 'false');
+    });
+
+    handle.addEventListener('mouseleave', function() {
+      if (!_dragStarted) row.setAttribute('draggable', 'false');
     });
 
     row.addEventListener('dragstart', function(e) {
       if (row.getAttribute('draggable') !== 'true') { e.preventDefault(); return; }
+      _dragStarted = true;
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', row.getAttribute('data-sprint-id') || '');
       row.classList.add('is-dragging');
     });
 
     row.addEventListener('dragend', function() {
+      _dragStarted = false;
       row.classList.remove('is-dragging');
       row.setAttribute('draggable', 'false');
     });
