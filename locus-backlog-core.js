@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:21 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:22 · autor:Nova · 2026-06-14 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1777,64 +1777,63 @@ export function renderStats() {
     !(itemType(i.code) === 'P' && i.status === 'promovida')
   ).length;
 
+  // UX-redesign: stats bar en una sola fila compacta — pendientes primero (foco en trabajo activo)
+  // Pendientes = protagonista visual; hechos = secundario. Tipos + esfuerzo inline.
+  const _hasPending = (backlogCount + enRevisionCount) > 0;
   document.getElementById('stats-bar').innerHTML = `
-    <div class="stats-row">
-      <!-- Nivel 1: progreso global — universo activos (done + en-revision + pendiente) -->
-      <div class="stat-card s-progress">
-        <div class="stat-progress-top">
-          <div class="stat-progress-nums">
-            <div class="stat-progress-item">
-              <span class="stat-progress-n s-done">${done}</span>
-              <span class="stat-progress-l">Hecho</span>
-            </div>
-            ${enRevisionCount > 0 ? `<div class="stat-progress-item">
-              <span class="stat-progress-n s-enrevision">${enRevisionCount}</span>
-              <span class="stat-progress-l">En revisión</span>
-            </div>` : ''}
-            <div class="stat-progress-item">
-              <span class="stat-progress-n">${backlogCount}</span>
-              <span class="stat-progress-l">Pendiente</span>
-            </div>
-          </div>
-          ${total > 0 ? `<span class="stat-progress-pct">${pct}% completado</span>` : ''}
+    <div class="stats-row stats-row--compact">
+      <!-- Bloque de conteos: pendientes primero -->
+      <div class="stat-compact-counts">
+        <div class="stat-compact-item stat-compact-item--primary">
+          <span class="stat-compact-n${_hasPending ? '' : ' stat-compact-n--muted'}">${backlogCount + enRevisionCount}</span>
+          <span class="stat-compact-l">pendientes</span>
         </div>
+        ${enRevisionCount > 0 ? `<div class="stat-compact-item stat-compact-item--revision">
+          <span class="stat-compact-n stat-compact-n--revision">${enRevisionCount}</span>
+          <span class="stat-compact-l">en revisión</span>
+        </div>` : ''}
+        <div class="stat-compact-item stat-compact-item--done">
+          <span class="stat-compact-n${_hasPending ? ' stat-compact-n--muted stat-compact-n--sm' : ''}">${done}</span>
+          <span class="stat-compact-l">hechos</span>
+        </div>
+      </div>
+      <!-- Separador -->
+      <div class="stat-compact-sep"></div>
+      <!-- Barra de progreso -->
+      <div class="stat-compact-prog">
         <div class="stat-mini-track"><div class="stat-mini-fill" style="--stat-mini-w:${pct}%"></div></div>
+        ${total > 0 ? `<span class="stat-compact-pct">${pct}% completado</span>` : ''}
       </div>
-      <!-- Nivel 2: chips de tipo accionables — P (ideas) separado del flujo activo -->
-      <div class="stat-card s-types">
-        <div class="stat-detail-label">Tipo · filtrables</div>
-        <div class="stat-detail-items">
-          ${activeTypes.size < 4 ? `<span class="stat-type-chip stat-type-chip--all" data-action="stats-clear-types" title="Mostrar todos los tipos">✕ Todos</span>` : ''}
-          ${[['B','Bug','Bugs / correcciones'],['T','Ticket','Tickets técnicos'],['R','Req','Requerimientos / epics']].map(([t,label,hint]) =>
-            `<span class="stat-type-chip tc-${t}${activeTypes.has(t) ? ' active' : ''}" data-action="stats-type-filter" data-type="${t}" title="${hint} — click para filtrar">
-              <span class="tc-count">${byType[t]}</span><span class="tc-label">${label}</span>
-            </span>`
-          ).join('')}
-          ${pIdeasCount > 0 ? `<span class="stat-type-chip tc-P stat-type-chip--ideas${activeTypes.has('P') ? ' active' : ''}" data-action="stats-type-filter" data-type="P" title="Posibilidades — no afectan contadores de trabajo activo">
-            <span class="tc-count">${pIdeasCount}</span><span class="tc-label">💡 Posibilidades</span>
-          </span>` : ''}
-        </div>
+      <!-- Separador -->
+      <div class="stat-compact-sep"></div>
+      <!-- Chips de tipo filtrables -->
+      <div class="stat-compact-types">
+        ${activeTypes.size < 4 ? `<span class="stat-type-chip stat-type-chip--all" data-action="stats-clear-types" title="Mostrar todos los tipos">✕</span>` : ''}
+        ${[['B','Bug','Bugs / correcciones'],['T','Ticket','Tickets técnicos'],['R','Req','Requerimientos / epics']].map(([t,label,hint]) =>
+          `<span class="stat-type-chip tc-${t}${activeTypes.has(t) ? ' active' : ''}" data-action="stats-type-filter" data-type="${t}" title="${hint} — click para filtrar">
+            <span class="tc-count">${byType[t]}</span><span class="tc-label">${label}</span>
+          </span>`
+        ).join('')}
+        ${pIdeasCount > 0 ? `<span class="stat-type-chip tc-P stat-type-chip--ideas${activeTypes.has('P') ? ' active' : ''}" data-action="stats-type-filter" data-type="P" title="Posibilidades — no afectan contadores de trabajo activo">
+          <span class="tc-count">${pIdeasCount}</span><span class="tc-label">💡</span>
+        </span>` : ''}
       </div>
-    </div>
-    <div class="stats-row">
-      <!-- Nivel 3: prioridad + esfuerzo compacto -->
-      <div class="stat-card s-meta">
-        <div class="stat-meta-block">
-          <div class="stat-meta-label">Prioridad</div>
-          <div class="stat-meta-row">
-            <span class="stat-pri-chip pri-high${activePriorityFilter.has('high') ? ' active' : ''}" data-action="stats-priority-filter" data-priority="high" title="Filtrar por prioridad alta — click para activar/desactivar"><span class="spc-n">${c.high}</span> Alto</span>
-            <span class="stat-pri-chip pri-medium${activePriorityFilter.has('medium') ? ' active' : ''}" data-action="stats-priority-filter" data-priority="medium" title="Filtrar por prioridad media"><span class="spc-n">${c.medium}</span> Med</span>
-            <span class="stat-pri-chip pri-low${activePriorityFilter.has('low') ? ' active' : ''}" data-action="stats-priority-filter" data-priority="low" title="Filtrar por prioridad baja"><span class="spc-n">${c.low}</span> Bajo</span>
-          </div>
-        </div>
-        <div class="stat-meta-block">
-          <div class="stat-meta-label">Esfuerzo · filtrables${noEffortCount > 0 ? ` <span class="stat-effort-missing" title="Ítems sin effort asignado — requerido para burndown" data-action="stats-effort-missing">${noEffortCount} sin effort</span>` : ''}</div>
-          <div class="stat-meta-row">
-            <span class="stat-effort-card${activeEfforts.has(1) ? ' active' : ''}" id="feff-1" data-action="stats-effort-filter" data-effort="1" title="Filtrar effort 1"><span class="sec-count">${byEffort[1]}</span><span class="eff-label">● simple</span></span>
-            <span class="stat-effort-card${activeEfforts.has(2) ? ' active' : ''}" id="feff-2" data-action="stats-effort-filter" data-effort="2" title="Filtrar effort 2"><span class="sec-count">${byEffort[2]}</span><span class="eff-label">●● medio</span></span>
-            <span class="stat-effort-card${activeEfforts.has(3) ? ' active' : ''}" id="feff-3" data-action="stats-effort-filter" data-effort="3" title="Filtrar effort 3"><span class="sec-count">${byEffort[3]}</span><span class="eff-label">●●● complejo</span></span>
-          </div>
-        </div>
+      <!-- Separador -->
+      <div class="stat-compact-sep"></div>
+      <!-- Prioridad -->
+      <div class="stat-compact-priority">
+        <span class="stat-pri-chip pri-high${activePriorityFilter.has('high') ? ' active' : ''}" data-action="stats-priority-filter" data-priority="high" title="Filtrar prioridad alta"><span class="spc-n">${c.high}</span> Alto</span>
+        <span class="stat-pri-chip pri-medium${activePriorityFilter.has('medium') ? ' active' : ''}" data-action="stats-priority-filter" data-priority="medium" title="Filtrar prioridad media"><span class="spc-n">${c.medium}</span> Med</span>
+        <span class="stat-pri-chip pri-low${activePriorityFilter.has('low') ? ' active' : ''}" data-action="stats-priority-filter" data-priority="low" title="Filtrar prioridad baja"><span class="spc-n">${c.low}</span> Bajo</span>
+      </div>
+      <!-- Separador -->
+      <div class="stat-compact-sep"></div>
+      <!-- Esfuerzo -->
+      <div class="stat-compact-effort">
+        ${noEffortCount > 0 ? `<span class="stat-effort-missing" title="Ítems sin effort" data-action="stats-effort-missing">${noEffortCount} sin effort</span>` : ''}
+        <span class="stat-effort-card${activeEfforts.has(1) ? ' active' : ''}" id="feff-1" data-action="stats-effort-filter" data-effort="1" title="Filtrar effort 1"><span class="sec-count">${byEffort[1]}</span><span class="eff-label">● simple</span></span>
+        <span class="stat-effort-card${activeEfforts.has(2) ? ' active' : ''}" id="feff-2" data-action="stats-effort-filter" data-effort="2" title="Filtrar effort 2"><span class="sec-count">${byEffort[2]}</span><span class="eff-label">●● medio</span></span>
+        <span class="stat-effort-card${activeEfforts.has(3) ? ' active' : ''}" id="feff-3" data-action="stats-effort-filter" data-effort="3" title="Filtrar effort 3"><span class="sec-count">${byEffort[3]}</span><span class="eff-label">●●● complejo</span></span>
       </div>
     </div>
   `;

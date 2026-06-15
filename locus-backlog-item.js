@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:28 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:29 · autor:Nova · 2026-06-14 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1006,13 +1006,13 @@ export function buildBacklogItem(item) {
       ? `<span class="bitem-discard-reason">🗑 ${esc(item.discardReason)}${item.discardRef ? ' · ' + esc(item.discardRef) : ''}</span>`
       : '';
 
-  // Subline (area, sprint, discard reason, missing warning)
+  // Subline (code, area, sprint, role, discard reason, missing warning)
+  // UX-redesign: código en subline junto con rol/área/sprint — título queda como línea visual dominante
   const subline = `<div class="bitem-subline">
-    ${item.role ? `<span class="bitem-subline-role" title="Rol responsable">${esc(item.role)}</span>` : ''}
-    ${item.role && item.area ? `<span class="bitem-subline-sep">·</span>` : ''}
-    ${item.area ? `<span class="bitem-subline-area" title="${esc(item.area)}">${esc(item.area)}</span>` : ''}
-    ${item.area && (item.sprint || isIdea) ? `<span class="bitem-subline-sep">·</span>` : ''}
-    ${item.sprint ? `<span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>` : (isIdea && !isDone && !isDiscarded ? '<span class="bitem-no-sprint" title="Sin sprint asignado">sin sprint</span>' : '')}
+    <span class="bitem-subline-code" data-action="copy-code" data-code="${esc(item.code)}" data-idx="${globalIdx}" title="Click para copiar ID">${item._focusRank ? `<span class="bitem-focus-rank" title="Posición en Focus">#${item._focusRank}</span> ` : ''}${esc(item.code)}</span>
+    ${item.role ? `<span class="bitem-subline-sep">·</span><span class="bitem-subline-role" title="Rol responsable">${esc(item.role)}</span>` : ''}
+    ${item.area ? `<span class="bitem-subline-sep">·</span><span class="bitem-subline-area" title="${esc(item.area)}">${esc(item.area)}</span>` : ''}
+    ${item.sprint ? `<span class="bitem-subline-sep">·</span><span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>` : (isIdea && !isDone && !isDiscarded ? '<span class="bitem-subline-sep">·</span><span class="bitem-no-sprint" title="Sin sprint asignado">sin sprint</span>' : '')}
     ${_discardReasonHtml}
     ${missingFields.length ? `<span class="bitem-missing-warn" title="Faltan: ${missingFields.join(', ')}">⚠</span>` : ''}
   </div>`;
@@ -1038,8 +1038,7 @@ export function buildBacklogItem(item) {
       <button id="copy-item-btn-${esc(item.code)}" class="copy-item-btn" data-action="copy-item" data-code="${esc(item.code)}" aria-label="Copiar ítem" title="Copiar ítem para sesión FS"><svg class="copy-btn-icon copy-btn-icon--clipboard" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="5" y="2" width="9" height="12" rx="1.5"/><path d="M5 4H4a1.5 1.5 0 0 0-1.5 1.5v8A1.5 1.5 0 0 0 4 15h7a1.5 1.5 0 0 0 1.5-1.5V13"/></svg><svg class="copy-btn-icon copy-btn-icon--check is-hidden" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 8l4 4 6-6"/></svg></button>
       ${typeBlock}
       <div class="bitem-title-col">
-        <span class="bitem-code" id="code-badge-${globalIdx}" data-action="copy-code" data-code="${esc(item.code)}" data-idx="${globalIdx}" title="Click para copiar ID">${item._focusRank ? `<span class="bitem-focus-rank" title="Posición en Focus">#${item._focusRank}</span> ` : ''}${esc(item.code)}</span>
-        <span class="bitem-title"${(!isDone && !isDiscarded) ? ' data-action="inline-edit-title" data-code="${esc(item.code)}" title="Doble click para editar título"' : ''}>${esc(item.title)}</span>${isDiscarded && (!item.title || item.title.trim() === item.code) ? '<span class="bitem-ghost-note" title="Ítem sin título — posiblemente generado por un CHECKPOINT malformado">⚠ ítem fantasma — generado por CHECKPOINT malformado</span>' : ''}
+        <span class="bitem-title"${(!isDone && !isDiscarded) ? ` data-action="inline-edit-title" data-code="${esc(item.code)}" title="Doble click para editar título"` : ''}>${esc(item.title)}</span>${isDiscarded && (!item.title || item.title.trim() === item.code) ? '<span class="bitem-ghost-note" title="Ítem sin título — posiblemente generado por un CHECKPOINT malformado">⚠ ítem fantasma — generado por CHECKPOINT malformado</span>' : ''}
         ${subline}
       </div>
       <span class="bitem-collapse-arrow" id="iarrow-${globalIdx}">▸</span>

@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:38 · autor:Nova · 2026-06-14 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-01 · mod:39 · autor:Nova · 2026-06-14 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -6019,3 +6019,158 @@ er {
 }
 
 /* ══ END T-202606-131 ══ */
+
+/* ══ UX-redesign · Stats bar compacta + toolbar 2 filas + ítem 2 líneas + sprint badge ══ */
+
+/* ── Punto 1+2: stats-row compacta en una sola fila ── */
+.stats-row--compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  flex-wrap: wrap;
+  min-height: 0;
+}
+
+.stat-compact-sep {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+/* Conteos: pendientes + hechos */
+.stat-compact-counts {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.stat-compact-item {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.stat-compact-n {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1;
+}
+
+.stat-compact-n--sm {
+  font-size: 14px;
+}
+
+.stat-compact-n--muted {
+  color: var(--hint);
+}
+
+.stat-compact-n--revision {
+  color: var(--amber, #f59e0b);
+}
+
+.stat-compact-l {
+  font-size: 11px;
+  color: var(--hint);
+}
+
+/* Barra de progreso inline */
+.stat-compact-prog {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.stat-compact-prog .stat-mini-track {
+  width: 80px;
+}
+
+.stat-compact-pct {
+  font-size: 11px;
+  color: var(--hint);
+  white-space: nowrap;
+}
+
+/* Tipos inline */
+.stat-compact-types {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Prioridad inline */
+.stat-compact-priority {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Esfuerzo inline */
+.stat-compact-effort {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ── Punto 3: ítem en dos líneas — código en subline ── */
+
+/* Código movido a subline: mismo estilo que bitem-code pero más compacto */
+.bitem-subline-code {
+  font-size: 10px;
+  font-family: var(--font-mono, monospace);
+  color: var(--hint);
+  cursor: pointer;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.bitem-subline-code:hover {
+  color: var(--text);
+}
+
+/* Título como línea dominante — sin el código encima ya no compite visualmente */
+.bitem-title {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text);
+  line-height: 1.4;
+  display: block;
+}
+
+/* Subline con código + metadatos en segunda línea */
+.bitem-subline {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+/* ── Punto 4: sprint header — version-tag solo con ID, sin decoración extra ── */
+.version-tag {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--surface2, var(--sidebar-bg));
+  color: var(--accent, #38bdf8);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+.sprint-name-label {
+  font-size: 12px;
+  color: var(--text);
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+/* ══ END UX-redesign ══ */
