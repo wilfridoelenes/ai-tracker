@@ -545,27 +545,7 @@
 
 <!-- ═══ TAB SPRINT ═══ -->
 <div class="tab-panel" id="tab-sprint">
-  <!-- Header sprint activo — visible solo cuando hay sprint activo -->
-  <div class="sph-header is-hidden" id="sprint-panel-header">
-    <div class="sph-inner">
-      <div class="sph-name" id="sph-name"></div>
-      <!-- T-202606-130: badge visible solo cuando sprint.formallyOpened === false -->
-      <span class="sph-pending-badge is-hidden" id="sph-pending-badge">Pendiente aprobación</span>
-      <!-- B-202606-064: botón 'Aprobar apertura' eliminado — aprobación ocurre via Step 0 del DIFF -->
-      <div class="sph-burndown">
-        <div class="sph-bd-labels">
-          <span class="sph-bd-label" id="sph-bd-label">Effort: 0 / 0</span>
-          <span class="sph-bd-pct" id="sph-bd-pct">0%</span>
-        </div>
-        <div class="sph-bd-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sph-bd-track">
-          <div class="sph-bd-fill" id="sph-bd-fill"></div>
-        </div>
-        <div class="sph-bd-warn is-hidden" id="sph-bd-warn"></div>
-      </div>
-      <!-- T-202606-042: botón Cerrar sprint eliminado de .sph-header — acción vive en .sps-actions (sub-tab Sprints) -->
-    </div>
-  </div>
-  <!-- R-202605-043: Subtab nav Sprint — Ítems / Planificar / Plan -->
+  <!-- R-202605-043: Subtab nav Sprint — Ítems / Planificar / Plan. B-[pendiente-ID]: movido antes de #sprint-panel-header — nav siempre primero en todos los sub-tabs -->
   <div class="spt-nav is-hidden" id="spt-nav" role="tablist" aria-label="Vistas del sprint">
     <button class="spt-tab is-active"
             role="tab"
@@ -601,6 +581,26 @@
     </button>
   </div>
   <!-- END R-202605-043: Subtab nav -->
+  <!-- Header sprint activo — visible solo cuando hay sprint activo -->
+  <div class="sph-header is-hidden" id="sprint-panel-header">
+    <div class="sph-inner">
+      <div class="sph-name" id="sph-name"></div>
+      <!-- T-202606-130: badge visible solo cuando sprint.formallyOpened === false -->
+      <span class="sph-pending-badge is-hidden" id="sph-pending-badge">Pendiente aprobación</span>
+      <!-- B-202606-064: botón 'Aprobar apertura' eliminado — aprobación ocurre via Step 0 del DIFF -->
+      <div class="sph-burndown">
+        <div class="sph-bd-labels">
+          <span class="sph-bd-label" id="sph-bd-label">Effort: 0 / 0</span>
+          <span class="sph-bd-pct" id="sph-bd-pct">0%</span>
+        </div>
+        <div class="sph-bd-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="sph-bd-track">
+          <div class="sph-bd-fill" id="sph-bd-fill"></div>
+        </div>
+        <div class="sph-bd-warn is-hidden" id="sph-bd-warn"></div>
+      </div>
+      <!-- T-202606-042: botón Cerrar sprint eliminado de .sph-header — acción vive en .sps-actions (sub-tab Sprints) -->
+    </div>
+  </div>
 
   <!-- Panel Ítems — R-202605-043 -->
   <div id="sprint-panel-items" role="tabpanel" aria-labelledby="spt-tab-items">

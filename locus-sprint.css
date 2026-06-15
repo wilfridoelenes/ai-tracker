@@ -17,7 +17,7 @@
 
 .sph-header {
   position: sticky;
-  top: 0;
+  top: var(--spt-nav-height, 41px); /* B-[pendiente-ID]: nav siempre primero — header sticky debajo del nav */
   z-index: var(--z-sticky);
   background: var(--surface);
   border-bottom: 1px solid var(--border);
@@ -618,6 +618,11 @@
 /* ══ END T-202605-062 ══ */
 
 /* ══ R-202605-043: Subtab nav — Ítems / Plan ══ */
+/* B-[pendiente-ID]: nav movido antes de #sprint-panel-header en DOM — top:0 siempre */
+
+:root {
+  --spt-nav-height: 41px; /* altura del .spt-nav — usada por .sph-header como top offset */
+}
 
 .spt-nav {
   display: flex;
@@ -627,15 +632,9 @@
   border-bottom: 1px solid var(--border);
   background: var(--surface);
   position: sticky;
-  top: var(--sph-header-height, 88px);
-  z-index: calc(var(--z-sticky) - 1);
-  flex-shrink: 0;
-}
-
-/* B: cuando el header está oculto (sub-tab Sprints), el nav sticky
-   baja a top:0 para no quedar flotando con espacio vacío encima */
-#tab-sprint:has(.sph-header.is-hidden) .spt-nav {
   top: 0;
+  z-index: var(--z-sticky);
+  flex-shrink: 0;
 }
 
 .spt-tab {
