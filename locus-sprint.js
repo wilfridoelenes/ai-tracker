@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:42 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:43 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -207,7 +207,10 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
     input.remove();
     el.style.display = '';
     delete el.dataset.spsEditing;
-    if (newVal && newVal !== original && newVal !== '—') {
+    // B-[tmp:b-guard]: guard usa initialValue como referencia cuando está definido —
+    // evita save() y toast falso cuando el founder blur sin editar el label
+    const _noChangeRef = (opts && opts.initialValue !== undefined) ? initialValue : original;
+    if (newVal && newVal !== _noChangeRef && newVal !== '—') {
       const sp = getActiveSprints().find(function(s) { return s.id === sprintId; });
       if (sp) {
         // label: reconstruir canónico 'ID · Nombre descriptivo' — patrón de confirmEditSprint

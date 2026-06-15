@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-13 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-15 15:00 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -331,8 +331,8 @@ export function createSprint(raw, goal, versionTarget, releaseType, projId, init
   // R-202605-134: version_target y release_type — usar sugerencia si no se pasan explícitamente
   const rt  = (releaseType   || '').trim() || null;
   const vt  = (versionTarget || '').trim() || null;
-  // T-202605-500: label canónico = '[ID] · [Nombre descriptivo]'
-  const canonicalLabel = displayLabel ? id + ' · ' + displayLabel : id;
+  // B-[pendiente-ID]: label NO concatena el ID — id y label son campos separados (BR-Ecosystem §5)
+  const canonicalLabel = displayLabel || id;
   // B-202605-028: modelo multi-sprint — no cerrar sprints activos al crear uno nuevo.
   // El founder decide qué sprint es "en curso" via flag current:true.
   const hasCurrentSprint = _activeProjForSprint.sprints.some(s => s.status === 'active' && s.current === true);
@@ -358,8 +358,6 @@ export function createSprint(raw, goal, versionTarget, releaseType, projId, init
 // AC-8: el string se asigna a sprint.retroDoc antes de save() en _scmExecuteClose.
 // Accede a _scmState vía closure de módulo para leer docUpdates con resolución.
 function _generateSprintRetroMd(id, notes) {
-  const sp         = _getSprintById(id);
-  const sprintLabel = sp ? (sp.label || sp.id) : id;
 
   // ── AC-2: Done — ítems que estaban done al cerrar el sprint.
   // _scmExecuteClose ya mutó done/descartado → historico antes de llamar esta función.
@@ -470,12 +468,12 @@ function _generateSprintRetroMd(id, notes) {
     : 'ninguno';
 
   // AC-7: sección Narrativa — placeholder vacío
-  const narrativaSection = `## Narrativa · ${sprintLabel}\n\n[Agregar narrativa por rol]`;
+  const narrativaSection = `## Narrativa · ${id}\n\n[Agregar narrativa por rol]`;
 
   // ── Componer output ──
   // Orden exacto de AC-1: ## Retro · [label] → Done · Migrado · Descartado ·
   //   Doc-Updates aplicados · Doc-Updates pendientes → ## Narrativa · [label]
-  return `## Retro · ${sprintLabel}
+  return `## Retro · ${id}
 
 Done: ${_doneList}
 Migrado: ${_migratedList}
@@ -494,7 +492,7 @@ ${narrativaSection}
 export function openSprintRetroView(id) {
   const sp = _getSprintById(id);
   if (!sp) return;
-  const sprintLabel = sp.label || sp.id;
+  const sprintLabel = sp.label ? `${sp.id} · ${sp.label}` : sp.id;
   const retroDoc = sp.retroDoc || '';
   const now = new Date();
   const pad = n => String(n).padStart(2, '0');
@@ -553,7 +551,7 @@ function closeSprintRetroOverlay() {
 function _openRetroDownloadPrompt(id) {
   const sp = _getSprintById(id);
   if (!sp) return;
-  const sprintLabel = sp.label || sp.id;
+  const sprintLabel = sp.label ? `${sp.id} · ${sp.label}` : sp.id;
   const now = new Date();
   const pad = n => String(n).padStart(2, '0');
   const closedAt = sp.closedAt ? new Date(sp.closedAt) : now;
@@ -908,8 +906,8 @@ function confirmEditSprint(sprintId) {
   if (inp) inp.classList.remove('sprint-inline-input--warn');
   const sp = _getSprintById(sprintId);
   if (!sp) { _markBacklogListDirty(); renderBacklogList(); return; }
-  // T-202605-500: reconstruir label canónico = 'ID · Nombre descriptivo'
-  sp.label = sprintId + ' · ' + raw;
+  // B-[pendiente-ID]: label NO concatena el ID — id y label son campos separados (BR-Ecosystem §5)
+  sp.label = raw;
   // R-202605-123: persistir goal si el campo existe
   const goalInp = document.getElementById(goalId);
   if (goalInp !== null) {
@@ -1287,14 +1285,14 @@ function _scmStep2Html(pendingItems, migrations, currentId) {
 
   const sprintOptions = `
     <option value="">— sin asignar —</option>
-    ${otherSprints.map(s => `<option value="${esc(s.id)}">${esc(s.label || s.id)}${s.status === 'active' ? ' ★' : ''}</option>`).join('')}
+    ${otherSprints.map(s => `<option value="${esc(s.id)}">${esc(s.label ? `${s.id} · ${s.label}` : s.id)}${s.status === 'active' ? ' ★' : ''}</option>`).join('')}
     <option value="__discard__">🗑 Descartar</option>
   `;
 
   const bulkDefaultVal = activeSp ? activeSp.id : '';
   const bulkSprintOpts = `
     <option value="">— sin asignar —</option>
-    ${otherSprints.map(s => `<option value="${esc(s.id)}"${s.id === bulkDefaultVal ? ' selected' : ''}>${esc(s.label || s.id)}${s.status === 'active' ? ' ★' : ''}</option>`).join('')}
+    ${otherSprints.map(s => `<option value="${esc(s.id)}"${s.id === bulkDefaultVal ? ' selected' : ''}>${esc(s.label ? `${s.id} · ${s.label}` : s.id)}${s.status === 'active' ? ' ★' : ''}</option>`).join('')}
     <option value="__discard__">🗑 Descartar</option>
   `;
 
@@ -1366,7 +1364,7 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep3) {
       <span class="scm-confirm-dest ${cls}">${esc(destLabel)}</span>
     </div>`;
 
-  const spLabel = id => { const s = _getSprintById(id); return s ? (s.label || s.id) : id; };
+  const spLabel = id => { const s = _getSprintById(id); return s ? (s.label ? `${s.id} · ${s.label}` : s.id) : id; };
 
   // ── R-202605-129: datos para retro enriquecida ──
   const st    = _scmState || {};
@@ -1403,7 +1401,7 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep3) {
     const dCls     = delta > 0 ? 'scm-retro3-delta--up' : delta < 0 ? 'scm-retro3-delta--down' : 'scm-retro3-delta--flat';
     const dIcon    = delta > 0 ? '▲' : delta < 0 ? '▼' : '→';
     deltaHtml = `<div class="scm-retro3-delta-row">
-      <span class="scm-retro3-delta-label">vs ${esc(_prevSp.label || _prevSp.id)}</span>
+      <span class="scm-retro3-delta-label">vs ${esc(_prevSp.label ? `${_prevSp.id} · ${_prevSp.label}` : _prevSp.id)}</span>
       <span class="scm-retro3-delta ${dCls}">${dIcon} ${sign}${delta}% · prev ${prevPct}% (${prevDn} effort)</span>
     </div>`;
   } else {
