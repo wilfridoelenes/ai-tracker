@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:33 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:34 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -124,6 +124,7 @@ function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
     _renderSprintMeta(_getActiveSprint()); // T-202606-029
     _renderSpsActivo(); // T-202606-036
     _renderSpsProgramados(); // T-202606-037
+    _renderSpsPausados(); // T-202606-041
     _renderSpsHotfix(); // T-202606-038
     _renderSpsCerrados(); // T-202606-039
   }
@@ -2090,6 +2091,56 @@ function _spmCreateHotfix() {
   renderSprintTab();
 }
 // ── END T-202606-038 ─────────────────────────────────────────────────────
+
+
+// ── T-202606-041: _renderSpsPausados — sección sprints pausados ──────────────
+//
+// Renderiza en #sps-pausados una card por sprint con status 'paused' e isHotfix falsy.
+// Si no hay pausados: innerHTML vacío + display:none — no ocupa espacio visual.
+// Si hay pausados tras haber estado oculto: display:'' restaura visibilidad.
+// Excluye isHotfix:true aunque tengan status 'paused'.
+
+function _renderSpsPausados() {
+  const container = document.getElementById('sps-pausados');
+  if (!container) return;
+
+  const allSprints = getActiveSprints();
+  const paused = allSprints
+    ? allSprints.filter(s => s.status === 'paused' && !s.isHotfix)
+    : [];
+
+  // AC-4/AC-5: sin pausados → ocultar contenedor sin empty state
+  if (paused.length === 0) {
+    container.innerHTML = '';
+    container.style.display = 'none';
+    return;
+  }
+
+  // AC-3/AC-5: hay pausados → restaurar visibilidad
+  container.style.display = '';
+
+  const cards = paused.map(function(s) {
+    const label = s.label || s.name || s.id || '';
+    const pausedDate = s.pausedAt || s.createdAt
+      ? new Date(s.pausedAt || s.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })
+      : '—';
+
+    return (
+      '<div class="sps-card sps-card--paused">' +
+        '<div class="sps-header">' +
+          '<span class="sps-title">' + _escHtml(s.id || '') + ' · ' + _escHtml(label) + '</span>' +
+          '<span class="sml-badge sml-badge--paused">PAUSADO</span>' +
+        '</div>' +
+        '<div class="sps-pausados-meta">' +
+          '<span class="sps-pausados-date">Pausado: ' + pausedDate + '</span>' +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+
+  container.innerHTML = cards;
+}
+// ── END T-202606-041 ─────────────────────────────────────────────────────────
 
 // ── T-202606-038 T5: _renderSpsHotfix — card persistente HOTFIX en sub-tab Sprints ──
 //
