@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:32 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:33 · autor:Rune · 2026-06-15 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -94,6 +94,8 @@ export function _renderKanban(listEl) {
     // R-202604-091: 'en curso' → 'pendiente'
     const s = item.status;
     if (s === 'in-progress' || s === 'en progreso' || s === 'progreso' || s === 'en curso') return 'pendiente';
+    // B-202606-025: P con status 'promovida' → columna Descartado (cerrada, no ejecutable)
+    if (s === 'promovida') return 'descartado';
     return s; // pendiente | done | descartado
   }
 
