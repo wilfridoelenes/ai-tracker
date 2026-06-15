@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:28 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:29 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -123,6 +123,7 @@ function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
   if (subtab === 'sprints') {
     _renderSprintMeta(_getActiveSprint()); // T-202606-029
     _renderSpsActivo(); // T-202606-036
+    _renderSpsProgramados(); // T-202606-037
   }
 }
 
@@ -545,6 +546,244 @@ function _spsSaveField(sprint, field, newVal, oldVal) {
 }
 
 // ── END T-202606-036 ─────────────────────────────────────────────────────────
+
+// ── T-202606-037: _renderSpsProgramados — lista de Sprints Programados ──────
+
+/**
+ * _getProgramadosSprints — filtra sprints con status 'programado', normaliza
+ * activationOrder para los que no lo tienen (se les asigna el índice de su
+ * posición en el array ordenado, 0-based, y se persiste via save() antes de
+ * retornar), y retorna el array ordenado por activationOrder ascendente.
+ * Sprints sin activationOrder van al final, en orden de aparición del array.
+ */
+function _getProgramadosSprints() {
+  const all = getActiveSprints().filter(function(s) { return s.status === 'programado'; });
+
+  const withOrder    = all.filter(function(s) { return typeof s.activationOrder === 'number'; });
+  const withoutOrder = all.filter(function(s) { return typeof s.activationOrder !== 'number'; });
+
+  withOrder.sort(function(a, b) { return a.activationOrder - b.activationOrder; });
+
+  if (withoutOrder.length > 0) {
+    const startIdx = withOrder.length;
+    withoutOrder.forEach(function(s, i) { s.activationOrder = startIdx + i; });
+    try {
+      save();
+    } catch (err) {
+      // activationOrder queda asignado en memoria — próxima lectura reintenta la normalización
+    }
+  }
+
+  return withOrder.concat(withoutOrder);
+}
+
+/**
+ * Renderiza en #sps-programados la lista de sprints en estado 'programado':
+ * fila por sprint con drag handle, ID, label+scope, version_target editable
+ * y botón Descartar. Empty state inline si no hay sprints programados.
+ */
+function _renderSpsProgramados() {
+  const container = document.getElementById('sps-programados');
+  if (!container) return;
+
+  const sprints = _getProgramadosSprints();
+
+  if (sprints.length === 0) {
+    container.innerHTML = '<div class="sps-scheduled-empty">Sin sprints programados</div>';
+    return;
+  }
+
+  container.innerHTML = sprints.map(function(s) {
+    const id    = s.id || '';
+    const label = s.label || s.name || '';
+    const vt    = s.version_target || '';
+    const scope = s.scope || '';
+    const nameText  = scope ? (label + ' — ' + scope) : label;
+    const nameClass = 'sps-scheduled-name' + (nameText ? '' : ' sps-meta-value--empty');
+    const vtClass   = 'sps-meta-value' + (vt ? '' : ' sps-meta-value--empty');
+
+    return '<div class="sps-scheduled-row" draggable="false" data-sprint-id="' + _escHtml(id) + '">' +
+        '<span class="drag-handle" tabindex="0" role="button" aria-label="Reordenar sprint ' + _escHtml(id) + '"></span>' +
+        '<span class="sps-scheduled-id">' + _escHtml(id) + '</span>' +
+        '<span class="' + nameClass + '" data-spp-edit="label" tabindex="0" role="button" aria-label="Editar nombre del sprint ' + _escHtml(id) + '">' +
+          (nameText ? _escHtml(nameText) : 'Sin declarar') +
+        '</span>' +
+        '<span class="' + vtClass + '" data-spp-edit="version_target" tabindex="0" role="button" aria-label="Editar versión de ' + _escHtml(id) + '">' +
+          (vt ? _escHtml(vt) : 'Sin declarar') +
+        '</span>' +
+        '<button class="sps-btn sps-btn--close" type="button" data-spp-action="descartar" aria-label="Descartar sprint ' + _escHtml(id) + '">Descartar</button>' +
+      '</div>';
+  }).join('');
+
+  container.removeEventListener('click', _sppHandleClick);
+  container.addEventListener('click', _sppHandleClick);
+
+  _sppAttachDrag(container);
+}
+
+function _sppHandleClick(e) {
+  const discardBtn = e.target.closest('[data-spp-action="descartar"]');
+  if (discardBtn) {
+    const row = discardBtn.closest('.sps-scheduled-row');
+    const id  = row ? row.getAttribute('data-sprint-id') : null;
+    const sprint = getActiveSprints().find(function(s) { return s.id === id; });
+    if (!sprint) return;
+
+    const label = sprint.label || sprint.name || sprint.id;
+    _gconfirmOpen({
+      title: 'Descartar sprint',
+      msg: 'Se descartará el sprint "' + label + '". Esta acción no se puede deshacer.',
+      okLabel: 'Descartar',
+      danger: true
+    }, function() {
+      sprint.status = 'descartado';
+      try {
+        save();
+      } catch (err) {
+        showToast('Error al guardar. Intenta de nuevo.', 'error');
+        sprint.status = 'programado';
+      }
+      _renderSpsProgramados();
+    });
+    return;
+  }
+
+  const editEl = e.target.closest('[data-spp-edit]');
+  if (!editEl) return;
+  const row = editEl.closest('.sps-scheduled-row');
+  const id  = row ? row.getAttribute('data-sprint-id') : null;
+  const sprint = getActiveSprints().find(function(s) { return s.id === id; });
+  if (!sprint) return;
+
+  const field = editEl.getAttribute('data-spp-edit');
+  const currentVal = field === 'label'           ? (sprint.label || sprint.name || '')
+                    : field === 'version_target' ? (sprint.version_target || '')
+                    : '';
+
+  _sppOpenEdit(editEl, field, currentVal, sprint);
+}
+
+function _sppOpenEdit(editEl, field, current, sprint) {
+  editEl.classList.add('is-hidden');
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'sps-inline-input';
+  input.value = current;
+  input.setAttribute('aria-label', 'Editar ' + field);
+  editEl.insertAdjacentElement('afterend', input);
+  input.focus();
+
+  function commit() {
+    const trimmed = input.value.trim();
+    if (!trimmed) {
+      // AC-4: vacío descarta el cambio y restaura el valor anterior — no persiste
+      input.remove();
+      editEl.classList.remove('is-hidden');
+      return;
+    }
+    _sppSaveField(sprint, field, trimmed, current);
+  }
+  function cancel() {
+    input.remove();
+    editEl.classList.remove('is-hidden');
+  }
+
+  input.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Enter')  commit();
+    if (ev.key === 'Escape') cancel();
+  });
+  input.addEventListener('blur', commit);
+}
+
+function _sppSaveField(sprint, field, newVal, oldVal) {
+  const allSprints = getActiveSprints();
+  const target = allSprints.find(function(s) { return s.id === sprint.id; });
+  if (!target) { _renderSpsProgramados(); return; }
+
+  if (field === 'label')          target.label = newVal;
+  if (field === 'version_target') target.version_target = newVal;
+
+  try {
+    save();
+  } catch (err) {
+    showToast('Error al guardar. Intenta de nuevo.', 'error');
+    if (field === 'label')          target.label = oldVal;
+    if (field === 'version_target') target.version_target = oldVal;
+  }
+
+  _renderSpsProgramados();
+}
+
+/**
+ * _sppAttachDrag — habilita reordenamiento drag & drop sobre las filas de
+ * #sps-programados. El drag solo inicia desde .drag-handle: mousedown sobre
+ * el handle habilita draggable en la fila; dragend lo deshabilita. Arrastrar
+ * el resto de la fila no activa drag (AC-3).
+ */
+function _sppAttachDrag(container) {
+  const rows = container.querySelectorAll('.sps-scheduled-row');
+  rows.forEach(function(row) {
+    const handle = row.querySelector('.drag-handle');
+    if (!handle) return;
+
+    handle.addEventListener('mousedown', function() {
+      row.setAttribute('draggable', 'true');
+    });
+
+    row.addEventListener('dragstart', function(e) {
+      if (row.getAttribute('draggable') !== 'true') { e.preventDefault(); return; }
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', row.getAttribute('data-sprint-id') || '');
+      row.classList.add('is-dragging');
+    });
+
+    row.addEventListener('dragend', function() {
+      row.classList.remove('is-dragging');
+      row.setAttribute('draggable', 'false');
+    });
+
+    row.addEventListener('dragover', function(e) {
+      e.preventDefault();
+    });
+
+    row.addEventListener('drop', function(e) {
+      e.preventDefault();
+      const draggedId = e.dataTransfer.getData('text/plain');
+      const targetId  = row.getAttribute('data-sprint-id');
+      if (!draggedId || draggedId === targetId) return;
+      _sppReorder(draggedId, targetId);
+    });
+  });
+}
+
+/**
+ * _sppReorder — mueve el sprint draggedId a la posición de targetId dentro
+ * de los sprints programados, reasigna activationOrder secuencial (0-based)
+ * a todos según el nuevo orden, persiste via save() y re-renderiza (AC-3).
+ */
+function _sppReorder(draggedId, targetId) {
+  const sprints = _getProgramadosSprints();
+  const fromIdx = sprints.findIndex(function(s) { return s.id === draggedId; });
+  const toIdx   = sprints.findIndex(function(s) { return s.id === targetId; });
+  if (fromIdx === -1 || toIdx === -1) return;
+
+  const reordered = sprints.slice();
+  const moved = reordered.splice(fromIdx, 1)[0];
+  reordered.splice(toIdx, 0, moved);
+
+  reordered.forEach(function(s, i) { s.activationOrder = i; });
+
+  try {
+    save();
+  } catch (err) {
+    showToast('Error al guardar el orden. Intenta de nuevo.', 'error');
+  }
+
+  _renderSpsProgramados();
+}
+
+// ── END T-202606-037 ─────────────────────────────────────────────────────────
 
 // ── B-202606-064: T-202606-131/132 eliminados — aprobación de sprint ocurre via Step 0 del DIFF ──
 
