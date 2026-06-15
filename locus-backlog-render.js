@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:13 · autor:Nova · 2026-06-15 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -487,8 +487,9 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
     const sprintObj = _getSprintById(sprintId);
     const isActive  = sprintObj?.status === 'active';
     const isClosed  = sprintObj?.status === 'closed';
+    const isHotfix  = sprintId.toUpperCase().includes('HOTFIX');
     // T-202606-040: planificado = sprint sin registrar en getActiveSprints(), o registrado con status distinto a active/closed
-    const isPlanned = !isActive && !isClosed;
+    const isPlanned = !isActive && !isClosed && !isHotfix;
     const label     = sprintObj ? (sprintObj.label || sprintId) : sprintId;
     const groupId   = 'vl-' + sprintId.toLowerCase().replace(/[^a-z0-9]/g, '-');
 
@@ -503,20 +504,28 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
     const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
 
     const sprintBadge       = isClosed ? ' ·' : '';
-    const sprintStatusLabel = isActive
-      ? `<span class="sprint-badge-active">activo</span>`
-      : isClosed
-        ? `<span class="sprint-badge-closed">cerrado</span>`
-        : isPlanned
-          ? `<span class="sprint-badge-planned">planificado</span>`
-          : '';
+    const sprintStatusLabel = isHotfix
+      ? `<span class="sprint-badge-hotfix">hotfix</span>`
+      : isActive
+        ? `<span class="sprint-badge-active">activo</span>`
+        : isClosed
+          ? `<span class="sprint-badge-closed">cerrado</span>`
+          : isPlanned
+            ? `<span class="sprint-badge-planned">planificado</span>`
+            : '';
 
-    const progressBar = `<div class="version-progress-inline">
-      <div class="version-progress-bar-wrap"><div class="version-progress-bar" style="--ver-bar-w:${pct}%"></div></div>
-      <span class="version-progress-label">${doneInGroup}/${totalInGroup} · ${pct}%</span>
+    // Meta secundaria: velocity para activo/hotfix, fecha de cierre para cerrado, effort estimado para planificado
+    const _velLabel = (isActive || isHotfix) ? _sprintVelocityLabel(sprintId) : '';
+    const _metaText = isClosed
+      ? (sprintObj?.closedAt ? `${sprintObj.version_target || ''} · cerrado ${sprintObj.closedAt}`.trim().replace(/^·\s*/, '') : (sprintObj?.version_target || ''))
+      : isPlanned
+        ? (() => { const ef = getItems().filter(i => _extractSprintId((i.sprint||'').trim()) === sprintId).reduce((s,i) => s + (parseInt(i.effort)||0), 0); return ef ? `Effort estimado: ${ef}` : ''; })()
+        : '';
+
+    const progressBar = `<div class="bl-vl-sprint-header-progress">
+      <div class="bl-vl-progress-track"><div class="bl-vl-progress-fill" style="--ver-bar-w:${pct}%"></div></div>
+      <span class="bl-vl-progress-label">${doneInGroup}/${totalInGroup} · ${pct}%</span>
     </div>`;
-
-    const _velLabel = isActive ? _sprintVelocityLabel(sprintId) : '';
 
     // Done items dentro del sprint si el filtro lo permite
     // B-202606-048: excluir Ts/Bs done que tienen parentId apuntando a un R visible en el grupo
@@ -541,13 +550,17 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
       ? _sortGroup(_doneInGroup).map(item => buildBacklogItem(item)).join('')
       : '';
 
-    html += `<div class="bl-vl-sprint-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}${isPlanned ? ' sprint-group-planned' : ''}" data-sprint-id="${esc(sprintId)}">`;
+    html += `<div class="bl-vl-sprint-group${isHotfix ? ' sprint-group-hotfix' : ''}${isActive && !isHotfix ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}${isPlanned ? ' sprint-group-planned' : ''}" data-sprint-id="${esc(sprintId)}">`;
     html += `<div class="bl-vl-sprint-header version-collapse-trigger" data-action="version-collapse" data-group-id="${groupId}" tabindex="0" role="button" aria-expanded="${isCollapsed ? 'false' : 'true'}">`;
+    html += `<div class="bl-vl-sprint-header-row1">`;
     html += `<span class="version-header-arrow${isCollapsed ? ' collapsed' : ''}" id="varrow-${groupId}" aria-hidden="true">${isCollapsed ? '▸' : '▾'}</span>`;
     html += `<span id="sprint-label-wrap-${esc(sprintId)}"><span class="version-tag">${esc(sprintId)}</span>${(label && label !== sprintId) ? `<span class="sprint-name-label">${esc(label.replace(/^[A-Za-z]+[-\s]S\d+\s*·?\s*/i, ''))}</span>` : ''}</span>`;
     html += sprintStatusLabel;
+    html += `</div>`; // bl-vl-sprint-header-row1
+    if (_velLabel || _metaText) {
+      html += `<div class="bl-vl-sprint-header-meta">${_velLabel || esc(_metaText)}</div>`;
+    }
     html += progressBar;
-    html += _velLabel;
     html += `</div>`; // bl-vl-sprint-header
 
     html += `<div class="bl-vl-sprint-body${isCollapsed ? ' collapsed' : ''}" id="vbody-${groupId}">`;

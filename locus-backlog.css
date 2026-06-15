@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:40 · autor:Nova · 2026-06-14 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-01 · mod:41 · autor:Nova · 2026-06-15 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -1027,6 +1027,18 @@
   font-size: var(--text-2xs); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
   color: var(--blue); background: rgb(2 136 209 / 12%); border: 1px solid rgb(2 136 209 / 35%);
   border-radius: var(--radius-sm); padding: 1px 6px;
+}
+
+.sprint-badge-hotfix {
+  font-size: var(--text-2xs); font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+  color: rgb(121 31 31); background: rgb(226 75 74 / 12%); border: 1px solid rgb(226 75 74 / 35%);
+  border-radius: var(--radius-sm); padding: 1px 6px;
+}
+
+[data-theme="dark"] .sprint-badge-hotfix {
+  color: rgb(240 149 123);
+  background: rgb(226 75 74 / 18%);
+  border-color: rgb(226 75 74 / 45%);
 }
 
 /* T-202604-004: ítems dentro de sprint activo — diferenciación visual */
@@ -5180,6 +5192,21 @@ er {
 }
 /* END B-202606-015 */
 
+/* Dark mode — sprint headers: ajuste de stops para fondos de color */
+[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header {
+  background: rgb(245 158 11 / 12%);
+}
+[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header .sprint-name-label { color: rgb(250 199 117); }
+[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header .version-tag { color: rgb(250 199 117); }
+[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header .bl-vl-sprint-header-meta { color: rgb(250 199 117 / 80%); }
+[data-theme="dark"] .sprint-group-active .bl-vl-sprint-header .bl-vl-progress-label { color: rgb(250 199 117 / 80%); }
+
+[data-theme="dark"] .sprint-group-hotfix .bl-vl-sprint-header { background: rgb(226 75 74 / 10%); }
+[data-theme="dark"] .sprint-group-hotfix .bl-vl-sprint-header .sprint-name-label { color: rgb(240 149 123); }
+[data-theme="dark"] .sprint-group-hotfix .bl-vl-sprint-header .version-tag { color: rgb(240 149 123); background: rgb(226 75 74 / 15%); border-color: rgb(226 75 74 / 40%); }
+[data-theme="dark"] .sprint-group-hotfix .bl-vl-sprint-header .bl-vl-sprint-header-meta { color: rgb(240 149 123 / 80%); }
+[data-theme="dark"] .sprint-group-hotfix .bl-vl-sprint-header .bl-vl-progress-label { color: rgb(240 149 123 / 80%); }
+
 /* ══ T-202605-103: Sección Icebox — bl-icebox-* ══ */
 /* Clases independientes — no reutilizan .version-group ni .version-header */
 
@@ -5592,37 +5619,159 @@ er {
 /* ── bl-vl-sprint-group: contenedor de un grupo de sprint ── */
 .bl-vl-sprint-group {
   margin-bottom: 1.5rem;
+  border-radius: var(--radius-md-plus);
+  border: 1px solid var(--border);
+  overflow: hidden;
 }
 
-/* ── bl-vl-sprint-header: cabecera del grupo de sprint ── */
+/* ── bl-vl-sprint-header: cabecera del grupo de sprint — layout 3 filas ── */
 .bl-vl-sprint-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  padding: 0;
   background: var(--surface2);
-  border: 1px solid var(--border);
-  border-bottom: 2px solid var(--border);
-  border-radius: var(--radius-md-plus);
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
   user-select: none;
 }
 
 .bl-vl-sprint-header:hover {
-  background: var(--surface3);
+  filter: brightness(0.97);
 }
 
-/* T-[pendiente-ID]: borde-bottom de color por estado del sprint — opción A */
+/* Fila 1: identidad — arrow + ID + nombre + badge */
+.bl-vl-sprint-header-row1 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px 4px;
+}
+
+/* Fila 2: contexto — velocity o fecha de cierre */
+.bl-vl-sprint-header-meta {
+  display: flex;
+  align-items: center;
+  padding: 0 14px 6px 30px;
+  font-size: var(--text-xs);
+  color: var(--hint);
+}
+
+/* Fila 3: progress bar full-width */
+.bl-vl-sprint-header-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 14px 10px;
+}
+
+.bl-vl-progress-track {
+  flex: 1;
+  height: 3px;
+  background: var(--border);
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.bl-vl-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  width: var(--ver-bar-w, 0%);
+  background: var(--hint);
+}
+
+.bl-vl-progress-label {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  font-family: var(--mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── Estado: activo — fondo ámbar 50, border-left ámbar ── */
 .sprint-group-active .bl-vl-sprint-header {
-  border-bottom-color: var(--amber);
+  background: rgb(245 158 11 / 8%);
+  border-left-color: var(--amber);
 }
 
+.sprint-group-active .bl-vl-sprint-header .version-tag {
+  color: rgb(133 79 11);
+  background: rgb(245 158 11 / 12%);
+  border-color: rgb(245 158 11 / 35%);
+}
+
+.sprint-group-active .bl-vl-sprint-header .sprint-name-label {
+  color: rgb(99 56 6);
+}
+
+.sprint-group-active .bl-vl-sprint-header .bl-vl-sprint-header-meta {
+  color: rgb(133 79 11);
+}
+
+.sprint-group-active .bl-vl-sprint-header .bl-vl-progress-fill {
+  background: var(--amber);
+}
+
+.sprint-group-active .bl-vl-sprint-header .bl-vl-progress-label {
+  color: rgb(133 79 11);
+}
+
+.sprint-group-active .bl-vl-sprint-header .bl-vl-progress-track {
+  background: rgb(245 158 11 / 20%);
+}
+
+/* ── Estado: hotfix — fondo rojo 50, border-left rojo ── */
+.sprint-group-hotfix .bl-vl-sprint-header {
+  background: rgb(226 75 74 / 6%);
+  border-left-color: rgb(163 45 45);
+}
+
+.sprint-group-hotfix .bl-vl-sprint-header .version-tag {
+  color: rgb(121 31 31);
+  background: rgb(226 75 74 / 10%);
+  border-color: rgb(226 75 74 / 35%);
+}
+
+.sprint-group-hotfix .bl-vl-sprint-header .sprint-name-label {
+  color: rgb(121 31 31);
+}
+
+.sprint-group-hotfix .bl-vl-sprint-header .bl-vl-sprint-header-meta {
+  color: rgb(163 45 45);
+}
+
+.sprint-group-hotfix .bl-vl-sprint-header .bl-vl-progress-fill {
+  background: rgb(163 45 45);
+}
+
+.sprint-group-hotfix .bl-vl-sprint-header .bl-vl-progress-label {
+  color: rgb(163 45 45);
+}
+
+.sprint-group-hotfix .bl-vl-sprint-header .bl-vl-progress-track {
+  background: rgb(226 75 74 / 20%);
+}
+
+/* ── Estado: planificado — border-left azul, sin fondo ── */
 .sprint-group-planned .bl-vl-sprint-header {
-  border-bottom-color: var(--blue);
+  border-left-color: var(--blue);
 }
 
+.sprint-group-planned .bl-vl-sprint-header .sprint-name-label {
+  color: var(--blue);
+}
+
+.sprint-group-planned .bl-vl-sprint-header .version-tag {
+  color: var(--blue);
+  background: rgb(2 136 209 / 10%);
+  border-color: rgb(2 136 209 / 35%);
+}
+
+.sprint-group-planned .bl-vl-sprint-header .bl-vl-progress-fill {
+  background: var(--blue);
+}
+
+/* ── Estado: cerrado — reducida, sin fondo ── */
 .sprint-group-closed .bl-vl-sprint-header {
-  border-bottom-color: var(--hint);
+  border-left-color: var(--border);
   opacity: 0.8;
 }
 
