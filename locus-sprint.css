@@ -632,6 +632,12 @@
   flex-shrink: 0;
 }
 
+/* B: cuando el header está oculto (sub-tab Sprints), el nav sticky
+   baja a top:0 para no quedar flotando con espacio vacío encima */
+#tab-sprint:has(.sph-header.is-hidden) .spt-nav {
+  top: 0;
+}
+
 .spt-tab {
   position: relative;
   padding: 10px 16px;
