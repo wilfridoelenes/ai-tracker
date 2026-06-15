@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:58 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:59 · autor:Rune · 2026-06-14 19:35 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1279,10 +1279,17 @@ export function _tryIngestSprintProposal(text) {
 export function _tryIngestSprintProposalFromParsed(proposalObj) {
   if (!proposalObj || typeof proposalObj !== 'object' || Array.isArray(proposalObj)) return false;
 
+  // B-202606-021 AC-1: el schema canónico de sprint_proposal usa el campo "id" — "sprint"
+  // se conserva como fallback para CHECKPOINTs legacy que aún lo emitan.
+  const sprint = proposalObj.id || proposalObj.sprint;
+
   // Validar campos obligatorios — mismo criterio que parseSprintProposal
-  const { sprint, version_target, release_type, scope, goal } = proposalObj;
-  const missing = ['sprint', 'version_target', 'release_type', 'scope', 'goal']
-    .filter(k => !proposalObj[k]);
+  const { version_target, release_type, scope, goal } = proposalObj;
+  const missing = [];
+  if (!sprint) missing.push('id');
+  for (const k of ['version_target', 'release_type', 'scope', 'goal']) {
+    if (!proposalObj[k]) missing.push(k);
+  }
   if (missing.length) {
     showToast('error', `Campos obligatorios faltantes: ${missing.join(', ')}`);
     return false;
