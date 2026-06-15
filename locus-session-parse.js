@@ -1315,10 +1315,20 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
 
   const _sprintIdFull  = sprint;
   const _sprintIdShort = _sprintIdFull.split(/\s*·\s*/)[0].trim();
+  // B-202606-XXX: construir label canónico desde proposalObj.label (campo separado del schema JSON).
+  // El schema BR-Ecosystem §13 separa id y label — el label descriptivo llega en proposalObj.label,
+  // no concatenado en proposalObj.id. Sin esta construcción, label queda igual al id ("PP-S-02")
+  // y el sprint header muestra solo el ID sin nombre descriptivo.
+  // Entrada: id="PP-S-02", label="Parser — JSON único + alineación BR"
+  // Salida:  label="PP-S-02 · Parser — JSON único + alineación BR"
+  const _labelDescriptive = (proposalObj.label && proposalObj.label !== _sprintIdShort)
+    ? proposalObj.label.replace(new RegExp('^' + _sprintIdShort.replace(/[-]/g, '\\-') + '\\s*·?\\s*'), '').trim()
+    : '';
+  const _canonicalLabel = _labelDescriptive ? `${_sprintIdShort} · ${_labelDescriptive}` : _sprintIdShort;
   const newSprint = {
     id:             _sprintIdShort,
-    label:          _sprintIdFull,
-    name:           _sprintIdFull,
+    label:          _canonicalLabel,
+    name:           _canonicalLabel,
     version_target: version_target,
     release_type:   release_type,
     scope:          scope,
