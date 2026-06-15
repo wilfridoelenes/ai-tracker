@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:32 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:33 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -674,21 +674,35 @@ function _sppOpenEdit(editEl, field, current, sprint) {
   input.value = current;
   input.setAttribute('aria-label', 'Editar ' + field);
   editEl.insertAdjacentElement('afterend', input);
+
+  // AC-1/AC-2: suffix estático del scope visible durante edición de label (T-202606-040)
+  var suffix = null;
+  if (field === 'label' && sprint.scope) {
+    suffix = document.createElement('span');
+    suffix.className = 'sps-scheduled-name--suffix';
+    suffix.textContent = ' — ' + sprint.scope;
+    input.insertAdjacentElement('afterend', suffix);
+  }
+
   input.focus();
+
+  function _cleanup() {
+    input.remove();
+    if (suffix) suffix.remove();
+    editEl.classList.remove('is-hidden');
+  }
 
   function commit() {
     const trimmed = input.value.trim();
     if (!trimmed) {
-      // AC-4: vacío descarta el cambio y restaura el valor anterior — no persiste
-      input.remove();
-      editEl.classList.remove('is-hidden');
+      // AC-3: vacío descarta el cambio y restaura el valor anterior — no persiste
+      _cleanup();
       return;
     }
     _sppSaveField(sprint, field, trimmed, current);
   }
   function cancel() {
-    input.remove();
-    editEl.classList.remove('is-hidden');
+    _cleanup();
   }
 
   input.addEventListener('keydown', function(ev) {
