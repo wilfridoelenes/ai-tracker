@@ -1,11 +1,11 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:11 · autor:Nova · 2026-06-14 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:12 · autor:Rune · 2026-06-15 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
 import { _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
-import { _attachBacklogDnD, _attachBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js';
+import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation
 
 import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
 
@@ -704,6 +704,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, _
   }
 
   _attachBacklogDnD();
+  _resetBacklogListDelegation(); // B-202606-023: reset guard antes de re-registrar
   _attachBacklogListDelegation();
   _attachPlanViewDelegation();
   _updateDocLogCount('backlog');
@@ -1327,6 +1328,7 @@ export function renderBacklogList(onRendered) {
   }
 
   _attachBacklogDnD();
+  _resetBacklogListDelegation(); // B-202606-023: reset guard antes de re-registrar
   _attachBacklogListDelegation();
   _attachPlanViewDelegation();
   _updateDocLogCount('backlog');

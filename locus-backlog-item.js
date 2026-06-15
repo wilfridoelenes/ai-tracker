@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:31 · autor:Rune · 2026-06-15 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -69,6 +69,11 @@ const _acReplacedSet = new Set();
 // T-202606-099: backlogSearchQuery local eliminado — consumir _getBacklogSearchQuery() desde locus-backlog-core.js
 // Filtro de tipo activo
 let currentFilter = 'all';
+// B-202606-023: guard de delegación como variable de módulo — evita que la propiedad DOM
+// persista entre renders cuando renderBacklogList reemplaza innerHTML de #backlog-list.
+// renderBacklogList llama _resetBacklogListDelegation() antes de llamar _attachBacklogListDelegation().
+let _blListDelegationAttached = false;
+export function _resetBacklogListDelegation() { _blListDelegationAttached = false; }
 // ──────────────────────────────────────────────────────────────────────────
 
 export function _renderKanban(listEl) {
@@ -202,8 +207,8 @@ function _kbCardClick(event, code) {
 //        child-expand · drag-handle · kanban card (click + drag) · kb-col (drag) · _promoteSelectType
 export function _attachBacklogListDelegation() {
   const listEl = document.getElementById('backlog-list');
-  if (!listEl || listEl._delegationAttached) return;
-  listEl._delegationAttached = true;
+  if (!listEl || _blListDelegationAttached) return;
+  _blListDelegationAttached = true;
 
   // --- Click delegation ---
   listEl.addEventListener('click', function _blListClick(e) {

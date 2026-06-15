@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:35 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:36 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -359,14 +359,13 @@ function _escHtml(str) {
 
 // ── END T-202606-029 ─────────────────────────────────────────────────────────
 
-// ── T-202606-036: _renderSpsActivo — card del sprint activo en sub-tab Sprints ──
+// ── T-202606-036 / T-202606-043: _renderSpsActivo — card del sprint activo ──
+//
+// T-202606-043: rediseño — card-header con menú ··· (Pausar · sep · Cerrar rojo),
+// meta-grid (versión · release · goal), barra done/total.
+// Sin botones inline. Sin edición inline de campos.
+// Empty state con CTA si no hay sprint activo.
 
-/**
- * Renderiza en #sps-activo la card del sprint activo: header con ID + label
- * editable + badge de estado, meta (version_target/release_type/goal) editable,
- * barra de burndown, y acciones (cerrar sprint / pausar-reanudar).
- * Empty state si no hay sprint activo.
- */
 function _renderSpsActivo() {
   const container = document.getElementById('sps-activo');
   if (!container) return;
@@ -375,6 +374,7 @@ function _renderSpsActivo() {
 
   if (!sprint) {
     container.innerHTML =
+      '<span class="sps-section-label">Activo</span>' +
       '<div class="sps-empty">' +
         '<p>No hay sprint activo.</p>' +
         '<button class="sps-empty-cta" type="button">Crear sprint</button>' +
@@ -384,20 +384,13 @@ function _renderSpsActivo() {
     return;
   }
 
-  const isPausado = sprint.status === 'pausado';
-  const cardCls   = isPausado ? 'sps-card sps-card--pausado' : 'sps-card';
-
   const id    = sprint.id || '';
   const label = sprint.label || sprint.name || '';
-  const vt    = sprint.version_target || '';
-  const rt    = sprint.release_type || sprint.releaseType || '';
-  const goal  = sprint.goal || '';
-  const scope = sprint.scope || '';
+  const vt    = sprint.version_target || '—';
+  const rt    = sprint.release_type || sprint.releaseType || '—';
+  const goal  = sprint.goal || '—';
 
-  const badgeCls = isPausado ? 'sprint-badge-paused' : 'sprint-badge-active';
-  const badgeTxt = isPausado ? 'Pausado' : 'Activo';
-
-  // Burndown — mismo cálculo que _renderSprintSummaryTable (R/B/T, sin descartados)
+  // Burndown — ítems done/total (R/B/T, sin descartados)
   let total = 0;
   let done  = 0;
   if (Array.isArray(getItems())) {
@@ -413,55 +406,82 @@ function _renderSpsActivo() {
   }
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
-  function _metaItem(key, label, value, modClass) {
-    const isEmpty  = !value;
-    const valClass = 'sps-meta-value' + (modClass ? ' ' + modClass : '') + (isEmpty ? ' sps-meta-value--empty' : '');
-    const valText  = isEmpty ? 'Sin declarar' : _escHtml(value);
-    return '<div class="sps-meta-item" data-sps-field="' + key + '">' +
-      '<span class="sps-meta-label">' + label + '</span>' +
-      '<span class="' + valClass + '" data-sps-edit="' + key + '" tabindex="0" role="button" aria-label="Editar ' + label + '">' + valText + '</span>' +
-      '</div>';
-  }
-
   container.innerHTML =
-    '<div class="' + cardCls + '" data-sprint-id="' + _escHtml(id) + '">' +
-      '<div class="sps-header">' +
-        '<span class="sps-title" data-sps-edit="label" tabindex="0" role="button" aria-label="Editar nombre del sprint">' +
-          _escHtml(id) + (label ? ' · ' + _escHtml(label) : '') +
-        '</span>' +
-        '<span class="sml-badge ' + badgeCls + '">' + badgeTxt + '</span>' +
+    '<span class="sps-section-label">Activo</span>' +
+    '<div class="sps-card" data-sprint-id="' + _escHtml(id) + '">' +
+      '<div class="sps-card-header">' +
+        '<span class="sps-card-id font-mono">' + _escHtml(id) + '</span>' +
+        '<span class="sps-card-title">' + _escHtml(label) + '</span>' +
+        '<span class="sml-badge sprint-badge-active">Activo</span>' +
+        '<div class="sps-menu-wrap">' +
+          '<button class="sps-btn-menu" type="button" aria-label="Acciones del sprint activo" aria-expanded="false" aria-haspopup="true" data-sps-activo-menu>···</button>' +
+          '<div class="sps-dropdown" role="menu" aria-label="Acciones sprint activo" hidden>' +
+            '<button class="sps-dropdown-item" role="menuitem" type="button" data-sps-action="pausar">Pausar sprint</button>' +
+            '<hr style="margin:4px 0;border:none;border-top:1px solid var(--border)">' +
+            '<button class="sps-dropdown-item sps-dropdown-item--danger" role="menuitem" type="button" data-sps-action="cerrar">Cerrar sprint</button>' +
+          '</div>' +
+        '</div>' +
       '</div>' +
       '<div class="sps-meta">' +
-        _metaItem('version_target', 'Versión', vt) +
-        _metaItem('release_type', 'Release type', rt) +
-        _metaItem('goal', 'Goal', goal, 'sps-inline-input--goal') +
-        _metaItem('scope', 'Scope', scope, 'sps-inline-input--scope') +
+        '<div class="sps-meta-item"><span class="sps-meta-label">Versión</span><span class="sps-meta-value">' + _escHtml(vt) + '</span></div>' +
+        '<div class="sps-meta-item"><span class="sps-meta-label">Release</span><span class="sps-meta-value">' + _escHtml(rt) + '</span></div>' +
+        '<div class="sps-meta-item sps-meta-item--goal"><span class="sps-meta-label">Goal</span><span class="sps-meta-value">' + _escHtml(goal) + '</span></div>' +
       '</div>' +
-      '<div class="sps-burndown-wrap">' +
-        '<div class="sps-burndown-bar" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="Burndown del sprint: ' + pct + '% completado">' +
+      '<div class="sps-progress-wrap">' +
+        '<div class="sps-burndown-bar" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso del sprint: ' + done + ' de ' + total + ' ítems done">' +
           '<div class="sps-burndown-fill"></div>' +
         '</div>' +
-        '<span class="sps-burndown-label">' + done + '/' + total + ' · ' + pct + '%</span>' +
-      '</div>' +
-      '<div class="sps-actions">' +
-        '<button class="sps-btn" data-sps-action="pausar" type="button">' + (isPausado ? 'Reanudar' : 'Pausar') + '</button>' +
-        '<button class="sps-btn sps-btn--close" data-sps-action="cerrar" type="button">Cerrar sprint</button>' +
+        '<span class="sps-burndown-label">' + done + ' / ' + total + ' ítems done</span>' +
       '</div>' +
     '</div>';
 
-  // CSS Purity: variable de progreso via setProperty — permitido por _Locus-css-ref §CSS Purity
+  // CSS Purity: variable de progreso via setProperty
   const fillEl = container.querySelector('.sps-burndown-fill');
   if (fillEl) fillEl.style.setProperty('--sps-burndown-pct', pct + '%');
 
-  // Delegación de edición inline — patrón _spmMetaHandleEdit
-  container.removeEventListener('click', _spsHandleClick);
-  container.addEventListener('click', _spsHandleClick);
+  // Menú ···
+  container.removeEventListener('click', _spsActivoHandleClick);
+  container.addEventListener('click', _spsActivoHandleClick);
 }
 
-function _spsHandleClick(e) {
+function _spsActivoHandleClick(e) {
+  // Toggle menú
+  const menuBtn = e.target.closest('[data-sps-activo-menu]');
+  if (menuBtn) {
+    const dropdown = menuBtn.nextElementSibling;
+    if (!dropdown) return;
+    const isOpen = !dropdown.hidden;
+    dropdown.hidden = isOpen;
+    menuBtn.setAttribute('aria-expanded', String(!isOpen));
+    if (!isOpen) {
+      // Cerrar al hacer clic fuera
+      function _closeOnOutside(ev) {
+        if (!menuBtn.closest('.sps-menu-wrap').contains(ev.target)) {
+          dropdown.hidden = true;
+          menuBtn.setAttribute('aria-expanded', 'false');
+          document.removeEventListener('click', _closeOnOutside, true);
+        }
+      }
+      setTimeout(function() {
+        document.addEventListener('click', _closeOnOutside, true);
+      }, 0);
+    }
+    return;
+  }
+
+  // Acciones del menú
   const action = e.target.closest('[data-sps-action]');
   if (action) {
-    const act = action.getAttribute('data-sps-action');
+    // Cerrar menú
+    const dropdown = action.closest('.sps-dropdown');
+    if (dropdown) { dropdown.hidden = true; }
+    const menuWrap = action.closest('.sps-menu-wrap');
+    if (menuWrap) {
+      const btn = menuWrap.querySelector('[data-sps-activo-menu]');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+
+    const act    = action.getAttribute('data-sps-action');
     const sprint = _getActiveSprint();
     if (!sprint) return;
     if (act === 'pausar') {
@@ -471,97 +491,19 @@ function _spsHandleClick(e) {
     } else if (act === 'cerrar') {
       confirmCloseSprint(sprint.id);
     }
-    return;
   }
-
-  const editEl = e.target.closest('[data-sps-edit]');
-  if (!editEl) return;
-  const field = editEl.getAttribute('data-sps-edit');
-  const sprint = _getActiveSprint();
-  if (!sprint) return;
-
-  const currentVal = field === 'label'           ? (sprint.label || sprint.name || '')
-                   : field === 'version_target'  ? (sprint.version_target || '')
-                   : field === 'release_type'    ? (sprint.release_type || sprint.releaseType || '')
-                   : field === 'goal'            ? (sprint.goal || '')
-                   : field === 'scope'           ? (sprint.scope || '')
-                   : '';
-
-  _spsOpenEdit(editEl, field, currentVal, sprint);
 }
 
-function _spsOpenEdit(editEl, field, current, sprint) {
-  editEl.classList.add('is-hidden');
+// ── END T-202606-036 / T-202606-043 ──────────────────────────────────────────
 
-  const inputCls = field === 'goal'  ? 'sps-inline-input sps-inline-input--goal'
-                  : field === 'scope' ? 'sps-inline-input sps-inline-input--scope'
-                  : 'sps-inline-input';
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = inputCls;
-  input.value = current;
-  input.setAttribute('aria-label', 'Editar ' + field);
-  editEl.insertAdjacentElement('afterend', input);
-  input.focus();
+// ── T-202606-037 / T-202606-043: _renderSpsProgramados ──────────────────────
+//
+// T-202606-043: rediseño — section-label, una card contenedora, una fila por
+// sprint programado con: drag-handle · ID · título · .pill-prog · badge
+// adelantados (.pill-adv / .pill-adv-zero) · menú ··· · .sps-bd-mini ·
+// conteo done/total. Sin botón inline de descartar.
+// Empty state 'Sin sprints programados' si no hay programados.
 
-  function commit() {
-    const trimmed = input.value.trim();
-    if (!trimmed) {
-      // AC-4/AC-5: vacío descarta el cambio y restaura el valor anterior — no persiste
-      input.remove();
-      editEl.classList.remove('is-hidden');
-      return;
-    }
-    _spsSaveField(sprint, field, trimmed, current);
-  }
-  function cancel() {
-    input.remove();
-    editEl.classList.remove('is-hidden');
-  }
-
-  input.addEventListener('keydown', function(ev) {
-    if (ev.key === 'Enter')  commit();
-    if (ev.key === 'Escape') cancel();
-  });
-  input.addEventListener('blur', commit);
-}
-
-function _spsSaveField(sprint, field, newVal, oldVal) {
-  const allSprints = getActiveSprints();
-  const target = allSprints.find(function(s) { return s.id === sprint.id; });
-  if (!target) { _renderSpsActivo(); return; }
-
-  if (field === 'label')           target.label = newVal;
-  if (field === 'version_target')  target.version_target = newVal;
-  if (field === 'release_type')    { target.release_type = newVal; target.releaseType = newVal; }
-  if (field === 'goal')             target.goal = newVal;
-  if (field === 'scope')            target.scope = newVal;
-
-  try {
-    save();
-  } catch (err) {
-    showToast('Error al guardar. Intenta de nuevo.', 'error');
-    if (field === 'label')           target.label = oldVal;
-    if (field === 'version_target')  target.version_target = oldVal;
-    if (field === 'release_type')    { target.release_type = oldVal; target.releaseType = oldVal; }
-    if (field === 'goal')             target.goal = oldVal;
-    if (field === 'scope')            target.scope = oldVal;
-  }
-
-  _renderSpsActivo();
-}
-
-// ── END T-202606-036 ─────────────────────────────────────────────────────────
-
-// ── T-202606-037: _renderSpsProgramados — lista de Sprints Programados ──────
-
-/**
- * _getProgramadosSprints — filtra sprints con status 'programado', normaliza
- * activationOrder para los que no lo tienen (se les asigna el índice de su
- * posición en el array ordenado, 0-based, y se persiste via save() antes de
- * retornar), y retorna el array ordenado por activationOrder ascendente.
- * Sprints sin activationOrder van al final, en orden de aparición del array.
- */
 function _getProgramadosSprints() {
   const all = getActiveSprints().filter(function(s) { return s.status === 'programado'; });
 
@@ -583,11 +525,6 @@ function _getProgramadosSprints() {
   return withOrder.concat(withoutOrder);
 }
 
-/**
- * Renderiza en #sps-programados la lista de sprints en estado 'programado':
- * fila por sprint con drag handle, ID, label+scope, version_target editable
- * y botón Descartar. Empty state inline si no hay sprints programados.
- */
 function _renderSpsProgramados() {
   const container = document.getElementById('sps-programados');
   if (!container) return;
@@ -595,31 +532,60 @@ function _renderSpsProgramados() {
   const sprints = _getProgramadosSprints();
 
   if (sprints.length === 0) {
-    container.innerHTML = '<div class="sps-scheduled-empty">Sin sprints programados</div>';
+    container.innerHTML =
+      '<span class="sps-section-label">Programados</span>' +
+      '<div class="sps-scheduled-empty">Sin sprints programados</div>';
+    container.removeEventListener('click', _sppHandleClick);
     return;
   }
 
-  container.innerHTML = sprints.map(function(s) {
+  const rows = sprints.map(function(s) {
     const id    = s.id || '';
-    const label = s.label || s.name || '';
-    const vt    = s.version_target || '';
-    const scope = s.scope || '';
-    const nameText  = scope ? (label + ' — ' + scope) : label;
-    const nameClass = 'sps-scheduled-name' + (nameText ? '' : ' sps-meta-value--empty');
-    const vtClass   = 'sps-meta-value' + (vt ? '' : ' sps-meta-value--empty');
+    const label = s.label || s.name || id;
+
+    // Conteo done/total de ítems del sprint programado
+    let total = 0;
+    let done  = 0;
+    let advDone = 0; // ítems ya done en un sprint programado = adelantados
+    if (Array.isArray(getItems())) {
+      const _sid = _spIdBase(id);
+      const spItems = getItems().filter(function(i) {
+        const t = i.type || (i.code ? i.code.charAt(0) : '');
+        return i.sprint && i.sprint.startsWith(_sid) &&
+          (t === 'R' || t === 'B' || t === 'T') &&
+          i.status !== 'descartado';
+      });
+      total   = spItems.length;
+      done    = spItems.filter(function(i) { return i.status === 'done'; }).length;
+      advDone = done; // en sprint programado, todo done es trabajo adelantado
+    }
+    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+    const advClass = advDone > 0 ? 'pill-adv' : 'pill-adv-zero';
+    const advText  = advDone + ' adelantados';
 
     return '<div class="sps-scheduled-row" draggable="false" data-sprint-id="' + _escHtml(id) + '">' +
         '<span class="drag-handle" tabindex="0" role="button" aria-label="Reordenar sprint ' + _escHtml(id) + '"></span>' +
-        '<span class="sps-scheduled-id">' + _escHtml(id) + '</span>' +
-        '<span class="' + nameClass + '" data-spp-edit="label" tabindex="0" role="button" aria-label="Editar nombre del sprint ' + _escHtml(id) + '">' +
-          (nameText ? _escHtml(nameText) : 'Sin declarar') +
-        '</span>' +
-        '<span class="' + vtClass + '" data-spp-edit="version_target" tabindex="0" role="button" aria-label="Editar versión de ' + _escHtml(id) + '">' +
-          (vt ? _escHtml(vt) : 'Sin declarar') +
-        '</span>' +
-        '<button class="sps-btn sps-btn--close" type="button" data-spp-action="descartar" aria-label="Descartar sprint ' + _escHtml(id) + '">Descartar</button>' +
+        '<span class="sps-scheduled-id font-mono">' + _escHtml(id) + '</span>' +
+        '<span class="sps-scheduled-name">' + _escHtml(label) + '</span>' +
+        '<span class="pill-prog">Programado</span>' +
+        '<span class="' + advClass + '">' + advText + '</span>' +
+        '<div class="sps-menu-wrap">' +
+          '<button class="sps-btn-menu" type="button" aria-label="Acciones sprint ' + _escHtml(id) + '" aria-expanded="false" aria-haspopup="true" data-spp-menu>···</button>' +
+          '<div class="sps-dropdown" role="menu" aria-label="Acciones ' + _escHtml(id) + '" hidden>' +
+            '<button class="sps-dropdown-item sps-dropdown-item--danger" role="menuitem" type="button" data-spp-action="descartar">Descartar sprint</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="sps-bd-mini" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="' + _escHtml(id) + ': ' + done + ' de ' + total + ' done">' +
+          '<div class="sps-bd-mini-fill" style="width:' + pct + '%"></div>' +
+        '</div>' +
+        '<span class="sps-scheduled-count">' + done + ' / ' + total + '</span>' +
       '</div>';
   }).join('');
+
+  container.innerHTML =
+    '<span class="sps-section-label">Programados</span>' +
+    '<div class="sps-card">' + rows + '</div>';
 
   container.removeEventListener('click', _sppHandleClick);
   container.addEventListener('click', _sppHandleClick);
@@ -628,17 +594,50 @@ function _renderSpsProgramados() {
 }
 
 function _sppHandleClick(e) {
+  // Toggle menú ···
+  const menuBtn = e.target.closest('[data-spp-menu]');
+  if (menuBtn) {
+    const dropdown = menuBtn.nextElementSibling;
+    if (!dropdown) return;
+    const isOpen = !dropdown.hidden;
+    dropdown.hidden = isOpen;
+    menuBtn.setAttribute('aria-expanded', String(!isOpen));
+    if (!isOpen) {
+      function _closeOnOutside(ev) {
+        if (!menuBtn.closest('.sps-menu-wrap').contains(ev.target)) {
+          dropdown.hidden = true;
+          menuBtn.setAttribute('aria-expanded', 'false');
+          document.removeEventListener('click', _closeOnOutside, true);
+        }
+      }
+      setTimeout(function() {
+        document.addEventListener('click', _closeOnOutside, true);
+      }, 0);
+    }
+    return;
+  }
+
+  // Acción descartar desde menú
   const discardBtn = e.target.closest('[data-spp-action="descartar"]');
   if (discardBtn) {
+    // Cerrar menú
+    const dropdown = discardBtn.closest('.sps-dropdown');
+    if (dropdown) { dropdown.hidden = true; }
+    const menuWrap = discardBtn.closest('.sps-menu-wrap');
+    if (menuWrap) {
+      const btn = menuWrap.querySelector('[data-spp-menu]');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+
     const row = discardBtn.closest('.sps-scheduled-row');
     const id  = row ? row.getAttribute('data-sprint-id') : null;
     const sprint = getActiveSprints().find(function(s) { return s.id === id; });
     if (!sprint) return;
 
-    const label = sprint.label || sprint.name || sprint.id;
+    const labelText = sprint.label || sprint.name || sprint.id;
     _gconfirmOpen({
       title: 'Descartar sprint',
-      msg: 'Se descartará el sprint "' + label + '". Esta acción no se puede deshacer.',
+      msg: 'Se descartará el sprint "' + labelText + '". Esta acción no se puede deshacer.',
       okLabel: 'Descartar',
       danger: true
     }, function() {
@@ -653,87 +652,9 @@ function _sppHandleClick(e) {
     });
     return;
   }
-
-  const editEl = e.target.closest('[data-spp-edit]');
-  if (!editEl) return;
-  const row = editEl.closest('.sps-scheduled-row');
-  const id  = row ? row.getAttribute('data-sprint-id') : null;
-  const sprint = getActiveSprints().find(function(s) { return s.id === id; });
-  if (!sprint) return;
-
-  const field = editEl.getAttribute('data-spp-edit');
-  const currentVal = field === 'label'           ? (sprint.label || sprint.name || '')
-                    : field === 'version_target' ? (sprint.version_target || '')
-                    : '';
-
-  _sppOpenEdit(editEl, field, currentVal, sprint);
 }
 
-function _sppOpenEdit(editEl, field, current, sprint) {
-  editEl.classList.add('is-hidden');
-
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'sps-inline-input';
-  input.value = current;
-  input.setAttribute('aria-label', 'Editar ' + field);
-  editEl.insertAdjacentElement('afterend', input);
-
-  // AC-1/AC-2: suffix estático del scope visible durante edición de label (T-202606-040)
-  var suffix = null;
-  if (field === 'label' && sprint.scope) {
-    suffix = document.createElement('span');
-    suffix.className = 'sps-scheduled-name--suffix';
-    suffix.textContent = ' — ' + sprint.scope;
-    input.insertAdjacentElement('afterend', suffix);
-  }
-
-  input.focus();
-
-  function _cleanup() {
-    input.remove();
-    if (suffix) suffix.remove();
-    editEl.classList.remove('is-hidden');
-  }
-
-  function commit() {
-    const trimmed = input.value.trim();
-    if (!trimmed) {
-      // AC-3: vacío descarta el cambio y restaura el valor anterior — no persiste
-      _cleanup();
-      return;
-    }
-    _sppSaveField(sprint, field, trimmed, current);
-  }
-  function cancel() {
-    _cleanup();
-  }
-
-  input.addEventListener('keydown', function(ev) {
-    if (ev.key === 'Enter')  commit();
-    if (ev.key === 'Escape') cancel();
-  });
-  input.addEventListener('blur', commit);
-}
-
-function _sppSaveField(sprint, field, newVal, oldVal) {
-  const allSprints = getActiveSprints();
-  const target = allSprints.find(function(s) { return s.id === sprint.id; });
-  if (!target) { _renderSpsProgramados(); return; }
-
-  if (field === 'label')          target.label = newVal;
-  if (field === 'version_target') target.version_target = newVal;
-
-  try {
-    save();
-  } catch (err) {
-    showToast('Error al guardar. Intenta de nuevo.', 'error');
-    if (field === 'label')          target.label = oldVal;
-    if (field === 'version_target') target.version_target = oldVal;
-  }
-
-  _renderSpsProgramados();
-}
+// ── END T-202606-037 / T-202606-043 ──────────────────────────────────────────
 
 /**
  * _sppAttachDrag — habilita reordenamiento drag & drop sobre las filas de
@@ -2187,6 +2108,7 @@ function _renderSpsHotfix() {
   const sprintLabel = hotfixSprint ? _escHtml(hotfixSprint.id) : 'S-HOTFIX';
 
   container.innerHTML =
+    '<span class="sps-section-label">Hotfix</span>' +
     '<div class="sps-card sps-card--hotfix">' +
       '<div class="sps-header">' +
         '<span class="sps-title">' + sprintLabel + ' · Sprint persistente</span>' +
@@ -2240,7 +2162,9 @@ function _renderSpsCerrados() {
 
   // AC-2: empty state inline — sección no desaparece
   if (closed.length === 0) {
-    container.innerHTML = '<p class="sps-cerrados-empty">Sin sprints cerrados</p>';
+    container.innerHTML =
+      '<span class="sps-section-label">Cerrados</span>' +
+      '<div class="sps-card"><p class="sps-cerrados-empty">Sin sprints cerrados</p></div>';
     container.removeEventListener('click', _spsCerradosHandleClick);
     _spsCerradosExpanded = null;
     return;
@@ -2295,7 +2219,9 @@ function _renderSpsCerrados() {
     );
   }).join('');
 
-  container.innerHTML = rows;
+  container.innerHTML =
+    '<span class="sps-section-label">Cerrados</span>' +
+    '<div class="sps-card">' + rows + '</div>';
 
   // Event delegation — clic y teclado en headers
   container.removeEventListener('click', _spsCerradosHandleClick);
