@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:31 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:32 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -125,6 +125,7 @@ function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
     _renderSpsActivo(); // T-202606-036
     _renderSpsProgramados(); // T-202606-037
     _renderSpsHotfix(); // T-202606-038
+    _renderSpsCerrados(); // T-202606-039
   }
 }
 
@@ -2151,6 +2152,151 @@ function _spsHotfixHandleKeydown(e) {
   }
 }
 // ── END T-202606-038 T5 ──────────────────────────────────────────────────
+
+// ── T-202606-039: _renderSpsCerrados — lista colapsada de sprints cerrados con retro inline ──
+//
+// Renderiza en #sps-cerrados todos los sprints cerrados ordenados por closedAt desc.
+// Cada fila es colapsable — clic expande retro inline (patrón 0fr→1fr).
+// Exactamente un sprint expandido en todo momento. Clic en fila ya expandida colapsa.
+// Sin ítems: muestra empty state inline — la sección no desaparece.
+// Retro: contenido de sprint.retroDoc (texto plano, solo lectura). Sin retroDoc → 'Retro no disponible'.
+
+let _spsCerradosExpanded = null; // ID del sprint actualmente expandido
+
+function _renderSpsCerrados() {
+  const container = document.getElementById('sps-cerrados');
+  if (!container) return;
+
+  const allSprints = getActiveSprints();
+  const closed = allSprints
+    ? allSprints
+        .filter(s => s.status === 'closed' && !s.isHotfix)
+        .sort((a, b) => (b.closedAt || b.createdAt || 0) - (a.closedAt || a.createdAt || 0))
+    : [];
+
+  // AC-2: empty state inline — sección no desaparece
+  if (closed.length === 0) {
+    container.innerHTML = '<p class="sps-cerrados-empty">Sin sprints cerrados</p>';
+    container.removeEventListener('click', _spsCerradosHandleClick);
+    _spsCerradosExpanded = null;
+    return;
+  }
+
+  // Calcular conteos done/migrado/descartado desde getItems()
+  const rows = closed.map(sprint => {
+    const _sid = _spIdBase(sprint.id);
+    let doneCnt = 0, migradoCnt = 0, descartadoCnt = 0;
+    if (Array.isArray(getItems())) {
+      const spItems = getItems().filter(i => {
+        const t = i.type || (i.code ? i.code.charAt(0) : '');
+        return i.sprint && i.sprint.startsWith(_sid) &&
+          (t === 'R' || t === 'B' || t === 'T');
+      });
+      doneCnt       = spItems.filter(i => i.status === 'done' || i.status === 'historico').length;
+      migradoCnt    = spItems.filter(i => i.status === 'pendiente' || i.status === 'en-revision').length;
+      descartadoCnt = spItems.filter(i => i.status === 'descartado').length;
+    }
+
+    const label = sprint.label || sprint.name || sprint.id || '';
+    const closedDate = sprint.closedAt
+      ? new Date(sprint.closedAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })
+      : '—';
+
+    const isExpanded = _spsCerradosExpanded === sprint.id;
+
+    // Contenido de retro — texto plano, sin inputs
+    const retroContent = sprint.retroDoc
+      ? _escHtml(sprint.retroDoc)
+      : 'Retro no disponible';
+
+    return (
+      '<div class="sps-cerrados-row' + (isExpanded ? ' is-expanded' : '') + '" data-sprint-id="' + _escHtml(sprint.id) + '">' +
+        '<div class="sps-cerrados-header" role="button" tabindex="0" aria-expanded="' + isExpanded + '" aria-controls="sps-cerrados-retro-' + _escHtml(sprint.id) + '">' +
+          '<span class="sps-cerrados-id">' + _escHtml(sprint.id) + '</span>' +
+          '<span class="sps-cerrados-label">' + _escHtml(label) + '</span>' +
+          '<span class="sps-cerrados-date">' + closedDate + '</span>' +
+          '<span class="sps-cerrados-counts">' +
+            '<span class="sps-count-done">' + doneCnt + ' done</span>' +
+            '<span class="sps-count-migrado">' + migradoCnt + ' migrado</span>' +
+            '<span class="sps-count-descartado">' + descartadoCnt + ' desc.</span>' +
+          '</span>' +
+          '<span class="sps-cerrados-chevron" aria-hidden="true">' + (isExpanded ? '▲' : '▼') + '</span>' +
+        '</div>' +
+        '<div class="sps-cerrados-retro" id="sps-cerrados-retro-' + _escHtml(sprint.id) + '" style="display:grid;grid-template-rows:' + (isExpanded ? '1fr' : '0fr') + '">' +
+          '<div class="sps-cerrados-retro-inner" style="overflow:hidden">' +
+            '<pre class="sps-cerrados-retro-body">' + retroContent + '</pre>' +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+
+  container.innerHTML = rows;
+
+  // Event delegation — clic y teclado en headers
+  container.removeEventListener('click', _spsCerradosHandleClick);
+  container.addEventListener('click', _spsCerradosHandleClick);
+  container.removeEventListener('keydown', _spsCerradosHandleKeydown);
+  container.addEventListener('keydown', _spsCerradosHandleKeydown);
+}
+
+function _spsCerradosHandleClick(e) {
+  const header = e.target.closest('.sps-cerrados-header');
+  if (!header) return;
+  const row = header.closest('[data-sprint-id]');
+  if (!row) return;
+  _spsCerradosToggle(row.dataset.sprintId);
+}
+
+function _spsCerradosHandleKeydown(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const header = e.target.closest('.sps-cerrados-header');
+  if (!header) return;
+  const row = header.closest('[data-sprint-id]');
+  if (!row) return;
+  e.preventDefault();
+  _spsCerradosToggle(row.dataset.sprintId);
+}
+
+// AC-3/AC-4: toggle — exactamente un sprint expandido, colapsar anterior antes de expandir nuevo
+function _spsCerradosToggle(sprintId) {
+  const container = document.getElementById('sps-cerrados');
+  if (!container) return;
+
+  const prev = _spsCerradosExpanded;
+  const next = prev === sprintId ? null : sprintId;
+
+  // Colapsar anterior
+  if (prev) {
+    const prevRow = container.querySelector('[data-sprint-id="' + prev + '"]');
+    if (prevRow) {
+      const prevRetro  = prevRow.querySelector('.sps-cerrados-retro');
+      const prevHeader = prevRow.querySelector('.sps-cerrados-header');
+      const prevChevron = prevRow.querySelector('.sps-cerrados-chevron');
+      if (prevRetro)  prevRetro.style.gridTemplateRows = '0fr';
+      if (prevHeader) prevHeader.setAttribute('aria-expanded', 'false');
+      if (prevChevron) prevChevron.textContent = '▼';
+      prevRow.classList.remove('is-expanded');
+    }
+  }
+
+  // Expandir nuevo (si es distinto al anterior)
+  if (next) {
+    const nextRow = container.querySelector('[data-sprint-id="' + next + '"]');
+    if (nextRow) {
+      const nextRetro  = nextRow.querySelector('.sps-cerrados-retro');
+      const nextHeader = nextRow.querySelector('.sps-cerrados-header');
+      const nextChevron = nextRow.querySelector('.sps-cerrados-chevron');
+      if (nextRetro)  nextRetro.style.gridTemplateRows = '1fr';
+      if (nextHeader) nextHeader.setAttribute('aria-expanded', 'true');
+      if (nextChevron) nextChevron.textContent = '▲';
+      nextRow.classList.add('is-expanded');
+    }
+  }
+
+  _spsCerradosExpanded = next;
+}
+// ── END T-202606-039 ─────────────────────────────────────────────────────
 
 // Actualiza visibilidad de botones según estado — llamado desde renderSprintTab
 function _spmUpdateButtons(sprint) {

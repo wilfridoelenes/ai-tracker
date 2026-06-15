@@ -1,4 +1,4 @@
-/* [PP] v0.1.0 · sprint:PP-S-03 · mod:22 · autor:Nova · 2026-06-15 UTC-6 */
+/* [PP] v0.1.0 · sprint:PP-S-03 · mod:23 · autor:Nova · 2026-06-15 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -2127,6 +2127,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+}
+
+/* Suffix estático del scope visible durante edición inline de label (P-202606-006) */
+.sps-scheduled-name--suffix {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  white-space: nowrap;
+  flex-shrink: 0;
+  pointer-events: none;
+  user-select: none;
 }
 
 .sps-scheduled-row:focus-visible {
