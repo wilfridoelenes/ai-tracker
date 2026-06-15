@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:37 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:38 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -2372,8 +2372,9 @@ function _spmUpdateButtons(sprint) {
 
 // ── END R-202605-006 ──────────────────────────────────────────────────────
 
-// ── T-202605-046: Listeners — btn-close-sprint y spt-tab buttons ─────────────
-// Migrado desde index.html — reemplaza onclick inline en #btn-close-sprint y .spt-tab
+// ── T-202605-046: Listeners — spt-tab buttons ─────────────────────────────
+// Migrado desde index.html — reemplaza onclick inline en .spt-tab. Listener de
+// #btn-close-sprint eliminado (B-202606-024) — el elemento fue removido del HTML en T-202606-042
 
 document.addEventListener('DOMContentLoaded', function() {
   // B-202605-050: listener único para botones Ver retro en #sprint-manager-list
@@ -2398,15 +2399,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sprintId) setSprintCurrent(sprintId);
         return;
       }
-    });
-  }
-
-  // Botón cierre sprint
-  const btnClose = document.getElementById('btn-close-sprint');
-  if (btnClose) {
-    btnClose.addEventListener('click', function() {
-      const sp = _getActiveSprint();
-      if (sp) confirmCloseSprint(sp.id);
     });
   }
 
