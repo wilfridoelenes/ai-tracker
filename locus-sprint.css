@@ -633,7 +633,7 @@
   background: var(--surface);
   position: sticky;
   top: 0;
-  z-index: var(--z-sticky);
+  z-index: calc(var(--z-sticky) + 1); /* nav siempre sobre .sph-header en scroll — mismo stacking context, nav gana por z-index explícito */
   flex-shrink: 0;
 }
 
