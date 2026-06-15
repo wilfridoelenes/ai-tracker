@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:41 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:42 · autor:Rune · 2026-06-15 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -169,8 +169,11 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
   if (el.dataset.spsEditing === '1') return;
   el.dataset.spsEditing = '1';
 
-  const original = el.textContent;
-  const isSelect = opts && opts.inputType === 'select';
+  // initialValue: valor editable limpio provisto por el caller — para label es solo
+  // el nombre descriptivo sin prefijo 'ID · '. original queda para guard de no-cambio.
+  const initialValue = (opts && opts.initialValue !== undefined) ? opts.initialValue : el.textContent;
+  const original     = el.textContent;
+  const isSelect     = opts && opts.inputType === 'select';
   let input;
 
   if (isSelect) {
@@ -180,14 +183,14 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
       const opt = document.createElement('option');
       opt.value = o.v;
       opt.textContent = o.t;
-      if (o.v === original || o.t === original) opt.selected = true;
+      if (o.v === initialValue || o.t === initialValue) opt.selected = true;
       input.appendChild(opt);
     });
   } else {
     input = document.createElement('input');
     input.type = 'text';
     input.className = 'sps-field-input';
-    input.value = original === '—' ? '' : original;
+    input.value = initialValue === '—' ? '' : initialValue;
   }
 
   el.style.display = 'none';
@@ -351,6 +354,9 @@ function _spsActivoHandleClick(e) {
 
     if (isTitle) {
       field = 'label';
+      // initialValue: nombre descriptivo sin prefijo 'ID · ' — evita doble prefijo al commit
+      const descriptive = (sprint.label || sprint.id).replace(/^[A-Za-z]+-S-\d+\s*·?\s*/i, '').trim();
+      opts = { initialValue: descriptive || (sprint.label || sprint.id) };
     } else if (metaItem) {
       const label = metaItem.querySelector('.sps-meta-label');
       const labelTxt = label ? label.textContent.trim() : '';
@@ -534,7 +540,10 @@ function _sppHandleClick(e) {
     const row = nameEl.closest('.sps-scheduled-row');
     const sprintId = row ? row.getAttribute('data-sprint-id') : null;
     if (!sprintId) return;
-    _spsFieldEdit(nameEl, sprintId, 'label', function() { _renderSpsProgramados(); });
+    const sp2 = getActiveSprints().find(function(s) { return s.id === sprintId; });
+    const descriptive2 = sp2 ? (sp2.label || sp2.id).replace(/^[A-Za-z]+-S-\d+\s*·?\s*/i, '').trim() : '';
+    _spsFieldEdit(nameEl, sprintId, 'label', function() { _renderSpsProgramados(); },
+      { initialValue: descriptive2 || sprintId });
     return;
   }
 
