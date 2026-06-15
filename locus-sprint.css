@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:19 · autor:Nova · 2026-06-14 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-01 · mod:20 · autor:Nova · 2026-06-15 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -1894,3 +1894,395 @@
 }
 
 /* ── END T-202606-002 / T-202606-003 ── */
+
+/* ══ T-202606-035: Sub-tab Sprints — estados de card activo/pausado/vacío + prefijo sps- ══ */
+/* Todas las clases sps-* viven en locus-sprint.css — sin archivo CSS nuevo (AC-1) */
+
+/* ── sps-card — Card Sprint Activo (AC-2) ──────────────────────────────── */
+
+.sps-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--card-shadow-hover, 0 2px 8px rgba(0,0,0,0.08));
+  transition: border-color var(--trans-fast), background var(--trans-fast);
+}
+
+/* Estado normal: surface base + card-shadow-hover */
+.sps-card--active {
+  background: var(--surface);
+  border-color: var(--border);
+  box-shadow: var(--card-shadow-hover, 0 2px 8px rgba(0,0,0,0.08));
+}
+
+/* Estado pausado: borde --c-medium-border + fondo --c-medium-bg */
+.sps-card--paused {
+  background: var(--c-medium-bg);
+  border-color: var(--c-medium-border);
+  box-shadow: none;
+}
+
+.sps-card--paused .sps-card-title {
+  color: var(--text2);
+}
+
+/* Foco en card interactiva */
+.sps-card:focus-visible {
+  outline: var(--focus-ring, 2px solid var(--accent));
+  outline-offset: 2px;
+}
+
+/* ── sps-card header row ───────────────────────────────────────────────── */
+
+.sps-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sps-card-title {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sps-card-version {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+/* ── sps-empty — Empty state sin sprint activo (AC-2) ─────────────────── */
+/* CTA visible — apunta a openNewSprintInline() o similar */
+
+.sps-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.sps-empty-label {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  font-style: italic;
+}
+
+.sps-empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--accent);
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background var(--trans-fast), color var(--trans-fast);
+}
+
+.sps-empty-cta:hover {
+  background: var(--accent-dim);
+}
+
+.sps-empty-cta:focus-visible {
+  outline: var(--focus-ring, 2px solid var(--accent));
+  outline-offset: 2px;
+}
+
+/* ── sps-hotfix — Card S-HOTFIX (AC-3) ────────────────────────────────── */
+/* Borde --c-critical-border en todos sus estados — nunca colapsable */
+
+.sps-hotfix {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--c-critical-border);
+  background: var(--surface);
+  /* La card completa nunca recibe is-hidden ni colapso — AC-3 */
+}
+
+.sps-hotfix--paused {
+  background: var(--c-medium-bg);
+  /* Borde --c-critical-border se mantiene — AC-3 */
+}
+
+.sps-hotfix-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.sps-hotfix-label {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--c-critical-border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sps-hotfix-count {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  flex-shrink: 0;
+}
+
+/* ── sps-scheduled — Filas Sprints Programados con drag handle (AC-4) ─── */
+/* Drag handle usa clase canónica del sistema (.drag-handle) — no se redeclara aquí.
+   Ver CSS dependencies block al final. */
+
+.sps-scheduled-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: background var(--trans-fast), border-color var(--trans-fast);
+}
+
+.sps-scheduled-row:hover {
+  background: var(--surface2, var(--surface));
+  border-color: var(--border2, var(--border));
+}
+
+/* El drag handle es .drag-handle del sistema — posicionado aquí como primer hijo */
+.sps-scheduled-row > .drag-handle {
+  flex-shrink: 0;
+  cursor: grab;
+  color: var(--hint);
+  touch-action: none;
+}
+
+.sps-scheduled-row > .drag-handle:active {
+  cursor: grabbing;
+}
+
+.sps-scheduled-id {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text2);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.sps-scheduled-name {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sps-scheduled-row:focus-visible {
+  outline: var(--focus-ring, 2px solid var(--accent));
+  outline-offset: 2px;
+}
+
+/* ── sps-closed — Sprints Cerrados colapsable/expandible (AC-5) ─────────── */
+/* Patrón 0fr→Nfr (K-02 de UX-ref): grid-template-rows transition */
+
+.sps-closed-row {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+/* Header — siempre visible (altura mínima con solo título y fecha) */
+.sps-closed-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  user-select: none;
+  transition: background var(--trans-fast);
+}
+
+.sps-closed-header:hover {
+  background: var(--surface2, var(--surface));
+}
+
+.sps-closed-header:focus-visible {
+  outline: var(--focus-ring, 2px solid var(--accent));
+  outline-offset: -2px;
+}
+
+.sps-closed-id {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text2);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.sps-closed-title {
+  flex: 1;
+  font-size: var(--text-sm);
+  color: var(--text2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sps-closed-date {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.sps-closed-toggle {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  transition: transform var(--trans-fast);
+}
+
+/* Arrow rotado cuando colapsado */
+.sps-closed-header[aria-expanded="false"] .sps-closed-toggle {
+  transform: rotate(-90deg);
+}
+
+/* Cuerpo expandible — patrón 0fr→1fr (K-02 UX-ref) */
+.sps-closed-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--trans-medium);
+}
+
+.sps-closed-body.is-open {
+  grid-template-rows: 1fr;
+}
+
+.sps-closed-body-inner {
+  overflow: hidden;
+}
+
+/* Retro inline — visible cuando expanded */
+.sps-closed-retro {
+  padding: 8px 12px 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sps-closed-retro-title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text2);
+}
+
+.sps-closed-retro-body {
+  font-size: var(--text-sm);
+  color: var(--text2);
+  line-height: 1.5;
+}
+
+/* ── reduced motion ─────────────────────────────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .sps-card,
+  .sps-empty-cta,
+  .sps-scheduled-row,
+  .sps-closed-header,
+  .sps-closed-toggle {
+    transition: none;
+  }
+
+  .sps-closed-body {
+    transition: none;
+  }
+}
+
+/*
+CSS dependencies:
+Clases que Rune necesita consumir en T3–T6:
+- .sps-card                  — contenedor card sprint activo
+- .sps-card--active          — estado normal
+- .sps-card--paused          — estado pausado (borde c-medium-border + fondo c-medium-bg)
+- .sps-card-header           — fila header de la card
+- .sps-card-title            — título del sprint
+- .sps-card-version          — versión / version_target
+- .sps-empty                 — empty state sin sprint activo
+- .sps-empty-label           — texto descriptivo del empty state
+- .sps-empty-cta             — botón CTA para abrir sprint
+- .sps-hotfix                — card S-HOTFIX
+- .sps-hotfix--paused        — estado pausado de hotfix (mantiene c-critical-border)
+- .sps-hotfix-header         — header de la card hotfix
+- .sps-hotfix-label          — label del hotfix (color c-critical-border)
+- .sps-hotfix-count          — conteo de Bs en hotfix
+- .sps-scheduled-row         — fila de sprint programado con drag handle
+- .sps-scheduled-id          — ID del sprint (mono)
+- .sps-scheduled-name        — nombre del sprint
+- .sps-closed-row            — fila de sprint cerrado (colapsable)
+- .sps-closed-header         — header siempre visible (aria-expanded)
+- .sps-closed-id             — ID del sprint cerrado
+- .sps-closed-title          — título del sprint cerrado
+- .sps-closed-date           — fecha de cierre
+- .sps-closed-toggle         — indicador arrow (rota con aria-expanded)
+- .sps-closed-body           — contenedor colapsable (grid 0fr→1fr)
+- .sps-closed-body.is-open   — estado expandido
+- .sps-closed-body-inner     — overflow:hidden requerido para el patrón
+- .sps-closed-retro          — contenido de retro inline
+- .sps-closed-retro-title    — encabezado de retro
+- .sps-closed-retro-body     — texto de retro
+
+Variables CSS consumidas (todas deben existir en locus-base.css o equivalent):
+- --surface, --surface2, --surface3
+- --border, --border2
+- --text, --text2, --hint
+- --c-medium-bg, --c-medium-border
+- --c-critical-border
+- --accent, --accent-dim
+- --focus-ring
+- --card-shadow-hover
+- --radius-md, --radius-sm, --radius-pill
+- --text-sm, --text-xs, --text-2xs
+- --trans-fast, --trans-medium
+- --mono
+- --z-sticky
+- --bp-ultrawide
+
+Clase externa consumida (declarada en otro CSS del sistema — no redeclarar aquí):
+- .drag-handle — verificar que locus-backlog.css o locus-layout.css la declaren
+                 antes de integrar sps-scheduled-row en T3
+
+Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
+- locus-sprint.css (este archivo — mod:20)
+*/
+
+/* ══ END T-202606-035 ══ */

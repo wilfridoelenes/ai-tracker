@@ -1,4 +1,4 @@
-<!-- [PP] v0.2.0 · sprint:PP-S-01 · mod:53 · autor:Rune · 2026-06-14 UTC-6 -->
+<!-- [PP] v0.1.0 · sprint:PP-S-03 · mod:54 · autor:Rune · 2026-06-15 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -678,52 +678,14 @@
 
   <!-- Panel Sprints — T-202606-028 -->
   <div id="sprint-panel-sprints" role="tabpanel" aria-labelledby="spt-tab-sprints" class="is-hidden">
-    <!-- Meta del sprint activo — versión, release type, días y scope — R-202606-009 -->
-    <div id="spm-meta-section"></div>
-    <!-- Sección Gestión del sprint — R-202605-006 -->
-    <div class="spm-section is-hidden" id="sprint-mgmt-section" aria-label="Gestión del sprint">
-      <button class="spm-toggle"
-              id="sprint-mgmt-toggle"
-              aria-expanded="false"
-              aria-controls="sprint-mgmt-body">
-        ⚙ Gestión del sprint <span class="spm-toggle-arrow" id="spm-toggle-arrow">▸</span>
-      </button>
-      <div class="spm-body is-hidden" id="sprint-mgmt-body">
-        <!-- AC-2: Registrar y activar — visible cuando sprint no existe en catálogo -->
-        <button class="spm-action is-hidden" id="spm-btn-registrar"
->
-          Registrar y activar
-        </button>
-        <!-- AC-5 (T-202606-038): Crear sprint HOTFIX persistente — visible si no existe aún -->
-        <button class="spm-action is-hidden" id="spm-btn-hotfix"
->
-          Crear sprint HOTFIX
-        </button>
-        <!-- AC-3: Reactivar — visible cuando sprint está cerrado -->
-        <button class="spm-action is-hidden" id="spm-btn-reactivar"
->
-          Reactivar sprint
-        </button>
-        <!-- AC-4: Retro — visible cuando sprint cerrado con retroDoc -->
-        <button class="spm-action is-hidden" id="spm-btn-retro"
->
-          Ver retrospectiva
-        </button>
-        <!-- AC-5: Editar nombre — visible cuando hay sprint activo -->
-        <button class="spm-action is-hidden" id="spm-btn-editar"
->
-          Editar nombre
-        </button>
-        <!-- Área de edición inline — AC-5 -->
-        <div class="spm-edit-area is-hidden" id="spm-edit-area"></div>
-      </div>
-    </div>
-    <!-- /Sección Gestión del sprint — R-202605-006 -->
-    <!-- T-202605-123: Gestor de sprints — lista con progreso, badges y acceso a retro -->
-    <div id="sprint-manager-list" class="sml-list"></div>
-    <!-- END T-202605-123 -->
+    <!-- T-202606-034: 4 secciones canónicas del sub-tab Sprints -->
+    <div id="sps-activo"></div>
+    <div id="sps-programados"></div>
+    <div id="sps-hotfix"></div>
+    <div id="sps-cerrados"></div>
+    <!-- END T-202606-034 -->
   </div>
-  <!-- END Panel Sprints — T-202606-028 -->
+  <!-- END Panel Sprints — T-202606-034 -->
 
   <div id="tab-sprint-empty" class="tab-sprint-empty">
     <div class="empty-icon">🏃</div>
