@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:29 · autor:Nova · 2026-06-14 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:30 · autor:Rune · 2026-06-15 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -427,6 +427,25 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'section-group-toggle') {
       toggleSectionGroup(action.dataset.group);
+      return;
+    }
+    // B-202606-XXX: bl-r-toggle — vista sprints de backlog list (locus-backlog-render.js ~L1173)
+    // T-202606-062 eliminó el handler anterior; el render sigue emitiendo bl-r-toggle + #bl-children-[rCode]
+    if (act === 'bl-r-toggle') {
+      e.stopPropagation();
+      const rCode = action.dataset.rCode;
+      if (!rCode) return;
+      const body = document.getElementById('bl-children-' + CSS.escape(rCode));
+      if (!body) return;
+      const isNowCollapsed = !body.classList.contains('collapsed');
+      body.classList.toggle('collapsed', isNowCollapsed);
+      action.classList.toggle('collapsed', isNowCollapsed);
+      const _collapseKey = 'locus-r-collapsed-' + rCode;
+      if (isNowCollapsed) {
+        localStorage.setItem(_collapseKey, '1');
+      } else {
+        localStorage.removeItem(_collapseKey);
+      }
       return;
     }
   });
