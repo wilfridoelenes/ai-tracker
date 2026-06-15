@@ -2057,16 +2057,18 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
   background: var(--surface);
-  transition: background var(--trans-fast), border-color var(--trans-fast);
+  transition: background var(--trans-fast);
+}
+
+.sps-scheduled-row:last-child {
+  border-bottom: none;
 }
 
 .sps-scheduled-row:hover {
-  background: var(--surface2, var(--surface));
-  border-color: var(--border2, var(--border));
+  background: var(--surface2);
 }
 
 .sps-scheduled-row.is-dragging {
@@ -2102,25 +2104,35 @@
   border-radius: var(--radius-2xs);
 }
 
-/* Empty state inline — mismo patrón que .sml-empty / .spw-empty / .spi-section-empty */
+/* Empty state inline */
 .sps-scheduled-empty {
   font-size: var(--text-sm);
   color: var(--hint);
   font-style: italic;
-  padding: 8px 0;
+  padding: 12px 14px;
 }
 
+/* ID en color info (azul) — diferencia el ID del nombre */
 .sps-scheduled-id {
   font-family: var(--mono);
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--text2);
+  color: var(--blue);
   flex-shrink: 0;
   white-space: nowrap;
+  min-width: 64px;
+}
+
+/* Columna principal — nombre + mini-progreso */
+.sps-scheduled-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
 }
 
 .sps-scheduled-name {
-  flex: 1;
   font-size: var(--text-sm);
   color: var(--text);
   overflow: hidden;
@@ -2139,9 +2151,60 @@
   user-select: none;
 }
 
+/* Mini-barra de progreso — trabajo adelantado */
+.sps-scheduled-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sps-scheduled-mini-bar {
+  width: 72px;
+  height: 3px;
+  background: var(--surface3);
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.sps-scheduled-mini-fill {
+  height: 100%;
+  background: var(--blue);
+  border-radius: var(--radius-pill);
+  transition: width 0.3s var(--ease-out);
+}
+
+.sps-scheduled-progress-count {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  white-space: nowrap;
+}
+
+/* Badge "N adelantados" */
+.sps-scheduled-adelantado {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  color: var(--blue);
+  border: 1px solid color-mix(in srgb, var(--blue) 25%, transparent);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Versión — al extremo derecho */
+.sps-scheduled-vt {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  color: var(--hint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
 .sps-scheduled-row:focus-visible {
   outline: var(--focus-ring, 2px solid var(--accent));
-  outline-offset: 2px;
+  outline-offset: -2px;
 }
 
 /* ── sps-closed — Sprints Cerrados colapsable/expandible (AC-5) ─────────── */
@@ -2327,29 +2390,48 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 /* ══ END T-202606-035 ══ */
 
 
-/* ── T-202606-036: sps-activo — card de sprint activo en sub-tab Sprints ── */
+/* ── T-202606-036 (mejorado): sps-activo — card de sprint activo en sub-tab Sprints ── */
 
+/* ── Section label — encabezado de cada sección del sub-tab Sprints ── */
+.sps-section-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--hint);
+  padding: 0 2px;
+  margin-bottom: 6px;
+}
+
+/* ── Card base ── */
 .sps-card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: var(--space-4) var(--space-4) var(--space-3);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  transition: border-color var(--trans-fast), background var(--trans-fast);
 }
 
 .sps-card--pausado {
-  background: var(--surface2);
-  border-color: var(--hint);
+  background: var(--c-medium-bg);
+  border-color: var(--c-medium-border);
 }
 
-/* Header — ID + label + badge */
+.sps-card--hotfix {
+  border-color: var(--c-critical-border);
+}
+
+/* ── Header — ID + label + badge ── */
 .sps-header {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface2);
 }
 
 .sps-title {
@@ -2360,16 +2442,69 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   border-radius: var(--radius-3xs);
   padding: 1px 2px;
   transition: var(--trans-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
 }
 
 .sps-title:hover {
+  color: var(--accent);
+}
+
+/* ── Meta-grid — versión / release / goal / scope en 2 columnas ── */
+.sps-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sps-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sps-meta-item--full {
+  grid-column: 1 / -1;
+}
+
+.sps-meta-label {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.sps-meta-value {
+  font-size: var(--text-sm);
+  color: var(--text2);
+  cursor: pointer;
+  border-radius: var(--radius-3xs);
+  padding: 1px 2px;
+  transition: var(--trans-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sps-meta-value:hover {
   background: var(--surface2);
+  color: var(--text);
+}
+
+.sps-meta-value--empty {
+  color: var(--hint);
+  font-style: italic;
 }
 
 /* Input inline — label / goal / scope */
 .sps-inline-input {
   font-size: var(--text-sm);
-  font-weight: 600;
   color: var(--text);
   background: var(--surface2);
   border: 1px solid var(--accent);
@@ -2385,52 +2520,17 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   font-weight: 400;
 }
 
-/* Meta — version_target · release_type · goal */
-.sps-meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.sps-meta-item {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--text2);
-}
-
-.sps-meta-label {
-  font-size: var(--text-xs);
-  color: var(--hint);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  min-width: 5rem;
-  flex-shrink: 0;
-}
-
-.sps-meta-value {
-  color: var(--text2);
-  cursor: pointer;
-  border-radius: var(--radius-3xs);
-  padding: 1px 2px;
-  transition: var(--trans-color);
-}
-
-.sps-meta-value:hover {
-  background: var(--surface2);
-  color: var(--text);
-}
-
-/* Burndown */
+/* ── Burndown ── */
 .sps-burndown-wrap {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: 4px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
 }
 
 .sps-burndown-bar {
-  height: 6px;
+  height: 5px;
   background: var(--surface3);
   border-radius: var(--radius-pill);
   overflow: hidden;
@@ -2440,34 +2540,52 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   height: 100%;
   width: var(--sps-burndown-pct, 0%);
   background: var(--accent);
-  border-radius: var(--radius-pill);
   transition: width 0.3s var(--ease-out);
+}
+
+.sps-burndown-fill--complete {
+  background: var(--c-low-text);
 }
 
 .sps-card--pausado .sps-burndown-fill {
   background: var(--hint);
 }
 
+.sps-burndown-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 .sps-burndown-label {
   font-size: var(--text-xs);
   color: var(--hint);
-  text-align: right;
 }
 
-/* Acciones */
+.sps-burndown-pct {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.sps-burndown-pct--complete {
+  color: var(--c-low-text);
+}
+
+/* ── Acciones ── */
 .sps-actions {
   display: flex;
-  gap: var(--space-2);
-  padding-top: var(--space-1);
-  border-top: 0.5px solid var(--border);
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--surface2);
 }
 
 .sps-btn {
   font-size: var(--text-sm);
-  padding: 4px 10px;
+  padding: 4px 12px;
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
-  background: var(--surface2);
+  background: transparent;
   color: var(--text2);
   cursor: pointer;
   transition: var(--trans-color);
@@ -2476,6 +2594,12 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 .sps-btn:hover {
   background: var(--surface3);
   color: var(--text);
+  border-color: var(--border2, var(--border));
+}
+
+.sps-btn:focus-visible {
+  outline: var(--focus-ring, 2px solid var(--accent));
+  outline-offset: 2px;
 }
 
 .sps-btn--close {
@@ -2485,15 +2609,16 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 
 .sps-btn--close:hover {
   background: color-mix(in srgb, var(--red) 10%, transparent);
+  border-color: color-mix(in srgb, var(--red) 45%, transparent);
 }
 
-/* Empty state — sin sprint activo */
+/* ── Empty state — sin sprint activo ── */
 .sps-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-6) var(--space-4);
+  gap: 12px;
+  padding: 32px 24px;
   color: var(--hint);
   font-size: var(--text-sm);
   text-align: center;
@@ -2501,18 +2626,83 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 
 .sps-empty-cta {
   font-size: var(--text-sm);
-  padding: 6px 14px;
+  font-weight: 600;
+  padding: 6px 16px;
   border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface2);
-  color: var(--text2);
+  border: 1.5px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
   cursor: pointer;
   transition: var(--trans-color);
 }
 
 .sps-empty-cta:hover {
-  background: var(--surface3);
+  background: var(--accent-dim);
+}
+
+.sps-empty-cta:focus-visible {
+  outline: var(--focus-ring, 2px solid var(--accent));
+  outline-offset: 2px;
+}
+
+/* ── Hotfix body ── */
+.sps-hotfix-empty {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  font-style: italic;
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.sps-hotfix-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sps-hotfix-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--border);
+  cursor: pointer;
+  transition: background var(--trans-fast);
+}
+
+.sps-hotfix-row:hover {
+  background: var(--surface2);
+}
+
+.sps-hotfix-row:focus-visible {
+  outline: var(--focus-ring, 2px solid var(--accent));
+  outline-offset: -2px;
+}
+
+.sps-hotfix-code {
+  font-family: var(--mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--red);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.sps-hotfix-title {
+  flex: 1;
+  font-size: var(--text-sm);
   color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.sps-hotfix-status {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 /* END T-202606-036 */
