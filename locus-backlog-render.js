@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:14 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-15 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -1012,7 +1012,15 @@ export function renderBacklogList(onRendered) {
     ? getItems().filter(i => i.status === 'descartado' && itemType(i.code) !== 'P' && _matchesQuery(i))
     : [];
   // cerradasItems: P promovida + P descartado — estados terminales de una P
-  const cerradasItems = getItems().filter(i => itemType(i.code) === 'P' && (i.status === 'promovida' || i.status === 'descartado') && _matchesQuery(i));
+  // Gap 2 fix: P descartada solo incluida cuando filtro 'descartado' está activo — consistente con descartadoItems
+  const cerradasItems = getItems().filter(i =>
+    itemType(i.code) === 'P' &&
+    (
+      i.status === 'promovida' ||
+      (i.status === 'descartado' && _getActiveStatuses().has('descartado'))
+    ) &&
+    _matchesQuery(i)
+  );
 
   let html = '';
 
@@ -1293,7 +1301,7 @@ export function renderBacklogList(onRendered) {
   // T-202606-006: sección #sg-done eliminada — done items en posición natural dentro de su sprint
   // via filtro s-done. Ver R-202605-036.
 
-  // T-202604-059: Descartados — colapsados por defecto, visibles solo si filtro activo
+  // T-202604-059: Descartados — solo R/T/B descartados (Ps descartadas van a Cerradas)
   if (descartadoItems.length && _getActiveStatuses().has('descartado')) {
     const discOpen = localStorage.getItem('backlog-discarded-open') === '1';
     html += `<div class="section-group sg-discarded" id="sg-discarded">
@@ -1307,9 +1315,29 @@ export function renderBacklogList(onRendered) {
     html += `</div></div>`;
   }
 
+  // Cerradas — P promovida + P descartado (estados terminales de una P) — noAc path
+  if (cerradasItems.length) {
+    const cerradasOpen = localStorage.getItem('backlog-cerradas-open') === '1';
+    const _promCount  = cerradasItems.filter(i => i.status === 'promovida').length;
+    const _descPCount = cerradasItems.filter(i => i.status === 'descartado').length;
+    const _cerradasTitle = [
+      _promCount  ? `${_promCount} promovida${_promCount !== 1 ? 's' : ''}` : '',
+      _descPCount ? `${_descPCount} descartada${_descPCount !== 1 ? 's' : ''}` : ''
+    ].filter(Boolean).join(' · ');
+    html += `<div class="section-group sg-cerradas" id="sg-cerradas">
+      <div class="section-group-header" data-action="section-group-toggle" data-group="cerradas">
+        <span class="section-group-arrow" id="sgarrow-cerradas">${cerradasOpen ? '▾' : '▸'}</span>
+        <span>Cerradas</span>
+        <span class="section-group-count" title="${_cerradasTitle}">${cerradasItems.length} P${cerradasItems.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div class="section-group-body items-grid${cerradasOpen ? '' : ' collapsed'}" id="sgbody-cerradas">`;
+    cerradasItems.forEach(item => { html += buildBacklogItem(item); });
+    html += `</div></div>`;
+  }
+
   // B-202604-NNN: evaluar empty state sobre pendientes+done+descartados — no solo filtered (pendientes)
   // T-202606-107: empty state diferenciado — backlog vacío real vs filtros ocultan todo
-  const _hasVisible = pendienteItems.length || doneItems.length || (descartadoItems.length && _getActiveStatuses().has('descartado'));
+  const _hasVisible = pendienteItems.length || doneItems.length || (descartadoItems.length && _getActiveStatuses().has('descartado')) || cerradasItems.length;
   if (!_hasVisible) {
     const hasItems = getItems().length > 0;
     const _as = _getActiveStatuses();
@@ -1357,7 +1385,7 @@ export function renderBacklogList(onRendered) {
   const countEl = document.getElementById('search-count');
   if (countEl) {
     if (q) {
-      const total = pendienteItems.length + doneItems.length + descartadoItems.length;
+      const total = pendienteItems.length + doneItems.length + descartadoItems.length + cerradasItems.length;
       countEl.textContent = `${total} resultado${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`;
     } else {
       countEl.textContent = '';
@@ -1380,7 +1408,7 @@ export function renderBacklogList(onRendered) {
     if (sprintFiltered) parts.push(activeSprint.label || activeSprint.id);
     if (_getActiveTypes().size < 4) parts.push([..._getActiveTypes()].join('/'));
     if (_getActivePriorityFilter().size > 0) parts.push('pri:' + [..._getActivePriorityFilter()].join('/'));
-    const scopeCount = (pendienteItems.length + doneItems.length + (descartadoItems.length && _getActiveStatuses().has('descartado') ? descartadoItems.length : 0));
+    const scopeCount = (pendienteItems.length + doneItems.length + (descartadoItems.length && _getActiveStatuses().has('descartado') ? descartadoItems.length : 0) + cerradasItems.length);
     if (parts.length) {
       inp.placeholder = '🔍 Buscando en ' + parts.join(' · ') + ' · ' + scopeCount + ' ítem' + (scopeCount !== 1 ? 's' : '');
     } else {
