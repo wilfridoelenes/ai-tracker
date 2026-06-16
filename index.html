@@ -215,27 +215,8 @@
 
   <div class="tracker-3col" id="tracker-3col">
 
-    <!-- Columna 1: lista de sesiones del Worker seleccionado -->
+    <!-- Columna 1: card del Worker — ingesta de CHECKPOINT -->
     <div class="tracker-col tracker-col--card" id="tracker-col-card">
-
-      <div class="tracker-mini-hist-panel" id="tracker-mini-hist-panel">
-        <div class="tracker-mini-hist-header">
-          <span class="tracker-mini-hist-title" id="tracker-mini-hist-title">Sesiones</span>
-          <span class="tracker-mini-hist-last" id="tracker-mini-hist-last"></span>
-          <span class="tracker-mini-hist-count is-hidden" id="tracker-mini-hist-count"></span>
-        </div>
-        <div class="tracker-mini-hist-list" id="tracker-mini-hist-list">
-          <div class="tracker-mini-hist-empty" id="tracker-mini-hist-empty">
-            <span class="tracker-mini-hist-empty-icon">📋</span>
-            <span>Sin sesiones registradas</span>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Columna 2: card del Worker — ingesta de CHECKPOINT -->
-    <div class="tracker-col tracker-col--hist" id="tracker-col-hist">
 
       <div class="tracker-detail tracker-detail--full" id="tracker-detail">
         <div class="tracker-detail-empty" id="tracker-detail-empty">
@@ -246,6 +227,39 @@
         <div id="tracker-grid-header"></div>
         <div id="grid"></div>
         <div class="log-card" id="log-card"></div>
+      </div>
+
+    </div>
+
+    <!-- Columna 2: checkpoint en curso (sticky) + historial de sesiones (scrolleable) -->
+    <div class="tracker-col tracker-col--hist" id="tracker-col-hist">
+
+      <!-- AC-1: sección checkpoint en curso — sticky arriba, oculta si no hay checkpoint -->
+      <div class="tracker-ckpt-section is-hidden" id="tracker-ckpt-section"></div>
+
+      <!-- AC-1: separador visual entre secciones — solo visible cuando ambas están presentes -->
+      <div class="tracker-col2-divider is-hidden" id="tracker-col2-divider"></div>
+
+      <!-- AC-1/AC-3: historial de sesiones scrolleable -->
+      <div class="tracker-mini-hist" id="tracker-mini-hist">
+        <div class="tracker-mini-hist-panel" id="tracker-mini-hist-panel">
+          <div class="tracker-mini-hist-header">
+            <span class="tracker-mini-hist-title" id="tracker-mini-hist-title">Sesiones</span>
+            <span class="tracker-mini-hist-last" id="tracker-mini-hist-last"></span>
+            <span class="tracker-mini-hist-count is-hidden" id="tracker-mini-hist-count"></span>
+          </div>
+          <div class="tracker-mini-hist-list" id="tracker-mini-hist-list">
+            <div class="tracker-mini-hist-empty" id="tracker-mini-hist-empty">
+              <span class="tracker-mini-hist-empty-icon">📋</span>
+              <span>Sin sesiones registradas</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AC-5: empty state global — visible solo cuando ambas secciones están vacías -->
+      <div class="tracker-col2-empty is-hidden" id="tracker-col2-empty">
+        <span class="tracker-col2-empty-text">Sin actividad con este Worker</span>
       </div>
 
     </div>

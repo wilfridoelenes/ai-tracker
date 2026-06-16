@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:9 · autor:Rune · 2026-06-16 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -256,6 +256,73 @@ function _trackerMiniHistSelect(sessId, aiId) {
 
 // ── END R-202604-078 Fase 2 ──────────────────────────────────────────────
 
+// ── T-202606-050: Col 2 — #tracker-ckpt-section (sticky) + #tracker-mini-hist (scrolleable) ──
+// AC-2: si no hay checkpoint en curso, #tracker-ckpt-section no renderiza
+// AC-3: si no hay sesiones, #tracker-mini-hist muestra empty state centrado
+// AC-4: historial scrolleable independiente, ckpt-section sticky arriba
+// AC-5: si ambas vacías → único empty state global, ninguna sección renderiza
+function _trackerRenderCol2(aiId) {
+  const ckptSection  = document.getElementById('tracker-ckpt-section');
+  const divider      = document.getElementById('tracker-col2-divider');
+  const miniHist     = document.getElementById('tracker-mini-hist');
+  const col2Empty    = document.getElementById('tracker-col2-empty');
+  if (!ckptSection || !miniHist) return;
+
+  // AC-2: determinar si hay checkpoint en curso
+  const currentSess = aiId ? _getCurrentSession(aiId) : null;
+  const hasCkpt = !!currentSess;
+
+  // Determinar si hay sesiones en el historial (excluyendo sesión en curso)
+  const allSessions = getAllSessions();
+  const aiSessions  = aiId ? allSessions.filter(s => s.aiId === aiId) : [];
+  const pastSessions = currentSess
+    ? aiSessions.filter(s => s.id !== currentSess.id)
+    : aiSessions;
+  const _activeProjMH = getActiveProject();
+  const projFilter = _activeProjMH ? _activeProjMH.id : null;
+  const filtered = projFilter ? pastSessions.filter(s => s.projectId === projFilter) : pastSessions;
+  const hasHist = filtered.length > 0;
+
+  // AC-5: ambas vacías → solo empty global, ninguna sección renderiza
+  if (!hasCkpt && !hasHist) {
+    ckptSection.classList.add('is-hidden');
+    divider.classList.add('is-hidden');
+    miniHist.classList.add('is-hidden');
+    col2Empty.classList.remove('is-hidden');
+    return;
+  }
+
+  // Al menos una sección tiene contenido — ocultar empty global
+  col2Empty.classList.add('is-hidden');
+
+  // AC-2: ckpt-section visible solo si hay checkpoint en curso
+  if (hasCkpt) {
+    const existing = ckptSection.querySelector('[id^="current-session-card-"]');
+    if (existing) existing.remove();
+    const csCard = _buildCurrentSessionCard(aiId);
+    if (csCard) {
+      ckptSection.innerHTML = '';
+      ckptSection.appendChild(csCard);
+      requestAnimationFrame(() => csCard.classList.add('cscard-visible'));
+    }
+    ckptSection.classList.remove('is-hidden');
+  } else {
+    ckptSection.classList.add('is-hidden');
+  }
+
+  // AC-1: separador 0.5px visible solo cuando ambas secciones tienen contenido
+  if (hasCkpt && hasHist) {
+    divider.classList.remove('is-hidden');
+  } else {
+    divider.classList.add('is-hidden');
+  }
+
+  // AC-3/AC-4: mini-hist siempre intenta render — _trackerRenderMiniHist maneja empty state
+  miniHist.classList.remove('is-hidden');
+  _trackerRenderMiniHist(aiId);
+}
+// ── END T-202606-050 ─────────────────────────────────────────────────────────
+
 // ── R-202605-116: Card sesión en curso — col 1, debajo del card IA ──────
 // T-202605-082: _getCurrentSession y _getCurrentCheckpoint movidas a locus-storage.js como fuente canónica.
 // Importadas en L19. Disponibles directamente sin typeof guard.
@@ -494,16 +561,9 @@ export function render() {
         }
       }
 
-      // R-202605-116: card sesión en curso — se inserta después del card IA
+      // T-202606-050: csCard va en #tracker-ckpt-section (Col 2) — no en #grid
       const existingCsCard = document.getElementById('current-session-card-' + ai.id);
       if (existingCsCard) existingCsCard.remove();
-      const csCard = (typeof _buildCurrentSessionCard === 'function')
-        ? _buildCurrentSessionCard(ai.id)
-        : null;
-      if (csCard) {
-        grid.appendChild(csCard);
-        requestAnimationFrame(() => csCard.classList.add('cscard-visible'));
-      }
 
       // archived section below card
       const archived = getState().ais.filter(a => a.archived);
@@ -521,14 +581,14 @@ export function render() {
     }
   }
 
+  // T-202606-050: render Col 2 — #tracker-ckpt-section + #tracker-mini-hist + empty global
+  _trackerRenderCol2(_trackerSelectedId);
+  _trackerHistAttachDropTargets();
   updateStats();
   renderStatusBar();
   renderGlobalRadarSidebar();
   if (!_radarSbInited) { _radarSbInited = true; _initRadarSidebarState(); }
   if (typeof renderProjDots === 'function') renderProjDots();
-  // ac-8: renderizar lista de sesiones en Col 1 siempre — sin condicional de vista
-  _trackerRenderMiniHist(_trackerSelectedId);
-  _trackerHistAttachDropTargets();
   // T-202605-447: actualizar banner de sesión sugerida tras cada render
   renderSuggestionBanner();
   // R-202605-008: actualizar checklist de setup tras cada render

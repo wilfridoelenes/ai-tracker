@@ -1,6 +1,6 @@
 /* [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 00:00 UTC-6 */
 /* locus-sesiones.css */
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-03 · mod:3 · autor:Rune · 2026-06-16 UTC-6 */
 
 /* Versión: 2.2 | Última actualización: 2026-05-13 | log-* migrado desde locus-radar.css */
 
@@ -7425,3 +7425,86 @@ body.radar-sb-open .tracker-sidebar {
   transition: width var(--ckpt-duration, 12000ms) linear;
 }
 /* ── END T-202606-035 ─────────────────────────────────────────────────────── */
+
+/* ── T-202606-050: Col 2 layout — #tracker-ckpt-section + #tracker-mini-hist ── */
+
+/* Col 2 es flex-column con overflow:hidden — ckpt-section sticky arriba,
+   tracker-mini-hist absorbe el resto con scroll independiente (AC-4) */
+.tracker-col--hist {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* AC-4: ckpt-section fija arriba — no scrollea con el historial */
+.tracker-ckpt-section {
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* AC-1: separador visual 0.5px entre secciones */
+.tracker-col2-divider {
+  flex-shrink: 0;
+  height: 1px;
+  background: var(--border);
+  opacity: 0.5;
+  margin: 0;
+}
+
+/* AC-4: tracker-mini-hist ocupa el resto — scroll independiente */
+.tracker-mini-hist {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* tracker-mini-hist-panel hereda flex-column y permite scroll en list */
+.tracker-mini-hist .tracker-mini-hist-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* AC-4: la lista scrollea de forma independiente */
+/* AC-3 fix-inline: display:flex + flex-direction:column para que height:100% del empty state propague centrado vertical */
+.tracker-mini-hist .tracker-mini-hist-list {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* AC-3: empty state de mini-hist — centrado verticalmente */
+.tracker-mini-hist .tracker-mini-hist-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 80px;
+  color: var(--hint);
+  font-size: var(--text-sm);
+  text-align: center;
+  gap: 6px;
+}
+
+/* AC-5: empty state global de Col 2 — centrado vertical y horizontal */
+.tracker-col2-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tracker-col2-empty-text {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  text-align: center;
+}
+
+/* ── END T-202606-050 ──────────────────────────────────────────────────────── */
