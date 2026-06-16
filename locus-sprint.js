@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:44 · autor:Rune · 2026-06-15 15:30 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:45 · autor:Rune · 2026-06-15 16:00 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -169,9 +169,11 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
   if (el.dataset.spsEditing === '1') return;
   el.dataset.spsEditing = '1';
 
-  // initialValue: valor editable limpio provisto por el caller — para label es solo
-  // el nombre descriptivo sin prefijo 'ID · '. original queda para guard de no-cambio.
-  const initialValue = (opts && opts.initialValue !== undefined) ? opts.initialValue : el.textContent;
+  // B-202606-030: initialValue calculado internamente desde el modelo — el caller
+  // no pasa initialValue. Fuente única de verdad: getActiveSprints()[sprintId][field].
+  // original queda como fallback de display para guard de no-cambio.
+  const _sp          = getActiveSprints().find(function(s) { return s.id === sprintId; });
+  const initialValue = _sp ? (_sp[field] !== undefined ? String(_sp[field]) : '') : el.textContent;
   const original     = el.textContent;
   const isSelect     = opts && opts.inputType === 'select';
   let input;
@@ -207,9 +209,8 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
     input.remove();
     el.style.display = '';
     delete el.dataset.spsEditing;
-    // B-[tmp:b-guard]: guard usa initialValue como referencia cuando está definido —
-    // evita save() y toast falso cuando el founder blur sin editar el label
-    const _noChangeRef = (opts && opts.initialValue !== undefined) ? initialValue : original;
+    // B-202606-030: initialValue siempre viene del modelo — _noChangeRef usa initialValue directamente
+    const _noChangeRef = initialValue;
     if (newVal && newVal !== _noChangeRef && newVal !== '—') {
       const sp = getActiveSprints().find(function(s) { return s.id === sprintId; });
       if (sp) {
@@ -357,8 +358,8 @@ function _spsActivoHandleClick(e) {
 
     if (isTitle) {
       field = 'label';
-      // B-202606-029: label ya es limpio — sin prefijo ID, sin strip necesario
-      opts = { initialValue: sprint.label || '' };
+      // B-202606-030: initialValue calculado internamente — caller no pasa initialValue
+      opts = {};
     } else if (metaItem) {
       const label = metaItem.querySelector('.sps-meta-label');
       const labelTxt = label ? label.textContent.trim() : '';
@@ -439,7 +440,7 @@ function _spsActivoHandleClick(e) {
 // Empty state 'Sin sprints programados' si no hay programados.
 
 function _getProgramadosSprints() {
-  const all = getActiveSprints().filter(function(s) { return s.status === 'programado'; });
+  const all = getActiveSprints().filter(function(s) { return s.status === 'scheduled'; });
 
   const withOrder    = all.filter(function(s) { return typeof s.activationOrder === 'number'; });
   const withoutOrder = all.filter(function(s) { return typeof s.activationOrder !== 'number'; });
@@ -542,11 +543,8 @@ function _sppHandleClick(e) {
     const row = nameEl.closest('.sps-scheduled-row');
     const sprintId = row ? row.getAttribute('data-sprint-id') : null;
     if (!sprintId) return;
-    const sp2 = getActiveSprints().find(function(s) { return s.id === sprintId; });
-    // B-202606-029: label ya es limpio — sin prefijo ID, sin strip necesario
-    const descriptive2 = sp2 ? (sp2.label || '') : '';
-    _spsFieldEdit(nameEl, sprintId, 'label', function() { _renderSpsProgramados(); },
-      { initialValue: descriptive2 });
+    // B-202606-030: initialValue calculado internamente — caller no pasa initialValue ni descriptive2
+    _spsFieldEdit(nameEl, sprintId, 'label', function() { _renderSpsProgramados(); }, {});
     return;
   }
 
@@ -602,7 +600,7 @@ function _sppHandleClick(e) {
         save();
       } catch (err) {
         showToast('error', 'Error al guardar. Intenta de nuevo.');
-        sprint.status = 'programado';
+        sprint.status = 'scheduled';
       }
       _renderSpsProgramados();
     });
@@ -1217,11 +1215,11 @@ function _renderSprintSummaryTable(allSprints) {
   const rows = ordered.map(sprint => {
     // AC-2b T-202606-002: badge multi-status — programado y pausado tienen clases propias
     const statusBadgeCls = sprint.status === 'active'     ? 'sprint-badge-active'
-                         : sprint.status === 'programado' ? 'sprint-badge-programado'
+                         : sprint.status === 'scheduled'  ? 'sprint-badge-programado'
                          : sprint.status === 'pausado'    ? 'sprint-badge-paused'
                          :                                  'sprint-badge-closed';
     const statusTxt      = sprint.status === 'active'     ? 'Activo'
-                         : sprint.status === 'programado' ? 'Programado'
+                         : sprint.status === 'scheduled'  ? 'Programado'
                          : sprint.status === 'pausado'    ? 'Pausado'
                          :                                  'Cerrado';
 
