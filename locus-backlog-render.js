@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-15 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -673,7 +673,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, c
       <div class="section-group-header" data-action="section-group-toggle" data-group="cerradas">
         <span class="section-group-arrow" id="sgarrow-cerradas">${cerradasOpen ? '▾' : '▸'}</span>
         <span>Cerradas</span>
-        <span class="section-group-count" title="${_cerradasTitle}">${cerradasItems.length} P${cerradasItems.length !== 1 ? 's' : ''}</span>
+        <span class="section-group-count" title="${_cerradasTitle}">${cerradasItems.length} ítem${cerradasItems.length !== 1 ? 's' : ''}</span>
       </div>
       <div class="section-group-body items-grid${cerradasOpen ? '' : ' collapsed'}" id="sgbody-cerradas">`;
     cerradasItems.forEach(item => { html += buildBacklogItem(item); });
@@ -1328,7 +1328,7 @@ export function renderBacklogList(onRendered) {
       <div class="section-group-header" data-action="section-group-toggle" data-group="cerradas">
         <span class="section-group-arrow" id="sgarrow-cerradas">${cerradasOpen ? '▾' : '▸'}</span>
         <span>Cerradas</span>
-        <span class="section-group-count" title="${_cerradasTitle}">${cerradasItems.length} P${cerradasItems.length !== 1 ? 's' : ''}</span>
+        <span class="section-group-count" title="${_cerradasTitle}">${cerradasItems.length} ítem${cerradasItems.length !== 1 ? 's' : ''}</span>
       </div>
       <div class="section-group-body items-grid${cerradasOpen ? '' : ' collapsed'}" id="sgbody-cerradas">`;
     cerradasItems.forEach(item => { html += buildBacklogItem(item); });
