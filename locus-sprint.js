@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:43 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:44 · autor:Rune · 2026-06-15 15:30 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -213,9 +213,9 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
     if (newVal && newVal !== _noChangeRef && newVal !== '—') {
       const sp = getActiveSprints().find(function(s) { return s.id === sprintId; });
       if (sp) {
-        // label: reconstruir canónico 'ID · Nombre descriptivo' — patrón de confirmEditSprint
+        // B-202606-029: label NO concatena el ID — id y label son campos separados (BR-Ecosystem §5)
         if (field === 'label') {
-          sp.label = sprintId + ' · ' + newVal;
+          sp.label = newVal;
         } else {
           sp[field] = newVal;
         }
@@ -275,7 +275,7 @@ function _renderSpsActivo() {
   }
 
   const id    = sprint.id || '';
-  const label = sprint.label || sprint.name || '';
+  const label = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name ? `${sprint.id} · ${sprint.name}` : sprint.id);
   const vt    = sprint.version_target || '—';
   const rt    = sprint.release_type || sprint.releaseType || '—';
   const goal  = sprint.goal || '—';
@@ -357,9 +357,8 @@ function _spsActivoHandleClick(e) {
 
     if (isTitle) {
       field = 'label';
-      // initialValue: nombre descriptivo sin prefijo 'ID · ' — evita doble prefijo al commit
-      const descriptive = (sprint.label || sprint.id).replace(/^[A-Za-z]+-S-\d+\s*·?\s*/i, '').trim();
-      opts = { initialValue: descriptive || (sprint.label || sprint.id) };
+      // B-202606-029: label ya es limpio — sin prefijo ID, sin strip necesario
+      opts = { initialValue: sprint.label || '' };
     } else if (metaItem) {
       const label = metaItem.querySelector('.sps-meta-label');
       const labelTxt = label ? label.textContent.trim() : '';
@@ -476,7 +475,7 @@ function _renderSpsProgramados() {
 
   const rows = sprints.map(function(s) {
     const id    = s.id || '';
-    const label = s.label || s.name || id;
+    const label = s.label ? `${id} · ${s.label}` : (s.name ? `${id} · ${s.name}` : id);
 
     // Conteo done/total de ítems del sprint programado
     let total = 0;
@@ -544,9 +543,10 @@ function _sppHandleClick(e) {
     const sprintId = row ? row.getAttribute('data-sprint-id') : null;
     if (!sprintId) return;
     const sp2 = getActiveSprints().find(function(s) { return s.id === sprintId; });
-    const descriptive2 = sp2 ? (sp2.label || sp2.id).replace(/^[A-Za-z]+-S-\d+\s*·?\s*/i, '').trim() : '';
+    // B-202606-029: label ya es limpio — sin prefijo ID, sin strip necesario
+    const descriptive2 = sp2 ? (sp2.label || '') : '';
     _spsFieldEdit(nameEl, sprintId, 'label', function() { _renderSpsProgramados(); },
-      { initialValue: descriptive2 || sprintId });
+      { initialValue: descriptive2 });
     return;
   }
 
@@ -590,7 +590,7 @@ function _sppHandleClick(e) {
     const sprint = getActiveSprints().find(function(s) { return s.id === id; });
     if (!sprint) return;
 
-    const labelText = sprint.label || sprint.name || sprint.id;
+    const labelText = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name || sprint.id);
     _gconfirmOpen({
       title: 'Descartar sprint',
       msg: 'Se descartará el sprint "' + labelText + '". Esta acción no se puede deshacer.',
@@ -987,7 +987,7 @@ function _renderPlannedSprints() {
   keys.forEach(sprintId => {
     const items  = plannedMap[sprintId];
     const spObj  = allSprints.find(s => s.id === sprintId);
-    const label  = spObj ? (spObj.label || sprintId) : sprintId;
+    const label  = spObj ? (spObj.label ? `${spObj.id} · ${spObj.label}` : spObj.id) : sprintId;
     const countR = items.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'R').length;
     const countT = items.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'T').length;
     const countB = items.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'B').length;
@@ -1079,7 +1079,7 @@ function _renderSprintManager() {
     const isClosed    = !isActive && !isScheduled;
     const isFullDone = isClosed && pct === 100;
 
-    const label     = sprint.label || sprint.name || sprint.id || '';
+    const label     = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name ? `${sprint.id} · ${sprint.name}` : sprint.id);
     // B-202606-019: status 'scheduled' recibe label y clase propios — no colapsado en 'Cerrado'.
     const statusCls = isActive    ? 'sml-badge--active'
                     : isScheduled ? 'sml-badge--scheduled'
@@ -1250,7 +1250,7 @@ function _renderSprintSummaryTable(allSprints) {
     return `<div class="ssm-row" data-sprint-id="${_escHtml(sprint.id)}">
   <div class="ssm-row-top">
     <span class="ssm-row-id">${_escHtml(sprint.id)}</span>
-    <span class="ssm-row-name">${_escHtml((sprint.label || sprint.name || sprint.id).replace(/^[A-Za-z]+-S-\d+\s*·?\s*/i, ''))}</span>
+    <span class="ssm-row-name">${_escHtml(sprint.label || sprint.name || '')}</span>
     <span class="ssm-badge ${statusBadgeCls}">${statusTxt}</span>
     <span class="ssm-counts">${countsHtml}</span>
     <span class="ssm-effort">effort ${effort}</span>
@@ -1293,7 +1293,7 @@ function _renderConflictBanner() {
     const d = new Date(ts);
     return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   }
-  const items = conflicts.map(s => `${s.label || s.name || s.id} · abierto ${_fmtDate(s.startedAt)}`).join('<br>');
+  const items = conflicts.map(s => `${s.label ? `${s.id} · ${s.label}` : (s.name || s.id)} · abierto ${_fmtDate(s.startedAt)}`).join('<br>');
   const count = conflicts.length;
   banner.innerHTML = `
     <span class="scb-icon">⚠</span>
@@ -1392,7 +1392,7 @@ export function renderSprintTab() {
     const pillEl    = _spEl('sph-release-pill');
     const daysEl    = _spEl('sph-days');
 
-    if (nameEl)    nameEl.textContent    = sprint.label || sprint.name || sprint.id || '';
+    if (nameEl)    nameEl.textContent    = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name || sprint.id || '');
     if (versionEl) versionEl.textContent = sprint.version_target ? `v${sprint.version_target}` : '';
     if (pillEl) {
       const rt = sprint.release_type || sprint.releaseType || 'Minor';
@@ -1511,7 +1511,7 @@ function _spmRegistrar() {
     {
       _gconfirmOpen({
         title: 'Cerrar sprint actual',
-        msg: `Se cerrará "${activeSprint.label || activeSprint.id}" y se activará "${sprintId}". ¿Confirmar?`,
+        msg: `Se cerrará "${activeSprint.label ? `${activeSprint.id} · ${activeSprint.label}` : activeSprint.id}" y se activará "${sprintId}". ¿Confirmar?`,
         okLabel: 'Cerrar sprint actual y activar el nuevo',
         danger: true
       }, () => {
@@ -1542,7 +1542,7 @@ function _spmReactivar() {
     // AC-4: mostrar diálogo con ambos nombres antes de ejecutar
     _gconfirmOpen({
       title: 'Reactivar sprint',
-      msg: `Cerrar “${activoDistinto.label || activoDistinto.id}” y activar “${sprint.label || sprint.id}”`,
+      msg: `Cerrar "${activoDistinto.label ? `${activoDistinto.id} · ${activoDistinto.label}` : activoDistinto.id}" y activar "${sprint.label ? `${sprint.id} · ${sprint.label}` : sprint.id}"`,
       okLabel: 'Confirmar',
       danger: false
     }, () => {
@@ -1617,7 +1617,7 @@ function _spmPickerOpen(closedSprints) {
           data-sprint-id="${sp.id}"
           data-sprint-idx="${idx}"
           aria-selected="false">
-      <span class="spm-picker-item-label">${sp.label || sp.id}</span>
+      <span class="spm-picker-item-label">${sp.label ? `${sp.id} · ${sp.label}` : sp.id}</span>
     </div>`
   ).join('');
 
@@ -1793,7 +1793,7 @@ function _renderSpsPausados() {
   container.style.display = '';
 
   const cards = paused.map(function(s) {
-    const label = s.label || s.name || s.id || '';
+    const label = s.label ? `${s.id} · ${s.label}` : (s.name ? `${s.id} · ${s.name}` : s.id);
     const pausedDate = s.pausedAt || s.createdAt
       ? new Date(s.pausedAt || s.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })
       : '—';
@@ -1938,7 +1938,7 @@ function _renderSpsCerrados() {
       descartadoCnt = spItems.filter(i => i.status === 'descartado').length;
     }
 
-    const label = sprint.label || sprint.name || sprint.id || '';
+    const label = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name ? `${sprint.id} · ${sprint.name}` : sprint.id);
     const closedDate = sprint.closedAt
       ? new Date(sprint.closedAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })
       : '—';
