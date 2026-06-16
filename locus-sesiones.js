@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:9 · autor:Rune · 2026-06-16 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:10 · autor:Rune · 2026-06-16 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -163,32 +163,53 @@ function _trackerRenderMiniHist(aiId) {
   // sesión en curso — para marcar in-progress
   const _inProgressSess = _getCurrentSession(aiId);
 
+  // T-202606-051: _renderRow — 4 líneas por fila según AC
   const _renderRow = (s, group) => {
-    const proj     = s.projectId ? (_sesSPCallbacks.getProjectById || (() => undefined))(s.projectId) : null;
     const isActive = s.id === _trackerHistSelectedSessId;
     const isInProg = _inProgressSess && s.id === _inProgressSess.id;
 
-    // badge de ítems vinculados
-    const linkedItems = projTracker.items.filter(x => x.sessionId === s.id);
-    const badgeHtml = linkedItems.length
-      ? `<span class="sess-items-badge">${linkedItems.length}</span>`
+    // AC línea 1: título font-weight:500 truncado 1 línea
+    const titleHtml = `<div class="mh-row-title" title="${esc(s.title)}">${esc(s.title)}</div>`;
+
+    // AC línea 2: summary truncado a 2 líneas — omitido si vacío
+    const summaryHtml = s.summary
+      ? `<div class="mh-row-summary">${esc(s.summary)}</div>`
       : '';
 
-    // pill de proyecto
-    const projPill = proj
-      ? `<span class="sess-proj-pill">${esc(proj.name || proj.icon || '📁')}</span>`
+    // AC línea 3: pill de rol + timestamp relativo + refs coloreadas por tipo
+    const rolHtml = s.rol
+      ? `<span class="mh-row-rol">${esc(s.rol)}</span>`
+      : '';
+    const fixedTs = _sessFixedTs(s, group);
+    const tsHtml  = fixedTs ? `<span class="mh-row-ts">${fixedTs}</span>` : '';
+
+    // refs coloreadas — máx 3 visibles + indicador +N
+    const refs = s.trackerRefs || [];
+    const visibleRefs = refs.slice(0, 3);
+    const extraCount  = refs.length - visibleRefs.length;
+    const refTagsHtml = visibleRefs.map(code => {
+      const t = (code[0] || '').toUpperCase();
+      const typeClass = t === 'T' ? 'mh-ref-tag--t'
+                      : t === 'R' ? 'mh-ref-tag--r'
+                      : t === 'B' ? 'mh-ref-tag--b'
+                      : '';
+      return `<span class="mh-ref-tag ${typeClass}">${esc(code)}</span>`;
+    }).join('');
+    const refMoreHtml = extraCount > 0
+      ? `<span class="mh-ref-more">+${extraCount}</span>`
+      : '';
+    const refsHtml = (refTagsHtml || refMoreHtml)
+      ? `<span class="mh-row-refs">${refTagsHtml}${refMoreHtml}</span>`
       : '';
 
-    // hora fija por grupo — no relativa
-    const fixedTs  = _sessFixedTs(s, group);
-    const tsHtml   = fixedTs ? `<span class="sess-timestamp">${fixedTs}</span>` : '';
+    const metaHtml = (rolHtml || tsHtml || refsHtml)
+      ? `<div class="mh-row-meta">${rolHtml}${tsHtml}${refsHtml}</div>`
+      : '';
 
-    // separador meta (·) solo si hay proyecto Y hay timestamp
-    const metaSep = (proj && fixedTs) ? `<span class="sess-meta-sep">·</span>` : '';
-
-    // indicadores secundarios
-    const starInd   = s.starred  ? `<span class="tracker-mini-hist-ind" title="Destacada">⭐</span>` : '';
-    const reviewInd = s.inReview ? `<span class="tracker-mini-hist-ind" title="En revisión">🔍</span>` : '';
+    // AC línea 4: decision con prefijo → truncado 1 línea — omitido si vacío
+    const decisionHtml = s.decision
+      ? `<div class="mh-row-decision"><span class="mh-row-decision-prefix">→</span><span class="mh-row-decision-text">${esc(s.decision)}</span></div>`
+      : '';
 
     const rowCls = [
       'tracker-mini-hist-row',
@@ -201,16 +222,13 @@ function _trackerRenderMiniHist(aiId) {
         data-sess-id="${s.id}"
         data-ai-id="${s.aiId}"
         data-action="mini-hist-select">
-      <div class="sess-row-top">
-        <span class="sess-row-title" title="${esc(s.title)}">${esc(s.title)}</span>
-        ${badgeHtml}
-      </div>
-      <div class="sess-row-bottom">
-        ${projPill}${metaSep}${tsHtml}
-        ${starInd}${reviewInd}
-      </div>
+      ${titleHtml}
+      ${summaryHtml}
+      ${metaHtml}
+      ${decisionHtml}
     </div>`;
   };
+  // ── END T-202606-051 ──
 
   listEl.innerHTML = _groupOrder
     .filter(g => _grouped[g].length > 0)

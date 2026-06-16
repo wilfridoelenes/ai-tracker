@@ -1,6 +1,6 @@
 /* [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 00:00 UTC-6 */
 /* locus-sesiones.css */
-/* [PP] v0.2.0 · sprint:PP-S-03 · mod:3 · autor:Rune · 2026-06-16 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-03 · mod:6 · autor:Nova · 2026-06-16 UTC-6 */
 
 /* Versión: 2.2 | Última actualización: 2026-05-13 | log-* migrado desde locus-radar.css */
 
@@ -7508,3 +7508,153 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 /* ── END T-202606-050 ──────────────────────────────────────────────────────── */
+
+/* ── T-202606-051: filas mini-hist — 4 líneas ─────────────────────────────── */
+
+/* Línea 1: título — font-weight:500, truncado 1 línea */
+.mh-row-title {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+/* Línea 2: summary — 2 líneas con line-clamp, omitida si vacía */
+/* nova-fix: fallback display:block antes de display:-webkit-box — en navegadores
+   sin soporte de -webkit-box el valor inválido se ignora y queda block, evitando
+   desborde sin límite. Con soporte, -webkit-box sobreescribe a block normalmente. */
+.mh-row-summary {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  line-height: 1.5;
+  display: block;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-top: 2px;
+}
+
+/* Línea 3: meta — rol + timestamp + refs */
+.mh-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+  min-height: 18px;
+}
+
+/* Pill de rol */
+.mh-row-rol {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--hint);
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 1px 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Timestamp relativo */
+.mh-row-ts {
+  font-size: var(--text-2xs-plus);
+  color: var(--hint);
+  font-family: var(--font-mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* Contenedor de refs */
+.mh-row-refs {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+/* Tag de ref — base */
+.mh-ref-tag {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  font-family: var(--font-mono);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  background: var(--surface3);
+  color: var(--hint);
+}
+
+/* T = azul */
+.mh-ref-tag--t {
+  background: rgb(56 189 248 / 12%);
+  color: rgb(56 189 248);
+  border-color: rgb(56 189 248 / 30%);
+}
+
+/* R = verde */
+.mh-ref-tag--r {
+  background: rgb(46 204 120 / 12%);
+  color: rgb(46 204 120);
+  border-color: rgb(46 204 120 / 30%);
+}
+
+/* B = rojo */
+.mh-ref-tag--b {
+  background: rgb(232 85 85 / 12%);
+  color: rgb(232 85 85);
+  border-color: rgb(232 85 85 / 30%);
+}
+
+/* Indicador +N — mismo estilo base, sin color de tipo */
+.mh-ref-more {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  font-family: var(--font-mono);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface3);
+  color: var(--hint);
+  white-space: nowrap;
+  cursor: default;
+  user-select: none;
+}
+
+/* Línea 4: decision — prefijo → + texto truncado 1 línea */
+/* finn-inline-fix: text-overflow:ellipsis requiere display:block en el contenedor —
+   display:flex no propaga ellipsis al texto hijo. Solución: contenedor flex wrapping
+   + texto hijo con overflow:hidden + text-overflow:ellipsis. */
+.mh-row-decision {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: var(--text-xs);
+  color: var(--text2);
+  margin-top: 3px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mh-row-decision-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.mh-row-decision-prefix {
+  color: var(--accent);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ── END T-202606-051 ──────────────────────────────────────────────────────── */
