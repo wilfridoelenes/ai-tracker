@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:34 · autor:Nova · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:35 · autor:Rune · 2026-06-15 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1020,7 +1020,16 @@ export function buildBacklogItem(item) {
   const _statusChipHtml = (!isDone && !isDiscarded && !isIdea)
     ? `<button class="bitem-status-chip bitem-status-chip--${esc(item.status || 'pendiente')}" data-action="open-status-popover" data-code="${esc(item.code)}" title="Cambiar status" type="button">${statusLabel(item.status || 'pendiente')}</button>`
     : '';
-  const headerRight = isDiscarded
+  // Cerradas: P promovida muestra badge en lugar de quick actions o ícono descartado
+  const _isPPromovida = isIdea && item.status === 'promovida';
+  const _pPromovidaRef = _isPPromovida && item.promovida_a ? item.promovida_a : null;
+  const _pPromovidaBadge = _isPPromovida
+    ? `<span class="item-p-badge item-p-badge--promovida" title="Idea promovida${_pPromovidaRef ? ' a ' + _pPromovidaRef : ''}">↗ promovida${_pPromovidaRef ? '<span class="item-p-badge-ref"> ' + esc(_pPromovidaRef) + '</span>' : ''}</span>`
+    : '';
+
+  const headerRight = _isPPromovida
+    ? `<div class="bitem-header-right">${_pPromovidaBadge}</div>`
+    : isDiscarded
     ? `<span class="bitem-discarded-icon">🗑</span>`
     : isDone
       ? `<span class="bitem-done-check">✓</span>`
@@ -1059,11 +1068,13 @@ export function buildBacklogItem(item) {
 
   // R-202605-098: isPromoted — P descartado por promoción (tiene discardRef)
   const isPromoted = isIdea && isDiscarded && !!item.discardRef;
+  // Cerradas: P en estado terminal (promovida o descartado)
+  const _isPTerminal = isIdea && (_isPPromovida || isDiscarded);
   const isBloqueado = item.status === 'bloqueado';
   // R-202605-165: .blf-hidden colapsa ítems fuera del Top-10 con transición 150ms ease-out
   const _blfHiddenClass = item._blfHidden ? ' blf-hidden' : '';
   const _blfAriaHidden  = item._blfHidden ? ' aria-hidden="true"' : '';
-  return `<div class="item bitem${isDone ? ' is-done' : ''}${isDiscarded ? ' is-discarded' : ''}${isBloqueado ? ' is-bloqueado' : ''}${isActive ? ' bitem--active' : ''}${isIdea ? ' bitem--idea' : ''}${isPromoted ? ' bitem--promoted' : ''}${_isDepBlocked ? ' bitem--dep-blocked' : ''}${_blfHiddenClass}" data-type="${type}" data-code="${esc(item.code)}"${_blfAriaHidden}>
+  return `<div class="item bitem${isDone ? ' is-done' : ''}${isDiscarded ? ' is-discarded' : ''}${isBloqueado ? ' is-bloqueado' : ''}${isActive ? ' bitem--active' : ''}${isIdea ? ' bitem--idea' : ''}${isPromoted ? ' bitem--promoted' : ''}${_isPTerminal ? ' bl-p-terminal' : ''}${_isDepBlocked ? ' bitem--dep-blocked' : ''}${_blfHiddenClass}" data-type="${type}" data-code="${esc(item.code)}"${_blfAriaHidden}>
     <div class="item-header bitem-header" data-action="item-expand" data-idx="${globalIdx}">
       ${(!isDone && !isDiscarded && item.sprint) ? `<span class="item-drag-handle" data-action="drag-handle" title="Arrastrar para reordenar en sprint">⠿</span>` : ''}
       ${isActive ? '<span class="bitem-activity-dot" title="Actividad reciente — sesión vinculada en los últimos 7 días"></span>' : ''}
@@ -1210,7 +1221,7 @@ export function buildBacklogItem(item) {
       ${_buildItemMentionedIn(item)}
       <div class="bitem-footer">
         ${isHistorico ? '' : `<button data-action="bitem-edit" data-code="${esc(item.code)}" class="bitem-edit-btn" title="Editar ítem">✎ Editar</button>`}
-        ${(!isHistorico && isIdea && !isDone && !isDiscarded) ? `<button data-action="bitem-promote" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Promover esta posibilidad a Ticket o Requerimiento">⬆ Promover</button>` : ''}
+        ${(!isHistorico && isIdea && !isDone && !isDiscarded && !_isPPromovida) ? `<button data-action="bitem-promote" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Promover esta posibilidad a Ticket o Requerimiento">⬆ Promover</button>` : ''}
         ${(!isHistorico && type === 'T' && !isDone && !isDiscarded) ? `<button data-action="bitem-promote-ttor" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Promover Ticket a Requerimiento">⬆ → R</button>` : ''}
         ${(!isHistorico && !isDone && !isDiscarded) ? `<button data-action="bitem-migrate" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Mover item a otro proyecto">&#x21C4; Mover</button>` : ''}
       </div>
