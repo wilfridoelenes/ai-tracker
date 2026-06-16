@@ -1,9 +1,9 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:17 · autor:Rune · 2026-06-16 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
 import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getBacklogBlockerFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation
 
@@ -813,8 +813,6 @@ export function renderBacklogList(onRendered) {
     // Sin AC y bloqueados
     const noAcBtn = document.getElementById('fbar-no-ac-btn');
     if (noAcBtn) noAcBtn.classList.toggle('active', _getBacklogNoAcMode());
-    const blockerBtn = document.getElementById('fbar-blocker-btn');
-    if (blockerBtn) blockerBtn.classList.toggle('active', _getBacklogBlockerFilter());
     // T-202606-062: bloque fbar-sprint-btn eliminado — _backlogSprintGroupMode ya no existe
   })();
 
@@ -924,11 +922,6 @@ export function renderBacklogList(onRendered) {
   // T-202604-363: Sin AC — solo pendientes sin criterios de aceptación
   if (_getBacklogNoAcMode()) {
     filtered = filtered.filter(i => i.status === 'pendiente' && (!i.ac || !i.ac.length));
-  }
-
-  // R-[tmp:toolbar-backlog-redesign]: solo bloqueados — pendiente con sprint asignado sin cambio >14 días
-  if (_getBacklogBlockerFilter()) {
-    filtered = filtered.filter(i => _isBlocked(i));
   }
 
   // T-202605-449: filtro por dependencias explícitas bloqueantes

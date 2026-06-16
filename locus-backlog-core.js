@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:22 · autor:Nova · 2026-06-14 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:23 · autor:Rune · 2026-06-16 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -317,15 +317,6 @@ export function toggleShowChildren(checked) {
     });
   }
   try { localStorage.setItem('backlog-show-children', checked ? '1' : '0'); } catch {}
-}
-
-// R-[tmp:toolbar-backlog-redesign]: filtro bloqueados — volátil
-let _backlogBlockerFilter = false;
-function toggleBacklogBlockerFilter() {
-  _backlogBlockerFilter = !_backlogBlockerFilter;
-  const btn = document.getElementById('fbar-blocker-btn');
-  if (btn) btn.classList.toggle('active', _backlogBlockerFilter);
-  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 // T-202605-449: filtro por ítems con dependencias bloqueantes activas
@@ -1706,7 +1697,6 @@ export function renderStats() {
       } else if (act === 'stats-effort-filter') {
         toggleEffortFilter(parseInt(btn.dataset.effort, 10));
       } else if (act === 'stats-effort-missing') {
-        toggleBacklogBlockerFilter();
         toggleEffortFilter(0);
       } else if (act === 'stats-role-filter') {
         toggleRoleFilter(btn.dataset.role);
@@ -2196,7 +2186,6 @@ export function _getActiveStatuses()         { return activeStatuses; }
 export function _getActiveEfforts()          { return activeEfforts; }
 export function _getActiveRoleFilter()       { return activeRoleFilter; }
 export function _getActivePriorityFilter()   { return activePriorityFilter; }
-export function _getBacklogBlockerFilter()   { return _backlogBlockerFilter; }
 export function _getDepsFilter()             { return _depsFilter; }
 export function getDoneItems(matchesQuery)   { // T-202606-028: computed global — evita ITEMS.filter() duplicado en renderBacklogList
   const fn = typeof matchesQuery === 'function' ? matchesQuery : () => true;
@@ -2225,7 +2214,7 @@ export function _migrateItemTypes() {
 // T-202605-053: Migrar handlers inline de index.html → addEventListener
 // Funciones cubiertas: undoBacklog · redoBacklog · toggleBacklogKanbanMode
 // toggleBacklogMikeMode · toggleCollapseAll
-// toggleStatusFilter (×5) · toggleBacklogBlockerFilter
+// toggleStatusFilter (×5)
 // toggleBacklogNoAcMode · clearAllFilters
 document.addEventListener('DOMContentLoaded', function () {
   // Undo / Redo
@@ -2288,8 +2277,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   // Filtro Bloqueados
-  const _btnBlocker = document.getElementById('fbar-blocker-btn');
-  if (_btnBlocker) _btnBlocker.addEventListener('click', function () { toggleBacklogBlockerFilter(); });
+  // T-202606-047: fbar-blocker-btn eliminado
 
   // Filtro Sin AC
   const _btnNoAc = document.getElementById('fbar-no-ac-btn');
