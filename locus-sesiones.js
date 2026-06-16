@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-15 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -110,7 +110,7 @@ function _trackerRenderMiniHist(aiId) {
   }
   const lastMetaEl = document.getElementById('tracker-mini-hist-last');
   if (lastMetaEl) {
-    const lastSess = aiSessions.length ? aiSessions[aiSessions.length - 1] : null;
+    const lastSess = filtered.length ? filtered[filtered.length - 1] : null;
     lastMetaEl.textContent = lastSess
       ? ('Último: ' + (lastSess.date ? relDate(lastSess.date) : (lastSess.dateShort || lastSess.date || '')))
       : '';
@@ -249,7 +249,7 @@ function _trackerMiniHistSelect(sessId, aiId) {
   openDetail(aiId, sessId);
 
   // mobile: navegar a col 3
-  if (window.innerWidth < 900 && typeof _trackerSwitchCol === 'function') {
+  if (window.innerWidth < 900) {
     _trackerSwitchCol('items');
   }
 }
@@ -527,8 +527,8 @@ export function render() {
   if (!_radarSbInited) { _radarSbInited = true; _initRadarSidebarState(); }
   if (typeof renderProjDots === 'function') renderProjDots();
   // ac-8: renderizar lista de sesiones en Col 1 siempre — sin condicional de vista
-  if (typeof _trackerRenderMiniHist === 'function') _trackerRenderMiniHist(_trackerSelectedId);
-  if (typeof _trackerHistAttachDropTargets === 'function') _trackerHistAttachDropTargets();
+  _trackerRenderMiniHist(_trackerSelectedId);
+  _trackerHistAttachDropTargets();
   // T-202605-447: actualizar banner de sesión sugerida tras cada render
   renderSuggestionBanner();
   // R-202605-008: actualizar checklist de setup tras cada render

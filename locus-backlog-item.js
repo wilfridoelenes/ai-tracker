@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:35 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:36 · autor:Rune · 2026-06-15 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -414,10 +414,6 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'es-toggle-mike') {
       toggleBacklogMikeMode();
-      return;
-    }
-    if (act === 'es-toggle-focus') {
-      if (typeof toggleBacklogFocusMode === 'function') toggleBacklogFocusMode();
       return;
     }
     if (act === 'es-filter-all') {
