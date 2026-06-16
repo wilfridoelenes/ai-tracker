@@ -1380,6 +1380,12 @@ function _applyStateData(raw) {
         sp.status = newStatus;
       }
     });
+    // B-[pendiente-ID]: migración programado → scheduled — normaliza sprints guardados con
+    // nombre BR antes de que se estandarizara scheduled como valor canónico de storage.
+    // Idempotente — corre en cada _applyStateData() sin efecto si ya está normalizado.
+    proj.sprints.forEach(sp => {
+      if (sp.status === 'programado') sp.status = 'scheduled';
+    });
     // T-202606-016: asegurar sprint S-HOTFIX — después de migración open→active/closed
     // para no alterar _hasActiveSprint ni la lógica de migración legacy.
     _ensureHotfixSprint(proj);
