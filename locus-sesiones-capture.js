@@ -67,6 +67,7 @@ function _qcRenderWorkerList() {
   const list = _qcEl('qc-worker-list');
   if (!list) return;
   const available = (getState().ais || []).filter(a => !a.archived);
+  list.innerHTML = available.map(ai => `
     <button class="qc-worker-item" data-worker-id="${esc(ai.id)}">
       <span class="qc-worker-avatar">${esc((ai.sigla || ai.name || '?').slice(0,2).toUpperCase())}</span>
       <span class="qc-worker-name">${esc(ai.name)}</span>
