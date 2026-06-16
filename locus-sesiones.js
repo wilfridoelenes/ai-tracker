@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-15 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -537,7 +537,7 @@ export function render() {
   updateTabNotifBadges();
 }
 
-const TG_TYPE_NAMES = {I:'Idea', P:'Pendiente', T:'Ticket', R:'Requerimiento', B:'Bug'};
+const TG_TYPE_NAMES = {P:'Idea', T:'Ticket', R:'Requerimiento', B:'Bug'};
 
 // T-202604-047: tiempo promedio entre sesiones consecutivas
 function buildHoyCard(ai, idx = 0, opts = {}) {
