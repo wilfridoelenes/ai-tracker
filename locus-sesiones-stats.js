@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-02 · mod:14 · autor:Rune · 2026-06-07 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-15 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).

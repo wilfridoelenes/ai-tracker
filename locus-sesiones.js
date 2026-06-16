@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-15 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1246,7 +1246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     switch (action) {
       // Sidebar tracker rows
       case 'select-tracker-ai':
-        if (typeof selectTrackerAI === 'function') selectTrackerAI(aiId);
+        selectTrackerAI(aiId);
         break;
       // Mini hist rows (stopPropagation preservado)
       case 'mini-hist-select':
