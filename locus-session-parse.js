@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:59 · autor:Rune · 2026-06-14 19:35 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:60 · autor:Rune · 2026-06-17 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -323,6 +323,18 @@ export function parseCheckpoint(text) {
       // Reusar path fence — reconstruir fence mínimo y re-invocar para evitar duplicación de lógica
       return parseCheckpoint('```\n' + _trimmed + '\n```');
     }
+    // B-[pendiente-ID] AC-1/AC-2: JSON sin fence inválido, o válido sin "title" —
+    // mismo objeto de error estructurado que el path con fence. Nunca null aquí:
+    // parsePaste accede a ckpt.titulo sin guard y un null no capturado rompe la ingesta completa.
+    return {
+      titulo: '', proyecto: '', rol: '', resumen: '', archivos: '',
+      pItems: '', tItems: '', rItems: '', bItems: '',
+      estado: '', decision: '', proximoPaso: '',
+      contexto: '', bloqueantes: '', aprendizaje: '',
+      isCheckpoint: true,
+      _jsonParseError: _jsonErrRaw || 'El bloque JSON sin fence no contiene un objeto válido con campo "title"',
+      rawCounts: { P: 0, T: 0, R: 0, B: 0 }
+    };
   }
 
   // T-202606-005: texto sin fence ``` → devolver null (no es CHECKPOINT)
@@ -463,6 +475,19 @@ export function parsePaste(id) {
   let title = '', summary = '', files = '', nextStep = '', bloqueantesRaw = '', tgItems = [], ckpt = null;
   if (isCheckpoint) {
     ckpt = parseCheckpoint(text);
+    // B-[pendiente-ID] AC-3: guard explícito — parseCheckpoint puede retornar null
+    // en paths no cubiertos; sin este guard, un null aquí rompe toda la ingesta.
+    if (!ckpt) {
+      ckpt = {
+        titulo: '', proyecto: '', rol: '', resumen: '', archivos: '',
+        pItems: '', tItems: '', rItems: '', bItems: '',
+        estado: '', decision: '', proximoPaso: '',
+        contexto: '', bloqueantes: '', aprendizaje: '',
+        isCheckpoint: true,
+        _jsonParseError: 'No se pudo interpretar el CHECKPOINT — formato no reconocido',
+        rawCounts: { P: 0, T: 0, R: 0, B: 0 }
+      };
+    }
     title = ckpt.titulo;
     summary = ckpt.resumen;
     files = ckpt.archivos;
