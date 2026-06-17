@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:14 · autor:Rune · 2026-06-17 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -18,9 +18,9 @@ import { _setBacklogModified } from './locus-docs.js';
 
 import { render } from './locus-sesiones.js';
 
-import { _templateTrigger, interpretHora, _horaUpdate } from './locus-session-hora.js';
+import { interpretHora, _horaUpdate } from './locus-session-hora.js';
 
-import { downloadTemplates, getPendingTemplateDownload, setPendingTemplateDownload } from './locus-session-save.js';
+import { getPendingTemplateDownload, setPendingTemplateDownload } from './locus-session-save.js';
 
 // R-202605-033: Extraído de locus-backlog-item.js
 
@@ -1289,7 +1289,7 @@ export function _confirmRetroceso(code, toStatus) {
       if (getPendingTemplateDownload()) {
         const panel = document.getElementById('ckpt-panel-body');
         const stillPending = panel && (panel.querySelector('.ckpt-section.retroceso') || panel.querySelector('.ckpt-section.discarded'));
-        if (!stillPending) { setPendingTemplateDownload(false); if (_templateTrigger() === 'session') downloadTemplates(); }
+        if (!stillPending) { setPendingTemplateDownload(false); }
       }
     }
   });
@@ -1396,7 +1396,7 @@ function _applyDiscardBatch(items) {
   if (getPendingTemplateDownload()) {
     const stillPending = panel && panel.querySelector('.ckpt-section.retroceso');
     if (!stillPending) {
-      if (_templateTrigger() === 'session') downloadTemplates();
+      setPendingTemplateDownload(false);
     }
   }
 }

@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-02 · mod:40 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-02 · mod:41 · autor:Rune · 2026-06-17 UTC-6
 // locus-session-save.js
 // Responsabilidad: changelog, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -144,9 +144,6 @@ function _buildChangelogHTML() {
   return `<div class="modal modal--changelog">${_buildChangelogInner()}</div>`;
 }
 
-
-// B-202606-[pendiente-ID]: stub — callers en locus-backlog-merge.js pendientes de limpiar
-export function downloadTemplates() {}
 
 // B-202605-517: stub legacy reemplazado — delegación a _generateBacklogContent (ai-tracker-sprint-project.js)
 // La función anterior leía tracker.items (schema legacy, solo sesiones) en lugar de getItems() (backlog global),
