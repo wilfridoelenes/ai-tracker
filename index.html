@@ -1,4 +1,4 @@
-<!-- [PP] v0.1.0 · sprint:PP-S-03 · mod:56 · autor:Rune · 2026-06-16 UTC-6 -->
+<!-- [PP] v0.1.0 · sprint:PP-S-03 · mod:57 · autor:Rune · 2026-06-16 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -384,43 +384,48 @@
     <div class="stats-bar" id="stats-bar"></div>
     <div class="active-filter-chips" id="active-filter-chips"></div>
 
-    <!-- T-202606-097: barra fusionada — G1: vistas+collapse | G2: filtros status+secundarios+sort | G3: search+doc-log -->
+    <!-- T-202606-054: toolbar 3 grupos con divisor — G1: vistas | G2: filtros | G3: prioridad+colapsar — búsqueda al extremo derecho -->
     <div class="bl-toolbar" id="filter-bar-status">
-      <!-- G1: vistas + collapse -->
-      <div class="bl-toolbar-views" role="tablist" aria-label="Vista del backlog">
+      <!-- G1: vistas (Lista · Kanban) -->
+      <div class="bl-toolbar-group bl-toolbar-views" role="tablist" aria-label="Vista del backlog">
         <button class="bl-toolbar-view-btn" id="fbar-kanban-btn" title="Vista Kanban" role="tab" aria-selected="false">⬛ Kanban</button>
         <button class="bl-toolbar-view-btn is-hidden" id="fbar-mike-btn" title="Mi vista — T's pendientes por rol en sprint activo" role="checkbox" aria-checked="false">Mi vista</button>
       </div>
-      <button class="bl-collapse-btn" id="bl-collapse-all-btn" title="Colapsar / expandir todos los grupos">
-        <span class="bl-collapse-btn-icon">⊟</span>
-        <span class="bl-collapse-btn-label">Colapsar</span>
-      </button>
       <!-- Divisor G1→G2 -->
       <div class="bl-toolbar-divider"></div>
-      <!-- G2: filtros status + secundarios + sort -->
-      <button class="bl-strip-btn active" id="fstatus-pendiente">Pendiente</button>
-      <button class="bl-strip-btn s-en-revision active" id="fstatus-en-revision">En revisión</button>
-      <button class="bl-strip-btn" id="fstatus-done">Hecho</button>
-      <button class="bl-strip-btn s-descartado" id="fstatus-descartado">Descartado</button>
-      <div class="bl-filter-strip-sep"></div>
-      <button class="bl-strip-btn" id="fbar-deps-btn" title="Filtrar por dependencias explícitas — bloqueados / libres">🔗 Deps</button>
-      <button class="bl-strip-btn" id="fbar-show-children-btn" title="Mostrar Ts y Bs hijos bajo su R padre">Hijos</button>
-      <button class="bl-strip-btn" id="fbar-no-ac-btn" title="Ítems sin criterios de aceptación">Sin AC</button>
-      <div class="bl-sort-wrap">
-        <select class="bl-sort-select" id="fbar-sort-select">
-          <option value="priority">Prioridad</option>
-          <option value="effort">Esfuerzo</option>
-          <option value="type">Tipo</option>
-          <option value="code">Código</option>
-          <option value="completedAt">Fecha completado</option>
-          <option value="createdAt">Fecha agregado</option>
-        </select>
-        <button class="bl-sort-dir-btn" id="fbar-sort-dir-btn" title="Invertir dirección">↓</button>
+      <!-- G2: filtros status + secundarios -->
+      <div class="bl-toolbar-group">
+        <button class="bl-strip-btn active" id="fstatus-pendiente">Pendiente</button>
+        <button class="bl-strip-btn s-en-revision active" id="fstatus-en-revision">En revisión</button>
+        <button class="bl-strip-btn" id="fstatus-done">Hecho</button>
+        <button class="bl-strip-btn s-descartado" id="fstatus-descartado">Descartado</button>
+        <div class="bl-filter-strip-sep"></div>
+        <button class="bl-strip-btn" id="fbar-deps-btn" title="Filtrar por dependencias explícitas — bloqueados / libres">🔗 Deps</button>
+        <button class="bl-strip-btn" id="fbar-show-children-btn" title="Mostrar Ts y Bs hijos bajo su R padre">Hijos</button>
+        <button class="bl-strip-btn" id="fbar-no-ac-btn" title="Ítems sin criterios de aceptación">Sin AC</button>
+        <button class="fbar-clear-btn is-hidden" id="filter-clear-btn" title="Limpiar todos los filtros">✕ Limpiar</button>
       </div>
-      <button class="fbar-clear-btn is-hidden" id="filter-clear-btn" title="Limpiar todos los filtros">✕ Limpiar</button>
       <!-- Divisor G2→G3 -->
       <div class="bl-toolbar-divider"></div>
-      <!-- G3: search + doc-log — margin-left:auto via bl-toolbar-spacer -->
+      <!-- G3: prioridad (sort) + colapsar -->
+      <div class="bl-toolbar-group">
+        <div class="bl-sort-wrap">
+          <select class="bl-sort-select" id="fbar-sort-select">
+            <option value="priority">Prioridad</option>
+            <option value="effort">Esfuerzo</option>
+            <option value="type">Tipo</option>
+            <option value="code">Código</option>
+            <option value="completedAt">Fecha completado</option>
+            <option value="createdAt">Fecha agregado</option>
+          </select>
+          <button class="bl-sort-dir-btn" id="fbar-sort-dir-btn" title="Invertir dirección">↓</button>
+        </div>
+        <button class="bl-collapse-btn" id="bl-collapse-all-btn" title="Colapsar / expandir todos los grupos">
+          <span class="bl-collapse-btn-icon">⊟</span>
+          <span class="bl-collapse-btn-label">Colapsar</span>
+        </button>
+      </div>
+      <!-- Búsqueda al extremo derecho — fuera de los 3 grupos -->
       <div class="bl-toolbar-spacer"></div>
       <div class="fbar-search-wrap">
         <input class="fbar-search-input" id="backlog-search-input" type="text" placeholder="🔍 Buscar…" autocomplete="off">

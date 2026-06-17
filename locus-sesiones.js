@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:12 · autor:Rune · 2026-06-16 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:13 · autor:Rune · 2026-06-16 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -301,7 +301,9 @@ function _trackerOpenPreview(sessId) {
   if (!innerEl || !headerEl || !bodyEl) return;
 
   // AC-6: sessId inexistente → mensaje de error, no crash
-  const sess = _findSession(sessId);
+  // B-[pendiente-ID]: _findSession devuelve { proj, sess } — desestructurar antes de leer campos
+  const _foundSess = _findSession(sessId);
+  const sess = _foundSess ? _foundSess.sess : null;
   if (!sess) {
     headerEl.innerHTML = '';
     bodyEl.innerHTML   = '<p class="sp-error">Sesión no encontrada</p>';
