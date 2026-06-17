@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-17 11:00 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:9 · autor:Rune · 2026-06-17 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -384,10 +384,16 @@ function starCurrentSession() {
   const starBtn = document.getElementById('pop-star-btn');
   if (starBtn && s) { starBtn.textContent = s.starred ? '⭐' : '☆'; starBtn.classList.toggle('starred', !!s.starred); starBtn.title = s.starred ? 'Quitar destacado' : 'Destacar sesión'; }
   // T-202604-004: refrescar badge starred en header
+  // B-202606-037: metaEl.innerHTML reconstruye el bloque completo de #pop-meta — debe conservar
+  // ai.name y reviewBadge igual que el render original (línea ~213), no solo fecha + resetAt + starred/quick.
   const metaEl = document.getElementById('pop-meta');
   if (metaEl && s) {
+    const ai = getAI(popAIId);
+    const aiSessAll = getAISessions(popAIId);
+    const isLastSess = aiSessAll.length > 0 && aiSessAll[aiSessAll.length - 1].id === s.id;
     const starBadge = s.starred ? `<span class="pop-header-badge starred">⭐ destacada</span>` : '';
     const quickBadge = s.quickCapture ? `<span class="pop-header-badge quick">⚡ rápida</span>` : '';
+    const reviewBadge = (s.inReview && isLastSess) ? `<span class="pop-header-badge review">🔍 en revisión</span>` : '';
     // T-202606-065: fecha formateada — mismo patrón que openDetail (T-202606-062). Nunca string crudo ISO ni 'Invalid Date'.
     const _fmtDate = (() => {
       try {
@@ -395,7 +401,7 @@ function starCurrentSession() {
         return d && !isNaN(d) ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
       } catch (e) { return ''; }
     })();
-    metaEl.innerHTML = `<span>${_fmtDate}${s.resetAt ? ' · hasta ' + s.resetAt : ''}</span>${starBadge}${quickBadge}`;
+    metaEl.innerHTML = `<span>${esc(ai ? ai.name : '')}${_fmtDate ? ' · ' + _fmtDate : ''}${s.resetAt ? ' · hasta ' + s.resetAt : ''}</span>${starBadge}${quickBadge}${reviewBadge}`;
   }
   showToast('info', s?.starred ? 'Sesión destacada' : 'Destacado quitado');
 }

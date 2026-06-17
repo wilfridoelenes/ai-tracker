@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:18 · autor:Rune · 2026-06-16 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:19 · autor:Rune · 2026-06-17 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -1016,8 +1016,13 @@ export function renderBacklogList(onRendered) {
     ? getDoneItems(_matchesQuery)  // T-202606-028: reutiliza getDoneItems global — evita getItems().filter() duplicado
     : [];
   // descartadoItems: solo R/T/B descartados — Ps descartadas van a cerradasItems
+  // T-202606-060: typeOk aplicado — chip de tipo de stats bar combina en AND con píldora Descartado
   const descartadoItems = _getActiveStatuses().has('descartado')
-    ? getItems().filter(i => i.status === 'descartado' && itemType(i.code) !== 'P' && _matchesQuery(i))
+    ? getItems().filter(i => {
+        const type = itemType(i.code);
+        const typeOk = type ? _getActiveTypes().has(type) : true;
+        return i.status === 'descartado' && type !== 'P' && typeOk && _matchesQuery(i);
+      })
     : [];
   // cerradasItems: P promovida + P descartado — estados terminales de una P
   // Gap 2 fix: P descartada solo incluida cuando filtro 'descartado' está activo — consistente con descartadoItems
