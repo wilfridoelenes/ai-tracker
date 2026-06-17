@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:45 · autor:Rune · 2026-06-15 16:00 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:46 · autor:Rune · 2026-06-17 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -55,6 +55,11 @@ function _sprintIsBlocked(item) {
 function _spIdBase(sprintId) {
   return (sprintId || '').split(' · ')[0].trim();
 }
+
+// B-202606-XXX: tras deserialización desde JSON el getter item.sprint definido en
+// _normalizeItems (T-202606-084) se pierde — solo sprint_id persiste como campo real.
+// _iSprint() lee sprint_id con fallback a sprint para cubrir ambos casos.
+function _iSprint(i) { return i.sprint_id !== undefined ? i.sprint_id : (i.sprint || ''); }
 
 function _sprintItemHtml(item) {
   const isBlocked = _sprintIsBlocked(item);
@@ -288,7 +293,7 @@ function _renderSpsActivo() {
     const _sid = _spIdBase(id);
     const spItems = getItems().filter(i => {
       const t = i.type || (i.code ? i.code.charAt(0) : '');
-      return i.sprint && i.sprint.startsWith(_sid) &&
+      return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
         (t === 'R' || t === 'B' || t === 'T') &&
         i.status !== 'descartado';
     });
@@ -486,7 +491,7 @@ function _renderSpsProgramados() {
       const _sid = _spIdBase(id);
       const spItems = getItems().filter(function(i) {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
-        return i.sprint && i.sprint.startsWith(_sid) &&
+        return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
           (t === 'R' || t === 'B' || t === 'T') &&
           i.status !== 'descartado';
       });
@@ -732,7 +737,7 @@ function _renderSprintItems(sprint) {
 
   const spItems = getItems().filter(i => {
     const t = i.type || (i.code ? i.code.charAt(0) : '');
-    return i.sprint && i.sprint.startsWith(_sid) &&
+    return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
       (t === 'R' || t === 'B' || t === 'T') &&
       i.status !== 'descartado';
   });
@@ -858,7 +863,7 @@ function _renderSprintWorkers(sprint) {
     const sessions = getAllSessions();
     const _sid = _spIdBase(sprint.id); // B-202606-008
     const sprintItemCodes = Array.isArray(getItems())
-      ? new Set(getItems().filter(i => i.sprint && i.sprint.startsWith(_sid)).map(i => i.code))
+      ? new Set(getItems().filter(i => _iSprint(i) && _iSprint(i).startsWith(_sid)).map(i => i.code))
       : new Set();
 
     const aiIds = new Set();
@@ -894,7 +899,7 @@ function _renderSprintScopeAdded(sprint) {
 
   const _sid = _spIdBase(sprint.id); // B-202606-008
   const scopeItems = getItems().filter(i =>
-    i.sprint && i.sprint.startsWith(_sid) &&
+    _iSprint(i) && _iSprint(i).startsWith(_sid) &&
     i.scopeAdded === true &&
     i.status !== 'descartado'
   );
@@ -952,7 +957,7 @@ function _renderPlannedSprints() {
   // Agrupar ítems no descartados por sprint, excluyendo active, closed e icebox
   const plannedMap = {};
   getItems().forEach(i => {
-    const raw = (i.sprint || '').trim();
+    const raw = _iSprint(i).trim();
     if (!raw || raw === 'icebox') return;
     const id = _extractId(raw);
     if (!id) return;
@@ -1063,7 +1068,7 @@ function _renderSprintManager() {
       const _sid = _spIdBase(sprint.id); // B-202606-008
       const spItems = getItems().filter(i => {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
-        return i.sprint && i.sprint.startsWith(_sid) &&
+        return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
           (t === 'R' || t === 'B' || t === 'T') &&
           i.status !== 'descartado';
       });
@@ -1150,7 +1155,7 @@ function _renderHotfixSection(allSprints) {
     const _hsid = _spIdBase(hotfixSprint.id); // B-202606-008
     const hotfixItems = getItems().filter(i => {
       const t = i.type || (i.code ? i.code.charAt(0) : '');
-      return i.sprint && i.sprint.startsWith(_hsid) &&
+      return _iSprint(i) && _iSprint(i).startsWith(_hsid) &&
         (t === 'R' || t === 'B' || t === 'T') &&
         i.status !== 'descartado';
     });
@@ -1229,7 +1234,7 @@ function _renderSprintSummaryTable(allSprints) {
       const _sid = _spIdBase(sprint.id); // B-202606-008
       const spItems = getItems().filter(i => {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
-        return i.sprint && i.sprint.startsWith(_sid) &&
+        return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
           (t === 'R' || t === 'B' || t === 'T') &&
           i.status !== 'descartado';
       });
@@ -1472,9 +1477,9 @@ function _spmGetUnregisteredSprintId() {
   const freq = {};
   const order = [];
   getItems().forEach(i => {
-    if (!i.sprint || registeredIds.has(i.sprint)) return;
-    if (!freq[i.sprint]) { freq[i.sprint] = 0; order.push(i.sprint); }
-    freq[i.sprint]++;
+    if (!_iSprint(i) || registeredIds.has(_iSprint(i))) return;
+    if (!freq[_iSprint(i)]) { freq[_iSprint(i)] = 0; order.push(_iSprint(i)); }
+    freq[_iSprint(i)]++;
   });
   if (!order.length) return null;
   // Mayor frecuencia; empate → primero en orden de aparición
@@ -1836,7 +1841,7 @@ function _renderSpsHotfix() {
       const t = i.type || (i.code ? i.code.charAt(0) : '');
       return t === 'B' &&
         i.priority === 'high' &&
-        i.sprint && i.sprint.startsWith(_hsid) &&
+        _iSprint(i) && _iSprint(i).startsWith(_hsid) &&
         (i.status === 'pendiente' || i.status === 'en-revision');
     });
   }
@@ -1928,7 +1933,7 @@ function _renderSpsCerrados() {
     if (Array.isArray(getItems())) {
       const spItems = getItems().filter(i => {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
-        return i.sprint && i.sprint.startsWith(_sid) &&
+        return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
           (t === 'R' || t === 'B' || t === 'T');
       });
       doneCnt       = spItems.filter(i => i.status === 'done' || i.status === 'historico').length;
