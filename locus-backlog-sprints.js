@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:13 · autor:Rune · 2026-06-15 15:00 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-17 11:55 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -22,7 +22,9 @@ import { downloadTemplates } from './locus-session-save.js';
 // ── T-sprints: Catálogo de sprints ──
 
 export function _getActiveSprint() {
-  const all = getActiveSprints().filter(s => s.status === 'active');
+  // T-202606-070: excluir isHotfix — HOTFIX siempre tiene status:'active' (sprint persistente)
+  // pero no debe exponerse como "el sprint activo" en _renderSpsActivo ni en consumidores de getActiveSprint.
+  const all = getActiveSprints().filter(s => s.status === 'active' && !s.isHotfix);
   return all.find(s => s.current === true) || all[0] || null;
 }
 
@@ -1582,6 +1584,27 @@ function _scmExecuteClose() {
   try { localStorage.setItem(_HISTORICO_KEY, '1'); } catch {}
   closeCloseSprintModal();
   setSprintStatus(id, 'closed');
+
+  // T-202606-071: activar el sprint scheduled de scheduledAt menor del mismo proyecto.
+  // Sin esto, _getActiveSprint() (post T-202606-070) puede retornar null aunque haya
+  // sprints programados esperando — la cola scheduled→active no avanzaba sola.
+  {
+    const _closedSprint = _getSprintById(id);
+    const _projIdForNext = _closedSprint ? (_closedSprint.projId || _closedSprint.projectId || null) : null;
+    const _scheduledCandidates = getActiveSprints().filter(s => {
+      if (s.status !== 'scheduled') return false;
+      if (s.isHotfix) return false;
+      if (!_projIdForNext) return true; // sin projId no se puede filtrar — no excluir
+      return (s.projId === _projIdForNext || s.projectId === _projIdForNext);
+    });
+    if (_scheduledCandidates.length > 0) {
+      const _nextSprint = _scheduledCandidates.reduce((min, s) =>
+        (s.scheduledAt || 0) < (min.scheduledAt || 0) ? s : min
+      );
+      setSprintStatus(_nextSprint.id, 'active');
+    }
+  }
+
   renderStats(); // B-202605-269: refrescar contadores del backlog inmediatamente post-cierre
 
   // T-202604-417: guardar retro como documento en el sprint — accesible desde vista de sprints cerrados

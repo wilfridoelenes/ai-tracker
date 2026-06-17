@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:15 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-02 · mod:16 · autor:Rune · 2026-06-17 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -11,7 +11,7 @@ import { updateTabNotifBadges } from './locus-notifications.js';
 import { _initRadarSidebarState, renderGlobalRadarSidebar } from './locus-radar.js';
 import { _scrollToCard, _updateHeaderProjectLabel, navigateToCard, renderStatusBar, updateStats, _hasStaleSuggestion } from './locus-sesiones-stats.js';
 import { renderSuggestionBanner, startSessionTimer, _buildSuggestionReason, _sessRelTsShared, _cscardRelTs, _hoyMsUntilReset, getCD } from './locus-sesiones-utils.js';
-import { fmt12, _templateTrigger, confirmSave, interpretHora, relDate } from './locus-session-hora.js';
+import { fmt12, confirmSave, interpretHora, relDate } from './locus-session-hora.js';
 import { openCorrectHora } from './locus-sesiones-viz.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handlers
 import { closeLogCard, closePopup, openDetail, startRename, toggleInReview, toggleShowAll } from './locus-session-popup.js'; // T-202606-089 AC-3
 // T-202606-058: import de locus-sprint-project eliminado — ciclo A↔B roto.
@@ -1236,34 +1236,7 @@ function _trackerSwitchCol(col) {
 })();
 
 
-// ── Funciones movidas desde locus-checkpoint-hoy.js ──────────────────────
 
-// T-202604-295: clave de preferencia auto-download de templates
-const _TPL_TRIGGER_KEY = 'template-download-trigger';
-function _autoDownloadOn() {
-  const trig = _templateTrigger();
-  return trig === 'session';
-}
-function toggleAutoDownload() {
-  const trig = _templateTrigger();
-  const next = trig === 'session' ? 'sprint' : 'session';
-  localStorage.setItem(_TPL_TRIGGER_KEY, next);
-  _saveUserPrefs();
-  _updateAutoDownloadLabel();
-}
-export function _updateAutoDownloadLabel() {
-  const btn = document.getElementById('more-menu-autodl');
-  const _trig = _templateTrigger();
-  if (btn) btn.textContent = `⬇ Descargar templates: ${_trig === 'session' ? 'al guardar sesión' : 'al cerrar sprint'}`;
-}
-// Inicializar label al cargar — usando DOMContentLoaded para que _templateTrigger ya exista
-document.addEventListener('DOMContentLoaded', function _initAutoDlLabel() {
-  const btn = document.getElementById('more-menu-autodl');
-  const _trig = _templateTrigger();
-  if (btn) btn.textContent = `⬇ Descargar templates: ${_trig === 'session' ? 'al guardar sesión' : 'al cerrar sprint'}`;
-  // T-202605-045: Migrar onclick inline → addEventListener
-  if (btn) btn.addEventListener('click', toggleAutoDownload);
-}, { once: true });
 
 // T-202606-085: re-export para preservar compatibilidad — implementación movida a locus-sesiones-utils.js
 export { _hoyMsUntilReset, _hoyCountdownLabel } from './locus-sesiones-utils.js';
@@ -1457,6 +1430,5 @@ document.addEventListener('DOMContentLoaded', () => {
 // en lugar de llamar directamente a las funciones de este módulo
 window.addEventListener('shell:mark-tracker-dirty', () => { _markTrackerDirty(); });
 window.addEventListener('shell:render-tracker', () => { render(); });
-window.addEventListener('shell:update-auto-download-label', () => { _updateAutoDownloadLabel(); });
 // T-202606-084: selectTrackerAI desacoplado de stats y utils vía event
 window.addEventListener('shell:select-tracker-ai', (e) => { selectTrackerAI(e.detail.aiId); });
