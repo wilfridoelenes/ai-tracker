@@ -92,7 +92,7 @@ export function openDetail(aiId, sessId) {
       <div class="pop-reset-row">
         <input class="pop-reset-input" id="pop-reset-hora" type="text" maxlength="4" placeholder="--:--">
         <div class="pop-reset-disp" id="pop-reset-disp">—</div>
-        <button class="btn-primary btn-primary--sm" id="pop-reset-save-btn">Marcar agotada</button>
+        <button class="btn-primary btn-primary--sm" id="pop-reset-save-btn" disabled>Marcar agotada</button>
       </div>
     </div>`;
   }
@@ -410,6 +410,7 @@ function starCurrentSession() {
 function popParseHora() {
   const raw = (document.getElementById('pop-reset-hora') || {value:''}).value.replace(/\D/g,'');
   const disp = document.getElementById('pop-reset-disp');
+  const btn  = document.getElementById('pop-reset-save-btn');
   if (!disp) return;
   const result = interpretHora(raw);
   if (result) {
@@ -419,32 +420,26 @@ function popParseHora() {
     disp.textContent = raw.length >= 3 ? 'hora inválida' : (raw.length ? '...' : '—');
     disp.className = raw.length >= 3 ? 'hora-disp--error' : 'hora-disp--hint';
   }
+  if (btn) btn.disabled = !result;
 }
 
 function saveResetFromPopup() {
   if (!popAIId || !popSessId) return;
   const raw = (document.getElementById('pop-reset-hora') || {value:''}).value.replace(/\D/g,'');
   const result = interpretHora(raw);
+  if (!result) { showToast('error', 'Hora inválida — ingresa formato HHMM (ej: 2100)'); return; }
   const ai = getAI(popAIId);
   const found = _findSession(popSessId);
   const s = found ? found.sess : null;
   if (!ai || !s) return;
-  const horaStr = result ? result.label : '';
-  s.resetAt = horaStr;
-  if (result) {
-    ai.status = 'exhausted';
-    ai.resetTime = result.hhmm;
-    ai.resetEpoch = result.epoch;
-  } else {
-    // Sin hora: marcar agotada sin countdown
-    ai.status = 'exhausted';
-    ai.resetTime = '';
-    ai.resetEpoch = null;
-  }
+  s.resetAt = result.label;
+  ai.status = 'exhausted';
+  ai.resetTime = result.hhmm;
+  ai.resetEpoch = result.epoch;
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   closePopup();
-  showToast('success', result ? `${ai.name} marcada agotada · desbloquea a las ${result.label}` : `${ai.name} marcada agotada`);
+  showToast('success', `${ai.name} marcada agotada · desbloquea a las ${result.label}`);
 }
 
 // Preview panel — cambio de proyecto de sesión ya guardada
