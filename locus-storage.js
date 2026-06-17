@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-02 · mod:18 · autor:Rune · 2026-06-17 16:00 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-076 · T-202606-077: export ESM BACKLOG_LOG_MAX y _DOC_LOG_KEYS
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1082,7 +1082,7 @@ export async function _loadFromSupabase() {
             if (!remoteSessions.length) return;
             if (!proj.sessions) proj.sessions = [];
             const localIds = new Set(proj.sessions.map(s => s.id));
-            remoteSessions.forEach(s => { if (!localIds.has(s.id)) { proj.sessions.push(s); localIds.add(s.id); } });
+            remoteSessions.forEach(s => { if (!localIds.has(s.id)) { _normalizeSessionFields(s); proj.sessions.push(s); localIds.add(s.id); } });
           });
           try { localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state)); } catch {}
         }
@@ -1306,6 +1306,44 @@ export var state = {ais:[], theme:'dark', tags:[], projects:[], _stateVersion:3}
 // getState(): getter dinámico — siempre retorna la referencia actual de state.
 export function getState() { return state; }
 
+// B-[pendiente-ID] AC-5: fuente única de normalización de sesión — defaults de campos,
+// fecha ISO y backfill de createdAt. Consumida por _applyStateData (migración local, todas
+// las sesiones) y por el merge remoto de Supabase (solo sesiones nuevas — ver AC-4).
+function _normalizeSessionFields(s) {
+  if (!s.tags) s.tags = [];
+  if (!s.trackerRefs) s.trackerRefs = [];
+  if (s.quickCapture === undefined) s.quickCapture = false;
+  if (s.starred === undefined) s.starred = false;
+  // Normalizar date: sesiones con formato español "12 abr 2026 11:08 a.m." → ISO
+  if (s.date && isNaN(new Date(s.date).getTime())) {
+    const _MES = {ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
+    const m = String(s.date).toLowerCase().match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})(?:\s+(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?))?/);
+    if (m) {
+      const day = parseInt(m[1], 10);
+      const mon = _MES[m[2].slice(0,3)];
+      const year = parseInt(m[3], 10);
+      if (mon !== undefined && !isNaN(day) && !isNaN(year)) {
+        let hour = m[4] ? parseInt(m[4], 10) : 12;
+        const min = m[5] ? parseInt(m[5], 10) : 0;
+        if (m[6]) {
+          const pm = m[6].replace(/\./g,'') === 'pm';
+          if (pm && hour !== 12) hour += 12;
+          if (!pm && hour === 12) hour = 0;
+        }
+        s.date = new Date(year, mon, day, hour, min, 0).toISOString();
+      }
+    }
+  }
+  // B-202606-044 AC-1/AC-2: sesiones sin createdAt — backfill desde s.date (ya ISO en este punto).
+  // Sin esto, _getCurrentSession/_isInSession (createdAt||0 sin fallback) y el sort de col2
+  // trataban estas sesiones como timestamp 0.
+  if (!s.createdAt) {
+    const _bfTs = s.date ? new Date(s.date).getTime() : 0;
+    s.createdAt = isNaN(_bfTs) ? 0 : _bfTs;
+  }
+  return s;
+}
+
 function _applyStateData(raw) {
 
   if (!raw.theme) raw.theme = 'dark';
@@ -1400,33 +1438,8 @@ function _applyStateData(raw) {
       const mostRecent = activeSprints.reduce((a, b) => ((a.startedAt || 0) >= (b.startedAt || 0) ? a : b));
       mostRecent.current = true;
     }
-    // Migrar sessions internas
-    proj.sessions.forEach(s => {
-      if (!s.tags) s.tags = [];
-      if (!s.trackerRefs) s.trackerRefs = [];
-      if (s.quickCapture === undefined) s.quickCapture = false;
-      if (s.starred === undefined) s.starred = false;
-      // Normalizar date: sesiones con formato español "12 abr 2026 11:08 a.m." → ISO
-      if (s.date && isNaN(new Date(s.date).getTime())) {
-        const _MES = {ene:0,feb:1,mar:2,abr:3,may:4,jun:5,jul:6,ago:7,sep:8,oct:9,nov:10,dic:11};
-        const m = String(s.date).toLowerCase().match(/(\d{1,2})\s+([a-z]+)\s+(\d{4})(?:\s+(\d{1,2}):(\d{2})\s*(a\.?m\.?|p\.?m\.?))?/);
-        if (m) {
-          const day = parseInt(m[1], 10);
-          const mon = _MES[m[2].slice(0,3)];
-          const year = parseInt(m[3], 10);
-          if (mon !== undefined && !isNaN(day) && !isNaN(year)) {
-            let hour = m[4] ? parseInt(m[4], 10) : 12;
-            const min = m[5] ? parseInt(m[5], 10) : 0;
-            if (m[6]) {
-              const pm = m[6].replace(/\./g,'') === 'pm';
-              if (pm && hour !== 12) hour += 12;
-              if (!pm && hour === 12) hour = 0;
-            }
-            s.date = new Date(year, mon, day, hour, min, 0).toISOString();
-          }
-        }
-      }
-    });
+    // Migrar sessions internas — B-202606-044 AC-5: normalización vía _normalizeSessionFields
+    proj.sessions.forEach(_normalizeSessionFields);
     // Eliminar campos v2 obsoletos
     delete proj.context;
     delete proj.backlog;
