@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:14 · autor:Rune · 2026-06-16 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:15 · autor:Rune · 2026-06-17 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -282,106 +282,9 @@ function _trackerMiniHistSelect(sessId, aiId) {
 
 // ── T-202606-052: Col3 preview de sesión ─────────────────────────────────
 
-// Escapa HTML para contenido de usuario
-function _escHtml(str) {
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
-
-// Abre el panel Col3 con el resumen de la sesión indicada
-function _trackerOpenPreview(sessId) {
-  const tabEl    = document.getElementById('tab-sesiones');
-  const innerEl  = document.getElementById('tracker-preview-inner');
-  const headerEl = document.getElementById('tracker-preview-header');
-  const bodyEl   = document.getElementById('tracker-preview-body');
-
-  if (!innerEl || !headerEl || !bodyEl) return;
-
-  // AC-6: sessId inexistente → mensaje de error, no crash
-  // B-[pendiente-ID]: _findSession devuelve { proj, sess } — desestructurar antes de leer campos
-  const _foundSess = _findSession(sessId);
-  const sess = _foundSess ? _foundSess.sess : null;
-  if (!sess) {
-    headerEl.innerHTML = '';
-    bodyEl.innerHTML   = '<p class="sp-error">Sesión no encontrada</p>';
-    tabEl?.classList.add('preview-open');
-    innerEl.classList.add('d-flex');
-    innerEl.classList.remove('is-hidden');
-    return;
-  }
-
-  // ── Header ─────────────────────────────────────────────────────────────
-  const dateStr = sess.date
-    ? new Date(sess.date).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' })
-    : '';
-  const rolStr = sess.role || '';
-  const meta   = [dateStr, rolStr].filter(Boolean).join(' · ');
-
-  headerEl.innerHTML = `
-    <div class="sp-header-row">
-      <p class="sp-title">${_escHtml(sess.title || 'Sin título')}</p>
-      <button class="sp-close-btn" aria-label="Cerrar preview" data-action="preview-close">✕</button>
-    </div>
-    ${meta ? `<p class="sp-meta">${_escHtml(meta)}</p>` : ''}
-  `;
-
-  // ── Body ───────────────────────────────────────────────────────────────
-  let html = '';
-
-  // AC-8: Resumen — siempre renderiza; vacío → texto muted
-  const summary = sess.summary?.trim() || '';
-  html += `
-    <div class="sp-section">
-      <p class="sp-section-label">Resumen</p>
-      <p class="sp-section-body${summary ? '' : ' sp-muted'}">${_escHtml(summary || 'Sin resumen')}</p>
-    </div>`;
-
-  // AC-3: Decisión — solo si existe y no está vacía
-  const decision = sess.decision?.trim() || '';
-  if (decision) {
-    html += `
-      <div class="sp-section sp-section--decision">
-        <p class="sp-section-label">Decisión</p>
-        <p class="sp-section-body">${_escHtml(decision)}</p>
-      </div>`;
-  }
-
-  // Próximo paso
-  const nextStep = (sess.nextStep || sess.next_step || '').trim();
-  if (nextStep) {
-    html += `
-      <div class="sp-section">
-        <p class="sp-section-label">Próximo paso</p>
-        <p class="sp-section-body">${_escHtml(nextStep)}</p>
-      </div>`;
-  }
-
-  // AC-7: Ítems — solo si existen
-  const items = Array.isArray(sess.items) ? sess.items : [];
-  if (items.length) {
-    const tagsHtml = items.map(it => {
-      const type  = (it.type || 'p').toLowerCase();
-      const mod   = ['t', 'r', 'b'].includes(type) ? ` mh-ref-tag--${type}` : '';
-      const label = it.code || it.title || type.toUpperCase();
-      return `<span class="mh-ref-tag${mod}">${_escHtml(label)}</span>`;
-    }).join('');
-    html += `
-      <div class="sp-section">
-        <p class="sp-section-label">Ítems</p>
-        <div class="sp-items-list">${tagsHtml}</div>
-      </div>`;
-  }
-
-  bodyEl.innerHTML = html;
-
-  // Activar layout Col3
-  tabEl?.classList.add('preview-open');
-  innerEl.classList.add('d-flex');
-  innerEl.classList.remove('is-hidden');
-}
+// B-202606-036: _trackerOpenPreview y _escHtml eliminadas — render de Col3 unificado en
+// openDetail (locus-session-popup.js) desde R-202606-008. _trackerOpenPreview: 0 call sites
+// confirmados. _escHtml: único consumidor era _trackerOpenPreview, huérfana como consecuencia.
 
 // Cierra el panel Col3 preview
 function _trackerClosePreview() {
