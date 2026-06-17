@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-16 18:10 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-17 11:00 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -8,7 +8,7 @@ import { getItems } from './locus-backlog-core.js';
 import { _sessRelTsShared } from './locus-sesiones-utils.js';
 // T-202606-166: _getActiveProjectFilter movida a locus-storage.js
 import { showToast, showToastInline, toast } from './locus-toast.js';
-import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
+import { esc, switchSubTab, switchTab, getCurrentTab } from './locus-ui-shell.js';
 import { _findSession, _findSessionByAI, _getActiveProjectFilter, getAI, getAISessions, getActiveTracker, getState, save } from './locus-storage.js';
 
 import { fmt12, interpretHora } from './locus-session-hora.js';
@@ -436,7 +436,7 @@ function saveResetFromPopup() {
     ai.resetEpoch = null;
   }
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-  if (currentTab === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
+  if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   closePopup();
   showToast('success', result ? `${ai.name} marcada agotada · desbloquea a las ${result.label}` : `${ai.name} marcada agotada`);
 }
@@ -527,7 +527,7 @@ function saveCorrectHoraFromPopup() {
   ai.resetEpoch = result.epoch;
   s.resetAt = result.label;
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-  if (currentTab === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
+  if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   closePopup();
   showToast('success', `Hora corregida · ${ai.name} desbloquea a las ${result.label}`);
 }
@@ -542,7 +542,7 @@ function unlockNowFromPopup() {
   ai.resetTime = '';
   ai.resetEpoch = null;
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-  if (currentTab === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
+  if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   closePopup();
   showToast('success', `${ai.name} marcada como disponible`);
 }
@@ -1190,7 +1190,7 @@ function _logScrollTop() {
 }
 
 export function scrollToLogCard(highlightSessId) {
-  if (currentTab !== 'sesiones') switchTab('sesiones');
+  if (getCurrentTab() !== 'sesiones') switchTab('sesiones');
 
   const grid = document.getElementById('grid');
   const detailEmpty = document.getElementById('tracker-detail-empty');

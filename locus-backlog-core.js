@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:27 · autor:Rune · 2026-06-16 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:30 · autor:Rune · 2026-06-16 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1960,6 +1960,7 @@ export function clearAllFilters() {
   updateStatusFilterUI();
   updateEffortFilterUI(); // T-071
   updateRoleFilterUI();   // T-202604-245
+  _syncFilterBtn(); // T-202606-059: sincronizar badge + icono del botón Filtros
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
@@ -2271,6 +2272,179 @@ export function _migrateItemTypes() {
 }
 // B-202606-024: window.getItems eliminado — consumidores migrados a import o _getItemsFn()
 
+// T-202606-058 mejora: extraer lógica de reset de _depsFilter — evita duplicación en chips de Bloqueados/Libres
+function _resetDepsFilter() {
+  _depsFilter = 0;
+  const _db = document.getElementById('fbar-deps-btn');
+  if (_db) { _db.textContent = '🔗 Deps'; _db.classList.remove('active'); }
+  const _fp = document.getElementById('fp-deps');
+  if (_fp) _fp.classList.remove('active');
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
+  window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
+}
+
+// T-202606-058: fila de chips activos — colección de filtros fuera del estado default
+// Retorna array de { label, removeFn } para cada filtro activo.
+// Estado default: activeStatuses={'pendiente','en-revision'} · activeTypes={T,R,B,P} ·
+//   activeEfforts={1,2,3} · activePriorityFilter=vacío · activeRoleFilter=null ·
+//   _backlogNoAcMode=false · _depsFilter=0 · backlogSearchQuery=''
+function _getActiveFilterChips() {
+  const chips = [];
+
+  // Status fuera del default
+  if (activeStatuses.has('done'))
+    chips.push({ label: 'Done',            key: 'status:done',         removeFn: () => toggleStatusFilter('done') });
+  if (activeStatuses.has('descartado'))
+    chips.push({ label: 'Descartado',      key: 'status:descartado',   removeFn: () => toggleStatusFilter('descartado') });
+  if (!activeStatuses.has('pendiente'))
+    chips.push({ label: 'Sin Pendiente',   key: 'status:!pendiente',   removeFn: () => toggleStatusFilter('pendiente') });
+  if (!activeStatuses.has('en-revision'))
+    chips.push({ label: 'Sin En revisión', key: 'status:!en-revision', removeFn: () => toggleStatusFilter('en-revision') });
+
+  // Sin AC
+  if (_backlogNoAcMode)
+    chips.push({ label: 'Sin AC', key: 'noac', removeFn: () => toggleBacklogNoAcMode() });
+
+  // Deps
+  if (_depsFilter === 1)
+    chips.push({ label: '🔒 Bloqueados', key: 'deps:1', removeFn: _resetDepsFilter });
+  if (_depsFilter === 2)
+    chips.push({ label: '🔓 Libres',     key: 'deps:2', removeFn: _resetDepsFilter });
+
+  // Prioridad — un chip por prioridad activa
+  activePriorityFilter.forEach(function (p) {
+    const _pLabel = p === 'high' ? 'Alto' : p === 'medium' ? 'Medio' : 'Bajo';
+    chips.push({ label: 'Prioridad: ' + _pLabel, key: 'priority:' + p, removeFn: () => {
+      window.dispatchEvent(new CustomEvent('shell:togglePriorityFilter', { detail: { val: p } }));
+    }});
+  });
+
+  // Rol
+  if (activeRoleFilter !== null) {
+    const _rLabel = activeRoleFilter === '__none__' ? 'Sin rol' : activeRoleFilter;
+    chips.push({ label: 'Rol: ' + _rLabel, key: 'role:' + activeRoleFilter, removeFn: (function (_r) {
+      return () => toggleRoleFilter(_r);
+    }(activeRoleFilter)) });
+  }
+
+  // Tipos excluidos (cuando activeTypes no tiene los 4)
+  ['T', 'R', 'B', 'P'].forEach(function (t) {
+    if (!activeTypes.has(t)) {
+      const _tLabel = t === 'T' ? 'Sin Tickets' : t === 'R' ? 'Sin Reqs' : t === 'B' ? 'Sin Bugs' : 'Sin Ideas';
+      chips.push({ label: _tLabel, key: 'type:!' + t, removeFn: (function (_t) {
+        return () => toggleTypeFilter(_t);
+      }(t)) });
+    }
+  });
+
+  // Effort excluido
+  [1, 2, 3].forEach(function (e) {
+    if (!activeEfforts.has(e)) {
+      chips.push({ label: 'Effort ' + e + ' oculto', key: 'effort:!' + e, removeFn: (function (_e) {
+        return () => toggleEffortFilter(_e);
+      }(e)) });
+    }
+  });
+
+  // Búsqueda activa
+  if (backlogSearchQuery.length > 0)
+    chips.push({ label: '🔍 "' + backlogSearchQuery + '"', key: 'search', removeFn: () => {
+      backlogSearchQuery = '';
+      const _si = document.getElementById('backlog-search-input');
+      if (_si) _si.value = '';
+      const _sc = document.getElementById('backlog-search-clear');
+      if (_sc) _sc.classList.remove('visible');
+      window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
+      window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
+    }});
+
+  return chips;
+}
+
+// T-202606-058: render de la fila #active-filter-chips
+// AC-1: con filtros activos → label 'Activos:' + chips con X + 'Limpiar todo'
+// AC-2: clic en X desactiva ese filtro (clearFn) — el re-render ocurre vía shell:backlog-filter-changed
+// AC-3: sin filtros activos → contenedor vacío (oculto vía CSS cuando está vacío)
+export function renderActiveFilterChips() {
+  const _container = document.getElementById('active-filter-chips');
+  if (!_container) return;
+
+  const chips = _getActiveFilterChips();
+
+  // AC-3: sin filtros → vaciar y ocultar contenedor
+  if (!chips.length) {
+    _container.innerHTML = '';
+    _container.classList.add('is-hidden');
+    return;
+  }
+  _container.classList.remove('is-hidden');
+
+  // AC-1: construir HTML de la fila — data-filter-key identifica el chip por tipo+valor, no por posición
+  _container.innerHTML =
+    '<span class="afc-label">Activos:</span>' +
+    chips.map(function (chip) {
+      return '<button class="afc-chip" type="button" data-filter-key="' + esc(chip.key) + '">' +
+        esc(chip.label) +
+        '<span class="afc-chip-x" aria-hidden="true">×</span>' +
+      '</button>';
+    }).join('') +
+    '<button class="afc-clear-all" type="button">Limpiar todo</button>';
+
+  // Delegación de eventos — se registra una sola vez por contenedor via flag
+  if (!_container._afcListenerAttached) {
+    _container._afcListenerAttached = true;
+    _container.addEventListener('click', function (e) {
+      // AC-2: clic en chip — buscar removeFn por key (resistente a reordenamiento entre renders)
+      const _chip = e.target.closest('.afc-chip');
+      if (_chip) {
+        const _key = _chip.dataset.filterKey;
+        const _current = _getActiveFilterChips();
+        const _match = _current.find(function (c) { return c.key === _key; });
+        if (_match) _match.removeFn();
+        return;
+      }
+      // Limpiar todo
+      if (e.target.closest('.afc-clear-all')) {
+        clearAllFilters();
+      }
+    });
+  }
+  _syncFilterBtn(); // T-202606-059: sincronizar badge + icono tras cada render de chips
+}
+
+// T-202606-059: sincronizar badge + icono + aria-label del botón Filtros
+// Filtros del panel: status fuera del default (done/descartado/sin-pendiente/sin-en-revision) · noac · deps · hijos
+function _syncFilterBtn() {
+  const _btn   = document.getElementById('fbar-filter-btn');
+  const _badge = document.getElementById('bl-filter-badge');
+  const _icon  = _btn && _btn.querySelector('.bl-filter-toggle-icon');
+  if (!_btn || !_badge || !_icon) return;
+
+  // Contar filtros del panel activos
+  let _count = 0;
+  if (activeStatuses.has('done'))        _count++;
+  if (activeStatuses.has('descartado'))  _count++;
+  if (!activeStatuses.has('pendiente'))  _count++;
+  if (!activeStatuses.has('en-revision')) _count++;
+  if (_backlogNoAcMode)                  _count++;
+  if (_depsFilter > 0)                   _count++;
+  if (localStorage.getItem('backlog-show-children') === '1') _count++;
+
+  if (_count > 0) {
+    _badge.textContent = String(_count);
+    _badge.classList.remove('is-hidden');
+    _icon.textContent = '✕';
+    _btn.setAttribute('aria-label', 'Filtros activos — clic para limpiar');
+    _btn.dataset.hasFilters = '1';
+  } else {
+    _badge.textContent = '';
+    _badge.classList.add('is-hidden');
+    _icon.textContent = '▾';
+    _btn.setAttribute('aria-label', 'Filtros');
+    delete _btn.dataset.hasFilters;
+  }
+}
+
 // T-202606-055: toggle de panel inline de filtros
 function toggleFilterPanel() {
   const panel = document.getElementById('bl-filter-panel');
@@ -2384,6 +2558,10 @@ document.addEventListener('DOMContentLoaded', function () {
   // real de los filtros en la carga inicial — antes de cualquier interacción del usuario
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
 
+  // T-202606-058: actualizar fila de chips activos en cada cambio de filtro
+  window.addEventListener('shell:backlog-filter-changed', function () { renderActiveFilterChips(); });
+  renderActiveFilterChips(); // render inicial
+
   // T-202606-218: listener shell:togglePriorityFilter — invocación cross-módulo sin export
   window.addEventListener('shell:togglePriorityFilter', function (e) {
     togglePriorityFilter(e.detail && e.detail.val);
@@ -2393,9 +2571,33 @@ document.addEventListener('DOMContentLoaded', function () {
   const _btnGfToggle = document.getElementById('gf-footer-toggle');
   if (_btnGfToggle) _btnGfToggle.addEventListener('click', function () { toggleBacklogFooter(); });
 
-  // T-202606-055: botón Filtros — toggle de panel inline
+  // T-202606-059: botón Filtros — cuando icono es ✕ (data-has-filters) → limpiar filtros del panel
+  // Cuando icono es ▾ → toggle de panel (comportamiento original T-202606-055)
   const _btnFilterPanel = document.getElementById('fbar-filter-btn');
-  if (_btnFilterPanel) _btnFilterPanel.addEventListener('click', function () { toggleFilterPanel(); });
+  if (_btnFilterPanel) _btnFilterPanel.addEventListener('click', function () {
+    if (_btnFilterPanel.dataset.hasFilters === '1') {
+      // Limpiar solo filtros del panel: status (done/descartado), noac, deps, hijos
+      if (activeStatuses.has('done'))       toggleStatusFilter('done');
+      if (activeStatuses.has('descartado')) toggleStatusFilter('descartado');
+      if (!activeStatuses.has('pendiente'))  toggleStatusFilter('pendiente');
+      if (!activeStatuses.has('en-revision')) toggleStatusFilter('en-revision');
+      if (_backlogNoAcMode) toggleBacklogNoAcMode();
+      if (_depsFilter > 0) _resetDepsFilter();
+      if (localStorage.getItem('backlog-show-children') === '1') {
+        const _tbHijos = document.getElementById('fbar-show-children-btn');
+        const _fpHijos = document.getElementById('fp-hijos');
+        if (_tbHijos) { _tbHijos.classList.remove('active'); _tbHijos.textContent = 'Hijos'; }
+        if (_fpHijos) _fpHijos.classList.remove('active');
+        toggleShowChildren(false);
+        window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
+      }
+      // Cerrar panel si estaba abierto
+      const _panel = document.getElementById('bl-filter-panel');
+      if (_panel && !_panel.classList.contains('is-hidden')) toggleFilterPanel();
+    } else {
+      toggleFilterPanel();
+    }
+  });
 
   // T-202606-056: píldoras del panel — grupo Estado
   const _fpDone = document.getElementById('fp-done');

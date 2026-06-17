@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-17 11:00 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -71,7 +71,7 @@ document.addEventListener('keydown', e => {
   }
   if (e.key === 'Escape') {
     closePopup();
-    closePendPanel();
+    closeProjPanel();
     closeModal('add-modal');
     closeModal('tag-modal');
     const _qcOverlay = document.getElementById('qc-modal-overlay'); if (_qcOverlay) _qcOverlay.classList.remove('open');
