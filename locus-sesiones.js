@@ -99,8 +99,8 @@ function _trackerRenderMiniHist(aiId) {
     ? pastSessions.filter(s => s.projectId === projFilter)
     : pastSessions;
 
-  // más reciente primero
-  const sorted = [...filtered].reverse();
+  // más reciente primero — sort explícito por createdAt descendente
+  const sorted = [...filtered].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
   // AC-4: conteo total incluye sesión en curso
   const totalCount = aiSessions.length;
@@ -143,7 +143,7 @@ function _trackerRenderMiniHist(aiId) {
   const _7dDate    = new Date(); _7dDate.setDate(_7dDate.getDate() - 7);
   const _7dKey     = _localDateKey(_7dDate); // B-202605-068: criterio dateKey local
   const _sessGroup = (s) => {
-    const ts = s.updatedAt || s.createdAt || 0;
+    const ts = s.createdAt || 0;
     if (!ts) return 'anteriores';
     const dateKey = _localDateKey(new Date(ts));
     if (dateKey === _todayKey)  return 'hoy';
