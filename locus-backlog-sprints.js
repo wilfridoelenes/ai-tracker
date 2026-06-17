@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:17 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:18 · autor:Rune · 2026-06-17 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -630,7 +630,7 @@ export function setSprintStatus(id, newStatus) {
     if (_existingActive) {
       // AC: rechazar sin modificar nada — toast con nombre del sprint en conflicto
       showToast('error', `Ya hay un sprint activo: ${_existingActive.label || _existingActive.name || _existingActive.id}. Ciérralo antes de activar otro.`);
-      return;
+      return false; // B-202606-042: retorno explícito — permite que callers detecten el rechazo
     }
   }
   const sp = _getSprintById(id);
@@ -1605,7 +1605,11 @@ function _scmExecuteClose() {
       const _nextSprint = _scheduledCandidates.reduce((min, s) =>
         (s.scheduledAt || 0) < (min.scheduledAt || 0) ? s : min
       );
-      setSprintStatus(_nextSprint.id, 'active');
+      // B-202606-042 AC-1: capturar rechazo de setSprintStatus — fallo silencioso resuelto
+      const _activated = setSprintStatus(_nextSprint.id, 'active');
+      if (_activated === false) {
+        showToast('error', 'Error al activar sprint ' + _nextSprint.id);
+      }
     }
   }
 
