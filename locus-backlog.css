@@ -1,4 +1,4 @@
-/* [PP] v0.1.0 · sprint:PP-S-01 · mod:42 · autor:Nova · 2026-06-15 UTC-6 */
+/* [PP] v0.1.0 · sprint:PP-S-03 · mod:43 · autor:Nova · 2026-06-16 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -2588,7 +2588,75 @@
   flex: 1;
 }
 
-/* Búsqueda en toolbar */
+/* T-202606-055: botón Filtros — toggle del panel inline */
+.bl-filter-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: var(--trans-color);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.bl-filter-toggle-btn:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.bl-filter-toggle-btn.active {
+  background: var(--surface3);
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.bl-filter-toggle-icon {
+  font-size: var(--text-xs);
+  transition: transform 0.15s var(--ease-out);
+}
+
+.bl-filter-toggle-btn.active .bl-filter-toggle-icon {
+  transform: rotate(180deg);
+}
+
+/* T-202606-055: panel inline de filtros */
+.bl-filter-panel {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 0 8px;
+  max-width: 2200px;
+  margin-inline: auto;
+  flex-wrap: wrap;
+}
+
+.bl-filter-panel.is-hidden {
+  display: none !important;
+}
+
+.bl-filter-panel-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bl-filter-panel-label {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+
 .bl-toolbar-search-wrap {
   position: relative;
   display: flex;

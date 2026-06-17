@@ -1,4 +1,4 @@
-<!-- [PP] v0.1.0 · sprint:PP-S-03 · mod:57 · autor:Rune · 2026-06-16 UTC-6 -->
+<!-- [PP] v0.1.0 · sprint:PP-S-03 · mod:58 · autor:Rune · 2026-06-16 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -404,6 +404,8 @@
         <button class="bl-strip-btn" id="fbar-show-children-btn" title="Mostrar Ts y Bs hijos bajo su R padre">Hijos</button>
         <button class="bl-strip-btn" id="fbar-no-ac-btn" title="Ítems sin criterios de aceptación">Sin AC</button>
         <button class="fbar-clear-btn is-hidden" id="filter-clear-btn" title="Limpiar todos los filtros">✕ Limpiar</button>
+        <!-- T-202606-055: botón Filtros — toggle panel inline -->
+        <button class="bl-filter-toggle-btn" id="fbar-filter-btn" title="Mostrar / ocultar panel de filtros" aria-expanded="false" aria-controls="bl-filter-panel">Filtros <span class="bl-filter-toggle-icon" aria-hidden="true">▾</span></button>
       </div>
       <!-- Divisor G2→G3 -->
       <div class="bl-toolbar-divider"></div>
@@ -434,6 +436,17 @@
       <button class="doc-log-btn" id="doc-log-btn-backlog" title="Historial de acciones del Backlog">🕐<span class="doc-log-count"></span></button>
     </div>
 
+    <!-- T-202606-055: panel inline de filtros — oculto por defecto, toggle via #fbar-filter-btn -->
+    <div class="bl-filter-panel is-hidden" id="bl-filter-panel" aria-hidden="true">
+      <div class="bl-filter-panel-group">
+        <span class="bl-filter-panel-label">Estado</span>
+        <!-- píldoras: T-202606-056 -->
+      </div>
+      <div class="bl-filter-panel-group">
+        <span class="bl-filter-panel-label">Flags</span>
+        <!-- píldoras: T-202606-056 -->
+      </div>
+    </div>
 
     <!-- toolbar vieja — oculta, mantenida por compatibilidad con JS que la referencia -->
     <div class="toolbar is-hidden" id="toolbar"></div>

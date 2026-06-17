@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:24 · autor:Rune · 2026-06-16 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:25 · autor:Rune · 2026-06-16 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -2251,6 +2251,18 @@ export function _migrateItemTypes() {
 }
 // B-202606-024: window.getItems eliminado — consumidores migrados a import o _getItemsFn()
 
+// T-202606-055: toggle de panel inline de filtros
+function toggleFilterPanel() {
+  const panel = document.getElementById('bl-filter-panel');
+  const btn   = document.getElementById('fbar-filter-btn');
+  if (!panel || !btn) return;
+  const isOpen = !panel.classList.contains('is-hidden');
+  panel.classList.toggle('is-hidden', isOpen);
+  panel.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
+  btn.classList.toggle('active', !isOpen);
+  btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+}
+
 // Inline handlers dinámicos — no tienen ID fijo, no pueden migrar a addEventListener
 // Se exponen en window para que onclick="fn()" en HTML generado en runtime funcione
 
@@ -2360,4 +2372,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // T-202606-099: toggle de filtros del backlog desde footer global
   const _btnGfToggle = document.getElementById('gf-footer-toggle');
   if (_btnGfToggle) _btnGfToggle.addEventListener('click', function () { toggleBacklogFooter(); });
+
+  // T-202606-055: botón Filtros — toggle de panel inline
+  const _btnFilterPanel = document.getElementById('fbar-filter-btn');
+  if (_btnFilterPanel) _btnFilterPanel.addEventListener('click', function () { toggleFilterPanel(); });
 });
