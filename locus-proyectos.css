@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 14:00 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-01 · mod:2 · autor:Nova · 2026-06-16 UTC-6 */
 /* locus-proyectos.css */
 
 /* Versión: 2.0 | Selectores consolidados — T3 */
@@ -516,21 +516,15 @@
   }
 
 .tracker-preview {
-  width: 0;
   min-width: 0;
   overflow: hidden;
   border-left: 1px solid var(--border);
   background: var(--bg);
-  display: none;
+  display: flex;
   flex-direction: column;
-  transition: width 0.22s var(--ease-standard), min-width 0.22s var(--ease-standard);
   flex-shrink: 0;
   height: 100%;
 }
-
-  #tab-tracker.preview-open .tracker-detail {
-    min-width: 0;
-  }
 
 .tracker-preview-empty {
   display: flex;
@@ -3518,10 +3512,6 @@
   /* ID supera especificidad de .tab-panel {
     display:none;
   }
-#tab-tracker:not(.active) {
-  display: none;
-}
-
 .tracker-preview-inner.d-flex {
   display: flex;
 }
