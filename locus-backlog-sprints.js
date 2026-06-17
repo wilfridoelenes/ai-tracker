@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-17 11:55 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-17 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -16,8 +16,6 @@ import { _setBacklogModified } from './locus-docs.js';
 import { openMapGenerator } from './locus-map-generator.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
 
 import { render } from './locus-sesiones.js';
-
-import { downloadTemplates } from './locus-session-save.js';
 
 // ── T-sprints: Catálogo de sprints ──
 
@@ -1647,10 +1645,7 @@ function _scmExecuteClose() {
     save();
   }
 
-  // T-202604-295: descargar templates al cerrar sprint si trigger lo indica
-  if (_templateTrigger() === 'sprint') {
-    downloadTemplates();
-  }
+  // T-202604-295: downloadTemplates deprecado
 
   // T-202604-417: ofrecer descarga de retro integrada al flujo
   if (sp && sp.retroDoc) {
