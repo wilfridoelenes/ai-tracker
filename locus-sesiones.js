@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-02 · mod:16 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-02 · mod:17 · autor:Rune · 2026-06-17 15:00 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -99,8 +99,10 @@ function _trackerRenderMiniHist(aiId) {
     ? pastSessions.filter(s => s.projectId === projFilter)
     : pastSessions;
 
-  // más reciente primero — sort explícito por createdAt descendente
-  const sorted = [...filtered].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+  // más reciente primero — sort explícito por createdAt descendente, con fallback a s.date
+  // B-[pendiente-ID]: createdAt ausente en algunas sesiones causaba ts=0 y orden incorrecto
+  const _sortTs = (s) => s.createdAt || (s.date && new Date(s.date).getTime()) || 0;
+  const sorted = [...filtered].sort((a, b) => _sortTs(b) - _sortTs(a));
 
   // AC-4: conteo total incluye sesión en curso
   const totalCount = aiSessions.length;
