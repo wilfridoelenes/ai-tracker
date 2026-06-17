@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:17 · autor:Rune · 2026-06-16 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:18 · autor:Rune · 2026-06-16 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -156,7 +156,15 @@ export function updateClearFilterBtn() {
   // R-202605-094: chips individuales limpiables por filtro activo
   const wrap = document.getElementById('active-filter-chips');
   if (!wrap) return;
-  if (isDefault) { wrap.innerHTML = ''; return; }
+  if (isDefault) {
+    wrap.innerHTML = '';
+    // T-202606-057: sin filtros activos — limpiar badge y restaurar chevron
+    const _fb = document.getElementById('bl-filter-badge');
+    const _fi = document.querySelector('#fbar-filter-btn .bl-filter-toggle-icon');
+    if (_fb) _fb.textContent = '';
+    if (_fi) _fi.textContent = '▾';
+    return;
+  }
 
   // Delegation en #active-filter-chips — se registra una sola vez
   if (!wrap._delegationAttached) {
@@ -212,6 +220,13 @@ export function updateClearFilterBtn() {
   if (_getBacklogNoAcMode()) chips.push(_chip('Sin AC', 'noac'));
 
   wrap.innerHTML = chips.join('');
+
+  // T-202606-057: badge de conteo + alternancia chevron/X en botón Filtros
+  const _filterBadge = document.getElementById('bl-filter-badge');
+  const _filterIcon  = document.querySelector('#fbar-filter-btn .bl-filter-toggle-icon');
+  const _filterCount = chips.length;
+  if (_filterBadge) _filterBadge.textContent = _filterCount > 0 ? `· ${_filterCount}` : '';
+  if (_filterIcon)  _filterIcon.textContent  = _filterCount > 0 ? '✕' : '▾';
 }
 
 // T-202604-213: _statusPills — migrada a locus-sprint-planificacion.js (B-202605-046)
