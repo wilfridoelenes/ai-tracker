@@ -1,6 +1,6 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:38 · autor:Rune · 2026-06-14 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-02 · mod:39 · autor:Rune · 2026-06-17 UTC-6
 // locus-session-save.js
-// Responsabilidad: Templates, changelog, buildContextMd, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
+// Responsabilidad: changelog, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 import { loadBacklog, renderStats, getItems} from './locus-backlog-core.js';
 import { applyPatchesFromTG, mergeBacklogFromTG } from './locus-backlog-item.js';
@@ -20,7 +20,7 @@ import { showCheckpointPanel } from './locus-sesiones-viz.js';
 
 import { render } from './locus-sesiones.js';
 
-import { _showProjRequiredInPanel, _templateTrigger, interpretHora } from './locus-session-hora.js';
+import { _showProjRequiredInPanel, interpretHora } from './locus-session-hora.js';
 
 import { _setPhase, _tryIngestPlan, _tryIngestPlanFromParsed, _tryIngestSprintProposal, _tryIngestSprintProposalFromParsed, _applySprintInheritanceToItems, parseSprintProposal, parsePaste, _buildTriggeredBySuggestion } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-020: _applySprintInheritanceToItems | T-202606-018: _tryIngestPlanFromParsed | T-202606-021: _buildTriggeredBySuggestion | B-202606-019: _tryIngestSprintProposalFromParsed
 
@@ -78,83 +78,6 @@ export function validateLifecycleTransitions(tgItems) {
 }
 
 const _confirmTimers = {};            // timers de confirmación por worker ID
-
-function toggleTemplateTrigger(val) {
-  localStorage.setItem(_TMPL_TRIGGER_KEY, val);
-  // Actualizar UI si el toggle está visible
-  const r1 = document.getElementById('tmpl-trigger-session');
-  const r2 = document.getElementById('tmpl-trigger-sprint');
-  if (r1) r1.checked = val === 'session';
-  if (r2) r2.checked = val === 'sprint';
-}
-
-// T-202604-115: Descargar templates individuales (HTML + CONTEXT + Backlog)
-export function downloadTemplates() {
-  showToast('download', 'Templates listos — click para descargar', null, 8000, () => { _doDownloadTemplates(); });
-}
-
-function _dlTemplatesCancel() {
-  // Alias mantenido por compatibilidad — no-op
-}
-
-// R-202604-040: genera sección ## Memoria reciente con las últimas 5 sesiones que tengan campos narrativos
-function _buildNarrativeMemoryMd() {
-  const rows = _getAllSessionsChron();
-  const withNarrative = rows.filter(({ sess }) =>
-    sess.decision || sess.contexto || sess.bloqueantes || sess.aprendizaje
-  ).slice(0, 5);
-  if (!withNarrative.length) return '';
-
-  const lines = ['## Memoria reciente', ''];
-  withNarrative.forEach(({ sess, ai }) => {
-    const aiName = ai ? ai.name : 'IA desconocida';
-    lines.push(`### ${sess.date || sess.dateShort || 'Sin fecha'} · ${aiName}`);
-    if (sess.title) lines.push(`**Sesión:** ${sess.title}`);
-    if (sess.decision)    lines.push(`**Decisión:** ${sess.decision}`);
-    if (sess.contexto)    lines.push(`**Contexto:** ${sess.contexto}`);
-    if (sess.bloqueantes) lines.push(`**Bloqueantes:** ${sess.bloqueantes}`);
-    if (sess.aprendizaje) lines.push(`**Aprendizaje:** ${sess.aprendizaje}`);
-    lines.push('');
-  });
-  lines.push('---', '');
-  return lines.join('\n');
-}
-
-function _doDownloadTemplates() {
-  // B-202605-267: usar versión canónica (post-Generator) en lugar de APP_VERSION hardcodeada
-  const _ver = _effectiveVersion || (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v3.4');
-
-  // Backlog
-  _generateBacklogMd(_ver);
-
-  // CONTEXT — enriquecido con sección de memoria narrativa al final
-  setTimeout(() => {
-    const raw = localStorage.getItem(_tplKey('context-raw'));
-    if (raw) {
-      // R-202604-040: añadir sección de memoria narrativa al final del CONTEXT exportado
-      const narrativeMd = _buildNarrativeMemoryMd();
-      const enriched = narrativeMd ? raw.trimEnd() + '\n\n---\n\n' + narrativeMd : raw;
-      const b = new Blob([enriched], { type: 'text/markdown' });
-      const u = URL.createObjectURL(b);
-      const a = document.createElement('a');
-      a.href = u; a.download = `${_docPrefix()}-CONTEXT_${_ver}.md`;
-      a.click(); URL.revokeObjectURL(u);
-    }
-  }, 300);
-
-  // HTML-MAP
-  setTimeout(() => {
-    const raw = localStorage.getItem(_tplKey('html-map-raw'));
-    if (raw) {
-      const b = new Blob([raw], { type: 'text/markdown' });
-      const u = URL.createObjectURL(b);
-      const a = document.createElement('a');
-      a.href = u; a.download = `${_docPrefix()}-MAP_${_ver}.md`;
-      a.click(); URL.revokeObjectURL(u);
-    }
-  }, 600);
-
-}
 
 // T-202604-061: Changelog interno
 const CHANGELOG_KEY = 'ai-tracker-changelog';
@@ -221,195 +144,6 @@ function _buildChangelogHTML() {
   return `<div class="modal modal--changelog">${_buildChangelogInner()}</div>`;
 }
 
-// R-202604-042: genera sección de memoria narrativa reciente para el CONTEXT exportado
-// Toma las últimas N sesiones del proyecto activo que tengan al menos un campo narrativo con contenido real
-function _buildNarrativeMd() {
-  const N = 10;
-  const proj = getActiveProject();
-  const sessions = (proj && Array.isArray(proj.sessions)) ? proj.sessions : [];
-  if (!sessions.length) return '';
-
-  // Filtrar sesiones con al menos un campo narrativo con contenido (distinto a vacío y a 'n/a')
-  const _hasContent = (val) => val && val.trim() && val.trim().toLowerCase() !== 'n/a';
-
-  const narrative = sessions
-    .slice()
-    .reverse() // más recientes primero
-    .filter(s => _hasContent(s.decision) || _hasContent(s.contexto) || _hasContent(s.bloqueantes) || _hasContent(s.aprendizaje))
-    .slice(0, N);
-
-  if (!narrative.length) return '';
-
-  const _ai = (aiId) => {
-    const a = getAI(aiId); return a ? a.name : aiId;
-    return aiId || '—';
-  };
-
-  const entries = narrative.map(s => {
-    const lines = [`**${s.date || s.dateShort || '—'}** · ${_ai(s.aiId)}` + (s.title ? ` · *${s.title}*` : '')];
-    if (_hasContent(s.decision))    lines.push(`- **Decisión:** ${s.decision.trim()}`);
-    if (_hasContent(s.contexto))    lines.push(`- **Contexto:** ${s.contexto.trim()}`);
-    if (_hasContent(s.bloqueantes)) lines.push(`- **Bloqueantes:** ${s.bloqueantes.trim()}`);
-    if (_hasContent(s.aprendizaje)) lines.push(`- **Aprendizaje:** ${s.aprendizaje.trim()}`);
-    return lines.join('\n');
-  }).join('\n\n');
-
-  return `\n---\n\n## Memoria narrativa reciente\n\n${entries}\n`;
-}
-
-function buildContextMd(version) {
-  const now = new Date();
-  const timestamp = now.toISOString().replace('T', ' ').slice(0, 16) + ' UTC-6';
-  const tracker = getActiveTracker();
-  const counters = tracker.counters || { P: 0, T: 0, R: 0, B: 0 };
-
-  // Sprint activo — acepta 'active' y 'open'
-  const allSprints = getActiveSprints();
-  const activeSprint = allSprints.find(s => s.status === 'active' || s.status === 'open') || null;
-  const lastClosed  = allSprints.filter(s => s.status === 'closed')
-    .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0))[0] || null;
-
-  // Archivo principal — nombre real del HTML si está disponible
-  const htmlFile = typeof APP_VERSION !== 'undefined'
-    ? `AI-Tracker-v${APP_VERSION.replace(/^v/, '')}.html`
-    : `AI-Tracker-v${version}.html`;
-
-  // Proyecto activo
-  const proj = getActiveProject();
-  const allProjects = (typeof state !== 'undefined' && state.projects) ? state.projects : [];
-
-  // Todas las sesiones — para bloqueante y decisiones
-  const allSessions = [];
-  allProjects.forEach(p => (p.sessions || []).forEach(s => allSessions.push({ sess: s, proj: p })));
-  allSessions.sort((a, b) => parseInt(b.sess.id || 0) - parseInt(a.sess.id || 0));
-
-  // ── Sección: Estado actual ───────────────────────────────────────────────────
-  let estadoSection = `## Estado actual\n\n`;
-  estadoSection += `| Campo | Valor |\n|---|---|\n`;
-  estadoSection += `| Archivo principal | \`${htmlFile}\` |\n`;
-  estadoSection += `| Sprint activo | ${activeSprint ? `${activeSprint.id}${activeSprint.name ? ' · ' + activeSprint.name : ''}` : '—'} |\n`;
-  estadoSection += `| Sprint cerrado más reciente | ${lastClosed ? lastClosed.id : '—'} |\n`;
-  estadoSection += `| Contadores | P=${counters.P} · T=${counters.T} · R=${counters.R} · B=${counters.B} |\n`;
-  const lastBlockerEntry = allSessions.find(({ sess }) => sess.bloqueantes && sess.bloqueantes.trim());
-  if (lastBlockerEntry) {
-    estadoSection += `| Último bloqueante | ${lastBlockerEntry.sess.bloqueantes.trim()} |\n`;
-  }
-  estadoSection += `\n`;
-
-  // ── Sección: Stack — estática ────────────────────────────────────────────────
-  const stackSection = `## Stack\n\n| Capa | Tecnología |\n|------|-----------|\n| UI | HTML + CSS custom (CSS vars, dark/light theme) |\n| Lógica | Vanilla JS ES6 (sin frameworks, sin build step) |\n| Persistencia | \`localStorage\` — clave \`ai-tracker-v4\` + \`backlog-items\` + \`backlog-meta\` |\n| Sync | Firebase Firestore (opcional) — SDK vía CDN, modo offline automático |\n`;
-
-  // ── Sección: Proyectos registrados ───────────────────────────────────────────
-  let projectsSection = `## Proyectos registrados\n\n`;
-  if (allProjects.length) {
-    projectsSection += `| Proyecto | Estado | Sprints | Sesiones | Ítems |\n|---|---|---|---|---|\n`;
-    allProjects.forEach(p => {
-      const sprintCount = Array.isArray(p.sprints) ? p.sprints.length : 0;
-      const sessCount   = Array.isArray(p.sessions) ? p.sessions.length : 0;
-      const itemCount   = (p.tracker && Array.isArray(p.tracker.items)) ? p.tracker.items.length : 0;
-      const status      = p.status || 'active';
-      projectsSection += `| ${p.name || p.id} | ${status} | ${sprintCount} | ${sessCount} | ${itemCount} |\n`;
-    });
-  } else {
-    projectsSection += `_Sin proyectos registrados._\n`;
-  }
-  projectsSection += `\n`;
-
-  // ── Sección: Tabs de la app — estática ──────────────────────────────────────
-  const tabsSection = `## Tabs de la app\n\n| Tab | ID | Default | Descripción |\n|-----|----|---------|-------------|\n| 🗂 Sesiones | \`tab-sesiones\` | ✅ activo | Vista principal — Cards / Log / Proyecto |\n| 📁 Proyectos | \`tab-proyectos\` | — | Dashboard de proyectos |\n| 🗃 Documentos | \`tab-backlog\` | — | Sub-tabs: Backlog / HTML-MAP / Context |\n| 📊 Analytics | \`tab-analytics\` | — | Gráfico sesiones/mes + ranking + streaks + heatmap + histograma |\n\n**Radar (\`📡\`):** sidebar global, no un tab. DOM: \`#radar-sidebar\`. Toggled via \`toggleRadarSidebar()\`.\n\n`;
-
-  // ── Sección: localStorage keys activas — estática ───────────────────────────
-  const localStorageSection = `## localStorage — keys activas\n\n| Key | Descripción |\n|-----|-------------|\n| \`ai-tracker-v4\` | State principal serializado |\n| \`backlog-items[-{projId}]\` | Array de ítems del Backlog.md importado |\n| \`backlog-meta[-{projId}]\` | \`{ version, updated, importedAt, counters }\` |\n| \`backlog-log\` | Historial de cambios del backlog |\n| \`context-log\` | Log de acciones sobre el Context |\n| \`html-map-log\` | Log de acciones sobre el HTML-MAP |\n| \`html-map-raw[-{projId}]\` | Texto raw del HTML-MAP.md importado |\n| \`html-map-sections[-{projId}]\` | Array de secciones parseadas del HTML-MAP |\n| \`html-map-meta[-{projId}]\` | \`{ file, version, importedAt, total }\` |\n| \`context-raw[-{projId}]\` | Texto raw del CONTEXT.md importado |\n| \`context-sections[-{projId}]\` | Secciones parseadas del CONTEXT (JSON) |\n| \`context-meta[-{projId}]\` | \`{ version, updated, importedAt }\` |\n| \`notes-{projId}\` | Notas rápidas por proyecto |\n| \`active-tab\` | Tab activo al cerrar |\n| \`tracker-view-mode\` | Modo de vista del tab Tracker: \`cards\` \\| \`chrono\` \\| \`project\` |\n| \`backlog-view-mode\` | Modo vista Backlog: plano \\| tree \\| kanban |\n| \`tmp-id-map\` | Mapeo \`{ slug → { code, createdAt } }\`. TTL 24h |\n| \`ai-tracker-changelog\` | Historial interno de cambios (max 50 entradas) |\n\nKeys con sufijo \`-{projId}\` cuando hay proyecto activo (via \`_tplKey(base)\`).\n\n`;
-
-  // ── Sección: Decisiones técnicas registradas ─────────────────────────────────
-  // Extraer del proyecto activo — campo decisions
-  let decisionsSection = `## Decisiones técnicas registradas\n\n`;
-  const projDecisions = (proj && Array.isArray(proj.decisions)) ? proj.decisions : [];
-  if (projDecisions.length) {
-    // Ordenar por fecha desc, tomar las 20 más recientes
-    const sorted = [...projDecisions]
-      .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
-      .slice(0, 20);
-    decisionsSection += `| Fecha | Decisión | Autor |\n|---|---|---|\n`;
-    sorted.forEach(d => {
-      const fecha  = (d.date || '—').slice(0, 10);
-      const texto  = (d.text || '').replace(/\|/g, '\\|').slice(0, 120);
-      const autor  = (d.author || '—').replace(/\|/g, '\\|');
-      decisionsSection += `| ${fecha} | ${texto} | ${autor} |\n`;
-    });
-  } else {
-    decisionsSection += `_Sin decisiones técnicas registradas en el proyecto activo._\n`;
-  }
-  decisionsSection += `\n`;
-
-  // ── Sección: Gaps / pendientes sprint activo ─────────────────────────────────
-  let gapsSection = `## Gaps / pendientes sprint activo\n\n`;
-  if (activeSprint && proj && proj.tracker && Array.isArray(proj.tracker.items)) {
-    const sprintItems = proj.tracker.items.filter(i =>
-      i.sprint === activeSprint.id && i.status === 'pendiente'
-    );
-    if (sprintItems.length) {
-      gapsSection += `| Ítem | Descripción | Tipo | Effort |\n|---|---|---|---|\n`;
-      sprintItems.slice(0, 30).forEach(i => {
-        const desc   = (i.title || i.desc || '').replace(/\|/g, '\\|').slice(0, 100);
-        const tipo   = i.type || '—';
-        const effort = i.effort || '—';
-        gapsSection += `| \`${i.code || '[pendiente]'}\` | ${desc} | ${tipo} | ${effort} |\n`;
-      });
-    } else {
-      gapsSection += `_Sin ítems pendientes en el sprint activo._\n`;
-    }
-  } else {
-    gapsSection += `_Sin sprint activo o sin proyecto seleccionado._\n`;
-  }
-  gapsSection += `\n`;
-
-  // ── Sección: Narrativa operativa ─────────────────────────────────────────────
-  const narrativeMd = _buildNarrativeMd ? _buildNarrativeMd() : '';
-
-  return `# CONTEXT — Locus
-# CONTEXT.md
-<!--
-  Versión: ${version}
-  Última actualización: ${timestamp}
-  Reglas generales: nombre archivo + numeración oficial + CHECKPOINT acumulativo
--->
-
-Versión: ${version}
-Última actualización: ${timestamp}
-Archivo principal: \`${htmlFile}\`
-
----
-
-${estadoSection}
----
-
-${stackSection}
-
----
-
-${projectsSection}
----
-
-${tabsSection}
----
-
-${localStorageSection}
----
-
-${decisionsSection}
----
-
-${gapsSection}
----
-
-## Notas
-
-Documento generado automáticamente desde Locus v${version}.
-Importa este archivo en la siguiente sesión.
-${narrativeMd}
-`;
-}
 
 // B-202605-517: stub legacy reemplazado — delegación a _generateBacklogContent (ai-tracker-sprint-project.js)
 // La función anterior leía tracker.items (schema legacy, solo sesiones) en lugar de getItems() (backlog global),
@@ -951,12 +685,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   const _hasPending = mergeResult.retroceso?.length || mergeResult.discarded?.length;
   const _baseMsg = horaResult ? `Sesión guardada · desbloquea a las ${horaResult.label}` : 'Sesión guardada';
   if (!_hasPending) {
-    // T-202604-295: descargar templates solo si trigger es 'session' (default)
-    if (_templateTrigger() === 'session') {
-      showToast('download', _baseMsg + ' · click para descargar templates', null, 8000, () => { _doDownloadTemplates(); });
-    } else {
-      showToast('success', _baseMsg);
-    }
+    showToast('success', _baseMsg);
   } else {
     showToast('success', _baseMsg);
     _pendingTemplateDownload = true;
