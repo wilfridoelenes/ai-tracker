@@ -1,6 +1,6 @@
 /* [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 00:00 UTC-6 */
 /* locus-sesiones.css */
-/* [PP] v0.2.0 · sprint:PP-S-03 · mod:7 · autor:Nova · 2026-06-16 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-03 · mod:8 · autor:Nova · 2026-06-16 UTC-6 */
 
 /* Versión: 2.2 | Última actualización: 2026-05-13 | log-* migrado desde locus-radar.css */
 
@@ -56,7 +56,7 @@
    Funciones: startSessionTimer · _renderActiveWorkerChip · renderSuggestionBanner */
 
 /* ══ TAB-TRACKER — Sidebar + Detail layout ══ */
-#tab-tracker.active {
+#tab-sesiones.active {
   display: flex;
   flex-direction: column;
   height: calc(100vh - var(--header-h, 54px));
@@ -100,14 +100,14 @@
 .tracker-detail > .card,
 .tracker-detail #grid > .card,
 /* T-202604-320-b: cuando preview abierto, card llena el espacio — sin gap muerto */
-#tab-tracker.preview-open .tracker-detail > .card,
-#tab-tracker.preview-open .tracker-detail #grid > .card,
+#tab-sesiones.preview-open .tracker-detail > .card,
+#tab-sesiones.preview-open .tracker-detail #grid > .card,
 .tracker-detail-full {
   width: 100%;
   box-sizing: border-box;
 }
 
-#tab-tracker.preview-open .tracker-detail-full {
+#tab-sesiones.preview-open .tracker-detail-full {
   max-width: 100%;
   margin-left: 0;
   margin-right: 0;
@@ -4054,7 +4054,7 @@
 }
 
 /* Layout expandido — 3 columnas al seleccionar sesión */
-#tab-tracker.preview-open .tracker-3col {
+#tab-sesiones.preview-open .tracker-3col {
   grid-template-columns: 30fr 40fr 30fr;
 }
 
@@ -4128,7 +4128,7 @@
   border-top: 1px solid var(--border);
 }
 
-#tab-tracker.preview-open .tracker-preview {
+#tab-sesiones.preview-open .tracker-preview {
   border-left-color: var(--border);
 }
 
@@ -6574,12 +6574,12 @@ body.radar-sb-open .tracker-sidebar {
 /* §1 — 3+ módulos */
 
 /* #tab-tracker */
-#tab-tracker {
+#tab-sesiones {
   flex-direction: column;
   height: calc(100vh - var(--header-h, 54px));
   overflow: hidden;
   position: relative;
-  /* display: flex movido a #tab-tracker.active en locus-layout.css — B fix tab visibility */
+  /* display: flex movido a #tab-sesiones.active en locus-layout.css — B fix tab visibility */
   padding: 0;
   max-width: var(--bp-ultrawide);
   margin-inline: auto;
@@ -7057,9 +7057,9 @@ body.radar-sb-open .tracker-sidebar {
 /* §2E — Tabs / Layout */
 
 /* B-202605-004: reglas duplicadas eliminadas.
-   #tab-tracker.preview-open .tracker-3col con grid-template-columns:1fr
+   #tab-sesiones.preview-open .tracker-3col con grid-template-columns:1fr
    sobreescribía la regla canónica (30fr 40fr 30fr) en R-202604-059.
-   #tab-tracker.preview-open .tracker-preview con position:absolute
+   #tab-sesiones.preview-open .tracker-preview con position:absolute
    colapsaba el grid a una columna destruyendo el layout de 3 columnas.
    La regla canónica en ══ R-202604-059 ══ es la única fuente de verdad. */
 

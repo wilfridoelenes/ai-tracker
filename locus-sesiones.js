@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:11 · autor:Rune · 2026-06-16 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:12 · autor:Rune · 2026-06-16 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -293,7 +293,7 @@ function _escHtml(str) {
 
 // Abre el panel Col3 con el resumen de la sesión indicada
 function _trackerOpenPreview(sessId) {
-  const tabEl    = document.getElementById('tab-tracker');
+  const tabEl    = document.getElementById('tab-sesiones');
   const innerEl  = document.getElementById('tracker-preview-inner');
   const headerEl = document.getElementById('tracker-preview-header');
   const bodyEl   = document.getElementById('tracker-preview-body');
@@ -383,7 +383,7 @@ function _trackerOpenPreview(sessId) {
 
 // Cierra el panel Col3 preview
 function _trackerClosePreview() {
-  const tabEl   = document.getElementById('tab-tracker');
+  const tabEl   = document.getElementById('tab-sesiones');
   const innerEl = document.getElementById('tracker-preview-inner');
   tabEl?.classList.remove('preview-open');
   if (innerEl) {
