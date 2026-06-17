@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:13 · autor:Rune · 2026-06-16 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:14 · autor:Rune · 2026-06-16 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -271,8 +271,8 @@ function _trackerMiniHistSelect(sessId, aiId) {
     row.classList.toggle('active', row.dataset.sessId === sessId);
   });
 
-  // Col3: preview liviano (T-202606-052)
-  _trackerOpenPreview(sessId);
+  // Col3: openDetail como único renderer (T1-T3 openDetail Col3)
+  openDetail(aiId, sessId);
 
   // mobile: navegar a col 3
   if (window.innerWidth < 900) {

@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:6 · autor:Rune · 2026-06-16 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -32,7 +32,22 @@ export function openDetail(aiId, sessId) {
   const ai = getAI(aiId);
   const found = _findSessionByAI(aiId, sessId);
   const s = found ? found.sess : null;
-  if (!s) return;
+  if (!s) {
+    // T2 (openDetail Col3): sesión inexistente → error visible, no stale
+    const _ph = document.getElementById('tracker-preview-header');
+    const _pb = document.getElementById('tracker-preview-body');
+    const _pv = document.getElementById('tracker-preview');
+    const _pi = document.getElementById('tracker-preview-inner');
+    const _pe = document.getElementById('tracker-preview-empty');
+    if (_ph) _ph.innerHTML = '';
+    if (_pb) _pb.innerHTML = '<p class="sp-error">Sesión no encontrada</p>';
+    if (_pv) _pv.classList.add('preview-open');
+    if (_pi) { _pi.classList.remove('is-hidden'); _pi.classList.add('d-flex'); }
+    if (_pe) _pe.classList.add('is-hidden');
+    const _tabEl = document.getElementById('tab-sesiones');
+    if (_tabEl) _tabEl.classList.add('preview-open');
+    return;
+  }
   popAIId = aiId; popSessId = sessId;
 
   const aiSessAll = getAISessions(aiId);
@@ -195,7 +210,7 @@ export function openDetail(aiId, sessId) {
           <div class="pop-editable pop-editable--mt" id="pop-title-wrap" data-popup-edit="title" title="Editar título">
             <span class="popup-title" id="pop-title">${esc(s.title)}</span><span class="pop-edit-icon">✏</span>
           </div>
-          <div class="popup-date" id="pop-meta"><span>${esc(ai.name)} · ${s.date}${s.resetAt ? ' · hasta ' + s.resetAt : ''}</span>${s.starred ? '<span class="pop-header-badge starred">⭐ destacada</span>' : ''}${s.quickCapture ? '<span class="pop-header-badge quick">⚡ rápida</span>' : ''}${(s.inReview && isLastSess) ? '<span class="pop-header-badge review">🔍 en revisión</span>' : ''}</div>
+          <div class="popup-date" id="pop-meta"><span>${esc(ai.name)}${(() => { try { const d = s.date ? new Date(s.date) : null; const fmt = d && !isNaN(d) ? ' · ' + d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; return fmt + (s.resetAt ? ' · hasta ' + s.resetAt : ''); } catch(e) { return s.resetAt ? ' · hasta ' + s.resetAt : ''; } })()}</span>${s.starred ? '<span class="pop-header-badge starred">⭐ destacada</span>' : ''}${s.quickCapture ? '<span class="pop-header-badge quick">⚡ rápida</span>' : ''}${(s.inReview && isLastSess) ? '<span class="pop-header-badge review">🔍 en revisión</span>' : ''}</div>
         </div>
       </div>`;
 

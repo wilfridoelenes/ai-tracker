@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:25 · autor:Rune · 2026-06-16 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:26 · autor:Rune · 2026-06-16 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -926,6 +926,13 @@ export function updateStatusFilterUI() {
   if (doneBtn) doneBtn.classList.toggle('active', activeStatuses.has('done'));
   const discBtn = document.getElementById('fstatus-descartado');
   if (discBtn) discBtn.classList.toggle('active', activeStatuses.has('descartado'));
+  // T-202606-056: sincronizar píldoras del panel con el mismo estado
+  const fpPend = document.getElementById('fp-pendiente');
+  if (fpPend) fpPend.classList.toggle('active', activeStatuses.has('pendiente'));
+  const fpDone = document.getElementById('fp-done');
+  if (fpDone) fpDone.classList.toggle('active', activeStatuses.has('done'));
+  const fpDesc = document.getElementById('fp-descartado');
+  if (fpDesc) fpDesc.classList.toggle('active', activeStatuses.has('descartado'));
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
 }
 
@@ -2376,4 +2383,49 @@ document.addEventListener('DOMContentLoaded', function () {
   // T-202606-055: botón Filtros — toggle de panel inline
   const _btnFilterPanel = document.getElementById('fbar-filter-btn');
   if (_btnFilterPanel) _btnFilterPanel.addEventListener('click', function () { toggleFilterPanel(); });
+
+  // T-202606-056: píldoras del panel — grupo Estado
+  const _fpDone = document.getElementById('fp-done');
+  if (_fpDone) _fpDone.addEventListener('click', function () { toggleStatusFilter('done'); });
+
+  const _fpDesc = document.getElementById('fp-descartado');
+  if (_fpDesc) _fpDesc.addEventListener('click', function () { toggleStatusFilter('descartado'); });
+
+  const _fpPend = document.getElementById('fp-pendiente');
+  if (_fpPend) _fpPend.addEventListener('click', function () { toggleStatusFilter('pendiente'); });
+
+  // T-202606-056: píldoras del panel — grupo Flags
+  const _fpNoAc = document.getElementById('fp-noac');
+  if (_fpNoAc) _fpNoAc.addEventListener('click', function () { toggleBacklogNoAcMode(); });
+
+  const _fpDeps = document.getElementById('fp-deps');
+  if (_fpDeps) _fpDeps.addEventListener('click', function () {
+    // toggle binario: 0→1 (bloqueados) | 1→0 (sin filtro). Estado 2 (libres) no aplica desde panel.
+    _depsFilter = _depsFilter > 0 ? 0 : 1;
+    const depsBtnToolbar = document.getElementById('fbar-deps-btn');
+    const labels = ['🔗 Deps', '🔒 Bloqueados', '🔓 Libres'];
+    if (depsBtnToolbar) {
+      depsBtnToolbar.textContent = labels[_depsFilter];
+      depsBtnToolbar.classList.toggle('active', _depsFilter > 0);
+    }
+    _fpDeps.classList.toggle('active', _depsFilter > 0);
+    window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
+  });
+
+  const _fpHijos = document.getElementById('fp-hijos');
+  if (_fpHijos) {
+    const _fpHijosStored = localStorage.getItem('backlog-show-children');
+    _fpHijos.classList.toggle('active', _fpHijosStored === '1');
+    _fpHijos.addEventListener('click', function () {
+      const nowActive = !_fpHijos.classList.contains('active');
+      _fpHijos.classList.toggle('active', nowActive);
+      // sincronizar botón Hijos de toolbar
+      const _tbHijos = document.getElementById('fbar-show-children-btn');
+      if (_tbHijos) {
+        _tbHijos.classList.toggle('active', nowActive);
+        _tbHijos.textContent = nowActive ? 'Hijos ✓' : 'Hijos';
+      }
+      toggleShowChildren(nowActive);
+    });
+  }
 });

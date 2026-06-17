@@ -1,4 +1,4 @@
-<!-- [PP] v0.1.0 · sprint:PP-S-03 · mod:58 · autor:Rune · 2026-06-16 UTC-6 -->
+<!-- [PP] v0.1.0 · sprint:PP-S-03 · mod:59 · autor:Rune · 2026-06-16 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -440,11 +440,17 @@
     <div class="bl-filter-panel is-hidden" id="bl-filter-panel" aria-hidden="true">
       <div class="bl-filter-panel-group">
         <span class="bl-filter-panel-label">Estado</span>
-        <!-- píldoras: T-202606-056 -->
+        <!-- T-202606-056: píldoras toggle — conectadas a toggleStatusFilter vía listeners en locus-backlog-core.js -->
+        <button class="bl-strip-btn" id="fp-done" title="Mostrar ítems con status done">Done</button>
+        <button class="bl-strip-btn s-descartado" id="fp-descartado" title="Mostrar ítems descartados">Descartados</button>
+        <button class="bl-strip-btn" id="fp-pendiente" title="Mostrar ítems pendientes">Pendiente</button>
       </div>
       <div class="bl-filter-panel-group">
         <span class="bl-filter-panel-label">Flags</span>
-        <!-- píldoras: T-202606-056 -->
+        <!-- T-202606-056: píldoras toggle — conectadas a toggles existentes vía listeners en locus-backlog-core.js -->
+        <button class="bl-strip-btn" id="fp-noac" title="Ítems sin criterios de aceptación">Sin AC</button>
+        <button class="bl-strip-btn" id="fp-deps" title="Ítems con dependencias bloqueantes">Con deps</button>
+        <button class="bl-strip-btn" id="fp-hijos" title="Mostrar Ts y Bs hijos bajo su R padre">Hijos</button>
       </div>
     </div>
 
