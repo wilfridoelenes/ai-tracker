@@ -20,7 +20,7 @@ import { render } from './locus-sesiones.js';
 
 import { interpretHora, _horaUpdate } from './locus-session-hora.js';
 
-import { getPendingTemplateDownload, setPendingTemplateDownload } from './locus-session-save.js';
+
 
 // R-202605-033: Extraído de locus-backlog-item.js
 
@@ -1285,12 +1285,7 @@ export function _confirmRetroceso(code, toStatus) {
         _markBacklogListDirty();
         renderBacklogList(); updateBacklogBanner(); renderStats();
       }
-      // Disparar descarga diferida si no quedan retrocesos ni descartes pendientes
-      if (getPendingTemplateDownload()) {
-        const panel = document.getElementById('ckpt-panel-body');
-        const stillPending = panel && (panel.querySelector('.ckpt-section.retroceso') || panel.querySelector('.ckpt-section.discarded'));
-        if (!stillPending) { setPendingTemplateDownload(false); }
-      }
+
     }
   });
 }
@@ -1392,13 +1387,7 @@ function _applyDiscardBatch(items) {
     const sec = panel.querySelector('.ckpt-section.discarded');
     if (sec) sec.remove();
   }
-  // Disparar descarga diferida si no quedan retrocesos pendientes
-  if (getPendingTemplateDownload()) {
-    const stillPending = panel && panel.querySelector('.ckpt-section.retroceso');
-    if (!stillPending) {
-      setPendingTemplateDownload(false);
-    }
-  }
+
 }
 
 // T-202606-077: registrar callbacks en locus-backlog-core

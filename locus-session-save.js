@@ -30,9 +30,6 @@ import { showToast } from './locus-toast.js';
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
-let _pendingTemplateDownload = false; // T5: variable de módulo — reemplaza window._pendingTemplateDownload
-export function getPendingTemplateDownload() { return _pendingTemplateDownload; }
-export function setPendingTemplateDownload(v) { _pendingTemplateDownload = v; }
 // T-202606-020 · AC-5: tabla de transiciones válidas por tipo de ítem — BR-Core §4
 // Clave: tipo de ítem ('R' | 'T' | 'B' | 'P'). Valor: Set de status permitidos.
 // Nota: tipo desconocido → no validar (AC-6, ignorar silenciosamente).
@@ -682,13 +679,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   if (hasMergeData) {
     showCheckpointPanel({ ...mergeResult, contextSections: mergedCtxNames, proximoPaso: _ckptProximoPaso, decision: _ckptDecision, inlineFixes: _ckptInlineFixes });
   }
-  const _hasPending = mergeResult.retroceso?.length || mergeResult.discarded?.length;
   const _baseMsg = horaResult ? `Sesión guardada · desbloquea a las ${horaResult.label}` : 'Sesión guardada';
-  if (!_hasPending) {
-    showToast('success', _baseMsg);
-  } else {
-    showToast('success', _baseMsg);
-    _pendingTemplateDownload = true;
-  }
+  showToast('success', _baseMsg);
 }
 
