@@ -1,6 +1,6 @@
 /* [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 00:00 UTC-6 */
 /* locus-sesiones.css */
-/* [PP] v0.2.0 · sprint:PP-S-03 · mod:8 · autor:Nova · 2026-06-16 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-03 · mod:9 · autor:Nova · 2026-06-17 UTC-6 */
 
 /* Versión: 2.2 | Última actualización: 2026-05-13 | log-* migrado desde locus-radar.css */
 
@@ -7669,6 +7669,24 @@ body.radar-sb-open .tracker-sidebar {
   font-size: var(--text-2xs-plus);
   color: var(--hint);
   font-family: var(--font-mono);
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* T-202606-074 AC-7: fila de sesión en curso — border-left distintivo, sin otros cambios de layout */
+.mh-row--in-progress {
+  border-left: 2px solid var(--green);
+}
+
+/* T-202606-074 AC-8: badge 'en curso' — mismo patrón que .sc-badge--insession con --purple */
+.mh-row-badge-live {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--green);
+  background: var(--green-dim);
+  border-radius: var(--radius-pill);
+  padding: 1px 6px;
   white-space: nowrap;
   flex-shrink: 0;
   margin-left: auto;
