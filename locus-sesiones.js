@@ -65,13 +65,12 @@ function _sessFixedTs(s, group) {
 }
 
 // ── R-202604-078 Fase 2: Mini-historial de IA en Col2 (modo Por IA) ─────
+// T-[pendiente-ID]: refactorizado — sesión en curso integrada como grupo 'ahora' al tope (AC-2..AC-9)
 
-// Render Col2 en modo Por IA: lista de sesiones de la IA seleccionada
+// Render Col2 en modo Por IA: lista unificada — sesión en curso + historial agrupado
 function _trackerRenderMiniHist(aiId) {
-  const panelEl  = document.getElementById('tracker-mini-hist-panel');
-  const listEl   = document.getElementById('tracker-mini-hist-list');
-  const titleEl  = document.getElementById('tracker-mini-hist-title');
-  const emptyEl  = document.getElementById('tracker-mini-hist-empty');
+  const listEl  = document.getElementById('tracker-mini-hist-list');
+  const titleEl = document.getElementById('tracker-mini-hist-title');
   if (!listEl) return;
 
   if (!aiId) {
@@ -85,10 +84,10 @@ function _trackerRenderMiniHist(aiId) {
 
   const allSessions = getAllSessions();
   // B-[pendiente-ID]: guard aiId — evita que s.aiId===null pase el filtro cuando aiId es null
-  const aiSessions  = aiId ? allSessions.filter(s => s.aiId === aiId) : [];
+  const aiSessions = aiId ? allSessions.filter(s => s.aiId === aiId) : [];
 
-  // R-202605-116 AC: excluir sesión en curso del mini historial
-  const currentSess = _getCurrentSession(aiId);
+  // AC-9: excluir sesión en curso de pastSessions — se construye desde currentSess directamente
+  const currentSess  = _getCurrentSession(aiId);
   const pastSessions = currentSess
     ? aiSessions.filter(s => s.id !== currentSess.id)
     : aiSessions;
@@ -103,21 +102,22 @@ function _trackerRenderMiniHist(aiId) {
   // más reciente primero
   const sorted = [...filtered].reverse();
 
-  // T-202605-470: header muestra conteo + último acceso — el nombre de la IA ya es visible en col 1
+  // AC-4: conteo total incluye sesión en curso
   const totalCount = aiSessions.length;
   if (titleEl) {
-    titleEl.textContent = `${totalCount} checkpoint${totalCount !== 1 ? 's' : ''}`;
+    titleEl.textContent = `${totalCount} ${totalCount !== 1 ? 'sesiones' : 'sesión'}`;
   }
   const lastMetaEl = document.getElementById('tracker-mini-hist-last');
   if (lastMetaEl) {
-    const lastSess = filtered.length ? filtered[filtered.length - 1] : null;
+    // Último acceso: sesión en curso si existe, si no la más reciente del historial
+    const lastSess = currentSess || (filtered.length ? filtered[filtered.length - 1] : null);
     lastMetaEl.textContent = lastSess
       ? ('Último: ' + (lastSess.date ? relDate(lastSess.date) : (lastSess.dateShort || lastSess.date || '')))
       : '';
   }
 
-  if (!sorted.length) {
-    // B-202605-075: mensajes diferenciados — filtro activo vs sin sesiones vs solo sesión en curso
+  // AC-6: sin contenido en absoluto — empty state
+  if (!currentSess && !sorted.length) {
     const emptyMsg = projFilter
       ? 'Sin checkpoints para este filtro'
       : (aiSessions.length === 0
@@ -127,13 +127,10 @@ function _trackerRenderMiniHist(aiId) {
     return;
   }
 
-  const projTracker = getActiveTracker();
-
   // R-202605-162: usa helper compartido — _sessRelTsShared definida antes de esta función
   const _sessRelTs = _sessRelTsShared;
 
-  // Agrupar en Hoy / Ayer / Últimos 7 días / Anteriores
-  const _nowMs = Date.now();
+  // Agrupar historial en Hoy / Ayer / Últimos 7 días / Anteriores
   const _localDateKey = (d) => {
     const y   = d.getFullYear();
     const m   = String(d.getMonth() + 1).padStart(2, '0');
@@ -144,14 +141,14 @@ function _trackerRenderMiniHist(aiId) {
   const _ydDate    = new Date(); _ydDate.setDate(_ydDate.getDate() - 1);
   const _yesterKey = _localDateKey(_ydDate);
   const _7dDate    = new Date(); _7dDate.setDate(_7dDate.getDate() - 7);
-  const _7dKey     = _localDateKey(_7dDate); // B-202605-068: criterio dateKey local — consistente con hoy/ayer
+  const _7dKey     = _localDateKey(_7dDate); // B-202605-068: criterio dateKey local
   const _sessGroup = (s) => {
     const ts = s.updatedAt || s.createdAt || 0;
     if (!ts) return 'anteriores';
     const dateKey = _localDateKey(new Date(ts));
     if (dateKey === _todayKey)  return 'hoy';
     if (dateKey === _yesterKey) return 'ayer';
-    if (dateKey >= _7dKey)      return 'semana'; // B-202605-068: >= incluye el día de hace exactamente 7 días (AC-2)
+    if (dateKey >= _7dKey)      return 'semana'; // B-202605-068: >= incluye día exacto -7
     return 'anteriores';
   };
   const _groupLabel = { hoy: 'Hoy', ayer: 'Ayer', semana: 'Últimos 7 días', anteriores: 'Anteriores' };
@@ -160,30 +157,29 @@ function _trackerRenderMiniHist(aiId) {
   const _grouped = { hoy: [], ayer: [], semana: [], anteriores: [] };
   sorted.forEach(s => _grouped[_sessGroup(s)].push(s));
 
-  // sesión en curso — para marcar in-progress
-  const _inProgressSess = _getCurrentSession(aiId);
-
   // T-202606-051: _renderRow — 4 líneas por fila según AC
-  const _renderRow = (s, group) => {
+  const _renderRow = (s, group, isInProgress) => {
     const isActive = s.id === _trackerHistSelectedSessId;
-    const isInProg = _inProgressSess && s.id === _inProgressSess.id;
 
-    // AC línea 1: título font-weight:500 truncado 1 línea
-    const titleHtml = `<div class="mh-row-title" title="${esc(s.title)}">${esc(s.title)}</div>`;
+    // AC línea 1: título + badge 'en curso' si in-progress (reemplaza timestamp), o timestamp
+    const badgeHtml  = isInProgress
+      ? `<span class="mh-row-badge-live">en curso</span>`
+      : '';
+    const tsHtml     = !isInProgress
+      ? (() => { const fixedTs = _sessFixedTs(s, group); return fixedTs ? `<span class="mh-row-ts">${fixedTs}</span>` : ''; })()
+      : '';
+    const titleHtml  = `<div class="mh-row-title" title="${esc(s.title)}">${esc(s.title)}</div>`;
 
     // AC línea 2: summary truncado a 2 líneas — omitido si vacío
     const summaryHtml = s.summary
       ? `<div class="mh-row-summary">${esc(s.summary)}</div>`
       : '';
 
-    // AC línea 3: pill de rol + timestamp relativo + refs coloreadas por tipo
+    // AC línea 3: pill de rol + (timestamp o badge) + refs coloreadas por tipo
     const rolHtml = s.rol
       ? `<span class="mh-row-rol">${esc(s.rol)}</span>`
       : '';
-    const fixedTs = _sessFixedTs(s, group);
-    const tsHtml  = fixedTs ? `<span class="mh-row-ts">${fixedTs}</span>` : '';
 
-    // refs coloreadas — máx 3 visibles + indicador +N
     const refs = s.trackerRefs || [];
     const visibleRefs = refs.slice(0, 3);
     const extraCount  = refs.length - visibleRefs.length;
@@ -202,8 +198,8 @@ function _trackerRenderMiniHist(aiId) {
       ? `<span class="mh-row-refs">${refTagsHtml}${refMoreHtml}</span>`
       : '';
 
-    const metaHtml = (rolHtml || tsHtml || refsHtml)
-      ? `<div class="mh-row-meta">${rolHtml}${tsHtml}${refsHtml}</div>`
+    const metaHtml = (rolHtml || tsHtml || badgeHtml || refsHtml)
+      ? `<div class="mh-row-meta">${rolHtml}${badgeHtml}${tsHtml}${refsHtml}</div>`
       : '';
 
     // AC línea 4: decision con prefijo → truncado 1 línea — omitido si vacío
@@ -214,8 +210,8 @@ function _trackerRenderMiniHist(aiId) {
     const rowCls = [
       'tracker-mini-hist-row',
       'sess-row',
-      isActive  ? 'active'               : '',
-      isInProg  ? 'sess-row--in-progress' : ''
+      isActive     ? 'active'              : '',
+      isInProgress ? 'mh-row--in-progress' : ''
     ].filter(Boolean).join(' ');
 
     return `<div class="${rowCls}"
@@ -230,20 +226,28 @@ function _trackerRenderMiniHist(aiId) {
   };
   // ── END T-202606-051 ──
 
-  listEl.innerHTML = _groupOrder
+  // AC-2: grupo 'ahora' al tope si hay sesión en curso — AC-5: omitido si no hay sesión en curso
+  const ahoraHtml = currentSess
+    ? `<div class="sess-group-sep">Ahora</div>` + _renderRow(currentSess, 'hoy', true)
+    : '';
+
+  // Grupos temporales del historial
+  const histHtml = _groupOrder
     .filter(g => _grouped[g].length > 0)
     .map(g =>
       `<div class="sess-group-sep">${_groupLabel[g]}</div>` +
-      _grouped[g].map(s => _renderRow(s, g)).join('')
+      _grouped[g].map(s => _renderRow(s, g, false)).join('')
     ).join('');
 
-  // Auto-seleccionar la sesión más reciente si no hay ninguna seleccionada —
-  // Col3 nunca queda vacío al cambiar de IA
+  listEl.innerHTML = ahoraHtml + histHtml;
+
+  // Auto-seleccionar la sesión más reciente del historial si no hay ninguna seleccionada
+  // (la sesión en curso no participa en la selección de col 3 desde este flujo)
   const latestSess = sorted[0];
   if (latestSess && !_trackerHistSelectedSessId) {
     _trackerHistSelectedSessId = latestSess.id;
-    const firstRow = listEl.querySelector('.tracker-mini-hist-row');
-    if (firstRow) firstRow.classList.add('active');
+    const firstHistRow = listEl.querySelector('.tracker-mini-hist-row:not(.mh-row--in-progress)');
+    if (firstHistRow) firstHistRow.classList.add('active');
     openDetail(latestSess.aiId, latestSess.id);
   }
 
@@ -301,68 +305,39 @@ function _trackerClosePreview() {
 
 // ── END R-202604-078 Fase 2 ──────────────────────────────────────────────
 
-// ── T-202606-050: Col 2 — #tracker-ckpt-section (sticky) + #tracker-mini-hist (scrolleable) ──
-// AC-2: si no hay checkpoint en curso, #tracker-ckpt-section no renderiza
-// AC-3: si no hay sesiones, #tracker-mini-hist muestra empty state centrado
-// AC-4: historial scrolleable independiente, ckpt-section sticky arriba
-// AC-5: si ambas vacías → único empty state global, ninguna sección renderiza
+// ── T-202606-050: Col 2 — lista unificada (sesión en curso + historial) ──
+// Refactorizado: ckpt-section y divider permanecen con is-hidden permanente (AC-1).
+// _trackerRenderMiniHist gestiona toda la col 2 incluyendo sesión en curso (AC-2..AC-9).
 function _trackerRenderCol2(aiId) {
-  const ckptSection  = document.getElementById('tracker-ckpt-section');
-  const divider      = document.getElementById('tracker-col2-divider');
-  const miniHist     = document.getElementById('tracker-mini-hist');
-  const col2Empty    = document.getElementById('tracker-col2-empty');
-  if (!ckptSection || !miniHist) return;
+  const miniHist  = document.getElementById('tracker-mini-hist');
+  const col2Empty = document.getElementById('tracker-col2-empty');
+  if (!miniHist) return;
 
-  // AC-2: determinar si hay checkpoint en curso
+  // AC-1: ckpt-section y divider permanecen ocultos — sin lógica de toggle
+  const ckptSection = document.getElementById('tracker-ckpt-section');
+  const divider     = document.getElementById('tracker-col2-divider');
+  if (ckptSection) ckptSection.classList.add('is-hidden');
+  if (divider)     divider.classList.add('is-hidden');
+
+  // Determinar si hay contenido para mostrar (sesión en curso + historial)
   const currentSess = aiId ? _getCurrentSession(aiId) : null;
-  const hasCkpt = !!currentSess;
-
-  // Determinar si hay sesiones en el historial (excluyendo sesión en curso)
   const allSessions = getAllSessions();
   const aiSessions  = aiId ? allSessions.filter(s => s.aiId === aiId) : [];
+  const _activeProjMH = getActiveProject();
+  const projFilter  = _activeProjMH ? _activeProjMH.id : null;
   const pastSessions = currentSess
     ? aiSessions.filter(s => s.id !== currentSess.id)
     : aiSessions;
-  const _activeProjMH = getActiveProject();
-  const projFilter = _activeProjMH ? _activeProjMH.id : null;
   const filtered = projFilter ? pastSessions.filter(s => s.projectId === projFilter) : pastSessions;
-  const hasHist = filtered.length > 0;
+  const hasContent = !!currentSess || filtered.length > 0;
 
-  // AC-5: ambas vacías → solo empty global, ninguna sección renderiza
-  if (!hasCkpt && !hasHist) {
-    ckptSection.classList.add('is-hidden');
-    divider.classList.add('is-hidden');
+  if (!hasContent) {
     miniHist.classList.add('is-hidden');
-    col2Empty.classList.remove('is-hidden');
+    if (col2Empty) col2Empty.classList.remove('is-hidden');
     return;
   }
 
-  // Al menos una sección tiene contenido — ocultar empty global
-  col2Empty.classList.add('is-hidden');
-
-  // AC-2: ckpt-section visible solo si hay checkpoint en curso
-  if (hasCkpt) {
-    const existing = ckptSection.querySelector('[id^="current-session-card-"]');
-    if (existing) existing.remove();
-    const csCard = _buildCurrentSessionCard(aiId);
-    if (csCard) {
-      ckptSection.innerHTML = '';
-      ckptSection.appendChild(csCard);
-      requestAnimationFrame(() => csCard.classList.add('cscard-visible'));
-    }
-    ckptSection.classList.remove('is-hidden');
-  } else {
-    ckptSection.classList.add('is-hidden');
-  }
-
-  // AC-1: separador 0.5px visible solo cuando ambas secciones tienen contenido
-  if (hasCkpt && hasHist) {
-    divider.classList.remove('is-hidden');
-  } else {
-    divider.classList.add('is-hidden');
-  }
-
-  // AC-3/AC-4: mini-hist siempre intenta render — _trackerRenderMiniHist maneja empty state
+  if (col2Empty) col2Empty.classList.add('is-hidden');
   miniHist.classList.remove('is-hidden');
   _trackerRenderMiniHist(aiId);
 }
