@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:26 · autor:Rune · 2026-06-16 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:27 · autor:Rune · 2026-06-16 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -915,6 +915,12 @@ export function toggleStatusFilter(status) {
     const btnId = status === 'done' ? 'fstatus-done' : status === 'descartado' ? 'fstatus-descartado' : status === 'en-revision' ? 'fstatus-en-revision' : 'fstatus-pendiente';
     const el = document.getElementById(btnId);
     if (el) { el.classList.remove('filter-pulse'); void el.offsetWidth; el.classList.add('filter-pulse'); el.addEventListener('animationend', () => el.classList.remove('filter-pulse'), { once: true }); }
+    // T-202606-066 AC-1: mismo pulse en la píldora del panel correspondiente
+    const fpId = status === 'done' ? 'fp-done' : status === 'descartado' ? 'fp-descartado' : status === 'pendiente' ? 'fp-pendiente' : null;
+    if (fpId) {
+      const fpEl = document.getElementById(fpId);
+      if (fpEl) { fpEl.classList.remove('filter-pulse'); void fpEl.offsetWidth; fpEl.classList.add('filter-pulse'); fpEl.addEventListener('animationend', () => fpEl.classList.remove('filter-pulse'), { once: true }); }
+    }
   });
 }
 export function updateStatusFilterUI() {
@@ -2221,6 +2227,13 @@ export function toggleBacklogNoAcMode() {
   }
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
+  // T-202606-066 AC-2: filter-pulse en fbar-no-ac-btn (toolbar) y fp-noac (panel)
+  requestAnimationFrame(() => {
+    ['fbar-no-ac-btn', 'fp-noac'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.classList.remove('filter-pulse'); void el.offsetWidth; el.classList.add('filter-pulse'); el.addEventListener('animationend', () => el.classList.remove('filter-pulse'), { once: true }); }
+    });
+  });
 }
 
 // R-202605-130: vista Planificación — drag & drop de ítems sin sprint al sprint siguiente
@@ -2410,6 +2423,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     _fpDeps.classList.toggle('active', _depsFilter > 0);
     window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
+    // T-202606-066 AC-3: filter-pulse en fp-deps
+    requestAnimationFrame(() => {
+      _fpDeps.classList.remove('filter-pulse'); void _fpDeps.offsetWidth; _fpDeps.classList.add('filter-pulse'); _fpDeps.addEventListener('animationend', () => _fpDeps.classList.remove('filter-pulse'), { once: true });
+    });
   });
 
   const _fpHijos = document.getElementById('fp-hijos');
@@ -2426,6 +2443,10 @@ document.addEventListener('DOMContentLoaded', function () {
         _tbHijos.textContent = nowActive ? 'Hijos ✓' : 'Hijos';
       }
       toggleShowChildren(nowActive);
+      // T-202606-066 AC-4: filter-pulse en fp-hijos
+      requestAnimationFrame(() => {
+        _fpHijos.classList.remove('filter-pulse'); void _fpHijos.offsetWidth; _fpHijos.classList.add('filter-pulse'); _fpHijos.addEventListener('animationend', () => _fpHijos.classList.remove('filter-pulse'), { once: true });
+      });
     });
   }
 });

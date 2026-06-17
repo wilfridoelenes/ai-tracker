@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:6 · autor:Rune · 2026-06-16 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-16 18:10 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -388,7 +388,14 @@ function starCurrentSession() {
   if (metaEl && s) {
     const starBadge = s.starred ? `<span class="pop-header-badge starred">⭐ destacada</span>` : '';
     const quickBadge = s.quickCapture ? `<span class="pop-header-badge quick">⚡ rápida</span>` : '';
-    metaEl.innerHTML = `<span>${s.date}${s.resetAt ? ' · hasta ' + s.resetAt : ''}</span>${starBadge}${quickBadge}`;
+    // T-202606-065: fecha formateada — mismo patrón que openDetail (T-202606-062). Nunca string crudo ISO ni 'Invalid Date'.
+    const _fmtDate = (() => {
+      try {
+        const d = s.date ? new Date(s.date) : null;
+        return d && !isNaN(d) ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+      } catch (e) { return ''; }
+    })();
+    metaEl.innerHTML = `<span>${_fmtDate}${s.resetAt ? ' · hasta ' + s.resetAt : ''}</span>${starBadge}${quickBadge}`;
   }
   showToast('info', s?.starred ? 'Sesión destacada' : 'Destacado quitado');
 }
