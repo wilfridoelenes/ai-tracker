@@ -1,6 +1,6 @@
 /* [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 00:00 UTC-6 */
 /* locus-sesiones.css */
-/* [PP] v0.2.0 · sprint:PP-S-03 · mod:6 · autor:Nova · 2026-06-16 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-03 · mod:7 · autor:Nova · 2026-06-16 UTC-6 */
 
 /* Versión: 2.2 | Última actualización: 2026-05-13 | log-* migrado desde locus-radar.css */
 
@@ -4131,6 +4131,109 @@
 #tab-tracker.preview-open .tracker-preview {
   border-left-color: var(--border);
 }
+
+/* ── T-202606-052: Col3 preview de sesión — estilos internos ── */
+
+/* Header row: título + botón X */
+.sp-header-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+/* Título de sesión en header */
+.sp-title {
+  flex: 1;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* Meta: fecha · rol */
+.sp-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin: 4px 0 0;
+}
+
+/* Botón cerrar Col3 */
+.sp-close-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+.sp-close-btn:hover {
+  background: var(--surface3);
+  color: var(--text-primary);
+}
+
+/* Sección genérica: label + body */
+.sp-section {
+  margin-bottom: 14px;
+}
+
+.sp-section:last-child {
+  margin-bottom: 0;
+}
+
+.sp-section-label {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--hint);
+  margin: 0 0 4px;
+}
+
+.sp-section-body {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  margin: 0;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* Texto muted cuando campo vacío (AC-8) */
+.sp-section-body.sp-muted {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Decisión: border-left verde (AC-3) */
+.sp-section--decision {
+  border-left: 3px solid var(--success, #2ecc78);
+  padding-left: 10px;
+}
+
+/* Lista de tags de ítems — reutiliza .mh-ref-tag existente */
+.sp-items-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* Error: sessId no encontrado (AC-6) */
+.sp-error {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin: 0;
+  padding: 12px 0;
+}
+
+/* ── END T-202606-052 ── */
 
 /* tracker-detail dentro de col — quitar full-width override */
 .tracker-col--card .tracker-detail--full {
