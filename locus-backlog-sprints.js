@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:17 · autor:Rune · 2026-06-17 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -19,10 +19,19 @@ import { render } from './locus-sesiones.js';
 
 // ── T-sprints: Catálogo de sprints ──
 
+// T-202606-072: helper compartido — filtra getActiveSprints() por projId.
+// Si projId es null/undefined → retorna todos los sprints sin filtro de proyecto.
+// Usado por _getActiveSprint y _getConflictingSprints.
+function _sprintsForProject(projId) {
+  if (!projId) return getActiveSprints();
+  return getActiveSprints().filter(s => s.projId === projId || s.projectId === projId);
+}
+
 export function _getActiveSprint() {
   // T-202606-070: excluir isHotfix — HOTFIX siempre tiene status:'active' (sprint persistente)
   // pero no debe exponerse como "el sprint activo" en _renderSpsActivo ni en consumidores de getActiveSprint.
-  const all = getActiveSprints().filter(s => s.status === 'active' && !s.isHotfix);
+  // T-202606-072: _sprintsForProject(null) — sin filtro de proyecto, comportamiento original preservado.
+  const all = _sprintsForProject(null).filter(s => s.status === 'active' && !s.isHotfix);
   return all.find(s => s.current === true) || all[0] || null;
 }
 
@@ -36,11 +45,8 @@ export function _getSprintById(id) {
 export function _getConflictingSprints() {
   const proj = getActiveProject();
   const projId = proj ? proj.id : null;
-  const active = getActiveSprints().filter(s => {
-    if (s.status !== 'active') return false;
-    if (!projId) return true;
-    return (s.projId === projId || s.projectId === projId);
-  });
+  // T-202606-072: usar helper compartido — equivalente al filtro inline anterior.
+  const active = _sprintsForProject(projId).filter(s => s.status === 'active');
   if (active.length <= 1) return [];
   // Ordenar por startedAt desc — el más reciente es el canonical
   const sorted = [...active].sort((a, b) => (b.startedAt || 0) - (a.startedAt || 0));
