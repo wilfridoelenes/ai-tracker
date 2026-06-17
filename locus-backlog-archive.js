@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-12 · mod:7 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-17 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -16,14 +16,23 @@ import { esc } from './locus-ui-shell.js';
 // ─────────────────────────────────────────────────────────────────────────────
 // B-[tmp:closed-version]: archivar ítems done/descartados al hacer bump de versión
 // Llamada desde confirmMapGenerator() en ai-tracker-map-generator.js
+// B-202606-[pendiente-ID]: fix — solo archiva ítems cuyos sprints están cerrados formalmente.
+// Antes archivaba todos los done/descartado sin filtrar por sprint, migrando a historico
+// ítems de sprints activos o programados que aún no habían sido cerrados.
 // ─────────────────────────────────────────────────────────────────────────────
 export function archiveClosedItems() {
+  const closedSprintIds = new Set(
+    getActiveSprints().filter(s => s.status === 'closed').map(s => s.id)
+  );
+  const archiveTs = Date.now();
   let changed = false;
   getItems().forEach(item => {
-    if (item.status === 'done' || item.status === 'descartado') {
-      item.status = 'historico';
-      changed = true;
-    }
+    if (item.status !== 'done' && item.status !== 'descartado') return;
+    // B-202606-[pendiente-ID]: solo archivar si el ítem pertenece a un sprint formalmente cerrado
+    if (!item.sprint || !closedSprintIds.has(item.sprint)) return;
+    item.status = 'historico';
+    item.archivedAt = archiveTs;
+    changed = true;
   });
   if (changed) {
     saveBacklog();
