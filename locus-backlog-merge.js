@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:16 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:17 · autor:Rune · 2026-06-18 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -968,7 +968,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   if (footer) {
     footer.innerHTML = `
       <div class="mdiff-duration-row">
-        <label class="mdiff-duration-label" for="mdiff-duration-input">Hora de desbloqueo</label>
+        <label class="mdiff-duration-label" for="mdiff-duration-input">Hora de reset</label>
         <input
           class="mdiff-duration-input"
           id="mdiff-duration-input"
@@ -977,7 +977,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           placeholder="ej: 2130"
           maxlength="4"
           autocomplete="off"
-          aria-label="Hora de desbloqueo del worker en formato HHMM (ej: 2130)"
+          aria-label="Hora de reset del worker en formato HHMM (ej: 2130)"
         >
         <div class="mdiff-duration-hint" id="mdiff-duration-disp">—</div>
       </div>
