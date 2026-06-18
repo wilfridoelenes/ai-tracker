@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-03 · mod:2 · autor:Nova · 2026-06-17 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-03 · mod:3 · autor:Nova · 2026-06-17 UTC-6 */
 /* locus-sesiones.css */
 /* [PP] v0.2.0 · sprint:PP-S-03 · mod:9 · autor:Nova · 2026-06-17 UTC-6 */
 
@@ -7674,9 +7674,11 @@ body.radar-sb-open .tracker-sidebar {
   flex-shrink: 0;
 }
 
-/* T-202606-074 AC-7: fila de sesión en curso — border-left distintivo, sin otros cambios de layout */
+/* T-202606-074 AC-7: fila de sesión en curso — border-left distintivo */
+/* T-202606-081: fondo verde-dim para diferenciación de zona — .active (línea ~5742, .tracker-mini-hist-list .sess-row.active) tiene mayor especificidad (ancestro + 2 clases vs 1 clase) y gana cuando ambas coexisten */
 .mh-row--in-progress {
   border-left: 2px solid var(--green);
+  background: var(--green-dim);
 }
 
 /* T-202606-074 AC-8: badge 'en curso' — mismo patrón que .sc-badge--insession con --purple */
