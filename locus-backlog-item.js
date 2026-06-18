@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:36 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:37 · autor:Rune · 2026-06-17 UTC-6
 // locus-backlog-item.js
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
@@ -1882,6 +1882,16 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
 
   // Orden de avance: pendiente < done < descartado (descartado solo vía confirmación)
   const _statusRank = { pendiente: 0, 'en-revision': 0.5, promovida: 0.8, done: 1, descartado: 2 }; // T-202606-032 / B-202606-016: promovida con rank 0.8
+
+  // B-202606-047: ordenar batch — Rs primero, luego T/B, luego el resto.
+  // Sin este orden, cuando R y sus Ts llegan en el mismo CHECKPOINT el find de parentId
+  // no encuentra al R padre (aún no pusheado a getItems()) → parentId: null en todos los Ts.
+  const _typeOrder = { R: 0, T: 1, B: 1, P: 2 };
+  tgItems.sort((a, b) => {
+    const tA = a.type || (a.code ? a.code.charAt(0) : 'P');
+    const tB = b.type || (b.code ? b.code.charAt(0) : 'P');
+    return (_typeOrder[tA] ?? 3) - (_typeOrder[tB] ?? 3);
+  });
 
   // B-202605-007: snapshot antes de cualquier mutación — incluye cierre automático de P padre
   if (!_dryRun) _undoSnapshot();
