@@ -2588,6 +2588,10 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!activeStatuses.has('en-revision')) toggleStatusFilter('en-revision');
       if (_backlogNoAcMode) toggleBacklogNoAcMode();
       if (_depsFilter > 0) _resetDepsFilter();
+      // AC11: resetear activeTypes al conjunto completo
+     activeTypes = new Set(['T','R','B','P']);
+     updateTypeFilterUI();
+      if (localStorage.getItem('backlog-show-children') === '1') {
       if (localStorage.getItem('backlog-show-children') === '1') {
         const _tbHijos = document.getElementById('fbar-show-children-btn');
         const _fpHijos = document.getElementById('fp-hijos');
