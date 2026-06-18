@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:19 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:20 · autor:Rune · 2026-06-17 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -444,10 +444,10 @@ function _iceboxStaleness(item) {
 
 // R-202606-017 · T-202606-061: Vista Lista — sprint groups + jerarquía R→T/B por defecto
 // Reemplaza la lógica combinada de _renderVistaC + bloque _useSprintGroups.
-// Parámetros: listEl, pendienteItems, doneItems, descartadoItems ya filtrados por renderBacklogList;
-//   cerradasItems: P promovida + P descartado — sección unificada "Cerradas"
+// Parámetros: listEl, pendienteItems, doneItems, terminalItems ya filtrados por renderBacklogList;
+//   terminalItems: R/T/B descartado + P descartado + P promovida — bloque Cerradas unificado
 //   _matchesQuery y _sortGroup vienen de renderBacklogList para reutilizar la lógica existente.
-function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, cerradasItems, _matchesQuery, _sortGroup, q, onRendered) {
+function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered) {
   const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
 
   // AC6: ítems sin sprint → bloque Icebox al final
@@ -661,42 +661,31 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, c
     html += `</div></div>`;
   }
 
-  // Descartados — solo R/T/B descartados (Ps descartadas van a Cerradas)
-  if (descartadoItems.length && _getActiveStatuses().has('descartado')) {
-    const discOpen = localStorage.getItem('backlog-discarded-open') === '1';
-    html += `<div class="section-group sg-discarded" id="sg-discarded">
-      <div class="section-group-header" data-action="section-group-toggle" data-group="discarded">
-        <span class="section-group-arrow" id="sgarrow-discarded">${discOpen ? '▾' : '▸'}</span>
-        <span>Descartados</span>
-        <span class="section-group-count">${descartadoItems.length} ítem${descartadoItems.length !== 1 ? 's' : ''}</span>
-      </div>
-      <div class="section-group-body items-grid${discOpen ? '' : ' collapsed'}" id="sgbody-discarded">`;
-    descartadoItems.forEach(item => { html += buildBacklogItem(item); });
-    html += `</div></div>`;
-  }
-
-  // Cerradas — P promovida + P descartado (estados terminales de una P)
-  if (cerradasItems.length) {
+  // Cerradas — R/T/B descartado + P descartado + P promovida — bloque unificado
+  // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado' y 'promovida')
+  if (terminalItems.length && _getActiveStatuses().has('descartado')) {
     const cerradasOpen = localStorage.getItem('backlog-cerradas-open') === '1';
-    const _promCount = cerradasItems.filter(i => i.status === 'promovida').length;
-    const _descPCount = cerradasItems.filter(i => i.status === 'descartado').length;
+    const _promCount   = terminalItems.filter(i => i.status === 'promovida').length;
+    const _descPCount  = terminalItems.filter(i => i.status === 'descartado' && itemType(i.code) === 'P').length;
+    const _descRTBCount = terminalItems.filter(i => i.status === 'descartado' && itemType(i.code) !== 'P').length;
     const _cerradasTitle = [
-      _promCount ? `${_promCount} promovida${_promCount !== 1 ? 's' : ''}` : '',
-      _descPCount ? `${_descPCount} descartada${_descPCount !== 1 ? 's' : ''}` : ''
+      _promCount    ? `${_promCount} promovida${_promCount !== 1 ? 's' : ''}`        : '',
+      _descPCount   ? `${_descPCount} P descartada${_descPCount !== 1 ? 's' : ''}`  : '',
+      _descRTBCount ? `${_descRTBCount} descartado${_descRTBCount !== 1 ? 's' : ''}` : ''
     ].filter(Boolean).join(' · ');
     html += `<div class="section-group sg-cerradas" id="sg-cerradas">
       <div class="section-group-header" data-action="section-group-toggle" data-group="cerradas">
         <span class="section-group-arrow" id="sgarrow-cerradas">${cerradasOpen ? '▾' : '▸'}</span>
         <span>Cerradas</span>
-        <span class="section-group-count" title="${_cerradasTitle}">${cerradasItems.length} ítem${cerradasItems.length !== 1 ? 's' : ''}</span>
+        <span class="section-group-count" title="${_cerradasTitle}">${terminalItems.length} ítem${terminalItems.length !== 1 ? 's' : ''}</span>
       </div>
       <div class="section-group-body items-grid${cerradasOpen ? '' : ' collapsed'}" id="sgbody-cerradas">`;
-    cerradasItems.forEach(item => { html += buildBacklogItem(item); });
+    terminalItems.forEach(item => { html += buildBacklogItem(item); });
     html += `</div></div>`;
   }
 
   // T-202606-107: empty state diferenciado — backlog vacío real vs filtros ocultan todo
-  const _hasVisible = pendienteItems.length || doneItems.length || (descartadoItems.length && _getActiveStatuses().has('descartado')) || cerradasItems.length;
+  const _hasVisible = pendienteItems.length || doneItems.length || (terminalItems.length && _getActiveStatuses().has('descartado'));
   if (!_hasVisible) {
     // hasItems: hay ítems contables antes de aplicar cualquier filtro
     const hasItems = getItems().length > 0;
@@ -745,7 +734,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, c
   const countEl = document.getElementById('search-count');
   if (countEl) {
     if (q) {
-      const total = pendienteItems.length + doneItems.length + descartadoItems.length + cerradasItems.length;
+      const total = pendienteItems.length + doneItems.length + terminalItems.length;
       countEl.textContent = `${total} resultado${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`;
     } else {
       countEl.textContent = '';
@@ -787,7 +776,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, c
     if (activeSprint) parts.push(activeSprint.label || activeSprint.id);
     if (_getActiveTypes().size < 4) parts.push([..._getActiveTypes()].join('/'));
     if (_getActivePriorityFilter().size > 0) parts.push('pri:' + [..._getActivePriorityFilter()].join('/'));
-    const scopeCount = pendienteItems.length + doneItems.length + (descartadoItems.length && _getActiveStatuses().has('descartado') ? descartadoItems.length : 0) + cerradasItems.length;
+    const scopeCount = pendienteItems.length + doneItems.length + (_getActiveStatuses().has('descartado') ? terminalItems.length : 0);
     if (parts.length) {
       inp.placeholder = '🔍 Buscando en ' + parts.join(' · ') + ' · ' + scopeCount + ' ítem' + (scopeCount !== 1 ? 's' : '');
     } else {
@@ -1035,7 +1024,7 @@ export function renderBacklogList(onRendered) {
   const _useVistaLista = !_getBacklogKanbanMode() && !_getBacklogNoAcMode();
 
   if (_useVistaLista) {
-    _renderVistaLista(listEl, pendienteItems, doneItems, descartadoItems, cerradasItems, _matchesQuery, _sortGroup, q, onRendered);
+    _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered);
     return;
   }
 
@@ -1307,43 +1296,32 @@ export function renderBacklogList(onRendered) {
   // T-202606-006: sección #sg-done eliminada — done items en posición natural dentro de su sprint
   // via filtro s-done. Ver R-202605-036.
 
-  // T-202604-059: Descartados — solo R/T/B descartados (Ps descartadas van a Cerradas)
-  if (descartadoItems.length && _getActiveStatuses().has('descartado')) {
-    const discOpen = localStorage.getItem('backlog-discarded-open') === '1';
-    html += `<div class="section-group sg-discarded" id="sg-discarded">
-      <div class="section-group-header" data-action="section-group-toggle" data-group="discarded">
-        <span class="section-group-arrow" id="sgarrow-discarded">${discOpen ? '▾' : '▸'}</span>
-        <span>Descartados</span>
-        <span class="section-group-count">${descartadoItems.length} ítem${descartadoItems.length !== 1 ? 's' : ''}</span>
-      </div>
-      <div class="section-group-body items-grid${discOpen ? '' : ' collapsed'}" id="sgbody-discarded">`;
-    descartadoItems.forEach(item => { html += buildBacklogItem(item); });
-    html += `</div></div>`;
-  }
-
-  // Cerradas — P promovida + P descartado (estados terminales de una P) — noAc path
-  if (cerradasItems.length) {
+  // Cerradas — R/T/B descartado + P descartado + P promovida — bloque unificado — noAc path
+  // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado' y 'promovida')
+  if (terminalItems.length && _getActiveStatuses().has('descartado')) {
     const cerradasOpen = localStorage.getItem('backlog-cerradas-open') === '1';
-    const _promCount  = cerradasItems.filter(i => i.status === 'promovida').length;
-    const _descPCount = cerradasItems.filter(i => i.status === 'descartado').length;
+    const _promCount    = terminalItems.filter(i => i.status === 'promovida').length;
+    const _descPCount   = terminalItems.filter(i => i.status === 'descartado' && itemType(i.code) === 'P').length;
+    const _descRTBCount = terminalItems.filter(i => i.status === 'descartado' && itemType(i.code) !== 'P').length;
     const _cerradasTitle = [
-      _promCount  ? `${_promCount} promovida${_promCount !== 1 ? 's' : ''}` : '',
-      _descPCount ? `${_descPCount} descartada${_descPCount !== 1 ? 's' : ''}` : ''
+      _promCount    ? `${_promCount} promovida${_promCount !== 1 ? 's' : ''}`        : '',
+      _descPCount   ? `${_descPCount} P descartada${_descPCount !== 1 ? 's' : ''}`  : '',
+      _descRTBCount ? `${_descRTBCount} descartado${_descRTBCount !== 1 ? 's' : ''}` : ''
     ].filter(Boolean).join(' · ');
     html += `<div class="section-group sg-cerradas" id="sg-cerradas">
       <div class="section-group-header" data-action="section-group-toggle" data-group="cerradas">
         <span class="section-group-arrow" id="sgarrow-cerradas">${cerradasOpen ? '▾' : '▸'}</span>
         <span>Cerradas</span>
-        <span class="section-group-count" title="${_cerradasTitle}">${cerradasItems.length} ítem${cerradasItems.length !== 1 ? 's' : ''}</span>
+        <span class="section-group-count" title="${_cerradasTitle}">${terminalItems.length} ítem${terminalItems.length !== 1 ? 's' : ''}</span>
       </div>
       <div class="section-group-body items-grid${cerradasOpen ? '' : ' collapsed'}" id="sgbody-cerradas">`;
-    cerradasItems.forEach(item => { html += buildBacklogItem(item); });
+    terminalItems.forEach(item => { html += buildBacklogItem(item); });
     html += `</div></div>`;
   }
 
   // B-202604-NNN: evaluar empty state sobre pendientes+done+descartados — no solo filtered (pendientes)
   // T-202606-107: empty state diferenciado — backlog vacío real vs filtros ocultan todo
-  const _hasVisible = pendienteItems.length || doneItems.length || (descartadoItems.length && _getActiveStatuses().has('descartado')) || cerradasItems.length;
+  const _hasVisible = pendienteItems.length || doneItems.length || (terminalItems.length && _getActiveStatuses().has('descartado'));
   if (!_hasVisible) {
     const hasItems = getItems().length > 0;
     const _as = _getActiveStatuses();
@@ -1391,7 +1369,7 @@ export function renderBacklogList(onRendered) {
   const countEl = document.getElementById('search-count');
   if (countEl) {
     if (q) {
-      const total = pendienteItems.length + doneItems.length + descartadoItems.length + cerradasItems.length;
+      const total = pendienteItems.length + doneItems.length + terminalItems.length;
       countEl.textContent = `${total} resultado${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`;
     } else {
       countEl.textContent = '';
@@ -1414,7 +1392,7 @@ export function renderBacklogList(onRendered) {
     if (sprintFiltered) parts.push(activeSprint.label || activeSprint.id);
     if (_getActiveTypes().size < 4) parts.push([..._getActiveTypes()].join('/'));
     if (_getActivePriorityFilter().size > 0) parts.push('pri:' + [..._getActivePriorityFilter()].join('/'));
-    const scopeCount = (pendienteItems.length + doneItems.length + (descartadoItems.length && _getActiveStatuses().has('descartado') ? descartadoItems.length : 0) + cerradasItems.length);
+    const scopeCount = (pendienteItems.length + doneItems.length + (_getActiveStatuses().has('descartado') ? terminalItems.length : 0));
     if (parts.length) {
       inp.placeholder = '🔍 Buscando en ' + parts.join(' · ') + ' · ' + scopeCount + ' ítem' + (scopeCount !== 1 ? 's' : '');
     } else {
