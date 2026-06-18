@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:32 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:33 · autor:Rune · 2026-06-17 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1833,7 +1833,7 @@ export function renderStats() {
       <!-- Bloque de conteos: pendientes primero -->
       <div class="stat-compact-counts">
         <div class="stat-compact-item stat-compact-item--primary">
-          <span class="stat-compact-n${_hasPending ? '' : ' stat-compact-n--muted'}">${backlogCount + enRevisionCount}</span>
+          <span class="stat-compact-n${_hasPending ? ' stat-compact-n--primary' : ' stat-compact-n--muted'}">${backlogCount + enRevisionCount}</span>
           <span class="stat-compact-l">pendientes</span>
         </div>
         ${enRevisionCount > 0 ? `<div class="stat-compact-item stat-compact-item--revision">
@@ -1844,13 +1844,6 @@ export function renderStats() {
           <span class="stat-compact-n${_hasPending ? ' stat-compact-n--muted stat-compact-n--sm' : ''}">${done}</span>
           <span class="stat-compact-l">hechos</span>
         </div>
-      </div>
-      <!-- Separador -->
-      <div class="stat-compact-sep"></div>
-      <!-- Barra de progreso: pct sobre sprint activo (AC 6) -->
-      <div class="stat-compact-prog">
-        <div class="stat-mini-track"><div class="stat-mini-fill" style="--stat-mini-w:${pct}%"></div></div>
-        ${_sprintTotal > 0 ? `<span class="stat-compact-pct">${pct}% sprint</span>` : ''}
       </div>
       <!-- Separador -->
       <div class="stat-compact-sep"></div>

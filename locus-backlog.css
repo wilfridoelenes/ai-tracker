@@ -1,4 +1,4 @@
-/* [PP] v0.1.0 · sprint:PP-S-03 · mod:44 · autor:Nova · 2026-06-17 UTC-6 */
+/* [PP] v0.1.0 · sprint:PP-S-03 · mod:45 · autor:Nova · 2026-06-17 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -2964,6 +2964,19 @@
   border-color: var(--c-high-border);
   background: var(--c-high-bg);
   color: var(--c-high-text);
+}
+
+/* T-202606-089: Pendiente — protagonista amber */
+.bl-strip-btn.active.s-pendiente {
+  border-color: rgb(245 158 11 / 35%);
+  background: rgb(245 158 11 / 12%);
+  color: var(--amber);
+}
+
+/* T-202606-089: done/descartado atenuados cuando no están activos como filtro */
+#fstatus-done:not(.active),
+#fstatus-descartado:not(.active) {
+  opacity: 0.55;
 }
 
 .bl-strip-btn.active.s-descartado {
