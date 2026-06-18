@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:15 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:16 · autor:Rune · 2026-06-17 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -51,8 +51,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   tgItems = tgItems.filter(i => i.type !== 'patch');
 
   // T-202606-165: validar sprints no registrados antes del dry-run.
-  // Cualquier ítem (incluidos patches del CHECKPOINT original) con sprint distinto de icebox/''
-  // que no exista en getActiveSprints() bloquea el CHECKPOINT completo sin aplicar nada.
+  // Ítems no-patch con sprint distinto de icebox/'' que no exista en getActiveSprints()
+  // bloquean el CHECKPOINT completo sin aplicar nada.
+  // B-202606-048: patches (type:patch) excluidos de esta validación — operan sobre ítems existentes.
   // Se valida contra la lista completa — sprints cerrados incluidos — para no bloquear
   // CHECKPOINTs históricos con sprint ya cerrado que lleguen por retomada.
   // B-202606-044 compat: buscar por id primero, luego por label (mismo criterio que _sprintSelect).
