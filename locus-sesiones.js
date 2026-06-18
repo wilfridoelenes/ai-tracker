@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:18 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:20 · autor:Rune · 2026-06-17 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -111,11 +111,17 @@ function _trackerRenderMiniHist(aiId) {
   }
   const lastMetaEl = document.getElementById('tracker-mini-hist-last');
   if (lastMetaEl) {
-    // Último acceso: sesión en curso si existe, si no la más reciente del historial
-    const lastSess = currentSess || (filtered.length ? filtered[filtered.length - 1] : null);
-    lastMetaEl.textContent = lastSess
-      ? ('Último: ' + (lastSess.date ? relDate(lastSess.date) : (lastSess.dateShort || lastSess.date || '')))
-      : '';
+    // T-202606-078: semántica de label según estado de sesión — reutiliza _cscardRelTs (no introduce tercer formato de tiempo relativo)
+    if (currentSess) {
+      // Happy path — sesión en curso: 'En curso · hace X minuto(s)/hora(s)'
+      lastMetaEl.textContent = 'En curso · ' + _cscardRelTs(currentSess.createdAt);
+    } else if (sorted.length) {
+      // Happy path — sin sesión en curso: 'Último: hace X' usando la más reciente del historial filtrado (sorted[0])
+      lastMetaEl.textContent = 'Último: ' + _cscardRelTs(sorted[0].createdAt);
+    } else {
+      // Estado de error — sin sesión en curso y sin historial: vacío, sin placeholder
+      lastMetaEl.textContent = '';
+    }
   }
 
   // AC-6: sin contenido en absoluto — empty state
@@ -243,17 +249,20 @@ function _trackerRenderMiniHist(aiId) {
 
   listEl.innerHTML = ahoraHtml + histHtml;
 
-  // Auto-seleccionar la sesión más reciente del historial si no hay ninguna seleccionada
-  // (la sesión en curso no participa en la selección de col 3 desde este flujo)
-  const latestSess = sorted[0];
-  if (latestSess && !_trackerHistSelectedSessId) {
-    _trackerHistSelectedSessId = latestSess.id;
-    const firstHistRow = listEl.querySelector('.tracker-mini-hist-row:not(.mh-row--in-progress)');
-    if (firstHistRow) firstHistRow.classList.add('active');
-    openDetail(latestSess.aiId, latestSess.id);
+  // T-202606-077: auto-select eliminado — Col3 solo se abre por selección explícita del founder.
+  // Si _trackerHistSelectedSessId tiene valor, restaurar clase active en el row correspondiente.
+  if (_trackerHistSelectedSessId) {
+    const prevRow = listEl.querySelector(`.tracker-mini-hist-row[data-sess-id="${_trackerHistSelectedSessId}"]`);
+    if (prevRow) {
+      prevRow.classList.add('active');
+      openDetail(prevRow.dataset.aiId, _trackerHistSelectedSessId);
+    } else {
+      // AC estado de error — sesión previa ya no existe en el listado
+      _trackerHistSelectedSessId = null;
+    }
   }
 
-  // T-202605-471: scroll al row activo para que siempre quede visible
+  // T-202605-471: scroll al row activo — solo si hay row activo
   requestAnimationFrame(() => {
     const activeRow = listEl.querySelector('.tracker-mini-hist-row.active');
     if (activeRow) activeRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
