@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:20 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:21 · autor:Rune · 2026-06-17 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -200,7 +200,7 @@ function _trackerRenderMiniHist(aiId) {
       return `<span class="mh-ref-tag ${typeClass}">${esc(code)}</span>`;
     }).join('');
     const refMoreHtml = extraCount > 0
-      ? `<span class="mh-ref-more">+${extraCount}</span>`
+      ? `<span class="mh-ref-more" title="${esc(refs.slice(3).join(', '))}">+${extraCount}</span>`
       : '';
     const refsHtml = (refTagsHtml || refMoreHtml)
       ? `<span class="mh-row-refs">${refTagsHtml}${refMoreHtml}</span>`
