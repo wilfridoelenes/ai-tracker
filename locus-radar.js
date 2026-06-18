@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-18 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -413,14 +413,14 @@ export function renderGlobalRadarSidebar() {
   if (titleEl) {
     // Perf: reutilizar unseenCount ya calculado — no llamar _computeNotifications() de nuevo
     const notifBadge = unseenCount ? ` <span class="rsb-notif-hdr-badge">${unseenCount}</span>` : '';
-    titleEl.innerHTML = `Centro de notificaciones${notifBadge}`;
+    titleEl.innerHTML = `Workers${notifBadge}`;
   }
   if (row2El) {
     const sessionCount = interrupted.length + inSession.length;
     const counts = [
-      sessionCount     ? `<span class="rsb-hdr-count rsb-hdr-session"><span class="rsb-hdr-dot"></span>${sessionCount}</span>`    : '',
-      available.length ? `<span class="rsb-hdr-count rsb-hdr-available"><span class="rsb-hdr-dot"></span>${available.length}</span>` : '',
-      exhausted.length ? `<span class="rsb-hdr-count rsb-hdr-exhausted"><span class="rsb-hdr-dot"></span>${exhausted.length}</span>` : '',
+      sessionCount     ? `<span class="rsb-hdr-count rsb-hdr-session"><span class="rsb-hdr-dot"></span>${sessionCount} en sesión</span>`    : '',
+      available.length ? `<span class="rsb-hdr-count rsb-hdr-available"><span class="rsb-hdr-dot"></span>${available.length} disponibles</span>` : '',
+      exhausted.length ? `<span class="rsb-hdr-count rsb-hdr-exhausted"><span class="rsb-hdr-dot"></span>${exhausted.length} agotadas</span>` : '',
     ].filter(Boolean).join('');
     row2El.innerHTML = counts ? `<span class="rsb-hdr-counts">${counts}</span>` : '';
   }
