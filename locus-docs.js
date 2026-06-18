@@ -1,11 +1,11 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:9 · autor:Rune · 2026-06-17 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
 // Extraído de ai-tracker-ai-notes.js
 
 import { _updateUndoUI, importBacklog } from './locus-backlog-core.js';
-import { closeDocLog } from './locus-doc-log.js';
+import { closeDocLog, openDocLog } from './locus-doc-log.js';
 import { _mgGetVersion } from './locus-map-generator.js';
 import { parseHtmlMapMd, renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
 import { _blogLog, _docPrefix, _effectiveVersion, _getDocUpdateIndex, _projKey, _setDocUpdateIndex, _tplKey, getActiveProject, saveContextDocs } from './locus-storage.js';
