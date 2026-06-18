@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:14 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:15 · autor:Rune · 2026-06-17 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -76,7 +76,12 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       }
     }
 
-    const _allItems   = [...tgItems, ..._patchItems];
+    // B-202606-048: excluir _patchItems de la validación de sprints desconocidos.
+    // Un type:patch opera sobre ítems existentes — su campo sprint (si lo declara) es
+    // un campo a actualizar, no una asignación de contenedor nueva. Incluirlos en _allItems
+    // bloqueaba CHECKPOINTs de solo patches cuando el sprint declarado aún no estaba registrado,
+    // aunque los ítems patcheados ya existieran en el backlog con ese sprint.
+    const _allItems   = [...tgItems];
     const _unknownSprints = [];
     for (const it of _allItems) {
       const s = it.sprint;
