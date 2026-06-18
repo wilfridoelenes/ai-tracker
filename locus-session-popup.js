@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:9 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.3.0 · sprint:PP-S-03 · mod:10 · autor:Rune · 2026-06-17 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -52,8 +52,6 @@ export function openDetail(aiId, sessId) {
 
   const aiSessAll = getAISessions(aiId);
   const isLastSess = aiSessAll.length > 0 && aiSessAll[aiSessAll.length - 1].id === s.id;
-  const showResetField = isLastSess && ai.status === 'available' && !s.resetAt;
-  const showCorrectField = isLastSess && ai.status === 'exhausted';
   // T-202604-004: badges en header
   const starBadge = s.starred ? `<span class="pop-header-badge starred">⭐ destacada</span>` : '';
   const quickBadge = s.quickCapture ? `<span class="pop-header-badge quick">⚡ rápida</span>` : '';
@@ -85,32 +83,48 @@ export function openDetail(aiId, sessId) {
     <div class="popup-secondary-body${_narClass}" id="pop-nar-body">${_narBody}</div>`;
   }
 
-  // B-006: campo hora de reset si es última sesión y IA disponible sin hora
-  if (showResetField) {
-    topFields += `<div class="popup-section" id="pop-reset-section">
-      <div class="popup-section-label">⏰ Hora de desbloqueo</div>
-      <div class="pop-reset-row">
-        <input class="pop-reset-input" id="pop-reset-hora" type="text" maxlength="4" placeholder="--:--">
-        <div class="pop-reset-disp" id="pop-reset-disp">—</div>
-        <button class="btn-primary btn-primary--sm" id="pop-reset-save-btn" disabled>Marcar agotada</button>
-      </div>
-    </div>`;
-  }
-
-  // B-202604-094: campo corrección de hora si es última sesión y IA está agotada
-  if (showCorrectField) {
-    const currentLabel = ai.resetTime ? fmt12(ai.resetTime) : '(sin hora)';
-    topFields += `<div class="popup-section" id="pop-correct-section">
-      <div class="popup-section-label">⏰ Hora de desbloqueo <span class="popup-label-hint">· actual: ${esc(currentLabel)}</span></div>
-      <div class="pop-reset-row">
-        <input class="pop-reset-input" id="pop-correct-hora" type="text" maxlength="4" placeholder="--:--">
-        <div class="pop-reset-disp" id="pop-correct-disp">—</div>
-        <button class="btn-primary btn-primary--sm" id="pop-correct-save-btn">Guardar</button>
-      </div>
-      <div class="popup-hora-hint-wrap">
-        <button class="btn-ghost btn-unlock-now" id="pop-unlock-now-btn">✅ Desbloquear ahora</button>
-      </div>
-    </div>`;
+  // T-202606-084: bloque unificado de hora — solo si isLastSess
+  if (isLastSess) {
+    if (ai.status === 'available') {
+      // AC-3: label 'Hora de reset', input activo, CTA 'Unlock now' condicional si ai.resetTime tiene valor
+      topFields += `<div class="popup-section" id="pop-hora-section">
+        <div class="popup-section-label">⏰ Hora de reset</div>
+        <div class="pop-reset-row">
+          <input class="pop-reset-input" id="pop-hora-input" type="text" maxlength="4" placeholder="--:--">
+          <div class="pop-reset-disp" id="pop-hora-disp">—</div>
+          <button class="btn-primary btn-primary--sm" id="pop-hora-save-btn" disabled>Marcar agotada</button>
+        </div>${ai.resetTime ? `
+        <div class="popup-hora-hint-wrap">
+          <button class="btn-ghost btn-unlock-now" id="pop-unlock-now-btn">✅ Desbloquear ahora</button>
+        </div>` : ''}
+      </div>`;
+    } else if (ai.status === 'exhausted') {
+      if (!ai.resetTime) {
+        // AC-4: sin resetTime → label 'Asignar hora de reset', input con border --accent
+        topFields += `<div class="popup-section" id="pop-hora-section">
+          <div class="popup-section-label">⏰ Asignar hora de reset</div>
+          <div class="pop-reset-row">
+            <input class="pop-reset-input pop-reset-input--accent" id="pop-hora-input" type="text" maxlength="4" placeholder="--:--">
+            <div class="pop-reset-disp" id="pop-hora-disp">—</div>
+            <button class="btn-primary btn-primary--sm" id="pop-hora-save-btn" disabled>Guardar</button>
+          </div>
+        </div>`;
+      } else {
+        // AC-5: con resetTime → label 'Reset a las [hora]', input pre-cargado y editable
+        const currentFormatted = fmt12(ai.resetTime);
+        topFields += `<div class="popup-section" id="pop-hora-section">
+          <div class="popup-section-label">⏰ Reset a las ${esc(currentFormatted)}</div>
+          <div class="pop-reset-row">
+            <input class="pop-reset-input" id="pop-hora-input" type="text" maxlength="4" placeholder="--:--" value="${esc(ai.resetTime)}">
+            <div class="pop-reset-disp" id="pop-hora-disp">—</div>
+            <button class="btn-primary btn-primary--sm" id="pop-hora-save-btn" disabled>Guardar</button>
+          </div>
+          <div class="popup-hora-hint-wrap">
+            <button class="btn-ghost btn-unlock-now" id="pop-unlock-now-btn">✅ Desbloquear ahora</button>
+          </div>
+        </div>`;
+      }
+    }
   }
 
   // T-087: Sección media — archivos + tags + trazabilidad — colapsable si está vacía
@@ -283,23 +297,16 @@ export function openDetail(aiId, sessId) {
       });
     }
 
-    // Botones de hora reset
-    const _pdResetInput = document.getElementById('pop-reset-hora');
-    if (_pdResetInput) {
-      _pdResetInput.addEventListener('input', function() { popParseHora(); });
-      _pdResetInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveResetFromPopup(); });
+    // T-202606-084: handler unificado de hora
+    const _pdHoraInput = document.getElementById('pop-hora-input');
+    if (_pdHoraInput) {
+      _pdHoraInput.addEventListener('input', function() { popParseHora(); });
+      _pdHoraInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveHoraFromPopup(); });
+      // AC-5: pre-cargar display si input tiene valor inicial (caso exhausted + resetTime)
+      if (_pdHoraInput.value) popParseHora();
     }
-    const _pdResetSave = document.getElementById('pop-reset-save-btn');
-    if (_pdResetSave) _pdResetSave.addEventListener('click', saveResetFromPopup);
-
-    // Botones de hora corrección
-    const _pdCorrectInput = document.getElementById('pop-correct-hora');
-    if (_pdCorrectInput) {
-      _pdCorrectInput.addEventListener('input', function() { popCorrectParseHora(); });
-      _pdCorrectInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveCorrectHoraFromPopup(); });
-    }
-    const _pdCorrectSave = document.getElementById('pop-correct-save-btn');
-    if (_pdCorrectSave) _pdCorrectSave.addEventListener('click', saveCorrectHoraFromPopup);
+    const _pdHoraSave = document.getElementById('pop-hora-save-btn');
+    if (_pdHoraSave) _pdHoraSave.addEventListener('click', saveHoraFromPopup);
 
     const _pdUnlockNow = document.getElementById('pop-unlock-now-btn');
     if (_pdUnlockNow) _pdUnlockNow.addEventListener('click', unlockNowFromPopup);
@@ -406,26 +413,30 @@ function starCurrentSession() {
   showToast('info', s?.starred ? 'Sesión destacada' : 'Destacado quitado');
 }
 
-// B-006: Hora de reset desde popup
+// T-202606-084: parse y save unificados para bloque de hora
 function popParseHora() {
-  const raw = (document.getElementById('pop-reset-hora') || {value:''}).value.replace(/\D/g,'');
-  const disp = document.getElementById('pop-reset-disp');
-  const btn  = document.getElementById('pop-reset-save-btn');
+  const input = document.getElementById('pop-hora-input');
+  const raw = (input || {value:''}).value.replace(/\D/g,'');
+  const disp = document.getElementById('pop-hora-disp');
+  const btn  = document.getElementById('pop-hora-save-btn');
   if (!disp) return;
   const result = interpretHora(raw);
   if (result) {
     disp.textContent = result.label;
     disp.className = 'hora-disp--valid';
+    if (input) input.classList.remove('pop-reset-input--error');
   } else {
     disp.textContent = raw.length >= 3 ? 'hora inválida' : (raw.length ? '...' : '—');
     disp.className = raw.length >= 3 ? 'hora-disp--error' : 'hora-disp--hint';
+    // AC-6: border --red cuando formato inválido (≥3 dígitos sin hora válida)
+    if (input) input.classList.toggle('pop-reset-input--error', raw.length >= 3);
   }
   if (btn) btn.disabled = !result;
 }
 
-function saveResetFromPopup() {
+function saveHoraFromPopup() {
   if (!popAIId || !popSessId) return;
-  const raw = (document.getElementById('pop-reset-hora') || {value:''}).value.replace(/\D/g,'');
+  const raw = (document.getElementById('pop-hora-input') || {value:''}).value.replace(/\D/g,'');
   const result = interpretHora(raw);
   if (!result) { showToast('error', 'Hora inválida — ingresa formato HHMM (ej: 2100)'); return; }
   const ai = getAI(popAIId);
@@ -433,13 +444,13 @@ function saveResetFromPopup() {
   const s = found ? found.sess : null;
   if (!ai || !s) return;
   s.resetAt = result.label;
-  ai.status = 'exhausted';
+  if (ai.status === 'available') ai.status = 'exhausted';
   ai.resetTime = result.hhmm;
   ai.resetEpoch = result.epoch;
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   closePopup();
-  showToast('success', `${ai.name} marcada agotada · desbloquea a las ${result.label}`);
+  showToast('success', `${ai.name} · hora guardada · desbloquea a las ${result.label}`);
 }
 
 // Preview panel — cambio de proyecto de sesión ya guardada
@@ -500,38 +511,6 @@ function savePreviewProject(aiId, sessId, newProjId) {
   showToast('success', `Sesión movida a ${esc(toProj.icon || '📁')} ${esc(toProj.name)}`);
 }
 
-// B-202604-094: corrección de hora desde popup (IA agotada)
-function popCorrectParseHora() {
-  const raw = (document.getElementById('pop-correct-hora') || {value:''}).value.replace(/\D/g,'');
-  const disp = document.getElementById('pop-correct-disp');
-  if (!disp) return;
-  const result = interpretHora(raw);
-  if (result) {
-    disp.textContent = result.label;
-    disp.className = 'hora-disp--valid';
-  } else {
-    disp.textContent = raw.length >= 3 ? 'hora inválida' : (raw.length ? '...' : '—');
-    disp.className = raw.length >= 3 ? 'hora-disp--error' : 'hora-disp--hint';
-  }
-}
-
-function saveCorrectHoraFromPopup() {
-  if (!popAIId || !popSessId) return;
-  const raw = (document.getElementById('pop-correct-hora') || {value:''}).value.replace(/\D/g,'');
-  const result = interpretHora(raw);
-  if (!result) { showToast('error', 'Hora inválida — ingresa formato HHMM (ej: 2100)'); return; }
-  const ai = getAI(popAIId);
-  const found = _findSession(popSessId);
-  const s = found ? found.sess : null;
-  if (!ai || !s) return;
-  ai.resetTime = result.hhmm;
-  ai.resetEpoch = result.epoch;
-  s.resetAt = result.label;
-  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-  if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
-  closePopup();
-  showToast('success', `Hora corregida · ${ai.name} desbloquea a las ${result.label}`);
-}
 
 
 

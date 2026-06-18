@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-02 · mod:17 · autor:Rune · 2026-06-17 15:00 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:18 · autor:Rune · 2026-06-17 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -998,7 +998,7 @@ function buildCard(ai) {
     <div class="sc-footer" id="footer-${ai.id}">
       <div class="blind-exhaust-inline is-hidden" id="bexhaust-inline-${ai.id}">
         <div class="blind-exhaust-hora-row">
-          <input class="hora-input blind-exhaust-hora-input" id="bexhaust-hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
+          <input class="tci-hora blind-exhaust-hora-input" id="bexhaust-hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
             aria-label="Hora de desbloqueo para agotamiento ciego">
           <div>
             <div class="hora-parsed" id="bexhaust-disp-${ai.id}">—</div>
