@@ -892,12 +892,15 @@ function updateTypeFilterUI() {
 }
 
 // T-049: toggle filtros status
+// [pendiente-ID]: descartado sincroniza promovida — bloque Cerradas unificado
 export function toggleStatusFilter(status) {
   if (status === 'done' || status === 'descartado') {
     if (activeStatuses.has(status)) {
       activeStatuses.delete(status);
+      if (status === 'descartado') activeStatuses.delete('promovida');
     } else {
       activeStatuses.add(status);
+      if (status === 'descartado') activeStatuses.add('promovida');
     }
   } else {
     // pendiente y en-revision: no toggleable a off si es el único activo

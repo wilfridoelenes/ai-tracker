@@ -1007,7 +1007,7 @@ export function renderBacklogList(onRendered) {
   // B-202604-131: aplicar filtro de búsqueda a done/descartado cuando q está activo
   // R-202604-091: 'en curso' fusionado — todos los pendiente van juntos, decorador visual separa activos
   // T-202605-135: Ps integradas en pendienteItems — sin sección separada
-  // Cerradas: P promovida + P descartado → sección unificada "Cerradas" (reemplaza exclusión de T-202606-102)
+  // [pendiente-ID]: promovida excluida de pendienteItems — va a terminalItems
   const pendienteItems = filtered.filter(i => i.status !== 'done' && i.status !== 'descartado' && !(itemType(i.code) === 'P' && i.status === 'promovida'));
   const _matchesQuery = q
     ? (i => i.code.toLowerCase().includes(q) || i.title.toLowerCase().includes(q) || (i.area || '').toLowerCase().includes(q))
@@ -1015,25 +1015,18 @@ export function renderBacklogList(onRendered) {
   const doneItems      = _getActiveStatuses().has('done')
     ? getDoneItems(_matchesQuery)  // T-202606-028: reutiliza getDoneItems global — evita getItems().filter() duplicado
     : [];
-  // descartadoItems: solo R/T/B descartados — Ps descartadas van a cerradasItems
-  // T-202606-060: typeOk aplicado — chip de tipo de stats bar combina en AND con píldora Descartado
-  const descartadoItems = _getActiveStatuses().has('descartado')
+  // [pendiente-ID]: terminalItems — bloque Cerradas unificado
+  // Incluye: R/T/B descartado + P descartado + P promovida
+  // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado')
+  // T-202606-060: typeOk aplicado sobre R/T/B — Ps siempre incluidas cuando el bloque es visible
+  const terminalItems = _getActiveStatuses().has('descartado')
     ? getItems().filter(i => {
         const type = itemType(i.code);
+        if (type === 'P') return (i.status === 'descartado' || i.status === 'promovida') && _matchesQuery(i);
         const typeOk = type ? _getActiveTypes().has(type) : true;
-        return i.status === 'descartado' && type !== 'P' && typeOk && _matchesQuery(i);
+        return i.status === 'descartado' && typeOk && _matchesQuery(i);
       })
     : [];
-  // cerradasItems: P promovida + P descartado — estados terminales de una P
-  // Gap 2 fix: P descartada solo incluida cuando filtro 'descartado' está activo — consistente con descartadoItems
-  const cerradasItems = getItems().filter(i =>
-    itemType(i.code) === 'P' &&
-    (
-      i.status === 'promovida' ||
-      (i.status === 'descartado' && _getActiveStatuses().has('descartado'))
-    ) &&
-    _matchesQuery(i)
-  );
 
   let html = '';
 

@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:18 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:19 · autor:Rune · 2026-06-17 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -477,8 +477,9 @@ function _generateSprintRetroMd(id, notes) {
   const narrativaSection = `## Narrativa · ${id}\n\n[Agregar narrativa por rol]`;
 
   // ── Componer output ──
-  // Orden exacto de AC-1: ## Retro · [label] → Done · Migrado · Descartado ·
-  //   Doc-Updates aplicados · Doc-Updates pendientes → ## Narrativa · [label]
+  // Orden exacto de AC-1: ## Retro · [id] → Done · Migrado · Descartado ·
+  //   Doc-Updates aplicados · Doc-Updates pendientes → ## Narrativa · [id]
+  // B-202606-029: headers usan [id] — [label] era incorrecto y fue corregido
   return `## Retro · ${id}
 
 Done: ${_doneList}
