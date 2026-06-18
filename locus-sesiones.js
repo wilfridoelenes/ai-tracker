@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:21 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:22 · autor:Rune · 2026-06-17 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -239,11 +239,11 @@ function _trackerRenderMiniHist(aiId) {
     ? `<div class="sess-group-sep">Ahora</div>` + _renderRow(currentSess, 'hoy', true)
     : '';
 
-  // Grupos temporales del historial
+  // Grupos temporales del historial — T-202606-082: conteo inline 'Hoy · N'
   const histHtml = _groupOrder
     .filter(g => _grouped[g].length > 0)
     .map(g =>
-      `<div class="sess-group-sep">${_groupLabel[g]}</div>` +
+      `<div class="sess-group-sep">${_groupLabel[g]} · ${_grouped[g].length}</div>` +
       _grouped[g].map(s => _renderRow(s, g, false)).join('')
     ).join('');
 
