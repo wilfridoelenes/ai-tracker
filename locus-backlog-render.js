@@ -1,4 +1,5 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:26 · autor:Rune · 2026-06-20 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:27 · autor:Rune · 2026-06-20 23:10 UTC-6
+// T-202606-093: _updateSubtabBadges — actualización reactiva de badges icebox/hotfix/histórico
 // B-202606-052: renderIceboxPanel implementada + listener sstab-btn-icebox + re-render en shell:backlog-render-dirty
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
@@ -1404,18 +1405,14 @@ export function renderBacklogList(onRendered) {
     if (_getActiveTypes().size < 4) parts.push([..._getActiveTypes()].join('/'));
     if (_getActivePriorityFilter().size > 0) parts.push('pri:' + [..._getActivePriorityFilter()].join('/'));
     const scopeCount = (pendienteItems.length + doneItems.length + (_getActiveStatuses().has('descartado') ? terminalItems.length : 0));
-    if (parts.length) {
-      inp.placeholder = '🔍 Buscando en ' + parts.join(' · ') + ' · ' + scopeCount + ' ítem' + (scopeCount !== 1 ? 's' : '');
-    } else {
-      inp.placeholder = '🔍 Buscar…';
-    }
   })();
 
+  // T-202606-093: AC-2 — badges de Icebox/Hotfix/Histórico reflejan estado actual
+  // independiente del sub-tab activo, en cada render del backlog
+  _updateSubtabBadges();
+
   if (typeof onRendered === 'function') onRendered();
-}
-
-
-// B-202606-052: renderIceboxPanel — función de render ausente para sub-tab Icebox (T-202606-090)
+} — función de render ausente para sub-tab Icebox (T-202606-090)
 // Renderiza ítems con sprint:icebox del proyecto activo en #icebox-panel-body.
 // Actualiza badge #tpl-badge-icebox con conteo y staleness prefix.
 export function renderIceboxPanel() {
@@ -1660,6 +1657,50 @@ window.addEventListener('shell:backlog-render-dirty', () => {
   const panel = document.getElementById('sspanel-historico');
   if (panel && panel.classList.contains('active')) renderHistoricoPanel();
 });
+
+// T-202606-093: T4 · _updateSubtabBadges — actualización reactiva de los tres badges
+// (icebox, hotfix, histórico) independiente de cuál sub-tab/panel esté activo.
+// Reutiliza exactamente la lógica de conteo de cada render*Panel — no reimplementa
+// criterios de staleness/urgencia/archivo, solo el cálculo de badge en aislado.
+// AC-1, AC-5, AC-6.
+export function _updateSubtabBadges() {
+  const badgeIcebox    = document.getElementById('tpl-badge-icebox');
+  const badgeHotfix    = document.getElementById('tpl-badge-hotfix');
+  const badgeHistorico = document.getElementById('tpl-badge-historico');
+
+  // AC-6: getItems() vacío → los tres badges quedan vacíos, nunca '0'
+  const items = getItems();
+
+  // AC-5: guard explícito por elemento — un badge ausente no interrumpe a los otros
+  if (badgeIcebox) {
+    const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
+    const iceboxItems = items.filter(_isIcebox);
+    if (!iceboxItems.length) {
+      badgeIcebox.textContent = '';
+    } else {
+      const _alertCount = iceboxItems.filter(i => _iceboxStaleness(i) !== null).length;
+      badgeIcebox.textContent = (_alertCount > 0 ? '⚠ ' : '') + iceboxItems.length;
+    }
+  }
+
+  if (badgeHotfix) {
+    const _isHotfix = i => (i.sprint || '').toUpperCase().includes('HOTFIX');
+    const allHotfix = items.filter(_isHotfix);
+    const countable = allHotfix.filter(i => i.status !== 'historico' && i.status !== 'descartado');
+    if (!countable.length) {
+      badgeHotfix.textContent = '';
+    } else {
+      const activeHotfix = allHotfix.filter(i => i.status === 'pendiente' || i.status === 'en-revision');
+      const hasUrgent = activeHotfix.some(i => i.priority === 'high');
+      badgeHotfix.textContent = (hasUrgent ? '🔴' : '') + countable.length;
+    }
+  }
+
+  if (badgeHistorico) {
+    const count = getArchivoHistoricoCount();
+    badgeHistorico.textContent = count > 0 ? String(count) : '';
+  }
+}
 
 // T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
 // locus-storage.js despacha estos eventos en lugar de llamar directamente a las funciones
