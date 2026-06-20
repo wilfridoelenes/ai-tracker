@@ -1,4 +1,4 @@
-/* [PP] v0.1.0 · sprint:PP-S-03 · mod:46 · autor:Nova · 2026-06-20 UTC-6 */
+/* [PP] v0.1.0 · sprint:PP-S-03 · mod:47 · autor:Nova · 2026-06-20 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -6241,21 +6241,16 @@ er {
   min-height: calc(100vh - var(--header-h, 54px) - 120px);
 }
 
-/* T-202606-footer-fix: footer fijo al viewport — siempre visible */
+/* T-202606-footer-fix: footer sticky al scroll container real (.tpl-detail) —
+   fixed se anclaba al viewport completo e ignoraba el ancho de .tpl-sidebar,
+   por eso se desalineaba con scroll largo. sticky respeta el contenedor correcto. */
 .backlog-footer {
-  position: fixed;
+  position: sticky;
   bottom: 0;
-  left: 0;
-  right: 0;
   z-index: var(--z-raised);
   background: var(--surface1);
   border-top: 1px solid var(--border);
-}
-
-/* Padding compensatorio: evita que el último ítem quede oculto bajo el footer fijo.
-   Altura estimada del footer (~38px) + margen de seguridad. */
-#tab-backlog {
-  padding-bottom: 52px;
+  flex-shrink: 0;
 }
 
 .bl-footer-row--single {
