@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:15 · autor:Rune · 2026-06-19 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:16 · autor:Rune · 2026-06-20 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -142,7 +142,7 @@ export function switchTab(tab) {
 
 export function switchSubTab(sub) {
   currentSubTab = sub;
-  ['backlog','icebox','htmlmap','context','plan','contratos'].forEach(s => {
+  ['backlog','icebox','hotfix','htmlmap','context','plan','contratos'].forEach(s => {
     const btn = document.getElementById('sstab-btn-' + s);
     const panel = document.getElementById('sspanel-' + s);
     if (btn) btn.classList.toggle('active', s === sub);
@@ -171,6 +171,11 @@ export function switchSubTab(sub) {
   if (sub === 'icebox') {
     // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-icebox'
     window.dispatchEvent(new CustomEvent('shell:render-icebox'));
+  }
+  if (sub === 'hotfix') {
+    // T-202606-091: dispatch para refresco de contenido del panel Hotfix.
+    // Sin listener aún — render de #hotfix-panel-body pendiente de especificación (gap reportado a Cael).
+    window.dispatchEvent(new CustomEvent('shell:render-hotfix'));
   }
   if (sub === 'context') {
     // (a) event dispatch — locus-docs.js escucha 'shell:render-context'
@@ -1210,7 +1215,7 @@ document.addEventListener('DOMContentLoaded', function () {
     btn.addEventListener('click', function () { switchTab(tab); });
   });
 
-  // .sstab-btn (×6) — cada botón lleva su sub-tab en el id: sstab-btn-{tab}
+  // .sstab-btn (×7) — cada botón lleva su sub-tab en el id: sstab-btn-{tab}
   document.querySelectorAll('[id^="sstab-btn-"]').forEach(function (btn) {
     const stab = btn.id.replace('sstab-btn-', '');
     btn.addEventListener('click', function () { switchSubTab(stab); });

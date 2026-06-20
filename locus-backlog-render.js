@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:22 · autor:Rune · 2026-06-20 03:50 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:23 · autor:Rune · 2026-06-20 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -449,10 +449,14 @@ function _iceboxStaleness(item) {
 //   _matchesQuery y _sortGroup vienen de renderBacklogList para reutilizar la lógica existente.
 function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered) {
   const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
+  // T-202606-091 AC-6: ítems con sprint.id HOTFIX excluidos de #backlog-list — panel dedicado vive en
+  // #sspanel-hotfix (sub-tab Hotfix). Mismo patrón que _isIcebox — case-insensitive sobre el ID.
+  const _isHotfixSprint = i => (i.sprint || '').toUpperCase().includes('HOTFIX');
 
   // T-202606-090 AC-6: ítems sprint:icebox excluidos de #backlog-list — panel dedicado vive en
   // renderIceboxPanel() (sub-tab Icebox). sprintableItems excluye icebox; doneItems los excluye en línea 475.
-  const sprintableItems = pendienteItems.filter(i => !_isIcebox(i));
+  // T-202606-091 AC-6: ítems sprint HOTFIX excluidos del mismo modo — ver _isHotfixSprint arriba.
+  const sprintableItems = pendienteItems.filter(i => !_isIcebox(i) && !_isHotfixSprint(i));
 
   // Agrupar por sprint
   // B-202606-018: normalizar la clave a solo el ID del sprint — algunos ítems almacenan
@@ -470,9 +474,11 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   // B-202606-002: sprints que solo tienen done items visibles no aparecen en sprintMap
   // (construido solo desde sprintableItems = pendientes). Registrarlos con array vacío
   // para que el loop de sprint groups los incluya y emita _doneInGroup.
+  // T-202606-091 AC-6: done items de sprint HOTFIX excluidos del mismo modo que icebox —
+  // sin esto, un sprint HOTFIX con solo done items generaría un group header vacío en #backlog-list.
   if (_getActiveStatuses().has('done')) {
     doneItems.forEach(i => {
-      if (_isIcebox(i)) return;
+      if (_isIcebox(i) || _isHotfixSprint(i)) return;
       const key = _extractSprintId((i.sprint || '').trim());
       if (!sprintMap[key]) sprintMap[key] = [];
     });
@@ -636,6 +642,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
 
   // T-202606-090 AC-6: bloque "Icebox al final" eliminado de #backlog-list — los ítems
   // sprint:icebox se muestran exclusivamente en renderIceboxPanel() (sub-tab dedicado).
+  // T-202606-091 AC-6: ítems con sprint HOTFIX excluidos del mismo modo — ver #sspanel-hotfix.
 
   // Cerradas — R/T/B descartado + P descartado + P promovida — bloque unificado
   // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado' y 'promovida')
