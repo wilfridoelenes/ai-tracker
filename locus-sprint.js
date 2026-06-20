@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:47 · autor:Rune · 2026-06-20 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:49 · autor:Rune · 2026-06-20 15:35 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -200,7 +200,7 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
     input.value = initialValue === '—' ? '' : initialValue;
   }
 
-  el.style.display = 'none';
+  el.classList.add('is-hidden');
   el.parentNode.insertBefore(input, el.nextSibling);
   input.focus();
   if (!isSelect) input.select();
@@ -212,7 +212,7 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
     committed = true;
     const newVal = isSelect ? input.value : input.value.trim();
     input.remove();
-    el.style.display = '';
+    el.classList.remove('is-hidden');
     delete el.dataset.spsEditing;
     // B-202606-030: initialValue siempre viene del modelo — _noChangeRef usa initialValue directamente
     const _noChangeRef = initialValue;
@@ -240,7 +240,7 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
     if (committed) return;
     committed = true;
     input.remove();
-    el.style.display = '';
+    el.classList.remove('is-hidden');
     delete el.dataset.spsEditing;
     // sin save — solo re-render para limpiar estado visual
     onDone();
@@ -313,7 +313,7 @@ function _renderSpsActivo() {
           '<button class="sps-btn-menu" type="button" aria-label="Acciones del sprint activo" aria-expanded="false" aria-haspopup="true" data-sps-activo-menu>···</button>' +
           '<div class="sps-dropdown" role="menu" aria-label="Acciones sprint activo" hidden>' +
             '<button class="sps-dropdown-item" role="menuitem" type="button" data-sps-action="pausar">Pausar sprint</button>' +
-            '<hr style="margin:4px 0;border:none;border-top:1px solid var(--border)">' +
+            '<div class="sps-dropdown-sep" role="separator"></div>' +
             '<button class="sps-dropdown-item sps-dropdown-item--danger" role="menuitem" type="button" data-sps-action="cerrar">Cerrar sprint</button>' +
           '</div>' +
         '</div>' +
@@ -517,7 +517,7 @@ function _renderSpsProgramados() {
           '</div>' +
         '</div>' +
         '<div class="sps-bd-mini" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="' + _escHtml(id) + ': ' + done + ' de ' + total + ' done">' +
-          '<div class="sps-bd-mini-fill" style="width:' + pct + '%"></div>' +
+          '<div class="sps-bd-mini-fill" data-sps-bd-pct="' + pct + '"></div>' +
         '</div>' +
         '<span class="sps-scheduled-count">' + done + ' / ' + total + '</span>' +
       '</div>';
@@ -526,6 +526,10 @@ function _renderSpsProgramados() {
   container.innerHTML =
     '<span class="sps-section-label">Programados</span>' +
     '<div class="sps-card">' + rows + '</div>';
+
+  container.querySelectorAll('.sps-bd-mini-fill[data-sps-bd-pct]').forEach(function(fillEl) {
+    fillEl.style.setProperty('--sbm-fill-width', fillEl.dataset.spsBdPct + '%');
+  });
 
   container.removeEventListener('click', _sppHandleClick);
   container.addEventListener('click', _sppHandleClick);
@@ -1821,12 +1825,12 @@ function _renderSpsPausados() {
   // AC-4/AC-5: sin pausados → ocultar contenedor sin empty state
   if (paused.length === 0) {
     container.innerHTML = '';
-    container.style.display = 'none';
+    container.classList.add('is-hidden');
     return;
   }
 
   // AC-3/AC-5: hay pausados → restaurar visibilidad
-  container.style.display = '';
+  container.classList.remove('is-hidden');
 
   const cards = paused.map(function(s) {
     const label = s.label ? `${s.id} · ${s.label}` : (s.name ? `${s.id} · ${s.name}` : s.id);
@@ -2000,8 +2004,8 @@ function _renderSpsCerrados() {
           '</span>' +
           '<span class="sps-cerrados-chevron" aria-hidden="true">' + (isExpanded ? '▲' : '▼') + '</span>' +
         '</div>' +
-        '<div class="sps-cerrados-retro" id="sps-cerrados-retro-' + _escHtml(sprint.id) + '" style="display:grid;grid-template-rows:' + (isExpanded ? '1fr' : '0fr') + '">' +
-          '<div class="sps-cerrados-retro-inner" style="overflow:hidden">' +
+        '<div class="sps-cerrados-retro" id="sps-cerrados-retro-' + _escHtml(sprint.id) + '">' +
+          '<div class="sps-cerrados-retro-inner">' +
             '<pre class="sps-cerrados-retro-body">' + retroContent + '</pre>' +
           '</div>' +
         '</div>' +
@@ -2050,10 +2054,8 @@ function _spsCerradosToggle(sprintId) {
   if (prev) {
     const prevRow = container.querySelector('[data-sprint-id="' + prev + '"]');
     if (prevRow) {
-      const prevRetro  = prevRow.querySelector('.sps-cerrados-retro');
       const prevHeader = prevRow.querySelector('.sps-cerrados-header');
       const prevChevron = prevRow.querySelector('.sps-cerrados-chevron');
-      if (prevRetro)  prevRetro.style.gridTemplateRows = '0fr';
       if (prevHeader) prevHeader.setAttribute('aria-expanded', 'false');
       if (prevChevron) prevChevron.textContent = '▼';
       prevRow.classList.remove('is-expanded');
@@ -2064,10 +2066,8 @@ function _spsCerradosToggle(sprintId) {
   if (next) {
     const nextRow = container.querySelector('[data-sprint-id="' + next + '"]');
     if (nextRow) {
-      const nextRetro  = nextRow.querySelector('.sps-cerrados-retro');
       const nextHeader = nextRow.querySelector('.sps-cerrados-header');
       const nextChevron = nextRow.querySelector('.sps-cerrados-chevron');
-      if (nextRetro)  nextRetro.style.gridTemplateRows = '1fr';
       if (nextHeader) nextHeader.setAttribute('aria-expanded', 'true');
       if (nextChevron) nextChevron.textContent = '▲';
       nextRow.classList.add('is-expanded');
