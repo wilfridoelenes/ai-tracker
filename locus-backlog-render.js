@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:22 · autor:Rune · 2026-06-18 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-02 · mod:26 · autor:Rune · 2026-06-19 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -671,25 +671,8 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     html += `</div>`; // bl-vl-sprint-group
   });
 
-  // AC7: Icebox al final si hay ítems sin sprint
-  if (iceboxItems.length) {
-    const iceboxOpen = localStorage.getItem('backlog-icebox-open') !== '0';
-    // T-202606-163: contar ítems con alerta para el header
-    const _iceboxAlertCount = iceboxItems.filter(i => _iceboxStaleness(i) !== null).length;
-    const _iceboxAlertBadge = _iceboxAlertCount > 0
-      ? `<span class="staleness-pill staleness--stale bl-icebox-alert-count" title="${_iceboxAlertCount} ítem${_iceboxAlertCount !== 1 ? 's' : ''} sin movimiento — revisar">⚠ ${_iceboxAlertCount}</span>`
-      : '';
-    html += `<div class="section-group sg-icebox bl-icebox-group" id="sg-icebox">
-      <div class="section-group-header bl-icebox-header" data-action="section-group-toggle" data-group="icebox">
-        <span class="section-group-arrow bl-icebox-arrow${iceboxOpen ? '' : ' collapsed'}" id="sgarrow-icebox">▾</span>
-        <span>📥 Icebox</span>
-        <span class="section-group-count bl-icebox-count">${iceboxItems.length} ítem${iceboxItems.length !== 1 ? 's' : ''}</span>
-        ${_iceboxAlertBadge}
-      </div>
-      <div class="section-group-body items-grid bl-icebox-body${iceboxOpen ? '' : ' collapsed'}" id="sgbody-icebox">`;
-    html += _renderIceboxBody(iceboxItems);
-    html += `</div></div>`;
-  }
+  // T-202606-090: bloque sg-icebox eliminado de renderBacklogList — Icebox ahora vive en su propio sub-tab (#sspanel-icebox).
+  // iceboxItems se sigue calculando arriba para excluirlos de sprintableItems — solo se eliminó el render del grupo aquí.
 
   // Cerradas — R/T/B descartado + P descartado + P promovida — bloque unificado
   // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado' y 'promovida')
@@ -817,7 +800,100 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   if (typeof onRendered === 'function') onRendered();
 }
 
-export function renderBacklogList(onRendered) {
+// T-202606-090 · AC-2/AC-3/AC-5/AC-7/AC-8: Sub-tab Icebox — datos y render del panel #sspanel-icebox.
+// AC-5 implementado con status:'pendiente' — interpretación conservadora mientras se resuelve
+// Gap de especificación (Ps promovida/descartado con sprint:icebox) vía Cael. No cambiar sin CHECKPOINT de Cael.
+function _getIceboxItems() {
+  const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
+  return getItems().filter(i => _isIcebox(i) && i.status === 'pendiente');
+}
+
+const _ICEBOX_TYPE_ORDER = { R: 0, T: 1, B: 2, P: 3 };
+const _ICEBOX_PRIO_ORDER = { high: 0, medium: 1, low: 2 };
+
+function _sortIceboxItems(items) {
+  return [...items].sort((a, b) => {
+    const ta = _ICEBOX_TYPE_ORDER[itemType(a.code)] ?? 9;
+    const tb = _ICEBOX_TYPE_ORDER[itemType(b.code)] ?? 9;
+    if (ta !== tb) return ta - tb;
+    const pa = _ICEBOX_PRIO_ORDER[(a.priority || '').toLowerCase()] ?? 9;
+    const pb = _ICEBOX_PRIO_ORDER[(b.priority || '').toLowerCase()] ?? 9;
+    return pa - pb;
+  });
+}
+
+// AC-2/AC-3: conteo + prefijo de staleness para #tpl-badge-icebox.
+// Exportada — el módulo que registra los listeners de #sstab-btn-* la consume al actualizar el badge.
+export function getIceboxBadgeCount() {
+  if (!_getActiveProjectFilter()) return { count: 0, hasStale: false };
+  const items = _getIceboxItems();
+  const hasStale = items.some(i => _iceboxStaleness(i) !== null);
+  return { count: items.length, hasStale };
+}
+
+// AC-5/AC-7/AC-8: render del contenido de #sspanel-icebox.
+// Exportada — el módulo que registra los listeners de #sstab-btn-* la invoca al activar el sub-tab y en AC-9 (cambio de proyecto).
+export function renderIceboxPanel() {
+  const body = document.getElementById('icebox-panel-body');
+  if (!body) return;
+
+  // AC-8: sin proyecto activo — mismo empty state que #backlog-list
+  if (!_getActiveProjectFilter()) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📁</div>
+        <div class="empty-state-title">Selecciona un proyecto</div>
+        <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
+        <button class="empty-state-btn" data-action="es-open-proj-panel">📁 Seleccionar proyecto</button>
+      </div>`;
+    return;
+  }
+
+  const items = _sortIceboxItems(_getIceboxItems());
+
+  // AC-7: proyecto sin ítems icebox
+  if (!items.length) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📦</div>
+        <div class="empty-state-title">No hay ítems en icebox</div>
+      </div>`;
+    return;
+  }
+
+  // AC-5: lista plana sin agrupamiento de sprint, orden ya aplicado por _sortIceboxItems
+  body.innerHTML = `<div class="items-grid bl-icebox-body">${_renderIceboxBody(items)}</div>`;
+}
+
+// AC-2/AC-3: actualiza #tpl-badge-icebox — invocada por los listeners de eventos shell:* abajo.
+function _updateIceboxBadgeUI() {
+  const badge = document.getElementById('tpl-badge-icebox');
+  if (!badge) return;
+  const { count, hasStale } = getIceboxBadgeCount();
+  if (count === 0) {
+    badge.textContent = '';
+    badge.classList.remove('visible');
+    return;
+  }
+  badge.textContent = `${hasStale ? '⚠ ' : ''}${count}`;
+  badge.classList.add('visible');
+}
+
+// T-202606-090 · AC-4: switchSubTab('icebox') ya cubre el toggle de .tpl-nav-btn/.session-subpanel
+// vía el array hardcodeado en locus-ui-shell.js — 'icebox' agregado ahí (ver DOC-UPDATE).
+// AC-2/AC-3/AC-5: este módulo escucha 'shell:render-icebox', despachado por switchSubTab cuando sub==='icebox',
+// siguiendo el mismo patrón que 'shell:render-backlog-list' / 'shell:render-context'.
+window.addEventListener('shell:render-icebox', () => {
+  renderIceboxPanel();
+  _updateIceboxBadgeUI();
+});
+
+// Badge también se actualiza en cualquier cambio que afecte el conteo, sin requerir el sub-tab activo —
+// mismo patrón que shell:backlog-render-dirty consumido en otros módulos.
+window.addEventListener('shell:backlog-render-dirty', _updateIceboxBadgeUI);
+
+
+
   if (!_backlogListDirty) return;
   // AC-3 T-202605-118: skip si el item editor está abierto
   const _ieOverlay = document.getElementById('item-editor-overlay');
@@ -1265,26 +1341,8 @@ export function renderBacklogList(onRendered) {
 
     // R-202605-103: bloque sprints cerrados eliminado — absorbido por renderArchivoHistorico
 
-    // T-202605-104: sección Icebox — ítems sin sprint asignado (icebox / '' / null)
-    if (iceboxItems.length) {
-      // B-202605-030: default expandido — clave ausente (null) → expandido; '0' → colapsado
-      const iceboxOpen = localStorage.getItem('backlog-icebox-open') !== '0';
-      // T-202606-163: contar ítems con alerta para el header
-      const _iceboxAlertCount = iceboxItems.filter(i => _iceboxStaleness(i) !== null).length;
-      const _iceboxAlertBadge = _iceboxAlertCount > 0
-        ? `<span class="staleness-pill staleness--stale bl-icebox-alert-count" title="${_iceboxAlertCount} ítem${_iceboxAlertCount !== 1 ? 's' : ''} sin movimiento — revisar">⚠ ${_iceboxAlertCount}</span>`
-        : '';
-      html += `<div class="section-group sg-icebox bl-icebox-group" id="sg-icebox">
-        <div class="section-group-header bl-icebox-header" data-action="section-group-toggle" data-group="icebox">
-          <span class="section-group-arrow bl-icebox-arrow${iceboxOpen ? '' : ' collapsed'}" id="sgarrow-icebox">▾</span>
-          <span>📥 Icebox</span>
-          <span class="section-group-count bl-icebox-count">${iceboxItems.length} ítem${iceboxItems.length !== 1 ? 's' : ''}</span>
-          ${_iceboxAlertBadge}
-        </div>
-        <div class="section-group-body items-grid bl-icebox-body${iceboxOpen ? '' : ' collapsed'}" id="sgbody-icebox">`;
-      html += _renderIceboxBody(iceboxItems);
-      html += `</div></div>`;
-    }
+    // T-202606-090: bloque sg-icebox eliminado de renderBacklogList — Icebox ahora vive en su propio sub-tab (#sspanel-icebox).
+    // iceboxItems se sigue calculando arriba para excluirlos de sprintableItems — solo se eliminó el render del grupo aquí.
 
   } else {
     // ── Modo plano: lista sin grupos de sprint ──

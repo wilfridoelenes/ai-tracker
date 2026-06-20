@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:33 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:34 · autor:Rune · 2026-06-20 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1199,12 +1199,17 @@ export function importBacklog(event) {
       // AC-2: T con sprint distinto al parent declarado en el mismo CHECKPOINT → se corrige al del parent
       // AC-3: R que migra de sprint A a sprint B → todos sus Ts hijos migran también
       // AC-4: Ts con status done no se modifican
+      // B-202606-XXX: rSprintMap ya no fuerza 'icebox' por fallback cuando item.sprint del R
+      // es falsy por timing del merge (sprint aún no resuelto en este pase). 'icebox' solo se
+      // propaga cuando es el valor explícito y real del R — no como valor por defecto de un gap.
       (function _propagateSprintToChildren() {
-        // Construir mapa rCode → sprint del R tras el merge
+        // Construir mapa rCode → sprint del R tras el merge.
+        // B-202606-XXX AC-2: sin fallback || 'icebox' — item.sprint falsy se mapea a null
+        // (gap de resolución, no icebox real). item.sprint === 'icebox' explícito se conserva.
         const rSprintMap = {};
         ITEMS.forEach(item => {
           if (item.code && item.code[0] === 'R' && item.status !== 'descartado') {
-            rSprintMap[item.code] = item.sprint || 'icebox';
+            rSprintMap[item.code] = item.sprint || null;
           }
         });
         // Segunda pasada: corregir Ts hijos cuyo sprint difiere del parent R
@@ -1214,7 +1219,17 @@ export function importBacklog(event) {
           // AC-4: Ts done no se modifican
           if (item.status === 'done') return;
           const parentSprint = rSprintMap[item.parentId];
-          if (parentSprint === undefined) return; // parent no encontrado — no modificar
+          // parent no encontrado, o sprint del parent no resuelto en este merge (gap) — no modificar.
+          // B-202606-XXX AC-3: evita forzar 'icebox' en el T cuando el R padre aún no tiene
+          // sprint resuelto en este pase — antes esto corrompía Ts con 'icebox' espurio.
+          if (parentSprint === undefined || parentSprint === null) {
+            if (parentSprint === null) {
+              _blogLog('sprint-no-resuelto', item.code,
+                'parent ' + item.parentId + ' sin sprint resuelto en este merge — sprint del hijo no modificado',
+                'backlog');
+            }
+            return;
+          }
           const currentSprint = item.sprint || 'icebox';
           if (currentSprint !== parentSprint) {
             _blogLog('sprint-heredado', item.code,

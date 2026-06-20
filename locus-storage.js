@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-02 · mod:18 · autor:Rune · 2026-06-17 16:00 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:21 · autor:Rune · 2026-06-20 04:20 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-076 · T-202606-077: export ESM BACKLOG_LOG_MAX y _DOC_LOG_KEYS
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -744,12 +744,31 @@ export async function saveBacklog() {
     }
   }
 
-  const items = _getItems();
+  // T-[pendiente-ID]: gate de validación estructural — un R/T/B con sprint:'icebox'
+  // o un ítem con status:'historico' recibido como escritura entrante nunca llega
+  // a Supabase ni a localStorage. icebox es zona exclusiva de P (__BR-Ecosystem §5).
+  // status:'historico' es de solo lectura, asignado únicamente por Locus al cerrar sprint.
+  const _rawItems = _getItems();
+  const items = _rawItems.filter(it => {
+    if (it.type !== 'P' && it.sprint === 'icebox') {
+      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — type:${it.type} no puede tener sprint:icebox`);
+      return false;
+    }
+    if (it.status === 'historico') {
+      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
+      return false;
+    }
+    return true;
+  });
   const key = _tplKey('backlog-items');
   const projId = _getActiveProjectFilter();
   const metaKey = _tplKey('backlog-meta');
   const meta = JSON.parse(localStorage.getItem(metaKey) || '{}');
-  meta.updated = new Date().toISOString(); // B-fix: meta.updated debe reflejar el momento del write para que _loadFromSupabase compare timestamps correctamente
+  // T-202606-103: timestamp único — un solo new Date().toISOString() para meta.updated
+  // y el updated_at de ambas filas de Supabase. Evita que _loadFromSupabase compare
+  // valores generados en momentos distintos del mismo write.
+  const _writeTs = new Date().toISOString();
+  meta.updated = _writeTs;
   const suffix = projId ? '-' + projId : '-global';
 
   // AC-3 R-C5: sin Supabase o sin auth → localStorage como único destino.
@@ -803,8 +822,8 @@ export async function saveBacklog() {
   // AC-1 R-C5: Supabase disponible → upsert primero. localStorage solo como caché post-write exitoso.
   try {
     const { error } = await _supabase.from('tracker_backlog').upsert([
-      { user_id: _supabaseUser.id, key: 'items' + suffix, value: items, updated_at: new Date().toISOString() },
-      { user_id: _supabaseUser.id, key: 'meta'  + suffix, value: meta,  updated_at: new Date().toISOString() }
+      { user_id: _supabaseUser.id, key: 'items' + suffix, value: items, updated_at: _writeTs },
+      { user_id: _supabaseUser.id, key: 'meta'  + suffix, value: meta,  updated_at: _writeTs }
     ], { onConflict: 'user_id,key' });
     if (error) throw error;
     // AC-1 R-C5: upsert exitoso → escribir localStorage como caché. Nunca antes.
@@ -824,7 +843,9 @@ export async function saveBacklog() {
       console.warn('[AI Tracker] saveBacklog: fallo al escribir localStorage fallback', lsErr);
     }
     showToast('warning', '⚠️ Backlog no sincronizado con Supabase — guardado localmente');
-    _offlineQueuePush({ type: 'backlog' });
+    // T-202606-104: projId explícito — la conversión ''→null ocurre aquí, en el call
+    // site, no se asume que _offlineQueuePush la normalice internamente.
+    _offlineQueuePush({ type: 'backlog', projId: projId || null });
   }
 }
 
