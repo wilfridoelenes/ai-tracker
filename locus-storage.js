@@ -1,6 +1,6 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:21 · autor:Rune · 2026-06-20 04:20 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:23 · autor:Rune · 2026-06-20 13:15 UTC-6
 // locus-storage.js
-// Última actualización: T-202606-076 · T-202606-077: export ESM BACKLOG_LOG_MAX y _DOC_LOG_KEYS
+// Última actualización: T-202606-106: excluir status:historico de _loadFromSupabase
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -849,6 +849,90 @@ export async function saveBacklog() {
   }
 }
 
+// ── T-202606-105: storage dedicado para ítems status:historico ──────────────
+// R-202606-037: ITEMS en memoria nunca contiene historico — estos ítems viven
+// en su propia clave Supabase/localStorage, separada de 'items'+suffix.
+// saveBacklog() no lee ni escribe este storage — ver gate de exclusión ahí mismo.
+const _HISTORICO_KEY = 'tracker-backlog-historico';
+
+// Escribe el array de ítems historico en su clave dedicada — Supabase primero,
+// localStorage como caché post-write exitoso o como fallback ante fallo de red.
+export async function saveHistoricoItems(items) {
+  const projId = _getActiveProjectFilter();
+  const suffix = projId ? '-' + projId : '-global';
+  const key = _HISTORICO_KEY + suffix;
+  const payload = Array.isArray(items) ? items : [];
+
+  // Sin Supabase o sin auth → localStorage como único destino.
+  if (!_supabase || !_supabaseUser) {
+    try {
+      localStorage.setItem(key, JSON.stringify(payload));
+    } catch (lsErr) {
+      console.warn('[AI Tracker] saveHistoricoItems: fallo al escribir en localStorage (sin auth)', lsErr);
+    }
+    return;
+  }
+
+  try {
+    const { error } = await _supabase.from('tracker_backlog').upsert(
+      [{ user_id: _supabaseUser.id, key: 'historico' + suffix, value: payload, updated_at: new Date().toISOString() }],
+      { onConflict: 'user_id,key' }
+    );
+    if (error) throw error;
+    // Upsert exitoso → escribir localStorage como caché. Nunca antes.
+    try {
+      localStorage.setItem(key, JSON.stringify(payload));
+    } catch (lsErr) {
+      console.warn('[AI Tracker] saveHistoricoItems: fallo al cachear en localStorage post-upsert', lsErr);
+    }
+  } catch (err) {
+    // Upsert falla → localStorage como fallback + DocLog + sin afectar ITEMS.
+    console.error('[AI Tracker] Supabase saveHistoricoItems() failed:', err);
+    try {
+      localStorage.setItem(key, JSON.stringify(payload));
+    } catch (lsErr) {
+      console.warn('[AI Tracker] saveHistoricoItems: fallo al escribir localStorage fallback', lsErr);
+    }
+    showToast('warning', '⚠️ Histórico no sincronizado con Supabase — guardado localmente');
+  }
+}
+
+// Lee el array de ítems historico desde su clave dedicada — nunca mezclados con ITEMS.
+// Preferencia: Supabase si hay sesión activa, localStorage como fallback/cache.
+export async function getHistoricoItems() {
+  const projId = _getActiveProjectFilter();
+  const suffix = projId ? '-' + projId : '-global';
+  const key = _HISTORICO_KEY + suffix;
+
+  if (_supabase && _supabaseUser) {
+    try {
+      const { data, error } = await _supabase
+        .from('tracker_backlog')
+        .select('value')
+        .eq('user_id', _supabaseUser.id)
+        .eq('key', 'historico' + suffix)
+        .maybeSingle();
+      if (error) throw error;
+      if (data && Array.isArray(data.value)) {
+        try { localStorage.setItem(key, JSON.stringify(data.value)); } catch (_) {}
+        return data.value;
+      }
+    } catch (err) {
+      console.warn('[AI Tracker] getHistoricoItems: fallo Supabase, usando localStorage', err);
+    }
+  }
+
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+// ── END T-202606-105 ──────────────────────────────────────────────────────────
+
 // R-202604-035: saveContextDocs() — escribe en tracker_docs
 export async function saveContextDocs() {
   const projId = _getActiveProjectFilter();
@@ -1129,7 +1213,10 @@ export async function _loadFromSupabase() {
           const shouldLoad  = remoteItems.length && (!_itemsRef || _itemsRef.length === 0 || localTs === 0 || remoteTs > localTs);
           if (shouldLoad && _itemsRef) {
             _itemsRef.length = 0;
-            remoteItems.forEach(ri => _itemsRef.push(ri));
+            // T-202606-106: excluir status:historico de la carga remota — historico es de
+            // solo lectura, asignado únicamente por Locus al cerrar sprint, y vive en su
+            // storage dedicado (T-202606-105). ITEMS nunca debe recibirlo, ni vía Supabase.
+            remoteItems.forEach(ri => { if (ri.status !== 'historico') _itemsRef.push(ri); });
             _migrateItemTypes();
             localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(_itemsRef));
             localStorage.setItem(_tplKey('backlog-meta'),  JSON.stringify(remoteMeta));

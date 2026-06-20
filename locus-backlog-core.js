@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:34 · autor:Rune · 2026-06-20 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:35 · autor:Rune · 2026-06-20 13:15 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -108,7 +108,10 @@ var ITEMS = (() => { // ESM-B: var para evitar TDZ en grafo circular — migrar 
         try { localStorage.setItem(_initKey, JSON.stringify(items)); } catch {}
         console.log('[AI Tracker] ITEMS migration: legacy status values normalized');
       }
-      return items;
+      // T-202606-106: carga local — excluir status:historico del valor inicial de ITEMS.
+      // historico es de solo lectura, asignado únicamente por Locus al cerrar sprint, y vive
+      // en su storage dedicado (T-202606-105) — nunca debe poblar ITEMS, ni siquiera al iniciar.
+      return items.filter(i => i.status !== 'historico');
     } catch {
       return [];
     }
@@ -118,8 +121,13 @@ var ITEMS = (() => { // ESM-B: var para evitar TDZ en grafo circular — migrar 
 
 // getItems(): acceso canónico al array ITEMS — reemplaza window.ITEMS (ESM-1 · T-202606-037)
 export function getItems() { return ITEMS; }
+// T-202606-106: barrera común — ITEMS nunca contiene ítems status:historico, sin importar
+// el call site (_loadFromSupabase, undo/redo, purge, normalize, etc). status:historico es
+// de solo lectura, asignado únicamente por Locus al cerrar sprint — vive en su storage
+// dedicado (T-202606-105), nunca en ITEMS.
 function _setITEMS(arr) {
-  ITEMS.splice(0, ITEMS.length, ...(Array.isArray(arr) ? arr : []));
+  const _safe = Array.isArray(arr) ? arr.filter(i => i.status !== 'historico') : [];
+  ITEMS.splice(0, ITEMS.length, ..._safe);
 }
 
 // B-202604-002: undo/redo stack para ITEMS (20 niveles)

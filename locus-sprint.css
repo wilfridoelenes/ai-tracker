@@ -1,4 +1,4 @@
-/* [PP] v0.1.0 · sprint:PP-S-03 · mod:25 · autor:Nova · 2026-06-18 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-03 · mod:27 · autor:Nova · 2026-06-20 14:15 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -32,8 +32,8 @@
 }
 
 .sph-name {
-  font-size: var(--text-lg);
-  font-weight: 600;
+  font-size: var(--text-xl);
+  font-weight: 700;
   color: var(--text);
   white-space: nowrap;
   overflow: hidden;
@@ -48,7 +48,7 @@
 
 .sph-version {
   font-size: var(--text-sm);
-  color: var(--text2);
+  color: var(--hint);
 }
 
 .sph-release-pill {
@@ -108,7 +108,7 @@
 
 .sph-bd-track {
   width: 100%;
-  height: 8px;
+  height: 10px;
   background: var(--border2, var(--border));
   border-radius: var(--radius-pill);
   overflow: hidden;
@@ -2426,6 +2426,24 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 
 .sps-card--hotfix {
   border-color: var(--c-critical-border);
+}
+
+/* ── T-202606-099: Sprint activo dominante en sub-tab Sprints ── */
+#sps-activo .sps-card {
+  box-sizing: border-box;
+  border-left: 3px solid var(--accent);
+  background: var(--surface2);
+}
+
+/* .sps-card no declara padding propio — el padding horizontal vive en cada hijo directo
+   (.sps-header, .sps-meta, .sps-burndown-wrap, .sps-actions — todos en 14px).
+   Compensación del border-left (1px base → 3px): reducir 2px de padding-left en los 4 hijos
+   dentro de #sps-activo, para mantener alineación visual con cards sin borde. */
+#sps-activo .sps-card .sps-header,
+#sps-activo .sps-card .sps-meta,
+#sps-activo .sps-card .sps-burndown-wrap,
+#sps-activo .sps-card .sps-actions {
+  padding-left: 12px;
 }
 
 /* ── Header — ID + label + badge ── */
