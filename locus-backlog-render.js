@@ -1,4 +1,8 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:27 · autor:Rune · 2026-06-20 23:10 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:28 · autor:Rune · 2026-06-20 23:45 UTC-6
+// T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
+//   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
+// inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
+//   que se corrompieron en mod:27 (T-202606-093, primera implementación)
 // T-202606-093: _updateSubtabBadges — actualización reactiva de badges icebox/hotfix/histórico
 // B-202606-052: renderIceboxPanel implementada + listener sstab-btn-icebox + re-render en shell:backlog-render-dirty
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
@@ -1405,14 +1409,17 @@ export function renderBacklogList(onRendered) {
     if (_getActiveTypes().size < 4) parts.push([..._getActiveTypes()].join('/'));
     if (_getActivePriorityFilter().size > 0) parts.push('pri:' + [..._getActivePriorityFilter()].join('/'));
     const scopeCount = (pendienteItems.length + doneItems.length + (_getActiveStatuses().has('descartado') ? terminalItems.length : 0));
+    if (parts.length) {
+      inp.placeholder = '🔍 Buscando en ' + parts.join(' · ') + ' · ' + scopeCount + ' ítem' + (scopeCount !== 1 ? 's' : '');
+    } else {
+      inp.placeholder = '🔍 Buscar…';
+    }
   })();
 
-  // T-202606-093: AC-2 — badges de Icebox/Hotfix/Histórico reflejan estado actual
-  // independiente del sub-tab activo, en cada render del backlog
-  _updateSubtabBadges();
-
   if (typeof onRendered === 'function') onRendered();
-} — función de render ausente para sub-tab Icebox (T-202606-090)
+}
+
+// B-202606-052: renderIceboxPanel — función de render ausente para sub-tab Icebox (T-202606-090)
 // Renderiza ítems con sprint:icebox del proyecto activo en #icebox-panel-body.
 // Actualiza badge #tpl-badge-icebox con conteo y staleness prefix.
 export function renderIceboxPanel() {
@@ -1704,9 +1711,11 @@ export function _updateSubtabBadges() {
 
 // T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
 // locus-storage.js despacha estos eventos en lugar de llamar directamente a las funciones
-window.addEventListener('shell:backlog-render-dirty', () => { _markBacklogListDirty(); renderBacklogList(); });
+// T-202606-093 AC-2: _updateSubtabBadges() como llamada hermana — no depende del guard
+// interno de renderBacklogList() (_backlogListDirty, item-editor abierto, defer de blur)
+window.addEventListener('shell:backlog-render-dirty', () => { _markBacklogListDirty(); renderBacklogList(); _updateSubtabBadges(); });
 window.addEventListener('shell:mark-backlog-dirty',   () => { _markBacklogListDirty(); });
-window.addEventListener('shell:render-backlog-list',  () => { _markBacklogListDirty(); renderBacklogList(); renderStats(); }); // B-202606-008: _markBacklogListDirty ausente — guard cortaba render cuando dirty=false
+window.addEventListener('shell:render-backlog-list',  () => { _markBacklogListDirty(); renderBacklogList(); renderStats(); _updateSubtabBadges(); }); // B-202606-008: _markBacklogListDirty ausente — guard cortaba render cuando dirty=false
 window.addEventListener('shell:backlog-filter-changed', () => { updateClearFilterBtn(); });
 // B-202606-009: micro-flash en pill del R padre cuando su status avanza automáticamente
 // requestAnimationFrame garantiza que el DOM post-render ya está pintado antes de aplicar la clase

@@ -1,5 +1,6 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:4 · autor:Rune · 2026-06-20 15:20 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:5 · autor:Rune · 2026-06-20 23:45 UTC-6
 // locus-proj-core.js
+// T-202606-093 AC-4: _updateSubtabBadges() invocada junto a renderIceboxPanel en selectProjectFilter
 // Módulo compartido — símbolos de proyecto sin deps circulares
 // Creado en T-202606-197 (opción d): rompe ciclo locus-projects ↔ locus-sprint-project
 // Importado por: locus-projects.js · locus-sprint-project.js
@@ -10,7 +11,7 @@ import { esc, switchSubTab, getCurrentSubTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderAnalytics } from './locus-analytics-render.js';
 import { loadBacklog, renderStats } from './locus-backlog-core.js';
-import { renderBacklogList, renderIceboxPanel } from './locus-backlog-render.js';
+import { renderBacklogList, renderIceboxPanel, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-093: _updateSubtabBadges
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _renderTplProjBanner } from './locus-docs.js';
 import { _updateHeaderProjectLabel } from './locus-sesiones-stats.js';
@@ -102,6 +103,7 @@ export function selectProjectFilter(projId) {
   if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   renderBacklogList();
   renderIceboxPanel(); // B-202606-052 AC-3: re-render icebox al cambiar proyecto activo — antes solo se actualizaba via shell:backlog-render-dirty, evento que selectProjectFilter no dispara
+  _updateSubtabBadges(); // T-202606-093 AC-4: mismo motivo que renderIceboxPanel — selectProjectFilter no dispara shell:backlog-render-dirty
   renderStats();
   _renderTplProjBanner();
   switchSubTab(getCurrentSubTab());
