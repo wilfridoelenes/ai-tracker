@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:19 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:20 · autor:Rune · 2026-06-20 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -8,7 +8,7 @@ import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, _getDocUpdateIndex, _setDocUpdateIndex } from './locus-storage.js';
+import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _getDocUpdateIndex, _setDocUpdateIndex } from './locus-storage.js'; // T-202606-107
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
@@ -600,7 +600,7 @@ function _openRetroDownloadPrompt(id) {
   }
 }
 
-export function setSprintStatus(id, newStatus) {
+export async function setSprintStatus(id, newStatus) {
   // T-202606-015 AC-2: valores válidos extendidos — 'active' | 'closed' | 'scheduled' | 'discarded'
   // T-202606-038 AC-4 (guard intacta): [Prefijo]-S-HOTFIX no se marca 'closed' — isHotfix guard sin cambios
   if (newStatus === 'closed') {
@@ -668,16 +668,37 @@ export function setSprintStatus(id, newStatus) {
       console.log(`[AI Tracker] B-202605-210 guard: ${guardCount} ítem(s) pendiente(s) desasignados de ${id} al cerrar`);
     }
     // B-202605-232: migrar done/descartado → historico al cerrar sprint directamente (sin modal 3 pasos)
+    // T-202606-108: conectar con storage dedicado (T-202606-105) — mismo patrón que _scmExecuteClose
     const closeTs = Date.now();
-    let migratedCount = 0;
+    const _historicoCodesDirectClose = new Set();
     getItems().forEach(i => {
       if (_sprintIdOf(i) === id && (i.status === 'done' || i.status === 'descartado')) {
         i.status = 'historico';
         i.archivedAt = closeTs;
-        migratedCount++;
+        _historicoCodesDirectClose.add(i.code);
       }
     });
-    if (guardCount > 0 || migratedCount > 0) {
+    // AC-4: 0 ítems califican → no invocar saveHistoricoItems ni getHistoricoItems, sin excepción.
+    if (_historicoCodesDirectClose.size > 0) {
+      const _itemsArr = getItems();
+      const _newHistorico = _itemsArr.filter(i => _historicoCodesDirectClose.has(i.code));
+      // Acumular sobre lo ya persistido — saveHistoricoItems() sobreescribe la clave completa.
+      try {
+        const _existingHistorico = await getHistoricoItems();
+        await saveHistoricoItems([...(_existingHistorico || []), ..._newHistorico]);
+      } catch (err) {
+        // AC-3: fallo de escritura no revierte el cierre — fallback a localStorage cubierto
+        // internamente por saveHistoricoItems. Registrar en DocLog con sprint_id afectado.
+        console.error('[AI Tracker] setSprintStatus closed: fallo al persistir historico en storage dedicado', err);
+        _blogLog('historico-write-error', id, `Fallo al persistir ${_historicoCodesDirectClose.size} ítem(s) historico en storage dedicado al cerrar ${id} (cierre directo): ${err.message || err}`, 'backlog');
+      }
+      // AC-2: remover de ITEMS — splice in-place sobre referencia mutable, fuera del try/catch
+      // para garantizar que ocurre independientemente del resultado de saveHistoricoItems.
+      for (let _idx = _itemsArr.length - 1; _idx >= 0; _idx--) {
+        if (_historicoCodesDirectClose.has(_itemsArr[_idx].code)) _itemsArr.splice(_idx, 1);
+      }
+    }
+    if (guardCount > 0 || _historicoCodesDirectClose.size > 0) {
       saveBacklog(); // una sola vez tras ambas operaciones
     }
   }
@@ -1531,13 +1552,16 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep3) {
   return html;
 }
 
-function _scmExecuteClose() {
+async function _scmExecuteClose() {
   if (!_scmState) return;
   const { id, pendingItems, migrations, retroNotes,
           effortPlanned, effortDone, effortScopeAdded, effortNotDone } = _scmState;
 
   // aplicar migraciones de pendientes
   const closeTs = Date.now();
+  // T-202606-107: codes marcados historico en este ciclo de cierre — recolectados para
+  // remover de ITEMS y persistir en storage dedicado (T-202606-105) en la misma operación.
+  const _historicoCodesThisClose = new Set();
   pendingItems.forEach(i => {
     const dest = migrations[i.code];
     if (dest === '__discard__') {
@@ -1545,6 +1569,7 @@ function _scmExecuteClose() {
       i.status = 'historico';
       i.archivedAt = closeTs;
       i.sprint = id; // mantiene referencia al sprint cerrado
+      _historicoCodesThisClose.add(i.code);
     } else {
       i.sprint = dest || ''; // sprint destino o sin asignar
     }
@@ -1566,6 +1591,7 @@ function _scmExecuteClose() {
       i.archivedAt = closeTs;
       // R-202605-134: aplicar version_target como version en ítems que estaban done
       if (wasDone && versionTarget) i.version = versionTarget;
+      _historicoCodesThisClose.add(i.code);
     }
   });
 
@@ -1579,6 +1605,33 @@ function _scmExecuteClose() {
         spDoc.docLog.push(`${i.code} migrado a icebox desde ${id} al cerrar`);
       }
     });
+  }
+
+  // T-202606-107 AC-1 + AC-2: ítems historico nunca residen en ITEMS — se escriben al
+  // storage dedicado (T-202606-105) y se remueven de ITEMS en la misma operación de cierre.
+  // AC-4: 0 ítems califican → no invocar saveHistoricoItems ni getHistoricoItems, sin excepción.
+  if (_historicoCodesThisClose.size > 0) {
+    const _itemsArr = getItems();
+    const _newHistorico = _itemsArr.filter(i => _historicoCodesThisClose.has(i.code));
+    // Acumular sobre lo ya persistido — saveHistoricoItems() sobreescribe la clave completa,
+    // no hace merge. Sin esta lectura previa, cada cierre de sprint borraría el histórico anterior.
+    try {
+      const _existingHistorico = await getHistoricoItems();
+      await saveHistoricoItems([...(_existingHistorico || []), ..._newHistorico]);
+    } catch (err) {
+      // AC-3: fallo de escritura no revierte el cierre — los ítems ya marcados historico
+      // quedan en localStorage como fallback (saveHistoricoItems ya cubre ese fallback
+      // internamente). Registrar el fallo en DocLog con el sprint_id afectado.
+      console.error('[AI Tracker] _scmExecuteClose: fallo al persistir historico en storage dedicado', err);
+      _blogLog('historico-write-error', id, `Fallo al persistir ${_historicoCodesThisClose.size} ítem(s) historico en storage dedicado al cerrar ${id}: ${err.message || err}`, 'backlog');
+    }
+    // Remover de ITEMS — sin pasar por _setITEMS (no exportada desde locus-backlog-core.js).
+    // Misma referencia mutable que getItems() retorna — splice in-place equivalente al
+    // filtro interno de _setITEMS, aplicado aquí porque la mutación de status ocurrió
+    // directamente sobre los objetos, no vía _setITEMS.
+    for (let _idx = _itemsArr.length - 1; _idx >= 0; _idx--) {
+      if (_historicoCodesThisClose.has(_itemsArr[_idx].code)) _itemsArr.splice(_idx, 1);
+    }
   }
 
   _undoSnapshot();
@@ -1607,7 +1660,8 @@ function _scmExecuteClose() {
         (s.scheduledAt || 0) < (min.scheduledAt || 0) ? s : min
       );
       // B-202606-042 AC-1: capturar rechazo de setSprintStatus — fallo silencioso resuelto
-      const _activated = setSprintStatus(_nextSprint.id, 'active');
+      // T-202606-108: await requerido — setSprintStatus es async desde este T
+      const _activated = await setSprintStatus(_nextSprint.id, 'active');
       if (_activated === false) {
         showToast('error', 'Error al activar sprint ' + _nextSprint.id);
       }
