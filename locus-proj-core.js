@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-11 10:00 UTC-6 
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:4 · autor:Rune · 2026-06-20 15:20 UTC-6
 // locus-proj-core.js
 // Módulo compartido — símbolos de proyecto sin deps circulares
 // Creado en T-202606-197 (opción d): rompe ciclo locus-projects ↔ locus-sprint-project
@@ -10,7 +10,7 @@ import { esc, switchSubTab, getCurrentSubTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderAnalytics } from './locus-analytics-render.js';
 import { loadBacklog, renderStats } from './locus-backlog-core.js';
-import { renderBacklogList } from './locus-backlog-render.js';
+import { renderBacklogList, renderIceboxPanel } from './locus-backlog-render.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _renderTplProjBanner } from './locus-docs.js';
 import { _updateHeaderProjectLabel } from './locus-sesiones-stats.js';
@@ -101,6 +101,7 @@ export function selectProjectFilter(projId) {
   if (typeof renderHoy === 'function') renderHoy();
   if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   renderBacklogList();
+  renderIceboxPanel(); // B-202606-052 AC-3: re-render icebox al cambiar proyecto activo — antes solo se actualizaba via shell:backlog-render-dirty, evento que selectProjectFilter no dispara
   renderStats();
   _renderTplProjBanner();
   switchSubTab(getCurrentSubTab());
