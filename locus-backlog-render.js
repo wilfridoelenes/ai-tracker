@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:24 · autor:Rune · 2026-06-20 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:25 · autor:Rune · 2026-06-20 UTC-6
 // B-202606-052: renderIceboxPanel implementada + listener sstab-btn-icebox + re-render en shell:backlog-render-dirty
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
@@ -1510,6 +1510,89 @@ export function renderIceboxPanel() {
 window.addEventListener('shell:backlog-render-dirty', () => {
   const panel = document.getElementById('sspanel-icebox');
   if (panel && panel.classList.contains('active')) renderIceboxPanel();
+});
+
+// T-202606-091: renderHotfixPanel — render del panel Hotfix en #hotfix-panel-body.
+// Renderiza ítems con sprint que contiene 'HOTFIX' (case-insensitive) del proyecto activo.
+// Actualiza badge #tpl-badge-hotfix con conteo y prefijo 🔴 si hay activos con priority:high.
+// AC-2, AC-3, AC-5, AC-7, AC-8, AC-9, AC-10.
+export function renderHotfixPanel() {
+  const body = document.getElementById('hotfix-panel-body');
+  if (!body) return;
+
+  // AC-8: sin proyecto activo — mismo empty state que backlog
+  if (!_getActiveProjectFilter()) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📁</div>
+        <div class="empty-state-title">Selecciona un proyecto</div>
+        <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
+      </div>`;
+    const badge = document.getElementById('tpl-badge-hotfix');
+    if (badge) badge.textContent = '';
+    return;
+  }
+
+  const _isHotfix = i => (i.sprint || '').toUpperCase().includes('HOTFIX');
+  // AC-5: ítems hotfix del proyecto activo — excluir descartados del conteo y del render
+  const allHotfix      = getItems().filter(_isHotfix);
+  const activeHotfix   = allHotfix.filter(i => i.status === 'pendiente' || i.status === 'en-revision');
+  const resolvedHotfix = allHotfix.filter(i => i.status === 'done');
+
+  // AC-2: badge con conteo de no-descartados y no-historicos
+  // AC-3: prefijo 🔴 si hay al menos un activo con priority:high
+  const badge = document.getElementById('tpl-badge-hotfix');
+  if (badge) {
+    const countable = allHotfix.filter(i => i.status !== 'historico' && i.status !== 'descartado');
+    if (!countable.length) {
+      badge.textContent = '';
+    } else {
+      const hasUrgent = activeHotfix.some(i => i.priority === 'high');
+      badge.textContent = (hasUrgent ? '🔴' : '') + countable.length;
+    }
+  }
+
+  // AC-7: sin sprint HOTFIX (ningún ítem hotfix en el proyecto)
+  if (!allHotfix.length) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🔥</div>
+        <div class="empty-state-title">No hay hotfixes registrados</div>
+      </div>`;
+    return;
+  }
+
+  // AC-10: solo resueltos — sección Activos omitida
+  // AC-5: secciones Activos y Resueltos en ese orden; descartados omitidos
+  let html = '';
+
+  if (activeHotfix.length) {
+    html += '<div class="hotfix-section">';
+    html += '<div class="hotfix-section-header">Activos</div>';
+    html += '<div class="items-grid">';
+    activeHotfix.forEach(item => { html += buildBacklogItem(item); });
+    html += '</div></div>';
+  }
+
+  if (resolvedHotfix.length) {
+    html += '<div class="hotfix-section">';
+    html += '<div class="hotfix-section-header">Resueltos</div>';
+    html += '<div class="items-grid">';
+    resolvedHotfix.forEach(item => { html += buildBacklogItem(item); });
+    html += '</div></div>';
+  }
+
+  body.innerHTML = html;
+}
+
+// T-202606-091: listener shell:render-hotfix — despachado por switchSubTab en locus-ui-shell.js
+// AC-9: proyecto cambiado con sub-tab Hotfix activo → re-render automático vía este evento
+window.addEventListener('shell:render-hotfix', () => { renderHotfixPanel(); });
+
+// T-202606-091: re-render del panel hotfix cuando el backlog cambia y el panel está activo
+window.addEventListener('shell:backlog-render-dirty', () => {
+  const panel = document.getElementById('sspanel-hotfix');
+  if (panel && panel.classList.contains('active')) renderHotfixPanel();
 });
 
 // T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
