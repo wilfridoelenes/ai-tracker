@@ -1,4 +1,4 @@
-/* [PP] v1.2.4 · sprint:PP-S-08 · mod:4 · autor:Nova · 2026-06-08 */
+/* [PP] v1.2.4 · sprint:PP-S-08 · mod:5 · autor:Nova · 2026-06-19 */
 
 /* === locus-tracker.js ===
    Funciones: buildCard · _buildCurrentSessionCard (sc-* rediseño) */
@@ -476,6 +476,82 @@
   font-size: var(--text-md);
   flex-shrink: 0;
 }
+
+/* ── sc-footer — hora widget (estado available) ── */
+
+.sc-footer--hora-widget {
+  padding: 0.5rem 1.125rem;
+}
+
+.card-hora-widget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.card-hora-input {
+  width: 64px;
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+  transition: border-color var(--trans-fast);
+}
+
+.card-hora-input:focus {
+  border-color: var(--accent);
+}
+
+.card-hora-input.error {
+  border-color: var(--red, #e85555);
+}
+
+.card-hora-disp {
+  flex: 1;
+  font-size: var(--text-xs);
+  color: var(--hint);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.card-hora-disp.hora-disp--valid  { color: var(--c-low-text); }
+.card-hora-disp.hora-disp--error  { color: var(--red, #e85555); }
+.card-hora-disp.hora-disp--hint   { color: var(--hint); }
+
+.card-hora-btn {
+  flex-shrink: 0;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 5px 12px;
+  border-radius: var(--radius-sm);
+  border: 0.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text2);
+  cursor: pointer;
+  transition: background var(--trans-fast), color var(--trans-fast), border-color var(--trans-fast), opacity var(--trans-fast);
+  white-space: nowrap;
+}
+
+.card-hora-btn:not(:disabled):hover {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: transparent;
+}
+
+.card-hora-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* ── END hora widget ── */
 
 /* ── sc-save — botón guardar sesión ── */
 

@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:22 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:23 · autor:Rune · 2026-06-19 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -746,32 +746,6 @@ function _hoyMarkExhausted(id) {
 }
 
 // ── Bloqueo ciego — agotar IA sin crear sesión ni log ──
-function openBlindExhaustMode(id) {
-  const ai = getAI(id);
-  if (!ai || ai.status !== 'available' || _isInSession(ai)) return;
-  const footer = document.getElementById('footer-' + id);
-  if (!footer) return;
-  footer.classList.add('card-footer--blind-exhaust-mode');
-  const inline = document.getElementById('bexhaust-inline-' + id);
-  if (inline) inline.classList.remove('is-hidden');
-  setTimeout(() => {
-    const inp = document.getElementById('bexhaust-hora-' + id);
-    if (inp) { inp.focus(); inp.select(); }
-  }, 30);
-}
-
-function cancelBlindExhaustMode(id) {
-  const footer = document.getElementById('footer-' + id);
-  if (footer) footer.classList.remove('card-footer--blind-exhaust-mode');
-  const inline = document.getElementById('bexhaust-inline-' + id);
-  if (inline) inline.classList.add('is-hidden');
-  const inp = document.getElementById('bexhaust-hora-' + id);
-  if (inp) inp.value = '';
-  const disp = document.getElementById('bexhaust-disp-' + id);
-  if (disp) { disp.textContent = '—'; disp.className = 'hora-parsed'; }
-  const btn = document.getElementById('bexhaust-confirm-' + id);
-  if (btn) btn.disabled = true;
-}
 
 function blindExhaustHoraInput(id) {
   const inp = document.getElementById('bexhaust-hora-' + id);
@@ -1004,20 +978,12 @@ function buildCard(ai) {
 
   // T-202604-203: footer fijo — acciones primarias siempre en la misma posición
   const footerHTML = ai.status === 'available' ? `
-    <div class="sc-footer" id="footer-${ai.id}">
-      <div class="blind-exhaust-inline is-hidden" id="bexhaust-inline-${ai.id}">
-        <div class="blind-exhaust-hora-row">
-          <input class="tci-hora blind-exhaust-hora-input" id="bexhaust-hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
-            aria-label="Hora de desbloqueo para agotamiento ciego">
-          <div>
-            <div class="hora-parsed" id="bexhaust-disp-${ai.id}">—</div>
-            <div class="hora-hint-txt">hora de desbloqueo · Enter para agotar</div>
-          </div>
-        </div>
-        <div class="blind-exhaust-confirm-row">
-          <button class="blind-exhaust-confirm-btn" id="bexhaust-confirm-${ai.id}" data-action="confirm-blind-exhaust" data-ai-id="${ai.id}" disabled aria-label="Confirmar agotamiento ciego">🔴 Agotar</button>
-          <button class="blind-exhaust-cancel-btn" data-action="cancel-blind-exhaust" data-ai-id="${ai.id}">Cancelar</button>
-        </div>
+    <div class="sc-footer sc-footer--hora-widget" id="footer-${ai.id}">
+      <div class="card-hora-widget">
+        <input class="tci-hora card-hora-input" id="bexhaust-hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
+          aria-label="Hora de reset">
+        <div class="hora-parsed card-hora-disp" id="bexhaust-disp-${ai.id}">—</div>
+        <button class="card-hora-btn" id="bexhaust-confirm-${ai.id}" data-action="confirm-blind-exhaust" data-ai-id="${ai.id}" disabled aria-label="Marcar agotada">Marcar agotada</button>
       </div>
     </div>
   ` : `
@@ -1084,7 +1050,6 @@ function buildCard(ai) {
           <div class="card-dot-dropdown" id="dotmenu-${ai.id}">
             <button class="card-dot-item" data-action="dot-rename" data-ai-id="${ai.id}"><span class="dot-item-icon">✎</span> Renombrar</button>
             ${_isAvail ? `<button class="card-dot-item" data-action="interrupt" data-ai-id="${ai.id}"><span class="dot-item-icon">⛓️‍💥</span> Interrumpir sesión</button>` : ''}
-            ${_isAvail ? `<button class="card-dot-item" data-action="dot-blind-exhaust" data-ai-id="${ai.id}"><span class="dot-item-icon">🔴</span> Agotar</button>` : ''}
             ${!_isAvail ? `<button class="card-dot-item" data-action="dot-correct-hora" data-ai-id="${ai.id}"><span class="dot-item-icon">⏰</span> Corregir hora de desbloqueo</button>` : ''}
             <button class="card-dot-item${sessTotal < 2 ? ' disabled' : ''}" data-action="dot-download-report" data-ai-id="${ai.id}" title="${sessTotal < 2 ? 'Necesitas al menos 2 sesiones' : 'Descargar reporte markdown'}"${sessTotal < 2 ? ' disabled' : ''}><span class="dot-item-icon">📥</span> Descargar reporte</button>
             <button class="card-dot-item" data-action="dot-avatar" data-ai-id="${ai.id}"><span class="dot-item-icon">🖼️</span> Cambiar avatar</button>
@@ -1362,9 +1327,6 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'confirm-blind-exhaust':
         if (typeof confirmBlindExhaust === 'function') confirmBlindExhaust(aiId);
         break;
-      case 'cancel-blind-exhaust':
-        if (typeof cancelBlindExhaustMode === 'function') cancelBlindExhaustMode(aiId);
-        break;
       // Project chip (stopPropagation)
       case 'select-project-filter-stop':
         e.stopPropagation();
@@ -1378,10 +1340,6 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'dot-rename':
         closeCardMenu(aiId);
         startRename(aiId);
-        break;
-      case 'dot-blind-exhaust':
-        closeCardMenu(aiId);
-        if (typeof openBlindExhaustMode === 'function') openBlindExhaustMode(aiId);
         break;
       case 'dot-correct-hora':
         closeCardMenu(aiId);

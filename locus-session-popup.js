@@ -1,4 +1,4 @@
-// [PP] v0.3.0 · sprint:PP-S-03 · mod:10 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.3.0 · sprint:PP-S-03 · mod:11 · autor:Rune · 2026-06-19 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -83,49 +83,6 @@ export function openDetail(aiId, sessId) {
     <div class="popup-secondary-body${_narClass}" id="pop-nar-body">${_narBody}</div>`;
   }
 
-  // T-202606-084: bloque unificado de hora — solo si isLastSess
-  if (isLastSess) {
-    if (ai.status === 'available') {
-      // AC-3: label 'Hora de reset', input activo, CTA 'Unlock now' condicional si ai.resetTime tiene valor
-      topFields += `<div class="popup-section" id="pop-hora-section">
-        <div class="popup-section-label">⏰ Hora de reset</div>
-        <div class="pop-reset-row">
-          <input class="pop-reset-input" id="pop-hora-input" type="text" maxlength="4" placeholder="--:--">
-          <div class="pop-reset-disp" id="pop-hora-disp">—</div>
-          <button class="btn-primary btn-primary--sm" id="pop-hora-save-btn" disabled>Marcar agotada</button>
-        </div>${ai.resetTime ? `
-        <div class="popup-hora-hint-wrap">
-          <button class="btn-ghost btn-unlock-now" id="pop-unlock-now-btn">✅ Desbloquear ahora</button>
-        </div>` : ''}
-      </div>`;
-    } else if (ai.status === 'exhausted') {
-      if (!ai.resetTime) {
-        // AC-4: sin resetTime → label 'Asignar hora de reset', input con border --accent
-        topFields += `<div class="popup-section" id="pop-hora-section">
-          <div class="popup-section-label">⏰ Asignar hora de reset</div>
-          <div class="pop-reset-row">
-            <input class="pop-reset-input pop-reset-input--accent" id="pop-hora-input" type="text" maxlength="4" placeholder="--:--">
-            <div class="pop-reset-disp" id="pop-hora-disp">—</div>
-            <button class="btn-primary btn-primary--sm" id="pop-hora-save-btn" disabled>Guardar</button>
-          </div>
-        </div>`;
-      } else {
-        // AC-5: con resetTime → label 'Reset a las [hora]', input pre-cargado y editable
-        const currentFormatted = fmt12(ai.resetTime);
-        topFields += `<div class="popup-section" id="pop-hora-section">
-          <div class="popup-section-label">⏰ Reset a las ${esc(currentFormatted)}</div>
-          <div class="pop-reset-row">
-            <input class="pop-reset-input" id="pop-hora-input" type="text" maxlength="4" placeholder="--:--" value="${esc(ai.resetTime)}">
-            <div class="pop-reset-disp" id="pop-hora-disp">—</div>
-            <button class="btn-primary btn-primary--sm" id="pop-hora-save-btn" disabled>Guardar</button>
-          </div>
-          <div class="popup-hora-hint-wrap">
-            <button class="btn-ghost btn-unlock-now" id="pop-unlock-now-btn">✅ Desbloquear ahora</button>
-          </div>
-        </div>`;
-      }
-    }
-  }
 
   // T-087: Sección media — archivos + tags + trazabilidad — colapsable si está vacía
   let midFields = '';

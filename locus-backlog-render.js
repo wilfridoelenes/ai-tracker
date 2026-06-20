@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:20 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-03 · mod:22 · autor:Rune · 2026-06-18 UTC-6
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -422,6 +422,43 @@ function _vcDoToggle(btn, projectId) {
   _vcCollapseSet(projectId, rCode, isNowCollapsed);
 }
 
+// P-202606-018 → T: _renderIceboxBody — extracción del bloque R→hijos de icebox para evitar duplicación
+// Recibe iceboxItems (array ya filtrado) y retorna el HTML del cuerpo de la sección.
+// Usado por renderBacklogList (Vista Lista agrupada y Vista Lista con sprints).
+function _renderIceboxBody(iceboxItems) {
+  let out = '';
+  const _childMap  = _buildChildMap(iceboxItems);
+  const _rCodes    = new Set(iceboxItems.filter(i => itemType(i.code) === 'R').map(i => i.code));
+  const _roots     = _sortGroup(iceboxItems).filter(i => {
+    if (itemType(i.code) === 'R') return true;
+    return !i.parentId || !_rCodes.has(i.parentId);
+  });
+  _roots.forEach(item => {
+    const _stale = _iceboxStaleness(item);
+    const _alertHtml = _stale
+      ? `<div class="bl-icebox-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d en icebox">${_stale.label} en icebox</span></div>`
+      : '';
+    if (itemType(item.code) !== 'R') {
+      out += _alertHtml + buildBacklogItem(item);
+      return;
+    }
+    const _children = _childMap.get(item.code) || [];
+    if (_children.length > 0) {
+      const _collapseKey  = 'locus-r-collapsed-' + item.code;
+      const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
+      out += `<div class="bl-vl-r" data-r-code="${esc(item.code)}">`;
+      out += _alertHtml + buildBacklogItem(item);
+      out += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
+      out += `<div class="bl-vl-r-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-rbody-${esc(item.code)}">`;
+      _children.forEach(child => { out += `<div class="bl-child-row">${buildBacklogItem(child)}</div>`; });
+      out += `</div></div>`;
+    } else {
+      out += _alertHtml + buildBacklogItem(item);
+    }
+  });
+  return out;
+}
+
 // T-202606-163: _iceboxStaleness — umbral de alerta por tipo de ítem en vista icebox
 // Umbrales: R y T → 14d · P → 30d · B priority:high → 7d · B priority no-high → sin alerta
 // Referencia: statusChangedAt || createdAt. Retorna { days, label } o null si no aplica.
@@ -650,14 +687,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
         ${_iceboxAlertBadge}
       </div>
       <div class="section-group-body items-grid bl-icebox-body${iceboxOpen ? '' : ' collapsed'}" id="sgbody-icebox">`;
-    _sortGroup(iceboxItems).forEach(item => {
-      // T-202606-163: badge de alerta inline por ítem
-      const _stale = _iceboxStaleness(item);
-      const _alertHtml = _stale
-        ? `<div class="bl-icebox-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d en icebox">${_stale.label} en icebox</span></div>`
-        : '';
-      html += _alertHtml + buildBacklogItem(item);
-    });
+    html += _renderIceboxBody(iceboxItems);
     html += `</div></div>`;
   }
 
@@ -1252,14 +1282,7 @@ export function renderBacklogList(onRendered) {
           ${_iceboxAlertBadge}
         </div>
         <div class="section-group-body items-grid bl-icebox-body${iceboxOpen ? '' : ' collapsed'}" id="sgbody-icebox">`;
-      _sortGroup(iceboxItems).forEach(item => {
-        // T-202606-163: badge de alerta inline por ítem
-        const _stale = _iceboxStaleness(item);
-        const _alertHtml = _stale
-          ? `<div class="bl-icebox-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d en icebox">${_stale.label} en icebox</span></div>`
-          : '';
-        html += _alertHtml + buildBacklogItem(item);
-      });
+      html += _renderIceboxBody(iceboxItems);
       html += `</div></div>`;
     }
 

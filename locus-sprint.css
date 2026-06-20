@@ -1,4 +1,4 @@
-/* [PP] v0.1.0 · sprint:PP-S-03 · mod:24 · autor:Nova · 2026-06-15 UTC-6 */
+/* [PP] v0.1.0 · sprint:PP-S-03 · mod:25 · autor:Nova · 2026-06-18 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -2720,9 +2720,9 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   font-weight: 500;
   padding: 2px 8px;
   border-radius: var(--radius-pill);
-  background: #faeeda;
-  color: #854f0b;
-  border: 1px solid #fac775;
+  background: var(--c-medium-bg);
+  color: var(--c-medium-text);
+  border: 1px solid var(--c-medium-border);
   flex-shrink: 0;
 }
 
@@ -2731,9 +2731,9 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   font-weight: 500;
   padding: 2px 8px;
   border-radius: var(--radius-pill);
-  background: #eaf3de;
-  color: #3b6d11;
-  border: 1px solid #c0dd97;
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border: 1px solid var(--c-low-border);
   flex-shrink: 0;
 }
 
