@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:23 · autor:Rune · 2026-06-19 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:24 · autor:Rune · 2026-06-20 09:00 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -521,10 +521,12 @@ export function render() {
     updateStats(); renderStatusBar(); renderSetupChecklist(); return;
   }
 
-  // auto-select: preferir disponible/en-sesión sobre agotada
+  // T-202606-XXX AC: auto-select prioriza in-session > disponible > agotada
   const allActive = getState().ais.filter(ai => !ai.archived);
   if (!_trackerSelectedId || !getState().ais.find(a => a.id === _trackerSelectedId)) {
-    const preferred = allActive.find(a => a.status !== 'exhausted') || allActive[0];
+    const preferred = allActive.find(a => a.status !== 'exhausted' && _isInSession(a))
+      || allActive.find(a => a.status !== 'exhausted')
+      || allActive[0];
     _trackerSelectedId = preferred ? preferred.id : null;
   }
 
