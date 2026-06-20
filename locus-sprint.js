@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:49 · autor:Rune · 2026-06-20 15:35 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:50 · autor:Rune · 2026-06-20 16:00 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -7,7 +7,7 @@ import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, openNewSprintInline, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
 import { _gconfirmOpen } from './locus-modals.js';
-import { renderPlanInto } from './locus-sprint-plan.js';
+import { renderPlanInto, getSprintPlanSessionCount } from './locus-sprint-plan.js';
 import { getAI, getActiveSprints, getAllSessions, save } from './locus-storage.js';
 import { getProjectById, _getActiveProjectFilter } from './locus-proj-core.js';
 import { showToast, toast } from './locus-toast.js';
@@ -1331,6 +1331,60 @@ function _renderConflictBanner() {
 
 // ── Función principal ───────────────────────────────────────────────────────
 
+// T-202606-098: badges de conteo en sub-tab nav
+// AC-1: badge Ítems = ítems activos (pendiente + en-revision + bloqueado) del sprint activo
+// AC-2: badge Plan  = sesiones del execution_plan scope sprint activo
+// AC-3/AC-4: tabs Planificar y Sprints no tienen badge
+// AC-7: sin sprint activo → sin badges
+function _updateSprintTabBadges() {
+  const sprint = _getActiveSprint();
+  const btnItems = document.getElementById('spt-tab-items');
+  const btnPlan  = document.getElementById('spt-tab-plan');
+
+  // AC-7: sin sprint activo → limpiar badges y salir
+  if (!sprint) {
+    if (btnItems) { const b = btnItems.querySelector('.spt-tab-badge'); if (b) b.textContent = ''; }
+    if (btnPlan)  { const b = btnPlan.querySelector('.spt-tab-badge');  if (b) b.textContent = ''; }
+    return;
+  }
+
+  // AC-1: conteo de ítems activos
+  if (btnItems) {
+    let badge = btnItems.querySelector('.spt-tab-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'spt-tab-badge';
+      badge.setAttribute('aria-hidden', 'true');
+      btnItems.appendChild(badge);
+    }
+    const _sid = _spIdBase(sprint.id);
+    const spItems = getItems().filter(i => {
+      const t = i.type || (i.code ? i.code.charAt(0) : '');
+      return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
+        (t === 'R' || t === 'B' || t === 'T') &&
+        i.status !== 'descartado';
+    });
+    const activeCount = spItems.filter(i =>
+      i.status === 'pendiente' || i.status === 'en-revision' || _sprintIsBlocked(i)
+    ).length;
+    badge.textContent = activeCount > 0 ? String(activeCount) : '';
+  }
+
+  // AC-2: conteo de sesiones del execution_plan scope sprint activo
+  if (btnPlan) {
+    let badge = btnPlan.querySelector('.spt-tab-badge');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'spt-tab-badge';
+      badge.setAttribute('aria-hidden', 'true');
+      btnPlan.appendChild(badge);
+    }
+    const proj = getProjectById ? getProjectById(_getActiveProjectFilter()) : null;
+    const sessionCount = proj ? getSprintPlanSessionCount(proj.id) : 0;
+    badge.textContent = sessionCount > 0 ? String(sessionCount) : '';
+  }
+}
+
 export function renderSprintTab() {
   // B-202605-053: actualizar estado interno siempre — independiente del tab visible.
   // El render visual se guarda cuando el tab Sprint no está activo,
@@ -1448,6 +1502,9 @@ export function renderSprintTab() {
 
   // Scope added
   _renderSprintScopeAdded(sprint);
+
+  // T-202606-098: badges de conteo en sub-tab nav — AC-5
+  _updateSprintTabBadges();
 }
 
 // ── T-202606-100: Header sprint colapsable ────────────────────────────────
@@ -2200,6 +2257,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // emitidos por otros módulos (locus-backlog-core, locus-storage, etc.) sin acoplamiento directo.
   window.addEventListener('shell:render-sprint-tab', function() {
     renderSprintTab();
+    _updateSprintTabBadges(); // T-202606-098 AC-6
   });
 
   // T-202606-006 T3: listener para sprint:switch-subtab — reemplaza window._sptSwitch en planificacion

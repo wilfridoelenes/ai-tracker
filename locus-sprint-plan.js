@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:2 · autor:Rune · 2026-06-20 16:00 UTC-6
 // locus-sprint-plan.js
 // Versión: 1.1 | Última actualización: 2026-05-28 UTC-6 | R-202605-043: renderPlanInto + _buildPlanContent
 // Módulo: Bloque PLAN — savePlan, loadPlan, renderPlan, togglePlanZoneDone
@@ -162,6 +162,15 @@ export function loadPlan(projId) {
       ? parsed.data
       : parsed;
   } catch(e) { return null; }
+}
+
+// T-202606-098 AC-2a: conteo de sesiones del execution_plan scope sprint activo
+export function getSprintPlanSessionCount(projId) {
+  const plans = loadPlan(projId);
+  if (!Array.isArray(plans)) return 0;
+  const sprintPlan = plans.find(p => p.scope === 'sprint');
+  if (!sprintPlan || !Array.isArray(sprintPlan.sessions)) return 0;
+  return sprintPlan.sessions.length;
 }
 
 // T-202605-510: leer _savedAt del wrapper sin exponer data al caller
