@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:3 · autor:Nova · 2026-06-14 */
+/* [PP] v0.2.0 · sprint:PP-S-01 · mod:4 · autor:Nova · 2026-06-20 */
 /* locus-layout.css */
 
 /* Versión: 2.1 | Última actualización: 2026-05-22 | Selectores compartidos consolidados — T-202605-031 */
@@ -543,12 +543,11 @@ button {
 @keyframes tabFadeIn {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    /* transform eliminado — cualquier transform en ancestro rompe position:fixed en .backlog-footer */
   }
 
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
