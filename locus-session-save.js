@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-02 · mod:41 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-02 · mod:42 · autor:Rune · 2026-06-19 UTC-6
 // locus-session-save.js
 // Responsabilidad: changelog, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -410,7 +410,14 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     proximoPaso: parsed.nextStep    || '',
     // B-202606-037 AC-3: resetTime del worker para pre-llenar mdiff-duration-input en el DIFF.
     // Formato "HH:MM" — el DIFF stripea el separador antes de asignarlo al input.
-    resetTime:   ai.resetTime || '',
+    // Widget card: si el founder escribió hora en bexhaust-hora-{id} antes de pegar el CHECKPOINT,
+    // preferirla sobre ai.resetTime — interpretHora valida antes de usar.
+    resetTime: (() => {
+      const _cardHoraEl = document.getElementById('bexhaust-hora-' + id);
+      const _cardRaw = _cardHoraEl ? _cardHoraEl.value.replace(/\D/g, '') : '';
+      const _cardResult = _cardRaw ? interpretHora(_cardRaw) : null;
+      return _cardResult ? _cardResult.hhmm : (ai.resetTime || '');
+    })(),
   };
   const _patchItemsN = parsed.patchItems || [];
   const _tgItemsForPanel = _buildPatchTgItems(_patchItemsN, tgItems);
