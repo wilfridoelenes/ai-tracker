@@ -1,4 +1,5 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:23 · autor:Rune · 2026-06-20 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:24 · autor:Rune · 2026-06-20 UTC-6
+// B-202606-052: renderIceboxPanel implementada + listener sstab-btn-icebox + re-render en shell:backlog-render-dirty
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
@@ -1412,6 +1413,104 @@ export function renderBacklogList(onRendered) {
   if (typeof onRendered === 'function') onRendered();
 }
 
+
+// B-202606-052: renderIceboxPanel — función de render ausente para sub-tab Icebox (T-202606-090)
+// Renderiza ítems con sprint:icebox del proyecto activo en #icebox-panel-body.
+// Actualiza badge #tpl-badge-icebox con conteo y staleness prefix.
+export function renderIceboxPanel() {
+  const body = document.getElementById('icebox-panel-body');
+  if (!body) return;
+
+  if (!_getActiveProjectFilter()) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📁</div>
+        <div class="empty-state-title">Selecciona un proyecto</div>
+        <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
+      </div>`;
+    const badge = document.getElementById('tpl-badge-icebox');
+    if (badge) badge.textContent = '';
+    return;
+  }
+
+  const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
+  const iceboxItems = getItems().filter(_isIcebox);
+
+  // Actualizar badge
+  const badge = document.getElementById('tpl-badge-icebox');
+  if (badge) {
+    if (!iceboxItems.length) {
+      badge.textContent = '';
+    } else {
+      const _alertCount = iceboxItems.filter(i => _iceboxStaleness(i) !== null).length;
+      badge.textContent = (_alertCount > 0 ? '⚠ ' : '') + iceboxItems.length;
+    }
+  }
+
+  if (!iceboxItems.length) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📦</div>
+        <div class="empty-state-title">No hay ítems en icebox</div>
+      </div>`;
+    return;
+  }
+
+  // Ordenar: tipo (R→T→B→P) y dentro de cada tipo por prioridad (high→medium→low)
+  const _typeOrder = { R: 0, T: 1, B: 2, P: 3 };
+  const _priOrder  = { high: 0, important: 0, critical: 0, importante: 0, medium: 1, low: 2, futura: 2, baja: 2 };
+  const sorted = [...iceboxItems].sort((a, b) => {
+    const ta = _typeOrder[itemType(a.code)] ?? 9, tb = _typeOrder[itemType(b.code)] ?? 9;
+    if (ta !== tb) return ta - tb;
+    const pa = _priOrder[a.priority] ?? 1, pb = _priOrder[b.priority] ?? 1;
+    return pa - pb;
+  });
+
+  // Render con jerarquía R→hijos usando _buildChildMap
+  const _childMap   = _buildChildMap(iceboxItems);
+  const _rCodes     = new Set(iceboxItems.filter(i => itemType(i.code) === 'R').map(i => i.code));
+  const _rootItems  = sorted.filter(i => !i.parentId || !_rCodes.has(i.parentId));
+
+  let html = '<div class="items-grid">';
+  _rootItems.forEach(item => {
+    const _stale = _iceboxStaleness(item);
+    const _stalePill = _stale
+      ? `<div class="bl-icebox-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d en icebox">${_stale.label} en icebox</span></div>`
+      : '';
+    html += _stalePill + buildBacklogItem(item);
+    const _children = _childMap.get(item.code) || [];
+    if (_children.length) {
+      html += '<div class="bl-vl-rchildren">';
+      _children.forEach(child => { html += buildBacklogItem(child); });
+      html += '</div>';
+    }
+  });
+  html += '</div>';
+
+  body.innerHTML = html;
+}
+
+// B-202606-052: listener sub-tab Icebox — activa panel y dispara render
+(function _initIceboxSubTab() {
+  const btn = document.getElementById('sstab-btn-icebox');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    // Desactivar todos los botones y paneles del grupo
+    document.querySelectorAll('.tpl-nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.session-subpanel').forEach(p => p.classList.remove('active'));
+    // Activar este botón y su panel
+    btn.classList.add('active');
+    const panel = document.getElementById('sspanel-icebox');
+    if (panel) panel.classList.add('active');
+    renderIceboxPanel();
+  });
+})();
+
+// B-202606-052: re-render del panel icebox cuando el backlog cambia y el panel está activo
+window.addEventListener('shell:backlog-render-dirty', () => {
+  const panel = document.getElementById('sspanel-icebox');
+  if (panel && panel.classList.contains('active')) renderIceboxPanel();
+});
 
 // T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
 // locus-storage.js despacha estos eventos en lugar de llamar directamente a las funciones

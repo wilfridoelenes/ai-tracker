@@ -1,4 +1,4 @@
-<!-- [PP] v0.1.0 · sprint:PP-S-02 · mod:65 · autor:Rune · 2026-06-20 UTC-6 -->
+<!-- [PP] v0.2.0 · sprint:PP-S-03 · mod:67 · autor:Rune · 2026-06-20 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -623,8 +623,10 @@
   <!-- END R-202605-043: Subtab nav -->
   <!-- Header sprint activo — visible solo cuando hay sprint activo -->
   <div class="sph-header is-hidden" id="sprint-panel-header">
+    <!-- T-202606-100: botón colapso + sph-name fuera de sph-inner — siempre visibles -->
+    <button class="sph-collapse-btn" id="sph-collapse-btn" type="button" aria-expanded="true" aria-label="Colapsar header"></button>
+    <div class="sph-name" id="sph-name"></div>
     <div class="sph-inner">
-      <div class="sph-name" id="sph-name"></div>
       <!-- T-202606-130: badge visible solo cuando sprint.formallyOpened === false -->
       <span class="sph-pending-badge is-hidden" id="sph-pending-badge">Pendiente aprobación</span>
       <!-- B-202606-064: botón 'Aprobar apertura' eliminado — aprobación ocurre via Step 0 del DIFF -->

@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:46 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:47 · autor:Rune · 2026-06-20 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1414,6 +1414,9 @@ export function renderSprintTab() {
     // B-202606-064: botón 'Aprobar apertura' eliminado — aprobación ocurre via Step 0 del DIFF
   }
 
+  // T-202606-100: aplicar estado de colapso persistido al header
+  _sphApplyCollapsed();
+
   // T-202606-042: _sptSwitch después de header.classList.remove — el toggle de subtab tiene la última palabra sobre visibilidad del header
   _sptSwitch(_sptActiveSubtab, _spEl('spt-tab-' + _sptActiveSubtab), true); // B-202606-065: usa estado persistido — no lee DOM. true = skip items render (renderSprintTab lo hace directamente)
 
@@ -1441,6 +1444,36 @@ export function renderSprintTab() {
 
   // Scope added
   _renderSprintScopeAdded(sprint);
+}
+
+// ── T-202606-100: Header sprint colapsable ────────────────────────────────
+
+const _SPH_COLLAPSED_KEY = 'locus-sprint-header-collapsed';
+
+function _sphIsCollapsed() {
+  try { return localStorage.getItem(_SPH_COLLAPSED_KEY) === 'true'; } catch (e) { return false; }
+}
+
+function _sphSetCollapsed(collapsed) {
+  try { localStorage.setItem(_SPH_COLLAPSED_KEY, String(collapsed)); } catch (e) {}
+}
+
+function _sphApplyCollapsed() {
+  const header = document.getElementById('sprint-panel-header');
+  const inner  = header && header.querySelector('.sph-inner');
+  const btn    = document.getElementById('sph-collapse-btn');
+  if (!header || !inner || !btn) return;
+  const collapsed = _sphIsCollapsed();
+  header.classList.toggle('is-collapsed', collapsed);
+  inner.classList.toggle('is-hidden', collapsed);
+  btn.setAttribute('aria-expanded', String(!collapsed));
+  btn.setAttribute('aria-label', collapsed ? 'Expandir header' : 'Colapsar header');
+}
+
+function _sphToggle() {
+  const collapsed = !_sphIsCollapsed();
+  _sphSetCollapsed(collapsed);
+  _sphApplyCollapsed();
 }
 
 // ── R-202605-006: Sección Gestión del sprint ───────────────────────────────
@@ -2362,6 +2395,10 @@ document.addEventListener('DOMContentLoaded', function () {
   if (spmEmptyActivar) spmEmptyActivar.addEventListener('click', function () {
     if (typeof _spmActivarExistente === 'function') _spmActivarExistente();
   });
+
+  // T-202606-100: sph-collapse-btn → _sphToggle()
+  const sphCollapseBtn = document.getElementById('sph-collapse-btn');
+  if (sphCollapseBtn) sphCollapseBtn.addEventListener('click', _sphToggle);
 
 });
 // ── END B-202605-019 ─────────────────────────────────────────────────────────

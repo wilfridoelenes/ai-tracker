@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-03 · mod:27 · autor:Nova · 2026-06-20 14:15 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-03 · mod:29 · autor:Rune · 2026-06-20 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -23,13 +23,70 @@
   border-bottom: 1px solid var(--border);
   padding: 16px 24px;
   flex-shrink: 0;
+  /* T-202606-100: layout para acomodar botón chevron a la derecha */
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
 }
 
+/* T-202606-100: sph-inner ocupa el espacio restante */
 .sph-inner {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
+
+/* T-202606-100: estado colapsado — sph-inner ya oculto via is-hidden en JS;
+   is-collapsed en sph-header reduce padding para evitar salto de espacio */
+.sph-header.is-collapsed {
+  padding-bottom: 8px;
+  align-items: center;
+}
+
+/* T-202606-100: botón chevron de colapso */
+.sph-collapse-btn {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--hint);
+  cursor: pointer;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  transition: color var(--trans-fast), background var(--trans-fast);
+  margin-top: 2px; /* alineación óptica con primera línea de sph-name */
+}
+
+.sph-collapse-btn::before {
+  content: '▾';
+  font-size: var(--text-xs);
+  line-height: 1;
+  display: block;
+  transition: transform var(--trans-fast);
+}
+
+.sph-collapse-btn:hover {
+  color: var(--text);
+  background: var(--surface3);
+}
+
+.sph-collapse-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Chevron rotado cuando colapsado (aria-expanded="false") */
+.sph-collapse-btn[aria-expanded="false"]::before {
+  transform: rotate(-90deg);
+}
+
+/* Sin sprint activo: sph-header tiene is-hidden — el botón no es accesible ni visible */
 
 .sph-name {
   font-size: var(--text-xl);
@@ -2420,8 +2477,8 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 }
 
 .sps-card--pausado {
-  background: var(--c-medium-bg);
-  border-color: var(--c-medium-border);
+  background: var(--surface2);
+  border-color: var(--hint);
 }
 
 .sps-card--hotfix {
@@ -2433,6 +2490,14 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   box-sizing: border-box;
   border-left: 3px solid var(--accent);
   background: var(--surface2);
+}
+
+/* Pausado conserva su semántica muted (B-[pendiente-ID]) — sin esta regla,
+   el border-left dominante (mayor especificidad por scope #sps-activo) sobreescribe
+   el border-color: var(--hint) de .sps-card--pausado. Mismo patrón que
+   .sps-card--pausado .sps-burndown-fill { background: var(--hint) } más abajo. */
+#sps-activo .sps-card.sps-card--pausado {
+  border-left-color: var(--hint);
 }
 
 /* .sps-card no declara padding propio — el padding horizontal vive en cada hijo directo
