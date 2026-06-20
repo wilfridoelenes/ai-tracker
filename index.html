@@ -1,4 +1,4 @@
-<!-- [PP] v0.2.0 · sprint:PP-S-03 · mod:67 · autor:Rune · 2026-06-20 UTC-6 -->
+<!-- [PP] v0.2.0 · sprint:PP-S-03 · mod:68 · autor:Rune · 2026-06-20 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -311,6 +311,11 @@
           <span class="tpl-nav-icon">🔥</span><span class="tpl-nav-text">Hotfix</span>
           <span class="tpl-nav-badge" id="tpl-badge-hotfix"></span>
         </button>
+        <!-- T-202606-092: Sub-tab Histórico -->
+        <button class="tpl-nav-btn" id="sstab-btn-historico">
+          <span class="tpl-nav-icon">🗄</span><span class="tpl-nav-text">Histórico</span>
+          <span class="tpl-nav-badge" id="tpl-badge-historico"></span>
+        </button>
         <button class="tpl-nav-btn" id="sstab-btn-htmlmap">
           <span class="tpl-nav-icon">🗺</span><span class="tpl-nav-text">Documentos</span>
           <span class="tpl-nav-badge" id="tpl-badge-htmlmap"></span>
@@ -466,6 +471,10 @@
     <div class="session-subpanel" id="sspanel-hotfix">
       <div id="hotfix-panel-body"></div>
     </div><!-- /sspanel-hotfix -->
+
+    <!-- Sub-panel: Histórico — T-202606-092. AC-4: sin wrapper -panel-body —
+         renderArchivoHistorico() inyecta #arch-historico directo en este nodo. -->
+    <div class="session-subpanel" id="sspanel-historico"></div><!-- /sspanel-historico -->
 
     <!-- Sub-panel: HTML-MAP -->
     <div class="session-subpanel" id="sspanel-htmlmap">

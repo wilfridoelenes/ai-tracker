@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:9 · autor:Rune · 2026-06-20 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -78,6 +78,14 @@ function _buildArchivoPartitions() {
   _legacyHistoricos = allItems.filter(i => i.status === 'historico' && (!i.sprint || !closedSprintIds.has(i.sprint)));
 
   return { archivoItems, closedSprints, closedSprintIds };
+}
+
+// T-202606-092 AC-2: conteo para badge del sub-tab Histórico.
+// status:'historico' (via _legacyHistoricos) O sprint en lista de sprints cerrados (via archivoItems) — sin solape:
+// archivoItems excluye por construcción los ítems que _legacyHistoricos incluye (sprint no cerrado).
+export function getArchivoHistoricoCount() {
+  const { archivoItems } = _buildArchivoPartitions();
+  return archivoItems.length + _legacyHistoricos.length;
 }
 
 export function renderArchivoHistorico(listEl) {

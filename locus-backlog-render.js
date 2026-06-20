@@ -1,9 +1,9 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:25 · autor:Rune · 2026-06-20 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:26 · autor:Rune · 2026-06-20 UTC-6
 // B-202606-052: renderIceboxPanel implementada + listener sstab-btn-icebox + re-render en shell:backlog-render-dirty
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
-import { renderArchivoHistorico, toggleArchivoHistorico } from './locus-backlog-archive.js';
+import { renderArchivoHistorico, toggleArchivoHistorico, getArchivoHistoricoCount } from './locus-backlog-archive.js';
 import { _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation
@@ -712,7 +712,8 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   listEl.innerHTML = html;
   _skelHide(listEl);
 
-  renderArchivoHistorico(listEl);
+  // T-202606-092 AC-5: renderArchivoHistorico() ya no se invoca desde aquí — vive en
+  // renderHistoricoPanel(), sub-tab dedicado. Antes: renderArchivoHistorico(listEl).
 
   // search-count
   const countEl = document.getElementById('search-count');
@@ -1373,8 +1374,8 @@ export function renderBacklogList(onRendered) {
   listEl.innerHTML = html;
   _skelHide(listEl);
 
-  // R-202605-103: archivo histórico unificado — reemplaza _renderHistoricoSection + closed-sprints-block
-  renderArchivoHistorico(listEl);
+  // T-202606-092 AC-5: renderArchivoHistorico() ya no se invoca desde aquí — vive en
+  // renderHistoricoPanel(), sub-tab dedicado. Antes (R-202605-103): renderArchivoHistorico(listEl).
 
   const countEl = document.getElementById('search-count');
   if (countEl) {
@@ -1593,6 +1594,71 @@ window.addEventListener('shell:render-hotfix', () => { renderHotfixPanel(); });
 window.addEventListener('shell:backlog-render-dirty', () => {
   const panel = document.getElementById('sspanel-hotfix');
   if (panel && panel.classList.contains('active')) renderHotfixPanel();
+});
+
+// T-202606-092: renderHistoricoPanel — render del panel Histórico en #sspanel-historico.
+// AC-4: renderArchivoHistorico() recibe el propio #sspanel-historico como listEl — el bloque
+// #arch-historico se inyecta directo ahí (no en #backlog-list). Vista interna (Por sprint /
+// Lista plana) sin cambios — renderArchivoHistorico no distingue su listEl.
+// Panel se limpia antes de cada llamada: renderArchivoHistorico hace listEl.appendChild sin
+// deduplicar #arch-historico — el reset previo es lo que evita acumulación en re-renders
+// (mismo contrato que _renderVistaLista/renderBacklogList, que resetean listEl.innerHTML antes
+// de llamarla). AC-2, AC-6, AC-7, AC-8, AC-9.
+export function renderHistoricoPanel() {
+  const panel = document.getElementById('sspanel-historico');
+  if (!panel) return;
+
+  const badge = document.getElementById('tpl-badge-historico');
+
+  // AC-8: sin proyecto activo — mismo empty state que #backlog-list
+  if (!_getActiveProjectFilter()) {
+    panel.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📁</div>
+        <div class="empty-state-title">Selecciona un proyecto</div>
+        <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
+      </div>`;
+    if (badge) badge.textContent = '';
+    return;
+  }
+
+  // AC-2: badge — archivoItems (sprint cerrado, cualquier status) + legacy historico. 0 → vacío.
+  const count = getArchivoHistoricoCount();
+  if (badge) badge.textContent = count > 0 ? String(count) : '';
+
+  // AC-7: sin sprints cerrados y sin ítems historico — renderArchivoHistorico no inyecta nada
+  // en ese caso (early return interno), por eso el empty state se arma aquí explícitamente.
+  if (!count) {
+    panel.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🗄</div>
+        <div class="empty-state-title">No hay sprints cerrados aún</div>
+      </div>`;
+    return;
+  }
+
+  panel.innerHTML = '';
+  renderArchivoHistorico(panel);
+}
+
+// T-202606-092: listener sub-tab Histórico — activa panel y dispara render (AC-3, AC-6)
+(function _initHistoricoSubTab() {
+  const btn = document.getElementById('sstab-btn-historico');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('.tpl-nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.session-subpanel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const panel = document.getElementById('sspanel-historico');
+    if (panel) panel.classList.add('active');
+    renderHistoricoPanel();
+  });
+})();
+
+// T-202606-092: re-render del panel histórico cuando el backlog cambia y el panel está activo (AC-9)
+window.addEventListener('shell:backlog-render-dirty', () => {
+  const panel = document.getElementById('sspanel-historico');
+  if (panel && panel.classList.contains('active')) renderHistoricoPanel();
 });
 
 // T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
