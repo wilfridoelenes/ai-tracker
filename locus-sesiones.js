@@ -761,8 +761,17 @@ function blindExhaustHoraInput(id) {
   if (btn) btn.disabled = !result;
 }
 
+function _resetHoraWidget(id) {
+  const inp  = document.getElementById('bexhaust-hora-' + id);
+  const disp = document.getElementById('bexhaust-disp-' + id);
+  const btn  = document.getElementById('bexhaust-confirm-' + id);
+  if (inp)  { inp.value = ''; inp.classList.remove('error'); }
+  if (disp) { disp.textContent = '—'; disp.className = 'hora-parsed card-hora-disp'; }
+  if (btn)  btn.disabled = true;
+}
+
 function blindExhaustHoraKey(event, id) {
-  if (event.key === 'Escape') { event.preventDefault(); cancelBlindExhaustMode(id); return; }
+  if (event.key === 'Escape') { event.preventDefault(); _resetHoraWidget(id); return; }
   if (event.key === 'Enter') { event.preventDefault(); confirmBlindExhaust(id); }
 }
 
@@ -781,7 +790,7 @@ function confirmBlindExhaust(id) {
   ai.resetTime = result.hhmm;
   ai.resetEpoch = result.epoch;
   // AC: no crea sesión, no toca resetAt de sesiones existentes, no emite log
-  cancelBlindExhaustMode(id);
+  _resetHoraWidget(id);
   saveImmediate().then(() => {
     _markTrackerDirty(); render();
   });

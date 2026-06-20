@@ -11,7 +11,7 @@ import { showToast, showToastInline, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab, getCurrentTab } from './locus-ui-shell.js';
 import { _findSession, _findSessionByAI, _getActiveProjectFilter, getAI, getAISessions, getActiveTracker, getState, save } from './locus-storage.js';
 
-import { fmt12, interpretHora } from './locus-session-hora.js';
+import { fmt12 } from './locus-session-hora.js';
 
 import { parsePaste } from './locus-session-parse.js';
 
@@ -254,17 +254,6 @@ export function openDetail(aiId, sessId) {
       });
     }
 
-    // T-202606-084: handler unificado de hora
-    const _pdHoraInput = document.getElementById('pop-hora-input');
-    if (_pdHoraInput) {
-      _pdHoraInput.addEventListener('input', function() { popParseHora(); });
-      _pdHoraInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') saveHoraFromPopup(); });
-      // AC-5: pre-cargar display si input tiene valor inicial (caso exhausted + resetTime)
-      if (_pdHoraInput.value) popParseHora();
-    }
-    const _pdHoraSave = document.getElementById('pop-hora-save-btn');
-    if (_pdHoraSave) _pdHoraSave.addEventListener('click', saveHoraFromPopup);
-
     const _pdUnlockNow = document.getElementById('pop-unlock-now-btn');
     if (_pdUnlockNow) _pdUnlockNow.addEventListener('click', unlockNowFromPopup);
 
@@ -368,46 +357,6 @@ function starCurrentSession() {
     metaEl.innerHTML = `<span>${esc(ai ? ai.name : '')}${_fmtDate ? ' · ' + _fmtDate : ''}${s.resetAt ? ' · hasta ' + s.resetAt : ''}</span>${starBadge}${quickBadge}${reviewBadge}`;
   }
   showToast('info', s?.starred ? 'Sesión destacada' : 'Destacado quitado');
-}
-
-// T-202606-084: parse y save unificados para bloque de hora
-function popParseHora() {
-  const input = document.getElementById('pop-hora-input');
-  const raw = (input || {value:''}).value.replace(/\D/g,'');
-  const disp = document.getElementById('pop-hora-disp');
-  const btn  = document.getElementById('pop-hora-save-btn');
-  if (!disp) return;
-  const result = interpretHora(raw);
-  if (result) {
-    disp.textContent = result.label;
-    disp.className = 'hora-disp--valid';
-    if (input) input.classList.remove('pop-reset-input--error');
-  } else {
-    disp.textContent = raw.length >= 3 ? 'hora inválida' : (raw.length ? '...' : '—');
-    disp.className = raw.length >= 3 ? 'hora-disp--error' : 'hora-disp--hint';
-    // AC-6: border --red cuando formato inválido (≥3 dígitos sin hora válida)
-    if (input) input.classList.toggle('pop-reset-input--error', raw.length >= 3);
-  }
-  if (btn) btn.disabled = !result;
-}
-
-function saveHoraFromPopup() {
-  if (!popAIId || !popSessId) return;
-  const raw = (document.getElementById('pop-hora-input') || {value:''}).value.replace(/\D/g,'');
-  const result = interpretHora(raw);
-  if (!result) { showToast('error', 'Hora inválida — ingresa formato HHMM (ej: 2100)'); return; }
-  const ai = getAI(popAIId);
-  const found = _findSession(popSessId);
-  const s = found ? found.sess : null;
-  if (!ai || !s) return;
-  s.resetAt = result.label;
-  if (ai.status === 'available') ai.status = 'exhausted';
-  ai.resetTime = result.hhmm;
-  ai.resetEpoch = result.epoch;
-  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-  if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
-  closePopup();
-  showToast('success', `${ai.name} · hora guardada · desbloquea a las ${result.label}`);
 }
 
 // Preview panel — cambio de proyecto de sesión ya guardada
