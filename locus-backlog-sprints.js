@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:20 · autor:Rune · 2026-06-20 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:21 · autor:Rune · 2026-06-21 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -702,7 +702,20 @@ export async function setSprintStatus(id, newStatus) {
       saveBacklog(); // una sola vez tras ambas operaciones
     }
   }
-  save();
+  // T-202606-003 AC-1/AC-2: closed usa saveImmediate() — evita pérdida del cierre si el
+  // founder navega o recarga antes de que el debounce de save() dispare _saveFlush().
+  // Otras transiciones (active/scheduled/discarded) mantienen save() con debounce normal.
+  if (newStatus === 'closed') {
+    try {
+      await saveImmediate();
+    } catch (err) {
+      console.error('[AI Tracker] setSprintStatus closed: fallo al persistir de forma inmediata', err);
+      _blogLog('persist-error', id, `Fallo al persistir cierre de sprint ${id} de forma inmediata: ${err.message || err}`, 'backlog');
+      showToast('warning', `${id} marcado cerrado localmente — sincronización pendiente`);
+    }
+  } else {
+    save();
+  }
   _markBacklogListDirty(); renderBacklogList();
   showToast('info', id + ' → ' + newStatus);
 }
