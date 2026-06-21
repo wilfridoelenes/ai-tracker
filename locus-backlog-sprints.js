@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:21 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:22 · autor:Rune · 2026-06-21 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -248,7 +248,7 @@ export function _buildNewSprintForm(projId, onConfirm, onCancel) {
       if (vtEl) {
         vtEl.addEventListener('input', () => {
           if (typeof window['_bnsf_syncBtn'] === 'function') window['_bnsf_syncBtn'](ns);
-          if (typeof _clearSprintFieldErr === 'function') _clearSprintFieldErr(ns + '-vt-err');
+          _clearSprintFieldErr(ns + '-vt-err');
         });
         vtEl.addEventListener('keydown', e => {
           if (e.key === 'Enter')  { e.preventDefault(); if (typeof window['_bnsf_confirm'] === 'function') window['_bnsf_confirm'](ns); }
@@ -2096,7 +2096,7 @@ function _buildWorkerPill(name) {
     const act = action.dataset.action;
 
     if (act === 'sprint-edit-confirm') {
-      if (typeof confirmEditSprint === 'function') confirmEditSprint(action.dataset.sprintId);
+      confirmEditSprint(action.dataset.sprintId);
       return;
     }
     if (act === 'sprint-edit-cancel') {
@@ -2105,7 +2105,7 @@ function _buildWorkerPill(name) {
       return;
     }
     if (act === 'scm-download-retro') {
-      if (typeof _scmDownloadRetro === 'function') _scmDownloadRetro();
+      _scmDownloadRetro();
       return;
     }
   });
@@ -2115,7 +2115,7 @@ function _buildWorkerPill(name) {
     if (!inp) return;
     const sprintId = inp.dataset.sprintId;
     if (e.key === 'Enter') {
-      if (typeof confirmEditSprint === 'function') confirmEditSprint(sprintId);
+      confirmEditSprint(sprintId);
     }
     if (e.key === 'Escape') {
       _markBacklogListDirty();
@@ -2136,26 +2136,26 @@ function _buildWorkerPill(name) {
     if (cancelBtn) {
       cancelBtn.removeAttribute('onclick');
       cancelBtn.addEventListener('click', function() {
-        if (typeof closeCloseSprintModal === 'function') closeCloseSprintModal();
+        closeCloseSprintModal();
       });
     }
     if (backBtn) {
       backBtn.removeAttribute('onclick');
       backBtn.addEventListener('click', function() {
-        if (typeof _scmBack === 'function') _scmBack();
+        _scmBack();
       });
     }
     if (nextBtn) {
       nextBtn.removeAttribute('onclick');
       nextBtn.addEventListener('click', function() {
-        if (typeof _scmNext === 'function') _scmNext();
+        _scmNext();
       });
     }
     // Botón Cerrar del overlay retro — id="sprint-retro-close-btn" (migrado desde onclick en index.html)
     const retroCloseBtn = document.getElementById('sprint-retro-close-btn');
     if (retroCloseBtn) {
       retroCloseBtn.addEventListener('click', function() {
-        if (typeof closeSprintRetroOverlay === 'function') closeSprintRetroOverlay();
+        closeSprintRetroOverlay();
       });
     }
   }

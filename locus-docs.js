@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:9 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:10 · autor:Rune · 2026-06-21 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -96,7 +96,7 @@ export function _updateSubTabButtons(sub) {
   }
   // AC-3 (T-202606-033): sub docupdates — renderizar al activar
   if (sub === 'docupdates') {
-    if (typeof renderDocUpdatesPending === 'function') renderDocUpdatesPending();
+    renderDocUpdatesPending();
   }
   // Collapse danger body when switching tabs
   const dangerBody = document.getElementById('tpl-danger-body');
@@ -1096,7 +1096,7 @@ function contextShowImport() {
   if (loadedEl) loadedEl.classList.add('is-hidden');
 }
 
-function toggleContextSection(idx) {
+export function toggleContextSection(idx) {
   const el = document.getElementById('ctx-sec-' + idx);
   if (el) el.classList.toggle('open');
 }

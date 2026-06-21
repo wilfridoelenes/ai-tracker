@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-21 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -1008,36 +1008,36 @@ function toggleTmplTriggerPanel(btn) {
     const act = action.dataset.action;
 
     if (act === 'idp-mark-done') {
-      if (typeof _idpMarkDone === 'function') _idpMarkDone(action.dataset.code);
+      _idpMarkDone(action.dataset.code);
       return;
     }
     if (act === 'idp-start-edit-title') {
-      if (typeof _idpStartEditTitle === 'function') _idpStartEditTitle(action.dataset.code);
+      _idpStartEditTitle(action.dataset.code);
       return;
     }
     if (act === 'idp-copy-code') {
-      if (typeof _idpCopyCode === 'function') _idpCopyCode(action.dataset.code);
+      _idpCopyCode(action.dataset.code);
       return;
     }
     if (act === 'idp-toggle-ac') {
-      if (typeof _idpToggleAc === 'function') _idpToggleAc();
+      _idpToggleAc();
       return;
     }
     if (act === 'idp-toggle-history') {
-      if (typeof _idpToggleHistory === 'function') _idpToggleHistory();
+      _idpToggleHistory();
       return;
     }
     if (act === 'idp-add-note-btn') {
-      if (typeof _idpAddNote_fromBtn === 'function') _idpAddNote_fromBtn(action.dataset.code);
+      _idpAddNote_fromBtn(action.dataset.code);
       return;
     }
     if (act === 'acv-save') {
       e.stopPropagation();
-      if (typeof _acvSaveEdit === 'function') _acvSaveEdit(action.dataset.rowId, action.dataset.code, parseInt(action.dataset.acIdx, 10));
+      _acvSaveEdit(action.dataset.rowId, action.dataset.code, parseInt(action.dataset.acIdx, 10));
       return;
     }
     if (act === 'tmpl-trigger-toggle') {
-      if (typeof toggleTmplTriggerPanel === 'function') toggleTmplTriggerPanel(action);
+      toggleTmplTriggerPanel(action);
       return;
     }
   }
@@ -1064,7 +1064,7 @@ function toggleTmplTriggerPanel(btn) {
       }
       setItemSprint(code, value);
     } else {
-      if (typeof _idpSetField === 'function') _idpSetField(code, field, value);
+      _idpSetField(code, field, value);
     }
   }
 
@@ -1072,14 +1072,14 @@ function toggleTmplTriggerPanel(btn) {
     // idp-title-input: Enter → save, Escape → cancel
     const inp = e.target.closest('[data-action="idp-title-input"]');
     if (inp) {
-      if (e.key === 'Enter') { e.preventDefault(); if (typeof _idpSaveTitle === 'function') _idpSaveTitle(inp.dataset.code); }
-      if (e.key === 'Escape') { if (typeof _idpCancelTitle === 'function') _idpCancelTitle(); }
+      if (e.key === 'Enter') { e.preventDefault(); _idpSaveTitle(inp.dataset.code); }
+      if (e.key === 'Escape') { _idpCancelTitle(); }
       return;
     }
     // idp-note-input: Enter → addNote
     const noteInp = e.target.closest('[data-action="idp-note-input"]');
     if (noteInp && e.key === 'Enter' && noteInp.value.trim()) {
-      if (typeof _idpAddNote === 'function') _idpAddNote(noteInp.dataset.code, noteInp.value.trim());
+      _idpAddNote(noteInp.dataset.code, noteInp.value.trim());
       noteInp.value = '';
       return;
     }
@@ -1088,8 +1088,8 @@ function toggleTmplTriggerPanel(btn) {
     if (toggle && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
       const act = toggle.dataset.action;
-      if (act === 'idp-toggle-ac' && typeof _idpToggleAc === 'function') _idpToggleAc();
-      if (act === 'idp-toggle-history' && typeof _idpToggleHistory === 'function') _idpToggleHistory();
+      if (act === 'idp-toggle-ac') _idpToggleAc();
+      if (act === 'idp-toggle-history') _idpToggleHistory();
     }
     // T-202605-108: idp-meta-input area: Enter → blur (guarda via _onIdpBlur)
     const areaInp = e.target.closest('.idp-meta-input');
@@ -1099,13 +1099,13 @@ function toggleTmplTriggerPanel(btn) {
   function _onIdpBlur(e) {
     // idp-title-input: blur → save
     const inp = e.target.closest('[data-action="idp-title-input"]');
-    if (inp && typeof _idpSaveTitle === 'function') _idpSaveTitle(inp.dataset.code);
+    if (inp) _idpSaveTitle(inp.dataset.code);
     // T-202605-108: idp-meta-input: blur → _idpSetField para campo area
     const areaInp = e.target.closest('.idp-meta-input');
     if (areaInp) {
       const code  = areaInp.dataset.itemCode;
       const field = areaInp.dataset.field;
-      if (code && field && typeof _idpSetField === 'function') _idpSetField(code, field, areaInp.value);
+      if (code && field) _idpSetField(code, field, areaInp.value);
     }
   }
 

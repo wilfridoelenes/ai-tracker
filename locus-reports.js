@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-21 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -71,7 +71,7 @@ export function downloadReport(id) {
 }
 
 // T-095: Reporte multi-IA — exportar todas las IAs no archivadas en un solo markdown
-function downloadGlobalReport() {
+export function downloadGlobalReport() {
   const activeAIs = state.ais.filter(a => !a.archived);
   const allSess = getAllSessions();
   const activeAIsWithSess = activeAIs.filter(ai => allSess.some(s => s.aiId === ai.id));
@@ -166,7 +166,7 @@ document.querySelectorAll('.modal-overlay,.popup-overlay').forEach(el => {
   el.addEventListener('click', e => { if (e.target === el) { el.classList.remove('open'); if (el.id === 'detail-popup') { popAIId = null; popSessId = null; } } });
 });
 
-function exportData() {
+export function exportData() {
   // Bundlear claves de localStorage por proyecto — context, html-map
   // backlog viene de getItems() en memoria (Supabase) + localStorage como fallback
   const _DOC_KEYS = [
@@ -295,14 +295,14 @@ function toggleSidebarDanger() {
   const body = document.getElementById('tpl-danger-body');
   if (!body) return;
   body.classList.toggle('open');
-  if (typeof _syncCleanProjectBtn === 'function') _syncCleanProjectBtn();
+  _syncCleanProjectBtn();
 }
 
 // ── R-[pendiente-ID]: Modal Limpiar proyecto activo ──────────────────────────
 // Reemplaza: openResetBacklogModal · confirmResetBacklog · openResetSessionsModal · purgeOldSessions
 // Scope: proyecto activo únicamente — workers y proyectos nunca se tocan
 
-function openCleanProjectModal() {
+export function openCleanProjectModal() {
   const projId = _getActiveProjectFilter();
   if (!projId) return; // AC-2: sin proyecto activo el botón está disabled — guard defensivo
 
@@ -578,7 +578,7 @@ function confirmPurge() {
   showToast('success', `${total} sesión${total !== 1 ? 'es' : ''} eliminadas`);
 }
 let _pendingImportData = null;
-function importData(e) {
+export function importData(e) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
   r.onload = ev => {
@@ -674,7 +674,7 @@ function _showImportDiff(d) {
   `;
   document.getElementById('import-diff-overlay').classList.add('open');
 }
-function closeImportDiff() {
+export function closeImportDiff() {
   document.getElementById('import-diff-overlay').classList.remove('open');
   _restoreModalFocus('import-diff-overlay');
   _pendingImportData = null;
@@ -683,7 +683,7 @@ function closeImportDiff() {
   const imp = document.getElementById('imp');
   if (imp) imp.value = '';
 }
-function confirmImport() {
+export function confirmImport() {
   if (!_pendingImportData) return;
   const d = _pendingImportData;
 

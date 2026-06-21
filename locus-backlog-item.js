@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:38 · autor:Rune · 2026-06-20 23:25 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:39 · autor:Rune · 2026-06-21 UTC-6
 // locus-backlog-item.js
 // T-202606-093: _updateSubtabBadges invocado al cierre de mergeBacklogFromTG (AC-3)
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
@@ -229,17 +229,17 @@ export function _attachBacklogListDelegation() {
       e.stopPropagation();
       const code = action.dataset.code;
       const idx  = parseInt(action.dataset.idx, 10);
-      if (typeof copyItemCode === 'function') copyItemCode(e, code, idx);
+      copyItemCode(e, code, idx);
       return;
     }
     if (act === 'copy-item') {
       e.stopPropagation();
-      if (typeof copyItemToClipboard === 'function') copyItemToClipboard(e, action.dataset.code);
+      copyItemToClipboard(e, action.dataset.code);
       return;
     }
     if (act === 'unlink-child') {
       e.stopPropagation();
-      if (typeof _confirmUnlinkChild === 'function') _confirmUnlinkChild(action.dataset.childCode, action.dataset.rCode);
+      _confirmUnlinkChild(action.dataset.childCode, action.dataset.rCode);
       return;
     }
     if (act === 'child-expand') {
@@ -262,7 +262,7 @@ export function _attachBacklogListDelegation() {
       const card = e.target.closest('.kb-card');
       if (!card) return;
       if (e.defaultPrevented) return;
-      if (typeof _kbCardClick === 'function') _kbCardClick(e, card.dataset.code);
+      _kbCardClick(e, card.dataset.code);
       return;
     }
     if (act === 'ref-chip-session') {
@@ -302,7 +302,7 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'promote-item') {
       e.stopPropagation();
-      if (typeof _promoteItem === 'function') _promoteItem(action.dataset.code);
+      _promoteItem(action.dataset.code);
       return;
     }
     if (act === 'discard-idea') {
@@ -311,7 +311,7 @@ export function _attachBacklogListDelegation() {
       return;
     }
     if (act === 'open-status-popover') {
-      if (typeof _openStatusPopover === 'function') _openStatusPopover(e, action.dataset.code);
+      _openStatusPopover(e, action.dataset.code);
       return;
     }
     if (act === 'navigate-discard-ref') {
@@ -325,12 +325,12 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'bitem-promote') {
       e.stopPropagation();
-      if (typeof _promoteItem === 'function') _promoteItem(action.dataset.code);
+      _promoteItem(action.dataset.code);
       return;
     }
     if (act === 'bitem-promote-ttor') {
       e.stopPropagation();
-      if (typeof _promoteTtoR === 'function') _promoteTtoR(action.dataset.code);
+      _promoteTtoR(action.dataset.code);
       return;
     }
     if (act === 'bitem-migrate') {
@@ -344,7 +344,7 @@ export function _attachBacklogListDelegation() {
       return;
     }
     if (act === 'promote-confirm') {
-      if (typeof _promoteConfirm === 'function') _promoteConfirm(action.dataset.code);
+      _promoteConfirm(action.dataset.code);
       return;
     }
     if (act === 'promote-ttor-cancel') {
@@ -353,7 +353,7 @@ export function _attachBacklogListDelegation() {
       return;
     }
     if (act === 'promote-ttor-confirm') {
-      if (typeof _promoteTtoRConfirm === 'function') _promoteTtoRConfirm(action.dataset.code);
+      _promoteTtoRConfirm(action.dataset.code);
       return;
     }
     if (act === 'acv-toggle') {
@@ -486,7 +486,7 @@ export function _attachBacklogListDelegation() {
     const action = e.target.closest('[data-action="inline-edit-title"]');
     if (!action) return;
     e.stopPropagation();
-    if (typeof _inlineEditTitle === 'function') _inlineEditTitle(action.dataset.code, e);
+    _inlineEditTitle(action.dataset.code, e);
   }, { signal: _blListAbortCtrl.signal });
 
   // --- Kanban card drag ---
@@ -518,7 +518,7 @@ export function _attachBacklogListDelegation() {
     if (col) {
       e.preventDefault();
       col.classList.remove('kb-col-dragover');
-      if (typeof _kbDrop === 'function') _kbDrop(e, col.dataset.colStatus);
+      _kbDrop(e, col.dataset.colStatus);
     }
   }, { signal: _blListAbortCtrl.signal });
 }
@@ -533,7 +533,7 @@ export function _attachBacklogListDelegation() {
     overlay.addEventListener('click', function(e) {
       const action = e.target.closest('[data-action="promote-select-type"]');
       if (!action) return;
-      if (typeof _promoteSelectType === 'function') _promoteSelectType(action.dataset.type);
+      _promoteSelectType(action.dataset.type);
     });
   });
 })();

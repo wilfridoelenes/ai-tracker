@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-21 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -807,9 +807,7 @@ function _generateMap(ver) {
       _blItemsForMap = raw ? JSON.parse(raw) : [];
   } catch(e) {}
   const _activeSpForMap = _mgActiveSprint();
-  const mapStatus = (typeof _mgInferStatus === 'function')
-    ? _mgInferStatus(_activeSpForMap, _blItemsForMap)
-    : 'icebox'; // T-202606-146: between_sprints eliminado — icebox es el valor canónico (BR-Ecosystem §5)
+  const mapStatus = _mgInferStatus(_activeSpForMap, _blItemsForMap);
 
   // Nombres de archivos en el MAP para validar calls (AC-12: solo archivos presentes en el MAP)
   const mapFileNames = new Set(parsed.map(p => p.name));
@@ -1846,7 +1844,7 @@ function _mgDownload(content, filename) {
 
 // R-202605-146: Descargar todos los documentos exportables en un ZIP
 // Usa JSZip si está disponible; fallback a descargas individuales
-function _mgExportAllZip() {
+export function _mgExportAllZip() {
   const prefix = _docPrefix();
 
   const fileDefs = [];
@@ -1855,7 +1853,7 @@ function _mgExportAllZip() {
   // B-202605-515: historial completo via _generateFullHistoryContent (función pura, sin blob/toast)
   const ver = _mgGetVersion();
   fileDefs.push({ filename: `${prefix}-BACKLOG-FULL_${ver}.md`, fn: () => _generateFullHistoryContent(ver) });
-  if (typeof _generateContext === 'function') {
+  {
     const version = _mgGetVersion();
     const prefix2 = _docPrefix();
     fileDefs.push({ filename: `${prefix2}-CONTEXT_${version}.md`, fn: () => _generateContext() }); // B-202605-276

@@ -1,6 +1,6 @@
-// [PP] v0.2.1 · sprint:PP-S-housekeeping · mod:18 · autor:Rune · 2026-06-20 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:19 · autor:Rune · 2026-06-21 UTC-6
 // locus-backlog-merge.js
-// Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
+// Última actualización: T-202606-006: _mdiffStepZeroActive + listener storage:item-excluded
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
 // Dependencias: locus-backlog-core.js · locus-backlog-item.js · locus-backlog-sprints.js · locus-storage.js · locus-toast.js
 // Carga: después de locus-backlog-item.js
@@ -30,6 +30,11 @@ let _mdiffToggleSection = null;
 let _mdiffJumpTo = null;
 let _mdiffSetItemSprint = null;
 let _mdiffUpdateConfirmBtn = null;
+
+// T-202606-006: true mientras el DIFF está abierto — consultable por otros módulos vía getter.
+// Se pone true al hacer overlay.classList.add('open') y false en todos los cierres del DIFF.
+export let _mdiffStepZeroActive = false;
+export function getMdiffStepZeroActive() { return _mdiffStepZeroActive; }
 
 // T-202606-037: ckptMeta — campos narrativos del CHECKPOINT para sección superior del panel.
 // Objeto con campos: { resumen, aprendizaje, bloqueantes, decision, proximoPaso } — todos string, todos opcionales.
@@ -638,6 +643,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         _mdiffToggleSection = null;
         _mdiffJumpTo = null;
         _mdiffSetItemSprint = null;
+        _mdiffStepZeroActive = false; // T-202606-006
+        _itemExcludedAC.abort(); // T-202606-006 — limpiar listener
       }, { once: true });
     }
   }
@@ -1019,6 +1026,41 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   }
 
   overlay.classList.add('open');
+  _mdiffStepZeroActive = true; // T-202606-006
+
+  // T-202606-006: listener storage:item-excluded — agrega fila en Step 0 del DIFF.
+  // Se registra con { once: false } y se limpia al cerrar el panel vía AbortController.
+  const _itemExcludedAC = new AbortController();
+  window.addEventListener('storage:item-excluded', (e) => {
+    if (!_mdiffStepZeroActive) return;
+    const { code, type, reason } = e.detail || {};
+    const _body = document.getElementById('merge-diff-body');
+    if (!_body) return;
+    // Buscar o crear contenedor de exclusiones en Step 0
+    let _excContainer = document.getElementById('mdiff-excluded-items');
+    if (!_excContainer) {
+      _excContainer = document.createElement('div');
+      _excContainer.id = 'mdiff-excluded-items';
+      _excContainer.className = 'mdiff-step0 mdiff-excluded-section';
+      _excContainer.innerHTML = `
+        <div class="mdiff-step0-header">
+          <span class="mdiff-step0-badge">Excluido</span>
+          <span class="mdiff-step0-title">Ítems no guardados</span>
+        </div>
+        <div class="mdiff-excluded-rows" id="mdiff-excluded-rows"></div>`;
+      _body.insertAdjacentElement('afterbegin', _excContainer);
+    }
+    const _rows = document.getElementById('mdiff-excluded-rows');
+    if (!_rows) return;
+    // Copy corto legible
+    const _typeLabel = { R: 'un Requerimiento', T: 'un Ticket', B: 'un Bug', P: 'una Idea' }[type] || type;
+    const _shortCopy = `${code || '[pendiente-ID]'} no se guardó — ${_typeLabel} no puede ir en icebox.`;
+    const _row = document.createElement('details');
+    _row.className = 'mdiff-excluded-row';
+    _row.innerHTML = `<summary class="mdiff-excluded-summary">${_shortCopy}</summary>` +
+      `<div class="mdiff-excluded-detail">${reason || ''}</div>`;
+    _rows.appendChild(_row);
+  }, { signal: _itemExcludedAC.signal });
 
   // T-202606-173 AC-1: foco inicial en input de hora al abrir el modal
   requestAnimationFrame(() => {
@@ -1093,6 +1135,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     _mdiffToggleSection = null;
     _mdiffJumpTo = null;
     _mdiffSetItemSprint = null;
+    _mdiffStepZeroActive = false; // T-202606-006
+    _itemExcludedAC.abort(); // T-202606-006 — limpiar listener
 
     if (appliedCount > 0) {
       showToast('success', `Sesión guardada — ${appliedCount} ítem${appliedCount !== 1 ? 's' : ''} aplicado${appliedCount !== 1 ? 's' : ''}`);
@@ -1183,6 +1227,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     _mdiffToggleSection = null;
     _mdiffJumpTo = null;
     _mdiffSetItemSprint = null;
+    _mdiffStepZeroActive = false; // T-202606-006
+    _itemExcludedAC.abort(); // T-202606-006 — limpiar listener
     // Sin toast — el usuario canceló deliberadamente
   });
 
@@ -1255,6 +1301,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       _mdiffToggleSection = null;
       _mdiffJumpTo = null;
       _mdiffSetItemSprint = null;
+      _mdiffStepZeroActive = false; // T-202606-006
+      _itemExcludedAC.abort(); // T-202606-006 — limpiar listener
     }
   }
   document.addEventListener('keydown', _mdiffKeyHandler);

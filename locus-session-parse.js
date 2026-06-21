@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:61 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:62 · autor:Rune · 2026-06-21 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1432,7 +1432,7 @@ export function closeStandaloneCheckpoint() {
 
 let _standaloneLastParsed = null;
 
-function parsePasteStandalone() {
+export function parsePasteStandalone() {
   const ta  = document.getElementById('standalone-ckpt-ta');
   const prev = document.getElementById('standalone-ckpt-prev');
   const btn  = document.getElementById('standalone-ckpt-btn');
@@ -1682,7 +1682,7 @@ function parsePasteStandalone() {
   btn.disabled = tgItems.length === 0 && !text.includes('---PLAN---') && !text.includes('---EXECUTION-PLAN---');
 }
 
-function saveStandaloneCheckpoint() {
+export function saveStandaloneCheckpoint() {
   if (!_standaloneLastParsed) return;
   const { tgItems, patchItems, ckpt, raw } = _standaloneLastParsed;
 

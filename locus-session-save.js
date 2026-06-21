@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-02 · mod:42 · autor:Rune · 2026-06-19 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-02 · mod:43 · autor:Rune · 2026-06-21 UTC-6
 // locus-session-save.js
 // Responsabilidad: changelog, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -100,7 +100,7 @@ function _addChangelogEntry(parsed) {
   localStorage.setItem(CHANGELOG_KEY, JSON.stringify(log));
 }
 
-function openChangelog() {
+export function openChangelog() {
   // R-202604-047: shell estático en index.html
   const overlay = document.getElementById('changelog-overlay');
   if (!overlay) return;

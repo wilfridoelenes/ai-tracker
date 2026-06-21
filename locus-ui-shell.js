@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-housekeeping · mod:18 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-housekeeping · mod:19 · autor:Rune · 2026-06-21 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -14,8 +14,18 @@
 //       (locus-api.js garantiza que el contrato público está disponible post-DOMContentLoaded)
 // Cada módulo consumidor es responsable de registrar listener 'shell:invoke' para sus propias funciones.
 
-import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, _parseInfraLine, setInfraVersionData } from './locus-storage.js';
-import { _dropzoneHandle } from './locus-docs.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
+import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, _parseInfraLine, setInfraVersionData, _docPrefix, handleSyncPillClick } from './locus-storage.js';
+import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortDir } from './locus-backlog-core.js';
+import { closeArranquePanel } from './locus-sesiones-arranque.js';
+import { openPendPanel, closePendPanel } from './locus-pend.js';
+import { openCommandPalette, closeCommandPalette } from './locus-command-palette.js';
+import { openTemplatePicker, closeTemplatePicker, confirmItemEditor, saveCurrentItemAsTemplate, toggleTplSavePanel } from './locus-backlog-editor.js';
+import { _mgExportAllZip } from './locus-map-generator.js';
+import { closeImportDiff, confirmImport, downloadGlobalReport, exportData, importData, openCleanProjectModal } from './locus-reports.js';
+import { openChangelog } from './locus-session-save.js';
+import { parsePasteStandalone, saveStandaloneCheckpoint } from './locus-session-parse.js';
+import { searchContratos } from './locus-contracts.js';
+import { toggleContextSection, _dropzoneHandle } from './locus-docs.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
 
 // ── Global utility ────────────────────────────────────────────────────────
 // esc() usada por múltiples módulos (backlog, session, toast, checkpoint)
@@ -424,7 +434,7 @@ export function onSearch() {
 
   const total = aiMatches.length + sessMatches.length + noteMatches.length;
   // R-202604-075: contratos en búsqueda global
-  const contratoMatches = (typeof searchContratos === 'function') ? searchContratos(q) : [];
+  const contratoMatches = searchContratos(q);
   // B-202605-019: poblar array de acciones para event delegation (delegation usa índice)
   _surContratoActions = contratoMatches.map(r => r.action);
   // B-243: búsqueda en contexto del proyecto activo — usa _ctxSections ya cargado
@@ -767,7 +777,7 @@ export function _escCascade() {
     // Prioridad alta — modales de confirmación / editing
     () => { const el = document.getElementById('shortcuts-ref-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcutsRef(); return true; } },
     () => { const el = document.getElementById('shortcuts-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcuts(); return true; } },
-    () => { const el = document.getElementById('cp-overlay'); if (el && !el.classList.contains('is-hidden')) { if (typeof closeCommandPalette === 'function') closeCommandPalette(); return true; } },
+    () => { const el = document.getElementById('cp-overlay'); if (el && !el.classList.contains('is-hidden')) { closeCommandPalette(); return true; } },
     () => { const el = document.getElementById('quick-note-modal'); if (el && el.offsetParent !== null) { if (typeof closeQuickNote === 'function') closeQuickNote(); return true; } },
     // (a) event dispatch — locus-sesiones-capture.js escucha 'shell:close-quick-capture'
     () => { const el = document.getElementById('qc-modal-overlay'); if (el && el.classList.contains('open')) { window.dispatchEvent(new CustomEvent('shell:close-quick-capture')); return true; } },
@@ -778,7 +788,7 @@ export function _escCascade() {
     // (a) event dispatch — locus-sesiones-viz.js escucha 'shell:item-viz-close'
     () => { const el = document.getElementById('merge-diff-overlay'); if (el && el.offsetParent !== null) { { const p = document.getElementById('item-viz-overlay'); if (p && !p.classList.contains('is-hidden')) { window.dispatchEvent(new CustomEvent('shell:item-viz-close')); return true; } } } },
     () => { const el = document.getElementById('item-viz-overlay'); if (el && !el.classList.contains('is-hidden')) { window.dispatchEvent(new CustomEvent('shell:item-viz-close')); return true; } },
-    () => { const el = document.getElementById('pend-overlay'); if (el && el.offsetParent !== null) { if (typeof closePendPanel === 'function') closePendPanel(); return true; } },
+    () => { const el = document.getElementById('pend-overlay'); if (el && el.offsetParent !== null) { closePendPanel(); return true; } },
     // (a) event dispatch — locus-sprint-project.js escucha 'shell:close-proj-modal'
     () => { const el = document.getElementById('proj-modal-overlay'); if (el && el.offsetParent !== null) { window.dispatchEvent(new CustomEvent('shell:close-proj-modal')); return true; } },
     // (a) event dispatch — locus-sprint-project.js escucha 'shell:close-proj-panel'
@@ -1272,7 +1282,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // #arranque-btn-ver-todo → closeArranquePanel() + switchTab('proyectos')
   const arranqueVerTodoBtn = document.getElementById('arranque-btn-ver-todo');
   if (arranqueVerTodoBtn) arranqueVerTodoBtn.addEventListener('click', function () {
-    if (typeof closeArranquePanel === 'function') closeArranquePanel();
+    closeArranquePanel();
     switchTab('proyectos');
   });
 
@@ -1299,11 +1309,11 @@ document.addEventListener('DOMContentLoaded', function () {
       selectProjectFilter(row.dataset.projId);
     } else if (action === 'navigateToContext') {
       const secIdx = parseInt(row.dataset.ctxIdx, 10);
-      if (typeof switchTab === 'function') switchTab('backlog');
+      switchTab('backlog');
       setTimeout(function () {
         switchSubTab('context');
         setTimeout(function () {
-          if (typeof toggleContextSection === 'function') toggleContextSection(secIdx);
+          toggleContextSection(secIdx);
           const el = document.getElementById('ctx-sec-' + secIdx);
           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 120);
@@ -1331,13 +1341,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // hdr-search-trigger → openCommandPalette()
   const hdrSearchTrigger = document.getElementById('hdr-search-trigger');
   if (hdrSearchTrigger) hdrSearchTrigger.addEventListener('click', function () {
-    if (typeof openCommandPalette === 'function') openCommandPalette();
+    openCommandPalette();
   });
 
   // header-pend-btn → openPendPanel()
   const headerPendBtn = document.getElementById('header-pend-btn');
   if (headerPendBtn) headerPendBtn.addEventListener('click', function () {
-    if (typeof openPendPanel === 'function') openPendPanel();
+    openPendPanel();
   });
 
   // ckpt-reopen-btn → shell:show-checkpoint-panel — locus-sesiones-viz.js escucha y llama showCheckpointPanel internamente
@@ -1349,7 +1359,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // user-chip → handleSyncPillClick()
   const userChip = document.getElementById('user-chip');
   if (userChip) userChip.addEventListener('click', function () {
-    if (typeof handleSyncPillClick === 'function') handleSyncPillClick();
+    handleSyncPillClick();
   });
 
   // more-menu-btn — listener gestionado por locus-backlog-panel.js (_wrappedToggleMoreMenu)
@@ -1357,15 +1367,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // more-menu items por ID
   const mm = {
-    'mm-btn-backup':    function () { if (typeof exportData === 'function') exportData(); toggleMoreMenu(); },
+    'mm-btn-backup':    function () { exportData(); toggleMoreMenu(); },
     'mm-btn-import':    function () { const el = document.getElementById('imp'); if (el) el.click(); toggleMoreMenu(); },
-    'mm-btn-report':    function () { if (typeof downloadGlobalReport === 'function') downloadGlobalReport(); toggleMoreMenu(); },
-    'mm-btn-changelog': function () { if (typeof openChangelog === 'function') openChangelog(); toggleMoreMenu(); },
+    'mm-btn-report':    function () { downloadGlobalReport(); toggleMoreMenu(); },
+    'mm-btn-changelog': function () { openChangelog(); toggleMoreMenu(); },
     // (a) event dispatch — locus-notifications.js escucha 'shell:open-notif-config'
     'mm-btn-notif':     function () { window.dispatchEvent(new CustomEvent('shell:open-notif-config')); toggleMoreMenu(); },
-    'mm-btn-sync':      function () { if (typeof handleSyncPillClick === 'function') handleSyncPillClick(); toggleMoreMenu(); },
+    'mm-btn-sync':      function () { handleSyncPillClick(); toggleMoreMenu(); },
     'mm-btn-migrate':   function () { if (typeof openMigrateFirebaseModal === 'function') openMigrateFirebaseModal(); toggleMoreMenu(); },
-    'mm-btn-clean':     function () { if (typeof openCleanProjectModal === 'function') openCleanProjectModal(); toggleMoreMenu(); },
+    'mm-btn-clean':     function () { openCleanProjectModal(); toggleMoreMenu(); },
   };
   Object.keys(mm).forEach(function (id) {
     const btn = document.getElementById(id);
@@ -1388,7 +1398,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // imp file input → importData()
   const impInput = document.getElementById('imp');
   if (impInput) impInput.addEventListener('change', function (e) {
-    if (typeof importData === 'function') importData(e);
+    importData(e);
   });
 
   // backlog-file-input → importBacklog()
@@ -1400,7 +1410,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // #arranque-close-btn → closeArranquePanel()
   const arranqueCloseBtn = document.getElementById('arranque-close-btn');
   if (arranqueCloseBtn) arranqueCloseBtn.addEventListener('click', function () {
-    if (typeof closeArranquePanel === 'function') closeArranquePanel();
+    closeArranquePanel();
   });
 
 });
@@ -1440,25 +1450,25 @@ document.addEventListener('DOMContentLoaded', function () {
   // btn-new-backlog-item
   const btnNewBacklogItem = document.getElementById('btn-new-backlog-item');
   if (btnNewBacklogItem) btnNewBacklogItem.addEventListener('click', function () {
-    if (typeof _openItemEditorSafe === 'function') _openItemEditorSafe(null, null);
+    _openItemEditorSafe(null, null);
   });
 
   // fbar-deps-btn
   const fbarDepsBtn = document.getElementById('fbar-deps-btn');
   if (fbarDepsBtn) fbarDepsBtn.addEventListener('click', function () {
-    if (typeof toggleDepsFilter === 'function') toggleDepsFilter();
+    toggleDepsFilter();
   });
 
   // fbar-sort-select
   const fbarSortSelect = document.getElementById('fbar-sort-select');
   if (fbarSortSelect) fbarSortSelect.addEventListener('change', function () {
-    if (typeof onBacklogSortChange === 'function') onBacklogSortChange(this.value);
+    onBacklogSortChange(this.value);
   });
 
   // fbar-sort-dir-btn
   const fbarSortDirBtn = document.getElementById('fbar-sort-dir-btn');
   if (fbarSortDirBtn) fbarSortDirBtn.addEventListener('click', function () {
-    if (typeof toggleSortDir === 'function') toggleSortDir();
+    toggleSortDir();
   });
 
   // context-dropzone — drag & drop + click
@@ -1508,19 +1518,19 @@ document.addEventListener('DOMContentLoaded', function () {
   // import-diff-overlay — click outside to close
   const importDiffOverlay = document.getElementById('import-diff-overlay');
   if (importDiffOverlay) importDiffOverlay.addEventListener('click', function (e) {
-    if (e.target === this && typeof closeImportDiff === 'function') closeImportDiff();
+    if (e.target === this) closeImportDiff();
   });
 
   // import-diff-cancel-btn
   const importDiffCancel = document.getElementById('import-diff-cancel-btn');
   if (importDiffCancel) importDiffCancel.addEventListener('click', function () {
-    if (typeof closeImportDiff === 'function') closeImportDiff();
+    closeImportDiff();
   });
 
   // import-diff-confirm-btn
   const importDiffConfirm = document.getElementById('import-diff-confirm-btn');
   if (importDiffConfirm) importDiffConfirm.addEventListener('click', function () {
-    if (typeof confirmImport === 'function') confirmImport();
+    confirmImport();
   });
 
   // item-editor-overlay — click outside to close
@@ -1532,7 +1542,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // ie-tpl-open-btn
   const ieTplOpenBtn = document.getElementById('ie-tpl-open-btn');
   if (ieTplOpenBtn) ieTplOpenBtn.addEventListener('click', function () {
-    if (typeof openTemplatePicker === 'function') openTemplatePicker();
+    openTemplatePicker();
   });
 
   // pi-textarea — oninput, dragover, dragleave, drop
@@ -1567,49 +1577,49 @@ document.addEventListener('DOMContentLoaded', function () {
   // ie-tpl-save-btn
   const ieTplSaveBtn = document.getElementById('ie-tpl-save-btn');
   if (ieTplSaveBtn) ieTplSaveBtn.addEventListener('click', function () {
-    if (typeof toggleTplSavePanel === 'function') toggleTplSavePanel();
+    toggleTplSavePanel();
   });
 
   // ie-save-btn
   const ieSaveBtn = document.getElementById('ie-save-btn');
   if (ieSaveBtn) ieSaveBtn.addEventListener('click', function () {
-    if (typeof confirmItemEditor === 'function') confirmItemEditor();
+    confirmItemEditor();
   });
 
   // tpl-save-confirm-btn
   const tplSaveConfirmBtn = document.getElementById('tpl-save-confirm-btn');
   if (tplSaveConfirmBtn) tplSaveConfirmBtn.addEventListener('click', function () {
-    if (typeof saveCurrentItemAsTemplate === 'function') saveCurrentItemAsTemplate();
+    saveCurrentItemAsTemplate();
   });
 
   // tpl-save-cancel-btn
   const tplSaveCancelBtn = document.getElementById('tpl-save-cancel-btn');
   if (tplSaveCancelBtn) tplSaveCancelBtn.addEventListener('click', function () {
-    if (typeof toggleTplSavePanel === 'function') toggleTplSavePanel();
+    toggleTplSavePanel();
   });
 
   // tpl-picker-overlay — click outside to close
   const tplPickerOverlay = document.getElementById('tpl-picker-overlay');
   if (tplPickerOverlay) tplPickerOverlay.addEventListener('click', function (e) {
-    if (e.target === this && typeof closeTemplatePicker === 'function') closeTemplatePicker();
+    if (e.target === this) closeTemplatePicker();
   });
 
   // tpl-picker-close-btn
   const tplPickerCloseBtn = document.getElementById('tpl-picker-close-btn');
   if (tplPickerCloseBtn) tplPickerCloseBtn.addEventListener('click', function () {
-    if (typeof closeTemplatePicker === 'function') closeTemplatePicker();
+    closeTemplatePicker();
   });
 
   // standalone-ckpt-ta
   const standaloneCkptTa = document.getElementById('standalone-ckpt-ta');
   if (standaloneCkptTa) standaloneCkptTa.addEventListener('input', function () {
-    if (typeof parsePasteStandalone === 'function') parsePasteStandalone();
+    parsePasteStandalone();
   });
 
   // standalone-ckpt-btn
   const standaloneCkptBtn = document.getElementById('standalone-ckpt-btn');
   if (standaloneCkptBtn) standaloneCkptBtn.addEventListener('click', function () {
-    if (typeof saveStandaloneCheckpoint === 'function') saveStandaloneCheckpoint();
+    saveStandaloneCheckpoint();
   });
 
   // export-confirm-cancel-btn
@@ -1647,14 +1657,14 @@ document.addEventListener('DOMContentLoaded', function () {
   // cp-overlay — click outside to close
   const cpOverlay = document.getElementById('cp-overlay');
   if (cpOverlay) cpOverlay.addEventListener('click', function (e) {
-    if (e.target === this && typeof closeCommandPalette === 'function') closeCommandPalette();
+    if (e.target === this) closeCommandPalette();
   });
 
   // mg-version-input
   const mgVersionInput = document.getElementById('mg-version-input');
   if (mgVersionInput) mgVersionInput.addEventListener('input', function () {
     const preview = document.getElementById('mg-filename-preview');
-    if (preview && typeof _docPrefix === 'function') {
+    if (preview) {
       preview.textContent = _docPrefix() + '-MAP_' + this.value + '.md';
     }
   });
@@ -1680,7 +1690,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // mg-export-all-btn
   const mgExportAllBtn = document.getElementById('mg-export-all-btn');
   if (mgExportAllBtn) mgExportAllBtn.addEventListener('click', function () {
-    if (typeof _mgExportAllZip === 'function') _mgExportAllZip();
+    _mgExportAllZip();
   });
 
 });

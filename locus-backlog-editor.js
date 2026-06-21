@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-21 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -364,7 +364,7 @@ export function closeItemEditor() {
   _editorItemId = null;
 }
 
-function confirmItemEditor() {
+export function confirmItemEditor() {
   const type = document.getElementById('item-type').value;
   const code = document.getElementById('item-code').value.trim();
   const title = document.getElementById('item-title').value.trim();
@@ -632,7 +632,7 @@ export function openTemplatePicker() {
   overlay.classList.add('open');
 }
 
-function closeTemplatePicker() {
+export function closeTemplatePicker() {
   const overlay = document.getElementById('tpl-picker-overlay');
   if (overlay) overlay.classList.remove('open');
 }
@@ -698,11 +698,9 @@ function _applyTemplate(tplId) {
   const notesEl = document.getElementById('item-notes');
   if (notesEl) notesEl.value = tpl.notes || '';
 
-  if (typeof _refreshParentIdDropdown === 'function') {
-    _refreshParentIdDropdown(tpl.type, '');
-    _refreshSprintSelect(_activeSprint() || 'icebox');  // B-202606-043
-    _refreshSprintInherited('');
-  }
+  _refreshParentIdDropdown(tpl.type, '');
+  _refreshSprintSelect(_activeSprint() || 'icebox');  // B-202606-043
+  _refreshSprintInherited('');
 
   closeTemplatePicker();
   _ieHighlightAutofilled();
@@ -718,7 +716,7 @@ function _deleteCustomTemplate(tplId) {
 }
 
 // Guarda el ítem actual (en editor abierto) como template personalizado
-function saveCurrentItemAsTemplate() {
+export function saveCurrentItemAsTemplate() {
   const title = document.getElementById('item-title').value.trim();
   const type = document.getElementById('item-type').value;
   const priority = document.getElementById('item-priority').value;
@@ -751,7 +749,7 @@ function saveCurrentItemAsTemplate() {
   showToast('success', '✓ Template "' + tplName + '" guardado');
 }
 
-function toggleTplSavePanel() {
+export function toggleTplSavePanel() {
   const panel = document.getElementById('tpl-save-panel');
   if (!panel) return;
   panel.classList.toggle('open');
@@ -790,7 +788,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.target && e.target.tagName === 'TEXTAREA') return;
       e.preventDefault();
       e.stopPropagation();
-      if (typeof confirmItemEditor === 'function') confirmItemEditor();
+      confirmItemEditor();
       return;
     }
 

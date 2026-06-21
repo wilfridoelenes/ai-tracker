@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:35 · autor:Rune · 2026-06-20 13:15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:36 · autor:Rune · 2026-06-21 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -330,7 +330,7 @@ export function toggleShowChildren(checked) {
 // T-202605-449: filtro por ítems con dependencias bloqueantes activas
 // 0 = sin filtro | 1 = solo bloqueados | 2 = solo desbloqueados
 let _depsFilter = 0;
-function toggleDepsFilter() {
+export function toggleDepsFilter() {
   _depsFilter = (_depsFilter + 1) % 3;
   const btn = document.getElementById('fbar-deps-btn');
   const labels = ['🔗 Deps', '🔒 Bloqueados', '🔓 Libres'];
@@ -2121,7 +2121,7 @@ export function _buildRoleChips() {
   return `<div class="frole-bar" id="frole-bar">${chips.join('')}</div>`;
 }
 
-function onBacklogSortChange(val) {
+export function onBacklogSortChange(val) {
   // T-202604-424: ignorar 'sprint' si llega de localStorage legacy o select antiguo
   if (val === 'sprint') val = 'priority';
   backlogSortMode = val;
@@ -2129,7 +2129,7 @@ function onBacklogSortChange(val) {
 }
 
 // T-072: toggle dirección de sort
-function toggleSortDir() {
+export function toggleSortDir() {
   backlogSortDir = backlogSortDir === 'asc' ? 'desc' : 'asc';
   const btn = document.getElementById('fbar-sort-dir-btn');
   if (btn) btn.textContent = backlogSortDir === 'asc' ? '↑' : '↓';

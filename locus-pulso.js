@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-21 UTC-6
 // locus-pulso.js
 // Última actualización: 2026-05-19 | Panel Pulso del Ecosistema
 // Extraído de: ai-tracker-checkpoint.js · ai-tracker-ai-notes.js
@@ -255,9 +255,7 @@ export function openPulsoPanel() {
   }
 
   // R-202604-076: Planes activos
-  if (typeof _buildPulsoPlanesHtml === 'function') {
-    html += _buildPulsoPlanesHtml();
-  }
+  html += _buildPulsoPlanesHtml();
 
   if (s.projData.length === 0 && s.blockerCount === 0 && s.staleSprints.length === 0) {
     html += `<div class="pls-empty">Sin datos aún. Registra sesiones y ítems para ver el pulso del ecosistema.</div>`;

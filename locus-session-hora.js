@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-21 UTC-6
 // locus-session-hora.js
 import { _doSaveSession, saveSession } from './locus-session-save.js';
 import { getAI } from './locus-storage.js';
@@ -278,7 +278,7 @@ function cancelConfirmSave(id) {
     e.stopPropagation();
 
     const aiId = taId.slice(3); // strip 'ta-'
-    if (typeof confirmSave === 'function') confirmSave(aiId);
+    confirmSave(aiId);
   }, true); // capture phase — antes de que otros handlers puedan consumir el evento
 })();
 

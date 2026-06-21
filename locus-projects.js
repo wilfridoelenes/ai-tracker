@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-21 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -1283,7 +1283,7 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'toggle-archived-section': {
         const o = localStorage.getItem('proy2-archived-open') !== '0';
         localStorage.setItem('proy2-archived-open', o ? '0' : '1');
-        if (typeof renderProyectos === 'function') renderProyectos();
+        renderProyectos();
         break;
       }
       case 'go-to-tracker':
@@ -1294,54 +1294,54 @@ document.addEventListener('DOMContentLoaded', () => {
         switchSubTab('backlog');
         break;
       case 'toggle-ai-filter':
-        if (typeof _projToggleAIFilter === 'function') _projToggleAIFilter(aiId);
+        _projToggleAIFilter(aiId);
         break;
       case 'toggle-proj-analytics':
-        if (typeof _toggleProjAnalytics === 'function') _toggleProjAnalytics(filterId);
+        _toggleProjAnalytics(filterId);
         break;
       case 'ctx-toggle-sec':
-        if (typeof _projCtxToggleSec === 'function') _projCtxToggleSec(secId);
+        _projCtxToggleSec(secId);
         break;
       case 'ctx-save':
-        if (typeof _projCtxSave === 'function') _projCtxSave(filterId);
+        _projCtxSave(filterId);
         break;
       case 'ctx-cancel':
-        if (typeof _projCtxCancelEdit === 'function') _projCtxCancelEdit(filterId);
+        _projCtxCancelEdit(filterId);
         break;
       case 'ctx-start-edit':
-        if (typeof _projCtxStartEdit === 'function') _projCtxStartEdit(filterId);
+        _projCtxStartEdit(filterId);
         break;
       case 'qn-nav-to-item':
-        if (typeof _qnNavToItem === 'function') _qnNavToItem(code);
+        _qnNavToItem(code);
         break;
       case 'open-session-detail':
         openDetail(aiId, sessId);
         break;
       case 'dec-edit':
-        if (typeof _projEditDecision === 'function') _projEditDecision(projId, decId);
+        _projEditDecision(projId, decId);
         break;
       case 'dec-delete':
-        if (typeof _projDeleteDecision === 'function') _projDeleteDecision(projId, decId);
+        _projDeleteDecision(projId, decId);
         break;
       case 'dec-add':
-        if (typeof _projOpenAddDecision === 'function') _projOpenAddDecision(projId);
+        _projOpenAddDecision(projId);
         break;
       case 'dec-save':
-        if (typeof _projSaveDecision === 'function') _projSaveDecision(projId);
+        _projSaveDecision(projId);
         break;
       case 'dec-cancel':
-        if (typeof _projCancelDecision === 'function') _projCancelDecision(projId);
+        _projCancelDecision(projId);
         break;
       case 'download-project-report':
-        if (typeof downloadProjectReport === 'function') downloadProjectReport(projId);
+        downloadProjectReport(projId);
         break;
       case 'proj-delete-execute':
         e.stopPropagation();
-        if (typeof _proyDeleteExecute === 'function') _proyDeleteExecute(projId);
+        _proyDeleteExecute(projId);
         break;
       case 'proj-delete-cancel':
         e.stopPropagation();
-        if (typeof _proyDeleteInline === 'function') _proyDeleteInline(projId);
+        _proyDeleteInline(projId);
         break;
       case 'proj-open':
         selectProjectFilter(projId);

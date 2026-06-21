@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:52 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:53 · autor:Rune · 2026-06-21 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1737,11 +1737,11 @@ function _spmPickerOpen(closedSprints) {
   // T-202605-052: Event delegation — click y keydown en picker
   picker.addEventListener('click', function(e) {
     const opt = e.target.closest('[data-sprint-id]');
-    if (opt && typeof _spmPickerSelect === 'function') _spmPickerSelect(opt.dataset.sprintId);
+    if (opt) _spmPickerSelect(opt.dataset.sprintId);
   });
   picker.addEventListener('keydown', function(e) {
     const opt = e.target.closest('[data-sprint-id]');
-    if (opt && typeof _spmPickerKey === 'function') _spmPickerKey(e, opt.dataset.sprintId, Number(opt.dataset.sprintIdx));
+    if (opt) _spmPickerKey(e, opt.dataset.sprintId, Number(opt.dataset.sprintIdx));
   });
 
   // AC-4: click fuera cierra el picker
@@ -2257,7 +2257,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const btn = document.getElementById('spt-tab-' + subtab);
     if (btn) {
       btn.addEventListener('click', function() {
-        if (typeof _sptSwitch === 'function') _sptSwitch(subtab, btn);
+        _sptSwitch(subtab, btn);
       });
     }
   });
@@ -2418,31 +2418,31 @@ document.addEventListener('DOMContentLoaded', function () {
   // sprint-mgmt-toggle → _spmToggle()
   const spmToggle = document.getElementById('sprint-mgmt-toggle');
   if (spmToggle) spmToggle.addEventListener('click', function () {
-    if (typeof _spmToggle === 'function') _spmToggle();
+    _spmToggle();
   });
 
   // spm-btn-registrar → _spmRegistrar()
   const spmRegistrar = document.getElementById('spm-btn-registrar');
   if (spmRegistrar) spmRegistrar.addEventListener('click', function () {
-    if (typeof _spmRegistrar === 'function') _spmRegistrar();
+    _spmRegistrar();
   });
 
   // spm-btn-reactivar → _spmReactivar()
   const spmReactivar = document.getElementById('spm-btn-reactivar');
   if (spmReactivar) spmReactivar.addEventListener('click', function () {
-    if (typeof _spmReactivar === 'function') _spmReactivar();
+    _spmReactivar();
   });
 
   // spm-btn-hotfix → _spmCreateHotfix() — T-202606-038
   const spmHotfix = document.getElementById('spm-btn-hotfix');
   if (spmHotfix) spmHotfix.addEventListener('click', function () {
-    if (typeof _spmCreateHotfix === 'function') _spmCreateHotfix();
+    _spmCreateHotfix();
   });
 
   // spm-btn-retro → _spmRetro()
   const spmRetro = document.getElementById('spm-btn-retro');
   if (spmRetro) spmRetro.addEventListener('click', function () {
-    if (typeof _spmRetro === 'function') _spmRetro();
+    _spmRetro();
   });
 
   // spm-new-sprint-btn → openNewSprintInline()
@@ -2454,13 +2454,13 @@ document.addEventListener('DOMContentLoaded', function () {
   // spm-empty-btn-registrar → _spmRegistrar()
   const spmEmptyRegistrar = document.getElementById('spm-empty-btn-registrar');
   if (spmEmptyRegistrar) spmEmptyRegistrar.addEventListener('click', function () {
-    if (typeof _spmRegistrar === 'function') _spmRegistrar();
+    _spmRegistrar();
   });
 
   // spm-empty-btn-activar → _spmActivarExistente()
   const spmEmptyActivar = document.getElementById('spm-empty-btn-activar');
   if (spmEmptyActivar) spmEmptyActivar.addEventListener('click', function () {
-    if (typeof _spmActivarExistente === 'function') _spmActivarExistente();
+    _spmActivarExistente();
   });
 
   // T-202606-100: sph-collapse-btn → _sphToggle()

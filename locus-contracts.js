@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-21 UTC-6
 // locus-contracts.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
@@ -289,7 +289,7 @@ function resetContratosData() {
 }
 
 // Búsqueda global — incluir contratos en scope
-function searchContratos(q) {
+export function searchContratos(q) {
   const data = _ctrLoad();
   const results = [];
   const ql = q.toLowerCase();

@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:29 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:30 · autor:Rune · 2026-06-21 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-005: dispatch storage:item-excluded en saveBacklog
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -169,7 +169,7 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
           setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
           if (event === 'SIGNED_IN') {
             if (typeof closeAuthModal === 'function') closeAuthModal();
-            if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
+            _loadFromSupabase();
             // (a) event dispatch — locus-sesiones.js escucha 'shell:mark-tracker-dirty' + 'shell:render-tracker'
             _dispatch('shell:mark-tracker-dirty'); _dispatch('shell:render-tracker');
             // T-202605-XXX: activar sync Realtime al iniciar sesión
@@ -185,7 +185,7 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
           _unsubscribeRealtime();
         }
         resolve(_supabaseUser);
-        if (typeof _refreshMigrationBtnVisibility === 'function') _refreshMigrationBtnVisibility();
+        _refreshMigrationBtnVisibility();
       });
     });
 
@@ -197,11 +197,11 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
         _supabaseUser = session.user;
         setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
         if (typeof closeAuthModal === 'function') closeAuthModal();
-        if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
+        _loadFromSupabase();
         // (a) event dispatch — locus-sesiones.js escucha 'shell:mark-tracker-dirty' + 'shell:render-tracker'
         _dispatch('shell:mark-tracker-dirty'); _dispatch('shell:render-tracker');
         _subscribeRealtime();
-        if (typeof _refreshMigrationBtnVisibility === 'function') _refreshMigrationBtnVisibility();
+        _refreshMigrationBtnVisibility();
       }
     });
   } catch(e) {
@@ -242,7 +242,7 @@ function _updateUserMenuItem() {
   }
 }
 
-function handleSyncPillClick() {
+export function handleSyncPillClick() {
   if (!_supabaseUser) { if (typeof openAuthModal === 'function') openAuthModal(); else signInWithSupabase(); }
 }
 
@@ -1044,7 +1044,7 @@ export function _subscribeRealtime() {
     if (!remoteTs) return;
     if (_realtimeLastTs && remoteTs === _realtimeLastTs) return;
     console.log('[AI Tracker] Realtime: cambio remoto detectado —', payload.table || '', remoteTs);
-    if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
+    _loadFromSupabase();
   }
 
   // Canal 1 — tracker_state (existente)
@@ -1771,7 +1771,7 @@ function _renderAfterAuth() {
   _dispatch('shell:mark-backlog-dirty');
   _dispatch('shell:render-backlog-list');
   // T-202605-482: sincronizar desde Supabase
-  if (_supabase && typeof _loadFromSupabase === 'function') _loadFromSupabase();
+  if (_supabase) _loadFromSupabase();
 }
 
 // Claves localStorage por proyecto

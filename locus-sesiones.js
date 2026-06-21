@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:25 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:26 · autor:Rune · 2026-06-21 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1216,7 +1216,7 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('.tracker-col-tab').forEach(function (btn) {
     btn.addEventListener('click', function () {
       const col = btn.dataset.col;
-      if (col && typeof _trackerSwitchCol === 'function') _trackerSwitchCol(col);
+      if (col) _trackerSwitchCol(col);
     });
   });
 });
@@ -1277,7 +1277,7 @@ document.addEventListener('DOMContentLoaded', () => {
       // Mini hist rows (stopPropagation preservado)
       case 'mini-hist-select':
         e.stopPropagation();
-        if (typeof _trackerMiniHistSelect === 'function') _trackerMiniHistSelect(sessId || el.dataset.sessId, aiId);
+        _trackerMiniHistSelect(sessId || el.dataset.sessId, aiId);
         break;
       // Hoy card — navigate to card
       case 'navigate-to-card':
@@ -1316,7 +1316,7 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       // Footer — blind exhaust
       case 'confirm-blind-exhaust':
-        if (typeof confirmBlindExhaust === 'function') confirmBlindExhaust(aiId);
+        confirmBlindExhaust(aiId);
         break;
       // Project chip (stopPropagation)
       case 'select-project-filter-stop':
