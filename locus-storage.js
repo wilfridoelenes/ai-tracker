@@ -1,6 +1,6 @@
-// [PP] v0.3.0 · sprint:PP-S-05 · mod:28 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:29 · autor:Rune · 2026-06-21 UTC-6
 // locus-storage.js
-// Última actualización: T-202606-106: excluir status:historico de _loadFromSupabase
+// Última actualización: T-202606-005: dispatch storage:item-excluded en saveBacklog
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -776,10 +776,12 @@ export async function saveBacklog() {
   const items = _rawItems.filter(it => {
     if (it.type !== 'P' && it.sprint === 'icebox') {
       console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — type:${it.type} no puede tener sprint:icebox`);
+      _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: `type:${it.type} no puede tener sprint:icebox` });
       return false;
     }
     if (it.status === 'historico') {
       console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
+      _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: 'status:historico es de solo lectura' });
       return false;
     }
     return true;
