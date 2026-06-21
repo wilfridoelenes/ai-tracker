@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:25 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-housekeeping · mod:26 · autor:Rune · 2026-06-21 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-106: excluir status:historico de _loadFromSupabase
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -127,7 +127,7 @@ const SUPABASE_KEY  = (typeof window !== 'undefined') ? (window.__ENV?.SUPABASE_
 let _supabase           = null;   // cliente Supabase
 var _supabaseUser       = null;   // sesión activa del founder — ESM-B: var para evitar TDZ
 let _supabaseReady      = null;   // promesa: resuelve cuando onAuthStateChange dispara
-let _realtimeChannel    = null;   // T-202605-XXX: canal Realtime para sync multidispositivo
+let _realtimeChannels   = [];     // T-202606-002: canales Realtime — tracker_state, tracker_backlog, tracker_sessions
 let _realtimeLastTs     = null;   // timestamp del último update remoto procesado
 
 if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
@@ -990,46 +990,76 @@ export async function saveContextDocs() {
 
 // ── GRUPO 3 — SYNC Y REALTIME ─────────────────────────────────────────────────
 
-// T-202605-482: carga Supabase multi-tabla en segundo plano
-// T-202605-XXX: Realtime sync — multidispositivo
-// Escucha cambios en tracker_state para el user activo.
-// Cuando otro cliente guarda, el updated_at cambia → este cliente recarga.
-// Throttle: no recarga si el cambio vino de este mismo cliente (_realtimeLastTs).
+// T-202606-002: suscribe tracker_state, tracker_backlog y tracker_sessions a Realtime.
+// Cuando otro dispositivo guarda en cualquiera de las tres tablas, este cliente recarga
+// el estado remoto completo vía _loadFromSupabase(). Throttle: ignora eventos originados
+// en este mismo cliente (_realtimeLastTs). Fallback: si la suscripción a alguna tabla
+// falla, el resto de la app sigue funcional vía localStorage/poll.
 export function _subscribeRealtime() {
   if (!_supabase || !_supabaseUser) return;
-  _unsubscribeRealtime(); // limpiar canal previo si existe
+  _unsubscribeRealtime(); // limpiar canales previos si existen
 
-  _realtimeChannel = _supabase
+  // Manejador compartido: recibe payload de cualquiera de las tres tablas.
+  // Si el updated_at es el mismo que el último write local, ignora para evitar reload-loop.
+  function _handleRemoteChange(payload) {
+    const remoteTs = payload.new?.updated_at;
+    if (!remoteTs) return;
+    if (_realtimeLastTs && remoteTs === _realtimeLastTs) return;
+    console.log('[AI Tracker] Realtime: cambio remoto detectado —', payload.table || '', remoteTs);
+    if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
+  }
+
+  // Canal 1 — tracker_state (existente)
+  const chState = _supabase
     .channel('tracker-state-' + _supabaseUser.id)
     .on(
       'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'tracker_state',
-        filter: 'user_id=eq.' + _supabaseUser.id
-      },
-      (payload) => {
-        const remoteTs = payload.new?.updated_at;
-        if (!remoteTs) return;
-
-        // Ignorar si el timestamp es el mismo que el último que guardamos nosotros
-        // (evita reload-loop: yo guardo → Supabase notifica → yo recargo → guardo → ...)
-        if (_realtimeLastTs && remoteTs === _realtimeLastTs) return;
-
-        // Otro cliente guardó algo — recargar estado remoto
-        console.log('[AI Tracker] Realtime: cambio remoto detectado —', remoteTs);
-        if (typeof _loadFromSupabase === 'function') _loadFromSupabase();
-      }
+      { event: 'UPDATE', schema: 'public', table: 'tracker_state', filter: 'user_id=eq.' + _supabaseUser.id },
+      _handleRemoteChange
     )
-    .subscribe();
+    .subscribe((status) => {
+      if (status === 'CHANNEL_ERROR') {
+        console.warn('[AI Tracker] Realtime: error en canal tracker_state — app sigue funcional vía fallback');
+      }
+    });
+
+  // Canal 2 — tracker_backlog (T-202606-002)
+  const chBacklog = _supabase
+    .channel('tracker-backlog-' + _supabaseUser.id)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'tracker_backlog', filter: 'user_id=eq.' + _supabaseUser.id },
+      _handleRemoteChange
+    )
+    .subscribe((status) => {
+      if (status === 'CHANNEL_ERROR') {
+        console.warn('[AI Tracker] Realtime: error en canal tracker_backlog — app sigue funcional vía fallback');
+      }
+    });
+
+  // Canal 3 — tracker_sessions (T-202606-002)
+  const chSessions = _supabase
+    .channel('tracker-sessions-' + _supabaseUser.id)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'tracker_sessions', filter: 'user_id=eq.' + _supabaseUser.id },
+      _handleRemoteChange
+    )
+    .subscribe((status) => {
+      if (status === 'CHANNEL_ERROR') {
+        console.warn('[AI Tracker] Realtime: error en canal tracker_sessions — app sigue funcional vía fallback');
+      }
+    });
+
+  _realtimeChannels = [chState, chBacklog, chSessions];
 }
 
 export function _unsubscribeRealtime() {
-  if (_realtimeChannel) {
-    try { _supabase.removeChannel(_realtimeChannel); } catch(e) {}
-    _realtimeChannel = null;
+  // T-202606-002: limpiar todos los canales registrados (tracker_state, tracker_backlog, tracker_sessions)
+  for (const ch of _realtimeChannels) {
+    try { _supabase.removeChannel(ch); } catch(e) {}
   }
+  _realtimeChannels = [];
 }
 
 // _resetExpiredInternal — uso exclusivo de locus-storage.js.
