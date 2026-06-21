@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-10 · mod:23 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-10 · mod:26 · autor:Rune · 2026-06-21 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -104,7 +104,6 @@ export function switchTab(tab) {
   if (tab === 'backlog') {
     window.dispatchEvent(new CustomEvent('shell:update-subtab-buttons', { detail: { sub: currentSubTab || 'backlog' } }));
   }
-  // _stopHoyTicker deprecado 2026-06-21 — reemplazado por evento shell:stop-sidebar-ticker
   // (a) event dispatch — locus-sesiones.js escucha 'shell:stop-sidebar-ticker'
   if (tab !== 'tracker') window.dispatchEvent(new CustomEvent('shell:stop-sidebar-ticker'));
 
@@ -1343,7 +1342,6 @@ document.addEventListener('DOMContentLoaded', function () {
     // (a) event dispatch — locus-notifications.js escucha 'shell:open-notif-config'
     'mm-btn-notif':     function () { window.dispatchEvent(new CustomEvent('shell:open-notif-config')); toggleMoreMenu(); },
     'mm-btn-sync':      function () { handleSyncPillClick(); toggleMoreMenu(); },
-    // mm-btn-migrate deprecado 2026-06-21 — Firebase migrado a Supabase, feature eliminada
     'mm-btn-clean':     function () { openCleanProjectModal(); toggleMoreMenu(); },
   };
   Object.keys(mm).forEach(function (id) {
@@ -1354,7 +1352,6 @@ document.addEventListener('DOMContentLoaded', function () {
   // #hdr-menu-infra-subpanel — toggle + validación + apply (T-202606-031)
   initInfraVersionHandler();
 
-  // tmpl-trigger radios deprecado 2026-06-21 — toggleTemplateTrigger descartada, UI lo resuelve Nova
 
   // imp file input → importData()
   const impInput = document.getElementById('imp');
