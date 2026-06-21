@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:9 · autor:Rune · 2026-06-20 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:10 · autor:Rune · 2026-06-20 18:30 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -93,7 +93,12 @@ export function renderArchivoHistorico(listEl) {
 
   // AC-2: contador refleja solo ítems de sprints cerrados
   const total = archivoItems.length;
-  if (!total && !_legacyHistoricos.length) return;
+  // B-202606-066: si hay al menos un sprint cerrado, renderizar la sección aunque
+  // total y _legacyHistoricos sean 0 — el empty state correcto vive en
+  // _renderArchivoViewSprint/_renderArchivoViewFlat. Sin esto, el panel no se
+  // monta y el fallback genérico ("No hay sprints cerrados aún") queda visible
+  // incluso cuando sí existe un sprint cerrado, solo que sin ítems asignados.
+  if (!total && !_legacyHistoricos.length && !closedSprints.length) return;
 
   const isOpen     = (() => { try { return localStorage.getItem(_ARCH_KEY) === '1'; } catch { return false; } })();
   const activeView = (() => { try { return localStorage.getItem(_ARCH_VIEW_KEY) || 'sprint'; } catch { return 'sprint'; } })();

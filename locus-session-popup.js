@@ -1,4 +1,4 @@
-// [PP] v0.3.0 · sprint:PP-S-03 · mod:11 · autor:Rune · 2026-06-19 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:12 · autor:Rune · 2026-06-21 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -9,7 +9,7 @@ import { _sessRelTsShared } from './locus-sesiones-utils.js';
 // T-202606-166: _getActiveProjectFilter movida a locus-storage.js
 import { showToast, showToastInline, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab, getCurrentTab } from './locus-ui-shell.js';
-import { _findSession, _findSessionByAI, _getActiveProjectFilter, getAI, getAISessions, getActiveTracker, getState, save } from './locus-storage.js';
+import { _findSession, _findSessionByAI, _getActiveProjectFilter, getAI, getAISessions, getActiveTracker, getState, save, _resetWorker } from './locus-storage.js';
 
 import { fmt12 } from './locus-session-hora.js';
 
@@ -424,9 +424,7 @@ function unlockNowFromPopup() {
   if (!popAIId) return;
   const ai = getAI(popAIId);
   if (!ai) return;
-  ai.status = 'available';
-  ai.resetTime = '';
-  ai.resetEpoch = null;
+  _resetWorker(ai);
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   closePopup();

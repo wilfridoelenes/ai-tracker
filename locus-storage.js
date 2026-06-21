@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:23 · autor:Rune · 2026-06-20 13:15 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:25 · autor:Rune · 2026-06-21 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-106: excluir status:historico de _loadFromSupabase
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1032,23 +1032,32 @@ export function _unsubscribeRealtime() {
   }
 }
 
-// _resetExpired — lógica de estado pura, sin UI ni render.
-// Retorna true cuando el momento de reset de un worker exhausted ya pasó.
-// Prioriza resetEpoch (epoch ms absoluto) sobre resetTime (string "HH:MM" local).
-export function _resetExpired(resetTime, resetEpoch) {
+// _resetExpiredInternal — uso exclusivo de locus-storage.js.
+// La versión exportada (fuente canónica) vive en locus-sesiones-utils.js.
+// No importar desde sesiones-utils — crearía ciclo (sesiones-utils → storage → sesiones-utils).
+function _resetExpiredInternal(resetTime, resetEpoch) {
   if (resetEpoch && typeof resetEpoch === 'number') {
     return Date.now() >= resetEpoch;
   }
   if (resetTime && typeof resetTime === 'string') {
     const parts = resetTime.split(':').map(Number);
     if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-      const now = new Date();
-      const reset = new Date(now);
+      const reset = new Date();
       reset.setHours(parts[0], parts[1], 0, 0);
       return Date.now() >= reset.getTime();
     }
   }
   return false;
+}
+
+// _resetWorker — único punto de mutación de estado exhausted → available.
+// Todos los call sites de reset deben pasar por aquí.
+// Registra availableSince para que _isInSession pueda comparar sin depender de resetEpoch.
+export function _resetWorker(ai) {
+  ai.status      = 'available';
+  ai.resetTime   = '';
+  ai.resetEpoch  = null;
+  ai.availableSince = Date.now();
 }
 
 // R-202605-022 Fase 3 AC-2: lock anti-doble-load — previene cargas concurrentes de _loadFromSupabase.
@@ -1122,11 +1131,15 @@ export async function _loadFromSupabase() {
     if (stateRows && stateRows.value) {
       const remote = stateRows.value;
       _applyStateData(remote);
+      let _resetChanged = false;
       (state?.ais || []).forEach(ai => {
-        if (ai.status === 'exhausted' && ai.resetTime && _resetExpired(ai.resetTime, ai.resetEpoch)) {
-          ai.status = 'available'; ai.resetTime = ''; ai.resetEpoch = null;
+        if (ai.status === 'exhausted' && ai.resetTime && _resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
+          _resetWorker(ai);
+          _resetChanged = true;
         }
       });
+      // Persistir availableSince escrito por _resetWorker — sin esto se pierde en el próximo sync
+      if (_resetChanged) save();
     }
 
     // ── 2. Batch paralelo: sesiones + backlog + docs (context/htmlmap/plan/tmp-id-map/notes/user-prefs) + drafts ──
@@ -1612,10 +1625,8 @@ function load() {
   // B-202604-009: limpiar IAs expiradas antes del primer render — usar epoch cuando existe
   (state?.ais || []).forEach(ai => {
     if (ai.status === 'exhausted' && ai.resetTime) {
-      if (_resetExpired(ai.resetTime, ai.resetEpoch)) {
-        ai.status = 'available';
-        ai.resetTime = '';
-        ai.resetEpoch = null;
+      if (_resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
+        _resetWorker(ai);
       }
     }
   });
@@ -1802,6 +1813,7 @@ function getAICheckpoints(aiId) { return getAISessions(aiId); }
 // T-202605-082: _getCurrentSession — fuente de verdad canónica (movida desde locus-sesiones.js)
 // Detecta la sesión en curso de una IA: última sesión sin resetAt ni quickCapture,
 // posterior al resetEpoch del Worker si existe, y sin status exhausted sin resetEpoch.
+// Fix: guard de availableSince — cubre el caso post-reset donde resetEpoch ya es null.
 export function _getCurrentSession(aiId) {
   const allSess = getAllSessions();
   const aiSess  = allSess.filter(s => s.aiId === aiId);
@@ -1810,12 +1822,15 @@ export function _getCurrentSession(aiId) {
     (parseInt(b.id) || 0) > (parseInt(a.id) || 0) ? b : a
   );
   if (!last || last.resetAt || last.quickCapture) return null;
+  const sessTs = last.createdAt || 0;
   // B-202605-066: si el worker tiene resetEpoch, el checkpoint debe ser posterior a ese timestamp
   const ai = (getState().ais || []).find(a => a.id === aiId);
   if (ai && ai.resetEpoch) {
-    const resetTs = new Date(ai.resetEpoch).getTime();
-    const sessTs  = last.createdAt || 0;
-    if (sessTs <= resetTs) return null;
+    if (sessTs <= new Date(ai.resetEpoch).getTime()) return null;
+  }
+  // Fix: si el worker tiene availableSince, la sesión debe ser posterior al reset
+  if (ai && ai.availableSince) {
+    if (sessTs <= ai.availableSince) return null;
   }
   // AC-2: worker exhausted sin resetEpoch — no puede haber sesión en curso
   if (ai && ai.status === 'exhausted' && !ai.resetEpoch) return null;
@@ -1826,18 +1841,21 @@ export function _getCurrentCheckpoint(aiId) { return _getCurrentSession(aiId); }
 
 // T-202605-082: _isInSession — fuente de verdad canónica (movida desde locus-sesiones-stats.js)
 // Detecta si una IA está "en sesión": disponible con última sesión sin resetAt ni quickCapture,
-// posterior al resetEpoch del Worker si existe.
+// posterior al resetEpoch del Worker si existe, y posterior a availableSince si existe.
 // B-202605-026: check de resetEpoch — Workers con reset previo no quedan en verde.
+// Fix: availableSince — cubre el caso post-reset donde resetEpoch ya es null.
 export function _isInSession(ai) {
   if (ai.status !== 'available' || ai.interrupted) return false;
   const allSess = getAllSessions().filter(s => s.aiId === ai.id);
   if (!allSess.length) return false;
   const last = allSess.reduce((a, b) => (parseInt(b.id) || 0) > (parseInt(a.id) || 0) ? b : a);
   if (!last || last.resetAt || last.quickCapture) return false;
+  const sessTs = last.createdAt || 0;
   if (ai.resetEpoch) {
-    const resetTs = new Date(ai.resetEpoch).getTime();
-    const sessTs  = last.createdAt || 0;
-    if (sessTs <= resetTs) return false;
+    if (sessTs <= new Date(ai.resetEpoch).getTime()) return false;
+  }
+  if (ai.availableSince) {
+    if (sessTs <= ai.availableSince) return false;
   }
   return true;
 }

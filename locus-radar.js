@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-18 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:4 · autor:Rune · 2026-06-21 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -246,8 +246,8 @@ function _buildAvailableCard(ai, sessions) {
   const pill = _projPill(ai, sessions);
 
   let sinceLabel = '';
-  if (ai.resetTime && ai.resetEpoch) {
-    const epoch = new Date(ai.resetEpoch);
+  if (ai.availableSince) {
+    const epoch = new Date(ai.availableSince);
     const hh = String(epoch.getHours()).padStart(2,'0');
     const mm = String(epoch.getMinutes()).padStart(2,'0');
     sinceLabel = fmt12(`${hh}:${mm}`);

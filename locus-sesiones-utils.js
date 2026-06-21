@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-12 UTC-6 
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:5 · autor:Rune · 2026-06-21 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
@@ -6,7 +6,7 @@
 // Debe cargarse ANTES de locus-sesiones.js
 
 import { relDate } from './locus-session-hora.js';
-import { getAI, getAISessions, getActiveProject, getState, save } from './locus-storage.js';
+import { getAI, getAISessions, getActiveProject, getState, save, _resetWorker } from './locus-storage.js';
 import { switchTab, getCurrentTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderStatusBar, updateStats } from './locus-sesiones-stats.js';
@@ -390,9 +390,7 @@ setInterval(() => {
   (getState()?.ais || []).forEach(ai => {
     if (ai.status !== 'exhausted' || !ai.resetTime) return;
     if (_resetExpired(ai.resetTime, ai.resetEpoch)) {
-      ai.status = 'available';
-      ai.resetTime = '';
-      ai.resetEpoch = null;
+      _resetWorker(ai);
       changed = true;
       showToast('info', `${ai.name} ya disponible`);
       return;

@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:24 · autor:Rune · 2026-06-20 09:00 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:25 · autor:Rune · 2026-06-21 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -17,7 +17,7 @@ import { closeLogCard, closePopup, openDetail, startRename, toggleInReview, togg
 // T-202606-058: import de locus-sprint-project eliminado — ciclo A↔B roto.
 // _getActiveProjectFilter · getProjectById · openProjModal · selectProjectFilter
 // consumidas via _sesSPCallbacks registry (registradas por locus-sprint-project en DOMContentLoaded).
-import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession } from './locus-storage.js';
+import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession, _resetWorker } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc, renderSetupChecklist } from './locus-ui-shell.js';
 import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatarModal, toggleArchivedSection, toggleCardMenu } from './locus-workers.js';
@@ -648,30 +648,10 @@ function buildHoyCard(ai, idx = 0, opts = {}) {
   const cd = ai.status === 'exhausted' ? getCD(ai.resetTime, ai.resetEpoch) : '';
   const resetLabel = ai.resetTime ? `hasta las ${fmt12(ai.resetTime)}` : '';
 
-  // "disponible desde" — hora del último reset o última sesión
+  // "disponible desde" — usa availableSince si existe, fallback a última sesión
   function _availableSinceLabel() {
-    if (ai.resetTime && ai.resetEpoch) {
-      const epoch = new Date(ai.resetEpoch);
-      const hh = String(epoch.getHours()).padStart(2,'0');
-      const mm = String(epoch.getMinutes()).padStart(2,'0');
-      return fmt12(`${hh}:${mm}`);
-    }
-    const last = aiSessions.length ? aiSessions[aiSessions.length - 1] : null;
-    if (last && last.date) {
-      const d = new Date(last.date);
-      if (!isNaN(d)) {
-        const hh = String(d.getHours()).padStart(2,'0');
-        const mm = String(d.getMinutes()).padStart(2,'0');
-        return fmt12(`${hh}:${mm}`);
-      }
-    }
-    return null;
-  }
-
-  // "disponible desde" — hora del último reset o última sesión
-  function _availableSinceLabel() {
-    if (ai.resetTime && ai.resetEpoch) {
-      const epoch = new Date(ai.resetEpoch);
+    if (ai.availableSince) {
+      const epoch = new Date(ai.availableSince);
       const hh = String(epoch.getHours()).padStart(2,'0');
       const mm = String(epoch.getMinutes()).padStart(2,'0');
       return fmt12(`${hh}:${mm}`);

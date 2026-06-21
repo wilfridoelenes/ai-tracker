@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:5 · autor:Rune · 2026-06-21 UTC-6
 // locus-sesiones-viz.js
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
 //   (_showItemVizPanel), corrección de hora (openCorrectHora).
@@ -11,7 +11,7 @@ import { switchSubTab, switchTab } from './locus-ui-shell.js';
 
 import { fmt12, interpretHora } from './locus-session-hora.js';
 
-import { getAI, getAISessions, save } from './locus-storage.js';
+import { getAI, getAISessions, save, _resetWorker } from './locus-storage.js';
 
 // ── B-202604-094: Corregir hora de desbloqueo desde card ──
 let _correctHoraAIId = null;
@@ -136,9 +136,7 @@ function unlockNowFromCard() {
   if (!id) return;
   const ai = getAI(id);
   if (!ai) return;
-  ai.status = 'available';
-  ai.resetTime = '';
-  ai.resetEpoch = null;
+  _resetWorker(ai);
   _correctHoraAIId = null;
   const modal = document.getElementById('gconfirm-overlay');
   if (modal) modal.classList.remove('open');
