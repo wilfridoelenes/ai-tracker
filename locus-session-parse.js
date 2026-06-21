@@ -934,7 +934,7 @@ export function parsePaste(id) {
       const _infraMatch = text.match(/<!--\s*\*\*infra_version:\s*(\d+)\*\*/);
       if (_infraMatch) {
         const _infraDoc = parseInt(_infraMatch[1], 10);
-        if (_infraDoc !== (getInfraVersionData()?.infraVersion ?? null)) {
+        if (_infraDoc !== (getInfraVersionData()?.infraVersion ?? _infraDoc)) {
           const _docName = (ckpt && ckpt.titulo) ? ckpt.titulo : (ckpt && ckpt.proyecto) ? ckpt.proyecto : 'doc';
           showToast('warn', `infra_version desactualizada: ${_docName} declara infra_version:${_infraDoc}, valor activo es infra_version:${getInfraVersionData()?.infraVersion ?? '?'}. Verificar consistencia antes de continuar.`);
         }
