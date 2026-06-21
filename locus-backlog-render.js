@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:29 · autor:Rune · 2026-06-21 16:10 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:30 · autor:Rune · 2026-06-21 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -1687,6 +1687,7 @@ window.addEventListener('shell:backlog-render-dirty', () => {
 // criterios de staleness/urgencia/archivo, solo el cálculo de badge en aislado.
 // AC-1, AC-5, AC-6.
 export function _updateSubtabBadges() {
+  const badgeBacklog   = document.getElementById('tpl-badge-backlog');
   const badgeIcebox    = document.getElementById('tpl-badge-icebox');
   const badgeHotfix    = document.getElementById('tpl-badge-hotfix');
   const badgeHistorico = document.getElementById('tpl-badge-historico');
@@ -1694,7 +1695,26 @@ export function _updateSubtabBadges() {
   // AC-6: getItems() vacío → los tres badges quedan vacíos, nunca '0'
   const items = getItems();
 
-  // AC-5: guard explícito por elemento — un badge ausente no interrumpe a los otros
+  // T-202606-004: badge del subtab Backlog — cuenta Rs/Ts activos (pendiente/en-revision)
+  // en sprint real (no icebox, no HOTFIX) con status active o scheduled (programado).
+  // Mismo patrón visual que badgeIcebox: sin prefijo de urgencia, '' en vez de '0'.
+  if (badgeBacklog) {
+    const _extractSprintId = s => (s || '').split(' · ')[0].trim();
+    const _isBacklogScope = i => {
+      if (i.status !== 'pendiente' && i.status !== 'en-revision') return false;
+      const t = itemType(i.code);
+      if (t !== 'R' && t !== 'T') return false;
+      const sId = _extractSprintId(i.sprint);
+      if (!sId || sId === 'icebox') return false;
+      if (sId.toUpperCase().includes('HOTFIX')) return false;
+      const sprint = getActiveSprints().find(s => s.id === sId);
+      if (!sprint) return false;
+      return sprint.status === 'active' || sprint.status === 'scheduled';
+    };
+    const backlogItems = items.filter(_isBacklogScope);
+    badgeBacklog.textContent = backlogItems.length ? String(backlogItems.length) : '';
+  }
+
   if (badgeIcebox) {
     const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
     const iceboxItems = items.filter(_isIcebox);
