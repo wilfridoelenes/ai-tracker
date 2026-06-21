@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-03 · mod:33 · autor:Nova · 2026-06-20 16:00 UTC-6 */
+/* [PP] v0.2.0 · sprint:PP-S-01 · mod:34 · autor:Nova · 2026-06-20 18:30 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -2468,7 +2468,7 @@ Clases que Rune necesita consumir en T3–T6:
 - .sps-cerrados-counts       — wrapper de los 3 conteos (done/migrado/descartado)
 - .sps-count-done / -migrado / -descartado — conteos por estado
 - .sps-cerrados-chevron      — indicador ▲/▼ — swap de texto en JS, sin transform CSS
-- .sps-cerrados-retro        — contenedor colapsable (grid 0fr→1fr vía style inline en JS)
+- .sps-cerrados-retro        — contenedor colapsable (grid 0fr→1fr vía clase .is-expanded, sin style inline en JS)
 - .sps-cerrados-retro-inner  — overflow:hidden + padding/border-top del contenido de retro
 - .sps-cerrados-retro-body   — texto de retro (<pre>)
 - .sps-cerrados-empty        — empty state inline ('Sin sprints cerrados')
