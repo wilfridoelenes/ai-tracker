@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-housekeeping · mod:27 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.3.0 · sprint:PP-S-05 · mod:28 · autor:Rune · 2026-06-21 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-106: excluir status:historico de _loadFromSupabase
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -707,15 +707,21 @@ async function _saveSessions(proj) {
   if (_supabase && _supabaseUser) {
     const BATCH = 400;
     for (let i = 0; i < sessions.length; i += BATCH) {
+      // T-202606-097: timestamp único por lote — registrar ANTES del await para cubrir
+      // el echo de Realtime de tracker_sessions. Mismo patrón que _saveFlush() L557.
+      const _sessTs = new Date().toISOString();
+      _realtimeLastTs = _sessTs;
       const chunk = sessions.slice(i, i + BATCH).map(sess => ({
         user_id:    _supabaseUser.id,
         project_id: proj.id,
         session_id: sess.id,
         data:       sess,
-        updated_at: new Date().toISOString()
+        updated_at: _sessTs
       }));
       const { error } = await _supabase.from('tracker_sessions').upsert(chunk, { onConflict: 'user_id,session_id' });
       if (error) {
+        // T-202606-097: upsert falló — resetear para no bloquear próximo cambio remoto legítimo.
+        _realtimeLastTs = null;
         console.error('[AI Tracker] Supabase _saveSessions failed:', error);
         _offlineQueuePush({ type: 'sessions', projId: proj.id });
         break;
@@ -839,6 +845,9 @@ export async function saveBacklog() {
 
   // AC-1 R-C5: Supabase disponible → upsert primero. localStorage solo como caché post-write exitoso.
   try {
+    // T-202606-097: registrar _realtimeLastTs ANTES del await — mismo patrón que _saveFlush() L557.
+    // Evita que el echo de Realtime de tracker_backlog dispare _loadFromSupabase() innecesariamente.
+    _realtimeLastTs = _writeTs;
     const { error } = await _supabase.from('tracker_backlog').upsert([
       { user_id: _supabaseUser.id, key: 'items' + suffix, value: items, updated_at: _writeTs },
       { user_id: _supabaseUser.id, key: 'meta'  + suffix, value: meta,  updated_at: _writeTs }
@@ -853,6 +862,9 @@ export async function saveBacklog() {
     setSyncStatus('synced', '✓ sincronizado');
   } catch (err) {
     // AC-2 R-C5: upsert falla → localStorage como fallback + encolar + toast.
+    // T-202606-097: resetear _realtimeLastTs — el timestamp no llegó a Supabase,
+    // sin reset el guard bloquearía el próximo cambio remoto legítimo.
+    _realtimeLastTs = null;
     console.error('[AI Tracker] Supabase saveBacklog() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
     try {
@@ -892,8 +904,12 @@ export async function saveHistoricoItems(items) {
   }
 
   try {
+    const _histTs = new Date().toISOString();
+    // T-202606-097: registrar _realtimeLastTs ANTES del await — cubre echo de Realtime
+    // de tracker_backlog originado en este write. Mismo patrón que _saveFlush() L557.
+    _realtimeLastTs = _histTs;
     const { error } = await _supabase.from('tracker_backlog').upsert(
-      [{ user_id: _supabaseUser.id, key: 'historico' + suffix, value: payload, updated_at: new Date().toISOString() }],
+      [{ user_id: _supabaseUser.id, key: 'historico' + suffix, value: payload, updated_at: _histTs }],
       { onConflict: 'user_id,key' }
     );
     if (error) throw error;
@@ -904,6 +920,8 @@ export async function saveHistoricoItems(items) {
       console.warn('[AI Tracker] saveHistoricoItems: fallo al cachear en localStorage post-upsert', lsErr);
     }
   } catch (err) {
+    // T-202606-097: resetear _realtimeLastTs — timestamp no llegó a Supabase.
+    _realtimeLastTs = null;
     // Upsert falla → localStorage como fallback + DocLog + sin afectar ITEMS.
     console.error('[AI Tracker] Supabase saveHistoricoItems() failed:', err);
     try {
