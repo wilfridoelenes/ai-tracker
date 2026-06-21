@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:60 · autor:Rune · 2026-06-17 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:61 · autor:Rune · 2026-06-21 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -13,7 +13,7 @@ import { extractContextSections, extractDocUpdates, extractHtmlMapSections, merg
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger
 import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
-import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, LOCUS_KEYS, CANONICAL_PROJECTS, getInfraVersionActive } from './locus-storage.js';
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, LOCUS_KEYS, CANONICAL_PROJECTS, getInfraVersionData } from './locus-storage.js';
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) reemplazada por getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027
 import { showToast, toast } from './locus-toast.js';
 
@@ -934,9 +934,9 @@ export function parsePaste(id) {
       const _infraMatch = text.match(/<!--\s*\*\*infra_version:\s*(\d+)\*\*/);
       if (_infraMatch) {
         const _infraDoc = parseInt(_infraMatch[1], 10);
-        if (_infraDoc !== getInfraVersionActive()) {
+        if (_infraDoc !== (getInfraVersionData()?.infraVersion ?? null)) {
           const _docName = (ckpt && ckpt.titulo) ? ckpt.titulo : (ckpt && ckpt.proyecto) ? ckpt.proyecto : 'doc';
-          showToast('warn', `infra_version desactualizada: ${_docName} declara infra_version:${_infraDoc}, valor activo es infra_version:${getInfraVersionActive()}. Verificar consistencia antes de continuar.`);
+          showToast('warn', `infra_version desactualizada: ${_docName} declara infra_version:${_infraDoc}, valor activo es infra_version:${getInfraVersionData()?.infraVersion ?? '?'}. Verificar consistencia antes de continuar.`);
         }
       }
     }
