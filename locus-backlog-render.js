@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:28 · autor:Rune · 2026-06-20 23:45 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:29 · autor:Rune · 2026-06-21 16:10 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -490,6 +490,18 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     });
   }
 
+  // B-068: sprints 'active' o 'scheduled' (programado) sin ningún ítem visible (ni pendiente
+  // ni done) no entran a sprintMap por los dos bloques anteriores — su header desaparecía de
+  // la Vista Lista. Se registran aquí con array vacío para que el forEach de sprint groups los
+  // incluya siempre. HOTFIX queda excluido — vive en su propio sub-tab (#sspanel-hotfix), no en
+  // #backlog-list. Sprints 'closed' quedan excluidos — su visibilidad sin ítems no es parte de
+  // este AC y se rige por el comportamiento ya existente.
+  getActiveSprints().forEach(s => {
+    if (s.status !== 'active' && s.status !== 'scheduled') return;
+    if (_isHotfixSprint({ sprint: s.id })) return;
+    if (!sprintMap[s.id]) sprintMap[s.id] = [];
+  });
+
   // AC2: orden descendente de sprint ID — más reciente primero
   // Sprints sin objeto en getActiveSprints() (solo ítems con sprint string) también se ordenan por número
   const sprintKeys = Object.keys(sprintMap).sort((a, b) => {
@@ -510,7 +522,11 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     const group = sprintMap[sprintId];
     // B-202606-002: no descartar el grupo si tiene done items visibles aunque no tenga pendientes
     const _hasDoneInGroup = _getActiveStatuses().has('done') && doneItems.some(i => _extractSprintId((i.sprint || '').trim()) === sprintId);
-    if ((!group || !group.length) && !_hasDoneInGroup) return;
+    // B-068: no descartar el grupo si el sprint está active/scheduled — su header se muestra
+    // siempre, con o sin ítems visibles. Ver bloque getActiveSprints().forEach() más arriba.
+    const _sprintObjForGate = _getSprintById(sprintId);
+    const _alwaysShowHeader = _sprintObjForGate && (_sprintObjForGate.status === 'active' || _sprintObjForGate.status === 'scheduled');
+    if ((!group || !group.length) && !_hasDoneInGroup && !_alwaysShowHeader) return;
 
     const sprintObj = _getSprintById(sprintId);
     const isActive  = sprintObj?.status === 'active';
