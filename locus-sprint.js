@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:50 · autor:Rune · 2026-06-20 16:00 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-housekeeping · mod:51 · autor:Rune · 2026-06-20 16:30 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -302,9 +302,12 @@ function _renderSpsActivo() {
   }
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
+  // T-202606-003: modificador visual para sprint pausado
+  const pausadoCls = sprint.status === 'pausado' ? ' sps-card--pausado' : '';
+
   container.innerHTML =
     '<span class="sps-section-label">Activo</span>' +
-    '<div class="sps-card" data-sprint-id="' + _escHtml(id) + '">' +
+    '<div class="sps-card' + pausadoCls + '" data-sprint-id="' + _escHtml(id) + '">' +
       '<div class="sps-card-header">' +
         '<span class="sps-card-id font-mono">' + _escHtml(id) + '</span>' +
         '<span class="sps-card-title sps-meta-editable" tabindex="0" title="Click para editar título">' + _escHtml(label) + '</span>' +

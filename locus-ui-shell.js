@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:16 · autor:Rune · 2026-06-20 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-housekeeping · mod:18 · autor:Rune · 2026-06-21 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -14,7 +14,7 @@
 //       (locus-api.js garantiza que el contrato público está disponible post-DOMContentLoaded)
 // Cada módulo consumidor es responsable de registrar listener 'shell:invoke' para sus propias funciones.
 
-import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, getInfraVersionActive, setInfraVersionActive } from './locus-storage.js';
+import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, _parseInfraLine, setInfraVersionData } from './locus-storage.js';
 import { _dropzoneHandle } from './locus-docs.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
 
 // ── Global utility ────────────────────────────────────────────────────────
@@ -142,7 +142,7 @@ export function switchTab(tab) {
 
 export function switchSubTab(sub) {
   currentSubTab = sub;
-  ['backlog','icebox','hotfix','htmlmap','context','plan','contratos'].forEach(s => {
+  ['backlog','icebox','hotfix','htmlmap','context','plan','contratos','historico'].forEach(s => {
     const btn = document.getElementById('sstab-btn-' + s);
     const panel = document.getElementById('sspanel-' + s);
     if (btn) btn.classList.toggle('active', s === sub);
@@ -188,6 +188,10 @@ export function switchSubTab(sub) {
   if (sub === 'contratos') {
     // (a) event dispatch — locus-contracts.js escucha 'shell:render-contratos'
     window.dispatchEvent(new CustomEvent('shell:render-contratos'));
+  }
+  if (sub === 'historico') {
+    // (a) event dispatch — locus-backlog-archive.js escucha 'shell:render-historico'
+    window.dispatchEvent(new CustomEvent('shell:render-historico'));
   }
   if (typeof renderAIStatusBar === 'function') renderAIStatusBar();
   // (a) event dispatch — locus-docs.js escucha 'shell:render-docs-onboarding'
@@ -258,10 +262,9 @@ export function toggleMoreMenu() {
   }
 }
 
-// ── T-202606-031: handler de #hdr-menu-infra-subpanel ─────────────────────
-// Reemplaza por completo el handler de T-202606-029 (eliminado de locus-session-parse.js).
-// Toggle via #mm-btn-sync-infra · validación numérica de #hdr-menu-infra-textarea ·
-// apply via #hdr-menu-infra-apply → setInfraVersionActive(N).
+// ── T-202606-009: handler de #hdr-menu-infra-subpanel (reemplaza T-202606-031) ─────────────────────
+// Acepta la línea completa BR (<!-- **infra_version: N** | BR-Core vX ... -->).
+// Parsea con _parseInfraLine · guarda objeto completo con setInfraVersionData.
 export function initInfraVersionHandler() {
   const toggleBtn = document.getElementById('mm-btn-sync-infra');
   const subpanel  = document.getElementById('hdr-menu-infra-subpanel');
@@ -271,28 +274,27 @@ export function initInfraVersionHandler() {
 
   if (!toggleBtn || !subpanel || !textarea || !applyBtn || !errMsg) return;
 
-  // Toggle del subpanel — AC toggle/cierre
+  // Actualizar placeholder al formato de línea completa BR
+  textarea.placeholder = '<!-- **infra_version: N** | BR-Core vX.Y · BR-Ecosystem vX.Y · BR-Execution vX.Y · OB-Strategy vX.Y -->';
+
+  // Toggle del subpanel
   toggleBtn.addEventListener('click', function () {
     subpanel.classList.toggle('open');
   });
 
-  // Habilitación/deshabilitación de Aplicar según contenido del textarea — AC habilitación / error textarea vacío
+  // Habilitación/deshabilitación de Aplicar según contenido
   textarea.addEventListener('input', function () {
-    if (textarea.value.trim() === '') {
-      applyBtn.disabled = true;
-    } else {
-      applyBtn.disabled = false;
-    }
+    applyBtn.disabled = textarea.value.trim() === '';
   });
 
   // Validación + apply
   applyBtn.addEventListener('click', function () {
     const raw = textarea.value.trim();
-    const N = Number(raw);
+    const parsed = _parseInfraLine(raw);
 
-    if (raw === '' || !Number.isFinite(N) || !/^-?\d+$/.test(raw)) {
+    if (!parsed) {
       textarea.classList.add('hdr-menu-textarea--error');
-      errMsg.textContent = 'Valor debe ser numérico';
+      errMsg.textContent = 'Pegar la línea <!-- **infra_version:** ... --> completa';
       errMsg.classList.remove('is-hidden');
       return;
     }
@@ -302,7 +304,8 @@ export function initInfraVersionHandler() {
     errMsg.textContent = '';
     errMsg.classList.add('is-hidden');
 
-    setInfraVersionActive(N);
+    setInfraVersionData(parsed);
+    subpanel.classList.remove('open');
   });
 }
 

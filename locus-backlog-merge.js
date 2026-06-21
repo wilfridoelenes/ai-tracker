@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-03 · mod:17 · autor:Rune · 2026-06-18 UTC-6
+// [PP] v0.2.1 · sprint:PP-S-housekeeping · mod:18 · autor:Rune · 2026-06-20 UTC-6
 // locus-backlog-merge.js
 // Última actualización: 2026-05-25 | Merge diff panel — revisión visual de cambios de CHECKPOINT
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -865,7 +865,23 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       if (!sel || !sel.value) discardPendingItems.push({ item, idx });
     });
 
-    const blocked = retroPendingItems.length > 0 || discardPendingItems.length > 0;
+    // T-202606-001: ítem nuevo R/T/B con sprint efectivo icebox bloquea aplicación —
+    // icebox es zona exclusiva de P (BR-Ecosystem §5). El founder debe elegir sprint real
+    // vía el _sprintSelect ya presente en la card antes de poder guardar.
+    // P nunca entra aquí — filtrado explícitamente por tipo.
+    const sprintPendingItems = [];
+    [...diff.created, ...diff.createdAndClosed].forEach((item) => {
+      const typeChar = (item.code || '?')[0].toUpperCase();
+      if (typeChar !== 'R' && typeChar !== 'T' && typeChar !== 'B') return;
+      const effectiveSprint = Object.prototype.hasOwnProperty.call(_mdiffPendingSprints, item.code)
+        ? _mdiffPendingSprints[item.code]
+        : item.sprint;
+      if (!effectiveSprint || effectiveSprint === 'icebox') {
+        sprintPendingItems.push(item);
+      }
+    });
+
+    const blocked = retroPendingItems.length > 0 || discardPendingItems.length > 0 || sprintPendingItems.length > 0;
     applyBtn.disabled = blocked;
     applyBtn.classList.toggle('mdiff-apply-blocked', blocked);
     if (backlogBtn) {
@@ -878,8 +894,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       const hasRetrocesos  = diff.retroceso.length > 0;
       const hasDescartes   = diff.discarded.filter(i => !i.reason).length > 0;
       const hasDescartesConRazon = diff.discarded.filter(i => !!i.reason).length > 0;
+      const hasSprintPending = sprintPendingItems.length > 0;
 
-      if (!hasRetrocesos && !hasDescartes && !hasDescartesConRazon) {
+      if (!hasRetrocesos && !hasDescartes && !hasDescartesConRazon && !hasSprintPending) {
         // Sin pendientes — listo
         pendingList.innerHTML = `<div class="mdiff-pending-ok">✓ Listo para guardar</div>`;
         return;
@@ -889,7 +906,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
 
       // Banner de advertencia si hay pendientes
       if (blocked) {
-        const pendingCount = retroPendingItems.length + discardPendingItems.length;
+        const pendingCount = retroPendingItems.length + discardPendingItems.length + sprintPendingItems.length;
         html += `
           <div class="mdiff-right-banner mdiff-right-banner--warn">
             <span class="mdiff-right-banner-icon">⚠</span>
@@ -899,6 +916,19 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           </div>`;
       } else {
         html += `<div class="mdiff-pending-ok">✓ Listo para guardar</div>`;
+      }
+
+      // Sección sprint requerido — T-202606-001
+      if (hasSprintPending) {
+        html += `<div class="mdiff-right-section-title">Sprint requerido</div>`;
+        sprintPendingItems.forEach((item) => {
+          html += `
+            <div class="mdiff-right-sprint-pending-row">
+              <span class="mdiff-code mdiff-code--sm">${esc(item.code)}</span>
+              <span class="mdiff-right-sprint-pending-desc">${esc(item.desc || '')}</span>
+              <span class="mdiff-right-sprint-pending-hint">icebox no válido — elegir sprint en la card</span>
+            </div>`;
+        });
       }
 
       // Sección retrocesos
@@ -1129,6 +1159,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     // Sprint select — data-action="mdiff-set-sprint" (generado por _sprintSelect)
     if (e.target.classList.contains('mdiff-sprint-select') && e.target.dataset.action === 'mdiff-set-sprint') {
       if (_mdiffSetItemSprint) _mdiffSetItemSprint(e.target);
+      // T-202606-001: re-evaluar gate — el cambio puede destrabar un pendiente de sprint icebox
+      if (_mdiffUpdateConfirmBtn) _mdiffUpdateConfirmBtn();
       return;
     }
     // Retroceso checkbox — data-retroceso-idx (generado en _mdiffUpdateConfirmBtn)

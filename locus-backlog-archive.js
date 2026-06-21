@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:10 · autor:Rune · 2026-06-20 18:30 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-housekeeping · mod:11 · autor:Rune · 2026-06-20 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -442,3 +442,13 @@ function _renderLegacySection(listEl) {
 }
 
 // T-202604-287: Vista Kanban — 4 columnas: pendiente · progreso · done · descartado
+
+// T-202606-008: listener shell:render-historico — patrón switchSubTab
+// AC-3: despacha renderArchivoHistorico(sspanel-historico) al activar el sub-tab
+// AC-4: si sspanel-historico no existe en el DOM, retorna silenciosamente sin error
+window.addEventListener('shell:render-historico', () => {
+  const panel = document.getElementById('sspanel-historico');
+  if (!panel) return;
+  panel.innerHTML = '';
+  renderArchivoHistorico(panel);
+});

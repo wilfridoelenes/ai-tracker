@@ -1,11 +1,11 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:21 · autor:Rune · 2026-06-20 17:45 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-housekeeping · mod:22 · autor:Rune · 2026-06-21 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
 // Dependencias: locus-storage.js · locus-backlog-core.js · locus-toast.js
 // T-202606-166: _docPrefix movida a locus-storage.js — import actualizado.
 
-import { _blogLog, _docPrefix, _effectiveVersion, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState } from './locus-storage.js';
+import { _blogLog, _docPrefix, _effectiveVersion, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData } from './locus-storage.js';
 import { getItems, updateBacklogBanner } from './locus-backlog-core.js';
 import { showToast } from './locus-toast.js';
 
@@ -499,11 +499,10 @@ function _buildCurrentStateMd() {
   return hasContent ? lines.join('\n') : '';
 }
 
-// T-202606-107: constante de versiones de infraestructura — fuente única para el encabezado de export.
-// AC-2: valores declarados aquí, no hardcodeados en el template literal.
-// AC-3: helper _infraVersionStr() valida cada campo — undefined/null → 'n/a'.
-const INFRA_VERSIONS = {
-  infraVersion: 19, // B-[pendiente-ID] — sincronizado con __OB-Strategy §5
+// T-202606-009: INFRA_VERSIONS reemplazado por getInfraVersionData() desde storage.
+// Fallback a valores hardcodeados si storage vacío (sin sync previo).
+const _INFRA_FALLBACK = {
+  infraVersion: 19,
   brCore: '2.3',
   brEcosystem: '5.0',
   brExecution: '2.6',
@@ -511,8 +510,9 @@ const INFRA_VERSIONS = {
 };
 
 function _infraVersionStr() {
+  const data = getInfraVersionData() || _INFRA_FALLBACK;
   const v = f => (f !== undefined && f !== null) ? f : 'n/a';
-  return `<!-- **infra_version: ${v(INFRA_VERSIONS.infraVersion)}** | BR-Core v${v(INFRA_VERSIONS.brCore)} · BR-Ecosystem v${v(INFRA_VERSIONS.brEcosystem)} · BR-Execution v${v(INFRA_VERSIONS.brExecution)} · OB-Strategy v${v(INFRA_VERSIONS.obStrategy)} -->`;
+  return `<!-- **infra_version: ${v(data.infraVersion)}** | BR-Core v${v(data.brCore)} · BR-Ecosystem v${v(data.brEcosystem)} · BR-Execution v${v(data.brExecution)} · OB-Strategy v${v(data.obStrategy)} -->`;
 }
 
 // ── Generación de contenido Backlog ─────────────────────────────────────────
