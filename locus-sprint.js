@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-04 · mod:53 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:52 · autor:Rune · 2026-06-21 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -14,7 +14,6 @@ import { showToast, toast } from './locus-toast.js';
 
 import { render } from './locus-sesiones.js';
 import { _markStatusBarDirty } from './locus-sesiones-stats.js';
-import { switchTab, switchSubTab } from './locus-ui-shell.js'; // T-202606-002: navegación a icebox desde empty state
 
 // ── Estado interno ──────────────────────────────────────────────────────────
 let _sprintTabActiveSprint = null;
@@ -1417,19 +1416,27 @@ export function renderSprintTab() {
   const sprint = _sprintNow;
 
   if (!sprint) {
-    // T-202606-001: sin sprint activo — nav visible, sub-tab Sprints activo por defecto.
-    // El empty state vive dentro de #sprint-panel-items (T2) — no se gestiona aquí.
-    if (header) header.classList.add('is-hidden');
-    if (sptNav) sptNav.classList.remove('is-hidden');
+    // Sin sprint activo — mostrar empty state, ocultar nav
+    if (header)    header.classList.add('is-hidden');
+    if (itemsList) itemsList.classList.add('is-hidden');
+    if (emptyEl)   emptyEl.classList.remove('is-hidden');
+    if (sptNav)    sptNav.classList.add('is-hidden');
+    _spmUpdateButtons(null); // AC-6: actualizar botones del empty state
+    // T-202605-123: gestor siempre renderiza aunque no haya sprint activo (empty state propio)
+    _renderSprintManager();
     const workers    = _spEl('sprint-workers');
     const scopeAdded = _spEl('sprint-scope-added');
-    if (workers)    workers.classList.add('is-hidden');
+    if (workers)   workers.classList.add('is-hidden');
     if (scopeAdded) scopeAdded.classList.add('is-hidden');
-    _spmUpdateButtons(null); // AC-6: actualizar botones del empty state
-    // _sptSwitch oculta/muestra paneles y actualiza _sptActiveSubtab + localStorage
-    _sptSwitch('sprints', _spEl('spt-tab-sprints'), true);
-    // T-202605-123: gestor siempre renderiza aunque no haya sprint activo
-    _renderSprintManager();
+    // Ocultar paneles — R-202605-043 + R-202605-052
+    const panelItems      = _spEl('sprint-panel-items');
+    const panelPlan       = _spEl('sprint-panel-plan');
+    const panelPlanificar = _spEl('sprint-panel-planificar');
+    if (panelItems)      panelItems.classList.add('is-hidden');
+    if (panelPlan)       panelPlan.classList.add('is-hidden');
+    if (panelPlanificar) panelPlanificar.classList.add('is-hidden');
+    const panelSprints = _spEl('sprint-panel-sprints'); // T-202606-029
+    if (panelSprints)    panelSprints.classList.add('is-hidden');
     return;
   }
 
@@ -1607,9 +1614,12 @@ function _spmRegistrar() {
         msg: `Se cerrará "${activeSprint.label ? `${activeSprint.id} · ${activeSprint.label}` : activeSprint.id}" y se activará "${sprintId}". ¿Confirmar?`,
         okLabel: 'Cerrar sprint actual y activar el nuevo',
         danger: true
-      }, () => {
+      }, async () => {
         try {
-          setSprintStatus(activeSprint.id, 'closed');
+          // B-[pendiente-ID]: await requerido — setSprintStatus('closed') ahora persiste vía
+          // saveImmediate() (T-202606-003). Sin await, doRegister() corría antes de que el
+          // cierre completara — condición de carrera introducida por el fix de persistencia.
+          await setSprintStatus(activeSprint.id, 'closed');
           doRegister();
         } catch (err) {
           showToast('error', 'Error al cerrar sprint actual: ' + (err.message || err));
@@ -1638,9 +1648,12 @@ function _spmReactivar() {
       msg: `Cerrar "${activoDistinto.label ? `${activoDistinto.id} · ${activoDistinto.label}` : activoDistinto.id}" y activar "${sprint.label ? `${sprint.id} · ${sprint.label}` : sprint.id}"`,
       okLabel: 'Confirmar',
       danger: false
-    }, () => {
+    }, async () => {
       // AC-5: founder confirma — cerrar activo primero, luego activar
-      setSprintStatus(activoDistinto.id, 'closed');
+      // B-[pendiente-ID]: await requerido — setSprintStatus('closed') ahora persiste vía
+      // saveImmediate() (T-202606-003). Sin await, la activación siguiente podía leer el
+      // gate de conflicto (locus-backlog-sprints.js L624) antes de que el cierre completara.
+      await setSprintStatus(activoDistinto.id, 'closed');
       setSprintStatus(sprint.id, 'active');
       renderSprintTab();
     });
@@ -2438,11 +2451,10 @@ document.addEventListener('DOMContentLoaded', function () {
     openNewSprintInline();
   });
 
-  // T-202606-002: spm-empty-btn-registrar → navegar al icebox (no activa sprint)
+  // spm-empty-btn-registrar → _spmRegistrar()
   const spmEmptyRegistrar = document.getElementById('spm-empty-btn-registrar');
   if (spmEmptyRegistrar) spmEmptyRegistrar.addEventListener('click', function () {
-    switchTab('backlog');
-    switchSubTab('icebox');
+    if (typeof _spmRegistrar === 'function') _spmRegistrar();
   });
 
   // spm-empty-btn-activar → _spmActivarExistente()
