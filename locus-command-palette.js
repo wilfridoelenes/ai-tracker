@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-10 · mod:3 · autor:Rune · 2026-06-21 UTC-6
 // locus-command-palette.js
 // Versión: 1.0.4 | Última actualización: 2026-05-23 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto · T-202605-067 nav-tab-sprint
 // Renombrado de ai-tracker-command-palette.js
@@ -151,14 +151,6 @@ function _buildCommandRegistry() {
       keywords: ['log', 'historial', 'documentos', 'doc'],
       group: 'Acciones',
       action: () => { openDocLog(); },
-    },
-    {
-      id: 'action-quick-note',
-      label: 'Nueva nota rápida',
-      icon: '📝',
-      keywords: ['nota', 'quick', 'note', 'rapida', 'nueva'],
-      group: 'Acciones',
-      action: () => { if (typeof openQuickNote === 'function') openQuickNote(); },
     },
     // T-202605-449/451: templates de ítems desde command palette
     {

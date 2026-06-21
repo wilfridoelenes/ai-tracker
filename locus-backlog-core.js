@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:36 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:38 · autor:Rune · 2026-06-21 15:05 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -8,7 +8,7 @@
 // y shell:* events (notificaciones de render — window per B-202606-021).
 import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _tplKey, getAI, getActiveSprints, getAllSessions, getState, saveBacklog } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
-import { esc } from './locus-ui-shell.js';
+import { esc, getCurrentSubTab } from './locus-ui-shell.js';
 
 // ── Callback registry — T-202606-057 ─────────────────────────────────────────
 // Módulos consumidores registran sus funciones aquí al inicializarse.
@@ -1694,11 +1694,19 @@ export function _isCountableItem(i) {
   return true;
 }
 
+// B-202606-076 — definición canónica única de "ítem de icebox". Consumida por
+// _getCountableBaseForSubtab() (este archivo) y por renderIceboxPanel() (locus-backlog-render.js),
+// que la importa en lugar de mantener su propia copia local de la misma condición.
+export function _isIcebox(i) {
+  return !i.sprint || i.sprint === 'icebox' || i.sprint === '';
+}
+
 // T-202606-100: _getCountableBase() — función canónica compartida entre renderStats() y _getCountableForBanner()
 // Retorna ITEMS filtrado por: _isCountableItem === true · status !== descartado · status !== historico
 //   · sprint no en closedSprintIds · NOT (status === done AND sin sprint o sprint === icebox)
 // renderStats() y updateBacklogBanner()/_getCountableForBanner() consumen este array base
 // antes de aplicar sus propios filtros internos — garantiza universo idéntico entre ambas funciones.
+// T-202606-008 AC2 — único consumidor del universo "backlog": no se modifica ni se extiende a otros subtabs.
 export function _getCountableBase() {
   const closedSprintIds = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
   return ITEMS.filter(i =>
@@ -1710,6 +1718,29 @@ export function _getCountableBase() {
   );
 }
 
+// T-202606-008 — universo de stats-bar por subtab activo. AC1/AC2/AC6/edge-historico.
+// no_incluye T-202606-008: no extiende _getCountableBase() — cada subtab usa su propio
+// filtro directo sobre ITEMS, declarado explícitamente por AC en lugar de heredar
+// exclusiones diseñadas para el universo del backlog regular (T-202606-100).
+// B-202606-076 AC1: usa _isIcebox() compartida — antes filtraba sprint==='icebox' estricto,
+// lo que excluía ítems con sprint vacío/null que sí cuenta renderIceboxPanel() como icebox.
+export function _getCountableBaseForSubtab(sub) {
+  if (sub === 'icebox') {
+    // AC1 — universo Icebox: filtro directo, sin pasar por _getCountableBase()
+    return ITEMS.filter(i => _isIcebox(i) && i.status !== 'descartado' && i.status !== 'historico');
+  }
+  if (sub === 'hotfix') {
+    // AC6 — universo Hotfix: ítems cuyo sprint matchea el sprint S-HOTFIX activo del proyecto
+    return ITEMS.filter(i => i.sprint && i.sprint.endsWith('-S-HOTFIX') && i.status !== 'descartado' && i.status !== 'historico');
+  }
+  if (sub === 'historico') {
+    // Edge case AC — universo Histórico: status historico, excluido explícitamente de _getCountableBase()
+    return ITEMS.filter(i => i.status === 'historico');
+  }
+  // AC2 — Backlog (default): comportamiento preservado sin cambios
+  return _getCountableBase();
+}
+
 export function renderStats() {
   // B-fix-T202606-197: _coreCallbacks.getActiveProjectFilter nunca registrado post T-202606-197 — leer localStorage directamente
   const _rsProjId = localStorage.getItem('current-project-filter') || '';
@@ -1718,6 +1749,10 @@ export function renderStats() {
   // Forzar recarga cuando hay proyecto activo con ITEMS vacío — evita que stats-bar se limpie en carga inicial.
   if (!ITEMS.length) { loadBacklog(); }
   if (!ITEMS.length) { document.getElementById('stats-bar').innerHTML = ''; return; }
+
+  // T-202606-008 — subtab activo determina el universo countable (AC1/AC2/AC6/edge-historico).
+  // 'backlog' es el default — preserva el comportamiento previo a T2 sin cambios (AC2).
+  const _activeSub = (typeof getCurrentSubTab === 'function') ? getCurrentSubTab() : 'backlog';
 
   // Delegation para stats-bar — se registra una sola vez
   const statsBarEl = document.getElementById('stats-bar');
@@ -1751,13 +1786,16 @@ export function renderStats() {
   // T-202606-048: leer estado de colapso persistido
   const _statsCollapsed = localStorage.getItem('locus-statsbar-collapsed') === 'true';
 
-  // T-202606-048 AC 6/7: obtener sprint activo — metadata se calcula sobre ítems del sprint activo
-  const _activeSprint = (_coreCallbacks && _coreCallbacks.getActiveSprint) ? _coreCallbacks.getActiveSprint() : null;
+  // T-202606-048 AC 6/7: obtener sprint activo — metadata se calcula sobre ítems del sprint activo.
+  // T-202606-008 AC4 — la metadata de sprint solo aplica al subtab Backlog; los demás subtabs
+  // no tienen noción de "sprint activo" propia (Icebox no tiene sprint, Hotfix usa S-HOTFIX,
+  // Histórico es archivo) — se tratan con el render simplificado de "sin sprint activo".
+  const _activeSprint = (_activeSub === 'backlog' && _coreCallbacks && _coreCallbacks.getActiveSprint) ? _coreCallbacks.getActiveSprint() : null;
 
-  // T-202606-100: usar _getCountableBase() como universo canónico — mismo filtro que updateBacklogBanner()
-  const countableItems = _getCountableBase();
+  // T-202606-008 — universo por subtab. AC2 preserva _getCountableBase() sin cambios para 'backlog'.
+  const countableItems = _getCountableBaseForSubtab(_activeSub);
 
-  // B-202605-205: incluir búsqueda activa — los contadores deben reflejar
+  // B-202606-008: incluir búsqueda activa — los contadores deben reflejar
   // los mismos ítems que aparecen en la lista, incluyendo el filtro de búsqueda.
   const _q = (backlogSearchQuery || '').trim().toLowerCase();
   const _matchesSearch = _q
@@ -1790,8 +1828,8 @@ export function renderStats() {
   // R-202605-122 AC5: contador de ítems sin effort (excluye P e históricos)
   const noEffortCount = countableItems.filter(i => !i.effort && itemType(i.code) !== 'P' && i.status !== 'historico').length;
 
-  // T-202606-048 AC 7: sin sprint activo — render simplificado
-  if (!_activeSprint) {
+  // T-202606-048 AC 7: Backlog sin sprint activo — render simplificado, no aplica a otros subtabs
+  if (_activeSub === 'backlog' && !_activeSprint) {
     document.getElementById('stats-bar').innerHTML = `
       <div class="stats-bar-header">
         <span class="stats-bar-title">Stats</span>
@@ -1803,8 +1841,24 @@ export function renderStats() {
     return;
   }
 
-  // T-202606-048 AC 6: métricas sobre ítems del sprint activo
-  const _sprintItems = ITEMS.filter(i => i.sprint === _activeSprint.id && i.status !== 'descartado' && i.status !== 'historico');
+  // T-202606-008 AC4: subtabs no-backlog sin ítems en su universo — contadores en 0, sin
+  // metadata de sprint residual del subtab anterior (Icebox/Hotfix/Histórico no tienen sprint propio).
+  if (_activeSub !== 'backlog' && countableItems.length === 0) {
+    document.getElementById('stats-bar').innerHTML = `
+      <div class="stats-bar-header">
+        <span class="stats-bar-title">Stats</span>
+        <button class="stats-bar-chevron" data-action="stats-toggle-collapse" title="${_statsCollapsed ? 'Expandir' : 'Colapsar'}">${_statsCollapsed ? '▸' : '▾'}</button>
+      </div>
+      ${!_statsCollapsed ? '<div class="stats-bar-body"><span class="stats-bar-no-sprint">Sin ítems</span></div>' : ''}
+    `;
+    updateTypeFilterUI();
+    return;
+  }
+
+  // T-202606-048 AC 6: métricas sobre ítems del sprint activo — solo aplica a Backlog.
+  // T-202606-008 AC1/AC6: Icebox/Hotfix/Histórico no tienen sprint activo propio — _sprintItems
+  // queda vacío y la metadata de sprint (label, pct, effort) no se muestra para esos subtabs.
+  const _sprintItems = _activeSprint ? ITEMS.filter(i => i.sprint === _activeSprint.id && i.status !== 'descartado' && i.status !== 'historico') : [];
   const _sprintEffortTotal = _sprintItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
 
   // T-202606-096: universo canónico — activos = countableItems (pendiente + en-revision + done)
@@ -1841,14 +1895,17 @@ export function renderStats() {
   // Pendientes = protagonista visual; hechos = secundario. Tipos + esfuerzo inline.
   const _hasPending = (backlogCount + enRevisionCount) > 0;
 
-  // T-202606-048 AC 6: label metadata de sprint activo
-  const _sprintLabel = _activeSprint.label || _activeSprint.id || '';
-  const _metaLabel = `${_sprintDone}/${_sprintTotal} · effort ${_sprintEffortTotal}`;
+  // T-202606-048 AC 6: label metadata de sprint activo — solo aplica a Backlog.
+  // T-202606-008: Icebox/Hotfix/Histórico muestran su propio nombre de subtab en vez de
+  // metadata de sprint, que no existe para ellos.
+  const _subtabLabels = { icebox: 'Icebox', hotfix: 'Hotfix', historico: 'Histórico' };
+  const _sprintLabel = _activeSprint ? (_activeSprint.label || _activeSprint.id || '') : (_subtabLabels[_activeSub] || '');
+  const _metaLabel = _activeSprint ? `${_sprintDone}/${_sprintTotal} · effort ${_sprintEffortTotal}` : '';
 
   document.getElementById('stats-bar').innerHTML = `
     <div class="stats-bar-header">
       <span class="stats-bar-title">Stats <span class="stats-bar-sprint-label">${_sprintLabel}</span></span>
-      ${!_statsCollapsed ? `<span class="stats-bar-meta-inline">${_metaLabel}</span>` : ''}
+      ${(!_statsCollapsed && _metaLabel) ? `<span class="stats-bar-meta-inline">${_metaLabel}</span>` : ''}
       <button class="stats-bar-chevron" data-action="stats-toggle-collapse" title="${_statsCollapsed ? 'Expandir' : 'Colapsar'}">${_statsCollapsed ? '▸' : '▾'}</button>
     </div>
     ${!_statsCollapsed ? `<div class="stats-bar-body">

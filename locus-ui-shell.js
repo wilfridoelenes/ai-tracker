@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-housekeeping · mod:19 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-10 · mod:23 · autor:Rune · 2026-06-21 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -15,7 +15,7 @@
 // Cada módulo consumidor es responsable de registrar listener 'shell:invoke' para sus propias funciones.
 
 import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, _parseInfraLine, setInfraVersionData, _docPrefix, handleSyncPillClick } from './locus-storage.js';
-import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortDir } from './locus-backlog-core.js';
+import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortDir, renderStats, updateStatusFilterUI } from './locus-backlog-core.js';
 import { closeArranquePanel } from './locus-sesiones-arranque.js';
 import { openPendPanel, closePendPanel } from './locus-pend.js';
 import { openCommandPalette, closeCommandPalette } from './locus-command-palette.js';
@@ -104,7 +104,7 @@ export function switchTab(tab) {
   if (tab === 'backlog') {
     window.dispatchEvent(new CustomEvent('shell:update-subtab-buttons', { detail: { sub: currentSubTab || 'backlog' } }));
   }
-  if (typeof _stopHoyTicker === 'function') _stopHoyTicker();
+  // _stopHoyTicker deprecado 2026-06-21 — reemplazado por evento shell:stop-sidebar-ticker
   // (a) event dispatch — locus-sesiones.js escucha 'shell:stop-sidebar-ticker'
   if (tab !== 'tracker') window.dispatchEvent(new CustomEvent('shell:stop-sidebar-ticker'));
 
@@ -181,11 +181,17 @@ export function switchSubTab(sub) {
   if (sub === 'icebox') {
     // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-icebox'
     window.dispatchEvent(new CustomEvent('shell:render-icebox'));
+    // T-202606-008 AC1/AC3: recalcular stats-bar y reevaluar filtros activos contra el universo de icebox
+    renderStats();
+    updateStatusFilterUI();
   }
   if (sub === 'hotfix') {
     // T-202606-091: dispatch para refresco de contenido del panel Hotfix.
     // Sin listener aún — render de #hotfix-panel-body pendiente de especificación (gap reportado a Cael).
     window.dispatchEvent(new CustomEvent('shell:render-hotfix'));
+    // T-202606-008 AC3/AC6: recalcular stats-bar y reevaluar filtros activos contra el universo de hotfix
+    renderStats();
+    updateStatusFilterUI();
   }
   if (sub === 'context') {
     // (a) event dispatch — locus-docs.js escucha 'shell:render-context'
@@ -202,8 +208,11 @@ export function switchSubTab(sub) {
   if (sub === 'historico') {
     // (a) event dispatch — locus-backlog-archive.js escucha 'shell:render-historico'
     window.dispatchEvent(new CustomEvent('shell:render-historico'));
+    // T-202606-008 AC3/edge-historico: recalcular stats-bar y reevaluar filtros contra status:historico
+    renderStats();
+    updateStatusFilterUI();
   }
-  if (typeof renderAIStatusBar === 'function') renderAIStatusBar();
+  // renderAIStatusBar deprecado 2026-06-21 — función no existe en ningún módulo
   // (a) event dispatch — locus-docs.js escucha 'shell:render-docs-onboarding'
   window.dispatchEvent(new CustomEvent('shell:render-docs-onboarding')); // T-202604-204
 }
@@ -405,16 +414,7 @@ export function onSearch() {
   sessMatches.sort((a, b) => parseInt(b.sess.id) - parseInt(a.sess.id));
   const sessSlice = sessMatches.slice(0, 30);
 
-  // ── 3. Notas rápidas coincidentes ──
-  // B-202605-022: respetar scope de proyecto activo — filtrar por projectId cuando aplica
-  const noteMatches = (state.quickNotes || []).filter(n => {
-    const textHit = (n.text || '').toLowerCase().includes(q) || (n.itemRef || '').toLowerCase().includes(q);
-    if (!textHit) return false;
-    if (_activeProjId && n.projectId && n.projectId !== _activeProjId) return false;
-    return true;
-  });
-
-  // ── 4. T-202604-420: Ítems de backlog coincidentes ──
+  // ── 3. T-202604-420: Ítems de backlog coincidentes ──
   const _items = _getItemsFn();
   const backlogMatches = _items.filter(item => {
     if (item.status === 'descartado') return false;
@@ -432,7 +432,7 @@ export function onSearch() {
     ((p.name || '').toLowerCase().includes(q) || (p.icon || '').toLowerCase().includes(q))
   );
 
-  const total = aiMatches.length + sessMatches.length + noteMatches.length;
+  const total = aiMatches.length + sessMatches.length;
   // R-202604-075: contratos en búsqueda global
   const contratoMatches = searchContratos(q);
   // B-202605-019: poblar array de acciones para event delegation (delegation usa índice)
@@ -528,27 +528,7 @@ export function onSearch() {
     html += '</div></div>';
   }
 
-  // Grupo Notas
-  if (noteMatches.length) {
-    html += `<div class="sur-group">
-      <div class="sur-group-label">📝 Notas (${noteMatches.length})</div>
-      <div class="sur-rows">`;
-    noteMatches.slice(0, 20).forEach(n => {
-      const dateLabel = _relDateFn(n.updatedAt || n.createdAt) || '';
-      const refBadge = n.itemRef ? `<span class="sur-badge">${hlText(n.itemRef, q)}</span>` : '';
-      html += `<div class="sur-row" data-action="openQuickNote" data-note-id="${n.id}">
-        <span class="sur-row-icon">🗒</span>
-        <div class="sur-row-body">
-          <span class="sur-row-title">${hlText(n.text.slice(0, 100), q)}${n.text.length > 100 ? '…' : ''}</span>
-          <span class="sur-row-sub">${refBadge}${dateLabel}</span>
-        </div>
-      </div>`;
-    });
-    if (noteMatches.length > 20) {
-      html += `<div class="sur-more">+${noteMatches.length - 20} nota${noteMatches.length - 20 !== 1 ? 's' : ''} más</div>`;
-    }
-    html += '</div></div>';
-  }
+  // Grupo Notas deprecado 2026-06-21 — feature QuickNote descartada
 
   // Grupo Contratos — R-202604-075
   if (contratoMatches.length) {
@@ -778,7 +758,6 @@ export function _escCascade() {
     () => { const el = document.getElementById('shortcuts-ref-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcutsRef(); return true; } },
     () => { const el = document.getElementById('shortcuts-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcuts(); return true; } },
     () => { const el = document.getElementById('cp-overlay'); if (el && !el.classList.contains('is-hidden')) { closeCommandPalette(); return true; } },
-    () => { const el = document.getElementById('quick-note-modal'); if (el && el.offsetParent !== null) { if (typeof closeQuickNote === 'function') closeQuickNote(); return true; } },
     // (a) event dispatch — locus-sesiones-capture.js escucha 'shell:close-quick-capture'
     () => { const el = document.getElementById('qc-modal-overlay'); if (el && el.classList.contains('open')) { window.dispatchEvent(new CustomEvent('shell:close-quick-capture')); return true; } },
     // (a) event dispatch — locus-backlog-panel.js escucha 'shell:close-item-panel'
@@ -889,13 +868,6 @@ document.addEventListener('keydown', e => {
     if (!si) return;
     si.focus();
     si.select();
-    return;
-  }
-
-  // T-202604-418: N → nota rápida (openQuickNote)
-  if (_pressedKey === _sk('quick-note')) {
-    e.preventDefault();
-    if (typeof openQuickNote === 'function') openQuickNote();
     return;
   }
 
@@ -1019,7 +991,6 @@ const _SHORTCUT_DEFS = [
   { id: 'tab-analytics', label: 'Ir a Analytics',                 group: 'Navegación', default: 'g+a', chord: true },
   { id: 'tab-proyectos', label: 'Ir a Proyectos',                 group: 'Navegación', default: 'g+p', chord: true },
   // Acciones globales — T-202604-418
-  { id: 'quick-note',    label: 'Nueva nota rápida',              group: 'Acciones',   default: 'n',   chord: false },
   { id: 'save-session',  label: 'Guardar sesión activa',          group: 'Acciones',   default: 's',   chord: false },
   { id: 'search',        label: 'Búsqueda en tab activo',         group: 'Acciones',   default: '/',   chord: false },
   { id: 'paste-ckpt',    label: 'Pegar CHECKPOINT',               group: 'Acciones',   default: 'p',   chord: false },
@@ -1296,8 +1267,6 @@ document.addEventListener('DOMContentLoaded', function () {
       import('./locus-sesiones-stats.js').then(function(m) { if (typeof m.navigateToCard === 'function') m.navigateToCard(_aiId); });
     } else if (action === 'openDetail') {
       openDetail(row.dataset.aiId, row.dataset.sessId);
-    } else if (action === 'openQuickNote') {
-      if (typeof openQuickNote === 'function') openQuickNote(row.dataset.noteId);
     } else if (action === 'contratoAction') {
       const idx = parseInt(row.dataset.contratoIdx, 10);
       if (typeof _surContratoActions !== 'undefined' && _surContratoActions[idx]) {
@@ -1374,7 +1343,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // (a) event dispatch — locus-notifications.js escucha 'shell:open-notif-config'
     'mm-btn-notif':     function () { window.dispatchEvent(new CustomEvent('shell:open-notif-config')); toggleMoreMenu(); },
     'mm-btn-sync':      function () { handleSyncPillClick(); toggleMoreMenu(); },
-    'mm-btn-migrate':   function () { if (typeof openMigrateFirebaseModal === 'function') openMigrateFirebaseModal(); toggleMoreMenu(); },
+    // mm-btn-migrate deprecado 2026-06-21 — Firebase migrado a Supabase, feature eliminada
     'mm-btn-clean':     function () { openCleanProjectModal(); toggleMoreMenu(); },
   };
   Object.keys(mm).forEach(function (id) {
@@ -1385,15 +1354,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // #hdr-menu-infra-subpanel — toggle + validación + apply (T-202606-031)
   initInfraVersionHandler();
 
-  // tmpl-trigger radios → toggleTemplateTrigger()
-  const tmplSession = document.getElementById('tmpl-trigger-session');
-  if (tmplSession) tmplSession.addEventListener('change', function () {
-    if (typeof toggleTemplateTrigger === 'function') toggleTemplateTrigger('session');
-  });
-  const tmplSprint = document.getElementById('tmpl-trigger-sprint');
-  if (tmplSprint) tmplSprint.addEventListener('change', function () {
-    if (typeof toggleTemplateTrigger === 'function') toggleTemplateTrigger('sprint');
-  });
+  // tmpl-trigger radios deprecado 2026-06-21 — toggleTemplateTrigger descartada, UI lo resuelve Nova
 
   // imp file input → importData()
   const impInput = document.getElementById('imp');
@@ -1543,29 +1504,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const ieTplOpenBtn = document.getElementById('ie-tpl-open-btn');
   if (ieTplOpenBtn) ieTplOpenBtn.addEventListener('click', function () {
     openTemplatePicker();
-  });
-
-  // pi-textarea — oninput, dragover, dragleave, drop
-  const piTextarea = document.getElementById('pi-textarea');
-  if (piTextarea) {
-    piTextarea.addEventListener('input', function () {
-      if (typeof piParse === 'function') piParse();
-    });
-    piTextarea.addEventListener('dragover', function (e) {
-      if (typeof piDragOver === 'function') piDragOver(e);
-    });
-    piTextarea.addEventListener('dragleave', function (e) {
-      if (typeof piDragLeave === 'function') piDragLeave(e);
-    });
-    piTextarea.addEventListener('drop', function (e) {
-      if (typeof piDrop === 'function') piDrop(e);
-    });
-  }
-
-  // pi-confirm-btn
-  const piConfirmBtn = document.getElementById('pi-confirm-btn');
-  if (piConfirmBtn) piConfirmBtn.addEventListener('click', function () {
-    if (typeof piConfirm === 'function') piConfirm();
   });
 
   // ie-cancel-btn

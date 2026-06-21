@@ -242,7 +242,9 @@ export function _buildNewSprintForm(projId, onConfirm, onCancel) {
       onCancel();
     };
 
-    // Listeners para ${ns}-vt — input y keydown (reemplaza on* inline)
+    // _bnsf_* guards externos deprecados 2026-06-21 — los guards en confirmNewSprint y listeners externos eliminados.
+    // Las definiciones window['_bnsf_*'] aquí arriba son legítimas — mecanismo interno del formulario de nuevo sprint.
+    // Listeners para ${ns}-vt — input y keydown
     setTimeout(() => {
       const vtEl = document.getElementById(ns + '-vt');
       if (vtEl) {
@@ -863,18 +865,8 @@ function _clearSprintFieldErr(errId) {
   if (prev && prev.tagName === 'INPUT') prev.classList.remove('input-outline-error');
 }
 
-// B-202605-077: confirmNewSprint ya no es el handler principal — openNewSprintInline usa _buildNewSprintForm.
-// Se conserva como stub por si hay referencias residuales en HTML generado por versiones anteriores.
+// B-202605-077: confirmNewSprint stub — _bnsf_confirm deprecado 2026-06-21
 function confirmNewSprint(code) {
-  if (typeof _bnsf_confirm === 'function') {
-    // _buildNewSprintForm registra _bnsf_confirm en window con el ns correcto.
-    // Buscar el formulario activo en el wrap y disparar confirm.
-    const wrap = document.getElementById('sprint-select-wrap-' + CSS.escape(code));
-    if (wrap) {
-      const bnsf = wrap.querySelector('[data-bnsf]');
-      if (bnsf) { _bnsf_confirm(bnsf.dataset.bnsf); return; }
-    }
-  }
   _markBacklogListDirty(); renderBacklogList();
 }
 

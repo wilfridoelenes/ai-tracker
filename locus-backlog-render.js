@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:30 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:31 · autor:Rune · 2026-06-21 15:05 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -9,7 +9,7 @@
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
 import { renderArchivoHistorico, toggleArchivoHistorico, getArchivoHistoricoCount } from './locus-backlog-archive.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isIcebox, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation
 
@@ -454,7 +454,7 @@ function _iceboxStaleness(item) {
 //   terminalItems: R/T/B descartado + P descartado + P promovida — bloque Cerradas unificado
 //   _matchesQuery y _sortGroup vienen de renderBacklogList para reutilizar la lógica existente.
 function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered) {
-  const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
+  // B-202606-076: _isIcebox importada desde locus-backlog-core.js — fuente única.
   // T-202606-091 AC-6: ítems con sprint.id HOTFIX excluidos de #backlog-list — panel dedicado vive en
   // #sspanel-hotfix (sub-tab Hotfix). Mismo patrón que _isIcebox — case-insensitive sobre el ID.
   const _isHotfixSprint = i => (i.sprint || '').toUpperCase().includes('HOTFIX');
@@ -1043,7 +1043,7 @@ export function renderBacklogList(onRendered) {
   if (false) {
     // ── Modo Sprint: agrupar pendientes por sprint ──
     // T-202605-104: ítems icebox separados del sprintMap — sección propia al final
-    const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
+    // B-202606-076: _isIcebox importada desde locus-backlog-core.js — fuente única.
     const iceboxItems = pendienteItems.filter(_isIcebox);
     const sprintableItems = pendienteItems.filter(i => !_isIcebox(i));
 
@@ -1454,10 +1454,12 @@ export function renderIceboxPanel() {
     return;
   }
 
-  const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
+  // B-202606-076: _isIcebox importada desde locus-backlog-core.js — fuente única,
+  // consistente con _getCountableBaseForSubtab('icebox') del stats-bar.
   const iceboxItems = getItems().filter(_isIcebox);
 
-  // Actualizar badge
+  // Actualizar badge — B-202606-075: el badge refleja el universo SIN filtrar (conteo real de icebox),
+  // los filtros activos solo afectan qué se muestra en items-grid, no el conteo del badge.
   const badge = document.getElementById('tpl-badge-icebox');
   if (badge) {
     if (!iceboxItems.length) {
@@ -1477,10 +1479,38 @@ export function renderIceboxPanel() {
     return;
   }
 
+  // B-202606-075 AC1/AC2: aplicar filtros activos de tipo/status/prioridad/búsqueda —
+  // mismo criterio que renderBacklogList(), reutilizando los getters ya exportados por locus-backlog-core.js.
+  const _activeTypesIb = _getActiveTypes();
+  const _activeStatusesIb = _getActiveStatuses();
+  const _activePriorityIb = _getActivePriorityFilter();
+  const _qIb = (_getBacklogSearchQuery() || '').trim().toLowerCase();
+  const _matchesSearchIb = _qIb
+    ? i => i.code.toLowerCase().includes(_qIb) || (i.title || '').toLowerCase().includes(_qIb) || (i.area || '').toLowerCase().includes(_qIb)
+    : () => true;
+  const filteredIceboxItems = iceboxItems.filter(i => {
+    const type = itemType(i.code);
+    const typeOk = type ? _activeTypesIb.has(type) : true;
+    const statusOk = _activeStatusesIb.has(i.status);
+    const priorityOk = _activePriorityIb.size === 0 || _activePriorityIb.has(i.priority);
+    return typeOk && statusOk && priorityOk && _matchesSearchIb(i);
+  });
+
+  // B-202606-075 AC3: el filtro combinado deja 0 ítems — empty-state existente, no items-grid vacío.
+  if (!filteredIceboxItems.length) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">📦</div>
+        <div class="empty-state-title">No hay ítems en icebox</div>
+        <div class="empty-state-hint">Ningún ítem coincide con el filtro activo.</div>
+      </div>`;
+    return;
+  }
+
   // Ordenar: tipo (R→T→B→P) y dentro de cada tipo por prioridad (high→medium→low)
   const _typeOrder = { R: 0, T: 1, B: 2, P: 3 };
   const _priOrder  = { high: 0, important: 0, critical: 0, importante: 0, medium: 1, low: 2, futura: 2, baja: 2 };
-  const sorted = [...iceboxItems].sort((a, b) => {
+  const sorted = [...filteredIceboxItems].sort((a, b) => {
     const ta = _typeOrder[itemType(a.code)] ?? 9, tb = _typeOrder[itemType(b.code)] ?? 9;
     if (ta !== tb) return ta - tb;
     const pa = _priOrder[a.priority] ?? 1, pb = _priOrder[b.priority] ?? 1;
@@ -1488,8 +1518,8 @@ export function renderIceboxPanel() {
   });
 
   // Render con jerarquía R→hijos usando _buildChildMap
-  const _childMap   = _buildChildMap(iceboxItems);
-  const _rCodes     = new Set(iceboxItems.filter(i => itemType(i.code) === 'R').map(i => i.code));
+  const _childMap   = _buildChildMap(filteredIceboxItems);
+  const _rCodes     = new Set(filteredIceboxItems.filter(i => itemType(i.code) === 'R').map(i => i.code));
   const _rootItems  = sorted.filter(i => !i.parentId || !_rCodes.has(i.parentId));
 
   let html = '<div class="items-grid">';
@@ -1716,7 +1746,7 @@ export function _updateSubtabBadges() {
   }
 
   if (badgeIcebox) {
-    const _isIcebox = i => !i.sprint || i.sprint === 'icebox' || i.sprint === '';
+    // B-202606-076: _isIcebox importada desde locus-backlog-core.js — fuente única.
     const iceboxItems = items.filter(_isIcebox);
     if (!iceboxItems.length) {
       badgeIcebox.textContent = '';

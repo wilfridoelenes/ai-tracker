@@ -1,7 +1,7 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:5 · autor:Rune · 2026-06-11 UTC-6 
+// [PP] v0.5.0 · sprint:PP-S-10 · mod:6 · autor:Rune · 2026-06-21 UTC-6
 // main.js — punto de entrada único de Locus (ES Modules nativos)
-// T2: imports en el mismo orden que index.html declaraba los <script src>
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
+// Limpieza: imports duplicados consolidados (side-effect imports redundantes eliminados)
 
 import { _getActiveProjectFilter, _initApp, _effectiveVersion, getProjectById, LOCUS_KEYS } from './locus-storage.js';
 import { applyTheme, _initUiShellRefs } from './locus-ui-shell.js';
@@ -11,18 +11,18 @@ import './locus-analytics-render.js';
 import './locus-analytics-charts.js';
 import './locus-toast.js';
 import './locus-sesiones.js';
-import './locus-sesiones-utils.js';
+import { _maybeShowWeeklySummary } from './locus-sesiones-utils.js';
 import './locus-modals.js';
 import './locus-workers.js';
 import './locus-pulso.js';
 import './locus-notifications.js';
 import './locus-sesiones-stats.js';
 import './locus-sesiones-capture.js';
-import './locus-sesiones-viz.js';
+import { _itemVizConfirm, _itemVizClose, closeCkptPanel } from './locus-sesiones-viz.js';
 import './locus-sesiones-arranque.js';
 import './locus-radar.js';
 import { parsePaste, handlePaste, handleInput } from './locus-session-parse.js';
-import './locus-session-hora.js';
+import { relDate } from './locus-session-hora.js';
 import './locus-session-save.js';
 import './locus-tags.js';
 import './locus-session-popup.js';
@@ -34,21 +34,17 @@ import './locus-docs.js';
 import './locus-sprint-plan.js';
 import './locus-contracts.js';
 import './locus-map-viewer.js';
-import './locus-backlog-core.js';
+import { getItems, _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
 import './locus-backlog-item.js';
 import './locus-backlog-merge.js';
 import './locus-backlog-panel.js';
 import './locus-backlog-render.js';
 import './locus-backlog-sprints.js';
 import './locus-backlog-archive.js';
-import './locus-sprint.js';
-import { exportBacklogMd } from './locus-backlog-generator.js';
-import { getItems, _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { relDate } from './locus-session-hora.js';
+import { exportBacklogMd } from './locus-backlog-generator.js';
 import './locus-map-generator.js';
-import { initCommandPalette } from './locus-command-palette.js';import { _maybeShowWeeklySummary } from './locus-sesiones-utils.js';
-import { _itemVizConfirm, _itemVizClose, closeCkptPanel } from './locus-sesiones-viz.js';
+import { initCommandPalette } from './locus-command-palette.js';
 
 // ── Funciones migradas desde inline script de index.html (T-202606-006) ──────
 
