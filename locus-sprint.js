@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-04 · mod:52 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-04 · mod:53 · autor:Rune · 2026-06-21 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -14,6 +14,7 @@ import { showToast, toast } from './locus-toast.js';
 
 import { render } from './locus-sesiones.js';
 import { _markStatusBarDirty } from './locus-sesiones-stats.js';
+import { switchTab, switchSubTab } from './locus-ui-shell.js'; // T-202606-002: navegación a icebox desde empty state
 
 // ── Estado interno ──────────────────────────────────────────────────────────
 let _sprintTabActiveSprint = null;
@@ -2437,10 +2438,11 @@ document.addEventListener('DOMContentLoaded', function () {
     openNewSprintInline();
   });
 
-  // spm-empty-btn-registrar → _spmRegistrar()
+  // T-202606-002: spm-empty-btn-registrar → navegar al icebox (no activa sprint)
   const spmEmptyRegistrar = document.getElementById('spm-empty-btn-registrar');
   if (spmEmptyRegistrar) spmEmptyRegistrar.addEventListener('click', function () {
-    if (typeof _spmRegistrar === 'function') _spmRegistrar();
+    switchTab('backlog');
+    switchSubTab('icebox');
   });
 
   // spm-empty-btn-activar → _spmActivarExistente()
