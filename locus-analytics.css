@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 14:00 UTC-6 */
+/* [PP] v0.5.0 · sprint:PP-S-10 · mod:2 · autor:Rune · 2026-06-21 UTC-6 */
 /* locus-analytics.css */
 
 /* Versión: 2.0 | Selectores consolidados — T2 */
@@ -1029,91 +1029,6 @@
   background: var(--surface2);
   color: var(--text);
   border-color: var(--border2);
-}
-
-/* T-086: Barra de estado sobre el grid */
-#tracker-status-bar {
-  display: none;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 1rem 0;
-  flex-wrap: wrap;
-  min-height: 30px;
-}
-
-.tsb-pill {
-  font-family: var(--mono);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  padding: 2px 9px;
-  border-radius: var(--radius-2xl);
-  letter-spacing: 0.03em;
-}
-
-.tsb-pill.available {
-  background: rgb(46 204 120 / 12%);
-  color: var(--green);
-  border: 1px solid rgb(46 204 120 / 25%);
-}
-
-.tsb-pill.exhausted {
-  background: rgb(232 85 85 / 12%);
-  color: var(--red);
-  border: 1px solid rgb(232 85 85 / 25%);
-}
-
-.tsb-pill.inprogress {
-  background: rgb(232 168 50 / 12%);
-  color: var(--amber);
-  border: 1px solid rgb(232 168 50 / 25%);
-}
-
-/* T-097: botón colapsar/expandir todo */
-.tsb-collapse-btn {
-  background: none; border: 1px solid var(--border); border-radius: var(--radius-xs);
-  color: var(--hint); font-size: var(--text-2xs); font-family: var(--mono); font-weight: 600;
-  padding: 2px 8px; cursor: pointer; letter-spacing: 0.03em;
-  transition: var(--trans-fast);
-}
-
-.tsb-collapse-btn:hover {
-  border-color: var(--border2);
-  color: var(--text2);
-}
-
-/* T-202604-181: info chips en status bar */
-.tsb-theme-toggle {
-  background: none; border: none; cursor: pointer;
-  color: var(--hint); font-size: var(--text-base); padding: 2px 4px; line-height: 1;
-  flex-shrink: 0; transition: color 0.12s;
-}
-
-.tsb-theme-toggle:hover {
-  color: var(--text);
-}
-
-.tsb-info-chip {
-  font-family: var(--mono); font-size: var(--text-2xs); font-weight: 600;
-  padding: 2px 8px; border-radius: var(--radius-2xl); letter-spacing: 0.03em;
-  white-space: nowrap; flex-shrink: 0;
-}
-
-.tsb-sprint {
-  background: rgb(56 189 248 / 12%);
-  color: var(--accent);
-  border: 1px solid rgb(56 189 248 / 25%);
-}
-
-.tsb-pending {
-  background: rgb(124 106 247 / 12%);
-  color: var(--purple);
-  border: 1px solid rgb(124 106 247 / 25%);
-}
-
-.tsb-lastchange {
-  background: var(--surface2);
-  color: var(--hint);
-  border: 1px solid var(--border);
 }
 
 /* T-085: Feedback visual en card al guardar sesión */

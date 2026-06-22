@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:26 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:27 · autor:Rune · 2026-06-21 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -621,7 +621,6 @@ export function render() {
   renderStatusBar();
   renderGlobalRadarSidebar();
   if (!_radarSbInited) { _radarSbInited = true; _initRadarSidebarState(); }
-  if (typeof renderProjDots === 'function') renderProjDots();
   // T-202605-447: actualizar banner de sesión sugerida tras cada render
   renderSuggestionBanner();
   // R-202605-008: actualizar checklist de setup tras cada render

@@ -1,4 +1,4 @@
-/* [PP] v0.2.1 · sprint:PP-S-housekeeping · mod:23 · autor:Nova · 2026-06-20 UTC-6 */
+/* [PP] v0.5.0 · sprint:PP-S-10 · mod:24 · autor:Rune · 2026-06-21 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 
@@ -1439,16 +1439,6 @@
   color: var(--green);
 }
 
-/* Tracker status bar — visible state */
-#tracker-status-bar.tsb-visible {
-  display: flex;
-}
-
-/* Tracker status bar — spacer flex */
-.tsb-spacer {
-  flex: 1;
-}
-
 /* Status bar — storage banner visible (flex) */
 .storage-warning-banner--visible {
   display: flex;
@@ -1477,13 +1467,6 @@
 /* ═══ §15 CSS Purity — checkpoint.js parte 2 ═══ */
 
 /* Agregar al final de ai-tracker.css */
-
-/* _renderTrackerSidebar — empty hints */
-.tsb-empty-hint {
-  padding: 0.5rem 0.75rem;
-  font-size: var(--text-xs);
-  color: var(--hint);
-}
 
 /* buildCard — popup-ref-pill small variant */
 .popup-ref-pill.popup-ref-pill--sm {

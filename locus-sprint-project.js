@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-17 11:00 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-10 · mod:9 · autor:Rune · 2026-06-21 UTC-6
 // locus-sprint-project.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
@@ -500,84 +500,6 @@ function getProjectsByAI(aiId) {
 
 // getProjContext / setProjContext — movidas a locus-proj-core.js en T-202606-197
 
-function _notesKey(projId) {
-  return projId ? 'notes-' + projId : 'notes';
-}
-
-function _loadNotes(projId) {
-  try {
-    return JSON.parse(localStorage.getItem(_notesKey(projId)) || '[]');
-  } catch { return []; }
-}
-
-function _saveNotes(projId, notes) {
-  try {
-    localStorage.setItem(_notesKey(projId), JSON.stringify(notes));
-  } catch (e) { console.warn('[AI Tracker] _saveNotes error:', e); }
-  if (typeof _supabase !== 'undefined' && _supabase && typeof _supabaseUser !== 'undefined' && _supabaseUser) {
-    const sbKey = projId ? 'notes-' + projId : 'notes-global';
-    _supabase.from('tracker_docs').upsert(
-      [{ user_id: _supabaseUser.id, key: sbKey, value: { notes, updatedAt: new Date().toISOString() }, updated_at: new Date().toISOString() }],
-      { onConflict: 'user_id,key' }
-    ).then(({ error }) => {
-      if (error) {
-        console.warn('[AI Tracker] _saveNotes Supabase error:', error);
-        _offlineQueuePush({ type: 'notes', projId: projId || null });
-      }
-    });
-  }
-}
-
-function _noteId() {
-  return 'note-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
-}
-
-function createNote(text, itemRef) {
-  const projId = _getActiveProjectFilter();
-  const proj = projId ? getProjectById(projId) : null;
-  if (!proj && projId) return null;
-  const notes = _loadNotes(projId);
-  const now = Date.now();
-  const note = { id: _noteId(), text: text || '', createdAt: now, updatedAt: now };
-  if (itemRef) note.itemRef = itemRef;
-  notes.push(note);
-  _saveNotes(projId, notes);
-  if (proj) { proj.quickNotes = notes; save(); }
-  return note;
-}
-
-function editNote(noteId, text, itemRef) {
-  const projId = _getActiveProjectFilter();
-  const proj = projId ? getProjectById(projId) : null;
-  const notes = _loadNotes(projId);
-  const idx = notes.findIndex(n => n.id === noteId);
-  if (idx === -1) return false;
-  notes[idx].text = text !== undefined ? text : notes[idx].text;
-  notes[idx].updatedAt = Date.now();
-  if (itemRef !== undefined) {
-    if (itemRef) notes[idx].itemRef = itemRef;
-    else delete notes[idx].itemRef;
-  }
-  _saveNotes(projId, notes);
-  if (proj) { proj.quickNotes = notes; save(); }
-  return true;
-}
-
-function deleteNote(noteId) {
-  const projId = _getActiveProjectFilter();
-  const proj = projId ? getProjectById(projId) : null;
-  const notes = _loadNotes(projId);
-  const filtered = notes.filter(n => n.id !== noteId);
-  if (filtered.length === notes.length) return false;
-  _saveNotes(projId, filtered);
-  if (proj) { proj.quickNotes = filtered; save(); }
-  return true;
-}
-
-function getActiveProjectNotes() {
-  const projId = _getActiveProjectFilter();
-  return _loadNotes(projId);
-}
 
 function _filteredAIs() {
   const state = getState();
@@ -607,7 +529,6 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
   switchTab(_savedTab || 'tracker');
   loadHtmlMap();
   if (typeof renderHoy === 'function') renderHoy();
-  if (typeof renderAIStatusBar === 'function') renderAIStatusBar();
   _updateProjBreadcrumb();
   _updateProjFilterBtn();
   _updateHeaderProjectLabel();

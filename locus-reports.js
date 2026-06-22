@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-10 · mod:8 · autor:Rune · 2026-06-21 UTC-6
 // locus-reports.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
@@ -807,7 +807,7 @@ export function confirmImport() {
 
   // ── Aplicar estado mergeado ───────────────────────────────────────────────
   state = {
-    ...state,          // preservar config local (theme, tags, quickNotes)
+    ...state,          // preservar config local (theme, tags)
     ais:      mergedAIs,
     projects: mergedProjects,
     _stateVersion: d._stateVersion || state._stateVersion

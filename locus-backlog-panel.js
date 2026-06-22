@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:8 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:9 · autor:Rune · 2026-06-21 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -1156,7 +1156,6 @@ document.addEventListener('DOMContentLoaded', () => {
       case 'mention-goto-log':
         e.stopPropagation();
         switchTab('tracker');
-        if (typeof setViewMode === 'function') setViewMode('chrono');
         setTimeout(() => { scrollToLogCard(el.dataset.sessId); }, 150);
         break;
     }

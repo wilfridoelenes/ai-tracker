@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:39 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:40 · autor:Rune · 2026-06-21 UTC-6
 // locus-backlog-item.js
 // T-202606-093: _updateSubtabBadges invocado al cierre de mergeBacklogFromTG (AC-3)
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
@@ -394,7 +394,6 @@ export function _attachBacklogListDelegation() {
     if (act === 'bl-plan-close') {
       const cb = action.dataset.callback;
       if (cb && window[cb]) { window[cb](); }
-      else if (typeof toggleBacklogPlanningMode === 'function') { toggleBacklogPlanningMode(); }
       return;
     }
     if (act === 'es-switch-tab') {

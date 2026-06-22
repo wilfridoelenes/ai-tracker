@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:30 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-10 · mod:31 · autor:Rune · 2026-06-21 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-005: dispatch storage:item-excluded en saveBacklog
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1539,7 +1539,6 @@ function _applyStateData(raw) {
   if (!raw.tags) raw.tags = [];
   if (!raw.projects) raw.projects = [];
   if (!raw._stateVersion) raw._stateVersion = 3;
-  if (!raw.quickNotes) raw.quickNotes = [];
   // T-202606-009: cargar infraVersionData desde state si existe — _parseInfraLine lo pobló en sesión previa.
   if (raw.infraVersionData && typeof raw.infraVersionData.infraVersion === 'number' && raw.infraVersionData.infraVersion > 0) {
     _infraVersionData = raw.infraVersionData;

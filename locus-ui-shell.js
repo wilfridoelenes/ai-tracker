@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-10 · mod:26 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-10 · mod:28 · autor:Rune · 2026-06-21 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -211,7 +211,6 @@ export function switchSubTab(sub) {
     renderStats();
     updateStatusFilterUI();
   }
-  // renderAIStatusBar deprecado 2026-06-21 — función no existe en ningún módulo
   // (a) event dispatch — locus-docs.js escucha 'shell:render-docs-onboarding'
   window.dispatchEvent(new CustomEvent('shell:render-docs-onboarding')); // T-202604-204
 }
@@ -526,8 +525,6 @@ export function onSearch() {
     }
     html += '</div></div>';
   }
-
-  // Grupo Notas deprecado 2026-06-21 — feature QuickNote descartada
 
   // Grupo Contratos — R-202604-075
   if (contratoMatches.length) {
