@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:39 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:40 · autor:Rune · 2026-06-22 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -844,6 +844,12 @@ export function loadBacklog() {
   saveBacklog();
   // AC aria tablist: sincronizar estado inicial de atributos aria desde variables de estado
   _syncViewAriaStates();
+  // inline_fix: badges del sidebar no se poblaban al init — _updateSubtabBadges() solo
+  // se llamaba reactivamente. shell:render-backlog-list dispara renderBacklogList() +
+  // renderStats() + _updateSubtabBadges() sin introducir dependencia circular.
+  // Path Supabase: _loadFromSupabase() ya despacha este evento al terminar (locus-storage.js:1461)
+  // — este dispatch cubre el path localStorage y el snapshot inmediato del path Supabase.
+  window.dispatchEvent(new CustomEvent('shell:render-backlog-list'));
 }
 
 // T-049: derivar tipo del código
