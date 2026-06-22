@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:32 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:33 · autor:Rune · 2026-06-22 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -1674,9 +1674,11 @@ export function renderHistoricoPanel() {
     return;
   }
 
-  // AC-2: badge — archivoItems (sprint cerrado, cualquier status) + legacy historico. 0 → vacío.
+  // AC-2: count interno del panel — se sigue calculando para el empty state y renderArchivoHistorico.
+  // B-202606-087: badge de subtab NUNCA muestra conteo en Histórico (AC T-202606-035, done) —
+  // el conteo es responsabilidad de _updateSubtabBadges(); este call site solo limpia el badge.
   const count = getArchivoHistoricoCount();
-  if (badge) badge.textContent = count > 0 ? String(count) : '';
+  if (badge) badge.textContent = '';
 
   // AC-7: sin sprints cerrados y sin ítems historico — renderArchivoHistorico no inyecta nada
   // en ese caso (early return interno), por eso el empty state se arma aquí explícitamente.
@@ -1773,9 +1775,11 @@ export function _updateSubtabBadges() {
     }
   }
 
+  // B-202606-087: AC T-202606-035 (done) — badge de subtab Histórico nunca muestra conteo.
+  // getArchivoHistoricoCount() se conserva como fuente del panel (renderArchivoHistorico) —
+  // este call site solo deja de escribirlo en el badge.
   if (badgeHistorico) {
-    const count = getArchivoHistoricoCount();
-    badgeHistorico.textContent = count > 0 ? String(count) : '';
+    badgeHistorico.textContent = '';
   }
 }
 
