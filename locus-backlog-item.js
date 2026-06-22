@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:40 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:41 · autor:Rune · 2026-06-22 UTC-6
 // locus-backlog-item.js
 // T-202606-093: _updateSubtabBadges invocado al cierre de mergeBacklogFromTG (AC-3)
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
@@ -1119,12 +1119,18 @@ export function buildBacklogItem(item) {
         <div class="bitem-meta-cell" data-action="bitem-meta-stop">
           <span class="bitem-meta-label">Sprint</span>
           <div id="sprint-select-wrap-${esc(item.code)}">
-            <select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-select-type="sprint">
-              <option value="icebox"${(!item.sprint || item.sprint === 'icebox') ? ' selected' : ''}>icebox</option>
-              ${getActiveSprints().filter(s=>s.status!=='closed').map(s=>`<option value="${esc(s.id)}"${item.sprint===s.id?' selected':''}>${esc(s.label||s.id)}${s.status==='active'?' ★':''}</option>`).join('')}
-              ${item.sprint && item.sprint !== 'icebox' && !getActiveSprints().find(s=>s.id===item.sprint) ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : ''}
-              <option value="__new__">＋ Nuevo sprint...</option>
-            </select>
+            ${/* B-202606-083: T/B con parentId — sprint heredado del R parent, no editable */
+              (item.parentId && (type === 'T' || type === 'B'))
+              ? `<select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-select-type="sprint" disabled title="El sprint se hereda del R parent">
+                  <option value="${esc(item.sprint||'')}" selected>${esc(_sprintDisplay(item.sprint||''))}</option>
+                </select>`
+              : `<select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-select-type="sprint">
+                  <option value="icebox"${(!item.sprint || item.sprint === 'icebox') ? ' selected' : ''}>icebox</option>
+                  ${getActiveSprints().filter(s=>s.status!=='closed').map(s=>`<option value="${esc(s.id)}"${item.sprint===s.id?' selected':''}>${esc(s.label||s.id)}${s.status==='active'?' ★':''}</option>`).join('')}
+                  ${item.sprint && item.sprint !== 'icebox' && !getActiveSprints().find(s=>s.id===item.sprint) ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : ''}
+                  <option value="__new__">＋ Nuevo sprint...</option>
+                </select>`
+            }
           </div>
         </div>
         ${(type === 'T' || type === 'B') ? (() => {

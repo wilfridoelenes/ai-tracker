@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:22 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-HOTFIX · mod:23 · autor:Rune · 2026-06-22 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -865,10 +865,6 @@ function _clearSprintFieldErr(errId) {
   if (prev && prev.tagName === 'INPUT') prev.classList.remove('input-outline-error');
 }
 
-// B-202605-077: confirmNewSprint stub — _bnsf_confirm deprecado 2026-06-21
-function confirmNewSprint(code) {
-  _markBacklogListDirty(); renderBacklogList();
-}
 
 // T-202604-246: edición inline del nombre de sprint desde el header del grupo
 // R-202605-123: incluye campo goal editable
