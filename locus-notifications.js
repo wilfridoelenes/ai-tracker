@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:2 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:3 · autor:Rune · 2026-06-22 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -206,7 +206,7 @@ export function _computeNotifications() {
       if (spPct >= minPct) return;
       const id = 'sprint-low-' + sp.id;
       notifs.push({
-        id, type: 'sprintLow', tab: 'backlog', icon: '\u26A1',
+        id, type: 'sprintLow', tab: 'sprint', icon: '\u26A1',
         title: 'Sprint con avance bajo',
         body: (sp.label || sp.id) + ' \u2014 ' + spPct + '% a mitad del período',
         action: function() {
