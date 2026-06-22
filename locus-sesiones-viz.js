@@ -1,5 +1,6 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:5 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:6 · autor:Rune · 2026-06-21 UTC-6
 // locus-sesiones-viz.js
+// T-202606-010: 2 call sites huérfanos renderHoy eliminados (guard typeof inerte)
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
 //   (_showItemVizPanel), corrección de hora (openCorrectHora).
 // Extraído de: locus-checkpoint-viz.js
@@ -119,7 +120,6 @@ function confirmCorrectHora() {
       lastSess.resetAt = result.label;
     }
     save(); render();
-    if (typeof renderHoy === 'function' && currentTab === 'hoy') renderHoy();
   } else {
     inp.classList.add('error');
     setTimeout(() => inp.classList.remove('error'), 1200);
@@ -141,7 +141,6 @@ function unlockNowFromCard() {
   const modal = document.getElementById('gconfirm-overlay');
   if (modal) modal.classList.remove('open');
   save(); render();
-  if (typeof renderHoy === 'function' && currentTab === 'hoy') renderHoy();
 }
 
 // ─── R-202604-036: _showItemVizPanel — visualizador de ítems al parsear paste ───

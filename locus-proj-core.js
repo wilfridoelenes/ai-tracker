@@ -1,5 +1,6 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:5 · autor:Rune · 2026-06-20 23:45 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:6 · autor:Rune · 2026-06-21 UTC-6
 // locus-proj-core.js
+// T-202606-010: call site huérfano renderHoy eliminado (guard typeof inerte)
 // T-202606-093 AC-4: _updateSubtabBadges() invocada junto a renderIceboxPanel en selectProjectFilter
 // Módulo compartido — símbolos de proyecto sin deps circulares
 // Creado en T-202606-197 (opción d): rompe ciclo locus-projects ↔ locus-sprint-project
@@ -99,7 +100,6 @@ export function selectProjectFilter(projId) {
   loadBacklog();
   loadHtmlMap();
   window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
-  if (typeof renderHoy === 'function') renderHoy();
   if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   renderBacklogList();
   renderIceboxPanel(); // B-202606-052 AC-3: re-render icebox al cambiar proyecto activo — antes solo se actualizaba via shell:backlog-render-dirty, evento que selectProjectFilter no dispara

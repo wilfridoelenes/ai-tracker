@@ -1,5 +1,6 @@
-// [PP] v0.5.0 · sprint:PP-S-10 · mod:9 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:10 · autor:Rune · 2026-06-21 UTC-6
 // locus-sprint-project.js
+// T-202606-010: call site huérfano renderHoy eliminado (guard typeof inerte)
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Gestión de proyectos + helpers de prefijo/sprint
 // Renombrado de ai-tracker-sprint-project.js
@@ -528,7 +529,6 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
   const _savedTab = localStorage.getItem('active-tab');
   switchTab(_savedTab || 'tracker');
   loadHtmlMap();
-  if (typeof renderHoy === 'function') renderHoy();
   _updateProjBreadcrumb();
   _updateProjFilterBtn();
   _updateHeaderProjectLabel();

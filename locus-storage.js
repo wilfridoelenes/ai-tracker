@@ -1,6 +1,6 @@
-// [PP] v0.5.0 · sprint:PP-S-10 · mod:31 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:33 · autor:Rune · 2026-06-21 UTC-6
 // locus-storage.js
-// Última actualización: T-202606-005: dispatch storage:item-excluded en saveBacklog
+// Última actualización: T-202606-010: call site huérfano renderHoy eliminado (guard typeof inerte)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -1449,7 +1449,6 @@ export async function _loadFromSupabase() {
 
     // (a) event dispatch — locus-sesiones.js escucha 'shell:mark-tracker-dirty' + 'shell:render-tracker'
     _dispatch('shell:mark-tracker-dirty'); _dispatch('shell:render-tracker');
-    if (typeof renderHoy === 'function') renderHoy();
     // (a) event dispatch — locus-sesiones-stats.js escucha 'shell:update-stats'
     _dispatch('shell:update-stats');
     // (a) event dispatch — locus-radar.js escucha 'shell:mark-radar-dirty' + 'shell:render-radar'
@@ -1763,7 +1762,8 @@ function _renderAfterAuth() {
   _dispatch('shell:mark-pulso-dirty');
   setTimeout(() => _dispatch('shell:render-pulso-dot'), 600);
   // T-084: verificar umbral de sesiones
-  if (typeof checkStorageWarn === 'function') setTimeout(checkStorageWarn, 500);
+  // T-202606-009: guard typeof eliminado — checkStorageWarn definida en este módulo (ver más abajo)
+  setTimeout(checkStorageWarn, 500);
   // B-202606-XXX: render inicial del backlog desde localStorage — garantiza items visibles
   // aunque Supabase no responda. _loadFromSupabase re-renderiza si hay datos frescos.
   // (a) event dispatch — locus-backlog-render.js escucha 'shell:mark-backlog-dirty' + 'shell:render-backlog-list'
@@ -2050,7 +2050,17 @@ export function _setDocUpdateIndex(index) {
 }
 // ── END T-202606-032 ──────────────────────────────────────────────────────────
 
-// ── T-202606-199: getActivePlan() — retorna plan del proyecto activo desde localStorage ──
+// ── T-202606-009: checkStorageWarn() — conecta _localStorageUsageRatio al panel #storage-warn ──
+// Ownership: locus-storage.js — consume _localStorageUsageRatio (inyectada via _initApp).
+// AC1 happy path: ratio > 0.8 → remueve is-hidden de #storage-warn.
+// AC2 estado normal: ratio <= 0.8 → #storage-warn conserva is-hidden (no se toca).
+// AC3 estado de error: #storage-warn ausente en el DOM → no lanza excepción.
+export function checkStorageWarn() {
+  const panel = document.getElementById('storage-warn');
+  if (!panel) return;
+  if (_localStorageUsageRatio() > 0.8) panel.classList.remove('is-hidden');
+}
+// ── END T-202606-009 ──────────────────────────────────────────────────────────
 // Firma: getActivePlan() → Object | null
 // Ownership: locus-storage.js — consume LOCUS_KEYS.PLAN_PREFIX y getState().activeProjectId
 // Accesible desde locus-backlog-item.js en el mismo ciclo de carga sin guard typeof requerido.
