@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:15 · autor:Rune · 2026-06-15 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:16 · autor:Rune · 2026-06-22 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -218,7 +218,7 @@ export function renderStatusBar() {
         const _sprintPillBtn = _pillWrap.querySelector('.tgh-sprint-pill');
         if (_sprintPillBtn) {
           _sprintPillBtn.addEventListener('click', function() {
-            if (typeof toggleSprintHealthPanel === 'function') toggleSprintHealthPanel();
+            switchTab('sprint');
           });
         }
         _pillWrap.classList.add('hsr-visible');

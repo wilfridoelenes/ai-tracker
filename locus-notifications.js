@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:2 · autor:Rune · 2026-06-22 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -210,8 +210,7 @@ export function _computeNotifications() {
         title: 'Sprint con avance bajo',
         body: (sp.label || sp.id) + ' \u2014 ' + spPct + '% a mitad del período',
         action: function() {
-          switchTab('backlog');
-          if (typeof toggleSprintHealthPanel === 'function') setTimeout(toggleSprintHealthPanel, 80);
+          switchTab('sprint');
         }
       });
     });
