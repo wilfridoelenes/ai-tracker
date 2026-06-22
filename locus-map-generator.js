@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:4 · autor:Rune · 2026-06-22 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -282,6 +282,22 @@ function _mgLoadFiles(fileList) {
   rejected.forEach(f => {
     showToast('warning', `${f.name} excluido — archivos de entorno no se importan al MAP`);
   });
+
+  // T-202606-031: si se arrastra un .md con patrón vX.Y.Z en el nombre, extraer versión y popular el input
+  // El .md no se agrega a _mapGen.files — solo sirve para poblar el campo versión del header interno
+  const mdFiles = fileList.filter(f => f.name.toLowerCase().endsWith('.md'));
+  mdFiles.forEach(f => {
+    const verMatch = f.name.match(/v(\d+\.\d+(?:\.\d+)*)/i);
+    if (verMatch) {
+      const vInput = document.getElementById('mg-version-input');
+      const fPreview = document.getElementById('mg-filename-preview');
+      const prefix = _docPrefix();
+      if (vInput) vInput.value = `v${verMatch[1]}`;
+      if (fPreview) fPreview.textContent = `${prefix}-MAP_v${verMatch[1]}.md`;
+    }
+    // .md sin patrón vX.Y.Z: ignorar silenciosamente — comportamiento actual conservado como fallback (AC edge case)
+  });
+
   const valid = fileList.filter(f => !excluded.test(f.name) && allowed.some(ext => f.name.toLowerCase().endsWith(ext)));
   if (!valid.length) return;
 
