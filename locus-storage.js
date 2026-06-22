@@ -1,6 +1,6 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:33 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:34 · autor:Rune · 2026-06-21 UTC-6
 // locus-storage.js
-// Última actualización: T-202606-010: call site huérfano renderHoy eliminado (guard typeof inerte)
+// Última actualización: T-202606-027: listener de cierre conectado a storage-warn-close-btn
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -2005,6 +2005,16 @@ function _initStorageListeners() {
   // User menu item — cerrar sesión
   const userBtn = document.getElementById('mm-btn-user');
   if (userBtn) userBtn.addEventListener('click', () => { signOutSupabase(); });
+
+  // T-202606-027: cierre de panel de aviso de almacenamiento — puramente visual,
+  // no invoca saveBacklog ni _purgeStaleBacklogCache (AC3 — sin efecto lateral)
+  const storageWarnCloseBtn = document.getElementById('storage-warn-close-btn');
+  if (storageWarnCloseBtn) {
+    storageWarnCloseBtn.addEventListener('click', () => {
+      const panel = document.getElementById('storage-warn');
+      if (panel) panel.classList.add('is-hidden');
+    });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', _initStorageListeners);
