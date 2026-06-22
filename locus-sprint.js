@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-HOTFIX · mod:53 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:54 · autor:Rune · 2026-06-21 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1487,15 +1487,6 @@ export function renderSprintTab() {
   // Ítems
   if (itemsList) itemsList.classList.remove('is-hidden');
   _renderSprintItems(sprint);
-
-  // Sprint Health panel (vive en locus-backlog-render.js)
-  if (typeof _buildSprintHealthPanel === 'function') {
-    const healthEl = _spEl('sprint-health-panel');
-    if (healthEl) {
-      healthEl.innerHTML = _buildSprintHealthPanel(sprint.id);
-      healthEl.classList.remove('is-hidden');
-    }
-  }
 
   // Gestión del sprint — R-202605-006
   _spmUpdateButtons(sprint);
