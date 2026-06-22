@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:6 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:7 · autor:Rune · 2026-06-22 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -319,10 +319,19 @@ export function renderGlobalRadarSidebar() {
   const _getSessions = (ai) => _sessionsCache[ai.id] || [];
 
   const interrupted = active.filter(a => a.interrupted);
-  const inSession   = active.filter(a => !a.interrupted && _isInSession(a));
+  // T-202606-037: inSession ordenado por recencia de última sesión — descendente
+  // Timestamp: Math.max de createdAt||date||0 por sesión — consistente con B-202606-044
+  const inSession   = active
+    .filter(a => !a.interrupted && _isInSession(a))
+    .sort((a, b) => {
+      const tA = _getSessions(a).reduce((mx, s) => Math.max(mx, s.createdAt || s.date || 0), 0);
+      const tB = _getSessions(b).reduce((mx, s) => Math.max(mx, s.createdAt || s.date || 0), 0);
+      return tB - tA;
+    });
+  // T-202606-038: available ordenado alfabéticamente por nombre — reemplaza sort por _hoyMsUntilReset
   const available   = active
     .filter(a => a.status === 'available' && !a.interrupted && !_isInSession(a))
-    .sort((a, b) => _hoyMsUntilReset(a) - _hoyMsUntilReset(b));
+    .sort((a, b) => a.name.localeCompare(b.name));
   const exhausted   = active
     .filter(a => a.status === 'exhausted' && !a.interrupted)
     .sort((a, b) => _hoyMsUntilReset(a) - _hoyMsUntilReset(b));
