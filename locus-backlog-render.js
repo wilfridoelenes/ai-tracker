@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:31 · autor:Rune · 2026-06-21 15:05 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:32 · autor:Rune · 2026-06-22 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -1597,9 +1597,11 @@ export function renderHotfixPanel() {
     const countable = allHotfix.filter(i => i.status !== 'historico' && i.status !== 'descartado');
     if (!countable.length) {
       badge.textContent = '';
+      badge.classList.remove('tpl-nav-badge--danger');
     } else {
       const hasUrgent = activeHotfix.some(i => i.priority === 'high');
-      badge.textContent = (hasUrgent ? '🔴' : '') + countable.length;
+      badge.textContent = String(countable.length);
+      badge.classList.toggle('tpl-nav-badge--danger', hasUrgent);
     }
   }
 
@@ -1762,10 +1764,12 @@ export function _updateSubtabBadges() {
     const countable = allHotfix.filter(i => i.status !== 'historico' && i.status !== 'descartado');
     if (!countable.length) {
       badgeHotfix.textContent = '';
+      badgeHotfix.classList.remove('tpl-nav-badge--danger');
     } else {
       const activeHotfix = allHotfix.filter(i => i.status === 'pendiente' || i.status === 'en-revision');
       const hasUrgent = activeHotfix.some(i => i.priority === 'high');
-      badgeHotfix.textContent = (hasUrgent ? '🔴' : '') + countable.length;
+      badgeHotfix.textContent = String(countable.length);
+      badgeHotfix.classList.toggle('tpl-nav-badge--danger', hasUrgent);
     }
   }
 

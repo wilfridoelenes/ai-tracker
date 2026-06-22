@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:19 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:20 · autor:Rune · 2026-06-22 UTC-6
 // locus-backlog-merge.js
 // Última actualización: T-202606-006: _mdiffStepZeroActive + listener storage:item-excluded
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -1083,6 +1083,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
             const from = item.status;
             item.status = retroItem.to;
             item.statusChangedAt = Date.now();
+            // B-202606-085: limpiar doneAt al retroceder desde done — mismo patrón que _confirmRetroceso
+            if (from === 'done') item.doneAt = null;
             _blogLog('retroceso', retroItem.code, from + ' → ' + retroItem.to, 'backlog');
           }
         }

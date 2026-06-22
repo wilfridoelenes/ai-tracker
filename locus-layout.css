@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:4 · autor:Nova · 2026-06-20 */
+/* [PP] v0.5.0 · sprint:PP-S-01 · mod:5 · autor:Nova · 2026-06-22 */
 /* locus-layout.css */
 
 /* Versión: 2.1 | Última actualización: 2026-05-22 | Selectores compartidos consolidados — T-202605-031 */
@@ -1288,6 +1288,36 @@ header {
 .doc-subtab-btn.active::before,
 .sspanel-btn.active::before {
   background: var(--accent);
+}
+
+/* tpl-nav-badge — conteo de ítems en subtabs de sidebar (T-[pendiente-ID]) */
+.tpl-nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  border-radius: var(--radius-sm);
+  background: var(--surface3);
+  color: var(--text2);
+  border: 1px solid var(--border);
+  transition: opacity 0.14s;
+}
+
+.tpl-nav-badge--danger {
+  background: color-mix(in srgb, var(--red) 15%, transparent);
+  color: var(--red);
+  border-color: color-mix(in srgb, var(--red) 30%, transparent);
+}
+
+.tpl-nav-btn.active .tpl-nav-badge {
+  display: none;
 }
 
 /* T-391 · Filtros Analytics — pill group agrupado */

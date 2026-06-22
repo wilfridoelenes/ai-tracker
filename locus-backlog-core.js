@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:38 · autor:Rune · 2026-06-21 15:05 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:39 · autor:Rune · 2026-06-22 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -521,11 +521,19 @@ function _sanitizePendingInClosedSprints() {
       count++;
     }
   });
-  // Segunda pasada: ítems con doneAt populado pero status pendiente
+  // Segunda pasada: ítems con doneAt populado pero status distinto de done/descartado/historico
   // Causa: merge desde CHECKPOINT sobrescribió status sin respetar doneAt existente
+  // B-202606-085: _mdiffDoApply no limpiaba doneAt al retroceder — produce en-revision + doneAt
   // B-202604-[pendiente-ID]: si el ítem tiene discardReason, el status correcto es 'descartado', no 'done'
   // B-202605-008: snapshot antes de mutar — resultado deshacible via undoBacklog()
-  const pendingWithDoneAt = ITEMS.filter(item => item.status === 'pendiente' && item.doneAt);
+  // B-202606-086: filtro ampliado — antes solo capturaba status 'pendiente', ahora captura cualquier
+  //   status activo (pendiente, en-revision, bloqueado, etc.) con doneAt populado
+  const pendingWithDoneAt = ITEMS.filter(item =>
+    item.doneAt &&
+    item.status !== 'done' &&
+    item.status !== 'descartado' &&
+    item.status !== 'historico'
+  );
   if (pendingWithDoneAt.length > 0) _undoSnapshot();
   let revived = 0;
   pendingWithDoneAt.forEach(item => {
@@ -535,7 +543,7 @@ function _sanitizePendingInClosedSprints() {
       item.history.push({
         type: 'status',
         ts: Date.now(),
-        data: { from: 'pendiente', to: targetStatus, reason: 'sanitize-doneat-mismatch' }
+        data: { from: item.status, to: targetStatus, reason: 'sanitize-doneat-mismatch' }
       });
       revived++;
     });
