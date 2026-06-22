@@ -1,6 +1,6 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:34 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:35 · autor:Rune · 2026-06-21 UTC-6
 // locus-storage.js
-// Última actualización: T-202606-027: listener de cierre conectado a storage-warn-close-btn
+// Última actualización: B-202606-069: openAuthModal / closeAuthModal definidas
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -2092,3 +2092,19 @@ export function getActivePlan() {
     return null;
   }
 }
+
+// ── B-202606-069: openAuthModal / closeAuthModal ──────────────────────────────
+// AC1 happy path — close: #auth-modal-overlay.classList.add('is-hidden')
+// AC2 happy path — open: #auth-modal-overlay.classList.remove('is-hidden')
+// AC3 estado de error: overlay ausente en DOM → sin excepción
+// AC4 cancel btn: listener en _initStorageListeners() lo invoca (typeof guard cumplido)
+export function closeAuthModal() {
+  const overlay = document.getElementById('auth-modal-overlay');
+  if (overlay) overlay.classList.add('is-hidden');
+}
+
+export function openAuthModal() {
+  const overlay = document.getElementById('auth-modal-overlay');
+  if (overlay) overlay.classList.remove('is-hidden');
+}
+// ── END B-202606-069 ──────────────────────────────────────────────────────────
