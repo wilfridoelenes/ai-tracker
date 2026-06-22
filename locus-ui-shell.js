@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-10 · mod:28 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:29 · autor:Rune · 2026-06-22 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -172,8 +172,7 @@ export function switchSubTab(sub) {
     window.dispatchEvent(new CustomEvent('shell:load-backlog'));
     // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-backlog-list'
     window.dispatchEvent(new CustomEvent('shell:render-backlog-list'));
-    // (a) event dispatch — locus-backlog-core.js escucha 'shell:render-stats'
-    window.dispatchEvent(new CustomEvent('shell:render-stats'));
+    // renderStats() se llama directamente — no hay listener de shell:render-stats
     // (a) event dispatch — locus-docs.js escucha 'shell:update-backlog-modification-badge'
     window.dispatchEvent(new CustomEvent('shell:update-backlog-modification-badge'));
   }

@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-housekeeping · mod:22 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-housekeeping · mod:23 · autor:Rune · 2026-06-22 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -948,6 +948,18 @@ function _buildItemFieldsMd(item, state) {
   // T-202606-065: triggered_by — emitir siempre en Bs con n/a si no existe
   if (item.code && item.code[0] === 'B') {
     md += `**TriggeredBy:** ${item.triggered_by || 'n/a'}\n`;
+  }
+  // T-202606-030: triggered_by en T y P — opcional, omitir si no existe
+  if (item.code && (item.code[0] === 'T' || item.code[0] === 'P') && item.triggered_by) {
+    md += `**TriggeredBy:** ${item.triggered_by}\n`;
+  }
+  // T-202606-030: promovida_a — solo P con promovida_a declarado
+  if (item.code && item.code[0] === 'P' && item.promovida_a) {
+    md += `**PromovidaA:** ${item.promovida_a}\n`;
+  }
+  // T-202606-030: origen_p — R, T, B que trazan su origen a una P
+  if (item.code && item.origen_p) {
+    md += `**OrigenP:** ${item.origen_p}\n`;
   }
   if (item.archivos && item.archivos.length)   md += `**Archivos:** ${item.archivos.join(', ')}\n`;
   if (item.desc)     md += `\n${item.desc}\n`;

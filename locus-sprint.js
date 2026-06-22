@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:54 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:55 · autor:Rune · 2026-06-22 12:35 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -289,9 +289,10 @@ function _renderSpsActivo() {
   // Burndown — ítems done/total (R/B/T, sin descartados)
   let total = 0;
   let done  = 0;
+  let spItems = [];
   if (Array.isArray(getItems())) {
     const _sid = _spIdBase(id);
-    const spItems = getItems().filter(i => {
+    spItems = getItems().filter(i => {
       const t = i.type || (i.code ? i.code.charAt(0) : '');
       return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
         (t === 'R' || t === 'B' || t === 'T') &&
@@ -301,6 +302,11 @@ function _renderSpsActivo() {
     done  = spItems.filter(i => i.status === 'done').length;
   }
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+  // T-202606-034: conteo de bloqueados — reutiliza _sprintIsBlocked() ya
+  // existente (L48), misma fuente que _sprintItemHtml() usa para el listado.
+  // Un solo recorrido sobre spItems ya filtrado — no se recalcula el universo.
+  const bloqueadosCount = spItems.filter(i => i.status !== 'done' && _sprintIsBlocked(i)).length;
 
   // T-202606-003: modificador visual para sprint pausado
   const pausadoCls = sprint.status === 'pausado' ? ' sps-card--pausado' : '';
@@ -332,11 +338,34 @@ function _renderSpsActivo() {
         '</div>' +
         '<span class="sps-burndown-label">' + done + ' / ' + total + ' ítems done</span>' +
       '</div>' +
+    '</div>' +
+    '<div class="sph-panel">' +
+      '<span class="sph-title">Salud del sprint</span>' +
+      '<div class="sph-row">' +
+        '<div class="sph-bar-track">' +
+          '<div class="sph-bar-fill"></div>' +
+        '</div>' +
+        '<span class="sph-pct">' + pct + '%</span>' +
+      '</div>' +
+      '<span class="sph-count">' + done + ' / ' + total + ' ítems</span>' +
+      '<div class="sph-alert">' +
+        '<span class="sph-alert-icon">⚠</span>' +
+        '<span class="sph-alert-text">' + bloqueadosCount + ' ítems bloqueados</span>' +
+      '</div>' +
     '</div>';
 
-  // CSS Purity: variable de progreso via setProperty
+  // CSS Purity: variable de progreso via setProperty — un solo cálculo (pct),
+  // consumido por .sps-burndown-fill (card) y .sph-bar-fill (panel nuevo)
+  // dentro del mismo scope de container.
   const fillEl = container.querySelector('.sps-burndown-fill');
   if (fillEl) fillEl.style.setProperty('--sps-burndown-pct', pct + '%');
+  const sphFillEl = container.querySelector('.sph-bar-fill');
+  if (sphFillEl) sphFillEl.style.setProperty('--sps-burndown-pct', pct + '%');
+
+  // T-202606-034: fila de alerta — visibilidad por classList, nunca por
+  // ausencia/presencia en el DOM (CSS Purity / no innerHTML condicional).
+  const sphAlertEl = container.querySelector('.sph-alert');
+  if (sphAlertEl) sphAlertEl.classList.toggle('is-visible', bloqueadosCount > 0);
 
   // Menú ···
   container.removeEventListener('click', _spsActivoHandleClick);
