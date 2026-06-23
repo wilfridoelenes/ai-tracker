@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:33 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-07 · mod:34 · autor:Rune · 2026-06-22 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -9,7 +9,7 @@
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
 import { renderArchivoHistorico, toggleArchivoHistorico, getArchivoHistoricoCount } from './locus-backlog-archive.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isIcebox, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems } from './locus-backlog-core.js';
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isIcebox, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation
 
@@ -1479,12 +1479,12 @@ export function renderIceboxPanel() {
     return;
   }
 
-  // B-202606-075 AC1/AC2: aplicar filtros activos de tipo/status/prioridad/búsqueda —
-  // mismo criterio que renderBacklogList(), reutilizando los getters ya exportados por locus-backlog-core.js.
-  const _activeTypesIb = _getActiveTypes();
-  const _activeStatusesIb = _getActiveStatuses();
-  const _activePriorityIb = _getActivePriorityFilter();
-  const _qIb = (_getBacklogSearchQuery() || '').trim().toLowerCase();
+  // T-202606-005 (T2): filtros leídos desde namespace icebox — aislado del state global de Backlog.
+  // Cambiar filtro en Icebox no afecta activeTypes/activeStatuses/activePriorityFilter de Backlog.
+  const _activeTypesIb   = _nsGetTypes('icebox');
+  const _activeStatusesIb = _nsGetStatuses('icebox');
+  const _activePriorityIb = _nsGetPriority('icebox');
+  const _qIb = (_nsGetQuery('icebox') || '').trim().toLowerCase();
   const _matchesSearchIb = _qIb
     ? i => i.code.toLowerCase().includes(_qIb) || (i.title || '').toLowerCase().includes(_qIb) || (i.area || '').toLowerCase().includes(_qIb)
     : () => true;
@@ -1584,22 +1584,20 @@ export function renderHotfixPanel() {
     return;
   }
 
-  const _isHotfix = i => (i.sprint || '').toUpperCase().includes('HOTFIX');
+  const _isHotfixItem = i => (i.sprint || '').toUpperCase().includes('HOTFIX');
   // AC-5: ítems hotfix del proyecto activo — excluir descartados del conteo y del render
-  const allHotfix      = getItems().filter(_isHotfix);
-  const activeHotfix   = allHotfix.filter(i => i.status === 'pendiente' || i.status === 'en-revision');
-  const resolvedHotfix = allHotfix.filter(i => i.status === 'done');
+  const allHotfix = getItems().filter(_isHotfixItem);
 
   // AC-2: badge con conteo de no-descartados y no-historicos
   // AC-3: prefijo 🔴 si hay al menos un activo con priority:high
   const badge = document.getElementById('tpl-badge-hotfix');
   if (badge) {
-    const countable = allHotfix.filter(i => i.status !== 'historico' && i.status !== 'descartado');
+    const countable   = allHotfix.filter(i => i.status !== 'historico' && i.status !== 'descartado');
+    const hasUrgent   = countable.some(i => (i.status === 'pendiente' || i.status === 'en-revision') && i.priority === 'high');
     if (!countable.length) {
       badge.textContent = '';
       badge.classList.remove('tpl-nav-badge--danger');
     } else {
-      const hasUrgent = activeHotfix.some(i => i.priority === 'high');
       badge.textContent = String(countable.length);
       badge.classList.toggle('tpl-nav-badge--danger', hasUrgent);
     }
@@ -1615,27 +1613,110 @@ export function renderHotfixPanel() {
     return;
   }
 
-  // AC-10: solo resueltos — sección Activos omitida
-  // AC-5: secciones Activos y Resueltos en ese orden; descartados omitidos
-  let html = '';
+  // T-202606-005 (T2): stats-bar Hotfix — namespace propio aislado del state global de Backlog
+  const _hfTypes    = _nsGetTypes('hotfix');
+  const _hfPriority = _nsGetPriority('hotfix');
+  const _hfQuery    = (_nsGetQuery('hotfix') || '').trim().toLowerCase();
 
-  if (activeHotfix.length) {
-    html += '<div class="hotfix-section">';
-    html += '<div class="hotfix-section-header">Activos</div>';
-    html += '<div class="items-grid">';
-    activeHotfix.forEach(item => { html += buildBacklogItem(item); });
-    html += '</div></div>';
+  // Conteos para stats-bar (sobre universo completo, sin filtro de tipo/prioridad/búsqueda)
+  const _countByType = { B: 0, T: 0, R: 0, P: 0 };
+  const _countByPri  = { high: 0, medium: 0, low: 0 };
+  const _displayable = allHotfix.filter(i => i.status !== 'descartado' && i.status !== 'historico');
+  _displayable.forEach(i => {
+    const t = itemType(i.code);
+    if (t && _countByType[t] !== undefined) _countByType[t]++;
+    const p = i.priority;
+    if (p === 'high' || p === 'important' || p === 'critical' || p === 'importante') _countByPri.high++;
+    else if (p === 'low' || p === 'futura' || p === 'baja') _countByPri.low++;
+    else _countByPri.medium++;
+  });
+
+  // Stats-bar Hotfix: chips de tipo filtrables + chips de prioridad + búsqueda
+  // AC accesibilidad: foco visible via CSS + contraste 4.5:1 esperado del sistema de diseño
+  const _statsBarHtml = `
+    <div class="hotfix-stats-bar" id="hotfix-stats-bar">
+      <div class="hotfix-stats-types">
+        ${_hfTypes.size < 4 ? `<button class="stat-type-chip stat-type-chip--all" data-hf-action="hf-clear-types" title="Mostrar todos los tipos">✕</button>` : ''}
+        ${[['B','Bug'],['T','Ticket'],['R','Req']].map(([t, label]) =>
+          `<button class="stat-type-chip tc-${t}${_hfTypes.has(t) ? ' active' : ''}" data-hf-action="hf-type" data-hf-type="${t}" title="Filtrar por tipo ${t}">\
+<span class="tc-count">${_countByType[t]}</span><span class="tc-label">${label}</span></button>`
+        ).join('')}
+      </div>
+      <div class="hotfix-stats-priority">
+        <button class="stat-pri-chip pri-high${_hfPriority.has('high') ? ' active' : ''}" data-hf-action="hf-priority" data-hf-priority="high" title="Filtrar prioridad alta"><span class="spc-n">${_countByPri.high}</span> Alto</button>
+        <button class="stat-pri-chip pri-medium${_hfPriority.has('medium') ? ' active' : ''}" data-hf-action="hf-priority" data-hf-priority="medium" title="Filtrar prioridad media"><span class="spc-n">${_countByPri.medium}</span> Med</button>
+        <button class="stat-pri-chip pri-low${_hfPriority.has('low') ? ' active' : ''}" data-hf-action="hf-priority" data-hf-priority="low" title="Filtrar prioridad baja"><span class="spc-n">${_countByPri.low}</span> Bajo</button>
+      </div>
+      <input class="hotfix-search-input" type="search" placeholder="Buscar hotfix…" value="${_hfQuery.replace(/"/g,'&quot;')}" data-hf-action="hf-search" aria-label="Buscar en hotfix">
+    </div>`;
+
+  // Aplicar filtros del namespace hotfix para render de lista
+  const _matchesHfSearch = _hfQuery
+    ? i => i.code.toLowerCase().includes(_hfQuery) || (i.title || '').toLowerCase().includes(_hfQuery) || (i.area || '').toLowerCase().includes(_hfQuery)
+    : () => true;
+  const filteredHotfix = _displayable.filter(i => {
+    const t = itemType(i.code);
+    const typeOk = t ? _hfTypes.has(t) : true;
+    const priOk  = _hfPriority.size === 0 || _hfPriority.has(i.priority) ||
+                   (_hfPriority.has('high') && (i.priority === 'important' || i.priority === 'critical' || i.priority === 'importante')) ||
+                   (_hfPriority.has('low')  && (i.priority === 'futura' || i.priority === 'baja'));
+    return typeOk && priOk && _matchesHfSearch(i);
+  });
+
+  // AC — empty-state cuando el filtro activo deja 0 ítems
+  const _listHtml = filteredHotfix.length === 0
+    ? `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">Sin resultados</div><div class="empty-state-hint">Ningún hotfix coincide con el filtro activo.</div></div>`
+    : (() => {
+        const activeHotfix   = filteredHotfix.filter(i => i.status === 'pendiente' || i.status === 'en-revision');
+        const resolvedHotfix = filteredHotfix.filter(i => i.status === 'done');
+        let h = '';
+        if (activeHotfix.length) {
+          h += '<div class="hotfix-section"><div class="hotfix-section-header">Activos</div><div class="items-grid">';
+          activeHotfix.forEach(item => { h += buildBacklogItem(item); });
+          h += '</div></div>';
+        }
+        if (resolvedHotfix.length) {
+          h += '<div class="hotfix-section"><div class="hotfix-section-header">Resueltos</div><div class="items-grid">';
+          resolvedHotfix.forEach(item => { h += buildBacklogItem(item); });
+          h += '</div></div>';
+        }
+        return h;
+      })();
+
+  body.innerHTML = _statsBarHtml + _listHtml;
+
+  // Delegación de eventos en stats-bar Hotfix — registrada una sola vez por render
+  const _hfBar = body.querySelector('#hotfix-stats-bar');
+  if (_hfBar && !_hfBar._delegationAttached) {
+    _hfBar._delegationAttached = true;
+    _hfBar.addEventListener('click', function _hfBarClick(e) {
+      const el = e.target.closest('[data-hf-action]');
+      if (!el) return;
+      const act = el.dataset.hfAction;
+      if (act === 'hf-clear-types') {
+        _nsReset('hotfix');
+        renderHotfixPanel();
+      } else if (act === 'hf-type') {
+        _nsToggleType('hotfix', el.dataset.hfType);
+        renderHotfixPanel();
+      } else if (act === 'hf-priority') {
+        _nsTogglePriority('hotfix', el.dataset.hfPriority);
+        renderHotfixPanel();
+      }
+    });
+    // Búsqueda con debounce ligero
+    const _hfSearchInput = _hfBar.querySelector('[data-hf-action="hf-search"]');
+    if (_hfSearchInput) {
+      let _hfSearchTimer;
+      _hfSearchInput.addEventListener('input', function () {
+        clearTimeout(_hfSearchTimer);
+        _hfSearchTimer = setTimeout(() => {
+          _nsSetQuery('hotfix', this.value);
+          renderHotfixPanel();
+        }, 200);
+      });
+    }
   }
-
-  if (resolvedHotfix.length) {
-    html += '<div class="hotfix-section">';
-    html += '<div class="hotfix-section-header">Resueltos</div>';
-    html += '<div class="items-grid">';
-    resolvedHotfix.forEach(item => { html += buildBacklogItem(item); });
-    html += '</div></div>';
-  }
-
-  body.innerHTML = html;
 }
 
 // T-202606-091: listener shell:render-hotfix — despachado por switchSubTab en locus-ui-shell.js

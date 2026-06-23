@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-07 · mod:41 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-07 · mod:42 · autor:Rune · 2026-06-22 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -188,6 +188,59 @@ export function _updateUndoUI() {
 }
 
 let backlogSearchQuery = '';
+
+// T-202606-005 (T2): namespaces de filtro aislados por subtab — icebox y hotfix tienen su
+// propio state independiente del state global de Backlog (activeTypes/activeStatuses/etc).
+// Cold start: todos los tipos/statuses habilitados, searchQuery vacío — sin herencia del global.
+const _subtabNS = {
+  icebox: {
+    types:    new Set(['T','R','B','P']),
+    statuses: new Set(['pendiente','en-revision','done','descartado','promovida']),
+    priority: new Set(),
+    query:    ''
+  },
+  hotfix: {
+    types:    new Set(['T','R','B','P']),
+    statuses: new Set(['pendiente','en-revision','done','descartado','promovida']),
+    priority: new Set(),
+    query:    ''
+  }
+};
+
+// Getters de namespace por subtab
+export function _nsGetTypes(sub)    { return _subtabNS[sub] ? _subtabNS[sub].types    : new Set(['T','R','B','P']); }
+export function _nsGetStatuses(sub) { return _subtabNS[sub] ? _subtabNS[sub].statuses : new Set(['pendiente','en-revision']); }
+export function _nsGetPriority(sub) { return _subtabNS[sub] ? _subtabNS[sub].priority : new Set(); }
+export function _nsGetQuery(sub)    { return _subtabNS[sub] ? _subtabNS[sub].query    : ''; }
+
+// Setters de namespace por subtab
+export function _nsSetQuery(sub, q) {
+  if (!_subtabNS[sub]) return;
+  _subtabNS[sub].query = q;
+}
+
+// Toggle de tipo en namespace
+export function _nsToggleType(sub, type) {
+  if (!_subtabNS[sub]) return;
+  const s = _subtabNS[sub].types;
+  if (s.has(type)) { s.delete(type); } else { s.add(type); }
+}
+
+// Toggle de prioridad en namespace
+export function _nsTogglePriority(sub, pri) {
+  if (!_subtabNS[sub]) return;
+  const s = _subtabNS[sub].priority;
+  if (s.has(pri)) { s.delete(pri); } else { s.add(pri); }
+}
+
+// Reset de namespace (todos los filtros al estado inicial)
+export function _nsReset(sub) {
+  if (!_subtabNS[sub]) return;
+  _subtabNS[sub].types    = new Set(['T','R','B','P']);
+  _subtabNS[sub].statuses = new Set(['pendiente','en-revision','done','descartado','promovida']);
+  _subtabNS[sub].priority = new Set();
+  _subtabNS[sub].query    = '';
+}
 let _backlogSelectedCode = null; // T-202604-253: ítem seleccionado para Space → done
 // T-202604-424: sprint eliminado como opción de sort — la agrupación por sprint es el modo de vista por defecto
 // Opciones válidas: priority | effort | type | code | completedAt | createdAt

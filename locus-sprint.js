@@ -1051,122 +1051,6 @@ function _renderPlannedSprints() {
 
 // ── END T-202606-040 ──────────────────────────────────────────────────────────
 
-// ── T-202605-123: Gestor de sprints — lista completa con progreso y acceso a retro ──
-
-function _renderSprintManager() {
-  const container = document.getElementById('sprint-manager-list');
-  if (!container) return;
-
-  // T-202606-040: sección "Sprints planificados" — independiente de si hay
-  // sprints registrados en getActiveSprints(), por eso va antes del early-return
-  _renderPlannedSprints();
-
-  const allSprints = getActiveSprints();
-
-  // T-202606-001: Sección HOTFIX — siempre antes de la lista normal
-  _renderHotfixSection(allSprints);
-
-  // T-202606-002: Resumen agregado — sprints normales (isHotfix falsy)
-  _renderSprintSummaryTable(allSprints);
-
-  if (!allSprints || allSprints.length === 0) {
-    container.innerHTML = '<div class="sml-empty">No hay sprints registrados</div>';
-    return;
-  }
-
-  // Excluir HOTFIX de la lista principal — T-202606-001 AC-6 no-regresión
-  // B-202606-019: incluir 'scheduled' en ordered — antes quedaban excluidos y no aparecían en Tab Sprints.
-  // El filtro de closed usaba status !== 'active' (capturaba scheduled + closed), pero la construcción
-  // de rows trataba todo lo que no es active como 'Cerrado', haciendo scheduled invisible.
-  // Separar en tres grupos explícitos: active, scheduled, closed.
-  const active    = allSprints.filter(s => s.status === 'active' && !s.isHotfix);
-  const scheduled = allSprints.filter(s => s.status === 'scheduled' && !s.isHotfix);
-  const closed    = allSprints
-    .filter(s => s.status === 'closed' && !s.isHotfix)
-    .sort((a, b) => (b.closedAt || b.createdAt || 0) - (a.closedAt || a.createdAt || 0));
-
-  const ordered = [...active, ...scheduled, ...closed];
-
-  if (!ordered.length) {
-    container.innerHTML = '<div class="sml-empty">No hay sprints registrados</div>';
-    return;
-  }
-
-  const rows = ordered.map(sprint => {
-    const isActive  = sprint.status === 'active';
-    const hasRetro  = !!sprint.retroDoc;
-
-    // Calcular progreso desde getItems()
-    let total = 0;
-    let done  = 0;
-    if (Array.isArray(getItems())) {
-      // B-202606-006: incluir T en el conteo — el filtro anterior excluía Ts del burndown
-      const _sid = _spIdBase(sprint.id); // B-202606-008
-      const spItems = getItems().filter(i => {
-        const t = i.type || (i.code ? i.code.charAt(0) : '');
-        return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-          (t === 'R' || t === 'B' || t === 'T') &&
-          i.status !== 'descartado';
-      });
-      total = spItems.length;
-      done  = spItems.filter(i => i.status === 'done').length;
-    }
-
-    const pct       = total > 0 ? Math.round((done / total) * 100) : 0;
-    // B-202606-019: declarar isScheduled e isClosed antes de isFullDone — isFullDone los referencia.
-    const isScheduled = sprint.status === 'scheduled';
-    const isClosed    = !isActive && !isScheduled;
-    const isFullDone = isClosed && pct === 100;
-
-    const label     = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name ? `${sprint.id} · ${sprint.name}` : sprint.id);
-    // B-202606-019: status 'scheduled' recibe label y clase propios — no colapsado en 'Cerrado'.
-    const statusCls = isActive    ? 'sml-badge--active'
-                    : isScheduled ? 'sml-badge--scheduled'
-                    : 'sml-badge--closed';
-    const statusTxt = isActive    ? 'Activo'
-                    : isScheduled ? 'Programado'
-                    : 'Cerrado';
-    const rowCls    = isActive    ? 'sml-row sml-row--active'
-                    : isScheduled ? 'sml-row sml-row--scheduled'
-                    : 'sml-row';
-    const barCls    = isFullDone ? 'sml-bar-fill sml-bar-fill--done' : 'sml-bar-fill';
-
-    const retroBtn  = (isClosed && hasRetro)
-      ? `<button class="sml-retro-btn" data-sprint-id="${sprint.id}" type="button">Ver retro</button>`
-      : '';
-
-    // T-202605-134: badge "En curso" (current:true) y botón "Marcar en curso" (active + current:false)
-    const isCurrent    = isActive && !!sprint.current;
-    const canMarkCurrent = isActive && !sprint.current;
-    const currentBadge = isCurrent
-      ? `<span class="sml-badge sml-badge--current" data-sprint-current-badge="${sprint.id}">En curso</span>`
-      : `<span class="sml-badge sml-badge--current is-hidden" data-sprint-current-badge="${sprint.id}">En curso</span>`;
-    const currentBtn   = canMarkCurrent
-      ? `<button class="sml-current-btn" data-sprint-set-current="${sprint.id}" type="button" aria-pressed="false" title="Marcar como sprint en curso">Marcar en curso</button>`
-      : `<button class="sml-current-btn is-hidden" data-sprint-set-current="${sprint.id}" type="button" aria-pressed="${isCurrent}" title="${isCurrent ? 'Desmarcar sprint en curso' : 'Marcar como sprint en curso'}">Marcar en curso</button>`;
-
-    return `<div class="${rowCls}">
-  <div class="sml-row-top">
-    <span class="sml-row-name">${label}</span>
-    <span class="sml-badge ${statusCls}">${statusTxt}</span>
-    ${currentBadge}
-    ${currentBtn}
-    ${retroBtn}
-  </div>
-  <div class="sml-row-bottom">
-    <div class="sml-bar-track" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${label}: ${pct}% completado">
-      <div class="${barCls}" style="--sml-bar-width:${pct}%"></div>
-    </div>
-    <span class="sml-row-count">${done} done / ${total} total</span>
-  </div>
-</div>`;
-  }).join('');
-
-  container.innerHTML = rows;
-}
-
-// ── END T-202605-123 ─────────────────────────────────────────────────────────
-
 // ── T-202606-001: Sección HOTFIX diferenciada en subtab Ítems ────────────────
 //
 // Renderiza en #sprint-hotfix-list una sección con label fija 'PP-S-HOTFIX · Sprint persistente'
@@ -1436,7 +1320,6 @@ export function renderSprintTab() {
 
   const header    = _spEl('sprint-panel-header');
   const itemsList = _spEl('sprint-items-list');
-  const emptyEl   = _spEl('tab-sprint-empty');
   const sptNav    = _spEl('spt-nav'); // R-202605-043
 
   // T-202606-105: banner de conflicto — sprints activos simultáneos
@@ -1445,32 +1328,36 @@ export function renderSprintTab() {
   const sprint = _sprintNow;
 
   if (!sprint) {
-    // Sin sprint activo — mostrar empty state, ocultar nav
+    // T-202606-001 AC-1/AC-2: sin sprint activo — sptNav visible, default a sub-tab 'sprints'.
+    // Reemplaza la arquitectura de empty state dedicado (R-202605-006, deprecada).
     if (header)    header.classList.add('is-hidden');
     if (itemsList) itemsList.classList.add('is-hidden');
-    if (emptyEl)   emptyEl.classList.remove('is-hidden');
-    if (sptNav)    sptNav.classList.add('is-hidden');
-    _spmUpdateButtons(null); // AC-6: actualizar botones del empty state
-    // T-202605-123: gestor siempre renderiza aunque no haya sprint activo (empty state propio)
-    _renderSprintManager();
+    if (sptNav)    sptNav.classList.remove('is-hidden');
     const workers    = _spEl('sprint-workers');
     const scopeAdded = _spEl('sprint-scope-added');
     if (workers)   workers.classList.add('is-hidden');
     if (scopeAdded) scopeAdded.classList.add('is-hidden');
-    // Ocultar paneles — R-202605-043 + R-202605-052
+    // Ocultar paneles que requieren sprint activo — R-202605-043 + R-202605-052
     const panelItems      = _spEl('sprint-panel-items');
     const panelPlan       = _spEl('sprint-panel-plan');
     const panelPlanificar = _spEl('sprint-panel-planificar');
     if (panelItems)      panelItems.classList.add('is-hidden');
     if (panelPlan)       panelPlan.classList.add('is-hidden');
     if (panelPlanificar) panelPlanificar.classList.add('is-hidden');
-    const panelSprints = _spEl('sprint-panel-sprints'); // T-202606-029
-    if (panelSprints)    panelSprints.classList.add('is-hidden');
+    // T-202606-001 AC-1: sub-tab 'sprints' es el default — visible y activo
+    _sptActiveSubtab = 'sprints';
+    localStorage.setItem(_SPT_SUBTAB_KEY, 'sprints');
+    _sptSwitch('sprints', _spEl('spt-tab-sprints'), true);
     return;
   }
 
   // Hay sprint activo
-  if (emptyEl) emptyEl.classList.add('is-hidden');
+
+  // T-202606-001 AC-3: default a sub-tab 'items' cuando hay sprint activo o programado —
+  // sin cambio respecto al comportamiento previo, salvo que el estado persistido sea inválido.
+  if (_sptActiveSubtab === 'sprints' && !_SPT_SUBTAB_VALID.includes(localStorage.getItem(_SPT_SUBTAB_KEY))) {
+    _sptActiveSubtab = 'items';
+  }
 
   // Mostrar subtab nav y resetear a "Ítems" — R-202605-043
   if (sptNav) {
@@ -1510,15 +1397,9 @@ export function renderSprintTab() {
   // T-202606-042: _sptSwitch después de header.classList.remove — el toggle de subtab tiene la última palabra sobre visibilidad del header
   _sptSwitch(_sptActiveSubtab, _spEl('spt-tab-' + _sptActiveSubtab), true); // B-202606-065: usa estado persistido — no lee DOM. true = skip items render (renderSprintTab lo hace directamente)
 
-  // Gestor de sprints — T-202605-123
-  _renderSprintManager();
-
   // Ítems
   if (itemsList) itemsList.classList.remove('is-hidden');
   _renderSprintItems(sprint);
-
-  // Gestión del sprint — R-202605-006
-  _spmUpdateButtons(sprint);
 
   // Workers
   _renderSprintWorkers(sprint);
@@ -1559,262 +1440,6 @@ function _sphToggle() {
   _sphSetCollapsed(collapsed);
   _sphApplyCollapsed();
 }
-
-// ── R-202605-006: Sección Gestión del sprint ───────────────────────────────
-
-// AC-1: estado de colapso persistido en localStorage
-const _SPM_COLLAPSED_KEY = 'locus-sprint-mgmt-collapsed';
-
-function _spmIsCollapsed() {
-  return localStorage.getItem(_SPM_COLLAPSED_KEY) === 'true';
-}
-
-function _spmSetCollapsed(val) {
-  localStorage.setItem(_SPM_COLLAPSED_KEY, String(val));
-}
-
-// Toggle colapso — AC-1
-function _spmToggle() {
-  const body    = document.getElementById('sprint-mgmt-body');
-  const arrow   = document.getElementById('spm-toggle-arrow');
-  const toggleBtn = document.getElementById('sprint-mgmt-toggle');
-  if (!body) return;
-  const collapsed = !body.classList.contains('is-hidden');
-  body.classList.toggle('is-hidden', collapsed);
-  if (arrow)     arrow.textContent = collapsed ? '▸' : '▾';
-  if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(!collapsed));
-  _spmSetCollapsed(collapsed);
-}
-
-// Determina el sprint ID más frecuente en ítems no registrados — AC-2c
-function _spmGetUnregisteredSprintId() {
-  if (!Array.isArray(getItems())) return null;
-  const allSprints = getActiveSprints();
-  const registeredIds = new Set(allSprints.map(s => s.id));
-  const freq = {};
-  const order = [];
-  getItems().forEach(i => {
-    if (!_iSprint(i) || registeredIds.has(_iSprint(i))) return;
-    if (!freq[_iSprint(i)]) { freq[_iSprint(i)] = 0; order.push(_iSprint(i)); }
-    freq[_iSprint(i)]++;
-  });
-  if (!order.length) return null;
-  // Mayor frecuencia; empate → primero en orden de aparición
-  return order.reduce((best, id) => freq[id] > freq[best] ? id : best, order[0]);
-}
-
-// AC-2: Registrar y activar
-function _spmRegistrar() {
-  const sprintId = _spmGetUnregisteredSprintId();
-  if (!sprintId) return;
-
-  const activeSprint = _getActiveSprint();
-
-  const doRegister = () => {
-    // B-202605-XXX: usar createSprintFromGroup en lugar de createSprint
-    // createSprint genera un ID nuevo con _nextSprintId — ignora el ítems.
-    // createSprintFromGroup registra el ID existente tal cual, sin regenerarlo.
-    // B-202605-054: extraer nombre descriptivo del ID si contiene ' · '
-    // Ej: 'PP-S-09 · Migración ESM' → sprintName = 'PP-S-09 · Migración ESM'
-    // Ej: 'PP-S-09' → sprintName = undefined → createSprintFromGroup usa id como fallback
-    const sprintName = sprintId.includes(' · ') ? sprintId : undefined;
-    try {
-      createSprintFromGroup(sprintId, sprintName);
-      renderSprintTab();
-    } catch (err) {
-      showToast('error', 'Error al registrar el sprint: ' + (err.message || err));
-    }
-  };
-
-  if (activeSprint) {
-    // AC-2: hay sprint activo — mostrar modal de confirmación
-    {
-      _gconfirmOpen({
-        title: 'Cerrar sprint actual',
-        msg: `Se cerrará "${activeSprint.label ? `${activeSprint.id} · ${activeSprint.label}` : activeSprint.id}" y se activará "${sprintId}". ¿Confirmar?`,
-        okLabel: 'Cerrar sprint actual y activar el nuevo',
-        danger: true
-      }, async () => {
-        try {
-          // B-[pendiente-ID]: await requerido — setSprintStatus('closed') ahora persiste vía
-          // saveImmediate() (T-202606-003). Sin await, doRegister() corría antes de que el
-          // cierre completara — condición de carrera introducida por el fix de persistencia.
-          await setSprintStatus(activeSprint.id, 'closed');
-          doRegister();
-        } catch (err) {
-          showToast('error', 'Error al cerrar sprint actual: ' + (err.message || err));
-        }
-      });
-    }
-  } else {
-    doRegister();
-  }
-}
-
-// AC-3: Reactivar sprint cerrado
-function _spmReactivar() {
-  const sprint = _sprintTabActiveSprint;
-  if (!sprint || sprint.status !== 'closed') return;
-
-  // T-202606-106 AC-4/5/6: si hay sprint active distinto → diálogo de confirmación 1-click
-  const activoDistinto = getActiveSprints().find(s =>
-    s.status === 'active' && s.id !== sprint.id && !s.isHotfix
-  );
-
-  if (activoDistinto) {
-    // AC-4: mostrar diálogo con ambos nombres antes de ejecutar
-    _gconfirmOpen({
-      title: 'Reactivar sprint',
-      msg: `Cerrar "${activoDistinto.label ? `${activoDistinto.id} · ${activoDistinto.label}` : activoDistinto.id}" y activar "${sprint.label ? `${sprint.id} · ${sprint.label}` : sprint.id}"`,
-      okLabel: 'Confirmar',
-      danger: false
-    }, async () => {
-      // AC-5: founder confirma — cerrar activo primero, luego activar
-      // B-[pendiente-ID]: await requerido — setSprintStatus('closed') ahora persiste vía
-      // saveImmediate() (T-202606-003). Sin await, la activación siguiente podía leer el
-      // gate de conflicto (locus-backlog-sprints.js L624) antes de que el cierre completara.
-      await setSprintStatus(activoDistinto.id, 'closed');
-      setSprintStatus(sprint.id, 'active');
-      renderSprintTab();
-    });
-    // AC-6: founder cancela — _gconfirmOpen no llama el callback — sin modificación
-    return;
-  }
-
-  // Sin sprint activo distinto — flujo normal
-  setSprintStatus(sprint.id, 'active');
-  renderSprintTab();
-}
-
-// AC-4: Ver retrospectiva
-function _spmRetro() {
-  const sprint = _sprintTabActiveSprint;
-  if (!sprint || !sprint.retroDoc) return;
-  openSprintRetroView(sprint.id);
-}
-
-// AC-6 / R-202605-008: Activar sprint existente (desde empty state)
-// AC-1: un solo sprint cerrado → activar directamente (comportamiento original)
-// AC-2+: múltiples sprints cerrados → picker inline
-function _spmActivarExistente() {
-  const sprints = getActiveSprints();
-  const closed  = sprints
-    .filter(s => s.status !== 'active')
-    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-  if (!closed.length) return;
-
-  // AC-1: exactamente uno — activar sin picker
-  if (closed.length === 1) {
-    setSprintStatus(closed[0].id, 'active');
-    renderSprintTab();
-    return;
-  }
-
-  // AC-2: más de uno — mostrar picker inline
-  _spmPickerOpen(closed);
-}
-
-// ── R-202605-008: Picker inline de sprint ──────────────────────────────────
-
-let _spmPickerOutsideHandler = null;
-
-function _spmPickerOpen(closedSprints) {
-  const btn = document.getElementById('spm-empty-btn-activar');
-  if (!btn) return;
-
-  // Evitar duplicado
-  _spmPickerClose();
-
-  // AC-2: botón en estado activo
-  btn.classList.add('is-active');
-
-  // Construir picker
-  const picker = document.createElement('div');
-  picker.id = 'spm-sprint-picker';
-  picker.className = 'spm-sprint-picker';
-  // AC-5: accesibilidad
-  picker.setAttribute('role', 'listbox');
-  picker.setAttribute('aria-label', 'Seleccionar sprint a activar');
-
-  picker.innerHTML = closedSprints.map((sp, idx) =>
-    `<div class="spm-picker-item"
-          role="option"
-          tabindex="0"
-          data-sprint-id="${sp.id}"
-          data-sprint-idx="${idx}"
-          aria-selected="false">
-      <span class="spm-picker-item-label">${sp.label ? `${sp.id} · ${sp.label}` : sp.id}</span>
-    </div>`
-  ).join('');
-
-  // Insertar después del botón
-  btn.insertAdjacentElement('afterend', picker);
-
-  // AC-5: foco al primer ítem
-  const first = picker.querySelector('.spm-picker-item');
-  if (first) setTimeout(() => first.focus(), 30);
-
-  // T-202605-052: Event delegation — click y keydown en picker
-  picker.addEventListener('click', function(e) {
-    const opt = e.target.closest('[data-sprint-id]');
-    if (opt) _spmPickerSelect(opt.dataset.sprintId);
-  });
-  picker.addEventListener('keydown', function(e) {
-    const opt = e.target.closest('[data-sprint-id]');
-    if (opt) _spmPickerKey(e, opt.dataset.sprintId, Number(opt.dataset.sprintIdx));
-  });
-
-  // AC-4: click fuera cierra el picker
-  _spmPickerOutsideHandler = (e) => {
-    if (!picker.contains(e.target) && e.target !== btn) {
-      _spmPickerClose();
-    }
-  };
-  document.addEventListener('click', _spmPickerOutsideHandler, true);
-}
-
-// AC-3: seleccionar un sprint del picker
-function _spmPickerSelect(sprintId) {
-  setSprintStatus(sprintId, 'active');
-  _spmPickerClose();
-  renderSprintTab();
-}
-
-// AC-4: teclado — Escape cierra, Enter confirma, flechas navegan
-function _spmPickerKey(e, sprintId, idx) {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    _spmPickerSelect(sprintId);
-  } else if (e.key === 'Escape') {
-    e.preventDefault();
-    _spmPickerClose();
-    const btn = document.getElementById('spm-empty-btn-activar');
-    if (btn) btn.focus();
-  } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    e.preventDefault();
-    const picker = document.getElementById('spm-sprint-picker');
-    if (!picker) return;
-    const items = Array.from(picker.querySelectorAll('.spm-picker-item'));
-    const next = e.key === 'ArrowDown'
-      ? items[Math.min(idx + 1, items.length - 1)]
-      : items[Math.max(idx - 1, 0)];
-    if (next) next.focus();
-  }
-}
-
-// Cierra y limpia el picker
-function _spmPickerClose() {
-  const picker = document.getElementById('spm-sprint-picker');
-  if (picker) picker.remove();
-  const btn = document.getElementById('spm-empty-btn-activar');
-  if (btn) btn.classList.remove('is-active');
-  if (_spmPickerOutsideHandler) {
-    document.removeEventListener('click', _spmPickerOutsideHandler, true);
-    _spmPickerOutsideHandler = null;
-  }
-}
-
-// ── END R-202605-008 ──────────────────────────────────────────────────────
 
 // ── T-202606-038: Sprint HOTFIX persistente ───────────────────────────────
 //
