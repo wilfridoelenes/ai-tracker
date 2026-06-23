@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-07 · mod:56 · autor:Rune · 2026-06-22 20:45 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-07 · mod:57 · autor:Rune · 2026-06-22 21:00 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1328,27 +1328,38 @@ export function renderSprintTab() {
   const sprint = _sprintNow;
 
   if (!sprint) {
-    // T-202606-001 AC-1/AC-2: sin sprint activo — sptNav visible, default a sub-tab 'sprints'.
-    // Reemplaza la arquitectura de empty state dedicado (R-202605-006, deprecada).
-    if (header)    header.classList.add('is-hidden');
-    if (itemsList) itemsList.classList.add('is-hidden');
-    if (sptNav)    sptNav.classList.remove('is-hidden');
-    const workers    = _spEl('sprint-workers');
-    const scopeAdded = _spEl('sprint-scope-added');
-    if (workers)   workers.classList.add('is-hidden');
-    if (scopeAdded) scopeAdded.classList.add('is-hidden');
-    // Ocultar paneles que requieren sprint activo — R-202605-043 + R-202605-052
-    const panelItems      = _spEl('sprint-panel-items');
-    const panelPlan       = _spEl('sprint-panel-plan');
-    const panelPlanificar = _spEl('sprint-panel-planificar');
-    if (panelItems)      panelItems.classList.add('is-hidden');
-    if (panelPlan)       panelPlan.classList.add('is-hidden');
-    if (panelPlanificar) panelPlanificar.classList.add('is-hidden');
-    // T-202606-001 AC-1: sub-tab 'sprints' es el default — visible y activo
-    _sptActiveSubtab = 'sprints';
-    localStorage.setItem(_SPT_SUBTAB_KEY, 'sprints');
-    _sptSwitch('sprints', _spEl('spt-tab-sprints'), true);
-    return;
+    // T-202606-001 AC-3: segunda evaluación — sprint programado (scheduled) sin sprint activo.
+    // _getActiveSprint() solo retorna status:'active'. Si hay scheduled → rama con-sprint.
+    const _activeProjId  = _getActiveProjectFilter();
+    const _hasScheduled = getActiveSprints().some(function(s) {
+      return s.status === 'scheduled' && !s.isHotfix && s.projectId === _activeProjId;
+    });
+    if (_hasScheduled) {
+      // Hay sprint programado — caer en rama con-sprint (default 'items')
+      // Continúa fuera del bloque if (!sprint)
+    } else {
+      // T-202606-001 AC-1/AC-2: sin sprint activo ni programado — sptNav visible, default 'sprints'.
+      // Reemplaza la arquitectura de empty state dedicado (R-202605-006, deprecada).
+      if (header)    header.classList.add('is-hidden');
+      if (itemsList) itemsList.classList.add('is-hidden');
+      if (sptNav)    sptNav.classList.remove('is-hidden');
+      const workers    = _spEl('sprint-workers');
+      const scopeAdded = _spEl('sprint-scope-added');
+      if (workers)   workers.classList.add('is-hidden');
+      if (scopeAdded) scopeAdded.classList.add('is-hidden');
+      // Ocultar paneles que requieren sprint activo — R-202605-043 + R-202605-052
+      const panelItems      = _spEl('sprint-panel-items');
+      const panelPlan       = _spEl('sprint-panel-plan');
+      const panelPlanificar = _spEl('sprint-panel-planificar');
+      if (panelItems)      panelItems.classList.add('is-hidden');
+      if (panelPlan)       panelPlan.classList.add('is-hidden');
+      if (panelPlanificar) panelPlanificar.classList.add('is-hidden');
+      // T-202606-001 AC-1: sub-tab 'sprints' es el default — visible y activo
+      _sptActiveSubtab = 'sprints';
+      localStorage.setItem(_SPT_SUBTAB_KEY, 'sprints');
+      _sptSwitch('sprints', _spEl('spt-tab-sprints'), true);
+      return;
+    }
   }
 
   // Hay sprint activo

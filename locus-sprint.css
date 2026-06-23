@@ -1,4 +1,4 @@
-/* [PP] v0.5.0 · sprint:PP-S-05 · mod:35 · autor:Nova · 2026-06-22 12:30 UTC-6 */
+/* [PP] v0.6.0 · sprint:PP-S-07 · mod:36 · autor:Nova · 2026-06-23 10:15 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -1708,6 +1708,33 @@
 
 #sprint-panel-sprints.is-hidden {
   display: none;
+}
+
+/* ── T-202606-002: Encabezado de contexto — modo vista-principal ──────────
+   Visible solo cuando #sprint-panel-sprints actúa como default en estado
+   sin-sprint-activo (clase aplicada por Rune vía T-202606-001). El panel ya
+   es de columna única (flex column, ver regla arriba arriba) — no requiere
+   anular ningún grid de dos columnas para ocupar el ancho disponible. */
+.spt-context-header {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text2);
+}
+
+#sprint-panel-sprints.spt-main-view .spt-context-header {
+  display: flex;
+}
+
+.spt-context-header__icon {
+  color: var(--hint);
+  font-size: var(--text-xl);
+  line-height: 1;
 }
 
 /* Botón de campo readonly — reemplaza style.visibility en JS (CSS Purity) — AC-4 */
