@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-07 · mod:57 · autor:Rune · 2026-06-22 21:00 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-07 · mod:59 · autor:Rune · 2026-06-23 12:10 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1357,6 +1357,16 @@ export function renderSprintTab() {
       // T-202606-001 AC-1: sub-tab 'sprints' es el default — visible y activo
       _sptActiveSubtab = 'sprints';
       localStorage.setItem(_SPT_SUBTAB_KEY, 'sprints');
+      // T-202606-002: modo vista-principal — header de contexto visible, ancho completo
+      const panelSprints = _spEl('sprint-panel-sprints');
+      if (panelSprints) panelSprints.classList.add('spt-main-view');
+      // T-202606-002: empty-state total — ningún sprint de ningún tipo (activo/programado/
+      // pausado/cerrado) para el proyecto activo, excluyendo S-HOTFIX (decisión Cael:
+      // #sps-hotfix no es parte del universo "sprint" que evalúa este AC).
+      const _hasAnySprint = getActiveSprints().some(function(s) {
+        return !s.isHotfix && s.projectId === _activeProjId;
+      });
+      if (panelSprints) panelSprints.classList.toggle('spt-no-sprints-at-all', !_hasAnySprint);
       _sptSwitch('sprints', _spEl('spt-tab-sprints'), true);
       return;
     }
@@ -1373,6 +1383,12 @@ export function renderSprintTab() {
   // Mostrar subtab nav y resetear a "Ítems" — R-202605-043
   if (sptNav) {
     sptNav.classList.remove('is-hidden');
+  }
+
+  // T-202606-002: hay sprint activo o programado — salir de modo vista-principal si estaba activo
+  const _panelSprintsRestore = _spEl('sprint-panel-sprints');
+  if (_panelSprintsRestore) {
+    _panelSprintsRestore.classList.remove('spt-main-view', 'spt-no-sprints-at-all');
   }
 
   // Header — T-202606-042: remove is-hidden base antes de _sptSwitch para que el toggle por subtab tenga la última palabra

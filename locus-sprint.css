@@ -1,4 +1,4 @@
-/* [PP] v0.6.0 · sprint:PP-S-07 · mod:36 · autor:Nova · 2026-06-23 10:15 UTC-6 */
+/* [PP] v0.6.0 · sprint:PP-S-07 · mod:37 · autor:Nova · 2026-06-23 11:45 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -1735,6 +1735,22 @@
   color: var(--hint);
   font-size: var(--text-xl);
   line-height: 1;
+}
+
+/* ── T-202606-002: Empty state total — modo vista-principal sin ningún
+   sprint de ningún tipo (ni activo, ni programado, ni pausado, ni
+   histórico). Único contenido visible es .spt-context-header.
+   Clase aplicada por Rune cuando las 4 secciones listadas quedan vacías.
+   #sps-hotfix queda EXCLUIDO deliberadamente — muestra Bs priority:high
+   independientemente de si existen sprints regulares; no es parte del
+   universo "sprint" que este AC evalúa. Supuesto declarado pendiente de
+   confirmación — sin respuesta del founder sobre si #sps-hotfix debe
+   ocultarse también. */
+#sprint-panel-sprints.spt-main-view.spt-no-sprints-at-all #sps-activo,
+#sprint-panel-sprints.spt-main-view.spt-no-sprints-at-all #sps-programados,
+#sprint-panel-sprints.spt-main-view.spt-no-sprints-at-all #sps-pausados,
+#sprint-panel-sprints.spt-main-view.spt-no-sprints-at-all #sps-cerrados {
+  display: none;
 }
 
 /* Botón de campo readonly — reemplaza style.visibility en JS (CSS Purity) — AC-4 */
