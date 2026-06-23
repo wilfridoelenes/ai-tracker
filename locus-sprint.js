@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-07 · mod:59 · autor:Rune · 2026-06-23 12:10 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-07 · mod:61 · autor:Rune · 2026-06-23 16:00 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1577,21 +1577,37 @@ function _renderSpsPausados() {
       : '—';
 
     return (
-      '<div class="sps-card sps-card--paused">' +
+      '<div class="sps-card sps-card--paused" data-sprint-id="' + _escHtml(s.id || '') + '">' +
         '<div class="sps-header">' +
           '<span class="sps-title">' + _escHtml(s.id || '') + ' · ' + _escHtml(label) + '</span>' +
           '<span class="sml-badge sml-badge--paused">PAUSADO</span>' +
         '</div>' +
         '<div class="sps-pausados-meta">' +
           '<span class="sps-pausados-date">Pausado: ' + pausedDate + '</span>' +
+          '<button class="sps-btn-reactivar" aria-label="Reactivar ' + _escHtml(s.id || '') + '">Reactivar</button>' +
         '</div>' +
       '</div>'
     );
   }).join('');
 
   container.innerHTML = cards;
+
+  // T-202606-008: listeners de botones Reactivar — AC-1/AC-2/AC-3
+  container.querySelectorAll('.sps-btn-reactivar').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      const card = btn.closest('[data-sprint-id]');
+      if (!card) return;
+      const sprintId = card.dataset.sprintId;
+      const result = setSprintStatus(sprintId, 'active');
+      // AC-2: re-render solo si setSprintStatus retornó éxito (no false)
+      // AC-3: si retorna false, setSprintStatus ya disparó toast — no agregar más
+      if (result !== false) {
+        _renderSpsPausados();
+      }
+    });
+  });
 }
-// ── END T-202606-041 ─────────────────────────────────────────────────────────
+// ── END T-202606-041 / T-202606-008 ──────────────────────────────────────────
 
 // ── T-202606-038 T5: _renderSpsHotfix — card persistente HOTFIX en sub-tab Sprints ──
 //
@@ -2008,12 +2024,6 @@ function _syncCurrentBadges(sprints, projId) {
 
 // ── B-202605-019: Listeners — sprint management panel (_spm*) ───────────────
 document.addEventListener('DOMContentLoaded', function () {
-
-  // spm-btn-hotfix → _spmCreateHotfix() — T-202606-038
-  const spmHotfix = document.getElementById('spm-btn-hotfix');
-  if (spmHotfix) spmHotfix.addEventListener('click', function () {
-    _spmCreateHotfix();
-  });
 
   // T-202606-100: sph-collapse-btn → _sphToggle()
   const sphCollapseBtn = document.getElementById('sph-collapse-btn');
