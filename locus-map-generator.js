@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-06 · mod:6 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-06 · mod:7 · autor:Rune · 2026-06-22 14:20 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -384,38 +384,30 @@ function _mgParseFile(name, text) {
   }
 
   if (ext === 'js') {
-    // T-202606-021: truncar area a 27 chars + '…' si supera 30 — previene rotura de tabla MD
-    const _truncArea = a => a.length > 30 ? a.slice(0, 29) + '…' : a;
-    // AC-02: rastrear la sección más cercana hacia arriba para herencia de área
-    let currentSection = '';
+    // T-202606-021: currentSection eliminado como fallback de Área — causa raíz del Gate de
+    // Área inválida en OBDS §8. area = guessed || 'Internal' en los tres paths, sin excepción.
     lines.forEach((line, i) => {
       const lineNum = i + 1;
 
-      // Detectar comentario de sección (── Nombre ──) para herencia
-      const secMatch = line.match(/\/\/\s*[─\-═=]{2,}\s*(.+?)\s*[─\-═=]{2,}/);
-      if (secMatch) {
-        currentSection = secMatch[1].trim().replace(/\|/g, '/');
-      }
-
       const fnMatch = line.match(/^\s*(?:async\s+)?function\s+(\w+)\s*\(/);
       if (fnMatch) {
-        // AC-01 + AC-02: área = guessArea → si vacío, heredar sección → si aún vacío, 'Internal'
+        // AC-01: área = guessArea → si vacío, 'Internal' — nunca currentSection
         const guessed = _mgGuessArea(fnMatch[1], line);
-        const area = _truncArea(guessed || currentSection || 'Internal');
+        const area = guessed || 'Internal';
         entries.push({ line: `L${lineNum}`, fn: fnMatch[1], area, bodyStart: lineNum });
         return;
       }
       const arrowMatch = line.match(/^\s*(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(?[^)]*\)?\s*=>/);
       if (arrowMatch) {
         const guessed = _mgGuessArea(arrowMatch[1], line);
-        const area = _truncArea(guessed || currentSection || 'Internal');
+        const area = guessed || 'Internal';
         entries.push({ line: `L${lineNum}`, fn: arrowMatch[1], area, bodyStart: lineNum });
         return;
       }
       const exprMatch = line.match(/^\s*(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?function/);
       if (exprMatch) {
         const guessed = _mgGuessArea(exprMatch[1], line);
-        const area = _truncArea(guessed || currentSection || 'Internal');
+        const area = guessed || 'Internal';
         entries.push({ line: `L${lineNum}`, fn: exprMatch[1], area, bodyStart: lineNum });
       }
     });
@@ -1047,12 +1039,15 @@ function _generateMap(ver) {
   let md = `# ${project}-MAP_${version}.md\n`;
   md += `<!-- Versión: ${version} | Actualizado: ${now} UTC-6 | Proyecto: ${project} | Status: ${mapStatus} -->\n`;
   // T-202606-147: segunda línea de header — infra_version leído automáticamente desde proj.infraVersion
-  // Sin input manual — AC2 actualizado por Cael. Si el campo no existe → línea omitida sin crash.
+  // T4 ([pendiente-ID]): si infraVersion está ausente, undefined, null o vacía tras trim — emitir
+  // literal de ausencia en vez de omitir la línea. La línea es siempre la 3ª del header, sin excepción.
   // Formato canónico OB-Strategy §5b: <!-- **infra_version: [N]** | BR-Core vX.X · ... -->
   const _ivProj = getActiveProject();
   const _ivRaw = (_ivProj && _ivProj.infraVersion) ? String(_ivProj.infraVersion).trim() : '';
   if (_ivRaw) {
     md += `<!-- **infra_version: ${_ivRaw}** -->\n`;
+  } else {
+    md += `<!-- infra_version: no declarada en proyecto -->\n`;
   }
   md += '\n';
 
@@ -1076,9 +1071,7 @@ function _generateMap(ver) {
           const callsStr  = fn.calls && fn.calls.length ? fn.calls.join(', ') : '—';
           const usedBySet = usedByIndex[fn.name];
           const usedByStr = usedBySet && usedBySet.size ? [...usedBySet].sort().join(', ') : '—';
-          const areaStr = (fn.area || '').replace(/\|/g, '/');
-          const areaSafe = areaStr.length > 30 ? areaStr.slice(0, 29) + '…' : areaStr;
-          md += `| ${fn.line} · ${fn.name} | ${areaSafe} | ${callsStr} | ${usedByStr} |\n`;
+          md += `| ${fn.line} · ${fn.name} | ${fn.area} | ${callsStr} | ${usedByStr} |\n`;
         });
         md += '\n';
       }
@@ -1090,9 +1083,7 @@ function _generateMap(ver) {
         md += `|---------|------|-------|\n`;
         internalFns.forEach(fn => {
           const callsStr = fn.calls && fn.calls.length ? fn.calls.join(', ') : '—';
-          const areaStr = (fn.area || '').replace(/\|/g, '/');
-          const areaSafe = areaStr.length > 30 ? areaStr.slice(0, 29) + '…' : areaStr;
-          md += `| ${fn.line} · ${fn.name} | ${areaSafe} | ${callsStr} |\n`;
+          md += `| ${fn.line} · ${fn.name} | ${fn.area} | ${callsStr} |\n`;
         });
         md += '\n';
       }
