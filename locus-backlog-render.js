@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-07 · mod:36 · autor:Rune · 2026-06-23 15:05 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-07 · mod:37 · autor:Rune · 2026-06-23 15:20 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -1769,6 +1769,9 @@ export function renderHistoricoPanel() {
   const _stats = getArchivoHistoricoStats();
   const _statsBarHtml = `
     <div class="stats-bar" id="historico-stats-bar">
+      <div class="stats-row">
+        <div class="stat-card"><span class="stat-n">${_stats.total}</span><span class="stat-l">Total</span></div>
+      </div>
       <div class="stats-row">
         <span class="stat-type-chip stat-type-chip--static tc-R"><span class="tc-count">${_stats.byType.R}</span><span class="tc-label">Req</span></span>
         <span class="stat-type-chip stat-type-chip--static tc-T"><span class="tc-count">${_stats.byType.T}</span><span class="tc-label">Ticket</span></span>
