@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:62 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.7.0 · sprint:PP-S-08 · mod:63 · autor:Rune · 2026-06-23 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -13,7 +13,7 @@ import { extractContextSections, extractDocUpdates, extractHtmlMapSections, merg
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger
 import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
-import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, LOCUS_KEYS, CANONICAL_PROJECTS, getInfraVersionData } from './locus-storage.js';
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, getInfraVersionData } from './locus-storage.js';
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) reemplazada por getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027
 import { showToast, toast } from './locus-toast.js';
 
@@ -1322,11 +1322,15 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
 
   const proj = getActiveProject();
   if (!proj) return false;
-  if (!proj.sprints) proj.sprints = [];
 
-  // Guard de duplicado — mismo criterio que _tryIngestSprintProposal
+  // T-202606-006 AC-1/AC-5: tracker_sprints (via cache _sprintsCache) es la fuente de verdad —
+  // ya no proj.sprints/blob de tracker_state. getActiveSprints() expone el cache poblado por
+  // _loadSprintsFromSupabase() (T-202606-005).
+  const _existingSprints = getActiveSprints();
+
+  // Guard de duplicado — mismo criterio que _tryIngestSprintProposal, verificado contra el cache
   const _dupIdShort = sprint.split(/\s*·\s*/)[0].trim();
-  const exists = proj.sprints.some(sp =>
+  const exists = _existingSprints.some(sp =>
     sp.id === _dupIdShort || sp.id === sprint ||
     sp.name === sprint || sp.label === sprint
   );
@@ -1335,7 +1339,7 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
     return false;
   }
 
-  const _hasActiveSprint = proj.sprints.some(sp => sp.status === 'active' && !sp.isHotfix);
+  const _hasActiveSprint = _existingSprints.some(sp => sp.status === 'active' && !sp.isHotfix);
   const _newSprintStatus = _hasActiveSprint ? 'scheduled' : 'active';
 
   const _sprintIdFull  = sprint;
@@ -1360,12 +1364,19 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
     goal:           goal,
     out_of_scope:   Array.isArray(proposalObj.out_of_scope) ? proposalObj.out_of_scope : [],
     status:         _newSprintStatus,
-    current:        false,
+    current:        _newSprintStatus === 'active',
     formallyOpened: true,
+    startedAt:      _newSprintStatus === 'active' ? Date.now() : null,
   };
 
-  proj.sprints.push(newSprint);
-  saveImmediate();
+  // T-202606-006 AC-1/AC-2: upsert directo a tracker_sprints vía _upsertSprint() (T-202606-005).
+  // _upsertSprint() actualiza _sprintsCache de forma síncrona (antes de su primer await) y luego
+  // hace el upsert real a Supabase de forma asíncrona — o, sin auth, escribe a localStorage
+  // (mismo fallback ya establecido en T-202606-005, sin pasar por _offlineQueue: no existe rama
+  // 'sprint' en _offlineQueueFlush() y agregarla está fuera de scope de este T).
+  // No se espera (await) la promesa — el retorno de esta función es síncrono, igual que antes,
+  // para no romper el contrato que usan los callers existentes (T-202606-020, T-202606-206).
+  _upsertSprint(newSprint, proj.id);
 
   const _toastMsg = _newSprintStatus === 'scheduled'
     ? `✓ Sprint "${sprint}" creado como programado — se activará al cerrar el sprint activo`

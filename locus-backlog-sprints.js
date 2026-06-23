@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-HOTFIX · mod:24 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.7.0 · sprint:PP-S-08 · mod:25 · autor:Rune · 2026-06-23 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -8,7 +8,7 @@ import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _getDocUpdateIndex, _setDocUpdateIndex } from './locus-storage.js'; // T-202606-107
+import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _loadSprintsFromSupabase } from './locus-storage.js'; // T-202606-107 · T-202606-005
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
@@ -344,7 +344,7 @@ export function createSprint(raw, goal, versionTarget, releaseType, projId, init
   // B-202605-028: modelo multi-sprint — no cerrar sprints activos al crear uno nuevo.
   // El founder decide qué sprint es "en curso" via flag current:true.
   const hasCurrentSprint = _activeProjForSprint.sprints.some(s => s.status === 'active' && s.current === true);
-  _activeProjForSprint.sprints.push({
+  const _newSprint = {
     id, label: canonicalLabel, goal: goalTrimmed,
     version_target: vt, release_type: rt,
     // B-202605-057: status 'active' desde creación — _getActiveSprint() lo detecta inmediatamente
@@ -354,8 +354,14 @@ export function createSprint(raw, goal, versionTarget, releaseType, projId, init
     current: (!hasCurrentSprint && (initialStatus || 'active') === 'active') ? true : undefined,
     formallyOpened: false,
     startedAt: Date.now(), createdAt: Date.now()
+  };
+  // T-202606-005 AC-4: upsert a tracker_sprints — no mutación del blob.
+  // _upsertSprint actualiza _sprintsCache y persiste en Supabase (o localStorage fallback).
+  const _projIdForUpsert = _activeProjForSprint.id;
+  _upsertSprint(_newSprint, _projIdForUpsert).catch(err => {
+    console.error('[Locus] T-202606-005: createSprint upsert falló', err);
   });
-  // B-202605-058: saveImmediate() evita perder el sprint si el usuario recarga antes del debounce
+  // B-202605-058: saveImmediate() persiste el resto del state (sin sprints en blob desde T-202606-005)
   saveImmediate();
   return id;
 }
@@ -686,6 +692,13 @@ export async function setSprintStatus(id, newStatus) {
       saveBacklog(); // una sola vez tras ambas operaciones
     }
   }
+  // T-202606-005 AC-5: upsert del sprint actualizado a tracker_sprints — no depende del blob.
+  // sp ya fue mutado arriba — _upsertSprint refleja el estado actualizado en Supabase y cache.
+  const _projIdForStatusUpsert = sp.projId || sp.projectId || getActiveProject()?.id || '';
+  _upsertSprint(sp, _projIdForStatusUpsert).catch(err => {
+    console.error('[Locus] T-202606-005: setSprintStatus upsert falló', err);
+  });
+
   // T-202606-003 AC-1/AC-2: closed usa saveImmediate() — evita pérdida del cierre si el
   // founder navega o recarga antes de que el debounce de save() dispare _saveFlush().
   // Otras transiciones (active/scheduled/discarded) mantienen save() con debounce normal.

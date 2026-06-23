@@ -1,6 +1,6 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:36 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.7.0 · sprint:PP-S-08 · mod:38 · autor:Rune · 2026-06-23 UTC-6
 // locus-storage.js
-// Última actualización: B-202606-069: openAuthModal / closeAuthModal definidas
+// Última actualización: T-202606-005: getActiveSprints/createSprint/setSprintStatus leen/escriben tracker_sprints
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -147,6 +147,11 @@ var _supabaseUser       = null;   // sesión activa del founder — ESM-B: var p
 let _supabaseReady      = null;   // promesa: resuelve cuando onAuthStateChange dispara
 let _realtimeChannels   = [];     // T-202606-002: canales Realtime — tracker_state, tracker_backlog, tracker_sessions
 let _realtimeLastTs     = null;   // timestamp del último update remoto procesado
+
+// T-202606-005: cache en módulo de sprints — fuente de verdad en runtime, poblado desde tracker_sprints.
+// getActiveSprints() retorna este cache síncrono. _loadSprintsFromSupabase() lo popula al cargar.
+// Fallback: si Supabase no está disponible, se lee desde localStorage clave sprints-{projId}.
+let _sprintsCache = [];
 
 if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
   try {
@@ -548,7 +553,8 @@ async function _saveFlush() {
     try {
       const stateWithoutSessions = {
         ...state,
-        projects: (state.projects || []).map(p => { const { sessions, ...rest } = p; return rest; })
+        // T-202606-005 AC-3: excluir sprints del blob — sprints viven en tracker_sprints
+        projects: (state.projects || []).map(p => { const { sessions, sprints, ...rest } = p; return rest; })
       };
       const _nowTs = new Date().toISOString();
       // B-202606-XXX: registrar _realtimeLastTs ANTES del await — cierra race condition
@@ -1199,6 +1205,12 @@ export async function _loadFromSupabase() {
     if (stateRows && stateRows.value) {
       const remote = stateRows.value;
       _applyStateData(remote);
+      // T-202606-005: cargar sprints desde tracker_sprints después de _applyStateData
+      // para que el projId del proyecto activo esté disponible.
+      const _activeProjForSprints = getActiveProject();
+      if (_activeProjForSprints) {
+        await _loadSprintsFromSupabase(_activeProjForSprints.id);
+      }
       let _resetChanged = false;
       (state?.ais || []).forEach(ai => {
         if (ai.status === 'exhausted' && ai.resetTime && _resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
@@ -1532,6 +1544,81 @@ function _normalizeSessionFields(s) {
   return s;
 }
 
+// T-202606-004: migrar sprints desde blob tracker_state → tabla tracker_sprints.
+// Idempotente: si ya existen filas para user_id + project_id, no vuelve a correr (AC-2).
+// El blob no se modifica — se conserva hasta T-202606-005 (AC-6).
+// Llamada desde _applyStateData() como fire-and-forget cuando auth está disponible.
+async function _migrateSprintsToSupabase(projects) {
+  if (!_supabase || !_supabaseUser) return;
+  const userId = _supabaseUser.id;
+
+  for (const proj of projects) {
+    const projId = proj.id;
+    if (!projId) continue;
+    const sprints = proj.sprints || [];
+    if (!sprints.length) continue;
+
+    // AC-2: verificar si tracker_sprints ya tiene datos para este user_id + project_id
+    const { data: existing, error: checkErr } = await _supabase
+      .from('tracker_sprints')
+      .select('sprint_id')
+      .eq('user_id', userId)
+      .eq('project_id', projId)
+      .limit(1);
+    if (checkErr) {
+      console.error('[Locus] T-202606-004: error al verificar tracker_sprints para', projId, checkErr);
+      continue;
+    }
+    if (existing && existing.length > 0) {
+      // Ya migrado — idempotente, no correr de nuevo
+      continue;
+    }
+
+    // Construir filas para upsert
+    const rows = sprints.map(sp => {
+      // AC-5: opened_at / closed_at — ISO string directo, epoch ms → toISOString(), ausente → null
+      const toIso = v => {
+        if (!v) return null;
+        if (typeof v === 'string') return v;
+        if (typeof v === 'number') return new Date(v).toISOString();
+        return null;
+      };
+      // AC-4: status 'open' → 'abierto'. Nota: _applyStateData ya migra open→active/closed
+      // antes de esta llamada, pero por seguridad se aplica también aquí.
+      let status = sp.status || 'pendiente';
+      if (status === 'open') status = 'abierto';
+
+      return {
+        user_id:        userId,
+        project_id:     projId,
+        sprint_id:      sp.id,           // AC-3: campo sprint_id del ítem (ej: PP-S-11)
+        label:          sp.label || null,
+        status,
+        version_target: sp.version_target || null,
+        release_type:   sp.release_type || null,
+        scope:          sp.scope || null,
+        goal:           sp.goal || null,
+        out_of_scope:   sp.out_of_scope || null,
+        opened_at:      toIso(sp.startedAt || sp.opened_at),
+        closed_at:      toIso(sp.closedAt || sp.closed_at),
+        updated_at:     new Date().toISOString()
+      };
+    }).filter(r => !!r.sprint_id); // excluir filas sin sprint_id
+
+    if (!rows.length) continue;
+
+    const { error: upsertErr } = await _supabase
+      .from('tracker_sprints')
+      .upsert(rows, { onConflict: 'user_id,sprint_id' });
+    if (upsertErr) {
+      console.error('[Locus] T-202606-004: upsert a tracker_sprints falló para', projId, upsertErr);
+      // AC-7: continuar con blob — no bloquear la app
+    } else {
+      console.log('[Locus] T-202606-004: sprints migrados a tracker_sprints —', projId, rows.length, 'filas');
+    }
+  }
+}
+
 function _applyStateData(raw) {
 
   if (!raw.theme) raw.theme = 'dark';
@@ -1592,6 +1679,10 @@ function _applyStateData(raw) {
     if (proj.notes === undefined) proj.notes = '';
     if (proj.status === undefined) proj.status = 'active';
     if (proj.infraVersion === undefined) proj.infraVersion = 0; // T-202606-209: campo infra_version del proyecto
+    // T-202606-005 AC-6: _applyStateData ya no es la fuente de verdad para sprints.
+    // Los sprints viven en tracker_sprints — _loadSprintsFromSupabase() popula _sprintsCache.
+    // Las migraciones de blob abajo se conservan como idempotentes para compatibilidad
+    // con sesiones sin auth (donde el blob legacy sigue siendo la única fuente).
     // AC-4 [R — Eliminar status 'open']: migración de sprints 'open' → 'active' o 'closed'
     // Corre en cada _applyStateData() — idempotente, no requiere flag.
     const _hasActiveSprint = proj.sprints.some(sp => sp.status === 'active');
@@ -1637,6 +1728,15 @@ function _applyStateData(raw) {
       });
     }
   });
+
+  // T-202606-004: migrar sprints del blob tracker_state → tabla tracker_sprints en Supabase.
+  // Fire-and-forget — no bloquea _applyStateData(). Idempotente: corre solo si tracker_sprints
+  // está vacío para este user_id + project_id (AC-2). Blob conservado hasta T-202606-005 (AC-6).
+  if (_supabase && _supabaseUser) {
+    _migrateSprintsToSupabase(raw.projects || []).catch(err => {
+      console.error('[Locus] T-202606-004: migración de sprints falló — app continúa con blob', err);
+    });
+  }
 
   // v3: IAs son globales — sin sessions, sin project
   (raw.ais || []).forEach(ai => {
@@ -1836,12 +1936,119 @@ export function getActiveTracker() {
 // Sprints del proyecto activo
 // T-202605-025: parámetro opcional currentOnly — cuando true retorna el sprint current
 // del proyecto activo. null si no hay proyecto activo o ningún sprint tiene current: true.
+// T-202606-005: lee desde _sprintsCache (poblado desde tracker_sprints) en lugar del blob.
+// Shape de retorno idéntico — ningún call site requiere cambio.
 export function getActiveSprints(currentOnly = false) {
-  const proj = getActiveProject();
-  if (!proj) return currentOnly ? null : [];
-  const sprints = proj.sprints || [];
-  if (currentOnly) return sprints.find(sp => sp.current === true) || null;
-  return sprints;
+  if (currentOnly) return _sprintsCache.find(sp => sp.current === true) || null;
+  return _sprintsCache;
+}
+
+// T-202606-005: popula _sprintsCache desde tracker_sprints en Supabase.
+// Llamada desde _loadFromSupabase() al cargar. Fallback a localStorage si no hay auth.
+// AC-8: error de Supabase → retorna array vacío + toast de advertencia.
+export async function _loadSprintsFromSupabase(projId) {
+  const lsKey = 'sprints-' + (projId || 'global');
+  if (!_supabase || !_supabaseUser) {
+    // AC-7 fallback sin auth → localStorage
+    try {
+      const raw = localStorage.getItem(lsKey);
+      _sprintsCache = raw ? JSON.parse(raw) : [];
+    } catch(e) {
+      _sprintsCache = [];
+    }
+    return;
+  }
+  try {
+    const { data, error } = await _supabase
+      .from('tracker_sprints')
+      .select('sprint_id,label,status,version_target,release_type,scope,goal,out_of_scope,opened_at,closed_at,updated_at,project_id')
+      .eq('user_id', _supabaseUser.id)
+      .eq('project_id', projId || '');
+    if (error) throw error;
+    // AC-2: mapear campos de tracker_sprints al shape canónico de sprint en memoria
+    _sprintsCache = (data || []).map(row => ({
+      id:             row.sprint_id,
+      label:          row.label || row.sprint_id,
+      status:         row.status,
+      version_target: row.version_target,
+      release_type:   row.release_type,
+      scope:          row.scope,
+      goal:           row.goal,
+      out_of_scope:   row.out_of_scope || [],
+      opened_at:      row.opened_at,
+      closed_at:      row.closed_at,
+      // campos derivados necesarios para call sites existentes
+      startedAt:      row.opened_at ? new Date(row.opened_at).getTime() : null,
+      closedAt:       row.closed_at ? new Date(row.closed_at).getTime() : null,
+      current:        row.status === 'active',
+      isHotfix:       (row.sprint_id || '').includes('-S-HOTFIX'),
+      formallyOpened: true,
+      projId:         row.project_id,
+      projectId:      row.project_id
+    }));
+    // Escribir a localStorage como caché (AC-7: fallback disponible en próxima sesión sin auth)
+    try { localStorage.setItem(lsKey, JSON.stringify(_sprintsCache)); } catch(e) {}
+  } catch(err) {
+    // AC-8: error de Supabase → array vacío + toast
+    console.error('[Locus] T-202606-005: error al cargar tracker_sprints', err);
+    showToast('warning', 'No se pudieron cargar los sprints — reintentando al reconectar');
+    _sprintsCache = [];
+  }
+}
+
+// T-202606-005: helpers exportados para createSprint y setSprintStatus en locus-backlog-sprints.js
+
+// Upsert de un sprint a tracker_sprints + actualiza _sprintsCache.
+// Fallback sin auth: escribe a localStorage clave sprints-{projId}.
+export async function _upsertSprint(sprintObj, projId) {
+  // Actualizar cache en memoria primero (optimistic)
+  const idx = _sprintsCache.findIndex(s => s.id === sprintObj.id);
+  if (idx >= 0) {
+    _sprintsCache[idx] = { ..._sprintsCache[idx], ...sprintObj };
+  } else {
+    _sprintsCache.push({ ...sprintObj, projId, projectId: projId });
+  }
+
+  const lsKey = 'sprints-' + (projId || 'global');
+
+  if (!_supabase || !_supabaseUser) {
+    // AC-7: fallback sin auth → localStorage
+    try { localStorage.setItem(lsKey, JSON.stringify(_sprintsCache)); } catch(e) {}
+    return;
+  }
+
+  const toIso = v => {
+    if (!v) return null;
+    if (typeof v === 'string') return v;
+    if (typeof v === 'number') return new Date(v).toISOString();
+    return null;
+  };
+
+  const row = {
+    user_id:        _supabaseUser.id,
+    project_id:     projId || '',
+    sprint_id:      sprintObj.id,
+    label:          sprintObj.label || null,
+    status:         sprintObj.status || 'active',
+    version_target: sprintObj.version_target || null,
+    release_type:   sprintObj.release_type || null,
+    scope:          sprintObj.scope || null,
+    goal:           sprintObj.goal || null,
+    out_of_scope:   sprintObj.out_of_scope || null,
+    opened_at:      toIso(sprintObj.startedAt || sprintObj.opened_at),
+    closed_at:      toIso(sprintObj.closedAt  || sprintObj.closed_at),
+    updated_at:     new Date().toISOString()
+  };
+
+  const { error } = await _supabase
+    .from('tracker_sprints')
+    .upsert(row, { onConflict: 'user_id,sprint_id' });
+  if (error) {
+    console.error('[Locus] T-202606-005: upsert a tracker_sprints falló', error);
+  } else {
+    // Actualizar localStorage como caché post-write
+    try { localStorage.setItem(lsKey, JSON.stringify(_sprintsCache)); } catch(e) {}
+  }
 }
 
 // T-202606-087: display canónico 'id · nombre' para sprint — usado en card subline e IDP.
