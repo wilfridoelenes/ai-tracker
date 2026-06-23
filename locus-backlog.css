@@ -1,4 +1,4 @@
-/* [PP] v0.1.0 · sprint:PP-S-03 · mod:47 · autor:Nova · 2026-06-20 UTC-6 */
+/* [PP] v0.1.0 · sprint:PP-S-07 · mod:48 · autor:Nova · 2026-06-23 14:50 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -559,6 +559,20 @@
   border-color: var(--purple);
 }
 
+/* T-202606-006: modifier para chips informativos — sin interacción.
+   Usado en stats-bar de Histórico. Opacidad plena fija (no hay estado "active"
+   que distinguir), sin cursor pointer, sin hover/transform — el chip no responde
+   a ningún evento porque el markup es <span>, no <button>. */
+.stat-type-chip--static {
+  cursor: default;
+  opacity: 1;
+}
+
+.stat-type-chip--static:hover {
+  opacity: 1;
+  transform: none;
+}
+
 .stat-type-chip .tc-count {
   font-size: var(--text-lg);
   font-weight: 700;
@@ -654,6 +668,15 @@
   font-size: var(--text-base);
   font-weight: 700;
   font-family: var(--mono);
+}
+
+/* T-202606-006: modifier estático — mismo criterio que .stat-type-chip--static */
+.stat-pri-chip--static {
+  cursor: default;
+}
+
+.stat-pri-chip--static:hover {
+  opacity: 1;
 }
 
 /* Esfuerzo: mini-stat-cards */

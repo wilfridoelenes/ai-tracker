@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-housekeeping · mod:11 · autor:Rune · 2026-06-20 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-07 · mod:12 · autor:Rune · 2026-06-23 14:35 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -86,6 +86,28 @@ function _buildArchivoPartitions() {
 export function getArchivoHistoricoCount() {
   const { archivoItems } = _buildArchivoPartitions();
   return archivoItems.length + _legacyHistoricos.length;
+}
+
+// T-202606-006: breakdown por tipo y prioridad para stats-bar informativa del panel Histórico.
+// Mismo universo que getArchivoHistoricoCount() — archivoItems + _legacyHistoricos, sin solape.
+// Chips resultantes son informativos — no filtran ni disparan re-render (ver render.js).
+export function getArchivoHistoricoStats() {
+  const { archivoItems } = _buildArchivoPartitions();
+  const all = archivoItems.concat(_legacyHistoricos);
+
+  const byType = { R: 0, T: 0, B: 0, P: 0 };
+  const byPriority = { high: 0, medium: 0, low: 0 };
+
+  all.forEach(i => {
+    const code = i.code || '';
+    const t = code.charAt(0);
+    if (byType[t] !== undefined) byType[t]++;
+    if (i.priority === 'high') byPriority.high++;
+    else if (i.priority === 'low') byPriority.low++;
+    else byPriority.medium++;
+  });
+
+  return { total: all.length, byType, byPriority };
 }
 
 export function renderArchivoHistorico(listEl) {

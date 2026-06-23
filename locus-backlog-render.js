@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-07 · mod:34 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-07 · mod:36 · autor:Rune · 2026-06-23 15:05 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -8,7 +8,7 @@
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
-import { renderArchivoHistorico, toggleArchivoHistorico, getArchivoHistoricoCount } from './locus-backlog-archive.js';
+import { renderArchivoHistorico, toggleArchivoHistorico, getArchivoHistoricoCount, getArchivoHistoricoStats } from './locus-backlog-archive.js';
 import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isIcebox, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation
@@ -1761,10 +1761,32 @@ export function renderHistoricoPanel() {
   const count = getArchivoHistoricoCount();
   if (badge) badge.textContent = '';
 
+  // T-202606-006: stats-bar informativa — conteos por tipo y prioridad sobre el universo
+  // completo de Histórico (mismo criterio que getArchivoHistoricoCount). Chips sin
+  // interacción — <span>, sin data-action, sin role/tabindex, sin listener de delegación.
+  // Clases: .stats-bar/.stats-row reusadas de Backlog · .stat-type-chip--static /
+  // .stat-pri-chip--static entregadas por Nova (mod:48 de locus-backlog.css).
+  const _stats = getArchivoHistoricoStats();
+  const _statsBarHtml = `
+    <div class="stats-bar" id="historico-stats-bar">
+      <div class="stats-row">
+        <span class="stat-type-chip stat-type-chip--static tc-R"><span class="tc-count">${_stats.byType.R}</span><span class="tc-label">Req</span></span>
+        <span class="stat-type-chip stat-type-chip--static tc-T"><span class="tc-count">${_stats.byType.T}</span><span class="tc-label">Ticket</span></span>
+        <span class="stat-type-chip stat-type-chip--static tc-B"><span class="tc-count">${_stats.byType.B}</span><span class="tc-label">Bug</span></span>
+        <span class="stat-type-chip stat-type-chip--static tc-P"><span class="tc-count">${_stats.byType.P}</span><span class="tc-label">Idea</span></span>
+      </div>
+      <div class="stats-row">
+        <span class="stat-pri-chip stat-pri-chip--static pri-high"><span class="spc-n">${_stats.byPriority.high}</span> Alto</span>
+        <span class="stat-pri-chip stat-pri-chip--static pri-medium"><span class="spc-n">${_stats.byPriority.medium}</span> Med</span>
+        <span class="stat-pri-chip stat-pri-chip--static pri-low"><span class="spc-n">${_stats.byPriority.low}</span> Bajo</span>
+      </div>
+    </div>`;
+
   // AC-7: sin sprints cerrados y sin ítems historico — renderArchivoHistorico no inyecta nada
-  // en ese caso (early return interno), por eso el empty state se arma aquí explícitamente.
+  // en ese caso (early return interno). AC-4 (T-202606-006): la stats-bar se muestra igual,
+  // con conteos en cero — no se oculta cuando Histórico está vacío.
   if (!count) {
-    panel.innerHTML = `
+    panel.innerHTML = _statsBarHtml + `
       <div class="empty-state">
         <div class="empty-state-icon">🗄</div>
         <div class="empty-state-title">No hay sprints cerrados aún</div>
@@ -1772,8 +1794,10 @@ export function renderHistoricoPanel() {
     return;
   }
 
-  panel.innerHTML = '';
-  renderArchivoHistorico(panel);
+  panel.innerHTML = _statsBarHtml;
+  const _listContainer = document.createElement('div');
+  panel.appendChild(_listContainer);
+  renderArchivoHistorico(_listContainer);
 }
 
 // T-202606-092: listener sub-tab Histórico — activa panel y dispara render (AC-3, AC-6)
