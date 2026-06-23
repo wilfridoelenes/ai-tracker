@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:55 · autor:Rune · 2026-06-22 12:35 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-07 · mod:56 · autor:Rune · 2026-06-22 20:45 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1789,84 +1789,6 @@ function _spsCerradosToggle(sprintId) {
 }
 // ── END T-202606-039 ─────────────────────────────────────────────────────
 
-// Actualiza visibilidad de botones según estado — llamado desde renderSprintTab
-function _spmUpdateButtons(sprint) {
-  const section       = document.getElementById('sprint-mgmt-section');
-  const btnRegistrar  = document.getElementById('spm-btn-registrar');
-  const btnReactivar  = document.getElementById('spm-btn-reactivar');
-  const btnRetro      = document.getElementById('spm-btn-retro');
-
-  // Botones del empty state
-  const emptyRegistrar = document.getElementById('spm-empty-btn-registrar');
-  const emptyActivar   = document.getElementById('spm-empty-btn-activar');
-
-  const allSprints      = getActiveSprints();
-  const registeredIds   = new Set(allSprints.map(s => s.id));
-  const unregisteredId  = _spmGetUnregisteredSprintId();
-  const hasClosed       = allSprints.some(s => s.status !== 'active');
-
-  // Empty state buttons — AC-6
-  // B-202605-XXX: cuando hay sprint no registrado, "Registrar" tiene prioridad sobre "Nuevo sprint".
-  // Mostrar solo uno a la vez para evitar que el founder cree un sprint con ID colisionado.
-  if (emptyRegistrar) {
-    emptyRegistrar.classList.toggle('is-hidden', !unregisteredId);
-    if (unregisteredId) emptyRegistrar.textContent = 'Registrar y activar ' + unregisteredId;
-  }
-  if (emptyActivar) emptyActivar.classList.toggle('is-hidden', !hasClosed);
-
-  // T-202605-085: CTA crear sprint — oculto si hay sprint activo O si hay sprint no registrado
-  const emptyNuevo = document.getElementById('spm-new-sprint-btn');
-  if (emptyNuevo) emptyNuevo.classList.toggle('is-hidden', !!sprint || !!unregisteredId);
-
-  if (!section) return;
-
-  if (!sprint) {
-    section.classList.add('is-hidden');
-    return;
-  }
-
-  section.classList.remove('is-hidden');
-
-  // Restaurar estado de colapso — AC-1
-  const body    = document.getElementById('sprint-mgmt-body');
-  const arrow   = document.getElementById('spm-toggle-arrow');
-  const toggleBtn = document.getElementById('sprint-mgmt-toggle');
-  const collapsed = _spmIsCollapsed();
-  if (body)      body.classList.toggle('is-hidden', collapsed);
-  if (arrow)     arrow.textContent = collapsed ? '▸' : '▾';
-  if (toggleBtn) toggleBtn.setAttribute('aria-expanded', String(!collapsed));
-
-  const isRegistered = sprint ? registeredIds.has(sprint.id) : false;
-  const isClosed     = sprint ? sprint.status === 'closed' : false;
-  const hasRetro     = sprint ? !!sprint.retroDoc : false;
-
-  // AC-2: Registrar y activar — solo si el sprint no está registrado en el catálogo
-  if (btnRegistrar) {
-    const show = !isRegistered && !!unregisteredId;
-    btnRegistrar.classList.toggle('is-hidden', !show);
-    if (show && unregisteredId) btnRegistrar.textContent = `Registrar y activar ${unregisteredId}`;
-  }
-
-  // AC-3: Reactivar — solo cuando sprint cerrado
-  if (btnReactivar) btnReactivar.classList.toggle('is-hidden', !isClosed);
-
-  // AC-4: Retro — solo cuando sprint cerrado con retroDoc
-  if (btnRetro) btnRetro.classList.toggle('is-hidden', !(isClosed && hasRetro));
-
-  // AC-5: HOTFIX — oculto si el sprint HOTFIX del proyecto ya existe (T-202606-038)
-  const btnHotfix = document.getElementById('spm-btn-hotfix');
-  if (btnHotfix) {
-    const projId = _getActiveProjectFilter();
-    const proj   = projId ? getProjectById(projId) : null;
-    const prefix = proj ? (proj.prefix || projId.toUpperCase()) : null;
-    const hotfixId = prefix ? prefix + '-S-HOTFIX' : null;
-    const exists = (proj && hotfixId) ? (proj.sprints || []).some(s => s.id === hotfixId) : false;
-    btnHotfix.classList.toggle('is-hidden', !proj || exists);
-  }
-}
-
-// ── END R-202605-006 ──────────────────────────────────────────────────────
-
 // ── T-202605-046: Listeners — spt-tab buttons ─────────────────────────────
 // Migrado desde index.html — reemplaza onclick inline en .spt-tab. Listener de
 // #btn-close-sprint eliminado (B-202606-024) — el elemento fue removido del HTML en T-202606-042
@@ -2060,52 +1982,10 @@ function _syncCurrentBadges(sprints, projId) {
 // ── B-202605-019: Listeners — sprint management panel (_spm*) ───────────────
 document.addEventListener('DOMContentLoaded', function () {
 
-  // sprint-mgmt-toggle → _spmToggle()
-  const spmToggle = document.getElementById('sprint-mgmt-toggle');
-  if (spmToggle) spmToggle.addEventListener('click', function () {
-    _spmToggle();
-  });
-
-  // spm-btn-registrar → _spmRegistrar()
-  const spmRegistrar = document.getElementById('spm-btn-registrar');
-  if (spmRegistrar) spmRegistrar.addEventListener('click', function () {
-    _spmRegistrar();
-  });
-
-  // spm-btn-reactivar → _spmReactivar()
-  const spmReactivar = document.getElementById('spm-btn-reactivar');
-  if (spmReactivar) spmReactivar.addEventListener('click', function () {
-    _spmReactivar();
-  });
-
   // spm-btn-hotfix → _spmCreateHotfix() — T-202606-038
   const spmHotfix = document.getElementById('spm-btn-hotfix');
   if (spmHotfix) spmHotfix.addEventListener('click', function () {
     _spmCreateHotfix();
-  });
-
-  // spm-btn-retro → _spmRetro()
-  const spmRetro = document.getElementById('spm-btn-retro');
-  if (spmRetro) spmRetro.addEventListener('click', function () {
-    _spmRetro();
-  });
-
-  // spm-new-sprint-btn → openNewSprintInline()
-  const spmNewSprint = document.getElementById('spm-new-sprint-btn');
-  if (spmNewSprint) spmNewSprint.addEventListener('click', function () {
-    openNewSprintInline();
-  });
-
-  // spm-empty-btn-registrar → _spmRegistrar()
-  const spmEmptyRegistrar = document.getElementById('spm-empty-btn-registrar');
-  if (spmEmptyRegistrar) spmEmptyRegistrar.addEventListener('click', function () {
-    _spmRegistrar();
-  });
-
-  // spm-empty-btn-activar → _spmActivarExistente()
-  const spmEmptyActivar = document.getElementById('spm-empty-btn-activar');
-  if (spmEmptyActivar) spmEmptyActivar.addEventListener('click', function () {
-    _spmActivarExistente();
   });
 
   // T-202606-100: sph-collapse-btn → _sphToggle()
