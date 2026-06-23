@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-06 · mod:7 · autor:Rune · 2026-06-22 14:20 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-HOTFIX · mod:8 · autor:Rune · 2026-06-22 18:35 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -473,18 +473,23 @@ export function _mgGetVersion() {
 }
 
 // T-202606-148: versión canónica para el MAP — version_target del sprint activo
-// Fallback: input mg-version-input (configurable) + toast de advertencia al founder
-// El MAP siempre refleja la versión del sprint en curso, no la del último sprint cerrado.
+// T-202606-148 + B-202606-088: version_target del sprint activo — fallback a sprint cerrado más
+// reciente (vía _mgActiveSprint), luego a input + toast. El MAP nunca declara n/a.
+// B-202606-088: la condición previa exigía status === 'active', lo que descartaba el
+// version_target real cuando _mgActiveSprint() ya había caído a su fallback de sprint cerrado —
+// el sprint cerrado nunca podía pasar ese chequeo, y el flujo caía al input/_effectiveVersion()
+// produciendo n/a. _mgActiveSprint() ya decide activo-vs-cerrado internamente; aquí solo se
+// valida que el sprint resuelto (cualquiera sea su status) tenga version_target real.
 function _mgGetMapVersion() {
   const activeSp = _mgActiveSprint();
-  if (activeSp && activeSp.status === 'active' && activeSp.version_target && activeSp.version_target.trim() && activeSp.version_target.trim() !== 'undefined') {
+  if (activeSp && activeSp.version_target && activeSp.version_target.trim() && activeSp.version_target.trim() !== 'undefined') {
     return activeSp.version_target.trim();
   }
-  // Sin sprint activo — fallback a input configurable + toast
+  // Sin sprint activo ni cerrado con version_target real — fallback a input configurable + toast
   const input = document.getElementById('mg-version-input');
   const raw = input ? input.value.trim() : '';
   const fallback = (raw && raw !== 'undefined') ? raw : _effectiveVersion();
-  showToast('warning', 'Sin sprint activo — versión del MAP tomada del campo de versión. Verifica antes de descargar.');
+  showToast('warning', 'Sin sprint activo ni cerrado con versión real — versión del MAP tomada del campo de versión. Verifica antes de descargar.');
   return fallback || '—';
 }
 
