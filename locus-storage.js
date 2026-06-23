@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:35 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:36 · autor:Rune · 2026-06-22 UTC-6
 // locus-storage.js
 // Última actualización: B-202606-069: openAuthModal / closeAuthModal definidas
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1767,8 +1767,12 @@ function _renderAfterAuth() {
   // B-202606-XXX: render inicial del backlog desde localStorage — garantiza items visibles
   // aunque Supabase no responda. _loadFromSupabase re-renderiza si hay datos frescos.
   // (a) event dispatch — locus-backlog-render.js escucha 'shell:mark-backlog-dirty' + 'shell:render-backlog-list'
-  _dispatch('shell:mark-backlog-dirty');
-  _dispatch('shell:render-backlog-list');
+  // Race condition fix: setTimeout(0) garantiza que todos los módulos ESM registraron
+  // sus listeners antes de disparar — resuelve badges de sidebar vacíos al init.
+  setTimeout(() => {
+    _dispatch('shell:mark-backlog-dirty');
+    _dispatch('shell:render-backlog-list');
+  }, 0);
   // T-202605-482: sincronizar desde Supabase
   if (_supabase) _loadFromSupabase();
 }
