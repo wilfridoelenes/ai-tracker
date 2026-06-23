@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-07 · mod:61 · autor:Rune · 2026-06-23 16:00 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-07 · mod:62 · autor:Rune · 2026-06-23 17:10 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1546,10 +1546,12 @@ function _spmCreateHotfix() {
 
 // ── T-202606-041: _renderSpsPausados — sección sprints pausados ──────────────
 //
-// Renderiza en #sps-pausados una card por sprint con status 'paused' e isHotfix falsy.
+// Renderiza en #sps-pausados una card por sprint con status 'pausado' e isHotfix falsy.
 // Si no hay pausados: innerHTML vacío + display:none — no ocupa espacio visual.
 // Si hay pausados tras haber estado oculto: display:'' restaura visibilidad.
-// Excluye isHotfix:true aunque tengan status 'paused'.
+// Excluye isHotfix:true aunque tengan status 'pausado'.
+// B-202606-090: filtro usaba 'paused' (inglés) — el resto del módulo escribe/lee
+// 'pausado' (español, ver L312/460/1144/1148). La sección nunca mostraba nada.
 
 function _renderSpsPausados() {
   const container = document.getElementById('sps-pausados');
@@ -1557,7 +1559,7 @@ function _renderSpsPausados() {
 
   const allSprints = getActiveSprints();
   const paused = allSprints
-    ? allSprints.filter(s => s.status === 'paused' && !s.isHotfix)
+    ? allSprints.filter(s => s.status === 'pausado' && !s.isHotfix)
     : [];
 
   // AC-4/AC-5: sin pausados → ocultar contenedor sin empty state
