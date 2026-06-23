@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-HOTFIX · mod:8 · autor:Rune · 2026-06-22 18:35 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-HOTFIX · mod:9 · autor:Rune · 2026-06-22 18:55 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -31,6 +31,22 @@ function _mgActiveSprint() {
   const all = getActiveSprints();
   // Sprint activo
   const active = all.find(s => s.status === 'active');
+  if (active) return active;
+  // Fallback: último sprint cerrado por closedAt desc
+  const closed = all
+    .filter(s => s.status === 'closed')
+    .sort((a, b) => (b.closedAt || 0) - (a.closedAt || 0));
+  return closed[0] || null;
+}
+
+// Variante que excluye S-HOTFIX (isHotfix:true) — usar en todos los call sites
+// que requieren sprint real para versión o label de documento. S-HOTFIX tiene
+// status:'active' permanente y version_target:'n/a' por diseño (BR-Core §6),
+// lo que bloquea el fallback a sprint cerrado en _mgActiveSprint().
+function _mgActiveSprintReal() {
+  const all = getActiveSprints();
+  // Sprint activo real — excluye S-HOTFIX
+  const active = all.find(s => s.status === 'active' && !s.isHotfix);
   if (active) return active;
   // Fallback: último sprint cerrado por closedAt desc
   const closed = all
@@ -77,7 +93,7 @@ export function openMapGenerator() {
     const raw = localStorage.getItem(_tplKey('backlog-items'));
       _blItemsForStatus = raw ? JSON.parse(raw) : [];
   } catch(e) {}
-  const _activeSp = _mgActiveSprint();
+  const _activeSp = _mgActiveSprintReal();
   const inferredStatus = _mgInferStatus(_activeSp, _blItemsForStatus);
   const _now2 = new Date();
   const _pad2 = n => String(n).padStart(2, '0');
@@ -126,8 +142,8 @@ function _mgLoadSprintReview() {
   const proj = getActiveProject();
   if (!proj) return;
 
-  // Sprint activo
-  const activeSprint = _mgActiveSprint();
+  // Sprint activo real (excluye S-HOTFIX)
+  const activeSprint = _mgActiveSprintReal();
 
   const sprintLabel = document.getElementById('mg-review-sprint-label');
   if (sprintLabel) {
@@ -478,10 +494,10 @@ export function _mgGetVersion() {
 // B-202606-088: la condición previa exigía status === 'active', lo que descartaba el
 // version_target real cuando _mgActiveSprint() ya había caído a su fallback de sprint cerrado —
 // el sprint cerrado nunca podía pasar ese chequeo, y el flujo caía al input/_effectiveVersion()
-// produciendo n/a. _mgActiveSprint() ya decide activo-vs-cerrado internamente; aquí solo se
-// valida que el sprint resuelto (cualquiera sea su status) tenga version_target real.
+// produciendo n/a. _mgActiveSprintReal() excluye S-HOTFIX (version_target:'n/a' permanente)
+// y cae al fallback de sprint cerrado cuando no hay sprint regular activo.
 function _mgGetMapVersion() {
-  const activeSp = _mgActiveSprint();
+  const activeSp = _mgActiveSprintReal();
   if (activeSp && activeSp.version_target && activeSp.version_target.trim() && activeSp.version_target.trim() !== 'undefined') {
     return activeSp.version_target.trim();
   }
@@ -708,7 +724,7 @@ function generateDocuments() {
   // B-[pendiente-ID]: validación fallida descarta solo CONTEXT — no aborta los demás documentos
   let contextCheckedFinal = contextChecked;
   if (contextChecked) {
-    const _valSp = _mgActiveSprint();
+    const _valSp = _mgActiveSprintReal();
     if (_valSp) {
       const _missingName = !_valSp.name || !_valSp.name.trim();
       const _missingGoal = !_valSp.goal || !String(_valSp.goal).trim();
@@ -821,7 +837,7 @@ function _generateMap(ver) {
     const raw = localStorage.getItem(_tplKey('backlog-items'));
       _blItemsForMap = raw ? JSON.parse(raw) : [];
   } catch(e) {}
-  const _activeSpForMap = _mgActiveSprint();
+  const _activeSpForMap = _mgActiveSprintReal();
   const mapStatus = _mgInferStatus(_activeSpForMap, _blItemsForMap);
 
   // Nombres de archivos en el MAP para validar calls (AC-12: solo archivos presentes en el MAP)
@@ -1215,7 +1231,7 @@ function _generateContext(ver) {
   // R-202605-136: produce JSON puro — parseable sin regex
   // R-202605-147: enriquecido con status, sprint completo, velocity, backlog snapshot, tech_debt
   // B-202605-XXX: acepta ver como parámetro (bumpedVer desde generateDocuments) — prioridad sobre version_target del sprint
-  const _activeSp   = _mgActiveSprint();
+  const _activeSp   = _mgActiveSprintReal();
   const _ctxVersion = (ver && ver !== 'undefined')
     ? ver
     : (_activeSp && _activeSp.version_target && _activeSp.version_target !== 'undefined')
@@ -1478,7 +1494,7 @@ function _generateBacklog(version) {
 function _generateSprintReview(ver) {
   // B-202605-495: acepta ver como parámetro; fallback a _mgGetVersion() si no se pasa
   const proj = getActiveProject();
-  const activeSprint = _mgActiveSprint();
+  const activeSprint = _mgActiveSprintReal();
 
   const sprintId   = activeSprint ? activeSprint.id : 'sin-sprint';
   const sprintName = activeSprint ? (activeSprint.label || activeSprint.id) : '—';
@@ -1740,7 +1756,7 @@ function _doConfirmGenerate() {
   }
 
   // Construir tabla de archivos: { filename, content, applyFn? }
-  const activeSprint = _mgActiveSprint();
+  const activeSprint = _mgActiveSprintReal();
   const sprintId     = activeSprint ? activeSprint.id : 'sin-sprint';
 
   const fileDefs = [];

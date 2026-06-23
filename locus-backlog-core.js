@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:40 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-07 · mod:41 · autor:Rune · 2026-06-22 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1756,6 +1756,13 @@ export function _getCountableBaseForSubtab(sub) {
 }
 
 export function renderStats() {
+  // T-202606-098 (T1): renderStats() es exclusiva del subtab Backlog.
+  // Icebox/Hotfix/Histórico tienen sus propias funciones de stats-bar (renderIceboxStats,
+  // renderHotfixStats, renderHistoricoStats) — invocadas desde sus propios call sites.
+  // Early-return para cualquier subtab distinto de 'backlog'.
+  const _activeSub = getCurrentSubTab ? getCurrentSubTab() : 'backlog';
+  if (_activeSub !== 'backlog') return;
+
   // B-fix-T202606-197: _coreCallbacks.getActiveProjectFilter nunca registrado post T-202606-197 — leer localStorage directamente
   const _rsProjId = localStorage.getItem('current-project-filter') || '';
   if (!_rsProjId) { document.getElementById('stats-bar').innerHTML = ''; return; }
@@ -1763,10 +1770,6 @@ export function renderStats() {
   // Forzar recarga cuando hay proyecto activo con ITEMS vacío — evita que stats-bar se limpie en carga inicial.
   if (!ITEMS.length) { loadBacklog(); }
   if (!ITEMS.length) { document.getElementById('stats-bar').innerHTML = ''; return; }
-
-  // T-202606-008 — subtab activo determina el universo countable (AC1/AC2/AC6/edge-historico).
-  // 'backlog' es el default — preserva el comportamiento previo a T2 sin cambios (AC2).
-  const _activeSub = (typeof getCurrentSubTab === 'function') ? getCurrentSubTab() : 'backlog';
 
   // Delegation para stats-bar — se registra una sola vez
   const statsBarEl = document.getElementById('stats-bar');
@@ -1801,13 +1804,10 @@ export function renderStats() {
   const _statsCollapsed = localStorage.getItem('locus-statsbar-collapsed') === 'true';
 
   // T-202606-048 AC 6/7: obtener sprint activo — metadata se calcula sobre ítems del sprint activo.
-  // T-202606-008 AC4 — la metadata de sprint solo aplica al subtab Backlog; los demás subtabs
-  // no tienen noción de "sprint activo" propia (Icebox no tiene sprint, Hotfix usa S-HOTFIX,
-  // Histórico es archivo) — se tratan con el render simplificado de "sin sprint activo".
-  const _activeSprint = (_activeSub === 'backlog' && _coreCallbacks && _coreCallbacks.getActiveSprint) ? _coreCallbacks.getActiveSprint() : null;
+  const _activeSprint = (_coreCallbacks && _coreCallbacks.getActiveSprint) ? _coreCallbacks.getActiveSprint() : null;
 
-  // T-202606-008 — universo por subtab. AC2 preserva _getCountableBase() sin cambios para 'backlog'.
-  const countableItems = _getCountableBaseForSubtab(_activeSub);
+  // Universo countable de Backlog
+  const countableItems = _getCountableBaseForSubtab('backlog');
 
   // B-202606-008: incluir búsqueda activa — los contadores deben reflejar
   // los mismos ítems que aparecen en la lista, incluyendo el filtro de búsqueda.
@@ -1842,8 +1842,8 @@ export function renderStats() {
   // R-202605-122 AC5: contador de ítems sin effort (excluye P e históricos)
   const noEffortCount = countableItems.filter(i => !i.effort && itemType(i.code) !== 'P' && i.status !== 'historico').length;
 
-  // T-202606-048 AC 7: Backlog sin sprint activo — render simplificado, no aplica a otros subtabs
-  if (_activeSub === 'backlog' && !_activeSprint) {
+  // T-202606-048 AC 7: Backlog sin sprint activo — render simplificado
+  if (!_activeSprint) {
     document.getElementById('stats-bar').innerHTML = `
       <div class="stats-bar-header">
         <span class="stats-bar-title">Stats</span>
@@ -1855,24 +1855,8 @@ export function renderStats() {
     return;
   }
 
-  // T-202606-008 AC4: subtabs no-backlog sin ítems en su universo — contadores en 0, sin
-  // metadata de sprint residual del subtab anterior (Icebox/Hotfix/Histórico no tienen sprint propio).
-  if (_activeSub !== 'backlog' && countableItems.length === 0) {
-    document.getElementById('stats-bar').innerHTML = `
-      <div class="stats-bar-header">
-        <span class="stats-bar-title">Stats</span>
-        <button class="stats-bar-chevron" data-action="stats-toggle-collapse" title="${_statsCollapsed ? 'Expandir' : 'Colapsar'}">${_statsCollapsed ? '▸' : '▾'}</button>
-      </div>
-      ${!_statsCollapsed ? '<div class="stats-bar-body"><span class="stats-bar-no-sprint">Sin ítems</span></div>' : ''}
-    `;
-    updateTypeFilterUI();
-    return;
-  }
-
-  // T-202606-048 AC 6: métricas sobre ítems del sprint activo — solo aplica a Backlog.
-  // T-202606-008 AC1/AC6: Icebox/Hotfix/Histórico no tienen sprint activo propio — _sprintItems
-  // queda vacío y la metadata de sprint (label, pct, effort) no se muestra para esos subtabs.
-  const _sprintItems = _activeSprint ? ITEMS.filter(i => i.sprint === _activeSprint.id && i.status !== 'descartado' && i.status !== 'historico') : [];
+  // T-202606-048 AC 6: métricas sobre ítems del sprint activo
+  const _sprintItems = ITEMS.filter(i => i.sprint === _activeSprint.id && i.status !== 'descartado' && i.status !== 'historico');
   const _sprintEffortTotal = _sprintItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
 
   // T-202606-096: universo canónico — activos = countableItems (pendiente + en-revision + done)
@@ -1890,12 +1874,9 @@ export function renderStats() {
   // T-202606-102: excluir promovidas — pIdeasCount solo cuenta Ps con status pendiente
   const pIdeasCount = ITEMS.filter(i => itemType(i.code) === 'P' && !(_closedIdsForP.size && _closedIdsForP.has(i.sprint)) && i.status === 'pendiente').length;
   // T-202606-101: desglose histórico — fuente real: ITEMS en memoria
-  // _emitidos = ITEMS.length (no _lastIds — refleja ID más alto, no conteo real)
-  // _descartadosTotal = filtro directo sobre ITEMS
-  // _activosTotal = pendiente + en-revision, excluyendo sprints cerrados, excluyendo P con status promovida
   const _emitidos = ITEMS.length;
   const _descartadosTotal = ITEMS.filter(i => i.status === 'descartado').length;
-  const _promovidasTotal = ITEMS.filter(i => i.status === 'promovida').length; // B-202606-sprint-fix: promovidas = cierre sin trabajo
+  const _promovidasTotal = ITEMS.filter(i => i.status === 'promovida').length;
   const _cerradosSinTrabajo = _descartadosTotal + _promovidasTotal;
   const _doneTotal = ITEMS.filter(i => i.status === 'done').length;
   const _closedIdsForActivos = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
@@ -1906,20 +1887,16 @@ export function renderStats() {
   ).length;
 
   // UX-redesign: stats bar en una sola fila compacta — pendientes primero (foco en trabajo activo)
-  // Pendientes = protagonista visual; hechos = secundario. Tipos + esfuerzo inline.
   const _hasPending = (backlogCount + enRevisionCount) > 0;
 
-  // T-202606-048 AC 6: label metadata de sprint activo — solo aplica a Backlog.
-  // T-202606-008: Icebox/Hotfix/Histórico muestran su propio nombre de subtab en vez de
-  // metadata de sprint, que no existe para ellos.
-  const _subtabLabels = { icebox: 'Icebox', hotfix: 'Hotfix', historico: 'Histórico' };
-  const _sprintLabel = _activeSprint ? (_activeSprint.label || _activeSprint.id || '') : (_subtabLabels[_activeSub] || '');
-  const _metaLabel = _activeSprint ? `${_sprintDone}/${_sprintTotal} · effort ${_sprintEffortTotal}` : '';
+  // T-202606-048 AC 6: label metadata de sprint activo
+  const _sprintLabel = _activeSprint.label || _activeSprint.id || '';
+  const _metaLabel = `${_sprintDone}/${_sprintTotal} · effort ${_sprintEffortTotal}`;
 
   document.getElementById('stats-bar').innerHTML = `
     <div class="stats-bar-header">
       <span class="stats-bar-title">Stats <span class="stats-bar-sprint-label">${_sprintLabel}</span></span>
-      ${(!_statsCollapsed && _metaLabel) ? `<span class="stats-bar-meta-inline">${_metaLabel}</span>` : ''}
+      ${!_statsCollapsed ? `<span class="stats-bar-meta-inline">${_metaLabel}</span>` : ''}
       <button class="stats-bar-chevron" data-action="stats-toggle-collapse" title="${_statsCollapsed ? 'Expandir' : 'Colapsar'}">${_statsCollapsed ? '▸' : '▾'}</button>
     </div>
     ${!_statsCollapsed ? `<div class="stats-bar-body">

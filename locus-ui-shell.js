@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:29 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-07 · mod:30 · autor:Rune · 2026-06-22 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -15,7 +15,7 @@
 // Cada módulo consumidor es responsable de registrar listener 'shell:invoke' para sus propias funciones.
 
 import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, _parseInfraLine, setInfraVersionData, _docPrefix, handleSyncPillClick } from './locus-storage.js';
-import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortDir, renderStats, updateStatusFilterUI } from './locus-backlog-core.js';
+import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortDir } from './locus-backlog-core.js';
 import { closeArranquePanel } from './locus-sesiones-arranque.js';
 import { openPendPanel, closePendPanel } from './locus-pend.js';
 import { openCommandPalette, closeCommandPalette } from './locus-command-palette.js';
@@ -179,17 +179,13 @@ export function switchSubTab(sub) {
   if (sub === 'icebox') {
     // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-icebox'
     window.dispatchEvent(new CustomEvent('shell:render-icebox'));
-    // T-202606-008 AC1/AC3: recalcular stats-bar y reevaluar filtros activos contra el universo de icebox
-    renderStats();
-    updateStatusFilterUI();
+    // T-202606-098 T1: renderStats()/updateStatusFilterUI() eliminados — exclusivos de subtab backlog
   }
   if (sub === 'hotfix') {
     // T-202606-091: dispatch para refresco de contenido del panel Hotfix.
     // Sin listener aún — render de #hotfix-panel-body pendiente de especificación (gap reportado a Cael).
     window.dispatchEvent(new CustomEvent('shell:render-hotfix'));
-    // T-202606-008 AC3/AC6: recalcular stats-bar y reevaluar filtros activos contra el universo de hotfix
-    renderStats();
-    updateStatusFilterUI();
+    // T-202606-098 T1: renderStats()/updateStatusFilterUI() eliminados — exclusivos de subtab backlog
   }
   if (sub === 'context') {
     // (a) event dispatch — locus-docs.js escucha 'shell:render-context'
@@ -206,9 +202,7 @@ export function switchSubTab(sub) {
   if (sub === 'historico') {
     // (a) event dispatch — locus-backlog-archive.js escucha 'shell:render-historico'
     window.dispatchEvent(new CustomEvent('shell:render-historico'));
-    // T-202606-008 AC3/edge-historico: recalcular stats-bar y reevaluar filtros contra status:historico
-    renderStats();
-    updateStatusFilterUI();
+    // T-202606-098 T1: renderStats()/updateStatusFilterUI() eliminados — exclusivos de subtab backlog
   }
   // (a) event dispatch — locus-docs.js escucha 'shell:render-docs-onboarding'
   window.dispatchEvent(new CustomEvent('shell:render-docs-onboarding')); // T-202604-204
