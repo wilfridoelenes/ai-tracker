@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:4 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-06 · mod:6 · autor:Rune · 2026-06-22 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -384,6 +384,8 @@ function _mgParseFile(name, text) {
   }
 
   if (ext === 'js') {
+    // T-202606-021: truncar area a 27 chars + '…' si supera 30 — previene rotura de tabla MD
+    const _truncArea = a => a.length > 30 ? a.slice(0, 29) + '…' : a;
     // AC-02: rastrear la sección más cercana hacia arriba para herencia de área
     let currentSection = '';
     lines.forEach((line, i) => {
@@ -392,28 +394,28 @@ function _mgParseFile(name, text) {
       // Detectar comentario de sección (── Nombre ──) para herencia
       const secMatch = line.match(/\/\/\s*[─\-═=]{2,}\s*(.+?)\s*[─\-═=]{2,}/);
       if (secMatch) {
-        currentSection = secMatch[1].trim();
+        currentSection = secMatch[1].trim().replace(/\|/g, '/');
       }
 
       const fnMatch = line.match(/^\s*(?:async\s+)?function\s+(\w+)\s*\(/);
       if (fnMatch) {
         // AC-01 + AC-02: área = guessArea → si vacío, heredar sección → si aún vacío, 'Internal'
         const guessed = _mgGuessArea(fnMatch[1], line);
-        const area = guessed || currentSection || 'Internal';
+        const area = _truncArea(guessed || currentSection || 'Internal');
         entries.push({ line: `L${lineNum}`, fn: fnMatch[1], area, bodyStart: lineNum });
         return;
       }
       const arrowMatch = line.match(/^\s*(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s*)?\(?[^)]*\)?\s*=>/);
       if (arrowMatch) {
         const guessed = _mgGuessArea(arrowMatch[1], line);
-        const area = guessed || currentSection || 'Internal';
+        const area = _truncArea(guessed || currentSection || 'Internal');
         entries.push({ line: `L${lineNum}`, fn: arrowMatch[1], area, bodyStart: lineNum });
         return;
       }
       const exprMatch = line.match(/^\s*(?:const|let|var)\s+(\w+)\s*=\s*(?:async\s+)?function/);
       if (exprMatch) {
         const guessed = _mgGuessArea(exprMatch[1], line);
-        const area = guessed || currentSection || 'Internal';
+        const area = _truncArea(guessed || currentSection || 'Internal');
         entries.push({ line: `L${lineNum}`, fn: exprMatch[1], area, bodyStart: lineNum });
       }
     });
@@ -1074,7 +1076,9 @@ function _generateMap(ver) {
           const callsStr  = fn.calls && fn.calls.length ? fn.calls.join(', ') : '—';
           const usedBySet = usedByIndex[fn.name];
           const usedByStr = usedBySet && usedBySet.size ? [...usedBySet].sort().join(', ') : '—';
-          md += `| ${fn.line} · ${fn.name} | ${fn.area} | ${callsStr} | ${usedByStr} |\n`;
+          const areaStr = (fn.area || '').replace(/\|/g, '/');
+          const areaSafe = areaStr.length > 30 ? areaStr.slice(0, 29) + '…' : areaStr;
+          md += `| ${fn.line} · ${fn.name} | ${areaSafe} | ${callsStr} | ${usedByStr} |\n`;
         });
         md += '\n';
       }
@@ -1086,7 +1090,9 @@ function _generateMap(ver) {
         md += `|---------|------|-------|\n`;
         internalFns.forEach(fn => {
           const callsStr = fn.calls && fn.calls.length ? fn.calls.join(', ') : '—';
-          md += `| ${fn.line} · ${fn.name} | ${fn.area} | ${callsStr} |\n`;
+          const areaStr = (fn.area || '').replace(/\|/g, '/');
+          const areaSafe = areaStr.length > 30 ? areaStr.slice(0, 29) + '…' : areaStr;
+          md += `| ${fn.line} · ${fn.name} | ${areaSafe} | ${callsStr} |\n`;
         });
         md += '\n';
       }

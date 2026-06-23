@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-HOTFIX · mod:23 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-HOTFIX · mod:24 · autor:Rune · 2026-06-22 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -373,29 +373,11 @@ function _generateSprintRetroMd(id, notes) {
   const sprintItems  = getItems().filter(i => _sprintIdOf(i) === id);
   const doneItems    = sprintItems.filter(i => i.status === 'done' || i.status === 'historico');
 
-  // ── AC-3: Migrado — ítems pendientes reasignados a otro sprint o a icebox.
-  // _scmExecuteClose asignó i.sprint = dest || '' para no-__discard__.
-  // Los que quedaron sin sprint (dest='') aparecen con sprint='' → tratar como icebox.
-  // Los ítems con dest='__discard__' tienen status=historico y sprint=id — se excluyen aquí.
-  // Identificamos migrados como ítems que estaban en pendingItems de _scmState y cuyo sprint
-  // ya no es id (el cierre los movió a otro sprint o los dejó sin asignar).
-  // Fallback si _scmState no está disponible: pendientes con sprint distinto a id.
-  let migratedItems = [];
-  if (_scmState && Array.isArray(_scmState.pendingItems)) {
-    _scmState.pendingItems.forEach(pi => {
-      const live = getItems().find(i => i.code === pi.code);
-      if (!live) return;
-      const dest = _scmState.migrations[pi.code];
-      // __discard__ → va a Descartado, no Migrado
-      if (dest === '__discard__') return;
-      migratedItems.push({ code: pi.code, dest: live.sprint || 'icebox' });
-    });
-  } else {
-    // Fallback: ítems pendientes que ya no están en este sprint
-    sprintItems
-      .filter(i => i.status === 'pendiente' && i.sprint !== id)
-      .forEach(i => migratedItems.push({ code: i.code, dest: i.sprint || 'icebox' }));
-  }
+  // ── AC-3: Migrado — eliminado. Bajo Gate duro de cierre (__BR-Ecosystem §5),
+  // ningún R/T/B activo puede salir de un sprint por reasignación — la única
+  // salida de un ítem bloqueante es done o descartado. "Migrado" es siempre
+  // "ninguno" para R/T/B. Fix de alineación BR — auditoría 2026-06-22.
+  const migratedItems = [];
 
   // ── AC-4: Descartado — ítems descartados con justificación.
   // Incluye: ítems del sprint que tenían status=descartado + pendientes con dest=__discard__.
@@ -997,6 +979,7 @@ export function confirmCloseSprint(id) {
     pendingItems,
     doneItems,
     migrations: {},
+    discardReasons: {}, // Fix Gate duro de cierre — justificación obligatoria por ítem descartado
     docUpdates,   // T-202606-120 AC-3
     retroNotes: '',
     effortPlanned,
@@ -1005,8 +988,10 @@ export function confirmCloseSprint(id) {
     effortNotDone,
     hasItemsWithoutEffort,
   };
-  // default: todos los pendientes van a sin asignar
-  pendingItems.forEach(i => { _scmState.migrations[i.code] = ''; });
+  // Fix Gate duro de cierre (__BR-Ecosystem §5): la única salida válida de un ítem
+  // activo es done o descartado — nunca reasignación a otro sprint/icebox.
+  // Todo pendiente nace como candidato a descartar; requiere justificación antes de avanzar.
+  pendingItems.forEach(i => { _scmState.migrations[i.code] = '__discard__'; });
 
   const overlay = document.getElementById('sprint-close-overlay');
   if (!overlay) return;
@@ -1124,9 +1109,9 @@ function _scmRender() {
     // T-202606-120 AC-4: gate — Siguiente habilitado solo si todos tienen resolución
     _scmUpdateDuNextBtn(nextBtn);
   } else if (step === 3 && !skipStep3) {
-    // Paso 3: migración de ítems pendientes (solo si !skipStep3)
-    if (nextBtn) nextBtn.disabled = false;
-    body.innerHTML = _scmStep2Html(pendingItems, migrations, id);
+    // Paso 3: descarte obligatorio de ítems activos (Gate duro de cierre — sin opción de reasignar)
+    body.innerHTML = _scmStep2Html(pendingItems, migrations, _scmState.discardReasons);
+    _scmUpdateMigrationNextBtn(nextBtn);
   } else if (step === 4 || (step === 3 && skipStep3)) {
     // Paso 4 (o 3 si skipStep3): retro
     body.innerHTML = _scmStep3Html(pendingItems, doneItems, migrations, skipStep3);
@@ -1145,6 +1130,17 @@ function _scmUpdateDuNextBtn(nextBtn) {
   nextBtn.disabled = !allResolved;
 }
 
+// Fix Gate duro de cierre (__BR-Ecosystem §5): Siguiente solo se habilita cuando
+// todo ítem pendiente tiene justificación de descarte no vacía. No hay otra salida
+// válida — reasignar a otro sprint/icebox queda eliminado del flujo.
+function _scmUpdateMigrationNextBtn(nextBtn) {
+  if (!_scmState || !nextBtn) return;
+  const pend = _scmState.pendingItems || [];
+  const reasons = _scmState.discardReasons || {};
+  const allJustified = pend.every(i => (reasons[i.code] || '').trim().length > 0);
+  nextBtn.disabled = !allJustified;
+}
+
 // B-202605-067: métricas de entrega recibidas como parámetro — sin acceso a _scmState global
 function _scmStep1Html(sp, spLabel, pendingItems, doneItems, metrics) {
   const doneCount  = doneItems.filter(i => i.status === 'done').length;
@@ -1157,8 +1153,10 @@ function _scmStep1Html(sp, spLabel, pendingItems, doneItems, metrics) {
   const effortScopeAdded = m.effortScopeAdded       || 0;
   const effortNotDone    = m.effortNotDone          || 0;
   const hasNoEffort      = m.hasItemsWithoutEffort  || false;
-  // % entrega = done / (planeado + scope added). Si todo es 0, usar conteo de ítems.
-  const denominator = effortPlanned + effortScopeAdded;
+  // % entrega = done / planeado. effortPlanned ya incluye el effort de los ítems
+  // scope_added (se computa sobre allSprintItems, que no excluye scope_added) —
+  // sumarlo otra vez al denominador duplicaba ese effort. Fix B — auditoría 2026-06-22.
+  const denominator = effortPlanned;
   const pct = denominator
     ? Math.round(effortDone / denominator * 100)
     : (doneCount ? 100 : 0);
@@ -1699,7 +1697,9 @@ async function _scmExecuteClose() {
       }
     }
     // R-202605-125: métricas de entrega para Analytics (Nivel 2)
-    const denominator = (effortPlanned || 0) + (effortScopeAdded || 0);
+    // Fix denominador % entrega — effortPlanned ya incluye scope_added (allSprintItems no lo excluye),
+    // no sumar effortScopeAdded otra vez. Mismo fix aplicado en _scmStep1Html — ver L1159.
+    const denominator = effortPlanned || 0;
     sp.deliveryMetrics = {
       effortPlanned:    effortPlanned    || 0,
       effortDone:       effortDone       || 0,
