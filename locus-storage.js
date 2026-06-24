@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:44 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:45 · autor:Rune · 2026-06-24 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-011: _verifyAndCleanSprintsBlob() reemplaza migración legacy — limpia blob, _ensureHotfixSprint bifurcado por sesión
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1135,6 +1135,114 @@ export async function verifyPrePurgaIntegrity() {
   }
 }
 // ── END T-202606-019 ──────────────────────────────────────────────────────────
+
+// ── T-202606-020: migrateHistoricosToTrackerItems() — migración históricos JSONB → tracker_items ──
+// AC: los 201 ítems historico del JSONB de tracker_backlog se insertan como filas en tracker_items.
+// Sin duplicados: onConflict:'code' — si el code ya existe se omite silenciosamente.
+// Edge case: ítems malformados se registran en errorLog y la migración continúa.
+// Prerrequisito de T-202606-010 (purga).
+export async function migrateHistoricosToTrackerItems() {
+  if (!_supabase || !_supabaseUser) {
+    console.warn('[Locus] migrateHistoricosToTrackerItems: sin auth — migración no disponible');
+    return null;
+  }
+
+  const projId = _getActiveProjectFilter();
+  const suffix = projId ? '-' + projId : '-global';
+
+  try {
+    // 1. Leer históricos desde tracker_backlog clave historico+suffix
+    const { data: blData, error: blError } = await _supabase
+      .from('tracker_backlog')
+      .select('value')
+      .eq('user_id', _supabaseUser.id)
+      .eq('key', 'historico' + suffix)
+      .maybeSingle();
+
+    if (blError) throw blError;
+
+    const historicos = blData && Array.isArray(blData.value) ? blData.value : [];
+    console.log('[Locus] migrateHistoricosToTrackerItems — históricos encontrados en JSONB:', historicos.length);
+
+    if (historicos.length === 0) {
+      console.log('[Locus] migrateHistoricosToTrackerItems — sin históricos que migrar. Done.');
+      return { migrated: 0, errors: [] };
+    }
+
+    // 2. Construir filas para tracker_items — mismo esquema que _toItemRow en saveBacklog
+    const _updatedAtMs = Date.now();
+    const errorLog = [];
+    const rows = [];
+
+    for (const it of historicos) {
+      try {
+        if (!it || typeof it !== 'object') throw new Error('ítem no es objeto');
+        if (!it.code) throw new Error('ítem sin code');
+        rows.push({
+          project_id:            projId || null,
+          code:                  it.code,
+          type:                  it.type             || null,
+          title:                 it.title            || null,
+          status:                'historico',
+          priority:              it.priority         || null,
+          effort:                it.effort != null ? Number(it.effort) : null,
+          area:                  it.area             || null,
+          sprint:                it.sprint           || null,
+          role:                  it.role             || null,
+          parent:                it.parent           || it.parentId || null,
+          depends_on:            Array.isArray(it.depends_on) ? it.depends_on : [],
+          triggered_by:          it.triggered_by     || null,
+          no_incluye:            it.no_incluye       != null ? it.no_incluye : null,
+          kill_criteria:         it.kill_criteria    || null,
+          promovida_a:           it.promovida_a      || null,
+          origin_p:              it.origen_p         || null,
+          discard_reason:        it.discard_reason   || null,
+          comportamiento_actual: it.comportamiento_actual || null,
+          origin_module:         it.origin_module    || null,
+          verified_by:           it.verificado_por   || null,
+          schema_version:        it.schema_version != null ? Number(it.schema_version) : 2,
+          ac:                    Array.isArray(it.ac) ? it.ac : [],
+          intencion:             it.intencion        || null,
+          contract:              it.contract         || null,
+          updated_at:            _updatedAtMs
+        });
+      } catch (rowErr) {
+        errorLog.push({ code: it?.code || '[sin code]', error: rowErr.message });
+        console.warn('[Locus] migrateHistoricosToTrackerItems — ítem omitido:', it?.code || '[sin code]', rowErr.message);
+      }
+    }
+
+    // 3. Upsert en tracker_items — onConflict:'code' omite duplicados sin error (AC sin duplicados)
+    if (rows.length > 0) {
+      const { error: upsertError } = await _supabase
+        .from('tracker_items')
+        .upsert(rows, { onConflict: 'code', ignoreDuplicates: true });
+      if (upsertError) throw upsertError;
+    }
+
+    // 4. Verificar integridad post-migración — COUNT de historico en tracker_items
+    const { count, error: countError } = await _supabase
+      .from('tracker_items')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', _supabaseUser.id)
+      .eq('project_id', projId || null)
+      .eq('status', 'historico');
+
+    if (countError) throw countError;
+
+    console.log('[Locus] migrateHistoricosToTrackerItems — filas historico en tracker_items post-migración:', count);
+    console.log('[Locus] migrateHistoricosToTrackerItems — errores de fila:', errorLog.length);
+    if (errorLog.length > 0) console.warn('[Locus] migrateHistoricosToTrackerItems — errorLog:', errorLog);
+
+    console.log('[Locus] migrateHistoricosToTrackerItems — OK. Migrados:', rows.length, '· Errores:', errorLog.length);
+    return { migrated: rows.length, historicoCountInTable: count, errors: errorLog };
+
+  } catch (err) {
+    console.error('[Locus] migrateHistoricosToTrackerItems — error:', err);
+    return null;
+  }
+}
+// ── END T-202606-020 ──────────────────────────────────────────────────────────
 
 // R-202604-035: saveContextDocs() — escribe en tracker_docs
 export async function saveContextDocs() {
