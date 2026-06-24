@@ -789,16 +789,20 @@ export async function saveBacklog() {
   // B-202606-097: gate chk_status_by_type — reflejo client-side del CHECK constraint de
   // Postgres (T-202606-007 DDL). Un ítem con combinación type+status inválida se excluye
   // del upsert hasta que su status sea corregido. No se elimina de ITEMS en memoria.
-  // Estados válidos por tipo — __BR-Ecosystem §5:
+  // Estados válidos por tipo — alineados con DDL real (verificado 2026-06-24):
   //   R: pendiente · en-proceso · en-revision · bloqueado · orphaned · descartado
-  //   T: pendiente · en-revision · done · descartado
-  //   B: pendiente · en-revision · done · descartado
-  //   P: pendiente · promovida · descartado
+  //      (sin done — un R va a done solo vía sesión de cierre de Finn, status no persiste en tracker_items)
+  //      (sin historico — Rs no se archivan en tracker_items)
+  //   T: pendiente · en-revision · done · descartado · historico
+  //   B: pendiente · en-revision · done · descartado · historico
+  //   P: pendiente · promovida · descartado · historico
+  // Nota: historico se excluye antes de llegar aquí por el gate `it.status === 'historico'`
+  // arriba — este Set lo declara por coherencia con el DDL, no porque llegue a evaluarse.
   const _VALID_STATUS_BY_TYPE = {
     R: new Set(['pendiente', 'en-proceso', 'en-revision', 'bloqueado', 'orphaned', 'descartado']),
-    T: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
-    B: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
-    P: new Set(['pendiente', 'promovida', 'descartado']),
+    T: new Set(['pendiente', 'en-revision', 'done', 'descartado', 'historico']),
+    B: new Set(['pendiente', 'en-revision', 'done', 'descartado', 'historico']),
+    P: new Set(['pendiente', 'promovida', 'descartado', 'historico']),
   };
 
   const _rawItems = _getItems();

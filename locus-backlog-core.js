@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:44 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:45 · autor:Rune · 2026-06-24 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1721,9 +1721,18 @@ function _flashStatusConfirmed(code) {
 }
 
 // T-A4b: aplica el cambio de status a done — ejecutado tras confirmación inline o directo en Variante A
+// B-202606-097 fix: Rs no pueden ir a done desde la UI — requieren sesión de cierre de Finn
+// (BR-Core §4 · ciclo de vida de R). El CHECK constraint chk_status_by_type de Postgres
+// no incluye 'done' para type:R — el upsert fallaría con error 23514 si se permitiera.
 export function _applyDoneStatus(code) {
   const item = ITEMS.find(i => i.code === code);
   if (!item || item.status === 'done') return;
+
+  // Gate de tipo R — done no es un status válido para Rs vía UI
+  if (item.type === 'R' || (item.code && item.code.startsWith('R-'))) {
+    setTimeout(() => showToast('warning', `${code} es un R — no puede marcarse done desde la UI. Requiere sesión de cierre de Finn (BR-Core §4).`, null, 7000), 0);
+    return;
+  }
 
   const _prevStatus = item.status;
   item.status = 'done';
