@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-07 · mod:62 · autor:Rune · 2026-06-23 17:10 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-08 · mod:63 · autor:Rune · 2026-06-23 18:00 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1758,6 +1758,13 @@ function _renderSpsCerrados() {
             '<span class="sps-count-migrado">' + migradoCnt + ' migrado</span>' +
             '<span class="sps-count-descartado">' + descartadoCnt + ' desc.</span>' +
           '</span>' +
+          '<div class="sps-menu-wrap">' +
+            '<button class="sps-btn-menu" type="button" aria-label="Acciones sprint ' + _escHtml(sprint.id) + '" aria-expanded="false" aria-haspopup="true" data-sps-cerrados-menu>···</button>' +
+            '<div class="sps-dropdown" role="menu" aria-label="Acciones ' + _escHtml(sprint.id) + '" hidden>' +
+              '<button class="sps-dropdown-item" role="menuitem" type="button" data-sps-cerrados-action="ver-retro">Ver retro completa</button>' +
+              '<button class="sps-dropdown-item" role="menuitem" type="button" data-sps-cerrados-action="exportar">Exportar .md</button>' +
+            '</div>' +
+          '</div>' +
           '<span class="sps-cerrados-chevron" aria-hidden="true">' + (isExpanded ? '▲' : '▼') + '</span>' +
         '</div>' +
         '<div class="sps-cerrados-retro" id="sps-cerrados-retro-' + _escHtml(sprint.id) + '">' +
@@ -1781,6 +1788,52 @@ function _renderSpsCerrados() {
 }
 
 function _spsCerradosHandleClick(e) {
+  // T-202606-002: menú ⋯ — abrir/cerrar dropdown
+  const menuBtn = e.target.closest('[data-sps-cerrados-menu]');
+  if (menuBtn) {
+    e.stopPropagation(); // no propagar al header — evita toggle de expand
+    const dropdown = menuBtn.nextElementSibling;
+    if (!dropdown) return;
+    const isOpen = !dropdown.hidden;
+    dropdown.hidden = isOpen;
+    menuBtn.setAttribute('aria-expanded', String(!isOpen));
+    if (!isOpen) {
+      function _closeOnOutside(ev) {
+        if (!menuBtn.closest('.sps-menu-wrap').contains(ev.target)) {
+          dropdown.hidden = true;
+          menuBtn.setAttribute('aria-expanded', 'false');
+          document.removeEventListener('click', _closeOnOutside, true);
+        }
+      }
+      setTimeout(function() {
+        document.addEventListener('click', _closeOnOutside, true);
+      }, 0);
+    }
+    return;
+  }
+
+  // T-202606-002: acciones del dropdown
+  const actionBtn = e.target.closest('[data-sps-cerrados-action]');
+  if (actionBtn) {
+    e.stopPropagation();
+    const row = actionBtn.closest('[data-sprint-id]');
+    if (!row) return;
+    const sprintId = row.dataset.sprintId;
+    // Cerrar dropdown antes de ejecutar
+    const dropdown = actionBtn.closest('.sps-dropdown');
+    if (dropdown) { dropdown.hidden = true; }
+    const menuWrap = actionBtn.closest('.sps-menu-wrap');
+    if (menuWrap) {
+      const btn = menuWrap.querySelector('[data-sps-cerrados-menu]');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    }
+    const act = actionBtn.getAttribute('data-sps-cerrados-action');
+    if (act === 'ver-retro' || act === 'exportar') {
+      openSprintRetroView(sprintId);
+    }
+    return;
+  }
+
   const header = e.target.closest('.sps-cerrados-header');
   if (!header) return;
   const row = header.closest('[data-sprint-id]');
@@ -1832,7 +1885,7 @@ function _spsCerradosToggle(sprintId) {
 
   _spsCerradosExpanded = next;
 }
-// ── END T-202606-039 ─────────────────────────────────────────────────────
+// ── END T-202606-039 / T-202606-002 ────────────────────────────────────────
 
 // ── T-202605-046: Listeners — spt-tab buttons ─────────────────────────────
 // Migrado desde index.html — reemplaza onclick inline en .spt-tab. Listener de
