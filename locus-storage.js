@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:43 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:44 · autor:Rune · 2026-06-23 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-011: _verifyAndCleanSprintsBlob() reemplaza migración legacy — limpia blob, _ensureHotfixSprint bifurcado por sesión
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1070,7 +1070,6 @@ export async function verifyPrePurgaIntegrity() {
       _supabase
         .from('tracker_items')
         .select('code, status', { count: 'exact' })
-        .eq('user_id', _supabaseUser.id)
         .eq('project_id', projId || '')
         .neq('status', 'historico'),
 
@@ -1415,7 +1414,6 @@ export async function _loadFromSupabase() {
         ? _supabase
             .from('tracker_items')
             .select('*')
-            .eq('user_id', _supabaseUser.id)
             .eq('project_id', projId)
         : Promise.resolve({ data: [], error: null }),
 
