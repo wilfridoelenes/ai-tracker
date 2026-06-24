@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-07 · mod:42 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:43 · autor:Rune · 2026-06-23 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1314,6 +1314,21 @@ export function importBacklog(event) {
           }
         });
       })();
+
+      // B-202606-092: sincronizar status de R padre para Ts nuevos ingresados con parentId
+      // _syncParentRStatus solo se invocaba desde _applyStatusChange (cambios interactivos).
+      // Al ingestar un T nuevo en pendiente con parentId → R en en-revision quedaba inconsistente.
+      // Solución: iterar parsed, filtrar Ts con parentId y status activo, llamar _syncParentRStatus.
+      // Idempotente: _syncParentRStatus guarda contra R done/descartado (AC-5) y evalúa
+      // el estado completo de hijos en el momento de la llamada (batch-safe).
+      (function _syncParentStatusForNewTs() {
+        parsed.forEach(newItem => {
+          if (!newItem.code || newItem.code[0] !== 'T' || !newItem.parentId) return;
+          if (newItem.status === 'descartado' || newItem.status === 'historico') return;
+          _syncParentRStatus(newItem.code, newItem.status);
+        });
+      })();
+
       console.log('[AI Tracker] importBacklog: items merged en ITEMS, total:', ITEMS.length);
       
       const meta = parseBacklogMeta(text);
