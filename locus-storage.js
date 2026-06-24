@@ -1,6 +1,8 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:48 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:49 · autor:Rune · 2026-06-23 UTC-6
 // locus-storage.js
-// Última actualización: T-202606-011: _verifyAndCleanSprintsBlob() reemplaza migración legacy — limpia blob, _ensureHotfixSprint bifurcado por sesión
+// Última actualización: B-202606-094: _handleRemoteChange normaliza updated_at (ISO/epoch) antes
+// de comparar contra _realtimeLastTs · hidratación de items relacionales pasa de reemplazo
+// completo a merge por fila — cierra read-after-write race que revertía campos (ej: parent)
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -1370,10 +1372,25 @@ export function _subscribeRealtime() {
 
   // Manejador compartido: recibe payload de cualquiera de las tres tablas.
   // Si el updated_at es el mismo que el último write local, ignora para evitar reload-loop.
+  // B-202606-094 fix: updated_at llega en dos formatos según la tabla — ISO string
+  // (tracker_state, tracker_backlog) o epoch ms BIGINT (tracker_items). _realtimeLastTs
+  // se fija en saveBacklog()/_saveFlush()/saveHistoricoItems() en formatos distintos según
+  // el path de escritura. Comparar sin normalizar nunca igualaba para el path de
+  // tracker_items — el guard de throttle no detenía nada y cada saveBacklog() dejaba la
+  // puerta abierta a un _loadFromSupabase() disparado por cualquier evento de las otras
+  // tablas. _toEpochMs() normaliza ambos lados a epoch ms antes de comparar.
+  function _toEpochMs(ts) {
+    if (typeof ts === 'number') return ts;
+    const parsed = Date.parse(ts);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+
   function _handleRemoteChange(payload) {
     const remoteTs = payload.new?.updated_at;
     if (!remoteTs) return;
-    if (_realtimeLastTs && remoteTs === _realtimeLastTs) return;
+    const remoteMs = _toEpochMs(remoteTs);
+    const lastMs   = _toEpochMs(_realtimeLastTs);
+    if (remoteMs != null && lastMs != null && remoteMs === lastMs) return;
     console.log('[AI Tracker] Realtime: cambio remoto detectado —', payload.table || '', remoteTs);
     _loadFromSupabase();
   }
@@ -1642,30 +1659,50 @@ export async function _loadFromSupabase() {
       if (itemsResult.status === 'fulfilled' && !itemsResult.value.error) {
         const remoteRows = itemsResult.value.data || [];
         // AC-4: tabla vacía → inicializar ITEMS como array vacío.
-        // Determinar si debemos cargar: ITEMS local vacío → siempre. ITEMS local con datos →
-        // cargar si hay filas remotas más recientes (max updated_at remoto > max _writeTs local).
+        // Determinar si vale la pena evaluar merge: ITEMS local vacío → siempre.
+        // ITEMS local con datos → solo si hay al menos una fila remota más reciente
+        // que su contraparte local (ver merge por fila más abajo — B-202606-094).
         const localItemsRaw = localStorage.getItem(_tplKey('backlog-items'));
         const localItems    = (() => { try { return JSON.parse(localItemsRaw || '[]'); } catch { return []; } })();
-        const localMaxTs    = localItems.reduce((m, it) => {
-          const ts = it._updatedAtMs || 0;
-          return ts > m ? ts : m;
-        }, 0);
+        const localByCode   = new Map(localItems.map(it => [it.code, it]));
         const remoteMaxTs   = remoteRows.reduce((m, row) => {
           const ts = row.updated_at || 0; // BIGINT epoch ms desde DDL
           return ts > m ? ts : m;
         }, 0);
-        const shouldLoad = _itemsRef !== null && (
+        const localMaxTs    = localItems.reduce((m, it) => {
+          const ts = it._updatedAtMs || 0;
+          return ts > m ? ts : m;
+        }, 0);
+        const shouldEvaluate = _itemsRef !== null && (
           _itemsRef.length === 0 ||
           !localItemsRaw     ||
           remoteMaxTs > localMaxTs
         );
-        if (shouldLoad && _itemsRef) {
-          _itemsRef.length = 0;
+        // B-202606-094 fix: el reemplazo completo de _itemsRef permitía que un
+        // read-after-write race (la fila recién upserteada todavía no visible en el
+        // SELECT, pero otra fila cualquiera con timestamp reciente) revirtiera ítems
+        // que no cambiaron remotamente — ej: un parent vinculado segundos antes.
+        // Merge por fila: cada fila remota solo sobrescribe su contraparte local si
+        // su propio updated_at es estrictamente más nuevo. Una fila local sin
+        // contraparte remota más nueva se conserva intacta.
+        if (shouldEvaluate && _itemsRef) {
+          const merged = [];
           // T-202606-106: excluir status:historico — solo lectura, vive en storage dedicado.
           // depends_on: text[] → PostgREST lo entrega como array JS — no requiere parse (AC-1).
           // ac: jsonb → PostgREST lo entrega como array JS — no requiere parse (AC-2).
           remoteRows.forEach(row => {
             if (row.status === 'historico') return;
+            const localMatch  = localByCode.get(row.code);
+            const localRowTs  = localMatch?._updatedAtMs || 0;
+            const remoteRowTs = row.updated_at || 0;
+            // AC: si el local es igual o más nuevo que esta fila remota específica,
+            // conservar el local — esta fila remota es la causa del read-after-write
+            // race, no una actualización genuina de este ítem.
+            if (localMatch && localRowTs >= remoteRowTs) {
+              merged.push(localMatch);
+              localByCode.delete(row.code);
+              return;
+            }
             // Mapear nombres de columna DDL → nombres de campo JS del schema de ítems.
             const item = {
               code:                  row.code,
@@ -1694,8 +1731,15 @@ export async function _loadFromSupabase() {
               contract:              row.contract,
               _updatedAtMs:          row.updated_at    // conservar timestamp para comparaciones futuras
             };
-            _itemsRef.push(item);
+            merged.push(item);
+            localByCode.delete(row.code);
           });
+          // Ítems locales sin fila remota (code no presente en remoteRows) — ej: creado
+          // offline y aún no sincronizado. Se conservan; el upsert pendiente los propagará.
+          for (const leftover of localByCode.values()) merged.push(leftover);
+
+          _itemsRef.length = 0;
+          merged.forEach(it => _itemsRef.push(it));
           _migrateItemTypes();
           try { localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(_itemsRef)); } catch {}
         }
