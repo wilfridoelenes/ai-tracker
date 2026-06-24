@@ -1,4 +1,4 @@
-// [PP] v0.7.0 · sprint:PP-S-08 · mod:64 · autor:Rune · 2026-06-23 18:30 UTC-6
+// [PP] v0.7.0 · sprint:PP-S-08 · mod:65 · autor:Rune · 2026-06-23 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1521,31 +1521,6 @@ export function ensureHotfixSprint(projId) {
   });
   save();
 }
-
-// Crea el sprint HOTFIX del proyecto activo desde la UI (botón 1-tap)
-function _spmCreateHotfix() {
-  const projId = _getActiveProjectFilter();
-  const proj   = projId ? getProjectById(projId) : null;
-
-  if (!proj) {
-    showToast('info', 'No hay proyecto activo para crear el sprint HOTFIX.');
-    return;
-  }
-
-  const prefix   = (proj.prefix || projId.toUpperCase());
-  const hotfixId = prefix + '-S-HOTFIX';
-
-  if ((proj.sprints || []).some(s => s.id === hotfixId)) {
-    showToast('info', `${hotfixId} ya existe.`);
-    return;
-  }
-
-  ensureHotfixSprint(projId);
-  showToast('success', `Sprint ${hotfixId} creado.`);
-  renderSprintTab();
-}
-// ── END T-202606-038 ─────────────────────────────────────────────────────
-
 
 // ── T-202606-041: _renderSpsPausados — sección sprints pausados ──────────────
 //
