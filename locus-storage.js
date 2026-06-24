@@ -1657,49 +1657,65 @@ function _applyStateData(raw) {
   // AC-4: no modifica sprints regulares existentes.
   // Se llama dentro del forEach de migración — cubre proyectos nuevos (AC-1) y existentes (AC-2).
   //
-  // T-202606-011 — impacto lateral: con sesión Supabase activa, el blob ya no es la fuente
-  // de verdad de sprints (T-202606-005/011 lo limpian). La detección de "¿ya existe HOTFIX?"
-  // y la escritura del sprint nuevo se bifurcan según haya sesión:
-  //   - Sin sesión (fallback legacy) → comportamiento sin cambio: lee y escribe en proj.sprints.
-  //   - Con sesión activa → lee de getActiveSprints() (tracker_sprints vía _sprintsCache) y,
-  //     si falta, escribe vía _upsertSprint() — nunca toca proj.sprints. Esto garantiza que
-  //     todo proyecto (existente o creado después de este T) tenga su S-HOTFIX accesible sin
-  //     depender del blob legacy.
+  // T-202606-011 — impacto lateral, ciclo 2: con sesión Supabase activa, NO puede usarse
+  // getActiveSprints()/_sprintsCache para detectar si ya existe el HOTFIX — _sprintsCache
+  // se popula en _loadSprintsFromSupabase(projId), que en _loadFromSupabase() corre DESPUÉS
+  // de _applyStateData() (diseño de T-202606-005, para que el projId del proyecto activo
+  // esté disponible). En el momento en que este forEach corre, _sprintsCache tiene datos
+  // obsoletos o vacíos — nunca los del proyecto que se está procesando.
+  // Fix: consulta directa a tracker_sprints, mismo patrón que _verifyAndCleanSprintsBlob.
+  // Fire-and-forget — no bloquea _applyStateData(). onConflict en _upsertSprint hace que
+  // un duplicado eventual (multi-tab) no persista: la segunda escritura sobreescribe la
+  // primera con el mismo sprint_id.
   function _ensureHotfixSprint(proj) {
     const _hasSupabaseSession = !!(_supabase && _supabaseUser);
 
     if (_hasSupabaseSession) {
-      const _existingForProj = getActiveSprints().filter(s => (s.projId === proj.id || s.projectId === proj.id));
-      if (_existingForProj.some(sp => sp.isHotfix === true)) return; // ya existe en tracker_sprints
+      _supabase
+        .from('tracker_sprints')
+        .select('sprint_id')
+        .eq('user_id', _supabaseUser.id)
+        .eq('project_id', proj.id)
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('[Locus] T-202606-011: _ensureHotfixSprint verificación falló —', proj.id, error);
+            return;
+          }
+          const _hasHotfix = (data || []).some(r => (r.sprint_id || '').includes('-S-HOTFIX'));
+          if (_hasHotfix) return; // ya existe en tracker_sprints
 
-      let prefix = 'XX';
-      const regularSprint = _existingForProj.find(sp => /^[A-Za-z]+-S\d+$/i.test(sp.id || ''));
-      if (regularSprint) {
-        const m = (regularSprint.id || '').match(/^([A-Za-z]+)-S\d+$/i);
-        if (m) prefix = m[1].toUpperCase();
-      } else if (proj.prefix) {
-        prefix = String(proj.prefix).toUpperCase();
-      } else if (proj.name) {
-        prefix = proj.name.split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 3) || 'XX';
-      }
-      const hotfixId = prefix + '-S-HOTFIX';
-      const hotfixSprintObj = {
-        id: hotfixId,
-        label: hotfixId,
-        goal: '',
-        version_target: 'n/a',
-        release_type: null,
-        status: 'active',
-        current: false,
-        formallyOpened: true,
-        isHotfix: true,
-        startedAt: Date.now(),
-        createdAt: Date.now()
-      };
-      _upsertSprint(hotfixSprintObj, proj.id).catch(err => {
-        console.error('[Locus] T-202606-011: _ensureHotfixSprint upsert falló —', proj.id, err);
-      });
-      console.log('[Locus] T-202606-011: sprint HOTFIX creado en tracker_sprints —', hotfixId);
+          let prefix = 'XX';
+          const regularRow = (data || []).find(r => /^[A-Za-z]+-S\d+$/i.test(r.sprint_id || ''));
+          if (regularRow) {
+            const m = (regularRow.sprint_id || '').match(/^([A-Za-z]+)-S\d+$/i);
+            if (m) prefix = m[1].toUpperCase();
+          } else if (proj.prefix) {
+            prefix = String(proj.prefix).toUpperCase();
+          } else if (proj.name) {
+            prefix = proj.name.split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 3) || 'XX';
+          }
+          const hotfixId = prefix + '-S-HOTFIX';
+          const hotfixSprintObj = {
+            id: hotfixId,
+            label: hotfixId,
+            goal: '',
+            version_target: 'n/a',
+            release_type: null,
+            status: 'active',
+            current: false,
+            formallyOpened: true,
+            isHotfix: true,
+            startedAt: Date.now(),
+            createdAt: Date.now()
+          };
+          _upsertSprint(hotfixSprintObj, proj.id).catch(err => {
+            console.error('[Locus] T-202606-011: _ensureHotfixSprint upsert falló —', proj.id, err);
+          });
+          console.log('[Locus] T-202606-011: sprint HOTFIX creado en tracker_sprints —', hotfixId);
+        })
+        .catch(err => {
+          console.error('[Locus] T-202606-011: _ensureHotfixSprint query falló —', proj.id, err);
+        });
       return;
     }
 

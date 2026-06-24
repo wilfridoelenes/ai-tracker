@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:43 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:44 · autor:Rune · 2026-06-23 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1321,11 +1321,17 @@ export function importBacklog(event) {
       // Solución: iterar parsed, filtrar Ts con parentId y status activo, llamar _syncParentRStatus.
       // Idempotente: _syncParentRStatus guarda contra R done/descartado (AC-5) y evalúa
       // el estado completo de hijos en el momento de la llamada (batch-safe).
+      // AC-5 fix: capturar rCode de retorno y dispatchear shell:backlog-r-auto-advanced post-loop.
       (function _syncParentStatusForNewTs() {
+        const affectedRCodes = new Set();
         parsed.forEach(newItem => {
           if (!newItem.code || newItem.code[0] !== 'T' || !newItem.parentId) return;
           if (newItem.status === 'descartado' || newItem.status === 'historico') return;
-          _syncParentRStatus(newItem.code, newItem.status);
+          const rCode = _syncParentRStatus(newItem.code, newItem.status);
+          if (rCode) affectedRCodes.add(rCode);
+        });
+        affectedRCodes.forEach(rCode => {
+          window.dispatchEvent(new CustomEvent('shell:backlog-r-auto-advanced', { detail: { rCode } }));
         });
       })();
 
