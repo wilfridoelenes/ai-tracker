@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:45 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:46 · autor:Rune · 2026-06-24 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-011: _verifyAndCleanSprintsBlob() reemplaza migración legacy — limpia blob, _ensureHotfixSprint bifurcado por sesión
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1212,19 +1212,32 @@ export async function migrateHistoricosToTrackerItems() {
       }
     }
 
-    // 3. Upsert en tracker_items — onConflict:'code' omite duplicados sin error (AC sin duplicados)
+    // 3. Upsert en tracker_items — onConflict:'code' inserta nuevos y actualiza existentes.
+    // No usamos ignoreDuplicates:true — necesitamos que los colisionantes queden con status:historico.
     if (rows.length > 0) {
       const { error: upsertError } = await _supabase
         .from('tracker_items')
-        .upsert(rows, { onConflict: 'code', ignoreDuplicates: true });
+        .upsert(rows, { onConflict: 'code' });
       if (upsertError) throw upsertError;
     }
 
-    // 4. Verificar integridad post-migración — COUNT de historico en tracker_items
+    // 3b. Forzar status:historico en cualquier fila que haya quedado con status distinto
+    // (puede ocurrir si el upsert actualizó campos pero el status quedó sobreescrito por un valor activo).
+    // UPDATE selectivo solo en los codes del batch — no toca filas fuera del conjunto migrado.
+    if (rows.length > 0) {
+      const codes = rows.map(r => r.code);
+      const { error: updateError } = await _supabase
+        .from('tracker_items')
+        .update({ status: 'historico' })
+        .in('code', codes)
+        .eq('project_id', projId || null);
+      if (updateError) throw updateError;
+    }
+
+    // 4. Verificar integridad post-migración — COUNT de historico en tracker_items (sin user_id — no es columna del DDL)
     const { count, error: countError } = await _supabase
       .from('tracker_items')
       .select('*', { count: 'exact', head: true })
-      .eq('user_id', _supabaseUser.id)
       .eq('project_id', projId || null)
       .eq('status', 'historico');
 
