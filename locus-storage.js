@@ -1,8 +1,9 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:49 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:50 · autor:Rune · 2026-06-23 UTC-6
 // locus-storage.js
-// Última actualización: B-202606-094: _handleRemoteChange normaliza updated_at (ISO/epoch) antes
-// de comparar contra _realtimeLastTs · hidratación de items relacionales pasa de reemplazo
-// completo a merge por fila — cierra read-after-write race que revertía campos (ej: parent)
+// Última actualización: B-[pendiente-ID] (regresión de B-202606-094): leftover del merge por
+// fila ahora descarta ítems con _updatedAtMs poblado (confirmados remoto antes) ausentes en
+// remoteRows — eliminación remota vuelve a sincronizar localmente. Offline-pendiente (sin
+// _updatedAtMs) se sigue conservando. Race condition original de B-202606-094 verificado intacto.
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -1734,9 +1735,21 @@ export async function _loadFromSupabase() {
             merged.push(item);
             localByCode.delete(row.code);
           });
-          // Ítems locales sin fila remota (code no presente en remoteRows) — ej: creado
-          // offline y aún no sincronizado. Se conservan; el upsert pendiente los propagará.
-          for (const leftover of localByCode.values()) merged.push(leftover);
+          // Ítems locales sin fila remota (code no presente en remoteRows).
+          // B-202606-094 follow-up: _updatedAtMs solo se setea en este mismo bloque de
+          // hidratación (línea ~1732) — ningún otro path de escritura local lo popula.
+          // Por lo tanto _updatedAtMs poblado es prueba de que el ítem fue confirmado
+          // contra una fila remota en una carga anterior. Dos casos posibles para un
+          // leftover:
+          //   (a) _updatedAtMs ausente → nunca confirmado remoto → creado offline,
+          //       upsert pendiente (ver _offlineQueuePush tipo 'backlog'). Conservar.
+          //   (b) _updatedAtMs presente → fue confirmado remoto antes y ya no aparece
+          //       en remoteRows → eliminado remotamente (DELETE en tracker_items).
+          //       Descartar — restaura el AC-1 original de T-202606-009 ("ITEMS
+          //       contiene exactamente las filas remotas") para el caso de deletion.
+          for (const leftover of localByCode.values()) {
+            if (leftover._updatedAtMs == null) merged.push(leftover);
+          }
 
           _itemsRef.length = 0;
           merged.forEach(it => _itemsRef.push(it));
