@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:47 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:48 · autor:Rune · 2026-06-24 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-011: _verifyAndCleanSprintsBlob() reemplaza migración legacy — limpia blob, _ensureHotfixSprint bifurcado por sesión
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1264,6 +1264,43 @@ export async function migrateHistoricosToTrackerItems() {
   }
 }
 // ── END T-202606-020 ──────────────────────────────────────────────────────────
+
+// ── T-202606-010: executePurgaJsonbLegacy() — purga de JSONB legacy en tracker_backlog ──
+// Prerrequisito: verifyPrePurgaIntegrity() retorna true + T-202606-020 done.
+// Elimina las claves items+suffix e historico+suffix de tracker_backlog para el proyecto activo.
+// AC edge case: no introduce dependencia que haga irreversible un rollback a PP-S-01 —
+// los datos ya están en tracker_items (relacional) y en localStorage como caché.
+export async function executePurgaJsonbLegacy() {
+  if (!_supabase || !_supabaseUser) {
+    console.warn('[Locus] executePurgaJsonbLegacy: sin auth — purga no disponible');
+    return null;
+  }
+
+  const projId = _getActiveProjectFilter();
+  const suffix = projId ? '-' + projId : '-global';
+  const keysToDelete = ['items' + suffix, 'historico' + suffix];
+
+  try {
+    console.log('[Locus] executePurgaJsonbLegacy — iniciando purga de claves:', keysToDelete);
+
+    const { error, count } = await _supabase
+      .from('tracker_backlog')
+      .delete({ count: 'exact' })
+      .eq('user_id', _supabaseUser.id)
+      .in('key', keysToDelete);
+
+    if (error) throw error;
+
+    console.log('[Locus] executePurgaJsonbLegacy — OK. Filas eliminadas de tracker_backlog:', count);
+    console.log('[Locus] executePurgaJsonbLegacy — claves purgadas:', keysToDelete);
+    return { deleted: count, keys: keysToDelete };
+
+  } catch (err) {
+    console.error('[Locus] executePurgaJsonbLegacy — error:', err);
+    return null;
+  }
+}
+// ── END T-202606-010 ──────────────────────────────────────────────────────────
 
 // R-202604-035: saveContextDocs() — escribe en tracker_docs
 export async function saveContextDocs() {

@@ -1,9 +1,9 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:8 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-06-24 UTC-6
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
 // Limpieza: imports duplicados consolidados (side-effect imports redundantes eliminados)
 
-import { _getActiveProjectFilter, _initApp, _effectiveVersion, getProjectById, LOCUS_KEYS, verifyPrePurgaIntegrity, migrateHistoricosToTrackerItems } from './locus-storage.js';
+import { _getActiveProjectFilter, _initApp, _effectiveVersion, getProjectById, LOCUS_KEYS, verifyPrePurgaIntegrity, migrateHistoricosToTrackerItems, executePurgaJsonbLegacy } from './locus-storage.js';
 import { applyTheme, _initUiShellRefs } from './locus-ui-shell.js';
 import './locus-analytics-core.js';
 import './locus-analytics-digest.js';
@@ -165,4 +165,6 @@ document.addEventListener('DOMContentLoaded', () => {
   window._verifyPurga = verifyPrePurgaIntegrity;
   // T-202606-020: exponer migrateHistoricosToTrackerItems en window para migración desde consola
   window._migrateHistoricos = migrateHistoricosToTrackerItems;
+  // T-202606-010: exponer executePurgaJsonbLegacy en window para purga desde consola
+  window._executePurga = executePurgaJsonbLegacy;
 });
