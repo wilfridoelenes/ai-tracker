@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:46 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:47 · autor:Rune · 2026-06-24 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-011: _verifyAndCleanSprintsBlob() reemplaza migración legacy — limpia blob, _ensureHotfixSprint bifurcado por sesión
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1212,20 +1212,28 @@ export async function migrateHistoricosToTrackerItems() {
       }
     }
 
-    // 3. Upsert en tracker_items — onConflict:'code' inserta nuevos y actualiza existentes.
+    // 3. Deduplicar rows por code — Postgres rechaza upsert si el mismo code aparece dos veces en el batch.
+    // Último ítem del array gana en caso de duplicado (comportamiento estándar de Map).
+    const rowsMap = new Map();
+    for (const row of rows) rowsMap.set(row.code, row);
+    const dedupedRows = Array.from(rowsMap.values());
+    if (dedupedRows.length < rows.length) {
+      console.warn('[Locus] migrateHistoricosToTrackerItems — duplicados en JSONB eliminados:', rows.length - dedupedRows.length);
+    }
+
+    // 4. Upsert en tracker_items — onConflict:'code' inserta nuevos y actualiza existentes.
     // No usamos ignoreDuplicates:true — necesitamos que los colisionantes queden con status:historico.
-    if (rows.length > 0) {
+    if (dedupedRows.length > 0) {
       const { error: upsertError } = await _supabase
         .from('tracker_items')
-        .upsert(rows, { onConflict: 'code' });
+        .upsert(dedupedRows, { onConflict: 'code' });
       if (upsertError) throw upsertError;
     }
 
-    // 3b. Forzar status:historico en cualquier fila que haya quedado con status distinto
-    // (puede ocurrir si el upsert actualizó campos pero el status quedó sobreescrito por un valor activo).
+    // 4b. Forzar status:historico en cualquier fila que haya quedado con status distinto.
     // UPDATE selectivo solo en los codes del batch — no toca filas fuera del conjunto migrado.
-    if (rows.length > 0) {
-      const codes = rows.map(r => r.code);
+    if (dedupedRows.length > 0) {
+      const codes = dedupedRows.map(r => r.code);
       const { error: updateError } = await _supabase
         .from('tracker_items')
         .update({ status: 'historico' })
@@ -1247,8 +1255,8 @@ export async function migrateHistoricosToTrackerItems() {
     console.log('[Locus] migrateHistoricosToTrackerItems — errores de fila:', errorLog.length);
     if (errorLog.length > 0) console.warn('[Locus] migrateHistoricosToTrackerItems — errorLog:', errorLog);
 
-    console.log('[Locus] migrateHistoricosToTrackerItems — OK. Migrados:', rows.length, '· Errores:', errorLog.length);
-    return { migrated: rows.length, historicoCountInTable: count, errors: errorLog };
+    console.log('[Locus] migrateHistoricosToTrackerItems — OK. Migrados:', dedupedRows.length, '· Errores:', errorLog.length);
+    return { migrated: dedupedRows.length, historicoCountInTable: count, errors: errorLog };
 
   } catch (err) {
     console.error('[Locus] migrateHistoricosToTrackerItems — error:', err);
