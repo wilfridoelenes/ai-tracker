@@ -1,4 +1,4 @@
-// [PP] v0.7.0 · sprint:PP-S-08 · mod:25 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.7.0 · sprint:PP-S-08 · mod:26 · autor:Rune · 2026-06-23 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -63,10 +63,8 @@ function _nextSprintId(projId) {
   let sprintsForCalc;
 
   if (projId) {
-    // Determinar prefijo desde sprints existentes del proyecto o desde el objeto proyecto
-    // T-202605-126: sprints no tienen campo projectId propio — obtener directo desde proj.sprints
-    const _projForId = getProjectById(projId);
-    const sprintsOfProj = (_projForId && _projForId.sprints) ? _projForId.sprints : [];
+    // B-202606-091: leer desde getActiveSprints() (_sprintsCache) en lugar de proj.sprints directamente
+    const sprintsOfProj = getActiveSprints().filter(s => s.projId === projId || s.projectId === projId);
     if (sprintsOfProj.length) {
       const m = (sprintsOfProj[0].id || '').match(/^([A-Za-z]+)-S\d+$/i);
       prefix = m ? m[1].toUpperCase() : 'XX';
@@ -120,11 +118,9 @@ export function _buildNewSprintForm(projId, onConfirm, onCancel) {
 
   // Comprobar si ya hay un sprint activo para el proyecto
   function _hasActiveSprint() {
-    // T-202605-126: sprints no tienen campo projectId propio — si hay projId, leer desde proj.sprints
+    // B-202606-091: leer desde getActiveSprints() (_sprintsCache) en lugar de proj.sprints directamente
     if (projId) {
-      const _projForCheck = getProjectById(projId);
-      const _sprints = (_projForCheck && _projForCheck.sprints) ? _projForCheck.sprints : [];
-      return _sprints.some(s => s.status === 'active');
+      return getActiveSprints().some(s => (s.projId === projId || s.projectId === projId) && s.status === 'active');
     }
     return getActiveSprints().some(s => s.status === 'active');
   }
