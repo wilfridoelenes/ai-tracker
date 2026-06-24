@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:41 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:42 · autor:Rune · 2026-06-23 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-011: _verifyAndCleanSprintsBlob() reemplaza migración legacy — limpia blob, _ensureHotfixSprint bifurcado por sesión
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1294,7 +1294,11 @@ export async function _loadFromSupabase() {
       if (_resetChanged) save();
     }
 
-    // ── 2. Batch paralelo: sesiones + backlog + docs (context/htmlmap/plan/tmp-id-map/notes/user-prefs) + drafts ──
+    // ── 2. Batch paralelo: sesiones + items relacional + backlog JSONB (legacy) + docs + drafts ──
+    // T-202606-009: items ahora se carga desde tracker_items (tabla relacional) en paralelo con
+    // el resto del batch. El bloque JSONB legacy (blResult / tracker_backlog) se conserva hasta
+    // que T-202606-010 ejecute la purga — tras esa purga blResult quedará sin filas y este
+    // comentario se eliminará.
     // Colapsa 6 queries secuenciales a tracker_docs en una sola con .in('key', [...])
     const projId = _getActiveProjectFilter();
     const suffix = projId ? '-' + projId : '-global';
@@ -1308,14 +1312,26 @@ export async function _loadFromSupabase() {
       'user-prefs'
     ];
 
-    const [sessResult, blResult, docsResult, draftsResult] = await Promise.allSettled([
+    const [sessResult, itemsResult, blResult, docsResult, draftsResult] = await Promise.allSettled([
       // 4. Sesiones
       _supabase
         .from('tracker_sessions')
         .select('project_id, session_id, data')
         .eq('user_id', _supabaseUser.id),
 
-      // 5. Backlog
+      // 5. Items relacionales — T-202606-009: fuente primaria de hidratación de ITEMS.
+      // Filtra por project_id para obtener solo los ítems del proyecto activo.
+      // Supabase PostgREST retorna text[] como arrays JS y jsonb como objetos/arrays JS nativos
+      // — depends_on y ac no requieren parse adicional.
+      projId
+        ? _supabase
+            .from('tracker_items')
+            .select('*')
+            .eq('user_id', _supabaseUser.id)
+            .eq('project_id', projId)
+        : Promise.resolve({ data: [], error: null }),
+
+      // 5b. Backlog JSONB legacy — conservado hasta purga en T-202606-010.
       _supabase
         .from('tracker_backlog')
         .select('key, value')
@@ -1363,35 +1379,99 @@ export async function _loadFromSupabase() {
       console.warn('[AI Tracker] Error procesando sesiones:', sessErr);
     }
 
-    // ── 5. Procesar backlog ──────────────────────────────────────────────
+    // ── 5. Procesar items relacionales — T-202606-009 ────────────────────
+    // Fuente primaria de hidratación de ITEMS: tabla tracker_items (relacional).
+    // AC-1: 5 filas remotas con project_id='PP' → ITEMS contiene exactamente esos 5 objetos,
+    //        depends_on reconstruido como array JS desde text[] (PostgREST lo entrega ya como array).
+    // AC-2: columna ac tipo jsonb → array JS nativo (PostgREST deserializa jsonb automáticamente).
+    // AC-3: fallo de red en SELECT → console.warn + no tocar _itemsRef (fallback a localStorage).
+    // AC-4: tabla vacía para project_id='PP' → _itemsRef.length = 0 (array vacío, nunca undefined).
+    try {
+      if (itemsResult.status === 'fulfilled' && !itemsResult.value.error) {
+        const remoteRows = itemsResult.value.data || [];
+        // AC-4: tabla vacía → inicializar ITEMS como array vacío.
+        // Determinar si debemos cargar: ITEMS local vacío → siempre. ITEMS local con datos →
+        // cargar si hay filas remotas más recientes (max updated_at remoto > max _writeTs local).
+        const localItemsRaw = localStorage.getItem(_tplKey('backlog-items'));
+        const localItems    = (() => { try { return JSON.parse(localItemsRaw || '[]'); } catch { return []; } })();
+        const localMaxTs    = localItems.reduce((m, it) => {
+          const ts = it._updatedAtMs || 0;
+          return ts > m ? ts : m;
+        }, 0);
+        const remoteMaxTs   = remoteRows.reduce((m, row) => {
+          const ts = row.updated_at || 0; // BIGINT epoch ms desde DDL
+          return ts > m ? ts : m;
+        }, 0);
+        const shouldLoad = _itemsRef !== null && (
+          _itemsRef.length === 0 ||
+          !localItemsRaw     ||
+          remoteMaxTs > localMaxTs
+        );
+        if (shouldLoad && _itemsRef) {
+          _itemsRef.length = 0;
+          // T-202606-106: excluir status:historico — solo lectura, vive en storage dedicado.
+          // depends_on: text[] → PostgREST lo entrega como array JS — no requiere parse (AC-1).
+          // ac: jsonb → PostgREST lo entrega como array JS — no requiere parse (AC-2).
+          remoteRows.forEach(row => {
+            if (row.status === 'historico') return;
+            // Mapear nombres de columna DDL → nombres de campo JS del schema de ítems.
+            const item = {
+              code:                  row.code,
+              type:                  row.type,
+              title:                 row.title,
+              status:                row.status,
+              priority:              row.priority,
+              effort:                row.effort,
+              area:                  row.area,
+              sprint:                row.sprint,
+              role:                  row.role,
+              parent:                row.parent,       // DDL: parent TEXT
+              depends_on:            Array.isArray(row.depends_on) ? row.depends_on : [],
+              triggered_by:          row.triggered_by,
+              no_incluye:            row.no_incluye,
+              kill_criteria:         row.kill_criteria,
+              promovida_a:           row.promovida_a,
+              origen_p:              row.origin_p,     // DDL: origin_p → JS: origen_p
+              discard_reason:        row.discard_reason,
+              comportamiento_actual: row.comportamiento_actual,
+              origin_module:         row.origin_module,
+              verificado_por:        row.verified_by,  // DDL: verified_by → JS: verificado_por
+              schema_version:        row.schema_version,
+              ac:                    Array.isArray(row.ac) ? row.ac : [],
+              intencion:             row.intencion,
+              contract:              row.contract,
+              _updatedAtMs:          row.updated_at    // conservar timestamp para comparaciones futuras
+            };
+            _itemsRef.push(item);
+          });
+          _migrateItemTypes();
+          try { localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(_itemsRef)); } catch {}
+        }
+      } else {
+        // AC-3: fallo de red → silencioso, no tocar _itemsRef. Fallback a localStorage ya cargado.
+        console.warn('[AI Tracker] Error cargando items relacionales desde Supabase:', itemsResult.reason || itemsResult.value?.error);
+      }
+    } catch (itemsErr) {
+      // AC-3: cualquier error en el procesamiento → silencioso, no tocar _itemsRef.
+      console.warn('[AI Tracker] Error procesando items relacionales:', itemsErr);
+    }
+
+    // ── 5b. Procesar backlog JSONB legacy ────────────────────────────────
+    // Conservado hasta T-202606-010 (purga). Post-purga este bloque quedará inerte
+    // (blResult sin filas) y se eliminará junto con la entrada en el batch.
     try {
       if (blResult.status === 'fulfilled' && !blResult.value.error) {
         const blRows = blResult.value.data;
         if (blRows && blRows.length) {
           const blMap = Object.fromEntries(blRows.map(r => [r.key, r.value]));
-          const remoteItems = blMap['items' + suffix] || [];
           const remoteMeta  = blMap['meta'  + suffix] || {};
-          const localMeta   = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
-          const localTs     = localMeta.updated  ? new Date(localMeta.updated).getTime()  : 0;
-          const remoteTs    = remoteMeta.updated ? new Date(remoteMeta.updated).getTime() : 0;
-          // R-202605-022 Fase 3 AC-1: _itemsRef capturado en snapshot al inicio — no redeclarar.
-          const shouldLoad  = remoteItems.length && (!_itemsRef || _itemsRef.length === 0 || localTs === 0 || remoteTs > localTs);
-          if (shouldLoad && _itemsRef) {
-            _itemsRef.length = 0;
-            // T-202606-106: excluir status:historico de la carga remota — historico es de
-            // solo lectura, asignado únicamente por Locus al cerrar sprint, y vive en su
-            // storage dedicado (T-202606-105). ITEMS nunca debe recibirlo, ni vía Supabase.
-            remoteItems.forEach(ri => { if (ri.status !== 'historico') _itemsRef.push(ri); });
-            _migrateItemTypes();
-            localStorage.setItem(_tplKey('backlog-items'), JSON.stringify(_itemsRef));
-            localStorage.setItem(_tplKey('backlog-meta'),  JSON.stringify(remoteMeta));
-          }
+          localStorage.setItem(_tplKey('backlog-meta'), JSON.stringify(remoteMeta));
         }
       } else {
-        console.warn('[AI Tracker] Error cargando backlog desde Supabase:', blResult.reason || blResult.value?.error);
+        console.warn('[AI Tracker] Error cargando backlog JSONB legacy desde Supabase:', blResult.reason || blResult.value?.error);
       }
     } catch (blErr) {
-      console.warn('[AI Tracker] Error procesando backlog:', blErr);
+      console.warn('[AI Tracker] Error procesando backlog JSONB legacy:', blErr);
     }
 
     // ── 6. Procesar docs vivos (context, htmlmap, plan, tmp-id-map, notes, user-prefs) ──
