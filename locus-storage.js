@@ -785,6 +785,22 @@ export async function saveBacklog() {
   // status:'historico' nunca llega a Supabase ni a localStorage.
   // icebox es zona exclusiva de P (__BR-Ecosystem §5).
   // status:'historico' es de solo lectura, asignado únicamente por Locus al cerrar sprint.
+  //
+  // B-202606-097: gate chk_status_by_type — reflejo client-side del CHECK constraint de
+  // Postgres (T-202606-007 DDL). Un ítem con combinación type+status inválida se excluye
+  // del upsert hasta que su status sea corregido. No se elimina de ITEMS en memoria.
+  // Estados válidos por tipo — __BR-Ecosystem §5:
+  //   R: pendiente · en-proceso · en-revision · bloqueado · orphaned · descartado
+  //   T: pendiente · en-revision · done · descartado
+  //   B: pendiente · en-revision · done · descartado
+  //   P: pendiente · promovida · descartado
+  const _VALID_STATUS_BY_TYPE = {
+    R: new Set(['pendiente', 'en-proceso', 'en-revision', 'bloqueado', 'orphaned', 'descartado']),
+    T: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
+    B: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
+    P: new Set(['pendiente', 'promovida', 'descartado']),
+  };
+
   const _rawItems = _getItems();
   const items = _rawItems.filter(it => {
     if (it.type !== 'P' && it.sprint === 'icebox') {
@@ -795,6 +811,14 @@ export async function saveBacklog() {
     if (it.status === 'historico') {
       console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
       _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: 'status:historico es de solo lectura' });
+      return false;
+    }
+    // B-202606-097: excluir combinaciones type+status que violarían chk_status_by_type en Postgres.
+    // El ítem permanece en ITEMS en memoria — solo se bloquea del upsert hasta corrección.
+    const _validStatuses = _VALID_STATUS_BY_TYPE[it.type];
+    if (_validStatuses && !_validStatuses.has(it.status)) {
+      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido del upsert — type:${it.type} no puede tener status:${it.status} (viola chk_status_by_type)`);
+      _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: `type:${it.type} no puede tener status:${it.status} — viola chk_status_by_type` });
       return false;
     }
     return true;
@@ -940,11 +964,6 @@ export async function saveBacklog() {
     if (dedupedRows.length < rows.length) {
       console.warn('[AI Tracker] saveBacklog: duplicados en ITEMS eliminados antes de upsert:', rows.length - dedupedRows.length);
     }
-
-    // T-[pendiente-ID]: log temporal de diagnóstico — B-[pendiente-ID] (23514 chk_status_by_type).
-    // Solo lectura, sin efecto en el payload ni en el flujo. Remover una vez identificada
-    // la fila que viola el constraint.
-    console.table(dedupedRows.map(r => ({ code: r.code, type: r.type, status: r.status })));
 
     // Upsert multi-fila en un único request — onConflict:code garantiza que una fila
     // existente se actualiza en lugar de duplicarse (AC-2).
