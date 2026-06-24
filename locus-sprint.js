@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-08 · mod:63 · autor:Rune · 2026-06-23 18:00 UTC-6
+// [PP] v0.7.0 · sprint:PP-S-08 · mod:64 · autor:Rune · 2026-06-23 18:30 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -503,13 +503,16 @@ function _renderSpsProgramados() {
 
   const sprints = _getProgramadosSprints();
 
+  // AC-4 (T-202606-001): sin programados → sección vacía sin encabezado — no ocupa espacio visual
   if (sprints.length === 0) {
-    container.innerHTML =
-      '<span class="sps-section-label">Programados</span>' +
-      '<div class="sps-scheduled-empty">Sin sprints programados</div>';
+    container.innerHTML = '';
+    container.classList.add('is-hidden');
     container.removeEventListener('click', _sppHandleClick);
     return;
   }
+
+  // Hay programados — restaurar visibilidad si estaba oculto
+  container.classList.remove('is-hidden');
 
   const rows = sprints.map(function(s) {
     const id    = s.id || '';
@@ -1706,18 +1709,26 @@ function _renderSpsCerrados() {
   const closed = allSprints
     ? allSprints
         .filter(s => s.status === 'closed' && !s.isHotfix)
-        .sort((a, b) => (b.closedAt || b.createdAt || 0) - (a.closedAt || a.createdAt || 0))
+        .sort((a, b) => {
+          const ta = b.closedAt || b.createdAt || 0;
+          const tb = a.closedAt || a.createdAt || 0;
+          if (ta !== tb) return ta - tb;
+          // AC-1 (T-202606-001): tiebreaker por ID descendente cuando ambos timestamps son null/0
+          return (b.id || '').localeCompare(a.id || '');
+        })
     : [];
 
-  // AC-2: empty state inline — sección no desaparece
+  // AC-3 (T-202606-001): sin cerrados → sección vacía sin encabezado — no ocupa espacio visual
   if (closed.length === 0) {
-    container.innerHTML =
-      '<span class="sps-section-label">Cerrados</span>' +
-      '<div class="sps-card"><p class="sps-cerrados-empty">Sin sprints cerrados</p></div>';
+    container.innerHTML = '';
+    container.classList.add('is-hidden');
     container.removeEventListener('click', _spsCerradosHandleClick);
     _spsCerradosExpanded = null;
     return;
   }
+
+  // Hay cerrados — restaurar visibilidad si estaba oculto
+  container.classList.remove('is-hidden');
 
   // Calcular conteos done/migrado/descartado desde getItems()
   const rows = closed.map(sprint => {

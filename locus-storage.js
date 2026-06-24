@@ -1,6 +1,6 @@
-// [PP] v0.7.0 · sprint:PP-S-08 · mod:38 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.7.0 · sprint:PP-S-08 · mod:39 · autor:Rune · 2026-06-23 UTC-6
 // locus-storage.js
-// Última actualización: T-202606-005: getActiveSprints/createSprint/setSprintStatus leen/escriben tracker_sprints
+// Última actualización: T-202606-011: _verifyAndCleanSprintsBlob() reemplaza migración legacy — limpia blob, _ensureHotfixSprint bifurcado por sesión
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -1544,78 +1544,94 @@ function _normalizeSessionFields(s) {
   return s;
 }
 
-// T-202606-004: migrar sprints desde blob tracker_state → tabla tracker_sprints.
-// Idempotente: si ya existen filas para user_id + project_id, no vuelve a correr (AC-2).
-// El blob no se modifica — se conserva hasta T-202606-005 (AC-6).
+// T-202606-011: verificar que todo proyecto con datos de sprint en el blob legacy
+// tiene su contraparte completa en tracker_sprints, re-migrar si falta, y eliminar
+// los datos de sprint del blob una vez verificado. Reemplaza la función de migración
+// de T-202606-004 — su propósito (poblar tracker_sprints) ya fue cumplido; esta función
+// además limpia el blob, lo que la anterior explícitamente no hacía (AC-6 de T-202606-005).
 // Llamada desde _applyStateData() como fire-and-forget cuando auth está disponible.
-async function _migrateSprintsToSupabase(projects) {
+//
+// AC-1: verificación — para cada proyecto con sprints en el blob, confirma que el mismo
+//   conjunto de sprint_id existe en tracker_sprints.
+// AC-2: edge case — si falta algún sprint_id en tracker_sprints, re-ejecuta el upsert
+//   (misma lógica de construcción de filas que tenía la función anterior) antes
+//   de continuar con la limpieza de ese proyecto.
+// AC-3: estado de error — si la re-migración falla, no limpia el blob de ese proyecto,
+//   lo deja intacto, registra el project_id en consola, continúa con el resto.
+// AC-4: happy path — una vez verificado (directo o tras re-migración exitosa), elimina
+//   proj.sprints del blob para ese proyecto. Resto del blob sin cambio.
+// AC-5: edge case — proyecto sin sprints en el blob se omite sin error.
+async function _verifyAndCleanSprintsBlob(projects) {
   if (!_supabase || !_supabaseUser) return;
   const userId = _supabaseUser.id;
+
+  const toIso = v => {
+    if (!v) return null;
+    if (typeof v === 'string') return v;
+    if (typeof v === 'number') return new Date(v).toISOString();
+    return null;
+  };
+
+  const buildRows = (projId, sprints) => sprints.map(sp => {
+    let status = sp.status || 'pendiente';
+    if (status === 'open') status = 'abierto';
+    return {
+      user_id:        userId,
+      project_id:     projId,
+      sprint_id:      sp.id,
+      label:          sp.label || null,
+      status,
+      version_target: sp.version_target || null,
+      release_type:   sp.release_type || null,
+      scope:          sp.scope || null,
+      goal:           sp.goal || null,
+      out_of_scope:   sp.out_of_scope || null,
+      opened_at:      toIso(sp.startedAt || sp.opened_at),
+      closed_at:      toIso(sp.closedAt || sp.closed_at),
+      updated_at:     new Date().toISOString()
+    };
+  }).filter(r => !!r.sprint_id);
 
   for (const proj of projects) {
     const projId = proj.id;
     if (!projId) continue;
     const sprints = proj.sprints || [];
+    // AC-5: proyecto sin sprints en el blob — omitir sin error
     if (!sprints.length) continue;
 
-    // AC-2: verificar si tracker_sprints ya tiene datos para este user_id + project_id
+    // AC-1: verificar que cada sprint_id del blob existe en tracker_sprints
     const { data: existing, error: checkErr } = await _supabase
       .from('tracker_sprints')
       .select('sprint_id')
       .eq('user_id', userId)
-      .eq('project_id', projId)
-      .limit(1);
+      .eq('project_id', projId);
     if (checkErr) {
-      console.error('[Locus] T-202606-004: error al verificar tracker_sprints para', projId, checkErr);
-      continue;
-    }
-    if (existing && existing.length > 0) {
-      // Ya migrado — idempotente, no correr de nuevo
-      continue;
+      console.error('[Locus] T-202606-011: error al verificar tracker_sprints para', projId, checkErr);
+      continue; // AC-3: no limpiar este proyecto si la verificación falla
     }
 
-    // Construir filas para upsert
-    const rows = sprints.map(sp => {
-      // AC-5: opened_at / closed_at — ISO string directo, epoch ms → toISOString(), ausente → null
-      const toIso = v => {
-        if (!v) return null;
-        if (typeof v === 'string') return v;
-        if (typeof v === 'number') return new Date(v).toISOString();
-        return null;
-      };
-      // AC-4: status 'open' → 'abierto'. Nota: _applyStateData ya migra open→active/closed
-      // antes de esta llamada, pero por seguridad se aplica también aquí.
-      let status = sp.status || 'pendiente';
-      if (status === 'open') status = 'abierto';
+    const existingIds = new Set((existing || []).map(r => r.sprint_id));
+    const missing = sprints.filter(sp => sp.id && !existingIds.has(sp.id));
 
-      return {
-        user_id:        userId,
-        project_id:     projId,
-        sprint_id:      sp.id,           // AC-3: campo sprint_id del ítem (ej: PP-S-11)
-        label:          sp.label || null,
-        status,
-        version_target: sp.version_target || null,
-        release_type:   sp.release_type || null,
-        scope:          sp.scope || null,
-        goal:           sp.goal || null,
-        out_of_scope:   sp.out_of_scope || null,
-        opened_at:      toIso(sp.startedAt || sp.opened_at),
-        closed_at:      toIso(sp.closedAt || sp.closed_at),
-        updated_at:     new Date().toISOString()
-      };
-    }).filter(r => !!r.sprint_id); // excluir filas sin sprint_id
-
-    if (!rows.length) continue;
-
-    const { error: upsertErr } = await _supabase
-      .from('tracker_sprints')
-      .upsert(rows, { onConflict: 'user_id,sprint_id' });
-    if (upsertErr) {
-      console.error('[Locus] T-202606-004: upsert a tracker_sprints falló para', projId, upsertErr);
-      // AC-7: continuar con blob — no bloquear la app
-    } else {
-      console.log('[Locus] T-202606-004: sprints migrados a tracker_sprints —', projId, rows.length, 'filas');
+    if (missing.length > 0) {
+      // AC-2: re-migrar los sprints faltantes antes de limpiar
+      const rows = buildRows(projId, missing);
+      if (rows.length > 0) {
+        const { error: upsertErr } = await _supabase
+          .from('tracker_sprints')
+          .upsert(rows, { onConflict: 'user_id,sprint_id' });
+        if (upsertErr) {
+          // AC-3: fallo de re-migración — no limpiar el blob de este proyecto
+          console.error('[Locus] T-202606-011: re-migración falló para', projId, upsertErr);
+          continue;
+        }
+        console.log('[Locus] T-202606-011: re-migrados', rows.length, 'sprint(s) faltante(s) —', projId);
+      }
     }
+
+    // AC-4: verificación (directa o post re-migración) exitosa — limpiar blob de este proyecto
+    delete proj.sprints;
+    console.log('[Locus] T-202606-011: blob de sprints eliminado —', projId);
   }
 }
 
@@ -1636,7 +1652,58 @@ function _applyStateData(raw) {
   // Idempotente: AC-3 — si ya existe isHotfix:true no crea otro.
   // AC-4: no modifica sprints regulares existentes.
   // Se llama dentro del forEach de migración — cubre proyectos nuevos (AC-1) y existentes (AC-2).
+  // T-202606-016: _ensureHotfixSprint — crea sprint S-HOTFIX si el proyecto no lo tiene.
+  // Idempotente: AC-3 — si ya existe isHotfix:true no crea otro.
+  // AC-4: no modifica sprints regulares existentes.
+  // Se llama dentro del forEach de migración — cubre proyectos nuevos (AC-1) y existentes (AC-2).
+  //
+  // T-202606-011 — impacto lateral: con sesión Supabase activa, el blob ya no es la fuente
+  // de verdad de sprints (T-202606-005/011 lo limpian). La detección de "¿ya existe HOTFIX?"
+  // y la escritura del sprint nuevo se bifurcan según haya sesión:
+  //   - Sin sesión (fallback legacy) → comportamiento sin cambio: lee y escribe en proj.sprints.
+  //   - Con sesión activa → lee de getActiveSprints() (tracker_sprints vía _sprintsCache) y,
+  //     si falta, escribe vía _upsertSprint() — nunca toca proj.sprints. Esto garantiza que
+  //     todo proyecto (existente o creado después de este T) tenga su S-HOTFIX accesible sin
+  //     depender del blob legacy.
   function _ensureHotfixSprint(proj) {
+    const _hasSupabaseSession = !!(_supabase && _supabaseUser);
+
+    if (_hasSupabaseSession) {
+      const _existingForProj = getActiveSprints().filter(s => (s.projId === proj.id || s.projectId === proj.id));
+      if (_existingForProj.some(sp => sp.isHotfix === true)) return; // ya existe en tracker_sprints
+
+      let prefix = 'XX';
+      const regularSprint = _existingForProj.find(sp => /^[A-Za-z]+-S\d+$/i.test(sp.id || ''));
+      if (regularSprint) {
+        const m = (regularSprint.id || '').match(/^([A-Za-z]+)-S\d+$/i);
+        if (m) prefix = m[1].toUpperCase();
+      } else if (proj.prefix) {
+        prefix = String(proj.prefix).toUpperCase();
+      } else if (proj.name) {
+        prefix = proj.name.split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 3) || 'XX';
+      }
+      const hotfixId = prefix + '-S-HOTFIX';
+      const hotfixSprintObj = {
+        id: hotfixId,
+        label: hotfixId,
+        goal: '',
+        version_target: 'n/a',
+        release_type: null,
+        status: 'active',
+        current: false,
+        formallyOpened: true,
+        isHotfix: true,
+        startedAt: Date.now(),
+        createdAt: Date.now()
+      };
+      _upsertSprint(hotfixSprintObj, proj.id).catch(err => {
+        console.error('[Locus] T-202606-011: _ensureHotfixSprint upsert falló —', proj.id, err);
+      });
+      console.log('[Locus] T-202606-011: sprint HOTFIX creado en tracker_sprints —', hotfixId);
+      return;
+    }
+
+    // Sin sesión activa — comportamiento legacy sin cambio, escribe en el blob.
     if (!proj.sprints) proj.sprints = [];
     if (proj.sprints.some(sp => sp.isHotfix === true)) return; // AC-3: ya existe
     // Derivar prefijo: desde sprints regulares → proj.prefix → iniciales del nombre → 'XX'
@@ -1729,12 +1796,12 @@ function _applyStateData(raw) {
     }
   });
 
-  // T-202606-004: migrar sprints del blob tracker_state → tabla tracker_sprints en Supabase.
-  // Fire-and-forget — no bloquea _applyStateData(). Idempotente: corre solo si tracker_sprints
-  // está vacío para este user_id + project_id (AC-2). Blob conservado hasta T-202606-005 (AC-6).
+  // T-202606-011: verificar migración completa a tracker_sprints y limpiar el blob legacy.
+  // Fire-and-forget — no bloquea _applyStateData(). Re-migra defensivamente si falta algún
+  // sprint, luego elimina proj.sprints del blob de cada proyecto verificado.
   if (_supabase && _supabaseUser) {
-    _migrateSprintsToSupabase(raw.projects || []).catch(err => {
-      console.error('[Locus] T-202606-004: migración de sprints falló — app continúa con blob', err);
+    _verifyAndCleanSprintsBlob(raw.projects || []).catch(err => {
+      console.error('[Locus] T-202606-011: verificación/limpieza de sprints falló', err);
     });
   }
 
