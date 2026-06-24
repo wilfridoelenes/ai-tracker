@@ -1,4 +1,4 @@
-/* [PP] v0.1.0 · sprint:PP-S-07 · mod:48 · autor:Nova · 2026-06-23 14:50 UTC-6 */
+/* [PP] v0.7.0 · sprint:PP-S-HOTFIX · mod:49 · autor:Nova · 2026-06-23 18:00 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -1460,6 +1460,19 @@
   background: var(--c-done-bg);
   border-color: var(--c-done-border);
   color: var(--c-done-text);
+}
+
+/* B-202606-095: status bloqueado/orphaned en Rs — badge visual diferenciado */
+.badge-status-bloqueado {
+  background: var(--c-critical-bg);
+  border-color: var(--c-critical-border);
+  color: var(--c-critical-text);
+}
+
+.badge-status-orphaned {
+  background: var(--surface2);
+  border-color: var(--border2);
+  color: var(--hint);
 }
 
 /* T-202604-050: campos obligatorios effort/area/ac */

@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-07 · mod:37 · autor:Rune · 2026-06-23 15:20 UTC-6
+// [PP] v0.7.0 · sprint:PP-S-HOTFIX · mod:38 · autor:Rune · 2026-06-23 18:00 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -295,7 +295,7 @@ function _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems) {
   const projectId = _getActiveProjectFilter() || 'default';
 
   // Helpers de status inline — statusClass/statusLabel no están exportadas desde item.js
-  const _statusLabel = s => ({ pendiente: 'Pendiente', 'en-revision': 'En revisión', done: 'Done', descartado: 'Descartado' }[s] || s || '—');
+  const _statusLabel = s => ({ pendiente: 'Pendiente', 'en-revision': 'En revisión', done: 'Done', descartado: 'Descartado', bloqueado: 'Bloqueado', orphaned: 'Orphaned' }[s] || s || '—');
   const _statusClass = s => 'badge-status-' + (s || 'pendiente');
 
   // Separar tipos desde pendienteItems (Rs y sueltos filtrados)
@@ -342,7 +342,12 @@ function _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems) {
     html += arrowSvg;
     html += `<span class="bl-vc-r-code">${esc(r.code)}</span>`;
     html += `<span class="bl-vc-r-title">${esc(r.title || '')}</span>`;
-    html += `<span class="bl-vc-r-meta"><span class="bl-vc-r-count">${children.length} T${children.length !== 1 ? 's' : ''}</span></span>`;
+    html += `<span class="bl-vc-r-meta"><span class="bl-vc-r-count">${children.length} T${children.length !== 1 ? 's' : ''}</span>`;
+    // B-202606-095: badge de status del R — solo estados no-default (pendiente y en-proceso son implícitos)
+    if (r.status && r.status !== 'pendiente' && r.status !== 'en-proceso') {
+      html += `<span class="badge ${_statusClass(r.status)} badge--sm">${_statusLabel(r.status)}</span>`;
+    }
+    html += `</span>`;
     html += `</div>`; // header
 
     html += `<div class="bl-vc-r-body">`;
