@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:50 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:53 · autor:Rune · 2026-06-24 UTC-6
 // locus-storage.js
 // Última actualización: B-[pendiente-ID] (regresión de B-202606-094): leftover del merge por
 // fila ahora descarta ítems con _updatedAtMs poblado (confirmados remoto antes) ausentes en
@@ -930,12 +930,28 @@ export async function saveBacklog() {
   try {
     const rows = items.map(_toItemRow);
 
+    // B-202606-093: deduplicar por code antes del upsert — Postgres rechaza un batch con
+    // el mismo code dos veces aunque onConflict esté declarado (viola unique constraint
+    // dentro del mismo statement). Mismo patrón que migrateHistoricosToTrackerItems paso 3.
+    // Último ítem del array gana en caso de duplicado (comportamiento estándar de Map).
+    const _rowsMap = new Map();
+    for (const row of rows) _rowsMap.set(row.code, row);
+    const dedupedRows = Array.from(_rowsMap.values());
+    if (dedupedRows.length < rows.length) {
+      console.warn('[AI Tracker] saveBacklog: duplicados en ITEMS eliminados antes de upsert:', rows.length - dedupedRows.length);
+    }
+
+    // T-[pendiente-ID]: log temporal de diagnóstico — B-[pendiente-ID] (23514 chk_status_by_type).
+    // Solo lectura, sin efecto en el payload ni en el flujo. Remover una vez identificada
+    // la fila que viola el constraint.
+    console.table(dedupedRows.map(r => ({ code: r.code, type: r.type, status: r.status })));
+
     // Upsert multi-fila en un único request — onConflict:code garantiza que una fila
     // existente se actualiza en lugar de duplicarse (AC-2).
     // DDL: tabla se llama tracker_items (no items) — T-202606-007.
     const { error } = await _supabase
       .from('tracker_items')
-      .upsert(rows, { onConflict: 'code' });
+      .upsert(dedupedRows, { onConflict: 'code' });
     if (error) throw error;
 
     // Upsert exitoso → escribir localStorage como caché. Nunca antes.
@@ -974,7 +990,15 @@ export async function saveHistoricoItems(items) {
   const projId = _getActiveProjectFilter();
   const suffix = projId ? '-' + projId : '-global';
   const key = _HISTORICO_KEY + suffix;
-  const payload = Array.isArray(items) ? items : [];
+  // B-202606-093 AC-2: deduplicar por code antes de escribir el JSONB — cada escritura
+  // sanea el dato existente. Último ítem del array gana en caso de duplicado.
+  const _raw = Array.isArray(items) ? items : [];
+  const _dedupMap = new Map();
+  for (const it of _raw) _dedupMap.set(it.code, it);
+  const payload = Array.from(_dedupMap.values());
+  if (payload.length < _raw.length) {
+    console.warn(`[AI Tracker] saveHistoricoItems: duplicados en array eliminados antes de upsert: ${_raw.length - payload.length}`);
+  }
 
   // Sin Supabase o sin auth → localStorage como único destino.
   if (!_supabase || !_supabaseUser) {
