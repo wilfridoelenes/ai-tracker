@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:42 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:43 · autor:Rune · 2026-06-23 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-011: _verifyAndCleanSprintsBlob() reemplaza migración legacy — limpia blob, _ensureHotfixSprint bifurcado por sesión
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -1048,6 +1048,94 @@ export async function getHistoricoItems() {
   }
 }
 // ── END T-202606-105 ──────────────────────────────────────────────────────────
+
+// ── T-202606-019: verifyPrePurgaIntegrity() — verificación de integridad pre-purga ──
+// Función de solo lectura — no modifica ninguna tabla ni localStorage.
+// Invocar desde consola del browser antes de ejecutar T4 (purga de JSONB legacy).
+// Retorna: true (sin discrepancias) | false (delta detectado) | null (sin auth)
+export async function verifyPrePurgaIntegrity() {
+  // AC-5: sin auth → null + warn.
+  if (!_supabase || !_supabaseUser) {
+    console.warn('[Locus] verifyPrePurgaIntegrity: sin auth — verificación no disponible');
+    return null;
+  }
+
+  const projId = _getActiveProjectFilter();
+  const suffix = projId ? '-' + projId : '-global';
+
+  try {
+    // Queries paralelas — solo lectura.
+    const [itemsResult, jsonbResult, historicoResult] = await Promise.all([
+      // 1. Contar filas activas en tracker_items (excluye status:historico).
+      _supabase
+        .from('tracker_items')
+        .select('code, status', { count: 'exact' })
+        .eq('user_id', _supabaseUser.id)
+        .eq('project_id', projId || '')
+        .neq('status', 'historico'),
+
+      // 2. Leer blob items-PP desde tracker_backlog (JSONB legacy).
+      _supabase
+        .from('tracker_backlog')
+        .select('value')
+        .eq('user_id', _supabaseUser.id)
+        .eq('key', 'items' + suffix)
+        .maybeSingle(),
+
+      // 3. Leer históricos desde tracker_backlog clave historico-PP.
+      _supabase
+        .from('tracker_backlog')
+        .select('value')
+        .eq('user_id', _supabaseUser.id)
+        .eq('key', 'historico' + suffix)
+        .maybeSingle()
+    ]);
+
+    // ── 1. Procesar tracker_items ────────────────────────────────────────
+    if (itemsResult.error) throw itemsResult.error;
+    const itemsCount = itemsResult.count ?? (itemsResult.data ? itemsResult.data.length : 0);
+
+    // ── 2. Procesar blob JSONB legacy ────────────────────────────────────
+    if (jsonbResult.error) throw jsonbResult.error;
+    const jsonbRaw   = jsonbResult.data && Array.isArray(jsonbResult.data.value) ? jsonbResult.data.value : [];
+    // AC-2/AC-3: excluir status:historico del conteo JSONB — comparación simétrica.
+    const jsonbActive = jsonbRaw.filter(it => it.status !== 'historico');
+    const jsonbCount  = jsonbActive.length;
+
+    // ── 3. Procesar históricos ────────────────────────────────────────────
+    if (historicoResult.error) throw historicoResult.error;
+    const historicoRaw   = historicoResult.data && Array.isArray(historicoResult.data.value) ? historicoResult.data.value : [];
+    const historicoCount = historicoRaw.length;
+
+    // ── AC-1: reporte de los tres conteos ────────────────────────────────
+    console.log('[Locus] verifyPrePurgaIntegrity — conteos pre-purga:');
+    console.log('  tracker_items  (activos, project_id=' + (projId || 'global') + '):', itemsCount);
+    console.log('  tracker_backlog items' + suffix + ' (JSONB activos, excl. historico):', jsonbCount);
+    console.log('  tracker_backlog historico' + suffix + ':', historicoCount);
+
+    // ── AC-4: históricos reportados, no afectan retorno ──────────────────
+    if (historicoCount > 0) {
+      console.log('[Locus] verifyPrePurgaIntegrity — históricos en tracker_backlog: ' + historicoCount + ' ítem(s). Storage correcto — no requieren migración.');
+    }
+
+    // ── AC-2 / AC-3: comparación y retorno ───────────────────────────────
+    const delta = jsonbCount - itemsCount;
+    if (delta > 0) {
+      // AC-2: discrepancia — hay ítems en JSONB que no están en tracker_items.
+      console.warn('[Locus] verifyPrePurgaIntegrity — ATENCIÓN: ' + delta + ' ítem(s) en JSONB no encontrados en tracker_items. NO ejecutar purga hasta resolver.');
+      return false;
+    }
+
+    // AC-3: sin discrepancia.
+    console.log('[Locus] verifyPrePurgaIntegrity — OK: integridad verificada. Seguro proceder con purga.');
+    return true;
+
+  } catch (err) {
+    console.error('[Locus] verifyPrePurgaIntegrity — error al verificar:', err);
+    return null;
+  }
+}
+// ── END T-202606-019 ──────────────────────────────────────────────────────────
 
 // R-202604-035: saveContextDocs() — escribe en tracker_docs
 export async function saveContextDocs() {
