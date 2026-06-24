@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:40 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:41 · autor:Rune · 2026-06-23 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-011: _verifyAndCleanSprintsBlob() reemplaza migración legacy — limpia blob, _ensureHotfixSprint bifurcado por sesión
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -867,44 +867,61 @@ export async function saveBacklog() {
   // Construir filas para el upsert relacional. Los campos que Postgres espera como columnas
   // tipadas se mapean explícitamente; el resto se serializa en el campo jsonb `extra` si la
   // tabla lo tuviera (DDL de T1 no incluye `extra` — solo columnas declaradas).
+  // T-202606-008 fix: columnas alineadas con DDL de tracker_items (T-202606-007).
+  // Correcciones vs entrega inicial:
+  //   · tabla: 'items' → 'tracker_items'
+  //   · parent_id → parent   (nombre real de columna en DDL)
+  //   · origen_p  → origin_p (naming DDL)
+  //   · verificado_por → verified_by (naming DDL)
+  //   · contract_update eliminado — columna no existe en DDL
+  //   · updated_at: ISO string → BIGINT epoch ms (tipo DDL: BIGINT)
   function _toItemRow(it) {
     return {
-      user_id:            _supabaseUser.id,
-      project_id:         projId || null,
-      code:               it.code             || null,
-      type:               it.type             || null,
-      title:              it.title            || null,
-      status:             it.status           || null,
-      priority:           it.priority         || null,
-      effort:             it.effort != null ? Number(it.effort) : null,
-      area:               it.area             || null,
-      sprint:             it.sprint           || null,
-      role:               it.role             || null,
-      parent_id:          it.parent           || it.parentId || null,
+      project_id:           projId || null,
+      code:                 it.code             || null,
+      type:                 it.type             || null,
+      title:                it.title            || null,
+      status:               it.status           || null,
+      priority:             it.priority         || null,
+      effort:               it.effort != null ? Number(it.effort) : null,
+      area:                 it.area             || null,
+      sprint:               it.sprint           || null,
+      role:                 it.role             || null,
+      // DDL: columna 'parent' TEXT (no 'parent_id')
+      parent:               it.parent           || it.parentId || null,
       // depends_on: array JS → text[] Postgres
-      depends_on:         Array.isArray(it.depends_on) ? it.depends_on : [],
-      triggered_by:       it.triggered_by     || null,
-      no_incluye:         it.no_incluye != null ? it.no_incluye : null,
-      kill_criteria:      it.kill_criteria    || null,
-      contract_update:    it.contract_update  || null,
-      promovida_a:        it.promovida_a      || null,
-      origen_p:           it.origen_p         || null,
-      discard_reason:     it.discard_reason   || null,
+      depends_on:           Array.isArray(it.depends_on) ? it.depends_on : [],
+      triggered_by:         it.triggered_by     || null,
+      no_incluye:           it.no_incluye != null ? it.no_incluye : null,
+      kill_criteria:        it.kill_criteria    || null,
+      promovida_a:          it.promovida_a      || null,
+      // DDL: columna 'origin_p' TEXT (no 'origen_p')
+      origin_p:             it.origen_p         || null,
+      discard_reason:       it.discard_reason   || null,
       comportamiento_actual: it.comportamiento_actual || null,
-      origin_module:      it.origin_module    || null,
-      verificado_por:     it.verificado_por   || null,
-      schema_version:     it.schema_version != null ? Number(it.schema_version) : 2,
-      // ac: array JS → jsonb Postgres (preserva orden y tipos internos)
-      ac:                 Array.isArray(it.ac) ? it.ac : [],
+      origin_module:        it.origin_module    || null,
+      // DDL: columna 'verified_by' TEXT (no 'verificado_por')
+      verified_by:          it.verificado_por   || null,
+      schema_version:       it.schema_version != null ? Number(it.schema_version) : 2,
+      // ac: array JS → jsonb Postgres
+      ac:                   Array.isArray(it.ac) ? it.ac : [],
       // intencion, contract: objetos → jsonb Postgres
-      intencion:          it.intencion        || null,
-      contract:           it.contract         || null,
-      updated_at:         _writeTs
+      intencion:            it.intencion        || null,
+      contract:             it.contract         || null,
+      // DDL: updated_at BIGINT (epoch ms) — no ISO string
+      // _updatedAtMs calculado una vez fuera de _toItemRow — todas las filas comparten el mismo valor (AC-3)
+      updated_at:           _updatedAtMs
     };
   }
 
+  // AC-3: un único timestamp epoch para todas las filas del batch — calculado antes de map().
+  // DDL: updated_at BIGINT (epoch ms). _writeTs (ISO) sigue siendo la referencia para
+  // meta.updated y _realtimeLastTs — ambos usan string ISO por compatibilidad con el resto
+  // de la app. _updatedAtMs es exclusivo del upsert a tracker_items.
+  const _updatedAtMs = Date.now();
+
   // T-202606-097: registrar _realtimeLastTs ANTES del await — mismo patrón que _saveFlush().
-  // Evita que el echo de Realtime de la tabla items dispare _loadFromSupabase() innecesariamente.
+  // Evita que el echo de Realtime de tracker_items dispare _loadFromSupabase() innecesariamente.
   _realtimeLastTs = _writeTs;
 
   try {
@@ -912,8 +929,9 @@ export async function saveBacklog() {
 
     // Upsert multi-fila en un único request — onConflict:code garantiza que una fila
     // existente se actualiza en lugar de duplicarse (AC-2).
+    // DDL: tabla se llama tracker_items (no items) — T-202606-007.
     const { error } = await _supabase
-      .from('items')
+      .from('tracker_items')
       .upsert(rows, { onConflict: 'code' });
     if (error) throw error;
 
