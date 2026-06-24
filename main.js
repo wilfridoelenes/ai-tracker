@@ -1,9 +1,9 @@
-// [PP] v0.5.0 · sprint:PP-S-10 · mod:6 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:7 · autor:Rune · 2026-06-24 UTC-6
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
 // Limpieza: imports duplicados consolidados (side-effect imports redundantes eliminados)
 
-import { _getActiveProjectFilter, _initApp, _effectiveVersion, getProjectById, LOCUS_KEYS } from './locus-storage.js';
+import { _getActiveProjectFilter, _initApp, _effectiveVersion, getProjectById, LOCUS_KEYS, verifyPrePurgaIntegrity } from './locus-storage.js';
 import { applyTheme, _initUiShellRefs } from './locus-ui-shell.js';
 import './locus-analytics-core.js';
 import './locus-analytics-digest.js';
@@ -160,4 +160,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (_rsInput) _rsInput.addEventListener('input', function() { _validateResetSessionsInput(this); });
   const _rbInput = document.getElementById('reset-backlog-input');
   if (_rbInput) _rbInput.addEventListener('input', function() { _validateResetBacklogInput(this); });
+
+  // T-202606-010 AC-3: exponer verifyPrePurgaIntegrity en window para verificación pre-purga desde consola
+  window._verifyPurga = verifyPrePurgaIntegrity;
 });
