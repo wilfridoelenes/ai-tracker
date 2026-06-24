@@ -1,4 +1,4 @@
-// [PP] v0.7.0 · sprint:PP-S-08 · mod:39 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:40 · autor:Rune · 2026-06-23 UTC-6
 // locus-storage.js
 // Última actualización: T-202606-011: _verifyAndCleanSprintsBlob() reemplaza migración legacy — limpia blob, _ensureHotfixSprint bifurcado por sesión
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
@@ -762,7 +762,11 @@ export function _relTs(ts) {
   return 'hace ' + Math.floor(diff / 86400) + 'd';
 }
 
-// R-202604-035: saveBacklog() — escribe en /backlog/items-{suffix} y /backlog/meta-{suffix}
+// R-202604-035: saveBacklog() — T-202606-008: reescrito para upsert relacional fila por fila
+// en tabla items (DDL creado en T-202606-007). Firma saveBacklog() → void intacta — los 7
+// call sites (locus-backlog-core, locus-backlog-merge, locus-backlog-panel,
+// locus-backlog-sprints, locus-backlog-item, locus-session-parse, locus-session-save)
+// no requieren cambio de código. localStorage se mantiene como caché/fallback (sin auth).
 export async function saveBacklog() {
   // T-[pendiente-ID]: purga inteligente — si localStorage supera el 80% de capacidad,
   // purgar ítems done/descartado >90 días del caché local antes de intentar escribir.
@@ -774,9 +778,9 @@ export async function saveBacklog() {
     }
   }
 
-  // T-[pendiente-ID]: gate de validación estructural — un R/T/B con sprint:'icebox'
-  // o un ítem con status:'historico' recibido como escritura entrante nunca llega
-  // a Supabase ni a localStorage. icebox es zona exclusiva de P (__BR-Ecosystem §5).
+  // Gate de validación estructural — un R/T/B con sprint:'icebox' o un ítem con
+  // status:'historico' nunca llega a Supabase ni a localStorage.
+  // icebox es zona exclusiva de P (__BR-Ecosystem §5).
   // status:'historico' es de solo lectura, asignado únicamente por Locus al cerrar sprint.
   const _rawItems = _getItems();
   const items = _rawItems.filter(it => {
@@ -792,33 +796,33 @@ export async function saveBacklog() {
     }
     return true;
   });
+
   const key = _tplKey('backlog-items');
   const projId = _getActiveProjectFilter();
   const metaKey = _tplKey('backlog-meta');
   const meta = JSON.parse(localStorage.getItem(metaKey) || '{}');
-  // T-202606-103: timestamp único — un solo new Date().toISOString() para meta.updated
-  // y el updated_at de ambas filas de Supabase. Evita que _loadFromSupabase compare
-  // valores generados en momentos distintos del mismo write.
+  // T-202606-103: timestamp único — un solo new Date().toISOString() reutilizado en
+  // meta.updated y en el updated_at de cada fila del upsert relacional.
+  // AC-3: _writeTs calculado una vez antes del upsert — las N filas del batch comparten
+  // el mismo valor, sin llamadas adicionales a new Date().
   const _writeTs = new Date().toISOString();
   meta.updated = _writeTs;
-  const suffix = projId ? '-' + projId : '-global';
 
-  // AC-3 R-C5: sin Supabase o sin auth → localStorage como único destino.
+  // Sin Supabase o sin auth → localStorage como único destino (sin cambio de comportamiento).
   if (!_supabase || !_supabaseUser) {
     try {
       localStorage.setItem(key, JSON.stringify(items));
-      localStorage.setItem(metaKey, JSON.stringify(meta)); // B-202605-089: persistir meta.updated en localStorage
+      localStorage.setItem(metaKey, JSON.stringify(meta));
     } catch (err) {
       if (err.name === 'QuotaExceededError') {
         console.error('[AI Tracker] localStorage quota exceeded, attempting cleanup...');
         try {
           localStorage.removeItem(LOCUS_KEYS.CHANGELOG);
           localStorage.setItem(key, JSON.stringify(items));
-          localStorage.setItem(metaKey, JSON.stringify(meta)); // B-202605-091: persistir meta.updated en path de cleanup
+          localStorage.setItem(metaKey, JSON.stringify(meta));
           showToast('warning', '⚠️ Cuota de almacenamiento crítica — se limpió historial');
         } catch (err2) {
           console.error('[AI Tracker] saveBacklog failed after cleanup:', err2);
-          // B-[pendiente-ID]: toast bloqueante con CTAs — Exportar y Limpiar y reintentar
           const _quotaBody =
             `<span class="toast-quota-actions">` +
               `<button class="toast-quota-btn" id="toast-quota-export">Exportar backlog</button>` +
@@ -829,9 +833,7 @@ export async function saveBacklog() {
             const btnExport = document.getElementById('toast-quota-export');
             const btnClean  = document.getElementById('toast-quota-clean');
             if (btnExport) {
-              btnExport.addEventListener('click', () => {
-                exportBacklogMd();
-              }, { once: true });
+              btnExport.addEventListener('click', () => { exportBacklogMd(); }, { once: true });
             }
             if (btnClean) {
               btnClean.addEventListener('click', async () => {
@@ -851,38 +853,90 @@ export async function saveBacklog() {
     return;
   }
 
-  // AC-1 R-C5: Supabase disponible → upsert primero. localStorage solo como caché post-write exitoso.
+  // T-202606-008: upsert relacional — cada ítem es una fila en tabla items.
+  // Las columnas que contienen arrays JS (ac, depends_on) se mapean a text[] de Postgres.
+  // Las columnas que contienen objetos JS (intencion, contract, no_incluye cuando es objeto)
+  // se mapean a jsonb. Postgres aplica el CHECK constraint de status por type (T1).
+  //
+  // AC-1: upsert de ítem nuevo → 1 fila por code, sin tocar filas existentes.
+  // AC-2: _setITEMS() modifica status → upsert actualiza solo esa fila por onConflict:code.
+  // AC-3: _writeTs calculado una vez antes de este bloque — todas las filas del batch lo comparten.
+  // AC-4 (edge case icebox/P): project_id se deriva de projId — sprint:'icebox' sigue en columna sprint.
+  // AC-5 (contrato): saveBacklog() → void — ningún call site requiere cambio.
+
+  // Construir filas para el upsert relacional. Los campos que Postgres espera como columnas
+  // tipadas se mapean explícitamente; el resto se serializa en el campo jsonb `extra` si la
+  // tabla lo tuviera (DDL de T1 no incluye `extra` — solo columnas declaradas).
+  function _toItemRow(it) {
+    return {
+      user_id:            _supabaseUser.id,
+      project_id:         projId || null,
+      code:               it.code             || null,
+      type:               it.type             || null,
+      title:              it.title            || null,
+      status:             it.status           || null,
+      priority:           it.priority         || null,
+      effort:             it.effort != null ? Number(it.effort) : null,
+      area:               it.area             || null,
+      sprint:             it.sprint           || null,
+      role:               it.role             || null,
+      parent_id:          it.parent           || it.parentId || null,
+      // depends_on: array JS → text[] Postgres
+      depends_on:         Array.isArray(it.depends_on) ? it.depends_on : [],
+      triggered_by:       it.triggered_by     || null,
+      no_incluye:         it.no_incluye != null ? it.no_incluye : null,
+      kill_criteria:      it.kill_criteria    || null,
+      contract_update:    it.contract_update  || null,
+      promovida_a:        it.promovida_a      || null,
+      origen_p:           it.origen_p         || null,
+      discard_reason:     it.discard_reason   || null,
+      comportamiento_actual: it.comportamiento_actual || null,
+      origin_module:      it.origin_module    || null,
+      verificado_por:     it.verificado_por   || null,
+      schema_version:     it.schema_version != null ? Number(it.schema_version) : 2,
+      // ac: array JS → jsonb Postgres (preserva orden y tipos internos)
+      ac:                 Array.isArray(it.ac) ? it.ac : [],
+      // intencion, contract: objetos → jsonb Postgres
+      intencion:          it.intencion        || null,
+      contract:           it.contract         || null,
+      updated_at:         _writeTs
+    };
+  }
+
+  // T-202606-097: registrar _realtimeLastTs ANTES del await — mismo patrón que _saveFlush().
+  // Evita que el echo de Realtime de la tabla items dispare _loadFromSupabase() innecesariamente.
+  _realtimeLastTs = _writeTs;
+
   try {
-    // T-202606-097: registrar _realtimeLastTs ANTES del await — mismo patrón que _saveFlush() L557.
-    // Evita que el echo de Realtime de tracker_backlog dispare _loadFromSupabase() innecesariamente.
-    _realtimeLastTs = _writeTs;
-    const { error } = await _supabase.from('tracker_backlog').upsert([
-      { user_id: _supabaseUser.id, key: 'items' + suffix, value: items, updated_at: _writeTs },
-      { user_id: _supabaseUser.id, key: 'meta'  + suffix, value: meta,  updated_at: _writeTs }
-    ], { onConflict: 'user_id,key' });
+    const rows = items.map(_toItemRow);
+
+    // Upsert multi-fila en un único request — onConflict:code garantiza que una fila
+    // existente se actualiza en lugar de duplicarse (AC-2).
+    const { error } = await _supabase
+      .from('items')
+      .upsert(rows, { onConflict: 'code' });
     if (error) throw error;
-    // AC-1 R-C5: upsert exitoso → escribir localStorage como caché. Nunca antes.
+
+    // Upsert exitoso → escribir localStorage como caché. Nunca antes.
     try {
       localStorage.setItem(key, JSON.stringify(items));
+      localStorage.setItem(metaKey, JSON.stringify(meta));
     } catch (lsErr) {
       console.warn('[AI Tracker] saveBacklog: fallo al cachear en localStorage post-upsert', lsErr);
     }
     setSyncStatus('synced', '✓ sincronizado');
   } catch (err) {
-    // AC-2 R-C5: upsert falla → localStorage como fallback + encolar + toast.
-    // T-202606-097: resetear _realtimeLastTs — el timestamp no llegó a Supabase,
-    // sin reset el guard bloquearía el próximo cambio remoto legítimo.
+    // T-202606-097: resetear _realtimeLastTs — el timestamp no llegó a Supabase.
     _realtimeLastTs = null;
     console.error('[AI Tracker] Supabase saveBacklog() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
     try {
       localStorage.setItem(key, JSON.stringify(items));
+      localStorage.setItem(metaKey, JSON.stringify(meta));
     } catch (lsErr) {
       console.warn('[AI Tracker] saveBacklog: fallo al escribir localStorage fallback', lsErr);
     }
     showToast('warning', '⚠️ Backlog no sincronizado con Supabase — guardado localmente');
-    // T-202606-104: projId explícito — la conversión ''→null ocurre aquí, en el call
-    // site, no se asume que _offlineQueuePush la normalice internamente.
     _offlineQueuePush({ type: 'backlog', projId: projId || null });
   }
 }
