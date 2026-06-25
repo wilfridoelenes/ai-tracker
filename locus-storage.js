@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:53 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:55 · autor:Rune · 2026-06-24 UTC-6
 // locus-storage.js
 // Última actualización: B-[pendiente-ID] (regresión de B-202606-094): leftover del merge por
 // fila ahora descarta ítems con _updatedAtMs poblado (confirmados remoto antes) ausentes en
@@ -543,6 +543,21 @@ const _SAVE_DEBOUNCE_MS = 5000; // acumula calls; Supabase solo escribe si dirty
 let _saveDebounceTimer = null;
 let _stateDirty = false;
 
+// B-[pendiente-ID]: contador in-flight para saveBacklog() — >0 mientras hay al menos un
+// upsert hacia tracker_items en curso. _loadFromSupabase() lo verifica antes de mergear
+// items remotos, igual que ya verifica _saveDebounceTimer para el state general (línea ~1546).
+// Contador en vez de booleano: varios call sites de saveBacklog() no usan await (fire-and-
+// forget) — dos invocaciones pueden solaparse. Un booleano simple liberaría la protección
+// en cuanto la PRIMERA terminara, aunque la segunda siguiera en vuelo. El contador solo
+// llega a 0 cuando TODAS las invocaciones activas confirmaron (éxito o error).
+// Sin este guard, un _loadFromSupabase() disparado por CUALQUIER canal Realtime (state,
+// backlog o sessions — no hay canal dedicado a tracker_items) podía pisar un cambio local
+// reciente (ej: parentId recién asignado, status:done de Finn) si el upsert de saveBacklog()
+// todavía no había confirmado en Supabase. El guard de timestamp existente (B-202606-094)
+// no cubre esta ventana porque compara contra localStorage, que solo se actualiza DESPUÉS
+// de la confirmación del upsert — no contra el estado en memoria recién modificado.
+let _saveBacklogInFlightCount = 0;
+
 // R-202604-035 / T-202604-299: _saveFlush() — lógica real de escritura
 // Llamada por el timer de debounce o por saveImmediate()
 async function _saveFlush() {
@@ -789,17 +804,18 @@ export async function saveBacklog() {
   // B-202606-097: gate chk_status_by_type — reflejo client-side del CHECK constraint de
   // Postgres (T-202606-007 DDL). Un ítem con combinación type+status inválida se excluye
   // del upsert hasta que su status sea corregido. No se elimina de ITEMS en memoria.
-  // Estados válidos por tipo — alineados con DDL real (verificado 2026-06-24):
-  //   R: pendiente · en-proceso · en-revision · bloqueado · orphaned · descartado
-  //      (sin done — un R va a done solo vía sesión de cierre de Finn, status no persiste en tracker_items)
-  //      (sin historico — Rs no se archivan en tracker_items)
+  // Estados válidos por tipo — alineados con DDL real (verificado 2026-06-24, ALTER aplicado
+  // tras B-202606-100 — chk_status_by_type ahora permite 'done' para type:R):
+  //   R: pendiente · en-proceso · en-revision · done · bloqueado · orphaned · descartado
+  //      (done solo llega aquí vía sesión de cierre de Finn — el guard de origen vive en
+  //      applyPatchesFromTG/_applyDoneStatus, no en este filtro de persistencia)
   //   T: pendiente · en-revision · done · descartado · historico
   //   B: pendiente · en-revision · done · descartado · historico
   //   P: pendiente · promovida · descartado · historico
   // Nota: historico se excluye antes de llegar aquí por el gate `it.status === 'historico'`
   // arriba — este Set lo declara por coherencia con el DDL, no porque llegue a evaluarse.
   const _VALID_STATUS_BY_TYPE = {
-    R: new Set(['pendiente', 'en-proceso', 'en-revision', 'bloqueado', 'orphaned', 'descartado']),
+    R: new Set(['pendiente', 'en-proceso', 'en-revision', 'done', 'bloqueado', 'orphaned', 'descartado']),
     T: new Set(['pendiente', 'en-revision', 'done', 'descartado', 'historico']),
     B: new Set(['pendiente', 'en-revision', 'done', 'descartado', 'historico']),
     P: new Set(['pendiente', 'promovida', 'descartado', 'historico']),
@@ -819,10 +835,14 @@ export async function saveBacklog() {
     }
     // B-202606-097: excluir combinaciones type+status que violarían chk_status_by_type en Postgres.
     // El ítem permanece en ITEMS en memoria — solo se bloquea del upsert hasta corrección.
+    // B-[pendiente-ID]: toast visible agregado — antes esta exclusión era silenciosa para el
+    // founder (solo console.warn + evento), lo que hizo invisible el fallo de persistencia
+    // tras el patch R→done de Finn en B-202606-100.
     const _validStatuses = _VALID_STATUS_BY_TYPE[it.type];
     if (_validStatuses && !_validStatuses.has(it.status)) {
       console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido del upsert — type:${it.type} no puede tener status:${it.status} (viola chk_status_by_type)`);
       _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: `type:${it.type} no puede tener status:${it.status} — viola chk_status_by_type` });
+      setTimeout(() => showToast('warning', `${it.code || '[sin code]'} no se guardó — combinación type:${it.type}/status:${it.status} inválida (chk_status_by_type). Revisar con Rune.`, null, 8000), 0);
       return false;
     }
     return true;
@@ -955,6 +975,10 @@ export async function saveBacklog() {
   // Evita que el echo de Realtime de tracker_items dispare _loadFromSupabase() innecesariamente.
   _realtimeLastTs = _writeTs;
 
+  // B-[pendiente-ID]: incrementar contador in-flight ANTES del try — cubre toda la ventana
+  // del upsert, no solo el caso de éxito. finally garantiza decremento incluso ante throw
+  // no capturado por el catch interno (nunca debe quedar el contador desbalanceado).
+  _saveBacklogInFlightCount++;
   try {
     const rows = items.map(_toItemRow);
 
@@ -998,6 +1022,9 @@ export async function saveBacklog() {
     }
     showToast('warning', '⚠️ Backlog no sincronizado con Supabase — guardado localmente');
     _offlineQueuePush({ type: 'backlog', projId: projId || null });
+  } finally {
+    // B-[pendiente-ID]: decrementar siempre — éxito, error, o cualquier throw imprevisto.
+    _saveBacklogInFlightCount--;
   }
 }
 
@@ -1703,6 +1730,14 @@ export async function _loadFromSupabase() {
     // AC-2: columna ac tipo jsonb → array JS nativo (PostgREST deserializa jsonb automáticamente).
     // AC-3: fallo de red en SELECT → console.warn + no tocar _itemsRef (fallback a localStorage).
     // AC-4: tabla vacía para project_id='PP' → _itemsRef.length = 0 (array vacío, nunca undefined).
+    // B-[pendiente-ID]: si saveBacklog() tiene un upsert de tracker_items en vuelo, saltar el
+    // merge por completo — el guard de timestamp (B-202606-094) compara contra localStorage,
+    // que todavía no refleja el cambio reciente mientras el upsert no confirma. Sin este guard,
+    // un _loadFromSupabase() disparado por OTRO canal (tracker_state/tracker_backlog/tracker_sessions
+    // — no hay canal Realtime dedicado a tracker_items) puede pisar el cambio local en esa ventana.
+    if (_saveBacklogInFlightCount > 0) {
+      console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + _saveBacklogInFlightCount + ') — merge de tracker_items omitido en esta pasada.');
+    } else {
     try {
       if (itemsResult.status === 'fulfilled' && !itemsResult.value.error) {
         const remoteRows = itemsResult.value.data || [];
@@ -1811,6 +1846,7 @@ export async function _loadFromSupabase() {
       // AC-3: cualquier error en el procesamiento → silencioso, no tocar _itemsRef.
       console.warn('[AI Tracker] Error procesando items relacionales:', itemsErr);
     }
+    } // B-[pendiente-ID]: cierre del else del guard _saveBacklogInFlightCount
 
     // ── 5b. Procesar backlog JSONB legacy ────────────────────────────────
     // Conservado hasta T-202606-010 (purga). Post-purga este bloque quedará inerte
