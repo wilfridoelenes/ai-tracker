@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:58 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:59 · autor:Rune · 2026-06-25 UTC-6
 // locus-storage.js
 // Última actualización: B-202606-105/106/107 — LOCUS_KEYS.CHANGELOG/NOTIF_HISTORY/LOG_FILTERS
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -1003,6 +1003,16 @@ export async function saveBacklog() {
       .from('tracker_items')
       .upsert(dedupedRows, { onConflict: 'code' });
     if (error) throw error;
+
+    // Upsert exitoso → estampar _updatedAtMs en los objetos vivos de ITEMS.
+    // B-[pendiente-ID]: _updatedAtMs solo se seteaba en la hidratación de _loadFromSupabase.
+    // Cualquier _loadFromSupabase que completara después del upsert encontraba localRowTs=0
+    // (o el timestamp de la hidratación anterior) — la fila remota ganaba con la versión
+    // vieja (sin parentId, sin el status recién cambiado). El stamp aquí garantiza que el
+    // merge posterior vea localRowTs >= remoteRowTs y conserve el estado local actualizado.
+    // _rawItems contiene referencias directas a los objetos en el array vivo de ITEMS —
+    // no es una copia, el stamp se refleja inmediatamente en _getItems().
+    for (const it of _rawItems) it._updatedAtMs = _updatedAtMs;
 
     // Upsert exitoso → escribir localStorage como caché. Nunca antes.
     try {
