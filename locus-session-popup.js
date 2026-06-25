@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:12 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:13 · autor:Rune · 2026-06-25 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -173,15 +173,25 @@ export function openDetail(aiId, sessId) {
     // T-202605-472: onchange no muta directamente — pide confirm inline antes de aplicar
     const _previewProjSelect = `<select class="paste-proj-select preview-proj-select" id="preview-proj-${sessId}" title="Proyecto de esta sesión"><option value="">sin proyecto</option>${_previewProjOpts}</select>`;
 
+    // T-202606-015: header 2 líneas — línea 1: popup-title-input (editable directo), línea 2: Worker · fecha · chip sprint + badges sin resetAt
+    const _popFmtDate = (() => {
+      try {
+        const d = s.date ? new Date(s.date) : null;
+        return d && !isNaN(d) ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+      } catch (e) { return ''; }
+    })();
+    const _popSprintChip = s.sprintId ? `<span class="pop-header-badge mh-sprint">${esc(s.sprintId)}</span>` : '';
+    const _popStarBadge  = s.starred      ? `<span class="pop-header-badge starred">⭐ destacada</span>` : '';
+    const _popQuickBadge = s.quickCapture ? `<span class="pop-header-badge quick">⚡ rápida</span>` : '';
+    const _popReviewBadge = (s.inReview && isLastSess) ? `<span class="pop-header-badge review">🔍 en revisión</span>` : '';
+
     previewHeader.innerHTML = `
       <button class="tracker-preview-close" id="pop-close-btn" title="Cerrar">✕</button>
       <div class="popup-header-body">
         <div class="changelog-row-body">
           ${_previewProjSelect}
-          <div class="pop-editable pop-editable--mt" id="pop-title-wrap" data-popup-edit="title" title="Editar título">
-            <span class="popup-title" id="pop-title">${esc(s.title)}</span><span class="pop-edit-icon">✏</span>
-          </div>
-          <div class="popup-date" id="pop-meta"><span>${esc(ai.name)}${(() => { try { const d = s.date ? new Date(s.date) : null; const fmt = d && !isNaN(d) ? ' · ' + d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : ''; return fmt + (s.resetAt ? ' · hasta ' + s.resetAt : ''); } catch(e) { return s.resetAt ? ' · hasta ' + s.resetAt : ''; } })()}</span>${s.starred ? '<span class="pop-header-badge starred">⭐ destacada</span>' : ''}${s.quickCapture ? '<span class="pop-header-badge quick">⚡ rápida</span>' : ''}${(s.inReview && isLastSess) ? '<span class="pop-header-badge review">🔍 en revisión</span>' : ''}</div>
+          <input class="popup-title-input" id="pop-title-input" type="text" value="${esc(s.title)}" autocomplete="off">
+          <div class="popup-date" id="pop-meta"><span>${esc(ai.name)}${_popFmtDate ? ' · ' + _popFmtDate : ''}</span>${_popSprintChip}${_popStarBadge}${_popQuickBadge}${_popReviewBadge}</div>
         </div>
       </div>`;
 
@@ -225,13 +235,36 @@ export function openDetail(aiId, sessId) {
     const _pdProjSel = document.getElementById('preview-proj-' + sessId);
     if (_pdProjSel) _pdProjSel.addEventListener('change', function() { _previewProjConfirmChange(aiId, sessId, this); });
 
-    // Campos editables (summary, pending, title)
+    // Campos editables (summary, pending) en body
     previewBody.querySelectorAll('[data-popup-edit]').forEach(function(el) {
       el.addEventListener('click', function() { startPopupEdit(el.dataset.popupEdit); });
     });
-    previewHeader.querySelectorAll('[data-popup-edit]').forEach(function(el) {
-      el.addEventListener('click', function() { startPopupEdit(el.dataset.popupEdit); });
-    });
+
+    // T-202606-015: popup-title-input — edición directa con persistencia en blur/Enter
+    const _pdTitleInput = document.getElementById('pop-title-input');
+    if (_pdTitleInput) {
+      let _titleDone = false;
+      const _commitTitle = function() {
+        if (_titleDone) return; _titleDone = true;
+        const newVal = _pdTitleInput.value.trim();
+        const found2 = _findSession(popSessId);
+        const s2 = found2 ? found2.sess : null;
+        if (s2 && newVal && newVal !== s2.title) {
+          s2.title = newVal;
+          save();
+          window.dispatchEvent(new CustomEvent('shell:render-tracker'));
+          showToast('success', 'Sesión actualizada');
+        }
+        // re-render para reflejar valor en Col2 sin perder foco si fue Enter
+      };
+      _pdTitleInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') { e.preventDefault(); _commitTitle(); }
+        if (e.key === 'Escape') { e.preventDefault(); _titleDone = true; openDetail(popAIId, popSessId); }
+      });
+      _pdTitleInput.addEventListener('blur', function() {
+        setTimeout(function() { if (!_titleDone) _commitTitle(); }, 150);
+      });
+    }
 
     // Toggle narrativa
     const _pdNarToggle = document.getElementById('pop-nar-toggle');
@@ -354,7 +387,8 @@ function starCurrentSession() {
         return d && !isNaN(d) ? d.toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
       } catch (e) { return ''; }
     })();
-    metaEl.innerHTML = `<span>${esc(ai ? ai.name : '')}${_fmtDate ? ' · ' + _fmtDate : ''}${s.resetAt ? ' · hasta ' + s.resetAt : ''}</span>${starBadge}${quickBadge}${reviewBadge}`;
+    // T-202606-015: estructura #pop-meta alineada con openDetail — sin resetAt, con chip sprint
+    metaEl.innerHTML = `<span>${esc(ai ? ai.name : '')}${_fmtDate ? ' · ' + _fmtDate : ''}</span>${s.sprintId ? `<span class="pop-header-badge mh-sprint">${esc(s.sprintId)}</span>` : ''}${starBadge}${quickBadge}${reviewBadge}`;
   }
   showToast('info', s?.starred ? 'Sesión destacada' : 'Destacado quitado');
 }
@@ -583,11 +617,7 @@ function startPopupEdit(field) {
   if (!s) return;
 
   let el, currentVal, inputTag;
-  if (field === 'title') {
-    el = document.getElementById('pop-title-wrap');
-    currentVal = s.title || '';
-    inputTag = 'input';
-  } else if (field === 'summary') {
+  if (field === 'summary') {
     el = document.getElementById('pop-field-summary');
     currentVal = s.summary || '';
     inputTag = 'textarea';
