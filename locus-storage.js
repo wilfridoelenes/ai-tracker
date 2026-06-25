@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:60 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:61 · autor:Rune · 2026-06-25 UTC-6
 // locus-storage.js
 // Última actualización: B-202606-105/106/107 — LOCUS_KEYS.CHANGELOG/NOTIF_HISTORY/LOG_FILTERS
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -566,7 +566,15 @@ let _saveBacklogInFlightCount = 0;
 // _USER_ACTION_WINDOW_MS después de la última acción → es heartbeat → ignorar.
 const _USER_ACTION_WINDOW_MS = 15_000; // 15s — cubre debounce de 5s + latencia de red
 let _lastUserActionTs = 0;
-export function _markUserAction() { _lastUserActionTs = Date.now(); }
+// _initLoadComplete: true cuando la primera _loadFromSupabase() terminó — garantiza que
+// _markUserAction() no abra la ventana durante el arranque (renders post-auth, saves de
+// migración de sprints HOTFIX, etc.). Antes de este flag, cualquier save() del init
+// marcaba acción de usuario y dejaba pasar los heartbeats de los primeros 15s.
+let _initLoadComplete = false;
+export function _markUserAction() {
+  if (!_initLoadComplete) return; // ignorar acciones del arranque
+  _lastUserActionTs = Date.now();
+}
 
 // R-202604-035 / T-202604-299: _saveFlush() — lógica real de escritura
 // Llamada por el timer de debounce o por saveImmediate()
@@ -2063,6 +2071,10 @@ export async function _loadFromSupabase() {
     // B: re-render tab Sprint tras carga Supabase — evita empty state en refresh
     _renderSprintTabFn();
     setSyncStatus('synced', '✓ sincronizado');
+    // Opción A — habilitar _markUserAction() solo después de que la primera carga completa.
+    // Cualquier save() que ocurra antes de este punto (renders post-auth, migraciones de
+    // sprints HOTFIX, etc.) no abre la ventana de heartbeat.
+    _initLoadComplete = true;
 
   } catch (err) {
     console.error('[AI Tracker] _loadFromSupabase() failed:', err);
