@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:40 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:41 · autor:Rune · 2026-06-25 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -145,8 +145,10 @@ export function setItemParent(code, parentCode) {
   // Mismo comportamiento que mergeBacklogFromTG (_parentSprint) y applyPatchesFromTG (sprint patch en R).
   if (parentCode) {
     const parentItem = getItems().find(i => i.code === parentCode);
-    if (parentItem && parentItem.sprint) {
-      item.sprint = parentItem.sprint;
+    if (parentItem) {
+      // Propagar sprint del R padre — normalizar sprint vacío ('') a 'icebox' para consistencia
+      // con _buildChildMap y el gate de herencia de sprint en B-202606-083.
+      item.sprint = parentItem.sprint || 'icebox';
     }
   }
   _undoSnapshot();
