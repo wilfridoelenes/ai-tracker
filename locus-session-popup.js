@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:13 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:14 · autor:Rune · 2026-06-25 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -86,12 +86,42 @@ export function openDetail(aiId, sessId) {
 
   // T-087: Sección media — archivos + tags + trazabilidad — colapsable si está vacía
   let midFields = '';
+  // T-202606-016 AC-1+2: Sección 'Archivos tocados' — file-rows estructuradas (nombre · mod:N · autor)
   if (s.files) {
-    const _fileList = s.files.split('|').map(f => f.trim()).filter(Boolean);
-    const _filesHtml = _fileList.length > 1
-      ? `<ul class="popup-file-list">${_fileList.map(f => `<li>${esc(f)}</li>`).join('')}</ul>`
-      : `<div class="popup-section-val mono">${esc(s.files)}</div>`;
-    midFields += `<div class="popup-section files"><div class="popup-section-label">📄 Archivos</div>${_filesHtml}</div>`;
+    const _fileEntries = s.files.split('|').map(f => f.trim()).filter(Boolean);
+    const _fileRows = _fileEntries.map(entry => {
+      // Formato esperado: "nombre · mod:N · autor:Rol" — parsear con tolerancia a variantes
+      const _parts = entry.split('·').map(p => p.trim());
+      const _name = _parts[0] || entry;
+      // Buscar pill mod:N en cualquier parte (puede ser "mod:3" o "mod:7")
+      const _modPart = _parts.find(p => /^mod:\d+$/i.test(p));
+      const _modNum  = _modPart ? _modPart.replace(/^mod:/i, '') : null;
+      // Buscar autor en cualquier parte (puede ser "autor:Rune" o solo "Rune" si es el último)
+      const _autorPart = _parts.find(p => /^autor:/i.test(p));
+      const _autor = _autorPart ? _autorPart.replace(/^autor:/i, '').trim() : (_parts.length >= 3 && !_modPart ? _parts[_parts.length - 1] : null);
+      const _modPill = _modNum ? `<span class="file-row-mod-pill">mod:${esc(_modNum)}</span>` : '';
+      const _autorSpan = _autor ? `<span class="file-row-autor">${esc(_autor)}</span>` : '';
+      return `<div class="file-row"><span class="file-row-name">${esc(_name)}</span>${_modPill}${_autorSpan}</div>`;
+    }).join('');
+    midFields += `<div class="popup-section files"><div class="popup-section-label">📄 Archivos tocados</div><div class="file-rows">${_fileRows}</div></div>`;
+  }
+
+  // T-202606-016 AC-3+4: Sección 'Doc-updates' — docupdate-rows (doc + sección + badge acción + escalación)
+  const _docUpdates = Array.isArray(s.docUpdates) ? s.docUpdates : [];
+  if (_docUpdates.length) {
+    const _ACTION_CLASS = { agregar: 'du-badge--agregar', reemplazar: 'du-badge--reemplazar', eliminar: 'du-badge--eliminar' };
+    const _duRows = _docUpdates.map(du => {
+      const _action   = (du.action   || '').toLowerCase();
+      const _badgeCls = _ACTION_CLASS[_action] || '';
+      const _escala   = du.escalate_to ? `<span class="du-escalacion">→ ${esc(du.escalate_to)}</span>` : '';
+      return `<div class="docupdate-row">
+        <span class="du-doc">${esc(du.doc || '—')}</span>
+        <span class="du-section">${esc(du.section || '')}</span>
+        <span class="du-badge ${_badgeCls}">${esc(du.action || '')}</span>
+        ${_escala}
+      </div>`;
+    }).join('');
+    midFields += `<div class="popup-section docupdates"><div class="popup-section-label">📝 Doc-updates</div><div class="docupdate-rows">${_duRows}</div></div>`;
   }
 
   const tgItems = (getActiveTracker().items || []).filter(x => x.sessionId === s.id);
@@ -106,11 +136,14 @@ export function openDetail(aiId, sessId) {
     midFields += `<div class="popup-section"><div class="popup-section-label">📋 Tracker items</div>${rows}</div>`;
   }
 
-  // T-053: sección de vínculo con backlog
-  midFields += `<div class="popup-section" id="pop-refs-section">
+  // T-053: sección de vínculo con backlog — T-202606-016 AC-5: solo si trackerRefs tiene contenido
+  const _trackerRefs = s.trackerRefs || [];
+  if (_trackerRefs.length > 0) {
+    midFields += `<div class="popup-section" id="pop-refs-section">
     <div class="popup-section-label">🔗 Backlog vinculado</div>
     ${renderBacklogRefs(s)}
   </div>`;
+  }
 
   const tagHtml = (s.tags || []).map(tid => {
     const t = getState().tags.find(x => x.id === tid);
@@ -122,7 +155,7 @@ export function openDetail(aiId, sessId) {
   </div>`;
 
   // T-087: si sección media tiene contenido no trivial (archivos, tg, refs no vacíos) → mostrar toggle
-  const hasMidContent = s.files || tgItems.length > 0;
+  const hasMidContent = s.files || tgItems.length > 0 || _docUpdates.length > 0 || _trackerRefs.length > 0;
   // Restaurar estado de colapso guardado por sesión
   const midKey = `pop-mid-${sessId}`;
   const midOpen = sessionStorage.getItem(midKey) !== 'closed';

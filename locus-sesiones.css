@@ -1,4 +1,4 @@
-/* [PP] v0.8.0 · sprint:PP-S-10 · mod:13 · autor:Nova · 2026-06-25 UTC-6 */
+/* [PP] v0.8.0 · sprint:PP-S-10 · mod:14 · autor:Nova · 2026-06-25 UTC-6 */
 /* locus-sesiones.css */
 
 /* Versión: 2.2 | Última actualización: 2026-05-13 | log-* migrado desde locus-radar.css */
@@ -7749,34 +7749,6 @@ body.radar-sb-open .tracker-sidebar {
   white-space: nowrap;
   cursor: default;
   user-select: none;
-}
-
-/* Línea 4: decision — prefijo → + texto truncado 1 línea */
-/* finn-inline-fix: text-overflow:ellipsis requiere display:block en el contenedor —
-   display:flex no propaga ellipsis al texto hijo. Solución: contenedor flex wrapping
-   + texto hijo con overflow:hidden + text-overflow:ellipsis. */
-.mh-row-decision {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  font-size: var(--text-xs);
-  color: var(--text2);
-  margin-top: 3px;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.mh-row-decision-text {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-
-.mh-row-decision-prefix {
-  color: var(--accent);
-  font-weight: 700;
-  flex-shrink: 0;
 }
 
 /* ── END T-202606-051 ──────────────────────────────────────────────────────── */
