@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:46 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:47 · autor:Rune · 2026-06-25 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1068,10 +1068,60 @@ export function _getNextItemCode(typeChar, reservedCodes) {
 }
 
 // Bug B-202604-002: parser estricto — solo acepta ### seguido de código exacto [TIPO]-[YYYYMM]-[NNN]
+// B-202606-116: pre-procesar texto MD para elevar ##### T- a ### T- e inyectar **ParentId:**
+// El backlog exportado anida Ts bajo ##### dentro del bloque ### R — el split(/\n(?=###\s)/)
+// los incluye como texto del R padre sin parsearlos como ítems independientes.
+// Solución: antes del split, recorrer línea a línea rastreando el R activo y elevando
+// cada ##### [TIPO]- a ### con **ParentId:** inyectado.
+function _elevateNestedItems(text) {
+  const lines = text.split('\n');
+  const out = [];
+  let currentRCode = null;
+  const _rHeaderRe  = /^###\s+R-\d{6}-\d{3}/;
+  const _nestedRe   = /^#{4,6}\s+([A-Z]-\d{6}-\d{3}(?:-[A-Za-z]+)?)\s+·\s*(.*)/;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Rastrear R activo — cuando aparece un ### R- se actualiza currentRCode
+    if (_rHeaderRe.test(line)) {
+      const m = line.match(/^###\s+(R-\d{6}-\d{3}(?:-[A-Za-z]+)?)\s+·/);
+      currentRCode = m ? m[1] : null;
+      out.push(line);
+      continue;
+    }
+
+    // Cuando aparece otro ### de nivel 3 que no es R (ej. ### T-, ### B-), limpiar contexto R
+    if (/^###\s+[A-Z]-/.test(line) && !/^###\s+R-/.test(line)) {
+      currentRCode = null;
+      out.push(line);
+      continue;
+    }
+
+    // Detectar #### o ##### [TIPO]- anidados bajo un R activo
+    const nestedMatch = line.match(_nestedRe);
+    if (nestedMatch && currentRCode) {
+      const nestedCode = nestedMatch[1];
+      // Solo elevar Ts (y otros no-R) — nunca elevar Rs anidados
+      if (!nestedCode.startsWith('R-')) {
+        // Elevar a nivel ### e inyectar **ParentId:** en la siguiente línea
+        out.push('### ' + nestedCode + ' · ' + nestedMatch[2]);
+        out.push('**ParentId:** ' + currentRCode);
+        continue;
+      }
+    }
+
+    out.push(line);
+  }
+
+  return out.join('\n');
+}
+
 function parseBacklogMd(text) {
   // T-202606-047: normalizeStatus() es el punto canónico — VALID_STATUSES_PARSE eliminado
+  // B-202606-116: elevar Ts anidados en ##### antes del split
   const items = [];
-  const itemBlocks = text.split(/\n(?=###\s)/);
+  const itemBlocks = _elevateNestedItems(text).split(/\n(?=###\s)/);
 
   itemBlocks.forEach((block, blockIdx) => {
     try {
