@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-10 · mod:28 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:29 · autor:Rune · 2026-06-25 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -17,7 +17,7 @@ import { closeLogCard, closePopup, openDetail, startRename, toggleInReview, togg
 // T-202606-058: import de locus-sprint-project eliminado — ciclo A↔B roto.
 // _getActiveProjectFilter · getProjectById · openProjModal · selectProjectFilter
 // consumidas via _sesSPCallbacks registry (registradas por locus-sprint-project en DOMContentLoaded).
-import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession, _resetWorker } from './locus-storage.js';
+import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession, _resetWorker, getActiveSprints } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc, renderSetupChecklist } from './locus-ui-shell.js';
 import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatarModal, toggleArchivedSection, toggleCardMenu } from './locus-workers.js';
@@ -165,29 +165,36 @@ function _trackerRenderMiniHist(aiId) {
   const _grouped = { hoy: [], ayer: [], semana: [], anteriores: [] };
   sorted.forEach(s => _grouped[_sessGroup(s)].push(s));
 
-  // T-202606-051: _renderRow — 4 líneas por fila según AC
+  // T-202606-013: _renderRow — jerarquía 3 líneas según AC
+  // Línea 1: sprint badge + título truncado + timestamp
+  // Línea 2: summary truncado 1 línea — omitido si vacío
+  // Línea 3: refs coloreadas + badge doc-update + rol pill con margin-left:auto
+  const _activeSprintId = (getActiveSprints().find(sp => sp.status === 'active' && !sp.isHotfix) || {}).id || null;
+
   const _renderRow = (s, group, isInProgress) => {
     const isActive = s.id === _trackerHistSelectedSessId;
 
-    // AC línea 1: título + badge 'en curso' si in-progress (reemplaza timestamp), o timestamp
-    const badgeHtml  = isInProgress
+    // Línea 1: sprint badge + título truncado a 1 línea + timestamp alineado a la derecha
+    const sprintId = s.sprintId || '';
+    const sprintBadgeHtml = sprintId
+      ? (() => {
+          const isActiveSprint = _activeSprintId && sprintId === _activeSprintId;
+          const cls = isActiveSprint ? 'mh-sprint active-sprint' : 'mh-sprint';
+          return `<span class="${cls}">${esc(sprintId)}</span>`;
+        })()
+      : '';
+    const tsHtml = isInProgress
       ? `<span class="mh-row-badge-live">en curso</span>`
-      : '';
-    const tsHtml     = !isInProgress
-      ? (() => { const fixedTs = _sessFixedTs(s, group); return fixedTs ? `<span class="mh-row-ts">${fixedTs}</span>` : ''; })()
-      : '';
-    const titleHtml  = `<div class="mh-row-title" title="${esc(s.title)}">${esc(s.title)}</div>`;
+      : (() => { const fixedTs = _sessFixedTs(s, group); return fixedTs ? `<span class="mh-row-ts">${fixedTs}</span>` : ''; })();
+    const titleHtml = `<div class="mh-row-title" title="${esc(s.title)}">${esc(s.title)}</div>`;
+    const line1Html = `<div class="tracker-mini-hist-row-top">${sprintBadgeHtml}${titleHtml}${tsHtml}</div>`;
 
-    // AC línea 2: summary truncado a 2 líneas — omitido si vacío
+    // Línea 2: summary truncado a 1 línea — omitido si vacío, sin reservar espacio
     const summaryHtml = s.summary
       ? `<div class="mh-row-summary">${esc(s.summary)}</div>`
       : '';
 
-    // AC línea 3: pill de rol + (timestamp o badge) + refs coloreadas por tipo
-    const rolHtml = s.rol
-      ? `<span class="mh-row-rol">${esc(s.rol)}</span>`
-      : '';
-
+    // Línea 3: refs coloreadas + badge doc-update + rol pill con margin-left:auto
     const refs = s.trackerRefs || [];
     const visibleRefs = refs.slice(0, 3);
     const extraCount  = refs.length - visibleRefs.length;
@@ -205,14 +212,14 @@ function _trackerRenderMiniHist(aiId) {
     const refsHtml = (refTagsHtml || refMoreHtml)
       ? `<span class="mh-row-refs">${refTagsHtml}${refMoreHtml}</span>`
       : '';
-
-    const metaHtml = (rolHtml || tsHtml || badgeHtml || refsHtml)
-      ? `<div class="mh-row-meta">${rolHtml}${badgeHtml}${tsHtml}${refsHtml}</div>`
+    const docUpdateHtml = s.hasDocUpdates
+      ? `<span class="mh-badge-docupdate">doc-update</span>`
       : '';
-
-    // AC línea 4: decision con prefijo → truncado 1 línea — omitido si vacío
-    const decisionHtml = s.decision
-      ? `<div class="mh-row-decision"><span class="mh-row-decision-prefix">→</span><span class="mh-row-decision-text">${esc(s.decision)}</span></div>`
+    const rolHtml = s.rol
+      ? `<span class="mh-row-rol">${esc(s.rol)}</span>`
+      : '';
+    const metaHtml = (refsHtml || docUpdateHtml || rolHtml)
+      ? `<div class="mh-row-meta">${refsHtml}${docUpdateHtml}${rolHtml}</div>`
       : '';
 
     const rowCls = [
@@ -226,13 +233,12 @@ function _trackerRenderMiniHist(aiId) {
         data-sess-id="${s.id}"
         data-ai-id="${s.aiId}"
         data-action="mini-hist-select">
-      ${titleHtml}
+      ${line1Html}
       ${summaryHtml}
       ${metaHtml}
-      ${decisionHtml}
     </div>`;
   };
-  // ── END T-202606-051 ──
+  // ── END T-202606-013 ──
 
   // AC-2: grupo 'ahora' al tope si hay sesión en curso — AC-5: omitido si no hay sesión en curso
   const ahoraHtml = currentSess

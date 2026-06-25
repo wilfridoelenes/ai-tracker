@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:45 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:46 · autor:Rune · 2026-06-25 UTC-6
 // locus-session-save.js
 // Última actualización: B-202606-105 — CHANGELOG_KEY local eliminada, usa LOCUS_KEYS.CHANGELOG
 // (locus-storage.js) como fuente única de verdad de la clave de changelog.
@@ -383,6 +383,8 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     // T-202606-030: sprint activo del proyecto al momento de guardar — único sprint con status
     // 'active' y no-hotfix por invariante T-202606-023 AC-4 (sprints.filter(active).length ≤ 1)
     sprintId: (getActiveSprints().find(sp => sp.status === 'active' && !sp.isHotfix) || {}).id || '',
+    // T-202606-013: señal de doc_updates para badge en mini-historial (_renderRow)
+    hasDocUpdates: Array.isArray(parsed.docUpdates) && parsed.docUpdates.length > 0,
     // T-202606-072: señal de devolución Finn→Cael — presente solo cuando parsed.devolucion_cael está definido
     ...(parsed.devolucion_cael !== undefined ? { devolucion_cael: parsed.devolucion_cael } : {}),
     resetAt: '',  // B-202606-037: se completa en el callback del DIFF tras leer mdiff-duration-input
