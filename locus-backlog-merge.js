@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:20 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-09 · mod:21 · autor:Rune · 2026-06-25 10:52 UTC-6
 // locus-backlog-merge.js
 // Última actualización: T-202606-006: _mdiffStepZeroActive + listener storage:item-excluded
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -1149,7 +1149,10 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     if (typeof onApply === 'function') onApply(_horaRaw);
 
     // B-202606-001: aplicar patches después de onApply() — ítems nuevos ya existen en getItems()
-    if (_patchItems.length) applyPatchesFromTG(_patchItems);
+    // T-202606-028: propagar ckptHeaderRole — antes el guard de done en R nunca recibía
+    // el rol del header y rechazaba siempre, incluso con QA · Finn. Mismo dato fuente
+    // que ckptRol en mergeBacklogFromTG (línea ~130).
+    if (_patchItems.length) applyPatchesFromTG(_patchItems, null, { ckptHeaderRole: _ckptMeta.rol || '' });
 
     // B-202605-500: aplicar sprints pendientes sobre ítems nuevos (ya existen en getItems() tras onApply)
     const pendingEntries = Object.entries(_mdiffPendingSprints);
