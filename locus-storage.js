@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:56 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:57 · autor:Rune · 2026-06-25 UTC-6
 // locus-storage.js
 // Última actualización: B-202606-105/106/107 — LOCUS_KEYS.CHANGELOG/NOTIF_HISTORY/LOG_FILTERS
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -1033,8 +1033,9 @@ export async function saveBacklog() {
 
 // ── T-202606-105: storage dedicado para ítems status:historico ──────────────
 // R-202606-037: ITEMS en memoria nunca contiene historico — estos ítems viven
-// en su propia clave Supabase/localStorage, separada de 'items'+suffix.
-// saveBacklog() no lee ni escribe este storage — ver gate de exclusión ahí mismo.
+// en su propia clave Supabase/localStorage ('tracker-backlog-historico'), separada
+// de 'items'+suffix, confirmado por conteo en Supabase. saveBacklog() no lee ni
+// escribe este storage — ver gate de exclusión ahí mismo.
 const _HISTORICO_KEY = 'tracker-backlog-historico';
 
 // Escribe el array de ítems historico en su clave dedicada — Supabase primero,
@@ -1643,10 +1644,9 @@ export async function _loadFromSupabase() {
     }
 
     // ── 2. Batch paralelo: sesiones + items relacional + backlog JSONB (legacy) + docs + drafts ──
-    // T-202606-009: items ahora se carga desde tracker_items (tabla relacional) en paralelo con
-    // el resto del batch. El bloque JSONB legacy (blResult / tracker_backlog) se conserva hasta
-    // que T-202606-010 ejecute la purga — tras esa purga blResult quedará sin filas y este
-    // comentario se eliminará.
+    // T-202606-009: items se carga desde tracker_items (tabla relacional) en paralelo con
+    // el resto del batch. El JSONB legacy de items/historico (blResult / tracker_backlog) está
+    // confirmado vacío desde 2026-06-24 — purga ejecutada, sin filas remanentes.
     // Colapsa 6 queries secuenciales a tracker_docs en una sola con .in('key', [...])
     const projId = _getActiveProjectFilter();
     const suffix = projId ? '-' + projId : '-global';
