@@ -1,5 +1,7 @@
-// [PP] v0.1.0 · sprint:PP-S-02 · mod:43 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-HOTFIX · mod:44 · autor:Rune · 2026-06-24 UTC-6
 // locus-session-save.js
+// Última actualización: B-202606-105 — CHANGELOG_KEY local eliminada, usa LOCUS_KEYS.CHANGELOG
+// (locus-storage.js) como fuente única de verdad de la clave de changelog.
 // Responsabilidad: changelog, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 import { loadBacklog, renderStats, getItems} from './locus-backlog-core.js';
@@ -11,7 +13,7 @@ import { _markRadarDirty, renderGlobalRadarSidebar, toggleRadarSidebar } from '.
 import { stopSessionTimer } from './locus-sesiones-utils.js';
 import { _getLocalStorageUsage } from './locus-sprint-project.js';
 import { _generateBacklogContent, _generateBacklogMd } from './locus-backlog-generator.js';
-import { _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate } from './locus-storage.js';
+import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate } from './locus-storage.js';
 
 
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
@@ -77,7 +79,6 @@ export function validateLifecycleTransitions(tgItems) {
 const _confirmTimers = {};            // timers de confirmación por worker ID
 
 // T-202604-061: Changelog interno
-const CHANGELOG_KEY = 'ai-tracker-changelog';
 const CHANGELOG_MAX = 50;
 
 function _addChangelogEntry(parsed) {
@@ -94,10 +95,10 @@ function _addChangelogEntry(parsed) {
   const entry = { version, fecha, desc, titulo: parsed.titulo || '', ts: Date.now() };
 
   let log = [];
-  try { log = JSON.parse(localStorage.getItem(CHANGELOG_KEY) || '[]'); } catch { log = []; }
+  try { log = JSON.parse(localStorage.getItem(LOCUS_KEYS.CHANGELOG) || '[]'); } catch { log = []; }
   log.unshift(entry);
   if (log.length > CHANGELOG_MAX) log = log.slice(0, CHANGELOG_MAX);
-  localStorage.setItem(CHANGELOG_KEY, JSON.stringify(log));
+  localStorage.setItem(LOCUS_KEYS.CHANGELOG, JSON.stringify(log));
 }
 
 export function openChangelog() {
@@ -113,7 +114,7 @@ export function openChangelog() {
 
 function _buildChangelogInner() {
   let log = [];
-  try { log = JSON.parse(localStorage.getItem(CHANGELOG_KEY) || '[]'); } catch { log = []; }
+  try { log = JSON.parse(localStorage.getItem(LOCUS_KEYS.CHANGELOG) || '[]'); } catch { log = []; }
 
   const rows = log.length ? log.map(e => `
     <div class="chlog-entry">

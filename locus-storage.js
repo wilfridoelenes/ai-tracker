@@ -1,9 +1,9 @@
-// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:55 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:56 · autor:Rune · 2026-06-24 UTC-6
 // locus-storage.js
-// Última actualización: B-[pendiente-ID] (regresión de B-202606-094): leftover del merge por
-// fila ahora descarta ítems con _updatedAtMs poblado (confirmados remoto antes) ausentes en
-// remoteRows — eliminación remota vuelve a sincronizar localmente. Offline-pendiente (sin
-// _updatedAtMs) se sigue conservando. Race condition original de B-202606-094 verificado intacto.
+// Última actualización: B-202606-105/106/107 — LOCUS_KEYS.CHANGELOG/NOTIF_HISTORY/LOG_FILTERS
+// corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
+// cuota crítica ahora libera datos reales en vez de claves fantasma) · OFFLINE_QUEUE_KEY
+// (entrada duplicada de OFFLINE_QUEUE, sin call sites) eliminada de LOCUS_KEYS.
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
@@ -53,16 +53,15 @@ let _renderSprintTabFn = function() {};
 export const LOCUS_KEYS = {
   STATE:            'locus-state-v1',
   OFFLINE_QUEUE:    'locus-offline-queue',
-  CHANGELOG:        'locus-changelog',
+  CHANGELOG:        'ai-tracker-changelog',
   PLAN_PREFIX:      'locus-plan-',
-  NOTIF_HISTORY:    'locus-notif-history',
-  LOG_FILTERS:      'locus-log-filters',
+  NOTIF_HISTORY:    'ai-tracker-notifs-history',
+  LOG_FILTERS:      'log-filter-state',
   DRAFT_PREFIX:     'locus-draft-',
   THEME:            'theme',
   TMP_ID_MAP:       'tmp-id-map',
   SHORTCUTS:        'user-shortcuts',
   USER_PREFS_TS:    'user-prefs-ts',
-  OFFLINE_QUEUE_KEY: 'locus-offline-queue',
   PULSO:            'locus-pulso',
   TPL_TRIGGER:      'locus-tpl-trigger',
   CTX_DOCS_PREFIX:  'tracker-ctx-docs',

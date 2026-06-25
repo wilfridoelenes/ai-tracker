@@ -1,6 +1,8 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:3 · autor:Rune · 2026-06-24 UTC-6
 // locus-contracts.js
-// Última actualización: 2026-05-28 UTC-6
+// Última actualización: B-202606-104 — confirmResetSessions() ahora persiste el reset en
+// LOCUS_KEYS.STATE ('locus-state-v1') en lugar del string legacy 'ai-tracker-v4', que la app
+// ya no lee. El reset local vuelve a tener efecto tras recargar.
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
 // Extraído de ai-tracker-ai-notes.js
 // T-202605-030 Fase 1A: addEventListener para btn-export-contratos, sidebar-danger-btn-contratos,
@@ -12,7 +14,7 @@
 
 import { renderStats, getItems} from './locus-backlog-core.js';
 import { _focusFirstInteractive, _restoreModalFocus } from './locus-modals.js';
-import { _offlineQueuePush, _tplKey, save, setSyncStatus } from './locus-storage.js';
+import { LOCUS_KEYS, _offlineQueuePush, _tplKey, save, setSyncStatus } from './locus-storage.js';
 
 import { showToast } from './locus-toast.js';
 
@@ -337,7 +339,7 @@ function confirmResetSessions() {
 
   // Persistir state limpio en localStorage
   try {
-    localStorage.setItem('ai-tracker-v4', JSON.stringify(state));
+    localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
   } catch (e) {
     showToast('error', '❌ Error al guardar — intenta de nuevo');
     return;

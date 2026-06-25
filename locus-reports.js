@@ -1,6 +1,7 @@
-// [PP] v0.5.0 · sprint:PP-S-10 · mod:8 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-HOTFIX · mod:9 · autor:Rune · 2026-06-24 UTC-6
 // locus-reports.js
-// Última actualización: 2026-05-19 UTC-6
+// Última actualización: B-202606-108 — removeItem('backlog-raw') eliminado en confirmResetBacklog()
+// y en el delete remoto del danger zone de backlog — clave legacy sin escrituras activas.
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
 // Extraído de ai-tracker-ai-notes.js
 
@@ -257,7 +258,6 @@ function confirmResetBacklog() {
   getItems().length = 0;
   localStorage.removeItem(_tplKey('backlog-items'));
   localStorage.removeItem(_tplKey('backlog-meta'));
-  localStorage.removeItem('backlog-raw');
   // saveBacklog persiste getItems()=[] — también sincroniza a Supabase si el usuario está autenticado
   saveBacklog();
 
@@ -447,7 +447,6 @@ async function confirmCleanProject() {
       // Limpiar localStorage
       localStorage.removeItem('backlog-items-' + projId);
       localStorage.removeItem('backlog-meta-' + projId);
-      localStorage.removeItem('backlog-raw');
     })());
   }
 
