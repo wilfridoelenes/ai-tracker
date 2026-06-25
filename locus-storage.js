@@ -927,6 +927,10 @@ export async function saveBacklog() {
   //   · updated_at: ISO string → BIGINT epoch ms (tipo DDL: BIGINT)
   function _toItemRow(it) {
     return {
+      // T-202606-026: user_id obligatorio en cada fila — RLS de tracker_items (T-202606-024)
+      // filtra por user_id = auth.uid(). _supabaseUser está garantizado no-null en este punto
+      // por el gate `if (!_supabase || !_supabaseUser) { ...; return; }` anterior en saveBacklog().
+      user_id:              _supabaseUser.id,
       project_id:           projId || null,
       code:                 it.code             || null,
       type:                 it.type             || null,
@@ -1665,6 +1669,8 @@ export async function _loadFromSupabase() {
 
       // 5. Items relacionales — T-202606-009: fuente primaria de hidratación de ITEMS.
       // Filtra por project_id para obtener solo los ítems del proyecto activo.
+      // T-202606-026: filtro explícito user_id además de RLS — mismo patrón defensivo
+      // que el resto de queries de este módulo (tracker_state, tracker_sessions, tracker_docs).
       // Supabase PostgREST retorna text[] como arrays JS y jsonb como objetos/arrays JS nativos
       // — depends_on y ac no requieren parse adicional.
       projId
@@ -1672,6 +1678,7 @@ export async function _loadFromSupabase() {
             .from('tracker_items')
             .select('*')
             .eq('project_id', projId)
+            .eq('user_id', _supabaseUser.id)
         : Promise.resolve({ data: [], error: null }),
 
       // 5b. Backlog JSONB legacy — conservado hasta purga en T-202606-010.
