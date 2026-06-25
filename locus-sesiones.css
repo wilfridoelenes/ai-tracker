@@ -1,4 +1,4 @@
-/* [PP] v0.8.0 · sprint:PP-S-10 · mod:10 · autor:Nova · 2026-06-25 UTC-6 */
+/* [PP] v0.8.0 · sprint:PP-S-10 · mod:11 · autor:Nova · 2026-06-25 UTC-6 */
 /* locus-sesiones.css */
 
 /* Versión: 2.2 | Última actualización: 2026-05-13 | log-* migrado desde locus-radar.css */
@@ -7881,7 +7881,7 @@ body.radar-sb-open .tracker-sidebar {
   border-radius: var(--radius-sm);
   background: var(--accent-dim);
   color: var(--accent);
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border: 1px solid var(--accent-border);
   white-space: nowrap;
   flex-shrink: 0;
 }
