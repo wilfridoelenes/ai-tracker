@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:57 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:58 · autor:Rune · 2026-06-25 UTC-6
 // locus-storage.js
 // Última actualización: B-202606-105/106/107 — LOCUS_KEYS.CHANGELOG/NOTIF_HISTORY/LOG_FILTERS
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -1681,7 +1681,7 @@ export async function _loadFromSupabase() {
             .eq('user_id', _supabaseUser.id)
         : Promise.resolve({ data: [], error: null }),
 
-      // 5b. Backlog JSONB legacy — conservado hasta purga en T-202606-010.
+      // 5b. Backlog JSONB legacy — purga ejecutada (T-202606-010), confirmado vacío desde 2026-06-24.
       _supabase
         .from('tracker_backlog')
         .select('key, value')
@@ -1855,8 +1855,8 @@ export async function _loadFromSupabase() {
     } // B-[pendiente-ID]: cierre del else del guard _saveBacklogInFlightCount
 
     // ── 5b. Procesar backlog JSONB legacy ────────────────────────────────
-    // Conservado hasta T-202606-010 (purga). Post-purga este bloque quedará inerte
-    // (blResult sin filas) y se eliminará junto con la entrada en el batch.
+    // Purga ya ejecutada (T-202606-010) desde 2026-06-24 — este bloque está inerte
+    // (blResult sin filas). Se elimina junto con la entrada en el batch en limpieza futura.
     try {
       if (blResult.status === 'fulfilled' && !blResult.value.error) {
         const blRows = blResult.value.data;

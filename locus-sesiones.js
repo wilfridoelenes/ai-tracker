@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:27 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-10 · mod:28 · autor:Rune · 2026-06-25 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -429,6 +429,9 @@ function _buildCurrentSessionCard(aiId) {
 // ── END R-202605-116 ─────────────────────────────────────────────────────
 
 export function selectTrackerAI(aiId) {
+  // T-202606-012 AC-1: si aiId ya es el activo, no hay cambio de selección — retornar sin tocar
+  // _trackerHistSelectedSessId ni llamar a render()
+  if (_trackerSelectedId === aiId) return;
   // DUP-05: cerrar preview de sesión al cambiar de Worker
   closePopup();
   // T-202604-373: skeleton rows en historial al cambiar de IA
@@ -439,8 +442,9 @@ export function selectTrackerAI(aiId) {
       _prevList.innerHTML = '<div class="skel-row"></div><div class="skel-row"></div><div class="skel-row"></div>';
     }
   }
+  // T-202606-012 AC-2: aiId distinto al activo — reset de _trackerHistSelectedSessId antes de render()
   // Fase 2: resetear sesión seleccionada al cambiar de IA — mini-hist auto-selecciona la más reciente
-  if (_trackerSelectedId !== aiId) _trackerHistSelectedSessId = null;
+  _trackerHistSelectedSessId = null;
   _trackerSelectedId = aiId;
   closeLogCard();
   // R-202604-061 AC-5: try-catch defensivo — skeleton siempre se limpia
