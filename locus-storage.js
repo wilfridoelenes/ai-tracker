@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:59 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:60 · autor:Rune · 2026-06-25 UTC-6
 // locus-storage.js
 // Última actualización: B-202606-105/106/107 — LOCUS_KEYS.CHANGELOG/NOTIF_HISTORY/LOG_FILTERS
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -557,6 +557,17 @@ let _stateDirty = false;
 // de la confirmación del upsert — no contra el estado en memoria recién modificado.
 let _saveBacklogInFlightCount = 0;
 
+// Opción A — ignorar heartbeat de tracker_state cuando no hay actividad de usuario reciente.
+// tracker_state recibe UPDATEs periódicos cada ~7s (trigger moddatetime o _saveFlush propio)
+// que _handleRemoteChange interpretaba como cambio genuino → _loadFromSupabase() → render
+// global completo → parpadeo de parent en backlog + pérdida de foco en card de sesiones.
+// _markUserAction() se llama desde cualquier acción que modifica state (save, saveImmediate,
+// saveBacklog, interacciones de UI). Si el UPDATE de tracker_state llega más de
+// _USER_ACTION_WINDOW_MS después de la última acción → es heartbeat → ignorar.
+const _USER_ACTION_WINDOW_MS = 15_000; // 15s — cubre debounce de 5s + latencia de red
+let _lastUserActionTs = 0;
+export function _markUserAction() { _lastUserActionTs = Date.now(); }
+
 // R-202604-035 / T-202604-299: _saveFlush() — lógica real de escritura
 // Llamada por el timer de debounce o por saveImmediate()
 async function _saveFlush() {
@@ -711,6 +722,7 @@ export function save() {
   // AC-1 R-C1: online + auth → encolar debounce hacia _saveFlush(). No escribir localStorage aquí.
   clearTimeout(_saveDebounceTimer);
   _saveDebounceTimer = setTimeout(() => _saveFlush(), _SAVE_DEBOUNCE_MS);
+  _markUserAction();
 }
 
 // T-202604-299: saveImmediate() — bypasa debounce para eventos críticos
@@ -718,6 +730,7 @@ export function save() {
 export async function saveImmediate() {
   _stateDirty = true;
   clearTimeout(_saveDebounceTimer);
+  _markUserAction();
   await _saveFlush();
 }
 
@@ -785,6 +798,7 @@ export function _relTs(ts) {
 // locus-backlog-sprints, locus-backlog-item, locus-session-parse, locus-session-save)
 // no requieren cambio de código. localStorage se mantiene como caché/fallback (sin auth).
 export async function saveBacklog() {
+  _markUserAction();
   // T-[pendiente-ID]: purga inteligente — si localStorage supera el 80% de capacidad,
   // purgar ítems done/descartado >90 días del caché local antes de intentar escribir.
   // Los ítems purgados siguen existiendo en Supabase — solo se elimina el caché local.
@@ -1480,6 +1494,21 @@ export function _subscribeRealtime() {
     const remoteMs = _toEpochMs(remoteTs);
     const lastMs   = _toEpochMs(_realtimeLastTs);
     if (remoteMs != null && lastMs != null && remoteMs === lastMs) return;
+
+    // Opción A — ignorar heartbeat de tracker_state.
+    // tracker_state recibe UPDATEs periódicos (~7s) sin acción del usuario — trigger
+    // moddatetime o echo del propio _saveFlush. Si el UPDATE llega más de
+    // _USER_ACTION_WINDOW_MS después de la última acción de usuario → es heartbeat → ignorar.
+    // tracker_backlog y tracker_sessions no se filtran: esos canales solo reciben UPDATEs
+    // cuando hay cambios genuinos de contenido (no tienen trigger de heartbeat propio).
+    if (payload.table === 'tracker_state') {
+      const msSinceAction = Date.now() - _lastUserActionTs;
+      if (msSinceAction > _USER_ACTION_WINDOW_MS) {
+        // Silencioso — no loggear para no contaminar la consola con los heartbeats ignorados
+        return;
+      }
+    }
+
     console.log('[AI Tracker] Realtime: cambio remoto detectado —', payload.table || '', remoteTs);
     _loadFromSupabase();
   }
