@@ -1,8 +1,8 @@
-// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:3 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:4 · autor:Rune · 2026-06-24 UTC-6
 // locus-contracts.js
 // Última actualización: B-202606-104 — confirmResetSessions() ahora persiste el reset en
-// LOCUS_KEYS.STATE ('locus-state-v1') en lugar del string legacy 'ai-tracker-v4', que la app
-// ya no lee. El reset local vuelve a tener efecto tras recargar.
+// LOCUS_KEYS.STATE ('locus-state-v1') en lugar de la clave legacy que la app ya no lee.
+// El reset local vuelve a tener efecto tras recargar.
 // Módulo: Contratos de módulo — renderContratos, _ctr*, openContratoDetail, exportContratosMd
 // Extraído de ai-tracker-ai-notes.js
 // T-202605-030 Fase 1A: addEventListener para btn-export-contratos, sidebar-danger-btn-contratos,

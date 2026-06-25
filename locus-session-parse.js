@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:64 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:65 · autor:Rune · 2026-06-24 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -657,6 +657,7 @@ export function parsePaste(id) {
           promovida_a:   _it.promovida_a   || null,                            // T-202605-139
           intencion:     _it.intencion     || null,                            // T-202606-105
           no_incluye:    Array.isArray(_it.no_incluye) ? _it.no_incluye : [], // T-202606-105
+          archivos:      Array.isArray(_it.archivos) ? _it.archivos : [],     // T-[pendiente-ID]: BR-Ecosystem v5.2 — archivos reales que el T toca, declarado por Cael en Fase 2
           schema_version: _it.schema_version || null                          // T-202606-105
         });
         // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
@@ -715,6 +716,30 @@ export function parsePaste(id) {
         }
       }
     }
+  }
+
+  // T-[pendiente-ID]: BR-Ecosystem v5.2 — validar que execution_plan.sessions[].files
+  // sea subconjunto de la unión de archivos declarados en los Ts de esa sesión.
+  // Inconsistencia: no bloquea ingesta — alerta en DocLog (mismo patrón que contract_update sin doc_updates).
+  if (ckpt && ckpt._isJsonFormat && ckpt._rawExecutionPlan && Array.isArray(ckpt._rawExecutionPlan.sessions)) {
+    ckpt._rawExecutionPlan.sessions.forEach(sess => {
+      const _sessFiles = Array.isArray(sess.files) ? sess.files : [];
+      if (_sessFiles.length === 0) return;
+      const _sessItemCodes = Array.isArray(sess.items) ? sess.items : [];
+      const _archivosUnion = new Set();
+      tgItems
+        .filter(ti => _sessItemCodes.includes(ti.code))
+        .forEach(ti => (ti.archivos || []).forEach(a => _archivosUnion.add(a)));
+      const _huerfanos = _sessFiles.filter(f => !_archivosUnion.has(f));
+      if (_huerfanos.length > 0) {
+        _blogLog(
+          'execution-plan-files-sin-archivos',
+          sess.id || '[sin-id]',
+          `execution_plan sesión "${sess.id || '[sin-id]'}" declara files [${_huerfanos.join(', ')}] sin respaldo en archivos de ningún T de esa sesión. Origen: ${ckpt.titulo || ''}`,
+          'backlog'
+        );
+      }
+    });
   }
 
   // T-202606-039: extraer inline_fix del CHECKPOINT — path JSON usa ckpt._inlineFixes,

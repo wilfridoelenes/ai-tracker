@@ -1,7 +1,7 @@
-// [PP] v0.5.0 · sprint:PP-S-HOTFIX · mod:9 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-HOTFIX · mod:10 · autor:Rune · 2026-06-24 UTC-6
 // locus-reports.js
-// Última actualización: B-202606-108 — removeItem('backlog-raw') eliminado en confirmResetBacklog()
-// y en el delete remoto del danger zone de backlog — clave legacy sin escrituras activas.
+// Última actualización: B-202606-108 — removeItem() de la clave legacy eliminado en
+// confirmResetBacklog() y en el delete remoto del danger zone de backlog — sin escrituras activas.
 // Módulo: Reports, Export/Import de datos, Purge, Danger zones
 // Extraído de ai-tracker-ai-notes.js
 
