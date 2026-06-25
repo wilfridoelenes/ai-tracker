@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:45 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:46 · autor:Rune · 2026-06-24 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1723,13 +1723,17 @@ function _flashStatusConfirmed(code) {
 // T-A4b: aplica el cambio de status a done — ejecutado tras confirmación inline o directo en Variante A
 // B-202606-097 fix: Rs no pueden ir a done desde la UI — requieren sesión de cierre de Finn
 // (BR-Core §4 · ciclo de vida de R). El CHECK constraint chk_status_by_type de Postgres
-// no incluye 'done' para type:R — el upsert fallaría con error 23514 si se permitiera.
-export function _applyDoneStatus(code) {
+// fue actualizado (B-202606-100) para permitir 'done' en type:R — el upsert ya no falla
+// con error 23514 para este caso. El gate de origen sigue siendo JS: solo un patch dentro
+// de un CHECKPOINT con role 'QA · Finn' puede pasar authorized=true. Cualquier llamada desde
+// UI (_showInlineConfirmDone, fallback sin DOM) nunca pasa authorized — sigue bloqueada.
+export function _applyDoneStatus(code, authorized) {
   const item = ITEMS.find(i => i.code === code);
   if (!item || item.status === 'done') return;
 
-  // Gate de tipo R — done no es un status válido para Rs vía UI
-  if (item.type === 'R' || (item.code && item.code.startsWith('R-'))) {
+  // Gate de tipo R — done solo es válido si llega autorizado (patch de Finn vía CHECKPOINT).
+  // Cualquier otro origen (UI manual, drag&drop, IDP) sigue bloqueado sin excepción.
+  if ((item.type === 'R' || (item.code && item.code.startsWith('R-'))) && authorized !== true) {
     setTimeout(() => showToast('warning', `${code} es un R — no puede marcarse done desde la UI. Requiere sesión de cierre de Finn (BR-Core §4).`, null, 7000), 0);
     return;
   }

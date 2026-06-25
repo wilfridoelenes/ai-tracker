@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:41 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:42 · autor:Rune · 2026-06-24 UTC-6
 // locus-backlog-item.js
 // T-202606-093: _updateSubtabBadges invocado al cierre de mergeBacklogFromTG (AC-3)
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
@@ -2428,6 +2428,11 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
   // B-202606-022: slugMap pasado desde mergeBacklogFromTG via llamador — resuelve [tmp:slug] en parentId
   const _slugMap = (opts && opts.slugMap instanceof Map) ? opts.slugMap : null;
 
+  // B-202606-100: role del header del CHECKPOINT — único contexto que autoriza
+  // la transición R → done dentro de un patch. Simétrico al guard ya existente
+  // para R → bloqueado en locus-session-parse.js (T-202606-080/022).
+  const _ckptHeaderRole = (opts && typeof opts.ckptHeaderRole === 'string') ? opts.ckptHeaderRole : '';
+
   const patched = [];
   const ignoredPatches = [];
 
@@ -2480,10 +2485,30 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
         if (normalized !== existing.status) {
           const _prevStatus = existing.status;
           if (normalized === 'done') {
+            // B-202606-100: un R nunca puede ir a done excepto vía patch dentro de
+            // un CHECKPOINT con role: 'QA · Finn' — la fila en Postgres lo permite
+            // (chk_status_by_type actualizado) pero el origen del cambio debe ser
+            // siempre una sesión de cierre de Finn, nunca UI manual ni otro rol.
+            // Simétrico al guard de R → bloqueado (T-202606-080/022).
+            if (existing.type === 'R') {
+              const _authorizedRole = 'QA · Finn';
+              if (_ckptHeaderRole !== _authorizedRole) {
+                _blogLog(
+                  'rol-no-autorizado-done',
+                  code,
+                  `Transición done en R ${code} rechazada: solo Finn puede cerrar un R, vía sesión de cierre. Rol resuelto: "${_ckptHeaderRole}".`,
+                  'backlog'
+                );
+                ignoredPatches.push({ code, reason: 'rol-no-autorizado-done' });
+                return;
+              }
+            }
             // B-202605-XXX: patch programático → _applyDoneStatus directo, sin modal inline
             // setItemStatus dispara _showInlineConfirmDone para ítems en sprint activo,
             // lo que requiere interacción del usuario y cancela el patch silenciosamente.
-            _applyDoneStatus(existing.code);
+            // B-202606-100: authorized=true solo aquí — el guard de rol ya corrió arriba
+            // para type R. Para T/B no aplica restricción de rol, authorized es irrelevante.
+            _applyDoneStatus(existing.code, true);
             changes.push({ field: 'status', from: _prevStatus, to: normalized });
             // B-202606-014 AC-1: transición automática del R padre tras T/B → done
             _checkAndAdvanceParentR(existing.code, nowTs);

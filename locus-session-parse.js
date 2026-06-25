@@ -1,4 +1,4 @@
-// [PP] v0.7.0 · sprint:PP-S-08 · mod:63 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:64 · autor:Rune · 2026-06-24 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -1717,8 +1717,9 @@ export function saveStandaloneCheckpoint() {
 
     // R-202605-062: aplicar patches después del merge de ítems normales
     // B-202606-022: pasar slugMap para resolver [tmp:slug] en parentId de patches
+    // B-202606-100: pasar ckptHeaderRole para autorizar patch R→done solo si role es QA · Finn
     if (patchItems && patchItems.length) {
-      const patchResult = applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: mergeResult.slugMap });
+      const patchResult = applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: mergeResult.slugMap, ckptHeaderRole });
       // Incorporar patches al mergeResult para que el panel diff los muestre (AC-10)
       if (patchResult.patched && patchResult.patched.length) {
         mergeResult.updated = [...(mergeResult.updated || []), ...patchResult.patched];
