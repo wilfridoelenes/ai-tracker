@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:7 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-HOTFIX · mod:8 · autor:Rune · 2026-06-25 16:30 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -398,16 +398,24 @@ export function renderGlobalRadarSidebar() {
     _rsbCfgExpanded = !_cfgBodyEl.classList.contains('rsb-cfg-body--hidden');
   }
 
-  container.innerHTML = html;
+  // B-[pendiente-ID]: guard de diff — evita reescribir innerHTML (y el parpadeo visual que
+  // produce) cuando el html generado es idéntico al ya presente en el DOM. _saveFlush()
+  // despacha shell:render-radar en cada guardado sin distinguir si el cambio afecta al radar —
+  // este guard evita el costo visual de esa señal incondicional. No reemplaza el guard
+  // _radarDirty (AC-3 foco / reset en finally) — opera después de él.
+  const _rsbHtmlUnchanged = container.innerHTML === html;
+  if (!_rsbHtmlUnchanged) {
+    container.innerHTML = html;
 
-  // B-04 CSS Purity: aplicar --rsb-proj-color via setProperty post-render — no inline style=
-  container.querySelectorAll('.rsb-proj-pill[data-proj-color]').forEach(pill => {
-    pill.style.setProperty('--rsb-proj-color', pill.dataset.projColor);
-  });
+    // B-04 CSS Purity: aplicar --rsb-proj-color via setProperty post-render — no inline style=
+    container.querySelectorAll('.rsb-proj-pill[data-proj-color]').forEach(pill => {
+      pill.style.setProperty('--rsb-proj-color', pill.dataset.projColor);
+    });
 
-  // B mayor: _renderCfgPanel siempre presente en el DOM — independiente de unseen y de active.length
-  // Se inserta después de innerHTML para sobrevivir al bloque empty-state
-  container.insertAdjacentHTML('beforeend', _renderCfgPanel());
+    // B mayor: _renderCfgPanel siempre presente en el DOM — independiente de unseen y de active.length
+    // Se inserta después de innerHTML para sobrevivir al bloque empty-state
+    container.insertAdjacentHTML('beforeend', _renderCfgPanel());
+  }
 
   // Header — contadores — R-202605-138: contadores migrados a fila 2
   const titleEl = sidebar.querySelector('.radar-sidebar-title');
