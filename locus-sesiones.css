@@ -1,4 +1,4 @@
-/* [PP] v0.8.0 · sprint:PP-S-10 · mod:12 · autor:Nova · 2026-06-25 UTC-6 */
+/* [PP] v0.8.0 · sprint:PP-S-10 · mod:13 · autor:Nova · 2026-06-25 UTC-6 */
 /* locus-sesiones.css */
 
 /* Versión: 2.2 | Última actualización: 2026-05-13 | log-* migrado desde locus-radar.css */
@@ -7628,15 +7628,14 @@ body.radar-sb-open .tracker-sidebar {
 /* nova-fix: fallback display:block antes de display:-webkit-box — en navegadores
    sin soporte de -webkit-box el valor inválido se ignora y queda block, evitando
    desborde sin límite. Con soporte, -webkit-box sobreescribe a block normalmente. */
+/* T-202606-013 AC: summary truncado a 1 línea — reemplaza -webkit-line-clamp:2 */
 .mh-row-summary {
   font-size: var(--text-xs);
   color: var(--text2);
   line-height: 1.5;
-  display: block;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
   margin-top: 2px;
 }
 
@@ -7650,7 +7649,7 @@ body.radar-sb-open .tracker-sidebar {
   min-height: 18px;
 }
 
-/* Pill de rol */
+/* Pill de rol — T-202606-013 AC: margin-left:auto empuja el rol al borde derecho de .mh-row-meta */
 .mh-row-rol {
   font-size: var(--text-2xs);
   font-weight: 600;
@@ -7661,6 +7660,7 @@ body.radar-sb-open .tracker-sidebar {
   padding: 1px 6px;
   white-space: nowrap;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 /* Timestamp relativo */
