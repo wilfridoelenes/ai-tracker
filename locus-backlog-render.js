@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:39 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:40 · autor:Rune · 2026-06-25 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -139,6 +139,16 @@ export function setItemParent(code, parentCode) {
   const item = getItems().find(i => i.code === code);
   if (!item) return;
   item.parentId = parentCode || null;
+  // B-[pendiente-ID]: heredar sprint del R padre al asignar parentId desde card expandido —
+  // _buildChildMap filtra hijos por sprintItems del grupo del R. Si el sprint del T no coincide
+  // con el del R, el hijo no aparece anidado aunque parentId esté correctamente asignado.
+  // Mismo comportamiento que mergeBacklogFromTG (_parentSprint) y applyPatchesFromTG (sprint patch en R).
+  if (parentCode) {
+    const parentItem = getItems().find(i => i.code === parentCode);
+    if (parentItem && parentItem.sprint) {
+      item.sprint = parentItem.sprint;
+    }
+  }
   _undoSnapshot();
   saveBacklog();
   _setBacklogModified();
@@ -646,7 +656,8 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
           const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
 
           html += `<div class="bl-vl-r" data-r-code="${esc(item.code)}">`;
-          html += buildBacklogItem(item, { suppressChildren: true });
+          html += buildBacklogItem(item);
+          // AC9: data-action='vl-toggle-r' — sin conflicto con bl-r-toggle deprecado
           html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
           html += `<div class="bl-vl-r-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-rbody-${esc(item.code)}">`;
           _children.forEach(child => {
