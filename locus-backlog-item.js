@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:42 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:43 · autor:Rune · 2026-06-25 UTC-6
 // locus-backlog-item.js
 // T-202606-093: _updateSubtabBadges invocado al cierre de mergeBacklogFromTG (AC-3)
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
@@ -877,7 +877,11 @@ function _openStatusPopover(e, code) {
 }
 
 // T-108: construir un ítem colapsado
-export function buildBacklogItem(item) {
+// opts.suppressChildren: true — omite _buildChildrenBlock() cuando el caller ya inyecta
+// hijos en un wrapper externo (ej. bl-vl-r en _renderVistaLista). Sin este flag, los hijos
+// aparecen duplicados: una vez en el wrapper externo y otra en el body expandido del R.
+// Contextos sin wrapper externo (Kanban, Icebox, Hotfix) NO deben pasar este flag.
+export function buildBacklogItem(item, opts = {}) {
   const globalIdx = getItems().indexOf(item);
   const isDone = item.status === 'done';
   const isDiscarded = item.status === 'descartado';
@@ -1215,7 +1219,7 @@ export function buildBacklogItem(item) {
         </div>`;
       })()}
       ${buildItemRefs(item.code)}
-      ${type === 'R' ? _buildChildrenBlock(item.code) : ''}
+      ${(type === 'R' && !opts.suppressChildren) ? _buildChildrenBlock(item.code) : ''}
       ${_buildItemTimestamps(item)}
       ${_buildItemOriginBlock(item)}
       ${item.origin ? _buildItemPOriginBlock(item) : ''}

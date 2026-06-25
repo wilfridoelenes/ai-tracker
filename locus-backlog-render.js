@@ -1,4 +1,4 @@
-// [PP] v0.7.0 · sprint:PP-S-HOTFIX · mod:38 · autor:Rune · 2026-06-23 18:00 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:39 · autor:Rune · 2026-06-25 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -646,8 +646,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
           const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
 
           html += `<div class="bl-vl-r" data-r-code="${esc(item.code)}">`;
-          html += buildBacklogItem(item);
-          // AC9: data-action='vl-toggle-r' — sin conflicto con bl-r-toggle deprecado
+          html += buildBacklogItem(item, { suppressChildren: true });
           html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
           html += `<div class="bl-vl-r-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-rbody-${esc(item.code)}">`;
           _children.forEach(child => {
