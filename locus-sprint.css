@@ -1,4 +1,4 @@
-/* [PP] v0.6.0 · sprint:PP-S-07 · mod:37 · autor:Nova · 2026-06-23 11:45 UTC-6 */
+/* [PP] mod:38 · autor:Nova · 2026-06-26 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -1301,17 +1301,17 @@
   border-radius: var(--radius-sm);
 }
 
-.spl-type--r {
+.spl-type--req {
   background: rgb(56 189 248 / 15%);
   color: var(--blue);
 }
 
-.spl-type--t {
+.spl-type--tkt {
   background: rgb(46 204 120 / 15%);
   color: var(--green);
 }
 
-.spl-type--b {
+.spl-type--inc {
   background: rgb(232 85 85 / 15%);
   color: var(--red);
 }

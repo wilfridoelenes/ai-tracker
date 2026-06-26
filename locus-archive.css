@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 14:00 UTC-6 */
+/* [PP] mod:2 · autor:Nova · 2026-06-26 */
 /* locus-archive.css
    Versión: 1.0 | Última actualización: 2026-05-25 | Locus — Archivo Histórico de sprints
    Scope: HISTÓRICO UNIFICADO — vistas Por sprint y Lista plana
@@ -378,22 +378,22 @@
   text-transform: uppercase;
 }
 
-.arch-row-type--r {
+.arch-row-type--req {
   background: rgb(56 189 248 / 12%);
   color: #38bdf8;
 }
 
-.arch-row-type--t {
+.arch-row-type--tkt {
   background: rgb(46 204 120 / 12%);
   color: #2ecc78;
 }
 
-.arch-row-type--b {
+.arch-row-type--inc {
   background: rgb(232 85 85 / 12%);
   color: #e85555;
 }
 
-.arch-row-type--p {
+.arch-row-type--disc {
   background: rgb(124 106 247 / 12%);
   color: #7c6af7;
 }

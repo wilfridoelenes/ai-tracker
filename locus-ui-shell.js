@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-07 · mod:30 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:31 · autor:Rune · 2026-06-26 17:45 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -1347,12 +1347,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const impInput = document.getElementById('imp');
   if (impInput) impInput.addEventListener('change', function (e) {
     importData(e);
-  });
-
-  // backlog-file-input → importBacklog()
-  const backlogFileInput = document.getElementById('backlog-file-input');
-  if (backlogFileInput) backlogFileInput.addEventListener('change', function (e) {
-    importBacklog(e);
   });
 
   // #arranque-close-btn → closeArranquePanel()

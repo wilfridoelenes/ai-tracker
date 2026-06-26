@@ -1,11 +1,11 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:43 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:44 · autor:Rune · 2026-06-26 17:08 UTC-6
 // locus-backlog-item.js
 // T-202606-093: _updateSubtabBadges invocado al cierre de mergeBacklogFromTG (AC-3)
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemType, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId
+import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint } from './locus-session-parse.js';
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -47,7 +47,7 @@ export const _collapsedChildren = new Set();
 let _blFooterCollapsed = false;
 
 // Labels de tipo de ítem para display en UI
-const TYPE_LABELS = { R: 'Requerimiento', T: 'Ticket', B: 'Bug', P: 'Posibilidad' };
+const TYPE_LABELS = { REQ: 'Requerimiento', TKT: 'Ticket', INC: 'Incidente', DISC: 'Discovery' };
 
 // Helpers de badge — funciones del monolito original declaradas localmente al modularizar
 function badgeLabel(priority) {
@@ -103,9 +103,7 @@ export function _renderKanban(listEl) {
   // Filtrar aplicando los mismos filtros activos del backlog
   const q = _getBacklogSearchQuery();
   let allFiltered = getItems().filter(i => {
-    const type = itemType(i.code);
-    const typeOk = type ? _getActiveTypes().has(type) : true;
-    const _rawEffortK = parseInt(i.effort) || 1;
+    const type = itemKind(i);
     const _normEffortK = _rawEffortK > 3 ? 3 : _rawEffortK < 1 ? 1 : _rawEffortK;
     const effortOk = _getActiveEfforts().has(_normEffortK); // B-202605-233: effort >3 normalizado a 3
     let roleOk = true;
@@ -132,8 +130,8 @@ export function _renderKanban(listEl) {
 
   // Construir card Kanban (compacta: código + tipo + título + sprint + effort)
   function _kanbanCard(item) {
-    const type = itemType(item.code) || '';
-    const typeColors = { T:'#2ecc78', R:'#38bdf8', B:'#e85555', P:'#7c6af7' };
+    const type = itemKind(item) || '';
+    const typeColors = { TKT:'#2ecc78', REQ:'#38bdf8', INC:'#e85555', DISC:'#7c6af7' };
     const typeColor = typeColors[type] || 'var(--hint)';
     const effortN = parseInt(item.effort) || 0;
     const dots = Array.from({length:3}, (_,i) =>
@@ -580,11 +578,11 @@ export function _attachBacklogDnD() {
         if (fromIdx < 0 || toIdx < 0) return;
         const fromItem = getItems()[fromIdx];
         const toItem   = getItems()[toIdx];
-        // T-202606-160: T con parent — bloquear drop a sprint distinto al del parent R con mensaje
-        if (fromItem.parentId && fromItem.code && fromItem.code[0] === 'T') {
+        // T-202606-160: TKT con parent — bloquear drop a sprint distinto al del parent REQ con mensaje
+        if (fromItem.parentId && fromItem.code && itemKind(fromItem) === 'TKT') {
           const _dndParent = getItems().find(i => i.code === fromItem.parentId);
           if (_dndParent && ((_dndParent.sprint || '') !== (toItem.sprint || ''))) {
-            showToast('warning', 'El sprint del T se hereda de su parent ' + fromItem.parentId);
+            showToast('warning', 'El sprint del TKT se hereda de su parent ' + fromItem.parentId);
             return;
           }
         }
@@ -813,7 +811,7 @@ function _openStatusPopover(e, code) {
   const item = getItems().find(i => i.code === code);
   if (!item) { _statusPopoverCode = null; return; }
 
-  const isIdea = (itemType(code) || '') === 'P';
+  const isIdea = itemKind(item) === 'DISC';
   const options = [
     { val: 'pendiente', label: 'Pendiente' },
     ...(!isIdea ? [{ val: 'en-revision', label: 'En revisión' }] : []),
@@ -886,10 +884,10 @@ export function buildBacklogItem(item, opts = {}) {
   const isDone = item.status === 'done';
   const isDiscarded = item.status === 'descartado';
   const isHistorico = item.status === 'historico'; // B-202604-193: read-only
-  const type = itemType(item.code) || '';
+  const type = itemKind(item) || '';
   const typeLabel = TYPE_LABELS[type] || type;
-  // R-202605-098: gate único para toda lógica diferenciada de tipo P
-  const isIdea = type === 'P';
+  // R-202605-098: gate único para toda lógica diferenciada de tipo DISC
+  const isIdea = type === 'DISC';
 
   // T-202604-050: detectar campos obligatorios faltantes (no aplica a descartados ni a P)
   // R-202605-098: P no tiene effort ni AC obligatorios — son conceptos que emergen al promoverse
@@ -952,7 +950,7 @@ export function buildBacklogItem(item, opts = {}) {
     : '';
 
   // B-202606-015: badge "Sin Ts" — R con orphaned:true (sin Ts válidos)
-  const orphanedBadge = (!isDone && !isDiscarded && type === 'R' && item.orphaned)
+  const orphanedBadge = (!isDone && !isDiscarded && type === 'REQ' && item.orphaned)
     ? '<span class="staleness-pill staleness--orphaned" title="R sin Ts válidos — especificar T1 antes de ejecutar">Sin Ts</span>'
     : '';
 
@@ -960,9 +958,9 @@ export function buildBacklogItem(item, opts = {}) {
   // B-202605-052: usar getItems() sin filtrar como denominador — los filtros activos no afectan el porcentaje
   // B-202606-016: denominador = todos los hijos sin filtro · numerador = done + descartado (ambos cuentan como cerrados)
   // B-202606-019: denominador excluye hijos descartados — solo Ts no descartados forman el total
-  const childCount = type === 'R' ? getItems().filter(i => i.parentId === item.code && i.status !== 'descartado').length : 0;
-  const childDoneCount = type === 'R' ? getItems().filter(i => i.parentId === item.code && i.status === 'done').length : 0;
-  const childBadge = (type === 'R' && childCount > 0 && !isDone && !isDiscarded)
+  const childCount = type === 'REQ' ? getItems().filter(i => i.parentId === item.code && i.status !== 'descartado').length : 0;
+  const childDoneCount = type === 'REQ' ? getItems().filter(i => i.parentId === item.code && i.status === 'done').length : 0;
+  const childBadge = (type === 'REQ' && childCount > 0 && !isDone && !isDiscarded)
     ? `<span class="bitem-child-badge" title="${childDoneCount}/${childCount} ítems done">${childDoneCount}/${childCount} <span class="bitem-child-badge-label">ítems</span></span>`
     : '';
 
@@ -980,7 +978,7 @@ export function buildBacklogItem(item, opts = {}) {
   // Solo aplica a Ts no done ni descartados con dependencias activas no resueltas.
   // T-202606-013: filtrar valores placeholder ([pendiente-ID], [tmp:slug]) antes de evaluar existencia en backlog
   const _depPlaceholderRe = /^\[pendiente-ID\]$|^\[tmp:.+\]$/;
-  const _depBlockedCodes = (!isDone && !isDiscarded && type === 'T' && Array.isArray(item.dependsOn) && item.dependsOn.length)
+  const _depBlockedCodes = (!isDone && !isDiscarded && type === 'TKT' && Array.isArray(item.dependsOn) && item.dependsOn.length)
     ? item.dependsOn.filter(c => !_depPlaceholderRe.test(c)).filter(c => { const dep = getItems().find(i => i.code === c); return !dep || dep.status !== 'done'; })
     : [];
   const depBlockedBadge = _depBlockedCodes.length
@@ -1123,8 +1121,8 @@ export function buildBacklogItem(item, opts = {}) {
         <div class="bitem-meta-cell" data-action="bitem-meta-stop">
           <span class="bitem-meta-label">Sprint</span>
           <div id="sprint-select-wrap-${esc(item.code)}">
-            ${/* B-202606-083: T/B con parentId — sprint heredado del R parent, no editable */
-              (item.parentId && (type === 'T' || type === 'B'))
+            ${/* B-202606-083: TKT/INC con parentId — sprint heredado del REQ parent, no editable */
+              (item.parentId && (type === 'TKT' || type === 'INC'))
               ? `<select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-select-type="sprint" disabled title="El sprint se hereda del R parent">
                   <option value="${esc(item.sprint||'')}" selected>${esc(_sprintDisplay(item.sprint||''))}</option>
                 </select>`
@@ -1137,10 +1135,10 @@ export function buildBacklogItem(item, opts = {}) {
             }
           </div>
         </div>
-        ${(type === 'T' || type === 'B') ? (() => {
-          // T-202604-354: solo R pendientes, orden descendente por código, label ID · Título truncado 60 chars
+        ${(type === 'TKT' || type === 'INC') ? (() => {
+          // T-202604-354: solo REQ pendientes, orden descendente por código, label ID · Título truncado 60 chars
           const rItems = getItems()
-            .filter(i => itemType(i.code) === 'R' && i.status === 'pendiente')
+            .filter(i => itemKind(i) === 'REQ' && i.status === 'pendiente')
             .sort((a, b) => b.code.localeCompare(a.code));
           const _rLabel = r => { const t = r.title || ''; return r.code + ' · ' + (t.length > 60 ? t.slice(0, 57) + '…' : t); };
           const currentParent = item.parentId ? getItems().find(i => i.code === item.parentId) : null;
@@ -1219,7 +1217,7 @@ export function buildBacklogItem(item, opts = {}) {
         </div>`;
       })()}
       ${buildItemRefs(item.code)}
-      ${(type === 'R' && !opts.suppressChildren) ? _buildChildrenBlock(item.code) : ''}
+      ${(type === 'REQ' && !opts.suppressChildren) ? _buildChildrenBlock(item.code) : ''}
       ${_buildItemTimestamps(item)}
       ${_buildItemOriginBlock(item)}
       ${item.origin ? _buildItemPOriginBlock(item) : ''}
@@ -1228,7 +1226,7 @@ export function buildBacklogItem(item, opts = {}) {
       <div class="bitem-footer">
         ${isHistorico ? '' : `<button data-action="bitem-edit" data-code="${esc(item.code)}" class="bitem-edit-btn" title="Editar ítem">✎ Editar</button>`}
         ${(!isHistorico && isIdea && !isDone && !isDiscarded && !_isPPromovida) ? `<button data-action="bitem-promote" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Promover esta posibilidad a Ticket o Requerimiento">⬆ Promover</button>` : ''}
-        ${(!isHistorico && type === 'T' && !isDone && !isDiscarded) ? `<button data-action="bitem-promote-ttor" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Promover Ticket a Requerimiento">⬆ → R</button>` : ''}
+        ${(!isHistorico && type === 'TKT' && !isDone && !isDiscarded) ? `<button data-action="bitem-promote-ttor" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Promover Ticket a Requerimiento">⬆ → R</button>` : ''}
         ${(!isHistorico && !isDone && !isDiscarded) ? `<button data-action="bitem-migrate" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Mover item a otro proyecto">&#x21C4; Mover</button>` : ''}
       </div>
     </div>
@@ -1616,13 +1614,13 @@ export function updateBacklogFooter() {
   const enRevision  = getItems().filter(i => _isActive(i) && i.status === 'en-revision').length;
   // B-202606-036: done+icebox no contabiliza — consistente con stats-bar (Capa 3 per BR-Ecosystem §5)
   const done        = getItems().filter(i => _isActive(i) && i.status === 'done' && !(!i.sprint || i.sprint === 'icebox')).length;
-  const byType      = { B: 0, T: 0, R: 0, P: 0 };
+  const byType      = { INC: 0, TKT: 0, REQ: 0, DISC: 0 };
   // T-202606-096: byType usa mismo universo activos — status ≠ descartado ≠ promovida ≠ historico
-  // + excluye done+icebox (Capa 3 BR-Ecosystem §5) para que B+T+R+P = Pendiente+EnRevisión+Done
+  // + excluye done+icebox (Capa 3 BR-Ecosystem §5) para que INC+TKT+REQ+DISC = Pendiente+EnRevisión+Done
   getItems().forEach(i => {
     if (!_isActive(i)) return;
     if (i.status === 'done' && (!i.sprint || i.sprint === 'icebox')) return;
-    const t = itemType(i.code); if (t && byType[t] !== undefined) byType[t]++;
+    const t = itemKind(i); if (t && byType[t] !== undefined) byType[t]++;
   });
   const activeSp = _getActiveSprint();
 
@@ -1893,13 +1891,13 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // Orden de avance: pendiente < done < descartado (descartado solo vía confirmación)
   const _statusRank = { pendiente: 0, 'en-revision': 0.5, promovida: 0.8, done: 1, descartado: 2 }; // T-202606-032 / B-202606-016: promovida con rank 0.8
 
-  // B-202606-047: ordenar batch — Rs primero, luego T/B, luego el resto.
-  // Sin este orden, cuando R y sus Ts llegan en el mismo CHECKPOINT el find de parentId
-  // no encuentra al R padre (aún no pusheado a getItems()) → parentId: null en todos los Ts.
-  const _typeOrder = { R: 0, T: 1, B: 1, P: 2 };
+  // B-202606-047: ordenar batch — REQ primero, luego TKT/INC, luego el resto.
+  // Sin este orden, cuando REQ y sus TKT llegan en el mismo CHECKPOINT el find de parentId
+  // no encuentra al REQ padre (aún no pusheado a getItems()) → parentId: null en todos los TKT.
+  const _typeOrder = { REQ: 0, TKT: 1, INC: 1, DISC: 2 };
   tgItems.sort((a, b) => {
-    const tA = a.type || (a.code ? a.code.charAt(0) : 'P');
-    const tB = b.type || (b.code ? b.code.charAt(0) : 'P');
+    const tA = itemKind(a) || 'DISC';
+    const tB = itemKind(b) || 'DISC';
     return (_typeOrder[tA] ?? 3) - (_typeOrder[tB] ?? 3);
   });
 
@@ -1953,25 +1951,18 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     // B-202604-198: si es placeholder, saltar directamente a rama "nuevo"
     const existing = isPlaceholder ? null : getItems().find(i => i.code === item.code);
     if (existing) {
-      // B-202605-XXX: normalizar type si falta — inferir desde prefijo del código
-      if (!existing.type && existing.code) {
-        const inferredType = existing.code.charAt(0);
-        if ('PTRB'.includes(inferredType)) existing.type = inferredType;
-      }
       const newStatus = item.status; // T-202606-034: item.status ya canónico desde T1 — _tgStatusToBacklog eliminada
       const oldStatus = existing.status || 'pendiente';
       const changes = [];
 
       // T-[pendiente-ID] · AC-1: filtro pre-clasificación — transición inválida interceptada antes de _statusRank
       // AC-2: type desconocido → no interceptar. AC-3: sin status → no interceptar.
+      // TKT0c-gen2: itemKind(existing) reemplaza la inferencia local por prefijo (eliminada) y la tabla inline.
       if (newStatus && newStatus !== oldStatus && !item._noStatus) {
-        const _existingType = existing.type || (existing.code ? existing.code.charAt(0) : '');
-        if (_existingType &&
-            Object.prototype.hasOwnProperty.call(
-              { R: 1, T: 1, B: 1, P: 1 }, _existingType
-            )) {
+        const _existingKind = itemKind(existing);
+        if (_existingKind !== null) {
           // Importar VALID_TRANSITIONS directamente para verificación inline (evita llamada costosa al array completo)
-          const _vtResult = validateLifecycleTransitions([{ code: item.code, type: _existingType, status: newStatus }]);
+          const _vtResult = validateLifecycleTransitions([{ code: item.code, type: _existingKind, status: newStatus }]);
           if (_vtResult.length > 0) {
             // Transición inválida — registrar y saltar toda la lógica de status para este ítem
             invalidTransition.push(_vtResult[0]);
@@ -1980,16 +1971,16 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
             item._noStatus = true;
           }
 
-          // T-202606-031: validación de rol autorizado para R → bloqueado
-          // AC-1/AC-4: solo 'QA · Finn' puede mover un R a status 'bloqueado'.
+          // T-202606-031 · TKT0c-gen2: validación de rol autorizado para REQ → bloqueado
+          // AC-1/AC-4: solo 'QA · Finn' puede mover un REQ a status 'bloqueado'.
           // Si el rol no es el autorizado — registrar en invalidTransition y excluir el cambio de status.
           // AC-3: si no hay status entrante o no es 'bloqueado' — no interceptar.
-          if (!item._noStatus && _existingType === 'R' && newStatus === 'bloqueado' && _ckptRol !== 'QA · Finn') {
+          if (!item._noStatus && _existingKind === 'REQ' && newStatus === 'bloqueado' && _ckptRol !== 'QA · Finn') {
             invalidTransition.push({
               code: item.code,
-              type: 'R',
+              type: 'REQ',
               status: 'bloqueado',
-              reason: `rol no autorizado: solo QA · Finn puede mover un R a bloqueado (recibido: ${_ckptRol || '(sin rol)'})`
+              reason: `rol no autorizado: solo QA · Finn puede mover un REQ a bloqueado (recibido: ${_ckptRol || '(sin rol)'})`
             });
             item._noStatus = true;
           }
@@ -2045,8 +2036,8 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       if (item.role && item.role !== existing.role) { changes.push({ field: 'role', from: existing.role || '—', to: item.role }); if (!_dryRun) { existing.role = item.role; changed = true; } }
       // parentId: entrante gana si trae valor; si vacío no degrada el existente
       if (item.parentId && item.parentId !== existing.parentId) { changes.push({ field: 'parentId', from: existing.parentId || '—', to: item.parentId }); if (!_dryRun) { existing.parentId = item.parentId; changed = true; } }
-      // B-202606-004 AC-2: advertencia cuando T existente con parentId recibe merge sin parent declarado
-      if (!item.parentId && existing.parentId && (existing.type === 'T' || existing.type === 'B') && !_dryRun) {
+      // B-202606-004 AC-2: advertencia cuando TKT/INC existente con parentId recibe merge sin parent declarado
+      if (!item.parentId && existing.parentId && ['TKT','INC'].includes(itemKind(existing)) && !_dryRun) {
         _blogLog('parent-ausente-en-merge', existing.code, existing.code + ' tiene parentId ' + existing.parentId + ' — merge entrante no declara parent. parentId conservado.', 'backlog');
       }
       // origin: entrante gana si trae valor; si vacío no degrada el existente
@@ -2143,16 +2134,16 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // definan el nuevo modelo: gate en parser + flag orphaned + P como único origen de R.
       // R nuevo sin Ts → bloqueo en parser (aún no implementado) — por ahora se ingesta como R
       // con flag orphaned:true hasta que se emita T1.
-      const _incomingTypePreCheck = item.type || (item.code ? item.code.charAt(0) : '');
-      if (_incomingTypePreCheck === 'R') {
+      const _incomingTypePreCheck = itemKind(item) || '';
+      if (_incomingTypePreCheck === 'REQ') {
         const _rCode = item.code;
         const _hasChildInBatch = tgItems.some(i => {
-          const iType = i.type || (i.code ? i.code.charAt(0) : '');
+          const iType = itemKind(i) || '';
           const iParent = i.parentId || i.parent || null;
-          return iType === 'T' && iParent === _rCode && i.status !== 'descartado' && i.status !== 'discarded';
+          return iType === 'TKT' && iParent === _rCode && i.status !== 'descartado' && i.status !== 'discarded';
         });
         const _hasChildInBacklog = getItems() && getItems().some(i =>
-          i.parentId === _rCode && i.type === 'T' && i.status !== 'descartado'
+          i.parentId === _rCode && itemKind(i) === 'TKT' && i.status !== 'descartado'
         );
         if (!_hasChildInBatch && !_hasChildInBacklog) {
           // Marcar orphaned — no degradar
@@ -2162,20 +2153,20 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       }
 
       // R-202605-021: resolver parentId para ítems nuevos
-      // AC: solo T o B pueden tener parentId — R con parentId → ignorar + DocLog
-      // AC: si parentId apunta a T o B existente → ignorar + DocLog
+      // AC: solo TKT o INC pueden tener parentId — REQ con parentId → ignorar + DocLog
+      // AC: si parentId apunta a TKT o INC existente → ignorar + DocLog
       // AC: si parentId no existe en backlog → ignorar + DocLog
       let _resolvedParentId = null;
-      const _incomingType = item.type || (item.code ? item.code.charAt(0) : 'T');
+      const _incomingType = itemKind(item) || 'TKT';
       if (item.parentId) {
-        if (_incomingType === 'R') {
-                      _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ítems tipo R no pueden tener padre. parentId recibido: ' + item.parentId, 'backlog');
+        if (_incomingType === 'REQ') {
+                      _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ítems tipo REQ no pueden tener padre. parentId recibido: ' + item.parentId, 'backlog');
         } else {
           const _parentCandidate = getItems().find(p => p.code === item.parentId);
           if (!_parentCandidate) {
                           _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: código ' + item.parentId + ' no existe en el backlog', 'backlog');
-          } else if (_parentCandidate.type !== 'R') {
-                          _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ' + item.parentId + ' es de tipo ' + _parentCandidate.type + ' — solo R puede ser padre', 'backlog');
+          } else if (itemKind(_parentCandidate) !== 'REQ') {
+                          _blogLog('parentId-ignorado', item.code || '', 'parentId ignorado: ' + item.parentId + ' es de tipo ' + (itemKind(_parentCandidate) || 'desconocido') + ' — solo REQ puede ser padre', 'backlog');
           } else {
             _resolvedParentId = item.parentId;
           }
@@ -2255,15 +2246,15 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     }
     // Actualizar contadores en backlog-meta (no en dryRun)
     if (!_dryRun) {
-      const typeChar = item.code[0];
-      if ('PTRB'.includes(typeChar)) {
-        const numMatch = item.code.match(/[PTRB]-\d{6}-(\d{3})/);
+      const typeKey = itemKind(item);
+      if (typeKey && ['REQ','TKT','DISC','INC'].includes(typeKey)) {
+        const numMatch = item.code.match(/(?:REQ|TKT|DISC|INC)-\d{6}-(\d{3})/);
         if (numMatch) {
           const num = parseInt(numMatch[1]);
           const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
-          if (!meta.counters) meta.counters = { P:0, T:0, R:0, B:0 };
-          if (num > (meta.counters[typeChar] || 0)) {
-            meta.counters[typeChar] = num;
+          if (!meta.counters) meta.counters = { DISC:0, TKT:0, REQ:0, INC:0 };
+          if (num > (meta.counters[typeKey] || 0)) {
+            meta.counters[typeKey] = num;
             localStorage.setItem(_tplKey('backlog-meta'), JSON.stringify(meta));
           }
         }
@@ -2341,12 +2332,12 @@ function _checkAndAdvanceParentR(childCode, nowTs) {
   if (!child || !child.parentId) return; // AC-3: sin parent → no-op
 
   const parent = allItems.find(i => i.code === child.parentId);
-  if (!parent || parent.type !== 'R') return; // parent debe ser R
+  if (!parent || itemKind(parent) !== 'REQ') return; // parent debe ser REQ
 
-  // Hijos válidos: T y B no descartados del mismo R
+  // Hijos válidos: TKT e INC no descartados del mismo REQ
   const children = allItems.filter(i =>
     i.parentId === parent.code &&
-    (i.type === 'T' || i.type === 'B') &&
+    ['TKT','INC'].includes(itemKind(i)) &&
     i.status !== 'descartado'
   );
   if (!children.length) return;
@@ -2390,14 +2381,14 @@ export function _checkAndOrphanParentR(childCode, nowTs) {
   if (!child || !child.parentId) return; // sin parent → no-op
 
   const parent = allItems.find(i => i.code === child.parentId);
-  if (!parent || parent.type !== 'R') return; // parent debe ser R
+  if (!parent || itemKind(parent) !== 'REQ') return; // parent debe ser REQ
 
-  // Hijos del R (T y B) — incluye descartados para evaluar si TODOS lo están
+  // Hijos del REQ (TKT e INC) — incluye descartados para evaluar si TODOS lo están
   const children = allItems.filter(i =>
     i.parentId === parent.code &&
-    (i.type === 'T' || i.type === 'B')
+    ['TKT','INC'].includes(itemKind(i))
   );
-  if (!children.length) return; // sin hijos declarados → no-op (gate de parser cubre R sin Ts al ingestar)
+  if (!children.length) return; // sin hijos declarados → no-op (gate de parser cubre REQ sin TKT al ingestar)
 
   const allDiscarded = children.every(i => i.status === 'descartado');
   if (!allDiscarded) return; // AC-3: al menos un hijo no descartado → R conserva status
@@ -2489,18 +2480,18 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
         if (normalized !== existing.status) {
           const _prevStatus = existing.status;
           if (normalized === 'done') {
-            // B-202606-100: un R nunca puede ir a done excepto vía patch dentro de
+            // B-202606-100: un REQ nunca puede ir a done excepto vía patch dentro de
             // un CHECKPOINT con role: 'QA · Finn' — la fila en Postgres lo permite
             // (chk_status_by_type actualizado) pero el origen del cambio debe ser
             // siempre una sesión de cierre de Finn, nunca UI manual ni otro rol.
-            // Simétrico al guard de R → bloqueado (T-202606-080/022).
-            if (existing.type === 'R') {
+            // Simétrico al guard de REQ → bloqueado (T-202606-080/022).
+            if (itemKind(existing) === 'REQ') {
               const _authorizedRole = 'QA · Finn';
               if (_ckptHeaderRole !== _authorizedRole) {
                 _blogLog(
                   'rol-no-autorizado-done',
                   code,
-                  `Transición done en R ${code} rechazada: solo Finn puede cerrar un R, vía sesión de cierre. Rol resuelto: "${_ckptHeaderRole}".`,
+                  `Transición done en REQ ${code} rechazada: solo Finn puede cerrar un REQ, vía sesión de cierre. Rol resuelto: "${_ckptHeaderRole}".`,
                   'backlog'
                 );
                 ignoredPatches.push({ code, reason: 'rol-no-autorizado-done' });
@@ -2511,16 +2502,16 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
             // setItemStatus dispara _showInlineConfirmDone para ítems en sprint activo,
             // lo que requiere interacción del usuario y cancela el patch silenciosamente.
             // B-202606-100: authorized=true solo aquí — el guard de rol ya corrió arriba
-            // para type R. Para T/B no aplica restricción de rol, authorized es irrelevante.
+            // para type REQ. Para TKT/INC no aplica restricción de rol, authorized es irrelevante.
             _applyDoneStatus(existing.code, true);
             changes.push({ field: 'status', from: _prevStatus, to: normalized });
-            // B-202606-014 AC-1: transición automática del R padre tras T/B → done
+            // B-202606-014 AC-1: transición automática del REQ padre tras TKT/INC → done
             _checkAndAdvanceParentR(existing.code, nowTs);
           } else if (normalized && normalized !== existing.status) {
             changes.push({ field: 'status', from: existing.status, to: normalized });
             existing.status = normalized;
             existing.statusChangedAt = nowTs;
-            // B-202606-014 AC-2: transición automática del R padre tras cambio de status no-done
+            // B-202606-014 AC-2: transición automática del REQ padre tras cambio de status no-done
             // cubre retroceso desde done (en-revision → en-proceso) y avance a en-revision
             _checkAndAdvanceParentR(existing.code, nowTs);
           }
@@ -2546,12 +2537,12 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
           changes.push({ field: 'sprint', from: current || '—', to: normalizedSprint });
           if (normalizedSprint === undefined) delete existing.sprint;
           else existing.sprint = normalizedSprint;
-          // B-202606-025 AC-1: si el ítem patcheado es un R, propagar sprint a todos sus hijos T y B
+          // B-202606-025 AC-1: si el ítem patcheado es un REQ, propagar sprint a todos sus hijos TKT e INC
           // Sin restricción de status — todos los hijos heredan el sprint del parent
-          if (existing.type === 'R' && normalizedSprint !== undefined) {
+          if (itemKind(existing) === 'REQ' && normalizedSprint !== undefined) {
             const _targetSprint = normalizedSprint || 'icebox';
             (typeof getItems() !== 'undefined' ? getItems() : []).forEach(child => {
-              if (child.parentId === existing.code && (child.type === 'T' || child.type === 'B')) {
+              if (child.parentId === existing.code && ['TKT','INC'].includes(itemKind(child))) {
                 if ((child.sprint || 'icebox') !== _targetSprint) {
                   child.sprint = _targetSprint;
                   _blogLog('sprint-heredado', child.code,

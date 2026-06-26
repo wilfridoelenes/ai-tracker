@@ -1,4 +1,4 @@
-/* [PP] v0.7.0 · sprint:PP-S-HOTFIX · mod:49 · autor:Nova · 2026-06-23 18:00 UTC-6 */
+/* [PP] mod:50 · autor:Nova · 2026-06-26 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -473,27 +473,22 @@
   opacity: 0.55;
 }
 
-.s-types--all-active .stat-type-chip.active.tc-B {
+.s-types--all-active .stat-type-chip.active.tc-INC {
   background: var(--red-dim);
   border-color: rgb(232 85 85 / 25%);
 }
 
-.s-types--all-active .stat-type-chip.active.tc-T {
+.s-types--all-active .stat-type-chip.active.tc-TKT {
   background: var(--green-dim);
   border-color: rgb(46 204 120 / 25%);
 }
 
-.s-types--all-active .stat-type-chip.active.tc-R {
+.s-types--all-active .stat-type-chip.active.tc-REQ {
   background: var(--blue-dim);
   border-color: rgb(56 189 248 / 25%);
 }
 
-.s-types--all-active .stat-type-chip.active.tc-I {
-  background: var(--purple-dim);
-  border-color: rgb(124 106 247 / 25%);
-}
-
-.s-types--all-active .stat-type-chip.active.tc-P {
+.s-types--all-active .stat-type-chip.active.tc-DISC {
   background: var(--purple-dim);
   border-color: rgb(124 106 247 / 25%);
 }
@@ -504,57 +499,46 @@
   opacity: 0.6;
 }
 
-.stat-type-chip.tc-B {
+.stat-type-chip.tc-INC {
   background: rgb(232 85 85 / 12%);
   border-color: rgb(232 85 85 / 40%);
   color: var(--red);
 }
 
-.stat-type-chip.tc-T {
+.stat-type-chip.tc-TKT {
   background: rgb(46 204 120 / 12%);
   border-color: rgb(46 204 120 / 40%);
   color: var(--green);
 }
 
-.stat-type-chip.tc-R {
+.stat-type-chip.tc-REQ {
   background: rgb(56 189 248 / 12%);
   border-color: rgb(56 189 248 / 40%);
   color: var(--blue);
 }
 
-.stat-type-chip.tc-I {
+.stat-type-chip.tc-DISC {
   background: rgb(124 106 247 / 12%);
   border-color: rgb(124 106 247 / 40%);
   color: var(--purple);
 }
 
-.stat-type-chip.tc-P {
-  background: rgb(124 106 247 / 12%);
-  border-color: rgb(124 106 247 / 40%);
-  color: var(--purple);
-}
-
-.stat-type-chip.active.tc-B {
+.stat-type-chip.active.tc-INC {
   background: var(--red-border);
   border-color: var(--red);
 }
 
-.stat-type-chip.active.tc-T {
+.stat-type-chip.active.tc-TKT {
   background: var(--green-border);
   border-color: var(--green);
 }
 
-.stat-type-chip.active.tc-R {
+.stat-type-chip.active.tc-REQ {
   background: var(--blue-border);
   border-color: var(--blue);
 }
 
-.stat-type-chip.active.tc-I {
-  background: var(--purple-border);
-  border-color: var(--purple);
-}
-
-.stat-type-chip.active.tc-P {
+.stat-type-chip.active.tc-DISC {
   background: var(--purple-border);
   border-color: var(--purple);
 }
@@ -1193,27 +1177,22 @@
 }
 
 /* border-left por tipo */
-.item[data-type="B"] {
+.item[data-type="INC"] {
   border-left-color: var(--red);
   box-shadow: -2px 0 8px rgb(232 85 85 / 18%);
 }
 
-.item[data-type="T"] {
+.item[data-type="TKT"] {
   border-left-color: var(--green);
   box-shadow: -2px 0 8px rgb(46 204 120 / 18%);
 }
 
-.item[data-type="R"] {
+.item[data-type="REQ"] {
   border-left-color: var(--blue);
   box-shadow: -2px 0 8px rgb(56 189 248 / 18%);
 }
 
-.item[data-type="I"] {
-  border-left-color: var(--purple);
-  box-shadow: -2px 0 8px rgb(124 106 247 / 18%);
-}
-
-.item[data-type="P"] {
+.item[data-type="DISC"] {
   border-left-color: var(--purple);
   box-shadow: -2px 0 8px rgb(124 106 247 / 18%);
 }
@@ -1731,27 +1710,27 @@
   white-space: nowrap; line-height: 1;
 }
 
-.item-type-pill.P {
+.item-type-pill.DISC {
   background: rgb(124 106 247 / 15%);
   color: var(--purple);
 }
 
-.item-type-pill.I {
+.item-type-pill.INC {
   background: rgb(124 106 247 / 15%);
   color: var(--purple);
 }
 
-.item-type-pill.T {
+.item-type-pill.TKT {
   background: rgb(46 204 120 / 15%);
   color: var(--green);
 }
 
-.item-type-pill.R {
+.item-type-pill.REQ {
   background: rgb(56 189 248 / 15%);
   color: var(--blue);
 }
 
-.item-type-pill.B {
+.item-type-pill.BUG {
   background: rgb(232 85 85 / 15%);
   color: var(--red);
 }
@@ -1784,25 +1763,25 @@
   color: var(--text2);
 }
 
-.filter-type-btn.active-I {
+.filter-type-btn.active-DISC {
   background: rgb(124 106 247 / 15%);
   color: var(--purple);
   border-color: var(--purple);
 }
 
-.filter-type-btn.active-T {
+.filter-type-btn.active-TKT {
   background: rgb(46 204 120 / 15%);
   color: var(--green);
   border-color: var(--green);
 }
 
-.filter-type-btn.active-R {
+.filter-type-btn.active-REQ {
   background: rgb(56 189 248 / 15%);
   color: var(--blue);
   border-color: var(--blue);
 }
 
-.filter-type-btn.active-B {
+.filter-type-btn.active-INC {
   background: rgb(232 85 85 / 15%);
   color: var(--red);
   border-color: var(--red);

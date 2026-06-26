@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:47 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:49 · autor:Rune · 2026-06-26 17:30 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -68,7 +68,7 @@ export function _skelHide(el) { if (el) el.classList.remove('is-loading'); }
 let currentFilter = 'all';
 // T-202606-047: normalizeStatus — punto canónico único de validación y normalización de status
 // Firma: normalizeStatus(raw: string, type?: string) → string
-// Consumidores: ITEMS IIFE · _normalizeItems · parseBacklogMd · locus-session-parse.js (T-202606-048)
+// Consumidores: ITEMS IIFE · _normalizeItems · locus-session-parse.js (T-202606-048)
 export function normalizeStatus(raw, type) {
   const s = (raw || '').trim().toLowerCase();
   // Aliases de entrada conocidos
@@ -194,13 +194,13 @@ let backlogSearchQuery = '';
 // Cold start: todos los tipos/statuses habilitados, searchQuery vacío — sin herencia del global.
 const _subtabNS = {
   icebox: {
-    types:    new Set(['T','R','B','P']),
+    types:    new Set(['TKT','REQ','INC','DISC']),
     statuses: new Set(['pendiente','en-revision','done','descartado','promovida']),
     priority: new Set(),
     query:    ''
   },
   hotfix: {
-    types:    new Set(['T','R','B','P']),
+    types:    new Set(['TKT','REQ','INC','DISC']),
     statuses: new Set(['pendiente','en-revision','done','descartado','promovida']),
     priority: new Set(),
     query:    ''
@@ -208,7 +208,7 @@ const _subtabNS = {
 };
 
 // Getters de namespace por subtab
-export function _nsGetTypes(sub)    { return _subtabNS[sub] ? _subtabNS[sub].types    : new Set(['T','R','B','P']); }
+export function _nsGetTypes(sub)    { return _subtabNS[sub] ? _subtabNS[sub].types    : new Set(['TKT','REQ','INC','DISC']); }
 export function _nsGetStatuses(sub) { return _subtabNS[sub] ? _subtabNS[sub].statuses : new Set(['pendiente','en-revision']); }
 export function _nsGetPriority(sub) { return _subtabNS[sub] ? _subtabNS[sub].priority : new Set(); }
 export function _nsGetQuery(sub)    { return _subtabNS[sub] ? _subtabNS[sub].query    : ''; }
@@ -236,7 +236,7 @@ export function _nsTogglePriority(sub, pri) {
 // Reset de namespace (todos los filtros al estado inicial)
 export function _nsReset(sub) {
   if (!_subtabNS[sub]) return;
-  _subtabNS[sub].types    = new Set(['T','R','B','P']);
+  _subtabNS[sub].types    = new Set(['TKT','REQ','INC','DISC']);
   _subtabNS[sub].statuses = new Set(['pendiente','en-revision','done','descartado','promovida']);
   _subtabNS[sub].priority = new Set();
   _subtabNS[sub].query    = '';
@@ -266,7 +266,7 @@ let _backlogKanbanMode = _backlogViewModeRaw === 'kanban';
 const _collapsedChildren = new Set();
 
 // T-049: window.state de filtros mixtos
-let activeTypes = new Set(['T','R','B','P']);
+let activeTypes = new Set(['TKT','REQ','INC','DISC']);
 // T-202606-021: clave canónica para persistencia de activeStatuses
 const _ACTIVE_STATUSES_KEY = 'locus-active-statuses';
 function _loadActiveStatuses() {
@@ -482,8 +482,8 @@ export function _calcRelevanceScore(item, allSessionsCache) { // B-202605-009: a
   let score = 0;
 
   // 1. TIPO — urgencia intrínseca (0–25)
-  const typeScores = { B: 25, T: 18, R: 12, P: 6 };
-  const type = itemType(item.code) || 'T';
+  const typeScores = { INC: 25, TKT: 18, REQ: 12, DISC: 6 };
+  const type = itemKind(item) || 'TKT';
   score += typeScores[type] ?? 10;
 
   // 2. SPRINT ASIGNADO (0–20)
@@ -695,15 +695,15 @@ function _normalizeItems(items) {
     }
 
     // ── type ──────────────────────────────────────────────────────────────────
-    // Ausente: inferir desde prefijo del code. Default 'T' si no inferible.
+    // Ausente: inferir con itemKind() — usa prefijo de code contra GEN2_TYPES.
+    // Sin default forzado: si itemKind retorna null, item.type queda undefined.
     if (!item.type) {
-      const firstChar = (item.code || '').charAt(0);
-      if ('PTRB'.includes(firstChar)) {
-        item.type = firstChar;
+      const inferred = itemKind(item);
+      if (inferred) {
+        item.type = inferred;
         _blogLog('normalize', item.code || '(sin código)', `type inferido desde prefijo → ${item.type}`, 'backlog');
       } else {
-        item.type = 'T';
-        _blogLog('normalize-warn', item.code || '(sin código)', 'type ausente y no inferible → T (default)', 'backlog');
+        _blogLog('normalize-warn', item.code || '(sin código)', 'type ausente y no inferible — item.type queda undefined', 'backlog');
       }
     }
 
@@ -905,30 +905,39 @@ export function loadBacklog() {
   window.dispatchEvent(new CustomEvent('shell:render-backlog-list'));
 }
 
-// T-049: derivar tipo del código
-export function itemType(code) {
-  const c = (code || '')[0];
-  const t = ['I','T','R','B','P'].includes(c) ? c : null;
-  return t === 'I' ? 'P' : t; // I es alias de P — normalizado
+// TKT0-gen2: deriva el tipo del ítem — campo type explícito si existe,
+// si no, prefijo multi-char Gen2 del code (REQ-/TKT-/DISC-/INC-/PRB-/KE-/CHG-).
+// Reemplaza a itemType(code) — Gen1 derivaba por un solo carácter (T-049).
+// Sin alias I→P: un code que empieza con 'I-' no resuelve a tipo válido.
+const GEN2_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'KE', 'CHG'];
+export function itemKind(item) {
+  if (!item) return null;
+  if (item.type && GEN2_TYPES.includes(item.type)) return item.type;
+  const code = item.code || '';
+  for (const t of GEN2_TYPES) {
+    if (code.startsWith(t + '-')) return t;
+  }
+  return null;
 }
 
-// T-049: toggle filtros tipo
+// TKT0-gen2: toggle filtros tipo — claves Gen2 (REQ/TKT/DISC/INC)
+// T-049 (histórico): versión original operaba sobre T/R/B/P
 // B-202604-146: reset explícito de filtros de tipo
 function clearTypeFilters() {
-  activeTypes = new Set(['T','R','B','P']);
+  activeTypes = new Set(['TKT','REQ','INC','DISC']);
   updateTypeFilterUI();
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 export function toggleTypeFilter(type) {
-  const allActive = activeTypes.size === 4; // T/R/B/P
+  const allActive = activeTypes.size === 4; // TKT/REQ/DISC/INC
   if (allActive) {
     // primer click: desactiva todos, activa solo el clickeado
     activeTypes = new Set([type]);
   } else if (activeTypes.has(type)) {
     // click en activo: si es el único, restaura todos
     if (activeTypes.size === 1) {
-      activeTypes = new Set(['T','R','B','P']);
+      activeTypes = new Set(['TKT','REQ','INC','DISC']);
     } else {
       activeTypes.delete(type);
     }
@@ -1067,170 +1076,6 @@ export function _getNextItemCode(typeChar, reservedCodes) {
   return `${typeChar}-${yyyymm}-${nextNum}`;
 }
 
-// Bug B-202604-002: parser estricto — solo acepta ### seguido de código exacto [TIPO]-[YYYYMM]-[NNN]
-// B-202606-116: pre-procesar texto MD para elevar ##### T- a ### T- e inyectar **ParentId:**
-// El backlog exportado anida Ts bajo ##### dentro del bloque ### R — el split(/\n(?=###\s)/)
-// los incluye como texto del R padre sin parsearlos como ítems independientes.
-// Solución: antes del split, recorrer línea a línea rastreando el R activo y elevando
-// cada ##### [TIPO]- a ### con **ParentId:** inyectado.
-function _elevateNestedItems(text) {
-  const lines = text.split('\n');
-  const out = [];
-  let currentRCode = null;
-  const _rHeaderRe  = /^###\s+R-\d{6}-\d{3}/;
-  const _nestedRe   = /^#{4,6}\s+([A-Z]-\d{6}-\d{3}(?:-[A-Za-z]+)?)\s+·\s*(.*)/;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-
-    // Rastrear R activo — cuando aparece un ### R- se actualiza currentRCode
-    if (_rHeaderRe.test(line)) {
-      const m = line.match(/^###\s+(R-\d{6}-\d{3}(?:-[A-Za-z]+)?)\s+·/);
-      currentRCode = m ? m[1] : null;
-      out.push(line);
-      continue;
-    }
-
-    // Cuando aparece otro ### de nivel 3 que no es R (ej. ### T-, ### B-), limpiar contexto R
-    if (/^###\s+[A-Z]-/.test(line) && !/^###\s+R-/.test(line)) {
-      currentRCode = null;
-      out.push(line);
-      continue;
-    }
-
-    // Detectar #### o ##### [TIPO]- anidados bajo un R activo
-    const nestedMatch = line.match(_nestedRe);
-    if (nestedMatch && currentRCode) {
-      const nestedCode = nestedMatch[1];
-      // Solo elevar Ts (y otros no-R) — nunca elevar Rs anidados
-      if (!nestedCode.startsWith('R-')) {
-        // Elevar a nivel ### e inyectar **ParentId:** en la siguiente línea
-        out.push('### ' + nestedCode + ' · ' + nestedMatch[2]);
-        out.push('**ParentId:** ' + currentRCode);
-        continue;
-      }
-    }
-
-    out.push(line);
-  }
-
-  return out.join('\n');
-}
-
-function parseBacklogMd(text) {
-  // T-202606-047: normalizeStatus() es el punto canónico — VALID_STATUSES_PARSE eliminado
-  // B-202606-116: elevar Ts anidados en ##### antes del split
-  const items = [];
-  const itemBlocks = _elevateNestedItems(text).split(/\n(?=###\s)/);
-
-  itemBlocks.forEach((block, blockIdx) => {
-    try {
-      let headerMatch = block.match(/^###\s+([A-Z]-\d{6}-\d{3}(?:-[A-Za-z]+)?)\s+·\s*(.*)/);
-      let code, title, needsAutoAssign = false;
-      
-      if (headerMatch) {
-        code = headerMatch[1].trim();
-        title = (headerMatch[2] || '').trim() || '(sin título)';
-      } else {
-        headerMatch = block.match(/^###\s+\[pendiente-ID\]\s+·\s+(.+)/);
-        if (!headerMatch) return;
-        title = headerMatch[1].trim();
-        needsAutoAssign = true;
-        code = null;
-      }
-
-      const get = (field) => {
-        const m = block.match(new RegExp(`\\*\\*${field}:\\*\\*\\s*(.+)`));
-        return m ? m[1].trim() : '';
-      };
-
-      const priority = get('Priority') || 'medium';
-      const areaRaw  = get('Area') || '';
-      // Fix integridad: sanear area si contiene markup de otro campo
-      const area     = areaRaw.includes('**') ? areaRaw.split('**')[0].trim() : areaRaw.trim();
-      const effort   = parseInt(get('Effort')) || 1;
-      const impact   = get('Impact') || 'Medio';
-      const status   = normalizeStatus((get('Status') || '').trim(), (get('Type') || code || '').charAt(0) === 'P' ? 'P' : undefined);
-      const version  = get('Version') || 'futura';
-      const sprint    = get('Sprint') || '';
-      const parentId  = get('ParentId') || null;
-      const role      = get('Role') || '';
-      const discardReason = get('DiscardReason') || '';
-      const discardRef    = get('DiscardRef') || '';
-      const origin        = get('Origin') || null;
-
-      // desc termina antes de ### Criterios, timestamps o fin de bloque.
-      // Los timestamps (CreatedAt/StatusChangedAt/DoneAt) pueden aparecer antes o después del desc
-      // según la versión del serializer — el regex los excluye explícitamente para evitar
-      // que se acumulen en item.desc entre exports.
-      const descMatch = block.match(/\*\*Version:\*\*[^\n]*\n+([\s\S]*?)(?=###\s*Criterios|\*\*CreatedAt:\*\*|\*\*StatusChangedAt:\*\*|\*\*DoneAt:\*\*|\*\*Notes:\*\*|$)/);
-      const desc = descMatch ? descMatch[1].trim() : '';
-
-      // B-202604-1001: detectar encabezado ### o formato **Criterios de aceptación:**
-      const acMatch = block.match(/###\s*Criterios de aceptaci[oó]n\s*\n([\s\S]*?)(?=\n---|\n###|$)/)
-                   || block.match(/\*\*Criterios de aceptaci[oó]n:\*\*\s*\n([\s\S]*?)(?=\n---|\n###|\n\*\*[A-Z]|$)/);
-      const ac = [];
-      if (acMatch) {
-        acMatch[1].split('\n').forEach(l => {
-          const m = l.match(/^-\s+\[[ x]\]\s+(.+)/);
-          if (m) ac.push(m[1].trim());
-        });
-      }
-
-      const createdAt      = parseInt(get('CreatedAt')) || null;
-      const statusChangedAt = parseInt(get('StatusChangedAt')) || null;
-      const doneAt          = parseInt(get('DoneAt')) || null;
-
-      // T-202604-288: blockedBy — array de códigos
-      const blockedByRaw = get('BlockedBy') || '';
-      const blockedBy = blockedByRaw ? blockedByRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
-
-      // R-202604-051: blocking — boolean, default false
-      const blockingRaw = (get('Blocking') || '').toLowerCase();
-      const blocking = blockingRaw === 'true' || blockingRaw === '1';
-
-      // Leer notes: bloque después de ### Criterios (o ac) hasta fin o ---
-      const notesMatch = block.match(/\*\*Notes:\*\*\s*(.+)/);
-      const notes = notesMatch ? notesMatch[1].trim() : '';
-
-      // T-202605-486: leer campo Archivos si existe
-      const archivosRaw = get('Archivos') || '';
-      const archivos = archivosRaw ? archivosRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
-
-      items.push({ code, title, desc, priority, area, effort, impact, status, version, sprint, parentId: parentId || null, role: role || '', origin: origin || null, ac, notes, archivos, needsAutoAssign, discardReason, discardRef, createdAt, statusChangedAt, doneAt, blockedBy, blocking: blocking || false });
-    } catch (err) {
-      console.error('[AI Tracker] parseBacklogMd block ' + blockIdx + ' error:', err.message);
-      console.error('[AI Tracker] block content (primeros 200 chars):', block.substring(0, 200));
-    }
-  });
-
-  return items;
-}
-
-// T-048+T-050: parsear metadata del Backlog.md
-function parseBacklogMeta(text) {
-  const version = (text.match(/Versión del backlog\s*\|\s*([^\n|]+)/) || [])[1]?.trim() || '';
-  const updated = (text.match(/Última actualización\s*\|\s*([^\n|]+)/) || [])[1]?.trim() || '';
-  return { version, updated };
-}
-
-// T-050: tiempo relativo con granularidad h/m
-function relativeImportTime(ts) {
-  if (!ts) return '—';
-  const diff = Date.now() - ts;
-  const mins = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-  if (mins < 1) return 'ahora';
-  if (mins < 60) return `hace ${mins}m`;
-  if (hours < 24) {
-    const remMins = mins % 60;
-    return remMins > 0 ? `hace ${hours}h ${remMins}m` : `hace ${hours}h`;
-  }
-  const remHours = hours % 24;
-  return remHours > 0 ? `hace ${days}d ${remHours}h` : `hace ${days}d`;
-}
-
 // B-202606-032: helper compartido — consume _getCountableBase() (T-202606-100)
 // Misma fuente canónica que renderStats() — garantiza universo idéntico entre banner y stats.
 function _getCountableForBanner() {
@@ -1275,189 +1120,6 @@ export function updateBacklogBanner() {
 setInterval(() => {
   if (typeof currentTab !== 'undefined' && currentTab === 'backlog') updateBacklogBanner();
 }, 60000);
-
-export function importBacklog(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = async (e) => {
-    try {
-      const text = e.target.result;
-      console.log('[AI Tracker] importBacklog: iniciando, texto length:', text.length);
-      const parsed = parseBacklogMd(text);
-      console.log('[AI Tracker] importBacklog: parseado', parsed.length, 'ítems');
-      if (!parsed.length) { 
-        console.error('[AI Tracker] Parse falló: sin ítems válidos');
-        showToast('error', 'No se encontraron ítems válidos en el archivo.'); 
-        return; 
-      }
-      
-      console.log('[AI Tracker] importBacklog: procesando ítems...');
-      let autoAssigned = 0;
-      parsed.forEach(newItem => {
-        // B-202604-193: ignorar silenciosamente ítems históricos en importación
-        if (newItem.status === 'historico') return;
-        if (newItem.needsAutoAssign && !newItem.code) {
-          let typeChar = 'T';
-          if (newItem.area && (newItem.area.includes('Bug') || newItem.area.includes('bug'))) typeChar = 'B';
-          else if (newItem.area && (newItem.area.includes('Requerimiento') || newItem.area.includes('Feature') || newItem.area.includes('Epic'))) typeChar = 'R';
-          else if (newItem.priority === 'pendiente') typeChar = 'I';
-          newItem.code = _getNextItemCode(typeChar);
-          autoAssigned++;
-        }
-        const idx = ITEMS.findIndex(i => i.code === newItem.code);
-        if (idx >= 0) {
-          // B-192: no sobreescribir ítems done/descartados en memoria con versión no-done del archivo
-          const inMemory = ITEMS[idx];
-          if (inMemory.status === 'descartado' && newItem.status !== 'descartado') return;
-          if (inMemory.status === 'done' && newItem.status === 'pendiente') return;
-          ITEMS[idx] = newItem;
-        } else {
-          // No agregar al backlog ítems descartados que no existen en memoria
-          if (newItem.status === 'descartado') return;
-          ITEMS.push(newItem);
-        }
-      });
-      
-      // T-202606-074: herencia de sprint parent R → Ts hijos post-merge
-      // AC-1: R que cambia de icebox a sprint real propaga a Ts hijos con sprint: icebox
-      // AC-2: T con sprint distinto al parent declarado en el mismo CHECKPOINT → se corrige al del parent
-      // AC-3: R que migra de sprint A a sprint B → todos sus Ts hijos migran también
-      // AC-4: Ts con status done no se modifican
-      // B-202606-XXX: rSprintMap ya no fuerza 'icebox' por fallback cuando item.sprint del R
-      // es falsy por timing del merge (sprint aún no resuelto en este pase). 'icebox' solo se
-      // propaga cuando es el valor explícito y real del R — no como valor por defecto de un gap.
-      (function _propagateSprintToChildren() {
-        // Construir mapa rCode → sprint del R tras el merge.
-        // B-202606-XXX AC-2: sin fallback || 'icebox' — item.sprint falsy se mapea a null
-        // (gap de resolución, no icebox real). item.sprint === 'icebox' explícito se conserva.
-        const rSprintMap = {};
-        ITEMS.forEach(item => {
-          if (item.code && item.code[0] === 'R' && item.status !== 'descartado') {
-            rSprintMap[item.code] = item.sprint || null;
-          }
-        });
-        // Segunda pasada: corregir Ts hijos cuyo sprint difiere del parent R
-        ITEMS.forEach(item => {
-          if (!item.parentId) return;
-          if (item.code && item.code[0] !== 'T') return;
-          // AC-4: Ts done no se modifican
-          if (item.status === 'done') return;
-          const parentSprint = rSprintMap[item.parentId];
-          // parent no encontrado, o sprint del parent no resuelto en este merge (gap) — no modificar.
-          // B-202606-XXX AC-3: evita forzar 'icebox' en el T cuando el R padre aún no tiene
-          // sprint resuelto en este pase — antes esto corrompía Ts con 'icebox' espurio.
-          if (parentSprint === undefined || parentSprint === null) {
-            if (parentSprint === null) {
-              _blogLog('sprint-no-resuelto', item.code,
-                'parent ' + item.parentId + ' sin sprint resuelto en este merge — sprint del hijo no modificado',
-                'backlog');
-            }
-            return;
-          }
-          const currentSprint = item.sprint || 'icebox';
-          if (currentSprint !== parentSprint) {
-            _blogLog('sprint-heredado', item.code,
-              item.code + ' sprint ajustado al de su parent ' + item.parentId + ': ' + parentSprint + ' (post-import)',
-              'backlog');
-            item.sprint = parentSprint;
-          }
-        });
-      })();
-
-      // B-202606-092: sincronizar status de R padre para Ts nuevos ingresados con parentId
-      // _syncParentRStatus solo se invocaba desde _applyStatusChange (cambios interactivos).
-      // Al ingestar un T nuevo en pendiente con parentId → R en en-revision quedaba inconsistente.
-      // Solución: iterar parsed, filtrar Ts con parentId y status activo, llamar _syncParentRStatus.
-      // Idempotente: _syncParentRStatus guarda contra R done/descartado (AC-5) y evalúa
-      // el estado completo de hijos en el momento de la llamada (batch-safe).
-      // AC-5 fix: capturar rCode de retorno y dispatchear shell:backlog-r-auto-advanced post-loop.
-      (function _syncParentStatusForNewTs() {
-        const affectedRCodes = new Set();
-        parsed.forEach(newItem => {
-          if (!newItem.code || newItem.code[0] !== 'T' || !newItem.parentId) return;
-          if (newItem.status === 'descartado' || newItem.status === 'historico') return;
-          const rCode = _syncParentRStatus(newItem.code, newItem.status);
-          if (rCode) affectedRCodes.add(rCode);
-        });
-        affectedRCodes.forEach(rCode => {
-          window.dispatchEvent(new CustomEvent('shell:backlog-r-auto-advanced', { detail: { rCode } }));
-        });
-      })();
-
-      console.log('[AI Tracker] importBacklog: items merged en ITEMS, total:', ITEMS.length);
-      
-      const meta = parseBacklogMeta(text);
-      meta.importedAt = Date.now();
-      const countersMatch = text.match(/Contadores:\s*P=(\d+)\s*\|\s*T=(\d+)\s*\|\s*R=(\d+)\s*\|\s*B=(\d+)/);
-      if (countersMatch) {
-        meta.counters = { P: parseInt(countersMatch[1]), T: parseInt(countersMatch[2]), R: parseInt(countersMatch[3]), B: parseInt(countersMatch[4]) };
-      }
-      
-      console.log('[AI Tracker] importBacklog: intentando setItem backlog-meta...');
-      try {
-        localStorage.setItem(_tplKey('backlog-meta'), JSON.stringify(meta));
-        console.log('[AI Tracker] importBacklog: ✓ backlog-meta guardado');
-      } catch (err) {
-        console.error('[AI Tracker] importBacklog: ERROR setItem backlog-meta:', err.name, err.message);
-        throw err;
-      }
-      
-      // NO guardar backlog-raw en localStorage (muy pesado) — solo en Firestore si disponible
-      console.log('[AI Tracker] importBacklog: backlog-raw no se guarda en localStorage (solo ítems parsedos)');
-
-      console.log('[AI Tracker] importBacklog: llamando saveBacklog()...');
-      try {
-        await saveBacklog();
-        console.log('[AI Tracker] importBacklog: ✓ saveBacklog() completado');
-      } catch (saveErr) {
-        console.error('[AI Tracker] importBacklog: saveBacklog() error:', saveErr.name, saveErr.message);
-        throw saveErr;
-      }
-
-      // T-049: mostrar filtros
-      const ftypes = document.getElementById('filter-bar-types');
-      const fstatus = document.getElementById('filter-bar-status');
-      if (ftypes) ftypes.classList.remove('is-hidden');
-      if (fstatus) fstatus.classList.remove('is-hidden');
-
-      updateBacklogBanner();
-      updateStatusFilterUI();
-      renderStats();
-      window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
-      window.dispatchEvent(new CustomEvent('shell:backlog-footer-update'));
-      window.dispatchEvent(new CustomEvent('shell:backlog-modified'));
-      // Toast enriquecido con pills de color por tipo y sprint
-      const TYPE_COLORS_TOAST = { B:'#e85555', T:'#2ecc78', R:'#38bdf8', I:'#7c6af7', P:'#7c6af7' };
-      const byTypeTst = { B:0, T:0, R:0, I:0, P:0 };
-      const sprintsTst = new Set();
-      parsed.forEach(it => {
-        const tc = it.code ? it.code[0] : 'T';
-        if (byTypeTst[tc] !== undefined) byTypeTst[tc]++;
-        if (it.sprint) sprintsTst.add(it.sprint);
-      });
-      const pillsHtml = ['R','T','B','I']
-        .filter(t => byTypeTst[t] > 0)
-        .map(t => '<span class="toast-type-pill" style="--toast-type-color:' + TYPE_COLORS_TOAST[t] + '">' + t + ' ' + byTypeTst[t] + '</span>')
-        .join(' ');
-      const sprintHtml = sprintsTst.size
-        ? '<span class="toast-sprint-pill">' + [...sprintsTst].join(', ') + '</span>'
-        : '';
-      const autoHtml = autoAssigned ? '<div class="toast-auto-hint">' + autoAssigned + ' ID' + (autoAssigned !== 1 ? 's' : '') + ' auto-asignado' + (autoAssigned !== 1 ? 's' : '') + '</div>' : '';
-      const toastMsg = '<div class="toast-import-title">✓ ' + parsed.length + ' ítem' + (parsed.length !== 1 ? 's' : '') + ' importado' + (parsed.length !== 1 ? 's' : '') + '</div><div class="toast-import-pills">' + pillsHtml + (sprintHtml ? ' ' + sprintHtml : '') + '</div>' + autoHtml;
-      showToast('success', toastMsg, null, 5000);
-      window.dispatchEvent(new CustomEvent('shell:backlog-subtab-update', { detail: { tab: 'backlog' } })); // ocultar botón importar tras bootstrap exitoso
-    } catch(err) {
-      console.error('[AI Tracker] importBacklog CATCH:', err.name, '—', err.message, err.stack);
-      const errMsg = err.name === 'QuotaExceededError' 
-        ? 'Almacenamiento lleno. Limpia sesiones archivadas o usa Firebase.' 
-        : (err.message || 'Error desconocido');
-      showToast('error', '❌ Error al importar: ' + errMsg);
-    }
-    event.target.value = '';
-  };
-  reader.readAsText(file);
-}
 
 function badgeClass(p) {
   return {high:'badge-high', medium:'badge-medium', low:'badge-low',
@@ -1781,10 +1443,10 @@ export function _applyDoneStatus(code, authorized) {
   const item = ITEMS.find(i => i.code === code);
   if (!item || item.status === 'done') return;
 
-  // Gate de tipo R — done solo es válido si llega autorizado (patch de Finn vía CHECKPOINT).
+  // Gate de tipo REQ — done solo es válido si llega autorizado (patch de Finn vía CHECKPOINT).
   // Cualquier otro origen (UI manual, drag&drop, IDP) sigue bloqueado sin excepción.
-  if ((item.type === 'R' || (item.code && item.code.startsWith('R-'))) && authorized !== true) {
-    setTimeout(() => showToast('warning', `${code} es un R — no puede marcarse done desde la UI. Requiere sesión de cierre de Finn (BR-Core §4).`, null, 7000), 0);
+  if (itemKind(item) === 'REQ' && authorized !== true) {
+    setTimeout(() => showToast('warning', `${code} es un REQ — no puede marcarse done desde la UI. Requiere sesión de cierre de Finn (BR-Core §4).`, null, 7000), 0);
     return;
   }
 
@@ -1841,7 +1503,7 @@ export function effortDots(n) {
 // R-202606-033: Rs con hijos cuentan como ítems vivos — tienen AC de coherencia propios.
 // Solo P queda excluida de contadores de trabajo activo.
 export function _isCountableItem(i) {
-  if (itemType(i.code) === 'P') return false; // P (posibilidades) no contaminan contadores de trabajo activo
+  if (itemKind(i) === 'DISC') return false; // DISC (discoveries) no contaminan contadores de trabajo activo
   return true;
 }
 
@@ -1954,7 +1616,7 @@ export function renderStats() {
     : () => true;
 
   const visible = countableItems.filter(i => {
-    const type = itemType(i.code);
+    const type = itemKind(i);
     const typeOk = type ? activeTypes.has(type) : true;
     const statusOk = activeStatuses.has(i.status);
     return typeOk && statusOk && _matchesSearch(i);
@@ -1970,14 +1632,14 @@ export function renderStats() {
   });
 
   // Por tipo (sobre visibles)
-  const byType = {B:0, T:0, R:0, P:0};
-  visible.forEach(i => { const t = itemType(i.code); if (t && byType[t] !== undefined) byType[t]++; });
+  const byType = {INC:0, TKT:0, REQ:0, DISC:0};
+  visible.forEach(i => { const t = itemKind(i); if (t && byType[t] !== undefined) byType[t]++; });
 
   // Por effort (sobre visibles)
   const byEffort = {1:0, 2:0, 3:0};
   visible.forEach(i => { const e = parseInt(i.effort)||1; if (byEffort[e] !== undefined) byEffort[e]++; });
-  // R-202605-122 AC5: contador de ítems sin effort (excluye P e históricos)
-  const noEffortCount = countableItems.filter(i => !i.effort && itemType(i.code) !== 'P' && i.status !== 'historico').length;
+  // R-202605-122 AC5 (histórico): contador de ítems sin effort (excluye DISC e históricos)
+  const noEffortCount = countableItems.filter(i => !i.effort && itemKind(i) !== 'DISC' && i.status !== 'historico').length;
 
   // T-202606-048 AC 7: Backlog sin sprint activo — render simplificado
   if (!_activeSprint) {
@@ -2008,8 +1670,8 @@ export function renderStats() {
   // Contador separado de P (ideas) — visible pero fuera del flujo de trabajo activo
   // T-202606-100: closedSprintIds disponible via _getCountableBase() — recalcular inline para Ps (no pasan _isCountableItem)
   const _closedIdsForP = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
-  // T-202606-102: excluir promovidas — pIdeasCount solo cuenta Ps con status pendiente
-  const pIdeasCount = ITEMS.filter(i => itemType(i.code) === 'P' && !(_closedIdsForP.size && _closedIdsForP.has(i.sprint)) && i.status === 'pendiente').length;
+  // T-202606-102: excluir promovidas — pIdeasCount solo cuenta DISC con status pendiente
+  const pIdeasCount = ITEMS.filter(i => itemKind(i) === 'DISC' && !(_closedIdsForP.size && _closedIdsForP.has(i.sprint)) && i.status === 'pendiente').length;
   // T-202606-101: desglose histórico — fuente real: ITEMS en memoria
   const _emitidos = ITEMS.length;
   const _descartadosTotal = ITEMS.filter(i => i.status === 'descartado').length;
@@ -2020,7 +1682,7 @@ export function renderStats() {
   const _activosTotal = ITEMS.filter(i =>
     (i.status === 'pendiente' || i.status === 'en-revision') &&
     !(_closedIdsForActivos.size && _closedIdsForActivos.has(i.sprint)) &&
-    !(itemType(i.code) === 'P' && i.status === 'promovida')
+    !(itemKind(i) === 'DISC' && i.status === 'promovida')
   ).length;
 
   // UX-redesign: stats bar en una sola fila compacta — pendientes primero (foco en trabajo activo)
@@ -2140,7 +1802,7 @@ export function toggleSectionGroup(key) {
 
 // T-109: limpiar todos los filtros
 export function clearAllFilters() {
-  activeTypes = new Set(['T','R','B','P']);
+  activeTypes = new Set(['TKT','REQ','INC','DISC']);
   activeStatuses = new Set(['pendiente', 'en-revision']);
   try { localStorage.removeItem(_ACTIVE_STATUSES_KEY); } catch {} // T-202606-021: reset persiste
   activeEfforts = new Set([1, 2, 3]); // T-071
@@ -2330,7 +1992,7 @@ export function _getMiViewRoles() {
   if (!activeSprint) return [];
   const roles = new Set();
   ITEMS.forEach(i => {
-    if (itemType(i.code) === 'T' && i.status === 'pendiente' && i.sprint === activeSprint.id && i.role && i.role.trim())
+    if (itemKind(i) === 'TKT' && i.status === 'pendiente' && i.sprint === activeSprint.id && i.role && i.role.trim())
       roles.add(i.role.trim());
   });
   return [...roles].sort();
@@ -2459,9 +2121,7 @@ export function getDoneItems(matchesQuery)   { // T-202606-028: computed global 
   const fn = typeof matchesQuery === 'function' ? matchesQuery : () => true;
   // T-202606-060: typeOk aplicado — el chip de tipo de stats bar debe combinarse en AND con status done
   return ITEMS.filter(i => {
-    const type = itemType(i.code);
-    const typeOk = type ? activeTypes.has(type) : true;
-    return i.status === 'done' && _isCountableItem(i) && typeOk && fn(i);
+    const type = itemKind(i);
   });
 }
 export function _getBacklogSortMode()        { return backlogSortMode; }
@@ -2494,7 +2154,7 @@ function _resetDepsFilter() {
 
 // T-202606-058: fila de chips activos — colección de filtros fuera del estado default
 // Retorna array de { label, removeFn } para cada filtro activo.
-// Estado default: activeStatuses={'pendiente','en-revision'} · activeTypes={T,R,B,P} ·
+// Estado default: activeStatuses={'pendiente','en-revision'} · activeTypes={TKT,REQ,INC,DISC} ·
 //   activeEfforts={1,2,3} · activePriorityFilter=vacío · activeRoleFilter=null ·
 //   _backlogNoAcMode=false · _depsFilter=0 · backlogSearchQuery=''
 function _getActiveFilterChips() {
@@ -2793,7 +2453,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (_backlogNoAcMode) toggleBacklogNoAcMode();
       if (_depsFilter > 0) _resetDepsFilter();
       // AC11: resetear activeTypes al conjunto completo
-      activeTypes = new Set(['T','R','B','P']);
+      activeTypes = new Set(['TKT','REQ','INC','DISC']);
       updateTypeFilterUI();
       if (localStorage.getItem('backlog-show-children') === '1') {
         const _tbHijos = document.getElementById('fbar-show-children-btn');

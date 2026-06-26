@@ -1,10 +1,10 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:46 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:47 · autor:Rune · 2026-06-26 17:08 UTC-6
 // locus-session-save.js
 // Última actualización: B-202606-105 — CHANGELOG_KEY local eliminada, usa LOCUS_KEYS.CHANGELOG
 // (locus-storage.js) como fuente única de verdad de la clave de changelog.
 // Responsabilidad: changelog, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
-import { loadBacklog, renderStats, getItems} from './locus-backlog-core.js';
+import { loadBacklog, renderStats, getItems, itemKind } from './locus-backlog-core.js';
 import { applyPatchesFromTG, mergeBacklogFromTG } from './locus-backlog-item.js';
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
@@ -32,14 +32,16 @@ import { showToast } from './locus-toast.js';
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
-// T-202606-020 · AC-5: tabla de transiciones válidas por tipo de ítem — BR-Core §4
-// Clave: tipo de ítem ('R' | 'T' | 'B' | 'P'). Valor: Set de status permitidos.
+// T-202606-020 · AC-5 · TKT0c-gen2: tabla de transiciones válidas por tipo de ítem — BR-Core §4
+// Clave: tipo de ítem Gen2 ('REQ' | 'TKT' | 'INC' | 'DISC'). Valor: Set de status permitidos.
+// Sets exactos de __BR-Ecosystem §5 — no es 1:1 con los sets Gen1 que reemplaza:
+// REQ amplía a en-proceso/orphaned (no existían en R). INC usa ciclo ITIL completo (no el de B).
 // Nota: tipo desconocido → no validar (AC-6, ignorar silenciosamente).
 export const VALID_TRANSITIONS = {
-  R: new Set(['pendiente', 'en-revision', 'bloqueado', 'descartado', 'done']),
-  T: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
-  B: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
-  P: new Set(['pendiente', 'promovida', 'descartado'])
+  REQ: new Set(['pendiente', 'en-proceso', 'en-revision', 'bloqueado', 'orphaned', 'descartado']),
+  TKT: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
+  INC: new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']),
+  DISC: new Set(['discovery', 'promoted', 'descartado'])
 };
 
 // T-202606-020 · AC-2 · AC-5 · AC-6
@@ -50,7 +52,7 @@ export function validateLifecycleTransitions(tgItems) {
   if (!tgItems || !tgItems.length) return [];
   const invalid = [];
   tgItems.forEach(item => {
-    const type   = item.type || (item.code ? item.code.charAt(0) : '');
+    const type   = itemKind(item);
     const status = item.status;
     // AC-6: tipo desconocido → ignorar silenciosamente
     if (!type || !VALID_TRANSITIONS[type]) return;
@@ -59,14 +61,12 @@ export function validateLifecycleTransitions(tgItems) {
     if (!VALID_TRANSITIONS[type].has(status)) {
       // Construir motivo legible para el panel DIFF (AC-3)
       let reason = '';
-      if (type === 'P' && status === 'done') {
-        reason = 'P no puede tener status done — solo promovida o descartado';
-      } else if (type === 'R' && status === 'done') {
-        reason = 'R no puede marcarse done directamente — requiere sesión de cierre de Finn';
-      } else if (type === 'T' && status === 'bloqueado') {
-        reason = 'T no puede tener status bloqueado — solo pendiente, en-revision, done o descartado';
-      } else if (type === 'B' && status === 'bloqueado') {
-        reason = 'B no puede tener status bloqueado — solo pendiente, en-revision, done o descartado';
+      if (type === 'DISC' && status === 'done') {
+        reason = 'DISC no puede tener status done — solo promoted o descartado';
+      } else if (type === 'REQ' && status === 'done') {
+        reason = 'REQ no puede marcarse done directamente — requiere sesión de cierre de Finn';
+      } else if (type === 'TKT' && status === 'bloqueado') {
+        reason = 'TKT no puede tener status bloqueado — solo pendiente, en-revision, done o descartado';
       } else {
         reason = `${type} no puede tener status '${status}' según BR-Core §4`;
       }
@@ -492,7 +492,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
 
   // v3.0.0: tracker del proyecto activo — también aquí para atomicidad con sessions[].
   // Sin esto, tracker.items quedaría con sessionId huérfano si el usuario cancela el panel.
-  if (!activeProj.tracker) activeProj.tracker = { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
+  if (!activeProj.tracker) activeProj.tracker = { items: [], counters: { DISC: 0, TKT: 0, REQ: 0, INC: 0 } };
   const tracker = activeProj.tracker;
   let newCount = 0, updCount = 0;
   tgItems.forEach(item => {
@@ -502,8 +502,8 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
       updCount++;
     } else {
       const c = tracker.counters;
-      const numMatch = item.code.match(/[PTRB]-\d{6}-(\d{3})/);
-      if (numMatch) { const num = parseInt(numMatch[1]); if (num >= (c[item.type] || 0)) c[item.type] = num; }
+      const numMatch = item.code.match(/^(DISC|TKT|REQ|INC)-\d{6}-(\d{3})/);
+      if (numMatch) { const num = parseInt(numMatch[2]); const key = numMatch[1]; if (num >= (c[key] || 0)) c[key] = num; }
       tracker.items.push({id:'tgi-'+Date.now()+'-'+Math.random().toString(36).slice(2,6), code:item.code, desc:item.desc, status:item.status, sessionId:sessId});
       newCount++;
     }

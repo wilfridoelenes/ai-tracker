@@ -1,10 +1,10 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:65 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:66 · autor:Rune · 2026-06-26 17:08 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
-import { renderStats, getItems, normalizeStatus} from './locus-backlog-core.js';
+import { renderStats, getItems, normalizeStatus, itemKind } from './locus-backlog-core.js'; // TKT0-gen2: itemKind agregado
 import { _isPlaceholderCode, applyPatchesFromTG, _assignPendingIds } from './locus-backlog-item.js'; // T-202606-089 AC-3
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { renderBacklogList } from './locus-backlog-render.js';
@@ -381,12 +381,12 @@ export function _normalizeSprint(item, pendingItems) {
       return;
     }
   }
-  // T-202606-036 AC3 / T-202606-158: T con parentId — heredar sprint del parent si difiere.
+  // T-202606-036 AC3 / T-202606-158: TKT con parentId — heredar sprint del parent si difiere.
   // Busca el parent primero en pendingItems (ítems del CHECKPOINT actual aún no persistidos)
-  // y luego en getItems() (backlog persistido), para cubrir el caso en que R y T vienen en el mismo CHECKPOINT.
+  // y luego en getItems() (backlog persistido), para cubrir el caso en que REQ y TKT vienen en el mismo CHECKPOINT.
   // T-202606-015: guards AC4 (placeholder parentId), AC5 (parent inexistente + advertencia),
   //   y verificación de status active/programado antes de heredar (AC1).
-  if (item.parentId && item.code && item.code[0] === 'T') {
+  if (item.parentId && item.code && itemKind(item) === 'TKT') {
     // AC-4: parentId placeholder → sin herencia automática
     if (_isPlaceholderCode(item.parentId)) return;
     const _allItems = getItems();
