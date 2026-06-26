@@ -1,5 +1,7 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:6 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:7 · autor:Rune · 2026-06-25 UTC-6
 // locus-sesiones-viz.js
+// INC-[pendiente-ID]: import de esc agregado (faltaba) — ReferenceError en openCorrectHora resuelto.
+//   esc local redundante en showCheckpointPanel eliminada — una sola fuente desde locus-ui-shell.js
 // T-202606-010: 2 call sites huérfanos renderHoy eliminados (guard typeof inerte)
 // Responsabilidad: Panel diff de CHECKPOINT (showCheckpointPanel), Item Viz Panel
 //   (_showItemVizPanel), corrección de hora (openCorrectHora).
@@ -8,7 +10,7 @@
 // Carga después de: locus-sesiones-stats.js · locus-sesiones-capture.js
 import { render } from './locus-sesiones.js';
 import { getItems } from './locus-backlog-core.js';
-import { switchSubTab, switchTab } from './locus-ui-shell.js';
+import { switchSubTab, switchTab, esc } from './locus-ui-shell.js';
 
 import { fmt12, interpretHora } from './locus-session-hora.js';
 
@@ -496,7 +498,6 @@ export function showCheckpointPanel(data) {
   _lastCheckpointResult = data;
 
   const _isInfoOnly = (v) => !v || v.trim().toLowerCase() === 'n/a';
-  const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
   const sections = [
     { key: 'created',   label: '✅ Creados',      cls: 'ckpt-created'   },
