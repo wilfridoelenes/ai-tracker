@@ -1704,7 +1704,7 @@ function _findTmpMatch(tmpCode, desc, existingItems, incomingType) {
 //   slugMap mapea [tmp:slug] y [pendiente-ID] asignado → código real.
 //   Ítems con código real existente se registran como identidad: code → code.
 // T-202605-140 T2: Paso 2 — resolver referencias cruzadas (dependsOn, parentId,
-//   triggeredBy, origenP, promovida_a) usando slugMap. Referencia no resuelta → null/[].
+//   triggeredBy, origenDisc, promovida_a) usando slugMap. Referencia no resuelta → null/[].
 export function _assignPendingIds(tgItems) {
   const validTypes = new Set(['P', 'T', 'R', 'B']);
   const reservedCodes = new Set();
@@ -1727,7 +1727,7 @@ export function _assignPendingIds(tgItems) {
   // y construir slugMap completo ANTES de resolver cualquier referencia cruzada.
   const paso1 = tgItems.map(item => {
     // T-202606-005: [tmp:slug] con type válido — asignar código real y registrar en slugMap
-    // para que las referencias cruzadas (parent, depends_on, triggered_by, origen_p, promovida_a)
+    // para que las referencias cruzadas (parent, depends_on, triggered_by, origen_disc, promovida_a)
     // dentro del mismo bloque resuelvan correctamente.
     // [tmp:slug] sin type válido: conservar literal — siguen flujo _findTmpMatch existente.
     if (item.code && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
@@ -1763,14 +1763,14 @@ export function _assignPendingIds(tgItems) {
   }
 
   // T-202605-140 T2 · Paso 2: resolver referencias cruzadas usando slugMap
-  // Campos de referencia: dependsOn, parentId, triggeredBy, origenP, promovida_a
+  // Campos de referencia: dependsOn, parentId, triggeredBy, origenDisc, promovida_a
   // Referencia presente en slugMap → reemplazar con código real.
   // [pendiente-ID] no resuelta → conservar literal — puede resolverse en pasada posterior.
   // [tmp:slug] no resuelta → null/[] + _blogLog('tmp-slug-no-resoluble') — slug sin type
   //   que no aparece como ítem en el bloque: no tiene sentido conservar la referencia.
   // Referencia con formato de código real (no placeholder) no existente en backlog →
   //   null/[] + _blogLog('ref-no-resuelta') — el código debería existir y no existe.
-  const _refFields = ['parentId', 'triggeredBy', 'origenP', 'promovida_a'];
+  const _refFields = ['parentId', 'triggeredBy', 'origenDisc', 'promovida_a'];
   const _listFields = ['dependsOn'];
 
   const resolvedItems = paso1.map(item => {
@@ -2055,24 +2055,24 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       }
       // R-202604-051: blocking
       if (item.blocking === true && !existing.blocking) { changes.push({ field: 'blocking', from: '—', to: 'true' }); if (!_dryRun) { existing.blocking = true; changed = true; } }
-      // T-202605-137: promovida_a — actualizar en la P y escribir origenP en el ítem destino
+      // T-202605-137: promovida_a — actualizar en la P y escribir origenDisc en el ítem destino
       if (item.promovida_a && item.promovida_a !== existing.promovida_a) {
         changes.push({ field: 'promovida_a', from: existing.promovida_a || '—', to: item.promovida_a });
         if (!_dryRun) {
           existing.promovida_a = item.promovida_a;
           changed = true;
-          // AC edge case: si promovida_a apunta a código real existente, escribir origenP en el destino
+          // AC edge case: si promovida_a apunta a código real existente, escribir origenDisc en el destino
           if (!_isPlaceholderCode(item.promovida_a)) {
             const destItem = getItems().find(i => i.code === item.promovida_a);
-            if (destItem && !destItem.origenP) {
-              destItem.origenP = existing.code;
-              _blogLog('origen-p-escrito', existing.code, existing.code + ' → origenP en ' + item.promovida_a, 'backlog');
+            if (destItem && !destItem.origenDisc) {
+              destItem.origenDisc = existing.code;
+              _blogLog('origen-disc-escrito', existing.code, existing.code + ' → origenDisc en ' + item.promovida_a, 'backlog');
             }
           }
         }
       }
-      // origenP: entrante gana si trae valor; si vacío no degrada el existente
-      if (item.origenP && item.origenP !== existing.origenP) { changes.push({ field: 'origenP', from: existing.origenP || '—', to: item.origenP }); if (!_dryRun) { existing.origenP = item.origenP; changed = true; } }
+      // origenDisc: entrante gana si trae valor; si vacío no degrada el existente
+      if (item.origenDisc && item.origenDisc !== existing.origenDisc) { changes.push({ field: 'origenDisc', from: existing.origenDisc || '—', to: item.origenDisc }); if (!_dryRun) { existing.origenDisc = item.origenDisc; changed = true; } }
       // Estampar sessionId siempre que venga uno (CHECKPOINT más reciente gana)
       if (!_dryRun && sessionId && existing.sessionId !== sessionId) { existing.sessionId = sessionId; changed = true; }
 
@@ -2197,7 +2197,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           parentId: _resolvedParentId,
           dependsOn: item.dependsOn || [],
           triggeredBy: item.triggeredBy || null,
-          origenP: item.origenP || null,
+          origenDisc: item.origenDisc || null,
           promovida_a: item.promovida_a || null,
           // T-202606-025: persistir discard_reason en cualquier tipo con status descartado
           ...(initialStatus === 'descartado' && item.discard_reason !== undefined
@@ -2414,7 +2414,7 @@ export function _checkAndOrphanParentR(childCode, nowTs) {
 // AC-8: mezcla ítems + patches en mismo ---getItems()--- → parser separa por type
 // AC-9: panel diff muestra solo campos del patch (changes array)
 // AC-11: sin regresión en mergeBacklogFromTG
-const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId', 'promovida_a', 'origenP', 'discard_reason']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable · T-202605-137: promovida_a + origenP patcheables · T-202606-025: discard_reason patcheable
+const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId', 'promovida_a', 'origenDisc', 'discard_reason']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable · T-202605-137: promovida_a + origenDisc patcheables · T-202606-025: discard_reason patcheable
 const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version']);
 
 export function applyPatchesFromTG(patches, sessionId, opts) {
@@ -2555,8 +2555,8 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
         return;
       }
 
-      // Resto de campos patcheables: title, priority, effort, area, role, origenP
-      // T-202605-137: promovida_a — campo especial: al patchear en una P, escribir origenP en el destino
+      // Resto de campos patcheables: title, priority, effort, area, role, origenDisc
+      // T-202605-137: promovida_a — campo especial: al patchear en una P, escribir origenDisc en el destino
       // T-202606-019: si promovida_a es placeholder → intentar resolver contra getItems() (ítems recién ingresados)
       if (field === 'promovida_a') {
         if (incoming !== undefined && incoming !== null && incoming !== current) {
@@ -2564,16 +2564,16 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
           // T-202606-019 AC1: resolver placeholder contra ítems ya en getItems()
           // mergeBacklogFromTG corre antes de applyPatchesFromTG — los ítems nuevos ya tienen código real
           if (_isPlaceholderCode(incoming) && typeof getItems() !== 'undefined') {
-            // Buscar ítem recién creado cuyo origenP apunta a esta P, o cuyo código es real y fue
-            // creado en este CHECKPOINT (no tiene origenP aún pero puede inferirse si solo hay un candidato)
+            // Buscar ítem recién creado cuyo origenDisc apunta a esta P, o cuyo código es real y fue
+            // creado en este CHECKPOINT (no tiene origenDisc aún pero puede inferirse si solo hay un candidato)
             const candidates = getItems().filter(i =>
               !_isPlaceholderCode(i.code) &&
-              (i.origenP === existing.code || (!i.origenP && i.code !== existing.code))
+              (i.origenDisc === existing.code || (!i.origenDisc && i.code !== existing.code))
             );
-            // Preferir candidato con origenP ya escrito (resolución determinista)
-            const withOrigenP = candidates.find(i => i.origenP === existing.code);
-            if (withOrigenP) {
-              resolvedIncoming = withOrigenP.code;
+            // Preferir candidato con origenDisc ya escrito (resolución determinista)
+            const withOrigenDisc = candidates.find(i => i.origenDisc === existing.code);
+            if (withOrigenDisc) {
+              resolvedIncoming = withOrigenDisc.code;
             } else {
               // No resoluble con certeza — conservar placeholder + advertencia
               _blogLog('promovida-a-placeholder-en-patch', existing.code,
@@ -2583,12 +2583,12 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
           }
           changes.push({ field, from: current !== undefined ? current : '—', to: resolvedIncoming });
           existing[field] = resolvedIncoming;
-          // AC edge case: si promovida_a apunta a código real existente, escribir origenP en el destino
+          // AC edge case: si promovida_a apunta a código real existente, escribir origenDisc en el destino
           if (!_isPlaceholderCode(resolvedIncoming)) {
             const destItem = (typeof getItems() !== 'undefined') ? getItems().find(i => i.code === resolvedIncoming) : null;
-            if (destItem && !destItem.origenP) {
-              destItem.origenP = existing.code;
-              _blogLog('origen-p-escrito', existing.code, existing.code + ' → origenP en ' + resolvedIncoming, 'backlog');
+            if (destItem && !destItem.origenDisc) {
+              destItem.origenDisc = existing.code;
+              _blogLog('origen-disc-escrito', existing.code, existing.code + ' → origenDisc en ' + resolvedIncoming, 'backlog');
             }
           }
         }

@@ -1,4 +1,4 @@
-// [PP] mod:53 · autor:Rune · 2026-06-26 UTC-6
+// [PP] mod:54 · autor:Rune · 2026-06-26 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -78,7 +78,7 @@ export function normalizeStatus(raw, type) {
   if (s === 'en-revision') return 'en-revision';
   if (s === 'descartado')  return 'descartado';
   if (s === 'historico')   return 'historico';
-  if (s === 'promovida')   return type === 'DISC' ? 'promovida' : 'pendiente';
+  if (s === 'promovida' || s === 'promoted') return type === 'DISC' ? 'promoted' : 'pendiente';
   if (s === 'pendiente')   return 'pendiente';
   // Valor desconocido → pendiente
   return 'pendiente';
@@ -189,19 +189,19 @@ export function _updateUndoUI() {
 
 let backlogSearchQuery = '';
 
-// T-202606-005 (T2): namespaces de filtro aislados por subtab — icebox y hotfix tienen su
+// T-202606-005 (T2): namespaces de filtro aislados por subtab — q-backlog y hotfix tienen su
 // propio state independiente del state global de Backlog (activeTypes/activeStatuses/etc).
 // Cold start: todos los tipos/statuses habilitados, searchQuery vacío — sin herencia del global.
 const _subtabNS = {
-  icebox: {
+  'q-backlog': {
     types:    new Set(['TKT','REQ','INC','DISC']),
-    statuses: new Set(['pendiente','en-revision','done','descartado','promovida']),
+    statuses: new Set(['pendiente','en-revision','done','descartado','promoted']),
     priority: new Set(),
     query:    ''
   },
   hotfix: {
     types:    new Set(['TKT','REQ','INC','DISC']),
-    statuses: new Set(['pendiente','en-revision','done','descartado','promovida']),
+    statuses: new Set(['pendiente','en-revision','done','descartado','promoted']),
     priority: new Set(),
     query:    ''
   }
@@ -237,7 +237,7 @@ export function _nsTogglePriority(sub, pri) {
 export function _nsReset(sub) {
   if (!_subtabNS[sub]) return;
   _subtabNS[sub].types    = new Set(['TKT','REQ','INC','DISC']);
-  _subtabNS[sub].statuses = new Set(['pendiente','en-revision','done','descartado','promovida']);
+  _subtabNS[sub].statuses = new Set(['pendiente','en-revision','done','descartado','promoted']);
   _subtabNS[sub].priority = new Set();
   _subtabNS[sub].query    = '';
 }
@@ -445,8 +445,7 @@ export function _hasRecentSession(item) {
 //   5. Todo lo demás → medium
 export function _calcPriority(item) {
   if (!item) return 'medium';
-  const type = (item.code || '')[0];
-  if (type === 'B') return 'high';
+  if (itemKind(item) === 'INC') return 'high';
   if (item.sprint) {
     const sp = (_coreCallbacks.getSprintById || (() => null))(item.sprint);
     // T-202605-529: guard explícita — si el sprint asignado no tiene registro en getSprintById,
@@ -797,7 +796,7 @@ function _normalizeItems(items) {
   });
 
   // T-202606-038: validar asignación a sprint HOTFIX — solo INC con priority: high
-  // Cualquier ítem que no cumpla ambas condiciones: sprint limpiado a icebox con DocLog.
+  // Cualquier ítem que no cumpla ambas condiciones: sprint limpiado (sin sprint) con DocLog.
   // BR-Core §6: [Prefijo]-S-HOTFIX solo acepta INC con priority: high.
   items.forEach(item => {
     if (!item.sprint || !item.sprint.endsWith('-S-HOTFIX')) return;
@@ -810,10 +809,10 @@ function _normalizeItems(items) {
       _blogLog(
         'hotfix-rejected',
         item.code || '(sin código)',
-        `${item.sprint} rechazado: ${reason} → sprint limpiado a icebox`,
+        `${item.sprint} rechazado: ${reason} → sprint limpiado (movido a Q-Backlog)`,
         'backlog'
       );
-      delete item.sprint; // icebox canónico = ausencia de campo
+      delete item.sprint; // sin sprint = Q-Backlog canónico
     }
   });
 
@@ -976,15 +975,15 @@ function updateTypeFilterUI() {
 }
 
 // T-049: toggle filtros status
-// [pendiente-ID]: descartado sincroniza promovida — bloque Cerradas unificado
+// [pendiente-ID]: descartado sincroniza promoted — bloque Cerradas unificado
 export function toggleStatusFilter(status) {
   if (status === 'done' || status === 'descartado') {
     if (activeStatuses.has(status)) {
       activeStatuses.delete(status);
-      if (status === 'descartado') activeStatuses.delete('promovida');
+      if (status === 'descartado') activeStatuses.delete('promoted');
     } else {
       activeStatuses.add(status);
-      if (status === 'descartado') activeStatuses.add('promovida');
+      if (status === 'descartado') activeStatuses.add('promoted');
     }
   } else {
     // pendiente y en-revision: no toggleable a off si es el único activo
@@ -1303,8 +1302,8 @@ function _applyStatusChange(code, newStatus, prevStatus) {
   if (newStatus === 'done' || newStatus === 'descartado') {
     item.closedInVersion = _effectiveVersion();
   }
-  // Capa 2 — done+icebox: alerta informativa per BR-Ecosystem §5 (suave — no bloquea)
-  if (newStatus === 'done' && (!item.sprint || item.sprint === 'icebox')) {
+  // Capa 2 — done sin sprint (Q-Backlog): alerta informativa per BR-Ecosystem §5 (suave — no bloquea)
+  if (newStatus === 'done' && (!item.sprint || item.sprint === '')) {
     setTimeout(() => showToast('warning', `${code} marcado done sin sprint asignado — asignar a sprint para trazabilidad correcta.`, null, 6000), 400);
   }
   // R-202604-015: registrar cambio en history[]
@@ -1455,8 +1454,8 @@ export function _applyDoneStatus(code, authorized) {
   item.statusChangedAt = Date.now();
   if (!item.doneAt) item.doneAt = Date.now();
   item.closedInVersion = _effectiveVersion();
-  // Capa 2 — done+icebox: alerta informativa per BR-Ecosystem §5 (suave — no bloquea)
-  if (!item.sprint || item.sprint === 'icebox') {
+  // Capa 2 — done sin sprint (Q-Backlog): alerta informativa per BR-Ecosystem §5 (suave — no bloquea)
+  if (!item.sprint || item.sprint === '') {
     setTimeout(() => showToast('warning', `${code} marcado done sin sprint asignado — asignar a sprint para trazabilidad correcta.`, null, 6000), 400);
   }
   if (!item.history) item.history = [];
@@ -1507,11 +1506,13 @@ export function _isCountableItem(i) {
   return true;
 }
 
-// B-202606-076 — definición canónica única de "ítem de icebox". Consumida por
-// _getCountableBaseForSubtab() (este archivo) y por renderIceboxPanel() (locus-backlog-render.js),
-// que la importa en lugar de mantener su propia copia local de la misma condición.
-export function _isIcebox(i) {
-  return !i.sprint || i.sprint === 'icebox' || i.sprint === '';
+// Gen2 — zonas Q-Backlog y Q-DISC. Consumidas por _getCountableBaseForSubtab() (este archivo)
+// y por los paneles Q-Backlog / Q-DISC en locus-backlog-render.js (Cluster C).
+export function _isQBacklog(i) {
+  return (itemKind(i) === 'REQ' || itemKind(i) === 'TKT') && (!i.sprint || i.sprint === '');
+}
+export function _isQDisc(i) {
+  return itemKind(i) === 'DISC' && (!i.sprint || i.sprint === '');
 }
 
 // T-202606-100: _getCountableBase() — función canónica compartida entre renderStats() y _getCountableForBanner()
@@ -1527,7 +1528,7 @@ export function _getCountableBase() {
     i.status !== 'descartado' &&
     i.status !== 'historico' &&
     !(i.sprint && closedSprintIds.has(i.sprint)) &&
-    !(i.status === 'done' && (!i.sprint || i.sprint === 'icebox'))
+    !(i.status === 'done' && (!i.sprint || i.sprint === ''))
   );
 }
 
@@ -1535,12 +1536,15 @@ export function _getCountableBase() {
 // no_incluye T-202606-008: no extiende _getCountableBase() — cada subtab usa su propio
 // filtro directo sobre ITEMS, declarado explícitamente por AC en lugar de heredar
 // exclusiones diseñadas para el universo del backlog regular (T-202606-100).
-// B-202606-076 AC1: usa _isIcebox() compartida — antes filtraba sprint==='icebox' estricto,
-// lo que excluía ítems con sprint vacío/null que sí cuenta renderIceboxPanel() como icebox.
+// Gen2: subtabs q-backlog y q-disc reemplazan a icebox.
 export function _getCountableBaseForSubtab(sub) {
-  if (sub === 'icebox') {
-    // AC1 — universo Icebox: filtro directo, sin pasar por _getCountableBase()
-    return ITEMS.filter(i => _isIcebox(i) && i.status !== 'descartado' && i.status !== 'historico');
+  if (sub === 'q-backlog') {
+    // universo Q-Backlog: REQ/TKT sin sprint asignado
+    return ITEMS.filter(i => _isQBacklog(i) && i.status !== 'descartado' && i.status !== 'historico');
+  }
+  if (sub === 'q-disc') {
+    // universo Q-DISC: DISC sin sprint asignado
+    return ITEMS.filter(i => _isQDisc(i) && i.status !== 'descartado' && i.status !== 'historico');
   }
   if (sub === 'hotfix') {
     // AC6 — universo Hotfix: ítems cuyo sprint matchea el sprint S-HOTFIX activo del proyecto
@@ -1670,19 +1674,19 @@ export function renderStats() {
   // Contador separado de P (ideas) — visible pero fuera del flujo de trabajo activo
   // T-202606-100: closedSprintIds disponible via _getCountableBase() — recalcular inline para Ps (no pasan _isCountableItem)
   const _closedIdsForP = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
-  // T-202606-102: excluir promovidas — pIdeasCount solo cuenta DISC con status pendiente
+  // T-202606-102: excluir promoted — pIdeasCount solo cuenta DISC con status pendiente
   const pIdeasCount = ITEMS.filter(i => itemKind(i) === 'DISC' && !(_closedIdsForP.size && _closedIdsForP.has(i.sprint)) && i.status === 'pendiente').length;
   // T-202606-101: desglose histórico — fuente real: ITEMS en memoria
   const _emitidos = ITEMS.length;
   const _descartadosTotal = ITEMS.filter(i => i.status === 'descartado').length;
-  const _promovidasTotal = ITEMS.filter(i => i.status === 'promovida').length;
+  const _promovidasTotal = ITEMS.filter(i => i.status === 'promoted').length;
   const _cerradosSinTrabajo = _descartadosTotal + _promovidasTotal;
   const _doneTotal = ITEMS.filter(i => i.status === 'done').length;
   const _closedIdsForActivos = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
   const _activosTotal = ITEMS.filter(i =>
     (i.status === 'pendiente' || i.status === 'en-revision') &&
     !(_closedIdsForActivos.size && _closedIdsForActivos.has(i.sprint)) &&
-    !(itemKind(i) === 'DISC' && i.status === 'promovida')
+    !(itemKind(i) === 'DISC' && i.status === 'promoted')
   ).length;
 
   // UX-redesign: stats bar en una sola fila compacta — pendientes primero (foco en trabajo activo)
@@ -2197,9 +2201,9 @@ function _getActiveFilterChips() {
   }
 
   // Tipos excluidos (cuando activeTypes no tiene los 4)
-  ['T', 'R', 'B', 'P'].forEach(function (t) {
+  ['TKT', 'REQ', 'INC', 'DISC'].forEach(function (t) {
     if (!activeTypes.has(t)) {
-      const _tLabel = t === 'T' ? 'Sin Tickets' : t === 'R' ? 'Sin Reqs' : t === 'B' ? 'Sin Bugs' : 'Sin Ideas';
+      const _tLabel = t === 'TKT' ? 'Sin Tickets' : t === 'REQ' ? 'Sin Reqs' : t === 'INC' ? 'Sin Bugs' : 'Sin Ideas';
       chips.push({ label: _tLabel, key: 'type:!' + t, removeFn: (function (_t) {
         return () => toggleTypeFilter(_t);
       }(t)) });

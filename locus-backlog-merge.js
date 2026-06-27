@@ -1,4 +1,4 @@
-// [PP] mod:23 · autor:Rune · 2026-06-26
+// [PP] mod:24 · autor:Rune · 2026-06-26 23:15 UTC-6
 // locus-backlog-merge.js
 // Última actualización: T-202606-006: _mdiffStepZeroActive + listener storage:item-excluded
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -175,7 +175,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     'en-revision': 'en-revision',
     'done':        'done',
     'descartado':  'descartado',
-    'promovida':   'promovida',
+    'promoted':    'promoted',
     'bloqueado':   'bloqueado',
   };
 
@@ -202,25 +202,23 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     const item = getItems().find(i => i.code === code);
     // B-202606-032: para ítems nuevos (item === null), usar sprintOverride del objeto diff como fuente
     const rawSprint = item ? (item.sprint || '') : (sprintOverride || '');
-    // R-202605-148 AC: si el sprint asignado ya no existe, mostrar 'Sin sprint' como fallback
-    // B-202606-032 AC-2: icebox no es sprint real — se trata como opción especial, no como fallback a ''
+    // B-202606-0XX (TKT-B2): sin sprint asignado = valor vacío — Q-Backlog, no icebox (Gen1 deprecado).
     // B-202606-044: el CHECKPOINT puede declarar sprint como label completo ('PP-S-04 · Nombre')
     //   o como id corto ('PP-S-04'). Buscar por id primero, luego por label como fallback.
-    const isIcebox = rawSprint === 'icebox';
-    const _matchById    = rawSprint && !isIcebox ? openSprints.find(s => s.id    === rawSprint) : null;
-    const _matchByLabel = !_matchById && rawSprint && !isIcebox ? openSprints.find(s => s.label === rawSprint) : null;
+    const isUnassigned = !rawSprint;
+    const _matchById    = rawSprint ? openSprints.find(s => s.id    === rawSprint) : null;
+    const _matchByLabel = !_matchById && rawSprint ? openSprints.find(s => s.label === rawSprint) : null;
     const _matched      = _matchById || _matchByLabel || null;
     const sprintExists  = !!_matched;
     const currentSprint = sprintExists ? _matched.id : '';
     const options = openSprints.map(s =>
       `<option value="${esc(s.id)}" ${currentSprint === s.id ? 'selected' : ''}>${esc(s.label || s.id)}</option>`
     ).join('');
-    // B-202606-054: 'Sin sprint' (value='') eliminado — valor inválido según BR-Ecosystem §5.
-    // El select solo expone icebox y sprints formales abiertos.
+    // B-202606-0XX (TKT-B2): 'Sin sprint (Q-Backlog)' (value='') reemplaza icebox como opción especial.
     return `<select class="mdiff-sprint-select" data-item-code="${esc(code)}"
       data-action="mdiff-set-sprint"
       data-stop-propagation="true">
-      <option value="icebox" ${isIcebox || !currentSprint ? 'selected' : ''}>icebox</option>
+      <option value="" ${isUnassigned || !currentSprint ? 'selected' : ''}>Sin sprint (Q-Backlog)</option>
       ${options}
       <option value="__new__">＋ Nuevo sprint...</option>
     </select>`;
@@ -582,16 +580,16 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         if (body) body.innerHTML = _buildNarrativeSection() + sectionsHtml;
         _renderTriggeredBySuggestion();
 
-        // T-202606-164: gate de revisión icebox — prompt no-bloqueante post-aprobación
+        // T-202606-164 (TKT-B2): gate de revisión ítems sin sprint — prompt no-bloqueante post-aprobación
         // AC-1: aparece al confirmar Step 0, antes de que el founder interactúe con el DIFF
         // AC-2: no-bloqueante — el founder puede cerrarlo y el sprint ya está activo
-        // AC-3: lista ítems icebox cuya area aparece en el scope del sprint (case-insensitive)
+        // AC-3: lista ítems sin sprint cuya area aparece en el scope del sprint (case-insensitive)
         const _scopeRaw = (_sprintProposal && _sprintProposal.scope) ? _sprintProposal.scope.toLowerCase() : '';
         // T-202606-164 AC-4: tokenizar area por · para matching de áreas compuestas
         // Cualquier token del area que aparezca en el scope → ítem relevante
         const _iceboxRelated = _scopeRaw
           ? getItems().filter(it => {
-              if (it.sprint !== 'icebox' || !it.area) return false;
+              if (it.sprint || !it.area) return false;
               const _areaTokens = it.area.split('·').map(t => t.trim().toLowerCase()).filter(Boolean);
               return _areaTokens.some(token => _scopeRaw.includes(token));
             })
@@ -610,10 +608,10 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           const _iceboxPromptHtml = `
             <div class="mdiff-icebox-gate" id="mdiff-icebox-gate">
               <div class="mdiff-icebox-gate-header">
-                <span class="mdiff-step0-badge">Icebox</span>
-                <span class="mdiff-step0-title">Ítems relacionados en icebox</span>
+                <span class="mdiff-step0-badge">Q-Backlog</span>
+                <span class="mdiff-step0-title">Ítems relacionados sin sprint</span>
               </div>
-              <p class="mdiff-icebox-gate-desc">Hay ${_iceboxRelated.length} ítem${_iceboxRelated.length !== 1 ? 's' : ''} en icebox con área relacionada al scope de este sprint. ¿Querés moverlos al sprint?</p>
+              <p class="mdiff-icebox-gate-desc">Hay ${_iceboxRelated.length} ítem${_iceboxRelated.length !== 1 ? 's' : ''} sin sprint (Q-Backlog) con área relacionada al scope de este sprint. ¿Querés moverlos al sprint?</p>
               <div class="mdiff-icebox-list">${_iceboxRows}</div>
               <div class="mdiff-step0-actions">
                 <button class="mdiff-btn mdiff-btn--cancel" id="mdiff-icebox-gate-dismiss">Ignorar</button>
@@ -727,11 +725,11 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       _mdiffOpenNewSprintForm(sel, code);
       return;
     }
-    // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
-    if (val === 'icebox') {
+    // T-202606-035 (TKT-B2): bloqueo sin-sprint + en-revision — BR-Ecosystem §5
+    if (val === '') {
       const _itemForBlock = getItems().find(i => i.code === code);
       if (_itemForBlock && _itemForBlock.status === 'en-revision') {
-        showToast(`CHECKPOINT bloqueado: ${code} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`, 'error');
+        showToast(`CHECKPOINT bloqueado: ${code} tiene status en-revision sin sprint asignado. Asignar sprint antes de continuar.`, 'error');
         sel.value = _itemForBlock.sprint || '';
         return;
       }
@@ -802,12 +800,12 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     sel.addEventListener('change', function() { if (_mdiffSetItemSprint) _mdiffSetItemSprint(sel); });
     sel.addEventListener('click', function(e) { e.stopPropagation(); });
 
-    // B-202606-054: 'Sin sprint' (value='') eliminado — valor inválido según BR-Ecosystem §5.
-    const iceboxOpt = document.createElement('option');
-    iceboxOpt.value = 'icebox';
-    iceboxOpt.textContent = 'icebox';
-    if (!effectiveSelected || effectiveSelected === 'icebox') iceboxOpt.selected = true;
-    sel.appendChild(iceboxOpt);
+    // B-202606-0XX (TKT-B2): 'Sin sprint (Q-Backlog)' (value='') reemplaza icebox como opción especial.
+    const unassignedOpt = document.createElement('option');
+    unassignedOpt.value = '';
+    unassignedOpt.textContent = 'Sin sprint (Q-Backlog)';
+    if (!effectiveSelected) unassignedOpt.selected = true;
+    sel.appendChild(unassignedOpt);
 
     openSprints.forEach(s => {
       const opt = document.createElement('option');
@@ -872,18 +870,22 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       if (!sel || !sel.value) discardPendingItems.push({ item, idx });
     });
 
-    // T-202606-001: ítem nuevo R/T/B con sprint efectivo icebox bloquea aplicación —
-    // icebox es zona exclusiva de P (BR-Ecosystem §5). El founder debe elegir sprint real
-    // vía el _sprintSelect ya presente en la card antes de poder guardar.
-    // P nunca entra aquí — filtrado explícitamente por tipo.
+    // T-202606-001 (TKT-B2): ítem nuevo REQ/TKT/INC sin sprint efectivo bloquea aplicación —
+    // sin sprint es zona exclusiva de Q-Backlog/Q-DISC (BR-Ecosystem §5). El founder debe elegir
+    // sprint real vía el _sprintSelect ya presente en la card antes de poder guardar.
+    // DISC nunca entra aquí — filtrado explícitamente por tipo (vive siempre en Q-DISC).
     const sprintPendingItems = [];
     [...diff.created, ...diff.createdAndClosed].forEach((item) => {
-      const typeChar = (item.code || '?')[0].toUpperCase();
-      if (typeChar !== 'R' && typeChar !== 'T' && typeChar !== 'B') return;
+      // item.type es el string completo del schema (REQ/TKT/INC/DISC) — fuente canónica.
+      // Fallback al prefijo de code solo si type no vino declarado (no debería ocurrir en items no-patch).
+      const _codePrefix = (item.code || '?')[0].toUpperCase();
+      const _prefixToKind = { R: 'REQ', T: 'TKT', I: 'INC', D: 'DISC' };
+      const itemKind = item.type || _prefixToKind[_codePrefix] || _codePrefix;
+      if (itemKind !== 'REQ' && itemKind !== 'TKT' && itemKind !== 'INC') return;
       const effectiveSprint = Object.prototype.hasOwnProperty.call(_mdiffPendingSprints, item.code)
         ? _mdiffPendingSprints[item.code]
         : item.sprint;
-      if (!effectiveSprint || effectiveSprint === 'icebox') {
+      if (!effectiveSprint || effectiveSprint === '') {
         sprintPendingItems.push(item);
       }
     });
@@ -933,7 +935,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
             <div class="mdiff-right-sprint-pending-row">
               <span class="mdiff-code mdiff-code--sm">${esc(item.code)}</span>
               <span class="mdiff-right-sprint-pending-desc">${esc(item.desc || '')}</span>
-              <span class="mdiff-right-sprint-pending-hint">icebox no válido — elegir sprint en la card</span>
+              <span class="mdiff-right-sprint-pending-hint">sin sprint asignado — elegir sprint en la card</span>
             </div>`;
         });
       }
@@ -1052,9 +1054,10 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     }
     const _rows = document.getElementById('mdiff-excluded-rows');
     if (!_rows) return;
-    // Copy corto legible
-    const _typeLabel = { R: 'un Requerimiento', T: 'un Ticket', B: 'un Bug', P: 'una Idea' }[type] || type;
-    const _shortCopy = `${code || '[pendiente-ID]'} no se guardó — ${_typeLabel} no puede ir en icebox.`;
+    // Copy corto legible — type llega como string completo del schema (confirmado: locus-storage.js
+    // emite it.type directamente en storage:item-excluded, sin letra única).
+    const _typeLabel = { REQ: 'un Requerimiento', TKT: 'un Ticket', INC: 'un Incidente', DISC: 'una Idea' }[type] || type;
+    const _shortCopy = `${code || '[pendiente-ID]'} no se guardó — ${_typeLabel} no puede quedar sin sprint asignado.`;
     const _row = document.createElement('details');
     _row.className = 'mdiff-excluded-row';
     _row.innerHTML = `<summary class="mdiff-excluded-summary">${_shortCopy}</summary>` +

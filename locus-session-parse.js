@@ -1,4 +1,4 @@
-// [PP] mod:73 · autor:Rune · 2026-06-26 UTC-6
+// [PP] mod:75 · autor:Rune · 2026-06-26 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -38,8 +38,8 @@ export const STATUS_LABELS = {
 };
 
 const TG_PARSER_CONFIG = {
-  TYPES: ['P', 'T', 'R', 'B'],
-  TYPE_NAMES: { P: 'Ideas', T: 'Tickets', R: 'Requerimientos', B: 'Bugs' },
+  TYPES: ['DISC', 'TKT', 'REQ', 'INC'],
+  TYPE_NAMES: { DISC: 'Ideas', TKT: 'Tickets', REQ: 'Requerimientos', INC: 'Bugs' },
   STATUS_ALIASES: {
     'pendiente':'📤 Pendiente', '📤 pendiente':'📤 Pendiente',
     'backlog':'⏳ Backlog', '⏳ backlog':'⏳ Backlog',
@@ -48,7 +48,7 @@ const TG_PARSER_CONFIG = {
     'in-progress':'🔄 En progreso', 'progreso':'🔄 En progreso',
     'descartado':'🗑 Descartado', '🗑 descartado':'🗑 Descartado',
     'en-revision':'🔍 En revisión', 'en_revision':'🔍 En revisión', 'en revisión':'🔍 En revisión',
-    'promovida':'🔁 Promovida', '🔁 promovida':'🔁 Promovida'                // T-202606-023 AC1+AC2
+    'promoted':'🔁 Promovida', '🔁 promoted':'🔁 Promovida'                // T-202606-023 AC1+AC2
   }
 };
 
@@ -67,14 +67,14 @@ function statusLabel(raw) {
 // Preserva semántica de rechazo estricto: retorna null para valores desconocidos.
 // normalizeStatus retorna 'pendiente' para desconocidos — wrapper detecta ese caso
 // comparando el raw original contra la lista de entradas conocidas.
-// T-202606-018: 'promovida' con type T/R/B → null (rechazo bloqueante en validación).
+// T-202606-018: 'promoted' con type T/R/B → null (rechazo bloqueante en validación).
 // Casos especiales no cubiertos por normalizeStatus:
 //   'histórico' (con acento) → mapear a 'historico' antes de delegar
 //   'listo' → alias de 'done' (usado en TG_PARSER_CONFIG)
-//   'promovida' con type≠P → null (normalizeStatus devuelve 'pendiente' — override requerido)
+//   'promoted' con type≠DISC → null (normalizeStatus devuelve 'pendiente' — override requerido)
 const _KNOWN_STATUS_INPUTS = new Set([
   'done', 'en-revision', 'en_revision', 'en revisión', 'en-revisión',
-  'descartado', 'historico', 'histórico', 'pendiente', 'promovida',
+  'descartado', 'historico', 'histórico', 'pendiente', 'promoted',
   'listo',
   'bloqueado', // T-202606-031: válido solo para R — validación de rol en parsePaste
   'orphaned', // T-202606-017: válido solo para R — sin Ts válidos
@@ -86,7 +86,7 @@ function _canonicalStatus(raw, type) {
   // Casos que normalizeStatus no cubre directamente
   if (s === 'listo') return 'done';
   if (s === 'histórico') return 'historico';
-  if (s === 'promovida' && type !== 'DISC') return null; // T-202606-018 — Gen2 puro: discriminador 'DISC'
+  if (s === 'promoted' && type !== 'DISC') return null; // T-202606-018 — Gen2 puro: discriminador 'DISC'
   if (s === 'bloqueado') return type === 'REQ' ? 'bloqueado' : null; // T-202606-031: solo válido para REQ
   if (s === 'orphaned') return type === 'REQ' ? 'orphaned' : null; // T-202606-017: solo válido para REQ
   return normalizeStatus(raw, type) || null;
@@ -223,12 +223,12 @@ export function parseCheckpoint(text) {
       // JSON detectado pero inválido — devolver resultado con error marcado
       return {
         titulo: '', proyecto: '', rol: '', resumen: '', archivos: '',
-        pItems: '', tItems: '', rItems: '', bItems: '',
+        discItems: '', tktItems: '', reqItems: '', incItems: '',
         estado: '', decision: '', proximoPaso: '',
         contexto: '', bloqueantes: '', aprendizaje: '',
         isCheckpoint: true,
         _jsonParseError: _jsonErr || 'El bloque ```json no contiene un objeto válido',
-        rawCounts: { P: 0, T: 0, R: 0, B: 0 }
+        rawCounts: { DISC: 0, TKT: 0, REQ: 0, INC: 0 }
       };
     }
     // JSON válido — extraer campos del schema R-202605-133
@@ -236,7 +236,7 @@ export function parseCheckpoint(text) {
     // Clasificar ítems por tipo para rawCounts (compatibilidad con preview)
     const _countByType = (t) => items.filter(i => i.type === t).length;
     // Serializar items de vuelta a texto para compatibilidad con buildTGPreview
-    // pItems/tItems/rItems/bItems no se usan como fuente de datos — solo para display
+    // discItems/tktItems/reqItems/incItems no se usan como fuente de datos — solo para display
     const _typedLines = (t) => items
       .filter(i => i.type === t)
       .map(i => `${i.code}: ${i.title || i.desc || ''}`)
@@ -280,10 +280,10 @@ export function parseCheckpoint(text) {
       rol:          _parsed.role         || '',
       resumen:      _parsed.summary      || '',
       archivos:     _parsed.files        || '',
-      pItems:       _typedLines('P'),
-      tItems:       _typedLines('T'),
-      rItems:       _typedLines('R'),
-      bItems:       _typedLines('B'),
+      discItems:    _typedLines('DISC'),
+      tktItems:     _typedLines('TKT'),
+      reqItems:     _typedLines('REQ'),
+      incItems:     _typedLines('INC'),
       estado:       '',
       decision:     _parsed.decision     || '',
       proximoPaso:  _parsed.next_step    || '',
@@ -304,10 +304,10 @@ export function parseCheckpoint(text) {
       _rawExecutionPlan,                // T-202606-018: objeto execution_plan del schema JSON (null si ausente)
       draft: _parsed.draft === true,    // T-202606-006: exponer draft para guard en parsePaste
       rawCounts: {
-        P: _countByType('P'),
-        T: _countByType('T'),
-        R: _countByType('R'),
-        B: _countByType('B'),
+        DISC: _countByType('DISC'),
+        TKT:  _countByType('TKT'),
+        REQ:  _countByType('REQ'),
+        INC:  _countByType('INC'),
       }
     };
   }
@@ -328,12 +328,12 @@ export function parseCheckpoint(text) {
     // parsePaste accede a ckpt.titulo sin guard y un null no capturado rompe la ingesta completa.
     return {
       titulo: '', proyecto: '', rol: '', resumen: '', archivos: '',
-      pItems: '', tItems: '', rItems: '', bItems: '',
+      discItems: '', tktItems: '', reqItems: '', incItems: '',
       estado: '', decision: '', proximoPaso: '',
       contexto: '', bloqueantes: '', aprendizaje: '',
       isCheckpoint: true,
       _jsonParseError: _jsonErrRaw || 'El bloque JSON sin fence no contiene un objeto válido con campo "title"',
-      rawCounts: { P: 0, T: 0, R: 0, B: 0 }
+      rawCounts: { DISC: 0, TKT: 0, REQ: 0, INC: 0 }
     };
   }
 
@@ -480,12 +480,12 @@ export function parsePaste(id) {
     if (!ckpt) {
       ckpt = {
         titulo: '', proyecto: '', rol: '', resumen: '', archivos: '',
-        pItems: '', tItems: '', rItems: '', bItems: '',
+        discItems: '', tktItems: '', reqItems: '', incItems: '',
         estado: '', decision: '', proximoPaso: '',
         contexto: '', bloqueantes: '', aprendizaje: '',
         isCheckpoint: true,
         _jsonParseError: 'No se pudo interpretar el CHECKPOINT — formato no reconocido',
-        rawCounts: { P: 0, T: 0, R: 0, B: 0 }
+        rawCounts: { DISC: 0, TKT: 0, REQ: 0, INC: 0 }
       };
     }
     title = ckpt.titulo;
@@ -577,8 +577,8 @@ export function parsePaste(id) {
         }
         // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
         const _normSt = _canonicalStatus(_it.status, _it.type);
-        if (!_normSt || (!_validStatuses.includes(_normSt) && _normSt !== 'promovida' && _normSt !== 'bloqueado')) {
-          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${itemKind(_it) === 'DISC' ? ' · promovida' : ''}${itemKind(_it) === 'REQ' ? ' · bloqueado' : ''}`;
+        if (!_normSt || (!_validStatuses.includes(_normSt) && _normSt !== 'promoted' && _normSt !== 'bloqueado')) {
+          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${itemKind(_it) === 'DISC' ? ' · promoted' : ''}${itemKind(_it) === 'REQ' ? ' · bloqueado' : ''}`;
           break;
         }
         // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
@@ -655,7 +655,7 @@ export function parsePaste(id) {
           origin:        _it.origin   || null,  // R-202605-004: trazabilidad de ítems derivados
           dependsOn:     Array.isArray(_it.depends_on) ? _it.depends_on : [],  // T-202605-139
           triggeredBy:   _it.triggered_by  || null,                            // T-202605-139
-          origenP:       _it.origen_p      || null,                            // T-202605-139
+          origenDisc:    _it.origen_disc   || null,                            // T-202605-139 // T-[pendiente-ID]: origen_p→origen_disc
           promovida_a:   _it.promovida_a   || null,                            // T-202605-139
           intencion:     _it.intencion     || null,                            // T-202606-105
           no_incluye:    Array.isArray(_it.no_incluye) ? _it.no_incluye : [], // T-202606-105
@@ -683,9 +683,9 @@ export function parsePaste(id) {
           }
         }
 
-        // T-202606-018: advertencia si P tiene status promovida sin promovida_a
-        if (itemKind(_it) === 'DISC' && _normSt === 'promovida' && !_it.promovida_a) {
-          _blogLog('promovida-sin-ref', _it.code || '[pendiente-ID]', 'DISC ' + (_it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
+        // T-202606-018: advertencia si DISC tiene status promoted sin promovida_a
+        if (itemKind(_it) === 'DISC' && _normSt === 'promoted' && !_it.promovida_a) {
+          _blogLog('promoted-sin-ref', _it.code || '[pendiente-ID]', 'DISC ' + (_it.code || '[pendiente-ID]') + ' con status promoted sin campo promovida_a — trazabilidad incompleta', 'backlog');
         }
         // T-202606-014: advertencia si depends_on contiene [pendiente-ID] literal con 2+ ítems nuevos en el CHECKPOINT
         if (Array.isArray(_it.depends_on) && _it.depends_on.includes('[pendiente-ID]')) {
@@ -1414,16 +1414,16 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
 
 // T-202606-020: herencia automática de sprint al confirmar Step 0 de sprint proposal — Trigger 1.
 // Recibe el array de ítems del CHECKPOINT y el id del sprint recién creado.
-// Muta in-place los ítems R/T/B cuyo sprint sea 'icebox' o ausente → asigna el sprint nuevo.
-// Ps no se tocan — permanecen en icebox según BR-Ecosystem §5 y §13.
-// AC-1: R/T/B con sprint: icebox → sprint asignado al id del sprint recién creado.
-// AC-2: P con sprint: icebox → no se mueve, permanece en icebox.
-// AC-3: ítem con sprint explícito distinto de icebox → no se toca.
+// Muta in-place los ítems REQ/TKT/INC cuyo sprint sea ausente o vacío → asigna el sprint nuevo.
+// DISC no se tocan — permanecen en Q-DISC según BR-Ecosystem §5 y §13.
+// AC-1: REQ/TKT/INC sin sprint → sprint asignado al id del sprint recién creado.
+// AC-2: DISC sin sprint → no se mueve, permanece en Q-DISC.
+// AC-3: ítem con sprint explícito → no se toca.
 // AC-4: el movimiento ocurre sobre tgItems en memoria — visible en el DIFF antes de confirmar.
 export function _applySprintInheritanceToItems(tgItems, sprintId) {
   if (!Array.isArray(tgItems) || !sprintId) return;
   tgItems.forEach(item => {
-    if (itemKind(item) === 'DISC') return; // AC-2: DISC permanecen en icebox/Q-DISC sin excepción
+    if (itemKind(item) === 'DISC') return; // AC-2: DISC permanecen en Q-DISC sin excepción
     const _sprintRaw = item.sprint ? String(item.sprint).trim().toLowerCase() : '';
     if (_sprintRaw === 'icebox' || _sprintRaw === '') {
       // AC-1: asignar sprint del proposal — ítem movido automáticamente
@@ -1435,7 +1435,7 @@ export function _applySprintInheritanceToItems(tgItems, sprintId) {
         'backlog'
       );
     }
-    // AC-3: sprint explícito distinto de icebox → conservar sin modificar
+    // AC-3: sprint explícito → conservar sin modificar
   });
 }
 
@@ -1594,8 +1594,8 @@ export function parsePasteStandalone() {
     // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
     const _normSt3 = _canonicalStatus(it.status, it.type);
     // T-202606-022 AC-1: excepción bloqueado para R — simétrico a parsePaste
-    if (!_normSt3 || (!_validStatuses.includes(_normSt3) && _normSt3 !== 'promovida' && _normSt3 !== 'bloqueado')) {
-      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${itemKind(it) === 'DISC' ? ' · promovida' : ''}`;
+    if (!_normSt3 || (!_validStatuses.includes(_normSt3) && _normSt3 !== 'promoted' && _normSt3 !== 'bloqueado')) {
+      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${itemKind(it) === 'DISC' ? ' · promoted' : ''}`;
       break;
     }
     // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
@@ -1642,7 +1642,7 @@ export function parsePasteStandalone() {
           parentId:      it.parent      || null,               // T-202606-024 AC-1
           dependsOn:     Array.isArray(it.depends_on) ? it.depends_on : [],  // T-202606-024 AC-2
           triggeredBy:   it.triggered_by  || null,             // T-202606-024 AC-3
-          origenP:       it.origen_p      || null,             // T-202606-024 AC-4
+          origenDisc:    it.origen_disc   || null,             // T-202606-024 AC-4 // T-[pendiente-ID]: origen_p→origen_disc
           intencion:     it.intencion     || null,             // T-202606-024 AC-5
           no_incluye:    Array.isArray(it.no_incluye) ? it.no_incluye : [],  // T-202606-024 AC-6
           schema_version: it.schema_version != null ? Number(it.schema_version) : 0  // T-202606-024 AC-7
@@ -1671,14 +1671,14 @@ export function parsePasteStandalone() {
       parentId:      it.parent      || null,                   // T-202606-024 AC-1
       dependsOn:     Array.isArray(it.depends_on) ? it.depends_on : [],  // T-202606-024 AC-2
       triggeredBy:   it.triggered_by  || null,                 // T-202606-024 AC-3
-      origenP:       it.origen_p      || null,                 // T-202606-024 AC-4
+      origenDisc:    it.origen_disc   || null,                 // T-202606-024 AC-4 // T-[pendiente-ID]: origen_p→origen_disc
       intencion:     it.intencion     || null,                 // T-202606-024 AC-5
       no_incluye:    Array.isArray(it.no_incluye) ? it.no_incluye : [],  // T-202606-024 AC-6
       schema_version: it.schema_version != null ? Number(it.schema_version) : 0  // T-202606-024 AC-7
     });
-    // T-202606-018 AC9: advertencia si P tiene status promovida sin promovida_a en standalone parser
-    if (itemKind(it) === 'DISC' && _normSt3 === 'promovida' && !it.promovida_a) {
-      _blogLog('promovida-sin-ref', it.code || '[pendiente-ID]', 'DISC ' + (it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
+    // T-202606-018 AC9: advertencia si DISC tiene status promoted sin promovida_a en standalone parser
+    if (itemKind(it) === 'DISC' && _normSt3 === 'promoted' && !it.promovida_a) {
+      _blogLog('promoted-sin-ref', it.code || '[pendiente-ID]', 'DISC ' + (it.code || '[pendiente-ID]') + ' con status promoted sin campo promovida_a — trazabilidad incompleta', 'backlog');
     }
     // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
     // T-202606-158: pasar tgItems para heredar sprint de parent R en mismo CHECKPOINT
@@ -1860,7 +1860,7 @@ export function saveStandaloneCheckpoint() {
   }
 
   // T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para B con triggered_by en sprint activo.
-  // No-bloqueante: si el founder ignora, el B se ingesta con sprint: icebox (comportamiento default).
+  // No-bloqueante: si el founder ignora, el B se ingesta sin sprint asignado (Q-INC por defecto).
   const _tgSuggestionSa = _buildTriggeredBySuggestion(tgItems);
   if (_tgSuggestionSa) {
     _ckptMetaStandalone.triggeredBySuggestion = {
@@ -1868,7 +1868,7 @@ export function saveStandaloneCheckpoint() {
       onAccept: function() {
         _tgSuggestionSa.b.sprint = _tgSuggestionSa.suggestedSprint;
       },
-      // onIgnore: no-op — el B conserva sprint: icebox (default ya presente en el ítem)
+      // onIgnore: no-op — el B conserva sprint vacío (Q-INC, sin sprint asignado)
     };
   }
 
@@ -1883,10 +1883,10 @@ export function saveStandaloneCheckpoint() {
 // apuntando a un ítem en sprint activo. No es automático (a diferencia de Trigger 1/2):
 // retorna { b, suggestedSprint } para que el DIFF muestre la sugerencia, o null si no aplica.
 // Reglas (AC T-202606-021):
-//  - Solo Bs nuevos ([pendiente-ID] o [tmp:slug]) sin sprint explícito distinto de icebox.
+//  - Solo Bs nuevos ([pendiente-ID] o [tmp:slug]) sin sprint explícito asignado.
 //  - triggered_by debe apuntar a un ítem cuyo sprint esté en estado 'active'.
-//  - Si triggered_by apunta a icebox o sprint cerrado/programado → no se sugiere.
-//  - Si el B ya declara sprint explícito ≠ icebox → no se sugiere (respetar lo declarado).
+//  - Si triggered_by apunta a ítem sin sprint o sprint cerrado/programado → no se sugiere.
+//  - Si el B ya declara sprint explícito → no se sugiere (respetar lo declarado).
 export function _buildTriggeredBySuggestion(tgItems) {
   if (!Array.isArray(tgItems) || !tgItems.length) return null;
 
@@ -1901,7 +1901,7 @@ export function _buildTriggeredBySuggestion(tgItems) {
     if (it.code) codeToSprint.set(it.code, it.sprint);
   });
   tgItems.forEach(it => {
-    if (it.code) codeToSprint.set(it.code, it.sprint || 'icebox');
+    if (it.code) codeToSprint.set(it.code, it.sprint || '');
   });
 
   for (const item of tgItems) {
@@ -1909,12 +1909,12 @@ export function _buildTriggeredBySuggestion(tgItems) {
     if (!_isPlaceholderCode(item.code)) continue; // solo B nuevo
     if (!item.triggeredBy && !item.triggered_by) continue;
 
-    const sprintDeclared = item.sprint || 'icebox';
-    if (sprintDeclared !== 'icebox') continue; // B ya declara sprint explícito — respetar
+    const sprintDeclared = item.sprint || '';
+    if (sprintDeclared !== '') continue; // B ya declara sprint explícito — respetar
 
     const tgCode = item.triggeredBy || item.triggered_by;
     const targetSprint = codeToSprint.get(tgCode);
-    if (!targetSprint || !activeSprintIds.has(targetSprint)) continue; // icebox / cerrado / no resuelto
+    if (!targetSprint || !activeSprintIds.has(targetSprint)) continue; // sin sprint / cerrado / no resuelto
 
     return { b: item, suggestedSprint: targetSprint };
   }

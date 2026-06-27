@@ -1,4 +1,4 @@
-// [PP] mod:62 · autor:Rune · 2026-06-26 UTC-6
+// [PP] mod:64 · autor:Rune · 2026-06-27 UTC-6
 // locus-storage.js
 // Última actualización: B-202606-105/106/107 — LOCUS_KEYS.CHANGELOG/NOTIF_HISTORY/LOG_FILTERS
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -817,38 +817,32 @@ export async function saveBacklog() {
     }
   }
 
-  // Gate de validación estructural — un R/T/B con sprint:'icebox' o un ítem con
-  // status:'historico' nunca llega a Supabase ni a localStorage.
-  // icebox es zona exclusiva de P (__BR-Ecosystem §5).
-  // status:'historico' es de solo lectura, asignado únicamente por Locus al cerrar sprint.
+  // Gate de validación estructural — un ítem con status:'historico' nunca llega
+  // a Supabase ni a localStorage. status:'historico' es de solo lectura,
+  // asignado únicamente por Locus al cerrar sprint.
   //
   // B-202606-097: gate chk_status_by_type — reflejo client-side del CHECK constraint de
   // Postgres (T-202606-007 DDL). Un ítem con combinación type+status inválida se excluye
   // del upsert hasta que su status sea corregido. No se elimina de ITEMS en memoria.
-  // Estados válidos por tipo — alineados con DDL real (verificado 2026-06-24, ALTER aplicado
-  // tras B-202606-100 — chk_status_by_type ahora permite 'done' para type:R):
-  //   R: pendiente · en-proceso · en-revision · done · bloqueado · orphaned · descartado
-  //      (done solo llega aquí vía sesión de cierre de Finn — el guard de origen vive en
-  //      applyPatchesFromTG/_applyDoneStatus, no en este filtro de persistencia)
-  //   T: pendiente · en-revision · done · descartado · historico
-  //   B: pendiente · en-revision · done · descartado · historico
-  //   P: pendiente · promovida · descartado · historico
+  // TKT-B5b: Estados válidos por tipo — alineados con DDL real Gen2 (ALTER aplicado
+  // 2026-06-27, ver tracking REQ-B5b) y con VALID_TRANSITIONS en locus-session-save.js —
+  // misma fuente de verdad, sin contradicción entre los dos archivos:
+  //   REQ:  pendiente · en-proceso · en-revision · done · bloqueado · orphaned · descartado
+  //   TKT:  pendiente · en-revision · done · descartado
+  //   INC:  detected · assigned · in_progress · resolved · closed · escalated_to_prb · escalated_to_chg · descartado
+  //   DISC: discovery · promoted · descartado
   // Nota: historico se excluye antes de llegar aquí por el gate `it.status === 'historico'`
-  // arriba — este Set lo declara por coherencia con el DDL, no porque llegue a evaluarse.
+  // arriba — ningún tipo lo declara en su propio Set porque es asignado exclusivamente
+  // por Locus al cerrar sprint (__BR-Ecosystem §5), no un status nativo del ciclo de vida.
   const _VALID_STATUS_BY_TYPE = {
     REQ: new Set(['pendiente', 'en-proceso', 'en-revision', 'done', 'bloqueado', 'orphaned', 'descartado']),
-    TKT: new Set(['pendiente', 'en-revision', 'done', 'descartado', 'historico']),
-    INC: new Set(['pendiente', 'en-revision', 'done', 'descartado', 'historico']),
-    DISC: new Set(['pendiente', 'promovida', 'descartado', 'historico']),
+    TKT: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
+    INC: new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']),
+    DISC: new Set(['discovery', 'promoted', 'descartado']),
   };
 
   const _rawItems = _getItems();
   const items = _rawItems.filter(it => {
-    if (it.type !== 'DISC' && it.sprint === 'icebox') {
-      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — type:${it.type} no puede tener sprint:icebox`);
-      _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: `type:${it.type} no puede tener sprint:icebox` });
-      return false;
-    }
     if (it.status === 'historico') {
       console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
       _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: 'status:historico es de solo lectura' });
@@ -943,7 +937,7 @@ export async function saveBacklog() {
   // Correcciones vs entrega inicial:
   //   · tabla: 'items' → 'tracker_items'
   //   · parent_id → parent   (nombre real de columna en DDL)
-  //   · origen_p  → origin_p (naming DDL)
+  //   · origen_p  → origin_p (naming DDL Gen1) → origen_disc (DDL Gen2)
   //   · verificado_por → verified_by (naming DDL)
   //   · contract_update eliminado — columna no existe en DDL
   //   · updated_at: ISO string → BIGINT epoch ms (tipo DDL: BIGINT)
@@ -971,8 +965,8 @@ export async function saveBacklog() {
       no_incluye:           it.no_incluye != null ? it.no_incluye : null,
       kill_criteria:        it.kill_criteria    || null,
       promovida_a:          it.promovida_a      || null,
-      // DDL: columna 'origin_p' TEXT (no 'origen_p')
-      origin_p:             it.origen_p         || null,
+      // DDL: columna renombrada origen_disc (Gen2) — era origin_p en Gen1
+      origen_disc:          it.origenDisc       || null,
       discard_reason:       it.discard_reason   || null,
       comportamiento_actual: it.comportamiento_actual || null,
       origin_module:        it.origin_module    || null,
@@ -984,6 +978,16 @@ export async function saveBacklog() {
       // intencion, contract: objetos → jsonb Postgres
       intencion:            it.intencion        || null,
       contract:             it.contract         || null,
+      // Campos Gen2 agregados en ALTER TABLE (T-[pendiente-ID])
+      next_role:            it.nextRole          || null,
+      design_intent:        it.designIntent      || null,
+      blocked_at:           it.blockedAt         || null,
+      contract_update:      it.contract_update   || null,
+      archivos:             Array.isArray(it.archivos) ? it.archivos : null,
+      sla_priority:         it.sla_priority      || null,
+      incident_status:      it.incident_status   || null,
+      resolution_type:      it.resolution_type   || null,
+      derived_items:        Array.isArray(it.derived_items) ? it.derived_items : null,
       // DDL: updated_at BIGINT (epoch ms) — no ISO string
       // _updatedAtMs calculado una vez fuera de _toItemRow — todas las filas comparten el mismo valor (AC-3)
       updated_at:           _updatedAtMs
@@ -1308,7 +1312,7 @@ export async function migrateHistoricosToTrackerItems() {
           no_incluye:            it.no_incluye       != null ? it.no_incluye : null,
           kill_criteria:         it.kill_criteria    || null,
           promovida_a:           it.promovida_a      || null,
-          origin_p:              it.origen_p         || null,
+          origen_disc:           it.origenDisc        || null,
           discard_reason:        it.discard_reason   || null,
           comportamiento_actual: it.comportamiento_actual || null,
           origin_module:         it.origin_module    || null,
@@ -1317,6 +1321,15 @@ export async function migrateHistoricosToTrackerItems() {
           ac:                    Array.isArray(it.ac) ? it.ac : [],
           intencion:             it.intencion        || null,
           contract:              it.contract         || null,
+          next_role:             it.nextRole          || null,
+          design_intent:         it.designIntent      || null,
+          blocked_at:            it.blockedAt         || null,
+          contract_update:       it.contract_update   || null,
+          archivos:              Array.isArray(it.archivos) ? it.archivos : null,
+          sla_priority:          it.sla_priority      || null,
+          incident_status:       it.incident_status   || null,
+          resolution_type:       it.resolution_type   || null,
+          derived_items:         Array.isArray(it.derived_items) ? it.derived_items : null,
           updated_at:            _updatedAtMs
         });
       } catch (rowErr) {
@@ -1856,7 +1869,7 @@ export async function _loadFromSupabase() {
               no_incluye:            row.no_incluye,
               kill_criteria:         row.kill_criteria,
               promovida_a:           row.promovida_a,
-              origen_p:              row.origin_p,     // DDL: origin_p → JS: origen_p
+              origen_disc:           row.origen_disc,
               discard_reason:        row.discard_reason,
               comportamiento_actual: row.comportamiento_actual,
               origin_module:         row.origin_module,
@@ -1865,6 +1878,15 @@ export async function _loadFromSupabase() {
               ac:                    Array.isArray(row.ac) ? row.ac : [],
               intencion:             row.intencion,
               contract:              row.contract,
+              nextRole:              row.next_role,
+              designIntent:          row.design_intent,
+              blockedAt:             row.blocked_at,
+              contract_update:       row.contract_update,
+              archivos:              Array.isArray(row.archivos) ? row.archivos : null,
+              sla_priority:          row.sla_priority,
+              incident_status:       row.incident_status,
+              resolution_type:       row.resolution_type,
+              derived_items:         Array.isArray(row.derived_items) ? row.derived_items : null,
               _updatedAtMs:          row.updated_at    // conservar timestamp para comparaciones futuras
             };
             merged.push(item);

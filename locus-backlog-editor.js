@@ -1,4 +1,4 @@
-// [PP] mod:3 · autor:Rune · 2026-06-26 18:45 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-06-26 22:48 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -30,7 +30,7 @@ function _refreshParentIdDropdown(selectedType, selectedParentId) {
   // Poblar con R disponibles
   const rItems = getItems().filter(i => i.code && i.code[0] === 'R');
   sel.innerHTML = '<option value="">— Sin R padre —</option>' +
-    rItems.map(r => `<option value="${esc(r.code)}"${r.code === selectedParentId ? ' selected' : ''}>${esc(r.code)} · ${esc(r.title || r.desc || '')}</option>`).join('');
+    rItems.map(r => `<option value="${esc(r.code)}"${r.code === selectedParentId ? ' selected' : ''}>${esc(r.code)} · ${esc(r.title || '')}</option>`).join('');
 }
 
 // B-202606-036: mostrar sprint heredado del R padre en el IDP — solo cuando T tiene parentId
@@ -123,7 +123,7 @@ export function openItemEditor(itemId = null, itemCode = null) {
     
     typeSelect.value = item.code[0];
     document.getElementById('item-code').value = item.code;
-    document.getElementById('item-title').value = item.title || item.desc || ''; // DUP-06: fallback a desc si title vacío
+    document.getElementById('item-title').value = item.title || ''; // TKT-F1: fallback a desc eliminado — death code Gen1
     document.getElementById('item-priority').value = item.priority || 'medium';
     document.getElementById('item-effort').value = item.effort || 1;
     document.getElementById('item-area').value = item.area || '';
@@ -443,7 +443,6 @@ export function confirmItemEditor() {
     item.priority = priority;
     item.effort = effort;
     item.area = area;
-    item.desc = desc;
     item.ac = ac;
     // B-202605-068: si notes es null (#item-notes ausente del DOM), preservar valor existente
     // T-528: normalizar notes null→'' — ítems cargados desde CHECKPOINT sin campo notes
@@ -501,7 +500,7 @@ export function confirmItemEditor() {
       ? ((getItems().find(p => p.code === parentId) || {}).sprint || _activeSprint())
       : (_sprintSelVal || _activeSprint() || 'icebox');
     getItems().push({
-      id, code: finalCode, title, priority, effort, area, desc, ac,
+      id, code: finalCode, title, priority, effort, area, ac,
       notes: notes || '',
       blockedBy: blockedBy,
       archivos: archivos,

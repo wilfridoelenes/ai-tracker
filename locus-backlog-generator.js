@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-housekeeping · mod:23 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:28 · autor:Rune · 2026-06-26 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -6,8 +6,17 @@
 // T-202606-166: _docPrefix movida a locus-storage.js — import actualizado.
 
 import { _blogLog, _docPrefix, _effectiveVersion, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData } from './locus-storage.js';
-import { getItems, updateBacklogBanner } from './locus-backlog-core.js';
+import { getItems, itemKind, updateBacklogBanner } from './locus-backlog-core.js';
 import { showToast } from './locus-toast.js';
+
+// ── _itemTypeGen2 — detección de tipo Gen 2 ──────────────────────────────────
+// [tmp:tkt1-itemtype-fn] AC-1: wrapper sobre itemKind() de locus-backlog-core.js.
+// Retorna tipo Gen 2 canónico ('REQ'/'TKT'/'INC'/'DISC'/'PRB'/'KE'/'CHG') o 'UNKNOWN'.
+// Reemplaza toda detección por code[0] o startsWith Gen 1 en este módulo.
+function _itemTypeGen2(item) {
+  const t = itemKind(item);
+  return t || 'UNKNOWN';
+}
 
 // ── Versión canónica para naming de docs exportados ─────────────────────────
 // T-202606-022: usa version_target del sprint activo como fuente de verdad.
@@ -127,13 +136,13 @@ function _generateSprintsContent(newVersion) {
   const _itemRow = (i, sprintOpenedAt) => {
     const effortN = parseInt(i.effort) || 1;
     const effortDots = '●'.repeat(effortN) + '○'.repeat(3 - effortN);
-    const typeLabel = i.code ? i.code[0] : '?';
+    const typeLabel = _itemTypeGen2(i);
     let scopeNote = '';
     if (sprintOpenedAt && i.createdAt) {
       const createdTs = new Date(i.createdAt).getTime();
       if (!isNaN(createdTs) && createdTs > sprintOpenedAt) scopeNote = ' ⊕';
     }
-    return `| \`${i.code}\` | ${i.title || i.desc || '—'} | ${typeLabel} | ${effortDots} (${effortN}) | ${i.status || '—'} |${scopeNote ? ' scope added' : ''} |`;
+    return `| \`${i.code}\` | ${i.title || '—'} | ${typeLabel} | ${effortDots} (${effortN}) | ${i.status || '—'} |${scopeNote ? ' scope added' : ''} |`;
   };
 
   const _itemRowHeader = () =>
@@ -281,13 +290,13 @@ export function _generateFullHistoryContent(newVersion) {
   const _itemRow = (i, sprintOpenedAt) => {
     const effortN = parseInt(i.effort) || 1;
     const effortDots = '●'.repeat(effortN) + '○'.repeat(3 - effortN);
-    const typeLabel = i.code ? i.code[0] : '?';
+    const typeLabel = _itemTypeGen2(i);
     let scopeAdded = '';
     if (sprintOpenedAt && i.createdAt) {
       const createdTs = new Date(i.createdAt).getTime();
       if (!isNaN(createdTs) && createdTs > sprintOpenedAt) scopeAdded = ' ⊕';
     }
-    return `| \`${i.code}\` | ${i.title || i.desc || '—'} | ${typeLabel} | ${effortDots} (${effortN}) | ${i.status || '—'} |${scopeAdded ? ` _scope added_` : ''} |`;
+    return `| \`${i.code}\` | ${i.title || '—'} | ${typeLabel} | ${effortDots} (${effortN}) | ${i.status || '—'} |${scopeAdded ? ` _scope added_` : ''} |`;
   };
 
   const _itemRowHeader = () =>
@@ -433,9 +442,9 @@ function _buildSprintsProgramadosMd() {
       const normId = m ? m[1] : i.sprint;
       return normId === sp.id;
     });
-    const rCount = spItems.filter(i => i.code && i.code.startsWith('R-')).length;
-    const tCount = spItems.filter(i => i.code && i.code.startsWith('T-')).length;
-    const bCount = spItems.filter(i => i.code && i.code.startsWith('B-')).length;
+    const rCount = spItems.filter(i => _itemTypeGen2(i) === 'REQ').length;
+    const tCount = spItems.filter(i => _itemTypeGen2(i) === 'TKT').length;
+    const bCount = spItems.filter(i => _itemTypeGen2(i) === 'INC').length;
     const effortTotal = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
     const doneCount = spItems.filter(i => i.status === 'done').length;
 
@@ -466,7 +475,7 @@ function _buildCurrentStateMd() {
     const byType = {};
     pendientes.forEach(i => {
       if (!i.code) return;
-      const t = i.code[0];
+      const t = _itemTypeGen2(i);
       byType[t] = (byType[t] || 0) + 1;
     });
     const pendStr = Object.entries(byType).map(([t, n]) => `${t}=${n}`).join(' | ');
@@ -478,7 +487,7 @@ function _buildCurrentStateMd() {
     const byTypeER = {};
     enRevision.forEach(i => {
       if (!i.code) return;
-      const t = i.code[0];
+      const t = _itemTypeGen2(i);
       byTypeER[t] = (byTypeER[t] || 0) + 1;
     });
     const erStr = Object.entries(byTypeER).map(([t, n]) => `${t}=${n}`).join(' | ');
@@ -501,12 +510,13 @@ function _buildCurrentStateMd() {
 
 // T-202606-009: INFRA_VERSIONS reemplazado por getInfraVersionData() desde storage.
 // Fallback a valores hardcodeados si storage vacío (sin sync previo).
+// [tmp:tkt4-infra-fallback] AC-1: valores Gen 2 vigentes — ver __OB-Strategy §5.
 const _INFRA_FALLBACK = {
-  infraVersion: 19,
-  brCore: '2.3',
-  brEcosystem: '5.0',
-  brExecution: '2.6',
-  obStrategy: '4.8',
+  infraVersion: 7,
+  brCore: '1.3',
+  brEcosystem: '1.3',
+  brExecution: '1.2',
+  obStrategy: '1.6',
 };
 
 function _infraVersionStr() {
@@ -573,30 +583,31 @@ export function _generateBacklogContent(newVersion, opts = {}) {
     };
     const _normActiveSprintId = _normSprintId(activeSprintId);
     const _normLastClosedId   = _normSprintId(lastClosedId);
-    // Pre-computar set de Rs activos para regla de hijos (T/B con parent en R no cerrado)
+    // Pre-computar set de REQs activos para regla de hijos (TKT/INC con parent en REQ no cerrado)
     const allItems = getItems();
     const activeRCodes = new Set(
       allItems
-        .filter(i => i.code && i.code.startsWith('R-') && i.status !== 'done' && i.status !== 'descartado')
+        .filter(i => _itemTypeGen2(i) === 'REQ' && i.status !== 'done' && i.status !== 'descartado')
         .map(i => i.code)
     );
-    // T-202606-058: pre-computar set de Ts hijos de Rs activos para Regla 3
+    // T-202606-058: pre-computar set de TKTs hijos de REQs activos para Regla 3
     const activeTCodes = new Set(
       allItems
-        .filter(i => i.code && i.code.startsWith('T-') &&
+        .filter(i => _itemTypeGen2(i) === 'TKT' &&
           activeRCodes.has(i.parentId || i.parent))
         .map(i => i.code)
     );
     exportItems = allItems.filter(i => {
       if (i.status === 'historico') return false;
       if (i.status === 'en curso') return false; // B-202606-052: status no canónico — fuera de BR-Ecosystem §5
+      if (i.status === 'backlog') return false; // [tmp:tkt4-infra-fallback] AC-2: status no canónico — fuera de BR-Ecosystem §5
       // Regla 1: status activos directos — incluye en-revision
       if (i.status === 'pendiente' || i.status === 'en-revision') return true;
-      // Regla 2: hijos (T o B) de R activo — exportar sin importar su status
-      if ((i.code && (i.code.startsWith('T-') || i.code.startsWith('B-'))) &&
+      // Regla 2: hijos (TKT o INC) de REQ activo — exportar sin importar su status
+      if ((_itemTypeGen2(i) === 'TKT' || _itemTypeGen2(i) === 'INC') &&
           (i.parentId || i.parent) && activeRCodes.has(i.parentId || i.parent)) return true;
-      // Regla 3 (T-202606-058): B con triggered_by apuntando a T del R activo y status pendiente o en-revision
-      if (i.code && i.code.startsWith('B-') &&
+      // Regla 3 (T-202606-058): INC con triggered_by apuntando a TKT del REQ activo y status pendiente o en-revision
+      if (_itemTypeGen2(i) === 'INC' &&
           (i.status === 'pendiente' || i.status === 'en-revision') &&
           i.triggered_by && activeTCodes.has(i.triggered_by)) return true;
       // Regla HOTFIX (B-202606-020): todos los ítems asignados a [Prefijo]-S-HOTFIX —
@@ -620,29 +631,33 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   // B-202606-005: itemC cuenta desde exportItems para que el índice refleje solo los ítems
   // efectivamente renderizados en ## Ítems. maxId sigue usando getItems() completo para
   // preservar los contadores máximos de ID sin importar el status del ítem.
+  // [tmp:tkt1-itemtype-fn] AC-2/AC-5: claves Gen 2 — REQ/TKT/INC/DISC/PRB/KE/CHG.
+  // Regex de extracción de NNN migrado a /-(\\d{3})$/ para soportar prefijos multi-char Gen 2.
   const _computeBacklogCounters = () => {
     const allForCount = getItems();
-    const itemC = { P:0, T:0, R:0, B:0 };
-    const maxId  = { P:0, T:0, R:0, B:0 };
+    const itemC = { REQ:0, TKT:0, INC:0, DISC:0, PRB:0, KE:0, CHG:0 };
+    const maxId  = { REQ:0, TKT:0, INC:0, DISC:0, PRB:0, KE:0, CHG:0 };
     exportItems.forEach(i => {
       if (!i.code) return;
-      const t = i.code[0];
+      const t = _itemTypeGen2(i);
       if (itemC[t] !== undefined) itemC[t]++;
     });
     allForCount.forEach(i => {
       if (!i.code) return;
-      const m = i.code.match(/[PITRB]-\d{6}-(\d{3})/);
-      if (m) { const n = parseInt(m[1]); if (n > maxId[i.code[0]]) maxId[i.code[0]] = n; }
+      const t = _itemTypeGen2(i);
+      if (maxId[t] === undefined) return;
+      const m = i.code.match(/-(\d{3})$/);
+      if (m) { const n = parseInt(m[1]); if (n > maxId[t]) maxId[t] = n; }
     });
     const activeC = getActiveTracker().counters || {};
     Object.keys(activeC).forEach(t => {
-      if (activeC[t] > (maxId[t] || 0)) maxId[t] = activeC[t];
+      if (maxId[t] !== undefined && activeC[t] > (maxId[t] || 0)) maxId[t] = activeC[t];
     });
     return { itemC, maxId };
   };
   const { itemC: itemCounters, maxId: counters } = _computeBacklogCounters();
-  const itemCounterStr = `P=${itemCounters.P} | T=${itemCounters.T} | R=${itemCounters.R} | B=${itemCounters.B}`;
-  const counterStr = `P=${String(counters.P).padStart(3,'0')} | T=${String(counters.T).padStart(3,'0')} | R=${String(counters.R).padStart(3,'0')} | B=${String(counters.B).padStart(3,'0')}`;
+  const itemCounterStr = `REQ=${itemCounters.REQ} | TKT=${itemCounters.TKT} | INC=${itemCounters.INC} | DISC=${itemCounters.DISC}`;
+  const counterStr = `REQ=${String(counters.REQ).padStart(3,'0')} | TKT=${String(counters.TKT).padStart(3,'0')} | INC=${String(counters.INC).padStart(3,'0')} | DISC=${String(counters.DISC).padStart(3,'0')}`;
 
   const statusMap = {};
   exportItems.forEach(i => { statusMap[i.code] = { status: i.status, sprint: i.sprint || '' }; });
@@ -650,7 +665,9 @@ export function _generateBacklogContent(newVersion, opts = {}) {
 
   // T-202606-061: orden canónico OBDS §3 §6 en ## Ítems
   // (1) Rs sprint activo + hijos, (2) T/B sprint activo huérfanos,
-  // (3) Rs sprints programados/otros + hijos, (4) Rs icebox + hijos, (5) Ps icebox
+  // (3) Rs sprints programados/otros + hijos, (4) Rs sin sprint (Q-Backlog) + hijos, (5) DISC (Q-DISC)
+  // [tmp:tkt3-sprint-zona] AC-1: grupo 'sin sprint' detectado por ausencia de sprint —
+  // ya no compara contra string 'icebox'. DISC siempre cae en su propio grupo via _itemTypeGen2.
   const _normSprintIdForSort = val => {
     if (!val) return null;
     const m = String(val).match(/^([A-Za-z]+-S-?\d+)/i);
@@ -670,16 +687,14 @@ export function _generateBacklogContent(newVersion, opts = {}) {
     const normId = _normSprintIdForSort(item.sprint);
     if (normId && normId === _activeSprintIdForSort) return 0;   // sprint activo
     if (normId && _programadosIdsForSort.has(normId)) return 1;  // programado
-    if (!normId || item.sprint === 'icebox') return 2;           // icebox
-    return 1; // sprint asignado no activo ni icebox → grupo otros
+    if (_itemTypeGen2(item) === 'DISC') return 3;                // DISC — siempre Q-DISC, grupo propio
+    if (!normId) return 2;                                       // sin sprint (Q-Backlog)
+    return 1; // sprint asignado no activo ni Q-Backlog → grupo otros
   };
   const _typeOrder = code => {
-    if (!code) return 4;
-    if (code[0] === 'R') return 0;
-    if (code[0] === 'T') return 1;
-    if (code[0] === 'B') return 2;
-    if (code[0] === 'P') return 3;
-    return 4;
+    const t = _itemTypeGen2({ code });
+    const order = { REQ:0, TKT:1, INC:2, DISC:3, PRB:4, KE:5, CHG:6 };
+    return order[t] !== undefined ? order[t] : 7;
   };
   const sortedExportItems = [...exportItems].sort((a, b) => {
     const ga = _sprintGroup(a), gb = _sprintGroup(b);
@@ -691,7 +706,6 @@ export function _generateBacklogContent(newVersion, opts = {}) {
 
   const totalItems = exportItems.length;
   const doneCount = exportItems.filter(i => i.status === 'done').length;
-  const backlogCount = exportItems.filter(i => i.status === 'backlog').length;
   const enRevisionCount = exportItems.filter(i => i.status === 'en-revision').length; // T-202606-110
 
   const currentStateMd = _buildCurrentStateMd();
@@ -779,12 +793,12 @@ export function _generateBacklogMd(newVersion, opts = {}) {
 function _buildIndexLines(itemMap) {
   // groups key: `${type}:${status}` — permite línea propia por tipo+status
   const groups = {};
-  const TYPE_ORDER = ['R', 'T', 'B', 'P'];
+  const TYPE_ORDER = ['REQ', 'TKT', 'INC', 'DISC', 'PRB', 'KE', 'CHG'];
   // B-202606-011: status con línea propia en orden canónico de aparición
   const STATUS_ORDER = ['pendiente', 'en-revision', 'done', 'descartado'];
 
   Object.keys(itemMap).forEach(code => {
-    const t = code[0] || '?';
+    const t = _itemTypeGen2({ code }) || 'UNKNOWN';
     const entry = itemMap[code];
     const status = typeof entry === 'string' ? entry : (entry.status || '—');
     const sprint = typeof entry === 'object' ? (entry.sprint || '') : '';
@@ -793,7 +807,7 @@ function _buildIndexLines(itemMap) {
     groups[key].items.push({ code, status, sprint });
   });
 
-  // Ordenar grupos: primero por tipo (R T B P ?), luego por status canónico
+  // Ordenar grupos: primero por tipo Gen 2 (REQ TKT INC DISC PRB KE CHG), luego por status canónico
   const sortedKeys = Object.keys(groups).sort((a, b) => {
     const [ta, sa] = a.split(':');
     const [tb, sb] = b.split(':');
@@ -812,7 +826,7 @@ function _buildIndexLines(itemMap) {
     g.items.sort((a, b) => a.code.localeCompare(b.code));
     const chunks = [];
     for (let i = 0; i < g.items.length; i += 6) chunks.push(g.items.slice(i, i + 6));
-    const typeLabel = g.type === '?' ? 'Sin código asignado' : g.type;
+    const typeLabel = g.type === 'UNKNOWN' ? 'Sin tipo asignado' : g.type;
     const label = `${typeLabel} (${g.status})`;
     chunks.forEach(chunk => {
       lines.push(label + ': ' + chunk.map(x => {
@@ -918,8 +932,9 @@ function _buildItemFieldsMd(item, state) {
   if (item.discardReason) md += `**DiscardReason:** ${item.discardReason}\n`;
   if (item.discardRef)    md += `**DiscardRef:** ${item.discardRef}\n`;
   if (item.sprint) {
-    // T-202606-067: Ps siempre exportan con sprint: icebox — independiente del valor en storage
-    const _sprintVal = (item.code && item.code[0] === 'P') ? 'icebox' : item.sprint;
+    // T-202606-067: DISC siempre exportan con zona: Q-DISC — independiente del valor en storage
+    const _itemT = _itemTypeGen2(item);
+    const _sprintVal = (_itemT === 'DISC') ? `${_docPrefix()}-Q-DISC` : item.sprint;
     // [pendiente-ID]: leer sprint_id y sprint_name directamente si están presentes (formato nuevo).
     // Fallback a split de item.sprint para ítems legacy sin campos separados.
     let _sprintId, _sprintName;
@@ -932,12 +947,12 @@ function _buildItemFieldsMd(item, state) {
       _sprintName = _sprintParts.length > 1 ? _sprintParts.slice(1).join(' · ') : '';
     }
     md += `**SprintId:** ${_sprintId}\n`;
-    if (_sprintId !== 'icebox' && _sprintName) md += `**SprintName:** ${_sprintName}\n`;
+    if (!_sprintId.includes('Q-DISC') && _sprintName) md += `**SprintName:** ${_sprintName}\n`;
   }
   if (item.role)     md += `**Role:** ${item.role}\n`;
   if (item.parentId) md += `**ParentId:** ${item.parentId}\n`;
-  // T-202606-065: depends_on — emitir siempre en Ts con [] si no existe
-  if (item.code && item.code[0] === 'T') {
+  // T-202606-065: depends_on — emitir siempre en TKTs con [] si no existe
+  if (_itemTypeGen2(item) === 'TKT') {
     const _deps = Array.isArray(item.depends_on) ? item.depends_on : [];
     md += `**DependsOn:** ${_deps.length ? _deps.join(', ') : '[]'}\n`;
   } else if (item.depends_on != null) {
@@ -945,21 +960,21 @@ function _buildItemFieldsMd(item, state) {
   }
   if (item.origin)   md += `**Origin:** ${item.origin}\n`;
   if (item.blockedBy && item.blockedBy.length) md += `**BlockedBy:** ${item.blockedBy.join(', ')}\n`;
-  // T-202606-065: triggered_by — emitir siempre en Bs con n/a si no existe
-  if (item.code && item.code[0] === 'B') {
+  // T-202606-065: triggered_by — emitir siempre en INC con n/a si no existe
+  if (_itemTypeGen2(item) === 'INC') {
     md += `**TriggeredBy:** ${item.triggered_by || 'n/a'}\n`;
   }
-  // T-202606-030: triggered_by en T y P — opcional, omitir si no existe
-  if (item.code && (item.code[0] === 'T' || item.code[0] === 'P') && item.triggered_by) {
+  // T-202606-030: triggered_by en TKT y DISC — opcional, omitir si no existe
+  if ((_itemTypeGen2(item) === 'TKT' || _itemTypeGen2(item) === 'DISC') && item.triggered_by) {
     md += `**TriggeredBy:** ${item.triggered_by}\n`;
   }
-  // T-202606-030: promovida_a — solo P con promovida_a declarado
-  if (item.code && item.code[0] === 'P' && item.promovida_a) {
+  // T-202606-030: promovida_a — solo DISC con promovida_a declarado
+  if (_itemTypeGen2(item) === 'DISC' && item.promovida_a) {
     md += `**PromovidaA:** ${item.promovida_a}\n`;
   }
-  // T-202606-030: origen_p — R, T, B que trazan su origen a una P
-  if (item.code && item.origen_p) {
-    md += `**OrigenP:** ${item.origen_p}\n`;
+  // T-202606-030: origenDisc — REQ, TKT, INC que trazan su origen a una DISC
+  if (item.code && item.origenDisc) {
+    md += `**OrigenDisc:** ${item.origenDisc}\n`;
   }
   if (item.archivos && item.archivos.length)   md += `**Archivos:** ${item.archivos.join(', ')}\n`;
   if (item.desc)     md += `\n${item.desc}\n`;
@@ -970,8 +985,8 @@ function _buildItemFieldsMd(item, state) {
     if (item.intencion.done_cuando) md += `- Done cuando: ${item.intencion.done_cuando}\n`;
     if (item.intencion.no_incluye)  md += `- No incluye: ${item.intencion.no_incluye}\n`;
   }
-  // T-202606-065: no_incluye — emitir siempre en Ts. Lista si existe, 'n/a' si no.
-  if (item.code && item.code[0] === 'T') {
+  // T-202606-065: no_incluye — emitir siempre en TKTs. Lista si existe, 'n/a' si no.
+  if (_itemTypeGen2(item) === 'TKT') {
     if (item.no_incluye && item.no_incluye.length) {
       md += `\n**No incluye:**\n`;
       item.no_incluye.forEach(n => { md += `- ${n}\n`; });
@@ -987,8 +1002,9 @@ function _buildItemFieldsMd(item, state) {
     });
   }
   if (item.notes) md += `\n**Notes:** ${item.notes}\n`;
-  // T-202606-071: campos calculados — solo Ts y Bs del sprint activo (no icebox, no R, no P)
-  if (item.code && (item.code[0] === 'T' || item.code[0] === 'B') && item.sprint && item.sprint !== 'icebox') {
+  // T-202606-071: campos calculados — solo TKTs e INC del sprint activo (no Q-DISC, no REQ, no DISC)
+  const _itemTForCalc = _itemTypeGen2(item);
+  if ((_itemTForCalc === 'TKT' || _itemTForCalc === 'INC') && item.sprint && !item.sprint.includes('Q-')) {
     const _activeSprint = (state.sprints || []).find(s => s.status === 'active');
     const _activeSprintId = _activeSprint ? _activeSprint.id : null;
     const _normSId = val => {
@@ -1026,52 +1042,52 @@ function _buildItemsMd(items) {
   const state = getState();
   const src = items || getItems();
 
-  // Índice de Ts por parentId para lookup O(1)
+  // Índice de TKTs por parentId para lookup O(1)
   const tsByParent = {};
   src.forEach(i => {
-    if (!i.code || i.code[0] !== 'T') return;
+    if (_itemTypeGen2(i) !== 'TKT') return;
     const pid = i.parentId || i.parent;
     if (!pid) return;
     if (!tsByParent[pid]) tsByParent[pid] = [];
     tsByParent[pid].push(i);
   });
 
-  // Ts con parent declarado — se renderizan bajo su R, no en la lista plana
+  // TKTs con parent declarado — se renderizan bajo su REQ, no en la lista plana
   const tsWithParent = new Set(
-    src.filter(i => i.code && i.code[0] === 'T' && (i.parentId || i.parent))
+    src.filter(i => _itemTypeGen2(i) === 'TKT' && (i.parentId || i.parent))
        .map(i => i.code)
   );
 
-    // T-202606-064: AC-1 — triggerBSet: Bs en src sin parentId con triggered_by apuntando a T hijo de R activo.
+  // T-202606-064: AC-1 — triggerBSet: INC en src sin parentId con triggered_by apuntando a TKT hijo de REQ activo.
   // activeTCodes proviene de _generateBacklogContent via el array ya filtrado en exportItems —
   // reconstruimos el set localmente desde src para que _buildItemsMd sea autónoma.
   const _activeTCodesLocal = (() => {
     const activeRCodesLocal = new Set(
       src
-        .filter(i => i.code && i.code.startsWith('R-') && i.status !== 'done' && i.status !== 'descartado')
+        .filter(i => _itemTypeGen2(i) === 'REQ' && i.status !== 'done' && i.status !== 'descartado')
         .map(i => i.code)
     );
     return new Set(
       src
-        .filter(i => i.code && i.code.startsWith('T-') &&
+        .filter(i => _itemTypeGen2(i) === 'TKT' &&
           activeRCodesLocal.has(i.parentId || i.parent))
         .map(i => i.code)
     );
   })();
   const triggerBSet = new Set(
     src
-      .filter(i => i.code && i.code[0] === 'B' &&
+      .filter(i => _itemTypeGen2(i) === 'INC' &&
         !(i.parentId || i.parent) &&
         i.triggered_by && _activeTCodesLocal.has(i.triggered_by))
       .map(i => i.code)
   );
 
-  // T-202606-059: AC-1 — huérfanos: T o B en src sin parentId y sin parent declarado
-  // T-202606-064: AC-3 — Bs en triggerBSet excluidos de orphanCodes
+  // T-202606-059: AC-1 — huérfanos: TKT o INC en src sin parentId y sin parent declarado
+  // T-202606-064: AC-3 — INC en triggerBSet excluidos de orphanCodes
   const orphanCodes = new Set(
     src
       .filter(i => i.code &&
-        (i.code[0] === 'T' || i.code[0] === 'B') &&
+        (_itemTypeGen2(i) === 'TKT' || _itemTypeGen2(i) === 'INC') &&
         !(i.parentId || i.parent) &&
         !triggerBSet.has(i.code))
       .map(i => i.code)
@@ -1082,24 +1098,24 @@ function _buildItemsMd(items) {
 
   src.forEach(item => {
     if (!item.code) return;
-    const type = item.code[0];
+    const type = _itemTypeGen2(item);
 
-    // Ts con parent — se renderizan bajo su R
-    if (type === 'T' && tsWithParent.has(item.code)) return;
+    // TKTs con parent — se renderizan bajo su REQ
+    if (type === 'TKT' && tsWithParent.has(item.code)) return;
 
     // T-202606-059: AC-2 — huérfanos excluidos del loop normal, acumulados en orphanSections
     if (orphanCodes.has(item.code)) {
-      const { blocked, blockers } = type === 'T' ? _isItemBlocked(item) : { blocked: false, blockers: [] };
+      const { blocked, blockers } = type === 'TKT' ? _isItemBlocked(item) : { blocked: false, blockers: [] };
       const blockerTag = blocked ? ` ⚠ bloqueado por ${blockers.join(', ')}` : '';
-      let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}${blockerTag}\n`;
+      let md = `### ${item.code} · ${item.title || '(sin título)'}${blockerTag}\n`;
       md += _buildItemFieldsMd(item, state);
       orphanSections.push(md);
       return;
     }
 
-    if (type === 'R') {
-      // ── R como header H3 con Ts anidados ──────────────────────────────
-      let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}\n`;
+    if (type === 'REQ') {
+      // ── REQ como header H3 con TKTs anidados ──────────────────────────────
+      let md = `### ${item.code} · ${item.title || '(sin título)'}\n`;
       md += _buildItemFieldsMd(item, state);
 
       const children = tsByParent[item.code] || [];
@@ -1108,13 +1124,13 @@ function _buildItemsMd(items) {
         children.forEach(t => {
           const { blocked, blockers } = _isItemBlocked(t);
           const blockerTag = blocked ? ` ⚠ bloqueado por ${blockers.join(', ')}` : '';
-          md += `##### ${t.code} · ${t.title || t.desc || '(sin título)'}${blockerTag}\n`;
+          md += `##### ${t.code} · ${t.title || '(sin título)'}${blockerTag}\n`;
           md += _buildItemFieldsMd(t, state);
           md += '\n';
         });
       }
-      // T-202606-064: AC-2 — Bs en triggerBSet cuyo triggered_by apunta a T hijo de este R
-      // se renderizan después del último T hijo, bajo el mismo encabezado del R
+      // T-202606-064: AC-2 — INC en triggerBSet cuyo triggered_by apunta a TKT hijo de este REQ
+      // se renderizan después del último TKT hijo, bajo el mismo encabezado del REQ
       const triggerBsForR = src.filter(i =>
         triggerBSet.has(i.code) &&
         i.triggered_by && _activeTCodesLocal.has(i.triggered_by) &&
@@ -1123,24 +1139,24 @@ function _buildItemsMd(items) {
       if (triggerBsForR.length) {
         if (!children.length) md += `\n#### Tickets\n\n`;
         triggerBsForR.forEach(b => {
-          md += `##### ${b.code} · ${b.title || b.desc || '(sin título)'}\n`;
+          md += `##### ${b.code} · ${b.title || '(sin título)'}\n`;
           md += _buildItemFieldsMd(b, state);
           md += '\n';
         });
       }
       sections.push(md);
 
-    } else if (type === 'T') {
-      // ── T sin R padre pero con parent declarado — no debería llegar aquí post-059
+    } else if (type === 'TKT') {
+      // ── TKT sin REQ padre pero con parent declarado — no debería llegar aquí post-059
       const { blocked, blockers } = _isItemBlocked(item);
       const blockerTag = blocked ? ` ⚠ bloqueado por ${blockers.join(', ')}` : '';
-      let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}${blockerTag}\n`;
+      let md = `### ${item.code} · ${item.title || '(sin título)'}${blockerTag}\n`;
       md += _buildItemFieldsMd(item, state);
       sections.push(md);
 
     } else {
-      // ── P y B con parent (o P sin parent — P no es huérfana por diseño) ─
-      let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}\n`;
+      // ── DISC, INC, PRB, KE, CHG — render plano
+      let md = `### ${item.code} · ${item.title || '(sin título)'}\n`;
       md += _buildItemFieldsMd(item, state);
       sections.push(md);
     }
@@ -1170,12 +1186,9 @@ function _buildHistorialItemsMd(exportItems) {
 
   // Ordenar por tipo luego por código
   const _typeOrder = code => {
-    if (!code) return 4;
-    if (code[0] === 'R') return 0;
-    if (code[0] === 'T') return 1;
-    if (code[0] === 'B') return 2;
-    if (code[0] === 'P') return 3;
-    return 4;
+    const t = _itemTypeGen2({ code });
+    const order = { REQ:0, TKT:1, INC:2, DISC:3, PRB:4, KE:5, CHG:6 };
+    return order[t] !== undefined ? order[t] : 7;
   };
   const sorted = [...doneItems].sort((a, b) => {
     const to = _typeOrder(a.code) - _typeOrder(b.code);
@@ -1185,7 +1198,7 @@ function _buildHistorialItemsMd(exportItems) {
 
   const state = getState();
   const sections = sorted.map(item => {
-    let md = `### ${item.code} · ${item.title || item.desc || '(sin título)'}\n`;
+    let md = `### ${item.code} · ${item.title || '(sin título)'}\n`;
     md += _buildItemFieldsMd(item, state);
     return md;
   });

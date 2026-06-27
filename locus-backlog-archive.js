@@ -1,4 +1,4 @@
-// [PP] mod:13 · autor:Rune · 2026-06-26 UTC-6
+// [PP] mod:14 · autor:Rune · 2026-06-26 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -91,17 +91,17 @@ export function getArchivoHistoricoCount() {
 // T-202606-006: breakdown por tipo y prioridad para stats-bar informativa del panel Histórico.
 // Mismo universo que getArchivoHistoricoCount() — archivoItems + _legacyHistoricos, sin solape.
 // Chips resultantes son informativos — no filtran ni disparan re-render (ver render.js).
+// [tmp:tkt5-archive-stats] migrado a Gen2: byType con claves canónicas Gen2, detección via itemKind().
 export function getArchivoHistoricoStats() {
   const { archivoItems } = _buildArchivoPartitions();
   const all = archivoItems.concat(_legacyHistoricos);
 
-  const byType = { R: 0, T: 0, B: 0, P: 0 };
+  const byType = { REQ: 0, TKT: 0, INC: 0, DISC: 0, PRB: 0, KE: 0, CHG: 0 };
   const byPriority = { high: 0, medium: 0, low: 0 };
 
   all.forEach(i => {
-    const code = i.code || '';
-    const t = code.charAt(0);
-    if (byType[t] !== undefined) byType[t]++;
+    const t = itemKind(i);
+    if (t && byType[t] !== undefined) byType[t]++;
     if (i.priority === 'high') byPriority.high++;
     else if (i.priority === 'low') byPriority.low++;
     else byPriority.medium++;
