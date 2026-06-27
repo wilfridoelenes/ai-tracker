@@ -1,4 +1,4 @@
-<!-- [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:75 · autor:Rune · 2026-06-26 17:45 UTC-6 -->
+<!-- [PP] mod:76 · autor:Rune · 2026-06-26 18:55 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -892,7 +892,6 @@
     <div class="proj-panel-actions">
       <button class="btn-primary proj-panel-btn-sm" id="proj-panel-btn-nuevo">+ Nuevo proyecto</button>
       <button class="btn-ghost proj-panel-btn-sm" id="proj-panel-btn-gestionar">⚙ Gestionar</button>
-      <button class="btn-ghost proj-panel-btn-sm" id="proj-panel-btn-templates">📂 Templates</button>
     </div>
   </div>
 </div>
@@ -979,7 +978,6 @@
     <!-- Header -->
     <div class="ie-header">
       <div class="modal-title" id="item-editor-title">➕ Nuevo ítem</div>
-      <button class="tpl-open-btn" id="ie-tpl-open-btn" title="Usar template predefinido o personalizado">⬡ Templates</button>
     </div>
 
     <!-- Body scrollable -->
@@ -1153,29 +1151,7 @@
     <!-- Footer -->
     <div class="ie-footer">
       <button class="ie-btn-cancel" id="ie-cancel-btn">Cancelar</button>
-      <button class="ie-btn-tpl-save" id="ie-tpl-save-btn" title="Guardar campos actuales como template reutilizable">Guardar como template</button>
       <button class="ie-btn-save" id="ie-save-btn">Guardar en Backlog</button>
-    </div>
-    <div class="tpl-save-panel" id="tpl-save-panel">
-      <label class="tpl-save-label">Nombre del template</label>
-      <div class="tpl-save-row">
-        <input type="text" id="tpl-save-name-input" class="tpl-save-input" placeholder="ej: R de feature con stripe">
-        <button class="btn-primary tpl-save-confirm-btn" id="tpl-save-confirm-btn">Guardar</button>
-        <button class="ie-btn-cancel tpl-save-cancel-btn" id="tpl-save-cancel-btn">✕</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="tpl-picker-overlay">
-  <div class="modal tpl-picker-modal">
-    <div class="ie-header">
-      <div class="modal-title">⬡ Seleccionar template</div>
-      <button class="ie-btn-cancel tpl-picker-close-btn" id="tpl-picker-close-btn">✕</button>
-    </div>
-    <div class="tpl-picker-body">
-      <p class="tpl-picker-hint">Selecciona un template para pre-rellenar el formulario. Podrás editar todos los campos antes de guardar.</p>
-      <div id="tpl-picker-list" class="tpl-picker-list"></div>
     </div>
   </div>
 </div>

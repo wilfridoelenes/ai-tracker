@@ -1,11 +1,11 @@
-// [PP] v0.5.0 · sprint:PP-S-10 · mod:3 · autor:Rune · 2026-06-21 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-06-26 18:55 UTC-6
 // locus-command-palette.js
 // Versión: 1.0.4 | Última actualización: 2026-05-23 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto · T-202605-067 nav-tab-sprint
 // Renombrado de ai-tracker-command-palette.js
 
 
 import { confirmCloseSprint, navigateToItem } from './locus-backlog-sprints.js';
-import { openItemEditor, openTemplatePicker } from './locus-backlog-editor.js';
+import { openItemEditor } from './locus-backlog-editor.js';
 import { toggleRadarSidebar } from './locus-radar.js';
 import { openQuickCapture } from './locus-sesiones-capture.js';
 import { openDetail } from './locus-session-popup.js';
@@ -151,21 +151,6 @@ function _buildCommandRegistry() {
       keywords: ['log', 'historial', 'documentos', 'doc'],
       group: 'Acciones',
       action: () => { openDocLog(); },
-    },
-    // T-202605-449/451: templates de ítems desde command palette
-    {
-      id: 'action-use-template',
-      label: 'Usar template de ítem',
-      icon: '⬡',
-      keywords: ['template', 'plantilla', 'predefinido', 'item', 'usar'],
-      group: 'Acciones',
-      action: () => {
-        switchTab('tab-backlog');
-        setTimeout(() => {
-          openItemEditor(null);
-          setTimeout(() => { openTemplatePicker(); }, 120);
-        }, 150);
-      },
     },
     // B-243: acción para buscar en contexto del proyecto
     {

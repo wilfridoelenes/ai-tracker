@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:66 · autor:Rune · 2026-06-26 17:08 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-09 · mod:69 · autor:Rune · 2026-06-26 19:05 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -120,14 +120,14 @@ function buildTGPreview(items, discrepancy) {
       ? `<span class="preview-tg-tag preview-tg-tag--warn" title="Ítem nuevo sin criterios de aceptación">sin AC</span>`
       : '';
     // T-202606-106: badges --info para campos obligatorios ausentes en ítems nuevos
-    const noNoIncluyeTag = (!existing && item.type === 'T' && (!item.no_incluye || item.no_incluye.length === 0))
-      ? `<span class="preview-tg-tag preview-tg-tag--info" title="T nuevo sin campo no_incluye">sin no_incluye</span>`
+    const noNoIncluyeTag = (!existing && itemKind(item) === 'TKT' && (!item.no_incluye || item.no_incluye.length === 0))
+      ? `<span class="preview-tg-tag preview-tg-tag--info" title="TKT nuevo sin campo no_incluye">sin no_incluye</span>`
       : '';
-    const noIntencionTag = (!existing && item.type === 'R' && !item.intencion)
-      ? `<span class="preview-tg-tag preview-tg-tag--info" title="R nuevo sin campo intencion">sin intencion</span>`
+    const noIntencionTag = (!existing && itemKind(item) === 'REQ' && !item.intencion)
+      ? `<span class="preview-tg-tag preview-tg-tag--info" title="REQ nuevo sin campo intencion">sin intencion</span>`
       : '';
-    const noTriggeredByTag = (!existing && item.type === 'B' && !item.triggeredBy)
-      ? `<span class="preview-tg-tag preview-tg-tag--info" title="B nuevo sin campo triggered_by">sin triggered_by</span>`
+    const noTriggeredByTag = (!existing && itemKind(item) === 'INC' && !item.triggeredBy)
+      ? `<span class="preview-tg-tag preview-tg-tag--info" title="INC nuevo sin campo triggered_by">sin triggered_by</span>`
       : '';
     html += `<div class="preview-tg-row">
       <span class="preview-tg-badge ${item.type}">${item.type}</span>
@@ -578,15 +578,17 @@ export function parsePaste(id) {
         // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
         const _normSt = _canonicalStatus(_it.status, _it.type);
         if (!_normSt || (!_validStatuses.includes(_normSt) && _normSt !== 'promovida' && _normSt !== 'bloqueado')) {
-          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${_it.type === 'P' ? ' · promovida' : ''}${_it.type === 'R' ? ' · bloqueado' : ''}`;
+          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${itemKind(_it) === 'DISC' ? ' · promovida' : ''}${itemKind(_it) === 'REQ' ? ' · bloqueado' : ''}`;
           break;
         }
         // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
         // T-202606-012 AC-3: sprint ausente se trata como icebox
         // T-202606-085: leer sprint_id como fallback cuando sprint no está presente (formato nuevo)
+        // TKT-gen2-parser: 'icebox' (Gen1) y sprint terminado en '-q-backlog' (Gen2) son equivalentes — ambos significan "sin sprint asignado"
         const _sprintRaw = (_it.sprint || _it.sprint_id || '').trim().toLowerCase();
-        if (_normSt === 'en-revision' && (_sprintRaw === 'icebox' || _sprintRaw === '')) {
-          _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
+        const _sinSprint = _sprintRaw === 'icebox' || _sprintRaw === '' || _sprintRaw.endsWith('-q-backlog');
+        if (_normSt === 'en-revision' && _sinSprint) {
+          _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision sin sprint asignado. Asignar sprint antes de continuar.`;
           break;
         }
         // T-202606-031: validación de rol autorizado para transición R → bloqueado
@@ -1421,7 +1423,7 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
 export function _applySprintInheritanceToItems(tgItems, sprintId) {
   if (!Array.isArray(tgItems) || !sprintId) return;
   tgItems.forEach(item => {
-    if (item.type === 'P') return; // AC-2: Ps permanecen en icebox sin excepción
+    if (itemKind(item) === 'DISC') return; // AC-2: DISC permanecen en icebox/Q-DISC sin excepción
     const _sprintRaw = item.sprint ? String(item.sprint).trim().toLowerCase() : '';
     if (_sprintRaw === 'icebox' || _sprintRaw === '') {
       // AC-1: asignar sprint del proposal — ítem movido automáticamente
@@ -1593,14 +1595,16 @@ export function parsePasteStandalone() {
     const _normSt3 = _canonicalStatus(it.status, it.type);
     // T-202606-022 AC-1: excepción bloqueado para R — simétrico a parsePaste
     if (!_normSt3 || (!_validStatuses.includes(_normSt3) && _normSt3 !== 'promovida' && _normSt3 !== 'bloqueado')) {
-      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${it.type === 'P' ? ' · promovida' : ''}`;
+      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${itemKind(it) === 'DISC' ? ' · promovida' : ''}`;
       break;
     }
     // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
     // T-202606-012 AC-3: sprint ausente se trata como icebox
+    // TKT-gen2-parser: 'icebox' (Gen1) y sprint terminado en '-q-backlog' (Gen2) son equivalentes — ambos significan "sin sprint asignado"
     const _sprintRaw3 = it.sprint ? it.sprint.trim().toLowerCase() : '';
-    if (_normSt3 === 'en-revision' && (_sprintRaw3 === 'icebox' || _sprintRaw3 === '')) {
-      itemError = `CHECKPOINT bloqueado: ${it.code || '[pendiente-ID]'} tiene status en-revision con sprint: icebox. Asignar sprint antes de continuar.`;
+    const _sinSprint3 = _sprintRaw3 === 'icebox' || _sprintRaw3 === '' || _sprintRaw3.endsWith('-q-backlog');
+    if (_normSt3 === 'en-revision' && _sinSprint3) {
+      itemError = `CHECKPOINT bloqueado: ${it.code || '[pendiente-ID]'} tiene status en-revision sin sprint asignado. Asignar sprint antes de continuar.`;
       break;
     }
     // T-202606-022: guard de rol para R con status bloqueado — simétrico a parsePaste()

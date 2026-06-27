@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:31 · autor:Rune · 2026-06-26 17:45 UTC-6
+// [PP] mod:32 · autor:Rune · 2026-06-26 18:55 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -19,7 +19,7 @@ import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortD
 import { closeArranquePanel } from './locus-sesiones-arranque.js';
 import { openPendPanel, closePendPanel } from './locus-pend.js';
 import { openCommandPalette, closeCommandPalette } from './locus-command-palette.js';
-import { openTemplatePicker, closeTemplatePicker, confirmItemEditor, saveCurrentItemAsTemplate, toggleTplSavePanel } from './locus-backlog-editor.js';
+import { confirmItemEditor } from './locus-backlog-editor.js';
 import { _mgExportAllZip } from './locus-map-generator.js';
 import { closeImportDiff, confirmImport, downloadGlobalReport, exportData, importData, openCleanProjectModal } from './locus-reports.js';
 import { openChangelog } from './locus-session-save.js';
@@ -1209,13 +1209,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }, true);
 
-  // Botón Templates en proj-panel — getElementById directo
-  const tplBtn = document.getElementById('proj-panel-btn-templates');
-  if (tplBtn) tplBtn.addEventListener('click', function () {
-    closeProjPanel();
-    switchTab('backlog');
-  });
-
 });
 
 // ── END locus-ui-shell.js ──────────────────────────────────────────────────
@@ -1481,52 +1474,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.target === this) closeItemEditor();
   });
 
-  // ie-tpl-open-btn
-  const ieTplOpenBtn = document.getElementById('ie-tpl-open-btn');
-  if (ieTplOpenBtn) ieTplOpenBtn.addEventListener('click', function () {
-    openTemplatePicker();
-  });
-
   // ie-cancel-btn
   const ieCancelBtn = document.getElementById('ie-cancel-btn');
   if (ieCancelBtn) ieCancelBtn.addEventListener('click', function () {
     closeItemEditor();
   });
 
-  // ie-tpl-save-btn
-  const ieTplSaveBtn = document.getElementById('ie-tpl-save-btn');
-  if (ieTplSaveBtn) ieTplSaveBtn.addEventListener('click', function () {
-    toggleTplSavePanel();
-  });
-
   // ie-save-btn
   const ieSaveBtn = document.getElementById('ie-save-btn');
   if (ieSaveBtn) ieSaveBtn.addEventListener('click', function () {
     confirmItemEditor();
-  });
-
-  // tpl-save-confirm-btn
-  const tplSaveConfirmBtn = document.getElementById('tpl-save-confirm-btn');
-  if (tplSaveConfirmBtn) tplSaveConfirmBtn.addEventListener('click', function () {
-    saveCurrentItemAsTemplate();
-  });
-
-  // tpl-save-cancel-btn
-  const tplSaveCancelBtn = document.getElementById('tpl-save-cancel-btn');
-  if (tplSaveCancelBtn) tplSaveCancelBtn.addEventListener('click', function () {
-    toggleTplSavePanel();
-  });
-
-  // tpl-picker-overlay — click outside to close
-  const tplPickerOverlay = document.getElementById('tpl-picker-overlay');
-  if (tplPickerOverlay) tplPickerOverlay.addEventListener('click', function (e) {
-    if (e.target === this) closeTemplatePicker();
-  });
-
-  // tpl-picker-close-btn
-  const tplPickerCloseBtn = document.getElementById('tpl-picker-close-btn');
-  if (tplPickerCloseBtn) tplPickerCloseBtn.addEventListener('click', function () {
-    closeTemplatePicker();
   });
 
   // standalone-ckpt-ta
