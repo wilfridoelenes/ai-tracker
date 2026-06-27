@@ -1,4 +1,4 @@
-// [PP] v0.7.0 · sprint:PP-S-08 · mod:27 · autor:Rune · 2026-06-26 UTC-6
+// [PP] v0.7.0 · sprint:PP-S-08 · mod:28 · autor:Rune · 2026-06-27 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -988,7 +988,6 @@ export function confirmCloseSprint(id) {
     pendingItems,
     doneItems,
     migrations: {},
-    discardReasons: {}, // Fix Gate duro de cierre — justificación obligatoria por ítem descartado
     docUpdates,   // T-202606-120 AC-3
     retroNotes: '',
     effortPlanned,
@@ -1041,17 +1040,8 @@ function _scmNext() {
   _scmRender();
 }
 
-function _scmBulkApply() {
-  const sel = document.getElementById('scm-bulk-select');
-  if (!sel || !_scmState) return;
-  const val = sel.value;
-  const selects = document.querySelectorAll('.scm-migration-select');
-  selects.forEach(s => {
-    s.value = val;
-    const code = s.dataset.code;
-    if (code) _scmState.migrations[code] = val;
-  });
-}
+// _scmBulkApply eliminada — Gen2: _scmStep2Html no ofrece opciones de sprint.
+// Todos los ítems activos solo pueden descartarse (Gate duro §5).
 
 function _scmRender() {
   if (!_scmState) return;
@@ -1119,7 +1109,7 @@ function _scmRender() {
     _scmUpdateDuNextBtn(nextBtn);
   } else if (step === 3 && !skipStep3) {
     // Paso 3: descarte obligatorio de ítems activos (Gate duro de cierre — sin opción de reasignar)
-    body.innerHTML = _scmStep2Html(pendingItems, migrations, _scmState.discardReasons);
+    body.innerHTML = _scmStep2Html(pendingItems, migrations);
     _scmUpdateMigrationNextBtn(nextBtn);
   } else if (step === 4 || (step === 3 && skipStep3)) {
     // Paso 4 (o 3 si skipStep3): retro
@@ -1142,12 +1132,14 @@ function _scmUpdateDuNextBtn(nextBtn) {
 // Fix Gate duro de cierre (__BR-Ecosystem §5): Siguiente solo se habilita cuando
 // todo ítem pendiente tiene justificación de descarte no vacía. No hay otra salida
 // válida — reasignar a otro sprint/icebox queda eliminado del flujo.
+// Gate duro Gen2: Siguiente habilitado solo cuando todos los ítems activos
+// tienen migrations[code] === '__discard__' confirmado por el founder.
 function _scmUpdateMigrationNextBtn(nextBtn) {
   if (!_scmState || !nextBtn) return;
   const pend = _scmState.pendingItems || [];
-  const reasons = _scmState.discardReasons || {};
-  const allJustified = pend.every(i => (reasons[i.code] || '').trim().length > 0);
-  nextBtn.disabled = !allJustified;
+  const mig  = _scmState.migrations   || {};
+  const allConfirmed = pend.every(i => mig[i.code] === '__discard__');
+  nextBtn.disabled = !allConfirmed;
 }
 
 // B-202605-067: métricas de entrega recibidas como parámetro — sin acceso a _scmState global
@@ -1315,43 +1307,32 @@ function _scmStepDuHtml(docUpdates) {
   return `<div class="scm-du-list">${rows}</div>`;
 }
 
-function _scmStep2Html(pendingItems, migrations, currentId) {
-  const otherSprints = getActiveSprints().filter(s => s.id !== currentId && s.status !== 'closed');
-  const activeSp     = otherSprints.find(s => s.status === 'active');
-
-  const sprintOptions = `
-    <option value="">— sin asignar —</option>
-    ${otherSprints.map(s => `<option value="${esc(s.id)}">${esc(s.label ? `${s.id} · ${s.label}` : s.id)}${s.status === 'active' ? ' ★' : ''}</option>`).join('')}
-    <option value="__discard__">🗑 Descartar</option>
-  `;
-
-  const bulkDefaultVal = activeSp ? activeSp.id : '';
-  const bulkSprintOpts = `
-    <option value="">— sin asignar —</option>
-    ${otherSprints.map(s => `<option value="${esc(s.id)}"${s.id === bulkDefaultVal ? ' selected' : ''}>${esc(s.label ? `${s.id} · ${s.label}` : s.id)}${s.status === 'active' ? ' ★' : ''}</option>`).join('')}
-    <option value="__discard__">🗑 Descartar</option>
-  `;
+// Gate duro de cierre (__BR-Ecosystem §5 Gen2): la única salida válida de un ítem activo
+// es done o descartado — reasignar a otro sprint no destraba el cierre.
+// _scmStep2Html ya no ofrece opciones de sprint. Todos los ítems pendientes se descartan
+// y el founder confirma ítem por ítem con un checkbox antes de avanzar.
+function _scmStep2Html(pendingItems, migrations) {
+  if (!pendingItems.length) {
+    return '<div class="scm-migration-intro">Sin ítems activos — continúa al siguiente paso.</div>';
+  }
 
   const rows = pendingItems.map(i => {
-    const cur = migrations[i.code] !== undefined ? migrations[i.code] : '';
+    const confirmed = migrations[i.code] === '__discard__';
     return `<div class="scm-migration-item">
       <div class="scm-migration-item-info">
         <span class="scm-migration-item-title">${esc(i.title || '—')}</span>
-        <span class="scm-migration-item-meta">${esc(i.code)} · ${esc(i.type||'TKT')}</span>
+        <span class="scm-migration-item-meta">${esc(i.code)} · ${esc(i.type || 'TKT')}</span>
       </div>
-      <select class="scm-migration-select" data-code="${esc(i.code)}">
-        ${sprintOptions.replace(`value="${esc(cur)}"`, `value="${esc(cur)}" selected`)}
-      </select>
+      <label class="scm-discard-confirm">
+        <input type="checkbox" class="scm-migration-select" data-code="${esc(i.code)}"
+          value="__discard__"${confirmed ? ' checked' : ''}/>
+        Confirmar descarte
+      </label>
     </div>`;
   }).join('');
 
   return `
-    <div class="scm-bulk-row">
-      <span class="scm-nowrap">Aplicar a todos:</span>
-      <select class="scm-bulk-select" id="scm-bulk-select">${bulkSprintOpts}</select>
-      <button class="scm-bulk-apply" data-action="scm-bulk-apply">Aplicar</button>
-    </div>
-    <div class="scm-migration-intro">${pendingItems.length} ítem${pendingItems.length !== 1 ? 's' : ''} pendiente${pendingItems.length !== 1 ? 's' : ''} — elige el destino de cada uno:</div>
+    <div class="scm-migration-intro">${pendingItems.length} ítem${pendingItems.length !== 1 ? 's' : ''} activo${pendingItems.length !== 1 ? 's' : ''} — confirma el descarte de cada uno para continuar:</div>
     ${rows}
   `;
 }
@@ -2210,21 +2191,21 @@ document.addEventListener('DOMContentLoaded', () => {
         _scmUpdateDuNextBtn(nBtn);
         break;
       }
-      case 'scm-bulk-apply':
-        _scmBulkApply();
-        break;
       case 'scm-export-history':
         exportFullHistoryMd();
         break;
     }
   });
 
-  // Delegación change — .scm-migration-select (reemplaza onchange inline)
+  // Delegación change — .scm-migration-select (checkbox de confirmación de descarte, Gen2)
+  // Gate duro §5: la única salida es __discard__ — el checkbox lo confirma o desmarca.
   if (scmBody) scmBody.addEventListener('change', e => {
-    const sel = e.target.closest('.scm-migration-select');
-    if (!sel || !_scmState) return;
-    const code = sel.dataset.code;
-    if (code) _scmState.migrations[code] = sel.value;
+    const cb = e.target.closest('.scm-migration-select');
+    if (!cb || !_scmState) return;
+    const code = cb.dataset.code;
+    if (code) _scmState.migrations[code] = cb.checked ? '__discard__' : '';
+    const nBtn = document.getElementById('sprint-close-next-btn');
+    _scmUpdateMigrationNextBtn(nBtn);
   });
 
   // Sprint panel items — spi-navigate (click + keydown Enter)

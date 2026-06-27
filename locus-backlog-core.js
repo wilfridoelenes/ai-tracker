@@ -1,4 +1,4 @@
-// [PP] mod:54 · autor:Rune · 2026-06-26 UTC-6
+// [PP] mod:55 · autor:Rune · 2026-06-27 09:30 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1513,6 +1513,16 @@ export function _isQBacklog(i) {
 }
 export function _isQDisc(i) {
   return itemKind(i) === 'DISC' && (!i.sprint || i.sprint === '');
+}
+
+// INC-[pendiente-ID]: _isIcebox restaurada — fue eliminada de este módulo sin migrar
+// a sus consumidores. locus-backlog-render.js (renderIceboxPanel + Vista Lista) sigue
+// en el paradigma pre-Gen2 "Icebox" — no migrado aún a los paneles Q-Backlog/Q-DISC
+// dedicados (Cluster C). Definida como unión de _isQBacklog/_isQDisc — mismo universo
+// que Gen2 ya declara equivalente a icebox (ver _getCountableBaseForSubtab más abajo).
+// Eliminar cuando renderIceboxPanel() se migre a los paneles Q-Backlog/Q-DISC.
+export function _isIcebox(i) {
+  return _isQBacklog(i) || _isQDisc(i);
 }
 
 // T-202606-100: _getCountableBase() — función canónica compartida entre renderStats() y _getCountableForBanner()
