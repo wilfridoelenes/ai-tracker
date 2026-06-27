@@ -1,4 +1,4 @@
-// [PP] v0.7.0 · sprint:PP-S-08 · mod:28 · autor:Rune · 2026-06-27 UTC-6
+// [PP] v0.7.0 · sprint:PP-S-08 · mod:29 · autor:Rune · 2026-06-27 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -721,7 +721,7 @@ export function setItemSprint(code, sprintId) {
   if (sprintId === '__new__') { openNewSprintInline(code); return; }
   // T-202606-133: gate formallyOpened — bloquear asignación a sprint no aprobado
   // B-202606-003: eximir S-HOTFIX — es persistente y nunca pasa por el flujo de aprobación formal
-  if (sprintId && sprintId !== 'icebox') {
+  if (sprintId) {
     const targetSprint = _getSprintById(sprintId);
     if (targetSprint && targetSprint.formallyOpened === false && !targetSprint.isHotfix) {
       showToast('warning', 'Sprint pendiente de aprobación — el founder debe aprobarlo antes de asignar ítems');
@@ -737,8 +737,8 @@ export function setItemSprint(code, sprintId) {
     if (!targetSprintForParentGate || !targetSprintForParentGate.isHotfix) {
       const parentItem = getItems().find(i => i.code === item.parentId);
       if (parentItem) {
-        const parentSprint = parentItem.sprint || 'icebox';
-        const incomingSprint = sprintId || 'icebox';
+        const parentSprint = parentItem.sprint || '';
+        const incomingSprint = sprintId || '';
         if (incomingSprint !== parentSprint) {
           showToast('warning', 'El sprint del T se hereda de su parent ' + item.parentId);
           return;
@@ -746,14 +746,14 @@ export function setItemSprint(code, sprintId) {
       }
     }
   }
-  const prevSprint = item.sprint || 'icebox';
-  // Normalizar: sprint vacío o falsy → 'icebox' (valor canónico BR-Ecosystem V1.6)
-  const normalizedId = sprintId || 'icebox';
+  const prevSprint = item.sprint || '';
+  // TKT-B3 (BR-Ecosystem §5): sprint vacío o falsy = sin sprint asignado (Q-Backlog) — '' es el valor canónico.
+  const normalizedId = sprintId || '';
   item.sprint = normalizedId;
   item.priority = _calcPriority(item); // T-202604-297
   // R-202605-131: marcar scope_added si el sprint destino está activo al momento de asignar
-  // Solo sprints reales (no icebox) califican para scope_added
-  if (normalizedId && normalizedId !== 'icebox') {
+  // Solo sprints reales (con sprint asignado) califican para scope_added
+  if (normalizedId) {
     const targetSprint = _getSprintById(normalizedId);
     if (targetSprint && targetSprint.status === 'active' && targetSprint.startedAt) {
       item.scope_added = true;
@@ -761,20 +761,20 @@ export function setItemSprint(code, sprintId) {
       // No marcar si se mueve al mismo sprint
     }
   } else {
-    // Al desasignar de sprint (icebox), limpiar el flag
+    // Al desasignar de sprint (vuelve a Q-Backlog), limpiar el flag
     delete item.scope_added;
   }
   if (!item.history) item.history = [];
   item.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: prevSprint || null, to: item.sprint || null } });
 
-  // T-202606-036 AC1+AC2 · T-202606-161: mover Ts hijos en icebox al nuevo sprint del R
-  // T-202606-161 AC-2: Ts con sprint ya asignado (distinto de icebox) no se sobreescriben
+  // T-202606-036 AC1+AC2 · T-202606-161: mover TKTs hijos sin sprint asignado al nuevo sprint del REQ
+  // T-202606-161 AC-2: TKTs con sprint ya asignado (distinto de vacío) no se sobreescriben
   if (item.code && itemKind(item) === 'REQ') {
     const _movedChildren = [];
     getItems().forEach(child => {
       if (child.parentId === item.code && child.code && itemKind(child) === 'TKT') {
-        const prevChildSprint = child.sprint || 'icebox';
-        if (prevChildSprint !== 'icebox') return; // T-202606-161 AC-2: conservar sprint ya asignado
+        const prevChildSprint = child.sprint || '';
+        if (prevChildSprint !== '') return; // T-202606-161 AC-2: conservar sprint ya asignado
         child.sprint = normalizedId;
         _movedChildren.push(child.code);
         if (!child.history) child.history = [];
@@ -782,7 +782,7 @@ export function setItemSprint(code, sprintId) {
       }
     });
     // T-202606-161 AC-3: DocLog entry consolidada en el sprint destino
-    if (_movedChildren.length > 0 && normalizedId && normalizedId !== 'icebox') {
+    if (_movedChildren.length > 0 && normalizedId) {
       const _targetSprint = _getSprintById(normalizedId);
       if (_targetSprint) {
         if (!Array.isArray(_targetSprint.docLog)) _targetSprint.docLog = [];
@@ -1129,9 +1129,6 @@ function _scmUpdateDuNextBtn(nextBtn) {
   nextBtn.disabled = !allResolved;
 }
 
-// Fix Gate duro de cierre (__BR-Ecosystem §5): Siguiente solo se habilita cuando
-// todo ítem pendiente tiene justificación de descarte no vacía. No hay otra salida
-// válida — reasignar a otro sprint/icebox queda eliminado del flujo.
 // Gate duro Gen2: Siguiente habilitado solo cuando todos los ítems activos
 // tienen migrations[code] === '__discard__' confirmado por el founder.
 function _scmUpdateMigrationNextBtn(nextBtn) {
@@ -1584,17 +1581,12 @@ async function _scmExecuteClose() {
     }
   });
 
-  // T-202606-122: migrar ítems pendientes/en-revision a icebox + registrar en DocLog del sprint
-  {
-    const spDoc = _getSprintById(id);
-    if (!Array.isArray(spDoc.docLog)) spDoc.docLog = [];
-    getItems().forEach(i => {
-      if (_sprintIdOf(i) === id && (i.status === 'pendiente' || i.status === 'en-revision')) {
-        i.sprint = 'icebox';
-        spDoc.docLog.push(`${i.code} migrado a icebox desde ${id} al cerrar`);
-      }
-    });
-  }
+  // T-202606-122 — bloque eliminado (TKT-B3, BR-Execution §2 Sin retrocompatibilidad).
+  // Migraba ítems pendiente/en-revision a 'icebox' al cerrar sprint. Código muerto:
+  // el Gate duro de cierre (__BR-Ecosystem §5) bloquea el cierre del sprint mientras existan
+  // ítems en pendiente/en-proceso/en-revision — para cuando este punto del flujo se ejecuta,
+  // pendingItems.forEach (arriba) ya resolvió cada ítem a historico o a sprint real.
+  // Sin dato que migrar, sin valor de seguridad (BR-Execution §2).
 
   // T-202606-107 AC-1 + AC-2: ítems historico nunca residen en ITEMS — se escriben al
   // storage dedicado (T-202606-105) y se remueven de ITEMS en la misma operación de cierre.
