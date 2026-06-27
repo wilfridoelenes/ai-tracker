@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:61 · autor:Rune · 2026-06-25 UTC-6
+// [PP] mod:62 · autor:Rune · 2026-06-26 UTC-6
 // locus-storage.js
 // Última actualización: B-202606-105/106/107 — LOCUS_KEYS.CHANGELOG/NOTIF_HISTORY/LOG_FILTERS
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -836,15 +836,15 @@ export async function saveBacklog() {
   // Nota: historico se excluye antes de llegar aquí por el gate `it.status === 'historico'`
   // arriba — este Set lo declara por coherencia con el DDL, no porque llegue a evaluarse.
   const _VALID_STATUS_BY_TYPE = {
-    R: new Set(['pendiente', 'en-proceso', 'en-revision', 'done', 'bloqueado', 'orphaned', 'descartado']),
-    T: new Set(['pendiente', 'en-revision', 'done', 'descartado', 'historico']),
-    B: new Set(['pendiente', 'en-revision', 'done', 'descartado', 'historico']),
-    P: new Set(['pendiente', 'promovida', 'descartado', 'historico']),
+    REQ: new Set(['pendiente', 'en-proceso', 'en-revision', 'done', 'bloqueado', 'orphaned', 'descartado']),
+    TKT: new Set(['pendiente', 'en-revision', 'done', 'descartado', 'historico']),
+    INC: new Set(['pendiente', 'en-revision', 'done', 'descartado', 'historico']),
+    DISC: new Set(['pendiente', 'promovida', 'descartado', 'historico']),
   };
 
   const _rawItems = _getItems();
   const items = _rawItems.filter(it => {
-    if (it.type !== 'P' && it.sprint === 'icebox') {
+    if (it.type !== 'DISC' && it.sprint === 'icebox') {
       console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — type:${it.type} no puede tener sprint:icebox`);
       _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: `type:${it.type} no puede tener sprint:icebox` });
       return false;

@@ -1,10 +1,10 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:10 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-03 · mod:11 · autor:Rune · 2026-06-26 UTC-6
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
 // Extraído de ai-tracker-ai-notes.js
 
-import { _updateUndoUI, importBacklog } from './locus-backlog-core.js';
+import { _updateUndoUI } from './locus-backlog-core.js';
 import { closeDocLog, openDocLog } from './locus-doc-log.js';
 import { _mgGetVersion } from './locus-map-generator.js';
 import { parseHtmlMapMd, renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
@@ -492,7 +492,7 @@ function _importContextMdFromFile(event) {
   reader.readAsText(file);
 }
 
-// Handler unificado para dropzones — context, htmlmap, backlog
+// Handler unificado para dropzones — context, htmlmap
 export function _dropzoneHandle(event, doc) {
   event.preventDefault();
   const file = event.dataTransfer?.files?.[0];
@@ -503,8 +503,6 @@ export function _dropzoneHandle(event, doc) {
     reader.readAsText(file);
   } else if (doc === 'htmlmap') {
     importHtmlMap({ target: { files: [file], value: '' } });
-  } else if (doc === 'backlog') {
-    importBacklog({ target: { files: [file], value: '' } });
   }
 }
 

@@ -1,4 +1,4 @@
-// [PP] mod:50 · autor:Nova · 2026-06-26 UTC-6
+// [PP] mod:53 · autor:Rune · 2026-06-26 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -78,7 +78,7 @@ export function normalizeStatus(raw, type) {
   if (s === 'en-revision') return 'en-revision';
   if (s === 'descartado')  return 'descartado';
   if (s === 'historico')   return 'historico';
-  if (s === 'promovida')   return type === 'P' ? 'promovida' : 'pendiente';
+  if (s === 'promovida')   return type === 'DISC' ? 'promovida' : 'pendiente';
   if (s === 'pendiente')   return 'pendiente';
   // Valor desconocido → pendiente
   return 'pendiente';
@@ -796,16 +796,16 @@ function _normalizeItems(items) {
       'backlog');
   });
 
-  // T-202606-038: validar asignación a sprint HOTFIX — solo B con priority: high
+  // T-202606-038: validar asignación a sprint HOTFIX — solo INC con priority: high
   // Cualquier ítem que no cumpla ambas condiciones: sprint limpiado a icebox con DocLog.
-  // BR-Core §6: [Prefijo]-S-HOTFIX solo acepta Bs con priority: high.
+  // BR-Core §6: [Prefijo]-S-HOTFIX solo acepta INC con priority: high.
   items.forEach(item => {
     if (!item.sprint || !item.sprint.endsWith('-S-HOTFIX')) return;
-    const isValidB    = item.type === 'B';
+    const isValidInc   = item.type === 'INC';
     const isValidPrio = item.priority === 'high';
-    if (!isValidB || !isValidPrio) {
-      const reason = !isValidB
-        ? `tipo ${item.type} — S-HOTFIX solo acepta Bs`
+    if (!isValidInc || !isValidPrio) {
+      const reason = !isValidInc
+        ? `tipo ${item.type} — S-HOTFIX solo acepta INC`
         : `priority ${item.priority} — S-HOTFIX solo acepta priority: high`;
       _blogLog(
         'hotfix-rejected',
@@ -822,10 +822,10 @@ function _normalizeItems(items) {
   // definan el nuevo modelo: gate en parser + flag orphaned + P como único origen de R.
   // R existente sin Ts → flag orphaned:true, sin degradación de type.
   items.forEach(item => {
-    if (item.type !== 'R') return;
+    if (item.type !== 'REQ') return;
     if (item.status === 'descartado') return;
     const _hasValidChild = items.some(i =>
-      i.type === 'T' && i.parentId === item.code && i.status !== 'descartado'
+      i.type === 'TKT' && i.parentId === item.code && i.status !== 'descartado'
     );
     if (!_hasValidChild) {
       item.orphaned = true;
@@ -1237,17 +1237,17 @@ function _applyExitAnimOrRender(code, rCode) {
 function _syncParentRStatus(changedItemCode, newTStatus) {
   // Solo aplica cuando el ítem que cambió es un T con parentId
   const changedItem = ITEMS.find(i => i.code === changedItemCode);
-  if (!changedItem || changedItem.type !== 'T' || !changedItem.parentId) return;
+  if (!changedItem || changedItem.type !== 'TKT' || !changedItem.parentId) return;
 
-  const parent = ITEMS.find(i => i.code === changedItem.parentId && i.type === 'R');
+  const parent = ITEMS.find(i => i.code === changedItem.parentId && i.type === 'REQ');
   if (!parent) return;
 
-  // AC-5 (B-039): R ya en done o descartado — no modificar
+  // AC-5 (B-039): REQ ya en done o descartado — no modificar
   if (parent.status === 'done' || parent.status === 'descartado') return;
 
-  // Obtener todos los Ts hijos del R, excluyendo descartados
+  // Obtener todos los TKTs hijos del REQ, excluyendo descartados
   const activeSiblings = ITEMS.filter(i =>
-    i.type === 'T' && i.parentId === parent.code && i.status !== 'descartado'
+    i.type === 'TKT' && i.parentId === parent.code && i.status !== 'descartado'
   );
 
   // AC-4 (B-039): R sin Ts activos — no ejecutar ninguna transición

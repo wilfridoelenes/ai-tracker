@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:69 · autor:Rune · 2026-06-26 19:05 UTC-6
+// [PP] mod:72 · autor:Rune · 2026-06-26 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -86,9 +86,9 @@ function _canonicalStatus(raw, type) {
   // Casos que normalizeStatus no cubre directamente
   if (s === 'listo') return 'done';
   if (s === 'histórico') return 'historico';
-  if (s === 'promovida' && type !== 'P') return null; // T-202606-018
-  if (s === 'bloqueado') return type === 'R' ? 'bloqueado' : null; // T-202606-031: solo válido para R
-  if (s === 'orphaned') return type === 'R' ? 'orphaned' : null; // T-202606-017: solo válido para R
+  if (s === 'promovida' && type !== 'DISC') return null; // T-202606-018 — Gen2 puro: discriminador 'DISC'
+  if (s === 'bloqueado') return type === 'REQ' ? 'bloqueado' : null; // T-202606-031: solo válido para REQ
+  if (s === 'orphaned') return type === 'REQ' ? 'orphaned' : null; // T-202606-017: solo válido para REQ
   return normalizeStatus(raw, type) || null;
 }
 
@@ -514,7 +514,7 @@ export function parsePaste(id) {
     else if (ckpt._isJsonFormat) {
       delete window[`_itemsJsonError_${id}`];
       const _rawItems = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
-      const _validTypes    = ['P', 'T', 'R', 'B'];
+      const _validTypes    = ['REQ', 'TKT', 'DISC', 'INC'];
       const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
       const ckptHeaderRole = ckpt.rol || '';
       let _itemError = null;
@@ -535,10 +535,10 @@ export function parsePaste(id) {
             // AC-2: al fallar → _blogLog con mensaje canónico + patch descartado
             // AC-3: patch autorizado ('QA · Finn') → acumular normalmente sin advertencia
             // AC-4: patches con status distinto a bloqueado → flujo normal sin modificar
-            const _patchNormSt = _it.status ? _canonicalStatus(_it.status, 'R') : null;
+            const _patchNormSt = _it.status ? _canonicalStatus(_it.status, 'REQ') : null;
             if (_patchNormSt === 'bloqueado') {
               const _patchTarget = (getItems() || []).find(x => x.code === _it.code);
-              if (_patchTarget && _patchTarget.type === 'R') {
+              if (_patchTarget && itemKind(_patchTarget) === 'REQ') {
                 const _patchAuthorizedRole = 'QA · Finn';
                 if (ckptHeaderRole !== _patchAuthorizedRole) {
                   _blogLog(
@@ -561,7 +561,7 @@ export function parsePaste(id) {
           break;
         }
         if (!_validTypes.includes(_it.type)) {
-          _itemError = `Ítem [${_i}]: type inválido "${_it.type}". Valores válidos: P · T · R · B`;
+          _itemError = `Ítem [${_i}]: type inválido "${_it.type}". Valores válidos: REQ · TKT · DISC · INC`;
           break;
         }
         // T2-parser-validaciones: status 'historico' no es emitible en CHECKPOINT — asignado exclusivamente por Locus al cerrar sprint
@@ -596,7 +596,7 @@ export function parsePaste(id) {
         // AC-2: al fallar → advertencia en DocLog con mensaje canónico + omitir cambio de status
         // AC-3: otros cambios del CHECKPOINT continúan aplicándose (continue, no break)
         // AC-4: misma validación aplica a ítem R completo (no solo patch) con status: bloqueado
-        if (_it.type === 'R' && _normSt === 'bloqueado') {
+        if (itemKind(_it) === 'REQ' && _normSt === 'bloqueado') {
           const _authorizedRole = 'QA · Finn';
           if (ckptHeaderRole !== _authorizedRole) {
             _blogLog(
@@ -612,7 +612,7 @@ export function parsePaste(id) {
         // AC-1: R con ac ausente o vacío → acumular en _rsNoAc (AC-3: no break — seguir loop)
         // AC-2: mensaje canónico con título del R + Origen: [título del CHECKPOINT]
         // AC-3: acumular todos los Rs sin AC — emitir mensaje consolidado al final del loop
-        if (_it.type === 'R' && (!Array.isArray(_it.ac) || _it.ac.length === 0)) {
+        if (itemKind(_it) === 'REQ' && (!Array.isArray(_it.ac) || _it.ac.length === 0)) {
           _rsNoAc.push(`R ${_it.code || '[pendiente-ID]'} "${_it.title || _it.desc || ''}"`);
           continue;
         }
@@ -621,7 +621,7 @@ export function parsePaste(id) {
         // AC-2: valor literal de excepción aceptado sin alerta
         // AC-3: aplica a Bs nuevos ([pendiente-ID]/[tmp:slug]) y a patches con status sobre Bs existentes
         //   — pero los patches ya se manejan en el branch 'patch' arriba; aquí solo Bs completos
-        if (_it.type === 'B') {
+        if (itemKind(_it) === 'INC') {
           const _comportamiento = (_it.comportamiento_actual || '').trim();
           const _EXCEPCION = 'no observado directamente — síntoma reportado por founder';
           if (!_comportamiento || (_comportamiento.toLowerCase() !== _EXCEPCION)) {
@@ -671,7 +671,7 @@ export function parsePaste(id) {
         // AC-3: si doc_updates tiene al menos una entrada → sin alerta
         // AC-4: valores 'no' y 'n/a' no activan verificación
         // AC-5: ingesta continúa en ambos casos — no es bloqueo
-        if (_it.type === 'T' && (_it.contract_update || '').toLowerCase() === 'sí') {
+        if (itemKind(_it) === 'TKT' && (_it.contract_update || '').toLowerCase() === 'sí') {
           const _hasDocUpdates = Array.isArray(ckpt._rawDocUpdates) && ckpt._rawDocUpdates.length > 0;
           if (!_hasDocUpdates) {
             _blogLog(
@@ -684,7 +684,7 @@ export function parsePaste(id) {
         }
 
         // T-202606-018: advertencia si P tiene status promovida sin promovida_a
-        if (_it.type === 'P' && _normSt === 'promovida' && !_it.promovida_a) {
+        if (itemKind(_it) === 'DISC' && _normSt === 'promovida' && !_it.promovida_a) {
           _blogLog('promovida-sin-ref', _it.code || '[pendiente-ID]', 'P ' + (_it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
         }
         // T-202606-014: advertencia si depends_on contiene [pendiente-ID] literal con 2+ ítems nuevos en el CHECKPOINT
@@ -1542,7 +1542,7 @@ export function parsePasteStandalone() {
   // T-202606-005: path único JSON — ítems ya están en ckpt._rawItems, no hay path legacy
   const parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
 
-  const _validTypes    = ['P', 'T', 'R', 'B'];
+  const _validTypes    = ['REQ', 'TKT', 'DISC', 'INC'];
   const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
   const tgItems = [];
   const patchItems = []; // R-202605-062: patches separados de ítems normales
@@ -1566,12 +1566,12 @@ export function parsePasteStandalone() {
       break;
     }
     if (!_validTypes.includes(it.type)) {
-      itemError = `Ítem [${i}]: type inválido "${it.type}". Válidos: P · T · R · B`;
+      itemError = `Ítem [${i}]: type inválido "${it.type}". Válidos: REQ · TKT · DISC · INC`;
       break;
     }
     // T3-parser-validaciones (standalone): guard simétrico a parsePaste() líneas 595-604 — mismo mensaje canónico
     // AC-4/AC-5 T-202606-021: B sin comportamiento_actual bloquea; excepción literal aceptada sin alerta
-    if (it.type === 'B') {
+    if (itemKind(it) === 'INC') {
       const _comportamiento3 = (it.comportamiento_actual || '').trim();
       const _EXCEPCION3 = 'no observado directamente — síntoma reportado por founder';
       if (!_comportamiento3 || (_comportamiento3.toLowerCase() !== _EXCEPCION3)) {
@@ -1612,7 +1612,7 @@ export function parsePasteStandalone() {
     // AC-1: role resuelto !== 'QA · Finn' → _blogLog + forzar status a 'pendiente'
     // AC-3: role resuelto === 'QA · Finn' → status 'bloqueado' preservado sin modificación
     // AC-4: aplica solo a R con status bloqueado — T, B, P no afectados
-    if (it.type === 'R' && _normSt3 === 'bloqueado') {
+    if (itemKind(it) === 'REQ' && _normSt3 === 'bloqueado') {
       const _resolvedRole = (it.role && it.role.trim()) ? it.role.trim() : (ckpt.rol || '');
       const _authorizedRole = 'QA · Finn';
       if (_resolvedRole !== _authorizedRole) {
@@ -1677,7 +1677,7 @@ export function parsePasteStandalone() {
       schema_version: it.schema_version != null ? Number(it.schema_version) : 0  // T-202606-024 AC-7
     });
     // T-202606-018 AC9: advertencia si P tiene status promovida sin promovida_a en standalone parser
-    if (it.type === 'P' && _normSt3 === 'promovida' && !it.promovida_a) {
+    if (itemKind(it) === 'DISC' && _normSt3 === 'promovida' && !it.promovida_a) {
       _blogLog('promovida-sin-ref', it.code || '[pendiente-ID]', 'P ' + (it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
     }
     // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
@@ -1905,7 +1905,7 @@ export function _buildTriggeredBySuggestion(tgItems) {
   });
 
   for (const item of tgItems) {
-    if (item.type !== 'B') continue;
+    if (itemKind(item) !== 'INC') continue;
     if (!_isPlaceholderCode(item.code)) continue; // solo B nuevo
     if (!item.triggeredBy && !item.triggered_by) continue;
 
