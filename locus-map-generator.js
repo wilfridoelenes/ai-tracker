@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-HOTFIX · mod:9 · autor:Rune · 2026-06-22 18:55 UTC-6
+// [PP] mod:10 · autor:Rune · 2026-06-27 13:10 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -9,7 +9,7 @@
  */
 
 import { archiveClosedItems } from './locus-backlog-archive.js';
-import { getItems } from './locus-backlog-core.js';
+import { getItems, itemKind } from './locus-backlog-core.js'; // TKT-D2: itemKind(item) — clasificación Gen2
 import { editSprintInline } from './locus-backlog-sprints.js';
 import { _getMapContent, _importContextMdFromText, exportHtmlMapMd, importHtmlMap } from './locus-docs.js';
 import { _tryIngestPlan } from './locus-session-parse.js';
@@ -1209,8 +1209,8 @@ function _mgGetFunctionBody(allLines, bodyStartLine, nextBodyStart, prevLines) {
 
 // R-202605-147: inferir status operativo del proyecto
 // Tabla: SCM modal activo → closing · sprint abierto (con o sin ítems) → active
-//        sin sprint + ítems sin asignar → planning · sin sprint + backlog vacío → icebox
-// T-202606-146: between_sprints eliminado — reemplazado por icebox (valor canónico BR-Ecosystem §5)
+//        sin sprint + ítems sin asignar → planning · sin sprint + backlog vacío → idle
+// TKT-D2: 'icebox' eliminado — no tiene equivalente en BR-Core §6 Gen2; 'idle' no colisiona con Q-Backlog/Q-DISC
 function _mgInferStatus(activeSp, blItems) {
   // closing: SCM modal visible
   const scmModal = document.getElementById('close-sprint-modal');
@@ -1224,7 +1224,7 @@ function _mgInferStatus(activeSp, blItems) {
     i.status === 'pendiente' && (!i.sprint || i.sprint === '' || i.sprint === 'n/a' || i.sprint === 'futura')
   );
   if (unassigned.length > 0) return 'planning';
-  return 'icebox'; // T-202606-146: era between_sprints — icebox es el valor canónico
+  return 'idle'; // TKT-D2: era 'icebox' — sin sprint activo y backlog sin ítems pendientes sin asignar
 }
 
 function _generateContext(ver) {
@@ -1283,13 +1283,12 @@ function _generateContext(ver) {
   // R-202605-147: status inferido — calculado una sola vez al abrir
   const status = _mgInferStatus(_activeSp, _blItems);
 
-  // Contadores legacy
-  const counters = {
-    P: _blItems.filter(i => i.type === 'P').length,
-    T: _blItems.filter(i => i.type === 'T').length,
-    R: _blItems.filter(i => i.type === 'R').length,
-    B: _blItems.filter(i => i.type === 'B').length
-  };
+  // Contadores Gen2 — itemKind() clasifica, item sin tipo resoluble no incrementa ningún contador
+  const counters = { REQ: 0, TKT: 0, DISC: 0, INC: 0 };
+  _blItems.forEach(i => {
+    const kind = itemKind(i);
+    if (kind && kind in counters) counters[kind]++;
+  });
 
   // R-202605-147: sprint enriquecido
   const allSprints = getActiveSprints();
@@ -1360,11 +1359,11 @@ function _generateContext(ver) {
     high_priority: pendingItems.filter(i => i.priority === 'high').length
   };
 
-  // R-202605-147: tech_debt — Bs y Ts de priority high sin sprint asignado
+  // tech_debt — INC y TKT de priority high sin sprint asignado, vía itemKind() (excluye DISC implícitamente)
   const noSprintValues = [null, undefined, '', 'n/a', 'futura'];
   const tech_debt = _blItems
-    .filter(i => (i.type === 'B' || i.type === 'T') && i.priority === 'high' && noSprintValues.includes(i.sprint))
-    .map(i => ({ code: i.code || '—', title: i.title || i.desc || '', type: i.type }));
+    .filter(i => ['INC', 'TKT'].includes(itemKind(i)) && i.priority === 'high' && noSprintValues.includes(i.sprint))
+    .map(i => ({ code: i.code || '—', title: i.title || i.desc || '', type: itemKind(i) }));
 
   // Decisiones — [] en este R, acumulación futura desde CHECKPOINTs
   const decisions = [];

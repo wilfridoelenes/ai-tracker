@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-12 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-06-27 12:30 UTC-6
 import { renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
 import { _closedItemsInRange, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, sessionDateKey } from './locus-analytics-core.js';
 
@@ -9,6 +9,7 @@ import { navigateToItem } from './locus-backlog-sprints.js';
 import { _getActiveProjectFilter, getAllSessions, getProjectById, getState } from './locus-storage.js';
 
 import { esc, switchTab } from './locus-ui-shell.js';
+import { itemKind } from './locus-backlog-core.js'; // TKT-D1: itemKind(item) — clasificación Gen2, no letra Gen1
 
 // locus-analytics-render.js
 // Responsabilidad: renderAnalytics — función principal del tab de analytics.
@@ -524,6 +525,7 @@ export function renderAnalytics() {
             code:    item.code  || '—',
             title:   item.title || item.desc || '—',
             type:    t,
+            itemType: item.type, // TKT-D1: campo Gen2 original — input de itemKind(), no deriva de code[0]
             effort:  e,
             projId:  p.id,
           };
@@ -646,7 +648,7 @@ export function renderAnalytics() {
   function _ctOutliersHtml(outliers, globalAvg) {
     if (!outliers.length) return '<div class="ct-no-outliers">Sin outliers detectados</div>';
     return outliers.map(o => {
-      const typeClass = o.type === 'R' ? 'ct-pill-r' : o.type === 'T' ? 'ct-pill-t' : 'ct-pill-b';
+      const typeClass = itemKind({ type: o.itemType }) === 'REQ' ? 'ct-pill-r' : itemKind({ type: o.itemType }) === 'TKT' ? 'ct-pill-t' : 'ct-pill-b';
       return `<button class="ct-outlier-row" data-action="analytics-goto-item" data-item-code="${_esc(o.code)}" title="Ir al ítem">
         <span class="ct-outlier-code ct-pill ${typeClass}">${esc(o.code)}</span>
         <span class="ct-outlier-title">${esc(o.title.length > 42 ? o.title.slice(0, 42) + '…' : o.title)}</span>
@@ -745,8 +747,8 @@ export function renderAnalytics() {
         JSON.parse(raw).forEach(item => {
           if (item.status !== 'done') return;
           if (!item.sprint) return;
-          const type = (item.code || item.type || '')[0];
-          if (type === 'P') return; // excluir tipo P
+          const kind = itemKind(item); // TKT-D1: excluye DISC vía itemKind(), no letra Gen1 'P'
+          if (!kind || kind === 'DISC') return;
           const e = parseInt(item.effort) || 0;
           if (!e) return; // excluir sin effort
           if (!closedSprintEffort[item.sprint]) closedSprintEffort[item.sprint] = 0;
@@ -786,8 +788,8 @@ export function renderAnalytics() {
         if (!raw) return;
         JSON.parse(raw).forEach(item => {
           if (item.status === 'done' || item.status === 'descartado') return;
-          const type = (item.code || item.type || '')[0];
-          if (type === 'P') return;
+          const kind = itemKind(item); // TKT-D1: excluye DISC vía itemKind(), no letra Gen1 'P'
+          if (!kind || kind === 'DISC') return;
           const e = parseInt(item.effort) || 0;
           if (!e) return;
           pendingEffort += e;
