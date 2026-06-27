@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-HOTFIX · mod:18 · autor:Rune · 2026-06-12 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-HOTFIX · mod:19 · autor:Rune · 2026-06-27 UTC-6
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -7,7 +7,7 @@
 
 import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
 import { showToast } from './locus-toast.js';
-import { getItems, itemType, _getActiveStatuses, updateStatusFilterUI } from './locus-backlog-core.js';
+import { getItems, itemKind, _getActiveStatuses, updateStatusFilterUI } from './locus-backlog-core.js';
 import { getActiveSprints } from './locus-storage.js';
 import { esc } from './locus-ui-shell.js';
 import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
@@ -31,7 +31,7 @@ export function _statusPills(items) {
   const counts = { pendiente: 0, done: 0, descartado: 0 };
   // P's (ideas) no son trabajo activo — excluir de pendiente, consistente con _isCountableItem
   items.forEach(i => {
-    if (i.status === 'pendiente' && itemType(i.code) === 'P') return;
+    if (i.status === 'pendiente' && itemKind(i) === 'DISC') return;
     if (counts[i.status] !== undefined) counts[i.status]++;
   });
   const cfg = [
@@ -349,8 +349,8 @@ export function _renderPlanningView(listEl, closeCallback) {
 
   // Helper: card compacta de ítem
   function _planCard(item, draggable, sprintId) {
-    const type  = itemType(item.code) || '';
-    const typeColors = { T: '#2ecc78', R: '#38bdf8', B: '#e85555', P: '#7c6af7' };
+    const type  = itemKind(item) || '';
+    const typeColors = { TKT: '#2ecc78', REQ: '#38bdf8', INC: '#e85555', DISC: '#7c6af7' };
     const tc    = typeColors[type] || 'var(--hint)';
     const eff   = parseInt(item.effort) || 1;
     const dots  = Array.from({length: 3}, (_, i) =>
@@ -538,11 +538,11 @@ function _planDrop(e, targetCol, listEl) {
     }
     setItemSprint(item.code, targetSprintId);
     // T-202606-092: si el ítem es R, mover Ts hijos activos al mismo sprint
-    if (itemType(item.code) === 'R') {
+    if (itemKind(item) === 'REQ') {
       const activeStatuses = new Set(['pendiente', 'en-revision']);
       const childTs = getItems().filter(i =>
         i.parent === item.code &&
-        itemType(i.code) === 'T' &&
+        itemKind(i) === 'TKT' &&
         activeStatuses.has(i.status)
       );
       childTs.forEach(t => setItemSprint(t.code, targetSprintId));

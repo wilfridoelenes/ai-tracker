@@ -1,4 +1,4 @@
-// [PP] mod:72 · autor:Rune · 2026-06-26 UTC-6
+// [PP] mod:73 · autor:Rune · 2026-06-26 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -626,7 +626,7 @@ export function parsePaste(id) {
           const _EXCEPCION = 'no observado directamente — síntoma reportado por founder';
           if (!_comportamiento || (_comportamiento.toLowerCase() !== _EXCEPCION)) {
             if (!_comportamiento) {
-              _itemError = `B ${_it.code || '[pendiente-ID]'} sin comportamiento_actual — campo obligatorio. Adjuntar CHECKPOINT corregido.`;
+              _itemError = `INC ${_it.code || '[pendiente-ID]'} sin comportamiento_actual — campo obligatorio. Adjuntar CHECKPOINT corregido.`;
               break;
             }
           }
@@ -685,7 +685,7 @@ export function parsePaste(id) {
 
         // T-202606-018: advertencia si P tiene status promovida sin promovida_a
         if (itemKind(_it) === 'DISC' && _normSt === 'promovida' && !_it.promovida_a) {
-          _blogLog('promovida-sin-ref', _it.code || '[pendiente-ID]', 'P ' + (_it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
+          _blogLog('promovida-sin-ref', _it.code || '[pendiente-ID]', 'DISC ' + (_it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
         }
         // T-202606-014: advertencia si depends_on contiene [pendiente-ID] literal con 2+ ítems nuevos en el CHECKPOINT
         if (Array.isArray(_it.depends_on) && _it.depends_on.includes('[pendiente-ID]')) {
@@ -1678,7 +1678,7 @@ export function parsePasteStandalone() {
     });
     // T-202606-018 AC9: advertencia si P tiene status promovida sin promovida_a en standalone parser
     if (itemKind(it) === 'DISC' && _normSt3 === 'promovida' && !it.promovida_a) {
-      _blogLog('promovida-sin-ref', it.code || '[pendiente-ID]', 'P ' + (it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
+      _blogLog('promovida-sin-ref', it.code || '[pendiente-ID]', 'DISC ' + (it.code || '[pendiente-ID]') + ' con status promovida sin campo promovida_a — trazabilidad incompleta', 'backlog');
     }
     // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
     // T-202606-158: pasar tgItems para heredar sprint de parent R en mismo CHECKPOINT
