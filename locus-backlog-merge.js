@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-09 · mod:21 · autor:Rune · 2026-06-25 10:52 UTC-6
+// [PP] mod:23 · autor:Rune · 2026-06-26
 // locus-backlog-merge.js
 // Última actualización: T-202606-006: _mdiffStepZeroActive + listener storage:item-excluded
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -157,11 +157,11 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
 
   // ── Helpers de renderizado ──
   // R-202605-148: pill corto B/T/R/P — letra única con color semántico en .mdiff-type-badge
-  const _typeName  = { B: 'B', T: 'T', R: 'R', P: 'P' };
+  const _typeName  = { INC: 'INC', TKT: 'TKT', REQ: 'REQ', DISC: 'DISC' };
   // R-202605-148: clase CSS por tipo — hex fijos de identidad del backlog
-  const _typeClass = { B: 'mdiff-type--b', T: 'mdiff-type--t', R: 'mdiff-type--r', P: 'mdiff-type--p' };
-  // R-202605-148: orden canónico B → R → T → P para sort dentro de sección
-  const _typeOrder = { B: 0, R: 1, T: 2, P: 3 };
+  const _typeClass = { INC: 'mdiff-type--inc', TKT: 'mdiff-type--tkt', REQ: 'mdiff-type--req', DISC: 'mdiff-type--disc' };
+  // R-202605-148: orden canónico INC → REQ → TKT → DISC para sort dentro de sección
+  const _typeOrder = { INC: 0, REQ: 1, TKT: 2, DISC: 3 };
 
   const _pill = (cls, label) =>
     `<span class="mdiff-pill mdiff-pill--${cls}">${label}</span>`;

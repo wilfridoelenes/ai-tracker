@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:44 · autor:Rune · 2026-06-26 17:08 UTC-6
+// [PP] mod:46 · autor:Nova · 2026-06-26 UTC-6
 // locus-backlog-item.js
 // T-202606-093: _updateSubtabBadges invocado al cierre de mergeBacklogFromTG (AC-3)
 // Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
@@ -645,7 +645,7 @@ function _buildChildrenBlock(rCode) {
   const allChildren = getItems().filter(i => i.parentId === rCode);
   if (!allChildren.length) return '';
   const children = allChildren.filter(i => {
-    const t = itemType(i.code);
+    const t = itemKind(i);
     const typeOk = t ? _getActiveTypes().has(t) : true;
     const statusOk = _getActiveStatuses().has(i.status);
     return typeOk && statusOk;
@@ -658,7 +658,7 @@ function _buildChildrenBlock(rCode) {
   const childRows = children.map(child => {
     // B-202605-011: IDs de DOM desde item.code — estables ante mutaciones de getItems()
     const cSafeId = child.code.replace(/[^a-zA-Z0-9-_]/g, '_');
-    const cType = itemType(child.code) || '';
+    const cType = itemKind(child) || '';
     const isDoneC = child.status === 'done';
     return `<div class="child-item t-item${isDoneC ? ' is-done' : ''}">
       <span class="child-collapse-arrow" id="ciarrow-${cSafeId}" data-action="child-expand" data-child-code="${esc(child.code)}" data-safe-id="${cSafeId}">&#x25B8;</span>
@@ -681,14 +681,14 @@ function _buildChildrenBlock(rCode) {
     </div>`;
   }).join('');
 
-  return `<div class="r-children-block">
-    <div class="r-children-header" data-action="toggle-children" data-r-code="${esc(rCode)}">>
-      <span class="r-children-tickets-label">Ítems</span>
-      <div class="r-children-bar-wrap"><div class="r-children-bar" style="--rch-bar-w:${pct}%"></div></div>
-      <span class="r-children-label">${doneCount}/${children.length} · ${pct}%</span>
-      <span id="rchildren-arrow-${esc(rCode)}" class="r-children-arrow">${isCollapsed ? '▸' : '▾'}</span>
+  return `<div class="req-children-block">
+    <div class="req-children-header" data-action="toggle-children" data-r-code="${esc(rCode)}">>
+      <span class="req-children-tickets-label">Ítems</span>
+      <div class="req-children-bar-wrap"><div class="req-children-bar" style="--rch-bar-w:${pct}%"></div></div>
+      <span class="req-children-label">${doneCount}/${children.length} · ${pct}%</span>
+      <span id="req-children-arrow-${esc(rCode)}" class="req-children-arrow">${isCollapsed ? '▸' : '▾'}</span>
     </div>
-    <div class="r-children-list${isCollapsed ? ' collapsed' : ''}" id="rchildren-body-${esc(rCode)}"><div class="r-children-inner">${childRows}</div></div>
+    <div class="req-children-list${isCollapsed ? ' collapsed' : ''}" id="req-children-body-${esc(rCode)}"><div class="req-children-inner">${childRows}</div></div>
   </div>`;
 }
 
@@ -876,7 +876,7 @@ function _openStatusPopover(e, code) {
 
 // T-108: construir un ítem colapsado
 // opts.suppressChildren: true — omite _buildChildrenBlock() cuando el caller ya inyecta
-// hijos en un wrapper externo (ej. bl-vl-r en _renderVistaLista). Sin este flag, los hijos
+// hijos en un wrapper externo (ej. bl-vl-req en _renderVistaLista). Sin este flag, los hijos
 // aparecen duplicados: una vez en el wrapper externo y otra en el body expandido del R.
 // Contextos sin wrapper externo (Kanban, Icebox, Hotfix) NO deben pasar este flag.
 export function buildBacklogItem(item, opts = {}) {

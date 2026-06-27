@@ -1,4 +1,4 @@
-/* [PP] mod:38 · autor:Nova · 2026-06-26 */
+/* [PP] mod:40 · autor:Nova · 2026-06-26 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -542,12 +542,13 @@
   letter-spacing: 0.02em;
 }
 
-.sca-item-type--r {
+/* TKT0-gen2: renombradas desde --r / --t */
+.sca-item-type--req {
   background: var(--c-pulido-bg);
   color: var(--c-pulido-text);
 }
 
-.sca-item-type--t {
+.sca-item-type--tkt {
   background: var(--c-low-bg);
   color: var(--c-low-text);
 }
@@ -1898,19 +1899,24 @@
   border-radius: var(--radius-sm);
 }
 
-.ssm-type--r {
+.ssm-type--req {
   background: rgb(56 189 248 / 15%);
   color: var(--blue);
 }
 
-.ssm-type--t {
+.ssm-type--tkt {
   background: rgb(46 204 120 / 15%);
   color: var(--green);
 }
 
-.ssm-type--b {
+.ssm-type--inc {
   background: rgb(232 85 85 / 15%);
   color: var(--red);
+}
+
+.ssm-type--disc {
+  background: rgb(124 106 247 / 15%);
+  color: var(--purple);
 }
 
 .ssm-type--empty {

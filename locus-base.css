@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 14:00 UTC-6 */
+/* [PP] mod:2 · autor:Nova · 2026-06-26 */
 /* locus-base.css */
 
 
@@ -161,7 +161,7 @@
   --blue-dim:      rgb(79 195 247 / 8%);   /* Cluster A: fondo sutil --blue */
   --blue-border:   rgb(79 195 247 / 25%);  /* Cluster A: borde sutil --blue */
 
-  /* ── Estado insession (púrpura) — Cluster A ── */
+  /* ── Estado insession (púrpura) — Cluster A — alineado BR-Ecosystem §4 ── */
   --purple:        #7c6af7;
   --purple-dim:    rgb(124 106 247 / 8%);   /* fondo sutil insession */
   --purple-border: rgb(124 106 247 / 30%);  /* borde insession */
@@ -171,7 +171,11 @@
   --text-on-danger: #fff;                   /* texto sobre var(--red) / fondos destructivos */
   --pink:           #f472b6;                /* tag color .tc-5 */
   --lime:           #a3e635;                /* tag color .tc-6 */
-  --orange:         #fb923c;                /* tag color .tc-7 */
+  --orange:         #f59e0b;                /* tag color .tc-7 — alineado BR-Ecosystem §4 PRB */
+
+  /* ── Tokens ITIL derivados — alineados BR-Ecosystem §4 ── */
+  --yellow:         #eab308;                /* KE — Known Error */
+  --slate:          #64748b;                /* CHG — Change */
 
   --card-shadow:       0 1px 6px rgb(0 0 0 / 50%), 0 0 0 1px rgb(255 255 255 / 3%);
   --card-shadow-hover: 0 4px 20px rgb(0 0 0 / 60%), 0 0 0 1px rgb(166 226 46 / 15%);
@@ -245,7 +249,6 @@
   --error:                      var(--red);
   --success:                    var(--green);
   --warning:                    var(--amber);
-  --yellow:                     var(--amber);
   --color-correct:              var(--green);
   --color-incorrect:            var(--red);
   --color-danger:               var(--red);
@@ -310,17 +313,21 @@
   --blue-dim:      rgb(2 136 209 / 7%);    /* Cluster A: fondo sutil --blue */
   --blue-border:   rgb(2 136 209 / 18%);   /* Cluster A: borde sutil --blue */
 
-  /* ── Estado insession (púrpura) — Cluster A ── */
-  --purple:        #6054d4;
-  --purple-dim:    rgb(96 84 212 / 7%);    /* fondo sutil insession */
-  --purple-border: rgb(96 84 212 / 22%);   /* borde insession */
+  /* ── Estado insession (púrpura) — Cluster A — alineado BR-Ecosystem §4 ── */
+  --purple:        #5b4fd4;
+  --purple-dim:    rgb(91 79 212 / 7%);    /* fondo sutil insession */
+  --purple-border: rgb(91 79 212 / 22%);   /* borde insession */
 
   /* ── T-202605-033: Tokens de color nuevos ── */
   --text-on-accent: #000;                  /* texto sobre var(--accent) lime-green — contraste válido en ambos temas */
   --text-on-danger: #fff;                  /* texto sobre var(--red) / fondos destructivos */
   --pink:           #d6509e;               /* tag color .tc-5 — versión light ajustada para contraste */
   --lime:           #6a9e1a;               /* tag color .tc-6 — versión light ajustada para contraste */
-  --orange:         #d4691a;               /* tag color .tc-7 — versión light ajustada para contraste */
+  --orange:         #c47a08;               /* tag color .tc-7 — alineado BR-Ecosystem §4 PRB, light */
+
+  /* ── Tokens ITIL derivados — alineados BR-Ecosystem §4 ── */
+  --yellow:         #a88600;                /* KE — Known Error, light */
+  --slate:          #475569;                /* CHG — Change, light */
 
   --card-shadow:       0 1px 4px rgb(20 22 42 / 8%);
   --card-shadow-hover: 0 4px 16px rgb(20 22 42 / 14%);
@@ -393,7 +400,6 @@
   --error:                      var(--red);
   --success:                    var(--green);
   --warning:                    var(--amber);
-  --yellow:                     var(--amber);
   --color-correct:              var(--green);
   --color-incorrect:            var(--red);
   --color-danger:               var(--red);

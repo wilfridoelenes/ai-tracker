@@ -1,8 +1,8 @@
-// [PP] v0.1.0 · sprint:PP-S-07 · mod:12 · autor:Rune · 2026-06-23 14:35 UTC-6
+// [PP] mod:13 · autor:Rune · 2026-06-26 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
-import { renderStats, getItems, purgeAllHistorico } from './locus-backlog-core.js';
+import { renderStats, getItems, purgeAllHistorico, itemKind } from './locus-backlog-core.js';
 import { buildBacklogItem } from './locus-backlog-item.js';
 
 import { renderBacklogList } from './locus-backlog-render.js';
@@ -251,7 +251,7 @@ export function _sprintNum(id) {
 // R-202605-124: fila compacta de ítem para el Archivo Histórico
 // muestra: tipo · código · título · effort · status final
 function _archItemRow(i) {
-  const type   = esc(i.type || 'T');
+  const type   = esc(itemKind(i) || i.type || '—');
   const code   = esc(i.code || '—');
   const title  = esc(i.title || '—');
   const effort = parseInt(i.effort) || 0;

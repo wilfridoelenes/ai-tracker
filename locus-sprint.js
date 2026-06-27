@@ -1,8 +1,8 @@
-// [PP] v0.7.0 · sprint:PP-S-08 · mod:65 · autor:Rune · 2026-06-23 UTC-6
+// [PP] mod:67 · autor:Rune · 2026-06-26 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
-import { _isBlocked, getItems} from './locus-backlog-core.js';
+import { _isBlocked, getItems, itemKind } from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, openNewSprintInline, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
@@ -76,7 +76,7 @@ function _sprintItemHtml(item) {
   // Progreso de hijos (Ts)
   let childrenHtml = '';
   if (Array.isArray(getItems())) {
-    const children = getItems().filter(i => i.parentCode === item.code && i.type === 'T');
+    const children = getItems().filter(i => i.parentCode === item.code && itemKind(i) === 'TKT');
     if (children.length > 0) {
       const done = children.filter(c => c.status === 'done').length;
       childrenHtml = `<span class="spi-item-children">${done}/${children.length} T</span>`;
@@ -295,7 +295,7 @@ function _renderSpsActivo() {
     spItems = getItems().filter(i => {
       const t = i.type || (i.code ? i.code.charAt(0) : '');
       return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-        (t === 'R' || t === 'B' || t === 'T') &&
+        (['REQ','TKT','INC'].includes(itemKind({type:t}))) &&
         i.status !== 'descartado';
     });
     total = spItems.length;
@@ -527,7 +527,7 @@ function _renderSpsProgramados() {
       const spItems = getItems().filter(function(i) {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
         return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-          (t === 'R' || t === 'B' || t === 'T') &&
+          (['REQ','TKT','INC'].includes(itemKind({type:t}))) &&
           i.status !== 'descartado';
       });
       total   = spItems.length;
@@ -777,7 +777,7 @@ function _renderSprintItems(sprint) {
   const spItems = getItems().filter(i => {
     const t = i.type || (i.code ? i.code.charAt(0) : '');
     return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-      (t === 'R' || t === 'B' || t === 'T') &&
+      (['REQ','TKT','INC'].includes(itemKind({type:t}))) &&
       i.status !== 'descartado';
   });
 
@@ -793,9 +793,9 @@ function _renderSprintItems(sprint) {
   function _renderSection(sectionItems) {
     if (!sectionItems.length) return null; // null = señal de empty state al llamador
 
-    const rItems = sectionItems.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'R');
-    const tItems = sectionItems.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'T');
-    const bItems = sectionItems.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'B');
+    const rItems = sectionItems.filter(i => itemKind(i) === 'REQ');
+    const tItems = sectionItems.filter(i => itemKind(i) === 'TKT');
+    const bItems = sectionItems.filter(i => itemKind(i) === 'INC');
 
     const rCodesInSection = new Set(rItems.map(r => r.code));
 
@@ -1030,15 +1030,15 @@ function _renderPlannedSprints() {
     const items  = plannedMap[sprintId];
     const spObj  = allSprints.find(s => s.id === sprintId);
     const label  = spObj ? (spObj.label ? `${spObj.id} · ${spObj.label}` : spObj.id) : sprintId;
-    const countR = items.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'R').length;
-    const countT = items.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'T').length;
-    const countB = items.filter(i => (i.type || (i.code ? i.code.charAt(0) : '')) === 'B').length;
+    const countR = items.filter(i => itemKind(i) === 'REQ').length;
+    const countT = items.filter(i => itemKind(i) === 'TKT').length;
+    const countB = items.filter(i => itemKind(i) === 'INC').length;
     const effort = items.reduce((acc, i) => acc + (parseInt(i.effort) || 0), 0);
 
     const countParts = [];
-    if (countR) countParts.push(`<span class="spl-type spl-type--r">R=${countR}</span>`);
-    if (countT) countParts.push(`<span class="spl-type spl-type--t">T=${countT}</span>`);
-    if (countB) countParts.push(`<span class="spl-type spl-type--b">B=${countB}</span>`);
+    if (countR) countParts.push(`<span class="spl-type spl-type--req">REQ=${countR}</span>`);
+    if (countT) countParts.push(`<span class="spl-type spl-type--tkt">TKT=${countT}</span>`);
+    if (countB) countParts.push(`<span class="spl-type spl-type--inc">INC=${countB}</span>`);
 
     html += `<div class="spl-row" data-sprint-id="${_escHtml(sprintId)}">
       <span class="spl-row-id">${_escHtml(sprintId)}</span>
@@ -1079,7 +1079,7 @@ function _renderHotfixSection(allSprints) {
     const hotfixItems = getItems().filter(i => {
       const t = i.type || (i.code ? i.code.charAt(0) : '');
       return _iSprint(i) && _iSprint(i).startsWith(_hsid) &&
-        (t === 'R' || t === 'B' || t === 'T') &&
+        (['REQ','TKT','INC'].includes(itemKind({type:t}))) &&
         i.status !== 'descartado';
     });
     pendiente = hotfixItems.filter(i => i.status !== 'done').length;
@@ -1158,19 +1158,19 @@ function _renderSprintSummaryTable(allSprints) {
       const spItems = getItems().filter(i => {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
         return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-          (t === 'R' || t === 'B' || t === 'T') &&
+          (['REQ','TKT','INC'].includes(itemKind({type:t}))) &&
           i.status !== 'descartado';
       });
-      countR = spItems.filter(i => (i.type || i.code.charAt(0)) === 'R').length;
-      countT = spItems.filter(i => (i.type || i.code.charAt(0)) === 'T').length;
-      countB = spItems.filter(i => (i.type || i.code.charAt(0)) === 'B').length;
+      countR = spItems.filter(i => itemKind(i) === 'REQ').length;
+      countT = spItems.filter(i => itemKind(i) === 'TKT').length;
+      countB = spItems.filter(i => itemKind(i) === 'INC').length;
       effort = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 0), 0);
     }
 
     const countParts = [];
-    if (countR) countParts.push(`<span class="ssm-type ssm-type--r">${countR} R</span>`);
-    if (countT) countParts.push(`<span class="ssm-type ssm-type--t">${countT} T</span>`);
-    if (countB) countParts.push(`<span class="ssm-type ssm-type--b">${countB} B</span>`);
+    if (countR) countParts.push(`<span class="ssm-type ssm-type--req">${countR} REQ</span>`);
+    if (countT) countParts.push(`<span class="ssm-type ssm-type--tkt">${countT} TKT</span>`);
+    if (countB) countParts.push(`<span class="ssm-type ssm-type--inc">${countB} INC</span>`);
     const countsHtml = countParts.length ? countParts.join('') : '<span class="ssm-type ssm-type--empty">0 ítems</span>';
 
     return `<div class="ssm-row" data-sprint-id="${_escHtml(sprint.id)}">
@@ -1280,7 +1280,7 @@ function _updateSprintTabBadges() {
     const spItems = getItems().filter(i => {
       const t = i.type || (i.code ? i.code.charAt(0) : '');
       return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-        (t === 'R' || t === 'B' || t === 'T') &&
+        (['REQ','TKT','INC'].includes(itemKind({type:t}))) &&
         i.status !== 'descartado';
     });
     const activeCount = spItems.filter(i =>
@@ -1610,7 +1610,7 @@ function _renderSpsHotfix() {
     const _hsid = _spIdBase(hotfixSprint.id);
     activeBugs = getItems().filter(i => {
       const t = i.type || (i.code ? i.code.charAt(0) : '');
-      return t === 'B' &&
+      return itemKind({type:t}) === 'INC' &&
         i.priority === 'high' &&
         _iSprint(i) && _iSprint(i).startsWith(_hsid) &&
         (i.status === 'pendiente' || i.status === 'en-revision');
@@ -1713,7 +1713,7 @@ function _renderSpsCerrados() {
       const spItems = getItems().filter(i => {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
         return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-          (t === 'R' || t === 'B' || t === 'T');
+          (['REQ','TKT','INC'].includes(itemKind({type:t})));
       });
       doneCnt       = spItems.filter(i => i.status === 'done' || i.status === 'historico').length;
       migradoCnt    = spItems.filter(i => i.status === 'pendiente' || i.status === 'en-revision').length;

@@ -1,9 +1,9 @@
-// [PP] v0.7.0 · sprint:PP-S-08 · mod:26 · autor:Rune · 2026-06-23 UTC-6
+// [PP] v0.7.0 · sprint:PP-S-08 · mod:27 · autor:Rune · 2026-06-26 UTC-6
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
 
-import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, getItems, _registerCoreCallback } from './locus-backlog-core.js';
+import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, getItems, _registerCoreCallback } from './locus-backlog-core.js';
 import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
@@ -272,20 +272,20 @@ function _isValidSprintName(label) {
 }
 
 // R-202605-134: sugerir release_type basado en el contenido del sprint
-// Solo Bs/Ts → Patch · Rs features/UX → Minor · Rs arquitectura/refactor → Major · mezcla Rs+Bs → Minor
+// Solo INC/TKT → Patch · REQs features/UX → Minor · REQs arquitectura/refactor → Major · mezcla REQs+INC → Minor
 function _suggestReleaseType(sprintItems) {
   if (!sprintItems || !sprintItems.length) return 'Patch';
-  const hasR = sprintItems.some(i => i.type === 'R');
-  const hasB = sprintItems.some(i => i.type === 'B');
-  const hasT = sprintItems.some(i => i.type === 'T');
+  const hasR = sprintItems.some(i => i.type === 'REQ');
+  const hasB = sprintItems.some(i => i.type === 'INC');
+  const hasT = sprintItems.some(i => i.type === 'TKT');
   if (!hasR) return 'Patch';
-  // Rs arquitectura/refactor → Major (keywords heurísticos)
+  // REQs arquitectura/refactor → Major (keywords heurísticos)
   const archKeywords = /migra|refactor|arquitectura|core|parser|schema|json/i;
-  const hasArch = sprintItems.some(i => i.type === 'R' && archKeywords.test(i.title || ''));
+  const hasArch = sprintItems.some(i => i.type === 'REQ' && archKeywords.test(i.title || ''));
   if (hasArch) return 'Major';
-  // mezcla Rs+Bs → Minor
+  // mezcla REQs+INC → Minor
   if (hasR && hasB) return 'Minor';
-  // Rs features/UX → Minor
+  // REQs features/UX → Minor
   return 'Minor';
 }
 
@@ -732,7 +732,7 @@ export function setItemSprint(code, sprintId) {
   if (!item) return;
   // T-202606-036 AC5: T con parent — bloquear asignación de sprint distinto al del parent
   // B-202606-018: eximir S-HOTFIX — Ts pueden asignarse a S-HOTFIX independientemente del sprint del R parent
-  if (item.parentId && item.code && item.code[0] === 'T') {
+  if (item.parentId && item.code && itemKind(item) === 'TKT') {
     const targetSprintForParentGate = _getSprintById(sprintId);
     if (!targetSprintForParentGate || !targetSprintForParentGate.isHotfix) {
       const parentItem = getItems().find(i => i.code === item.parentId);
@@ -769,10 +769,10 @@ export function setItemSprint(code, sprintId) {
 
   // T-202606-036 AC1+AC2 · T-202606-161: mover Ts hijos en icebox al nuevo sprint del R
   // T-202606-161 AC-2: Ts con sprint ya asignado (distinto de icebox) no se sobreescriben
-  if (item.code && item.code[0] === 'R') {
+  if (item.code && itemKind(item) === 'REQ') {
     const _movedChildren = [];
     getItems().forEach(child => {
-      if (child.parentId === item.code && child.code && child.code[0] === 'T') {
+      if (child.parentId === item.code && child.code && itemKind(child) === 'TKT') {
         const prevChildSprint = child.sprint || 'icebox';
         if (prevChildSprint !== 'icebox') return; // T-202606-161 AC-2: conservar sprint ya asignado
         child.sprint = normalizedId;
@@ -959,12 +959,12 @@ export function confirmCloseSprint(id) {
   // R-202604-089: abre modal de 4 pasos en lugar de confirm directo
   const sp = _getSprintById(id);
   if (!sp) return;
-  const pendingItems = getItems().filter(i => _sprintIdOf(i) === id && i.status !== 'done' && i.status !== 'descartado' && itemType(i.code) !== 'P');
+  const pendingItems = getItems().filter(i => _sprintIdOf(i) === id && i.status !== 'done' && i.status !== 'descartado' && itemKind(i) !== 'DISC');
   const doneItems    = getItems().filter(i => _sprintIdOf(i) === id && (i.status === 'done' || i.status === 'descartado'));
   const skipStep3    = pendingItems.length === 0; // antiguo skipStep2 — ahora es el Paso 3 (migración)
 
   // R-202605-125: snapshot de effort al abrir modal de cierre
-  const allSprintItems     = getItems().filter(i => _sprintIdOf(i) === id && itemType(i.code) !== 'P');
+  const allSprintItems     = getItems().filter(i => _sprintIdOf(i) === id && itemKind(i) !== 'DISC');
   const effortPlanned      = allSprintItems.reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
   const effortDone         = doneItems.filter(i => i.status === 'done').reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
   const effortScopeAdded   = allSprintItems.filter(i => i.scope_added).reduce((s, i) => s + (parseInt(i.effort) || 0), 0);
@@ -1172,14 +1172,14 @@ function _scmStep1Html(sp, spLabel, pendingItems, doneItems, metrics) {
 
   const doneRows = doneItems.filter(i => i.status === 'done').map(i =>
     `<div class="scm-item-row">
-      <span class="scm-item-type scm-type-${i.type||'T'}">${esc(i.type||'T')}</span>
+      <span class="scm-item-type scm-type-${i.type||'T'}">${esc(i.type||'TKT')}</span>
       <span class="scm-item-code">${esc(i.code)}</span>
       <span class="scm-item-title">${esc(i.title || '—')}</span>
     </div>`
   ).join('');
   const pendRows = pendingItems.map(i =>
     `<div class="scm-item-row">
-      <span class="scm-item-type scm-type-${i.type||'T'}">${esc(i.type||'T')}</span>
+      <span class="scm-item-type scm-type-${i.type||'T'}">${esc(i.type||'TKT')}</span>
       <span class="scm-item-code">${esc(i.code)}</span>
       <span class="scm-item-title">${esc(i.title || '—')}</span>
     </div>`
@@ -1337,7 +1337,7 @@ function _scmStep2Html(pendingItems, migrations, currentId) {
     return `<div class="scm-migration-item">
       <div class="scm-migration-item-info">
         <span class="scm-migration-item-title">${esc(i.title || '—')}</span>
-        <span class="scm-migration-item-meta">${esc(i.code)} · ${esc(i.type||'T')}</span>
+        <span class="scm-migration-item-meta">${esc(i.code)} · ${esc(i.type||'TKT')}</span>
       </div>
       <select class="scm-migration-select" data-code="${esc(i.code)}">
         ${sprintOptions.replace(`value="${esc(cur)}"`, `value="${esc(cur)}" selected`)}
@@ -1394,7 +1394,7 @@ function _scmStep3Html(pendingItems, doneItems, migrations, skipStep3) {
 
   const itemRow = (i, destLabel, cls) =>
     `<div class="scm-confirm-row">
-      <span class="scm-item-type scm-type-${i.type||'T'} scm-flex-shrink-0">${esc(i.type||'T')}</span>
+      <span class="scm-item-type scm-type-${i.type||'T'} scm-flex-shrink-0">${esc(i.type||'TKT')}</span>
       <span class="scm-item-code">${esc(i.code)}</span>
       <span class="scm-item-title scm-item-title-cell">${esc(i.title || '—')}</span>
       <span class="scm-confirm-dest ${cls}">${esc(destLabel)}</span>
@@ -1847,7 +1847,7 @@ function _updateCloseReadyState(sp, labelEl) {
 
   // AC-6: solo Rs no descartados del sprint. Ts hijos excluidos. Sin Rs → no listo.
   const spRs = (typeof getItems() !== 'undefined' ? getItems() : [])
-    .filter(i => i.sprint === sp.id && i.type === 'R' && i.status !== 'descartado');
+    .filter(i => i.sprint === sp.id && i.type === 'REQ' && i.status !== 'descartado');
 
   const isReady = spRs.length > 0 && spRs.every(i => i.status === 'done');
 
@@ -1887,7 +1887,7 @@ export function renderSprintItems() {
   // Solo Rs del sprint activo (excluir descartados)
   const spRs = allItems.filter(i =>
     i.sprint === sp.id &&
-    i.type === 'R' &&
+    i.type === 'REQ' &&
     i.status !== 'descartado'
   );
 
@@ -1929,10 +1929,10 @@ function _buildSprintItemRow(item, sectionId, allItems) {
   const isDone    = sectionId === 'done';
 
   // Ts hijos del R — para mostrar progreso
-  const children     = allItems.filter(c => c.parentId === item.code && c.type === 'T');
+  const children     = allItems.filter(c => c.parentId === item.code && c.type === 'TKT');
   const childrenDone = children.filter(c => c.status === 'done');
   const childrenHtml = children.length > 0
-    ? `<span class="spi-item-children">${childrenDone.length}/${children.length} T</span>`
+    ? `<span class="spi-item-children">${childrenDone.length}/${children.length} TKT</span>`
     : '';
 
   // Indicador de bloqueante
@@ -2012,9 +2012,9 @@ function _buildScopeAddedRow(item) {
     }
   }
 
-  const typePill = item.type === 'R'
-    ? '<span class="sca-item-type sca-item-type--r">R</span>'
-    : '<span class="sca-item-type sca-item-type--t">T</span>';
+  const typePill = item.type === 'REQ'
+    ? '<span class="sca-item-type sca-item-type--req">REQ</span>'
+    : '<span class="sca-item-type sca-item-type--tkt">TKT</span>';
 
   const code  = _escSpr(item.code  || '');
   const title = _escSpr(item.title || '');

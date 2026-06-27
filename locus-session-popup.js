@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:14 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:16 · autor:Rune · 2026-06-26 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -10,6 +10,17 @@ import { _sessRelTsShared } from './locus-sesiones-utils.js';
 import { showToast, showToastInline, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab, getCurrentTab } from './locus-ui-shell.js';
 import { _findSession, _findSessionByAI, _getActiveProjectFilter, getAI, getAISessions, getActiveTracker, getState, save, _resetWorker } from './locus-storage.js';
+
+// TKT0-gen2: deriva tipo Gen2 desde code o campo type — reemplaza code[0]
+function _codeKind(codeOrItem) {
+  if (!codeOrItem) return '';
+  const code = typeof codeOrItem === 'string' ? codeOrItem : (codeOrItem.code || '');
+  const type = typeof codeOrItem === 'object' ? (codeOrItem.type || '') : '';
+  for (const t of ['REQ','TKT','INC','DISC','PRB','KE','CHG']) {
+    if (type === t || code.startsWith(t + '-')) return t;
+  }
+  return '';
+}
 
 import { fmt12 } from './locus-session-hora.js';
 
@@ -128,7 +139,7 @@ export function openDetail(aiId, sessId) {
   if (tgItems.length) {
     const rows = tgItems.map(x => `
       <div class="popup-tg-row">
-        <span class="popup-tg-badge ${x.code[0]}">${x.code[0]}</span>
+        <span class="popup-tg-badge ${_codeKind(x)}">${_codeKind(x)}</span>
         <button class="popup-tg-code popup-tg-code--link" data-nav-item-code="${esc(x.code)}" title="Ir al ítem en Backlog">${esc(x.code)}</button>
         <span class="popup-tg-desc">${esc(x.desc)}</span>
         <span class="popup-tg-status">${esc(x.status)}</span>
@@ -506,7 +517,7 @@ function renderBacklogRefs(s) {
   // Ítems vinculados — fila con código + descripción + status + desvincular
   if (refs.length) {
     refs.forEach(code => {
-      const type = code[0] || '';
+      const type = _codeKind(code);
       const item = typeof getItems() !== 'undefined' ? getItems().find(i => i.code === code) : null;
       const desc = item ? item.title : '—';
       const status = item ? item.status : '';
@@ -587,7 +598,7 @@ function onPopupRefSearch() {
   }
 
   sugEl.innerHTML = matches.map(i => {
-    const type = (i.code[0] || '');
+    const type = _codeKind(i);
     return `<div class="popup-ref-suggestion" data-link-code="${esc(i.code)}">
       <span class="popup-tg-badge ${type}">${type}</span>
       <span class="popup-ref-code">${esc(i.code)}</span>
@@ -962,8 +973,7 @@ function _buildLogRow({ sess, proj, ai }) {
   const refs = (sess.trackerRefs || []);
   const refPills = refs.length
     ? refs.slice(0, 4).map(code => {
-        const t = code[0]; // P T R B
-        const cls = t === 'T' ? 'log-ref--t' : t === 'P' ? 'log-ref--p' : t === 'R' ? 'log-ref--r' : t === 'B' ? 'log-ref--b' : '';
+        const cls = `log-ref--${_codeKind(code).toLowerCase()}`;
         return `<button class="log-ref log-ref--link ${cls}" data-log-nav-code="${esc(code)}" title="Ir al ítem en Backlog">${esc(code)}</button>`;
       }).join('') + (refs.length > 4 ? `<span class="log-ref log-ref--more">+${refs.length - 4}</span>` : '')
     : '';

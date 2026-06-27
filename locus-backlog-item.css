@@ -1,6 +1,7 @@
-/* [PP] v0.5.0 · sprint:PP-S-10 · mod:24 · autor:Rune · 2026-06-21 UTC-6 */
+/* [PP] mod:27 · autor:Nova · 2026-06-26 */
 /* locus-backlog-item.css */
-/* Última actualización: 2026-05-30 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
+/* Última actualización: 2026-06-26 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
+/* Gen 2 — infra_version: 5 | Migración selectores: bitem-type-[T/R/B/P] → Gen2, data-type="[T/R/B/P]" → Gen2, bl-fc-type/rsb-item/mdiff-type abreviados → Gen2 */
 
 /* === locus-backlog-item.js ===
    Funciones: buildBacklogItem · _buildChildrenBlock · _openStatusPopover · _acRows */
@@ -48,28 +49,47 @@
   line-height: 1;
 }
 
-.bitem-type-T {
+.bitem-type-TKT {
   background: color-mix(in srgb, var(--green) 15%, transparent);
   color: var(--green);
   border: 1px solid var(--green-border);
 }
 
-.bitem-type-R {
+.bitem-type-REQ {
   background: color-mix(in srgb, var(--blue) 15%, transparent);
   color: var(--blue);
   border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
 }
 
-.bitem-type-B {
+.bitem-type-INC {
   background: color-mix(in srgb, var(--red) 15%, transparent);
   color: var(--red);
   border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
 }
 
-.bitem-type-P {
+.bitem-type-DISC {
   background: color-mix(in srgb, var(--purple) 15%, transparent);
   color: var(--purple);
   border: 1px solid color-mix(in srgb, var(--purple) 30%, transparent);
+}
+
+/* Tipos ITIL derivados — Gen 2 — alineados BR-Ecosystem §4 */
+.bitem-type-PRB {
+  background: color-mix(in srgb, var(--orange) 15%, transparent);
+  color: var(--orange);
+  border: 1px solid color-mix(in srgb, var(--orange) 30%, transparent);
+}
+
+.bitem-type-KE {
+  background: color-mix(in srgb, var(--yellow) 15%, transparent);
+  color: var(--yellow);
+  border: 1px solid color-mix(in srgb, var(--yellow) 30%, transparent);
+}
+
+.bitem-type-CHG {
+  background: color-mix(in srgb, var(--slate) 15%, transparent);
+  color: var(--slate);
+  border: 1px solid color-mix(in srgb, var(--slate) 30%, transparent);
 }
 
 /* Item container override */
@@ -79,31 +99,52 @@
 }
 
 /* ── T-[pendiente-ID]: Header accent por tipo — border-left sólido + tint de fondo ── */
-/* T → verde */
-.item.bitem[data-type="T"] { border-left-color: var(--green); }
-.item.bitem[data-type="T"] .bitem-header {
+/* TKT → verde */
+.item.bitem[data-type="TKT"] { border-left-color: var(--green); }
+.item.bitem[data-type="TKT"] .bitem-header {
   background: color-mix(in srgb, var(--green) 5%, transparent);
   border-radius: var(--radius-md);
 }
 
-/* R → azul */
-.item.bitem[data-type="R"] { border-left-color: var(--blue); }
-.item.bitem[data-type="R"] .bitem-header {
+/* REQ → azul */
+.item.bitem[data-type="REQ"] { border-left-color: var(--blue); }
+.item.bitem[data-type="REQ"] .bitem-header {
   background: color-mix(in srgb, var(--blue) 5%, transparent);
   border-radius: var(--radius-md);
 }
 
-/* B → rojo */
-.item.bitem[data-type="B"] { border-left-color: var(--red); }
-.item.bitem[data-type="B"] .bitem-header {
+/* INC → rojo */
+.item.bitem[data-type="INC"] { border-left-color: var(--red); }
+.item.bitem[data-type="INC"] .bitem-header {
   background: color-mix(in srgb, var(--red) 6%, transparent);
   border-radius: var(--radius-md);
 }
 
-/* P → púrpura */
-.item.bitem[data-type="P"] { border-left-color: var(--purple); }
-.item.bitem[data-type="P"] .bitem-header {
+/* DISC → púrpura */
+.item.bitem[data-type="DISC"] { border-left-color: var(--purple); }
+.item.bitem[data-type="DISC"] .bitem-header {
   background: color-mix(in srgb, var(--purple) 5%, transparent);
+  border-radius: var(--radius-md);
+}
+
+/* PRB → naranja */
+.item.bitem[data-type="PRB"] { border-left-color: var(--orange); }
+.item.bitem[data-type="PRB"] .bitem-header {
+  background: color-mix(in srgb, var(--orange) 5%, transparent);
+  border-radius: var(--radius-md);
+}
+
+/* KE → amarillo */
+.item.bitem[data-type="KE"] { border-left-color: var(--yellow); }
+.item.bitem[data-type="KE"] .bitem-header {
+  background: color-mix(in srgb, var(--yellow) 5%, transparent);
+  border-radius: var(--radius-md);
+}
+
+/* CHG → slate */
+.item.bitem[data-type="CHG"] { border-left-color: var(--slate); }
+.item.bitem[data-type="CHG"] .bitem-header {
+  background: color-mix(in srgb, var(--slate) 5%, transparent);
   border-radius: var(--radius-md);
 }
 
@@ -325,23 +366,23 @@
   border-color: var(--text2);
 }
 
-.bitem-type-T ~ .bitem-title-col ~ .bitem-collapse-arrow ~ .bitem-header-right .bitem-effort-dot.on,
-.item.bitem[data-type="T"] .bitem-effort-dot.on {
+.bitem-type-TKT ~ .bitem-title-col ~ .bitem-collapse-arrow ~ .bitem-header-right .bitem-effort-dot.on,
+.item.bitem[data-type="TKT"] .bitem-effort-dot.on {
   background: var(--green);
   border-color: var(--green);
 }
 
-.item.bitem[data-type="R"] .bitem-effort-dot.on {
+.item.bitem[data-type="REQ"] .bitem-effort-dot.on {
   background: var(--blue);
   border-color: var(--blue);
 }
 
-.item.bitem[data-type="B"] .bitem-effort-dot.on {
+.item.bitem[data-type="INC"] .bitem-effort-dot.on {
   background: var(--red);
   border-color: var(--red);
 }
 
-.item.bitem[data-type="P"] .bitem-effort-dot.on {
+.item.bitem[data-type="DISC"] .bitem-effort-dot.on {
   background: var(--purple);
   border-color: var(--purple);
 }
@@ -449,22 +490,22 @@
   border-color: var(--text2);
 }
 
-.item.bitem[data-type="T"] .bitem-effort-dot-sm.on {
+.item.bitem[data-type="TKT"] .bitem-effort-dot-sm.on {
   background: var(--green);
   border-color: var(--green);
 }
 
-.item.bitem[data-type="R"] .bitem-effort-dot-sm.on {
+.item.bitem[data-type="REQ"] .bitem-effort-dot-sm.on {
   background: var(--blue);
   border-color: var(--blue);
 }
 
-.item.bitem[data-type="B"] .bitem-effort-dot-sm.on {
+.item.bitem[data-type="INC"] .bitem-effort-dot-sm.on {
   background: var(--red);
   border-color: var(--red);
 }
 
-.item.bitem[data-type="P"] .bitem-effort-dot-sm.on {
+.item.bitem[data-type="DISC"] .bitem-effort-dot-sm.on {
   background: var(--purple);
   border-color: var(--purple);
 }
@@ -663,19 +704,19 @@
   margin-top: 5px;
 }
 
-.item.bitem[data-type="T"] .bitem-ac-dot {
+.item.bitem[data-type="TKT"] .bitem-ac-dot {
   background: color-mix(in srgb, var(--green) 50%, transparent);
 }
 
-.item.bitem[data-type="R"] .bitem-ac-dot {
+.item.bitem[data-type="REQ"] .bitem-ac-dot {
   background: color-mix(in srgb, var(--blue) 50%, transparent);
 }
 
-.item.bitem[data-type="B"] .bitem-ac-dot {
+.item.bitem[data-type="INC"] .bitem-ac-dot {
   background: color-mix(in srgb, var(--red) 50%, transparent);
 }
 
-.item.bitem[data-type="P"] .bitem-ac-dot {
+.item.bitem[data-type="DISC"] .bitem-ac-dot {
   background: color-mix(in srgb, var(--purple) 50%, transparent);
 }
 
@@ -2530,19 +2571,19 @@
   color: var(--text);
 }
 
-.bl-footer-badge--type-r {
+.bl-footer-badge--type-req {
   --bl-dot: var(--blue);
 }
 
-.bl-footer-badge--type-t {
+.bl-footer-badge--type-tkt {
   --bl-dot: var(--green);
 }
 
-.bl-footer-badge--type-b {
+.bl-footer-badge--type-inc {
   --bl-dot: var(--red);
 }
 
-.bl-footer-badge--type-p {
+.bl-footer-badge--type-disc {
   --bl-dot: var(--purple);
 }
 
@@ -2862,42 +2903,24 @@
   color: var(--text);
 }
 
-.bl-fc-type-B.active {
+.bl-fc-type-INC.active {
   border-color: var(--red);
   background: color-mix(in srgb, var(--red) 14%, transparent);
 }
 
-.bl-fc-type-T.active {
+.bl-fc-type-TKT.active {
   border-color: var(--green);
   background: color-mix(in srgb, var(--green) 14%, transparent);
 }
 
-.bl-fc-type-R.active {
+.bl-fc-type-REQ.active {
   border-color: var(--blue);
   background: color-mix(in srgb, var(--blue) 14%, transparent);
 }
 
-.bl-fc-type-P.active {
+.bl-fc-type-DISC.active {
   border-color: var(--purple);
   background: color-mix(in srgb, var(--purple) 14%, transparent);
-}
-
-
-  .bl-fc-type-B.active {
-    background: color-mix(in srgb, var(--red) 14%, transparent);
-  }
-
-  .bl-fc-type-T.active {
-    background: color-mix(in srgb, var(--green) 14%, transparent);
-  }
-
-  .bl-fc-type-R.active {
-    background: color-mix(in srgb, var(--blue) 14%, transparent);
-  }
-
-  .bl-fc-type-P.active {
-    background: color-mix(in srgb, var(--purple) 14%, transparent);
-  }
 }
 
 .bl-footer-clear {
@@ -3323,38 +3346,24 @@ body {
   text-align: center;
 }
 
-.rsb-item-b {
+.rsb-item-inc {
   background: color-mix(in srgb,var(--red) 16%,transparent);
   color:var(--red);
 }
 
-.rsb-item-r {
+.rsb-item-req {
   background: color-mix(in srgb,var(--blue) 16%,transparent);
   color:var(--blue);
 }
 
-.rsb-item-t {
+.rsb-item-tkt {
   background: color-mix(in srgb,var(--green) 16%,transparent);
   color:var(--green);
 }
 
-.rsb-item-p {
+.rsb-item-disc {
   background: color-mix(in srgb,var(--purple) 16%,transparent);
   color:var(--purple);
-}
-
-
-  .rsb-item-r {
-    background: color-mix(in srgb, var(--blue) 16%, transparent);
-  }
-
-  .rsb-item-t {
-    background: color-mix(in srgb, var(--green) 16%, transparent);
-  }
-
-  .rsb-item-p {
-    background: color-mix(in srgb, var(--purple) 16%, transparent);
-  }
 }
 
 .rsb-item-desc {
@@ -3423,24 +3432,39 @@ body {
 /* ══ R-202605-148: DIFF — diferenciación visual de tipo de ítem + sprint editable inline ══ */
 
 /* ── Variables por tipo ── */
-.mdiff-card.mdiff-type--b {
+.mdiff-card.mdiff-type--inc {
   --_type-color: var(--red);
   --_type-bg: color-mix(in srgb, var(--red) 8%, transparent);
 }
 
-.mdiff-card.mdiff-type--t {
+.mdiff-card.mdiff-type--tkt {
   --_type-color: var(--green);
   --_type-bg: color-mix(in srgb, var(--green) 8%, transparent);
 }
 
-.mdiff-card.mdiff-type--r {
+.mdiff-card.mdiff-type--req {
   --_type-color: var(--blue);
   --_type-bg: color-mix(in srgb, var(--blue) 8%, transparent);
 }
 
-.mdiff-card.mdiff-type--p {
+.mdiff-card.mdiff-type--disc {
   --_type-color: var(--purple);
   --_type-bg: color-mix(in srgb, var(--purple) 8%, transparent);
+}
+
+.mdiff-card.mdiff-type--prb {
+  --_type-color: var(--orange);
+  --_type-bg: color-mix(in srgb, var(--orange) 8%, transparent);
+}
+
+.mdiff-card.mdiff-type--ke {
+  --_type-color: var(--yellow);
+  --_type-bg: color-mix(in srgb, var(--yellow) 8%, transparent);
+}
+
+.mdiff-card.mdiff-type--chg {
+  --_type-color: var(--slate);
+  --_type-bg: color-mix(in srgb, var(--slate) 8%, transparent);
 }
 
 .mdiff-card.mdiff-type--unknown {
@@ -3452,10 +3476,13 @@ body {
 }
 
 /* Neutralizar .mdiff-card-accent cuando el tipo controla el borde */
-.mdiff-card.mdiff-type--b .mdiff-card-accent,
-.mdiff-card.mdiff-type--t .mdiff-card-accent,
-.mdiff-card.mdiff-type--r .mdiff-card-accent,
-.mdiff-card.mdiff-type--p .mdiff-card-accent,
+.mdiff-card.mdiff-type--inc .mdiff-card-accent,
+.mdiff-card.mdiff-type--tkt .mdiff-card-accent,
+.mdiff-card.mdiff-type--req .mdiff-card-accent,
+.mdiff-card.mdiff-type--disc .mdiff-card-accent,
+.mdiff-card.mdiff-type--prb .mdiff-card-accent,
+.mdiff-card.mdiff-type--ke .mdiff-card-accent,
+.mdiff-card.mdiff-type--chg .mdiff-card-accent,
 .mdiff-card.mdiff-type--unknown .mdiff-card-accent {
   display: none;
 }
@@ -4102,7 +4129,7 @@ body {
 /* ══ T-202606-142: Fila bloqueada por depends_on en backlog list ══ */
 
 /* Línea izquierda roja + rayas diagonales — sobreescribe border-left-color del tipo T (var(--green)) */
-.item.bitem.bitem--dep-blocked[data-type="T"] {
+.item.bitem.bitem--dep-blocked[data-type="TKT"] {
   border-left-color: var(--red);
   box-shadow: -2px 0 8px rgb(232 85 85 / 20%);
   background: repeating-linear-gradient(

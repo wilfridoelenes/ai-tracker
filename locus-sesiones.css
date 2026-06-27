@@ -1,7 +1,7 @@
-/* [PP] v0.8.0 · sprint:PP-S-10 · mod:15 · autor:Nova · 2026-06-25 UTC-6 */
+/* [PP] mod:16 · autor:Nova · 2026-06-26 */
 /* locus-sesiones.css */
-
-/* Versión: 2.2 | Última actualización: 2026-05-13 | log-* migrado desde locus-radar.css */
+/* Última actualización: 2026-06-26 | log-* migrado desde locus-radar.css */
+/* Gen 2 — infra_version: 5 | Migración selectores: .P/.T/.R/.B → .DISC/.TKT/.REQ/.INC en badges, pills, sess-ind, tg-type, tracker-item-type-pill, log-ref, mh-ref-tag */
 
 /* === locus-workers.js ===
    Funciones: openAvatarModal · selectAvatarOption · confirmAvatarModal · closeAvatarModal */
@@ -865,22 +865,22 @@
   margin-top: 1px;
 }
 
-.preview-tg-badge.P {
+.preview-tg-badge.DISC {
   background: rgb(124 106 247 / 15%);
   color: var(--purple);
 }
 
-.preview-tg-badge.T {
+.preview-tg-badge.TKT {
   background: rgb(46 204 120 / 15%);
   color: var(--green);
 }
 
-.preview-tg-badge.R {
+.preview-tg-badge.REQ {
   background: rgb(56 189 248 / 15%);
   color: var(--blue);
 }
 
-.preview-tg-badge.B {
+.preview-tg-badge.INC {
   background: rgb(232 85 85 / 15%);
   color: var(--red);
 }
@@ -1193,22 +1193,22 @@
   color: var(--amber);
 }
 
-.sess-ind-P {
+.sess-ind-DISC {
   background: rgb(124 106 247 / 15%);
   color: var(--purple);
 }
 
-.sess-ind-T {
+.sess-ind-TKT {
   background: rgb(46 204 120 / 15%);
   color: var(--green);
 }
 
-.sess-ind-R {
+.sess-ind-REQ {
   background: rgb(56 189 248 / 15%);
   color: var(--blue);
 }
 
-.sess-ind-B {
+.sess-ind-INC {
   background: rgb(232 85 85 / 15%);
   color: var(--red);
 }
@@ -1363,19 +1363,19 @@
   gap: 6px;
 }
 
-.tg-type-P .tg-section-title {
+.tg-type-DISC .tg-section-title {
   color: var(--accent);
 }
 
-.tg-type-T .tg-section-title {
+.tg-type-TKT .tg-section-title {
   color: var(--green);
 }
 
-.tg-type-R .tg-section-title {
+.tg-type-REQ .tg-section-title {
   color: var(--blue);
 }
 
-.tg-type-B .tg-section-title {
+.tg-type-INC .tg-section-title {
   color: var(--red);
 }
 
@@ -2222,22 +2222,22 @@
   margin-top: 1px;
 }
 
-.popup-tg-badge.P {
+.popup-tg-badge.DISC {
   background: rgb(124 106 247 / 15%);
   color: var(--purple);
 }
 
-.popup-tg-badge.T {
+.popup-tg-badge.TKT {
   background: rgb(46 204 120 / 15%);
   color: var(--green);
 }
 
-.popup-tg-badge.R {
+.popup-tg-badge.REQ {
   background: rgb(56 189 248 / 15%);
   color: var(--blue);
 }
 
-.popup-tg-badge.B {
+.popup-tg-badge.INC {
   background: rgb(232 85 85 / 15%);
   color: var(--red);
 }
@@ -2393,25 +2393,25 @@
   opacity: 0.7;
 }
 
-.popup-ref-pill.P {
+.popup-ref-pill.DISC {
   background: rgb(124 106 247 / 15%);
   color: var(--purple);
   border: 1px solid rgb(124 106 247 / 30%);
 }
 
-.popup-ref-pill.T {
+.popup-ref-pill.TKT {
   background: rgb(46 204 120 / 15%);
   color: var(--green);
   border: 1px solid rgb(46 204 120 / 30%);
 }
 
-.popup-ref-pill.R {
+.popup-ref-pill.REQ {
   background: rgb(56 189 248 / 15%);
   color: var(--blue);
   border: 1px solid rgb(56 189 248 / 30%);
 }
 
-.popup-ref-pill.B {
+.popup-ref-pill.INC {
   background: rgb(232 85 85 / 15%);
   color: var(--red);
   border: 1px solid rgb(232 85 85 / 30%);
@@ -4444,22 +4444,22 @@
   flex-shrink: 0;
 }
 
-.tracker-item-type-pill.R {
+.tracker-item-type-pill.REQ {
   background: rgb(56 189 248 / 12%);
   color: var(--blue);
 }
 
-.tracker-item-type-pill.T {
+.tracker-item-type-pill.TKT {
   background: rgb(46 204 120 / 12%);
   color: var(--green);
 }
 
-.tracker-item-type-pill.B {
+.tracker-item-type-pill.INC {
   background: rgb(232 85 85 / 12%);
   color: var(--red);
 }
 
-.tracker-item-type-pill.P {
+.tracker-item-type-pill.DISC {
   background: rgb(124 106 247 / 12%);
   color: var(--purple);
 }
@@ -6173,25 +6173,25 @@ body.radar-sb-open .tracker-sidebar {
   color: var(--hint);
 }
 
-.log-ref--t {
+.log-ref--tkt {
   border-color: var(--green-border);
   color: var(--green);
   background: var(--green-dim);
 }
 
-.log-ref--p {
+.log-ref--disc {
   border-color: rgb(124 106 247 / 30%);
   color: var(--purple);
   background: var(--purple-dim);
 }
 
-.log-ref--r {
+.log-ref--req {
   border-color: rgb(56 189 248 / 30%);
   color: var(--blue);
   background: var(--blue-dim);
 }
 
-.log-ref--b {
+.log-ref--inc {
   border-color: rgb(232 85 85 / 30%);
   color: var(--red);
   background: var(--red-dim);
@@ -7715,22 +7715,22 @@ body.radar-sb-open .tracker-sidebar {
   color: var(--hint);
 }
 
-/* T = azul */
-.mh-ref-tag--t {
+/* TKT = azul */
+.mh-ref-tag--tkt {
   background: rgb(56 189 248 / 12%);
   color: rgb(56 189 248);
   border-color: rgb(56 189 248 / 30%);
 }
 
-/* R = verde */
-.mh-ref-tag--r {
+/* REQ = verde */
+.mh-ref-tag--req {
   background: rgb(46 204 120 / 12%);
   color: rgb(46 204 120);
   border-color: rgb(46 204 120 / 30%);
 }
 
-/* B = rojo */
-.mh-ref-tag--b {
+/* INC = rojo */
+.mh-ref-tag--inc {
   background: rgb(232 85 85 / 12%);
   color: rgb(232 85 85);
   border-color: rgb(232 85 85 / 30%);

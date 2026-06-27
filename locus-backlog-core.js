@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-HOTFIX · mod:49 · autor:Rune · 2026-06-26 17:30 UTC-6
+// [PP] mod:50 · autor:Nova · 2026-06-26 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -363,9 +363,9 @@ export function toggleCollapseAll() {
 
 // T-202606-087: toggleShowChildren — mostrar/ocultar hijos de Rs en vista árbol
 // Persiste en localStorage bajo 'backlog-show-children' ('1' = activo, '0' = inactivo)
-// T-202606-103: migrado de .bl-children-wrap → .bl-vl-r-body
+// T-202606-103: migrado de .bl-children-wrap → .bl-vl-req-body
 export function toggleShowChildren(checked) {
-  const childWraps = document.querySelectorAll('.bl-vl-r-body');
+  const childWraps = document.querySelectorAll('.bl-vl-req-body');
   if (checked) {
     childWraps.forEach(w => {
       if (w.children.length > 0) {
@@ -1725,7 +1725,7 @@ export function renderStats() {
             <span class="tc-count">${byType[t]}</span><span class="tc-label">${label}</span>
           </span>`
         ).join('')}
-        ${pIdeasCount > 0 ? `<span class="stat-type-chip tc-P stat-type-chip--ideas${activeTypes.has('P') ? ' active' : ''}" data-action="stats-type-filter" data-type="P" title="Posibilidades — no afectan contadores de trabajo activo">
+        ${pIdeasCount > 0 ? `<span class="stat-type-chip tc-DISC stat-type-chip--ideas${activeTypes.has('DISC') ? ' active' : ''}" data-action="stats-type-filter" data-type="DISC" title="Posibilidades — no afectan contadores de trabajo activo">
           <span class="tc-count">${pIdeasCount}</span><span class="tc-label">💡</span>
         </span>` : ''}
       </div>

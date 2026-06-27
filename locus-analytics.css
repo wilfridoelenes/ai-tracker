@@ -1,4 +1,4 @@
-/* [PP] v0.5.0 · sprint:PP-S-05 · mod:3 · autor:Nova · 2026-06-22 UTC-6 */
+/* [PP] mod:5 · autor:Nova · 2026-06-26 UTC-6 */
 /* locus-analytics.css */
 
 /* Versión: 2.0 | Selectores consolidados — T2 */
@@ -736,20 +736,20 @@
 }
 
 /* T-202604-048: R→T children block */
-.r-children-block {
+.req-children-block {
   margin-top: 12px;
   border-top: 1px solid var(--border);
   padding-top: 10px;
 }
 
-.r-children-progress {
+.req-children-progress {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 8px;
 }
 
-.r-children-bar-wrap {
+.req-children-bar-wrap {
   flex: 1;
   height: 5px;
   background: var(--surface3);
@@ -758,14 +758,14 @@
   max-width: 160px;
 }
 
-.r-children-bar {
+.req-children-bar {
   height: 100%;
   background: var(--green);
   border-radius: var(--radius-sm);
   transition: width 0.3s;
 }
 
-.r-children-label {
+.req-children-label {
   font-family: var(--mono);
   font-size: var(--text-2xs);
   color: var(--hint);

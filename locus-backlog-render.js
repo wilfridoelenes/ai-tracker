@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:41 · autor:Rune · 2026-06-25 UTC-6
+// [PP] mod:43 · autor:Nova · 2026-06-26 UTC-6
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -9,7 +9,7 @@
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
 import { renderArchivoHistorico, toggleArchivoHistorico, getArchivoHistoricoCount, getArchivoHistoricoStats } from './locus-backlog-archive.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isIcebox, _skelHide, _skelShow, _undoSnapshot, itemType, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js';
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isIcebox, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation
 
@@ -34,7 +34,7 @@ import { _updateDocLogCount } from './locus-doc-log.js';
 export function _buildChildMap(sprintItems) {
   // Conjunto de códigos R presentes en sprintItems — gate de parentId válido
   const rCodesInSprint = new Set(
-    sprintItems.filter(i => itemType(i.code) === 'R').map(i => i.code)
+    sprintItems.filter(i => itemKind(i) === 'REQ').map(i => i.code)
   );
 
   // Recopilar hijos: Ts y Bs con parentId apuntando a un R del sprint, excluyendo históricos
@@ -42,8 +42,8 @@ export function _buildChildMap(sprintItems) {
   for (const r of rCodesInSprint) childrenByR.set(r, []);
 
   for (const item of sprintItems) {
-    const t = itemType(item.code);
-    if (t !== 'T' && t !== 'B') continue;
+    const t = itemKind(item);
+    if (t !== 'TKT' && t !== 'INC') continue;
     if (item.status === 'historico') continue;
     if (!item.parentId || !rCodesInSprint.has(item.parentId)) continue;
     childrenByR.get(item.parentId).push(item);
@@ -128,8 +128,8 @@ export function toggleChildrenBlock(rCode) {
   } else {
     _collapsedChildren.add(rCode);
   }
-  const body = document.getElementById('rchildren-body-' + CSS.escape(rCode));
-  const arrow = document.getElementById('rchildren-arrow-' + CSS.escape(rCode));
+  const body = document.getElementById('req-children-body-' + CSS.escape(rCode));
+  const arrow = document.getElementById('req-children-arrow-' + CSS.escape(rCode));
   if (body) body.classList.toggle('collapsed', _collapsedChildren.has(rCode));
   if (arrow) arrow.textContent = _collapsedChildren.has(rCode) ? '▸' : '▾';
 }
@@ -206,9 +206,9 @@ export function updateClearFilterBtn() {
     `<span class="afc-chip" data-afc="${afcAction}" data-afc-val="${esc(String(afcVal))}">${esc(label)} <span class="afc-chip-x">✕</span></span>`;
 
   if (!allTypes) {
-    const excluded = ['T','R','B','P'].filter(t => !_getActiveTypes().has(t));
+    const excluded = ['TKT','REQ','INC','DISC'].filter(t => !_getActiveTypes().has(t));
     excluded.forEach(t => {
-      const labels = { T:'Ticket', R:'Req', B:'Bug', P:'Posibilidad' };
+      const labels = { TKT:'Ticket', REQ:'Req', INC:'INC', DISC:'DISC' };
       chips.push(_chip(`Sin ${labels[t]}`, 'type', t));
     });
   }
@@ -311,10 +311,10 @@ function _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems) {
   const _statusClass = s => 'badge-status-' + (s || 'pendiente');
 
   // Separar tipos desde pendienteItems (Rs y sueltos filtrados)
-  const rItems   = pendienteItems.filter(i => itemType(i.code) === 'R');
-  const tItems   = pendienteItems.filter(i => itemType(i.code) === 'T');
-  const bItems   = pendienteItems.filter(i => itemType(i.code) === 'B');
-  const pItems   = pendienteItems.filter(i => itemType(i.code) === 'P');
+  const rItems   = pendienteItems.filter(i => itemKind(i) === 'REQ');
+  const tItems   = pendienteItems.filter(i => itemKind(i) === 'TKT');
+  const bItems   = pendienteItems.filter(i => itemKind(i) === 'INC');
+  const pItems   = pendienteItems.filter(i => itemKind(i) === 'DISC');
 
   // Rs visibles — para saber qué parents mostrar
   const rCodes   = new Set(rItems.map(r => r.code));
@@ -323,7 +323,7 @@ function _renderVistaC(listEl, pendienteItems, doneItems, descartadoItems) {
   // B-202606-041: excluye 'descartado' además de 'historico' — Ts descartados no cuentan en bl-vc-r-count
   const childMap = {};
   getItems().forEach(t => {
-    if (itemType(t.code) !== 'T') return;
+    if (itemKind(t) !== 'TKT') return;
     if (t.status === 'historico' || t.status === 'descartado') return;
     if (!t.parentId || !rCodes.has(t.parentId)) return;
     if (!childMap[t.parentId]) childMap[t.parentId] = [];
@@ -450,12 +450,12 @@ function _vcDoToggle(btn, projectId) {
 // Referencia: statusChangedAt || createdAt. Retorna { days, label } o null si no aplica.
 function _iceboxStaleness(item) {
   if (!item) return null;
-  const type = itemType(item.code);
+  const type = itemKind(item);
   const priority = (item.priority || '').toLowerCase();
   let threshold;
-  if (type === 'R' || type === 'T') threshold = 14;
-  else if (type === 'P') threshold = 30;
-  else if (type === 'B' && priority === 'high') threshold = 7;
+  if (type === 'REQ' || type === 'TKT') threshold = 14;
+  else if (type === 'DISC') threshold = 30;
+  else if (type === 'INC' && priority === 'high') threshold = 7;
   else return null;
   const refTs = item.statusChangedAt || item.createdAt;
   if (!refTs) return null;
@@ -593,7 +593,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     // — ya se renderizan anidados bajo su R padre en el bloque de children (L532-534).
     // Sin esta exclusión, esos ítems aparecen duplicados: una vez como child y otra vez sueltos aquí.
     const _rCodesInGroupForDone = new Set(
-      (sprintMap[sprintId] || []).filter(i => itemType(i.code) === 'R').map(i => i.code)
+      (sprintMap[sprintId] || []).filter(i => itemKind(i) === 'REQ').map(i => i.code)
     );
     const _doneInGroup = _getActiveStatuses().has('done')
       ? getItems().filter(i => {
@@ -602,8 +602,8 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
           if (!_isCountableItem(i)) return false;
           if (!_matchesQuery(i)) return false;
           // Excluir children ya renderizados bajo su R padre
-          const t = itemType(i.code);
-          if ((t === 'T' || t === 'B') && i.parentId && _rCodesInGroupForDone.has(i.parentId)) return false;
+          const t = itemKind(i);
+          if ((t === 'TKT' || t === 'INC') && i.parentId && _rCodesInGroupForDone.has(i.parentId)) return false;
           return true;
         })
       : [];
@@ -632,19 +632,19 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
       const _allSprintItems = getItems().filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId);
       const _childMap = _buildChildMap(_allSprintItems);
 
-      const _rCodesInGroup = new Set(group.filter(i => itemType(i.code) === 'R').map(i => i.code));
+      const _rCodesInGroup = new Set(group.filter(i => itemKind(i) === 'REQ').map(i => i.code));
 
       // Nivel raíz: Rs del grupo + huérfanos (T/B/P sin parentId en el grupo)
       const _rootItems = _sortGroup(group).filter(i => {
-        if (itemType(i.code) === 'R') return true;
+        if (itemKind(i) === 'REQ') return true;
         return !i.parentId || !_rCodesInGroup.has(i.parentId);
       });
 
       _rootItems.forEach(item => {
-        const t = itemType(item.code);
+        const t = itemKind(item);
 
         // AC4: Ps siempre sueltas con buildBacklogItem — nunca anidadas
-        if (t !== 'R') {
+        if (t !== 'REQ') {
           html += buildBacklogItem(item);
           return;
         }
@@ -657,16 +657,16 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
           const _collapseKey = 'locus-r-collapsed-' + item.code;
           const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
 
-          html += `<div class="bl-vl-r" data-r-code="${esc(item.code)}">`;
+          html += `<div class="bl-vl-req" data-r-code="${esc(item.code)}">`;
           html += buildBacklogItem(item);
           // AC9: data-action='vl-toggle-r' — sin conflicto con bl-r-toggle deprecado
           html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
-          html += `<div class="bl-vl-r-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-rbody-${esc(item.code)}">`;
+          html += `<div class="bl-vl-req-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-req-body-${esc(item.code)}">`;
           _children.forEach(child => {
             html += `<div class="bl-child-row">${buildBacklogItem(child)}</div>`;
           });
-          html += `</div>`; // bl-vl-r-body
-          html += `</div>`; // bl-vl-r
+          html += `</div>`; // bl-vl-req-body
+          html += `</div>`; // bl-vl-req
         } else {
           // R sin hijos — render normal
           html += buildBacklogItem(item);
@@ -688,8 +688,8 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   if (terminalItems.length && _getActiveStatuses().has('descartado')) {
     const cerradasOpen = localStorage.getItem('backlog-cerradas-open') === '1';
     const _promCount   = terminalItems.filter(i => i.status === 'promovida').length;
-    const _descPCount  = terminalItems.filter(i => i.status === 'descartado' && itemType(i.code) === 'P').length;
-    const _descRTBCount = terminalItems.filter(i => i.status === 'descartado' && itemType(i.code) !== 'P').length;
+    const _descPCount  = terminalItems.filter(i => i.status === 'descartado' && itemKind(i) === 'DISC').length;
+    const _descRTBCount = terminalItems.filter(i => i.status === 'descartado' && itemKind(i) !== 'DISC').length;
     const _cerradasTitle = [
       _promCount    ? `${_promCount} promovida${_promCount !== 1 ? 's' : ''}`        : '',
       _descPCount   ? `${_descPCount} P descartada${_descPCount !== 1 ? 's' : ''}`  : '',
@@ -777,7 +777,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     if (!btn) return;
     const rCode = btn.dataset.rCode;
     if (!rCode) return;
-    const body = document.getElementById('bl-vl-rbody-' + CSS.escape(rCode));
+    const body = document.getElementById('bl-vl-req-body-' + CSS.escape(rCode));
     if (!body) return;
     const isNowCollapsed = !body.classList.contains('collapsed');
     body.classList.toggle('collapsed', isNowCollapsed);
@@ -926,7 +926,7 @@ export function renderBacklogList(onRendered) {
   // T-202606-102: Ps promovidas excluidas de pendienteItems — van a sección Cerradas
   let filtered = getItems().filter(i => {
     if (i.status === 'historico') return false;
-    const type = itemType(i.code);
+    const type = itemKind(i);
     const typeOk = type ? _getActiveTypes().has(type) : true;
     const statusOk = _getActiveStatuses().has(i.status);
     const _rawEffort = parseInt(i.effort) || 1;
@@ -970,7 +970,7 @@ export function renderBacklogList(onRendered) {
 
   // T-202604-065: sort dentro de cada grupo — T-072: respeta _getBacklogSortDir()
   const _priOrder = { high: 0, important: 0, critical: 0, importante: 0, medium: 1, low: 2, futura: 2, baja: 2 };
-  const _typeOrder = { B: 0, T: 1, R: 2, I: 3 };
+  const _typeOrder = { INC: 0, TKT: 1, REQ: 2, DISC: 3 };
   const _dir = _getBacklogSortDir() === 'desc' ? -1 : 1;
 
   // T-202604-424: sort interno dentro de cada grupo de sprint — priority desc → effort asc
@@ -995,7 +995,7 @@ export function renderBacklogList(onRendered) {
         const ea = parseInt(a.effort) || 1, eb = parseInt(b.effort) || 1;
         cmp = ea !== eb ? eb - ea : a.code.localeCompare(b.code);
       } else if (_getBacklogSortMode() === 'type') {
-        const ta = _typeOrder[itemType(a.code)] ?? 9, tb = _typeOrder[itemType(b.code)] ?? 9;
+        const ta = _typeOrder[itemKind(a)] ?? 9, tb = _typeOrder[itemKind(b)] ?? 9;
         cmp = ta !== tb ? ta - tb : a.code.localeCompare(b.code);
       } else if (_getBacklogSortMode() === 'completedAt') {
         // Ítems sin doneAt van al final (independiente de dir)
@@ -1020,7 +1020,7 @@ export function renderBacklogList(onRendered) {
   // R-202604-091: 'en curso' fusionado — todos los pendiente van juntos, decorador visual separa activos
   // T-202605-135: Ps integradas en pendienteItems — sin sección separada
   // [pendiente-ID]: promovida excluida de pendienteItems — va a terminalItems
-  const pendienteItems = filtered.filter(i => i.status !== 'done' && i.status !== 'descartado' && !(itemType(i.code) === 'P' && i.status === 'promovida'));
+  const pendienteItems = filtered.filter(i => i.status !== 'done' && i.status !== 'descartado' && !(itemKind(i) === 'DISC' && i.status === 'promovida'));
   const _matchesQuery = q
     ? (i => i.code.toLowerCase().includes(q) || i.title.toLowerCase().includes(q) || (i.area || '').toLowerCase().includes(q))
     : () => true;
@@ -1033,8 +1033,8 @@ export function renderBacklogList(onRendered) {
   // T-202606-060: typeOk aplicado sobre R/T/B — Ps siempre incluidas cuando el bloque es visible
   const terminalItems = _getActiveStatuses().has('descartado')
     ? getItems().filter(i => {
-        const type = itemType(i.code);
-        if (type === 'P') return (i.status === 'descartado' || i.status === 'promovida') && _matchesQuery(i);
+        const type = itemKind(i);
+        if (type === 'DISC') return (i.status === 'descartado' || i.status === 'promovida') && _matchesQuery(i);
         const typeOk = type ? _getActiveTypes().has(type) : true;
         return i.status === 'descartado' && typeOk && _matchesQuery(i);
       })
@@ -1202,17 +1202,17 @@ export function renderBacklogList(onRendered) {
         const _childMap = _buildChildMap(_allSprintItems);
 
         // Rs presentes en el grupo visible (filtrado)
-        const _rCodesInGroup = new Set(group.filter(i => itemType(i.code) === 'R').map(i => i.code));
+        const _rCodesInGroup = new Set(group.filter(i => itemKind(i) === 'REQ').map(i => i.code));
 
         // Ítems de nivel raíz: Rs del grupo + huérfanos (Ts/Bs/Ps sin parent en el grupo)
         const _rootItems = _sortGroup(group).filter(i => {
-          if (itemType(i.code) === 'R') return true; // Rs siempre al nivel raíz
+          if (itemKind(i) === 'REQ') return true; // Rs siempre al nivel raíz
           // Ts/Bs/Ps: huérfanos si no tienen parentId apuntando a un R del grupo visible
           return !i.parentId || !_rCodesInGroup.has(i.parentId);
         });
 
         _rootItems.forEach(item => {
-          if (itemType(item.code) !== 'R') {
+          if (itemKind(item) !== 'REQ') {
             // Huérfano — nivel raíz sin sangría
             html += buildBacklogItem(item);
             return;
@@ -1278,9 +1278,9 @@ export function renderBacklogList(onRendered) {
       // fix: jerarquía R→hijos en icebox — igual que sprint groups
       {
         const _iceboxChildMap = _buildChildMap(iceboxItems);
-        const _iceboxRCodes   = new Set(iceboxItems.filter(i => itemType(i.code) === 'R').map(i => i.code));
+        const _iceboxRCodes   = new Set(iceboxItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
         const _iceboxRoots    = _sortGroup(iceboxItems).filter(i => {
-          if (itemType(i.code) === 'R') return true;
+          if (itemKind(i) === 'REQ') return true;
           return !i.parentId || !_iceboxRCodes.has(i.parentId);
         });
         _iceboxRoots.forEach(item => {
@@ -1288,7 +1288,7 @@ export function renderBacklogList(onRendered) {
           const _alertHtml = _stale
             ? `<div class="bl-icebox-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d en icebox">${_stale.label} en icebox</span></div>`
             : '';
-          if (itemType(item.code) !== 'R') {
+          if (itemKind(item) !== 'REQ') {
             html += _alertHtml + buildBacklogItem(item);
             return;
           }
@@ -1296,10 +1296,10 @@ export function renderBacklogList(onRendered) {
           if (_children.length > 0) {
             const _collapseKey  = 'locus-r-collapsed-' + item.code;
             const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
-            html += `<div class="bl-vl-r" data-r-code="${esc(item.code)}">`;
+            html += `<div class="bl-vl-req" data-r-code="${esc(item.code)}">`;
             html += _alertHtml + buildBacklogItem(item);
             html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
-            html += `<div class="bl-vl-r-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-rbody-${esc(item.code)}">`;
+            html += `<div class="bl-vl-req-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-req-body-${esc(item.code)}">`;
             _children.forEach(child => {
               html += `<div class="bl-child-row">${buildBacklogItem(child)}</div>`;
             });
@@ -1350,8 +1350,8 @@ export function renderBacklogList(onRendered) {
   if (terminalItems.length && _getActiveStatuses().has('descartado')) {
     const cerradasOpen = localStorage.getItem('backlog-cerradas-open') === '1';
     const _promCount    = terminalItems.filter(i => i.status === 'promovida').length;
-    const _descPCount   = terminalItems.filter(i => i.status === 'descartado' && itemType(i.code) === 'P').length;
-    const _descRTBCount = terminalItems.filter(i => i.status === 'descartado' && itemType(i.code) !== 'P').length;
+    const _descPCount   = terminalItems.filter(i => i.status === 'descartado' && itemKind(i) === 'DISC').length;
+    const _descRTBCount = terminalItems.filter(i => i.status === 'descartado' && itemKind(i) !== 'DISC').length;
     const _cerradasTitle = [
       _promCount    ? `${_promCount} promovida${_promCount !== 1 ? 's' : ''}`        : '',
       _descPCount   ? `${_descPCount} P descartada${_descPCount !== 1 ? 's' : ''}`  : '',
@@ -1506,7 +1506,7 @@ export function renderIceboxPanel() {
     ? i => i.code.toLowerCase().includes(_qIb) || (i.title || '').toLowerCase().includes(_qIb) || (i.area || '').toLowerCase().includes(_qIb)
     : () => true;
   const filteredIceboxItems = iceboxItems.filter(i => {
-    const type = itemType(i.code);
+    const type = itemKind(i);
     const typeOk = type ? _activeTypesIb.has(type) : true;
     const statusOk = _activeStatusesIb.has(i.status);
     const priorityOk = _activePriorityIb.size === 0 || _activePriorityIb.has(i.priority);
@@ -1525,10 +1525,10 @@ export function renderIceboxPanel() {
   }
 
   // Ordenar: tipo (R→T→B→P) y dentro de cada tipo por prioridad (high→medium→low)
-  const _typeOrder = { R: 0, T: 1, B: 2, P: 3 };
+  const _typeOrder = { REQ: 0, TKT: 1, INC: 2, DISC: 3 };
   const _priOrder  = { high: 0, important: 0, critical: 0, importante: 0, medium: 1, low: 2, futura: 2, baja: 2 };
   const sorted = [...filteredIceboxItems].sort((a, b) => {
-    const ta = _typeOrder[itemType(a.code)] ?? 9, tb = _typeOrder[itemType(b.code)] ?? 9;
+    const ta = _typeOrder[itemKind(a)] ?? 9, tb = _typeOrder[itemKind(b)] ?? 9;
     if (ta !== tb) return ta - tb;
     const pa = _priOrder[a.priority] ?? 1, pb = _priOrder[b.priority] ?? 1;
     return pa - pb;
@@ -1536,7 +1536,7 @@ export function renderIceboxPanel() {
 
   // Render con jerarquía R→hijos usando _buildChildMap
   const _childMap   = _buildChildMap(filteredIceboxItems);
-  const _rCodes     = new Set(filteredIceboxItems.filter(i => itemType(i.code) === 'R').map(i => i.code));
+  const _rCodes     = new Set(filteredIceboxItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
   const _rootItems  = sorted.filter(i => !i.parentId || !_rCodes.has(i.parentId));
 
   let html = '<div class="items-grid">';
@@ -1548,7 +1548,7 @@ export function renderIceboxPanel() {
     html += _stalePill + buildBacklogItem(item);
     const _children = _childMap.get(item.code) || [];
     if (_children.length) {
-      html += '<div class="bl-vl-rchildren">';
+      html += '<div class="bl-vl-req-children">';
       _children.forEach(child => { html += buildBacklogItem(child); });
       html += '</div>';
     }
@@ -1636,11 +1636,11 @@ export function renderHotfixPanel() {
   const _hfQuery    = (_nsGetQuery('hotfix') || '').trim().toLowerCase();
 
   // Conteos para stats-bar (sobre universo completo, sin filtro de tipo/prioridad/búsqueda)
-  const _countByType = { B: 0, T: 0, R: 0, P: 0 };
+  const _countByType = { INC: 0, TKT: 0, REQ: 0, DISC: 0 };
   const _countByPri  = { high: 0, medium: 0, low: 0 };
   const _displayable = allHotfix.filter(i => i.status !== 'descartado' && i.status !== 'historico');
   _displayable.forEach(i => {
-    const t = itemType(i.code);
+    const t = itemKind(i);
     if (t && _countByType[t] !== undefined) _countByType[t]++;
     const p = i.priority;
     if (p === 'high' || p === 'important' || p === 'critical' || p === 'importante') _countByPri.high++;
@@ -1654,8 +1654,8 @@ export function renderHotfixPanel() {
     <div class="hotfix-stats-bar" id="hotfix-stats-bar">
       <div class="hotfix-stats-types">
         ${_hfTypes.size < 4 ? `<button class="stat-type-chip stat-type-chip--all" data-hf-action="hf-clear-types" title="Mostrar todos los tipos">✕</button>` : ''}
-        ${[['B','Bug'],['T','Ticket'],['R','Req']].map(([t, label]) =>
-          `<button class="stat-type-chip tc-${t}${_hfTypes.has(t) ? ' active' : ''}" data-hf-action="hf-type" data-hf-type="${t}" title="Filtrar por tipo ${t}">\
+        ${[['INC','INC'],['TKT','TKT'],['REQ','REQ']].map(([t, label]) =>
+          `<button class="stat-type-chip tc-${t.toLowerCase()}${_hfTypes.has(t) ? ' active' : ''}" data-hf-action="hf-type" data-hf-type="${t}" title="Filtrar por tipo ${t}">\
 <span class="tc-count">${_countByType[t]}</span><span class="tc-label">${label}</span></button>`
         ).join('')}
       </div>
@@ -1672,7 +1672,7 @@ export function renderHotfixPanel() {
     ? i => i.code.toLowerCase().includes(_hfQuery) || (i.title || '').toLowerCase().includes(_hfQuery) || (i.area || '').toLowerCase().includes(_hfQuery)
     : () => true;
   const filteredHotfix = _displayable.filter(i => {
-    const t = itemType(i.code);
+    const t = itemKind(i);
     const typeOk = t ? _hfTypes.has(t) : true;
     const priOk  = _hfPriority.size === 0 || _hfPriority.has(i.priority) ||
                    (_hfPriority.has('high') && (i.priority === 'important' || i.priority === 'critical' || i.priority === 'importante')) ||
@@ -1861,8 +1861,8 @@ export function _updateSubtabBadges() {
     const _extractSprintId = s => (s || '').split(' · ')[0].trim();
     const _isBacklogScope = i => {
       if (i.status !== 'pendiente' && i.status !== 'en-revision') return false;
-      const t = itemType(i.code);
-      if (t !== 'R' && t !== 'T') return false;
+      const t = itemKind(i);
+      if (t !== 'REQ' && t !== 'TKT') return false;
       const sId = _extractSprintId(i.sprint);
       if (!sId || sId === 'icebox') return false;
       if (sId.toUpperCase().includes('HOTFIX')) return false;

@@ -1,10 +1,10 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:9 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:10 · autor:Rune · 2026-06-26 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-toast.js
 
-import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemType, renderStats, setItemStatus, undoBacklog, getItems, _registerCoreCallback } from './locus-backlog-core.js';
+import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemKind, renderStats, setItemStatus, undoBacklog, getItems, _registerCoreCallback } from './locus-backlog-core.js';
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import { _getActiveProjectFilter, getAI, getActiveSprints, _sprintDisplay, getAllSessions, getProjectById, save, saveImmediate } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
@@ -317,10 +317,10 @@ function _renderItemPanel(item) {
   const panel = document.getElementById('item-detail-panel');
   if (!panel) return;
 
-  const type = itemType(item.code) || '';
-  const typeColors = { T: '#2ecc78', R: '#38bdf8', B: '#e85555', P: '#7c6af7' };
+  const type = itemKind(item) || '';
+  const typeColors = { TKT: '#2ecc78', REQ: '#38bdf8', INC: '#e85555', DISC: '#7c6af7' };
   const typeColor = typeColors[type] || 'var(--text2)';
-  const TYPE_NAMES = { T: 'Ticket', R: 'Requerimiento', B: 'Bug', P: 'Posibilidad' };
+  const TYPE_NAMES = { TKT: 'Ticket', REQ: 'Requerimiento', INC: 'Incidente', DISC: 'Discovery' };
 
   // ── Header ──
   const doneBtn = item.status !== 'done' ? `<button class="idp-action-btn idp-action-done" data-action="idp-mark-done" data-code="${esc(item.code)}" title="Marcar done">✓ Done</button>` : '';
@@ -353,7 +353,7 @@ function _renderItemPanel(item) {
   const sprintOrphan = item.sprint && !getActiveSprints().find(s => s.id === item.sprint)
     ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : '';
   // T-202606-036 AC4: T con parent — sprint heredado no editable
-  const _isInheritedSprint = item.parentId && item.code && item.code[0] === 'T';
+  const _isInheritedSprint = item.parentId && itemKind(item) === 'TKT';
   const _parentItem = _isInheritedSprint ? (getItems() || []).find(i => i.code === item.parentId) : null;
   const _inheritedLabel = _parentItem
     ? ((_parentItem.sprint && getActiveSprints().find(s => s.id === _parentItem.sprint))
@@ -1055,8 +1055,8 @@ function toggleTmplTriggerPanel(btn) {
     } else if (field === 'sprint') {
       // T-202606-036 AC4: bloquear edición directa de sprint en T con parent
       const _chItem = (getItems() || []).find(i => i.code === code);
-      if (_chItem && _chItem.parentId && _chItem.code && _chItem.code[0] === 'T') {
-        showToast('warning', 'El sprint del T se hereda de su parent ' + _chItem.parentId);
+      if (_chItem && _chItem.parentId && itemKind(_chItem) === 'TKT') {
+        showToast('warning', 'El sprint del TKT se hereda de su parent ' + _chItem.parentId);
         // Restaurar valor visual al sprint heredado del parent
         const _pItem = (getItems() || []).find(i => i.code === _chItem.parentId);
         sel.value = (_pItem && _pItem.sprint) || '';

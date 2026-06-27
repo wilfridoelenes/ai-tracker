@@ -199,11 +199,8 @@ function _trackerRenderMiniHist(aiId) {
     const visibleRefs = refs.slice(0, 3);
     const extraCount  = refs.length - visibleRefs.length;
     const refTagsHtml = visibleRefs.map(code => {
-      const t = (code[0] || '').toUpperCase();
-      const typeClass = t === 'T' ? 'mh-ref-tag--t'
-                      : t === 'R' ? 'mh-ref-tag--r'
-                      : t === 'B' ? 'mh-ref-tag--b'
-                      : '';
+      const t = _codeKind(code);
+      const typeClass = t ? `mh-ref-tag--${t.toLowerCase()}` : '';
       return `<span class="mh-ref-tag ${typeClass}">${esc(code)}</span>`;
     }).join('');
     const refMoreHtml = extraCount > 0
@@ -392,7 +389,7 @@ function _buildCurrentSessionCard(aiId) {
       ? `<div class="cscard-row-summary">${esc(s.summary.slice(0, 160))}${s.summary.length > 160 ? '…' : ''}</div>`
       : '';
     const refPills = (s.trackerRefs || []).slice(0, 4).map(code => {
-      const t = (code[0] || '').toUpperCase();
+      const t = _codeKind(code);
       return `<span class="cscard-ref-pill cscard-ref-pill--${t.toLowerCase()}">${esc(code)}</span>`;
     }).join('');
     const latestCls = isLatest ? ' cscard-row--latest' : '';
@@ -639,7 +636,18 @@ export function render() {
   updateTabNotifBadges();
 }
 
-const TG_TYPE_NAMES = {P:'Idea', T:'Ticket', R:'Requerimiento', B:'Bug'};
+// TKT0-gen2: deriva tipo Gen2 desde code o campo type — reemplaza code[0]
+function _codeKind(codeOrItem) {
+  if (!codeOrItem) return '';
+  const code = typeof codeOrItem === 'string' ? codeOrItem : (codeOrItem.code || '');
+  const type = typeof codeOrItem === 'object' ? (codeOrItem.type || '') : '';
+  for (const t of ['REQ','TKT','INC','DISC','PRB','KE','CHG']) {
+    if (type === t || code.startsWith(t + '-')) return t;
+  }
+  return '';
+}
+
+const TG_TYPE_NAMES = {DISC:'Discovery', TKT:'Ticket', REQ:'Requerimiento', INC:'Incidente'};
 
 // T-202604-047: tiempo promedio entre sesiones consecutivas
 function buildHoyCard(ai, idx = 0, opts = {}) {
@@ -840,17 +848,17 @@ function buildCard(ai) {
       return t ? `<span class="sess-tag-dot" data-tag-color="${esc(t.color)}" title="${esc(t.name)}"></span>` : '';
     }).join('');
     const tgItems = projTracker.items.filter(x => x.sessionId === s.id);
-    const tgCounts = {P:0,T:0,R:0,B:0};
+    const tgCounts = {DISC:0,TKT:0,REQ:0,INC:0};
     tgItems.forEach(x => {
-      const t = x.code ? x.code[0] : (x.type || '');
-      if (tgCounts[t] !== undefined) tgCounts[t]++;
+      const t = _codeKind(x);
+      if (t && tgCounts[t] !== undefined) tgCounts[t]++;
     });
     const tgInds = Object.entries(tgCounts).filter(([,v]) => v > 0)
       .map(([k, v]) => `<span class="sess-ind sess-ind-${k}" title="${TG_TYPE_NAMES[k]}"><span class="ind-short">${k}${v > 1 ? v : ''}</span><span class="ind-full">${TG_TYPE_NAMES[k]}${v > 1 ? '×'+v : ''}</span></span>`).join('');
     const pendInd = '';
     const noHoraTag = (!s.resetAt && !s.quickCapture) ? `<span class="sess-no-hora" title="Sin hora de reset registrada">sin hora</span>` : '';
     const refPills = (s.trackerRefs || []).map(code => {
-      const type = code[0] || '';
+      const type = _codeKind(code);
       return `<span class="popup-ref-pill ${type} popup-ref-pill--sm" title="${esc(code)}" data-action="open-detail-stop" data-ai-id="${ai.id}" data-sess-id="${s.id}">${esc(code)}</span>`;
     }).join('');
     const starInd = s.starred ? `<span class="sess-ind sess-ind--starred" title="Destacada">⭐</span>` : '';

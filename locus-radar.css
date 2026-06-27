@@ -1,4 +1,4 @@
-/* [PP] v0.2.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-10 14:00 UTC-6 */
+/* [PP] mod:3 · autor:Nova · 2026-06-26 UTC-6 */
 /* locus-radar.css */
 /* Versión: 1.3 | Última actualización: 2026-05-13 | B1 fondo explícito sidebar · B2 auto-init JS (ver nota) · B3 pin icon dual SVG */
 
@@ -1611,22 +1611,22 @@ body.radar-sb-collapsed #global-footer {
   color: var(--text-muted, #aaa);
 }
 
-.cscard-ref-pill--t {
+.cscard-ref-pill--tkt {
   color: #2ecc78;
   background: rgb(46 204 120 / 12%);
 }
 
-.cscard-ref-pill--r {
+.cscard-ref-pill--req {
   color: #38bdf8;
   background: rgb(56 189 248 / 12%);
 }
 
-.cscard-ref-pill--b {
+.cscard-ref-pill--inc {
   color: #e85555;
   background: rgb(232 85 85 / 12%);
 }
 
-.cscard-ref-pill--p {
+.cscard-ref-pill--disc {
   color: #7c6af7;
   background: rgb(124 106 247 / 12%);
 }
