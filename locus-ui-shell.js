@@ -1,4 +1,4 @@
-// [PP] mod:32 · autor:Rune · 2026-06-26 18:55 UTC-6
+// [PP] mod:33 · autor:Rune · 2026-06-28 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -151,7 +151,7 @@ export function switchTab(tab) {
 
 export function switchSubTab(sub) {
   currentSubTab = sub;
-  ['backlog','icebox','hotfix','htmlmap','context','plan','contratos','historico'].forEach(s => {
+  ['backlog','q-backlog','q-disc','hotfix','htmlmap','context','plan','contratos','historico'].forEach(s => {
     const btn = document.getElementById('sstab-btn-' + s);
     const panel = document.getElementById('sspanel-' + s);
     if (btn) btn.classList.toggle('active', s === sub);
@@ -176,10 +176,15 @@ export function switchSubTab(sub) {
     // (a) event dispatch — locus-docs.js escucha 'shell:update-backlog-modification-badge'
     window.dispatchEvent(new CustomEvent('shell:update-backlog-modification-badge'));
   }
-  if (sub === 'icebox') {
-    // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-icebox'
-    window.dispatchEvent(new CustomEvent('shell:render-icebox'));
-    // T-202606-098 T1: renderStats()/updateStatusFilterUI() eliminados — exclusivos de subtab backlog
+  if (sub === 'q-backlog') {
+    // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-q-backlog'
+    // TKT-B4: 'icebox' → 'q-backlog'/'q-disc' — TKT-C1 registrará estos listeners en locus-backlog-render.js
+    window.dispatchEvent(new CustomEvent('shell:render-q-backlog'));
+  }
+  if (sub === 'q-disc') {
+    // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-q-disc'
+    // TKT-B4: panel Q-DISC para DISCs — TKT-C1 registrará este listener
+    window.dispatchEvent(new CustomEvent('shell:render-q-disc'));
   }
   if (sub === 'hotfix') {
     // T-202606-091: dispatch para refresco de contenido del panel Hotfix.
