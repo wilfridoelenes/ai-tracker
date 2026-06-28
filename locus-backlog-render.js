@@ -1,7 +1,9 @@
-// [PP] mod:44 · autor:Rune · 2026-06-28 UTC-6
-// TKT-C1 (REQ-C): renderIceboxPanel partida en renderQBacklogPanel/renderQDiscPanel —
-//   _isIcebox→_isQBacklog/_isQDisc, wrapper .bl-vl-req-children→.bl-vl-req-body,
-//   herencia de sprint sin fallback 'icebox' (__BR-Execution §2 Sin retrocompatibilidad).
+// [PP] mod:45 · autor:Rune · 2026-06-28 UTC-6
+// TKT-C1 (REQ-C): _updateSubtabBadges migrada — badgeIcebox (Gen1, tpl-badge-icebox eliminado
+//   en TKT-C6) reemplazado por badgeQBacklog (tpl-badge-qbacklog) + badgeQDisc (tpl-badge-qdisc),
+//   usando _isQBacklog/_isQDisc/_zoneStaleness. _isBacklogScope: sId==='icebox'→_isQBacklog/_isQDisc.
+//   Bloque if(false) de sprint-grupos con _isIcebox/_iceboxStaleness eliminado (287 líneas de
+//   código muerto desde R-202606-017, __BR-Execution §2 Sin retrocompatibilidad).
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -682,8 +684,8 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     html += `</div>`; // bl-vl-sprint-group
   });
 
-  // T-202606-090 AC-6: bloque "Icebox al final" eliminado de #backlog-list — los ítems
-  // sprint:icebox se muestran exclusivamente en renderIceboxPanel() (sub-tab dedicado).
+  // T-202606-090 AC-6 / TKT-C1: bloque "Icebox al final" eliminado de #backlog-list — los ítems
+  // sin sprint (Q-Backlog/Q-DISC) se muestran en renderQBacklogPanel()/renderQDiscPanel() (sub-tabs).
   // T-202606-091 AC-6: ítems con sprint HOTFIX excluidos del mismo modo — ver #sspanel-hotfix.
 
   // Cerradas — R/T/B descartado + P descartado + P promovida — bloque unificado
@@ -1057,293 +1059,8 @@ export function renderBacklogList(onRendered) {
   // Modo exclusivo restante: noAc (kanban ya desvía antes de llegar aquí)
   const _useSprintGroups = false; // R-202606-017: nunca se activa — _useVistaLista cubre todos los casos normales
 
-  // R-202606-017: el bloque _useSprintGroups fue eliminado — _renderVistaLista cubre sprint groups + jerarquía.
-  // El código siguiente solo alcanza cuando _getBacklogNoAcMode() está activo (modo exclusivo).
-
-  if (false) {
-    // ── Modo Sprint: agrupar pendientes por sprint ──
-    // T-202605-104: ítems icebox separados del sprintMap — sección propia al final
-    // B-202606-076: _isIcebox importada desde locus-backlog-core.js — fuente única.
-    const iceboxItems = pendienteItems.filter(_isIcebox);
-    const sprintableItems = pendienteItems.filter(i => !_isIcebox(i));
-
-    const sprintMap = {};
-    sprintableItems.forEach(i => {
-      const s = (i.sprint || '').trim();
-      const key = s || '__sin_asignar__';
-      if (!sprintMap[key]) sprintMap[key] = [];
-      sprintMap[key].push(i);
-    });
-
-    // P-202604-097: orden visual — activos primero, luego abiertos por número, sin asignar al final
-    const sprintKeys = Object.keys(sprintMap)
-      .filter(k => k !== '__sin_asignar__')
-      .sort((a, b) => {
-        const sa = _getSprintById(a), sb = _getSprintById(b);
-        const rankA = sa?.status === 'active' ? 0 : sa?.status === 'closed' ? 2 : 1;
-        const rankB = sb?.status === 'active' ? 0 : sb?.status === 'closed' ? 2 : 1;
-        if (rankA !== rankB) return rankA - rankB;
-        const na = parseInt(a.replace(/\D/g, '')) || 0;
-        const nb = parseInt(b.replace(/\D/g, '')) || 0;
-        return na - nb;
-      });
-    if (sprintMap['__sin_asignar__']) sprintKeys.push('__sin_asignar__');
-
-    // B-202605-XXX: sprints abiertos sin pendientes — renderizar header con botón cerrar
-    // aunque no aparezcan en sprintMap (todos sus ítems están done)
-    const _allOpenSprints = getActiveSprints().filter(s => s.status !== 'closed');
-    _allOpenSprints.forEach(s => {
-      if (sprintMap[s.id]) return; // ya está en el mapa, se procesa abajo
-      const hasAnyItem = getItems().some(i => (i.sprint || '').trim() === s.id); // hasAnyItem: verifica cualquier ítem en el sprint, no solo done
-      if (!hasAnyItem) return; // sprint vacío — ignorar
-      const isClosed = s.status === 'closed'; // B-fix: no hardcodear false — usar status real del sprint
-      if (isClosed) return; // sprint cerrado — no renderizar en este bloque, aparece en cerrados
-      const isActive = s.status === 'active';
-      const groupId = s.id.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const doneInGroup = getItems().filter(i => (i.sprint || '').trim() === s.id && i.status === 'done').length;
-      const totalInGroup = getItems().filter(i => (i.sprint || '').trim() === s.id).length;
-      const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
-      const progressBar = `<div class="version-progress-inline">
-          <div class="version-progress-bar-wrap"><div class="version-progress-bar" style="--ver-bar-w:${pct}%"></div></div>
-          <span class="version-progress-label">${doneInGroup}/${totalInGroup} · ${pct}%</span>
-        </div>`;
-      // T-202605-456: ★ eliminado del version-tag — estado activo lo comunica sprint-badge-active
-      const sprintBadge = '';
-      const sprintStatusLabel = isActive ? `<span class="sprint-badge-active" class="sprint-badge-ml">activo</span>` : '';
-      // R-202605-007: sprintActions eliminado — header solo lectura
-      const _sprintAllItems = getItems().filter(i => (i.sprint || '').trim() === s.id);
-      const _sprintPills = _statusPills(_sprintAllItems);
-      const _velLabel066a = isActive ? _sprintVelocityLabel(s.id) : '';
-      const _doneInGroupItems = _getActiveStatuses().has('done')
-        ? getItems().filter(i => (i.sprint || '').trim() === s.id && i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
-        : [];
-      const _doneGroupHtml = _doneInGroupItems.length
-        ? _sortGroup(_doneInGroupItems).map(item => buildBacklogItem(item)).join('')
-        : '';
-      const _groupBodyCollapsed = !_doneInGroupItems.length; // colapsado si no hay done visibles
-      html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}">
-        <div data-action="version-collapse" data-group-id="${groupId}" class="version-collapse-trigger">
-          <div class="version-header">
-            <span id="sprint-label-wrap-${esc(s.id)}"><span class="version-tag">${esc(s.id)}${sprintBadge}</span>${(s.label && s.label !== s.id) ? `<span class="sprint-name-label">${esc(s.label)}</span>` : ''}</span>${sprintStatusLabel}
-            ${progressBar}
-            ${_velLabel066a}
-            ${_sprintPills ? `<span class="sprint-pills-secondary">${_sprintPills}</span>` : ''}
-            <span class="version-collapse-arrow" id="varrow-${groupId}">${_groupBodyCollapsed ? '▸' : '▾'}</span>
-          </div>
-        </div>
-        <div class="version-group-body items-grid${_groupBodyCollapsed ? ' collapsed' : ''}" id="vbody-${groupId}">${_doneGroupHtml}</div>
-      </div>`;
-    });
-
-    sprintKeys.forEach(key => {
-      const group = sprintMap[key];
-      if (!group || !group.length) return;
-      const isSinAsignar = key === '__sin_asignar__';
-      const sprintObj = isSinAsignar ? null : _getSprintById(key);
-      const label = isSinAsignar ? 'Sin asignar' : (sprintObj ? sprintObj.label : key);
-      const groupId = isSinAsignar ? 'sin-asignar' : key.toLowerCase().replace(/[^a-z0-9]/g, '-');
-      const isCollapsed = _getCollapsedVersions().has(groupId);
-      const doneInGroup = getItems().filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key) && i.status === 'done').length;
-      const totalInGroup = getItems().filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key)).length;
-      const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
-
-      const isActive = sprintObj && sprintObj.status === 'active';
-      const isClosed = sprintObj && sprintObj.status === 'closed';
-
-      const progressBar = isSinAsignar ? '' : `<div class="version-progress-inline">
-          <div class="version-progress-bar-wrap"><div class="version-progress-bar" style="--ver-bar-w:${pct}%"></div></div>
-          <span class="version-progress-label">${doneInGroup}/${totalInGroup} · ${pct}%</span>
-        </div>`;
-
-      // T-202605-456: ★ eliminado del version-tag activo — estado lo comunica sprint-badge-active, formato unificado con cerrados
-      const sprintBadge = isClosed ? ' ·' : '';
-      const sprintStatusLabel = isActive
-        ? `<span class="sprint-badge-active" class="sprint-badge-ml">activo</span>`
-        : isClosed
-          ? `<span class="sprint-badge-closed" class="sprint-badge-ml">cerrado</span>`
-          : '';
-
-      // R-202605-007: sprintActions eliminado — header solo lectura (AC-2)
-
-      const _sprintAllItems = getItems().filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key));
-      const _pendCount  = group.length;
-      const _doneCount  = _sprintAllItems.filter(i => i.status === 'done').length;
-      const _descCount  = _sprintAllItems.filter(i => i.status === 'descartado').length;
-      const _pendPill   = _pendCount  ? `<span class="status-pill status-pill--pendiente">${_pendCount} pend.</span>` : '';
-      const _donePill   = _doneCount  ? `<span class="status-pill status-pill--done">${_doneCount} done</span>` : '';
-      const _descPill   = _descCount  ? `<span class="status-pill status-pill--descartado">${_descCount} desc.</span>` : '';
-      const _velLabel066b = isActive ? _sprintVelocityLabel(key) : '';
-      // T-202606-006: done items en posición natural dentro del sprint — sin sección separada
-      const _doneInGroupItems = _getActiveStatuses().has('done')
-        ? getItems().filter(i => (i.sprint || '').trim() === (isSinAsignar ? '' : key) && i.status === 'done' && _isCountableItem(i) && _matchesQuery(i))
-        : [];
-      const _doneGroupHtml = _doneInGroupItems.length
-        ? _sortGroup(_doneInGroupItems).map(item => buildBacklogItem(item)).join('')
-        : '';
-      html += `<div class="version-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}">
-        <div data-action="version-collapse" data-group-id="${groupId}" class="version-collapse-trigger">
-          <div class="version-header">
-            ${!isSinAsignar ? `<span id="sprint-label-wrap-${esc(key)}"><span class="version-tag">${esc(key)}</span>${(label && label !== key) ? `<span class="sprint-name-label">${esc(label)}</span>` : ''}</span>${sprintStatusLabel}` : ''}
-            ${_pendPill}
-            ${isSinAsignar ? `<span class="version-label">Sin asignar</span>` : ''}
-            ${progressBar}
-            ${_velLabel066b}
-            ${(_donePill || _descPill) ? `<span class="sprint-pills-secondary">${_donePill}${_descPill}</span>` : ''}
-            <span class="version-collapse-arrow" id="varrow-${groupId}">${isCollapsed ? '▸' : '▾'}</span>
-          </div>
-        </div>
-        <div class="version-group-body items-grid${isCollapsed ? ' collapsed' : ''}" id="vbody-${groupId}">`;
-
-      // T-202606-023: render jerárquico — Rs con hijos sangrados, huérfanos al nivel raíz
-      {
-        const _sprintCode = isSinAsignar ? null : key;
-        // Construir childMap para este sprint usando los ítems del grupo + getItems() completo
-        // sprintItems = todos los ítems del sprint (no solo los filtrados) para detectar hijos con cualquier status
-        const _allSprintItems = _sprintCode
-          ? getItems().filter(i => (i.sprint || '').trim() === _sprintCode)
-          : getItems().filter(i => !i.sprint || i.sprint === '' || i.sprint === 'icebox');
-        const _childMap = _buildChildMap(_allSprintItems);
-
-        // Rs presentes en el grupo visible (filtrado)
-        const _rCodesInGroup = new Set(group.filter(i => itemKind(i) === 'REQ').map(i => i.code));
-
-        // Ítems de nivel raíz: Rs del grupo + huérfanos (Ts/Bs/Ps sin parent en el grupo)
-        const _rootItems = _sortGroup(group).filter(i => {
-          if (itemKind(i) === 'REQ') return true; // Rs siempre al nivel raíz
-          // Ts/Bs/Ps: huérfanos si no tienen parentId apuntando a un R del grupo visible
-          return !i.parentId || !_rCodesInGroup.has(i.parentId);
-        });
-
-        _rootItems.forEach(item => {
-          if (itemKind(item) !== 'REQ') {
-            // Huérfano — nivel raíz sin sangría
-            html += buildBacklogItem(item);
-            return;
-          }
-          // R — card al nivel raíz + hijos sangrados
-          const _children = _childMap.get(item.code) || [];
-          const _hasChildren = _children.length > 0;
-
-          if (_hasChildren) {
-            // Estado de colapso desde localStorage
-            const _collapseKey = 'locus-r-collapsed-' + item.code;
-            const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
-            // T-202606-087: respetar estado del pill 'Hijos' al re-renderizar
-            const _showChildren = localStorage.getItem('backlog-show-children') === '1';
-            const _childrenCollapsed = _isRCollapsed || !_showChildren;
-
-            // Wrapper del R con toggle
-            html += `<div class="bl-r-with-children" data-r-code="${esc(item.code)}">`;
-            // Card del R con botón toggle inyectado via wrapper — buildBacklogItem sin modificar
-            html += `<div class="bl-r-card-wrap">`;
-            html += buildBacklogItem(item);
-            html += `<button class="bl-r-toggle${_childrenCollapsed ? ' collapsed' : ''}" data-action="bl-r-toggle" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
-            html += `</div>`; // bl-r-card-wrap
-            // Wrapper de hijos con sangría
-            html += `<div class="bl-children-wrap${_childrenCollapsed ? ' collapsed' : ''}" id="bl-children-${esc(item.code)}">`;
-            _children.forEach(child => {
-              html += `<div class="bl-child-row">${buildBacklogItem(child)}</div>`;
-            });
-            html += `</div>`; // bl-children-wrap
-            html += `</div>`; // bl-r-with-children
-          } else {
-            // R sin hijos — render normal sin toggle
-            html += buildBacklogItem(item);
-          }
-        });
-      }
-
-      html += _doneGroupHtml;
-      html += `</div></div>`;
-    });
-
-    // T-202606-062: bloque bl-r-toggle eliminado — reemplazado por vl-toggle-r en _renderVistaLista (T1)
-
-    // R-202605-103: bloque sprints cerrados eliminado — absorbido por renderArchivoHistorico
-
-    // T-202605-104: sección Icebox — ítems sin sprint asignado (icebox / '' / null)
-    if (iceboxItems.length) {
-      // B-202605-030: default expandido — clave ausente (null) → expandido; '0' → colapsado
-      const iceboxOpen = localStorage.getItem('backlog-icebox-open') !== '0';
-      // T-202606-163: contar ítems con alerta para el header
-      const _iceboxAlertCount = iceboxItems.filter(i => _iceboxStaleness(i) !== null).length;
-      const _iceboxAlertBadge = _iceboxAlertCount > 0
-        ? `<span class="staleness-pill staleness--stale bl-icebox-alert-count" title="${_iceboxAlertCount} ítem${_iceboxAlertCount !== 1 ? 's' : ''} sin movimiento — revisar">⚠ ${_iceboxAlertCount}</span>`
-        : '';
-      html += `<div class="section-group sg-icebox bl-icebox-group" id="sg-icebox">
-        <div class="section-group-header bl-icebox-header" data-action="section-group-toggle" data-group="icebox">
-          <span class="section-group-arrow bl-icebox-arrow${iceboxOpen ? '' : ' collapsed'}" id="sgarrow-icebox">▾</span>
-          <span>📥 Icebox</span>
-          <span class="section-group-count bl-icebox-count">${iceboxItems.length} ítem${iceboxItems.length !== 1 ? 's' : ''}</span>
-          ${_iceboxAlertBadge}
-        </div>
-        <div class="section-group-body items-grid bl-icebox-body${iceboxOpen ? '' : ' collapsed'}" id="sgbody-icebox">`;
-      // fix: jerarquía R→hijos en icebox — igual que sprint groups
-      {
-        const _iceboxChildMap = _buildChildMap(iceboxItems);
-        const _iceboxRCodes   = new Set(iceboxItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
-        const _iceboxRoots    = _sortGroup(iceboxItems).filter(i => {
-          if (itemKind(i) === 'REQ') return true;
-          return !i.parentId || !_iceboxRCodes.has(i.parentId);
-        });
-        _iceboxRoots.forEach(item => {
-          const _stale = _iceboxStaleness(item);
-          const _alertHtml = _stale
-            ? `<div class="bl-icebox-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d en icebox">${_stale.label} en icebox</span></div>`
-            : '';
-          if (itemKind(item) !== 'REQ') {
-            html += _alertHtml + buildBacklogItem(item);
-            return;
-          }
-          const _children = _iceboxChildMap.get(item.code) || [];
-          if (_children.length > 0) {
-            const _collapseKey  = 'locus-r-collapsed-' + item.code;
-            const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
-            html += `<div class="bl-vl-req" data-r-code="${esc(item.code)}">`;
-            html += _alertHtml + buildBacklogItem(item);
-            html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
-            html += `<div class="bl-vl-req-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-req-body-${esc(item.code)}">`;
-            _children.forEach(child => {
-              html += `<div class="bl-child-row">${buildBacklogItem(child)}</div>`;
-            });
-            html += `</div></div>`;
-          } else {
-            html += _alertHtml + buildBacklogItem(item);
-          }
-        });
-      }
-      html += `</div></div>`;
-    }
-
-  } else {
-    // ── Modo plano: lista sin grupos de sprint ──
-
-    // R-202604-051: sección Bloqueantes activos — sobre En curso y Pendientes
-    const blockingItems = pendienteItems.filter(i => i.blocking);
-    if (blockingItems.length && _getActiveStatuses().has('pendiente')) {
-      html += `<div class="section-group section-group--blocking" id="sg-blocking">
-        <div class="section-group-header section-group-header--blocking">
-          <span class="section-group-icon">⚠</span>
-          <span>Bloqueantes activos</span>
-          <span class="section-group-count">${blockingItems.length} ítem${blockingItems.length !== 1 ? 's' : ''}</span>
-        </div>
-        <div class="items-grid" id="sgbody-blocking">`;
-      _sortItems(blockingItems).forEach(item => { html += buildBacklogItem(item); });
-      html += `</div></div>`;
-    }
-
-    const flatItems = _sortItems(pendienteItems);
-    const _flatPills = _statusPills(pendienteItems);
-    if (_flatPills) {
-      html += `<div class="version-group-header">
-        <span>${flatItems.length} ítem${flatItems.length !== 1 ? 's' : ''}</span>
-        ${_flatPills}
-      </div>`;
-    }
-    html += `<div class="items-grid" id="vbody-list">`;
-    flatItems.forEach(item => { html += buildBacklogItem(item); });
-    html += `</div>`;
-  }
+  // R-202606-017 / TKT-C1: bloque if(false) de sprint-grupos con icebox eliminado —
+  // código muerto desde R-202606-017, __BR-Execution §2 Sin retrocompatibilidad.
 
   // T-202606-006: sección #sg-done eliminada — done items en posición natural dentro de su sprint
   // via filtro s-done. Ver R-202605-036.
@@ -1920,23 +1637,26 @@ window.addEventListener('shell:backlog-render-dirty', () => {
   if (panel && panel.classList.contains('active')) renderHistoricoPanel();
 });
 
-// T-202606-093: T4 · _updateSubtabBadges — actualización reactiva de los tres badges
-// (icebox, hotfix, histórico) independiente de cuál sub-tab/panel esté activo.
+// T-202606-093: T4 · _updateSubtabBadges — actualización reactiva de los cuatro badges
+// (backlog, q-backlog, q-disc, hotfix, histórico) independiente de cuál sub-tab/panel esté activo.
+// TKT-C1: badgeIcebox (tpl-badge-icebox, Gen1) → badgeQBacklog (tpl-badge-qbacklog) +
+//   badgeQDisc (tpl-badge-qdisc) — reutiliza _isQBacklog/_isQDisc/_zoneStaleness.
 // Reutiliza exactamente la lógica de conteo de cada render*Panel — no reimplementa
 // criterios de staleness/urgencia/archivo, solo el cálculo de badge en aislado.
 // AC-1, AC-5, AC-6.
 export function _updateSubtabBadges() {
   const badgeBacklog   = document.getElementById('tpl-badge-backlog');
-  const badgeIcebox    = document.getElementById('tpl-badge-icebox');
+  const badgeQBacklog  = document.getElementById('tpl-badge-qbacklog');
+  const badgeQDisc     = document.getElementById('tpl-badge-qdisc');
   const badgeHotfix    = document.getElementById('tpl-badge-hotfix');
   const badgeHistorico = document.getElementById('tpl-badge-historico');
 
-  // AC-6: getItems() vacío → los tres badges quedan vacíos, nunca '0'
+  // AC-6: getItems() vacío → todos los badges quedan vacíos, nunca '0'
   const items = getItems();
 
   // T-202606-004: badge del subtab Backlog — cuenta Rs/Ts activos (pendiente/en-revision)
-  // en sprint real (no icebox, no HOTFIX) con status active o scheduled (programado).
-  // Mismo patrón visual que badgeIcebox: sin prefijo de urgencia, '' en vez de '0'.
+  // en sprint real (no Q-Backlog/Q-DISC, no HOTFIX) con status active o scheduled (programado).
+  // Sin prefijo de urgencia, '' en vez de '0'.
   if (badgeBacklog) {
     const _extractSprintId = s => (s || '').split(' · ')[0].trim();
     const _isBacklogScope = i => {
@@ -1944,7 +1664,7 @@ export function _updateSubtabBadges() {
       const t = itemKind(i);
       if (t !== 'REQ' && t !== 'TKT') return false;
       const sId = _extractSprintId(i.sprint);
-      if (!sId || sId === 'icebox') return false;
+      if (!sId || _isQBacklog(i) || _isQDisc(i)) return false;
       if (sId.toUpperCase().includes('HOTFIX')) return false;
       const sprint = getActiveSprints().find(s => s.id === sId);
       if (!sprint) return false;
@@ -1954,14 +1674,27 @@ export function _updateSubtabBadges() {
     badgeBacklog.textContent = backlogItems.length ? String(backlogItems.length) : '';
   }
 
-  if (badgeIcebox) {
-    // B-202606-076: _isIcebox importada desde locus-backlog-core.js — fuente única.
-    const iceboxItems = items.filter(_isIcebox);
-    if (!iceboxItems.length) {
-      badgeIcebox.textContent = '';
+  // TKT-C1: badge Q-Backlog — REQ/TKT sin sprint (pendiente/en-revision), con alerta de staleness.
+  // Reutiliza _isQBacklog/_zoneStaleness — misma lógica que renderQBacklogPanel.
+  if (badgeQBacklog) {
+    const qbItems = items.filter(i => _isQBacklog(i) && i.status !== 'historico' && i.status !== 'descartado');
+    if (!qbItems.length) {
+      badgeQBacklog.textContent = '';
     } else {
-      const _alertCount = iceboxItems.filter(i => _iceboxStaleness(i) !== null).length;
-      badgeIcebox.textContent = (_alertCount > 0 ? '⚠ ' : '') + iceboxItems.length;
+      const _alertCount = qbItems.filter(i => _zoneStaleness(i) !== null).length;
+      badgeQBacklog.textContent = (_alertCount > 0 ? '⚠ ' : '') + qbItems.length;
+    }
+  }
+
+  // TKT-C1: badge Q-DISC — DISC activas (discovery), con alerta de staleness.
+  // Reutiliza _isQDisc/_zoneStaleness — misma lógica que renderQDiscPanel.
+  if (badgeQDisc) {
+    const qdItems = items.filter(i => _isQDisc(i) && i.status !== 'historico' && i.status !== 'descartado');
+    if (!qdItems.length) {
+      badgeQDisc.textContent = '';
+    } else {
+      const _alertCount = qdItems.filter(i => _zoneStaleness(i) !== null).length;
+      badgeQDisc.textContent = (_alertCount > 0 ? '⚠ ' : '') + qdItems.length;
     }
   }
 
