@@ -1,7 +1,8 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:6 · autor:Rune · 2026-06-21 UTC-6
-// locus-proj-core.js
+// [PP] mod:7 · autor:Rune · 2026-06-28 UTC-6
+// TKT-C10 (REQ-C): renderIceboxPanel()→renderQBacklogPanel()+renderQDiscPanel() en
+//   selectProjectFilter. Import actualizado — renderIceboxPanel retirado.
 // T-202606-010: call site huérfano renderHoy eliminado (guard typeof inerte)
-// T-202606-093 AC-4: _updateSubtabBadges() invocada junto a renderIceboxPanel en selectProjectFilter
+// T-202606-093 AC-4: _updateSubtabBadges() invocada junto a renderQBacklogPanel/renderQDiscPanel
 // Módulo compartido — símbolos de proyecto sin deps circulares
 // Creado en T-202606-197 (opción d): rompe ciclo locus-projects ↔ locus-sprint-project
 // Importado por: locus-projects.js · locus-sprint-project.js
@@ -12,7 +13,7 @@ import { esc, switchSubTab, getCurrentSubTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderAnalytics } from './locus-analytics-render.js';
 import { loadBacklog, renderStats } from './locus-backlog-core.js';
-import { renderBacklogList, renderIceboxPanel, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-093: _updateSubtabBadges
+import { renderBacklogList, renderQBacklogPanel, renderQDiscPanel, _updateSubtabBadges } from './locus-backlog-render.js'; // TKT-C10: renderIceboxPanel→renderQBacklogPanel+renderQDiscPanel
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _renderTplProjBanner } from './locus-docs.js';
 import { _updateHeaderProjectLabel } from './locus-sesiones-stats.js';
@@ -102,8 +103,9 @@ export function selectProjectFilter(projId) {
   window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
   if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
   renderBacklogList();
-  renderIceboxPanel(); // B-202606-052 AC-3: re-render icebox al cambiar proyecto activo — antes solo se actualizaba via shell:backlog-render-dirty, evento que selectProjectFilter no dispara
-  _updateSubtabBadges(); // T-202606-093 AC-4: mismo motivo que renderIceboxPanel — selectProjectFilter no dispara shell:backlog-render-dirty
+  renderQBacklogPanel(); // TKT-C10: reemplaza renderIceboxPanel — re-render Q-Backlog al cambiar proyecto activo
+  renderQDiscPanel();    // TKT-C10: re-render Q-DISC al cambiar proyecto activo
+  _updateSubtabBadges(); // T-202606-093 AC-4: mismo motivo — selectProjectFilter no dispara shell:backlog-render-dirty
   renderStats();
   _renderTplProjBanner();
   switchSubTab(getCurrentSubTab());

@@ -1,4 +1,7 @@
-// [PP] mod:56 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:57 · autor:Rune · 2026-06-28 UTC-6
+// TKT-C1b (REQ-C): wrapper transitorio _isIcebox eliminado — TKT-C1 (locus-backlog-render.js
+//   mod:45) ya no la importa. Comentarios de INC-[pendiente-ID] y referencia a renderIceboxPanel
+//   retirados. __BR-Execution §2 Sin retrocompatibilidad.
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -1515,15 +1518,8 @@ export function _isQDisc(i) {
   return itemKind(i) === 'DISC' && (!i.sprint || i.sprint === '');
 }
 
-// INC-[pendiente-ID]: _isIcebox restaurada — fue eliminada de este módulo sin migrar
-// a sus consumidores. locus-backlog-render.js (renderIceboxPanel + Vista Lista) sigue
-// en el paradigma pre-Gen2 "Icebox" — no migrado aún a los paneles Q-Backlog/Q-DISC
-// dedicados (Cluster C). Definida como unión de _isQBacklog/_isQDisc — mismo universo
-// que Gen2 ya declara equivalente a icebox (ver _getCountableBaseForSubtab más abajo).
-// Eliminar cuando renderIceboxPanel() se migre a los paneles Q-Backlog/Q-DISC.
-export function _isIcebox(i) {
-  return _isQBacklog(i) || _isQDisc(i);
-}
+// TKT-C1b: _isIcebox wrapper transitorio eliminado — locus-backlog-render.js mod:45 (TKT-C1)
+// ya no la importa. __BR-Execution §2 Sin retrocompatibilidad.
 
 // T-202606-100: _getCountableBase() — función canónica compartida entre renderStats() y _getCountableForBanner()
 // Retorna ITEMS filtrado por: _isCountableItem === true · status !== descartado · status !== historico
