@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-HOTFIX · mod:19 · autor:Rune · 2026-06-27 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-HOTFIX · mod:20 · autor:Rune · 2026-06-28 UTC-6
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -329,7 +329,7 @@ export function _renderPlanningView(listEl, closeCallback) {
   const openSprints  = allSprints.filter(s => s.status === 'active');
 
   // Columna izquierda: ítems pendientes sin sprint (no done, no descartado, no historico)
-  // T-202605-024: icebox es el valor canónico de "sin sprint asignado" (BR-Ecosystem V1.6)
+  // T-202605-024: '' o ausente es el valor canónico de "sin sprint asignado" — Q-Backlog
   const unassigned = getItems().filter(i =>
     (!i.sprint || i.sprint === 'icebox') &&
     i.status !== 'done' &&

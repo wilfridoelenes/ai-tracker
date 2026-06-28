@@ -1,4 +1,4 @@
-<!-- [PP] mod:76 · autor:Rune · 2026-06-26 18:55 UTC-6 -->
+<!-- [PP] mod:77 · autor:Rune · 2026-06-28 10:00 UTC-6 -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -301,9 +301,13 @@
           <span class="tpl-nav-icon">📋</span><span class="tpl-nav-text">Backlog</span>
           <span class="tpl-nav-badge" id="tpl-badge-backlog"></span>
         </button>
-        <button class="tpl-nav-btn" id="sstab-btn-icebox">
-          <span class="tpl-nav-icon">📦</span><span class="tpl-nav-text">Icebox</span>
-          <span class="tpl-nav-badge" id="tpl-badge-icebox"></span>
+        <button class="tpl-nav-btn" id="sstab-btn-qbacklog">
+          <span class="tpl-nav-icon">📦</span><span class="tpl-nav-text">Backlog</span>
+          <span class="tpl-nav-badge" id="tpl-badge-qbacklog"></span>
+        </button>
+        <button class="tpl-nav-btn" id="sstab-btn-qdisc">
+          <span class="tpl-nav-icon">💡</span><span class="tpl-nav-text">Discoveries</span>
+          <span class="tpl-nav-badge" id="tpl-badge-qdisc"></span>
         </button>
         <!-- T-202606-091: Sub-tab Hotfix -->
         <button class="tpl-nav-btn" id="sstab-btn-hotfix">
@@ -467,10 +471,31 @@
 
     </div><!-- /sspanel-backlog -->
 
-    <!-- Sub-panel: Icebox — T-202606-090 -->
-    <div class="session-subpanel" id="sspanel-icebox">
-      <div id="icebox-panel-body"></div>
-    </div><!-- /sspanel-icebox -->
+    <!-- Sub-panel: Backlog (Q-Backlog) — REQ-C/TKT-C6 -->
+    <div class="session-subpanel" id="sspanel-qbacklog">
+      <div id="qbacklog-panel-body"></div>
+      <div class="bl-done-group" id="qbacklog-done-group">
+        <div class="bl-done-header" id="qbacklog-done-header">
+          <span class="bl-done-arrow">▾</span>
+          <span class="bl-done-label">Terminados</span>
+          <span class="bl-done-count" id="qbacklog-done-count">0</span>
+        </div>
+        <div class="bl-done-body" id="qbacklog-done-body"></div>
+      </div>
+    </div><!-- /sspanel-qbacklog -->
+
+    <!-- Sub-panel: Discoveries (Q-DISC) — REQ-C/TKT-C6 -->
+    <div class="session-subpanel" id="sspanel-qdisc">
+      <div id="qdisc-panel-body"></div>
+      <div class="bl-done-group" id="qdisc-done-group">
+        <div class="bl-done-header" id="qdisc-done-header">
+          <span class="bl-done-arrow">▾</span>
+          <span class="bl-done-label">Terminados</span>
+          <span class="bl-done-count" id="qdisc-done-count">0</span>
+        </div>
+        <div class="bl-done-body" id="qdisc-done-body"></div>
+      </div>
+    </div><!-- /sspanel-qdisc -->
 
     <!-- Sub-panel: Hotfix — T-202606-091 -->
     <div class="session-subpanel" id="sspanel-hotfix">
