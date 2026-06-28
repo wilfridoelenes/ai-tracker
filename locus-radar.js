@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-HOTFIX · mod:8 · autor:Rune · 2026-06-25 16:30 UTC-6
+// [PP] v0.6.0 · sprint:PP-S-HOTFIX · mod:9 · autor:Rune · 2026-06-28 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -726,5 +726,5 @@ window.addEventListener('storage:item-excluded', (e) => {
   if (getMdiffStepZeroActive()) return; // AC-3: Step 0 activo — sin notificación duplicada
   const { code, type } = e.detail || {};
   const _typeLabel = _RADAR_EXCLUDED_TYPE_LABEL[type] || type;
-  toast(`${code || '[pendiente-ID]'} no se guardó — ${_typeLabel} no puede ir en icebox.`);
+  toast(`${code || '[pendiente-ID]'} no se guardó — ${_typeLabel} no puede ir sin sprint.`);
 });

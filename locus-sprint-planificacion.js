@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-HOTFIX · mod:20 · autor:Rune · 2026-06-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-HOTFIX · mod:21 · autor:Rune · 2026-06-28 UTC-6
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -331,7 +331,7 @@ export function _renderPlanningView(listEl, closeCallback) {
   // Columna izquierda: ítems pendientes sin sprint (no done, no descartado, no historico)
   // T-202605-024: '' o ausente es el valor canónico de "sin sprint asignado" — Q-Backlog
   const unassigned = getItems().filter(i =>
-    (!i.sprint || i.sprint === 'icebox') &&
+    !i.sprint &&
     i.status !== 'done' &&
     i.status !== 'descartado' &&
     i.status !== 'historico'
@@ -446,7 +446,7 @@ export function _renderPlanningView(listEl, closeCallback) {
       </div>
 
       <div class="bl-plan-columns">
-        <!-- Columna izquierda: icebox -->
+        <!-- Columna izquierda: Q-Backlog (sin sprint) -->
         <div class="bl-plan-col bl-plan-col--left"
              id="bl-plan-col-left"
              data-plan-col="left">
@@ -524,8 +524,8 @@ function _planDrop(e, targetCol, listEl) {
 
   if (targetCol === 'left') {
     const currentSprint = item.sprint;
-    if (!currentSprint || currentSprint === 'icebox') return;
-    setItemSprint(item.code, 'icebox');
+    if (!currentSprint) return;
+    setItemSprint(item.code, '');
   } else {
     const targetSprintId = targetCol;
     if (!targetSprintId) return;

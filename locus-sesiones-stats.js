@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:16 · autor:Rune · 2026-06-22 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:17 · autor:Rune · 2026-06-28 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -271,14 +271,14 @@ export function renderStatusBar() {
 
   if (gfTotal || gfDone) {
     // B-202606-027: alinear criterio con renderStats() en locus-backlog-core.js
-    // excluir done+icebox y done en sprints cerrados — mismo criterio que stats-bar del backlog
+    // excluir done sin sprint (Q-Backlog/Q-DISC Gen2) y done en sprints cerrados — mismo criterio que stats-bar del backlog
     const _closedSprintIds = new Set(
       (typeof getActiveSprints !== 'undefined' ? getActiveSprints() : [])
         .filter(s => s.status === 'closed').map(s => s.id)
     );
     const _isInClosedSprint = i => i.sprint && _closedSprintIds.has(i.sprint);
     const total = _items.filter(i => _isCountableItem(i) && !_isInClosedSprint(i) && i.status !== 'descartado' && i.status !== 'historico').length;
-    const done  = _items.filter(i => _isCountableItem(i) && i.status === 'done' && !_isInClosedSprint(i) && i.sprint && i.sprint !== 'icebox').length;
+    const done  = _items.filter(i => _isCountableItem(i) && i.status === 'done' && !_isInClosedSprint(i) && i.sprint).length;
     if (gfTotal) { gfTotal.textContent = total + ' ítems'; gfTotal.classList.remove('is-hidden'); }
     if (gfDone)  { gfDone.textContent  = '✓ ' + done;   gfDone.classList.remove('is-hidden'); }
   }
