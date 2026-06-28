@@ -1,4 +1,4 @@
-// [PP] mod:24 · autor:Rune · 2026-06-26 23:15 UTC-6
+// [PP] mod:25 · autor:Rune · 2026-06-28 UTC-6
 // locus-backlog-merge.js
 // Última actualización: T-202606-006: _mdiffStepZeroActive + listener storage:item-excluded
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -91,7 +91,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     const _unknownSprints = [];
     for (const it of _allItems) {
       const s = it.sprint;
-      if (!s || s === 'icebox') continue;
+      if (!s) continue; // TKT-B-inline: eliminado s==='icebox' (Gen1) — !s cubre sprint vacío/ausente en Gen2
       // B-202606-063: sprint declarado en la proposal del mismo CHECKPOINT — no es desconocido
       if (_proposalSprintIds.includes(s)) continue;
       const _byId     = _allSprints.find(sp => sp.id    === s);

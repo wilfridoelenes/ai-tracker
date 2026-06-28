@@ -1,4 +1,4 @@
-// [PP] mod:55 · autor:Rune · 2026-06-27 09:30 UTC-6
+// [PP] mod:56 · autor:Rune · 2026-06-28 UTC-6
 // locus-backlog-core.js
 // Responsabilidad: State global (ITEMS, undo/redo), carga, parse, importación,
 //   filtros, vistas, sort, stats, footer, helpers de badge/status/effort.
@@ -876,7 +876,7 @@ export function loadBacklog() {
         i.status = 'pendiente';
         sanitizedHistorico++;
         _blogLog('fix', i.code || '(sin código)',
-          `B-202606-016: status:historico sin sprint cerrado → pendiente (sprint: ${i.sprint || 'icebox'})`,
+          `B-202606-016: status:historico sin sprint cerrado → pendiente (sprint: ${i.sprint || '(sin sprint)'})`,
           'backlog');
       }
     });

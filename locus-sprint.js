@@ -1,4 +1,4 @@
-// [PP] mod:67 · autor:Rune · 2026-06-26 UTC-6
+// [PP] mod:68 · autor:Rune · 2026-06-28 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -993,11 +993,11 @@ function _renderPlannedSprints() {
   const closedIds     = new Set(allSprints.filter(s => s.status === 'closed').map(s => s.id));
   const _extractId    = s => (s || '').split(' · ')[0].trim();
 
-  // Agrupar ítems no descartados por sprint, excluyendo active, closed e icebox
+  // Agrupar ítems no descartados por sprint, excluyendo active, closed e ítems sin sprint (Q-Backlog/Q-DISC)
   const plannedMap = {};
   getItems().forEach(i => {
     const raw = _iSprint(i).trim();
-    if (!raw || raw === 'icebox') return;
+    if (!raw) return; // TKT-B6: eliminado raw==='icebox' (Gen1) — !raw cubre Q-Backlog/Q-DISC en Gen2
     const id = _extractId(raw);
     if (!id) return;
     if (activeIds.has(id) || closedIds.has(id)) return;
