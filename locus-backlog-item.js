@@ -1,7 +1,7 @@
-// [PP] mod:46 · autor:Nova · 2026-06-26 UTC-6
-// locus-backlog-item.js
-// T-202606-093: _updateSubtabBadges invocado al cierre de mergeBacklogFromTG (AC-3)
-// Última actualización: B-202606-012 · history[] push en bloque de avance de status por CHECKPOINT
+// [PP] mod:47 · autor:Rune · 2026-06-28 UTC-6
+// TKT-C2 (REQ-C): status 'promovida'→'promoted' en comparaciones de status (L99, L1022,
+//   L1612, L1630, L1892). Selector sprint: option icebox→value='' label 'Q-Backlog (sin sprint)'.
+//   Edge case: datos legacy con 'promovida' cubiertos por compatibilidad de lectura (ver L99).
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
@@ -95,8 +95,9 @@ export function _renderKanban(listEl) {
     // R-202604-091: 'en curso' → 'pendiente'
     const s = item.status;
     if (s === 'in-progress' || s === 'en progreso' || s === 'progreso' || s === 'en curso') return 'pendiente';
-    // B-202606-025: P con status 'promovida' → columna Descartado (cerrada, no ejecutable)
-    if (s === 'promovida') return 'descartado';
+    // TKT-C2: 'promovida'→'promoted' (Gen2 canónico). Edge case: datos legacy con 'promovida'
+    // en storage también mapean a 'descartado' — misma rama, sin retrocompatibilidad adicional.
+    if (s === 'promoted' || s === 'promovida') return 'descartado';
     return s; // pendiente | done | descartado
   }
 
@@ -1018,8 +1019,9 @@ export function buildBacklogItem(item, opts = {}) {
   const _statusChipHtml = (!isDone && !isDiscarded && !isIdea)
     ? `<button class="bitem-status-chip bitem-status-chip--${esc(item.status || 'pendiente')}" data-action="open-status-popover" data-code="${esc(item.code)}" title="Cambiar status" type="button">${statusLabel(item.status || 'pendiente')}</button>`
     : '';
-  // Cerradas: P promovida muestra badge en lugar de quick actions o ícono descartado
-  const _isPPromovida = isIdea && item.status === 'promovida';
+  // Cerradas: DISC promovida muestra badge en lugar de quick actions o ícono descartado
+  // TKT-C2: 'promoted' (Gen2). Edge case: datos legacy 'promovida' también matchean.
+  const _isPPromovida = isIdea && (item.status === 'promoted' || item.status === 'promovida');
   const _pPromovidaRef = _isPPromovida && item.promovida_a ? item.promovida_a : null;
   const _pPromovidaBadge = _isPPromovida
     ? `<span class="item-p-badge item-p-badge--promovida" title="Idea promovida${_pPromovidaRef ? ' a ' + _pPromovidaRef : ''}">↗ promovida${_pPromovidaRef ? '<span class="item-p-badge-ref"> ' + esc(_pPromovidaRef) + '</span>' : ''}</span>`
@@ -1127,9 +1129,9 @@ export function buildBacklogItem(item, opts = {}) {
                   <option value="${esc(item.sprint||'')}" selected>${esc(_sprintDisplay(item.sprint||''))}</option>
                 </select>`
               : `<select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-select-type="sprint">
-                  <option value="icebox"${(!item.sprint || item.sprint === 'icebox') ? ' selected' : ''}>icebox</option>
+                  <option value=""${(!item.sprint || item.sprint === '' || item.sprint === 'icebox') ? ' selected' : ''}>Q-Backlog (sin sprint)</option>
                   ${getActiveSprints().filter(s=>s.status!=='closed').map(s=>`<option value="${esc(s.id)}"${item.sprint===s.id?' selected':''}>${esc(s.label||s.id)}${s.status==='active'?' ★':''}</option>`).join('')}
-                  ${item.sprint && item.sprint !== 'icebox' && !getActiveSprints().find(s=>s.id===item.sprint) ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : ''}
+                  ${item.sprint && item.sprint !== '' && item.sprint !== 'icebox' && !getActiveSprints().find(s=>s.id===item.sprint) ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : ''}
                   <option value="__new__">＋ Nuevo sprint...</option>
                 </select>`
             }
@@ -1608,8 +1610,8 @@ export function updateBacklogFooter() {
     });
   }
 
-  // T-202606-096: universo canónico activos = status ≠ descartado AND status ≠ promovida
-  const _isActive = i => i.status !== 'descartado' && i.status !== 'promovida' && i.status !== 'historico';
+  // TKT-C2: 'promoted' (Gen2). Edge case: datos legacy 'promovida' también excluidos.
+  const _isActive = i => i.status !== 'descartado' && i.status !== 'promoted' && i.status !== 'promovida' && i.status !== 'historico';
   const pend        = getItems().filter(i => _isActive(i) && i.status === 'pendiente').length;
   const enRevision  = getItems().filter(i => _isActive(i) && i.status === 'en-revision').length;
   // B-202606-036: done+icebox no contabiliza — consistente con stats-bar (Capa 3 per BR-Ecosystem §5)
@@ -1627,7 +1629,7 @@ export function updateBacklogFooter() {
   const _emitidosF = getItems().length;
   const _doneF = getItems().filter(i => i.status === 'done').length;
   const _descartadosF = getItems().filter(i => i.status === 'descartado').length;
-  const _promovidasF = getItems().filter(i => i.status === 'promovida').length;
+  const _promovidasF = getItems().filter(i => i.status === 'promoted' || i.status === 'promovida').length;
   const _cerradosF = _descartadosF + _promovidasF;
 
   footer.innerHTML = `
@@ -1889,7 +1891,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
   const tmpSuggestions = [];
 
   // Orden de avance: pendiente < done < descartado (descartado solo vía confirmación)
-  const _statusRank = { pendiente: 0, 'en-revision': 0.5, promovida: 0.8, done: 1, descartado: 2 }; // T-202606-032 / B-202606-016: promovida con rank 0.8
+  const _statusRank = { pendiente: 0, 'en-revision': 0.5, promoted: 0.8, promovida: 0.8, done: 1, descartado: 2 }; // T-202606-032 / B-202606-016: rank 0.8 · TKT-C2: 'promoted' Gen2 + 'promovida' legacy
 
   // B-202606-047: ordenar batch — REQ primero, luego TKT/INC, luego el resto.
   // Sin este orden, cuando REQ y sus TKT llegan en el mismo CHECKPOINT el find de parentId
