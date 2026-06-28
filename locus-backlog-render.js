@@ -1,4 +1,7 @@
-// [PP] mod:43 · autor:Nova · 2026-06-26 UTC-6
+// [PP] mod:44 · autor:Rune · 2026-06-28 UTC-6
+// TKT-C1 (REQ-C): renderIceboxPanel partida en renderQBacklogPanel/renderQDiscPanel —
+//   _isIcebox→_isQBacklog/_isQDisc, wrapper .bl-vl-req-children→.bl-vl-req-body,
+//   herencia de sprint sin fallback 'icebox' (__BR-Execution §2 Sin retrocompatibilidad).
 // T-202606-093: AC-2/AC-4 corregidos — _updateSubtabBadges() desacoplada de renderBacklogList(),
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
@@ -9,7 +12,7 @@
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
 import { renderArchivoHistorico, toggleArchivoHistorico, getArchivoHistoricoCount, getArchivoHistoricoStats } from './locus-backlog-archive.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isIcebox, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js';
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQDisc, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation
 
@@ -146,9 +149,9 @@ export function setItemParent(code, parentCode) {
   if (parentCode) {
     const parentItem = getItems().find(i => i.code === parentCode);
     if (parentItem) {
-      // Propagar sprint del R padre — normalizar sprint vacío ('') a 'icebox' para consistencia
-      // con _buildChildMap y el gate de herencia de sprint en B-202606-083.
-      item.sprint = parentItem.sprint || 'icebox';
+      // Propagar sprint del R padre — Q-Backlog se representa como '' (sin retrocompatibilidad
+      // con 'icebox', __BR-Execution §2). Consistente con _buildChildMap y herencia de B-202606-083.
+      item.sprint = parentItem.sprint || '';
     }
   }
   _undoSnapshot();
@@ -445,10 +448,10 @@ function _vcDoToggle(btn, projectId) {
   _vcCollapseSet(projectId, rCode, isNowCollapsed);
 }
 
-// T-202606-163: _iceboxStaleness — umbral de alerta por tipo de ítem en vista icebox
-// Umbrales: R y T → 14d · P → 30d · B priority:high → 7d · B priority no-high → sin alerta
+// T-202606-163 / TKT-C1: _zoneStaleness (antes _iceboxStaleness) — umbral de alerta por tipo de ítem
+// en vista Q-Backlog/Q-DISC. Umbrales: R y T → 14d · P → 30d · B priority:high → 7d · B priority no-high → sin alerta
 // Referencia: statusChangedAt || createdAt. Retorna { days, label } o null si no aplica.
-function _iceboxStaleness(item) {
+function _zoneStaleness(item) {
   if (!item) return null;
   const type = itemKind(item);
   const priority = (item.priority || '').toLowerCase();
@@ -471,15 +474,15 @@ function _iceboxStaleness(item) {
 //   terminalItems: R/T/B descartado + P descartado + P promovida — bloque Cerradas unificado
 //   _matchesQuery y _sortGroup vienen de renderBacklogList para reutilizar la lógica existente.
 function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered) {
-  // B-202606-076: _isIcebox importada desde locus-backlog-core.js — fuente única.
+  // B-202606-076 / TKT-C1: _isQBacklog/_isQDisc importadas desde locus-backlog-core.js — fuente única.
   // T-202606-091 AC-6: ítems con sprint.id HOTFIX excluidos de #backlog-list — panel dedicado vive en
-  // #sspanel-hotfix (sub-tab Hotfix). Mismo patrón que _isIcebox — case-insensitive sobre el ID.
+  // #sspanel-hotfix (sub-tab Hotfix). Mismo patrón que antes — case-insensitive sobre el ID.
   const _isHotfixSprint = i => (i.sprint || '').toUpperCase().includes('HOTFIX');
 
-  // T-202606-090 AC-6: ítems sprint:icebox excluidos de #backlog-list — panel dedicado vive en
-  // renderIceboxPanel() (sub-tab Icebox). sprintableItems excluye icebox; doneItems los excluye en línea 475.
+  // T-202606-090 AC-6 / TKT-C1: ítems sin sprint (Q-Backlog/Q-DISC) excluidos de #backlog-list —
+  // viven en renderQBacklogPanel()/renderQDiscPanel() (sub-tabs dedicados).
   // T-202606-091 AC-6: ítems sprint HOTFIX excluidos del mismo modo — ver _isHotfixSprint arriba.
-  const sprintableItems = pendienteItems.filter(i => !_isIcebox(i) && !_isHotfixSprint(i));
+  const sprintableItems = pendienteItems.filter(i => !_isQBacklog(i) && !_isQDisc(i) && !_isHotfixSprint(i));
 
   // Agrupar por sprint
   // B-202606-018: normalizar la clave a solo el ID del sprint — algunos ítems almacenan
@@ -501,7 +504,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   // sin esto, un sprint HOTFIX con solo done items generaría un group header vacío en #backlog-list.
   if (_getActiveStatuses().has('done')) {
     doneItems.forEach(i => {
-      if (_isIcebox(i) || _isHotfixSprint(i)) return;
+      if (_isQBacklog(i) || _isQDisc(i) || _isHotfixSprint(i)) return;
       const key = _extractSprintId((i.sprint || '').trim());
       if (!sprintMap[key]) sprintMap[key] = [];
     });
@@ -1452,11 +1455,46 @@ export function renderBacklogList(onRendered) {
   if (typeof onRendered === 'function') onRendered();
 }
 
-// B-202606-052: renderIceboxPanel — función de render ausente para sub-tab Icebox (T-202606-090)
-// Renderiza ítems con sprint:icebox del proyecto activo en #icebox-panel-body.
-// Actualiza badge #tpl-badge-icebox con conteo y staleness prefix.
-export function renderIceboxPanel() {
-  const body = document.getElementById('icebox-panel-body');
+// Helper compartido — rellena el bloque estático "Terminados" (.bl-done-*, ver index.html/TKT-C6)
+// con los ítems done del zone correspondiente. El contenedor existe siempre en el DOM (HTML estático) —
+// esta función solo escribe conteo y filas, nunca crea ni destruye el shell. AC-4 de coherencia REQ-C.
+function _renderDoneGroup(prefix, doneItems) {
+  const countEl = document.getElementById(`${prefix}-done-count`);
+  const bodyEl  = document.getElementById(`${prefix}-done-body`);
+  if (countEl) countEl.textContent = String(doneItems.length);
+  if (!bodyEl) return;
+  bodyEl.innerHTML = doneItems.length
+    ? _sortGroup(doneItems).map(item => buildBacklogItem(item)).join('')
+    : '';
+}
+
+// Toggle de colapso del bloque "Terminados" — header y body son estáticos (index.html/TKT-C6),
+// el listener se adjunta una sola vez al cargar el módulo, no en cada render.
+function _attachDoneGroupToggle(prefix) {
+  const header = document.getElementById(`${prefix}-done-header`);
+  const body   = document.getElementById(`${prefix}-done-body`);
+  const arrow  = header && header.querySelector('.bl-done-arrow');
+  if (!header || !body) return;
+  const key = `backlog-${prefix}-done-open`;
+  const isOpen = localStorage.getItem(key) !== '0';
+  body.classList.toggle('collapsed', !isOpen);
+  if (arrow) arrow.textContent = isOpen ? '▾' : '▸';
+  header.addEventListener('click', () => {
+    const wasCollapsed = body.classList.contains('collapsed');
+    body.classList.toggle('collapsed', !wasCollapsed);
+    if (arrow) arrow.textContent = wasCollapsed ? '▾' : '▸';
+    localStorage.setItem(key, wasCollapsed ? '1' : '0');
+  });
+}
+
+// TKT-C1 (REQ-C): renderIceboxPanel partida en renderQBacklogPanel (Q-Backlog: REQ/TKT)
+// y renderQDiscPanel (Q-DISC: DISC) — panel único reemplazado por dos paneles separados.
+// _isQBacklog/_isQDisc importadas desde locus-backlog-core.js (retira wrapper _isIcebox).
+// Cada función sigue el mismo patrón que la anterior renderIceboxPanel — filtros por namespace
+// propio ('qbacklog'/'qdisc'), jerarquía R→hijos vía _buildChildMap, bloque Terminados estático.
+function _renderZonePanel(opts) {
+  const { bodyId, badgeId, nsKey, isZone, emptyTitle } = opts;
+  const body = document.getElementById(bodyId);
   if (!body) return;
 
   if (!_getActiveProjectFilter()) {
@@ -1466,89 +1504,90 @@ export function renderIceboxPanel() {
         <div class="empty-state-title">Selecciona un proyecto</div>
         <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
       </div>`;
-    const badge = document.getElementById('tpl-badge-icebox');
+    const badge = document.getElementById(badgeId);
     if (badge) badge.textContent = '';
+    _renderDoneGroup(nsKey, []);
     return;
   }
 
-  // B-202606-076: _isIcebox importada desde locus-backlog-core.js — fuente única,
-  // consistente con _getCountableBaseForSubtab('icebox') del stats-bar.
-  const iceboxItems = getItems().filter(_isIcebox);
+  const zoneItems = getItems().filter(isZone);
 
-  // Actualizar badge — B-202606-075: el badge refleja el universo SIN filtrar (conteo real de icebox),
-  // los filtros activos solo afectan qué se muestra en items-grid, no el conteo del badge.
-  const badge = document.getElementById('tpl-badge-icebox');
+  // Badge — universo SIN filtrar (conteo real de la zona), igual que B-202606-075.
+  const badge = document.getElementById(badgeId);
   if (badge) {
-    if (!iceboxItems.length) {
+    if (!zoneItems.length) {
       badge.textContent = '';
     } else {
-      const _alertCount = iceboxItems.filter(i => _iceboxStaleness(i) !== null).length;
-      badge.textContent = (_alertCount > 0 ? '⚠ ' : '') + iceboxItems.length;
+      const _alertCount = zoneItems.filter(i => _zoneStaleness(i) !== null).length;
+      badge.textContent = (_alertCount > 0 ? '⚠ ' : '') + zoneItems.length;
     }
   }
 
-  if (!iceboxItems.length) {
+  // AC-4 REQ-C: bloque Terminados siempre actualizado, incluso sin ítems activos.
+  const doneZoneItems = zoneItems.filter(i => i.status === 'done');
+  const activeZoneItems = zoneItems.filter(i => i.status !== 'done');
+  _renderDoneGroup(nsKey, doneZoneItems);
+
+  if (!activeZoneItems.length) {
     body.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">📦</div>
-        <div class="empty-state-title">No hay ítems en icebox</div>
+        <div class="empty-state-title">${emptyTitle}</div>
       </div>`;
     return;
   }
 
-  // T-202606-005 (T2): filtros leídos desde namespace icebox — aislado del state global de Backlog.
-  // Cambiar filtro en Icebox no afecta activeTypes/activeStatuses/activePriorityFilter de Backlog.
-  const _activeTypesIb   = _nsGetTypes('icebox');
-  const _activeStatusesIb = _nsGetStatuses('icebox');
-  const _activePriorityIb = _nsGetPriority('icebox');
-  const _qIb = (_nsGetQuery('icebox') || '').trim().toLowerCase();
-  const _matchesSearchIb = _qIb
-    ? i => i.code.toLowerCase().includes(_qIb) || (i.title || '').toLowerCase().includes(_qIb) || (i.area || '').toLowerCase().includes(_qIb)
+  // Filtros leídos desde namespace propio — aislado del state global de Backlog y del otro panel.
+  const _activeTypesZ    = _nsGetTypes(nsKey);
+  const _activeStatusesZ = _nsGetStatuses(nsKey);
+  const _activePriorityZ = _nsGetPriority(nsKey);
+  const _qZ = (_nsGetQuery(nsKey) || '').trim().toLowerCase();
+  const _matchesSearchZ = _qZ
+    ? i => i.code.toLowerCase().includes(_qZ) || (i.title || '').toLowerCase().includes(_qZ) || (i.area || '').toLowerCase().includes(_qZ)
     : () => true;
-  const filteredIceboxItems = iceboxItems.filter(i => {
+  const filteredItems = activeZoneItems.filter(i => {
     const type = itemKind(i);
-    const typeOk = type ? _activeTypesIb.has(type) : true;
-    const statusOk = _activeStatusesIb.has(i.status);
-    const priorityOk = _activePriorityIb.size === 0 || _activePriorityIb.has(i.priority);
-    return typeOk && statusOk && priorityOk && _matchesSearchIb(i);
+    const typeOk = type ? _activeTypesZ.has(type) : true;
+    const statusOk = _activeStatusesZ.has(i.status);
+    const priorityOk = _activePriorityZ.size === 0 || _activePriorityZ.has(i.priority);
+    return typeOk && statusOk && priorityOk && _matchesSearchZ(i);
   });
 
-  // B-202606-075 AC3: el filtro combinado deja 0 ítems — empty-state existente, no items-grid vacío.
-  if (!filteredIceboxItems.length) {
+  if (!filteredItems.length) {
     body.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">📦</div>
-        <div class="empty-state-title">No hay ítems en icebox</div>
+        <div class="empty-state-title">${emptyTitle}</div>
         <div class="empty-state-hint">Ningún ítem coincide con el filtro activo.</div>
       </div>`;
     return;
   }
 
-  // Ordenar: tipo (R→T→B→P) y dentro de cada tipo por prioridad (high→medium→low)
+  // Ordenar: tipo (REQ→TKT→INC→DISC) y dentro de cada tipo por prioridad (high→medium→low)
   const _typeOrder = { REQ: 0, TKT: 1, INC: 2, DISC: 3 };
   const _priOrder  = { high: 0, important: 0, critical: 0, importante: 0, medium: 1, low: 2, futura: 2, baja: 2 };
-  const sorted = [...filteredIceboxItems].sort((a, b) => {
+  const sorted = [...filteredItems].sort((a, b) => {
     const ta = _typeOrder[itemKind(a)] ?? 9, tb = _typeOrder[itemKind(b)] ?? 9;
     if (ta !== tb) return ta - tb;
     const pa = _priOrder[a.priority] ?? 1, pb = _priOrder[b.priority] ?? 1;
     return pa - pb;
   });
 
-  // Render con jerarquía R→hijos usando _buildChildMap
-  const _childMap   = _buildChildMap(filteredIceboxItems);
-  const _rCodes     = new Set(filteredIceboxItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
-  const _rootItems  = sorted.filter(i => !i.parentId || !_rCodes.has(i.parentId));
+  const _childMap  = _buildChildMap(filteredItems);
+  const _rCodes    = new Set(filteredItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
+  const _rootItems = sorted.filter(i => !i.parentId || !_rCodes.has(i.parentId));
 
   let html = '<div class="items-grid">';
   _rootItems.forEach(item => {
-    const _stale = _iceboxStaleness(item);
+    const _stale = _zoneStaleness(item);
     const _stalePill = _stale
-      ? `<div class="bl-icebox-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d en icebox">${_stale.label} en icebox</span></div>`
+      ? `<div class="bl-icebox-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d">${_stale.label}</span></div>`
       : '';
     html += _stalePill + buildBacklogItem(item);
     const _children = _childMap.get(item.code) || [];
     if (_children.length) {
-      html += '<div class="bl-vl-req-children">';
+      // TKT-C1: wrapper renombrado .bl-vl-req-children→.bl-vl-req-body
+      html += '<div class="bl-vl-req-body">';
       _children.forEach(child => { html += buildBacklogItem(child); });
       html += '</div>';
     }
@@ -1558,26 +1597,67 @@ export function renderIceboxPanel() {
   body.innerHTML = html;
 }
 
-// B-202606-052: listener sub-tab Icebox — activa panel y dispara render
-(function _initIceboxSubTab() {
-  const btn = document.getElementById('sstab-btn-icebox');
+// B-202606-052 → TKT-C1: renderQBacklogPanel — sub-tab Backlog (Q-Backlog: REQ/TKT).
+export function renderQBacklogPanel() {
+  _renderZonePanel({
+    bodyId: 'qbacklog-panel-body',
+    badgeId: 'tpl-badge-qbacklog',
+    nsKey: 'qbacklog',
+    isZone: _isQBacklog,
+    emptyTitle: 'No hay ítems pendientes'
+  });
+}
+
+// B-202606-052 → TKT-C1: renderQDiscPanel — sub-tab Discoveries (Q-DISC: DISC).
+export function renderQDiscPanel() {
+  _renderZonePanel({
+    bodyId: 'qdisc-panel-body',
+    badgeId: 'tpl-badge-qdisc',
+    nsKey: 'qdisc',
+    isZone: _isQDisc,
+    emptyTitle: 'No hay discoveries pendientes'
+  });
+}
+
+// B-202606-052 → TKT-C1: listeners sub-tabs Backlog (Q-Backlog) y Discoveries (Q-DISC) —
+// reemplazan al listener único sstab-btn-icebox.
+(function _initQBacklogSubTab() {
+  const btn = document.getElementById('sstab-btn-qbacklog');
   if (!btn) return;
   btn.addEventListener('click', function () {
-    // Desactivar todos los botones y paneles del grupo
     document.querySelectorAll('.tpl-nav-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.session-subpanel').forEach(p => p.classList.remove('active'));
-    // Activar este botón y su panel
     btn.classList.add('active');
-    const panel = document.getElementById('sspanel-icebox');
+    const panel = document.getElementById('sspanel-qbacklog');
     if (panel) panel.classList.add('active');
-    renderIceboxPanel();
+    renderQBacklogPanel();
   });
 })();
 
-// B-202606-052: re-render del panel icebox cuando el backlog cambia y el panel está activo
+(function _initQDiscSubTab() {
+  const btn = document.getElementById('sstab-btn-qdisc');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('.tpl-nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.session-subpanel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const panel = document.getElementById('sspanel-qdisc');
+    if (panel) panel.classList.add('active');
+    renderQDiscPanel();
+  });
+})();
+
+// Toggle del bloque "Terminados" — adjuntado una sola vez al cargar el módulo (shell estático).
+_attachDoneGroupToggle('qbacklog');
+_attachDoneGroupToggle('qdisc');
+
+// B-202606-052 → TKT-C1: re-render de los paneles Q-Backlog/Q-DISC cuando el backlog cambia
+// y el panel correspondiente está activo.
 window.addEventListener('shell:backlog-render-dirty', () => {
-  const panel = document.getElementById('sspanel-icebox');
-  if (panel && panel.classList.contains('active')) renderIceboxPanel();
+  const panelB = document.getElementById('sspanel-qbacklog');
+  if (panelB && panelB.classList.contains('active')) renderQBacklogPanel();
+  const panelD = document.getElementById('sspanel-qdisc');
+  if (panelD && panelD.classList.contains('active')) renderQDiscPanel();
 });
 
 // T-202606-091: renderHotfixPanel — render del panel Hotfix en #hotfix-panel-body.
