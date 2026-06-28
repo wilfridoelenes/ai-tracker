@@ -1,4 +1,4 @@
-// [PP] mod:75 · autor:Rune · 2026-06-26 UTC-6
+// [PP] mod:76 · autor:Rune · 2026-06-28 UTC-6
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -396,9 +396,10 @@ export function _normalizeSprint(item, pendingItems) {
       const parentSprint = parent.sprint || '';
       if (raw !== parentSprint) {
         // AC-1: solo heredar si el sprint del parent está en estado active o programado.
-        // Si parentSprint está vacío (icebox), la herencia aplica sin verificación de status (AC-2).
+        // Si parentSprint está vacío (sin sprint — Q-Backlog/Q-DISC), la herencia aplica sin verificación de status (AC-2).
         // Si parentSprint apunta a un sprint cerrado, ya fue normalizado a campo ausente antes
-        // de llegar aquí (bloque AC-6 líneas 409-416), por lo que parentSprint vacío = icebox (AC-3).
+        // de llegar aquí (bloque AC-6 líneas 409-416), por lo que parentSprint vacío = sin sprint asignado (AC-3).
+        // TKT-PARSE4: 'icebox' eliminado como término canónico — reemplazado por campo vacío/ausente.
         if (parentSprint) {
           const _allSprints = getActiveSprints();
           const _parentSprintObj = _allSprints.find(s => s.id === parentSprint);
@@ -435,7 +436,8 @@ export function _normalizeSprint(item, pendingItems) {
 // Acepta tres formatos de entrada:
 //   (a) sprint_id + sprint_name separados (formato nuevo)
 //   (b) sprint como string compuesto legacy 'PP-S-01 · Nombre' → descompone en sprint_id + sprint_name
-//   (c) sprint: 'icebox' → sprint_id: 'icebox', sprint_name: ''
+//   (c) sprint: '' / ausente / n/a → sin sprint asignado (Q-Backlog/Q-DISC en Gen2)
+// TKT-PARSE4: 'icebox' como formato (c) eliminado — BR-Execution §2 sin retrocompatibilidad.
 // Devuelve { sprintAlias, sprint_id, sprint_name } donde sprintAlias es el valor para item.sprint
 // (compatibilidad con _normalizeSprint que sigue operando sobre item.sprint).
 function _resolveSprintFields(it) {
@@ -458,7 +460,7 @@ function _resolveSprintFields(it) {
     const _name = _rawStr.slice(_idx + 3).trim();
     return { sprintAlias: _id, sprint_id: _id, sprint_name: _name };
   }
-  // Valor simple: 'icebox' u otro sprint_id sin nombre
+  // Valor simple: sprint_id sin nombre (Gen2 — 'icebox' Gen1 eliminado, TKT-PARSE4)
   return { sprintAlias: _rawStr, sprint_id: _rawStr, sprint_name: '' };
 }
 
@@ -581,12 +583,11 @@ export function parsePaste(id) {
           _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${itemKind(_it) === 'DISC' ? ' · promoted' : ''}${itemKind(_it) === 'REQ' ? ' · bloqueado' : ''}`;
           break;
         }
-        // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
-        // T-202606-012 AC-3: sprint ausente se trata como icebox
+        // T-202606-035: bloqueo sin-sprint + en-revision — BR-Ecosystem §5
         // T-202606-085: leer sprint_id como fallback cuando sprint no está presente (formato nuevo)
-        // TKT-gen2-parser: 'icebox' (Gen1) y sprint terminado en '-q-backlog' (Gen2) son equivalentes — ambos significan "sin sprint asignado"
+        // TKT-PARSE4: 'icebox' (Gen1) eliminado — sin sprint = campo vacío o ausente (Q-Backlog/Q-DISC Gen2)
         const _sprintRaw = (_it.sprint || _it.sprint_id || '').trim().toLowerCase();
-        const _sinSprint = _sprintRaw === 'icebox' || _sprintRaw === '' || _sprintRaw.endsWith('-q-backlog');
+        const _sinSprint = _sprintRaw === '' || _sprintRaw.endsWith('-q-backlog');
         if (_normSt === 'en-revision' && _sinSprint) {
           _itemError = `CHECKPOINT bloqueado: ${_it.code || '[pendiente-ID]'} tiene status en-revision sin sprint asignado. Asignar sprint antes de continuar.`;
           break;
@@ -1425,7 +1426,7 @@ export function _applySprintInheritanceToItems(tgItems, sprintId) {
   tgItems.forEach(item => {
     if (itemKind(item) === 'DISC') return; // AC-2: DISC permanecen en Q-DISC sin excepción
     const _sprintRaw = item.sprint ? String(item.sprint).trim().toLowerCase() : '';
-    if (_sprintRaw === 'icebox' || _sprintRaw === '') {
+    if (_sprintRaw === '') { // TKT-PARSE4: eliminado _sprintRaw==='icebox' (Gen1) — vacío/ausente cubre Q-Backlog/Q-DISC Gen2
       // AC-1: asignar sprint del proposal — ítem movido automáticamente
       item.sprint = sprintId;
       _blogLog(
@@ -1598,11 +1599,10 @@ export function parsePasteStandalone() {
       itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${itemKind(it) === 'DISC' ? ' · promoted' : ''}`;
       break;
     }
-    // T-202606-035: bloqueo icebox + en-revision — BR-Ecosystem §5
-    // T-202606-012 AC-3: sprint ausente se trata como icebox
-    // TKT-gen2-parser: 'icebox' (Gen1) y sprint terminado en '-q-backlog' (Gen2) son equivalentes — ambos significan "sin sprint asignado"
+    // T-202606-035: bloqueo sin-sprint + en-revision — BR-Ecosystem §5
+    // TKT-PARSE4: 'icebox' (Gen1) eliminado — sin sprint = campo vacío o ausente (Q-Backlog/Q-DISC Gen2)
     const _sprintRaw3 = it.sprint ? it.sprint.trim().toLowerCase() : '';
-    const _sinSprint3 = _sprintRaw3 === 'icebox' || _sprintRaw3 === '' || _sprintRaw3.endsWith('-q-backlog');
+    const _sinSprint3 = _sprintRaw3 === '' || _sprintRaw3.endsWith('-q-backlog');
     if (_normSt3 === 'en-revision' && _sinSprint3) {
       itemError = `CHECKPOINT bloqueado: ${it.code || '[pendiente-ID]'} tiene status en-revision sin sprint asignado. Asignar sprint antes de continuar.`;
       break;
