@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:3 · autor:Rune · 2026-06-22 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-06-28 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -13,6 +13,8 @@ import { renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
 import { getActiveSprints, getAllSessions } from './locus-storage.js';
 import { switchTab } from './locus-ui-shell.js';
+import { toast } from './locus-toast.js';
+import { getMdiffStepZeroActive } from './locus-backlog-merge.js';
 
 // T-202604-422: Notificaciones de ecosistema — motor + helpers
 const _NOTIF_KEY         = 'ai-tracker-notifs-read';
@@ -407,3 +409,14 @@ export function _notifGoto(id) {
 window.addEventListener('shell:update-notif-badges', () => { updateTabNotifBadges(); });
 // B-202606-020 fix: locus-ui-shell.js despacha shell:open-notif-config desde mm-btn-notif handler
 window.addEventListener('shell:open-notif-config', () => { openNotifConfig(); });
+
+// T-202606-007: notificación cuando un ítem se excluye al guardar por no tener sprint.
+// Migrado desde locus-radar.js — pertenece al motor de notificaciones transversal.
+// Si Step 0 del DIFF está activo, T2 es la única superficie — sin toast duplicado.
+const _EXCLUDED_TYPE_LABEL = { REQ: 'un Requerimiento', TKT: 'un Ticket', INC: 'un Incidente', DISC: 'una Discovery' };
+window.addEventListener('storage:item-excluded', (e) => {
+  if (getMdiffStepZeroActive()) return;
+  const { code, type } = e.detail || {};
+  const _typeLabel = _EXCLUDED_TYPE_LABEL[type] || type;
+  toast(`${code || '[pendiente-ID]'} no se guardó — ${_typeLabel} no puede ir sin sprint.`);
+});

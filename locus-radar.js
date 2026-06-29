@@ -1,4 +1,4 @@
-// [PP] v0.6.0 · sprint:PP-S-HOTFIX · mod:9 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:10 · autor:Rune · 2026-06-28 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -20,10 +20,8 @@ import { getAISessions, getState, _isInSession } from './locus-storage.js';
 import { esc } from './locus-ui-shell.js';
 import { openAddAI } from './locus-workers.js';
 
-import { toast } from './locus-toast.js';
 import { fmt12 } from './locus-session-hora.js';
 import { _hoyMsUntilReset, getCD } from './locus-sesiones-utils.js';
-import { getMdiffStepZeroActive } from './locus-backlog-merge.js';
 
 // ── UTILS ─────────────────────────────────────────────────────────────────────
 function _fmtNotifTs(ts) {
@@ -718,13 +716,4 @@ document.addEventListener('DOMContentLoaded', function () {
 window.addEventListener('shell:mark-radar-dirty', () => { _markRadarDirty(); });
 window.addEventListener('shell:render-radar', () => { renderGlobalRadarSidebar(); });
 
-// T-202606-007: notificación en sidebar Workers cuando un ítem se excluye al guardar
-// y el Step 0 del DIFF (locus-backlog-merge.js) no está activo en pantalla.
-// Si Step 0 está activo, T2 es la única superficie — no se duplica la notificación.
-const _RADAR_EXCLUDED_TYPE_LABEL = { R: 'un Requerimiento', T: 'un Ticket', B: 'un Bug', P: 'una Idea' };
-window.addEventListener('storage:item-excluded', (e) => {
-  if (getMdiffStepZeroActive()) return; // AC-3: Step 0 activo — sin notificación duplicada
-  const { code, type } = e.detail || {};
-  const _typeLabel = _RADAR_EXCLUDED_TYPE_LABEL[type] || type;
-  toast(`${code || '[pendiente-ID]'} no se guardó — ${_typeLabel} no puede ir sin sprint.`);
-});
+// T-202606-007: listener storage:item-excluded migrado a locus-notifications.js — motor de notificaciones transversal
