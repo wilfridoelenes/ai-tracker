@@ -1,4 +1,19 @@
-// [PP] mod:76 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:77 · autor:Rune · 2026-06-29 UTC-6
+// TKT (REQ-[pendiente-ID] · Parser: ciclo ITIL completo y tipos PRB/KE/CHG):
+//   _validTypes ampliado a 7 tipos Gen2 (_GEN2_TYPES) en ambos paths de ingesta (parsePaste +
+//   variante standalone). Ítems ITIL (INC/PRB/KE/CHG) desviados a _buildItilItem() antes de
+//   cualquier validación de status/sprint orientada a Scrum — su ciclo vive en incidentStatus,
+//   nunca en status. Objeto interno ITIL: incidentStatus/slaPriority/slaDeadline/resolutionType/
+//   comportamientoActual/originModule/derivedItems/queue mapeados, sin campo 'status'. Queue de
+//   PRB/KE/CHG sin valor se autoasigna a [Prefijo]-Q-INC vía _PREFIX_MAP (locus-storage.js,
+//   import nuevo) usando el campo 'project' del CHECKPOINT — no getActiveProject(). REQ/TKT/DISC
+//   con queue terminada en '-Q-INC' rechazados con mensaje canónico BR-Core §6. INC sin
+//   sla_priority → 'medium' + DocLog. Mensaje de "status de ciclo TKT" generalizado a los 4 tipos
+//   ITIL (${it.type}) en vez de literal 'INC' — el AC original solo mencionaba INC; Finn audita
+//   si esto requiere ajuste de AC o es aceptable por alcance del REQ (PRB/KE/CHG comparten el
+//   mismo problema). Hallazgo fuera de scope: 2 referencias activas a sp.isHotfix en lógica de
+//   sprint_proposal (líneas ~1402, ~1489) — no tocadas, pertenecen al REQ "Limpieza final"
+//   (locus-backlog-sprints.js no declara este archivo en su campo archivos — gap a señalar a Cael).
 // locus-session-parse.js
 // Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
@@ -13,7 +28,7 @@ import { extractContextSections, extractDocUpdates, extractHtmlMapSections, merg
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger
 import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
-import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, getInfraVersionData } from './locus-storage.js';
+import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData } from './locus-storage.js';
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) reemplazada por getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027
 import { showToast, toast } from './locus-toast.js';
 
@@ -79,6 +94,57 @@ const _KNOWN_STATUS_INPUTS = new Set([
   'bloqueado', // T-202606-031: válido solo para R — validación de rol en parsePaste
   'orphaned', // T-202606-017: válido solo para R — sin Ts válidos
 ]);
+
+// REQ-[pendiente-ID] (Parser: ciclo ITIL completo y tipos PRB/KE/CHG): tipos Gen2 completos —
+// reemplaza el _validTypes de 4 tipos (REQ/TKT/DISC/INC) usado en ambos paths de ingesta.
+const _GEN2_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'KE', 'CHG'];
+// Tipos cuyo ciclo de vida vive en incident_status (ITIL) — nunca en status (Scrum).
+const _ITIL_TYPES = new Set(['INC', 'PRB', 'KE', 'CHG']);
+// Valores válidos de incident_status — BR-Core §6.
+const _VALID_INCIDENT_STATUS = new Set([
+  'detected', 'assigned', 'in_progress', 'resolved', 'closed',
+  'escalated_to_prb', 'escalated_to_chg', 'descartado'
+]);
+const _INCIDENT_STATUS_LIST = 'detected · assigned · in_progress · resolved · closed · escalated_to_prb · escalated_to_chg';
+
+// Mensaje canónico BR-Core §6 — REQ/TKT/DISC no pueden asignarse a Q-INC.
+function _isQIncQueue(queue) {
+  return (queue || '').trim().toLowerCase().endsWith('-q-inc');
+}
+
+// REQ-[pendiente-ID]: prefijo de queue se extrae del campo 'project' del CHECKPOINT vía
+// _PREFIX_MAP (locus-storage.js) — no desde getActiveProject() (founder puede tener otro
+// proyecto activo en la UI mientras pega un CHECKPOINT de otro proyecto).
+function _prefixFromCheckpointProject(projectName) {
+  return _PREFIX_MAP[(projectName || '').trim()] || null;
+}
+
+// REQ-[pendiente-ID]: resuelve queue para un ítem ITIL (INC/PRB/KE/CHG).
+// - INC siempre declara queue propio (obligatorio en schema) — se respeta si viene.
+// - PRB/KE/CHG sin queue → se asigna automáticamente a [Prefijo]-Q-INC + señal DocLog.
+// - REQ/TKT/DISC con queue que termina en '-Q-INC' → error bloqueante, no se autoasigna nada.
+function _resolveItilQueue(it, projectName, ckptTitulo) {
+  const _rawQueue = (it.queue || '').trim();
+  if (!_ITIL_TYPES.has(it.type)) {
+    // REQ/TKT/DISC nunca debe declarar una queue de Q-INC.
+    if (_isQIncQueue(_rawQueue)) {
+      return { error: `Q-INC solo acepta INC/PRB/KE/CHG — ${it.type} ${it.code || '[pendiente-ID]'} no puede asignarse a esta zona` };
+    }
+    return { queue: _rawQueue || null };
+  }
+  if (_rawQueue) return { queue: _rawQueue };
+  // PRB/KE/CHG sin queue — autoasignar.
+  const _prefix = _prefixFromCheckpointProject(projectName);
+  if (!_prefix) return { queue: null }; // proyecto no reconocido — ya bloqueado en otra validación
+  const _autoQueue = `${_prefix}-Q-INC`;
+  _blogLog(
+    'queue-autoasignada',
+    it.code || '[pendiente-ID]',
+    `queue asignado automáticamente a ${_autoQueue}`,
+    'backlog'
+  );
+  return { queue: _autoQueue };
+}
 function _canonicalStatus(raw, type) {
   if (!raw) return null;
   const s = raw.trim().toLowerCase();
@@ -92,7 +158,74 @@ function _canonicalStatus(raw, type) {
   return normalizeStatus(raw, type) || null;
 }
 
-function buildTGPreview(items, discrepancy) {
+// REQ-[pendiente-ID]: valida un ítem ITIL (INC/PRB/KE/CHG) y devuelve el objeto interno
+// listo para acumular en tgItems, o un error bloqueante. No usa _canonicalStatus — el ciclo
+// ITIL vive en incidentStatus, nunca en status. Compartida por parsePaste y la variante standalone.
+function _buildItilItem(it, ckptHeaderRole, projectName, ckptTitulo) {
+  // status de ciclo TKT en un ítem ITIL → error bloqueante explícito.
+  if (it.status) {
+    return {
+      error: `${it.type} ${it.code || '[pendiente-ID]'} usa status de ciclo TKT — usar incident_status. Valores válidos: ${_INCIDENT_STATUS_LIST}`
+    };
+  }
+  const _incStatus = (it.incident_status || '').trim();
+  if (!_incStatus || !_VALID_INCIDENT_STATUS.has(_incStatus)) {
+    return {
+      error: `${it.type} ${it.code || '[pendiente-ID]'}: incident_status inválido o ausente "${it.incident_status || ''}". Valores válidos: ${_INCIDENT_STATUS_LIST}`
+    };
+  }
+  // INC sin comportamiento_actual → bloqueante (excepción literal aceptada sin alerta).
+  if (it.type === 'INC') {
+    const _comportamiento = (it.comportamiento_actual || '').trim();
+    const _EXCEPCION = 'no observado directamente — síntoma reportado por founder';
+    if (!_comportamiento) {
+      return { error: `INC ${it.code || '[pendiente-ID]'} sin comportamiento_actual — campo obligatorio. Adjuntar CHECKPOINT corregido.` };
+    }
+  }
+  const _q = _resolveItilQueue(it, projectName, ckptTitulo);
+  if (_q.error) return { error: _q.error };
+
+  // INC sin sla_priority → medium por defecto + advertencia DocLog (ingesta continúa).
+  let _slaPriority = (it.sla_priority || '').trim();
+  if (it.type === 'INC' && !_slaPriority) {
+    _slaPriority = 'medium';
+    _blogLog(
+      'sla-priority-default',
+      it.code || '[pendiente-ID]',
+      `INC sin sla_priority — asignado 'medium' por defecto`,
+      'backlog'
+    );
+  }
+
+  return {
+    item: {
+      type:               it.type,
+      code:               it.code,
+      title:              it.title || it.desc || '',
+      desc:               it.title || it.desc || '',
+      priority:           it.priority || 'medium',
+      // Sin campo 'status' — el ciclo ITIL vive exclusivamente en incidentStatus.
+      incidentStatus:      _incStatus,
+      slaPriority:         _slaPriority || null,
+      slaDeadline:         it.sla_deadline != null ? it.sla_deadline : null,
+      resolutionType:      it.resolution_type || null,
+      comportamientoActual: it.comportamiento_actual || null,
+      originModule:        it.origin_module || null,
+      derivedItems:        Array.isArray(it.derived_items) ? it.derived_items : [],
+      queue:               _q.queue,
+      effort:             it.effort != null ? (parseInt(it.effort) || null) : null,
+      area:               it.area || '',
+      ac:                 Array.isArray(it.ac) ? it.ac : [],
+      role:               it.role || ckptHeaderRole,
+      discardReason:      it.discard_reason || it.reason || '',
+      triggeredBy:        it.triggered_by || null,
+      origenDisc:         it.origen_disc || null,
+      schema_version:     it.schema_version || null
+    }
+  };
+}
+
+
   if (!items.length && !discrepancy) return '';
   let html = `<div class="preview-tg">
     <div class="preview-tg-header">
@@ -516,9 +649,10 @@ export function parsePaste(id) {
     else if (ckpt._isJsonFormat) {
       delete window[`_itemsJsonError_${id}`];
       const _rawItems = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
-      const _validTypes    = ['REQ', 'TKT', 'DISC', 'INC'];
+      const _validTypes    = _GEN2_TYPES;
       const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
       const ckptHeaderRole = ckpt.rol || '';
+      const _proyectoRawForQueue = (ckpt.proyecto || '').trim();
       let _itemError = null;
       const _rsNoAc = []; // T-202606-030 fix AC-3: acumular Rs sin AC — no hacer break en el primero
       for (let _i = 0; _i < _rawItems.length; _i++) {
@@ -558,12 +692,27 @@ export function parsePaste(id) {
           }
           continue;
         }
-        if (!_it.type || !_it.code || !_it.status) {
-          _itemError = `Ítem [${_i}]: faltan campos obligatorios (type, code, status). Recibido: ${JSON.stringify(_it)}`;
+        if (!_it.type || !_it.code) {
+          _itemError = `Ítem [${_i}]: faltan campos obligatorios (type, code). Recibido: ${JSON.stringify(_it)}`;
           break;
         }
         if (!_validTypes.includes(_it.type)) {
-          _itemError = `Ítem [${_i}]: type inválido "${_it.type}". Valores válidos: REQ · TKT · DISC · INC`;
+          _itemError = `Ítem [${_i}]: type inválido "${_it.type}". Valores válidos: REQ · TKT · DISC · INC · PRB · KE · CHG`;
+          break;
+        }
+        // REQ-[pendiente-ID]: ítems ITIL (INC/PRB/KE/CHG) — ciclo de vida vive en incident_status,
+        // nunca en status. Desvío completo antes de cualquier validación orientada a Scrum.
+        if (_ITIL_TYPES.has(_it.type)) {
+          const _itilResult = _buildItilItem(_it, ckptHeaderRole, _proyectoRawForQueue, ckpt.titulo);
+          if (_itilResult.error) {
+            _itemError = _itilResult.error;
+            break;
+          }
+          tgItems.push(_itilResult.item);
+          continue;
+        }
+        if (!_it.status) {
+          _itemError = `Ítem [${_i}]: faltan campos obligatorios (type, code, status). Recibido: ${JSON.stringify(_it)}`;
           break;
         }
         // T2-parser-validaciones: status 'historico' no es emitible en CHECKPOINT — asignado exclusivamente por Locus al cerrar sprint
@@ -616,21 +765,6 @@ export function parsePaste(id) {
         if (itemKind(_it) === 'REQ' && (!Array.isArray(_it.ac) || _it.ac.length === 0)) {
           _rsNoAc.push(`R ${_it.code || '[pendiente-ID]'} "${_it.title || _it.desc || ''}"`);
           continue;
-        }
-        // T3-parser-validaciones: bloqueo B sin comportamiento_actual — BR-Ecosystem §5 schema de B
-        // AC-1: B sin campo comportamiento_actual o con string vacío → _itemError bloqueante, no aplica ítem
-        // AC-2: valor literal de excepción aceptado sin alerta
-        // AC-3: aplica a Bs nuevos ([pendiente-ID]/[tmp:slug]) y a patches con status sobre Bs existentes
-        //   — pero los patches ya se manejan en el branch 'patch' arriba; aquí solo Bs completos
-        if (itemKind(_it) === 'INC') {
-          const _comportamiento = (_it.comportamiento_actual || '').trim();
-          const _EXCEPCION = 'no observado directamente — síntoma reportado por founder';
-          if (!_comportamiento || (_comportamiento.toLowerCase() !== _EXCEPCION)) {
-            if (!_comportamiento) {
-              _itemError = `INC ${_it.code || '[pendiente-ID]'} sin comportamiento_actual — campo obligatorio. Adjuntar CHECKPOINT corregido.`;
-              break;
-            }
-          }
         }
         // T-202606-085: resolver sprint_id y sprint_name antes de construir el ítem
         const _sprintF = _resolveSprintFields(_it);
@@ -1543,7 +1677,7 @@ export function parsePasteStandalone() {
   // T-202606-005: path único JSON — ítems ya están en ckpt._rawItems, no hay path legacy
   const parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
 
-  const _validTypes    = ['REQ', 'TKT', 'DISC', 'INC'];
+  const _validTypes    = _GEN2_TYPES;
   const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
   const tgItems = [];
   const patchItems = []; // R-202605-062: patches separados de ítems normales
@@ -1562,25 +1696,28 @@ export function parsePasteStandalone() {
       }
       continue;
     }
-    if (!it.type || !it.code || !it.status) {
-      itemError = `Ítem [${i}]: faltan campos obligatorios (type, code, status).`;
+    if (!it.type || !it.code) {
+      itemError = `Ítem [${i}]: faltan campos obligatorios (type, code).`;
       break;
     }
     if (!_validTypes.includes(it.type)) {
-      itemError = `Ítem [${i}]: type inválido "${it.type}". Válidos: REQ · TKT · DISC · INC`;
+      itemError = `Ítem [${i}]: type inválido "${it.type}". Válidos: REQ · TKT · DISC · INC · PRB · KE · CHG`;
       break;
     }
-    // T3-parser-validaciones (standalone): guard simétrico a parsePaste() líneas 595-604 — mismo mensaje canónico
-    // AC-4/AC-5 T-202606-021: B sin comportamiento_actual bloquea; excepción literal aceptada sin alerta
-    if (itemKind(it) === 'INC') {
-      const _comportamiento3 = (it.comportamiento_actual || '').trim();
-      const _EXCEPCION3 = 'no observado directamente — síntoma reportado por founder';
-      if (!_comportamiento3 || (_comportamiento3.toLowerCase() !== _EXCEPCION3)) {
-        if (!_comportamiento3) {
-          itemError = `B ${it.code || '[pendiente-ID]'} sin comportamiento_actual — campo obligatorio. Adjuntar CHECKPOINT corregido.`;
-          break;
-        }
+    // REQ-[pendiente-ID]: guard simétrico al path de parsePaste — ítems ITIL (INC/PRB/KE/CHG)
+    // se desvían completos antes de cualquier validación orientada a Scrum (status/sprint).
+    if (_ITIL_TYPES.has(it.type)) {
+      const _itilResult3 = _buildItilItem(it, ckpt.rol || '', (ckpt.proyecto || '').trim(), ckpt.titulo);
+      if (_itilResult3.error) {
+        itemError = _itilResult3.error;
+        break;
       }
+      tgItems.push(_itilResult3.item);
+      continue;
+    }
+    if (!it.status) {
+      itemError = `Ítem [${i}]: faltan campos obligatorios (type, code, status).`;
+      break;
     }
     // T2-parser-validaciones (standalone): guard simétrico a parsePaste() — mismo mensaje canónico
     if (it.status && (it.status.trim().toLowerCase() === 'historico' || it.status.trim().toLowerCase() === 'histórico')) {
