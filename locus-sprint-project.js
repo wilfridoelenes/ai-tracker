@@ -1,4 +1,10 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:10 · autor:Rune · 2026-06-21 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-06-29 UTC-6
+// INC-[pendiente-ID]: import roto a ensureHotfixSprint (eliminada de locus-sprint.js en TKT-B1)
+//   causaba SyntaxError de módulo ESM al cargar — bloqueaba la app completa. Import eliminado,
+//   call site removido sin reemplazo (S-HOTFIX deprecado, Q-INC es zona persistente sin sprint
+//   inicial requerido al crear proyecto).
+// Header migrado a formato canónico __BR-Execution §9 — versión/sprint legacy (v0.5.0·PP-S-05)
+//   removidos: el archivo pertenece al proyecto, no a un sprint.
 // locus-sprint-project.js
 // T-202606-010: call site huérfano renderHoy eliminado (guard typeof inerte)
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
@@ -39,7 +45,7 @@ import { _updateHeaderProjectLabel } from './locus-sesiones-stats.js';
 import { closePopup } from './locus-session-popup.js';
 
 import { showToast } from './locus-toast.js';
-import { ensureHotfixSprint } from './locus-sprint.js';
+
 // T-202606-058: import desde locus-sesiones-registry.js (módulo sin dependencias) — no desde locus-sesiones.js
 import { _registerSesSPCallback } from './locus-sesiones-registry.js';
 
@@ -315,7 +321,8 @@ function confirmProjForm() {
     const id = 'proj-' + Math.random().toString(36).slice(2, 8);
     const prefix = (document.getElementById('proj-prefix-input') || {value:''}).value.trim().toUpperCase().slice(0, 3);
     state.projects.push({ id, name, color, icon: emoji, prefix, notes, status: 'active', context: '', contextVersion: '', backlog: [], backlogVersion: '', infraVersion: 0 }); // T-202606-209
-    ensureHotfixSprint(id); // T-202606-038 AC-1: crea [Prefijo]-S-HOTFIX al inicializar proyecto
+    // INC-[pendiente-ID]: ensureHotfixSprint eliminada (TKT-B1, S-HOTFIX deprecado) — Q-INC es
+    // zona persistente, no requiere sprint inicial al crear proyecto. Call site removido.
     showToast('success', `Proyecto "${name}" creado`);
   }
 
