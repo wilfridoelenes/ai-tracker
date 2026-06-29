@@ -1,4 +1,4 @@
-// [PP] mod:47 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:48 · autor:Rune · 2026-06-29 UTC-6
 // TKT-C2 (REQ-C): status 'promovida'→'promoted' en comparaciones de status (L99, L1022,
 //   L1612, L1630, L1892). Selector sprint: option icebox→value='' label 'Q-Backlog (sin sprint)'.
 //   Edge case: datos legacy con 'promovida' cubiertos por compatibilidad de lectura (ver L99).
@@ -47,7 +47,7 @@ export const _collapsedChildren = new Set();
 let _blFooterCollapsed = false;
 
 // Labels de tipo de ítem para display en UI
-const TYPE_LABELS = { REQ: 'Requerimiento', TKT: 'Ticket', INC: 'Incidente', DISC: 'Discovery' };
+const TYPE_LABELS = { REQ: 'Requerimiento', TKT: 'Ticket', INC: 'Incidente', DISC: 'Discovery', PRB: 'Problem', KE: 'Known Error', CHG: 'Change' }; // TKT-B2a: PRB/KE/CHG — ningún ítem ITIL muestra undefined en badge de tipo
 
 // Helpers de badge — funciones del monolito original declaradas localmente al modularizar
 function badgeLabel(priority) {
@@ -2652,6 +2652,84 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
 }
 
 
+
+// ---------------------------------------------------------------------------
+// TKT-B2a: buildQIncItem() — builder de card propio para Q-INC
+// No reutiliza buildBacklogItem: modelo de datos ITIL es distinto (incidentStatus,
+// slaPriority, slaDeadline, comportamientoActual vs status/sprint/parentId).
+// Exportada para consumo en locus-backlog-render.js (renderQIncPanel).
+// AC: sin referencias a item.status, item.sprint, item.parentId dentro de la función.
+// ---------------------------------------------------------------------------
+
+export function buildQIncItem(item) {
+  const type      = itemKind(item) || '';
+  const typeLabel = TYPE_LABELS[type] || type || '—';
+  const code      = item.code || item.id || '';
+
+  // Badge de tipo con color BR (colores canónicos de __BR-Ecosystem §4)
+  const typeColorMap = { INC: '#e85555', PRB: '#f59e0b', KE: '#eab308', CHG: '#64748b' };
+  const typeColor    = typeColorMap[type] || 'var(--hint)';
+
+  // Badge incidentStatus — '—' si ausente, sin crash
+  const incStatus    = item.incidentStatus || item.incident_status || '';
+  const incStatusBadge = incStatus
+    ? `<span class="qinc-badge qinc-badge--status">${esc(incStatus)}</span>`
+    : `<span class="qinc-badge qinc-badge--status qinc-badge--empty">—</span>`;
+
+  // Badge slaPriority — '—' si ausente, sin crash
+  const slaPrio      = item.slaPriority || item.sla_priority || '';
+  const slaPrioBadge = slaPrio
+    ? `<span class="qinc-badge qinc-badge--sla qinc-badge--sla-${slaPrio}">${esc(slaPrio)}</span>`
+    : `<span class="qinc-badge qinc-badge--sla qinc-badge--empty">—</span>`;
+
+  // Countdown slaDeadline — solo si presente
+  const slaDeadline  = item.slaDeadline || item.sla_deadline || null;
+  let slaCountdownHtml = '';
+  if (slaDeadline) {
+    const remaining = slaDeadline - Date.now();
+    if (remaining < 0) {
+      slaCountdownHtml = `<span class="qinc-sla-countdown qinc-sla-countdown--vencido">VENCIDO</span>`;
+    } else {
+      const hrs = Math.floor(remaining / 3600000);
+      const min = Math.floor((remaining % 3600000) / 60000);
+      slaCountdownHtml = `<span class="qinc-sla-countdown">${hrs}h ${min}m</span>`;
+    }
+  }
+
+  // Clases SLA — mutuamente excluyentes (AC TKT-B2a AC4)
+  let slaClass = '';
+  if (slaDeadline) {
+    if (slaPrio === 'high' && slaDeadline < Date.now()) {
+      slaClass = 'qinc-item--sla-vencido';
+    } else if (slaDeadline >= Date.now() && slaDeadline < Date.now() + 21600000) {
+      slaClass = 'qinc-item--sla-riesgo';
+    }
+  }
+
+  // comportamientoActual expandible — togglable vía data-qi-action (AC TKT-B2a AC5)
+  const comportamiento = item.comportamientoActual || item.comportamiento_actual || '';
+  const comportamientoHtml = comportamiento
+    ? `<div class="qinc-item-comportamiento" data-qi-action="qi-toggle-comportamiento">${esc(comportamiento)}</div>`
+    : '';
+
+  // Copy-code badge — patrón idéntico al Backlog principal (AC TKT-B2a AC2)
+  const copyCodeHtml = `<span class="bitem-subline-code" data-action="copy-code" data-code="${esc(code)}" data-idx="-1" title="Click para copiar ID">${esc(code)}</span>`;
+
+  return `
+<div class="qinc-item ${slaClass}" data-code="${esc(code)}" data-type="${esc(type)}">
+  <div class="qinc-item-header">
+    <span class="qinc-type-badge qinc-type-badge--${type.toLowerCase()}" style="--qinc-type-color:${typeColor}" title="${esc(typeLabel)}">${esc(type)}</span>
+    ${copyCodeHtml}
+    <span class="qinc-item-title">${esc(item.title || '(sin título)')}</span>
+  </div>
+  <div class="qinc-item-meta">
+    ${incStatusBadge}
+    ${slaPrioBadge}
+    ${slaCountdownHtml}
+  </div>
+  ${comportamientoHtml}
+</div>`.trim();
+}
 
 // T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
 // locus-backlog-core.js despacha shell:backlog-footer-update en lugar de llamar directamente

@@ -1,4 +1,4 @@
-// [PP] mod:46 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:47 · autor:Rune · 2026-06-29 UTC-6
 // TKT-C7 fix: bl-icebox-item-alert→bl-done-item-alert (L1300-1302) — consume mod:54 de Nova,
 //   resuelve conflicto entre clase CSS eliminada y código JS activo que la generaba.
 // TKT-C1 (REQ-C): _updateSubtabBadges migrada — badgeIcebox (Gen1, tpl-badge-icebox eliminado
@@ -18,7 +18,7 @@
 import { renderArchivoHistorico, toggleArchivoHistorico, getArchivoHistoricoCount, getArchivoHistoricoStats } from './locus-backlog-archive.js';
 import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQDisc, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js';
 
-import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation
+import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, buildQIncItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-B2b: buildQIncItem
 
 import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
 
@@ -1504,13 +1504,9 @@ export function renderQIncPanel() {
   }
 
   function _buildQIncItemHtml(item) {
-    const _extraClasses = _qincItemClasses(item);
-    const _comportamiento = item.comportamientoActual
-      ? `<div class="qinc-item-comportamiento" data-qi-action="qi-toggle-comportamiento" data-qi-code="${esc(item.code || '')}">${esc(item.comportamientoActual)}</div>`
-      : '';
-    // buildBacklogItem genera el card base; se envuelve para inyectar clases SLA + comportamiento sin
-    // modificar la estructura interna que buildBacklogItem ya controla (mismo patrón que otros paneles).
-    return `<div class="qinc-item-wrap${_extraClasses ? ' ' + _extraClasses : ''}" data-qi-code="${esc(item.code || '')}">${buildBacklogItem(item)}${_comportamiento}</div>`;
+    // TKT-B2b: buildQIncItem reemplaza buildBacklogItem — modelo ITIL propio, sin item.status/sprint/parentId.
+    // Clases SLA calculadas internamente por buildQIncItem — _qincItemClasses ya no aplica aquí.
+    return buildQIncItem(item);
   }
 
   const _listHtml = filteredQInc.length === 0
@@ -1534,47 +1530,68 @@ export function renderQIncPanel() {
 
   body.innerHTML = _statsBarHtml + _listHtml;
 
-  const _qiBar = body.querySelector('#qinc-stats-bar');
-  if (_qiBar && !_qiBar._delegationAttached) {
-    _qiBar._delegationAttached = true;
-    _qiBar.addEventListener('click', function _qiBarClick(e) {
-      const el = e.target.closest('[data-qi-action]');
-      if (!el) return;
-      const act = el.dataset.qiAction;
-      if (act === 'qi-clear-types') {
-        _nsReset('qinc');
-        renderQIncPanel();
-      } else if (act === 'qi-type') {
-        _nsToggleType('qinc', el.dataset.qiType);
-        renderQIncPanel();
-      } else if (act === 'qi-priority') {
-        _nsTogglePriority('qinc', el.dataset.qiPriority);
-        renderQIncPanel();
-      }
-    });
-    const _qiSearchInput = _qiBar.querySelector('[data-qi-action="qi-search"]');
-    if (_qiSearchInput) {
-      let _qiSearchTimer;
-      _qiSearchInput.addEventListener('input', function () {
-        clearTimeout(_qiSearchTimer);
-        _qiSearchTimer = setTimeout(() => {
-          _nsSetQuery('qinc', this.value);
-          renderQIncPanel();
-        }, 200);
-      });
-    }
-  }
+  // TKT-B2b: _attachQIncDelegation — único listener sobre #qinc-panel-body.
+  // Unifica: stats-bar (qi-*), copy-code de cards buildQIncItem, y qi-toggle-comportamiento.
+  // Registrado una sola vez sobre body via flag — persiste entre re-renders de innerHTML.
+  // _attachBacklogListDelegation no se modifica: sigue escuchando sobre #backlog-list sin cambios.
+  _attachQIncDelegation(body);
+}
 
-  // Delegación de click en comportamientoActual — expandir/colapsar independiente de la stats-bar.
-  // Registrada sobre body (persiste entre re-renders sin necesitar flag por elemento).
-  if (!body._qiComportamientoDelegationAttached) {
-    body._qiComportamientoDelegationAttached = true;
-    body.addEventListener('click', function (e) {
-      const el = e.target.closest('[data-qi-action="qi-toggle-comportamiento"]');
-      if (!el) return;
-      el.classList.toggle('expanded');
-    });
-  }
+// TKT-B2b: delegación unificada para #qinc-panel-body.
+// Parámetro container: el elemento sobre el que se registra el listener (siempre #qinc-panel-body).
+// Un único listener maneja: filtros de stats-bar, copy-code de cards ITIL, expand de comportamientoActual.
+// AC: exactamente un listener activo — flag _qiDelegationAttached previene acumulación en re-renders.
+function _attachQIncDelegation(container) {
+  if (!container || container._qiDelegationAttached) return;
+  container._qiDelegationAttached = true;
+
+  container.addEventListener('click', function _qiClick(e) {
+    // --- copy-code: patrón idéntico al Backlog principal ---
+    const copyBtn = e.target.closest('[data-action="copy-code"]');
+    if (copyBtn) {
+      e.stopPropagation();
+      const code = copyBtn.dataset.code;
+      if (code) {
+        navigator.clipboard.writeText(code).catch(() => {});
+        copyBtn.classList.add('is-copied');
+        setTimeout(() => copyBtn.classList.remove('is-copied'), 1500);
+      }
+      return;
+    }
+
+    // --- qi-toggle-comportamiento: expandir/colapsar comportamientoActual ---
+    const comportEl = e.target.closest('[data-qi-action="qi-toggle-comportamiento"]');
+    if (comportEl) {
+      comportEl.classList.toggle('expanded');
+      return;
+    }
+
+    // --- stats-bar: filtros de tipo, prioridad, clear ---
+    const el = e.target.closest('[data-qi-action]');
+    if (!el) return;
+    const act = el.dataset.qiAction;
+    if (act === 'qi-clear-types') {
+      _nsReset('qinc');
+      renderQIncPanel();
+    } else if (act === 'qi-type') {
+      _nsToggleType('qinc', el.dataset.qiType);
+      renderQIncPanel();
+    } else if (act === 'qi-priority') {
+      _nsTogglePriority('qinc', el.dataset.qiPriority);
+      renderQIncPanel();
+    }
+  });
+
+  // Search input — input event (no click)
+  container.addEventListener('input', function _qiInput(e) {
+    const input = e.target.closest('[data-qi-action="qi-search"]');
+    if (!input) return;
+    clearTimeout(container._qiSearchTimer);
+    container._qiSearchTimer = setTimeout(() => {
+      _nsSetQuery('qinc', input.value);
+      renderQIncPanel();
+    }, 200);
+  });
 }
 
 // TKT (REQ-[pendiente-ID]): listener shell:render-qinc — despachado por switchSubTab en locus-ui-shell.js

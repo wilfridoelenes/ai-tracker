@@ -1,4 +1,8 @@
-// [PP] mod:58 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:59 · autor:Rune · 2026-06-29 UTC-6
+// TKT (REQ-[pendiente-ID] · UI: sub-tab Q-INC reemplaza Hotfix): empty state
+//   label de tipo INC en chips de filtro corregido de 'Sin Bugs' a 'Sin Incidentes'.
+//   typeScores (PRB:20/KE:15/CHG:10), namespace qinc y _nsGetTypes('qinc') ya
+//   estaban implementados desde TKT-A2 (mod:58) — sin cambio adicional requerido.
 // TKT-A2 (REQ-[pendiente-ID]): Q-INC reemplaza S-HOTFIX como zona ITIL.
 //   namespace _subtabNS.hotfix → qinc (types INC/PRB/KE/CHG); gate de sprint S-HOTFIX
 //   reemplazado por gate de queue Q-INC con mensaje canónico BR-Core §6; universo
@@ -2216,7 +2220,7 @@ function _getActiveFilterChips() {
   // Tipos excluidos (cuando activeTypes no tiene los 4)
   ['TKT', 'REQ', 'INC', 'DISC'].forEach(function (t) {
     if (!activeTypes.has(t)) {
-      const _tLabel = t === 'TKT' ? 'Sin Tickets' : t === 'REQ' ? 'Sin Reqs' : t === 'INC' ? 'Sin Bugs' : 'Sin Ideas';
+      const _tLabel = t === 'TKT' ? 'Sin Tickets' : t === 'REQ' ? 'Sin Reqs' : t === 'INC' ? 'Sin Incidentes' : 'Sin Ideas';
       chips.push({ label: _tLabel, key: 'type:!' + t, removeFn: (function (_t) {
         return () => toggleTypeFilter(_t);
       }(t)) });

@@ -1,4 +1,4 @@
-// [PP] mod:68 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:69 · autor:Rune · 2026-06-29 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -132,7 +132,7 @@ function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
     _renderSpsActivo(); // T-202606-036
     _renderSpsProgramados(); // T-202606-037
     _renderSpsPausados(); // T-202606-041
-    _renderSpsHotfix(); // T-202606-038
+    // TKT-B1: _renderSpsHotfix eliminada — Q-INC reemplaza S-HOTFIX
     _renderSpsCerrados(); // T-202606-039
   }
 }
@@ -1054,61 +1054,7 @@ function _renderPlannedSprints() {
 
 // ── END T-202606-040 ──────────────────────────────────────────────────────────
 
-// ── T-202606-001: Sección HOTFIX diferenciada en subtab Ítems ────────────────
-//
-// Renderiza en #sprint-hotfix-list una sección con label fija 'PP-S-HOTFIX · Sprint persistente'
-// visible siempre cuando isHotfix:true existe en proj.sprints — sin burndown ni botón cierre.
-// Si no existe ningún sprint con isHotfix:true, la sección no aparece.
-
-function _renderHotfixSection(allSprints) {
-  const container = document.getElementById('sprint-hotfix-list');
-  if (!container) return;
-
-  // AC-4: sin sprint con isHotfix:true → sección ausente, sin error
-  const hotfixSprint = allSprints ? allSprints.find(s => s.isHotfix === true) : null;
-  if (!hotfixSprint) {
-    container.innerHTML = '';
-    return;
-  }
-
-  // AC-2: conteo de ítems por status usando patrón .spi-count-*
-  let pendiente = 0;
-  let done = 0;
-  if (Array.isArray(getItems())) {
-    const _hsid = _spIdBase(hotfixSprint.id); // B-202606-008
-    const hotfixItems = getItems().filter(i => {
-      const t = i.type || (i.code ? i.code.charAt(0) : '');
-      return _iSprint(i) && _iSprint(i).startsWith(_hsid) &&
-        (['REQ','TKT','INC'].includes(itemKind({type:t}))) &&
-        i.status !== 'descartado';
-    });
-    pendiente = hotfixItems.filter(i => i.status !== 'done').length;
-    done      = hotfixItems.filter(i => i.status === 'done').length;
-    const total = hotfixItems.length;
-
-    // AC-3: 0 ítems → visible con '0 ítems'
-    // AC-2: N ítems → 'N pendiente · N done'
-    const countText = total === 0
-      ? '0 ítems'
-      : `${pendiente} pendiente · ${done} done`;
-
-    container.innerHTML = `<div class="sml-hotfix-section">
-  <div class="sml-hotfix-header">
-    <span class="sml-hotfix-label">${_escHtml(hotfixSprint.id)} · Sprint persistente</span>
-    <span class="sml-hotfix-count">${countText}</span>
-  </div>
-</div>`;
-  } else {
-    container.innerHTML = `<div class="sml-hotfix-section">
-  <div class="sml-hotfix-header">
-    <span class="sml-hotfix-label">${_escHtml(hotfixSprint.id)} · Sprint persistente</span>
-    <span class="sml-hotfix-count">0 ítems</span>
-  </div>
-</div>`;
-  }
-}
-
-// ── END T-202606-001 ─────────────────────────────────────────────────────────
+// TKT-B1: _renderHotfixSection eliminada — usaba isHotfix:true y sprint-hotfix-list (Gen1)
 
 // ── T-202606-002: Resumen agregado de sprints normales ──────────────────────
 //
@@ -1121,12 +1067,10 @@ function _renderSprintSummaryTable(allSprints) {
   const container = document.getElementById('sprint-summary-list');
   if (!container) return;
 
-  // AC-4 T2: solo sprints normales (isHotfix falsy)
-  const normalSprints = allSprints
-    ? allSprints.filter(s => !s.isHotfix)
-    : [];
+  // TKT-B1: isHotfix eliminado — Gen2 no tiene sprints con isHotfix:true
+  const normalSprints = allSprints ? [...allSprints] : [];
 
-  // AC-4 T2: sin sprints normales → empty state
+  // sin sprints → empty state
   if (!normalSprints.length) {
     container.innerHTML = '<div class="ssm-empty">Sin sprints creados</div>';
     return;
@@ -1335,7 +1279,7 @@ export function renderSprintTab() {
     // _getActiveSprint() solo retorna status:'active'. Si hay scheduled → rama con-sprint.
     const _activeProjId  = _getActiveProjectFilter();
     const _hasScheduled = getActiveSprints().some(function(s) {
-      return s.status === 'scheduled' && !s.isHotfix && s.projectId === _activeProjId;
+      return s.status === 'scheduled' && s.projectId === _activeProjId; // TKT-B1: isHotfix eliminado
     });
     if (_hasScheduled) {
       // Hay sprint programado — caer en rama con-sprint (default 'items')
@@ -1364,12 +1308,10 @@ export function renderSprintTab() {
       const panelSprints = _spEl('sprint-panel-sprints');
       if (panelSprints) panelSprints.classList.add('spt-main-view');
       // T-202606-002: empty-state total — ningún sprint de ningún tipo (activo/programado/
-      // pausado/cerrado) para el proyecto activo, excluyendo S-HOTFIX (decisión Cael:
-      // #sps-hotfix no es parte del universo "sprint" que evalúa este AC).
+      // pausado/cerrado) para el proyecto activo.
       const _hasAnySprint = getActiveSprints().some(function(s) {
-        return !s.isHotfix && s.projectId === _activeProjId;
+        return s.projectId === _activeProjId; // TKT-B1: isHotfix eliminado
       });
-      if (panelSprints) panelSprints.classList.toggle('spt-no-sprints-at-all', !_hasAnySprint);
       _sptSwitch('sprints', _spEl('spt-tab-sprints'), true);
       return;
     }
@@ -1473,54 +1415,7 @@ function _sphToggle() {
 
 // ── T-202606-038: Sprint HOTFIX persistente ───────────────────────────────
 //
-// ensureHotfixSprint(projId) — crea el sprint [Prefix]-S-HOTFIX para el proyecto
-// si no existe. Idempotente: si ya existe no hace nada.
-// El prefix se deriva de los sprints existentes del proyecto, o de projId como fallback.
-//
-// Condiciones del sprint HOTFIX creado:
-//   - id:              [Prefix]-S-HOTFIX
-//   - label:           [Prefix]-S-HOTFIX
-//   - status:          active
-//   - version_target:  n/a  (única excepción a la regla dura — BR-Core §6)
-//   - projId:          projId recibido
-//   - isHotfix:        true  (flag interno — protege de cierre normal)
-//
-export function ensureHotfixSprint(projId) {
-  if (!projId) return;
-
-  const proj = getProjectById(projId);
-  if (!proj) return;
-  if (!Array.isArray(proj.sprints)) proj.sprints = [];
-
-  // Prefix: campo proj.prefix es la fuente de verdad. Fallback: derivar de sprints existentes,
-  // luego projId en mayúsculas.
-  let prefix = (proj.prefix || '').toUpperCase();
-  if (!prefix && proj.sprints.length) {
-    const parts = proj.sprints[0].id.split('-S-');
-    if (parts.length >= 2) prefix = parts[0];
-  }
-  if (!prefix) prefix = projId.toUpperCase();
-
-  const hotfixId = prefix + '-S-HOTFIX';
-
-  // Idempotente — si ya existe no hacer nada
-  if (proj.sprints.some(s => s.id === hotfixId)) return;
-
-  const hasCurrentSprint = proj.sprints.some(s => s.status === 'active' && s.current === true);
-
-  proj.sprints.push({
-    id: hotfixId,
-    label: hotfixId,
-    status: 'active',
-    version_target: 'n/a',
-    isHotfix: true,
-    projId,
-    current: !hasCurrentSprint ? true : undefined,
-    formallyOpened: false,
-    createdAt: Date.now(),
-  });
-  save();
-}
+// TKT-B1: ensureHotfixSprint eliminada — S-HOTFIX no existe en Gen2
 
 // ── T-202606-041: _renderSpsPausados — sección sprints pausados ──────────────
 //
@@ -1537,7 +1432,7 @@ function _renderSpsPausados() {
 
   const allSprints = getActiveSprints();
   const paused = allSprints
-    ? allSprints.filter(s => s.status === 'pausado' && !s.isHotfix)
+    ? allSprints.filter(s => s.status === 'pausado') // TKT-B1: isHotfix eliminado
     : [];
 
   // AC-4/AC-5: sin pausados → ocultar contenedor sin empty state
@@ -1589,82 +1484,7 @@ function _renderSpsPausados() {
 }
 // ── END T-202606-041 / T-202606-008 ──────────────────────────────────────────
 
-// ── T-202606-038 T5: _renderSpsHotfix — card persistente HOTFIX en sub-tab Sprints ──
-//
-// Renderiza en #sps-hotfix una card siempre visible con los Bs priority:high
-// en status pendiente o en-revision del sprint S-HOTFIX del proyecto activo.
-// La card nunca se oculta — muestra 'Sin bugs críticos activos' cuando no hay ítems.
-// Clic en una fila de B abre el Item Editor (#item-editor-overlay) via openItemPanel.
-
-function _renderSpsHotfix() {
-  const container = document.getElementById('sps-hotfix');
-  if (!container) return;
-
-  // Localizar sprint HOTFIX del proyecto activo
-  const allSprints = getActiveSprints();
-  const hotfixSprint = allSprints ? allSprints.find(s => s.isHotfix === true) : null;
-
-  // Bs activos: priority high + sprint S-HOTFIX + status pendiente o en-revision
-  let activeBugs = [];
-  if (hotfixSprint && Array.isArray(getItems())) {
-    const _hsid = _spIdBase(hotfixSprint.id);
-    activeBugs = getItems().filter(i => {
-      const t = i.type || (i.code ? i.code.charAt(0) : '');
-      return itemKind({type:t}) === 'INC' &&
-        i.priority === 'high' &&
-        _iSprint(i) && _iSprint(i).startsWith(_hsid) &&
-        (i.status === 'pendiente' || i.status === 'en-revision');
-    });
-  }
-
-  // Filas de bugs o mensaje vacío
-  let bodyHtml;
-  if (activeBugs.length === 0) {
-    bodyHtml = '<p class="sps-hotfix-empty">Sin bugs críticos activos</p>';
-  } else {
-    const rows = activeBugs.map(b =>
-      '<div class="sps-hotfix-row" data-item-code="' + _escHtml(b.code) + '" tabindex="0" role="button" aria-label="Abrir ' + _escHtml(b.code) + '">' +
-        '<span class="sps-hotfix-code">' + _escHtml(b.code) + '</span>' +
-        '<span class="sps-hotfix-title">' + _escHtml(b.title || '') + '</span>' +
-        '<span class="sps-hotfix-status">' + _escHtml(b.status) + '</span>' +
-      '</div>'
-    ).join('');
-    bodyHtml = '<div class="sps-hotfix-list">' + rows + '</div>';
-  }
-
-  const sprintLabel = hotfixSprint ? _escHtml(hotfixSprint.id) : 'S-HOTFIX';
-
-  container.innerHTML =
-    '<span class="sps-section-label">Hotfix</span>' +
-    '<div class="sps-card sps-card--hotfix">' +
-      '<div class="sps-header">' +
-        '<span class="sps-title">' + sprintLabel + ' · Sprint persistente</span>' +
-        '<span class="sml-badge sprint-badge-hotfix">HOTFIX</span>' +
-      '</div>' +
-      bodyHtml +
-    '</div>';
-
-  // Event delegation — clic y teclado en filas de B
-  container.removeEventListener('click', _spsHotfixHandleClick);
-  container.addEventListener('click', _spsHotfixHandleClick);
-  container.removeEventListener('keydown', _spsHotfixHandleKeydown);
-  container.addEventListener('keydown', _spsHotfixHandleKeydown);
-}
-
-function _spsHotfixHandleClick(e) {
-  const row = e.target.closest('[data-item-code]');
-  if (row) openItemPanel(row.dataset.itemCode);
-}
-
-function _spsHotfixHandleKeydown(e) {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  const row = e.target.closest('[data-item-code]');
-  if (row) {
-    e.preventDefault();
-    openItemPanel(row.dataset.itemCode);
-  }
-}
-// ── END T-202606-038 T5 ──────────────────────────────────────────────────
+// TKT-B1: _renderSpsHotfix, _spsHotfixHandleClick, _spsHotfixHandleKeydown eliminadas — Gen2 usa Q-INC
 
 // ── T-202606-039: _renderSpsCerrados — lista colapsada de sprints cerrados con retro inline ──
 //
@@ -1683,7 +1503,7 @@ function _renderSpsCerrados() {
   const allSprints = getActiveSprints();
   const closed = allSprints
     ? allSprints
-        .filter(s => s.status === 'closed' && !s.isHotfix)
+        .filter(s => s.status === 'closed') // TKT-B1: isHotfix eliminado
         .sort((a, b) => {
           const ta = b.closedAt || b.createdAt || 0;
           const tb = a.closedAt || a.createdAt || 0;
