@@ -1,8 +1,7 @@
-// [PP] mod:60 · autor:Rune · 2026-06-29 UTC-6
-// [tmp:tkt-typefilter-gen2]: updateTypeFilterUI itera sobre 7 códigos Gen2 (REQ/TKT/INC/DISC/PRB/KE/CHG)
-//   en lugar de Gen1 (T/R/B/P). Guard ftype-T eliminada — los elementos ftype-* ya no existen en Gen2.
-//   byType en renderStats amplía a PRB:0/KE:0/CHG:0. Chips de tipo en stats bar usan
-//   7 tipos Gen2 con labels canónicos; chips sin ítems se omiten; umbral ✕ corregido a < 7.
+// [PP] mod:61 · autor:Rune · 2026-06-29 UTC-6
+// [tmp:tkt-isqinc-unify]: isQIncItem(i) exportada — consolida _isQInc (renderBacklogList)
+//   y _isQIncItem (renderQIncPanel) en función única. _getCountableBaseForSubtab('qinc')
+//   actualizada para consumirla. locus-backlog-render.js la importa.
 // TKT (REQ-[pendiente-ID] · UI: sub-tab Q-INC reemplaza Hotfix): empty state
 //   label de tipo INC en chips de filtro corregido de 'Sin Bugs' a 'Sin Incidentes'.
 //   typeScores (PRB:20/KE:15/CHG:10), namespace qinc y _nsGetTypes('qinc') ya
@@ -1533,6 +1532,14 @@ export function _isQDisc(i) {
 // TKT-C1b: _isIcebox wrapper transitorio eliminado — locus-backlog-render.js mod:45 (TKT-C1)
 // ya no la importa. __BR-Execution §2 Sin retrocompatibilidad.
 
+// [tmp:tkt-isqinc-unify]: función exportada única para detectar ítems ITIL de Q-INC.
+// Consolida _isQInc (locus-backlog-render.js renderBacklogList) y _isQIncItem
+// (locus-backlog-render.js renderQIncPanel) — locus-backlog-render.js importa esta.
+// Patrón análogo a _isQBacklog / _isQDisc.
+export function isQIncItem(i) {
+  return (i.queue || '').endsWith('-Q-INC') || ['INC', 'PRB', 'KE', 'CHG'].includes(itemKind(i));
+}
+
 // T-202606-100: _getCountableBase() — función canónica compartida entre renderStats() y _getCountableForBanner()
 // Retorna ITEMS filtrado por: _isCountableItem === true · status !== descartado · status !== historico
 //   · sprint no en closedSprintIds · NOT (status === done AND sin sprint o sprint === icebox)
@@ -1565,8 +1572,8 @@ export function _getCountableBaseForSubtab(sub) {
     return ITEMS.filter(i => _isQDisc(i) && i.status !== 'descartado' && i.status !== 'historico');
   }
   if (sub === 'qinc') {
-    // TKT-A2: universo Q-INC — ítems ITIL (INC/PRB/KE/CHG) cuya queue es la Q-INC del proyecto
-    return ITEMS.filter(i => i.queue && i.queue.endsWith('-Q-INC') && i.status !== 'descartado' && i.status !== 'historico');
+    // [tmp:tkt-isqinc-unify]: usa isQIncItem() exportada — misma lógica que locus-backlog-render.js
+    return ITEMS.filter(i => isQIncItem(i) && i.status !== 'descartado' && i.status !== 'historico');
   }
   if (sub === 'historico') {
     // Edge case AC — universo Histórico: status historico, excluido explícitamente de _getCountableBase()

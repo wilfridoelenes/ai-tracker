@@ -1,4 +1,7 @@
-// [PP] mod:47 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:48 · autor:Rune · 2026-06-29 UTC-6
+// [tmp:tkt-isqinc-unify]: _isQInc local (renderBacklogList) y _isQIncItem local (renderQIncPanel,
+//   _updateSubtabBadges) eliminadas. Todos los call sites usan isQIncItem() importada desde
+//   locus-backlog-core.js.
 // TKT-C7 fix: bl-icebox-item-alert→bl-done-item-alert (L1300-1302) — consume mod:54 de Nova,
 //   resuelve conflicto entre clase CSS eliminada y código JS activo que la generaba.
 // TKT-C1 (REQ-C): _updateSubtabBadges migrada — badgeIcebox (Gen1, tpl-badge-icebox eliminado
@@ -16,7 +19,7 @@
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
 import { renderArchivoHistorico, toggleArchivoHistorico, getArchivoHistoricoCount, getArchivoHistoricoStats } from './locus-backlog-archive.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQDisc, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js';
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQDisc, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, buildQIncItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-B2b: buildQIncItem
 
@@ -481,12 +484,12 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   // B-202606-076 / TKT-C1: _isQBacklog/_isQDisc importadas desde locus-backlog-core.js — fuente única.
   // TKT (REQ-[pendiente-ID]): ítems ITIL (INC/PRB/KE/CHG con queue Q-INC) excluidos de #backlog-list —
   // panel dedicado vive en #sspanel-qinc (sub-tab Q-INC). Filtro legacy por sprint string-match eliminado.
-  const _isQInc = i => (i.queue || '').endsWith('-Q-INC') || ['INC', 'PRB', 'KE', 'CHG'].includes(itemKind(i));
+  // [tmp:tkt-isqinc-unify]: _isQInc local eliminada — usa isQIncItem() importada desde locus-backlog-core.js.
 
   // T-202606-090 AC-6 / TKT-C1: ítems sin sprint (Q-Backlog/Q-DISC) excluidos de #backlog-list —
   // viven en renderQBacklogPanel()/renderQDiscPanel() (sub-tabs dedicados).
-  // TKT (REQ-[pendiente-ID]): ítems ITIL excluidos del mismo modo — ver _isQInc arriba.
-  const sprintableItems = pendienteItems.filter(i => !_isQBacklog(i) && !_isQDisc(i) && !_isQInc(i));
+  // TKT (REQ-[pendiente-ID]): ítems ITIL excluidos del mismo modo — ver isQIncItem importada.
+  const sprintableItems = pendienteItems.filter(i => !_isQBacklog(i) && !_isQDisc(i) && !isQIncItem(i));
 
   // Agrupar por sprint
   // B-202606-018: normalizar la clave a solo el ID del sprint — algunos ítems almacenan
@@ -508,7 +511,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   // sin esto, un sprint con solo done items ITIL generaría un group header vacío en #backlog-list.
   if (_getActiveStatuses().has('done')) {
     doneItems.forEach(i => {
-      if (_isQBacklog(i) || _isQDisc(i) || _isQInc(i)) return;
+      if (_isQBacklog(i) || _isQDisc(i) || isQIncItem(i)) return;
       const key = _extractSprintId((i.sprint || '').trim());
       if (!sprintMap[key]) sprintMap[key] = [];
     });
@@ -1385,10 +1388,6 @@ window.addEventListener('shell:backlog-render-dirty', () => {
 // locus-backlog-core.js (TKT-C3 — ya completado en sesión previa).
 const SLA_RIESGO_WINDOW_MS = 21600000; // 6h — ventana de riesgo antes del vencimiento
 
-function _isQIncItem(i) {
-  return (i.queue || '').endsWith('-Q-INC') || ['INC', 'PRB', 'KE', 'CHG'].includes(itemKind(i));
-}
-
 // Estados ITIL "activos" — orden de grupo primero. resolved/closed van al fondo.
 const _QINC_ACTIVE_STATUSES = ['detected', 'assigned', 'in_progress', 'escalated_to_prb', 'escalated_to_chg'];
 
@@ -1409,7 +1408,8 @@ export function renderQIncPanel() {
   }
 
   // Ítems ITIL del proyecto activo — excluir descartados del conteo y del render
-  const allQInc = getItems().filter(_isQIncItem);
+  // [tmp:tkt-isqinc-unify]: _isQIncItem local eliminada — usa isQIncItem() importada desde locus-backlog-core.js.
+  const allQInc = getItems().filter(isQIncItem);
 
   // Badge: count de ítems activos (no closed/descartado); is-urgent si hay INC high vencido
   const badge = document.getElementById('tpl-badge-qinc');
@@ -1763,7 +1763,7 @@ export function _updateSubtabBadges() {
   // TKT (REQ-[pendiente-ID]): badge Q-INC — ítems ITIL no closed/descartado, is-urgent
   // si hay INC high con slaDeadline vencido. Misma lógica que el badge en renderQIncPanel.
   if (badgeQinc) {
-    const allQInc = items.filter(_isQIncItem);
+    const allQInc = items.filter(isQIncItem);
     const countable = allQInc.filter(i => i.incidentStatus !== 'closed' && i.status !== 'descartado');
     if (!countable.length) {
       badgeQinc.textContent = '';
