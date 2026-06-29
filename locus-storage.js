@@ -1,6 +1,6 @@
-// [PP] mod:68 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:69 · autor:Rune · 2026-06-28 UTC-6
 // locus-storage.js
-// Última actualización: B-202606-105/106/107 — LOCUS_KEYS.CHANGELOG/NOTIF_HISTORY/LOG_FILTERS
+// Última actualización: TKT-A1 — eliminar _ensureHotfixSprint, agregar schema ITIL completo (PRB/KE/CHG en _VALID_STATUS_BY_TYPE, slaDeadline en hidratación, queue/sla_deadline en _toItemRow)
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
 // cuota crítica ahora libera datos reales en vez de claves fantasma) · OFFLINE_QUEUE_KEY
 // (entrada duplicada de OFFLINE_QUEUE, sin call sites) eliminada de LOCUS_KEYS.
@@ -854,14 +854,20 @@ export async function saveBacklog() {
   //   REQ:  pendiente · en-proceso · en-revision · done · bloqueado · orphaned · descartado
   //   TKT:  pendiente · en-revision · done · descartado
   //   INC:  detected · assigned · in_progress · resolved · closed · escalated_to_prb · escalated_to_chg · descartado
+  //   PRB:  detected · in_progress · resolved · closed · descartado
+  //   KE:   active · resolved · descartado
+  //   CHG:  pendiente · en-revision · done · descartado
   //   DISC: discovery · promoted · descartado
   // Nota: historico se excluye antes de llegar aquí por el gate `it.status === 'historico'`
   // arriba — ningún tipo lo declara en su propio Set porque es asignado exclusivamente
   // por Locus al cerrar sprint (__BR-Ecosystem §5), no un status nativo del ciclo de vida.
   const _VALID_STATUS_BY_TYPE = {
-    REQ: new Set(['pendiente', 'en-proceso', 'en-revision', 'done', 'bloqueado', 'orphaned', 'descartado']),
-    TKT: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
-    INC: new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']),
+    REQ:  new Set(['pendiente', 'en-proceso', 'en-revision', 'done', 'bloqueado', 'orphaned', 'descartado']),
+    TKT:  new Set(['pendiente', 'en-revision', 'done', 'descartado']),
+    INC:  new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']),
+    PRB:  new Set(['detected', 'in_progress', 'resolved', 'closed', 'descartado']),
+    KE:   new Set(['active', 'resolved', 'descartado']),
+    CHG:  new Set(['pendiente', 'en-revision', 'done', 'descartado']),
     DISC: new Set(['discovery', 'promoted', 'descartado']),
   };
 
@@ -1009,9 +1015,11 @@ export async function saveBacklog() {
       contract_update:      it.contract_update   || null,
       archivos:             Array.isArray(it.archivos) ? it.archivos : null,
       sla_priority:         it.sla_priority      || null,
-      incident_status:      it.incident_status   || null,
-      resolution_type:      it.resolution_type   || null,
+      sla_deadline:         it.slaDeadline       != null ? it.slaDeadline : null,
+      incident_status:      it.incidentStatus    || it.incident_status || null,
+      resolution_type:      it.resolutionType    || it.resolution_type || null,
       derived_items:        Array.isArray(it.derived_items) ? it.derived_items : null,
+      queue:                it.queue             || null,
       // DDL: updated_at BIGINT (epoch ms) — no ISO string
       // _updatedAtMs calculado una vez fuera de _toItemRow — todas las filas comparten el mismo valor (AC-3)
       updated_at:           _updatedAtMs
@@ -1909,9 +1917,24 @@ export async function _loadFromSupabase() {
               contract_update:       row.contract_update,
               archivos:              Array.isArray(row.archivos) ? row.archivos : null,
               sla_priority:          row.sla_priority,
-              incident_status:       row.incident_status,
-              resolution_type:       row.resolution_type,
+              // TKT-A1: Gen2 — campos ITIL con naming camelCase interno
+              incidentStatus:        row.incident_status || null,
+              resolutionType:        row.resolution_type || null,
               derived_items:         Array.isArray(row.derived_items) ? row.derived_items : null,
+              queue:                 row.queue           || null,
+              createdAt:             row.created_at      || null,
+              // TKT-A1: sla_deadline calculado al hidratar si sla_priority presente y sla_deadline ausente
+              // AC: sla_priority:high → createdAt+86400000ms; medium → createdAt+259200000ms; low → null
+              // Base: row.created_at (bigint epoch ms, NOT NULL en DDL de tracker_items)
+              slaDeadline: (() => {
+                if (row.sla_deadline != null) return row.sla_deadline;
+                if (!row.sla_priority) return null;
+                const _base = row.created_at || null;
+                if (!_base) return null;
+                if (row.sla_priority === 'high')   return _base + 86400000;
+                if (row.sla_priority === 'medium') return _base + 259200000;
+                return null;
+              })(),
               _updatedAtMs:          row.updated_at    // conservar timestamp para comparaciones futuras
             };
             merged.push(item);
@@ -2296,108 +2319,6 @@ function _applyStateData(raw) {
   // Limpiar campo legacy infraVersionActive si aún existe en storage persistido
   if ('infraVersionActive' in raw) delete raw.infraVersionActive;
 
-  // T-202606-016: _ensureHotfixSprint — crea sprint S-HOTFIX si el proyecto no lo tiene.
-  // Idempotente: AC-3 — si ya existe isHotfix:true no crea otro.
-  // AC-4: no modifica sprints regulares existentes.
-  // Se llama dentro del forEach de migración — cubre proyectos nuevos (AC-1) y existentes (AC-2).
-  // T-202606-016: _ensureHotfixSprint — crea sprint S-HOTFIX si el proyecto no lo tiene.
-  // Idempotente: AC-3 — si ya existe isHotfix:true no crea otro.
-  // AC-4: no modifica sprints regulares existentes.
-  // Se llama dentro del forEach de migración — cubre proyectos nuevos (AC-1) y existentes (AC-2).
-  //
-  // T-202606-011 — impacto lateral, ciclo 2: con sesión Supabase activa, NO puede usarse
-  // getActiveSprints()/_sprintsCache para detectar si ya existe el HOTFIX — _sprintsCache
-  // se popula en _loadSprintsFromSupabase(projId), que en _loadFromSupabase() corre DESPUÉS
-  // de _applyStateData() (diseño de T-202606-005, para que el projId del proyecto activo
-  // esté disponible). En el momento en que este forEach corre, _sprintsCache tiene datos
-  // obsoletos o vacíos — nunca los del proyecto que se está procesando.
-  // Fix: consulta directa a tracker_sprints, mismo patrón que _verifyAndCleanSprintsBlob.
-  // Fire-and-forget — no bloquea _applyStateData(). onConflict en _upsertSprint hace que
-  // un duplicado eventual (multi-tab) no persista: la segunda escritura sobreescribe la
-  // primera con el mismo sprint_id.
-  function _ensureHotfixSprint(proj) {
-    const _hasSupabaseSession = !!(_supabase && _supabaseUser);
-
-    if (_hasSupabaseSession) {
-      _supabase
-        .from('tracker_sprints')
-        .select('sprint_id')
-        .eq('user_id', _supabaseUser.id)
-        .eq('project_id', proj.id)
-        .then(({ data, error }) => {
-          if (error) {
-            console.error('[Locus] T-202606-011: _ensureHotfixSprint verificación falló —', proj.id, error);
-            return;
-          }
-          const _hasHotfix = (data || []).some(r => (r.sprint_id || '').includes('-S-HOTFIX'));
-          if (_hasHotfix) return; // ya existe en tracker_sprints
-
-          let prefix = 'XX';
-          const regularRow = (data || []).find(r => /^[A-Za-z]+-S\d+$/i.test(r.sprint_id || ''));
-          if (regularRow) {
-            const m = (regularRow.sprint_id || '').match(/^([A-Za-z]+)-S\d+$/i);
-            if (m) prefix = m[1].toUpperCase();
-          } else if (proj.prefix) {
-            prefix = String(proj.prefix).toUpperCase();
-          } else if (proj.name) {
-            prefix = proj.name.split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 3) || 'XX';
-          }
-          const hotfixId = prefix + '-S-HOTFIX';
-          const hotfixSprintObj = {
-            id: hotfixId,
-            label: hotfixId,
-            goal: '',
-            version_target: 'n/a',
-            release_type: null,
-            status: 'active',
-            current: false,
-            formallyOpened: true,
-            isHotfix: true,
-            startedAt: Date.now(),
-            createdAt: Date.now()
-          };
-          _upsertSprint(hotfixSprintObj, proj.id).catch(err => {
-            console.error('[Locus] T-202606-011: _ensureHotfixSprint upsert falló —', proj.id, err);
-          });
-          console.log('[Locus] T-202606-011: sprint HOTFIX creado en tracker_sprints —', hotfixId);
-        })
-        .catch(err => {
-          console.error('[Locus] T-202606-011: _ensureHotfixSprint query falló —', proj.id, err);
-        });
-      return;
-    }
-
-    // Sin sesión activa — comportamiento legacy sin cambio, escribe en el blob.
-    if (!proj.sprints) proj.sprints = [];
-    if (proj.sprints.some(sp => sp.isHotfix === true)) return; // AC-3: ya existe
-    // Derivar prefijo: desde sprints regulares → proj.prefix → iniciales del nombre → 'XX'
-    let prefix = 'XX';
-    const regularSprint = proj.sprints.find(sp => /^[A-Za-z]+-S\d+$/i.test(sp.id || ''));
-    if (regularSprint) {
-      const m = (regularSprint.id || '').match(/^([A-Za-z]+)-S\d+$/i);
-      if (m) prefix = m[1].toUpperCase();
-    } else if (proj.prefix) {
-      prefix = String(proj.prefix).toUpperCase();
-    } else if (proj.name) {
-      prefix = proj.name.split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 3) || 'XX';
-    }
-    const hotfixId = prefix + '-S-HOTFIX';
-    proj.sprints.push({
-      id: hotfixId,
-      label: hotfixId,
-      goal: '',
-      version_target: 'n/a',
-      release_type: null,
-      status: 'active',
-      current: false,
-      formallyOpened: true,
-      isHotfix: true,
-      startedAt: Date.now(),
-      createdAt: Date.now()
-    });
-    console.log('[Locus] T-202606-016: sprint HOTFIX creado —', hotfixId);
-  }
-
   // v3: migración de proyectos — asegurar campos v3
   (raw.projects || []).forEach(proj => {
     if (!proj.sessions) proj.sessions = [];
@@ -2430,15 +2351,12 @@ function _applyStateData(raw) {
     proj.sprints.forEach(sp => {
       if (sp.status === 'programado') sp.status = 'scheduled';
     });
-    // T-202606-016: asegurar sprint S-HOTFIX — después de migración open→active/closed
-    // para no alterar _hasActiveSprint ni la lógica de migración legacy.
-    _ensureHotfixSprint(proj);
     // T-202605-025: campo current — default false + migración automática
     // B-202605-028: si hay múltiples activos sin current, marcar el más reciente (por startedAt).
     // Idempotente: corre en cada _applyStateData().\
     proj.sprints.forEach(sp => { if (sp.current === undefined) sp.current = false; });
-    // T-202606-016: excluir sprint HOTFIX de la selección de current — nunca debe ser current
-    const activeSprints = proj.sprints.filter(sp => sp.status === 'active' && !sp.isHotfix);
+    // TKT-A1: Gen2 — sin S-HOTFIX, todos los sprints activos son candidatos a current
+    const activeSprints = proj.sprints.filter(sp => sp.status === 'active');
     const hasCurrentActive = activeSprints.some(sp => sp.current === true);
     if (!hasCurrentActive && activeSprints.length > 0) {
       const mostRecent = activeSprints.reduce((a, b) => ((a.startedAt || 0) >= (b.startedAt || 0) ? a : b));

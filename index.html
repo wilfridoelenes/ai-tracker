@@ -1,4 +1,11 @@
-<!-- [PP] mod:77 · autor:Rune · 2026-06-28 10:00 UTC-6 -->
+<!-- [PP] mod:79 · autor:Rune · 2026-06-28 UTC-6 -->
+<!-- TKT (REQ-[pendiente-ID]): IDs hotfix → qinc en nav y sub-panel del Backlog.
+     #sspanel-hotfix→#sspanel-qinc · #sstab-btn-hotfix→#sstab-btn-qinc ·
+     #tpl-badge-hotfix→#tpl-badge-qinc · #hotfix-panel-body→#qinc-panel-body.
+     Discrepancia: AC pedía botón sin emoji — instrucción explícita del founder en sesión
+     restauró emoji 🚨 (consistente con empty-state de Q-INC). Instrucción de sesión
+     prevalece sobre AC — __BR-Core §3. #sps-hotfix (Panel Sprints) fuera de scope —
+     pertenece a locus-sprint.js, ver Hallazgo fuera de scope en CHECKPOINT. -->
 <!DOCTYPE html>
 <html lang="es"><head>
 <meta charset="UTF-8">
@@ -309,10 +316,10 @@
           <span class="tpl-nav-icon">💡</span><span class="tpl-nav-text">Discoveries</span>
           <span class="tpl-nav-badge" id="tpl-badge-qdisc"></span>
         </button>
-        <!-- T-202606-091: Sub-tab Hotfix -->
-        <button class="tpl-nav-btn" id="sstab-btn-hotfix">
-          <span class="tpl-nav-icon">🔥</span><span class="tpl-nav-text">Hotfix</span>
-          <span class="tpl-nav-badge" id="tpl-badge-hotfix"></span>
+        <!-- TKT (REQ-[pendiente-ID]): Sub-tab Q-INC reemplaza la antigua cola de incidentes -->
+        <button class="tpl-nav-btn" id="sstab-btn-qinc">
+          <span class="tpl-nav-icon">🚨</span><span class="tpl-nav-text">Q-INC</span>
+          <span class="tpl-nav-badge" id="tpl-badge-qinc"></span>
         </button>
         <!-- T-202606-092: Sub-tab Histórico -->
         <button class="tpl-nav-btn" id="sstab-btn-historico">
@@ -497,10 +504,10 @@
       </div>
     </div><!-- /sspanel-qdisc -->
 
-    <!-- Sub-panel: Hotfix — T-202606-091 -->
-    <div class="session-subpanel" id="sspanel-hotfix">
-      <div id="hotfix-panel-body"></div>
-    </div><!-- /sspanel-hotfix -->
+    <!-- Sub-panel: Q-INC — reemplaza la antigua cola de incidentes -->
+    <div class="session-subpanel" id="sspanel-qinc">
+      <div id="qinc-panel-body"></div>
+    </div><!-- /sspanel-qinc -->
 
     <!-- Sub-panel: Histórico — T-202606-092. AC-4: sin wrapper -panel-body —
          renderArchivoHistorico() inyecta #arch-historico directo en este nodo. -->

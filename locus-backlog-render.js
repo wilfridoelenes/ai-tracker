@@ -10,7 +10,7 @@
 //   ahora llamada hermana en sus call sites reales (shell:backlog-render-dirty · shell:render-backlog-list)
 // inline_fix: restaurado bloque if/else de placeholder de búsqueda y separación de comentario/función
 //   que se corrompieron en mod:27 (T-202606-093, primera implementación)
-// T-202606-093: _updateSubtabBadges — actualización reactiva de badges icebox/hotfix/histórico
+// T-202606-093: _updateSubtabBadges — actualización reactiva de badges icebox/qinc/histórico
 // B-202606-052: renderIceboxPanel implementada + listener sstab-btn-icebox + re-render en shell:backlog-render-dirty
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
@@ -479,14 +479,14 @@ function _zoneStaleness(item) {
 //   _matchesQuery y _sortGroup vienen de renderBacklogList para reutilizar la lógica existente.
 function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered) {
   // B-202606-076 / TKT-C1: _isQBacklog/_isQDisc importadas desde locus-backlog-core.js — fuente única.
-  // T-202606-091 AC-6: ítems con sprint.id HOTFIX excluidos de #backlog-list — panel dedicado vive en
-  // #sspanel-hotfix (sub-tab Hotfix). Mismo patrón que antes — case-insensitive sobre el ID.
-  const _isHotfixSprint = i => (i.sprint || '').toUpperCase().includes('HOTFIX');
+  // TKT (REQ-[pendiente-ID]): ítems ITIL (INC/PRB/KE/CHG con queue Q-INC) excluidos de #backlog-list —
+  // panel dedicado vive en #sspanel-qinc (sub-tab Q-INC). Filtro legacy por sprint string-match eliminado.
+  const _isQInc = i => (i.queue || '').endsWith('-Q-INC') || ['INC', 'PRB', 'KE', 'CHG'].includes(itemKind(i));
 
   // T-202606-090 AC-6 / TKT-C1: ítems sin sprint (Q-Backlog/Q-DISC) excluidos de #backlog-list —
   // viven en renderQBacklogPanel()/renderQDiscPanel() (sub-tabs dedicados).
-  // T-202606-091 AC-6: ítems sprint HOTFIX excluidos del mismo modo — ver _isHotfixSprint arriba.
-  const sprintableItems = pendienteItems.filter(i => !_isQBacklog(i) && !_isQDisc(i) && !_isHotfixSprint(i));
+  // TKT (REQ-[pendiente-ID]): ítems ITIL excluidos del mismo modo — ver _isQInc arriba.
+  const sprintableItems = pendienteItems.filter(i => !_isQBacklog(i) && !_isQDisc(i) && !_isQInc(i));
 
   // Agrupar por sprint
   // B-202606-018: normalizar la clave a solo el ID del sprint — algunos ítems almacenan
@@ -504,11 +504,11 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   // B-202606-002: sprints que solo tienen done items visibles no aparecen en sprintMap
   // (construido solo desde sprintableItems = pendientes). Registrarlos con array vacío
   // para que el loop de sprint groups los incluya y emita _doneInGroup.
-  // T-202606-091 AC-6: done items de sprint HOTFIX excluidos del mismo modo que icebox —
-  // sin esto, un sprint HOTFIX con solo done items generaría un group header vacío en #backlog-list.
+  // TKT (REQ-[pendiente-ID]): done items ITIL excluidos del mismo modo que icebox —
+  // sin esto, un sprint con solo done items ITIL generaría un group header vacío en #backlog-list.
   if (_getActiveStatuses().has('done')) {
     doneItems.forEach(i => {
-      if (_isQBacklog(i) || _isQDisc(i) || _isHotfixSprint(i)) return;
+      if (_isQBacklog(i) || _isQDisc(i) || _isQInc(i)) return;
       const key = _extractSprintId((i.sprint || '').trim());
       if (!sprintMap[key]) sprintMap[key] = [];
     });
@@ -517,12 +517,11 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   // B-068: sprints 'active' o 'scheduled' (programado) sin ningún ítem visible (ni pendiente
   // ni done) no entran a sprintMap por los dos bloques anteriores — su header desaparecía de
   // la Vista Lista. Se registran aquí con array vacío para que el forEach de sprint groups los
-  // incluya siempre. HOTFIX queda excluido — vive en su propio sub-tab (#sspanel-hotfix), no en
+  // incluya siempre. Q-INC queda excluido — vive en su propio sub-tab (#sspanel-qinc), no en
   // #backlog-list. Sprints 'closed' quedan excluidos — su visibilidad sin ítems no es parte de
   // este AC y se rige por el comportamiento ya existente.
   getActiveSprints().forEach(s => {
     if (s.status !== 'active' && s.status !== 'scheduled') return;
-    if (_isHotfixSprint({ sprint: s.id })) return;
     if (!sprintMap[s.id]) sprintMap[s.id] = [];
   });
 
@@ -555,9 +554,10 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     const sprintObj = _getSprintById(sprintId);
     const isActive  = sprintObj?.status === 'active';
     const isClosed  = sprintObj?.status === 'closed';
-    const isHotfix  = sprintId.toUpperCase().includes('HOTFIX');
-    // T-202606-040: planificado = sprint sin registrar en getActiveSprints(), o registrado con status distinto a active/closed
-    const isPlanned = !isActive && !isClosed && !isHotfix;
+    // TKT (REQ-[pendiente-ID]): variable de estado legacy eliminada — ya no existe el sprint
+    // ITIL legacy (TKT-A1, locus-storage.js). Ningún sprint real cae en esa categoría bajo el
+    // modelo Q-INC; ítems ITIL viven en queue, no en sprint.
+    const isPlanned = !isActive && !isClosed;
     const label     = sprintObj ? (sprintObj.label || sprintId) : sprintId;
     const groupId   = 'vl-' + sprintId.toLowerCase().replace(/[^a-z0-9]/g, '-');
 
@@ -572,9 +572,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
 
     const sprintBadge       = isClosed ? ' ·' : '';
-    const sprintStatusLabel = isHotfix
-      ? `<span class="sprint-badge-hotfix">hotfix</span>`
-      : isActive
+    const sprintStatusLabel = isActive
         ? `<span class="sprint-badge-active">activo</span>`
         : isClosed
           ? `<span class="sprint-badge-closed">cerrado</span>`
@@ -582,8 +580,8 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
             ? `<span class="sprint-badge-planned">planificado</span>`
             : '';
 
-    // Meta secundaria: velocity para activo/hotfix, fecha de cierre para cerrado, effort estimado para planificado
-    const _velLabel = (isActive || isHotfix) ? _sprintVelocityLabel(sprintId) : '';
+    // Meta secundaria: velocity para activo, fecha de cierre para cerrado, effort estimado para planificado
+    const _velLabel = isActive ? _sprintVelocityLabel(sprintId) : '';
     const _metaText = isClosed
       ? (sprintObj?.closedAt ? `${sprintObj.version_target || ''} · cerrado ${sprintObj.closedAt}`.trim().replace(/^·\s*/, '') : (sprintObj?.version_target || ''))
       : isPlanned
@@ -618,7 +616,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
       ? _sortGroup(_doneInGroup).map(item => buildBacklogItem(item)).join('')
       : '';
 
-    html += `<div class="bl-vl-sprint-group${isHotfix ? ' sprint-group-hotfix' : ''}${isActive && !isHotfix ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}${isPlanned ? ' sprint-group-planned' : ''}" data-sprint-id="${esc(sprintId)}">`;
+    html += `<div class="bl-vl-sprint-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}${isPlanned ? ' sprint-group-planned' : ''}" data-sprint-id="${esc(sprintId)}">`;
     html += `<div class="bl-vl-sprint-header version-collapse-trigger" data-action="version-collapse" data-group-id="${groupId}" tabindex="0" role="button" aria-expanded="${isCollapsed ? 'false' : 'true'}">`;
     html += `<div class="bl-vl-sprint-header-row1">`;
     html += `<span class="version-header-arrow${isCollapsed ? ' collapsed' : ''}" id="varrow-${groupId}" aria-hidden="true">${isCollapsed ? '▸' : '▾'}</span>`;
@@ -688,7 +686,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
 
   // T-202606-090 AC-6 / TKT-C1: bloque "Icebox al final" eliminado de #backlog-list — los ítems
   // sin sprint (Q-Backlog/Q-DISC) se muestran en renderQBacklogPanel()/renderQDiscPanel() (sub-tabs).
-  // T-202606-091 AC-6: ítems con sprint HOTFIX excluidos del mismo modo — ver #sspanel-hotfix.
+  // TKT (REQ-[pendiente-ID]): ítems ITIL excluidos del mismo modo — ver #sspanel-qinc.
 
   // Cerradas — R/T/B descartado + P descartado + P promovida — bloque unificado
   // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado' y 'promovida')
@@ -1379,15 +1377,25 @@ window.addEventListener('shell:backlog-render-dirty', () => {
   if (panelD && panelD.classList.contains('active')) renderQDiscPanel();
 });
 
-// T-202606-091: renderHotfixPanel — render del panel Hotfix en #hotfix-panel-body.
-// Renderiza ítems con sprint que contiene 'HOTFIX' (case-insensitive) del proyecto activo.
-// Actualiza badge #tpl-badge-hotfix con conteo y prefijo 🔴 si hay activos con priority:high.
-// AC-2, AC-3, AC-5, AC-7, AC-8, AC-9, AC-10.
-export function renderHotfixPanel() {
-  const body = document.getElementById('hotfix-panel-body');
+// TKT (REQ-[pendiente-ID]): renderQIncPanel — render del panel Q-INC en #qinc-panel-body.
+// Renderiza ítems ITIL (INC/PRB/KE/CHG) cuya queue termina en '-Q-INC' del proyecto activo.
+// Agrupa por incidentStatus: detected/assigned/in_progress primero, resolved/closed al fondo.
+// Actualiza badge #tpl-badge-qinc con conteo y clase is-urgent si hay INC high vencido.
+// Reemplaza el panel legacy de incidentes por sprint — no_incluye: CSS de SLA (TKT-D3), labels/typeScores de
+// locus-backlog-core.js (TKT-C3 — ya completado en sesión previa).
+const SLA_RIESGO_WINDOW_MS = 21600000; // 6h — ventana de riesgo antes del vencimiento
+
+function _isQIncItem(i) {
+  return (i.queue || '').endsWith('-Q-INC') || ['INC', 'PRB', 'KE', 'CHG'].includes(itemKind(i));
+}
+
+// Estados ITIL "activos" — orden de grupo primero. resolved/closed van al fondo.
+const _QINC_ACTIVE_STATUSES = ['detected', 'assigned', 'in_progress', 'escalated_to_prb', 'escalated_to_chg'];
+
+export function renderQIncPanel() {
+  const body = document.getElementById('qinc-panel-body');
   if (!body) return;
 
-  // AC-8: sin proyecto activo — mismo empty state que backlog
   if (!_getActiveProjectFilter()) {
     body.innerHTML = `
       <div class="empty-state">
@@ -1395,105 +1403,130 @@ export function renderHotfixPanel() {
         <div class="empty-state-title">Selecciona un proyecto</div>
         <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
       </div>`;
-    const badge = document.getElementById('tpl-badge-hotfix');
+    const badge = document.getElementById('tpl-badge-qinc');
     if (badge) badge.textContent = '';
     return;
   }
 
-  const _isHotfixItem = i => (i.sprint || '').toUpperCase().includes('HOTFIX');
-  // AC-5: ítems hotfix del proyecto activo — excluir descartados del conteo y del render
-  const allHotfix = getItems().filter(_isHotfixItem);
+  // Ítems ITIL del proyecto activo — excluir descartados del conteo y del render
+  const allQInc = getItems().filter(_isQIncItem);
 
-  // AC-2: badge con conteo de no-descartados y no-historicos
-  // AC-3: prefijo 🔴 si hay al menos un activo con priority:high
-  const badge = document.getElementById('tpl-badge-hotfix');
+  // Badge: count de ítems activos (no closed/descartado); is-urgent si hay INC high vencido
+  const badge = document.getElementById('tpl-badge-qinc');
   if (badge) {
-    const countable   = allHotfix.filter(i => i.status !== 'historico' && i.status !== 'descartado');
-    const hasUrgent   = countable.some(i => (i.status === 'pendiente' || i.status === 'en-revision') && i.priority === 'high');
+    const countable = allQInc.filter(i => i.incidentStatus !== 'closed' && i.status !== 'descartado');
+    const _now = Date.now();
+    const hasUrgentVencido = countable.some(i =>
+      itemKind(i) === 'INC' && i.slaPriority === 'high' &&
+      typeof i.slaDeadline === 'number' && i.slaDeadline < _now
+    );
     if (!countable.length) {
       badge.textContent = '';
-      badge.classList.remove('tpl-nav-badge--danger');
+      badge.classList.remove('is-urgent');
     } else {
       badge.textContent = String(countable.length);
-      badge.classList.toggle('tpl-nav-badge--danger', hasUrgent);
+      badge.classList.toggle('is-urgent', hasUrgentVencido);
     }
   }
 
-  // AC-7: sin sprint HOTFIX (ningún ítem hotfix en el proyecto)
-  if (!allHotfix.length) {
+  if (!allQInc.length) {
     body.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-icon">🔥</div>
-        <div class="empty-state-title">No hay hotfixes registrados</div>
+        <div class="empty-state-icon">🚨</div>
+        <div class="empty-state-title">No hay incidentes activos en Q-INC</div>
       </div>`;
     return;
   }
 
-  // T-202606-005 (T2): stats-bar Hotfix — namespace propio aislado del state global de Backlog
-  const _hfTypes    = _nsGetTypes('hotfix');
-  const _hfPriority = _nsGetPriority('hotfix');
-  const _hfQuery    = (_nsGetQuery('hotfix') || '').trim().toLowerCase();
+  // Namespace propio 'qinc' — aislado del state global de Backlog
+  const _qiTypes    = _nsGetTypes('qinc');
+  const _qiPriority = _nsGetPriority('qinc');
+  const _qiQuery     = (_nsGetQuery('qinc') || '').trim().toLowerCase();
 
-  // Conteos para stats-bar (sobre universo completo, sin filtro de tipo/prioridad/búsqueda)
-  const _countByType = { INC: 0, TKT: 0, REQ: 0, DISC: 0 };
+  const _countByType = { INC: 0, PRB: 0, KE: 0, CHG: 0 };
   const _countByPri  = { high: 0, medium: 0, low: 0 };
-  const _displayable = allHotfix.filter(i => i.status !== 'descartado' && i.status !== 'historico');
+  const _displayable = allQInc.filter(i => i.status !== 'descartado' && i.incidentStatus !== 'closed');
   _displayable.forEach(i => {
     const t = itemKind(i);
     if (t && _countByType[t] !== undefined) _countByType[t]++;
-    const p = i.priority;
-    if (p === 'high' || p === 'important' || p === 'critical' || p === 'importante') _countByPri.high++;
-    else if (p === 'low' || p === 'futura' || p === 'baja') _countByPri.low++;
+    const p = i.slaPriority;
+    if (p === 'high') _countByPri.high++;
+    else if (p === 'low') _countByPri.low++;
     else _countByPri.medium++;
   });
 
-  // Stats-bar Hotfix: chips de tipo filtrables + chips de prioridad + búsqueda
-  // AC accesibilidad: foco visible via CSS + contraste 4.5:1 esperado del sistema de diseño
+  // Empty state cuando no hay ítems o todos closed/descartado se cubre arriba (allQInc.length).
+  // Si _displayable queda vacío (todos closed/descartado) pero allQInc tiene ítems, mostrar mismo empty state.
+  if (!_displayable.length) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🚨</div>
+        <div class="empty-state-title">No hay incidentes activos en Q-INC</div>
+      </div>`;
+    return;
+  }
+
   const _statsBarHtml = `
-    <div class="hotfix-stats-bar" id="hotfix-stats-bar">
-      <div class="hotfix-stats-types">
-        ${_hfTypes.size < 4 ? `<button class="stat-type-chip stat-type-chip--all" data-hf-action="hf-clear-types" title="Mostrar todos los tipos">✕</button>` : ''}
-        ${[['INC','INC'],['TKT','TKT'],['REQ','REQ']].map(([t, label]) =>
-          `<button class="stat-type-chip tc-${t.toLowerCase()}${_hfTypes.has(t) ? ' active' : ''}" data-hf-action="hf-type" data-hf-type="${t}" title="Filtrar por tipo ${t}">\
+    <div class="qinc-stats-bar" id="qinc-stats-bar">
+      <div class="qinc-stats-types">
+        ${_qiTypes.size < 4 ? `<button class="stat-type-chip stat-type-chip--all" data-qi-action="qi-clear-types" title="Mostrar todos los tipos">✕</button>` : ''}
+        ${[['INC','INC'],['PRB','PRB'],['KE','KE'],['CHG','CHG']].map(([t, label]) =>
+          `<button class="stat-type-chip tc-${t.toLowerCase()}${_qiTypes.has(t) ? ' active' : ''}" data-qi-action="qi-type" data-qi-type="${t}" title="Filtrar por tipo ${t}">\
 <span class="tc-count">${_countByType[t]}</span><span class="tc-label">${label}</span></button>`
         ).join('')}
       </div>
-      <div class="hotfix-stats-priority">
-        <button class="stat-pri-chip pri-high${_hfPriority.has('high') ? ' active' : ''}" data-hf-action="hf-priority" data-hf-priority="high" title="Filtrar prioridad alta"><span class="spc-n">${_countByPri.high}</span> Alto</button>
-        <button class="stat-pri-chip pri-medium${_hfPriority.has('medium') ? ' active' : ''}" data-hf-action="hf-priority" data-hf-priority="medium" title="Filtrar prioridad media"><span class="spc-n">${_countByPri.medium}</span> Med</button>
-        <button class="stat-pri-chip pri-low${_hfPriority.has('low') ? ' active' : ''}" data-hf-action="hf-priority" data-hf-priority="low" title="Filtrar prioridad baja"><span class="spc-n">${_countByPri.low}</span> Bajo</button>
+      <div class="qinc-stats-priority">
+        <button class="stat-pri-chip pri-high${_qiPriority.has('high') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="high" title="Filtrar SLA alta"><span class="spc-n">${_countByPri.high}</span> Alto</button>
+        <button class="stat-pri-chip pri-medium${_qiPriority.has('medium') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="medium" title="Filtrar SLA media"><span class="spc-n">${_countByPri.medium}</span> Med</button>
+        <button class="stat-pri-chip pri-low${_qiPriority.has('low') ? ' active' : ''}" data-qi-action="qi-priority" data-qi-priority="low" title="Filtrar SLA baja"><span class="spc-n">${_countByPri.low}</span> Bajo</button>
       </div>
-      <input class="hotfix-search-input" type="search" placeholder="Buscar hotfix…" value="${_hfQuery.replace(/"/g,'&quot;')}" data-hf-action="hf-search" aria-label="Buscar en hotfix">
+      <input class="qinc-search-input" type="search" placeholder="Buscar en Q-INC…" value="${_qiQuery.replace(/"/g,'&quot;')}" data-qi-action="qi-search" aria-label="Buscar en Q-INC">
     </div>`;
 
-  // Aplicar filtros del namespace hotfix para render de lista
-  const _matchesHfSearch = _hfQuery
-    ? i => i.code.toLowerCase().includes(_hfQuery) || (i.title || '').toLowerCase().includes(_hfQuery) || (i.area || '').toLowerCase().includes(_hfQuery)
+  const _matchesQiSearch = _qiQuery
+    ? i => i.code.toLowerCase().includes(_qiQuery) || (i.title || '').toLowerCase().includes(_qiQuery) || (i.area || '').toLowerCase().includes(_qiQuery)
     : () => true;
-  const filteredHotfix = _displayable.filter(i => {
+  const filteredQInc = _displayable.filter(i => {
     const t = itemKind(i);
-    const typeOk = t ? _hfTypes.has(t) : true;
-    const priOk  = _hfPriority.size === 0 || _hfPriority.has(i.priority) ||
-                   (_hfPriority.has('high') && (i.priority === 'important' || i.priority === 'critical' || i.priority === 'importante')) ||
-                   (_hfPriority.has('low')  && (i.priority === 'futura' || i.priority === 'baja'));
-    return typeOk && priOk && _matchesHfSearch(i);
+    const typeOk = t ? _qiTypes.has(t) : true;
+    const priOk  = _qiPriority.size === 0 || _qiPriority.has(i.slaPriority);
+    return typeOk && priOk && _matchesQiSearch(i);
   });
 
-  // AC — empty-state cuando el filtro activo deja 0 ítems
-  const _listHtml = filteredHotfix.length === 0
-    ? `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">Sin resultados</div><div class="empty-state-hint">Ningún hotfix coincide con el filtro activo.</div></div>`
+  const _now = Date.now();
+  function _qincItemClasses(item) {
+    const classes = [];
+    if (itemKind(item) === 'INC' && typeof item.slaDeadline === 'number') {
+      if (item.slaDeadline < _now) classes.push('qinc-item--sla-vencido');
+      else if (item.slaDeadline < _now + SLA_RIESGO_WINDOW_MS) classes.push('qinc-item--sla-riesgo');
+    }
+    return classes.join(' ');
+  }
+
+  function _buildQIncItemHtml(item) {
+    const _extraClasses = _qincItemClasses(item);
+    const _comportamiento = item.comportamientoActual
+      ? `<div class="qinc-item-comportamiento" data-qi-action="qi-toggle-comportamiento" data-qi-code="${esc(item.code || '')}">${esc(item.comportamientoActual)}</div>`
+      : '';
+    // buildBacklogItem genera el card base; se envuelve para inyectar clases SLA + comportamiento sin
+    // modificar la estructura interna que buildBacklogItem ya controla (mismo patrón que otros paneles).
+    return `<div class="qinc-item-wrap${_extraClasses ? ' ' + _extraClasses : ''}" data-qi-code="${esc(item.code || '')}">${buildBacklogItem(item)}${_comportamiento}</div>`;
+  }
+
+  const _listHtml = filteredQInc.length === 0
+    ? `<div class="empty-state"><div class="empty-state-icon">🔍</div><div class="empty-state-title">Sin resultados</div><div class="empty-state-hint">Ningún ítem coincide con el filtro activo.</div></div>`
     : (() => {
-        const activeHotfix   = filteredHotfix.filter(i => i.status === 'pendiente' || i.status === 'en-revision');
-        const resolvedHotfix = filteredHotfix.filter(i => i.status === 'done');
+        const _activeItems   = filteredQInc.filter(i => _QINC_ACTIVE_STATUSES.includes(i.incidentStatus));
+        const _resolvedItems = filteredQInc.filter(i => !_QINC_ACTIVE_STATUSES.includes(i.incidentStatus));
         let h = '';
-        if (activeHotfix.length) {
-          h += '<div class="hotfix-section"><div class="hotfix-section-header">Activos</div><div class="items-grid">';
-          activeHotfix.forEach(item => { h += buildBacklogItem(item); });
+        if (_activeItems.length) {
+          h += '<div class="qinc-section"><div class="qinc-section-header">Activos</div><div class="items-grid">';
+          _activeItems.forEach(item => { h += _buildQIncItemHtml(item); });
           h += '</div></div>';
         }
-        if (resolvedHotfix.length) {
-          h += '<div class="hotfix-section"><div class="hotfix-section-header">Resueltos</div><div class="items-grid">';
-          resolvedHotfix.forEach(item => { h += buildBacklogItem(item); });
+        if (_resolvedItems.length) {
+          h += '<div class="qinc-section"><div class="qinc-section-header">Resueltos</div><div class="items-grid">';
+          _resolvedItems.forEach(item => { h += _buildQIncItemHtml(item); });
           h += '</div></div>';
         }
         return h;
@@ -1501,48 +1534,57 @@ export function renderHotfixPanel() {
 
   body.innerHTML = _statsBarHtml + _listHtml;
 
-  // Delegación de eventos en stats-bar Hotfix — registrada una sola vez por render
-  const _hfBar = body.querySelector('#hotfix-stats-bar');
-  if (_hfBar && !_hfBar._delegationAttached) {
-    _hfBar._delegationAttached = true;
-    _hfBar.addEventListener('click', function _hfBarClick(e) {
-      const el = e.target.closest('[data-hf-action]');
+  const _qiBar = body.querySelector('#qinc-stats-bar');
+  if (_qiBar && !_qiBar._delegationAttached) {
+    _qiBar._delegationAttached = true;
+    _qiBar.addEventListener('click', function _qiBarClick(e) {
+      const el = e.target.closest('[data-qi-action]');
       if (!el) return;
-      const act = el.dataset.hfAction;
-      if (act === 'hf-clear-types') {
-        _nsReset('hotfix');
-        renderHotfixPanel();
-      } else if (act === 'hf-type') {
-        _nsToggleType('hotfix', el.dataset.hfType);
-        renderHotfixPanel();
-      } else if (act === 'hf-priority') {
-        _nsTogglePriority('hotfix', el.dataset.hfPriority);
-        renderHotfixPanel();
+      const act = el.dataset.qiAction;
+      if (act === 'qi-clear-types') {
+        _nsReset('qinc');
+        renderQIncPanel();
+      } else if (act === 'qi-type') {
+        _nsToggleType('qinc', el.dataset.qiType);
+        renderQIncPanel();
+      } else if (act === 'qi-priority') {
+        _nsTogglePriority('qinc', el.dataset.qiPriority);
+        renderQIncPanel();
       }
     });
-    // Búsqueda con debounce ligero
-    const _hfSearchInput = _hfBar.querySelector('[data-hf-action="hf-search"]');
-    if (_hfSearchInput) {
-      let _hfSearchTimer;
-      _hfSearchInput.addEventListener('input', function () {
-        clearTimeout(_hfSearchTimer);
-        _hfSearchTimer = setTimeout(() => {
-          _nsSetQuery('hotfix', this.value);
-          renderHotfixPanel();
+    const _qiSearchInput = _qiBar.querySelector('[data-qi-action="qi-search"]');
+    if (_qiSearchInput) {
+      let _qiSearchTimer;
+      _qiSearchInput.addEventListener('input', function () {
+        clearTimeout(_qiSearchTimer);
+        _qiSearchTimer = setTimeout(() => {
+          _nsSetQuery('qinc', this.value);
+          renderQIncPanel();
         }, 200);
       });
     }
   }
+
+  // Delegación de click en comportamientoActual — expandir/colapsar independiente de la stats-bar.
+  // Registrada sobre body (persiste entre re-renders sin necesitar flag por elemento).
+  if (!body._qiComportamientoDelegationAttached) {
+    body._qiComportamientoDelegationAttached = true;
+    body.addEventListener('click', function (e) {
+      const el = e.target.closest('[data-qi-action="qi-toggle-comportamiento"]');
+      if (!el) return;
+      el.classList.toggle('expanded');
+    });
+  }
 }
 
-// T-202606-091: listener shell:render-hotfix — despachado por switchSubTab en locus-ui-shell.js
-// AC-9: proyecto cambiado con sub-tab Hotfix activo → re-render automático vía este evento
-window.addEventListener('shell:render-hotfix', () => { renderHotfixPanel(); });
+// TKT (REQ-[pendiente-ID]): listener shell:render-qinc — despachado por switchSubTab en locus-ui-shell.js
+// Proyecto cambiado con sub-tab Q-INC activo → re-render automático vía este evento.
+window.addEventListener('shell:render-qinc', () => { renderQIncPanel(); });
 
-// T-202606-091: re-render del panel hotfix cuando el backlog cambia y el panel está activo
+// Re-render del panel Q-INC cuando el backlog cambia y el panel está activo
 window.addEventListener('shell:backlog-render-dirty', () => {
-  const panel = document.getElementById('sspanel-hotfix');
-  if (panel && panel.classList.contains('active')) renderHotfixPanel();
+  const panel = document.getElementById('sspanel-qinc');
+  if (panel && panel.classList.contains('active')) renderQIncPanel();
 });
 
 // T-202606-092: renderHistoricoPanel — render del panel Histórico en #sspanel-historico.
@@ -1640,9 +1682,11 @@ window.addEventListener('shell:backlog-render-dirty', () => {
 });
 
 // T-202606-093: T4 · _updateSubtabBadges — actualización reactiva de los cuatro badges
-// (backlog, q-backlog, q-disc, hotfix, histórico) independiente de cuál sub-tab/panel esté activo.
+// (backlog, q-backlog, q-disc, qinc, histórico) independiente de cuál sub-tab/panel esté activo.
 // TKT-C1: badgeIcebox (tpl-badge-icebox, Gen1) → badgeQBacklog (tpl-badge-qbacklog) +
 //   badgeQDisc (tpl-badge-qdisc) — reutiliza _isQBacklog/_isQDisc/_zoneStaleness.
+// TKT (REQ-[pendiente-ID]): badge legacy → badgeQinc — reutiliza la misma lógica de
+//   renderQIncPanel (countable por incidentStatus !== 'closed', is-urgent por INC high vencido).
 // Reutiliza exactamente la lógica de conteo de cada render*Panel — no reimplementa
 // criterios de staleness/urgencia/archivo, solo el cálculo de badge en aislado.
 // AC-1, AC-5, AC-6.
@@ -1650,14 +1694,14 @@ export function _updateSubtabBadges() {
   const badgeBacklog   = document.getElementById('tpl-badge-backlog');
   const badgeQBacklog  = document.getElementById('tpl-badge-qbacklog');
   const badgeQDisc     = document.getElementById('tpl-badge-qdisc');
-  const badgeHotfix    = document.getElementById('tpl-badge-hotfix');
+  const badgeQinc      = document.getElementById('tpl-badge-qinc');
   const badgeHistorico = document.getElementById('tpl-badge-historico');
 
   // AC-6: getItems() vacío → todos los badges quedan vacíos, nunca '0'
   const items = getItems();
 
   // T-202606-004: badge del subtab Backlog — cuenta Rs/Ts activos (pendiente/en-revision)
-  // en sprint real (no Q-Backlog/Q-DISC, no HOTFIX) con status active o scheduled (programado).
+  // en sprint real (no Q-Backlog/Q-DISC) con status active o scheduled (programado).
   // Sin prefijo de urgencia, '' en vez de '0'.
   if (badgeBacklog) {
     const _extractSprintId = s => (s || '').split(' · ')[0].trim();
@@ -1667,7 +1711,6 @@ export function _updateSubtabBadges() {
       if (t !== 'REQ' && t !== 'TKT') return false;
       const sId = _extractSprintId(i.sprint);
       if (!sId || _isQBacklog(i) || _isQDisc(i)) return false;
-      if (sId.toUpperCase().includes('HOTFIX')) return false;
       const sprint = getActiveSprints().find(s => s.id === sId);
       if (!sprint) return false;
       return sprint.status === 'active' || sprint.status === 'scheduled';
@@ -1700,18 +1743,22 @@ export function _updateSubtabBadges() {
     }
   }
 
-  if (badgeHotfix) {
-    const _isHotfix = i => (i.sprint || '').toUpperCase().includes('HOTFIX');
-    const allHotfix = items.filter(_isHotfix);
-    const countable = allHotfix.filter(i => i.status !== 'historico' && i.status !== 'descartado');
+  // TKT (REQ-[pendiente-ID]): badge Q-INC — ítems ITIL no closed/descartado, is-urgent
+  // si hay INC high con slaDeadline vencido. Misma lógica que el badge en renderQIncPanel.
+  if (badgeQinc) {
+    const allQInc = items.filter(_isQIncItem);
+    const countable = allQInc.filter(i => i.incidentStatus !== 'closed' && i.status !== 'descartado');
     if (!countable.length) {
-      badgeHotfix.textContent = '';
-      badgeHotfix.classList.remove('tpl-nav-badge--danger');
+      badgeQinc.textContent = '';
+      badgeQinc.classList.remove('is-urgent');
     } else {
-      const activeHotfix = allHotfix.filter(i => i.status === 'pendiente' || i.status === 'en-revision');
-      const hasUrgent = activeHotfix.some(i => i.priority === 'high');
-      badgeHotfix.textContent = String(countable.length);
-      badgeHotfix.classList.toggle('tpl-nav-badge--danger', hasUrgent);
+      const _now = Date.now();
+      const hasUrgentVencido = countable.some(i =>
+        itemKind(i) === 'INC' && i.slaPriority === 'high' &&
+        typeof i.slaDeadline === 'number' && i.slaDeadline < _now
+      );
+      badgeQinc.textContent = String(countable.length);
+      badgeQinc.classList.toggle('is-urgent', hasUrgentVencido);
     }
   }
 

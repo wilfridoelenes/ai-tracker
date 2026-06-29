@@ -1,4 +1,11 @@
-// [PP] mod:57 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:58 · autor:Rune · 2026-06-28 UTC-6
+// TKT-A2 (REQ-[pendiente-ID]): Q-INC reemplaza S-HOTFIX como zona ITIL.
+//   namespace _subtabNS.hotfix → qinc (types INC/PRB/KE/CHG); gate de sprint S-HOTFIX
+//   reemplazado por gate de queue Q-INC con mensaje canónico BR-Core §6; universo
+//   _getCountableBaseForSubtab('hotfix') → ('qinc') sobre campo item.queue; activeTypes
+//   por defecto amplía de 4 a 7 tipos Gen2 (TKT/REQ/INC/DISC/PRB/KE/CHG) — clearTypeFilters,
+//   toggleTypeFilter, clearAllFilters y reset de filter-panel actualizados consistentemente;
+//   typeScores de _calcRelevanceScore incluye PRB:20/KE:15/CHG:10. __BR-Execution §2.
 // TKT-C1b (REQ-C): wrapper transitorio _isIcebox eliminado — TKT-C1 (locus-backlog-render.js
 //   mod:45) ya no la importa. Comentarios de INC-[pendiente-ID] y referencia a renderIceboxPanel
 //   retirados. __BR-Execution §2 Sin retrocompatibilidad.
@@ -192,9 +199,10 @@ export function _updateUndoUI() {
 
 let backlogSearchQuery = '';
 
-// T-202606-005 (T2): namespaces de filtro aislados por subtab — q-backlog y hotfix tienen su
+// T-202606-005 (T2): namespaces de filtro aislados por subtab — q-backlog y qinc tienen su
 // propio state independiente del state global de Backlog (activeTypes/activeStatuses/etc).
 // Cold start: todos los tipos/statuses habilitados, searchQuery vacío — sin herencia del global.
+// TKT-A2: namespace de cola ITIL legacy reemplazado por 'qinc' — zona acepta INC/PRB/KE/CHG.
 const _subtabNS = {
   'q-backlog': {
     types:    new Set(['TKT','REQ','INC','DISC']),
@@ -202,9 +210,9 @@ const _subtabNS = {
     priority: new Set(),
     query:    ''
   },
-  hotfix: {
-    types:    new Set(['TKT','REQ','INC','DISC']),
-    statuses: new Set(['pendiente','en-revision','done','descartado','promoted']),
+  qinc: {
+    types:    new Set(['INC','PRB','KE','CHG']),
+    statuses: new Set(['detected','assigned','in_progress','resolved','closed','escalated_to_prb','escalated_to_chg','descartado']),
     priority: new Set(),
     query:    ''
   }
@@ -269,7 +277,9 @@ let _backlogKanbanMode = _backlogViewModeRaw === 'kanban';
 const _collapsedChildren = new Set();
 
 // T-049: window.state de filtros mixtos
-let activeTypes = new Set(['TKT','REQ','INC','DISC']);
+// TKT-A2: activeTypes por defecto incluye los 7 tipos Gen2 — PRB/KE/CHG no quedan
+// filtrados fuera por default aunque normalmente vivan en Q-INC, no en el Backlog regular.
+let activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','KE','CHG']);
 // T-202606-021: clave canónica para persistencia de activeStatuses
 const _ACTIVE_STATUSES_KEY = 'locus-active-statuses';
 function _loadActiveStatuses() {
@@ -484,7 +494,8 @@ export function _calcRelevanceScore(item, allSessionsCache) { // B-202605-009: a
   let score = 0;
 
   // 1. TIPO — urgencia intrínseca (0–25)
-  const typeScores = { INC: 25, TKT: 18, REQ: 12, DISC: 6 };
+  // TKT-A2: PRB/KE/CHG agregados — viven en Q-INC, score relativo entre INC(25) y DISC(6)
+  const typeScores = { INC: 25, TKT: 18, REQ: 12, PRB: 20, KE: 15, CHG: 10, DISC: 6 };
   const type = itemKind(item) || 'TKT';
   score += typeScores[type] ?? 10;
 
@@ -798,24 +809,20 @@ function _normalizeItems(items) {
       'backlog');
   });
 
-  // T-202606-038: validar asignación a sprint HOTFIX — solo INC con priority: high
-  // Cualquier ítem que no cumpla ambas condiciones: sprint limpiado (sin sprint) con DocLog.
-  // BR-Core §6: [Prefijo]-S-HOTFIX solo acepta INC con priority: high.
+  // TKT-A2: gate de asignación a Q-INC — solo INC/PRB/KE/CHG pueden vivir en queue [Prefijo]-Q-INC.
+  // BR-Core §6: Q-INC solo acepta INC/PRB/KE/CHG — ningún REQ, TKT ni DISC puede asignarse a Q-INC.
   items.forEach(item => {
-    if (!item.sprint || !item.sprint.endsWith('-S-HOTFIX')) return;
-    const isValidInc   = item.type === 'INC';
-    const isValidPrio = item.priority === 'high';
-    if (!isValidInc || !isValidPrio) {
-      const reason = !isValidInc
-        ? `tipo ${item.type} — S-HOTFIX solo acepta INC`
-        : `priority ${item.priority} — S-HOTFIX solo acepta priority: high`;
+    if (!item.queue || !item.queue.endsWith('-Q-INC')) return;
+    const _qincTypes = ['INC', 'PRB', 'KE', 'CHG'];
+    const _type = itemKind(item);
+    if (!_qincTypes.includes(_type)) {
       _blogLog(
-        'hotfix-rejected',
+        'qinc-rejected',
         item.code || '(sin código)',
-        `${item.sprint} rechazado: ${reason} → sprint limpiado (movido a Q-Backlog)`,
+        `Q-INC solo acepta INC/PRB/KE/CHG — ${_type || item.type} ${item.code || '(sin código)'} no puede asignarse a esta zona`,
         'backlog'
       );
-      delete item.sprint; // sin sprint = Q-Backlog canónico
+      delete item.queue; // tipo no válido para Q-INC — queue limpiado
     }
   });
 
@@ -926,20 +933,20 @@ export function itemKind(item) {
 // T-049 (histórico): versión original operaba sobre T/R/B/P
 // B-202604-146: reset explícito de filtros de tipo
 function clearTypeFilters() {
-  activeTypes = new Set(['TKT','REQ','INC','DISC']);
+  activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','KE','CHG']);
   updateTypeFilterUI();
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
 export function toggleTypeFilter(type) {
-  const allActive = activeTypes.size === 4; // TKT/REQ/DISC/INC
+  const allActive = activeTypes.size === 7; // TKT/REQ/DISC/INC/PRB/KE/CHG
   if (allActive) {
     // primer click: desactiva todos, activa solo el clickeado
     activeTypes = new Set([type]);
   } else if (activeTypes.has(type)) {
     // click en activo: si es el único, restaura todos
     if (activeTypes.size === 1) {
-      activeTypes = new Set(['TKT','REQ','INC','DISC']);
+      activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','KE','CHG']);
     } else {
       activeTypes.delete(type);
     }
@@ -973,7 +980,7 @@ function updateTypeFilterUI() {
   });
   // B-UX: indicar visualmente cuando todos los tipos están activos = estado neutro "sin filtro"
   const sTypesEl = document.querySelector('.stat-card.s-types');
-  if (sTypesEl) sTypesEl.classList.toggle('s-types--all-active', activeTypes.size === 4);
+  if (sTypesEl) sTypesEl.classList.toggle('s-types--all-active', activeTypes.size === 7);
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
 }
 
@@ -1552,9 +1559,9 @@ export function _getCountableBaseForSubtab(sub) {
     // universo Q-DISC: DISC sin sprint asignado
     return ITEMS.filter(i => _isQDisc(i) && i.status !== 'descartado' && i.status !== 'historico');
   }
-  if (sub === 'hotfix') {
-    // AC6 — universo Hotfix: ítems cuyo sprint matchea el sprint S-HOTFIX activo del proyecto
-    return ITEMS.filter(i => i.sprint && i.sprint.endsWith('-S-HOTFIX') && i.status !== 'descartado' && i.status !== 'historico');
+  if (sub === 'qinc') {
+    // TKT-A2: universo Q-INC — ítems ITIL (INC/PRB/KE/CHG) cuya queue es la Q-INC del proyecto
+    return ITEMS.filter(i => i.queue && i.queue.endsWith('-Q-INC') && i.status !== 'descartado' && i.status !== 'historico');
   }
   if (sub === 'historico') {
     // Edge case AC — universo Histórico: status historico, excluido explícitamente de _getCountableBase()
@@ -1566,8 +1573,8 @@ export function _getCountableBaseForSubtab(sub) {
 
 export function renderStats() {
   // T-202606-098 (T1): renderStats() es exclusiva del subtab Backlog.
-  // Icebox/Hotfix/Histórico tienen sus propias funciones de stats-bar (renderIceboxStats,
-  // renderHotfixStats, renderHistoricoStats) — invocadas desde sus propios call sites.
+  // Icebox/Qinc/Histórico tienen sus propias funciones de stats-bar (renderIceboxStats,
+  // renderQincStats, renderHistoricoStats) — invocadas desde sus propios call sites.
   // Early-return para cualquier subtab distinto de 'backlog'.
   const _activeSub = getCurrentSubTab ? getCurrentSubTab() : 'backlog';
   if (_activeSub !== 'backlog') return;
@@ -1812,7 +1819,7 @@ export function toggleSectionGroup(key) {
 
 // T-109: limpiar todos los filtros
 export function clearAllFilters() {
-  activeTypes = new Set(['TKT','REQ','INC','DISC']);
+  activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','KE','CHG']);
   activeStatuses = new Set(['pendiente', 'en-revision']);
   try { localStorage.removeItem(_ACTIVE_STATUSES_KEY); } catch {} // T-202606-021: reset persiste
   activeEfforts = new Set([1, 2, 3]); // T-071
@@ -2463,7 +2470,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (_backlogNoAcMode) toggleBacklogNoAcMode();
       if (_depsFilter > 0) _resetDepsFilter();
       // AC11: resetear activeTypes al conjunto completo
-      activeTypes = new Set(['TKT','REQ','INC','DISC']);
+      activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','KE','CHG']);
       updateTypeFilterUI();
       if (localStorage.getItem('backlog-show-children') === '1') {
         const _tbHijos = document.getElementById('fbar-show-children-btn');
