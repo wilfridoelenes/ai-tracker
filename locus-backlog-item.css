@@ -790,7 +790,6 @@
 
 /* ══ END T-202604-202 ══ */
 
-
 /* === locus-backlog-panel.js ===
    Funciones: openItemPanel · closeItemPanel · _renderItemPanel · _buildPanelTimeline */
 
@@ -2541,98 +2540,6 @@
   pointer-events: none;
 }
 
-.bl-footer-counters {
-  display: flex;
-  gap: .35rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.bl-footer-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: .2rem;
-  padding: .18rem .45rem;
-  border-radius: var(--radius-md-plus);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  background: var(--surface2);
-  color: var(--text2);
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: var(--trans-color);
-}
-
-.bl-footer-badge:hover,
-.bl-footer-badge--active {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--text);
-}
-
-.bl-footer-badge--type-req {
-  --bl-dot: var(--blue);
-}
-
-.bl-footer-badge--type-tkt {
-  --bl-dot: var(--green);
-}
-
-.bl-footer-badge--type-inc {
-  --bl-dot: var(--red);
-}
-
-.bl-footer-badge--type-disc {
-  --bl-dot: var(--purple);
-}
-
-.bl-footer-dot {
-  width: 7px; height: 7px;
-  border-radius: var(--radius-pill);
-  background: var(--bl-dot, var(--text2));
-  flex-shrink: 0;
-}
-
-.bl-footer-sep {
-  width: 1px;
-  height: 18px;
-  background: var(--border);
-  margin: 0 .15rem;
-  flex-shrink: 0;
-}
-
-.bl-footer-toggle-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  padding: .2rem 0;
-  gap: .4rem;
-}
-
-.bl-footer-toggle {
-  background: none;
-  border: none;
-  color: var(--text2);
-  font-size: var(--text-2xs-plus);
-  cursor: pointer;
-  padding: .15rem .3rem;
-  border-radius: var(--radius-sm);
-  line-height: 1;
-  transition: var(--trans-color);
-}
-
-.bl-footer-toggle:hover {
-  color: var(--text);
-  background: var(--surface2);
-}
-
-.bl-footer-summary {
-  font-size: var(--text-2xs);
-  color: var(--text2);
-  flex: 1;
-}
-
 /* END T-202604-360 */
 
 /* ── T-202604-361: Sprint Roadmap — chip activo fijo y prominente ── */
@@ -2792,20 +2699,6 @@
   border-top: 1px solid var(--border);
   box-shadow: 0 -3px 12px rgb(0 0 0 / 30%);
   padding: 0 .75rem;
-}
-
-.bl-footer-meta {
-  font-size: var(--text-2xs);
-  color: var(--text2);
-  flex-shrink: 0;
-}
-
-.bl-footer-counts {
-  display: flex;
-  gap: .35rem;
-  align-items: center;
-  flex: 1;
-  flex-wrap: wrap;
 }
 
 .bl-fc {
@@ -3310,7 +3203,6 @@ body {
   background: color-mix(in srgb, var(--accent, var(--purple)) 18%, transparent);
   border-color: var(--accent, var(--purple));
 }
-
 
   .rsb-sprint-create-btn:hover {
     background: color-mix(in srgb, var(--accent) 18%, transparent);
