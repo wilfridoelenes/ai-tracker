@@ -7875,3 +7875,45 @@ body.radar-sb-open .tracker-sidebar {
 }
 
 /* ── END T-202606-016 ──────────────────────────────────────────────────────── */
+
+/* ══ preview-bloqueantes — campo Bloqueantes en preview de CHECKPOINT ══ */
+/* locus-session-parse.js — _renderBloqueantes() */
+
+.preview-bloqueantes {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  font-size: var(--text-2xs-plus);
+  line-height: 1.4;
+  padding: 2px 0;
+}
+
+.preview-bloqueantes--ok .preview-bloqueantes-val {
+  color: var(--hint);
+  font-style: italic;
+}
+
+.preview-bloqueantes--ref .preview-bloqueantes-val {
+  color: var(--text2);
+}
+
+.preview-bloqueantes--warn .preview-bloqueantes-val {
+  color: var(--amber, #e8a832);
+}
+
+.preview-bloqueantes-ref {
+  font-family: var(--mono);
+  font-size: var(--text-2xs);
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 10%, transparent);
+  padding: 0 3px;
+  border-radius: var(--radius-3xs);
+}
+
+.preview-bloqueantes-hint {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  font-style: italic;
+}
+
+/* ══ END preview-bloqueantes ══ */

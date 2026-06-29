@@ -1558,22 +1558,6 @@
   margin-left: 3px;
 }
 
-.radar-card-value--sm {
-  font-size: var(--text-md);
-}
-
-.radar-card-value--truncate {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.radar-card-value-secondary {
-  color: var(--hint);
-  font-weight: 400;
-  font-size: var(--text-sm);
-}
-
 /* renderHoy — hoy-empty message */
 .hoy-empty-msg {
   margin-bottom: 10px;
@@ -3420,90 +3404,6 @@ body {
   border-color: var(--accent);
 }
 
-/* ── Mini-formulario inline de nuevo sprint dentro del DIFF ── */
-.mdiff-new-sprint-form {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  flex-shrink: 0;
-  width: 100%;
-  max-width: 300px;
-}
-
-.mdiff-new-sprint-inp,
-.mdiff-new-sprint-goal,
-.mdiff-new-sprint-vt {
-  height: 24px;
-  padding: 0 7px;
-  font-size: var(--text-xs);
-  font-family: inherit;
-  color: var(--text);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  width: 100%;
-  box-sizing: border-box;
-}
-
-.mdiff-new-sprint-inp:focus,
-.mdiff-new-sprint-goal:focus,
-.mdiff-new-sprint-vt:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: 1px;
-  border-color: var(--accent);
-}
-
-.mdiff-new-sprint-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.mdiff-new-sprint-row .mdiff-new-sprint-vt {
-  width: 60px;
-  flex-shrink: 0;
-}
-
-.mdiff-new-sprint-rt {
-  height: 24px;
-  padding: 0 4px;
-  font-size: var(--text-xs);
-  font-family: inherit;
-  color: var(--text2);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xs);
-  flex-shrink: 0;
-}
-
-.mdiff-new-sprint-cancel {
-  height: 24px;
-  padding: 0 7px;
-  font-size: var(--text-xs);
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border);
-  cursor: pointer;
-  flex-shrink: 0;
-  transition: var(--trans-color);
-  background: var(--surface);
-  color: var(--text2);
-}
-
-.mdiff-new-sprint-confirm {
-  background: var(--accent);
-  color: var(--bg);
-  border-color: var(--accent);
-  font-weight: 600;
-}
-
-.mdiff-new-sprint-confirm:hover {
-  opacity: 0.85;
-}
-
-.mdiff-new-sprint-cancel:hover {
-  background: var(--surface2);
-}
-
 /* ══ END R-202605-148 ══ */
 
 /* ═══ §15 CSS Purity — backlog.js migration — migrado desde locus-proyectos.css ═══ */
@@ -4226,3 +4126,74 @@ body {
   color: var(--text2);
 }
 /* ── END T-202606-001 ── */
+
+/* ══ mdiff-icebox — Gate de ítems Q-Backlog relacionados al sprint en merge diff ══ */
+/* locus-backlog-merge.js */
+
+.mdiff-icebox-gate {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--blue) 5%, var(--surface2));
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mdiff-icebox-gate-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mdiff-icebox-gate-desc {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.mdiff-icebox-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mdiff-icebox-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface3);
+  border: 1px solid var(--border);
+}
+
+.mdiff-icebox-code {
+  font-family: var(--mono);
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  flex-shrink: 0;
+}
+
+.mdiff-icebox-title {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mdiff-icebox-area {
+  font-size: var(--text-3xs);
+  color: var(--hint);
+  flex-shrink: 0;
+  background: var(--surface2);
+  padding: 1px 4px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border);
+}
+
+/* ══ END mdiff-icebox ══ */

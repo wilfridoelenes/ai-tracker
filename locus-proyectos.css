@@ -414,67 +414,6 @@
     margin-bottom: 1.25rem;
   }
 
-  .radar-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md-plus);
-    padding: 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    transition: border-color 0.15s, box-shadow 0.15s;
-  }
-
-  .radar-card:hover {
-    border-color: var(--border2);
-    box-shadow: 0 2px 8px rgb(0 0 0 / 12%);
-  }
-
-  .radar-card-accent {
-    border-color: var(--accent-border);
-    background: var(--accent-dim);
-  }
-
-  .radar-card-streak {
-    border-color: rgb(232 168 50 / 35%);
-    background: rgb(232 168 50 / 5%);
-  }
-
-  .radar-card-label {
-    font-size: var(--text-2xs);
-    font-weight: 600;
-    color: var(--hint);
-    text-transform: uppercase;
-    letter-spacing: 0.07em;
-    line-height: 1.3;
-  }
-
-  .radar-card-value {
-    font-family: var(--mono);
-    font-size: var(--text-xl);
-    font-weight: 700;
-    color: var(--text);
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-  }
-
-  .radar-card-accent .radar-card-value {
-    color: var(--accent);
-  }
-
-  .radar-card-streak .radar-card-value {
-    color: var(--amber);
-  }
-
-  .radar-card-sub {
-    font-size: var(--text-2xs-plus);
-    color: var(--text2);
-    line-height: 1.4;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
   /* ── Radar Footer ────────────────────────────────────────────────────── */
   .radar-footer {
     display: flex;
@@ -1131,46 +1070,6 @@
   background: var(--bg-card, rgb(255 255 255 / 7%));
 }
 
-.quick-note-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgb(0 0 0 / 55%);
-  z-index: var(--z-panel-top);
-  align-items: center;
-  justify-content: center;
-  backdrop-filter: blur(2px);
-}
-
-.quick-note-overlay.open {
-  display: flex;
-}
-
-.quick-note-box {
-  background: var(--bg-modal, #1e2230);
-  border: 1px solid var(--border-color, rgb(255 255 255 / 10%));
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  width: min(440px, 92vw);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  box-shadow: 0 8px 32px rgb(0 0 0 / 45%);
-  animation: scaleIn 0.15s ease;
-}
-
-.quick-note-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.quick-note-title {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--text-primary, #e8eaf0);
-}
-
 .qn-header-actions {
   display: flex;
   align-items: center;
@@ -1237,53 +1136,8 @@
   font-size: var(--text-2xs-plus);
 }
 
-.quick-note-textarea {
-  width: 100%;
-  background: var(--bg-input, rgb(255 255 255 / 5%));
-  border: 1px solid var(--border-color, rgb(255 255 255 / 12%));
-  border-radius: var(--radius-md);
-  color: var(--text-primary, #e8eaf0);
-  font-family: inherit;
-  font-size: var(--text-sm);
-  line-height: 1.5;
-  padding: 10px 12px;
-  resize: vertical;
-  min-height: 90px;
-  box-sizing: border-box;
-  outline: none;
-  transition: var(--trans-color);
-}
-
-.quick-note-textarea:focus {
-  border-color: var(--accent, var(--purple));
-}
-
 .qn-ref-wrap {
   position: relative;
-}
-
-.quick-note-ref {
-  width: 100%;
-  background: var(--bg-input, rgb(255 255 255 / 5%));
-  border: 1px solid var(--border-color, rgb(255 255 255 / 12%));
-  border-radius: var(--radius-md);
-  color: var(--text-primary, #e8eaf0);
-  font-family: var(--font-mono, 'JetBrains Mono', monospace);
-  font-size: var(--text-xs);
-  padding: 8px 12px;
-  box-sizing: border-box;
-  outline: none;
-  transition: var(--trans-color);
-}
-
-.quick-note-ref:focus {
-  border-color: var(--accent, var(--purple));
-}
-
-.quick-note-ref::placeholder {
-  font-family: inherit;
-  font-size: var(--text-xs);
-  opacity: 0.45;
 }
 
 .qn-ac-list {
@@ -1329,13 +1183,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.quick-note-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 2px;
 }
 
 /* ══ END T-202604-268/270 ══ */
@@ -2905,7 +2752,6 @@
 
 /* T-202604-CSS-BACKLOG: CSS Purity backlog.js — migrado a locus-backlog-item.css */
 
-
 /* ══════════════════════════════════════════════════════════════
    MIGRATED FROM JS — T-202604-342 JS Cleanup
    ══════════════════════════════════════════════════════════════ */
@@ -3632,7 +3478,6 @@
 
 /* R-202605-005 · mdiff-* compactos — migrado a locus-backlog-item.css */
 
-
 /* B-202605-004 · A4 — clases fantasma: proyectos */
 
 /* proj-blocked-section — contenedor de ítems bloqueados en vista proyecto (locus-projects.js) */
@@ -3958,7 +3803,6 @@
   border-radius: var(--radius-pill);
   white-space: nowrap;
 }
-
 
 /* ══ Migrado desde locus-backlog.css — R-202605-068 ══ */
 /* Scope: sesiones de proyecto y analytics por proyecto (pertenecen a locus-proyectos.css) */

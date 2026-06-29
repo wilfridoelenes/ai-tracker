@@ -434,3 +434,58 @@
 }
 
 /* ══ FIN HISTÓRICO UNIFICADO ══════════════════════════════════════════ */
+
+/* ══ arch-legacy — sección ítems legacy (sin sprint cerrado) en Histórico ══ */
+/* locus-backlog-archive.js — _renderLegacySection() */
+
+.arch-legacy-section {
+  margin-top: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.arch-legacy-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+
+.arch-legacy-title {
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  flex: 1;
+}
+
+.arch-legacy-count {
+  font-size: var(--text-2xs);
+  font-family: var(--mono);
+  color: var(--hint);
+  background: var(--surface3);
+  padding: 1px 5px;
+  border-radius: var(--radius-pill);
+}
+
+.arch-legacy-purge-btn {
+  font-size: var(--text-2xs);
+  color: var(--red);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
+  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: var(--trans-fast);
+}
+
+.arch-legacy-purge-btn:hover {
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  border-color: var(--red);
+}
+
+/* ══ END arch-legacy ══ */
