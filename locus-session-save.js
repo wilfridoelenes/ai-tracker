@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:47 · autor:Rune · 2026-06-26 17:08 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:48 · autor:Rune · 2026-06-28 UTC-6
 // locus-session-save.js
 // Última actualización: B-202606-105 — CHANGELOG_KEY local eliminada, usa LOCUS_KEYS.CHANGELOG
 // (locus-storage.js) como fuente única de verdad de la clave de changelog.
@@ -448,8 +448,8 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
       if (_spCreated) _applySprintInheritanceToItems(_tgItemsForPanel, _spCreated);
     };
   }
-  // T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para B con triggered_by en sprint activo.
-  // No-bloqueante: si el founder ignora, el B se ingesta con sprint: icebox (default).
+  // T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para INC con triggered_by en sprint activo.
+  // No-bloqueante: si el founder ignora, el INC se ingesta sin sprint (Q-Backlog, default).
   const _tgSuggestion = _buildTriggeredBySuggestion(_tgItemsForPanel);
   if (_tgSuggestion) {
     _ckptMeta.triggeredBySuggestion = {
