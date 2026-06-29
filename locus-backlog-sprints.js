@@ -1,4 +1,15 @@
-// [PP] v0.7.0 · sprint:PP-S-08 · mod:29 · autor:Rune · 2026-06-27 UTC-6
+// [PP] mod:30 · autor:Rune · 2026-06-29 UTC-6
+// TKT-PARSER-sprints (REQ-[pendiente-ID] · retro Q-INC, gate cierre sin isHotfix):
+//   _getActiveSprint sin !isHotfix — todos los sprints son expuestos por status:active únicamente.
+//   Bloque retro S-HOTFIX reemplazado por INC/PRB/KE/CHG con incidentStatus:'closed'
+//   cuyo closedAt >= sprint.startedAt — incluidos en sección "Incidentes cerrados".
+//   setSprintStatus: guard isHotfix en newStatus==='closed' eliminada — todos los sprints son cerrables.
+//   Gates de activación, formallyOpened y parent heredado: exenciones isHotfix eliminadas.
+//   Scheduled queue en activación automática: isHotfix eliminado.
+//   Cero referencias activas a isHotfix/S-HOTFIX/hotfix.
+//   locus-session-parse.js: !sp.isHotfix eliminado en _tryIngestSprintProposal
+//   y _tryIngestSprintProposalFromParsed — sp.status==='active' sin condición adicional.
+//   Header migrado de legacy v0.7.0/sprint:PP-S-08 a formato canónico __BR-Execution §9.
 // locus-backlog-sprints.js
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
@@ -28,10 +39,9 @@ function _sprintsForProject(projId) {
 }
 
 export function _getActiveSprint() {
-  // T-202606-070: excluir isHotfix — HOTFIX siempre tiene status:'active' (sprint persistente)
-  // pero no debe exponerse como "el sprint activo" en _renderSpsActivo ni en consumidores de getActiveSprint.
   // T-202606-072: _sprintsForProject(null) — sin filtro de proyecto, comportamiento original preservado.
-  const all = _sprintsForProject(null).filter(s => s.status === 'active' && !s.isHotfix);
+  // TKT-PARSER-sprints (REQ-[pendiente-ID]): isHotfix eliminado — S-HOTFIX deprecado Gen2.
+  const all = _sprintsForProject(null).filter(s => s.status === 'active');
   return all.find(s => s.current === true) || all[0] || null;
 }
 
@@ -409,30 +419,31 @@ function _generateSprintRetroMd(id, notes) {
   const duAplicados   = docUpdates.filter(d => d.resolucion === 'aplicado');
   const duDescartados = docUpdates.filter(d => d.resolucion === 'descartado');
 
-  // T-202606-038 AC-4: Bs `done` en [Prefijo]-S-HOTFIX se listan en esta retro con nota 'hotfix · [fecha]'.
-  // El sprint HOTFIX nunca cierra (AC-3) — sus ítems done permanecen status:'done', no migran a 'historico'.
-  const hotfixPrefix = id.includes('-S-') ? id.split('-S-')[0] : id;
-  const hotfixId = hotfixPrefix + '-S-HOTFIX';
-  const hotfixDoneItems = (hotfixId !== id)
-    ? getItems().filter(i => i.sprint === hotfixId && i.status === 'done')
-    : [];
+  // TKT-PARSER-sprints (REQ-[pendiente-ID]): INC closed de Q-INC con closedAt >= sprint.openedAt
+  // reemplaza bloque de S-HOTFIX — Gen2: Q-INC es la cola ITIL, S-HOTFIX deprecado.
+  // INC closed antes de la apertura del sprint no se incluyen.
+  const _sprintForRetro = _getSprintById(id);
+  const _sprintOpenedAt = _sprintForRetro ? (_sprintForRetro.startedAt || 0) : 0;
   const _pad = n => String(n).padStart(2, '0');
-  const _hotfixDate = ts => {
+  const _incDate = ts => {
     const d = new Date(ts || Date.now());
     return `${d.getFullYear()}-${_pad(d.getMonth()+1)}-${_pad(d.getDate())}`;
   };
-  const _hotfixDoneList = hotfixDoneItems.length
-    ? hotfixDoneItems.map(i => `- ${i.code}: hotfix · ${_hotfixDate(i.doneAt || i.statusChangedAt)}`).join('\n')
+  const incClosedItems = getItems().filter(i => {
+    if (i.type !== 'INC' && i.type !== 'PRB' && i.type !== 'KE' && i.type !== 'CHG') return false;
+    if (i.incidentStatus !== 'closed') return false;
+    const _closedTs = i.closedAt || i.statusChangedAt || 0;
+    return _closedTs >= _sprintOpenedAt;
+  });
+  const _incClosedList = incClosedItems.length
+    ? incClosedItems.map(i => `- ${i.code}: incident \u00b7 ${_incDate(i.closedAt || i.statusChangedAt)}`).join('\n')
     : '';
 
   // ── Helpers de serialización ──
 
-  // AC-2: lista de códigos
-  const _doneList = (doneItems.length || hotfixDoneItems.length)
-    ? [
-        ...doneItems.map(i => `- ${i.code}`),
-        ..._hotfixDoneList ? [_hotfixDoneList] : [],
-      ].join('\n')
+  // AC-2: lista de códigos de ítems Scrum done
+  const _doneList = doneItems.length
+    ? doneItems.map(i => `- ${i.code}`).join('\n')
     : 'ninguno';
 
   // AC-3: lista con destino '[código]: [sprint destino]'
@@ -466,6 +477,11 @@ function _generateSprintRetroMd(id, notes) {
   // Orden exacto de AC-1: ## Retro · [id] → Done · Migrado · Descartado ·
   //   Doc-Updates aplicados · Doc-Updates pendientes → ## Narrativa · [id]
   // B-202606-029: headers usan [id] — [label] era incorrecto y fue corregido
+  // TKT-PARSER-sprints: incluir sección de incidentes cerrados si existen
+  const _incSection = _incClosedList
+    ? `\nIncidentes cerrados:\n${_incClosedList}`
+    : '';
+
   return `## Retro · ${id}
 
 Done: ${_doneList}
@@ -474,7 +490,7 @@ Descartado: ${_discardedList}
 Doc-Updates aplicados:
 ${_duAplicadosList}
 Doc-Updates pendientes:
-${_duDescartadosList}
+${_duDescartadosList}${_incSection}
 
 ${narrativaSection}
 `;
@@ -588,11 +604,8 @@ function _openRetroDownloadPrompt(id) {
 
 export async function setSprintStatus(id, newStatus) {
   // T-202606-015 AC-2: valores válidos extendidos — 'active' | 'closed' | 'scheduled' | 'discarded'
-  // T-202606-038 AC-4 (guard intacta): [Prefijo]-S-HOTFIX no se marca 'closed' — isHotfix guard sin cambios
-  if (newStatus === 'closed') {
-    const target = _getSprintById(id);
-    if (target && target.isHotfix) return;
-  }
+  // TKT-PARSER-sprints: guard isHotfix eliminada — S-HOTFIX deprecado Gen2, todos los sprints son cerrables.
+  // if (newStatus === 'closed') — bloque eliminado, sin guard activa.
   // T-202606-015 AC-3: 'discarded' solo opera sobre sprints con status 'scheduled'
   // sprints 'active' o 'closed' no pueden descartarse — toast de error + retorno temprano sin modificar
   if (newStatus === 'discarded') {
@@ -610,7 +623,6 @@ export async function setSprintStatus(id, newStatus) {
     const _existingActive = getActiveSprints().find(s => {
       if (s.status !== 'active') return false;
       if (s.id === id) return false;          // el mismo sprint — no es conflicto
-      if (s.isHotfix) return false;           // S-HOTFIX nunca bloquea
       if (!_projIdForGate) return false;      // sin projId no se puede filtrar — no bloquear
       return (s.projId === _projIdForGate || s.projectId === _projIdForGate);
     });
@@ -720,10 +732,10 @@ export async function setSprintStatus(id, newStatus) {
 export function setItemSprint(code, sprintId) {
   if (sprintId === '__new__') { openNewSprintInline(code); return; }
   // T-202606-133: gate formallyOpened — bloquear asignación a sprint no aprobado
-  // B-202606-003: eximir S-HOTFIX — es persistente y nunca pasa por el flujo de aprobación formal
+  // TKT-PARSER-sprints: exención isHotfix eliminada — S-HOTFIX deprecado Gen2.
   if (sprintId) {
     const targetSprint = _getSprintById(sprintId);
-    if (targetSprint && targetSprint.formallyOpened === false && !targetSprint.isHotfix) {
+    if (targetSprint && targetSprint.formallyOpened === false) {
       showToast('warning', 'Sprint pendiente de aprobación — el founder debe aprobarlo antes de asignar ítems');
       return;
     }
@@ -731,18 +743,17 @@ export function setItemSprint(code, sprintId) {
   const item = getItems().find(i => i.code === code);
   if (!item) return;
   // T-202606-036 AC5: T con parent — bloquear asignación de sprint distinto al del parent
-  // B-202606-018: eximir S-HOTFIX — Ts pueden asignarse a S-HOTFIX independientemente del sprint del R parent
+  // TKT-PARSER-sprints: exención isHotfix eliminada — S-HOTFIX deprecado Gen2.
   if (item.parentId && item.code && itemKind(item) === 'TKT') {
+    // TKT-PARSER-sprints: exención isHotfix eliminada — gate aplica a todos los sprints.
     const targetSprintForParentGate = _getSprintById(sprintId);
-    if (!targetSprintForParentGate || !targetSprintForParentGate.isHotfix) {
-      const parentItem = getItems().find(i => i.code === item.parentId);
-      if (parentItem) {
-        const parentSprint = parentItem.sprint || '';
-        const incomingSprint = sprintId || '';
-        if (incomingSprint !== parentSprint) {
-          showToast('warning', 'El sprint del T se hereda de su parent ' + item.parentId);
-          return;
-        }
+    const parentItem = getItems().find(i => i.code === item.parentId);
+    if (parentItem) {
+      const parentSprint = parentItem.sprint || '';
+      const incomingSprint = sprintId || '';
+      if (incomingSprint !== parentSprint) {
+        showToast('warning', 'El sprint del T se hereda de su parent ' + item.parentId);
+        return;
       }
     }
   }
@@ -1632,7 +1643,7 @@ async function _scmExecuteClose() {
     const _projIdForNext = _closedSprint ? (_closedSprint.projId || _closedSprint.projectId || null) : null;
     const _scheduledCandidates = getActiveSprints().filter(s => {
       if (s.status !== 'scheduled') return false;
-      if (s.isHotfix) return false;
+      // TKT-PARSER-sprints: isHotfix eliminado — S-HOTFIX deprecado Gen2.
       if (!_projIdForNext) return true; // sin projId no se puede filtrar — no excluir
       return (s.projId === _projIdForNext || s.projectId === _projIdForNext);
     });

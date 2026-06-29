@@ -1,4 +1,8 @@
-// [PP] mod:77 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:79 · autor:Rune · 2026-06-29 UTC-6
+// TKT-PARSER-2a (REQ-[pendiente-ID] · validación de transición ITIL en mergeBacklogFromTG):
+//   _VALID_INCIDENT_STATUS y _INCIDENT_STATUS_LIST exportadas — locus-backlog-item.js las
+//   consume para validar transiciones de incidentStatus sin duplicar la tabla. Sin cambio
+//   de comportamiento de ingesta — solo visibilidad ampliada de dos constantes locales.
 // TKT (REQ-[pendiente-ID] · Parser: ciclo ITIL completo y tipos PRB/KE/CHG):
 //   _validTypes ampliado a 7 tipos Gen2 (_GEN2_TYPES) en ambos paths de ingesta (parsePaste +
 //   variante standalone). Ítems ITIL (INC/PRB/KE/CHG) desviados a _buildItilItem() antes de
@@ -101,11 +105,13 @@ const _GEN2_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'KE', 'CHG'];
 // Tipos cuyo ciclo de vida vive en incident_status (ITIL) — nunca en status (Scrum).
 const _ITIL_TYPES = new Set(['INC', 'PRB', 'KE', 'CHG']);
 // Valores válidos de incident_status — BR-Core §6.
-const _VALID_INCIDENT_STATUS = new Set([
+// TKT-PARSER-2a (REQ-[pendiente-ID]): exportadas — locus-backlog-item.js las consume para
+// validar transiciones ITIL en mergeBacklogFromTG sin duplicar la tabla.
+export const _VALID_INCIDENT_STATUS = new Set([
   'detected', 'assigned', 'in_progress', 'resolved', 'closed',
   'escalated_to_prb', 'escalated_to_chg', 'descartado'
 ]);
-const _INCIDENT_STATUS_LIST = 'detected · assigned · in_progress · resolved · closed · escalated_to_prb · escalated_to_chg';
+export const _INCIDENT_STATUS_LIST = 'detected · assigned · in_progress · resolved · closed · escalated_to_prb · escalated_to_chg';
 
 // Mensaje canónico BR-Core §6 — REQ/TKT/DISC no pueden asignarse a Q-INC.
 function _isQIncQueue(queue) {
@@ -1414,7 +1420,8 @@ export function _tryIngestSprintProposal(text) {
   // Si existe sprint con status:'active' → nuevo sprint nace como 'scheduled' (AC-1).
   // Si no existe sprint activo → nuevo sprint nace como 'active' (AC-2 — comportamiento anterior).
   // AC-4: esta lógica garantiza que sprints.filter(s => s.status === 'active').length ≤ 1.
-  const _hasActiveSprint = proj.sprints.some(sp => sp.status === 'active' && !sp.isHotfix);
+  // TKT-PARSER-sprints: !sp.isHotfix eliminado — S-HOTFIX deprecado Gen2.
+  const _hasActiveSprint = proj.sprints.some(sp => sp.status === 'active');
   const _newSprintStatus = _hasActiveSprint ? 'scheduled' : 'active';
 
   // B-202606-063: extraer prefijo corto como id — el string completo va en label y name.
@@ -1501,7 +1508,8 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
     return false;
   }
 
-  const _hasActiveSprint = _existingSprints.some(sp => sp.status === 'active' && !sp.isHotfix);
+  // TKT-PARSER-sprints: !sp.isHotfix eliminado — S-HOTFIX deprecado Gen2.
+  const _hasActiveSprint = _existingSprints.some(sp => sp.status === 'active');
   const _newSprintStatus = _hasActiveSprint ? 'scheduled' : 'active';
 
   const _sprintIdFull  = sprint;

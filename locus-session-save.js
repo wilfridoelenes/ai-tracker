@@ -1,4 +1,3 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:48 · autor:Rune · 2026-06-28 UTC-6
 // locus-session-save.js
 // Última actualización: B-202606-105 — CHANGELOG_KEY local eliminada, usa LOCUS_KEYS.CHANGELOG
 // (locus-storage.js) como fuente única de verdad de la clave de changelog.
@@ -32,15 +31,32 @@ import { showToast } from './locus-toast.js';
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
+// [PP] mod:49 · autor:Rune · 2026-06-29 UTC-6
+// TKT-PARSER-2b (REQ-[pendiente-ID] · VALID_TRANSITIONS PRB/KE/CHG, counters, code.match,
+//   eliminar isHotfix): PRB/KE/CHG agregados a VALID_TRANSITIONS con el mismo Set ITIL de INC
+//   — antes caían en "tipo desconocido → ignorar silenciosamente". Counters del tracker y
+//   pattern de code.match ampliados con PRB-/KE-/CHG-. Filtro isHotfix eliminado de
+//   getActiveSprints — S-HOTFIX deprecado. Header migrado a formato canónico __BR-Execution §9
+//   (era v0.8.0 · sprint:PP-S-10 · mod:48 — formato legacy) y reposicionado tras el bloque de
+//   imports (estaba en primera línea, antes de los imports — inconsistente con §9 en ESM).
+
 // T-202606-020 · AC-5 · TKT0c-gen2: tabla de transiciones válidas por tipo de ítem — BR-Core §4
-// Clave: tipo de ítem Gen2 ('REQ' | 'TKT' | 'INC' | 'DISC'). Valor: Set de status permitidos.
+// Clave: tipo de ítem Gen2 ('REQ' | 'TKT' | 'INC' | 'PRB' | 'KE' | 'CHG' | 'DISC'). Valor: Set de status permitidos.
 // Sets exactos de __BR-Ecosystem §5 — no es 1:1 con los sets Gen1 que reemplaza:
-// REQ amplía a en-proceso/orphaned (no existían en R). INC usa ciclo ITIL completo (no el de B).
+// REQ amplía a en-proceso/orphaned (no existían en R). INC/PRB/KE/CHG usan ciclo ITIL completo (no el de B).
 // Nota: tipo desconocido → no validar (AC-6, ignorar silenciosamente).
+// TKT-PARSER-2b (REQ-[pendiente-ID]): PRB/KE/CHG agregados con el mismo Set ITIL que ya
+// declaraba INC — antes caían en "tipo desconocido → ignorar silenciosamente" (AC-6 de arriba).
+// Caso de error, no de uso normal: _buildItilItem (locus-session-parse.js) nunca deja pasar
+// item.status en un ítem ITIL — esta detección solo se activa ante status Scrum residual.
+const _ITIL_STATUS_SET = new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']);
 export const VALID_TRANSITIONS = {
   REQ: new Set(['pendiente', 'en-proceso', 'en-revision', 'bloqueado', 'orphaned', 'descartado']),
   TKT: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
-  INC: new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']),
+  INC: _ITIL_STATUS_SET,
+  PRB: _ITIL_STATUS_SET,
+  KE: _ITIL_STATUS_SET,
+  CHG: _ITIL_STATUS_SET,
   DISC: new Set(['discovery', 'promoted', 'descartado'])
 };
 
@@ -381,8 +397,9 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     rol:      parsed.rol      || '',
     archivos: _parseFilesField(parsed.archivos || ''),
     // T-202606-030: sprint activo del proyecto al momento de guardar — único sprint con status
-    // 'active' y no-hotfix por invariante T-202606-023 AC-4 (sprints.filter(active).length ≤ 1)
-    sprintId: (getActiveSprints().find(sp => sp.status === 'active' && !sp.isHotfix) || {}).id || '',
+    // 'active' por invariante T-202606-023 AC-4 (sprints.filter(active).length ≤ 1)
+    // TKT-PARSER-2b (REQ-[pendiente-ID]): filtro isHotfix eliminado — S-HOTFIX deprecado.
+    sprintId: (getActiveSprints().find(sp => sp.status === 'active') || {}).id || '',
     // T-202606-013: señal de doc_updates para badge en mini-historial (_renderRow)
     hasDocUpdates: Array.isArray(parsed.docUpdates) && parsed.docUpdates.length > 0,
     // T-202606-072: señal de devolución Finn→Cael — presente solo cuando parsed.devolucion_cael está definido
@@ -492,7 +509,8 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
 
   // v3.0.0: tracker del proyecto activo — también aquí para atomicidad con sessions[].
   // Sin esto, tracker.items quedaría con sessionId huérfano si el usuario cancela el panel.
-  if (!activeProj.tracker) activeProj.tracker = { items: [], counters: { DISC: 0, TKT: 0, REQ: 0, INC: 0 } };
+  // TKT-PARSER-2b (REQ-[pendiente-ID]): PRB/KE/CHG agregados a counters — antes solo DISC/TKT/REQ/INC.
+  if (!activeProj.tracker) activeProj.tracker = { items: [], counters: { DISC: 0, TKT: 0, REQ: 0, INC: 0, PRB: 0, KE: 0, CHG: 0 } };
   const tracker = activeProj.tracker;
   let newCount = 0, updCount = 0;
   tgItems.forEach(item => {
@@ -502,7 +520,8 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
       updCount++;
     } else {
       const c = tracker.counters;
-      const numMatch = item.code.match(/^(DISC|TKT|REQ|INC)-\d{6}-(\d{3})/);
+      // TKT-PARSER-2b: pattern ampliado con PRB-/KE-/CHG- — antes solo DISC/TKT/REQ/INC.
+      const numMatch = item.code.match(/^(DISC|TKT|REQ|INC|PRB|KE|CHG)-\d{6}-(\d{3})/);
       if (numMatch) { const num = parseInt(numMatch[2]); const key = numMatch[1]; if (num >= (c[key] || 0)) c[key] = num; }
       tracker.items.push({id:'tgi-'+Date.now()+'-'+Math.random().toString(36).slice(2,6), code:item.code, desc:item.desc, status:item.status, sessionId:sessId});
       newCount++;

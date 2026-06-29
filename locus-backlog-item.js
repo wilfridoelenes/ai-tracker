@@ -1,4 +1,13 @@
-// [PP] mod:48 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:49 · autor:Rune · 2026-06-29 UTC-6
+// TKT-PARSER-2a (REQ-[pendiente-ID] · validación de transición ITIL y merge de campos ITIL):
+//   validateIncidentTransitions() nueva — valida pares origen→destino de incidentStatus contra
+//   _VALID_INCIDENT_TRANSITIONS, independiente de validateLifecycleTransitions (Scrum, sin
+//   cambio). mergeBacklogFromTG: rama paralela al bloque de status Scrum — invoca la validación
+//   cuando existing es ITIL e incidentStatus entrante difiere del existente; transición inválida
+//   → invalidTransition (mismo array que ya recibe gaps de Scrum), resto de campos sí mergea.
+//   Bloque de campos no-status ampliado con los 7 campos ITIL (incidentStatus, slaPriority,
+//   slaDeadline, resolutionType, comportamientoActual, originModule, derivedItems) — mismo
+//   patrón entrante-gana-si-trae-valor ya usado para title/desc/effort/area.
 // TKT-C2 (REQ-C): status 'promovida'→'promoted' en comparaciones de status (L99, L1022,
 //   L1612, L1630, L1892). Selector sprint: option icebox→value='' label 'Q-Backlog (sin sprint)'.
 //   Edge case: datos legacy con 'promovida' cubiertos por compatibilidad de lectura (ver L99).
@@ -7,7 +16,7 @@
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
 import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
-import { _normalizeSprint } from './locus-session-parse.js';
+import { _normalizeSprint, _VALID_INCIDENT_STATUS, _INCIDENT_STATUS_LIST } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
 
 
@@ -1857,6 +1866,37 @@ export function _assignPendingIds(tgItems) {
   return { items: resolvedItems, slugMap };
 }
 
+// TKT-PARSER-2a (REQ-[pendiente-ID]): tabla de pares válidos de transición ITIL.
+// Clave: incidentStatus origen. Valor: Set de incidentStatus destino permitidos desde ese origen.
+// Distinto de _VALID_INCIDENT_STATUS (locus-session-parse.js) — ese set valida pertenencia
+// del valor al vocabulario ITIL; esta tabla valida que el PAR origen→destino sea una
+// transición real del ciclo de vida (BR-Core §6), no solo que ambos valores existan.
+const _VALID_INCIDENT_TRANSITIONS = {
+  detected:    new Set(['assigned']),
+  assigned:    new Set(['in_progress']),
+  in_progress: new Set(['resolved', 'escalated_to_prb', 'escalated_to_chg']),
+  resolved:    new Set(['closed'])
+  // closed, escalated_to_prb, escalated_to_chg, descartado: sin transiciones salientes declaradas —
+  // estados terminales del ciclo dentro de este merge. Reabrir un INC closed no es un caso cubierto
+  // por este AC — fuera de scope de TKT-PARSER-2a.
+};
+
+// TKT-PARSER-2a (REQ-[pendiente-ID]): valida un par (oldIncidentStatus, newIncidentStatus).
+// No usa VALID_TRANSITIONS (locus-session-save.js) — esa tabla es de status Scrum por tipo,
+// no de transiciones ITIL por par origen→destino. Devuelve {valid:true} o {valid:false, reason}.
+function validateIncidentTransitions(oldIncidentStatus, newIncidentStatus) {
+  if (!_VALID_INCIDENT_STATUS.has(oldIncidentStatus) || !_VALID_INCIDENT_STATUS.has(newIncidentStatus)) {
+    // Valor fuera del vocabulario ITIL — ya debió rechazarse en _buildItilItem (locus-session-parse.js).
+    // Defensivo: no es una transición ITIL inválida en sí, es un valor inválido — no bloquear aquí.
+    return { valid: true };
+  }
+  const _allowed = _VALID_INCIDENT_TRANSITIONS[oldIncidentStatus];
+  if (!_allowed || !_allowed.has(newIncidentStatus)) {
+    return { valid: false, reason: `transición ITIL inválida: ${oldIncidentStatus} → ${newIncidentStatus}` };
+  }
+  return { valid: true };
+}
+
 // ── T-098: Merge TRACKER-GLOBAL → getItems() en memoria ──
 // Llamado desde saveSession(). Acumula múltiples sesiones sin exportar.
 // T-202604-121: retorna {created, updated, ignored} para super toast
@@ -1989,6 +2029,21 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
         }
       }
 
+      // TKT-PARSER-2a (REQ-[pendiente-ID]): validación de transición ITIL — paralela al bloque
+      // Scrum de arriba. item.status es siempre undefined para INC/PRB/KE/CHG (_buildItilItem
+      // nunca lo declara) — el bloque anterior nunca se ejecuta para estos tipos, por eso esta
+      // rama es independiente, no un else de la de arriba.
+      const _existingKindItil = itemKind(existing);
+      const _isItilExisting = ['INC', 'PRB', 'KE', 'CHG'].includes(_existingKindItil);
+      let _noIncidentStatus = false;
+      if (_isItilExisting && item.incidentStatus && item.incidentStatus !== existing.incidentStatus) {
+        const _itResult = validateIncidentTransitions(existing.incidentStatus, item.incidentStatus);
+        if (!_itResult.valid) {
+          invalidTransition.push({ code: item.code, type: _existingKindItil, reason: _itResult.reason });
+          _noIncidentStatus = true; // excluye solo incidentStatus — el resto de campos ITIL sí mergea
+        }
+      }
+
       // --- Lógica de status ---
       if (!item._noStatus && newStatus && newStatus !== oldStatus) {
         const oldRank = _statusRank[oldStatus] ?? 0;
@@ -2027,6 +2082,21 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       if (item.desc && item.desc !== existing.desc) { changes.push({ field: 'desc', from: existing.desc || '—', to: item.desc }); if (!_dryRun) { existing.desc = item.desc; changed = true; } }
       if (item.effort && item.effort !== existing.effort) { changes.push({ field: 'effort', from: existing.effort || '—', to: item.effort }); if (!_dryRun) { existing.effort = item.effort; changed = true; } }
       if (item.area && item.area !== existing.area) { changes.push({ field: 'area', from: existing.area || '—', to: item.area }); if (!_dryRun) { existing.area = item.area; changed = true; } }
+      // TKT-PARSER-2a (REQ-[pendiente-ID]): campos ITIL — mismo patrón entrante-gana-si-trae-valor.
+      // incidentStatus respeta _noIncidentStatus (transición rechazada arriba) — el resto de campos
+      // ITIL del mismo CHECKPOINT sí mergea aunque la transición de estado se haya excluido (AC-5).
+      if (_isItilExisting) {
+        if (!_noIncidentStatus && item.incidentStatus && item.incidentStatus !== existing.incidentStatus) {
+          changes.push({ field: 'incidentStatus', from: existing.incidentStatus || '—', to: item.incidentStatus });
+          if (!_dryRun) { existing.incidentStatus = item.incidentStatus; changed = true; }
+        }
+        if (item.slaPriority && item.slaPriority !== existing.slaPriority) { changes.push({ field: 'slaPriority', from: existing.slaPriority || '—', to: item.slaPriority }); if (!_dryRun) { existing.slaPriority = item.slaPriority; changed = true; } }
+        if (item.slaDeadline != null && item.slaDeadline !== existing.slaDeadline) { changes.push({ field: 'slaDeadline', from: existing.slaDeadline || '—', to: item.slaDeadline }); if (!_dryRun) { existing.slaDeadline = item.slaDeadline; changed = true; } }
+        if (item.resolutionType && item.resolutionType !== existing.resolutionType) { changes.push({ field: 'resolutionType', from: existing.resolutionType || '—', to: item.resolutionType }); if (!_dryRun) { existing.resolutionType = item.resolutionType; changed = true; } }
+        if (item.comportamientoActual && item.comportamientoActual !== existing.comportamientoActual) { changes.push({ field: 'comportamientoActual', from: existing.comportamientoActual || '—', to: item.comportamientoActual }); if (!_dryRun) { existing.comportamientoActual = item.comportamientoActual; changed = true; } }
+        if (item.originModule && item.originModule !== existing.originModule) { changes.push({ field: 'originModule', from: existing.originModule || '—', to: item.originModule }); if (!_dryRun) { existing.originModule = item.originModule; changed = true; } }
+        if (item.derivedItems && item.derivedItems.length) { changes.push({ field: 'derivedItems', from: existing.derivedItems || [], to: item.derivedItems }); if (!_dryRun) { existing.derivedItems = item.derivedItems; changed = true; } }
+      }
       // B-202605-233: sprint vacío explícito ('' ) mueve ítem a Ideas — antes se ignoraba por falsy
       if (item.sprint !== undefined && item.sprint !== existing.sprint) { changes.push({ field: 'sprint', from: existing.sprint || '—', to: item.sprint }); if (!_dryRun) { existing.sprint = item.sprint; changed = true; } }
       // B-202604-179: ac: reemplaza si entrante trae contenido — no acumula entre CHECKPOINTs
