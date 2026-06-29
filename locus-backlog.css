@@ -1,4 +1,4 @@
-/* [PP] mod:55 · autor:Nova · 2026-06-29 UTC-6 */
+/* [PP] mod:57 · autor:Nova · 2026-06-29 14:35 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -6641,6 +6641,120 @@ er {
   background: var(--red);
   color: var(--text-on-danger);
   border-color: var(--red);
+}
+
+/* ══ TKT · CSS Q-INC panel — clases faltantes (qinc-badge, qinc-item, qinc-section, qinc-sla-countdown, qinc-stats-priority/types) ══ */
+
+/* ── Card base — .qinc-item ── */
+.qinc-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+}
+
+.qinc-item-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.qinc-item-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+}
+
+.qinc-item-meta {
+  font-size: var(--text-2xs);
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+/* ── Sección agrupadora — .qinc-section ── */
+.qinc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.qinc-section-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text2);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── Badge genérico — .qinc-badge (distinto de .qinc-type-badge: no es por tipo ITIL) ── */
+.qinc-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  padding: 1px 6px;
+  background: var(--surface3);
+  color: var(--text2);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.qinc-badge--status {
+  background: color-mix(in srgb, var(--blue) 12%, transparent);
+  color: var(--blue);
+  border-color: color-mix(in srgb, var(--blue) 28%, transparent);
+}
+
+.qinc-badge--sla {
+  background: color-mix(in srgb, #e85555 12%, transparent);
+  color: #e85555;
+  border-color: color-mix(in srgb, #e85555 28%, transparent);
+}
+
+.qinc-badge--empty {
+  background: transparent;
+  color: var(--text3);
+  border-style: dashed;
+}
+
+/* ── Countdown de SLA — .qinc-sla-countdown ── */
+.qinc-sla-countdown {
+  font-family: var(--mono);
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  color: var(--text2);
+}
+
+.qinc-sla-countdown--vencido {
+  background: var(--red);
+  color: var(--text-on-danger);
+  padding: 0 4px;
+  border-radius: var(--radius-xs);
+}
+
+/* ── Desglose de stats — dentro de .qinc-stats-bar (ya existente) ── */
+.qinc-stats-priority,
+.qinc-stats-types {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
 }
 
 /* ══ END TKT-D3 ══ */
