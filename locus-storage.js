@@ -1,4 +1,4 @@
-// [PP] mod:64 · autor:Rune · 2026-06-27 UTC-6
+// [PP] mod:68 · autor:Rune · 2026-06-28 UTC-6
 // locus-storage.js
 // Última actualización: B-202606-105/106/107 — LOCUS_KEYS.CHANGELOG/NOTIF_HISTORY/LOG_FILTERS
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -55,6 +55,9 @@ export const LOCUS_KEYS = {
   OFFLINE_QUEUE:    'locus-offline-queue',
   CHANGELOG:        'ai-tracker-changelog',
   PLAN_PREFIX:      'locus-plan-',
+  // REQ-PERSIST-OPT TKT1: respaldo local de sesiones de Worker por proyecto — clave nueva,
+  // sin call sites previos a este TKT. Se concatena con proj.id.
+  SESSIONS_PREFIX:  'locus-sessions-',
   NOTIF_HISTORY:    'ai-tracker-notifs-history',
   LOG_FILTERS:      'log-filter-state',
   DRAFT_PREFIX:     'locus-draft-',
@@ -381,6 +384,16 @@ async function _offlineQueueFlush() {
       } else if (entry.type === 'sessions' && entry.projId) {
         const proj = (state.projects || []).find(p => p.id === entry.projId);
         if (proj) await _saveSessions(proj);
+      } else if (entry.type === 'historico') {
+        // REQ-PERSIST-OPT TKT4 AC-4: reintenta saveHistoricoItems desde el payload ya
+        // cacheado en localStorage por el respaldo optimista de la propia función.
+        // AC-5: sin payload válido → no lanza error, simplemente no reintenta esta entrada.
+        const _histSuffix = entry.projId ? '-' + entry.projId : '-global';
+        const histRaw = localStorage.getItem(_HISTORICO_KEY + _histSuffix);
+        if (histRaw) {
+          const histPayload = (() => { try { return JSON.parse(histRaw); } catch { return null; } })();
+          if (histPayload) await saveHistoricoItems(histPayload);
+        }
       } else if (entry.type === 'tmp-id-map') {
         // R-1: flush tmp-id-map desde localStorage a Supabase al reconectar
         const raw = localStorage.getItem(LOCUS_KEYS.TMP_ID_MAP);
@@ -743,9 +756,18 @@ export async function saveImmediate() {
 }
 
 // R-202604-035: escribe sesiones de un proyecto — Supabase upsert por lotes de 400
+// REQ-PERSIST-OPT TKT1: localStorage escrito de forma optimista ANTES del upsert —
+// un hard reload durante el batch ya no pierde proj.sessions en ambos lados.
 async function _saveSessions(proj) {
   if (!proj || !proj.sessions || !proj.sessions.length) return;
   const sessions = proj.sessions;
+
+  // AC-1: respaldo local inmediato, antes de cualquier intento de red.
+  try {
+    localStorage.setItem(LOCUS_KEYS.SESSIONS_PREFIX + proj.id, JSON.stringify(sessions));
+  } catch (lsErr) {
+    console.warn('[AI Tracker] _saveSessions: fallo al escribir respaldo local pre-upsert', lsErr);
+  }
 
   // Supabase — upsert por lotes de 400
   if (_supabase && _supabaseUser) {
@@ -767,6 +789,8 @@ async function _saveSessions(proj) {
         // T-202606-097: upsert falló — resetear para no bloquear próximo cambio remoto legítimo.
         _realtimeLastTs = null;
         console.error('[AI Tracker] Supabase _saveSessions failed:', error);
+        // AC-2: localStorage ya tiene la copia completa desde el bloque de arriba —
+        // sin escritura adicional aquí.
         _offlineQueuePush({ type: 'sessions', projId: proj.id });
         break;
       }
@@ -1004,6 +1028,17 @@ export async function saveBacklog() {
   // Evita que el echo de Realtime de tracker_items dispare _loadFromSupabase() innecesariamente.
   _realtimeLastTs = _writeTs;
 
+  // REQ-PERSIST-OPT TKT2: respaldo local optimista — ANTES del upsert, no después.
+  // AC-1/AC-4: usa 'items' ya filtrado por el gate chk_status_by_type (arriba en esta función),
+  // nunca _rawItems sin filtrar — un hard reload durante el upsert ya no pierde el dato,
+  // y el respaldo nunca contiene combinaciones type+status inválidas.
+  try {
+    localStorage.setItem(key, JSON.stringify(items));
+    localStorage.setItem(metaKey, JSON.stringify(meta));
+  } catch (lsErr) {
+    console.warn('[AI Tracker] saveBacklog: fallo al escribir respaldo local pre-upsert', lsErr);
+  }
+
   // B-[pendiente-ID]: incrementar contador in-flight ANTES del try — cubre toda la ventana
   // del upsert, no solo el caso de éxito. finally garantiza decremento incluso ante throw
   // no capturado por el catch interno (nunca debe quedar el contador desbalanceado).
@@ -1040,25 +1075,16 @@ export async function saveBacklog() {
     // no es una copia, el stamp se refleja inmediatamente en _getItems().
     for (const it of _rawItems) it._updatedAtMs = _updatedAtMs;
 
-    // Upsert exitoso → escribir localStorage como caché. Nunca antes.
-    try {
-      localStorage.setItem(key, JSON.stringify(items));
-      localStorage.setItem(metaKey, JSON.stringify(meta));
-    } catch (lsErr) {
-      console.warn('[AI Tracker] saveBacklog: fallo al cachear en localStorage post-upsert', lsErr);
-    }
+    // REQ-PERSIST-OPT TKT2 / AC-2: localStorage ya tiene el respaldo desde antes del upsert
+    // (ver bloque pre-upsert arriba) — sin escritura duplicada aquí.
     setSyncStatus('synced', '✓ sincronizado');
   } catch (err) {
     // T-202606-097: resetear _realtimeLastTs — el timestamp no llegó a Supabase.
     _realtimeLastTs = null;
     console.error('[AI Tracker] Supabase saveBacklog() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
-    try {
-      localStorage.setItem(key, JSON.stringify(items));
-      localStorage.setItem(metaKey, JSON.stringify(meta));
-    } catch (lsErr) {
-      console.warn('[AI Tracker] saveBacklog: fallo al escribir localStorage fallback', lsErr);
-    }
+    // REQ-PERSIST-OPT TKT2 / AC-3: localStorage ya tiene el respaldo desde antes del upsert
+    // (ver bloque pre-upsert arriba) — sin escritura duplicada aquí.
     showToast('warning', '⚠️ Backlog no sincronizado con Supabase — guardado localmente');
     _offlineQueuePush({ type: 'backlog', projId: projId || null });
   } finally {
@@ -1100,6 +1126,13 @@ export async function saveHistoricoItems(items) {
     return;
   }
 
+  // REQ-PERSIST-OPT TKT4: respaldo local optimista — ANTES del upsert, no después.
+  try {
+    localStorage.setItem(key, JSON.stringify(payload));
+  } catch (lsErr) {
+    console.warn('[AI Tracker] saveHistoricoItems: fallo al escribir respaldo local pre-upsert', lsErr);
+  }
+
   try {
     const _histTs = new Date().toISOString();
     // T-202606-097: registrar _realtimeLastTs ANTES del await — cubre echo de Realtime
@@ -1110,23 +1143,16 @@ export async function saveHistoricoItems(items) {
       { onConflict: 'user_id,key' }
     );
     if (error) throw error;
-    // Upsert exitoso → escribir localStorage como caché. Nunca antes.
-    try {
-      localStorage.setItem(key, JSON.stringify(payload));
-    } catch (lsErr) {
-      console.warn('[AI Tracker] saveHistoricoItems: fallo al cachear en localStorage post-upsert', lsErr);
-    }
+    // REQ-PERSIST-OPT TKT4 / AC-2: localStorage ya tiene el respaldo desde antes del upsert —
+    // sin escritura duplicada aquí.
   } catch (err) {
     // T-202606-097: resetear _realtimeLastTs — timestamp no llegó a Supabase.
     _realtimeLastTs = null;
-    // Upsert falla → localStorage como fallback + DocLog + sin afectar ITEMS.
+    // Upsert falla → respaldo local ya existe desde antes del upsert + encolar para reintento.
     console.error('[AI Tracker] Supabase saveHistoricoItems() failed:', err);
-    try {
-      localStorage.setItem(key, JSON.stringify(payload));
-    } catch (lsErr) {
-      console.warn('[AI Tracker] saveHistoricoItems: fallo al escribir localStorage fallback', lsErr);
-    }
     showToast('warning', '⚠️ Histórico no sincronizado con Supabase — guardado localmente');
+    // REQ-PERSIST-OPT TKT4 / AC-3: gap cerrado — antes este catch no encolaba para reintento.
+    _offlineQueuePush({ type: 'historico', projId: projId || null });
   }
 }
 
@@ -1455,29 +1481,28 @@ export async function saveContextDocs() {
     return;
   }
 
+  // REQ-PERSIST-OPT TKT3: respaldo local optimista — ANTES del upsert, no después.
+  try {
+    localStorage.setItem(LOCUS_KEYS.CTX_DOCS_PREFIX + suffix, JSON.stringify(ctxPayload));
+    localStorage.setItem(LOCUS_KEYS.HM_DOCS_PREFIX  + suffix, JSON.stringify(hmPayload));
+  } catch (lsErr) {
+    console.warn('[AI Tracker] saveContextDocs: fallo al escribir respaldo local pre-upsert', lsErr);
+  }
+
   try {
     const { error } = await _supabase.from('tracker_docs').upsert([
       { user_id: _supabaseUser.id, key: 'context' + suffix, value: ctxPayload, updated_at: new Date().toISOString() },
       { user_id: _supabaseUser.id, key: 'htmlmap' + suffix, value: hmPayload,  updated_at: new Date().toISOString() }
     ], { onConflict: 'user_id,key' });
     if (error) throw error;
-    // AC-6 R-C1: upsert exitoso → escribir localStorage como caché post-write. Nunca antes.
-    try {
-      localStorage.setItem(LOCUS_KEYS.CTX_DOCS_PREFIX + suffix, JSON.stringify(ctxPayload));
-      localStorage.setItem(LOCUS_KEYS.HM_DOCS_PREFIX  + suffix, JSON.stringify(hmPayload));
-    } catch (lsErr) {
-      console.warn('[AI Tracker] saveContextDocs: fallo al cachear en localStorage post-upsert', lsErr);
-    }
+    // REQ-PERSIST-OPT TKT3 / AC-2: localStorage ya tiene el respaldo desde antes del upsert —
+    // sin escritura duplicada aquí.
   } catch (err) {
-    // AC-7 R-C1: upsert falla → localStorage como fallback + encolar + toast.
+    // AC-7 R-C1: upsert falla → encolar + toast. Respaldo local ya existe desde antes del upsert.
     console.error('[AI Tracker] Supabase saveContextDocs() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
-    try {
-      localStorage.setItem(LOCUS_KEYS.CTX_DOCS_PREFIX + suffix, JSON.stringify(ctxPayload));
-      localStorage.setItem(LOCUS_KEYS.HM_DOCS_PREFIX  + suffix, JSON.stringify(hmPayload));
-    } catch (lsErr) {
-      console.warn('[AI Tracker] saveContextDocs: fallo al escribir localStorage fallback', lsErr);
-    }
+    // REQ-PERSIST-OPT TKT3 / AC-3: localStorage ya tiene el respaldo desde antes del upsert —
+    // sin escritura duplicada aquí.
     showToast('warning', '⚠️ Context/HTML-MAP no sincronizado con Supabase — guardado localmente');
     _offlineQueuePush({ type: 'docs' });
   }

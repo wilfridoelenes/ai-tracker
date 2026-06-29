@@ -1,11 +1,11 @@
-// [PP] mod:25 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:26 · autor:Rune · 2026-06-28 UTC-6
 // locus-backlog-merge.js
-// Última actualización: T-202606-006: _mdiffStepZeroActive + listener storage:item-excluded
+// Última actualización: REQ-MERGE-GEN2: migrar detección de tipo Gen2 en badges, sort, title y parentHtml
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
 // Dependencias: locus-backlog-core.js · locus-backlog-item.js · locus-backlog-sprints.js · locus-storage.js · locus-toast.js
 // Carga: después de locus-backlog-item.js
 
-import { _calcPriority, _getActiveSessionAiId, _undoSnapshot, loadBacklog, renderStats, updateBacklogBanner, getItems, _registerCoreCallback } from './locus-backlog-core.js';
+import { _calcPriority, _getActiveSessionAiId, _undoSnapshot, loadBacklog, renderStats, updateBacklogBanner, getItems, _registerCoreCallback, itemKind as _itemKindFn } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _buildNewSprintForm, _getSprintById } from './locus-backlog-sprints.js';
 import { _blogLog, getActiveProject, getActiveSprints, saveBacklog } from './locus-storage.js';
@@ -226,8 +226,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
 
   // T-202605-037: para ítems tipo T, muestra el campo parent debajo del título
   // parentOverride: valor de parent del objeto diff cuando el ítem aún no existe en getItems() (recién creado)
+  // REQ-MERGE-GEN2 TKT3: migrado a _itemKindFn para detectar TKT via tipo Gen2
   const _parentHtml = (code, parentOverride) => {
-    if ((code || '?')[0].toUpperCase() !== 'T') return '';
+    if (_itemKindFn({ code }) !== 'TKT') return '';
     const item = getItems().find(i => i.code === code);
     const parentVal = item
       ? (item.parent || null)
@@ -256,11 +257,11 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     return `<div class="${rowCls}">${pills}</div>`;
   };
 
-  const _card = (code, desc, accentClass, pillsHtml, extraHtml = '', parentOverride = undefined, sprintOverride = undefined) => {
-    const typeChar  = (code || '?')[0].toUpperCase();
-    const typeCls   = _typeClass[typeChar] || 'mdiff-type--unknown';
+  // REQ-MERGE-GEN2 TKT1: parámetro itemType (pos 3) — callers pasan i.type || _itemKindFn({code: i.code})
+  const _card = (code, desc, accentClass, pillsHtml, extraHtml = '', parentOverride = undefined, sprintOverride = undefined, itemType = undefined) => {
+    const typeCls   = _typeClass[itemType] || 'mdiff-type--unknown';
     // R-202605-148: ítem sin tipo declarado muestra '?' — no rompe el render
-    const typeName  = _typeName[typeChar]  || '?';
+    const typeName  = _typeName[itemType]  || '?';
     return `
     <div class="mdiff-card mdiff-card--${accentClass} ${typeCls}">
       <div class="mdiff-card-accent"></div>
@@ -279,11 +280,12 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   };
 
   // ── Fila de retroceso ──
+  // REQ-MERGE-GEN2 TKT1: migrado a i.type || _itemKindFn para tipo Gen2
   const _retrocedoRow = (i, idx) => {
-    const typeChar = (i.code || '?')[0].toUpperCase();
-    const typeCls  = _typeClass[typeChar] || 'mdiff-type--unknown';
+    const itemType  = i.type || _itemKindFn({ code: i.code });
+    const typeCls  = _typeClass[itemType] || 'mdiff-type--unknown';
     // R-202605-148: ítem sin tipo declarado muestra '?'
-    const typeName = _typeName[typeChar]  || '?';
+    const typeName = _typeName[itemType]  || '?';
     return `
     <div class="mdiff-card mdiff-card--warn mdiff-card--retroceso ${typeCls}" data-retroceso-idx="${idx}">
       <div class="mdiff-card-accent"></div>
@@ -294,18 +296,19 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           ${_pill('retroceso', `${esc(i.from)} → ${esc(i.to)}`)}
           ${_sprintSelect(i.code, i.sprint)}
         </div>
-        <div class="mdiff-desc">${esc(i.desc || '')}</div>
+        <div class="mdiff-desc">${esc(i.title || '')}</div>
       </div>
     </div>`;
   };
 
   // ── Fila de descarte ──
   const _DISCARD_REASONS = ['duplicado', 'fuera de alcance', 'reemplazado', 'obsoleto'];
+  // REQ-MERGE-GEN2 TKT1: migrado a i.type || _itemKindFn para tipo Gen2
   const _discardRow = (i, idx) => {
-    const typeChar  = (i.code || '?')[0].toUpperCase();
-    const typeCls   = _typeClass[typeChar] || 'mdiff-type--unknown';
+    const itemType  = i.type || _itemKindFn({ code: i.code });
+    const typeCls   = _typeClass[itemType] || 'mdiff-type--unknown';
     // R-202605-148: ítem sin tipo declarado muestra '?'
-    const typeName  = _typeName[typeChar]  || '?';
+    const typeName  = _typeName[itemType]  || '?';
     // B-202606-053: i.reason viene del diff (CHECKPOINT); si está ausente,
     // consultar discardReason del ítem en getItems() — ítem ya descartado en el backlog.
     const _existingItem = !i.reason ? getItems().find(it => it.code === i.code) : null;
@@ -325,15 +328,16 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           ${reasonHtml}
           ${_sprintSelect(i.code, i.sprint)}
         </div>
-        <div class="mdiff-desc">${esc(i.desc || '')}</div>
+        <div class="mdiff-desc">${esc(i.title || '')}</div>
       </div>
     </div>`;
   };
 
-  // R-202605-148: sort B→R→T→P dentro de un array de ítems del DIFF
+  // R-202605-148: sort INC→REQ→TKT→DISC dentro de un array de ítems del DIFF
+  // REQ-MERGE-GEN2 TKT1: migrado a .type || _itemKindFn para tipo Gen2
   const _sortByType = arr => [...arr].sort((a, b) => {
-    const ca = (a.code || '?')[0].toUpperCase();
-    const cb = (b.code || '?')[0].toUpperCase();
+    const ca = a.type || _itemKindFn({ code: a.code });
+    const cb = b.type || _itemKindFn({ code: b.code });
     return (_typeOrder[ca] ?? 99) - (_typeOrder[cb] ?? 99);
   });
 
@@ -351,26 +355,28 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   let sectionsHtml = '';
 
   if (diff.created.length) {
-    const rows = _sortByType(diff.created).map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint)).join('');
+    const rows = _sortByType(diff.created).map(i => _card(i.code, i.title, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
     sectionsHtml += _section('created', 'green', `Creados <span class="mdiff-sec-count">${diff.created.length}</span>`, rows);
   }
   // B-202604-198: ítems que nacen y cierran en el mismo CHECKPOINT — grupo diferenciado
   if (diff.createdAndClosed.length) {
     const rows = _sortByType(diff.createdAndClosed).map(i => _card(
-      i.code, i.desc, 'green',
+      i.code, i.title, 'green',
       _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'),
       `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>` + _depsHtml(i.dependsOn),
-      i.parent, i.sprint
+      i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
     )).join('');
     sectionsHtml += _section('created-and-closed', 'green', `Creados y cerrados <span class="mdiff-sec-count">${diff.createdAndClosed.length}</span>`, rows);
   }
   // B-202604-198: sugerencias de match [tmp:slug] → ID real existente
+  // REQ-MERGE-GEN2 TKT1 AC-2: tmpSuggestions usa tmpCode sin .type — fallback a _itemKindFn({code: i.tmpCode}) || 'UNKNOWN'
   if (diff.tmpSuggestions.length) {
     const rows = _sortByType(diff.tmpSuggestions).map(i => _card(
-      i.tmpCode, i.desc, 'warn',
+      i.tmpCode, i.title, 'warn',
       _pill('warn', '⚠ tmp sin match aplicado'),
       `<div class="mdiff-change-hint">Posible coincidencia: <strong>${esc(i.suggestedCode)}</strong> — ${esc(i.suggestedTitle)}</div>
-       <div class="mdiff-change-hint mdiff-change-hint--secondary">Confirma manualmente en el backlog si corresponde al mismo ítem.</div>`
+       <div class="mdiff-change-hint mdiff-change-hint--secondary">Confirma manualmente en el backlog si corresponde al mismo ítem.</div>`,
+      undefined, undefined, _itemKindFn({ code: i.tmpCode }) || 'UNKNOWN'
     )).join('');
     sectionsHtml += _section('tmp-suggestions', 'warn', `⚠ TMP sin match confirmado <span class="mdiff-sec-count">${diff.tmpSuggestions.length}</span>`, rows);
   }
@@ -378,7 +384,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   if ((diff.invalidTransition || []).length) {
     const rows = (diff.invalidTransition).map(i =>
       _card(i.code, i.reason, 'warn',
-        _pill('warn', `⚠ ${esc(i.type)} → ${esc(i.status)}`)
+        _pill('warn', `⚠ ${esc(i.type)} → ${esc(i.status)}`),
+        undefined, undefined, undefined, i.type || _itemKindFn({ code: i.code })
       )
     ).join('');
     sectionsHtml += _section('invalid-transition', 'warn',
@@ -387,14 +394,14 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     );
   }
   if (diff.advanced.length) {
-    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint)).join('');
+    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.title, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
     sectionsHtml += _section('advanced', 'blue', `Avance de status <span class="mdiff-sec-count">${diff.advanced.length}</span>`, rows);
   }
   if (diff.updated.length) {
-    const rows = _sortByType(diff.updated).map(i => _card(i.code, i.desc, 'accent',
+    const rows = _sortByType(diff.updated).map(i => _card(i.code, i.title, 'accent',
       _pill('updated', '✎ actualizado'),
       _fieldChips(i.changes) + _depsHtml(i.dependsOn),
-      i.parent, i.sprint
+      i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
     )).join('');
     sectionsHtml += _section('updated', 'accent', `Campos actualizados <span class="mdiff-sec-count">${diff.updated.length}</span>`, rows);
   }
@@ -415,12 +422,12 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         if (i.reason === 'duplicado')     { pill = _pill('warn', '⚠ duplicado'); hint = i.existingCode ? `<div class="mdiff-change-hint">existe como ${esc(i.existingCode)}</div>` : ''; }
         else if (i.reason === 'sin-status')    { pill = _pill('warn', '⚠ sin status'); }
         else if (i.reason === 'tipo-invalido') { pill = _pill('warn', '⚠ tipo inválido'); }
-        return _card(i.code, i.desc, 'warn', pill, hint);
+        return _card(i.code, i.title, 'warn', pill, hint, undefined, undefined, i.type || _itemKindFn({ code: i.code }));
       }).join('');
       sectionsHtml += _section('attention', 'warn', `⚠ Requieren atención <span class="mdiff-sec-count">${ignoredCritical.length}</span>`, rows);
     }
     if (ignoredOk.length) {
-      const rows = _sortByType(ignoredOk).map(i => _card(i.code, i.desc, 'muted', _pill('ignored', 'sin cambios'))).join('');
+      const rows = _sortByType(ignoredOk).map(i => _card(i.code, i.title, 'muted', _pill('ignored', 'sin cambios'), undefined, undefined, undefined, i.type || _itemKindFn({ code: i.code }))).join('');
       // Sin cambios colapsado por defecto
       sectionsHtml += _section('unchanged', 'muted', `Sin cambios <span class="mdiff-sec-count">${ignoredOk.length}</span>`, rows, true);
     }
@@ -596,14 +603,15 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           : [];
 
         if (_iceboxRelated.length > 0 && body) {
-          const _iceboxRows = _iceboxRelated.map(it =>
-            `<div class="mdiff-icebox-row">
-              <span class="mdiff-type-badge ${_typeClass[((it.code||'?')[0].toUpperCase())] || 'mdiff-type--unknown'}">${_typeName[((it.code||'?')[0].toUpperCase())] || '?'}</span>
+          const _iceboxRows = _iceboxRelated.map(it => {
+            const _iceboxItemType = it.type || _itemKindFn({ code: it.code });
+            return `<div class="mdiff-icebox-row">
+              <span class="mdiff-type-badge ${_typeClass[_iceboxItemType] || 'mdiff-type--unknown'}">${_typeName[_iceboxItemType] || '?'}</span>
               <span class="mdiff-icebox-code">${esc(it.code || '—')}</span>
               <span class="mdiff-icebox-title">${esc(it.title || '—')}</span>
               <span class="mdiff-icebox-area">${esc(it.area || '')}</span>
-            </div>`
-          ).join('');
+            </div>`;
+          }).join('');
 
           const _iceboxPromptHtml = `
             <div class="mdiff-icebox-gate" id="mdiff-icebox-gate">
@@ -934,7 +942,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           html += `
             <div class="mdiff-right-sprint-pending-row">
               <span class="mdiff-code mdiff-code--sm">${esc(item.code)}</span>
-              <span class="mdiff-right-sprint-pending-desc">${esc(item.desc || '')}</span>
+              <span class="mdiff-right-sprint-pending-desc">${esc(item.title || '')}</span>
               <span class="mdiff-right-sprint-pending-hint">sin sprint asignado — elegir sprint en la card</span>
             </div>`;
         });
@@ -971,7 +979,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           html += `
             <div class="mdiff-right-discard-row">
               <span class="mdiff-code mdiff-code--sm">${esc(item.code)}</span>
-              <span class="mdiff-right-discard-desc">${esc(item.desc || '')}</span>
+              <span class="mdiff-right-discard-desc">${esc(item.title || '')}</span>
               <select id="${selId}" class="mdiff-right-discard-select"
                       data-discard-idx="${idx}">
                 <option value="">— razón —</option>
