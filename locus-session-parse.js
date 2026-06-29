@@ -231,7 +231,7 @@ function _buildItilItem(it, ckptHeaderRole, projectName, ckptTitulo) {
   };
 }
 
-
+function buildTGPreview(items, discrepancy) {
   if (!items.length && !discrepancy) return '';
   let html = `<div class="preview-tg">
     <div class="preview-tg-header">
