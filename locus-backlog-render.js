@@ -1,4 +1,6 @@
-// [PP] mod:45 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:46 · autor:Rune · 2026-06-28 UTC-6
+// TKT-C7 fix: bl-icebox-item-alert→bl-done-item-alert (L1300-1302) — consume mod:54 de Nova,
+//   resuelve conflicto entre clase CSS eliminada y código JS activo que la generaba.
 // TKT-C1 (REQ-C): _updateSubtabBadges migrada — badgeIcebox (Gen1, tpl-badge-icebox eliminado
 //   en TKT-C6) reemplazado por badgeQBacklog (tpl-badge-qbacklog) + badgeQDisc (tpl-badge-qdisc),
 //   usando _isQBacklog/_isQDisc/_zoneStaleness. _isBacklogScope: sId==='icebox'→_isQBacklog/_isQDisc.
@@ -1298,7 +1300,7 @@ function _renderZonePanel(opts) {
   _rootItems.forEach(item => {
     const _stale = _zoneStaleness(item);
     const _stalePill = _stale
-      ? `<div class="bl-icebox-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d">${_stale.label}</span></div>`
+      ? `<div class="bl-done-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d">${_stale.label}</span></div>`
       : '';
     html += _stalePill + buildBacklogItem(item);
     const _children = _childMap.get(item.code) || [];
