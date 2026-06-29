@@ -1,4 +1,8 @@
-// [PP] mod:59 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:60 · autor:Rune · 2026-06-29 UTC-6
+// [tmp:tkt-typefilter-gen2]: updateTypeFilterUI itera sobre 7 códigos Gen2 (REQ/TKT/INC/DISC/PRB/KE/CHG)
+//   en lugar de Gen1 (T/R/B/P). Guard ftype-T eliminada — los elementos ftype-* ya no existen en Gen2.
+//   byType en renderStats amplía a PRB:0/KE:0/CHG:0. Chips de tipo en stats bar usan
+//   7 tipos Gen2 con labels canónicos; chips sin ítems se omiten; umbral ✕ corregido a < 7.
 // TKT (REQ-[pendiente-ID] · UI: sub-tab Q-INC reemplaza Hotfix): empty state
 //   label de tipo INC en chips de filtro corregido de 'Sin Bugs' a 'Sin Incidentes'.
 //   typeScores (PRB:20/KE:15/CHG:10), namespace qinc y _nsGetTypes('qinc') ya
@@ -971,13 +975,10 @@ export function toggleTypeFilter(type) {
   });
 }
 function updateTypeFilterUI() {
-  if (!document.getElementById('ftype-T')) return; // elementos ftype-* no presentes en el DOM actual
-  ['T','R','B','P'].forEach(t => {
+  // [tmp:tkt-typefilter-gen2]: iteración sobre 7 códigos Gen2 — Gen1 (T/R/B/P) eliminados
+  ['REQ','TKT','INC','DISC','PRB','KE','CHG'].forEach(t => {
     const btn = document.getElementById('ftype-' + t);
-    if (btn) {
-      const isActive = activeTypes.has(t);
-      btn.classList.toggle('active', isActive);
-    }
+    if (btn) btn.classList.toggle('active', activeTypes.has(t));
     // chips accionables en stats bar
     const chip = document.querySelector(`.stat-type-chip.tc-${t}`);
     if (chip) chip.classList.toggle('active', activeTypes.has(t));
@@ -1653,7 +1654,7 @@ export function renderStats() {
   });
 
   // Por tipo (sobre visibles)
-  const byType = {INC:0, TKT:0, REQ:0, DISC:0};
+  const byType = {INC:0, TKT:0, REQ:0, DISC:0, PRB:0, KE:0, CHG:0};
   visible.forEach(i => { const t = itemKind(i); if (t && byType[t] !== undefined) byType[t]++; });
 
   // Por effort (sobre visibles)
@@ -1740,11 +1741,11 @@ export function renderStats() {
       <div class="stat-compact-sep"></div>
       <!-- Chips de tipo filtrables -->
       <div class="stat-compact-types">
-        ${activeTypes.size < 4 ? `<span class="stat-type-chip stat-type-chip--all" data-action="stats-clear-types" title="Mostrar todos los tipos">✕</span>` : ''}
-        ${[['B','Bug','Bugs / correcciones'],['T','Ticket','Tickets técnicos'],['R','Req','Requerimientos / epics']].map(([t,label,hint]) =>
-          `<span class="stat-type-chip tc-${t}${activeTypes.has(t) ? ' active' : ''}" data-action="stats-type-filter" data-type="${t}" title="${hint} — click para filtrar">
+        ${activeTypes.size < 7 ? `<span class="stat-type-chip stat-type-chip--all" data-action="stats-clear-types" title="Mostrar todos los tipos">✕</span>` : ''}
+        ${[['INC','INC','Incidentes'],['TKT','TKT','Tickets técnicos'],['REQ','REQ','Requerimientos / epics'],['PRB','PRB','Problems — causa raíz'],['KE','KE','Known Errors'],['CHG','CHG','Changes estructurales']].map(([t,label,hint]) =>
+          byType[t] > 0 ? `<span class="stat-type-chip tc-${t}${activeTypes.has(t) ? ' active' : ''}" data-action="stats-type-filter" data-type="${t}" title="${hint} — click para filtrar">
             <span class="tc-count">${byType[t]}</span><span class="tc-label">${label}</span>
-          </span>`
+          </span>` : ''
         ).join('')}
         ${pIdeasCount > 0 ? `<span class="stat-type-chip tc-DISC stat-type-chip--ideas${activeTypes.has('DISC') ? ' active' : ''}" data-action="stats-type-filter" data-type="DISC" title="Posibilidades — no afectan contadores de trabajo activo">
           <span class="tc-count">${pIdeasCount}</span><span class="tc-label">💡</span>

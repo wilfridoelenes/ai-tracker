@@ -1,4 +1,4 @@
-/* [PP] mod:3 · autor:Nova · 2026-06-26 UTC-6 */
+/* [PP] mod:4 · autor:Nova · 2026-06-29 15:00 UTC-6 */
 /* locus-proyectos.css */
 
 /* Versión: 2.0 | Selectores consolidados — T3 */
@@ -3657,6 +3657,79 @@
   border: 1px solid var(--border);
   font-size: var(--text-xs);
   color: var(--text-muted);
+}
+
+/* ══ TKT · CSS Sprint Health — dashboard de proyectos (sprint-health-*) ══ */
+
+.sprint-health-header {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.sprint-health-label {
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
+}
+
+.sprint-health-counts {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.sprint-health-bar-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 60px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--surface3);
+  overflow: hidden;
+}
+
+.sprint-health-bar {
+  position: absolute;
+  inset: 0;
+  width: var(--sprint-pct, 0%);
+  background: var(--green);
+  border-radius: var(--radius-pill);
+  transition: width 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sprint-health-bar {
+    transition: none;
+  }
+}
+
+.sprint-health-empty {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.sprint-health-none {
+  font-size: var(--text-2xs);
+  color: var(--text3);
+  font-style: italic;
+}
+
+.sprint-health-cta {
+  cursor: pointer;
+  margin-left: auto;
+  transition: var(--trans-fast);
+}
+
+.sprint-health-cta:hover {
+  background: var(--surface3);
 }
 
 /* END B-202605-004 · A4 — clases fantasma: proyectos */
