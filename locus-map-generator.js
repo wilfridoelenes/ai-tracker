@@ -1,4 +1,4 @@
-// [PP] mod:10 · autor:Rune · 2026-06-27 13:10 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-06-29 UTC-6
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -39,14 +39,13 @@ function _mgActiveSprint() {
   return closed[0] || null;
 }
 
-// Variante que excluye S-HOTFIX (isHotfix:true) — usar en todos los call sites
-// que requieren sprint real para versión o label de documento. S-HOTFIX tiene
-// status:'active' permanente y version_target:'n/a' por diseño (BR-Core §6),
-// lo que bloquea el fallback a sprint cerrado en _mgActiveSprint().
+// T-202606-148: con la zona sprint-especial eliminada del ecosistema (Q-INC reemplaza esa zona),
+// _mgActiveSprintReal queda equivalente a _mgActiveSprint — se conserva como alias
+// explícito para no romper los call sites existentes (openMapGenerator, _mgLoadSprintReview,
+// _mgGetMapVersion) que ya distinguen semánticamente "sprint con version_target real".
 function _mgActiveSprintReal() {
   const all = getActiveSprints();
-  // Sprint activo real — excluye S-HOTFIX
-  const active = all.find(s => s.status === 'active' && !s.isHotfix);
+  const active = all.find(s => s.status === 'active');
   if (active) return active;
   // Fallback: último sprint cerrado por closedAt desc
   const closed = all
@@ -142,7 +141,7 @@ function _mgLoadSprintReview() {
   const proj = getActiveProject();
   if (!proj) return;
 
-  // Sprint activo real (excluye S-HOTFIX)
+  // Sprint activo real (version_target confiable)
   const activeSprint = _mgActiveSprintReal();
 
   const sprintLabel = document.getElementById('mg-review-sprint-label');
@@ -494,8 +493,8 @@ export function _mgGetVersion() {
 // B-202606-088: la condición previa exigía status === 'active', lo que descartaba el
 // version_target real cuando _mgActiveSprint() ya había caído a su fallback de sprint cerrado —
 // el sprint cerrado nunca podía pasar ese chequeo, y el flujo caía al input/_effectiveVersion()
-// produciendo n/a. _mgActiveSprintReal() excluye S-HOTFIX (version_target:'n/a' permanente)
-// y cae al fallback de sprint cerrado cuando no hay sprint regular activo.
+// produciendo n/a. _mgActiveSprintReal() cae al fallback de sprint cerrado cuando no hay
+// sprint regular activo.
 function _mgGetMapVersion() {
   const activeSp = _mgActiveSprintReal();
   if (activeSp && activeSp.version_target && activeSp.version_target.trim() && activeSp.version_target.trim() !== 'undefined') {
@@ -1284,7 +1283,7 @@ function _generateContext(ver) {
   const status = _mgInferStatus(_activeSp, _blItems);
 
   // Contadores Gen2 — itemKind() clasifica, item sin tipo resoluble no incrementa ningún contador
-  const counters = { REQ: 0, TKT: 0, DISC: 0, INC: 0 };
+  const counters = { REQ: 0, TKT: 0, DISC: 0, INC: 0, PRB: 0, KE: 0, CHG: 0 };
   _blItems.forEach(i => {
     const kind = itemKind(i);
     if (kind && kind in counters) counters[kind]++;

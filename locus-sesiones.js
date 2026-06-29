@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:29 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:30 · autor:Rune · 2026-06-29 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -169,7 +169,7 @@ function _trackerRenderMiniHist(aiId) {
   // Línea 1: sprint badge + título truncado + timestamp
   // Línea 2: summary truncado 1 línea — omitido si vacío
   // Línea 3: refs coloreadas + badge doc-update + rol pill con margin-left:auto
-  const _activeSprintId = (getActiveSprints().find(sp => sp.status === 'active' && !sp.isHotfix) || {}).id || null;
+  const _activeSprintId = (getActiveSprints().find(sp => sp.status === 'active') || {}).id || null;
 
   const _renderRow = (s, group, isInProgress) => {
     const isActive = s.id === _trackerHistSelectedSessId;
@@ -647,7 +647,7 @@ function _codeKind(codeOrItem) {
   return '';
 }
 
-const TG_TYPE_NAMES = {DISC:'Discovery', TKT:'Ticket', REQ:'Requerimiento', INC:'Incidente'};
+const TG_TYPE_NAMES = {DISC:'Discovery', TKT:'Ticket', REQ:'Requerimiento', INC:'Incidente', PRB:'Problem', KE:'Known Error', CHG:'Change'};
 
 // T-202604-047: tiempo promedio entre sesiones consecutivas
 function buildHoyCard(ai, idx = 0, opts = {}) {
@@ -848,7 +848,7 @@ function buildCard(ai) {
       return t ? `<span class="sess-tag-dot" data-tag-color="${esc(t.color)}" title="${esc(t.name)}"></span>` : '';
     }).join('');
     const tgItems = projTracker.items.filter(x => x.sessionId === s.id);
-    const tgCounts = {DISC:0,TKT:0,REQ:0,INC:0};
+    const tgCounts = {DISC:0,TKT:0,REQ:0,INC:0,PRB:0,KE:0,CHG:0};
     tgItems.forEach(x => {
       const t = _codeKind(x);
       if (t && tgCounts[t] !== undefined) tgCounts[t]++;

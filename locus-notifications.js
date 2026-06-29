@@ -1,4 +1,4 @@
-// [PP] mod:4 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:5 · autor:Rune · 2026-06-29 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -30,7 +30,7 @@ function _notifHistory() {
 
 function _notifHistoryAdd(notif) {
   // severity: 'info' para la mayoría, 'warn' para bugs high y sprint low, 'ok' para desbloqueados
-  const severityMap = { bugHigh: 'warn', sprintLow: 'warn', unblocked: 'ok', sprintOrphans: 'warn' };
+  const severityMap = { incHigh: 'warn', sprintLow: 'warn', unblocked: 'ok', sprintOrphans: 'warn' };
   const entry = {
     type:      notif.type,
     severity:  severityMap[notif.type] || 'info',
@@ -52,7 +52,7 @@ export const _NOTIF_DEFAULTS = {
   sprintOrphans: { enabled: true,  label: 'Sprint cerrado con pendientes',    threshold: 0  },
   itemInactivo:  { enabled: true,  label: 'Ítem sin sesión vinculada',        threshold: 14 },
   sprintLow:     { enabled: true,  label: 'Sprint con avance bajo a mitad',   threshold: 20 },
-  bugHigh:       { enabled: true,  label: 'Bug high sin sesión vinculada',    threshold: 7  },
+  incHigh:       { enabled: true,  label: 'Incidente high sin resolver',      threshold: 18 },
   aiCadencia:    { enabled: true,  label: 'IA fuera de cadencia histórica',   threshold: 0  },
 };
 
@@ -218,23 +218,22 @@ export function _computeNotifications() {
     });
   }
 
-  // 5. B-202605-238 AC: B de prioridad high sin sesión vinculada > 7 días
-  if (cfg.bugHigh && cfg.bugHigh.enabled) {
-    const bugThresh = cfg.bugHigh.threshold || 7;
+  // 5. INC con sla_priority:high sin resolver — threshold en horas (no días)
+  if (cfg.incHigh && cfg.incHigh.enabled) {
+    const incThreshH = cfg.incHigh.threshold || 18;
     items.forEach(function(item) {
-      if (item.type !== 'B') return;
-      if (item.priority !== 'high') return;
-      if (item.status !== 'pendiente') return;
+      if (item.type !== 'INC') return;
+      if (item.slaPriority !== 'high') return;
+      if (['resolved', 'closed'].includes(item.incidentStatus)) return;
       if (!item.createdAt) return;
-      const ageDays = (Date.now() - item.createdAt) / 86400000;
-      if (ageDays <= bugThresh) return;
-      if (_itemHasRecentSession(item, bugThresh)) return;
-      const id  = 'bug-high-' + item.code;
+      const ageHours = (Date.now() - item.createdAt) / 3600000;
+      if (ageHours <= incThreshH) return;
+      const id  = 'inc-high-' + item.code;
       const lbl = (item.title || '').substring(0, 40);
       notifs.push({
-        id, type: 'bugHigh', tab: 'backlog', icon: '\uD83D\uDED1',
-        title: 'Bug high sin atención',
-        body: item.code + (lbl ? ' \u2014 ' + lbl : '') + ' lleva ' + Math.floor(ageDays) + ' días sin sesión',
+        id, type: 'incHigh', tab: 'backlog', icon: '\uD83D\uDED1',
+        title: 'Incidente high sin resolver',
+        body: item.code + (lbl ? ' \u2014 ' + lbl : '') + ' lleva ' + Math.floor(ageHours) + 'h sin resolver',
         action: function() { navigateToItem(item.code); }
       });
     });

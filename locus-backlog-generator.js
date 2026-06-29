@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:28 · autor:Rune · 2026-06-26 UTC-6
+// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:29 · autor:Rune · 2026-06-29 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -450,7 +450,7 @@ function _buildSprintsProgramadosMd() {
 
     const orden = sp.activationOrder != null ? sp.activationOrder : (idx + 1);
     const label = sp.label || sp.name || sp.id;
-    return `| ${label} | ${orden} | R=${rCount} · T=${tCount} · B=${bCount} | ${effortTotal} | ${doneCount} done |`;
+    return `| ${label} | ${orden} | R=${rCount} · T=${tCount} · INC=${bCount} | ${effortTotal} | ${doneCount} done |`;
   });
 
   return [
@@ -610,11 +610,6 @@ export function _generateBacklogContent(newVersion, opts = {}) {
       if (_itemTypeGen2(i) === 'INC' &&
           (i.status === 'pendiente' || i.status === 'en-revision') &&
           i.triggered_by && activeTCodes.has(i.triggered_by)) return true;
-      // Regla HOTFIX (B-202606-020): todos los ítems asignados a [Prefijo]-S-HOTFIX —
-      // cualquier status válido (pendiente, en-revision, done, descartado).
-      // HOTFIX no tiene status 'active' ni 'closed' en state.sprints — cae fuera de
-      // Regla 4 y 5. Se detecta por sufijo '-S-HOTFIX' en el ID de sprint normalizado.
-      if (i.sprint && /[A-Za-z]+-S-HOTFIX$/i.test(String(i.sprint).trim())) return true;
       // Sprint cerrado más reciente: ítems done
       // B-202606-014: normalizar i.sprint antes de comparar
       if (i.status === 'done' && _normLastClosedId && _normSprintId(i.sprint) === _normLastClosedId) return true;
@@ -656,8 +651,8 @@ export function _generateBacklogContent(newVersion, opts = {}) {
     return { itemC, maxId };
   };
   const { itemC: itemCounters, maxId: counters } = _computeBacklogCounters();
-  const itemCounterStr = `REQ=${itemCounters.REQ} | TKT=${itemCounters.TKT} | INC=${itemCounters.INC} | DISC=${itemCounters.DISC}`;
-  const counterStr = `REQ=${String(counters.REQ).padStart(3,'0')} | TKT=${String(counters.TKT).padStart(3,'0')} | INC=${String(counters.INC).padStart(3,'0')} | DISC=${String(counters.DISC).padStart(3,'0')}`;
+  const itemCounterStr = `REQ=${itemCounters.REQ} | TKT=${itemCounters.TKT} | INC=${itemCounters.INC} | DISC=${itemCounters.DISC} | PRB=${itemCounters.PRB} | KE=${itemCounters.KE} | CHG=${itemCounters.CHG}`;
+  const counterStr = `REQ=${String(counters.REQ).padStart(3,'0')} | TKT=${String(counters.TKT).padStart(3,'0')} | INC=${String(counters.INC).padStart(3,'0')} | DISC=${String(counters.DISC).padStart(3,'0')} | PRB=${String(counters.PRB).padStart(3,'0')} | KE=${String(counters.KE).padStart(3,'0')} | CHG=${String(counters.CHG).padStart(3,'0')}`;
 
   const statusMap = {};
   exportItems.forEach(i => { statusMap[i.code] = { status: i.status, sprint: i.sprint || '' }; });
