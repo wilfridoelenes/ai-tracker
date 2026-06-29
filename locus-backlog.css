@@ -1,4 +1,4 @@
-/* [PP] mod:52 · autor:Nova · 2026-06-26 UTC-6 */
+/* [PP] mod:54 · autor:Nova · 2026-06-28 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -943,7 +943,7 @@
   display: none;
 }
 
-/* Flecha de colapso en header de sprint — mismo patrón que .bl-icebox-arrow */
+/* Flecha de colapso en header de sprint — mismo patrón que .bl-done-arrow */
 .version-header-arrow {
   font-size: var(--text-xs);
   color: var(--hint);
@@ -5451,14 +5451,14 @@ er {
 [data-theme="dark"] .sprint-group-hotfix .bl-vl-sprint-header .bl-vl-sprint-header-meta { color: rgb(240 149 123 / 80%); }
 [data-theme="dark"] .sprint-group-hotfix .bl-vl-sprint-header .bl-vl-progress-label { color: rgb(240 149 123 / 80%); }
 
-/* ══ T-202605-103: Sección Icebox — bl-icebox-* ══ */
+/* ══ T-202605-103 (TKT-C7, Gen2): Sección Done — bl-done-* ══ */
 /* Clases independientes — no reutilizan .version-group ni .version-header */
 
-.bl-icebox-group {
+.bl-done-group {
   margin-bottom: 2rem;
 }
 
-.bl-icebox-header {
+.bl-done-header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -5471,12 +5471,12 @@ er {
   user-select: none;
 }
 
-.bl-icebox-header:hover {
+.bl-done-header:hover {
   background: var(--surface3, var(--surface2));
   color: var(--text);
 }
 
-.bl-icebox-arrow {
+.bl-done-arrow {
   font-size: var(--text-xs);
   color: var(--hint);
   flex-shrink: 0;
@@ -5485,11 +5485,11 @@ er {
   display: inline-block;
 }
 
-.bl-icebox-arrow.collapsed {
+.bl-done-arrow.collapsed {
   transform: rotate(-90deg);
 }
 
-.bl-icebox-count {
+.bl-done-count {
   font-size: var(--text-xs);
   color: var(--hint);
   font-family: var(--mono);
@@ -5497,25 +5497,19 @@ er {
   margin-left: auto;
 }
 
-.bl-icebox-body {
+.bl-done-body {
   padding: 6px 0;
 }
 
-.bl-icebox-body.collapsed {
+.bl-done-body.collapsed {
   display: none;
 }
 
-/* bl-icebox-item-alert — contenedor de alerta por ítem individual en icebox
-   Precede al buildBacklogItem() del ítem. Visible solo cuando _iceboxStaleness() retorna valor. */
-.bl-icebox-item-alert {
+/* bl-done-item-alert — wrapper de staleness pill por ítem individual (TKT-C7 fix, mod:54)
+   Generado activamente por _zoneStaleness() en locus-backlog-render.js (L1300-1302).
+   Reemplaza bl-icebox-item-alert — misma regla, sin cambio de estilo. */
+.bl-done-item-alert {
   padding: 4px 14px 0;
-}
-
-/* bl-icebox-alert-count — clase adicional sobre staleness-pill en el header del grupo icebox
-   Muestra conteo total de ítems con alerta (⚠ N). No agrega estilos propios —
-   hereda color y forma de staleness--stale. Selector disponible para targeting específico. */
-.staleness-pill.bl-icebox-alert-count {
-  margin-left: auto;
 }
 
 /* ══ END T-202605-103 ══ */
