@@ -1,4 +1,9 @@
-// [PP] mod:28 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:29 · autor:Rune · 2026-06-30 UTC-6
+// TKT-202606-011 (REQ-202606-003 · AC3): showMergeDiffPanel renderiza banner con badge
+//   "Pendiente de aval Finn" (.mdiff-step0-badge, mismo patrón visual que Step 0/Sugerencia)
+//   y deshabilita mdiff-apply-btn/mdiff-backlog-btn cuando ckptMeta.draftPending === true —
+//   vía el mismo mecanismo de bloqueo que retroPendingItems/discardPendingItems/sprintPendingItems
+//   en _mdiffUpdateConfirmBtn. Sin clases CSS nuevas — solo reutiliza .mdiff-step0-* existentes.
 // locus-backlog-merge.js
 // Última actualización: REQ-MERGE-GEN2: migrar detección de tipo Gen2 en badges, sort, title y parentHtml
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -486,6 +491,24 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     </div>`;
   };
 
+  // TKT-202606-011 AC3: banner persistente cuando el CHECKPOINT es borrador (draft:true en origen,
+  // ai._parsed.draft → _ckptMeta.draftPending). No es una sugerencia descartable como
+  // _renderTriggeredBySuggestion — es el estado del panel mientras espera aval de Finn.
+  // Sin botones de acción: el founder revisa los ítems propuestos, no decide nada aquí.
+  const _draftPending = _ckptMeta.draftPending === true;
+  const _renderDraftPendingBanner = () => {
+    if (!_draftPending || !body) return;
+    const _bannerHtml = `
+      <div class="mdiff-step0" id="mdiff-draft-banner">
+        <div class="mdiff-step0-header">
+          <span class="mdiff-step0-badge">Pendiente de aval Finn</span>
+          <span class="mdiff-step0-title">Borrador de especificación</span>
+        </div>
+        <p class="mdiff-icebox-gate-desc">Este CHECKPOINT tiene draft:true — Finn aún no avaló los AC. Guardar queda deshabilitado hasta que llegue el CHECKPOINT final de Finn con draft:false.</p>
+      </div>`;
+    body.insertAdjacentHTML('afterbegin', _bannerHtml);
+  };
+
   // T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para B con triggered_by en sprint activo.
   // Llega via ckptMeta.triggeredBySuggestion: { b, suggestedSprint, onAccept }. No-bloqueante:
   // ignorar deja el B en icebox (default). Inserta el prompt al inicio del body.
@@ -679,6 +702,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   if (body && !_sprintProposal) {
     body.innerHTML = _buildNarrativeSection() + sectionsHtml;
     _renderTriggeredBySuggestion();
+    _renderDraftPendingBanner();
   }
 
   // Summary chips: clickeables con jump a sección
@@ -901,7 +925,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       }
     });
 
-    const blocked = retroPendingItems.length > 0 || discardPendingItems.length > 0 || sprintPendingItems.length > 0;
+    // TKT-202606-011 AC3: draftPending bloquea el guardado igual que los demás pendientes —
+    // el botón permanece deshabilitado mientras el CHECKPOINT no tenga aval de Finn (draft:false).
+    const blocked = retroPendingItems.length > 0 || discardPendingItems.length > 0 || sprintPendingItems.length > 0 || _draftPending;
     applyBtn.disabled = blocked;
     applyBtn.classList.toggle('mdiff-apply-blocked', blocked);
     if (backlogBtn) {

@@ -1,4 +1,9 @@
-// [PP] mod:82 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:83 · autor:Rune · 2026-06-30 UTC-6
+// TKT-202606-011 (REQ-202606-003 · AC2): eliminado el guard de T-202606-006 en parsePaste —
+//   draft:true ya no vacía tgItems ni bloquea el botón Guardar vía _itemsJsonError. El estado
+//   "pendiente de aval Finn" se comunica en el panel DIFF (badge + botón deshabilitado, ver
+//   locus-backlog-merge.js AC3), no antes de abrirlo. ai._parsed.draft sigue propagándose sin
+//   cambio (línea ~984) — es la fuente que showMergeDiffPanel consume.
 // INC-[pendiente-ID] (Validador de status global rechaza 'discovery' para DISC):
 //   _KNOWN_STATUS_INPUTS amplía con 'discovery'. _canonicalStatus agrega discriminador
 //   explícito 'discovery' válido solo para type DISC — null para cualquier otro tipo,
@@ -708,20 +713,13 @@ export function parsePaste(id) {
     nextStep = ckpt.proximoPaso;
     bloqueantesRaw = ckpt.bloqueantes || '';
 
-    // T-202606-006: guard draft:true — bloquear ingesta antes de cualquier validación de ítems
-    // AC-4: evaluado antes de _jsonParseError y _isJsonFormat — entrada: JSON con draft:true → bloqueo inmediato
-    // AC-1: parsePaste no ejecuta ningún path de ingesta — tgItems queda vacío
-    // AC-2: error visible al founder con mensaje canónico
-    // AC-3: draft ausente o false → sin efecto
-    if (ckpt.draft === true) {
-      window[`_itemsJsonError_${id}`] = 'Borrador detectado — pegar CHECKPOINT final emitido por Finn';
-      // AC-3: toast visible al founder con texto canónico
-      showToast('warn', 'Borrador detectado — pegar CHECKPOINT final emitido por Finn');
-      // tgItems ya es [] — no se modifica
-      // No continuar con ningún path de ingesta
-    }
+    // TKT-202606-011 AC2: el guard de T-202606-006 (bloqueo total de ingesta cuando draft:true)
+    // queda eliminado — tgItems se preserva igual que con draft:false. El estado "pendiente de
+    // aval Finn" ya no se comunica bloqueando el botón Guardar antes de abrir el panel: se comunica
+    // dentro del panel DIFF (badge + botón confirmar deshabilitado — locus-backlog-merge.js AC3).
+    // ai._parsed.draft (línea ~984, sin cambio en este TKT) sigue siendo la fuente que el panel lee.
     // R-202605-133: si parseCheckpoint detectó error en el bloque ```json, marcar error bloqueante
-    else if (ckpt._jsonParseError) {
+    if (ckpt._jsonParseError) {
       window[`_itemsJsonError_${id}`] = ckpt._jsonParseError;
     }
     // R-202605-133: si el CHECKPOINT es JSON puro, los ítems ya están en ckpt._rawItems — no buscar ---getItems()---
