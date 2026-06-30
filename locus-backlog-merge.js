@@ -1,4 +1,6 @@
-// [PP] mod:32 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:33 · autor:Rune · 2026-06-30 UTC-6
+// Fix inline (TKT-202606-013): corregido call de showToast en gate TKT-202606-012 — firma
+//   posicional (type,title,body), no objeto. Bug descubierto al implementar TKT-013.
 // TKT-202606-012 (REQ-202606-003 · AC2): gate de exclusividad sprint_proposal + items REQ/TKT
 //   bloquea showMergeDiffPanel completo con toast error cuando ambos llegan en el mismo CHECKPOINT —
 //   __BR-Ecosystem §12. DISC/INC/PRB/KE/CHG/patch no activan el gate.
@@ -69,7 +71,10 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // KE/CHG no activan el gate — solo REQ y TKT. Corre antes de cualquier mutación o dry-run.
   if (_ckptMeta.sprintProposal && tgItems.some(i => i.type === 'REQ' || i.type === 'TKT')) {
     const _msg = 'sprint_proposal debe ir en CHECKPOINT independiente antes de los ítems. Separar y reemitir.';
-    showToast({ title: 'CHECKPOINT bloqueado', body: _msg, type: 'error' });
+    // Fix inline (triggered_by TKT-202606-013): showToast usa firma posicional (type, title, body) —
+    // ver locus-toast.js:145. {title,body,type} como objeto único no renderiza texto — bug descubierto
+    // al implementar TKT-202606-013, mismo patrón roto en otros call sites preexistentes (ver INC).
+    showToast('error', 'CHECKPOINT bloqueado', _msg);
     console.warn('[Locus] showMergeDiffPanel:', _msg);
     return; // ningún ítem se aplica — early-return antes de mergeBacklogFromTG y cualquier mutación
   }

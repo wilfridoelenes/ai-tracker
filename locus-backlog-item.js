@@ -1,4 +1,7 @@
-// [PP] mod:57 · autor:Rune · 2026-06-30 23:10 UTC-6
+// [PP] mod:58 · autor:Rune · 2026-06-30 UTC-6
+// TKT-202606-013 (REQ-202606-003 · AC1/AC2): mergeBacklogFromTG — gate duro REQ nuevo sin TKT
+//   hijo. Reemplaza la degradación orphaned:true (T-202606-010) por bloqueo real: ignored con
+//   reason 'req-sin-tkt', sin creación, toast en corrida real. __BR-Core §4 Gate de parser.
 // TKT-PARSER-2b (REQ-[pendiente-ID] · fix chk_status_by_type para INC/PRB/KE/CHG nuevos):
 //   Gate en bloque Scrum de merge (L2007 orig.): INC/PRB/KE excluidos vía _skipScrumGate —
 //   ahora llegan con item.status poblado (mirror, ver locus-session-parse.js) y sin esta
@@ -2228,11 +2231,9 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       const nowTs = Date.now();
       const initialStatus = item.status || 'pendiente'; // T-202606-034: item.status ya canónico desde T1
 
-      // T-202606-010: SUSPENDIDO — P pendiente de Vera (ciclo de vida de R sin Ts).
-      // Degradación silenciosa R→P desactivada hasta que BR-Core §4 y BR-Ecosystem §5
-      // definan el nuevo modelo: gate en parser + flag orphaned + P como único origen de R.
-      // R nuevo sin Ts → bloqueo en parser (aún no implementado) — por ahora se ingesta como R
-      // con flag orphaned:true hasta que se emita T1.
+      // TKT-202606-013 (REQ-202606-003 · AC1/AC2): gate de parser — REQ nuevo sin TKT hijo no se
+      // crea en el backlog. Reemplaza la degradación suspendida orphaned:true (T-202606-010) —
+      // implementa el bloqueo que ese comentario dejaba pendiente. __BR-Core §4 Gate de parser.
       const _incomingTypePreCheck = itemKind(item) || '';
       if (_incomingTypePreCheck === 'REQ') {
         const _rCode = item.code;
@@ -2245,9 +2246,16 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           i.parentId === _rCode && itemKind(i) === 'TKT' && i.status !== 'descartado'
         );
         if (!_hasChildInBatch && !_hasChildInBacklog) {
-          // Marcar orphaned — no degradar
-          item.orphaned = true;
-          _blogLog('r-sin-ts', _rCode, _rCode + ' sin Ts válidos — marcado orphaned:true (degradación suspendida)', 'backlog');
+          // AC2 edge: aplica solo a REQ nuevos — este bloque ya vive dentro de la rama "!existing".
+          const _reqIdentifier = item.title || _rCode;
+          const _msg = `CHECKPOINT bloqueado: REQ ${_reqIdentifier} emitido sin TKTs hijos. Un REQ debe nacer con al menos TKT1 declarado. Adjuntar CHECKPOINT corregido.`;
+          ignored.push({ code: _rCode, reason: 'req-sin-tkt', desc: item.title || '' });
+          // AC4: bloqueo es por ítem — no return de todo mergeBacklogFromTG, solo de este forEach.
+          // Toast solo en la corrida real — la corrida dry-run (preview del DIFF) ya refleja
+          // la exclusión vía diff.ignored, sin duplicar el aviso.
+          if (!_dryRun) showToast('error', 'CHECKPOINT bloqueado', _msg);
+          _blogLog('req-sin-tkt', _rCode, _msg, 'backlog');
+          return; // AC2: no se crea en el backlog
         }
       }
 
