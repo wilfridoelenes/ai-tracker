@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:6 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-30 UTC-6
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -16,7 +16,7 @@ import { _animateCountUp, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionY
 
 import { openDetail } from './locus-session-popup.js';
 
-import { _projKey, _getActiveProjectFilter, getAI, getAISessions, getProjectSessions, getState, save } from './locus-storage.js'; // inline_fix T-202606-023: _getActiveProjectFilter añadido al import — faltaba en ESM | B-202606-043: getState añadido — migración state global → getState()
+import { _projKey, _getActiveProjectFilter, _sprintDisplay, getAI, getAISessions, getProjectSessions, getState, save } from './locus-storage.js'; // inline_fix T-202606-023: _getActiveProjectFilter añadido al import — faltaba en ESM | B-202606-043: getState añadido — migración state global → getState()
 
 import { showToast } from './locus-toast.js';
 
@@ -693,7 +693,7 @@ function renderProject(query) {
       const totalEffort = sprintItems.reduce((sum, i) => sum + (parseInt(i.effort) || 1), 0);
       const doneEffort = sprintItems.filter(i => i.status === 'done').reduce((sum, i) => sum + (parseInt(i.effort) || 1), 0);
       const pct = totalEffort > 0 ? Math.round((doneEffort / totalEffort) * 100) : 0;
-      const sprintLabel = activeSprint.label || activeSprint.id;
+      const sprintLabel = _sprintDisplay(activeSprint.id);
       sprintEl.innerHTML = `
         <div class="sprint-health-header">
           <span class="sprint-health-label">${esc(sprintLabel)}</span>

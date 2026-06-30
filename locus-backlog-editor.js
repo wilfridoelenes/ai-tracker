@@ -1,4 +1,4 @@
-// [PP] mod:5 · autor:Rune · 2026-06-30 22:05 UTC-6
+// [PP] mod:6 · autor:Rune · 2026-06-30 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -10,7 +10,7 @@ import { _getNextItemCode, _undoSnapshot, renderStats, updateBacklogBanner, getI
 
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 
-import { _blogLog, _tplKey, save, getActiveSprints } from './locus-storage.js';
+import { _blogLog, _sprintDisplay, _tplKey, save, getActiveSprints } from './locus-storage.js';
 
 import { showToast } from './locus-toast.js';
 
@@ -67,7 +67,7 @@ function _refreshSprintSelect(currentSprintId) {
     '<option value="icebox"' + (cur === 'icebox' ? ' selected' : '') + '>icebox</option>' +
     sprints.map(s =>
       '<option value="' + s.id + '"' + (cur === s.id ? ' selected' : '') + '>' +
-      (s.label || s.id) + (s.status === 'active' ? ' ★' : '') + '</option>'
+      _sprintDisplay(s.id) + (s.status === 'active' ? ' ★' : '') + '</option>'
     ).join('') +
     // ghost option si el sprint actual ya no existe en la lista (cerrado)
     (cur !== 'icebox' && !sprints.find(s => s.id === cur)

@@ -1,4 +1,4 @@
-// [PP] mod:14 · autor:Rune · 2026-06-26 UTC-6
+// [PP] mod:15 · autor:Rune · 2026-06-30 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -7,7 +7,7 @@ import { buildBacklogItem } from './locus-backlog-item.js';
 
 import { renderBacklogList } from './locus-backlog-render.js';
 
-import { getActiveSprints, saveBacklog } from './locus-storage.js';
+import { _sprintDisplay, getActiveSprints, saveBacklog } from './locus-storage.js';
 
 import { esc } from './locus-ui-shell.js';
 
@@ -127,7 +127,7 @@ export function renderArchivoHistorico(listEl) {
 
   // Sprint más antiguo como referencia de "desde cuándo"
   const sortedClosed = [...closedSprints].sort((a, b) => (a.closedAt || 0) - (b.closedAt || 0));
-  const oldestSprintId = sortedClosed.length ? esc(sortedClosed[0].label || sortedClosed[0].id) : '';
+  const oldestSprintId = sortedClosed.length ? esc(_sprintDisplay(sortedClosed[0].id)) : '';
   const sinceHtml = oldestSprintId
     ? `<span class="arch-historico-since">desde ${oldestSprintId}</span>`
     : '';

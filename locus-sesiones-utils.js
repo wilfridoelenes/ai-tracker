@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:5 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:6 · autor:Rune · 2026-06-30 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
@@ -294,7 +294,7 @@ function _buildWeeklySummary() {
       const spDone = spItems.filter(i => i.status === 'done').length;
       const spTotal = spItems.length;
       const spPct = spTotal > 0 ? Math.round((spDone/spTotal)*100) : 0;
-      sprintProgress = `${sp.label || sp.id} · ${spDone}/${spTotal} (${spPct}%)`;
+      sprintProgress = `${(sp.label && sp.label !== sp.id) ? `${sp.id} · ${sp.label}` : sp.id} · ${spDone}/${spTotal} (${spPct}%)`;
     }
   } catch(e) {}
 

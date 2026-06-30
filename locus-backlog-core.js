@@ -1,4 +1,4 @@
-// [PP] mod:67 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:68 · autor:Rune · 2026-06-30 UTC-6
 // INC-[pendiente-ID] (normalizeStatus sin caso explícito para 'discovery' — fallback
 //   silencioso a 'pendiente'): agregado caso explícito 'discovery' → 'discovery' para
 //   type DISC, 'pendiente' para cualquier otro tipo — mismo patrón que 'promoted'/
@@ -30,7 +30,7 @@
 // T-202606-057: imports hacia módulos que importan a locus-backlog-core eliminados.
 // Funciones desacopladas via _coreCallbacks (getters/acciones controladas)
 // y shell:* events (notificaciones de render — window per B-202606-021).
-import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _tplKey, getAI, getActiveSprints, getAllSessions, getState, saveBacklog } from './locus-storage.js';
+import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _sprintDisplay, _tplKey, getAI, getActiveSprints, getAllSessions, getState, saveBacklog } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
 import { esc, getCurrentSubTab } from './locus-ui-shell.js';
 
@@ -1737,8 +1737,8 @@ export function renderStats() {
   // UX-redesign: stats bar en una sola fila compacta — pendientes primero (foco en trabajo activo)
   const _hasPending = (backlogCount + enRevisionCount) > 0;
 
-  // T-202606-048 AC 6: label metadata de sprint activo
-  const _sprintLabel = _activeSprint.label || _activeSprint.id || '';
+  // T-202606-048 AC 6 · TKT1-sprint-display-2: label metadata de sprint activo vía _sprintDisplay()
+  const _sprintLabel = _sprintDisplay(_activeSprint.id) || '';
   const _metaLabel = `${_sprintDone}/${_sprintTotal} · effort ${_sprintEffortTotal}`;
 
   document.getElementById('stats-bar').innerHTML = `

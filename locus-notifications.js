@@ -1,4 +1,4 @@
-// [PP] mod:5 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:6 · autor:Rune · 2026-06-30 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -11,7 +11,7 @@ import { getItems, _registerCoreCallback } from './locus-backlog-core.js';
 import { navigateToItem } from './locus-backlog-sprints.js';
 import { renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
-import { getActiveSprints, getAllSessions } from './locus-storage.js';
+import { _sprintDisplay, getActiveSprints, getAllSessions } from './locus-storage.js';
 import { switchTab } from './locus-ui-shell.js';
 import { toast } from './locus-toast.js';
 import { getMdiffStepZeroActive } from './locus-backlog-merge.js';
@@ -154,7 +154,7 @@ export function _computeNotifications() {
       notifs.push({
         id, type: 'sprintOrphans', tab: 'backlog', icon: '\u26A0\uFE0F',
         title: 'Sprint cerrado con pendientes',
-        body: (sp.label || sp.id) + ' \u2014 ' + cnt + ' \xEDtem' + (cnt !== 1 ? 's' : '') + ' sin reasignar',
+        body: _sprintDisplay(sp.id) + ' \u2014 ' + cnt + ' \xEDtem' + (cnt !== 1 ? 's' : '') + ' sin reasignar',
         action: function() {
           switchTab('backlog');
           setTimeout(function() { setFilter('sprint', sp.id); }, 80);
@@ -210,7 +210,7 @@ export function _computeNotifications() {
       notifs.push({
         id, type: 'sprintLow', tab: 'sprint', icon: '\u26A1',
         title: 'Sprint con avance bajo',
-        body: (sp.label || sp.id) + ' \u2014 ' + spPct + '% a mitad del período',
+        body: _sprintDisplay(sp.id) + ' \u2014 ' + spPct + '% a mitad del período',
         action: function() {
           switchTab('sprint');
         }

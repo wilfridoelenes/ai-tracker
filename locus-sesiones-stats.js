@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:17 · autor:Rune · 2026-06-28 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-05 · mod:18 · autor:Rune · 2026-06-30 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -69,7 +69,7 @@ export function _updateHeaderProjectLabel() {
       : null;
 
     if (sp) {
-      sprintBtn.textContent = sp.label || sp.id || 'Sprint';
+      sprintBtn.textContent = (sp.label && sp.label !== sp.id) ? `${sp.id} · ${sp.label}` : (sp.id || 'Sprint');
       sprintBtn.title = 'Ver sprint health';
       sprintBtn.classList.remove('is-hidden');
       sprintSep.classList.remove('is-hidden');
@@ -183,7 +183,7 @@ function _getActiveSprintStats() {
     const spDone  = spItems.filter(i => i.status === 'done').length;
     const spTotal = spItems.length;
     const spPct   = spTotal > 0 ? Math.round((spDone / spTotal) * 100) : 0;
-    const spLabel = sp.label || sp.id || '';
+    const spLabel = (sp.label && sp.label !== sp.id) ? `${sp.id} · ${sp.label}` : (sp.id || '');
     return { sp, spItems, spDone, spTotal, spPct, spLabel };
   } catch(e) {
     return { sp: null, spItems: [], spDone: 0, spTotal: 0, spPct: 0, spLabel: '' };

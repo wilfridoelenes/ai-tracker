@@ -1,11 +1,11 @@
-// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:29 · autor:Rune · 2026-06-29 UTC-6
+// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:30 · autor:Rune · 2026-06-30 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
 // Dependencias: locus-storage.js · locus-backlog-core.js · locus-toast.js
 // T-202606-166: _docPrefix movida a locus-storage.js — import actualizado.
 
-import { _blogLog, _docPrefix, _effectiveVersion, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData } from './locus-storage.js';
+import { _blogLog, _docPrefix, _effectiveVersion, _sprintDisplay, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData } from './locus-storage.js';
 import { getItems, itemKind, updateBacklogBanner } from './locus-backlog-core.js';
 import { showToast } from './locus-toast.js';
 
@@ -449,7 +449,7 @@ function _buildSprintsProgramadosMd() {
     const doneCount = spItems.filter(i => i.status === 'done').length;
 
     const orden = sp.activationOrder != null ? sp.activationOrder : (idx + 1);
-    const label = sp.label || sp.name || sp.id;
+    const label = _sprintDisplay(sp.id);
     return `| ${label} | ${orden} | R=${rCount} · T=${tCount} · INC=${bCount} | ${effortTotal} | ${doneCount} done |`;
   });
 

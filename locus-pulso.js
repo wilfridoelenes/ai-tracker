@@ -1,4 +1,4 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v0.1.0 · sprint:PP-S-01 · mod:4 · autor:Rune · 2026-06-30 UTC-6
 // locus-pulso.js
 // Última actualización: 2026-05-19 | Panel Pulso del Ecosistema
 // Extraído de: ai-tracker-checkpoint.js · ai-tracker-ai-notes.js
@@ -67,7 +67,7 @@ function _calcPulsoDotState() {
   activeProjects.forEach(p => {
     (p.sprints || []).filter(s => s.status === 'active').forEach(sp => {
       const closedRecently = allItems.some(i => i.sprint === sp.id && i.status === 'done' && i.doneAt && (now - i.doneAt) <= WEEK);
-      if (!closedRecently) staleSprints.push({ name: sp.label || sp.id, project: p.name || p.id });
+      if (!closedRecently) staleSprints.push({ name: (sp.label && sp.label !== sp.id) ? `${sp.id} · ${sp.label}` : sp.id, project: p.name || p.id });
     });
   });
 
