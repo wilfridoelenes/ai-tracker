@@ -1,4 +1,4 @@
-// [PP] mod:70 · autor:Rune · 2026-06-30 15:58 UTC-6
+// [PP] mod:71 · autor:Rune · 2026-06-30 16:00 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -228,7 +228,9 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
         try {
           // B-202606-XXX: save() persiste `state` — los sprints viven en tracker_sprints
           // desde T-202606-005 y no se sincronizan vía save(). Usar _upsertSprint().
-          const _projId = _getActiveProjectFilter();
+          // QA: _getActiveProjectFilter() puede ser '' en vista "todos" — usar el proyecto
+          // dueño del sprint primero, mismo patrón que setSprintStatus en locus-backlog-sprints.js.
+          const _projId = sp.projId || sp.projectId || _getActiveProjectFilter();
           _upsertSprint(sp, _projId).catch(function(err) {
             showToast('error', 'Error al guardar. Intenta de nuevo.');
           });
