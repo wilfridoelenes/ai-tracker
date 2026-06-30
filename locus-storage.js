@@ -1,6 +1,10 @@
-// [PP] mod:76 · autor:Rune · 2026-06-30 23:10 UTC-6
+// [PP] mod:77 · autor:Rune · 2026-06-30 23:45 UTC-6
 // locus-storage.js
-// Última actualización: TKT-A1 — eliminar _ensureHotfixSprint, agregar schema ITIL completo (PRB/KE/CHG en _VALID_STATUS_BY_TYPE, slaDeadline en hidratación, queue/sla_deadline en _toItemRow)
+// Última actualización: TKT1 (REQ-sprints-migration) — _allSprintsCache cross-proyecto reemplaza
+// _sprintsCache por-proyecto-activo. getAllProjectsSprints() nueva, getActiveSprints() deriva del
+// proyecto activo sin cambio de firma. _loadSprintsFromSupabase(projId) → _loadAllProjectsSprintsFromSupabase()
+// (sin projId, una sola query). _verifyAndCleanSprintsBlob eliminada — proj.sprints ya no se
+// inicializa, migra ni lee en _applyStateData().
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
 // cuota crítica ahora libera datos reales en vez de claves fantasma) · OFFLINE_QUEUE_KEY
 // (entrada duplicada de OFFLINE_QUEUE, sin call sites) eliminada de LOCUS_KEYS.
@@ -153,10 +157,12 @@ let _supabaseReady      = null;   // promesa: resuelve cuando onAuthStateChange 
 let _realtimeChannels   = [];     // T-202606-002: canales Realtime — tracker_state, tracker_sessions
 let _realtimeLastTs     = null;   // timestamp del último update remoto procesado
 
-// T-202606-005: cache en módulo de sprints — fuente de verdad en runtime, poblado desde tracker_sprints.
-// getActiveSprints() retorna este cache síncrono. _loadSprintsFromSupabase() lo popula al cargar.
-// Fallback: si Supabase no está disponible, se lee desde localStorage clave sprints-{projId}.
-let _sprintsCache = [];
+// TKT1 · REQ-sprints-migration: cache cross-proyecto en módulo de sprints — fuente de verdad en
+// runtime, poblado desde tracker_sprints en una sola query sin filtro project_id. Objeto plano
+// {projectId: Sprint[]} — getAllProjectsSprints() lo retorna directamente, getActiveSprints()
+// deriva el array del proyecto activo. _loadAllProjectsSprintsFromSupabase() lo popula al cargar.
+// Fallback: si Supabase no está disponible, se lee por proyecto desde localStorage clave sprints-{projId}.
+let _allSprintsCache = {};
 
 if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
   try {
@@ -1611,12 +1617,9 @@ export async function _loadFromSupabase() {
     if (stateRows && stateRows.value) {
       const remote = stateRows.value;
       _applyStateData(remote);
-      // T-202606-005: cargar sprints desde tracker_sprints después de _applyStateData
-      // para que el projId del proyecto activo esté disponible.
-      const _activeProjForSprints = getActiveProject();
-      if (_activeProjForSprints) {
-        await _loadSprintsFromSupabase(_activeProjForSprints.id);
-      }
+      // TKT1 · REQ-sprints-migration: carga cross-proyecto en una sola query — ya no depende
+      // de que el proyecto activo esté disponible primero.
+      await _loadAllProjectsSprintsFromSupabase();
       let _resetChanged = false;
       (state?.ais || []).forEach(ai => {
         if (ai.status === 'exhausted' && ai.resetTime && _resetExpiredInternal(ai.resetTime, ai.resetEpoch)) {
@@ -2085,97 +2088,6 @@ function _normalizeSessionFields(s) {
   return s;
 }
 
-// T-202606-011: verificar que todo proyecto con datos de sprint en el blob legacy
-// tiene su contraparte completa en tracker_sprints, re-migrar si falta, y eliminar
-// los datos de sprint del blob una vez verificado. Reemplaza la función de migración
-// de T-202606-004 — su propósito (poblar tracker_sprints) ya fue cumplido; esta función
-// además limpia el blob, lo que la anterior explícitamente no hacía (AC-6 de T-202606-005).
-// Llamada desde _applyStateData() como fire-and-forget cuando auth está disponible.
-//
-// AC-1: verificación — para cada proyecto con sprints en el blob, confirma que el mismo
-//   conjunto de sprint_id existe en tracker_sprints.
-// AC-2: edge case — si falta algún sprint_id en tracker_sprints, re-ejecuta el upsert
-//   (misma lógica de construcción de filas que tenía la función anterior) antes
-//   de continuar con la limpieza de ese proyecto.
-// AC-3: estado de error — si la re-migración falla, no limpia el blob de ese proyecto,
-//   lo deja intacto, registra el project_id en consola, continúa con el resto.
-// AC-4: happy path — una vez verificado (directo o tras re-migración exitosa), elimina
-//   proj.sprints del blob para ese proyecto. Resto del blob sin cambio.
-// AC-5: edge case — proyecto sin sprints en el blob se omite sin error.
-async function _verifyAndCleanSprintsBlob(projects) {
-  if (!_supabase || !_supabaseUser) return;
-  const userId = _supabaseUser.id;
-
-  const toIso = v => {
-    if (!v) return null;
-    if (typeof v === 'string') return v;
-    if (typeof v === 'number') return new Date(v).toISOString();
-    return null;
-  };
-
-  const buildRows = (projId, sprints) => sprints.map(sp => {
-    let status = sp.status || 'pendiente';
-    if (status === 'open') status = 'abierto';
-    return {
-      user_id:        userId,
-      project_id:     projId,
-      sprint_id:      sp.id,
-      label:          sp.label || null,
-      status,
-      version_target: sp.version_target || null,
-      release_type:   sp.release_type || null,
-      scope:          sp.scope || null,
-      goal:           sp.goal || null,
-      out_of_scope:   sp.out_of_scope || null,
-      opened_at:      toIso(sp.startedAt || sp.opened_at),
-      closed_at:      toIso(sp.closedAt || sp.closed_at),
-      updated_at:     new Date().toISOString()
-    };
-  }).filter(r => !!r.sprint_id);
-
-  for (const proj of projects) {
-    const projId = proj.id;
-    if (!projId) continue;
-    const sprints = proj.sprints || [];
-    // AC-5: proyecto sin sprints en el blob — omitir sin error
-    if (!sprints.length) continue;
-
-    // AC-1: verificar que cada sprint_id del blob existe en tracker_sprints
-    const { data: existing, error: checkErr } = await _supabase
-      .from('tracker_sprints')
-      .select('sprint_id')
-      .eq('user_id', userId)
-      .eq('project_id', projId);
-    if (checkErr) {
-      console.error('[Locus] T-202606-011: error al verificar tracker_sprints para', projId, checkErr);
-      continue; // AC-3: no limpiar este proyecto si la verificación falla
-    }
-
-    const existingIds = new Set((existing || []).map(r => r.sprint_id));
-    const missing = sprints.filter(sp => sp.id && !existingIds.has(sp.id));
-
-    if (missing.length > 0) {
-      // AC-2: re-migrar los sprints faltantes antes de limpiar
-      const rows = buildRows(projId, missing);
-      if (rows.length > 0) {
-        const { error: upsertErr } = await _supabase
-          .from('tracker_sprints')
-          .upsert(rows, { onConflict: 'user_id,sprint_id' });
-        if (upsertErr) {
-          // AC-3: fallo de re-migración — no limpiar el blob de este proyecto
-          console.error('[Locus] T-202606-011: re-migración falló para', projId, upsertErr);
-          continue;
-        }
-        console.log('[Locus] T-202606-011: re-migrados', rows.length, 'sprint(s) faltante(s) —', projId);
-      }
-    }
-
-    // AC-4: verificación (directa o post re-migración) exitosa — limpiar blob de este proyecto
-    delete proj.sprints;
-    console.log('[Locus] T-202606-011: blob de sprints eliminado —', projId);
-  }
-}
-
 function _applyStateData(raw) {
 
   if (!raw.theme) raw.theme = 'dark';
@@ -2194,44 +2106,15 @@ function _applyStateData(raw) {
     if (!proj.sessions) proj.sessions = [];
     if (!proj.tracker) proj.tracker = { items: [], counters: { P: 0, T: 0, R: 0, B: 0 } };
     if (!proj.tracker.counters) proj.tracker.counters = { P: 0, T: 0, R: 0, B: 0 };
-    if (!proj.sprints) proj.sprints = [];
     if (proj.contextVersion === undefined) proj.contextVersion = '';
     if (proj.backlogVersion === undefined) proj.backlogVersion = '';
     if (proj.htmlMapVersion === undefined) proj.htmlMapVersion = '';
     if (proj.notes === undefined) proj.notes = '';
     if (proj.status === undefined) proj.status = 'active';
     if (proj.infraVersion === undefined) proj.infraVersion = 0; // T-202606-209: campo infra_version del proyecto
-    // T-202606-005 AC-6: _applyStateData ya no es la fuente de verdad para sprints.
-    // Los sprints viven en tracker_sprints — _loadSprintsFromSupabase() popula _sprintsCache.
-    // Las migraciones de blob abajo se conservan como idempotentes para compatibilidad
-    // con sesiones sin auth (donde el blob legacy sigue siendo la única fuente).
-    // AC-4 [R — Eliminar status 'open']: migración de sprints 'open' → 'active' o 'closed'
-    // Corre en cada _applyStateData() — idempotente, no requiere flag.
-    const _hasActiveSprint = proj.sprints.some(sp => sp.status === 'active');
-    proj.sprints.forEach(sp => {
-      if (sp.status === 'open') {
-        const newStatus = _hasActiveSprint ? 'closed' : 'active';
-        console.log(`[Locus] migración open→${newStatus}: sprint ${sp.id}`);
-        sp.status = newStatus;
-      }
-    });
-    // B-[pendiente-ID]: migración programado → scheduled — normaliza sprints guardados con
-    // nombre BR antes de que se estandarizara scheduled como valor canónico de storage.
-    // Idempotente — corre en cada _applyStateData() sin efecto si ya está normalizado.
-    proj.sprints.forEach(sp => {
-      if (sp.status === 'programado') sp.status = 'scheduled';
-    });
-    // T-202605-025: campo current — default false + migración automática
-    // B-202605-028: si hay múltiples activos sin current, marcar el más reciente (por startedAt).
-    // Idempotente: corre en cada _applyStateData().\
-    proj.sprints.forEach(sp => { if (sp.current === undefined) sp.current = false; });
-    // TKT-A1: Gen2 — sin S-HOTFIX, todos los sprints activos son candidatos a current
-    const activeSprints = proj.sprints.filter(sp => sp.status === 'active');
-    const hasCurrentActive = activeSprints.some(sp => sp.current === true);
-    if (!hasCurrentActive && activeSprints.length > 0) {
-      const mostRecent = activeSprints.reduce((a, b) => ((a.startedAt || 0) >= (b.startedAt || 0) ? a : b));
-      mostRecent.current = true;
-    }
+    // TKT1 · REQ-sprints-migration: proj.sprints eliminado del blob — _applyStateData() ya no
+    // inicializa, migra ni lee proj.sprints. Los sprints viven exclusivamente en tracker_sprints,
+    // poblados en _allSprintsCache por _loadAllProjectsSprintsFromSupabase().
     // Migrar sessions internas — B-202606-044 AC-5: normalización vía _normalizeSessionFields
     proj.sessions.forEach(_normalizeSessionFields);
     // Eliminar campos v2 obsoletos
@@ -2247,15 +2130,6 @@ function _applyStateData(raw) {
       });
     }
   });
-
-  // T-202606-011: verificar migración completa a tracker_sprints y limpiar el blob legacy.
-  // Fire-and-forget — no bloquea _applyStateData(). Re-migra defensivamente si falta algún
-  // sprint, luego elimina proj.sprints del blob de cada proyecto verificado.
-  if (_supabase && _supabaseUser) {
-    _verifyAndCleanSprintsBlob(raw.projects || []).catch(err => {
-      console.error('[Locus] T-202606-011: verificación/limpieza de sprints falló', err);
-    });
-  }
 
   // v3: IAs son globales — sin sessions, sin project
   (raw.ais || []).forEach(ai => {
@@ -2452,87 +2326,111 @@ export function getActiveTracker() {
   return proj.tracker;
 }
 
+// TKT1 · REQ-sprints-migration: cache cross-proyecto — objeto {projectId: Sprint[]}. Nunca
+// retorna undefined a nivel raíz ({} si no hay datos). getAllProjectsSprints()[projId] es
+// undefined para un proyecto sin sprints cargados en cache (key ausente) — todo call site debe
+// usar fallback getAllProjectsSprints()[projId] || [], nunca acceso directo sin fallback.
+export function getAllProjectsSprints() {
+  return _allSprintsCache;
+}
+
 // Sprints del proyecto activo
 // T-202605-025: parámetro opcional currentOnly — cuando true retorna el sprint current
 // del proyecto activo. null si no hay proyecto activo o ningún sprint tiene current: true.
-// T-202606-005: lee desde _sprintsCache (poblado desde tracker_sprints) en lugar del blob.
-// Shape de retorno idéntico — ningún call site requiere cambio.
+// TKT1 · REQ-sprints-migration: deriva de _allSprintsCache[_getActiveProjectFilter()] || [] en
+// vez de cache plano. Shape de retorno idéntico — ningún call site existente requiere cambio.
 export function getActiveSprints(currentOnly = false) {
-  if (currentOnly) return _sprintsCache.find(sp => sp.current === true) || null;
-  return _sprintsCache;
+  const sprints = _allSprintsCache[_getActiveProjectFilter()] || [];
+  if (currentOnly) return sprints.find(sp => sp.current === true) || null;
+  return sprints;
 }
 
-// T-202606-005: popula _sprintsCache desde tracker_sprints en Supabase.
-// Llamada desde _loadFromSupabase() al cargar. Fallback a localStorage si no hay auth.
-// AC-8: error de Supabase → retorna array vacío + toast de advertencia.
-export async function _loadSprintsFromSupabase(projId) {
-  const lsKey = 'sprints-' + (projId || 'global');
+// TKT1 · REQ-sprints-migration: popula _allSprintsCache para todos los proyectos del usuario en
+// una sola query a tracker_sprints sin filtro project_id. Reemplaza _loadSprintsFromSupabase(projId)
+// — no coexisten. Llamada desde _loadFromSupabase() al cargar.
+// AC — estado de error: si la query falla, _allSprintsCache se mantiene en su último valor
+// conocido (no se vacía), se muestra toast de advertencia y se loggea el error.
+// AC — edge case sin auth: itera state.projects y puebla _allSprintsCache[proj.id] desde
+// localStorage.getItem('sprints-' + proj.id) por proyecto.
+export async function _loadAllProjectsSprintsFromSupabase() {
   if (!_supabase || !_supabaseUser) {
-    // AC-7 fallback sin auth → localStorage
-    try {
-      const raw = localStorage.getItem(lsKey);
-      _sprintsCache = raw ? JSON.parse(raw) : [];
-    } catch(e) {
-      _sprintsCache = [];
-    }
+    const next = {};
+    (state.projects || []).forEach(proj => {
+      const lsKey = 'sprints-' + proj.id;
+      try {
+        const raw = localStorage.getItem(lsKey);
+        next[proj.id] = raw ? JSON.parse(raw) : [];
+      } catch(e) {
+        next[proj.id] = [];
+      }
+    });
+    _allSprintsCache = next;
     return;
   }
   try {
     const { data, error } = await _supabase
       .from('tracker_sprints')
       .select('sprint_id,label,status,version_target,release_type,scope,goal,out_of_scope,opened_at,closed_at,updated_at,project_id')
-      .eq('user_id', _supabaseUser.id)
-      .eq('project_id', projId || '');
+      .eq('user_id', _supabaseUser.id);
     if (error) throw error;
-    // AC-2: mapear campos de tracker_sprints al shape canónico de sprint en memoria
-    _sprintsCache = (data || []).map(row => ({
-      id:             row.sprint_id,
-      label:          row.label || row.sprint_id,
-      status:         row.status,
-      version_target: row.version_target,
-      release_type:   row.release_type,
-      scope:          row.scope,
-      goal:           row.goal,
-      out_of_scope:   row.out_of_scope || [],
-      opened_at:      row.opened_at,
-      closed_at:      row.closed_at,
-      // campos derivados necesarios para call sites existentes
-      startedAt:      row.opened_at ? new Date(row.opened_at).getTime() : null,
-      closedAt:       row.closed_at ? new Date(row.closed_at).getTime() : null,
-      current:        row.status === 'active',
-      isHotfix:       (row.sprint_id || '').includes('-S-HOTFIX'),
-      formallyOpened: true,
-      projId:         row.project_id,
-      projectId:      row.project_id
-    }));
-    // Escribir a localStorage como caché (AC-7: fallback disponible en próxima sesión sin auth)
-    try { localStorage.setItem(lsKey, JSON.stringify(_sprintsCache)); } catch(e) {}
+    // AC: mapear campos de tracker_sprints al shape canónico de sprint en memoria, agrupado por proyecto
+    const next = {};
+    (data || []).forEach(row => {
+      const sp = {
+        id:             row.sprint_id,
+        label:          row.label || row.sprint_id,
+        status:         row.status,
+        version_target: row.version_target,
+        release_type:   row.release_type,
+        scope:          row.scope,
+        goal:           row.goal,
+        out_of_scope:   row.out_of_scope || [],
+        opened_at:      row.opened_at,
+        closed_at:      row.closed_at,
+        // campos derivados necesarios para call sites existentes
+        startedAt:      row.opened_at ? new Date(row.opened_at).getTime() : null,
+        closedAt:       row.closed_at ? new Date(row.closed_at).getTime() : null,
+        current:        row.status === 'active',
+        isHotfix:       (row.sprint_id || '').includes('-S-HOTFIX'),
+        formallyOpened: true,
+        projId:         row.project_id,
+        projectId:      row.project_id
+      };
+      if (!next[row.project_id]) next[row.project_id] = [];
+      next[row.project_id].push(sp);
+    });
+    _allSprintsCache = next;
+    // Escribir a localStorage como caché por proyecto (fallback disponible en próxima sesión sin auth)
+    Object.keys(next).forEach(projId => {
+      try { localStorage.setItem('sprints-' + projId, JSON.stringify(next[projId])); } catch(e) {}
+    });
   } catch(err) {
-    // AC-8: error de Supabase → array vacío + toast
-    console.error('[Locus] T-202606-005: error al cargar tracker_sprints', err);
+    // AC — error de Supabase: cache se mantiene en su último valor conocido, no se vacía
+    console.error('[Locus] TKT1 · REQ-sprints-migration: error al cargar tracker_sprints', err);
     showToast('warning', 'No se pudieron cargar los sprints — reintentando al reconectar');
-    _sprintsCache = [];
   }
 }
 
 // T-202606-005: helpers exportados para createSprint y setSprintStatus en locus-backlog-sprints.js
 
-// Upsert de un sprint a tracker_sprints + actualiza _sprintsCache.
+// Upsert de un sprint a tracker_sprints + actualiza _allSprintsCache[projId].
 // Fallback sin auth: escribe a localStorage clave sprints-{projId}.
 export async function _upsertSprint(sprintObj, projId) {
-  // Actualizar cache en memoria primero (optimistic)
-  const idx = _sprintsCache.findIndex(s => s.id === sprintObj.id);
+  // Actualizar cache en memoria primero (optimistic) — crea la key del proyecto si no existe
+  if (!_allSprintsCache[projId]) _allSprintsCache[projId] = [];
+  const list = _allSprintsCache[projId];
+  const idx = list.findIndex(s => s.id === sprintObj.id);
   if (idx >= 0) {
-    _sprintsCache[idx] = { ..._sprintsCache[idx], ...sprintObj };
+    list[idx] = { ...list[idx], ...sprintObj };
   } else {
-    _sprintsCache.push({ ...sprintObj, projId, projectId: projId });
+    list.push({ ...sprintObj, projId, projectId: projId });
   }
 
   const lsKey = 'sprints-' + (projId || 'global');
 
   if (!_supabase || !_supabaseUser) {
-    // AC-7: fallback sin auth → localStorage
-    try { localStorage.setItem(lsKey, JSON.stringify(_sprintsCache)); } catch(e) {}
+    // AC: fallback sin auth → localStorage
+    try { localStorage.setItem(lsKey, JSON.stringify(list)); } catch(e) {}
     return;
   }
 
@@ -2566,7 +2464,7 @@ export async function _upsertSprint(sprintObj, projId) {
     console.error('[Locus] T-202606-005: upsert a tracker_sprints falló', error);
   } else {
     // Actualizar localStorage como caché post-write
-    try { localStorage.setItem(lsKey, JSON.stringify(_sprintsCache)); } catch(e) {}
+    try { localStorage.setItem(lsKey, JSON.stringify(list)); } catch(e) {}
   }
 }
 
