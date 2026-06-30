@@ -1,4 +1,4 @@
-// [PP] mod:54 · autor:Rune · 2026-06-30 14:40 UTC-6
+// [PP] mod:55 · autor:Rune · 2026-06-30 UTC-6
 // TKT-PARSER-2b (REQ-[pendiente-ID] · fix chk_status_by_type para INC/PRB/KE/CHG nuevos):
 //   Gate en bloque Scrum de merge (L2007 orig.): INC/PRB/KE excluidos vía _skipScrumGate —
 //   ahora llegan con item.status poblado (mirror, ver locus-session-parse.js) y sin esta
@@ -1945,7 +1945,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
   const tmpSuggestions = [];
 
   // Orden de avance: pendiente < done < descartado (descartado solo vía confirmación)
-  const _statusRank = { pendiente: 0, 'en-revision': 0.5, promoted: 0.8, promovida: 0.8, done: 1, descartado: 2 }; // T-202606-032 / B-202606-016: rank 0.8 · TKT-C2: 'promoted' Gen2 + 'promovida' legacy
+  const _statusRank = { pendiente: 0, discovery: 0, 'en-revision': 0.5, promoted: 0.8, promovida: 0.8, done: 1, descartado: 2 }; // T-202606-032 / B-202606-016: rank 0.8 · TKT-C2: 'promoted' Gen2 + 'promovida' legacy · TKT-202606-008: 'discovery' mismo rank que 'pendiente' — ítem activo sin avance de ciclo
 
   // B-202606-047: ordenar batch — REQ primero, luego TKT/INC, luego el resto.
   // Sin este orden, cuando REQ y sus TKT llegan en el mismo CHECKPOINT el find de parentId

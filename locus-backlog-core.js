@@ -1,4 +1,4 @@
-// [PP] mod:66 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:67 · autor:Rune · 2026-06-30 UTC-6
 // INC-[pendiente-ID] (normalizeStatus sin caso explícito para 'discovery' — fallback
 //   silencioso a 'pendiente'): agregado caso explícito 'discovery' → 'discovery' para
 //   type DISC, 'pendiente' para cualquier otro tipo — mismo patrón que 'promoted'/
@@ -104,7 +104,8 @@ export function normalizeStatus(raw, type) {
   if (s === 'historico')   return 'historico';
   if (s === 'promovida' || s === 'promoted') return type === 'DISC' ? 'promoted' : 'pendiente';
   if (s === 'discovery') return type === 'DISC' ? 'discovery' : 'pendiente'; // INC-[pendiente-ID]: discovery solo válido para DISC — __BR-Ecosystem §5
-  if (s === 'pendiente')   return 'pendiente';
+  // TKT-202606-006: legado 'pendiente' (o status ausente/vacío) en DISC migra a 'discovery' — REQ-202606-002
+  if (s === 'pendiente' || s === '') return type === 'DISC' ? 'discovery' : 'pendiente';
   // Valor desconocido → pendiente
   return 'pendiente';
 }
@@ -242,7 +243,7 @@ const _subtabNS = {
 
 // Getters de namespace por subtab
 export function _nsGetTypes(sub)    { return _subtabNS[sub] ? _subtabNS[sub].types    : new Set(['TKT','REQ','INC','DISC']); }
-export function _nsGetStatuses(sub) { return _subtabNS[sub] ? _subtabNS[sub].statuses : new Set(['pendiente','en-revision']); }
+export function _nsGetStatuses(sub) { return _subtabNS[sub] ? _subtabNS[sub].statuses : new Set(['pendiente','en-revision','discovery']); } // TKT-202606-006: fallback incluye 'discovery' — gobierna default visible de Q-DISC
 export function _nsGetPriority(sub) { return _subtabNS[sub] ? _subtabNS[sub].priority : new Set(); }
 export function _nsGetQuery(sub)    { return _subtabNS[sub] ? _subtabNS[sub].query    : ''; }
 
@@ -1718,7 +1719,8 @@ export function renderStats() {
   // T-202606-100: closedSprintIds disponible via _getCountableBase() — recalcular inline para Ps (no pasan _isCountableItem)
   const _closedIdsForP = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
   // T-202606-102: excluir promoted — pIdeasCount solo cuenta DISC con status pendiente
-  const pIdeasCount = ITEMS.filter(i => itemKind(i) === 'DISC' && !(_closedIdsForP.size && _closedIdsForP.has(i.sprint)) && i.status === 'pendiente').length;
+  // TKT-202606-006: 'pendiente' → 'discovery' — vocabulario DISC alineado a __BR-Ecosystem §5
+  const pIdeasCount = ITEMS.filter(i => itemKind(i) === 'DISC' && !(_closedIdsForP.size && _closedIdsForP.has(i.sprint)) && i.status === 'discovery').length;
   // T-202606-101: desglose histórico — fuente real: ITEMS en memoria
   const _emitidos = ITEMS.length;
   const _descartadosTotal = ITEMS.filter(i => i.status === 'descartado').length;

@@ -1,4 +1,4 @@
-// [PP] mod:49 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:50 · autor:Rune · 2026-06-30 UTC-6
 // [tmp:tkt-isqinc-unify]: _isQInc local (renderBacklogList) y _isQIncItem local (renderQIncPanel,
 //   _updateSubtabBadges) eliminadas. Todos los call sites usan isQIncItem() importada desde
 //   locus-backlog-core.js.
@@ -695,7 +695,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado' y 'promovida')
   if (terminalItems.length && _getActiveStatuses().has('descartado')) {
     const cerradasOpen = localStorage.getItem('backlog-cerradas-open') === '1';
-    const _promCount   = terminalItems.filter(i => i.status === 'promovida').length;
+    const _promCount   = terminalItems.filter(i => i.status === 'promoted').length; // TKT-202606-009: Gen2 canónico — era 'promovida' legacy
     const _descPCount  = terminalItems.filter(i => i.status === 'descartado' && itemKind(i) === 'DISC').length;
     const _descRTBCount = terminalItems.filter(i => i.status === 'descartado' && itemKind(i) !== 'DISC').length;
     const _cerradasTitle = [
@@ -1028,7 +1028,7 @@ export function renderBacklogList(onRendered) {
   // R-202604-091: 'en curso' fusionado — todos los pendiente van juntos, decorador visual separa activos
   // T-202605-135: Ps integradas en pendienteItems — sin sección separada
   // [pendiente-ID]: promovida excluida de pendienteItems — va a terminalItems
-  const pendienteItems = filtered.filter(i => i.status !== 'done' && i.status !== 'descartado' && !(itemKind(i) === 'DISC' && i.status === 'promovida'));
+  const pendienteItems = filtered.filter(i => i.status !== 'done' && i.status !== 'descartado' && !(itemKind(i) === 'DISC' && i.status === 'promoted')); // TKT-202606-009: Gen2 canónico
   const _matchesQuery = q
     ? (i => i.code.toLowerCase().includes(q) || i.title.toLowerCase().includes(q) || (i.area || '').toLowerCase().includes(q))
     : () => true;
@@ -1042,7 +1042,7 @@ export function renderBacklogList(onRendered) {
   const terminalItems = _getActiveStatuses().has('descartado')
     ? getItems().filter(i => {
         const type = itemKind(i);
-        if (type === 'DISC') return (i.status === 'descartado' || i.status === 'promovida') && _matchesQuery(i);
+        if (type === 'DISC') return (i.status === 'descartado' || i.status === 'promoted') && _matchesQuery(i); // TKT-202606-009: Gen2 canónico
         const typeOk = type ? _getActiveTypes().has(type) : true;
         return i.status === 'descartado' && typeOk && _matchesQuery(i);
       })
@@ -1072,7 +1072,7 @@ export function renderBacklogList(onRendered) {
   // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado' y 'promovida')
   if (terminalItems.length && _getActiveStatuses().has('descartado')) {
     const cerradasOpen = localStorage.getItem('backlog-cerradas-open') === '1';
-    const _promCount    = terminalItems.filter(i => i.status === 'promovida').length;
+    const _promCount    = terminalItems.filter(i => i.status === 'promoted').length; // TKT-202606-009: Gen2 canónico — era 'promovida' legacy
     const _descPCount   = terminalItems.filter(i => i.status === 'descartado' && itemKind(i) === 'DISC').length;
     const _descRTBCount = terminalItems.filter(i => i.status === 'descartado' && itemKind(i) !== 'DISC').length;
     const _cerradasTitle = [
