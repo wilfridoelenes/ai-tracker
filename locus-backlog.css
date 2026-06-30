@@ -543,6 +543,40 @@
   border-color: var(--purple);
 }
 
+/* Gen2 — tipos ITIL: PRB (#f59e0b amber) · KE (#eab308 yellow) · CHG (#64748b slate) */
+.stat-type-chip.tc-PRB {
+  background: rgb(245 158 11 / 12%);
+  border-color: rgb(245 158 11 / 40%);
+  color: var(--amber, #e8a832);
+}
+
+.stat-type-chip.tc-KE {
+  background: rgb(234 179 8 / 12%);
+  border-color: rgb(234 179 8 / 40%);
+  color: #eab308;
+}
+
+.stat-type-chip.tc-CHG {
+  background: rgb(100 116 139 / 12%);
+  border-color: rgb(100 116 139 / 40%);
+  color: #94a3b8;
+}
+
+.stat-type-chip.active.tc-PRB {
+  background: rgb(245 158 11 / 22%);
+  border-color: var(--amber, #e8a832);
+}
+
+.stat-type-chip.active.tc-KE {
+  background: rgb(234 179 8 / 22%);
+  border-color: #eab308;
+}
+
+.stat-type-chip.active.tc-CHG {
+  background: rgb(100 116 139 / 22%);
+  border-color: #94a3b8;
+}
+
 /* T-202606-006: modifier para chips informativos — sin interacción.
    Usado en stats-bar de Histórico. Opacidad plena fija (no hay estado "active"
    que distinguir), sin cursor pointer, sin hover/transform — el chip no responde
