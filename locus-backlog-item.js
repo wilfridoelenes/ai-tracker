@@ -1,4 +1,4 @@
-// [PP] mod:53 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:54 · autor:Rune · 2026-06-30 14:40 UTC-6
 // TKT-PARSER-2b (REQ-[pendiente-ID] · fix chk_status_by_type para INC/PRB/KE/CHG nuevos):
 //   Gate en bloque Scrum de merge (L2007 orig.): INC/PRB/KE excluidos vía _skipScrumGate —
 //   ahora llegan con item.status poblado (mirror, ver locus-session-parse.js) y sin esta
@@ -122,6 +122,8 @@ export function _renderKanban(listEl) {
   const q = _getBacklogSearchQuery();
   let allFiltered = getItems().filter(i => {
     const type = itemKind(i);
+    const typeOk = type ? _getActiveTypes().has(type) : true;
+    const _rawEffortK = i.effort;
     const _normEffortK = _rawEffortK > 3 ? 3 : _rawEffortK < 1 ? 1 : _rawEffortK;
     const effortOk = _getActiveEfforts().has(_normEffortK); // B-202605-233: effort >3 normalizado a 3
     let roleOk = true;
