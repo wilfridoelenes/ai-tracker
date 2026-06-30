@@ -1,4 +1,4 @@
-// [PP] mod:48 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:49 · autor:Rune · 2026-06-30 UTC-6
 // [tmp:tkt-isqinc-unify]: _isQInc local (renderBacklogList) y _isQIncItem local (renderQIncPanel,
 //   _updateSubtabBadges) eliminadas. Todos los call sites usan isQIncItem() importada desde
 //   locus-backlog-core.js.
@@ -1379,6 +1379,24 @@ window.addEventListener('shell:backlog-render-dirty', () => {
   const panelD = document.getElementById('sspanel-qdisc');
   if (panelD && panelD.classList.contains('active')) renderQDiscPanel();
 });
+
+// TKT (REQ-[pendiente-ID]): _initQIncSubTab — listener del sub-tab Q-INC, faltante hasta esta
+// entrega. Mismo patrón que _initQBacklogSubTab/_initQDiscSubTab: remueve .active de todos los
+// .session-subpanel y .tpl-nav-btn antes de activar el propio — sin esto, sspanel-qinc nunca
+// recibía .active y el panel previamente activo quedaba visible junto al contenido de Q-INC
+// (renderQIncPanel() puebla #qinc-panel-body independientemente del estado de .active del padre).
+(function _initQIncSubTab() {
+  const btn = document.getElementById('sstab-btn-qinc');
+  if (!btn) return;
+  btn.addEventListener('click', function () {
+    document.querySelectorAll('.tpl-nav-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.session-subpanel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const panel = document.getElementById('sspanel-qinc');
+    if (panel) panel.classList.add('active');
+    renderQIncPanel();
+  });
+})();
 
 // TKT (REQ-[pendiente-ID]): renderQIncPanel — render del panel Q-INC en #qinc-panel-body.
 // Renderiza ítems ITIL (INC/PRB/KE/CHG) cuya queue termina en '-Q-INC' del proyecto activo.
