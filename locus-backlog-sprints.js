@@ -1,4 +1,8 @@
-// [PP] mod:33 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:34 · autor:Rune · 2026-06-30 UTC-6
+// TKT1 (REQ-sprints-migration): import muerto _loadSprintsFromSupabase eliminado — la función
+//   fue reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js y este módulo
+//   nunca la invocaba (solo quedaba en comentario línea ~959). Sin este fix, TKT1 entregado solo
+//   rompía la carga de la app — import ESM con nombre inexistente lanza SyntaxError.
 // INC-[pendiente-ID]: confirmEditSprint() no persistía label/goal/version_target/release_type
 //   a tracker_sprints — save() excluye sprints del blob. Fix: _upsertSprint(sp, projId) tras
 //   save(), mismo patrón que setSprintStatus.
@@ -22,7 +26,7 @@ import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _loadSprintsFromSupabase, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT2-[pendiente-ID]: _sprintDisplay para toasts
+import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT1 (REQ-sprints-migration): _loadSprintsFromSupabase eliminado del import — sin call site real, solo referenciado en comentario línea ~959. Función reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js, sin uso en este módulo
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
