@@ -449,6 +449,9 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     // TKT-202606-011 AC1: pendiente de aval Finn — el DIFF renderiza el badge y deshabilita
     // el botón de confirmar (ver locus-backlog-merge.js) en vez de bloquear antes de llegar aquí.
     draftPending: parsed.draft === true,
+    // TKT-202606-014: valor crudo de draft (undefined/true/false) — gate de "draft ausente"
+    // en showMergeDiffPanel necesita distinguir undefined de false, draftPending ya colapsa eso.
+    draftRaw: parsed.draftRaw,
     // B-202606-037 AC-3: resetTime del worker para pre-llenar mdiff-duration-input en el DIFF.
     // Formato "HH:MM" — el DIFF stripea el separador antes de asignarlo al input.
     // Widget card: si el founder escribió hora en bexhaust-hora-{id} antes de pegar el CHECKPOINT,

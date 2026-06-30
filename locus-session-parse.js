@@ -1,3 +1,8 @@
+// [PP] mod:85 · autor:Rune · 2026-06-30 17:30 UTC-6
+// TKT-202606-014 (REQ-202606-003 · AC2): agregado draftRaw — valor crudo de _parsed.draft
+//   (undefined/true/false) propagado sin colapsar desde parseCheckpoint → ai._parsed →
+//   ambos ckptMeta (sesión y standalone). El campo `draft` existente (=== true) no sirve
+//   para el gate de TKT-014 porque undefined y false colapsan al mismo valor.
 // [PP] mod:83 · autor:Rune · 2026-06-30 UTC-6
 // TKT-202606-011 (REQ-202606-003 · AC2): eliminado el guard de T-202606-006 en parsePaste —
 //   draft:true ya no vacía tgItems ni bloquea el botón Guardar vía _itemsJsonError. El estado
@@ -520,6 +525,10 @@ export function parseCheckpoint(text) {
       _rawFinnObservations,             // T-202606-018: array de finn_observations del schema JSON (null si ausente)
       _rawExecutionPlan,                // T-202606-018: objeto execution_plan del schema JSON (null si ausente)
       draft: _parsed.draft === true,    // T-202606-006: exponer draft para guard en parsePaste
+      // TKT-202606-014 (REQ-202606-003 · AC2/AC3): valor crudo de _parsed.draft sin colapsar —
+      //   necesario para distinguir "ausente" (undefined) de "false" explícito. `draft` de arriba
+      //   ya no sirve para ese gate porque === true colapsa ambos casos al mismo false.
+      draftRaw: _parsed.draft,
       rawCounts: {
         DISC: _countByType('DISC'),
         TKT:  _countByType('TKT'),
@@ -907,6 +916,25 @@ export function parsePaste(id) {
           }
         }
       }
+      // TKT-202606-014 (REQ-202606-003 · TKT4 · AC1/AC2/AC4): gate de bloqueo total —
+      // BR-Ecosystem §8 regla dura: draft obligatorio sin default cuando items incluye
+      // REQ/TKT/INC/CHG nuevos o con status declarado — se omite cuando items está vacío
+      // o solo contiene DISC. Usa draftRaw (AC2 de este mismo TKT, ya presente arriba) para
+      // distinguir undefined (ausente) de false (explícito, AC3).
+      const _draftToastKey = `_draftGateToastSeen_${id}`;
+      if (!_itemError) {
+        const _draftGateTypes = ['REQ', 'TKT', 'INC', 'CHG'];
+        const _hasDraftGatedItem = _rawItems.some(_di => _di && _di.type !== 'patch' && _draftGateTypes.includes(_di.type));
+        if (_hasDraftGatedItem && ckpt.draftRaw === undefined) {
+          _itemError = 'Campo "draft" ausente — CHECKPOINT no aplicado. Declarar draft: true o false.';
+          if (!window[_draftToastKey]) {
+            showToast('error', _itemError);
+            window[_draftToastKey] = true;
+          }
+        } else {
+          delete window[_draftToastKey];
+        }
+      }
       // T-202606-030 fix AC-2+AC-3: emitir _itemError consolidado si hay Rs sin AC
       // Origen: título del CHECKPOINT — disponible en ckpt.titulo
       if (!_itemError && _rsNoAc.length > 0) {
@@ -980,6 +1008,9 @@ export function parsePaste(id) {
     archivos: ckpt ? (ckpt.archivos || '') : '',
     // T-202606-013: propagar draft a ai._parsed — necesario para guard secundario en _doApplyMergeAndFinish
     draft: ckpt ? (ckpt.draft === true) : false,
+    // TKT-202606-014: propagar valor crudo (undefined/true/false) — ckpt.draftRaw es undefined
+    // cuando ckpt es el fallback de parseCheckpoint nulo (línea ~700), igual que ausencia real del campo.
+    draftRaw: ckpt ? ckpt.draftRaw : undefined,
     // T-202606-072: detectar devolución Finn→Cael — presente solo cuando rol comienza con 'QA' y texto contiene patrón
     ...(() => {
       const _rol = ckpt ? (ckpt.rol || '') : '';
@@ -1053,6 +1084,7 @@ export function parsePaste(id) {
     delete window[`_rolFieldWarnSeen_${id}`];
     delete window[`_doneNoAcWarnSeen_${id}`];
     delete window[`_discrepancyWarnSeen_${id}`];
+    delete window[`_draftGateToastSeen_${id}`];
     if (typeof dismissToast === 'function') dismissToast();
     // Resetear preview, botón y ta-has-items al estado inicial
     const _prevEl = document.getElementById('prev-' + id);
@@ -2035,6 +2067,8 @@ export function saveStandaloneCheckpoint() {
     bloqueantes: ckpt.bloqueantes  || '',
     decision:    ckpt.decision     || '',
     proximoPaso: ckpt.proximoPaso  || '',
+    // TKT-202606-014: valor crudo de draft — gate de "draft ausente" en showMergeDiffPanel.
+    draftRaw:    ckpt.draftRaw,
   };
   // T-202606-181: gate Step 0 — detectar ---SPRINT-PROPOSAL--- y presentarlo como Step 0
   // antes de cualquier otro cambio del DIFF. El sprint se crea solo al aprobar Step 0.
