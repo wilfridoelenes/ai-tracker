@@ -4,7 +4,7 @@
 // Responsabilidad: changelog, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 import { loadBacklog, renderStats, getItems, itemKind } from './locus-backlog-core.js';
-import { applyPatchesFromTG, mergeBacklogFromTG } from './locus-backlog-item.js';
+import { mergeBacklogFromTG } from './locus-backlog-item.js';
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { updateTabNotifBadges } from './locus-notifications.js';
@@ -31,7 +31,7 @@ import { showToast } from './locus-toast.js';
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
-// [PP] mod:51 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:52 · autor:Rune · 2026-06-30 UTC-6
 // TKT-202606-011 (REQ-202606-003 · AC1/AC4): _ckptMeta.draftPending = parsed.draft === true —
 //   showMergeDiffPanel (locus-backlog-merge.js) usa el flag para badge + botón deshabilitado en
 //   vez de bloquear antes de abrir el panel. Con draftPending, sprint_proposal no se ofrece como
@@ -558,11 +558,12 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     return;
   }
   const mergeResult = _mergeBacklogWithProject(tgItems, sessId, activeProj.id);
-  // R-202605-062: aplicar patches después del merge de ítems normales
-  // B-202606-022: pasar slugMap para resolver [tmp:slug] en parentId de patches
-  if (parsed.patchItems && parsed.patchItems.length) {
-    applyPatchesFromTG(parsed.patchItems, sessId, { slugMap: mergeResult.slugMap });
-  }
+  // [pendiente-ID] inline_fix: bloque applyPatchesFromTG(parsed.patchItems, ...) eliminado —
+  // era redundante con la llamada de locus-backlog-merge.js (post-onApply), que SÍ propaga
+  // ckptHeaderRole correctamente. Esta llamada nunca pasaba el rol (siempre ''), por lo que
+  // cualquier patch status:done sobre REQ era rechazado aquí primero ('rol-no-autorizado-done'
+  // falso en DocLog) antes de que la llamada correcta lo aplicara segundos después. mergeResult
+  // se conserva — se sigue usando más abajo para el resumen del CHECKPOINT (created/advanced/etc).
 
   // B-202604-XXX: actualizar trackerRefs con códigos reales post-_assignPendingIds
   // _mergeBacklogWithProject resuelve [pendiente-ID] → código real en tgItems
