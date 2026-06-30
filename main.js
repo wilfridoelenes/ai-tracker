@@ -1,10 +1,10 @@
-// [PP] v0.8.0 · sprint:PP-S-09 · mod:9 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-XX · mod:10 · autor:Rune · 2026-06-30 UTC-6
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
 // Limpieza: imports duplicados consolidados (side-effect imports redundantes eliminados)
 
 import { _getActiveProjectFilter, _initApp, _effectiveVersion, getProjectById, LOCUS_KEYS, verifyPrePurgaIntegrity, migrateHistoricosToTrackerItems, executePurgaJsonbLegacy } from './locus-storage.js';
-import { applyTheme, _initUiShellRefs } from './locus-ui-shell.js';
+import { _initUiShellRefs } from './locus-ui-shell.js';
 import './locus-analytics-core.js';
 import './locus-analytics-digest.js';
 import './locus-analytics-render.js';
@@ -47,20 +47,6 @@ import './locus-map-generator.js';
 import { initCommandPalette } from './locus-command-palette.js';
 
 // ── Funciones migradas desde inline script de index.html (T-202606-006) ──────
-
-// toggleTheme: invoca applyTheme ESM — reemplaza función global del script no-module
-function _toggleTheme() {
-  const t = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-  applyTheme(t);
-  _syncToggleLabel(t);
-}
-
-// _syncToggleLabel: sincroniza aria-label del theme-toggle-btn con el tema activo
-// Reemplaza el patch window.applyTheme del script no-module (líneas 1608-1627 de index.html)
-function _syncToggleLabel(t) {
-  const btn = document.getElementById('theme-toggle-btn');
-  if (btn) btn.setAttribute('aria-label', t === 'dark' ? 'Cambiar a tema light' : 'Cambiar a tema dark');
-}
 
 // _updateBackupBadge: actualiza badge del botón backup según datos en localStorage
 // T-202604-210: migrado desde inline script
@@ -113,14 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Inicializar command palette (reemplaza llamada del script inline L1429)
   initCommandPalette();
-
-  // T-202606-006: theme toggle — listener sobre #theme-toggle-btn (reemplaza toggleTheme global)
-  const _themeBtn = document.getElementById('theme-toggle-btn');
-  if (_themeBtn) _themeBtn.addEventListener('click', _toggleTheme);
-
-  // T-202606-006: sincronizar aria-label con tema activo al cargar
-  const _themeInit = document.documentElement.getAttribute('data-theme') || 'light';
-  _syncToggleLabel(_themeInit);
 
   // T-202606-006: _updateBackupBadge — ejecutar 800ms post-DOMContentLoaded
   setTimeout(_updateBackupBadge, 800);

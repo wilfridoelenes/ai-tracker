@@ -1,4 +1,4 @@
-// [PP] mod:33 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:34 · autor:Rune · 2026-06-30 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -1310,12 +1310,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const ckptReopenBtn = document.getElementById('ckpt-reopen-btn');
   if (ckptReopenBtn) ckptReopenBtn.addEventListener('click', function () {
     window.dispatchEvent(new CustomEvent('shell:show-checkpoint-panel'));
-  });
-
-  // user-chip → handleSyncPillClick()
-  const userChip = document.getElementById('user-chip');
-  if (userChip) userChip.addEventListener('click', function () {
-    handleSyncPillClick();
   });
 
   // more-menu-btn — listener gestionado por locus-backlog-panel.js (_wrappedToggleMoreMenu)
