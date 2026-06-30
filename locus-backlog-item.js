@@ -1,4 +1,12 @@
-// [PP] mod:52 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:53 · autor:Rune · 2026-06-30 UTC-6
+// TKT-PARSER-2b (REQ-[pendiente-ID] · fix chk_status_by_type para INC/PRB/KE/CHG nuevos):
+//   Gate en bloque Scrum de merge (L2007 orig.): INC/PRB/KE excluidos vía _skipScrumGate —
+//   ahora llegan con item.status poblado (mirror, ver locus-session-parse.js) y sin esta
+//   exclusión validateLifecycleTransitions (vocabulario Scrum) rechazaría transiciones ITIL
+//   válidas. CHG no se excluye — vocabulario Scrum-compatible. Rama de creación de ítem nuevo:
+//   agregados los 7 campos ITIL (incidentStatus, slaPriority, slaDeadline, comportamientoActual,
+//   originModule, derivedItems, resolutionType) + queue — antes solo la rama merge-sobre-existente
+//   los persistía, dejando INC/PRB/KE/CHG nuevos sin estos campos desde su creación.
 // TKT-PARSER-2a (REQ-[pendiente-ID] · validación de transición ITIL y merge de campos ITIL):
 //   validateIncidentTransitions() nueva — valida pares origen→destino de incidentStatus contra
 //   _VALID_INCIDENT_TRANSITIONS, independiente de validateLifecycleTransitions (Scrum, sin
@@ -2004,7 +2012,15 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       // T-[pendiente-ID] · AC-1: filtro pre-clasificación — transición inválida interceptada antes de _statusRank
       // AC-2: type desconocido → no interceptar. AC-3: sin status → no interceptar.
       // TKT0c-gen2: itemKind(existing) reemplaza la inferencia local por prefijo (eliminada) y la tabla inline.
-      if (newStatus && newStatus !== oldStatus && !item._noStatus) {
+      // TKT-PARSER-2b (REQ-[pendiente-ID]): INC/PRB/KE ahora llegan con item.status poblado
+      // (mirror de incidentStatus, ver locus-session-parse.js _buildItilItem) — sin esta
+      // exclusión, validateLifecycleTransitions (Scrum, vocabulario TKT/REQ/DISC) interceptaría
+      // transiciones ITIL válidas (ej. detected→assigned) como inválidas por desconocer ese
+      // vocabulario. La validación real de estos 3 tipos vive en el bloque ITIL dedicado de abajo
+      // (validateIncidentTransitions). CHG no se excluye — su vocabulario es Scrum-compatible
+      // (pendiente/en-revision/done/descartado) y este bloque lo valida correctamente.
+      const _skipScrumGate = ['INC', 'PRB', 'KE'].includes(itemKind(existing));
+      if (!_skipScrumGate && newStatus && newStatus !== oldStatus && !item._noStatus) {
         const _existingKind = itemKind(existing);
         if (_existingKind !== null) {
           // Importar VALID_TRANSITIONS directamente para verificación inline (evita llamada costosa al array completo)
@@ -2034,9 +2050,10 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       }
 
       // TKT-PARSER-2a (REQ-[pendiente-ID]): validación de transición ITIL — paralela al bloque
-      // Scrum de arriba. item.status es siempre undefined para INC/PRB/KE/CHG (_buildItilItem
-      // nunca lo declara) — el bloque anterior nunca se ejecuta para estos tipos, por eso esta
-      // rama es independiente, no un else de la de arriba.
+      // Scrum de arriba. TKT-PARSER-2b: INC/PRB/KE quedan excluidos del bloque Scrum vía
+      // _skipScrumGate — su único camino de validación de status es esta rama
+      // (validateIncidentTransitions). CHG sí pasa por el bloque Scrum (vocabulario compatible)
+      // y no entra a esta rama de incidentStatus porque no lo declara.
       const _existingKindItil = itemKind(existing);
       const _isItilExisting = ['INC', 'PRB', 'KE', 'CHG'].includes(_existingKindItil);
       let _noIncidentStatus = false;
@@ -2275,6 +2292,21 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           triggeredBy: item.triggeredBy || null,
           origenDisc: item.origenDisc || null,
           promovida_a: item.promovida_a || null,
+          // TKT-PARSER-2b (REQ-[pendiente-ID]): campos ITIL en creación — antes solo la rama de
+          // merge-sobre-existente los persistía; un INC/PRB/KE/CHG nuevo nacía sin incidentStatus,
+          // slaPriority, slaDeadline, comportamientoActual, originModule, queue, derivedItems ni
+          // resolutionType. INC/PRB/KE usan incidentStatus (mirror de status, ver parse.js); CHG
+          // no declara incidentStatus (vocabulario Scrum) pero sí vive en Q-INC → queue.
+          ...((['INC', 'PRB', 'KE', 'CHG'].includes(_incomingType)) ? {
+            queue: item.queue || null,
+            ...(['INC', 'PRB', 'KE'].includes(_incomingType) ? { incidentStatus: item.incidentStatus || initialStatus } : {}),
+            slaPriority: item.slaPriority || null,
+            slaDeadline: item.slaDeadline || null,
+            comportamientoActual: item.comportamientoActual || '',
+            originModule: item.originModule || null,
+            derivedItems: item.derivedItems || [],
+            resolutionType: item.resolutionType || null,
+          } : {}),
           // T-202606-025: persistir discard_reason en cualquier tipo con status descartado
           ...(initialStatus === 'descartado' && item.discard_reason !== undefined
             ? (() => {

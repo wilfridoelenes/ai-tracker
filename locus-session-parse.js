@@ -1,4 +1,13 @@
-// [PP] mod:80 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:81 · autor:Rune · 2026-06-30 UTC-6
+// TKT-PARSER-2b (REQ-[pendiente-ID] · fix chk_status_by_type para INC/PRB/KE/CHG nuevos):
+//   _buildItilItem ahora setea item.status (mirror de incident_status para INC/PRB/KE; valor
+//   canónico Scrum directo para CHG) — mergeBacklogFromTG ya leía item.status en creación
+//   (línea 2206) pero _buildItilItem nunca lo poblaba, default ciego a 'pendiente' violaba
+//   constraint. _VALID_INCIDENT_STATUS se mantiene como vocabulario INC; _VALID_PRB_STATUS y
+//   _VALID_KE_STATUS nuevas, exportadas — subconjuntos propios __BR-Ecosystem §5. CHG sale del
+//   camino incident_status — usa status con vocabulario TKT (pendiente/en-revision/done/
+//   descartado), validado vía _canonicalStatus — sigue en _ITIL_TYPES solo para _resolveItilQueue
+//   (autoasignación a Q-INC), no para validación de status.
 // TKT-PARSER-2a (REQ-[pendiente-ID] · validación de transición ITIL en mergeBacklogFromTG):
 //   _VALID_INCIDENT_STATUS y _INCIDENT_STATUS_LIST exportadas — locus-backlog-item.js las
 //   consume para validar transiciones de incidentStatus sin duplicar la tabla. Sin cambio
@@ -111,6 +120,16 @@ export const _VALID_INCIDENT_STATUS = new Set([
   'escalated_to_prb', 'escalated_to_chg', 'descartado'
 ]);
 export const _INCIDENT_STATUS_LIST = 'detected · assigned · in_progress · resolved · closed · escalated_to_prb · escalated_to_chg';
+// TKT-PARSER-2b (REQ-[pendiente-ID]): vocabulario propio por tipo ITIL — __BR-Ecosystem §5.
+// PRB es subconjunto de INC sin assigned/escalated_to_chg. KE tiene ciclo propio (active, no detected).
+// CHG usa vocabulario Scrum (pendiente/en-revision/done/descartado) — no pasa por estas constantes,
+// se valida con _canonicalStatus, igual que TKT.
+export const _VALID_PRB_STATUS = new Set([
+  'detected', 'in_progress', 'resolved', 'closed', 'descartado'
+]);
+export const _PRB_STATUS_LIST = 'detected · in_progress · resolved · closed · descartado';
+export const _VALID_KE_STATUS = new Set(['active', 'resolved', 'descartado']);
+export const _KE_STATUS_LIST = 'active · resolved · descartado';
 
 // Mensaje canónico BR-Core §6 — REQ/TKT/DISC no pueden asignarse a Q-INC.
 function _isQIncQueue(queue) {
@@ -164,21 +183,48 @@ function _canonicalStatus(raw, type) {
 }
 
 // REQ-[pendiente-ID]: valida un ítem ITIL (INC/PRB/KE/CHG) y devuelve el objeto interno
-// listo para acumular en tgItems, o un error bloqueante. No usa _canonicalStatus — el ciclo
-// ITIL vive en incidentStatus, nunca en status. Compartida por parsePaste y la variante standalone.
+// listo para acumular en tgItems, o un error bloqueante. Compartida por parsePaste y la
+// variante standalone.
+// TKT-PARSER-2b: CHG usa vocabulario Scrum (status, no incident_status) — __BR-Ecosystem §5
+// declara su ciclo igual al de TKT (pendiente/en-revision/done/descartado). INC/PRB/KE
+// siguen exclusivamente por incident_status — pero ahora se espeja a item.status (mismo
+// valor, mismo campo que lee mergeBacklogFromTG) porque chk_status_by_type valida status
+// para las 7 filas de tracker_items sin excepción — no hay columna paralela.
 function _buildItilItem(it, ckptHeaderRole, projectName, ckptTitulo) {
-  // status de ciclo TKT en un ítem ITIL → error bloqueante explícito.
-  if (it.status) {
-    return {
-      error: `${it.type} ${it.code || '[pendiente-ID]'} usa status de ciclo TKT — usar incident_status. Valores válidos: ${_INCIDENT_STATUS_LIST}`
-    };
+  const _isChg = it.type === 'CHG';
+
+  let _incStatus = null;
+  if (_isChg) {
+    // CHG: status de ciclo TKT — exactamente lo que antes era el caso de error.
+    const _chgStatus = _canonicalStatus(it.status, 'TKT'); // vocabulario TKT = vocabulario CHG
+    if (!_chgStatus) {
+      return {
+        error: `CHG ${it.code || '[pendiente-ID]'}: status inválido o ausente "${it.status || ''}". Valores válidos: pendiente · en-revision · done · descartado`
+      };
+    }
+    if (it.incident_status) {
+      return {
+        error: `CHG ${it.code || '[pendiente-ID]'} usa incident_status — CHG no tiene ciclo ITIL, usar status. Valores válidos: pendiente · en-revision · done · descartado`
+      };
+    }
+    _incStatus = _chgStatus;
+  } else {
+    // INC/PRB/KE: status de ciclo TKT en un ítem ITIL → error bloqueante explícito.
+    if (it.status) {
+      return {
+        error: `${it.type} ${it.code || '[pendiente-ID]'} usa status de ciclo TKT — usar incident_status. Valores válidos: ${_itilStatusList(it.type)}`
+      };
+    }
+    const _raw = (it.incident_status || '').trim();
+    const _validSet = _itilStatusSet(it.type);
+    if (!_raw || !_validSet.has(_raw)) {
+      return {
+        error: `${it.type} ${it.code || '[pendiente-ID]'}: incident_status inválido o ausente "${it.incident_status || ''}". Valores válidos: ${_itilStatusList(it.type)}`
+      };
+    }
+    _incStatus = _raw;
   }
-  const _incStatus = (it.incident_status || '').trim();
-  if (!_incStatus || !_VALID_INCIDENT_STATUS.has(_incStatus)) {
-    return {
-      error: `${it.type} ${it.code || '[pendiente-ID]'}: incident_status inválido o ausente "${it.incident_status || ''}". Valores válidos: ${_INCIDENT_STATUS_LIST}`
-    };
-  }
+
   // INC sin comportamiento_actual → bloqueante (excepción literal aceptada sin alerta).
   if (it.type === 'INC') {
     const _comportamiento = (it.comportamiento_actual || '').trim();
@@ -209,8 +255,10 @@ function _buildItilItem(it, ckptHeaderRole, projectName, ckptTitulo) {
       title:              it.title || it.desc || '',
       desc:               it.title || it.desc || '',
       priority:           it.priority || 'medium',
-      // Sin campo 'status' — el ciclo ITIL vive exclusivamente en incidentStatus.
-      incidentStatus:      _incStatus,
+      // status: mirror de incidentStatus para INC/PRB/KE (chk_status_by_type lo exige);
+      // para CHG es el valor canónico de origen — no hay incidentStatus paralelo.
+      status:              _incStatus,
+      incidentStatus:      _isChg ? null : _incStatus,
       slaPriority:         _slaPriority || null,
       slaDeadline:         it.sla_deadline != null ? it.sla_deadline : null,
       resolutionType:      it.resolution_type || null,
@@ -228,6 +276,18 @@ function _buildItilItem(it, ckptHeaderRole, projectName, ckptTitulo) {
       schema_version:     it.schema_version || null
     }
   };
+}
+
+// TKT-PARSER-2b: helpers de vocabulario por tipo ITIL — INC/PRB/KE únicamente (CHG no pasa por aquí).
+function _itilStatusSet(type) {
+  if (type === 'PRB') return _VALID_PRB_STATUS;
+  if (type === 'KE') return _VALID_KE_STATUS;
+  return _VALID_INCIDENT_STATUS; // INC
+}
+function _itilStatusList(type) {
+  if (type === 'PRB') return _PRB_STATUS_LIST;
+  if (type === 'KE') return _KE_STATUS_LIST;
+  return _INCIDENT_STATUS_LIST; // INC
 }
 
 function buildTGPreview(items, discrepancy) {
