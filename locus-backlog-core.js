@@ -1,4 +1,4 @@
-// [PP] mod:62 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:64 · autor:Rune · 2026-06-29 UTC-6
 // TKT1 (REQ-getactiveprojectfilter): comentario de propietario de getActiveProjectFilter
 //   corregido — locus-sprint-project.js ya no posee la función desde T-202606-197.
 // [tmp:tkt-isqinc-unify]: isQIncItem(i) exportada — consolida _isQInc (renderBacklogList)
@@ -1113,11 +1113,8 @@ export function updateBacklogBanner() {
   const exportBtn = document.getElementById('export-backlog-btn');
   const gfItems   = document.getElementById('gf-items');
   const gfToggle  = document.getElementById('gf-footer-toggle');
-  // B-fix-T202606-197: _coreCallbacks.getActiveProjectFilter nunca registrado post T-202606-197 — leer localStorage directamente
-  const _bannProjId = localStorage.getItem('current-project-filter') || '';
+  const _bannProjId = _coreCallbacks.getActiveProjectFilter?.() || localStorage.getItem('current-project-filter') || '';
   if (!_bannProjId || !ITEMS.length) {
-    // B-202606-008: misma lógica que renderStats — forzar recarga si hay proyecto activo con ITEMS vacío
-    if (_bannProjId && !ITEMS.length) { loadBacklog(); }
     if (!_bannProjId || !ITEMS.length) {
       if (banner)    banner.classList.remove('visible');
       if (exportBtn) exportBtn.classList.add("is-hidden");
@@ -1603,12 +1600,8 @@ export function renderStats() {
   const _activeSub = getCurrentSubTab ? getCurrentSubTab() : 'backlog';
   if (_activeSub !== 'backlog') return;
 
-  // B-fix-T202606-197: _coreCallbacks.getActiveProjectFilter nunca registrado post T-202606-197 — leer localStorage directamente
-  const _rsProjId = localStorage.getItem('current-project-filter') || '';
+  const _rsProjId = _coreCallbacks.getActiveProjectFilter?.() || localStorage.getItem('current-project-filter') || '';
   if (!_rsProjId) { document.getElementById('stats-bar').innerHTML = ''; return; }
-  // B-202606-008: ITEMS puede estar vacío si el módulo cargó antes de que loadBacklog() corriera.
-  // Forzar recarga cuando hay proyecto activo con ITEMS vacío — evita que stats-bar se limpie en carga inicial.
-  if (!ITEMS.length) { loadBacklog(); }
   if (!ITEMS.length) { document.getElementById('stats-bar').innerHTML = ''; return; }
 
   // Delegation para stats-bar — se registra una sola vez
