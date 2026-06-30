@@ -31,7 +31,7 @@ import { showToast } from './locus-toast.js';
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
-// [PP] mod:50 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:51 · autor:Rune · 2026-06-30 UTC-6
 // TKT-202606-011 (REQ-202606-003 · AC1/AC4): _ckptMeta.draftPending = parsed.draft === true —
 //   showMergeDiffPanel (locus-backlog-merge.js) usa el flag para badge + botón deshabilitado en
 //   vez de bloquear antes de abrir el panel. Con draftPending, sprint_proposal no se ofrece como
@@ -433,6 +433,15 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // completa newSess.resetAt y recalcula durationMs como horaResult.epoch - (Date.now() - newSess.durationMs).
   const _ckptMeta = {
     resumen:     parsed.summary    || '',
+    // TKT-[pendiente-ID] (REQ-[pendiente-ID] · AC-1): rol del CHECKPOINT — antes ausente de este
+    // objeto. newSess.rol (línea ~403) sí lo capturaba, pero _ckptMeta (el objeto que llega a
+    // showMergeDiffPanel → mergeBacklogFromTG/applyPatchesFromTG) nunca lo incluía, por lo que
+    // _ckptMeta.rol||'' resolvía siempre a '' downstream — los guards de rol para
+    // REQ→bloqueado (locus-backlog-item.js) y REQ→done (locus-backlog-item.js, applyPatchesFromTG)
+    // rechazaban toda transición sin importar el rol real declarado. T-202606-028 ya había
+    // propagado el campo en el call site (locus-backlog-merge.js) asumiendo que existía aquí —
+    // fix incompleto, corregido en la fuente.
+    rol:         parsed.rol        || '',
     aprendizaje: parsed.aprendizaje || '',
     bloqueantes: parsed.bloqueantes || '',
     decision:    parsed.decision    || '',
