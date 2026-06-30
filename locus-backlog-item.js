@@ -1,4 +1,4 @@
-// [PP] mod:51 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:52 · autor:Rune · 2026-06-30 UTC-6
 // TKT-PARSER-2a (REQ-[pendiente-ID] · validación de transición ITIL y merge de campos ITIL):
 //   validateIncidentTransitions() nueva — valida pares origen→destino de incidentStatus contra
 //   _VALID_INCIDENT_TRANSITIONS, independiente de validateLifecycleTransitions (Scrum, sin
@@ -14,7 +14,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind
+import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID])
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -1717,7 +1717,11 @@ function _findTmpMatch(tmpCode, desc, existingItems, incomingType) {
 // T-202605-140 T2: Paso 2 — resolver referencias cruzadas (dependsOn, parentId,
 //   triggeredBy, origenDisc, promovida_a) usando slugMap. Referencia no resuelta → null/[].
 export function _assignPendingIds(tgItems) {
-  const validTypes = new Set(['P', 'T', 'R', 'B']);
+  // TKT1 (REQ-[pendiente-ID] · Integridad de generación y persistencia de código de ítems):
+  //   validTypes Gen1 (P/T/R/B) reemplazado por _GEN2_TYPES — los 7 tipos canónicos
+  //   (REQ/TKT/DISC/INC/PRB/KE/CHG). Causa raíz confirmada: con el set Gen1, todo ítem
+  //   Gen2 entrante con [pendiente-ID] o [tmp:slug] quedaba sin asignar silenciosamente.
+  const validTypes = new Set(_GEN2_TYPES);
   const reservedCodes = new Set();
 
   // T-202605-140 T2 · Paso 1: construir slugMap mientras se asignan IDs

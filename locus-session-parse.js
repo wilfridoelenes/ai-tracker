@@ -1,4 +1,4 @@
-// [PP] mod:79 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:80 · autor:Rune · 2026-06-30 UTC-6
 // TKT-PARSER-2a (REQ-[pendiente-ID] · validación de transición ITIL en mergeBacklogFromTG):
 //   _VALID_INCIDENT_STATUS y _INCIDENT_STATUS_LIST exportadas — locus-backlog-item.js las
 //   consume para validar transiciones de incidentStatus sin duplicar la tabla. Sin cambio
@@ -23,7 +23,7 @@
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
-import { renderStats, getItems, normalizeStatus, itemKind } from './locus-backlog-core.js'; // TKT0-gen2: itemKind agregado
+import { renderStats, getItems, normalizeStatus, itemKind, _GEN2_TYPES } from './locus-backlog-core.js'; // TKT0-gen2: itemKind agregado · TKT1: _GEN2_TYPES (REQ-[pendiente-ID])
 import { _isPlaceholderCode, applyPatchesFromTG, _assignPendingIds } from './locus-backlog-item.js'; // T-202606-089 AC-3
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { renderBacklogList } from './locus-backlog-render.js';
@@ -99,9 +99,8 @@ const _KNOWN_STATUS_INPUTS = new Set([
   'orphaned', // T-202606-017: válido solo para R — sin Ts válidos
 ]);
 
-// REQ-[pendiente-ID] (Parser: ciclo ITIL completo y tipos PRB/KE/CHG): tipos Gen2 completos —
-// reemplaza el _validTypes de 4 tipos (REQ/TKT/DISC/INC) usado en ambos paths de ingesta.
-const _GEN2_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'KE', 'CHG'];
+// TKT1 (REQ-[pendiente-ID]): _GEN2_TYPES movida a locus-backlog-core.js — fuente única,
+// importada abajo junto al resto de imports de ese módulo. Sin cambio de valor ni de uso.
 // Tipos cuyo ciclo de vida vive en incident_status (ITIL) — nunca en status (Scrum).
 const _ITIL_TYPES = new Set(['INC', 'PRB', 'KE', 'CHG']);
 // Valores válidos de incident_status — BR-Core §6.

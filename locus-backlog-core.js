@@ -1,4 +1,4 @@
-// [PP] mod:64 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:65 · autor:Rune · 2026-06-30 UTC-6
 // TKT1 (REQ-getactiveprojectfilter): comentario de propietario de getActiveProjectFilter
 //   corregido — locus-sprint-project.js ya no posee la función desde T-202606-197.
 // [tmp:tkt-isqinc-unify]: isQIncItem(i) exportada — consolida _isQInc (renderBacklogList)
@@ -102,6 +102,13 @@ export function normalizeStatus(raw, type) {
   // Valor desconocido → pendiente
   return 'pendiente';
 }
+
+// TKT1 (REQ-[pendiente-ID] · Integridad de generación y persistencia de código de ítems):
+//   _GEN2_TYPES movida desde locus-session-parse.js — fuente única consumida por
+//   locus-session-parse.js y locus-backlog-item.js. Ambos módulos ya importaban de
+//   locus-backlog-core.js — sin ciclo nuevo. locus-backlog-core.js no importa de
+//   ninguno de los dos.
+export const _GEN2_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'KE', 'CHG'];
 
 var ITEMS = (() => { // ESM-B: var para evitar TDZ en grafo circular — migrar a módulo de estado en PP-S-10
   // T-202604-006: leer clave por proyecto activo sin depender de _tplKey (aún no definida)
