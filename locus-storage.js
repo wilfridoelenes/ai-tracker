@@ -1,4 +1,4 @@
-// [PP] mod:70 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:71 · autor:Rune · 2026-06-30 UTC-6
 // locus-storage.js
 // Última actualización: TKT-A1 — eliminar _ensureHotfixSprint, agregar schema ITIL completo (PRB/KE/CHG en _VALID_STATUS_BY_TYPE, slaDeadline en hidratación, queue/sla_deadline en _toItemRow)
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -874,11 +874,31 @@ export async function saveBacklog() {
     DISC: new Set(['discovery', 'promoted', 'descartado']),
   };
 
+  // INC-[pendiente-ID]: gate chk_type_canonico — reflejo client-side de tracker_items_type_check
+  // (Postgres). Un ítem cuyo .type no es uno de los 7 tipos canónicos del ecosistema nunca debe
+  // llegar al upsert — 'patch' es instrucción de operación del parser, no un tipo de ítem, y no
+  // debe persistir como valor de columna type bajo ninguna circunstancia, sin importar cómo llegó
+  // a getItems(). Sin este gate, una sola fila corrupta en memoria bloquea TODO el batch de
+  // saveBacklog() — incluyendo ítems legítimos no relacionados — porque Postgres rechaza el INSERT
+  // completo, no solo la fila inválida.
+  const _VALID_ITEM_TYPES = new Set(['REQ', 'TKT', 'INC', 'PRB', 'KE', 'CHG', 'DISC']);
+
   const _rawItems = _getItems();
   const items = _rawItems.filter(it => {
     if (it.status === 'historico') {
       console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
       _dispatch('storage:item-excluded', { code: it.code || '[pendiente-ID]', type: it.type, reason: 'status:historico es de solo lectura' });
+      return false;
+    }
+    // INC-[pendiente-ID]: excluir cualquier ítem con type no canónico — incluye el caso 'patch'
+    // que originó el INC (tracker_items_type_check, 23514). Se excluye ANTES del gate de
+    // status+type porque _VALID_STATUS_BY_TYPE[it.type] sería undefined para un type inválido,
+    // y `if (_validStatuses && ...)` con _validStatuses undefined NO filtra — dejaba pasar
+    // silenciosamente cualquier type corrupto. Este gate cierra ese hueco.
+    if (!_VALID_ITEM_TYPES.has(it.type)) {
+      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido del upsert — type:"${it.type}" no es un tipo canónico (REQ/TKT/INC/PRB/KE/CHG/DISC). Viola tracker_items_type_check.`);
+      _dispatch('storage:item-excluded', { code: it.code || '[sin code]', type: it.type, reason: `type:"${it.type}" no es canónico — viola tracker_items_type_check` });
+      setTimeout(() => showToast('error', `${it.code || '[sin code]'} no se guardó — type:"${it.type}" inválido (no canónico). Revisar con Rune — dato corrupto en memoria.`, null, 8000), 0);
       return false;
     }
     // B-202606-097: excluir combinaciones type+status que violarían chk_status_by_type en Postgres.
