@@ -150,7 +150,7 @@ const SUPABASE_KEY  = (typeof window !== 'undefined') ? (window.__ENV?.SUPABASE_
 let _supabase           = null;   // cliente Supabase
 var _supabaseUser       = null;   // sesión activa del founder — ESM-B: var para evitar TDZ
 let _supabaseReady      = null;   // promesa: resuelve cuando onAuthStateChange dispara
-let _realtimeChannels   = [];     // T-202606-002: canales Realtime — tracker_state, tracker_backlog, tracker_sessions
+let _realtimeChannels   = [];     // T-202606-002: canales Realtime — tracker_state, tracker_sessions
 let _realtimeLastTs     = null;   // timestamp del último update remoto procesado
 
 // T-202606-005: cache en módulo de sprints — fuente de verdad en runtime, poblado desde tracker_sprints.
@@ -1101,27 +1101,28 @@ export async function saveBacklog() {
   }
 }
 
-// ── T-202606-105: storage dedicado para ítems status:historico ──────────────
-// R-202606-037: ITEMS en memoria nunca contiene historico — estos ítems viven
-// en su propia clave Supabase/localStorage ('tracker-backlog-historico'), separada
-// de 'items'+suffix, confirmado por conteo en Supabase. saveBacklog() no lee ni
-// escribe este storage — ver gate de exclusión ahí mismo.
+// ── storage para ítems status:historico ──────────────────────────────────────
+// Fuente canónica: tracker_items con status:'historico' — una fila por ítem,
+// misma tabla que los ítems activos. tracker_backlog JSONB legacy eliminado
+// como destino de escritura. localStorage mantiene clave _HISTORICO_KEY como
+// caché optimista y fallback sin auth — misma mecánica que antes.
+// saveBacklog() no lee ni escribe este storage — ver gate de exclusión ahí mismo.
 const _HISTORICO_KEY = 'tracker-backlog-historico';
 
-// Escribe el array de ítems historico en su clave dedicada — Supabase primero,
-// localStorage como caché post-write exitoso o como fallback ante fallo de red.
+// Escribe el array de ítems historico en tracker_items — Supabase primero,
+// localStorage como caché optimista pre-upsert y fallback ante fallo de red.
 export async function saveHistoricoItems(items) {
   const projId = _getActiveProjectFilter();
   const suffix = projId ? '-' + projId : '-global';
   const key = _HISTORICO_KEY + suffix;
-  // B-202606-093 AC-2: deduplicar por code antes de escribir el JSONB — cada escritura
-  // sanea el dato existente. Último ítem del array gana en caso de duplicado.
+
+  // Deduplicar por code — último ítem del array gana en caso de duplicado.
   const _raw = Array.isArray(items) ? items : [];
   const _dedupMap = new Map();
   for (const it of _raw) _dedupMap.set(it.code, it);
   const payload = Array.from(_dedupMap.values());
   if (payload.length < _raw.length) {
-    console.warn(`[AI Tracker] saveHistoricoItems: duplicados en array eliminados antes de upsert: ${_raw.length - payload.length}`);
+    console.warn(`[AI Tracker] saveHistoricoItems: duplicados eliminados antes de upsert: ${_raw.length - payload.length}`);
   }
 
   // Sin Supabase o sin auth → localStorage como único destino.
@@ -1134,7 +1135,7 @@ export async function saveHistoricoItems(items) {
     return;
   }
 
-  // REQ-PERSIST-OPT TKT4: respaldo local optimista — ANTES del upsert, no después.
+  // Respaldo local optimista — ANTES del upsert.
   try {
     localStorage.setItem(key, JSON.stringify(payload));
   } catch (lsErr) {
@@ -1142,30 +1143,67 @@ export async function saveHistoricoItems(items) {
   }
 
   try {
-    const _histTs = new Date().toISOString();
-    // T-202606-097: registrar _realtimeLastTs ANTES del await — cubre echo de Realtime
-    // de tracker_backlog originado en este write. Mismo patrón que _saveFlush() L557.
-    _realtimeLastTs = _histTs;
-    const { error } = await _supabase.from('tracker_backlog').upsert(
-      [{ user_id: _supabaseUser.id, key: 'historico' + suffix, value: payload, updated_at: _histTs }],
-      { onConflict: 'user_id,key' }
-    );
+    // _realtimeLastTs en epoch ms — mismo formato que tracker_items (BIGINT).
+    // Registrar ANTES del await para cubrir el echo de Realtime.
+    const _updatedAtMs = Date.now();
+    _realtimeLastTs = _updatedAtMs;
+
+    // Mapear con el mismo DDL que saveBacklog()._toItemRow() — columnas exactas de tracker_items.
+    const rows = payload.map(it => ({
+      user_id:               _supabaseUser.id,
+      project_id:            projId || null,
+      code:                  it.code              || null,
+      type:                  it.type              || null,
+      title:                 it.title             || null,
+      status:                'historico',
+      priority:              it.priority          || null,
+      effort:                it.effort != null ? Number(it.effort) : null,
+      area:                  it.area              || null,
+      sprint:                it.sprint            || null,
+      role:                  it.role              || null,
+      parent:                it.parent            || it.parentId || null,
+      depends_on:            Array.isArray(it.depends_on) ? it.depends_on : [],
+      triggered_by:          it.triggered_by      || null,
+      no_incluye:            it.no_incluye        != null ? it.no_incluye : null,
+      kill_criteria:         it.kill_criteria     || null,
+      promovida_a:           it.promovida_a       || null,
+      origen_disc:           it.origenDisc        || null,
+      discard_reason:        it.discard_reason    || null,
+      comportamiento_actual: it.comportamiento_actual || null,
+      origin_module:         it.origin_module     || null,
+      verified_by:           it.verificado_por    || null,
+      schema_version:        it.schema_version != null ? Number(it.schema_version) : 2,
+      ac:                    Array.isArray(it.ac) ? it.ac : [],
+      intencion:             it.intencion         || null,
+      contract:              it.contract          || null,
+      next_role:             it.nextRole          || null,
+      design_intent:         it.designIntent      || null,
+      blocked_at:            it.blockedAt         || null,
+      contract_update:       it.contract_update   || null,
+      archivos:              Array.isArray(it.archivos) ? it.archivos : null,
+      sla_priority:          it.sla_priority      || null,
+      sla_deadline:          it.slaDeadline       != null ? it.slaDeadline : null,
+      incident_status:       it.incidentStatus    || it.incident_status || null,
+      resolution_type:       it.resolutionType    || it.resolution_type || null,
+      derived_items:         Array.isArray(it.derived_items) ? it.derived_items : null,
+      queue:                 it.queue             || null,
+      updated_at:            _updatedAtMs,
+    }));
+
+    const { error } = await _supabase
+      .from('tracker_items')
+      .upsert(rows, { onConflict: 'user_id,code' });
     if (error) throw error;
-    // REQ-PERSIST-OPT TKT4 / AC-2: localStorage ya tiene el respaldo desde antes del upsert —
-    // sin escritura duplicada aquí.
   } catch (err) {
-    // T-202606-097: resetear _realtimeLastTs — timestamp no llegó a Supabase.
     _realtimeLastTs = null;
-    // Upsert falla → respaldo local ya existe desde antes del upsert + encolar para reintento.
     console.error('[AI Tracker] Supabase saveHistoricoItems() failed:', err);
     showToast('warning', '⚠️ Histórico no sincronizado con Supabase — guardado localmente');
-    // REQ-PERSIST-OPT TKT4 / AC-3: gap cerrado — antes este catch no encolaba para reintento.
     _offlineQueuePush({ type: 'historico', projId: projId || null });
   }
 }
 
-// Lee el array de ítems historico desde su clave dedicada — nunca mezclados con ITEMS.
-// Preferencia: Supabase si hay sesión activa, localStorage como fallback/cache.
+// Lee el array de ítems historico desde tracker_items — nunca mezclados con ITEMS activos.
+// Preferencia: Supabase si hay sesión activa, localStorage como fallback/caché.
 export async function getHistoricoItems() {
   const projId = _getActiveProjectFilter();
   const suffix = projId ? '-' + projId : '-global';
@@ -1173,17 +1211,23 @@ export async function getHistoricoItems() {
 
   if (_supabase && _supabaseUser) {
     try {
-      const { data, error } = await _supabase
-        .from('tracker_backlog')
-        .select('value')
-        .eq('user_id', _supabaseUser.id)
-        .eq('key', 'historico' + suffix)
-        .maybeSingle();
+      const query = projId
+        ? _supabase
+            .from('tracker_items')
+            .select('*')
+            .eq('user_id', _supabaseUser.id)
+            .eq('project_id', projId)
+            .eq('status', 'historico')
+        : _supabase
+            .from('tracker_items')
+            .select('*')
+            .eq('user_id', _supabaseUser.id)
+            .eq('status', 'historico');
+      const { data, error } = await query;
       if (error) throw error;
-      if (data && Array.isArray(data.value)) {
-        try { localStorage.setItem(key, JSON.stringify(data.value)); } catch (_) {}
-        return data.value;
-      }
+      const result = Array.isArray(data) ? data : [];
+      try { localStorage.setItem(key, JSON.stringify(result)); } catch (_) {}
+      return result;
     } catch (err) {
       console.warn('[AI Tracker] getHistoricoItems: fallo Supabase, usando localStorage', err);
     }
@@ -1518,7 +1562,7 @@ export async function saveContextDocs() {
 
 // ── GRUPO 3 — SYNC Y REALTIME ─────────────────────────────────────────────────
 
-// T-202606-002: suscribe tracker_state, tracker_backlog y tracker_sessions a Realtime.
+// T-202606-002: suscribe tracker_state y tracker_sessions a Realtime.
 // Cuando otro dispositivo guarda en cualquiera de las tres tablas, este cliente recarga
 // el estado remoto completo vía _loadFromSupabase(). Throttle: ignora eventos originados
 // en este mismo cliente (_realtimeLastTs). Fallback: si la suscripción a alguna tabla
@@ -1530,7 +1574,7 @@ export function _subscribeRealtime() {
   // Manejador compartido: recibe payload de cualquiera de las tres tablas.
   // Si el updated_at es el mismo que el último write local, ignora para evitar reload-loop.
   // B-202606-094 fix: updated_at llega en dos formatos según la tabla — ISO string
-  // (tracker_state, tracker_backlog) o epoch ms BIGINT (tracker_items). _realtimeLastTs
+  // (tracker_state) o epoch ms BIGINT (tracker_items). _realtimeLastTs
   // se fija en saveBacklog()/_saveFlush()/saveHistoricoItems() en formatos distintos según
   // el path de escritura. Comparar sin normalizar nunca igualaba para el path de
   // tracker_items — el guard de throttle no detenía nada y cada saveBacklog() dejaba la
@@ -1553,7 +1597,7 @@ export function _subscribeRealtime() {
     // tracker_state recibe UPDATEs periódicos (~7s) sin acción del usuario — trigger
     // moddatetime o echo del propio _saveFlush. Si el UPDATE llega más de
     // _USER_ACTION_WINDOW_MS después de la última acción de usuario → es heartbeat → ignorar.
-    // tracker_backlog y tracker_sessions no se filtran: esos canales solo reciben UPDATEs
+    // tracker_sessions no se filtra: ese canal solo recibe UPDATEs
     // cuando hay cambios genuinos de contenido (no tienen trigger de heartbeat propio).
     if (payload.table === 'tracker_state') {
       const msSinceAction = Date.now() - _lastUserActionTs;
@@ -1581,21 +1625,7 @@ export function _subscribeRealtime() {
       }
     });
 
-  // Canal 2 — tracker_backlog (T-202606-002)
-  const chBacklog = _supabase
-    .channel('tracker-backlog-' + _supabaseUser.id)
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'tracker_backlog', filter: 'user_id=eq.' + _supabaseUser.id },
-      _handleRemoteChange
-    )
-    .subscribe((status) => {
-      if (status === 'CHANNEL_ERROR') {
-        console.warn('[AI Tracker] Realtime: error en canal tracker_backlog — app sigue funcional vía fallback');
-      }
-    });
-
-  // Canal 3 — tracker_sessions (T-202606-002)
+  // Canal 2 — tracker_sessions (T-202606-002)
   const chSessions = _supabase
     .channel('tracker-sessions-' + _supabaseUser.id)
     .on(
@@ -1609,11 +1639,11 @@ export function _subscribeRealtime() {
       }
     });
 
-  _realtimeChannels = [chState, chBacklog, chSessions];
+  _realtimeChannels = [chState, chSessions];
 }
 
 export function _unsubscribeRealtime() {
-  // T-202606-002: limpiar todos los canales registrados (tracker_state, tracker_backlog, tracker_sessions)
+  // T-202606-002: limpiar todos los canales registrados (tracker_state, tracker_sessions)
   for (const ch of _realtimeChannels) {
     try { _supabase.removeChannel(ch); } catch(e) {}
   }
@@ -1736,10 +1766,10 @@ export async function _loadFromSupabase() {
       if (_resetChanged) save();
     }
 
-    // ── 2. Batch paralelo: sesiones + items relacional + backlog JSONB (legacy) + docs + drafts ──
+    // ── 2. Batch paralelo: sesiones + items relacional + docs + drafts ──
     // T-202606-009: items se carga desde tracker_items (tabla relacional) en paralelo con
-    // el resto del batch. El JSONB legacy de items/historico (blResult / tracker_backlog) está
-    // confirmado vacío desde 2026-06-24 — purga ejecutada, sin filas remanentes.
+    // el resto del batch. tracker_backlog JSONB legacy eliminado del batch (T-202606-105 TKT3) —
+    // purga ejecutada 2026-06-24, históricos migrados a tracker_items.
     // Colapsa 6 queries secuenciales a tracker_docs en una sola con .in('key', [...])
     const projId = _getActiveProjectFilter();
     const suffix = projId ? '-' + projId : '-global';
@@ -1753,7 +1783,7 @@ export async function _loadFromSupabase() {
       'user-prefs'
     ];
 
-    const [sessResult, itemsResult, blResult, docsResult, draftsResult] = await Promise.allSettled([
+    const [sessResult, itemsResult, docsResult, draftsResult] = await Promise.allSettled([
       // 4. Sesiones
       _supabase
         .from('tracker_sessions')
@@ -1773,13 +1803,6 @@ export async function _loadFromSupabase() {
             .eq('project_id', projId)
             .eq('user_id', _supabaseUser.id)
         : Promise.resolve({ data: [], error: null }),
-
-      // 5b. Backlog JSONB legacy — purga ejecutada (T-202606-010), confirmado vacío desde 2026-06-24.
-      _supabase
-        .from('tracker_backlog')
-        .select('key, value')
-        .eq('user_id', _supabaseUser.id)
-        .in('key', ['items' + suffix, 'meta' + suffix]),
 
       // 6 + 6b + 6c + 6e — una sola query para todos los docs
       _supabase
@@ -1832,7 +1855,7 @@ export async function _loadFromSupabase() {
     // B-[pendiente-ID]: si saveBacklog() tiene un upsert de tracker_items en vuelo, saltar el
     // merge por completo — el guard de timestamp (B-202606-094) compara contra localStorage,
     // que todavía no refleja el cambio reciente mientras el upsert no confirma. Sin este guard,
-    // un _loadFromSupabase() disparado por OTRO canal (tracker_state/tracker_backlog/tracker_sessions
+    // un _loadFromSupabase() disparado por OTRO canal (tracker_state/tracker_sessions
     // — no hay canal Realtime dedicado a tracker_items) puede pisar el cambio local en esa ventana.
     if (_saveBacklogInFlightCount > 0) {
       console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + _saveBacklogInFlightCount + ') — merge de tracker_items omitido en esta pasada.');
@@ -1970,24 +1993,6 @@ export async function _loadFromSupabase() {
       console.warn('[AI Tracker] Error procesando items relacionales:', itemsErr);
     }
     } // B-[pendiente-ID]: cierre del else del guard _saveBacklogInFlightCount
-
-    // ── 5b. Procesar backlog JSONB legacy ────────────────────────────────
-    // Purga ya ejecutada (T-202606-010) desde 2026-06-24 — este bloque está inerte
-    // (blResult sin filas). Se elimina junto con la entrada en el batch en limpieza futura.
-    try {
-      if (blResult.status === 'fulfilled' && !blResult.value.error) {
-        const blRows = blResult.value.data;
-        if (blRows && blRows.length) {
-          const blMap = Object.fromEntries(blRows.map(r => [r.key, r.value]));
-          const remoteMeta  = blMap['meta'  + suffix] || {};
-          localStorage.setItem(_tplKey('backlog-meta'), JSON.stringify(remoteMeta));
-        }
-      } else {
-        console.warn('[AI Tracker] Error cargando backlog JSONB legacy desde Supabase:', blResult.reason || blResult.value?.error);
-      }
-    } catch (blErr) {
-      console.warn('[AI Tracker] Error procesando backlog JSONB legacy:', blErr);
-    }
 
     // ── 6. Procesar docs vivos (context, htmlmap, plan, tmp-id-map, notes, user-prefs) ──
     try {
@@ -2968,44 +2973,3 @@ export function openAuthModal() {
   if (overlay) overlay.classList.remove('is-hidden');
 }
 // ── END B-202606-069 ──────────────────────────────────────────────────────────
-
-// ── purgeLocalCache() ─────────────────────────────────────────────────────────
-// Limpia claves de caché localStorage del proyecto activo (o de projId explícito).
-// LOCUS_KEYS.STATE se conserva siempre — es el único fallback ante pérdida de conexión.
-// Retorna el número de claves eliminadas (para toast de confirmación).
-//
-// AC1 happy path: llamada con projId válido → elimina backlog-items-{projId},
-//   backlog-meta-{projId}, locus-plan-{projId}, tracker-ctx-docs-{projId},
-//   tracker-hm-docs-{projId}, ai-tracker-changelog, ai-tracker-notifs-history,
-//   log-filter-state. Retorna count > 0.
-// AC2 sin projId: usa _getActiveProjectFilter() — mismo comportamiento que _tplKey().
-// AC3 clave ausente: localStorage.getItem devuelve null → skip silencioso, no cuenta.
-// AC4 error en removeItem: catch silencioso — no interrumpe el loop.
-// AC5 LOCUS_KEYS.STATE nunca se toca — ni con projId ni sin él.
-export function purgeLocalCache(projId) {
-  const pid    = projId != null ? projId : _getActiveProjectFilter();
-  const suffix = pid ? '-' + pid : '';
-  const keys   = [
-    'backlog-items'                      + suffix,
-    'backlog-meta'                       + suffix,
-    LOCUS_KEYS.PLAN_PREFIX               + (pid || ''),
-    LOCUS_KEYS.CTX_DOCS_PREFIX           + suffix,
-    LOCUS_KEYS.HM_DOCS_PREFIX            + suffix,
-    LOCUS_KEYS.SESSIONS_PREFIX           + (pid || ''),
-    LOCUS_KEYS.CHANGELOG,
-    LOCUS_KEYS.NOTIF_HISTORY,
-    LOCUS_KEYS.LOG_FILTERS,
-  ];
-  let cleared = 0;
-  keys.forEach(k => {
-    if (!k) return;
-    try {
-      if (localStorage.getItem(k) !== null) {
-        localStorage.removeItem(k);
-        cleared++;
-      }
-    } catch (_) {}
-  });
-  return cleared;
-}
-// ── END purgeLocalCache ───────────────────────────────────────────────────────
