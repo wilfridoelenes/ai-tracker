@@ -1,4 +1,6 @@
-// [PP] mod:68 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:69 · autor:Rune · 2026-06-30 UTC-6
+// INC-[pendiente-ID] (triggered_by TKT-202606-013): showToast({title,body,type}) en
+//   _openItemEditorSafe corregido a firma posicional showToast(type,title,body).
 // INC-[pendiente-ID] (normalizeStatus sin caso explícito para 'discovery' — fallback
 //   silencioso a 'pendiente'): agregado caso explícito 'discovery' → 'discovery' para
 //   type DISC, 'pendiente' para cualquier otro tipo — mismo patrón que 'promoted'/
@@ -179,7 +181,8 @@ export function _openItemEditorSafe(id, code) {
   if (_openItemEditorCb) {
     _openItemEditorCb(id, code);
   } else {
-    showToast({ title: 'No se pudo abrir el editor', body: 'Recarga la página.', type: 'error' });
+    // Fix INC-[pendiente-ID] (triggered_by TKT-202606-013): showToast firma posicional.
+    showToast('error', 'No se pudo abrir el editor', 'Recarga la página.');
     console.error('[AI Tracker] openItemEditor no disponible — módulo externo no cargado');
   }
 }

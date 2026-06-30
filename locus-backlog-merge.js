@@ -1,4 +1,6 @@
-// [PP] mod:33 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:34 · autor:Rune · 2026-06-30 UTC-6
+// INC-[pendiente-ID] (triggered_by TKT-202606-013): corregidos los 2 call sites restantes de
+//   showToast({title,body,type}) → showToast(type,title,body) — firma posicional real.
 // Fix inline (TKT-202606-013): corregido call de showToast en gate TKT-202606-012 — firma
 //   posicional (type,title,body), no objeto. Bug descubierto al implementar TKT-013.
 // TKT-202606-012 (REQ-202606-003 · AC2): gate de exclusividad sprint_proposal + items REQ/TKT
@@ -136,7 +138,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       const _msg = _unknownSprints.length === 1
         ? `CHECKPOINT bloqueado: sprint ${_sprintList} no registrado. Registrar el sprint antes de continuar.`
         : `CHECKPOINT bloqueado: sprints ${_sprintList} no registrados. Registrar los sprints antes de continuar.`;
-      showToast({ title: 'CHECKPOINT bloqueado', body: _msg, type: 'error' });
+      // Fix INC-[pendiente-ID] (triggered_by TKT-202606-013): showToast firma posicional.
+      showToast('error', 'CHECKPOINT bloqueado', _msg);
       console.warn('[Locus] showMergeDiffPanel:', _msg);
       return; // AC-2: ningún ítem aplicado — early-return antes de cualquier mutación
     }
@@ -163,7 +166,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         loadBacklog();
       } catch (e) {
         console.error('[AI Tracker] showMergeDiffPanel: loadBacklog falló en finally — filter restaurado, backlog puede estar desactualizado.', e);
-        showToast({ title: 'Error al restaurar backlog', body: 'Recarga la página.', type: 'error' });
+        // Fix INC-[pendiente-ID] (triggered_by TKT-202606-013): showToast firma posicional.
+        showToast('error', 'Error al restaurar backlog', 'Recarga la página.');
       }
     }
   }
