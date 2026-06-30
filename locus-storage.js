@@ -2968,3 +2968,44 @@ export function openAuthModal() {
   if (overlay) overlay.classList.remove('is-hidden');
 }
 // ── END B-202606-069 ──────────────────────────────────────────────────────────
+
+// ── purgeLocalCache() ─────────────────────────────────────────────────────────
+// Limpia claves de caché localStorage del proyecto activo (o de projId explícito).
+// LOCUS_KEYS.STATE se conserva siempre — es el único fallback ante pérdida de conexión.
+// Retorna el número de claves eliminadas (para toast de confirmación).
+//
+// AC1 happy path: llamada con projId válido → elimina backlog-items-{projId},
+//   backlog-meta-{projId}, locus-plan-{projId}, tracker-ctx-docs-{projId},
+//   tracker-hm-docs-{projId}, ai-tracker-changelog, ai-tracker-notifs-history,
+//   log-filter-state. Retorna count > 0.
+// AC2 sin projId: usa _getActiveProjectFilter() — mismo comportamiento que _tplKey().
+// AC3 clave ausente: localStorage.getItem devuelve null → skip silencioso, no cuenta.
+// AC4 error en removeItem: catch silencioso — no interrumpe el loop.
+// AC5 LOCUS_KEYS.STATE nunca se toca — ni con projId ni sin él.
+export function purgeLocalCache(projId) {
+  const pid    = projId != null ? projId : _getActiveProjectFilter();
+  const suffix = pid ? '-' + pid : '';
+  const keys   = [
+    'backlog-items'                      + suffix,
+    'backlog-meta'                       + suffix,
+    LOCUS_KEYS.PLAN_PREFIX               + (pid || ''),
+    LOCUS_KEYS.CTX_DOCS_PREFIX           + suffix,
+    LOCUS_KEYS.HM_DOCS_PREFIX            + suffix,
+    LOCUS_KEYS.SESSIONS_PREFIX           + (pid || ''),
+    LOCUS_KEYS.CHANGELOG,
+    LOCUS_KEYS.NOTIF_HISTORY,
+    LOCUS_KEYS.LOG_FILTERS,
+  ];
+  let cleared = 0;
+  keys.forEach(k => {
+    if (!k) return;
+    try {
+      if (localStorage.getItem(k) !== null) {
+        localStorage.removeItem(k);
+        cleared++;
+      }
+    } catch (_) {}
+  });
+  return cleared;
+}
+// ── END purgeLocalCache ───────────────────────────────────────────────────────
