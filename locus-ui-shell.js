@@ -1,4 +1,4 @@
-// [PP] mod:34 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:35 · autor:Rune · 2026-06-30 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -151,7 +151,7 @@ export function switchTab(tab) {
 
 export function switchSubTab(sub) {
   currentSubTab = sub;
-  ['backlog','q-backlog','q-disc','hotfix','htmlmap','context','plan','contratos','historico'].forEach(s => {
+  ['backlog','q-backlog','q-disc','qinc','htmlmap','context','plan','contratos','historico'].forEach(s => {
     const btn = document.getElementById('sstab-btn-' + s);
     const panel = document.getElementById('sspanel-' + s);
     if (btn) btn.classList.toggle('active', s === sub);
@@ -186,10 +186,9 @@ export function switchSubTab(sub) {
     // TKT-B4: panel Q-DISC para DISCs — TKT-C1 registrará este listener
     window.dispatchEvent(new CustomEvent('shell:render-q-disc'));
   }
-  if (sub === 'hotfix') {
-    // T-202606-091: dispatch para refresco de contenido del panel Hotfix.
-    // Sin listener aún — render de #hotfix-panel-body pendiente de especificación (gap reportado a Cael).
-    window.dispatchEvent(new CustomEvent('shell:render-hotfix'));
+  if (sub === 'qinc') {
+    // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-qinc'
+    window.dispatchEvent(new CustomEvent('shell:render-qinc'));
     // T-202606-098 T1: renderStats()/updateStatusFilterUI() eliminados — exclusivos de subtab backlog
   }
   if (sub === 'context') {
