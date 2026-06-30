@@ -1,4 +1,7 @@
-// [PP] mod:31 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:32 · autor:Rune · 2026-06-30 UTC-6
+// TKT-202606-012 (REQ-202606-003 · AC2): gate de exclusividad sprint_proposal + items REQ/TKT
+//   bloquea showMergeDiffPanel completo con toast error cuando ambos llegan en el mismo CHECKPOINT —
+//   __BR-Ecosystem §12. DISC/INC/PRB/KE/CHG/patch no activan el gate.
 // TKT-202606-011 (REQ-202606-003 · AC3): showMergeDiffPanel renderiza banner con badge
 //   "Pendiente de aval Finn" (.mdiff-step0-badge, mismo patrón visual que Step 0/Sugerencia)
 //   y deshabilita mdiff-apply-btn/mdiff-backlog-btn cuando ckptMeta.draftPending === true —
@@ -59,6 +62,17 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // Se aplican en _mdiffDoApply después de onApply() para que ítems nuevos ya existan en getItems().
   const _patchItems = tgItems.filter(i => i.type === 'patch');
   tgItems = tgItems.filter(i => i.type !== 'patch');
+
+  // TKT-202606-012 (REQ-202606-003 · AC2): gate de exclusividad sprint_proposal + items.
+  // __BR-Ecosystem §12 — sprint_proposal debe ir en CHECKPOINT independiente, nunca junto a
+  // ítems REQ/TKT. type:patch ya fue excluido arriba — no cuenta para este gate. DISC/INC/PRB/
+  // KE/CHG no activan el gate — solo REQ y TKT. Corre antes de cualquier mutación o dry-run.
+  if (_ckptMeta.sprintProposal && tgItems.some(i => i.type === 'REQ' || i.type === 'TKT')) {
+    const _msg = 'sprint_proposal debe ir en CHECKPOINT independiente antes de los ítems. Separar y reemitir.';
+    showToast({ title: 'CHECKPOINT bloqueado', body: _msg, type: 'error' });
+    console.warn('[Locus] showMergeDiffPanel:', _msg);
+    return; // ningún ítem se aplica — early-return antes de mergeBacklogFromTG y cualquier mutación
+  }
 
   // T-202606-165: validar sprints no registrados antes del dry-run.
   // Ítems no-patch con sprint distinto de icebox/'' que no exista en getActiveSprints()
