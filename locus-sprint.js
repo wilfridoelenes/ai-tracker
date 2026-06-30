@@ -1,4 +1,4 @@
-// [PP] mod:69 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:70 · autor:Rune · 2026-06-30 15:58 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -8,7 +8,7 @@ import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation
 import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, openNewSprintInline, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto, getSprintPlanSessionCount } from './locus-sprint-plan.js';
-import { getAI, getActiveSprints, getAllSessions, save } from './locus-storage.js';
+import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint } from './locus-storage.js';
 import { getProjectById, _getActiveProjectFilter } from './locus-proj-core.js';
 import { showToast, toast } from './locus-toast.js';
 
@@ -226,7 +226,12 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
           sp[field] = newVal;
         }
         try {
-          save();
+          // B-202606-XXX: save() persiste `state` — los sprints viven en tracker_sprints
+          // desde T-202606-005 y no se sincronizan vía save(). Usar _upsertSprint().
+          const _projId = _getActiveProjectFilter();
+          _upsertSprint(sp, _projId).catch(function(err) {
+            showToast('error', 'Error al guardar. Intenta de nuevo.');
+          });
           showToast('success', 'Sprint actualizado.');
         } catch (err) {
           showToast('error', 'Error al guardar. Intenta de nuevo.');
