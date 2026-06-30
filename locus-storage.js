@@ -1,4 +1,4 @@
-// [PP] mod:69 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:70 · autor:Rune · 2026-06-30 UTC-6
 // locus-storage.js
 // Última actualización: TKT-A1 — eliminar _ensureHotfixSprint, agregar schema ITIL completo (PRB/KE/CHG en _VALID_STATUS_BY_TYPE, slaDeadline en hidratación, queue/sla_deadline en _toItemRow)
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -825,10 +825,13 @@ export function _relTs(ts) {
 }
 
 // R-202604-035: saveBacklog() — T-202606-008: reescrito para upsert relacional fila por fila
-// en tabla items (DDL creado en T-202606-007). Firma saveBacklog() → void intacta — los 7
-// call sites (locus-backlog-core, locus-backlog-merge, locus-backlog-panel,
-// locus-backlog-sprints, locus-backlog-item, locus-session-parse, locus-session-save)
-// no requieren cambio de código. localStorage se mantiene como caché/fallback (sin auth).
+// en tabla items (DDL creado en T-202606-007). Firma saveBacklog() → void intacta — los 9
+// archivos consumidores (locus-backlog-core, locus-backlog-merge, locus-backlog-panel,
+// locus-backlog-sprints, locus-backlog-item, locus-backlog-editor, locus-backlog-archive,
+// locus-backlog-render, locus-reports — 41 invocaciones en total) no requieren cambio de
+// código. locus-session-parse y locus-session-save no invocan saveBacklog() directamente —
+// corregido tras auditoría T-[pendiente-ID], el comentario original los listaba por error.
+// localStorage se mantiene como caché/fallback (sin auth).
 export async function saveBacklog() {
   _markUserAction();
   // T-[pendiente-ID]: purga inteligente — si localStorage supera el 80% de capacidad,
