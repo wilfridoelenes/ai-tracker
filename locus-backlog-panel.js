@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:10 · autor:Rune · 2026-06-26 UTC-6
+// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:11 · autor:Rune · 2026-06-30 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -355,9 +355,10 @@ function _renderItemPanel(item) {
   // T-202606-036 AC4: T con parent — sprint heredado no editable
   const _isInheritedSprint = item.parentId && itemKind(item) === 'TKT';
   const _parentItem = _isInheritedSprint ? (getItems() || []).find(i => i.code === item.parentId) : null;
+  // TKT4-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes solo .label || _parentItem.sprint
   const _inheritedLabel = _parentItem
     ? ((_parentItem.sprint && getActiveSprints().find(s => s.id === _parentItem.sprint))
-        ? (getActiveSprints().find(s => s.id === _parentItem.sprint).label || _parentItem.sprint)
+        ? _sprintDisplay(_parentItem.sprint)
         : (_parentItem.sprint || '— Sin asignar'))
     : '— Sin asignar';
   const sprintCellHtml = _isInheritedSprint

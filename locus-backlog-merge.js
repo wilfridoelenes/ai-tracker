@@ -1,4 +1,4 @@
-// [PP] mod:29 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:31 · autor:Rune · 2026-06-30 UTC-6
 // TKT-202606-011 (REQ-202606-003 · AC3): showMergeDiffPanel renderiza banner con badge
 //   "Pendiente de aval Finn" (.mdiff-step0-badge, mismo patrón visual que Step 0/Sugerencia)
 //   y deshabilita mdiff-apply-btn/mdiff-backlog-btn cuando ckptMeta.draftPending === true —
@@ -13,7 +13,7 @@
 import { _calcPriority, _getActiveSessionAiId, _undoSnapshot, loadBacklog, renderStats, updateBacklogBanner, getItems, _registerCoreCallback, itemKind as _itemKindFn } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _buildNewSprintForm, _getSprintById } from './locus-backlog-sprints.js';
-import { _blogLog, getActiveProject, getActiveSprints, saveBacklog } from './locus-storage.js';
+import { _blogLog, getActiveProject, getActiveSprints, saveBacklog, _sprintDisplay } from './locus-storage.js'; // TKT5-[pendiente-ID]: _sprintDisplay para opción de sprint nuevo en DIFF
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
@@ -219,8 +219,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     const _matched      = _matchById || _matchByLabel || null;
     const sprintExists  = !!_matched;
     const currentSprint = sprintExists ? _matched.id : '';
+    // TKT5-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes s.label||s.id
     const options = openSprints.map(s =>
-      `<option value="${esc(s.id)}" ${currentSprint === s.id ? 'selected' : ''}>${esc(s.label || s.id)}</option>`
+      `<option value="${esc(s.id)}" ${currentSprint === s.id ? 'selected' : ''}>${esc(_sprintDisplay(s.id))}</option>`
     ).join('');
     // B-202606-0XX (TKT-B2): 'Sin sprint (Q-Backlog)' (value='') reemplaza icebox como opción especial.
     return `<select class="mdiff-sprint-select" data-item-code="${esc(code)}"
@@ -790,8 +791,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         _mdiffPersistSprint(code, newSprintId);
         const restoredSel = _mdiffRestoreSelect(wrapDiv, code, newSprintId);
         // Añadir la nueva opción a todos los demás selects del DIFF
-        const _newSp = _getSprintById(newSprintId);
-        const _newSpLabel = _newSp ? (_newSp.label || newSprintId) : newSprintId;
+        // TKT5-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes _newSp.label || newSprintId
+        const _newSpLabel = _sprintDisplay(newSprintId);
         document.querySelectorAll('.mdiff-sprint-select[data-item-code]').forEach(s => {
           if (s === restoredSel) return;
           const newOptNode = s.querySelector('option[value="__new__"]');
@@ -845,7 +846,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     openSprints.forEach(s => {
       const opt = document.createElement('option');
       opt.value = s.id;
-      opt.textContent = s.label || s.id;
+      // TKT5-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes s.label||s.id
+      opt.textContent = _sprintDisplay(s.id);
       if (s.id === effectiveSelected) opt.selected = true;
       sel.appendChild(opt);
     });

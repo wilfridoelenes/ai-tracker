@@ -1,4 +1,4 @@
-// [PP] mod:31 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:33 · autor:Rune · 2026-06-30 UTC-6
 // INC-[pendiente-ID]: confirmEditSprint() no persistía label/goal/version_target/release_type
 //   a tracker_sprints — save() excluye sprints del blob. Fix: _upsertSprint(sp, projId) tras
 //   save(), mismo patrón que setSprintStatus.
@@ -22,7 +22,7 @@ import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _loadSprintsFromSupabase } from './locus-storage.js'; // T-202606-107 · T-202606-005
+import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _loadSprintsFromSupabase, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT2-[pendiente-ID]: _sprintDisplay para toasts
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
@@ -630,8 +630,8 @@ export async function setSprintStatus(id, newStatus) {
       return (s.projId === _projIdForGate || s.projectId === _projIdForGate);
     });
     if (_existingActive) {
-      // AC: rechazar sin modificar nada — toast con nombre del sprint en conflicto
-      showToast('error', `Ya hay un sprint activo: ${_existingActive.label || _existingActive.name || _existingActive.id}. Ciérralo antes de activar otro.`);
+      // TKT2-[pendiente-ID]: _sprintDisplay aplica patrón id · label en mensaje de conflicto
+      showToast('error', `Ya hay un sprint activo: ${_sprintDisplay(_existingActive.id)}. Ciérralo antes de activar otro.`);
       return false; // B-202606-042: retorno explícito — permite que callers detecten el rechazo
     }
   }
@@ -963,7 +963,8 @@ function confirmEditSprint(sprintId) {
     console.error('[Locus] INC-[pendiente-ID]: confirmEditSprint upsert falló', err);
   });
   _markBacklogListDirty(); renderBacklogList();
-  showToast('success', '✓ Sprint actualizado: ' + sp.label);
+  // TKT2-[pendiente-ID]: _sprintDisplay aplica patrón id · label en confirmación
+  showToast('success', '✓ Sprint actualizado: ' + _sprintDisplay(sp.id));
 }
 
 // R-202604-089: estado del modal de cierre de sprint
@@ -1072,7 +1073,8 @@ function _scmRender() {
   // T-202606-120 AC-1: 4 pasos base, 3 si skipStep3 (migración omitida — Paso 2 DOC-UPDATEs nunca se salta)
   const totalSteps = skipStep3 ? 3 : 4;
   const sp = _getSprintById(id);
-  const spLabel = sp ? (sp.label || sp.id) : id;
+  // TKT2-[pendiente-ID]: _sprintDisplay aplica patrón id · label en título del modal de cierre
+  const spLabel = sp ? _sprintDisplay(id) : id;
 
   // actualizar indicadores de paso (scs-step-1..4)
   [1, 2, 3, 4].forEach(n => {

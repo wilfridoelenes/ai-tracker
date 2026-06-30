@@ -1,4 +1,4 @@
-// [PP] mod:55 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:56 · autor:Rune · 2026-06-30 UTC-6
 // TKT-PARSER-2b (REQ-[pendiente-ID] · fix chk_status_by_type para INC/PRB/KE/CHG nuevos):
 //   Gate en bloque Scrum de merge (L2007 orig.): INC/PRB/KE excluidos vía _skipScrumGate —
 //   ahora llegan con item.status poblado (mirror, ver locus-session-parse.js) y sin esta
@@ -1149,7 +1149,8 @@ export function buildBacklogItem(item, opts = {}) {
                 </select>`
               : `<select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-select-type="sprint">
                   <option value=""${(!item.sprint || item.sprint === '' || item.sprint === 'icebox') ? ' selected' : ''}>Q-Backlog (sin sprint)</option>
-                  ${getActiveSprints().filter(s=>s.status!=='closed').map(s=>`<option value="${esc(s.id)}"${item.sprint===s.id?' selected':''}>${esc(s.label||s.id)}${s.status==='active'?' ★':''}</option>`).join('')}
+                  ${/* TKT3-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes solo s.label||s.id */''}
+                  ${getActiveSprints().filter(s=>s.status!=='closed').map(s=>`<option value="${esc(s.id)}"${item.sprint===s.id?' selected':''}>${esc(_sprintDisplay(s.id))}${s.status==='active'?' ★':''}</option>`).join('')}
                   ${item.sprint && item.sprint !== '' && item.sprint !== 'icebox' && !getActiveSprints().find(s=>s.id===item.sprint) ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : ''}
                   <option value="__new__">＋ Nuevo sprint...</option>
                 </select>`

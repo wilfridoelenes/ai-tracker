@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-HOTFIX · mod:22 · autor:Rune · 2026-06-30 14:00 UTC-6
+// [PP] v1.2.4 · sprint:PP-Q-Backlog · mod:23 · autor:Rune · 2026-06-30 15:00 UTC-6
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -8,7 +8,7 @@
 import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
 import { showToast } from './locus-toast.js';
 import { getItems, itemKind, _getActiveStatuses, updateStatusFilterUI } from './locus-backlog-core.js';
-import { getActiveSprints } from './locus-storage.js';
+import { getActiveSprints, _sprintDisplay } from './locus-storage.js'; // TKT1-[pendiente-ID]: _sprintDisplay para trigger del selector
 import { esc } from './locus-ui-shell.js';
 import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { toggleArchivoHistorico } from './locus-backlog-archive.js';
@@ -147,9 +147,10 @@ function _buildSprintSelector() {
     const total = getItems().filter(i => (i.sprint || '').trim() === id).length;
     const done  = getItems().filter(i => (i.sprint || '').trim() === id && i.status === 'done').length;
     triggerPct = total > 0 ? Math.round((done / total) * 100) : 0;
-    triggerName = activeSprint.label || activeSprint.id;
+    // TKT1-[pendiente-ID]: _sprintDisplay aplica patrón id · label — fallback a solo id si no hay label propio
+    triggerName = _sprintDisplay(activeSprint.id);
   } else if (openSprints.length) {
-    triggerName = openSprints[openSprints.length - 1].label || openSprints[openSprints.length - 1].id;
+    triggerName = _sprintDisplay(openSprints[openSprints.length - 1].id);
   }
 
   const triggerNameHtml = triggerName
