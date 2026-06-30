@@ -1,4 +1,7 @@
-// [PP] mod:7 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:8 · autor:Rune · 2026-06-29 UTC-6
+// TKT1 (REQ-getactiveprojectfilter): _getActiveProjectFilter registrada en _coreCallbacks de
+//   locus-backlog-core.js — import directo crearía ciclo (este módulo ya importa loadBacklog/
+//   renderStats desde ahí). Mismo patrón de inyección diferida que _getItems en locus-storage.js.
 // TKT-C10 (REQ-C): renderIceboxPanel()→renderQBacklogPanel()+renderQDiscPanel() en
 //   selectProjectFilter. Import actualizado — renderIceboxPanel retirado.
 // T-202606-010: call site huérfano renderHoy eliminado (guard typeof inerte)
@@ -12,7 +15,7 @@ import { getProjectSessions, getState, save } from './locus-storage.js';
 import { esc, switchSubTab, getCurrentSubTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderAnalytics } from './locus-analytics-render.js';
-import { loadBacklog, renderStats } from './locus-backlog-core.js';
+import { loadBacklog, renderStats, _registerCoreCallback } from './locus-backlog-core.js';
 import { renderBacklogList, renderQBacklogPanel, renderQDiscPanel, _updateSubtabBadges } from './locus-backlog-render.js'; // TKT-C10: renderIceboxPanel→renderQBacklogPanel+renderQDiscPanel
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _renderTplProjBanner } from './locus-docs.js';
@@ -131,4 +134,12 @@ export function setProjContext(projId, text, version) {
   if (version !== undefined) proj.contextVersion = version || '';
   save();
 }
+
+// ── Registro de callback en _coreCallbacks — TKT-[pendiente-ID] ─────────────
+// _getActiveProjectFilter vive en este módulo desde T-202606-197. Registrada aquí
+// para que locus-backlog-core.js la consuma via _coreCallbacks sin import directo
+// (evita ciclo: este módulo importa loadBacklog/renderStats desde locus-backlog-core.js).
+document.addEventListener('DOMContentLoaded', () => {
+  _registerCoreCallback('getActiveProjectFilter', _getActiveProjectFilter);
+}, { once: true });
 

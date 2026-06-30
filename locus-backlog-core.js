@@ -1,4 +1,6 @@
-// [PP] mod:61 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:62 · autor:Rune · 2026-06-29 UTC-6
+// TKT1 (REQ-getactiveprojectfilter): comentario de propietario de getActiveProjectFilter
+//   corregido — locus-sprint-project.js ya no posee la función desde T-202606-197.
 // [tmp:tkt-isqinc-unify]: isQIncItem(i) exportada — consolida _isQInc (renderBacklogList)
 //   y _isQIncItem (renderQIncPanel) en función única. _getCountableBaseForSubtab('qinc')
 //   actualizada para consumirla. locus-backlog-render.js la importa.
@@ -38,7 +40,7 @@ import { esc, getCurrentSubTab } from './locus-ui-shell.js';
 //   locus-modals.js          → gconfirmOpen
 //   locus-notifications.js   → hasRecentSession
 //   locus-backlog-sprints.js → getActiveSprint, getSprintById
-//   locus-sprint-project.js  → getActiveProjectFilter
+//   locus-proj-core.js       → getActiveProjectFilter
 var _coreCallbacks; // ESM-B: var + lazy init — evita TDZ en ciclo locus-ui-shell ↔ locus-docs ↔ locus-backlog-core
 
 export function _registerCoreCallback(name, fn) {
