@@ -2973,3 +2973,35 @@ export function openAuthModal() {
   if (overlay) overlay.classList.remove('is-hidden');
 }
 // ── END B-202606-069 ──────────────────────────────────────────────────────────
+
+// ── purgeLocalCache() — limpieza de caché stale de localStorage ──────────────
+// Elimina claves de caché derivadas que Supabase repoblará al reconectar.
+// LOCUS_KEYS.STATE no se purga — es el único fallback real ante pérdida de auth.
+// Uso desde consola: import { purgeLocalCache } from './locus-storage.js'; purgeLocalCache('PP');
+// Retorna número de claves eliminadas — útil para toast de confirmación.
+export function purgeLocalCache(projId) {
+  const suffix = projId ? '-' + projId : '';
+  const keys = [
+    'backlog-items'    + suffix,
+    'backlog-meta'     + suffix,
+    'sprints-'         + (projId || 'global'),
+    'tracker-backlog-historico' + (projId ? '-' + projId : '-global'),
+    LOCUS_KEYS.CHANGELOG,
+    LOCUS_KEYS.NOTIF_HISTORY,
+    LOCUS_KEYS.LOG_FILTERS,
+    LOCUS_KEYS.PLAN_PREFIX       + (projId || ''),
+    LOCUS_KEYS.CTX_DOCS_PREFIX   + suffix,
+    LOCUS_KEYS.HM_DOCS_PREFIX    + suffix,
+  ].filter(Boolean);
+  let cleared = 0;
+  keys.forEach(k => {
+    try {
+      if (localStorage.getItem(k) !== null) {
+        localStorage.removeItem(k);
+        cleared++;
+      }
+    } catch (_) {}
+  });
+  return cleared;
+}
+// ── END purgeLocalCache ───────────────────────────────────────────────────────
