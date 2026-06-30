@@ -1,4 +1,4 @@
-// [PP] mod:73 · autor:Rune · 2026-06-30 21:15 UTC-6
+// [PP] mod:74 · autor:Rune · 2026-06-30 21:30 UTC-6
 // locus-storage.js
 // Última actualización: TKT-A1 — eliminar _ensureHotfixSprint, agregar schema ITIL completo (PRB/KE/CHG en _VALID_STATUS_BY_TYPE, slaDeadline en hidratación, queue/sla_deadline en _toItemRow)
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -547,6 +547,106 @@ async function signInWithMagicLink(resend = false) {
 // getSupabaseUserId — user_id del founder para queries Supabase
 export function getSupabaseUserId() {
   return _supabaseUser ? _supabaseUser.id : null;
+}
+
+// TKT1b · verifyConstraintsSync — herramienta de consola, sin uso en flujo de la app.
+// Compara los constraints reales de tracker_items (vía RPC get_table_constraints, TKT1a)
+// contra los valores canónicos declarados en __BR-Ecosystem §4 (tracker_items_type_check)
+// y __BR-Core §4 (chk_status_by_type). Detecta desincronía DDL↔código tras migraciones de schema.
+//
+// Deuda registrada: _CANONICAL_TYPES y _CANONICAL_STATUS_BY_TYPE duplican los valores de
+// _VALID_STATUS_BY_TYPE / _VALID_ITEM_TYPES definidos localmente dentro de saveBacklog()
+// (línea ~867). No se extraen a constante de módulo compartida en este TKT — saveBacklog()
+// está fuera de su impacto lateral declarado. Candidato a refactor de unificación, prioridad low.
+const _CANONICAL_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'KE', 'CHG'];
+const _CANONICAL_STATUS_BY_TYPE = {
+  REQ:  ['pendiente', 'en-proceso', 'en-revision', 'done', 'bloqueado', 'orphaned', 'descartado'],
+  TKT:  ['pendiente', 'en-revision', 'done', 'descartado'],
+  INC:  ['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado'],
+  PRB:  ['detected', 'in_progress', 'resolved', 'closed', 'descartado'],
+  KE:   ['active', 'resolved', 'descartado'],
+  CHG:  ['pendiente', 'en-revision', 'done', 'descartado'],
+  DISC: ['discovery', 'promoted', 'descartado'],
+};
+
+// Extrae los literales 'texto' de un fragmento ARRAY[...] de Postgres (condef crudo).
+function _parsePgTextArrayLiteral(arrText) {
+  const matches = arrText.match(/'((?:[^'\\]|\\.)*)'/g) || [];
+  return matches.map(m => m.slice(1, -1));
+}
+
+function _sameSet(a, b) {
+  if (a.length !== b.length) return false;
+  const sa = [...a].sort();
+  const sb = [...b].sort();
+  return sa.every((v, i) => v === sb[i]);
+}
+
+export async function verifyConstraintsSync() {
+  if (!_supabase || !_supabaseUser) {
+    console.warn('[Locus] verifyConstraintsSync: sin auth — verificación no disponible');
+    return null;
+  }
+
+  let data, error;
+  try {
+    ({ data, error } = await _supabase.rpc('get_table_constraints', { p_table_name: 'tracker_items' }));
+  } catch (e) {
+    console.warn('[Locus] verifyConstraintsSync: error inesperado invocando la RPC —', e?.message || e);
+    return null;
+  }
+
+  if (error) {
+    if (error.code === '42883') {
+      console.warn('[Locus] verifyConstraintsSync: RPC get_table_constraints no existe — ¿TKT1a aplicado?');
+    } else {
+      console.warn('[Locus] verifyConstraintsSync: error consultando constraints —', error.message || error);
+    }
+    return null;
+  }
+
+  const rows = data || [];
+  const diffs = [];
+
+  // tracker_items_type_check — 7 tipos canónicos
+  const typeRow = rows.find(r => r.conname === 'tracker_items_type_check');
+  if (!typeRow) {
+    diffs.push({ constraint: 'tracker_items_type_check', esperado: _CANONICAL_TYPES, real: '[constraint no encontrado en Supabase]' });
+  } else {
+    const arrMatch = typeRow.condef.match(/ARRAY\[(.*?)\]/s);
+    const realTypes = arrMatch ? _parsePgTextArrayLiteral(arrMatch[1]) : [];
+    if (!_sameSet(realTypes, _CANONICAL_TYPES)) {
+      diffs.push({ constraint: 'tracker_items_type_check', esperado: _CANONICAL_TYPES, real: realTypes });
+    }
+  }
+
+  // chk_status_by_type — estados válidos por tipo
+  const statusRow = rows.find(r => r.conname === 'chk_status_by_type');
+  if (!statusRow) {
+    diffs.push({ constraint: 'chk_status_by_type', esperado: _CANONICAL_STATUS_BY_TYPE, real: '[constraint no encontrado en Supabase]' });
+  } else {
+    const whenBlocks = [...statusRow.condef.matchAll(/WHEN\s+'(\w+)'::text\s+THEN\s+\(status\s*=\s*ANY\s*\(ARRAY\[(.*?)\]\)\)/gs)];
+    const realByType = {};
+    for (const [, type, arrText] of whenBlocks) {
+      realByType[type] = _parsePgTextArrayLiteral(arrText);
+    }
+    for (const type of Object.keys(_CANONICAL_STATUS_BY_TYPE)) {
+      const real = realByType[type] || [];
+      if (!_sameSet(real, _CANONICAL_STATUS_BY_TYPE[type])) {
+        diffs.push({ constraint: `chk_status_by_type[${type}]`, esperado: _CANONICAL_STATUS_BY_TYPE[type], real });
+      }
+    }
+  }
+
+  if (diffs.length === 0) {
+    console.log('[Locus] verifyConstraintsSync — OK: constraints sincronizados con BR-Ecosystem.');
+    return true;
+  }
+
+  for (const d of diffs) {
+    console.warn(`[Locus] verifyConstraintsSync — DESINCRONÍA en ${d.constraint}. Esperado:`, d.esperado, 'Real:', d.real);
+  }
+  return false;
 }
 
 // ── GRUPO 1 — ESTADO Y PERSISTENCIA ──────────────────────────────────────────

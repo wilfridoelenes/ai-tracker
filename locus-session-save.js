@@ -31,7 +31,13 @@ import { showToast } from './locus-toast.js';
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
-// [PP] mod:49 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:50 · autor:Rune · 2026-06-30 UTC-6
+// TKT-202606-011 (REQ-202606-003 · AC1/AC4): _ckptMeta.draftPending = parsed.draft === true —
+//   showMergeDiffPanel (locus-backlog-merge.js) usa el flag para badge + botón deshabilitado en
+//   vez de bloquear antes de abrir el panel. Con draftPending, sprint_proposal no se ofrece como
+//   Step 0 — solo se activa cuando llega el CHECKPOINT final de Finn con draft:false.
+//   Corrección de header: una sesión previa insertó un segundo header "mod:1" en primera línea,
+//   sin detectar el header canónico ya existente aquí — eliminado, mod continúa desde 49.
 // TKT-PARSER-2b (REQ-[pendiente-ID] · VALID_TRANSITIONS PRB/KE/CHG, counters, code.match,
 //   eliminar isHotfix): PRB/KE/CHG agregados a VALID_TRANSITIONS con el mismo Set ITIL de INC
 //   — antes caían en "tipo desconocido → ignorar silenciosamente". Counters del tracker y
@@ -431,6 +437,9 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     bloqueantes: parsed.bloqueantes || '',
     decision:    parsed.decision    || '',
     proximoPaso: parsed.nextStep    || '',
+    // TKT-202606-011 AC1: pendiente de aval Finn — el DIFF renderiza el badge y deshabilita
+    // el botón de confirmar (ver locus-backlog-merge.js) en vez de bloquear antes de llegar aquí.
+    draftPending: parsed.draft === true,
     // B-202606-037 AC-3: resetTime del worker para pre-llenar mdiff-duration-input en el DIFF.
     // Formato "HH:MM" — el DIFF stripea el separador antes de asignarlo al input.
     // Widget card: si el founder escribió hora en bexhaust-hora-{id} antes de pegar el CHECKPOINT,
@@ -453,7 +462,9 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   const _spProposal = parsed.sprintProposal  // path JSON puro (T-202606-017)
     || ((raw && raw.includes('---SPRINT-PROPOSAL---')) ? parseSprintProposal(raw) : null);
   const _validSpProposal = (_spProposal && !_spProposal.error) ? _spProposal : null;
-  if (_validSpProposal) {
+  // TKT-202606-011 AC4: con draftPending, sprint_proposal tampoco se aplica — no se ofrece
+  // Step 0 de aprobación. El CHECKPOINT final emitido por Finn (draft:false) sí lo activa.
+  if (_validSpProposal && !_ckptMeta.draftPending) {
     _ckptMeta.sprintProposal = _validSpProposal;
     _ckptMeta.onApproveProposal = function(proposal) {
       // T-202606-020 AC-1/AC-2/AC-3/AC-4: herencia automática de sprint a ítems del CHECKPOINT.

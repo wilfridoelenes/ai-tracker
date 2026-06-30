@@ -1,4 +1,4 @@
-// [PP] mod:27 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:28 · autor:Rune · 2026-06-30 UTC-6
 // locus-backlog-merge.js
 // Última actualización: REQ-MERGE-GEN2: migrar detección de tipo Gen2 en badges, sort, title y parentHtml
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -174,6 +174,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // AC-2: campo status usa clase por valor canónico via lookup table.
   const _STATUS_CHIP_CLS = {
     'pendiente':   'pendiente',
+    'discovery':   'pendiente', // TKT-202606-010: mismo chip que 'pendiente' — sin clase indefinida en DIFF
     'en-revision': 'en-revision',
     'done':        'done',
     'descartado':  'descartado',
