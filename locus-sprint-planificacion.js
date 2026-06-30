@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-HOTFIX · mod:21 · autor:Rune · 2026-06-28 UTC-6
+// [PP] v1.2.4 · sprint:PP-S-HOTFIX · mod:22 · autor:Rune · 2026-06-30 14:00 UTC-6
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -101,7 +101,8 @@ export function roadmapGoToSprint(sprintId) {
 // B-202605-058: función de módulo única — elimina duplicación verbatim en _buildSprintSelector y _blSprintOpen
 function _buildSprintOption(sp) {
   const id = sp.id;
-  const label = sp.label || sp.id;
+  // TKT-[pendiente-ID]: patrón id · label — fallback a solo id si no hay label propio
+  const displayName = sp.label ? `${id} · ${sp.label}` : id;
   const status = sp.status || 'active';
   const isActive = status === 'active';
   const isClosed = status === 'closed';
@@ -120,7 +121,7 @@ function _buildSprintOption(sp) {
     : '';
   return `<button class="bl-sprint-option${activeCls}${selectedCls}" data-action="bl-sprint-select" data-sprint-id="${esc(id)}" type="button">
     <span class="bl-sprint-option-mark">${mark}</span>
-    <span class="bl-sprint-option-name">${esc(label)}</span>
+    <span class="bl-sprint-option-name">${esc(displayName)}</span>
     <div class="bl-sprint-option-meta">
       <div class="bl-sprint-option-bar-wrap"><div class="bl-sprint-option-bar-fill" style="width:${pct}%"></div></div>
       <span class="bl-sprint-option-pct">${pct}%</span>
@@ -398,7 +399,8 @@ export function _renderPlanningView(listEl, closeCallback) {
   // T-202605-028: cada sprint activo es una zona de drop independiente con su data-plan-col = sprintId
   function _sprintDestCard(sprint) {
     const isCurrent = activeSprint && sprint.id === activeSprint.id;
-    const label     = sprint.label || sprint.id;
+    // TKT-[pendiente-ID]: patrón id · label — fallback a solo id si no hay label propio
+    const displayName = sprint.label ? `${sprint.id} · ${sprint.label}` : sprint.id;
     const inSprint  = getItems().filter(i =>
       i.sprint === sprint.id &&
       i.status !== 'done' &&
@@ -414,7 +416,7 @@ export function _renderPlanningView(listEl, closeCallback) {
     return `<div class="bl-plan-dest-sprint bl-plan-col${isCurrent ? ' bl-plan-dest-sprint--current' : ''}"
                data-plan-col="${esc(sprint.id)}">
       <div class="bl-plan-col-header" data-action="bl-plan-dest-collapse">
-        <span class="bl-plan-col-title">${esc(label)}</span>
+        <span class="bl-plan-col-title">${esc(displayName)}</span>
         ${currentBadge}
         <span class="bl-plan-col-count">${inSprint.length} ítems</span>
         <span class="bl-plan-dest-chevron" aria-hidden="true">▾</span>
