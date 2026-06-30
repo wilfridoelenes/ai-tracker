@@ -1,3 +1,11 @@
+// [PP] mod:35 · autor:Rune · 2026-06-30 UTC-6
+// INC-[pendiente-ID] (triggered_by REQ-202606-003 / REQ-202606-001): las 4 rutas de status
+//   manual de este archivo (_mdiffDoApply retroceso/discard, _confirmRetroceso, _confirmDiscard,
+//   _applyDiscardBatch) seteaban item.status directo sin invocar _syncParentRStatus (ahora
+//   exportada desde locus-backlog-core.js mod:70) — el R padre quedaba desincronizado tras
+//   retroceso/descarte manual. Corregido en las 4. La ruta de ingest normal de CHECKPOINT
+//   (mergeBacklogFromTG/applyPatchesFromTG en locus-backlog-item.js) tiene el mismo bug y
+//   sigue sin corregir — archivo no adjunto en esta sesión.
 // [PP] mod:34 · autor:Rune · 2026-06-30 UTC-6
 // INC-[pendiente-ID] (triggered_by TKT-202606-013): corregidos los 2 call sites restantes de
 //   showToast({title,body,type}) → showToast(type,title,body) — firma posicional real.
@@ -17,7 +25,7 @@
 // Dependencias: locus-backlog-core.js · locus-backlog-item.js · locus-backlog-sprints.js · locus-storage.js · locus-toast.js
 // Carga: después de locus-backlog-item.js
 
-import { _calcPriority, _getActiveSessionAiId, _undoSnapshot, loadBacklog, renderStats, updateBacklogBanner, getItems, _registerCoreCallback, itemKind as _itemKindFn } from './locus-backlog-core.js';
+import { _calcPriority, _getActiveSessionAiId, _undoSnapshot, loadBacklog, renderStats, updateBacklogBanner, getItems, _registerCoreCallback, itemKind as _itemKindFn, _syncParentRStatus } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _buildNewSprintForm, _getSprintById } from './locus-backlog-sprints.js';
 import { _blogLog, getActiveProject, getActiveSprints, saveBacklog, _sprintDisplay } from './locus-storage.js'; // TKT5-[pendiente-ID]: _sprintDisplay para opción de sprint nuevo en DIFF
@@ -1150,6 +1158,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
             item.statusChangedAt = Date.now();
             // B-202606-085: limpiar doneAt al retroceder desde done — mismo patrón que _confirmRetroceso
             if (from === 'done') item.doneAt = null;
+            _syncParentRStatus(item.code, item.status); // INC-[pendiente-ID]: sync R padre tras retroceso vía CHECKPOINT
             _blogLog('retroceso', retroItem.code, from + ' → ' + retroItem.to, 'backlog');
           }
         }
@@ -1168,6 +1177,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         item.discardReason = finalReason;
         item.discardRef    = finalRef;
         item.statusChangedAt = Date.now();
+        _syncParentRStatus(item.code, item.status); // INC-[pendiente-ID]: sync R padre tras descarte vía CHECKPOINT
+        _checkAndOrphanParentR(item.code, Date.now()); // INC-[pendiente-ID]: mismo patrón que _confirmDiscard/_applyDiscardBatch
         _blogLog('ckpt-descarte', discItem.code, finalReason, 'backlog');
       });
     }
@@ -1424,6 +1435,7 @@ export function _confirmRetroceso(code, toStatus) {
       item.statusChangedAt = Date.now();
       // B-202606-007: limpiar doneAt al retroceder desde done — AC-1
       if (from === 'done') item.doneAt = null;
+      _syncParentRStatus(code, toStatus); // INC-[pendiente-ID]: sync R padre tras retroceso manual
       _blogLog('retroceso', code, from + ' → ' + toStatus, 'backlog');
       _undoSnapshot();
       saveBacklog();
@@ -1491,6 +1503,7 @@ export function _confirmDiscard(code, reason, ref) {
       item.status = 'descartado';
       item.discardReason = finalReason;
       item.discardRef = finalRef;
+      _syncParentRStatus(code, 'descartado'); // INC-[pendiente-ID]: sync R padre tras descarte manual
       _blogLog('descartado', code, finalReason || '', 'backlog');
       _checkAndOrphanParentR(code, Date.now()); // T-202606-017 AC-1
       _undoSnapshot();
@@ -1524,6 +1537,7 @@ function _applyDiscardBatch(items) {
     item.discardReason = reason || '';
     item.discardRef = ref || '';
     item.statusChangedAt = Date.now();
+    _syncParentRStatus(code, 'descartado'); // INC-[pendiente-ID]: sync R padre tras descarte batch
     _blogLog('ckpt-descarte', code, reason || '', 'backlog');
     _checkAndOrphanParentR(code, Date.now()); // T-202606-017 AC-1
     applied++;

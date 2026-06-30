@@ -1,4 +1,10 @@
-// [PP] mod:69 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:70 · autor:Rune · 2026-06-30 UTC-6
+// INC-[pendiente-ID] (triggered_by REQ-202606-003 / REQ-202606-001 — REQ no sincroniza
+//   status al ingestar CHECKPOINT): _syncParentRStatus exportada — las rutas de status
+//   manual en locus-backlog-merge.js (_confirmRetroceso, _confirmDiscard, _applyDiscardBatch,
+//   _mdiffDoApply retroceso/discard) la necesitan para no quedar fuera de sync con el R padre.
+//   Causa raíz completa de la ingesta normal de CHECKPOINT (mergeBacklogFromTG/
+//   applyPatchesFromTG en locus-backlog-item.js) sigue pendiente — archivo no adjunto.
 // INC-[pendiente-ID] (triggered_by TKT-202606-013): showToast({title,body,type}) en
 //   _openItemEditorSafe corregido a firma posicional showToast(type,title,body).
 // INC-[pendiente-ID] (normalizeStatus sin caso explícito para 'discovery' — fallback
@@ -1273,7 +1279,7 @@ function _applyExitAnimOrRender(code, rCode) {
 //   en-revision → en-proceso: cuando un T hijo retrocede de done — ya no todos los hijos están done
 // Idempotente: no modifica R en done/descartado. T descartado ignorado en todas las transiciones.
 // Batch-safe: evalúa el estado completo de hijos en el momento de la llamada — no acumula.
-function _syncParentRStatus(changedItemCode, newTStatus) {
+export function _syncParentRStatus(changedItemCode, newTStatus) {
   // Solo aplica cuando el ítem que cambió es un T con parentId
   const changedItem = ITEMS.find(i => i.code === changedItemCode);
   if (!changedItem || changedItem.type !== 'TKT' || !changedItem.parentId) return;
