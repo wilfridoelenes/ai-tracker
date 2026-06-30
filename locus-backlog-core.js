@@ -1,4 +1,9 @@
-// [PP] mod:65 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:66 · autor:Rune · 2026-06-30 UTC-6
+// INC-[pendiente-ID] (normalizeStatus sin caso explícito para 'discovery' — fallback
+//   silencioso a 'pendiente'): agregado caso explícito 'discovery' → 'discovery' para
+//   type DISC, 'pendiente' para cualquier otro tipo — mismo patrón que 'promoted'/
+//   'promovida' en la línea anterior. Ver locus-session-parse.js mod:82 para el fix
+//   complementario en el gate de validación del parser.
 // TKT1 (REQ-getactiveprojectfilter): comentario de propietario de getActiveProjectFilter
 //   corregido — locus-sprint-project.js ya no posee la función desde T-202606-197.
 // [tmp:tkt-isqinc-unify]: isQIncItem(i) exportada — consolida _isQInc (renderBacklogList)
@@ -98,6 +103,7 @@ export function normalizeStatus(raw, type) {
   if (s === 'descartado')  return 'descartado';
   if (s === 'historico')   return 'historico';
   if (s === 'promovida' || s === 'promoted') return type === 'DISC' ? 'promoted' : 'pendiente';
+  if (s === 'discovery') return type === 'DISC' ? 'discovery' : 'pendiente'; // INC-[pendiente-ID]: discovery solo válido para DISC — __BR-Ecosystem §5
   if (s === 'pendiente')   return 'pendiente';
   // Valor desconocido → pendiente
   return 'pendiente';

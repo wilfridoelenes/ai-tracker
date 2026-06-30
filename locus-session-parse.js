@@ -1,4 +1,16 @@
-// [PP] mod:81 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:82 · autor:Rune · 2026-06-30 UTC-6
+// INC-[pendiente-ID] (Validador de status global rechaza 'discovery' para DISC):
+//   _KNOWN_STATUS_INPUTS amplía con 'discovery'. _canonicalStatus agrega discriminador
+//   explícito 'discovery' válido solo para type DISC — null para cualquier otro tipo,
+//   mismo patrón ya existente para 'promoted'. Gate final de validación en ambos paths
+//   de ingesta (parsePaste línea ~798, standalone línea ~1804) amplía la excepción de
+//   _validStatuses para aceptar 'discovery' junto a 'promoted'/'bloqueado'. Mensajes de
+//   error de status inválido para DISC ahora listan 'discovery' además de 'promoted'.
+//   Causa raíz real estaba en locus-backlog-core.js — normalizeStatus() no tenía caso
+//   explícito para 'discovery' y caía al fallback silencioso 'pendiente' (línea 102-103
+//   de ese archivo); ver mod correspondiente en ese header. Sin este segundo fix, el
+//   valor 'discovery' habría pasado el gate local pero se habría reescrito en silencio
+//   a 'pendiente' al normalizar — bug distinto y más grave que el síntoma original.
 // TKT-PARSER-2b (REQ-[pendiente-ID] · fix chk_status_by_type para INC/PRB/KE/CHG nuevos):
 //   _buildItilItem ahora setea item.status (mirror de incident_status para INC/PRB/KE; valor
 //   canónico Scrum directo para CHG) — mergeBacklogFromTG ya leía item.status en creación
@@ -106,6 +118,7 @@ const _KNOWN_STATUS_INPUTS = new Set([
   'listo',
   'bloqueado', // T-202606-031: válido solo para R — validación de rol en parsePaste
   'orphaned', // T-202606-017: válido solo para R — sin Ts válidos
+  'discovery', // INC-[pendiente-ID]: único status inicial válido para DISC — __BR-Ecosystem §5
 ]);
 
 // TKT1 (REQ-[pendiente-ID]): _GEN2_TYPES movida a locus-backlog-core.js — fuente única,
@@ -177,6 +190,7 @@ function _canonicalStatus(raw, type) {
   if (s === 'listo') return 'done';
   if (s === 'histórico') return 'historico';
   if (s === 'promoted' && type !== 'DISC') return null; // T-202606-018 — Gen2 puro: discriminador 'DISC'
+  if (s === 'discovery' && type !== 'DISC') return null; // INC-[pendiente-ID]: discovery solo válido para DISC — mismo patrón que promoted
   if (s === 'bloqueado') return type === 'REQ' ? 'bloqueado' : null; // T-202606-031: solo válido para REQ
   if (s === 'orphaned') return type === 'REQ' ? 'orphaned' : null; // T-202606-017: solo válido para REQ
   return normalizeStatus(raw, type) || null;
@@ -793,8 +807,8 @@ export function parsePaste(id) {
         }
         // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
         const _normSt = _canonicalStatus(_it.status, _it.type);
-        if (!_normSt || (!_validStatuses.includes(_normSt) && _normSt !== 'promoted' && _normSt !== 'bloqueado')) {
-          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${itemKind(_it) === 'DISC' ? ' · promoted' : ''}${itemKind(_it) === 'REQ' ? ' · bloqueado' : ''}`;
+        if (!_normSt || (!_validStatuses.includes(_normSt) && _normSt !== 'promoted' && _normSt !== 'bloqueado' && _normSt !== 'discovery')) {
+          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${itemKind(_it) === 'DISC' ? ' · discovery · promoted' : ''}${itemKind(_it) === 'REQ' ? ' · bloqueado' : ''}`;
           break;
         }
         // T-202606-035: bloqueo sin-sprint + en-revision — BR-Ecosystem §5
@@ -1799,8 +1813,8 @@ export function parsePasteStandalone() {
     // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
     const _normSt3 = _canonicalStatus(it.status, it.type);
     // T-202606-022 AC-1: excepción bloqueado para R — simétrico a parsePaste
-    if (!_normSt3 || (!_validStatuses.includes(_normSt3) && _normSt3 !== 'promoted' && _normSt3 !== 'bloqueado')) {
-      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${itemKind(it) === 'DISC' ? ' · promoted' : ''}`;
+    if (!_normSt3 || (!_validStatuses.includes(_normSt3) && _normSt3 !== 'promoted' && _normSt3 !== 'bloqueado' && _normSt3 !== 'discovery')) {
+      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${itemKind(it) === 'DISC' ? ' · discovery · promoted' : ''}`;
       break;
     }
     // T-202606-035: bloqueo sin-sprint + en-revision — BR-Ecosystem §5
