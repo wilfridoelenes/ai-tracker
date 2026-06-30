@@ -1,11 +1,11 @@
-// [PP] v0.5.0 · sprint:PP-S-05 · mod:18 · autor:Rune · 2026-06-30 UTC-6
+// [PP] v0.5.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-30 UTC-6
 // locus-sesiones-stats.js
-// Responsabilidad: Stats globales, status bar, breadcrumb interactivo, helpers de Workers
+// Responsabilidad: Stats globales, status bar, breadcrumb de proyecto, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
+// TKT-202606-005: segmentos sprint/ítem del breadcrumb eliminados — #breadcrumb-sprint
+//   y #breadcrumb-item no existen en el DOM (index.html solo declara #breadcrumb-proj).
 
 import { _isCountableItem, getItems} from './locus-backlog-core.js';
-import { openItemPanel } from './locus-backlog-panel.js';
-import { navigateToItem } from './locus-backlog-sprints.js';
 import { openPulsoPanel } from './locus-pulso.js';
 // selectTrackerAI y _markTrackerDirty desacoplados vía shell:* events (T-202606-084)
 import { openDetail } from './locus-session-popup.js';
@@ -41,14 +41,8 @@ export function _hasStaleSuggestion(ai) {
 document.title = 'Locus ' + _effectiveVersion();
 
 // Header project label — muestra Prefijo · Nombre canónico del proyecto activo
-// R-202605-167: Breadcrumb interactivo — proyecto › sprint › ítem activo
 export function _updateHeaderProjectLabel() {
-  // ── Segmento 1: proyecto ──────────────────────────────────────────────────
-  const projBtn    = document.getElementById('breadcrumb-proj');
-  const firstSep   = document.querySelector('.breadcrumb-sep--first');
-  const sprintBtn  = document.getElementById('breadcrumb-sprint');
-  const sprintSep  = document.querySelector('.breadcrumb-sep--sprint');
-  const itemBtn    = document.getElementById('breadcrumb-item');
+  const projBtn = document.getElementById('breadcrumb-proj');
   if (!projBtn) return;
 
   const filterId = _getActiveProjectFilter();
@@ -60,71 +54,6 @@ export function _updateHeaderProjectLabel() {
   } else {
     projBtn.textContent = 'Locus';
     projBtn.setAttribute('disabled', '');
-  }
-
-  // ── Segmento 2: sprint ────────────────────────────────────────────────────
-  if (sprintBtn && sprintSep) {
-    const sp = proj && proj.sprints
-      ? proj.sprints.find(s => s.status === 'active')
-      : null;
-
-    if (sp) {
-      sprintBtn.textContent = (sp.label && sp.label !== sp.id) ? `${sp.id} · ${sp.label}` : (sp.id || 'Sprint');
-      sprintBtn.title = 'Ver sprint health';
-      sprintBtn.classList.remove('is-hidden');
-      sprintSep.classList.remove('is-hidden');
-      if (firstSep) firstSep.classList.remove('is-hidden');
-    } else {
-      sprintBtn.classList.add('is-hidden');
-      sprintSep.classList.add('is-hidden');
-      if (firstSep) firstSep.classList.add('is-hidden');
-    }
-  }
-
-  // ── Segmento 3: ítem activo del Worker seleccionado ───────────────────────
-  if (itemBtn) {
-    let activeItem = null;
-    try {
-      if (typeof _trackerSelectedId !== 'undefined' && _trackerSelectedId) {
-        const tracker = getActiveTracker();
-        const items = tracker.items || [];
-        const aiSessions = getAllSessions().filter(s => s.aiId === _trackerSelectedId);
-        const sessIds = new Set(aiSessions.map(s => s.id));
-        const linked = items.filter(i =>
-          i.status !== 'done' &&
-          i.status !== 'descartado' &&
-          i.sessionId && sessIds.has(i.sessionId)
-        );
-        if (linked.length > 0) {
-          const PRI = { high: 0, medium: 1, low: 2 };
-          linked.sort((a, b) => (PRI[a.priority] ?? 3) - (PRI[b.priority] ?? 3));
-          activeItem = linked[0];
-        }
-      }
-    } catch (e) {}
-
-    if (activeItem) {
-      const code = activeItem.code || '';
-      const title = activeItem.title || activeItem.desc || code;
-      const label = code ? code + (title ? ' ' + title : '') : title;
-      itemBtn.textContent = label;
-      itemBtn.title = 'Ver ítem ' + code;
-      itemBtn.onclick = function () {
-        const _allItems = (typeof getItems() !== 'undefined') ? getItems() : [];
-        const _target = _allItems.find(function(b) { return b.code === code; });
-        if (_target) {
-          openItemPanel(_target);
-        } else {
-          navigateToItem(code);
-        }
-      };
-      itemBtn.classList.remove('is-hidden');
-    } else {
-      itemBtn.textContent = '';
-      itemBtn.title = '';
-      itemBtn.onclick = null;
-      itemBtn.classList.add('is-hidden');
-    }
   }
 }
 // _updateHeaderProjectLabel expuesta vía export — window.* eliminado (T5)

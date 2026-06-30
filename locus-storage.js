@@ -1,4 +1,4 @@
-// [PP] mod:75 · autor:Rune · 2026-06-30 22:05 UTC-6
+// [PP] mod:76 · autor:Rune · 2026-06-30 23:10 UTC-6
 // locus-storage.js
 // Última actualización: TKT-A1 — eliminar _ensureHotfixSprint, agregar schema ITIL completo (PRB/KE/CHG en _VALID_STATUS_BY_TYPE, slaDeadline en hidratación, queue/sla_deadline en _toItemRow)
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -1110,8 +1110,9 @@ export async function saveBacklog() {
       area:                 it.area             || null,
       sprint:               it.sprint           || null,
       role:                 it.role             || null,
-      // DDL: columna 'parent' TEXT (no 'parent_id')
-      parent:               it.parent           || it.parentId || null,
+      // DDL: columna 'parent' TEXT (no 'parent_id') · T-[pendiente-ID]: parentId es el único
+      // campo canónico en JS — fallback it.parent eliminado (REQ-unify-parent TKT2)
+      parent:               it.parentId         || null,
       // depends_on: array JS → text[] Postgres
       depends_on:           Array.isArray(it.depends_on) ? it.depends_on : [],
       triggered_by:         it.triggered_by     || null,
@@ -1284,7 +1285,7 @@ export async function saveHistoricoItems(items) {
       area:                  it.area              || null,
       sprint:                it.sprint            || null,
       role:                  it.role              || null,
-      parent:                it.parent            || it.parentId || null,
+      parent:                it.parentId          || null,
       depends_on:            Array.isArray(it.depends_on) ? it.depends_on : [],
       triggered_by:          it.triggered_by      || null,
       no_incluye:            it.no_incluye        != null ? it.no_incluye : null,
@@ -1780,14 +1781,10 @@ export async function _loadFromSupabase() {
               area:                  row.area,
               sprint:                row.sprint,
               role:                  row.role,
-              parent:                row.parent,       // DDL: parent TEXT
-              // INC-[pendiente-ID] fix: render.js (setItemParent) y editor.js (IDP) leen
-              // exclusivamente item.parentId — nunca item.parent. La hidratación previa solo
-              // poblaba .parent, dejando .parentId undefined tras cualquier _loadFromSupabase()
-              // (incluido el disparado por Realtime de tracker_state). Visualmente el parent
-              // asignado "se quitaba" aunque el dato persistía correcto en Supabase. Bridge
-              // explícito — ambos campos en sync desde la hidratación.
-              parentId:              row.parent,
+              // T-[pendiente-ID]: parentId es el único campo canónico en JS (REQ-unify-parent TKT2).
+              // 'parent' solo existe como nombre de columna en Supabase — se mapea aquí directo
+              // a parentId, sin persistir item.parent en memoria.
+              parentId:              row.parent,       // DDL: columna parent TEXT
               depends_on:            Array.isArray(row.depends_on) ? row.depends_on : [],
               triggered_by:          row.triggered_by,
               no_incluye:            row.no_incluye,

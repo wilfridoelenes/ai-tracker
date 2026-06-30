@@ -1,4 +1,4 @@
-// [PP] mod:56 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:57 · autor:Rune · 2026-06-30 23:10 UTC-6
 // TKT-PARSER-2b (REQ-[pendiente-ID] · fix chk_status_by_type para INC/PRB/KE/CHG nuevos):
 //   Gate en bloque Scrum de merge (L2007 orig.): INC/PRB/KE excluidos vía _skipScrumGate —
 //   ahora llegan con item.status poblado (mirror, ver locus-session-parse.js) y sin esta
@@ -1932,8 +1932,11 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // T-202606-009: normalizar depends_on (schema) → dependsOn (campo interno) — mismo patrón.
   // Sin esta normalización los slugs en depends_on nunca llegan a _listFields de _assignPendingIds
   // y se pierden silenciosamente: el campo queda undefined en lugar de [] con slugs resueltos.
+  // T-[pendiente-ID] (REQ-unify-parent TKT2): tras normalizar a parentId, eliminar item.parent del
+  // objeto en memoria — parentId es el único campo canónico en JS desde aquí en adelante. Sin esto,
+  // ítems recién ingresados arrastraban .parent como campo legacy durante toda su vida en memoria.
   tgItems = tgItems.map(item => {
-    if (item.parent && !item.parentId) { item.parentId = item.parent; }
+    if (item.parent) { if (!item.parentId) item.parentId = item.parent; delete item.parent; }
     if (Array.isArray(item.depends_on) && !item.dependsOn) { item.dependsOn = item.depends_on; }
     return item;
   });
@@ -2205,7 +2208,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
               from: (c.from === '—' || c.from === undefined || c.from === null) ? null : c.from,
               to: c.to
             }));
-          updated.push({ code: item.code, desc: existing.title, changes: changesForPanel, change: changes.map(c => c.field).join(' · '), parent: item.parent || null });
+          updated.push({ code: item.code, desc: existing.title, changes: changesForPanel, change: changes.map(c => c.field).join(' · '), parent: item.parentId || null });
         }
       } else if (!advanced.find(a => a.code === item.code) && !retroceso.find(r => r.code === item.code) && !discarded.find(d => d.code === item.code)) {
         // Distinguir: ya tenía ese status (ok) vs no hubo cambio de status porque no llegó uno válido
@@ -2235,7 +2238,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
         const _rCode = item.code;
         const _hasChildInBatch = tgItems.some(i => {
           const iType = itemKind(i) || '';
-          const iParent = i.parentId || i.parent || null;
+          const iParent = i.parentId || null;
           return iType === 'TKT' && iParent === _rCode && i.status !== 'descartado' && i.status !== 'discarded';
         });
         const _hasChildInBacklog = getItems() && getItems().some(i =>
@@ -2546,7 +2549,10 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
 
   patches.forEach(patch => {
     // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)
-    if (patch.parent && !patch.parentId) { patch.parentId = patch.parent; }
+    // T-[pendiente-ID] (REQ-unify-parent TKT2): eliminar patch.parent tras normalizar — no es
+    // campo patcheable (_PATCH_ALLOWED_FIELDS solo declara parentId), dejarlo no tenía efecto
+    // pero conservarlo en el objeto patch es ruido del campo legacy.
+    if (patch.parent) { if (!patch.parentId) patch.parentId = patch.parent; delete patch.parent; }
 
     // B-202606-022: resolver [tmp:slug] en parentId usando slugMap post-mergeBacklogFromTG
     if (_slugMap && patch.parentId && _isPlaceholderCode(patch.parentId)) {
