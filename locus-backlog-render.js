@@ -1,4 +1,4 @@
-// [PP] mod:50 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:51 · autor:Rune · 2026-06-30 22:05 UTC-6
 // [tmp:tkt-isqinc-unify]: _isQInc local (renderBacklogList) y _isQIncItem local (renderQIncPanel,
 //   _updateSubtabBadges) eliminadas. Todos los call sites usan isQIncItem() importada desde
 //   locus-backlog-core.js.
@@ -149,6 +149,10 @@ export function setItemParent(code, parentCode) {
   const item = getItems().find(i => i.code === code);
   if (!item) return;
   item.parentId = parentCode || null;
+  // INC-[pendiente-ID] fix: misma razón que locus-backlog-editor.js — _toItemRow() prioriza
+  // it.parent sobre it.parentId al escribir. Mantener ambos campos sincronizados en el punto
+  // de mutación evita que un .parent stale (de origen CHECKPOINT) pise esta reasignación.
+  item.parent = parentCode || null;
   // B-[pendiente-ID]: heredar sprint del R padre al asignar parentId desde card expandido —
   // _buildChildMap filtra hijos por sprintItems del grupo del R. Si el sprint del T no coincide
   // con el del R, el hijo no aparece anidado aunque parentId esté correctamente asignado.

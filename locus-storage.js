@@ -1,4 +1,4 @@
-// [PP] mod:74 · autor:Rune · 2026-06-30 21:30 UTC-6
+// [PP] mod:75 · autor:Rune · 2026-06-30 22:05 UTC-6
 // locus-storage.js
 // Última actualización: TKT-A1 — eliminar _ensureHotfixSprint, agregar schema ITIL completo (PRB/KE/CHG en _VALID_STATUS_BY_TYPE, slaDeadline en hidratación, queue/sla_deadline en _toItemRow)
 // corregidas a las claves reales que los módulos consumidores ya usan localmente (la purga de
@@ -1781,6 +1781,13 @@ export async function _loadFromSupabase() {
               sprint:                row.sprint,
               role:                  row.role,
               parent:                row.parent,       // DDL: parent TEXT
+              // INC-[pendiente-ID] fix: render.js (setItemParent) y editor.js (IDP) leen
+              // exclusivamente item.parentId — nunca item.parent. La hidratación previa solo
+              // poblaba .parent, dejando .parentId undefined tras cualquier _loadFromSupabase()
+              // (incluido el disparado por Realtime de tracker_state). Visualmente el parent
+              // asignado "se quitaba" aunque el dato persistía correcto en Supabase. Bridge
+              // explícito — ambos campos en sync desde la hidratación.
+              parentId:              row.parent,
               depends_on:            Array.isArray(row.depends_on) ? row.depends_on : [],
               triggered_by:          row.triggered_by,
               no_incluye:            row.no_incluye,

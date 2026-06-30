@@ -1,4 +1,4 @@
-// [PP] mod:4 · autor:Rune · 2026-06-26 22:48 UTC-6
+// [PP] mod:5 · autor:Rune · 2026-06-30 22:05 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -451,6 +451,11 @@ export function confirmItemEditor() {
     item.blockedBy = blockedBy;
     item.archivos = archivos;
     item.parentId = parentId || null;
+    // INC-[pendiente-ID] fix: _toItemRow() en locus-storage.js escribe `it.parent || it.parentId`
+    // — si el ítem ya tenía .parent de un origen CHECKPOINT (campo canónico del schema), ese valor
+    // stale ganaba sobre la reasignación hecha aquí vía .parentId, perdiendo el cambio en el próximo
+    // saveBacklog(). Mantener ambos campos en sync en el punto de mutación.
+    item.parent = parentId || null;
     // T-202606-111 AC-3: persistir no_incluye solo en T
     if (type === 'T') item.no_incluye = no_incluye;
     // T-202606-112 AC-2/AC-3: persistir intencion solo en R
