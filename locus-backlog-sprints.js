@@ -1,4 +1,7 @@
-// [PP] mod:30 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:31 · autor:Rune · 2026-06-30 UTC-6
+// INC-[pendiente-ID]: confirmEditSprint() no persistía label/goal/version_target/release_type
+//   a tracker_sprints — save() excluye sprints del blob. Fix: _upsertSprint(sp, projId) tras
+//   save(), mismo patrón que setSprintStatus.
 // TKT-PARSER-sprints (REQ-[pendiente-ID] · retro Q-INC, gate cierre sin isHotfix):
 //   _getActiveSprint sin !isHotfix — todos los sprints son expuestos por status:active únicamente.
 //   Bloque retro S-HOTFIX reemplazado por INC/PRB/KE/CHG con incidentStatus:'closed'
@@ -950,6 +953,15 @@ function confirmEditSprint(sprintId) {
   if (vtInp !== null) sp.version_target = vtInp.value.trim();
   if (rtSel !== null) sp.release_type   = rtSel.value;
   save();
+  // INC-[pendiente-ID]: confirmEditSprint mutaba sp.label/goal/version_target/release_type
+  // solo en _sprintsCache sin persistir a tracker_sprints — save() excluye sprints del blob
+  // (T-202606-005 AC-3). El edit se veía aplicado en la sesión activa por mutación de la
+  // misma referencia, pero se perdía en el siguiente _loadSprintsFromSupabase(). Mismo
+  // patrón que setSprintStatus (línea ~703): _upsertSprint persiste el sprint mutado.
+  const _projIdForEditUpsert = sp.projId || sp.projectId || getActiveProject()?.id || '';
+  _upsertSprint(sp, _projIdForEditUpsert).catch(err => {
+    console.error('[Locus] INC-[pendiente-ID]: confirmEditSprint upsert falló', err);
+  });
   _markBacklogListDirty(); renderBacklogList();
   showToast('success', '✓ Sprint actualizado: ' + sp.label);
 }
