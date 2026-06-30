@@ -1,4 +1,4 @@
-// [PP] mod:26 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:27 · autor:Rune · 2026-06-29 UTC-6
 // locus-backlog-merge.js
 // Última actualización: REQ-MERGE-GEN2: migrar detección de tipo Gen2 en badges, sort, title y parentHtml
 // Responsabilidad: showMergeDiffPanel + modales de confirmación de status (retroceso, descarte)
@@ -92,6 +92,8 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     for (const it of _allItems) {
       const s = it.sprint;
       if (!s) continue; // TKT-B-inline: eliminado s==='icebox' (Gen1) — !s cubre sprint vacío/ausente en Gen2
+      // Gen2: zonas persistentes no son sprints — reconocidas por patrón de nombre, sin registro en tracker_sprints
+      if (/^[A-Z]+-Q-(Backlog|DISC|INC)$/i.test(s)) continue;
       // B-202606-063: sprint declarado en la proposal del mismo CHECKPOINT — no es desconocido
       if (_proposalSprintIds.includes(s)) continue;
       const _byId     = _allSprints.find(sp => sp.id    === s);
