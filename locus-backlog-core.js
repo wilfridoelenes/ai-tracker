@@ -857,7 +857,14 @@ function _normalizeItems(items) {
   return items;
 }
 
+// Guard de re-entrada — evita recursión infinita entre renderStats() y loadBacklog()
+// cuando ITEMS está vacío durante init y getItems aún no está registrado.
+let _loadBacklogInFlight = false;
+
 export function loadBacklog() {
+  if (_loadBacklogInFlight) return;
+  _loadBacklogInFlight = true;
+  try {
   // R-[pendiente-ID]: Supabase-first — si el usuario está autenticado, delegar a
   // _loadFromSupabase() que implementa lógica timestamp-first en su paso 5.
   // Migración one-shot (founder only): si localStorage tiene datos y Supabase está
@@ -919,6 +926,9 @@ export function loadBacklog() {
   // Path Supabase: _loadFromSupabase() ya despacha este evento al terminar (locus-storage.js:1461)
   // — este dispatch cubre el path localStorage y el snapshot inmediato del path Supabase.
   window.dispatchEvent(new CustomEvent('shell:render-backlog-list'));
+  } finally {
+    _loadBacklogInFlight = false;
+  }
 }
 
 // TKT0-gen2: deriva el tipo del ítem — campo type explícito si existe,
