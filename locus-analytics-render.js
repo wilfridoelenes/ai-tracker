@@ -1,6 +1,6 @@
 // [PP] mod:4 · autor:Rune · 2026-06-27 12:30 UTC-6
 import { renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
-import { _closedItemsInRange, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, sessionDateKey } from './locus-analytics-core.js';
+import { _closedItemsInRange, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, refreshAnalyticsHistoricoCache, sessionDateKey } from './locus-analytics-core.js';
 
 import { navigateToItem } from './locus-backlog-sprints.js';
 
@@ -20,7 +20,12 @@ let _analyticsDirty = false;
 export function _markAnalyticsDirty() { _analyticsDirty = true; }
 // window.* — solo para locus-api.js (T6)
 
-export function renderAnalytics() {
+// INC-[pendiente-ID]: async — refresca el cache cross-proyecto de historico antes de las
+// KPIs (kpiClosed/kpiOpened) y los sparklines, que dependen de _closedItemsInRange/
+// _openedItemsInRange (locus-analytics-core.js, ahora sync sobre el cache ya poblado).
+// Callers (9 call sites en varios módulos) no requieren await — es fire-and-forget desde
+// handlers de UI; el guard _analyticsDirty sigue siendo síncrono al inicio de la función.
+export async function renderAnalytics() {
   if (!_analyticsDirty) return;
   _analyticsDirty = false;
   // T-202605-117: Guard de tab activo — skip render si el tab Analytics no es el visible.
@@ -58,6 +63,8 @@ export function renderAnalytics() {
       </div>`;
     return;
   }
+
+  await refreshAnalyticsHistoricoCache();
 
   // ── KPI helpers ──
   function _dominantProject(sessions) {

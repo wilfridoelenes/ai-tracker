@@ -7,7 +7,7 @@ import { buildBacklogItem } from './locus-backlog-item.js';
 
 import { renderBacklogList } from './locus-backlog-render.js';
 
-import { _sprintDisplay, getActiveSprints, saveBacklog } from './locus-storage.js';
+import { _sprintDisplay, getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js';
 
 import { esc } from './locus-ui-shell.js';
 
@@ -66,8 +66,13 @@ const LEGACY_BOUNDARY = 23;
 //   Disponible para T2 (sección legacy con botón Purgar).
 export let _legacyHistoricos = [];
 
+// INC-[pendiente-ID]: getItems() nunca contiene status:historico desde T-202606-106 (barrera
+// dura en locus-backlog-core.js _setITEMS) — los ítems historico viven exclusivamente en el
+// storage dedicado (T-202606-105) y se leen vía getHistoricoItemsSync(). _buildArchivoPartitions
+// debe mergear ambas fuentes; el caller es responsable de haber llamado refreshHistoricoCache()
+// antes (ver renderArchivoHistorico / renderHistoricoPanel) — esta función permanece sync.
 function _buildArchivoPartitions() {
-  const allItems      = getItems();
+  const allItems      = getItems().concat(getHistoricoItemsSync());
   const closedSprints = getActiveSprints().filter(s => s.status === 'closed');
   const closedSprintIds = new Set(closedSprints.map(s => s.id));
 
@@ -110,7 +115,10 @@ export function getArchivoHistoricoStats() {
   return { total: all.length, byType, byPriority };
 }
 
-export function renderArchivoHistorico(listEl) {
+// INC-[pendiente-ID]: async — refresca el cache de historico antes de construir las particiones.
+// Todos los callers (renderHistoricoPanel, listener shell:render-historico) deben await esta función.
+export async function renderArchivoHistorico(listEl) {
+  await refreshHistoricoCache();
   const { archivoItems, closedSprints } = _buildArchivoPartitions();
 
   // AC-2: contador refleja solo ítems de sprints cerrados
@@ -468,9 +476,9 @@ function _renderLegacySection(listEl) {
 // T-202606-008: listener shell:render-historico — patrón switchSubTab
 // AC-3: despacha renderArchivoHistorico(sspanel-historico) al activar el sub-tab
 // AC-4: si sspanel-historico no existe en el DOM, retorna silenciosamente sin error
-window.addEventListener('shell:render-historico', () => {
+window.addEventListener('shell:render-historico', async () => {
   const panel = document.getElementById('sspanel-historico');
   if (!panel) return;
   panel.innerHTML = '';
-  renderArchivoHistorico(panel);
+  await renderArchivoHistorico(panel);
 });

@@ -1,11 +1,11 @@
-// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:30 · autor:Rune · 2026-06-30 UTC-6
+// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:31 · autor:Rune · 2026-06-30 18:40 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
 // Dependencias: locus-storage.js · locus-backlog-core.js · locus-toast.js
 // T-202606-166: _docPrefix movida a locus-storage.js — import actualizado.
 
-import { _blogLog, _docPrefix, _effectiveVersion, _sprintDisplay, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData } from './locus-storage.js';
+import { _blogLog, _docPrefix, _effectiveVersion, _sprintDisplay, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js';
 import { getItems, itemKind, updateBacklogBanner } from './locus-backlog-core.js';
 import { showToast } from './locus-toast.js';
 
@@ -16,6 +16,15 @@ import { showToast } from './locus-toast.js';
 function _itemTypeGen2(item) {
   const t = itemKind(item);
   return t || 'UNKNOWN';
+}
+
+// [tmp:inc-historico-generator] Fix INC — getItems() excluye status 'historico' desde T-202606-106
+// (barrera dura en locus-backlog-core.js). Retro/velocidad por sprint cerrado (%entrega, doneEffort)
+// deben mergear con getHistoricoItemsSync() — este módulo opera solo sobre el proyecto activo, sin
+// loop cross-proyecto. El caller es responsable de haber llamado refreshHistoricoCache() antes
+// (ver entry points export* más abajo).
+function _allItemsWithHistorico() {
+  return getItems().concat(getHistoricoItemsSync());
 }
 
 // ── Versión canónica para naming de docs exportados ─────────────────────────
@@ -98,20 +107,22 @@ export function exportBacklogMd() {
 }
 
 // AC-5: Exportar historial completo — todos los ítems sin filtro generacional
-export function exportFullHistoryMd() {
+export async function exportFullHistoryMd() {
   if (!getItems().length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   const _canonVer2 = v => v.replace(/_/g, '.');
+  await refreshHistoricoCache(); // fix INC — cache poblado antes de que el generador sync lea getHistoricoItemsSync()
   _showExportConfirmModal('Historial completo', `${pfx}-BACKLOG-FULL_${_canonVer2(ver)}.md`, () => _generateFullHistoryBySprintMd(ver));
 }
 
 // R-202605-132: Export "Por sprint"
-function exportSprintsMd() {
+async function exportSprintsMd() {
   if (!getItems().length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   const _canonVer3 = v => v.replace(/_/g, '.');
+  await refreshHistoricoCache(); // fix INC — cache poblado antes de que el generador sync lea getHistoricoItemsSync()
   _showExportConfirmModal('Sprints — historial completo', `${pfx}-SPRINTS_${_canonVer3(ver)}.md`, () => _generateSprintsExportMd(ver));
 }
 
@@ -151,7 +162,7 @@ function _generateSprintsContent(newVersion) {
   let sprintSections = '';
 
   orderedSprints.forEach(sp => {
-    const spItems = getItems().filter(i => i.sprint === sp.id);
+    const spItems = _allItemsWithHistorico().filter(i => i.sprint === sp.id);
     const doneItems = spItems.filter(i => i.status === 'done' || i.status === 'historico');
     const doneEffort = doneItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
     const totalEffort = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
@@ -192,7 +203,7 @@ function _generateSprintsContent(newVersion) {
   }
 
   const velocityRows = closedSprints.map(sp => {
-    const spItems = getItems().filter(i => i.sprint === sp.id);
+    const spItems = _allItemsWithHistorico().filter(i => i.sprint === sp.id);
     const doneEffort = spItems
       .filter(i => i.status === 'done' || i.status === 'historico')
       .reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
@@ -204,7 +215,7 @@ function _generateSprintsContent(newVersion) {
   const avgVelocity = closedSprints.length
     ? (() => {
         const totals = closedSprints.map(sp =>
-          getItems().filter(i => i.sprint === sp.id && (i.status === 'done' || i.status === 'historico'))
+          _allItemsWithHistorico().filter(i => i.sprint === sp.id && (i.status === 'done' || i.status === 'historico'))
                .reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0)
         );
         return Math.round(totals.reduce((a, b) => a + b, 0) / totals.length);
@@ -304,7 +315,7 @@ export function _generateFullHistoryContent(newVersion) {
 
   let sprintSections = '';
   sprintsWithData.forEach(sp => {
-    const spItems = getItems().filter(i => i.sprint === sp.id);
+    const spItems = _allItemsWithHistorico().filter(i => i.sprint === sp.id);
     const doneItems = spItems.filter(i => i.status === 'done' || i.status === 'historico');
     const doneEffort = doneItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
     const totalEffort = spItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
@@ -335,7 +346,7 @@ export function _generateFullHistoryContent(newVersion) {
     sprintSections += `\n### ${sp.label || sp.name || sp.id}\n\n| Campo | Valor |\n|---|---|\n${metaRows}\n\n${itemsBlock}\n${retroBlock}\n---\n`;
   });
 
-  const legacyItems = getItems().filter(i => i.sprint && legacySprintIds.has(i.sprint));
+  const legacyItems = _allItemsWithHistorico().filter(i => i.sprint && legacySprintIds.has(i.sprint));
   let legacySection = '';
   if (legacyItems.length) {
     legacySection = `\n### Histórico pre-S-${SPRINT_DATA_THRESHOLD} (sin datos de sprint)\n\n_Ítems de sprints anteriores sin datos de effort registrados._\n\n${_itemRowHeader()}\n${legacyItems.map(i => _itemRow(i, 0)).join('\n')}\n\n---\n`;

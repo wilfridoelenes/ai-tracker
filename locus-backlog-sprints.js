@@ -26,7 +26,7 @@ import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT1 (REQ-sprints-migration): _loadSprintsFromSupabase eliminado del import — sin call site real, solo referenciado en comentario línea ~959. Función reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js, sin uso en este módulo
+import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _invalidateHistoricoCache, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT1 (REQ-sprints-migration): _loadSprintsFromSupabase eliminado del import — sin call site real, solo referenciado en comentario línea ~959. Función reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js, sin uso en este módulo
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
@@ -702,6 +702,9 @@ export async function setSprintStatus(id, newStatus) {
       for (let _idx = _itemsArr.length - 1; _idx >= 0; _idx--) {
         if (_historicoCodesDirectClose.has(_itemsArr[_idx].code)) _itemsArr.splice(_idx, 1);
       }
+      // INC-[pendiente-ID]: invalidar cache sync de historico — independiente de si
+      // saveHistoricoItems tuvo éxito (ITEMS ya se mutó arriba; el próximo read debe reflejarlo).
+      _invalidateHistoricoCache();
     }
     if (guardCount > 0 || _historicoCodesDirectClose.size > 0) {
       saveBacklog(); // una sola vez tras ambas operaciones
@@ -1642,6 +1645,9 @@ async function _scmExecuteClose() {
     for (let _idx = _itemsArr.length - 1; _idx >= 0; _idx--) {
       if (_historicoCodesThisClose.has(_itemsArr[_idx].code)) _itemsArr.splice(_idx, 1);
     }
+    // INC-[pendiente-ID]: invalidar cache sync de historico — independiente de si
+    // saveHistoricoItems tuvo éxito (ITEMS ya se mutó arriba; el próximo read debe reflejarlo).
+    _invalidateHistoricoCache();
   }
 
   _undoSnapshot();

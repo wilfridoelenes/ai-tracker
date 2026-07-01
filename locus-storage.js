@@ -1402,19 +1402,24 @@ export async function saveHistoricoItems(items) {
 
 // Lee el array de ítems historico desde tracker_items — nunca mezclados con ITEMS activos.
 // Preferencia: Supabase si hay sesión activa, localStorage como fallback/caché.
-export async function getHistoricoItems() {
-  const projId = _getActiveProjectFilter();
-  const suffix = projId ? '-' + projId : '-global';
+// INC-[pendiente-ID]: signature_change: false — projId es param opcional. Sin projId,
+// mismo comportamiento que antes (_getActiveProjectFilter()). Con projId explícito,
+// permite lectura cross-proyecto — requerido por locus-analytics-core.js, que itera
+// todos los proyectos, no solo el activo.
+export async function getHistoricoItems(projId) {
+  const _effProjId = projId !== undefined ? projId : _getActiveProjectFilter();
+  const suffix = _effProjId ? '-' + _effProjId : '-global';
   const key = _HISTORICO_KEY + suffix;
 
+  let result = [];
   if (_supabase && _supabaseUser) {
     try {
-      const query = projId
+      const query = _effProjId
         ? _supabase
             .from('tracker_items')
             .select('*')
             .eq('user_id', _supabaseUser.id)
-            .eq('project_id', projId)
+            .eq('project_id', _effProjId)
             .eq('status', 'historico')
         : _supabase
             .from('tracker_items')
@@ -1423,8 +1428,9 @@ export async function getHistoricoItems() {
             .eq('status', 'historico');
       const { data, error } = await query;
       if (error) throw error;
-      const result = Array.isArray(data) ? data : [];
+      result = Array.isArray(data) ? data : [];
       try { localStorage.setItem(key, JSON.stringify(result)); } catch (_) {}
+      _historicoCache.set(_effProjId || '__global__', result);
       return result;
     } catch (err) {
       console.warn('[AI Tracker] getHistoricoItems: fallo Supabase, usando localStorage', err);
@@ -1433,12 +1439,41 @@ export async function getHistoricoItems() {
 
   try {
     const raw = localStorage.getItem(key);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    result = Array.isArray(parsed) ? parsed : [];
   } catch (_) {
-    return [];
+    result = [];
   }
+  _historicoCache.set(_effProjId || '__global__', result);
+  return result;
+}
+
+// INC-[pendiente-ID]: cache sync de ítems historico — evita N llamadas async por render
+// (sparklines de analytics, archivo histórico, export de retro). Poblado por
+// refreshHistoricoCache(); leído sync por getHistoricoItemsSync(). Invalidado en los
+// 2 puntos de escritura conocidos: cierre de sprint (locus-backlog-sprints.js) y
+// purga manual (locus-backlog-core.js purgeAllHistorico) — ver _invalidateHistoricoCache.
+const _historicoCache = new Map(); // key: projId || '__global__' → items[]
+
+// Refresca el cache para un proyecto (o el activo, si se omite). Llamar UNA VEZ por
+// entrada de render — no dentro de loops de intervalo/proyecto. Los consumidores leen
+// después vía getHistoricoItemsSync(), sin I/O adicional.
+export async function refreshHistoricoCache(projId) {
+  await getHistoricoItems(projId);
+}
+
+// Lectura sync desde el cache — [] si aún no se refrescó para ese projId. Nunca dispara I/O;
+// si el cache está vacío es responsabilidad del caller haber llamado refreshHistoricoCache antes.
+export function getHistoricoItemsSync(projId) {
+  const _effProjId = projId !== undefined ? projId : _getActiveProjectFilter();
+  return _historicoCache.get(_effProjId || '__global__') || [];
+}
+
+// Invalida el cache tras una escritura conocida. Sin projId → invalida todo (uso: purga global).
+// Con projId → invalida solo ese proyecto (uso: cierre de sprint del proyecto activo).
+export function _invalidateHistoricoCache(projId) {
+  if (projId === undefined) { _historicoCache.clear(); return; }
+  _historicoCache.delete(projId || '__global__');
 }
 // ── END T-202606-105 ──────────────────────────────────────────────────────────
 

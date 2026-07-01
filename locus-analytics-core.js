@@ -9,7 +9,11 @@ import { _buildHourlyInsightData } from './locus-analytics-charts.js';
 
 import { render } from './locus-sesiones.js';
 
-import { getAllSessions } from './locus-storage.js';
+import { getAllSessions, getState, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js';
+// INC-[pendiente-ID] inline_fix: `state` se referenciaba bare (sin import) en 6 call sites de este
+// módulo — ReferenceError en runtime, nunca resuelto porque state solo se exporta desde
+// locus-storage.js (T-202606-023 migró otros módulos a getState(), este quedó fuera). Mismo
+// archivo que el fix de historico, bloqueante para probar el fix — corregido inline (BR-Core §7).
 
 import { showToast } from './locus-toast.js';
 
@@ -356,20 +360,43 @@ export function _animateCountUp(container) {
 }
 
 // ═══ T-202604-119: Tab Proyectos — Dashboard estratégico ═══
+
+// INC-[pendiente-ID]: getItems()/localStorage 'backlog-items-*' nunca contienen status:historico
+// desde T-202606-106 — un ítem done/descartado de un sprint cerrado se remueve del blob activo
+// y se archiva en el storage dedicado (T-202606-105). Los cuatro helpers de rango debajo leían
+// solo el blob activo — nunca contaban ítems de sprints cerrados. Fix: merge con
+// getHistoricoItemsSync(p.id), que debe estar poblado por refreshAnalyticsHistoricoCache()
+// ANTES de cualquiera de estos helpers — no hacen I/O propio, permanecen sync.
+function _activeAndHistoricoItems(p) {
+  let active = [];
+  try {
+    const raw = localStorage.getItem(`backlog-items-${p.id}`);
+    active = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(active)) active = [];
+  } catch { active = []; }
+  return active.concat(getHistoricoItemsSync(p.id));
+}
+
+// Refresca el cache de historico de todos los proyectos en getState().projects — llamar UNA VEZ
+// al inicio de renderAnalytics(), nunca dentro de un loop de intervalo (sparklines). Los cuatro
+// helpers de rango de esta sección son sync y asumen el cache ya poblado.
+export async function refreshAnalyticsHistoricoCache() {
+  const projects = getState().projects || [];
+  await Promise.all(projects.map(p => refreshHistoricoCache(p.id)));
+}
+
 export function _closedItemsInRange(range) {
   let count = 0;
-  (state.projects || []).forEach(p => {
-    try {
-      const raw = localStorage.getItem(`backlog-items-${p.id}`);
-      if (!raw) return;
-      JSON.parse(raw).forEach(item => {
-        if (item.status !== 'done') return;
-        const ts = item.closedAt || item.updatedAt || item.createdAt;
-        if (!ts) return;
-        const d = new Date(ts);
-        if (!isNaN(d) && d >= range.start && d <= range.end) count++;
-      });
-    } catch {}
+  (getState().projects || []).forEach(p => {
+    _activeAndHistoricoItems(p).forEach(item => {
+      if (item.status !== 'done' && item.status !== 'historico') return;
+      // historico conserva doneAt/doneEffort del item original — discardReason indica que era descartado, no done
+      if (item.status === 'historico' && item.discardReason) return;
+      const ts = item.closedAt || item.archivedAt || item.updatedAt || item.createdAt;
+      if (!ts) return;
+      const d = new Date(ts);
+      if (!isNaN(d) && d >= range.start && d <= range.end) count++;
+    });
   });
   return count;
 }
@@ -377,17 +404,13 @@ export function _closedItemsInRange(range) {
 // Retorna count de ítems creados en range {start,end}
 export function _openedItemsInRange(range) {
   let count = 0;
-  (state.projects || []).forEach(p => {
-    try {
-      const raw = localStorage.getItem(`backlog-items-${p.id}`);
-      if (!raw) return;
-      JSON.parse(raw).forEach(item => {
-        const ts = item.createdAt;
-        if (!ts) return;
-        const d = new Date(ts);
-        if (!isNaN(d) && d >= range.start && d <= range.end) count++;
-      });
-    } catch {}
+  (getState().projects || []).forEach(p => {
+    _activeAndHistoricoItems(p).forEach(item => {
+      const ts = item.createdAt;
+      if (!ts) return;
+      const d = new Date(ts);
+      if (!isNaN(d) && d >= range.start && d <= range.end) count++;
+    });
   });
   return count;
 }
@@ -395,20 +418,17 @@ export function _openedItemsInRange(range) {
 // Retorna array de ítems done en range, con campos {code, title, projId, projName}
 function _closedItemsDetailInRange(range) {
   const results = [];
-  (state.projects || []).forEach(p => {
-    try {
-      const raw = localStorage.getItem(`backlog-items-${p.id}`);
-      if (!raw) return;
-      JSON.parse(raw).forEach(item => {
-        if (item.status !== 'done') return;
-        const ts = item.closedAt || item.updatedAt || item.createdAt;
-        if (!ts) return;
-        const d = new Date(ts);
-        if (!isNaN(d) && d >= range.start && d <= range.end) {
-          results.push({ code: item.code || '—', title: item.title || '—', projId: p.id, projName: p.name || p.id });
-        }
-      });
-    } catch {}
+  (getState().projects || []).forEach(p => {
+    _activeAndHistoricoItems(p).forEach(item => {
+      if (item.status !== 'done' && item.status !== 'historico') return;
+      if (item.status === 'historico' && item.discardReason) return;
+      const ts = item.closedAt || item.archivedAt || item.updatedAt || item.createdAt;
+      if (!ts) return;
+      const d = new Date(ts);
+      if (!isNaN(d) && d >= range.start && d <= range.end) {
+        results.push({ code: item.code || '—', title: item.title || '—', projId: p.id, projName: p.name || p.id });
+      }
+    });
   });
   return results;
 }
@@ -416,19 +436,15 @@ function _closedItemsDetailInRange(range) {
 // Retorna array de ítems creados en range, con campos {code, title, projId, projName}
 function _openedItemsDetailInRange(range) {
   const results = [];
-  (state.projects || []).forEach(p => {
-    try {
-      const raw = localStorage.getItem(`backlog-items-${p.id}`);
-      if (!raw) return;
-      JSON.parse(raw).forEach(item => {
-        const ts = item.createdAt;
-        if (!ts) return;
-        const d = new Date(ts);
-        if (!isNaN(d) && d >= range.start && d <= range.end) {
-          results.push({ code: item.code || '—', title: item.title || '—', projId: p.id, projName: p.name || p.id });
-        }
-      });
-    } catch {}
+  (getState().projects || []).forEach(p => {
+    _activeAndHistoricoItems(p).forEach(item => {
+      const ts = item.createdAt;
+      if (!ts) return;
+      const d = new Date(ts);
+      if (!isNaN(d) && d >= range.start && d <= range.end) {
+        results.push({ code: item.code || '—', title: item.title || '—', projId: p.id, projName: p.name || p.id });
+      }
+    });
   });
   return results;
 }
@@ -451,7 +467,7 @@ export function exportWeeklySummary() {
   weekSess.forEach(s => {
     const pid = s.projectId || '__none__';
     if (!projSessMap[pid]) {
-      const p = pid === '__none__' ? null : (state.projects || []).find(x => x.id === pid);
+      const p = pid === '__none__' ? null : (getState().projects || []).find(x => x.id === pid);
       projSessMap[pid] = { name: p ? p.name : 'Sin proyecto', sessions: [] };
     }
     projSessMap[pid].sessions.push(s);

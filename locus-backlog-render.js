@@ -33,7 +33,7 @@ import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } 
 
 import { _setBacklogModified } from './locus-docs.js';
 
-import { _getActiveProjectFilter, getActiveSprints, saveBacklog } from './locus-storage.js';
+import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoricoCache } from './locus-storage.js';
 
 import { showToast } from './locus-toast.js';
 
@@ -1687,7 +1687,11 @@ window.addEventListener('shell:backlog-render-dirty', () => {
 // deduplicar #arch-historico — el reset previo es lo que evita acumulación en re-renders
 // (mismo contrato que _renderVistaLista/renderBacklogList, que resetean listEl.innerHTML antes
 // de llamarla). AC-2, AC-6, AC-7, AC-8, AC-9.
-export function renderHistoricoPanel() {
+// INC-[pendiente-ID]: async — refresca el cache de historico antes de leer getArchivoHistoricoCount()/
+// getArchivoHistoricoStats() (que dependen del mismo cache que _buildArchivoPartitions en
+// locus-backlog-archive.js). Ambos call sites del handler (click sub-tab, shell:backlog-render-dirty)
+// se ajustan a async/await.
+export async function renderHistoricoPanel() {
   const panel = document.getElementById('sspanel-historico');
   if (!panel) return;
 
@@ -1704,6 +1708,8 @@ export function renderHistoricoPanel() {
     if (badge) badge.textContent = '';
     return;
   }
+
+  await refreshHistoricoCache();
 
   // AC-2: count interno del panel — se sigue calculando para el empty state y renderArchivoHistorico.
   // B-202606-087: badge de subtab NUNCA muestra conteo en Histórico (AC T-202606-035, done) —
@@ -1750,27 +1756,28 @@ export function renderHistoricoPanel() {
   panel.innerHTML = _statsBarHtml;
   const _listContainer = document.createElement('div');
   panel.appendChild(_listContainer);
-  renderArchivoHistorico(_listContainer);
+  // Cache ya refrescado arriba — el await interno de renderArchivoHistorico es no-op (Map ya poblado).
+  await renderArchivoHistorico(_listContainer);
 }
 
 // T-202606-092: listener sub-tab Histórico — activa panel y dispara render (AC-3, AC-6)
 (function _initHistoricoSubTab() {
   const btn = document.getElementById('sstab-btn-historico');
   if (!btn) return;
-  btn.addEventListener('click', function () {
+  btn.addEventListener('click', async function () {
     document.querySelectorAll('.tpl-nav-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.session-subpanel').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     const panel = document.getElementById('sspanel-historico');
     if (panel) panel.classList.add('active');
-    renderHistoricoPanel();
+    await renderHistoricoPanel();
   });
 })();
 
 // T-202606-092: re-render del panel histórico cuando el backlog cambia y el panel está activo (AC-9)
-window.addEventListener('shell:backlog-render-dirty', () => {
+window.addEventListener('shell:backlog-render-dirty', async () => {
   const panel = document.getElementById('sspanel-historico');
-  if (panel && panel.classList.contains('active')) renderHistoricoPanel();
+  if (panel && panel.classList.contains('active')) await renderHistoricoPanel();
 });
 
 // T-202606-093: T4 · _updateSubtabBadges — actualización reactiva de los cuatro badges
