@@ -1,8 +1,12 @@
-// [PP] mod:58 · autor:Rune · 2026-07-01 UTC-6
-// TKT-[pendiente-ID] (REQ-[pendiente-ID] limpieza de código muerto): eliminados _renderVistaC,
-//   _vcDoToggle y la variable huérfana _useSprintGroups — sin caller desde R-202606-017
-//   (Vista Lista reemplazó ambos paths). Import de _vcCollapseGet/_vcCollapseSet removido —
-//   sin otro consumidor en el módulo. Sin cambio de comportamiento visible.
+// [PP] mod:59 · autor:Rune · 2026-07-01 UTC-6
+// TKT-[pendiente-ID] (REQ-[pendiente-ID] unificar render Sin AC — resuelve INC-[pendiente-ID]):
+//   _useVistaLista ya no excluye noAc — pendienteItems (ya filtrado por _getBacklogNoAcMode() en
+//   L957) se enruta por _renderVistaLista() en vez de un path standalone que nunca los renderizaba
+//   (bug: filtro 'Sin AC' dejaba el backlog list en blanco). Bloque Cerradas/empty-state/tail
+//   duplicado del path noAc eliminado — inalcanzable tras el cambio de condición.
+// mod:58 · autor:Rune: eliminados _renderVistaC, _vcDoToggle y la variable huérfana
+//   _useSprintGroups — sin caller desde R-202606-017. Import de _vcCollapseGet/_vcCollapseSet
+//   removido — sin otro consumidor en el módulo. Sin cambio de comportamiento visible.
 // TKT1 (REQ Histórico unificado con Vista Lista de Backlog): extraído renderSprintGroup(sprintItems, isClosed)
 //   de _renderVistaLista — bloque de header+progress bar+jerarquía R→hijos+done items de un grupo-por-sprint,
 //   ahora reusable e invocable desde locus-backlog-archive.js. Función pura respecto a filtros/búsqueda del
@@ -1049,122 +1053,17 @@ export function renderBacklogList(onRendered) {
 
   let html = '';
 
-  // R-202606-017: vista Lista — vista por defecto del backlog (reemplaza _useVistaC + _useSprintGroups)
-  // Se activa siempre que no haya un modo exclusivo activo (kanban, noAc)
-  const _useVistaLista = !_getBacklogKanbanMode() && !_getBacklogNoAcMode();
+  // R-202606-017 / INC-[pendiente-ID] fix: Vista Lista es la única vía de render para pendienteItems —
+  // el path noAc standalone nunca los renderizaba (bug: lista en blanco con filtro Sin AC activo).
+  // pendienteItems ya viene filtrado por _getBacklogNoAcMode() más arriba (L957) — _renderVistaLista
+  // no requiere cambio, solo recibe el conjunto ya acotado.
+  const _useVistaLista = !_getBacklogKanbanMode();
 
   if (_useVistaLista) {
     _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered);
     return;
   }
 
-  // Modo exclusivo restante: noAc (kanban ya desvía antes de llegar aquí)
-
-  // Cerradas — R/T/B descartado + P descartado + P promovida — bloque unificado — noAc path
-  // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado' y 'promovida')
-  if (terminalItems.length && _getActiveStatuses().has('descartado')) {
-    const cerradasOpen = localStorage.getItem('backlog-cerradas-open') === '1';
-    const _promCount    = terminalItems.filter(i => i.status === 'promoted').length; // TKT-202606-009: Gen2 canónico — era 'promovida' legacy
-    const _descPCount   = terminalItems.filter(i => i.status === 'descartado' && itemKind(i) === 'DISC').length;
-    const _descRTBCount = terminalItems.filter(i => i.status === 'descartado' && itemKind(i) !== 'DISC').length;
-    const _cerradasTitle = [
-      _promCount    ? `${_promCount} promovida${_promCount !== 1 ? 's' : ''}`        : '',
-      _descPCount   ? `${_descPCount} P descartada${_descPCount !== 1 ? 's' : ''}`  : '',
-      _descRTBCount ? `${_descRTBCount} descartado${_descRTBCount !== 1 ? 's' : ''}` : ''
-    ].filter(Boolean).join(' · ');
-    html += `<div class="section-group sg-cerradas" id="sg-cerradas">
-      <div class="section-group-header" data-action="section-group-toggle" data-group="cerradas">
-        <span class="section-group-arrow" id="sgarrow-cerradas">${cerradasOpen ? '▾' : '▸'}</span>
-        <span>Cerradas</span>
-        <span class="section-group-count" title="${_cerradasTitle}">${terminalItems.length} ítem${terminalItems.length !== 1 ? 's' : ''}</span>
-      </div>
-      <div class="section-group-body items-grid${cerradasOpen ? '' : ' collapsed'}" id="sgbody-cerradas">`;
-    terminalItems.forEach(item => { html += buildBacklogItem(item); });
-    html += `</div></div>`;
-  }
-
-  // B-202604-NNN: evaluar empty state sobre pendientes+done+descartados — no solo filtered (pendientes)
-  // T-202606-107: empty state diferenciado — backlog vacío real vs filtros ocultan todo
-  const _hasVisible = pendienteItems.length || doneItems.length || (terminalItems.length && _getActiveStatuses().has('descartado'));
-  if (!_hasVisible) {
-    const hasItems = getItems().length > 0;
-    const _as = _getActiveStatuses();
-    const hasFiltersActive = _getActiveTypes().size < 4
-      || !_as.has('pendiente')
-      || !_as.has('en-revision')
-      || !!q
-      || _getActiveEfforts().size < 3;
-
-    let emptyIcon = '🔍', emptyTitle = '', emptyHint = '', emptyCTA = '';
-
-    if (!hasItems) {
-      emptyIcon  = '📋';
-      emptyTitle = 'El backlog está vacío';
-      emptyHint  = 'Importa un backlog para comenzar.';
-      emptyCTA   = `<button class="empty-state-btn" data-action="es-import">Importar backlog</button>`;
-    } else if (hasFiltersActive) {
-      emptyTitle = 'Sin resultados con los filtros activos';
-      emptyHint  = 'Prueba ajustando o limpiando los filtros.';
-      emptyCTA   = `<button class="empty-state-btn" data-action="es-clear-filters">✕ Limpiar filtros</button>`;
-    } else {
-      emptyIcon  = '📋';
-      emptyTitle = 'Sin ítems pendientes';
-      emptyHint  = 'Todos los ítems están completados o no hay trabajo asignado a este sprint.';
-    }
-
-    html = `<div class="empty-state">
-      <div class="empty-state-icon">${emptyIcon}</div>
-      <div class="empty-state-title">${emptyTitle}</div>
-      <div class="empty-state-hint">${emptyHint}</div>
-      ${emptyCTA}
-    </div>`;
-  }
-
-  // T-202604-319: footer total real siempre visible (independiente del filtro)
-  updateBacklogFooter();
-
-  listEl.classList.remove('kb-active');
-  listEl.innerHTML = html;
-  _skelHide(listEl);
-
-  // T-202606-092 AC-5: renderArchivoHistorico() ya no se invoca desde aquí — vive en
-  // renderHistoricoPanel(), sub-tab dedicado. Antes (R-202605-103): renderArchivoHistorico(listEl).
-
-  const countEl = document.getElementById('search-count');
-  if (countEl) {
-    if (q) {
-      const total = pendienteItems.length + doneItems.length + terminalItems.length;
-      countEl.textContent = `${total} resultado${total !== 1 ? 's' : ''} encontrado${total !== 1 ? 's' : ''}`;
-    } else {
-      countEl.textContent = '';
-    }
-  }
-
-  _attachBacklogDnD();
-  _resetBacklogListDelegation(); // B-202606-023: reset guard antes de re-registrar
-  _attachBacklogListDelegation();
-  _attachPlanViewDelegation();
-  _updateDocLogCount('backlog');
-
-  // T-202604-362: placeholder del buscador refleja scope activo
-  (function _updateSearchPlaceholder() {
-    const inp = document.getElementById('backlog-search-input');
-    if (!inp) return;
-    const parts = [];
-    const activeSprint = _getActiveSprint();
-    const sprintFiltered = _getBacklogSortMode() === 'sprint' && activeSprint && !_getActiveStatuses().has('done') && !_getActiveStatuses().has('descartado');
-    if (sprintFiltered) parts.push(activeSprint.label || activeSprint.id);
-    if (_getActiveTypes().size < 4) parts.push([..._getActiveTypes()].join('/'));
-    if (_getActivePriorityFilter().size > 0) parts.push('pri:' + [..._getActivePriorityFilter()].join('/'));
-    const scopeCount = (pendienteItems.length + doneItems.length + (_getActiveStatuses().has('descartado') ? terminalItems.length : 0));
-    if (parts.length) {
-      inp.placeholder = '🔍 Buscando en ' + parts.join(' · ') + ' · ' + scopeCount + ' ítem' + (scopeCount !== 1 ? 's' : '');
-    } else {
-      inp.placeholder = '🔍 Buscar…';
-    }
-  })();
-
-  if (typeof onRendered === 'function') onRendered();
 }
 
 // Helper compartido — rellena el bloque estático "Terminados" (.bl-done-*, ver index.html/TKT-C6)
