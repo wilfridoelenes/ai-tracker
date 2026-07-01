@@ -1,4 +1,10 @@
-// [PP] mod:52 · autor:Rune · 2026-06-30 23:10 UTC-6
+// [PP] mod:53 · autor:Rune · 2026-06-30 UTC-6
+// TKT1 REQ2 S'02: isZone de renderQBacklogPanel/renderQDiscPanel y _updateSubtabBadges
+//   migrados a _isQBacklogActive/_isQDiscActive (excluye descartado/promoted).
+// TKT3 REQ2 S'02: stats-bar interactiva (_renderZonePanel) — chips de tipo/prioridad,
+//   delegación de click propia por bodyId, reuso 100% de clases .qinc-stats-bar de Q-INC.
+// inline_fix TKT3: _statsBarHtml se calculaba pero nunca se inyectaba en body.innerHTML —
+//   corregido en las dos ramas de salida (filtro vacío y grid con ítems).
 // [tmp:tkt-isqinc-unify]: _isQInc local (renderBacklogList) y _isQIncItem local (renderQIncPanel,
 //   _updateSubtabBadges) eliminadas. Todos los call sites usan isQIncItem() importada desde
 //   locus-backlog-core.js.
@@ -19,7 +25,7 @@
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
 import { renderArchivoHistorico, toggleArchivoHistorico, getArchivoHistoricoCount, getArchivoHistoricoStats } from './locus-backlog-archive.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQDisc, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js';
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, _vcCollapseGet, _vcCollapseSet, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js';
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, buildQIncItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-B2b: buildQIncItem
 
@@ -1260,6 +1266,52 @@ function _renderZonePanel(opts) {
     return;
   }
 
+  // TKT3 REQ2 S'02 — stats-bar interactiva: conteo sobre activeZoneItems (universo sin
+  // filtrar por tipo/prioridad/búsqueda), mismo criterio que renderQIncPanel (_displayable) —
+  // evita que un chip desactivado muestre conteo 0 en vez del total real de la zona.
+  const _activeTypesZ0    = _nsGetTypes(nsKey);
+  const _activePriorityZ0 = _nsGetPriority(nsKey);
+  const _countByTypeZ = {};
+  const _countByPriZ  = { high: 0, medium: 0, low: 0 };
+  activeZoneItems.forEach(i => {
+    const t = itemKind(i);
+    if (t) _countByTypeZ[t] = (_countByTypeZ[t] || 0) + 1;
+    const p = i.priority;
+    if (p === 'high' || p === 'important' || p === 'critical' || p === 'importante') _countByPriZ.high++;
+    else if (p === 'low' || p === 'futura' || p === 'baja') _countByPriZ.low++;
+    else _countByPriZ.medium++;
+  });
+  const _typeChipDefs = { qbacklog: [['REQ','REQ'],['TKT','TKT']], qdisc: [] }[nsKey] || [];
+  const _statsBarHtml = `
+    <div class="qinc-stats-bar" id="${bodyId}-stats-bar">
+      ${opts.showTypeChips !== false && _typeChipDefs.length ? `<div class="qinc-stats-types">
+        ${_typeChipDefs.map(([t, label]) =>
+          `<button class="stat-type-chip tc-${t.toLowerCase()}${_activeTypesZ0.has(t) ? ' active' : ''}" data-zp-action="zp-type" data-zp-type="${t}" title="Filtrar por tipo ${t}"><span class="tc-count">${_countByTypeZ[t] || 0}</span><span class="tc-label">${label}</span></button>`
+        ).join('')}
+      </div>` : ''}
+      <div class="qinc-stats-priority">
+        <button class="stat-pri-chip pri-high${_activePriorityZ0.has('high') ? ' active' : ''}" data-zp-action="zp-priority" data-zp-priority="high" title="Filtrar prioridad alta"><span class="spc-n">${_countByPriZ.high}</span> Alto</button>
+        <button class="stat-pri-chip pri-medium${_activePriorityZ0.has('medium') ? ' active' : ''}" data-zp-action="zp-priority" data-zp-priority="medium" title="Filtrar prioridad media"><span class="spc-n">${_countByPriZ.medium}</span> Med</button>
+        <button class="stat-pri-chip pri-low${_activePriorityZ0.has('low') ? ' active' : ''}" data-zp-action="zp-priority" data-zp-priority="low" title="Filtrar prioridad baja"><span class="spc-n">${_countByPriZ.low}</span> Bajo</button>
+      </div>
+    </div>`;
+  if (!body._zpDelegationAttached) {
+    body._zpDelegationAttached = true;
+    body.addEventListener('click', function _zpStatsClick(e) {
+      const btn = e.target.closest('[data-zp-action]');
+      if (!btn) return;
+      const _k = btn.closest('[id$="-panel-body"]')?.id === 'qbacklog-panel-body' ? 'qbacklog' : 'qdisc';
+      if (btn.dataset.zpAction === 'zp-type') {
+        _nsToggleType(_k, btn.dataset.zpType);
+      } else if (btn.dataset.zpAction === 'zp-priority') {
+        _nsTogglePriority(_k, btn.dataset.zpPriority);
+      } else {
+        return;
+      }
+      if (_k === 'qbacklog') renderQBacklogPanel(); else renderQDiscPanel();
+    });
+  }
+
   // Filtros leídos desde namespace propio — aislado del state global de Backlog y del otro panel.
   const _activeTypesZ    = _nsGetTypes(nsKey);
   const _activeStatusesZ = _nsGetStatuses(nsKey);
@@ -1277,7 +1329,7 @@ function _renderZonePanel(opts) {
   });
 
   if (!filteredItems.length) {
-    body.innerHTML = `
+    body.innerHTML = _statsBarHtml + `
       <div class="empty-state">
         <div class="empty-state-icon">📦</div>
         <div class="empty-state-title">${emptyTitle}</div>
@@ -1317,7 +1369,7 @@ function _renderZonePanel(opts) {
   });
   html += '</div>';
 
-  body.innerHTML = html;
+  body.innerHTML = _statsBarHtml + html;
 }
 
 // B-202606-052 → TKT-C1: renderQBacklogPanel — sub-tab Backlog (Q-Backlog: REQ/TKT).
@@ -1326,7 +1378,8 @@ export function renderQBacklogPanel() {
     bodyId: 'qbacklog-panel-body',
     badgeId: 'tpl-badge-qbacklog',
     nsKey: 'qbacklog',
-    isZone: _isQBacklog,
+    isZone: _isQBacklogActive,
+    showTypeChips: true,
     emptyTitle: 'No hay ítems pendientes'
   });
 }
@@ -1337,7 +1390,8 @@ export function renderQDiscPanel() {
     bodyId: 'qdisc-panel-body',
     badgeId: 'tpl-badge-qdisc',
     nsKey: 'qdisc',
-    isZone: _isQDisc,
+    isZone: _isQDiscActive,
+    showTypeChips: false,
     emptyTitle: 'No hay discoveries pendientes'
   });
 }
@@ -1758,9 +1812,9 @@ export function _updateSubtabBadges() {
   }
 
   // TKT-C1: badge Q-Backlog — REQ/TKT sin sprint (pendiente/en-revision), con alerta de staleness.
-  // Reutiliza _isQBacklog/_zoneStaleness — misma lógica que renderQBacklogPanel.
+  // TKT1 REQ2 S'02: _isQBacklogActive reemplaza filtro manual — ya excluye descartado/historico.
   if (badgeQBacklog) {
-    const qbItems = items.filter(i => _isQBacklog(i) && i.status !== 'historico' && i.status !== 'descartado');
+    const qbItems = items.filter(_isQBacklogActive);
     if (!qbItems.length) {
       badgeQBacklog.textContent = '';
     } else {
@@ -1770,9 +1824,10 @@ export function _updateSubtabBadges() {
   }
 
   // TKT-C1: badge Q-DISC — DISC activas (discovery), con alerta de staleness.
-  // Reutiliza _isQDisc/_zoneStaleness — misma lógica que renderQDiscPanel.
+  // TKT1 REQ2 S'02: _isQDiscActive reemplaza filtro manual — corrige bug: el filtro
+  // manual anterior no excluía 'promoted', badge contaba DISCs ya promovidas.
   if (badgeQDisc) {
-    const qdItems = items.filter(i => _isQDisc(i) && i.status !== 'historico' && i.status !== 'descartado');
+    const qdItems = items.filter(_isQDiscActive);
     if (!qdItems.length) {
       badgeQDisc.textContent = '';
     } else {

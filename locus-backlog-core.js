@@ -1,4 +1,7 @@
-// [PP] mod:71 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:72 · autor:Rune · 2026-06-30 UTC-6
+// TKT1/TKT2 REQ2 S'02: _isQBacklogActive/_isQDiscActive agregadas (universo activo de
+//   Q-Backlog/Q-DISC, excluye descartado/promoted/historico). _subtabNS: entrada muerta
+//   'q-backlog' (con guion) reemplazada por 'qbacklog' + 'qdisc' agregada.
 // INC-[pendiente-ID] (triggered_by REQ-202606-003 / REQ-202606-001 — REQ no sincroniza
 //   status al ingestar CHECKPOINT): _syncParentRStatus exportada — las rutas de status
 //   manual en locus-backlog-merge.js (_confirmRetroceso, _confirmDiscard, _applyDiscardBatch,
@@ -236,8 +239,14 @@ let backlogSearchQuery = '';
 // Cold start: todos los tipos/statuses habilitados, searchQuery vacío — sin herencia del global.
 // TKT-A2: namespace de cola ITIL legacy reemplazado por 'qinc' — zona acepta INC/PRB/KE/CHG.
 const _subtabNS = {
-  'q-backlog': {
-    types:    new Set(['TKT','REQ','INC','DISC']),
+  qbacklog: {
+    types:    new Set(['REQ','TKT']),
+    statuses: new Set(['pendiente','en-revision','done','descartado','promoted']),
+    priority: new Set(),
+    query:    ''
+  },
+  qdisc: {
+    types:    new Set(['DISC']),
     statuses: new Set(['pendiente','en-revision','done','descartado','promoted']),
     priority: new Set(),
     query:    ''
@@ -1559,6 +1568,18 @@ export function _isQBacklog(i) {
 }
 export function _isQDisc(i) {
   return itemKind(i) === 'DISC' && (!i.sprint || i.sprint === '');
+}
+
+// TKT1 REQ2 S'02 — universo activo de Q-Backlog/Q-DISC: excluye ítems ya resueltos
+// (descartado/promoted) que _isQBacklog/_isQDisc no filtran. Usadas exclusivamente
+// por _renderZonePanel (isZone) y _updateSubtabBadges en locus-backlog-render.js —
+// _isQBacklog/_isQDisc originales no se tocan, sus demás call sites (vista Lista)
+// mantienen su semántica amplia actual.
+export function _isQBacklogActive(i) {
+  return _isQBacklog(i) && i.status !== 'descartado' && i.status !== 'historico';
+}
+export function _isQDiscActive(i) {
+  return _isQDisc(i) && i.status !== 'descartado' && i.status !== 'promoted' && i.status !== 'historico';
 }
 
 // TKT-C1b: _isIcebox wrapper transitorio eliminado — locus-backlog-render.js mod:45 (TKT-C1)
