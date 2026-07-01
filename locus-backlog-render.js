@@ -1,4 +1,4 @@
-// [PP] mod:53 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:54 · autor:Rune · 2026-06-30 UTC-6
 // TKT1 REQ2 S'02: isZone de renderQBacklogPanel/renderQDiscPanel y _updateSubtabBadges
 //   migrados a _isQBacklogActive/_isQDiscActive (excluye descartado/promoted).
 // TKT3 REQ2 S'02: stats-bar interactiva (_renderZonePanel) — chips de tipo/prioridad,
@@ -1222,7 +1222,8 @@ function _attachDoneGroupToggle(prefix) {
 // Cada función sigue el mismo patrón que la anterior renderIceboxPanel — filtros por namespace
 // propio ('qbacklog'/'qdisc'), jerarquía R→hijos vía _buildChildMap, bloque Terminados estático.
 function _renderZonePanel(opts) {
-  const { bodyId, badgeId, nsKey, isZone, emptyTitle } = opts;
+  const { bodyId, badgeId, nsKey, isZone, emptyTitle, emptyIcon } = opts;
+  const _emptyIcon = emptyIcon || '📦';
   const body = document.getElementById(bodyId);
   if (!body) return;
 
@@ -1260,7 +1261,7 @@ function _renderZonePanel(opts) {
   if (!activeZoneItems.length) {
     body.innerHTML = `
       <div class="empty-state">
-        <div class="empty-state-icon">📦</div>
+        <div class="empty-state-icon">${_emptyIcon}</div>
         <div class="empty-state-title">${emptyTitle}</div>
       </div>`;
     return;
@@ -1331,7 +1332,7 @@ function _renderZonePanel(opts) {
   if (!filteredItems.length) {
     body.innerHTML = _statsBarHtml + `
       <div class="empty-state">
-        <div class="empty-state-icon">📦</div>
+        <div class="empty-state-icon">${_emptyIcon}</div>
         <div class="empty-state-title">${emptyTitle}</div>
         <div class="empty-state-hint">Ningún ítem coincide con el filtro activo.</div>
       </div>`;
@@ -1392,7 +1393,8 @@ export function renderQDiscPanel() {
     nsKey: 'qdisc',
     isZone: _isQDiscActive,
     showTypeChips: false,
-    emptyTitle: 'No hay discoveries pendientes'
+    emptyTitle: 'No hay discoveries pendientes',
+    emptyIcon: '💡'
   });
 }
 

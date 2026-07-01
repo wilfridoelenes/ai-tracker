@@ -1,4 +1,4 @@
-/* [PP] mod:3 · autor:Nova · 2026-06-30 12:00 UTC-6 */
+/* [PP] mod:4 · autor:Nova · 2026-06-30 UTC-6 */
 /* locus-base.css */
 
 
@@ -303,7 +303,8 @@
   --green:       #1aab5a;
   --green-dim:   #e6f9ef;
   --green-border:#99ddb8;
-  --green-dark:  #0d7a3e;  /* fills de barras de progreso — contraste 4.77:1 sobre --surface3 light · T-202606-068 */
+  /* --green-dark eliminado — TKT3 REQ-tmp-qa-cleanup S'02 (huérfano tras eliminación
+     de .stat-mini-fill en locus-backlog.css, su único consumidor) */
   --red:         #d93050;
   --red-dim:     #fdf0f3;
   --red-border:  #f0b0bc;
