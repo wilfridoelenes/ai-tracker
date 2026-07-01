@@ -1,4 +1,4 @@
-/* [PP] mod:58 · autor:Nova · 2026-06-29 14:45 UTC-6 */
+/* [PP] mod:59 · autor:Rune · 2026-06-30 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -2910,17 +2910,7 @@
   margin: 0 4px;
 }
 
-/* frole-bar fusionada dentro de bl-filter-strip — R[tmp:frole-into-filter-strip] */
-.frole-bar--inline {
-  width: 100%;
-  border-top: 1px solid var(--border);
-  padding-top: 5px;
-  margin-top: 2px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  align-items: center;
-}
+/* .frole-bar--inline eliminada — TKT1 REQ1 S'02 (huérfana desde migración previa R[tmp:frole-into-filter-strip], sin uso en JS/HTML) */
 
 /* Selector de orden en filter strip — legacy */
 .bl-fs-sort-select {
@@ -5315,13 +5305,7 @@ er {
   opacity: 0.7;
 }
 
-.frole-bar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  padding: 4px 0;
-}
+/* .frole-bar eliminada — TKT1 REQ1 S'02 (nunca renderizada, _buildRoleChips no se invocaba) */
 
 .setup-checklist-banner {
   display: flex;
@@ -6455,22 +6439,8 @@ er {
 }
 
 /* Barra de progreso inline */
-.stat-compact-prog {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-}
-
-.stat-compact-prog .stat-mini-track {
-  width: 80px;
-}
-
-.stat-compact-pct {
-  font-size: 11px;
-  color: var(--hint);
-  white-space: nowrap;
-}
+/* .stat-compact-prog, .stat-compact-prog .stat-mini-track, .stat-compact-pct
+   eliminadas — TKT2 REQ1 S'02 (sin uso en JS) */
 
 /* Tipos inline */
 .stat-compact-types {

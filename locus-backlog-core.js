@@ -1,4 +1,4 @@
-// [PP] mod:70 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:71 · autor:Rune · 2026-06-30 UTC-6
 // INC-[pendiente-ID] (triggered_by REQ-202606-003 / REQ-202606-001 — REQ no sincroniza
 //   status al ingestar CHECKPOINT): _syncParentRStatus exportada — las rutas de status
 //   manual en locus-backlog-merge.js (_confirmRetroceso, _confirmDiscard, _applyDiscardBatch,
@@ -291,7 +291,7 @@ let backlogSortMode = 'priority';
 let backlogSortDir = 'desc'; // T-072: asc | desc — default desc (nuevo → viejo)
 let activeEfforts = new Set([1, 2, 3]); // T-071: todos activos por defecto
 // T-202604-245: filtro por rol responsable — null = todos (sin filtro activo)
-let activeRoleFilter = null;
+// activeRoleFilter eliminado — TKT1 REQ1 S'02 (feature desconectada, ver DISC/hallazgo previo)
 // T-202604-357: filtro por prioridad — Set vacío = todos activos
 let activePriorityFilter = new Set(); // vacío = sin filtro activo (todos visibles)
 // T-202604-363: filtro Sin AC — pendientes sin criterios de aceptación
@@ -1645,8 +1645,6 @@ export function renderStats() {
         toggleEffortFilter(parseInt(btn.dataset.effort, 10));
       } else if (act === 'stats-effort-missing') {
         toggleEffortFilter(0);
-      } else if (act === 'stats-role-filter') {
-        toggleRoleFilter(btn.dataset.role);
       } else if (act === 'stats-toggle-collapse') {
         // T-202606-048: toggle colapso de stats bar — persiste en localStorage
         const isCollapsed = localStorage.getItem('locus-statsbar-collapsed') === 'true';
@@ -1723,25 +1721,15 @@ export function renderStats() {
   const _sprintDone  = _sprintItems.filter(i => i.status === 'done').length;
   const _sprintTotal = _sprintItems.length;
   const total = backlogCount + enRevisionCount + done;
-  const pct   = _sprintTotal > 0 ? Math.round((_sprintDone / _sprintTotal) * 100) : 0;
+  // pct eliminada — TKT2 REQ1 S'02 (calculada, nunca leída en el render)
   // Contador separado de P (ideas) — visible pero fuera del flujo de trabajo activo
   // T-202606-100: closedSprintIds disponible via _getCountableBase() — recalcular inline para Ps (no pasan _isCountableItem)
   const _closedIdsForP = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
   // T-202606-102: excluir promoted — pIdeasCount solo cuenta DISC con status pendiente
   // TKT-202606-006: 'pendiente' → 'discovery' — vocabulario DISC alineado a __BR-Ecosystem §5
   const pIdeasCount = ITEMS.filter(i => itemKind(i) === 'DISC' && !(_closedIdsForP.size && _closedIdsForP.has(i.sprint)) && i.status === 'discovery').length;
-  // T-202606-101: desglose histórico — fuente real: ITEMS en memoria
-  const _emitidos = ITEMS.length;
-  const _descartadosTotal = ITEMS.filter(i => i.status === 'descartado').length;
-  const _promovidasTotal = ITEMS.filter(i => i.status === 'promoted').length;
-  const _cerradosSinTrabajo = _descartadosTotal + _promovidasTotal;
-  const _doneTotal = ITEMS.filter(i => i.status === 'done').length;
-  const _closedIdsForActivos = new Set(getActiveSprints().filter(s => s.status === 'closed').map(s => s.id));
-  const _activosTotal = ITEMS.filter(i =>
-    (i.status === 'pendiente' || i.status === 'en-revision') &&
-    !(_closedIdsForActivos.size && _closedIdsForActivos.has(i.sprint)) &&
-    !(itemKind(i) === 'DISC' && i.status === 'promoted')
-  ).length;
+  // _emitidos, _descartadosTotal, _promovidasTotal, _cerradosSinTrabajo, _doneTotal,
+  // _activosTotal eliminadas — TKT2 REQ1 S'02 (calculadas, nunca leídas en el render)
 
   // UX-redesign: stats bar en una sola fila compacta — pendientes primero (foco en trabajo activo)
   const _hasPending = (backlogCount + enRevisionCount) > 0;
@@ -1864,7 +1852,6 @@ export function clearAllFilters() {
   activeStatuses = new Set(['pendiente', 'en-revision']);
   try { localStorage.removeItem(_ACTIVE_STATUSES_KEY); } catch {} // T-202606-021: reset persiste
   activeEfforts = new Set([1, 2, 3]); // T-071
-  activeRoleFilter = null; // T-202604-245
   activePriorityFilter = new Set(); // T-202604-357
   _backlogNoAcMode = false; // T-202604-363
   backlogSearchQuery = '';
@@ -1883,7 +1870,6 @@ export function clearAllFilters() {
   updateTypeFilterUI();
   updateStatusFilterUI();
   updateEffortFilterUI(); // T-071
-  updateRoleFilterUI();   // T-202604-245
   _syncFilterBtn(); // T-202606-059: sincronizar badge + icono del botón Filtros
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
@@ -1963,19 +1949,6 @@ export function setItemRole(code, role) {
   showToast('success', role ? `${code} → ${role}` : `${code} rol limpiado`);
 }
 
-// T-202604-245: toggle filtro por rol
-export function toggleRoleFilter(role) {
-  // null = 'Sin rol'; string = rol específico
-  if (activeRoleFilter === role) {
-    activeRoleFilter = null; // segundo click = quitar filtro
-  } else {
-    activeRoleFilter = role;
-  }
-  updateRoleFilterUI();
-  window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
-  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
-}
-
 // T-202604-357: toggle filtro por prioridad — acumulable, combina con otros filtros
 function togglePriorityFilter(p) {
   if (activePriorityFilter.has(p)) {
@@ -1994,37 +1967,10 @@ function updatePriorityFilterUI() {
     if (el) el.classList.toggle('active', activePriorityFilter.has(p));
   });
 }
-function updateRoleFilterUI() {
-  document.querySelectorAll('.frole-chip').forEach(chip => {
-    const val = chip.dataset.role === '__none__' ? null : chip.dataset.role;
-    chip.classList.toggle('active', activeRoleFilter === val);
-  });
-}
 
-// T-202604-245: derivar lista de roles únicos en ITEMS
-function _getActiveRoles() {
-  const roles = new Set();
-  ITEMS.forEach(i => { if (i.role && i.role.trim()) roles.add(i.role.trim()); });
-  return [...roles].sort();
-}
-
-// T-202604-245: construir chips de rol para inyectar en filter bar
-export function _buildRoleChips() {
-  const roles = _getActiveRoles();
-  if (!roles.length) return '';
-  const noneCount = ITEMS.filter(i => !i.role || !i.role.trim()).length;
-  const chips = roles.map(r => {
-    const isActive = activeRoleFilter === r;
-    return `<button class="fbtn frole-chip${isActive ? ' active' : ''}" data-role="${esc(r)}" data-action="stats-role-filter" title="Filtrar por rol: ${esc(r)}">${esc(r)}</button>`;
-  });
-  if (noneCount > 0) {
-    const isActive = activeRoleFilter === null && activeRoleFilter !== undefined && activeRoleFilter !== 'initial';
-    // chip Sin rol: activo cuando activeRoleFilter === '__none__' (sentinel)
-    const isSinRolActive = activeRoleFilter === '__none__';
-    chips.push(`<button class="fbtn frole-chip${isSinRolActive ? ' active' : ''}" data-role="__none__" data-action="stats-role-filter" title="Ítems sin rol asignado">Sin rol</button>`);
-  }
-  return `<div class="frole-bar" id="frole-bar">${chips.join('')}</div>`;
-}
+// T-202604-245: toggleRoleFilter, updateRoleFilterUI, _getActiveRoles, _buildRoleChips
+// eliminados — TKT1 REQ1 S'02. Feature nunca conectada al render (_buildRoleChips
+// no se invocaba desde ningún archivo del proyecto). Ver DISC de arquitectura relacionada.
 
 export function onBacklogSortChange(val) {
   // T-202604-424: ignorar 'sprint' si llega de localStorage legacy o select antiguo
@@ -2172,7 +2118,7 @@ export function _getBacklogNoAcMode()        { return _backlogNoAcMode; }
 export function _getActiveTypes()            { return activeTypes; }
 export function _getActiveStatuses()         { return activeStatuses; }
 export function _getActiveEfforts()          { return activeEfforts; }
-export function _getActiveRoleFilter()       { return activeRoleFilter; }
+// _getActiveRoleFilter eliminado — TKT1 REQ1 S'02
 export function _getActivePriorityFilter()   { return activePriorityFilter; }
 export function _getDepsFilter()             { return _depsFilter; }
 export function getDoneItems(matchesQuery)   { // T-202606-028: computed global — evita ITEMS.filter() duplicado en renderBacklogList
@@ -2213,7 +2159,7 @@ function _resetDepsFilter() {
 // T-202606-058: fila de chips activos — colección de filtros fuera del estado default
 // Retorna array de { label, removeFn } para cada filtro activo.
 // Estado default: activeStatuses={'pendiente','en-revision'} · activeTypes={TKT,REQ,INC,DISC} ·
-//   activeEfforts={1,2,3} · activePriorityFilter=vacío · activeRoleFilter=null ·
+//   activeEfforts={1,2,3} · activePriorityFilter=vacío ·
 //   _backlogNoAcMode=false · _depsFilter=0 · backlogSearchQuery=''
 function _getActiveFilterChips() {
   const chips = [];
@@ -2246,18 +2192,13 @@ function _getActiveFilterChips() {
     }});
   });
 
-  // Rol
-  if (activeRoleFilter !== null) {
-    const _rLabel = activeRoleFilter === '__none__' ? 'Sin rol' : activeRoleFilter;
-    chips.push({ label: 'Rol: ' + _rLabel, key: 'role:' + activeRoleFilter, removeFn: (function (_r) {
-      return () => toggleRoleFilter(_r);
-    }(activeRoleFilter)) });
-  }
+  // Rol eliminado — TKT1 REQ1 S'02 (activeRoleFilter ya no existe)
 
-  // Tipos excluidos (cuando activeTypes no tiene los 4)
-  ['TKT', 'REQ', 'INC', 'DISC'].forEach(function (t) {
+  // Tipos excluidos (cuando activeTypes no tiene los 7) — TKT3 REQ1 S'02: PRB/KE/CHG agregados
+  ['TKT', 'REQ', 'INC', 'DISC', 'PRB', 'KE', 'CHG'].forEach(function (t) {
     if (!activeTypes.has(t)) {
-      const _tLabel = t === 'TKT' ? 'Sin Tickets' : t === 'REQ' ? 'Sin Reqs' : t === 'INC' ? 'Sin Incidentes' : 'Sin Ideas';
+      const _tLabel = t === 'TKT' ? 'Sin Tickets' : t === 'REQ' ? 'Sin Reqs' : t === 'INC' ? 'Sin Incidentes'
+        : t === 'DISC' ? 'Sin Ideas' : t === 'PRB' ? 'Sin Problems' : t === 'KE' ? 'Sin Known Errors' : 'Sin Changes';
       chips.push({ label: _tLabel, key: 'type:!' + t, removeFn: (function (_t) {
         return () => toggleTypeFilter(_t);
       }(t)) });
