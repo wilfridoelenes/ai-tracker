@@ -1,4 +1,4 @@
-// [PP] mod:85 · autor:Rune · 2026-06-30 17:30 UTC-6
+// [PP] mod:86 · autor:Rune · 2026-06-30 23:59 UTC-6
 // TKT-202606-014 (REQ-202606-003 · AC2): agregado draftRaw — valor crudo de _parsed.draft
 //   (undefined/true/false) propagado sin colapsar desde parseCheckpoint → ai._parsed →
 //   ambos ckptMeta (sesión y standalone). El campo `draft` existente (=== true) no sirve
@@ -1995,8 +1995,13 @@ export function saveStandaloneCheckpoint() {
     // R-202605-062: aplicar patches después del merge de ítems normales
     // B-202606-022: pasar slugMap para resolver [tmp:slug] en parentId de patches
     // B-202606-100: pasar ckptHeaderRole para autorizar patch R→done solo si role es QA · Finn
+    // INC-[pendiente-ID]: ckptHeaderRole nunca estuvo declarado en este scope — referencia a
+    // identificador libre lanzaba ReferenceError no capturado, abortando _doApply() completo
+    // antes de saveBacklog(). Ningún patch (ni items) se persistía en el flujo Standalone
+    // CHECKPOINT. Fix: leer el rol directamente desde ckpt.rol, ya disponible en este closure
+    // vía destructuring de _standaloneLastParsed (línea ~1975).
     if (patchItems && patchItems.length) {
-      const patchResult = applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: mergeResult.slugMap, ckptHeaderRole });
+      const patchResult = applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: mergeResult.slugMap, ckptHeaderRole: ckpt.rol || '' });
       // Incorporar patches al mergeResult para que el panel diff los muestre (AC-10)
       if (patchResult.patched && patchResult.patched.length) {
         mergeResult.updated = [...(mergeResult.updated || []), ...patchResult.patched];

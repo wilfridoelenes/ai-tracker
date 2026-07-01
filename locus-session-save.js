@@ -1,3 +1,4 @@
+// [PP] mod:53 · autor:Rune · 2026-06-30 UTC-6
 // locus-session-save.js
 // Última actualización: B-202606-105 — CHANGELOG_KEY local eliminada, usa LOCUS_KEYS.CHANGELOG
 // (locus-storage.js) como fuente única de verdad de la clave de changelog.
@@ -31,8 +32,7 @@ import { showToast } from './locus-toast.js';
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
-// [PP] mod:53 · autor:Rune · 2026-06-30 UTC-6
-// INC-[pendiente-ID] (triggered_by TKT-202606-014): applyPatchesFromTG(parsed.patchItems, ...)
+// Changelog — INC-[pendiente-ID] (mod:53, triggered_by TKT-202606-014): applyPatchesFromTG(parsed.patchItems, ...)
 //   restaurado en _doApplyMergeAndFinish — se había eliminado por "redundante" con la llamada de
 //   locus-backlog-merge.js (_mdiffDoApply), que en realidad nunca aplica patches sobre ítems
 //   existentes (filtra tgItems por type==='patch', pero _buildPatchTgImes convierte esos patches
