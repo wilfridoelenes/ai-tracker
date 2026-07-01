@@ -4,7 +4,7 @@
 // Responsabilidad: changelog, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 import { loadBacklog, renderStats, getItems, itemKind } from './locus-backlog-core.js';
-import { mergeBacklogFromTG } from './locus-backlog-item.js';
+import { mergeBacklogFromTG, applyPatchesFromTG } from './locus-backlog-item.js'; // INC-[pendiente-ID]: applyPatchesFromTG restaurado — ver header mod:53
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { updateTabNotifBadges } from './locus-notifications.js';
@@ -31,6 +31,16 @@ import { showToast } from './locus-toast.js';
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
+// [PP] mod:53 · autor:Rune · 2026-06-30 UTC-6
+// INC-[pendiente-ID] (triggered_by TKT-202606-014): applyPatchesFromTG(parsed.patchItems, ...)
+//   restaurado en _doApplyMergeAndFinish — se había eliminado por "redundante" con la llamada de
+//   locus-backlog-merge.js (_mdiffDoApply), que en realidad nunca aplica patches sobre ítems
+//   existentes (filtra tgItems por type==='patch', pero _buildPatchTgImes convierte esos patches
+//   en representaciones sintéticas que pierden el type 'patch'). Root cause de "DIFF reconoce el
+//   cambio pero el status queda en el original" tanto para el patch de TKT-202606-014 como para
+//   CHECKPOINTs normales de avance de status. Rol propagado correctamente esta vez (parsed.rol) —
+//   el bug que motivó la eliminación original (rol siempre '') no se reintroduce. Ver detalle en
+//   el comentario junto a la llamada, más abajo.
 // [PP] mod:52 · autor:Rune · 2026-06-30 UTC-6
 // TKT-202606-011 (REQ-202606-003 · AC1/AC4): _ckptMeta.draftPending = parsed.draft === true —
 //   showMergeDiffPanel (locus-backlog-merge.js) usa el flag para badge + botón deshabilitado en
@@ -561,12 +571,23 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     return;
   }
   const mergeResult = _mergeBacklogWithProject(tgItems, sessId, activeProj.id);
-  // [pendiente-ID] inline_fix: bloque applyPatchesFromTG(parsed.patchItems, ...) eliminado —
-  // era redundante con la llamada de locus-backlog-merge.js (post-onApply), que SÍ propaga
-  // ckptHeaderRole correctamente. Esta llamada nunca pasaba el rol (siempre ''), por lo que
-  // cualquier patch status:done sobre REQ era rechazado aquí primero ('rol-no-autorizado-done'
-  // falso en DocLog) antes de que la llamada correcta lo aplicara segundos después. mergeResult
-  // se conserva — se sigue usando más abajo para el resumen del CHECKPOINT (created/advanced/etc).
+  // INC-[pendiente-ID] (triggered_by TKT-202606-014 · fix): applyPatchesFromTG(parsed.patchItems, ...)
+  // restaurado. Se había eliminado como "redundante" con la llamada de locus-backlog-merge.js
+  // (_mdiffDoApply, post-onApply) — pero esa llamada nunca fue equivalente: opera sobre
+  // tgItems.filter(i => i.type === 'patch'), y tgItems ahí es _tgItemsForPanel, construido por
+  // _buildPatchTgItems (línea ~289 de este archivo). Esa función convierte cada patch sobre un
+  // ítem EXISTENTE en una representación sintética que preserva el `type` real del ítem (ej. 'TKT')
+  // — no 'patch' — para que el DIFF calcule el diff de campos vía mergeBacklogFromTG en dry-run.
+  // Efecto: el filtro por type==='patch' en locus-backlog-merge.js siempre da array vacío para
+  // patches sobre ítems existentes → applyPatchesFromTG nunca se invocaba ahí. El DIFF mostraba
+  // el cambio correctamente (dry-run sobre la representación sintética) pero nada se persistía —
+  // exactamente el síntoma reportado: "DIFF lo reconoce, status queda en el original".
+  // Esta llamada SÍ usa parsed.patchItems (items crudos, type:'patch' intacto) — mismo patrón ya
+  // correcto en el path standalone (locus-session-parse.js:1999, _doApply). El bug original que
+  // motivó la eliminación (rol nunca propagado, siempre '') se corrige aquí pasando parsed.rol.
+  if (parsed.patchItems && parsed.patchItems.length) {
+    applyPatchesFromTG(parsed.patchItems, sessId, { ckptHeaderRole: parsed.rol || '', slugMap: mergeResult.slugMap });
+  }
 
   // B-202604-XXX: actualizar trackerRefs con códigos reales post-_assignPendingIds
   // _mergeBacklogWithProject resuelve [pendiente-ID] → código real en tgItems
