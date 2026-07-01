@@ -1,4 +1,4 @@
-// [PP] mod:77 · autor:Rune · 2026-06-30 23:45 UTC-6
+// [PP] mod:78 · autor:Rune · 2026-06-30 18:40 UTC-6
 // locus-storage.js
 // Última actualización: TKT1 (REQ-sprints-migration) — _allSprintsCache cross-proyecto reemplaza
 // _sprintsCache por-proyecto-activo. getAllProjectsSprints() nueva, getActiveSprints() deriva del
@@ -1320,9 +1320,12 @@ export async function saveHistoricoItems(items) {
       updated_at:            _updatedAtMs,
     }));
 
+    // onConflict:code — mismo target que saveBacklog()._toItemRow() (T-202606-007).
+    // tracker_items no tiene constraint sobre (user_id,code); usar ese par aquí
+    // produce 42P10 (no unique/exclusion constraint matching ON CONFLICT).
     const { error } = await _supabase
       .from('tracker_items')
-      .upsert(rows, { onConflict: 'user_id,code' });
+      .upsert(rows, { onConflict: 'code' });
     if (error) throw error;
   } catch (err) {
     _realtimeLastTs = null;
