@@ -1,4 +1,4 @@
-/* [PP] mod:28 · autor:Nova · 2026-06-30 19:22 UTC-6 */
+/* [PP] mod:29 · autor:Nova · 2026-06-30 20:05 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-06-26 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 /* Gen 2 — infra_version: 5 | Migración selectores: bitem-type-[T/R/B/P] → Gen2, data-type="[T/R/B/P]" → Gen2, bl-fc-type/rsb-item/mdiff-type abreviados → Gen2 */
@@ -2495,16 +2495,10 @@
 
 /* END T-202604-355 */
 
-/* ── T-202604-360: Footer fijo colapsable — contadores + filtros ── */
-.backlog-footer-fixed {
-  position: sticky;
-  bottom: 0;
-  z-index: var(--z-float-md);
-  background: var(--surface); /* B-202604-187: --color-bg → --surface */
-  border-top: 1px solid var(--border); /* B-202604-187: --color-border → --border */
-  box-shadow: 0 -4px 16px rgb(0 0 0 / 35%);
-  padding: 0 .75rem;
-}
+/* ── T-202604-360: Footer colapsable — contadores + filtros ── */
+/* .backlog-footer-fixed eliminado en consolidación T-[pendiente-ID] — 0 referencias en
+   index.html ni locus-backlog-item.js (updateBacklogFooter usa #backlog-footer).
+   Contenedor sticky vive ahora solo en .backlog-footer (locus-proyectos.css, T-202606-footer-fix). */
 
 .bl-footer-row {
   display: flex;
@@ -2675,15 +2669,10 @@
 /* ══ END S-07 ══ */
 
 /* ── T-202604-360 Addendum: clases internas del footer ── */
-#backlog-footer {
-  position: sticky;
-  bottom: 0;
-  z-index: var(--z-float-md);
-  background: var(--surface); /* B-202604-187 */
-  border-top: 1px solid var(--border);
-  box-shadow: 0 -3px 12px rgb(0 0 0 / 30%);
-  padding: 0 .75rem;
-}
+/* #backlog-footer (id) eliminado en consolidación T-[pendiente-ID] — ganaba por especificidad
+   sobre .backlog-footer (locus-proyectos.css, T-202606-footer-fix), contradiciendo el fix de
+   alineación de ese comentario. El elemento real conserva id="backlog-footer" en index.html
+   para lookup de locus-backlog-item.js — solo se elimina el selector CSS por id. */
 
 .bl-fc {
   font-size: var(--text-2xs);
@@ -2731,91 +2720,10 @@
   letter-spacing: .02em;
 }
 
-.bl-footer-filter-group {
-  display: flex;
-  align-items: center;
-  gap: .3rem;
-  flex-wrap: wrap;
-  padding-right: 10px;
-  margin-right: 10px;
-  border-right: 1px solid var(--border2);
-}
-
-.bl-footer-filter-group:last-of-type {
-  border-right: none;
-  padding-right: 0;
-  margin-right: 0;
-}
-
-.bl-filter-label {
-  font-size: var(--text-2xs);
-  color: var(--text2);
-  margin-right: .1rem;
-}
-
-.bl-filter-chip {
-  font-size: var(--text-2xs);
-  padding: .15rem .4rem;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border);
-  background: var(--surface2);
-  color: var(--text2);
-  cursor: pointer;
-  transition: var(--trans-color);
-  display: inline-flex;
-  align-items: center;
-  gap: .2rem;
-}
-
-.bl-filter-chip span {
-  font-weight: 700;
-  color: var(--text);
-}
-
-.bl-filter-chip:hover,
-.bl-filter-chip.active {
-  border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  background: color-mix(in srgb, var(--accent) 14%, transparent);
-  color: var(--text);
-}
-
-.bl-fc-type-INC.active {
-  border-color: var(--red);
-  background: color-mix(in srgb, var(--red) 14%, transparent);
-}
-
-.bl-fc-type-TKT.active {
-  border-color: var(--green);
-  background: color-mix(in srgb, var(--green) 14%, transparent);
-}
-
-.bl-fc-type-REQ.active {
-  border-color: var(--blue);
-  background: color-mix(in srgb, var(--blue) 14%, transparent);
-}
-
-.bl-fc-type-DISC.active {
-  border-color: var(--purple);
-  background: color-mix(in srgb, var(--purple) 14%, transparent);
-}
-
-.bl-footer-clear {
-  font-size: var(--text-2xs);
-  padding: .15rem .4rem;
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--text2);
-  cursor: pointer;
-  margin-left: auto;
-  transition: var(--trans-color);
-}
-
-.bl-footer-clear:hover {
-  color: var(--red, var(--red));
-  border-color: var(--red, var(--red));
-}
+/* .bl-footer-filter-group · .bl-filter-label · .bl-filter-chip (+ span, hover/active) ·
+   .bl-fc-type-*.active · .bl-footer-clear eliminados en consolidación T-[pendiente-ID] —
+   duplicados en uso real con valores distintos a locus-proyectos.css (T-202606-070).
+   Canónico único: locus-proyectos.css. */
 
 /* END T-202604-360 Addendum */
 

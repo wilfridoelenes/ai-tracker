@@ -1,4 +1,4 @@
-/* [PP] mod:2 · autor:Nova · 2026-06-26 UTC-6 */
+/* [PP] mod:3 · autor:Nova · 2026-07-01 07:15 UTC-6 */
 /* locus-sprint-plan.css */
 /* Versión: 1.0 | Última actualización: 2026-05-25 00:00 UTC-6 | Pulso del ecosistema + Contratos de módulo + Sub-tab Plan */
 /* === locus-pulso.js ===
@@ -849,7 +849,6 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  overflow-y: auto;
   height: 100%;
 }
 

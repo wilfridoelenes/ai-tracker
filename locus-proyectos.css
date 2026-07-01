@@ -1,4 +1,4 @@
-/* [PP] mod:4 · autor:Nova · 2026-06-29 15:00 UTC-6 */
+/* [PP] mod:5 · autor:Nova · 2026-07-01 07:15 UTC-6 */
 /* locus-proyectos.css */
 
 /* Versión: 2.0 | Selectores consolidados — T3 */
@@ -2211,14 +2211,8 @@
   flex-direction: column;
 }
 
-#sspanel-backlog {
-  overflow-y: auto;
-}
-
-#sspanel-htmlmap,
-#sspanel-context {
-  overflow-y: auto;
-}
+/* T-[tmp:tkt1-flatten]: overflow-y propio retirado — .tpl-detail es el único
+   contenedor de scroll de los session-subpanel (ver .tpl-detail arriba). */
 
 /* ══ migrated from index.html \3c style> block 2 ══ */
 
