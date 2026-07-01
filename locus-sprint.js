@@ -1,15 +1,14 @@
-// [PP] mod:72 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:73 · autor:Rune · 2026-06-30 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
 import { _isBlocked, getItems, itemKind } from './locus-backlog-core.js';
-import { getHistoricoItemsSync } from './locus-backlog-archive.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico
 import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, openNewSprintInline, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto, getSprintPlanSessionCount } from './locus-sprint-plan.js';
-import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint } from './locus-storage.js';
+import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint, getHistoricoItemsSync, refreshHistoricoCache } from './locus-storage.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico — getHistoricoItemsSync/refreshHistoricoCache viven en locus-storage.js, no en locus-backlog-archive.js
 import { getProjectById, _getActiveProjectFilter } from './locus-proj-core.js';
 import { showToast, toast } from './locus-toast.js';
 
@@ -1504,9 +1503,14 @@ function _renderSpsPausados() {
 
 let _spsCerradosExpanded = null; // ID del sprint actualmente expandido
 
-function _renderSpsCerrados() {
+async function _renderSpsCerrados() {
   const container = document.getElementById('sps-cerrados');
   if (!container) return;
+
+  // INC-fix: getHistoricoItemsSync() lee de un cache que arranca vacío por proyecto —
+  // el caller es responsable de haberlo refrescado antes (locus-storage.js:1465-1466).
+  // Sin este await, el contador vuelve a mostrar 0 en la primera visita al sub-tab Sprints.
+  await refreshHistoricoCache();
 
   const allSprints = getActiveSprints();
   const closed = allSprints
