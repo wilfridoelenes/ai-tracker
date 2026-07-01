@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:31 · autor:Rune · 2026-06-30 18:40 UTC-6
+// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:32 · autor:Rune · 2026-06-30 19:05 UTC-6
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -608,8 +608,11 @@ export function _generateBacklogContent(newVersion, opts = {}) {
           activeRCodes.has(i.parentId || i.parent))
         .map(i => i.code)
     );
-    exportItems = allItems.filter(i => {
-      if (i.status === 'historico') return false;
+    exportItems = _allItemsWithHistorico().filter(i => {
+      // Regla 0 (fix DISC — mismo root cause del INC T-202606-106): 'historico' se conserva
+      // únicamente si pertenece al sprint cerrado más reciente. Cualquier otro historico
+      // permanece excluido — el snapshot "estado actual" no resucita ítems de sprints antiguos.
+      if (i.status === 'historico' && !(_normLastClosedId && _normSprintId(i.sprint) === _normLastClosedId)) return false;
       if (i.status === 'en curso') return false; // B-202606-052: status no canónico — fuera de BR-Ecosystem §5
       if (i.status === 'backlog') return false; // [tmp:tkt4-infra-fallback] AC-2: status no canónico — fuera de BR-Ecosystem §5
       // Regla 1: status activos directos — incluye en-revision
@@ -621,9 +624,9 @@ export function _generateBacklogContent(newVersion, opts = {}) {
       if (_itemTypeGen2(i) === 'INC' &&
           (i.status === 'pendiente' || i.status === 'en-revision') &&
           i.triggered_by && activeTCodes.has(i.triggered_by)) return true;
-      // Sprint cerrado más reciente: ítems done
+      // Sprint cerrado más reciente: ítems done o historico (fix DISC — status pasa a 'historico' al cerrar sprint)
       // B-202606-014: normalizar i.sprint antes de comparar
-      if (i.status === 'done' && _normLastClosedId && _normSprintId(i.sprint) === _normLastClosedId) return true;
+      if ((i.status === 'done' || i.status === 'historico') && _normLastClosedId && _normSprintId(i.sprint) === _normLastClosedId) return true;
       // Sprint activo: ítems done o descartados
       // B-202606-014: normalizar i.sprint antes de comparar
       if (_normActiveSprintId && _normSprintId(i.sprint) === _normActiveSprintId &&
