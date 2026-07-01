@@ -1,5 +1,11 @@
-// [PP] mod:59 · autor:Rune · 2026-07-01 UTC-6
-// TKT-[pendiente-ID] (REQ-[pendiente-ID] unificar render Sin AC — resuelve INC-[pendiente-ID]):
+// [PP] mod:61 · autor:Rune · 2026-07-01 UTC-6
+// TKT (fix groupId): renderSprintGroup acepta contextPrefix — ver comentario en la función.
+//   Reaplicado sobre mod:60 (simplificación _useVistaLista, TKT-[pendiente-ID] paralelo) —
+//   sin conflicto, cuerpos no se solapan.
+// TKT-[pendiente-ID]: eliminada la condición tautológica _useVistaLista (kanban ya desvía
+//   incondicionalmente en L926, anterior en el flujo) — llamada directa a _renderVistaLista().
+//   Variable html huérfana eliminada — sin otro uso en la función tras la simplificación.
+// mod:59 · autor:Rune · TKT-[pendiente-ID] (REQ-[pendiente-ID] unificar render Sin AC — resuelve INC-[pendiente-ID]):
 //   _useVistaLista ya no excluye noAc — pendienteItems (ya filtrado por _getBacklogNoAcMode() en
 //   L957) se enruta por _renderVistaLista() en vez de un path standalone que nunca los renderizaba
 //   (bug: filtro 'Sin AC' dejaba el backlog list en blanco). Bloque Cerradas/empty-state/tail
@@ -424,7 +430,14 @@ function _zoneStaleness(item) {
 // sprintId se deriva de sprintItems[0].sprint — la función retorna '' si sprintItems está vacío
 // (el caso de header vacío para sprint activo/programado sin ítems se maneja fuera, en el caller
 // de Backlog Vista Lista — ver _emptySprintHeaderHtml — porque no hay item del cual derivar sprintId).
-export function renderSprintGroup(sprintItems, isClosed) {
+// TKT (fix groupId): contextPrefix namespacing — omitido/'' preserva el groupId y la fuente
+// de colapso actuales de Backlog Vista Lista (_getCollapsedVersions(), Set global en core.js).
+// contextPrefix:'hist' (único otro caller: locus-backlog-archive.js) namespacea el groupId
+// para que nunca colisione con el de Vista Lista, y lee el estado de colapso desde
+// localStorage['arch-collapsed-'+groupId] — mismo key que ya escribe
+// _attachArchChildToggleDelegation() al togglear, antes desalineado con el Set global que
+// esta función leía sin distinguir contexto.
+export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
   if (!sprintItems || !sprintItems.length) return '';
 
   const sprintId = _extractSprintId((sprintItems[0].sprint || '').trim());
@@ -432,8 +445,11 @@ export function renderSprintGroup(sprintItems, isClosed) {
   const isActive   = sprintObj?.status === 'active';
   const isPlanned  = !isActive && !isClosed;
   const label      = sprintObj ? (sprintObj.label || sprintId) : sprintId;
-  const groupId    = 'vl-' + sprintId.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  const isCollapsed = _getCollapsedVersions().has(groupId);
+  const _prefix    = contextPrefix ? contextPrefix + '-' : '';
+  const groupId    = _prefix + 'vl-' + sprintId.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const isCollapsed = contextPrefix
+    ? (() => { try { return localStorage.getItem('arch-collapsed-' + groupId) === '1'; } catch { return false; } })()
+    : _getCollapsedVersions().has(groupId);
 
   // Progress — sobre sprintItems (ver nota de fidelidad en header del archivo: en el caso
   // por defecto, sin filtros/búsqueda activos, sprintItems == universo completo del sprint,
@@ -1051,18 +1067,12 @@ export function renderBacklogList(onRendered) {
       })
     : [];
 
-  let html = '';
-
   // R-202606-017 / INC-[pendiente-ID] fix: Vista Lista es la única vía de render para pendienteItems —
   // el path noAc standalone nunca los renderizaba (bug: lista en blanco con filtro Sin AC activo).
   // pendienteItems ya viene filtrado por _getBacklogNoAcMode() más arriba (L957) — _renderVistaLista
-  // no requiere cambio, solo recibe el conjunto ya acotado.
-  const _useVistaLista = !_getBacklogKanbanMode();
-
-  if (_useVistaLista) {
-    _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered);
-    return;
-  }
+  // no requiere cambio, solo recibe el conjunto ya acotado. Kanban ya desvió en L926 (incondicional,
+  // anterior) — sin condición aquí, la llamada es directa.
+  _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered);
 
 }
 

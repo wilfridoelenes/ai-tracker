@@ -1,4 +1,4 @@
-// [PP] mod:18 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:19 · autor:Rune · 2026-07-01 UTC-6
 // locus-backlog-archive.js
 // TKT2 (REQ Histórico unificado con Vista Lista de Backlog): reescrito para consumir
 // renderSprintGroup() de locus-backlog-render.js — vista única agrupada por sprint cerrado
@@ -269,7 +269,12 @@ function _renderArchivoBody() {
   sortedClosed.forEach(sp => {
     const spItems = archivoItems.filter(i => i.sprint === sp.id);
     if (!spItems.length) return;
-    html += renderSprintGroup(spItems, true);
+    // TKT (fix groupId): contextPrefix 'hist' namespacea el groupId frente a Backlog Vista
+    // Lista — ambos paneles persisten montados tras cambio de sub-tab (switchSubTab solo
+    // alterna clase .active), y Vista Lista puede mostrar un sprint recién cerrado con ítems
+    // done aún no archivados (ventana previa a archiveClosedItems()). Sin el prefijo, ambos
+    // renderSprintGroup generaban el mismo groupId 'vl-<sprintId>' — dos ids duplicados en DOM.
+    html += renderSprintGroup(spItems, true, 'hist');
   });
   html += `</div>`;
 
