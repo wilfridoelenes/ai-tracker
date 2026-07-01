@@ -1,4 +1,4 @@
-// [PP] mod:78 · autor:Rune · 2026-06-30 18:40 UTC-6
+// [PP] mod:79 · autor:Rune · 2026-07-01 09:15 UTC-6
 // locus-storage.js
 // Última actualización: TKT1 (REQ-sprints-migration) — _allSprintsCache cross-proyecto reemplaza
 // _sprintsCache por-proyecto-activo. getAllProjectsSprints() nueva, getActiveSprints() deriva del
@@ -560,6 +560,16 @@ export function getSupabaseUserId() {
 // contra los valores canónicos declarados en __BR-Ecosystem §4 (tracker_items_type_check)
 // y __BR-Core §4 (chk_status_by_type). Detecta desincronía DDL↔código tras migraciones de schema.
 //
+// [tmp:tkt1-verify-constraints] · 2026-07-01 — generalizado a las 5 tablas tracker_* para
+// comparar además cada onConflict declarado en el código contra los constraints UNIQUE/PK
+// reales (contype 'u'/'p') — no solo los CHECK de tracker_items. Origen: INC saveHistoricoItems()
+// 42P10 — onConflict:'user_id,code' sin constraint correspondiente no fue detectado hasta producción.
+// Firma cambia de Promise<boolean|null> a Promise<{ok,mismatches}|null> — sin call sites externos
+// en este archivo (verificado: única referencia es la definición de la función).
+// Asunción declarada: la RPC get_table_constraints expone columna `contype` (mismo naming que
+// pg_constraint, ya expone conname/condef). Sin acceso al SQL de TKT1a para confirmar — si
+// contype no existe, el fallback es sobre-reportar mismatches (falso positivo), no silenciar.
+//
 // Deuda registrada: _CANONICAL_TYPES y _CANONICAL_STATUS_BY_TYPE duplican los valores de
 // _VALID_STATUS_BY_TYPE / _VALID_ITEM_TYPES definidos localmente dentro de saveBacklog()
 // (línea ~867). No se extraen a constante de módulo compartida en este TKT — saveBacklog()
@@ -575,10 +585,28 @@ const _CANONICAL_STATUS_BY_TYPE = {
   DISC: ['discovery', 'promoted', 'descartado'],
 };
 
+// onConflict declarado en código, por tabla — fuente: auditoría manual de call sites (2026-06-30).
+// tracker_items excluido de este mapa — se cubre aparte junto a los CHECK ya existentes.
+const _EXPECTED_ONCONFLICT = {
+  tracker_docs:     ['user_id', 'key'],
+  tracker_sessions: ['user_id', 'session_id'],
+  tracker_sprints:  ['user_id', 'sprint_id'],
+  tracker_state:    ['user_id', 'key'],
+};
+const _EXPECTED_ONCONFLICT_ITEMS = ['code'];
+
 // Extrae los literales 'texto' de un fragmento ARRAY[...] de Postgres (condef crudo).
 function _parsePgTextArrayLiteral(arrText) {
   const matches = arrText.match(/'((?:[^'\\]|\\.)*)'/g) || [];
   return matches.map(m => m.slice(1, -1));
+}
+
+// Extrae la lista de columnas del primer paréntesis de un condef de UNIQUE/PK,
+// ej: "UNIQUE (user_id, key)" → ['user_id', 'key']. No usar sobre condef de CHECK.
+function _parsePgColumnList(condef) {
+  const m = condef.match(/\(([^)]*)\)/);
+  if (!m) return [];
+  return m[1].split(',').map(s => s.trim());
 }
 
 function _sameSet(a, b) {
@@ -588,71 +616,108 @@ function _sameSet(a, b) {
   return sa.every((v, i) => v === sb[i]);
 }
 
+// Compara el onConflict esperado de una tabla contra sus filas UNIQUE/PK reales.
+// Empuja un mismatch a `mismatches` si ninguna fila coincide como set de columnas.
+function _checkOnConflictAgainstRows(tabla, rows, expected, mismatches) {
+  const uniqueOrPkRows = (rows || []).filter(r => r.contype === 'u' || r.contype === 'p');
+  const match = uniqueOrPkRows.some(r => _sameSet(_parsePgColumnList(r.condef), expected));
+  if (!match) {
+    mismatches.push({
+      tabla,
+      onConflictDeclarado: expected.join(','),
+      constraintReal: uniqueOrPkRows.map(r => r.condef),
+    });
+  }
+}
+
+// Ejecuta get_table_constraints para una tabla — null si la RPC falla, con warning ya emitido.
+async function _fetchTableConstraints(tabla) {
+  try {
+    const { data, error } = await _supabase.rpc('get_table_constraints', { p_table_name: tabla });
+    if (error) {
+      if (error.code === '42883') {
+        console.warn('[Locus] verifyConstraintsSync: RPC get_table_constraints no existe — ¿TKT1a aplicado?');
+      } else {
+        console.warn(`[Locus] verifyConstraintsSync: error consultando constraints de ${tabla} —`, error.message || error);
+      }
+      return null;
+    }
+    return data || [];
+  } catch (e) {
+    console.warn(`[Locus] verifyConstraintsSync: error inesperado invocando la RPC para ${tabla} —`, e?.message || e);
+    return null;
+  }
+}
+
 export async function verifyConstraintsSync() {
   if (!_supabase || !_supabaseUser) {
     console.warn('[Locus] verifyConstraintsSync: sin auth — verificación no disponible');
     return null;
   }
 
-  let data, error;
-  try {
-    ({ data, error } = await _supabase.rpc('get_table_constraints', { p_table_name: 'tracker_items' }));
-  } catch (e) {
-    console.warn('[Locus] verifyConstraintsSync: error inesperado invocando la RPC —', e?.message || e);
-    return null;
-  }
+  const mismatches = [];
 
-  if (error) {
-    if (error.code === '42883') {
-      console.warn('[Locus] verifyConstraintsSync: RPC get_table_constraints no existe — ¿TKT1a aplicado?');
+  // ── tracker_items — CHECK constraints canónicos (comportamiento previo) + onConflict:code ──
+  const itemsRows = await _fetchTableConstraints('tracker_items');
+  if (!itemsRows) {
+    mismatches.push({ tabla: 'tracker_items', constraints_check: 'unavailable' });
+  } else {
+    const typeRow = itemsRows.find(r => r.conname === 'tracker_items_type_check');
+    if (!typeRow) {
+      mismatches.push({ constraint: 'tracker_items_type_check', esperado: _CANONICAL_TYPES, real: '[constraint no encontrado en Supabase]' });
     } else {
-      console.warn('[Locus] verifyConstraintsSync: error consultando constraints —', error.message || error);
-    }
-    return null;
-  }
-
-  const rows = data || [];
-  const diffs = [];
-
-  // tracker_items_type_check — 7 tipos canónicos
-  const typeRow = rows.find(r => r.conname === 'tracker_items_type_check');
-  if (!typeRow) {
-    diffs.push({ constraint: 'tracker_items_type_check', esperado: _CANONICAL_TYPES, real: '[constraint no encontrado en Supabase]' });
-  } else {
-    const arrMatch = typeRow.condef.match(/ARRAY\[(.*?)\]/s);
-    const realTypes = arrMatch ? _parsePgTextArrayLiteral(arrMatch[1]) : [];
-    if (!_sameSet(realTypes, _CANONICAL_TYPES)) {
-      diffs.push({ constraint: 'tracker_items_type_check', esperado: _CANONICAL_TYPES, real: realTypes });
-    }
-  }
-
-  // chk_status_by_type — estados válidos por tipo
-  const statusRow = rows.find(r => r.conname === 'chk_status_by_type');
-  if (!statusRow) {
-    diffs.push({ constraint: 'chk_status_by_type', esperado: _CANONICAL_STATUS_BY_TYPE, real: '[constraint no encontrado en Supabase]' });
-  } else {
-    const whenBlocks = [...statusRow.condef.matchAll(/WHEN\s+'(\w+)'::text\s+THEN\s+\(status\s*=\s*ANY\s*\(ARRAY\[(.*?)\]\)\)/gs)];
-    const realByType = {};
-    for (const [, type, arrText] of whenBlocks) {
-      realByType[type] = _parsePgTextArrayLiteral(arrText);
-    }
-    for (const type of Object.keys(_CANONICAL_STATUS_BY_TYPE)) {
-      const real = realByType[type] || [];
-      if (!_sameSet(real, _CANONICAL_STATUS_BY_TYPE[type])) {
-        diffs.push({ constraint: `chk_status_by_type[${type}]`, esperado: _CANONICAL_STATUS_BY_TYPE[type], real });
+      const arrMatch = typeRow.condef.match(/ARRAY\[(.*?)\]/s);
+      const realTypes = arrMatch ? _parsePgTextArrayLiteral(arrMatch[1]) : [];
+      if (!_sameSet(realTypes, _CANONICAL_TYPES)) {
+        mismatches.push({ constraint: 'tracker_items_type_check', esperado: _CANONICAL_TYPES, real: realTypes });
       }
     }
+
+    const statusRow = itemsRows.find(r => r.conname === 'chk_status_by_type');
+    if (!statusRow) {
+      mismatches.push({ constraint: 'chk_status_by_type', esperado: _CANONICAL_STATUS_BY_TYPE, real: '[constraint no encontrado en Supabase]' });
+    } else {
+      const whenBlocks = [...statusRow.condef.matchAll(/WHEN\s+'(\w+)'::text\s+THEN\s+\(status\s*=\s*ANY\s*\(ARRAY\[(.*?)\]\)\)/gs)];
+      const realByType = {};
+      for (const [, type, arrText] of whenBlocks) {
+        realByType[type] = _parsePgTextArrayLiteral(arrText);
+      }
+      for (const type of Object.keys(_CANONICAL_STATUS_BY_TYPE)) {
+        const real = realByType[type] || [];
+        if (!_sameSet(real, _CANONICAL_STATUS_BY_TYPE[type])) {
+          mismatches.push({ constraint: `chk_status_by_type[${type}]`, esperado: _CANONICAL_STATUS_BY_TYPE[type], real });
+        }
+      }
+    }
+
+    _checkOnConflictAgainstRows('tracker_items', itemsRows, _EXPECTED_ONCONFLICT_ITEMS, mismatches);
   }
 
-  if (diffs.length === 0) {
-    console.log('[Locus] verifyConstraintsSync — OK: constraints sincronizados con BR-Ecosystem.');
-    return true;
+  // ── Resto de tablas — solo onConflict vs UNIQUE/PK real ──
+  for (const tabla of Object.keys(_EXPECTED_ONCONFLICT)) {
+    const rows = await _fetchTableConstraints(tabla);
+    if (!rows) {
+      mismatches.push({ tabla, constraints_check: 'unavailable' });
+      continue;
+    }
+    _checkOnConflictAgainstRows(tabla, rows, _EXPECTED_ONCONFLICT[tabla], mismatches);
   }
 
-  for (const d of diffs) {
-    console.warn(`[Locus] verifyConstraintsSync — DESINCRONÍA en ${d.constraint}. Esperado:`, d.esperado, 'Real:', d.real);
+  if (mismatches.length === 0) {
+    console.log('[Locus] verifyConstraintsSync — OK: constraints sincronizados con BR-Ecosystem y onConflict verificado contra UNIQUE/PK reales (5 tablas).');
+    return { ok: true, mismatches: [] };
   }
-  return false;
+
+  for (const d of mismatches) {
+    if (d.constraints_check) {
+      console.warn(`[Locus] verifyConstraintsSync — ${d.tabla}: constraints_check unavailable.`);
+    } else if (d.onConflictDeclarado) {
+      console.warn(`[Locus] verifyConstraintsSync — DESINCRONÍA onConflict en ${d.tabla}. Declarado:`, d.onConflictDeclarado, 'Constraint real:', d.constraintReal);
+    } else {
+      console.warn(`[Locus] verifyConstraintsSync — DESINCRONÍA en ${d.constraint}. Esperado:`, d.esperado, 'Real:', d.real);
+    }
+  }
+  return { ok: false, mismatches };
 }
 
 // ── GRUPO 1 — ESTADO Y PERSISTENCIA ──────────────────────────────────────────
