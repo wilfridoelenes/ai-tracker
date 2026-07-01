@@ -1,4 +1,4 @@
-// [PP] mod:55 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:56 · autor:Rune · 2026-07-01 UTC-6
 // TKT1 REQ2 S'02: isZone de renderQBacklogPanel/renderQDiscPanel y _updateSubtabBadges
 //   migrados a _isQBacklogActive/_isQDiscActive (excluye descartado/promoted).
 // TKT3 REQ2 S'02: stats-bar interactiva (_renderZonePanel) — chips de tipo/prioridad,
@@ -33,7 +33,7 @@ import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } 
 
 import { _setBacklogModified } from './locus-docs.js';
 
-import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoricoCache } from './locus-storage.js';
+import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js';
 
 import { showToast } from './locus-toast.js';
 
@@ -47,20 +47,26 @@ import { _updateDocLogCount } from './locus-doc-log.js';
 
 // T-202606-022: _buildChildMap — agrupación de hijos por R con sort topológico por depends_on
 // Recibe los ítems de un sprint y retorna Map: rCode → [hijos ordenados]
-export function _buildChildMap(sprintItems) {
+// INC-[pendiente-ID] TKT1: includeHistorico (default false) — cuando true, hijos con status
+// 'historico' se incluyen en el árbol igual que cualquier otro status. Default false preserva
+// el contrato original para todo consumidor existente (ver L1397, sin segundo argumento — sin
+// cambio de comportamiento). Único caller con includeHistorico:true es _renderVistaLista para
+// grupos de sprint closed.
+export function _buildChildMap(sprintItems, includeHistorico = false) {
   // Conjunto de códigos R presentes en sprintItems — gate de parentId válido
   const rCodesInSprint = new Set(
     sprintItems.filter(i => itemKind(i) === 'REQ').map(i => i.code)
   );
 
   // Recopilar hijos: Ts y Bs con parentId apuntando a un R del sprint, excluyendo históricos
+  // salvo que includeHistorico:true lo solicite explícitamente.
   const childrenByR = new Map();
   for (const r of rCodesInSprint) childrenByR.set(r, []);
 
   for (const item of sprintItems) {
     const t = itemKind(item);
     if (t !== 'TKT' && t !== 'INC') continue;
-    if (item.status === 'historico') continue;
+    if (item.status === 'historico' && !includeHistorico) continue;
     if (!item.parentId || !rCodesInSprint.has(item.parentId)) continue;
     childrenByR.get(item.parentId).push(item);
   }
@@ -268,6 +274,43 @@ export function updateClearFilterBtn() {
 
 // T-202604-213: _statusPills — migrada a locus-sprint-planificacion.js (B-202605-046)
 // R-202605-103: toggleClosedSprintsBody — migrada a locus-sprint-planificacion.js (B-202605-046)
+
+// INC-[pendiente-ID] TKT1: universo completo de ítems (activos + historico) con dedupe por code.
+// getItems() (locus-backlog-core.js) nunca incluye status:historico desde T-202606-106 (_setITEMS) —
+// consumidores que necesitan contar/anidar ítems de un sprint closed deben mergear con
+// getHistoricoItemsSync(), ver invariant en _Locus-module-contracts.md.
+// No dispara refreshHistoricoCache() por su cuenta — ver _warmHistoricoCacheIfNeeded() más abajo,
+// que la garantiza tibia de forma no-bloqueante sin propagar async a renderBacklogList() y sus
+// ~30 call sites (__BR-Execution §2 — mínimo impacto lateral).
+function _getAllItemsWithHistorico() {
+  const _active = getItems();
+  const _historico = getHistoricoItemsSync();
+  if (!_historico.length) return _active;
+  const _seen = new Set(_active.map(i => i.code));
+  const _merged = _active.slice();
+  _historico.forEach(i => { if (!_seen.has(i.code)) { _merged.push(i); _seen.add(i.code); } });
+  return _merged;
+}
+
+// INC-[pendiente-ID] TKT1: cache de historico tibio para sprints closed en Vista Lista.
+// Mismo patrón que renderHistoricoPanel() (L1696) pero no-bloqueante — _renderVistaLista es
+// llamada sync desde renderBacklogList(), con ~30 call sites en 12 archivos que no pueden
+// volverse async sin impacto lateral fuera de scope de este TKT. Si el cache está frío
+// (getHistoricoItemsSync() vacío) y hay al menos un sprint closed en pantalla, se refresca
+// en background y se dispara un re-render cuando esté listo — mismo patrón fire-and-forget
+// ya usado en el ecosistema para no bloquear el primer paint.
+let _historicoCacheWarmupInFlight = false;
+function _warmHistoricoCacheIfNeeded(hasClosedSprintInView) {
+  if (!hasClosedSprintInView) return;
+  if (getHistoricoItemsSync().length) return; // ya tibio
+  if (_historicoCacheWarmupInFlight) return;
+  _historicoCacheWarmupInFlight = true;
+  refreshHistoricoCache().then(() => {
+    _historicoCacheWarmupInFlight = false;
+    _markBacklogListDirty();
+    renderBacklogList();
+  }).catch(() => { _historicoCacheWarmupInFlight = false; });
+}
 
 // T-202604-290 · T-202605-450: velocidad por sprint — retorna { avg, sprints: [{id, label, planned, real}] }
 // planned = suma effort asignado (excluye descartados)
@@ -579,9 +622,15 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     // Progress
     // B-202606-018: usar _extractSprintId para comparar — ítems con label completo también se cuentan
     // B-202606-028: excluir descartados de totalInGroup — consistente con sml-row-count y _renderSprintItems
-    const doneInGroup  = getItems().filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId && i.status === 'done').length;
-    const totalInGroup = getItems().filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId && i.status !== 'descartado').length;
+    // INC-[pendiente-ID] TKT1: sprint closed usa universo con historico (getItems() nunca lo incluye
+    // desde T-202606-106) — doneInGroup cuenta done+historico, totalInGroup no cambia de criterio de
+    // exclusión (solo agrega historico al universo, sigue excluyendo descartado). Sprints active/scheduled
+    // no tienen historico — mismo resultado que antes, sin regresión.
+    const _progressSource = isClosed ? _getAllItemsWithHistorico() : getItems();
+    const doneInGroup  = _progressSource.filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId && (i.status === 'done' || i.status === 'historico')).length;
+    const totalInGroup = _progressSource.filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId && i.status !== 'descartado').length;
     const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
+    _warmHistoricoCacheIfNeeded(isClosed);
 
     const sprintBadge       = isClosed ? ' ·' : '';
     const sprintStatusLabel = isActive
@@ -646,8 +695,10 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     // AC3: Rs con hijos anidados + Ts/Bs sueltos + Ps sueltas
     {
       // childMap desde getItems() completo — todos los Ts hijos con cualquier status
-      const _allSprintItems = getItems().filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId);
-      const _childMap = _buildChildMap(_allSprintItems);
+      // INC-[pendiente-ID] TKT1: sprint closed incluye ítems historico en el universo — sin esto,
+      // Ts/REQs migrados a historico no se anidan bajo su parent al expandir el grupo cerrado.
+      const _allSprintItems = (isClosed ? _getAllItemsWithHistorico() : getItems()).filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId);
+      const _childMap = _buildChildMap(_allSprintItems, isClosed);
 
       const _rCodesInGroup = new Set(group.filter(i => itemKind(i) === 'REQ').map(i => i.code));
 
