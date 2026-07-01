@@ -147,6 +147,19 @@ export async function renderArchivoHistorico(listEl) {
 
   const isOpen = (() => { try { return localStorage.getItem(_ARCH_KEY) === '1'; } catch { return false; } })();
 
+  // INC-[pendiente-ID]: guard de idempotencia — si shell:render-historico se dispara dos veces
+  // antes de que la primera invocación (async, espera refreshHistoricoCache) resuelva, ambas
+  // llamadas hacían appendChild sobre el mismo listEl, produciendo dos secciones .arch-historico.
+  // El caller ya limpia listEl antes de invocar, pero esa limpieza no protege contra la segunda
+  // invocación en vuelo. Se remueve cualquier instancia previa justo antes de crear la nueva —
+  // cualquiera que sea la última en resolver deja exactamente una sección en el DOM.
+  const _prevSection = listEl.querySelector('#arch-historico');
+  if (_prevSection) {
+    const _prevDivider = _prevSection.previousElementSibling;
+    if (_prevDivider && _prevDivider.classList.contains('arch-zone-divider')) _prevDivider.remove();
+    _prevSection.remove();
+  }
+
   // Sprint más antiguo como referencia de "desde cuándo"
   const sortedClosed = [...closedSprints].sort((a, b) => (a.closedAt || 0) - (b.closedAt || 0));
   const oldestSprintId = sortedClosed.length ? esc(_sprintDisplay(sortedClosed[0].id)) : '';
@@ -271,10 +284,38 @@ function _renderArchivoBody() {
 // Mismo archivo, sin scope nuevo, necesario para que el childMap de AC2 sea funcional y no solo
 // visual — ver inline_fix en CHECKPOINT. Guard idéntico al patrón ya usado en este archivo
 // (_archDelegationAttached) para no acumular listeners en re-renders.
+//
+// INC-[pendiente-ID]: renderSprintGroup también emite data-action="version-collapse" en el
+// header de cada grupo — en Backlog esa acción la resuelve toggleVersionCollapse() (core.js)
+// contra el Set compartido de _getCollapsedVersions(). Ese Set usa groupId = 'vl-' + sprintId
+// sin distinguir contexto (Backlog vs Histórico) — coactuar sobre el mismo Set acoplaría el
+// colapso de un sprint cerrado entre ambos paneles de forma no evaluada. Se implementa estado
+// local, namespaced (arch-collapsed-<groupId>), independiente del de Backlog — decisión
+// deliberada de desacoplar, no un atajo. El riesgo de colisión de id en el DOM si ambos paneles
+// llegaran a montar el mismo groupId simultáneamente queda registrado como DISC — requiere que
+// renderSprintGroup acepte un prefijo de contexto (cambio de firma, Effort 2+).
 function _attachArchChildToggleDelegation(body) {
   if (body._archChildDelegationAttached) return;
   body._archChildDelegationAttached = true;
   body.addEventListener('click', function _archVlToggleHandler(e) {
+    const vcBtn = e.target.closest('[data-action="version-collapse"]');
+    if (vcBtn) {
+      const groupId = vcBtn.dataset.groupId;
+      if (!groupId) return;
+      const vbody = document.getElementById('vbody-' + groupId);
+      const arrow = document.getElementById('varrow-' + groupId);
+      if (!vbody) return;
+      const isNowCollapsed = !vbody.classList.contains('collapsed');
+      vbody.classList.toggle('collapsed', isNowCollapsed);
+      if (arrow) arrow.classList.toggle('collapsed', isNowCollapsed);
+      vcBtn.setAttribute('aria-expanded', String(!isNowCollapsed));
+      const _key = 'arch-collapsed-' + groupId;
+      try {
+        if (isNowCollapsed) localStorage.setItem(_key, '1');
+        else localStorage.removeItem(_key);
+      } catch {}
+      return;
+    }
     const btn = e.target.closest('[data-action="vl-toggle-r"]');
     if (!btn) return;
     const rCode = btn.dataset.rCode;
