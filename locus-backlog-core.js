@@ -1,4 +1,4 @@
-// [PP] mod:72 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:73 · autor:Rune · 2026-06-30 UTC-6
 // TKT1/TKT2 REQ2 S'02: _isQBacklogActive/_isQDiscActive agregadas (universo activo de
 //   Q-Backlog/Q-DISC, excluye descartado/promoted/historico). _subtabNS: entrada muerta
 //   'q-backlog' (con guion) reemplazada por 'qbacklog' + 'qdisc' agregada.
@@ -1793,7 +1793,7 @@ export function renderStats() {
           </span>` : ''
         ).join('')}
         ${pIdeasCount > 0 ? `<span class="stat-type-chip tc-DISC stat-type-chip--ideas${activeTypes.has('DISC') ? ' active' : ''}" data-action="stats-type-filter" data-type="DISC" title="Posibilidades — no afectan contadores de trabajo activo">
-          <span class="tc-count">${pIdeasCount}</span><span class="tc-label">💡</span>
+          <span class="tc-count">${pIdeasCount}</span><span class="tc-label">💡 Ideas</span>
         </span>` : ''}
       </div>
       <!-- Separador -->

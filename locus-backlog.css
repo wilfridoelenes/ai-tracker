@@ -1,4 +1,4 @@
-/* [PP] mod:59 · autor:Rune · 2026-06-30 UTC-6 */
+/* [PP] mod:60 · autor:Nova · 2026-06-30 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -368,31 +368,9 @@
   letter-spacing: 0.07em;
 }
 
-.stat-progress-pct {
-  font-size: var(--text-base);
-  font-weight: 600;
-  font-family: var(--mono);
-  color: var(--text2);
-  margin-left: auto;
-}
-
-.stat-mini-track {
-  height: 5px;
-  background: var(--surface3);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.stat-mini-fill {
-  height: 100%;
-  border-radius: var(--radius-sm);
-  background: var(--green);
-  transition: width 0.3s;
-}
-
-:root[data-theme="light"] .stat-mini-fill {
-  background: var(--green-dark); /* contraste 4.77:1 sobre --surface3 light · T-202606-068 */
-}
+/* .stat-progress-pct, .stat-mini-track, .stat-mini-fill (+ override light theme)
+   eliminadas — TKT2 REQ-tmp-qa-cleanup S'02 (sin uso en JS ni HTML, huérfanas desde
+   rediseño previo de la barra de progreso — hallazgo QA #3b) */
 
 /* Nivel 2: chips de tipo — accionables, compactos */
 .stat-card.s-types {
