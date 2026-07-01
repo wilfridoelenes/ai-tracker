@@ -1,4 +1,16 @@
-// [PP] mod:56 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:57 · autor:Rune · 2026-07-01 UTC-6
+// TKT1 (REQ Histórico unificado con Vista Lista de Backlog): extraído renderSprintGroup(sprintItems, isClosed)
+//   de _renderVistaLista — bloque de header+progress bar+jerarquía R→hijos+done items de un grupo-por-sprint,
+//   ahora reusable e invocable desde locus-backlog-archive.js. Función pura respecto a filtros/búsqueda del
+//   módulo (no usa _matchesQuery/_getActiveStatuses/_sortGroup internamente) — el caller decide qué items son
+//   visibles y los pasa ya filtrados/ordenados en sprintItems. _warmHistoricoCacheIfNeeded() se movió fuera de
+//   la función extraída (era un side effect no declarado en el contrato — contract_detail declara sideEffects:
+//   ninguno) — ahora vive en el caller, antes de invocar renderSprintGroup.
+//   Deuda declarada (ver CHECKPOINT de esta sesión): antes childMap se construía siempre desde el universo
+//   completo del sprint (getItems()/_getAllItemsWithHistorico() sin filtrar), por lo que los hijos anidados
+//   bajo un R ignoraban los filtros activos de búsqueda/status/tipo. Con la extracción, childMap se construye
+//   desde sprintItems (ya filtrado por el caller) — los hijos anidados ahora respetan los mismos filtros que
+//   los ítems raíz. Cambio de comportamiento menor y consistente (no bloqueante) — registrado como DISC.
 // TKT1 REQ2 S'02: isZone de renderQBacklogPanel/renderQDiscPanel y _updateSubtabBadges
 //   migrados a _isQBacklogActive/_isQDiscActive (excluye descartado/promoted).
 // TKT3 REQ2 S'02: stats-bar interactiva (_renderZonePanel) — chips de tipo/prioridad,
@@ -52,6 +64,12 @@ import { _updateDocLogCount } from './locus-doc-log.js';
 // el contrato original para todo consumidor existente (ver L1397, sin segundo argumento — sin
 // cambio de comportamiento). Único caller con includeHistorico:true es _renderVistaLista para
 // grupos de sprint closed.
+// TKT1 (REQ Histórico unificado): hoisted a module scope — antes declarado localmente dentro de
+// _renderVistaLista y de _updateSubtabBadges. Única fuente ahora, reusada por renderSprintGroup.
+function _extractSprintId(s) {
+  return (s || '').split(' · ')[0].trim();
+}
+
 export function _buildChildMap(sprintItems, includeHistorico = false) {
   // Conjunto de códigos R presentes en sprintItems — gate de parentId válido
   const rCodesInSprint = new Set(
@@ -532,6 +550,164 @@ function _zoneStaleness(item) {
 // Parámetros: listEl, pendienteItems, doneItems, terminalItems ya filtrados por renderBacklogList;
 //   terminalItems: R/T/B descartado + P descartado + P promovida — bloque Cerradas unificado
 //   _matchesQuery y _sortGroup vienen de renderBacklogList para reutilizar la lógica existente.
+// TKT1 (REQ Histórico unificado con Vista Lista de Backlog): render de un grupo-por-sprint
+// (header + progress bar + jerarquía R→hijos + done items). Extraída de _renderVistaLista.
+//
+// Contrato (contract_detail, TKT1): recibe sprintItems e isClosed como únicos parámetros.
+// sprintItems = todos los ítems visibles de UN sprint, ya filtrados y ordenados por el caller
+// (root primero, luego done/historico) — la función no aplica búsqueda ni filtros de status/tipo,
+// no depende de _matchesQuery/_getActiveStatuses/_sortGroup ni de ningún estado privado de UI.
+// sin sideEffects — no dispara warmup de cache ni cualquier otra mutación; eso es responsabilidad
+// del caller (ver _warmHistoricoCacheIfNeeded en _renderVistaLista, antes de invocar esta función).
+//
+// sprintId se deriva de sprintItems[0].sprint — la función retorna '' si sprintItems está vacío
+// (el caso de header vacío para sprint activo/programado sin ítems se maneja fuera, en el caller
+// de Backlog Vista Lista — ver _emptySprintHeaderHtml — porque no hay item del cual derivar sprintId).
+export function renderSprintGroup(sprintItems, isClosed) {
+  if (!sprintItems || !sprintItems.length) return '';
+
+  const sprintId = _extractSprintId((sprintItems[0].sprint || '').trim());
+  const sprintObj  = _getSprintById(sprintId);
+  const isActive   = sprintObj?.status === 'active';
+  const isPlanned  = !isActive && !isClosed;
+  const label      = sprintObj ? (sprintObj.label || sprintId) : sprintId;
+  const groupId    = 'vl-' + sprintId.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const isCollapsed = _getCollapsedVersions().has(groupId);
+
+  // Progress — sobre sprintItems (ver nota de fidelidad en header del archivo: en el caso
+  // por defecto, sin filtros/búsqueda activos, sprintItems == universo completo del sprint,
+  // resultado idéntico al comportamiento anterior).
+  const doneInGroup  = sprintItems.filter(i => i.status === 'done' || i.status === 'historico').length;
+  const totalInGroup = sprintItems.filter(i => i.status !== 'descartado').length;
+  const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
+
+  const sprintStatusLabel = isActive
+      ? `<span class="sprint-badge-active">activo</span>`
+      : isClosed
+        ? `<span class="sprint-badge-closed">cerrado</span>`
+        : isPlanned
+          ? `<span class="sprint-badge-planned">planificado</span>`
+          : '';
+
+  // Meta secundaria: velocity para activo, fecha de cierre para cerrado, effort estimado para planificado
+  const _velLabel = isActive ? _sprintVelocityLabel(sprintId) : '';
+  const _metaText = isClosed
+    ? (sprintObj?.closedAt ? `${sprintObj.version_target || ''} · cerrado ${sprintObj.closedAt}`.trim().replace(/^·\s*/, '') : (sprintObj?.version_target || ''))
+    : isPlanned
+      ? (() => { const ef = sprintItems.reduce((s, i) => s + (parseInt(i.effort) || 0), 0); return ef ? `Effort estimado: ${ef}` : ''; })()
+      : '';
+
+  const progressBar = `<div class="bl-vl-sprint-header-progress">
+    <div class="bl-vl-progress-track"><div class="bl-vl-progress-fill" style="--ver-bar-w:${pct}%"></div></div>
+    <span class="bl-vl-progress-label">${doneInGroup}/${totalInGroup} · ${pct}%</span>
+  </div>`;
+
+  let html = `<div class="bl-vl-sprint-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}${isPlanned ? ' sprint-group-planned' : ''}" data-sprint-id="${esc(sprintId)}">`;
+  html += `<div class="bl-vl-sprint-header version-collapse-trigger" data-action="version-collapse" data-group-id="${groupId}" tabindex="0" role="button" aria-expanded="${isCollapsed ? 'false' : 'true'}">`;
+  html += `<div class="bl-vl-sprint-header-row1">`;
+  html += `<span class="version-header-arrow${isCollapsed ? ' collapsed' : ''}" id="varrow-${groupId}" aria-hidden="true">${isCollapsed ? '▸' : '▾'}</span>`;
+  html += `<span id="sprint-label-wrap-${esc(sprintId)}"><span class="version-tag">${esc(sprintId)}</span>${(label && label !== sprintId) ? `<span class="sprint-name-label">${esc(label)}</span>` : ''}</span>`;
+  html += sprintStatusLabel;
+  html += `</div>`; // bl-vl-sprint-header-row1
+  if (_velLabel || _metaText) {
+    html += `<div class="bl-vl-sprint-header-meta">${_velLabel || esc(_metaText)}</div>`;
+  }
+  html += progressBar;
+  html += `</div>`; // bl-vl-sprint-header
+
+  html += `<div class="bl-vl-sprint-body${isCollapsed ? ' collapsed' : ''}" id="vbody-${groupId}">`;
+
+  // Root: Rs con hijos anidados + T/B/P sueltos que no son done/historico/descartado
+  {
+    // childMap ahora se construye desde sprintItems (visible/filtrado por el caller) — antes se
+    // construía desde el universo completo sin filtrar. Ver deuda declarada en header del archivo.
+    const _childMap = _buildChildMap(sprintItems, isClosed);
+    const _rCodesInGroup = new Set(sprintItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
+    const _rootPool = sprintItems.filter(i => i.status !== 'done' && i.status !== 'historico' && i.status !== 'descartado');
+
+    const _rootItems = _rootPool.filter(i => {
+      if (itemKind(i) === 'REQ') return true;
+      return !i.parentId || !_rCodesInGroup.has(i.parentId);
+    });
+
+    _rootItems.forEach(item => {
+      const t = itemKind(item);
+
+      if (t !== 'REQ') {
+        html += buildBacklogItem(item);
+        return;
+      }
+
+      const _children = _childMap.get(item.code) || [];
+
+      if (_children.length > 0) {
+        const _collapseKey = 'locus-r-collapsed-' + item.code;
+        const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
+
+        html += `<div class="bl-vl-req" data-r-code="${esc(item.code)}">`;
+        html += buildBacklogItem(item);
+        html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
+        html += `<div class="bl-vl-req-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-req-body-${esc(item.code)}">`;
+        _children.forEach(child => {
+          html += `<div class="bl-child-row">${buildBacklogItem(child)}</div>`;
+        });
+        html += `</div>`; // bl-vl-req-body
+        html += `</div>`; // bl-vl-req
+      } else {
+        html += buildBacklogItem(item);
+      }
+    });
+  }
+
+  // Done items sueltos — no anidados bajo un R ya renderizado en el bloque root
+  {
+    const _rCodesInGroupForDone = new Set(sprintItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
+    const _doneFlat = sprintItems.filter(i => {
+      if (i.status !== 'done') return false;
+      const t = itemKind(i);
+      if ((t === 'TKT' || t === 'INC') && i.parentId && _rCodesInGroupForDone.has(i.parentId)) return false;
+      return true;
+    });
+    if (_doneFlat.length) html += _doneFlat.map(item => buildBacklogItem(item)).join('');
+  }
+
+  html += `</div>`; // bl-vl-sprint-body
+  html += `</div>`; // bl-vl-sprint-group
+  return html;
+}
+
+// TKT1: header-only para sprint activo/programado sin ningún ítem visible — caso que
+// renderSprintGroup no puede cubrir (sin ítems no hay de dónde derivar sprintId). Exclusivo
+// de Backlog Vista Lista. Progress 0/0 · 0% — sin body de ítems.
+function _emptySprintHeaderHtml(sprintId, sprintObj) {
+  const isActive  = sprintObj?.status === 'active';
+  const isPlanned = !isActive;
+  const label     = sprintObj ? (sprintObj.label || sprintId) : sprintId;
+  const groupId   = 'vl-' + sprintId.toLowerCase().replace(/[^a-z0-9]/g, '-');
+  const isCollapsed = _getCollapsedVersions().has(groupId);
+  const sprintStatusLabel = isActive
+    ? `<span class="sprint-badge-active">activo</span>`
+    : `<span class="sprint-badge-planned">planificado</span>`;
+  const _velLabel = isActive ? _sprintVelocityLabel(sprintId) : '';
+
+  let html = `<div class="bl-vl-sprint-group${isActive ? ' sprint-group-active' : ''}${isPlanned ? ' sprint-group-planned' : ''}" data-sprint-id="${esc(sprintId)}">`;
+  html += `<div class="bl-vl-sprint-header version-collapse-trigger" data-action="version-collapse" data-group-id="${groupId}" tabindex="0" role="button" aria-expanded="${isCollapsed ? 'false' : 'true'}">`;
+  html += `<div class="bl-vl-sprint-header-row1">`;
+  html += `<span class="version-header-arrow${isCollapsed ? ' collapsed' : ''}" id="varrow-${groupId}" aria-hidden="true">${isCollapsed ? '▸' : '▾'}</span>`;
+  html += `<span id="sprint-label-wrap-${esc(sprintId)}"><span class="version-tag">${esc(sprintId)}</span>${(label && label !== sprintId) ? `<span class="sprint-name-label">${esc(label)}</span>` : ''}</span>`;
+  html += sprintStatusLabel;
+  html += `</div>`;
+  if (_velLabel) html += `<div class="bl-vl-sprint-header-meta">${_velLabel}</div>`;
+  html += `<div class="bl-vl-sprint-header-progress">
+    <div class="bl-vl-progress-track"><div class="bl-vl-progress-fill" style="--ver-bar-w:0%"></div></div>
+    <span class="bl-vl-progress-label">0/0 · 0%</span>
+  </div>`;
+  html += `</div>`; // bl-vl-sprint-header
+  html += `<div class="bl-vl-sprint-body${isCollapsed ? ' collapsed' : ''}" id="vbody-${groupId}"></div>`;
+  html += `</div>`; // bl-vl-sprint-group
+  return html;
+}
+
 function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered) {
   // B-202606-076 / TKT-C1: _isQBacklog/_isQDisc importadas desde locus-backlog-core.js — fuente única.
   // TKT (REQ-[pendiente-ID]): ítems ITIL (INC/PRB/KE/CHG con queue Q-INC) excluidos de #backlog-list —
@@ -548,7 +724,6 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   // el campo sprint con el label completo ("PP-S-01 · Nombre del sprint") mientras otros
   // solo almacenan el ID ("PP-S-01"). Sin normalización, Object.keys produce dos entradas
   // distintas para el mismo sprint → dos headers en la vista Lista.
-  const _extractSprintId = s => s.split(' · ')[0].trim();
   const sprintMap = {};
   sprintableItems.forEach(i => {
     const key = _extractSprintId((i.sprint || '').trim());
@@ -596,6 +771,9 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   let html = '';
 
   // ── Sprint groups ─────────────────────────────────────────────────────────
+  // TKT1 (REQ Histórico unificado): el bloque de render por grupo se movió a renderSprintGroup()
+  // (función pura, exportada, ver definición más arriba). Este loop solo arma sprintItems
+  // (unión ya filtrada/ordenada de root+done+historico) y delega.
   sprintKeys.forEach(sprintId => {
     const group = sprintMap[sprintId];
     // B-202606-002: no descartar el grupo si tiene done items visibles aunque no tenga pendientes
@@ -607,144 +785,48 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     if ((!group || !group.length) && !_hasDoneInGroup && !_alwaysShowHeader) return;
 
     const sprintObj = _getSprintById(sprintId);
-    const isActive  = sprintObj?.status === 'active';
     const isClosed  = sprintObj?.status === 'closed';
-    // TKT (REQ-[pendiente-ID]): variable de estado legacy eliminada — ya no existe el sprint
-    // ITIL legacy (TKT-A1, locus-storage.js). Ningún sprint real cae en esa categoría bajo el
-    // modelo Q-INC; ítems ITIL viven en queue, no en sprint.
-    const isPlanned = !isActive && !isClosed;
-    const label     = sprintObj ? (sprintObj.label || sprintId) : sprintId;
-    const groupId   = 'vl-' + sprintId.toLowerCase().replace(/[^a-z0-9]/g, '-');
 
-    // Colapso de sprint group — usa misma clave que version-group existente para compatibilidad
-    const isCollapsed = _getCollapsedVersions().has(groupId);
-
-    // Progress
-    // B-202606-018: usar _extractSprintId para comparar — ítems con label completo también se cuentan
-    // B-202606-028: excluir descartados de totalInGroup — consistente con sml-row-count y _renderSprintItems
-    // INC-[pendiente-ID] TKT1: sprint closed usa universo con historico (getItems() nunca lo incluye
-    // desde T-202606-106) — doneInGroup cuenta done+historico, totalInGroup no cambia de criterio de
-    // exclusión (solo agrega historico al universo, sigue excluyendo descartado). Sprints active/scheduled
-    // no tienen historico — mismo resultado que antes, sin regresión.
-    const _progressSource = isClosed ? _getAllItemsWithHistorico() : getItems();
-    const doneInGroup  = _progressSource.filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId && (i.status === 'done' || i.status === 'historico')).length;
-    const totalInGroup = _progressSource.filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId && i.status !== 'descartado').length;
-    const pct = totalInGroup > 0 ? Math.round((doneInGroup / totalInGroup) * 100) : 0;
+    // Side effect fuera de renderSprintGroup — ver nota de header del archivo (contract_detail
+    // declara sideEffects: ninguno para la función extraída).
     _warmHistoricoCacheIfNeeded(isClosed);
 
-    const sprintBadge       = isClosed ? ' ·' : '';
-    const sprintStatusLabel = isActive
-        ? `<span class="sprint-badge-active">activo</span>`
-        : isClosed
-          ? `<span class="sprint-badge-closed">cerrado</span>`
-          : isPlanned
-            ? `<span class="sprint-badge-planned">planificado</span>`
-            : '';
-
-    // Meta secundaria: velocity para activo, fecha de cierre para cerrado, effort estimado para planificado
-    const _velLabel = isActive ? _sprintVelocityLabel(sprintId) : '';
-    const _metaText = isClosed
-      ? (sprintObj?.closedAt ? `${sprintObj.version_target || ''} · cerrado ${sprintObj.closedAt}`.trim().replace(/^·\s*/, '') : (sprintObj?.version_target || ''))
-      : isPlanned
-        ? (() => { const ef = getItems().filter(i => _extractSprintId((i.sprint||'').trim()) === sprintId).reduce((s,i) => s + (parseInt(i.effort)||0), 0); return ef ? `Effort estimado: ${ef}` : ''; })()
-        : '';
-
-    const progressBar = `<div class="bl-vl-sprint-header-progress">
-      <div class="bl-vl-progress-track"><div class="bl-vl-progress-fill" style="--ver-bar-w:${pct}%"></div></div>
-      <span class="bl-vl-progress-label">${doneInGroup}/${totalInGroup} · ${pct}%</span>
-    </div>`;
-
-    // Done items dentro del sprint si el filtro lo permite
-    // B-202606-048: excluir Ts/Bs done que tienen parentId apuntando a un R visible en el grupo
-    // — ya se renderizan anidados bajo su R padre en el bloque de children (L532-534).
-    // Sin esta exclusión, esos ítems aparecen duplicados: una vez como child y otra vez sueltos aquí.
-    const _rCodesInGroupForDone = new Set(
-      (sprintMap[sprintId] || []).filter(i => itemKind(i) === 'REQ').map(i => i.code)
-    );
-    const _doneInGroup = _getActiveStatuses().has('done')
+    // Done items visibles del grupo (respeta filtro de status 'done' + búsqueda activa)
+    // B-202606-048: excluir Ts/Bs done cuyo parentId apunta a un R visible en el grupo —
+    // renderSprintGroup los anida bajo su R vía childMap, evita duplicado.
+    const _rCodesInGroupForDone = new Set((group || []).filter(i => itemKind(i) === 'REQ').map(i => i.code));
+    const _doneVisible = _getActiveStatuses().has('done')
       ? getItems().filter(i => {
           if (_extractSprintId((i.sprint || '').trim()) !== sprintId) return false;
           if (i.status !== 'done') return false;
           if (!_isCountableItem(i)) return false;
           if (!_matchesQuery(i)) return false;
-          // Excluir children ya renderizados bajo su R padre
-          const t = itemKind(i);
-          if ((t === 'TKT' || t === 'INC') && i.parentId && _rCodesInGroupForDone.has(i.parentId)) return false;
           return true;
         })
       : [];
-    const _doneGroupHtml = _doneInGroup.length
-      ? _sortGroup(_doneInGroup).map(item => buildBacklogItem(item)).join('')
-      : '';
 
-    html += `<div class="bl-vl-sprint-group${isActive ? ' sprint-group-active' : ''}${isClosed ? ' sprint-group-closed' : ''}${isPlanned ? ' sprint-group-planned' : ''}" data-sprint-id="${esc(sprintId)}">`;
-    html += `<div class="bl-vl-sprint-header version-collapse-trigger" data-action="version-collapse" data-group-id="${groupId}" tabindex="0" role="button" aria-expanded="${isCollapsed ? 'false' : 'true'}">`;
-    html += `<div class="bl-vl-sprint-header-row1">`;
-    html += `<span class="version-header-arrow${isCollapsed ? ' collapsed' : ''}" id="varrow-${groupId}" aria-hidden="true">${isCollapsed ? '▸' : '▾'}</span>`;
-    html += `<span id="sprint-label-wrap-${esc(sprintId)}"><span class="version-tag">${esc(sprintId)}</span>${(label && label !== sprintId) ? `<span class="sprint-name-label">${esc(label)}</span>` : ''}</span>`;
-    html += sprintStatusLabel;
-    html += `</div>`; // bl-vl-sprint-header-row1
-    if (_velLabel || _metaText) {
-      html += `<div class="bl-vl-sprint-header-meta">${_velLabel || esc(_metaText)}</div>`;
-    }
-    html += progressBar;
-    html += `</div>`; // bl-vl-sprint-header
+    // Historico visible cuando el sprint está cerrado — mismo universo con historico que antes.
+    const _historicoVisible = isClosed
+      ? _getAllItemsWithHistorico().filter(i => i.status === 'historico' && _extractSprintId((i.sprint || '').trim()) === sprintId)
+      : [];
 
-    html += `<div class="bl-vl-sprint-body${isCollapsed ? ' collapsed' : ''}" id="vbody-${groupId}">`;
+    // Orden: root (sorted) primero, done+historico (sorted) después — mismo orden que la
+    // implementación anterior (root block seguido de done block, sin merge-then-sort).
+    const _groupItems = [
+      ..._sortGroup(group || []),
+      ..._sortGroup([..._doneVisible, ..._historicoVisible])
+    ];
 
-    // AC3: Rs con hijos anidados + Ts/Bs sueltos + Ps sueltas
-    {
-      // childMap desde getItems() completo — todos los Ts hijos con cualquier status
-      // INC-[pendiente-ID] TKT1: sprint closed incluye ítems historico en el universo — sin esto,
-      // Ts/REQs migrados a historico no se anidan bajo su parent al expandir el grupo cerrado.
-      const _allSprintItems = (isClosed ? _getAllItemsWithHistorico() : getItems()).filter(i => _extractSprintId((i.sprint || '').trim()) === sprintId);
-      const _childMap = _buildChildMap(_allSprintItems, isClosed);
-
-      const _rCodesInGroup = new Set(group.filter(i => itemKind(i) === 'REQ').map(i => i.code));
-
-      // Nivel raíz: Rs del grupo + huérfanos (T/B/P sin parentId en el grupo)
-      const _rootItems = _sortGroup(group).filter(i => {
-        if (itemKind(i) === 'REQ') return true;
-        return !i.parentId || !_rCodesInGroup.has(i.parentId);
-      });
-
-      _rootItems.forEach(item => {
-        const t = itemKind(item);
-
-        // AC4: Ps siempre sueltas con buildBacklogItem — nunca anidadas
-        if (t !== 'REQ') {
-          html += buildBacklogItem(item);
-          return;
-        }
-
-        // R — jerarquía con hijos
-        const _children = _childMap.get(item.code) || [];
-
-        if (_children.length > 0) {
-          // AC5: colapso de R en localStorage bajo clave 'locus-r-collapsed-[rCode]'
-          const _collapseKey = 'locus-r-collapsed-' + item.code;
-          const _isRCollapsed = localStorage.getItem(_collapseKey) === '1';
-
-          html += `<div class="bl-vl-req" data-r-code="${esc(item.code)}">`;
-          html += buildBacklogItem(item);
-          // AC9: data-action='vl-toggle-r' — sin conflicto con bl-r-toggle deprecado
-          html += `<button class="bl-r-toggle${_isRCollapsed ? ' collapsed' : ''}" data-action="vl-toggle-r" data-r-code="${esc(item.code)}" aria-label="Colapsar/expandir hijos" title="Colapsar/expandir hijos" type="button"></button>`;
-          html += `<div class="bl-vl-req-body${_isRCollapsed ? ' collapsed' : ''}" id="bl-vl-req-body-${esc(item.code)}">`;
-          _children.forEach(child => {
-            html += `<div class="bl-child-row">${buildBacklogItem(child)}</div>`;
-          });
-          html += `</div>`; // bl-vl-req-body
-          html += `</div>`; // bl-vl-req
-        } else {
-          // R sin hijos — render normal
-          html += buildBacklogItem(item);
-        }
-      });
+    if (!_groupItems.length) {
+      // Sprint activo/programado sin ningún ítem visible — caso fuera de alcance de
+      // renderSprintGroup (requiere al menos 1 item para derivar sprintId internamente).
+      // Exclusivo de Backlog Vista Lista — Histórico nunca lo enfrenta (TKT2 AC3 cubre
+      // Histórico vacío con empty-state global, no headers de sprint por sprint).
+      html += _emptySprintHeaderHtml(sprintId, sprintObj);
+      return;
     }
 
-    html += _doneGroupHtml;
-    html += `</div>`; // bl-vl-sprint-body
-    html += `</div>`; // bl-vl-sprint-group
+    html += renderSprintGroup(_groupItems, isClosed);
   });
 
   // T-202606-090 AC-6 / TKT-C1: bloque "Icebox al final" eliminado de #backlog-list — los ítems
@@ -1856,7 +1938,6 @@ export function _updateSubtabBadges() {
   // en sprint real (no Q-Backlog/Q-DISC) con status active o scheduled (programado).
   // Sin prefijo de urgencia, '' en vez de '0'.
   if (badgeBacklog) {
-    const _extractSprintId = s => (s || '').split(' · ')[0].trim();
     const _isBacklogScope = i => {
       if (i.status !== 'pendiente' && i.status !== 'en-revision') return false;
       const t = itemKind(i);
