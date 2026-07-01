@@ -1,4 +1,9 @@
-// [PP] mod:58 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:59 · autor:Rune · 2026-06-30 UTC-6
+// INC-[pendiente-ID] (triggered_by TKT1 REQ1 S'02 — _getActiveRoleFilter eliminada de
+//   locus-backlog-core.js sin actualizar este consumidor): import roto → SyntaxError en
+//   carga de módulo, bloqueaba toda la app. Import retirado + roleOk eliminado de
+//   _renderKanban (línea ~132). El filtro de rol en Kanban queda inactivo — mismo estado
+//   que ya tenía el resto del backlog tras la eliminación intencional en core.js.
 // TKT-202606-013 (REQ-202606-003 · AC1/AC2): mergeBacklogFromTG — gate duro REQ nuevo sin TKT
 //   hijo. Reemplaza la degradación orphaned:true (T-202606-010) por bloqueo real: ignored con
 //   reason 'req-sin-tkt', sin creación, toast en corrida real. __BR-Core §4 Gate de parser.
@@ -25,7 +30,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveRoleFilter, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID])
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142)
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -129,10 +134,9 @@ export function _renderKanban(listEl) {
     const _rawEffortK = i.effort;
     const _normEffortK = _rawEffortK > 3 ? 3 : _rawEffortK < 1 ? 1 : _rawEffortK;
     const effortOk = _getActiveEfforts().has(_normEffortK); // B-202605-233: effort >3 normalizado a 3
-    let roleOk = true;
-    if (_getActiveRoleFilter() === '__none__') roleOk = !i.role || !i.role.trim();
-    else if (_getActiveRoleFilter() !== null) roleOk = (i.role || '').trim() === _getActiveRoleFilter();
-    return typeOk && effortOk && roleOk && i.status !== 'historico'; // B-202605-266
+    // INC-[pendiente-ID]: roleOk removido — dependía de _getActiveRoleFilter, no exportada
+    // desde TKT1 REQ1 S'02 (core.js:2142, feature desconectada). Kanban ya no filtra por rol.
+    return typeOk && effortOk && i.status !== 'historico'; // B-202605-266
   });
   if (q) {
     allFiltered = allFiltered.filter(i =>
