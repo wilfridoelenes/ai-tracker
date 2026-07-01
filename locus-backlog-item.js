@@ -1,4 +1,4 @@
-// [PP] mod:59 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:61 · autor:Rune · 2026-07-01 UTC-6
 // INC-[pendiente-ID] (triggered_by TKT1 REQ1 S'02 — _getActiveRoleFilter eliminada de
 //   locus-backlog-core.js sin actualizar este consumidor): import roto → SyntaxError en
 //   carga de módulo, bloqueaba toda la app. Import retirado + roleOk eliminado de
@@ -353,9 +353,9 @@ export function _attachBacklogListDelegation() {
       _promoteItem(action.dataset.code);
       return;
     }
-    if (act === 'bitem-promote-ttor') {
+    if (act === 'bitem-promote-tkt-to-req') {
       e.stopPropagation();
-      _promoteTtoR(action.dataset.code);
+      _promoteTktToReq(action.dataset.code);
       return;
     }
     if (act === 'bitem-migrate') {
@@ -372,13 +372,13 @@ export function _attachBacklogListDelegation() {
       _promoteConfirm(action.dataset.code);
       return;
     }
-    if (act === 'promote-ttor-cancel') {
+    if (act === 'promote-tkt-to-req-cancel') {
       const overlay = document.getElementById('promote-modal-overlay');
       if (overlay) overlay.classList.remove('open');
       return;
     }
-    if (act === 'promote-ttor-confirm') {
-      _promoteTtoRConfirm(action.dataset.code);
+    if (act === 'promote-tkt-to-req-confirm') {
+      _promoteTktToReqConfirm(action.dataset.code);
       return;
     }
     if (act === 'acv-toggle') {
@@ -1255,7 +1255,7 @@ export function buildBacklogItem(item, opts = {}) {
       <div class="bitem-footer">
         ${isHistorico ? '' : `<button data-action="bitem-edit" data-code="${esc(item.code)}" class="bitem-edit-btn" title="Editar ítem">✎ Editar</button>`}
         ${(!isHistorico && isIdea && !isDone && !isDiscarded && !_isPPromovida) ? `<button data-action="bitem-promote" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Promover esta posibilidad a Ticket o Requerimiento">⬆ Promover</button>` : ''}
-        ${(!isHistorico && type === 'TKT' && !isDone && !isDiscarded) ? `<button data-action="bitem-promote-ttor" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Promover Ticket a Requerimiento">⬆ → R</button>` : ''}
+        ${(!isHistorico && type === 'TKT' && !isDone && !isDiscarded) ? `<button data-action="bitem-promote-tkt-to-req" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Promover Ticket a Requerimiento">⬆ → R</button>` : ''}
         ${(!isHistorico && !isDone && !isDiscarded) ? `<button data-action="bitem-migrate" data-code="${esc(item.code)}" class="bitem-promote-btn" title="Mover item a otro proyecto">&#x21C4; Mover</button>` : ''}
       </div>
     </div>
@@ -1277,13 +1277,13 @@ function _promoteItem(code) {
       <div class="promote-modal-sub">${esc(code)} · ${esc(item.title)}</div>
       <div class="promote-modal-desc">¿A qué tipo quieres promover esta idea?</div>
       <div class="promote-type-btns">
-        <button class="promote-type-btn" id="promote-btn-T" data-action="promote-select-type" data-type="T">
-          <div class="promote-type-letter">T</div>
+        <button class="promote-type-btn" id="promote-btn-TKT" data-action="promote-select-type" data-type="TKT">
+          <div class="promote-type-letter">TKT</div>
           <div class="promote-type-name">Ticket</div>
           <div class="promote-type-hint">Tarea técnica concreta</div>
         </button>
-        <button class="promote-type-btn" id="promote-btn-R" data-action="promote-select-type" data-type="R">
-          <div class="promote-type-letter">R</div>
+        <button class="promote-type-btn" id="promote-btn-REQ" data-action="promote-select-type" data-type="REQ">
+          <div class="promote-type-letter">REQ</div>
           <div class="promote-type-name">Requerimiento</div>
           <div class="promote-type-hint">Feature o épica con tickets</div>
         </button>
@@ -1306,7 +1306,7 @@ let _promoteTargetType = null;
 
 function _promoteSelectType(type) {
   _promoteTargetType = type;
-  ['T', 'R'].forEach(t => {
+  ['TKT', 'REQ'].forEach(t => {
     const btn = document.getElementById('promote-btn-' + t);
     if (btn) btn.classList.toggle('selected', t === type);
   });
@@ -1315,7 +1315,7 @@ function _promoteSelectType(type) {
 }
 
 function _promoteConfirm(originCode) {
-  if (!_promoteTargetType) return;
+  if (!_promoteTargetType || !_GEN2_TYPES.includes(_promoteTargetType)) return;
   const originItem = getItems().find(i => i.code === originCode);
   if (!originItem) return;
 
@@ -1365,8 +1365,8 @@ function _promoteConfirm(originCode) {
   showToast('success', `⬆ ${originCode} promovido → ${newCode}`);
 }
 
-// T-202604-236: Promover T → R desde Backlog UI
-function _promoteTtoR(code) {
+// T-202604-236: Promover Ticket a Requerimiento desde Backlog UI
+function _promoteTktToReq(code) {
   const item = getItems().find(i => i.code === code);
   if (!item) return;
   // AC-5: solo en T pendiente o progreso
@@ -1386,24 +1386,24 @@ function _promoteTtoR(code) {
         El T origen quedará <strong>descartado</strong> con referencia al R nuevo.
       </div>
       <div class="promote-modal-actions">
-        <button data-action="promote-ttor-cancel"
+        <button data-action="promote-tkt-to-req-cancel"
           class="btn-ghost">Cancelar</button>
-        <button data-action="promote-ttor-confirm" data-code="${esc(code)}" class="btn-primary" id="promote-ttor-confirm-btn">⬆ Promover</button>
+        <button data-action="promote-tkt-to-req-confirm" data-code="${esc(code)}" class="btn-primary" id="promote-tkt-to-req-confirm-btn">⬆ Promover</button>
       </div>`;
   }
   overlay.classList.add('open');
   // AC: foco inicial en botón confirmar (flujo T — sin selector de tipo)
   requestAnimationFrame(() => {
-    const confirmBtn = overlay.querySelector('#promote-ttor-confirm-btn');
+    const confirmBtn = overlay.querySelector('#promote-tkt-to-req-confirm-btn');
     if (confirmBtn) confirmBtn.focus();
   });
 }
 
-function _promoteTtoRConfirm(originCode) {
+function _promoteTktToReqConfirm(originCode) {
   const originItem = getItems().find(i => i.code === originCode);
   if (!originItem) return;
 
-  const newCode = _getNextItemCode('R');
+  const newCode = _getNextItemCode('REQ');
   const nowTs = Date.now();
 
   // AC-2: R hereda desc · area · sprint · tags del T origen
@@ -1435,7 +1435,7 @@ function _promoteTtoRConfirm(originCode) {
   originItem.discardReason = 'reemplazado';
   originItem.discardRef = newCode;
 
-  _blogLog('promovido-a-r', originCode, originCode + ' → ' + newCode, 'backlog');
+  _blogLog('promovido-a-req', originCode, originCode + ' → ' + newCode, 'backlog');
   _undoSnapshot();
   saveBacklog();
   _setBacklogModified();

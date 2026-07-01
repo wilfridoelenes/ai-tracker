@@ -1,4 +1,4 @@
-// [PP] mod:73 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:75 · autor:Rune · 2026-07-01 UTC-6
 // TKT1/TKT2 REQ2 S'02: _isQBacklogActive/_isQDiscActive agregadas (universo activo de
 //   Q-Backlog/Q-DISC, excluye descartado/promoted/historico). _subtabNS: entrada muerta
 //   'q-backlog' (con guion) reemplazada por 'qbacklog' + 'qdisc' agregada.
@@ -1102,6 +1102,10 @@ export function toggleVersionCollapse(v) {
 // pasada de _assignPendingIds — los ítems nuevos aún no están en ITEMS cuando se llama
 // en batch, por lo que sin este parámetro todos obtienen el mismo número.
 export function _getNextItemCode(typeChar, reservedCodes) {
+  if (!typeChar || !_GEN2_TYPES.includes(typeChar)) {
+    console.warn(`_getNextItemCode: typeChar "${typeChar}" no es un tipo canónico (${_GEN2_TYPES.join('/')}). Código no generado.`);
+    return null;
+  }
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -1834,9 +1838,6 @@ export function buildItemRefs(code) {
   ).join('');
   return `<div class="item-refs"><span class="item-ref-label">Sesiones</span>${chips}</div>`;
 }
-
-// T-104/106: labels de tipo completos
-const TYPE_LABELS = { I: 'Posibilidad', P: 'Pendiente', T: 'Ticket', R: 'Requerimiento', B: 'Bug' };
 
 // T-108: toggle colapso de ítem individual
 export function toggleItemExpand(idx) {

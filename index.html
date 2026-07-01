@@ -1,4 +1,4 @@
-<!-- [PP] mod:82 · autor:Rune · 2026-06-30 19:40 UTC-6 -->
+<!-- [PP] mod:83 · autor:Rune · 2026-07-01 UTC-6 -->
 <!-- TKT (REQ-[pendiente-ID]): IDs hotfix → qinc en nav y sub-panel del Backlog.
      #sspanel-hotfix→#sspanel-qinc · #sstab-btn-hotfix→#sstab-btn-qinc ·
      #tpl-badge-hotfix→#tpl-badge-qinc · #hotfix-panel-body→#qinc-panel-body.
@@ -1019,15 +1019,18 @@
         <div class="ie-field">
           <label>Tipo</label>
           <select id="item-type">
-            <option value="P">P — Idea</option>
-            <option value="T">T — Ticket</option>
-            <option value="R">R — Requerimiento</option>
-            <option value="B">B — Bug</option>
+            <option value="REQ">REQ — Requerimiento</option>
+            <option value="TKT">TKT — Ticket</option>
+            <option value="DISC">DISC — Discovery</option>
+            <option value="INC">INC — Incidente</option>
+            <option value="PRB">PRB — Problem</option>
+            <option value="KE">KE — Known Error</option>
+            <option value="CHG">CHG — Change</option>
           </select>
         </div>
         <div class="ie-field">
           <label>Código <span class="field-note-sm">(auto si vacío)</span></label>
-          <input type="text" id="item-code" placeholder="ej: T-202601-001">
+          <input type="text" id="item-code" placeholder="ej: TKT-202607-001">
         </div>
       </div>
 
