@@ -1,4 +1,4 @@
-// [PP] mod:17 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:18 · autor:Rune · 2026-07-01 UTC-6
 // locus-backlog-archive.js
 // TKT2 (REQ Histórico unificado con Vista Lista de Backlog): reescrito para consumir
 // renderSprintGroup() de locus-backlog-render.js — vista única agrupada por sprint cerrado
@@ -73,8 +73,21 @@ export let _legacyHistoricos = [];
 // storage dedicado (T-202606-105) y se leen vía getHistoricoItemsSync(). _buildArchivoPartitions
 // debe mergear ambas fuentes; el caller es responsable de haber llamado refreshHistoricoCache()
 // antes (ver renderArchivoHistorico / renderHistoricoPanel) — esta función permanece sync.
+// TKT3 (REQ Histórico unificado): dedupe por code — mismo patrón que _getAllItemsWithHistorico()
+// de locus-backlog-render.js. Sin esto, un ítem presente simultáneamente en getItems() y
+// getHistoricoItemsSync() (condición de carrera ya identificada) aparecía duplicado en el panel.
+function _mergeActiveAndHistorico() {
+  const _active = getItems();
+  const _historico = getHistoricoItemsSync();
+  if (!_historico.length) return _active;
+  const _seen = new Set(_active.map(i => i.code));
+  const _merged = _active.slice();
+  _historico.forEach(i => { if (!_seen.has(i.code)) { _merged.push(i); _seen.add(i.code); } });
+  return _merged;
+}
+
 function _buildArchivoPartitions() {
-  const allItems      = getItems().concat(getHistoricoItemsSync());
+  const allItems      = _mergeActiveAndHistorico();
   const closedSprints = getActiveSprints().filter(s => s.status === 'closed');
   const closedSprintIds = new Set(closedSprints.map(s => s.id));
 
