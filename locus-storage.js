@@ -1,4 +1,4 @@
-// [PP] mod:79 · autor:Rune · 2026-07-01 09:15 UTC-6
+// [PP] mod:80 · autor:Rune · 2026-07-01 11:40 UTC-6
 // locus-storage.js
 // Última actualización: TKT1 (REQ-sprints-migration) — _allSprintsCache cross-proyecto reemplaza
 // _sprintsCache por-proyecto-activo. getAllProjectsSprints() nueva, getActiveSprints() deriva del
@@ -559,16 +559,20 @@ export function getSupabaseUserId() {
 // Compara los constraints reales de tracker_items (vía RPC get_table_constraints, TKT1a)
 // contra los valores canónicos declarados en __BR-Ecosystem §4 (tracker_items_type_check)
 // y __BR-Core §4 (chk_status_by_type). Detecta desincronía DDL↔código tras migraciones de schema.
+// Firma: Promise<{ok,mismatches,uniquePkCheck}|null> — sin call sites externos en este archivo.
 //
-// [tmp:tkt1-verify-constraints] · 2026-07-01 — generalizado a las 5 tablas tracker_* para
-// comparar además cada onConflict declarado en el código contra los constraints UNIQUE/PK
-// reales (contype 'u'/'p') — no solo los CHECK de tracker_items. Origen: INC saveHistoricoItems()
-// 42P10 — onConflict:'user_id,code' sin constraint correspondiente no fue detectado hasta producción.
-// Firma cambia de Promise<boolean|null> a Promise<{ok,mismatches}|null> — sin call sites externos
-// en este archivo (verificado: única referencia es la definición de la función).
-// Asunción declarada: la RPC get_table_constraints expone columna `contype` (mismo naming que
-// pg_constraint, ya expone conname/condef). Sin acceso al SQL de TKT1a para confirmar — si
-// contype no existe, el fallback es sobre-reportar mismatches (falso positivo), no silenciar.
+// [INC-PP · 2026-07-01] Chequeo onConflict vs UNIQUE/PK DESHABILITADO. Query en vivo del founder
+// contra get_table_constraints('tracker_items') confirmó que la RPC retorna únicamente las 5 filas
+// CHECK — sin tracker_items_code_key ni tracker_items_pkey, sin columna `contype`. No era una
+// ausencia parcial de `contype` (asunción original de TKT1) sino ausencia total de filas UNIQUE/PK.
+// Con contype siempre indefinido, _checkOnConflictAgainstRows() reportaba mismatch falso en las
+// 5 tablas en cada ejecución. kill_criteria de [tmp:req-contype-rpc] activado: "Si la RPC no puede
+// modificarse... cancelar y dejar el chequeo UNIQUE/PK deshabilitado con warning explícito —
+// preferible a falsos positivos silenciosos." _checkOnConflictAgainstRows() y _EXPECTED_ONCONFLICT*
+// se conservan sin invocar — candidatos a reactivación si se extiende get_table_constraints para
+// exponer UNIQUE/PK (ver DISC "Extender get_table_constraints para exponer filas UNIQUE/PK").
+// Los CHECK constraints de tracker_items (tracker_items_type_check, chk_status_by_type) NO se ven
+// afectados por este fix — la RPC sí los retorna, siguen comparándose sin cambios.
 //
 // Deuda registrada: _CANONICAL_TYPES y _CANONICAL_STATUS_BY_TYPE duplican los valores de
 // _VALID_STATUS_BY_TYPE / _VALID_ITEM_TYPES definidos localmente dentro de saveBacklog()
@@ -618,6 +622,10 @@ function _sameSet(a, b) {
 
 // Compara el onConflict esperado de una tabla contra sus filas UNIQUE/PK reales.
 // Empuja un mismatch a `mismatches` si ninguna fila coincide como set de columnas.
+// NO INVOCADA actualmente — deshabilitada por INC-PP (ver comentario de cabecera arriba).
+// get_table_constraints() no retorna filas UNIQUE/PK, por lo que r.contype nunca coincide y
+// esta función siempre reportaría mismatch falso. Conservada para reactivación si TKT1a
+// extiende la RPC — ver DISC pendiente.
 function _checkOnConflictAgainstRows(tabla, rows, expected, mismatches) {
   const uniqueOrPkRows = (rows || []).filter(r => r.contype === 'u' || r.contype === 'p');
   const match = uniqueOrPkRows.some(r => _sameSet(_parsePgColumnList(r.condef), expected));
@@ -657,7 +665,9 @@ export async function verifyConstraintsSync() {
 
   const mismatches = [];
 
-  // ── tracker_items — CHECK constraints canónicos (comportamiento previo) + onConflict:code ──
+  console.warn('[Locus] verifyConstraintsSync — chequeo onConflict vs UNIQUE/PK DESHABILITADO: get_table_constraints() no expone filas UNIQUE/PK ni columna contype (confirmado por query en vivo, 2026-07-01). Solo se verifican los CHECK constraints de tracker_items. Ver DISC pendiente para reactivación tras extender la RPC.');
+
+  // ── tracker_items — CHECK constraints canónicos (comportamiento previo, sin cambios) ──
   const itemsRows = await _fetchTableConstraints('tracker_items');
   if (!itemsRows) {
     mismatches.push({ tabla: 'tracker_items', constraints_check: 'unavailable' });
@@ -690,34 +700,25 @@ export async function verifyConstraintsSync() {
       }
     }
 
-    _checkOnConflictAgainstRows('tracker_items', itemsRows, _EXPECTED_ONCONFLICT_ITEMS, mismatches);
+    // _checkOnConflictAgainstRows('tracker_items', ...) — DESHABILITADO, ver comentario de cabecera.
   }
 
-  // ── Resto de tablas — solo onConflict vs UNIQUE/PK real ──
-  for (const tabla of Object.keys(_EXPECTED_ONCONFLICT)) {
-    const rows = await _fetchTableConstraints(tabla);
-    if (!rows) {
-      mismatches.push({ tabla, constraints_check: 'unavailable' });
-      continue;
-    }
-    _checkOnConflictAgainstRows(tabla, rows, _EXPECTED_ONCONFLICT[tabla], mismatches);
-  }
+  // ── Resto de tablas — chequeo onConflict vs UNIQUE/PK DESHABILITADO, ver comentario de cabecera.
+  // _EXPECTED_ONCONFLICT se conserva sin recorrer — candidato a reactivación, ver DISC pendiente.
 
   if (mismatches.length === 0) {
-    console.log('[Locus] verifyConstraintsSync — OK: constraints sincronizados con BR-Ecosystem y onConflict verificado contra UNIQUE/PK reales (5 tablas).');
-    return { ok: true, mismatches: [] };
+    console.log('[Locus] verifyConstraintsSync — OK: CHECK constraints de tracker_items sincronizados con BR-Ecosystem/BR-Core. Chequeo UNIQUE/PK deshabilitado (ver warning arriba).');
+    return { ok: true, mismatches: [], uniquePkCheck: 'disabled' };
   }
 
   for (const d of mismatches) {
     if (d.constraints_check) {
       console.warn(`[Locus] verifyConstraintsSync — ${d.tabla}: constraints_check unavailable.`);
-    } else if (d.onConflictDeclarado) {
-      console.warn(`[Locus] verifyConstraintsSync — DESINCRONÍA onConflict en ${d.tabla}. Declarado:`, d.onConflictDeclarado, 'Constraint real:', d.constraintReal);
     } else {
       console.warn(`[Locus] verifyConstraintsSync — DESINCRONÍA en ${d.constraint}. Esperado:`, d.esperado, 'Real:', d.real);
     }
   }
-  return { ok: false, mismatches };
+  return { ok: false, mismatches, uniquePkCheck: 'disabled' };
 }
 
 // ── GRUPO 1 — ESTADO Y PERSISTENCIA ──────────────────────────────────────────
