@@ -1,4 +1,8 @@
-// [PP] mod:75 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:76 · autor:Rune · 2026-07-01 UTC-6
+// TKT-[pendiente-ID] (REQ-[pendiente-ID] limpieza de código muerto): eliminadas _vcCollapseGet
+//   y _vcCollapseSet — huérfanas tras remoción de _renderVistaC en locus-backlog-render.js
+//   (impacto lateral de la misma eliminación, sin otro caller en el codebase). Sin cambio de
+//   comportamiento visible.
 // TKT1/TKT2 REQ2 S'02: _isQBacklogActive/_isQDiscActive agregadas (universo activo de
 //   Q-Backlog/Q-DISC, excluye descartado/promoted/historico). _subtabNS: entrada muerta
 //   'q-backlog' (con guion) reemplazada por 'qbacklog' + 'qdisc' agregada.
@@ -343,17 +347,6 @@ const VERSION_LABELS = {
   'v2.0.0':'Sprint activo',
   'futura':'Versión futura — sin fecha'
 };
-
-// T-202606-014: colapso de Rs en vista C — clave canónica por proyecto+rCode
-export function _vcCollapseGet(projectId, rCode) {
-  try { return localStorage.getItem(`locus-vc-collapse-${projectId}-${rCode}`) === '1'; } catch { return false; }
-}
-export function _vcCollapseSet(projectId, rCode, collapsed) {
-  try {
-    if (collapsed) { localStorage.setItem(`locus-vc-collapse-${projectId}-${rCode}`, '1'); }
-    else { localStorage.removeItem(`locus-vc-collapse-${projectId}-${rCode}`); }
-  } catch {}
-}
 
 // T-049: colapso por versión — persiste en localStorage
 const _CV_KEY = 'backlog-collapsed-versions';
