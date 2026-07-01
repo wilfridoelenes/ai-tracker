@@ -1,4 +1,4 @@
-/* [PP] mod:27 · autor:Nova · 2026-06-26 */
+/* [PP] mod:28 · autor:Nova · 2026-06-30 19:22 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-06-26 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
 /* Gen 2 — infra_version: 5 | Migración selectores: bitem-type-[T/R/B/P] → Gen2, data-type="[T/R/B/P]" → Gen2, bl-fc-type/rsb-item/mdiff-type abreviados → Gen2 */
@@ -3402,6 +3402,24 @@ body {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
   border-color: var(--accent);
+}
+
+/* INC-[pendiente-ID]: badge de cola fija para INC/PRB/KE/CHG en modal DIFF —
+   reemplaza .mdiff-sprint-select cuando el ítem no acepta sprint/Q-Backlog (vive en Q-INC).
+   No interactivo — mismo tratamiento neutro que .sps-card--pausado (surface2/hint). */
+.mdiff-queue-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 8px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--hint);
+  background: var(--surface2);
+  border: 1px solid var(--hint);
+  border-radius: var(--radius-xs);
+  white-space: nowrap;
 }
 
 /* ══ END R-202605-148 ══ */

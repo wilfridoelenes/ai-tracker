@@ -1,4 +1,4 @@
-// [PP] mod:35 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:36 · autor:Rune · 2026-06-30 19:15 UTC-6
 // INC-[pendiente-ID] (triggered_by REQ-202606-003 / REQ-202606-001): las 4 rutas de status
 //   manual de este archivo (_mdiffDoApply retroceso/discard, _confirmRetroceso, _confirmDiscard,
 //   _applyDiscardBatch) seteaban item.status directo sin invocar _syncParentRStatus (ahora
@@ -236,7 +236,13 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
 
   // R-202605-148: select de sprint inline — persiste via _mdiffSetItemSprint sin re-render del DIFF
   // B-202606-032: sprintOverride — sprint del objeto diff para ítems nuevos que aún no existen en getItems()
-  const _sprintSelect = (code, sprintOverride) => {
+  // INC-[pendiente-ID]: itemType (pos 3) — INC/PRB/KE/CHG viven exclusivamente en Q-INC (__BR-Ecosystem §5).
+  //   Estos tipos no aceptan sprint ni Q-Backlog — el selector no se renderiza, se muestra badge de cola fija.
+  const _QINC_TYPES = ['INC', 'PRB', 'KE', 'CHG'];
+  const _sprintSelect = (code, sprintOverride, itemType) => {
+    if (_QINC_TYPES.includes(itemType)) {
+      return `<span class="mdiff-queue-badge mdiff-queue-badge--qinc" title="Cola fija — no editable">Q-INC</span>`;
+    }
     const openSprints = getActiveSprints().filter(s => s.status !== 'closed');
     const item = getItems().find(i => i.code === code);
     // B-202606-032: para ítems nuevos (item === null), usar sprintOverride del objeto diff como fuente
@@ -310,7 +316,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           <span class="mdiff-type-badge">${typeName}</span>
           <span class="mdiff-code mdiff-card-title">${esc(code)}</span>
           ${pillsHtml}
-          ${_sprintSelect(code, sprintOverride)}
+          ${_sprintSelect(code, sprintOverride, itemType)}
         </div>
         ${_parentHtml(code, parentOverride)}
         <div class="mdiff-desc">${esc(desc || '')}</div>
@@ -334,7 +340,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           <span class="mdiff-type-badge">${typeName}</span>
           <span class="mdiff-code mdiff-card-title">${esc(i.code)}</span>
           ${_pill('retroceso', `${esc(i.from)} → ${esc(i.to)}`)}
-          ${_sprintSelect(i.code, i.sprint)}
+          ${_sprintSelect(i.code, i.sprint, itemType)}
         </div>
         <div class="mdiff-desc">${esc(i.title || '')}</div>
       </div>
@@ -366,7 +372,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           <span class="mdiff-code mdiff-card-title">${esc(i.code)}</span>
           ${_pill('discarded', 'descartado')}
           ${reasonHtml}
-          ${_sprintSelect(i.code, i.sprint)}
+          ${_sprintSelect(i.code, i.sprint, itemType)}
         </div>
         <div class="mdiff-desc">${esc(i.title || '')}</div>
       </div>
