@@ -1,4 +1,4 @@
-// [PP] mod:15 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:16 · autor:Rune · 2026-06-30 UTC-6
 // locus-backlog-archive.js
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, vistas por sprint y plana.
 
@@ -419,9 +419,11 @@ function _toggleArchSprintEntry(bodyId, storageKey) {
         spItems = archivoItems.filter(i => !i.sprint || !registeredIds.has(i.sprint) || legacyIds.has(i.sprint));
       } else {
         const spId = storageKey.replace(/^arch-se-/, '');
-        const { closedSprintIds } = _buildArchivoPartitions();
-        // AC-4: mostrar todos los ítems del sprint cerrado independientemente de su status
-        spItems = getItems().filter(i => i.sprint === spId && closedSprintIds.has(i.sprint));
+        const { archivoItems, closedSprintIds } = _buildArchivoPartitions();
+        // AC-4: mostrar todos los ítems del sprint cerrado independientemente de su status —
+        // INC-fix: usar archivoItems (ya mergea getItems()+historico) en vez de getItems() solo,
+        // que nunca contiene status:historico desde T-202606-106.
+        spItems = archivoItems.filter(i => i.sprint === spId && closedSprintIds.has(i.sprint));
       }
       el.innerHTML = `<div class="arch-items-list">${spItems.map(_archItemRow).join('')}</div>`;
     }
