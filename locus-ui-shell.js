@@ -1,4 +1,4 @@
-// [PP] mod:35 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:36 · autor:Rune · 2026-06-30 19:15 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -151,7 +151,7 @@ export function switchTab(tab) {
 
 export function switchSubTab(sub) {
   currentSubTab = sub;
-  ['backlog','q-backlog','q-disc','qinc','htmlmap','context','plan','contratos','historico'].forEach(s => {
+  ['backlog','qbacklog','qdisc','qinc','htmlmap','context','plan','contratos','historico'].forEach(s => {
     const btn = document.getElementById('sstab-btn-' + s);
     const panel = document.getElementById('sspanel-' + s);
     if (btn) btn.classList.toggle('active', s === sub);
@@ -176,15 +176,15 @@ export function switchSubTab(sub) {
     // (a) event dispatch — locus-docs.js escucha 'shell:update-backlog-modification-badge'
     window.dispatchEvent(new CustomEvent('shell:update-backlog-modification-badge'));
   }
-  if (sub === 'q-backlog') {
-    // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-q-backlog'
-    // TKT-B4: 'icebox' → 'q-backlog'/'q-disc' — TKT-C1 registrará estos listeners en locus-backlog-render.js
-    window.dispatchEvent(new CustomEvent('shell:render-q-backlog'));
+  if (sub === 'qbacklog') {
+    // INC-[pendiente-ID]: 'q-backlog' → 'qbacklog' — alineado con IDs reales de index.html
+    // (sstab-btn-qbacklog / sspanel-qbacklog) y con locus-backlog-render.js (renderQBacklogPanel).
+    window.dispatchEvent(new CustomEvent('shell:render-qbacklog'));
   }
-  if (sub === 'q-disc') {
-    // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-q-disc'
-    // TKT-B4: panel Q-DISC para DISCs — TKT-C1 registrará este listener
-    window.dispatchEvent(new CustomEvent('shell:render-q-disc'));
+  if (sub === 'qdisc') {
+    // INC-[pendiente-ID]: 'q-disc' → 'qdisc' — alineado con IDs reales de index.html
+    // (sstab-btn-qdisc / sspanel-qdisc) y con locus-backlog-render.js (renderQDiscPanel).
+    window.dispatchEvent(new CustomEvent('shell:render-qdisc'));
   }
   if (sub === 'qinc') {
     // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-qinc'
