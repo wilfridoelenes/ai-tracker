@@ -1,8 +1,9 @@
-// [PP] mod:71 · autor:Rune · 2026-06-30 16:00 UTC-6
+// [PP] mod:72 · autor:Rune · 2026-06-30 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
 import { _isBlocked, getItems, itemKind } from './locus-backlog-core.js';
+import { getHistoricoItemsSync } from './locus-backlog-archive.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico
 import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, openNewSprintInline, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
@@ -1536,8 +1537,21 @@ function _renderSpsCerrados() {
   const rows = closed.map(sprint => {
     const _sid = _spIdBase(sprint.id);
     let doneCnt = 0, migradoCnt = 0, descartadoCnt = 0;
-    if (Array.isArray(getItems())) {
-      const spItems = getItems().filter(i => {
+    {
+      // INC-fix: getItems() ya no contiene status:historico (T-202606-106) — los ítems
+      // done de un sprint cerrado migran a getHistoricoItemsSync(). Combinar ambas fuentes
+      // para que el contador cuente contra el universo real, no solo el activo.
+      const live = Array.isArray(getItems()) ? getItems() : [];
+      const hist = (typeof getHistoricoItemsSync === 'function' && Array.isArray(getHistoricoItemsSync()))
+        ? getHistoricoItemsSync() : [];
+      const seen = new Set();
+      const allItems = [];
+      for (const i of [...live, ...hist]) {
+        if (!i || !i.code || seen.has(i.code)) continue;
+        seen.add(i.code);
+        allItems.push(i);
+      }
+      const spItems = allItems.filter(i => {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
         return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
           (['REQ','TKT','INC'].includes(itemKind({type:t})));

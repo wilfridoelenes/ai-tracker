@@ -1,4 +1,4 @@
-// [PP] mod:54 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:55 · autor:Rune · 2026-06-30 UTC-6
 // TKT1 REQ2 S'02: isZone de renderQBacklogPanel/renderQDiscPanel y _updateSubtabBadges
 //   migrados a _isQBacklogActive/_isQDiscActive (excluye descartado/promoted).
 // TKT3 REQ2 S'02: stats-bar interactiva (_renderZonePanel) — chips de tipo/prioridad,
@@ -1731,10 +1731,10 @@ export async function renderHistoricoPanel() {
         <div class="stat-card"><span class="stat-n">${_stats.total}</span><span class="stat-l">Total</span></div>
       </div>
       <div class="stats-row">
-        <span class="stat-type-chip stat-type-chip--static tc-R"><span class="tc-count">${_stats.byType.R}</span><span class="tc-label">Req</span></span>
-        <span class="stat-type-chip stat-type-chip--static tc-T"><span class="tc-count">${_stats.byType.T}</span><span class="tc-label">Ticket</span></span>
-        <span class="stat-type-chip stat-type-chip--static tc-B"><span class="tc-count">${_stats.byType.B}</span><span class="tc-label">Bug</span></span>
-        <span class="stat-type-chip stat-type-chip--static tc-P"><span class="tc-count">${_stats.byType.P}</span><span class="tc-label">Idea</span></span>
+        <span class="stat-type-chip stat-type-chip--static tc-R"><span class="tc-count">${_stats.byType.REQ || 0}</span><span class="tc-label">Req</span></span>
+        <span class="stat-type-chip stat-type-chip--static tc-T"><span class="tc-count">${_stats.byType.TKT || 0}</span><span class="tc-label">Ticket</span></span>
+        <span class="stat-type-chip stat-type-chip--static tc-B"><span class="tc-count">${_stats.byType.INC || 0}</span><span class="tc-label">Bug</span></span>
+        <span class="stat-type-chip stat-type-chip--static tc-P"><span class="tc-count">${_stats.byType.DISC || 0}</span><span class="tc-label">Idea</span></span>
       </div>
       <div class="stats-row">
         <span class="stat-pri-chip stat-pri-chip--static pri-high"><span class="spc-n">${_stats.byPriority.high}</span> Alto</span>
