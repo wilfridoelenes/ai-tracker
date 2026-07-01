@@ -1,3 +1,11 @@
+<!-- [PP] mod:84 · autor:Rune · 2026-07-01 UTC-6 -->
+<!-- TKT-[pendiente-ID] (REQ-[pendiente-ID] simplificar toolbar de backlog): eliminado
+     #backlog-meta-banner (T-048/T-050) del sub-panel Backlog. Consumidores en JS
+     (updateBacklogBanner en locus-backlog-core.js · updateBacklogModificationBadge en
+     locus-docs.js · _mgDownload en locus-map-generator.js) ya usan null-checks defensivos
+     (if (banner)/if (bmetaEl)) — sin crash, se vuelven no-op para esas líneas específicas.
+     updateBacklogModificationBadge() queda con lógica inerte — deuda registrada, no resuelta
+     en este TKT (out of scope: solo se pidió eliminar el banner, no su JS de soporte). -->
 <!-- [PP] mod:83 · autor:Rune · 2026-07-01 UTC-6 -->
 <!-- TKT (REQ-[pendiente-ID]): IDs hotfix → qinc en nav y sub-panel del Backlog.
      #sspanel-hotfix→#sspanel-qinc · #sstab-btn-hotfix→#sstab-btn-qinc ·
@@ -387,12 +395,6 @@
 
     <!-- Sub-panel: Backlog -->
     <div class="session-subpanel active" id="sspanel-backlog">
-    <!-- T-048 + T-050: Banner metadata -->
-    <div class="backlog-meta-banner visible" id="backlog-meta-banner">
-      <span class="backlog-meta-value" id="bmeta-version">v—</span>
-      <span class="backlog-meta-sep is-hidden" id="bmeta-mod-sep">·</span>
-      <span class="backlog-meta-value is-hidden amber-color" id="bmeta-mod-val">—</span>
-    </div>
 
     <div class="stats-bar" id="stats-bar"></div>
     <div class="active-filter-chips is-hidden" id="active-filter-chips"></div>
