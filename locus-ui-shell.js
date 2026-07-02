@@ -1,4 +1,4 @@
-// [PP] mod:36 · autor:Rune · 2026-06-30 19:15 UTC-6
+// [PP] mod:37 · autor:Rune · 2026-07-01 00:00 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -281,12 +281,15 @@ export function toggleMoreMenu() {
 // Parsea con _parseInfraLine · guarda objeto completo con setInfraVersionData.
 export function openInfraSync() {
   const overlay = document.getElementById('infra-sync-overlay');
-  if (overlay) overlay.classList.remove('is-hidden');
+  // INC — .modal-overlay base es display:none; solo .open fuerza display:flex.
+  // 'is-hidden' tiene !important y bloquearía .open si quedara en el elemento
+  // (ver limpieza de markup inicial en index.html — mismo patrón que #changelog-overlay).
+  if (overlay) overlay.classList.add('open');
 }
 
 export function closeInfraSync() {
   const overlay = document.getElementById('infra-sync-overlay');
-  if (overlay) overlay.classList.add('is-hidden');
+  if (overlay) overlay.classList.remove('open');
 }
 
 export function initInfraVersionHandler() {

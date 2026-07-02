@@ -1,3 +1,21 @@
+// [PP] mod:88 · autor:Rune · 2026-07-02 03:20 UTC-6
+// TKT1 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
+//   cross-CHECKPOINT): agregada _splitCheckpointBlocks(text) → string[] — separa un texto
+//   pegado en N bloques CHECKPOINT delimitados por fence ``` (con o sin especificador json).
+//   Función pura, exportada, sin efectos laterales — no valida JSON (eso ocurre en
+//   parseCheckpoint, invocado por TKT2 sobre cada elemento del array), no resuelve slugMap,
+//   no toca UI del textarea. AC4 (sin bloques delimitados → []) y AC2 (un solo bloque →
+//   array de 1, comportamiento histórico preservado) verificados. Hallazgo fuera de scope:
+//   un bloque con ``` embebido dentro de un valor string JSON (ej. doc_updates.content con
+//   ejemplo de fence) corta el bloque en ese punto — mismo riesgo ya documentado en
+//   T-202606-019 para el path de parseCheckpoint. Fuera de los AC de este TKT — señalar a
+//   Cael si aparece en uso real.
+export function _splitCheckpointBlocks(text) {
+  if (!text) return [];
+  const _re = /```(?:json)?\s*[\s\S]*?```/g;
+  const _matches = text.match(_re);
+  return _matches || [];
+}
 // [PP] mod:87 · autor:Rune · 2026-07-01 15:40 UTC-6
 // TKT-202606-014 (REQ-202606-003 · AC2): agregado draftRaw — valor crudo de _parsed.draft
 //   (undefined/true/false) propagado sin colapsar desde parseCheckpoint → ai._parsed →
