@@ -1,3 +1,12 @@
+// [PP] mod:62 · autor:Rune · 2026-07-02 03:35 UTC-6
+// TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
+//   cross-CHECKPOINT): _assignPendingIds(tgItems, seedSlugMap?) — parámetro nuevo, opcional,
+//   sin cambio de comportamiento si ausente. Seed copiado al inicio del slugMap con precedencia
+//   — guard nuevo en sub-paso 1a evita reasignar código a un [tmp:slug] ya resuelto en el seed.
+//   mergeBacklogFromTG(tgItems, sessionId, opts?) — propaga opts.seedSlugMap a _assignPendingIds;
+//   slugMap ya se retornaba desde B-202606-022, agregado también al early-return de tgItems
+//   vacío para no romper la cadena del orquestador de batch. Ver contrato completo y la función
+//   orquestadora nueva (_applyCheckpointBatch) en locus-session-save.js.
 // [PP] mod:61 · autor:Rune · 2026-07-01 UTC-6
 // INC-[pendiente-ID] (triggered_by TKT1 REQ1 S'02 — _getActiveRoleFilter eliminada de
 //   locus-backlog-core.js sin actualizar este consumidor): import roto → SyntaxError en
@@ -1734,7 +1743,7 @@ function _findTmpMatch(tmpCode, desc, existingItems, incomingType) {
 //   Ítems con código real existente se registran como identidad: code → code.
 // T-202605-140 T2: Paso 2 — resolver referencias cruzadas (dependsOn, parentId,
 //   triggeredBy, origenDisc, promovida_a) usando slugMap. Referencia no resuelta → null/[].
-export function _assignPendingIds(tgItems) {
+export function _assignPendingIds(tgItems, seedSlugMap) {
   // TKT1 (REQ-[pendiente-ID] · Integridad de generación y persistencia de código de ítems):
   //   validTypes Gen1 (P/T/R/B) reemplazado por _GEN2_TYPES — los 7 tipos canónicos
   //   (REQ/TKT/DISC/INC/PRB/KE/CHG). Causa raíz confirmada: con el set Gen1, todo ítem
@@ -1744,6 +1753,15 @@ export function _assignPendingIds(tgItems) {
 
   // T-202605-140 T2 · Paso 1: construir slugMap mientras se asignan IDs
   const slugMap = new Map();
+
+  // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs): seedSlugMap ausente/undefined →
+  //   comportamiento idéntico al actual, slugMap se construye desde cero. Si está presente
+  //   (slugMap acumulado de un bloque previo del mismo batch), sus entradas se copian primero
+  //   y tienen precedencia como identidad ya resuelta — ver guard en sub-paso 1a, que evita
+  //   reasignar código nuevo a un [tmp:slug] ya resuelto en el seed.
+  if (seedSlugMap instanceof Map) {
+    seedSlugMap.forEach((v, k) => slugMap.set(k, v));
+  }
 
   // Pre-poblar slugMap con códigos reales ya existentes (identidad: code → code)
   tgItems.forEach(item => {
@@ -1765,6 +1783,11 @@ export function _assignPendingIds(tgItems) {
     // [tmp:slug] sin type válido: conservar literal — siguen flujo _findTmpMatch existente.
     if (item.code && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
       if (!item.type || !validTypes.has(item.type)) return item; // sin type — conservar literal
+      // TKT2: slug ya resuelto en el seed (bloque previo del mismo batch) — identidad ya
+      // resuelta tiene precedencia, no reasignar código nuevo.
+      if (slugMap.has(item.code)) {
+        return { ...item, code: slugMap.get(item.code), _wasAssigned: true };
+      }
       const newCode = _getNextItemCode(item.type, reservedCodes);
       reservedCodes.add(newCode);
       slugMap.set(item.code, newCode); // tmp:slug → código real asignado
@@ -1923,7 +1946,10 @@ function validateIncidentTransitions(oldIncidentStatus, newIncidentStatus) {
 // Llamado desde saveSession(). Acumula múltiples sesiones sin exportar.
 // T-202604-121: retorna {created, updated, ignored} para super toast
 export function mergeBacklogFromTG(tgItems, sessionId, opts) {
-  if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[], invalidTransition:[] };
+  // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs): slugMap: new Map() agregado al
+  // resultado de items vacíos — sin esto, el orquestador de batch (_applyCheckpointBatch,
+  // locus-session-save.js) pierde la cadena de seedSlugMap si un bloque del batch no trae ítems.
+  if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[], invalidTransition:[], slugMap: (opts && opts.seedSlugMap instanceof Map) ? opts.seedSlugMap : new Map() };
   const _dryRun   = !!(opts && opts.dryRun);
   const _ckptRol  = (opts && opts.ckptRol) || '';
 
@@ -1931,7 +1957,9 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // Los placeholders siempre son ítems nuevos — nunca matchean contra el backlog.
   // _assignPendingIds se aplica solo a los que tienen type char válido (P/T/R/B) y código real.
   // B-202606-022: _assignPendingIds retorna { items, slugMap } — slugMap se propaga hasta applyPatchesFromTG
-  const { items: _assignedItems, slugMap: _slugMap } = _assignPendingIds(tgItems);
+  // TKT2: opts.seedSlugMap propagado — encadena la identidad de [tmp:slug] resuelta en bloques
+  // previos del mismo batch (ver _applyCheckpointBatch, locus-session-save.js).
+  const { items: _assignedItems, slugMap: _slugMap } = _assignPendingIds(tgItems, opts && opts.seedSlugMap);
   tgItems = _assignedItems;
 
   // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)

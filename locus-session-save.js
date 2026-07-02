@@ -1,3 +1,11 @@
+// [PP] mod:54 · autor:Rune · 2026-07-02 03:40 UTC-6
+// TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
+//   cross-CHECKPOINT): agregada _applyCheckpointBatch(blocks, sessionId) — orquestador nuevo,
+//   no declarado en contract_detail original de Cael (ver nota junto a la función). Recibe
+//   bloques de _splitCheckpointBlocks (TKT1), parsea cada uno, aplica gate de duplicados
+//   [tmp:slug] a nivel de batch completo (AC3), y mergea secuencialmente encadenando slugMap
+//   vía opts.seedSlugMap de mergeBacklogFromTG (TKT2, locus-backlog-item.js). Imports nuevos:
+//   parseCheckpoint + _splitCheckpointBlocks (locus-session-parse.js) · _blogLog (locus-storage.js).
 // [PP] mod:53 · autor:Rune · 2026-06-30 UTC-6
 // locus-session-save.js
 // Última actualización: B-202606-105 — CHANGELOG_KEY local eliminada, usa LOCUS_KEYS.CHANGELOG
@@ -13,7 +21,7 @@ import { _markRadarDirty, renderGlobalRadarSidebar, toggleRadarSidebar } from '.
 import { stopSessionTimer } from './locus-sesiones-utils.js';
 import { _getLocalStorageUsage } from './locus-sprint-project.js';
 import { _generateBacklogContent, _generateBacklogMd } from './locus-backlog-generator.js';
-import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate } from './locus-storage.js';
+import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate, _blogLog } from './locus-storage.js'; // TKT2: _blogLog — DocLog de _applyCheckpointBatch
 
 
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
@@ -24,7 +32,7 @@ import { render } from './locus-sesiones.js';
 
 import { _showProjRequiredInPanel, interpretHora } from './locus-session-hora.js';
 
-import { _setPhase, _tryIngestPlan, _tryIngestPlanFromParsed, _tryIngestSprintProposal, _tryIngestSprintProposalFromParsed, _applySprintInheritanceToItems, parseSprintProposal, parsePaste, _buildTriggeredBySuggestion } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-020: _applySprintInheritanceToItems | T-202606-018: _tryIngestPlanFromParsed | T-202606-021: _buildTriggeredBySuggestion | B-202606-019: _tryIngestSprintProposalFromParsed
+import { _setPhase, _tryIngestPlan, _tryIngestPlanFromParsed, _tryIngestSprintProposal, _tryIngestSprintProposalFromParsed, _applySprintInheritanceToItems, parseSprintProposal, parsePaste, _buildTriggeredBySuggestion, parseCheckpoint, _splitCheckpointBlocks } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-020: _applySprintInheritanceToItems | T-202606-018: _tryIngestPlanFromParsed | T-202606-021: _buildTriggeredBySuggestion | B-202606-019: _tryIngestSprintProposalFromParsed | TKT2: parseCheckpoint + _splitCheckpointBlocks para _applyCheckpointBatch
 
 import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js';
 
@@ -339,6 +347,79 @@ export function _mergeBacklogWithProject(tgItems, sessId, projId) {
     }
   }
   return result; // B-202606-022: result ya incluye slugMap desde mergeBacklogFromTG
+}
+
+// TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
+//   cross-CHECKPOINT): _applyCheckpointBatch — recibe un array de bloques de texto ya
+//   separados por _splitCheckpointBlocks (locus-session-parse.js — TKT1) y los aplica en
+//   secuencia. Función nueva — no declarada en contract_detail original de Cael (TKT2 solo
+//   pre-declaró _assignPendingIds y mergeBacklogFromTG); necesaria porque el gate de
+//   duplicados (AC3) requiere ver TODOS los bloques del batch antes de aplicar cualquiera —
+//   mergeBacklogFromTG persiste de inmediato vía saveBacklog() y no tiene rollback, así que
+//   el gate no puede vivir dentro de esa función ni de _assignPendingIds. Contrato declarado
+//   en el CHECKPOINT de entrega de Rune (contract_detail), no en la especificación de Cael.
+// Invariants:
+//   - batch de tamaño 1 con bloque válido → resultado idéntico al path histórico de
+//     mergeBacklogFromTG(items, sessionId) directo, mismo slugMap con scope de un solo bloque.
+//   - Duplicado de [tmp:slug] como code de 2+ ítems nuevos en el batch → rechazo atómico,
+//     ningún bloque se aplica (ni siquiera los que no participan del duplicado).
+//   - Bloque con JSON malformado o sin "title" → se omite, DocLog, el resto del batch se aplica.
+// sideEffects:
+//   - Por cada bloque válido no descartado y sin rechazo de batch, invoca mergeBacklogFromTG →
+//     persiste en backlog vía saveBacklog() — mismo side effect ya existente, sin cambio de
+//     comportamiento por bloque individual.
+//   - Bloques inválidos y el rechazo por duplicado generan entrada en DocLog vía _blogLog.
+export function _applyCheckpointBatch(blocks, sessionId) {
+  const _result = { checkpoints: [], rejected: false, rejectReason: '' };
+  if (!blocks || !blocks.length) return _result;
+
+  // Paso 1 (AC2): parsear cada bloque — inválido se marca, no aborta el resto del batch.
+  const _parsedBlocks = blocks.map((blockText, idx) => {
+    const parsed = parseCheckpoint(blockText);
+    if (!parsed || parsed._jsonParseError || !parsed.titulo) {
+      const _msg = `CHECKPOINT ${idx + 1} del batch inválido — JSON malformado o "title" ausente. Omitido, resto del batch aplicado.`;
+      _blogLog('checkpoint-batch-invalido', '', _msg, 'backlog');
+      return { idx, valid: false, parsed: null };
+    }
+    return { idx, valid: true, parsed };
+  });
+
+  // Paso 2 (AC3): gate de duplicados — [tmp:slug] declarado como code de más de un ítem
+  // nuevo en el batch completo, evaluado sobre todos los bloques válidos antes de aplicar
+  // cualquiera. Un ítem nuevo se identifica por item.code matcheando el patrón [tmp:slug].
+  const _slugOwners = new Map(); // slug → idx del primer bloque que lo declaró
+  let _dupSlug = null;
+  _parsedBlocks.forEach(b => {
+    if (!b.valid || _dupSlug) return;
+    const items = Array.isArray(b.parsed._rawItems) ? b.parsed._rawItems : [];
+    items.forEach(it => {
+      if (!it.code || !/^\[tmp:[a-z0-9_-]+\]$/i.test(it.code)) return;
+      if (_slugOwners.has(it.code) && _slugOwners.get(it.code) !== b.idx) {
+        _dupSlug = it.code;
+      } else {
+        _slugOwners.set(it.code, b.idx);
+      }
+    });
+  });
+  if (_dupSlug) {
+    _result.rejected = true;
+    _result.rejectReason = `Batch rechazado — ${_dupSlug} declarado como código de más de un ítem nuevo en el mismo batch.`;
+    _blogLog('checkpoint-batch-rechazado', '', _result.rejectReason, 'backlog');
+    return _result;
+  }
+
+  // Paso 3 (AC1 · AC4): merge secuencial con slugMap acumulado — cada bloque válido se aplica
+  // con mergeBacklogFromTG, encadenando el slugMap resultante como seed del siguiente bloque.
+  let _seedSlugMap;
+  _parsedBlocks.forEach(b => {
+    if (!b.valid) { _result.checkpoints.push({ idx: b.idx, valid: false }); return; }
+    const items = Array.isArray(b.parsed._rawItems) ? b.parsed._rawItems : [];
+    const mergeResult = mergeBacklogFromTG(items, sessionId, { seedSlugMap: _seedSlugMap });
+    _seedSlugMap = mergeResult.slugMap;
+    _result.checkpoints.push({ idx: b.idx, valid: true, parsed: b.parsed, mergeResult });
+  });
+
+  return _result;
 }
 
 // T-202606-070: parsea el campo archivos del CHECKPOINT al formato de array estructurado.
