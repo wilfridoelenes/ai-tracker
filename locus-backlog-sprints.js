@@ -1,4 +1,4 @@
-// [PP] mod:34 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:35 · autor:Rune · 2026-07-02 UTC-6
 // TKT1 (REQ-sprints-migration): import muerto _loadSprintsFromSupabase eliminado — la función
 //   fue reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js y este módulo
 //   nunca la invocaba (solo quedaba en comentario línea ~959). Sin este fix, TKT1 entregado solo
@@ -380,8 +380,9 @@ export function createSprint(raw, goal, versionTarget, releaseType, projId, init
 }
 
 // T-202606-121: generar MD de retrospectiva con schema canónico del BR
-// Secciones: ## Retro · [Prefijo]-S-XX → Done · Migrado · Descartado ·
+// Secciones: ## Retro · [Prefijo]-S-XX → Done · Descartado ·
 //   Doc-Updates aplicados · Doc-Updates pendientes → ## Narrativa · [Prefijo]-S-XX
+// Campo "Migrado" eliminado del schema — ver __BR-Ecosystem §5, DOC-UPDATE 2026-07-02.
 // AC-8: el string se asigna a sprint.retroDoc antes de save() en _scmExecuteClose.
 // Accede a _scmState vía closure de módulo para leer docUpdates con resolución.
 function _generateSprintRetroMd(id, notes) {
@@ -392,11 +393,10 @@ function _generateSprintRetroMd(id, notes) {
   const sprintItems  = getItems().filter(i => _sprintIdOf(i) === id);
   const doneItems    = sprintItems.filter(i => i.status === 'done' || i.status === 'historico');
 
-  // ── AC-3: Migrado — eliminado. Bajo Gate duro de cierre (__BR-Ecosystem §5),
-  // ningún R/T/B activo puede salir de un sprint por reasignación — la única
-  // salida de un ítem bloqueante es done o descartado. "Migrado" es siempre
-  // "ninguno" para R/T/B. Fix de alineación BR — auditoría 2026-06-22.
-  const migratedItems = [];
+  // Campo "Migrado" eliminado del schema de retro (__BR-Ecosystem §5, DOC-UPDATE
+  // aplicado 2026-07-02) — bajo el Gate duro de cierre el valor era siempre
+  // "ninguno" para R/T/B, sin información variable. Ver auditoría 2026-06-22
+  // que ya había fijado el valor constante antes de esta eliminación completa.
 
   // ── AC-4: Descartado — ítems descartados con justificación.
   // Incluye: ítems del sprint que tenían status=descartado + pendientes con dest=__discard__.
@@ -453,11 +453,6 @@ function _generateSprintRetroMd(id, notes) {
     ? doneItems.map(i => `- ${i.code}`).join('\n')
     : 'ninguno';
 
-  // AC-3: lista con destino '[código]: [sprint destino]'
-  const _migratedList = migratedItems.length
-    ? migratedItems.map(m => `- ${m.code}: ${m.dest}`).join('\n')
-    : 'ninguno';
-
   // AC-4: lista con justificación — si no tiene discard_reason → 'sin justificación declarada'
   const _discardedList = discardedItems.length
     ? discardedItems.map(i => {
@@ -481,7 +476,7 @@ function _generateSprintRetroMd(id, notes) {
   const narrativaSection = `## Narrativa · ${id}\n\n[Agregar narrativa por rol]`;
 
   // ── Componer output ──
-  // Orden exacto de AC-1: ## Retro · [id] → Done · Migrado · Descartado ·
+  // Orden exacto de AC-1: ## Retro · [id] → Done · Descartado ·
   //   Doc-Updates aplicados · Doc-Updates pendientes → ## Narrativa · [id]
   // B-202606-029: headers usan [id] — [label] era incorrecto y fue corregido
   // TKT-PARSER-sprints: incluir sección de incidentes cerrados si existen
@@ -492,7 +487,6 @@ function _generateSprintRetroMd(id, notes) {
   return `## Retro · ${id}
 
 Done: ${_doneList}
-Migrado: ${_migratedList}
 Descartado: ${_discardedList}
 Doc-Updates aplicados:
 ${_duAplicadosList}

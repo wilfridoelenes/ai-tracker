@@ -1,4 +1,4 @@
-// [PP] mod:74 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:75 · autor:Rune · 2026-07-02 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1537,10 +1537,13 @@ async function _renderSpsCerrados() {
   // Hay cerrados — restaurar visibilidad si estaba oculto
   container.classList.remove('is-hidden');
 
-  // Calcular conteos done/migrado/descartado desde getItems()
+  // Calcular conteos done/descartado desde getItems()
+  // Fix de alineación BR (__BR-Ecosystem §5): "migrado" eliminado — bajo el Gate duro
+  // de cierre, un sprint no cierra con ítems en pendiente/en-revision, por lo que ese
+  // conteo era siempre 0 en la práctica. Ver __BR-Ecosystem §5 y locus-backlog-sprints.js AC-3.
   const rows = closed.map(sprint => {
     const _sid = _spIdBase(sprint.id);
-    let doneCnt = 0, migradoCnt = 0, descartadoCnt = 0;
+    let doneCnt = 0, descartadoCnt = 0;
     {
       // INC-fix: getItems() ya no contiene status:historico (T-202606-106) — los ítems
       // done de un sprint cerrado migran a getHistoricoItemsSync(). Combinar ambas fuentes
@@ -1560,7 +1563,6 @@ async function _renderSpsCerrados() {
           (['REQ','TKT','INC'].includes(itemKind({type:t})));
       });
       doneCnt       = spItems.filter(i => i.status === 'done' || i.status === 'historico').length;
-      migradoCnt    = spItems.filter(i => i.status === 'pendiente' || i.status === 'en-revision').length;
       descartadoCnt = spItems.filter(i => i.status === 'descartado').length;
     }
 
@@ -1585,7 +1587,6 @@ async function _renderSpsCerrados() {
           '<span class="pill-closed">Cerrado</span>' +
           '<span class="sps-cerrados-counts">' +
             '<span class="sps-count-done">' + doneCnt + ' done</span>' +
-            '<span class="sps-count-migrado">' + migradoCnt + ' migrado</span>' +
             '<span class="sps-count-descartado">' + descartadoCnt + ' desc.</span>' +
           '</span>' +
           '<div class="sps-menu-wrap">' +

@@ -1,4 +1,4 @@
-/* [PP] mod:42 · autor:Nova · 2026-06-29 */
+/* [PP] mod:43 · autor:Nova · 2026-07-02 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -2004,7 +2004,6 @@
 }
 
 .sps-count-done,
-.sps-count-migrado,
 .sps-count-descartado {
   font-size: var(--text-xs);
   white-space: nowrap;
@@ -2013,10 +2012,6 @@
 /* Verde — mismo token que .sph-bd-fill.is-complete/.sps-burndown-fill--complete */
 .sps-count-done {
   color: var(--c-low-text);
-}
-
-.sps-count-migrado {
-  color: var(--text2);
 }
 
 .sps-count-descartado {
@@ -2111,8 +2106,8 @@ Clases que Rune necesita consumir en T3–T6:
 - .sps-cerrados-id           — ID del sprint cerrado
 - .sps-cerrados-label        — label/título del sprint cerrado
 - .sps-cerrados-date         — fecha de cierre
-- .sps-cerrados-counts       — wrapper de los 3 conteos (done/migrado/descartado)
-- .sps-count-done / -migrado / -descartado — conteos por estado
+- .sps-cerrados-counts       — wrapper de los 2 conteos (done/descartado)
+- .sps-count-done / -descartado — conteos por estado
 - .sps-cerrados-chevron      — indicador ▲/▼ — swap de texto en JS, sin transform CSS
 - .sps-cerrados-retro        — contenedor colapsable (grid 0fr→1fr vía clase .is-expanded, sin style inline en JS)
 - .sps-cerrados-retro-inner  — overflow:hidden + padding/border-top del contenido de retro
