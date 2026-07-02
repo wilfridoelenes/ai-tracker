@@ -1,4 +1,4 @@
-<!-- [PP] mod:86 · autor:Nova · 2026-07-01 10:15 UTC-6 -->
+<!-- [PP] mod:87 · autor:Nova · 2026-07-01 10:40 UTC-6 -->
 <!-- TKT-[pendiente-ID] (REQ-[pendiente-ID] simplificar toolbar de backlog): eliminado
      #backlog-meta-banner (T-048/T-050) del sub-panel Backlog. Consumidores en JS
      (updateBacklogBanner en locus-backlog-core.js · updateBacklogModificationBadge en
@@ -125,12 +125,7 @@
           <button type="button" id="mm-btn-notif"><span class="mm-icon">🔔</span> Configurar notificaciones</button>
           <button type="button" id="mm-btn-sync"><span class="mm-icon sync-status-dot" id="sync-status-dot">●</span> <span id="sync-status-label">Sync: local</span></button>
           <button type="button" id="mm-btn-user" class="is-hidden"><span class="mm-icon">👤</span> <span id="mm-user-name"></span> · Cerrar sesión</button>
-          <button type="button" id="mm-btn-sync-infra"><span class="mm-icon">🧬</span> Sincronizar infra_version</button>
-          <div class="hdr-menu-subpanel" id="hdr-menu-infra-subpanel">
-            <textarea class="hdr-menu-textarea" id="hdr-menu-infra-textarea" placeholder="infra_version"></textarea>
-            <div class="hdr-menu-error-msg is-hidden" id="hdr-menu-infra-error" aria-live="polite"></div>
-            <button type="button" class="hdr-menu-apply-btn" id="hdr-menu-infra-apply" disabled>Aplicar</button>
-          </div>
+          <button type="button" id="mm-btn-sync-infra" data-action="open-infra-sync"><span class="mm-icon">🧬</span> Sincronizar infra_version</button>
           <!-- Grupo: Zona peligrosa -->
           <hr class="mm-separator">
           <div class="mm-group-label mm-group-label--danger">Zona peligrosa</div>
@@ -1373,6 +1368,23 @@
     <div class="modal-footer">
       <button class="btn-ghost" id="notif-config-reset-btn">Restaurar por defecto</button>
       <button class="btn-primary" id="notif-config-listo-btn">Listo</button>
+    </div>
+  </div>
+</div>
+
+<!-- TKT-infra-sync-modal: extraído de #more-menu (hdr-menu-infra-subpanel) — mismo patrón que notif-config-overlay -->
+<div class="modal-overlay is-hidden" id="infra-sync-overlay">
+  <div class="modal modal--infra-sync" id="infra-sync-panel" role="dialog" aria-modal="true" aria-label="Sincronizar infra_version">
+    <div class="modal-header">
+      <span class="modal-title">🧬 Sincronizar infra_version</span>
+      <button class="modal-close" id="infra-sync-close-btn" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <textarea class="hdr-menu-textarea" id="hdr-menu-infra-textarea" placeholder="infra_version"></textarea>
+      <div class="hdr-menu-error-msg is-hidden" id="hdr-menu-infra-error" aria-live="polite"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary hdr-menu-apply-btn" id="hdr-menu-infra-apply" disabled>Aplicar</button>
     </div>
   </div>
 </div>
