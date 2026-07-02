@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:4 · autor:Rune · 2026-06-24 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:5 · autor:Rune · 2026-07-01 14:20 UTC-6
 // locus-contracts.js
 // Última actualización: B-202606-104 — confirmResetSessions() ahora persiste el reset en
 // LOCUS_KEYS.STATE ('locus-state-v1') en lugar de la clave legacy que la app ya no lee.
@@ -19,6 +19,7 @@ import { LOCUS_KEYS, _offlineQueuePush, _tplKey, save, setSyncStatus } from './l
 import { showToast } from './locus-toast.js';
 
 import { switchSubTab, switchTab } from './locus-ui-shell.js';
+import { render } from './locus-sesiones.js';
 
 // ════════════════════════════════════════════════════════════════════
 // R-202604-075 · CONTRATOS DE MÓDULO
@@ -391,7 +392,7 @@ function confirmResetSessions() {
   closeResetSessionsModal();
 
   // Re-render
-  if (typeof renderSessionList === 'function') renderSessionList();
+  render();
   renderStats();
 
   showToast('success', 'Sesiones y sprints reseteados — Workers y Proyectos conservados');

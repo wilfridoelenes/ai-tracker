@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-02 · mod:6 · autor:Rune · 2026-06-30 UTC-6
+// [PP] v0.2.0 · sprint:PP-S-02 · mod:8 · autor:Rune · 2026-07-01 15:05 UTC-6
 // locus-sesiones-utils.js
 // Última actualización: 2026-05-24 · R-202605-054 guard state global | Extraído de locus-sesiones.js
 // Módulo: Timer de sesión · Worker chip activo · Sesión sugerida · Resumen semanal · Reset de IAs
@@ -217,11 +217,7 @@ function dismissSuggestionBanner() {
 function startSuggestedSession(aiId) {
   dismissSuggestionBanner();
   // Seleccionar la IA sugerida
-  if (typeof _trackerSelectAI === 'function') _trackerSelectAI(aiId);
-  else if (typeof _trackerSelectedId !== 'undefined') {
-    _trackerSelectedId = aiId;
-    window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-  }
+  window.dispatchEvent(new CustomEvent('shell:select-tracker-ai', { detail: { aiId } }));
   startSessionTimer(aiId);
 }
 

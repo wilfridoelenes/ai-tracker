@@ -1,4 +1,4 @@
-// [PP] mod:86 · autor:Rune · 2026-06-30 23:59 UTC-6
+// [PP] mod:87 · autor:Rune · 2026-07-01 15:40 UTC-6
 // TKT-202606-014 (REQ-202606-003 · AC2): agregado draftRaw — valor crudo de _parsed.draft
 //   (undefined/true/false) propagado sin colapsar desde parseCheckpoint → ai._parsed →
 //   ambos ckptMeta (sesión y standalone). El campo `draft` existente (=== true) no sirve
@@ -1085,7 +1085,6 @@ export function parsePaste(id) {
     delete window[`_doneNoAcWarnSeen_${id}`];
     delete window[`_discrepancyWarnSeen_${id}`];
     delete window[`_draftGateToastSeen_${id}`];
-    if (typeof dismissToast === 'function') dismissToast();
     // Resetear preview, botón y ta-has-items al estado inicial
     const _prevEl = document.getElementById('prev-' + id);
     if (_prevEl) { _prevEl.className = 'preview'; _prevEl.innerHTML = ''; }
