@@ -1,4 +1,14 @@
-// [PP] mod:90 · autor:Rune · 2026-07-02 08:10 UTC-6
+// [PP] mod:92 · autor:Rune · 2026-07-02 09:20 UTC-6
+// TKT1 (REQ-[pendiente-ID] · Custom properties del pill de proyecto vía setProperty en vez
+//   de string interpolado — CSS Purity): el pill de proyecto (P-202604-115) ya no lleva el
+//   atributo style con --pill-bg / --pill-color / --pill-border embebido en el string de
+//   innerHTML. _pillRuntimeVars retiene los tres valores calculados (sin cambio de lógica
+//   ni de colores) y se aplican con element.style.setProperty() sobre el nodo real
+//   (`.ckpt-proj-pill`) inmediatamente después de insertar el bloque en prev.innerHTML —
+//   patrón permitido por CSS Purity para custom properties con valor runtime. Sin cambio
+//   visual. no_incluye: no toca _pillBg/_pillColor/_pillBorder ni ningún otro pill del
+//   archivo — scope limitado a este elemento. contract_update: n/a — cambio interno sin
+//   firma exportada afectada.
 // TKT4 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT, depends_on: TKT3 done): _resolveCheckpointBatch(blocks, sessionId) →
 //   { tgItems, skipped } — combina los bloques válidos del batch en un solo array de tgItems
@@ -1334,6 +1344,11 @@ export function parsePaste(id) {
     const _cardProj = _cardProjId ? (state.projects || []).find(p => p.id === _cardProjId) : null;
     const _cardProjName = _cardProj ? _cardProj.name : '';
     let _projPillHTML = '';
+    // TKT1 (REQ-[pendiente-ID] · Custom properties del pill de proyecto vía setProperty —
+    //   CSS Purity): _pillRuntimeVars retiene los tres valores calculados para aplicarlos
+    //   con element.style.setProperty() sobre el nodo real después de insertarlo — el
+    //   template literal ya no lleva style= embebido (ver bloque post-innerHTML abajo).
+    let _pillRuntimeVars = null;
     if (isCheckpoint) {
       if (_ckptProj) {
         const _match = _cardProjName && _cardProjName.trim() === _ckptProj.trim();
@@ -1341,7 +1356,8 @@ export function parsePaste(id) {
         const _pillBg = _match ? 'rgba(46,204,120,0.12)' : 'rgba(248,113,50,0.12)';
         const _pillBorder = _match ? 'rgba(46,204,120,0.3)' : 'rgba(248,113,50,0.3)';
         const _icon = _match ? '✓' : '⚠';
-        _projPillHTML = `<div class="ckpt-proj-pill" style="--pill-bg:${_pillBg};--pill-color:${_pillColor};--pill-border:${_pillBorder};">${_icon} Proyecto: ${esc(_ckptProj)}</div>`;
+        _pillRuntimeVars = { bg: _pillBg, color: _pillColor, border: _pillBorder };
+        _projPillHTML = `<div class="ckpt-proj-pill">${_icon} Proyecto: ${esc(_ckptProj)}</div>`;
       } else {
         _projPillHTML = `<div class="ckpt-pill ckpt-pill--warn">⚠ Sin campo Proyecto</div>`;
       }
@@ -1373,6 +1389,16 @@ export function parsePaste(id) {
         return `<div class="preview-bloqueantes preview-bloqueantes--warn"><span class="preview-next-label">Bloqueantes</span> <span class="preview-bloqueantes-val">${esc(_bVal)}</span><span class="preview-bloqueantes-hint"> · esperado: ID de ítem o n/a</span></div>`;
       })()}
       ${buildTGPreview(tgItems, _discrepancy)}`;
+    // TKT1 (REQ-[pendiente-ID] · CSS Purity): custom properties del pill de proyecto
+    // aplicadas sobre el nodo real recién insertado — no en el string de innerHTML.
+    if (_pillRuntimeVars) {
+      const _pillEl = prev.querySelector('.ckpt-proj-pill');
+      if (_pillEl) {
+        _pillEl.style.setProperty('--pill-bg', _pillRuntimeVars.bg);
+        _pillEl.style.setProperty('--pill-color', _pillRuntimeVars.color);
+        _pillEl.style.setProperty('--pill-border', _pillRuntimeVars.border);
+      }
+    }
     // T-409: scroll preview-tg into view when items detected
     if (tgItems.length > 0) {
       requestAnimationFrame(() => {
