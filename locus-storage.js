@@ -1,4 +1,4 @@
-// [PP] mod:82 · autor:Rune · 2026-07-01 14:10 UTC-6
+// [PP] mod:83 · autor:Rune · 2026-07-02 20:19 UTC-6
 // locus-storage.js
 // Última actualización: TKT1 (REQ-sprints-migration) — _allSprintsCache cross-proyecto reemplaza
 // _sprintsCache por-proyecto-activo. getAllProjectsSprints() nueva, getActiveSprints() deriva del
@@ -734,7 +734,8 @@ let _stateDirty = false;
 // en cuanto la PRIMERA terminara, aunque la segunda siguiera en vuelo. El contador solo
 // llega a 0 cuando TODAS las invocaciones activas confirmaron (éxito o error).
 // Sin este guard, un _loadFromSupabase() disparado por CUALQUIER canal Realtime (state,
-// backlog o sessions — no hay canal dedicado a tracker_items) podía pisar un cambio local
+// sessions o items — [tmp:req-realtime-items] TKT1 agregó canal dedicado a tracker_items,
+// el guard sigue siendo necesario para los tres) podía pisar un cambio local
 // reciente (ej: parentId recién asignado, status:done de Finn) si el upsert de saveBacklog()
 // todavía no había confirmado en Supabase. El guard de timestamp existente (B-202606-094)
 // no cubre esta ventana porque compara contra localStorage, que solo se actualiza DESPUÉS
@@ -1610,11 +1611,31 @@ export function _subscribeRealtime() {
       }
     });
 
-  _realtimeChannels = [chState, chSessions];
+  // Canal 3 — tracker_items ([tmp:req-realtime-items] TKT1)
+  // Sin filtro de heartbeat — tracker_items no tiene trigger periódico propio, mismo
+  // patrón que Canal 2. El guard anti-loop ya existente (_saveBacklogInFlightCount +
+  // comparación _realtimeLastTs en _handleRemoteChange, línea ~1560) cubre este canal
+  // sin necesidad de código adicional — ver comentario en _saveBacklogInFlightCount
+  // (línea ~736) que documentaba este gap antes de esta entrega.
+  const chItems = _supabase
+    .channel('tracker-items-' + _supabaseUser.id)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'tracker_items', filter: 'user_id=eq.' + _supabaseUser.id },
+      _handleRemoteChange
+    )
+    .subscribe((status) => {
+      if (status === 'CHANNEL_ERROR') {
+        console.warn('[AI Tracker] Realtime: error en canal tracker_items — app sigue funcional vía fallback');
+      }
+    });
+
+  _realtimeChannels = [chState, chSessions, chItems];
 }
 
 export function _unsubscribeRealtime() {
-  // T-202606-002: limpiar todos los canales registrados (tracker_state, tracker_sessions)
+  // T-202606-002 + [tmp:req-realtime-items] TKT1: limpiar todos los canales registrados
+  // (tracker_state, tracker_sessions, tracker_items)
   for (const ch of _realtimeChannels) {
     try { _supabase.removeChannel(ch); } catch(e) {}
   }
