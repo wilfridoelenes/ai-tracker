@@ -1,4 +1,21 @@
-// [PP] mod:88 · autor:Rune · 2026-07-02 03:20 UTC-6
+// [PP] mod:89 · autor:Rune · 2026-07-02 07:45 UTC-6
+// TKT3 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
+//   cross-CHECKPOINT, depends_on: TKT1 done · TKT2 done): parsePasteStandalone detecta
+//   modo batch vía _splitCheckpointBlocks(text).length > 1 — renderiza N pills con
+//   buildTGPreview por bloque (AC1), pill de error '⚠ CHECKPOINT inválido — omitido del
+//   batch' para bloques JSON malformados sin abortar el resto (AC2), batch de tamaño 1
+//   preserva exactamente el path y output histórico (AC3, verificado con harness),
+//   botón 'Aplicar' habilitado si la suma de ítems válidos del batch > 0 (AC4/AC5).
+//   Extraída _buildTgItemsFromParsed(ckpt, parsedJSON) desde el loop inline de
+//   parsePasteStandalone — mismo comportamiento, reutilizada por el path single y por
+//   _parseBatchBlock(blockText) (nueva, valida un bloque del batch: parseCheckpoint +
+//   gates de isCheckpoint/titulo/_jsonParseError/draft, ya existentes, replicados por
+//   bloque). _standaloneLastParsed gana campo isBatch — true con array `blocks` (modo
+//   batch) o false con shape histórica (modo single) — consumido por TKT4, no wireado
+//   aquí: no_incluye de TKT3 excluye doc_updates/sprint_proposal/finn_observations
+//   múltiples y wiring de "Aplicar" a _applyCheckpointBatch — ambos quedan para TKT4.
+//   contract_update: n/a — funciones nuevas/extraídas son internas al módulo, sin
+//   export, sin consumidores externos.
 // TKT1 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT): agregada _splitCheckpointBlocks(text) → string[] — separa un texto
 //   pegado en N bloques CHECKPOINT delimitados por fence ``` (con o sin especificador json).
@@ -1731,6 +1748,165 @@ export function closeStandaloneCheckpoint() {
 // AC-3: retrocesos y descartes siguen requiriendo confirmación en showCheckpointPanel
 // AC-4: si no hay tgItems el panel no aparece
 
+// [PP] TKT3 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
+//   cross-CHECKPOINT): extraída de parsePasteStandalone sin cambio de comportamiento —
+//   procesa ckpt._rawItems de UN bloque CHECKPOINT ya parseado en tgItems/patchItems.
+//   Reutilizada por el flujo single (batch de tamaño 1, AC3 — sin regresión) y por el
+//   flujo batch (2+ bloques, AC1/AC2/AC4) para construir el preview de cada bloque con
+//   buildTGPreview. Sin efectos laterales propios más allá de _blogLog/showToast — mismos
+//   que ya existían inline. No persiste, no wiring a _applyCheckpointBatch (eso es TKT4).
+function _buildTgItemsFromParsed(ckpt, parsedJSON) {
+  const _validTypes    = _GEN2_TYPES;
+  const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
+  const tgItems = [];
+  const patchItems = [];
+  let itemError = null;
+
+  for (let i = 0; i < parsedJSON.length; i++) {
+    const it = parsedJSON[i];
+    if (it.type === 'patch') {
+      if (!it.code || _isPlaceholderCode(it.code)) {
+        _blogLog('patch-ignorado', it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (it.code || '(vacío)'), 'backlog');
+        showToast('warn', `Patch descartado: código placeholder no patcheable — ${it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
+      } else {
+        patchItems.push(it);
+      }
+      continue;
+    }
+    if (!it.type || !it.code) {
+      itemError = `Ítem [${i}]: faltan campos obligatorios (type, code).`;
+      break;
+    }
+    if (!_validTypes.includes(it.type)) {
+      itemError = `Ítem [${i}]: type inválido "${it.type}". Válidos: REQ · TKT · DISC · INC · PRB · KE · CHG`;
+      break;
+    }
+    if (_ITIL_TYPES.has(it.type)) {
+      const _itilResult3 = _buildItilItem(it, ckpt.rol || '', (ckpt.proyecto || '').trim(), ckpt.titulo);
+      if (_itilResult3.error) {
+        itemError = _itilResult3.error;
+        break;
+      }
+      tgItems.push(_itilResult3.item);
+      continue;
+    }
+    if (!it.status) {
+      itemError = `Ítem [${i}]: faltan campos obligatorios (type, code, status).`;
+      break;
+    }
+    if (it.status && (it.status.trim().toLowerCase() === 'historico' || it.status.trim().toLowerCase() === 'histórico')) {
+      _blogLog(
+        'status-historico-emitido',
+        it.code || '[pendiente-ID]',
+        `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint`,
+        'backlog'
+      );
+      continue;
+    }
+    const _normSt3 = _canonicalStatus(it.status, it.type);
+    if (!_normSt3 || (!_validStatuses.includes(_normSt3) && _normSt3 !== 'promoted' && _normSt3 !== 'bloqueado' && _normSt3 !== 'discovery')) {
+      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${itemKind(it) === 'DISC' ? ' · discovery · promoted' : ''}`;
+      break;
+    }
+    const _sprintRaw3 = it.sprint ? it.sprint.trim().toLowerCase() : '';
+    const _sinSprint3 = _sprintRaw3 === '' || _sprintRaw3.endsWith('-q-backlog');
+    if (_normSt3 === 'en-revision' && _sinSprint3) {
+      itemError = `CHECKPOINT bloqueado: ${it.code || '[pendiente-ID]'} tiene status en-revision sin sprint asignado. Asignar sprint antes de continuar.`;
+      break;
+    }
+    if (itemKind(it) === 'REQ' && _normSt3 === 'bloqueado') {
+      const _resolvedRole = (it.role && it.role.trim()) ? it.role.trim() : (ckpt.rol || '');
+      const _authorizedRole = 'QA · Finn';
+      if (_resolvedRole !== _authorizedRole) {
+        _blogLog(
+          'rol-no-autorizado-bloqueado',
+          it.code || '[pendiente-ID]',
+          `Transición bloqueado en R ${it.code || '[pendiente-ID]'} rechazada: solo Finn puede mover un R a bloqueado. Rol resuelto: "${_resolvedRole}". Origen: ${ckpt.titulo || ''}`,
+          'backlog'
+        );
+        tgItems.push({
+          type:          it.type,
+          code:          it.code,
+          title:         it.title  || it.desc   || '',
+          desc:          it.title  || it.desc   || '',
+          status:        'pendiente',
+          _noStatus:     false,
+          effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
+          area:          it.area   || '',
+          sprint:        it.sprint,
+          ac:            Array.isArray(it.ac) ? it.ac : [],
+          role:          _resolvedRole,
+          discardReason: it.reason || '',
+          discardRef:    it.ref    || '',
+          blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : [],
+          promovida_a:   it.promovida_a || null,
+          parentId:      it.parent      || null,
+          dependsOn:     Array.isArray(it.depends_on) ? it.depends_on : [],
+          triggeredBy:   it.triggered_by  || null,
+          origenDisc:    it.origen_disc   || null,
+          intencion:     it.intencion     || null,
+          no_incluye:    Array.isArray(it.no_incluye) ? it.no_incluye : [],
+          schema_version: it.schema_version != null ? Number(it.schema_version) : 0
+        });
+        _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
+        continue;
+      }
+    }
+    tgItems.push({
+      type:          it.type,
+      code:          it.code,
+      title:         it.title  || it.desc   || '',
+      desc:          it.title  || it.desc   || '',
+      priority:      it.priority || 'medium',
+      status:        _normSt3,
+      _noStatus:     false,
+      effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
+      area:          it.area   || '',
+      sprint:        it.sprint,
+      ac:            Array.isArray(it.ac) ? it.ac : [],
+      role:          it.role   || (ckpt.rol || ''),
+      discardReason: it.reason || '',
+      discardRef:    it.ref    || '',
+      blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : [],
+      promovida_a:   it.promovida_a || null,
+      parentId:      it.parent      || null,
+      dependsOn:     Array.isArray(it.depends_on) ? it.depends_on : [],
+      triggeredBy:   it.triggered_by  || null,
+      origenDisc:    it.origen_disc   || null,
+      intencion:     it.intencion     || null,
+      no_incluye:    Array.isArray(it.no_incluye) ? it.no_incluye : [],
+      schema_version: it.schema_version != null ? Number(it.schema_version) : 0
+    });
+    if (itemKind(it) === 'DISC' && _normSt3 === 'promoted' && !it.promovida_a) {
+      _blogLog('promoted-sin-ref', it.code || '[pendiente-ID]', 'DISC ' + (it.code || '[pendiente-ID]') + ' con status promoted sin campo promovida_a — trazabilidad incompleta', 'backlog');
+    }
+    _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
+  }
+
+  return { tgItems, patchItems, itemError };
+}
+
+// [PP] TKT3: valida y construye preview de UN bloque del batch — usado solo cuando
+//   _splitCheckpointBlocks detecta 2+ bloques. AC2: bloque inválido no aborta el resto.
+function _parseBatchBlock(blockText) {
+  const ckpt = parseCheckpoint(blockText);
+  if (!ckpt || !ckpt.isCheckpoint || !ckpt.titulo) {
+    return { ok: false, error: 'Formato inválido — se esperaba bloque JSON sin especificador de lenguaje.' };
+  }
+  if (ckpt._jsonParseError) {
+    return { ok: false, error: ckpt._jsonParseError };
+  }
+  if (ckpt.draft === true) {
+    return { ok: false, error: 'Borrador detectado — pegar CHECKPOINT final emitido por Finn' };
+  }
+  const parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
+  const { tgItems, patchItems, itemError } = _buildTgItemsFromParsed(ckpt, parsedJSON);
+  if (itemError) {
+    return { ok: false, error: itemError };
+  }
+  return { ok: true, ckpt, tgItems, patchItems };
+}
+
 let _standaloneLastParsed = null;
 
 export function parsePasteStandalone() {
@@ -1745,6 +1921,34 @@ export function parsePasteStandalone() {
   if (!text) {
     prev.innerHTML = '';
     btn.disabled = true;
+    return;
+  }
+
+  // TKT3 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs): 2+ bloques detectados por
+  // _splitCheckpointBlocks → modo batch, preview de N pills. AC3: batch de 1 (o texto sin
+  // fences, _splitCheckpointBlocks retorna []) sigue el path single sin cambio de comportamiento.
+  // no_incluye: no maneja doc_updates/sprint_proposal/finn_observations múltiples — eso queda
+  // para TKT4. Wiring del botón "Aplicar" a _applyCheckpointBatch también queda para TKT4.
+  const _batchBlocks = _splitCheckpointBlocks(text);
+  if (_batchBlocks.length > 1) {
+    const _blockResults = _batchBlocks.map(b => _parseBatchBlock(b));
+    let _pillsHtml = '';
+    let _validCount = 0;
+    _blockResults.forEach((r, idx) => {
+      if (r.ok) {
+        _validCount += r.tgItems.length;
+        const _previewHtml = buildTGPreview(r.tgItems, null);
+        _pillsHtml += `
+          <div class="ckpt-pill ckpt-pill--ok ckpt-pill--mb">✓ CHECKPOINT ${idx + 1} · ${r.tgItems.length} ítem${r.tgItems.length !== 1 ? 's' : ''}</div>
+          <div class="sa-ckpt-desc">${esc(r.ckpt.titulo)}</div>
+          ${_previewHtml}`;
+      } else {
+        _pillsHtml += `<div class="ckpt-pill ckpt-pill--warn ckpt-pill--mb">⚠ CHECKPOINT inválido — omitido del batch</div>`;
+      }
+    });
+    prev.innerHTML = _pillsHtml;
+    btn.disabled = _validCount === 0;
+    _standaloneLastParsed = { isBatch: true, blocks: _blockResults, raw: text };
     return;
   }
 
@@ -1805,150 +2009,9 @@ export function parsePasteStandalone() {
   // T-202606-005: path único JSON — ítems ya están en ckpt._rawItems, no hay path legacy
   const parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
 
-  const _validTypes    = _GEN2_TYPES;
-  const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
-  const tgItems = [];
-  const patchItems = []; // R-202605-062: patches separados de ítems normales
-  let itemError = null;
-
-  for (let i = 0; i < parsedJSON.length; i++) {
-    const it = parsedJSON[i];
-    // R-202605-062: patch — instrucción de operación, no tipo de ítem
-    if (it.type === 'patch') {
-      if (!it.code || _isPlaceholderCode(it.code)) {
-        _blogLog('patch-ignorado', it.code || '', 'Patch ignorado: código placeholder no patcheable. code: ' + (it.code || '(vacío)'), 'backlog');
-        // T-202606-055 AC-1+AC-3: toast visible — consistente con path JSON primario y legacy
-        showToast('warn', `Patch descartado: código placeholder no patcheable — ${it.code || '(vacío)'}. Usa el código real asignado por Locus.`);
-      } else {
-        patchItems.push(it);
-      }
-      continue;
-    }
-    if (!it.type || !it.code) {
-      itemError = `Ítem [${i}]: faltan campos obligatorios (type, code).`;
-      break;
-    }
-    if (!_validTypes.includes(it.type)) {
-      itemError = `Ítem [${i}]: type inválido "${it.type}". Válidos: REQ · TKT · DISC · INC · PRB · KE · CHG`;
-      break;
-    }
-    // REQ-[pendiente-ID]: guard simétrico al path de parsePaste — ítems ITIL (INC/PRB/KE/CHG)
-    // se desvían completos antes de cualquier validación orientada a Scrum (status/sprint).
-    if (_ITIL_TYPES.has(it.type)) {
-      const _itilResult3 = _buildItilItem(it, ckpt.rol || '', (ckpt.proyecto || '').trim(), ckpt.titulo);
-      if (_itilResult3.error) {
-        itemError = _itilResult3.error;
-        break;
-      }
-      tgItems.push(_itilResult3.item);
-      continue;
-    }
-    if (!it.status) {
-      itemError = `Ítem [${i}]: faltan campos obligatorios (type, code, status).`;
-      break;
-    }
-    // T2-parser-validaciones (standalone): guard simétrico a parsePaste() — mismo mensaje canónico
-    if (it.status && (it.status.trim().toLowerCase() === 'historico' || it.status.trim().toLowerCase() === 'histórico')) {
-      _blogLog(
-        'status-historico-emitido',
-        it.code || '[pendiente-ID]',
-        `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint`,
-        'backlog'
-      );
-      continue; // ítem omitido — resto del CHECKPOINT continúa
-    }
-    // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
-    const _normSt3 = _canonicalStatus(it.status, it.type);
-    // T-202606-022 AC-1: excepción bloqueado para R — simétrico a parsePaste
-    if (!_normSt3 || (!_validStatuses.includes(_normSt3) && _normSt3 !== 'promoted' && _normSt3 !== 'bloqueado' && _normSt3 !== 'discovery')) {
-      itemError = `Ítem [${i}]: status inválido "${it.status}". Válidos: done · pendiente · descartado · en-revision${itemKind(it) === 'DISC' ? ' · discovery · promoted' : ''}`;
-      break;
-    }
-    // T-202606-035: bloqueo sin-sprint + en-revision — BR-Ecosystem §5
-    // TKT-PARSE4: 'icebox' (Gen1) eliminado — sin sprint = campo vacío o ausente (Q-Backlog/Q-DISC Gen2)
-    const _sprintRaw3 = it.sprint ? it.sprint.trim().toLowerCase() : '';
-    const _sinSprint3 = _sprintRaw3 === '' || _sprintRaw3.endsWith('-q-backlog');
-    if (_normSt3 === 'en-revision' && _sinSprint3) {
-      itemError = `CHECKPOINT bloqueado: ${it.code || '[pendiente-ID]'} tiene status en-revision sin sprint asignado. Asignar sprint antes de continuar.`;
-      break;
-    }
-    // T-202606-022: guard de rol para R con status bloqueado — simétrico a parsePaste()
-    // AC-1/AC-2: precedencia de rol: (1) it.role si no vacío, (2) ckpt.rol (raíz del CHECKPOINT)
-    // AC-1: role resuelto !== 'QA · Finn' → _blogLog + forzar status a 'pendiente'
-    // AC-3: role resuelto === 'QA · Finn' → status 'bloqueado' preservado sin modificación
-    // AC-4: aplica solo a R con status bloqueado — T, B, P no afectados
-    if (itemKind(it) === 'REQ' && _normSt3 === 'bloqueado') {
-      const _resolvedRole = (it.role && it.role.trim()) ? it.role.trim() : (ckpt.rol || '');
-      const _authorizedRole = 'QA · Finn';
-      if (_resolvedRole !== _authorizedRole) {
-        _blogLog(
-          'rol-no-autorizado-bloqueado',
-          it.code || '[pendiente-ID]',
-          `Transición bloqueado en R ${it.code || '[pendiente-ID]'} rechazada: solo Finn puede mover un R a bloqueado. Rol resuelto: "${_resolvedRole}". Origen: ${ckpt.titulo || ''}`,
-          'backlog'
-        );
-        // Forzar status a 'pendiente' — el ítem se ingesta pero no como bloqueado
-        tgItems.push({
-          type:          it.type,
-          code:          it.code,
-          title:         it.title  || it.desc   || '',
-          desc:          it.title  || it.desc   || '',
-          status:        'pendiente',
-          _noStatus:     false,
-          effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
-          area:          it.area   || '',
-          sprint:        it.sprint,
-          ac:            Array.isArray(it.ac) ? it.ac : [],
-          role:          _resolvedRole,
-          discardReason: it.reason || '',
-          discardRef:    it.ref    || '',
-          blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : [],
-          promovida_a:   it.promovida_a || null,
-          parentId:      it.parent      || null,               // T-202606-024 AC-1
-          dependsOn:     Array.isArray(it.depends_on) ? it.depends_on : [],  // T-202606-024 AC-2
-          triggeredBy:   it.triggered_by  || null,             // T-202606-024 AC-3
-          origenDisc:    it.origen_disc   || null,             // T-202606-024 AC-4 // T-[pendiente-ID]: origen_p→origen_disc
-          intencion:     it.intencion     || null,             // T-202606-024 AC-5
-          no_incluye:    Array.isArray(it.no_incluye) ? it.no_incluye : [],  // T-202606-024 AC-6
-          schema_version: it.schema_version != null ? Number(it.schema_version) : 0  // T-202606-024 AC-7
-        });
-        _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
-        continue;
-      }
-    }
-    tgItems.push({
-      type:          it.type,
-      code:          it.code,
-      title:         it.title  || it.desc   || '',
-      desc:          it.title  || it.desc   || '',
-      priority:      it.priority || 'medium',                  // T-202606-026
-      status:        _normSt3,
-      _noStatus:     false,
-      effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
-      area:          it.area   || '',
-      sprint:        it.sprint,
-      ac:            Array.isArray(it.ac) ? it.ac : [],
-      role:          it.role   || (ckpt.rol || ''),
-      discardReason: it.reason || '',
-      discardRef:    it.ref    || '',
-      blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : [],
-      promovida_a:   it.promovida_a || null,                   // T-202606-018 AC8
-      parentId:      it.parent      || null,                   // T-202606-024 AC-1
-      dependsOn:     Array.isArray(it.depends_on) ? it.depends_on : [],  // T-202606-024 AC-2
-      triggeredBy:   it.triggered_by  || null,                 // T-202606-024 AC-3
-      origenDisc:    it.origen_disc   || null,                 // T-202606-024 AC-4 // T-[pendiente-ID]: origen_p→origen_disc
-      intencion:     it.intencion     || null,                 // T-202606-024 AC-5
-      no_incluye:    Array.isArray(it.no_incluye) ? it.no_incluye : [],  // T-202606-024 AC-6
-      schema_version: it.schema_version != null ? Number(it.schema_version) : 0  // T-202606-024 AC-7
-    });
-    // T-202606-018 AC9: advertencia si DISC tiene status promoted sin promovida_a en standalone parser
-    if (itemKind(it) === 'DISC' && _normSt3 === 'promoted' && !it.promovida_a) {
-      _blogLog('promoted-sin-ref', it.code || '[pendiente-ID]', 'DISC ' + (it.code || '[pendiente-ID]') + ' con status promoted sin campo promovida_a — trazabilidad incompleta', 'backlog');
-    }
-    // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
-    // T-202606-158: pasar tgItems para heredar sprint de parent R en mismo CHECKPOINT
-    _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
-  }
+  // TKT3 (REQ-[pendiente-ID]): validación de ítems extraída a _buildTgItemsFromParsed —
+  // mismo comportamiento, reutilizada también por _parseBatchBlock en modo batch.
+  const { tgItems, patchItems, itemError } = _buildTgItemsFromParsed(ckpt, parsedJSON);
 
   if (itemError) {
     prev.innerHTML = `<div class="paste-error">⛔ ${esc(itemError)}</div>`;
@@ -1969,7 +2032,7 @@ export function parsePasteStandalone() {
   // Éxito — guardar parsed y habilitar botón
   // T-202606-005: path único JSON — ckpt._isJsonFormat siempre true aquí (parseCheckpoint solo retorna JSON válido)
   const _isJsonFmtSa = !!(ckpt && ckpt._isJsonFormat);
-  _standaloneLastParsed = { ckpt, tgItems, patchItems, raw: text,
+  _standaloneLastParsed = { isBatch: false, ckpt, tgItems, patchItems, raw: text,
     // T-202606-017: doc_updates y sprint_proposal del path JSON — disponibles en saveStandaloneCheckpoint
     docUpdates:       (_isJsonFmtSa && ckpt._rawDocUpdates)     ? ckpt._rawDocUpdates     : [],
     sprintProposal:   (_isJsonFmtSa && ckpt._rawSprintProposal) ? ckpt._rawSprintProposal : null,
