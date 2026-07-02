@@ -1,4 +1,4 @@
-// [PP] mod:77 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:78 · autor:Rune · 2026-07-01 UTC-6
 // TKT-[pendiente-ID] (REQ-[pendiente-ID] limpieza de código muerto): eliminadas _vcCollapseGet
 //   y _vcCollapseSet — huérfanas tras remoción de _renderVistaC en locus-backlog-render.js
 //   (impacto lateral de la misma eliminación, sin otro caller en el codebase). Sin cambio de
@@ -2125,6 +2125,8 @@ export function getDoneItems(matchesQuery)   { // T-202606-028: computed global 
   // T-202606-060: typeOk aplicado — el chip de tipo de stats bar debe combinarse en AND con status done
   return ITEMS.filter(i => {
     const type = itemKind(i);
+    const typeOk = type ? activeTypes.has(type) : true;
+    return typeOk && i.status === 'done' && fn(i);
   });
 }
 export function _getBacklogSortMode()        { return backlogSortMode; }
