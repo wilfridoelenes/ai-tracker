@@ -1,4 +1,4 @@
-/* [PP] mod:60 · autor:Nova · 2026-06-30 UTC-6 */
+/* [PP] mod:61 · autor:Nova · 2026-07-01 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -2625,74 +2625,6 @@
   flex: 1;
 }
 
-/* T-202606-055: botón Filtros — toggle del panel inline */
-.bl-filter-toggle-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--font-sans);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  padding: 4px 10px;
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border2);
-  background: transparent;
-  color: var(--text2);
-  cursor: pointer;
-  transition: var(--trans-color);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.bl-filter-toggle-btn:hover {
-  background: var(--surface2);
-  color: var(--text);
-}
-
-.bl-filter-toggle-btn.active {
-  background: var(--surface3);
-  color: var(--text);
-  border-color: var(--border);
-}
-
-.bl-filter-toggle-icon {
-  font-size: var(--text-xs);
-  transition: transform 0.15s var(--ease-out);
-}
-
-.bl-filter-toggle-btn.active .bl-filter-toggle-icon {
-  transform: rotate(180deg);
-}
-
-/* T-202606-055: panel inline de filtros */
-.bl-filter-panel {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 6px 0 8px;
-  max-width: 2200px;
-  margin-inline: auto;
-  flex-wrap: wrap;
-}
-
-.bl-filter-panel.is-hidden {
-  display: none !important;
-}
-
-.bl-filter-panel-group {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.bl-filter-panel-label {
-  font-size: var(--text-xs);
-  color: var(--hint);
-  font-weight: 500;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
 
 .bl-toolbar-search-wrap {
   position: relative;
@@ -4904,26 +4836,6 @@ er {
 .afc-clear-all:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
-}
-
-/* T-202606-049 (Nova): badge de conteo sobre #fbar-filter-btn — introducido en T-202606-057, sin CSS hasta ahora */
-.bl-filter-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: var(--radius-pill);
-  background: var(--accent);
-  color: var(--text-on-accent);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  line-height: 1;
-}
-
-.bl-filter-badge.is-hidden {
-  display: none;
 }
 
 /* Botón de ícono en toolbar de templates (undo/redo) */

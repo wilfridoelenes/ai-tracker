@@ -1,4 +1,4 @@
-// [PP] mod:76 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:77 · autor:Rune · 2026-07-01 UTC-6
 // TKT-[pendiente-ID] (REQ-[pendiente-ID] limpieza de código muerto): eliminadas _vcCollapseGet
 //   y _vcCollapseSet — huérfanas tras remoción de _renderVistaC en locus-backlog-render.js
 //   (impacto lateral de la misma eliminación, sin otro caller en el codebase). Sin cambio de
@@ -1052,12 +1052,6 @@ export function toggleStatusFilter(status) {
     const btnId = status === 'done' ? 'fstatus-done' : status === 'descartado' ? 'fstatus-descartado' : status === 'en-revision' ? 'fstatus-en-revision' : 'fstatus-pendiente';
     const el = document.getElementById(btnId);
     if (el) { el.classList.remove('filter-pulse'); void el.offsetWidth; el.classList.add('filter-pulse'); el.addEventListener('animationend', () => el.classList.remove('filter-pulse'), { once: true }); }
-    // T-202606-066 AC-1: mismo pulse en la píldora del panel correspondiente
-    const fpId = status === 'done' ? 'fp-done' : status === 'descartado' ? 'fp-descartado' : status === 'pendiente' ? 'fp-pendiente' : null;
-    if (fpId) {
-      const fpEl = document.getElementById(fpId);
-      if (fpEl) { fpEl.classList.remove('filter-pulse'); void fpEl.offsetWidth; fpEl.classList.add('filter-pulse'); fpEl.addEventListener('animationend', () => fpEl.classList.remove('filter-pulse'), { once: true }); }
-    }
   });
 }
 export function updateStatusFilterUI() {
@@ -1069,13 +1063,6 @@ export function updateStatusFilterUI() {
   if (doneBtn) doneBtn.classList.toggle('active', activeStatuses.has('done'));
   const discBtn = document.getElementById('fstatus-descartado');
   if (discBtn) discBtn.classList.toggle('active', activeStatuses.has('descartado'));
-  // T-202606-056: sincronizar píldoras del panel con el mismo estado
-  const fpPend = document.getElementById('fp-pendiente');
-  if (fpPend) fpPend.classList.toggle('active', activeStatuses.has('pendiente'));
-  const fpDone = document.getElementById('fp-done');
-  if (fpDone) fpDone.classList.toggle('active', activeStatuses.has('done'));
-  const fpDesc = document.getElementById('fp-descartado');
-  if (fpDesc) fpDesc.classList.toggle('active', activeStatuses.has('descartado'));
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
 }
 
@@ -1885,7 +1872,6 @@ export function clearAllFilters() {
   updateTypeFilterUI();
   updateStatusFilterUI();
   updateEffortFilterUI(); // T-071
-  _syncFilterBtn(); // T-202606-059: sincronizar badge + icono del botón Filtros
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
@@ -2113,12 +2099,10 @@ export function toggleBacklogNoAcMode() {
   }
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
-  // T-202606-066 AC-2: filter-pulse en fbar-no-ac-btn (toolbar) y fp-noac (panel)
+  // T-202606-066 AC-2: filter-pulse en fbar-no-ac-btn (toolbar)
   requestAnimationFrame(() => {
-    ['fbar-no-ac-btn', 'fp-noac'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) { el.classList.remove('filter-pulse'); void el.offsetWidth; el.classList.add('filter-pulse'); el.addEventListener('animationend', () => el.classList.remove('filter-pulse'), { once: true }); }
-    });
+    const el = document.getElementById('fbar-no-ac-btn');
+    if (el) { el.classList.remove('filter-pulse'); void el.offsetWidth; el.classList.add('filter-pulse'); el.addEventListener('animationend', () => el.classList.remove('filter-pulse'), { once: true }); }
   });
 }
 
@@ -2165,8 +2149,6 @@ function _resetDepsFilter() {
   _depsFilter = 0;
   const _db = document.getElementById('fbar-deps-btn');
   if (_db) { _db.textContent = '🔗 Deps'; _db.classList.remove('active'); }
-  const _fp = document.getElementById('fp-deps');
-  if (_fp) _fp.classList.remove('active');
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
 }
@@ -2292,52 +2274,6 @@ export function renderActiveFilterChips() {
       }
     });
   }
-  _syncFilterBtn(); // T-202606-059: sincronizar badge + icono tras cada render de chips
-}
-
-// T-202606-059: sincronizar badge + icono + aria-label del botón Filtros
-// Filtros del panel: status fuera del default (done/descartado/sin-pendiente/sin-en-revision) · noac · deps · hijos
-function _syncFilterBtn() {
-  const _btn   = document.getElementById('fbar-filter-btn');
-  const _badge = document.getElementById('bl-filter-badge');
-  const _icon  = _btn && _btn.querySelector('.bl-filter-toggle-icon');
-  if (!_btn || !_badge || !_icon) return;
-
-  // Contar filtros del panel activos
-  let _count = 0;
-  if (activeStatuses.has('done'))        _count++;
-  if (activeStatuses.has('descartado'))  _count++;
-  if (!activeStatuses.has('pendiente'))  _count++;
-  if (!activeStatuses.has('en-revision')) _count++;
-  if (_backlogNoAcMode)                  _count++;
-  if (_depsFilter > 0)                   _count++;
-  if (localStorage.getItem('backlog-show-children') === '1') _count++;
-
-  if (_count > 0) {
-    _badge.textContent = String(_count);
-    _badge.classList.remove('is-hidden');
-    _icon.textContent = '✕';
-    _btn.setAttribute('aria-label', 'Filtros activos — clic para limpiar');
-    _btn.dataset.hasFilters = '1';
-  } else {
-    _badge.textContent = '';
-    _badge.classList.add('is-hidden');
-    _icon.textContent = '▾';
-    _btn.setAttribute('aria-label', 'Filtros');
-    delete _btn.dataset.hasFilters;
-  }
-}
-
-// T-202606-055: toggle de panel inline de filtros
-function toggleFilterPanel() {
-  const panel = document.getElementById('bl-filter-panel');
-  const btn   = document.getElementById('fbar-filter-btn');
-  if (!panel || !btn) return;
-  const isOpen = !panel.classList.contains('is-hidden');
-  panel.classList.toggle('is-hidden', isOpen);
-  panel.setAttribute('aria-hidden', isOpen ? 'true' : 'false');
-  btn.classList.toggle('active', !isOpen);
-  btn.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
 }
 
 // Inline handlers dinámicos — no tienen ID fijo, no pueden migrar a addEventListener
@@ -2454,87 +2390,4 @@ document.addEventListener('DOMContentLoaded', function () {
   const _btnGfToggle = document.getElementById('gf-footer-toggle');
   if (_btnGfToggle) _btnGfToggle.addEventListener('click', function () { toggleBacklogFooter(); });
 
-  // T-202606-059: botón Filtros — cuando icono es ✕ (data-has-filters) → limpiar filtros del panel
-  // Cuando icono es ▾ → toggle de panel (comportamiento original T-202606-055)
-  const _btnFilterPanel = document.getElementById('fbar-filter-btn');
-  if (_btnFilterPanel) _btnFilterPanel.addEventListener('click', function () {
-    if (_btnFilterPanel.dataset.hasFilters === '1') {
-      // Limpiar solo filtros del panel: status (done/descartado), noac, deps, hijos
-      if (activeStatuses.has('done'))       toggleStatusFilter('done');
-      if (activeStatuses.has('descartado')) toggleStatusFilter('descartado');
-      if (!activeStatuses.has('pendiente'))  toggleStatusFilter('pendiente');
-      if (!activeStatuses.has('en-revision')) toggleStatusFilter('en-revision');
-      if (_backlogNoAcMode) toggleBacklogNoAcMode();
-      if (_depsFilter > 0) _resetDepsFilter();
-      // AC11: resetear activeTypes al conjunto completo
-      activeTypes = new Set(['TKT','REQ','INC','DISC','PRB','KE','CHG']);
-      updateTypeFilterUI();
-      if (localStorage.getItem('backlog-show-children') === '1') {
-        const _tbHijos = document.getElementById('fbar-show-children-btn');
-        const _fpHijos = document.getElementById('fp-hijos');
-        if (_tbHijos) { _tbHijos.classList.remove('active'); _tbHijos.textContent = 'Hijos'; }
-        if (_fpHijos) _fpHijos.classList.remove('active');
-        toggleShowChildren(false);
-        window.dispatchEvent(new CustomEvent('shell:backlog-filter-changed'));
-      }
-      // Cerrar panel si estaba abierto
-      const _panel = document.getElementById('bl-filter-panel');
-      if (_panel && !_panel.classList.contains('is-hidden')) toggleFilterPanel();
-    } else {
-      toggleFilterPanel();
-    }
-  });
-
-  // T-202606-056: píldoras del panel — grupo Estado
-  const _fpDone = document.getElementById('fp-done');
-  if (_fpDone) _fpDone.addEventListener('click', function () { toggleStatusFilter('done'); });
-
-  const _fpDesc = document.getElementById('fp-descartado');
-  if (_fpDesc) _fpDesc.addEventListener('click', function () { toggleStatusFilter('descartado'); });
-
-  const _fpPend = document.getElementById('fp-pendiente');
-  if (_fpPend) _fpPend.addEventListener('click', function () { toggleStatusFilter('pendiente'); });
-
-  // T-202606-056: píldoras del panel — grupo Flags
-  const _fpNoAc = document.getElementById('fp-noac');
-  if (_fpNoAc) _fpNoAc.addEventListener('click', function () { toggleBacklogNoAcMode(); });
-
-  const _fpDeps = document.getElementById('fp-deps');
-  if (_fpDeps) _fpDeps.addEventListener('click', function () {
-    // toggle binario: 0→1 (bloqueados) | 1→0 (sin filtro). Estado 2 (libres) no aplica desde panel.
-    _depsFilter = _depsFilter > 0 ? 0 : 1;
-    const depsBtnToolbar = document.getElementById('fbar-deps-btn');
-    const labels = ['🔗 Deps', '🔒 Bloqueados', '🔓 Libres'];
-    if (depsBtnToolbar) {
-      depsBtnToolbar.textContent = labels[_depsFilter];
-      depsBtnToolbar.classList.toggle('active', _depsFilter > 0);
-    }
-    _fpDeps.classList.toggle('active', _depsFilter > 0);
-    window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
-    // T-202606-066 AC-3: filter-pulse en fp-deps
-    requestAnimationFrame(() => {
-      _fpDeps.classList.remove('filter-pulse'); void _fpDeps.offsetWidth; _fpDeps.classList.add('filter-pulse'); _fpDeps.addEventListener('animationend', () => _fpDeps.classList.remove('filter-pulse'), { once: true });
-    });
-  });
-
-  const _fpHijos = document.getElementById('fp-hijos');
-  if (_fpHijos) {
-    const _fpHijosStored = localStorage.getItem('backlog-show-children');
-    _fpHijos.classList.toggle('active', _fpHijosStored === '1');
-    _fpHijos.addEventListener('click', function () {
-      const nowActive = !_fpHijos.classList.contains('active');
-      _fpHijos.classList.toggle('active', nowActive);
-      // sincronizar botón Hijos de toolbar
-      const _tbHijos = document.getElementById('fbar-show-children-btn');
-      if (_tbHijos) {
-        _tbHijos.classList.toggle('active', nowActive);
-        _tbHijos.textContent = nowActive ? 'Hijos ✓' : 'Hijos';
-      }
-      toggleShowChildren(nowActive);
-      // T-202606-066 AC-4: filter-pulse en fp-hijos
-      requestAnimationFrame(() => {
-        _fpHijos.classList.remove('filter-pulse'); void _fpHijos.offsetWidth; _fpHijos.classList.add('filter-pulse'); _fpHijos.addEventListener('animationend', () => _fpHijos.classList.remove('filter-pulse'), { once: true });
-      });
-    });
-  }
 });
