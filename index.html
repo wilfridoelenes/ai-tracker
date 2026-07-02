@@ -1,4 +1,4 @@
-<!-- [PP] mod:85 · autor:Rune · 2026-07-01 UTC-6 -->
+<!-- [PP] mod:86 · autor:Nova · 2026-07-01 10:15 UTC-6 -->
 <!-- TKT-[pendiente-ID] (REQ-[pendiente-ID] simplificar toolbar de backlog): eliminado
      #backlog-meta-banner (T-048/T-050) del sub-panel Backlog. Consumidores en JS
      (updateBacklogBanner en locus-backlog-core.js · updateBacklogModificationBadge en
@@ -62,43 +62,51 @@
 <!-- ═══ HEADER COMPARTIDO ═══ -->
 <header>
   <div class="header-inner">
-    <div class="logo cursor-pointer" id="logo-btn" title="Ir a Sesiones">
-      <img id="pepe-logo" src="/img/logo.png" alt="Pepe" class="logo-img">
-      <div class="logo-project-label" id="header-project-label">
-        <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" >Locus</button>
+    <!-- TKT-header-zonas: zona Marca — R-202605-012 heredado sin cambios de contenido -->
+    <div class="header-zone header-zone--brand">
+      <div class="logo cursor-pointer" id="logo-btn" title="Ir a Sesiones">
+        <img id="pepe-logo" src="/img/logo.png" alt="Pepe" class="logo-img">
+        <div class="logo-project-label" id="header-project-label">
+          <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" >Locus</button>
+        </div>
       </div>
     </div>
 
-    <div class="tabs">
-      <button class="tab-btn" id="tab-btn-sesiones" title="Ver Sesiones">🗂 Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sesiones"></span></button>
-      <button class="tab-btn" id="tab-btn-proyectos" title="Dashboard estratégico de proyectos">📁 Proyectos<span class="tab-notif-badge is-hidden" id="tab-notif-badge-proyectos"></span></button>
-      <button class="tab-btn" id="tab-btn-backlog" title="Backlog — ítems, sprints y estado del ecosistema">🗃 Backlog<span class="tab-notif-badge is-hidden" id="tab-notif-badge-backlog"></span></button>
-      <button class="tab-btn" id="tab-btn-sprint" title="Sprint — estado y ejecución del sprint activo">🏃 Sprint<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sprint"></span></button>
-      <button class="tab-btn" id="tab-btn-analytics" title="Analytics — sesiones por mes">📊 Analytics<span class="tab-notif-badge is-hidden" id="tab-notif-badge-analytics"></span></button>
+    <!-- TKT-header-zonas: zona Navegación -->
+    <div class="header-zone header-zone--nav">
+      <div class="tabs">
+        <button class="tab-btn" id="tab-btn-sesiones" title="Ver Sesiones">🗂 Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sesiones"></span></button>
+        <button class="tab-btn" id="tab-btn-proyectos" title="Dashboard estratégico de proyectos">📁 Proyectos<span class="tab-notif-badge is-hidden" id="tab-notif-badge-proyectos"></span></button>
+        <button class="tab-btn" id="tab-btn-backlog" title="Backlog — ítems, sprints y estado del ecosistema">🗃 Backlog<span class="tab-notif-badge is-hidden" id="tab-notif-badge-backlog"></span></button>
+        <button class="tab-btn" id="tab-btn-sprint" title="Sprint — estado y ejecución del sprint activo">🏃 Sprint<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sprint"></span></button>
+        <button class="tab-btn" id="tab-btn-analytics" title="Analytics — sesiones por mes">📊 Analytics<span class="tab-notif-badge is-hidden" id="tab-notif-badge-analytics"></span></button>
+      </div>
     </div>
 
-    <div class="header-search" id="header-search-wrap">
-      <button class="hdr-search-trigger" id="hdr-search-trigger"
-              aria-label="Abrir búsqueda (⌘K)"
-              title="Buscar (⌘K)">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <span class="hdr-search-trigger__label">Buscar...</span>
-        <span class="hdr-search-trigger__badge">⌘K</span>
-      </button>
-    </div>
+    <!-- TKT-header-zonas: zona Utilidades — búsqueda + acciones agrupadas -->
+    <div class="header-zone header-zone--utils">
+      <div class="header-search" id="header-search-wrap">
+        <button class="hdr-search-trigger" id="hdr-search-trigger"
+                aria-label="Abrir búsqueda (⌘K)"
+                title="Buscar (⌘K)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <span class="hdr-search-trigger__label">Buscar...</span>
+          <span class="hdr-search-trigger__badge">⌘K</span>
+        </button>
+      </div>
 
-    <div class="header-actions">
-      <!-- Orden AC: búsqueda (en header-search) · nota rápida · menú ⋯ -->
+      <div class="header-actions">
+        <!-- Orden AC: búsqueda (en header-search) · nota rápida · menú ⋯ -->
 
-      <!-- [pendiente-ID]: Panel pendientes — trigger header -->
-      <button class="header-pend-btn is-hidden" id="header-pend-btn"
-              aria-label="Ver pendientes">
-        <span class="header-pend-btn__icon" aria-hidden="true">⏳</span>
-        <span class="header-pend-btn__count" id="header-pend-count" aria-hidden="true"></span>
-      </button>
+        <!-- [pendiente-ID]: Panel pendientes — trigger header -->
+        <button class="header-pend-btn is-hidden" id="header-pend-btn"
+                aria-label="Ver pendientes">
+          <span class="header-pend-btn__icon" aria-hidden="true">⏳</span>
+          <span class="header-pend-btn__count" id="header-pend-count" aria-hidden="true"></span>
+        </button>
 
 
-      <!-- Menú ⋯ — R-202605-012: grupos semánticos con separadores — Datos · Navegación · Configuración · Zona peligrosa -->
+        <!-- Menú ⋯ — R-202605-012: grupos semánticos con separadores — Datos · Navegación · Configuración · Zona peligrosa -->
       <div class="more-menu-wrap" id="more-menu-wrap">
         <button class="btn-ghost btn-icon" title="Más opciones" id="more-menu-btn">⋯</button>
         <div class="more-menu is-hidden" id="more-menu">
@@ -133,6 +141,7 @@
       <!-- inputs ocultos para importación -->
       <input type="file" id="imp" accept=".json" class="is-hidden">
       <input type="file" id="context-file-input" accept=".md,text/markdown,text/plain" class="is-hidden">
+      </div>
     </div>
   </div>
 </header>
