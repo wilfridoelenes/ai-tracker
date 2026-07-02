@@ -1,4 +1,4 @@
-// [PP] mod:10 · autor:Rune · 2026-06-28 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-07-01 00:30 UTC-6
 // locus-radar.js
 // Última actualización: 2026-05-25 | Perf: cachear getAISessions por render + _computeNotifications llamada una vez + _renderNotifSection acepta params pre-calculados
 // Extraído de ai-tracker-checkpoint.js (líneas 3114–3712)
@@ -13,7 +13,7 @@
 //   session.js   → navigateToCard, openQuickCapture
 //   checkpoint.js → showCheckpointPanel
 
-import { _NOTIF_DEFAULTS, _computeNotifications, _notifConfig, _notifConfigSetEnabled, _notifConfigSetThreshold, _notifGoto, _notifReadSet, _registerNotifActions, markAllNotifsRead, markNotifRead, updateTabNotifBadges } from './locus-notifications.js';
+import { _NOTIF_DEFAULTS, _computeNotifications, _notifConfig, _notifConfigReset, _notifConfigSetEnabled, _notifConfigSetThreshold, _notifGoto, _notifReadSet, _registerNotifActions, markAllNotifsRead, markNotifRead, updateTabNotifBadges } from './locus-notifications.js';
 import { openQuickCapture } from './locus-sesiones-capture.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
 import { getAISessions, getState, _isInSession } from './locus-storage.js';
@@ -153,6 +153,9 @@ function _renderCfgPanel() {
     '</button>' +
     '<div class="' + bodyClass + '" id="rsb-cfg-body">' +
       cfgRows +
+      '<div class="rsb-cfg-row">' +
+        '<button type="button" class="btn-ghost" id="rsb-cfg-reset-btn" data-action="cfgReset">Restaurar por defecto</button>' +
+      '</div>' +
     '</div>' +
   '</div>';
 }
@@ -690,6 +693,9 @@ document.addEventListener('DOMContentLoaded', function () {
       openAddAI();
     } else if (action === 'rsbToggleAgotadas') {
       _rsbToggleAgotadas();
+    } else if (action === 'cfgReset') {
+      e.stopPropagation();
+      _notifConfigReset();
     }
   });
 
