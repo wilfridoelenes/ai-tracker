@@ -1,4 +1,4 @@
-// [PP] mod:6 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:7 · autor:Rune · 2026-07-01 00:15 UTC-6
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -370,21 +370,12 @@ export function _notifConfigSetThreshold(key, val) {
   renderGlobalRadarSidebar();
 }
 
-export function closeNotifConfig() {
-  const overlay = document.getElementById('notif-config-overlay');
-  if (overlay) overlay.classList.add('is-hidden');
-}
-
+// TKT-notif-config-cleanup: closeNotifConfig() y sus listeners (#notif-config-close-btn,
+// #notif-config-reset-btn, #notif-config-listo-btn) eliminados — el overlay #notif-config-overlay
+// que consumían fue removido de index.html (R-202605-119 ya había redirigido la config
+// al Radar Sidebar; este código quedó huérfano). _notifConfigReset() se conserva —
+// la usa el Radar Sidebar directamente, no depende del overlay eliminado.
 document.addEventListener('DOMContentLoaded', function() {
-  var _notifConfigCloseBtn = document.getElementById('notif-config-close-btn');
-  if (_notifConfigCloseBtn) _notifConfigCloseBtn.addEventListener('click', closeNotifConfig);
-
-  var _notifConfigResetBtn = document.getElementById('notif-config-reset-btn');
-  if (_notifConfigResetBtn) _notifConfigResetBtn.addEventListener('click', _notifConfigReset);
-
-  var _notifConfigListoBtn = document.getElementById('notif-config-listo-btn');
-  if (_notifConfigListoBtn) _notifConfigListoBtn.addEventListener('click', closeNotifConfig);
-
   // T-202606-077: registrar hasRecentSession en _coreCallbacks
   // locus-backlog-core lo consume para cálculo de prioridad automática de ítems.
   _registerCoreCallback('hasRecentSession', hasRecentSession);

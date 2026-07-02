@@ -1,4 +1,4 @@
-<!-- [PP] mod:88 · autor:Rune · 2026-07-01 00:00 UTC-6 -->
+<!-- [PP] mod:89 · autor:Rune · 2026-07-01 00:15 UTC-6 -->
 <!-- TKT-[pendiente-ID] (REQ-[pendiente-ID] simplificar toolbar de backlog): eliminado
      #backlog-meta-banner (T-048/T-050) del sub-panel Backlog. Consumidores en JS
      (updateBacklogBanner en locus-backlog-core.js · updateBacklogModificationBadge en
@@ -1358,21 +1358,7 @@
   </div>
 </div>
 
-<div class="modal-overlay is-hidden" id="notif-config-overlay">
-  <div class="modal modal--notif-config" id="notif-config-panel" role="dialog" aria-modal="true" aria-label="Configurar notificaciones">
-    <div class="modal-header">
-      <span class="modal-title">🔔 Notificaciones</span>
-      <button class="modal-close" id="notif-config-close-btn" aria-label="Cerrar">×</button>
-    </div>
-    <div class="modal-body" id="notif-config-body"></div>
-    <div class="modal-footer">
-      <button class="btn-ghost" id="notif-config-reset-btn">Restaurar por defecto</button>
-      <button class="btn-primary" id="notif-config-listo-btn">Listo</button>
-    </div>
-  </div>
-</div>
-
-<!-- TKT-infra-sync-modal: extraído de #more-menu (hdr-menu-infra-subpanel) — mismo patrón que notif-config-overlay -->
+<!-- TKT-notif-config-cleanup: #notif-config-overlay eliminado — R-202605-119 redirigió la config al Radar Sidebar (#global-radar-sidebar); este markup y sus botones quedaron inalcanzables desde la UI -->
 <div class="modal-overlay" id="infra-sync-overlay">
   <div class="modal modal--infra-sync" id="infra-sync-panel" role="dialog" aria-modal="true" aria-label="Sincronizar infra_version">
     <div class="modal-header">
