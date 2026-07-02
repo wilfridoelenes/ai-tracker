@@ -276,25 +276,40 @@ export function toggleMoreMenu() {
   }
 }
 
-// ── T-202606-009: handler de #hdr-menu-infra-subpanel (reemplaza T-202606-031) ─────────────────────
+// ── TKT-infra-sync-modal: handler de #infra-sync-overlay (reemplaza T-202606-009 — subpanel inline eliminado del DOM, ver TKT header en 3 zonas) ─────
 // Acepta la línea completa BR (<!-- **infra_version: N** | BR-Core vX ... -->).
 // Parsea con _parseInfraLine · guarda objeto completo con setInfraVersionData.
+export function openInfraSync() {
+  const overlay = document.getElementById('infra-sync-overlay');
+  if (overlay) overlay.classList.remove('is-hidden');
+}
+
+export function closeInfraSync() {
+  const overlay = document.getElementById('infra-sync-overlay');
+  if (overlay) overlay.classList.add('is-hidden');
+}
+
 export function initInfraVersionHandler() {
-  const toggleBtn = document.getElementById('mm-btn-sync-infra');
-  const subpanel  = document.getElementById('hdr-menu-infra-subpanel');
+  const openBtn   = document.getElementById('mm-btn-sync-infra');
+  const overlay   = document.getElementById('infra-sync-overlay');
+  const closeBtn  = document.getElementById('infra-sync-close-btn');
   const textarea  = document.getElementById('hdr-menu-infra-textarea');
   const applyBtn  = document.getElementById('hdr-menu-infra-apply');
   const errMsg    = document.getElementById('hdr-menu-infra-error');
 
-  if (!toggleBtn || !subpanel || !textarea || !applyBtn || !errMsg) return;
+  if (!openBtn || !overlay || !closeBtn || !textarea || !applyBtn || !errMsg) return;
 
   // Actualizar placeholder al formato de línea completa BR
   textarea.placeholder = '<!-- **infra_version: N** | BR-Core vX.Y · BR-Ecosystem vX.Y · BR-Execution vX.Y · OB-Strategy vX.Y -->';
 
-  // Toggle del subpanel
-  toggleBtn.addEventListener('click', function () {
-    subpanel.classList.toggle('open');
+  // Abrir modal — cierra el dropdown #more-menu al mismo tiempo (mismo patrón que mm-btn-notif)
+  openBtn.addEventListener('click', function () {
+    openInfraSync();
+    toggleMoreMenu();
   });
+
+  // Cerrar modal
+  closeBtn.addEventListener('click', closeInfraSync);
 
   // Habilitación/deshabilitación de Aplicar según contenido
   textarea.addEventListener('input', function () {
@@ -319,7 +334,7 @@ export function initInfraVersionHandler() {
     errMsg.classList.add('is-hidden');
 
     setInfraVersionData(parsed);
-    subpanel.classList.remove('open');
+    closeInfraSync();
   });
 }
 
