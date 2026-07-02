@@ -1,4 +1,4 @@
-// [PP] mod:81 · autor:Rune · 2026-07-01 12:20 UTC-6
+// [PP] mod:82 · autor:Rune · 2026-07-01 14:10 UTC-6
 // locus-storage.js
 // Última actualización: TKT1 (REQ-sprints-migration) — _allSprintsCache cross-proyecto reemplaza
 // _sprintsCache por-proyecto-activo. getAllProjectsSprints() nueva, getActiveSprints() deriva del
@@ -184,7 +184,7 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
         if (_supabaseUser) {
           setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
           if (event === 'SIGNED_IN') {
-            if (typeof closeAuthModal === 'function') closeAuthModal();
+            closeAuthModal();
             _loadFromSupabase();
             // (a) event dispatch — locus-sesiones.js escucha 'shell:mark-tracker-dirty' + 'shell:render-tracker'
             _dispatch('shell:mark-tracker-dirty'); _dispatch('shell:render-tracker');
@@ -212,7 +212,7 @@ if (SUPABASE_URL && SUPABASE_KEY && typeof supabase !== 'undefined') {
         // El listener no capturó la sesión — aplicar manualmente
         _supabaseUser = session.user;
         setSyncStatus('synced', '✓ ' + (_supabaseUser.user_metadata?.full_name || _supabaseUser.email || 'ok').split(' ')[0]);
-        if (typeof closeAuthModal === 'function') closeAuthModal();
+        closeAuthModal();
         _loadFromSupabase();
         // (a) event dispatch — locus-sesiones.js escucha 'shell:mark-tracker-dirty' + 'shell:render-tracker'
         _dispatch('shell:mark-tracker-dirty'); _dispatch('shell:render-tracker');
@@ -259,7 +259,7 @@ function _updateUserMenuItem() {
 }
 
 export function handleSyncPillClick() {
-  if (!_supabaseUser) { if (typeof openAuthModal === 'function') openAuthModal(); else signInWithSupabase(); }
+  if (!_supabaseUser) { openAuthModal(); }
 }
 
 // ── SHORTCUTS + USER PREFS ───────────────────────────────────────────────────
@@ -2324,8 +2324,7 @@ export function _initApp(opts = {}) {
   const checkAuth = (user) => {
     if (!user) {
       // Sin auth → modal bloqueante. Sin render, sin interacción.
-      if (typeof openAuthModal === 'function') openAuthModal();
-      else console.warn('[AI Tracker] openAuthModal no disponible — auth requerida');
+      openAuthModal();
       return;
     }
     // 3. Auth confirmada → render completo
@@ -2711,7 +2710,7 @@ window.addEventListener('beforeunload', () => {
 function _initStorageListeners() {
   // Auth modal — Google
   const btnGoogle = document.getElementById('auth-btn-google');
-  if (btnGoogle) btnGoogle.addEventListener('click', () => { if (typeof closeAuthModal === 'function') closeAuthModal(); signInWithSupabase(); });
+  if (btnGoogle) btnGoogle.addEventListener('click', () => { closeAuthModal(); signInWithSupabase(); });
 
   // Auth modal — Magic link send
   const btnMagic = document.getElementById('auth-btn-magic');
@@ -2727,7 +2726,7 @@ function _initStorageListeners() {
 
   // Auth modal — Cancel
   const btnCancel = document.getElementById('auth-cancel-btn');
-  if (btnCancel) btnCancel.addEventListener('click', () => { if (typeof closeAuthModal === 'function') closeAuthModal(); });
+  if (btnCancel) btnCancel.addEventListener('click', () => { closeAuthModal(); });
 
   // Sync pill
   const syncPill = document.getElementById('mm-btn-sync');
