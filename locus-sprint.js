@@ -1,4 +1,4 @@
-// [PP] mod:73 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:74 · autor:Rune · 2026-07-01 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1546,8 +1546,7 @@ async function _renderSpsCerrados() {
       // done de un sprint cerrado migran a getHistoricoItemsSync(). Combinar ambas fuentes
       // para que el contador cuente contra el universo real, no solo el activo.
       const live = Array.isArray(getItems()) ? getItems() : [];
-      const hist = (typeof getHistoricoItemsSync === 'function' && Array.isArray(getHistoricoItemsSync()))
-        ? getHistoricoItemsSync() : [];
+      const hist = Array.isArray(getHistoricoItemsSync()) ? getHistoricoItemsSync() : [];
       const seen = new Set();
       const allItems = [];
       for (const i of [...live, ...hist]) {
