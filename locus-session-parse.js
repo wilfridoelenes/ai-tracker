@@ -1,4 +1,18 @@
-// [PP] mod:89 · autor:Rune · 2026-07-02 07:45 UTC-6
+// [PP] mod:90 · autor:Rune · 2026-07-02 08:10 UTC-6
+// TKT4 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
+//   cross-CHECKPOINT, depends_on: TKT3 done): _resolveCheckpointBatch(blocks, sessionId) →
+//   { tgItems, skipped } — combina los bloques válidos del batch en un solo array de tgItems
+//   sin persistir, reutilizando _parseBatchBlock (TKT3) por bloque. Gate de duplicados
+//   [tmp:slug] (antes AC3 de TKT2, en locus-session-save.js) trasladado aquí — la resolución,
+//   no la persistencia, es donde showMergeDiffPanel necesita conocer el rechazo antes de
+//   abrirse. saveStandaloneCheckpoint() agrega rama isBatch al inicio: llama a
+//   _resolveCheckpointBatch, si hay skip type:'rejected' muestra el motivo y no abre el diff
+//   panel; si no, pasa tgItems combinados por showMergeDiffPanel — al confirmar, invoca
+//   _applyCheckpointBatch(tgItems) (locus-session-save.js, refactorizada en este mismo TKT a
+//   solo-persistencia) con un único saveBacklog() para todo el batch (AC1/AC4). no_incluye:
+//   no combina doc_updates/sprint_proposal/finn_observations de múltiples bloques en el mismo
+//   panel — cada CHECKPOINT del batch los pierde si los declara; registrado como deuda técnica
+//   en el CHECKPOINT de entrega, no silenciado.
 // TKT3 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT, depends_on: TKT1 done · TKT2 done): parsePasteStandalone detecta
 //   modo batch vía _splitCheckpointBlocks(text).length > 1 — renderiza N pills con
@@ -96,7 +110,7 @@ import { renderBacklogList } from './locus-backlog-render.js';
 import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
-import { _checkStorageQuota, _mergeBacklogWithProject, saveSession } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger
+import { _checkStorageQuota, _mergeBacklogWithProject, saveSession, _applyCheckpointBatch } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger | TKT4: _applyCheckpointBatch — persistencia de batch, invocada solo en el callback de confirmación de showMergeDiffPanel (no en tiempo de evaluación del módulo, mismo patrón ya usado por _mergeBacklogWithProject en esta misma línea)
 import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
 import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData } from './locus-storage.js';
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) reemplazada por getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027
@@ -1907,6 +1921,72 @@ function _parseBatchBlock(blockText) {
   return { ok: true, ckpt, tgItems, patchItems };
 }
 
+// [PP] TKT4: resuelve un batch de bloques de texto ya separados por _splitCheckpointBlocks
+//   (TKT1) en un único array de tgItems combinado — sin persistir. Reutiliza _parseBatchBlock
+//   (TKT3) por bloque, mismo criterio de bloque inválido que el preview ya usa (AC2 heredado).
+// Invariants:
+//   - Nunca llama a saveBacklog() ni a ninguna función de persistencia — función pura de
+//     resolución sobre datos ya en memoria.
+//   - Bloque con JSON malformado o sin "title" → excluido de tgItems, entrada en skipped con
+//     { idx, type: 'invalid', reason }. No aborta la resolución de los demás bloques (AC2).
+//   - [tmp:slug-x] declarado como code de 2+ ítems nuevos en el batch completo (evaluado sobre
+//     todos los bloques válidos antes de combinar cualquiera) → tgItems retorna vacío ([]),
+//     skipped incluye { type: 'rejected', reason: '[tmp:slug-x] declarado como código de más
+//     de un ítem nuevo en el mismo batch — batch rechazado.' } — rechazo atómico, ningún
+//     bloque se combina, ni siquiera los que no participan del duplicado.
+//   - Batch de tamaño 1 con bloque válido → tgItems idéntico al que produciría _parseBatchBlock
+//     directo sobre ese único bloque, skipped vacío — sin diferencia observable (AC nuevo de
+//     Cael tras gap de especificación señalado por Rune, Fase 5 v2).
+// sideEffects:
+//   - Bloques inválidos y el rechazo por duplicado generan entrada en DocLog vía _blogLog —
+//     mismo comportamiento que TKT2 tenía, ahora emitido desde la resolución en vez de la
+//     persistencia.
+export function _resolveCheckpointBatch(blocks, sessionId) {
+  const _result = { tgItems: [], skipped: [] };
+  if (!blocks || !blocks.length) return _result;
+
+  // Paso 1 (AC2 heredado de TKT3): parsear cada bloque — inválido se marca, no aborta el resto.
+  const _parsedBlocks = blocks.map((blockText, idx) => {
+    const r = _parseBatchBlock(blockText);
+    if (!r.ok) {
+      _blogLog('checkpoint-batch-invalido', '', `CHECKPOINT ${idx + 1} del batch inválido — ${r.error}. Omitido, resto del batch resuelto.`, 'backlog');
+      _result.skipped.push({ idx, type: 'invalid', reason: r.error });
+      return { idx, valid: false };
+    }
+    return { idx, valid: true, tgItems: r.tgItems };
+  });
+
+  // Paso 2: gate de duplicados — [tmp:slug] como code de más de un ítem nuevo en el batch
+  // completo, evaluado sobre todos los bloques válidos antes de combinar cualquiera.
+  const _slugOwners = new Map(); // slug → idx del primer bloque que lo declaró
+  let _dupSlug = null;
+  _parsedBlocks.forEach(b => {
+    if (!b.valid || _dupSlug) return;
+    b.tgItems.forEach(it => {
+      if (!it.code || !/^\[tmp:[a-z0-9_-]+\]$/i.test(it.code)) return;
+      if (_slugOwners.has(it.code) && _slugOwners.get(it.code) !== b.idx) {
+        _dupSlug = it.code;
+      } else {
+        _slugOwners.set(it.code, b.idx);
+      }
+    });
+  });
+  if (_dupSlug) {
+    const _reason = `${_dupSlug} declarado como código de más de un ítem nuevo en el mismo batch — batch rechazado.`;
+    _result.tgItems = [];
+    _result.skipped.push({ type: 'rejected', reason: _reason });
+    _blogLog('checkpoint-batch-rechazado', '', _reason, 'backlog');
+    return _result;
+  }
+
+  // Paso 3 (AC1/AC4): combinar — orden de bloques preserva orden de emisión.
+  _parsedBlocks.forEach(b => {
+    if (b.valid) _result.tgItems.push(...b.tgItems);
+  });
+
+  return _result;
+}
+
 let _standaloneLastParsed = null;
 
 export function parsePasteStandalone() {
@@ -2052,6 +2132,52 @@ export function parsePasteStandalone() {
 
 export function saveStandaloneCheckpoint() {
   if (!_standaloneLastParsed) return;
+
+  // TKT4 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
+  //   cross-CHECKPOINT, depends_on: TKT3 done): modo batch — resuelve todos los bloques
+  //   válidos en un solo array combinado vía _resolveCheckpointBatch, sin persistir, y lo
+  //   pasa por showMergeDiffPanel igual que el flujo single (AC1). Si el batch se rechaza por
+  //   [tmp:slug] duplicado, el motivo se muestra al founder en vez de abrir un diff vacío sin
+  //   explicación (AC nuevo de Cael, Fase 5 v2 — gap señalado por Rune sobre TKT2 AC3).
+  // no_incluye: no combina doc_updates/sprint_proposal/finn_observations de múltiples bloques
+  //   en el mismo panel — cada CHECKPOINT del batch los pierde si los declara. Deuda registrada
+  //   en el CHECKPOINT de entrega de este TKT, no silenciada.
+  if (_standaloneLastParsed.isBatch) {
+    const { raw } = _standaloneLastParsed;
+    const _rawBlocks = _splitCheckpointBlocks(raw);
+    const syntheticSessId = 'standalone-batch-' + Date.now();
+    const { tgItems, skipped } = _resolveCheckpointBatch(_rawBlocks, syntheticSessId);
+
+    const _rejectedEntry = skipped.find(s => s.type === 'rejected');
+    if (_rejectedEntry) {
+      showToast('warn', `⚠ ${_rejectedEntry.reason}`);
+      return;
+    }
+    if (!tgItems.length) {
+      showToast('warning', '⚠ Sin ítems para aplicar');
+      return;
+    }
+    const activeProj = getActiveProject();
+    if (!activeProj) {
+      showToast('warning', '⚠ Selecciona un proyecto antes de aplicar');
+      return;
+    }
+
+    const _gatedDoApplyBatch = () => {
+      _applyCheckpointBatch(tgItems);
+      closeStandaloneCheckpoint();
+      renderBacklogList();
+      renderStats();
+      window.dispatchEvent(new CustomEvent('shell:render-tracker'));
+      showToast('success', `✓ ${tgItems.length} ítem${tgItems.length !== 1 ? 's' : ''} aplicado${tgItems.length !== 1 ? 's' : ''} al backlog`);
+      _standaloneLastParsed = null;
+    };
+
+    closeStandaloneCheckpoint();
+    showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _gatedDoApplyBatch, {});
+    return;
+  }
+
   const { tgItems, patchItems, ckpt, raw } = _standaloneLastParsed;
 
   // AC-4: si no hay ítems ni patches, no hacer nada
