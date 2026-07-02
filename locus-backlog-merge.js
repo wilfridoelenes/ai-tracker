@@ -1,3 +1,9 @@
+// [PP] mod:37 · autor:Rune · 2026-07-01 UTC-6
+// TKT-202607-001 (triggered_by hallazgo de sesión — DIFF de DISC mostraba selector "Sin sprint
+//   (Q-Backlog)" seleccionado): agregada rama _QDISC_TYPES en _sprintSelect — DISC ahora
+//   renderiza badge fijo "Q-DISC", mismo patrón ya existente para _QINC_TYPES. Sin cambio de
+//   comportamiento en backend — _applySprintInheritanceToItems ya excluía DISC correctamente.
+//   Clase .mdiff-queue-badge--qdisc requiere CSS — ver doc_updates, bloqueado sin _Locus-css-ref.
 // [PP] mod:36 · autor:Rune · 2026-06-30 19:15 UTC-6
 // INC-[pendiente-ID] (triggered_by REQ-202606-003 / REQ-202606-001): las 4 rutas de status
 //   manual de este archivo (_mdiffDoApply retroceso/discard, _confirmRetroceso, _confirmDiscard,
@@ -239,9 +245,18 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // INC-[pendiente-ID]: itemType (pos 3) — INC/PRB/KE/CHG viven exclusivamente en Q-INC (__BR-Ecosystem §5).
   //   Estos tipos no aceptan sprint ni Q-Backlog — el selector no se renderiza, se muestra badge de cola fija.
   const _QINC_TYPES = ['INC', 'PRB', 'KE', 'CHG'];
+  // TKT-202607-001 (INC-[pendiente-ID], triggered_by hallazgo de sesión — DIFF mostraba
+  //   "Sin sprint (Q-Backlog)" seleccionado para DISC): DISC vive exclusivamente en Q-DISC
+  //   (__BR-Ecosystem §5) y nunca acepta sprint — mismo patrón ya aplicado a _QINC_TYPES.
+  //   _applySprintInheritanceToItems (línea ~1672) ya excluía DISC en el backend; esta rama
+  //   alinea el render visual del selector con esa exclusión ya existente.
+  const _QDISC_TYPES = ['DISC'];
   const _sprintSelect = (code, sprintOverride, itemType) => {
     if (_QINC_TYPES.includes(itemType)) {
       return `<span class="mdiff-queue-badge mdiff-queue-badge--qinc" title="Cola fija — no editable">Q-INC</span>`;
+    }
+    if (_QDISC_TYPES.includes(itemType)) {
+      return `<span class="mdiff-queue-badge mdiff-queue-badge--qdisc" title="Cola fija — no editable">Q-DISC</span>`;
     }
     const openSprints = getActiveSprints().filter(s => s.status !== 'closed');
     const item = getItems().find(i => i.code === code);

@@ -1,3 +1,5 @@
+/* [PP] mod:30 · autor:Nova · 2026-07-01 UTC-6 */
+/* TKT-202607-001: agregada .mdiff-queue-badge--qdisc — ver bloque §mdiff-queue-badge para detalle. */
 /* [PP] mod:29 · autor:Nova · 2026-06-30 20:05 UTC-6 */
 /* locus-backlog-item.css */
 /* Última actualización: 2026-06-26 | Proyecto: Locus | Scope: IDP · Merge Diff · CSS Purity backlog */
@@ -3328,6 +3330,20 @@ body {
   border: 1px solid var(--hint);
   border-radius: var(--radius-xs);
   white-space: nowrap;
+}
+
+/* TKT-202607-001 (triggered_by hallazgo de sesión): badge de cola fija para DISC en modal DIFF —
+   mismo tratamiento estructural que .mdiff-queue-badge (línea base), pero con color propio
+   en vez del neutro var(--hint)/var(--surface2). DISC vive exclusivamente en Q-DISC
+   (__BR-Ecosystem §5) y nunca acepta sprint — igual que INC/PRB/KE/CHG con Q-INC, pero
+   la variante --qinc nunca definió color propio (queda en el neutro base). Para --qdisc se
+   usa var(--purple) porque es el color canónico ya establecido para DISC en todo el resto
+   del sistema — ver .bitem-type-DISC (línea 70, este archivo) y .item-type-pill.DISC
+   (locus-backlog.css línea 1714). Consistencia con esos dos patrones existentes, no un color nuevo. */
+.mdiff-queue-badge--qdisc {
+  color: var(--purple);
+  background: color-mix(in srgb, var(--purple) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--purple) 30%, transparent);
 }
 
 /* ══ END R-202605-148 ══ */
