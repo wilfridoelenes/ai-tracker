@@ -1,4 +1,4 @@
-/* [PP] mod:4 · autor:Nova · 2026-06-30 12:00 UTC-6 */
+/* [PP] mod:5 · autor:Nova · 2026-07-02 17:20 UTC-6 */
 /* locus-modals.css */
 
 /* Versión: 2.2 | Última actualización: 2026-06-10 | B-202606-009: .modal-overlay base declarada · ie-body scroll */
@@ -2594,7 +2594,7 @@
 
 /* AC-14: shell en HTML estático, contenido inyectado por JS */
 
-/* Visibilidad por .hidden (H-02) — sin style.display */
+/* Visibilidad por .is-hidden (H-02) — sin style.display */
 .qc-panel {
   flex: 1;
   padding: 16px 18px;

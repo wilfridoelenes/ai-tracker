@@ -1,4 +1,4 @@
-/* [PP] mod:9 · autor:Nova · 2026-07-01 10:40 UTC-6 */
+/* [PP] mod:10 · autor:Nova · 2026-07-02 17:20 UTC-6 */
 /* locus-layout.css */
 
 /* Versión: 2.1 | Última actualización: 2026-05-22 | Selectores compartidos consolidados — T-202605-031 */
@@ -1358,8 +1358,6 @@ header {
 /* ══ END R-202604-065 ══ */
 
 /* ══ S-CPR: CSS Purity Refactor — utilidades ══ */
-
-/* .hidden declarada en ai-tracker.css — no redeclarar aquí */
 
 /* Modal overlay apilado sobre otros overlays */
 .modal-overlay--top {

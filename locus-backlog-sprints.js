@@ -1,4 +1,4 @@
-// [PP] mod:35 · autor:Rune · 2026-07-02 UTC-6
+// [PP] mod:36 · autor:Rune · 2026-07-02 20:16 UTC-6
 // TKT1 (REQ-sprints-migration): import muerto _loadSprintsFromSupabase eliminado — la función
 //   fue reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js y este módulo
 //   nunca la invocaba (solo quedaba en comentario línea ~959). Sin este fix, TKT1 entregado solo
@@ -379,6 +379,19 @@ export function createSprint(raw, goal, versionTarget, releaseType, projId, init
   return id;
 }
 
+// TKT2 (REQ-inc-historico): criterio único de elegibilidad para migrar INC/PRB/KE/CHG a
+// historico al cerrar sprint — compartido por _scmExecuteClose (mutación real) y
+// _generateSprintRetroMd (texto de retro), para que ambos coincidan exactamente (AC de contrato).
+// Prioriza archivedInSprint (TKT1, locus-backlog-item.js) — fallback a ventana de tiempo
+// preexistente (closedAt >= sprintOpenedAt) cuando el campo no fue asignado.
+function _incEligibleForSprintClose(i, sprintId, sprintOpenedAt) {
+  if (i.type !== 'INC' && i.type !== 'PRB' && i.type !== 'KE' && i.type !== 'CHG') return false;
+  if (i.incidentStatus !== 'closed') return false;
+  if (i.archivedInSprint) return i.archivedInSprint === sprintId;
+  const _closedTs = i.closedAt || i.statusChangedAt || 0;
+  return _closedTs >= (sprintOpenedAt || 0);
+}
+
 // T-202606-121: generar MD de retrospectiva con schema canónico del BR
 // Secciones: ## Retro · [Prefijo]-S-XX → Done · Descartado ·
 //   Doc-Updates aplicados · Doc-Updates pendientes → ## Narrativa · [Prefijo]-S-XX
@@ -436,12 +449,7 @@ function _generateSprintRetroMd(id, notes) {
     const d = new Date(ts || Date.now());
     return `${d.getFullYear()}-${_pad(d.getMonth()+1)}-${_pad(d.getDate())}`;
   };
-  const incClosedItems = getItems().filter(i => {
-    if (i.type !== 'INC' && i.type !== 'PRB' && i.type !== 'KE' && i.type !== 'CHG') return false;
-    if (i.incidentStatus !== 'closed') return false;
-    const _closedTs = i.closedAt || i.statusChangedAt || 0;
-    return _closedTs >= _sprintOpenedAt;
-  });
+  const incClosedItems = getItems().filter(i => _incEligibleForSprintClose(i, id, _sprintOpenedAt));
   const _incClosedList = incClosedItems.length
     ? incClosedItems.map(i => `- ${i.code}: incident \u00b7 ${_incDate(i.closedAt || i.statusChangedAt)}`).join('\n')
     : '';
@@ -1603,6 +1611,19 @@ async function _scmExecuteClose() {
       i.archivedAt = closeTs;
       // R-202605-134: aplicar version_target como version en ítems que estaban done
       if (wasDone && versionTarget) i.version = versionTarget;
+      _historicoCodesThisClose.add(i.code);
+    }
+  });
+
+  // TKT2 (REQ-inc-historico): migrar INC/PRB/KE/CHG closed correlacionados a este sprint —
+  // mismo criterio de _incEligibleForSprintClose usado por _generateSprintRetroMd (AC de
+  // contrato: retro e historico real deben coincidir en los mismos códigos).
+  const _sprintOpenedAtClose = spForClose ? (spForClose.startedAt || 0) : 0;
+  getItems().forEach(i => {
+    if (_historicoCodesThisClose.has(i.code)) return;
+    if (_incEligibleForSprintClose(i, id, _sprintOpenedAtClose)) {
+      i.status = 'historico';
+      i.archivedAt = closeTs;
       _historicoCodesThisClose.add(i.code);
     }
   });

@@ -1,4 +1,4 @@
-// [PP] mod:62 · autor:Rune · 2026-07-02 03:35 UTC-6
+// [PP] mod:63 · autor:Rune · 2026-07-02 20:16 UTC-6
 // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT): _assignPendingIds(tgItems, seedSlugMap?) — parámetro nuevo, opcional,
 //   sin cambio de comportamiento si ausente. Seed copiado al inicio del slugMap con precedencia
@@ -2151,6 +2151,16 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
         if (!_noIncidentStatus && item.incidentStatus && item.incidentStatus !== existing.incidentStatus) {
           changes.push({ field: 'incidentStatus', from: existing.incidentStatus || '—', to: item.incidentStatus });
           if (!_dryRun) { existing.incidentStatus = item.incidentStatus; changed = true; }
+        }
+        // TKT1 (REQ-inc-historico): al cerrar un incidente vía patch/merge, se fija archivedInSprint
+        // al sprint 'active' actual — primer valor gana, nunca se recalcula si ya existía (AC fuera
+        // de scope). Sin sprint 'active' → queda sin asignar, no bloquea el resto del merge.
+        if (!_noIncidentStatus && item.incidentStatus === 'closed' && !existing.archivedInSprint) {
+          const _openSprint = getActiveSprints().find(s => s.status === 'active');
+          if (_openSprint) {
+            changes.push({ field: 'archivedInSprint', from: existing.archivedInSprint || '—', to: _openSprint.id });
+            if (!_dryRun) { existing.archivedInSprint = _openSprint.id; changed = true; }
+          }
         }
         if (item.slaPriority && item.slaPriority !== existing.slaPriority) { changes.push({ field: 'slaPriority', from: existing.slaPriority || '—', to: item.slaPriority }); if (!_dryRun) { existing.slaPriority = item.slaPriority; changed = true; } }
         if (item.slaDeadline != null && item.slaDeadline !== existing.slaDeadline) { changes.push({ field: 'slaDeadline', from: existing.slaDeadline || '—', to: item.slaDeadline }); if (!_dryRun) { existing.slaDeadline = item.slaDeadline; changed = true; } }

@@ -1,4 +1,4 @@
-/* [PP] mod:4 · autor:Nova · 2026-06-30 UTC-6 */
+/* [PP] mod:5 · autor:Nova · 2026-07-02 17:20 UTC-6 */
 /* locus-base.css */
 
 
@@ -473,11 +473,6 @@ body {
 
 /* ══ CSS-04: Clase canónica de ocultamiento ══ */
 .is-hidden {
-  display: none !important;
-}
-
-/* alias legacy — no migrar a JS hasta T de migración CSS */
-.hidden {
   display: none !important;
 }
 

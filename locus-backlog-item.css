@@ -1,4 +1,4 @@
-/* [PP] mod:30 · autor:Nova · 2026-07-01 UTC-6 */
+/* [PP] mod:31 · autor:Nova · 2026-07-02 17:20 UTC-6 */
 /* TKT-202607-001: agregada .mdiff-queue-badge--qdisc — ver bloque §mdiff-queue-badge para detalle. */
 /* [PP] mod:29 · autor:Nova · 2026-06-30 20:05 UTC-6 */
 /* locus-backlog-item.css */
@@ -1528,10 +1528,6 @@
   align-items: center;
   gap: 6px;
 }
-
-/* buildCard — paste-help-box oculto por clase (usa .hidden global) */
-
-/* .hidden ya existe como utilidad global — no redefinir */
 
 /* renderProjDots — SVG clickable */
 .proj-dot-svg--clickable {
