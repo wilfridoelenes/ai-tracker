@@ -1,4 +1,4 @@
-// [PP] mod:37 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:38 · autor:Rune · 2026-07-02 06:00 UTC-6
 // TKT-202607-001 (triggered_by hallazgo de sesión — DIFF de DISC mostraba selector "Sin sprint
 //   (Q-Backlog)" seleccionado): agregada rama _QDISC_TYPES en _sprintSelect — DISC ahora
 //   renderiza badge fijo "Q-DISC", mismo patrón ya existente para _QINC_TYPES. Sin cambio de
@@ -959,10 +959,13 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       if (!sel || !sel.value) discardPendingItems.push({ item, idx });
     });
 
-    // T-202606-001 (TKT-B2): ítem nuevo REQ/TKT/INC sin sprint efectivo bloquea aplicación —
-    // sin sprint es zona exclusiva de Q-Backlog/Q-DISC (BR-Ecosystem §5). El founder debe elegir
+    // T-202606-001 (TKT-B2): ítem nuevo REQ/TKT sin sprint efectivo bloquea aplicación —
+    // sin sprint es zona exclusiva de Q-Backlog (BR-Ecosystem §5). El founder debe elegir
     // sprint real vía el _sprintSelect ya presente en la card antes de poder guardar.
-    // DISC nunca entra aquí — filtrado explícitamente por tipo (vive siempre en Q-DISC).
+    // DISC e INC nunca entran aquí — filtrados explícitamente por tipo (DISC vive siempre en
+    // Q-DISC, INC vive siempre en Q-INC vía campo `queue` — ninguno de los dos usa `sprint`).
+    // Bugfix INC-202607-002: INC estaba incluido en este filtro junto con REQ/TKT — bloqueaba
+    // el guardado de todo INC nuevo pidiendo sprint, contradiciendo que INC vive en Q-INC.
     const sprintPendingItems = [];
     [...diff.created, ...diff.createdAndClosed].forEach((item) => {
       // item.type es el string completo del schema (REQ/TKT/INC/DISC) — fuente canónica.
@@ -970,7 +973,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       const _codePrefix = (item.code || '?')[0].toUpperCase();
       const _prefixToKind = { R: 'REQ', T: 'TKT', I: 'INC', D: 'DISC' };
       const itemKind = item.type || _prefixToKind[_codePrefix] || _codePrefix;
-      if (itemKind !== 'REQ' && itemKind !== 'TKT' && itemKind !== 'INC') return;
+      if (itemKind !== 'REQ' && itemKind !== 'TKT') return;
       const effectiveSprint = Object.prototype.hasOwnProperty.call(_mdiffPendingSprints, item.code)
         ? _mdiffPendingSprints[item.code]
         : item.sprint;
