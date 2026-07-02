@@ -1,4 +1,7 @@
-// [PP] mod:78 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:79 · autor:Rune · 2026-07-01 UTC-6
+// TKT1 (REQ-[pendiente-ID] unificar renderer de #active-filter-chips): renderActiveFilterChips()
+//   agrega toggle is-hidden de #filter-clear-btn vía chips.length===0 — criterio único que incluye
+//   deps (bloqueados/libres), gap que el isDefault previo de updateClearFilterBtn no cubría.
 // TKT-[pendiente-ID] (REQ-[pendiente-ID] limpieza de código muerto): eliminadas _vcCollapseGet
 //   y _vcCollapseSet — huérfanas tras remoción de _renderVistaC en locus-backlog-render.js
 //   (impacto lateral de la misma eliminación, sin otro caller en el codebase). Sin cambio de
@@ -2237,6 +2240,12 @@ export function renderActiveFilterChips() {
   if (!_container) return;
 
   const chips = _getActiveFilterChips();
+
+  // TKT1 (REQ unificar renderer de #active-filter-chips): #filter-clear-btn se
+  // deriva de chips.length===0 — criterio único, incluye deps (bloqueados/libres),
+  // que el isDefault previo de updateClearFilterBtn no cubría.
+  const _btnClear = document.getElementById('filter-clear-btn');
+  if (_btnClear) _btnClear.classList.toggle('is-hidden', chips.length === 0);
 
   // AC-3: sin filtros → vaciar y ocultar contenedor
   if (!chips.length) {

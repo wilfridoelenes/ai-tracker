@@ -1,4 +1,9 @@
-// [PP] mod:61 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:62 · autor:Rune · 2026-07-01 UTC-6
+// TKT1 (REQ-[pendiente-ID] unificar renderer de #active-filter-chips): updateClearFilterBtn()
+//   reducida a delegar en renderActiveFilterChips() (core.js) — ya no construye innerHTML de
+//   #active-filter-chips ni referencia #bl-filter-badge/#fbar-filter-btn (elementos inexistentes
+//   desde el REQ de consolidación de toolbar). Listener shell:backlog-filter-changed duplicado
+//   eliminado — queda solo el de core.js. inline_fix: imports huérfanos removidos.
 // TKT (fix groupId): renderSprintGroup acepta contextPrefix — ver comentario en la función.
 //   Reaplicado sobre mod:60 (simplificación _useVistaLista, TKT-[pendiente-ID] paralelo) —
 //   sin conflicto, cuerpos no se solapan.
@@ -51,9 +56,9 @@
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
 import { renderArchivoHistorico, toggleArchivoHistorico, getArchivoHistoricoCount, getArchivoHistoricoStats } from './locus-backlog-archive.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleTypeFilter, toggleStatusFilter, toggleVersionCollapse, toggleSectionGroup, toggleEffortFilter, toggleBacklogNoAcMode, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js';
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js'; // TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix)
 
-import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, buildQIncItem, clearBacklogSearch, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-B2b: buildQIncItem
+import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, buildQIncItem, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-B2b: buildQIncItem
 
 import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
 
@@ -216,92 +221,13 @@ export function setItemParent(code, parentCode) {
   showToast('success', parentCode ? `${code} vinculado a ${parentCode}` : `${code} desvinculado`);
 }
 
+// TKT1 (REQ unificar renderer de #active-filter-chips): reducida a su función real —
+// visibilidad de #filter-clear-btn. El chip-render de #active-filter-chips (con cobertura
+// completa de 7 tipos y ambos estados de deps) queda delegado en renderActiveFilterChips()
+// de locus-backlog-core.js, que ahora también deriva el toggle is-hidden de este botón desde
+// chips.length===0 — criterio que ya incluye deps, gap que este isDefault local no cubría.
 export function updateClearFilterBtn() {
-  const btn = document.getElementById('filter-clear-btn');
-  if (!btn) return;
-  const allTypes = _getActiveTypes().size === 4;
-  const _as = _getActiveStatuses();
-  const defaultStatus = _as.size === 2 && _as.has('pendiente') && _as.has('en-revision'); // B-202606-008: size===2 + has ambos es suficiente — no puede haber otros si size es exactamente 2
-  const noSearch = !_getBacklogSearchQuery();
-  const noPriorityFilter = _getActivePriorityFilter().size === 0; // T-202604-357
-  const allEfforts = _getActiveEfforts().size === 3; // B-202606-006
-  const isDefault = allTypes && defaultStatus && noSearch && noPriorityFilter && allEfforts && !_getBacklogNoAcMode(); // T-202606-098: noRoleFilter eliminado
-  btn.classList.toggle('is-hidden', isDefault);
-
-  // R-202605-094: chips individuales limpiables por filtro activo
-  const wrap = document.getElementById('active-filter-chips');
-  if (!wrap) return;
-  if (isDefault) {
-    wrap.innerHTML = '';
-    // T-202606-057: sin filtros activos — limpiar badge y restaurar chevron
-    const _fb = document.getElementById('bl-filter-badge');
-    const _fi = document.querySelector('#fbar-filter-btn .bl-filter-toggle-icon');
-    if (_fb) _fb.textContent = '';
-    if (_fi) _fi.textContent = '▾';
-    return;
-  }
-
-  // Delegation en #active-filter-chips — se registra una sola vez
-  if (!wrap._delegationAttached) {
-    wrap._delegationAttached = true;
-    wrap.addEventListener('click', function _afcClick(e) {
-      const chip = e.target.closest('[data-afc]');
-      if (!chip) return;
-      const act = chip.dataset.afc;
-      const val = chip.dataset.afcVal;
-      if (act === 'type')          { toggleTypeFilter(val); }
-      else if (act === 'status')   { toggleStatusFilter(val); }
-      else if (act === 'priority') { window.dispatchEvent(new CustomEvent('shell:togglePriorityFilter', { detail: { val } })); }
-      else if (act === 'effort')   { toggleEffortFilter(parseInt(val, 10)); }
-      else if (act === 'search')   { clearBacklogSearch(); }
-      else if (act === 'noac')     { toggleBacklogNoAcMode(); }
-    });
-  }
-
-  const chips = [];
-  const _chip = (label, afcAction, afcVal = '') =>
-    `<span class="afc-chip" data-afc="${afcAction}" data-afc-val="${esc(String(afcVal))}">${esc(label)} <span class="afc-chip-x">✕</span></span>`;
-
-  if (!allTypes) {
-    const excluded = ['TKT','REQ','INC','DISC'].filter(t => !_getActiveTypes().has(t));
-    excluded.forEach(t => {
-      const labels = { TKT:'Ticket', REQ:'Req', INC:'INC', DISC:'DISC' };
-      chips.push(_chip(`Sin ${labels[t]}`, 'type', t));
-    });
-  }
-  if (!defaultStatus) {
-    const neutralStatuses = new Set(['pendiente', 'en-revision']);
-    [..._getActiveStatuses()].filter(s => !neutralStatuses.has(s)).forEach(s => {
-      chips.push(_chip(`+${s}`, 'status', s));
-    });
-    if (!_getActiveStatuses().has('pendiente')) {
-      chips.push(_chip('−Pendiente', 'status', 'pendiente'));
-    }
-    if (!_getActiveStatuses().has('en-revision')) {
-      chips.push(_chip('−En revisión', 'status', 'en-revision'));
-    }
-  }
-  if (!noPriorityFilter) {
-    [..._getActivePriorityFilter()].forEach(p => {
-      chips.push(_chip(`Pri: ${p}`, 'priority', p));
-    });
-  }
-  if (_getActiveEfforts().size < 3) {
-    [1,2,3].filter(e => !_getActiveEfforts().has(e)).forEach(e => {
-      chips.push(_chip(`Sin E${e}`, 'effort', e));
-    });
-  }
-  if (!noSearch) chips.push(_chip(`"${_getBacklogSearchQuery()}"`, 'search'));
-  if (_getBacklogNoAcMode()) chips.push(_chip('Sin AC', 'noac'));
-
-  wrap.innerHTML = chips.join('');
-
-  // T-202606-057: badge de conteo + alternancia chevron/X en botón Filtros
-  const _filterBadge = document.getElementById('bl-filter-badge');
-  const _filterIcon  = document.querySelector('#fbar-filter-btn .bl-filter-toggle-icon');
-  const _filterCount = chips.length;
-  if (_filterBadge) _filterBadge.textContent = _filterCount > 0 ? `· ${_filterCount}` : '';
-  if (_filterIcon)  _filterIcon.textContent  = _filterCount > 0 ? '✕' : '▾';
+  renderActiveFilterChips();
 }
 
 // T-202604-213: _statusPills — migrada a locus-sprint-planificacion.js (B-202605-046)
@@ -1770,7 +1696,9 @@ export function _updateSubtabBadges() {
 window.addEventListener('shell:backlog-render-dirty', () => { _markBacklogListDirty(); renderBacklogList(); _updateSubtabBadges(); });
 window.addEventListener('shell:mark-backlog-dirty',   () => { _markBacklogListDirty(); });
 window.addEventListener('shell:render-backlog-list',  () => { _markBacklogListDirty(); renderBacklogList(); renderStats(); _updateSubtabBadges(); }); // B-202606-008: _markBacklogListDirty ausente — guard cortaba render cuando dirty=false
-window.addEventListener('shell:backlog-filter-changed', () => { updateClearFilterBtn(); });
+// TKT1 (REQ unificar renderer de #active-filter-chips): listener shell:backlog-filter-changed
+// duplicado eliminado — queda solo el de locus-backlog-core.js, que ya invoca
+// renderActiveFilterChips() (equivalente funcional de updateClearFilterBtn tras esta consolidación).
 // B-202606-009: micro-flash en pill del R padre cuando su status avanza automáticamente
 // requestAnimationFrame garantiza que el DOM post-render ya está pintado antes de aplicar la clase
 window.addEventListener('shell:backlog-r-auto-advanced', e => {
