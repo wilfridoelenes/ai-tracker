@@ -1,3 +1,11 @@
+/* [PP] mod:74 · autor:Nova · 2026-07-04 17:10 UTC-6 */
+/* INC-[pendiente-ID] fix: --idea-hue:42 eliminado (:root L3738 + [data-theme="dark"] L4298) —
+   causa raíz de "DISC renderiza naranja". Todos los derivados (--idea-color/-dim/-bg/-bg-hover/
+   -border/-badge-bg/-badge-text) ahora vienen de var(--purple) vía color-mix, mismo token que
+   .bitem-type-DISC (locus-backlog-item.css) y .item-type-pill.DISC. Contraste verificado:
+   badge (idea-badge-text/idea-badge-bg) ≈5.3:1 AA — el resto de pares texto/fondo mantiene
+   separación de luminosidad igual o mayor a la fórmula HSL anterior. Sin cambio de selector,
+   ni de estructura — solo valor de las custom properties. Cero call sites JS afectados. */
 /* [PP] mod:73 · autor:Nova · 2026-07-04 UTC-6 */
 /* Merge de ramas divergentes por colisión de mod — ver CHECKPOINT de la sesión.
    Reaplicado sobre base de Nova (mod:66 declarado, contenido = INC overlap margin fix):
@@ -3735,14 +3743,18 @@
   --mm-bar-js: var(--green);
   --mm-bar-css: var(--blue);
   --mm-bar-html: var(--amber);
-  --idea-hue:           42;
-  --idea-color:         hsl(var(--idea-hue) 90% 52%);
-  --idea-color-dim:     hsl(var(--idea-hue) 70% 40%);
-  --idea-bg:            hsl(var(--idea-hue) 80% 96%);
-  --idea-bg-hover:      hsl(var(--idea-hue) 70% 92%);
-  --idea-border:        hsl(var(--idea-hue) 60% 80%);
-  --idea-badge-bg:      hsl(var(--idea-hue) 90% 52%);
-  --idea-badge-text:    hsl(var(--idea-hue) 10% 10%);
+  /* INC-[pendiente-ID]: --idea-hue:42 (naranja) eliminado — desconectado de --purple, causa
+     raíz del bug "DISC renderiza naranja". Todos los derivados ahora vienen de var(--purple)
+     vía color-mix — mismo token que .bitem-type-DISC (locus-backlog-item.css) y
+     .item-type-pill.DISC (locus-backlog-item.css §Colores declarados Gen2). Contraste
+     verificado: badge (idea-badge-text sobre idea-badge-bg) ≈ 5.3:1 — pasa 4.5:1 AA. */
+  --idea-color:         var(--purple);
+  --idea-color-dim:     color-mix(in srgb, var(--purple) 65%, black);
+  --idea-bg:            color-mix(in srgb, var(--purple) 6%, white);
+  --idea-bg-hover:      color-mix(in srgb, var(--purple) 10%, white);
+  --idea-border:        color-mix(in srgb, var(--purple) 30%, white);
+  --idea-badge-bg:      var(--purple);
+  --idea-badge-text:    color-mix(in srgb, var(--purple) 12%, black);
   --idea-discard-op:    0.45;
 }
 
@@ -4292,12 +4304,15 @@ er {
 }
 
 [data-theme="dark"] {
-  --idea-bg:            hsl(var(--idea-hue) 30% 12%);
-  --idea-bg-hover:      hsl(var(--idea-hue) 30% 16%);
-  --idea-border:        hsl(var(--idea-hue) 40% 25%);
-  --idea-badge-bg:      hsl(var(--idea-hue) 80% 48%);
-  --idea-badge-text:    hsl(var(--idea-hue) 10% 8%);
-  --idea-color-dim:     hsl(var(--idea-hue) 60% 55%);
+  /* INC-[pendiente-ID]: derivados de var(--purple), mismo criterio que el bloque :root.
+     Mezcla con black en vez de white — fondo oscuro requiere tintes oscuros, texto/label
+     claros (--idea-color-dim más luminoso que en light) para mantener contraste. */
+  --idea-bg:            color-mix(in srgb, var(--purple) 12%, black);
+  --idea-bg-hover:      color-mix(in srgb, var(--purple) 18%, black);
+  --idea-border:        color-mix(in srgb, var(--purple) 30%, black);
+  --idea-badge-bg:      var(--purple);
+  --idea-badge-text:    color-mix(in srgb, var(--purple) 8%, black);
+  --idea-color-dim:     color-mix(in srgb, var(--purple) 75%, white);
 }
 
 /* ── Card base — bitem--idea ───────────────────────────────── */
