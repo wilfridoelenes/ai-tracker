@@ -1,4 +1,4 @@
-// [PP] mod:64 · autor:Rune · 2026-07-03 UTC-6
+// [PP] mod:65 · autor:Rune · 2026-07-04 17:01 UTC-6
 // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT): _assignPendingIds(tgItems, seedSlugMap?) — parámetro nuevo, opcional,
 //   sin cambio de comportamiento si ausente. Seed copiado al inicio del slugMap con precedencia
@@ -107,12 +107,23 @@ let currentFilter = 'all';
 // B-202606-023: guard de delegación como variable de módulo — evita que la propiedad DOM
 // persista entre renders cuando renderBacklogList reemplaza innerHTML de #backlog-list.
 // renderBacklogList llama _resetBacklogListDelegation() antes de llamar _attachBacklogListDelegation().
-let _blListDelegationAttached = false;
-let _blListAbortCtrl = null;
-export function _resetBacklogListDelegation() {
-  if (_blListAbortCtrl) { _blListAbortCtrl.abort(); }
-  _blListAbortCtrl = new AbortController();
-  _blListDelegationAttached = false;
+// INC-[pendiente-ID]: state por contenedor — antes un solo flag/AbortController module-level
+// asumía #backlog-list como único caller posible. Un Map permite adjuntar la misma delegación
+// a #qbacklog-panel-body y #qdisc-panel-body sin que el guard de uno bloquee a los otros.
+const _blListDelegationState = new Map(); // containerId -> { attached: bool, abortCtrl: AbortController|null }
+function _getBlListState(containerId) {
+  let state = _blListDelegationState.get(containerId);
+  if (!state) {
+    state = { attached: false, abortCtrl: null };
+    _blListDelegationState.set(containerId, state);
+  }
+  return state;
+}
+export function _resetBacklogListDelegation(containerId = 'backlog-list') {
+  const state = _getBlListState(containerId);
+  if (state.abortCtrl) { state.abortCtrl.abort(); }
+  state.abortCtrl = new AbortController();
+  state.attached = false;
 }
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -247,11 +258,13 @@ function _kbCardClick(event, code) {
 // T-202605-054: delegación de eventos para #backlog-list — reemplaza handlers inline
 // Cubre: copyItemCode · copyItemToClipboard · _inlineEditTitle · _confirmUnlinkChild
 //        child-expand · drag-handle · kanban card (click + drag) · kb-col (drag) · _promoteSelectType
-export function _attachBacklogListDelegation() {
-  const listEl = document.getElementById('backlog-list');
-  if (!listEl || _blListDelegationAttached) return;
-  if (!_blListAbortCtrl) { _blListAbortCtrl = new AbortController(); }
-  _blListDelegationAttached = true;
+export function _attachBacklogListDelegation(containerId = 'backlog-list') {
+  const listEl = document.getElementById(containerId);
+  const _state = _getBlListState(containerId);
+  if (!listEl || _state.attached) return;
+  if (!_state.abortCtrl) { _state.abortCtrl = new AbortController(); }
+  _state.attached = true;
+  const _blListAbortCtrl = _state.abortCtrl; // alias local — sin cambiar las 8 referencias de signal abajo
 
   // --- Click delegation ---
   listEl.addEventListener('click', function _blListClick(e) {
@@ -500,8 +513,11 @@ export function _attachBacklogListDelegation() {
     if (type === 'role') {
       setItemRole(code, sel.value);
     } else if (type === 'sprint') {
+      // INC-[pendiente-ID]: renderBacklogList() directo removido — ciego a qué panel disparó
+      // el cambio (rompía Q-Backlog/Q-DISC al reasignar sprint desde esas cards). setItemSprint
+      // ahora despacha shell:backlog-render-dirty (ver locus-backlog-sprints.js) — mismo patrón
+      // ya usado por setItemRole, refresca el panel que esté activo sin importar cuál sea.
       setItemSprint(code, sel.value);
-      _markBacklogListDirty(); renderBacklogList(); // B-202606-038: re-render en live tras reasignación desde card
     } else if (type === 'parent') {
       setItemParent(code, sel.value);
     } else {

@@ -1,4 +1,4 @@
-// [PP] mod:36 · autor:Rune · 2026-07-02 20:16 UTC-6
+// [PP] mod:37 · autor:Rune · 2026-07-04 17:01 UTC-6
 // TKT1 (REQ-sprints-migration): import muerto _loadSprintsFromSupabase eliminado — la función
 //   fue reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js y este módulo
 //   nunca la invocaba (solo quedaba en comentario línea ~959). Sin este fix, TKT1 entregado solo
@@ -586,7 +586,11 @@ export function setItemSprint(code, sprintId) {
   _undoSnapshot();
   saveBacklog();
   _setBacklogModified();
-  _markBacklogListDirty(); renderBacklogList();
+  // INC-[pendiente-ID]: renderBacklogList() directo reemplazado — era ciego a qué panel disparó
+  // el cambio (Q-Backlog/Q-DISC quedaban con la vista vieja al reasignar sprint desde esas cards).
+  // shell:backlog-render-dirty ya lo escuchan #backlog-list, qbacklog-panel-body y qdisc-panel-body
+  // (ver locus-backlog-render.js) — mismo patrón usado por setItemRole.
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   renderStats();
 }
 

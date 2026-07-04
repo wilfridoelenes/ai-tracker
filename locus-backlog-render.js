@@ -1,4 +1,4 @@
-// [PP] mod:69 · autor:Rune · 2026-07-04 16:40 UTC-6
+// [PP] mod:70 · autor:Rune · 2026-07-04 17:01 UTC-6
 // TKT1 (REQ-[pendiente-ID] Ocultar bloque Terminados en Discoveries): _renderZonePanel acepta
 // opts.hasDoneState / opts.hasChildren (default true — sin cambio de comportamiento para
 // qbacklog). Con false: el bloque estático #[nsKey]-done-group se oculta vía .is-hidden (Nova,
@@ -249,7 +249,10 @@ export function setItemParent(code, parentCode) {
   _undoSnapshot();
   saveBacklog();
   _setBacklogModified();
-  _markBacklogListDirty(); renderBacklogList();
+  // INC-[pendiente-ID]: mismo fix que setItemSprint — renderBacklogList() directo era ciego
+  // a qué panel disparó el cambio. shell:backlog-render-dirty refresca #backlog-list,
+  // qbacklog-panel-body o qdisc-panel-body según cuál esté activo.
+  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   renderStats();
   showToast('success', parentCode ? `${code} vinculado a ${parentCode}` : `${code} desvinculado`);
 }
@@ -1090,6 +1093,15 @@ function _renderZonePanel(opts) {
   const _emptyIcon = emptyIcon || '📦';
   const body = document.getElementById(bodyId);
   if (!body) return;
+
+  // INC-[pendiente-ID]: sin esta línea, el header de la card (data-action="item-expand") y el
+  // resto de acciones delegadas (copiar código/ítem, doble-click editar título, quick-assign
+  // effort, cambiar status/rol/sprint/parent, abrir bloqueante, promover) no tienen listener en
+  // qbacklog-panel-body/qdisc-panel-body — buildBacklogItem() genera el mismo markup que Vista
+  // Lista pero solo #backlog-list tenía la delegación adjunta. Mismo patrón que renderBacklogList()
+  // (ver más abajo en este archivo) — reset antes de re-adjuntar en cada render de la zona.
+  _resetBacklogListDelegation(bodyId);
+  _attachBacklogListDelegation(bodyId);
 
   // Bloque Terminados estático (.bl-done-group, ver index.html/TKT-C6) — oculto vía .is-hidden
   // cuando hasDoneState:false, sin dejar espacio ni borde residual (misma clase que
