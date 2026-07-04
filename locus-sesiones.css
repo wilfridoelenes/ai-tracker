@@ -1,4 +1,4 @@
-/* [PP] mod:19 · autor:Nova · 2026-07-04 UTC-6 */
+/* [PP] mod:20 · autor:Nova · 2026-07-04 UTC-6 */
 /* locus-sesiones.css */
 /* Última actualización: 2026-06-26 | log-* migrado desde locus-radar.css */
 /* Gen 2 — infra_version: 5 | Migración selectores: .P/.T/.R/.B → .DISC/.TKT/.REQ/.INC en badges, pills, sess-ind, tg-type, tracker-item-type-pill, log-ref, mh-ref-tag */
@@ -2946,6 +2946,19 @@
 }
 
 #item-editor-overlay .ie-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* TKT-[tmp:tkt-ie-intencion-layout] — grupo de 3 sub-campos (Problema/Done cuando/No incluye), gap intermedio entre .ie-field (5px) y .ie-row (12px) por ser agrupación anidada */
+#item-editor-overlay .ie-intencion-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#item-editor-overlay .ie-intencion-field {
   display: flex;
   flex-direction: column;
   gap: 5px;
