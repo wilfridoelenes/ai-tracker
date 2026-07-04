@@ -1,4 +1,4 @@
-// [PP] mod:4 · autor:Rune · 2026-06-27 12:30 UTC-6
+// [PP] mod:5 · autor:Rune · 2026-07-04 UTC-6
 import { renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
 import { _closedItemsInRange, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, refreshAnalyticsHistoricoCache, sessionDateKey } from './locus-analytics-core.js';
 
@@ -42,7 +42,6 @@ export async function renderAnalytics() {
   // T-202604-216: skeleton while computing analytics
   const _skelAnalytics = Array(4).fill('<div class="skel-row skel-row--lg"></div>').join('');
   container.innerHTML = _skelAnalytics;
-  container.classList.add('is-loading');
 
   const bounds = _getPeriodBounds();
   const allSess = getAllSessions();
@@ -53,7 +52,6 @@ export async function renderAnalytics() {
 
   // R-202605-178: guard estado vacío — sin sesiones registradas
   if (!allSess.length) {
-    container.classList.remove('is-loading');
     container.innerHTML = `
       <div class="empty-state empty-state--mt">
         <div class="empty-state-icon">📊</div>
@@ -1031,7 +1029,6 @@ export async function renderAnalytics() {
       </div><!-- /analytics-two-col -->
 
     </div>`;
-  container.classList.remove('is-loading');
   // T-407: trigger animación de entrada en secciones
   requestAnimationFrame(() => {
     container.querySelectorAll('.analytics-section, .akpi-row, .akpi-row-new, .analytics-control-bar').forEach((el, i) => {

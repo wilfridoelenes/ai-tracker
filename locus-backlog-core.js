@@ -1,4 +1,4 @@
-// [PP] mod:82 · autor:Rune · 2026-07-04 UTC-6
+// [PP] mod:83 · autor:Rune · 2026-07-04 UTC-6
 // Reaplicado sobre base mod:80 (sin divergencia de Nova en este archivo): eliminados
 // toggle en renderActiveFilterChips() y listener en initFiltrosListeners de
 // #filter-clear-btn (INC-[pendiente-ID] — botón duplicado eliminado de index.html).
@@ -94,9 +94,8 @@ export function _skelShow(el, variant) {
   if (!el) return;
   const h = variant === 'tbl' ? _SKEL_TBL : variant === 5 ? _SKEL_HTML_5 : _SKEL_HTML_4;
   el.innerHTML = h;
-  el.classList.add('is-loading');
 }
-export function _skelHide(el) { if (el) el.classList.remove('is-loading'); }
+export function _skelHide(el) {}
 
 // _generateContextContent + exportContextMd — migradas a locus-sprint-project.js
 
