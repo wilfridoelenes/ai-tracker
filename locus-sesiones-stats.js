@@ -1,16 +1,16 @@
-// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:21 · autor:Rune · 2026-07-03 UTC-6
+// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:22 · autor:Rune · 2026-07-03 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb de proyecto, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
 // TKT-202606-005: segmentos sprint/ítem del breadcrumb eliminados — #breadcrumb-sprint
 //   y #breadcrumb-item no existen en el DOM (index.html solo declara #breadcrumb-proj).
 
-import { _isCountableItem, getItems} from './locus-backlog-core.js';
+import { getItems } from './locus-backlog-core.js';
 import { openPulsoPanel } from './locus-pulso.js';
 // selectTrackerAI y _markTrackerDirty desacoplados vía shell:* events (T-202606-084)
 import { openDetail } from './locus-session-popup.js';
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
-import { _effectiveVersion, _getActiveProjectFilter, _isInSession, getActiveSprints, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getProjectById, save } from './locus-storage.js';
+import { _effectiveVersion, _getActiveProjectFilter, _isInSession, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getProjectById, save } from './locus-storage.js';
 
 import { switchTab } from './locus-ui-shell.js';
 
@@ -171,14 +171,10 @@ export function renderStatusBar() {
   // ── Global footer: R-202604-080 ──────────────────────────────────────────
   const gfProyecto = document.getElementById('gf-proyecto');
   const gfVersion  = document.getElementById('gf-version');
-  const gfTotal    = document.getElementById('gf-total');
-  const gfDone     = document.getElementById('gf-done');
   const gfCkpt     = document.getElementById('gf-ckpt');
   const gfPulso    = document.getElementById('gf-pulso');
   const gfSyncEl   = document.getElementById('gf-sync');
   if (gfSyncEl) gfSyncEl.classList.remove('is-hidden');
-
-  const _items = (typeof getItems() !== 'undefined' ? getItems() : []);
 
   if (gfProyecto) {
     try {
@@ -197,20 +193,6 @@ export function renderStatusBar() {
     const _v = _effectiveVersion();
     gfVersion.textContent = _v ? _v : '—';
     gfVersion.classList.remove('is-hidden');
-  }
-
-  if (gfTotal || gfDone) {
-    // B-202606-027: alinear criterio con renderStats() en locus-backlog-core.js
-    // excluir done sin sprint (Q-Backlog/Q-DISC Gen2) y done en sprints cerrados — mismo criterio que stats-bar del backlog
-    const _closedSprintIds = new Set(
-      (typeof getActiveSprints !== 'undefined' ? getActiveSprints() : [])
-        .filter(s => s.status === 'closed').map(s => s.id)
-    );
-    const _isInClosedSprint = i => i.sprint && _closedSprintIds.has(i.sprint);
-    const total = _items.filter(i => _isCountableItem(i) && !_isInClosedSprint(i) && i.status !== 'descartado' && i.status !== 'historico').length;
-    const done  = _items.filter(i => _isCountableItem(i) && i.status === 'done' && !_isInClosedSprint(i) && i.sprint).length;
-    if (gfTotal) { gfTotal.textContent = total + ' ítems'; gfTotal.classList.remove('is-hidden'); }
-    if (gfDone)  { gfDone.textContent  = '✓ ' + done;   gfDone.classList.remove('is-hidden'); }
   }
 
   if (gfCkpt) {
