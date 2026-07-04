@@ -1,4 +1,14 @@
-// [PP] mod:65 · autor:Rune · 2026-07-04 UTC-6
+// [PP] mod:66 · autor:Rune · 2026-07-04 UTC-6
+// INC-[pendiente-ID]: fix — renderSprintGroup() no renderizaba ítems con status:'historico' en
+// grupos de sprint cerrado (isClosed:true). _rootPool y el bloque "Done items sueltos" excluían
+// 'historico' sin excepción — _buildChildMap ya tenía includeHistorico para los hijos (línea 96)
+// pero nunca se propagó a los filtros de root ni al bloque de done-sueltos. Efecto: el header del
+// grupo pinta bien (doneInGroup cuenta 'historico') pero #vbody-[groupId] queda vacío al expandir.
+// Fix: cuando isClosed:true, _rootPool ya no excluye 'done'/'historico' — se renderiza todo salvo
+// 'descartado', igual que antes para el caso no-cerrado. El bloque "Done items sueltos" se omite
+// por completo cuando isClosed:true — queda cubierto por el _rootPool ampliado, evita duplicado.
+// Afecta ambos consumidores de renderSprintGroup: panel Histórico (locus-backlog-archive.js) y
+// Backlog Vista Lista al mostrar un sprint closed.
 // TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): _initHistoricoSubTab eliminado —
 // renderHistoricoPanel pasa a ser el único listener de 'shell:render-historico'. Imports
 // huérfanos removidos: toggleArchivoHistorico (locus-backlog-archive.js, export eliminado) y
@@ -430,7 +440,13 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
     // construía desde el universo completo sin filtrar. Ver deuda declarada en header del archivo.
     const _childMap = _buildChildMap(sprintItems, isClosed);
     const _rCodesInGroup = new Set(sprintItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
-    const _rootPool = sprintItems.filter(i => i.status !== 'done' && i.status !== 'historico' && i.status !== 'descartado');
+    // INC-[pendiente-ID]: en grupo cerrado (isClosed:true) todos los ítems terminan en
+    // 'done'/'historico' — excluirlos de _rootPool dejaba el body sin nada que renderizar.
+    // isClosed:true → solo se excluye 'descartado'. isClosed:false conserva el comportamiento
+    // original (done/historico se muestran vía el bloque "Done items sueltos" más abajo).
+    const _rootPool = isClosed
+      ? sprintItems.filter(i => i.status !== 'descartado')
+      : sprintItems.filter(i => i.status !== 'done' && i.status !== 'historico' && i.status !== 'descartado');
 
     const _rootItems = _rootPool.filter(i => {
       if (itemKind(i) === 'REQ') return true;
@@ -466,8 +482,10 @@ export function renderSprintGroup(sprintItems, isClosed, contextPrefix) {
     });
   }
 
-  // Done items sueltos — no anidados bajo un R ya renderizado en el bloque root
-  {
+  // Done items sueltos — no anidados bajo un R ya renderizado en el bloque root.
+  // INC-[pendiente-ID]: en grupo cerrado (isClosed:true) el _rootPool ampliado ya cubrió done Y
+  // historico — repetir este bloque duplicaría el render. Solo corre para grupos no cerrados.
+  if (!isClosed) {
     const _rCodesInGroupForDone = new Set(sprintItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
     const _doneFlat = sprintItems.filter(i => {
       if (i.status !== 'done') return false;
