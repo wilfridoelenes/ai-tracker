@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:32 · autor:Rune · 2026-07-03 12:25 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:33 · autor:Rune · 2026-07-04 00:45 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -997,17 +997,8 @@ function buildCard(ai) {
   // T-202604-203: zona central — contenido condicional por estado
   // Estado available: textarea + preview
   // Estado exhausted: countdown dramático
-  // B-255: label "Disponible en X h Y min" calculado desde _hoyMsUntilReset
-  const _buildUnlockLabel = (aiObj) => {
-    const msLeft = _hoyMsUntilReset(aiObj);
-    if (!isFinite(msLeft) || msLeft <= 0) return 'Disponible ahora';
-    const totalMin = Math.floor(msLeft / 60000);
-    const h = Math.floor(totalMin / 60);
-    const m = totalMin % 60;
-    if (h === 0) return `Disponible en ${m}min`;
-    return `Disponible en ${h}h ${String(m).padStart(2,'0')}min`;
-  };
-  const unlockLabel = ai.status === 'exhausted' && ai.resetTime ? _buildUnlockLabel(ai) : '';
+  // TKT-[pendiente-ID]: unlockLabel/_buildUnlockLabel eliminados — duplicaban cd + resetLabel
+  // ya visibles en countdown-dramatic (ver card-stat-countdown / card-stat-reset-lbl abajo)
 
   const inputHTML = ai.status === 'available' ? `
     <div class="paste-wrap">
@@ -1030,9 +1021,6 @@ function buildCard(ai) {
       <div class="countdown-dramatic">
         <div class="card-stat-countdown" id="cd-${ai.id}">${cd || '--:--:--'}</div>
         <div class="card-stat-reset-lbl">${resetLabel}</div>
-        <div class="sc-unlock-field" id="unlock-lbl-${ai.id}">
-          ${unlockLabel ? `<i class="sc-unlock-icon ti ti-lock-open"></i><span class="sc-unlock-label">${unlockLabel}</span>` : ''}
-        </div>
       </div>
     </div>
   ` : `
