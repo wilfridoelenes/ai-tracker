@@ -1,4 +1,4 @@
-// [PP] mod:64 · autor:Rune · 2026-07-03 UTC-6
+// [PP] mod:65 · autor:Rune · 2026-07-04 UTC-6
 // TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): _initHistoricoSubTab eliminado —
 // renderHistoricoPanel pasa a ser el único listener de 'shell:render-historico'. Imports
 // huérfanos removidos: toggleArchivoHistorico (locus-backlog-archive.js, export eliminado) y
@@ -1552,10 +1552,10 @@ export async function renderHistoricoPanel() {
         <div class="stat-card"><span class="stat-n">${_stats.total}</span><span class="stat-l">Total</span></div>
       </div>
       <div class="stats-row">
-        <span class="stat-type-chip stat-type-chip--static tc-R"><span class="tc-count">${_stats.byType.REQ || 0}</span><span class="tc-label">Req</span></span>
-        <span class="stat-type-chip stat-type-chip--static tc-T"><span class="tc-count">${_stats.byType.TKT || 0}</span><span class="tc-label">Ticket</span></span>
-        <span class="stat-type-chip stat-type-chip--static tc-B"><span class="tc-count">${_stats.byType.INC || 0}</span><span class="tc-label">Bug</span></span>
-        <span class="stat-type-chip stat-type-chip--static tc-P"><span class="tc-count">${_stats.byType.DISC || 0}</span><span class="tc-label">Idea</span></span>
+        <span class="stat-type-chip stat-type-chip--static tc-REQ"><span class="tc-count">${_stats.byType.REQ || 0}</span><span class="tc-label">Req</span></span>
+        <span class="stat-type-chip stat-type-chip--static tc-TKT"><span class="tc-count">${_stats.byType.TKT || 0}</span><span class="tc-label">Ticket</span></span>
+        <span class="stat-type-chip stat-type-chip--static tc-INC"><span class="tc-count">${_stats.byType.INC || 0}</span><span class="tc-label">INC</span></span>
+        <span class="stat-type-chip stat-type-chip--static tc-DISC"><span class="tc-count">${_stats.byType.DISC || 0}</span><span class="tc-label">DISC</span></span>
       </div>
       <div class="stats-row">
         <span class="stat-pri-chip stat-pri-chip--static pri-high"><span class="spc-n">${_stats.byPriority.high}</span> Alto</span>
@@ -1564,10 +1564,18 @@ export async function renderHistoricoPanel() {
       </div>
     </div>`;
 
+  // TKT1 (REQ Fixes subtab Backlog Histórico): getArchivoHistoricoCount() no contempla
+  // sprints cerrados sin ítems asignados — un sprint recién cerrado con 0 ítems archivados
+  // producía count:0 y el empty-state genérico se mostraba en lugar de la zona vacía del
+  // sprint (que renderArchivoHistorico ya sabe renderizar, ver B-202606-066 en
+  // locus-backlog-archive.js). hasClosedSprints amplía el gate sin tocar el contrato de
+  // getArchivoHistoricoCount() ni de renderArchivoHistorico.
+  const hasClosedSprints = getActiveSprints().some(s => s.status === 'closed');
+
   // AC-7: sin sprints cerrados y sin ítems historico — renderArchivoHistorico no inyecta nada
   // en ese caso (early return interno). AC-4 (T-202606-006): la stats-bar se muestra igual,
   // con conteos en cero — no se oculta cuando Histórico está vacío.
-  if (!count) {
+  if (!count && !hasClosedSprints) {
     panel.innerHTML = _statsBarHtml + `
       <div class="empty-state">
         <div class="empty-state-icon">🗄</div>

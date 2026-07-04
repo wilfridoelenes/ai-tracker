@@ -1,4 +1,4 @@
-/* [PP] mod:2 · autor:Nova · 2026-06-26 */
+/* [PP] mod:3 · autor:Nova · 2026-07-04 */
 /* locus-archive.css
    Versión: 1.0 | Última actualización: 2026-05-25 | Locus — Archivo Histórico de sprints
    Scope: HISTÓRICO UNIFICADO — vistas Por sprint y Lista plana
@@ -431,6 +431,20 @@
   text-transform: lowercase;
   white-space: nowrap;
   opacity: 0.75;
+}
+
+/* ── TKT3 (REQ Fixes subtab Backlog Histórico): divisor entre zonas de sprint
+   consecutivas en el panel de pantalla completa. .arch-zone-divider se inserta
+   en el DOM por renderArchivoHistorico() (locus-backlog-archive.js) pero no
+   tenía definición — mismo token --border usado en .arch-historico-body y
+   .arch-legacy-section, mismo margin-top:12px que .arch-legacy-section usa
+   para separación entre bloques. No interactivo — sin texto ni ícono, AC de
+   contraste no aplica. ────────────────────────────────────────────────── */
+
+.arch-zone-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 12px 0;
 }
 
 /* ══ FIN HISTÓRICO UNIFICADO ══════════════════════════════════════════ */
