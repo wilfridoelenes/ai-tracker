@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:34 · autor:Rune · 2026-07-03 13:00 UTC-6
+// [PP] mod:35 · autor:Rune · 2026-07-04 15:40 UTC-6
 // TKT1 · sprint_id/sprint_name consolidados en campo único `sprint` vía _sprintDisplay()
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
@@ -17,6 +17,22 @@ import { showToast } from './locus-toast.js';
 function _itemTypeGen2(item) {
   const t = itemKind(item);
   return t || 'UNKNOWN';
+}
+
+// [tmp:tkt-backlog-gen-core] AC-2/AC-4/AC-6/AC-7: predicados de pertenencia a Q-DISC y Q-INC.
+// Q-DISC y Q-INC son zonas persistentes — un ítem pertenece a ellas por su status ITIL/discovery,
+// independiente de si tiene sprint asignado. Reutilizados por exportItems, _buildQDiscMd,
+// _buildQIncMd y _buildCurrentStateMd para evitar duplicar el criterio de "activo".
+function _isActiveDisc(i) {
+  return _itemTypeGen2(i) === 'DISC' && i.status === 'discovery';
+}
+function _isActiveQIncItem(i) {
+  const t = _itemTypeGen2(i);
+  if (t === 'INC') return !!i.incident_status && i.incident_status !== 'closed' && i.incident_status !== 'descartado';
+  if (t === 'PRB') return i.status === 'detected' || i.status === 'in_progress' || i.status === 'resolved';
+  if (t === 'KE') return i.status === 'active';
+  if (t === 'CHG') return i.status === 'pendiente' || i.status === 'en-revision';
+  return false;
 }
 
 // [tmp:inc-historico-generator] Fix INC — getItems() excluye status 'historico' desde T-202606-106
@@ -526,6 +542,13 @@ function _buildCurrentStateMd() {
     lines.push(`**En revisión:** ${erStr} (${enRevision.length} total)`);
   }
 
+  // [tmp:tkt-backlog-gen-core] AC-7: Q-DISC y Q-INC declarados siempre en ## Estado actual —
+  // visibilidad de zonas persistentes independiente de si tienen ítems.
+  const qDiscCount = getItems().filter(_isActiveDisc).length;
+  lines.push(`**Q-DISC:** ${qDiscCount} activas`);
+  const qIncCount = getItems().filter(_isActiveQIncItem).length;
+  lines.push(`**Q-INC:** ${qIncCount} activos`);
+
   const allSessions = [];
   (state.projects || []).forEach(p => (p.sessions || []).forEach(s => allSessions.push(s)));
   allSessions.sort((a, b) => parseInt(b.id) - parseInt(a.id));
@@ -537,6 +560,45 @@ function _buildCurrentStateMd() {
 
   lines.push('', '---', '');
   // TKT3 AC-2: el bloque ## Estado actual se declara siempre — nunca string vacío
+  return lines.join('\n');
+}
+
+// [tmp:tkt-backlog-gen-core] AC-1/AC-2: sección '## Q-DISC' — snapshot de la zona persistente.
+// Entrada: array de ítems (exportItems o getItems()). Salida: sección Markdown, nunca omitida —
+// declara 'Sin DISCs activas' explícito cuando no hay DISCs en status discovery.
+function _buildQDiscMd(items) {
+  const discs = (items || []).filter(_isActiveDisc);
+  const lines = ['## Q-DISC', ''];
+  if (!discs.length) {
+    lines.push('Sin DISCs activas', '', '---', '');
+    return lines.join('\n');
+  }
+  lines.push('| Código | Título | Área | Priority |');
+  lines.push('|--------|--------|------|----------|');
+  discs.forEach(d => {
+    lines.push(`| \`${d.code}\` | ${d.title || '—'} | ${d.area || '—'} | ${d.priority || '—'} |`);
+  });
+  lines.push('', '---', '');
+  return lines.join('\n');
+}
+
+// [tmp:tkt-backlog-gen-core] AC-3/AC-4: sección '## Q-INC' — snapshot de INC/PRB/KE/CHG activos.
+// Entrada: array de ítems (exportItems o getItems()). Salida: sección Markdown, nunca omitida —
+// declara 'Sin incidentes activos' explícito cuando no hay ítems ITIL activos.
+function _buildQIncMd(items) {
+  const incs = (items || []).filter(_isActiveQIncItem);
+  const lines = ['## Q-INC', ''];
+  if (!incs.length) {
+    lines.push('Sin incidentes activos', '', '---', '');
+    return lines.join('\n');
+  }
+  lines.push('| Código | Título | Status | SLA Priority |');
+  lines.push('|--------|--------|--------|--------------|');
+  incs.forEach(i => {
+    const statusVal = i.incident_status || i.status || '—';
+    lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${statusVal} | ${i.sla_priority || i.priority || '—'} |`);
+  });
+  lines.push('', '---', '');
   return lines.join('\n');
 }
 
@@ -638,6 +700,13 @@ export function _generateBacklogContent(newVersion, opts = {}) {
       if (i.status === 'backlog') return false; // [tmp:tkt4-infra-fallback] AC-2: status no canónico — fuera de BR-Ecosystem §5
       // Regla 1: status activos directos — incluye en-revision
       if (i.status === 'pendiente' || i.status === 'en-revision') return true;
+      // TKT1 AC-3: Regla 1b — REQ en cualquier status activo Gen2 no cubierto por Regla 1
+      if (_itemTypeGen2(i) === 'REQ' &&
+          (i.status === 'en-proceso' || i.status === 'bloqueado' || i.status === 'orphaned')) return true;
+      // TKT1 AC-4/AC-6: Regla 1c — DISC activa, independiente de sprint (Q-DISC persistente)
+      if (_isActiveDisc(i)) return true;
+      // TKT1 AC-4/AC-6: Regla 1d — PRB/KE/CHG activos en Q-INC, independiente de sprint
+      if (_isActiveQIncItem(i)) return true;
       // Regla 2: hijos (TKT o INC) de REQ activo — exportar sin importar su status
       if ((_itemTypeGen2(i) === 'TKT' || _itemTypeGen2(i) === 'INC') &&
           (i.parentId || i.parent) && activeRCodes.has(i.parentId || i.parent)) return true;
@@ -756,6 +825,8 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   const sprintActivoMd = _buildSprintActivoMd();
   const sprintsProgramadosMd = _buildSprintsProgramadosMd(); // T-202606-060
   const historialItemsMd = _buildHistorialItemsMd(exportItems); // B-202606-010
+  const qDiscMd = _buildQDiscMd(exportItems); // [tmp:tkt-backlog-gen-core] AC-1
+  const qIncMd = _buildQIncMd(exportItems); // [tmp:tkt-backlog-gen-core] AC-3
   const _appVerStr = _effectiveVersion();
   const pfx = _docPrefix();
 
@@ -776,7 +847,7 @@ ${sprintActivoMd}${sprintsProgramadosMd}## Meta
 
 ---
 
-${currentStateMd}## Índice de estado
+${currentStateMd}${qDiscMd}${qIncMd}## Índice de estado
 
 \`\`\`
 ${indexLines}

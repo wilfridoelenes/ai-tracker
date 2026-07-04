@@ -1,4 +1,4 @@
-/* [PP] mod:69 · autor:Nova · 2026-07-04 UTC-6 */
+/* [PP] mod:70 · autor:Nova · 2026-07-04 UTC-6 */
 /* Merge de ramas divergentes por colisión de mod — ver CHECKPOINT de la sesión.
    Reaplicado sobre base de Nova (mod:66 declarado, contenido = INC overlap margin fix):
    eliminadas .fbar-clear-btn/.filter-clear-btn (INC-[pendiente-ID]) y
@@ -2563,7 +2563,8 @@
   border-bottom-right-radius: 0;
   margin-bottom: 0; /* INC-[pendiente-ID]: era 0.5rem — el espaciado hacia el siguiente elemento ahora lo declara .active-filter-chips (o el contenido siguiente si chips está oculto) */
   max-width: 2200px;
-  margin-inline: auto;
+  margin-left: 12px; /* B-202607: margen fijo respecto al sidebar de subtabs — solicitado por founder */
+  margin-right: auto;
   position: sticky;
   top: var(--header-h);
   z-index: var(--z-sticky);
@@ -4626,6 +4627,9 @@ er {
   padding: 6px 10px;
   margin-top: 0; /* INC-[pendiente-ID]: era -0.5rem — colapso de márgenes con hermano sticky no es confiable, causaba overlap visual */
   margin-bottom: 6px;
+  max-width: 2200px; /* B-202607: unificado con .bl-toolbar — antes sin tope, se estiraba distinto */
+  margin-left: 12px; /* B-202607: mismo margen que .bl-toolbar respecto al sidebar de subtabs */
+  margin-right: auto;
   background: var(--surface); /* TKT4-[pendiente-ID]: era --surface2 — unificado con .bl-toolbar */
   border: 1px solid var(--border); /* TKT4-[pendiente-ID]: era --border2 — unificado con .bl-toolbar */
   border-top: none; /* TKT4-[pendiente-ID]: evita doble borde en el punto de unión con .bl-toolbar */
