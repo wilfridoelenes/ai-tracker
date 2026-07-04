@@ -1,4 +1,7 @@
-<!-- [PP] mod:95 · autor:Rune · 2026-07-04 UTC-6 -->
+<!-- [PP] mod:96 · autor:Rune · 2026-07-04 UTC-6 -->
+<!-- TKT1-[pendiente-ID] (REQ-[pendiente-ID] corrección deuda visual auditoría UI Inventory):
+     #proj-modal-close-btn recibe class="modal-close-btn" + aria-label="Cerrar" — reusa
+     patrón existente (#clean-project-close-btn), sin CSS nuevo. Sin cambios de comportamiento. -->
 <!-- Merge de ramas divergentes en mod:94 (Nova/TKT3 vs Rune/TKT1) por colisión de mod
      — ver CHECKPOINT de la sesión. Reaplicado sobre base de Nova: eliminado
      #filter-clear-btn (INC-[pendiente-ID]) y #toolbar dead code (TKT1). TKT3 de Nova
@@ -919,7 +922,7 @@
   <div class="proj-modal">
     <div class="proj-modal-header">
       <div class="proj-modal-title">Gestionar proyectos</div>
-      <button type="button" id="proj-modal-close-btn">✕</button>
+      <button type="button" class="modal-close-btn" id="proj-modal-close-btn" aria-label="Cerrar">✕</button>
     </div>
     <div class="proj-modal-body">
       <!-- Formulario crear/editar -->
