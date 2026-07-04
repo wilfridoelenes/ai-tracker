@@ -1,4 +1,9 @@
-// [PP] mod:8 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:9 · autor:Rune · 2026-07-03 UTC-6
+// TKT-CONSOLID-PROJFILTER: _getActiveProjectFilter y getProjectById dejan de tener implementación
+//   local — se importan de locus-storage.js (dueña de state.projects, __BR-Ecosystem §7) y se
+//   re-exportan para no romper los 5 consumidores que las importan desde este módulo. Elimina
+//   duplicación divergente registrada en LMC mod:23. _setActiveProjectFilter permanece aquí —
+//   no es duplicado, tiene side effects propios (breadcrumb, filtro UI, header, clean-btn).
 // TKT1 (REQ-getactiveprojectfilter): _getActiveProjectFilter registrada en _coreCallbacks de
 //   locus-backlog-core.js — import directo crearía ciclo (este módulo ya importa loadBacklog/
 //   renderStats desde ahí). Mismo patrón de inyección diferida que _getItems en locus-storage.js.
@@ -11,7 +16,7 @@
 // Importado por: locus-projects.js · locus-sprint-project.js
 // NO importa desde locus-projects.js ni locus-sprint-project.js
 
-import { getProjectSessions, getState, save } from './locus-storage.js';
+import { getProjectSessions, save, getProjectById, _getActiveProjectFilter } from './locus-storage.js';
 import { esc, switchSubTab, getCurrentSubTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderAnalytics } from './locus-analytics-render.js';
@@ -29,9 +34,10 @@ import { _syncCleanProjectBtn } from './locus-reports.js';
 let _clearProjFilterFn = null;
 export function _setClearProjFilter(fn) { _clearProjFilterFn = fn; }
 
-export function _getActiveProjectFilter() {
-  return localStorage.getItem('current-project-filter') || '';
-}
+// TKT-CONSOLID-PROJFILTER: _getActiveProjectFilter consolidada en locus-storage.js (dueña
+// de state.projects) — este módulo la re-exporta para no romper los 5 consumidores que
+// importan desde aquí. Ver LMC mod:23/24.
+export { _getActiveProjectFilter };
 
 export function _setActiveProjectFilter(projId) {
   if (projId) localStorage.setItem('current-project-filter', projId);
@@ -44,10 +50,9 @@ export function _setActiveProjectFilter(projId) {
 
 // ── Lookup de proyecto ───────────────────────────────────────────────────────
 
-export function getProjectById(id) {
-  const state = getState();
-  return (state.projects || []).find(p => p.id === id);
-}
+// TKT-CONSOLID-PROJFILTER: getProjectById consolidada en locus-storage.js — re-exportada
+// para no romper los consumidores que importan desde este módulo. Ver LMC mod:23/24.
+export { getProjectById };
 
 // ── Conteo de sesiones ───────────────────────────────────────────────────────
 

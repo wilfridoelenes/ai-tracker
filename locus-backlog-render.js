@@ -1,4 +1,8 @@
-// [PP] mod:62 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:63 · autor:Rune · 2026-07-03 20:10 UTC-6
+// TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): _initHistoricoSubTab eliminado —
+// renderHistoricoPanel pasa a ser el único listener de 'shell:render-historico'. Imports
+// huérfanos removidos: toggleArchivoHistorico (locus-backlog-archive.js, export eliminado) y
+// toggleClosedSprintsBody (locus-sprint-planificacion.js, dead code eliminado en ese archivo).
 // TKT1 (REQ-[pendiente-ID] unificar renderer de #active-filter-chips): updateClearFilterBtn()
 //   reducida a delegar en renderActiveFilterChips() (core.js) — ya no construye innerHTML de
 //   #active-filter-chips ni referencia #bl-filter-badge/#fbar-filter-btn (elementos inexistentes
@@ -55,7 +59,7 @@
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
-import { renderArchivoHistorico, toggleArchivoHistorico, getArchivoHistoricoCount, getArchivoHistoricoStats } from './locus-backlog-archive.js';
+import { renderArchivoHistorico, getArchivoHistoricoCount, getArchivoHistoricoStats } from './locus-backlog-archive.js';
 import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js'; // TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix)
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, buildQIncItem, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-B2b: buildQIncItem
@@ -69,7 +73,7 @@ import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoric
 import { showToast } from './locus-toast.js';
 
 import { esc } from './locus-ui-shell.js';
-import { _renderPlanningView, _attachPlanViewDelegation, _statusPills, toggleClosedSprintsBody } from './locus-sprint-planificacion.js';
+import { _renderPlanningView, _attachPlanViewDelegation, _statusPills } from './locus-sprint-planificacion.js';
 import { _updateDocLogCount } from './locus-doc-log.js';
 
 // Responsabilidad: Renderizado del backlog — vista Lista (sprint groups + jerarquía R→T/B),
@@ -1580,19 +1584,13 @@ export async function renderHistoricoPanel() {
   await renderArchivoHistorico(_listContainer);
 }
 
-// T-202606-092: listener sub-tab Histórico — activa panel y dispara render (AC-3, AC-6)
-(function _initHistoricoSubTab() {
-  const btn = document.getElementById('sstab-btn-historico');
-  if (!btn) return;
-  btn.addEventListener('click', async function () {
-    document.querySelectorAll('.tpl-nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.session-subpanel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    const panel = document.getElementById('sspanel-historico');
-    if (panel) panel.classList.add('active');
-    await renderHistoricoPanel();
-  });
-})();
+// TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): _initHistoricoSubTab eliminado —
+// era wiring manual duplicado (toggle de .tpl-nav-btn/.session-subpanel) sobre el mismo botón
+// que switchSubTab() (locus-ui-shell.js) ya activa para los otros 7 sub-tabs. Dos listeners
+// async e independientes sobre el mismo click, sin orden garantizado entre sí, eran la causa
+// del render no determinístico del panel. renderHistoricoPanel se registra abajo como único
+// listener de 'shell:render-historico' — mismo patrón que shell:render-qinc (línea 1494).
+window.addEventListener('shell:render-historico', () => { renderHistoricoPanel(); });
 
 // T-202606-092: re-render del panel histórico cuando el backlog cambia y el panel está activo (AC-9)
 window.addEventListener('shell:backlog-render-dirty', async () => {

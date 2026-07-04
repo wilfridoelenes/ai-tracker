@@ -1,4 +1,7 @@
-// [PP] mod:11 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-07-03 20:10 UTC-6
+// INC-[pendiente-ID]: _doConfirmGenerate() ahora async — await archiveClosedItems() en ambos
+// call sites (ZIP y fallback). Completa el fix de pérdida de datos de locus-backlog-archive.js:
+// la persistencia en storage dedicado debe resolver antes de exponer la descarga al usuario.
 /**
  * locus-map-generator.js
  * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
@@ -1727,7 +1730,13 @@ if (!hasClosedSprint) {
   _doConfirmGenerate();
 }
 
-function _doConfirmGenerate() {
+// INC-[pendiente-ID]: async — permite await archiveClosedItems() en ambos call sites internos
+// (ZIP y fallback de descarga individual). Antes disparaba la promesa sin esperarla ("ahora
+// awaited" declarado en el header de locus-backlog-archive.js pero nunca aplicado aquí —
+// corregido en esta entrega). Dos callers, ambos fire-and-forget sobre el resultado
+// (confirmMapGenerator línea ~1735, botón data-mg-action="confirm-generate" línea ~1990) —
+// ninguno depende del valor de retorno, una función async en ambos casos es válida.
+async function _doConfirmGenerate() {
   const docs = _mapGen.generatedDocs;
   if (!Object.keys(docs).length) return;
 
@@ -1815,11 +1824,11 @@ function _doConfirmGenerate() {
   if (typeof JSZip !== 'undefined') {
     const zip = new JSZip();
     fileDefs.forEach(d => zip.file(d.filename, d.content));
-    zip.generateAsync({ type: 'blob' }).then(blob => {
+    zip.generateAsync({ type: 'blob' }).then(async blob => {
       // ZIP generado exitosamente — aplicar efectos en orden: DOM → versión → archivo
       fileDefs.forEach(d => { if (d.apply) d.apply(); });
       _mgApplyBumpedVersion(bumpedVer); // B-202605-493: diferido post-confirmación
-      archiveClosedItems(); // B-202605-493: diferido post-confirmación
+      await archiveClosedItems(); // INC-[pendiente-ID]: awaited — persistencia debe completarse antes de exponer la descarga
 
       const url = URL.createObjectURL(blob);
       const a   = document.createElement('a');
@@ -1839,7 +1848,7 @@ function _doConfirmGenerate() {
     fileDefs.forEach(d => _mgDownload(d.content, d.filename));
     fileDefs.forEach(d => { if (d.apply) d.apply(); });
     _mgApplyBumpedVersion(bumpedVer); // B-202605-493: diferido post-descarga
-    archiveClosedItems(); // B-202605-493: diferido post-descarga
+    await archiveClosedItems(); // INC-[pendiente-ID]: awaited — persistencia debe completarse antes del toast de éxito
     showToast('warning', 'JSZip no disponible — descargando archivos por separado');
 
     closeMapGenerator();

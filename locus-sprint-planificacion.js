@@ -1,9 +1,13 @@
-// [PP] v1.2.4 · sprint:PP-Q-Backlog · mod:23 · autor:Rune · 2026-06-30 15:00 UTC-6
+// [PP] v1.2.4 · sprint:PP-Q-Backlog · mod:24 · autor:Rune · 2026-07-03 20:10 UTC-6
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
 // T-202606-091: headers colapsables en sprints destino — delegación en bl-plan-col-header
 // T-202606-092: drop de R mueve Ts hijos activos al mismo sprint destino
+// TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): toggleClosedSprintsBody eliminada —
+// era alias de compatibilidad sin call sites reales (solo importada, nunca invocada) que
+// dependía de toggleArchivoHistorico, export eliminado de locus-backlog-archive.js al quitar
+// el acordeón colapsable del subtab Histórico.
 
 import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
 import { showToast } from './locus-toast.js';
@@ -11,7 +15,6 @@ import { getItems, itemKind, _getActiveStatuses, updateStatusFilterUI } from './
 import { getActiveSprints, _sprintDisplay } from './locus-storage.js'; // TKT1-[pendiente-ID]: _sprintDisplay para trigger del selector
 import { esc } from './locus-ui-shell.js';
 import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
-import { toggleArchivoHistorico } from './locus-backlog-archive.js';
 
 // ---------------------------------------------------------------------------
 // Estado interno
@@ -43,12 +46,6 @@ export function _statusPills(items) {
     .filter(c => counts[c.key] > 0)
     .map(c => `<span class="status-pill status-pill--${c.key}">${counts[c.key]} ${c.label}</span>`)
     .join('');
-}
-
-// R-202605-103: toggleClosedSprintsBody reemplazada por toggleArchivoHistorico
-// Alias de compatibilidad — invocado desde renderBacklogList
-export function toggleClosedSprintsBody() {
-  toggleArchivoHistorico();
 }
 
 // ---------------------------------------------------------------------------

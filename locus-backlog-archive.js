@@ -1,9 +1,22 @@
-// [PP] mod:19 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:21 · autor:Rune · 2026-07-03 20:10 UTC-6
 // locus-backlog-archive.js
-// TKT2 (REQ Histórico unificado con Vista Lista de Backlog): reescrito para consumir
-// renderSprintGroup() de locus-backlog-render.js — vista única agrupada por sprint cerrado
-// con progress bar + childMap R→hijos, reemplaza el sistema de 2 vistas (Por sprint / Lista
-// plana) y sus tabs. Ver header de locus-backlog-render.js mod:57 para el contrato de la función.
+// INC-[pendiente-ID] (mod:20): archiveClosedItems() reescrita para seguir el mismo contrato que
+// _scmExecuteClose (locus-backlog-sprints.js) y setSprintStatus(closed) — persistir en
+// storage dedicado vía saveHistoricoItems() y remover de ITEMS antes de saveBacklog().
+// Antes: mutaba status in-place sin persistir en el storage dedicado ni sacar el ítem de
+// ITEMS — saveBacklog() los excluía silenciosamente (solo-lectura), y el próximo _setITEMS()
+// (undo, reload, etc) los descartaba por la barrera T-202606-106. Pérdida de datos real en
+// todo cierre de sprint hecho vía el generador de paquete (confirmMapGenerator).
+// TKT1+TKT2 (REQ-[pendiente-ID] Consolidar wiring de Histórico) — mod:21: eliminado el
+// acordeón colapsable (_ARCH_KEY, toggleArchivoHistorico) y el listener duplicado de
+// 'shell:render-historico' — el subtab dedicado (renderHistoricoPanel, locus-backlog-render.js)
+// es ahora el único dueño de la activación y el render. renderArchivoHistorico(listEl) pasa a
+// ser función de puro render de contenido — sin wrapper de acordeón, sin estado de apertura.
+// Impacto lateral resuelto en el mismo TKT: toggleArchivoHistorico se elimina del import de
+// locus-backlog-render.js (dead import) y de locus-sprint-planificacion.js (dead alias
+// toggleClosedSprintsBody, sin call sites reales — removida junto con su import).
+// Nota: un intento de edición anterior sobre este mismo mod dejó el header describiendo
+// TKT1+TKT2 como aplicado sin que el cuerpo del archivo reflejara el cambio — corregido ahora.
 // Responsabilidad: Archivo histórico — archivar ítems cerrados, render agrupado por sprint.
 
 import { renderStats, getItems, purgeAllHistorico, itemKind } from './locus-backlog-core.js';
@@ -11,38 +24,60 @@ import { buildBacklogItem } from './locus-backlog-item.js';
 
 import { renderBacklogList, renderSprintGroup } from './locus-backlog-render.js';
 
-import { _sprintDisplay, getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js';
-
-import { esc } from './locus-ui-shell.js';
+import { getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync, getHistoricoItems, saveHistoricoItems, _invalidateHistoricoCache } from './locus-storage.js';
 
 // Dependencias: locus-backlog-core.js · locus-storage.js
 
 // ─────────────────────────────────────────────────────────────────────────────
 // B-[tmp:closed-version]: archivar ítems done/descartados al hacer bump de versión
-// Llamada desde confirmMapGenerator() en ai-tracker-map-generator.js
+// Llamada desde confirmMapGenerator() en locus-map-generator.js (ahora awaited — ver header)
 // B-202606-[pendiente-ID]: fix — solo archiva ítems cuyos sprints están cerrados formalmente.
 // Antes archivaba todos los done/descartado sin filtrar por sprint, migrando a historico
 // ítems de sprints activos o programados que aún no habían sido cerrados.
+// INC-[pendiente-ID]: fix de pérdida de datos — ver header del archivo. Contrato idéntico a
+// _scmExecuteClose (locus-backlog-sprints.js:1638-1665): marcar → persistir en storage
+// dedicado (merge sobre lo ya existente, saveHistoricoItems sobreescribe la clave completa) →
+// remover de ITEMS in-place → invalidar cache. El splice ocurre fuera del try/catch: debe
+// pasar aunque falle la persistencia, porque ITEMS nunca puede contener status:historico
+// (barrera T-202606-106, locus-backlog-core.js _setITEMS).
 // ─────────────────────────────────────────────────────────────────────────────
-export function archiveClosedItems() {
+export async function archiveClosedItems() {
   const closedSprintIds = new Set(
     getActiveSprints().filter(s => s.status === 'closed').map(s => s.id)
   );
   const archiveTs = Date.now();
-  let changed = false;
-  getItems().forEach(item => {
+  const historicoCodes = new Set();
+  const itemsArr = getItems();
+
+  itemsArr.forEach(item => {
     if (item.status !== 'done' && item.status !== 'descartado') return;
     // B-202606-[pendiente-ID]: solo archivar si el ítem pertenece a un sprint formalmente cerrado
     if (!item.sprint || !closedSprintIds.has(item.sprint)) return;
     item.status = 'historico';
     item.archivedAt = archiveTs;
-    changed = true;
+    historicoCodes.add(item.code);
   });
-  if (changed) {
-    saveBacklog();
-    renderBacklogList();
-    renderStats();
+
+  if (!historicoCodes.size) return;
+
+  const newHistorico = itemsArr.filter(i => historicoCodes.has(i.code));
+  try {
+    const existingHistorico = await getHistoricoItems();
+    await saveHistoricoItems([...(existingHistorico || []), ...newHistorico]);
+  } catch (err) {
+    // AC-3 (mismo criterio que _scmExecuteClose): fallo de escritura no revierte el archivado —
+    // saveHistoricoItems ya cubre fallback a localStorage internamente.
+    console.error('[AI Tracker] archiveClosedItems: fallo al persistir historico en storage dedicado', err);
   }
+
+  for (let idx = itemsArr.length - 1; idx >= 0; idx--) {
+    if (historicoCodes.has(itemsArr[idx].code)) itemsArr.splice(idx, 1);
+  }
+  _invalidateHistoricoCache();
+
+  saveBacklog();
+  renderBacklogList();
+  renderStats();
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -55,11 +90,6 @@ export function archiveClosedItems() {
 // importar su antigüedad, mismo criterio que Backlog Vista Lista.
 // Read-only treatment: CSS escopado a #arch-historico-body (Nova).
 // ─────────────────────────────────────────────────────────────────────────────
-
-const _ARCH_KEY       = 'ai-tracker-arch-open';
-// B-[tmp:historico-expand]: mantener _HISTORICO_KEY en sync para compatibilidad
-// con confirmCloseSprint que usa localStorage.setItem(_HISTORICO_KEY, '1')
-const _HISTORICO_KEY  = _ARCH_KEY;
 
 // T-202606-103: Derivar ítems del archivo histórico desde sprints cerrados, no desde status historico.
 // closedSprintIds: Set de ids de sprints con status === 'closed'.
@@ -131,12 +161,14 @@ export function getArchivoHistoricoStats() {
 }
 
 // INC-[pendiente-ID]: async — refresca el cache de historico antes de construir las particiones.
-// Todos los callers (renderHistoricoPanel, listener shell:render-historico) deben await esta función.
+// TKT1+TKT2: único caller ahora es renderHistoricoPanel() (locus-backlog-render.js) — el listener
+// propio de 'shell:render-historico' que vivía en este archivo se eliminó (ver header del
+// archivo). renderArchivoHistorico deja de ser dueña de su propia activación y de su estado de
+// apertura — es función de puro render de contenido sobre el listEl que el caller entrega.
 export async function renderArchivoHistorico(listEl) {
   await refreshHistoricoCache();
   const { archivoItems, closedSprints } = _buildArchivoPartitions();
 
-  // AC-2: contador refleja solo ítems de sprints cerrados
   const total = archivoItems.length;
   // B-202606-066: si hay al menos un sprint cerrado, renderizar la sección aunque
   // total y _legacyHistoricos sean 0 — el empty state correcto vive en
@@ -145,14 +177,10 @@ export async function renderArchivoHistorico(listEl) {
   // sprint cerrado, solo que sin ítems asignados.
   if (!total && !_legacyHistoricos.length && !closedSprints.length) return;
 
-  const isOpen = (() => { try { return localStorage.getItem(_ARCH_KEY) === '1'; } catch { return false; } })();
-
-  // INC-[pendiente-ID]: guard de idempotencia — si shell:render-historico se dispara dos veces
-  // antes de que la primera invocación (async, espera refreshHistoricoCache) resuelva, ambas
-  // llamadas hacían appendChild sobre el mismo listEl, produciendo dos secciones .arch-historico.
-  // El caller ya limpia listEl antes de invocar, pero esa limpieza no protege contra la segunda
-  // invocación en vuelo. Se remueve cualquier instancia previa justo antes de crear la nueva —
-  // cualquiera que sea la última en resolver deja exactamente una sección en el DOM.
+  // TKT2: guard de idempotencia — si el caller invoca esta función dos veces en vuelo antes de
+  // que la primera resuelva (mismo riesgo ya identificado con el listener anterior), se remueve
+  // cualquier instancia previa justo antes de crear la nueva — cualquiera que sea la última en
+  // resolver deja exactamente una sección en el DOM.
   const _prevSection = listEl.querySelector('#arch-historico');
   if (_prevSection) {
     const _prevDivider = _prevSection.previousElementSibling;
@@ -160,30 +188,15 @@ export async function renderArchivoHistorico(listEl) {
     _prevSection.remove();
   }
 
-  // Sprint más antiguo como referencia de "desde cuándo"
-  const sortedClosed = [...closedSprints].sort((a, b) => (a.closedAt || 0) - (b.closedAt || 0));
-  const oldestSprintId = sortedClosed.length ? esc(_sprintDisplay(sortedClosed[0].id)) : '';
-  const sinceHtml = oldestSprintId
-    ? `<span class="arch-historico-since">desde ${oldestSprintId}</span>`
-    : '';
-
+  // TKT2: acordeón colapsable (header, flecha, contador propio, estado de apertura) eliminado —
+  // el panel ya es de pantalla completa (renderHistoricoPanel), no compite por espacio con
+  // otros ítems, y el conteo lo muestra la stats-bar del panel. La sección se monta siempre
+  // visible, sin wrapper de toggle.
   const section = document.createElement('div');
   section.id        = 'arch-historico';
   section.className = 'arch-historico';
-
   section.innerHTML = `
-    <div class="arch-historico-header" data-action="arch-toggle" tabindex="0"
-         aria-expanded="${isOpen}" aria-controls="arch-historico-body">
-      <span class="arch-historico-arrow${isOpen ? ' arch-historico-arrow--open' : ''}" aria-hidden="true">▸</span>
-      <span class="arch-historico-title">Archivo histórico</span>
-      <div class="arch-historico-meta">
-        <span class="arch-historico-count">${total} ítem${total !== 1 ? 's' : ''}</span>
-        ${sinceHtml}
-      </div>
-    </div>
-    <div class="arch-historico-body${isOpen ? '' : ' arch-historico-body--collapsed'}"
-         id="arch-historico-body" role="region" aria-label="Archivo histórico">
-    </div>`;
+    <div class="arch-historico-body" id="arch-historico-body" role="region" aria-label="Archivo histórico"></div>`;
 
   const zoneDivider = document.createElement('div');
   zoneDivider.className = 'arch-zone-divider';
@@ -193,57 +206,7 @@ export async function renderArchivoHistorico(listEl) {
   // T-202606-104: sección legacy — ítems con status historico sin sprint cerrado
   _renderLegacySection(listEl);
 
-  // Delegation — listener en listEl (#backlog-list), ancestro estático que existe en el DOM inicial
-  // Evita onclick= y onkeydown= en HTML generado; funciones locales accesibles en scope
-  function _archHandleAction(e, action) {
-    const act = action.dataset.action;
-    if (act === 'arch-toggle') { toggleArchivoHistorico(); return; }
-  }
-  // Solo adjuntar una vez — evitar acumulación de listeners en renders sucesivos
-  if (!listEl._archDelegationAttached) {
-    listEl._archDelegationAttached = true;
-    listEl.addEventListener('click', function _archListClick(e) {
-      const action = e.target.closest('[data-action]');
-      if (!action || !listEl.contains(action)) return;
-      _archHandleAction(e, action);
-    });
-    listEl.addEventListener('keydown', function _archListKeydown(e) {
-      if (e.key !== 'Enter' && e.key !== ' ') return;
-      const action = e.target.closest('[data-action]');
-      if (!action || !listEl.contains(action)) return;
-      e.preventDefault();
-      _archHandleAction(e, action);
-    });
-  }
-
-  if (isOpen) {
-    _renderArchivoBody();
-  }
-}
-
-export function toggleArchivoHistorico() {
-  const body   = document.getElementById('arch-historico-body');
-  const header = document.querySelector('#arch-historico .arch-historico-header');
-  const arrow  = document.querySelector('#arch-historico .arch-historico-arrow');
-  if (!body) return;
-
-  const wasOpen  = !body.classList.contains('arch-historico-body--collapsed');
-  const nowOpen  = !wasOpen;
-
-  try { localStorage.setItem(_ARCH_KEY, nowOpen ? '1' : '0'); } catch {}
-  if (header) header.setAttribute('aria-expanded', String(nowOpen));
-
-  if (arrow) {
-    arrow.classList.toggle('arch-historico-arrow--open', nowOpen);
-  }
-
-  if (nowOpen) {
-    body.classList.remove('arch-historico-body--collapsed');
-    _renderArchivoBody();
-  } else {
-    body.classList.add('arch-historico-body--collapsed');
-    body.innerHTML = '';
-  }
+  _renderArchivoBody();
 }
 
 // TKT2 (REQ Histórico unificado): reemplaza _renderArchivoViewSprint/_renderArchivoViewFlat —
@@ -381,12 +344,8 @@ function _renderLegacySection(listEl) {
 
 // T-202604-287: Vista Kanban — 4 columnas: pendiente · progreso · done · descartado
 
-// T-202606-008: listener shell:render-historico — patrón switchSubTab
-// AC-3: despacha renderArchivoHistorico(sspanel-historico) al activar el sub-tab
-// AC-4: si sspanel-historico no existe en el DOM, retorna silenciosamente sin error
-window.addEventListener('shell:render-historico', async () => {
-  const panel = document.getElementById('sspanel-historico');
-  if (!panel) return;
-  panel.innerHTML = '';
-  await renderArchivoHistorico(panel);
-});
+// TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): listener propio de
+// 'shell:render-historico' eliminado — dos caminos de wiring corrían en paralelo sobre el
+// mismo botón de sub-tab (este listener + _initHistoricoSubTab en locus-backlog-render.js),
+// ambos async y sin orden garantizado entre sí. renderHistoricoPanel() (locus-backlog-render.js)
+// es ahora el único listener de este evento — mismo patrón que qinc/qbacklog/qdisc.
