@@ -1,3 +1,11 @@
+/* [PP] mod:65 · autor:Nova · 2026-07-03 UTC-6 */
+/* INC-[pendiente-ID] (triggered_by TKT4-[tmp:tkt4-merge-visual]): corrige overlap visual
+   reportado por founder en producción. Causa raíz: margin-top:-0.5rem en
+   .active-filter-chips dependía de colapso de márgenes con .bl-toolbar (sibling con
+   position:sticky) — colapso no confiable, chips renderizaban superpuestos sobre el
+   toolbar. Fix: margin-top:0 en chips + margin-bottom:0 en toolbar (valores absolutos,
+   sin cancelación). Ambos AC de TKT4 se mantienen: sin gap visible con chips activos,
+   sin gap/artefacto con chips ocultos (edge case ya pedía "sin gap", no preservar 0.5rem). */
 /* [PP] mod:64 · autor:Nova · 2026-07-04 UTC-6 */
 /* TKT4-[pendiente-ID] (REQ-B): fusión visual .bl-toolbar + #active-filter-chips en un
    solo bloque. Toolbar: esquinas inferiores cuadradas siempre (no_incluye — variación
@@ -2595,7 +2603,7 @@
   border-radius: var(--radius-md-plus);
   border-bottom-left-radius: 0; /* TKT4-[pendiente-ID] REQ-B: fusión visual con #active-filter-chips */
   border-bottom-right-radius: 0;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0; /* INC-[pendiente-ID]: era 0.5rem — el espaciado hacia el siguiente elemento ahora lo declara .active-filter-chips (o el contenido siguiente si chips está oculto) */
   max-width: 2200px;
   margin-inline: auto;
   position: sticky;
@@ -4772,7 +4780,7 @@ er {
   flex-wrap: wrap;
   min-width: 0;
   padding: 6px 10px;
-  margin-top: -0.5rem; /* TKT4-[pendiente-ID] REQ-B: cierra el gap del margin-bottom del toolbar — fusión visual */
+  margin-top: 0; /* INC-[pendiente-ID]: era -0.5rem — colapso de márgenes con hermano sticky no es confiable, causaba overlap visual */
   margin-bottom: 6px;
   background: var(--surface); /* TKT4-[pendiente-ID]: era --surface2 — unificado con .bl-toolbar */
   border: 1px solid var(--border); /* TKT4-[pendiente-ID]: era --border2 — unificado con .bl-toolbar */
