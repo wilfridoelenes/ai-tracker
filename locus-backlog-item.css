@@ -1,4 +1,4 @@
-/* [PP] mod:34 · autor:Rune · 2026-07-03 21:05 UTC-6 */
+/* [PP] mod:35 · autor:Nova · 2026-07-03 UTC-6 */
 /* TKT1-diff-visual: gap de contraste resuelto — estándar correcto es 3:1 (elemento gráfico
    no-texto, WCAG 2.1 AA), no 4.5:1 (texto). Solo --green en light fallaba (2.99:1/2.82:1);
    revertido override previo de --yellow/--slate que no lo necesitaban. */
@@ -2831,34 +2831,6 @@ body:not([data-theme]) .theme-toggle-btn::before {
 
 .gf-spacer {
   flex: 1;
-}
-
-.gf-sprint, .gf-pending {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  pointer-events: none;
-  transition: opacity .2s;
-}
-
-.gf-sprint {
-  pointer-events: auto;
-}
-
-.gf-sprint-inner {
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  padding: 1px 5px;
-  transition: var(--trans-color);
-}
-
-.gf-sprint-inner:hover {
-  background: var(--surface3);
-}
-
-.gf-hidden {
-  opacity: 0;
-  pointer-events: none;
 }
 
 .gf-sync {

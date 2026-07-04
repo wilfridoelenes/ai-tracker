@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-01 · mod:19 · autor:Rune · 2026-06-30 UTC-6
+// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:21 · autor:Rune · 2026-07-03 UTC-6
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb de proyecto, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -175,7 +175,6 @@ export function renderStatusBar() {
   const gfDone     = document.getElementById('gf-done');
   const gfCkpt     = document.getElementById('gf-ckpt');
   const gfPulso    = document.getElementById('gf-pulso');
-  const gfFecha    = document.getElementById('gf-fecha');
   const gfSyncEl   = document.getElementById('gf-sync');
   if (gfSyncEl) gfSyncEl.classList.remove('is-hidden');
 
@@ -193,8 +192,10 @@ export function renderStatusBar() {
     }
   }
 
+  // T-[tmp:tkt-layout-zonas]: badge de versión en zona de identidad — AC2: fallback '—' si _effectiveVersion() no retorna valor
   if (gfVersion) {
-    gfVersion.textContent = _effectiveVersion();
+    const _v = _effectiveVersion();
+    gfVersion.textContent = _v ? _v : '—';
     gfVersion.classList.remove('is-hidden');
   }
 
@@ -244,19 +245,6 @@ export function renderStatusBar() {
     };
   }
 
-  if (gfFecha) {
-    try {
-      const timestamps = _items.map(i => i.statusChangedAt).filter(Boolean);
-      if (timestamps.length) {
-        const maxTs = Math.max.apply(null, timestamps);
-        const iso   = new Date(maxTs).toISOString().split('T')[0];
-        gfFecha.textContent = iso;
-        gfFecha.classList.remove('is-hidden');
-      } else {
-        gfFecha.classList.add('is-hidden');
-      }
-    } catch(e) { gfFecha.classList.add('is-hidden'); }
-  }
   } finally {
     _statusBarDirty = false;
   }
