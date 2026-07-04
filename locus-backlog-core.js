@@ -1,4 +1,12 @@
-// [PP] mod:84 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:85 · autor:Rune · 2026-07-04 16:20 UTC-6
+// INC-[pendiente-ID] (triggered_by análisis de subtab Discoveries): _subtabNS.qdisc.statuses
+//   no incluía 'discovery' — único status activo no-terminal de DISC. Ninguna DISC activa
+//   pasaba el filtro statusOk en _renderZonePanel (locus-backlog-render.js), aunque el badge
+//   (que no pasa por _subtabNS) sí las contaba — panel vacío con badge > 0. Fix: 'discovery'
+//   agregado al Set inicial de qdisc.statuses. _nsReset('qdisc') no se toca en este fix —
+//   no tiene caller activo hoy (solo se invoca con 'qinc'), pero comparte el mismo defecto de
+//   fondo (defaults hardcodeados no específicos por sub) — registrado como deuda, no corregido
+//   aquí para no mezclar refactor con este fix puntual (__BR-Execution §2).
 // TKT1 (limpieza post-rename): comentario en L699 actualizado — referenciaba locus-backlog-archive.js (renombrado a locus-backlog-historico.js). Sin cambio de código.
 // Reaplicado sobre base mod:80 (sin divergencia de Nova en este archivo): eliminados
 // toggle en renderActiveFilterChips() y listener en initFiltrosListeners de
@@ -257,7 +265,9 @@ const _subtabNS = {
   },
   qdisc: {
     types:    new Set(['DISC']),
-    statuses: new Set(['pendiente','en-revision','done','descartado','promoted']),
+    // INC-[pendiente-ID]: 'discovery' agregado — único status activo no-terminal de DISC.
+    // Sin él, ninguna DISC activa pasaba statusOk en _renderZonePanel (panel vacío pese a badge > 0).
+    statuses: new Set(['discovery','pendiente','en-revision','done','descartado','promoted']),
     priority: new Set(),
     query:    ''
   },
