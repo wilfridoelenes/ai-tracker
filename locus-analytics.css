@@ -1,4 +1,4 @@
-/* [PP] mod:5 · autor:Nova · 2026-06-26 UTC-6 */
+/* [PP] mod:6 · autor:Nova · 2026-07-04 UTC-6 */
 /* locus-analytics.css */
 
 /* Versión: 2.0 | Selectores consolidados — T2 */
@@ -908,6 +908,27 @@
   padding: 1rem 1.25rem 0.75rem; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 0; background: var(--surface); z-index: var(--z-deep);
+}
+
+.proj-panel-header button {
+  background: transparent;
+  border: none;
+  color: var(--text2);
+  font-size: var(--text-md);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: var(--trans-fast);
+}
+
+.proj-panel-header button:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.proj-panel-header button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .proj-panel-title {
