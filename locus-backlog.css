@@ -1,4 +1,4 @@
-/* [PP] mod:61 · autor:Nova · 2026-07-01 UTC-6 */
+/* [PP] mod:62 · autor:Nova · 2026-07-04 UTC-6 */
 /* locus-backlog.css */
 
 /* Versión: 2.3 | Última actualización: 2026-05-25 | Backlog items, toolbar, filter strip, sprint bar, kanban, planificación, ideas, empty states */
@@ -2582,7 +2582,11 @@
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;
-  max-height: 40px;
+  min-height: 40px;
+  overflow: visible;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md-plus);
   margin-bottom: 0.5rem;
   max-width: 2200px;
   margin-inline: auto;
