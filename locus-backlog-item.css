@@ -1,4 +1,4 @@
-/* [PP] mod:38 · autor:Nova · 2026-07-04 UTC-6 */
+/* [PP] mod:39 · autor:Nova · 2026-07-04 UTC-6 */
 /* TKT1-diff-visual: gap de contraste resuelto — estándar correcto es 3:1 (elemento gráfico
    no-texto, WCAG 2.1 AA), no 4.5:1 (texto). Solo --green en light fallaba (2.99:1/2.82:1);
    revertido override previo de --yellow/--slate que no lo necesitaban. */
@@ -380,7 +380,6 @@
   border-color: var(--text2);
 }
 
-.bitem-type-TKT ~ .bitem-title-col ~ .bitem-collapse-arrow ~ .bitem-header-right .bitem-effort-dot.on,
 .item.bitem[data-type="TKT"] .bitem-effort-dot.on {
   background: var(--green);
   border-color: var(--green);
