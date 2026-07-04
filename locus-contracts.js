@@ -1,4 +1,7 @@
-// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:5 · autor:Rune · 2026-07-01 14:20 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:6 · autor:Rune · 2026-07-04 21:30 UTC-6
+// TKT3 (REQ-contract-rename): empty-state de renderContratos() actualizado — referencia
+//   contract_detail (no contract) y el array items del CHECKPOINT JSON vigente (no
+//   ---getItems()---, formato Gen1). Sin cambio de lógica ni de _ctrMergeFromItem.
 // locus-contracts.js
 // Última actualización: B-202606-104 — confirmResetSessions() ahora persiste el reset en
 // LOCUS_KEYS.STATE ('locus-state-v1') en lugar de la clave legacy que la app ya no lee.
@@ -143,7 +146,7 @@ export function renderContratos() {
     listEl.innerHTML = `<div class="ctr-empty">
       <span class="ctr-empty-icon">📐</span>
       <p class="ctr-empty-title">Sin contratos definidos</p>
-      <p class="ctr-empty-hint">Rune genera el contrato inicial de un módulo en el CHECKPOINT de la primera sesión que lo toca.<br>Agrega el campo <code>contract</code> en un ítem R o T del bloque <code>---getItems()---</code>.</p>
+      <p class="ctr-empty-hint">Rune genera el contrato inicial de un módulo en el CHECKPOINT de la primera sesión que lo toca.<br>Agrega el campo <code>contract_detail</code> en un ítem TKT del array <code>items</code> del CHECKPOINT JSON.</p>
     </div>`;
     detailEl.innerHTML = '';
     return;

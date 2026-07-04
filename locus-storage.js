@@ -1,4 +1,12 @@
-// [PP] mod:84 · autor:Rune · 2026-07-04 14:30 UTC-6
+// [PP] mod:85 · autor:Rune · 2026-07-04 21:30 UTC-6
+// TKT2 + TKT5 (REQ-contract-rename): campo contract → contract_detail en los tres puntos de
+//   mapeo hacia/desde Supabase — _toItemRow() (outgoing, TKT2), rehidratación desde tracker_items
+//   (incoming, TKT2), saveHistoricoItems() (mapeo paralelo, TKT5 — excepción de continuidad,
+//   sin él la persistencia de históricos seguía escribiendo null). contract_update (columna
+//   distinta) sin cambio en los tres sitios — fuera de scope, ya coincide con nombre canónico.
+//   DDL requerido: sí — ALTER TABLE tracker_items RENAME COLUMN contract TO contract_detail;
+//   No ejecutado desde el TKT — deuda registrada con escalate_to: Vera. Módulo crítico —
+//   activar verificación de regresiones en Finn.
 // locus-storage.js
 // Última actualización: TKT1 (REQ-sprints-migration) — _allSprintsCache cross-proyecto reemplaza
 // _sprintsCache por-proyecto-activo. getAllProjectsSprints() nueva, getActiveSprints() deriva del
@@ -1146,7 +1154,7 @@ export async function saveBacklog() {
 
   // T-202606-008: upsert relacional — cada ítem es una fila en tabla items.
   // Las columnas que contienen arrays JS (ac, depends_on) se mapean a text[] de Postgres.
-  // Las columnas que contienen objetos JS (intencion, contract, no_incluye cuando es objeto)
+  // Las columnas que contienen objetos JS (intencion, contract_detail, no_incluye cuando es objeto)
   // se mapean a jsonb. Postgres aplica el CHECK constraint de status por type (T1).
   //
   // AC-1: upsert de ítem nuevo → 1 fila por code, sin tocar filas existentes.
@@ -1201,9 +1209,11 @@ export async function saveBacklog() {
       schema_version:       it.schema_version != null ? Number(it.schema_version) : 2,
       // ac: array JS → jsonb Postgres
       ac:                   Array.isArray(it.ac) ? it.ac : [],
-      // intencion, contract: objetos → jsonb Postgres
+      // intencion, contract_detail: objetos → jsonb Postgres
+      // T-[pendiente-ID] (REQ-contract-rename, TKT2): contract_detail reemplaza a contract —
+      // alineado a BR-Execution §2. Sin retrocompatibilidad — it.contract ya no se lee.
       intencion:            it.intencion        || null,
-      contract:             it.contract         || null,
+      contract_detail:      it.contract_detail  || null,
       // Campos Gen2 agregados en ALTER TABLE (T-[pendiente-ID])
       next_role:            it.nextRole          || null,
       design_intent:        it.designIntent      || null,
@@ -1371,7 +1381,9 @@ export async function saveHistoricoItems(items) {
       schema_version:        it.schema_version != null ? Number(it.schema_version) : 2,
       ac:                    Array.isArray(it.ac) ? it.ac : [],
       intencion:             it.intencion         || null,
-      contract:              it.contract          || null,
+      // T-[pendiente-ID] (REQ-contract-rename, TKT5): contract_detail reemplaza a contract —
+      // mismo mapeo paralelo a _toItemRow() (TKT2), no unificado (deuda distinta, no_incluye).
+      contract_detail:       it.contract_detail   || null,
       next_role:             it.nextRole          || null,
       design_intent:         it.designIntent      || null,
       blocked_at:            it.blockedAt         || null,
@@ -1934,7 +1946,8 @@ export async function _loadFromSupabase() {
               schema_version:        row.schema_version,
               ac:                    Array.isArray(row.ac) ? row.ac : [],
               intencion:             row.intencion,
-              contract:              row.contract,
+              // T-[pendiente-ID] (REQ-contract-rename, TKT2): rehidratación lee contract_detail.
+              contract_detail:       row.contract_detail,
               nextRole:              row.next_role,
               designIntent:          row.design_intent,
               blockedAt:             row.blocked_at,

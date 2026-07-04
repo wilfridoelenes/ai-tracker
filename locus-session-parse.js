@@ -1,3 +1,19 @@
+// [PP] mod:93 · autor:Rune · 2026-07-04 21:00 UTC-6
+// TKT4 (REQ-contract-rename · depends_on: TKT2): _buildTgItemsFromParsed propaga
+//   contract_detail a los dos objetos tgItems que construye (rama de transición bloqueada
+//   ~L1893 y alta normal ~L1925) — antes se perdía entre el parseo y mergeBacklogFromTG,
+//   dejando siempre null la columna equivalente en Supabase aunque TKT1/TKT2 estuvieran
+//   correctos. Sin cambio en el objeto ITIL (_itilResult3.item, ~L1832) — contract_detail
+//   no aplica a INC/PRB/KE/CHG. no_incluye: no propaga kill_criteria/archivos/design_intent/
+//   next_role/blocked_at — mismo patrón ausente en esta función, deuda distinta registrada
+//   como DISC (auditoría de campos Gen2 ausentes en tgItems), fuera de este TKT.
+// TKT1 (REQ-contract-rename): los dos puntos de aplicación a Contratos de Módulo
+//   (_rawItems.forEach en parsePaste ~L1010, parsedJSON.forEach en parsePasteStandalone
+//   ~L2141) leen it.contract_detail en vez de it.contract — alineado a BR-Execution §2.
+//   Sin retrocompatibilidad: un item con solo el campo legacy `contract` no se aplica a
+//   Contratos (verificado con grep — cero matches de `.contract` fuera de `contract_detail`/
+//   `contract_update` en todo el archivo). no_incluye: no modifica _ctrMergeFromItem en
+//   locus-contracts.js — solo el nombre del campo leído en el caller.
 // [PP] mod:92 · autor:Rune · 2026-07-02 09:20 UTC-6
 // TKT1 (REQ-[pendiente-ID] · Custom properties del pill de proyecto vía setProperty en vez
 //   de string interpolado — CSS Purity): el pill de proyecto (P-202604-115) ya no lleva el
@@ -1005,7 +1021,9 @@ export function parsePaste(id) {
         tgItems = [];
         delete window[`_patchItems_${id}`];
       } else {
-        _rawItems.forEach(it => { if (it.contract) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract); });
+        // T-[pendiente-ID] (REQ-contract-rename): campo alineado a BR-Execution §2 —
+        // contract_detail reemplaza a contract, sin retrocompatibilidad (BR-Execution §2).
+        _rawItems.forEach(it => { if (it.contract_detail) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract_detail); });
         // T-202606-010 AC-7: llamar processDocUpdate por cada entrada de doc_updates antes de finalizar ingesta.
         // AC-7b: si retorna conflicto:true → toast visible pero ingesta continúa normalmente (no bloquea).
         if (Array.isArray(ckpt._rawDocUpdates) && ckpt._rawDocUpdates.length > 0) {
@@ -1886,6 +1904,9 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
           origenDisc:    it.origen_disc   || null,
           intencion:     it.intencion     || null,
           no_incluye:    Array.isArray(it.no_incluye) ? it.no_incluye : [],
+          // T-[pendiente-ID] (REQ-contract-rename, TKT4): contract_detail no se propagaba a
+          // tgItems — se perdía entre el parseo y mergeBacklogFromTG. Alineado a BR-Execution §2.
+          contract_detail: it.contract_detail || null,
           schema_version: it.schema_version != null ? Number(it.schema_version) : 0
         });
         _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
@@ -1915,6 +1936,9 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
       origenDisc:    it.origen_disc   || null,
       intencion:     it.intencion     || null,
       no_incluye:    Array.isArray(it.no_incluye) ? it.no_incluye : [],
+      // T-[pendiente-ID] (REQ-contract-rename, TKT4): contract_detail no se propagaba a
+      // tgItems — se perdía entre el parseo y mergeBacklogFromTG. Alineado a BR-Execution §2.
+      contract_detail: it.contract_detail || null,
       schema_version: it.schema_version != null ? Number(it.schema_version) : 0
     });
     if (itemKind(it) === 'DISC' && _normSt3 === 'promoted' && !it.promovida_a) {
@@ -2125,9 +2149,12 @@ export function parsePasteStandalone() {
     return;
   }
 
-  // R-202604-075: extraer campo contract de cada ítem y aplicar a Contratos de Módulo
+  // R-202604-075: extraer campo contract_detail de cada ítem y aplicar a Contratos de Módulo
+  // T-[pendiente-ID] (REQ-contract-rename): contract_detail reemplaza a contract — alineado a
+  // BR-Execution §2. Sin retrocompatibilidad — un item con solo `contract` (campo legacy) no
+  // se aplica aquí.
   parsedJSON.forEach(it => {
-    if (it.contract) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract);
+    if (it.contract_detail) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract_detail);
   });
 
   // R-202604-085 + R-B: detectar ---PLAN--- o ---EXECUTION-PLAN--- embebido en el CHECKPOINT standalone
