@@ -1,3 +1,7 @@
+<!-- [PP] mod:91 · autor:Rune · 2026-07-03 UTC-6 -->
+<!-- TKT3-[pendiente-ID] (REQ-B): reordenado #active-filter-chips — ahora después del
+     cierre de #filter-bar-status, antes del comentario "toolbar vieja". Sin cambios
+     de atributos, clases, ids ni contenido — solo posición en el markup. -->
 <!-- [PP] mod:90 · autor:Rune · 2026-07-03 UTC-6 -->
 <!-- TKT-[pendiente-ID] (REQ-[pendiente-ID] simplificar toolbar de backlog): eliminado
      #backlog-meta-banner (T-048/T-050) del sub-panel Backlog. Consumidores en JS
@@ -401,7 +405,6 @@
     <div class="session-subpanel active" id="sspanel-backlog">
 
     <div class="stats-bar" id="stats-bar"></div>
-    <div class="active-filter-chips is-hidden" id="active-filter-chips"></div>
 
     <!-- T-202606-054: toolbar 3 grupos con divisor — G1: vistas | G2: filtros | G3: prioridad+colapsar — búsqueda al extremo derecho -->
     <div class="bl-toolbar" id="filter-bar-status">
@@ -452,6 +455,8 @@
       </div>
       <button class="doc-log-btn" id="doc-log-btn-backlog" title="Historial de acciones del Backlog">🕐<span class="doc-log-count"></span></button>
     </div>
+
+    <div class="active-filter-chips is-hidden" id="active-filter-chips"></div>
 
     <!-- toolbar vieja — oculta, mantenida por compatibilidad con JS que la referencia -->
     <div class="toolbar is-hidden" id="toolbar"></div>
