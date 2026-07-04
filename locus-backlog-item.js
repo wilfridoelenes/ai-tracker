@@ -1,4 +1,4 @@
-// [PP] mod:67 · autor:Rune · 2026-07-04 18:20 UTC-6
+// [PP] mod:68 · autor:Rune · 2026-07-04 18:40 UTC-6
 // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT): _assignPendingIds(tgItems, seedSlugMap?) — parámetro nuevo, opcional,
 //   sin cambio de comportamiento si ausente. Seed copiado al inicio del slugMap con precedencia
@@ -1277,9 +1277,9 @@ export function buildBacklogItem(item, opts = {}) {
       ${_buildItemTimestamps(item)}
       ${_buildItemOriginBlock(item)}
       ${item.origin ? _buildItemPOriginBlock(item) : ''}
-      ${(isIdea && item.triggeredBy) ? `<div class="bitem-origin-p-block">
+      ${item.triggeredBy ? `<div class="bitem-origin-p-block">
         <span class="bitem-origin-p-label">Originado durante</span>
-        <button class="bitem-origin-p-link" data-action="navigate-origin" data-origin="${esc(item.triggeredBy)}" title="Ir al ítem que originó esta idea">${esc(item.triggeredBy)}</button>
+        <button class="bitem-origin-p-link" data-action="navigate-origin" data-origin="${esc(item.triggeredBy)}" title="Ir al ítem que originó este ítem">${esc(item.triggeredBy)}</button>
       </div>` : ''}
       ${item.migratedFrom ? _buildItemMigratedBlock(item) : ''}
       ${_buildItemMentionedIn(item)}
