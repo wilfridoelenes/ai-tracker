@@ -1,4 +1,4 @@
-// [PP] mod:83 · autor:Rune · 2026-07-02 20:19 UTC-6
+// [PP] mod:84 · autor:Rune · 2026-07-04 14:30 UTC-6
 // locus-storage.js
 // Última actualización: TKT1 (REQ-sprints-migration) — _allSprintsCache cross-proyecto reemplaza
 // _sprintsCache por-proyecto-activo. getAllProjectsSprints() nueva, getActiveSprints() deriva del
@@ -1867,10 +1867,19 @@ export async function _loadFromSupabase() {
           const ts = it._updatedAtMs || 0;
           return ts > m ? ts : m;
         }, 0);
+        // TKT-fix-merge-gate: remoteMaxTs es ciego a un DELETE que borra justo la fila con
+        // mayor updated_at — el máximo remoto baja y remoteMaxTs > localMaxTs nunca se
+        // cumple, saltando el bloque de merge completo (incluida la detección de deletes
+        // de líneas ~1958-1972) y dejando el ítem borrado remotamente en caché indefinidamente.
+        // remoteActiveCount !== localCount es una señal barata y segura de alta/baja de filas
+        // — se excluye 'historico' del conteo remoto porque el forEach de abajo también lo excluye.
+        const remoteActiveCount = remoteRows.filter(row => row.status !== 'historico').length;
+        const localCount        = localItems.length;
         const shouldEvaluate = _itemsRef !== null && (
           _itemsRef.length === 0 ||
           !localItemsRaw     ||
-          remoteMaxTs > localMaxTs
+          remoteMaxTs > localMaxTs ||
+          remoteActiveCount !== localCount
         );
         // B-202606-094 fix: el reemplazo completo de _itemsRef permitía que un
         // read-after-write race (la fila recién upserteada todavía no visible en el
