@@ -1,4 +1,5 @@
-// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:32 · autor:Rune · 2026-06-30 19:05 UTC-6
+// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:33 · autor:Rune · 2026-07-03 12:00 UTC-6
+// TKT1-4 · vacíos declarados explícitos en export — alineación con _ob-DocStandards §3 v1.10
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -86,7 +87,8 @@ function _sprintHasIncompleteFields() {
 }
 
 export function exportBacklogMd() {
-  if (!getItems().length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
+  // TKT1 AC-1: backlog vacío ya no bloquea el export — _ob-DocStandards §3 v1.10
+  // exige declarar el vacío explícito en el .md, no omitir el archivo.
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   // T-202606-069: separador canónico punto — reemplazar _ por . en segmento de versión
@@ -108,7 +110,7 @@ export function exportBacklogMd() {
 
 // AC-5: Exportar historial completo — todos los ítems sin filtro generacional
 export async function exportFullHistoryMd() {
-  if (!getItems().length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
+  // TKT1 AC-2: backlog vacío ya no bloquea el export — _ob-DocStandards §3 v1.10
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   const _canonVer2 = v => v.replace(/_/g, '.');
@@ -118,7 +120,7 @@ export async function exportFullHistoryMd() {
 
 // R-202605-132: Export "Por sprint"
 async function exportSprintsMd() {
-  if (!getItems().length) { showToast('warning', 'Sin ítems en el backlog para exportar'); return; }
+  // TKT1: backlog vacío ya no bloquea el export — _ob-DocStandards §3 v1.10
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   const _canonVer3 = v => v.replace(/_/g, '.');
@@ -407,7 +409,25 @@ function _generateFullHistoryBySprintMd(newVersion) {
 function _buildSprintActivoMd() {
   const all = getActiveSprints().filter(s => s.status === 'active');
   const currentSprint = all.find(s => s.current === true) || null;
-  if (!currentSprint) return '';
+  // TKT2 AC-1: sin sprint abierto → declarar el vacío explícito, nunca retornar ''
+  if (!currentSprint) {
+    return [
+      '## Sprint activo',
+      '',
+      '| Campo | Valor |',
+      '|---|---|',
+      '| sprint_id | ninguno — proyecto sin sprint abierto |',
+      '| sprint_name | n/a |',
+      '| status | n/a |',
+      '| version_target | n/a |',
+      '| release_type | n/a |',
+      '| scope | n/a |',
+      '| goal | n/a |',
+      '',
+      '---',
+      '',
+    ].join('\n');
+  }
   const lines = [
     '## Sprint activo',
     '',
@@ -491,6 +511,9 @@ function _buildCurrentStateMd() {
     });
     const pendStr = Object.entries(byType).map(([t, n]) => `${t}=${n}`).join(' | ');
     lines.push(`**Pendientes:** ${pendStr} (${pendientes.length} total)`);
+  } else {
+    // TKT3 AC-1: cero explícito — nunca omitir la línea de Pendientes
+    lines.push(`**Pendientes:** REQ=0 | TKT=0 (0 total)`);
   }
   // B-202606-011 AC-2: en-revision como categoría propia en ## Estado actual
   const enRevision = getItems().filter(i => i.status === 'en-revision');
@@ -515,8 +538,8 @@ function _buildCurrentStateMd() {
   }
 
   lines.push('', '---', '');
-  const hasContent = pendientes.length || lastWithBlocker;
-  return hasContent ? lines.join('\n') : '';
+  // TKT3 AC-2: el bloque ## Estado actual se declara siempre — nunca string vacío
+  return lines.join('\n');
 }
 
 // T-202606-009: INFRA_VERSIONS reemplazado por getInfraVersionData() desde storage.
@@ -713,6 +736,20 @@ export function _generateBacklogContent(newVersion, opts = {}) {
 
   const { mainMd, orphansMd } = _buildItemsMd(sortedExportItems);
 
+  // TKT4 AC-2/AC-3: ## Ítems declara vacío explícito en vez de quedar en blanco entre separadores.
+  // Si hay REQ/TKT refinados sin sprint asignado (Q-Backlog), lo declara aparte —
+  // distingue "sprint vacío" de "backlog vacío" (_ob-DocStandards §3 v1.10).
+  let itemsBodyMd = mainMd;
+  if (!mainMd) {
+    const qBacklogCount = getItems().filter(i => {
+      const t = _itemTypeGen2(i);
+      return (t === 'REQ' || t === 'TKT') && !i.sprint;
+    }).length;
+    itemsBodyMd = qBacklogCount
+      ? `Sin ítems pendientes en sprint activo.\n\nQ-Backlog: ${qBacklogCount} ítems refinados en espera.`
+      : `Sin ítems pendientes en sprint activo.`;
+  }
+
   const totalItems = exportItems.length;
   const doneCount = exportItems.filter(i => i.status === 'done').length;
   const enRevisionCount = exportItems.filter(i => i.status === 'en-revision').length; // T-202606-110
@@ -756,7 +793,7 @@ App: ${_appVerStr} — exportado desde tracker
 
 ---
 
-${mainMd}
+${itemsBodyMd}
 
 ---
 
@@ -829,6 +866,10 @@ function _buildIndexLines(itemMap) {
   });
 
   const lines = [];
+  // TKT4 AC-1: declarar 'ninguno' explícito para REQ y TKT cuando el tipo no tiene ítems
+  const _hasType = t => Object.keys(groups).some(k => k.split(':')[0] === t);
+  if (!_hasType('REQ')) lines.push('REQ: ninguno');
+  if (!_hasType('TKT')) lines.push('TKT: ninguno');
   sortedKeys.forEach(key => {
     const g = groups[key];
     if (!g.items.length) return;

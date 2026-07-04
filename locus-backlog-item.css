@@ -1,4 +1,4 @@
-/* [PP] mod:35 · autor:Nova · 2026-07-03 UTC-6 */
+/* [PP] mod:36 · autor:Nova · 2026-07-03 UTC-6 */
 /* TKT1-diff-visual: gap de contraste resuelto — estándar correcto es 3:1 (elemento gráfico
    no-texto, WCAG 2.1 AA), no 4.5:1 (texto). Solo --green en light fallaba (2.99:1/2.82:1);
    revertido override previo de --yellow/--slate que no lo necesitaban. */
@@ -2963,6 +2963,22 @@ body:not([data-theme]) .theme-toggle-btn::before {
 .gf-pulso--link:hover {
   background: var(--surface3);
   color: var(--text);
+}
+
+/* T-202607-XXX (TKT5 footer redesign): degradación progresiva en viewport angosto.
+   AC1: ≥768px sin cambio. AC2: <768px oculta gf-ckpt primero, <480px oculta también
+   gf-pulso — sin JS de detección de ancho. Breakpoints asumidos (768 dado por AC
+   literal, 480 sin _Locus-css-ref adjunto — declarar si el proyecto define otro). */
+@media (max-width: 767px) {
+  .gf-ckpt {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .gf-pulso {
+    display: none;
+  }
 }
 
 .gf-fecha {
