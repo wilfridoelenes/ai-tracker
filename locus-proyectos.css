@@ -1,4 +1,4 @@
-/* [PP] mod:5 · autor:Nova · 2026-07-01 07:15 UTC-6 */
+/* [PP] mod:6 · autor:Nova · 2026-07-04 UTC-6 */
 /* locus-proyectos.css */
 
 /* Versión: 2.0 | Selectores consolidados — T3 */
@@ -2058,6 +2058,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  padding-left: var(--subtab-gutter); /* TKT1 · REQ gutter subtabs */
 }
 
 .tpl-sidebar-section {

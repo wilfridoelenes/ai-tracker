@@ -1,5 +1,8 @@
-/* [PP] mod:6 · autor:Nova · 2026-07-03 UTC-6 */
+/* [PP] mod:7 · autor:Nova · 2026-07-04 UTC-6 */
 /* locus-modals.css */
+/* TKT2-[pendiente-ID] (REQ-[tmp:req-consolidacion-close-btn]): eliminada .modal-close-btn —
+   consolidado en .modal-close (box 28x28). Sin retrocompatibilidad — path legacy eliminado
+   en el mismo TKT (cero call sites tras migración de index.html). */
 
 /* Versión: 2.2 | Última actualización: 2026-06-10 | B-202606-009: .modal-overlay base declarada · ie-body scroll */
 
@@ -4084,29 +4087,6 @@
   font-weight: 700;
 }
 
-.modal-close-btn {
-  background: transparent;
-  border: none;
-  color: var(--text2);
-  font-size: var(--text-lg);
-  line-height: 1;
-  cursor: pointer;
-  padding: 0.25rem;
-  border-radius: var(--radius-sm);
-  transition: var(--trans-fast);
-  flex-shrink: 0;
-}
-
-.modal-close-btn:hover {
-  color: var(--text);
-  background: var(--surface2);
-}
-
-.modal-close-btn:focus-visible {
-  outline: 2px solid var(--border2);
-  outline-offset: 2px;
-}
-
 /* --- Body --- */
 .clean-project-body {
   display: flex;
@@ -4240,7 +4220,7 @@
   .clean-project-panel,
   .clean-project-check-label,
   .clean-project-input,
-  .modal-close-btn {
+  .modal-close {
     transition: none;
   }
 }

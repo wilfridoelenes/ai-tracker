@@ -1,4 +1,7 @@
-<!-- [PP] mod:96 · autor:Rune · 2026-07-04 UTC-6 -->
+<!-- [PP] mod:97 · autor:Rune · 2026-07-04 UTC-6 -->
+<!-- TKT3-[pendiente-ID]: #proj-modal-close-btn, #clean-project-close-btn y
+     #weekly-modal-close-btn migrados a class="modal-close" (box 28x28 canónico).
+     #weekly-modal-close-btn: title="Cerrar" → aria-label="Cerrar" (gap de a11y cerrado). -->
 <!-- TKT1-[pendiente-ID] (REQ-[pendiente-ID] corrección deuda visual auditoría UI Inventory):
      #proj-modal-close-btn recibe class="modal-close-btn" + aria-label="Cerrar" — reusa
      patrón existente (#clean-project-close-btn), sin CSS nuevo. Sin cambios de comportamiento. -->
@@ -922,7 +925,7 @@
   <div class="proj-modal">
     <div class="proj-modal-header">
       <div class="proj-modal-title">Gestionar proyectos</div>
-      <button type="button" class="modal-close-btn" id="proj-modal-close-btn" aria-label="Cerrar">✕</button>
+      <button type="button" class="modal-close" id="proj-modal-close-btn" aria-label="Cerrar">✕</button>
     </div>
     <div class="proj-modal-body">
       <!-- Formulario crear/editar -->
@@ -1424,7 +1427,7 @@
   <div class="weekly-modal-panel">
     <div class="weekly-modal-header">
       <span class="weekly-modal-title">📊 Resumen semanal</span>
-      <button class="weekly-modal-close" id="weekly-modal-close-btn" title="Cerrar">✕</button>
+      <button class="modal-close" id="weekly-modal-close-btn" aria-label="Cerrar">✕</button>
     </div>
     <div class="weekly-modal-body">
       <div class="weekly-stat-row"><span class="weekly-stat-label">Sesiones registradas</span><span class="weekly-stat-value" id="wsum-sessions">—</span></div>
@@ -1651,7 +1654,7 @@
       <span class="modal-title clean-project-dialog-title" id="clean-project-dialog-title">
         Limpiar: <span class="clean-project-title clean-project-name" id="clean-project-title">proyecto</span>
       </span>
-      <button class="modal-close-btn" id="clean-project-close-btn" aria-label="Cerrar">✕</button>
+      <button class="modal-close" id="clean-project-close-btn" aria-label="Cerrar">✕</button>
     </div>
 
     <div class="modal-body clean-project-body">

@@ -1,5 +1,5 @@
-// [PP] mod:36 · autor:Rune · 2026-07-04 16:10 UTC-6
-// TKT1 · sprint_id/sprint_name consolidados en campo único `sprint` vía _sprintDisplay()
+// [PP] mod:38 · autor:Rune · 2026-07-04 17:05 UTC-6
+// Limpieza: _buildIndexLines() eliminada — sin llamadores desde TKT2, superseded por contadoresStr
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -108,8 +108,9 @@ export function exportBacklogMd() {
   const pfx = _docPrefix();
   const ver = _backlogVersion();
   // T-202606-069: separador canónico punto — reemplazar _ por . en segmento de versión
+  // [tmp:tkt-backlog-gen-housekeeping] AC-5: naming canónico _[PREFIJO]-backlog-v[X].[Y].[Z].md
   const _canonVer = ver => ver.replace(/_/g, '.');
-  const _doExport = () => _showExportConfirmModal('Backlog', `${pfx}-BACKLOG_${_canonVer(ver)}.md`, () => _generateBacklogMd(ver));
+  const _doExport = () => _showExportConfirmModal('Backlog', `_${pfx}-backlog-${_canonVer(ver)}.md`, () => _generateBacklogMd(ver));
   // T-202606-108: AC-1/AC-2 — advertir si sprint activo tiene campos incompletos
   if (_sprintHasIncompleteFields()) {
     showToast(
@@ -604,13 +605,13 @@ function _buildQIncMd(items) {
 
 // T-202606-009: INFRA_VERSIONS reemplazado por getInfraVersionData() desde storage.
 // Fallback a valores hardcodeados si storage vacío (sin sync previo).
-// [tmp:tkt4-infra-fallback] AC-1: valores Gen 2 vigentes — ver __OB-Strategy §5.
+// [tmp:tkt-backlog-gen-housekeeping] AC-1: valores Gen 2 vigentes — infra_version:13, ver __OB-Strategy §5.
 const _INFRA_FALLBACK = {
-  infraVersion: 7,
-  brCore: '1.3',
-  brEcosystem: '1.3',
-  brExecution: '1.2',
-  obStrategy: '1.6',
+  infraVersion: 13,
+  brCore: '1.4',
+  brEcosystem: '1.5',
+  brExecution: '1.4',
+  obStrategy: '1.10',
 };
 
 function _infraVersionStr() {
@@ -755,12 +756,12 @@ export function _generateBacklogContent(newVersion, opts = {}) {
     return { itemC, maxId };
   };
   const { itemC: itemCounters, maxId: counters } = _computeBacklogCounters();
-  const itemCounterStr = `REQ=${itemCounters.REQ} | TKT=${itemCounters.TKT} | INC=${itemCounters.INC} | DISC=${itemCounters.DISC} | PRB=${itemCounters.PRB} | KE=${itemCounters.KE} | CHG=${itemCounters.CHG}`;
+  // [tmp:tkt-backlog-gen-housekeeping] AC-2: Contadores: una línea por tipo — reemplaza
+  // la agrupación 'Tipo (status):' con códigos y el label 'Ítems:' de una sola línea combinada.
+  const contadoresStr = ['REQ', 'TKT', 'INC', 'DISC', 'PRB', 'KE', 'CHG']
+    .map(t => `${t}: ${itemCounters[t]}`)
+    .join('\n');
   const counterStr = `REQ=${String(counters.REQ).padStart(3,'0')} | TKT=${String(counters.TKT).padStart(3,'0')} | INC=${String(counters.INC).padStart(3,'0')} | DISC=${String(counters.DISC).padStart(3,'0')} | PRB=${String(counters.PRB).padStart(3,'0')} | KE=${String(counters.KE).padStart(3,'0')} | CHG=${String(counters.CHG).padStart(3,'0')}`;
-
-  const statusMap = {};
-  exportItems.forEach(i => { statusMap[i.code] = { status: i.status, sprint: i.sprint || '' }; });
-  const indexLines = _buildIndexLines(statusMap);
 
   // T-202606-061: orden canónico OBDS §3 §6 en ## Ítems
   // (1) Rs sprint activo + hijos, (2) T/B sprint activo huérfanos,
@@ -830,8 +831,12 @@ export function _generateBacklogContent(newVersion, opts = {}) {
   const _appVerStr = _effectiveVersion();
   const pfx = _docPrefix();
 
-  const md = `# ${pfx}-BACKLOG_${newVersion.replace(/_/g, ".")}.md
-<!-- Versión: ${newVersion} | Última actualización: ${dateStr} | App: AI-Tracker-${_appVerStr} -->
+  // [tmp:tkt-backlog-gen-housekeeping] AC-4: encabezado declara dueño: y descripción breve —
+  // reemplaza 'App: AI-Tracker-${_appVerStr}' (campo no canónico según _ob-DocStandards).
+  // [tmp:tkt-backlog-gen-housekeeping] AC-5: título del doc sigue patrón canónico
+  // _[PREFIJO]-backlog-v[X].[Y].[Z].md — reemplaza '${pfx}-BACKLOG_${ver}.md'.
+  const md = `# _${pfx}-backlog-${newVersion.replace(/_/g, ".")}.md
+<!-- Versión: ${newVersion} | Última actualización: ${dateStr} | dueño: PO · Cael | Backlog exportado del proyecto -->
 ${_infraVersionStr()}
 
 ---
@@ -850,8 +855,8 @@ ${sprintActivoMd}${sprintsProgramadosMd}## Meta
 ${currentStateMd}${qDiscMd}${qIncMd}## Índice de estado
 
 \`\`\`
-${indexLines}
-Ítems: ${itemCounterStr}
+Contadores:
+${contadoresStr}
 Últimos IDs: ${counterStr}
 App: ${_appVerStr} — exportado desde tracker
 \`\`\`
@@ -866,7 +871,7 @@ ${itemsBodyMd}
 
 ---
 
-${orphansMd ? `## Ítems huérfanos\n\n> Ts y Bs sin parent declarado — requieren revisión de Cael antes del próximo sprint.\n\n---\n\n${orphansMd}\n\n---\n\n` : ''}${historialItemsMd ? `${historialItemsMd}\n---\n\n` : ''}${_buildSprintHistorialMd()}
+${orphansMd ? `## Ítems huérfanos\n\n> TKTs e INCs sin parent declarado — requieren revisión de Cael antes del próximo sprint.\n\n---\n\n${orphansMd}\n\n---\n\n` : ''}${historialItemsMd ? `${historialItemsMd}\n---\n\n` : ''}${_buildSprintHistorialMd()}
 ---
 
 ## Estadísticas finales
@@ -890,7 +895,8 @@ export function _generateBacklogMd(newVersion, opts = {}) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `${pfx}-BACKLOG_${newVersion.replace(/_/g, ".")}.md`; // T-202606-069: separador canónico
+  // [tmp:tkt-backlog-gen-housekeeping] AC-5: naming canónico _[PREFIJO]-backlog-v[X].[Y].[Z].md
+  a.download = `_${pfx}-backlog-${newVersion.replace(/_/g, ".")}.md`;
   a.click();
   URL.revokeObjectURL(url);
 
@@ -900,62 +906,9 @@ export function _generateBacklogMd(newVersion, opts = {}) {
   localStorage.setItem(_tplKey('backlog-meta'), JSON.stringify(meta));
   updateBacklogBanner();
 
-  showToast('download', `📥 ${pfx}-BACKLOG_${newVersion}.md descargado`);
+  showToast('download', `📥 _${pfx}-backlog-${newVersion}.md descargado`);
 }
 
-// B-202606-011 AC-1: agrupar por tipo+status para que en-revision tenga línea propia.
-// Cada combinación tipo+status produce su propia línea en el índice — en-revision no se mezcla con pendiente.
-function _buildIndexLines(itemMap) {
-  // groups key: `${type}:${status}` — permite línea propia por tipo+status
-  const groups = {};
-  const TYPE_ORDER = ['REQ', 'TKT', 'INC', 'DISC', 'PRB', 'KE', 'CHG'];
-  // B-202606-011: status con línea propia en orden canónico de aparición
-  const STATUS_ORDER = ['pendiente', 'en-revision', 'done', 'descartado'];
-
-  Object.keys(itemMap).forEach(code => {
-    const t = _itemTypeGen2({ code }) || 'UNKNOWN';
-    const entry = itemMap[code];
-    const status = typeof entry === 'string' ? entry : (entry.status || '—');
-    const sprint = typeof entry === 'object' ? (entry.sprint || '') : '';
-    const key = `${t}:${status}`;
-    if (!groups[key]) groups[key] = { type: t, status, items: [] };
-    groups[key].items.push({ code, status, sprint });
-  });
-
-  // Ordenar grupos: primero por tipo Gen 2 (REQ TKT INC DISC PRB KE CHG), luego por status canónico
-  const sortedKeys = Object.keys(groups).sort((a, b) => {
-    const [ta, sa] = a.split(':');
-    const [tb, sb] = b.split(':');
-    const tia = TYPE_ORDER.indexOf(ta) !== -1 ? TYPE_ORDER.indexOf(ta) : 99;
-    const tib = TYPE_ORDER.indexOf(tb) !== -1 ? TYPE_ORDER.indexOf(tb) : 99;
-    if (tia !== tib) return tia - tib;
-    const sia = STATUS_ORDER.indexOf(sa) !== -1 ? STATUS_ORDER.indexOf(sa) : 99;
-    const sib = STATUS_ORDER.indexOf(sb) !== -1 ? STATUS_ORDER.indexOf(sb) : 99;
-    return sia - sib;
-  });
-
-  const lines = [];
-  // TKT4 AC-1: declarar 'ninguno' explícito para REQ y TKT cuando el tipo no tiene ítems
-  const _hasType = t => Object.keys(groups).some(k => k.split(':')[0] === t);
-  if (!_hasType('REQ')) lines.push('REQ: ninguno');
-  if (!_hasType('TKT')) lines.push('TKT: ninguno');
-  sortedKeys.forEach(key => {
-    const g = groups[key];
-    if (!g.items.length) return;
-    g.items.sort((a, b) => a.code.localeCompare(b.code));
-    const chunks = [];
-    for (let i = 0; i < g.items.length; i += 6) chunks.push(g.items.slice(i, i + 6));
-    const typeLabel = g.type === 'UNKNOWN' ? 'Sin tipo asignado' : g.type;
-    const label = `${typeLabel} (${g.status})`;
-    chunks.forEach(chunk => {
-      lines.push(label + ': ' + chunk.map(x => {
-        const sprintTag = x.sprint ? ` [${String(x.sprint).split(' · ')[0]}]` : '';
-        return `${x.code}${sprintTag}`;
-      }).join(' | '));
-    });
-  });
-  return lines.join('\n');
-}
 
 // T-202606-017: determina si un T tiene bloqueo activo.
 // Un T está bloqueado cuando al menos un código en depends_on apunta a un T
@@ -1123,7 +1076,8 @@ function _buildItemFieldsMd(item, state) {
   if (item.notes) md += `\n**Notes:** ${item.notes}\n`;
   // T-202606-071: campos calculados — solo TKTs e INC del sprint activo (no Q-DISC, no REQ, no DISC)
   const _itemTForCalc = _itemTypeGen2(item);
-  if ((_itemTForCalc === 'TKT' || _itemTForCalc === 'INC') && item.sprint && !item.sprint.includes('Q-')) {
+  // [tmp:tkt-backlog-gen-housekeeping] AC-3: campos calculados solo para TKT — INC excluido
+  if (_itemTForCalc === 'TKT' && item.sprint && !item.sprint.includes('Q-')) {
     const _activeSprint = (state.sprints || []).find(s => s.status === 'active');
     const _activeSprintId = _activeSprint ? _activeSprint.id : null;
     const _normSId = val => {

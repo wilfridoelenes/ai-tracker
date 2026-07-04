@@ -1,4 +1,4 @@
-/* [PP] mod:71 · autor:Nova · 2026-07-04 UTC-6 */
+/* [PP] mod:72 · autor:Nova · 2026-07-04 UTC-6 */
 /* Merge de ramas divergentes por colisión de mod — ver CHECKPOINT de la sesión.
    Reaplicado sobre base de Nova (mod:66 declarado, contenido = INC overlap margin fix):
    eliminadas .fbar-clear-btn/.filter-clear-btn (INC-[pendiente-ID]) y
@@ -252,6 +252,7 @@
   max-width: var(--bp-ultrawide);
   margin-inline: auto;
   width: 100%;
+  padding-left: var(--subtab-gutter); /* TKT1 · REQ gutter subtabs */
 }
 
 .session-subtabs {

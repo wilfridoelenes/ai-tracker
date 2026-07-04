@@ -1,4 +1,4 @@
-/* [PP] mod:17 · autor:Nova · 2026-07-03 */
+/* [PP] mod:18 · autor:Nova · 2026-07-04 UTC-6 */
 /* locus-sesiones.css */
 /* Última actualización: 2026-06-26 | log-* migrado desde locus-radar.css */
 /* Gen 2 — infra_version: 5 | Migración selectores: .P/.T/.R/.B → .DISC/.TKT/.REQ/.INC en badges, pills, sess-ind, tg-type, tracker-item-type-pill, log-ref, mh-ref-tag */
@@ -6393,6 +6393,7 @@ body.radar-sb-open .tracker-sidebar {
   position: relative;
   /* display: flex movido a #tab-sesiones.active en locus-layout.css — B fix tab visibility */
   padding: 0;
+  padding-left: var(--subtab-gutter); /* TKT1 · REQ gutter subtabs */
   max-width: var(--bp-ultrawide);
   margin-inline: auto;
   width: 100%;
