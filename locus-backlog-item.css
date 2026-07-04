@@ -1,4 +1,4 @@
-/* [PP] mod:37 · autor:Nova · 2026-07-03 UTC-6 */
+/* [PP] mod:38 · autor:Nova · 2026-07-04 UTC-6 */
 /* TKT1-diff-visual: gap de contraste resuelto — estándar correcto es 3:1 (elemento gráfico
    no-texto, WCAG 2.1 AA), no 4.5:1 (texto). Solo --green en light fallaba (2.99:1/2.82:1);
    revertido override previo de --yellow/--slate que no lo necesitaban. */
@@ -283,14 +283,19 @@
   margin-left: 6px;
 }
 
-/* Collapse arrow */
+/* Collapse arrow — primer elemento del header: anticipa contenido (disclosure triangle)
+   y target de click ampliado (Fitts's Law) sobre el carácter, antes minúsculo */
 .bitem-collapse-arrow {
-  font-size: var(--text-2xs-plus);
+  font-size: var(--text-lg);
   color: var(--hint);
   flex-shrink: 0;
-  transition: transform 0.18s;
-  width: 12px;
+  transition: transform 0.18s, color 0.15s;
+  width: 20px;
   text-align: center;
+}
+
+.bitem-header:hover .bitem-collapse-arrow {
+  color: var(--text2);
 }
 
 /* Header right */
