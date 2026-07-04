@@ -1,6 +1,12 @@
+// [PP] mod:13 · autor:Rune · 2026-07-04 UTC-6
+// INC-[pendiente-ID]: regresión detectada post-cierre de REQ-[tmp:req-vocab-historico] — este
+// archivo importaba archiveClosedItems() de locus-backlog-archive.js y quedó fuera del scope
+// de TKT2 (archivos declarados no incluían locus-map-generator.js). Import y 2 call sites
+// actualizados a migrateClosedItemsToHistorico() / locus-backlog-historico.js — sin cambio
+// de comportamiento, mismo contrato.
 // [PP] mod:12 · autor:Rune · 2026-07-03 20:10 UTC-6
-// INC-[pendiente-ID]: _doConfirmGenerate() ahora async — await archiveClosedItems() en ambos
-// call sites (ZIP y fallback). Completa el fix de pérdida de datos de locus-backlog-archive.js:
+// INC-[pendiente-ID]: _doConfirmGenerate() ahora async — await migrateClosedItemsToHistorico() en ambos
+// call sites (ZIP y fallback). Completa el fix de pérdida de datos de locus-backlog-historico.js:
 // la persistencia en storage dedicado debe resolver antes de exponer la descarga al usuario.
 /**
  * locus-map-generator.js
@@ -11,7 +17,7 @@
  * R-202604-053 | R-202604-086 | R-202605-101
  */
 
-import { archiveClosedItems } from './locus-backlog-archive.js';
+import { migrateClosedItemsToHistorico } from './locus-backlog-historico.js';
 import { getItems, itemKind } from './locus-backlog-core.js'; // TKT-D2: itemKind(item) — clasificación Gen2
 import { editSprintInline } from './locus-backlog-sprints.js';
 import { _getMapContent, _importContextMdFromText, exportHtmlMapMd, importHtmlMap } from './locus-docs.js';
@@ -1730,7 +1736,7 @@ if (!hasClosedSprint) {
   _doConfirmGenerate();
 }
 
-// INC-[pendiente-ID]: async — permite await archiveClosedItems() en ambos call sites internos
+// INC-[pendiente-ID]: async — permite await migrateClosedItemsToHistorico() en ambos call sites internos
 // (ZIP y fallback de descarga individual). Antes disparaba la promesa sin esperarla ("ahora
 // awaited" declarado en el header de locus-backlog-archive.js pero nunca aplicado aquí —
 // corregido en esta entrega). Dos callers, ambos fire-and-forget sobre el resultado
@@ -1818,7 +1824,7 @@ async function _doConfirmGenerate() {
   }
 
   // B-202605-275: efectos DOM (importContextMd, importHtmlMap) se aplican DESPUÉS de confirmar generación exitosa
-  // B-202605-493: _mgApplyBumpedVersion y archiveClosedItems también se difieren — sin mutación de estado si ZIP falla
+  // B-202605-493: _mgApplyBumpedVersion y migrateClosedItemsToHistorico también se difieren — sin mutación de estado si ZIP falla
   const zipName = `${prefix}-SPRINT-PACKAGE_${sprintId}_${bumpedVer}.zip`;
 
   if (typeof JSZip !== 'undefined') {
@@ -1828,7 +1834,7 @@ async function _doConfirmGenerate() {
       // ZIP generado exitosamente — aplicar efectos en orden: DOM → versión → archivo
       fileDefs.forEach(d => { if (d.apply) d.apply(); });
       _mgApplyBumpedVersion(bumpedVer); // B-202605-493: diferido post-confirmación
-      await archiveClosedItems(); // INC-[pendiente-ID]: awaited — persistencia debe completarse antes de exponer la descarga
+      await migrateClosedItemsToHistorico(); // INC-[pendiente-ID]: awaited — persistencia debe completarse antes de exponer la descarga
 
       const url = URL.createObjectURL(blob);
       const a   = document.createElement('a');
@@ -1848,7 +1854,7 @@ async function _doConfirmGenerate() {
     fileDefs.forEach(d => _mgDownload(d.content, d.filename));
     fileDefs.forEach(d => { if (d.apply) d.apply(); });
     _mgApplyBumpedVersion(bumpedVer); // B-202605-493: diferido post-descarga
-    await archiveClosedItems(); // INC-[pendiente-ID]: awaited — persistencia debe completarse antes del toast de éxito
+    await migrateClosedItemsToHistorico(); // INC-[pendiente-ID]: awaited — persistencia debe completarse antes del toast de éxito
     showToast('warning', 'JSZip no disponible — descargando archivos por separado');
 
     closeMapGenerator();

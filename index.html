@@ -1,4 +1,7 @@
-<!-- [PP] mod:98 · autor:Rune · 2026-07-04 UTC-6 -->
+<!-- [PP] mod:99 · autor:Rune · 2026-07-04 UTC-6 -->
+<!-- REQ-[pendiente-ID] Unificar vocabulario historico — TKT2: link de stylesheet
+     locus-archive.css → locus-historico.css + comentario de sub-panel Histórico
+     actualizado a los identificadores vivos (renderHistoricoSection, #historico-section). -->
 <!-- TKT3-[pendiente-ID]: #proj-modal-close-btn, #clean-project-close-btn y
      #weekly-modal-close-btn migrados a class="modal-close" (box 28x28 canónico).
      #weekly-modal-close-btn: title="Cerrar" → aria-label="Cerrar" (gap de a11y cerrado). -->
@@ -47,7 +50,7 @@
 <link rel="stylesheet" href="locus-sprint-close.css">
 <link rel="stylesheet" href="locus-sprint-plan.css">
 <link rel="stylesheet" href="locus-sprint-ui.css">
-<link rel="stylesheet" href="locus-archive.css">
+<link rel="stylesheet" href="locus-historico.css">
 <link rel="stylesheet" href="locus-sesiones.css">
     <link rel="stylesheet" href="locus-sesiones-card.css">
 <link rel="stylesheet" href="locus-radar.css">
@@ -502,7 +505,7 @@
     </div><!-- /sspanel-qinc -->
 
     <!-- Sub-panel: Histórico — T-202606-092. AC-4: sin wrapper -panel-body —
-         renderArchivoHistorico() inyecta #arch-historico directo en este nodo. -->
+         renderHistoricoSection() inyecta #historico-section directo en este nodo. -->
     <div class="session-subpanel" id="sspanel-historico"></div><!-- /sspanel-historico -->
 
     <!-- Sub-panel: HTML-MAP -->

@@ -1,11 +1,14 @@
-/* [PP] mod:3 · autor:Nova · 2026-07-04 */
-/* locus-archive.css
+/* [PP] mod:4 · autor:Nova · 2026-07-04 UTC-6 */
+/* REQ-[pendiente-ID] Unificar vocabulario historico: rename mecánico de todos los selectores
+   arch-* → historico-* (1:1, sin cambio de reglas ni valores — mismo aspecto visual).
+   Archivo renombrado: locus-archive.css → locus-historico.css. */
+/* locus-historico.css
    Versión: 1.0 | Última actualización: 2026-05-25 | Locus — Archivo Histórico de sprints
    Scope: HISTÓRICO UNIFICADO — vistas Por sprint y Lista plana
 */
 
-/* === locus-backlog-archive.js ===
-   Funciones: archiveClosedItems · toggleArchivoHistorico · renderArchivoHistorico · _archSprintEntryHtml · _archItemRow */
+/* === locus-backlog-historico.js ===
+   Funciones: migrateClosedItemsToHistorico · getHistoricoCount · getHistoricoStats · renderHistoricoSection */
 
 /* ══════════════════════════════════════════════════════════════════════
    ══ HISTÓRICO UNIFICADO ══
@@ -33,7 +36,7 @@
 
 /* ── Header ─────────────────────────────────────────────────────────── */
 
-.arch-historico-header {
+.historico-header {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -45,17 +48,17 @@
   flex-wrap: wrap;
 }
 
-.arch-historico-header:hover {
+.historico-header:hover {
   background: var(--surface3, var(--surface2));
   filter: brightness(0.97);
 }
 
-.arch-historico-header:focus-visible {
+.historico-header:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 
-.arch-historico-arrow {
+.historico-arrow {
   font-size: var(--text-2xs);
   color: var(--hint);
   flex-shrink: 0;
@@ -63,11 +66,11 @@
   line-height: 1;
 }
 
-.arch-historico-arrow--open {
+.historico-arrow--open {
   transform: rotate(90deg);
 }
 
-.arch-historico-title {
+.historico-title {
   font-size: var(--text-2xs-plus);
   font-weight: 600;
   color: var(--text2);
@@ -76,13 +79,13 @@
   flex-shrink: 0;
 }
 
-.arch-historico-meta {
+.historico-meta {
   display: flex;
   align-items: center;
   gap: 6px;
 }
 
-.arch-historico-count {
+.historico-count {
   font-size: var(--text-2xs);
   color: var(--hint);
   background: var(--surface, rgb(0 0 0 / 6%));
@@ -92,7 +95,7 @@
   border: 1px solid var(--border);
 }
 
-.arch-historico-since {
+.historico-since {
   font-size: var(--text-2xs);
   color: var(--hint);
   opacity: 0.75;
@@ -100,13 +103,13 @@
 
 /* ── View tabs (Por sprint / Lista plana) ────────────────────────────── */
 
-.arch-historico-tabs {
+.historico-tabs {
   display: flex;
   gap: 4px;
   margin-left: auto;
 }
 
-.arch-tab {
+.historico-tab {
   font-size: var(--text-2xs);
   font-weight: 500;
   padding: 3px 10px;
@@ -119,58 +122,58 @@
   line-height: 1.5;
 }
 
-.arch-tab:hover {
+.historico-tab:hover {
   background: var(--surface);
   color: var(--text);
 }
 
-.arch-tab:focus-visible {
+.historico-tab:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.arch-tab--active {
+.historico-tab--active {
   background: var(--accent);
   color: #fff;
   border-color: transparent;
 }
 
-.arch-tab--active:hover {
+.historico-tab--active:hover {
   opacity: 0.9;
 }
 
 /* ── Body ────────────────────────────────────────────────────────────── */
 
-.arch-historico-body {
+.historico-body {
   overflow: hidden;
   border-top: 1px solid var(--border);
 }
 
-.arch-historico-body--collapsed {
+.historico-body--collapsed {
   display: none;
 }
 
 /* ── Views ───────────────────────────────────────────────────────────── */
 
-.arch-view {
+.historico-view {
   padding: 6px 0 4px;
 }
 
-.arch-view--hidden {
+.historico-view--hidden {
   display: none;
 }
 
 /* ── View: Por sprint — accordion ───────────────────────────────────── */
 
-.arch-sprint-entry {
+.historico-sprint-entry {
   border-bottom: 1px solid var(--border);
 }
 
-.arch-sprint-entry:last-child {
+.historico-sprint-entry:last-child {
   border-bottom: none;
 }
 
-.arch-sprint-entry-header {
+.historico-sprint-entry-header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -180,16 +183,16 @@
   transition: var(--trans-color);
 }
 
-.arch-sprint-entry-header:hover {
+.historico-sprint-entry-header:hover {
   background: var(--surface, rgb(0 0 0 / 4%));
 }
 
-.arch-sprint-entry-header:focus-visible {
+.historico-sprint-entry-header:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
 
-.arch-se-arrow {
+.historico-se-arrow {
   font-size: var(--text-2xs);
   color: var(--hint);
   flex-shrink: 0;
@@ -197,11 +200,11 @@
   line-height: 1;
 }
 
-.arch-se-arrow--open {
+.historico-se-arrow--open {
   transform: rotate(90deg);
 }
 
-.arch-se-id {
+.historico-se-id {
   font-size: var(--text-2xs);
   font-weight: 700;
   font-family: var(--font-mono, monospace);
@@ -209,7 +212,7 @@
   flex-shrink: 0;
 }
 
-.arch-se-name {
+.historico-se-name {
   font-size: var(--text-2xs-plus);
   color: var(--text2);
   flex: 1;
@@ -219,14 +222,14 @@
   white-space: nowrap;
 }
 
-.arch-se-date {
+.historico-se-date {
   font-size: var(--text-2xs);
   color: var(--hint);
   flex-shrink: 0;
   white-space: nowrap;
 }
 
-.arch-se-count {
+.historico-se-count {
   font-size: var(--text-2xs);
   color: var(--hint);
   background: var(--surface, rgb(0 0 0 / 6%));
@@ -237,17 +240,17 @@
   white-space: nowrap;
 }
 
-.arch-sprint-items {
+.historico-sprint-items {
   padding: 0 0 4px;
 }
 
-.arch-sprint-items--collapsed {
+.historico-sprint-items--collapsed {
   display: none;
 }
 
 /* ── Empty state ─────────────────────────────────────────────────────── */
 
-.arch-empty {
+.historico-empty {
   padding: 20px 14px;
   text-align: center;
   font-size: var(--text-2xs-plus);
@@ -257,68 +260,68 @@
 
 /* ── Read-only treatment ─────────────────────────────────────────────── */
 
-/* Escopado a #arch-historico-body — buildBacklogItem sin modificación.  */
+/* Escopado a #historico-body — buildBacklogItem sin modificación.  */
 
-#arch-historico-body .item {
+#historico-body .item {
   opacity: 0.65;
   transition: var(--trans-color);
 }
 
-#arch-historico-body .item:hover {
+#historico-body .item:hover {
   opacity: 0.8;
 }
 
 /* Drag handle — sin sentido en archivo */
-#arch-historico-body .item-drag-handle {
+#historico-body .item-drag-handle {
   display: none;
 }
 
 /* Selects (status, rol, sprint, R padre) — no mutables */
-#arch-historico-body .item-status-select,
-#arch-historico-body .bitem-select {
+#historico-body .item-status-select,
+#historico-body .bitem-select {
   pointer-events: none;
   opacity: 0.45;
   cursor: default;
 }
 
 /* Effort dots — apagados, no interactivos */
-#arch-historico-body .bitem-effort-dot,
-#arch-historico-body .bitem-effort-dot-sm {
+#historico-body .bitem-effort-dot,
+#historico-body .bitem-effort-dot-sm {
   pointer-events: none;
 }
 
-#arch-historico-body .bitem-effort-dot.on,
-#arch-historico-body .bitem-effort-dot-sm.on {
+#historico-body .bitem-effort-dot.on,
+#historico-body .bitem-effort-dot-sm.on {
   background: var(--hint);
   opacity: 0.45;
 }
 
 /* Priority badge — dato legible, no clickeable */
-#arch-historico-body .bitem-prio-badge {
+#historico-body .bitem-prio-badge {
   pointer-events: none;
 }
 
 /* Botones de acción — ocultos en archivo */
-#arch-historico-body .bitem-edit-btn,
-#arch-historico-body .bitem-promote-btn,
-#arch-historico-body .item-quick-actions,
-#arch-historico-body .bitem-header-more {
+#historico-body .bitem-edit-btn,
+#historico-body .bitem-promote-btn,
+#historico-body .item-quick-actions,
+#historico-body .bitem-header-more {
   display: none;
 }
 
 /* Activity dot — sin sentido en archivo */
-#arch-historico-body .bitem-activity-dot {
+#historico-body .bitem-activity-dot {
   display: none;
 }
 
 /* Inline edit title — desactivado */
-#arch-historico-body .bitem-title {
+#historico-body .bitem-title {
   pointer-events: none;
 }
 
 /* ── R-202605-124: effort entregado en header de sprint ─────────────── */
 
-.arch-se-effort {
+.historico-se-effort {
   font-size: var(--text-2xs);
   font-weight: 600;
   color: var(--accent, #38bdf8);
@@ -333,24 +336,24 @@
 
 /* ── R-202605-124: bloque legado pre-S-23 ───────────────────────────── */
 
-.arch-sprint-entry--legacy .arch-se-id--legacy {
+.historico-sprint-entry--legacy .historico-se-id--legacy {
   font-size: var(--text-2xs);
   color: var(--hint);
   opacity: 0.7;
 }
 
-.arch-sprint-entry--legacy .arch-se-name {
+.historico-sprint-entry--legacy .historico-se-name {
   color: var(--hint);
   font-style: italic;
 }
 
 /* ── R-202605-124: lista compacta de ítems en el Archivo Histórico ──── */
 
-.arch-items-list {
+.historico-items-list {
   padding: 4px 0;
 }
 
-.arch-item-row {
+.historico-item-row {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -360,15 +363,15 @@
   transition: background 0.1s;
 }
 
-.arch-item-row:last-child {
+.historico-item-row:last-child {
   border-bottom: none;
 }
 
-.arch-item-row:hover {
+.historico-item-row:hover {
   background: var(--surface, rgb(0 0 0 / 3%));
 }
 
-.arch-row-type {
+.historico-row-type {
   font-size: var(--text-3xs);
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -378,27 +381,27 @@
   text-transform: uppercase;
 }
 
-.arch-row-type--req {
+.historico-row-type--req {
   background: rgb(56 189 248 / 12%);
   color: #38bdf8;
 }
 
-.arch-row-type--tkt {
+.historico-row-type--tkt {
   background: rgb(46 204 120 / 12%);
   color: #2ecc78;
 }
 
-.arch-row-type--inc {
+.historico-row-type--inc {
   background: rgb(232 85 85 / 12%);
   color: #e85555;
 }
 
-.arch-row-type--disc {
+.historico-row-type--disc {
   background: rgb(124 106 247 / 12%);
   color: #7c6af7;
 }
 
-.arch-row-code {
+.historico-row-code {
   font-size: var(--text-2xs);
   font-family: var(--font-mono, monospace);
   color: var(--hint);
@@ -406,7 +409,7 @@
   white-space: nowrap;
 }
 
-.arch-row-title {
+.historico-row-title {
   font-size: var(--text-2xs-plus);
   color: var(--text2);
   flex: 1;
@@ -416,7 +419,7 @@
   white-space: nowrap;
 }
 
-.arch-row-effort {
+.historico-row-effort {
   font-size: var(--text-3xs);
   color: var(--hint);
   flex-shrink: 0;
@@ -424,7 +427,7 @@
   opacity: 0.6;
 }
 
-.arch-row-status {
+.historico-row-status {
   font-size: var(--text-3xs);
   color: var(--hint);
   flex-shrink: 0;
@@ -434,14 +437,14 @@
 }
 
 /* ── TKT3 (REQ Fixes subtab Backlog Histórico): divisor entre zonas de sprint
-   consecutivas en el panel de pantalla completa. .arch-zone-divider se inserta
+   consecutivas en el panel de pantalla completa. .historico-zone-divider se inserta
    en el DOM por renderArchivoHistorico() (locus-backlog-archive.js) pero no
-   tenía definición — mismo token --border usado en .arch-historico-body y
-   .arch-legacy-section, mismo margin-top:12px que .arch-legacy-section usa
+   tenía definición — mismo token --border usado en .historico-body y
+   .historico-legacy-section, mismo margin-top:12px que .historico-legacy-section usa
    para separación entre bloques. No interactivo — sin texto ni ícono, AC de
    contraste no aplica. ────────────────────────────────────────────────── */
 
-.arch-zone-divider {
+.historico-zone-divider {
   height: 1px;
   background: var(--border);
   margin: 12px 0;
@@ -449,17 +452,17 @@
 
 /* ══ FIN HISTÓRICO UNIFICADO ══════════════════════════════════════════ */
 
-/* ══ arch-legacy — sección ítems legacy (sin sprint cerrado) en Histórico ══ */
+/* ══ historico-legacy — sección ítems legacy (sin sprint cerrado) en Histórico ══ */
 /* locus-backlog-archive.js — _renderLegacySection() */
 
-.arch-legacy-section {
+.historico-legacy-section {
   margin-top: 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
 
-.arch-legacy-header {
+.historico-legacy-header {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -468,7 +471,7 @@
   border-bottom: 1px solid var(--border);
 }
 
-.arch-legacy-title {
+.historico-legacy-title {
   font-size: var(--text-2xs);
   color: var(--hint);
   text-transform: uppercase;
@@ -477,7 +480,7 @@
   flex: 1;
 }
 
-.arch-legacy-count {
+.historico-legacy-count {
   font-size: var(--text-2xs);
   font-family: var(--mono);
   color: var(--hint);
@@ -486,7 +489,7 @@
   border-radius: var(--radius-pill);
 }
 
-.arch-legacy-purge-btn {
+.historico-legacy-purge-btn {
   font-size: var(--text-2xs);
   color: var(--red);
   background: transparent;
@@ -497,9 +500,9 @@
   transition: var(--trans-fast);
 }
 
-.arch-legacy-purge-btn:hover {
+.historico-legacy-purge-btn:hover {
   background: color-mix(in srgb, var(--red) 10%, transparent);
   border-color: var(--red);
 }
 
-/* ══ END arch-legacy ══ */
+/* ══ END historico-legacy ══ */

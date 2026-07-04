@@ -1,4 +1,7 @@
-/* [PP] mod:3 · autor:Nova · 2026-07-01 07:15 UTC-6 */
+/* [PP] mod:4 · autor:Nova · 2026-07-04 UTC-6 */
+/* REQ-[pendiente-ID] Unificar vocabulario historico — Conflicto CSS resuelto: eliminado
+   bloque muerto B-202604-193 (.historico-section y 3 clases más, sin consumidor JS) que
+   colisionaba por nombre con locus-historico.css tras el rename arch-*→historico-*. */
 /* locus-sprint-plan.css */
 /* Versión: 1.0 | Última actualización: 2026-05-25 00:00 UTC-6 | Pulso del ecosistema + Contratos de módulo + Sub-tab Plan */
 /* === locus-pulso.js ===
@@ -1287,46 +1290,10 @@
   cursor: pointer;
 }
 
-/* B-202604-193: Sección histórica — ítems archivados al cerrar sprint */
-.historico-section {
-  margin-top: 1rem;
-  border-top: 1px solid var(--border);
-}
-
-.historico-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
-  user-select: none;
-  color: var(--text-muted);
-  font-size: var(--text-xs);
-}
-
-.historico-header:hover {
-  background: var(--bg2);
-}
-
-.historico-toggle-icon {
-  font-size: var(--text-2xs);
-  min-width: 0.9rem;
-}
-
-.historico-label {
-  font-weight: 600;
-  letter-spacing: 0.03em;
-}
-
-.historico-count {
-  font-size: var(--text-2xs);
-  background: var(--surface2);
-  padding: 0.1rem 0.4rem;
-  border-radius: var(--radius-pill);
-}
-
-.historico-body--collapsed {
-  display: none;
-}
-
-/* END B-202604-193 */
+/* B-202604-193: Sección histórica — ítems archivados al cerrar sprint — ELIMINADO.
+   Conflicto CSS (REQ-[pendiente-ID] Unificar vocabulario historico): .historico-section/
+   .historico-header/.historico-count/.historico-body--collapsed no tenían consumidor JS
+   en este módulo (verificado: sin match en locus-sprint-plan.js) — código muerto desde
+   que R-202605-103 reemplazó esta implementación por el módulo Histórico unificado
+   (locus-historico.css). Colisionaba por nombre con las clases vivas de ese módulo tras
+   el rename arch-*→historico-*. Se elimina en vez de renombrar — cero riesgo, sin caller. */

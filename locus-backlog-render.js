@@ -1,3 +1,14 @@
+// [PP] mod:67 · autor:Rune · 2026-07-04 UTC-6
+// REQ-[pendiente-ID] Unificar vocabulario historico — TKT2 (continuación): call sites
+// actualizados hacia locus-backlog-historico.js (ex locus-backlog-archive.js, ver TKT2 en
+// ese archivo, mod:22): import renombrado (renderArchivoHistorico→renderHistoricoSection,
+// getArchivoHistoricoCount→getHistoricoCount, getArchivoHistoricoStats→getHistoricoStats) +
+// los 3 call sites correspondientes + comentarios que documentan arquitectura actual (no
+// changelog histórico) actualizados al nombre nuevo de archivo/función. Sin cambio de
+// comportamiento — mismo contrato, mismos parámetros, mismo valor de retorno. No incluye:
+// no toca comentarios de mods anteriores que narran "Antes: [nombre viejo]" (registro
+// histórico, ver header de locus-backlog-historico.js §criterio) ni el import huérfano ya
+// documentado como removido (toggleArchivoHistorico, línea de mod:66 arriba).
 // [PP] mod:66 · autor:Rune · 2026-07-04 UTC-6
 // INC-[pendiente-ID]: fix — renderSprintGroup() no renderizaba ítems con status:'historico' en
 // grupos de sprint cerrado (isClosed:true). _rootPool y el bloque "Done items sueltos" excluían
@@ -7,7 +18,7 @@
 // Fix: cuando isClosed:true, _rootPool ya no excluye 'done'/'historico' — se renderiza todo salvo
 // 'descartado', igual que antes para el caso no-cerrado. El bloque "Done items sueltos" se omite
 // por completo cuando isClosed:true — queda cubierto por el _rootPool ampliado, evita duplicado.
-// Afecta ambos consumidores de renderSprintGroup: panel Histórico (locus-backlog-archive.js) y
+// Afecta ambos consumidores de renderSprintGroup: panel Histórico (locus-backlog-historico.js) y
 // Backlog Vista Lista al mostrar un sprint closed.
 // TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): _initHistoricoSubTab eliminado —
 // renderHistoricoPanel pasa a ser el único listener de 'shell:render-historico'. Imports
@@ -69,7 +80,7 @@
 // T-202606-166: _getActiveProjectFilter importada desde locus-storage.js
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
-import { renderArchivoHistorico, getArchivoHistoricoCount, getArchivoHistoricoStats } from './locus-backlog-archive.js';
+import { renderHistoricoSection, getHistoricoCount, getHistoricoStats } from './locus-backlog-historico.js';
 import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js'; // TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix)
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, buildQIncItem, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-B2b: buildQIncItem
@@ -88,7 +99,7 @@ import { _updateDocLogCount } from './locus-doc-log.js';
 
 // Responsabilidad: Renderizado del backlog — vista Lista (sprint groups + jerarquía R→T/B),
 //   sprint health panel, roadmap, planning (drag & drop), renderBacklogList, sprint selector inline.
-// Dependencias: locus-backlog-core.js · locus-backlog-archive.js · locus-backlog-item.js · locus-backlog-sprints.js
+// Dependencias: locus-backlog-core.js · locus-backlog-historico.js · locus-backlog-item.js · locus-backlog-sprints.js
 
 // T-202606-022: _buildChildMap — agrupación de hijos por R con sort topológico por depends_on
 // Recibe los ítems de un sprint y retorna Map: rCode → [hijos ordenados]
@@ -372,7 +383,7 @@ function _zoneStaleness(item) {
 // de Backlog Vista Lista — ver _emptySprintHeaderHtml — porque no hay item del cual derivar sprintId).
 // TKT (fix groupId): contextPrefix namespacing — omitido/'' preserva el groupId y la fuente
 // de colapso actuales de Backlog Vista Lista (_getCollapsedVersions(), Set global en core.js).
-// contextPrefix:'hist' (único otro caller: locus-backlog-archive.js) namespacea el groupId
+// contextPrefix:'hist' (único otro caller: locus-backlog-historico.js) namespacea el groupId
 // para que nunca colisione con el de Vista Lista, y lee el estado de colapso desde
 // localStorage['arch-collapsed-'+groupId] — mismo key que ya escribe
 // _attachArchChildToggleDelegation() al togglear, antes desalineado con el Set global que
@@ -1521,16 +1532,17 @@ window.addEventListener('shell:backlog-render-dirty', () => {
 });
 
 // T-202606-092: renderHistoricoPanel — render del panel Histórico en #sspanel-historico.
-// AC-4: renderArchivoHistorico() recibe el propio #sspanel-historico como listEl — el bloque
-// #arch-historico se inyecta directo ahí (no en #backlog-list). Vista interna (Por sprint /
-// Lista plana) sin cambios — renderArchivoHistorico no distingue su listEl.
-// Panel se limpia antes de cada llamada: renderArchivoHistorico hace listEl.appendChild sin
-// deduplicar #arch-historico — el reset previo es lo que evita acumulación en re-renders
+// AC-4: renderHistoricoSection() recibe el propio #sspanel-historico como listEl — el bloque
+// #historico-section se inyecta directo ahí (no en #backlog-list). TKT2 (REQ Histórico unificado)
+// eliminó la distinción Por sprint / Lista plana — vista única, ver locus-backlog-historico.js.
+// Panel se limpia antes de cada llamada: renderHistoricoSection ya deduplica #historico-section
+// internamente (remueve instancia previa antes de crear la nueva) — el reset previo aquí es
+// redundante pero inofensivo, evita acumulación en re-renders si el guard interno cambiara.
 // (mismo contrato que _renderVistaLista/renderBacklogList, que resetean listEl.innerHTML antes
 // de llamarla). AC-2, AC-6, AC-7, AC-8, AC-9.
-// INC-[pendiente-ID]: async — refresca el cache de historico antes de leer getArchivoHistoricoCount()/
-// getArchivoHistoricoStats() (que dependen del mismo cache que _buildArchivoPartitions en
-// locus-backlog-archive.js). Ambos call sites del handler (click sub-tab, shell:backlog-render-dirty)
+// INC-[pendiente-ID]: async — refresca el cache de historico antes de leer getHistoricoCount()/
+// getHistoricoStats() (que dependen del mismo cache que _buildHistoricoPartitions en
+// locus-backlog-historico.js). Ambos call sites del handler (click sub-tab, shell:backlog-render-dirty)
 // se ajustan a async/await.
 export async function renderHistoricoPanel() {
   const panel = document.getElementById('sspanel-historico');
@@ -1552,18 +1564,18 @@ export async function renderHistoricoPanel() {
 
   await refreshHistoricoCache();
 
-  // AC-2: count interno del panel — se sigue calculando para el empty state y renderArchivoHistorico.
+  // AC-2: count interno del panel — se sigue calculando para el empty state y renderHistoricoSection.
   // B-202606-087: badge de subtab NUNCA muestra conteo en Histórico (AC T-202606-035, done) —
   // el conteo es responsabilidad de _updateSubtabBadges(); este call site solo limpia el badge.
-  const count = getArchivoHistoricoCount();
+  const count = getHistoricoCount();
   if (badge) badge.textContent = '';
 
   // T-202606-006: stats-bar informativa — conteos por tipo y prioridad sobre el universo
-  // completo de Histórico (mismo criterio que getArchivoHistoricoCount). Chips sin
+  // completo de Histórico (mismo criterio que getHistoricoCount). Chips sin
   // interacción — <span>, sin data-action, sin role/tabindex, sin listener de delegación.
   // Clases: .stats-bar/.stats-row reusadas de Backlog · .stat-type-chip--static /
   // .stat-pri-chip--static entregadas por Nova (mod:48 de locus-backlog.css).
-  const _stats = getArchivoHistoricoStats();
+  const _stats = getHistoricoStats();
   const _statsBarHtml = `
     <div class="stats-bar" id="historico-stats-bar">
       <div class="stats-row">
@@ -1582,15 +1594,15 @@ export async function renderHistoricoPanel() {
       </div>
     </div>`;
 
-  // TKT1 (REQ Fixes subtab Backlog Histórico): getArchivoHistoricoCount() no contempla
+  // TKT1 (REQ Fixes subtab Backlog Histórico): getHistoricoCount() no contempla
   // sprints cerrados sin ítems asignados — un sprint recién cerrado con 0 ítems archivados
   // producía count:0 y el empty-state genérico se mostraba en lugar de la zona vacía del
-  // sprint (que renderArchivoHistorico ya sabe renderizar, ver B-202606-066 en
-  // locus-backlog-archive.js). hasClosedSprints amplía el gate sin tocar el contrato de
-  // getArchivoHistoricoCount() ni de renderArchivoHistorico.
+  // sprint (que renderHistoricoSection ya sabe renderizar, ver B-202606-066 en
+  // locus-backlog-historico.js). hasClosedSprints amplía el gate sin tocar el contrato de
+  // getHistoricoCount() ni de renderHistoricoSection.
   const hasClosedSprints = getActiveSprints().some(s => s.status === 'closed');
 
-  // AC-7: sin sprints cerrados y sin ítems historico — renderArchivoHistorico no inyecta nada
+  // AC-7: sin sprints cerrados y sin ítems historico — renderHistoricoSection no inyecta nada
   // en ese caso (early return interno). AC-4 (T-202606-006): la stats-bar se muestra igual,
   // con conteos en cero — no se oculta cuando Histórico está vacío.
   if (!count && !hasClosedSprints) {
@@ -1605,8 +1617,8 @@ export async function renderHistoricoPanel() {
   panel.innerHTML = _statsBarHtml;
   const _listContainer = document.createElement('div');
   panel.appendChild(_listContainer);
-  // Cache ya refrescado arriba — el await interno de renderArchivoHistorico es no-op (Map ya poblado).
-  await renderArchivoHistorico(_listContainer);
+  // Cache ya refrescado arriba — el await interno de renderHistoricoSection es no-op (Map ya poblado).
+  await renderHistoricoSection(_listContainer);
 }
 
 // TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): _initHistoricoSubTab eliminado —
@@ -1705,7 +1717,7 @@ export function _updateSubtabBadges() {
   }
 
   // B-202606-087: AC T-202606-035 (done) — badge de subtab Histórico nunca muestra conteo.
-  // getArchivoHistoricoCount() se conserva como fuente del panel (renderArchivoHistorico) —
+  // getHistoricoCount() se conserva como fuente del panel (renderHistoricoSection) —
   // este call site solo deja de escribirlo en el badge.
   if (badgeHistorico) {
     badgeHistorico.textContent = '';

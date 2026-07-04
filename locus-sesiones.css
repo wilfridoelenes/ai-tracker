@@ -1,4 +1,4 @@
-/* [PP] mod:18 · autor:Nova · 2026-07-04 UTC-6 */
+/* [PP] mod:19 · autor:Nova · 2026-07-04 UTC-6 */
 /* locus-sesiones.css */
 /* Última actualización: 2026-06-26 | log-* migrado desde locus-radar.css */
 /* Gen 2 — infra_version: 5 | Migración selectores: .P/.T/.R/.B → .DISC/.TKT/.REQ/.INC en badges, pills, sess-ind, tg-type, tracker-item-type-pill, log-ref, mh-ref-tag */
@@ -3005,6 +3005,19 @@
   font-size: var(--text-2xs-plus);
   color: var(--hint);
   margin-top: 1px;
+}
+
+/* TKT-[tmp:tkt-ie-sprint-inherited] — valor de sprint heredado del R padre, mismo box que input/select pero color muted (no editable) */
+#item-editor-overlay .ie-field .ie-sprint-inherited {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-md);
+  color: var(--text2);
+  padding: 8px 10px;
+  margin: 0;
+  box-sizing: border-box;
 }
 
 #item-editor-overlay .ie-type-badge {

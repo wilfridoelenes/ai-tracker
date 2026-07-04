@@ -1,4 +1,6 @@
-// [PP] mod:77 · autor:Rune · 2026-07-03 11:40 UTC-6
+// [PP] mod:78 · autor:Rune · 2026-07-04 UTC-6
+// REQ-[tmp:req-vocab-historico]: comentario actualizado — referenciaba locus-backlog-archive.js
+// (renombrado a locus-backlog-historico.js). Sin cambio de código, solo comentario.
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -8,7 +10,7 @@ import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation
 import { _getActiveSprint, confirmCloseSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto, getSprintPlanSessionCount } from './locus-sprint-plan.js';
-import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint, getHistoricoItemsSync, refreshHistoricoCache } from './locus-storage.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico — getHistoricoItemsSync/refreshHistoricoCache viven en locus-storage.js, no en locus-backlog-archive.js
+import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint, getHistoricoItemsSync, refreshHistoricoCache } from './locus-storage.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico — getHistoricoItemsSync/refreshHistoricoCache viven en locus-storage.js, no en locus-backlog-historico.js
 import { getProjectById, _getActiveProjectFilter } from './locus-proj-core.js';
 import { showToast, toast } from './locus-toast.js';
 

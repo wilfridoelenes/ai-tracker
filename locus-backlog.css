@@ -1,4 +1,4 @@
-/* [PP] mod:72 · autor:Nova · 2026-07-04 UTC-6 */
+/* [PP] mod:73 · autor:Nova · 2026-07-04 UTC-6 */
 /* Merge de ramas divergentes por colisión de mod — ver CHECKPOINT de la sesión.
    Reaplicado sobre base de Nova (mod:66 declarado, contenido = INC overlap margin fix):
    eliminadas .fbar-clear-btn/.filter-clear-btn (INC-[pendiente-ID]) y
@@ -116,6 +116,14 @@
   max-width: 340px;
   width: 90%;
   box-shadow: 0 16px 48px rgb(0 0 0 / 40%);
+}
+
+/* TKT-[tmp:tkt-status-confirm-title] — mismo patrón que .tag-modal-title (box de tamaño equivalente, 340px) */
+.status-confirm-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
 }
 
 .status-confirm-body {

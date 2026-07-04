@@ -1,4 +1,6 @@
-// [PP] v0.8.0 · sprint:PP-S-XX · mod:12 · autor:Rune · 2026-06-30 21:30 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-XX · mod:13 · autor:Rune · 2026-07-04 UTC-6
+// REQ-[pendiente-ID] Unificar vocabulario historico — TKT2: side-effect import
+// actualizado hacia locus-backlog-historico.js (ex locus-backlog-archive.js).
 // main.js — punto de entrada único de Locus (ES Modules nativos)
 // El ciclo storage↔sprint-project se resuelve inyectando las referencias via opts en _initApp
 // Limpieza: imports duplicados consolidados (side-effect imports redundantes eliminados)
@@ -40,7 +42,7 @@ import './locus-backlog-merge.js';
 import './locus-backlog-panel.js';
 import './locus-backlog-render.js';
 import './locus-backlog-sprints.js';
-import './locus-backlog-archive.js';
+import './locus-backlog-historico.js';
 import { renderSprintTab } from './locus-sprint.js';
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import './locus-map-generator.js';
