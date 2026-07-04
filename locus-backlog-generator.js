@@ -1,4 +1,4 @@
-// [PP] mod:35 · autor:Rune · 2026-07-04 15:40 UTC-6
+// [PP] mod:36 · autor:Rune · 2026-07-04 16:10 UTC-6
 // TKT1 · sprint_id/sprint_name consolidados en campo único `sprint` vía _sprintDisplay()
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
@@ -1221,6 +1221,11 @@ function _buildItemsMd(items) {
 
     // TKTs con parent — se renderizan bajo su REQ
     if (type === 'TKT' && tsWithParent.has(item.code)) return;
+
+    // [tmp:tkt-backlog-gen-core] AC-9: ítems que pertenecen a Q-DISC/Q-INC por _isActiveDisc/
+    // _isActiveQIncItem se excluyen del loop genérico — se renderizan únicamente en su sección
+    // dedicada ('## Q-DISC' / '## Q-INC'), nunca en '## Ítems'.
+    if (_isActiveDisc(item) || _isActiveQIncItem(item)) return;
 
     // T-202606-059: AC-2 — huérfanos excluidos del loop normal, acumulados en orphanSections
     if (orphanCodes.has(item.code)) {
