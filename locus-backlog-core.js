@@ -1,4 +1,7 @@
-// [PP] mod:80 · autor:Rune · 2026-07-03 UTC-6
+// [PP] mod:81 · autor:Rune · 2026-07-04 UTC-6
+// Reaplicado sobre base mod:80 (sin divergencia de Nova en este archivo): eliminados
+// toggle en renderActiveFilterChips() y listener en initFiltrosListeners de
+// #filter-clear-btn (INC-[pendiente-ID] — botón duplicado eliminado de index.html).
 // TKT1 (REQ-[pendiente-ID] unificar renderer de #active-filter-chips): renderActiveFilterChips()
 //   agrega toggle is-hidden de #filter-clear-btn vía chips.length===0 — criterio único que incluye
 //   deps (bloqueados/libres), gap que el isDefault previo de updateClearFilterBtn no cubría.
@@ -2245,12 +2248,6 @@ export function renderActiveFilterChips() {
 
   const chips = _getActiveFilterChips();
 
-  // TKT1 (REQ unificar renderer de #active-filter-chips): #filter-clear-btn se
-  // deriva de chips.length===0 — criterio único, incluye deps (bloqueados/libres),
-  // que el isDefault previo de updateClearFilterBtn no cubría.
-  const _btnClear = document.getElementById('filter-clear-btn');
-  if (_btnClear) _btnClear.classList.toggle('is-hidden', chips.length === 0);
-
   // AC-3: sin filtros → vaciar y ocultar contenedor
   if (!chips.length) {
     _container.innerHTML = '';
@@ -2365,10 +2362,6 @@ document.addEventListener('DOMContentLoaded', function () {
   // Filtro Sin AC
   const _btnNoAc = document.getElementById('fbar-no-ac-btn');
   if (_btnNoAc) _btnNoAc.addEventListener('click', function () { toggleBacklogNoAcMode(); });
-
-  // Limpiar todos los filtros
-  const _btnClearFilters = document.getElementById('filter-clear-btn');
-  if (_btnClearFilters) _btnClearFilters.addEventListener('click', function () { clearAllFilters(); });
 
   // T-202606-087: Pill 'Hijos' — init + listener (reemplaza checkbox bl-show-children-toggle)
   const _btnShowChildren = document.getElementById('fbar-show-children-btn');
