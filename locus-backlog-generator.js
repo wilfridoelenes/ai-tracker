@@ -1,5 +1,5 @@
-// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:33 · autor:Rune · 2026-07-03 12:00 UTC-6
-// TKT1-4 · vacíos declarados explícitos en export — alineación con _ob-DocStandards §3 v1.10
+// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:34 · autor:Rune · 2026-07-03 13:00 UTC-6
+// TKT1 · sprint_id/sprint_name consolidados en campo único `sprint` vía _sprintDisplay()
 // locus-backlog-generator.js
 // Responsabilidad: Generación y export de documentos — Backlog, Historial, Sprints, Context.
 // Extraído de locus-sprint-project.js — T-202606-016.
@@ -416,8 +416,7 @@ function _buildSprintActivoMd() {
       '',
       '| Campo | Valor |',
       '|---|---|',
-      '| sprint_id | ninguno — proyecto sin sprint abierto |',
-      '| sprint_name | n/a |',
+      '| sprint | ninguno — proyecto sin sprint abierto |',
       '| status | n/a |',
       '| version_target | n/a |',
       '| release_type | n/a |',
@@ -433,8 +432,7 @@ function _buildSprintActivoMd() {
     '',
     '| Campo | Valor |',
     '|---|---|',
-    `| sprint_id | ${currentSprint.id} |`,
-    `| sprint_name | ${currentSprint.name || currentSprint.label || 'n/a'} |`,
+    `| sprint | ${_sprintDisplay(currentSprint.id)} |`,
     `| status | ${currentSprint.status} |`,
     `| version_target | ${currentSprint.version_target || 'n/a'} |`,
     `| release_type | ${currentSprint.release_type || 'n/a'} |`,
