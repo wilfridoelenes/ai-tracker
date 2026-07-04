@@ -1,4 +1,4 @@
-// [PP] mod:65 · autor:Rune · 2026-07-04 17:01 UTC-6
+// [PP] mod:66 · autor:Rune · 2026-07-04 17:45 UTC-6
 // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT): _assignPendingIds(tgItems, seedSlugMap?) — parámetro nuevo, opcional,
 //   sin cambio de comportamiento si ausente. Seed copiado al inicio del slugMap con precedencia
@@ -1142,11 +1142,18 @@ export function buildBacklogItem(item, opts = {}) {
       <div class="bitem-meta-grid" data-action="bitem-meta-stop">
         <div class="bitem-meta-cell">
           <span class="bitem-meta-label">Status</span>
-          <select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-action="bitem-meta-stop">
-            <option value="pendiente"${item.status==='pendiente'?' selected':''}>Pendiente</option>
-            ${!isIdea ? `<option value="done"${item.status==='done'?' selected':''}>Hecho</option>` : ''}
-            <option value="descartado"${item.status==='descartado'?' selected':''}>Descartado</option>
-          </select>
+          ${isIdea
+            ? `<select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-action="bitem-meta-stop"${_isPPromovida ? ' disabled title="No editable — idea ya promovida"' : ''}>
+                <option value="discovery"${item.status==='discovery'?' selected':''}>En evaluación</option>
+                ${_isPPromovida ? `<option value="${esc(item.status)}" selected>Promovida</option>` : ''}
+                <option value="descartado"${item.status==='descartado'?' selected':''}>Descartado</option>
+               </select>`
+            : `<select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-action="bitem-meta-stop">
+                <option value="pendiente"${item.status==='pendiente'?' selected':''}>Pendiente</option>
+                <option value="done"${item.status==='done'?' selected':''}>Hecho</option>
+                <option value="descartado"${item.status==='descartado'?' selected':''}>Descartado</option>
+               </select>`
+          }
         </div>
         ${item.status === 'done' ? `<div class="bitem-meta-cell"><span class="bitem-meta-label">Versión</span><span class="bitem-meta-value mono">${esc(item.version || 'futura')}</span></div>` : ''}
         ${!isIdea ? `<div class="bitem-meta-cell">
@@ -1167,7 +1174,7 @@ export function buildBacklogItem(item, opts = {}) {
             ${_ECOSYSTEM_ROLES.map(r => `<option value="${esc(r)}"${(item.role||'')=== r?' selected':''}>${esc(r)}</option>`).join('')}
           </select>
         </div>
-        <div class="bitem-meta-cell" data-action="bitem-meta-stop">
+        ${!isIdea ? `<div class="bitem-meta-cell" data-action="bitem-meta-stop">
           <span class="bitem-meta-label">Sprint</span>
           <div id="sprint-select-wrap-${esc(item.code)}">
             ${/* B-202606-083: TKT/INC con parentId — sprint heredado del REQ parent, no editable */
@@ -1183,7 +1190,7 @@ export function buildBacklogItem(item, opts = {}) {
                 </select>`
             }
           </div>
-        </div>
+        </div>` : ''}
         ${(type === 'TKT' || type === 'INC') ? (() => {
           // T-202604-354: solo REQ pendientes, orden descendente por código, label ID · Título truncado 60 chars
           const rItems = getItems()
