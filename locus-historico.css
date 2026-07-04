@@ -1,4 +1,4 @@
-/* [PP] mod:4 · autor:Nova · 2026-07-04 UTC-6 */
+/* [PP] mod:5 · autor:Nova · 2026-07-05 UTC-6 */
 /* REQ-[pendiente-ID] Unificar vocabulario historico: rename mecánico de todos los selectores
    arch-* → historico-* (1:1, sin cambio de reglas ni valores — mismo aspecto visual).
    Archivo renombrado: locus-archive.css → locus-historico.css. */
@@ -438,7 +438,7 @@
 
 /* ── TKT3 (REQ Fixes subtab Backlog Histórico): divisor entre zonas de sprint
    consecutivas en el panel de pantalla completa. .historico-zone-divider se inserta
-   en el DOM por renderArchivoHistorico() (locus-backlog-archive.js) pero no
+   en el DOM por renderHistoricoSection() (locus-backlog-historico.js) pero no
    tenía definición — mismo token --border usado en .historico-body y
    .historico-legacy-section, mismo margin-top:12px que .historico-legacy-section usa
    para separación entre bloques. No interactivo — sin texto ni ícono, AC de
@@ -453,7 +453,7 @@
 /* ══ FIN HISTÓRICO UNIFICADO ══════════════════════════════════════════ */
 
 /* ══ historico-legacy — sección ítems legacy (sin sprint cerrado) en Histórico ══ */
-/* locus-backlog-archive.js — _renderLegacySection() */
+/* locus-backlog-historico.js — _renderLegacySection() */
 
 .historico-legacy-section {
   margin-top: 12px;

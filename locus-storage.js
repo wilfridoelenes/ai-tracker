@@ -1,4 +1,5 @@
-// [PP] mod:85 · autor:Rune · 2026-07-04 21:30 UTC-6
+// [PP] mod:87 · autor:Rune · 2026-07-05 UTC-6
+// TKT1 (limpieza post-rename): lista de módulos consumidores en L1010 actualizada — locus-backlog-archive → locus-backlog-historico. Sin cambio de código.
 // TKT2 + TKT5 (REQ-contract-rename): campo contract → contract_detail en los tres puntos de
 //   mapeo hacia/desde Supabase — _toItemRow() (outgoing, TKT2), rehidratación desde tracker_items
 //   (incoming, TKT2), saveHistoricoItems() (mapeo paralelo, TKT5 — excepción de continuidad,
@@ -1007,7 +1008,7 @@ export function _relTs(ts) {
 // R-202604-035: saveBacklog() — T-202606-008: reescrito para upsert relacional fila por fila
 // en tabla items (DDL creado en T-202606-007). Firma saveBacklog() → void intacta — los 9
 // archivos consumidores (locus-backlog-core, locus-backlog-merge, locus-backlog-panel,
-// locus-backlog-sprints, locus-backlog-item, locus-backlog-editor, locus-backlog-archive,
+// locus-backlog-sprints, locus-backlog-item, locus-backlog-editor, locus-backlog-historico,
 // locus-backlog-render, locus-reports — 41 invocaciones en total) no requieren cambio de
 // código. locus-session-parse y locus-session-save no invocan saveBacklog() directamente —
 // corregido tras auditoría T-[pendiente-ID], el comentario original los listaba por error.
@@ -1307,6 +1308,73 @@ export async function saveBacklog() {
   }
 }
 
+// INC-[pendiente-ID] TKT-fix: _mapRowToItem() — única fuente del mapeo de columnas
+// DDL (snake_case, tracker_items) → campos JS canónicos del schema de ítems (camelCase
+// donde aplica: parentId, nextRole, designIntent, blockedAt, incidentStatus, etc.).
+// Extraída del bloque inline que ya usaba la rehidratación de ítems activos (merge en
+// _loadFromSupabase) — mismo contrato, sin cambio de comportamiento para esa ruta.
+// Reusada por getHistoricoItems() para que los ítems historico también lleguen con
+// parentId poblado — sin este mapeo, _buildChildMap() (locus-backlog-render.js) no
+// puede agrupar TKT/INC historico bajo su REQ y el árbol renderiza plano.
+// contract: pure — no I/O, no mutación de argumento, mismo `row` → mismo `item` siempre.
+function _mapRowToItem(row) {
+  return {
+    code:                  row.code,
+    type:                  row.type,
+    title:                 row.title,
+    status:                row.status,
+    priority:              row.priority,
+    effort:                row.effort,
+    area:                  row.area,
+    sprint:                row.sprint,
+    role:                  row.role,
+    // T-[pendiente-ID]: parentId es el único campo canónico en JS (REQ-unify-parent TKT2).
+    // 'parent' solo existe como nombre de columna en Supabase — se mapea aquí directo
+    // a parentId, sin persistir item.parent en memoria.
+    parentId:              row.parent,       // DDL: columna parent TEXT
+    depends_on:            Array.isArray(row.depends_on) ? row.depends_on : [],
+    triggered_by:          row.triggered_by,
+    no_incluye:            row.no_incluye,
+    kill_criteria:         row.kill_criteria,
+    promovida_a:           row.promovida_a,
+    origen_disc:           row.origen_disc,
+    discard_reason:        row.discard_reason,
+    comportamiento_actual: row.comportamiento_actual,
+    origin_module:         row.origin_module,
+    verificado_por:        row.verified_by,  // DDL: verified_by → JS: verificado_por
+    schema_version:        row.schema_version,
+    ac:                    Array.isArray(row.ac) ? row.ac : [],
+    intencion:             row.intencion,
+    // T-[pendiente-ID] (REQ-contract-rename, TKT2): rehidratación lee contract_detail.
+    contract_detail:       row.contract_detail,
+    nextRole:              row.next_role,
+    designIntent:          row.design_intent,
+    blockedAt:             row.blocked_at,
+    contract_update:       row.contract_update,
+    archivos:              Array.isArray(row.archivos) ? row.archivos : null,
+    sla_priority:          row.sla_priority,
+    // TKT-A1: Gen2 — campos ITIL con naming camelCase interno
+    incidentStatus:        row.incident_status || null,
+    resolutionType:        row.resolution_type || null,
+    derived_items:         Array.isArray(row.derived_items) ? row.derived_items : null,
+    queue:                 row.queue           || null,
+    createdAt:             row.created_at      || null,
+    // TKT-A1: sla_deadline calculado al hidratar si sla_priority presente y sla_deadline ausente
+    // AC: sla_priority:high → createdAt+86400000ms; medium → createdAt+259200000ms; low → null
+    // Base: row.created_at (bigint epoch ms, NOT NULL en DDL de tracker_items)
+    slaDeadline: (() => {
+      if (row.sla_deadline != null) return row.sla_deadline;
+      if (!row.sla_priority) return null;
+      const _base = row.created_at || null;
+      if (!_base) return null;
+      if (row.sla_priority === 'high')   return _base + 86400000;
+      if (row.sla_priority === 'medium') return _base + 259200000;
+      return null;
+    })(),
+    _updatedAtMs:          row.updated_at    // conservar timestamp para comparaciones futuras
+  };
+}
+
 // ── storage para ítems status:historico ──────────────────────────────────────
 // Fuente canónica: tracker_items con status:'historico' — una fila por ítem,
 // misma tabla que los ítems activos. tracker_backlog JSONB legacy eliminado
@@ -1441,8 +1509,12 @@ export async function getHistoricoItems(projId) {
             .eq('status', 'historico');
       const { data, error } = await query;
       if (error) throw error;
-      result = Array.isArray(data) ? data : [];
-      try { localStorage.setItem(key, JSON.stringify(result)); } catch (_) {}
+      const rawRows = Array.isArray(data) ? data : [];
+      // INC-[pendiente-ID] TKT-fix: mapear filas crudas → schema JS antes de cachear/retornar.
+      // localStorage conserva las filas crudas (fidelidad con la fila de Supabase para
+      // fallback offline) — el mapeo se aplica en cada lectura, sea remota o local.
+      try { localStorage.setItem(key, JSON.stringify(rawRows)); } catch (_) {}
+      result = rawRows.map(_mapRowToItem);
       _historicoCache.set(_effProjId || '__global__', result);
       return result;
     } catch (err) {
@@ -1453,7 +1525,8 @@ export async function getHistoricoItems(projId) {
   try {
     const raw = localStorage.getItem(key);
     const parsed = raw ? JSON.parse(raw) : [];
-    result = Array.isArray(parsed) ? parsed : [];
+    const rawRows = Array.isArray(parsed) ? parsed : [];
+    result = rawRows.map(_mapRowToItem);
   } catch (_) {
     result = [];
   }
@@ -1919,61 +1992,13 @@ export async function _loadFromSupabase() {
               return;
             }
             // Mapear nombres de columna DDL → nombres de campo JS del schema de ítems.
-            const item = {
-              code:                  row.code,
-              type:                  row.type,
-              title:                 row.title,
-              status:                row.status,
-              priority:              row.priority,
-              effort:                row.effort,
-              area:                  row.area,
-              sprint:                row.sprint,
-              role:                  row.role,
-              // T-[pendiente-ID]: parentId es el único campo canónico en JS (REQ-unify-parent TKT2).
-              // 'parent' solo existe como nombre de columna en Supabase — se mapea aquí directo
-              // a parentId, sin persistir item.parent en memoria.
-              parentId:              row.parent,       // DDL: columna parent TEXT
-              depends_on:            Array.isArray(row.depends_on) ? row.depends_on : [],
-              triggered_by:          row.triggered_by,
-              no_incluye:            row.no_incluye,
-              kill_criteria:         row.kill_criteria,
-              promovida_a:           row.promovida_a,
-              origen_disc:           row.origen_disc,
-              discard_reason:        row.discard_reason,
-              comportamiento_actual: row.comportamiento_actual,
-              origin_module:         row.origin_module,
-              verificado_por:        row.verified_by,  // DDL: verified_by → JS: verificado_por
-              schema_version:        row.schema_version,
-              ac:                    Array.isArray(row.ac) ? row.ac : [],
-              intencion:             row.intencion,
-              // T-[pendiente-ID] (REQ-contract-rename, TKT2): rehidratación lee contract_detail.
-              contract_detail:       row.contract_detail,
-              nextRole:              row.next_role,
-              designIntent:          row.design_intent,
-              blockedAt:             row.blocked_at,
-              contract_update:       row.contract_update,
-              archivos:              Array.isArray(row.archivos) ? row.archivos : null,
-              sla_priority:          row.sla_priority,
-              // TKT-A1: Gen2 — campos ITIL con naming camelCase interno
-              incidentStatus:        row.incident_status || null,
-              resolutionType:        row.resolution_type || null,
-              derived_items:         Array.isArray(row.derived_items) ? row.derived_items : null,
-              queue:                 row.queue           || null,
-              createdAt:             row.created_at      || null,
-              // TKT-A1: sla_deadline calculado al hidratar si sla_priority presente y sla_deadline ausente
-              // AC: sla_priority:high → createdAt+86400000ms; medium → createdAt+259200000ms; low → null
-              // Base: row.created_at (bigint epoch ms, NOT NULL en DDL de tracker_items)
-              slaDeadline: (() => {
-                if (row.sla_deadline != null) return row.sla_deadline;
-                if (!row.sla_priority) return null;
-                const _base = row.created_at || null;
-                if (!_base) return null;
-                if (row.sla_priority === 'high')   return _base + 86400000;
-                if (row.sla_priority === 'medium') return _base + 259200000;
-                return null;
-              })(),
-              _updatedAtMs:          row.updated_at    // conservar timestamp para comparaciones futuras
-            };
+            // INC-[pendiente-ID] TKT-fix: extraído a _mapRowToItem() — única fuente del
+            // mapeo DDL→JS, reusada también por getHistoricoItems(). Antes de este fix,
+            // getHistoricoItems() retornaba filas crudas de Supabase sin este mapeo: los
+            // ítems historico nunca tenían parentId poblado (solo row.parent snake_case),
+            // por lo que _buildChildMap() no podía agruparlos bajo su REQ — historico
+            // renderizaba como lista plana.
+            const item = _mapRowToItem(row);
             merged.push(item);
             localByCode.delete(row.code);
           });

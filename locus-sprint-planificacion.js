@@ -1,4 +1,5 @@
-// [PP] v1.2.4 · sprint:PP-Q-Backlog · mod:24 · autor:Rune · 2026-07-03 20:10 UTC-6
+// [PP] v1.2.4 · sprint:PP-Q-Backlog · mod:25 · autor:Rune · 2026-07-05 UTC-6
+// TKT1 (limpieza post-rename): comentario en L9 actualizado — locus-backlog-archive.js → locus-backlog-historico.js. Sin cambio de código.
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
@@ -6,7 +7,7 @@
 // T-202606-092: drop de R mueve Ts hijos activos al mismo sprint destino
 // TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): toggleClosedSprintsBody eliminada —
 // era alias de compatibilidad sin call sites reales (solo importada, nunca invocada) que
-// dependía de toggleArchivoHistorico, export eliminado de locus-backlog-archive.js al quitar
+// dependía de toggleArchivoHistorico, export eliminado de locus-backlog-historico.js al quitar
 // el acordeón colapsable del subtab Histórico.
 
 import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';

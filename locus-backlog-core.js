@@ -1,4 +1,5 @@
-// [PP] mod:83 · autor:Rune · 2026-07-04 UTC-6
+// [PP] mod:84 · autor:Rune · 2026-07-05 UTC-6
+// TKT1 (limpieza post-rename): comentario en L699 actualizado — referenciaba locus-backlog-archive.js (renombrado a locus-backlog-historico.js). Sin cambio de código.
 // Reaplicado sobre base mod:80 (sin divergencia de Nova en este archivo): eliminados
 // toggle en renderActiveFilterChips() y listener en initFiltrosListeners de
 // #filter-clear-btn (INC-[pendiente-ID] — botón duplicado eliminado de index.html).
@@ -696,7 +697,7 @@ export function _purgeStaleBacklogCache() {
 }
 
 // T-202606-104: Purge permanente de ítems legacy (status historico sin sprint cerrado).
-// Exportada para que locus-backlog-archive.js pueda invocarla desde el botón Purgar de la sección legacy.
+// Exportada para que locus-backlog-historico.js pueda invocarla desde el botón Purgar de la sección legacy.
 // Elimina del array en memoria todos los ítems con status 'historico'.
 // Acción irreversible (salvo undo inmediato) — requiere confirmación explícita.
 export function purgeAllHistorico() {

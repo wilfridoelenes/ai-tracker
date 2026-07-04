@@ -1,4 +1,5 @@
-// [PP] mod:38 · autor:Rune · 2026-07-03 11:40 UTC-6
+// [PP] mod:39 · autor:Rune · 2026-07-05 UTC-6
+// TKT1 (limpieza post-rename): comentario en L207 actualizado — locus-backlog-archive.js → locus-backlog-historico.js. Sin cambio de código.
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -204,7 +205,7 @@ export function switchSubTab(sub) {
     window.dispatchEvent(new CustomEvent('shell:render-contratos'));
   }
   if (sub === 'historico') {
-    // (a) event dispatch — locus-backlog-archive.js escucha 'shell:render-historico'
+    // (a) event dispatch — locus-backlog-historico.js escucha 'shell:render-historico'
     window.dispatchEvent(new CustomEvent('shell:render-historico'));
     // T-202606-098 T1: renderStats()/updateStatusFilterUI() eliminados — exclusivos de subtab backlog
   }

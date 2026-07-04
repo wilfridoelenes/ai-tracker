@@ -1,4 +1,5 @@
-// [PP] mod:67 · autor:Rune · 2026-07-04 UTC-6
+// [PP] mod:68 · autor:Rune · 2026-07-05 UTC-6
+// TKT1 (limpieza post-rename): comentario en L48 actualizado — describía capacidad vigente referenciando locus-backlog-archive.js; corregido a locus-backlog-historico.js. Notas históricas de L3/L25 (documentan el rename en sí) se conservan sin cambio.
 // REQ-[pendiente-ID] Unificar vocabulario historico — TKT2 (continuación): call sites
 // actualizados hacia locus-backlog-historico.js (ex locus-backlog-archive.js, ver TKT2 en
 // ese archivo, mod:22): import renombrado (renderArchivoHistorico→renderHistoricoSection,
@@ -45,7 +46,7 @@
 //   removido — sin otro consumidor en el módulo. Sin cambio de comportamiento visible.
 // TKT1 (REQ Histórico unificado con Vista Lista de Backlog): extraído renderSprintGroup(sprintItems, isClosed)
 //   de _renderVistaLista — bloque de header+progress bar+jerarquía R→hijos+done items de un grupo-por-sprint,
-//   ahora reusable e invocable desde locus-backlog-archive.js. Función pura respecto a filtros/búsqueda del
+//   ahora reusable e invocable desde locus-backlog-historico.js. Función pura respecto a filtros/búsqueda del
 //   módulo (no usa _matchesQuery/_getActiveStatuses/_sortGroup internamente) — el caller decide qué items son
 //   visibles y los pasa ya filtrados/ordenados en sprintItems. _warmHistoricoCacheIfNeeded() se movió fuera de
 //   la función extraída (era un side effect no declarado en el contrato — contract_detail declara sideEffects:

@@ -1,6 +1,7 @@
-// [PP] mod:13 · autor:Rune · 2026-07-04 UTC-6
+// [PP] mod:14 · autor:Rune · 2026-07-05 UTC-6
+// TKT1 (limpieza post-rename): comentarios en L3 y L1741 actualizados — locus-backlog-archive.js → locus-backlog-historico.js. Sin cambio de código.
 // INC-[pendiente-ID]: regresión detectada post-cierre de REQ-[tmp:req-vocab-historico] — este
-// archivo importaba archiveClosedItems() de locus-backlog-archive.js y quedó fuera del scope
+// archivo importaba archiveClosedItems() de locus-backlog-historico.js (nombre previo al rename) y quedó fuera del scope
 // de TKT2 (archivos declarados no incluían locus-map-generator.js). Import y 2 call sites
 // actualizados a migrateClosedItemsToHistorico() / locus-backlog-historico.js — sin cambio
 // de comportamiento, mismo contrato.
@@ -1738,7 +1739,7 @@ if (!hasClosedSprint) {
 
 // INC-[pendiente-ID]: async — permite await migrateClosedItemsToHistorico() en ambos call sites internos
 // (ZIP y fallback de descarga individual). Antes disparaba la promesa sin esperarla ("ahora
-// awaited" declarado en el header de locus-backlog-archive.js pero nunca aplicado aquí —
+// awaited" declarado en el header de locus-backlog-historico.js pero nunca aplicado aquí —
 // corregido en esta entrega). Dos callers, ambos fire-and-forget sobre el resultado
 // (confirmMapGenerator línea ~1735, botón data-mg-action="confirm-generate" línea ~1990) —
 // ninguno depende del valor de retorno, una función async en ambos casos es válida.
