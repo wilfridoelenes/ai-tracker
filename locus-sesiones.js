@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:30 · autor:Rune · 2026-06-29 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:31 · autor:Rune · 2026-07-03 11:40 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -19,7 +19,7 @@ import { closeLogCard, closePopup, openDetail, startRename, toggleInReview, togg
 // consumidas via _sesSPCallbacks registry (registradas por locus-sprint-project en DOMContentLoaded).
 import { getActiveProject, getActiveTracker, getAllSessions, getAI, getAISessions, getLastAISession, _findSession, save, getState, saveImmediate, _getCurrentSession, _isInSession, _resetWorker, getActiveSprints } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
-import { esc, renderSetupChecklist } from './locus-ui-shell.js';
+import { esc } from './locus-ui-shell.js';
 import { archiveAI, closeCardMenu, confirmClear, deleteAI, openAddAI, openAvatarModal, toggleArchivedSection, toggleCardMenu } from './locus-workers.js';
 
 import { downloadReport } from './locus-reports.js';
@@ -511,7 +511,7 @@ export function render() {
       <div class="empty-state-title">Agrega tu primer Worker</div>
       <div class="empty-state-hint">Los Workers son las IAs que usas. Empieza por crear uno para registrar tus sesiones.</div>
       <button class="empty-state-btn" data-action="openAddAI">＋ Nuevo Worker</button>`; }
-    updateStats(); renderStatusBar(); renderSetupChecklist(); return;
+    updateStats(); renderStatusBar(); return;
   }
 
   // R-202605-007 AC: con workers pero sin proyecto activo — solo CTA "Nuevo Proyecto"
@@ -525,7 +525,7 @@ export function render() {
       <div class="es-cta-row">
         <button class="empty-state-btn" data-action="openProjModal">＋ Nuevo Proyecto</button>
       </div>`; }
-    updateStats(); renderStatusBar(); renderSetupChecklist(); return;
+    updateStats(); renderStatusBar(); return;
   }
 
   // T-202606-XXX AC: auto-select prioriza in-session > disponible > agotada
@@ -554,7 +554,7 @@ export function render() {
       }
     }
     if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); }
-    updateStats(); renderStatusBar(); renderSetupChecklist(); return;
+    updateStats(); renderStatusBar(); return;
   }
 
   if (emptyEl) emptyEl.classList.remove('visible');
@@ -630,8 +630,7 @@ export function render() {
   if (!_radarSbInited) { _radarSbInited = true; _initRadarSidebarState(); }
   // T-202605-447: actualizar banner de sesión sugerida tras cada render
   renderSuggestionBanner();
-  // R-202605-008: actualizar checklist de setup tras cada render
-  renderSetupChecklist();
+  // R-202605-008: checklist de setup eliminado — REQ-[pendiente-ID] TKT1
   // B-202605-508: actualizar badges de tabs al final de cada render
   updateTabNotifBadges();
 }

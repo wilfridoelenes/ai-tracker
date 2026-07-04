@@ -1,4 +1,4 @@
-/* [PP] mod:10 · autor:Nova · 2026-07-02 17:20 UTC-6 */
+/* [PP] mod:11 · autor:Nova · 2026-07-03 11:40 UTC-6 */
 /* locus-layout.css */
 
 /* Versión: 2.1 | Última actualización: 2026-05-22 | Selectores compartidos consolidados — T-202605-031 */
@@ -1851,82 +1851,7 @@ header {
   background: rgb(232 168 50 / 25%);
 }
 
-/* ── Setup Checklist Banner (SCB) ────────────────────────────────────────── */
-/* R-[pendiente-ID]: Consolidación onboarding — elimina overlay, expande banner */
-/* Dueño: Nova. Reglas aplicadas: A-03, B-01, H-02 */
-
-#setup-checklist-banner {
-  position: relative;
-  overflow: hidden;
-  max-height: 48px;       /* altura colapsada */
-  transition: max-height 200ms ease, opacity 200ms ease;
-  opacity: 1;
-}
-
-#setup-checklist-banner.scb-expanded {
-  max-height: 280px;      /* techo declarado — título + subtítulo + 4 pasos */
-}
-
-/* Cabecera expandida — oculta por default */
-.scb-expanded-header {
-  display: none;
-  padding: var(--spacing-sm, 8px) var(--spacing-md, 12px) 0;
-}
-
-#setup-checklist-banner.scb-expanded .scb-expanded-header {
-  display: block;
-}
-
-.scb-expanded-title {
-  font-size: var(--text-md);
-  font-weight: 600;
-  color: var(--text);
-  margin: 0 0 2px;
-}
-
-.scb-expanded-subtitle {
-  font-size: var(--text-sm);
-  color: var(--text2);
-  margin: 0 0 var(--spacing-sm, 8px);
-}
-
-/* Botón "Hacer ahora →" — solo en paso .scb-active */
-.scb-step-action {
-  display: none;
-  margin-left: auto;
-  font-size: var(--text-sm);
-  color: var(--accent);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 2px 4px;
-  border-radius: var(--radius-sm);
-  transition: opacity 150ms ease;
-}
-
-.scb-step-action:hover {
-  opacity: 0.75;
-}
-
-.scb-step.scb-active .scb-step-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* Dismiss en estado expandido: top-right absoluto */
-#setup-checklist-banner.scb-expanded .scb-dismiss {
-  position: absolute;
-  top: var(--spacing-sm, 8px);
-  right: var(--spacing-sm, 8px);
-}
-
-/* prefers-reduced-motion */
-@media (prefers-reduced-motion: reduce) {
-  #setup-checklist-banner {
-    transition: none;
-  }
-}
+/* ── Setup Checklist Banner (SCB) — eliminado, ver REQ-[pendiente-ID] TKT2 ── */
 
 /* ══ A4-b: Splash screen — clases faltantes ══ */
 

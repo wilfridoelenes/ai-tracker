@@ -1,4 +1,4 @@
-// [PP] mod:38 · autor:Rune · 2026-07-03 00:00 UTC-6
+// [PP] mod:38 · autor:Rune · 2026-07-03 11:40 UTC-6
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
 // Responsabilidad: UI shell — tab switching, theme, search, shortcuts, setup checklist
@@ -14,7 +14,7 @@
 //       (locus-api.js garantiza que el contrato público está disponible post-DOMContentLoaded)
 // Cada módulo consumidor es responsable de registrar listener 'shell:invoke' para sus propias funciones.
 
-import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, _parseInfraLine, getInfraVersionData, setInfraVersionData, _docPrefix, handleSyncPillClick } from './locus-storage.js';
+import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, _parseInfraLine, setInfraVersionData, _docPrefix, handleSyncPillClick } from './locus-storage.js';
 import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortDir } from './locus-backlog-core.js';
 import { closeArranquePanel } from './locus-sesiones-arranque.js';
 import { openPendPanel, closePendPanel } from './locus-pend.js';
@@ -281,19 +281,6 @@ export function toggleMoreMenu() {
 // Parsea con _parseInfraLine · guarda objeto completo con setInfraVersionData.
 export function openInfraSync() {
   const overlay = document.getElementById('infra-sync-overlay');
-  const currentEl = document.getElementById('infra-sync-current');
-  // TKT-[tmp:tkt-infra-modal-visualiza]: mostrar infra_version registrado antes de
-  // que el founder pegue la línea nueva — AC1 (con dato) / AC2 (sin dato).
-  if (currentEl) {
-    const data = getInfraVersionData();
-    if (data && typeof data.infraVersion === 'number') {
-      currentEl.textContent = `infra_version: ${data.infraVersion} · BR-Core v${data.brCore || '—'} · BR-Ecosystem v${data.brEcosystem || '—'} · BR-Execution v${data.brExecution || '—'} · OB-Strategy v${data.obStrategy || '—'}`;
-      currentEl.classList.remove('is-empty');
-    } else {
-      currentEl.textContent = 'Sin infra_version registrado aún — pega la línea completa para inicializar.';
-      currentEl.classList.add('is-empty');
-    }
-  }
   // INC — .modal-overlay base es display:none; solo .open fuerza display:flex.
   // 'is-hidden' tiene !important y bloquearía .open si quedara en el elemento
   // (ver limpieza de markup inicial en index.html — mismo patrón que #changelog-overlay).
@@ -656,119 +643,7 @@ export function onSearch() {
   grid.insertAdjacentElement('afterend', panel);
 }
 
-// ── Setup Checklist (SCB) ──────────────────────────────────────────────────
-
-function _scbDismissed() {
-  return localStorage.getItem('setup-checklist-dismissed') === '1';
-}
-
-function _scbDismiss() {
-  localStorage.setItem('setup-checklist-dismissed', '1');
-  const banner = document.getElementById('setup-checklist-banner');
-  if (banner) {
-    banner.classList.remove('scb-expanded');
-    banner.classList.add('is-hidden');
-  }
-}
-
-function _scbStep(id, done) {
-  const el = document.getElementById('scb-step-' + id);
-  if (!el) return;
-  const icon = el.querySelector('.scb-icon');
-  const wasDone = el.classList.contains('scb-done');
-  el.classList.toggle('scb-done', done);
-  el.classList.remove('scb-active');
-  if (icon) icon.textContent = done ? '✓' : '○';
-  // opacity fade ○→✓ 150ms (CSS handles transition)
-  if (!wasDone && done) el.classList.add('scb-just-done');
-}
-
-export function renderSetupChecklist() {
-  const banner = document.getElementById('setup-checklist-banner');
-  if (!banner) return;
-  if (_scbDismissed()) { banner.classList.add('is-hidden'); return; }
-
-  const state = getState();
-  const workerDone  = (state.ais || []).length > 0;
-  const projectDone = (state.projects || []).length > 0;
-  // (c) acceso via window.* — getItems expuesto por locus-backlog-core.js
-  const itemDone    = _getItemsFn().length > 0;
-  const sessionDone = getAllSessions().length > 0;
-  const allDone = workerDone && projectDone && itemDone && sessionDone;
-
-  if (allDone) { banner.classList.add('is-hidden'); return; }
-
-  banner.classList.remove('is-hidden');
-  _scbStep('worker',  workerDone);
-  _scbStep('project', projectDone);
-  _scbStep('item',    itemDone);
-  _scbStep('session', sessionDone);
-
-  // Mark first pending step as active
-  const steps = [
-    { id: 'worker',  done: workerDone },
-    { id: 'project', done: projectDone },
-    { id: 'item',    done: itemDone },
-    { id: 'session', done: sessionDone }
-  ];
-  for (const s of steps) {
-    if (!s.done) {
-      const el = document.getElementById('scb-step-' + s.id);
-      if (el) el.classList.add('scb-active');
-      break;
-    }
-  }
-
-  // If banner was expanded and first step is now done → collapse
-  if (banner.classList.contains('scb-expanded') && workerDone) {
-    _scbCollapse(banner);
-    try { localStorage.setItem('onboarding-seen', '1'); } catch(_) {}
-    _saveUserPrefs();
-  }
-
-  // First use: expand if onboarding-seen not set and banner not yet expanded
-  const isFirstUse = !localStorage.getItem('onboarding-seen');
-  if (isFirstUse && !banner.classList.contains('scb-expanded')) {
-    _scbExpand(banner);
-  }
-}
-
-function _scbExpand(banner) {
-  const b = banner || document.getElementById('setup-checklist-banner');
-  if (!b) return;
-  b.classList.add('scb-expanded');
-  // Focus first action button
-  const firstAction = b.querySelector('.scb-active .scb-step-action');
-  if (firstAction) setTimeout(() => firstAction.focus(), 210); // after transition
-}
-
-function _scbCollapse(banner) {
-  const b = banner || document.getElementById('setup-checklist-banner');
-  if (!b) return;
-  b.classList.remove('scb-expanded');
-}
-
-// Called when user completes first step — collapse expanded state
-function _scbOnStepComplete() {
-  const banner = document.getElementById('setup-checklist-banner');
-  if (banner && banner.classList.contains('scb-expanded')) {
-    _scbCollapse(banner);
-    // Mark onboarding-seen so expanded state doesn't reappear
-    try { localStorage.setItem('onboarding-seen', '1'); } catch(_) {}
-    _saveUserPrefs();
-  }
-}
-
-// Action buttons per step — routes to existing open functions
-function _scbStepAction(stepId) {
-  switch (stepId) {
-    // (a) event dispatch — locus-workers.js escucha 'shell:open-add-ai'
-    case 'worker':  window.dispatchEvent(new CustomEvent('shell:open-add-ai')); break;
-    case 'project': openProjModal(); break;
-    case 'item':    switchTab('backlog'); break;
-    case 'session': /* Session created via CHECKPOINT paste — no direct action */ break;
-  }
-}
+// ── SCB eliminado — REQ-[pendiente-ID] TKT1. Ver TKT3 para el dock que ocupa el slot. ──
 
 // ── ESC Cascade ────────────────────────────────────────────────────────────
 
@@ -1248,24 +1123,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ── END locus-ui-shell.js ──────────────────────────────────────────────────
 
-// ── B-202605-019: Listeners adicionales — scb-dismiss, arranque-btn-ver-todo, event delegation data-action ──
+// ── B-202605-019: Listeners adicionales — arranque-btn-ver-todo, event delegation data-action ──
+// (scb-dismiss / scb-step-action eliminados — REQ-[pendiente-ID] TKT1, SCB removido)
 document.addEventListener('DOMContentLoaded', function () {
-
-  // .scb-dismiss → _scbDismiss()
-  const scbDismissBtn = document.querySelector('.scb-dismiss');
-  if (scbDismissBtn) scbDismissBtn.addEventListener('click', function () { _scbDismiss(); });
-
-  // T-202605-081: .scb-step-action → _scbStepAction(data-step)
-  // Delegación sobre #setup-checklist-banner — cubre botones "Hacer ahora →" de cada paso
-  const scbBanner = document.getElementById('setup-checklist-banner');
-  if (scbBanner) {
-    scbBanner.addEventListener('click', function (e) {
-      const btn = e.target.closest('.scb-step-action');
-      if (!btn) return;
-      const stepId = btn.dataset.step;
-      if (stepId) _scbStepAction(stepId);
-    });
-  }
 
   // #arranque-btn-ver-todo → closeArranquePanel() + switchTab('proyectos')
   const arranqueVerTodoBtn = document.getElementById('arranque-btn-ver-todo');

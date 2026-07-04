@@ -1,4 +1,4 @@
-/* [PP] mod:6 · autor:Nova · 2026-06-26 UTC-6 */
+/* [PP] mod:7 · autor:Nova · 2026-07-03 10:15 UTC-6 */
 
 /* === locus-backlog-render.js ===
    Funciones: _renderPlanningView · _planCard · _planDragStart · _planDragEnd · _planDrop */
@@ -593,3 +593,52 @@
 }
 
 /* END R-B: EXECUTION-PLAN */
+
+/* ══ TKT2 REQ-[pendiente-ID]: sprint-conflict-banner — estilo propio, ya no hereda de .scb-icon ══ */
+
+.sprint-conflict-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md-plus, var(--radius-sm));
+  color: var(--amber, #f59e0b);
+  background: rgb(245 158 11 / 8%);
+  border: 1px solid rgb(245 158 11 / 20%);
+  margin: 0 0 12px;
+}
+
+.sprint-conflict-icon {
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  flex-shrink: 0;
+}
+
+.sprint-conflict-text {
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--text);
+  flex: 1;
+}
+
+.sprint-conflict-list {
+  color: var(--text2);
+  font-size: var(--text-xs);
+}
+
+.sprint-conflict-btn {
+  font-size: var(--text-sm);
+  color: var(--amber, #f59e0b);
+  background: none;
+  border: 1px solid rgb(245 158 11 / 30%);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: opacity 150ms ease;
+}
+
+.sprint-conflict-btn:hover {
+  opacity: 0.8;
+}

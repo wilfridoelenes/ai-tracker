@@ -1,4 +1,4 @@
-/* [PP] mod:65 · autor:Nova · 2026-07-03 UTC-6 */
+/* [PP] mod:66 · autor:Nova · 2026-07-03 11:40 UTC-6 */
 /* INC-[pendiente-ID] (triggered_by TKT4-[tmp:tkt4-merge-visual]): corrige overlap visual
    reportado por founder en producción. Causa raíz: margin-top:-0.5rem en
    .active-filter-chips dependía de colapso de márgenes con .bl-toolbar (sibling con
@@ -3033,116 +3033,7 @@
 
 /* ══ END R-202605-007 ══ */
 
-/* ══ R-202605-008: Setup checklist banner — scb-* ══ */
-
-/* Banner sticky — debajo del toolbar, encima del contenido del tab Sesiones */
-#setup-checklist-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 10px 16px;
-  background: var(--surface2);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  min-height: 44px;
-  box-sizing: border-box;
-  overflow: hidden;
-}
-
-/* Estado oculto — controlado por JS */
-
-/* Visibilidad controlada por .is-hidden (locus-base.css) */
-#setup-checklist-banner.is-hidden {
-  display: none;
-}
-
-/* Lista de pasos */
-.scb-steps {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  flex: 1;
-  min-width: 0;
-}
-
-/* Paso individual */
-.scb-step {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: var(--text-sm);
-  color: var(--hint);
-  white-space: nowrap;
-  transition: var(--trans-color);
-}
-
-/* Paso completado */
-.scb-step.scb-done {
-  color: var(--text2);
-}
-
-/* Ícono binario ○ / ✓ */
-.scb-icon {
-  font-size: var(--text-sm);
-  line-height: 1;
-  transition: var(--trans-color);
-}
-
-.scb-step.scb-done .scb-icon {
-  color: var(--success, #2ecc78);
-}
-
-/* Animación de completitud ○→✓ */
-.scb-step.scb-just-done .scb-icon {
-  animation: scb-pop 0.2s ease-out forwards;
-}
-
-@keyframes scb-pop {
-  0% {
-    transform: scale(1);
-  }
-
-  50% {
-    transform: scale(1.35);
-  }
-
-  100% {
-    transform: scale(1);
-  }
-}
-
-/* Texto del paso */
-.scb-label {
-  font-family: var(--font-sans);
-}
-
-/* Botón dismiss ✕ */
-.scb-dismiss {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 22px;
-  height: 22px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: var(--text-md);
-  color: var(--hint);
-  border-radius: var(--radius-sm);
-  flex-shrink: 0;
-  line-height: 1;
-  padding: 0;
-  transition: var(--trans-color);
-}
-
-.scb-dismiss:hover {
-  color: var(--text);
-  background: var(--surface3);
-}
-
-/* ══ END R-202605-008 ══ */
+/* ══ R-202605-008 eliminado — SCB removido, ver REQ-[pendiente-ID] TKT2 ══ */
 
 .item:hover {
   transform: translateY(-1px);
@@ -4753,11 +4644,6 @@ er {
     animation: none;
   }
 
-  /* scb-pop — setup checklist step icon */
-  .scb-step.scb-just-done .scb-icon {
-    animation: none;
-  }
-
   /* bitem-nav-pulse — item nav highlight */
   .bitem--nav-highlight {
     animation: none;
@@ -5224,16 +5110,7 @@ er {
 }
 
 /* .frole-bar eliminada — TKT1 REQ1 S'02 (nunca renderizada, _buildRoleChips no se invocaba) */
-
-.setup-checklist-banner {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 16px;
-  border-radius: var(--radius-lg);
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-}
+/* .setup-checklist-banner (class) eliminada — TKT2 REQ-[pendiente-ID] S'?? — duplicaba cascada sobre #setup-checklist-banner, ahora removido con el SCB */
 
 .stat-effort-missing {
   color: var(--amber);

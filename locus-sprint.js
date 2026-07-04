@@ -1,4 +1,4 @@
-// [PP] mod:76 · autor:Rune · 2026-07-03 UTC-6
+// [PP] mod:77 · autor:Rune · 2026-07-03 11:40 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
@@ -1171,11 +1171,11 @@ function _renderConflictBanner() {
   const items = conflicts.map(s => `${s.label ? `${s.id} · ${s.label}` : (s.name || s.id)} · abierto ${_fmtDate(s.startedAt)}`).join('<br>');
   const count = conflicts.length;
   banner.innerHTML = `
-    <span class="scb-icon">⚠</span>
-    <span class="scb-text">${count} sprint${count > 1 ? 's' : ''} activo${count > 1 ? 's' : ''} simultáneamente — solo puede haber uno<br>
-      <span class="scb-list">${items}</span>
+    <span class="sprint-conflict-icon">⚠</span>
+    <span class="sprint-conflict-text">${count} sprint${count > 1 ? 's' : ''} activo${count > 1 ? 's' : ''} simultáneamente — solo puede haber uno<br>
+      <span class="sprint-conflict-list">${items}</span>
     </span>
-    <button class="scb-btn" type="button" data-scb-resolve>Resolver en sub-tab Sprints</button>
+    <button class="sprint-conflict-btn" type="button" data-sprint-conflict-resolve>Resolver en sub-tab Sprints</button>
   `;
 
   // Insertar antes del anchor si no está ya en el DOM
@@ -1193,7 +1193,7 @@ function _renderConflictBanner() {
   // garantizar que el botón recién creado responde. El handler previo no acumula
   // porque se asigna a la propiedad onclick del banner (no addEventListener).
   banner.onclick = (e) => {
-    if (e.target.closest('[data-scb-resolve]')) _sptSwitch('sprints');
+    if (e.target.closest('[data-sprint-conflict-resolve]')) _sptSwitch('sprints');
   };
 }
 
