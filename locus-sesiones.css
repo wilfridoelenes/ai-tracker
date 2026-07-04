@@ -1,4 +1,4 @@
-/* [PP] mod:16 · autor:Nova · 2026-06-26 */
+/* [PP] mod:17 · autor:Nova · 2026-07-03 */
 /* locus-sesiones.css */
 /* Última actualización: 2026-06-26 | log-* migrado desde locus-radar.css */
 /* Gen 2 — infra_version: 5 | Migración selectores: .P/.T/.R/.B → .DISC/.TKT/.REQ/.INC en badges, pills, sess-ind, tg-type, tracker-item-type-pill, log-ref, mh-ref-tag */
@@ -6935,6 +6935,80 @@ body.radar-sb-open .tracker-sidebar {
   align-items: center;
   gap: 12px;
   padding: 6px 12px 6px 16px;
+}
+
+/* ── TKT3a: teaser de notificación — slot liberado por el SCB ─────────── */
+/* Reusa tokens de .rsb-notif-* (locus-radar.css) — mismo lenguaje visual */
+.tvh-notif-teaser {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 48px;
+  padding: 0 10px;
+  border-radius: var(--radius-xs);
+  background: var(--card-bg-hover, rgb(124 106 247 / 7%));
+  border: 1px solid var(--border, rgb(255 255 255 / 7%));
+  cursor: pointer;
+}
+
+.tvh-notif-teaser.is-hidden {
+  display: none;
+}
+
+.tvh-notif-icon {
+  flex-shrink: 0;
+  font-size: var(--text-md);
+  line-height: 1;
+}
+
+.tvh-notif-title {
+  font-weight: 600;
+  font-size: var(--text-md);
+  color: var(--text, #e0e0e0);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tvh-notif-body {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-2xs-plus);
+  color: var(--text-muted, #999);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tvh-notif-viewall {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border, rgb(255 255 255 / 15%));
+  border-radius: var(--radius-sm);
+  color: var(--text-muted, #999);
+  font-size: var(--text-2xs-plus);
+  padding: 3px 8px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color .15s, color .15s;
+}
+
+.tvh-notif-viewall:hover {
+  border-color: var(--color-primary, var(--purple));
+  color: var(--color-primary, var(--purple));
+}
+
+.tvh-notif-viewall:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Mobile-first: <480px oculta el body, deja ícono + título + Ver todas en una línea */
+@media (max-width: 480px) {
+  .tvh-notif-body {
+    display: none;
+  }
 }
 
 /* §2H — Tracker Components */

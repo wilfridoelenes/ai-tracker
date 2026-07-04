@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:31 · autor:Rune · 2026-07-03 11:40 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:32 · autor:Rune · 2026-07-03 12:25 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -7,8 +7,8 @@
 // Timer · suggestion · weekly summary → locus-tracker-utils.js
 // normStatus · buildTGPreview · STATUS_LABELS · TG_PARSER_CONFIG → locus-session-parse.js
 
-import { updateTabNotifBadges } from './locus-notifications.js';
-import { _initRadarSidebarState, renderGlobalRadarSidebar } from './locus-radar.js';
+import { updateTabNotifBadges, _computeNotifications, _notifReadSet, _notifGoto } from './locus-notifications.js';
+import { _initRadarSidebarState, renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
 import { _scrollToCard, _updateHeaderProjectLabel, navigateToCard, renderStatusBar, updateStats, _hasStaleSuggestion } from './locus-sesiones-stats.js';
 import { renderSuggestionBanner, startSessionTimer, _buildSuggestionReason, _sessRelTsShared, _cscardRelTs, _hoyMsUntilReset, getCD } from './locus-sesiones-utils.js';
 import { fmt12, confirmSave, interpretHora, relDate } from './locus-session-hora.js';
@@ -35,6 +35,67 @@ let _trackerSelectedId = null;
 // shell:sesiones-render — listener en window per B-202606-021
 window.addEventListener('shell:sesiones-render', () => { _markTrackerDirty(); render(); });
 // ── END T-202606-058 ─────────────────────────────────────────────────────────
+
+// TKT3b: severidad de notificación — mismo mapa que _notifHistoryAdd en locus-notifications.js
+const _TVH_SEVERITY_RANK = { warn: 2, ok: 1, info: 0 };
+const _TVH_SEVERITY_MAP  = { incHigh: 'warn', sprintLow: 'warn', unblocked: 'ok', sprintOrphans: 'warn' };
+
+// TKT3b: teaser de notificación en tracker-view-header — reusa el motor de locus-notifications.js
+function _renderNotifTeaser() {
+  const teaser = document.getElementById('tvh-notif-teaser');
+  if (!teaser) return;
+
+  const all    = _computeNotifications();
+  const read   = _notifReadSet();
+  const unseen = all.filter(function(n) { return !read.has(n.id); });
+
+  if (!unseen.length) {
+    teaser.classList.add('is-hidden');
+    return;
+  }
+
+  // AC: mayor severidad primero, empate por ts más reciente
+  const sorted = unseen.slice().sort(function(a, b) {
+    const rankA = _TVH_SEVERITY_RANK[_TVH_SEVERITY_MAP[a.type] || 'info'];
+    const rankB = _TVH_SEVERITY_RANK[_TVH_SEVERITY_MAP[b.type] || 'info'];
+    if (rankB !== rankA) return rankB - rankA;
+    return (b.ts || 0) - (a.ts || 0);
+  });
+  const top = sorted[0];
+
+  const iconEl  = document.getElementById('tvh-notif-icon');
+  const titleEl = document.getElementById('tvh-notif-title');
+  const bodyEl  = document.getElementById('tvh-notif-body');
+  if (iconEl)  iconEl.textContent  = top.icon || '';
+  if (titleEl) titleEl.textContent = top.title || '';
+  if (bodyEl)  bodyEl.textContent  = top.body || '';
+
+  teaser.dataset.notifId = top.id;
+  const count = unseen.length;
+  const viewAllBtn = document.getElementById('tvh-notif-viewall');
+  if (viewAllBtn) viewAllBtn.textContent = 'Ver todas (' + count + ')';
+
+  teaser.classList.remove('is-hidden');
+}
+
+window.addEventListener('shell:update-notif-badges', _renderNotifTeaser);
+
+document.addEventListener('DOMContentLoaded', function() {
+  const teaser = document.getElementById('tvh-notif-teaser');
+  if (teaser) {
+    teaser.addEventListener('click', function(e) {
+      if (e.target.closest('#tvh-notif-viewall')) {
+        e.stopPropagation();
+        const sidebar = document.getElementById('global-radar-sidebar');
+        if (sidebar && sidebar.classList.contains('collapsed')) toggleRadarSidebar();
+        return;
+      }
+      const id = teaser.dataset.notifId;
+      if (id) _notifGoto(id);
+    });
+  }
+  _renderNotifTeaser();
+});
 
 
 // T-202606-086: re-export para preservar compatibilidad — implementaciones movidas a locus-sesiones-utils.js

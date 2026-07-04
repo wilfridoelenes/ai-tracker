@@ -1,4 +1,4 @@
-<!-- [PP] mod:93 · autor:Rune · 2026-07-03 11:40 UTC-6 -->
+<!-- [PP] mod:94 · autor:Nova · 2026-07-03 12:10 UTC-6 -->
 <!-- TKT3-[pendiente-ID] (REQ-B): reordenado #active-filter-chips — ahora después del
      cierre de #filter-bar-status, antes del comentario "toolbar vieja". Sin cambios
      de atributos, clases, ids ni contenido — solo posición en el markup. -->
@@ -195,9 +195,15 @@
 <!-- ═══ TAB SESIONES ═══ -->
 <div class="tab-panel active" id="tab-sesiones">
 
-  <!-- SCB eliminado — REQ-[pendiente-ID] TKT1. Slot reservado para TKT3 (dock de notificaciones de sistema). -->
+  <!-- SCB eliminado — REQ-[pendiente-ID] TKT1. Slot ocupado por TKT3a (teaser de notificación). -->
 
   <div class="tracker-view-header" id="tracker-view-header">
+    <div class="tvh-notif-teaser is-hidden" id="tvh-notif-teaser">
+      <span class="tvh-notif-icon" id="tvh-notif-icon"></span>
+      <span class="tvh-notif-title" id="tvh-notif-title"></span>
+      <span class="tvh-notif-body" id="tvh-notif-body"></span>
+      <button class="tvh-notif-viewall" id="tvh-notif-viewall">Ver todas</button>
+    </div>
   </div>
 
 
