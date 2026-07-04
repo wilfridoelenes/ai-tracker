@@ -1,4 +1,4 @@
-/* [PP] mod:36 · autor:Nova · 2026-07-03 UTC-6 */
+/* [PP] mod:37 · autor:Nova · 2026-07-03 UTC-6 */
 /* TKT1-diff-visual: gap de contraste resuelto — estándar correcto es 3:1 (elemento gráfico
    no-texto, WCAG 2.1 AA), no 4.5:1 (texto). Solo --green en light fallaba (2.99:1/2.82:1);
    revertido override previo de --yellow/--slate que no lo necesitaban. */
@@ -2874,16 +2874,6 @@ body:not([data-theme]) .theme-toggle-btn::before {
   pointer-events: none;
 }
 
-.gf-total, .gf-done {
-  font-size: var(--text-3xs);
-  color: var(--text2);
-  pointer-events: none;
-}
-
-.gf-done {
-  color: var(--c-done, var(--green));
-}
-
 /* T-202606-099: badge de conteo de ítems en footer global */
 .gf-items {
   font-size: var(--text-xs);
@@ -2979,13 +2969,6 @@ body:not([data-theme]) .theme-toggle-btn::before {
   .gf-pulso {
     display: none;
   }
-}
-
-.gf-fecha {
-  font-size: var(--text-3xs);
-  color: var(--text2);
-  pointer-events: none;
-  margin-left: auto;
 }
 
 /* END R-202604-080 */
