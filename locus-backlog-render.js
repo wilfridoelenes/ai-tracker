@@ -1,4 +1,4 @@
-// [PP] mod:63 · autor:Rune · 2026-07-03 20:10 UTC-6
+// [PP] mod:64 · autor:Rune · 2026-07-03 UTC-6
 // TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): _initHistoricoSubTab eliminado —
 // renderHistoricoPanel pasa a ser el único listener de 'shell:render-historico'. Imports
 // huérfanos removidos: toggleArchivoHistorico (locus-backlog-archive.js, export eliminado) y
@@ -862,8 +862,7 @@ export function renderBacklogList(onRendered) {
         <div class="empty-state">
           <div class="empty-state-icon">📅</div>
           <div class="empty-state-title">Abre un sprint para empezar</div>
-          <div class="empty-state-hint">El backlog necesita un sprint activo. Abre uno para organizar y ejecutar tu trabajo.</div>
-          <button class="empty-state-btn" data-action="es-open-new-sprint">＋ Abrir sprint</button>
+          <div class="empty-state-hint">El backlog necesita un sprint activo. La apertura de sprint se propone desde Cael (sprint_proposal) — no hay creación manual desde aquí.</div>
         </div>`;
     }
     _skelHide(listEl);

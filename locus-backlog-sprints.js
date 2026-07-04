@@ -22,7 +22,7 @@
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
 
 import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, getItems, _registerCoreCallback } from './locus-backlog-core.js';
-import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
+import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
 import { renderSprintTab } from './locus-sprint.js';
@@ -110,179 +110,6 @@ function _nextSprintId(projId) {
   return prefix + '-S' + String(max + 1).padStart(2, '0');
 }
 
-// B-202605-077: función compartida que encapsula el formulario de creación de sprint.
-// Usada tanto por openNewSprintInline (backlog) como por _mdiffOpenNewSprintForm (DIFF panel).
-// projId: ID del proyecto para el que se crea el sprint — determina el prefijo del ID auto-generado.
-//   Si es null, usa el proyecto activo en el filtro global (comportamiento original).
-// onConfirm(newSprintId): callback invocado con el ID del sprint creado.
-// onCancel(): callback invocado si el usuario cancela.
-// Devuelve: objeto { html, init(wrapEl) }
-//   html: HTML del formulario listo para inyectar en el DOM
-//   init(wrapEl): debe llamarse después de insertar html para enganchar eventos y hacer focus
-export function _buildNewSprintForm(projId, onConfirm, onCancel) {
-  const suggestedRt = _suggestReleaseType([]);
-  const suggestedVt = _suggestVersionTarget(suggestedRt);
-  const previewId   = _nextSprintId(projId || undefined);
-
-  // Namespace único para IDs DOM — evita colisiones si hay varios formularios simultáneos
-  const ns = 'bnsf-' + previewId.replace(/[^a-z0-9]/gi, '_');
-
-  // Validar unicidad del ID propuesto
-  function _idIsUnique(id) {
-    return !(
-             getActiveSprints().some(s => s.id === id));
-  }
-
-  // Comprobar si ya hay un sprint activo para el proyecto
-  function _hasActiveSprint() {
-    // B-202606-091: leer desde getActiveSprints() (_sprintsCache) en lugar de proj.sprints directamente
-    if (projId) {
-      return getActiveSprints().some(s => (s.projId === projId || s.projectId === projId) && s.status === 'active');
-    }
-    return getActiveSprints().some(s => s.status === 'active');
-  }
-
-  const rtRadios = ['Major', 'Minor', 'Patch'].map(v =>
-    `<label class="sprint-inline-release-label">
-      <input type="radio" name="${ns}-rt" value="${v}"
-        ${suggestedRt === v ? 'checked' : ''}
-        data-action="bnsf-rt" data-ns="${ns}">
-      ${v}
-    </label>`
-  ).join('');
-
-  const activeWarn = _hasActiveSprint()
-    ? `<div id="${ns}-active-warn" class="sprint-inline-active-warn">
-        Ya existe un sprint abierto para este proyecto.
-        <button type="button" class="sprint-inline-active-warn-dismiss"
-          data-action="bnsf-warn-dismiss" data-ns="${ns}">Continuar</button>
-        <button type="button" class="sprint-inline-active-warn-cancel"
-          data-action="bnsf-cancel" data-ns="${ns}">Cancelar</button>
-       </div>`
-    : '';
-
-  const html = `<div class="sprint-inline-edit-wrap sprint-inline-edit-wrap--with-goal" data-bnsf="${ns}">
-    ${activeWarn}
-    <span class="sprint-inline-id-preview" id="${ns}-id-preview">${esc(previewId)} ·</span>
-    <input id="${ns}-name" type="text" placeholder="Nombre descriptivo"
-      class="sprint-inline-input"
-      data-action="bnsf-keydown" data-ns="${ns}">
-    <button type="button" id="${ns}-confirm" class="sprint-inline-confirm"
-      data-action="bnsf-confirm" data-ns="${ns}">&#10003;</button>
-    <button type="button" class="sprint-inline-cancel"
-      data-action="bnsf-cancel" data-ns="${ns}">&#10005;</button>
-    <input id="${ns}-goal" type="text" placeholder="Goal del sprint (opcional, max 120)"
-      class="sprint-inline-goal-input" maxlength="120"
-      data-action="bnsf-keydown" data-ns="${ns}">
-    <div class="sprint-inline-release-row">
-      <label class="sprint-inline-release-label">Versión:</label>
-      <input id="${ns}-vt" type="text" value="${esc(suggestedVt)}"
-        class="sprint-inline-vt-input" placeholder="ej: v1.1.0"
-        data-action="bnsf-vt-input" data-ns="${ns}">
-      <span id="${ns}-vt-err" class="sprint-field-err is-hidden"></span>
-      <label class="sprint-inline-release-label">Tipo de release:</label>
-      <div class="sprint-inline-release-radios">${rtRadios}</div>
-      <span id="${ns}-rt-err" class="sprint-field-err is-hidden"></span>
-    </div>
-  </div>`;
-
-  function init(wrapEl) {
-    // Registrar handlers globales con namespace — se limpian solos al confirmar/cancelar
-    window['_bnsf_syncBtn'] = window['_bnsf_syncBtn'] || function(ns2) {
-      const btn  = document.getElementById(ns2 + '-confirm');
-      const vtEl = document.getElementById(ns2 + '-vt');
-      const rtEls = document.querySelectorAll(`input[name="${ns2}-rt"]`);
-      if (!btn) return;
-      const vtOk = vtEl && vtEl.value.trim().length > 0;
-      const rtOk = Array.from(rtEls).some(r => r.checked);
-      btn.disabled = !(vtOk && rtOk);
-    };
-
-    window['_bnsf_confirm'] = function(ns2) {
-      const nameEl = document.getElementById(ns2 + '-name');
-      const name   = nameEl ? nameEl.value.trim() : '';
-      if (!name) { if (nameEl) nameEl.focus(); return; }
-
-      const goalEl = document.getElementById(ns2 + '-goal');
-      const goal   = goalEl ? goalEl.value.trim() : '';
-      const vtEl   = document.getElementById(ns2 + '-vt');
-      const vt     = vtEl ? vtEl.value.trim() : '';
-      const rtEls  = document.querySelectorAll(`input[name="${ns2}-rt"]`);
-      const rt     = (Array.from(rtEls).find(r => r.checked) || {}).value || '';
-
-      let valid = true;
-      if (!vt) {
-        valid = false;
-        const errEl = document.getElementById(ns2 + '-vt-err');
-        if (vtEl) vtEl.classList.add('input-outline-error');
-        if (errEl) { errEl.textContent = 'Ingresa una versión (ej: v1.0.0)'; errEl.classList.remove('is-hidden'); }
-      }
-      if (!rt) {
-        valid = false;
-        const errEl = document.getElementById(ns2 + '-rt-err');
-        if (errEl) { errEl.textContent = 'Selecciona el tipo de release'; errEl.classList.remove('is-hidden'); }
-      }
-      if (!valid) return;
-
-      // B-202605-077 AC: validar unicidad del ID antes de crear
-      const proposedId = _nextSprintId(projId || undefined);
-      if (!_idIsUnique(proposedId)) {
-        const errEl = document.getElementById(ns2 + '-vt-err');
-        if (errEl) {
-          errEl.textContent = 'El ID ' + proposedId + ' ya existe. Cierra el sprint activo primero.';
-          errEl.classList.remove('is-hidden');
-        }
-        return;
-      }
-
-      // T-202606-015 AC-1: si ya hay sprint activo para el proyecto, el nuevo nace como 'scheduled'
-      const _initialStatus = _hasActiveSprint() ? 'scheduled' : undefined;
-      const newId = createSprint(name, goal, vt, rt, projId || undefined, _initialStatus);
-      if (!newId) {
-        // createSprint falló (sin proyecto activo u otro error) — no asignar sprint
-        onCancel();
-        return;
-      }
-      // Limpiar handlers globales del namespace
-      delete window['_bnsf_confirm'];
-      delete window['_bnsf_cancel'];
-      onConfirm(newId);
-    };
-
-    window['_bnsf_cancel'] = function(ns2) {
-      delete window['_bnsf_confirm'];
-      delete window['_bnsf_cancel'];
-      onCancel();
-    };
-
-    // _bnsf_* guards externos deprecados 2026-06-21 — los guards en confirmNewSprint y listeners externos eliminados.
-    // Las definiciones window['_bnsf_*'] aquí arriba son legítimas — mecanismo interno del formulario de nuevo sprint.
-    // Listeners para ${ns}-vt — input y keydown
-    setTimeout(() => {
-      const vtEl = document.getElementById(ns + '-vt');
-      if (vtEl) {
-        vtEl.addEventListener('input', () => {
-          if (typeof window['_bnsf_syncBtn'] === 'function') window['_bnsf_syncBtn'](ns);
-          _clearSprintFieldErr(ns + '-vt-err');
-        });
-        vtEl.addEventListener('keydown', e => {
-          if (e.key === 'Enter')  { e.preventDefault(); if (typeof window['_bnsf_confirm'] === 'function') window['_bnsf_confirm'](ns); }
-          if (e.key === 'Escape') { e.preventDefault(); if (typeof window['_bnsf_cancel']  === 'function') window['_bnsf_cancel'](ns); }
-        });
-      }
-    }, 0);
-
-    // Sync inicial + focus
-    setTimeout(() => {
-      if (typeof window['_bnsf_syncBtn'] === 'function') window['_bnsf_syncBtn'](ns);
-      const inp = document.getElementById(ns + '-name');
-      if (inp) inp.focus();
-    }, 30);
-  }
-
-  return { html, init };
-}
-
 // T-202605-500: validar que el nombre descriptivo no esté vacío — el ID lo genera PP automáticamente
 function _isValidSprintName(label) {
   return !!(label && label.trim());
@@ -320,63 +147,6 @@ function _suggestVersionTarget(releaseType) {
     if (releaseType === 'Minor') return `v${major}.${minor + 1}.0`;
     return `v${major}.${minor}.${patch + 1}`;
   } catch { return 'futura'; }
-}
-
-// R-202605-123: createSprint acepta goal opcional (máx 120 chars)
-// R-202605-134: acepta version_target y release_type — se calculan con sugerencia automática si no se pasan
-// T-202605-500: ID generado internamente con prefijo de proyecto — founder solo pasa nombre descriptivo
-export function createSprint(raw, goal, versionTarget, releaseType, projId, initialStatus) {
-  // B-202605-077: si se pasa projId, operar sobre ese proyecto en lugar del filtro global
-  const _activeProjForSprint = projId ? getProjectById(projId) : getActiveProject();
-  if (!_activeProjForSprint) { showToast('warning', 'Selecciona un proyecto primero'); return; }
-  if (!_activeProjForSprint.sprints) _activeProjForSprint.sprints = [];
-  raw = (raw || '').trim();
-  // T-202605-500: ID siempre auto-generado — el founder solo ingresa el nombre descriptivo
-  const id = _nextSprintId(projId || undefined);
-  const displayLabel = raw || id;
-  if (!_isValidSprintName(displayLabel)) {
-    showToast('warning', '⚠ Nombre de sprint no puede estar vacío');
-    return;
-  }
-  if (_getSprintById(id)) { showToast('warning', 'Ya existe ' + id); return id; }
-  // B-202605-XXX: guard — si el ID generado ya existe implícitamente en ítems del backlog
-  // bloquear creación para evitar colisión. El founder debe usar "Registrar" en lugar de "Nuevo sprint".
-  if (typeof getItems() !== 'undefined') {
-    const _implicitSprintIds = new Set(getItems().map(i => i.sprint).filter(Boolean));
-    if (_implicitSprintIds.has(id)) {
-      showToast('warning', id + ' ya tiene ítems en el backlog. Usa "Registrar y activar ' + id + '" en lugar de crear uno nuevo.');
-      return;
-    }
-  }
-  const goalTrimmed = (goal || '').trim().slice(0, 120);
-  // R-202605-134: version_target y release_type — usar sugerencia si no se pasan explícitamente
-  const rt  = (releaseType   || '').trim() || null;
-  const vt  = (versionTarget || '').trim() || null;
-  // B-[pendiente-ID]: label NO concatena el ID — id y label son campos separados (BR-Ecosystem §5)
-  const canonicalLabel = displayLabel || id;
-  // B-202605-028: modelo multi-sprint — no cerrar sprints activos al crear uno nuevo.
-  // El founder decide qué sprint es "en curso" via flag current:true.
-  const hasCurrentSprint = _activeProjForSprint.sprints.some(s => s.status === 'active' && s.current === true);
-  const _newSprint = {
-    id, label: canonicalLabel, goal: goalTrimmed,
-    version_target: vt, release_type: rt,
-    // B-202605-057: status 'active' desde creación — _getActiveSprint() lo detecta inmediatamente
-    // B-202605-028: marcar current:true si ningún sprint activo del proyecto lo tiene aún
-    // T-202606-015 AC-1: initialStatus permite crear sprint en 'scheduled' si ya hay uno activo
-    status: initialStatus || 'active',
-    current: (!hasCurrentSprint && (initialStatus || 'active') === 'active') ? true : undefined,
-    formallyOpened: false,
-    startedAt: Date.now(), createdAt: Date.now()
-  };
-  // T-202606-005 AC-4: upsert a tracker_sprints — no mutación del blob.
-  // _upsertSprint actualiza _sprintsCache y persiste en Supabase (o localStorage fallback).
-  const _projIdForUpsert = _activeProjForSprint.id;
-  _upsertSprint(_newSprint, _projIdForUpsert).catch(err => {
-    console.error('[Locus] T-202606-005: createSprint upsert falló', err);
-  });
-  // B-202605-058: saveImmediate() persiste el resto del state (sin sprints en blob desde T-202606-005)
-  saveImmediate();
-  return id;
 }
 
 // TKT2 (REQ-inc-historico): criterio único de elegibilidad para migrar INC/PRB/KE/CHG a
@@ -742,7 +512,6 @@ export async function setSprintStatus(id, newStatus) {
 // window.setSprintCurrent lo expone locus-sprint.js.
 
 export function setItemSprint(code, sprintId) {
-  if (sprintId === '__new__') { openNewSprintInline(code); return; }
   // T-202606-133: gate formallyOpened — bloquear asignación a sprint no aprobado
   // TKT-PARSER-sprints: exención isHotfix eliminada — S-HOTFIX deprecado Gen2.
   if (sprintId) {
@@ -820,65 +589,6 @@ export function setItemSprint(code, sprintId) {
   _markBacklogListDirty(); renderBacklogList();
   renderStats();
 }
-
-// R-202605-009: sync estado de botón confirm — disabled hasta que vt y rt tengan valor
-function _syncSprintConfirmBtn(code) {
-  const btn  = document.getElementById('new-sprint-confirm-' + code);
-  const vtEl = document.getElementById('new-sprint-vt-' + code);
-  const rtEls = document.querySelectorAll(`input[name="new-sprint-rt-${CSS.escape(code)}"]`);
-  if (!btn) return;
-  const vtOk = vtEl && vtEl.value.trim().length > 0;
-  const rtOk = Array.from(rtEls).some(r => r.checked);
-  btn.disabled = !(vtOk && rtOk);
-}
-
-// B-202605-077: refactorizado para consumir _buildNewSprintForm — comportamiento externo idéntico
-// T-202605-079: funciones top-level invocables desde fuera del módulo sin pasar por openNewSprintInline
-
-function _sprintInlineOnConfirm(code, newId) {
-  setItemSprint(code, newId);
-}
-
-function _sprintInlineInit(wrapEl, form, velocityData) {
-  wrapEl.innerHTML = form.html;
-  const hint = document.createElement('span');
-  if (velocityData !== null) {
-    hint.className = 'sprint-inline-hint';
-    hint.innerHTML = `Velocidad real promedio: <strong>${velocityData.avg}</strong> effort`;
-    wrapEl.querySelector('.sprint-inline-edit-wrap').insertAdjacentElement('beforeend', hint);
-  }
-  form.init(wrapEl);
-}
-
-export function openNewSprintInline(code) {
-  const wrap = document.getElementById('sprint-select-wrap-' + CSS.escape(code));
-  if (!wrap) return;
-
-  // T-202605-450: sugerencia de effort máximo basada en velocidad histórica
-  const velocityData = _calcEstimatedVelocity();
-
-  const form = _buildNewSprintForm(
-    null, // null = proyecto activo en filtro global (comportamiento original)
-    function onConfirm(newId) { _sprintInlineOnConfirm(code, newId); },
-    function onCancel() {
-      _markBacklogListDirty(); renderBacklogList();
-    }
-  );
-
-  _sprintInlineInit(wrap, form, velocityData);
-}
-
-// R-202605-009: limpiar mensaje de error de campo
-function _clearSprintFieldErr(errId) {
-  const el = document.getElementById(errId);
-  if (!el) return;
-  el.textContent = '';
-  el.classList.add('is-hidden');
-  // B-202605-506: quitar borde de error del input asociado (hermano anterior al span)
-  const prev = el.previousElementSibling;
-  if (prev && prev.tagName === 'INPUT') prev.classList.remove('input-outline-error');
-}
-
 
 // T-202604-246: edición inline del nombre de sprint desde el header del grupo
 // R-202605-123: incluye campo goal editable

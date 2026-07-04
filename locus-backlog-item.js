@@ -1,4 +1,4 @@
-// [PP] mod:63 · autor:Rune · 2026-07-02 20:16 UTC-6
+// [PP] mod:64 · autor:Rune · 2026-07-03 UTC-6
 // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT): _assignPendingIds(tgItems, seedSlugMap?) — parámetro nuevo, opcional,
 //   sin cambio de comportamiento si ausente. Seed copiado al inicio del slugMap con precedencia
@@ -47,7 +47,7 @@ import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessi
 
 import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel, _openMigrateItem, _acvToggle, _acvStartEdit, _acvConfirm } from './locus-backlog-panel.js'; // T-202606-089 AC-3
 
-import { _getActiveSprint, navigateToItem, setItemSprint, openSprintRetroView, openNewSprintInline } from './locus-backlog-sprints.js'; // T-202606-089 AC-3
+import { _getActiveSprint, navigateToItem, setItemSprint, openSprintRetroView } from './locus-backlog-sprints.js'; // T-202606-089 AC-3
 import { openProjPanel } from './locus-sprint-project.js'; // T-202606-089 AC-1
 
 import { _setBacklogModified } from './locus-docs.js';
@@ -436,10 +436,6 @@ export function _attachBacklogListDelegation() {
     }
     if (act === 'es-open-proj-panel') {
       openProjPanel();
-      return;
-    }
-    if (act === 'es-open-new-sprint') {
-      openNewSprintInline();
       return;
     }
     if (act === 'es-clear-search') {
@@ -1168,7 +1164,6 @@ export function buildBacklogItem(item, opts = {}) {
                   ${/* TKT3-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes solo s.label||s.id */''}
                   ${getActiveSprints().filter(s=>s.status!=='closed').map(s=>`<option value="${esc(s.id)}"${item.sprint===s.id?' selected':''}>${esc(_sprintDisplay(s.id))}${s.status==='active'?' ★':''}</option>`).join('')}
                   ${item.sprint && item.sprint !== '' && item.sprint !== 'icebox' && !getActiveSprints().find(s=>s.id===item.sprint) ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : ''}
-                  <option value="__new__">＋ Nuevo sprint...</option>
                 </select>`
             }
           </div>

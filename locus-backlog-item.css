@@ -1,4 +1,11 @@
-/* [PP] mod:31 · autor:Nova · 2026-07-02 17:20 UTC-6 */
+/* [PP] mod:34 · autor:Rune · 2026-07-03 21:05 UTC-6 */
+/* TKT1-diff-visual: gap de contraste resuelto — estándar correcto es 3:1 (elemento gráfico
+   no-texto, WCAG 2.1 AA), no 4.5:1 (texto). Solo --green en light fallaba (2.99:1/2.82:1);
+   revertido override previo de --yellow/--slate que no lo necesitaban. */
+/* [PP] mod:33 · autor:Rune · 2026-07-03 20:35 UTC-6 */
+/* TKT2-diff-visual: agregado .mdiff-summary-chip(s) — chips de resumen para created/advanced/updated. */
+/* [PP] mod:32 · autor:Rune · 2026-07-03 20:22 UTC-6 */
+/* TKT1-diff-visual: border-left → border-top en acento de tipo (mdiff-type--*) + agregado mdiff-type--prb/ke/chg previamente faltantes en el mapa JS. */
 /* TKT-202607-001: agregada .mdiff-queue-badge--qdisc — ver bloque §mdiff-queue-badge para detalle. */
 /* [PP] mod:29 · autor:Nova · 2026-06-30 20:05 UTC-6 */
 /* locus-backlog-item.css */
@@ -2220,6 +2227,39 @@
   display: none;
 }
 
+/* ── TKT2-diff-visual: chips de resumen para created/advanced/updated ── */
+.mdiff-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 14px;
+}
+
+.mdiff-summary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: var(--radius-lg, 14px);
+}
+
+.mdiff-summary-chip--success {
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  color: var(--green);
+}
+
+.mdiff-summary-chip--neutral {
+  background: var(--surface2);
+  color: var(--text2);
+}
+
+.mdiff-summary-chip .mdiff-sec-count {
+  background: rgb(0 0 0 / 10%);
+  color: inherit;
+}
+
 /* ── Cards de ítem ── */
 .mdiff-card {
   display: flex;
@@ -3224,6 +3264,15 @@ body {
   --_type-bg: color-mix(in srgb, var(--green) 8%, transparent);
 }
 
+/* Gap de contraste TKT1-diff-visual: --green (#1aab5a) sobre --surface1/2 light
+   da 2.99:1 / 2.82:1 — bajo el mínimo real de 3:1 para elementos gráficos
+   no-texto (WCAG 2.1 AA, no el 4.5:1 de texto). Único de los 7 tipos que falla
+   el estándar correcto — override acotado solo al acento de card, no se toca
+   el token --green global (usado también como texto/badges, contraste distinto). */
+[data-theme="light"] .mdiff-card.mdiff-type--tkt {
+  --_type-color: #16914c; /* ajustado — 4.05:1 sobre surface1, 3.82:1 sobre surface2 */
+}
+
 .mdiff-card.mdiff-type--req {
   --_type-color: var(--blue);
   --_type-bg: color-mix(in srgb, var(--blue) 8%, transparent);
@@ -3252,8 +3301,17 @@ body {
 .mdiff-card.mdiff-type--unknown {
   --_type-color: var(--text2);
   --_type-bg: transparent;
+}
 
-  border-left: 3px solid var(--_type-color);
+.mdiff-card.mdiff-type--inc,
+.mdiff-card.mdiff-type--tkt,
+.mdiff-card.mdiff-type--req,
+.mdiff-card.mdiff-type--disc,
+.mdiff-card.mdiff-type--prb,
+.mdiff-card.mdiff-type--ke,
+.mdiff-card.mdiff-type--chg,
+.mdiff-card.mdiff-type--unknown {
+  border-top: 2px solid var(--_type-color);
   background-color: var(--_type-bg);
 }
 

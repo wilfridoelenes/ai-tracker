@@ -1,3 +1,8 @@
+// [PP] mod:41 · autor:Rune · 2026-07-03 UTC-6
+// TKT2-diff-visual: created/advanced/updated migrados a _buildSummaryChipsBlock() —
+// header de sección con toggle eliminado para esas 3 categorías, cards se listan directo.
+// [PP] mod:39 · autor:Rune · 2026-07-03 20:22 UTC-6
+// TKT1-diff-visual: _typeClass completado con PRB/KE/CHG — antes caían a mdiff-type--unknown sin razón.
 // [PP] mod:38 · autor:Rune · 2026-07-02 06:00 UTC-6
 // TKT-202607-001 (triggered_by hallazgo de sesión — DIFF de DISC mostraba selector "Sin sprint
 //   (Q-Backlog)" seleccionado): agregada rama _QDISC_TYPES en _sprintSelect — DISC ahora
@@ -33,7 +38,7 @@
 
 import { _calcPriority, _getActiveSessionAiId, _undoSnapshot, loadBacklog, renderStats, updateBacklogBanner, getItems, _registerCoreCallback, itemKind as _itemKindFn, _syncParentRStatus } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
-import { _buildNewSprintForm, _getSprintById } from './locus-backlog-sprints.js';
+import { _getSprintById } from './locus-backlog-sprints.js';
 import { _blogLog, getActiveProject, getActiveSprints, saveBacklog, _sprintDisplay } from './locus-storage.js'; // TKT5-[pendiente-ID]: _sprintDisplay para opción de sprint nuevo en DIFF
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
@@ -203,7 +208,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // R-202605-148: pill corto B/T/R/P — letra única con color semántico en .mdiff-type-badge
   const _typeName  = { INC: 'INC', TKT: 'TKT', REQ: 'REQ', DISC: 'DISC' };
   // R-202605-148: clase CSS por tipo — hex fijos de identidad del backlog
-  const _typeClass = { INC: 'mdiff-type--inc', TKT: 'mdiff-type--tkt', REQ: 'mdiff-type--req', DISC: 'mdiff-type--disc' };
+  const _typeClass = { INC: 'mdiff-type--inc', TKT: 'mdiff-type--tkt', REQ: 'mdiff-type--req', DISC: 'mdiff-type--disc', PRB: 'mdiff-type--prb', KE: 'mdiff-type--ke', CHG: 'mdiff-type--chg' };
   // R-202605-148: orden canónico INC → REQ → TKT → DISC para sort dentro de sección
   const _typeOrder = { INC: 0, REQ: 1, TKT: 2, DISC: 3 };
 
@@ -281,7 +286,6 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       data-stop-propagation="true">
       <option value="" ${isUnassigned || !currentSprint ? 'selected' : ''}>Sin sprint (Q-Backlog)</option>
       ${options}
-      <option value="__new__">＋ Nuevo sprint...</option>
     </select>`;
   };
 
@@ -414,11 +418,31 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     </div>`;
 
   let sectionsHtml = '';
+  let summaryChipsHtml = '';
+  let quickRowsHtml = '';
 
+  // TKT2-diff-visual: created/advanced/updated se resumen como chips arriba —
+  // sin header de sección propio, ya que son estados rutinarios sin acción pendiente.
   if (diff.created.length) {
     const rows = _sortByType(diff.created).map(i => _card(i.code, i.title, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
-    sectionsHtml += _section('created', 'green', `Creados <span class="mdiff-sec-count">${diff.created.length}</span>`, rows);
+    summaryChipsHtml += `<span class="mdiff-summary-chip mdiff-summary-chip--success">Creados <span class="mdiff-sec-count">${diff.created.length}</span></span>`;
+    quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
   }
+  if (diff.advanced.length) {
+    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.title, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
+    summaryChipsHtml += `<span class="mdiff-summary-chip mdiff-summary-chip--neutral">Avances <span class="mdiff-sec-count">${diff.advanced.length}</span></span>`;
+    quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
+  }
+  if (diff.updated.length) {
+    const rows = _sortByType(diff.updated).map(i => _card(i.code, i.title, 'accent',
+      _pill('updated', '✎ actualizado'),
+      _fieldChips(i.changes) + _depsHtml(i.dependsOn),
+      i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
+    )).join('');
+    summaryChipsHtml += `<span class="mdiff-summary-chip mdiff-summary-chip--neutral">Actualizados <span class="mdiff-sec-count">${diff.updated.length}</span></span>`;
+    quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
+  }
+
   // B-202604-198: ítems que nacen y cierran en el mismo CHECKPOINT — grupo diferenciado
   if (diff.createdAndClosed.length) {
     const rows = _sortByType(diff.createdAndClosed).map(i => _card(
@@ -453,18 +477,6 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       `⚠ Transiciones inválidas <span class="mdiff-pill mdiff-pill--warn mdiff-sec-count">${diff.invalidTransition.length}</span>`,
       rows
     );
-  }
-  if (diff.advanced.length) {
-    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.title, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
-    sectionsHtml += _section('advanced', 'blue', `Avance de status <span class="mdiff-sec-count">${diff.advanced.length}</span>`, rows);
-  }
-  if (diff.updated.length) {
-    const rows = _sortByType(diff.updated).map(i => _card(i.code, i.title, 'accent',
-      _pill('updated', '✎ actualizado'),
-      _fieldChips(i.changes) + _depsHtml(i.dependsOn),
-      i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
-    )).join('');
-    sectionsHtml += _section('updated', 'accent', `Campos actualizados <span class="mdiff-sec-count">${diff.updated.length}</span>`, rows);
   }
   if (diff.retroceso.length) {
     const rows = _sortByType(diff.retroceso).map((i, idx) => _retrocedoRow(i, idx)).join('');
@@ -543,6 +555,16 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       ${_proxPasoHtml ? `<div class="mdiff-narrative-proxpaso-wrap">${_proxPasoHtml}</div>` : ''}
     </div>`;
   };
+
+  // TKT2-diff-visual: created/advanced/updated se muestran como chips de resumen —
+  // sin header de sección propio, colapsable-toggle ni botón de sección independiente.
+  // Las cards individuales (quickRowsHtml) se listan directo debajo de los chips.
+  const _buildSummaryChipsBlock = () => {
+    if (!summaryChipsHtml) return '';
+    return `<div class="mdiff-summary-chips">${summaryChipsHtml}</div>${quickRowsHtml}`;
+  };
+
+
 
   // TKT-202606-011 AC3: banner persistente cuando el CHECKPOINT es borrador (draft:true en origen,
   // ai._parsed.draft → _ckptMeta.draftPending). No es una sugerencia descartable como
@@ -663,7 +685,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         if (step0El) step0El.remove();
 
         // B-202606-003 AC-2: inyectar narrativa + secciones ahora que Step 0 fue aprobado
-        if (body) body.innerHTML = _buildNarrativeSection() + sectionsHtml;
+        if (body) body.innerHTML = _buildNarrativeSection() + _buildSummaryChipsBlock() + sectionsHtml;
         _renderTriggeredBySuggestion();
 
         // T-202606-164 (TKT-B2): gate de revisión ítems sin sprint — prompt no-bloqueante post-aprobación
@@ -753,7 +775,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // Body: sección narrativa + secciones de backlog
   // T-202606-155: si hay Step 0, body.innerHTML ya fue asignado arriba — no sobreescribir
   if (body && !_sprintProposal) {
-    body.innerHTML = _buildNarrativeSection() + sectionsHtml;
+    body.innerHTML = _buildNarrativeSection() + _buildSummaryChipsBlock() + sectionsHtml;
     _renderTriggeredBySuggestion();
     _renderDraftPendingBanner();
   }
@@ -807,12 +829,6 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     const code = sel.dataset.itemCode;
     if (!code) return;
     const val = sel.value;
-    if (val === '__new__') {
-      // Revertir select a valor actual antes de reemplazarlo con el mini-form
-      sel.value = (getItems().find(i => i.code === code) || {}).sprint || '';
-      _mdiffOpenNewSprintForm(sel, code);
-      return;
-    }
     // T-202606-035 (TKT-B2): bloqueo sin-sprint + en-revision — BR-Ecosystem §5
     if (val === '') {
       const _itemForBlock = getItems().find(i => i.code === code);
@@ -826,93 +842,6 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   };
 
   // R-202605-148: mini-formulario inline — reemplaza el select en la card
-  // Campos: nombre, goal (opcional), version_target, release_type
-  // B-202605-077: refactorizado para consumir _buildNewSprintForm.
-  //   - projId del ítem activo en el DIFF (no el filtro global de proyecto)
-  //   - Si createSprint falla, ítems con sprint: n/a (onCancel restaura select sin asignar)
-  function _mdiffOpenNewSprintForm(sel, code) {
-    // Obtener projId del ítem en getItems(); si es nuevo (aún no existe), usar projId de la sesión
-    const _itemForSprint = getItems().find(i => i.code === code);
-    const _projIdForForm = (_itemForSprint && _itemForSprint.projectId) || projId || null;
-
-
-    const form = _buildNewSprintForm(
-      _projIdForForm,
-      // onConfirm: sprint creado exitosamente
-      function(newSprintId) {
-        _mdiffPersistSprint(code, newSprintId);
-        const restoredSel = _mdiffRestoreSelect(wrapDiv, code, newSprintId);
-        // Añadir la nueva opción a todos los demás selects del DIFF
-        // TKT5-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes _newSp.label || newSprintId
-        const _newSpLabel = _sprintDisplay(newSprintId);
-        document.querySelectorAll('.mdiff-sprint-select[data-item-code]').forEach(s => {
-          if (s === restoredSel) return;
-          const newOptNode = s.querySelector('option[value="__new__"]');
-          const opt = document.createElement('option');
-          opt.value = newSprintId;
-          opt.textContent = _newSpLabel;
-          if (newOptNode) s.insertBefore(opt, newOptNode);
-          else s.appendChild(opt);
-        });
-      },
-      // onCancel: createSprint falló o usuario canceló — restaurar select sin asignar sprint
-      function() {
-        _mdiffRestoreSelect(wrapDiv, code, null);
-      }
-    );
-
-    const wrapDiv = document.createElement('div');
-    wrapDiv.innerHTML = form.html;
-    const formEl = wrapDiv.firstElementChild || wrapDiv;
-    // Preservar referencia al select para _mdiffRestoreSelect
-    formEl._originalSelect = sel;
-    sel.parentNode.replaceChild(formEl, sel);
-    form.init(formEl);
-  }
-
-  // B-202605-077: _mdiffSyncConfirmBtn, _mdiffConfirmNewSprintForm, _mdiffCancelNewSprintForm
-  // eliminados — lógica migrada a _buildNewSprintForm (locus-backlog-sprints.js).
-  // Los handlers _bnsf_confirm/_bnsf_cancel se registran en window por _buildNewSprintForm.init().
-
-  // Reemplaza el mini-form con un select reconstruido
-  function _mdiffRestoreSelect(wrap, code, selectedId) {
-    const openSprints = getActiveSprints().filter(s => s.status !== 'closed');
-    const currentSprint = code
-      ? ((getItems().find(i => i.code === code) || {}).sprint || '')
-      : '';
-    const effectiveSelected = selectedId || currentSprint;
-
-    const sel = document.createElement('select');
-    sel.className = 'mdiff-sprint-select';
-    if (code) sel.dataset.itemCode = code;
-    sel.addEventListener('change', function() { if (_mdiffSetItemSprint) _mdiffSetItemSprint(sel); });
-    sel.addEventListener('click', function(e) { e.stopPropagation(); });
-
-    // B-202606-0XX (TKT-B2): 'Sin sprint (Q-Backlog)' (value='') reemplaza icebox como opción especial.
-    const unassignedOpt = document.createElement('option');
-    unassignedOpt.value = '';
-    unassignedOpt.textContent = 'Sin sprint (Q-Backlog)';
-    if (!effectiveSelected) unassignedOpt.selected = true;
-    sel.appendChild(unassignedOpt);
-
-    openSprints.forEach(s => {
-      const opt = document.createElement('option');
-      opt.value = s.id;
-      // TKT5-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes s.label||s.id
-      opt.textContent = _sprintDisplay(s.id);
-      if (s.id === effectiveSelected) opt.selected = true;
-      sel.appendChild(opt);
-    });
-
-    const newOpt = document.createElement('option');
-    newOpt.value = '__new__';
-    newOpt.textContent = '＋ Nuevo sprint...';
-    sel.appendChild(newOpt);
-
-    wrap.parentNode.replaceChild(sel, wrap);
-    return sel;
-  }
-
   // R-202605-148: persistir sprint en getItems() + saveBacklog sin re-render del backlog ni del DIFF
   function _mdiffPersistSprint(code, sprintId) {
     const item = getItems().find(i => i.code === code);

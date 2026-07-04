@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:11 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-07-03 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -367,7 +367,6 @@ function _renderItemPanel(item) {
           <option value="">— Sin asignar</option>
           ${sprintOptions}
           ${sprintOrphan}
-          <option value="__new__">＋ Nuevo...</option>
         </select>`;
 
   const metaHtml = `

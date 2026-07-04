@@ -1,11 +1,11 @@
-// [PP] mod:75 · autor:Rune · 2026-07-02 UTC-6
+// [PP] mod:76 · autor:Rune · 2026-07-03 UTC-6
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
 import { _isBlocked, getItems, itemKind } from './locus-backlog-core.js';
 import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
-import { _getActiveSprint, confirmCloseSprint, createSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, openNewSprintInline, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
+import { _getActiveSprint, confirmCloseSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
 import { _gconfirmOpen } from './locus-modals.js';
 import { renderPlanInto, getSprintPlanSessionCount } from './locus-sprint-plan.js';
 import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint, getHistoricoItemsSync, refreshHistoricoCache } from './locus-storage.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico — getHistoricoItemsSync/refreshHistoricoCache viven en locus-storage.js, no en locus-backlog-archive.js
@@ -280,10 +280,8 @@ function _renderSpsActivo() {
       '<span class="sps-section-label">Activo</span>' +
       '<div class="sps-empty">' +
         '<p>No hay sprint activo.</p>' +
-        '<button class="sps-empty-cta" type="button">Crear sprint</button>' +
+        '<p class="sps-empty-hint">La apertura de sprint se propone desde Cael (sprint_proposal) — no hay creación manual.</p>' +
       '</div>';
-    const cta = container.querySelector('.sps-empty-cta');
-    if (cta) cta.addEventListener('click', function() { openNewSprintInline(); });
     return;
   }
 
