@@ -1,3 +1,10 @@
+// [PP] mod:69 · autor:Rune · 2026-07-04 16:40 UTC-6
+// TKT1 (REQ-[pendiente-ID] Ocultar bloque Terminados en Discoveries): _renderZonePanel acepta
+// opts.hasDoneState / opts.hasChildren (default true — sin cambio de comportamiento para
+// qbacklog). Con false: el bloque estático #[nsKey]-done-group se oculta vía .is-hidden (Nova,
+// design_intent "Ocultar bloque Terminados en Discoveries"), se omite el split done/active y
+// _buildChildMap. renderQDiscPanel declara ambos en false — DISC nunca alcanza status 'done'
+// (__BR-Ecosystem §5) ni tiene jerarquía R→hijos.
 // [PP] mod:68 · autor:Rune · 2026-07-05 UTC-6
 // TKT1 (limpieza post-rename): comentario en L48 actualizado — describía capacidad vigente referenciando locus-backlog-archive.js; corregido a locus-backlog-historico.js. Notas históricas de L3/L25 (documentan el rename en sí) se conservan sin cambio.
 // REQ-[pendiente-ID] Unificar vocabulario historico — TKT2 (continuación): call sites
@@ -1074,9 +1081,22 @@ function _attachDoneGroupToggle(prefix) {
 // propio ('qbacklog'/'qdisc'), jerarquía R→hijos vía _buildChildMap, bloque Terminados estático.
 function _renderZonePanel(opts) {
   const { bodyId, badgeId, nsKey, isZone, emptyTitle, emptyIcon } = opts;
+  // TKT1 REQ hide-done-qdisc: hasDoneState/hasChildren — default true preserva comportamiento
+  // exacto de qbacklog (único caller previo a este TKT). qdisc los declara en false: DISC nunca
+  // alcanza status 'done' (bloque Terminados era código muerto, ver CHECKPOINT del REQ) ni tiene
+  // jerarquía R→hijos (no aplica _buildChildMap).
+  const hasDoneState = opts.hasDoneState !== false;
+  const hasChildren  = opts.hasChildren !== false;
   const _emptyIcon = emptyIcon || '📦';
   const body = document.getElementById(bodyId);
   if (!body) return;
+
+  // Bloque Terminados estático (.bl-done-group, ver index.html/TKT-C6) — oculto vía .is-hidden
+  // cuando hasDoneState:false, sin dejar espacio ni borde residual (misma clase que
+  // #sstab-btn-docupdates, ya usa display:none). qbacklog remueve is-hidden explícitamente —
+  // no depende de que el DOM nazca sin la clase.
+  const doneGroupEl = document.getElementById(`${nsKey}-done-group`);
+  if (doneGroupEl) doneGroupEl.classList.toggle('is-hidden', !hasDoneState);
 
   if (!_getActiveProjectFilter()) {
     body.innerHTML = `
@@ -1087,7 +1107,7 @@ function _renderZonePanel(opts) {
       </div>`;
     const badge = document.getElementById(badgeId);
     if (badge) badge.textContent = '';
-    _renderDoneGroup(nsKey, []);
+    if (hasDoneState) _renderDoneGroup(nsKey, []);
     return;
   }
 
@@ -1105,9 +1125,12 @@ function _renderZonePanel(opts) {
   }
 
   // AC-4 REQ-C: bloque Terminados siempre actualizado, incluso sin ítems activos.
-  const doneZoneItems = zoneItems.filter(i => i.status === 'done');
-  const activeZoneItems = zoneItems.filter(i => i.status !== 'done');
-  _renderDoneGroup(nsKey, doneZoneItems);
+  // TKT1 REQ hide-done-qdisc: con hasDoneState:false no hay split — todo zoneItems es activo
+  // (DISC nunca tiene status 'done', ver __BR-Ecosystem §5) y _renderDoneGroup no se invoca —
+  // el bloque ya quedó oculto vía .is-hidden más arriba.
+  const doneZoneItems   = hasDoneState ? zoneItems.filter(i => i.status === 'done') : [];
+  const activeZoneItems = hasDoneState ? zoneItems.filter(i => i.status !== 'done') : zoneItems;
+  if (hasDoneState) _renderDoneGroup(nsKey, doneZoneItems);
 
   if (!activeZoneItems.length) {
     body.innerHTML = `
@@ -1200,9 +1223,11 @@ function _renderZonePanel(opts) {
     return pa - pb;
   });
 
-  const _childMap  = _buildChildMap(filteredItems);
-  const _rCodes    = new Set(filteredItems.filter(i => itemKind(i) === 'REQ').map(i => i.code));
-  const _rootItems = sorted.filter(i => !i.parentId || !_rCodes.has(i.parentId));
+  // TKT1 REQ hide-done-qdisc: con hasChildren:false se omite _buildChildMap — DISC no tiene
+  // depends_on ni jerarquía R→hijos, todo ítem filtrado es raíz.
+  const _childMap  = hasChildren ? _buildChildMap(filteredItems) : new Map();
+  const _rCodes    = hasChildren ? new Set(filteredItems.filter(i => itemKind(i) === 'REQ').map(i => i.code)) : new Set();
+  const _rootItems = hasChildren ? sorted.filter(i => !i.parentId || !_rCodes.has(i.parentId)) : sorted;
 
   let html = '<div class="items-grid">';
   _rootItems.forEach(item => {
@@ -1245,7 +1270,11 @@ export function renderQDiscPanel() {
     isZone: _isQDiscActive,
     showTypeChips: false,
     emptyTitle: 'No hay discoveries pendientes',
-    emptyIcon: '💡'
+    emptyIcon: '💡',
+    // TKT1 REQ hide-done-qdisc: DISC nunca alcanza status 'done' (__BR-Ecosystem §5) — bloque
+    // Terminados era código muerto. DISC no tiene depends_on ni jerarquía R→hijos.
+    hasDoneState: false,
+    hasChildren: false
   });
 }
 
