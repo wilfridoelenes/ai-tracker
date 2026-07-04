@@ -1,4 +1,7 @@
-// [PP] mod:11 · autor:Rune · 2026-06-29 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-07-03 UTC-6
+// TKT1 REQ-cleanup-toolbar-legacy: eliminado bloque no-op ftypes/fstatus — #filter-bar-types
+//   no existe en HTML, #filter-bar-status nunca tuvo is-hidden. Guard `if (typeof getItems()...)`
+//   y las tres llamadas (renderStats/updateBacklogBanner/updateStatusFilterUI) se preservan.
 // INC-[pendiente-ID]: import roto a ensureHotfixSprint (eliminada de locus-sprint.js en TKT-B1)
 //   causaba SyntaxError de módulo ESM al cargar — bloqueaba la app completa. Import eliminado,
 //   call site removido sin reemplazo (S-HOTFIX deprecado, Q-INC es zona persistente sin sprint
@@ -521,10 +524,6 @@ function _filteredAIs() {
 
 // Init backlog si hay ítems
 if (typeof getItems() !== 'undefined' && getItems().length) {
-  const ftypes = document.getElementById('filter-bar-types');
-  const fstatus = document.getElementById('filter-bar-status');
-  if (ftypes) ftypes.classList.remove('is-hidden');
-  if (fstatus) fstatus.classList.remove('is-hidden');
   renderStats();
   updateBacklogBanner();
   updateStatusFilterUI();

@@ -1,4 +1,8 @@
-<!-- [PP] mod:94 · autor:Nova · 2026-07-03 12:10 UTC-6 -->
+<!-- [PP] mod:95 · autor:Rune · 2026-07-04 UTC-6 -->
+<!-- Merge de ramas divergentes en mod:94 (Nova/TKT3 vs Rune/TKT1) por colisión de mod
+     — ver CHECKPOINT de la sesión. Reaplicado sobre base de Nova: eliminado
+     #filter-clear-btn (INC-[pendiente-ID]) y #toolbar dead code (TKT1). TKT3 de Nova
+     (reordenado de #active-filter-chips) preservado sin cambios. -->
 <!-- TKT3-[pendiente-ID] (REQ-B): reordenado #active-filter-chips — ahora después del
      cierre de #filter-bar-status, antes del comentario "toolbar vieja". Sin cambios
      de atributos, clases, ids ni contenido — solo posición en el markup. -->
@@ -419,7 +423,6 @@
         <button class="bl-strip-btn" id="fbar-deps-btn" title="Filtrar por dependencias explícitas — bloqueados / libres">🔗 Deps</button>
         <button class="bl-strip-btn" id="fbar-show-children-btn" title="Mostrar Ts y Bs hijos bajo su R padre">Hijos</button>
         <button class="bl-strip-btn" id="fbar-no-ac-btn" title="Ítems sin criterios de aceptación">Sin AC</button>
-        <button class="fbar-clear-btn is-hidden" id="filter-clear-btn" title="Limpiar todos los filtros">✕ Limpiar</button>
       </div>
       <!-- Divisor G2→G3 -->
       <div class="bl-toolbar-divider"></div>
@@ -452,8 +455,7 @@
 
     <div class="active-filter-chips is-hidden" id="active-filter-chips"></div>
 
-    <!-- toolbar vieja — oculta, mantenida por compatibilidad con JS que la referencia -->
-    <div class="toolbar is-hidden" id="toolbar"></div>
+    <!-- toolbar vieja eliminada (dead code — sin referencias JS, ver INC-[pendiente-ID]/TKT1) -->
     <div id="backlog-two-col-wrap">
       <div id="backlog-list" role="tabpanel" aria-labelledby="fbar-kanban-btn"></div>
       <div id="item-detail-panel" class="item-detail-panel"></div>
