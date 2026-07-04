@@ -1,4 +1,4 @@
-/* [PP] mod:68 · autor:Rune · 2026-07-04 UTC-6 */
+/* [PP] mod:69 · autor:Nova · 2026-07-04 UTC-6 */
 /* Merge de ramas divergentes por colisión de mod — ver CHECKPOINT de la sesión.
    Reaplicado sobre base de Nova (mod:66 declarado, contenido = INC overlap margin fix):
    eliminadas .fbar-clear-btn/.filter-clear-btn (INC-[pendiente-ID]) y
@@ -4632,6 +4632,9 @@ er {
   border-radius: var(--radius-md-plus);
   border-top-left-radius: 0;
   border-top-right-radius: 0;
+  position: sticky; /* INC-202607-001: solo .bl-toolbar tenía sticky — chips se quedaba en flujo normal y quedaba tapado al hacer scroll */
+  top: calc(var(--header-h, 54px) + var(--bl-toolbar-h, 40px)); /* --bl-toolbar-h: custom property runtime, ver CSS dependencies block */
+  z-index: var(--z-sticky);
 }
 
 .active-filter-chips.is-hidden {

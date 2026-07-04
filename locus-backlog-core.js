@@ -1,4 +1,4 @@
-// [PP] mod:81 · autor:Rune · 2026-07-04 UTC-6
+// [PP] mod:82 · autor:Rune · 2026-07-04 UTC-6
 // Reaplicado sobre base mod:80 (sin divergencia de Nova en este archivo): eliminados
 // toggle en renderActiveFilterChips() y listener en initFiltrosListeners de
 // #filter-clear-btn (INC-[pendiente-ID] — botón duplicado eliminado de index.html).
@@ -2288,6 +2288,16 @@ export function renderActiveFilterChips() {
   }
 }
 
+// INC-202607-001: .active-filter-chips necesita position:sticky con un top que respete
+// la altura real de .bl-toolbar — el toolbar hace flex-wrap y su altura cambia según
+// cuántos filtros están activos. --bl-toolbar-h se mide en runtime y se consume en
+// locus-backlog.css (.active-filter-chips { top: calc(var(--header-h) + var(--bl-toolbar-h)) }).
+function _syncToolbarHeightVar() {
+  const _toolbar = document.querySelector('.bl-toolbar');
+  if (!_toolbar) return;
+  document.documentElement.style.setProperty('--bl-toolbar-h', _toolbar.offsetHeight + 'px');
+}
+
 // Inline handlers dinámicos — no tienen ID fijo, no pueden migrar a addEventListener
 // Se exponen en window para que onclick="fn()" en HTML generado en runtime funcione
 
@@ -2388,6 +2398,16 @@ document.addEventListener('DOMContentLoaded', function () {
   // T-202606-058: actualizar fila de chips activos en cada cambio de filtro
   window.addEventListener('shell:backlog-filter-changed', function () { renderActiveFilterChips(); });
   renderActiveFilterChips(); // render inicial
+
+  // INC-202607-001: sincronizar --bl-toolbar-h con la altura real del toolbar —
+  // cambia cuando el flex-wrap agrega o quita líneas al activar/desactivar filtros
+  _syncToolbarHeightVar();
+  const _toolbarEl = document.querySelector('.bl-toolbar');
+  if (_toolbarEl && typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(function () { _syncToolbarHeightVar(); }).observe(_toolbarEl);
+  } else {
+    window.addEventListener('resize', function () { _syncToolbarHeightVar(); });
+  }
 
   // T-202606-218: listener shell:togglePriorityFilter — invocación cross-módulo sin export
   window.addEventListener('shell:togglePriorityFilter', function (e) {
