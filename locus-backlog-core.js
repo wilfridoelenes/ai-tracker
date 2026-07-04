@@ -1,4 +1,4 @@
-// [PP] mod:79 · autor:Rune · 2026-07-01 UTC-6
+// [PP] mod:80 · autor:Rune · 2026-07-03 UTC-6
 // TKT1 (REQ-[pendiente-ID] unificar renderer de #active-filter-chips): renderActiveFilterChips()
 //   agrega toggle is-hidden de #filter-clear-btn vía chips.length===0 — criterio único que incluye
 //   deps (bloqueados/libres), gap que el isDefault previo de updateClearFilterBtn no cubría.
@@ -1151,15 +1151,19 @@ export function updateBacklogBanner() {
   el('bmeta-version', meta.version || '—');
   // T-202606-099: badge de conteo en gf-* — misma lógica que bmeta-total
   // B-202606-032: usar _getCountableForBanner() — excluye históricos, descartados y sprints cerrados
-  const _countForBanner = _getCountableForBanner().length;
-  const label = _countForBanner + ' ítem' + (_countForBanner !== 1 ? 's' : '');
+  // T-[tmp:tkt-contador-unificado]: contador unificado en #gf-items — mismo criterio de universo que bmeta-total/renderStats()
+  const _bannerBase = _getCountableForBanner();
+  const _countForBanner = _bannerBase.length;
+  const _doneForBanner = _bannerBase.filter(i => i.status === 'done').length;
+  const label = _countForBanner + ' ítem' + (_countForBanner !== 1 ? 's' : '') + ' · ' + _doneForBanner + ' done';
   if (gfItems)  { gfItems.textContent = label; gfItems.classList.remove('is-hidden'); }
   if (gfToggle) gfToggle.classList.remove('is-hidden');
 }
 
 // Actualizar el indicador de importado cada minuto
+// T-[tmp:tkt-contador-unificado]: gate currentTab==='backlog' removido — #gf-items vive en el footer global, visible en todos los tabs
 setInterval(() => {
-  if (typeof currentTab !== 'undefined' && currentTab === 'backlog') updateBacklogBanner();
+  updateBacklogBanner();
 }, 60000);
 
 function badgeClass(p) {
