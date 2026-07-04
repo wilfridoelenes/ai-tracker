@@ -1,4 +1,7 @@
-// [PP] mod:85 · autor:Rune · 2026-07-04 16:20 UTC-6
+// [PP] mod:86 · autor:Rune · 2026-07-04 16:45 UTC-6
+// TKT-[pendiente-ID-tkt-nsreset] (origen_disc DISC promovida): _subtabNSDefaults agregado —
+//   fuente única de types/statuses por namespace. _subtabNS y _nsReset() ya no duplican el
+//   literal; _nsReset('qinc') dejó de restaurar tipos/estados de REQ-TKT sobre namespace ITIL.
 // INC-[pendiente-ID] (triggered_by análisis de subtab Discoveries): _subtabNS.qdisc.statuses
 //   no incluía 'discovery' — único status activo no-terminal de DISC. Ninguna DISC activa
 //   pasaba el filtro statusOk en _renderZonePanel (locus-backlog-render.js), aunque el badge
@@ -256,27 +259,42 @@ let backlogSearchQuery = '';
 // propio state independiente del state global de Backlog (activeTypes/activeStatuses/etc).
 // Cold start: todos los tipos/statuses habilitados, searchQuery vacío — sin herencia del global.
 // TKT-A2: namespace de cola ITIL legacy reemplazado por 'qinc' — zona acepta INC/PRB/KE/CHG.
-const _subtabNS = {
+// TKT-[pendiente-ID-tkt-nsreset]: _subtabNSDefaults — única fuente de verdad de types/statuses
+// por namespace. _subtabNS (estado runtime) y _nsReset() consumen de aquí — antes cada uno
+// tenía su propio literal duplicado, lo que permitió que qdisc.statuses quedara sin 'discovery'
+// en un lado sin que el otro lo reflejara (INC-[pendiente-ID], mod:85). _nsReset('qinc') estaba
+// además directamente roto: restauraba tipos/estados de REQ-TKT sobre un namespace ITIL.
+const _subtabNSDefaults = {
   qbacklog: {
-    types:    new Set(['REQ','TKT']),
-    statuses: new Set(['pendiente','en-revision','done','descartado','promoted']),
-    priority: new Set(),
-    query:    ''
+    types:    ['REQ','TKT'],
+    statuses: ['pendiente','en-revision','done','descartado','promoted']
   },
   qdisc: {
-    types:    new Set(['DISC']),
-    // INC-[pendiente-ID]: 'discovery' agregado — único status activo no-terminal de DISC.
-    // Sin él, ninguna DISC activa pasaba statusOk en _renderZonePanel (panel vacío pese a badge > 0).
-    statuses: new Set(['discovery','pendiente','en-revision','done','descartado','promoted']),
-    priority: new Set(),
-    query:    ''
+    types:    ['DISC'],
+    // 'discovery': único status activo no-terminal de DISC — sin él, ninguna DISC activa
+    // pasa statusOk en _renderZonePanel (locus-backlog-render.js).
+    statuses: ['discovery','pendiente','en-revision','done','descartado','promoted']
   },
   qinc: {
-    types:    new Set(['INC','PRB','KE','CHG']),
-    statuses: new Set(['detected','assigned','in_progress','resolved','closed','escalated_to_prb','escalated_to_chg','descartado']),
+    types:    ['INC','PRB','KE','CHG'],
+    statuses: ['detected','assigned','in_progress','resolved','closed','escalated_to_prb','escalated_to_chg','descartado']
+  }
+};
+
+function _nsBuildFromDefaults(sub) {
+  const def = _subtabNSDefaults[sub];
+  return {
+    types:    new Set(def.types),
+    statuses: new Set(def.statuses),
     priority: new Set(),
     query:    ''
-  }
+  };
+}
+
+const _subtabNS = {
+  qbacklog: _nsBuildFromDefaults('qbacklog'),
+  qdisc:    _nsBuildFromDefaults('qdisc'),
+  qinc:     _nsBuildFromDefaults('qinc')
 };
 
 // Getters de namespace por subtab
@@ -305,11 +323,14 @@ export function _nsTogglePriority(sub, pri) {
   if (s.has(pri)) { s.delete(pri); } else { s.add(pri); }
 }
 
-// Reset de namespace (todos los filtros al estado inicial)
+// Reset de namespace (todos los filtros al estado inicial) — restaura desde _subtabNSDefaults[sub],
+// no un literal fijo: antes _nsReset('qinc') (único caller real, locus-backlog-render.js L1502)
+// sobrescribía tipos/estados ITIL con los de REQ/TKT — bug corregido junto con el de qdisc.
 export function _nsReset(sub) {
-  if (!_subtabNS[sub]) return;
-  _subtabNS[sub].types    = new Set(['TKT','REQ','INC','DISC']);
-  _subtabNS[sub].statuses = new Set(['pendiente','en-revision','done','descartado','promoted']);
+  if (!_subtabNS[sub] || !_subtabNSDefaults[sub]) return;
+  const def = _subtabNSDefaults[sub];
+  _subtabNS[sub].types    = new Set(def.types);
+  _subtabNS[sub].statuses = new Set(def.statuses);
   _subtabNS[sub].priority = new Set();
   _subtabNS[sub].query    = '';
 }
