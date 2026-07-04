@@ -1,4 +1,4 @@
-/* [PP] mod:5 · autor:Nova · 2026-07-02 17:20 UTC-6 */
+/* [PP] mod:6 · autor:Nova · 2026-07-03 UTC-6 */
 /* locus-modals.css */
 
 /* Versión: 2.2 | Última actualización: 2026-06-10 | B-202606-009: .modal-overlay base declarada · ie-body scroll */
@@ -2834,6 +2834,27 @@
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+}
+
+/* TKT-[tmp:tkt-infra-modal-visualiza]: valor de infra_version actualmente registrado —
+   solo lectura, dentro de #infra-sync-panel, antes del textarea de escritura. */
+.infra-sync-current {
+  display: block;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 6px);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border, rgb(0 0 0 / 12%));
+  font-family: var(--font-mono, monospace);
+  font-size: var(--text-sm, 13px);
+  color: var(--text, #111);
+  line-height: 1.5;
+}
+
+.infra-sync-current.is-empty {
+  color: var(--text-muted);
+  font-family: inherit;
+  font-style: italic;
 }
 
 .modal-footer {
