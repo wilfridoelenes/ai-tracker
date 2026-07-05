@@ -1,4 +1,9 @@
-// [PP] v0.8.0 · sprint:PP-S-XX · mod:13 · autor:Rune · 2026-07-04 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-XX · mod:14 · autor:Rune · 2026-07-05 UTC-6
+// REQ refactor-zonas TKT5: side-effect imports de locus-backlog-qbacklog.js y
+// locus-backlog-qdisc.js agregados — sus IIFEs de listener de sub-tab y (qbacklog)
+// _attachDoneGroupToggle deben ejecutar al cargar la app. locus-backlog-zone-engine.js y
+// locus-backlog-hierarchy.js no requieren import explícito aquí — son módulos puramente
+// exportadores sin side effects de nivel módulo, se resuelven transitivamente.
 // REQ-[pendiente-ID] Unificar vocabulario historico — TKT2: side-effect import
 // actualizado hacia locus-backlog-historico.js (ex locus-backlog-archive.js).
 // main.js — punto de entrada único de Locus (ES Modules nativos)
@@ -41,6 +46,8 @@ import './locus-backlog-item.js';
 import './locus-backlog-merge.js';
 import './locus-backlog-panel.js';
 import './locus-backlog-render.js';
+import './locus-backlog-qbacklog.js';
+import './locus-backlog-qdisc.js';
 import './locus-backlog-sprints.js';
 import './locus-backlog-historico.js';
 import { renderSprintTab } from './locus-sprint.js';

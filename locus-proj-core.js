@@ -1,4 +1,7 @@
-// [PP] mod:9 · autor:Rune · 2026-07-03 UTC-6
+// [PP] mod:10 · autor:Rune · 2026-07-05 UTC-6
+// REQ refactor-zonas TKT5: import de renderQBacklogPanel/renderQDiscPanel actualizado — ahora
+// viven en locus-backlog-qbacklog.js / locus-backlog-qdisc.js (extraídos de
+// locus-backlog-render.js). renderBacklogList/_updateSubtabBadges siguen en locus-backlog-render.js.
 // TKT-CONSOLID-PROJFILTER: _getActiveProjectFilter y getProjectById dejan de tener implementación
 //   local — se importan de locus-storage.js (dueña de state.projects, __BR-Ecosystem §7) y se
 //   re-exportan para no romper los 5 consumidores que las importan desde este módulo. Elimina
@@ -21,7 +24,9 @@ import { esc, switchSubTab, getCurrentSubTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderAnalytics } from './locus-analytics-render.js';
 import { loadBacklog, renderStats, _registerCoreCallback } from './locus-backlog-core.js';
-import { renderBacklogList, renderQBacklogPanel, renderQDiscPanel, _updateSubtabBadges } from './locus-backlog-render.js'; // TKT-C10: renderIceboxPanel→renderQBacklogPanel+renderQDiscPanel
+import { renderBacklogList, _updateSubtabBadges } from './locus-backlog-render.js'; // TKT-C10: renderIceboxPanel→renderQBacklogPanel+renderQDiscPanel · REQ refactor-zonas TKT5: renderQBacklogPanel/renderQDiscPanel movidos a sus propios módulos (ver imports siguientes)
+import { renderQBacklogPanel } from './locus-backlog-qbacklog.js';
+import { renderQDiscPanel } from './locus-backlog-qdisc.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
 import { _renderTplProjBanner } from './locus-docs.js';
 import { _updateHeaderProjectLabel } from './locus-sesiones-stats.js';

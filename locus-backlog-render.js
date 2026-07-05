@@ -1,4 +1,19 @@
-// [PP] mod:71 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:73 · autor:Rune · 2026-07-05 UTC-6
+// REQ refactor-zonas TKT5: _renderDoneGroup/_attachDoneGroupToggle/_renderZonePanel/
+// renderQBacklogPanel/renderQDiscPanel/_initQBacklogSubTab/_initQDiscSubTab + listener
+// shell:backlog-render-dirty compartido, removidos — ahora en locus-backlog-zone-engine.js
+// (motor) y locus-backlog-qbacklog.js/locus-backlog-qdisc.js (cada zona). _zoneStaleness local
+// removida — import desde zone-engine.js (único uso restante: _updateSubtabBadges).
+// _nsGetStatuses removido del import de core.js — huérfano tras la extracción.
+// TKT1 (REQ congruencia-qdisc): _attachDoneGroupToggle('qdisc') eliminado + #qdisc-done-group
+// eliminado de index.html (mod:101) — el bloque quedaba permanentemente oculto vía .is-hidden
+// desde TKT1 REQ hide-done-qdisc (mod:70): DISC nunca alcanza status 'done' (__BR-Ecosystem §5),
+// hasDoneState:false en renderQDiscPanel ya garantizaba que _renderDoneGroup('qdisc', ...) nunca
+// se invocara. El listener de toggle era código vivo sobre un elemento inalcanzable — sin efecto
+// observable, pero incongruente con la intención declarada (bloque "Terminados" que nunca puede
+// mostrar contenido). _renderZonePanel no cambia: doneGroupEl ya usa guard `if (doneGroupEl)` —
+// getElementById('qdisc-done-group') retorna null sin romper el flujo. _attachDoneGroupToggle
+// se conserva para 'qbacklog' — REQ/TKT sí alcanzan status 'done'.
 // TKT (limpieza de comentario — hallazgo fuera de scope de [tmp:req-clutter-backlog] TKT1):
 // nota de mod:66 (línea ~38) queda como registro histórico sin cambio — describía correctamente
 // el estado del archivo en ese momento. Se aclara aquí, en un comentario nuevo, que ese estado
@@ -98,7 +113,13 @@
 // T-202606-167: openProjPanel desacoplada — dispatch shell:open-proj-panel en lugar de import directo
 // T-202606-163: _iceboxStaleness — alertas diferenciadas por tipo en vista icebox
 import { renderHistoricoSection, getHistoricoCount, getHistoricoStats } from './locus-backlog-historico.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js'; // TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix)
+// REQ refactor-zonas TKT1: _buildChildMap extraído a locus-backlog-hierarchy.js — sin cambio
+// de contrato, ver header de ese módulo.
+import { _buildChildMap } from './locus-backlog-hierarchy.js';
+// REQ refactor-zonas TKT5: _zoneStaleness extraído a locus-backlog-zone-engine.js — único uso
+// restante en este archivo es _updateSubtabBadges() (badges qbacklog/qdisc).
+import { _zoneStaleness } from './locus-backlog-zone-engine.js';
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, _nsGetTypes, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js'; // TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js)
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, buildQIncItem, updateBacklogFooter } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-B2b: buildQIncItem
 
@@ -118,109 +139,14 @@ import { _updateDocLogCount } from './locus-doc-log.js';
 //   sprint health panel, roadmap, planning (drag & drop), renderBacklogList, sprint selector inline.
 // Dependencias: locus-backlog-core.js · locus-backlog-historico.js · locus-backlog-item.js · locus-backlog-sprints.js
 
-// T-202606-022: _buildChildMap — agrupación de hijos por R con sort topológico por depends_on
-// Recibe los ítems de un sprint y retorna Map: rCode → [hijos ordenados]
-// INC-[pendiente-ID] TKT1: includeHistorico (default false) — cuando true, hijos con status
-// 'historico' se incluyen en el árbol igual que cualquier otro status. Default false preserva
-// el contrato original para todo consumidor existente (ver L1397, sin segundo argumento — sin
-// cambio de comportamiento). Único caller con includeHistorico:true es _renderVistaLista para
-// grupos de sprint closed.
-// TKT1 (REQ Histórico unificado): hoisted a module scope — antes declarado localmente dentro de
-// _renderVistaLista y de _updateSubtabBadges. Única fuente ahora, reusada por renderSprintGroup.
+// T-202606-022: _buildChildMap — hoisted originalmente aquí, extraído a
+// locus-backlog-hierarchy.js (REQ refactor-zonas TKT1) — motivo: consumido tanto por
+// renderSprintGroup (este archivo) como por _renderZonePanel (locus-backlog-zone-engine.js),
+// colocarlo en cualquiera de los dos habría creado import circular entre ambos.
 function _extractSprintId(s) {
   return (s || '').split(' · ')[0].trim();
 }
 
-export function _buildChildMap(sprintItems, includeHistorico = false) {
-  // Conjunto de códigos R presentes en sprintItems — gate de parentId válido
-  const rCodesInSprint = new Set(
-    sprintItems.filter(i => itemKind(i) === 'REQ').map(i => i.code)
-  );
-
-  // Recopilar hijos: Ts y Bs con parentId apuntando a un R del sprint, excluyendo históricos
-  // salvo que includeHistorico:true lo solicite explícitamente.
-  const childrenByR = new Map();
-  for (const r of rCodesInSprint) childrenByR.set(r, []);
-
-  for (const item of sprintItems) {
-    const t = itemKind(item);
-    if (t !== 'TKT' && t !== 'INC') continue;
-    if (item.status === 'historico' && !includeHistorico) continue;
-    if (!item.parentId || !rCodesInSprint.has(item.parentId)) continue;
-    childrenByR.get(item.parentId).push(item);
-  }
-
-  // Ordenar hijos de cada R por depends_on — sort topológico con detección de ciclos
-  for (const [rCode, children] of childrenByR) {
-    childrenByR.set(rCode, _topoSort(children));
-  }
-
-  return childrenByR;
-}
-
-// Sort topológico de un array de ítems por depends_on.
-// Ítems sin dependencias van primero, resolviendo la cadena completa.
-// Ciclos detectados: los ítems en ciclo van al final, ordenados por código.
-function _topoSort(items) {
-  if (items.length <= 1) return items;
-
-  const codeSet = new Set(items.map(i => i.code));
-  const byCode = Object.fromEntries(items.map(i => [i.code, i]));
-
-  // Construir grafo de dependencias — solo entre ítems del mismo grupo
-  const deps = {}; // code → Set de dependencias internas
-  for (const item of items) {
-    const internal = (Array.isArray(item.depends_on) ? item.depends_on : [])
-      .filter(d => codeSet.has(d));
-    deps[item.code] = new Set(internal);
-  }
-
-  // Kahn's algorithm para sort topológico
-  const inDegree = {};
-  const adjList = {}; // code → [codes que dependen de él]
-  for (const item of items) {
-    inDegree[item.code] = 0;
-    adjList[item.code] = [];
-  }
-  for (const item of items) {
-    for (const dep of deps[item.code]) {
-      adjList[dep].push(item.code);
-      inDegree[item.code]++;
-    }
-  }
-
-  // Cola: ítems sin dependencias internas, ordenados por código para determinismo
-  const queue = items
-    .filter(i => inDegree[i.code] === 0)
-    .map(i => i.code)
-    .sort();
-
-  const sorted = [];
-  while (queue.length) {
-    const code = queue.shift();
-    sorted.push(byCode[code]);
-    for (const dependent of (adjList[code] || [])) {
-      inDegree[dependent]--;
-      if (inDegree[dependent] === 0) {
-        // Insertar manteniendo orden alfabético en la cola
-        const insertIdx = queue.findIndex(c => c > dependent);
-        if (insertIdx === -1) queue.push(dependent);
-        else queue.splice(insertIdx, 0, dependent);
-      }
-    }
-  }
-
-  // Ítems restantes forman ciclos — van al final ordenados por código
-  if (sorted.length < items.length) {
-    const sortedCodes = new Set(sorted.map(i => i.code));
-    const cycleItems = items
-      .filter(i => !sortedCodes.has(i.code))
-      .sort((a, b) => a.code.localeCompare(b.code));
-    sorted.push(...cycleItems);
-  }
-
-  return sorted;
-}
 
 // T-202604-187: colapsar/expandir bloque de hijos de un R
 export function toggleChildrenBlock(rCode) {
@@ -362,26 +288,6 @@ function _sprintVelocityLabel(sprintId) {
 // T-202605-118: dirty flag — render quirúrgico
 let _backlogListDirty = false;
 export function _markBacklogListDirty() { _backlogListDirty = true; }
-
-// T-202606-163 / TKT-C1: _zoneStaleness (antes _iceboxStaleness) — umbral de alerta por tipo de ítem
-// en vista Q-Backlog/Q-DISC. Umbrales: R y T → 14d · P → 30d · B priority:high → 7d · B priority no-high → sin alerta
-// Referencia: statusChangedAt || createdAt. Retorna { days, label } o null si no aplica.
-function _zoneStaleness(item) {
-  if (!item) return null;
-  const type = itemKind(item);
-  const priority = (item.priority || '').toLowerCase();
-  let threshold;
-  if (type === 'REQ' || type === 'TKT') threshold = 14;
-  else if (type === 'DISC') threshold = 30;
-  else if (type === 'INC' && priority === 'high') threshold = 7;
-  else return null;
-  const refTs = item.statusChangedAt || item.createdAt;
-  if (!refTs) return null;
-  const days = Math.floor((Date.now() - refTs) / 86400000);
-  if (days < threshold) return null;
-  const label = days === 1 ? '1d' : days + 'd';
-  return { days, label };
-}
 
 // R-202606-017 · T-202606-061: Vista Lista — sprint groups + jerarquía R→T/B por defecto
 // Reemplaza la lógica combinada de _renderVistaC + bloque _useSprintGroups.
@@ -1054,291 +960,11 @@ export function renderBacklogList(onRendered) {
 
 }
 
-// Helper compartido — rellena el bloque estático "Terminados" (.bl-done-*, ver index.html/TKT-C6)
-// con los ítems done del zone correspondiente. El contenedor existe siempre en el DOM (HTML estático) —
-// esta función solo escribe conteo y filas, nunca crea ni destruye el shell. AC-4 de coherencia REQ-C.
-function _renderDoneGroup(prefix, doneItems) {
-  const countEl = document.getElementById(`${prefix}-done-count`);
-  const bodyEl  = document.getElementById(`${prefix}-done-body`);
-  if (countEl) countEl.textContent = String(doneItems.length);
-  if (!bodyEl) return;
-  bodyEl.innerHTML = doneItems.length
-    ? _sortGroup(doneItems).map(item => buildBacklogItem(item)).join('')
-    : '';
-}
-
-// Toggle de colapso del bloque "Terminados" — header y body son estáticos (index.html/TKT-C6),
-// el listener se adjunta una sola vez al cargar el módulo, no en cada render.
-function _attachDoneGroupToggle(prefix) {
-  const header = document.getElementById(`${prefix}-done-header`);
-  const body   = document.getElementById(`${prefix}-done-body`);
-  const arrow  = header && header.querySelector('.bl-done-arrow');
-  if (!header || !body) return;
-  const key = `backlog-${prefix}-done-open`;
-  const isOpen = localStorage.getItem(key) !== '0';
-  body.classList.toggle('collapsed', !isOpen);
-  if (arrow) arrow.textContent = isOpen ? '▾' : '▸';
-  header.addEventListener('click', () => {
-    const wasCollapsed = body.classList.contains('collapsed');
-    body.classList.toggle('collapsed', !wasCollapsed);
-    if (arrow) arrow.textContent = wasCollapsed ? '▾' : '▸';
-    localStorage.setItem(key, wasCollapsed ? '1' : '0');
-  });
-}
-
-// TKT-C1 (REQ-C): renderIceboxPanel partida en renderQBacklogPanel (Q-Backlog: REQ/TKT)
-// y renderQDiscPanel (Q-DISC: DISC) — panel único reemplazado por dos paneles separados.
-// _isQBacklog/_isQDisc importadas desde locus-backlog-core.js (retira wrapper _isIcebox).
-// Cada función sigue el mismo patrón que la anterior renderIceboxPanel — filtros por namespace
-// propio ('qbacklog'/'qdisc'), jerarquía R→hijos vía _buildChildMap, bloque Terminados estático.
-function _renderZonePanel(opts) {
-  const { bodyId, badgeId, nsKey, isZone, emptyTitle, emptyIcon } = opts;
-  // TKT1 REQ hide-done-qdisc: hasDoneState/hasChildren — default true preserva comportamiento
-  // exacto de qbacklog (único caller previo a este TKT). qdisc los declara en false: DISC nunca
-  // alcanza status 'done' (bloque Terminados era código muerto, ver CHECKPOINT del REQ) ni tiene
-  // jerarquía R→hijos (no aplica _buildChildMap).
-  const hasDoneState = opts.hasDoneState !== false;
-  const hasChildren  = opts.hasChildren !== false;
-  const _emptyIcon = emptyIcon || '📦';
-  const body = document.getElementById(bodyId);
-  if (!body) return;
-
-  // INC-[pendiente-ID]: sin esta línea, el header de la card (data-action="item-expand") y el
-  // resto de acciones delegadas (copiar código/ítem, doble-click editar título, quick-assign
-  // effort, cambiar status/rol/sprint/parent, abrir bloqueante, promover) no tienen listener en
-  // qbacklog-panel-body/qdisc-panel-body — buildBacklogItem() genera el mismo markup que Vista
-  // Lista pero solo #backlog-list tenía la delegación adjunta. Mismo patrón que renderBacklogList()
-  // (ver más abajo en este archivo) — reset antes de re-adjuntar en cada render de la zona.
-  _resetBacklogListDelegation(bodyId);
-  _attachBacklogListDelegation(bodyId);
-
-  // Bloque Terminados estático (.bl-done-group, ver index.html/TKT-C6) — oculto vía .is-hidden
-  // cuando hasDoneState:false, sin dejar espacio ni borde residual (misma clase que
-  // #sstab-btn-docupdates, ya usa display:none). qbacklog remueve is-hidden explícitamente —
-  // no depende de que el DOM nazca sin la clase.
-  const doneGroupEl = document.getElementById(`${nsKey}-done-group`);
-  if (doneGroupEl) doneGroupEl.classList.toggle('is-hidden', !hasDoneState);
-
-  if (!_getActiveProjectFilter()) {
-    body.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">📁</div>
-        <div class="empty-state-title">Selecciona un proyecto</div>
-        <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
-      </div>`;
-    const badge = document.getElementById(badgeId);
-    if (badge) badge.textContent = '';
-    if (hasDoneState) _renderDoneGroup(nsKey, []);
-    return;
-  }
-
-  const zoneItems = getItems().filter(isZone);
-
-  // Badge — universo SIN filtrar (conteo real de la zona), igual que B-202606-075.
-  const badge = document.getElementById(badgeId);
-  if (badge) {
-    if (!zoneItems.length) {
-      badge.textContent = '';
-    } else {
-      const _alertCount = zoneItems.filter(i => _zoneStaleness(i) !== null).length;
-      badge.textContent = (_alertCount > 0 ? '⚠ ' : '') + zoneItems.length;
-    }
-  }
-
-  // AC-4 REQ-C: bloque Terminados siempre actualizado, incluso sin ítems activos.
-  // TKT1 REQ hide-done-qdisc: con hasDoneState:false no hay split — todo zoneItems es activo
-  // (DISC nunca tiene status 'done', ver __BR-Ecosystem §5) y _renderDoneGroup no se invoca —
-  // el bloque ya quedó oculto vía .is-hidden más arriba.
-  const doneZoneItems   = hasDoneState ? zoneItems.filter(i => i.status === 'done') : [];
-  const activeZoneItems = hasDoneState ? zoneItems.filter(i => i.status !== 'done') : zoneItems;
-  if (hasDoneState) _renderDoneGroup(nsKey, doneZoneItems);
-
-  if (!activeZoneItems.length) {
-    body.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">${_emptyIcon}</div>
-        <div class="empty-state-title">${emptyTitle}</div>
-      </div>`;
-    return;
-  }
-
-  // TKT3 REQ2 S'02 — stats-bar interactiva: conteo sobre activeZoneItems (universo sin
-  // filtrar por tipo/prioridad/búsqueda), mismo criterio que renderQIncPanel (_displayable) —
-  // evita que un chip desactivado muestre conteo 0 en vez del total real de la zona.
-  const _activeTypesZ0    = _nsGetTypes(nsKey);
-  const _activePriorityZ0 = _nsGetPriority(nsKey);
-  const _countByTypeZ = {};
-  const _countByPriZ  = { high: 0, medium: 0, low: 0 };
-  activeZoneItems.forEach(i => {
-    const t = itemKind(i);
-    if (t) _countByTypeZ[t] = (_countByTypeZ[t] || 0) + 1;
-    const p = i.priority;
-    if (p === 'high' || p === 'important' || p === 'critical' || p === 'importante') _countByPriZ.high++;
-    else if (p === 'low' || p === 'futura' || p === 'baja') _countByPriZ.low++;
-    else _countByPriZ.medium++;
-  });
-  const _typeChipDefs = { qbacklog: [['REQ','REQ'],['TKT','TKT']], qdisc: [] }[nsKey] || [];
-  const _statsBarHtml = `
-    <div class="qinc-stats-bar" id="${bodyId}-stats-bar">
-      ${opts.showTypeChips !== false && _typeChipDefs.length ? `<div class="qinc-stats-types">
-        ${_typeChipDefs.map(([t, label]) =>
-          `<button class="stat-type-chip tc-${t.toLowerCase()}${_activeTypesZ0.has(t) ? ' active' : ''}" data-zp-action="zp-type" data-zp-type="${t}" title="Filtrar por tipo ${t}"><span class="tc-count">${_countByTypeZ[t] || 0}</span><span class="tc-label">${label}</span></button>`
-        ).join('')}
-      </div>` : ''}
-      <div class="qinc-stats-priority">
-        <button class="stat-pri-chip pri-high${_activePriorityZ0.has('high') ? ' active' : ''}" data-zp-action="zp-priority" data-zp-priority="high" title="Filtrar prioridad alta"><span class="spc-n">${_countByPriZ.high}</span> Alto</button>
-        <button class="stat-pri-chip pri-medium${_activePriorityZ0.has('medium') ? ' active' : ''}" data-zp-action="zp-priority" data-zp-priority="medium" title="Filtrar prioridad media"><span class="spc-n">${_countByPriZ.medium}</span> Med</button>
-        <button class="stat-pri-chip pri-low${_activePriorityZ0.has('low') ? ' active' : ''}" data-zp-action="zp-priority" data-zp-priority="low" title="Filtrar prioridad baja"><span class="spc-n">${_countByPriZ.low}</span> Bajo</button>
-      </div>
-    </div>`;
-  if (!body._zpDelegationAttached) {
-    body._zpDelegationAttached = true;
-    body.addEventListener('click', function _zpStatsClick(e) {
-      const btn = e.target.closest('[data-zp-action]');
-      if (!btn) return;
-      const _k = btn.closest('[id$="-panel-body"]')?.id === 'qbacklog-panel-body' ? 'qbacklog' : 'qdisc';
-      if (btn.dataset.zpAction === 'zp-type') {
-        _nsToggleType(_k, btn.dataset.zpType);
-      } else if (btn.dataset.zpAction === 'zp-priority') {
-        _nsTogglePriority(_k, btn.dataset.zpPriority);
-      } else {
-        return;
-      }
-      if (_k === 'qbacklog') renderQBacklogPanel(); else renderQDiscPanel();
-    });
-  }
-
-  // Filtros leídos desde namespace propio — aislado del state global de Backlog y del otro panel.
-  const _activeTypesZ    = _nsGetTypes(nsKey);
-  const _activeStatusesZ = _nsGetStatuses(nsKey);
-  const _activePriorityZ = _nsGetPriority(nsKey);
-  const _qZ = (_nsGetQuery(nsKey) || '').trim().toLowerCase();
-  const _matchesSearchZ = _qZ
-    ? i => i.code.toLowerCase().includes(_qZ) || (i.title || '').toLowerCase().includes(_qZ) || (i.area || '').toLowerCase().includes(_qZ)
-    : () => true;
-  const filteredItems = activeZoneItems.filter(i => {
-    const type = itemKind(i);
-    const typeOk = type ? _activeTypesZ.has(type) : true;
-    const statusOk = _activeStatusesZ.has(i.status);
-    const priorityOk = _activePriorityZ.size === 0 || _activePriorityZ.has(i.priority);
-    return typeOk && statusOk && priorityOk && _matchesSearchZ(i);
-  });
-
-  if (!filteredItems.length) {
-    body.innerHTML = _statsBarHtml + `
-      <div class="empty-state">
-        <div class="empty-state-icon">${_emptyIcon}</div>
-        <div class="empty-state-title">${emptyTitle}</div>
-        <div class="empty-state-hint">Ningún ítem coincide con el filtro activo.</div>
-      </div>`;
-    return;
-  }
-
-  // Ordenar: tipo (REQ→TKT→INC→DISC) y dentro de cada tipo por prioridad (high→medium→low)
-  const _typeOrder = { REQ: 0, TKT: 1, INC: 2, DISC: 3 };
-  const _priOrder  = { high: 0, important: 0, critical: 0, importante: 0, medium: 1, low: 2, futura: 2, baja: 2 };
-  const sorted = [...filteredItems].sort((a, b) => {
-    const ta = _typeOrder[itemKind(a)] ?? 9, tb = _typeOrder[itemKind(b)] ?? 9;
-    if (ta !== tb) return ta - tb;
-    const pa = _priOrder[a.priority] ?? 1, pb = _priOrder[b.priority] ?? 1;
-    return pa - pb;
-  });
-
-  // TKT1 REQ hide-done-qdisc: con hasChildren:false se omite _buildChildMap — DISC no tiene
-  // depends_on ni jerarquía R→hijos, todo ítem filtrado es raíz.
-  const _childMap  = hasChildren ? _buildChildMap(filteredItems) : new Map();
-  const _rCodes    = hasChildren ? new Set(filteredItems.filter(i => itemKind(i) === 'REQ').map(i => i.code)) : new Set();
-  const _rootItems = hasChildren ? sorted.filter(i => !i.parentId || !_rCodes.has(i.parentId)) : sorted;
-
-  let html = '<div class="items-grid">';
-  _rootItems.forEach(item => {
-    const _stale = _zoneStaleness(item);
-    const _stalePill = _stale
-      ? `<div class="bl-done-item-alert"><span class="staleness-pill staleness--stale" title="Sin movimiento — ${_stale.days}d">${_stale.label}</span></div>`
-      : '';
-    html += _stalePill + buildBacklogItem(item);
-    const _children = _childMap.get(item.code) || [];
-    if (_children.length) {
-      // TKT-C1: wrapper renombrado .bl-vl-req-children→.bl-vl-req-body
-      html += '<div class="bl-vl-req-body">';
-      _children.forEach(child => { html += buildBacklogItem(child); });
-      html += '</div>';
-    }
-  });
-  html += '</div>';
-
-  body.innerHTML = _statsBarHtml + html;
-}
-
-// B-202606-052 → TKT-C1: renderQBacklogPanel — sub-tab Backlog (Q-Backlog: REQ/TKT).
-export function renderQBacklogPanel() {
-  _renderZonePanel({
-    bodyId: 'qbacklog-panel-body',
-    badgeId: 'tpl-badge-qbacklog',
-    nsKey: 'qbacklog',
-    isZone: _isQBacklogActive,
-    showTypeChips: true,
-    emptyTitle: 'No hay ítems pendientes'
-  });
-}
-
-// B-202606-052 → TKT-C1: renderQDiscPanel — sub-tab Discoveries (Q-DISC: DISC).
-export function renderQDiscPanel() {
-  _renderZonePanel({
-    bodyId: 'qdisc-panel-body',
-    badgeId: 'tpl-badge-qdisc',
-    nsKey: 'qdisc',
-    isZone: _isQDiscActive,
-    showTypeChips: false,
-    emptyTitle: 'No hay discoveries pendientes',
-    emptyIcon: '💡',
-    // TKT1 REQ hide-done-qdisc: DISC nunca alcanza status 'done' (__BR-Ecosystem §5) — bloque
-    // Terminados era código muerto. DISC no tiene depends_on ni jerarquía R→hijos.
-    hasDoneState: false,
-    hasChildren: false
-  });
-}
-
-// B-202606-052 → TKT-C1: listeners sub-tabs Backlog (Q-Backlog) y Discoveries (Q-DISC) —
-// reemplazan al listener único sstab-btn-icebox.
-(function _initQBacklogSubTab() {
-  const btn = document.getElementById('sstab-btn-qbacklog');
-  if (!btn) return;
-  btn.addEventListener('click', function () {
-    document.querySelectorAll('.tpl-nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.session-subpanel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    const panel = document.getElementById('sspanel-qbacklog');
-    if (panel) panel.classList.add('active');
-    renderQBacklogPanel();
-  });
-})();
-
-(function _initQDiscSubTab() {
-  const btn = document.getElementById('sstab-btn-qdisc');
-  if (!btn) return;
-  btn.addEventListener('click', function () {
-    document.querySelectorAll('.tpl-nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.session-subpanel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    const panel = document.getElementById('sspanel-qdisc');
-    if (panel) panel.classList.add('active');
-    renderQDiscPanel();
-  });
-})();
-
-// Toggle del bloque "Terminados" — adjuntado una sola vez al cargar el módulo (shell estático).
-_attachDoneGroupToggle('qbacklog');
-_attachDoneGroupToggle('qdisc');
-
-// B-202606-052 → TKT-C1: re-render de los paneles Q-Backlog/Q-DISC cuando el backlog cambia
-// y el panel correspondiente está activo.
-window.addEventListener('shell:backlog-render-dirty', () => {
-  const panelB = document.getElementById('sspanel-qbacklog');
-  if (panelB && panelB.classList.contains('active')) renderQBacklogPanel();
-  const panelD = document.getElementById('sspanel-qdisc');
-  if (panelD && panelD.classList.contains('active')) renderQDiscPanel();
-});
+// REQ refactor-zonas TKT3/TKT4/TKT5: _renderDoneGroup, _attachDoneGroupToggle, _renderZonePanel,
+// renderQBacklogPanel, renderQDiscPanel, _initQBacklogSubTab, _initQDiscSubTab y el listener
+// shell:backlog-render-dirty de ambos paneles se extrajeron a locus-backlog-zone-engine.js
+// (motor compartido) y a locus-backlog-qbacklog.js / locus-backlog-qdisc.js (cada zona con su
+// propio módulo — side-effect import requerido en main.js, ver CHECKPOINT).
 
 // TKT (REQ-[pendiente-ID]): _initQIncSubTab — listener del sub-tab Q-INC, faltante hasta esta
 // entrega. Mismo patrón que _initQBacklogSubTab/_initQDiscSubTab: remueve .active de todos los
