@@ -1,4 +1,19 @@
-// [PP] mod:88 · autor:Rune · 2026-07-05 08:00 UTC-6
+// [PP] mod:89 · autor:Rune · 2026-07-05 UTC-6
+// TKT-202607-005 (REQ-202607-003 · Separación completa del modelo en memoria): array INCIDENTS
+//   separado de ITEMS. itemKind() resuelve tipos ITIL (INC/PRB/KE/CHG) contra INCIDENTS
+//   y tipos backlog (REQ/TKT/DISC) contra ITEMS — antes ambos vivían en ITEMS. _GEN2_TYPES
+//   se conserva sin cambios (7 tipos, usada por locus-backlog-item.js/locus-session-parse.js
+//   para validar universo completo — no discrimina backlog vs incidente). Nuevas constantes
+//   BACKLOG_TYPES (REQ/TKT/DISC) e INCIDENT_TYPES (INC/PRB/KE/CHG) exportadas — fuente de
+//   discriminación real. _setIncidents(item) agregada — mismo contrato que _setITEMS (filtra
+//   historico, ejecuta _undoSnapshot() antes de mutar). _getCountableBaseForSubtab('qinc')
+//   actualizado para leer de INCIDENTS — 'historico' combina ambos arrays. _getNextItemCode()
+//   busca colisión de código en el array correcto según tipo. byType (renderStats) y
+//   _getMiViewRoles no requerían cambio — ya excluían/filtraban tipos ITIL o TKT explícitamente.
+//   AC de undo/redo para INCIDENTS no cubierto por este TKT — señalado a Cael, ver CHECKPOINT.
+//   Los 12 módulos consumidores de ITEMS (ver _Locus-module-contracts §1) solo importan
+//   itemKind()/getItems()/_isQBacklog*/_isQDisc*/isQIncItem() — ninguno accede a ITEMS
+//   directamente — firma pública sin cambios, sin impacto en esos módulos. contract_update: sí.
 // TKT2 (REQ-clutter-backlog): chips de tipo inline en el toolbar de stats reemplazados
 //   por trigger+popover (#bstats-types-btn / #blt-popover) — conteo por tipo calculado
 //   una sola vez (sin IIFE duplicado). Reaplicado sobre base mod:86 tras discrepancia de
@@ -155,6 +170,14 @@ export function normalizeStatus(raw, type) {
 //   ninguno de los dos.
 export const _GEN2_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'KE', 'CHG'];
 
+// TKT-202607-005 (REQ-202607-003): discriminador real de destino en memoria.
+// BACKLOG_TYPES → viven en ITEMS. INCIDENT_TYPES → viven en INCIDENTS.
+// _GEN2_TYPES arriba se conserva intacto — sigue siendo el universo completo de
+// 7 tipos consumido por locus-backlog-item.js/locus-session-parse.js para validación,
+// no para discriminar array de destino.
+export const BACKLOG_TYPES = ['REQ', 'TKT', 'DISC'];
+export const INCIDENT_TYPES = ['INC', 'PRB', 'KE', 'CHG'];
+
 var ITEMS = (() => { // ESM-B: var para evitar TDZ en grafo circular — migrar a módulo de estado en PP-S-10
   // T-202604-006: leer clave por proyecto activo sin depender de _tplKey (aún no definida)
   const _initProjId = localStorage.getItem('current-project-filter') || '';
@@ -182,7 +205,9 @@ var ITEMS = (() => { // ESM-B: var para evitar TDZ en grafo circular — migrar 
       // T-202606-106: carga local — excluir status:historico del valor inicial de ITEMS.
       // historico es de solo lectura, asignado únicamente por Locus al cerrar sprint, y vive
       // en su storage dedicado (T-202606-105) — nunca debe poblar ITEMS, ni siquiera al iniciar.
-      return items.filter(i => i.status !== 'historico');
+      // TKT-202607-005: excluir también tipos ITIL (INCIDENT_TYPES) — viven en INCIDENTS,
+      // poblado por su propia IIFE inmediatamente abajo desde la misma clave de storage.
+      return items.filter(i => i.status !== 'historico' && !INCIDENT_TYPES.includes(itemKind(i)));
     } catch {
       return [];
     }
@@ -190,15 +215,54 @@ var ITEMS = (() => { // ESM-B: var para evitar TDZ en grafo circular — migrar 
   return [];
 })();
 
+// TKT-202607-005 (REQ-202607-003): array ITIL independiente de ITEMS. Misma fuente de
+// storage que ITEMS (localStorage por proyecto) — se filtra por tipo, no por clave distinta,
+// para no requerir migración de datos: el registro físico en Supabase ya vive separado en
+// tracker_incidents desde REQ-202607-005 (done); este array es la contraparte en memoria.
+var INCIDENTS = (() => {
+  const _initProjId = localStorage.getItem('current-project-filter') || '';
+  const _initKey = _initProjId ? 'backlog-items-' + _initProjId : null;
+  const stored = _initKey ? localStorage.getItem(_initKey) : null;
+  if (!stored) return [];
+  try {
+    const items = JSON.parse(stored);
+    return items.filter(i => i.status !== 'historico' && INCIDENT_TYPES.includes(itemKind(i)));
+  } catch {
+    return [];
+  }
+})();
+
 // getItems(): acceso canónico al array ITEMS — reemplaza window.ITEMS (ESM-1 · T-202606-037)
 export function getItems() { return ITEMS; }
+// TKT-202607-005: acceso canónico al array INCIDENTS — mismo patrón que getItems().
+export function getIncidents() { return INCIDENTS; }
 // T-202606-106: barrera común — ITEMS nunca contiene ítems status:historico, sin importar
 // el call site (_loadFromSupabase, undo/redo, purge, normalize, etc). status:historico es
 // de solo lectura, asignado únicamente por Locus al cerrar sprint — vive en su storage
 // dedicado (T-202606-105), nunca en ITEMS.
+// TKT-202607-005: ítem ITIL en _setITEMS() se excluye con console.warn y se enruta a
+// _setIncidents(item) — nunca doble-agregado ni descartado.
 function _setITEMS(arr) {
-  const _safe = Array.isArray(arr) ? arr.filter(i => i.status !== 'historico') : [];
+  const _incoming = Array.isArray(arr) ? arr : [];
+  const _itilMisrouted = _incoming.filter(i => INCIDENT_TYPES.includes(itemKind(i)));
+  if (_itilMisrouted.length) {
+    console.warn('[locus-backlog-core] _setITEMS: ' + _itilMisrouted.length + ' ítem(s) ITIL recibido(s) — enrutado(s) a INCIDENTS, no ITEMS.', _itilMisrouted.map(i => i.code));
+    _itilMisrouted.forEach(i => _setIncidents(i));
+  }
+  const _safe = _incoming.filter(i => i.status !== 'historico' && !INCIDENT_TYPES.includes(itemKind(i)));
   ITEMS.splice(0, ITEMS.length, ..._safe);
+}
+
+// TKT-202607-005: mutador canónico de INCIDENTS — mismo contrato que _setITEMS (filtra
+// historico, nunca doble-agregado). Acepta un ítem individual o un array. Ejecuta
+// _undoSnapshot() antes de mutar (invariant de _undoSnapshot — __BR-Execution §2 anti-pattern
+// "llamado después de la mutación").
+function _setIncidents(itemOrArr) {
+  _undoSnapshot();
+  const _incoming = Array.isArray(itemOrArr) ? itemOrArr : [itemOrArr];
+  const _existing = INCIDENTS.filter(i => !_incoming.some(n => n.code && n.code === i.code));
+  const _merged = [..._existing, ..._incoming].filter(i => i.status !== 'historico');
+  INCIDENTS.splice(0, INCIDENTS.length, ..._merged);
 }
 
 // B-202604-002: undo/redo stack para ITEMS (20 niveles)
@@ -955,6 +1019,12 @@ export function loadBacklog() {
   // R-202605-070: normalizar contrato de datos antes de cualquier uso downstream.
   // _normalizeItems absorbe: type, status, title/desc, id, history, schema_version.
   _setITEMS(_normalizeItems(ITEMS));
+  // TKT-202607-005: INCIDENTS requiere la misma normalización — _setITEMS() enruta ítems
+  // ITIL recibidos vía _setIncidents() en el paso anterior (carga desde localStorage mezcla
+  // ambos tipos), pero _setIncidents() no ejecuta _normalizeItems(). Sin este paso, ítems
+  // ITIL cargados sin schema_version/status normalizado quedarían sin corregir — mismo gap
+  // que _normalizeItems ya resuelve para ITEMS.
+  if (INCIDENTS.length) _setIncidents(_normalizeItems(INCIDENTS));
 
   // B-202606-016: sanear ítems con status:'historico' cuyo sprint no está cerrado.
   // Origen: normalizeStatus acepta 'historico' como canónico — si el dato llegó con
@@ -1005,6 +1075,9 @@ export function loadBacklog() {
 // si no, prefijo multi-char Gen2 del code (REQ-/TKT-/DISC-/INC-/PRB-/KE-/CHG-).
 // Reemplaza a itemType(code) — Gen1 derivaba por un solo carácter (T-049).
 // Sin alias I→P: un code que empieza con 'I-' no resuelve a tipo válido.
+// TKT-202607-005: agnóstica al array de residencia del ítem (ITEMS o INCIDENTS) — sin
+// cambio de firma ni de lógica. Los 12 módulos consumidores (ver _Locus-module-contracts §1)
+// siguen resolviendo tipo sin saber en qué array vive el ítem.
 const GEN2_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'KE', 'CHG'];
 export function itemKind(item) {
   if (!item) return null;
@@ -1135,7 +1208,11 @@ export function _getNextItemCode(typeChar, reservedCodes) {
   const yyyymm = `${year}${month}`;
   const prefix = `${typeChar}-${yyyymm}-`;
   let maxNum = 0;
-  ITEMS.forEach(item => {
+  // TKT-202607-005: buscar colisión de código en el array donde el tipo realmente reside —
+  // ITIL (INCIDENT_TYPES) vive en INCIDENTS, backlog (BACKLOG_TYPES) vive en ITEMS. Antes de
+  // la separación ambos vivían en ITEMS y una sola iteración bastaba.
+  const _sourceArr = INCIDENT_TYPES.includes(typeChar) ? INCIDENTS : ITEMS;
+  _sourceArr.forEach(item => {
     if (item.code && item.code.startsWith(prefix)) {
       const numMatch = item.code.match(new RegExp(`${prefix}(\\d{3})`));
       if (numMatch) {
@@ -1660,12 +1737,15 @@ export function _getCountableBaseForSubtab(sub) {
     return ITEMS.filter(i => _isQDisc(i) && i.status !== 'descartado' && i.status !== 'historico');
   }
   if (sub === 'qinc') {
-    // [tmp:tkt-isqinc-unify]: usa isQIncItem() exportada — misma lógica que locus-backlog-render.js
-    return ITEMS.filter(i => isQIncItem(i) && i.status !== 'descartado' && i.status !== 'historico');
+    // TKT-202607-005: universo Q-INC vive en INCIDENTS, no en ITEMS, desde la separación.
+    // isQIncItem() se conserva — sigue siendo válida como discriminador de tipo/queue,
+    // ahora evaluada sobre el array donde estos ítems realmente residen.
+    return INCIDENTS.filter(i => isQIncItem(i) && i.status !== 'descartado' && i.status !== 'historico');
   }
   if (sub === 'historico') {
-    // Edge case AC — universo Histórico: status historico, excluido explícitamente de _getCountableBase()
-    return ITEMS.filter(i => i.status === 'historico');
+    // Edge case AC — universo Histórico: status historico, excluido explícitamente de _getCountableBase().
+    // TKT-202607-005: histórico puede originarse en cualquiera de los dos arrays — combinar.
+    return ITEMS.filter(i => i.status === 'historico').concat(INCIDENTS.filter(i => i.status === 'historico'));
   }
   // AC2 — Backlog (default): comportamiento preservado sin cambios
   return _getCountableBase();
