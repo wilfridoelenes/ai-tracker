@@ -1,4 +1,7 @@
-// [PP] mod:5 · autor:Rune · 2026-07-05 10:15 UTC-6
+// [PP] mod:6 · autor:Rune · 2026-07-05 11:05 UTC-6
+// INC-[pendiente-ID] — verificado contra locus-storage.js real: p.sprints fue eliminado del blob
+// por REQ-sprints-migration. allSprints (anotaciones de sprint en el gráfico) leía p.sprints →
+// siempre vacío → sin líneas de anotación, en silencio. Fix: getAllProjectsSprints()[p.id].
 // INC-[pendiente-ID]: header migrado a formato canónico (BR-Execution §9) — v/sprint eliminados.
 // INC-[pendiente-ID]: state referenciado sin import en _buildCumulativeFlowChart (2 sitios) —
 // ReferenceError en runtime. Fix: import getState desde locus-storage.js.
@@ -6,7 +9,7 @@
 // construye, 3 sitios: proyecto x2, tipo x1) también se referenciaban bare — mismo patrón, no
 // detectado en el fix anterior porque el ReferenceError de `state` ocurría primero en el flujo.
 import { esc } from './locus-ui-shell.js';
-import { getState } from './locus-storage.js';
+import { getAllProjectsSprints, getState } from './locus-storage.js';
 import { _cfProjId, _cfTypeFilter } from './locus-analytics-core.js';
 // locus-analytics-digest.js
 // Responsabilidad: Gráfico de flujo acumulativo (_buildCumulativeFlowChart).
@@ -107,9 +110,12 @@ export function _buildCumulativeFlowChart() {
     + ' Z';
 
   // ── Anotaciones de sprint ──
+  // INC-[pendiente-ID]: p.sprints eliminado del blob por REQ-sprints-migration (locus-storage.js
+  // §_applyStateData) — allSprints quedaba siempre vacío, sin líneas de anotación de sprint en el
+  // gráfico. Fix: getAllProjectsSprints()[p.id].
   const allSprints = (getState().projects || []).flatMap(p => {
     if (_cfProjId && p.id !== _cfProjId) return [];
-    return (p.sprints || []).map(s => ({ ...s, projName: p.name }));
+    return (getAllProjectsSprints()[p.id] || []).map(s => ({ ...s, projName: p.name }));
   });
 
   const sprintAnnots = allSprints

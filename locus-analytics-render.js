@@ -1,4 +1,9 @@
-// [PP] mod:7 · autor:Rune · 2026-07-05 10:45 UTC-6
+// [PP] mod:8 · autor:Rune · 2026-07-05 11:05 UTC-6
+// INC-[pendiente-ID] — verificado contra locus-storage.js real: p.sprints fue eliminado del blob
+// por REQ-sprints-migration (state.projects[i].sprints ya no se inicializa/migra/lee en
+// _applyStateData). _buildForecastData leía p.sprints para closedSprintIds → siempre vacío →
+// Forecast reportaba "insuficiente" sin importar cuántos sprints hubiera cerrados, en silencio.
+// Fix: getAllProjectsSprints()[p.id] (cache cross-proyecto, fuente real desde la migración).
 // INC-[pendiente-ID]: _analyticsPeriod, _compareProjectIdA/B, _cfProjId, _cfTypeFilter,
 // setAnalyticsPeriod, setCompareProjectA/B, clearComparison, setCfProject, setCfType se referenciaban
 // bare en este archivo (8 identificadores, ~15 sitios) sin import de locus-analytics-core.js.
@@ -16,7 +21,7 @@ import { navigateToItem } from './locus-backlog-sprints.js';
 
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
 
-import { _getActiveProjectFilter, getAllSessions, getProjectById, getState } from './locus-storage.js';
+import { _getActiveProjectFilter, getAllProjectsSprints, getAllSessions, getProjectById, getState } from './locus-storage.js';
 
 import { esc, switchTab } from './locus-ui-shell.js';
 import { itemKind } from './locus-backlog-core.js'; // TKT-D1: itemKind(item) — clasificación Gen2, no letra Gen1
@@ -764,9 +769,12 @@ export async function renderAnalytics() {
     });
 
     // Obtener IDs de sprints cerrados desde state
+    // INC-[pendiente-ID]: p.sprints eliminado del blob por REQ-sprints-migration (locus-storage.js
+    // §_applyStateData) — closedSprintIds quedaba siempre vacío, Forecast reportaba "insuficiente"
+    // sin importar cuántos sprints hubiera cerrados. Fix: getAllProjectsSprints()[p.id].
     const closedSprintIds = new Set(
       (getState()?.projects || [])
-        .flatMap(p => (p.sprints || []))
+        .flatMap(p => (getAllProjectsSprints()[p.id] || []))
         .filter(s => s.status === 'closed')
         .map(s => s.id)
     );
