@@ -1,4 +1,8 @@
-// [PP] mod:87 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:88 · autor:Rune · 2026-07-05 UTC-6
+// INC-[pendiente-ID]: fix chk_status_by_type excluía INC del upsert — saveBacklog() ahora
+//   sincroniza status con incidentStatus para type:INC antes del gate de validación (mutación
+//   en memoria, mismo patrón que el resto del gate). Módulo crítico — activar verificación de
+//   regresiones en Finn. Sin cambio de firma de saveBacklog().
 // TKT1 (limpieza post-rename): lista de módulos consumidores en L1010 actualizada — locus-backlog-archive → locus-backlog-historico. Sin cambio de código.
 // TKT2 + TKT5 (REQ-contract-rename): campo contract → contract_detail en los tres puntos de
 //   mapeo hacia/desde Supabase — _toItemRow() (outgoing, TKT2), rehidratación desde tracker_items
@@ -1065,6 +1069,27 @@ export async function saveBacklog() {
   const _VALID_ITEM_TYPES = new Set(['REQ', 'TKT', 'INC', 'PRB', 'KE', 'CHG', 'DISC']);
 
   const _rawItems = _getItems();
+
+  // INC-[pendiente-ID]: auto-sincronizar status con incidentStatus para ítems tipo INC.
+  // __BR-Core §4: incident_status reemplaza el ciclo pendiente→en-revision→done para ítems
+  // ITIL — es la fuente de verdad del ciclo de vida real de un INC. chk_status_by_type (gate
+  // más abajo) valida la columna genérica `status` contra _VALID_STATUS_BY_TYPE.INC, que
+  // exige los mismos valores ITIL (detected/assigned/in_progress/...). Un INC creado o
+  // patcheado en otro módulo con status:'pendiente' (default genérico) e incidentStatus
+  // correctamente en 'detected' quedaba excluido del upsert — el ítem nunca se persistía
+  // aunque su ciclo de vida ITIL fuera válido. Se corrige en el punto de guardado, mutando
+  // el ítem en memoria (mismo patrón que el resto de este gate — el ítem no se descarta,
+  // se corrige) para que la sincronización sobreviva más allá de esta sola llamada.
+  _rawItems.forEach(it => {
+    if (it.type === 'INC') {
+      const _incStatus = it.incidentStatus || it.incident_status;
+      if (_incStatus && it.status !== _incStatus) {
+        console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} — status:'${it.status}' desincronizado de incidentStatus:'${_incStatus}'. Sincronizando status antes de validar chk_status_by_type.`);
+        it.status = _incStatus;
+      }
+    }
+  });
+
   const items = _rawItems.filter(it => {
     if (it.status === 'historico') {
       console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido — status:historico es de solo lectura, asignado por Locus al cerrar sprint`);

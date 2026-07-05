@@ -1,3 +1,12 @@
+// [PP] mod:71 · autor:Rune · 2026-07-05 UTC-6
+// TKT (limpieza de comentario — hallazgo fuera de scope de [tmp:req-clutter-backlog] TKT1):
+// nota de mod:66 (línea ~38) queda como registro histórico sin cambio — describía correctamente
+// el estado del archivo en ese momento. Se aclara aquí, en un comentario nuevo, que ese estado
+// cambió: TKT1 de REQ-clutter-backlog reintrodujo #fbar-filter-btn como trigger del popover
+// "Filtros ▾" (familia .blf-*, ver locus-ui-shell.js) — propósito distinto al badge suelto que
+// el REQ de consolidación de toolbar había eliminado. #bl-filter-badge sigue sin instancia activa
+// (reemplazado por .blf-badge, no por ID). No se reescribe la nota de mod:66 — sigue siendo
+// verdadera para el momento en que se escribió.
 // [PP] mod:70 · autor:Rune · 2026-07-04 17:01 UTC-6
 // TKT1 (REQ-[pendiente-ID] Ocultar bloque Terminados en Discoveries): _renderZonePanel acepta
 // opts.hasDoneState / opts.hasChildren (default true — sin cambio de comportamiento para
