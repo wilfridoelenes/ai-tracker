@@ -1,3 +1,8 @@
+// [PP] mod:43 · autor:Rune · 2026-07-05 UTC-6
+// TKT-[tmp:tkt-shortcopy] (parent: n/a — standalone, promovido de DISC triggered_by
+//   INC-202607-002): _shortCopy en el listener storage:item-excluded usaba texto fijo
+//   "no puede quedar sin sprint asignado" sin importar la causa real. Corregido — usa
+//   `reason` del evento. Ver detalle en el bloque de código.
 // [PP] mod:42 · autor:Rune · 2026-07-05 UTC-6
 // INC-202607-002 (triggered_by hallazgo de sesión — DIFF bloqueaba guardado de REQ/TKT en
 //   Q-Backlog): sprintPendingItems ya no participa en `blocked` — Q-Backlog es destino válido
@@ -1086,7 +1091,12 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     // Copy corto legible — type llega como string completo del schema (confirmado: locus-storage.js
     // emite it.type directamente en storage:item-excluded, sin letra única).
     const _typeLabel = { REQ: 'un Requerimiento', TKT: 'un Ticket', INC: 'un Incidente', DISC: 'una Idea' }[type] || type;
-    const _shortCopy = `${code || '[pendiente-ID]'} no se guardó — ${_typeLabel} no puede quedar sin sprint asignado.`;
+    // DISC-[tmp:disc-shortcopy] promovida a TKT-[tmp:tkt-shortcopy]: _shortCopy asumía siempre
+    // "sin sprint asignado" como causa — pero storage:item-excluded solo se dispara por
+    // status:historico read-only, type no canónico, o type/status incompatible (ver
+    // locus-storage.js _dispatch('storage:item-excluded', ...)) — nunca por sprint ausente.
+    // Corregido: el summary usa el `reason` real del evento en vez de un texto fijo adivinado.
+    const _shortCopy = `${code || '[pendiente-ID]'} no se guardó — ${reason || `${_typeLabel} excluido por el backlog`}.`;
     const _row = document.createElement('details');
     _row.className = 'mdiff-excluded-row';
     _row.innerHTML = `<summary class="mdiff-excluded-summary">${_shortCopy}</summary>` +
