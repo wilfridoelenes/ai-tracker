@@ -1,3 +1,8 @@
+// [PP] mod:42 · autor:Rune · 2026-07-05 UTC-6
+// INC-202607-002 (triggered_by hallazgo de sesión — DIFF bloqueaba guardado de REQ/TKT en
+//   Q-Backlog): sprintPendingItems ya no participa en `blocked` — Q-Backlog es destino válido
+//   (BR-Ecosystem §5), no requiere sprint real para guardar. Sección derecha renombrada de
+//   "Sprint requerido" a nota informativa "Q-Backlog — sin sprint". Ver _mdiffUpdateConfirmBtn.
 // [PP] mod:41 · autor:Rune · 2026-07-03 UTC-6
 // TKT2-diff-visual: created/advanced/updated migrados a _buildSummaryChipsBlock() —
 // header de sección con toggle eliminado para esas 3 categorías, cards se listan directo.
@@ -888,13 +893,12 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
       if (!sel || !sel.value) discardPendingItems.push({ item, idx });
     });
 
-    // T-202606-001 (TKT-B2): ítem nuevo REQ/TKT sin sprint efectivo bloquea aplicación —
-    // sin sprint es zona exclusiva de Q-Backlog (BR-Ecosystem §5). El founder debe elegir
-    // sprint real vía el _sprintSelect ya presente en la card antes de poder guardar.
+    // T-202606-001 (TKT-B2) — CORREGIDO por INC-202607-002: esta rama originalmente bloqueaba
+    // el guardado de todo REQ/TKT nuevo sin sprint, contradiciendo BR-Ecosystem §5 — Q-Backlog
+    // es zona persistente válida y NO bloquea el CHECKPOINT. sprintPendingItems se conserva
+    // solo para la nota informativa de la columna derecha — ya no participa en `blocked`.
     // DISC e INC nunca entran aquí — filtrados explícitamente por tipo (DISC vive siempre en
     // Q-DISC, INC vive siempre en Q-INC vía campo `queue` — ninguno de los dos usa `sprint`).
-    // Bugfix INC-202607-002: INC estaba incluido en este filtro junto con REQ/TKT — bloqueaba
-    // el guardado de todo INC nuevo pidiendo sprint, contradiciendo que INC vive en Q-INC.
     const sprintPendingItems = [];
     [...diff.created, ...diff.createdAndClosed].forEach((item) => {
       // item.type es el string completo del schema (REQ/TKT/INC/DISC) — fuente canónica.
@@ -913,7 +917,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
 
     // TKT-202606-011 AC3: draftPending bloquea el guardado igual que los demás pendientes —
     // el botón permanece deshabilitado mientras el CHECKPOINT no tenga aval de Finn (draft:false).
-    const blocked = retroPendingItems.length > 0 || discardPendingItems.length > 0 || sprintPendingItems.length > 0 || _draftPending;
+    // INC-202607-002: sprintPendingItems excluido de `blocked` — Q-Backlog es destino válido
+    // (BR-Ecosystem §5), no requiere confirmación para guardar.
+    const blocked = retroPendingItems.length > 0 || discardPendingItems.length > 0 || _draftPending;
     applyBtn.disabled = blocked;
     applyBtn.classList.toggle('mdiff-apply-blocked', blocked);
     if (backlogBtn) {
@@ -936,9 +942,9 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
 
       let html = '';
 
-      // Banner de advertencia si hay pendientes
+      // Banner de advertencia si hay pendientes bloqueantes — sprintPendingItems ya no cuenta (INC-202607-002)
       if (blocked) {
-        const pendingCount = retroPendingItems.length + discardPendingItems.length + sprintPendingItems.length;
+        const pendingCount = retroPendingItems.length + discardPendingItems.length;
         html += `
           <div class="mdiff-right-banner mdiff-right-banner--warn">
             <span class="mdiff-right-banner-icon">⚠</span>
@@ -950,15 +956,15 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         html += `<div class="mdiff-pending-ok">✓ Listo para guardar</div>`;
       }
 
-      // Sección sprint requerido — T-202606-001
+      // Sección informativa Q-Backlog — INC-202607-002: visibilidad, no bloquea (BR-Ecosystem §5)
       if (hasSprintPending) {
-        html += `<div class="mdiff-right-section-title">Sprint requerido</div>`;
+        html += `<div class="mdiff-right-section-title">Q-Backlog — sin sprint</div>`;
         sprintPendingItems.forEach((item) => {
           html += `
             <div class="mdiff-right-sprint-pending-row">
               <span class="mdiff-code mdiff-code--sm">${esc(item.code)}</span>
               <span class="mdiff-right-sprint-pending-desc">${esc(item.title || '')}</span>
-              <span class="mdiff-right-sprint-pending-hint">sin sprint asignado — elegir sprint en la card</span>
+              <span class="mdiff-right-sprint-pending-hint">válido — queda en Q-Backlog en espera de sprint</span>
             </div>`;
         });
       }
