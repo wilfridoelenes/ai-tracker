@@ -1,4 +1,4 @@
-// [PP] mod:1 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:2 · autor:Rune · 2026-07-05 UTC-6
 // locus-backlog-qdisc.js
 // Responsabilidad: renderQDiscPanel — render del sub-tab Q-DISC (Discoveries: DISC, único tipo
 //   aceptado — __BR-Ecosystem §5) — + su listener de sub-tab y su re-render reactivo sobre
@@ -7,8 +7,13 @@
 //
 // REQ refactor-zonas TKT4: extraído de locus-backlog-render.js (mod:72) sin cambio de
 // comportamiento observable. Sin bloque "Terminados": DISC nunca alcanza status 'done'
-// (ver REQ congruencia-qdisc previo — hasDoneState/hasChildren:false, sin #qdisc-done-group
-// en el DOM, sin _attachDoneGroupToggle('qdisc')).
+// (ver REQ congruencia-qdisc previo — hasDoneState/hasChildren:false, sin _attachDoneGroupToggle
+// ('qdisc') llamado nunca desde este módulo).
+//
+// TKT-202607-012 (TKT4 REQ-202607-006): #qdisc-done-group era shell HTML muerto en index.html
+// (sin JS que lo poblara desde este módulo) — eliminado. _renderZonePanel (zone-engine.js) sigue
+// resolviendo `${nsKey}-done-group` a null para 'qdisc' sin romperse — guard ya existente, sin
+// cambio de firma ni de comportamiento en el motor compartido.
 
 import { _isQDiscActive } from './locus-backlog-core.js';
 import { _renderZonePanel } from './locus-backlog-zone-engine.js';

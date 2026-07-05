@@ -1,4 +1,4 @@
-<!-- [PP] mod:100 · autor:Rune · 2026-07-05 UTC-6 -->
+<!-- [PP] mod:101 · autor:Rune · 2026-07-05 UTC-6 -->
 <!-- TKT2-[pendiente-ID] (REQ split locus-modals.css): link único a locus-modals.css
      reemplazado por 5 links (base/toast/tracker/editor/misc), mismo orden relativo
      respecto a locus-analytics.css (antes) y locus-docs.css (después). -->
@@ -494,16 +494,11 @@
     </div><!-- /sspanel-qbacklog -->
 
     <!-- Sub-panel: Discoveries (Q-DISC) — REQ-C/TKT-C6 -->
+    <!-- TKT-202607-012 (TKT4 REQ-202607-006): bloque #qdisc-done-group eliminado — DISC nunca
+         alcanza status 'done' (__BR-Ecosystem §5), el shell quedó muerto desde REQ congruencia-qdisc.
+         Ver locus-backlog-qdisc.js / locus-backlog-zone-engine.js para el resto del cleanup. -->
     <div class="session-subpanel" id="sspanel-qdisc">
       <div id="qdisc-panel-body"></div>
-      <div class="bl-done-group" id="qdisc-done-group">
-        <div class="bl-done-header" id="qdisc-done-header">
-          <span class="bl-done-arrow">▾</span>
-          <span class="bl-done-label">Terminados</span>
-          <span class="bl-done-count" id="qdisc-done-count">0</span>
-        </div>
-        <div class="bl-done-body" id="qdisc-done-body"></div>
-      </div>
     </div><!-- /sspanel-qdisc -->
 
     <!-- Sub-panel: Q-INC — reemplaza la antigua cola de incidentes -->
