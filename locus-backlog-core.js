@@ -1,4 +1,4 @@
-// [PP] mod:87 · autor:Rune · 2026-07-04 17:10 UTC-6
+// [PP] mod:88 · autor:Rune · 2026-07-05 08:00 UTC-6
 // TKT2 (REQ-clutter-backlog): chips de tipo inline en el toolbar de stats reemplazados
 //   por trigger+popover (#bstats-types-btn / #blt-popover) — conteo por tipo calculado
 //   una sola vez (sin IIFE duplicado). Reaplicado sobre base mod:86 tras discrepancia de
@@ -1206,21 +1206,25 @@ setInterval(() => {
   updateBacklogBanner();
 }, 60000);
 
-function badgeClass(p) {
+// INC-[pendiente-ID] (triggered_by: auditoría de código — n/a ejecución): consolidado como fuente
+// única del ecosistema para badgeClass/badgeLabel/statusClass/statusLabel — locus-backlog-item.js
+// tenía copias locales divergentes que generaban clases CSS inexistentes (badge-prio-*,
+// badge-status-pendiente) en el render de child items. Exportadas para que item.js las consuma.
+export function badgeClass(p) {
   return {high:'badge-high', medium:'badge-medium', low:'badge-low',
           critical:'badge-high', important:'badge-high', mejora:'badge-medium',
           futura:'badge-low'}[p] || 'badge-area';
 }
-function badgeLabel(p) {
+export function badgeLabel(p) {
   return {high:'Alto', medium:'Medio', low:'Bajo',
           critical:'Alto', important:'Alto', mejora:'Medio', futura:'Bajo'}[p] || p;
 }
-function statusClass(s) {
+export function statusClass(s) {
   // B-202605-229: historico agregado como status canónico
   // T-202605-040: en-revision agregado como status canónico
   return {'pendiente':'badge-status-backlog','en-revision':'badge-status-en-revision','done':'badge-status-done','descartado':'badge-status-descartado','historico':'badge-status-historico'}[s] || 'badge-status-backlog';
 }
-function statusLabel(s) {
+export function statusLabel(s) {
   // B-202605-229: historico agregado como status canónico
   // T-202605-040: en-revision agregado como status canónico
   return {'pendiente':'Pendiente','en-revision':'En revisión','done':'Hecho','descartado':'Descartado','historico':'Histórico'}[s] || s;

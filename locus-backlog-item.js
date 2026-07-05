@@ -1,4 +1,4 @@
-// [PP] mod:71 · autor:Rune · 2026-07-05 06:40 UTC-6
+// [PP] mod:72 · autor:Rune · 2026-07-05 08:00 UTC-6
 // INC-202607-004 (triggered_by TKT-202607-001 — módulo crítico: transversal + persistencia
 //   primaria): mergeBacklogFromTG normalizaba parent→parentId DESPUÉS de _assignPendingIds —
 //   _assignPendingIds resuelve parentId vía slugMap en su Paso 2, pero el campo aún se llamaba
@@ -45,7 +45,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142)
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -89,19 +89,9 @@ let _blFooterCollapsed = false;
 // Labels de tipo de ítem para display en UI
 const TYPE_LABELS = { REQ: 'Requerimiento', TKT: 'Ticket', INC: 'Incidente', DISC: 'Discovery', PRB: 'Problem', KE: 'Known Error', CHG: 'Change' }; // TKT-B2a: PRB/KE/CHG — ningún ítem ITIL muestra undefined en badge de tipo
 
-// Helpers de badge — funciones del monolito original declaradas localmente al modularizar
-function badgeLabel(priority) {
-  return { high: 'Alta', medium: 'Media', low: 'Baja' }[priority] || priority || '—';
-}
-function badgeClass(priority) {
-  return 'badge-prio-' + (priority || 'medium');
-}
-function statusLabel(status) {
-  return { pendiente: 'Pendiente', 'en-revision': 'En revisión', done: 'Done', descartado: 'Descartado', historico: 'Histórico' }[status] || status || '—';
-}
-function statusClass(status) {
-  return 'badge-status-' + (status || 'pendiente');
-}
+// INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass consolidados en
+// locus-backlog-core.js — importadas arriba. Las copias locales generaban clases CSS
+// inexistentes (badge-prio-*, badge-status-pendiente) en el render de child items.
 
 // B-202604-194: flag de sesión — ítems cuyo AC fue reemplazado via merge. Se vacía al recargar.
 const _acReplacedSet = new Set();
