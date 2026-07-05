@@ -1,4 +1,4 @@
-/* [PP] mod:41 · autor:Nova · 2026-07-04 UTC-6 */
+/* [PP] mod:42 · autor:Nova · 2026-07-05 UTC-6 */
 /* TKT1-diff-visual: gap de contraste resuelto — estándar correcto es 3:1 (elemento gráfico
    no-texto, WCAG 2.1 AA), no 4.5:1 (texto). Solo --green en light fallaba (2.99:1/2.82:1);
    revertido override previo de --yellow/--slate que no lo necesitaban. */
@@ -2590,31 +2590,6 @@
 
 /* END T-202604-355 */
 
-/* ── T-202604-360: Footer colapsable — contadores + filtros ── */
-/* .backlog-footer-fixed eliminado en consolidación T-[pendiente-ID] — 0 referencias en
-   index.html ni locus-backlog-item.js (updateBacklogFooter usa #backlog-footer).
-   Contenedor sticky vive ahora solo en .backlog-footer (locus-proyectos.css, T-202606-footer-fix). */
-
-.bl-footer-row {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  padding: .3rem 0;
-  flex-wrap: wrap;
-  transition: max-height .2s ease, opacity .2s ease, padding .2s ease;
-  max-height: 60px;
-  overflow: hidden;
-}
-
-.bl-footer-row--hidden {
-  max-height: 0;
-  opacity: 0;
-  padding: 0;
-  pointer-events: none;
-}
-
-/* END T-202604-360 */
-
 /* ── T-202604-361: Sprint Roadmap — chip activo fijo y prominente ── */
 .rm-chip--pinned {
   order: -1;
@@ -2763,12 +2738,6 @@
 
 /* ══ END S-07 ══ */
 
-/* ── T-202604-360 Addendum: clases internas del footer ── */
-/* #backlog-footer (id) eliminado en consolidación T-[pendiente-ID] — ganaba por especificidad
-   sobre .backlog-footer (locus-proyectos.css, T-202606-footer-fix), contradiciendo el fix de
-   alineación de ese comentario. El elemento real conserva id="backlog-footer" en index.html
-   para lookup de locus-backlog-item.js — solo se elimina el selector CSS por id. */
-
 .bl-fc {
   font-size: var(--text-2xs);
   color: var(--text2);
@@ -2814,11 +2783,6 @@
   border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
   letter-spacing: .02em;
 }
-
-/* .bl-footer-filter-group · .bl-filter-label · .bl-filter-chip (+ span, hover/active) ·
-   .bl-fc-type-*.active · .bl-footer-clear eliminados en consolidación T-[pendiente-ID] —
-   duplicados en uso real con valores distintos a locus-proyectos.css (T-202606-070).
-   Canónico único: locus-proyectos.css. */
 
 /* END T-202604-360 Addendum */
 
@@ -2936,24 +2900,6 @@ body:not([data-theme]) .theme-toggle-btn::before {
   font-size: var(--text-xs);
   color: var(--text-muted, var(--text2));
   pointer-events: none;
-}
-
-/* T-202606-099: toggle de filtros del backlog en footer global */
-.gf-footer-toggle {
-  font-size: var(--text-3xs);
-  color: var(--text2);
-  background: none;
-  border: none;
-  padding: 1px 5px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  pointer-events: auto;
-  transition: var(--trans-color);
-}
-
-.gf-footer-toggle:hover {
-  background: var(--surface3);
-  color: var(--text);
 }
 
 .gf-ckpt {

@@ -1,4 +1,4 @@
-// [PP] mod:73 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:74 · autor:Rune · 2026-07-05 UTC-6
 // INC-202607-004 (triggered_by TKT-202607-001 — módulo crítico: transversal + persistencia
 //   primaria): mergeBacklogFromTG normalizaba parent→parentId DESPUÉS de _assignPendingIds —
 //   _assignPendingIds resuelve parentId vía slugMap en su Paso 2, pero el campo aún se llamaba
@@ -82,9 +82,6 @@ const _BLOCKED_DAYS = 14;
 
 // Estado de colapso de bloques de hijos (R → Ts) — compartido con locus-backlog-render.js via export
 export const _collapsedChildren = new Set();
-
-// Estado de colapso del footer de filtros del backlog
-let _blFooterCollapsed = false;
 
 // Labels de tipo de ítem para display en UI
 const TYPE_LABELS = { REQ: 'Requerimiento', TKT: 'Ticket', INC: 'Incidente', DISC: 'Discovery', PRB: 'Problem', KE: 'Known Error', CHG: 'Change' }; // TKT-B2a: PRB/KE/CHG — ningún ítem ITIL muestra undefined en badge de tipo
@@ -1640,83 +1637,6 @@ export function clearBacklogSearch() {
   renderStats(); // B-202605-205: restaurar contadores al limpiar búsqueda
 }
 
-export function updateBacklogFooter() {
-  // T-202604-360: footer fijo colapsable — dos filas: info + filtros accionables
-  const footer = document.getElementById('backlog-footer');
-  if (!footer) return;
-
-  // Delegation para filter chips del footer — se registra una sola vez
-  if (!footer._delegationAttached) {
-    footer._delegationAttached = true;
-    footer.addEventListener('click', function _blFooterClick(e) {
-      const btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      const act = btn.dataset.action;
-      if (act === 'footer-type-filter') {
-        toggleTypeFilter(btn.dataset.type);
-      } else if (act === 'footer-status-filter') {
-        toggleStatusFilter(btn.dataset.status);
-      } else if (act === 'footer-effort-filter') {
-        toggleEffortFilter(parseInt(btn.dataset.effort, 10));
-      } else if (act === 'footer-clear-filters') {
-        clearAllFilters();
-      }
-    });
-  }
-
-  // TKT-C2: 'promoted' (Gen2). Edge case: datos legacy 'promovida' también excluidos.
-  const _isActive = i => i.status !== 'descartado' && i.status !== 'promoted' && i.status !== 'promovida' && i.status !== 'historico';
-  const pend        = getItems().filter(i => _isActive(i) && i.status === 'pendiente').length;
-  const enRevision  = getItems().filter(i => _isActive(i) && i.status === 'en-revision').length;
-  // B-202606-036: done+icebox no contabiliza — consistente con stats-bar (Capa 3 per BR-Ecosystem §5)
-  const done        = getItems().filter(i => _isActive(i) && i.status === 'done' && !(!i.sprint || i.sprint === 'icebox')).length;
-  const byType      = { INC: 0, TKT: 0, REQ: 0, DISC: 0 };
-  // T-202606-096: byType usa mismo universo activos — status ≠ descartado ≠ promovida ≠ historico
-  // + excluye done+icebox (Capa 3 BR-Ecosystem §5) para que INC+TKT+REQ+DISC = Pendiente+EnRevisión+Done
-  getItems().forEach(i => {
-    if (!_isActive(i)) return;
-    if (i.status === 'done' && (!i.sprint || i.sprint === 'icebox')) return;
-    const t = itemKind(i); if (t && byType[t] !== undefined) byType[t]++;
-  });
-  const activeSp = _getActiveSprint();
-
-  const _emitidosF = getItems().length;
-  const _doneF = getItems().filter(i => i.status === 'done').length;
-  const _descartadosF = getItems().filter(i => i.status === 'descartado').length;
-  const _promovidasF = getItems().filter(i => i.status === 'promoted' || i.status === 'promovida').length;
-  const _cerradosF = _descartadosF + _promovidasF;
-
-  footer.innerHTML = `
-    <div class="bl-footer-row bl-footer-row--single" id="bl-footer-filters">
-      <div class="bl-footer-filter-group bl-footer-group--historical">
-        <span class="bl-filter-label">Histórico</span>
-        <span class="sph-item" title="${_emitidosF} ítems totales">${_emitidosF} emitidos</span><span class="sph-sep">·</span><span class="sph-item">${_doneF} hechos</span><span class="sph-sep">·</span><span class="sph-item sph-cerrados" title="${_descartadosF} descartados · ${_promovidasF} promovidas">${_cerradosF} cerrados sin trabajo</span>
-      </div>
-      <div class="bl-footer-filter-group">
-        <span class="bl-filter-label">Tipo</span>
-        ${[['B','Bug'],['T','Ticket'],['R','Req'],['P','Pos.']].map(([t,l]) =>
-          `<button class="bl-filter-chip bl-fc-type-${t}${_getActiveTypes().has(t) ? ' active' : ''}" data-action="footer-type-filter" data-type="${t}" title="${l}">${t} <span>${byType[t]}</span></button>`
-        ).join('')}
-      </div>
-      <div class="bl-footer-filter-group">
-        <span class="bl-filter-label">Esfuerzo</span>
-        ${[1,2,3].map(e => {
-          const cnt = getItems().filter(i => _isActive(i) && (parseInt(i.effort)||1) === e).length;
-          return `<button class="bl-filter-chip${_getActiveEfforts().has(e) ? ' active' : ''}" data-action="footer-effort-filter" data-effort="${e}" title="Effort ${e}">E${e} <span>${cnt}</span></button>`;
-        }).join('')}
-      </div>
-    </div>
-  `;
-
-  // restaurar estado colapsado si aplica
-  if (_blFooterCollapsed) {
-    const filtersRow = document.getElementById('bl-footer-filters');
-    const toggleBtn  = document.getElementById('bl-footer-toggle');
-    if (filtersRow) filtersRow.classList.add('bl-footer-row--hidden');
-    if (toggleBtn)  toggleBtn.textContent = '▼';
-  }
-}
-
 // B-202604-198: Helper — detecta si un code es placeholder (nunca matchear contra backlog)
 export function _isPlaceholderCode(code) {
   if (!code) return true;
@@ -2939,5 +2859,3 @@ export function buildQIncItem(item) {
 }
 
 // T-202606-072: listeners shell:* — desacoplamiento de módulos consumidores
-// locus-backlog-core.js despacha shell:backlog-footer-update en lugar de llamar directamente
-window.addEventListener('shell:backlog-footer-update', () => { updateBacklogFooter(); });

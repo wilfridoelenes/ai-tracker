@@ -1,4 +1,4 @@
-// [PP] mod:89 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:90 · autor:Rune · 2026-07-05 UTC-6
 // TKT-202607-005 (REQ-202607-003 · Separación completa del modelo en memoria): array INCIDENTS
 //   separado de ITEMS. itemKind() resuelve tipos ITIL (INC/PRB/KE/CHG) contra INCIDENTS
 //   y tipos backlog (REQ/TKT/DISC) contra ITEMS — antes ambos vivían en ITEMS. _GEN2_TYPES
@@ -114,7 +114,6 @@ export function _registerCoreCallback(name, fn) {
 // shell:* events despachados por este módulo (todos en window per B-202606-021):
 //   shell:backlog-render-dirty  → listener: _markBacklogListDirty() + renderBacklogList()
 //   shell:backlog-filter-changed → listener: updateClearFilterBtn()
-//   shell:backlog-footer-update  → listener: updateBacklogFooter()
 //   shell:backlog-modified       → listener: _setBacklogModified()
 //   shell:backlog-subtab-update  → listener: _updateSubTabButtons(detail.tab)
 //   shell:sprint-render          → listener: renderSprintBurndown() + renderSprintItems()
@@ -447,7 +446,6 @@ function _saveActiveStatuses() {
   try { localStorage.setItem(_ACTIVE_STATUSES_KEY, JSON.stringify([...activeStatuses])); } catch {}
 }
 let activeStatuses = _loadActiveStatuses(); // done oculto por defecto si no hay valor guardado
-let _blFooterCollapsed = false; // T-202604-360: footer fijo colapsable
 
 const VERSIONS_ORDER = ['v2.0.0','futura'];
 const VERSION_LABELS = {
@@ -1248,14 +1246,12 @@ export function updateBacklogBanner() {
   const banner    = document.getElementById('backlog-meta-banner');
   const exportBtn = document.getElementById('export-backlog-btn');
   const gfItems   = document.getElementById('gf-items');
-  const gfToggle  = document.getElementById('gf-footer-toggle');
   const _bannProjId = _coreCallbacks.getActiveProjectFilter?.() || localStorage.getItem('current-project-filter') || '';
   if (!_bannProjId || !ITEMS.length) {
     if (!_bannProjId || !ITEMS.length) {
       if (banner)    banner.classList.remove('visible');
       if (exportBtn) exportBtn.classList.add("is-hidden");
       if (gfItems)   gfItems.classList.add('is-hidden');
-      if (gfToggle)  gfToggle.classList.add('is-hidden');
       return;
     }
   }
@@ -1274,7 +1270,6 @@ export function updateBacklogBanner() {
   const _doneForBanner = _bannerBase.filter(i => i.status === 'done').length;
   const label = _countForBanner + ' ítem' + (_countForBanner !== 1 ? 's' : '') + ' · ' + _doneForBanner + ' done';
   if (gfItems)  { gfItems.textContent = label; gfItems.classList.remove('is-hidden'); }
-  if (gfToggle) gfToggle.classList.remove('is-hidden');
 }
 
 // Actualizar el indicador de importado cada minuto
@@ -2166,16 +2161,6 @@ export function _getMiViewLabel() {
   return 'Mi vista: ' + role;
 }
 
-// T-202604-360: toggle footer fijo colapsable
-// T-202606-099: toggleBtn migrado a #gf-footer-toggle en global-footer
-function toggleBacklogFooter() {
-  _blFooterCollapsed = !_blFooterCollapsed;
-  const filtersRow = document.getElementById('bl-footer-filters');
-  const toggleBtn  = document.getElementById('gf-footer-toggle');
-  if (filtersRow) filtersRow.classList.toggle('bl-footer-row--hidden', _blFooterCollapsed);
-  if (toggleBtn)  toggleBtn.textContent = _blFooterCollapsed ? '▼' : '▲';
-}
-
 // AC: aria tablist — sincroniza atributos aria-selected (vistas de agrupación) y aria-checked (modificadores)
 // Vistas de agrupación: Kanban · Vista Lista (default)
 // Modificadores combinables: Focus · Mi vista
@@ -2559,9 +2544,5 @@ document.addEventListener('DOMContentLoaded', function () {
   window.addEventListener('shell:togglePriorityFilter', function (e) {
     togglePriorityFilter(e.detail && e.detail.val);
   });
-
-  // T-202606-099: toggle de filtros del backlog desde footer global
-  const _btnGfToggle = document.getElementById('gf-footer-toggle');
-  if (_btnGfToggle) _btnGfToggle.addEventListener('click', function () { toggleBacklogFooter(); });
 
 });

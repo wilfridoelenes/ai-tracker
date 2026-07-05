@@ -1,4 +1,4 @@
-// [PP] mod:12 · autor:Rune · 2026-07-03 UTC-6
+// [PP] mod:13 · autor:Rune · 2026-07-05 UTC-6
 // TKT1 REQ-cleanup-toolbar-legacy: eliminado bloque no-op ftypes/fstatus — #filter-bar-types
 //   no existe en HTML, #filter-bar-status nunca tuvo is-hidden. Guard `if (typeof getItems()...)`
 //   y las tres llamadas (renderStats/updateBacklogBanner/updateStatusFilterUI) se preservan.
@@ -27,8 +27,6 @@ import { setAnalyticsRange } from './locus-analytics-core.js'; // T-202606-089 A
 
 import { loadBacklog, renderStats, updateBacklogBanner, updateStatusFilterUI, getItems} from './locus-backlog-core.js';
 import { closeQuickCapture } from './locus-sesiones-capture.js';
-
-import { updateBacklogFooter } from './locus-backlog-item.js';
 
 import { renderBacklogList } from './locus-backlog-render.js';
 
@@ -538,7 +536,6 @@ document.addEventListener('DOMContentLoaded', function _sprintProjectUIInit() {
   _updateProjBreadcrumb();
   _updateProjFilterBtn();
   _updateHeaderProjectLabel();
-  updateBacklogFooter(); // B-[pendiente-ID]: movida desde nivel raíz — espera inicialización completa de locus-backlog-item.js
 
   const _projPanelOverlay = document.getElementById('proj-panel-overlay');
   if (_projPanelOverlay) {
