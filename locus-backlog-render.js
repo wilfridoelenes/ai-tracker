@@ -1,4 +1,4 @@
-// [PP] mod:74 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:75 · autor:Rune · 2026-07-05 UTC-6
 // REQ refactor-zonas TKT5: _renderDoneGroup/_attachDoneGroupToggle/_renderZonePanel/
 // renderQBacklogPanel/renderQDiscPanel/_initQBacklogSubTab/_initQDiscSubTab + listener
 // shell:backlog-render-dirty compartido, removidos — ahora en locus-backlog-zone-engine.js
@@ -683,23 +683,31 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
 
   // AC9: delegación vl-toggle-r — toggle de colapso de hijos de R en Vista Lista
   // AC5: persiste en localStorage bajo clave 'locus-r-collapsed-[rCode]'
-  listEl.addEventListener('click', function _vlToggleHandler(e) {
-    const btn = e.target.closest('[data-action="vl-toggle-r"]');
-    if (!btn) return;
-    const rCode = btn.dataset.rCode;
-    if (!rCode) return;
-    const body = document.getElementById('bl-vl-req-body-' + CSS.escape(rCode));
-    if (!body) return;
-    const isNowCollapsed = !body.classList.contains('collapsed');
-    body.classList.toggle('collapsed', isNowCollapsed);
-    btn.classList.toggle('collapsed', isNowCollapsed);
-    const _collapseKey = 'locus-r-collapsed-' + rCode;
-    if (isNowCollapsed) {
-      localStorage.setItem(_collapseKey, '1');
-    } else {
-      localStorage.removeItem(_collapseKey);
-    }
-  });
+  // INC-202607-001 (fix): listEl persiste entre renders — solo su innerHTML cambia (línea ~658).
+  // Sin guard, este addEventListener se acumulaba una vez por cada renderBacklogList(), generando
+  // N listeners tras N re-renders y toggles intermitentes (cada listener recalculaba isNowCollapsed
+  // sobre el estado ya mutado por el anterior). _vlToggleBound asegura una sola suscripción por
+  // ciclo de vida del nodo — no depende del AbortController interno de locus-backlog-item.js.
+  if (!listEl._vlToggleBound) {
+    listEl._vlToggleBound = true;
+    listEl.addEventListener('click', function _vlToggleHandler(e) {
+      const btn = e.target.closest('[data-action="vl-toggle-r"]');
+      if (!btn) return;
+      const rCode = btn.dataset.rCode;
+      if (!rCode) return;
+      const body = document.getElementById('bl-vl-req-body-' + CSS.escape(rCode));
+      if (!body) return;
+      const isNowCollapsed = !body.classList.contains('collapsed');
+      body.classList.toggle('collapsed', isNowCollapsed);
+      btn.classList.toggle('collapsed', isNowCollapsed);
+      const _collapseKey = 'locus-r-collapsed-' + rCode;
+      if (isNowCollapsed) {
+        localStorage.setItem(_collapseKey, '1');
+      } else {
+        localStorage.removeItem(_collapseKey);
+      }
+    });
+  }
 
   // search placeholder
   (function _updateSearchPlaceholder() {

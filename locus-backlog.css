@@ -1,4 +1,4 @@
-/* [PP] mod:76 · autor:Nova · 2026-07-05 UTC-6 */
+/* [PP] mod:77 · autor:Nova · 2026-07-05 UTC-6 */
 /* INC-[pendiente-ID] fix: --idea-hue:42 eliminado (:root L3738 + [data-theme="dark"] L4298) —
    causa raíz de "DISC renderiza naranja". Todos los derivados (--idea-color/-dim/-bg/-bg-hover/
    -border/-badge-bg/-badge-text) ahora vienen de var(--purple) vía color-mix, mismo token que
@@ -251,7 +251,7 @@
    Funciones: renderBacklogList · _renderSprintRoadmap · _renderPlanningView */
 
 /* === locus-backlog-item.js ===
-   Funciones: buildBacklogItem · _renderKanban · setFilter · updateBacklogFooter */
+   Funciones: buildBacklogItem · _renderKanban · setFilter */
 
 /* ══ TAB-BACKLOG ══ */
 #tab-backlog {
@@ -1618,11 +1618,6 @@
   padding: 3rem;
   color: var(--hint);
   font-size: var(--text-base);
-}
-
-/* .backlog-footer — estilos base movidos a bloque B-202606-sprint-fix abajo */
-.backlog-footer-legacy-placeholder {
-  display: none;
 }
 
 .backlog-search-count {
@@ -5284,11 +5279,6 @@ er {
 
 /* R-202605-005 · A4-b · utilitarios backlog */
 
-.bl-footer-row--filters {
-  background: var(--accent-subtle);
-  border-top-color: var(--accent-border);
-}
-
 .effort-dots--inline {
   display: inline-flex;
   gap: 2px;
@@ -6130,97 +6120,6 @@ er {
 }
 
 /* ══ END T-202606-026 ══ */
-
-/* ══ T-202606-070 · Separadores visuales entre grupos de filtros en bottom bar ══ */
-
-.bl-footer-row--filters {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px 0;
-  padding: 5px 8px;
-}
-
-.bl-footer-filter-group {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  padding-right: 10px;
-  margin-right: 10px;
-  border-right: 1px solid var(--border2);
-}
-
-.bl-footer-filter-group:last-of-type {
-  border-right: none;
-  padding-right: 0;
-  margin-right: 0;
-}
-
-.bl-filter-label {
-  font-size: var(--text-2xs);
-  color: var(--hint);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  font-weight: 600;
-  flex-shrink: 0;
-  margin-right: 2px;
-}
-
-.bl-filter-chip {
-  font-size: var(--text-xs);
-  font-family: var(--sans, var(--font-sans));
-  font-weight: 500;
-  padding: 2px 7px;
-  border-radius: var(--radius-xs);
-  border: 1px solid var(--border2);
-  background: var(--surface2);
-  color: var(--hint);
-  cursor: pointer;
-  transition: var(--trans-color);
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.bl-filter-chip span {
-  font-size: var(--text-2xs);
-  opacity: 0.7;
-}
-
-.bl-filter-chip:hover {
-  border-color: var(--accent);
-  color: var(--text);
-}
-
-.bl-filter-chip.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #fff;
-}
-
-.bl-filter-chip.active span {
-  opacity: 0.85;
-}
-
-.bl-footer-clear {
-  font-size: var(--text-xs);
-  font-family: var(--sans, var(--font-sans));
-  padding: 2px 7px;
-  border-radius: var(--radius-xs);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--hint);
-  cursor: pointer;
-  margin-left: auto;
-  transition: var(--trans-color);
-}
-
-.bl-footer-clear:hover {
-  color: var(--text);
-  border-color: var(--border2);
-}
-
-/* ══ END T-202606-070 ══ */
 
 /* ══ B-202606-sprint-fix · min-height empty state (backlog-footer y bl-footer-* removidos — REQ eliminación footer) ══ */
 
