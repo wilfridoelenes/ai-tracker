@@ -1,4 +1,4 @@
-/* [PP] mod:39 · autor:Nova · 2026-07-04 UTC-6 */
+/* [PP] mod:40 · autor:Nova · 2026-07-04 UTC-6 */
 /* TKT1-diff-visual: gap de contraste resuelto — estándar correcto es 3:1 (elemento gráfico
    no-texto, WCAG 2.1 AA), no 4.5:1 (texto). Solo --green en light fallaba (2.99:1/2.82:1);
    revertido override previo de --yellow/--slate que no lo necesitaban. */
@@ -880,10 +880,18 @@
   font-size: var(--text-md);
   font-weight: 900;
   flex-shrink: 0;
-  background: color-mix(in srgb, var(--purple) 15%, transparent);
-  color: var(--purple);
-  border: 1px solid color-mix(in srgb, var(--purple) 30%, transparent);
+  background: color-mix(in srgb, var(--_type-color, var(--purple)) 15%, transparent);
+  color: var(--_type-color, var(--purple));
+  border: 1px solid color-mix(in srgb, var(--_type-color, var(--purple)) 30%, transparent);
 }
+
+/* INC-[pendiente-ID]: variantes por tipo — mismo patrón --_type-color de .mdiff-card (línea ~3231) */
+.idp-type-chip.idp-type-INC,  .idp-ac-dot.idp-type-INC  { --_type-color: var(--red); }
+.idp-type-chip.idp-type-TKT,  .idp-ac-dot.idp-type-TKT  { --_type-color: var(--green); }
+[data-theme="light"] .idp-type-chip.idp-type-TKT,
+[data-theme="light"] .idp-ac-dot.idp-type-TKT { --_type-color: #16914c; } /* mismo ajuste de contraste que TKT1-diff-visual */
+.idp-type-chip.idp-type-REQ,  .idp-ac-dot.idp-type-REQ  { --_type-color: var(--blue); }
+.idp-type-chip.idp-type-DISC, .idp-ac-dot.idp-type-DISC { --_type-color: var(--purple); }
 
 .idp-header-meta {
   flex: 1;
@@ -1134,6 +1142,7 @@
   flex-shrink: 0;
   margin-top: 5px;
   opacity: 0.6;
+  background: var(--_type-color, var(--purple));
 }
 
 /* Timeline */
@@ -1165,6 +1174,15 @@
   margin-top: 3px;
   box-shadow: 0 0 0 2px var(--surface);
 }
+
+/* INC-[pendiente-ID]: variantes semánticas — JS ya no calcula color, solo declara la clave */
+.idp-tl-dot--success { background: var(--green); }
+.idp-tl-dot--info     { background: var(--blue); }
+.idp-tl-dot--muted    { background: var(--text2); }
+.idp-tl-dot--hint     { background: var(--hint); }
+.idp-tl-dot--accent   { background: var(--accent); }
+.idp-tl-dot--purple   { background: var(--purple); }
+[data-theme="light"] .idp-tl-dot--success { background: #16914c; } /* mismo ajuste de contraste que TKT1-diff-visual — elemento gráfico no-texto */
 
 .idp-tl-line {
   width: 1px;
@@ -1202,6 +1220,17 @@
   flex: 1;
   min-width: 0;
 }
+
+.idp-tl-label--success { color: var(--green); }
+.idp-tl-label--info     { color: var(--blue); }
+.idp-tl-label--muted    { color: var(--text2); }
+.idp-tl-label--hint     { color: var(--hint); }
+.idp-tl-label--accent   { color: var(--accent); }
+.idp-tl-label--purple   { color: var(--purple); }
+/* [data-theme="light"] .idp-tl-label--success: NO se aplica el override de #16914c aquí —
+   ese valor fue calibrado para el umbral de 3:1 de elemento gráfico (línea ~3242), no para
+   el 4.5:1 de texto. var(--green) queda para texto light-theme hasta verificar el hex real
+   de --surface1/2 y calcular un tono que cumpla 4.5:1. Gap registrado — ver Hallazgo fuera de scope. */
 
 .idp-tl-ts {
   font-size: var(--text-2xs-plus);

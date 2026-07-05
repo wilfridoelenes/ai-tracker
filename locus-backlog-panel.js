@@ -1,4 +1,4 @@
-// [PP] mod:12 · autor:Rune · 2026-07-03 UTC-6
+// [PP] mod:13 · autor:Rune · 2026-07-04 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -318,15 +318,13 @@ function _renderItemPanel(item) {
   if (!panel) return;
 
   const type = itemKind(item) || '';
-  const typeColors = { TKT: '#2ecc78', REQ: '#38bdf8', INC: '#e85555', DISC: '#7c6af7' };
-  const typeColor = typeColors[type] || 'var(--text2)';
   const TYPE_NAMES = { TKT: 'Ticket', REQ: 'Requerimiento', INC: 'Incidente', DISC: 'Discovery' };
 
   // ── Header ──
   const doneBtn = item.status !== 'done' ? `<button class="idp-action-btn idp-action-done" data-action="idp-mark-done" data-code="${esc(item.code)}" title="Marcar done">✓ Done</button>` : '';
   const headerHtml = `
     <div class="idp-header">
-      <div class="idp-type-chip idp-type-${type}" style="--tc:${typeColor}">${type}</div>
+      <div class="idp-type-chip idp-type-${type}">${type}</div>
       <div class="idp-header-meta">
         <span class="idp-code">${esc(item.code)}</span>
         <span class="idp-type-name">${TYPE_NAMES[type] || type}</span>
@@ -369,15 +367,28 @@ function _renderItemPanel(item) {
           ${sprintOrphan}
         </select>`;
 
+  // INC-[pendiente-ID] AC1: DISC — Status es badge de solo lectura (discovery|promoted|descartado, nunca pendiente/done)
+  const _discStatusLabels = { discovery: '◆ discovery', promoted: '➜ promoted', descartado: '🗑 descartado' };
+  const statusCellHtml = type === 'DISC'
+    ? `<span class="idp-meta-value idp-meta-value--readonly">${_discStatusLabels[item.status] || esc(item.status || '—')}</span>`
+    : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="status">
+          <option value="pendiente"${item.status === 'pendiente' ? ' selected' : ''}>⏳ pendiente</option>
+          <option value="done"${item.status === 'done' ? ' selected' : ''}>✓ done</option>
+          <option value="descartado"${item.status === 'descartado' ? ' selected' : ''}>🗑 descartado</option>
+        </select>`;
+
+  // INC-[pendiente-ID] AC2: DISC — Sprint no se renderiza (zona fija Q-DISC, sin campo sprint en schema)
+  const sprintMetaCellHtml = type === 'DISC' ? '' : `
+      <div class="idp-meta-cell">
+        <span class="idp-meta-label">Sprint</span>
+        ${sprintCellHtml}
+      </div>`;
+
   const metaHtml = `
     <div class="idp-meta-grid">
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Status</span>
-        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="status">
-          <option value="pendiente"${item.status === 'pendiente' ? ' selected' : ''}>⏳ pendiente</option>
-          <option value="done"${item.status === 'done' ? ' selected' : ''}>✓ done</option>
-          <option value="descartado"${item.status === 'descartado' ? ' selected' : ''}>🗑 descartado</option>
-        </select>
+        ${statusCellHtml}
       </div>
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Priority</span>
@@ -386,11 +397,7 @@ function _renderItemPanel(item) {
           <option value="medium"${item.priority === 'medium' ? ' selected' : ''}>🟡 medium</option>
           <option value="low"${item.priority === 'low' ? ' selected' : ''}>⚪ low</option>
         </select>
-      </div>
-      <div class="idp-meta-cell">
-        <span class="idp-meta-label">Sprint</span>
-        ${sprintCellHtml}
-      </div>
+      </div>${sprintMetaCellHtml}
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Effort</span>
         <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="effort">
@@ -443,11 +450,11 @@ function _renderItemPanel(item) {
 
   const preCreationHtml = preCreationSessions.length ? `
     <div class="idp-section">
-      <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-section">
+      <div class="idp-section-label idp-section-toggle" data-action="idp-toggle-section" role="button" tabindex="0" aria-expanded="false" aria-controls="idp-pre-creation-list">
         <span>Mencionado antes de creación (${preCreationSessions.length})</span>
         <span class="idp-toggle-arrow">▸</span>
       </div>
-      <div class="idp-sessions-list is-hidden">
+      <div class="idp-sessions-list is-hidden" id="idp-pre-creation-list">
         ${preCreationSessions.map(s => _sessChip(s, false)).join('')}
       </div>
     </div>` : '';
@@ -468,7 +475,7 @@ function _renderItemPanel(item) {
         <span class="idp-toggle-arrow" id="idp-ac-arrow">▾</span>
       </div>
       <div class="idp-ac-list" id="idp-ac-list">
-        ${item.ac.map(c => `<div class="idp-ac-item"><span class="idp-ac-dot" style="--tc:${typeColor}"></span>${esc(c)}</div>`).join('')}
+        ${item.ac.map(c => `<div class="idp-ac-item"><span class="idp-ac-dot idp-type-${type}"></span>${esc(c)}</div>`).join('')}
       </div>
     </div>` : '';
 
@@ -572,7 +579,7 @@ function _buildPanelTimeline(item) {
 
   // Creación
   if (item.createdAt) {
-    entries.push({ ts: item.createdAt, type: 'created', icon: '✦', label: 'Creado', color: 'var(--hint)' });
+    entries.push({ ts: item.createdAt, type: 'created', icon: '✦', label: 'Creado', color: 'hint' });
   }
 
   // Historial de status desde history[]
@@ -582,13 +589,13 @@ function _buildPanelTimeline(item) {
         const fromLabel = h.data.from ? `${h.data.from} → ` : '';
         const toLabel = h.data.to || '?';
         const statusIcons = { done: '✓', pendiente: '⏳', descartado: '🗑' };
-        const statusColors2 = { done: '#2ecc78', pendiente: 'var(--text2)', descartado: 'var(--hint)' };
+        const statusColors2 = { done: 'success', pendiente: 'muted', descartado: 'hint' };
         entries.push({
           ts: h.ts,
           type: 'status',
           icon: statusIcons[toLabel] || '🔄',
           label: `${fromLabel}${toLabel}`,
-          color: statusColors2[toLabel] || 'var(--text2)',
+          color: statusColors2[toLabel] || 'muted',
           sub: h.data.role || ''
         });
       } else if (h.type === 'sprint') {
@@ -596,7 +603,7 @@ function _buildPanelTimeline(item) {
         const to = h.data.to || '— sin asignar';
         // B-202605-241: origin 'checkpoint' (antes 'import') muestra 'CHECKPOINT · [sessionId]'
         const sub = (h.origin === 'checkpoint' || h.origin === 'import') ? `CHECKPOINT${h.sessionId ? ' · ' + h.sessionId : ''}` : '';
-        entries.push({ ts: h.ts, type: 'sprint', icon: '🏃', label: `Sprint: ${from}${to}`, color: '#38bdf8', sub });
+        entries.push({ ts: h.ts, type: 'sprint', icon: '🏃', label: `Sprint: ${from}${to}`, color: 'info', sub });
       } else if (h.type === 'field') {
         const fieldLabel = { effort: 'Effort', priority: 'Priority', area: 'Area', role: 'Role', desc: 'Descripción', ac: 'AC', notes: 'Notas', blockedBy: 'Bloqueado por' }[h.data.field] || h.data.field;
         const from = h.data.from ? `${h.data.from} → ` : '';
@@ -605,39 +612,39 @@ function _buildPanelTimeline(item) {
         if (h.data.field === 'ac' && Array.isArray(h.data.to)) toLabel = `${h.data.to.length} criterio${h.data.to.length !== 1 ? 's' : ''}`;
         // B-202605-241: mismo fix — backward compat con 'import' existente en datos
         const sub = (h.origin === 'checkpoint' || h.origin === 'import') ? `CHECKPOINT${h.sessionId ? ' · ' + h.sessionId : ''}` : '';
-        entries.push({ ts: h.ts, type: 'field', icon: '✎', label: `${fieldLabel}: ${from}${toLabel}`, color: 'var(--text2)', sub });
+        entries.push({ ts: h.ts, type: 'field', icon: '✎', label: `${fieldLabel}: ${from}${toLabel}`, color: 'muted', sub });
       } else if (h.type === 'title') {
         // T-202604-423: cambio de título
         const from = h.data.from ? `"${h.data.from}" → ` : '';
         // B-202605-241: mismo fix
         const sub = (h.origin === 'checkpoint' || h.origin === 'import') ? `CHECKPOINT${h.sessionId ? ' · ' + h.sessionId : ''}` : '';
-        entries.push({ ts: h.ts, type: 'title', icon: '✏', label: `Título: ${from}"${h.data.to || ''}"`, color: 'var(--text2)', sub });
+        entries.push({ ts: h.ts, type: 'title', icon: '✏', label: `Título: ${from}"${h.data.to || ''}"`, color: 'muted', sub });
       } else if (h.type === 'note') {
-        entries.push({ ts: h.ts, type: 'note', icon: '✍', label: h.data.text || '', color: 'var(--accent)' });
+        entries.push({ ts: h.ts, type: 'note', icon: '✍', label: h.data.text || '', color: 'accent' });
       } else if (h.type === 'unblocked') {
-        entries.push({ ts: h.ts, type: 'unblocked', icon: '🔓', label: `Desbloqueado por ${h.data.by || ''}`, color: '#2ecc78' });
+        entries.push({ ts: h.ts, type: 'unblocked', icon: '🔓', label: `Desbloqueado por ${h.data.by || ''}`, color: 'success' });
       } else if (h.type === 'session-linked') {
         // B-246 + B-245: vinculación de sesión con nombre de IA
         const aiLinked = h.aiId && getAI(h.aiId);
         const aiName = aiLinked ? aiLinked.name : (h.aiId || '');
-        entries.push({ ts: h.ts, type: 'session-linked', icon: '🔗', label: `Sesión vinculada${aiName ? ' · ' + aiName : ''}`, color: '#7c6af7', sub: h.data && h.data.sessId ? h.data.sessId : '' });
+        entries.push({ ts: h.ts, type: 'session-linked', icon: '🔗', label: `Sesión vinculada${aiName ? ' · ' + aiName : ''}`, color: 'purple', sub: h.data && h.data.sessId ? h.data.sessId : '' });
       } else if (h.type === 'session-unlinked') {
         // B-246 + B-245: desvinculación de sesión con nombre de IA
         const aiUnlinked = h.aiId && getAI(h.aiId);
         const aiNameU = aiUnlinked ? aiUnlinked.name : (h.aiId || '');
-        entries.push({ ts: h.ts, type: 'session-unlinked', icon: '🔗', label: `Sesión desvinculada${aiNameU ? ' · ' + aiNameU : ''}`, color: 'var(--hint)', sub: h.data && h.data.sessId ? h.data.sessId : '' });
+        entries.push({ ts: h.ts, type: 'session-unlinked', icon: '🔗', label: `Sesión desvinculada${aiNameU ? ' · ' + aiNameU : ''}`, color: 'hint', sub: h.data && h.data.sessId ? h.data.sessId : '' });
       }
     });
   } else if (item.statusChangedAt) {
     // Fallback para ítems sin history[]
     const statusIcons2 = { done: '✓', pendiente: '⏳', descartado: '🗑' };
-    const statusColors3 = { done: '#2ecc78', pendiente: 'var(--text2)', descartado: 'var(--hint)' };
+    const statusColors3 = { done: 'success', pendiente: 'muted', descartado: 'hint' };
     entries.push({
       ts: item.statusChangedAt,
       type: 'status',
       icon: statusIcons2[item.status] || '🔄',
       label: `→ ${item.status}`,
-      color: statusColors3[item.status] || 'var(--text2)'
+      color: statusColors3[item.status] || 'muted'
     });
   }
 
@@ -645,7 +652,7 @@ function _buildPanelTimeline(item) {
   if (item.doneAt && item.status === 'done') {
     const alreadyHasDone = entries.some(e => e.type === 'status' && e.ts === item.doneAt);
     if (!alreadyHasDone) {
-      entries.push({ ts: item.doneAt, type: 'done', icon: '✓', label: 'Completado', color: '#2ecc78' });
+      entries.push({ ts: item.doneAt, type: 'done', icon: '✓', label: 'Completado', color: 'success' });
     }
   }
 
@@ -661,7 +668,7 @@ function _buildPanelTimeline(item) {
           type: 'session',
           icon: '⚡',
           label: (ai ? ai.name + ' · ' : '') + (s.dateShort || s.date || ''),
-          color: '#7c6af7',
+          color: 'purple',
           sub: s.title || ''
         });
       }
@@ -689,13 +696,13 @@ function _buildPanelTimeline(item) {
   const rows = entries.map(e => `
     <div class="idp-tl-entry">
       <div class="idp-tl-dot-col">
-        <div class="idp-tl-dot" style="--tl-color:${e.color}"></div>
+        <div class="idp-tl-dot idp-tl-dot--${e.color}"></div>
         <div class="idp-tl-line"></div>
       </div>
       <div class="idp-tl-content">
         <div class="idp-tl-main">
           <span class="idp-tl-icon">${e.icon}</span>
-          <span class="idp-tl-label" style="--tl-color:${e.color}">${esc(e.label)}</span>
+          <span class="idp-tl-label idp-tl-label--${e.color}">${esc(e.label)}</span>
           <span class="idp-tl-ts" title="${_iso(e.ts)}">${_fmt(e.ts)}</span>
         </div>
         ${e.sub ? `<div class="idp-tl-sub">${esc(e.sub)}</div>` : ''}
@@ -1001,6 +1008,16 @@ function toggleTmplTriggerPanel(btn) {
 //        _idpAddNote · _idpAddNote_fromBtn · _acvSaveEdit
 // T-202605-108: extiende cobertura a .idp-meta-select (change) e .idp-meta-input (blur/keydown)
 // Delegación en document para cubrir panel dinámico que se re-renderiza con cada ítem
+// INC3: toggle accesible — usado por click (idp-toggle-section) y por _onIdpKeydown
+function _toggleIdpSection(el) {
+  const next = el.nextElementSibling;
+  if (next) next.classList.toggle('is-hidden');
+  const arrow = el.querySelector('.idp-toggle-arrow');
+  const isHidden = next && next.classList.contains('is-hidden');
+  if (arrow) arrow.textContent = isHidden ? '▸' : '▾';
+  el.setAttribute('aria-expanded', isHidden ? 'false' : 'true');
+}
+
 (function _attachIdpDelegation() {
   function _onIdpClick(e) {
     const action = e.target.closest('[data-action]');
@@ -1083,13 +1100,14 @@ function toggleTmplTriggerPanel(btn) {
       noteInp.value = '';
       return;
     }
-    // idp-toggle-ac / idp-toggle-history: Enter/Space para accesibilidad
-    const toggle = e.target.closest('[data-action="idp-toggle-ac"],[data-action="idp-toggle-history"]');
+    // idp-toggle-ac / idp-toggle-history / idp-toggle-section: Enter/Space para accesibilidad
+    const toggle = e.target.closest('[data-action="idp-toggle-ac"],[data-action="idp-toggle-history"],[data-action="idp-toggle-section"]');
     if (toggle && (e.key === 'Enter' || e.key === ' ')) {
       e.preventDefault();
       const act = toggle.dataset.action;
       if (act === 'idp-toggle-ac') _idpToggleAc();
       if (act === 'idp-toggle-history') _idpToggleHistory();
+      if (act === 'idp-toggle-section') _toggleIdpSection(toggle);
     }
     // T-202605-108: idp-meta-input area: Enter → blur (guarda via _onIdpBlur)
     const areaInp = e.target.closest('.idp-meta-input');
@@ -1139,13 +1157,9 @@ document.addEventListener('DOMContentLoaded', () => {
         e.stopPropagation();
         _idpUnlinkSession(el.dataset.itemCode, el.dataset.sessId);
         break;
-      case 'idp-toggle-section': {
-        const next = el.nextElementSibling;
-        if (next) next.classList.toggle('is-hidden');
-        const arrow = el.querySelector('.idp-toggle-arrow');
-        if (arrow) arrow.textContent = next && next.classList.contains('is-hidden') ? '▸' : '▾';
+      case 'idp-toggle-section':
+        _toggleIdpSection(el);
         break;
-      }
       case 'idp-open-panel':
         openItemPanel(el.dataset.itemCode);
         break;
