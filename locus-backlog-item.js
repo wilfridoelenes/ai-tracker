@@ -1,4 +1,4 @@
-// [PP] mod:69 · autor:Rune · 2026-07-04 19:10 UTC-6
+// [PP] mod:70 · autor:Rune · 2026-07-05 05:50 UTC-6
 // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT): _assignPendingIds(tgItems, seedSlugMap?) — parámetro nuevo, opcional,
 //   sin cambio de comportamiento si ausente. Seed copiado al inicio del slugMap con precedencia
@@ -2172,7 +2172,13 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       if (_isItilExisting) {
         if (!_noIncidentStatus && item.incidentStatus && item.incidentStatus !== existing.incidentStatus) {
           changes.push({ field: 'incidentStatus', from: existing.incidentStatus || '—', to: item.incidentStatus });
-          if (!_dryRun) { existing.incidentStatus = item.incidentStatus; changed = true; }
+          // INC-[pendiente-ID] (sin camino de reparación para status corrupto en ítems ITIL):
+          // _skipScrumGate (arriba) excluye a INC/PRB/KE del bloque de avance/retroceso Scrum —
+          // ese bloque era el único que escribía existing.status. Sin este mirror, existing.status
+          // queda congelado en el valor con el que el ítem nació (ej. 'pendiente' pre-TKT-PARSER-2b)
+          // para siempre — ni merge ni patch lo corrigen, y chk_status_by_type de Supabase rechaza
+          // el upsert indefinidamente. existing.status espeja existing.incidentStatus para tipos ITIL.
+          if (!_dryRun) { existing.incidentStatus = item.incidentStatus; existing.status = item.incidentStatus; changed = true; }
         }
         // TKT1 (REQ-inc-historico): al cerrar un incidente vía patch/merge, se fija archivedInSprint
         // al sprint 'active' actual — primer valor gana, nunca se recalcula si ya existía (AC fuera
@@ -2600,7 +2606,7 @@ export function _checkAndOrphanParentR(childCode, nowTs) {
 // AC-8: mezcla ítems + patches en mismo ---getItems()--- → parser separa por type
 // AC-9: panel diff muestra solo campos del patch (changes array)
 // AC-11: sin regresión en mergeBacklogFromTG
-const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId', 'promovida_a', 'origenDisc', 'discard_reason']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable · T-202605-137: promovida_a + origenDisc patcheables · T-202606-025: discard_reason patcheable
+const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'incidentStatus', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId', 'promovida_a', 'origenDisc', 'discard_reason']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable · T-202605-137: promovida_a + origenDisc patcheables · T-202606-025: discard_reason patcheable · INC-[pendiente-ID]: incidentStatus patcheable — antes no había campo patcheable que reparara status corrupto en ítems ITIL ya persistidos
 const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version']);
 
 export function applyPatchesFromTG(patches, sessionId, opts) {
@@ -2704,6 +2710,26 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
             // cubre retroceso desde done (en-revision → en-proceso) y avance a en-revision
             _checkAndAdvanceParentR(existing.code, nowTs);
           }
+        }
+        return;
+      }
+
+      if (field === 'incidentStatus') {
+        // INC-[pendiente-ID]: incidentStatus solo aplica a tipos ITIL — no-op silencioso en el resto
+        if (!['INC', 'PRB', 'KE'].includes(itemKind(existing))) return;
+        if (incoming && incoming !== existing.incidentStatus) {
+          const _itResult = validateIncidentTransitions(existing.incidentStatus, incoming);
+          if (!_itResult.valid) {
+            _blogLog('patch-incidentstatus-invalido', code, 'Transición incidentStatus rechazada vía patch: ' + _itResult.reason, 'backlog');
+            return;
+          }
+          changes.push({ field: 'incidentStatus', from: existing.incidentStatus || '—', to: incoming });
+          // Mirror a status — mismo motivo que en mergeBacklogFromTG: sin este espejo, existing.status
+          // queda congelado en el valor con el que el ítem nació y chk_status_by_type sigue rechazando
+          // el upsert indefinidamente, incluso tras patchear incidentStatus correctamente.
+          existing.incidentStatus = incoming;
+          existing.status = incoming;
+          existing.statusChangedAt = nowTs;
         }
         return;
       }
