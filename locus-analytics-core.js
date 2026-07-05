@@ -1,4 +1,11 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-12 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-07-05 10:15 UTC-6
+// INC-[pendiente-ID]: header migrado a formato canónico (BR-Execution §9) — v/sprint eliminados.
+// INC-[pendiente-ID]: _analyticsPeriod, _compareProjectIdA/B, _cfProjId, _cfTypeFilter y sus setters
+// (setAnalyticsPeriod, setCompareProjectA/B, clearComparison, setCfProject, setCfType) eran privados
+// de módulo — render.js y digest.js los referenciaban bare sin import. render.js: _hasComparison
+// (línea 393) los lee de forma incondicional en cada renderAnalytics(), rompiendo el tab completo en
+// el primer render, no solo en interacción. Fix: exportar como bindings vivos de ESM — quien importa
+// ve la reasignación del setter sin copia.
 // locus-analytics-core.js
 // Responsabilidad: State de analytics, período/rango, helpers de fecha,
 //   tooltip, delta, ítems abiertos/cerrados, export semanal MD.
@@ -32,30 +39,32 @@ export function getAnalyticsColor(idx) {
 }
 
 // ── Analytics período: 'week' | 'month' | 'quarter' (default: week) ──
-let _analyticsPeriod = localStorage.getItem('analytics-period') || 'week';
+// INC-[pendiente-ID]: export — render.js lo lee bare en los botones de período (líneas 877-879, 925)
+export let _analyticsPeriod = localStorage.getItem('analytics-period') || 'week';
 // R-202604-070: Comparación side-by-side — dos proyectos independientes
-let _compareProjectIdA = null;
-let _compareProjectIdB = null;
+// INC-[pendiente-ID]: export — render.js lee _compareProjectIdA/B bare (líneas 393, 426-431, 503-505)
+export let _compareProjectIdA = null;
+export let _compareProjectIdB = null;
 // Alias legacy para retrocompatibilidad con setCompareProject existente
-function setCompareProject(projId) {
+export function setCompareProject(projId) {
   _compareProjectIdB = projId || null;
   _markAnalyticsDirty(); renderAnalytics();
 }
-function setCompareProjectA(projId) {
+export function setCompareProjectA(projId) {
   _compareProjectIdA = projId || null;
   _markAnalyticsDirty(); renderAnalytics();
 }
-function setCompareProjectB(projId) {
+export function setCompareProjectB(projId) {
   _compareProjectIdB = projId || null;
   _markAnalyticsDirty(); renderAnalytics();
 }
-function clearComparison() {
+export function clearComparison() {
   _compareProjectIdA = null;
   _compareProjectIdB = null;
   _markAnalyticsDirty(); renderAnalytics();
 }
 
-function setAnalyticsPeriod(p) {
+export function setAnalyticsPeriod(p) {
   _analyticsPeriod = p;
   localStorage.setItem('analytics-period', p);
   document.querySelectorAll('.period-btn').forEach(b => {
@@ -69,10 +78,12 @@ let _analyticsRange = 3;
 export function setAnalyticsRange(n) { _analyticsRange = n; _markAnalyticsDirty(); renderAnalytics(); }
 
 // T-202605-452: Gráfico de flujo acumulativo — filtros de proyecto y tipo
-let _cfProjId   = '';
-let _cfTypeFilter = '';
-function setCfProject(id)   { _cfProjId = id || ''; _markAnalyticsDirty(); renderAnalytics(); }
-function setCfType(t)        { _cfTypeFilter = t || ''; _markAnalyticsDirty(); renderAnalytics(); }
+// INC-[pendiente-ID]: export — render.js (líneas 942, 946-949) y digest.js (_buildCumulativeFlowChart)
+// los leían bare sin import.
+export let _cfProjId   = '';
+export let _cfTypeFilter = '';
+export function setCfProject(id)   { _cfProjId = id || ''; _markAnalyticsDirty(); renderAnalytics(); }
+export function setCfType(t)        { _cfTypeFilter = t || ''; _markAnalyticsDirty(); renderAnalytics(); }
 
 // Devuelve { current: {start,end}, previous: {start,end} } para el período activo
 export function _getPeriodBounds() {
@@ -367,7 +378,9 @@ export function _animateCountUp(container) {
 // solo el blob activo — nunca contaban ítems de sprints cerrados. Fix: merge con
 // getHistoricoItemsSync(p.id), que debe estar poblado por refreshAnalyticsHistoricoCache()
 // ANTES de cualquiera de estos helpers — no hacen I/O propio, permanecen sync.
-function _activeAndHistoricoItems(p) {
+// INC-[pendiente-ID]: exportada — charts.js y render.js la consumían reimplementando el
+// parseo crudo de localStorage sin merge de historico. Única fuente del merge activo+historico.
+export function _activeAndHistoricoItems(p) {
   let active = [];
   try {
     const raw = localStorage.getItem(`backlog-items-${p.id}`);

@@ -1,7 +1,17 @@
-// [PP] v0.2.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-10 14:30 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-07-05 10:15 UTC-6
 // T-202606-166: getProjectById movida a locus-storage.js — import actualizado.
-import { _getPeriodBounds, _parseSpanishDate, _sessInRange, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionYM } from './locus-analytics-core.js';
-import { getAISessions, getAllSessions, getProjectById } from './locus-storage.js';
+// INC-[pendiente-ID]: header migrado a formato canónico (BR-Execution §9) — v/sprint eliminados.
+// INC-[pendiente-ID]: state referenciado sin import en _closedForProj y exportAnalyticsMd —
+// ReferenceError en runtime (ESM sin bundler). Fix: import getState + reemplazo en ambos sitios.
+// INC-[pendiente-ID]: _closedForProj leía backlog-items-{id} crudo sin merge de historico —
+// subcuenta ítems done de sprints cerrados. Fix: usa _activeAndHistoricoItems (core.js).
+// INC-[pendiente-ID]: _buildHourlyInsightData (Métrica B) tenía el mismo patrón sin detectar:
+// `typeof state !== 'undefined'` (línea ~161) nunca es true en ESM sin global — falla en
+// silencio, no lanza error, pero "ítems cerrados por hora" queda siempre vacío. Además leía
+// backlog-items-{id} crudo, mismo gap de historico que _closedForProj. Fix: getState() +
+// _activeAndHistoricoItems(p), con el mismo criterio done/historico de core.js.
+import { _activeAndHistoricoItems, _getPeriodBounds, _parseSpanishDate, _sessInRange, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionYM } from './locus-analytics-core.js';
+import { getAISessions, getAllSessions, getProjectById, getState } from './locus-storage.js';
 
 import { showToast } from './locus-toast.js';
 
@@ -150,24 +160,21 @@ export function _buildHourlyInsightData(allSess) {
     if (h >= 0 && h <= 23) sessCountsByHour[h]++;
   });
 
-  // B — ítems cerrados por hora (closedAt del backlog global)
+  // B — ítems cerrados por hora (closedAt del backlog global, incluye historico de sprints cerrados)
   const closedCountsByHour = new Array(24).fill(0);
   try {
-    const allProjects = (typeof state !== 'undefined' && state.projects) ? state.projects : [];
+    const allProjects = getState().projects || [];
     allProjects.forEach(p => {
-      try {
-        const raw = localStorage.getItem(`backlog-items-${p.id}`);
-        if (!raw) return;
-        JSON.parse(raw).forEach(item => {
-          if (item.status !== 'done') return;
-          const ts = item.closedAt || item.updatedAt;
-          if (!ts) return;
-          const d = new Date(ts);
-          if (isNaN(d.getTime())) return;
-          const h = d.getHours();
-          if (h >= 0 && h <= 23) closedCountsByHour[h]++;
-        });
-      } catch {}
+      _activeAndHistoricoItems(p).forEach(item => {
+        if (item.status !== 'done' && item.status !== 'historico') return;
+        if (item.status === 'historico' && item.discardReason) return;
+        const ts = item.closedAt || item.archivedAt || item.updatedAt;
+        if (!ts) return;
+        const d = new Date(ts);
+        if (isNaN(d.getTime())) return;
+        const h = d.getHours();
+        if (h >= 0 && h <= 23) closedCountsByHour[h]++;
+      });
     });
   } catch {}
 
@@ -286,21 +293,18 @@ export function renderProductivityPatterns() {
   const _pBounds = _getPeriodBounds();
   function _closedForProj(projId) {
     let count = 0;
-    const projsToCheck = projId === '__global__' ? (state.projects || []) : (() => {
+    const projsToCheck = projId === '__global__' ? (getState().projects || []) : (() => {
       const p = getProjectById(projId); return p ? [p] : [];
     })();
     projsToCheck.forEach(p => {
-      try {
-        const raw = localStorage.getItem(`backlog-items-${p.id}`);
-        if (!raw) return;
-        JSON.parse(raw).forEach(item => {
-          if (item.status !== 'done') return;
-          const ts = item.closedAt || item.updatedAt || item.createdAt;
-          if (!ts) return;
-          const d = new Date(ts);
-          if (!isNaN(d) && d >= _pBounds.current.start && d <= _pBounds.current.end) count++;
-        });
-      } catch {}
+      _activeAndHistoricoItems(p).forEach(item => {
+        if (item.status !== 'done' && item.status !== 'historico') return;
+        if (item.status === 'historico' && item.discardReason) return;
+        const ts = item.closedAt || item.updatedAt || item.createdAt;
+        if (!ts) return;
+        const d = new Date(ts);
+        if (!isNaN(d) && d >= _pBounds.current.start && d <= _pBounds.current.end) count++;
+      });
     });
     return count;
   }
@@ -579,7 +583,7 @@ export function exportAnalyticsMd() {
   const rangeLabel = _analyticsRange === 0 ? 'Todo el historial' : `Últimos ${_analyticsRange} mes${_analyticsRange > 1 ? 'es' : ''}`;
 
   // Totales por IA en el período
-  const rows = state.ais.map(ai => {
+  const rows = (getState().ais || []).map(ai => {
     const aiSess = getAISessions(ai.id);
     const count = aiSess.filter(s => {
       const ym = sessionYM(s);

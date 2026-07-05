@@ -1,5 +1,13 @@
-// [PP] v1.2.4 · sprint:PP-S-09 · mod:3 · autor:Rune · 2026-05-29 15:00 UTC-6
+// [PP] mod:5 · autor:Rune · 2026-07-05 10:15 UTC-6
+// INC-[pendiente-ID]: header migrado a formato canónico (BR-Execution §9) — v/sprint eliminados.
+// INC-[pendiente-ID]: state referenciado sin import en _buildCumulativeFlowChart (2 sitios) —
+// ReferenceError en runtime. Fix: import getState desde locus-storage.js.
+// INC-[pendiente-ID]: _cfProjId y _cfTypeFilter (filtros del propio gráfico que esta función
+// construye, 3 sitios: proyecto x2, tipo x1) también se referenciaban bare — mismo patrón, no
+// detectado en el fix anterior porque el ReferenceError de `state` ocurría primero en el flujo.
 import { esc } from './locus-ui-shell.js';
+import { getState } from './locus-storage.js';
+import { _cfProjId, _cfTypeFilter } from './locus-analytics-core.js';
 // locus-analytics-digest.js
 // Responsabilidad: Gráfico de flujo acumulativo (_buildCumulativeFlowChart).
 // Dependencias: locus-analytics-core.js · locus-storage.js
@@ -12,7 +20,7 @@ export function _buildCumulativeFlowChart() {
 
   // ── Recolectar todos los ítems de todos los proyectos (con filtro de proyecto) ──
   const allItems = [];
-  (state.projects || []).forEach(p => {
+  (getState().projects || []).forEach(p => {
     if (_cfProjId && p.id !== _cfProjId) return;
     try {
       const raw = localStorage.getItem(`backlog-items-${p.id}`);
@@ -99,7 +107,7 @@ export function _buildCumulativeFlowChart() {
     + ' Z';
 
   // ── Anotaciones de sprint ──
-  const allSprints = (state.projects || []).flatMap(p => {
+  const allSprints = (getState().projects || []).flatMap(p => {
     if (_cfProjId && p.id !== _cfProjId) return [];
     return (p.sprints || []).map(s => ({ ...s, projName: p.name }));
   });

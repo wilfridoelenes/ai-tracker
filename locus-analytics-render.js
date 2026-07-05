@@ -1,6 +1,16 @@
-// [PP] mod:5 · autor:Rune · 2026-07-04 UTC-6
+// [PP] mod:7 · autor:Rune · 2026-07-05 10:45 UTC-6
+// INC-[pendiente-ID]: _analyticsPeriod, _compareProjectIdA/B, _cfProjId, _cfTypeFilter,
+// setAnalyticsPeriod, setCompareProjectA/B, clearComparison, setCfProject, setCfType se referenciaban
+// bare en este archivo (8 identificadores, ~15 sitios) sin import de locus-analytics-core.js.
+// _hasComparison (línea ~393) los lee sin guardia en cada renderAnalytics() → ReferenceError en el
+// primer render del tab, no solo al interactuar con comparación/filtros. Fix: import de los bindings
+// ya exportados por core.js.
+// INC-[pendiente-ID] — gap detectado en auditoría de Finn: el fix de historico (mismo INC que
+// _closedForProj en charts.js) no se había propagado a _cycleTimeData (2 sitios) ni a
+// _buildForecastData (1 sitio) — seguían leyendo backlog-items-{id} crudo. Fix: _activeAndHistoricoItems
+// con el mismo criterio done/historico de core.js.
 import { renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
-import { _closedItemsInRange, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, refreshAnalyticsHistoricoCache, sessionDateKey } from './locus-analytics-core.js';
+import { _activeAndHistoricoItems, _analyticsPeriod, _cfProjId, _cfTypeFilter, _closedItemsInRange, _compareProjectIdA, _compareProjectIdB, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, clearComparison, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, refreshAnalyticsHistoricoCache, sessionDateKey, setAnalyticsPeriod, setCfProject, setCfType, setCompareProjectA, setCompareProjectB } from './locus-analytics-core.js';
 
 import { navigateToItem } from './locus-backlog-sprints.js';
 
@@ -514,31 +524,28 @@ export async function renderAnalytics() {
     const outlierCandidates = [];
 
     (getState()?.projects || []).forEach(p => {
-      try {
-        const raw = localStorage.getItem(`backlog-items-${p.id}`);
-        if (!raw) return;
-        JSON.parse(raw).forEach(item => {
-          if (item.status !== 'done') return;
-          const created = item.createdAt || item.StatusChangedAt;
-          const closed  = item.closedAt || item.updatedAt;
-          if (!created || !closed) return;
-          const days = Math.max(0, Math.round((closed - created) / 86400000));
-          const t = (item.code || '')[0];
-          const e = parseInt(item.effort) || 1;
-          const entry = {
-            days,
-            code:    item.code  || '—',
-            title:   item.title || item.desc || '—',
-            type:    t,
-            itemType: item.type, // TKT-D1: campo Gen2 original — input de itemKind(), no deriva de code[0]
-            effort:  e,
-            projId:  p.id,
-          };
-          if (byType[t])           byType[t].push(entry);
-          if (byEffort[e])         byEffort[e].push(entry);
-          outlierCandidates.push(entry);
-        });
-      } catch {}
+      _activeAndHistoricoItems(p).forEach(item => {
+        if (item.status !== 'done' && item.status !== 'historico') return;
+        if (item.status === 'historico' && item.discardReason) return;
+        const created = item.createdAt || item.StatusChangedAt;
+        const closed  = item.closedAt || item.archivedAt || item.updatedAt;
+        if (!created || !closed) return;
+        const days = Math.max(0, Math.round((closed - created) / 86400000));
+        const t = (item.code || '')[0];
+        const e = parseInt(item.effort) || 1;
+        const entry = {
+          days,
+          code:    item.code  || '—',
+          title:   item.title || item.desc || '—',
+          type:    t,
+          itemType: item.type, // TKT-D1: campo Gen2 original — input de itemKind(), no deriva de code[0]
+          effort:  e,
+          projId:  p.id,
+        };
+        if (byType[t])           byType[t].push(entry);
+        if (byEffort[e])         byEffort[e].push(entry);
+        outlierCandidates.push(entry);
+      });
     });
 
     function avg(arr) {
@@ -564,28 +571,25 @@ export async function renderAnalytics() {
     // Recolecta tendencia: sprints con avg cycle time
     const sprintAvgs = [];
     (getState()?.projects || []).forEach(p => {
-      try {
-        const raw = localStorage.getItem(`backlog-items-${p.id}`);
-        if (!raw) return;
-        const sprintMap = {};
-        JSON.parse(raw).forEach(item => {
-          if (item.status !== 'done') return;
-          const created = item.createdAt || item.StatusChangedAt;
-          const closed  = item.closedAt  || item.updatedAt;
-          if (!created || !closed || !item.sprint) return;
-          const days = Math.max(0, Math.round((closed - created) / 86400000));
-          if (!sprintMap[item.sprint]) sprintMap[item.sprint] = [];
-          sprintMap[item.sprint].push(days);
-        });
-        Object.entries(sprintMap).forEach(([sp, vals]) => {
-          const existing = sprintAvgs.find(x => x.sprint === sp);
-          if (existing) {
-            existing.vals.push(...vals);
-          } else {
-            sprintAvgs.push({ sprint: sp, vals });
-          }
-        });
-      } catch {}
+      const sprintMap = {};
+      _activeAndHistoricoItems(p).forEach(item => {
+        if (item.status !== 'done' && item.status !== 'historico') return;
+        if (item.status === 'historico' && item.discardReason) return;
+        const created = item.createdAt || item.StatusChangedAt;
+        const closed  = item.closedAt  || item.archivedAt || item.updatedAt;
+        if (!created || !closed || !item.sprint) return;
+        const days = Math.max(0, Math.round((closed - created) / 86400000));
+        if (!sprintMap[item.sprint]) sprintMap[item.sprint] = [];
+        sprintMap[item.sprint].push(days);
+      });
+      Object.entries(sprintMap).forEach(([sp, vals]) => {
+        const existing = sprintAvgs.find(x => x.sprint === sp);
+        if (existing) {
+          existing.vals.push(...vals);
+        } else {
+          sprintAvgs.push({ sprint: sp, vals });
+        }
+      });
     });
 
     // Ordena sprints por nombre (S-01, S-02…) y toma los últimos 5 para tendencia
@@ -746,20 +750,17 @@ export async function renderAnalytics() {
     const closedSprintEffort = {};
 
     (getState()?.projects || []).forEach(p => {
-      try {
-        const raw = localStorage.getItem(`backlog-items-${p.id}`);
-        if (!raw) return;
-        JSON.parse(raw).forEach(item => {
-          if (item.status !== 'done') return;
-          if (!item.sprint) return;
-          const kind = itemKind(item); // TKT-D1: excluye DISC vía itemKind(), no letra Gen1 'P'
-          if (!kind || kind === 'DISC') return;
-          const e = parseInt(item.effort) || 0;
-          if (!e) return; // excluir sin effort
-          if (!closedSprintEffort[item.sprint]) closedSprintEffort[item.sprint] = 0;
-          closedSprintEffort[item.sprint] += e;
-        });
-      } catch {}
+      _activeAndHistoricoItems(p).forEach(item => {
+        if (item.status !== 'done' && item.status !== 'historico') return;
+        if (item.status === 'historico' && item.discardReason) return;
+        if (!item.sprint) return;
+        const kind = itemKind(item); // TKT-D1: excluye DISC vía itemKind(), no letra Gen1 'P'
+        if (!kind || kind === 'DISC') return;
+        const e = parseInt(item.effort) || 0;
+        if (!e) return; // excluir sin effort
+        if (!closedSprintEffort[item.sprint]) closedSprintEffort[item.sprint] = 0;
+        closedSprintEffort[item.sprint] += e;
+      });
     });
 
     // Obtener IDs de sprints cerrados desde state
