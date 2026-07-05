@@ -1,4 +1,10 @@
-// [PP] mod:86 · autor:Rune · 2026-07-04 16:45 UTC-6
+// [PP] mod:87 · autor:Rune · 2026-07-04 17:10 UTC-6
+// TKT2 (REQ-clutter-backlog): chips de tipo inline en el toolbar de stats reemplazados
+//   por trigger+popover (#bstats-types-btn / #blt-popover) — conteo por tipo calculado
+//   una sola vez (sin IIFE duplicado). Reaplicado sobre base mod:86 tras discrepancia de
+//   versión detectada al inicio de esta sesión (base real no traía el fix pese a que el
+//   header previo lo declaraba). TKT1 (unificación de renderActiveFilterChips) ya estaba
+//   presente en esa base — sin cambios adicionales sobre TKT1 en esta entrega.
 // TKT-[pendiente-ID-tkt-nsreset] (origen_disc DISC promovida): _subtabNSDefaults agregado —
 //   fuente única de types/statuses por namespace. _subtabNS y _nsReset() ya no duplican el
 //   literal; _nsReset('qinc') dejó de restaurar tipos/estados de REQ-TKT sobre namespace ITIL.
@@ -1696,8 +1702,28 @@ export function renderStats() {
         const isCollapsed = localStorage.getItem('locus-statsbar-collapsed') === 'true';
         localStorage.setItem('locus-statsbar-collapsed', String(!isCollapsed));
         renderStats();
+      } else if (act === 'stats-toggle-types') {
+        // TKT2 (popover Tipos): el botón vive dentro del innerHTML re-renderizado — delegación
+        // obligatoria, un addEventListener directo se perdería en cada renderStats().
+        const pop = document.getElementById('blt-popover');
+        const trigger = document.getElementById('bstats-types-btn');
+        if (pop && trigger) {
+          const willOpen = pop.hasAttribute('hidden');
+          if (willOpen) { pop.removeAttribute('hidden'); trigger.setAttribute('aria-expanded', 'true'); }
+          else { pop.setAttribute('hidden', ''); trigger.setAttribute('aria-expanded', 'false'); }
+        }
       }
     });
+    // TKT2: click-fuera para blt-popover — mismo patrón capture-phase usado en locus-ui-shell.js
+    // para search-unified-results. Registrado junto con la delegación — una sola vez.
+    document.addEventListener('click', function _bltOutsideClick(e) {
+      const pop = document.getElementById('blt-popover');
+      const trigger = document.getElementById('bstats-types-btn');
+      if (!pop || pop.hasAttribute('hidden')) return;
+      if (e.target.closest('.blt-wrap')) return;
+      pop.setAttribute('hidden', '');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }, true);
   }
 
   // T-202606-048: leer estado de colapso persistido
@@ -1809,17 +1835,22 @@ export function renderStats() {
       </div>
       <!-- Separador -->
       <div class="stat-compact-sep"></div>
-      <!-- Chips de tipo filtrables -->
-      <div class="stat-compact-types">
-        ${activeTypes.size < 7 ? `<span class="stat-type-chip stat-type-chip--all" data-action="stats-clear-types" title="Mostrar todos los tipos">✕</span>` : ''}
-        ${[['INC','INC','Incidentes'],['TKT','TKT','Tickets técnicos'],['REQ','REQ','Requerimientos / epics'],['PRB','PRB','Problems — causa raíz'],['KE','KE','Known Errors'],['CHG','CHG','Changes estructurales']].map(([t,label,hint]) =>
-          byType[t] > 0 ? `<span class="stat-type-chip tc-${t}${activeTypes.has(t) ? ' active' : ''}" data-action="stats-type-filter" data-type="${t}" title="${hint} — click para filtrar">
-            <span class="tc-count">${byType[t]}</span><span class="tc-label">${label}</span>
-          </span>` : ''
-        ).join('')}
-        ${pIdeasCount > 0 ? `<span class="stat-type-chip tc-DISC stat-type-chip--ideas${activeTypes.has('DISC') ? ' active' : ''}" data-action="stats-type-filter" data-type="DISC" title="Posibilidades — no afectan contadores de trabajo activo">
-          <span class="tc-count">${pIdeasCount}</span><span class="tc-label">💡 Ideas</span>
-        </span>` : ''}
+      <!-- Popover Tipos — TKT2 (REQ-clutter-backlog): consolida chips de tipo -->
+      <div class="blt-wrap">
+        <button class="blt-trigger bl-toolbar-view-btn" id="bstats-types-btn" data-action="stats-toggle-types" aria-haspopup="true" aria-expanded="false" aria-controls="blt-popover" title="Filtrar por tipo">
+          Tipos ▾<span class="blt-badge${_activeTypeChipCount === 0 ? ' is-hidden' : ''}">${_activeTypeChipCount}</span>
+        </button>
+        <div class="blt-popover" id="blt-popover" role="menu" hidden>
+          ${activeTypes.size < 7 ? `<span class="stat-type-chip stat-type-chip--all" data-action="stats-clear-types" title="Mostrar todos los tipos">✕ mostrar todos</span>` : ''}
+          ${[['INC','INC','Incidentes'],['TKT','TKT','Tickets técnicos'],['REQ','REQ','Requerimientos / epics'],['PRB','PRB','Problems — causa raíz'],['KE','KE','Known Errors'],['CHG','CHG','Changes estructurales']].map(([t,label,hint]) =>
+            byType[t] > 0 ? `<span class="stat-type-chip tc-${t}${activeTypes.has(t) ? ' active' : ''}" data-action="stats-type-filter" data-type="${t}" title="${hint} — click para filtrar">
+              <span class="tc-count">${byType[t]}</span><span class="tc-label">${label}</span>
+            </span>` : ''
+          ).join('')}
+          ${pIdeasCount > 0 ? `<span class="stat-type-chip tc-DISC stat-type-chip--ideas${activeTypes.has('DISC') ? ' active' : ''}" data-action="stats-type-filter" data-type="DISC" title="Posibilidades — no afectan contadores de trabajo activo">
+            <span class="tc-count">${pIdeasCount}</span><span class="tc-label">💡 Ideas</span>
+          </span>` : ''}
+        </div>
       </div>
       <!-- Separador -->
       <div class="stat-compact-sep"></div>
