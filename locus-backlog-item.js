@@ -1,4 +1,10 @@
-// [PP] mod:70 · autor:Rune · 2026-07-05 05:50 UTC-6
+// [PP] mod:71 · autor:Rune · 2026-07-05 06:40 UTC-6
+// INC-202607-004 (triggered_by TKT-202607-001 — módulo crítico: transversal + persistencia
+//   primaria): mergeBacklogFromTG normalizaba parent→parentId DESPUÉS de _assignPendingIds —
+//   _assignPendingIds resuelve parentId vía slugMap en su Paso 2, pero el campo aún se llamaba
+//   'parent' en ese momento, así que la resolución se saltaba silenciosamente y el placeholder
+//   quedaba copiado sin resolver. Fix: normalización movida antes de _assignPendingIds —
+//   mismo orden que ya usaba applyPatchesFromTG (sin bug). Ver detalle en el bloque de código.
 // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT): _assignPendingIds(tgItems, seedSlugMap?) — parámetro nuevo, opcional,
 //   sin cambio de comportamiento si ausente. Seed copiado al inicio del slugMap con precedencia
@@ -1975,17 +1981,14 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
   const _dryRun   = !!(opts && opts.dryRun);
   const _ckptRol  = (opts && opts.ckptRol) || '';
 
-  // B-202604-198: Separar placeholders ANTES de _assignPendingIds para preservar su naturaleza.
-  // Los placeholders siempre son ítems nuevos — nunca matchean contra el backlog.
-  // _assignPendingIds se aplica solo a los que tienen type char válido (P/T/R/B) y código real.
-  // B-202606-022: _assignPendingIds retorna { items, slugMap } — slugMap se propaga hasta applyPatchesFromTG
-  // TKT2: opts.seedSlugMap propagado — encadena la identidad de [tmp:slug] resuelta en bloques
-  // previos del mismo batch (ver _applyCheckpointBatch, locus-session-save.js).
-  const { items: _assignedItems, slugMap: _slugMap } = _assignPendingIds(tgItems, opts && opts.seedSlugMap);
-  tgItems = _assignedItems;
-
-  // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)
-  // El schema declara "parent" pero el código usa parentId — mapear antes del loop
+  // INC-202607-004 (triggered_by TKT-202607-001): la normalización parent→parentId /
+  // depends_on→dependsOn debe correr ANTES de _assignPendingIds — no después. _assignPendingIds
+  // resuelve parentId contra slugMap en su Paso 2 (_refFields incluye 'parentId'); si el campo
+  // todavía se llama 'parent' en ese momento, el guard `if (!val) return` lo salta sin resolver
+  // y el placeholder ([tmp:slug] o [pendiente-ID]) queda copiado sin resolver a parentId por la
+  // normalización tardía. Mismo patrón que ya usa applyPatchesFromTG (normaliza en L2633 antes
+  // de resolver slugMap en L2636) — este fix alinea mergeBacklogFromTG al mismo orden correcto.
+  // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno).
   // T-202606-009: normalizar depends_on (schema) → dependsOn (campo interno) — mismo patrón.
   // Sin esta normalización los slugs en depends_on nunca llegan a _listFields de _assignPendingIds
   // y se pierden silenciosamente: el campo queda undefined en lugar de [] con slugs resueltos.
@@ -1997,6 +2000,15 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
     if (Array.isArray(item.depends_on) && !item.dependsOn) { item.dependsOn = item.depends_on; }
     return item;
   });
+
+  // B-202604-198: Separar placeholders ANTES de _assignPendingIds para preservar su naturaleza.
+  // Los placeholders siempre son ítems nuevos — nunca matchean contra el backlog.
+  // _assignPendingIds se aplica solo a los que tienen type char válido (P/T/R/B) y código real.
+  // B-202606-022: _assignPendingIds retorna { items, slugMap } — slugMap se propaga hasta applyPatchesFromTG
+  // TKT2: opts.seedSlugMap propagado — encadena la identidad de [tmp:slug] resuelta en bloques
+  // previos del mismo batch (ver _applyCheckpointBatch, locus-session-save.js).
+  const { items: _assignedItems, slugMap: _slugMap } = _assignPendingIds(tgItems, opts && opts.seedSlugMap);
+  tgItems = _assignedItems;
 
   let changed = false;
   const created = [], advanced = [], retroceso = [], discarded = [], updated = [], ignored = [], invalidTransition = []; // invalidTransition: T-[pendiente-ID]
