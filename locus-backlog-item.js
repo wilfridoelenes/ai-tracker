@@ -1,4 +1,4 @@
-// [PP] mod:72 · autor:Rune · 2026-07-05 08:00 UTC-6
+// [PP] mod:73 · autor:Rune · 2026-07-05 UTC-6
 // INC-202607-004 (triggered_by TKT-202607-001 — módulo crítico: transversal + persistencia
 //   primaria): mergeBacklogFromTG normalizaba parent→parentId DESPUÉS de _assignPendingIds —
 //   _assignPendingIds resuelve parentId vía slugMap en su Paso 2, pero el campo aún se llamaba
@@ -53,7 +53,7 @@ import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessi
 
 import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel, _openMigrateItem, _acvToggle, _acvStartEdit, _acvConfirm } from './locus-backlog-panel.js'; // T-202606-089 AC-3
 
-import { _getActiveSprint, navigateToItem, setItemSprint, openSprintRetroView } from './locus-backlog-sprints.js'; // T-202606-089 AC-3
+import { _getActiveSprint, navigateToItem, setItemSprint, openSprintRetroView, _inheritSprintToChildren } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · [tmp:tkt-unify-sprint-inherit]: _inheritSprintToChildren añadido
 import { openProjPanel } from './locus-sprint-project.js'; // T-202606-089 AC-1
 
 import { _setBacklogModified } from './locus-docs.js';
@@ -2755,18 +2755,10 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
           if (normalizedSprint === undefined) delete existing.sprint;
           else existing.sprint = normalizedSprint;
           // B-202606-025 AC-1: si el ítem patcheado es un REQ, propagar sprint a todos sus hijos TKT e INC
-          // Sin restricción de status — todos los hijos heredan el sprint del parent
+          // [tmp:tkt-unify-sprint-inherit]: propagación delegada a _inheritSprintToChildren —
+          // misma función que usa setItemSprint() (locus-backlog-sprints.js). Sin duplicación.
           if (itemKind(existing) === 'REQ' && normalizedSprint !== undefined) {
-            const _targetSprint = normalizedSprint || 'icebox';
-            (typeof getItems() !== 'undefined' ? getItems() : []).forEach(child => {
-              if (child.parentId === existing.code && ['TKT','INC'].includes(itemKind(child))) {
-                if ((child.sprint || 'icebox') !== _targetSprint) {
-                  child.sprint = _targetSprint;
-                  _blogLog('sprint-heredado', child.code,
-                    child.code + ' sprint ajustado al de su parent ' + existing.code + ': ' + _targetSprint, 'backlog');
-                }
-              }
-            });
+            _inheritSprintToChildren(existing, normalizedSprint || '');
           }
         }
         return;

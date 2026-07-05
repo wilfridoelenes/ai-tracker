@@ -1,4 +1,4 @@
-// [PP] mod:37 · autor:Rune · 2026-07-04 17:01 UTC-6
+// [PP] mod:39 · autor:Rune · 2026-07-05 UTC-6
 // TKT1 (REQ-sprints-migration): import muerto _loadSprintsFromSupabase eliminado — la función
 //   fue reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js y este módulo
 //   nunca la invocaba (solo quedaba en comentario línea ~959). Sin este fix, TKT1 entregado solo
@@ -511,6 +511,32 @@ export async function setSprintStatus(id, newStatus) {
 // Implementación eliminada de este módulo — era duplicación con filtro roto (s.projectId siempre undefined).
 // window.setSprintCurrent lo expone locus-sprint.js.
 
+// [tmp:tkt-unify-sprint-inherit]: función compartida de herencia de sprint parent→hijo
+// (BR-Ecosystem §5) — antes duplicada entre setItemSprint() y el handler de type:patch
+// en locus-backlog-item.js. Única fuente de la regla: propagación incondicional a TKT+INC
+// cuyo sprint difiere del destino. No-op silencioso si el REQ no tiene hijos o ya coinciden.
+export function _inheritSprintToChildren(reqItem, normalizedSprintId) {
+  if (!reqItem || !reqItem.code || itemKind(reqItem) !== 'REQ') return;
+  const _movedChildren = [];
+  getItems().forEach(child => {
+    if (child.parentId === reqItem.code && child.code && ['TKT', 'INC'].includes(itemKind(child))) {
+      const prevChildSprint = child.sprint || '';
+      if (prevChildSprint === normalizedSprintId) return; // ya está en el sprint destino — no-op
+      child.sprint = normalizedSprintId;
+      _movedChildren.push(child.code);
+      if (!child.history) child.history = [];
+      child.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: prevChildSprint, to: normalizedSprintId, inherited_from: reqItem.code } });
+    }
+  });
+  if (_movedChildren.length > 0 && normalizedSprintId) {
+    const _targetSprint = _getSprintById(normalizedSprintId);
+    if (_targetSprint) {
+      if (!Array.isArray(_targetSprint.docLog)) _targetSprint.docLog = [];
+      _targetSprint.docLog.push(`${_movedChildren.length} Ts movidos a sprint ${normalizedSprintId} por asignación de parent ${reqItem.code}: ${_movedChildren.join(', ')}`);
+    }
+  }
+}
+
 export function setItemSprint(code, sprintId) {
   // T-202606-133: gate formallyOpened — bloquear asignación a sprint no aprobado
   // TKT-PARSER-sprints: exención isHotfix eliminada — S-HOTFIX deprecado Gen2.
@@ -559,29 +585,9 @@ export function setItemSprint(code, sprintId) {
   if (!item.history) item.history = [];
   item.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: prevSprint || null, to: item.sprint || null } });
 
-  // T-202606-036 AC1+AC2 · T-202606-161: mover TKTs hijos sin sprint asignado al nuevo sprint del REQ
-  // T-202606-161 AC-2: TKTs con sprint ya asignado (distinto de vacío) no se sobreescriben
-  if (item.code && itemKind(item) === 'REQ') {
-    const _movedChildren = [];
-    getItems().forEach(child => {
-      if (child.parentId === item.code && child.code && itemKind(child) === 'TKT') {
-        const prevChildSprint = child.sprint || '';
-        if (prevChildSprint !== '') return; // T-202606-161 AC-2: conservar sprint ya asignado
-        child.sprint = normalizedId;
-        _movedChildren.push(child.code);
-        if (!child.history) child.history = [];
-        child.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: prevChildSprint, to: normalizedId, inherited_from: item.code } });
-      }
-    });
-    // T-202606-161 AC-3: DocLog entry consolidada en el sprint destino
-    if (_movedChildren.length > 0 && normalizedId) {
-      const _targetSprint = _getSprintById(normalizedId);
-      if (_targetSprint) {
-        if (!Array.isArray(_targetSprint.docLog)) _targetSprint.docLog = [];
-        _targetSprint.docLog.push(`${_movedChildren.length} Ts movidos a sprint ${normalizedId} por asignación de parent ${item.code}: ${_movedChildren.join(', ')}`);
-      }
-    }
-  }
+  // [tmp:tkt-unify-sprint-inherit]: propagación delegada a _inheritSprintToChildren —
+  // misma función que usa el handler de type:patch (locus-backlog-item.js).
+  _inheritSprintToChildren(item, normalizedId);
 
   _undoSnapshot();
   saveBacklog();
