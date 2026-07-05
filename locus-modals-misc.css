@@ -1,0 +1,2301 @@
+/* [PP] mod:1 · autor:Rune · 2026-07-05 UTC-6 */
+/* locus-modals-misc.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
+
+/* [PP] mod:7 · autor:Nova · 2026-07-04 UTC-6 */
+/* locus-modals.css */
+/* TKT2-[pendiente-ID] (REQ-[tmp:req-consolidacion-close-btn]): eliminada .modal-close-btn —
+   consolidado en .modal-close (box 28x28). Sin retrocompatibilidad — path legacy eliminado
+   en el mismo TKT (cero call sites tras migración de index.html). */
+
+/* Versión: 2.2 | Última actualización: 2026-06-10 | B-202606-009: .modal-overlay base declarada · ie-body scroll */
+
+
+/* === locus-misc-ui.js ===
+   Funciones: openTagModal · renderTagPicker · renderColorPicker · selectColor */
+
+/* ══ TAGS — Pills, picker modal, colores ══ */
+.tag-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.tag:hover {
+  opacity: 0.75;
+}
+
+.tag-add-btn {
+  font-family: var(--mono);
+  font-size: var(--text-3xs);
+  color: var(--hint);
+  background: none;
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius-md-plus);
+  padding: 2px 7px;
+  cursor: pointer;
+  transition: var(--trans-fast);
+}
+
+.tag-add-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-glow);
+}
+
+.tc-0 {
+  color: var(--purple);
+  border-color: #3a3278; /* tag-color-fixed: paleta fija de 8 — excepción documentada en CSS Reference */
+  background: rgb(124 106 247 / 10%);
+}
+
+.tc-1 {
+  color: var(--green);
+  border-color: #153828; /* tag-color-fixed */
+  background: rgb(46 204 120 / 10%);
+}
+
+.tc-2 {
+  color: var(--amber);
+  border-color: #5a3e0a; /* tag-color-fixed */
+  background: rgb(232 168 50 / 10%);
+}
+
+.tc-3 {
+  color: var(--red);
+  border-color: #5a1515; /* tag-color-fixed */
+  background: rgb(232 85 85 / 10%);
+}
+
+.tc-4 {
+  color: var(--blue);
+  border-color: #0a3a50; /* tag-color-fixed */
+  background: rgb(56 189 248 / 10%);
+}
+
+.tc-5 {
+  color: var(--pink);
+  border-color: #5a1a3a; /* tag-color-fixed */
+  background: rgb(244 114 182 / 10%);
+}
+
+.tc-6 {
+  color: var(--lime);
+  border-color: #2a4a0a; /* tag-color-fixed */
+  background: rgb(163 230 53 / 10%);
+}
+
+.tc-7 {
+  color: var(--orange);
+  border-color: #5a2a0a; /* tag-color-fixed */
+  background: rgb(251 146 60 / 10%);
+}
+
+.tag-modal {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg-plus);
+  padding: 1.25rem;
+  width: 100%;
+  max-width: 340px;
+}
+
+.tag-modal-title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+
+.tag-picker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.tag-picker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: var(--trans-fast);
+}
+
+.tag-picker-row:hover {
+  background: var(--surface2);
+  border-color: var(--border);
+}
+
+.tag-picker-row.selected {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+}
+
+.tag-picker-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+}
+
+.tag-picker-name {
+  font-size: var(--text-xs);
+  color: var(--text2);
+  flex: 1;
+}
+
+.tag-picker-check {
+  font-size: var(--text-xs);
+  color: var(--accent);
+}
+
+.tag-new-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.tag-new-input {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  flex: 1;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-xs);
+  color: var(--text);
+  padding: 6px 9px;
+  outline: none;
+}
+
+.tag-new-input:focus {
+  border-color: var(--accent);
+}
+
+.color-picker-row {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.color-dot-btn {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-pill);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: var(--trans-fast);
+  background: var(--dot-color, var(--accent));
+}
+
+.color-dot-btn.sel {
+  border-color: var(--text);
+  transform: scale(1.15);
+}
+
+/* toast title color: inherit — ver regla en toast base section */
+
+/* Import toast — estilos para HTML enriquecido generado en backlog.js */
+.toast-import-title {
+  font-weight: 600;
+  font-size: var(--text-sm, 12px);
+  line-height: 1.4;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.toast-import-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.toast-type-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-2xs-plus);
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: rgb(136 136 136 / 15%);
+  background: color-mix(in srgb, var(--toast-type-color, #888) 15%, transparent);
+  color: var(--toast-type-color, var(--text2));
+  border: 1px solid rgb(136 136 136 / 30%);
+  border: 1px solid color-mix(in srgb, var(--toast-type-color, #888) 30%, transparent);
+}
+
+.toast-sprint-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--text-2xs-plus);
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  color: var(--text2);
+  border: 1px solid var(--border);
+}
+
+.toast-auto-hint {
+  font-size: var(--text-2xs-plus);
+  color: var(--text2);
+  opacity: 0.75;
+  margin-top: 3px;
+}
+
+/* ── toast-progress-bar
+   Barra de 2px en bottom, scaleX 1→0 animada con --toast-duration
+   opacity 0.20 — sutil pero visible
+   Pausa en hover via --toast-play-state (ya implementado en JS)
+   ── */
+
+.toast-item:hover .toast-progress {
+  animation-play-state: paused;
+}
+
+/* ── toast-duraciones
+   _toastDuration() ya calibra en JS. CSS solo define el fallback var.
+   error: sin barra (base=null) — se indica con cursor pointer y sin progress
+   ── */
+.toast-item.t-error .toast-progress {
+  display: none;
+}
+
+.toast-dismiss:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  opacity: 1;
+}
+
+/* ── toast-aria
+   role="alert" en error (ya en JS) — sin CSS adicional
+   role="status" en resto (ya en JS)
+   aria-live="polite" en #toast-stack (ya en HTML)
+   aria-label="Cerrar notificación" en .toast-dismiss (ya en JS)
+   CSS: foco visible en toast-clickable para navegación teclado
+   ── */
+.toast-clickable {
+  cursor: pointer;
+}
+
+.toast-item.toast-clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.toast-msg.toast-clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ═══ END B-202604-117: Toast system ═══ */
+
+/* === locus-storage.js ===
+   Funciones: signInWithSupabase · signInWithMagicLink · signOutSupabase */
+
+/* ══ R[tmp:magic-link-auth]: Auth modal — Google + Magic link ══ */
+.modal--auth {
+  max-width: 340px;
+}
+
+.auth-modal-desc {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  margin: -4px 0 14px;
+}
+
+.btn-auth-google {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 9px 12px;
+  font-family: var(--font-sans); font-size: var(--text-base); font-weight: 500;
+  color: var(--text); background: var(--surface2);
+  border: 1px solid var(--border2); border-radius: var(--radius-md);
+  cursor: pointer; transition: var(--trans-color);
+}
+
+.btn-auth-google:hover {
+  background: var(--surface3, var(--surface2));
+  border-color: var(--accent);
+}
+
+.auth-divider {
+  display: flex; align-items: center; gap: 8px;
+  margin: 14px 0; color: var(--hint); font-size: var(--text-xs);
+}
+
+.auth-divider::before, .auth-divider::after {
+  content: ''; flex: 1; height: 1px; background: var(--border2);
+}
+
+.auth-btn-email {
+  width: 100%;
+  justify-content: center;
+}
+
+.auth-sent-state {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.auth-sent-icon {
+  font-size: var(--text-display-lg);
+  margin-bottom: 8px;
+}
+
+.auth-sent-msg {
+  font-size: var(--text-base);
+  color: var(--text);
+  margin-bottom: 10px;
+  line-height: 1.4;
+}
+
+.auth-resend-btn {
+  font-family: var(--font-sans); font-size: var(--text-sm); color: var(--accent);
+  background: none; border: none; cursor: pointer; text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.auth-resend-btn:hover {
+  opacity: 0.8;
+}
+
+/* ══ END R[tmp:magic-link-auth] ══ */
+
+
+
+/* === locus-command-palette.js ===
+   Funciones: openCommandPalette · closeCommandPalette · _cpSearch · _cpRenderResults */
+
+/* === locus-ui-shell.js ===
+   Funciones: onSearchDispatch · onSearch */
+
+/* ══ T-202604-293: Unified Search Panel ══ */
+.search-unified-results {
+  margin: 8px 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md-plus);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.sur-inner {
+  display: flex;
+  flex-direction: column;
+}
+
+.sur-group {
+  border-bottom: 1px solid var(--border);
+}
+
+.sur-group:last-child {
+  border-bottom: none;
+}
+
+.sur-group-label {
+  padding: 8px 14px 6px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.sur-rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.sur-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-top: 1px solid var(--border);
+  transition: var(--trans-color);
+}
+
+.sur-row:first-child {
+  border-top: none;
+}
+
+.sur-row:hover {
+  background: var(--hover-bg, rgb(255 255 255 / 4%));
+}
+
+.sur-row-icon {
+  font-size: var(--text-md);
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.sur-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sur-row-title {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sur-row-sub {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.sur-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+}
+
+.sur-badge {
+  display: inline-block;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-muted, rgb(99 102 241 / 15%));
+  color: var(--accent);
+  font-size: var(--text-2xs-plus);
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sur-more {
+  padding: 6px 14px 8px;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.sur-empty {
+  padding: 20px 14px;
+  font-size: var(--text-base);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* ══ END T-202604-293 ══ */
+
+/* === locus-backlog-merge.js ===
+   Funciones: showMergeDiffPanel · _confirmRetroceso · _confirmDiscard */
+
+/* ══ R-202605-096: Toast bloqueante → confirmación inline en panel DIFF ══ */
+
+.mdiff-right-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm, 6px);
+  margin-bottom: 12px;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+.mdiff-right-banner--warn {
+  background: rgb(245 200 66 / 12%);
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+  border: 1px solid rgb(245 200 66 / 35%);
+  border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent);
+  color: var(--text1);
+}
+
+.mdiff-right-banner-icon {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+
+.mdiff-right-banner-text {
+  flex: 1;
+}
+
+.mdiff-right-section-title {
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin: 12px 0 6px;
+}
+
+.mdiff-right-retro-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid rgb(245 200 66 / 30%);
+  border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
+  background: rgb(245 200 66 / 6%);
+  background: color-mix(in srgb, var(--amber) 6%, transparent);
+  margin-bottom: 5px;
+  cursor: pointer;
+  transition: var(--trans-color);
+}
+
+.mdiff-right-retro-row:hover {
+  background: rgb(245 200 66 / 12%);
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
+}
+
+.mdiff-right-retro-row.is-confirmed {
+  background: rgb(46 204 120 / 8%);
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  border-color: rgb(46 204 120 / 30%);
+  border-color: color-mix(in srgb, var(--green) 30%, transparent);
+}
+
+.mdiff-right-retro-row input[type="checkbox"] {
+  flex-shrink: 0;
+  accent-color: var(--amber);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
+.mdiff-right-retro-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.mdiff-code--sm {
+  font-size: var(--text-2xs-plus);
+  font-weight: 600;
+  color: var(--text2);
+  font-family: var(--font-mono, monospace);
+}
+
+.mdiff-retro-status {
+  font-size: var(--text-2xs-plus);
+  color: var(--amber);
+}
+
+.mdiff-right-discard-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid rgb(240 86 106 / 25%);
+  border: 1px solid color-mix(in srgb, var(--red) 25%, transparent);
+  background: rgb(240 86 106 / 5%);
+  background: color-mix(in srgb, var(--red) 5%, transparent);
+  margin-bottom: 5px;
+}
+
+.mdiff-right-discard-row--preset {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  border-color: rgb(138 144 192 / 20%);
+  border-color: color-mix(in srgb, var(--text3) 20%, transparent);
+  background: transparent;
+  opacity: 0.7;
+}
+
+.mdiff-right-discard-desc {
+  font-size: var(--text-2xs-plus);
+  color: var(--text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mdiff-right-discard-select {
+  width: 100%;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm, 6px);
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text1);
+  font-size: var(--text-2xs-plus);
+  cursor: pointer;
+}
+
+.mdiff-right-discard-select:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+/* ══ END R-202605-096 ══ */
+
+/* ══ B-202604-160: 'En curso' status — badge + filtro ══ */
+
+/* Botón de filtro en toolbar */
+.fbtn.fb-en-curso {
+  color: var(--blue);
+  border-color: rgb(56 189 248 / 30%);
+}
+
+.fbtn.fb-en-curso.active {
+  background: rgb(56 189 248 / 12%);
+  border-color: rgb(56 189 248 / 50%);
+  color: var(--blue);
+}
+
+/* ══ END B-202604-160 ══ */
+
+/* sprint-close: B-202605-218 → locus-sprint-close.css */
+
+/* ══ R-202605-095 — Toast bloqueante → confirmación inline en panel DIFF ══ */
+
+/* Botón confirm bloqueado — sin disabled nativo, focusable por Tab/Space/Enter */
+.item-viz-confirm-btn--blocked,
+.item-viz-confirm-btn--blocked:hover {
+  opacity: 0.38;
+  cursor: not-allowed;
+  pointer-events: none;
+  filter: none;
+}
+
+/* Banner de advertencia — zona superior del item-viz-body */
+.iviz-proj-required {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: rgb(232 168 50 / 10%);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  border: 1px solid rgb(232 168 50 / 30%);
+  border: 1px solid color-mix(in srgb, var(--amber) 30%, transparent);
+  border-radius: var(--radius-md-plus);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.iviz-proj-required-icon {
+  font-size: var(--text-xl);
+  line-height: 1;
+  flex-shrink: 0;
+  color: var(--amber);
+  margin-top: 1px;
+}
+
+.iviz-proj-required-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.iviz-proj-required-title {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--amber);
+  line-height: 1.3;
+}
+
+.iviz-proj-required-desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary, var(--hint));
+  line-height: 1.5;
+}
+
+/* Select de proyecto inline en el banner */
+.iviz-proj-select {
+  margin-top: 4px;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border2);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  outline-offset: 2px;
+}
+
+.iviz-proj-select:focus {
+  outline: 2px solid var(--amber);
+  border-color: var(--amber);
+}
+
+/* Empty state — sin proyectos creados */
+.iviz-proj-empty {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+/* Estado resuelto — proyecto seleccionado */
+.iviz-proj-required--resolved {
+  background: rgb(46 204 120 / 8%);
+  background: color-mix(in srgb, var(--green) 8%, transparent);
+  border-color: rgb(46 204 120 / 25%);
+  border-color: color-mix(in srgb, var(--green) 25%, transparent);
+}
+
+.iviz-proj-required--resolved .iviz-proj-required-icon,
+.iviz-proj-required--resolved .iviz-proj-required-title {
+  color: var(--green);
+}
+
+.iviz-proj-required--resolved .iviz-proj-select:focus {
+  outline-color: var(--green);
+  border-color: var(--green);
+}
+
+/* Error outline en selector de proyecto del card */
+
+/* ══ END R-202605-095 ══ */
+
+/* ══ [pendiente-ID] — #item-viz-overlay: aria-live + badge de origen ══ */
+
+/* Badge de origen en header del overlay — conexión visual con el contexto que lo disparó */
+.item-viz-origin-badge {
+  font-size: var(--text-sm);
+  color: var(--text-secondary, var(--hint));
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ══ END [pendiente-ID] ══ */
+
+/* ══ R-202605-098: Ciclo de vida y representación visual diferenciada — ítems tipo P ══ */
+
+/* sprint-close: T-202604-417 + Complementos → locus-sprint-close.css */
+
+/* sprint-close: R-202605-129 → locus-sprint-close.css */
+
+/* sprint-close: T-202605-440 → locus-sprint-close.css */
+
+/* B-[pendiente-ID]: Toast bloqueante QuotaExceededError — botones de acción */
+.toast-quota-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.toast-quota-btn {
+  padding: 4px 10px;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgb(255 255 255 / 18%);
+  background: rgb(255 255 255 / 10%);
+  color: inherit;
+  font-size: var(--text-2xs-plus);
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--trans-color);
+  white-space: nowrap;
+}
+
+.toast-quota-btn:hover {
+  background: rgb(255 255 255 / 20%);
+}
+
+/* END B-[pendiente-ID] */
+
+/* Migrado desde index.html — shortcuts overlay + panel */
+
+/* Overlay compartido */
+
+/* DUP-03: .shortcuts-ref-overlay eliminado — ⌘? redirige a #shortcuts-overlay */
+.shortcuts-overlay {
+  position:fixed;
+  inset:0;
+  background:rgb(0 0 0 / 45%);
+  z-index: var(--z-panel-2);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+/* Panel de configuración */
+.shortcuts-panel {
+  background:var(--bg,#fff);
+  border-radius: var(--radius-lg);
+  width:min(560px,95vw);
+  max-height:80vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  box-shadow:0 12px 40px rgb(0 0 0 / 20%);
+}
+
+.shortcuts-header {
+  display:flex;
+  align-items:center;
+  padding:14px 16px;
+  border-bottom:1px solid var(--border,rgb(0 0 0 / 10%));
+}
+
+.shortcuts-title {
+  font-size: var(--text-md);
+  font-weight:600;
+  flex:1;
+  color:var(--text,#111);
+}
+
+.shortcuts-header-actions {
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.shortcuts-restore-btn {
+  font-size: var(--text-sm);
+  color:var(--text-secondary);
+  background:transparent;
+  border:1px solid var(--border,rgb(0 0 0 / 12%));
+  border-radius: var(--radius-xs);
+  padding:4px 10px;
+  cursor:pointer;
+}
+
+.shortcuts-restore-btn:hover {
+  border-color:var(--accent);
+  color:var(--accent);
+}
+
+.shortcuts-restore-btn:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
+.shortcuts-close-btn {
+  background:transparent;
+  border:none;
+  font-size: var(--text-lg);
+  color:var(--text-secondary);
+  cursor:pointer;
+  padding:2px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.shortcuts-close-btn:hover {
+  background:var(--bg-hover);
+}
+
+.shortcuts-close-btn:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
+.shortcuts-body {
+  overflow-y:auto;
+  padding:8px 0 16px;
+}
+
+/* Grupos y filas */
+.sc-group {
+  margin-bottom:4px;
+}
+
+.sc-group-label {
+  font-size: var(--text-2xs-plus);
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.6px;
+  color:var(--hint,#bbb);
+  padding:10px 16px 4px;
+}
+
+.sc-row {
+  display:flex;
+  align-items:center;
+  padding:7px 16px;
+  gap:10px;
+  min-height:38px;
+}
+
+.sc-row:hover {
+  background:var(--bg-hover);
+}
+
+.sc-row-label {
+  flex:1;
+  font-size: var(--text-base);
+  color:var(--text,#111);
+}
+
+.sc-row-right {
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.sc-key-pill {
+  display:inline-flex;
+  align-items:center;
+  padding:3px 9px;
+  border-radius: var(--radius-xs);
+  font-size: var(--text-sm);
+  font-family:monospace;
+  font-weight:600;
+  background:var(--bg-subtle);
+  color:var(--text,#111);
+  border:1px solid var(--border,rgb(0 0 0 / 12%));
+  min-width:32px;
+  justify-content:center;
+}
+
+.sc-key-pill.is-modified {
+  background:rgb(166 226 46 / 10%);
+  border-color:var(--accent);
+  color:var(--accent);
+}
+
+.sc-modified-badge {
+  font-size: var(--text-2xs-plus);
+  color:var(--accent);
+  font-weight:500;
+}
+
+.sc-edit-btn,.sc-reset-one-btn {
+  background:transparent;
+  border:none;
+  font-size: var(--text-base);
+  color:var(--text-secondary);
+  cursor:pointer;
+  padding:2px 5px;
+  border-radius: var(--radius-sm);
+}
+
+.sc-edit-btn:hover,.sc-reset-one-btn:hover {
+  background:var(--bg-hover);
+  color:var(--text,#111);
+}
+
+/* Edición inline */
+.sc-editing {
+  gap:6px;
+}
+
+.sc-key-input {
+  width:72px;
+  padding:3px 7px;
+  border:1px solid var(--accent);
+  border-radius: var(--radius-xs);
+  font-size: var(--text-sm);
+  font-family:monospace;
+  font-weight:600;
+  background:var(--bg,#fff);
+  color:var(--text,#111);
+  outline:none;
+}
+
+.sc-error {
+  font-size: var(--text-xs);
+  color:var(--red);
+  flex:1;
+}
+
+.sc-save-btn {
+  font-size: var(--text-sm);
+  padding:3px 10px;
+  border-radius: var(--radius-xs);
+  border:none;
+  background:var(--accent);
+  color:var(--text-on-accent);
+  cursor:pointer;
+  font-weight:500;
+}
+
+.sc-save-btn:hover {
+  opacity:.88;
+}
+
+.sc-save-btn:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
+.sc-cancel-btn {
+  font-size: var(--text-sm);
+  padding:3px 8px;
+  border-radius: var(--radius-xs);
+  border:1px solid var(--border,rgb(0 0 0 / 12%));
+  background:transparent;
+  color:var(--text-secondary);
+  cursor:pointer;
+}
+
+/* T-202604-418: Command Palette */
+.cmd-palette-overlay {
+  position:fixed;
+  inset:0;
+  background:rgb(0 0 0 / 50%);
+  z-index: var(--z-panel-3);
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding-top:12vh;
+}
+
+
+.cmd-palette-panel {
+  background:var(--bg,#fff);
+  border-radius: var(--radius-lg);
+  width:min(580px,95vw);
+  max-height:70vh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  box-shadow:0 16px 48px rgb(0 0 0 / 28%);
+}
+
+.cmd-palette-input-wrap {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px 14px;
+  border-bottom:1px solid var(--border,rgb(0 0 0 / 10%));
+}
+
+.cmd-palette-icon {
+  font-size: var(--text-lg);
+  color:var(--text-secondary);
+  flex-shrink:0;
+}
+
+.cmd-palette-input {
+  flex:1;
+  border:none;
+  outline:none;
+  background:transparent;
+  font-size: var(--text-md);
+  color:var(--text,#111);
+  font-family:inherit;
+}
+
+.cmd-palette-input::placeholder {
+  color:var(--text-secondary);
+}
+
+.cmd-palette-esc-hint {
+  font-size: var(--text-2xs-plus);
+  font-family:monospace;
+  background:var(--bg-subtle);
+  border:1px solid var(--border,rgb(0 0 0 / 12%));
+  border-radius: var(--radius-sm);
+  padding:2px 6px;
+  color:var(--text-secondary);
+  flex-shrink:0;
+}
+
+.cmd-palette-list {
+  overflow-y:auto;
+  flex:1;
+  padding:4px 0;
+}
+
+.cp-group {
+  padding:4px 0;
+}
+
+.cp-group-label {
+  font-size: var(--text-2xs-plus);
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.06em;
+  color:var(--text-secondary);
+  padding:6px 14px 2px;
+}
+
+.cp-item:hover,.cp-item--selected {
+  background:var(--accent-subtle,rgb(166 226 46 / 10%));
+}
+
+.cp-item--selected
+.cmd-palette-footer {
+  display:flex;
+  gap:16px;
+  padding:7px 14px;
+  border-top:1px solid var(--border,rgb(0 0 0 / 8%));
+  font-size: var(--text-xs);
+  color:var(--text-secondary);
+}
+
+.cp-hint-key {
+  font-family:monospace;
+  background:var(--bg-subtle);
+  border:1px solid var(--border,rgb(0 0 0 / 10%));
+  border-radius: var(--radius-sm);
+  padding:1px 5px;
+  font-size: var(--text-2xs-plus);
+  color:var(--text-secondary);
+  margin-right:3px;
+}
+
+/* T-202604-419: badge reciente */
+.cp-badge-recent {
+  font-size: var(--text-2xs);
+  font-weight:600;
+  padding:2px 6px;
+  border-radius: var(--radius-sm);
+  background:var(--accent-subtle,rgb(166 226 46 / 10%));
+  color:var(--accent);
+  flex-shrink:0;
+  margin-left:auto;
+}
+
+/* B-202605-239: badge de notificaciones en tab buttons */
+.tab-notif-badge {
+  position:absolute;
+  top:-5px;
+  right:-5px;
+  min-width:16px;
+  height:16px;
+  padding:0 4px;
+  border-radius: var(--radius-md);
+  background:var(--danger);
+  color:var(--text-on-danger);
+  font-size: var(--text-2xs);
+  font-weight:700;
+  line-height:16px;
+  text-align:center;
+  pointer-events:none;
+  box-sizing:border-box;
+  border:2px solid var(--bg);
+}
+
+/* B-202605-240: modal config notificaciones */
+.modal--notif-config {
+  min-width:340px;
+  max-width:480px;
+  width:100%;
+}
+
+.nc-rows {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:4px 0;
+}
+
+.nc-row {
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  padding:10px 12px;
+  border-radius: var(--radius-md);
+  background:var(--bg-subtle);
+}
+
+.nc-toggle-label {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  cursor:pointer;
+  font-size: var(--text-base);
+  font-weight:500;
+  color:var(--text,#1a1a2e);
+}
+
+.nc-toggle {
+  accent-color:var(--accent);
+  width:15px;
+  height:15px;
+  cursor:pointer;
+  flex-shrink:0;
+}
+
+.nc-label-text {
+  flex:1;
+}
+
+.nc-thr-label {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-size: var(--text-sm);
+  color:var(--text-secondary);
+  padding-left:25px;
+  margin-top:2px;
+}
+
+.nc-thr-input {
+  width:52px;
+  padding:2px 6px;
+  border:1px solid var(--border,rgb(0 0 0 / 15%));
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  text-align:center;
+  background:var(--bg,#fff);
+  color:var(--text,#1a1a2e);
+}
+
+/* B-202605-236: scope toggle en panel de búsqueda */
+.sur-scope-row {
+  padding:6px 12px 2px;
+  display:flex;
+  justify-content:flex-end;
+}
+
+.sur-scope-btn {
+  font-size: var(--text-xs);
+  padding:3px 10px;
+  border-radius: var(--radius-lg);
+  border:1px solid var(--border,rgb(0 0 0 / 15%));
+  background:var(--bg-subtle);
+  color:var(--text-secondary);
+  cursor:pointer;
+  transition: var(--trans-color);
+}
+
+.sur-scope-btn:hover {
+  background:var(--accent);
+  color:var(--text-on-accent);
+  border-color:var(--accent);
+}
+
+.sur-scope-btn:focus-visible {
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
+/* B-202605-237: highlight del término buscado */
+.sur-hl {
+  background:rgb(var(--accent-rgb,166,226,46),.18);
+  color:var(--accent);
+  border-radius: var(--radius-sm);
+  font-weight:600;
+  padding:0 1px;
+}
+
+
+
+/* ══ END CSS-05 ══ */
+
+
+/* ══ END T-202604-164 ══ */
+
+/* ══ T-202604-233: Toast — mobile responsive (≤560px) — actualizado T-202604-221 ══ */
+
+/* sprint-close: R-[pendiente-ID] sprint-close-overlay → locus-sprint-close.css */
+
+/* === locus-checkpoint-capture.js ===
+   Funciones: openQuickCapture · closeQuickCapture · qcSelectWorker · confirmQuickCapture · interruptSession */
+
+/* ══════════════════════════════════════════════════════════
+   R-[pendiente-ID]: Quick Capture — modal unificado con stepper
+   Prefijo: qc-  |  Archivo: locus-modals.css
+   Reemplaza: .quick-modal-overlay (tracker) + .ai-quick-select-* (proyectos)
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Overlay — extiende .quick-modal-overlay existente ── */
+.qc-overlay {
+  z-index: var(--z-modal);
+}
+
+/* ── Shell del modal ── */
+
+/* Altura fija: evita salto visual al transicionar entre pasos (AC-08) */
+.qc-modal {
+  width: 100%;
+  max-width: 400px;
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.qc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.qc-title-text {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.qc-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ── Stepper de 2 dots ── */
+
+/* AC-07: indicador de paso visible en header */
+.qc-stepper {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.qc-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--border2);
+  transition: background var(--trans-fast);
+}
+
+.qc-dot--active {
+  background: var(--accent);
+}
+
+/* JS: qcSetStep(2) → dot-1 pierde --active, dot-2 gana --active */
+
+.qc-close-btn {
+  background: none;
+  border: none;
+  color: var(--hint);
+  cursor: pointer;
+  font-size: var(--text-md);
+  padding: 2px 4px;
+  line-height: 1;
+  transition: color var(--trans-fast);
+}
+
+.qc-close-btn:hover {
+  color: var(--text2);
+}
+
+/* ── Panels — contenido de cada paso ── */
+
+/* AC-14: shell en HTML estático, contenido inyectado por JS */
+
+/* Visibilidad por .is-hidden (H-02) — sin style.display */
+.qc-panel {
+  flex: 1;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+
+/* AC-10: transición entre pasos — opacity, sin transform */
+.qc-panel {
+  opacity: 1;
+  transition: var(--trans-color);
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+  .qc-panel {
+    transition: none;
+  }
+}
+
+/* ── Paso 1: label ── */
+.qc-panel-label {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 2px;
+}
+
+/* ── Paso 1: lista de Workers ── */
+.qc-worker-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Ítem generado por JS: <button class="qc-worker-item" data-worker-id="..."> */
+.qc-worker-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: border-color var(--trans-fast), background var(--trans-fast);
+}
+
+.qc-worker-item:hover {
+  background: var(--surface3);
+  border-color: var(--border2);
+}
+
+/* JS: qcSelectWorker(el) → el.classList.add('qc-worker-item--selected') */
+.qc-worker-item--selected {
+  border-color: var(--accent-border);
+  background: var(--surface);
+}
+
+.qc-worker-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  background: var(--surface3);
+  color: var(--text2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+}
+
+.qc-worker-name {
+  font-size: var(--text-base);
+  color: var(--text);
+  font-weight: 500;
+  flex: 1;
+}
+
+.qc-worker-check {
+  color: var(--accent);
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+
+/* ── Paso 2: chip de contexto ── */
+
+/* AC-06: header del Paso 2 muestra Worker destino */
+.qc-worker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--text2);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 3px 10px;
+  align-self: flex-start;
+  margin-bottom: 2px;
+}
+
+.qc-worker-chip-label {
+  color: var(--hint);
+}
+
+.qc-worker-chip-name {
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ── Footer ── */
+.qc-footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding: 12px 18px 14px;
+  margin-top: 0;
+}
+
+/* ── Estado del CTA: disabled hasta selección en Paso 1 (AC-04) ── */
+
+/* Reutiliza .btn-primary:disabled del sistema existente */
+
+/* ══ END R-[pendiente-ID] Quick Capture ══ */
+
+/* === locus-misc-ui.js ===
+   Funciones: openPendPanel · closePendPanel */
+
+/* ══ [pendiente-ID]: Panel de pendientes — overlay + drawer ══ */
+
+.pend-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-panel);
+  background: rgb(0 0 0 / 40%);
+}
+
+.pend-overlay.open {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+}
+
+.pend-panel {
+  /* R-202605-005 · consolidado desde locus-overrides.css */
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg-plus);
+  box-shadow: 0 16px 48px rgb(0 0 0 / 35%);
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.pend-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: .9rem 1rem .75rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.pend-panel-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pend-panel-header button {
+  background: transparent;
+  border: none;
+  color: var(--text2);
+  font-size: var(--text-md);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  transition: var(--trans-fast);
+}
+
+.pend-panel-header button:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.pend-panel-header button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.pend-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: .75rem 1rem;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .pend-overlay,
+  .pend-panel {
+    transition: none;
+  }
+}
+
+/* ══ END [pendiente-ID]: Panel de pendientes ══ */
+
+
+/* ══ END A4-b: Command Palette footer hints ══ */
+
+/* sprint-close: R-202605-005 A4-b scm-* → locus-sprint-close.css */
+
+/* R-202605-005 · A4-b · viz-* */
+
+.viz-code--copied {
+  color: var(--green);
+  transition: color var(--transition-base);
+}
+
+.viz-code--copyable {
+  cursor: pointer;
+}
+
+.viz-code--real {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.viz-field-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-xs);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+}
+
+.viz-field-chip--ac {
+  border-color: var(--blue-border);
+  background: var(--blue-dim);
+}
+
+.viz-field-diffs {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.viz-sinc-body {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 250ms ease;
+}
+
+.viz-sinc-body--open {
+  max-height: 2000px;
+}
+
+.viz-sinc-chevron {
+  transition: transform var(--transition-base);
+  display: inline-block;
+  font-size: var(--text-xs);
+}
+
+.viz-sinc-body--open ~ .viz-sinc-header .viz-sinc-chevron,
+.viz-sinc-group.open .viz-sinc-chevron {
+  transform: rotate(90deg);
+}
+
+.viz-sinc-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.viz-sinc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 10px;
+  cursor: pointer;
+  background: var(--bg-subtle);
+  user-select: none;
+}
+
+.viz-sinc-header:hover {
+  background: var(--bg-hover);
+}
+
+.viz-sinc-icon {
+  font-size: var(--text-sm);
+  flex-shrink: 0;
+}
+
+.viz-sinc-label {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.viz-sum-sinc {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* END R-202605-005 · A4-b · viz-* */
+
+/* END R-202605-005 · A4-b · ckpt-* */
+
+/* R-202605-005 · A4-b · pend-ai-* / pend-item-* */
+
+.pend-ai-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-pill);
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.pend-ai-group {
+  margin-bottom: 16px;
+}
+
+.pend-ai-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pend-empty {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  text-align: center;
+  padding: 24px 0;
+}
+
+.pend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.pend-item:last-child {
+  border-bottom: none;
+}
+
+.pend-item-meta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.pend-item-pending {
+  font-size: var(--text-sm);
+  flex: 1;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+/* END R-202605-005 · A4-b · pend-ai-* / pend-item-* */
+
+/* R-202605-005 · A4-b · sprint-inline-* */
+
+.sprint-inline-id-preview {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.sprint-inline-release-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.sprint-inline-release-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.sprint-inline-rt-select {
+  font-size: var(--text-sm);
+}
+
+.sprint-inline-vt-input {
+  font-size: var(--text-sm);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-mono);
+  width: 80px;
+}
+
+.sprint-inline-vt-input:focus {
+  outline: none;
+  border-color: var(--accent-border);
+}
+
+/* END R-202605-005 · A4-b · sprint-inline-* */
+
+/* R-202605-005 · A4-b · utilitarios modals */
+
+.pi-no-ac {
+  color: var(--amber);
+  font-size: var(--text-xs);
+  font-style: italic;
+}
+
+/* END R-202605-005 · A4-b · utilitarios modals */
+
+/* B-202605-004 · A4 — clases fantasma: modals */
+
+/* field-error — estado de error visual en select effort (locus-item-editor.js) */
+.field-error {
+  border-color: var(--red) !important;
+  background: var(--red-dim);
+  color: var(--red);
+}
+
+/* modal--open — alias de .open para criterio de visibilidad en #close-sprint-modal (locus-map-generator.js) */
+.modal--open {
+  display: flex !important;
+  visibility: visible;
+  opacity: 1;
+}
+
+/* toast-inline-actions — wrapper de botones en modo acción (locus-toast.js) */
+
+
+/* END B-202605-004 · A4 — clases fantasma: modals */
+
+
+/* .item-viz-overlay */
+.item-viz-overlay {
+  backdrop-filter: blur(20px) saturate(1.8);
+  background: rgb(0 0 0 / 30%);
+  transition: opacity 0.22s ease;
+  display: none;
+  position: fixed;
+  inset: 0;
+
+  /* T-202605-527: background consolidado en Fix #1 macOS */
+  z-index: var(--z-supreme-mid);
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* .item-viz-overlay.open */
+.item-viz-overlay.open {
+  animation: overlay-in 0.2s ease forwards;
+  display: flex;
+}
+
+/* .item-viz-overlay.open .item-viz-panel */
+.item-viz-overlay.open .item-viz-panel {
+  animation: modal-in 0.26s var(--ease-bounce) forwards;
+}
+
+/* B-202606-009: ie-body scrollable — ie-header e ie-footer quedan fijos */
+.ie-body {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  padding: 1.25rem 1.5rem;
+}
+
+/* .gconfirm-actions .btn-primary.danger — override: pisa .btn-primary en locus-layout.css porque contexto destructivo requiere color rojo */
+.gconfirm-actions .btn-primary.danger {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+/* .cp-empty */
+.cp-empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--text-muted, rgb(255 255 255 / 35%));
+  font-size: var(--text-base);
+  line-height: 1.5;
+}
+
+/* .cp-item */
+.cp-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background 0.08s ease;
+  margin: 1px 6px;
+  user-select: none;
+}
+
+/* .cp-item-icon */
+.cp-item-icon {
+  font-size: var(--text-lg);
+  flex-shrink: 0;
+  width: 22px;
+  text-align: center;
+}
+
+/* .cp-item-label */
+.cp-item-label {
+  font-size: var(--text-md);
+  color: var(--text, #e0e0e0);
+  flex: 1;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* .input-outline-error */
+.input-outline-error {
+  outline: 2px solid var(--red);
+  border-color: var(--red);
+}
+
+/* .quick-field textarea */
+.quick-field textarea {
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  background: var(--surface2);
+  border: 1.5px solid var(--border2);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  transition: var(--trans-color);
+  resize: none;
+  line-height: 1.5;
+}
+
+/* .quick-field input, .quick-field textarea */
+.quick-field input, .quick-field textarea {
+  font-family: var(--font-sans); font-size: var(--text-base);
+  width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  border-radius: var(--radius-xs); color: var(--text); padding: 7px 10px;
+  outline: none; box-sizing: border-box; transition: var(--trans-color);
+}
+
+/* .quick-field textarea:focus */
+.quick-field textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+  outline: none;
+}
+
+/* .quick-field input:focus, .quick-field textarea:focus */
+.quick-field input:focus, .quick-field textarea:focus {
+  border-color: var(--accent);
+}
+
+#doc-log-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-panel);
+  background: transparent;
+}
+
+#doc-log-overlay.open {
+  display: block;
+}
+
+#doc-log-drawer {
+  position: fixed;
+  top: 0;
+  right: -380px;
+  width: 360px;
+  height: 100vh;
+  z-index: var(--z-panel);
+  background: var(--bg2);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  transition: right 0.25s ease;
+  box-shadow: -4px 0 24px rgb(0 0 0 / 18%);
+}
+
+#doc-log-drawer.open {
+  right: 0;
+}
+
+.doc-log-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+#doc-log-title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+}
+
+.doc-log-clear-btn,
+.doc-log-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: var(--text-2xs-plus);
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  transition: var(--trans-color);
+}
+
+.doc-log-clear-btn:hover,
+.doc-log-close-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.doc-log-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.doc-log-empty {
+  color: var(--text3);
+  font-size: var(--text-2xs-plus);
+  text-align: center;
+  margin-top: 24px;
+}
+
+.doc-log-row {
+  display: grid;
+  grid-template-columns: 60px auto 1fr;
+  gap: 6px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--text-2xs-plus);
+}
+
+.doc-log-ts {
+  color: var(--text3);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+}
+
+.doc-log-action {
+  color: var(--text2);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.doc-log-code {
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+}
+
+.doc-log-detail {
+  color: var(--text3);
+  font-size: var(--text-2xs);
+  grid-column: 2 / -1;
+  padding-left: 2px;
+}
+
+/* doc-log-btn en toolbars */
+.doc-log-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xs);
+  padding: 4px 8px;
+  cursor: pointer;
+  color: var(--text2);
+  font-size: var(--text-2xs-plus);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--trans-color);
+}
+
+.doc-log-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.doc-log-count {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-md-plus);
+  padding: 0 5px;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  min-width: 16px;
+  text-align: center;
+  display: inline-block;
+}
+
+.doc-log-count:empty {
+  display: none;
+}
+
+/* ══ END DOC LOG DRAWER ══ */
+
+/* ══ R-202605-001: Modal Limpiar proyecto — clean-project-* ══
+   Scope: locus-modals.css — entregable Nova · tokens canónicos Locus
+   Dueño: Nova | Implementa: Rune
+   Última actualización: 2026-05-27
+   ══════════════════════════════════════════════════════════ */
+
+/* --- Panel base --- */
+/* .modal-overlay y animaciones de .closing ya cubiertas por el sistema modal existente.
+   Solo se declaran los selectores propios del modal de limpieza. */
+
+.clean-project-panel {
+  max-width: 480px;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-2xl);
+  padding: var(--spacing-xl, 1.5rem);
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* --- Header --- */
+.clean-project-panel .modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.clean-project-panel .modal-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.clean-project-name {
+  color: var(--red);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+}
+
+/* --- Body --- */
+.clean-project-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* --- Warning --- */
+.clean-project-warning {
+  font-size: var(--text-sm);
+  color: var(--text2);
+  background: var(--red-dim);
+  border: 1px solid color-mix(in srgb, var(--red) 30%, transparent);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 1rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* --- Checkboxes --- */
+.clean-project-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.clean-project-check-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--trans-fast);
+}
+
+.clean-project-check-label:hover {
+  border-color: var(--border2);
+  background: var(--surface3, var(--surface2));
+}
+
+.clean-project-check-label input[type="checkbox"] {
+  margin-top: 2px;
+  flex-shrink: 0;
+  accent-color: var(--red);
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+}
+
+.clean-project-check-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.clean-project-check-title {
+  font-size: var(--text-md);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.clean-project-check-desc {
+  font-size: var(--text-sm);
+  color: var(--text2);
+}
+
+/* --- Separador confirmación (AC-5) --- */
+.clean-project-confirm-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1.25rem;
+}
+
+/* --- Label + input confirmación --- */
+.clean-project-confirm-label {
+  font-size: var(--text-sm);
+  color: var(--text2);
+  line-height: 1.4;
+}
+
+.clean-project-input {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-size: var(--text-md);
+  font-family: var(--font-sans);
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  transition: var(--trans-fast);
+  box-sizing: border-box;
+}
+
+.clean-project-input:focus {
+  border-color: var(--border2);
+  background: var(--surface);
+}
+
+.clean-project-input.input-valid {
+  border-color: var(--red);
+}
+
+/* --- Footer --- */
+.clean-project-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  padding-top: 0;
+}
+
+/* --- Botón confirmar — estados (AC-7, AC-12) --- */
+.clean-project-confirm {
+  min-width: 120px;
+}
+
+.clean-project-confirm.is-disabled,
+.clean-project-confirm[aria-disabled="true"] {
+  opacity: 0.45;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
+/* --- prefers-reduced-motion --- */
+@media (prefers-reduced-motion: reduce) {
+  .clean-project-panel,
+  .clean-project-check-label,
+  .clean-project-input,
+  .modal-close {
+    transition: none;
+  }
+}
+
+/* ══ END R-202605-001 ══ */

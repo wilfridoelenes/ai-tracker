@@ -1,0 +1,263 @@
+/* [PP] mod:1 · autor:Rune · 2026-07-05 UTC-6 */
+/* locus-modals-tracker.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
+
+/* === locus-tracker.js ===
+   Funciones: openBlindExhaustMode · cancelBlindExhaustMode · confirmBlindExhaust */
+
+/* ══ Bloqueo ciego — agotar IA sin sesión ══ */
+.card-footer-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.card-footer-actions-row .save-btn {
+  flex: 1;
+}
+
+.blind-exhaust-btn {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--red);
+  background: var(--red-dim);
+  border: 1px solid var(--red);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: var(--trans-fast);
+  white-space: nowrap;
+  flex-shrink: 0;
+  text-align: center;
+}
+
+.blind-exhaust-btn:hover {
+  background: var(--red);
+  color: var(--text-on-danger);
+  border-color: var(--red);
+}
+
+/* modo inline activo — bloquear campos normales */
+.card-footer--blind-exhaust-mode .hora-row,
+.card-footer--blind-exhaust-mode .card-footer-actions-row {
+  opacity: 0.3;
+  pointer-events: none;
+  user-select: none;
+}
+
+.blind-exhaust-inline {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+
+
+.blind-exhaust-hora-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.blind-exhaust-hora-input {
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.blind-exhaust-confirm-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.blind-exhaust-confirm-btn {
+  flex: 1;
+  padding: 6px 12px;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  background: var(--red-dim);
+  color: var(--red);
+  border: 1px solid var(--red);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--trans-fast);
+}
+
+.blind-exhaust-confirm-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.blind-exhaust-confirm-btn:not(:disabled):hover {
+  background: var(--red);
+  color: var(--text-on-danger);
+}
+
+.blind-exhaust-cancel-btn {
+  font-size: var(--text-xs);
+  color: var(--hint);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: var(--trans-fast);
+}
+
+.blind-exhaust-cancel-btn:hover {
+  color: var(--text2);
+  border-color: var(--border2);
+  background: var(--surface2);
+}
+
+#ckpt-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ckpt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+    border-radius: var(--radius-lg-plus) var(--radius-lg-plus) 0 0;
+}
+
+.ckpt-header-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+/* ── TG PANEL ── */
+
+/* ── PEND PANEL ── */
+
+/* ── MODAL REDESIGN ── */
+
+/* ── HISTORY HEADER ── */
+
+/* ── SHOW ALL BUTTON ── */
+
+.show-all-btn:hover {
+  border-color: var(--border2);
+  color: var(--text2);
+  background: var(--surface2);
+}
+
+/* ── SESSION INDICATORS ── */
+
+/* ── QUICK MODAL ── */
+
+/* ── SPLASH SCREEN ── */
+
+/* T-202604-396: splash-name oculto cuando el logo JPG incluye wordmark */
+#pepe-splash .splash-name--hidden {
+  display: none;
+}
+
+/* T-202604-396: logo agrandado para mostrar wordmark del JPG */
+#pepe-splash-img {
+  width: 200px;
+  height: auto;
+  object-fit: contain;
+}
+
+#pepe-splash .splash-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xs);
+  color: var(--text2);
+  letter-spacing: 0.02em;
+}
+
+#pepe-progress-fill {
+  width: var(--splash-progress, 0%);
+  background: linear-gradient(90deg, var(--accent), var(--blue));
+  box-shadow: 0 0 10px rgb(166 226 46 / 50%);
+}
+
+/* ── BTN DANGER ── */
+
+/* ── COPY CTX BUTTON ── */
+
+.copy-ctx-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ── DETAIL PANEL EMPTY ── */
+
+/* B-202604-XXX: oculto por defecto — visible solo cuando JS agrega .visible */
+.tracker-detail-empty.visible {
+  display: flex;
+}
+
+/* ── AVATAR MODAL ── */
+
+.avatar-grid {
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  display: grid;
+  margin-bottom: 1rem;
+}
+
+.avatar-lg {
+  width: 48px;
+  height: 48px;
+}
+
+.avatar-lg svg {
+  width: 24px;
+  height: 24px;
+}
+
+.avatar-option {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  transition: var(--trans-fast);
+}
+
+.avatar-option svg {
+  width: 24px;
+  height: 24px;
+}
+
+.avatar-option:hover {
+  border-color: var(--accent);
+  background: var(--surface3);
+}
+
+.avatar-option.selected {
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* ── CKPT REOPEN BUTTON ── */
+.btn-ckpt-reopen {
+  font-size: var(--text-md);
+  padding: 5px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  transition: var(--trans-fast);
+}
+
+.btn-ckpt-reopen:hover {
+  border-color: var(--accent-border);
+  background: var(--accent-dim);
+}
+
+/* ── POP INLINE INPUT ── */
+
+.pop-inline-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-dim);
+  outline: none;
+}
+
