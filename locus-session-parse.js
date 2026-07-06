@@ -1,4 +1,4 @@
-// [PP] mod:93 · autor:Rune · 2026-07-04 21:00 UTC-6
+// [PP] mod:94 · autor:Rune · 2026-07-05 UTC-6
 // TKT4 (REQ-contract-rename · depends_on: TKT2): _buildTgItemsFromParsed propaga
 //   contract_detail a los dos objetos tgItems que construye (rama de transición bloqueada
 //   ~L1893 y alta normal ~L1925) — antes se perdía entre el parseo y mergeBacklogFromTG,
@@ -1625,9 +1625,16 @@ export function _tryIngestSprintProposal(text) {
   // ítems con sprint: "PP-S-06" (prefijo corto) nunca coinciden con id completo → bloqueo falso.
   const _sprintIdFull  = result.sprint;
   const _sprintIdShort = _sprintIdFull.split(/\s*·\s*/)[0].trim();
+  // INC-[pendiente-ID]: mismo bug que el path JSON (_tryIngestSprintProposalFromParsed) —
+  // label guardaba _sprintIdFull (id+label ya concatenados en el schema legacy), duplicando
+  // el ID cuando _sprintDisplay()/spLabel() lo recomponían como `${sp.id} · ${sp.label}`.
+  // Se extrae solo la parte descriptiva antes de guardar en label.
+  const _legacyLabelDescriptive = _sprintIdFull
+    .replace(new RegExp('^' + _sprintIdShort.replace(/[-]/g, '\\-') + '\\s*·?\\s*'), '')
+    .trim();
   const newSprint = {
     id:             _sprintIdShort,
-    label:          _sprintIdFull,
+    label:          _legacyLabelDescriptive || _sprintIdShort,
     name:           _sprintIdFull,
     version_target: result.version_target,
     release_type:   result.release_type,
@@ -1718,10 +1725,14 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
   const _labelDescriptive = (proposalObj.label && proposalObj.label !== _sprintIdShort)
     ? proposalObj.label.replace(new RegExp('^' + _sprintIdShort.replace(/[-]/g, '\\-') + '\\s*·?\\s*'), '').trim()
     : '';
+  // INC-[pendiente-ID]: label guardaba _canonicalLabel (id+label concatenado) — duplicaba el ID
+  // cuando _sprintDisplay()/spLabel() lo recomponían como `${sp.id} · ${sp.label}`.
+  // label ahora guarda solo la parte descriptiva — mismo criterio que confirmEditSprint()
+  // (línea ~672: "label NO concatena el ID — id y label son campos separados", BR-Ecosystem §5).
   const _canonicalLabel = _labelDescriptive ? `${_sprintIdShort} · ${_labelDescriptive}` : _sprintIdShort;
   const newSprint = {
     id:             _sprintIdShort,
-    label:          _canonicalLabel,
+    label:          _labelDescriptive || _sprintIdShort,
     name:           _canonicalLabel,
     version_target: version_target,
     release_type:   release_type,
