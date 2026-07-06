@@ -1,4 +1,4 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:2 · autor:Rune · 2026-06-20 16:00 UTC-6
+// [PP] mod:3 · autor:Rune · 2026-07-05 UTC-6
 // locus-sprint-plan.js
 // Versión: 1.1 | Última actualización: 2026-05-28 UTC-6 | R-202605-043: renderPlanInto + _buildPlanContent
 // Módulo: Bloque PLAN — savePlan, loadPlan, renderPlan, togglePlanZoneDone
@@ -215,10 +215,23 @@ function togglePlanZoneDone() {
 // Backward compatible: planes legacy (sin campo scope) se muestran en sección sprint
 // R-202605-043: renderPlanInto — renderiza el plan en un contenedor arbitrario
 // Permite reutilizar la lógica desde el tab Sprint sin depender de #sspanel-plan
+// CSS Purity (__BR-Execution §3): --plan-pct y --sess-prog-pct se aplican via
+// setProperty sobre el elemento real, nunca embebidos en el string de innerHTML.
+// Mismo patrón ya usado en locus-sprint.js (--sps-burndown-pct, --sbm-fill-width).
+function _applyPlanProgressBars(container) {
+  container.querySelectorAll('[data-plan-pct]').forEach(function(el) {
+    el.style.setProperty('--plan-pct', el.dataset.planPct + '%');
+  });
+  container.querySelectorAll('[data-sess-prog-pct]').forEach(function(el) {
+    el.style.setProperty('--sess-prog-pct', el.dataset.sessProgPct + '%');
+  });
+}
+
 export function renderPlanInto(containerId) {
   const container = document.getElementById(containerId);
   if (!container) return;
   _buildPlanContent(container);
+  _applyPlanProgressBars(container);
   _attachPlanDelegation(container);
 }
 
@@ -226,6 +239,7 @@ export function renderPlan() {
   const panel = document.getElementById('sspanel-plan');
   if (!panel) return;
   _buildPlanContent(panel);
+  _applyPlanProgressBars(panel);
   _attachPlanDelegation(panel);
 }
 
@@ -339,7 +353,7 @@ function _buildPlanContent(panel) {
     const _sessPct   = _sessTotal ? Math.round((_sessDone / _sessTotal) * 100) : 0;
     const _sessProgHtml = _sessTotal
       ? `<div class="plan-session-prog">
-          <div class="plan-session-prog-bar" style="--sess-prog-pct:${_sessPct}%"></div>
+          <div class="plan-session-prog-bar" data-sess-prog-pct="${_sessPct}"></div>
           <span class="plan-session-prog-label">${_sessDone}/${_sessTotal}</span>
         </div>`
       : '';
@@ -399,7 +413,7 @@ function _buildPlanContent(panel) {
         <div class="plan-sprint-header">
           <span class="plan-sprint-id">${esc(sprintLabel)}</span>${isActive ? `<span class="plan-sprint-badge--active">activo</span>` : ''}
           ${totalItems ? `<div class="plan-sprint-progress-bar-wrap">
-            <div class="plan-sprint-progress-bar" style="--plan-pct:${pct}%"></div>
+            <div class="plan-sprint-progress-bar" data-plan-pct="${pct}"></div>
             <span class="plan-sprint-progress-label">${doneItems}/${totalItems} ítems (${pct}%)</span>
           </div>` : ''}
         </div>`;
