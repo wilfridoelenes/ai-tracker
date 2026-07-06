@@ -1,4 +1,4 @@
-// [PP] mod:79 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:80 · autor:Rune · 2026-07-05 UTC-6
 // REQ-[tmp:req-vocab-historico]: comentario actualizado — referenciaba locus-backlog-archive.js
 // (renombrado a locus-backlog-historico.js). Sin cambio de código, solo comentario.
 // locus-sprint.js
@@ -288,7 +288,11 @@ function _renderSpsActivo() {
   }
 
   const id    = sprint.id || '';
-  const label = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name ? `${sprint.id} · ${sprint.name}` : sprint.id);
+  // INC-[pendiente-ID]: 'label' se renderiza en sps-card-title, junto a sps-card-id
+  // (span separado, ver container.innerHTML abajo) — no debe re-incluir el id como prefijo
+  // o duplica visualmente el ID. Mismo bug ya corregido en Programados/Cerrados/Pausados —
+  // esta era la instancia visible en la captura del founder (sub-tab Sprints → Activo).
+  const label = sprint.label || sprint.name || id;
   const vt    = sprint.version_target || '—';
   const rt    = sprint.release_type || sprint.releaseType || '—';
   const goal  = sprint.goal || '—';
