@@ -1,4 +1,7 @@
-// [PP] mod:74 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:75 · autor:Rune · 2026-07-06 UTC-6
+// TKT-202607-009: chip de trazabilidad origen_disc en subline de buildBacklogItem() —
+//   reutiliza navigateToItem() (mismo mecanismo que navigate-discard-ref) para el click;
+//   edge case huérfano verificado contra getItems() antes de decidir data-action.
 // INC-202607-004 (triggered_by TKT-202607-001 — módulo crítico: transversal + persistencia
 //   primaria): mergeBacklogFromTG normalizaba parent→parentId DESPUÉS de _assignPendingIds —
 //   _assignPendingIds resuelve parentId vía slugMap en su Paso 2, pero el campo aún se llamaba
@@ -355,6 +358,11 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
       return;
     }
     if (act === 'navigate-discard-ref') {
+      e.stopPropagation();
+      navigateToItem(action.dataset.ref);
+      return;
+    }
+    if (act === 'navigate-origen-disc') {
       e.stopPropagation();
       navigateToItem(action.dataset.ref);
       return;
@@ -1087,7 +1095,17 @@ export function buildBacklogItem(item, opts = {}) {
       ? `<span class="bitem-discard-reason">🗑 ${esc(item.discardReason)}${item.discardRef ? ' · ' + esc(item.discardRef) : ''}</span>`
       : '';
 
-  // Subline (code, area, sprint, role, discard reason, missing warning)
+  // TKT-202607-009: chip de trazabilidad origen_disc — dado un ítem promovido con origenDisc
+  // poblado, renderiza referencia clickeable a la DISC de origen. AC edge case: si el código no
+  // existe en ITEMS, se renderiza sin data-action (no navegable) y sin error de runtime.
+  const _origenDiscTarget = item.origenDisc ? getItems().find(i => i.code === item.origenDisc) : null;
+  const _origenDiscHtml = item.origenDisc
+    ? _origenDiscTarget
+      ? `<span class="bitem-origen-disc-chip" data-action="navigate-origen-disc" data-ref="${esc(item.origenDisc)}" title="Ir a la DISC de origen">origen: ${esc(item.origenDisc)}</span>`
+      : `<span class="bitem-origen-disc-chip bitem-origen-disc-chip--orphan" title="DISC de origen no encontrada en el backlog">origen: ${esc(item.origenDisc)}</span>`
+    : '';
+
+  // Subline (code, area, sprint, role, discard reason, origen_disc, missing warning)
   // UX-redesign: código en subline junto con rol/área/sprint — título queda como línea visual dominante
   const subline = `<div class="bitem-subline">
     <span class="bitem-subline-code" data-action="copy-code" data-code="${esc(item.code)}" data-idx="${globalIdx}" title="Click para copiar ID">${item._focusRank ? `<span class="bitem-focus-rank" title="Posición en Focus">#${item._focusRank}</span> ` : ''}${esc(item.code)}</span>
@@ -1095,6 +1113,7 @@ export function buildBacklogItem(item, opts = {}) {
     ${item.area ? `<span class="bitem-subline-sep">·</span><span class="bitem-subline-area" title="${esc(item.area)}">${esc(item.area)}</span>` : ''}
     ${item.sprint ? `<span class="bitem-subline-sep">·</span><span class="bitem-subline-sprint">${esc(_sprintDisplay(item.sprint))}</span>` : ''}
     ${_discardReasonHtml}
+    ${_origenDiscHtml}
     ${missingFields.length ? `<span class="bitem-missing-warn" title="Faltan: ${missingFields.join(', ')}">⚠</span>` : ''}
   </div>`;
 

@@ -1,4 +1,7 @@
-/* [PP] mod:77 · autor:Nova · 2026-07-05 UTC-6 */
+/* [PP] mod:78 · autor:Nova · 2026-07-06 UTC-6 */
+/* TKT-202607-009 AC-1/AC-4: chip de trazabilidad origen_disc en la subline — reutiliza
+   tokens --idea-* (DISC = idea = purple, ya declarados en :root/[data-theme]). Variante
+   --orphan cubre AC edge case: origenDisc apunta a código inexistente en ITEMS. */
 /* INC-[pendiente-ID] fix: --idea-hue:42 eliminado (:root L3738 + [data-theme="dark"] L4298) —
    causa raíz de "DISC renderiza naranja". Todos los derivados (--idea-color/-dim/-bg/-bg-hover/
    -border/-badge-bg/-badge-text) ahora vienen de var(--purple) vía color-mix, mismo token que
@@ -4688,6 +4691,44 @@ er {
 .section-group.sg-cerradas .bitem--idea.bitem--promoted .item-quick-actions {
   pointer-events: none;
   visibility:     hidden;
+}
+
+/* ── TKT-202607-009: chip de trazabilidad origen_disc (subline) ────── */
+/* Referencia a la DISC que originó el ítem promovido — icono + código, clickeable. */
+.bitem-origen-disc-chip {
+  display:        inline-flex;
+  align-items:    center;
+  gap:            4px;
+  font-size: var(--text-3xs);
+  font-weight:    600;
+  color:          var(--idea-color-dim);
+  background:     var(--idea-bg);
+  border:         1px solid var(--idea-border);
+  border-radius: var(--radius-sm);
+  padding:        2px 7px;
+  cursor:         pointer;
+  transition: var(--trans-color);
+  text-decoration: none;
+}
+
+.bitem-origen-disc-chip:hover {
+  background: var(--idea-bg-hover);
+  color:      var(--idea-color);
+}
+
+.bitem-origen-disc-chip::before {
+  content:   "↳";
+  font-size: var(--text-2xs);
+}
+
+/* AC edge case: origenDisc huérfano — código no existe en ITEMS, sin data-action, no clickeable */
+.bitem-origen-disc-chip--orphan {
+  cursor: default;
+}
+
+.bitem-origen-disc-chip--orphan:hover {
+  background: var(--idea-bg);
+  color:      var(--idea-color-dim);
 }
 
 /* ── Razón de descarte manual — texto muted sin chip ────────── */
