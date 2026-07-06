@@ -1,4 +1,4 @@
-// [PP] mod:39 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:40 · autor:Rune · 2026-07-05 UTC-6
 // TKT1 (REQ-sprints-migration): import muerto _loadSprintsFromSupabase eliminado — la función
 //   fue reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js y este módulo
 //   nunca la invocaba (solo quedaba en comentario línea ~959). Sin este fix, TKT1 entregado solo
@@ -802,8 +802,6 @@ function _scmRender() {
   // T-202606-120 AC-1: 4 pasos base, 3 si skipStep3 (migración omitida — Paso 2 DOC-UPDATEs nunca se salta)
   const totalSteps = skipStep3 ? 3 : 4;
   const sp = _getSprintById(id);
-  // TKT2-[pendiente-ID]: _sprintDisplay aplica patrón id · label en título del modal de cierre
-  const spLabel = sp ? _sprintDisplay(id) : id;
 
   // actualizar indicadores de paso (scs-step-1..4)
   [1, 2, 3, 4].forEach(n => {
@@ -851,7 +849,7 @@ function _scmRender() {
   };
 
   if (step === 1) {
-    body.innerHTML = _scmStep1Html(sp, spLabel, pendingItems, doneItems, _step1Metrics);
+    body.innerHTML = _scmStep1Html(sp, pendingItems, doneItems, _step1Metrics);
     // T-202606-118: gate de campos obligatorios
     const _gv = (v) => v && v !== 'n/a' && String(v).trim() !== '';
     const gateOk = sp && _gv(sp.version_target) && _gv(sp.release_type) && _gv(sp.scope);
@@ -894,7 +892,7 @@ function _scmUpdateMigrationNextBtn(nextBtn) {
 }
 
 // B-202605-067: métricas de entrega recibidas como parámetro — sin acceso a _scmState global
-function _scmStep1Html(sp, spLabel, pendingItems, doneItems, metrics) {
+function _scmStep1Html(sp, pendingItems, doneItems, metrics) {
   const doneCount  = doneItems.filter(i => i.status === 'done').length;
   const pendCount  = pendingItems.length;
 
