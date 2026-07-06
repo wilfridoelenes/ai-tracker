@@ -1,4 +1,4 @@
-// [PP] mod:78 · autor:Rune · 2026-07-04 UTC-6
+// [PP] mod:79 · autor:Rune · 2026-07-05 UTC-6
 // REQ-[tmp:req-vocab-historico]: comentario actualizado — referenciaba locus-backlog-archive.js
 // (renombrado a locus-backlog-historico.js). Sin cambio de código, solo comentario.
 // locus-sprint.js
@@ -523,7 +523,10 @@ function _renderSpsProgramados() {
 
   const rows = sprints.map(function(s) {
     const id    = s.id || '';
-    const label = s.label ? `${id} · ${s.label}` : (s.name ? `${id} · ${s.name}` : id);
+    // INC-[pendiente-ID]: 'label' se renderiza junto a un span de id separado (sps-scheduled-id,
+    // línea siguiente) — no debe re-incluir el id como prefijo o duplica visualmente el ID.
+    // Mismo criterio ya correcto en _renderSprintSummaryTable (ssm-row-name): label crudo, sin id.
+    const label = s.label || s.name || id;
 
     // Conteo done/total de ítems del sprint programado
     let total = 0;
@@ -1453,7 +1456,9 @@ function _renderSpsPausados() {
   container.classList.remove('is-hidden');
 
   const cards = paused.map(function(s) {
-    const label = s.label ? `${s.id} · ${s.label}` : (s.name ? `${s.id} · ${s.name}` : s.id);
+    // INC-[pendiente-ID]: composite construido una sola vez aquí (mismo patrón que
+    // _renderSpsActivo) — evita "id · id" cuando no hay label ni name propios.
+    const title = s.label ? `${s.id} · ${s.label}` : (s.name ? `${s.id} · ${s.name}` : s.id);
     const pausedDate = s.pausedAt || s.createdAt
       ? new Date(s.pausedAt || s.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })
       : '—';
@@ -1461,7 +1466,7 @@ function _renderSpsPausados() {
     return (
       '<div class="sps-card sps-card--paused" data-sprint-id="' + _escHtml(s.id || '') + '">' +
         '<div class="sps-header">' +
-          '<span class="sps-title">' + _escHtml(s.id || '') + ' · ' + _escHtml(label) + '</span>' +
+          '<span class="sps-title">' + _escHtml(title) + '</span>' +
           '<span class="sml-badge sml-badge--paused">PAUSADO</span>' +
         '</div>' +
         '<div class="sps-pausados-meta">' +
@@ -1566,7 +1571,10 @@ async function _renderSpsCerrados() {
       descartadoCnt = spItems.filter(i => i.status === 'descartado').length;
     }
 
-    const label = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name ? `${sprint.id} · ${sprint.name}` : sprint.id);
+    // INC-[pendiente-ID]: 'label' se renderiza en sps-cerrados-label, junto a sps-cerrados-id
+    // (span separado, línea siguiente) — no debe re-incluir el id como prefijo o duplica
+    // visualmente el ID. Mismo criterio ya correcto en ssm-row-name.
+    const label = sprint.label || sprint.name || sprint.id;
     const closedDate = sprint.closedAt
       ? new Date(sprint.closedAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })
       : '—';
