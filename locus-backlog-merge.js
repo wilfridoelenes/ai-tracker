@@ -1,4 +1,13 @@
-// [PP] mod:43 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:44 · autor:Rune · 2026-07-06 UTC-6
+// INC-[pendiente-ID] (triggered_by INC-202607-004 — mismo módulo): _parentHtml leía item.parent
+//   (campo eliminado por mergeBacklogFromTG tras normalizar a parentId) — "Parent: Sin parent"
+//   para todo TKT, nuevo o existente. Fix: lee item.parentId. Detectado en la misma auditoría,
+//   segundo gap: todo _card(i.code, i.title, ...) en este archivo leía i.title, pero los objetos
+//   de diff.created/advanced/updated/retroceso/discarded/ignored/tmpSuggestions (locus-backlog-item.js)
+//   solo exponen .desc — la descripción de cada card del panel de diff estaba vacía en las 9
+//   secciones del panel, no solo en created. Fix: i.title → i.desc en todo el archivo (9 sitios).
+//   no_incluye: no cambia el nombre del campo en locus-backlog-item.js (desc ya es el contrato
+//   correcto entre merge y render) — solo alinea el lado que lo leía mal.
 // TKT-[tmp:tkt-shortcopy] (parent: n/a — standalone, promovido de DISC triggered_by
 //   INC-202607-002): _shortCopy en el listener storage:item-excluded usaba texto fijo
 //   "no puede quedar sin sprint asignado" sin importar la causa real. Corregido — usa
@@ -302,11 +311,16 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // T-202605-037: para ítems tipo T, muestra el campo parent debajo del título
   // parentOverride: valor de parent del objeto diff cuando el ítem aún no existe en getItems() (recién creado)
   // REQ-MERGE-GEN2 TKT3: migrado a _itemKindFn para detectar TKT via tipo Gen2
+  // INC-[pendiente-ID] (triggered_by INC-202607-004): leía item.parent — campo eliminado por
+  // mergeBacklogFromTG tras normalizar a parentId (locus-backlog-item.js, "parentId es el único
+  // campo canónico en JS desde aquí en adelante"). Para ítems ya persistidos item.parent siempre
+  // era undefined; para ítems nuevos, parentOverride ahora sí llega resuelto (ver fix en
+  // created.push, locus-backlog-item.js).
   const _parentHtml = (code, parentOverride) => {
     if (_itemKindFn({ code }) !== 'TKT') return '';
     const item = getItems().find(i => i.code === code);
     const parentVal = item
-      ? (item.parent || null)
+      ? (item.parentId || null)
       : (parentOverride || null);
     const label = parentVal ? esc(parentVal) : 'Sin parent';
     return `<div class="mdiff-parent-hint">Parent: ${label}</div>`;
@@ -371,7 +385,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           ${_pill('retroceso', `${esc(i.from)} → ${esc(i.to)}`)}
           ${_sprintSelect(i.code, i.sprint, itemType)}
         </div>
-        <div class="mdiff-desc">${esc(i.title || '')}</div>
+        <div class="mdiff-desc">${esc(i.desc || '')}</div>
       </div>
     </div>`;
   };
@@ -403,7 +417,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
           ${reasonHtml}
           ${_sprintSelect(i.code, i.sprint, itemType)}
         </div>
-        <div class="mdiff-desc">${esc(i.title || '')}</div>
+        <div class="mdiff-desc">${esc(i.desc || '')}</div>
       </div>
     </div>`;
   };
@@ -434,17 +448,17 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // TKT2-diff-visual: created/advanced/updated se resumen como chips arriba —
   // sin header de sección propio, ya que son estados rutinarios sin acción pendiente.
   if (diff.created.length) {
-    const rows = _sortByType(diff.created).map(i => _card(i.code, i.title, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
+    const rows = _sortByType(diff.created).map(i => _card(i.code, i.desc, 'green', _pill('created', '＋ creado'), _depsHtml(i.dependsOn), i.parent, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
     summaryChipsHtml += `<span class="mdiff-summary-chip mdiff-summary-chip--success">Creados <span class="mdiff-sec-count">${diff.created.length}</span></span>`;
     quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
   }
   if (diff.advanced.length) {
-    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.title, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
+    const rows = _sortByType(diff.advanced).map(i => _card(i.code, i.desc, 'blue', _pill('advanced', `${esc(i.from)} → ${esc(i.to)}`), _depsHtml(i.dependsOn), undefined, i.sprint, i.type || _itemKindFn({ code: i.code }))).join('');
     summaryChipsHtml += `<span class="mdiff-summary-chip mdiff-summary-chip--neutral">Avances <span class="mdiff-sec-count">${diff.advanced.length}</span></span>`;
     quickRowsHtml += `<div class="mdiff-section-body">${rows}</div>`;
   }
   if (diff.updated.length) {
-    const rows = _sortByType(diff.updated).map(i => _card(i.code, i.title, 'accent',
+    const rows = _sortByType(diff.updated).map(i => _card(i.code, i.desc, 'accent',
       _pill('updated', '✎ actualizado'),
       _fieldChips(i.changes) + _depsHtml(i.dependsOn),
       i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
@@ -456,7 +470,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // B-202604-198: ítems que nacen y cierran en el mismo CHECKPOINT — grupo diferenciado
   if (diff.createdAndClosed.length) {
     const rows = _sortByType(diff.createdAndClosed).map(i => _card(
-      i.code, i.title, 'green',
+      i.code, i.desc, 'green',
       _pill('created', '＋ creado') + _pill('advanced', 'pendiente → done'),
       `<div class="mdiff-change-hint">Creado y cerrado en esta sesión</div>` + _depsHtml(i.dependsOn),
       i.parent, i.sprint, i.type || _itemKindFn({ code: i.code })
@@ -467,7 +481,7 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // REQ-MERGE-GEN2 TKT1 AC-2: tmpSuggestions usa tmpCode sin .type — fallback a _itemKindFn({code: i.tmpCode}) || 'UNKNOWN'
   if (diff.tmpSuggestions.length) {
     const rows = _sortByType(diff.tmpSuggestions).map(i => _card(
-      i.tmpCode, i.title, 'warn',
+      i.tmpCode, i.desc, 'warn',
       _pill('warn', '⚠ tmp sin match aplicado'),
       `<div class="mdiff-change-hint">Posible coincidencia: <strong>${esc(i.suggestedCode)}</strong> — ${esc(i.suggestedTitle)}</div>
        <div class="mdiff-change-hint mdiff-change-hint--secondary">Confirma manualmente en el backlog si corresponde al mismo ítem.</div>`,
@@ -505,12 +519,12 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         if (i.reason === 'duplicado')     { pill = _pill('warn', '⚠ duplicado'); hint = i.existingCode ? `<div class="mdiff-change-hint">existe como ${esc(i.existingCode)}</div>` : ''; }
         else if (i.reason === 'sin-status')    { pill = _pill('warn', '⚠ sin status'); }
         else if (i.reason === 'tipo-invalido') { pill = _pill('warn', '⚠ tipo inválido'); }
-        return _card(i.code, i.title, 'warn', pill, hint, undefined, undefined, i.type || _itemKindFn({ code: i.code }));
+        return _card(i.code, i.desc, 'warn', pill, hint, undefined, undefined, i.type || _itemKindFn({ code: i.code }));
       }).join('');
       sectionsHtml += _section('attention', 'warn', `⚠ Requieren atención <span class="mdiff-sec-count">${ignoredCritical.length}</span>`, rows);
     }
     if (ignoredOk.length) {
-      const rows = _sortByType(ignoredOk).map(i => _card(i.code, i.title, 'muted', _pill('ignored', 'sin cambios'), undefined, undefined, undefined, i.type || _itemKindFn({ code: i.code }))).join('');
+      const rows = _sortByType(ignoredOk).map(i => _card(i.code, i.desc, 'muted', _pill('ignored', 'sin cambios'), undefined, undefined, undefined, i.type || _itemKindFn({ code: i.code }))).join('');
       // Sin cambios colapsado por defecto
       sectionsHtml += _section('unchanged', 'muted', `Sin cambios <span class="mdiff-sec-count">${ignoredOk.length}</span>`, rows, true);
     }

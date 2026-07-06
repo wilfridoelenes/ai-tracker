@@ -1,4 +1,4 @@
-// [PP] mod:75 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:78 · autor:Rune · 2026-07-06 UTC-6
 // TKT-202607-009: chip de trazabilidad origen_disc en subline de buildBacklogItem() —
 //   reutiliza navigateToItem() (mismo mecanismo que navigate-discard-ref) para el click;
 //   edge case huérfano verificado contra getItems() antes de decidir data-action.
@@ -48,7 +48,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, _quickAssignEffort, setItemRole, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP)
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -56,7 +56,7 @@ import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessi
 
 import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel, _openMigrateItem, _acvToggle, _acvStartEdit, _acvConfirm } from './locus-backlog-panel.js'; // T-202606-089 AC-3
 
-import { _getActiveSprint, navigateToItem, setItemSprint, openSprintRetroView, _inheritSprintToChildren } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · [tmp:tkt-unify-sprint-inherit]: _inheritSprintToChildren añadido
+import { _getActiveSprint, navigateToItem, openSprintRetroView, _inheritSprintToChildren } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · [tmp:tkt-unify-sprint-inherit]: _inheritSprintToChildren añadido · [tmp:tkt-card-readonly]: setItemSprint retirado — sin caller tras remover select de sprint del card
 import { openProjPanel } from './locus-sprint-project.js'; // T-202606-089 AC-1
 
 import { _setBacklogModified } from './locus-docs.js';
@@ -73,12 +73,7 @@ import { esc, getCurrentTab, switchTab } from './locus-ui-shell.js';
 import { openDetail } from './locus-session-popup.js';
 
 // Constantes canónicas del ecosistema — roles disponibles para el select de ítem
-// Fuente: OB-STRATEGY §6. Actualizar aquí si se agregan/eliminan roles.
-const _ECOSYSTEM_ROLES = [
-  'ST · Vera', 'GW · Lena', 'CPO · Noa', 'CMO · Maya',
-  'PO · Cael', 'FS · Rune', 'UX · Nova', 'QA · Finn',
-  'CC · Flux', 'ET · Eden', 'GC · Sage', 'DA · Iris'
-];
+// [tmp:tkt-roles-cleanup]: copia local eliminada — consolidada en locus-backlog-core.js (import), mismo patrón que _getActiveProjectFilter/getProjectById (mod:24)
 
 // Días sin cambio de status para considerar un ítem bloqueado (alineado con _isBlocked en core)
 const _BLOCKED_DAYS = 14;
@@ -262,6 +257,15 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
   _state.attached = true;
   const _blListAbortCtrl = _state.abortCtrl; // alias local — sin cambiar las 8 referencias de signal abajo
 
+  // --- Keydown delegation: activación por teclado de .bitem-header (role=button) — [tmp:tkt-card-readonly] AC accesibilidad ---
+  listEl.addEventListener('keydown', function _blListKeydown(e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const header = e.target.closest('.bitem-header[data-action="item-expand"]');
+    if (!header) return;
+    e.preventDefault();
+    toggleItemExpand(parseInt(header.dataset.idx, 10));
+  }, { signal: _blListAbortCtrl.signal });
+
   // --- Click delegation ---
   listEl.addEventListener('click', function _blListClick(e) {
     const action = e.target.closest('[data-action]');
@@ -331,11 +335,6 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
     if (act === 'navigate-origin') {
       e.stopPropagation();
       navigateToItem(action.dataset.origin);
-      return;
-    }
-    if (act === 'quick-assign-effort') {
-      e.stopPropagation();
-      _quickAssignEffort(action.dataset.code);
       return;
     }
     if (act === 'open-blocker') {
@@ -503,37 +502,9 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
     }
   }, { signal: _blListAbortCtrl.signal });
 
-  // --- Change delegation (status-select, role, sprint, parent) ---
-  listEl.addEventListener('change', function _blListChange(e) {
-    const sel = e.target.closest('.item-status-select');
-    if (!sel) return;
-    e.stopPropagation();
-    const code = sel.dataset.code;
-    const type = sel.dataset.selectType;
-    if (!code) return;
-    if (type === 'role') {
-      setItemRole(code, sel.value);
-    } else if (type === 'sprint') {
-      // INC-[pendiente-ID]: renderBacklogList() directo removido — ciego a qué panel disparó
-      // el cambio (rompía Q-Backlog/Q-DISC al reasignar sprint desde esas cards). setItemSprint
-      // ahora despacha shell:backlog-render-dirty (ver locus-backlog-sprints.js) — mismo patrón
-      // ya usado por setItemRole, refresca el panel que esté activo sin importar cuál sea.
-      setItemSprint(code, sel.value);
-    } else if (type === 'parent') {
-      setItemParent(code, sel.value);
-    } else {
-      // status select (no data-select-type)
-      setItemStatus(code, sel.value);
-    }
-  }, { signal: _blListAbortCtrl.signal });
+  // --- Change delegation: item-status-select removido en [tmp:tkt-card-readonly] — status/role/sprint/parent ya no son editables desde el card, se editan en el panel (locus-backlog-panel.js)
 
-  // --- Dblclick delegation (inline edit title) ---
-  listEl.addEventListener('dblclick', function _blListDblClick(e) {
-    const action = e.target.closest('[data-action="inline-edit-title"]');
-    if (!action) return;
-    e.stopPropagation();
-    _inlineEditTitle(action.dataset.code, e);
-  }, { signal: _blListAbortCtrl.signal });
+  // --- Dblclick delegation: inline-edit-title removido en [tmp:tkt-card-readonly] — título ya no editable desde el card
 
   // --- Kanban card drag ---
   listEl.addEventListener('dragstart', function _blListDragStart(e) {
@@ -647,45 +618,7 @@ export function _attachBacklogDnD() {
   });
 }
 
-// T-202604-074: edición inline de título con doble click
-function _inlineEditTitle(code, e) {
-  e.stopPropagation(); // evitar toggleItemExpand
-  const span = e.target.closest('[data-action="inline-edit-title"]');
-  const item = getItems().find(i => i.code === code);
-  if (!item) return;
-
-  const originalTitle = item.title;
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'item-title-edit-input';
-  input.value = originalTitle;
-
-  span.replaceWith(input);
-  input.focus();
-  input.select();
-
-  function _commit() {
-    const newTitle = input.value.trim();
-    if (newTitle && newTitle !== originalTitle) {
-      item.title = newTitle;
-      _undoSnapshot();
-      saveBacklog();
-    }
-    _markBacklogListDirty(); renderBacklogList();
-  }
-
-  function _cancel() {
-    _markBacklogListDirty(); renderBacklogList();
-  }
-
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter')  { e.preventDefault(); _commit(); }
-    if (e.key === 'Escape') { e.preventDefault(); _cancel(); }
-    e.stopPropagation();
-  });
-  input.addEventListener('blur', _commit);
-  input.addEventListener('click', e => e.stopPropagation());
-}
+// [tmp:tkt-card-readonly]: _inlineEditTitle removida — título no editable desde el card, edición vía panel (locus-backlog-panel.js)
 
 // T-202604-048: construir mini progress-bar de hijos para R
 // T-202604-187/188: _buildChildrenBlock con colapsable y progreso
@@ -946,10 +879,10 @@ export function buildBacklogItem(item, opts = {}) {
     if (!item.area)   missingFields.push('area');
     if (!isIdea && (!item.ac || !item.ac.length)) missingFields.push('ac');
   }
-  // R-202605-122 AC2/AC3: badge 'sin effort' con acción rápida de asignación
+  // R-202605-122 AC2/AC3 (revisado [tmp:tkt-card-readonly]): badge 'sin effort' — informativo, sin quick-assign; asignar effort es acción del panel
   const _missingEffort = !isDiscarded && !isIdea && !item.effort;
   const _effortQuickBadge = _missingEffort
-    ? `<span class="badge-missing badge-missing--effort" title="Esfuerzo no declarado — requerido para burndown">⚠ sin effort <button class="badge-effort-quick" data-action="quick-assign-effort" data-code="${esc(item.code || item.id)}" title="Asignar effort rápidamente">Asignar</button></span>`
+    ? `<span class="badge-missing badge-missing--effort" title="Esfuerzo no declarado — requerido para burndown. Asignar desde el panel del ítem.">⚠ sin effort</span>`
     : '';
   const _otherMissing = missingFields.filter(f => f !== 'effort');
   const missingAlert = (_missingEffort || _otherMissing.length)
@@ -1134,14 +1067,14 @@ export function buildBacklogItem(item, opts = {}) {
   const _blfHiddenClass = item._blfHidden ? ' blf-hidden' : '';
   const _blfAriaHidden  = item._blfHidden ? ' aria-hidden="true"' : '';
   return `<div class="item bitem${isDone ? ' is-done' : ''}${isDiscarded ? ' is-discarded' : ''}${isBloqueado ? ' is-bloqueado' : ''}${isActive ? ' bitem--active' : ''}${isIdea ? ' bitem--idea' : ''}${isPromoted ? ' bitem--promoted' : ''}${_isPTerminal ? ' bl-p-terminal' : ''}${_isDepBlocked ? ' bitem--dep-blocked' : ''}${_blfHiddenClass}" data-type="${type}" data-code="${esc(item.code)}"${_blfAriaHidden}>
-    <div class="item-header bitem-header" data-action="item-expand" data-idx="${globalIdx}">
+    <div class="item-header bitem-header" data-action="item-expand" data-idx="${globalIdx}" role="button" tabindex="0" aria-label="Abrir detalle de ${esc(item.code)}">
       <span class="bitem-collapse-arrow" id="iarrow-${globalIdx}">▸</span>
       ${(!isDone && !isDiscarded && item.sprint) ? `<span class="item-drag-handle" data-action="drag-handle" title="Arrastrar para reordenar en sprint">⠿</span>` : ''}
       ${isActive ? '<span class="bitem-activity-dot" title="Actividad reciente — sesión vinculada en los últimos 7 días"></span>' : ''}
       <button id="copy-item-btn-${esc(item.code)}" class="copy-item-btn" data-action="copy-item" data-code="${esc(item.code)}" aria-label="Copiar ítem" title="Copiar ítem para sesión FS"><svg class="copy-btn-icon copy-btn-icon--clipboard" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><rect x="5" y="2" width="9" height="12" rx="1.5"/><path d="M5 4H4a1.5 1.5 0 0 0-1.5 1.5v8A1.5 1.5 0 0 0 4 15h7a1.5 1.5 0 0 0 1.5-1.5V13"/></svg><svg class="copy-btn-icon copy-btn-icon--check is-hidden" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M3 8l4 4 6-6"/></svg></button>
       ${typeBlock}
       <div class="bitem-title-col">
-        <span class="bitem-title"${(!isDone && !isDiscarded) ? ` data-action="inline-edit-title" data-code="${esc(item.code)}" title="Doble click para editar título"` : ''}>${esc(item.title)}</span>${isDiscarded && (!item.title || item.title.trim() === item.code) ? '<span class="bitem-ghost-note" title="Ítem sin título — posiblemente generado por un CHECKPOINT malformado">⚠ ítem fantasma — generado por CHECKPOINT malformado</span>' : ''}
+        <span class="bitem-title">${esc(item.title)}</span>${isDiscarded && (!item.title || item.title.trim() === item.code) ? '<span class="bitem-ghost-note" title="Ítem sin título — posiblemente generado por un CHECKPOINT malformado">⚠ ítem fantasma — generado por CHECKPOINT malformado</span>' : ''}
         ${subline}
       </div>
       ${headerRight}
@@ -1151,21 +1084,10 @@ export function buildBacklogItem(item, opts = {}) {
       ${_isBlocked(item) ? `<div class="bitem-missing-row"><span class="badge-missing badge-missing--blocked">⛔ bloqueado — sin cambio de status en más de ${_BLOCKED_DAYS} días</span></div>` : ''}
       ${_stalenessData ? `<div class="bitem-missing-row"><span class="staleness-pill staleness--${_stalenessData.modifier}" title="Sin sesión vinculada — ${_stalenessData.days}d desde último cambio de status">${_stalenessData.label} sin sesión</span></div>` : ''}
       ${missingAlert}
-      <div class="bitem-meta-grid" data-action="bitem-meta-stop">
+      <div class="bitem-meta-grid bitem-meta-grid--readonly" data-action="bitem-meta-stop">
         <div class="bitem-meta-cell">
           <span class="bitem-meta-label">Status</span>
-          ${isIdea
-            ? `<select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-action="bitem-meta-stop"${_isPPromovida ? ' disabled title="No editable — idea ya promovida"' : ''}>
-                <option value="discovery"${item.status==='discovery'?' selected':''}>En evaluación</option>
-                ${_isPPromovida ? `<option value="${esc(item.status)}" selected>Promovida</option>` : ''}
-                <option value="descartado"${item.status==='descartado'?' selected':''}>Descartado</option>
-               </select>`
-            : `<select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-action="bitem-meta-stop">
-                <option value="pendiente"${item.status==='pendiente'?' selected':''}>Pendiente</option>
-                <option value="done"${item.status==='done'?' selected':''}>Hecho</option>
-                <option value="descartado"${item.status==='descartado'?' selected':''}>Descartado</option>
-               </select>`
-          }
+          <span class="idp-meta-value idp-meta-value--readonly">${esc(item.status || '—')}</span>
         </div>
         ${item.status === 'done' ? `<div class="bitem-meta-cell"><span class="bitem-meta-label">Versión</span><span class="bitem-meta-value mono">${esc(item.version || 'futura')}</span></div>` : ''}
         ${!isIdea ? `<div class="bitem-meta-cell">
@@ -1179,47 +1101,21 @@ export function buildBacklogItem(item, opts = {}) {
           <span class="bitem-meta-label">Tipo</span>
           <span class="bitem-meta-value">${typeLabel || '—'}</span>
         </div>
-        <div class="bitem-meta-cell" data-action="bitem-meta-stop">
+        <div class="bitem-meta-cell">
           <span class="bitem-meta-label">Rol</span>
-          <select class="item-status-select bitem-select bitem-select-role" data-code="${esc(item.code)}" data-select-type="role">
-            <option value="">— Sin rol —</option>
-            ${_ECOSYSTEM_ROLES.map(r => `<option value="${esc(r)}"${(item.role||'')=== r?' selected':''}>${esc(r)}</option>`).join('')}
-          </select>
+          <span class="idp-meta-value idp-meta-value--readonly">${item.role ? esc(item.role) : '— Sin rol —'}</span>
         </div>
-        ${!isIdea ? `<div class="bitem-meta-cell" data-action="bitem-meta-stop">
+        ${!isIdea ? `<div class="bitem-meta-cell">
           <span class="bitem-meta-label">Sprint</span>
-          <div id="sprint-select-wrap-${esc(item.code)}">
-            ${/* B-202606-083: TKT/INC con parentId — sprint heredado del REQ parent, no editable */
-              (item.parentId && (type === 'TKT' || type === 'INC'))
-              ? `<select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-select-type="sprint" disabled title="El sprint se hereda del R parent">
-                  <option value="${esc(item.sprint||'')}" selected>${esc(_sprintDisplay(item.sprint||''))}</option>
-                </select>`
-              : `<select class="item-status-select bitem-select" data-code="${esc(item.code)}" data-select-type="sprint">
-                  <option value=""${(!item.sprint || item.sprint === '' || item.sprint === 'icebox') ? ' selected' : ''}>Q-Backlog (sin sprint)</option>
-                  ${/* TKT3-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes solo s.label||s.id */''}
-                  ${getActiveSprints().filter(s=>s.status!=='closed').map(s=>`<option value="${esc(s.id)}"${item.sprint===s.id?' selected':''}>${esc(_sprintDisplay(s.id))}${s.status==='active'?' ★':''}</option>`).join('')}
-                  ${item.sprint && item.sprint !== '' && item.sprint !== 'icebox' && !getActiveSprints().find(s=>s.id===item.sprint) ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : ''}
-                </select>`
-            }
-          </div>
+          <span class="idp-meta-value idp-meta-value--readonly">${item.sprint ? esc(_sprintDisplay(item.sprint)) : 'Q-Backlog (sin sprint)'}</span>
         </div>` : ''}
         ${(type === 'TKT' || type === 'INC') ? (() => {
-          // T-202604-354: solo REQ pendientes, orden descendente por código, label ID · Título truncado 60 chars
-          const rItems = getItems()
-            .filter(i => itemKind(i) === 'REQ' && i.status === 'pendiente')
-            .sort((a, b) => b.code.localeCompare(a.code));
-          const _rLabel = r => { const t = r.title || ''; return r.code + ' · ' + (t.length > 60 ? t.slice(0, 57) + '…' : t); };
           const currentParent = item.parentId ? getItems().find(i => i.code === item.parentId) : null;
-          const ghostOption = (currentParent && !rItems.find(r => r.code === item.parentId))
-            ? '<option value="' + esc(currentParent.code) + '" selected>' + esc(_rLabel(currentParent)) + ' [' + esc(currentParent.status) + ']</option>'
-            : '';
-          return '<div class="bitem-meta-cell" data-action="bitem-meta-stop">'
-            + '<span class="bitem-meta-label">R padre</span>'
-            + '<select class="item-status-select bitem-select" data-code=\'' + esc(item.code) + '\' data-select-type="parent">'
-            + '<option value="">— Sin padre</option>'
-            + ghostOption
-            + rItems.map(r => '<option value="' + esc(r.code) + '"' + (item.parentId === r.code ? ' selected' : '') + '>' + esc(_rLabel(r)) + '</option>').join('')
-            + '</select></div>';
+          const _rLabel = r => { const t = r.title || ''; return r.code + ' · ' + (t.length > 60 ? t.slice(0, 57) + '…' : t); };
+          return `<div class="bitem-meta-cell">
+            <span class="bitem-meta-label">R padre</span>
+            <span class="idp-meta-value idp-meta-value--readonly">${currentParent ? esc(_rLabel(currentParent)) : '— Sin padre'}</span>
+          </div>`;
         })() : ''}
       </div>
       ${isIdea ? '' : acHtml}
@@ -2371,10 +2267,17 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
       }
       // B-202604-198: si el ítem nace con status done en el mismo CHECKPOINT → grupo propio
       const initialStatusForGroup = item.status || 'pendiente'; // T-202606-034: item.status ya canónico desde T1
+      // INC-[pendiente-ID] (triggered_by INC-202607-004 — mismo módulo, gap distinto): el
+      // objeto pusheado a created/createdAndClosed solo llevaba code/desc/_wasAssigned. El
+      // panel de diff (locus-backlog-merge.js, _card/_parentHtml) lee i.parent/i.sprint/
+      // i.type/i.dependsOn sobre estos objetos — todos undefined, "Parent: Sin parent" para
+      // todo ítem nuevo sin importar si parentId se resolvió bien vía slugMap (ya lo hace,
+      // INC-202607-004). Fix: propagar parentId/sprint/type/dependsOn ya normalizados en
+      // item — sin volver a resolver nada, solo dejar de perder el dato entre el merge y el render.
       if (initialStatusForGroup === 'done') {
-        createdAndClosed.push({ code: item.code, desc: item.title, _wasAssigned: isNew });
+        createdAndClosed.push({ code: item.code, desc: item.title, _wasAssigned: isNew, parent: item.parentId || null, sprint: item.sprint || '', type: itemKind(item), dependsOn: Array.isArray(item.dependsOn) ? item.dependsOn : [] });
       } else {
-        created.push({ code: item.code, desc: item.title, _wasAssigned: isNew });
+        created.push({ code: item.code, desc: item.title, _wasAssigned: isNew, parent: item.parentId || null, sprint: item.sprint || '', type: itemKind(item), dependsOn: Array.isArray(item.dependsOn) ? item.dependsOn : [] });
       }
     }
     // Actualizar contadores en backlog-meta (no en dryRun)

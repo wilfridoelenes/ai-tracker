@@ -1,4 +1,4 @@
-// [PP] mod:90 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:92 · autor:Rune · 2026-07-06 UTC-6
 // TKT-202607-005 (REQ-202607-003 · Separación completa del modelo en memoria): array INCIDENTS
 //   separado de ITEMS. itemKind() resuelve tipos ITIL (INC/PRB/KE/CHG) contra INCIDENTS
 //   y tipos backlog (REQ/TKT/DISC) contra ITEMS — antes ambos vivían en ITEMS. _GEN2_TYPES
@@ -2079,12 +2079,12 @@ function updateEffortFilterUI() {
 }
 
 // T-202604-065: sort handler
-// T-202604-245: roles canónicos del ecosistema — fuente: Base Rules sección 2
-const _ECOSYSTEM_ROLES = [
-  'PO · Alex','FS · Mike',
-  'PO · Axis','FS · Rex','UX · Nova',
-  'PO · Orion','ET · Eden','GC · Sage','FS · Kai',
-  'ST · Vera','QA · Finn','GW · Lena'
+// T-202604-245: roles canónicos del ecosistema — fuente: __OB-Strategy §6
+// [tmp:tkt-roles-cleanup]: removidos deprecados (Alex/Axis/Orion → Cael · Mike/Rex/Kai → Rune) — alineado con la copia ya vigente en locus-backlog-item.js §75-81
+export const _ECOSYSTEM_ROLES = [
+  'ST · Vera', 'GW · Lena', 'CPO · Noa', 'CMO · Maya',
+  'PO · Cael', 'FS · Rune', 'UX · Nova', 'QA · Finn',
+  'CC · Flux', 'ET · Eden', 'GC · Sage', 'DA · Iris'
 ];
 
 // T-202604-245: cambio de rol inline desde meta-grid

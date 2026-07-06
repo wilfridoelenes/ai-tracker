@@ -1,10 +1,10 @@
-// [PP] mod:13 · autor:Rune · 2026-07-04 UTC-6
+// [PP] mod:14 · autor:Rune · 2026-07-05 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-toast.js
 
-import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemKind, renderStats, setItemStatus, undoBacklog, getItems, _registerCoreCallback } from './locus-backlog-core.js';
+import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemKind, renderStats, setItemStatus, undoBacklog, getItems, _registerCoreCallback, _ECOSYSTEM_ROLES } from './locus-backlog-core.js';
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import { _getActiveProjectFilter, getAI, getActiveSprints, _sprintDisplay, getAllSessions, getProjectById, save, saveImmediate } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
@@ -411,6 +411,13 @@ function _renderItemPanel(item) {
         <span class="idp-meta-label">Area</span>
         <input class="idp-meta-input" value="${esc(item.area || '')}" placeholder="—"
           data-item-code="${esc(item.code)}" data-field="area">
+      </div>
+      <div class="idp-meta-cell idp-meta-cell--wide">
+        <span class="idp-meta-label">Rol</span>
+        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="role">
+          <option value="">— Sin rol —</option>
+          ${_ECOSYSTEM_ROLES.map(r => `<option value="${esc(r)}"${(item.role||'')=== r?' selected':''}>${esc(r)}</option>`).join('')}
+        </select>
       </div>
     </div>`;
 
