@@ -1,8 +1,9 @@
-// [PP] mod:88 · autor:Rune · 2026-07-05 UTC-6
-// INC-[pendiente-ID]: fix chk_status_by_type excluía INC del upsert — saveBacklog() ahora
-//   sincroniza status con incidentStatus para type:INC antes del gate de validación (mutación
-//   en memoria, mismo patrón que el resto del gate). Módulo crítico — activar verificación de
-//   regresiones en Finn. Sin cambio de firma de saveBacklog().
+// [PP] mod:89 · autor:Rune · 2026-07-06 02:36 UTC-6
+// INC-[pendiente-ID]: fix _itemsRef en null cuando ITEMS local está vacío (length 0) —
+//   el ternario producía null en vez de la referencia al array vacío real, lo que hacía
+//   shouldEvaluate=false y saltaba el bloque de merge con Supabase sin importar cuántas
+//   filas remotas válidas hubiera. _itemsRef ahora siempre es la referencia real de _getItems().
+//   Módulo crítico — activar verificación de regresiones en Finn. Sin cambio de firma.
 // TKT1 (limpieza post-rename): lista de módulos consumidores en L1010 actualizada — locus-backlog-archive → locus-backlog-historico. Sin cambio de código.
 // TKT2 + TKT5 (REQ-contract-rename): campo contract → contract_detail en los tres puntos de
 //   mapeo hacia/desde Supabase — _toItemRow() (outgoing, TKT2), rehidratación desde tracker_items
@@ -1832,7 +1833,7 @@ export async function _loadFromSupabase() {
   // Si _loadFromSupabase falla a mitad, restauramos getItems() y state al estado previo.
   // T-202605-084: structuredClone garantiza deep clone — Object.assign shallow no es suficiente
   // para objetos anidados como items[i].ac o items[i].intencion.
-  const _itemsRef = _getItems().length ? _getItems() : null;
+  const _itemsRef = _getItems();
   const _itemsSnapshot = _itemsRef ? structuredClone(_itemsRef) : null;
   const _stateSnapshot = structuredClone(state);
 
