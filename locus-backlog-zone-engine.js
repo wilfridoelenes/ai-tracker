@@ -1,4 +1,13 @@
-// [PP] mod:1 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:2 · autor:Rune · 2026-07-06 UTC-6
+// TKT-202607-011 (TKT3 REQ-202607-006): chips de área en stats-bar — exclusivo de qdisc vía
+//   opts.showAreaChips. Conteo sobre activeZoneItems (mismo universo que chips de tipo/prioridad
+//   ya existentes). Top 6 por conteo descendente + chip estático "+N más" cuando hay más de 6
+//   áreas distintas — el chip "+N más" no cuenta ni filtra, es puramente informativo (AC-3).
+//   "Sin área" (DISC sin campo area o vacío) es un chip propio, siempre al final, fuera del
+//   límite de 6 — no compite por el top-6 con las áreas nombradas (supuesto: la Fase 1 no
+//   distingue si "Sin área" cuenta contra el límite; se declara aquí como comportamiento
+//   asumido, ver CHECKPOINT). Filtro single-select vía _nsToggleArea/_nsGetArea (core.js) —
+//   distinto de los chips de tipo/prioridad, que son multi-toggle.
 // locus-backlog-zone-engine.js
 // Responsabilidad: _renderZonePanel — motor genérico de renderizado para paneles de zona
 //   persistente (Q-Backlog, Q-DISC — no Q-INC, que tiene su propio render en
@@ -26,7 +35,7 @@
 //     línea con doneItems.length > 0. Fix: sort local equivalente (priority asc → effort asc,
 //     respeta _getBacklogSortDir()) — misma lógica que _sortGroup, sin depender de su closure.
 
-import { itemKind, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsToggleType, _nsTogglePriority, _getBacklogSortDir } from './locus-backlog-core.js';
+import { itemKind, getItems, _nsGetTypes, _nsGetStatuses, _nsGetPriority, _nsGetQuery, _nsToggleType, _nsTogglePriority, _nsGetArea, _nsToggleArea, _getBacklogSortDir } from './locus-backlog-core.js'; // TKT-202607-011: _nsGetArea/_nsToggleArea agregados
 import { _attachBacklogListDelegation, _resetBacklogListDelegation, buildBacklogItem } from './locus-backlog-item.js';
 import { _getActiveProjectFilter } from './locus-storage.js';
 import { _buildChildMap } from './locus-backlog-hierarchy.js';
@@ -189,6 +198,40 @@ export function _renderZonePanel(opts) {
     else _countByPriZ.medium++;
   });
   const _typeChipDefs = { qbacklog: [['REQ','REQ'],['TKT','TKT']], qdisc: [] }[nsKey] || [];
+
+  // TKT-202607-011 (TKT3 REQ-202607-006): chips de área — exclusivo de qdisc (opts.showAreaChips).
+  // "Sin área" es un bucket propio (sentinel '__sin_area__'), no compite por el top-6 con áreas
+  // nombradas — siempre al final del listado (AC-4). Top 6 por conteo desc + "+N más" estático
+  // cuando hay más de 6 áreas nombradas distintas (AC-3) — "+N más" no cuenta hacia "Sin área".
+  const _SIN_AREA = '__sin_area__';
+  let _areaChipsHtml = '';
+  if (opts.showAreaChips) {
+    const _activeAreaZ0 = _nsGetArea(nsKey);
+    const _countByAreaZ = {};
+    let _sinAreaCount = 0;
+    activeZoneItems.forEach(i => {
+      const a = (i.area || '').trim();
+      if (!a) { _sinAreaCount++; return; }
+      _countByAreaZ[a] = (_countByAreaZ[a] || 0) + 1;
+    });
+    const _namedAreasSorted = Object.entries(_countByAreaZ).sort((a, b) => b[1] - a[1]);
+    const _AREA_CHIP_LIMIT = 6;
+    const _visibleAreas = _namedAreasSorted.slice(0, _AREA_CHIP_LIMIT);
+    const _overflowCount = _namedAreasSorted.length - _visibleAreas.length;
+    const _areaChipBtns = _visibleAreas.map(([area, count]) =>
+      `<button class="stat-area-chip${_activeAreaZ0 === area ? ' active' : ''}" data-zp-action="zp-area" data-zp-area="${area.replace(/"/g, '&quot;')}" title="Filtrar por área ${area.replace(/"/g, '&quot;')}"><span class="sac-n">${count}</span><span class="sac-label">${area}</span></button>`
+    ).join('');
+    const _overflowChip = _overflowCount > 0
+      ? `<span class="stat-area-chip stat-area-chip--static" title="${_overflowCount} área${_overflowCount === 1 ? '' : 's'} adicional${_overflowCount === 1 ? '' : 'es'} sin chip propio">+${_overflowCount} más</span>`
+      : '';
+    const _sinAreaChip = _sinAreaCount > 0
+      ? `<button class="stat-area-chip stat-area-chip--none${_activeAreaZ0 === _SIN_AREA ? ' active' : ''}" data-zp-action="zp-area" data-zp-area="${_SIN_AREA}" title="Filtrar ítems sin área declarada"><span class="sac-n">${_sinAreaCount}</span><span class="sac-label">Sin área</span></button>`
+      : '';
+    _areaChipsHtml = (_areaChipBtns || _overflowChip || _sinAreaChip)
+      ? `<div class="qdisc-area-chips">${_areaChipBtns}${_overflowChip}${_sinAreaChip}</div>`
+      : '';
+  }
+
   const _statsBarHtml = `
     <div class="qinc-stats-bar" id="${bodyId}-stats-bar">
       ${opts.showTypeChips !== false && _typeChipDefs.length ? `<div class="qinc-stats-types">
@@ -201,6 +244,7 @@ export function _renderZonePanel(opts) {
         <button class="stat-pri-chip pri-medium${_activePriorityZ0.has('medium') ? ' active' : ''}" data-zp-action="zp-priority" data-zp-priority="medium" title="Filtrar prioridad media"><span class="spc-n">${_countByPriZ.medium}</span> Med</button>
         <button class="stat-pri-chip pri-low${_activePriorityZ0.has('low') ? ' active' : ''}" data-zp-action="zp-priority" data-zp-priority="low" title="Filtrar prioridad baja"><span class="spc-n">${_countByPriZ.low}</span> Bajo</button>
       </div>
+      ${_areaChipsHtml}
     </div>`;
   if (!body._zpDelegationAttached) {
     body._zpDelegationAttached = true;
@@ -215,6 +259,11 @@ export function _renderZonePanel(opts) {
         _nsToggleType(nsKey, btn.dataset.zpType);
       } else if (btn.dataset.zpAction === 'zp-priority') {
         _nsTogglePriority(nsKey, btn.dataset.zpPriority);
+      } else if (btn.dataset.zpAction === 'zp-area') {
+        // TKT-202607-011: el chip "+N más" no lleva data-zp-action (es <span>, no <button>,
+        // sin data-zp-area) — closest('[data-zp-action]') nunca lo matchea, AC-3 cumplido sin
+        // guard adicional.
+        _nsToggleArea(nsKey, btn.dataset.zpArea);
       } else {
         return;
       }
@@ -230,12 +279,17 @@ export function _renderZonePanel(opts) {
   const _matchesSearchZ = _qZ
     ? i => i.code.toLowerCase().includes(_qZ) || (i.title || '').toLowerCase().includes(_qZ) || (i.area || '').toLowerCase().includes(_qZ)
     : () => true;
+  // TKT-202607-011: filtro de área — solo activo cuando opts.showAreaChips (hoy: qdisc). Sin
+  // filtro de área activo (_activeAreaZ === null), areaOk siempre true — sin regresión en
+  // qbacklog/qinc, que nunca activan _nsToggleArea.
+  const _activeAreaZ = opts.showAreaChips ? _nsGetArea(nsKey) : null;
   const filteredItems = activeZoneItems.filter(i => {
     const type = itemKind(i);
     const typeOk = type ? _activeTypesZ.has(type) : true;
     const statusOk = _activeStatusesZ.has(i.status);
     const priorityOk = _activePriorityZ.size === 0 || _activePriorityZ.has(i.priority);
-    return typeOk && statusOk && priorityOk && _matchesSearchZ(i);
+    const areaOk = !_activeAreaZ ? true : (_activeAreaZ === _SIN_AREA ? !(i.area || '').trim() : (i.area || '').trim() === _activeAreaZ);
+    return typeOk && statusOk && priorityOk && areaOk && _matchesSearchZ(i);
   });
 
   if (!filteredItems.length) {

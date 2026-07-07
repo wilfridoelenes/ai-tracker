@@ -1,4 +1,7 @@
-/* [PP] mod:79 · autor:Nova · 2026-07-06 UTC-6 */
+/* [PP] mod:80 · autor:Nova · 2026-07-06 UTC-6 */
+/* TKT-202607-011 (TKT3 REQ-202607-006): familia .stat-area-chip (chips de área en stats-bar
+   Q-DISC) + TKT-202607-013 (TKT5): .qdisc-grooming-banner (banner de grooming pendiente,
+   tono amber junto a .qdisc-limit-indicator). Ver comentarios inline en cada bloque. */
 /* TKT-202607-009 AC-1/AC-4: chip de trazabilidad origen_disc en la subline — reutiliza
    tokens --idea-* (DISC = idea = purple, ya declarados en :root/[data-theme]). Variante
    --orphan cubre AC edge case: origenDisc apunta a código inexistente en ITEMS. */
@@ -712,6 +715,62 @@
 
 .stat-pri-chip--static:hover {
   opacity: 1;
+}
+
+/* TKT-202607-011 (TKT3 REQ-202607-006): chips de área en stats-bar de Q-DISC — mismo lenguaje
+   visual que .stat-pri-chip (padding/radius/font/transition), neutro por defecto (áreas son
+   texto libre, sin color semántico fijo como REQ/TKT/INC/DISC) — el color viene del active
+   state, no del área en sí. Contenedor .qdisc-area-chips ya hereda flex-wrap del padre
+   .qinc-stats-bar (display:flex + flex-wrap ya declarados ahí — sin declaración propia aquí). */
+.stat-area-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  background: var(--surface2);
+  color: var(--text2);
+  border: 1px solid var(--border);
+  transition: box-shadow 0.15s var(--ease-out), opacity 0.15s var(--ease-out);
+}
+
+.stat-area-chip:hover {
+  opacity: 0.85;
+}
+
+.stat-area-chip.active {
+  box-shadow: 0 0 0 2px var(--accent, var(--purple));
+  opacity: 1;
+  color: var(--text);
+}
+
+.stat-area-chip .sac-n {
+  font-size: var(--text-base);
+  font-weight: 700;
+  font-family: var(--mono);
+}
+
+/* "+N más" — mismo criterio que .stat-pri-chip--static/.stat-type-chip--static: sin
+   data-zp-action en el markup (locus-backlog-zone-engine.js la emite como <span>, no
+   <button>) — este modifier solo ajusta cursor/hover, la ausencia de acción ya la garantiza
+   el JS, no el CSS. */
+.stat-area-chip--static {
+  cursor: default;
+}
+
+.stat-area-chip--static:hover {
+  opacity: 1;
+}
+
+/* "Sin área" — mismo componente, tono levemente más apagado (label itálica) para distinguirlo
+   de un área real con nombre, sin introducir un color nuevo. */
+.stat-area-chip--none .sac-label {
+  font-style: italic;
+  opacity: 0.85;
 }
 
 /* Esfuerzo: mini-stat-cards */
@@ -6548,6 +6607,32 @@ er {
   color: var(--amber);
   background: color-mix(in srgb, var(--amber) 10%, transparent);
   border-color: color-mix(in srgb, var(--amber) 28%, transparent);
+}
+
+/* TKT-202607-013 (TKT5 REQ-202607-006): banner de grooming pendiente — mismo tono amber que
+   .qdisc-limit--warn (ambas son señales de atención, no de error — se reserva --red/
+   .context-conflict-banner para conflictos reales). Estructura de banner con texto plano
+   (sin botón de acción — a diferencia de .context-conflict-banner, este banner es puramente
+   informativo, AC no declara acción asociada). :empty lo retira del flujo sin destruir el nodo
+   — locus-backlog-qdisc.js solo escribe/vacía textContent, nunca crea ni remueve el elemento
+   (mismo patrón que #qdisc-limit-indicator, __BR-Execution §5 — shell estático). */
+.qdisc-grooming-banner {
+  display: block;
+  width: fit-content;
+  margin: 8px 0 0 12px;
+  padding: 6px 12px;
+  font-size: var(--text-xs);
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 28%, transparent);
+  border-radius: var(--radius-md);
+}
+
+.qdisc-grooming-banner:empty {
+  display: none;
+  margin: 0;
+  padding: 0;
+  border: none;
 }
 
 /* ── Badge de navegación Q-INC — is-urgent ── */

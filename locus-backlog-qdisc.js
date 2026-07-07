@@ -1,4 +1,4 @@
-// [PP] mod:3 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:4 · autor:Rune · 2026-07-06 UTC-6
 // locus-backlog-qdisc.js
 // Responsabilidad: renderQDiscPanel — render del sub-tab Q-DISC (Discoveries: DISC, único tipo
 //   aceptado — __BR-Ecosystem §5) — + su listener de sub-tab y su re-render reactivo sobre
@@ -14,9 +14,15 @@
 // (sin JS que lo poblara desde este módulo) — eliminado. _renderZonePanel (zone-engine.js) sigue
 // resolviendo `${nsKey}-done-group` a null para 'qdisc' sin romperse — guard ya existente, sin
 // cambio de firma ni de comportamiento en el motor compartido.
+//
+// TKT-202607-011 (TKT3 REQ-202607-006): renderQDiscPanel pasa showAreaChips:true a
+//   _renderZonePanel — único caller que lo activa (qbacklog no lo declara, default false).
+// TKT-202607-013 (TKT5 REQ-202607-006): _renderQDiscGroomingBanner — banner de grooming
+//   pendiente, mismo patrón de shell estático que _renderQDiscLimitIndicator (rellena/vacía un
+//   nodo que ya existe en index.html, nunca lo crea ni destruye).
 
 import { _isQDiscActive, getItems, QDISC_ACTIVE_LIMIT } from './locus-backlog-core.js';
-import { _renderZonePanel } from './locus-backlog-zone-engine.js';
+import { _renderZonePanel, _zoneStaleness } from './locus-backlog-zone-engine.js';
 
 // TKT-202607-010: rellena #qdisc-limit-indicator (shell estático, ver index.html) con el
 // conteo de DISCs activos sobre el límite — mismo universo que _isQDiscActive (excluye
@@ -29,6 +35,23 @@ function _renderQDiscLimitIndicator() {
   el.classList.toggle('qdisc-limit--warn', count >= QDISC_ACTIVE_LIMIT);
 }
 
+// TKT-202607-013 (TKT5 REQ-202607-006): rellena #qdisc-grooming-banner (shell estático, ver
+// index.html) con el aviso de grooming pendiente. Universo idéntico a _isQDiscActive — mismo
+// criterio que el indicador de límite, para que ambas señales cuenten sobre el mismo conjunto
+// (AC de coherencia del REQ). _zoneStaleness ya excluye lo no aplicable (retorna null fuera de
+// umbral) — el umbral de DISC es 30 días (zone-engine.js). Sin staleness → textContent = '' y
+// .qdisc-grooming-banner:empty{display:none} (locus-backlog.css) → cero elementos DOM visibles,
+// consistente con AC-2. No hay pluralización real en la plantilla — ambos números son sustitución
+// directa (ver CHECKPOINT, AC "edge case singular" no cambia palabras, solo valores).
+function _renderQDiscGroomingBanner() {
+  const el = document.getElementById('qdisc-grooming-banner');
+  if (!el) return;
+  const activeItems = getItems().filter(_isQDiscActive);
+  const staleCount = activeItems.filter(i => _zoneStaleness(i) !== null).length;
+  if (staleCount === 0) { el.textContent = ''; return; }
+  el.textContent = `${activeItems.length} discoveries requieren grooming antes de abrir sprint — ${staleCount} con más de 30 días sin movimiento`;
+}
+
 // B-202606-052 → TKT-C1: renderQDiscPanel — sub-tab Discoveries (Q-DISC: DISC).
 export function renderQDiscPanel() {
   _renderZonePanel({
@@ -37,6 +60,8 @@ export function renderQDiscPanel() {
     nsKey: 'qdisc',
     isZone: _isQDiscActive,
     showTypeChips: false,
+    // TKT-202607-011: único caller que activa showAreaChips — qbacklog no lo declara.
+    showAreaChips: true,
     emptyTitle: 'No hay discoveries pendientes',
     emptyIcon: '💡',
     // TKT1 REQ hide-done-qdisc: DISC nunca alcanza status 'done' (__BR-Ecosystem §5) — bloque
@@ -48,6 +73,8 @@ export function renderQDiscPanel() {
   // siempre refleja el conteo real de activos, incluso sin proyecto seleccionado (getItems()
   // ya resuelve vacío en ese caso, indicador cae a "0 / 15" sin error).
   _renderQDiscLimitIndicator();
+  // TKT-202607-013: misma razón — señal independiente del universo filtrado por chips/búsqueda.
+  _renderQDiscGroomingBanner();
 }
 
 // B-202606-052 → TKT-C1: listener sub-tab Discoveries (Q-DISC) — reemplaza al listener único

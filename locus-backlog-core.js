@@ -1,4 +1,8 @@
-// [PP] mod:94 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:95 · autor:Rune · 2026-07-06 UTC-6
+// TKT-202607-011 (TKT3 REQ-202607-006): namespace de filtro por área agregado a _subtabNS —
+//   solo qdisc lo consume (chips de área en stats-bar, ver locus-backlog-zone-engine.js).
+//   Single-select (no Set, a diferencia de types/priority): _nsToggleArea(sub, area) — click en
+//   la misma área la limpia, click en otra la reemplaza. _nsReset incluye area:null.
 // TKT-202607-027 (REQ-202607-013 · Deprecar Vista Kanban): removidos _backlogViewModeRaw/
 //   _backlogKanbanMode (state) · toggleBacklogKanbanMode() (export) · _getBacklogKanbanMode()
 //   (getter export) · bloque de tablist Kanban/Vista Lista en _syncViewAriaStates() · fallback
@@ -363,7 +367,11 @@ function _nsBuildFromDefaults(sub) {
     types:    new Set(def.types),
     statuses: new Set(def.statuses),
     priority: new Set(),
-    query:    ''
+    query:    '',
+    // TKT-202607-011: single-select — string de área activa o null. Solo qdisc lo consume;
+    // el campo existe en los tres namespaces por simetría de _nsBuildFromDefaults, sin uso
+    // en qbacklog/qinc (no tienen chips de área).
+    area:     null
   };
 }
 
@@ -378,6 +386,8 @@ export function _nsGetTypes(sub)    { return _subtabNS[sub] ? _subtabNS[sub].typ
 export function _nsGetStatuses(sub) { return _subtabNS[sub] ? _subtabNS[sub].statuses : new Set(['pendiente','en-revision','discovery']); } // TKT-202606-006: fallback incluye 'discovery' — gobierna default visible de Q-DISC
 export function _nsGetPriority(sub) { return _subtabNS[sub] ? _subtabNS[sub].priority : new Set(); }
 export function _nsGetQuery(sub)    { return _subtabNS[sub] ? _subtabNS[sub].query    : ''; }
+// TKT-202607-011: getter de área activa — null cuando no hay filtro de área aplicado.
+export function _nsGetArea(sub)     { return _subtabNS[sub] ? _subtabNS[sub].area     : null; }
 
 // Setters de namespace por subtab
 export function _nsSetQuery(sub, q) {
@@ -399,6 +409,15 @@ export function _nsTogglePriority(sub, pri) {
   if (s.has(pri)) { s.delete(pri); } else { s.add(pri); }
 }
 
+// TKT-202607-011: toggle de área — single-select, no Set. `area` es el valor exacto del chip
+// (string real de i.area, o el sentinel '__sin_area__' para el chip "Sin área" — ver
+// locus-backlog-zone-engine.js). Click en la misma área activa limpia el filtro (null); click
+// en otra área reemplaza el valor — nunca acumula, a diferencia de _nsToggleType/_nsTogglePriority.
+export function _nsToggleArea(sub, area) {
+  if (!_subtabNS[sub]) return;
+  _subtabNS[sub].area = (_subtabNS[sub].area === area) ? null : area;
+}
+
 // Reset de namespace (todos los filtros al estado inicial) — restaura desde _subtabNSDefaults[sub],
 // no un literal fijo: antes _nsReset('qinc') (único caller real, locus-backlog-render.js L1502)
 // sobrescribía tipos/estados ITIL con los de REQ/TKT — bug corregido junto con el de qdisc.
@@ -409,6 +428,7 @@ export function _nsReset(sub) {
   _subtabNS[sub].statuses = new Set(def.statuses);
   _subtabNS[sub].priority = new Set();
   _subtabNS[sub].query    = '';
+  _subtabNS[sub].area     = null; // TKT-202607-011
 }
 let _backlogSelectedCode = null; // T-202604-253: ítem seleccionado para Space → done
 // T-202604-424: sprint eliminado como opción de sort — la agrupación por sprint es el modo de vista por defecto

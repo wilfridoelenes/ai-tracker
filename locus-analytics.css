@@ -1,4 +1,4 @@
-/* [PP] mod:6 · autor:Nova · 2026-07-04 UTC-6 */
+/* [PP] mod:7 · autor:Nova · 2026-07-06 16:05 UTC-6 */
 /* locus-analytics.css */
 
 /* Versión: 2.0 | Selectores consolidados — T2 */
@@ -2656,22 +2656,43 @@
   flex-shrink: 0;
 }
 
-.ct-pill-r {
+.ct-pill-req {
   background: rgb(56 189 248 / 18%);
   background: color-mix(in srgb, var(--blue,var(--blue)) 18%, transparent);
   color: var(--blue,var(--blue));
 }
 
-.ct-pill-t {
+.ct-pill-tkt {
   background: rgb(34 197 94 / 18%);
   background: color-mix(in srgb, var(--green,var(--green)) 18%, transparent);
   color: var(--green,var(--green));
 }
 
-.ct-pill-b {
+.ct-pill-disc {
+  background: rgb(124 106 247 / 18%);
+  background: color-mix(in srgb, var(--purple,var(--purple)) 18%, transparent);
+  color: var(--purple,var(--purple));
+}
+
+.ct-pill-inc {
   background: rgb(239 68 68 / 18%);
   background: color-mix(in srgb, var(--red,var(--red)) 18%, transparent);
   color: var(--red,var(--red));
+}
+
+.ct-pill-prb {
+  background: color-mix(in srgb, var(--orange,var(--orange)) 18%, transparent);
+  color: var(--orange-text,var(--orange));
+}
+
+.ct-pill-ke {
+  background: color-mix(in srgb, var(--yellow,var(--yellow)) 18%, transparent);
+  color: var(--yellow-text,var(--yellow));
+}
+
+.ct-pill-chg {
+  background: color-mix(in srgb, var(--slate,var(--slate)) 18%, transparent);
+  color: var(--slate-text,var(--slate));
 }
 
 /* Effort badges */
