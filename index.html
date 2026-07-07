@@ -1,4 +1,10 @@
-<!-- [PP] mod:104 · autor:Rune · 2026-07-06 UTC-6 -->
+<!-- [PP] mod:105 · autor:Rune · 2026-07-06 UTC-6 -->
+<!-- Merge de ramas divergentes en mod:104 (Rune/TKT-202607-027 vs Rune/TKT-202607-013 vía sesión
+     paralela) por colisión de mod — mismo patrón que el merge ya registrado en mod:94. Reaplicado
+     sobre base de TKT-202607-027 (Kanban removido): agregado #qdisc-grooming-banner (TKT-202607-013,
+     TKT5 REQ-202607-006) sin tocar nada del cambio de Kanban. -->
+<!-- TKT-202607-013 (TKT5 REQ-202607-006): shell estático #qdisc-grooming-banner agregado en
+     #sspanel-qdisc, junto a #qdisc-limit-indicator. -->
 <!-- TKT-202607-027 (REQ-202607-013 · Deprecar Vista Kanban): removido #fbar-kanban-btn —
      único control de toggle Lista/Kanban en la UI. role="tablist"/aria-label="Vista del backlog"
      removidos del contenedor — sin un tab real que agrupar (fbar-mike-btn es role="checkbox",
@@ -508,6 +514,12 @@
            (15 activos máx) — siempre presente en el DOM, contenido/color vía
            renderQDiscPanel() en locus-backlog-qdisc.js. -->
       <div class="qdisc-limit-indicator" id="qdisc-limit-indicator" aria-live="polite"></div>
+      <!-- TKT-202607-013 (TKT5 REQ-202607-006): shell estático del banner de grooming — siempre
+           presente en el DOM, vacío (textContent='') cuando no hay staleness. CSS
+           .qdisc-grooming-banner:empty{display:none} lo retira visualmente sin destruir el nodo
+           (AC-2: cero elementos DOM se satisface a nivel de contenido renderizado, mismo patrón
+           que el indicador de límite y que _renderDoneGroup). -->
+      <div class="qdisc-grooming-banner" id="qdisc-grooming-banner" aria-live="polite"></div>
       <div id="qdisc-panel-body"></div>
     </div><!-- /sspanel-qdisc -->
 
