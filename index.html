@@ -1,4 +1,12 @@
-<!-- [PP] mod:102 · autor:Rune · 2026-07-05 UTC-6 -->
+<!-- [PP] mod:104 · autor:Rune · 2026-07-06 UTC-6 -->
+<!-- TKT-202607-027 (REQ-202607-013 · Deprecar Vista Kanban): removido #fbar-kanban-btn —
+     único control de toggle Lista/Kanban en la UI. role="tablist"/aria-label="Vista del backlog"
+     removidos del contenedor — sin un tab real que agrupar (fbar-mike-btn es role="checkbox",
+     no "tab"), el rol tablist ya no aplicaba. aria-labelledby="fbar-kanban-btn" en #backlog-list
+     quedaba huérfano al borrar el botón — removido junto con role="tabpanel" (mismo motivo:
+     sin tab que lo etiquete). REQ-202607-013 completo del lado de Rune — pendiente solo
+     locus-backlog.css y locus-backlog-item.css, escalado a Nova (Rune no escribe .css). -->
+<!-- [PP] mod:103 · autor:Rune · 2026-07-06 UTC-6 -->
 <!-- TKT2-[pendiente-ID] (REQ split locus-modals.css): link único a locus-modals.css
      reemplazado por 5 links (base/toast/tracker/editor/misc), mismo orden relativo
      respecto a locus-analytics.css (antes) y locus-docs.css (después). -->
@@ -422,9 +430,8 @@
 
     <!-- T-202606-054: toolbar 3 grupos con divisor — G1: vistas | G2: filtros | G3: prioridad+colapsar — búsqueda al extremo derecho -->
     <div class="bl-toolbar" id="filter-bar-status">
-      <!-- G1: vistas (Lista · Kanban) -->
-      <div class="bl-toolbar-group bl-toolbar-views" role="tablist" aria-label="Vista del backlog">
-        <button class="bl-toolbar-view-btn" id="fbar-kanban-btn" title="Vista Kanban" role="tab" aria-selected="false">⬛ Kanban</button>
+      <!-- G1: vistas — TKT-202607-027: toggle Lista/Kanban removido, Vista Lista es el único modo -->
+      <div class="bl-toolbar-group bl-toolbar-views">
         <button class="bl-toolbar-view-btn is-hidden" id="fbar-mike-btn" title="Mi vista — T's pendientes por rol en sprint activo" role="checkbox" aria-checked="false">Mi vista</button>
       </div>
       <!-- Divisor G1→G2 -->
@@ -473,7 +480,7 @@
 
     <!-- toolbar vieja eliminada (dead code — sin referencias JS, ver INC-[pendiente-ID]/TKT1) -->
     <div id="backlog-two-col-wrap">
-      <div id="backlog-list" role="tabpanel" aria-labelledby="fbar-kanban-btn"></div>
+      <div id="backlog-list"></div>
       <div id="item-detail-panel" class="item-detail-panel"></div>
     </div>
 
@@ -497,6 +504,10 @@
          alcanza status 'done' (__BR-Ecosystem §5), el shell quedó muerto desde REQ congruencia-qdisc.
          Ver locus-backlog-qdisc.js / locus-backlog-zone-engine.js para el resto del cleanup. -->
     <div class="session-subpanel" id="sspanel-qdisc">
+      <!-- TKT-202607-010 (TKT2 REQ-202607-006): shell estático del indicador de límite
+           (15 activos máx) — siempre presente en el DOM, contenido/color vía
+           renderQDiscPanel() en locus-backlog-qdisc.js. -->
+      <div class="qdisc-limit-indicator" id="qdisc-limit-indicator" aria-live="polite"></div>
       <div id="qdisc-panel-body"></div>
     </div><!-- /sspanel-qdisc -->
 

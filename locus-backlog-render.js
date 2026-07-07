@@ -1,3 +1,19 @@
+// [PP] mod:76 · autor:Rune · 2026-07-06 UTC-6
+// TKT-202607-027 (REQ-202607-013 · Deprecar Vista Kanban) — completa el archivo que la entrega
+//   mod:79 de locus-backlog-item.js dejó pendiente ("locus-backlog-render.js debe dejar de
+//   importarla, archivo no adjunto en esa entrega"): removidos import de _renderKanban
+//   (locus-backlog-item.js) e import de _getBacklogKanbanMode (locus-backlog-core.js) — ninguna
+//   de las dos se exporta ya. Sin este fix el módulo fallaba al cargar (import de nombre
+//   inexistente = SyntaxError en ESM, no undefined silencioso). Removido bloque kanbanBtn en
+//   _updateViewBtns() y el desvío condicional a _renderKanban() en renderBacklogList(). Comentario
+//   stale en L953 (referenciaba línea de un bloque ya eliminado) actualizado para reflejar que
+//   Vista Lista es ahora el único modo — sin cambio de comportamiento, solo precisión de comentario.
+//   Verificación previa (equivalente al AC de TKT-202607-026, nunca ejecutado como sesión propia):
+//   grep sobre locus-analytics-*.js y locus-reports.js sin match a Kanban/kb-card/kb-col —
+//   kill_criteria de REQ-202607-013 no se activa. locus-backlog-historico.js solo tiene un
+//   comentario histórico (T-202604-287), sin dependencia de código — no requiere tocarse.
+//   Gap de proceso registrado, no resuelto por este fix: TKT-202607-026 (auditoría) nunca corrió
+//   como sesión — TKT-202607-027 se ejecutó fuera de esta conversación sin depends_on satisfecho.
 // [PP] mod:75 · autor:Rune · 2026-07-05 UTC-6
 // REQ refactor-zonas TKT5: _renderDoneGroup/_attachDoneGroupToggle/_renderZonePanel/
 // renderQBacklogPanel/renderQDiscPanel/_initQBacklogSubTab/_initQDiscSubTab + listener
@@ -119,9 +135,9 @@ import { _buildChildMap } from './locus-backlog-hierarchy.js';
 // REQ refactor-zonas TKT5: _zoneStaleness extraído a locus-backlog-zone-engine.js — único uso
 // restante en este archivo es _updateSubtabBadges() (badges qbacklog/qdisc).
 import { _zoneStaleness } from './locus-backlog-zone-engine.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogKanbanMode, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, _nsGetTypes, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js'; // TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js)
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, _nsGetTypes, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js'; // TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js) · TKT-202607-027: _getBacklogKanbanMode removida — ya no exportada desde core.js
 
-import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, _renderKanban, buildBacklogItem, buildQIncItem } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-B2b: buildQIncItem
+import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, buildBacklogItem, buildQIncItem } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-B2b: buildQIncItem · TKT-202607-027: _renderKanban removida — ya no exportada
 
 import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
 
@@ -750,12 +766,7 @@ export function renderBacklogList(onRendered) {
 
   // R-[tmp:toolbar-backlog-redesign]: botones de vista ya son estáticos en HTML — solo actualizar estado
   (function _updateViewBtns() {
-    const kanbanBtn = document.getElementById('fbar-kanban-btn');
-
-    if (kanbanBtn) {
-      kanbanBtn.classList.toggle('active', _getBacklogKanbanMode());
-      kanbanBtn.title = _getBacklogKanbanMode() ? 'Vista Kanban activa — click para desactivar' : 'Vista Kanban — columnas por status';
-    }
+    // TKT-202607-027: bloque kanbanBtn eliminado — control de toggle Lista/Kanban ya no existe en la UI
     // Sin AC y bloqueados
     const noAcBtn = document.getElementById('fbar-no-ac-btn');
     if (noAcBtn) noAcBtn.classList.toggle('active', _getBacklogNoAcMode());
@@ -831,13 +842,7 @@ export function renderBacklogList(onRendered) {
     return;
   }
 
-  // T-202604-287: desviar a vista Kanban si está activa
-  if (_getBacklogKanbanMode()) {
-    _renderKanban(listEl);
-    _updateDocLogCount('backlog');
-    _skelHide(listEl);
-    return;
-  }
+  // TKT-202607-027: bloque de desvío a vista Kanban eliminado (T-202604-287 deprecado) — Vista Lista es el único modo
 
   // Filtrado por tipo + status + effort (T-071)
   // B-202604-193: excluir ítems históricos del plano activo — van a sección colapsada al fondo
@@ -961,8 +966,8 @@ export function renderBacklogList(onRendered) {
   // R-202606-017 / INC-[pendiente-ID] fix: Vista Lista es la única vía de render para pendienteItems —
   // el path noAc standalone nunca los renderizaba (bug: lista en blanco con filtro Sin AC activo).
   // pendienteItems ya viene filtrado por _getBacklogNoAcMode() más arriba (L957) — _renderVistaLista
-  // no requiere cambio, solo recibe el conjunto ya acotado. Kanban ya desvió en L926 (incondicional,
-  // anterior) — sin condición aquí, la llamada es directa.
+  // no requiere cambio, solo recibe el conjunto ya acotado. TKT-202607-027: Vista Lista es ahora el
+  // único modo de render — sin guard de Kanban que evaluar, la llamada es directa e incondicional.
   _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered);
 
 }

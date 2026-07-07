@@ -1,4 +1,4 @@
-// [PP] mod:2 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:3 · autor:Rune · 2026-07-06 UTC-6
 // locus-backlog-qdisc.js
 // Responsabilidad: renderQDiscPanel — render del sub-tab Q-DISC (Discoveries: DISC, único tipo
 //   aceptado — __BR-Ecosystem §5) — + su listener de sub-tab y su re-render reactivo sobre
@@ -15,8 +15,19 @@
 // resolviendo `${nsKey}-done-group` a null para 'qdisc' sin romperse — guard ya existente, sin
 // cambio de firma ni de comportamiento en el motor compartido.
 
-import { _isQDiscActive } from './locus-backlog-core.js';
+import { _isQDiscActive, getItems, QDISC_ACTIVE_LIMIT } from './locus-backlog-core.js';
 import { _renderZonePanel } from './locus-backlog-zone-engine.js';
+
+// TKT-202607-010: rellena #qdisc-limit-indicator (shell estático, ver index.html) con el
+// conteo de DISCs activos sobre el límite — mismo universo que _isQDiscActive (excluye
+// descartado/promoted/historico). Color neutro bajo el límite, advertencia al llegar a él.
+function _renderQDiscLimitIndicator() {
+  const el = document.getElementById('qdisc-limit-indicator');
+  if (!el) return;
+  const count = getItems().filter(_isQDiscActive).length;
+  el.textContent = `${count} / ${QDISC_ACTIVE_LIMIT}`;
+  el.classList.toggle('qdisc-limit--warn', count >= QDISC_ACTIVE_LIMIT);
+}
 
 // B-202606-052 → TKT-C1: renderQDiscPanel — sub-tab Discoveries (Q-DISC: DISC).
 export function renderQDiscPanel() {
@@ -33,6 +44,10 @@ export function renderQDiscPanel() {
     hasDoneState: false,
     hasChildren: false
   });
+  // TKT-202607-010: indicador independiente del universo filtrado de _renderZonePanel —
+  // siempre refleja el conteo real de activos, incluso sin proyecto seleccionado (getItems()
+  // ya resuelve vacío en ese caso, indicador cae a "0 / 15" sin error).
+  _renderQDiscLimitIndicator();
 }
 
 // B-202606-052 → TKT-C1: listener sub-tab Discoveries (Q-DISC) — reemplaza al listener único

@@ -1,4 +1,4 @@
-// [PP] mod:93 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:94 · autor:Rune · 2026-07-06 UTC-6
 // TKT-202607-027 (REQ-202607-013 · Deprecar Vista Kanban): removidos _backlogViewModeRaw/
 //   _backlogKanbanMode (state) · toggleBacklogKanbanMode() (export) · _getBacklogKanbanMode()
 //   (getter export) · bloque de tablist Kanban/Vista Lista en _syncViewAriaStates() · fallback
@@ -1693,6 +1693,13 @@ export function _isQBacklogActive(i) {
 export function _isQDiscActive(i) {
   return _isQDisc(i) && i.status !== 'descartado' && i.status !== 'promoted' && i.status !== 'historico';
 }
+
+// TKT-202607-010 (TKT2 REQ-202607-006): límite duro de Q-DISC — __BR-Ecosystem §5 ("Límite:
+// 15 DISCs activos simultáneos"). Fuente única — consumida por locus-backlog-qdisc.js
+// (indicador de header) y locus-backlog-item.js (mergeBacklogFromTG, enforcement de
+// creación). Vive aquí, no en qdisc.js, para que item.js pueda importarla sin crear un
+// ciclo (item.js → qdisc.js → locus-backlog-zone-engine.js → item.js ya existe hoy).
+export const QDISC_ACTIVE_LIMIT = 15;
 
 // TKT-C1b: _isIcebox wrapper transitorio eliminado — locus-backlog-render.js mod:45 (TKT-C1)
 // ya no la importa. __BR-Execution §2 Sin retrocompatibilidad.

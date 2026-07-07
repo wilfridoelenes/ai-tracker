@@ -1,4 +1,4 @@
-// [PP] mod:79 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:80 · autor:Rune · 2026-07-06 UTC-6
 // TKT-202607-027 (REQ-202607-013 · Deprecar Vista Kanban): removidos _renderKanban()
 //   (con COLS/_kanbanStatus()/_kanbanCard() anidadas) · _kbDrop() · _kbCardClick() ·
 //   handler delegado de kb-card-click · 5 listeners de drag&drop de kb-card/kb-col en
@@ -58,7 +58,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado)
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -2011,6 +2011,23 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           if (!_dryRun) showToast('error', 'CHECKPOINT bloqueado', _msg);
           _blogLog('req-sin-tkt', _rCode, _msg, 'backlog');
           return; // AC2: no se crea en el backlog
+        }
+      }
+
+      // TKT-202607-010 (TKT2 REQ-202607-006): gate de parser — Q-DISC al límite de 15
+      // activos no acepta un DISC nuevo. Mismo patrón que el gate REQ-sin-TKT de arriba:
+      // bloqueo por ítem — no de todo el batch. Cuenta contra getItems() ya persistidos
+      // (universo real de la zona vía _isQDiscActive, que ya excluye descartado/promoted/
+      // historico) — no contra el batch entrante, que si trae un DISC con código real
+      // matcheando uno existente cae en la rama "existing" (arriba), no aquí.
+      if (_incomingTypePreCheck === 'DISC') {
+        const _activeDiscCount = getItems().filter(_isQDiscActive).length;
+        if (_activeDiscCount >= QDISC_ACTIVE_LIMIT) {
+          const _qdMsg = `Q-DISC al límite (${QDISC_ACTIVE_LIMIT}/${QDISC_ACTIVE_LIMIT}) — descarta o promueve antes de agregar`;
+          ignored.push({ code: item.code, reason: 'qdisc-limite', desc: item.title || '' });
+          if (!_dryRun) showToast('error', 'Q-DISC al límite', _qdMsg);
+          _blogLog('qdisc-limite', item.code || '', _qdMsg, 'backlog');
+          return; // no se crea en el backlog
         }
       }
 
