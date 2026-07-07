@@ -1,4 +1,9 @@
-// [PP] mod:80 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:81 · autor:Rune · 2026-07-06 20:32 UTC-6
+// REQ-execution-plan-deprecation: removido tab "Plan" — render (subtab 'plan' → renderPlanInto),
+//   badge (btnPlan, AC-2 de _updateSprintTabBadges), import de locus-sprint-plan.js.
+//   getProjectById también removido de import (sin otros consumidores tras este cambio).
+//   No confundir con tab "Planificar" (_renderSprintPlanificar / locus-sprint-planificacion.js) —
+//   feature distinto, no tocado.
 // REQ-[tmp:req-vocab-historico]: comentario actualizado — referenciaba locus-backlog-archive.js
 // (renombrado a locus-backlog-historico.js). Sin cambio de código, solo comentario.
 // locus-sprint.js
@@ -9,9 +14,8 @@ import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
 import { _gconfirmOpen } from './locus-modals.js';
-import { renderPlanInto, getSprintPlanSessionCount } from './locus-sprint-plan.js';
 import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint, getHistoricoItemsSync, refreshHistoricoCache } from './locus-storage.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico — getHistoricoItemsSync/refreshHistoricoCache viven en locus-storage.js, no en locus-backlog-historico.js
-import { getProjectById, _getActiveProjectFilter } from './locus-proj-core.js';
+import { _getActiveProjectFilter } from './locus-proj-core.js';
 import { showToast, toast } from './locus-toast.js';
 
 import { render } from './locus-sesiones.js';
@@ -129,7 +133,6 @@ function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
     }
   }
   if (subtab === 'planificar') _renderSprintPlanificar();
-  if (subtab === 'plan') renderPlanInto('sprint-plan-container');
   if (subtab === 'sprints') {
     _renderSpsActivo(); // T-202606-036
     _renderSpsProgramados(); // T-202606-037
@@ -1210,18 +1213,15 @@ function _renderConflictBanner() {
 
 // T-202606-098: badges de conteo en sub-tab nav
 // AC-1: badge Ítems = ítems activos (pendiente + en-revision + bloqueado) del sprint activo
-// AC-2: badge Plan  = sesiones del execution_plan scope sprint activo
 // AC-3/AC-4: tabs Planificar y Sprints no tienen badge
 // AC-7: sin sprint activo → sin badges
 function _updateSprintTabBadges() {
   const sprint = _getActiveSprint();
   const btnItems = document.getElementById('spt-tab-items');
-  const btnPlan  = document.getElementById('spt-tab-plan');
 
   // AC-7: sin sprint activo → limpiar badges y salir
   if (!sprint) {
     if (btnItems) { const b = btnItems.querySelector('.spt-tab-badge'); if (b) b.textContent = ''; }
-    if (btnPlan)  { const b = btnPlan.querySelector('.spt-tab-badge');  if (b) b.textContent = ''; }
     return;
   }
 
@@ -1245,20 +1245,6 @@ function _updateSprintTabBadges() {
       i.status === 'pendiente' || i.status === 'en-revision' || _sprintIsBlocked(i)
     ).length;
     badge.textContent = activeCount > 0 ? String(activeCount) : '';
-  }
-
-  // AC-2: conteo de sesiones del execution_plan scope sprint activo
-  if (btnPlan) {
-    let badge = btnPlan.querySelector('.spt-tab-badge');
-    if (!badge) {
-      badge = document.createElement('span');
-      badge.className = 'spt-tab-badge';
-      badge.setAttribute('aria-hidden', 'true');
-      btnPlan.appendChild(badge);
-    }
-    const proj = getProjectById ? getProjectById(_getActiveProjectFilter()) : null;
-    const sessionCount = proj ? getSprintPlanSessionCount(proj.id) : 0;
-    badge.textContent = sessionCount > 0 ? String(sessionCount) : '';
   }
 }
 

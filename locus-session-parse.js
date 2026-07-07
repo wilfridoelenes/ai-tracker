@@ -1,4 +1,9 @@
-// [PP] mod:94 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:95 · autor:Rune · 2026-07-06 20:32 UTC-6
+// REQ-execution-plan-deprecation: removido feature EXECUTION-PLAN completo — _tryIngestPlan,
+//   _tryIngestPlanFromParsed, parsePlanBlock, parseo de execution_plan del schema JSON
+//   (_rawExecutionPlan, validación de archivos huérfanos, transporte a ai._parsed/_standaloneLastParsed),
+//   import de locus-sprint-plan.js. Campo execution_plan no está en __BR-Ecosystem §8 — código
+//   huérfano de Generación 1 (comentarios R-202604-*/T-202605-524 lo confirman).
 // TKT4 (REQ-contract-rename · depends_on: TKT2): _buildTgItemsFromParsed propaga
 //   contract_detail a los dos objetos tgItems que construye (rama de transición bloqueada
 //   ~L1893 y alta normal ~L1925) — antes se perdía entre el parseo y mergeBacklogFromTG,
@@ -125,7 +130,7 @@ export function _splitCheckpointBlocks(text) {
 //   sprint_proposal (líneas ~1402, ~1489) — no tocadas, pertenecen al REQ "Limpieza final"
 //   (locus-backlog-sprints.js no declara este archivo en su campo archivos — gap a señalar a Cael).
 // locus-session-parse.js
-// Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, parsePlanBlock, _tryIngestPlan, _tryIngestSprintProposal,
+// Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, _tryIngestSprintProposal,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
@@ -137,7 +142,6 @@ import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
 import { showCheckpointPanel } from './locus-sesiones-viz.js';
 import { _checkStorageQuota, _mergeBacklogWithProject, saveSession, _applyCheckpointBatch } from './locus-session-save.js'; // T-202606-032: saveSession para auto-trigger | TKT4: _applyCheckpointBatch — persistencia de batch, invocada solo en el callback de confirmación de showMergeDiffPanel (no en tiempo de evaluación del módulo, mismo patrón ya usado por _mergeBacklogWithProject en esta misma línea)
-import { loadPlan, renderPlan, savePlan } from './locus-sprint-plan.js';
 import { _blogLog, _offlineQueuePush, getAI, getActiveProject, getActiveSprints, getActiveTracker, save, saveImmediate, _upsertSprint, LOCUS_KEYS, CANONICAL_PROJECTS, _PREFIX_MAP, getInfraVersionData } from './locus-storage.js';
 // T-202606-029: INFRA_VERSION_ACTIVE (constante) reemplazada por getInfraVersionActive() / setInfraVersionActive() — AC-4 de T-202606-027
 import { showToast, toast } from './locus-toast.js';
@@ -567,10 +571,6 @@ export function parseCheckpoint(text) {
     const _rawFinnObservations = Array.isArray(_parsed.finn_observations) && _parsed.finn_observations.length
       ? _parsed.finn_observations
       : null;
-    // T-202606-018: extraer execution_plan — objeto {scope, sessions} (null si ausente)
-    const _rawExecutionPlan = (_parsed.execution_plan && typeof _parsed.execution_plan === 'object' && !Array.isArray(_parsed.execution_plan))
-      ? _parsed.execution_plan
-      : null;
     return {
       titulo:       _parsed.title        || '',
       proyecto:     _parsed.project      || '',
@@ -598,7 +598,6 @@ export function parseCheckpoint(text) {
       _rawDocUpdates,                   // T-202606-017: array de doc_updates del schema JSON
       _rawSprintProposal,               // T-202606-017: objeto sprint_proposal del schema JSON (null si ausente)
       _rawFinnObservations,             // T-202606-018: array de finn_observations del schema JSON (null si ausente)
-      _rawExecutionPlan,                // T-202606-018: objeto execution_plan del schema JSON (null si ausente)
       draft: _parsed.draft === true,    // T-202606-006: exponer draft para guard en parsePaste
       // TKT-202606-014 (REQ-202606-003 · AC2/AC3): valor crudo de _parsed.draft sin colapsar —
       //   necesario para distinguir "ausente" (undefined) de "false" explícito. `draft` de arriba
@@ -1037,30 +1036,6 @@ export function parsePaste(id) {
     }
   }
 
-  // T-[pendiente-ID]: BR-Ecosystem v5.2 — validar que execution_plan.sessions[].files
-  // sea subconjunto de la unión de archivos declarados en los Ts de esa sesión.
-  // Inconsistencia: no bloquea ingesta — alerta en DocLog (mismo patrón que contract_update sin doc_updates).
-  if (ckpt && ckpt._isJsonFormat && ckpt._rawExecutionPlan && Array.isArray(ckpt._rawExecutionPlan.sessions)) {
-    ckpt._rawExecutionPlan.sessions.forEach(sess => {
-      const _sessFiles = Array.isArray(sess.files) ? sess.files : [];
-      if (_sessFiles.length === 0) return;
-      const _sessItemCodes = Array.isArray(sess.items) ? sess.items : [];
-      const _archivosUnion = new Set();
-      tgItems
-        .filter(ti => _sessItemCodes.includes(ti.code))
-        .forEach(ti => (ti.archivos || []).forEach(a => _archivosUnion.add(a)));
-      const _huerfanos = _sessFiles.filter(f => !_archivosUnion.has(f));
-      if (_huerfanos.length > 0) {
-        _blogLog(
-          'execution-plan-files-sin-archivos',
-          sess.id || '[sin-id]',
-          `execution_plan sesión "${sess.id || '[sin-id]'}" declara files [${_huerfanos.join(', ')}] sin respaldo en archivos de ningún T de esa sesión. Origen: ${ckpt.titulo || ''}`,
-          'backlog'
-        );
-      }
-    });
-  }
-
   // T-202606-039: extraer inline_fix del CHECKPOINT — path JSON usa ckpt._inlineFixes,
   // path legacy usa _parseInlineFixes sobre el texto crudo.
   const _inlineFixes = (ckpt && ckpt._isJsonFormat)
@@ -1077,9 +1052,8 @@ export function parsePaste(id) {
     // T-202606-017: doc_updates y sprint_proposal — path JSON puro
     docUpdates:       (ckpt && ckpt._isJsonFormat) ? (ckpt._rawDocUpdates   || []) : [],
     sprintProposal:   (ckpt && ckpt._isJsonFormat) ? (ckpt._rawSprintProposal || null) : null,
-    // T-202606-018: finn_observations y execution_plan — path JSON puro
+    // T-202606-018: finn_observations — path JSON puro
     finnObservations: (ckpt && ckpt._isJsonFormat) ? (ckpt._rawFinnObservations || null) : null,
-    executionPlan:    (ckpt && ckpt._isJsonFormat) ? (ckpt._rawExecutionPlan    || null) : null,
     // T-202606-070: persistir rol y archivos del CHECKPOINT — ambos paths JSON y legacy
     rol:      ckpt ? (ckpt.rol      || '') : '',
     archivos: ckpt ? (ckpt.archivos || '') : '',
@@ -1457,7 +1431,6 @@ export function handlePaste(id) {
           const horaEl = document.getElementById('hora-' + id);
           if (horaEl) horaEl.focus();
         }
-        if (ta && (ta.value.includes('---PLAN---') || ta.value.includes('---EXECUTION-PLAN---'))) _tryIngestPlan(ta.value);
         // T-202606-155: _tryIngestSprintProposal removido del pre-DIFF — Step 0 en showMergeDiffPanel es el gate
       }, 150);
       return;
@@ -1468,8 +1441,6 @@ export function handlePaste(id) {
       const horaEl = document.getElementById('hora-' + id);
       if (horaEl) horaEl.focus();
     }
-    // R-202604-085 + R-B: detectar ---PLAN--- o ---EXECUTION-PLAN--- embebido en el CHECKPOINT pegado
-    if (ta && (ta.value.includes('---PLAN---') || ta.value.includes('---EXECUTION-PLAN---'))) _tryIngestPlan(ta.value);
     // T-202606-155: _tryIngestSprintProposal removido del pre-DIFF — Step 0 en showMergeDiffPanel es el gate
   };
   setTimeout(_doParse, 150);
@@ -1482,84 +1453,6 @@ export function handleInput(id) {
   parsePaste(id);
 }
 
-// R-202604-085 + R-B: ingesta de ---PLAN--- o ---EXECUTION-PLAN--- desde cualquier texto
-export function _tryIngestPlan(text) {
-  const hasLegacy = text && text.includes('---PLAN---');
-  const hasNew    = text && text.includes('---EXECUTION-PLAN---');
-  if (!hasLegacy && !hasNew) return false;
-  const incoming = parsePlanBlock(text);
-  if (!incoming || !incoming.length) return false;
-  const proj = getActiveProject();
-  if (!proj) return false;
-
-  // R-202605-153: merge por scope — preservar sprints del otro scope en localStorage
-  // Si el CHECKPOINT trae solo scope:sesion → conservar los scope:sprint existentes, y viceversa.
-  // Planes legacy (---PLAN--- sin scope) se tratan como scope:sprint.
-  const incomingHasSesion = incoming.some(sp => sp.scope === 'sesion');
-  const incomingHasSprint = incoming.some(sp => sp.scope !== 'sesion');
-
-  let merged = incoming;
-  {
-    const existing = loadPlan(proj.id) || [];
-    if (incomingHasSesion && !incomingHasSprint) {
-      // Solo scope:sesion entrante — conservar scope:sprint existente
-      const keepSprint = existing.filter(sp => sp.scope !== 'sesion');
-      merged = [...incoming, ...keepSprint];
-    } else if (incomingHasSprint && !incomingHasSesion) {
-      // Solo scope:sprint entrante — conservar scope:sesion existente
-      const keepSesion = existing.filter(sp => sp.scope === 'sesion');
-      merged = [...keepSesion, ...incoming];
-    }
-    // Si trae ambos scopes → reemplazar completo (el CHECKPOINT es fuente de verdad total)
-  }
-
-  savePlan(proj.id, merged);
-  const hasSesion = merged.some(sp => sp.scope === 'sesion');
-  const label = hasNew
-    ? (incomingHasSesion && !incomingHasSprint
-        ? '✓ Execution Plan importado — sesión activa actualizada'
-        : incomingHasSprint && !incomingHasSesion
-          ? '✓ Execution Plan importado — plan de sprint actualizado'
-          : '✓ Execution Plan importado — plan completo actualizado')
-    : '✓ Plan importado — ' + incoming.length + ' sprint(s)';
-  showToast('success', label);
-  renderPlan();
-  return true;
-}
-
-// T-202606-018: ingesta de execution_plan desde objeto ya parseado (path JSON puro).
-// Equivalente a _tryIngestPlan pero acepta el objeto {scope, sessions} directamente
-// — en path JSON el raw no contiene ---EXECUTION-PLAN--- por lo que _tryIngestPlan(raw) falla silenciosamente.
-// Retorna true si el plan se guardó, false si no hay proyecto activo o el objeto es inválido.
-export function _tryIngestPlanFromParsed(planObj) {
-  if (!planObj || typeof planObj !== 'object' || Array.isArray(planObj)) return false;
-  const proj = getActiveProject();
-  if (!proj) return false;
-
-  // Normalizar al mismo formato que parsePlanBlock produce: array de sprints con scope + sessions
-  const scope    = (planObj.scope    || 'sesion').toLowerCase();
-  const sessions = Array.isArray(planObj.sessions) ? planObj.sessions : [];
-  const incoming = [{ id: null, scope, sessions }];
-
-  const incomingHasSesion = scope === 'sesion';
-  const incomingHasSprint = scope !== 'sesion';
-
-  let merged = incoming;
-  {
-    const existing = loadPlan(proj.id) || [];
-    if (incomingHasSesion && !incomingHasSprint) {
-      const keepSprint = existing.filter(sp => sp.scope !== 'sesion');
-      merged = [...incoming, ...keepSprint];
-    } else if (incomingHasSprint && !incomingHasSesion) {
-      const keepSesion = existing.filter(sp => sp.scope === 'sesion');
-      merged = [...keepSesion, ...incoming];
-    }
-  }
-  savePlan(proj.id, merged);
-  renderPlan();
-  return true;
-}
-// ── END T-202606-018 ──
 // Flujo: parseSprintProposal(text) → validar rol emisor → validar campos → guard duplicado → push a proj.sprints → save()
 export function _tryIngestSprintProposal(text) {
   if (!text || !text.includes('---SPRINT-PROPOSAL---')) return false;
@@ -2094,30 +1987,6 @@ export function parsePasteStandalone() {
   }
 
   // Reutilizar parseCheckpoint para extraer campos y validar estructura
-  // T-202605-524: EXECUTION-PLAN standalone — sin CHECKPOINT envolvente
-  // T-202606-005: parseCheckpoint opera en path único JSON — no detecta Markdown legacy
-  // Si el texto contiene solo un bloque ---EXECUTION-PLAN--- sin CHECKPOINT, procesarlo directamente
-  const _hasEP  = text.includes('---EXECUTION-PLAN---');
-  // T-202606-005: detectar CHECKPOINT via fence (con o sin especificador json) o JSON puro sin fence
-  const _hasCKP = /^\s*```(?:json)?\s*\{/.test(text) || (text.trim().startsWith('{') && text.trim().endsWith('}'));
-  if (_hasEP && !_hasCKP) {
-    const _epResult = _tryIngestPlan(text);
-    if (_epResult) {
-      prev.innerHTML = '<div class="ckpt-pill ckpt-pill--ok ckpt-pill--mb">✓ Execution Plan aplicado</div>';
-      btn.disabled = true; // sin ítems de backlog — nada más que confirmar
-    } else {
-      // _tryIngestPlan falló — proyecto no activo o bloque inválido
-      const _activeProj = getActiveProject();
-      if (!_activeProj) {
-        prev.innerHTML = '<div class="paste-error">⚠ Selecciona un proyecto activo antes de aplicar el Execution Plan.</div>';
-      } else {
-        prev.innerHTML = '<div class="paste-error">⚠ Bloque <code>---EXECUTION-PLAN---</code> inválido o sin sprint activo.<br><span class="paste-hint">Verifica que el bloque incluya <code>sprint:</code> o que haya un sprint activo en el proyecto.</span></div>';
-      }
-      btn.disabled = true;
-    }
-    return;
-  }
-
   const ckpt = parseCheckpoint(text);
 
   // Validación: bloque de apertura — gate es fence JSON sin especificador + campo title
@@ -2168,8 +2037,6 @@ export function parsePasteStandalone() {
     if (it.contract_detail) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract_detail);
   });
 
-  // R-202604-085 + R-B: detectar ---PLAN--- o ---EXECUTION-PLAN--- embebido en el CHECKPOINT standalone
-  if (text.includes('---PLAN---') || text.includes('---EXECUTION-PLAN---')) _tryIngestPlan(text);
   // T-202606-156: _tryIngestSprintProposal removido de parsePasteStandalone —
   // Step 0 en showMergeDiffPanel es el gate. El sprint se crea solo al aprobar en el DIFF.
 
@@ -2180,9 +2047,8 @@ export function parsePasteStandalone() {
     // T-202606-017: doc_updates y sprint_proposal del path JSON — disponibles en saveStandaloneCheckpoint
     docUpdates:       (_isJsonFmtSa && ckpt._rawDocUpdates)     ? ckpt._rawDocUpdates     : [],
     sprintProposal:   (_isJsonFmtSa && ckpt._rawSprintProposal) ? ckpt._rawSprintProposal : null,
-    // T-202606-018: finn_observations y execution_plan del path JSON — disponibles en saveStandaloneCheckpoint
+    // T-202606-018: finn_observations del path JSON — disponible en saveStandaloneCheckpoint
     finnObservations: (_isJsonFmtSa && ckpt._rawFinnObservations) ? ckpt._rawFinnObservations : null,
-    executionPlan:    (_isJsonFmtSa && ckpt._rawExecutionPlan)    ? ckpt._rawExecutionPlan    : null,
   };
 
   const _assignedIds = _assignPendingIds(tgItems);
@@ -2191,7 +2057,7 @@ export function parsePasteStandalone() {
     <div class="ckpt-pill ckpt-pill--ok ckpt-pill--mb">✓ CHECKPOINT · ${tgItems.length} ítem${tgItems.length !== 1 ? 's' : ''}</div>
     <div class="sa-ckpt-desc">${esc(ckpt.titulo)}</div>
     ${previewHtml}`;
-  btn.disabled = tgItems.length === 0 && !text.includes('---PLAN---') && !text.includes('---EXECUTION-PLAN---');
+  btn.disabled = tgItems.length === 0;
 }
 
 export function saveStandaloneCheckpoint() {
@@ -2291,10 +2157,6 @@ export function saveStandaloneCheckpoint() {
         mergeHtmlMapSections(mapSections, activeProj.id);
       }
     }
-    // R-202604-076 + R-B: plan block — PLAN legacy y EXECUTION-PLAN nuevo
-    // B-202605-XXX: usar _tryIngestPlan en lugar de savePlan directo — preserva scope:sprint al guardar scope:sesion
-    if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
-
     // T-202606-032: registrar DOC-UPDATEs en el índice por proyecto — detectar conflictos.
     // Path JSON puro: usar docUpdates ya extraídos en _standaloneLastParsed.
     // Path legacy Markdown: extraer desde el texto crudo via extractDocUpdates.
@@ -2507,143 +2369,6 @@ export function parseSprintProposal(text) {
 
   // AC-1 + AC-2: objeto completo
   return { sprint, version_target, release_type, scope, goal, out_of_scope };
-}
-
-// R-202604-076 + R-B: parser de bloque ---PLAN--- / ---EXECUTION-PLAN---
-// Backward compatible: ---PLAN--- se trata como scope 'sprint' implícito
-// Nuevo: ---EXECUTION-PLAN--- agrega campo scope por sección (sprint | sesion)
-//
-// Formato ---EXECUTION-PLAN--- (nuevo):
-// ---EXECUTION-PLAN---
-// scope: sprint
-// sprint: S-24
-// sesiones:
-//   - id: slug-unico
-//     rol: FS · Rune
-//     items: [R-202605-XXX]
-//     archivos: [ai-tracker-session.js]
-//     depende_de: []
-// scope: sesion
-// sesiones:
-//   - id: sesion-activa
-//     rol: FS · Rune
-//     items: [R-202605-XXX]
-//     archivos: []
-//     depende_de: []
-// ---EXECUTION-PLAN-END---
-//
-// Formato ---PLAN--- legacy (backward compat — scope 'sprint' implícito):
-// ---PLAN---
-// sprint: S-XX · Nombre
-// sesiones:
-//   - id: slug
-//     rol: FS · Rune
-//     items: [R-202604-054]
-//     archivos: []
-//     depende_de: []
-// ---PLAN-END---
-function parsePlanBlock(text) {
-  // Detectar formato nuevo o legacy
-  const isNew    = /---EXECUTION-PLAN---/.test(text);
-  const startTag = isNew ? '---EXECUTION-PLAN---' : '---PLAN---';
-  const endTag   = isNew ? '---EXECUTION-PLAN-END---' : '---PLAN-END---';
-
-  const reBody = new RegExp(
-    startTag.replace(/[-]/g, '\\-') + '\\s*([\\s\\S]*?)\\s*' + endTag.replace(/[-]/g, '\\-')
-  );
-  const match = text.match(reBody);
-  if (!match) return null;
-
-  const body  = match[1];
-  const lines = body.split('\n');
-
-  const sprints     = [];
-  let currentSprint = null;
-  let currentSess   = null;
-  let inSesiones    = false;
-  let pendingScope  = 'sprint'; // scope del próximo sprint — default backward compat
-
-  const _flushSess = () => {
-    if (currentSess && currentSprint) currentSprint.sessions.push(currentSess);
-    currentSess = null;
-  };
-  const _flushSprint = () => {
-    _flushSess();
-    if (currentSprint) sprints.push(currentSprint);
-    currentSprint = null;
-    inSesiones    = false;
-  };
-
-  const _parseList = str => {
-    const s = str.trim();
-    if (!s || s === '[]') return [];
-    return s.replace(/^\[|\]$/g, '').split(/[,\s]+/).map(t => t.trim()).filter(Boolean);
-  };
-
-  for (const rawLine of lines) {
-    const line    = rawLine.trimEnd();
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-
-    // scope: sprint | sesion — solo en formato nuevo
-    if (isNew) {
-      const scopeM = trimmed.match(/^scope\s*:\s*(sprint|sesion)$/i);
-      if (scopeM) {
-        if (currentSprint) _flushSprint();
-        pendingScope = scopeM[1].toLowerCase();
-        continue;
-      }
-    }
-
-    // sprint: S-XX  o  sin-sprint:
-    const sprintM    = trimmed.match(/^sprint\s*:\s*(.+)$/i);
-    const sinSprintM = trimmed.match(/^sin-sprint\s*:$/i);
-    if (sprintM || sinSprintM) {
-      _flushSprint();
-      currentSprint = {
-        id:       sprintM ? sprintM[1].trim() : null,
-        scope:    isNew ? pendingScope : 'sprint',
-        sessions: []
-      };
-      inSesiones = false;
-      continue;
-    }
-
-    // sesiones: — puede aparecer sin sprint declarado (scope sesion directo)
-    if (/^sesiones\s*:$/i.test(trimmed)) {
-      if (!currentSprint) {
-        _flushSprint();
-        currentSprint = { id: null, scope: isNew ? pendingScope : 'sprint', sessions: [] };
-      }
-      inSesiones = true;
-      continue;
-    }
-
-    if (!inSesiones || !currentSprint) continue;
-
-    // Nueva sesión
-    if (/^-\s+id\s*:/.test(trimmed)) {
-      _flushSess();
-      const idM = trimmed.match(/^-\s+id\s*:\s*(.+)$/i);
-      currentSess = { id: idM ? idM[1].trim() : '', rol: '', items: [], archivos: [], depende_de: [] };
-      continue;
-    }
-
-    if (!currentSess) continue;
-
-    const rolM      = trimmed.match(/^rol\s*:\s*(.+)$/i);
-    const itemsM    = trimmed.match(/^items?\s*:\s*(.*)$/i);
-    const archivosM = trimmed.match(/^archivos?\s*:\s*(.*)$/i);
-    const dependeM  = trimmed.match(/^depende_de\s*:\s*(.*)$/i);
-
-    if (rolM)      { currentSess.rol        = rolM[1].trim();           continue; }
-    if (itemsM)    { currentSess.items      = _parseList(itemsM[1]);    continue; }
-    if (archivosM) { currentSess.archivos   = _parseList(archivosM[1]); continue; }
-    if (dependeM)  { currentSess.depende_de = _parseList(dependeM[1]);  continue; }
-  }
-  _flushSprint();
-
-  return sprints.length ? sprints : null;
 }
 
 // T-202605-430: componente reutilizable de hora — aplica en guardar sesión, sesiones rápidas y correctHora
