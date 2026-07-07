@@ -1,4 +1,9 @@
-// [PP] mod:89 · autor:Rune · 2026-07-06 02:36 UTC-6
+// [PP] mod:90 · autor:Rune · 2026-07-06 18:20 UTC-6
+// TKT-202607-044 (REQ-202607-015): INCIDENTS conectado a tracker_incidents — saveBacklog()
+// upsert onConflict:code (independiente de ITEMS, sin reintento en caso de fallo) +
+// _loadFromSupabase() consulta tracker_incidents y puebla INCIDENTS (merge-por-fila, mismo
+// patrón anti-race que ITEMS). _getIncidents inyectado via _initApp(opts.getIncidents).
+// Módulo crítico — activar verificación de regresiones en Finn.
 // INC-[pendiente-ID]: fix _itemsRef en null cuando ITEMS local está vacío (length 0) —
 //   el ternario producía null en vez de la referencia al array vacío real, lo que hacía
 //   shouldEvaluate=false y saltaba el bloque de merge con Supabase sin importar cuántas
@@ -56,6 +61,12 @@ let exportBacklogMd = function() {};
 // Fallback seguro: _getItems devuelve [] (sin acceso a window); las demás son no-ops.
 let _getItems = function() {
   console.warn('[AI Tracker] _getItems: getItems no disponible — usando fallback []');
+  return [];
+};
+// TKT-202607-044 (REQ-202607-015): mismo patrón lazy ref que _getItems — rompe el ciclo
+// storage ↔ backlog-core para el array INCIDENTS (separado de ITEMS desde TKT-202607-005).
+let _getIncidents = function() {
+  console.warn('[AI Tracker] _getIncidents: getIncidents no disponible — usando fallback []');
   return [];
 };
 let _localStorageUsageRatio = function() { return 0; };
@@ -1123,7 +1134,38 @@ export async function saveBacklog() {
     return true;
   });
 
+  // TKT-202607-044 (REQ-202607-015): INCIDENTS — array separado de ITEMS desde
+  // TKT-202607-005, persiste en tabla propia tracker_incidents (no tracker_items).
+  // Mismo criterio de gate que ITEMS — una fila de tipo o incident_status inválido
+  // haría rechazar el batch completo en Postgres (chk_incident_status_by_type).
+  const _VALID_INCIDENT_TYPES = new Set(['INC', 'PRB', 'KE', 'CHG']);
+  const _VALID_INCIDENT_STATUS_BY_TYPE = {
+    INC: new Set(['detected', 'assigned', 'in_progress', 'resolved', 'closed', 'escalated_to_prb', 'escalated_to_chg', 'descartado']),
+    PRB: new Set(['detected', 'in_progress', 'resolved', 'closed', 'descartado']),
+    KE:  new Set(['active', 'resolved', 'descartado']),
+    CHG: new Set(['pendiente', 'en-revision', 'done', 'descartado']),
+  };
+  const _rawIncidents = _getIncidents();
+  const incidents = _rawIncidents.filter(inc => {
+    const _incStatusRaw = inc.incidentStatus || inc.incident_status;
+    if (_incStatusRaw === 'historico') {
+      console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido — incident_status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
+      return false;
+    }
+    if (!_VALID_INCIDENT_TYPES.has(inc.type)) {
+      console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — type:"${inc.type}" no es un tipo canónico de incidente (INC/PRB/KE/CHG).`);
+      return false;
+    }
+    const _validIncStatuses = _VALID_INCIDENT_STATUS_BY_TYPE[inc.type];
+    if (_validIncStatuses && _incStatusRaw && !_validIncStatuses.has(_incStatusRaw)) {
+      console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — type:${inc.type} no puede tener incident_status:${_incStatusRaw} (viola chk_incident_status_by_type)`);
+      return false;
+    }
+    return true;
+  });
+
   const key = _tplKey('backlog-items');
+  const incidentsKey = _tplKey('backlog-incidents');
   const projId = _getActiveProjectFilter();
   const metaKey = _tplKey('backlog-meta');
   const meta = JSON.parse(localStorage.getItem(metaKey) || '{}');
@@ -1136,6 +1178,13 @@ export async function saveBacklog() {
 
   // Sin Supabase o sin auth → localStorage como único destino (sin cambio de comportamiento).
   if (!_supabase || !_supabaseUser) {
+    // TKT-202607-044 / AC-3: respaldo optimista de INCIDENTS — best-effort, independiente
+    // del flujo de recuperación de cuota de ITEMS (abajo) para no acoplar los dos arrays.
+    try {
+      localStorage.setItem(incidentsKey, JSON.stringify(incidents));
+    } catch (incLsErr) {
+      console.warn('[AI Tracker] saveBacklog: fallo al escribir respaldo local de incidentes (offline)', incLsErr);
+    }
     try {
       localStorage.setItem(key, JSON.stringify(items));
       localStorage.setItem(metaKey, JSON.stringify(meta));
@@ -1259,6 +1308,32 @@ export async function saveBacklog() {
     };
   }
 
+  // TKT-202607-044 (REQ-202607-015): _toIncidentRow() — mapeo hacia las columnas reales
+  // de tracker_incidents (verificadas vía information_schema — 18 columnas, schema propio
+  // y más angosto que tracker_items: sin status/priority/effort/area/sprint/role/ac/parent/
+  // depends_on, que no existen en esta tabla). onConflict:code — mismo target que _toItemRow().
+  function _toIncidentRow(inc) {
+    return {
+      user_id:               _supabaseUser.id,
+      project_id:            projId || null,
+      code:                  inc.code               || null,
+      type:                  inc.type               || null,
+      title:                 inc.title              || null,
+      triggered_by:          inc.triggered_by       || null,
+      comportamiento_actual: inc.comportamiento_actual || null,
+      origin_module:         inc.origin_module      || null,
+      archivos:              Array.isArray(inc.archivos) ? inc.archivos : null,
+      derived_items:         Array.isArray(inc.derived_items) ? inc.derived_items : null,
+      sla_priority:          inc.sla_priority       || null,
+      incident_status:       inc.incidentStatus     || inc.incident_status || null,
+      resolution_type:       inc.resolutionType     || inc.resolution_type || null,
+      discard_reason:        inc.discard_reason     || null,
+      sla_deadline:          inc.slaDeadline        != null ? inc.slaDeadline : null,
+      // Mismo _updatedAtMs que _toItemRow — un único timestamp de escritura para todo el CHECKPOINT.
+      updated_at:            _updatedAtMs
+    };
+  }
+
   // AC-3: un único timestamp epoch para todas las filas del batch — calculado antes de map().
   // DDL: updated_at BIGINT (epoch ms). _writeTs (ISO) sigue siendo la referencia para
   // meta.updated y _realtimeLastTs — ambos usan string ISO por compatibilidad con el resto
@@ -1278,6 +1353,15 @@ export async function saveBacklog() {
     localStorage.setItem(metaKey, JSON.stringify(meta));
   } catch (lsErr) {
     console.warn('[AI Tracker] saveBacklog: fallo al escribir respaldo local pre-upsert', lsErr);
+  }
+
+  // TKT-202607-044 / AC-3: respaldo local optimista de INCIDENTS — ANTES del upsert a
+  // tracker_incidents, mismo momento que el respaldo de ITEMS arriba. Es la única garantía
+  // de no pérdida de dato si el upsert de incidentes falla — sin reintento (ver más abajo).
+  try {
+    localStorage.setItem(incidentsKey, JSON.stringify(incidents));
+  } catch (incLsErr) {
+    console.warn('[AI Tracker] saveBacklog: fallo al escribir respaldo local de incidentes pre-upsert', incLsErr);
   }
 
   // B-[pendiente-ID]: incrementar contador in-flight ANTES del try — cubre toda la ventana
@@ -1331,6 +1415,32 @@ export async function saveBacklog() {
   } finally {
     // B-[pendiente-ID]: decrementar siempre — éxito, error, o cualquier throw imprevisto.
     _saveBacklogInFlightCount--;
+  }
+
+  // TKT-202607-044 (REQ-202607-015) / AC-1: upsert de INCIDENTS → tracker_incidents,
+  // onConflict:code. Independiente del bloque de ITEMS arriba — un fallo aquí no revierte
+  // ni bloquea el upsert de ITEMS ya confirmado, y viceversa (tablas distintas, sin
+  // transacción compartida). AC-3: a diferencia de ITEMS, un fallo de upsert de incidentes
+  // no se encola en _offlineQueuePush — sin reintento. El respaldo local optimista escrito
+  // arriba (pre-upsert) es la única garantía de no pérdida de dato hasta el siguiente
+  // saveBacklog() exitoso.
+  try {
+    const incidentRows = incidents.map(_toIncidentRow);
+    const _incRowsMap = new Map();
+    for (const row of incidentRows) _incRowsMap.set(row.code, row);
+    const dedupedIncidentRows = Array.from(_incRowsMap.values());
+    if (dedupedIncidentRows.length < incidentRows.length) {
+      console.warn('[AI Tracker] saveBacklog: duplicados en INCIDENTS eliminados antes de upsert:', incidentRows.length - dedupedIncidentRows.length);
+    }
+    if (dedupedIncidentRows.length > 0) {
+      const { error: incError } = await _supabase
+        .from('tracker_incidents')
+        .upsert(dedupedIncidentRows, { onConflict: 'code' });
+      if (incError) throw incError;
+    }
+  } catch (incErr) {
+    console.error('[AI Tracker] Supabase saveBacklog() — upsert de tracker_incidents falló:', incErr);
+    showToast('warning', '⚠️ Incidentes no sincronizados con Supabase — guardado localmente');
   }
 }
 
@@ -1398,6 +1508,45 @@ function _mapRowToItem(row) {
       return null;
     })(),
     _updatedAtMs:          row.updated_at    // conservar timestamp para comparaciones futuras
+  };
+}
+
+// TKT-202607-044 (REQ-202607-015): _mapRowToIncident() — mapeo de columnas DDL de
+// tracker_incidents (snake_case) → campos JS canónicos de INCIDENTS (camelCase donde
+// aplica: incidentStatus, resolutionType, createdAt, slaDeadline) — mismo patrón que
+// _mapRowToItem(). tracker_incidents tiene schema propio, más angosto que tracker_items
+// (sin status/priority/effort/area/sprint/role/ac/parent — esos campos no existen en
+// esta tabla, ver columnas reales verificadas: archivos, code, comportamiento_actual,
+// created_at, derived_items, discard_reason, id, incident_status, origin_module,
+// project_id, resolution_type, sla_deadline, sla_priority, title, triggered_by, type,
+// updated_at, user_id).
+function _mapRowToIncident(row) {
+  return {
+    code:                  row.code,
+    type:                  row.type,
+    title:                 row.title,
+    triggered_by:          row.triggered_by,
+    comportamiento_actual: row.comportamiento_actual,
+    origin_module:         row.origin_module,
+    archivos:              Array.isArray(row.archivos) ? row.archivos : null,
+    derived_items:         Array.isArray(row.derived_items) ? row.derived_items : null,
+    sla_priority:          row.sla_priority,
+    incidentStatus:        row.incident_status || null,
+    resolutionType:        row.resolution_type || null,
+    discard_reason:        row.discard_reason,
+    createdAt:             row.created_at      || null,
+    // Mismo cálculo derivado que _mapRowToItem — sla_deadline explícito tiene precedencia;
+    // si ausente, se calcula desde createdAt + ventana de sla_priority.
+    slaDeadline: (() => {
+      if (row.sla_deadline != null) return row.sla_deadline;
+      if (!row.sla_priority) return null;
+      const _base = row.created_at || null;
+      if (!_base) return null;
+      if (row.sla_priority === 'high')   return _base + 86400000;
+      if (row.sla_priority === 'medium') return _base + 259200000;
+      return null;
+    })(),
+    _updatedAtMs:          row.updated_at
   };
 }
 
@@ -1835,6 +1984,10 @@ export async function _loadFromSupabase() {
   // para objetos anidados como items[i].ac o items[i].intencion.
   const _itemsRef = _getItems();
   const _itemsSnapshot = _itemsRef ? structuredClone(_itemsRef) : null;
+  // TKT-202607-044 (REQ-202607-015): snapshot de INCIDENTS — mismo mecanismo de rollback
+  // que ITEMS, para que un fallo a mitad de carga restaure ambos arrays.
+  const _incidentsRef = _getIncidents();
+  const _incidentsSnapshot = _incidentsRef ? structuredClone(_incidentsRef) : null;
   const _stateSnapshot = structuredClone(state);
 
   try {
@@ -1883,7 +2036,7 @@ export async function _loadFromSupabase() {
       'user-prefs'
     ];
 
-    const [sessResult, itemsResult, docsResult, draftsResult] = await Promise.allSettled([
+    const [sessResult, itemsResult, incidentsResult, docsResult, draftsResult] = await Promise.allSettled([
       // 4. Sesiones
       _supabase
         .from('tracker_sessions')
@@ -1899,6 +2052,17 @@ export async function _loadFromSupabase() {
       projId
         ? _supabase
             .from('tracker_items')
+            .select('*')
+            .eq('project_id', projId)
+            .eq('user_id', _supabaseUser.id)
+        : Promise.resolve({ data: [], error: null }),
+
+      // 5b. Incidentes relacionales — TKT-202607-044 (REQ-202607-015): fuente primaria de
+      // hidratación de INCIDENTS. Tabla propia tracker_incidents (no tracker_items) desde
+      // TKT-202607-005 — mismo patrón defensivo de filtro project_id + user_id.
+      projId
+        ? _supabase
+            .from('tracker_incidents')
             .select('*')
             .eq('project_id', projId)
             .eq('user_id', _supabaseUser.id)
@@ -2058,6 +2222,76 @@ export async function _loadFromSupabase() {
       console.warn('[AI Tracker] Error procesando items relacionales:', itemsErr);
     }
     } // B-[pendiente-ID]: cierre del else del guard _saveBacklogInFlightCount
+
+    // ── 5b. Procesar incidentes relacionales — TKT-202607-044 (REQ-202607-015) ──────────
+    // INCIDENTS (INC/PRB/KE/CHG) vive en tracker_incidents — tabla separada de tracker_items
+    // desde TKT-202607-005. Mismo guard de saveBacklog-en-vuelo y mismo merge-por-fila que
+    // ITEMS (B-202606-094): una fila remota solo sobrescribe su contraparte local si su
+    // propio updated_at es estrictamente más nuevo — evita que un read-after-write race
+    // revierta un incidente que no cambió remotamente.
+    // AC-2 (TKT-202607-044): 9 incidentes remotos con project_id activo → INCIDENTS
+    // contiene exactamente esos 9 objetos tras la carga.
+    if (_saveBacklogInFlightCount > 0) {
+      console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + _saveBacklogInFlightCount + ') — merge de tracker_incidents omitido en esta pasada.');
+    } else {
+    try {
+      if (incidentsResult.status === 'fulfilled' && !incidentsResult.value.error) {
+        const remoteIncRows = incidentsResult.value.data || [];
+        const incidentsKey     = _tplKey('backlog-incidents');
+        const localIncidentsRaw = localStorage.getItem(incidentsKey);
+        const localIncidents    = (() => { try { return JSON.parse(localIncidentsRaw || '[]'); } catch { return []; } })();
+        const localIncByCode    = new Map(localIncidents.map(inc => [inc.code, inc]));
+        const remoteIncMaxTs    = remoteIncRows.reduce((m, row) => {
+          const ts = row.updated_at || 0;
+          return ts > m ? ts : m;
+        }, 0);
+        const localIncMaxTs     = localIncidents.reduce((m, inc) => {
+          const ts = inc._updatedAtMs || 0;
+          return ts > m ? ts : m;
+        }, 0);
+        // incident_status:historico se excluye del conteo remoto — mismo criterio que
+        // remoteActiveCount para ITEMS, para detectar altas/bajas de filas de forma barata.
+        const remoteActiveIncCount = remoteIncRows.filter(row => row.incident_status !== 'historico').length;
+        const localIncCount        = localIncidents.length;
+        const shouldEvaluateInc = _incidentsRef !== null && (
+          _incidentsRef.length === 0 ||
+          !localIncidentsRaw ||
+          remoteIncMaxTs > localIncMaxTs ||
+          remoteActiveIncCount !== localIncCount
+        );
+        if (shouldEvaluateInc && _incidentsRef) {
+          const mergedInc = [];
+          remoteIncRows.forEach(row => {
+            if (row.incident_status === 'historico') return;
+            const localMatch  = localIncByCode.get(row.code);
+            const localRowTs  = localMatch?._updatedAtMs || 0;
+            const remoteRowTs = row.updated_at || 0;
+            if (localMatch && localRowTs >= remoteRowTs) {
+              mergedInc.push(localMatch);
+              localIncByCode.delete(row.code);
+              return;
+            }
+            const inc = _mapRowToIncident(row);
+            mergedInc.push(inc);
+            localIncByCode.delete(row.code);
+          });
+          // Incidentes locales sin fila remota — mismo criterio que ITEMS: sin _updatedAtMs
+          // → creado offline, upsert pendiente, conservar. Con _updatedAtMs → confirmado
+          // remoto antes y ya no aparece → eliminado remotamente, descartar.
+          for (const leftover of localIncByCode.values()) {
+            if (leftover._updatedAtMs == null) mergedInc.push(leftover);
+          }
+          _incidentsRef.length = 0;
+          mergedInc.forEach(inc => _incidentsRef.push(inc));
+          try { localStorage.setItem(incidentsKey, JSON.stringify(_incidentsRef)); } catch {}
+        }
+      } else {
+        console.warn('[AI Tracker] Error cargando incidentes relacionales desde Supabase:', incidentsResult.reason || incidentsResult.value?.error);
+      }
+    } catch (incidentsErr) {
+      console.warn('[AI Tracker] Error procesando incidentes relacionales:', incidentsErr);
+    }
+    }
 
     // ── 6. Procesar docs vivos (context, htmlmap, plan, tmp-id-map, notes, user-prefs) ──
     try {
@@ -2226,6 +2460,12 @@ export async function _loadFromSupabase() {
     if (_itemsRef && _itemsSnapshot) {
       _itemsRef.length = 0;
       _itemsSnapshot.forEach(item => _itemsRef.push(structuredClone(item)));
+    }
+    // TKT-202607-044: mismo rollback para INCIDENTS — un fallo a mitad de carga no debe
+    // dejar INCIDENTS en estado parcialmente aplicado.
+    if (_incidentsRef && _incidentsSnapshot) {
+      _incidentsRef.length = 0;
+      _incidentsSnapshot.forEach(inc => _incidentsRef.push(structuredClone(inc)));
     }
     // T-202605-084: Object.assign(state, snapshot) restaura propiedades top-level correctamente
     // porque _stateSnapshot es un deep clone (structuredClone) — cada propiedad anidada es
@@ -2407,6 +2647,10 @@ export function _initApp(opts = {}) {
   else console.warn('[AI Tracker] _initApp: migrateItemTypes no recibido en opts — usando no-op');
   if (opts.purgeStaleBacklogCache) _purgeStaleBacklogCache = opts.purgeStaleBacklogCache;
   else console.warn('[AI Tracker] _initApp: purgeStaleBacklogCache no recibido en opts — usando fallback 0');
+  // TKT-202607-044 (REQ-202607-015): inyectar getIncidents — mismo patrón que getItems,
+  // rompe el ciclo storage ↔ backlog-core para el array INCIDENTS.
+  if (opts.getIncidents) _getIncidents = opts.getIncidents;
+  else console.warn('[AI Tracker] _initApp: getIncidents no recibido en opts — usando fallback []');
   // T-202606-006 T3: renderSprintTab inyectado para eliminar window.renderSprintTab
   if (opts.renderSprintTab) _renderSprintTabFn = opts.renderSprintTab;
   // B-202606-028: marcar referencias inyectadas — _loadFromSupabase puede reintentar ahora.
