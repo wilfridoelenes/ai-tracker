@@ -1,3 +1,13 @@
+// [PP] mod:79 · autor:Rune · 2026-07-06 UTC-6
+// TKT-202607-027 (REQ-202607-013 · Deprecar Vista Kanban): removidos _renderKanban()
+//   (con COLS/_kanbanStatus()/_kanbanCard() anidadas) · _kbDrop() · _kbCardClick() ·
+//   handler delegado de kb-card-click · 5 listeners de drag&drop de kb-card/kb-col en
+//   _attachBacklogListDelegation() · import de _getBacklogKanbanMode (ya no exportada
+//   desde core.js) · guard de _getBacklogKanbanMode() en _attachBacklogDnD(), simplificado
+//   a solo _getBacklogNoAcMode(). _isActiveRecently() se conserva — sigue en uso en
+//   buildBacklogItem() (línea ~984), solo se retiró su invocación dentro de _kanbanCard.
+//   contract_update: sí — _renderKanban ya no se exporta; locus-backlog-render.js debe
+//   dejar de importarla (pendiente, archivo no adjunto en esta entrega).
 // [PP] mod:78 · autor:Rune · 2026-07-06 UTC-6
 // TKT-202607-009: chip de trazabilidad origen_disc en subline de buildBacklogItem() —
 //   reutiliza navigateToItem() (mismo mecanismo que navigate-discard-ref) para el click;
@@ -48,7 +58,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogKanbanMode, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP)
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado)
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -118,137 +128,13 @@ export function _resetBacklogListDelegation(containerId = 'backlog-list') {
 }
 // ──────────────────────────────────────────────────────────────────────────
 
-export function _renderKanban(listEl) {
-  // R-202604-091: 3 columnas — 'en curso' eliminado, ítems activos decorados en 'pendiente'
-  const COLS = [
-    { id: 'pendiente',  label: 'Pendiente',  status: 'pendiente',  colorVar: 'var(--text2)',  accentColor: 'rgba(124,106,247,0.4)' },
-    { id: 'done',       label: 'Hecho',        status: 'done',       colorVar: '#2ecc78',       accentColor: 'rgba(46,204,120,0.4)' },
-    { id: 'descartado', label: 'Descartado',  status: 'descartado', colorVar: 'var(--hint)',   accentColor: 'rgba(120,120,120,0.3)' }
-  ];
-
-  // Mapeo de status normalizados para compatibilidad
-  function _kanbanStatus(item) {
-    // R-202604-091: 'en curso' → 'pendiente'
-    const s = item.status;
-    if (s === 'in-progress' || s === 'en progreso' || s === 'progreso' || s === 'en curso') return 'pendiente';
-    // TKT-C2: 'promovida'→'promoted' (Gen2 canónico). Edge case: datos legacy con 'promovida'
-    // en storage también mapean a 'descartado' — misma rama, sin retrocompatibilidad adicional.
-    if (s === 'promoted' || s === 'promovida') return 'descartado';
-    return s; // pendiente | done | descartado
-  }
-
-  // Filtrar aplicando los mismos filtros activos del backlog
-  const q = _getBacklogSearchQuery();
-  let allFiltered = getItems().filter(i => {
-    const type = itemKind(i);
-    const typeOk = type ? _getActiveTypes().has(type) : true;
-    const _rawEffortK = i.effort;
-    const _normEffortK = _rawEffortK > 3 ? 3 : _rawEffortK < 1 ? 1 : _rawEffortK;
-    const effortOk = _getActiveEfforts().has(_normEffortK); // B-202605-233: effort >3 normalizado a 3
-    // INC-[pendiente-ID]: roleOk removido — dependía de _getActiveRoleFilter, no exportada
-    // desde TKT1 REQ1 S'02 (core.js:2142, feature desconectada). Kanban ya no filtra por rol.
-    return typeOk && effortOk && i.status !== 'historico'; // B-202605-266
-  });
-  if (q) {
-    allFiltered = allFiltered.filter(i =>
-      i.code.toLowerCase().includes(q) ||
-      i.title.toLowerCase().includes(q) ||
-      (i.area || '').toLowerCase().includes(q)
-    );
-  }
-
-  // Agrupar por columna
-  const byCol = {};
-  COLS.forEach(c => { byCol[c.id] = []; });
-  allFiltered.forEach(item => {
-    const cs = _kanbanStatus(item);
-    if (byCol[cs]) byCol[cs].push(item);
-    else byCol['pendiente'].push(item); // fallback
-  });
-
-  // Construir card Kanban (compacta: código + tipo + título + sprint + effort)
-  function _kanbanCard(item) {
-    const type = itemKind(item) || '';
-    const typeColors = { TKT:'#2ecc78', REQ:'#38bdf8', INC:'#e85555', DISC:'#7c6af7' };
-    const typeColor = typeColors[type] || 'var(--hint)';
-    const effortN = parseInt(item.effort) || 0;
-    const dots = Array.from({length:3}, (_,i) =>
-      `<span class="kb-effort-dot${i < effortN ? ' on' : ''}"></span>`
-    ).join('');
-    const sprintBadge = item.sprint ? `<span class="kb-card-sprint">${esc(item.sprint)}</span>` : '';
-    const prioBadge = (!item.status || item.status === 'pendiente') && item.priority && item.priority !== 'medium'
-      ? `<span class="kb-card-prio kb-prio-${item.priority}">${badgeLabel(item.priority)}</span>` : '';
-    const kbIsActive = _isActiveRecently(item);
-    // T-202605-449: tratamiento visual Kanban para ítems bloqueados por dependencia
-    const kbIsDepBlocked = _hasDepsBlocked(item);
-    const kbDepBadge = kbIsDepBlocked ? '<span class="kb-dep-blocked-badge" title="Tiene dependencias pendientes">🔒</span>' : '';
-    return `<div class="kb-card${kbIsActive ? ' kb-card--active' : ''}${kbIsDepBlocked ? ' kb-card--dep-blocked' : ''}" data-code="${esc(item.code)}" data-status="${esc(item.status)}"
-        style="--kb-type-color:${typeColor}"
-        draggable="true">
-      <div class="kb-card-header">
-        <span class="kb-card-type">${type}</span>
-        <span class="kb-card-code">${esc(item.code)}</span>
-        <div class="kb-card-header-right">${kbDepBadge}${kbIsActive ? '<span class="kb-activity-dot" title="Actividad reciente"></span>' : ''}${prioBadge}</div>
-      </div>
-      <div class="kb-card-title">${esc(item.title)}</div>
-      <div class="kb-card-footer">
-        ${sprintBadge}
-        <div class="kb-effort-dots">${dots}</div>
-        ${item.area ? `<span class="kb-card-area">${esc(item.area)}</span>` : ''}
-      </div>
-    </div>`;
-  }
-
-  // Construir HTML de columnas
-  let html = '<div class="kb-board">';
-  COLS.forEach(col => {
-    const colItems = byCol[col.id];
-    html += `<div class="kb-col" id="kb-col-${col.id}"
-        data-col-status="${col.id}">
-      <div class="kb-col-header" style="--col-accent:${col.accentColor}">
-        <span class="kb-col-title">${col.label}</span>
-        <span class="kb-col-count">${colItems.length}</span>
-      </div>
-      <div class="kb-col-body" id="kb-body-${col.id}">
-        ${colItems.length ? colItems.map(_kanbanCard).join('') : `<div class="kb-col-empty">Sin ítems</div>`}
-      </div>
-    </div>`;
-  });
-  html += '</div>';
-
-  listEl.classList.add('kb-active');
-  listEl.innerHTML = html;
-  _skelHide(listEl);
-}
-
-// T-202604-287: handler drop Kanban — reutiliza setItemStatus con lógica de confirmación existente
-function _kbDrop(event, toStatus) {
-  event.preventDefault();
-  const col = event.currentTarget;
-  col.classList.remove('kb-col-dragover');
-  const code = event.dataTransfer.getData('text/plain');
-  if (!code) return;
-  // Mapear columna 'progreso' al status real del sistema
-  // R-202604-091: solo 3 columnas — 'en-curso' eliminado
-  // Se almacena como 'in-progress' en item.status para conservar estado
-  // R-202604-091: 'en-curso' eliminado del statusMap
-  const statusMap = { pendiente: 'pendiente', done: 'done', descartado: 'descartado' };
-  const newStatus = statusMap[toStatus] || toStatus;
-  setItemStatus(code, newStatus);
-}
-
-// T-202604-287: click en card Kanban abre el editor del ítem
-function _kbCardClick(event, code) {
-  // No abrir si fue un drag (el drag pone clase antes del click)
-  if (event.defaultPrevented) return;
-  const item = getItems().find(i => i.code === code);
-  if (!item) return;
-  _openItemEditorSafe(item.id || null, code); // B-202605-012
-}
+// TKT-202607-027: _renderKanban() removida — Kanban deprecado (REQ-202607-013). Incluía
+// COLS, _kanbanStatus() y _kanbanCard() anidadas — sin uso fuera de esta función.
 
 // T-202605-054: delegación de eventos para #backlog-list — reemplaza handlers inline
 // Cubre: copyItemCode · copyItemToClipboard · _inlineEditTitle · _confirmUnlinkChild
-//        child-expand · drag-handle · kanban card (click + drag) · kb-col (drag) · _promoteSelectType
+//        child-expand · drag-handle · _promoteSelectType
+//        TKT-202607-027: kanban card (click + drag) · kb-col (drag) removidos — Kanban deprecado
 export function _attachBacklogListDelegation(containerId = 'backlog-list') {
   const listEl = document.getElementById(containerId);
   const _state = _getBlListState(containerId);
@@ -304,14 +190,7 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
       e.stopPropagation();
       return;
     }
-    // kanban card click
-    if (act === 'kb-card-click' || e.target.closest('.kb-card')) {
-      const card = e.target.closest('.kb-card');
-      if (!card) return;
-      if (e.defaultPrevented) return;
-      _kbCardClick(e, card.dataset.code);
-      return;
-    }
+    // TKT-202607-027: handler de kanban card click removido — Kanban deprecado
     if (act === 'ref-chip-session') {
       switchTab('sesiones');
       setTimeout(() => { openDetail(action.dataset.aiId, action.dataset.sessId); }, 120);
@@ -506,38 +385,7 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
 
   // --- Dblclick delegation: inline-edit-title removido en [tmp:tkt-card-readonly] — título ya no editable desde el card
 
-  // --- Kanban card drag ---
-  listEl.addEventListener('dragstart', function _blListDragStart(e) {
-    // kb-card drag
-    const card = e.target.closest('.kb-card');
-    if (card) {
-      e.dataTransfer.setData('text/plain', card.dataset.code);
-      card.classList.add('kanban-card--dragging');
-      return;
-    }
-  }, { signal: _blListAbortCtrl.signal });
-  listEl.addEventListener('dragend', function _blListDragEnd(e) {
-    const card = e.target.closest('.kb-card');
-    if (card) { card.classList.remove('kanban-card--dragging'); return; }
-  }, { signal: _blListAbortCtrl.signal });
-
-  // --- Kanban column drag (kb-col) ---
-  listEl.addEventListener('dragover', function _blListDragOver(e) {
-    const col = e.target.closest('.kb-col');
-    if (col) { e.preventDefault(); col.classList.add('kb-col-dragover'); }
-  }, { signal: _blListAbortCtrl.signal });
-  listEl.addEventListener('dragleave', function _blListDragLeave(e) {
-    const col = e.target.closest('.kb-col');
-    if (col) col.classList.remove('kb-col-dragover');
-  }, { signal: _blListAbortCtrl.signal });
-  listEl.addEventListener('drop', function _blListDrop(e) {
-    const col = e.target.closest('.kb-col');
-    if (col) {
-      e.preventDefault();
-      col.classList.remove('kb-col-dragover');
-      _kbDrop(e, col.dataset.colStatus);
-    }
-  }, { signal: _blListAbortCtrl.signal });
+  // TKT-202607-027: listeners de drag&drop de kb-card/kb-col removidos — Kanban deprecado
 }
 
 // _attachBacklogListDelegation: llamado al final de renderBacklogList (ver locus-backlog-render.js)
@@ -558,8 +406,8 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
 // T-202604-076: DnD para reordenar ítems dentro de grupo sprint (no aplica a done/descartado ni a modo plano)
 export function _attachBacklogDnD() {
   // T-202606-062: _getBacklogSprintGroupMode eliminada — vista lista es el modo por defecto.
-  // DnD activo cuando no hay modo exclusivo que tome el rendering.
-  if (_getBacklogKanbanMode() || _getBacklogNoAcMode()) return;
+  // TKT-202607-027: chequeo de _getBacklogKanbanMode removido — Kanban deprecado, ya no existe modo exclusivo que compita con DnD de sprint
+  if (_getBacklogNoAcMode()) return;
   // Solo grupos sprint: vbody-{groupId} — excluye sgbody-done, sgbody-discarded y vbody-flat
   const sprintBodies = document.querySelectorAll('[id^="vbody-"]:not(#vbody-flat)');
   sprintBodies.forEach(body => {

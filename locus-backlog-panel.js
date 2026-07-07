@@ -1,4 +1,4 @@
-// [PP] mod:14 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:16 · autor:Rune · 2026-07-06 UTC-6
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
@@ -359,19 +359,25 @@ function _renderItemPanel(item) {
         ? _sprintDisplay(_parentItem.sprint)
         : (_parentItem.sprint || '— Sin asignar'))
     : '— Sin asignar';
+  // [tmp:tkt-panel-readonly-mode]: ítems done/descartado — selects e input del panel pasan a disabled/readonly. Declarada una sola vez, antes de su primer consumo (sprintCellHtml) — antes se repetía inline en 3 puntos del mismo scope.
+  const _isReadonlyItem = item.status === 'done' || item.status === 'descartado';
+  const _roDisabled = _isReadonlyItem ? ' disabled' : '';
+  const _roReadonly = _isReadonlyItem ? ' readonly' : '';
+
   const sprintCellHtml = _isInheritedSprint
     ? `<span class="idp-meta-value idp-meta-value--inherited" title="El sprint del T se hereda de su parent ${esc(item.parentId)}">${esc(_inheritedLabel)} <span class="idp-inherited-badge">heredado</span></span>`
-    : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="sprint">
+    : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="sprint"${_roDisabled}>
           <option value="">— Sin asignar</option>
           ${sprintOptions}
           ${sprintOrphan}
         </select>`;
 
   // INC-[pendiente-ID] AC1: DISC — Status es badge de solo lectura (discovery|promoted|descartado, nunca pendiente/done)
+  // [tmp:tkt-panel-readonly-mode]: item.status done/descartado → status select también disabled (AC literal)
   const _discStatusLabels = { discovery: '◆ discovery', promoted: '➜ promoted', descartado: '🗑 descartado' };
   const statusCellHtml = type === 'DISC'
     ? `<span class="idp-meta-value idp-meta-value--readonly">${_discStatusLabels[item.status] || esc(item.status || '—')}</span>`
-    : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="status">
+    : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="status"${_roDisabled}>
           <option value="pendiente"${item.status === 'pendiente' ? ' selected' : ''}>⏳ pendiente</option>
           <option value="done"${item.status === 'done' ? ' selected' : ''}>✓ done</option>
           <option value="descartado"${item.status === 'descartado' ? ' selected' : ''}>🗑 descartado</option>
@@ -392,7 +398,7 @@ function _renderItemPanel(item) {
       </div>
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Priority</span>
-        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="priority">
+        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="priority"${_roDisabled}>
           <option value="high"${item.priority === 'high' ? ' selected' : ''}>🔴 high</option>
           <option value="medium"${item.priority === 'medium' ? ' selected' : ''}>🟡 medium</option>
           <option value="low"${item.priority === 'low' ? ' selected' : ''}>⚪ low</option>
@@ -400,7 +406,7 @@ function _renderItemPanel(item) {
       </div>${sprintMetaCellHtml}
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Effort</span>
-        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="effort">
+        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="effort"${_roDisabled}>
           <option value=""${!item.effort ? ' selected' : ''}>—</option>
           <option value="1"${item.effort == 1 ? ' selected' : ''}>1 · simple</option>
           <option value="2"${item.effort == 2 ? ' selected' : ''}>2 · medio</option>
@@ -410,11 +416,11 @@ function _renderItemPanel(item) {
       <div class="idp-meta-cell idp-meta-cell--wide">
         <span class="idp-meta-label">Area</span>
         <input class="idp-meta-input" value="${esc(item.area || '')}" placeholder="—"
-          data-item-code="${esc(item.code)}" data-field="area">
+          data-item-code="${esc(item.code)}" data-field="area"${_roReadonly}>
       </div>
       <div class="idp-meta-cell idp-meta-cell--wide">
         <span class="idp-meta-label">Rol</span>
-        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="role">
+        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="role"${_roDisabled}>
           <option value="">— Sin rol —</option>
           ${_ECOSYSTEM_ROLES.map(r => `<option value="${esc(r)}"${(item.role||'')=== r?' selected':''}>${esc(r)}</option>`).join('')}
         </select>

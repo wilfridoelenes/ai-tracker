@@ -1,4 +1,7 @@
-// [PP] mod:8 · autor:Rune · 2026-07-05 11:05 UTC-6
+// [PP] mod:9 · autor:Rune · 2026-07-06 09:00 UTC-6
+// TKT-202607-001: selector de tipo de Flujo Acumulativo migrado de 4 opciones Gen1 (R/T/B/P)
+// a 7 opciones Gen2 (REQ/TKT/DISC/INC/PRB/KE/CHG) — el value ahora coincide con lo que
+// itemKind() retorna, consumido en _buildCumulativeFlowChart() (locus-analytics-digest.js).
 // INC-[pendiente-ID] — verificado contra locus-storage.js real: p.sprints fue eliminado del blob
 // por REQ-sprints-migration (state.projects[i].sprints ya no se inicializa/migra/lee en
 // _applyStateData). _buildForecastData leía p.sprints para closedSprintIds → siempre vacío →
@@ -952,10 +955,13 @@ export async function renderAnalytics() {
           </select>
           <select class="acf-select" aria-label="Filtrar por tipo">
             <option value="">Todos los tipos</option>
-            <option value="R" ${_cfTypeFilter === 'R' ? 'selected' : ''}>R — Requerimientos</option>
-            <option value="T" ${_cfTypeFilter === 'T' ? 'selected' : ''}>T — Tickets</option>
-            <option value="B" ${_cfTypeFilter === 'B' ? 'selected' : ''}>B — Bugs</option>
-            <option value="P" ${_cfTypeFilter === 'P' ? 'selected' : ''}>P — Ideas</option>
+            <option value="REQ" ${_cfTypeFilter === 'REQ' ? 'selected' : ''}>REQ — Requerimientos</option>
+            <option value="TKT" ${_cfTypeFilter === 'TKT' ? 'selected' : ''}>TKT — Tickets</option>
+            <option value="DISC" ${_cfTypeFilter === 'DISC' ? 'selected' : ''}>DISC — Discovery</option>
+            <option value="INC" ${_cfTypeFilter === 'INC' ? 'selected' : ''}>INC — Incidentes</option>
+            <option value="PRB" ${_cfTypeFilter === 'PRB' ? 'selected' : ''}>PRB — Problems</option>
+            <option value="KE" ${_cfTypeFilter === 'KE' ? 'selected' : ''}>KE — Known Errors</option>
+            <option value="CHG" ${_cfTypeFilter === 'CHG' ? 'selected' : ''}>CHG — Changes</option>
           </select>
         </div>
         <div class="acf-chart-wrap">

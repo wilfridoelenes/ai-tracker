@@ -1,4 +1,11 @@
-// [PP] mod:92 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:93 · autor:Rune · 2026-07-06 UTC-6
+// TKT-202607-027 (REQ-202607-013 · Deprecar Vista Kanban): removidos _backlogViewModeRaw/
+//   _backlogKanbanMode (state) · toggleBacklogKanbanMode() (export) · _getBacklogKanbanMode()
+//   (getter export) · bloque de tablist Kanban/Vista Lista en _syncViewAriaStates() · fallback
+//   de selector .kb-card en búsqueda de ítem · listener de #fbar-kanban-btn en DOMContentLoaded
+//   (el botón y la función ya no existen tras esta entrega). Sin impacto en locus-storage.js,
+//   locus-toast.js ni locus-ui-shell.js (imports sin cambio). contract_update: sí — ver
+//   CHECKPOINT para detalle de funciones removidas del contrato de módulo.
 // TKT-202607-005 (REQ-202607-003 · Separación completa del modelo en memoria): array INCIDENTS
 //   separado de ITEMS. itemKind() resuelve tipos ITIL (INC/PRB/KE/CHG) contra INCIDENTS
 //   y tipos backlog (REQ/TKT/DISC) contra ITEMS — antes ambos vivían en ITEMS. _GEN2_TYPES
@@ -422,8 +429,7 @@ let _miViewRoleIndex = 0; // índice del rol activo en la rotación
 
 // T-202606-062: _backlogSprintGroupMode eliminado — _renderVistaLista es la vista por defecto
 // T-202606-012: vistas árbol y plana eliminadas — vista C colapsable es la vista por defecto
-const _backlogViewModeRaw = localStorage.getItem('backlog-view-mode');
-let _backlogKanbanMode = _backlogViewModeRaw === 'kanban';
+// T-202607-027: _backlogViewModeRaw/_backlogKanbanMode removidos — Kanban deprecado
 // T-202604-187: set de rCodes con bloque hijos colapsado
 const _collapsedChildren = new Set();
 
@@ -1531,9 +1537,8 @@ function _showInlineConfirmDone(code) {
   // Resetear select visualmente mientras el confirm está visible
   _resetStatusSelect(code, item.status);
 
-  // T-202605-013: buscar en vista lista (.item) y vista Kanban (.kb-card) — independientes
-  const itemEl = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`)
-               || document.querySelector(`.kb-card[data-code="${CSS.escape(code)}"]`);
+  // T-202607-027: fallback .kb-card removido — Kanban deprecado, Vista Lista es la única vista
+  const itemEl = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
   if (!itemEl) {
     // Fallback: si no hay elemento en DOM, aplicar directamente
     _applyDoneStatus(code);
@@ -2141,7 +2146,7 @@ export function toggleSortDir() {
 
 // T-202604-187: toggle árbol vs vista plana
 // B-202604-122: persistir estado en localStorage
-// T-202604-287: toggle vista Kanban
+// T-202607-027: toggle vista Kanban removido — Vista Lista es el único modo
 // T-202604-313/366: Mi vista — T's pendientes del rol activo en sprint activo, rotativo
 export function _getMiViewRoles() {
   const activeSprint = (_coreCallbacks.getActiveSprint || (() => null))();
@@ -2161,27 +2166,11 @@ export function _getMiViewLabel() {
   return 'Mi vista: ' + role;
 }
 
-// AC: aria tablist — sincroniza atributos aria-selected (vistas de agrupación) y aria-checked (modificadores)
-// Vistas de agrupación: Kanban · Vista Lista (default)
+// AC: aria tablist — sincroniza aria-checked de modificadores (vista de agrupación única: Vista Lista)
+// T-202607-027: bloque de tablist Kanban/Vista Lista removido — Vista Lista es el único modo, sin tabs
 // Modificadores combinables: Focus · Mi vista
 // T-202606-062: sprintBtn y _backlogSprintGroupMode eliminados — _renderVistaLista es la vista por defecto
 function _syncViewAriaStates() {
-  const kanbanBtn   = document.getElementById('fbar-kanban-btn');
-
-  if (kanbanBtn)   kanbanBtn.setAttribute('aria-selected',   String(_backlogKanbanMode));
-
-  // AC: aria tabpanel — #backlog-list labelledby refleja el tab activo
-  const backlogPanel = document.getElementById('backlog-list');
-  if (backlogPanel) {
-    let activeTabId = 'fbar-kanban-btn';
-    if (!_backlogKanbanMode) activeTabId = 'fbar-kanban-btn'; // default — Vista Lista no tiene btn propio
-    if (_backlogKanbanMode) activeTabId = 'fbar-kanban-btn';
-    // Guard: solo aplicar si el tab existe en el DOM
-    if (document.getElementById(activeTabId)) {
-      backlogPanel.setAttribute('aria-labelledby', activeTabId);
-    }
-  }
-
   // Modificadores — aria-checked refleja estado
   const mikeBtn  = document.getElementById('fbar-mike-btn');
   if (mikeBtn)  mikeBtn.setAttribute('aria-checked',  String(_backlogMikeMode));
@@ -2214,21 +2203,7 @@ export function toggleBacklogMikeMode() {
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
 }
 
-function toggleBacklogKanbanMode() {
-  _backlogKanbanMode = !_backlogKanbanMode;
-  if (_backlogKanbanMode) {
-    localStorage.setItem('backlog-view-mode', 'kanban');
-  } else {
-    localStorage.setItem('backlog-view-mode', 'false');
-  }
-  // Actualizar botón kanban
-  const kbBtn = document.getElementById('fbar-kanban-btn');
-  if (kbBtn) kbBtn.classList.toggle('active', _backlogKanbanMode);
-  _syncViewAriaStates();
-  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
-}
-
-
+// T-202607-027: toggleBacklogKanbanMode() removida — Kanban deprecado (REQ-202607-013)
 
 // T-202604-363: toggle filtro Sin AC — pendientes sin criterios de aceptación
 export function toggleBacklogNoAcMode() {
@@ -2251,7 +2226,7 @@ export function toggleBacklogNoAcMode() {
 
 // Getters exportados para variables de estado — consumidos por locus-backlog-render.js.
 // Las variables son let/const privados (mutables), por lo que se exponen via getter en lugar de export let.
-export function _getBacklogKanbanMode()      { return _backlogKanbanMode; }
+// T-202607-027: _getBacklogKanbanMode() removida — Kanban deprecado (REQ-202607-013)
 export function _getBacklogMikeMode()        { return _backlogMikeMode; }
 // T-202606-062: _getBacklogSprintGroupMode() eliminada — R-202606-017
 export function _getBacklogNoAcMode()        { return _backlogNoAcMode; }
@@ -2433,8 +2408,9 @@ function _syncToolbarHeightVar() {
 // Se exponen en window para que onclick="fn()" en HTML generado en runtime funcione
 
 // T-202605-053: Migrar handlers inline de index.html → addEventListener
-// Funciones cubiertas: undoBacklog · redoBacklog · toggleBacklogKanbanMode
+// Funciones cubiertas: undoBacklog · redoBacklog
 // toggleBacklogMikeMode · toggleCollapseAll
+// T-202607-027: listener de toggleBacklogKanbanMode removido — función ya no existe (Kanban deprecado)
 // toggleStatusFilter (×5)
 // toggleBacklogNoAcMode · clearAllFilters
 document.addEventListener('DOMContentLoaded', function () {
@@ -2445,9 +2421,8 @@ document.addEventListener('DOMContentLoaded', function () {
   const _btnRedo = document.getElementById('btn-redo-backlog');
   if (_btnRedo) _btnRedo.addEventListener('click', function () { redoBacklog(); });
 
-  // Vista — Kanban / Focus / Mi vista
-  const _btnKanban = document.getElementById('fbar-kanban-btn');
-  if (_btnKanban) _btnKanban.addEventListener('click', function () { toggleBacklogKanbanMode(); });
+  // Vista — Focus / Mi vista
+  // T-202607-027: listener de #fbar-kanban-btn removido — Kanban deprecado, Vista Lista es el único modo
 
   const _btnMike = document.getElementById('fbar-mike-btn');
   if (_btnMike) _btnMike.addEventListener('click', function () { toggleBacklogMikeMode(); });

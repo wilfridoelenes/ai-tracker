@@ -1,4 +1,4 @@
-/* [PP] mod:6 · autor:Nova · 2026-07-04 UTC-6 */
+/* [PP] mod:7 · autor:Nova · 2026-07-06 15:40 UTC-6 */
 /* locus-base.css */
 
 
@@ -180,6 +180,13 @@
   --yellow:         #eab308;                /* KE — Known Error */
   --slate:          #64748b;                /* CHG — Change */
 
+  /* ── Cluster B — texto de pill/badge ITIL bajo 4.5:1 — verificado vs --surface/--surface2/--surface3/--bg2:
+     --orange y --yellow ya pasan en dark (7.33–9.98:1) — sin override.
+     --slate falla en dark (3.31–4.02:1) — override aclarado a #808da0 (4.65–5.68:1). Espejo en light theme. ── */
+  --orange-text: var(--orange);
+  --yellow-text: var(--yellow);
+  --slate-text:  #808da0;
+
   --card-shadow:       0 1px 6px rgb(0 0 0 / 50%), 0 0 0 1px rgb(255 255 255 / 3%);
   --card-shadow-hover: 0 4px 20px rgb(0 0 0 / 60%), 0 0 0 1px rgb(166 226 46 / 15%);
 
@@ -335,6 +342,14 @@
   /* ── Tokens ITIL derivados — alineados BR-Ecosystem §4 ── */
   --yellow:         #a88600;                /* KE — Known Error, light */
   --slate:          #475569;                /* CHG — Change, light */
+
+  /* ── Cluster B — texto de pill/badge ITIL bajo 4.5:1 — verificado vs --surface/--surface2/--surface3/--bg2, light:
+     --orange falla (2.93–3.42:1) — override oscurecido a #995f06 (4.51–5.26:1).
+     --yellow falla (2.96–3.46:1) — override oscurecido a #836900 (4.52–5.27:1).
+     --slate ya pasa (6.49–7.58:1) — sin override. Espejo del bloque dark. ── */
+  --orange-text: #995f06;
+  --yellow-text: #836900;
+  --slate-text:  var(--slate);
 
   --card-shadow:       0 1px 4px rgb(20 22 42 / 8%);
   --card-shadow-hover: 0 4px 16px rgb(20 22 42 / 14%);

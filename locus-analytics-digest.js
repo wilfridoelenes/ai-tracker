@@ -1,4 +1,7 @@
-// [PP] mod:6 · autor:Rune · 2026-07-05 11:05 UTC-6
+// [PP] mod:7 · autor:Rune · 2026-07-06 09:00 UTC-6
+// TKT-202607-001: _buildCumulativeFlowChart() filtraba con (item.code||'').startsWith(_cfTypeFilter)
+// — discriminador Gen1 por prefijo de code. Los 7 tipos Gen2 se clasifican con itemKind(item) desde
+// locus-backlog-core.js (mismo criterio ya en uso en locus-analytics-render.js, ver TKT-D1).
 // INC-[pendiente-ID] — verificado contra locus-storage.js real: p.sprints fue eliminado del blob
 // por REQ-sprints-migration. allSprints (anotaciones de sprint en el gráfico) leía p.sprints →
 // siempre vacío → sin líneas de anotación, en silencio. Fix: getAllProjectsSprints()[p.id].
@@ -11,6 +14,7 @@
 import { esc } from './locus-ui-shell.js';
 import { getAllProjectsSprints, getState } from './locus-storage.js';
 import { _cfProjId, _cfTypeFilter } from './locus-analytics-core.js';
+import { itemKind } from './locus-backlog-core.js'; // TKT-202607-001: itemKind(item) — clasificación Gen2, no discriminador de code
 // locus-analytics-digest.js
 // Responsabilidad: Gráfico de flujo acumulativo (_buildCumulativeFlowChart).
 // Dependencias: locus-analytics-core.js · locus-storage.js
@@ -29,7 +33,7 @@ export function _buildCumulativeFlowChart() {
       const raw = localStorage.getItem(`backlog-items-${p.id}`);
       if (!raw) return;
       JSON.parse(raw).forEach(item => {
-        if (_cfTypeFilter && !(item.code || '').startsWith(_cfTypeFilter)) return;
+        if (_cfTypeFilter && itemKind(item) !== _cfTypeFilter) return;
         allItems.push(item);
       });
     } catch {}
