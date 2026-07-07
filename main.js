@@ -1,4 +1,11 @@
-// [PP] v0.8.0 · sprint:PP-S-XX · mod:14 · autor:Rune · 2026-07-05 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-XX · mod:15 · autor:Rune · 2026-07-06 18:35 UTC-6
+// TKT-202607-044 (REQ-202607-015): getIncidents importado desde locus-backlog-core.js +
+// agregado a opts de _initApp — cierra el wiring del lado de main.js para que
+// locus-storage.js reciba la referencia real en vez del fallback [] con warning.
+// getIncidents asumido exportado desde locus-backlog-core.js — no verificado directamente
+// (archivo no adjunto en esta sesión); evidenciado por AC de TKT-202607-045 y por el
+// comentario ya presente en locus-storage.js ("INCIDENTS separado de ITEMS desde
+// TKT-202607-005"). Gap de verificación registrado — ver CHECKPOINT.
 // REQ refactor-zonas TKT5: side-effect imports de locus-backlog-qbacklog.js y
 // locus-backlog-qdisc.js agregados — sus IIFEs de listener de sub-tab y (qbacklog)
 // _attachDoneGroupToggle deben ejecutar al cargar la app. locus-backlog-zone-engine.js y
@@ -41,7 +48,7 @@ import './locus-docs.js';
 import './locus-sprint-plan.js';
 import './locus-contracts.js';
 import './locus-map-viewer.js';
-import { getItems, _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
+import { getItems, getIncidents, _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
 import './locus-backlog-item.js';
 import './locus-backlog-merge.js';
 import './locus-backlog-panel.js';
@@ -132,6 +139,10 @@ document.addEventListener('DOMContentLoaded', () => {
     getActiveProjectFilter: _getActiveProjectFilter,
     exportBacklogMd,
     getItems,
+    // TKT-202607-044 (REQ-202607-015): getIncidents inyectado — locus-storage.js ya
+    // acepta opts.getIncidents (mismo patrón lazy ref que getItems). Completa el wiring
+    // que _getIncidents en locus-storage.js dejó pendiente.
+    getIncidents,
     localStorageUsageRatio: _localStorageUsageRatio,
     migrateItemTypes: _migrateItemTypes,
     purgeStaleBacklogCache: _purgeStaleBacklogCache,
