@@ -1,4 +1,4 @@
-// [PP] mod:10 · autor:Rune · 2026-07-06 16:40 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-07-06 17:15 UTC-6
 // TKT-202607-001: selector de tipo de Flujo Acumulativo migrado de 4 opciones Gen1 (R/T/B/P)
 // a 7 opciones Gen2 (REQ/TKT/DISC/INC/PRB/KE/CHG) — el value ahora coincide con lo que
 // itemKind() retorna, consumido en _buildCumulativeFlowChart() (locus-analytics-digest.js).
@@ -708,21 +708,29 @@ export async function renderAnalytics() {
       <div class="ct-grid">
         <div class="ct-block">
           <div class="ct-block-header">Por tipo</div>
-          <div class="ct-type-rows">
-            ${[
-              { key: 'REQ',  cls: 'ct-pill-req',  label: 'R', bar: 'var(--blue,#38bdf8)' },
-              { key: 'TKT',  cls: 'ct-pill-tkt',  label: 'T', bar: 'var(--green,#2ecc78)' },
-              { key: 'DISC', cls: 'ct-pill-disc', label: 'D', bar: 'var(--purple,#7c6af7)' },
-              { key: 'INC',  cls: 'ct-pill-inc',  label: 'I', bar: 'var(--red,#e85555)' },
-              { key: 'PRB',  cls: 'ct-pill-prb',  label: 'P', bar: 'var(--orange,#f59e0b)' },
-              { key: 'KE',   cls: 'ct-pill-ke',   label: 'K', bar: 'var(--yellow,#eab308)' },
-              { key: 'CHG',  cls: 'ct-pill-chg',  label: 'C', bar: 'var(--slate,#64748b)' },
-            ].map(t => `
+          <div class="ct-type-cols">
+            ${(() => {
+              const CT_LEFT = [
+                { key: 'REQ',  cls: 'ct-pill-req',  label: 'R', bar: 'var(--blue,#38bdf8)' },
+                { key: 'TKT',  cls: 'ct-pill-tkt',  label: 'T', bar: 'var(--green,#2ecc78)' },
+                { key: 'DISC', cls: 'ct-pill-disc', label: 'D', bar: 'var(--purple,#7c6af7)' },
+                { key: 'INC',  cls: 'ct-pill-inc',  label: 'I', bar: 'var(--red,#e85555)' },
+              ];
+              const CT_RIGHT = [
+                { key: 'PRB', cls: 'ct-pill-prb', label: 'P', bar: 'var(--orange,#f59e0b)' },
+                { key: 'KE',  cls: 'ct-pill-ke',  label: 'K', bar: 'var(--yellow,#eab308)' },
+                { key: 'CHG', cls: 'ct-pill-chg', label: 'C', bar: 'var(--slate,#64748b)' },
+              ];
+              const row = t => `
             <div class="ct-type-row">
               <span class="ct-pill ${t.cls}">${t.label}</span>
               <span class="ct-bar-wrap"><span class="ct-bar" style="--ct-bar-pct:${_ctData.byType[t.key] !== null && _ctData.globalAvg > 0 ? Math.min(100, Math.round((_ctData.byType[t.key] / (_ctData.globalAvg * 2 || 1)) * 100)) : 0}%;--ct-bar-color:${t.bar}"></span></span>
               <span class="ct-type-val">${_ctDaysLabel(_ctData.byType[t.key])}</span>
-            </div>`).join('')}
+            </div>`;
+              return `
+            <div class="ct-type-rows">${CT_LEFT.map(row).join('')}</div>
+            <div class="ct-type-rows">${CT_RIGHT.map(row).join('')}</div>`;
+            })()}
           </div>
         </div>
 

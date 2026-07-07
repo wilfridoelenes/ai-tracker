@@ -1,4 +1,4 @@
-/* [PP] mod:7 · autor:Nova · 2026-07-06 16:05 UTC-6 */
+/* [PP] mod:8 · autor:Nova · 2026-07-06 17:00 UTC-6 */
 /* locus-analytics.css */
 
 /* Versión: 2.0 | Selectores consolidados — T2 */
@@ -2634,6 +2634,19 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+/* Split de 2 columnas para 'Por tipo' — TKT-202607-003, 7 tipos Gen2 (4 izq · 3 der).
+   Envuelve dos .ct-type-rows hijos sin modificar su comportamiento standalone
+   (sigue usado sin este wrapper en el bloque 'Por effort'). */
+.ct-type-cols {
+  display: flex;
+  gap: 16px;
+}
+
+.ct-type-cols > .ct-type-rows {
+  flex: 1;
+  min-width: 0;
 }
 
 .ct-type-row {

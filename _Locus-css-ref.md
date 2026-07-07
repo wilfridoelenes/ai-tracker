@@ -1,5 +1,10 @@
 # _Locus-css-ref.md
-<!-- mod:36 | Última actualización: 2026-07-06 | CSS Reference — Locus — mantenida por Nova, consumido por Rune -->
+<!-- mod:37 | Última actualización: 2026-07-06 | CSS Reference — Locus — mantenida por Nova, consumido por Rune -->
+
+## Cambios (mod:37) — wrapper `.ct-type-cols` para split de 2 columnas en 'Por tipo' — TKT-202607-003
+
+- **Gap cerrado:** Rune señaló que `.ct-type-rows` (flex-column simple) no soporta el split de 4/3 filas en 2 columnas que pide el AC3 de TKT-202607-003. Agregado `.ct-type-cols` (`locus-analytics.css` mod:8) — envuelve dos `.ct-type-rows` hijos vía `display:flex; gap:16px` sin modificar `.ct-type-rows` en sí, que sigue usándose sin wrapper en el bloque 'Por effort' (`ct-grid` > `ct-block` > `ct-type-rows` directo, sin cambio).
+- Markup esperado: `<div class="ct-type-cols"><div class="ct-type-rows">[4 filas: REQ,TKT,DISC,INC]</div><div class="ct-type-rows">[3 filas: PRB,KE,CHG]</div></div>`.
 
 ## Cambios (mod:36) — familia `.ct-pill-*` extendida a 7 tipos Gen2 + Cluster B contraste ITIL — TKT-202607-003
 
