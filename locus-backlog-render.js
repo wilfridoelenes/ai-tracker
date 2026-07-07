@@ -1,4 +1,9 @@
-// [PP] mod:76 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:78 · autor:Rune · 2026-07-07 UTC-6
+// TKT-202607-056 (REQ-202607-015 · TKT3): renderQIncPanel() construye allQInc con
+//   getItems().concat(getIncidents()) en vez de solo getItems() — badge y alerta SLA
+//   heredan el universo corregido sin cambio adicional (ya derivan de allQInc).
+// INC-202607-[pendiente-ID] (triggered_by: TKT-202607-056): _updateSubtabBadges() tenía el
+//   mismo gap de universo en el badge Q-INC — corregido con el mismo patrón concat(getIncidents()).
 // TKT-202607-027 (REQ-202607-013 · Deprecar Vista Kanban) — completa el archivo que la entrega
 //   mod:79 de locus-backlog-item.js dejó pendiente ("locus-backlog-render.js debe dejar de
 //   importarla, archivo no adjunto en esa entrega"): removidos import de _renderKanban
@@ -135,7 +140,7 @@ import { _buildChildMap } from './locus-backlog-hierarchy.js';
 // REQ refactor-zonas TKT5: _zoneStaleness extraído a locus-backlog-zone-engine.js — único uso
 // restante en este archivo es _updateSubtabBadges() (badges qbacklog/qdisc).
 import { _zoneStaleness } from './locus-backlog-zone-engine.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, _nsGetTypes, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js'; // TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js) · TKT-202607-027: _getBacklogKanbanMode removida — ya no exportada desde core.js
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, getIncidents, _nsGetTypes, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js'; // TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js) · TKT-202607-027: _getBacklogKanbanMode removida — ya no exportada desde core.js · TKT-202607-056: getIncidents agregada — renderQIncPanel lee INCIDENTS además de ITEMS
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, buildBacklogItem, buildQIncItem } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-B2b: buildQIncItem · TKT-202607-027: _renderKanban removida — ya no exportada
 
@@ -1025,7 +1030,10 @@ export function renderQIncPanel() {
 
   // Ítems ITIL del proyecto activo — excluir descartados del conteo y del render
   // [tmp:tkt-isqinc-unify]: _isQIncItem local eliminada — usa isQIncItem() importada desde locus-backlog-core.js.
-  const allQInc = getItems().filter(isQIncItem);
+  // TKT-202607-056: universo de datos corregido — INCIDENTS (persistencia física) vive separado
+  // de ITEMS desde REQ-202607-003/015; sin concat, incidentes con incidentStatus activo que solo
+  // existen en INCIDENTS quedaban invisibles en el panel.
+  const allQInc = getItems().concat(getIncidents()).filter(isQIncItem);
 
   // Badge: count de ítems activos (no closed/descartado); is-urgent si hay INC high vencido
   const badge = document.getElementById('tpl-badge-qinc');
@@ -1388,8 +1396,11 @@ export function _updateSubtabBadges() {
 
   // TKT (REQ-[pendiente-ID]): badge Q-INC — ítems ITIL no closed/descartado, is-urgent
   // si hay INC high con slaDeadline vencido. Misma lógica que el badge en renderQIncPanel.
+  // INC-202607-[pendiente-ID] (triggered_by: TKT-202607-056): mismo universo incompleto que
+  // renderQIncPanel tenía antes del fix — items.filter() sin INCIDENTS dejaba fuera incidentes
+  // que solo viven en persistencia física (tracker_incidents / INCIDENTS en memoria).
   if (badgeQinc) {
-    const allQInc = items.filter(isQIncItem);
+    const allQInc = items.concat(getIncidents()).filter(isQIncItem);
     const countable = allQInc.filter(i => i.incidentStatus !== 'closed' && i.status !== 'descartado');
     if (!countable.length) {
       badgeQinc.textContent = '';

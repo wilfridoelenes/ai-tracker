@@ -1,3 +1,13 @@
+<!-- [PP] mod:108 · autor:Rune · 2026-07-07 UTC-6 -->
+<!-- INC-[pendiente-ID]: restaurado <link> de locus-sprint-plan.css — TKT-202607-053 lo eliminó
+     asumiendo que era exclusivo de la feature Plan; el archivo también estiliza Pulso (activo,
+     pendiente de deprecación propia) y Contratos (activo, no deprecado). El markup de Plan
+     (spt-tab-plan, sprint-panel-plan, sspanel-plan) permanece eliminado — solo se revierte la
+     eliminación del <link>. Split del CSS en archivos propios → TKT pendiente para Nova. -->
+<!-- [PP] mod:107 · autor:Rune · 2026-07-07 UTC-6 -->
+<!-- TKT-202607-053: eliminado markup residual de la feature Plan — <link> locus-sprint-plan.css,
+     spt-tab-plan (subtab nav Sprint), sprint-panel-plan/sprint-plan-container, sspanel-plan
+     (Sesiones). REQ-202607-014. -->
 <!-- [PP] mod:106 · autor:Rune · 2026-07-07 UTC-6 -->
 <!-- TKT-202607-052: eliminado checkbox #mg-out-plan (Map Generator) — feature Plan cancelada, REQ-202607-014 -->
 <!-- [PP] mod:105 · autor:Rune · 2026-07-06 UTC-6 -->
@@ -622,11 +632,6 @@
       <div id="doc-updates-list" class="du-list"></div>
     </div><!-- /sspanel-docupdates -->
 
-    <!-- Sub-panel: Plan — R-202604-076 -->
-    <div class="session-subpanel" id="sspanel-plan">
-      <!-- Contenido inyectado por renderPlan() — read-only -->
-    </div><!-- /sspanel-plan -->
-
     <!-- Sub-panel: Contratos — R-202604-075 -->
     <div class="session-subpanel ctr-layout" id="sspanel-contratos">
       <div class="ctr-toolbar">
@@ -652,7 +657,7 @@
 
 <!-- ═══ TAB SPRINT ═══ -->
 <div class="tab-panel" id="tab-sprint">
-  <!-- R-202605-043: Subtab nav Sprint — Ítems / Planificar / Plan. B-[pendiente-ID]: movido antes de #sprint-panel-header — nav siempre primero en todos los sub-tabs -->
+  <!-- R-202605-043: Subtab nav Sprint — Ítems / Planificar. B-[pendiente-ID]: movido antes de #sprint-panel-header — nav siempre primero en todos los sub-tabs -->
   <div class="spt-nav is-hidden" id="spt-nav" role="tablist" aria-label="Vistas del sprint">
     <button class="spt-tab is-active"
             role="tab"
@@ -669,14 +674,6 @@
             aria-controls="sprint-panel-planificar"
             data-subtab="planificar">
       Planificar
-    </button>
-    <button class="spt-tab"
-            role="tab"
-            id="spt-tab-plan"
-            aria-selected="false"
-            aria-controls="sprint-panel-plan"
-            data-subtab="plan">
-      Plan
     </button>
     <button class="spt-tab"
             role="tab"
@@ -770,12 +767,6 @@
     <div id="sprint-planificar-container"></div>
   </div>
   <!-- END Panel Planificar — R-202605-052 -->
-
-  <!-- Panel Plan — R-202605-043 -->
-  <div id="sprint-panel-plan" role="tabpanel" aria-labelledby="spt-tab-plan" class="is-hidden">
-    <div id="sprint-plan-container" class="spt-plan-container"></div>
-  </div>
-  <!-- END Panel Plan — R-202605-043 -->
 
   <!-- Panel Sprints — T-202606-028 -->
   <div id="sprint-panel-sprints" role="tabpanel" aria-labelledby="spt-tab-sprints" class="is-hidden">
