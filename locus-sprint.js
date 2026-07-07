@@ -1,3 +1,10 @@
+// [PP] mod:82 · autor:Rune · 2026-07-07 UTC-6
+// TKT-202607-042 (REQ-202607-014): eliminación real de 'plan' en _SPT_SUBTAB_VALID/_SPT_PANELS,
+// del array literal de listeners de subtabs, de la referencia a panelPlan/sprint-panel-plan en
+// la rama sin-sprint-activo, y de comentarios de visibilidad. El header mod:81 abajo declaraba
+// esta limpieza como ya hecha — el código no reflejaba el comentario (verificado por Finn en
+// auditoría de TKT-202607-041). Import de locus-sprint-plan.js nunca estuvo en este archivo —
+// vivía en main.js (removido en este mismo TKT). getProjectById no es import de este módulo.
 // [PP] mod:81 · autor:Rune · 2026-07-06 20:32 UTC-6
 // REQ-execution-plan-deprecation: removido tab "Plan" — render (subtab 'plan' → renderPlanInto),
 //   badge (btnPlan, AC-2 de _updateSprintTabBadges), import de locus-sprint-plan.js.
@@ -24,7 +31,7 @@ import { _markStatusBarDirty } from './locus-sesiones-stats.js';
 // ── Estado interno ──────────────────────────────────────────────────────────
 let _sprintTabActiveSprint = null;
 const _SPT_SUBTAB_KEY   = 'locus-sprint-subtab';
-const _SPT_SUBTAB_VALID = ['items', 'planificar', 'plan', 'sprints'];
+const _SPT_SUBTAB_VALID = ['items', 'planificar', 'sprints'];
 let _sptActiveSubtab = _SPT_SUBTAB_VALID.includes(localStorage.getItem(_SPT_SUBTAB_KEY))
   ? localStorage.getItem(_SPT_SUBTAB_KEY)
   : 'items'; // B-202606-066: persiste entre recargas de página
@@ -103,12 +110,12 @@ function _sprintItemHtml(item) {
 // switchSubTab opera sobre sspanel-*/sstab-btn-* del tab Docs — contextos distintos.
 // _sptSwitch gestiona exclusivamente los paneles del tab Sprint.
 
-const _SPT_PANELS   = ['items', 'planificar', 'plan', 'sprints']; // T-202606-029: cuarto sub-tab
+const _SPT_PANELS   = ['items', 'planificar', 'sprints']; // T-202606-029: tercer sub-tab tras cancelación de Plan (TKT-202607-042)
 
 function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
   _sptActiveSubtab = subtab; // B-202606-065/066: persiste entre renders y recargas de página
   localStorage.setItem(_SPT_SUBTAB_KEY, subtab);
-  // T-202606-042: ocultar header en sub-tab Sprints, visible en Ítems/Planificar/Plan
+  // T-202606-042: ocultar header en sub-tab Sprints, visible en Ítems/Planificar
   const _sphHeader = document.getElementById('sprint-panel-header');
   if (_sphHeader) _sphHeader.classList.toggle('is-hidden', subtab === 'sprints');
   _SPT_PANELS.forEach(s => {
@@ -1296,10 +1303,8 @@ export function renderSprintTab() {
       if (scopeAdded) scopeAdded.classList.add('is-hidden');
       // Ocultar paneles que requieren sprint activo — R-202605-043 + R-202605-052
       const panelItems      = _spEl('sprint-panel-items');
-      const panelPlan       = _spEl('sprint-panel-plan');
       const panelPlanificar = _spEl('sprint-panel-planificar');
       if (panelItems)      panelItems.classList.add('is-hidden');
-      if (panelPlan)       panelPlan.classList.add('is-hidden');
       if (panelPlanificar) panelPlanificar.classList.add('is-hidden');
       // T-202606-001 AC-1: sub-tab 'sprints' es el default — visible y activo
       _sptActiveSubtab = 'sprints';
@@ -1746,8 +1751,8 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Sub-tabs sprint: Ítems / Planificar / Plan / Sprints — T-202606-029
-  ['items', 'planificar', 'plan', 'sprints'].forEach(function(subtab) {
+  // Sub-tabs sprint: Ítems / Planificar / Sprints — T-202606-029
+  ['items', 'planificar', 'sprints'].forEach(function(subtab) {
     const btn = document.getElementById('spt-tab-' + subtab);
     if (btn) {
       btn.addEventListener('click', function() {

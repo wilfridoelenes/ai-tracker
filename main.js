@@ -1,3 +1,7 @@
+// [PP] v0.8.0 · sprint:PP-S-03 · mod:16 · autor:Rune · 2026-07-07 UTC-6
+// TKT-202607-042 (REQ-202607-014): eliminado import de side-effect './locus-sprint-plan.js' —
+// feature Plan cancelada. Archivo locus-sprint-plan.js queda huérfano (sin importadores en
+// todo el proyecto) — acción sugerida: eliminarlo del repositorio.
 // [PP] v0.8.0 · sprint:PP-S-XX · mod:15 · autor:Rune · 2026-07-06 18:35 UTC-6
 // TKT-202607-044 (REQ-202607-015): getIncidents importado desde locus-backlog-core.js +
 // agregado a opts de _initApp — cierra el wiring del lado de main.js para que
@@ -45,7 +49,6 @@ import './locus-backlog-editor.js';
 import './locus-misc-ui.js';
 import './locus-projects.js';
 import './locus-docs.js';
-import './locus-sprint-plan.js';
 import './locus-contracts.js';
 import './locus-map-viewer.js';
 import { getItems, getIncidents, _localStorageUsageRatio, _migrateItemTypes, _purgeStaleBacklogCache } from './locus-backlog-core.js';
