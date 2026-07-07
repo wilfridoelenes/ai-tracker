@@ -1,4 +1,8 @@
-// [PP] mod:40 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:41 · autor:Rune · 2026-07-07 UTC-6
+// TKT-202607-045 (REQ-202607-015): _incEligibleForSprintClose se evalúa contra
+//   getItems().concat(getIncidents()) en _generateSprintRetroMd (~línea 222) y en la
+//   migración a historico de _scmExecuteClose (~línea 1341) — INC/PRB/KE/CHG viven en
+//   INCIDENTS desde REQ-202607-003, getItems() solo no los incluía.
 // TKT1 (REQ-sprints-migration): import muerto _loadSprintsFromSupabase eliminado — la función
 //   fue reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js y este módulo
 //   nunca la invocaba (solo quedaba en comentario línea ~959). Sin este fix, TKT1 entregado solo
@@ -21,7 +25,7 @@
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
 
-import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, getItems, _registerCoreCallback } from './locus-backlog-core.js';
+import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, getItems, getIncidents, _registerCoreCallback } from './locus-backlog-core.js'; // TKT-202607-045: getIncidents agregada — _incEligibleForSprintClose evalúa ITEMS+INCIDENTS
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
@@ -219,7 +223,10 @@ function _generateSprintRetroMd(id, notes) {
     const d = new Date(ts || Date.now());
     return `${d.getFullYear()}-${_pad(d.getMonth()+1)}-${_pad(d.getDate())}`;
   };
-  const incClosedItems = getItems().filter(i => _incEligibleForSprintClose(i, id, _sprintOpenedAt));
+  // TKT-202607-045 (REQ-202607-015): concat(getIncidents()) — INC/PRB/KE/CHG viven en INCIDENTS
+  // desde REQ-202607-003, getItems() ya no los incluye. Sin este concat, ningún incidente
+  // aparecía en la retro pese a estar closed dentro de la ventana del sprint.
+  const incClosedItems = getItems().concat(getIncidents()).filter(i => _incEligibleForSprintClose(i, id, _sprintOpenedAt));
   const _incClosedList = incClosedItems.length
     ? incClosedItems.map(i => `- ${i.code}: incident \u00b7 ${_incDate(i.closedAt || i.statusChangedAt)}`).join('\n')
     : '';
@@ -1336,8 +1343,11 @@ async function _scmExecuteClose() {
   // TKT2 (REQ-inc-historico): migrar INC/PRB/KE/CHG closed correlacionados a este sprint —
   // mismo criterio de _incEligibleForSprintClose usado por _generateSprintRetroMd (AC de
   // contrato: retro e historico real deben coincidir en los mismos códigos).
+  // TKT-202607-045 (REQ-202607-015): concat(getIncidents()) — INC/PRB/KE/CHG viven en
+  // INCIDENTS desde REQ-202607-003, getItems() ya no los incluye. Sin este concat, ningún
+  // incidente migraba a historico al cerrar sprint pese a estar closed en la ventana correcta.
   const _sprintOpenedAtClose = spForClose ? (spForClose.startedAt || 0) : 0;
-  getItems().forEach(i => {
+  getItems().concat(getIncidents()).forEach(i => {
     if (_historicoCodesThisClose.has(i.code)) return;
     if (_incEligibleForSprintClose(i, id, _sprintOpenedAtClose)) {
       i.status = 'historico';

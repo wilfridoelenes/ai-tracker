@@ -1,10 +1,12 @@
-// [PP] mod:16 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:17 · autor:Rune · 2026-07-07 UTC-6
+// TKT-202607-045 (REQ-202607-015): chip 'Generado desde' (item.origin, ~línea 537) usa
+//   getAnyItem() en vez de getItems().find() — item.origin puede apuntar a un código ITIL.
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-toast.js
 
-import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemKind, renderStats, setItemStatus, undoBacklog, getItems, _registerCoreCallback, _ECOSYSTEM_ROLES } from './locus-backlog-core.js';
+import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemKind, renderStats, setItemStatus, undoBacklog, getItems, getAnyItem, _registerCoreCallback, _ECOSYSTEM_ROLES } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — chip 'Generado desde' puede resolver ITIL
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import { _getActiveProjectFilter, getAI, getActiveSprints, _sprintDisplay, getAllSessions, getProjectById, save, saveImmediate } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
@@ -534,7 +536,8 @@ function _renderItemPanel(item) {
   // R-202605-004: chip "Generado desde [código]" — solo si item.origin tiene valor
   const originChipHtml = (() => {
     if (!item.origin) return '';
-    const originItem = (typeof getItems() !== 'undefined') ? getItems().find(i => i.code === item.origin) : null;
+    // TKT-202607-045: getAnyItem() — item.origin puede apuntar a un código ITIL (INC/PRB/KE/CHG).
+    const originItem = (typeof getAnyItem !== 'undefined') ? getAnyItem(item.origin) : null;
     if (originItem) {
       // AC-4: código existe en backlog — chip navegable con foco visible y aria-label
       return `<div class="idp-meta-row idp-origin-row">

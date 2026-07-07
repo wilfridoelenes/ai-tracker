@@ -1,4 +1,6 @@
-// [PP] mod:16 · autor:Rune · 2026-07-07 UTC-6
+// [PP] mod:17 · autor:Rune · 2026-07-07 UTC-6
+// TKT-202607-045 (REQ-202607-015): _mgSessionInSprint() usa getAnyItem() en vez de
+//   getItems().find() — trackerRefs puede referenciar código ITIL (vive en INCIDENTS).
 // TKT-202607-052: eliminado _mgBuildPlan(), planChecked, fileDefs.push de PLAN.md y entrada
 // 'plan' del preview array. Reaplicado sobre esta base (mod:14) el fix de TKT-202607-041 —
 // import roto de _tryIngestPlan (locus-session-parse.js ya no lo exporta) + bloque de ingesta
@@ -25,7 +27,7 @@
  */
 
 import { migrateClosedItemsToHistorico } from './locus-backlog-historico.js';
-import { getItems, itemKind } from './locus-backlog-core.js'; // TKT-D2: itemKind(item) — clasificación Gen2
+import { getAnyItem, itemKind } from './locus-backlog-core.js'; // TKT-D2: itemKind(item) — clasificación Gen2 · TKT-202607-045: getAnyItem reemplaza getItems() (único uso, en _mgSessionInSprint)
 import { editSprintInline } from './locus-backlog-sprints.js';
 import { _getMapContent, _importContextMdFromText, exportHtmlMapMd, importHtmlMap } from './locus-docs.js';
 import { buildBacklogMd } from './locus-session-save.js';
@@ -186,14 +188,16 @@ function _mgLoadSprintReview() {
 }
 
 function _mgSessionInSprint(sess, sprintId) {
-  // B-202605-226: guard — si getItems() no está en scope, omitir match por trackerRefs sin lanzar error
+  // B-202605-226: guard — si getAnyItem no está en scope, omitir match por trackerRefs sin lanzar error
+  // TKT-202607-045 (REQ-202607-015): getAnyItem() reemplaza getItems().find() — trackerRefs puede
+  // referenciar un código ITIL (INC/PRB/KE/CHG), que vive en INCIDENTS desde REQ-202607-003.
   if (!sprintId) return false;
   if (sess.sprintId === sprintId) return true;
   const refs = sess.trackerRefs || sess.backlogRefs || [];
   if (!refs.length) return false;
-  if (typeof getItems() === 'undefined') return false;
+  if (typeof getAnyItem === 'undefined') return false;
   return refs.some(code => {
-    const item = getItems().find(i => i.code === code);
+    const item = getAnyItem(code);
     return item && item.sprint === sprintId;
   });
 }

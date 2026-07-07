@@ -1,4 +1,10 @@
-// [PP] mod:80 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:81 · autor:Rune · 2026-07-07 UTC-6
+// TKT-202607-045 (REQ-202607-015): chip 'Generado desde' (item.origin, ~línea 571) y escritura
+//   de origenDisc al resolver promovida_a en mergeBacklogFromTG (~línea 1923) usan getAnyItem()
+//   en vez de getItems().find() — ambos campos pueden apuntar a un código ITIL (INC/PRB/KE/CHG).
+//   Hallazgo fuera de scope: el mismo patrón getItems().find(i => i.code === resolvedIncoming)
+//   existe también en applyPatchesFromTG (~línea 2504, resolución de promovida_a en patches) y
+//   no fue tocado — no está en el AC de este TKT. Mismo bug latente, requiere TKT propio.
 // TKT-202607-027 (REQ-202607-013 · Deprecar Vista Kanban): removidos _renderKanban()
 //   (con COLS/_kanbanStatus()/_kanbanCard() anidadas) · _kbDrop() · _kbCardClick() ·
 //   handler delegado de kb-card-click · 5 listeners de drag&drop de kb-card/kb-col en
@@ -58,7 +64,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, getAnyItem, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -568,7 +574,9 @@ function _buildItemTimestamps(item) {
 // R-[pendiente-ID]: bloque de origen P padre — muestra enlace al P que originó este ítem
 function _buildItemPOriginBlock(item) {
   if (!item.origin) return '';
-  const pItem = getItems().find(i => i.code === item.origin);
+  // TKT-202607-045: getAnyItem() — item.origin puede apuntar a un código ITIL (INC/PRB/KE/CHG),
+  // que vive en INCIDENTS, no en ITEMS.
+  const pItem = getAnyItem(item.origin);
   const pTitle = pItem ? esc(pItem.title) : '';
   return `<div class="bitem-origin-p-block">
     <span class="bitem-origin-p-label">Origen</span>
@@ -1920,7 +1928,8 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
           changed = true;
           // AC edge case: si promovida_a apunta a código real existente, escribir origenDisc en el destino
           if (!_isPlaceholderCode(item.promovida_a)) {
-            const destItem = getItems().find(i => i.code === item.promovida_a);
+            // TKT-202607-045: getAnyItem() — promovida_a de una DISC puede apuntar a un INC.
+            const destItem = getAnyItem(item.promovida_a);
             if (destItem && !destItem.origenDisc) {
               destItem.origenDisc = existing.code;
               _blogLog('origen-disc-escrito', existing.code, existing.code + ' → origenDisc en ' + item.promovida_a, 'backlog');

@@ -1,4 +1,6 @@
-// [PP] mod:96 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:97 · autor:Rune · 2026-07-07 UTC-6
+// TKT-202607-045 (REQ-202607-015): getAnyItem(code) agregada — lookup unificado ITEMS+INCIDENTS
+//   por código, sin que el caller sepa de antemano si el código es Scrum o ITIL. Solo lectura.
 // TKT-202607-011 (TKT3 REQ-202607-006): namespace de filtro por área agregado a _subtabNS —
 //   solo qdisc lo consume (chips de área en stats-bar, ver locus-backlog-zone-engine.js).
 //   Single-select (no Set, a diferencia de types/priority): _nsToggleArea(sub, area) — click en
@@ -252,6 +254,14 @@ var INCIDENTS = (() => {
 export function getItems() { return ITEMS; }
 // TKT-202607-005: acceso canónico al array INCIDENTS — mismo patrón que getItems().
 export function getIncidents() { return INCIDENTS; }
+// TKT-202607-045 (REQ-202607-015): lookup por código sin asumir tipo Scrum vs ITIL — busca
+// primero en ITEMS, luego en INCIDENTS. Solo lectura, nunca muta ninguno de los dos arrays.
+// Reemplaza getItems().find(i => i.code === X) en call sites donde X puede ser un código
+// ITIL (INC/PRB/KE/CHG) — esos códigos viven en INCIDENTS desde REQ-202607-003 y
+// getItems().find() nunca los encuentra.
+export function getAnyItem(code) {
+  return ITEMS.find(i => i.code === code) || INCIDENTS.find(i => i.code === code);
+}
 // T-202606-106: barrera común — ITEMS nunca contiene ítems status:historico, sin importar
 // el call site (_loadFromSupabase, undo/redo, purge, normalize, etc). status:historico es
 // de solo lectura, asignado únicamente por Locus al cerrar sprint — vive en su storage
