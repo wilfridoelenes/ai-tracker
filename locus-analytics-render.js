@@ -1,4 +1,4 @@
-// [PP] mod:9 · autor:Rune · 2026-07-06 09:00 UTC-6
+// [PP] mod:10 · autor:Rune · 2026-07-06 16:40 UTC-6
 // TKT-202607-001: selector de tipo de Flujo Acumulativo migrado de 4 opciones Gen1 (R/T/B/P)
 // a 7 opciones Gen2 (REQ/TKT/DISC/INC/PRB/KE/CHG) — el value ahora coincide con lo que
 // itemKind() retorna, consumido en _buildCumulativeFlowChart() (locus-analytics-digest.js).
@@ -527,7 +527,7 @@ export async function renderAnalytics() {
   // ── T-202605-453: Tiempo promedio pendiente → done ──
   // Recolecta todos los ítems done con createdAt + closedAt de todos los proyectos
   function _cycleTimeData() {
-    const byType   = { R: [], T: [], B: [] };
+    const byType   = { REQ: [], TKT: [], DISC: [], INC: [], PRB: [], KE: [], CHG: [] };
     const byEffort = { 1: [], 2: [], 3: [] };
     const outlierCandidates = [];
 
@@ -539,7 +539,7 @@ export async function renderAnalytics() {
         const closed  = item.closedAt || item.archivedAt || item.updatedAt;
         if (!created || !closed) return;
         const days = Math.max(0, Math.round((closed - created) / 86400000));
-        const t = (item.code || '')[0];
+        const t = itemKind(item); // TKT-202607-003: itemKind(item) — clasificación Gen2, no (item.code||'')[0]
         const e = parseInt(item.effort) || 1;
         const entry = {
           days,
@@ -616,7 +616,15 @@ export async function renderAnalytics() {
     }
 
     return {
-      byType:  { R: avg(byType.R), T: avg(byType.T), B: avg(byType.B) },
+      byType: {
+        REQ:  avg(byType.REQ),
+        TKT:  avg(byType.TKT),
+        DISC: avg(byType.DISC),
+        INC:  avg(byType.INC),
+        PRB:  avg(byType.PRB),
+        KE:   avg(byType.KE),
+        CHG:  avg(byType.CHG),
+      },
       byEffort:{ 1: avg(byEffort[1]), 2: avg(byEffort[2]), 3: avg(byEffort[3]) },
       globalAvg,
       outliers,
@@ -665,7 +673,8 @@ export async function renderAnalytics() {
   function _ctOutliersHtml(outliers, globalAvg) {
     if (!outliers.length) return '<div class="ct-no-outliers">Sin outliers detectados</div>';
     return outliers.map(o => {
-      const typeClass = itemKind({ type: o.itemType }) === 'REQ' ? 'ct-pill-r' : itemKind({ type: o.itemType }) === 'TKT' ? 'ct-pill-t' : 'ct-pill-b';
+      const kindOut = itemKind({ type: o.itemType });
+      const typeClass = kindOut ? `ct-pill-${kindOut.toLowerCase()}` : 'ct-pill-inc';
       return `<button class="ct-outlier-row" data-action="analytics-goto-item" data-item-code="${_esc(o.code)}" title="Ir al ítem">
         <span class="ct-outlier-code ct-pill ${typeClass}">${esc(o.code)}</span>
         <span class="ct-outlier-title">${esc(o.title.length > 42 ? o.title.slice(0, 42) + '…' : o.title)}</span>
@@ -700,21 +709,20 @@ export async function renderAnalytics() {
         <div class="ct-block">
           <div class="ct-block-header">Por tipo</div>
           <div class="ct-type-rows">
+            ${[
+              { key: 'REQ',  cls: 'ct-pill-req',  label: 'R', bar: 'var(--blue,#38bdf8)' },
+              { key: 'TKT',  cls: 'ct-pill-tkt',  label: 'T', bar: 'var(--green,#2ecc78)' },
+              { key: 'DISC', cls: 'ct-pill-disc', label: 'D', bar: 'var(--purple,#7c6af7)' },
+              { key: 'INC',  cls: 'ct-pill-inc',  label: 'I', bar: 'var(--red,#e85555)' },
+              { key: 'PRB',  cls: 'ct-pill-prb',  label: 'P', bar: 'var(--orange,#f59e0b)' },
+              { key: 'KE',   cls: 'ct-pill-ke',   label: 'K', bar: 'var(--yellow,#eab308)' },
+              { key: 'CHG',  cls: 'ct-pill-chg',  label: 'C', bar: 'var(--slate,#64748b)' },
+            ].map(t => `
             <div class="ct-type-row">
-              <span class="ct-pill ct-pill-r">R</span>
-              <span class="ct-bar-wrap"><span class="ct-bar" style="--ct-bar-pct:${_ctData.byType.R !== null && _ctData.globalAvg > 0 ? Math.min(100, Math.round((_ctData.byType.R / (_ctData.globalAvg * 2 || 1)) * 100)) : 0}%;--ct-bar-color:var(--blue,#38bdf8)"></span></span>
-              <span class="ct-type-val">${_ctDaysLabel(_ctData.byType.R)}</span>
-            </div>
-            <div class="ct-type-row">
-              <span class="ct-pill ct-pill-t">T</span>
-              <span class="ct-bar-wrap"><span class="ct-bar" style="--ct-bar-pct:${_ctData.byType.T !== null && _ctData.globalAvg > 0 ? Math.min(100, Math.round((_ctData.byType.T / (_ctData.globalAvg * 2 || 1)) * 100)) : 0}%;--ct-bar-color:var(--green,#2ecc78)"></span></span>
-              <span class="ct-type-val">${_ctDaysLabel(_ctData.byType.T)}</span>
-            </div>
-            <div class="ct-type-row">
-              <span class="ct-pill ct-pill-b">B</span>
-              <span class="ct-bar-wrap"><span class="ct-bar" style="--ct-bar-pct:${_ctData.byType.B !== null && _ctData.globalAvg > 0 ? Math.min(100, Math.round((_ctData.byType.B / (_ctData.globalAvg * 2 || 1)) * 100)) : 0}%;--ct-bar-color:var(--red,#e85555)"></span></span>
-              <span class="ct-type-val">${_ctDaysLabel(_ctData.byType.B)}</span>
-            </div>
+              <span class="ct-pill ${t.cls}">${t.label}</span>
+              <span class="ct-bar-wrap"><span class="ct-bar" style="--ct-bar-pct:${_ctData.byType[t.key] !== null && _ctData.globalAvg > 0 ? Math.min(100, Math.round((_ctData.byType[t.key] / (_ctData.globalAvg * 2 || 1)) * 100)) : 0}%;--ct-bar-color:${t.bar}"></span></span>
+              <span class="ct-type-val">${_ctDaysLabel(_ctData.byType[t.key])}</span>
+            </div>`).join('')}
           </div>
         </div>
 
