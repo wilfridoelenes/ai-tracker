@@ -1,4 +1,4 @@
-// [PP] mod:95 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:96 · autor:Rune · 2026-07-06 UTC-6
 // TKT-202607-011 (TKT3 REQ-202607-006): namespace de filtro por área agregado a _subtabNS —
 //   solo qdisc lo consume (chips de área en stats-bar, ver locus-backlog-zone-engine.js).
 //   Single-select (no Set, a diferencia de types/priority): _nsToggleArea(sub, area) — click en
@@ -225,13 +225,19 @@ var ITEMS = (() => { // ESM-B: var para evitar TDZ en grafo circular — migrar 
   return [];
 })();
 
-// TKT-202607-005 (REQ-202607-003): array ITIL independiente de ITEMS. Misma fuente de
-// storage que ITEMS (localStorage por proyecto) — se filtra por tipo, no por clave distinta,
-// para no requerir migración de datos: el registro físico en Supabase ya vive separado en
-// tracker_incidents desde REQ-202607-005 (done); este array es la contraparte en memoria.
+// TKT-202607-005 (REQ-202607-003): array ITIL independiente de ITEMS.
+// TKT-202607-044 (REQ-202607-015) — INC-fix, hallazgo de Finn en QA: INCIDENTS ya no
+// comparte clave con ITEMS. saveBacklog() (locus-storage.js) persiste INCIDENTS en
+// 'backlog-incidents-{projId}' desde TKT-202607-044 — este IIFE leía la clave vieja
+// 'backlog-items-{projId}', correcta bajo TKT-202607-005 cuando INCIDENTS vivía mezclado
+// con ITEMS en la misma clave. Sin este fix, INCIDENTS siempre iniciaba vacío en cold boot:
+// backlog-items ya no contiene incidentes (se filtran antes de guardar) y el respaldo real
+// en backlog-incidents nunca se leía. Filtro sin cambio — no verificado si i.status es el
+// campo correcto para incidentes (ver `incidentStatus` en _mapRowToIncident, locus-storage.js);
+// fuera de scope de este fix puntual, señalado en CHECKPOINT.
 var INCIDENTS = (() => {
   const _initProjId = localStorage.getItem('current-project-filter') || '';
-  const _initKey = _initProjId ? 'backlog-items-' + _initProjId : null;
+  const _initKey = _initProjId ? 'backlog-incidents-' + _initProjId : null;
   const stored = _initKey ? localStorage.getItem(_initKey) : null;
   if (!stored) return [];
   try {

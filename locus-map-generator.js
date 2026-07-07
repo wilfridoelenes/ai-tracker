@@ -1,3 +1,9 @@
+// [PP] mod:16 · autor:Rune · 2026-07-07 UTC-6
+// TKT-202607-052: eliminado _mgBuildPlan(), planChecked, fileDefs.push de PLAN.md y entrada
+// 'plan' del preview array. Reaplicado sobre esta base (mod:14) el fix de TKT-202607-041 —
+// import roto de _tryIngestPlan (locus-session-parse.js ya no lo exporta) + bloque de ingesta
+// automática con chip sprint-plan:auto-* — porque el mod:15 entregado en esa sesión no estaba
+// disponible como archivo real al abrir esta sesión.
 // [PP] mod:14 · autor:Rune · 2026-07-05 UTC-6
 // TKT1 (limpieza post-rename): comentarios en L3 y L1741 actualizados — locus-backlog-archive.js → locus-backlog-historico.js. Sin cambio de código.
 // INC-[pendiente-ID]: regresión detectada post-cierre de REQ-[tmp:req-vocab-historico] — este
@@ -11,7 +17,7 @@
 // la persistencia en storage dedicado debe resolver antes de exponer la descarga al usuario.
 /**
  * locus-map-generator.js
- * Versión: v1.3.3 | Última actualización: 2026-05-26 UTC-6 | T-202605-069 metaKey plan-auto → sprint-plan:auto-*
+ * Versión: v1.3.4 | Última actualización: 2026-07-07 UTC-6 | TKT-202607-052: generador PLAN eliminado (feature cancelada, REQ-202607-014)
  * Módulo: Document Generator — MAP + CONTEXT + BACKLOG + Sprint Review + ZIP
  * Proyecto: Locus
  * Renombrado de ai-tracker-map-generator.js
@@ -22,7 +28,6 @@ import { migrateClosedItemsToHistorico } from './locus-backlog-historico.js';
 import { getItems, itemKind } from './locus-backlog-core.js'; // TKT-D2: itemKind(item) — clasificación Gen2
 import { editSprintInline } from './locus-backlog-sprints.js';
 import { _getMapContent, _importContextMdFromText, exportHtmlMapMd, importHtmlMap } from './locus-docs.js';
-import { _tryIngestPlan } from './locus-session-parse.js';
 import { buildBacklogMd } from './locus-session-save.js';
 import { getProjContext } from './locus-proj-core.js';
 import { _generateFullHistoryContent, exportBacklogMd, exportContextMd, exportFullHistoryMd } from './locus-backlog-generator.js';
@@ -518,198 +523,6 @@ function _mgGetMapVersion() {
   return fallback || '—';
 }
 
-// ─── Generador PLAN ──────────────────────────────────────────────────────────
-// T-202605-487: _mgBuildPlan() — agrupa ítems del sprint siguiente por rol,
-// detecta conflictos de archivo, resuelve deps, emite bloque ---PLAN---.
-//
-// Casos de prueba inline:
-//
-// CASO 1 — Solo paralelas (mismo rol, sin archivos en común):
-//   ítem A: rol FS, archivos: [a.js]
-//   ítem B: rol FS, archivos: [b.css]
-//   → 2 sesiones paralelas, depende_de: [] en ambas
-//
-// CASO 2 — Solo secuenciales (mismo rol, archivos en común):
-//   ítem A: rol FS, archivos: [a.js]
-//   ítem B: rol FS, archivos: [a.js]
-//   → sesión A primero, sesión B depende_de: [id-sesión-A]
-//
-// CASO 3 — Mixto con deps entre ítems:
-//   ítem A: rol FS, archivos: [a.js], deps: []
-//   ítem B: rol FS, archivos: [b.js], deps: [código-A]
-//   ítem C: rol UX, archivos: [c.css], deps: []
-//   → sesión-FS-A y sesión-UX-C paralelas
-//   → sesión-FS-B depende_de: [sesión-FS-A] (por dep explícita)
-
-function _mgBuildPlan() {
-  // Obtener ítems del sprint siguiente
-  const allSprints = getActiveSprints();
-  const openSprints = allSprints.filter(s => s.status === 'active');
-
-  // Sprint siguiente: primero después del activo, o el primer active si no hay activo
-  const activeSprint = _mgActiveSprint();
-  let targetSprint = null;
-  if (activeSprint) {
-    // Buscar sprint active con id posterior al activo
-    const activeIdx = allSprints.findIndex(s => s.id === activeSprint.id);
-    targetSprint = allSprints.slice(activeIdx + 1).find(s => s.status === 'active') || null;
-  }
-  if (!targetSprint && openSprints.length) {
-    // Ordenar por id numérico ascendente (S-22 antes que S-23) para tomar el siguiente cronológico
-    const sorted = [...openSprints].sort((a, b) => {
-      const na = parseInt((a.id || '').replace(/\D/g, '')) || 0;
-      const nb = parseInt((b.id || '').replace(/\D/g, '')) || 0;
-      return na - nb;
-    });
-    targetSprint = sorted[0];
-  }
-
-  // Leer ítems del backlog
-  let backlogItems = [];
-  try {
-    const raw = localStorage.getItem(_tplKey('backlog-items'));
-      backlogItems = raw ? JSON.parse(raw) : [];
-  } catch(e) { backlogItems = []; }
-
-  // Filtrar ítems del sprint objetivo con rol asignado y status pendiente
-  // B-202605-497: it.sprint puede ser string canónico completo "S-25 · Nombre" o solo ID "S-25"
-  const _sprintMatches = (itSprint, spId) => {
-    if (!itSprint || !spId) return false;
-    const s = itSprint.trim();
-    return s === spId || s.startsWith(spId + ' ·');
-  };
-  const sprintItems = backlogItems.filter(it =>
-    _sprintMatches(it.sprint, targetSprint ? targetSprint.id : null) &&
-    it.role && it.role.trim() &&
-    it.status === 'pendiente'
-  );
-
-  if (!sprintItems.length) {
-    return { planMd: null, warning: 'Sin ítems con rol asignado para el próximo sprint' };
-  }
-
-  // Mapa código → ítem para resolver deps
-  const itemByCode = {};
-  backlogItems.forEach(it => { if (it.code) itemByCode[it.code] = it; });
-
-  // Agrupar por rol
-  const byRol = {};
-  sprintItems.forEach(it => {
-    const rol = it.role.trim();
-    if (!byRol[rol]) byRol[rol] = [];
-    byRol[rol].push(it);
-  });
-
-  // Para cada grupo de rol, construir sesiones respetando conflictos de archivo y deps
-  // Estructura de sesión: { id, rol, items: [codes], archivos: [files], depende_de: [sessIds] }
-  const sessions = [];
-  let sessCounter = 0;
-
-  Object.entries(byRol).forEach(([rol, items]) => {
-    // Detectar área de integración para regla fija FS-Integración
-    const isIntegration = s => /integra/i.test(s.area || '');
-
-    // Construir sesiones del rol — items se agrupan si no comparten archivos
-    // Algoritmo greedy: para cada ítem, asignar a la primera sesión sin conflicto de archivo
-    // Si tiene dep a ítem de otra sesión → nueva sesión dependiente
-    const rolSessions = []; // [{ id, items, archivos, depende_de_sess: Set }]
-
-    items.forEach(it => {
-      const itFiles = (it.archivos || []).map(f => f.toLowerCase());
-      const itDeps  = (it.blockedBy || []).filter(Boolean); // deps explícitas de ítem
-
-      // Sesiones que este ítem bloquea por archivo
-      const conflictSessIds = new Set();
-      rolSessions.forEach(sess => {
-        const hasConflict = itFiles.some(f => sess.archivos.has(f));
-        if (hasConflict) conflictSessIds.add(sess.id);
-      });
-
-      // Sesiones que este ítem requiere por dep explícita (ítem → sesión que contiene ese ítem)
-      const depSessIds = new Set();
-      itDeps.forEach(depCode => {
-        rolSessions.forEach(sess => {
-          if (sess.items.includes(depCode)) depSessIds.add(sess.id);
-        });
-      });
-
-      const allBlockers = new Set([...conflictSessIds, ...depSessIds]);
-
-      if (allBlockers.size === 0) {
-        // Buscar sesión existente sin conflicto donde agregar
-        const candidate = rolSessions.find(sess =>
-          itFiles.every(f => !sess.archivos.has(f)) &&
-          (itDeps.length === 0 || itDeps.every(dc => sess.items.includes(dc)))
-        );
-        if (candidate) {
-          candidate.items.push(it.code);
-          itFiles.forEach(f => candidate.archivos.add(f));
-        } else {
-          // Nueva sesión paralela
-          sessCounter++;
-          const id = `sess-${rol.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${sessCounter}`;
-          rolSessions.push({ id, rol, items: [it.code], archivos: new Set(itFiles), depende_de_sess: new Set() });
-        }
-      } else {
-        // Nueva sesión que depende de las sesiones con conflicto
-        sessCounter++;
-        const id = `sess-${rol.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${sessCounter}`;
-        rolSessions.push({ id, rol, items: [it.code], archivos: new Set(itFiles), depende_de_sess: allBlockers });
-      }
-    });
-
-    rolSessions.forEach(s => sessions.push(s));
-  });
-
-  // Regla fija FS-Integración: sesiones FS con área Integración dependen de todas las UX del sprint
-  const uxSessIds = sessions
-    .filter(s => /UX/i.test(s.rol))
-    .map(s => s.id);
-  if (uxSessIds.length) {
-    sessions
-      .filter(s => /FS/i.test(s.rol) && sprintItems.some(it => s.items.includes(it.code) && /integra/i.test(it.area || '')))
-      .forEach(s => { uxSessIds.forEach(uid => s.depende_de_sess.add(uid)); });
-  }
-
-  // Resolver deps entre items de distintos roles (dep cruzada)
-  sessions.forEach(sess => {
-    sess.items.forEach(code => {
-      const it = itemByCode[code];
-      if (!it || !it.blockedBy || !it.blockedBy.length) return;
-      it.blockedBy.forEach(depCode => {
-        // Buscar sesión (de otro rol) que contenga depCode
-        sessions.forEach(other => {
-          if (other.id !== sess.id && other.items.includes(depCode)) {
-            sess.depende_de_sess.add(other.id);
-          }
-        });
-      });
-    });
-  });
-
-  // B-202605-034: emitir bloque ---EXECUTION-PLAN--- (scope: sprint) — formato activo del parser de PP
-  const sprintId = targetSprint ? targetSprint.id : 'sin-sprint';
-
-  let md = `---EXECUTION-PLAN---\n`;
-  md += `scope: sprint\n`;
-  md += `sprint: ${sprintId}\n`;
-  md += `sesiones:\n`;
-
-  sessions.forEach(sess => {
-    const archivosArr = [...sess.archivos];
-    const depArr      = [...sess.depende_de_sess];
-    md += `  - id: ${sess.id}\n`;
-    md += `    rol: ${sess.rol}\n`;
-    md += `    items: ${sess.items.join(', ')}\n`;
-    md += `    archivos: ${archivosArr.length ? archivosArr.join(', ') : '[]'}\n`;
-    md += `    depende_de: ${depArr.length ? depArr.join(', ') : '[]'}\n`;
-  });
-
-  md += `---EXECUTION-PLAN-END---`;
-
-  return { planMd: md, warning: null, sprintId };
-}
-
 // ─── Generación principal ────────────────────────────────────────────────────
 
 function generateDocuments() {
@@ -717,9 +530,8 @@ function generateDocuments() {
   const contextChecked = document.getElementById('mg-out-context')?.checked;
   const backlogChecked = document.getElementById('mg-out-backlog')?.checked;
   const reviewChecked  = document.getElementById('mg-out-review')?.checked;
-  const planChecked    = document.getElementById('mg-out-plan')?.checked;
 
-  if (!mapChecked && !contextChecked && !backlogChecked && !reviewChecked && !planChecked) {
+  if (!mapChecked && !contextChecked && !backlogChecked && !reviewChecked) {
     showToast('warning', 'Selecciona al menos un documento a generar.');
     return;
   }
@@ -789,15 +601,6 @@ function generateDocuments() {
   if (contextCheckedFinal) _mapGen.generatedDocs.context  = _generateContext(bumpedVer);
   if (backlogChecked) _mapGen.generatedDocs.backlog   = _generateBacklog(bumpedVer);
   if (reviewChecked)  _mapGen.generatedDocs.review    = _generateSprintReview(bumpedVer);
-  if (planChecked) {
-    const planResult = _mgBuildPlan();
-    if (planResult.warning) {
-      showToast('warning', planResult.warning);
-    } else {
-      _mapGen.generatedDocs.plan = planResult.planMd;
-      _mapGen.generatedDocs._planSprintId = planResult.sprintId;
-    }
-  }
 
   // Compatibilidad: _mapGen.previewMd = MAP si se generó
   if (_mapGen.generatedDocs.map) _mapGen.previewMd = _mapGen.generatedDocs.map;
@@ -1639,7 +1442,6 @@ function _mgShowPreview(docs) {
     { key: 'context', label: 'CONTEXT',       filename: `${prefix}-CONTEXT_${version}.md` },
     { key: 'backlog', label: 'BACKLOG',        filename: `${prefix}-BACKLOG_${version}.md` },
     { key: 'review',  label: 'Sprint Review', filename: `${prefix}-SPRINT-REVIEW_${version}.md` },
-    { key: 'plan',    label: 'Plan',          filename: `${prefix}-PLAN_${version}.md` },
   ].filter(i => docs[i.key]);
 
   let html = `<div class="mg-preview-header"><span class="mg-preview-badge">✓ ${items.length} documento${items.length !== 1 ? 's' : ''} generado${items.length !== 1 ? 's' : ''}</span><span class="mg-preview-version">Versión: ${version}</span></div>`;
@@ -1803,27 +1605,6 @@ async function _doConfirmGenerate() {
   if (docs.review) {
     fileDefs.push({ filename: `${prefix}-SPRINT-REVIEW_${sprintId}_${bumpedVer}.md`, content: docs.review });
   }
-  if (docs.plan) {
-    fileDefs.push({ filename: `${prefix}-PLAN_${bumpedVer}.md`, content: docs.plan });
-  }
-
-  // T-202605-488: ingerir Plan generado automáticamente (no es efecto DOM externo — es parse interno)
-  if (docs.plan) {
-    const ingested = _tryIngestPlan(docs.plan);
-    if (!ingested) {
-      showToast('warning', 'Plan generado pero no pudo ingresarse automáticamente — copia el bloque manualmente');
-    }
-    if (ingested) {
-      try {
-        const proj = getActiveProject();
-        if (proj) {
-          const metaKey = `sprint-plan:auto-${proj.id}`; // T-202605-069: alineado con locus-sprint-plan.js (T-202605-068)
-          localStorage.setItem(metaKey, JSON.stringify({ ts: Date.now(), sprintId: docs._planSprintId || '?' }));
-        }
-      } catch(e) {}
-    }
-  }
-
   // B-202605-275: efectos DOM (importContextMd, importHtmlMap) se aplican DESPUÉS de confirmar generación exitosa
   // B-202605-493: _mgApplyBumpedVersion y migrateClosedItemsToHistorico también se difieren — sin mutación de estado si ZIP falla
   const zipName = `${prefix}-SPRINT-PACKAGE_${sprintId}_${bumpedVer}.zip`;

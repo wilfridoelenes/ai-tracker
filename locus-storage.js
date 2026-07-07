@@ -1,4 +1,4 @@
-// [PP] mod:90 · autor:Rune · 2026-07-06 18:20 UTC-6
+// [PP] mod:91 · autor:Rune · 2026-07-06 19:05 UTC-6
 // TKT-202607-044 (REQ-202607-015): INCIDENTS conectado a tracker_incidents — saveBacklog()
 // upsert onConflict:code (independiente de ITEMS, sin reintento en caso de fallo) +
 // _loadFromSupabase() consulta tracker_incidents y puebla INCIDENTS (merge-por-fila, mismo
@@ -1328,7 +1328,17 @@ export async function saveBacklog() {
       incident_status:       inc.incidentStatus     || inc.incident_status || null,
       resolution_type:       inc.resolutionType     || inc.resolution_type || null,
       discard_reason:        inc.discard_reason     || null,
-      sla_deadline:          inc.slaDeadline        != null ? inc.slaDeadline : null,
+      // Fix QA (Finn) — TKT-202607-044: sla_deadline es timestamptz en tracker_incidents
+      // (confirmado vía information_schema.columns), no bigint. inc.slaDeadline vive en
+      // memoria como epoch ms (ver _mapRowToIncident) — convertir a ISO string antes de
+      // escribir o Postgres rechaza el upsert completo (invalid input syntax for type
+      // timestamp with time zone). Defensivo ante string ya-ISO por si el ítem no pasó
+      // aún por hidratación (creado client-side, sla_deadline sin normalizar todavía).
+      sla_deadline: (() => {
+        if (inc.slaDeadline == null) return null;
+        if (typeof inc.slaDeadline === 'number') return new Date(inc.slaDeadline).toISOString();
+        return inc.slaDeadline;
+      })(),
       // Mismo _updatedAtMs que _toItemRow — un único timestamp de escritura para todo el CHECKPOINT.
       updated_at:            _updatedAtMs
     };
@@ -1520,6 +1530,12 @@ function _mapRowToItem(row) {
 // created_at, derived_items, discard_reason, id, incident_status, origin_module,
 // project_id, resolution_type, sla_deadline, sla_priority, title, triggered_by, type,
 // updated_at, user_id).
+// Fix QA (Finn) — TKT-202607-044: created_at y sla_deadline son timestamptz en
+// tracker_incidents (confirmado vía information_schema.columns) — NO bigint como en
+// tracker_items. A diferencia de _mapRowToItem, aquí normalizamos a epoch ms con
+// Date.parse/getTime al leer, para que createdAt/slaDeadline en INCIDENTS sean del mismo
+// tipo (number epoch ms) que en ITEMS — cualquier lógica compartida de SLA (__BR-Core §6)
+// no necesita discriminar por tipo de origen. Solo updated_at es bigint aquí — sin cambio.
 function _mapRowToIncident(row) {
   return {
     code:                  row.code,
@@ -1534,18 +1550,22 @@ function _mapRowToIncident(row) {
     incidentStatus:        row.incident_status || null,
     resolutionType:        row.resolution_type || null,
     discard_reason:        row.discard_reason,
-    createdAt:             row.created_at      || null,
-    // Mismo cálculo derivado que _mapRowToItem — sla_deadline explícito tiene precedencia;
-    // si ausente, se calcula desde createdAt + ventana de sla_priority.
+    // timestamptz → epoch ms. row.created_at llega como ISO string desde Supabase.
+    createdAt:             row.created_at != null ? new Date(row.created_at).getTime() : null,
+    // Mismo cálculo derivado que _mapRowToItem en intención — pero con base epoch ms
+    // normalizada desde ISO string (timestamptz), no un bigint crudo como en tracker_items.
+    // sla_deadline explícito tiene precedencia; si ausente, se calcula desde createdAt +
+    // ventana de sla_priority.
     slaDeadline: (() => {
-      if (row.sla_deadline != null) return row.sla_deadline;
+      if (row.sla_deadline != null) return new Date(row.sla_deadline).getTime();
       if (!row.sla_priority) return null;
-      const _base = row.created_at || null;
-      if (!_base) return null;
+      const _base = row.created_at != null ? new Date(row.created_at).getTime() : null;
+      if (_base == null) return null;
       if (row.sla_priority === 'high')   return _base + 86400000;
       if (row.sla_priority === 'medium') return _base + 259200000;
       return null;
     })(),
+    // updated_at SÍ es bigint en tracker_incidents (confirmado) — sin transformación.
     _updatedAtMs:          row.updated_at
   };
 }
