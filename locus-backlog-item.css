@@ -1,4 +1,7 @@
-/* [PP] mod:42 · autor:Nova · 2026-07-05 UTC-6 */
+/* [PP] mod:43 · autor:Nova · 2026-07-06 UTC-6 */
+/* TKT-202607-027: removidas .kanban-card--dragging/.kanban-drop-indicator + @keyframes
+   bl-drag-ripple (huérfano — sin consumidor en ningún archivo del scope, exclusivo del
+   drag de Vista Kanban deprecada). No se toca .kb-selected (vive en locus-backlog.css). */
 /* TKT1-diff-visual: gap de contraste resuelto — estándar correcto es 3:1 (elemento gráfico
    no-texto, WCAG 2.1 AA), no 4.5:1 (texto). Solo --green en light fallaba (2.99:1/2.82:1);
    revertido override previo de --yellow/--slate que no lo necesitaban. */
@@ -2683,34 +2686,6 @@
   pointer-events: none;
   white-space: nowrap;
   animation: bl-copy-flash .6s ease forwards;
-}
-
-/* Kanban drag ripple */
-@keyframes bl-drag-ripple {
-  from {
-    opacity: .4;
-    transform: scale(.8);
-  }
-
-  to {
-    opacity: 0;
-    transform: scale(2.2);
-  }
-}
-
-.kanban-card--dragging {
-  opacity: .55;
-  box-shadow: 0 4px 20px rgb(0 0 0 / 50%);
-  transform: rotate(1.5deg) scale(1.02);
-  transition: transform .1s, opacity .1s;
-}
-
-.kanban-drop-indicator {
-  height: 3px;
-  border-radius: var(--radius-sm);
-  background: var(--accent);
-  margin: 3px 0;
-  animation: bl-filter-pulse .3s ease;
 }
 
 /* Roadmap chip click feedback */
