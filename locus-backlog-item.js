@@ -1,4 +1,8 @@
-// [PP] mod:81 · autor:Rune · 2026-07-07 UTC-6
+// [PP] mod:82 · autor:Rune · 2026-07-07 UTC-6
+// TKT-202607-057 (REQ-202607-015 · TKT4): applyPatchesFromTG (~línea 2513) — resolución de
+//   destItem al escribir origenDisc usa getAnyItem(resolvedIncoming) en vez de
+//   getItems().find(i => i.code === resolvedIncoming). Cierra el hallazgo fuera de scope
+//   declarado en mod:81 (TKT-202607-045).
 // TKT-202607-045 (REQ-202607-015): chip 'Generado desde' (item.origin, ~línea 571) y escritura
 //   de origenDisc al resolver promovida_a en mergeBacklogFromTG (~línea 1923) usan getAnyItem()
 //   en vez de getItems().find() — ambos campos pueden apuntar a un código ITIL (INC/PRB/KE/CHG).
@@ -2509,8 +2513,10 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
           changes.push({ field, from: current !== undefined ? current : '—', to: resolvedIncoming });
           existing[field] = resolvedIncoming;
           // AC edge case: si promovida_a apunta a código real existente, escribir origenDisc en el destino
+          // TKT-202607-057 (REQ-202607-015 · TKT4): getAnyItem() — resolvedIncoming puede ser un código
+          // ITIL (INC/PRB/KE/CHG), que vive en INCIDENTS y getItems().find() nunca lo encuentra.
           if (!_isPlaceholderCode(resolvedIncoming)) {
-            const destItem = (typeof getItems() !== 'undefined') ? getItems().find(i => i.code === resolvedIncoming) : null;
+            const destItem = getAnyItem(resolvedIncoming);
             if (destItem && !destItem.origenDisc) {
               destItem.origenDisc = existing.code;
               _blogLog('origen-disc-escrito', existing.code, existing.code + ' → origenDisc en ' + resolvedIncoming, 'backlog');
