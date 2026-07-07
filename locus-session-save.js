@@ -1,3 +1,14 @@
+// [PP] mod:56 · autor:Rune · 2026-07-07 UTC-6
+// INC-202607-XXX (triggered_by: n/a — detectado en producción, sin TKT activo): SyntaxError de
+//   módulo — import de _tryIngestPlan/_tryIngestPlanFromParsed desde locus-session-parse.js,
+//   que ya no los exporta desde mod:95 (REQ-execution-plan-deprecation retiró el feature
+//   EXECUTION-PLAN completo por ser código huérfano de Gen1, fuera de schema __BR-Ecosystem §8).
+//   Impacto lateral no declarado en su momento: el TKT que retiró el export en
+//   locus-session-parse.js no verificó ni actualizó el único consumidor (este archivo).
+//   Fix: retirados ambos nombres del import + eliminado el bloque que los invocaba
+//   (ingesta de ---PLAN---/---EXECUTION-PLAN--- y parsed.executionPlan). Mismo archivo,
+//   sin scope nuevo, verificable por Finn junto con la causa raíz — variante ligera aplicable
+//   si el founder confirma la carga del módulo en app.
 // [PP] mod:55 · autor:Rune · 2026-07-02 08:10 UTC-6
 // TKT4 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT, depends_on: TKT3 done): _applyCheckpointBatch(blocks, sessionId) de
@@ -43,7 +54,7 @@ import { render } from './locus-sesiones.js';
 
 import { _showProjRequiredInPanel, interpretHora } from './locus-session-hora.js';
 
-import { _setPhase, _tryIngestPlan, _tryIngestPlanFromParsed, _tryIngestSprintProposal, _tryIngestSprintProposalFromParsed, _applySprintInheritanceToItems, parseSprintProposal, parsePaste, _buildTriggeredBySuggestion } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-020: _applySprintInheritanceToItems | T-202606-018: _tryIngestPlanFromParsed | T-202606-021: _buildTriggeredBySuggestion | B-202606-019: _tryIngestSprintProposalFromParsed | TKT4: parseCheckpoint + _splitCheckpointBlocks retirados — el uso se trasladó a _resolveCheckpointBatch en locus-session-parse.js, no requiere importarlos de vuelta
+import { _setPhase, _tryIngestSprintProposal, _tryIngestSprintProposalFromParsed, _applySprintInheritanceToItems, parseSprintProposal, parsePaste, _buildTriggeredBySuggestion } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-020: _applySprintInheritanceToItems | T-202606-021: _buildTriggeredBySuggestion | B-202606-019: _tryIngestSprintProposalFromParsed | TKT4: parseCheckpoint + _splitCheckpointBlocks retirados — el uso se trasladó a _resolveCheckpointBatch en locus-session-parse.js, no requiere importarlos de vuelta | INC-202607-XXX: _tryIngestPlan + _tryIngestPlanFromParsed retirados del import — locus-session-parse.js mod:95 (REQ-execution-plan-deprecation) eliminó ambos exports; este archivo seguía importándolos y rompía la carga del módulo
 
 import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js';
 
@@ -655,15 +666,10 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   const mapSections = extractHtmlMapSections(raw);
   if (mapSections.length) mergeHtmlMapSections(mapSections, activeProj.id);
 
-  // R-202604-076 + R-B: parsear y guardar bloque ---PLAN--- / ---EXECUTION-PLAN--- si existe
-  // B-202605-XXX: usar _tryIngestPlan en lugar de savePlan directo — preserva scope:sprint al guardar scope:sesion
-  if (raw.includes('---PLAN---') || raw.includes('---EXECUTION-PLAN---')) _tryIngestPlan(raw);
-  // T-202606-018 AC-2: path JSON puro — execution_plan no produce ---EXECUTION-PLAN--- en raw.
-  // Si parsed.executionPlan existe y raw no tiene el bloque texto → ingestar desde objeto parseado.
-  if (parsed.executionPlan && !raw.includes('---EXECUTION-PLAN---') && !raw.includes('---PLAN---')) {
-    _tryIngestPlanFromParsed(parsed.executionPlan);
-  }
-  // ── END T-202606-018 ──
+  // INC-202607-XXX: bloque de ingesta ---PLAN---/---EXECUTION-PLAN--- y parsed.executionPlan
+  // eliminado — REQ-execution-plan-deprecation (locus-session-parse.js mod:95) retiró
+  // _tryIngestPlan/_tryIngestPlanFromParsed/parsePlanBlock del origen; execution_plan no está
+  // en el schema de __BR-Ecosystem §8. Código huérfano, sin AC vigente que lo respalde.
 
   // T-202606-017 AC-1: path Markdown — extraer y registrar DOC-UPDATEs del texto crudo.
   // Complementa el path JSON (AC-2). Se ejecuta solo si raw contiene el bloque.
