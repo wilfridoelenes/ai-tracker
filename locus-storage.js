@@ -1,4 +1,4 @@
-// [PP] mod:103 · autor:Rune · 2026-07-08 16:45 UTC-6
+// [PP] mod:104 · autor:Rune · 2026-07-08 UTC-6
 // INC-[pendiente-ID]: _subscribeRealtime() no reconectaba tras CHANNEL_ERROR/CLOSED/TIMED_OUT
 // — el guard de idempotencia bloqueaba la reconexión porque _realtimeChannels seguía con
 // canales muertos y _realtimeSubscribedFor sin resetear. Fix: _handleChannelStatus() limpia
@@ -2049,13 +2049,26 @@ export function _subscribeRealtime() {
   // CHANNEL_ERROR/TIMED_OUT/CLOSED, remover el canal caído del tracking y resetear
   // _realtimeSubscribedFor a null para que la próxima llamada reconecte los tres canales.
   function _handleChannelStatus(channelName, getCh) {
+    // INC-[pendiente-ID] (triggered_by hallazgo fuera de scope, RangeError stack overflow):
+    // removeChannel(ch) llamado sincrónicamente dentro de este mismo callback de status
+    // reentraba — supabase-js dispara CLOSED de nuevo como parte del propio cierre del
+    // canal, dentro del mismo _trigger, volviendo a entrar a este callback y a llamar
+    // removeChannel() sobre el mismo canal indefinidamente hasta agotar el stack.
+    // Fix: (a) guard `handled` — este canal se procesa una sola vez por ciclo de error,
+    // (b) removeChannel() diferido con setTimeout(0) para salir de la pila síncrona del
+    // propio _trigger del canal antes de pedirle que se remueva a sí mismo.
+    let handled = false;
     return (status) => {
       if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        if (handled) return;
+        handled = true;
         console.warn('[AI Tracker] Realtime: error en canal ' + channelName + ' — app sigue funcional vía fallback, reintentando en próximo evento de auth');
         const ch = getCh();
-        if (ch) { try { _supabase.removeChannel(ch); } catch(e) {} }
         _realtimeChannels = _realtimeChannels.filter((c) => c !== ch);
         _realtimeSubscribedFor = null;
+        if (ch) {
+          setTimeout(() => { try { _supabase.removeChannel(ch); } catch(e) {} }, 0);
+        }
       }
     };
   }
