@@ -1,4 +1,4 @@
-// [PP] mod:82 · autor:Rune · 2026-07-07 UTC-6
+// [PP] mod:83 · autor:Rune · 2026-07-07 UTC-6
 // TKT-202607-042 (REQ-202607-014): eliminación real de 'plan' en _SPT_SUBTAB_VALID/_SPT_PANELS,
 // del array literal de listeners de subtabs, de la referencia a panelPlan/sprint-panel-plan en
 // la rama sin-sprint-activo, y de comentarios de visibilidad. El header mod:81 abajo declaraba
@@ -274,6 +274,28 @@ function _spsFieldEdit(el, sprintId, field, onDone, opts) {
 
 // ── END T-202606-XXX ─────────────────────────────────────────────────────────
 
+// ── INC-[pendiente-ID]: flip-to-fit — .sps-dropdown vs overflow:hidden de .sps-card ──
+// .sps-card (contenedor compartido de filas en #sps-programados y #sps-cerrados)
+// declara overflow:hidden por su border-radius. Un .sps-dropdown anclado con top:32px
+// en una fila cercana al borde inferior del card se recorta/oculta — no es problema de
+// z-index. Medir SIEMPRE contra el borde inferior de .sps-card (no el viewport): el
+// clipping es del card, no de la pantalla. Función compartida por los 3 usos de
+// .sps-menu-wrap/.sps-dropdown en este archivo (activo/programados/cerrados) — no
+// duplicada por handler. Ver _Locus-css-ref §Sprint activo — familia sps-* y
+// _Locus-ux-ref §E-10 para el criterio completo.
+function _spsApplyDropdownFlip(menuBtn, dropdown) {
+  dropdown.classList.remove('sps-dropdown--flip');
+  const card = menuBtn.closest('.sps-card');
+  if (!card) return;
+  const btnRect  = menuBtn.getBoundingClientRect();
+  const cardRect = card.getBoundingClientRect();
+  const spaceBelow    = cardRect.bottom - btnRect.bottom;
+  const dropdownHeight = dropdown.offsetHeight;
+  if (spaceBelow < dropdownHeight) {
+    dropdown.classList.add('sps-dropdown--flip');
+  }
+}
+
 // ── T-202606-036 / T-202606-043: _renderSpsActivo — card del sprint activo ──
 //
 // T-202606-043: rediseño — card-header con menú ··· (Pausar · sep · Cerrar rojo),
@@ -447,6 +469,7 @@ function _spsActivoHandleClick(e) {
     dropdown.hidden = isOpen;
     menuBtn.setAttribute('aria-expanded', String(!isOpen));
     if (!isOpen) {
+      _spsApplyDropdownFlip(menuBtn, dropdown);
       // Cerrar al hacer clic fuera
       function _closeOnOutside(ev) {
         if (!menuBtn.closest('.sps-menu-wrap').contains(ev.target)) {
@@ -625,6 +648,7 @@ function _sppHandleClick(e) {
     dropdown.hidden = isOpen;
     menuBtn.setAttribute('aria-expanded', String(!isOpen));
     if (!isOpen) {
+      _spsApplyDropdownFlip(menuBtn, dropdown);
       function _closeOnOutside(ev) {
         if (!menuBtn.closest('.sps-menu-wrap').contains(ev.target)) {
           dropdown.hidden = true;
@@ -1632,6 +1656,7 @@ function _spsCerradosHandleClick(e) {
     dropdown.hidden = isOpen;
     menuBtn.setAttribute('aria-expanded', String(!isOpen));
     if (!isOpen) {
+      _spsApplyDropdownFlip(menuBtn, dropdown);
       function _closeOnOutside(ev) {
         if (!menuBtn.closest('.sps-menu-wrap').contains(ev.target)) {
           dropdown.hidden = true;

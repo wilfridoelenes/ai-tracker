@@ -1,4 +1,4 @@
-/* [PP] mod:43 · autor:Nova · 2026-07-02 */
+/* [PP] mod:44 · autor:Nova · 2026-07-07 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -2640,6 +2640,19 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
    :not([hidden]) activa el flex. La clase .is-open no se usa. */
 .sps-dropdown:not([hidden]) {
   display: flex;
+}
+
+/* INC-[pendiente-ID]: flip-to-fit — .sps-card (contenedor compartido de filas en
+   #sps-programados) declara overflow:hidden para su border-radius. Un .sps-dropdown
+   anclado con top:32px en una fila cercana al borde inferior del card se recorta/oculta
+   detrás del contenedor siguiente (#sps-cerrados) — no es un problema de z-index.
+   Rune aplica esta clase (sin quitar .sps-dropdown base) cuando, al abrir el menú, mide
+   con getBoundingClientRect() que el espacio entre el botón ··· y el borde inferior de
+   .sps-card es menor que la altura del dropdown. Mismo patrón declarado para adopción
+   futura por .blf-wrap/.blf-trigger — ver _Locus-ux-ref §E-09. */
+.sps-dropdown--flip {
+  top: auto;
+  bottom: 32px;
 }
 
 .sps-dropdown-sep {

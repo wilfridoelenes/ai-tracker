@@ -1,4 +1,4 @@
-/* [PP] mod:80 · autor:Nova · 2026-07-06 UTC-6 */
+/* [PP] mod:81 · autor:Nova · 2026-07-07 UTC-6 */
 /* TKT-202607-027: removido bloque completo Vista Kanban (.kb-board/.kb-col*/.kb-card*/
    .kb-effort-dot*/#fbar-kanban-btn*/#backlog-list.kb-active) — feature deprecada, deriva
    de index.html/locus-backlog-item.js/-core.js/-render.js sin referencias vivas al board.
@@ -2397,95 +2397,13 @@
   color: var(--text2);
 }
 
-/* T-202604-049: Menú ⋯ card */
-.card-dot-menu {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.card-dot-btn {
-  font-size: var(--text-base);
-  font-weight: 700;
-  color: var(--hint);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0 4px;
-  line-height: 1;
-  border-radius: var(--radius-sm);
-  transition: var(--trans-color);
-  letter-spacing: 1px;
-}
-
-.card-dot-btn:hover {
-  color: var(--text2);
-  background: var(--surface2);
-}
-
-.card-dot-dropdown {
-  display: none;
-  position: absolute;
-  right: 0;
-  top: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border2);
-  border-radius: var(--radius-md-plus);
-  padding: 4px 0;
-  min-width: 160px;
-  z-index: var(--z-float);
-  box-shadow: 0 4px 16px rgb(0 0 0 / 25%);
-}
-
-.card-dot-dropdown.open {
-  display: block;
-}
-
-.card-dot-item {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  width: 100%;
-  padding: 6px 13px;
-  font-size: var(--text-xs);
-  color: var(--text2);
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-  transition: background 0.1s var(--ease-out), color 0.1s var(--ease-out);
-  white-space: nowrap;
-}
-
-.card-dot-item:hover {
-  background: var(--surface2);
-  color: var(--text);
-}
-
-.card-dot-item.danger {
-  color: var(--red);
-}
-
-.card-dot-item.danger:hover {
-  background: var(--red-dim);
-  color: var(--red);
-}
-
-.card-dot-item .dot-item-icon {
-  font-size: var(--text-xs);
-  flex-shrink: 0;
-}
-
-.card-dot-divider {
-  border: none;
-  border-top: 1px solid var(--c-critical-border);
-  margin: 3px 0;
-}
-
-.card-dot-dropdown .danger-zone {
-  background: var(--c-critical-bg);
-  border-radius: 0 0 var(--radius-md-plus) var(--radius-md-plus);
-  padding: 2px 0;
-}
+/* B-[pendiente-ID]: bloque .card-dot-menu/.card-dot-btn/.card-dot-dropdown/.card-dot-item/
+   .card-dot-divider/.card-dot-dropdown .danger-zone eliminado — superseded por
+   locus-sesiones-card.css (B-202605-020, portal position:fixed + --card-menu-top/-left).
+   Cero consumidor en index.html ni en ningún otro .css del codebase — confirmado con grep
+   completo antes de eliminar. .dot-confirm-row se conserva — consumidor activo declarado
+   abajo. Ver _Locus-css-ref §AI Card rediseño — familia sc-* + card-dot-* (ya documentaba
+   solo la versión viva de locus-sesiones-card.css). */
 
 /* T-093: inline confirm row */
 .dot-confirm-row {
@@ -4559,15 +4477,10 @@ er {
 
   /* CSS-05: Cobertura extendida — keyframes sin cobertura previa */
 
-
-  /* bl-sprint-drop-in / bl-sprint-drop-out — sprint dropdown */
-  .bl-sprint-dropdown {
-    animation: none;
-  }
-
-  .bl-sprint-dropdown.is-closing {
-    animation: none;
-  }
+  /* B-[pendiente-ID]: override .bl-sprint-dropdown/.bl-sprint-dropdown.is-closing eliminado
+     — huérfano. Ni la clase base ni las keyframes bl-sprint-drop-in/bl-sprint-drop-out
+     existen en ningún .css del codebase (confirmado con grep completo) — override de
+     reduced-motion sin regla base que anular. */
 
   /* bitem-nav-pulse — item nav highlight */
   .bitem--nav-highlight {

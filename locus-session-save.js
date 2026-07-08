@@ -1,3 +1,9 @@
+// [PP] mod:57 · autor:Rune · 2026-07-07 12:00 UTC-6
+// TKT-202607-014: eliminado bloque inalcanzable en buildBacklogMd() — el return incondicional
+//   dentro del bloque `{ const { md } = _generateBacklogContent(version); return md; }` hacía
+//   que el comentario de fallback, el cálculo de timestamp y el segundo return con el string
+//   de warning nunca se ejecutaran. Sin cambio de comportamiento: mismo output para todo input,
+//   la rama fallback nunca fue alcanzable. Sin cambio de firma — buildBacklogMd(version) → string.
 // [PP] mod:56 · autor:Rune · 2026-07-07 UTC-6
 // INC-202607-XXX (triggered_by: n/a — detectado en producción, sin TKT activo): SyntaxError de
 //   módulo — import de _tryIngestPlan/_tryIngestPlanFromParsed desde locus-session-parse.js,
@@ -209,14 +215,8 @@ function _buildChangelogHTML() {
 // La función anterior leía tracker.items (schema legacy, solo sesiones) en lugar de getItems() (backlog global),
 // produciendo exports truncados con backlogs de 24+ ítems.
 export function buildBacklogMd(version) {
-  {
-    const { md } = _generateBacklogContent(version);
-    return md;
-  }
-  // Fallback: _generateBacklogContent no disponible (carga parcial de módulos)
-  const now = new Date();
-  const timestamp = now.toISOString().replace('T', ' ').slice(0, 16) + ' UTC-6';
-  return `# Backlog-v${version}.md\n<!-- Versión: v${version} | Última actualización: ${timestamp} -->\n\n⚠ buildBacklogMd: _generateBacklogContent no disponible — adjunta ai-tracker-sprint-project.js\n`;
+  const { md } = _generateBacklogContent(version);
+  return md;
 }
 
 // R-202604-022: muestra alerta de cuota de localStorage si supera umbrales
