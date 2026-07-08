@@ -1,4 +1,4 @@
-// [PP] mod:96 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:97 · autor:Rune · 2026-07-08 UTC-6
 // INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados wiring de
 // _showArranquePanel (import + setTimeout en _renderAfterAuth) y los 4 sitios de dispatch
 // 'shell:mark-pulso-dirty'/'shell:render-pulso-dot' (post-debounce, save() no-auth, save()
@@ -191,6 +191,10 @@ let _supabase           = null;   // cliente Supabase
 var _supabaseUser       = null;   // sesión activa del founder — ESM-B: var para evitar TDZ
 let _supabaseReady      = null;   // promesa: resuelve cuando onAuthStateChange dispara
 let _realtimeChannels   = [];     // T-202606-002: canales Realtime — tracker_state, tracker_sessions
+// INC-[pendiente-ID] (triggered_by hallazgo fuera de scope, cierre INC-202607-009): user_id
+// para el cual _realtimeChannels está activo. Permite que _subscribeRealtime() sea idempotente
+// ante llamadas repetidas del mismo usuario — ver comentario completo en _subscribeRealtime().
+let _realtimeSubscribedFor = null;
 let _realtimeLastTs     = null;   // timestamp del último update remoto procesado
 
 // TKT1 · REQ-sprints-migration: cache cross-proyecto en módulo de sprints — fuente de verdad en
@@ -1874,7 +1878,17 @@ export async function saveContextDocs() {
 // falla, el resto de la app sigue funcional vía localStorage/poll.
 export function _subscribeRealtime() {
   if (!_supabase || !_supabaseUser) return;
-  _unsubscribeRealtime(); // limpiar canales previos si existen
+  // INC-[pendiente-ID] (triggered_by hallazgo fuera de scope, cierre INC-202607-009):
+  // supabase-js re-emite INITIAL_SESSION en cada _recoverAndRefresh (visibilitychange/foco
+  // de pestaña), lo que llamaba a _subscribeRealtime() muchas veces por sesión larga.
+  // unsubscribe+resubscribe en cada llamada dependía de que removeChannel() limpiara a
+  // tiempo (try/catch silencioso más abajo) — si la desuscripción no terminaba antes de la
+  // siguiente llamada, el canal viejo quedaba zombie recibiendo el mismo broadcast, y se
+  // acumulaba uno más por cada auth event repetido (~150 duplicados del mismo evento en
+  // sesiones de horas). Fix: idempotencia — mismo usuario + canales ya activos → no-op.
+  // Solo se recrean los canales si el usuario cambió o no hay canales activos.
+  if (_realtimeChannels.length > 0 && _realtimeSubscribedFor === _supabaseUser.id) return;
+  _unsubscribeRealtime(); // limpiar canales previos si existen (usuario distinto o estado inconsistente)
 
   // Manejador compartido: recibe payload de cualquiera de las tres tablas.
   // Si el updated_at es el mismo que el último write local, ignora para evitar reload-loop.
@@ -1964,6 +1978,7 @@ export function _subscribeRealtime() {
     });
 
   _realtimeChannels = [chState, chSessions, chItems];
+  _realtimeSubscribedFor = _supabaseUser.id;
 }
 
 export function _unsubscribeRealtime() {
@@ -1973,6 +1988,7 @@ export function _unsubscribeRealtime() {
     try { _supabase.removeChannel(ch); } catch(e) {}
   }
   _realtimeChannels = [];
+  _realtimeSubscribedFor = null;
 }
 
 // _resetExpiredInternal — uso exclusivo de locus-storage.js.
