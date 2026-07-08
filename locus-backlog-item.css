@@ -1,4 +1,4 @@
-/* [PP] mod:43 · autor:Nova · 2026-07-06 UTC-6 */
+/* [PP] mod:44 · autor:Nova · 2026-07-08 14:15 UTC-6 */
 /* TKT-202607-027: removidas .kanban-card--dragging/.kanban-drop-indicator + @keyframes
    bl-drag-ripple (huérfano — sin consumidor en ningún archivo del scope, exclusivo del
    drag de Vista Kanban deprecada). No se toca .kb-selected (vive en locus-backlog.css). */
@@ -1501,7 +1501,7 @@
 /* ═══ END T-202604-307 ═══ */
 
 /* === locus-checkpoint-viz.js ===
-   Funciones: showCheckpointPanel · closeCkptPanel · _showArranquePanel (CSS Purity migration) */
+   Funciones: showCheckpointPanel · closeCkptPanel */
 
 /* ═══ §15 CSS Purity — checkpoint.js parte 1 ═══ */
 
@@ -2900,51 +2900,12 @@ body:not([data-theme]) .theme-toggle-btn::before {
   color: var(--text);
 }
 
-.gf-pulso {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  background: none;
-  border: none;
-  border-radius: var(--radius-pill);
-  padding: 0;
-  pointer-events: auto;
-  cursor: pointer;
-  transition: var(--trans-color);
-  flex-shrink: 0;
-}
-
-.gf-pulso:hover {
-  background: var(--surface2);
-}
-
-.gf-pulso--link {
-  pointer-events: auto;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-  padding: 1px 5px;
-  transition: var(--trans-color);
-}
-
-.gf-pulso--link:hover {
-  background: var(--surface3);
-  color: var(--text);
-}
-
 /* T-202607-XXX (TKT5 footer redesign): degradación progresiva en viewport angosto.
-   AC1: ≥768px sin cambio. AC2: <768px oculta gf-ckpt primero, <480px oculta también
-   gf-pulso — sin JS de detección de ancho. Breakpoints asumidos (768 dado por AC
-   literal, 480 sin _Locus-css-ref adjunto — declarar si el proyecto define otro). */
+   AC1: ≥768px sin cambio. AC2: <768px oculta gf-ckpt. Breakpoint 768 dado por AC
+   literal. Nota: <480px ocultaba también .gf-pulso — clase y @media removidos en
+   deprecación de Pulso/Arranque (INC main.js loadPlan huérfano, TKT-202607-042). */
 @media (max-width: 767px) {
   .gf-ckpt {
-    display: none;
-  }
-}
-
-@media (max-width: 480px) {
-  .gf-pulso {
     display: none;
   }
 }
