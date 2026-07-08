@@ -1,4 +1,4 @@
-// [PP] mod:78 · autor:Rune · 2026-07-07 UTC-6
+// [PP] mod:79 · autor:Rune · 2026-07-08 UTC-6
 // TKT-202607-056 (REQ-202607-015 · TKT3): renderQIncPanel() construye allQInc con
 //   getItems().concat(getIncidents()) en vez de solo getItems() — badge y alerta SLA
 //   heredan el universo corregido sin cambio adicional (ya derivan de allQInc).
@@ -538,17 +538,18 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
     if (!sprintMap[s.id]) sprintMap[s.id] = [];
   });
 
-  // AC2: orden descendente de sprint ID — más reciente primero
+  // TKT (REQ Sort de headers de sprint): orden ascendente de sprint ID — reemplaza el criterio
+  // descendente de AC2 anterior. Activo siempre primero, luego el resto por número ascendente.
   // Sprints sin objeto en getActiveSprints() (solo ítems con sprint string) también se ordenan por número
   const sprintKeys = Object.keys(sprintMap).sort((a, b) => {
     const sa = _getSprintById(a), sb = _getSprintById(b);
-    // Activo siempre primero, luego descendente por número de sprint
+    // Activo siempre primero, luego ascendente por número de sprint
     const rankA = sa?.status === 'active' ? 0 : 1;
     const rankB = sb?.status === 'active' ? 0 : 1;
     if (rankA !== rankB) return rankA - rankB;
     const na = parseInt(a.replace(/\D/g, '')) || 0;
     const nb = parseInt(b.replace(/\D/g, '')) || 0;
-    return nb - na; // descendente
+    return na - nb; // ascendente
   });
 
   let html = '';
