@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:16 · autor:Rune · 2026-06-26 UTC-6
+// [PP] mod:17 · autor:Rune · 2026-07-08 16:30 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -9,7 +9,7 @@ import { _sessRelTsShared } from './locus-sesiones-utils.js';
 // T-202606-166: _getActiveProjectFilter movida a locus-storage.js
 import { showToast, showToastInline, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab, getCurrentTab } from './locus-ui-shell.js';
-import { _findSession, _findSessionByAI, _getActiveProjectFilter, getAI, getAISessions, getActiveTracker, getState, save, _resetWorker } from './locus-storage.js';
+import { _findSession, _findSessionByAI, _getActiveProjectFilter, _mutateSessions, getAI, getAISessions, getActiveTracker, getState, save, _resetWorker } from './locus-storage.js';
 
 // TKT0-gen2: deriva tipo Gen2 desde code o campo type — reemplaza code[0]
 function _codeKind(codeOrItem) {
@@ -487,10 +487,9 @@ function savePreviewProject(aiId, sessId, newProjId) {
   const toProj = projects.find(p => p.id === newProjId);
   if (!toProj) return;
   if (fromProj && fromProj.id === newProjId) return; // sin cambio
-  // Mover sesión al nuevo proyecto
-  if (fromProj) fromProj.sessions = (fromProj.sessions || []).filter(x => x.id !== sessId);
-  if (!toProj.sessions) toProj.sessions = [];
-  toProj.sessions.push(sess);
+  // TKT3 · REQ-sessions-mutator AC-5: 'move' reasigna project_id vía upsert — nunca dispara
+  // DELETE (la fila es única por user_id+session_id, no por proyecto).
+  _mutateSessions(fromProj, 'move', { toProj, sessionId: sessId });
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker'));
   showToast('success', `Sesión movida a ${esc(toProj.icon || '📁')} ${esc(toProj.name)}`);
 }

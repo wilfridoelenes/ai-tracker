@@ -1,4 +1,4 @@
-// [PP] mod:101 · autor:Rune · 2026-07-08 16:10 UTC-6
+// [PP] mod:102 · autor:Rune · 2026-07-08 16:30 UTC-6
 // INC-[pendiente-ID]: _subscribeRealtime() no reconectaba tras CHANNEL_ERROR/CLOSED/TIMED_OUT
 // — el guard de idempotencia bloqueaba la reconexión porque _realtimeChannels seguía con
 // canales muertos y _realtimeSubscribedFor sin resetear. Fix: _handleChannelStatus() limpia
@@ -216,12 +216,14 @@ let _dirtySyncBaseline = new Set();
 let _dirtySessionRemovals = {};
 
 // _mutateSessions() — único punto de mutación de proj.sessions con dirty-tracking.
-// op: 'add' (agrega payload al final) | 'remove' (filtra por payload = sessionId).
+// op: 'add' (agrega payload al final) | 'remove' (filtra por payload = sessionId) |
+//     'move' (payload = {toProj, sessionId} — reasigna proyecto sin DELETE, ver TKT3).
 // Invariant: toda mutación de proj.sessions fuera de esta función no queda registrada como
 // dirty — _saveSessions() la ignorará hasta el próximo full-resync. TKT1 migró el call site de
-// creación (locus-session-save.js); TKT2 corrige 'remove' (DELETE real, ver abajo) y migra
-// confirmPurge() (locus-reports.js). Quedan pendientes: locus-session-popup.js (borrar/mover
-// sesión) y locus-workers.js (borrar por aiId) — TKT3.
+// creación (locus-session-save.js); TKT2 corrigió 'remove' (DELETE real) y migró
+// confirmPurge() (locus-reports.js); TKT3 agrega 'move' y migra savePreviewProject()
+// (locus-session-popup.js). Queda pendiente: deleteCurrentSession() (popup) y
+// executeConfirm('clear') (locus-workers.js, borrado en bloque por aiId) — TKT4.
 // 'remove' (TKT2): además de filtrar proj.sessions, encola el id en _dirtySessionRemovals —
 // _saveSessions() emite DELETE real contra tracker_sessions por cada id encolado.
 export function _mutateSessions(proj, op, payload) {
@@ -236,6 +238,21 @@ export function _mutateSessions(proj, op, payload) {
   } else if (op === 'remove') {
     proj.sessions = proj.sessions.filter(s => s.id !== payload);
     _dirtySessionRemovals[proj.id].add(payload);
+  } else if (op === 'move') {
+    // TKT3 · REQ-sessions-mutator: mover sesión entre proyectos — misma fila en Supabase
+    // (onConflict user_id+session_id, verificado contra el mapa de verifyConstraintsSync():
+    // tracker_sessions: ['user_id','session_id']). No dispara DELETE — solo reasigna
+    // project_id vía upsert, marcando dirty en toProj. Nunca toca _dirtySessionRemovals
+    // de proj (fromProj) — la fila no se borra, solo se reescribe.
+    const { toProj, sessionId } = payload;
+    if (!toProj) return;
+    const idx = proj.sessions.findIndex(s => s.id === sessionId);
+    if (idx === -1) return;
+    const [sess] = proj.sessions.splice(idx, 1);
+    if (!toProj.sessions) toProj.sessions = [];
+    toProj.sessions.push(sess);
+    if (!_dirtySessionIds[toProj.id]) _dirtySessionIds[toProj.id] = new Set();
+    _dirtySessionIds[toProj.id].add(sessionId);
   }
 }
 
