@@ -1,4 +1,4 @@
-// [PP] mod:99 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:100 · autor:Rune · 2026-07-08 UTC-6
 // TKT-202607-046 (REQ-202607-015): _undoSnapshot() extendida a snapshot combinado
 //   {items: ITEMS, incidents: INCIDENTS} — antes solo capturaba ITEMS, por lo que un undo tras
 //   mutar un INC/PRB/KE/CHG (vía _setIncidents(), que ya invocaba _undoSnapshot() desde
@@ -1291,6 +1291,11 @@ export function toggleVersionCollapse(v) {
 // B-202605-ids: acepta reservedCodes (Set) para evitar colisiones dentro de una misma
 // pasada de _assignPendingIds — los ítems nuevos aún no están en ITEMS cuando se llama
 // en batch, por lo que sin este parámetro todos obtienen el mismo número.
+// INC-[pendiente-ID] fix (triggered_by INC-202607-001): el escaneo de maxNum filtraba por
+// prefix `${typeChar}-${yyyymm}-` del MES EN CURSO — al cambiar de mes, maxNum arrancaba en 0
+// sin considerar el NNN más alto de meses anteriores del mismo tipo. __BR-Ecosystem §4 exige
+// contador acumulativo por tipo, independiente del mes. Ahora se escanea por tipo únicamente
+// (regex sin yyyymm fijo) y el yyyymm del código nuevo sigue siendo el del momento de emisión.
 export function _getNextItemCode(typeChar, reservedCodes) {
   if (!typeChar || !_GEN2_TYPES.includes(typeChar)) {
     console.warn(`_getNextItemCode: typeChar "${typeChar}" no es un tipo canónico (${_GEN2_TYPES.join('/')}). Código no generado.`);
@@ -1300,30 +1305,29 @@ export function _getNextItemCode(typeChar, reservedCodes) {
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const yyyymm = `${year}${month}`;
-  const prefix = `${typeChar}-${yyyymm}-`;
+  // INC-[pendiente-ID] fix: regex de tipo sin mes fijo — acumulativo por tipo, todos los meses.
+  const typeRe = new RegExp(`^${typeChar}-\\d{6}-(\\d{3})(?:-[A-Za-z]+)?$`);
   let maxNum = 0;
   // TKT-202607-005: buscar colisión de código en el array donde el tipo realmente reside —
   // ITIL (INCIDENT_TYPES) vive en INCIDENTS, backlog (BACKLOG_TYPES) vive en ITEMS. Antes de
   // la separación ambos vivían en ITEMS y una sola iteración bastaba.
   const _sourceArr = INCIDENT_TYPES.includes(typeChar) ? INCIDENTS : ITEMS;
   _sourceArr.forEach(item => {
-    if (item.code && item.code.startsWith(prefix)) {
-      const numMatch = item.code.match(new RegExp(`${prefix}(\\d{3})`));
-      if (numMatch) {
-        const num = parseInt(numMatch[1]);
-        if (num > maxNum) maxNum = num;
-      }
+    if (!item.code) return;
+    const numMatch = item.code.match(typeRe);
+    if (numMatch) {
+      const num = parseInt(numMatch[1]);
+      if (num > maxNum) maxNum = num;
     }
   });
   // B-202605-ids: también considerar códigos ya reservados en esta pasada (no están en ITEMS aún)
   if (reservedCodes && reservedCodes.size) {
     reservedCodes.forEach(rc => {
-      if (rc && rc.startsWith(prefix)) {
-        const numMatch = rc.match(new RegExp(`${prefix}(\\d{3})`));
-        if (numMatch) {
-          const num = parseInt(numMatch[1]);
-          if (num > maxNum) maxNum = num;
-        }
+      if (!rc) return;
+      const numMatch = rc.match(typeRe);
+      if (numMatch) {
+        const num = parseInt(numMatch[1]);
+        if (num > maxNum) maxNum = num;
       }
     });
   }
