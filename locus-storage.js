@@ -1,4 +1,4 @@
-// [PP] mod:102 · autor:Rune · 2026-07-08 16:30 UTC-6
+// [PP] mod:103 · autor:Rune · 2026-07-08 16:45 UTC-6
 // INC-[pendiente-ID]: _subscribeRealtime() no reconectaba tras CHANNEL_ERROR/CLOSED/TIMED_OUT
 // — el guard de idempotencia bloqueaba la reconexión porque _realtimeChannels seguía con
 // canales muertos y _realtimeSubscribedFor sin resetear. Fix: _handleChannelStatus() limpia
@@ -890,9 +890,15 @@ async function _saveFlush() {
       if (error) throw error;
 
       // Sesiones — upsert en paralelo por proyecto
+      // INC-[pendiente-ID] (triggered_by TKT2): antes solo se llamaba _saveSessions(proj)
+      // si proj.sessions.length > 0 — un proyecto purgado por completo (sessions vacío)
+      // nunca llegaba a _saveSessions(), así que su DELETE pendiente en
+      // _dirtySessionRemovals jamás se enviaba. Ahora también entra si hay removals
+      // pendientes, aunque sessions esté vacío.
       const sessionWrites = [];
       for (const proj of (state.projects || [])) {
-        if (proj.sessions && proj.sessions.length > 0) {
+        const hasPendingRemovals = _dirtySessionRemovals[proj.id] && _dirtySessionRemovals[proj.id].size > 0;
+        if ((proj.sessions && proj.sessions.length > 0) || hasPendingRemovals) {
           sessionWrites.push(_saveSessions(proj));
         }
       }

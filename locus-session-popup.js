@@ -1,4 +1,4 @@
-// [PP] mod:17 · autor:Rune · 2026-07-08 16:30 UTC-6
+// [PP] mod:18 · autor:Rune · 2026-07-08 17:05 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -9,7 +9,7 @@ import { _sessRelTsShared } from './locus-sesiones-utils.js';
 // T-202606-166: _getActiveProjectFilter movida a locus-storage.js
 import { showToast, showToastInline, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab, getCurrentTab } from './locus-ui-shell.js';
-import { _findSession, _findSessionByAI, _getActiveProjectFilter, _mutateSessions, getAI, getAISessions, getActiveTracker, getState, save, _resetWorker } from './locus-storage.js';
+import { _findSession, _findSessionByAI, _getActiveProjectFilter, _mutateSessions, getAI, getAISessions, getActiveTracker, getState, save, saveImmediate, _resetWorker } from './locus-storage.js';
 
 // TKT0-gen2: deriva tipo Gen2 desde code o campo type — reemplaza code[0]
 function _codeKind(codeOrItem) {
@@ -366,8 +366,10 @@ function deleteCurrentSession() {
   if (!popAIId || !popSessId) return;
   const found = _findSession(popSessId);
   if (!found) return;
-  found.proj.sessions = found.proj.sessions.filter(s => s.id !== popSessId);
-  save(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); closePopup(); _rebuildLogBody(); showToast('success', 'Sesión eliminada');
+  // TKT4 · REQ-sessions-mutator: migrado de mutación directa a _mutateSessions('remove', ...)
+  // — encola popSessId en _dirtySessionRemovals para que _saveSessions() emita el DELETE real.
+  _mutateSessions(found.proj, 'remove', popSessId);
+  saveImmediate(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); closePopup(); _rebuildLogBody(); showToast('success', 'Sesión eliminada');
 }
 // T-087: confirmación inline
 function openDeleteConfirm() {

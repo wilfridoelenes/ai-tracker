@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] mod:2 · autor:Rune · 2026-07-08 17:05 UTC-6
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm.
 //   Define AVATAR_LOGOS (SVGs de avatares) — movido desde locus-checkpoint-stats.js.
@@ -12,7 +12,7 @@ import { _restoreModalFocus, _saveModalTrigger, closeModal } from './locus-modal
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchTab } from './locus-ui-shell.js';
 
-import { getAI, getAISessions, save } from './locus-storage.js';
+import { _mutateSessions, getAI, getAISessions, save, saveImmediate, state } from './locus-storage.js';
 
 // ── AVATAR_LOGOS — fuente de verdad de SVGs de avatares ──
 const AVATAR_LOGOS = {
@@ -290,9 +290,12 @@ export function executeConfirm(id, action) {
   closeInlineConfirm(id);
   if (action === 'clear') {
     const ai = getAI(id);
-    // v3: eliminar sesiones de esta IA de todos los proyectos
+    // TKT4 · REQ-sessions-mutator: eliminar sesiones de esta IA de todos los proyectos
+    // vía _mutateSessions('remove', ...) — mismo mutador que confirmPurge() (TKT2) y
+    // deleteCurrentSession() (TKT4, locus-session-popup.js).
     (state.projects || []).forEach(proj => {
-      if (proj.sessions) proj.sessions = proj.sessions.filter(s => s.aiId !== id);
+      const toRemove = (proj.sessions || []).filter(s => s.aiId === id).map(s => s.id);
+      toRemove.forEach(sessId => _mutateSessions(proj, 'remove', sessId));
     });
     saveImmediate(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); showToast('success', `Historial de ${ai.name} limpiado`);
   } else if (action === 'delete') {
