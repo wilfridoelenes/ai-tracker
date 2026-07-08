@@ -1,4 +1,17 @@
-// [PP] mod:98 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:99 · autor:Rune · 2026-07-08 UTC-6
+// TKT-202607-046 (REQ-202607-015): _undoSnapshot() extendida a snapshot combinado
+//   {items: ITEMS, incidents: INCIDENTS} — antes solo capturaba ITEMS, por lo que un undo tras
+//   mutar un INC/PRB/KE/CHG (vía _setIncidents(), que ya invocaba _undoSnapshot() desde
+//   TKT-202607-005) no revertía nada: el snapshot no incluía INCIDENTS y _setITEMS() no la toca.
+//   _setIncidentsRaw(arr) agregada — restauración de INCIDENTS por reemplazo total (splice),
+//   sin merge y sin _undoSnapshot() propio, usada exclusivamente por undoBacklog()/
+//   redoBacklog(). No reemplaza a _setIncidents() (mutador público de flujo normal, merge
+//   aditivo, se auto-snapshotea) — esa función no cambia. Firma de _undoSnapshot()/
+//   undoBacklog()/redoBacklog() sin cambio — sin impacto en call sites existentes (listeners
+//   #btn-undo-backlog/#btn-redo-backlog en este archivo; atajo de teclado no verificable, no
+//   está en este archivo). AC-3 del TKT corregido en sesión — ver CHECKPOINT: el código no
+//   emite nota en DocLog en el no-op de stack vacío hoy para TKT/REQ (return silencioso puro),
+//   la corrección alinea el AC al comportamiento real en vez de asumir uno inexistente.
 // TKT-202607-045 (REQ-202607-015): getAnyItem(code) agregada — lookup unificado ITEMS+INCIDENTS
 //   por código, sin que el caller sepa de antemano si el código es Scrum o ITIL. Solo lectura.
 // TKT-202607-011 (TKT3 REQ-202607-006): namespace de filtro por área agregado a _subtabNS —
@@ -292,6 +305,11 @@ function _setIncidents(itemOrArr) {
 }
 
 // B-202604-002: undo/redo stack para ITEMS (20 niveles)
+// TKT-202607-046 (REQ-202607-015): stack extendido a snapshot combinado {items, incidents} —
+// antes solo capturaba ITEMS. _setIncidents() ya invocaba _undoSnapshot() desde TKT-202607-005
+// pero el snapshot resultante no incluía INCIDENTS, por lo que un undo tras mutar un INC/PRB/
+// KE/CHG no revertía nada (_setITEMS() no toca INCIDENTS). Mismo UNDO_MAX, mismos dos stacks —
+// solo cambia el shape del string serializado en cada entrada.
 const UNDO_MAX = 20;
 let _undoStack = [];
 let _redoStack = [];
@@ -313,17 +331,40 @@ export function _openItemEditorSafe(id, code) {
   }
 }
 
+// TKT-202607-046: _setIncidentsRaw(arr) — restauración desde snapshot combinado de undo/redo.
+// Reemplazo total del array INCIDENTS (splice), sin merge y sin _undoSnapshot() propio — mismo
+// invariant que _setITEMS() (que tampoco se auto-snapshotea): el caller ya tomó el snapshot
+// combinado antes de mutar. No confundir con _setIncidents() (mutador público de flujo normal
+// de negocio, merge aditivo, se auto-snapshotea) — esa función no cambia en este TKT.
+function _setIncidentsRaw(arr) {
+  const _safe = (Array.isArray(arr) ? arr : []).filter(i => i.status !== 'historico');
+  INCIDENTS.splice(0, INCIDENTS.length, ..._safe);
+}
+
+// TKT-202607-046: snapshot combinado {items, incidents} — antes solo `JSON.stringify(ITEMS)`.
+// Firma sin cambio (_undoSnapshot() → void) — callers externos (locus-backlog-item.js,
+// locus-backlog-panel.js, locus-backlog-merge.js, locus-backlog-editor.js,
+// locus-backlog-render.js, locus-backlog-sprints.js — ver _Locus-module-contracts §_undoSnapshot)
+// no requieren cambio: siguen invocándola igual antes de mutar ITEMS, y ahora capturan también
+// el estado vigente de INCIDENTS en el mismo snapshot sin saberlo ni necesitar saberlo.
 export function _undoSnapshot() {
-  _undoStack.push(JSON.stringify(ITEMS));
+  _undoStack.push(JSON.stringify({ items: ITEMS, incidents: INCIDENTS }));
   if (_undoStack.length > UNDO_MAX) _undoStack.shift();
   _redoStack = [];
   _updateUndoUI();
 }
 
+// TKT-202607-046: undoBacklog()/redoBacklog() restauran ambos arrays desde el snapshot
+// combinado. Firma sin cambio (ambas siguen sin parámetros, void) — call sites existentes
+// (listeners #btn-undo-backlog/#btn-redo-backlog en DOMContentLoaded, este mismo archivo)
+// no requieren cambio. Atajo de teclado no está presente en este archivo — no verificable en
+// esta sesión, señalado en CHECKPOINT.
 export function undoBacklog() {
   if (!_undoStack.length) return;
-  _redoStack.push(JSON.stringify(ITEMS));
-  _setITEMS(JSON.parse(_undoStack.pop()));
+  _redoStack.push(JSON.stringify({ items: ITEMS, incidents: INCIDENTS }));
+  const _snap = JSON.parse(_undoStack.pop());
+  _setITEMS(_snap.items);
+  _setIncidentsRaw(_snap.incidents);
   saveBacklog();
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   renderStats();
@@ -333,8 +374,10 @@ export function undoBacklog() {
 
 export function redoBacklog() {
   if (!_redoStack.length) return;
-  _undoStack.push(JSON.stringify(ITEMS));
-  _setITEMS(JSON.parse(_redoStack.pop()));
+  _undoStack.push(JSON.stringify({ items: ITEMS, incidents: INCIDENTS }));
+  const _snap = JSON.parse(_redoStack.pop());
+  _setITEMS(_snap.items);
+  _setIncidentsRaw(_snap.incidents);
   saveBacklog();
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   renderStats();

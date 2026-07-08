@@ -1,4 +1,4 @@
-// [PP] mod:104 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:105 · autor:Rune · 2026-07-08 UTC-6
 // INC-[pendiente-ID]: _subscribeRealtime() no reconectaba tras CHANNEL_ERROR/CLOSED/TIMED_OUT
 // — el guard de idempotencia bloqueaba la reconexión porque _realtimeChannels seguía con
 // canales muertos y _realtimeSubscribedFor sin resetear. Fix: _handleChannelStatus() limpia
@@ -1484,14 +1484,18 @@ export async function saveBacklog() {
   }
 
   // AC-3: un único timestamp epoch para todas las filas del batch — calculado antes de map().
-  // DDL: updated_at BIGINT (epoch ms). _writeTs (ISO) sigue siendo la referencia para
-  // meta.updated y _realtimeLastTs — ambos usan string ISO por compatibilidad con el resto
-  // de la app. _updatedAtMs es exclusivo del upsert a tracker_items.
+  // DDL: updated_at BIGINT (epoch ms) — usado tal cual en cada fila del upsert a tracker_items.
   const _updatedAtMs = Date.now();
 
-  // T-202606-097: registrar _realtimeLastTs ANTES del await — mismo patrón que _saveFlush().
-  // Evita que el echo de Realtime de tracker_items dispare _loadFromSupabase() innecesariamente.
-  _realtimeLastTs = _writeTs;
+  // INC-[pendiente-ID]: registrar _realtimeLastTs ANTES del await — mismo patrón que _saveFlush().
+  // Fix: antes se asignaba _writeTs (ISO, calculado ~176 líneas antes en esta misma función,
+  // instante distinto de reloj) en vez de _updatedAtMs (BIGINT, el valor real escrito en
+  // updated_at de tracker_items). _toEpochMs() normaliza formato pero no corrige un valor que
+  // representa un instante distinto — remoteMs (eco de cada fila vía Realtime) nunca igualaba
+  // lastMs, el guard de _handleRemoteChange nunca frenaba el echo, y un upsert de N filas
+  // disparaba hasta N _loadFromSupabase() en cascada (uno por evento postgres_changes de fila).
+  // _realtimeLastTs ahora usa el mismo valor exacto que se persiste — coincidencia garantizada.
+  _realtimeLastTs = _updatedAtMs;
 
   // REQ-PERSIST-OPT TKT2: respaldo local optimista — ANTES del upsert, no después.
   // AC-1/AC-4: usa 'items' ya filtrado por el gate chk_status_by_type (arriba en esta función),
