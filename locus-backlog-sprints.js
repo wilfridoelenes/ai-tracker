@@ -1,10 +1,10 @@
-// [PP] mod:42 · autor:Rune · 2026-07-07 19:15 UTC-6
-// TKT5 (REQ-202607-015): _scmExecuteClose — incidentes elegibles (INC/PRB/KE/CHG closed) ya
-//   no se mutan con i.status='historico' huérfano (campo que INCIDENTS no tiene como canónico
-//   y que nunca se persistía — el filtro de abajo solo leía getItems()). Se recolectan aparte
-//   en _historicoIncidentsThisClose, se incluyen en el mismo batch de saveHistoricoItems() que
-//   los ITEMS historico, y se eliminan de tracker_incidents vía deleteIncidentRows() solo tras
-//   escritura exitosa (write antes que delete). incident_status nunca se toca.
+// [PP] mod:43 · autor:Rune · 2026-07-08 UTC-6
+// TKT7 (REQ-202607-015): revertido el bloque TKT5 — _scmExecuteClose ya no recolecta,
+//   persiste ni elimina incidentes elegibles al cerrar sprint. AC3 del REQ (verificado por
+//   Finn contra __BR-Core §6 y confirmado por el founder: Q-INC/ITEMS son poblaciones
+//   separadas, incident_status:closed es terminal, Q-INC no migra a historico) prohíbe esa
+//   migración. TKT5/TKT6 permanecen descartado. Único call site de deleteIncidentRows()
+//   era este bloque — import removido, export retirado de locus-storage.js (ver ese header).
 //   Módulo crítico — activar verificación de regresiones en Finn.
 // TKT-202607-045 (REQ-202607-015): _incEligibleForSprintClose se evalúa contra
 //   getItems().concat(getIncidents()) en _generateSprintRetroMd (~línea 222) y en la
@@ -37,7 +37,7 @@ import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
 import { renderSprintTab } from './locus-sprint.js';
-import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, deleteIncidentRows, _invalidateHistoricoCache, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT1 (REQ-sprints-migration): _loadSprintsFromSupabase eliminado del import — sin call site real, solo referenciado en comentario línea ~959. Función reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js, sin uso en este módulo. TKT5 (REQ-202607-015): deleteIncidentRows agregada — remueve tracker_incidents tras migración exitosa a historico.
+import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _invalidateHistoricoCache, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT1 (REQ-sprints-migration): _loadSprintsFromSupabase eliminado del import — sin call site real, solo referenciado en comentario línea ~959. Función reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js, sin uso en este módulo. TKT7 (REQ-202607-015): deleteIncidentRows removida del import — su único call site (_scmExecuteClose) fue eliminado; export retirado de locus-storage.js.
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
 
@@ -1347,23 +1347,14 @@ async function _scmExecuteClose() {
     }
   });
 
-  // TKT2 (REQ-inc-historico): migrar INC/PRB/KE/CHG closed correlacionados a este sprint —
-  // mismo criterio de _incEligibleForSprintClose usado por _generateSprintRetroMd (AC de
-  // contrato: retro e historico real deben coincidir en los mismos códigos).
-  // TKT5 (REQ-202607-015): la versión anterior de este bloque hacía
-  // getItems().concat(getIncidents()).forEach(i => { i.status = 'historico'; ... }) — pero los
-  // incidentes elegibles no pertenecen a getItems(), así que el bloque de persistencia de
-  // abajo (que filtra sobre _itemsArr = getItems()) nunca los incluía en el upsert a
-  // tracker_items ni los eliminaba de ITEMS. El resultado: se mutaba un campo `.status` que
-  // los incidentes no tienen como canónico (su campo real es incident_status, intacto) sobre
-  // el objeto vivo de INCIDENTS, sin ningún efecto de persistencia — el incidente nunca
-  // llegaba a historico y nunca se eliminaba de tracker_incidents. Corrección: los incidentes
-  // elegibles se recolectan aparte, sin tocar incident_status ni agregar campos al objeto
-  // vivo — se persisten junto con _newHistorico en el bloque de abajo, y se eliminan de
-  // tracker_incidents solo tras persistencia exitosa (ver deleteIncidentRows más abajo).
-  const _sprintOpenedAtClose = spForClose ? (spForClose.startedAt || 0) : 0;
-  const _historicoIncidentsThisClose = getIncidents()
-    .filter(i => _incEligibleForSprintClose(i, id, _sprintOpenedAtClose));
+  // TKT7 (REQ-202607-015): bloque de migración de INC/PRB/KE/CHG a historico eliminado.
+  // AC3 del REQ (verificado por Finn contra __BR-Core §6 — "Q-INC no migra a historico,
+  // incident_status:closed es terminal por sí mismo, zona persistente sin evento de
+  // archivo") prohíbe este comportamiento — Q-INC/ITEMS son poblaciones separadas con
+  // ciclos de vida propios, confirmado explícitamente por el founder. TKT5/TKT6, que
+  // implementaban esta migración, permanecen descartado. getIncidents() se conserva
+  // importado — sigue en uso por _generateSprintRetroMd (línea ~236) para la bitácora
+  // informativa "incident · [fecha]" en retro, que no muta ni elimina el incidente.
 
   // T-202606-122 — bloque eliminado (TKT-B3, BR-Execution §2 Sin retrocompatibilidad).
   // Migraba ítems pendiente/en-revision a 'icebox' al cerrar sprint. Código muerto:
@@ -1375,32 +1366,22 @@ async function _scmExecuteClose() {
   // T-202606-107 AC-1 + AC-2: ítems historico nunca residen en ITEMS — se escriben al
   // storage dedicado (T-202606-105) y se remueven de ITEMS en la misma operación de cierre.
   // AC-4: 0 ítems califican → no invocar saveHistoricoItems ni getHistoricoItems, sin excepción.
-  // TKT5 (REQ-202607-015): el gate ahora considera ítems + incidentes juntos — 0 de ambos
-  // → no se invoca saveHistoricoItems ni deleteIncidentRows para ningún tipo.
-  if (_historicoCodesThisClose.size > 0 || _historicoIncidentsThisClose.length > 0) {
+  // TKT7 (REQ-202607-015): gate restaurado a solo ITEMS — INC/PRB/KE/CHG nunca pasan por
+  // este bloque, consistente con AC3 (incident_status:closed es terminal, sin migración).
+  if (_historicoCodesThisClose.size > 0) {
     const _itemsArr = getItems();
     const _newHistorico = _itemsArr.filter(i => _historicoCodesThisClose.has(i.code));
     // Acumular sobre lo ya persistido — saveHistoricoItems() sobreescribe la clave completa,
     // no hace merge. Sin esta lectura previa, cada cierre de sprint borraría el histórico anterior.
-    // TKT5: los incidentes elegibles (_historicoIncidentsThisClose) se incluyen en el mismo
-    // array — misma llamada, sin invocación separada. saveHistoricoItems() asigna
-    // status:'historico' y preserva incident_status/sla_priority/derived_items/queue sin
-    // cambio de firma (mapeo ya soportaba estos campos desde REQ-202607-003/TKT-202607-044).
-    let _historicoWriteOk = false;
     try {
       const _existingHistorico = await getHistoricoItems();
-      await saveHistoricoItems([...(_existingHistorico || []), ..._newHistorico, ..._historicoIncidentsThisClose]);
-      _historicoWriteOk = true;
+      await saveHistoricoItems([...(_existingHistorico || []), ..._newHistorico]);
     } catch (err) {
       // AC-3: fallo de escritura no revierte el cierre — los ítems ya marcados historico
       // quedan en localStorage como fallback (saveHistoricoItems ya cubre ese fallback
       // internamente). Registrar el fallo en DocLog con el sprint_id afectado.
-      // TKT5 (error/edge — AC): si el batch con incidentes falla, deleteIncidentRows NO se
-      // invoca — ver gate _historicoWriteOk más abajo. El/los incidente(s) permanecen sin
-      // cambios en tracker_incidents, disponibles para reintento en el próximo cierre o
-      // sesión de Rune.
       console.error('[AI Tracker] _scmExecuteClose: fallo al persistir historico en storage dedicado', err);
-      _blogLog('historico-write-error', id, `Fallo al persistir ${_historicoCodesThisClose.size} ítem(s) + ${_historicoIncidentsThisClose.length} incidente(s) historico en storage dedicado al cerrar ${id}: ${err.message || err}`, 'backlog');
+      _blogLog('historico-write-error', id, `Fallo al persistir ${_historicoCodesThisClose.size} ítem(s) historico en storage dedicado al cerrar ${id}: ${err.message || err}`, 'backlog');
     }
     // Remover de ITEMS — sin pasar por _setITEMS (no exportada desde locus-backlog-core.js).
     // Misma referencia mutable que getItems() retorna — splice in-place equivalente al
@@ -1412,23 +1393,6 @@ async function _scmExecuteClose() {
     // INC-[pendiente-ID]: invalidar cache sync de historico — independiente de si
     // saveHistoricoItems tuvo éxito (ITEMS ya se mutó arriba; el próximo read debe reflejarlo).
     _invalidateHistoricoCache();
-
-    // TKT5 (REQ-202607-015): eliminar de tracker_incidents SOLO si el write a historico tuvo
-    // éxito para el batch que incluye a los incidentes — orden de operaciones explícito
-    // (write antes que delete). 0 incidentes elegibles → deleteIncidentRows no se invoca.
-    if (_historicoWriteOk && _historicoIncidentsThisClose.length > 0) {
-      const _incCodesToDelete = _historicoIncidentsThisClose.map(i => i.code);
-      try {
-        await deleteIncidentRows(_incCodesToDelete);
-      } catch (delErr) {
-        // TKT5 (error/edge — AC): write ok pero delete falla → registrar en DocLog con
-        // el/los code(s) afectados. El incidente queda temporalmente visible tanto en
-        // getIncidents() como en getHistoricoItems() hasta que un reintento complete el
-        // DELETE. No revierte el cierre del sprint.
-        console.error('[AI Tracker] _scmExecuteClose: fallo al eliminar incidentes de tracker_incidents post-migración', delErr);
-        _blogLog('historico-incident-delete-error', id, `Fallo al eliminar ${_incCodesToDelete.length} incidente(s) de tracker_incidents tras migrar a historico en ${id}: ${delErr.message || delErr}. Codes: ${_incCodesToDelete.join(', ')}`, 'backlog');
-      }
-    }
   }
 
   _undoSnapshot();
