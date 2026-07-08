@@ -1,4 +1,4 @@
-// [PP] mod:97 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:98 · autor:Rune · 2026-07-08 14:15 UTC-6
 // INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados wiring de
 // _showArranquePanel (import + setTimeout en _renderAfterAuth) y los 4 sitios de dispatch
 // 'shell:mark-pulso-dirty'/'shell:render-pulso-dot' (post-debounce, save() no-auth, save()
@@ -196,6 +196,34 @@ let _realtimeChannels   = [];     // T-202606-002: canales Realtime — tracker_
 // ante llamadas repetidas del mismo usuario — ver comentario completo en _subscribeRealtime().
 let _realtimeSubscribedFor = null;
 let _realtimeLastTs     = null;   // timestamp del último update remoto procesado
+
+// TKT1 · REQ-sessions-mutator: dirty-tracking de sesiones por proyecto — evita que _saveFlush()
+// re-suba el array completo de proj.sessions en cada guardado. _mutateSessions() es el único
+// punto que debe escribir en proj.sessions Y en este mapa a la vez (ver invariant del mutador).
+// {projectId: Set<sessionId>} — vacío o ausente para un proyecto = nada pendiente de subir.
+// _dirtySyncBaseline registra qué proyectos ya tuvieron su primer upsert completo — sin esta
+// marca, _saveSessions() no puede distinguir "proyecto sin cambios" de "proyecto nunca sincronizado".
+let _dirtySessionIds  = {};
+let _dirtySyncBaseline = new Set();
+
+// _mutateSessions() — único punto de mutación de proj.sessions con dirty-tracking.
+// op: 'add' (agrega payload al final) | 'remove' (filtra por payload = sessionId).
+// Invariant: toda mutación de proj.sessions fuera de esta función no queda registrada como
+// dirty — _saveSessions() la ignorará hasta el próximo full-resync. TKT1 solo migra el call
+// site de creación (locus-session-save.js); los 7 restantes quedan en TKTs subsecuentes.
+export function _mutateSessions(proj, op, payload) {
+  if (!proj) return;
+  if (!proj.sessions) proj.sessions = [];
+  if (!_dirtySessionIds[proj.id]) _dirtySessionIds[proj.id] = new Set();
+
+  if (op === 'add') {
+    proj.sessions.push(payload);
+    _dirtySessionIds[proj.id].add(payload.id);
+  } else if (op === 'remove') {
+    proj.sessions = proj.sessions.filter(s => s.id !== payload);
+    _dirtySessionIds[proj.id].add(payload);
+  }
+}
 
 // TKT1 · REQ-sprints-migration: cache cross-proyecto en módulo de sprints — fuente de verdad en
 // runtime, poblado desde tracker_sprints en una sola query sin filtro project_id. Objeto plano
@@ -974,15 +1002,28 @@ async function _saveSessions(proj) {
     console.warn('[AI Tracker] _saveSessions: fallo al escribir respaldo local pre-upsert', lsErr);
   }
 
-  // Supabase — upsert por lotes de 400
+  // Supabase — upsert por lotes de 400, solo de sesiones dirty (TKT1 · REQ-sessions-mutator)
   if (_supabase && _supabaseUser) {
+    // AC-4: primera sincronización de este proyecto en este cliente → upsert completo una
+    // sola vez. _dirtySyncBaseline distingue "sin cambios pendientes" de "nunca sincronizado"
+    // — sin esta marca, un proyecto recién cargado no subiría nada (dirty arranca vacío).
+    const needsBaseline = !_dirtySyncBaseline.has(proj.id);
+    const dirtyIds = _dirtySessionIds[proj.id] || new Set();
+    const sessionsToUpload = needsBaseline ? sessions : sessions.filter(s => dirtyIds.has(s.id));
+
+    if (!sessionsToUpload.length) { _dirtySyncBaseline.add(proj.id); return; }
+
+    // Ids capturados ANTES del await — una mutación nueva que llegue durante el upsert queda
+    // dirty para el próximo ciclo, no se pierde ni se limpia de más (AC-3).
+    const idsBeingUploaded = new Set(sessionsToUpload.map(s => s.id));
+
     const BATCH = 400;
-    for (let i = 0; i < sessions.length; i += BATCH) {
+    for (let i = 0; i < sessionsToUpload.length; i += BATCH) {
       // T-202606-097: timestamp único por lote — registrar ANTES del await para cubrir
       // el echo de Realtime de tracker_sessions. Mismo patrón que _saveFlush() L557.
       const _sessTs = new Date().toISOString();
       _realtimeLastTs = _sessTs;
-      const chunk = sessions.slice(i, i + BATCH).map(sess => ({
+      const chunk = sessionsToUpload.slice(i, i + BATCH).map(sess => ({
         user_id:    _supabaseUser.id,
         project_id: proj.id,
         session_id: sess.id,
@@ -997,9 +1038,14 @@ async function _saveSessions(proj) {
         // AC-2: localStorage ya tiene la copia completa desde el bloque de arriba —
         // sin escritura adicional aquí.
         _offlineQueuePush({ type: 'sessions', projId: proj.id });
-        break;
+        // AC-3: no limpiar dirty en error — reintenta en el próximo _saveFlush().
+        return;
       }
     }
+
+    // AC-3: éxito — limpiar solo los ids recién subidos.
+    if (_dirtySessionIds[proj.id]) idsBeingUploaded.forEach(id => _dirtySessionIds[proj.id].delete(id));
+    _dirtySyncBaseline.add(proj.id);
     return;
   }
 }
@@ -2187,6 +2233,9 @@ export async function _loadFromSupabase() {
             if (!remoteSessions.length) return;
             if (!proj.sessions) proj.sessions = [];
             const localIds = new Set(proj.sessions.map(s => s.id));
+            // TKT1 · REQ-sessions-mutator AC-5: hidratación de sesiones remotas — push directo,
+            // NUNCA via _mutateSessions(). Estas sesiones ya existen en Supabase; marcarlas
+            // dirty causaría un loop de re-subida de lo que acaba de llegar del servidor.
             remoteSessions.forEach(s => { if (!localIds.has(s.id)) { _normalizeSessionFields(s); proj.sessions.push(s); localIds.add(s.id); } });
           });
           try { localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state)); } catch {}

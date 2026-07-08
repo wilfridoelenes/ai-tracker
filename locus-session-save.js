@@ -1,4 +1,4 @@
-// [PP] mod:57 · autor:Rune · 2026-07-07 12:00 UTC-6
+// [PP] mod:58 · autor:Rune · 2026-07-08 14:15 UTC-6
 // TKT-202607-014: eliminado bloque inalcanzable en buildBacklogMd() — el return incondicional
 //   dentro del bloque `{ const { md } = _generateBacklogContent(version); return md; }` hacía
 //   que el comentario de fallback, el cálculo de timestamp y el segundo return con el string
@@ -49,7 +49,7 @@ import { _markRadarDirty, renderGlobalRadarSidebar, toggleRadarSidebar } from '.
 import { stopSessionTimer } from './locus-sesiones-utils.js';
 import { _getLocalStorageUsage } from './locus-sprint-project.js';
 import { _generateBacklogContent, _generateBacklogMd } from './locus-backlog-generator.js';
-import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate } from './locus-storage.js'; // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js)
+import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate, _mutateSessions } from './locus-storage.js'; // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js) · TKT1 REQ-sessions-mutator: _mutateSessions agregado
 
 
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
@@ -594,8 +594,10 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // después de que el usuario confirmó el panel MergeDiff (o en el fallback directo).
   // Garantiza que cancelar el panel no deja sesiones huérfanas en el array.
   if (!activeProj.sessions) activeProj.sessions = [];
+  // TKT1 · REQ-sessions-mutator AC-1: _mutateSessions() reemplaza el push directo — agrega
+  // la sesión y la marca dirty en un solo paso, sin lo cual _saveSessions() no la subiría.
   if (newSess && !activeProj.sessions.find(s => s.id === newSess.id)) {
-    activeProj.sessions.push(newSess);
+    _mutateSessions(activeProj, 'add', newSess);
   }
 
   // v3.0.0: tracker del proyecto activo — también aquí para atomicidad con sessions[].
