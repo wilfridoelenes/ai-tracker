@@ -1,4 +1,4 @@
-// [PP] mod:95 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:96 · autor:Rune · 2026-07-08 UTC-6
 // INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados wiring de
 // _showArranquePanel (import + setTimeout en _renderAfterAuth) y los 4 sitios de dispatch
 // 'shell:mark-pulso-dirty'/'shell:render-pulso-dot' (post-debounce, save() no-auth, save()
@@ -1082,7 +1082,12 @@ export async function saveBacklog() {
   // a getItems(). Sin este gate, una sola fila corrupta en memoria bloquea TODO el batch de
   // saveBacklog() — incluyendo ítems legítimos no relacionados — porque Postgres rechaza el INSERT
   // completo, no solo la fila inválida.
-  const _VALID_ITEM_TYPES = new Set(['REQ', 'TKT', 'INC', 'PRB', 'KE', 'CHG', 'DISC']);
+  // INC-202607-009: tracker_items es exclusivamente para BACKLOG_TYPES (REQ/TKT/DISC) desde
+  // TKT-202607-005 — ITIL (INC/PRB/KE/CHG) vive solo en tracker_incidents. El set anterior
+  // incluía los 7 tipos canónicos del ecosistema, no los 3 válidos para ESTA tabla — permitía
+  // que filas ITIL se escribieran aquí sin sla_priority (columna que no existe en tracker_items),
+  // dejando remanentes que el merge de _loadFromSupabase volvía a traer a memoria en cada carga.
+  const _VALID_ITEM_TYPES = new Set(['REQ', 'TKT', 'DISC']);
 
   const _rawItems = _getItems();
 
@@ -1117,8 +1122,15 @@ export async function saveBacklog() {
     // status+type porque _VALID_STATUS_BY_TYPE[it.type] sería undefined para un type inválido,
     // y `if (_validStatuses && ...)` con _validStatuses undefined NO filtra — dejaba pasar
     // silenciosamente cualquier type corrupto. Este gate cierra ese hueco.
+    // INC-202607-009: ITIL (INC/PRB/KE/CHG) es una exclusión esperada de esta tabla — no un
+    // dato corrupto — desde que _VALID_ITEM_TYPES se acotó a BACKLOG_TYPES. Se distingue del
+    // resto para no alarmar al founder con un toast de "dato corrupto" ante algo por diseño.
+    if (['INC', 'PRB', 'KE', 'CHG'].includes(it.type)) {
+      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido de tracker_items — type:${it.type} es ITIL, vive exclusivamente en tracker_incidents.`);
+      return false;
+    }
     if (!_VALID_ITEM_TYPES.has(it.type)) {
-      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido del upsert — type:"${it.type}" no es un tipo canónico (REQ/TKT/INC/PRB/KE/CHG/DISC). Viola tracker_items_type_check.`);
+      console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} excluido del upsert — type:"${it.type}" no es un tipo canónico de tracker_items (REQ/TKT/DISC). Viola tracker_items_type_check.`);
       _dispatch('storage:item-excluded', { code: it.code || '[sin code]', type: it.type, reason: `type:"${it.type}" no es canónico — viola tracker_items_type_check` });
       setTimeout(() => showToast('error', `${it.code || '[sin code]'} no se guardó — type:"${it.type}" inválido (no canónico). Revisar con Rune — dato corrupto en memoria.`, null, 8000), 0);
       return false;
@@ -2231,6 +2243,17 @@ export async function _loadFromSupabase() {
           // ac: jsonb → PostgREST lo entrega como array JS — no requiere parse (AC-2).
           remoteRows.forEach(row => {
             if (row.status === 'historico') return;
+            // INC-202607-009: tracker_items conserva filas remanentes de tipo ITIL
+            // (INC/PRB/KE/CHG) de antes de TKT-202607-005 — nunca tuvieron sla_priority
+            // en esta tabla porque no es su columna. Sin este gate, cada carga las
+            // volvía a mergear en ITEMS, _migrateItemTypes() las reenrutaba a INCIDENTS
+            // pisando la fila correcta ya persistida en tracker_incidents (con
+            // sla_priority) con esta copia obsoleta sin el campo — loop de saveBacklog().
+            // ITIL no vive en tracker_items — se excluye del merge, nunca se escribe aquí.
+            if (['INC', 'PRB', 'KE', 'CHG'].includes(row.type)) {
+              console.warn(`[AI Tracker] _loadFromSupabase: fila remanente tipo ITIL en tracker_items excluida del merge — ${row.code || '[sin code]'} (type:${row.type}). Vive en tracker_incidents, no aquí.`);
+              return;
+            }
             const localMatch  = localByCode.get(row.code);
             const localRowTs  = localMatch?._updatedAtMs || 0;
             const remoteRowTs = row.updated_at || 0;
