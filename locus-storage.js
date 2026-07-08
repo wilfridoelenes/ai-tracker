@@ -1,4 +1,9 @@
-// [PP] mod:98 · autor:Rune · 2026-07-08 14:15 UTC-6
+// [PP] mod:99 · autor:Rune · 2026-07-08 15:40 UTC-6
+// INC-[pendiente-ID]: _subscribeRealtime() no reconectaba tras CHANNEL_ERROR/CLOSED/TIMED_OUT
+// — el guard de idempotencia bloqueaba la reconexión porque _realtimeChannels seguía con
+// canales muertos y _realtimeSubscribedFor sin resetear. Fix: _handleChannelStatus() limpia
+// el canal caído del tracking y resetea _realtimeSubscribedFor a null. Ver detalle en
+// _subscribeRealtime().
 // INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados wiring de
 // _showArranquePanel (import + setTimeout en _renderAfterAuth) y los 4 sitios de dispatch
 // 'shell:mark-pulso-dirty'/'shell:render-pulso-dot' (post-debounce, save() no-auth, save()
@@ -1976,6 +1981,27 @@ export function _subscribeRealtime() {
     _loadFromSupabase();
   }
 
+  // INC-[pendiente-ID]: handler compartido de status de canal. Antes, CHANNEL_ERROR solo
+  // hacía console.warn — _realtimeChannels seguía con length > 0 y _realtimeSubscribedFor
+  // seguía apuntando al mismo user.id, así que el guard de idempotencia de arriba
+  // (`if (_realtimeChannels.length > 0 && _realtimeSubscribedFor === _supabaseUser.id) return;`)
+  // convertía en no-op la siguiente llamada a _subscribeRealtime() (disparada por
+  // INITIAL_SESSION en foco/visibilitychange) y el canal muerto nunca se reemplazaba —
+  // la sesión se quedaba sin Realtime para esa tabla hasta reload manual. Fix: ante
+  // CHANNEL_ERROR/TIMED_OUT/CLOSED, remover el canal caído del tracking y resetear
+  // _realtimeSubscribedFor a null para que la próxima llamada reconecte los tres canales.
+  function _handleChannelStatus(channelName, getCh) {
+    return (status) => {
+      if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+        console.warn('[AI Tracker] Realtime: error en canal ' + channelName + ' — app sigue funcional vía fallback, reintentando en próximo evento de auth');
+        const ch = getCh();
+        if (ch) { try { _supabase.removeChannel(ch); } catch(e) {} }
+        _realtimeChannels = _realtimeChannels.filter((c) => c !== ch);
+        _realtimeSubscribedFor = null;
+      }
+    };
+  }
+
   // Canal 1 — tracker_state (existente)
   const chState = _supabase
     .channel('tracker-state-' + _supabaseUser.id)
@@ -1984,11 +2010,7 @@ export function _subscribeRealtime() {
       { event: 'UPDATE', schema: 'public', table: 'tracker_state', filter: 'user_id=eq.' + _supabaseUser.id },
       _handleRemoteChange
     )
-    .subscribe((status) => {
-      if (status === 'CHANNEL_ERROR') {
-        console.warn('[AI Tracker] Realtime: error en canal tracker_state — app sigue funcional vía fallback');
-      }
-    });
+    .subscribe(_handleChannelStatus('tracker_state', () => chState));
 
   // Canal 2 — tracker_sessions (T-202606-002)
   const chSessions = _supabase
@@ -1998,11 +2020,7 @@ export function _subscribeRealtime() {
       { event: '*', schema: 'public', table: 'tracker_sessions', filter: 'user_id=eq.' + _supabaseUser.id },
       _handleRemoteChange
     )
-    .subscribe((status) => {
-      if (status === 'CHANNEL_ERROR') {
-        console.warn('[AI Tracker] Realtime: error en canal tracker_sessions — app sigue funcional vía fallback');
-      }
-    });
+    .subscribe(_handleChannelStatus('tracker_sessions', () => chSessions));
 
   // Canal 3 — tracker_items ([tmp:req-realtime-items] TKT1)
   // Sin filtro de heartbeat — tracker_items no tiene trigger periódico propio, mismo
@@ -2017,11 +2035,7 @@ export function _subscribeRealtime() {
       { event: '*', schema: 'public', table: 'tracker_items', filter: 'user_id=eq.' + _supabaseUser.id },
       _handleRemoteChange
     )
-    .subscribe((status) => {
-      if (status === 'CHANNEL_ERROR') {
-        console.warn('[AI Tracker] Realtime: error en canal tracker_items — app sigue funcional vía fallback');
-      }
-    });
+    .subscribe(_handleChannelStatus('tracker_items', () => chItems));
 
   _realtimeChannels = [chState, chSessions, chItems];
   _realtimeSubscribedFor = _supabaseUser.id;
