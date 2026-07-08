@@ -1,4 +1,14 @@
-// [PP] mod:100 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:101 · autor:Rune · 2026-07-08 UTC-6
+// TKT1 (REQ-historico-async): _getNextItemCode(typeChar, reservedCodes) → async. Además del
+//   escaneo existente de ITEMS/INCIDENTS (según INCIDENT_TYPES) + reservedCodes, ahora hace
+//   await refreshHistoricoCache() y suma getHistoricoItemsSync() al cómputo de maxNum antes de
+//   generar el código — un código archivado en historico ya no puede reasignarse a un ítem
+//   nuevo del mismo tipo. Si refreshHistoricoCache() rechaza, se captura y se continúa solo con
+//   ITEMS/INCIDENTS + reservedCodes (comportamiento idéntico al de antes de este TKT — sin
+//   excepción no controlada, sin promesa colgada). Import nuevo: refreshHistoricoCache,
+//   getHistoricoItemsSync (locus-storage.js). contract_update: sí — ver CHECKPOINT.
+//   Todo call site debe usar await desde ahora — locus-backlog-item.js (TKT2) y
+//   locus-backlog-editor.js (TKT3) actualizados por separado, mismo REQ.
 // TKT-202607-046 (REQ-202607-015): _undoSnapshot() extendida a snapshot combinado
 //   {items: ITEMS, incidents: INCIDENTS} — antes solo capturaba ITEMS, por lo que un undo tras
 //   mutar un INC/PRB/KE/CHG (vía _setIncidents(), que ya invocaba _undoSnapshot() desde
@@ -110,7 +120,7 @@
 // T-202606-057: imports hacia módulos que importan a locus-backlog-core eliminados.
 // Funciones desacopladas via _coreCallbacks (getters/acciones controladas)
 // y shell:* events (notificaciones de render — window per B-202606-021).
-import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _sprintDisplay, _tplKey, getAI, getActiveSprints, getAllSessions, getState, saveBacklog } from './locus-storage.js';
+import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _sprintDisplay, _tplKey, getAI, getActiveSprints, getAllSessions, getState, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js'; // TKT1 (REQ-historico-async): refreshHistoricoCache/getHistoricoItemsSync — _getNextItemCode() incluye historico en el escaneo de colisión
 import { showToast, toast } from './locus-toast.js';
 import { esc, getCurrentSubTab } from './locus-ui-shell.js';
 
@@ -1296,7 +1306,15 @@ export function toggleVersionCollapse(v) {
 // sin considerar el NNN más alto de meses anteriores del mismo tipo. __BR-Ecosystem §4 exige
 // contador acumulativo por tipo, independiente del mes. Ahora se escanea por tipo únicamente
 // (regex sin yyyymm fijo) y el yyyymm del código nuevo sigue siendo el del momento de emisión.
-export function _getNextItemCode(typeChar, reservedCodes) {
+// TKT1 (REQ-historico-async): pasa a async — un código archivado en historico podía
+// reasignarse a un ítem nuevo del mismo tipo porque el escaneo solo cubría ITEMS/INCIDENTS
+// (activos) + reservedCodes. Ahora, tras el escaneo activo, se hace await refreshHistoricoCache()
+// y se suma getHistoricoItemsSync() al cómputo de maxNum antes de generar el código — mismo
+// projId implícito (activo) que ya usan ITEMS/INCIDENTS en este módulo. Si refreshHistoricoCache()
+// rechaza, se captura el error y se continúa solo con lo ya escaneado (ITEMS/INCIDENTS +
+// reservedCodes) — comportamiento idéntico al de antes de este TKT, sin excepción no controlada
+// ni promesa colgada. Todo call site pasa a requerir await — ver TKT2/TKT3 (contract_update).
+export async function _getNextItemCode(typeChar, reservedCodes) {
   if (!typeChar || !_GEN2_TYPES.includes(typeChar)) {
     console.warn(`_getNextItemCode: typeChar "${typeChar}" no es un tipo canónico (${_GEN2_TYPES.join('/')}). Código no generado.`);
     return null;
@@ -1306,20 +1324,32 @@ export function _getNextItemCode(typeChar, reservedCodes) {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const yyyymm = `${year}${month}`;
   // INC-[pendiente-ID] fix: regex de tipo sin mes fijo — acumulativo por tipo, todos los meses.
+  // Sufijo de letra opcional (ej. REQ-202606-007-A) ignorado — se toma solo el bloque de 3 dígitos.
   const typeRe = new RegExp(`^${typeChar}-\\d{6}-(\\d{3})(?:-[A-Za-z]+)?$`);
   let maxNum = 0;
+  const _scanForCollision = (arr) => {
+    arr.forEach(item => {
+      if (!item.code) return;
+      const numMatch = item.code.match(typeRe);
+      if (numMatch) {
+        const num = parseInt(numMatch[1]);
+        if (num > maxNum) maxNum = num;
+      }
+    });
+  };
   // TKT-202607-005: buscar colisión de código en el array donde el tipo realmente reside —
   // ITIL (INCIDENT_TYPES) vive en INCIDENTS, backlog (BACKLOG_TYPES) vive en ITEMS. Antes de
   // la separación ambos vivían en ITEMS y una sola iteración bastaba.
   const _sourceArr = INCIDENT_TYPES.includes(typeChar) ? INCIDENTS : ITEMS;
-  _sourceArr.forEach(item => {
-    if (!item.code) return;
-    const numMatch = item.code.match(typeRe);
-    if (numMatch) {
-      const num = parseInt(numMatch[1]);
-      if (num > maxNum) maxNum = num;
-    }
-  });
+  _scanForCollision(_sourceArr);
+  // TKT1 (REQ-historico-async): historico combina ambos universos (backlog + ITIL) — mismo
+  // criterio ya documentado para _getCountableBaseForSubtab('qinc') en el header de este módulo.
+  try {
+    await refreshHistoricoCache();
+  } catch (err) {
+    console.warn('_getNextItemCode: refreshHistoricoCache() falló — generando código solo contra ITEMS/INCIDENTS activos + reservedCodes', err);
+  }
+  _scanForCollision(getHistoricoItemsSync());
   // B-202605-ids: también considerar códigos ya reservados en esta pasada (no están en ITEMS aún)
   if (reservedCodes && reservedCodes.size) {
     reservedCodes.forEach(rc => {

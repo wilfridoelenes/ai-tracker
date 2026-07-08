@@ -1,4 +1,4 @@
-/* [PP] mod:1 · autor:Rune · 2026-07-05 UTC-6 */
+/* [PP] mod:2 · autor:Nova · 2026-07-08 UTC-6 */
 /* locus-modals-base.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 
 /* === locus-modals.js ===
@@ -72,7 +72,6 @@
   justify-content: center;
 }
 
-/* --- Base overlay centrado — B-202606-009: declaración migrada desde locus-tracker.css (eliminado) --- */
 .modal-overlay {
   position: fixed;
   top: 0;
