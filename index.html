@@ -1,4 +1,9 @@
-<!-- [PP] mod:108 · autor:Rune · 2026-07-07 UTC-6 -->
+<!-- [PP] mod:109 · autor:Rune · 2026-07-07 UTC-6 -->
+<!-- INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminado markup de
+     #pulso-overlay/#pulso-panel, #arranque-overlay/#arranque-panel y el dot #gf-pulso del
+     footer. Los <link> de locus-sprint-plan.css y las clases .arranque-* / .pulso-* en
+     locus-backlog.css / locus-backlog-item.css quedan pendientes de limpieza — Nova
+     (CSS Purity, Rune no escribe .css). Ver CHECKPOINT. -->
 <!-- INC-[pendiente-ID]: restaurado <link> de locus-sprint-plan.css — TKT-202607-053 lo eliminó
      asumiendo que era exclusivo de la feature Plan; el archivo también estiliza Pulso (activo,
      pendiente de deprecación propia) y Contratos (activo, no deprecado). El markup de Plan
@@ -1628,37 +1633,12 @@
 
 <!-- T-202606-006: patch window.applyTheme eliminado — _syncToggleLabel migrado a main.js -->
 
-<div class="pulso-overlay" id="pulso-overlay" role="dialog" aria-modal="true" aria-label="Pulso del Ecosistema">
-  <div class="pulso-panel" id="pulso-panel">
-    <div class="pulso-header">
-      <span class="pulso-title">⚡ Pulso del Ecosistema</span>
-      <button class="pulso-close-btn" id="pulso-close-btn" title="Cerrar">✕</button>
-    </div>
-    <div class="pulso-body" id="pulso-body" aria-live="polite"></div>
-  </div>
-</div>
-
-<div class="arranque-overlay" id="arranque-overlay" role="dialog" aria-modal="true" aria-label="Sesión de Arranque">
-  <div class="arranque-panel" id="arranque-panel">
-    <div class="arranque-header">
-      <span class="arranque-title">☀ Buenos días</span>
-      <button class="arranque-close-btn" id="arranque-close-btn" title="Cerrar">✕</button>
-    </div>
-    <div class="arranque-body" id="arranque-body"></div>
-    <div class="arranque-footer">
-      <button class="arranque-btn-secondary" id="arranque-btn-ver-todo">Ver todo</button>
-      <button class="btn-primary arranque-btn-primary" id="arranque-cta-btn">Arrancar →</button>
-    </div>
-  </div>
-</div>
-
 <footer id="global-footer">
   <span id="gf-proyecto" class="gf-proyecto is-hidden"></span>
   <span id="gf-version" class="gf-version is-hidden"></span>
   <div class="gf-spacer"></div>
   <span id="gf-ckpt" class="gf-ckpt is-hidden"></span>
   <span id="gf-items" class="gf-items is-hidden"></span>
-  <span id="gf-pulso" class="gf-pulso is-hidden" title="Pulso del Ecosistema"><span class="pulso-dot pulso-dot--green" id="pulso-dot"></span></span>
   <span id="gf-sync" class="gf-sync is-hidden"></span>
 </footer>
 

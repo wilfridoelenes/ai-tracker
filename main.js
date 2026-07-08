@@ -1,4 +1,9 @@
-// [PP] v0.8.0 · sprint:PP-S-03 · mod:17 · autor:Rune · 2026-07-07 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-03 · mod:18 · autor:Rune · 2026-07-07 UTC-6
+// INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados imports
+// estáticos de locus-pulso.js y locus-sesiones-arranque.js — causa raíz del fallo de
+// arranque (MIME type error) que reveló que TKT-202607-042 declaró 'sin importadores' de
+// forma incorrecta. Ambos módulos se borraron del repositorio junto con todos sus call
+// sites verificados (locus-sesiones-stats.js, locus-storage.js, locus-ui-shell.js).
 // TKT-202607-042 (REQ-202607-014): locus-sprint-plan.js eliminado del repositorio — feature
 // Plan cancelada. Import de side-effect ya removido en mod:16; el archivo huérfano confirmado
 // sin importadores en todo el proyecto se borró en esta entrega. AC1 del TKT cerrado completo.
@@ -32,12 +37,10 @@ import './locus-sesiones.js';
 import { _maybeShowWeeklySummary } from './locus-sesiones-utils.js';
 import './locus-modals.js';
 import './locus-workers.js';
-import './locus-pulso.js';
 import './locus-notifications.js';
 import './locus-sesiones-stats.js';
 import './locus-sesiones-capture.js';
 import { _itemVizConfirm, _itemVizClose, closeCkptPanel } from './locus-sesiones-viz.js';
-import './locus-sesiones-arranque.js';
 import './locus-radar.js';
 import { parsePaste, handlePaste, handleInput } from './locus-session-parse.js';
 import { relDate } from './locus-session-hora.js';

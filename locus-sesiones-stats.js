@@ -1,4 +1,8 @@
-// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:22 · autor:Rune · 2026-07-03 UTC-6
+// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:23 · autor:Rune · 2026-07-07 UTC-6
+// INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminado wiring del
+// dot #gf-pulso del footer (import openPulsoPanel + bloque gfPulso en _updateHeaderProjectLabel
+// o función equivalente de footer) — Pulso deprecado. gfProyecto/gfVersion/gfCkpt/gfSyncEl
+// no tocados — responsabilidad mixta de este archivo, solo se removió la porción de Pulso.
 // locus-sesiones-stats.js
 // Responsabilidad: Stats globales, status bar, breadcrumb de proyecto, helpers de Workers
 //   (hasRecentSession, _isInSession, toggleCollapseAll, navigateToCard).
@@ -6,7 +10,6 @@
 //   y #breadcrumb-item no existen en el DOM (index.html solo declara #breadcrumb-proj).
 
 import { getItems } from './locus-backlog-core.js';
-import { openPulsoPanel } from './locus-pulso.js';
 // selectTrackerAI y _markTrackerDirty desacoplados vía shell:* events (T-202606-084)
 import { openDetail } from './locus-session-popup.js';
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
@@ -172,7 +175,6 @@ export function renderStatusBar() {
   const gfProyecto = document.getElementById('gf-proyecto');
   const gfVersion  = document.getElementById('gf-version');
   const gfCkpt     = document.getElementById('gf-ckpt');
-  const gfPulso    = document.getElementById('gf-pulso');
   const gfSyncEl   = document.getElementById('gf-sync');
   if (gfSyncEl) gfSyncEl.classList.remove('is-hidden');
 
@@ -216,15 +218,6 @@ export function renderStatusBar() {
         gfCkpt.onclick = null;
       }
     } catch(e) { gfCkpt.classList.add('is-hidden'); }
-  }
-
-  if (gfPulso) {
-    gfPulso.textContent = '◉ Pulso';
-    gfPulso.classList.remove('is-hidden');
-    gfPulso.classList.add('gf-pulso--link');
-    gfPulso.onclick = function() {
-      openPulsoPanel();
-    };
   }
 
   } finally {

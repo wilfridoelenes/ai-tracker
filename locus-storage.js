@@ -1,4 +1,12 @@
-// [PP] mod:93 · autor:Rune · 2026-07-07 19:15 UTC-6
+// [PP] mod:94 · autor:Rune · 2026-07-07 UTC-6
+// INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados wiring de
+// _showArranquePanel (import + setTimeout en _renderAfterAuth) y los 4 sitios de dispatch
+// 'shell:mark-pulso-dirty'/'shell:render-pulso-dot' (post-debounce, save() no-auth, save()
+// offline x2, _renderAfterAuth) — sin listener desde que se borró locus-pulso.js. Eliminado
+// también el IIFE de init del dot Pulso desde caché (LOCUS_KEYS.PULSO) y la key PULSO del
+// registro LOCUS_KEYS — sin otro consumidor en el proyecto (verificado por grep antes de
+// borrar, a diferencia de TKT-202607-042). Módulo crítico — activar verificación de
+// regresiones en Finn.
 // TKT5 (REQ-202607-015): deleteIncidentRows(codes) — elimina filas de tracker_incidents por
 //   code. Invocada por _scmExecuteClose (locus-backlog-sprints.js) solo tras saveHistoricoItems()
 //   exitoso para el batch que incluye esos incidentes — orden de operaciones write-antes-que-
@@ -35,13 +43,12 @@
 // Módulo de persistencia, auth y sync — extraído de ai-tracker-checkpoint.js
 // Carga ANTES que ai-tracker-checkpoint.js en index.html
 
-import { _showArranquePanel } from './locus-sesiones-arranque.js'; // B-202606-044 — ciclo seguro: uso solo dentro de setTimeout en handler
 
 
 // T-202606-056: imports cíclicos eliminados — reemplazados por event dispatch o acceso directo a state
 // Patrones aplicados:
 //   (a) event dispatch via _dispatch(event, detail?) — locus-backlog-render, locus-notifications,
-//       locus-pulso, locus-radar, locus-sesiones-stats, locus-sesiones, locus-toast, locus-ui-shell
+//       locus-radar, locus-sesiones-stats, locus-sesiones, locus-toast, locus-ui-shell
 //   acceso directo a state.projects — locus-sprint-project (getProjectById)
 
 function _dispatch(event, detail) {
@@ -99,7 +106,6 @@ export const LOCUS_KEYS = {
   TMP_ID_MAP:       'tmp-id-map',
   SHORTCUTS:        'user-shortcuts',
   USER_PREFS_TS:    'user-prefs-ts',
-  PULSO:            'locus-pulso',
   TPL_TRIGGER:      'locus-tpl-trigger',
   CTX_DOCS_PREFIX:  'tracker-ctx-docs',
   HM_DOCS_PREFIX:   'tracker-hm-docs',
@@ -871,9 +877,6 @@ async function _saveFlush() {
   // (a) event dispatch — locus-radar.js escucha 'shell:mark-radar-dirty' + 'shell:render-radar'
   _dispatch('shell:mark-radar-dirty');
   _dispatch('shell:render-radar');
-  // (a) event dispatch — locus-pulso.js escucha 'shell:mark-pulso-dirty' + 'shell:render-pulso-dot'
-  _dispatch('shell:mark-pulso-dirty');
-  _dispatch('shell:render-pulso-dot');
   // (a) event dispatch — locus-sesiones-stats.js escucha 'shell:mark-statusbar-dirty' + 'shell:render-statusbar'
   _dispatch('shell:mark-statusbar-dirty');
   _dispatch('shell:render-statusbar');
@@ -888,8 +891,6 @@ export function save() {
   // T-202605-118: activar dirty flags — renders se ejecutan path-específico (AC-6: no antes del flush en online+auth)
   // (a) event dispatch — locus-radar.js escucha 'shell:mark-radar-dirty'
   _dispatch('shell:mark-radar-dirty');
-  // (a) event dispatch — locus-pulso.js escucha 'shell:mark-pulso-dirty'
-  _dispatch('shell:mark-pulso-dirty');
   // (a) event dispatch — locus-sesiones-stats.js escucha 'shell:mark-statusbar-dirty'
   _dispatch('shell:mark-statusbar-dirty');
 
@@ -911,9 +912,8 @@ export function save() {
       } else { throw err; }
     }
     // T-202605-118: render inmediato — sin auth, sin debounce
-    // (a) event dispatch — locus-radar.js + locus-pulso.js escuchan respectivamente
+    // (a) event dispatch — locus-radar.js escucha 'shell:render-radar'
     _dispatch('shell:render-radar');
-    _dispatch('shell:render-pulso-dot');
     return;
   }
 
@@ -935,9 +935,8 @@ export function save() {
       } else { throw err; }
     }
     // T-202605-118: render inmediato — offline, sin debounce
-    // (a) event dispatch — locus-radar.js + locus-pulso.js escuchan respectivamente
+    // (a) event dispatch — locus-radar.js escucha 'shell:render-radar'
     _dispatch('shell:render-radar');
-    _dispatch('shell:render-pulso-dot');
     _offlineQueuePush({ type: 'state' });
     return;
   }
@@ -2676,12 +2675,6 @@ function load() {
       }
     }
   });
-  // R-202604-073: dot Pulso — inicializar desde caché localStorage sin esperar render completo
-  (function() {
-    const cached = (() => { try { return JSON.parse(localStorage.getItem(LOCUS_KEYS.PULSO) || 'null'); } catch(e) { return null; } })();
-    const dot = document.getElementById('pulso-dot');
-    if (dot && cached && cached.color) dot.className = `pulso-dot pulso-dot--${cached.color}`;
-  })();
 }
 
 // _initApp() — punto de arranque de la app. Llamado desde DOMContentLoaded en main.js
@@ -2740,13 +2733,6 @@ function _renderAfterAuth() {
   // B-202605-508: garantizar badges visibles al arranque
   // (a) event dispatch — locus-notifications.js escucha 'shell:update-notif-badges'
   _dispatch('shell:update-notif-badges');
-  // R-202604-072: panel de contexto diario — diferido para que _getItems() esté disponible
-  setTimeout(_showArranquePanel, 400);
-  // R-202604-073: dot Pulso — recalcular con datos reales
-  // B-202605-079: mark antes del setTimeout — el guard requiere flag activo al ejecutar
-  // (a) event dispatch — locus-pulso.js escucha 'shell:mark-pulso-dirty' + 'shell:render-pulso-dot'
-  _dispatch('shell:mark-pulso-dirty');
-  setTimeout(() => _dispatch('shell:render-pulso-dot'), 600);
   // T-084: verificar umbral de sesiones
   // T-202606-009: guard typeof eliminado — checkStorageWarn definida en este módulo (ver más abajo)
   setTimeout(checkStorageWarn, 500);

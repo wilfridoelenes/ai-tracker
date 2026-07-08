@@ -1,4 +1,12 @@
-// [PP] mod:39 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:41 · autor:Rune · 2026-07-07 UTC-6
+// INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados import de
+// closeArranquePanel y sus dos listeners (#arranque-btn-ver-todo, #arranque-close-btn) —
+// Sesión de Arranque deprecada. #arranque-cta-btn no tenía listener en este archivo (vivía
+// en locus-sesiones-arranque.js, ya borrado). Segunda pasada de verificación (grep -i "pulso"
+// completo del archivo, no solo por nombre de función) encontró una entrada más no capturada
+// en la primera pasada: _escCascade() dispatchaba 'shell:close-pulso-panel' al detectar
+// #pulso-panel visible — eliminada. No había entrada equivalente para #arranque-overlay en
+// este array (su Escape handler vivía dentro de locus-sesiones-arranque.js, ya borrado).
 // TKT1 (limpieza post-rename): comentario en L207 actualizado — locus-backlog-archive.js → locus-backlog-historico.js. Sin cambio de código.
 // locus-ui-shell.js
 // Última actualización: 2026-06-05 · T-202606-055: Romper ciclos — eliminar imports hacia módulos que importan locus-ui-shell.js
@@ -17,7 +25,6 @@
 
 import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, _parseInfraLine, setInfraVersionData, _docPrefix, handleSyncPillClick } from './locus-storage.js';
 import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortDir } from './locus-backlog-core.js';
-import { closeArranquePanel } from './locus-sesiones-arranque.js';
 import { openPendPanel, closePendPanel } from './locus-pend.js';
 import { openCommandPalette, closeCommandPalette } from './locus-command-palette.js';
 import { confirmItemEditor } from './locus-backlog-editor.js';
@@ -672,8 +679,6 @@ export function _escCascade() {
     () => { const el = document.getElementById('proj-modal-overlay'); if (el && el.offsetParent !== null) { window.dispatchEvent(new CustomEvent('shell:close-proj-modal')); return true; } },
     // (a) event dispatch — locus-sprint-project.js escucha 'shell:close-proj-panel'
     () => { const el = document.getElementById('proj-panel-overlay'); if (el && el.offsetParent !== null) { window.dispatchEvent(new CustomEvent('shell:close-proj-panel')); return true; } },
-    // (a) event dispatch — locus-pulso.js escucha 'shell:close-pulso-panel'
-    () => { const el = document.getElementById('pulso-panel'); if (el && el.offsetParent !== null) { window.dispatchEvent(new CustomEvent('shell:close-pulso-panel')); return true; } },
   ];
   for (const check of _overlayChecks) {
     if (check()) return;
@@ -1124,16 +1129,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // ── END locus-ui-shell.js ──────────────────────────────────────────────────
 
-// ── B-202605-019: Listeners adicionales — arranque-btn-ver-todo, event delegation data-action ──
+// ── B-202605-019: Listeners adicionales — event delegation data-action ──
+// (arranque-btn-ver-todo eliminado — INC-[pendiente-ID], Sesión de Arranque deprecada)
 // (scb-dismiss / scb-step-action eliminados — REQ-[pendiente-ID] TKT1, SCB removido)
 document.addEventListener('DOMContentLoaded', function () {
-
-  // #arranque-btn-ver-todo → closeArranquePanel() + switchTab('proyectos')
-  const arranqueVerTodoBtn = document.getElementById('arranque-btn-ver-todo');
-  if (arranqueVerTodoBtn) arranqueVerTodoBtn.addEventListener('click', function () {
-    closeArranquePanel();
-    switchTab('proyectos');
-  });
 
   // Event delegation — data-action en sur-row (panel búsqueda) y shortcuts-body
   document.addEventListener('click', function (e) {
@@ -1230,12 +1229,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const impInput = document.getElementById('imp');
   if (impInput) impInput.addEventListener('change', function (e) {
     importData(e);
-  });
-
-  // #arranque-close-btn → closeArranquePanel()
-  const arranqueCloseBtn = document.getElementById('arranque-close-btn');
-  if (arranqueCloseBtn) arranqueCloseBtn.addEventListener('click', function () {
-    closeArranquePanel();
   });
 
 });
