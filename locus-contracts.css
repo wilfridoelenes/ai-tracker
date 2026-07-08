@@ -1,15 +1,16 @@
-/* [PP] mod:6 · autor:Nova · 2026-07-08 UTC-6 */
+/* [PP] mod:7 · autor:Nova · 2026-07-08 UTC-6 */
+/* TKT-[tmp:tkt-rename-file]: rename de locus-sprint-plan.css → locus-contracts.css.
+   Sin cambio de contenido — mismo archivo tras TKT-202607-067 (split que eliminó el
+   bloque Sub-tab Plan). Nombre ahora refleja el contenido real: Contratos + AC VIVO. */
 /* TKT-202607-067: eliminado bloque R-202604-076 (Sub-tab Plan — #sspanel-plan, .plan-*),
    feature Plan cancelada (REQ-202607-014). Archivo verificado: no contenía ninguna regla
-   de Pulso pese a lo declarado en el INC de index.html que restauró el <link> — solo
-   Contratos (R-202604-075) y AC VIVO (R-202604-074) quedan. Nombre de archivo desactualizado
-   respecto a su contenido — señalado como Hallazgo fuera de scope, no renombrado en este TKT
-   (fuera de su alcance). El <link> en index.html ya es seguro de eliminar. */
+   de Pulso pese a lo declarado en el INC de index.html que restauró el <link>. El <link>
+   en index.html se actualiza al nuevo nombre en TKT siguiente (Rune). */
 /* REQ-[pendiente-ID] Unificar vocabulario historico — Conflicto CSS resuelto: eliminado
    bloque muerto B-202604-193 (.historico-section y 3 clases más, sin consumidor JS) que
    colisionaba por nombre con locus-historico.css tras el rename arch-*→historico-*. */
-/* locus-sprint-plan.css */
-/* Versión: 1.1 | Última actualización: 2026-07-08 UTC-6 | Contratos de módulo + AC VIVO */
+/* locus-contracts.css */
+/* Versión: 1.2 | Última actualización: 2026-07-08 UTC-6 | Contratos de módulo + AC VIVO */
 /* === locus-contracts.js ===
    Funciones: renderContratos · openContratoDetail · _renderContratoDetail · exportContratosMd */
 
