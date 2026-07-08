@@ -1,4 +1,4 @@
-// [PP] mod:91 · autor:Rune · 2026-07-06 19:05 UTC-6
+// [PP] mod:92 · autor:Rune · 2026-07-07 18:00 UTC-6
 // TKT-202607-044 (REQ-202607-015): INCIDENTS conectado a tracker_incidents — saveBacklog()
 // upsert onConflict:code (independiente de ITEMS, sin reintento en caso de fallo) +
 // _loadFromSupabase() consulta tracker_incidents y puebla INCIDENTS (merge-por-fila, mismo
@@ -1269,8 +1269,9 @@ export async function saveBacklog() {
       // DDL: columna 'parent' TEXT (no 'parent_id') · T-[pendiente-ID]: parentId es el único
       // campo canónico en JS — fallback it.parent eliminado (REQ-unify-parent TKT2)
       parent:               it.parentId         || null,
-      // depends_on: array JS → text[] Postgres
-      depends_on:           Array.isArray(it.depends_on) ? it.depends_on : [],
+      // depends_on: array JS → text[] Postgres · campo canónico en JS es dependsOn (camelCase)
+      // INC triggered_by TKT-202607-063: leía it.depends_on — siempre undefined, persistía [] sin importar el dato real.
+      depends_on:           Array.isArray(it.dependsOn) ? it.dependsOn : [],
       triggered_by:         it.triggered_by     || null,
       no_incluye:           it.no_incluye != null ? it.no_incluye : null,
       kill_criteria:        it.kill_criteria    || null,
@@ -1478,7 +1479,11 @@ function _mapRowToItem(row) {
     // 'parent' solo existe como nombre de columna en Supabase — se mapea aquí directo
     // a parentId, sin persistir item.parent en memoria.
     parentId:              row.parent,       // DDL: columna parent TEXT
-    depends_on:            Array.isArray(row.depends_on) ? row.depends_on : [],
+    // 'depends_on' solo existe como nombre de columna en Supabase — se mapea aquí directo
+    // a dependsOn, campo canónico en JS. INC triggered_by TKT-202607-063: este load asignaba
+    // depends_on (snake_case) al ítem en memoria, dejándolo sin el campo dependsOn que el
+    // resto del app consume — se perdía tras cada reload.
+    dependsOn:             Array.isArray(row.depends_on) ? row.depends_on : [],
     triggered_by:          row.triggered_by,
     no_incluye:            row.no_incluye,
     kill_criteria:         row.kill_criteria,
@@ -1631,7 +1636,8 @@ export async function saveHistoricoItems(items) {
       sprint:                it.sprint            || null,
       role:                  it.role              || null,
       parent:                it.parentId          || null,
-      depends_on:            Array.isArray(it.depends_on) ? it.depends_on : [],
+      // INC triggered_by TKT-202607-063: leía it.depends_on — campo canónico en JS es dependsOn.
+      depends_on:            Array.isArray(it.dependsOn) ? it.dependsOn : [],
       triggered_by:          it.triggered_by      || null,
       no_incluye:            it.no_incluye        != null ? it.no_incluye : null,
       kill_criteria:         it.kill_criteria     || null,

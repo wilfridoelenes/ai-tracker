@@ -1,4 +1,4 @@
-// [PP] mod:1 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:2 · autor:Rune · 2026-07-07 18:00 UTC-6
 // locus-backlog-hierarchy.js
 // Responsabilidad: _buildChildMap — agrupación de hijos (TKT/INC) por REQ padre, con sort
 //   topológico por depends_on. Único consumidor de datos: itemKind() de locus-backlog-core.js.
@@ -59,7 +59,9 @@ function _topoSort(items) {
   // Construir grafo de dependencias — solo entre ítems del mismo grupo
   const deps = {}; // code → Set de dependencias internas
   for (const item of items) {
-    const internal = (Array.isArray(item.depends_on) ? item.depends_on : [])
+    // INC triggered_by TKT-202607-063: leía item.depends_on (snake_case) — campo canónico
+    // en memoria es item.dependsOn (camelCase).
+    const internal = (Array.isArray(item.dependsOn) ? item.dependsOn : [])
       .filter(d => codeSet.has(d));
     deps[item.code] = new Set(internal);
   }

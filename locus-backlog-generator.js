@@ -1,4 +1,4 @@
-// [PP] mod:39 · autor:Rune · 2026-07-05 10:00 UTC-6
+// [PP] mod:40 · autor:Rune · 2026-07-07 18:00 UTC-6
 // TKT1 · TKT2 (req historico-export): ## Historial de sprints en tabla + omisión sin sprints
 // cerrados; historico excluido siempre de ## Ítems; flag includeHistorico (default false) con
 // detalle agrupado por sprint en ## Historico — detalle.
@@ -987,9 +987,9 @@ export function _generateBacklogMd(newVersion, opts = {}) {
 // Un T está bloqueado cuando al menos un código en depends_on apunta a un T
 // cuyo status es 'pendiente' o 'en-revision'. 'descartado' equivale a done — no bloquea.
 function _isItemBlocked(item) {
-  if (!item.depends_on || !item.depends_on.length) return { blocked: false, blockers: [] };
+  if (!item.dependsOn || !item.dependsOn.length) return { blocked: false, blockers: [] };
   const blockers = [];
-  item.depends_on.forEach(depCode => {
+  item.dependsOn.forEach(depCode => {
     const dep = getItems().find(i => i.code === depCode);
     if (!dep) return; // código no resuelto — no bloquea
     const s = dep.status || 'pendiente';
@@ -1002,7 +1002,10 @@ function _isItemBlocked(item) {
 // T-202606-017: genera los campos de un ítem sin el encabezado de título.
 // T-202606-109: campos no canónicos movidos a bloque metadata al final.
 //   Campos nuevos: schema_version (AC-2), depends_on array vacío (AC-3), no_incluye (AC-4), intencion (AC-5).
-//   AC-3: campo canónico verificado = depends_on (snake_case).
+//   AC-3: campo canónico verificado = dependsOn (camelCase) — corregido por INC triggered_by TKT-202607-063.
+//   La entrada del CHECKPOINT usa depends_on (snake_case); mergeBacklogFromTG lo normaliza a
+//   dependsOn antes de _assignPendingIds (ver locus-backlog-item.js) — ese es el campo que vive
+//   en memoria y el que este generador debe leer.
 // T-202606-071: campos calculados para Ts y Bs del sprint activo.
 // Entrada: item (T o B), sessions (array flat de todas las sesiones del proyecto activo).
 // Retorna objeto con last_checkpoint, last_mod, gap_activo, qa_iteracion — ausente si no aplica.
@@ -1096,12 +1099,14 @@ function _buildItemFieldsMd(item, state) {
   }
   if (item.role)     md += `**Role:** ${item.role}\n`;
   if (item.parentId) md += `**ParentId:** ${item.parentId}\n`;
-  // T-202606-065: depends_on — emitir siempre en TKTs con [] si no existe
+  // T-202606-065: dependsOn — emitir siempre en TKTs con [] si no existe
+  // INC triggered_by TKT-202607-063: leía item.depends_on (snake_case) — el campo canónico
+  // en memoria es item.dependsOn (camelCase, ver mergeBacklogFromTG en locus-backlog-item.js).
   if (_itemTypeGen2(item) === 'TKT') {
-    const _deps = Array.isArray(item.depends_on) ? item.depends_on : [];
+    const _deps = Array.isArray(item.dependsOn) ? item.dependsOn : [];
     md += `**DependsOn:** ${_deps.length ? _deps.join(', ') : '[]'}\n`;
-  } else if (item.depends_on != null) {
-    md += `**DependsOn:** ${item.depends_on.length ? item.depends_on.join(', ') : '[]'}\n`;
+  } else if (item.dependsOn != null) {
+    md += `**DependsOn:** ${item.dependsOn.length ? item.dependsOn.join(', ') : '[]'}\n`;
   }
   if (item.origin)   md += `**Origin:** ${item.origin}\n`;
   if (item.blockedBy && item.blockedBy.length) md += `**BlockedBy:** ${item.blockedBy.join(', ')}\n`;
