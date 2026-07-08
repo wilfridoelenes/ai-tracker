@@ -1,4 +1,9 @@
-// [PP] mod:92 · autor:Rune · 2026-07-07 18:00 UTC-6
+// [PP] mod:93 · autor:Rune · 2026-07-07 19:15 UTC-6
+// TKT5 (REQ-202607-015): deleteIncidentRows(codes) — elimina filas de tracker_incidents por
+//   code. Invocada por _scmExecuteClose (locus-backlog-sprints.js) solo tras saveHistoricoItems()
+//   exitoso para el batch que incluye esos incidentes — orden de operaciones write-antes-que-
+//   delete. Sin cambio de firma en saveHistoricoItems() ni en ningún otro export existente.
+//   Módulo crítico — activar verificación de regresiones en Finn.
 // TKT-202607-044 (REQ-202607-015): INCIDENTS conectado a tracker_incidents — saveBacklog()
 // upsert onConflict:code (independiente de ITEMS, sin reintento en caso de fallo) +
 // _loadFromSupabase() consulta tracker_incidents y puebla INCIDENTS (merge-por-fila, mismo
@@ -1453,6 +1458,28 @@ export async function saveBacklog() {
     console.error('[AI Tracker] Supabase saveBacklog() — upsert de tracker_incidents falló:', incErr);
     showToast('warning', '⚠️ Incidentes no sincronizados con Supabase — guardado localmente');
   }
+}
+
+// TKT5 (REQ-202607-015): deleteIncidentRows() — elimina filas de tracker_incidents por code.
+// Invocar exclusivamente después de que saveHistoricoItems() haya completado sin error para
+// el batch que incluye esos incidentes (orden de operaciones: write antes que delete — ver
+// _scmExecuteClose en locus-backlog-sprints.js). Un fallo aquí no revierte el cierre del
+// sprint que la invoca — el incidente migrado queda temporalmente duplicado (visible en
+// tracker_items historico y en tracker_incidents) hasta reintento. Elimina exclusivamente
+// por code, exclusivamente en tracker_incidents — nunca toca tracker_items. Sin cambio de
+// firma respecto al contrato declarado: deleteIncidentRows(codes) → void.
+export async function deleteIncidentRows(codes) {
+  const list = Array.isArray(codes) ? codes.filter(Boolean) : [];
+  if (!list.length) return;
+  // Sin Supabase o sin auth → nada que eliminar remotamente. El incidente permanece en
+  // memoria/localStorage — no hay tracker_incidents que limpiar en modo offline.
+  if (!_supabase || !_supabaseUser) return;
+  const { error } = await _supabase
+    .from('tracker_incidents')
+    .delete()
+    .eq('user_id', _supabaseUser.id)
+    .in('code', list);
+  if (error) throw error;
 }
 
 // INC-[pendiente-ID] TKT-fix: _mapRowToItem() — única fuente del mapeo de columnas
