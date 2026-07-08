@@ -1,4 +1,4 @@
-// [PP] mod:94 · autor:Rune · 2026-07-07 UTC-6
+// [PP] mod:95 · autor:Rune · 2026-07-08 UTC-6
 // INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados wiring de
 // _showArranquePanel (import + setTimeout en _renderAfterAuth) y los 4 sitios de dispatch
 // 'shell:mark-pulso-dirty'/'shell:render-pulso-dot' (post-debounce, save() no-auth, save()
@@ -1163,6 +1163,15 @@ export async function saveBacklog() {
     const _validIncStatuses = _VALID_INCIDENT_STATUS_BY_TYPE[inc.type];
     if (_validIncStatuses && _incStatusRaw && !_validIncStatuses.has(_incStatusRaw)) {
       console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — type:${inc.type} no puede tener incident_status:${_incStatusRaw} (viola chk_incident_status_by_type)`);
+      return false;
+    }
+    // INC-202607-[pendiente-ID]: sla_priority es NOT NULL en tracker_incidents y obligatorio
+    // en todo INC/PRB/KE/CHG (__BR-Ecosystem §5). Sin este gate, _toIncidentRow() enviaba
+    // sla_priority:null y Postgres rechazaba el batch completo (23502) en cada upsert —
+    // loop de error en cada evento Realtime. Se excluye la fila (mismo tratamiento que type/
+    // incident_status inválidos) en vez de asignar un default de negocio no solicitado.
+    if (!inc.sla_priority) {
+      console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — sla_priority ausente (viola NOT NULL de tracker_incidents). Requiere sla_priority declarado por Cael/Finn.`);
       return false;
     }
     return true;

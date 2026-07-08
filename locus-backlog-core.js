@@ -1,4 +1,4 @@
-// [PP] mod:97 · autor:Rune · 2026-07-07 UTC-6
+// [PP] mod:98 · autor:Rune · 2026-07-08 UTC-6
 // TKT-202607-045 (REQ-202607-015): getAnyItem(code) agregada — lookup unificado ITEMS+INCIDENTS
 //   por código, sin que el caller sepa de antemano si el código es Scrum o ITIL. Solo lectura.
 // TKT-202607-011 (TKT3 REQ-202607-006): namespace de filtro por área agregado a _subtabNS —
@@ -930,6 +930,17 @@ function _normalizeItems(items) {
     if (!item.title || item.title.trim() === '') {
       item.title = '[sin título]';
       _blogLog('normalize-warn', item.code || '(sin código)', 'title ausente → "[sin título]"', 'backlog');
+    }
+
+    // ── sla_priority (INCIDENT_TYPES) ───────────────────────────────────────────
+    // INC-202607-[pendiente-ID]: sla_priority es obligatorio en todo INC/PRB/KE/CHG
+    // (__BR-Ecosystem §5) y NOT NULL en tracker_incidents. Este bloque NO asigna un
+    // valor por defecto — decidir sla_priority es criterio de negocio de Cael/Finn,
+    // no algo que la normalización deba inventar. Solo deja visible el gap en DocLog
+    // para que se detecte al cargar, no solo cuando saveBacklog() ya rechazó la fila
+    // (ver gate correspondiente en locus-storage.js → saveBacklog()).
+    if (INCIDENT_TYPES.includes(itemKind(item)) && !item.sla_priority) {
+      _blogLog('normalize-warn', item.code || '(sin código)', 'sla_priority ausente en ítem ITIL — requiere declaración explícita de Cael/Finn antes de sync (BR-Ecosystem §5)', 'backlog');
     }
 
     // ── id ────────────────────────────────────────────────────────────────────
