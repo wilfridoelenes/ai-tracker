@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-S-HOTFIX · mod:10 · autor:Rune · 2026-06-24 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-07-08 16:10 UTC-6
 // locus-reports.js
 // Última actualización: B-202606-108 — removeItem() de la clave legacy eliminado en
 // confirmResetBacklog() y en el delete remoto del danger zone de backlog — sin escrituras activas.
@@ -13,7 +13,7 @@ import { renderGlobalRadarSidebar } from './locus-radar.js';
 import { updateStats } from './locus-sesiones-stats.js';
 
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
-import { _getActiveProjectFilter, _offlineQueuePush, _subscribeRealtime, _tplKey, _unsubscribeRealtime, getAI, getAISessions, getActiveTracker, getAllSessions, getProjectById, save, saveImmediate, setSyncStatus } from './locus-storage.js';
+import { _getActiveProjectFilter, _mutateSessions, _offlineQueuePush, _subscribeRealtime, _tplKey, _unsubscribeRealtime, getAI, getAISessions, getActiveTracker, getAllSessions, getProjectById, save, saveImmediate, setSyncStatus } from './locus-storage.js';
 
 import { _updateSubTabButtons, renderContext, updateContextBanner } from './locus-docs.js';
 
@@ -566,12 +566,17 @@ function confirmPurge() {
   if (total <= 0) return;
   const cutoff = new Date();
   cutoff.setMonth(cutoff.getMonth() - months);
+  // TKT2 · REQ-sessions-mutator AC-5: cada sesión purgada pasa por _mutateSessions('remove', ...)
+  // en vez de filtrar proj.sessions directo — así queda encolada en _dirtySessionRemovals y
+  // _saveSessions() emite el DELETE real a Supabase (antes: purga local sin DELETE remoto,
+  // la sesión "purgada" resucitaba en el próximo merge de _loadFromSupabase()).
   (state.projects || []).forEach(proj => {
-    proj.sessions = (proj.sessions || []).filter(s => {
-      if (!s.date) return true;
+    const toRemove = (proj.sessions || []).filter(s => {
+      if (!s.date) return false;
       const d = new Date(s.date);
-      return isNaN(d.getTime()) || d >= cutoff;
+      return !isNaN(d.getTime()) && d < cutoff;
     });
+    toRemove.forEach(s => _mutateSessions(proj, 'remove', s.id));
   });
   save(); window.dispatchEvent(new CustomEvent('shell:render-tracker')); closePurgeModal();
   showToast('success', `${total} sesión${total !== 1 ? 'es' : ''} eliminadas`);

@@ -1,4 +1,4 @@
-// [PP] mod:99 · autor:Rune · 2026-07-08 15:40 UTC-6
+// [PP] mod:101 · autor:Rune · 2026-07-08 16:10 UTC-6
 // INC-[pendiente-ID]: _subscribeRealtime() no reconectaba tras CHANNEL_ERROR/CLOSED/TIMED_OUT
 // — el guard de idempotencia bloqueaba la reconexión porque _realtimeChannels seguía con
 // canales muertos y _realtimeSubscribedFor sin resetear. Fix: _handleChannelStatus() limpia
@@ -204,29 +204,38 @@ let _realtimeLastTs     = null;   // timestamp del último update remoto procesa
 
 // TKT1 · REQ-sessions-mutator: dirty-tracking de sesiones por proyecto — evita que _saveFlush()
 // re-suba el array completo de proj.sessions en cada guardado. _mutateSessions() es el único
-// punto que debe escribir en proj.sessions Y en este mapa a la vez (ver invariant del mutador).
+// punto que debe escribir en proj.sessions Y en estos mapas a la vez (ver invariant del mutador).
 // {projectId: Set<sessionId>} — vacío o ausente para un proyecto = nada pendiente de subir.
 // _dirtySyncBaseline registra qué proyectos ya tuvieron su primer upsert completo — sin esta
 // marca, _saveSessions() no puede distinguir "proyecto sin cambios" de "proyecto nunca sincronizado".
+// _dirtySessionRemovals (TKT2 · REQ-sessions-mutator): {projectId: Set<sessionId>} — ids que
+// _saveSessions() debe borrar en Supabase. Separado de _dirtySessionIds porque un id removido
+// ya no está en proj.sessions — no puede vivir en el mismo set que se resuelve contra el array.
 let _dirtySessionIds  = {};
 let _dirtySyncBaseline = new Set();
+let _dirtySessionRemovals = {};
 
 // _mutateSessions() — único punto de mutación de proj.sessions con dirty-tracking.
 // op: 'add' (agrega payload al final) | 'remove' (filtra por payload = sessionId).
 // Invariant: toda mutación de proj.sessions fuera de esta función no queda registrada como
-// dirty — _saveSessions() la ignorará hasta el próximo full-resync. TKT1 solo migra el call
-// site de creación (locus-session-save.js); los 7 restantes quedan en TKTs subsecuentes.
+// dirty — _saveSessions() la ignorará hasta el próximo full-resync. TKT1 migró el call site de
+// creación (locus-session-save.js); TKT2 corrige 'remove' (DELETE real, ver abajo) y migra
+// confirmPurge() (locus-reports.js). Quedan pendientes: locus-session-popup.js (borrar/mover
+// sesión) y locus-workers.js (borrar por aiId) — TKT3.
+// 'remove' (TKT2): además de filtrar proj.sessions, encola el id en _dirtySessionRemovals —
+// _saveSessions() emite DELETE real contra tracker_sessions por cada id encolado.
 export function _mutateSessions(proj, op, payload) {
   if (!proj) return;
   if (!proj.sessions) proj.sessions = [];
   if (!_dirtySessionIds[proj.id]) _dirtySessionIds[proj.id] = new Set();
+  if (!_dirtySessionRemovals[proj.id]) _dirtySessionRemovals[proj.id] = new Set();
 
   if (op === 'add') {
     proj.sessions.push(payload);
     _dirtySessionIds[proj.id].add(payload.id);
   } else if (op === 'remove') {
     proj.sessions = proj.sessions.filter(s => s.id !== payload);
-    _dirtySessionIds[proj.id].add(payload);
+    _dirtySessionRemovals[proj.id].add(payload);
   }
 }
 
@@ -997,7 +1006,13 @@ export async function saveImmediate() {
 // REQ-PERSIST-OPT TKT1: localStorage escrito de forma optimista ANTES del upsert —
 // un hard reload durante el batch ya no pierde proj.sessions en ambos lados.
 async function _saveSessions(proj) {
-  if (!proj || !proj.sessions || !proj.sessions.length) return;
+  if (!proj) return;
+  if (!proj.sessions) proj.sessions = [];
+  // AC-4 (TKT2): no salir temprano si hay removals pendientes, aunque proj.sessions
+  // haya quedado vacío (ej. purga total) — el DELETE debe correr igual.
+  const _pendingRemovals = _dirtySessionRemovals[proj.id];
+  const _hasPendingRemovals = _pendingRemovals && _pendingRemovals.size > 0;
+  if (!proj.sessions.length && !_hasPendingRemovals) return;
   const sessions = proj.sessions;
 
   // AC-1: respaldo local inmediato, antes de cualquier intento de red.
@@ -1007,8 +1022,28 @@ async function _saveSessions(proj) {
     console.warn('[AI Tracker] _saveSessions: fallo al escribir respaldo local pre-upsert', lsErr);
   }
 
-  // Supabase — upsert por lotes de 400, solo de sesiones dirty (TKT1 · REQ-sessions-mutator)
+  // Supabase — upsert por lotes de 400, solo de sesiones dirty (TKT1) + DELETE real de
+  // removals pendientes (TKT2 · REQ-sessions-mutator)
   if (_supabase && _supabaseUser) {
+    // AC-2/AC-4 (TKT2): DELETE de removals corre siempre que haya pendientes, independiente
+    // de si hay algo para subir o si el proyecto ya tuvo su baseline — un remove no depende
+    // del estado de sync de los adds.
+    const removalsPending = _dirtySessionRemovals[proj.id];
+    if (removalsPending && removalsPending.size) {
+      const idsToDelete = Array.from(removalsPending);
+      const { error: delError } = await _supabase
+        .from('tracker_sessions')
+        .delete()
+        .eq('user_id', _supabaseUser.id)
+        .in('session_id', idsToDelete);
+      if (delError) {
+        // AC-3 (TKT2): no limpiar removals en error — reintenta en el próximo _saveFlush().
+        console.error('[AI Tracker] Supabase _saveSessions DELETE failed:', delError);
+      } else {
+        idsToDelete.forEach(id => removalsPending.delete(id));
+      }
+    }
+
     // AC-4: primera sincronización de este proyecto en este cliente → upsert completo una
     // sola vez. _dirtySyncBaseline distingue "sin cambios pendientes" de "nunca sincronizado"
     // — sin esta marca, un proyecto recién cargado no subiría nada (dirty arranca vacío).
