@@ -1,5 +1,5 @@
 import { esc } from './locus-ui-shell.js';
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] mod:2 · autor:Rune · 2026-07-08 12:00 UTC-6
 // locus-toast.js
 // Última actualización: 2026-05-19 00:00 UTC-6
 // Toast stack system — extraído de ai-tracker-checkpoint.js (R-202605-003)

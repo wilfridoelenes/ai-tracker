@@ -1,4 +1,4 @@
-// [PP] mod:7 · autor:Rune · 2026-06-30 23:10 UTC-6
+// [PP] mod:8 · autor:Rune · 2026-07-08 12:00 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -360,7 +360,7 @@ export function closeItemEditor() {
   _editorItemId = null;
 }
 
-export function confirmItemEditor() {
+export async function confirmItemEditor() {
   const type = document.getElementById('item-type').value;
   const code = document.getElementById('item-code').value.trim();
   const title = document.getElementById('item-title').value.trim();
@@ -417,9 +417,16 @@ export function confirmItemEditor() {
   }
   
   // Generar código si está vacío — usa _getNextItemCode() para consistencia con el sistema
+  // TKT-202607-076 AC1/AC2: await obligatorio — _getNextItemCode() es async, sin await
+  // el ítem se guardaba con code:'[object Promise]'. Si rechaza, no persistir.
   let finalCode = code;
   if (!finalCode) {
-    finalCode = _getNextItemCode(type);
+    try {
+      finalCode = await _getNextItemCode(type);
+    } catch (err) {
+      showToast('warning', '⚠ No se pudo generar código — reintentar');
+      return;
+    }
   }
 
   if (_editorItemId) {
