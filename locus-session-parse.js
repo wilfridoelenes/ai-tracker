@@ -1,4 +1,4 @@
-// [PP] mod:95 · autor:Rune · 2026-07-06 20:32 UTC-6
+// [PP] mod:96 · autor:Rune · 2026-07-09 00:00 UTC-6
 // REQ-execution-plan-deprecation: removido feature EXECUTION-PLAN completo — _tryIngestPlan,
 //   _tryIngestPlanFromParsed, parsePlanBlock, parseo de execution_plan del schema JSON
 //   (_rawExecutionPlan, validación de archivos huérfanos, transporte a ai._parsed/_standaloneLastParsed),
@@ -2093,8 +2093,17 @@ export function saveStandaloneCheckpoint() {
       return;
     }
 
-    const _gatedDoApplyBatch = () => {
-      _applyCheckpointBatch(tgItems);
+    // TKT-202607-078 AC · ruta batch: _applyCheckpointBatch es async — el gate debe esperar
+    // la resolución antes de cerrar el panel y renderizar. Si rechaza, no se ejecuta ningún
+    // efecto posterior (closeStandaloneCheckpoint/render*/showToast success) y el textarea
+    // standalone no se pierde — el founder puede reintentar.
+    const _gatedDoApplyBatch = async () => {
+      try {
+        await _applyCheckpointBatch(tgItems);
+      } catch (err) {
+        showToast('error', '✗ No se pudo aplicar el CHECKPOINT');
+        return;
+      }
       closeStandaloneCheckpoint();
       renderBacklogList();
       renderStats();
@@ -2126,7 +2135,18 @@ export function saveStandaloneCheckpoint() {
   // sessId sintético — no crea sesión real, solo referencia para mergeBacklogFromTG
   const syntheticSessId = 'standalone-' + Date.now();
 
-  const _doApply = () => {    const mergeResult = _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id);
+  // TKT-202607-078 AC · ruta standalone: _mergeBacklogWithProject es async — await antes de
+  // leer mergeResult.slugMap (consumido por applyPatchesFromTG más abajo). Si rechaza, el
+  // catch muestra toast de error y retorna sin ejecutar el resto de _doApply — ningún patch
+  // ni ítem se persiste sobre un mergeResult a medias.
+  const _doApply = async () => {
+    let mergeResult;
+    try {
+      mergeResult = await _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id);
+    } catch (err) {
+      showToast('error', '✗ No se pudo aplicar el CHECKPOINT');
+      return;
+    }
 
     // R-202605-062: aplicar patches después del merge de ítems normales
     // B-202606-022: pasar slugMap para resolver [tmp:slug] en parentId de patches
@@ -2220,9 +2240,9 @@ export function saveStandaloneCheckpoint() {
   let _spStep0Approved = !_validSpProposalSa;
 
   // Wrapper: _doApply solo corre si el gate está abierto
-  const _gatedDoApply = () => {
+  const _gatedDoApply = async () => {
     if (!_spStep0Approved) return;
-    _doApply();
+    await _doApply();
   };
 
   if (_validSpProposalSa) {
