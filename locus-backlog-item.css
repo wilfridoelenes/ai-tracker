@@ -1,4 +1,4 @@
-/* [PP] mod:44 · autor:Nova · 2026-07-08 14:15 UTC-6 */
+/* [PP] mod:45 · autor:Nova · 2026-07-08 UTC-6 */
 /* TKT-202607-027: removidas .kanban-card--dragging/.kanban-drop-indicator + @keyframes
    bl-drag-ripple (huérfano — sin consumidor en ningún archivo del scope, exclusivo del
    drag de Vista Kanban deprecada). No se toca .kb-selected (vive en locus-backlog.css). */
@@ -3895,6 +3895,16 @@ body {
 
 /* R sin Ts hijos válidos — B-202606-015 */
 .staleness-pill.staleness--orphaned {
+  color: var(--amber);
+  background: color-mix(in srgb, var(--amber) 10%, transparent);
+  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
+}
+
+/* TKT-202607-063 (REQ-202607-016): INC/PRB/KE/CHG con campos ITIL obligatorios ausentes
+   (item.itil_incomplete — ver _normalizeIncidents(), TKT-202607-062). Mismo tono semántico
+   que staleness--orphaned: gap de completitud de especificación, no alerta de tiempo
+   transcurrido — reservamos --red/--stale exclusivamente para antigüedad. */
+.staleness-pill.staleness--itil-incompleto {
   color: var(--amber);
   background: color-mix(in srgb, var(--amber) 10%, transparent);
   border-color: color-mix(in srgb, var(--amber) 28%, transparent);

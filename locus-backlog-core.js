@@ -1,4 +1,16 @@
-// [PP] mod:101 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:102 · autor:Rune · 2026-07-08 UTC-6
+// TKT-202607-062 (REQ-202607-016): _normalizeItems() dividida en _normalizeScrumItems()
+//   (REQ/TKT/DISC) + _normalizeIncidents() (INC/PRB/KE/CHG) — pasadas comunes extraídas a
+//   _normalizeCommonFields/_normalizeSprintFields/_normalizeQincGate/_normalizeOrphanedFlag,
+//   compartidas por ambas. _normalizeIncidents() agrega validación de campos ITIL
+//   obligatorios (sla_priority · incident_status · comportamiento_actual) — ítem incompleto
+//   se conserva (sin descartarse) con item.itil_incomplete = [campos faltantes], recalculado
+//   desde cero cada pasada. Reemplaza el warning aislado de solo sla_priority que
+//   _normalizeItems() tenía antes. Call sites actualizados: loadBacklog() (2 sitios) y stub
+//   _migrateItemTypes() → _normalizeScrumItems(ITEMS) (scope sin cambio — el call site en
+//   locus-storage.js solo opera sobre ITEMS, nunca sobre INCIDENTS). _normalizeItems()
+//   eliminada — sin retrocompatibilidad (__BR-Execution §2), sin otro call site en este
+//   archivo ni en locus-storage.js (verificado por grep antes de eliminar).
 // TKT1 (REQ-historico-async): _getNextItemCode(typeChar, reservedCodes) → async. Además del
 //   escaneo existente de ITEMS/INCIDENTS (según INCIDENT_TYPES) + reservedCodes, ahora hace
 //   await refreshHistoricoCache() y suma getHistoricoItemsSync() al cómputo de maxNum antes de
@@ -180,7 +192,7 @@ export function _skelHide(el) {}
 let currentFilter = 'all';
 // T-202606-047: normalizeStatus — punto canónico único de validación y normalización de status
 // Firma: normalizeStatus(raw: string, type?: string) → string
-// Consumidores: ITEMS IIFE · _normalizeItems · locus-session-parse.js (T-202606-048)
+// Consumidores: ITEMS IIFE · _normalizeCommonFields (TKT-202607-062) · locus-session-parse.js (T-202606-048)
 export function normalizeStatus(raw, type) {
   const s = (raw || '').trim().toLowerCase();
   // Aliases de entrada conocidos
@@ -918,99 +930,88 @@ export function purgeAllHistorico() {
   });
 }
 
-// R-202605-070: _normalizeItems — función pura que garantiza el contrato de datos de ITEMS
-// antes de que cualquier módulo consuma el array.
-// Absorbe las responsabilidades de _migrateItemTypes y las migraciones inline de loadBacklog().
-// Retorna el array normalizado. No tiene efectos laterales (no escribe en Supabase ni localStorage).
-// Toda corrección aplicada se registra en DocLog via _blogLog con el código del ítem afectado.
-function _normalizeItems(items) {
-  if (!Array.isArray(items)) return [];
+// TKT-202607-062 (REQ-202607-016): _normalizeCommonFields — campos comunes a todo ítem
+// (REQ/TKT/DISC/INC/PRB/KE/CHG): schema_version, code (solo warn), type, status, title/desc,
+// id, history. Extraído del bloque compartido de la antigua _normalizeItems() — mismo
+// comportamiento, sin regresión. Efecto lateral solo sobre el ítem recibido + DocLog.
+function _normalizeCommonFields(item) {
+  // ── schema_version ────────────────────────────────────────────────────────
+  // Ítems sin campo → versión 0. Migrar a 1 (schema actual).
+  if (item.schema_version === undefined) {
+    item.schema_version = 1;
+    _blogLog('normalize', item.code || '(sin código)', 'schema_version ausente → 1', 'backlog');
+  }
 
-  items.forEach(item => {
-    // ── schema_version ────────────────────────────────────────────────────────
-    // Ítems sin campo → versión 0. Migrar a 1 (schema actual).
-    if (item.schema_version === undefined) {
-      item.schema_version = 1;
-      _blogLog('normalize', item.code || '(sin código)', 'schema_version ausente → 1', 'backlog');
-    }
+  // ── code ──────────────────────────────────────────────────────────────────
+  // code vacío o ausente: conservar ítem, registrar warning. No asignar código aquí
+  // (los IDs los asigna Locus). Ítems placeholder ([pendiente-ID], [tmp:slug]) son válidos.
+  if (!item.code) {
+    _blogLog('normalize-warn', '(sin código)', 'code ausente — ítem conservado sin modificar', 'backlog');
+  }
 
-    // ── code ──────────────────────────────────────────────────────────────────
-    // code vacío o ausente: conservar ítem, registrar warning. No asignar código aquí
-    // (los IDs los asigna Locus). Ítems placeholder ([pendiente-ID], [tmp:slug]) son válidos.
-    if (!item.code) {
-      _blogLog('normalize-warn', '(sin código)', 'code ausente — ítem conservado sin modificar', 'backlog');
+  // ── type ──────────────────────────────────────────────────────────────────
+  // Ausente: inferir con itemKind() — usa prefijo de code contra GEN2_TYPES.
+  // Sin default forzado: si itemKind retorna null, item.type queda undefined.
+  if (!item.type) {
+    const inferred = itemKind(item);
+    if (inferred) {
+      item.type = inferred;
+      _blogLog('normalize', item.code || '(sin código)', `type inferido desde prefijo → ${item.type}`, 'backlog');
+    } else {
+      _blogLog('normalize-warn', item.code || '(sin código)', 'type ausente y no inferible — item.type queda undefined', 'backlog');
     }
+  }
 
-    // ── type ──────────────────────────────────────────────────────────────────
-    // Ausente: inferir con itemKind() — usa prefijo de code contra GEN2_TYPES.
-    // Sin default forzado: si itemKind retorna null, item.type queda undefined.
-    if (!item.type) {
-      const inferred = itemKind(item);
-      if (inferred) {
-        item.type = inferred;
-        _blogLog('normalize', item.code || '(sin código)', `type inferido desde prefijo → ${item.type}`, 'backlog');
-      } else {
-        _blogLog('normalize-warn', item.code || '(sin código)', 'type ausente y no inferible — item.type queda undefined', 'backlog');
-      }
-    }
+  // ── status ────────────────────────────────────────────────────────────────
+  // ── T-202606-024: migración explícita de status "en curso" ─────────────────
+  // "en curso" no es status válido según BR-Ecosystem §5. Migrar a "pendiente"
+  // con entrada nominada en DocLog antes de la normalización genérica.
+  if (item.status === 'en curso') {
+    _blogLog('migrate', item.code || '(sin código)', 'status "en curso" → "pendiente" — no válido según BR-Ecosystem §5', 'backlog');
+    item.status = 'pendiente';
+  }
 
-    // ── status ────────────────────────────────────────────────────────────────
-    // ── T-202606-024: migración explícita de status "en curso" ─────────────────
-    // "en curso" no es status válido según BR-Ecosystem §5. Migrar a "pendiente"
-    // con entrada nominada en DocLog antes de la normalización genérica.
-    if (item.status === 'en curso') {
-      _blogLog('migrate', item.code || '(sin código)', 'status "en curso" → "pendiente" — no válido según BR-Ecosystem §5', 'backlog');
-      item.status = 'pendiente';
-    }
+  // T-202606-047: normalizeStatus() es el punto canónico — VALID_STATUSES eliminado
+  const rawStatus = item.status;
+  const normalizedStatus = normalizeStatus(rawStatus, item.type);
+  if (item.status !== normalizedStatus) {
+    item.status = normalizedStatus;
+    _blogLog('normalize', item.code || '(sin código)', `status "${rawStatus}" → "${normalizedStatus}"`, 'backlog');
+  }
 
-    // T-202606-047: normalizeStatus() es el punto canónico — VALID_STATUSES eliminado
-    const rawStatus = item.status;
-    const normalizedStatus = normalizeStatus(rawStatus, item.type);
-    if (item.status !== normalizedStatus) {
-      item.status = normalizedStatus;
-      _blogLog('normalize', item.code || '(sin código)', `status "${rawStatus}" → "${normalizedStatus}"`, 'backlog');
-    }
-
-    // ── title ─────────────────────────────────────────────────────────────────
-    // Ausente → '[sin título]'. Migración desc→title si title está vacío.
-    if (item.desc !== undefined) {
-      if (!item.title || item.title.trim() === '') {
-        item.title = item.desc;
-        _blogLog('normalize', item.code || '(sin código)', 'desc migrado a title', 'backlog');
-      }
-      delete item.desc;
-    }
+  // ── title ─────────────────────────────────────────────────────────────────
+  // Ausente → '[sin título]'. Migración desc→title si title está vacío.
+  if (item.desc !== undefined) {
     if (!item.title || item.title.trim() === '') {
-      item.title = '[sin título]';
-      _blogLog('normalize-warn', item.code || '(sin código)', 'title ausente → "[sin título]"', 'backlog');
+      item.title = item.desc;
+      _blogLog('normalize', item.code || '(sin código)', 'desc migrado a title', 'backlog');
     }
+    delete item.desc;
+  }
+  if (!item.title || item.title.trim() === '') {
+    item.title = '[sin título]';
+    _blogLog('normalize-warn', item.code || '(sin código)', 'title ausente → "[sin título]"', 'backlog');
+  }
 
-    // ── sla_priority (INCIDENT_TYPES) ───────────────────────────────────────────
-    // INC-202607-[pendiente-ID]: sla_priority es obligatorio en todo INC/PRB/KE/CHG
-    // (__BR-Ecosystem §5) y NOT NULL en tracker_incidents. Este bloque NO asigna un
-    // valor por defecto — decidir sla_priority es criterio de negocio de Cael/Finn,
-    // no algo que la normalización deba inventar. Solo deja visible el gap en DocLog
-    // para que se detecte al cargar, no solo cuando saveBacklog() ya rechazó la fila
-    // (ver gate correspondiente en locus-storage.js → saveBacklog()).
-    if (INCIDENT_TYPES.includes(itemKind(item)) && !item.sla_priority) {
-      _blogLog('normalize-warn', item.code || '(sin código)', 'sla_priority ausente en ítem ITIL — requiere declaración explícita de Cael/Finn antes de sync (BR-Ecosystem §5)', 'backlog');
+  // ── id ────────────────────────────────────────────────────────────────────
+  // Ítems importados sin id: asignar id interno (no confundir con code).
+  if (!item.id) {
+    item.id = 'item-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
+  }
+
+  // ── history ───────────────────────────────────────────────────────────────
+  if (!item.history) {
+    item.history = [];
+    if (item.statusChangedAt) {
+      item.history.push({ type: 'status', ts: item.statusChangedAt, data: { to: item.status } });
     }
+  }
+}
 
-    // ── id ────────────────────────────────────────────────────────────────────
-    // Ítems importados sin id: asignar id interno (no confundir con code).
-    if (!item.id) {
-      item.id = 'item-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6);
-    }
-
-    // ── history ───────────────────────────────────────────────────────────────
-    if (!item.history) {
-      item.history = [];
-      if (item.statusChangedAt) {
-        item.history.push({ type: 'status', ts: item.statusChangedAt, data: { to: item.status } });
-      }
-    }
-  });
-
+// TKT-202607-062: pasada — migración sprint → sprint_id + sprint_name. Idempotente.
+// Extraída sin cambio de comportamiento — se ejecuta igual sobre ITEMS e INCIDENTS
+// (AC de contrato: el split no condiciona esta pasada por tipo de ítem).
+function _normalizeSprintFields(items) {
   // T-202606-084: migración sprint → sprint_id + sprint_name
   // Separa el campo sprint compuesto ('PP-S-01 · Nombre') en dos campos atómicos.
   // Idempotente: ítems ya migrados (sprint_id presente) no se retocan.
@@ -1053,7 +1054,11 @@ function _normalizeItems(items) {
       `sprint → sprint_id:"${item.sprint_id}" sprint_name:"${item.sprint_name}"`,
       'backlog');
   });
+}
 
+// TKT-202607-062: pasada — gate de asignación a Q-INC. Extraída sin cambio de
+// comportamiento (misma AC de contrato que _normalizeSprintFields).
+function _normalizeQincGate(items) {
   // TKT-A2: gate de asignación a Q-INC — solo INC/PRB/KE/CHG pueden vivir en queue [Prefijo]-Q-INC.
   // BR-Core §6: Q-INC solo acepta INC/PRB/KE/CHG — ningún REQ, TKT ni DISC puede asignarse a Q-INC.
   items.forEach(item => {
@@ -1070,7 +1075,11 @@ function _normalizeItems(items) {
       delete item.queue; // tipo no válido para Q-INC — queue limpiado
     }
   });
+}
 
+// TKT-202607-062: pasada — flag orphaned para REQ sin TKT hijo válido. No-op para
+// tipos distintos de REQ (por diseño — sin condicionar por array de origen).
+function _normalizeOrphanedFlag(items) {
   // T-202606-011: SUSPENDIDO — P pendiente de Vera (ciclo de vida de R sin Ts).
   // Degradación silenciosa R→P desactivada hasta que BR-Core §4 y BR-Ecosystem §5
   // definan el nuevo modelo: gate en parser + flag orphaned + P como único origen de R.
@@ -1089,6 +1098,58 @@ function _normalizeItems(items) {
     } else {
       // Limpiar flag si el R recuperó hijos válidos
       if (item.orphaned) delete item.orphaned;
+    }
+  });
+}
+
+// R-202607-016 · TKT-202607-062: _normalizeScrumItems — normalización de la rama Planeada
+// (REQ/TKT/DISC, __BR-Ecosystem §4b). Reemplaza a _normalizeItems() para este universo —
+// mismas pasadas, mismo resultado, sin regresión. Función pura: no escribe en Supabase ni
+// localStorage. Toda corrección se registra en DocLog via _blogLog.
+export function _normalizeScrumItems(items) {
+  if (!Array.isArray(items)) return [];
+  items.forEach(_normalizeCommonFields);
+  _normalizeSprintFields(items);
+  _normalizeQincGate(items);
+  _normalizeOrphanedFlag(items);
+  return items;
+}
+
+// R-202607-016 · TKT-202607-062: _normalizeIncidents — normalización de la rama Reactiva
+// (INC/PRB/KE/CHG, __BR-Ecosystem §4b). Ejecuta las mismas pasadas comunes + sprint +
+// Q-INC + orphaned que _normalizeItems() ejecutaba hoy sobre INCIDENTS (sin condicionar
+// por tipo de ítem — mismo comportamiento), y agrega validación de campos ITIL
+// obligatorios (sla_priority · incident_status · comportamiento_actual — __BR-Ecosystem §5).
+// Reemplaza el warning aislado de sla_priority de la antigua _normalizeItems(): un ítem
+// con algún campo ausente se conserva sin descartarse y recibe item.itil_incomplete con
+// los nombres de los campos faltantes — recalculado desde cero en cada pasada (no
+// acumulativo), mismo patrón que el flag orphaned.
+export function _normalizeIncidents(items) {
+  if (!Array.isArray(items)) return [];
+  items.forEach(_normalizeCommonFields);
+  _normalizeSprintFields(items);
+  _normalizeQincGate(items);
+  _normalizeOrphanedFlag(items);
+
+  // ── validación de campos ITIL obligatorios ──────────────────────────────────
+  // INC-202607-[pendiente-ID] / TKT-202607-062: sla_priority, incident_status y
+  // comportamiento_actual son obligatorios en todo INC/PRB/KE/CHG (__BR-Ecosystem §5).
+  // No se asigna default de negocio — solo se deja el gap visible en DocLog + flag
+  // legible por el editor (item.itil_incomplete), consistente con saveBacklog() (que
+  // sigue excluyendo del upsert las filas sin sla_priority — gate independiente, no
+  // duplicado aquí).
+  items.forEach(item => {
+    const missing = [];
+    if (!item.sla_priority) missing.push('sla_priority');
+    if (!(item.incidentStatus || item.incident_status)) missing.push('incident_status');
+    if (!item.comportamiento_actual) missing.push('comportamiento_actual');
+
+    if (missing.length) {
+      item.itil_incomplete = missing;
+      _blogLog('normalize-warn', item.code || '(sin código)',
+        `INC sin ${missing.join(', ')} — itil_incomplete flag agregado`, 'backlog');
+    } else if (item.itil_incomplete) {
+      delete item.itil_incomplete;
     }
   });
 
@@ -1120,15 +1181,16 @@ export function loadBacklog() {
     const s = localStorage.getItem(_tplKey('backlog-items'));
     if (s) { try { _setITEMS(JSON.parse(s)); } catch { _setITEMS([]); } } else { _setITEMS([]); }
   }
-  // R-202605-070: normalizar contrato de datos antes de cualquier uso downstream.
-  // _normalizeItems absorbe: type, status, title/desc, id, history, schema_version.
-  _setITEMS(_normalizeItems(ITEMS));
-  // TKT-202607-005: INCIDENTS requiere la misma normalización — _setITEMS() enruta ítems
-  // ITIL recibidos vía _setIncidents() en el paso anterior (carga desde localStorage mezcla
-  // ambos tipos), pero _setIncidents() no ejecuta _normalizeItems(). Sin este paso, ítems
-  // ITIL cargados sin schema_version/status normalizado quedarían sin corregir — mismo gap
-  // que _normalizeItems ya resuelve para ITEMS.
-  if (INCIDENTS.length) _setIncidents(_normalizeItems(INCIDENTS));
+  // R-202605-070 / TKT-202607-062: normalizar contrato de datos antes de cualquier uso
+  // downstream. _normalizeScrumItems absorbe: type, status, title/desc, id, history,
+  // schema_version — mismo comportamiento que la antigua _normalizeItems() para ITEMS.
+  _setITEMS(_normalizeScrumItems(ITEMS));
+  // TKT-202607-005 / TKT-202607-062: INCIDENTS requiere la misma normalización de campos
+  // comunes más la validación ITIL — _setITEMS() enruta ítems ITIL recibidos vía
+  // _setIncidents() en el paso anterior (carga desde localStorage mezcla ambos tipos),
+  // pero _setIncidents() no ejecuta normalización. Sin este paso, ítems ITIL cargados sin
+  // schema_version/status normalizado ni itil_incomplete evaluado quedarían sin corregir.
+  if (INCIDENTS.length) _setIncidents(_normalizeIncidents(INCIDENTS));
 
   // B-202606-016: sanear ítems con status:'historico' cuyo sprint no está cerrado.
   // Origen: normalizeStatus acepta 'historico' como canónico — si el dato llegó con
@@ -1160,7 +1222,8 @@ export function loadBacklog() {
   }
   _applyAllPriorities(); // T-202604-297: recalcular prioridad automática al cargar
   _recalcAllScores();    // T-202604-257: estampar score en memoria tras cargar
-  // Guardar siempre tras normalización — _normalizeItems puede haber corregido campos
+  // Guardar siempre tras normalización — _normalizeScrumItems/_normalizeIncidents pueden
+  // haber corregido campos
   saveBacklog();
   // AC aria tablist: sincronizar estado inicial de atributos aria desde variables de estado
   _syncViewAriaStates();
@@ -2383,12 +2446,14 @@ export function _getBacklogSearchQuery()     { return backlogSearchQuery; }
 export function _getCollapsedVersions()      { return collapsedVersions; }
 
 // B-202605-XXX: _migrateItemTypes — stub de compatibilidad para call site en locus-storage.js
-// R-202605-070: la lógica real fue absorbida por _normalizeItems(). Este stub redirige
-// la llamada post-carga remota de _loadFromSupabase a _normalizeItems para mantener
-// el contrato de datos sin duplicar lógica.
+// R-202605-070 / TKT-202607-062: la lógica real fue absorbida por _normalizeScrumItems().
+// Este stub redirige la llamada post-carga remota de _loadFromSupabase (bloque de merge de
+// ITEMS únicamente — ver _itemsRef en locus-storage.js) a _normalizeScrumItems para mantener
+// el contrato de datos sin duplicar lógica. Scope sin cambio respecto al stub anterior: solo
+// ITEMS — el call site que invoca esta función nunca operó sobre INCIDENTS.
 export function _migrateItemTypes() {
   if (typeof ITEMS === 'undefined') return;
-  _setITEMS(_normalizeItems(ITEMS));
+  _setITEMS(_normalizeScrumItems(ITEMS));
   saveBacklog();
 }
 // B-202606-024: window.getItems eliminado — consumidores migrados a import o _getItemsFn()

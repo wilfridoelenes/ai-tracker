@@ -1,3 +1,14 @@
+// [PP] mod:84 · autor:Rune · 2026-07-08 UTC-6
+// TKT-202607-075 (REQ-202607-017 · TKT2): _getNextItemCode() ahora async (core.js) — todo
+//   call site pasa a await. _promoteConfirm/_promoteTktToReqConfirm → async, listener delegado
+//   _blListClick (línea ~166) → async para poder await ambas. _assignPendingIds → async,
+//   sub-paso 1a (asignación de código, dos call sites de _getNextItemCode) convertido de
+//   .map() síncrono a for...of secuencial con await — evita que 2+ [pendiente-ID] del mismo
+//   tipo en el mismo batch resuelvan al mismo NNN (regresión que Promise.all hubiera introducido
+//   por condición de carrera en el escaneo de colisión). Rechazo de _getNextItemCode() dentro
+//   del sub-paso 1a se captura: el ítem conserva su placeholder sin asignar (_wasAssigned no se
+//   marca), warning en consola, el resto del batch continúa. mergeBacklogFromTG → async, único
+//   cambio interno es await en su llamada a _assignPendingIds — resto del cuerpo sin cambio.
 // [PP] mod:82 · autor:Rune · 2026-07-07 UTC-6
 // TKT-202607-057 (REQ-202607-015 · TKT4): applyPatchesFromTG (~línea 2513) — resolución de
 //   destItem al escribir origenDisc usa getAnyItem(resolvedIncoming) en vez de
@@ -163,7 +174,7 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
   }, { signal: _blListAbortCtrl.signal });
 
   // --- Click delegation ---
-  listEl.addEventListener('click', function _blListClick(e) {
+  listEl.addEventListener('click', async function _blListClick(e) {
     const action = e.target.closest('[data-action]');
     if (!action) return;
     const act = action.dataset.action;
@@ -280,7 +291,7 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
       return;
     }
     if (act === 'promote-confirm') {
-      _promoteConfirm(action.dataset.code);
+      await _promoteConfirm(action.dataset.code);
       return;
     }
     if (act === 'promote-tkt-to-req-cancel') {
@@ -289,7 +300,7 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
       return;
     }
     if (act === 'promote-tkt-to-req-confirm') {
-      _promoteTktToReqConfirm(action.dataset.code);
+      await _promoteTktToReqConfirm(action.dataset.code);
       return;
     }
     if (act === 'acv-toggle') {
@@ -796,6 +807,14 @@ export function buildBacklogItem(item, opts = {}) {
     ? '<span class="staleness-pill staleness--orphaned" title="R sin Ts válidos — especificar T1 antes de ejecutar">Sin Ts</span>'
     : '';
 
+  // TKT-202607-063 (REQ-202607-016): badge "Campos ITIL incompletos" — item.itil_incomplete
+  // no vacío (ver _normalizeIncidents(), TKT-202607-062). Mismo patrón que orphanedBadge —
+  // staleness-pill con modificador semántico propio. Bloqueo CSS: .staleness--itil-incompleto
+  // no está definida aún en locus-backlog-item.css — coordinar con Nova antes de estilizar.
+  const itilIncompleteBadge = (!isDone && !isDiscarded && Array.isArray(item.itil_incomplete) && item.itil_incomplete.length)
+    ? `<span class="staleness-pill staleness--itil-incompleto" title="Falta: ${esc(item.itil_incomplete.join(', '))}">Campos ITIL incompletos</span>`
+    : '';
+
   // Children count + progreso para R type (T-188)
   // B-202605-052: usar getItems() sin filtrar como denominador — los filtros activos no afectan el porcentaje
   // B-202606-016: denominador = todos los hijos sin filtro · numerador = done + descartado (ambos cuentan como cerrados)
@@ -876,7 +895,7 @@ export function buildBacklogItem(item, opts = {}) {
       ? `<span class="bitem-done-check">✓</span>`
       : isIdea
         ? `<div class="bitem-header-right">${prioBadgeHtml}${_ideaQuickActions}</div>`
-        : `<div class="bitem-header-right">${scopeAddedBadge}${noAcBadge}${acReplacedBadge}${blockingBadge}${blockedBadge}${blockedByBadge}${depBlockedBadge}${orphanedBadge}${noSessionBadge}${childBadge}${prioBadgeHtml}${effortDotsHtml}${_statusChipHtml}</div>`;
+        : `<div class="bitem-header-right">${scopeAddedBadge}${noAcBadge}${acReplacedBadge}${blockingBadge}${blockedBadge}${blockedByBadge}${depBlockedBadge}${orphanedBadge}${itilIncompleteBadge}${noSessionBadge}${childBadge}${prioBadgeHtml}${effortDotsHtml}${_statusChipHtml}</div>`;
 
   // R-202605-098: subline discard reason diferenciado para P
   // P descartado por promoción → chip con ref; P descartado manual → razón libre
@@ -1113,12 +1132,12 @@ function _promoteSelectType(type) {
   if (confirmBtn) confirmBtn.disabled = false;
 }
 
-function _promoteConfirm(originCode) {
+async function _promoteConfirm(originCode) {
   if (!_promoteTargetType || !_GEN2_TYPES.includes(_promoteTargetType)) return;
   const originItem = getItems().find(i => i.code === originCode);
   if (!originItem) return;
 
-  const newCode = _getNextItemCode(_promoteTargetType);
+  const newCode = await _getNextItemCode(_promoteTargetType);
   const nowTs = Date.now();
 
   // Crear ítem hijo con campos heredados + origin
@@ -1198,11 +1217,11 @@ function _promoteTktToReq(code) {
   });
 }
 
-function _promoteTktToReqConfirm(originCode) {
+async function _promoteTktToReqConfirm(originCode) {
   const originItem = getItems().find(i => i.code === originCode);
   if (!originItem) return;
 
-  const newCode = _getNextItemCode('REQ');
+  const newCode = await _getNextItemCode('REQ');
   const nowTs = Date.now();
 
   // AC-2: R hereda desc · area · sprint · tags del T origen
@@ -1456,7 +1475,7 @@ function _findTmpMatch(tmpCode, desc, existingItems, incomingType) {
 //   Ítems con código real existente se registran como identidad: code → code.
 // T-202605-140 T2: Paso 2 — resolver referencias cruzadas (dependsOn, parentId,
 //   triggeredBy, origenDisc, promovida_a) usando slugMap. Referencia no resuelta → null/[].
-export function _assignPendingIds(tgItems, seedSlugMap) {
+export async function _assignPendingIds(tgItems, seedSlugMap) {
   // TKT1 (REQ-[pendiente-ID] · Integridad de generación y persistencia de código de ítems):
   //   validTypes Gen1 (P/T/R/B) reemplazado por _GEN2_TYPES — los 7 tipos canónicos
   //   (REQ/TKT/DISC/INC/PRB/KE/CHG). Causa raíz confirmada: con el set Gen1, todo ítem
@@ -1489,35 +1508,62 @@ export function _assignPendingIds(tgItems, seedSlugMap) {
 
   // Sub-paso 1a: asignar IDs reales a todos los [pendiente-ID] y [tmp:slug] con type válido,
   // y construir slugMap completo ANTES de resolver cualquier referencia cruzada.
-  const paso1 = tgItems.map(item => {
+  // TKT2 (REQ-202607-017): .map() síncrono → for...of secuencial con await. _getNextItemCode()
+  // ahora async — Promise.all() hubiera disparado N llamadas en paralelo, cada una escaneando
+  // colisión contra el mismo reservedCodes aún vacío en ese instante → mismo NNN para 2+
+  // [pendiente-ID] del mismo tipo en el mismo batch (regresión). for...of con await garantiza
+  // que reservedCodes.add(newCode) de la iteración N esté aplicado antes del escaneo de la N+1.
+  const paso1 = [];
+  for (const item of tgItems) {
     // T-202606-005: [tmp:slug] con type válido — asignar código real y registrar en slugMap
     // para que las referencias cruzadas (parent, depends_on, triggered_by, origen_disc, promovida_a)
     // dentro del mismo bloque resuelvan correctamente.
     // [tmp:slug] sin type válido: conservar literal — siguen flujo _findTmpMatch existente.
     if (item.code && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
-      if (!item.type || !validTypes.has(item.type)) return item; // sin type — conservar literal
+      if (!item.type || !validTypes.has(item.type)) { paso1.push(item); continue; } // sin type — conservar literal
       // TKT2: slug ya resuelto en el seed (bloque previo del mismo batch) — identidad ya
       // resuelta tiene precedencia, no reasignar código nuevo.
       if (slugMap.has(item.code)) {
-        return { ...item, code: slugMap.get(item.code), _wasAssigned: true };
+        paso1.push({ ...item, code: slugMap.get(item.code), _wasAssigned: true });
+        continue;
       }
-      const newCode = _getNextItemCode(item.type, reservedCodes);
+      let newCode;
+      try {
+        newCode = await _getNextItemCode(item.type, reservedCodes);
+      } catch (err) {
+        // TKT2 AC error: rechazo de _getNextItemCode() dentro de _assignPendingIds — el ítem
+        // conserva su [tmp:slug] sin asignar (mismo comportamiento que newCode ausente), warning
+        // en consola, no rompe el resto del batch.
+        console.warn('_assignPendingIds: _getNextItemCode() rechazó para', item.code, err);
+        paso1.push(item);
+        continue;
+      }
       reservedCodes.add(newCode);
       slugMap.set(item.code, newCode); // tmp:slug → código real asignado
       slugMap.set(newCode, newCode);   // identidad del código asignado
-      return { ...item, code: newCode, _wasAssigned: true };
+      paso1.push({ ...item, code: newCode, _wasAssigned: true });
+      continue;
     }
-    if (item.code !== '[pendiente-ID]') return item; // AC-4: código real — sin modificación
-    if (!item.type || !validTypes.has(item.type)) return item; // AC-3: type inválido — no asignar
-    const newCode = _getNextItemCode(item.type, reservedCodes);
+    if (item.code !== '[pendiente-ID]') { paso1.push(item); continue; } // AC-4: código real — sin modificación
+    if (!item.type || !validTypes.has(item.type)) { paso1.push(item); continue; } // AC-3: type inválido — no asignar
+    let newCode;
+    try {
+      newCode = await _getNextItemCode(item.type, reservedCodes);
+    } catch (err) {
+      // TKT2 AC error: mismo criterio — placeholder [pendiente-ID] queda sin asignar, warning,
+      // resto del batch continúa.
+      console.warn('_assignPendingIds: _getNextItemCode() rechazó para [pendiente-ID]', err);
+      paso1.push(item);
+      continue;
+    }
     reservedCodes.add(newCode);
     // T-202605-137: registrar con clave única por item (usando índice implícito en el código asignado)
     // para que múltiples [pendiente-ID] no se sobreescriban. El slugMap usa el código asignado
     // como clave de identidad; la clave '[pendiente-ID]' es solo el último asignado (compat legacy).
     slugMap.set('[pendiente-ID]', newCode); // identidad de la última asignación — compat legacy bloques de un ítem
     slugMap.set(newCode, newCode);          // identidad del código asignado — para resolución directa
-    return { ...item, code: newCode, _wasAssigned: true };
-  });
+    paso1.push({ ...item, code: newCode, _wasAssigned: true });
+  }
 
   // Sub-paso 1b: construir índice invertido de códigos asignados para resolver referencias
   // cross-item. Para cada item que fue asignado, su código real ya está en slugMap.
@@ -1658,7 +1704,7 @@ function validateIncidentTransitions(oldIncidentStatus, newIncidentStatus) {
 // ── T-098: Merge TRACKER-GLOBAL → getItems() en memoria ──
 // Llamado desde saveSession(). Acumula múltiples sesiones sin exportar.
 // T-202604-121: retorna {created, updated, ignored} para super toast
-export function mergeBacklogFromTG(tgItems, sessionId, opts) {
+export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs): slugMap: new Map() agregado al
   // resultado de items vacíos — sin esto, el orquestador de batch (_applyCheckpointBatch,
   // locus-session-save.js) pierde la cadena de seedSlugMap si un bloque del batch no trae ítems.
@@ -1692,7 +1738,7 @@ export function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // B-202606-022: _assignPendingIds retorna { items, slugMap } — slugMap se propaga hasta applyPatchesFromTG
   // TKT2: opts.seedSlugMap propagado — encadena la identidad de [tmp:slug] resuelta en bloques
   // previos del mismo batch (ver _applyCheckpointBatch, locus-session-save.js).
-  const { items: _assignedItems, slugMap: _slugMap } = _assignPendingIds(tgItems, opts && opts.seedSlugMap);
+  const { items: _assignedItems, slugMap: _slugMap } = await _assignPendingIds(tgItems, opts && opts.seedSlugMap);
   tgItems = _assignedItems;
 
   let changed = false;
