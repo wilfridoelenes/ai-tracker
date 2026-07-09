@@ -1,4 +1,4 @@
-// [PP] mod:44 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:45 · autor:Rune · 2026-07-09 00:15 UTC-6
 // INC-[pendiente-ID] (triggered_by INC-202607-004 — mismo módulo): _parentHtml leía item.parent
 //   (campo eliminado por mergeBacklogFromTG tras normalizar a parentId) — "Parent: Sin parent"
 //   para todo TKT, nuevo o existente. Fix: lee item.parentId. Detectado en la misma auditoría,
@@ -89,7 +89,7 @@ export function getMdiffStepZeroActive() { return _mdiffStepZeroActive; }
 // T-202606-037: ckptMeta — campos narrativos del CHECKPOINT para sección superior del panel.
 // Objeto con campos: { resumen, aprendizaje, bloqueantes, decision, proximoPaso } — todos string, todos opcionales.
 // Si es null/undefined, todos los campos se tratan como cadena vacía (AC-5).
-export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
+export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
   // T-202606-037 AC-1: early-return sin ítems eliminado — el panel siempre abre cuando hay CHECKPOINT válido.
   // AC-5: ckptMeta null/undefined normalizado a objeto vacío.
   const _ckptMeta = (ckptMeta && typeof ckptMeta === 'object') ? ckptMeta : {};
@@ -192,9 +192,20 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
     localStorage.setItem('current-project-filter', projId);
     loadBacklog();
   }
-  let diff;
+  // INC-202607-[pendiente-ID] (triggered_by: TKT-202607-078 — detectado al testear el
+  // flujo de paste-session, causa raíz ajena al TKT que lo expuso): mergeBacklogFromTG
+  // pasó a async en TKT-202607-076/077 (REQ-[pendiente-ID] · cadena de merge async).
+  // Ese REQ declaró como "único caller conocido" a _mergeBacklogWithProject — este dry-run
+  // es un tercer call site independiente, no cubierto por TKT-202607-077. Sin await, `diff`
+  // era la Promise en sí — diff.created lanzaba TypeError sobre `undefined` en línea 213.
+  // _dryRunError separa el rechazo del try/finally existente para no duplicar la lógica de
+  // restauración de filtro (debe correr siempre, éxito o rechazo — comportamiento preexistente
+  // sin cambio) y para abortar antes de leer diff.created si el dry-run falló.
+  let diff, _dryRunError = null;
   try {
-    diff = mergeBacklogFromTG(tgItems, sessId, { dryRun: true, ckptRol: _ckptMeta.rol || '' });
+    diff = await mergeBacklogFromTG(tgItems, sessId, { dryRun: true, ckptRol: _ckptMeta.rol || '' });
+  } catch (err) {
+    _dryRunError = err;
   } finally {
     if (_filterChanged) {
       // B-202605-010: restaurar filter antes de loadBacklog — si loadBacklog lanza, el filter ya está restaurado
@@ -208,6 +219,11 @@ export function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
         showToast('error', 'Error al restaurar backlog', 'Recarga la página.');
       }
     }
+  }
+  if (_dryRunError) {
+    console.error('[AI Tracker] showMergeDiffPanel: mergeBacklogFromTG (dry-run) rechazó — panel no abierto.', _dryRunError);
+    showToast('error', 'No se pudo generar el diff del CHECKPOINT', 'Reintenta o recarga la página.');
+    return; // ningún panel se abre, ninguna mutación posterior — mismo criterio que el resto de la cadena async
   }
 
   const total = diff.created.length + diff.advanced.length + diff.updated.length +
