@@ -1,3 +1,8 @@
+// [PP] mod:47 · autor:Rune · 2026-07-09 01:20 UTC-6
+// TKT-[pendiente-ID] (origen_disc, triggered_by TKT-202607-048): totalApply (botón "Guardar
+//   sesión") tenía el mismo gap que el badge del header ya corregido en mod:46 — no sumaba
+//   _patchItems.length. Fix: totalApply += _patchItems.length. blocked/disabled no se toca —
+//   siguen gobernados por la condición `blocked` existente, sin relación con el contador.
 // [PP] mod:46 · autor:Rune · 2026-07-09 01:00 UTC-6
 // TKT-202607-048: badge "X ítems" del header de showMergeDiffPanel no contaba objetos
 //   type:patch — _patchItems se filtra de tgItems antes del dry-run (línea ~105) y nunca
@@ -1067,8 +1072,11 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     }
 
     // Actualizar texto del botón apply
+    // TKT-[pendiente-ID] (origen_disc, triggered_by TKT-202607-048): mismo gap que el badge del
+    // header — totalApply no sumaba _patchItems.length, botón mostraba "(0)" con CHECKPOINTs de solo patches.
     const totalApply = diff.created.length + diff.advanced.length + diff.updated.length
-                     + diff.retroceso.length + diff.discarded.length + diff.createdAndClosed.length;
+                     + diff.retroceso.length + diff.discarded.length + diff.createdAndClosed.length
+                     + _patchItems.length;
     applyBtn.textContent = blocked ? '✓ Guardar sesión' : `✓ Guardar sesión (${totalApply})`;
      };
 
