@@ -1,4 +1,16 @@
-// [PP] mod:58 · autor:Rune · 2026-07-08 14:15 UTC-6
+// [PP] mod:59 · autor:Rune · 2026-07-08 15:00 UTC-6
+// TKT-202607-077 (REQ-[pendiente-ID] · cadena de merge async, depends_on: TKT3):
+//   _mergeBacklogWithProject() pasa a async — await mergeBacklogFromTG(tgItems, sessId) en
+//   vez de asignación síncrona, propagando la cadena async iniciada aguas abajo (mismo patrón
+//   de TKT3/TKT-202607-076: _getNextItemCode() requiere await). _applyCheckpointBatch() pasa
+//   a async y hace await de _mergeBacklogWithProject(...) — su único caller conocido,
+//   _gatedDoApplyBatch en locus-session-parse.js (TKT5), debe actualizarse para await la
+//   llamada. _doApplyMergeAndFinish() (ya async) ahora hace await con try/catch alrededor de
+//   _mergeBacklogWithProject(...): en rechazo, toast de error + return antes de
+//   applyPatchesFromTG, sincronización de newSess.trackerRefs, merge de CONTEXT-SECTION y el
+//   resto del cierre de sesión — la sesión ya empujada a activeProj.sessions (orden
+//   preexistente) queda registrada sin ítems de backlog aplicados. _doSaveSession no cambia
+//   de firma ni se vuelve async — sin relación con este TKT.
 // TKT-202607-014: eliminado bloque inalcanzable en buildBacklogMd() — el return incondicional
 //   dentro del bloque `{ const { md } = _generateBacklogContent(version); return md; }` hacía
 //   que el comentario de fallback, el cálculo de timestamp y el segundo return con el string
@@ -348,7 +360,7 @@ function _buildPatchTgItems(patchItems, existingTgItems) {
 // Sobrescribe temporalmente current-project-filter + recarga getItems() del proyecto destino,
 // ejecuta el merge, y restaura el estado anterior (filtro + getItems() del proyecto original).
 // _setActiveProjectFilter no se usa porque tiene side-effects de UI.
-export function _mergeBacklogWithProject(tgItems, sessId, projId) {
+export async function _mergeBacklogWithProject(tgItems, sessId, projId) {
   if (!tgItems || !tgItems.length) return { created:[], updated:[], ignored:[], advanced:[], retroceso:[], discarded:[] };
   const _prevFilter = localStorage.getItem('current-project-filter') || '';
   const _filterChanged = projId && projId !== _prevFilter;
@@ -359,7 +371,7 @@ export function _mergeBacklogWithProject(tgItems, sessId, projId) {
   }
   let result;
   try {
-    result = mergeBacklogFromTG(tgItems, sessId);
+    result = await mergeBacklogFromTG(tgItems, sessId);
   } finally {
     if (_filterChanged) {
       // Restaurar filtro original y recargar getItems() del proyecto original
@@ -388,7 +400,7 @@ export function _mergeBacklogWithProject(tgItems, sessId, projId) {
 // sideEffects:
 //   - Persiste a backlog vía saveBacklog() (dentro de _mergeBacklogWithProject) — mismo side
 //     effect que _doApply del flujo single, ahora con el array combinado del batch.
-export function _applyCheckpointBatch(tgItems) {
+export async function _applyCheckpointBatch(tgItems) {
   if (!tgItems || !tgItems.length) return;
   const activeProj = getActiveProject();
   if (!activeProj) {
@@ -396,7 +408,7 @@ export function _applyCheckpointBatch(tgItems) {
     return;
   }
   const syntheticSessId = 'standalone-batch-' + Date.now();
-  _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id);
+  await _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id);
 }
 
 // T-202606-070: parsea el campo archivos del CHECKPOINT al formato de array estructurado.
@@ -630,7 +642,18 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     showToast('warn', 'Borrador detectado — pegar CHECKPOINT final emitido por Finn');
     return;
   }
-  const mergeResult = _mergeBacklogWithProject(tgItems, sessId, activeProj.id);
+  // TKT-202607-077 AC2: await obligatorio — _mergeBacklogWithProject() es async (encadena
+  // el await de mergeBacklogFromTG). Si rechaza, no ejecutar ningún paso posterior que
+  // dependa de mergeResult (applyPatchesFromTG, trackerRefs, CONTEXT-SECTION, y el resto
+  // del cierre de sesión). La sesión ya fue empujada a activeProj.sessions arriba — orden
+  // preexistente, sin cambio en este TKT — queda registrada pero sin ítems de backlog aplicados.
+  let mergeResult;
+  try {
+    mergeResult = await _mergeBacklogWithProject(tgItems, sessId, activeProj.id);
+  } catch (err) {
+    showToast('error', '⚠ Error al aplicar backlog — reintentar guardado');
+    return;
+  }
   // INC-[pendiente-ID] (triggered_by TKT-202606-014 · fix): applyPatchesFromTG(parsed.patchItems, ...)
   // restaurado. Se había eliminado como "redundante" con la llamada de locus-backlog-merge.js
   // (_mdiffDoApply, post-onApply) — pero esa llamada nunca fue equivalente: opera sobre
