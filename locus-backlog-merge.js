@@ -1,3 +1,8 @@
+// [PP] mod:46 · autor:Rune · 2026-07-09 01:00 UTC-6
+// TKT-202607-048: badge "X ítems" del header de showMergeDiffPanel no contaba objetos
+//   type:patch — _patchItems se filtra de tgItems antes del dry-run (línea ~105) y nunca
+//   se sumaba a `total`, que solo agrega las categorías de diff.*. Un CHECKPOINT con solo
+//   patches mostraba "0 ítems" pese a tener ítems reales. Fix: total += _patchItems.length.
 // [PP] mod:45 · autor:Rune · 2026-07-09 00:15 UTC-6
 // INC-[pendiente-ID] (triggered_by INC-202607-004 — mismo módulo): _parentHtml leía item.parent
 //   (campo eliminado por mergeBacklogFromTG tras normalizar a parentId) — "Parent: Sin parent"
@@ -229,7 +234,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   const total = diff.created.length + diff.advanced.length + diff.updated.length +
                 diff.retroceso.length + diff.discarded.length + diff.ignored.length +
                 diff.createdAndClosed.length + diff.tmpSuggestions.length +
-                (diff.invalidTransition || []).length; // T-202606-020
+                (diff.invalidTransition || []).length + // T-202606-020
+                _patchItems.length; // TKT-202607-048: patches no generan diff visual pero son ítems del CHECKPOINT — badge debe contarlos
 
   const _criticalReasons = ['duplicado', 'sin-status', 'tipo-invalido'];
   const _hasCriticalIgnored = (diff.ignored || []).some(i => _criticalReasons.includes(i.reason));

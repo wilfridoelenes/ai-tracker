@@ -1,4 +1,8 @@
-// [PP] mod:106 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:107 · autor:Rune · 2026-07-09 UTC-6
+import * as syncState from './locus-sync-state.js';
+// TKT2 (REQ-202607-018): _realtimeLastTs, _realtimeSubscribedFor y _saveBacklogInFlightCount
+//   migrados a locus-sync-state.js (TKT-202607-082) — ver detalle de cada call site en los
+//   comentarios puntuales más abajo. Las 3 variables ya no existen como declaraciones locales.
 // TKT7 (REQ-202607-015): deleteIncidentRows() eliminada — único call site era el bloque de
 //   migración de incidentes en _scmExecuteClose (locus-backlog-sprints.js), revertido en el
 //   mismo TKT porque contradecía AC3 (Q-INC no migra a historico — __BR-Core §6, confirmado
@@ -198,8 +202,8 @@ let _realtimeChannels   = [];     // T-202606-002: canales Realtime — tracker_
 // INC-[pendiente-ID] (triggered_by hallazgo fuera de scope, cierre INC-202607-009): user_id
 // para el cual _realtimeChannels está activo. Permite que _subscribeRealtime() sea idempotente
 // ante llamadas repetidas del mismo usuario — ver comentario completo en _subscribeRealtime().
-let _realtimeSubscribedFor = null;
-let _realtimeLastTs     = null;   // timestamp del último update remoto procesado
+// TKT2 (REQ-202607-018): _realtimeSubscribedFor y _realtimeLastTs migrados a
+// locus-sync-state.js — ver syncState.getSubscribedFor()/syncState.getEchoTs().
 
 // TKT1 · REQ-sessions-mutator: dirty-tracking de sesiones por proyecto — evita que _saveFlush()
 // re-suba el array completo de proj.sessions en cada guardado. _mutateSessions() es el único
@@ -838,7 +842,8 @@ let _stateDirty = false;
 // todavía no había confirmado en Supabase. El guard de timestamp existente (B-202606-094)
 // no cubre esta ventana porque compara contra localStorage, que solo se actualiza DESPUÉS
 // de la confirmación del upsert — no contra el estado en memoria recién modificado.
-let _saveBacklogInFlightCount = 0;
+// TKT2 (REQ-202607-018): _saveBacklogInFlightCount migrado a locus-sync-state.js —
+// ver syncState.withSaveLock()/syncState.isSaveInFlight()/syncState.getSaveInFlightCount().
 
 // Opción A — ignorar heartbeat de tracker_state cuando no hay actividad de usuario reciente.
 // tracker_state recibe UPDATEs periódicos cada ~7s (trigger moddatetime o _saveFlush propio)
@@ -879,7 +884,7 @@ async function _saveFlush() {
       // B-202606-XXX: registrar _realtimeLastTs ANTES del await — cierra race condition
       // donde Supabase notificaba via Realtime antes de que _realtimeLastTs tuviera valor,
       // causando que _loadFromSupabase() recargara el state y pisara cambios locales (ej: tema).
-      _realtimeLastTs = _nowTs;
+      syncState.markEchoPending(_nowTs);
       const { error } = await _supabase.from('tracker_state').upsert({
         user_id: _supabaseUser.id,
         key: 'main',
@@ -928,7 +933,7 @@ async function _saveFlush() {
       // B-202606-005 AC-3: upsert falló — el timestamp registrado antes del await no llegó
       // a Supabase. Resetear a null para que la próxima notificación Realtime no sea ignorada
       // por el guard (_realtimeLastTs && remoteTs === _realtimeLastTs) con un ts fantasma.
-      _realtimeLastTs = null;
+      syncState.clearEcho();
       setSyncStatus('offline', '✕ sin conexión');
       try {
         localStorage.setItem(LOCUS_KEYS.STATE, JSON.stringify(state));
@@ -1084,7 +1089,7 @@ async function _saveSessions(proj) {
       // T-202606-097: timestamp único por lote — registrar ANTES del await para cubrir
       // el echo de Realtime de tracker_sessions. Mismo patrón que _saveFlush() L557.
       const _sessTs = new Date().toISOString();
-      _realtimeLastTs = _sessTs;
+      syncState.markEchoPending(_sessTs);
       const chunk = sessionsToUpload.slice(i, i + BATCH).map(sess => ({
         user_id:    _supabaseUser.id,
         project_id: proj.id,
@@ -1095,7 +1100,7 @@ async function _saveSessions(proj) {
       const { error } = await _supabase.from('tracker_sessions').upsert(chunk, { onConflict: 'user_id,session_id' });
       if (error) {
         // T-202606-097: upsert falló — resetear para no bloquear próximo cambio remoto legítimo.
-        _realtimeLastTs = null;
+        syncState.clearEcho();
         console.error('[AI Tracker] Supabase _saveSessions failed:', error);
         // AC-2: localStorage ya tiene la copia completa desde el bloque de arriba —
         // sin escritura adicional aquí.
@@ -1494,7 +1499,7 @@ export async function saveBacklog() {
   // lastMs, el guard de _handleRemoteChange nunca frenaba el echo, y un upsert de N filas
   // disparaba hasta N _loadFromSupabase() en cascada (uno por evento postgres_changes de fila).
   // _realtimeLastTs ahora usa el mismo valor exacto que se persiste — coincidencia garantizada.
-  _realtimeLastTs = _updatedAtMs;
+  syncState.markEchoPending(_updatedAtMs);
 
   // REQ-PERSIST-OPT TKT2: respaldo local optimista — ANTES del upsert, no después.
   // AC-1/AC-4: usa 'items' ya filtrado por el gate chk_status_by_type (arriba en esta función),
@@ -1516,10 +1521,13 @@ export async function saveBacklog() {
     console.warn('[AI Tracker] saveBacklog: fallo al escribir respaldo local de incidentes pre-upsert', incLsErr);
   }
 
-  // B-[pendiente-ID]: incrementar contador in-flight ANTES del try — cubre toda la ventana
-  // del upsert, no solo el caso de éxito. finally garantiza decremento incluso ante throw
-  // no capturado por el catch interno (nunca debe quedar el contador desbalanceado).
-  _saveBacklogInFlightCount++;
+  // TKT2 (REQ-202607-018): el bloque de upsert a tracker_items (antes: incremento manual +
+  // try/catch/finally con decremento manual) queda envuelto en syncState.withSaveLock() —
+  // el conteo in-flight (incremento, decremento garantizado incluso ante throw) ahora lo
+  // gestiona locus-sync-state.js. Acotado exclusivamente a este bloque — el upsert de
+  // tracker_incidents que sigue después queda fuera del lock, sin cambio de comportamiento
+  // respecto al contrato original (AC6/AC7 del TKT).
+  await syncState.withSaveLock(async () => {
   try {
     const rows = items.map(_toItemRow);
 
@@ -1556,18 +1564,16 @@ export async function saveBacklog() {
     // (ver bloque pre-upsert arriba) — sin escritura duplicada aquí.
     setSyncStatus('synced', '✓ sincronizado');
   } catch (err) {
-    // T-202606-097: resetear _realtimeLastTs — el timestamp no llegó a Supabase.
-    _realtimeLastTs = null;
+    // T-202606-097: resetear el eco — el timestamp no llegó a Supabase.
+    syncState.clearEcho();
     console.error('[AI Tracker] Supabase saveBacklog() failed:', err);
     setSyncStatus('offline', '✕ sin conexión');
     // REQ-PERSIST-OPT TKT2 / AC-3: localStorage ya tiene el respaldo desde antes del upsert
     // (ver bloque pre-upsert arriba) — sin escritura duplicada aquí.
     showToast('warning', '⚠️ Backlog no sincronizado con Supabase — guardado localmente');
     _offlineQueuePush({ type: 'backlog', projId: projId || null });
-  } finally {
-    // B-[pendiente-ID]: decrementar siempre — éxito, error, o cualquier throw imprevisto.
-    _saveBacklogInFlightCount--;
   }
+  });
 
   // TKT-202607-044 (REQ-202607-015) / AC-1: upsert de INCIDENTS → tracker_incidents,
   // onConflict:code. Independiente del bloque de ITEMS arriba — un fallo aquí no revierte
@@ -1761,7 +1767,7 @@ export async function saveHistoricoItems(items) {
     // _realtimeLastTs en epoch ms — mismo formato que tracker_items (BIGINT).
     // Registrar ANTES del await para cubrir el echo de Realtime.
     const _updatedAtMs = Date.now();
-    _realtimeLastTs = _updatedAtMs;
+    syncState.markEchoPending(_updatedAtMs);
 
     // Mapear con el mismo DDL que saveBacklog()._toItemRow() — columnas exactas de tracker_items.
     const rows = payload.map(it => ({
@@ -1816,7 +1822,7 @@ export async function saveHistoricoItems(items) {
       .upsert(rows, { onConflict: 'code' });
     if (error) throw error;
   } catch (err) {
-    _realtimeLastTs = null;
+    syncState.clearEcho();
     console.error('[AI Tracker] Supabase saveHistoricoItems() failed:', err);
     showToast('warning', '⚠️ Histórico no sincronizado con Supabase — guardado localmente');
     _offlineQueuePush({ type: 'historico', projId: projId || null });
@@ -1977,7 +1983,7 @@ export function _subscribeRealtime() {
   // acumulaba uno más por cada auth event repetido (~150 duplicados del mismo evento en
   // sesiones de horas). Fix: idempotencia — mismo usuario + canales ya activos → no-op.
   // Solo se recrean los canales si el usuario cambió o no hay canales activos.
-  if (_realtimeChannels.length > 0 && _realtimeSubscribedFor === _supabaseUser.id) return;
+  if (_realtimeChannels.length > 0 && syncState.isSubscribedFor(_supabaseUser.id)) return;
   _unsubscribeRealtime(); // limpiar canales previos si existen (usuario distinto o estado inconsistente)
 
   // Manejador compartido: recibe payload de cualquiera de las tres tablas.
@@ -1999,7 +2005,7 @@ export function _subscribeRealtime() {
     const remoteTs = payload.new?.updated_at;
     if (!remoteTs) return;
     const remoteMs = _toEpochMs(remoteTs);
-    const lastMs   = _toEpochMs(_realtimeLastTs);
+    const lastMs   = _toEpochMs(syncState.getEchoTs());
     if (remoteMs != null && lastMs != null && remoteMs === lastMs) return;
 
     // Opción A — ignorar heartbeat de tracker_state.
@@ -2046,7 +2052,7 @@ export function _subscribeRealtime() {
         console.warn('[AI Tracker] Realtime: error en canal ' + channelName + ' — app sigue funcional vía fallback, reintentando en próximo evento de auth');
         const ch = getCh();
         _realtimeChannels = _realtimeChannels.filter((c) => c !== ch);
-        _realtimeSubscribedFor = null;
+        syncState.unsubscribe();
         if (ch) {
           setTimeout(() => { try { _supabase.removeChannel(ch); } catch(e) {} }, 0);
         }
@@ -2090,7 +2096,7 @@ export function _subscribeRealtime() {
     .subscribe(_handleChannelStatus('tracker_items', () => chItems));
 
   _realtimeChannels = [chState, chSessions, chItems];
-  _realtimeSubscribedFor = _supabaseUser.id;
+  syncState.subscribe(_supabaseUser.id);
 }
 
 export function _unsubscribeRealtime() {
@@ -2100,7 +2106,7 @@ export function _unsubscribeRealtime() {
     try { _supabase.removeChannel(ch); } catch(e) {}
   }
   _realtimeChannels = [];
-  _realtimeSubscribedFor = null;
+  syncState.unsubscribe();
 }
 
 // _resetExpiredInternal — uso exclusivo de locus-storage.js.
@@ -2325,8 +2331,8 @@ export async function _loadFromSupabase() {
     // que todavía no refleja el cambio reciente mientras el upsert no confirma. Sin este guard,
     // un _loadFromSupabase() disparado por OTRO canal (tracker_state/tracker_sessions
     // — no hay canal Realtime dedicado a tracker_items) puede pisar el cambio local en esa ventana.
-    if (_saveBacklogInFlightCount > 0) {
-      console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + _saveBacklogInFlightCount + ') — merge de tracker_items omitido en esta pasada.');
+    if (syncState.isSaveInFlight()) {
+      console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') — merge de tracker_items omitido en esta pasada.');
     } else {
     try {
       if (itemsResult.status === 'fulfilled' && !itemsResult.value.error) {
@@ -2446,8 +2452,8 @@ export async function _loadFromSupabase() {
     // revierta un incidente que no cambió remotamente.
     // AC-2 (TKT-202607-044): 9 incidentes remotos con project_id activo → INCIDENTS
     // contiene exactamente esos 9 objetos tras la carga.
-    if (_saveBacklogInFlightCount > 0) {
-      console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + _saveBacklogInFlightCount + ') — merge de tracker_incidents omitido en esta pasada.');
+    if (syncState.isSaveInFlight()) {
+      console.log('[AI Tracker] _loadFromSupabase: saveBacklog en vuelo (' + syncState.getSaveInFlightCount() + ') — merge de tracker_incidents omitido en esta pasada.');
     } else {
     try {
       if (incidentsResult.status === 'fulfilled' && !incidentsResult.value.error) {
