@@ -1,4 +1,12 @@
-// [PP] mod:102 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:103 · autor:Rune · 2026-07-09 UTC-6
+// TKT-202607-047: itemKind() leía de GEN2_TYPES local (const duplicada, línea 1248) en vez
+//   de BACKLOG_TYPES/INCIDENT_TYPES (ya exportadas desde TKT-202607-005, sin usarlas ahí).
+//   GEN2_TYPES local eliminada — itemKind() ahora usa _ITEM_KIND_TYPES = BACKLOG_TYPES.
+//   concat(INCIDENT_TYPES), mismo orden exacto (REQ,TKT,DISC,INC,PRB,KE,CHG) — sin cambio de
+//   comportamiento para los 7 tipos Gen2, verificado. _GEN2_TYPES (con guion bajo, línea 218,
+//   universo de validación de locus-session-parse.js/locus-backlog-item.js) no se toca — es
+//   una constante distinta, fuera de scope de este TKT. grep de "GEN2_TYPES" sin guion bajo
+//   confirma cero declaraciones residuales tras el cambio.
 // TKT-202607-062 (REQ-202607-016): _normalizeItems() dividida en _normalizeScrumItems()
 //   (REQ/TKT/DISC) + _normalizeIncidents() (INC/PRB/KE/CHG) — pasadas comunes extraídas a
 //   _normalizeCommonFields/_normalizeSprintFields/_normalizeQincGate/_normalizeOrphanedFlag,
@@ -1245,12 +1253,19 @@ export function loadBacklog() {
 // TKT-202607-005: agnóstica al array de residencia del ítem (ITEMS o INCIDENTS) — sin
 // cambio de firma ni de lógica. Los 12 módulos consumidores (ver _Locus-module-contracts §1)
 // siguen resolviendo tipo sin saber en qué array vive el ítem.
-const GEN2_TYPES = ['REQ', 'TKT', 'DISC', 'INC', 'PRB', 'KE', 'CHG'];
+// TKT-202607-047: GEN2_TYPES local (duplicado de BACKLOG_TYPES+INCIDENT_TYPES, ambas ya
+// exportadas más arriba en este archivo desde TKT-202607-005) eliminado — itemKind() ahora
+// lee _ITEM_KIND_TYPES, derivada de BACKLOG_TYPES.concat(INCIDENT_TYPES), mismo orden exacto
+// que el GEN2_TYPES local que reemplaza (REQ,TKT,DISC,INC,PRB,KE,CHG) — sin cambio de
+// comportamiento. No se reutiliza _GEN2_TYPES (línea 218, con guion bajo) — esa constante es
+// el universo de validación de locus-session-parse.js/locus-backlog-item.js y se conserva
+// intacta, sin tocar, por instrucción explícita del TKT que la introdujo (TKT-202607-005).
+const _ITEM_KIND_TYPES = BACKLOG_TYPES.concat(INCIDENT_TYPES);
 export function itemKind(item) {
   if (!item) return null;
-  if (item.type && GEN2_TYPES.includes(item.type)) return item.type;
+  if (item.type && _ITEM_KIND_TYPES.includes(item.type)) return item.type;
   const code = item.code || '';
-  for (const t of GEN2_TYPES) {
+  for (const t of _ITEM_KIND_TYPES) {
     if (code.startsWith(t + '-')) return t;
   }
   return null;
