@@ -1,8 +1,8 @@
-// [PP] mod:4 · autor:Rune · 2026-07-05 10:15 UTC-6
+// [PP] mod:5 · autor:Rune · 2026-07-09 13:58 UTC-6
 // T-202606-166: getProjectById movida a locus-storage.js — import actualizado.
 // INC-[pendiente-ID]: header migrado a formato canónico (BR-Execution §9) — v/sprint eliminados.
-// INC-[pendiente-ID]: state referenciado sin import en _closedForProj y exportAnalyticsMd —
-// ReferenceError en runtime (ESM sin bundler). Fix: import getState + reemplazo en ambos sitios.
+// INC-[pendiente-ID]: state referenciado sin import en _closedForProj —
+// ReferenceError en runtime (ESM sin bundler). Fix: import getState + reemplazo.
 // INC-[pendiente-ID]: _closedForProj leía backlog-items-{id} crudo sin merge de historico —
 // subcuenta ítems done de sprints cerrados. Fix: usa _activeAndHistoricoItems (core.js).
 // INC-[pendiente-ID]: _buildHourlyInsightData (Métrica B) tenía el mismo patrón sin detectar:
@@ -10,16 +10,14 @@
 // silencio, no lanza error, pero "ítems cerrados por hora" queda siempre vacío. Además leía
 // backlog-items-{id} crudo, mismo gap de historico que _closedForProj. Fix: getState() +
 // _activeAndHistoricoItems(p), con el mismo criterio done/historico de core.js.
-import { _activeAndHistoricoItems, _getPeriodBounds, _parseSpanishDate, _sessInRange, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionYM } from './locus-analytics-core.js';
-import { getAISessions, getAllSessions, getProjectById, getState } from './locus-storage.js';
-
-import { showToast } from './locus-toast.js';
+import { _activeAndHistoricoItems, _getPeriodBounds, _parseSpanishDate, _sessInRange, sessionDateKey } from './locus-analytics-core.js';
+import { getAllSessions, getProjectById, getState } from './locus-storage.js';
 
 import { esc } from './locus-ui-shell.js';
 
 // locus-analytics-charts.js
 // Responsabilidad: Heatmap, distribución horaria, patrones de productividad,
-//   checkpoints por proyecto, exportAnalyticsMd.
+//   checkpoints por proyecto.
 // Dependencias: locus-analytics-core.js · locus-storage.js
 
 const HEATMAP_WEEKS = 12; // últimas N semanas — configurable
@@ -576,73 +574,3 @@ export function renderCheckpointsByProject() {
     </div>`;
 }
 
-// ── T-046: Exportar resumen de analytics en markdown ──
-export function exportAnalyticsMd() {
-  const now = new Date();
-  const months = getAnalyticsMonths();
-  const rangeLabel = _analyticsRange === 0 ? 'Todo el historial' : `Últimos ${_analyticsRange} mes${_analyticsRange > 1 ? 'es' : ''}`;
-
-  // Totales por IA en el período
-  const rows = (getState().ais || []).map(ai => {
-    const aiSess = getAISessions(ai.id);
-    const count = aiSess.filter(s => {
-      const ym = sessionYM(s);
-      return ym && months.includes(ym);
-    }).length;
-    return { name: ai.name, count };
-  }).filter(r => r.count > 0).sort((a, b) => b.count - a.count);
-
-  const totalSess = rows.reduce((a, r) => a + r.count, 0);
-  const topAI = rows[0]?.name || '—';
-
-  // Racha
-  const daySet = new Set();
-  getAllSessions().forEach(s => {
-    const k = sessionDateKey(s);
-    if (k) daySet.add(k);
-  });
-  let maxStreak = 0, streak = 0;
-  const sortedDays = [...daySet].sort();
-  for (let i = 0; i < sortedDays.length; i++) {
-    if (i === 0) { streak = 1; }
-    else {
-      const diff = Math.round((new Date(sortedDays[i]) - new Date(sortedDays[i-1])) / 86400000);
-      streak = diff === 1 ? streak + 1 : 1;
-    }
-    if (streak > maxStreak) maxStreak = streak;
-  }
-
-  const fecha = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  const monthRows = months.map(ym => {
-    const total = getAllSessions().filter(s => sessionYM(s) === ym).length;
-    return `| ${fmtMonth(ym)} | ${total} |`;
-  });
-
-  const md = `# Locus — Resumen Analytics
-> Generado: ${fecha} · Período: ${rangeLabel}
-
-## Métricas clave
-- **Sesiones en período:** ${totalSess}
-- **IA más activa:** ${topAI}
-- **Racha máxima:** ${maxStreak} días consecutivos
-- **Días únicos con sesión:** ${daySet.size}
-- **IAs activas en período:** ${rows.length}
-
-## Sesiones por IA
-${rows.map((r, i) => `${i+1}. **${r.name}** — ${r.count} sesión${r.count !== 1 ? 'es' : ''}`).join('\n')}
-
-## Sesiones por mes
-| Mes | Sesiones |
-|-----|----------|
-${monthRows.join('\n')}
-`;
-
-  const blob = new Blob([md], { type: 'text/markdown' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `analytics-${fecha}.md`;
-  a.click();
-  URL.revokeObjectURL(url);
-  showToast('success', 'Resumen exportado');
-}

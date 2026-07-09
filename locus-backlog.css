@@ -1,4 +1,7 @@
-/* [PP] mod:82 · autor:Nova · 2026-07-08 14:15 UTC-6 */
+/* [PP] mod:83 · autor:Nova · 2026-07-09 09:00 UTC-6 */
+/* TKT-202607-071: eliminados 6 comentarios "deprecated — R-202606-017" sobre
+   .bl-r-with-children/.bl-r-card-wrap/.bl-r-toggle/.bl-children-wrap/.bl-child-row —
+   clases activas en Vista Lista, marcador obsoleto no reflejaba estado real. */
 /* TKT-202607-027: removido bloque completo Vista Kanban (.kb-board/.kb-col*/.kb-card*/
    .kb-effort-dot*/#fbar-kanban-btn*/#backlog-list.kb-active) — feature deprecada, deriva
    de index.html/locus-backlog-item.js/-core.js/-render.js sin referencias vivas al board.
@@ -5194,23 +5197,19 @@
 /* ══ END T-202606-064 ══ */
 
 /* ══ T-202606-026 · CSS — .bl-children-wrap, .bl-child-row, .bl-r-toggle ══ */
-/* deprecated — R-202606-017 · sin instancias activas */
 
 /* ── bl-r-with-children: wrapper raíz del R con subordinados ── */
-/* deprecated — R-202606-017 · sin instancias activas */
 .bl-r-with-children {
   display: flex;
   flex-direction: column;
 }
 
 /* ── bl-r-card-wrap: contiene el card del R + botón toggle posicionado ── */
-/* deprecated — R-202606-017 · sin instancias activas */
 .bl-r-card-wrap {
   position: relative;
 }
 
 /* ── bl-r-toggle: botón flecha para colapsar/expandir hijos ── */
-/* deprecated — R-202606-017 · sin instancias activas */
 .bl-r-toggle {
   position: absolute;
   top: 50%;
@@ -5253,7 +5252,6 @@
 }
 
 /* ── bl-children-wrap: contenedor sangrado de los hijos del R ── */
-/* deprecated — R-202606-017 · sin instancias activas */
 .bl-children-wrap {
   padding-left: 24px;
   border-left: 1.5px solid var(--blue-border);
@@ -5275,7 +5273,6 @@
 }
 
 /* ── bl-child-row: wrapper de cada ítem hijo ── */
-/* deprecated — R-202606-017 · sin instancias activas */
 .bl-child-row {
   /* Hereda la sangría del wrap — sin padding adicional */
 }

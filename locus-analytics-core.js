@@ -1,4 +1,4 @@
-// [PP] mod:4 · autor:Rune · 2026-07-05 10:15 UTC-6
+// [PP] mod:5 · autor:Rune · 2026-07-09 13:58 UTC-6
 // INC-[pendiente-ID]: header migrado a formato canónico (BR-Execution §9) — v/sprint eliminados.
 // INC-[pendiente-ID]: _analyticsPeriod, _compareProjectIdA/B, _cfProjId, _cfTypeFilter y sus setters
 // (setAnalyticsPeriod, setCompareProjectA/B, clearComparison, setCfProject, setCfType) eran privados
@@ -73,7 +73,7 @@ export function setAnalyticsPeriod(p) {
   _markAnalyticsDirty(); renderAnalytics();
 }
 
-// Legacy — mantenido para compatibilidad con exportAnalyticsMd y otros llamadores
+// Legacy — mantenido para compatibilidad con locus-projects.js
 let _analyticsRange = 3;
 export function setAnalyticsRange(n) { _analyticsRange = n; _markAnalyticsDirty(); renderAnalytics(); }
 
@@ -225,7 +225,7 @@ function lastNMonths(n) {
   return months;
 }
 
-// Legacy — usado por exportAnalyticsMd
+// Legacy — usado por locus-projects.js
 export function getAnalyticsMonths() { return lastNMonths(3); }
 
 // Formatea 'YYYY-MM' → 'Ene 25' para eje X

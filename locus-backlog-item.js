@@ -1,4 +1,4 @@
-// [PP] mod:84 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:85 · autor:Rune · 2026-07-09 14:00 UTC-6
 // TKT-202607-075 (REQ-202607-017 · TKT2): _getNextItemCode() ahora async (core.js) — todo
 //   call site pasa a await. _promoteConfirm/_promoteTktToReqConfirm → async, listener delegado
 //   _blListClick (línea ~166) → async para poder await ambas. _assignPendingIds → async,
@@ -381,8 +381,9 @@ export function _attachBacklogListDelegation(containerId = 'backlog-list') {
       toggleSectionGroup(action.dataset.group);
       return;
     }
-    // B-202606-XXX: bl-r-toggle — vista sprints de backlog list (locus-backlog-render.js ~L1173)
-    // T-202606-062 eliminó el handler anterior; el render sigue emitiendo bl-r-toggle + #bl-children-[rCode]
+    // bl-r-toggle — colapsa/expande la lista de TKTs hijos de un REQ en la vista de backlog list
+    // (locus-backlog-render.js ~L1173 emite el trigger + el contenedor #bl-children-[rCode])
+    // Estado persistido en localStorage bajo locus-r-collapsed-[rCode]
     if (act === 'bl-r-toggle') {
       e.stopPropagation();
       const rCode = action.dataset.rCode;
