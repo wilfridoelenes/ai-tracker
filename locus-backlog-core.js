@@ -1,4 +1,4 @@
-// [PP] mod:103 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:104 · autor:Rune · 2026-07-09 UTC-6
 // TKT-202607-047: itemKind() leía de GEN2_TYPES local (const duplicada, línea 1248) en vez
 //   de BACKLOG_TYPES/INCIDENT_TYPES (ya exportadas desde TKT-202607-005, sin usarlas ahí).
 //   GEN2_TYPES local eliminada — itemKind() ahora usa _ITEM_KIND_TYPES = BACKLOG_TYPES.
@@ -1990,11 +1990,6 @@ export function renderStats() {
         toggleEffortFilter(parseInt(btn.dataset.effort, 10));
       } else if (act === 'stats-effort-missing') {
         toggleEffortFilter(0);
-      } else if (act === 'stats-toggle-collapse') {
-        // T-202606-048: toggle colapso de stats bar — persiste en localStorage
-        const isCollapsed = localStorage.getItem('locus-statsbar-collapsed') === 'true';
-        localStorage.setItem('locus-statsbar-collapsed', String(!isCollapsed));
-        renderStats();
       } else if (act === 'stats-toggle-types') {
         // TKT2 (popover Tipos): el botón vive dentro del innerHTML re-renderizado — delegación
         // obligatoria, un addEventListener directo se perdería en cada renderStats().
@@ -2020,7 +2015,7 @@ export function renderStats() {
   }
 
   // T-202606-048: leer estado de colapso persistido
-  const _statsCollapsed = localStorage.getItem('locus-statsbar-collapsed') === 'true';
+
 
   // T-202606-048 AC 6/7: obtener sprint activo — metadata se calcula sobre ítems del sprint activo.
   const _activeSprint = (_coreCallbacks && _coreCallbacks.getActiveSprint) ? _coreCallbacks.getActiveSprint() : null;
@@ -2064,27 +2059,21 @@ export function renderStats() {
   // T-202606-048 AC 7: Backlog sin sprint activo — render simplificado
   if (!_activeSprint) {
     document.getElementById('stats-bar').innerHTML = `
-      <div class="stats-bar-header">
-        <span class="stats-bar-title">Stats</span>
-        <button class="stats-bar-chevron" data-action="stats-toggle-collapse" title="${_statsCollapsed ? 'Expandir' : 'Colapsar'}">${_statsCollapsed ? '▸' : '▾'}</button>
-      </div>
-      ${!_statsCollapsed ? '<div class="stats-bar-body"><span class="stats-bar-no-sprint">Sin sprint activo</span></div>' : ''}
+      <div class="stats-bar-body"><span class="stats-bar-no-sprint">Sin sprint activo</span></div>
     `;
     updateTypeFilterUI();
     return;
   }
 
   // T-202606-048 AC 6: métricas sobre ítems del sprint activo
-  const _sprintItems = ITEMS.filter(i => i.sprint === _activeSprint.id && i.status !== 'descartado' && i.status !== 'historico');
-  const _sprintEffortTotal = _sprintItems.reduce((acc, i) => acc + (parseInt(i.effort) || 1), 0);
+
 
   // T-202606-096: universo canónico — activos = countableItems (pendiente + en-revision + done)
   const backlogCount    = countableItems.filter(i => i.status === 'pendiente').length;
   const enRevisionCount = countableItems.filter(i => i.status === 'en-revision').length;
   const done            = countableItems.filter(i => i.status === 'done').length;
   // T-202606-048 AC 6: done/total sobre sprint activo
-  const _sprintDone  = _sprintItems.filter(i => i.status === 'done').length;
-  const _sprintTotal = _sprintItems.length;
+
   const total = backlogCount + enRevisionCount + done;
   // pct eliminada — TKT2 REQ1 S'02 (calculada, nunca leída en el render)
   // Contador separado de P (ideas) — visible pero fuera del flujo de trabajo activo
@@ -2100,16 +2089,8 @@ export function renderStats() {
   const _hasPending = (backlogCount + enRevisionCount) > 0;
 
   // T-202606-048 AC 6 · TKT1-sprint-display-2: label metadata de sprint activo vía _sprintDisplay()
-  const _sprintLabel = _sprintDisplay(_activeSprint.id) || '';
-  const _metaLabel = `${_sprintDone}/${_sprintTotal} · effort ${_sprintEffortTotal}`;
-
   document.getElementById('stats-bar').innerHTML = `
-    <div class="stats-bar-header">
-      <span class="stats-bar-title">Stats <span class="stats-bar-sprint-label">${_sprintLabel}</span></span>
-      ${!_statsCollapsed ? `<span class="stats-bar-meta-inline">${_metaLabel}</span>` : ''}
-      <button class="stats-bar-chevron" data-action="stats-toggle-collapse" title="${_statsCollapsed ? 'Expandir' : 'Colapsar'}">${_statsCollapsed ? '▸' : '▾'}</button>
-    </div>
-    ${!_statsCollapsed ? `<div class="stats-bar-body">
+    <div class="stats-bar-body">
     <div class="stats-row stats-row--compact">
       <!-- Bloque de conteos: pendientes primero -->
       <div class="stat-compact-counts">
@@ -2163,7 +2144,7 @@ export function renderStats() {
         <span class="stat-effort-card${activeEfforts.has(3) ? ' active' : ''}" id="feff-3" data-action="stats-effort-filter" data-effort="3" title="Filtrar effort 3"><span class="sec-count">${byEffort[3]}</span><span class="eff-label">●●● complejo</span></span>
       </div>
     </div>
-    </div>` : ''}
+    </div>
   `;
   // B-UX: reaplicar clases de estado de filtro tras recrear el DOM del stats-bar
   updateTypeFilterUI();

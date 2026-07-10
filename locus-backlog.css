@@ -1,4 +1,4 @@
-/* [PP] mod:84 · autor:Nova · 2026-07-09 11:20 UTC-6 */
+/* [PP] mod:85 · autor:Nova · 2026-07-09 UTC-6 */
 /* TKT-202607-051: removido bloque completo .bl-vc/.bl-vc-r*/.bl-vc-t* (~204 líneas,
    L5806-6009) — código muerto verificado: cero consumidor en locus-backlog-render.js
    (grep confirmado). El comentario previo "feature activa" (línea eliminada junto al
@@ -5809,44 +5809,14 @@
 
 /* ══ stats-bar — variantes faltantes ══ */
 /* .stats-bar base ya declarado arriba (~L257) — solo variantes */
-
-.stats-bar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 6px;
-}
-
-.stats-bar-title {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--text2);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
+/* TKT2 (REQ-elimina-stats-bar-header): removidas .stats-bar-header/-title/-chevron/-meta-inline/-sprint-label
+   — wrapper de header + toggle de colapso eliminados, sin consumidor en locus-backlog-core.js (mod:104) */
 
 .stats-bar-body {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
   align-items: stretch;
-}
-
-.stats-bar-meta-inline {
-  font-size: var(--text-2xs);
-  color: var(--hint);
-}
-
-.stats-bar-sprint-label {
-  font-size: var(--text-xs);
-  color: var(--text2);
-  font-family: var(--mono);
-}
-
-.stats-bar-chevron {
-  font-size: var(--text-xs);
-  color: var(--hint);
-  transition: transform 0.15s var(--ease-out);
 }
 
 .stats-bar-no-sprint {
