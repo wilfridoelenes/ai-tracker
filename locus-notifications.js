@@ -1,4 +1,10 @@
-// [PP] mod:7 · autor:Rune · 2026-07-01 00:15 UTC-6
+// [PP] mod:9 · autor:Rune · 2026-07-09 UTC-6
+// TKT-202607-INC-NAMING (INC-[pendiente-ID]): la alerta "INC high sin resolver" (__BR-Core
+//   §6) era código muerto — iteraba `items` (getItems()), que nunca contiene tipo INC desde
+//   la separación ITEMS/INCIDENTS de TKT-202607-005. Import de getIncidents() agregado,
+//   bloque re-apuntado a `incidents`. Fallback slaPriority||sla_priority e
+//   incidentStatus||incident_status agregado — mismo motivo que el resto de fixes de esta
+//   sesión (ver locus-backlog-core.js / locus-storage.js / locus-backlog-render.js mismo TKT).
 // locus-notifications.js
 // Responsabilidad: Motor de notificaciones transversal del ecosistema — cómputo, lectura,
 //   configuración, historial y badges de tabs.
@@ -7,7 +13,7 @@
 // Carga antes de: locus-sesiones-stats.js · locus-radar.js
 
 import { setFilter } from './locus-backlog-item.js';
-import { getItems, _registerCoreCallback } from './locus-backlog-core.js';
+import { getItems, getIncidents, _registerCoreCallback } from './locus-backlog-core.js';
 import { navigateToItem } from './locus-backlog-sprints.js';
 import { renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
@@ -15,6 +21,7 @@ import { _sprintDisplay, getActiveSprints, getAllSessions } from './locus-storag
 import { switchTab } from './locus-ui-shell.js';
 import { toast } from './locus-toast.js';
 import { getMdiffStepZeroActive } from './locus-backlog-merge.js';
+import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
 
 // T-202604-422: Notificaciones de ecosistema — motor + helpers
 const _NOTIF_KEY         = 'ai-tracker-notifs-read';
@@ -109,6 +116,11 @@ export function hasRecentSession(item, days) {
 export function _computeNotifications() {
   const notifs = [];
   const items  = (typeof getItems() !== 'undefined' ? getItems() : []);
+  // TKT-202607-INC-NAMING: INC/PRB/KE/CHG viven en el array INCIDENTS desde TKT-202607-005
+  // (getItems() nunca los contiene — _setITEMS() los filtra). El bloque #5 de abajo (INC
+  // high sin resolver) iteraba solo sobre `items` — nunca encontraba ningún ítem type:'INC'
+  // desde esa separación. Bloque #5 actualizado para leer de `incidents`.
+  const incidents = (typeof getIncidents() !== 'undefined' ? getIncidents() : []);
   const cfg    = _notifConfig();
 
   // Helper interno — delega a función canónica
@@ -221,10 +233,13 @@ export function _computeNotifications() {
   // 5. INC con sla_priority:high sin resolver — threshold en horas (no días)
   if (cfg.incHigh && cfg.incHigh.enabled) {
     const incThreshH = cfg.incHigh.threshold || 18;
-    items.forEach(function(item) {
+    // TKT1 (REQ-centralizar-accesores-itil): itera `incidents` (no `items`) — INC vive
+    // en INCIDENTS. Fallback centralizado en locus-inc-fields.js — items hidratados
+    // desde Supabase solo traen el campo snake_case.
+    incidents.forEach(function(item) {
       if (item.type !== 'INC') return;
-      if (item.slaPriority !== 'high') return;
-      if (['resolved', 'closed'].includes(item.incidentStatus)) return;
+      if (incSlaPriority(item) !== 'high') return;
+      if (['resolved', 'closed'].includes(incIncidentStatus(item))) return;
       if (!item.createdAt) return;
       const ageHours = (Date.now() - item.createdAt) / 3600000;
       if (ageHours <= incThreshH) return;

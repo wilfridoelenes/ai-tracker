@@ -1,5 +1,12 @@
-// [PP] mod:107 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:109 · autor:Rune · 2026-07-09 UTC-6
+// TKT-202607-INC-NAMING (INC-[pendiente-ID]): gate de exclusión del upsert (sla_priority) y
+//   _toIncidentRow() (sla_priority, comportamiento_actual, origin_module, derived_items)
+//   solo leían snake_case. Un INC recién parseado desde CHECKPOINT trae estos campos en
+//   camelCase (slaPriority, comportamientoActual, originModule, derivedItems) — se excluía
+//   en silencio del upsert a Supabase (console.warn no visible al founder), violando el SLA
+//   de reloj de __BR-Core §6. Fallback bidireccional agregado en ambos puntos.
 import * as syncState from './locus-sync-state.js';
+import { incSlaPriority, incComportamientoActual, incOriginModule, incDerivedItems, incIncidentStatus, incResolutionType } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
 // TKT2 (REQ-202607-018): _realtimeLastTs, _realtimeSubscribedFor y _saveBacklogInFlightCount
 //   migrados a locus-sync-state.js (TKT-202607-082) — ver detalle de cada call site en los
 //   comentarios puntuales más abajo. Las 3 variables ya no existen como declaraciones locales.
@@ -1220,7 +1227,7 @@ export async function saveBacklog() {
   // se corrige) para que la sincronización sobreviva más allá de esta sola llamada.
   _rawItems.forEach(it => {
     if (it.type === 'INC') {
-      const _incStatus = it.incidentStatus || it.incident_status;
+      const _incStatus = incIncidentStatus(it);
       if (_incStatus && it.status !== _incStatus) {
         console.warn(`[AI Tracker] saveBacklog: ítem ${it.code || '[sin code]'} — status:'${it.status}' desincronizado de incidentStatus:'${_incStatus}'. Sincronizando status antes de validar chk_status_by_type.`);
         it.status = _incStatus;
@@ -1280,7 +1287,7 @@ export async function saveBacklog() {
   };
   const _rawIncidents = _getIncidents();
   const incidents = _rawIncidents.filter(inc => {
-    const _incStatusRaw = inc.incidentStatus || inc.incident_status;
+    const _incStatusRaw = incIncidentStatus(inc);
     if (_incStatusRaw === 'historico') {
       console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido — incident_status:historico es de solo lectura, asignado por Locus al cerrar sprint`);
       return false;
@@ -1299,7 +1306,13 @@ export async function saveBacklog() {
     // sla_priority:null y Postgres rechazaba el batch completo (23502) en cada upsert —
     // loop de error en cada evento Realtime. Se excluye la fila (mismo tratamiento que type/
     // incident_status inválidos) en vez de asignar un default de negocio no solicitado.
-    if (!inc.sla_priority) {
+    // TKT-202607-INC-NAMING: inc.sla_priority (snake) es el nombre de columna en Postgres,
+    // pero locus-session-parse.js entrega el campo en camelCase (slaPriority) para un INC
+    // recién creado en la sesión activa — sin este fallback, saveBacklog() excluía en
+    // silencio (solo console.warn) todo incidente nuevo del upsert a Supabase, incluso
+    // teniendo sla_priority válido. Mismo patrón de fallback ya usado en incident_status/
+    // resolution_type unas líneas más abajo en este mismo archivo.
+    if (!incSlaPriority(inc)) {
       console.warn(`[AI Tracker] saveBacklog: incidente ${inc.code || '[sin code]'} excluido del upsert — sla_priority ausente (viola NOT NULL de tracker_incidents). Requiere sla_priority declarado por Cael/Finn.`);
       return false;
     }
@@ -1441,8 +1454,8 @@ export async function saveBacklog() {
       archivos:             Array.isArray(it.archivos) ? it.archivos : null,
       sla_priority:         it.sla_priority      || null,
       sla_deadline:         it.slaDeadline       != null ? it.slaDeadline : null,
-      incident_status:      it.incidentStatus    || it.incident_status || null,
-      resolution_type:      it.resolutionType    || it.resolution_type || null,
+      incident_status:      incIncidentStatus(it),
+      resolution_type:      incResolutionType(it),
       derived_items:        Array.isArray(it.derived_items) ? it.derived_items : null,
       queue:                it.queue             || null,
       // DDL: updated_at BIGINT (epoch ms) — no ISO string
@@ -1463,13 +1476,17 @@ export async function saveBacklog() {
       type:                  inc.type               || null,
       title:                 inc.title              || null,
       triggered_by:          inc.triggered_by       || null,
-      comportamiento_actual: inc.comportamiento_actual || null,
-      origin_module:         inc.origin_module      || null,
+      // TKT-202607-INC-NAMING: fallback a camelCase — mismo motivo que el gate de exclusión
+      // arriba en esta función. inc.originModule/inc.comportamientoActual son los nombres
+      // reales que trae un INC recién parseado (locus-session-parse.js); sin fallback, un
+      // incidente nuevo llegaba con estos campos en null incluso siendo obligatorios.
+      comportamiento_actual: incComportamientoActual(inc),
+      origin_module:         incOriginModule(inc),
       archivos:              Array.isArray(inc.archivos) ? inc.archivos : null,
-      derived_items:         Array.isArray(inc.derived_items) ? inc.derived_items : null,
-      sla_priority:          inc.sla_priority       || null,
-      incident_status:       inc.incidentStatus     || inc.incident_status || null,
-      resolution_type:       inc.resolutionType     || inc.resolution_type || null,
+      derived_items:         incDerivedItems(inc),
+      sla_priority:          incSlaPriority(inc),
+      incident_status:       incIncidentStatus(inc),
+      resolution_type:       incResolutionType(inc),
       discard_reason:        inc.discard_reason     || null,
       // Fix QA (Finn) — TKT-202607-044: sla_deadline es timestamptz en tracker_incidents
       // (confirmado vía information_schema.columns), no bigint. inc.slaDeadline vive en
@@ -1807,8 +1824,8 @@ export async function saveHistoricoItems(items) {
       archivos:              Array.isArray(it.archivos) ? it.archivos : null,
       sla_priority:          it.sla_priority      || null,
       sla_deadline:          it.slaDeadline       != null ? it.slaDeadline : null,
-      incident_status:       it.incidentStatus    || it.incident_status || null,
-      resolution_type:       it.resolutionType    || it.resolution_type || null,
+      incident_status:       incIncidentStatus(it),
+      resolution_type:       incResolutionType(it),
       derived_items:         Array.isArray(it.derived_items) ? it.derived_items : null,
       queue:                 it.queue             || null,
       updated_at:            _updatedAtMs,

@@ -1,4 +1,9 @@
-// [PP] mod:79 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:81 · autor:Rune · 2026-07-09 UTC-6
+// TKT-202607-INC-NAMING (INC-[pendiente-ID]): 4 lecturas de i.slaPriority en renderQIncPanel
+//   y el badge Q-INC (líneas ~1045/1077/1117/1412) sin fallback a sla_priority (snake) —
+//   rompía la clasificación visual SLA (colores vencido/riesgo, filtro por prioridad, badge
+//   urgente) para todo incidente hidratado desde Supabase. Fallback bidireccional agregado
+//   en los 4 puntos — mismo patrón que ya usa itemKind()/incidentStatus en este archivo.
 // TKT-202607-056 (REQ-202607-015 · TKT3): renderQIncPanel() construye allQInc con
 //   getItems().concat(getIncidents()) en vez de solo getItems() — badge y alerta SLA
 //   heredan el universo corregido sin cambio adicional (ya derivan de allQInc).
@@ -153,6 +158,7 @@ import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoric
 import { showToast } from './locus-toast.js';
 
 import { esc } from './locus-ui-shell.js';
+import { incSlaPriority } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
 import { _renderPlanningView, _attachPlanViewDelegation, _statusPills } from './locus-sprint-planificacion.js';
 import { _updateDocLogCount } from './locus-doc-log.js';
 
@@ -1042,7 +1048,10 @@ export function renderQIncPanel() {
     const countable = allQInc.filter(i => i.incidentStatus !== 'closed' && i.status !== 'descartado');
     const _now = Date.now();
     const hasUrgentVencido = countable.some(i =>
-      itemKind(i) === 'INC' && i.slaPriority === 'high' &&
+      // TKT1 (REQ-centralizar-accesores-itil): incSlaPriority() centraliza el fallback
+      // que TKT-202607-INC-NAMING agregó inline — ítems hidratados desde Supabase
+      // (_mapRowToIncident) solo traen el campo en snake_case, no slaPriority camelCase.
+      itemKind(i) === 'INC' && incSlaPriority(i) === 'high' &&
       typeof i.slaDeadline === 'number' && i.slaDeadline < _now
     );
     if (!countable.length) {
@@ -1074,7 +1083,8 @@ export function renderQIncPanel() {
   _displayable.forEach(i => {
     const t = itemKind(i);
     if (t && _countByType[t] !== undefined) _countByType[t]++;
-    const p = i.slaPriority;
+    // TKT1 (REQ-centralizar-accesores-itil): mismo motivo que el badge arriba.
+    const p = incSlaPriority(i);
     if (p === 'high') _countByPri.high++;
     else if (p === 'low') _countByPri.low++;
     else _countByPri.medium++;
@@ -1114,7 +1124,8 @@ export function renderQIncPanel() {
   const filteredQInc = _displayable.filter(i => {
     const t = itemKind(i);
     const typeOk = t ? _qiTypes.has(t) : true;
-    const priOk  = _qiPriority.size === 0 || _qiPriority.has(i.slaPriority);
+    // TKT1 (REQ-centralizar-accesores-itil): mismo motivo que las otras 3 ocurrencias.
+    const priOk  = _qiPriority.size === 0 || _qiPriority.has(incSlaPriority(i));
     return typeOk && priOk && _matchesQiSearch(i);
   });
 
@@ -1409,7 +1420,8 @@ export function _updateSubtabBadges() {
     } else {
       const _now = Date.now();
       const hasUrgentVencido = countable.some(i =>
-        itemKind(i) === 'INC' && i.slaPriority === 'high' &&
+        // TKT1 (REQ-centralizar-accesores-itil): mismo motivo que renderQIncPanel.
+        itemKind(i) === 'INC' && incSlaPriority(i) === 'high' &&
         typeof i.slaDeadline === 'number' && i.slaDeadline < _now
       );
       badgeQinc.textContent = String(countable.length);

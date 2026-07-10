@@ -1,4 +1,11 @@
-// [PP] mod:40 · autor:Rune · 2026-07-07 18:00 UTC-6
+// [PP] mod:42 · autor:Rune · 2026-07-09 UTC-6
+// TKT-202607-INC-NAMING (INC-[pendiente-ID]): _buildQIncMd() — columna SLA Priority del
+//   backlog exportado leía solo sla_priority (snake), sin fallback a slaPriority (camel).
+//   Un INC recién creado en la sesión activa (aún no hidratado desde Supabase) mostraba '—'
+//   en esa columna del .md que Cael/Rune/Finn cargan al abrir sesión (__OB-Strategy §8).
+//   Mismo TKT que locus-backlog-core.js/locus-storage.js/locus-backlog-render.js/
+//   locus-notifications.js/locus-backlog-item.js — sexto y último punto encontrado en
+//   barrido completo del proyecto.
 // TKT1 · TKT2 (req historico-export): ## Historial de sprints en tabla + omisión sin sprints
 // cerrados; historico excluido siempre de ## Ítems; flag includeHistorico (default false) con
 // detalle agrupado por sprint en ## Historico — detalle.
@@ -12,6 +19,7 @@
 import { _blogLog, _docPrefix, _effectiveVersion, _sprintDisplay, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js';
 import { getItems, itemKind, updateBacklogBanner } from './locus-backlog-core.js';
 import { showToast } from './locus-toast.js';
+import { incSlaPriority } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
 
 // ── _itemTypeGen2 — detección de tipo Gen 2 ──────────────────────────────────
 // [tmp:tkt1-itemtype-fn] AC-1: wrapper sobre itemKind() de locus-backlog-core.js.
@@ -603,7 +611,11 @@ function _buildQIncMd(items) {
   lines.push('|--------|--------|--------|--------------|');
   incs.forEach(i => {
     const statusVal = i.incident_status || i.status || '—';
-    lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${statusVal} | ${i.sla_priority || i.priority || '—'} |`);
+    // TKT1 (REQ-centralizar-accesores-itil): fallback centralizado en locus-inc-fields.js
+    // — un INC recién creado en la sesión activa, antes de round-trip por Supabase, solo
+    // trae el campo camelCase. Sin fallback, la columna SLA Priority del backlog
+    // exportado quedaba en '—' para esos casos.
+    lines.push(`| \`${i.code}\` | ${i.title || '—'} | ${statusVal} | ${incSlaPriority(i) || '—'} |`);
   });
   lines.push('', '---', '');
   return lines.join('\n');

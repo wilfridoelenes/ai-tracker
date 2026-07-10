@@ -1,4 +1,19 @@
-// [PP] mod:104 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:107 · autor:Rune · 2026-07-09 19:34 UTC-6
+// TKT1 (REQ type-safety DISC status): normalizeStatus(raw, type) reescrita internamente sin
+//   cambio de firma (signature_change: false) — para type==='DISC', cualquier valor que
+//   resuelva a done/en-revision/historico/pendiente (incluye desconocido y 'bloqueado') se
+//   ignora y se normaliza a 'discovery' + _blogLog('disc-status-invalido', ...). Antes esos
+//   valores pasaban intactos para DISC (contradice __BR-Ecosystem §5 — estados prohibidos
+//   done/en-revision/bloqueado/pendiente). Self-healing automático en el ciclo de carga
+//   existente (líneas ~988-995 de este archivo, sin cambio) — un DISC ya persistido con
+//   status corrupto se corrige en el siguiente normalizeStatus() sin migración manual.
+//   Sin impacto en tipos distintos de DISC — mismos valores de retorno que antes. Sin cambio
+//   de comportamiento para 'discovery'/'promoted'/'descartado' en DISC (ya eran válidos).
+// TKT-202607-INC-NAMING (INC-[pendiente-ID]): _normalizeIncidents() validaba sla_priority y
+//   comportamiento_actual solo en snake_case — un INC recién parseado desde CHECKPOINT (que
+//   trae slaPriority/comportamientoActual camelCase, ver locus-session-parse.js) se marcaba
+//   itil_incomplete de forma falsa. Fallback bidireccional agregado — mismo patrón que ya
+//   tenía incidentStatus en esta misma función. Sin cambio de firma, sin impacto en callers.
 // TKT-202607-047: itemKind() leía de GEN2_TYPES local (const duplicada, línea 1248) en vez
 //   de BACKLOG_TYPES/INCIDENT_TYPES (ya exportadas desde TKT-202607-005, sin usarlas ahí).
 //   GEN2_TYPES local eliminada — itemKind() ahora usa _ITEM_KIND_TYPES = BACKLOG_TYPES.
@@ -143,6 +158,7 @@
 import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _sprintDisplay, _tplKey, getAI, getActiveSprints, getAllSessions, getState, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js'; // TKT1 (REQ-historico-async): refreshHistoricoCache/getHistoricoItemsSync — _getNextItemCode() incluye historico en el escaneo de colisión
 import { showToast, toast } from './locus-toast.js';
 import { esc, getCurrentSubTab } from './locus-ui-shell.js';
+import { incSlaPriority, incComportamientoActual, incIncidentStatus } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil: reemplaza fallback || inline en _normalizeIncidents()
 
 // ── Callback registry — T-202606-057 ─────────────────────────────────────────
 // Módulos consumidores registran sus funciones aquí al inicializarse.
@@ -204,18 +220,31 @@ let currentFilter = 'all';
 export function normalizeStatus(raw, type) {
   const s = (raw || '').trim().toLowerCase();
   // Aliases de entrada conocidos
-  if (s === 'en_revision' || s === 'en revisión' || s === 'en-revisión') return 'en-revision';
+  let canonical;
+  if (s === 'en_revision' || s === 'en revisión' || s === 'en-revisión') canonical = 'en-revision';
   // Valores canónicos directos
-  if (s === 'done')        return 'done';
-  if (s === 'en-revision') return 'en-revision';
-  if (s === 'descartado')  return 'descartado';
-  if (s === 'historico')   return 'historico';
-  if (s === 'promovida' || s === 'promoted') return type === 'DISC' ? 'promoted' : 'pendiente';
-  if (s === 'discovery') return type === 'DISC' ? 'discovery' : 'pendiente'; // INC-[pendiente-ID]: discovery solo válido para DISC — __BR-Ecosystem §5
+  else if (s === 'done')        canonical = 'done';
+  else if (s === 'en-revision') canonical = 'en-revision';
+  else if (s === 'descartado')  canonical = 'descartado';
+  else if (s === 'historico')   canonical = 'historico';
+  else if (s === 'promovida' || s === 'promoted') canonical = (type === 'DISC') ? 'promoted' : 'pendiente';
+  else if (s === 'discovery') canonical = (type === 'DISC') ? 'discovery' : 'pendiente'; // INC-[pendiente-ID]: discovery solo válido para DISC — __BR-Ecosystem §5
   // TKT-202606-006: legado 'pendiente' (o status ausente/vacío) en DISC migra a 'discovery' — REQ-202606-002
-  if (s === 'pendiente' || s === '') return type === 'DISC' ? 'discovery' : 'pendiente';
+  else if (s === 'pendiente' || s === '') canonical = (type === 'DISC') ? 'discovery' : 'pendiente';
   // Valor desconocido → pendiente
-  return 'pendiente';
+  else canonical = 'pendiente';
+
+  // TKT1 (REQ type-safety DISC status): __BR-Ecosystem §5 prohíbe done/en-revision/bloqueado/
+  // pendiente/historico como estado persistido de una DISC — solo discovery/promoted/descartado
+  // son válidos. Cualquier valor de entrada que resuelva a otro canónico para type==='DISC' se
+  // ignora y se normaliza a 'discovery', con registro en DocLog. No se pasa item.code — la firma
+  // de esta función no cambia (signature_change: false), se usa '(sin código)' como en el resto
+  // de warnings sin contexto de ítem en este módulo.
+  if (type === 'DISC' && canonical !== 'discovery' && canonical !== 'promoted' && canonical !== 'descartado') {
+    _blogLog('disc-status-invalido', '(sin código)', `Status "${raw}" inválido para tipo DISC. Campo ignorado — normalizado a discovery.`, 'backlog');
+    return 'discovery';
+  }
+  return canonical;
 }
 
 // TKT1 (REQ-[pendiente-ID] · Integridad de generación y persistencia de código de ítems):
@@ -1148,9 +1177,12 @@ export function _normalizeIncidents(items) {
   // duplicado aquí).
   items.forEach(item => {
     const missing = [];
-    if (!item.sla_priority) missing.push('sla_priority');
-    if (!(item.incidentStatus || item.incident_status)) missing.push('incident_status');
-    if (!item.comportamiento_actual) missing.push('comportamiento_actual');
+    // TKT1 (REQ-centralizar-accesores-itil): fallback bidireccional centralizado en
+    // locus-inc-fields.js — reemplaza el patrón `campo || campo_snake` inline que
+    // introdujo el gap resuelto en TKT-202607-INC-NAMING (INC-[pendiente-ID]).
+    if (!incSlaPriority(item)) missing.push('sla_priority');
+    if (!incIncidentStatus(item)) missing.push('incident_status');
+    if (!incComportamientoActual(item)) missing.push('comportamiento_actual');
 
     if (missing.length) {
       item.itil_incomplete = missing;

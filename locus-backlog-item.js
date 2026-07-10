@@ -1,4 +1,20 @@
-// [PP] mod:85 · autor:Rune · 2026-07-09 14:00 UTC-6
+// [PP] mod:88 · autor:Rune · 2026-07-09 19:34 UTC-6
+// TKT2 (REQ type-safety DISC status): en la creación de ítem (bloque de campos ITIL/discard),
+//   discard_reason ausente/undefined en un ítem con status descartado ahora emite
+//   _blogLog('discard-reason-ausente', ...) — antes el gap pasaba en silencio (paridad con
+//   comportamiento_actual en INC, que ya alertaba). No valida contenido, no toca status
+//   distinto de descartado, no modifica _VALID_DISCARD_REASONS. Solo la rama de creación —
+//   la rama de type:patch (línea ~2580) no aplica aquí porque un patch siempre trae el campo
+//   explícito, no hay caso de "ausente" en ese flujo.
+// TKT3 (REQ type-safety DISC status): item.zona en una DISC nueva nunca se persiste (comportamiento
+//   sin cambio) — se agrega _blogLog('zona-declarada-en-disc', ...) cuando el campo llega
+//   declarado con cualquier valor, señal de que quien emitió el CHECKPOINT sigue asumiendo que
+//   zona se valida. Regla relajada — ver __BR-Ecosystem §8 y doc_update aplicado en _pp-strategy.
+//   No aplica a REQ/TKT (no declaran zona en su schema).
+// TKT-202607-INC-NAMING (INC-[pendiente-ID]): applyPatchesFromTG() aplicaba `priority` sobre
+//   cualquier tipo de ítem, incluyendo INC/PRB/KE/CHG — __BR-Ecosystem §8 declara ese campo
+//   no-op silencioso para tipos ITIL (usan sla_priority en su lugar). No-op explícito
+//   agregado antes del fallback genérico de campos patcheables. Sin cambio de firma.
 // TKT-202607-075 (REQ-202607-017 · TKT2): _getNextItemCode() ahora async (core.js) — todo
 //   call site pasa a await. _promoteConfirm/_promoteTktToReqConfirm → async, listener delegado
 //   _blListClick (línea ~166) → async para poder await ambas. _assignPendingIds → async,
@@ -95,6 +111,7 @@ import { _setBacklogModified } from './locus-docs.js';
 import { _gconfirmOpen } from './locus-modals.js';
 
 import { validateLifecycleTransitions } from './locus-session-save.js'; // T-202606-020
+import { incSlaPriority, incComportamientoActual, incIncidentStatus } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
 
 import { render } from './locus-sesiones.js';
 
@@ -2153,6 +2170,17 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
             derivedItems: item.derivedItems || [],
             resolutionType: item.resolutionType || null,
           } : {}),
+          // TKT3 (REQ type-safety DISC status): regla relajada — __BR-Ecosystem §8. DISC nunca
+          // persiste el campo zona (el invariante Q-DISC se garantiza por arquitectura, ver
+          // _isQDiscActive/ausencia de sprint en DISC — no por validar este campo). Si llega
+          // declarado con cualquier valor, se ignora igual que siempre — el log es la única
+          // adición, señal de que quien emitió el CHECKPOINT sigue asumiendo que zona importa.
+          ...((() => {
+            if (_incomingType === 'DISC' && item.zona !== undefined) {
+              _blogLog('zona-declarada-en-disc', item.code, 'zona declarada en DISC ' + item.code + ' — campo ignorado, Q-DISC se aplica siempre por arquitectura.', 'backlog');
+            }
+            return {};
+          })()),
           // T-202606-025: persistir discard_reason en cualquier tipo con status descartado
           ...(initialStatus === 'descartado' && item.discard_reason !== undefined
             ? (() => {
@@ -2162,6 +2190,14 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
                 }
                 return { discard_reason: item.discard_reason };
               })()
+            : {}),
+          // TKT2 (REQ type-safety DISC status): __BR-Ecosystem §5 declara discard_reason
+          // obligatorio en DISC/INC con status descartado — antes, si el campo llegaba
+          // ausente/undefined, el bloque de arriba no hacía nada y el gap pasaba en silencio.
+          // Paridad con comportamiento_actual en INC (que sí alerta si falta, ver __BR-Ecosystem
+          // §8). No valida contenido — solo señala ausencia. No toca status distinto de descartado.
+          ...(initialStatus === 'descartado' && item.discard_reason === undefined
+            ? (_blogLog('discard-reason-ausente', item.code, 'discard_reason ausente en ' + item.code + ' con status descartado — campo obligatorio según __BR-Ecosystem §5.', 'backlog'), {})
             : {}),
           blockedBy: item.blockedBy || [],
           blocking: item.blocking || false,
@@ -2587,6 +2623,14 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
         }
         return;
       }
+      // TKT-202607-INC-NAMING: __BR-Ecosystem §8 — "priority es no-op silencioso en ítems
+      // INC/PRB/KE/CHG — esos tipos no declaran ese campo. Para repriorizar un INC usar
+      // sla_priority." El bloque genérico de abajo no distinguía tipo — un patch con
+      // priority sobre un INC lo aplicaba igual. No-op explícito agregado, sin log (silencioso
+      // por spec — el patch no es un error, solo no aplica a este tipo de ítem).
+      if (field === 'priority' && ['INC', 'PRB', 'KE', 'CHG'].includes(itemKind(existing))) {
+        return;
+      }
       if (incoming !== undefined && incoming !== null && incoming !== current) {
         changes.push({ field, from: current !== undefined ? current : '—', to: incoming });
         existing[field] = incoming;
@@ -2647,13 +2691,13 @@ export function buildQIncItem(item) {
   const typeColor    = typeColorMap[type] || 'var(--hint)';
 
   // Badge incidentStatus — '—' si ausente, sin crash
-  const incStatus    = item.incidentStatus || item.incident_status || '';
+  const incStatus    = incIncidentStatus(item) || '';
   const incStatusBadge = incStatus
     ? `<span class="qinc-badge qinc-badge--status">${esc(incStatus)}</span>`
     : `<span class="qinc-badge qinc-badge--status qinc-badge--empty">—</span>`;
 
   // Badge slaPriority — '—' si ausente, sin crash
-  const slaPrio      = item.slaPriority || item.sla_priority || '';
+  const slaPrio      = incSlaPriority(item) || '';
   const slaPrioBadge = slaPrio
     ? `<span class="qinc-badge qinc-badge--sla qinc-badge--sla-${slaPrio}">${esc(slaPrio)}</span>`
     : `<span class="qinc-badge qinc-badge--sla qinc-badge--empty">—</span>`;
@@ -2683,7 +2727,7 @@ export function buildQIncItem(item) {
   }
 
   // comportamientoActual expandible — togglable vía data-qi-action (AC TKT-B2a AC5)
-  const comportamiento = item.comportamientoActual || item.comportamiento_actual || '';
+  const comportamiento = incComportamientoActual(item) || '';
   const comportamientoHtml = comportamiento
     ? `<div class="qinc-item-comportamiento" data-qi-action="qi-toggle-comportamiento">${esc(comportamiento)}</div>`
     : '';
