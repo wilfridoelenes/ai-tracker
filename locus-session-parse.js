@@ -1,4 +1,10 @@
-// [PP] mod:96 · autor:Rune · 2026-07-09 00:00 UTC-6
+// [PP] mod:97 · autor:Rune · 2026-07-09 19:34 UTC-6
+// TKT-consolidar-valid-statuses-gate (deuda registrada durante TKT1 · REQ type-safety DISC
+//   status — fix inline autorizado por el founder, sin REQ propio): _validStatuses estaba
+//   duplicada literalmente en parsePaste (~L813) y en _buildTgItemsFromParsed (~L1722) —
+//   mismo array, mismo riesgo de edición asimétrica. Consolidada en _VALID_STATUSES_GATE
+//   (constante de módulo, junto a _KNOWN_STATUS_INPUTS). Ambos gates ahora leen de la misma
+//   fuente — sin cambio de comportamiento, mismos 4 valores, mismo orden.
 // REQ-execution-plan-deprecation: removido feature EXECUTION-PLAN completo — _tryIngestPlan,
 //   _tryIngestPlanFromParsed, parsePlanBlock, parseo de execution_plan del schema JSON
 //   (_rawExecutionPlan, validación de archivos huérfanos, transporte a ai._parsed/_standaloneLastParsed),
@@ -209,6 +215,12 @@ const _KNOWN_STATUS_INPUTS = new Set([
   'orphaned', // T-202606-017: válido solo para R — sin Ts válidos
   'discovery', // INC-[pendiente-ID]: único status inicial válido para DISC — __BR-Ecosystem §5
 ]);
+
+// TKT-consolidar-valid-statuses-gate (deuda registrada en TKT1 · REQ type-safety DISC status):
+// _validStatuses estaba duplicada literalmente en parsePaste (~L813) y en la variante
+// standalone _buildTgItemsFromParsed (~L1722) — mismo array, mismo riesgo de que una edición
+// futura toque un gate y no el otro. Consolidada aquí, fuente única para ambos paths de ingesta.
+const _VALID_STATUSES_GATE = ['done', 'pendiente', 'descartado', 'en-revision'];
 
 // TKT1 (REQ-[pendiente-ID]): _GEN2_TYPES movida a locus-backlog-core.js — fuente única,
 // importada abajo junto al resto de imports de ese módulo. Sin cambio de valor ni de uso.
@@ -810,7 +822,7 @@ export function parsePaste(id) {
       delete window[`_itemsJsonError_${id}`];
       const _rawItems = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
       const _validTypes    = _GEN2_TYPES;
-      const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
+      const _validStatuses = _VALID_STATUSES_GATE;
       const ckptHeaderRole = ckpt.rol || '';
       const _proyectoRawForQueue = (ckpt.proyecto || '').trim();
       let _itemError = null;
@@ -1719,7 +1731,7 @@ export function closeStandaloneCheckpoint() {
 //   que ya existían inline. No persiste, no wiring a _applyCheckpointBatch (eso es TKT4).
 function _buildTgItemsFromParsed(ckpt, parsedJSON) {
   const _validTypes    = _GEN2_TYPES;
-  const _validStatuses = ['done', 'pendiente', 'descartado', 'en-revision'];
+  const _validStatuses = _VALID_STATUSES_GATE;
   const tgItems = [];
   const patchItems = [];
   let itemError = null;
