@@ -1,4 +1,13 @@
-// [PP] mod:92 · autor:Rune · 2026-07-10 UTC-6
+// [PP] mod:93 · autor:Rune · 2026-07-10 UTC-6
+// TKT1 (parent: [pendiente-ID], REQ Countdown SLA — INC high en Q-INC): buildQIncItem() —
+//   AC1/AC2: .qinc-sla-countdown recibe modificador --riesgo cuando slaClass es
+//   qinc-item--sla-riesgo (mismo umbral 6h, ya gateado a slaPrio 'high'). AC3 (badges
+//   huérfanos qinc-badge--sla-high/medium/low) ya estaba resuelto en JS — solo faltaba
+//   CSS (Nova, locus-backlog.css mod:86). 2 fixes inline aplicados sobre buildQIncItem()
+//   — ver CHECKPOINT. Base tomada de mod:92 real (TKT3 undo/redo, entrada siguiente) —
+//   mi entrega anterior a esta sesión había quedado en "mod:92" sobre una copia
+//   desactualizada del archivo; el founder corrigió con la versión real y esta entrega
+//   parte de ahí, sin pisar el fix de TKT3.
 // TKT3 (deuda detectada por Finn en QA de TKT1+TKT2, mismo INC-[pendiente-ID]): _undoSnapshotIncidents()
 //   en applyPatchesFromTG() se disparaba incondicionalmente aunque el batch de patches no
 //   trajera ningún ítem ITIL — limpiaba _redoStackIncidents como side-effect de un patch
@@ -2789,27 +2798,39 @@ export function buildQIncItem(item) {
     ? `<span class="qinc-badge qinc-badge--sla qinc-badge--sla-${slaPrio}">${esc(slaPrio)}</span>`
     : `<span class="qinc-badge qinc-badge--sla qinc-badge--empty">—</span>`;
 
-  // Countdown slaDeadline — solo si presente
   const slaDeadline  = item.slaDeadline || item.sla_deadline || null;
-  let slaCountdownHtml = '';
-  if (slaDeadline) {
-    const remaining = slaDeadline - Date.now();
-    if (remaining < 0) {
-      slaCountdownHtml = `<span class="qinc-sla-countdown qinc-sla-countdown--vencido">VENCIDO</span>`;
-    } else {
-      const hrs = Math.floor(remaining / 3600000);
-      const min = Math.floor((remaining % 3600000) / 60000);
-      slaCountdownHtml = `<span class="qinc-sla-countdown">${hrs}h ${min}m</span>`;
-    }
-  }
 
   // Clases SLA — mutuamente excluyentes (AC TKT-B2a AC4)
+  // Fix inline (TKT1, triggered_by [tmp:tkt-countdown-sla]): la rama --sla-riesgo no
+  // exigía slaPrio === 'high' — cualquier prioridad dentro de la ventana de 6h recibía
+  // la clase a nivel de card. Corregido para exigir 'high', igual que ya exigía la rama
+  // vencido. Calculado antes del countdown porque TKT1 lo consume abajo.
   let slaClass = '';
   if (slaDeadline) {
     if (slaPrio === 'high' && slaDeadline < Date.now()) {
       slaClass = 'qinc-item--sla-vencido';
-    } else if (slaDeadline >= Date.now() && slaDeadline < Date.now() + 21600000) {
+    } else if (slaPrio === 'high' && slaDeadline >= Date.now() && slaDeadline < Date.now() + 21600000) {
       slaClass = 'qinc-item--sla-riesgo';
+    }
+  }
+
+  // Countdown slaDeadline — solo si presente
+  let slaCountdownHtml = '';
+  if (slaDeadline) {
+    const remaining = slaDeadline - Date.now();
+    if (remaining < 0) {
+      // Fix inline (TKT1): el modificador --vencido se aplicaba al span del countdown para
+      // CUALQUIER prioridad con deadline pasado, sin gate de slaPrio — contradice AC4 (medium/low
+      // sin --riesgo ni --vencido en el countdown). El texto "VENCIDO" se sigue mostrando para
+      // medium/low (no_incluye de TKT1 no pide removerlo), pero sin el modificador visual --vencido.
+      const vencidoClass = slaPrio === 'high' ? ' qinc-sla-countdown--vencido' : '';
+      slaCountdownHtml = `<span class="qinc-sla-countdown${vencidoClass}">VENCIDO</span>`;
+    } else {
+      const hrs = Math.floor(remaining / 3600000);
+      const min = Math.floor((remaining % 3600000) / 60000);
+      // TKT1 AC1/AC2: --riesgo espeja exactamente slaClass — mismo umbral, ya gateado a 'high' arriba.
+      const riesgoClass = slaClass === 'qinc-item--sla-riesgo' ? ' qinc-sla-countdown--riesgo' : '';
+      slaCountdownHtml = `<span class="qinc-sla-countdown${riesgoClass}">${hrs}h ${min}m</span>`;
     }
   }
 
