@@ -1,4 +1,15 @@
-// [PP] mod:88 · autor:Rune · 2026-07-09 19:34 UTC-6
+// [PP] mod:89 · autor:Rune · 2026-07-09 21:10 UTC-6
+// INC-[pendiente-ID] (triggered_by [tmp:req-separar-undo-inc]): fix de creación/lookup ITIL —
+//   un INC/PRB/KE/CHG nuevo emitido en CHECKPOINT nacía vía getItems().push(), nunca llegaba a
+//   INCIDENTS y por lo tanto nunca al upsert de tracker_incidents en saveBacklog() — se perdía
+//   silenciosamente. Fix en 4 puntos: (1) creación en mergeBacklogFromTG() enrutada por
+//   INCIDENT_TYPES a getIncidents() en vez de getItems() incondicional; (2) existing lookup en
+//   mergeBacklogFromTG() → getAnyItem() en vez de getItems().find(); (3) _findTmpMatch recibe
+//   getItems().concat(getIncidents()); (4) existing lookup en applyPatchesFromTG() → getAnyItem().
+//   Sin (2)-(4) el fix de (1) rompía patches/merges futuros sobre ITIL — Finn señaló que hoy
+//   funcionan solo porque el INC vive por error en ITEMS. signature_change: false en las 3
+//   funciones tocadas — getIncidents/getAnyItem/INCIDENT_TYPES ya estaban exportadas desde
+//   core.js (TKT-202607-005/045), solo faltaba consumirlas en estos 4 call sites.
 // TKT2 (REQ type-safety DISC status): en la creación de ítem (bloque de campos ITIL/discard),
 //   discard_reason ausente/undefined en un ítem con status descartado ahora emite
 //   _blogLog('discard-reason-ausente', ...) — antes el gap pasaba en silencio (paridad con
@@ -95,7 +106,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, getAnyItem, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -1812,7 +1823,10 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
     // B-202604-198: REGLA DE TMP — detectar si [tmp:slug] corresponde a un ID real existente
     // por similitud de título. Si hay match potencial, registrar sugerencia y NO crear duplicado.
     if (isPlaceholder && /^\[tmp:[a-z0-9_-]+\]$/i.test(item.code)) {
-      const tmpMatch = _findTmpMatch(item.code, item.title, getItems(), item.type);
+      // INC-[pendiente-ID] (fix creación/lookup ITIL): concatenar getIncidents() — un [tmp:slug]
+      // de tipo INC/PRB/KE/CHG vive en INCIDENTS, no en ITEMS. _findTmpMatch ya filtra por
+      // incomingType === item.type, así que concatenar no afecta el resultado para BACKLOG_TYPES.
+      const tmpMatch = _findTmpMatch(item.code, item.title, getItems().concat(getIncidents()), item.type);
       if (tmpMatch) {
         tmpSuggestions.push({
           tmpCode: item.code,
@@ -1827,7 +1841,10 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
     }
 
     // B-202604-198: si es placeholder, saltar directamente a rama "nuevo"
-    const existing = isPlaceholder ? null : getItems().find(i => i.code === item.code);
+    // INC-[pendiente-ID] (fix creación/lookup ITIL): getAnyItem() en vez de getItems().find() —
+    // un ítem ITIL con código real vive en INCIDENTS desde el fix de creación de este mismo INC;
+    // getItems().find() nunca lo encontraba y el merge lo trataba como ítem nuevo (duplicado).
+    const existing = isPlaceholder ? null : getAnyItem(item.code);
     if (existing) {
       const newStatus = item.status; // T-202606-034: item.status ya canónico desde T1 — _tgStatusToBacklog eliminada
       const oldStatus = existing.status || 'pendiente';
@@ -2134,7 +2151,14 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
         ? (getItems().find(p => p.code === _resolvedParentId) || {}).sprint || ''
         : '';
       if (!_dryRun) {
-        getItems().push({
+        // INC-[pendiente-ID] (fix creación/lookup ITIL): destino según tipo — INCIDENT_TYPES
+        // (INC/PRB/KE/CHG) vive en INCIDENTS, no en ITEMS. Antes este push era incondicional a
+        // getItems() para los 7 tipos — un ITIL nuevo nunca llegaba a INCIDENTS y saveBacklog()
+        // lo excluía de ambos upserts (tracker_items por ser ITIL, tracker_incidents por no
+        // estar en INCIDENTS) — se perdía silenciosamente. Mismo criterio de destino que
+        // _setITEMS() ya aplica en core.js (BACKLOG_TYPES → ITEMS, INCIDENT_TYPES → INCIDENTS).
+        const _targetArr = INCIDENT_TYPES.includes(_incomingType) ? getIncidents() : getItems();
+        _targetArr.push({
           id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
           code: item.code,
           type: _incomingType,
@@ -2452,7 +2476,10 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
     const code = patch.code;
 
     // AC-5: código no existe en backlog → advertencia DocLog
-    const existing = (typeof getItems() !== 'undefined') ? getItems().find(i => i.code === code) : null;
+    // INC-[pendiente-ID] (fix creación/lookup ITIL): getAnyItem() en vez de getItems().find() —
+    // un patch sobre un INC/PRB/KE/CHG (código real, vive en INCIDENTS desde el fix de creación
+    // de este mismo INC) se ignoraba antes como "código no existe en el backlog".
+    const existing = getAnyItem(code) || null;
     if (!existing) {
               _blogLog('patch-ignorado', code, 'Patch ignorado: código no existe en el backlog. code: ' + code, 'backlog');
       ignoredPatches.push({ code, reason: 'no-existe' });
