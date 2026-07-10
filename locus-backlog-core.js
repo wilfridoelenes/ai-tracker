@@ -1,4 +1,4 @@
-// [PP] mod:107 · autor:Rune · 2026-07-09 19:34 UTC-6
+// [PP] mod:108 · autor:Rune · 2026-07-09 UTC-6
 // TKT1 (REQ type-safety DISC status): normalizeStatus(raw, type) reescrita internamente sin
 //   cambio de firma (signature_change: false) — para type==='DISC', cualquier valor que
 //   resuelva a done/en-revision/historico/pendiente (incluye desconocido y 'bloqueado') se
@@ -2142,9 +2142,13 @@ export function renderStats() {
       <!-- Separador -->
       <div class="stat-compact-sep"></div>
       <!-- Popover Tipos — TKT2 (REQ-clutter-backlog): consolida chips de tipo -->
+      <!-- INC-[tmp:inc-activetypechipcount]: _activeTypeChipCount = tipos EXCLUIDOS del filtro (7 - activeTypes.size).
+           Asunción declarada por Rune (sin AC del founder disponible): 0 cuando no hay filtro activo (los 7 tipos
+           seleccionados) — coincide con la condición ya usada en la línea del "✕ mostrar todos" (activeTypes.size < 7)
+           y con is-hidden aplicado cuando el valor es 0. Ver CHECKPOINT de cierre para detalle. -->
       <div class="blt-wrap">
         <button class="blt-trigger bl-toolbar-view-btn" id="bstats-types-btn" data-action="stats-toggle-types" aria-haspopup="true" aria-expanded="false" aria-controls="blt-popover" title="Filtrar por tipo">
-          Tipos ▾<span class="blt-badge${_activeTypeChipCount === 0 ? ' is-hidden' : ''}">${_activeTypeChipCount}</span>
+          Tipos ▾<span class="blt-badge${(7 - activeTypes.size) === 0 ? ' is-hidden' : ''}">${7 - activeTypes.size}</span>
         </button>
         <div class="blt-popover" id="blt-popover" role="menu" hidden>
           ${activeTypes.size < 7 ? `<span class="stat-type-chip stat-type-chip--all" data-action="stats-clear-types" title="Mostrar todos los tipos">✕ mostrar todos</span>` : ''}
