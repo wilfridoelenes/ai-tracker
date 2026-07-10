@@ -1,4 +1,4 @@
-// [PP] mod:81 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:82 · autor:Rune · 2026-07-09 UTC-6
 // TKT-202607-INC-NAMING (INC-[pendiente-ID]): 4 lecturas de i.slaPriority en renderQIncPanel
 //   y el badge Q-INC (líneas ~1045/1077/1117/1412) sin fallback a sla_priority (snake) —
 //   rompía la clasificación visual SLA (colores vencido/riesgo, filtro por prioridad, badge
@@ -145,7 +145,7 @@ import { _buildChildMap } from './locus-backlog-hierarchy.js';
 // REQ refactor-zonas TKT5: _zoneStaleness extraído a locus-backlog-zone-engine.js — único uso
 // restante en este archivo es _updateSubtabBadges() (badges qbacklog/qdisc).
 import { _zoneStaleness } from './locus-backlog-zone-engine.js';
-import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshot, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, getIncidents, _nsGetTypes, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js'; // TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js) · TKT-202607-027: _getBacklogKanbanMode removida — ya no exportada desde core.js · TKT-202607-056: getIncidents agregada — renderQIncPanel lee INCIDENTS además de ITEMS
+import { _hasDepsBlocked, _isBlocked, _isCountableItem, _isQBacklog, _isQBacklogActive, _isQDisc, _isQDiscActive, isQIncItem, _skelHide, _skelShow, _undoSnapshotItems, itemKind, renderStats, renderActiveFilterChips, updateStatusFilterUI, _getBacklogNoAcMode, _getActiveTypes, _getActiveStatuses, _getActiveEfforts, _getActivePriorityFilter, _getDepsFilter, _getBacklogSortMode, _getBacklogSortDir, _getBacklogSearchQuery, _getCollapsedVersions, toggleVersionCollapse, toggleSectionGroup, getDoneItems, getItems, getIncidents, _nsGetTypes, _nsGetPriority, _nsGetQuery, _nsSetQuery, _nsToggleType, _nsTogglePriority, _nsReset } from './locus-backlog-core.js'; // TKT1 REQ unificar chips: renderActiveFilterChips agregada · toggleTypeFilter/toggleStatusFilter/toggleEffortFilter/toggleBacklogNoAcMode huérfanos removidos (inline_fix) · REQ refactor-zonas TKT5: _nsGetStatuses removido — único uso vivía en _renderZonePanel (extraído a zone-engine.js) · TKT-202607-027: _getBacklogKanbanMode removida — ya no exportada desde core.js · TKT-202607-056: getIncidents agregada — renderQIncPanel lee INCIDENTS además de ITEMS
 
 import { _attachBacklogDnD, _attachBacklogListDelegation, _resetBacklogListDelegation, _collapsedChildren, buildBacklogItem, buildQIncItem } from './locus-backlog-item.js'; // B-202606-023: _resetBacklogListDelegation · TKT-B2b: buildQIncItem · TKT-202607-027: _renderKanban removida — ya no exportada
 
@@ -208,7 +208,7 @@ export function setItemParent(code, parentCode) {
       item.sprint = parentItem.sprint || '';
     }
   }
-  _undoSnapshot();
+  _undoSnapshotItems();
   saveBacklog();
   _setBacklogModified();
   // INC-[pendiente-ID]: mismo fix que setItemSprint — renderBacklogList() directo era ciego

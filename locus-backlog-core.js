@@ -1,4 +1,13 @@
-// [PP] mod:108 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:110 · autor:Rune · 2026-07-09 UTC-6
+// TKT-202607-091/092 (REQ-202607-022): undo/redo separado en dos mecanismos independientes
+// _undoSnapshotItems()/_undoSnapshotIncidents() con stacks propios (_undoStackItems/
+// _redoStackItems, _undoStackIncidents/_redoStackIncidents). undoBacklog()/redoBacklog()
+// eligen el par cronológicamente más reciente por `seq` monotónico (no `ts` — dos snapshots
+// en el mismo tick podían empatar) y descartan en silencio entradas no-op (contenido idéntico
+// al array vivo) antes de restaurar. _updateUndoUI() calcula sobre la unión de ambos pares.
+// El puente de compatibilidad _undoSnapshot() fue eliminado en TKT-092 — los 27 call sites
+// externos migraron a la función correspondiente según el array que mutan; único call site que
+// muta INCIDENTS es _setIncidents() (línea ~366) → _undoSnapshotIncidents().
 // TKT1 (REQ type-safety DISC status): normalizeStatus(raw, type) reescrita internamente sin
 //   cambio de firma (signature_change: false) — para type==='DISC', cualquier valor que
 //   resuelva a done/en-revision/historico/pendiente (incluye desconocido y 'bloqueado') se
@@ -353,10 +362,10 @@ function _setITEMS(arr) {
 
 // TKT-202607-005: mutador canónico de INCIDENTS — mismo contrato que _setITEMS (filtra
 // historico, nunca doble-agregado). Acepta un ítem individual o un array. Ejecuta
-// _undoSnapshot() antes de mutar (invariant de _undoSnapshot — __BR-Execution §2 anti-pattern
-// "llamado después de la mutación").
+// _undoSnapshotIncidents() antes de mutar — único call site interno que muta INCIDENTS
+// (invariant __BR-Execution §2 anti-pattern "llamado después de la mutación").
 function _setIncidents(itemOrArr) {
-  _undoSnapshot();
+  _undoSnapshotIncidents();
   const _incoming = Array.isArray(itemOrArr) ? itemOrArr : [itemOrArr];
   const _existing = INCIDENTS.filter(i => !_incoming.some(n => n.code && n.code === i.code));
   const _merged = [..._existing, ..._incoming].filter(i => i.status !== 'historico');
@@ -364,14 +373,22 @@ function _setIncidents(itemOrArr) {
 }
 
 // B-202604-002: undo/redo stack para ITEMS (20 niveles)
-// TKT-202607-046 (REQ-202607-015): stack extendido a snapshot combinado {items, incidents} —
-// antes solo capturaba ITEMS. _setIncidents() ya invocaba _undoSnapshot() desde TKT-202607-005
-// pero el snapshot resultante no incluía INCIDENTS, por lo que un undo tras mutar un INC/PRB/
-// KE/CHG no revertía nada (_setITEMS() no toca INCIDENTS). Mismo UNDO_MAX, mismos dos stacks —
-// solo cambia el shape del string serializado en cada entrada.
+// TKT-202607-091 (REQ-202607-022 · TKT1): stacks separados por rama de gobernanza
+// (__BR-Ecosystem §4b) — antes un solo par {items,incidents} combinado (TKT-202607-046)
+// capturaba ambos arrays en cada snapshot, acoplando el undo de Planeada (ITEMS) con el de
+// Reactiva (INCIDENTS). Ahora cada rama tiene su propio par de stacks; cada entrada lleva su
+// propio `ts` para que undoBacklog()/redoBacklog() puedan elegir el stack cronológicamente
+// más reciente entre ambos pares. Mismo UNDO_MAX para cada par.
 const UNDO_MAX = 20;
-let _undoStack = [];
-let _redoStack = [];
+let _undoStackItems = [];
+let _redoStackItems = [];
+let _undoStackIncidents = [];
+let _redoStackIncidents = [];
+// TKT-202607-091 (fix quirúrgico post Fase-5): contador monotónico compartido entre ambos
+// pares de stacks. Reemplaza la comparación por `ts` — dos snapshots creados en el mismo tick
+// (ms) podían empatar en timestamp, y el empate siempre favorecía a Incidents por el `>=`.
+// `seq` es estrictamente creciente entre llamadas — sin ambigüedad de orden posible.
+let _undoSeq = 0;
 
 // B-202604-194: Set de ids de ítems cuyos AC fueron reemplazados en la sesión activa.
 // Vive solo en memoria — nunca se persiste a localStorage ni se serializa con ITEMS.
@@ -390,65 +407,125 @@ export function _openItemEditorSafe(id, code) {
   }
 }
 
-// TKT-202607-046: _setIncidentsRaw(arr) — restauración desde snapshot combinado de undo/redo.
-// Reemplazo total del array INCIDENTS (splice), sin merge y sin _undoSnapshot() propio — mismo
-// invariant que _setITEMS() (que tampoco se auto-snapshotea): el caller ya tomó el snapshot
-// combinado antes de mutar. No confundir con _setIncidents() (mutador público de flujo normal
-// de negocio, merge aditivo, se auto-snapshotea) — esa función no cambia en este TKT.
+// TKT-202607-046/091: _setIncidentsRaw(arr) — restauración desde el stack de undo/redo de
+// Incidents. Reemplazo total del array INCIDENTS (splice), sin merge y sin snapshot propio —
+// mismo invariant que _setITEMS() (que tampoco se auto-snapshotea): el caller (undoBacklog()/
+// redoBacklog()) ya tomó el snapshot antes de mutar. No confundir con _setIncidents()
+// (mutador público de flujo normal de negocio, merge aditivo, se auto-snapshotea vía
+// _undoSnapshotIncidents()).
 function _setIncidentsRaw(arr) {
   const _safe = (Array.isArray(arr) ? arr : []).filter(i => i.status !== 'historico');
   INCIDENTS.splice(0, INCIDENTS.length, ..._safe);
 }
 
-// TKT-202607-046: snapshot combinado {items, incidents} — antes solo `JSON.stringify(ITEMS)`.
-// Firma sin cambio (_undoSnapshot() → void) — callers externos (locus-backlog-item.js,
-// locus-backlog-panel.js, locus-backlog-merge.js, locus-backlog-editor.js,
-// locus-backlog-render.js, locus-backlog-sprints.js — ver _Locus-module-contracts §_undoSnapshot)
-// no requieren cambio: siguen invocándola igual antes de mutar ITEMS, y ahora capturan también
-// el estado vigente de INCIDENTS en el mismo snapshot sin saberlo ni necesitar saberlo.
-export function _undoSnapshot() {
-  _undoStack.push(JSON.stringify({ items: ITEMS, incidents: INCIDENTS }));
-  if (_undoStack.length > UNDO_MAX) _undoStack.shift();
-  _redoStack = [];
+// TKT-202607-091 (REQ-202607-022 · TKT1): snapshot exclusivo de ITEMS — stack independiente
+// de INCIDENTS. Cada entrada lleva su propio timestamp para resolución cronológica en
+// undoBacklog()/redoBacklog().
+export function _undoSnapshotItems() {
+  _undoStackItems.push({ seq: ++_undoSeq, ts: Date.now(), data: JSON.stringify({ items: ITEMS }) });
+  if (_undoStackItems.length > UNDO_MAX) _undoStackItems.shift();
+  _redoStackItems = [];
   _updateUndoUI();
 }
 
-// TKT-202607-046: undoBacklog()/redoBacklog() restauran ambos arrays desde el snapshot
-// combinado. Firma sin cambio (ambas siguen sin parámetros, void) — call sites existentes
-// (listeners #btn-undo-backlog/#btn-redo-backlog en DOMContentLoaded, este mismo archivo)
-// no requieren cambio. Atajo de teclado no está presente en este archivo — no verificable en
-// esta sesión, señalado en CHECKPOINT.
+// TKT-202607-091 (REQ-202607-022 · TKT1): snapshot exclusivo de INCIDENTS — stack
+// independiente de ITEMS. Mismo patrón que _undoSnapshotItems().
+export function _undoSnapshotIncidents() {
+  _undoStackIncidents.push({ seq: ++_undoSeq, ts: Date.now(), data: JSON.stringify({ incidents: INCIDENTS }) });
+  if (_undoStackIncidents.length > UNDO_MAX) _undoStackIncidents.shift();
+  _redoStackIncidents = [];
+  _updateUndoUI();
+}
+
+// TKT-202607-092: puente _undoSnapshot() eliminado — los 27 call sites externos fueron
+// migrados a _undoSnapshotItems()/_undoSnapshotIncidents() según el array que mutan.
+// TKT-202607-091: undoBacklog() elige el par de stacks (Items o Incidents) cuyo tope tiene el
+// timestamp más reciente, y restaura solo ese array — el otro queda intacto. Si un par está
+// vacío, opera sobre el que tiene contenido sin comparar. Firma sin cambio (sin parámetros,
+// void) — call sites existentes (listeners #btn-undo-backlog/#btn-redo-backlog en
+// DOMContentLoaded de este archivo, atajo de teclado Ctrl+Z en locus-reports.js) no requieren
+// cambio.
 export function undoBacklog() {
-  if (!_undoStack.length) return;
-  _redoStack.push(JSON.stringify({ items: ITEMS, incidents: INCIDENTS }));
-  const _snap = JSON.parse(_undoStack.pop());
-  _setITEMS(_snap.items);
-  _setIncidentsRaw(_snap.incidents);
-  saveBacklog();
-  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
-  renderStats();
+  // TKT-202607-091 (fix quirúrgico): descarta en silencio cualquier entrada de tope cuyo
+  // contenido snapshoteado es idéntico al array vivo actual — el puente _undoSnapshot()
+  // empuja una entrada a AMBOS stacks aunque solo uno haya mutado realmente; sin este skip,
+  // esa entrada "no-op" siempre gana el primer Ctrl+Z por tener seq más alto, forzando una
+  // segunda pulsación para revertir la mutación real. Máx. 2 iteraciones (una por rama).
+  const _guardMax = _undoStackItems.length + _undoStackIncidents.length;
+  for (let _guard = 0; _guard <= _guardMax; _guard++) {
+    if (!_undoStackItems.length && !_undoStackIncidents.length) return;
+
+    const _topItems = _undoStackItems.length ? _undoStackItems[_undoStackItems.length - 1] : null;
+    const _topIncidents = _undoStackIncidents.length ? _undoStackIncidents[_undoStackIncidents.length - 1] : null;
+    const _useIncidents = _topIncidents && (!_topItems || _topIncidents.seq > _topItems.seq);
+
+    if (_useIncidents) {
+      if (JSON.stringify({ incidents: INCIDENTS }) === _topIncidents.data) { _undoStackIncidents.pop(); continue; }
+      _redoStackIncidents.push({ seq: ++_undoSeq, ts: Date.now(), data: JSON.stringify({ incidents: INCIDENTS }) });
+      const _snap = JSON.parse(_undoStackIncidents.pop().data);
+      _setIncidentsRaw(_snap.incidents);
+    } else {
+      if (JSON.stringify({ items: ITEMS }) === _topItems.data) { _undoStackItems.pop(); continue; }
+      _redoStackItems.push({ seq: ++_undoSeq, ts: Date.now(), data: JSON.stringify({ items: ITEMS }) });
+      const _snap = JSON.parse(_undoStackItems.pop().data);
+      _setITEMS(_snap.items);
+    }
+
+    saveBacklog();
+    window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
+    renderStats();
+    _updateUndoUI();
+    showToast('info', '↩ Deshacer aplicado');
+    return;
+  }
+  // Ambos topes eran no-op y se descartaron — sin cambio real que restaurar.
   _updateUndoUI();
-  showToast('info', '↩ Deshacer aplicado');
 }
 
+// TKT-202607-091: misma lógica de comparación cronológica que undoBacklog(), sobre los pares
+// de stacks de redo.
 export function redoBacklog() {
-  if (!_redoStack.length) return;
-  _undoStack.push(JSON.stringify({ items: ITEMS, incidents: INCIDENTS }));
-  const _snap = JSON.parse(_redoStack.pop());
-  _setITEMS(_snap.items);
-  _setIncidentsRaw(_snap.incidents);
-  saveBacklog();
-  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
-  renderStats();
+  // TKT-202607-091 (fix quirúrgico): mismo criterio de skip de no-op que undoBacklog().
+  const _guardMax = _redoStackItems.length + _redoStackIncidents.length;
+  for (let _guard = 0; _guard <= _guardMax; _guard++) {
+    if (!_redoStackItems.length && !_redoStackIncidents.length) return;
+
+    const _topItems = _redoStackItems.length ? _redoStackItems[_redoStackItems.length - 1] : null;
+    const _topIncidents = _redoStackIncidents.length ? _redoStackIncidents[_redoStackIncidents.length - 1] : null;
+    const _useIncidents = _topIncidents && (!_topItems || _topIncidents.seq > _topItems.seq);
+
+    if (_useIncidents) {
+      if (JSON.stringify({ incidents: INCIDENTS }) === _topIncidents.data) { _redoStackIncidents.pop(); continue; }
+      _undoStackIncidents.push({ seq: ++_undoSeq, ts: Date.now(), data: JSON.stringify({ incidents: INCIDENTS }) });
+      const _snap = JSON.parse(_redoStackIncidents.pop().data);
+      _setIncidentsRaw(_snap.incidents);
+    } else {
+      if (JSON.stringify({ items: ITEMS }) === _topItems.data) { _redoStackItems.pop(); continue; }
+      _undoStackItems.push({ seq: ++_undoSeq, ts: Date.now(), data: JSON.stringify({ items: ITEMS }) });
+      const _snap = JSON.parse(_redoStackItems.pop().data);
+      _setITEMS(_snap.items);
+    }
+
+    saveBacklog();
+    window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
+    renderStats();
+    _updateUndoUI();
+    showToast('info', '↪ Rehacer aplicado');
+    return;
+  }
   _updateUndoUI();
-  showToast('info', '↪ Rehacer aplicado');
 }
 
+// TKT-202607-091: calcula disabled/title sobre la UNIÓN de ambos pares de stacks — botón
+// deshabilitado solo cuando los cuatro stacks están vacíos, contador refleja el total
+// combinado disponible para deshacer/rehacer.
 export function _updateUndoUI() {
   const btnU = document.getElementById('btn-undo-backlog');
   const btnR = document.getElementById('btn-redo-backlog');
-  if (btnU) { btnU.disabled = !_undoStack.length; btnU.title = _undoStack.length ? `Deshacer (${_undoStack.length})  Ctrl+Z` : 'Sin acciones para deshacer'; }
-  if (btnR) { btnR.disabled = !_redoStack.length; btnR.title = _redoStack.length ? `Rehacer (${_redoStack.length})  Ctrl+Shift+Z` : 'Sin acciones para rehacer'; }
+  const _undoTotal = _undoStackItems.length + _undoStackIncidents.length;
+  const _redoTotal = _redoStackItems.length + _redoStackIncidents.length;
+  if (btnU) { btnU.disabled = !_undoTotal; btnU.title = _undoTotal ? `Deshacer (${_undoTotal})  Ctrl+Z` : 'Sin acciones para deshacer'; }
+  if (btnR) { btnR.disabled = !_redoTotal; btnR.title = _redoTotal ? `Rehacer (${_redoTotal})  Ctrl+Shift+Z` : 'Sin acciones para rehacer'; }
 }
 
 let backlogSearchQuery = '';
@@ -883,7 +960,7 @@ function _sanitizePendingInClosedSprints() {
     item.status !== 'descartado' &&
     item.status !== 'historico'
   );
-  if (pendingWithDoneAt.length > 0) _undoSnapshot();
+  if (pendingWithDoneAt.length > 0) _undoSnapshotItems();
   let revived = 0;
   pendingWithDoneAt.forEach(item => {
       const targetStatus = item.discardReason ? 'descartado' : 'done';
@@ -921,7 +998,7 @@ export function _purgeStaleBacklogCache() {
   const before = ITEMS.length;
 
   // B-202605-045: snapshot antes de mutar para que la purga sea deshacible
-  _undoSnapshot();
+  _undoSnapshotItems();
 
   // Filtrar del array en memoria — Supabase conserva el registro completo
   _setITEMS(ITEMS.filter(item => {
@@ -955,7 +1032,7 @@ export function purgeAllHistorico() {
     okLabel: 'Purgar',
     danger: true
   }, () => {
-    _undoSnapshot();
+    _undoSnapshotItems();
     const before = ITEMS.length;
     _setITEMS(ITEMS.filter(i => i.status !== 'historico'));
     const purged = before - ITEMS.length;
@@ -1739,7 +1816,7 @@ function _applyStatusChange(code, newStatus, prevStatus) {
       setTimeout(() => showToast('success', label, null, 4000), 400);
     }
   }
-  _undoSnapshot();
+  _undoSnapshotItems();
   _blogLog('status →', code, prevStatus + ' → ' + newStatus, 'backlog');
   saveBacklog();
   // C8: animación salida delegada — T-202606-027
@@ -1884,7 +1961,7 @@ export function _applyDoneStatus(code, authorized) {
     setTimeout(() => showToast('success', label, null, 4000), 400);
   }
 
-  _undoSnapshot();
+  _undoSnapshotItems();
   _blogLog('status →', code, _prevStatus + ' → done', 'backlog');
   saveBacklog();
 
@@ -2267,7 +2344,7 @@ export function _quickAssignEffort(codeOrId) {
   if (!val || isNaN(n) || n < 1 || n > 3) { showToast('warning', '⚠ Valor no válido — ingresa 1, 2 o 3'); return; }
   item.effort = n;
   if (item._needsEffortReview) delete item._needsEffortReview;
-  _undoSnapshot();
+  _undoSnapshotItems();
   saveBacklog();
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   renderStats();
@@ -2323,7 +2400,7 @@ export function setItemRole(code, role) {
   const item = ITEMS.find(i => i.code === code);
   if (!item) return;
   item.role = role || '';
-  _undoSnapshot();
+  _undoSnapshotItems();
   _blogLog('rol →', code, role || '(vacío)', 'backlog');
   saveBacklog();
   window.dispatchEvent(new CustomEvent('shell:backlog-modified'));

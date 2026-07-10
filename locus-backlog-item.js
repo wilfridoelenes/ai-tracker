@@ -1,4 +1,4 @@
-// [PP] mod:89 · autor:Rune · 2026-07-09 21:10 UTC-6
+// [PP] mod:90 · autor:Rune · 2026-07-09 UTC-6
 // INC-[pendiente-ID] (triggered_by [tmp:req-separar-undo-inc]): fix de creación/lookup ITIL —
 //   un INC/PRB/KE/CHG nuevo emitido en CHECKPOINT nacía vía getItems().push(), nunca llegaba a
 //   INCIDENTS y por lo tanto nunca al upsert de tracker_incidents en saveBacklog() — se perdía
@@ -106,7 +106,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _skelHide, _undoSnapshot, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _skelHide, _undoSnapshotItems, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -508,7 +508,7 @@ export function _attachBacklogDnD() {
         if ((fromItem.sprint || '') !== (toItem.sprint || '')) return;
         const [moved] = getItems().splice(fromIdx, 1);
         getItems().splice(toIdx, 0, moved);
-        _undoSnapshot();
+        _undoSnapshotItems();
         saveBacklog();
         _markBacklogListDirty(); renderBacklogList();
       });
@@ -1199,7 +1199,7 @@ async function _promoteConfirm(originCode) {
   originItem.discardRef = newCode; // ref al ítem hijo — habilita bitem--promoted chip
 
   _blogLog('promovido', originCode, originCode + ' → ' + newCode, 'backlog');
-  _undoSnapshot();
+  _undoSnapshotItems();
   saveBacklog();
   _setBacklogModified();
 
@@ -1283,7 +1283,7 @@ async function _promoteTktToReqConfirm(originCode) {
   originItem.discardRef = newCode;
 
   _blogLog('promovido-a-req', originCode, originCode + ' → ' + newCode, 'backlog');
-  _undoSnapshot();
+  _undoSnapshotItems();
   saveBacklog();
   _setBacklogModified();
 
@@ -1791,7 +1791,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   });
 
   // B-202605-007: snapshot antes de cualquier mutación — incluye cierre automático de P padre
-  if (!_dryRun) _undoSnapshot();
+  if (!_dryRun) _undoSnapshotItems();
 
   tgItems.forEach(item => {
     if (!item.code) return;
@@ -2284,7 +2284,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   });
 
   if (!_dryRun && changed) {
-    saveBacklog(); // B-202605-007: _undoSnapshot() movido antes del forEach
+    saveBacklog(); // B-202605-007: _undoSnapshotItems() movido antes del forEach
     _setBacklogModified();
     renderStats(); // siempre actualizar stat bar aunque no estemos en tab Backlog
     // T-202606-093 AC-3: badges de Icebox/Hotfix/Histórico se actualizan sin importar
@@ -2452,7 +2452,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
   const patched = [];
   const ignoredPatches = [];
 
-  _undoSnapshot();
+  _undoSnapshotItems();
 
   patches.forEach(patch => {
     // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)

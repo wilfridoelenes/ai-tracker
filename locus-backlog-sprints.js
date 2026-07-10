@@ -1,4 +1,4 @@
-// [PP] mod:43 · autor:Rune · 2026-07-08 UTC-6
+// [PP] mod:44 · autor:Rune · 2026-07-09 UTC-6
 // TKT7 (REQ-202607-015): revertido el bloque TKT5 — _scmExecuteClose ya no recolecta,
 //   persiste ni elimina incidentes elegibles al cerrar sprint. AC3 del REQ (verificado por
 //   Finn contra __BR-Core §6 y confirmado por el founder: Q-INC/ITEMS son poblaciones
@@ -32,7 +32,7 @@
 // Responsabilidad: Catálogo de sprints — CRUD, asignación de ítems, retro,
 //   modal de cierre de sprint (SCM), createSprintFromGroup.
 
-import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshot, itemKind, renderStats, updateStatusFilterUI, getItems, getIncidents, _registerCoreCallback } from './locus-backlog-core.js'; // TKT-202607-045: getIncidents agregada — _incEligibleForSprintClose evalúa ITEMS+INCIDENTS
+import { _calcPriority, _getActiveSessionAiId, _isBlocked, _undoSnapshotItems, itemKind, renderStats, updateStatusFilterUI, getItems, getIncidents, _registerCoreCallback } from './locus-backlog-core.js'; // TKT-202607-045: getIncidents agregada — _incEligibleForSprintClose evalúa ITEMS+INCIDENTS
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _templateTrigger } from './locus-session-hora.js';
 import { exportFullHistoryMd } from './locus-backlog-generator.js';
@@ -603,7 +603,7 @@ export function setItemSprint(code, sprintId) {
   // misma función que usa el handler de type:patch (locus-backlog-item.js).
   _inheritSprintToChildren(item, normalizedId);
 
-  _undoSnapshot();
+  _undoSnapshotItems();
   saveBacklog();
   _setBacklogModified();
   // INC-[pendiente-ID]: renderBacklogList() directo reemplazado — era ciego a qué panel disparó
@@ -1395,7 +1395,7 @@ async function _scmExecuteClose() {
     _invalidateHistoricoCache();
   }
 
-  _undoSnapshot();
+  _undoSnapshotItems();
   saveBacklog();
   _setBacklogModified();
   // B-[tmp:historico-expand]: forzar expansión del histórico post-cierre

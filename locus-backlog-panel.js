@@ -1,4 +1,4 @@
-// [PP] mod:17 · autor:Rune · 2026-07-07 UTC-6
+// [PP] mod:18 · autor:Rune · 2026-07-09 UTC-6
 // TKT-202607-045 (REQ-202607-015): chip 'Generado desde' (item.origin, ~línea 537) usa
 //   getAnyItem() en vez de getItems().find() — item.origin puede apuntar a un código ITIL.
 // locus-backlog-panel.js
@@ -6,7 +6,7 @@
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-toast.js
 
-import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshot, itemKind, renderStats, setItemStatus, undoBacklog, getItems, getAnyItem, _registerCoreCallback, _ECOSYSTEM_ROLES } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — chip 'Generado desde' puede resolver ITIL
+import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshotItems, itemKind, renderStats, setItemStatus, undoBacklog, getItems, getAnyItem, _registerCoreCallback, _ECOSYSTEM_ROLES } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — chip 'Generado desde' puede resolver ITIL
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import { _getActiveProjectFilter, getAI, getActiveSprints, _sprintDisplay, getAllSessions, getProjectById, save, saveImmediate } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
@@ -156,7 +156,7 @@ function _confirmMigrateItem(code) {
   // AC-3: eliminar del origen primero — snapshot + splice + persist antes de tocar destino
   const idx = getItems().indexOf(item);
   if (idx === -1) return;
-  _undoSnapshot();
+  _undoSnapshotItems();
   getItems().splice(idx, 1);
   saveBacklog();
   _setBacklogModified();
@@ -769,7 +769,7 @@ function _idpSaveTitle(code) {
     // T-202604-423: registrar cambio de título en history[]
     if (!item.history) item.history = [];
     item.history.push({ type: 'title', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: prevTitle || null, to: newTitle } });
-    _undoSnapshot();
+    _undoSnapshotItems();
     saveBacklog();
     _setBacklogModified();
     // Actualizar la lista sin cerrar el panel
@@ -801,7 +801,7 @@ function _idpSetField(code, field, value) {
     if (!item.history) item.history = [];
     item.history.push({ type: 'field', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { field, from: prev || null, to: value || null } });
   }
-  _undoSnapshot();
+  _undoSnapshotItems();
   saveBacklog();
   _setBacklogModified();
   renderBacklogList();
@@ -879,7 +879,7 @@ function _idpAddNote(code, text) {
   if (!item || !text) return;
   if (!item.history) item.history = [];
   item.history.push({ type: 'note', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { text } });
-  _undoSnapshot();
+  _undoSnapshotItems();
   saveBacklog();
   _setBacklogModified();
   _renderItemPanel(item);
@@ -934,7 +934,7 @@ function _acvSaveEdit(rowId, code, acIdx) {
   const item = getItems().find(i => i.code === code);
   if (!item || !item.ac) return;
   item.ac[acIdx] = newText;
-  _undoSnapshot();
+  _undoSnapshotItems();
   saveBacklog();
   _setBacklogModified();
   showToast('success', 'AC actualizado');

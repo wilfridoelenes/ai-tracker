@@ -1,4 +1,4 @@
-// [PP] mod:47 · autor:Rune · 2026-07-09 01:20 UTC-6
+// [PP] mod:48 · autor:Rune · 2026-07-09 UTC-6
 // TKT-[pendiente-ID] (origen_disc, triggered_by TKT-202607-048): totalApply (botón "Guardar
 //   sesión") tenía el mismo gap que el badge del header ya corregido en mod:46 — no sumaba
 //   _patchItems.length. Fix: totalApply += _patchItems.length. blocked/disabled no se toca —
@@ -65,7 +65,7 @@
 // Dependencias: locus-backlog-core.js · locus-backlog-item.js · locus-backlog-sprints.js · locus-storage.js · locus-toast.js
 // Carga: después de locus-backlog-item.js
 
-import { _calcPriority, _getActiveSessionAiId, _undoSnapshot, loadBacklog, renderStats, updateBacklogBanner, getItems, _registerCoreCallback, itemKind as _itemKindFn, _syncParentRStatus } from './locus-backlog-core.js';
+import { _calcPriority, _getActiveSessionAiId, _undoSnapshotItems, loadBacklog, renderStats, updateBacklogBanner, getItems, _registerCoreCallback, itemKind as _itemKindFn, _syncParentRStatus } from './locus-backlog-core.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 import { _getSprintById } from './locus-backlog-sprints.js';
 import { _blogLog, getActiveProject, getActiveSprints, saveBacklog, _sprintDisplay } from './locus-storage.js'; // TKT5-[pendiente-ID]: _sprintDisplay para opción de sprint nuevo en DIFF
@@ -1199,7 +1199,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     // Si hubo retrocesos o descartes → persistir y re-renderizar
     const hadPending = diff.retroceso.length || diff.discarded.length;
     if (hadPending) {
-      _undoSnapshot();
+      _undoSnapshotItems();
       saveBacklog();
       _setBacklogModified();
     }
@@ -1450,7 +1450,7 @@ export function _confirmRetroceso(code, toStatus) {
       if (from === 'done') item.doneAt = null;
       _syncParentRStatus(code, toStatus); // INC-[pendiente-ID]: sync R padre tras retroceso manual
       _blogLog('retroceso', code, from + ' → ' + toStatus, 'backlog');
-      _undoSnapshot();
+      _undoSnapshotItems();
       saveBacklog();
       _setBacklogModified();
       showToast('info', '↓ ' + code + ' → ' + toStatus);
@@ -1519,7 +1519,7 @@ export function _confirmDiscard(code, reason, ref) {
       _syncParentRStatus(code, 'descartado'); // INC-[pendiente-ID]: sync R padre tras descarte manual
       _blogLog('descartado', code, finalReason || '', 'backlog');
       _checkAndOrphanParentR(code, Date.now()); // T-202606-017 AC-1
-      _undoSnapshot();
+      _undoSnapshotItems();
       saveBacklog();
       _setBacklogModified();
       showToast('info', '🗑 ' + code + ' descartado');
@@ -1556,7 +1556,7 @@ function _applyDiscardBatch(items) {
     applied++;
   });
   if (!applied) return;
-  _undoSnapshot();
+  _undoSnapshotItems();
   saveBacklog();
   _setBacklogModified();
   // item-exit-anim no aplica en batch — múltiples nodos simultáneos generan race condition con setTimeout

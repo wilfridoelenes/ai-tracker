@@ -1,4 +1,4 @@
-// [PP] mod:8 · autor:Rune · 2026-07-08 12:00 UTC-6
+// [PP] mod:9 · autor:Rune · 2026-07-09 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
 // Módulo: Item Editor — edición de ítems existentes del backlog
@@ -6,7 +6,7 @@
 import { _getActiveSprint } from './locus-backlog-sprints.js';
 import { _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
 
-import { _getNextItemCode, _undoSnapshot, renderStats, updateBacklogBanner, getItems, _registerCoreCallback } from './locus-backlog-core.js';
+import { _getNextItemCode, _undoSnapshotItems, renderStats, updateBacklogBanner, getItems, _registerCoreCallback } from './locus-backlog-core.js';
 
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 
@@ -490,7 +490,7 @@ export async function confirmItemEditor() {
       });
     }
     _blogLog('editado', finalCode, title, 'backlog');
-    _undoSnapshot();
+    _undoSnapshotItems();
     saveBacklog();
     showToast('success', '✓ ' + finalCode + ' actualizado');
   } else {
@@ -521,7 +521,7 @@ export async function confirmItemEditor() {
       schema_version: 2, // T-202606-113 AC-1
     });
     _blogLog('creado', finalCode, title, 'backlog');
-    _undoSnapshot();
+    _undoSnapshotItems();
     saveBacklog();
     showToast('success', '✓ ' + finalCode + ' creado');
   }
