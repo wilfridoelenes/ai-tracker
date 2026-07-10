@@ -1,4 +1,4 @@
-// [PP] mod:97 · autor:Rune · 2026-07-09 19:34 UTC-6
+// [PP] mod:98 · autor:Rune · 2026-07-09 20:15 UTC-6
 // TKT-consolidar-valid-statuses-gate (deuda registrada durante TKT1 · REQ type-safety DISC
 //   status — fix inline autorizado por el founder, sin REQ propio): _validStatuses estaba
 //   duplicada literalmente en parsePaste (~L813) y en _buildTgItemsFromParsed (~L1722) —
@@ -1810,7 +1810,9 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
           sprint:        it.sprint,
           ac:            Array.isArray(it.ac) ? it.ac : [],
           role:          _resolvedRole,
-          discardReason: it.reason || '',
+          // INC-[pendiente-ID]: discard_reason no se propagaba en flujo standalone —
+          // solo leía it.reason (legado). Alineado a _parseSingleItem.
+          discardReason: it.discard_reason || it.reason || '',
           discardRef:    it.ref    || '',
           blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : [],
           promovida_a:   it.promovida_a || null,
@@ -1842,7 +1844,9 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
       sprint:        it.sprint,
       ac:            Array.isArray(it.ac) ? it.ac : [],
       role:          it.role   || (ckpt.rol || ''),
-      discardReason: it.reason || '',
+      // INC-[pendiente-ID]: discard_reason no se propagaba en flujo standalone —
+      // solo leía it.reason (legado). Alineado a _parseSingleItem.
+      discardReason: it.discard_reason || it.reason || '',
       discardRef:    it.ref    || '',
       blockedBy:     Array.isArray(it.blockedBy) ? it.blockedBy : [],
       promovida_a:   it.promovida_a || null,
