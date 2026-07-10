@@ -1,4 +1,26 @@
-// [PP] mod:90 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:92 · autor:Rune · 2026-07-10 UTC-6
+// TKT3 (deuda detectada por Finn en QA de TKT1+TKT2, mismo INC-[pendiente-ID]): _undoSnapshotIncidents()
+//   en applyPatchesFromTG() se disparaba incondicionalmente aunque el batch de patches no
+//   trajera ningún ítem ITIL — limpiaba _redoStackIncidents como side-effect de un patch
+//   puramente Scrum (REQ/TKT). Fix: pre-scan de patches.some(getAnyItem+itemKind ITIL) antes
+//   del snapshot — mismo criterio de gating que mergeBacklogFromTG() ya usa vía
+//   _pendingNewIncidents.length. signature_change: false — applyPatchesFromTG() conserva firma
+//   y contrato público, solo cambia cuándo dispara el snapshot interno de Incidents.
+// INC-[pendiente-ID] (triggered_by REQ-202607-022 · TKT1+TKT2): fix de undo/redo para ITIL —
+//   mergeBacklogFromTG() y applyPatchesFromTG() solo llamaban _undoSnapshotItems(), nunca
+//   _undoSnapshotIncidents() (agregada en TKT-202607-091/092, core.js mod:110) — la creación de
+//   un INC/PRB/KE/CHG nuevo vía push directo sobre getIncidents() y el patch vía mutación
+//   in-place de `existing` nunca pasaban por _setIncidents(), el único mutador que dispara el
+//   snapshot de INCIDENTS. Resultado: un INC creado o patcheado por CHECKPOINT no quedaba en
+//   ningún stack de undo — Ctrl+Z no lo revertía. TKT1 (creación): ITIL nuevos se acumulan en
+//   _pendingNewIncidents durante el forEach y se aplican con un solo _setIncidents(array) al
+//   cerrar el batch — un snapshot por CHECKPOINT, no uno por ítem. TKT2 (patch): la mutación
+//   field-by-field de `existing` no puede diferirse sin reescribir cada rama de campo, así que
+//   se agregó _undoSnapshotIncidents() explícito al inicio de applyPatchesFromTG(), antes de
+//   cualquier mutación del batch — mismo criterio que _undoSnapshotItems() ya aplicaba ahí.
+//   _setIncidents() exportada desde core.js (antes interna) — signature_change: false, mismo
+//   contrato, solo se agregó `export`. Sin cambio en la rama ITEMS de ninguna de las dos
+//   funciones.
 // INC-[pendiente-ID] (triggered_by [tmp:req-separar-undo-inc]): fix de creación/lookup ITIL —
 //   un INC/PRB/KE/CHG nuevo emitido en CHECKPOINT nacía vía getItems().push(), nunca llegaba a
 //   INCIDENTS y por lo tanto nunca al upsert de tracker_incidents en saveBacklog() — se perdía
@@ -106,7 +128,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _skelHide, _undoSnapshotItems, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -1793,6 +1815,14 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // B-202605-007: snapshot antes de cualquier mutación — incluye cierre automático de P padre
   if (!_dryRun) _undoSnapshotItems();
 
+  // INC-[pendiente-ID] (fix undo/redo ITIL, TKT1 · triggered_by REQ-202607-022): ítems ITIL
+  // nuevos del batch se acumulan aquí en vez de getIncidents().push() directo — un solo
+  // _setIncidents(array) al cerrar el forEach dispara un único _undoSnapshotIncidents() para
+  // todo el batch, mismo criterio que _undoSnapshotItems() ya aplica a ITEMS. Push directo
+  // sobre la referencia de getIncidents() nunca pasaba por el mutador canónico — el INC nuevo
+  // no quedaba en ningún stack de undo.
+  const _pendingNewIncidents = [];
+
   tgItems.forEach(item => {
     if (!item.code) return;
     if (item._invalidType) { ignored.push({ code: item.code || '[sin-código]', reason: 'tipo-invalido', desc: item.title }); return; }
@@ -2157,8 +2187,12 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
         // lo excluía de ambos upserts (tracker_items por ser ITIL, tracker_incidents por no
         // estar en INCIDENTS) — se perdía silenciosamente. Mismo criterio de destino que
         // _setITEMS() ya aplica en core.js (BACKLOG_TYPES → ITEMS, INCIDENT_TYPES → INCIDENTS).
-        const _targetArr = INCIDENT_TYPES.includes(_incomingType) ? getIncidents() : getItems();
-        _targetArr.push({
+        // INC-[pendiente-ID] (fix undo/redo ITIL, TKT1): ITIL ya no hace push directo sobre
+        // getIncidents() — se acumula en _pendingNewIncidents y se aplica en un solo
+        // _setIncidents(array) al cerrar el forEach (ver flush post-loop). ITEMS conserva push
+        // directo — su snapshot único ya está cubierto por _undoSnapshotItems() de arriba.
+        const _isIncomingIncident = INCIDENT_TYPES.includes(_incomingType);
+        const _newItemObj = {
           id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
           code: item.code,
           type: _incomingType,
@@ -2229,7 +2263,12 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
           createdAt: nowTs,
           statusChangedAt: nowTs,
           doneAt: initialStatus === 'done' ? nowTs : null
-        });
+        };
+        if (_isIncomingIncident) {
+          _pendingNewIncidents.push(_newItemObj);
+        } else {
+          getItems().push(_newItemObj);
+        }
         _blogLog('ckpt-creado', item.code, item.title || '', 'backlog');
         changed = true;
 
@@ -2282,6 +2321,10 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       }
     }
   });
+
+  // INC-[pendiente-ID] (fix undo/redo ITIL, TKT1): flush único de ITIL nuevos del batch —
+  // _setIncidents() dispara _undoSnapshotIncidents() una sola vez aquí, no una vez por ítem.
+  if (!_dryRun && _pendingNewIncidents.length) _setIncidents(_pendingNewIncidents);
 
   if (!_dryRun && changed) {
     saveBacklog(); // B-202605-007: _undoSnapshotItems() movido antes del forEach
@@ -2453,6 +2496,23 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
   const ignoredPatches = [];
 
   _undoSnapshotItems();
+  // INC-[pendiente-ID] TKT2 (triggered_by REQ-202607-022): existing (getAnyItem) se muta
+  // field-by-field in-place más abajo — para INC/PRB/KE/CHG eso es mutación directa sobre
+  // INCIDENTS que nunca pasa por _setIncidents(). Enrutar por el setter después de mutar
+  // snapshotearía el estado ya mutado, no el previo — inútil para undo. El snapshot explícito
+  // aquí, antes de cualquier mutación del batch, es la única forma correcta dado que la lógica
+  // de aplicación de campos no puede diferirse sin reescribir cada rama de field.
+  // TKT3 (deuda detectada por Finn en QA de TKT2): el snapshot se disparaba incondicionalmente
+  // aunque el batch no trajera ningún patch ITIL — limpiaba _redoStackIncidents como side-effect
+  // de un patch puramente Scrum (REQ/TKT), sin relación con INCIDENTS. Pre-scan sobre
+  // getAnyItem(patch.code) antes de mutar nada — mismo momento que el snapshot de arriba, solo
+  // condicionado a que exista al menos un patch cuyo ítem existente sea ITIL. Mismo criterio de
+  // gating que mergeBacklogFromTG() ya aplica vía _pendingNewIncidents.length en el flush.
+  const _hasItilPatch = patches.some(p => {
+    const _existingForScan = getAnyItem(p.code);
+    return _existingForScan && INCIDENT_TYPES.includes(itemKind(_existingForScan));
+  });
+  if (_hasItilPatch) _undoSnapshotIncidents();
 
   patches.forEach(patch => {
     // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)

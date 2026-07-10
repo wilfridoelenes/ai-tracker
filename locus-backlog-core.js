@@ -1,4 +1,9 @@
-// [PP] mod:110 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:111 · autor:Rune · 2026-07-09 UTC-6
+// INC-[pendiente-ID] (triggered_by REQ-202607-022 · TKT1+TKT2, ver locus-backlog-item.js
+//   mod:91): _setIncidents() ahora exportada — antes interna, item.js necesita consumirla
+//   para enrutar creación de ITIL nueva por el mutador canónico en vez de push directo sobre
+//   getIncidents(). signature_change: false, mismo contrato (acepta ítem individual o array).
+//   Sin otro cambio en este archivo.
 // TKT-202607-091/092 (REQ-202607-022): undo/redo separado en dos mecanismos independientes
 // _undoSnapshotItems()/_undoSnapshotIncidents() con stacks propios (_undoStackItems/
 // _redoStackItems, _undoStackIncidents/_redoStackIncidents). undoBacklog()/redoBacklog()
@@ -364,7 +369,7 @@ function _setITEMS(arr) {
 // historico, nunca doble-agregado). Acepta un ítem individual o un array. Ejecuta
 // _undoSnapshotIncidents() antes de mutar — único call site interno que muta INCIDENTS
 // (invariant __BR-Execution §2 anti-pattern "llamado después de la mutación").
-function _setIncidents(itemOrArr) {
+export function _setIncidents(itemOrArr) {
   _undoSnapshotIncidents();
   const _incoming = Array.isArray(itemOrArr) ? itemOrArr : [itemOrArr];
   const _existing = INCIDENTS.filter(i => !_incoming.some(n => n.code && n.code === i.code));

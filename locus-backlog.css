@@ -1,4 +1,4 @@
-/* [PP] mod:85 · autor:Nova · 2026-07-09 UTC-6 */
+/* [PP] mod:86 · autor:Nova · 2026-07-09 UTC-6 */
 /* TKT-202607-051: removido bloque completo .bl-vc/.bl-vc-r*/.bl-vc-t* (~204 líneas,
    L5806-6009) — código muerto verificado: cero consumidor en locus-backlog-render.js
    (grep confirmado). El comentario previo "feature activa" (línea eliminada junto al
@@ -5793,6 +5793,39 @@
   color: var(--text-on-danger);
   padding: 0 4px;
   border-radius: var(--radius-xs);
+}
+
+/* TKT1 (REQ Countdown SLA — INC high en Q-INC): estado de riesgo del countdown —
+   texto pasa de --text2 neutro a color de severidad dentro de SLA_RIESGO_WINDOW_MS (6h).
+   No introduce token nuevo — reusa --c-severity-high-* (A-04 ux-ref). */
+.qinc-sla-countdown--riesgo {
+  color: var(--c-severity-high-text);
+  background: var(--c-severity-high-bg);
+  border: 1px solid var(--c-severity-high-border);
+  padding: 0 4px;
+  border-radius: var(--radius-xs);
+}
+
+/* TKT1 (REQ Countdown SLA — INC high en Q-INC): huérfanos — qinc-badge--sla-${slaPrio}
+   se referencia en locus-backlog-item.js:2729 desde antes de este TKT, sin definición CSS.
+   Sin estas 3 clases, todo badge de prioridad cae en el rojo genérico de .qinc-badge--sla
+   sin distinguir high/medium/low. */
+.qinc-badge--sla-high {
+  background: color-mix(in srgb, #e85555 12%, transparent);
+  color: #e85555;
+  border-color: color-mix(in srgb, #e85555 28%, transparent);
+}
+
+.qinc-badge--sla-medium {
+  background: color-mix(in srgb, #f59e0b 12%, transparent);
+  color: #f59e0b;
+  border-color: color-mix(in srgb, #f59e0b 28%, transparent);
+}
+
+.qinc-badge--sla-low {
+  background: color-mix(in srgb, var(--text2) 12%, transparent);
+  color: var(--text2);
+  border-color: color-mix(in srgb, var(--text2) 28%, transparent);
 }
 
 /* ── Desglose de stats — dentro de .qinc-stats-bar (ya existente) ── */
