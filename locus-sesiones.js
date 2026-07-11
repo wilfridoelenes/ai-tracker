@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:33 · autor:Rune · 2026-07-04 00:45 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:34 · autor:Rune · 2026-07-11 00:00 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1133,7 +1133,7 @@ function buildCard(ai) {
 
   // T-202605-057: Migración on* → addEventListener post-render
   // ── Textarea paste-ta ──
-  const taEl = el.querySelector(`#ta-${ai.id}`);
+  const taEl = el.querySelector(`#${CSS.escape('ta-' + ai.id)}`);
   if (taEl) {
     taEl.addEventListener('paste', () => {
       handlePaste(ai.id);
@@ -1144,7 +1144,7 @@ function buildCard(ai) {
     });
   }
   // ── Blind exhaust hora input ──
-  const bexhaustEl = el.querySelector(`#bexhaust-hora-${ai.id}`);
+  const bexhaustEl = el.querySelector(`#${CSS.escape('bexhaust-hora-' + ai.id)}`);
   if (bexhaustEl) {
     bexhaustEl.addEventListener('input', () => { blindExhaustHoraInput(ai.id); });
     bexhaustEl.addEventListener('keydown', (e) => { blindExhaustHoraKey(e, ai.id); });
