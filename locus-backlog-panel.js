@@ -1,4 +1,4 @@
-// [PP] mod:18 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:19 · autor:Rune · 2026-07-10 18:05 UTC-6
 // TKT-202607-045 (REQ-202607-015): chip 'Generado desde' (item.origin, ~línea 537) usa
 //   getAnyItem() en vez de getItems().find() — item.origin puede apuntar a un código ITIL.
 // locus-backlog-panel.js
@@ -6,7 +6,7 @@
 //   edición inline, timeline, notas, AC viewer, migración, template trigger.
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-toast.js
 
-import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshotItems, itemKind, renderStats, setItemStatus, undoBacklog, getItems, getAnyItem, _registerCoreCallback, _ECOSYSTEM_ROLES } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — chip 'Generado desde' puede resolver ITIL
+import { _getActiveSessionAiId, _openItemEditorSafe, _undoSnapshotItems, itemKind, renderStats, setItemStatus, undoBacklog, getItems, getAnyItem, INCIDENT_TYPES, _registerCoreCallback, _ECOSYSTEM_ROLES } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — chip 'Generado desde' puede resolver ITIL · [tmp:tkt4-status-guard]: INCIDENT_TYPES agregada — status cell readonly para ITIL
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import { _getActiveProjectFilter, getAI, getActiveSprints, _sprintDisplay, getAllSessions, getProjectById, save, saveImmediate } from './locus-storage.js';
 import { showToast, toast } from './locus-toast.js';
@@ -84,7 +84,8 @@ export function _buildItemMigratedBlock(item) {
 
 // T-202604-242: modal de selección de proyecto destino
 export function _openMigrateItem(code) {
-  const item = getItems().find(i => i.code === code);
+  // [inline_fix triggered_by tkt3-panel-lookup]: mismo patrón, getAnyItem.
+  const item = getAnyItem(code);
   if (!item) return;
 
   const currentProjId = _getActiveProjectFilter();
@@ -136,7 +137,7 @@ function _confirmMigrateItem(code) {
   if (!selected) return;
   const targetProjId = selected.value;
 
-  const item = getItems().find(i => i.code === code);
+  const item = getAnyItem(code);
   if (!item) return;
 
   const currentProjId = _getActiveProjectFilter();
@@ -253,7 +254,8 @@ let _backlogSelectedCode = null;
 let _itemPanelNotesTimer = null;
 
 export function openItemPanel(code) {
-  const item = getItems().find(i => i.code === code);
+  // [tmp:tkt3-panel-lookup]: getAnyItem — un INC/PRB/KE/CHG vive en INCIDENTS, no en ITEMS.
+  const item = getAnyItem(code);
   if (!item) return;
   _itemPanelCode = code;
 
@@ -377,8 +379,20 @@ function _renderItemPanel(item) {
   // INC-[pendiente-ID] AC1: DISC — Status es badge de solo lectura (discovery|promoted|descartado, nunca pendiente/done)
   // [tmp:tkt-panel-readonly-mode]: item.status done/descartado → status select también disabled (AC literal)
   const _discStatusLabels = { discovery: '◆ discovery', promoted: '➜ promoted', descartado: '🗑 descartado' };
+  // [tmp:tkt4-status-guard]: solo INC/PRB/KE — badge de solo lectura, mismo patrón que DISC.
+  // CHG es la excepción dentro de INCIDENT_TYPES: usa vocabulario Scrum real
+  // (pendiente/en-revision/done/descartado, __BR-Ecosystem §5) — sigue con el <select> normal.
+  const _ITIL_SCRUM_INCOMPATIBLE = ['INC', 'PRB', 'KE'];
+  const _incidentStatusLabels = {
+    detected: '● detected', assigned: '● assigned', in_progress: '● in_progress',
+    resolved: '✓ resolved', closed: '✓ closed',
+    escalated_to_prb: '➜ escalated_to_prb', escalated_to_chg: '➜ escalated_to_chg',
+    active: '● active', descartado: '🗑 descartado'
+  };
   const statusCellHtml = type === 'DISC'
     ? `<span class="idp-meta-value idp-meta-value--readonly">${_discStatusLabels[item.status] || esc(item.status || '—')}</span>`
+    : _ITIL_SCRUM_INCOMPATIBLE.includes(type)
+    ? `<span class="idp-meta-value idp-meta-value--readonly">${_incidentStatusLabels[item.incident_status || item.status] || esc(item.incident_status || item.status || '—')}</span>`
     : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="status"${_roDisabled}>
           <option value="pendiente"${item.status === 'pendiente' ? ' selected' : ''}>⏳ pendiente</option>
           <option value="done"${item.status === 'done' ? ' selected' : ''}>✓ done</option>
@@ -747,7 +761,7 @@ function _idpStartEditTitle(code) {
   const display = document.getElementById('idp-title-display');
   const input = document.getElementById('idp-title-input');
   if (!display || !input) return;
-  const item = getItems().find(i => i.code === code);
+  const item = getAnyItem(code);
   if (!item) return;
   input.value = item.title;
   display.classList.add("is-hidden");
@@ -760,7 +774,7 @@ function _idpSaveTitle(code) {
   const display = document.getElementById('idp-title-display');
   const input = document.getElementById('idp-title-input');
   if (!display || !input) return;
-  const item = getItems().find(i => i.code === code);
+  const item = getAnyItem(code);
   if (!item) return;
   const newTitle = input.value.trim();
   if (newTitle && newTitle !== item.title) {
@@ -791,7 +805,7 @@ function _idpCancelTitle() {
 
 // R-202604-015: actualizar campo genérico del ítem desde el panel
 function _idpSetField(code, field, value) {
-  const item = getItems().find(i => i.code === code);
+  const item = getAnyItem(code);
   if (!item) return;
   const prev = item[field];
   item[field] = value;
@@ -816,7 +830,8 @@ function _itemPanelNotesDirty() {
   _itemPanelNotesTimer = setTimeout(() => {
     const ta = document.getElementById('idp-notes-ta');
     if (!ta || !_itemPanelCode) return;
-    const item = getItems().find(i => i.code === _itemPanelCode);
+    // [tmp:tkt3-panel-lookup]: getAnyItem — antes se omitía silenciosamente para ITIL.
+    const item = getAnyItem(_itemPanelCode);
     if (!item) return;
     item.notes = ta.value;
     saveBacklog();
@@ -854,7 +869,8 @@ function _idpCopyCode(code) {
 // T-202604-307: marcar done desde botón rápido en panel
 function _idpMarkDone(code) {
   // T-202605-449: advertencia de bloqueadores delegada a setItemStatus — cubre todas las vías
-  const item = getItems().find(i => i.code === code);
+  // [tmp:tkt3-panel-lookup]: getAnyItem — antes el re-render post-click no ocurría para ITIL.
+  const item = getAnyItem(code);
   setItemStatus(code, 'done');
   // Re-renderizar panel para ocultar el botón
   if (item && _itemPanelCode === code) _renderItemPanel(item);
@@ -875,7 +891,7 @@ function _idpUnlinkSession(itemCode, sessId) {
 
 // T-202604-307: añadir nota manual al historial desde input
 function _idpAddNote(code, text) {
-  const item = getItems().find(i => i.code === code);
+  const item = getAnyItem(code);
   if (!item || !text) return;
   if (!item.history) item.history = [];
   item.history.push({ type: 'note', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { text } });
@@ -911,7 +927,7 @@ export function _acvToggle(panelId) {
 export function _acvStartEdit(rowId, code, acIdx) {
   const row = document.getElementById(rowId);
   if (!row) return;
-  const item = getItems().find(i => i.code === code);
+  const item = getAnyItem(code);
   if (!item || !item.ac) return;
   const current = item.ac[acIdx] || '';
   row.innerHTML = `
@@ -931,7 +947,7 @@ function _acvSaveEdit(rowId, code, acIdx) {
   if (!ta) return;
   const newText = ta.value.trim();
   if (!newText) return;
-  const item = getItems().find(i => i.code === code);
+  const item = getAnyItem(code);
   if (!item || !item.ac) return;
   item.ac[acIdx] = newText;
   _undoSnapshotItems();
@@ -942,7 +958,7 @@ function _acvSaveEdit(rowId, code, acIdx) {
 }
 
 export function _acvConfirm(code, panelId) {
-  const item = getItems().find(i => i.code === code);
+  const item = getAnyItem(code);
   if (!item) return;
   item.acReviewed = Date.now();
   saveBacklog();

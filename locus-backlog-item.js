@@ -1,4 +1,10 @@
-// [PP] mod:93 · autor:Rune · 2026-07-10 UTC-6
+// [PP] mod:95 · autor:Rune · 2026-07-10 UTC-6
+// TKT2 (REQ-202607-025): _newBacklogItem() aplicado a los 2 call sites de este archivo —
+//   _promoteConfirm() (~L1221) y _promoteTktToReqConfirm() (~L1305) — + import agregado.
+//   Reimplementado sobre el árbol de código real de esta entrega (mod:94, founder señaló
+//   que la base de la sesión anterior no era la vigente) — la entrega previa (mod:93→94
+//   sobre copia desactualizada) queda descartada sin efecto sobre este archivo.
+// [PP] mod:94 · autor:Rune · 2026-07-10 18:05 UTC-6
 // TKT1 (parent: [pendiente-ID], REQ Countdown SLA — INC high en Q-INC): buildQIncItem() —
 //   AC1/AC2: .qinc-sla-countdown recibe modificador --riesgo cuando slaClass es
 //   qinc-item--sla-riesgo (mismo umbral 6h, ya gateado a slaPrio 'high'). AC3 (badges
@@ -137,7 +143,7 @@
 // Responsabilidad: Renderizado de ítems individuales — Kanban, buildBacklogItem, promoción, merge desde TRACKER-GLOBAL.
 //   showMergeDiffPanel + modales de confirmación migrados a locus-backlog-merge.js (R-202605-033)
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
-import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass } from './locus-backlog-core.js'; // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
+import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem } from './locus-backlog-core.js'; // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
 import { _normalizeSprint, _VALID_INCIDENT_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
@@ -551,18 +557,34 @@ export function _attachBacklogDnD() {
 
 // T-202604-048: construir mini progress-bar de hijos para R
 // T-202604-187/188: _buildChildrenBlock con colapsable y progreso
+// [tmp:tkt1-children-block] (REQ · separación ITEM/INCIDENT): un ítem ITIL puede tener
+// status 'done' inválido para su tipo — el cierre real vive en incident_status. Usar este
+// helper en vez de comparar i.status directamente en cualquier lugar que cuente "hecho".
+function _isChildDone(item) {
+  if (item.status === 'done') return true;
+  if (item.incident_status === 'closed') return true; // INC/PRB
+  if (itemKind(item) === 'KE' && item.incident_status === 'resolved') return true;
+  return false;
+}
+
 function _buildChildrenBlock(rCode) {
   // B-202604-158: respetar filtros activos — solo mostrar hijos que pasan tipo y status
-  const allChildren = getItems().filter(i => i.parentId === rCode);
+  // [tmp:tkt1-children-block]: getIncidents() concatenado — un INC/PRB/KE/CHG con parentId
+  // apuntando a este REQ vivía en INCIDENTS y nunca aparecía en el bloque de hijos.
+  const allChildren = getItems().concat(getIncidents()).filter(i => i.parentId === rCode);
   if (!allChildren.length) return '';
   const children = allChildren.filter(i => {
     const t = itemKind(i);
     const typeOk = t ? _getActiveTypes().has(t) : true;
-    const statusOk = _getActiveStatuses().has(i.status);
+    // [tmp:tkt1-children-block]: activeStatuses solo tiene vocabulario Scrum
+    // (pendiente/en-revision por defecto) — un ítem ITIL nunca calza ahí aunque
+    // su .status mirror sea válido (detected/in_progress/closed/...). El toggle
+    // de status del filtro no aplica a ITIL — solo el toggle de tipo lo gatea.
+    const statusOk = (t && INCIDENT_TYPES.includes(t)) ? true : _getActiveStatuses().has(i.status);
     return typeOk && statusOk;
   });
   if (!children.length) return '';
-  const doneCount = children.filter(i => i.status === 'done').length;
+  const doneCount = children.filter(_isChildDone).length;
   const pct = Math.round((doneCount / children.length) * 100);
   const isCollapsed = _collapsedChildren.has(rCode);
 
@@ -1202,7 +1224,8 @@ async function _promoteConfirm(originCode) {
 
   // Crear ítem hijo con campos heredados + origin
   // R-202605-098: ítem hijo nace sin esfuerzo — el campo no se hereda del P original
-  getItems().push({
+  // TKT2 (REQ-202607-025): _newBacklogItem() reemplaza el push literal.
+  getItems().push(_newBacklogItem({
     id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2, 6),
     code: newCode,
     title: originItem.title,
@@ -1220,7 +1243,7 @@ async function _promoteConfirm(originCode) {
     createdAt: nowTs,
     statusChangedAt: nowTs,
     doneAt: null
-  });
+  }));
 
   // R-202605-098: P padre → descartado automático con discardReason trazable
   // No requiere acción manual del founder
@@ -1286,7 +1309,8 @@ async function _promoteTktToReqConfirm(originCode) {
 
   // AC-2: R hereda desc · area · sprint · tags del T origen
   // AC-4: origin del R apunta al T
-  getItems().push({
+  // TKT2 (REQ-202607-025): _newBacklogItem() reemplaza el push literal — 2do de 2 call sites.
+  getItems().push(_newBacklogItem({
     id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2, 6),
     code: newCode,
     title: originItem.title,
@@ -1305,7 +1329,7 @@ async function _promoteTktToReqConfirm(originCode) {
     createdAt: nowTs,
     statusChangedAt: nowTs,
     doneAt: null
-  });
+  }));
 
   // AC-3: T origen → descartado con reason:reemplazado + ref al R nuevo
   originItem.status = 'descartado';

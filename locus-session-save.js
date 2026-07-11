@@ -1,4 +1,4 @@
-// [PP] mod:59 · autor:Rune · 2026-07-08 15:00 UTC-6
+// [PP] mod:60 · autor:Rune · 2026-07-10 18:05 UTC-6
 // TKT-202607-077 (REQ-[pendiente-ID] · cadena de merge async, depends_on: TKT3):
 //   _mergeBacklogWithProject() pasa a async — await mergeBacklogFromTG(tgItems, sessId) en
 //   vez de asignación síncrona, propagando la cadena async iniciada aguas abajo (mismo patrón
@@ -52,7 +52,7 @@
 // (locus-storage.js) como fuente única de verdad de la clave de changelog.
 // Responsabilidad: changelog, buildBacklogMd, saveSession, _doSaveSession, _doApplyMergeAndFinish.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
-import { loadBacklog, renderStats, getItems, itemKind } from './locus-backlog-core.js';
+import { loadBacklog, renderStats, getItems, getAnyItem, itemKind } from './locus-backlog-core.js'; // [tmp:tkt7-session-save-preview]: getAnyItem agregada
 import { mergeBacklogFromTG, applyPatchesFromTG } from './locus-backlog-item.js'; // INC-[pendiente-ID]: applyPatchesFromTG restaurado — ver header mod:53
 import { showMergeDiffPanel } from './locus-backlog-merge.js';
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
@@ -337,7 +337,8 @@ function _showProjMismatchModal({ msg, onContinue }) {
 // Para cada patchItem, busca el ítem real en getItems() global y genera un objeto con los campos
 // del patch aplicados encima — permite que el panel muestre qué ítems serán actualizados
 // sin aplicar los cambios reales (eso ocurre en el callback vía applyPatchesFromTG).
-// Los patchItems que no tienen código real en getItems() se omiten silenciosamente.
+// [tmp:tkt7-session-save-preview]: getAnyItem — un patch sobre un INC existente se omitía
+// silenciosamente del preview (el patch real sí se aplicaba bien vía applyPatchesFromTG).
 function _buildPatchTgItems(patchItems, existingTgItems) {
   if (!patchItems || !patchItems.length) return existingTgItems || [];
   const base = (existingTgItems || []).slice();
@@ -346,7 +347,7 @@ function _buildPatchTgItems(patchItems, existingTgItems) {
   patchItems.forEach(patch => {
     if (!patch.code || /^\[/.test(patch.code)) return; // ignorar placeholders
     if (existingCodes.has(patch.code)) return; // ya está en tgItems — no duplicar
-    const real = getItems().find(x => x.code === patch.code);
+    const real = getAnyItem(patch.code);
     if (!real) return;
     // Construir representación visual: ítem real con campos del patch aplicados
     const synthetic = Object.assign({}, real);

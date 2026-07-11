@@ -1,4 +1,4 @@
-// [PP] mod:83 · autor:Rune · 2026-07-07 UTC-6
+// [PP] mod:84 · autor:Rune · 2026-07-10 17:15 UTC-6
 // TKT-202607-042 (REQ-202607-014): eliminación real de 'plan' en _SPT_SUBTAB_VALID/_SPT_PANELS,
 // del array literal de listeners de subtabs, de la referencia a panelPlan/sprint-panel-plan en
 // la rama sin-sprint-activo, y de comentarios de visibilidad. El header mod:81 abajo declaraba
@@ -338,7 +338,7 @@ function _renderSpsActivo() {
     spItems = getItems().filter(i => {
       const t = i.type || (i.code ? i.code.charAt(0) : '');
       return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-        (['REQ','TKT','INC'].includes(itemKind({type:t}))) &&
+        (['REQ','TKT'].includes(itemKind({type:t}))) &&
         i.status !== 'descartado';
     });
     total = spItems.length;
@@ -574,7 +574,7 @@ function _renderSpsProgramados() {
       const spItems = getItems().filter(function(i) {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
         return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-          (['REQ','TKT','INC'].includes(itemKind({type:t}))) &&
+          (['REQ','TKT'].includes(itemKind({type:t}))) &&
           i.status !== 'descartado';
       });
       total   = spItems.length;
@@ -825,7 +825,7 @@ function _renderSprintItems(sprint) {
   const spItems = getItems().filter(i => {
     const t = i.type || (i.code ? i.code.charAt(0) : '');
     return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-      (['REQ','TKT','INC'].includes(itemKind({type:t}))) &&
+      (['REQ','TKT'].includes(itemKind({type:t}))) &&
       i.status !== 'descartado';
   });
 
@@ -1150,7 +1150,7 @@ function _renderSprintSummaryTable(allSprints) {
       const spItems = getItems().filter(i => {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
         return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-          (['REQ','TKT','INC'].includes(itemKind({type:t}))) &&
+          (['REQ','TKT'].includes(itemKind({type:t}))) &&
           i.status !== 'descartado';
       });
       countR = spItems.filter(i => itemKind(i) === 'REQ').length;
@@ -1269,7 +1269,7 @@ function _updateSprintTabBadges() {
     const spItems = getItems().filter(i => {
       const t = i.type || (i.code ? i.code.charAt(0) : '');
       return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-        (['REQ','TKT','INC'].includes(itemKind({type:t}))) &&
+        (['REQ','TKT'].includes(itemKind({type:t}))) &&
         i.status !== 'descartado';
     });
     const activeCount = spItems.filter(i =>
@@ -1584,7 +1584,7 @@ async function _renderSpsCerrados() {
       const spItems = allItems.filter(i => {
         const t = i.type || (i.code ? i.code.charAt(0) : '');
         return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
-          (['REQ','TKT','INC'].includes(itemKind({type:t})));
+          (['REQ','TKT'].includes(itemKind({type:t})));
       });
       doneCnt       = spItems.filter(i => i.status === 'done' || i.status === 'historico').length;
       descartadoCnt = spItems.filter(i => i.status === 'descartado').length;

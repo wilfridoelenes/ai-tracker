@@ -1,10 +1,10 @@
-// [PP] mod:18 · autor:Rune · 2026-07-08 17:05 UTC-6
+// [PP] mod:19 · autor:Rune · 2026-07-10 18:05 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
 
 import { TAG_COLORS, openTagModal } from './locus-tags.js';
-import { getItems } from './locus-backlog-core.js';
+import { getItems, getAnyItem, getIncidents } from './locus-backlog-core.js'; // [tmp:tkt5-session-popup]: getAnyItem/getIncidents agregadas
 import { _sessRelTsShared } from './locus-sesiones-utils.js';
 // T-202606-166: _getActiveProjectFilter movida a locus-storage.js
 import { showToast, showToastInline, toast } from './locus-toast.js';
@@ -519,7 +519,8 @@ function renderBacklogRefs(s) {
   if (refs.length) {
     refs.forEach(code => {
       const type = _codeKind(code);
-      const item = typeof getItems() !== 'undefined' ? getItems().find(i => i.code === code) : null;
+      // [tmp:tkt5-session-popup]: getAnyItem — un INC referenciado mostraba '—' en vez del título real.
+      const item = typeof getItems() !== 'undefined' ? getAnyItem(code) : null;
       const desc = item ? item.title : '—';
       const status = item ? item.status : '';
       const statusLabel = {'pendiente':'Pendiente','done':'Hecho'}[status] || status;
@@ -586,7 +587,9 @@ function onPopupRefSearch() {
   if (!q) { sugEl.innerHTML = ''; return; }
 
   if (typeof getItems() === 'undefined') { sugEl.innerHTML = ''; return; }
-  const matches = getItems().filter(i =>
+  // [tmp:tkt5-session-popup]: getIncidents() concatenado — un INC no vinculado aún no
+  // aparecía en las sugerencias de búsqueda por código o título.
+  const matches = getItems().concat(getIncidents()).filter(i =>
     !refs.includes(i.code) && (
       i.code.toLowerCase().includes(q) ||
       i.title.toLowerCase().includes(q)
@@ -622,8 +625,10 @@ function linkBacklogItem(code) {
   if (s.trackerRefs.includes(code)) return;
   s.trackerRefs.push(code);
   // B-246 + B-245: registrar en history[] del ítem con aiId de la sesión
+  // [tmp:tkt5-session-popup]: getAnyItem — vincular una sesión a un INC no registraba
+  // history[] porque getItems().find nunca lo encontraba.
   if (typeof getItems() !== 'undefined') {
-    const item = getItems().find(i => i.code === code);
+    const item = getAnyItem(code);
     if (item) {
       if (!item.history) item.history = [];
       item.history.push({ type: 'session-linked', ts: Date.now(), aiId: popAIId, data: { sessId: popSessId } });
@@ -642,8 +647,9 @@ function unlinkBacklogItem(code) {
   if (!s) return;
   s.trackerRefs = (s.trackerRefs || []).filter(c => c !== code);
   // B-246 + B-245: registrar en history[] del ítem con aiId de la sesión
+  // [tmp:tkt5-session-popup]: getAnyItem — mismo fix que en linkBacklogItem.
   if (typeof getItems() !== 'undefined') {
-    const item = getItems().find(i => i.code === code);
+    const item = getAnyItem(code);
     if (item) {
       if (!item.history) item.history = [];
       item.history.push({ type: 'session-unlinked', ts: Date.now(), aiId: popAIId, data: { sessId: popSessId } });

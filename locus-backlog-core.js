@@ -1,4 +1,15 @@
-// [PP] mod:111 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:113 · autor:Rune · 2026-07-10 UTC-6
+// TKT2 (REQ-202607-025): _newBacklogItem(fields) — factory exportado, insertado entre
+//   _normalizeSprintFields() y _normalizeQincGate(). Reusa el mismo split ' · ' y el mismo
+//   contrato de alias getter/setter sprint↔sprint_id que _normalizeSprintFields — función
+//   pura, sin push ni I/O, sin cambio de comportamiento en las pasadas existentes. Reemplaza
+//   los push() literales de creación de ítem en locus-backlog-editor.js, locus-backlog-item.js
+//   (2 call sites) y locus-session-parse.js (2 ramas de CHECKPOINT ingestion) — ver esos
+//   archivos en la misma entrega. Nota: esta es la reimplementación sobre el árbol de código
+//   real (mod:112) — la entrega previa de este TKT (sesión anterior) se hizo sobre una copia
+//   desactualizada del archivo que el founder señaló como no vigente; esa entrega queda
+//   descartada, no se pisa aquí ningún trabajo intermedio de mod:93→112.
+// [PP] mod:112 · autor:Rune · 2026-07-10 18:05 UTC-6
 // INC-[pendiente-ID] (triggered_by REQ-202607-022 · TKT1+TKT2, ver locus-backlog-item.js
 //   mod:91): _setIncidents() ahora exportada — antes interna, item.js necesita consumirla
 //   para enrutar creación de ITIL nueva por el mutador canónico en vez de push directo sobre
@@ -1175,6 +1186,52 @@ function _normalizeSprintFields(items) {
   });
 }
 
+// TKT2 (REQ-202607-025): factory único de creación de ítem de backlog — garantiza
+// sprint_id/sprint_name poblados desde el nacimiento del ítem, sin depender de que
+// _normalizeScrumItems corra después (solo corre en carga inicial — TKT-202607-062).
+// Reusa el mismo split ' · ' y el mismo contrato de alias que _normalizeSprintFields():
+// item.sprint queda como getter/setter de sprint_id, nunca un campo plano paralelo.
+// Función pura — no hace push ni I/O. El caller sigue siendo responsable de
+// getItems().push(_newBacklogItem(fields)) / tgItems.push(_newBacklogItem(fields)).
+export function _newBacklogItem(fields) {
+  const item = { ...fields };
+
+  // Resolver sprint_id/sprint_name — mismo criterio que _normalizeSprintFields:
+  // (1) fields.sprint explícito tiene precedencia, (2) si no, heredar del parent
+  // vía parentId, (3) si tampoco hay parent, Q-Backlog (sprint_id/sprint_name '').
+  let raw = fields.sprint;
+  if ((raw === undefined || raw === null || raw === '') && fields.parentId) {
+    const _parent = getAnyItem(fields.parentId);
+    if (_parent) raw = _parent.sprint_id !== undefined ? _parent.sprint_id : _parent.sprint;
+  }
+
+  if (raw && typeof raw === 'string' && raw.trim() !== '') {
+    const idx = raw.indexOf(' · ');
+    if (idx !== -1) {
+      item.sprint_id   = raw.slice(0, idx);
+      item.sprint_name = raw.slice(idx + 3);
+    } else {
+      item.sprint_id   = raw;
+      item.sprint_name = '';
+    }
+  } else {
+    item.sprint_id   = '';
+    item.sprint_name = '';
+  }
+
+  // AC de contrato — mismo mecanismo que _normalizeSprintFields(): item.sprint es
+  // alias getter/setter de sprint_id, nunca un campo plano duplicado.
+  delete item.sprint;
+  Object.defineProperty(item, 'sprint', {
+    get() { return this.sprint_id; },
+    set(v) { this.sprint_id = v; },
+    configurable: true,
+    enumerable: true,
+  });
+
+  return item;
+}
+
 // TKT-202607-062: pasada — gate de asignación a Q-INC. Extraída sin cambio de
 // comportamiento (misma AC de contrato que _normalizeSprintFields).
 function _normalizeQincGate(items) {
@@ -1634,8 +1691,22 @@ export function _getActiveSessionAiId() {
 
 // T-202604-066: cambio de status inline
 export function setItemStatus(code, newStatus) {
-  const item = ITEMS.find(i => i.code === code);
+  // [tmp:tkt4-status-guard]: getAnyItem — antes ITEMS.find() excluía INC/PRB/KE/CHG,
+  // no-op silencioso sin feedback en los 6 call sites de UI que dependen de esta función.
+  const item = getAnyItem(code);
   if (!item || item.status === newStatus) return;
+
+  // [tmp:tkt4-status-guard]: solo INC/PRB/KE — su ciclo de vida (detected/assigned/
+  // in_progress/resolved/closed/active) vive en incident_status, incompatible con el
+  // vocabulario Scrum que el resto de esta función asume. CHG es la excepción dentro de
+  // INCIDENT_TYPES: usa exactamente pendiente/en-revision/done/descartado per
+  // __BR-Ecosystem §5 — debe seguir fluyendo por esta vía sin bloqueo.
+  const _ITIL_SCRUM_INCOMPATIBLE = ['INC', 'PRB', 'KE'];
+  if (_ITIL_SCRUM_INCOMPATIBLE.includes(itemKind(item))) {
+    showToast('info', 'Status ITIL se cambia desde Q-INC', 'No disponible en este panel.');
+    _resetStatusSelect(code, item.status);
+    return;
+  }
 
   // Descarte: siempre requiere confirmación
   if (newStatus === 'descartado') {
@@ -1777,7 +1848,10 @@ export function _syncParentRStatus(changedItemCode, newTStatus) {
 
 // T-202605-008: lógica de mutación extraída para ser llamada desde _gconfirmOpen y flujo directo
 function _applyStatusChange(code, newStatus, prevStatus) {
-  const item = ITEMS.find(i => i.code === code);
+  // [tmp:tkt4-status-guard]: getAnyItem — defensa en profundidad. setItemStatus() ya
+  // rechaza ítems ITIL antes de llegar aquí; este cambio evita que una llamada directa
+  // futura a _applyStatusChange (sin pasar por el guard) corrompa un INC/PRB/KE/CHG.
+  const item = getAnyItem(code);
   if (!item) return;
   item.status = newStatus;
   item.statusChangedAt = Date.now();
@@ -1847,7 +1921,9 @@ function _resetStatusSelect(code, currentStatus) {
 
 // T-A4b: inline confirm no-bloqueante para marcar done un ítem en sprint activo
 function _showInlineConfirmDone(code) {
-  const item = ITEMS.find(i => i.code === code);
+  // [inline_fix triggered_by tkt4-status-guard]: mismo patrón — segundo mecanismo de
+  // "marcar done" independiente del panel (fila de lista / sprint view).
+  const item = getAnyItem(code);
   if (!item) return;
 
   // Resetear select visualmente mientras el confirm está visible
@@ -1922,8 +1998,18 @@ function _flashStatusConfirmed(code) {
 // de un CHECKPOINT con role 'QA · Finn' puede pasar authorized=true. Cualquier llamada desde
 // UI (_showInlineConfirmDone, fallback sin DOM) nunca pasa authorized — sigue bloqueada.
 export function _applyDoneStatus(code, authorized) {
-  const item = ITEMS.find(i => i.code === code);
+  // [inline_fix triggered_by tkt4-status-guard]: getAnyItem — mismo patrón que setItemStatus.
+  const item = getAnyItem(code);
   if (!item || item.status === 'done') return;
+
+  // [inline_fix triggered_by tkt4-status-guard]: mismo guard que setItemStatus — INC/PRB/KE
+  // nunca llegan a 'done' por esta vía (vocabulario incompatible, __BR-Ecosystem §5). CHG sí
+  // puede — usa done como estado Scrum válido.
+  const _ITIL_SCRUM_INCOMPATIBLE_DONE = ['INC', 'PRB', 'KE'];
+  if (_ITIL_SCRUM_INCOMPATIBLE_DONE.includes(itemKind(item))) {
+    setTimeout(() => showToast('info', `${code} — status ITIL se cambia desde Q-INC`, 'No disponible desde esta acción.'), 0);
+    return;
+  }
 
   // Gate de tipo REQ — done solo es válido si llega autorizado (patch de Finn vía CHECKPOINT).
   // Cualquier otro origen (UI manual, drag&drop, IDP) sigue bloqueado sin excepción.
@@ -2402,7 +2488,9 @@ export const _ECOSYSTEM_ROLES = [
 
 // T-202604-245: cambio de rol inline desde meta-grid
 export function setItemRole(code, role) {
-  const item = ITEMS.find(i => i.code === code);
+  // [inline_fix triggered_by tkt4-status-guard]: getAnyItem — role aplica igual a ITIL,
+  // sin restricción de vocabulario (a diferencia de status). Solo el lookup estaba roto.
+  const item = getAnyItem(code);
   if (!item) return;
   item.role = role || '';
   _undoSnapshotItems();

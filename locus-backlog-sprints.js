@@ -1,4 +1,4 @@
-// [PP] mod:44 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:45 · autor:Rune · 2026-07-10 17:15 UTC-6
 // TKT7 (REQ-202607-015): revertido el bloque TKT5 — _scmExecuteClose ya no recolecta,
 //   persiste ni elimina incidentes elegibles al cerrar sprint. AC3 del REQ (verificado por
 //   Finn contra __BR-Core §6 y confirmado por el founder: Q-INC/ITEMS son poblaciones
@@ -527,13 +527,16 @@ export async function setSprintStatus(id, newStatus) {
 
 // [tmp:tkt-unify-sprint-inherit]: función compartida de herencia de sprint parent→hijo
 // (BR-Ecosystem §5) — antes duplicada entre setItemSprint() y el handler de type:patch
-// en locus-backlog-item.js. Única fuente de la regla: propagación incondicional a TKT+INC
+// en locus-backlog-item.js. Única fuente de la regla: propagación incondicional a TKT
 // cuyo sprint difiere del destino. No-op silencioso si el REQ no tiene hijos o ya coinciden.
+// [tmp:tkt2-sprint-inherit-cleanup] (REQ2 · limpieza vestigial): INC/PRB/KE/CHG nunca
+// heredan sprint — __BR-Ecosystem §4b, viven exclusivamente en Q-INC. 'INC' removido del
+// filtro de tipo; ver auditoria-separacion-item-incident.md, decisión founder: Opción A.
 export function _inheritSprintToChildren(reqItem, normalizedSprintId) {
   if (!reqItem || !reqItem.code || itemKind(reqItem) !== 'REQ') return;
   const _movedChildren = [];
   getItems().forEach(child => {
-    if (child.parentId === reqItem.code && child.code && ['TKT', 'INC'].includes(itemKind(child))) {
+    if (child.parentId === reqItem.code && child.code && ['TKT'].includes(itemKind(child))) {
       const prevChildSprint = child.sprint || '';
       if (prevChildSprint === normalizedSprintId) return; // ya está en el sprint destino — no-op
       child.sprint = normalizedSprintId;

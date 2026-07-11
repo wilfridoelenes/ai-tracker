@@ -1,3 +1,9 @@
+// [PP] mod:10 · autor:Rune · 2026-07-10 UTC-6
+// TKT2 (REQ-202607-025): getItems().push(_newBacklogItem({...})) reemplaza el push literal
+//   en la rama de creación manual del IDP (~L511) — import de _newBacklogItem agregado.
+//   Reimplementado sobre el árbol de código real (founder señaló que la base anterior no
+//   era la vigente) — la entrega previa de mod:9→9 sobre copia desactualizada queda
+//   descartada, sin efecto sobre este archivo.
 // [PP] mod:9 · autor:Rune · 2026-07-09 UTC-6
 // locus-backlog-editor.js
 // Última actualización: 2026-05-31 UTC-6
@@ -6,7 +12,7 @@
 import { _getActiveSprint } from './locus-backlog-sprints.js';
 import { _restoreModalFocus, _saveModalTrigger } from './locus-modals.js';
 
-import { _getNextItemCode, _undoSnapshotItems, renderStats, updateBacklogBanner, getItems, _registerCoreCallback } from './locus-backlog-core.js';
+import { _getNextItemCode, _undoSnapshotItems, renderStats, updateBacklogBanner, getItems, _registerCoreCallback, _newBacklogItem } from './locus-backlog-core.js'; // TKT2 (REQ-202607-025): _newBacklogItem agregado
 
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 
@@ -508,7 +514,9 @@ export async function confirmItemEditor() {
     const _newItemSprint = parentId
       ? ((getItems().find(p => p.code === parentId) || {}).sprint || _activeSprint())
       : (_sprintSelVal || _activeSprint() || 'icebox');
-    getItems().push({
+    // TKT2 (REQ-202607-025): _newBacklogItem() reemplaza el push literal — garantiza
+    // sprint_id/sprint_name poblados desde la creación, sin depender de normalización posterior.
+    getItems().push(_newBacklogItem({
       id, code: finalCode, title, priority, effort, area, ac,
       notes: notes || '',
       blockedBy: blockedBy,
@@ -519,7 +527,7 @@ export async function confirmItemEditor() {
       sprint: _newItemSprint,
       status: 'pendiente', version: 'futura',
       schema_version: 2, // T-202606-113 AC-1
-    });
+    }));
     _blogLog('creado', finalCode, title, 'backlog');
     _undoSnapshotItems();
     saveBacklog();

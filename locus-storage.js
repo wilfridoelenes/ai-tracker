@@ -1,4 +1,4 @@
-// [PP] mod:109 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:110 · autor:Rune · 2026-07-10 UTC-6
 // TKT-202607-INC-NAMING (INC-[pendiente-ID]): gate de exclusión del upsert (sla_priority) y
 //   _toIncidentRow() (sla_priority, comportamiento_actual, origin_module, derived_items)
 //   solo leían snake_case. Un INC recién parseado desde CHECKPOINT trae estos campos en
@@ -1420,6 +1420,11 @@ export async function saveBacklog() {
       effort:               it.effort != null ? Number(it.effort) : null,
       area:                 it.area             || null,
       sprint:               it.sprint           || null,
+      // TKT-202607-096 (REQ-202607-025): sprint_id/sprint_name como columnas propias —
+      // NUNCA usar `|| null`: '' es valor legítimo post-migración (ítem sin sprint,
+      // Q-Backlog) y debe preservarse tal cual, sin colapsar junto con undefined a null.
+      sprint_id:            it.sprint_id !== undefined ? it.sprint_id : null,
+      sprint_name:          it.sprint_name !== undefined ? it.sprint_name : null,
       role:                 it.role             || null,
       // DDL: columna 'parent' TEXT (no 'parent_id') · T-[pendiente-ID]: parentId es el único
       // campo canónico en JS — fallback it.parent eliminado (REQ-unify-parent TKT2)
@@ -1629,7 +1634,7 @@ export async function saveBacklog() {
 // puede agrupar TKT/INC historico bajo su REQ y el árbol renderiza plano.
 // contract: pure — no I/O, no mutación de argumento, mismo `row` → mismo `item` siempre.
 function _mapRowToItem(row) {
-  return {
+  const item = {
     code:                  row.code,
     type:                  row.type,
     title:                 row.title,
@@ -1688,6 +1693,17 @@ function _mapRowToItem(row) {
     })(),
     _updatedAtMs:          row.updated_at    // conservar timestamp para comparaciones futuras
   };
+  // TKT-202607-096 (REQ-202607-025): si row.sprint_id es string (incluye '' — Q-Backlog
+  // ya migrado, sin sprint asignado), pasar directo. Si es null/undefined (fila remota
+  // transicional, escrita antes de este fix) — NO asignar la clave: su ausencia (vs. un
+  // null explícito) es la señal que permite a _normalizeSprintFields()
+  // (locus-backlog-core.js) derivar desde el campo legacy row.sprint sin confundir
+  // "nunca migrado" (ausente) con "migrado, sin sprint" (string vacío).
+  if (typeof row.sprint_id === 'string') {
+    item.sprint_id = row.sprint_id;
+    item.sprint_name = typeof row.sprint_name === 'string' ? row.sprint_name : '';
+  }
+  return item;
 }
 
 // TKT-202607-044 (REQ-202607-015): _mapRowToIncident() — mapeo de columnas DDL de

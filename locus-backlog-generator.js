@@ -1,4 +1,4 @@
-// [PP] mod:42 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:43 · autor:Rune · 2026-07-10 18:05 UTC-6
 // TKT-202607-INC-NAMING (INC-[pendiente-ID]): _buildQIncMd() — columna SLA Priority del
 //   backlog exportado leía solo sla_priority (snake), sin fallback a slaPriority (camel).
 //   Un INC recién creado en la sesión activa (aún no hidratado desde Supabase) mostraba '—'
@@ -17,7 +17,7 @@
 // T-202606-166: _docPrefix movida a locus-storage.js — import actualizado.
 
 import { _blogLog, _docPrefix, _effectiveVersion, _sprintDisplay, _tplKey, getActiveProject, getActiveSprints, getActiveTracker, getState, getInfraVersionData, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js';
-import { getItems, itemKind, updateBacklogBanner } from './locus-backlog-core.js';
+import { getItems, getIncidents, itemKind, updateBacklogBanner } from './locus-backlog-core.js'; // [tmp:tkt2-qinc-count]: getIncidents agregada — _allItemsWithHistorico()
 import { showToast } from './locus-toast.js';
 import { incSlaPriority } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
 
@@ -52,7 +52,10 @@ function _isActiveQIncItem(i) {
 // loop cross-proyecto. El caller es responsable de haber llamado refreshHistoricoCache() antes
 // (ver entry points export* más abajo).
 function _allItemsWithHistorico() {
-  return getItems().concat(getHistoricoItemsSync());
+  // [tmp:tkt2-qinc-count]: getIncidents() agregado — INC/PRB/KE/CHG viven en INCIDENTS,
+  // nunca en ITEMS ni en historico (Q-INC es zona persistente, no migra — __BR-Ecosystem
+  // §4b). Sin esto, "## Estado actual" y "## Q-INC" del export siempre reportaban 0/vacío.
+  return getItems().concat(getHistoricoItemsSync()).concat(getIncidents());
 }
 
 // ── Versión canónica para naming de docs exportados ─────────────────────────
@@ -561,7 +564,8 @@ function _buildCurrentStateMd() {
   // visibilidad de zonas persistentes independiente de si tienen ítems.
   const qDiscCount = getItems().filter(_isActiveDisc).length;
   lines.push(`**Q-DISC:** ${qDiscCount} activas`);
-  const qIncCount = getItems().filter(_isActiveQIncItem).length;
+  // [tmp:tkt2-qinc-count]: getIncidents() — INC/PRB/KE/CHG viven en INCIDENTS, no en ITEMS.
+  const qIncCount = getIncidents().filter(_isActiveQIncItem).length;
   lines.push(`**Q-INC:** ${qIncCount} activos`);
 
   const allSessions = [];
@@ -739,7 +743,9 @@ export function _generateBacklogContent(newVersion, opts = {}) {
 
   let exportItems;
   if (opts.fullHistory) {
-    exportItems = getItems();
+    // [tmp:tkt2-qinc-count]: getIncidents() agregado — _buildQIncMd(exportItems) también
+    // se llama en esta rama, misma causa que _allItemsWithHistorico().
+    exportItems = getItems().concat(getIncidents());
   } else {
     const lastClosed = _lastClosedSprint();
     const lastClosedId = lastClosed ? lastClosed.id : null;

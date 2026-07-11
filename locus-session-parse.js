@@ -1,3 +1,12 @@
+// [PP] mod:99 · autor:Rune · 2026-07-10 UTC-6
+// TKT2 (REQ-202607-025): rama rol-no-autorizado-bloqueado (~L1801) y rama fallback general
+//   (~L1834) — ambas construían tgItems con `sprint: it.sprint` directo, sin pasar por
+//   _resolveSprintFields() (que sí usa la rama principal, ~L942). Corregido: ambas ramas
+//   ahora resuelven sprint_id/sprint_name con el mismo helper ya existente en este archivo
+//   — sin duplicar lógica, sin cambiar _resolveSprintFields(). _normalizeSprint() (legacy)
+//   sigue ejecutándose después sin cambio de comportamiento — sigue operando sobre
+//   item.sprint (aquí un campo plano, no el alias getter/setter de core.js, porque estos
+//   objetos no pasan por _newBacklogItem()).
 // [PP] mod:98 · autor:Rune · 2026-07-09 20:15 UTC-6
 // TKT-consolidar-valid-statuses-gate (deuda registrada durante TKT1 · REQ type-safety DISC
 //   status — fix inline autorizado por el founder, sin REQ propio): _validStatuses estaba
@@ -1798,6 +1807,8 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
           `Transición bloqueado en R ${it.code || '[pendiente-ID]'} rechazada: solo Finn puede mover un R a bloqueado. Rol resuelto: "${_resolvedRole}". Origen: ${ckpt.titulo || ''}`,
           'backlog'
         );
+        // TKT2 (REQ-202607-025): resolver sprint_id/sprint_name — mismo patrón que L942/953-955.
+        const _sprintF3a = _resolveSprintFields(it);
         tgItems.push({
           type:          it.type,
           code:          it.code,
@@ -1807,7 +1818,9 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
           _noStatus:     false,
           effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
           area:          it.area   || '',
-          sprint:        it.sprint,
+          sprint:        _sprintF3a.sprintAlias,
+          sprint_id:     _sprintF3a.sprint_id,
+          sprint_name:   _sprintF3a.sprint_name,
           ac:            Array.isArray(it.ac) ? it.ac : [],
           role:          _resolvedRole,
           // INC-[pendiente-ID]: discard_reason no se propagaba en flujo standalone —
@@ -1831,6 +1844,8 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
         continue;
       }
     }
+    // TKT2 (REQ-202607-025): resolver sprint_id/sprint_name — mismo patrón que L942/953-955.
+    const _sprintF3b = _resolveSprintFields(it);
     tgItems.push({
       type:          it.type,
       code:          it.code,
@@ -1841,7 +1856,9 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
       _noStatus:     false,
       effort:        it.effort != null ? (parseInt(it.effort) || null) : null,
       area:          it.area   || '',
-      sprint:        it.sprint,
+      sprint:        _sprintF3b.sprintAlias,
+      sprint_id:     _sprintF3b.sprint_id,
+      sprint_name:   _sprintF3b.sprint_name,
       ac:            Array.isArray(it.ac) ? it.ac : [],
       role:          it.role   || (ckpt.rol || ''),
       // INC-[pendiente-ID]: discard_reason no se propagaba en flujo standalone —

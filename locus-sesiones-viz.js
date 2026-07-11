@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:7 · autor:Rune · 2026-06-25 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:8 · autor:Rune · 2026-07-10 18:05 UTC-6
 // locus-sesiones-viz.js
 // INC-[pendiente-ID]: import de esc agregado (faltaba) — ReferenceError en openCorrectHora resuelto.
 //   esc local redundante en showCheckpointPanel eliminada — una sola fuente desde locus-ui-shell.js
@@ -9,7 +9,7 @@
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
 // Carga después de: locus-sesiones-stats.js · locus-sesiones-capture.js
 import { render } from './locus-sesiones.js';
-import { getItems } from './locus-backlog-core.js';
+import { getItems, getAnyItem } from './locus-backlog-core.js'; // [tmp:tkt6-sesiones-viz]: getAnyItem agregada
 import { switchSubTab, switchTab, esc } from './locus-ui-shell.js';
 
 import { fmt12, interpretHora } from './locus-session-hora.js';
@@ -164,7 +164,9 @@ function _showItemVizPanel(tgItems, sessId, projId, onConfirm) {
   _itemVizExcluded  = new Set();
 
   tgItems.forEach((item, idx) => {
-    const bk = (typeof getItems() !== 'undefined') ? getItems().find(i => i.code === item.code) || null : null;
+    // [tmp:tkt6-sesiones-viz]: getAnyItem — un patch sobre INC existente se clasificaba como
+    // "nuevo" en el preview visual (el merge real ya usa getAnyItem desde el fix previo).
+    const bk = (typeof getItems() !== 'undefined') ? getAnyItem(item.code) || null : null;
     if (bk) {
       const unchanged =
         bk.status === item.status &&
@@ -261,7 +263,8 @@ function _itemVizRender() {
 
   const _getBacklogItem = (code) => {
     if (typeof getItems() === 'undefined') return null;
-    return getItems().find(i => i.code === code) || null;
+    // [tmp:tkt6-sesiones-viz]: getAnyItem — mismo fix que arriba, para el resto del diff visual.
+    return getAnyItem(code) || null;
   };
 
   const _isSinCambio = (item) => {
