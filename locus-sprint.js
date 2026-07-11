@@ -1,3 +1,13 @@
+// [PP] mod:85 · autor:Rune · 2026-07-11 22:40 UTC-6
+// TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): comportamiento del
+// panel "+ Sprint nuevo" — _spnpAttachListeners/_spnpHandleTriggerClick/_renderSpnpPanel/
+// _spnpHandlePanelClick. Toggle + foco al abrir (panel.focus() con tabindex=-1), estado vacío
+// vía getPendingSprintProposal, Aprobar invoca _tryIngestSprintProposalFromParsed (misma función
+// que Step 0 del DIFF — no se duplica la lógica de ingesta, no se llama _applySprintInheritanceToItems
+// porque este panel no maneja items de un CHECKPOINT, solo creación de sprint), error inline con
+// .spnp-error si retorna falsy, Rechazar/éxito llaman clearPendingSprintProposal. Hook en _sptSwitch
+// al entrar a subtab 'sprints', idempotente (removeEventListener antes de addEventListener, mismo
+// patrón que _sppHandleClick/_spsActivoHandleClick ya usado en este archivo).
 // [PP] mod:84 · autor:Rune · 2026-07-10 17:15 UTC-6
 // TKT-202607-042 (REQ-202607-014): eliminación real de 'plan' en _SPT_SUBTAB_VALID/_SPT_PANELS,
 // del array literal de listeners de subtabs, de la referencia a panelPlan/sprint-panel-plan en
@@ -21,7 +31,8 @@ import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
 import { _gconfirmOpen } from './locus-modals.js';
-import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint, getHistoricoItemsSync, refreshHistoricoCache } from './locus-storage.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico — getHistoricoItemsSync/refreshHistoricoCache viven en locus-storage.js, no en locus-backlog-historico.js
+import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint, getHistoricoItemsSync, refreshHistoricoCache, getActiveProject, getPendingSprintProposal, clearPendingSprintProposal } from './locus-storage.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico — getHistoricoItemsSync/refreshHistoricoCache viven en locus-storage.js, no en locus-backlog-historico.js | TKT2 (REQ-[pendiente-ID]): getActiveProject/getPendingSprintProposal/clearPendingSprintProposal — panel "+ Sprint nuevo"
+import { _tryIngestSprintProposalFromParsed } from './locus-session-parse.js'; // TKT2 (REQ-[pendiente-ID]): misma función que usa Step 0 del DIFF al aprobar (ver locus-session-save.js _ckptMeta.onApproveProposal) — sin duplicar lógica de ingesta
 import { _getActiveProjectFilter } from './locus-proj-core.js';
 import { showToast, toast } from './locus-toast.js';
 
@@ -146,6 +157,114 @@ function _sptSwitch(subtab, triggerBtn, skipItemsRender = false) {
     _renderSpsPausados(); // T-202606-041
     // TKT-B1: _renderSpsHotfix eliminada — Q-INC reemplaza S-HOTFIX
     _renderSpsCerrados(); // T-202606-039
+    _spnpAttachListeners(); // TKT2 (REQ-[pendiente-ID]): panel "+ Sprint nuevo" — idempotente, mismo patrón remove/add que el resto del subtab
+  }
+}
+
+// ── Panel "+ Sprint nuevo" — TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab) ──
+// design_intent: sprint-nuevo-panel-v1
+
+function _spnpAttachListeners() {
+  const triggerBtn = document.getElementById('spnp-trigger-btn');
+  const panel = document.getElementById('spnp-panel');
+  if (!triggerBtn || !panel) return;
+  triggerBtn.removeEventListener('click', _spnpHandleTriggerClick);
+  triggerBtn.addEventListener('click', _spnpHandleTriggerClick);
+  panel.removeEventListener('click', _spnpHandlePanelClick);
+  panel.addEventListener('click', _spnpHandlePanelClick);
+}
+
+function _spnpHandleTriggerClick() {
+  const triggerBtn = document.getElementById('spnp-trigger-btn');
+  const panel = document.getElementById('spnp-panel');
+  if (!triggerBtn || !panel) return;
+  const isOpen = !panel.classList.contains('is-hidden');
+  if (isOpen) {
+    panel.classList.add('is-hidden');
+    triggerBtn.setAttribute('aria-expanded', 'false');
+    return;
+  }
+  _renderSpnpPanel();
+  panel.classList.remove('is-hidden');
+  triggerBtn.setAttribute('aria-expanded', 'true');
+  // AC — foco se mueve al primer campo del panel al abrir (D-02, __Role-Nova §Reglas de conversación 6)
+  panel.setAttribute('tabindex', '-1');
+  panel.focus();
+}
+
+function _renderSpnpPanel() {
+  const panel = document.getElementById('spnp-panel');
+  if (!panel) return;
+  const proj = getActiveProject();
+  const proposal = proj ? getPendingSprintProposal(proj.id) : null;
+
+  if (!proposal) {
+    panel.innerHTML = '<div class="spnp-empty-hint">No hay ninguna propuesta de sprint pendiente de aprobación.</div>';
+    return;
+  }
+
+  const id = proposal.id || '';
+  const outOfScope = (proposal.out_of_scope && proposal.out_of_scope.length)
+    ? '<div class="spnp-row"><span class="spnp-label">Out of scope</span><span class="spnp-value">' + proposal.out_of_scope.map(_escHtml).join(' · ') + '</span></div>'
+    : '';
+
+  panel.innerHTML =
+    '<div class="spnp-header">' +
+      '<span class="spnp-badge">Propuesta pendiente</span>' +
+      '<span class="spnp-title">' + _escHtml(id) + '</span>' +
+    '</div>' +
+    '<div class="spnp-fields">' +
+      '<div class="spnp-row"><span class="spnp-label">Sprint</span><span class="spnp-value">' + _escHtml(id) + '</span></div>' +
+      '<div class="spnp-row"><span class="spnp-label">Versión</span><span class="spnp-value">' + _escHtml(proposal.version_target) + '</span></div>' +
+      '<div class="spnp-row"><span class="spnp-label">Tipo</span><span class="spnp-value">' + _escHtml(proposal.release_type) + '</span></div>' +
+      '<div class="spnp-row"><span class="spnp-label">Scope</span><span class="spnp-value">' + _escHtml(proposal.scope) + '</span></div>' +
+      '<div class="spnp-row"><span class="spnp-label">Goal</span><span class="spnp-value">' + _escHtml(proposal.goal) + '</span></div>' +
+      outOfScope +
+    '</div>' +
+    '<div class="spnp-actions">' +
+      '<button class="btn-primary" type="button" data-spnp-action="aprobar">Aprobar apertura</button>' +
+      '<button class="sps-btn" type="button" data-spnp-action="rechazar">Rechazar</button>' +
+    '</div>';
+}
+
+function _spnpHandlePanelClick(e) {
+  const actionBtn = e.target.closest('[data-spnp-action]');
+  if (!actionBtn) return;
+  const action = actionBtn.dataset.spnpAction;
+  const proj = getActiveProject();
+  if (!proj) return;
+
+  if (action === 'rechazar') {
+    clearPendingSprintProposal(proj.id);
+    _renderSpnpPanel();
+    return;
+  }
+
+  if (action === 'aprobar') {
+    const proposal = getPendingSprintProposal(proj.id);
+    if (!proposal) { _renderSpnpPanel(); return; }
+    const existingErr = document.querySelector('#spnp-panel .spnp-error');
+    if (existingErr) existingErr.remove();
+
+    const created = _tryIngestSprintProposalFromParsed(proposal);
+    if (!created) {
+      const actions = document.querySelector('#spnp-panel .spnp-actions');
+      const errEl = document.createElement('div');
+      errEl.className = 'spnp-error';
+      errEl.textContent = 'No se pudo crear el sprint — revisa el ID o inténtalo de nuevo.';
+      if (actions) actions.insertAdjacentElement('afterend', errEl);
+      else document.getElementById('spnp-panel').appendChild(errEl);
+      return;
+    }
+
+    clearPendingSprintProposal(proj.id);
+    const panel = document.getElementById('spnp-panel');
+    const triggerBtn = document.getElementById('spnp-trigger-btn');
+    if (panel) panel.classList.add('is-hidden');
+    if (triggerBtn) triggerBtn.setAttribute('aria-expanded', 'false');
+    showToast('success', 'Sprint ' + (created.id || '') + ' creado.');
+    _renderSpsActivo();
+    _renderSpsProgramados();
   }
 }
 
