@@ -1,4 +1,4 @@
-// [PP] mod:19 · autor:Rune · 2026-07-10 18:05 UTC-6
+// [PP] mod:20 · autor:Rune · 2026-07-11 00:00 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-parse.js
@@ -29,6 +29,10 @@ import { parsePaste } from './locus-session-parse.js';
 // Variables de estado del popup — declaradas como módulo (eran globales en el stack monolítico)
 let popAIId = null;
 let popSessId = null;
+
+// INC-fix: getter de solo lectura — otros módulos (ej. locus-workers.js) necesitan saber
+// qué AI tiene el popup abierto sin acceso directo a la variable de módulo.
+export function getPopAIId() { return popAIId; }
 
 function toggleStatus(id) {
   const ai = getAI(id);

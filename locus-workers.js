@@ -1,4 +1,4 @@
-// [PP] mod:2 · autor:Rune · 2026-07-08 17:05 UTC-6
+// [PP] mod:3 · autor:Rune · 2026-07-11 00:00 UTC-6
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm.
 //   Define AVATAR_LOGOS (SVGs de avatares) — movido desde locus-checkpoint-stats.js.
@@ -13,6 +13,7 @@ import { showToast, toast } from './locus-toast.js';
 import { esc, switchTab } from './locus-ui-shell.js';
 
 import { _mutateSessions, getAI, getAISessions, save, saveImmediate, state } from './locus-storage.js';
+import { getPopAIId } from './locus-session-popup.js';
 
 // ── AVATAR_LOGOS — fuente de verdad de SVGs de avatares ──
 const AVATAR_LOGOS = {
@@ -73,7 +74,7 @@ export function confirmAvatarModal() {
   closeAvatarModal();
   save();
   window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-  if (popAIId === avatarModalAIId) {
+  if (getPopAIId() === avatarModalAIId) {
     const popAvatar = document.getElementById('pop-avatar');
     if (popAvatar) popAvatar.innerHTML = ai.avatar;
   }
