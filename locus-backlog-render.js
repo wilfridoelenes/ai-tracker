@@ -1,3 +1,8 @@
+// [PP] mod:83 · autor:Rune · 2026-07-10 20:05 UTC-6
+// TKT1 (REQ-202607-026 · AC3 — cierre de blocked_at, archivos corregido por Cael vía patch):
+//   _isBacklogScope (inline en _updateSubtabBadges) gana condición !i.draft — el badge del
+//   subtab Backlog (sprint activo/programado) deja de contar ítems con draft:true, consistente
+//   con renderSprintItems (locus-backlog-sprints.js) sobre la misma condición.
 // [PP] mod:82 · autor:Rune · 2026-07-09 UTC-6
 // TKT-202607-INC-NAMING (INC-[pendiente-ID]): 4 lecturas de i.slaPriority en renderQIncPanel
 //   y el badge Q-INC (líneas ~1045/1077/1117/1412) sin fallback a sla_priority (snake) —
@@ -1369,6 +1374,10 @@ export function _updateSubtabBadges() {
   if (badgeBacklog) {
     const _isBacklogScope = i => {
       if (i.status !== 'pendiente' && i.status !== 'en-revision') return false;
+      // TKT1 (REQ-202607-026 · AC3): items con draft:true excluidos del badge de sprint —
+      // consistente con renderSprintItems (locus-backlog-sprints.js), que aplica el mismo
+      // filtro sobre la lista real. Sin esto el badge y la lista mostrarían conteos distintos.
+      if (i.draft) return false;
       const t = itemKind(i);
       if (t !== 'REQ' && t !== 'TKT') return false;
       const sId = _extractSprintId(i.sprint);

@@ -1,3 +1,9 @@
+// [PP] mod:49 · autor:Rune · 2026-07-10 UTC-6
+// TKT-202607-103 (REQ-202607-026 · AC1-4): _draftPending retirado del cálculo de `blocked` en
+//   _mdiffUpdateConfirmBtn — Guardar ya no se deshabilita solo por draft:true. Banner de aval
+//   pendiente (_renderDraftPendingBanner) conservado sin cambio de condición de render, solo
+//   copy corregida (fix inline, mismo archivo): describía "Guardar deshabilitado", ya no es cierto
+//   tras este TKT — habría quedado como placeholder incorrecto en producción.
 // [PP] mod:48 · autor:Rune · 2026-07-09 UTC-6
 // TKT-[pendiente-ID] (origen_disc, triggered_by TKT-202607-048): totalApply (botón "Guardar
 //   sesión") tenía el mismo gap que el badge del header ya corregido en mod:46 — no sumaba
@@ -630,7 +636,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
           <span class="mdiff-step0-badge">Pendiente de aval Finn</span>
           <span class="mdiff-step0-title">Borrador de especificación</span>
         </div>
-        <p class="mdiff-icebox-gate-desc">Este CHECKPOINT tiene draft:true — Finn aún no avaló los AC. Guardar queda deshabilitado hasta que llegue el CHECKPOINT final de Finn con draft:false.</p>
+        <p class="mdiff-icebox-gate-desc">Este CHECKPOINT tiene draft:true — Finn aún no avaló los AC. Puedes guardar de todas formas: el ítem persiste con código real y queda invisible en Q-Backlog, sprint y Kanban hasta que Finn emita el aval (draft:false).</p>
       </div>`;
     body.insertAdjacentHTML('afterbegin', _bannerHtml);
   };
@@ -961,11 +967,13 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       }
     });
 
-    // TKT-202606-011 AC3: draftPending bloquea el guardado igual que los demás pendientes —
-    // el botón permanece deshabilitado mientras el CHECKPOINT no tenga aval de Finn (draft:false).
+    // TKT-202607-103 (REQ-202607-026 · AC1): _draftPending retirado de `blocked` — persistencia
+    // de código real en draft:true (mergeBacklogFromTG, TKT-202607-097) ya no depende de que
+    // Finn emita patch para que el founder pueda guardar. El banner de aval pendiente
+    // (_renderDraftPendingBanner) se conserva como indicador informativo — ver AC2.
     // INC-202607-002: sprintPendingItems excluido de `blocked` — Q-Backlog es destino válido
     // (BR-Ecosystem §5), no requiere confirmación para guardar.
-    const blocked = retroPendingItems.length > 0 || discardPendingItems.length > 0 || _draftPending;
+    const blocked = retroPendingItems.length > 0 || discardPendingItems.length > 0;
     applyBtn.disabled = blocked;
     applyBtn.classList.toggle('mdiff-apply-blocked', blocked);
     if (backlogBtn) {

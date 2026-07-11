@@ -1,3 +1,10 @@
+// [PP] mod:47 · autor:Rune · 2026-07-10 21:30 UTC-6
+// TKT1 (REQ-202607-026 · AC3 — cierre de blocked_at, archivos corregido por Cael vía patch):
+//   renderSprintItems() — spRs gana condición !i.draft. Un REQ con draft:true y sprint ya
+//   asignado (heredado del sprint que Cael declaró al especificar) no aparece en la lista del
+//   sprint activo hasta que Finn lo avale. no_incluye: no toca el contador "X/Y TKT" de
+//   _buildSprintItemRow (children de un REQ visible) — ese contador es progreso agregado, no
+//   una fila independiente por TKT; fuera del AC de este TKT.
 // [PP] mod:45 · autor:Rune · 2026-07-10 17:15 UTC-6
 // TKT7 (REQ-202607-015): revertido el bloque TKT5 — _scmExecuteClose ya no recolecta,
 //   persiste ni elimina incidentes elegibles al cerrar sprint. AC3 del REQ (verificado por
@@ -612,7 +619,7 @@ export function setItemSprint(code, sprintId) {
   // INC-[pendiente-ID]: renderBacklogList() directo reemplazado — era ciego a qué panel disparó
   // el cambio (Q-Backlog/Q-DISC quedaban con la vista vieja al reasignar sprint desde esas cards).
   // shell:backlog-render-dirty ya lo escuchan #backlog-list, qbacklog-panel-body y qdisc-panel-body
-  // (ver locus-backlog-render.js) — mismo patrón usado por setItemRole.
+  // (ver locus-backlog-render.js).
   window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
   renderStats();
 }
@@ -1641,10 +1648,14 @@ export function renderSprintItems() {
   const allItems = typeof getItems() !== 'undefined' ? getItems() : [];
 
   // Solo Rs del sprint activo (excluir descartados)
+  // TKT1 (REQ-202607-026 · AC3): !i.draft excluye REQs con draft:true — reciben código real
+  // y sprint asignado (heredado del sprint que Cael declaró en el REQ), pero no deben
+  // aparecer en la lista del sprint activo hasta que Finn los avale (draft:false).
   const spRs = allItems.filter(i =>
     i.sprint === sp.id &&
     i.type === 'REQ' &&
-    i.status !== 'descartado'
+    i.status !== 'descartado' &&
+    !i.draft
   );
 
   // Clasificar: bloqueado > done > pendiente

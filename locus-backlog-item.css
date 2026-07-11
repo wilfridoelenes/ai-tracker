@@ -1,4 +1,4 @@
-/* [PP] mod:45 · autor:Nova · 2026-07-08 UTC-6 */
+/* [PP] mod:46 · autor:Nova · 2026-07-10 UTC-6 */
 /* TKT-202607-027: removidas .kanban-card--dragging/.kanban-drop-indicator + @keyframes
    bl-drag-ripple (huérfano — sin consumidor en ningún archivo del scope, exclusivo del
    drag de Vista Kanban deprecada). No se toca .kb-selected (vive en locus-backlog.css). */
@@ -3042,11 +3042,6 @@ body {
 .rsb-sprint-create-btn:hover {
   background: color-mix(in srgb, var(--accent, var(--purple)) 18%, transparent);
   border-color: var(--accent, var(--purple));
-}
-
-  .rsb-sprint-create-btn:hover {
-    background: color-mix(in srgb, var(--accent) 18%, transparent);
-  }
 }
 
 /* top ítems */

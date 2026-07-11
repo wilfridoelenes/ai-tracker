@@ -1,3 +1,15 @@
+// [PP] mod:116 · autor:Rune · 2026-07-10 21:30 UTC-6
+// TKT0 (REQ-202607-026): _normalizeSprintFields() — alias getter/setter item.sprint↔
+//   sprint_id reaplicado incondicionalmente en cada pasada (antes solo se aplicaba si
+//   sprint_id era undefined, dejando item.sprint desconectado tras el primer backfill).
+//   El parseo/backfill de sprint_id/sprint_name sigue siendo idempotente. Sin cambio de
+//   firma — signature_change: false.
+// [PP] mod:114 · autor:Rune · 2026-07-10 20:05 UTC-6
+// TKT1 (REQ-202607-026 · AC2 — cierre de blocked_at, archivos corregido por Cael vía patch):
+//   _isQBacklogActive() gana condición !i.draft — ítems con draft:true (código real asignado,
+//   pendiente de aval Finn) quedan fuera de la vista activa de Q-Backlog (renderQBacklogPanel,
+//   badge tpl-badge-qbacklog). _isQBacklog (semántica amplia) no se toca — sigue siendo el
+//   universo total usado por otros call sites (ej. mergeBacklogFromTG para decidir zona).
 // [PP] mod:113 · autor:Rune · 2026-07-10 UTC-6
 // TKT2 (REQ-202607-025): _newBacklogItem(fields) — factory exportado, insertado entre
 //   _normalizeSprintFields() y _normalizeQincGate(). Reusa el mismo split ' · ' y el mismo
@@ -1141,48 +1153,56 @@ function _normalizeCommonFields(item) {
 // TKT-202607-062: pasada — migración sprint → sprint_id + sprint_name. Idempotente.
 // Extraída sin cambio de comportamiento — se ejecuta igual sobre ITEMS e INCIDENTS
 // (AC de contrato: el split no condiciona esta pasada por tipo de ítem).
+// TKT0 (REQ-202607-026): el alias getter/setter de item.sprint ahora se reaplica en
+// CADA pasada, incondicionalmente — ya no depende de que sprint_id sea undefined.
+// Antes, una vez que sprint_id quedaba poblado (ej. tras el backfill de TKT1 en
+// Supabase), el gate de idempotencia impedía volver a ejecutar Object.defineProperty:
+// item.sprint quedaba como propiedad plana desconectada de sprint_id para siempre, y
+// cualquier call site que hiciera item.sprint = X (locus-backlog-editor.js,
+// locus-backlog-render.js, locus-backlog-sprints.js, locus-backlog-merge.js) dejaba de
+// persistirse — regresión silenciosa en el flujo de asignación de sprint. El parseo y
+// backfill de sprint_id/sprint_name sigue siendo idempotente (corre solo si sprint_id
+// === undefined); solo el paso de defineProperty se volvió incondicional.
 function _normalizeSprintFields(items) {
   // T-202606-084: migración sprint → sprint_id + sprint_name
   // Separa el campo sprint compuesto ('PP-S-01 · Nombre') en dos campos atómicos.
-  // Idempotente: ítems ya migrados (sprint_id presente) no se retocan.
+  // Idempotente: ítems ya migrados (sprint_id presente) no repiten el parseo/backfill.
   // item.sprint se conserva como alias de solo lectura = sprint_id (AC-4).
   items.forEach(item => {
-    // Idempotente: si sprint_id ya existe, skip.
-    if (item.sprint_id !== undefined) return;
+    const alreadyMigrated = item.sprint_id !== undefined;
 
-    const raw = item.sprint; // puede ser string, undefined, null
-    if (raw && typeof raw === 'string' && raw.trim() !== '') {
-      const idx = raw.indexOf(' · ');
-      if (idx !== -1) {
-        item.sprint_id   = raw.slice(0, idx);
-        item.sprint_name = raw.slice(idx + 3); // ' · ' es 3 chars
+    if (!alreadyMigrated) {
+      const raw = item.sprint; // puede ser string, undefined, null
+      if (raw && typeof raw === 'string' && raw.trim() !== '') {
+        const idx = raw.indexOf(' · ');
+        if (idx !== -1) {
+          item.sprint_id   = raw.slice(0, idx);
+          item.sprint_name = raw.slice(idx + 3); // ' · ' es 3 chars
+        } else {
+          item.sprint_id   = raw;
+          item.sprint_name = '';
+        }
       } else {
-        item.sprint_id   = raw;
+        // Sin sprint (icebox canónico = campo ausente o vacío)
+        item.sprint_id   = '';
         item.sprint_name = '';
       }
-    } else {
-      // Sin sprint (icebox canónico = campo ausente o vacío)
-      item.sprint_id   = '';
-      item.sprint_name = '';
+
+      _blogLog('migrate', item.code || '(sin código)',
+        `sprint → sprint_id:"${item.sprint_id}" sprint_name:"${item.sprint_name}"`,
+        'backlog');
     }
 
-    // AC-4: item.sprint es alias de solo lectura de sprint_id.
-    // Se redefine como getter para que cualquier lectura de item.sprint
-    // devuelva siempre el valor actual de sprint_id sin duplicar el dato.
-    const _id = item.sprint_id;
+    // AC-4 + TKT0: item.sprint es alias getter/setter de sprint_id — reaplicado en
+    // cada pasada, ya migrado el ítem o no, para que cualquier escritura posterior
+    // vía item.sprint = X (aunque venga de un call site que no conoce sprint_id/
+    // sprint_name) siga sincronizando sprint_id correctamente.
     Object.defineProperty(item, 'sprint', {
       get() { return this.sprint_id; },
       set(v) { this.sprint_id = v; },
       configurable: true,
       enumerable: true,
     });
-    // Sincronizar sprint_id con el valor derivado (el defineProperty ya captó _id,
-    // pero sprint_id puede haber sido reescrito — reasignar para consistencia).
-    item.sprint_id = _id;
-
-    _blogLog('migrate', item.code || '(sin código)',
-      `sprint → sprint_id:"${item.sprint_id}" sprint_name:"${item.sprint_name}"`,
-      'backlog');
   });
 }
 
@@ -2089,8 +2109,13 @@ export function _isQDisc(i) {
 // por _renderZonePanel (isZone) y _updateSubtabBadges en locus-backlog-render.js —
 // _isQBacklog/_isQDisc originales no se tocan, sus demás call sites (vista Lista)
 // mantienen su semántica amplia actual.
+// TKT1 (REQ-202607-026 · AC2): items con draft:true excluidos de la vista activa de
+// Q-Backlog — reciben código real y persisten (locus-backlog-item.js mergeBacklogFromTG),
+// pero no deben aparecer en renderQBacklogPanel ni en el badge tpl-badge-qbacklog hasta
+// que Finn los avale (draft:false). _isQBacklog (semántica amplia, sin tocar) sigue
+// incluyéndolos — solo la vista "activa" los excluye, por diseño de este AC.
 export function _isQBacklogActive(i) {
-  return _isQBacklog(i) && i.status !== 'descartado' && i.status !== 'historico';
+  return _isQBacklog(i) && !i.draft && i.status !== 'descartado' && i.status !== 'historico';
 }
 export function _isQDiscActive(i) {
   return _isQDisc(i) && i.status !== 'descartado' && i.status !== 'promoted' && i.status !== 'historico';
@@ -2485,22 +2510,6 @@ export const _ECOSYSTEM_ROLES = [
   'PO · Cael', 'FS · Rune', 'UX · Nova', 'QA · Finn',
   'CC · Flux', 'ET · Eden', 'GC · Sage', 'DA · Iris'
 ];
-
-// T-202604-245: cambio de rol inline desde meta-grid
-export function setItemRole(code, role) {
-  // [inline_fix triggered_by tkt4-status-guard]: getAnyItem — role aplica igual a ITIL,
-  // sin restricción de vocabulario (a diferencia de status). Solo el lookup estaba roto.
-  const item = getAnyItem(code);
-  if (!item) return;
-  item.role = role || '';
-  _undoSnapshotItems();
-  _blogLog('rol →', code, role || '(vacío)', 'backlog');
-  saveBacklog();
-  window.dispatchEvent(new CustomEvent('shell:backlog-modified'));
-  window.dispatchEvent(new CustomEvent('shell:backlog-render-dirty'));
-  renderStats();
-  showToast('success', role ? `${code} → ${role}` : `${code} rol limpiado`);
-}
 
 // T-202604-357: toggle filtro por prioridad — acumulable, combina con otros filtros
 function togglePriorityFilter(p) {

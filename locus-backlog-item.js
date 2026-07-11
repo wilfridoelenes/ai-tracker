@@ -1,3 +1,14 @@
+// [PP] mod:98 · autor:Rune · 2026-07-10 21:10 UTC-6
+// TKT2 (REQ-202607-026 · depends_on: TKT1 done): applyPatchesFromTG() — _PATCH_ALLOWED_FIELDS
+//   gana draft + verified_by. Fase 5 de Finn ahora puede avalar con type:patch estándar sobre
+//   el código real ya asignado por Cael, sin reemitir el ítem completo. Ambos caen en el bloque
+//   genérico de aplicación (sin normalización propia) — draft:false pasa el guard porque
+//   `incoming !== undefined && incoming !== null` no excluye false. Fix acompañante: el registro
+//   de history (`ch.to || null`) colapsaba false a null — inofensivo hasta ahora porque ningún
+//   campo patcheable era boolean; corregido a comparación explícita contra undefined antes de
+//   que draft lo expusiera como bug real. no_incluye: no valida verified_by === 'QA · Finn' —
+//   acepta cualquier string. No agrega wiring de re-render forzado de Q-Backlog/sprint —
+//   ambas vistas ya leen item.draft en vivo (TKT1), "siguiente lectura" no requiere push activo.
 // [PP] mod:96 · autor:Rune · 2026-07-10 19:35 UTC-6
 // TKT1 (REQ-202607-026 · AC1, blocked_at AC2/AC3 — asignación de código real + invisibilidad
 //   en vistas activas al ingestar REQ/TKT con draft:true): _newItemObj en mergeBacklogFromTG()
@@ -2531,7 +2542,7 @@ export function _checkAndOrphanParentR(childCode, nowTs) {
 // AC-8: mezcla ítems + patches en mismo ---getItems()--- → parser separa por type
 // AC-9: panel diff muestra solo campos del patch (changes array)
 // AC-11: sin regresión en mergeBacklogFromTG
-const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'incidentStatus', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId', 'promovida_a', 'origenDisc', 'discard_reason']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable · T-202605-137: promovida_a + origenDisc patcheables · T-202606-025: discard_reason patcheable · INC-[pendiente-ID]: incidentStatus patcheable — antes no había campo patcheable que reparara status corrupto en ítems ITIL ya persistidos
+const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'incidentStatus', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId', 'promovida_a', 'origenDisc', 'discard_reason', 'draft', 'verified_by']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable · T-202605-137: promovida_a + origenDisc patcheables · T-202606-025: discard_reason patcheable · INC-[pendiente-ID]: incidentStatus patcheable — antes no había campo patcheable que reparara status corrupto en ítems ITIL ya persistidos · TKT2 (REQ-202607-026): draft + verified_by patcheables — Fase 5 de Finn avala vía type:patch sobre el código ya asignado por Cael (draft:true en creación), nunca reemitiendo el ítem completo
 const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version']);
 
 export function applyPatchesFromTG(patches, sessionId, opts) {
@@ -2707,7 +2718,9 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
         return;
       }
 
-      // Resto de campos patcheables: title, priority, effort, area, role, origenDisc
+      // Resto de campos patcheables: title, priority, effort, area, role, origenDisc, draft,
+      // verified_by (TKT2 REQ-202607-026 — ninguno de los dos requiere normalización propia;
+      // incoming:false para draft pasa el guard porque solo excluye undefined/null, no false)
       // T-202605-137: promovida_a — campo especial: al patchear en una P, escribir origenDisc en el destino
       // T-202606-019: si promovida_a es placeholder → intentar resolver contra getItems() (ítems recién ingresados)
       if (field === 'promovida_a') {
@@ -2744,6 +2757,22 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
               destItem.origenDisc = existing.code;
               _blogLog('origen-disc-escrito', existing.code, existing.code + ' → origenDisc en ' + resolvedIncoming, 'backlog');
             }
+          }
+        }
+        return;
+      }
+      // TKT-202607-100 (REQ-202607-027 · TKT4 · AC1): draft — al transicionar de true a false,
+      // marcar statusChangedAt. Sin esto, _zoneStaleness (locus-backlog-zone-engine.js) sigue
+      // usando createdAt como referencia — un ítem que pasó 20 días en draft:true dispararía
+      // alerta de estancamiento inmediata al volverse visible, en vez de arrancar su reloj en
+      // el momento del aval. Transición false→true (no ocurre en el flujo actual, Fase 5 solo
+      // avanza en un sentido) no toca statusChangedAt — fuera de scope de este AC.
+      if (field === 'draft') {
+        if (incoming !== undefined && incoming !== null && incoming !== current) {
+          changes.push({ field, from: current !== undefined ? current : '—', to: incoming });
+          existing.draft = incoming;
+          if (current === true && incoming === false) {
+            existing.statusChangedAt = nowTs;
           }
         }
         return;
@@ -2787,7 +2816,11 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
           ts: nowTs,
           origin: 'patch',
           sessionId: sessionId || null,
-          data: { field: ch.field, from: ch.from !== '—' ? ch.from : null, to: ch.to || null }
+          // TKT2 (REQ-202607-026): `ch.to || null` colapsaba false a null — inofensivo mientras
+          // ningún campo patcheable era boolean, pero draft (agregado en este TKT) sí lo es.
+          // Un patch draft:false habría quedado registrado en history como to:null, indistinguible
+          // de "campo vaciado". Corregido a comparación explícita contra undefined.
+          data: { field: ch.field, from: ch.from !== '—' ? ch.from : null, to: ch.to !== undefined ? ch.to : null }
         });
       });
       if (sessionId && existing.sessionId !== sessionId) existing.sessionId = sessionId;

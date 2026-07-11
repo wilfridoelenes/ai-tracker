@@ -1,3 +1,27 @@
+// [PP] mod:114 · autor:Rune · 2026-07-11 00:00 UTC-6
+// TKT3 (REQ-202607-026): saveHistoricoItems() — columna `sprint` legacy eliminada del
+//   mapeo (mismo criterio que TKT2), sprint_id/sprint_name agregadas por primera vez —
+//   estaban ausentes desde TKT-202607-096, ítems archivados a histórico perdían ambos
+//   campos por completo. 4 AC verificados con harness aislado (happy path, sprint_id='',
+//   sprint_id undefined, independencia entre filas de un batch mixto). Sin cambio de
+//   firma. No toca _toItemRow/_mapRowToItem (TKT2) ni _computeSprintBackfill (TKT1).
+// [PP] mod:112 · autor:Rune · 2026-07-10 22:05 UTC-6
+// TKT2 (REQ-202607-026): dual-write de columna `sprint` (texto compuesto) eliminado en
+//   _toItemRow() (outgoing) y _mapRowToItem() (incoming) — sprint_id/sprint_name son la
+//   única fuente persistida desde este TKT. Comentario obsoleto en _mapRowToItem sobre
+//   "señal ausente/presente" actualizado — ya no aplica tras TKT0 (alias incondicional en
+//   _normalizeSprintFields). DDL requerido: sí — ALTER TABLE tracker_items DROP COLUMN
+//   sprint; — no ejecutado desde el TKT, deuda con escalate_to: Vera. No_incluye (explícito
+//   en el TKT): no migra el dual-write paralelo de saveHistoricoItems() (línea ~1921) —
+//   mismo patrón que TKT2+TKT5 de REQ-contract-rename; queda señalado como gap, no como
+//   TKT nuevo emitido por mí. No toca _computeSprintBackfill()/backfillSprintFields()
+//   (TKT1) — siguen leyendo row.sprint legacy para el backfill, válido mientras la columna
+//   exista (DDL no ejecutado). Sin cambio de firma en ninguna función.
+// [PP] mod:111 · autor:Rune · 2026-07-10 21:35 UTC-6
+// TKT1 (REQ-202607-026): backfillSprintFields() + _computeSprintBackfill() agregadas —
+//   migración one-off de sprint_id/sprint_name contra tracker_items en Supabase, previa
+//   a que TKT2 elimine la columna sprint legacy. Sin cambio en _toItemRow/_mapRowToItem
+//   en este TKT — eso es scope de TKT2. Nuevo — sin signature_change (función nueva).
 // [PP] mod:110 · autor:Rune · 2026-07-10 UTC-6
 // TKT-202607-INC-NAMING (INC-[pendiente-ID]): gate de exclusión del upsert (sla_priority) y
 //   _toIncidentRow() (sla_priority, comportamiento_actual, origin_module, derived_items)
@@ -1419,7 +1443,10 @@ export async function saveBacklog() {
       priority:             it.priority         || null,
       effort:               it.effort != null ? Number(it.effort) : null,
       area:                 it.area             || null,
-      sprint:               it.sprint           || null,
+      // TKT2 (REQ-202607-026): columna `sprint` (texto compuesto) eliminada del outgoing —
+      // sprint_id/sprint_name son la única fuente persistida desde este TKT. DDL requerido:
+      // sí — ALTER TABLE tracker_items DROP COLUMN sprint; — no ejecutado desde el TKT,
+      // deuda registrada con escalate_to: Vera (mismo patrón que TKT2/contract-rename).
       // TKT-202607-096 (REQ-202607-025): sprint_id/sprint_name como columnas propias —
       // NUNCA usar `|| null`: '' es valor legítimo post-migración (ítem sin sprint,
       // Q-Backlog) y debe preservarse tal cual, sin colapsar junto con undefined a null.
@@ -1624,6 +1651,106 @@ export async function saveBacklog() {
   }
 }
 
+// TKT1 (REQ-202607-026): backfillSprintFields() — migración one-off contra Supabase de
+// sprint_id/sprint_name para filas de tracker_items que aún no las tienen pobladas. No
+// reemplaza _normalizeSprintFields() (locus-backlog-core.js) — esa función normaliza en
+// memoria tras cada carga; esta corre en batch directo contra la base, para dejar
+// sprint_id/sprint_name poblados en la fuente de verdad antes de que TKT2 elimine la
+// columna sprint legacy. Idempotente: filas con sprint_id ya poblado (cualquier valor,
+// incluyendo '') no se tocan.
+
+// _computeSprintBackfill(row) — función pura, sin I/O, testeable en aislamiento.
+// AC (TKT1):
+//  - sprint='X · Y', sprint_id=null → {sprint_id:'X', sprint_name:'Y'}
+//  - sprint='X' (sin ' · '), sprint_id=null → {sprint_id:'X', sprint_name:''}
+//  - sprint null/vacío, sprint_id=null → {sprint_id:'', sprint_name:''}
+//  - sprint==='icebox' (valor Gen1), sprint_id=null → {sprint_id:'', sprint_name:''} —
+//    tratado como sin sprint, nunca como sprint_id literal 'icebox'. Divergencia
+//    intencional respecto a _normalizeSprintFields() (locus-backlog-core.js), que no
+//    distingue 'icebox' de cualquier otro string — señalado en QA de TKT0 (Finn):
+//    ese normalizador opera solo sobre datos ya vigentes en memoria, nunca sobre el
+//    histórico Gen1 crudo que este backfill sí puede encontrar en Supabase.
+//  - sprint_id ya no-null/no-undefined (incluye '') → null — señal de "no tocar" (AC-5)
+//  - row sin `code` → throw — capturado por el caller, no revienta el batch (AC-6)
+export function _computeSprintBackfill(row) {
+  if (row.sprint_id !== null && row.sprint_id !== undefined) {
+    return null; // ya migrado — idempotencia, no se toca ni se re-escribe
+  }
+  if (!row.code) {
+    throw new Error('row sin code — excluida del backfill');
+  }
+  const raw = row.sprint;
+  if (raw && typeof raw === 'string' && raw.trim() !== '' && raw !== 'icebox') {
+    const idx = raw.indexOf(' · ');
+    if (idx !== -1) {
+      return { sprint_id: raw.slice(0, idx), sprint_name: raw.slice(idx + 3) };
+    }
+    return { sprint_id: raw, sprint_name: '' };
+  }
+  // Sin sprint (ausente/vacío) o valor icebox legado Gen1 — ambos son "sin sprint".
+  return { sprint_id: '', sprint_name: '' };
+}
+
+// backfillSprintFields() — lee todas las filas de tracker_items del usuario activo
+// (todos los proyectos — la migración es transversal, no filtra por project_id), calcula
+// sprint_id/sprint_name donde falte vía _computeSprintBackfill(), y persiste solo esas
+// filas con UPDATE puntual por code (nunca upsert de fila completa — evita pisar columnas
+// no relacionadas con valores stale del SELECT). Filas con code corrupto/ausente se
+// excluyen del batch y quedan logueadas en result.errors — el resto continúa sin crash
+// (AC-6). No requiere sprint asignado en ningún REQ/TKT — opera directo contra Supabase,
+// fuera del ciclo de vida de sprint.
+export async function backfillSprintFields() {
+  const result = { updated: 0, skipped: 0, errors: [] };
+  if (!_supabase || !_supabaseUser) {
+    result.errors.push({ code: null, reason: 'Sin sesión Supabase activa — backfill no ejecutado' });
+    return result;
+  }
+
+  const { data, error } = await _supabase
+    .from('tracker_items')
+    .select('code, sprint, sprint_id')
+    .eq('user_id', _supabaseUser.id);
+
+  if (error) {
+    result.errors.push({ code: null, reason: `Fallo al leer tracker_items: ${error.message || error}` });
+    return result;
+  }
+
+  const rows = Array.isArray(data) ? data : [];
+  const toUpdate = [];
+
+  for (const row of rows) {
+    let computed;
+    try {
+      computed = _computeSprintBackfill(row);
+    } catch (err) {
+      result.errors.push({ code: row.code || '(sin código)', reason: err.message });
+      continue;
+    }
+    if (computed === null) {
+      result.skipped++;
+      continue;
+    }
+    toUpdate.push({ code: row.code, sprint_id: computed.sprint_id, sprint_name: computed.sprint_name });
+  }
+
+  for (const upd of toUpdate) {
+    const { error: updErr } = await _supabase
+      .from('tracker_items')
+      .update({ sprint_id: upd.sprint_id, sprint_name: upd.sprint_name })
+      .eq('user_id', _supabaseUser.id)
+      .eq('code', upd.code);
+    if (updErr) {
+      result.errors.push({ code: upd.code, reason: `Fallo al actualizar: ${updErr.message || updErr}` });
+      continue;
+    }
+    result.updated++;
+  }
+
+  console.log(`[AI Tracker] backfillSprintFields: ${result.updated} actualizadas, ${result.skipped} ya migradas (skip), ${result.errors.length} errores`);
+  return result;
+}
+
 // INC-[pendiente-ID] TKT-fix: _mapRowToItem() — única fuente del mapeo de columnas
 // DDL (snake_case, tracker_items) → campos JS canónicos del schema de ítems (camelCase
 // donde aplica: parentId, nextRole, designIntent, blockedAt, incidentStatus, etc.).
@@ -1642,7 +1769,9 @@ function _mapRowToItem(row) {
     priority:              row.priority,
     effort:                row.effort,
     area:                  row.area,
-    sprint:                row.sprint,
+    // TKT2 (REQ-202607-026): columna `sprint` legacy eliminada del incoming — sprint_id/
+    // sprint_name (asignados condicionalmente más abajo) son la única fuente. Ver DDL
+    // requerido declarado en _toItemRow().
     role:                  row.role,
     // T-[pendiente-ID]: parentId es el único campo canónico en JS (REQ-unify-parent TKT2).
     // 'parent' solo existe como nombre de columna en Supabase — se mapea aquí directo
@@ -1693,16 +1822,16 @@ function _mapRowToItem(row) {
     })(),
     _updatedAtMs:          row.updated_at    // conservar timestamp para comparaciones futuras
   };
-  // TKT-202607-096 (REQ-202607-025): si row.sprint_id es string (incluye '' — Q-Backlog
-  // ya migrado, sin sprint asignado), pasar directo. Si es null/undefined (fila remota
-  // transicional, escrita antes de este fix) — NO asignar la clave: su ausencia (vs. un
-  // null explícito) es la señal que permite a _normalizeSprintFields()
-  // (locus-backlog-core.js) derivar desde el campo legacy row.sprint sin confundir
-  // "nunca migrado" (ausente) con "migrado, sin sprint" (string vacío).
-  if (typeof row.sprint_id === 'string') {
-    item.sprint_id = row.sprint_id;
-    item.sprint_name = typeof row.sprint_name === 'string' ? row.sprint_name : '';
-  }
+  // TKT2 (REQ-202607-026) — fix QA (Finn), AC3: coalescer null/undefined a '' en vez de
+  // dejar la clave ausente. '' es la única representación canónica de "sin sprint" en
+  // todo el codebase (__BR-Ecosystem §5 — sprint vacío/falsy = sin sprint asignado; los
+  // 4 consumidores auditados en el cierre del REQ ya escriben sprintId || '', nunca
+  // dejan la key ausente). Preservar item.sprint_id === undefined como señal distinta de
+  // '' introduciría una segunda representación del mismo estado semántico sin ningún
+  // consumidor real que la necesite — backfillSprintFields()/_computeSprintBackfill()
+  // (TKT1) leen contra la fila cruda de Supabase, no contra el ítem ya mapeado.
+  item.sprint_id = typeof row.sprint_id === 'string' ? row.sprint_id : '';
+  item.sprint_name = typeof row.sprint_name === 'string' ? row.sprint_name : '';
   return item;
 }
 
@@ -1813,7 +1942,14 @@ export async function saveHistoricoItems(items) {
       priority:              it.priority          || null,
       effort:                it.effort != null ? Number(it.effort) : null,
       area:                  it.area              || null,
-      sprint:                it.sprint            || null,
+      // TKT3 (REQ-202607-026): columna `sprint` legacy eliminada — mismo criterio que TKT2
+      // en _toItemRow(). sprint_id/sprint_name agregadas aquí por primera vez: estaban
+      // ausentes desde que TKT-202607-096 las introdujo en _toItemRow() sin replicar el
+      // cambio en este mapeo paralelo — los ítems archivados a histórico perdían
+      // sprint_id/sprint_name por completo. Mismo criterio `!== undefined` que _toItemRow
+      // — '' es valor legítimo (Q-Backlog) y no debe colapsar a null junto con undefined.
+      sprint_id:             it.sprint_id !== undefined ? it.sprint_id : null,
+      sprint_name:           it.sprint_name !== undefined ? it.sprint_name : null,
       role:                  it.role              || null,
       parent:                it.parentId          || null,
       // INC triggered_by TKT-202607-063: leía it.depends_on — campo canónico en JS es dependsOn.
