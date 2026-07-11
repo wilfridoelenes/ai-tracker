@@ -1,4 +1,7 @@
-// [PP] v1.2.4 · sprint:PP-Q-Backlog · mod:25 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:26 · autor:Rune · 2026-07-11 14:53 UTC-6
+// INC-[pendiente-ID]: fix drag&drop — currentTarget es getter-only en Event (post-ESM, strict mode).
+// Object.assign(e, {currentTarget}) lanzaba TypeError. _planDragStart/_planDragEnd/_planDrop
+// ahora reciben el elemento destino como parámetro explícito en vez de mutar el Event nativo.
 // TKT1 (limpieza post-rename): comentario en L9 actualizado — locus-backlog-archive.js → locus-backlog-historico.js. Sin cambio de código.
 // locus-sprint-planificacion.js
 // Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
@@ -486,8 +489,7 @@ export function _renderPlanningView(listEl, closeCallback) {
 // Drag & drop handlers
 // ---------------------------------------------------------------------------
 
-function _planDragStart(e) {
-  const card = e.currentTarget;
+function _planDragStart(e, card) {
   _planDragCode = card.dataset.code;
   card.classList.add('bl-plan-card--dragging');
   e.dataTransfer.effectAllowed = 'move';
@@ -495,8 +497,8 @@ function _planDragStart(e) {
   e.dataTransfer.setData('text/plain', _planDragCode);
 }
 
-function _planDragEnd(e) {
-  e.currentTarget.classList.remove('bl-plan-card--dragging');
+function _planDragEnd(e, card) {
+  card.classList.remove('bl-plan-card--dragging');
   // T-202605-028: limpiar drag-over en todos los destinos (sprint cards y columna izquierda)
   document.querySelectorAll('.bl-plan-col, .bl-plan-dest-sprint').forEach(c => c.classList.remove('bl-plan-col--over'));
   _planDragCode = null;
@@ -513,11 +515,10 @@ function _planDragLeave(e) {
   e.currentTarget.classList.remove('bl-plan-col--over');
 }
 
-function _planDrop(e, targetCol, listEl) {
+function _planDrop(e, col, targetCol, listEl) {
   e.preventDefault();
   // T-202605-028: limpiar en el destino exacto que recibió el drop
-  const dropTarget = e.currentTarget;
-  if (dropTarget) dropTarget.classList.remove('bl-plan-col--over');
+  if (col) col.classList.remove('bl-plan-col--over');
   if (!_planDragCode) return;
 
   const item = getItems().find(i => i.code === _planDragCode);
@@ -573,12 +574,12 @@ export function _attachPlanViewDelegation(listEl) {
   listEl.addEventListener('dragstart', function _planViewDragStart(e) {
     const card = e.target.closest('.bl-plan-card');
     if (!card) return;
-    _planDragStart(Object.assign(e, { currentTarget: card }));
+    _planDragStart(e, card);
   });
   listEl.addEventListener('dragend', function _planViewDragEnd(e) {
     const card = e.target.closest('.bl-plan-card');
     if (!card) return;
-    _planDragEnd(Object.assign(e, { currentTarget: card }));
+    _planDragEnd(e, card);
   });
   listEl.addEventListener('dragenter', function _planViewDragEnter(e) {
     // B-202606-034: preventDefault en toda la zona del listEl — el browser requiere
@@ -619,7 +620,7 @@ export function _attachPlanViewDelegation(listEl) {
     // .bl-plan-dest-sprint que sí declara data-plan-col con el sprintId.
     const col = e.target.closest('[data-plan-col]') || e.target.closest('.bl-plan-dest-sprint');
     if (!col || !col.dataset.planCol) return;
-    _planDrop(Object.assign(e, { currentTarget: col }), col.dataset.planCol, listEl);
+    _planDrop(e, col, col.dataset.planCol, listEl);
   });
 
   listEl.addEventListener('click', function _planViewClick(e) {

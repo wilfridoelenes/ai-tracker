@@ -1,3 +1,15 @@
+// [PP] mod:103 · autor:Rune · 2026-07-11 UTC-6
+// TKT (REQ-[pendiente-ID] · ref_id CAEL-01/CAEL-02 · Resolución de ref_id+title, parte 1/2 —
+//   propagación): los 3 puntos de construcción de tgItems (parsePaste inline ~L999,
+//   _buildTgItemsFromParsed rama rol-no-autorizado-bloqueado ~L1873 y rama normal ~L1920)
+//   ganan campo refId: it.ref_id || null — antes ausente por completo. Sin esta propagación,
+//   mergeBacklogFromTG (locus-backlog-item.js) no puede construir el mapa ref_id→title
+//   declarante necesario para normalizar objetos {ref_id,title} en campos de referencia.
+//   parentId (y demás campos de referencia) ya propagaban el objeto crudo sin distinguirlo
+//   de un string — sin cambio aquí, la normalización a [tmp:REF_ID] vive en el otro archivo.
+//   no_incluye: no normaliza el objeto {ref_id,title} — eso ocurre en mergeBacklogFromTG,
+//   antes de _assignPendingIds. No modifica _resolveCheckpointBatch/_parseBatchBlock — ambas
+//   ya propagan tgItems sin filtrar campos, heredan refId sin cambio propio.
 // [PP] mod:102 · autor:Rune · 2026-07-11 UTC-6
 // TKT (REQ-[pendiente-ID] · ref_id CAEL-01/CAEL-02 · Rechazar CHECKPOINT con sprint_proposal +
 //   items REQ/TKT): parseCheckpoint gana un gate único, justo después de extraer
@@ -999,6 +1011,10 @@ export function parsePaste(id) {
         tgItems.push({
           type:          _it.type,
           code:          _it.code,
+          // TKT (REQ-[pendiente-ID] · ref_id+title en 2 archivos): tercer punto de
+          // construcción de tgItems — mismo campo que los otros dos, ver comentario en
+          // _buildTgItemsFromParsed.
+          refId:         _it.ref_id || null,
           title:         _it.title  || _it.desc  || '',
           desc:          _it.title  || _it.desc  || '',
           priority:      _it.priority || 'medium',                             // T-202606-031
@@ -1873,6 +1889,12 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
         tgItems.push({
           type:          it.type,
           code:          it.code,
+          // TKT (REQ-[pendiente-ID] · ref_id+title en 2 archivos): propagar ref_id crudo del
+          // schema del ítem — sin este campo, mergeBacklogFromTG no puede construir el mapa
+          // ref_id→title declarante para normalizar referencias cruzadas en objeto {ref_id,title}.
+          // Opcional — ausente en la mayoría de los ítems, solo presente cuando el rol emisor
+          // anticipó que otro ítem lo referenciaría (ver __BR-Ecosystem §4).
+          refId:         it.ref_id || null,
           title:         it.title  || it.desc   || '',
           desc:          it.title  || it.desc   || '',
           status:        'pendiente',
@@ -1914,6 +1936,9 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
     tgItems.push({
       type:          it.type,
       code:          it.code,
+      // TKT (REQ-[pendiente-ID] · ref_id+title en 2 archivos): mismo campo que la rama
+      // rol-no-autorizado-bloqueado arriba — ver ese comentario.
+      refId:         it.ref_id || null,
       title:         it.title  || it.desc   || '',
       desc:          it.title  || it.desc   || '',
       priority:      it.priority || 'medium',

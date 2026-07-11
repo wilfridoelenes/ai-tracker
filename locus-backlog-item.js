@@ -1,3 +1,18 @@
+// [PP] mod:99 · autor:Rune · 2026-07-11 UTC-6
+// TKT (REQ-[pendiente-ID] · ref_id CAEL-01/CAEL-02 · Resolución de ref_id+title, parte 2/2 —
+//   normalización + guardrail): mergeBacklogFromTG gana un bloque nuevo, antes de la
+//   normalización parent→parentId existente — construye un Map refId→title a partir de
+//   tgItems ya combinado (sin necesidad de transportar nada desde _resolveCheckpointBatch,
+//   decisión de arquitectura de Cael en Fase 2), luego normaliza los 5 campos de referencia
+//   (parentId, dependsOn, triggeredBy, origenDisc, promovida_a) que pueden traer un objeto
+//   {ref_id,title} en vez de string. Objeto con title coincidente → '[tmp:REF_ID]' sintético,
+//   reutilizando 100% el motor _findTmpMatch/slugMap de _assignPendingIds sin duplicar lógica.
+//   Objeto con title no coincidente → null + DocLog 'ref-id-title-mismatch' (mensaje BR-Ecosystem
+//   §4). ref_id sin ítem declarante en tgItems → null + DocLog 'ref-id-sin-declarante'. Un valor
+//   string (código real, [tmp:slug] legacy, [pendiente-ID]) nunca entra a la rama nueva —
+//   _normalizeRefIdValue retorna el valor tal cual si no es un objeto con ref_id. no_incluye:
+//   no elimina [tmp:slug] — sigue siendo el motor interno. No modifica _assignPendingIds,
+//   _refFields ni _listFields — reciben el string ya normalizado sin saber que existió un objeto.
 // [PP] mod:98 · autor:Rune · 2026-07-10 21:10 UTC-6
 // TKT2 (REQ-202607-026 · depends_on: TKT1 done): applyPatchesFromTG() — _PATCH_ALLOWED_FIELDS
 //   gana draft + verified_by. Fase 5 de Finn ahora puede avalar con type:patch estándar sobre
@@ -1818,6 +1833,60 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[], invalidTransition:[], slugMap: (opts && opts.seedSlugMap instanceof Map) ? opts.seedSlugMap : new Map() };
   const _dryRun   = !!(opts && opts.dryRun);
   const _ckptRol  = (opts && opts.ckptRol) || '';
+
+  // TKT (REQ-[pendiente-ID] · ref_id+title en 2 archivos — BR-Ecosystem §4/§8): un campo de
+  // referencia (parent/depends_on/triggered_by/promovida_a/origen_disc) puede llegar como
+  // objeto {ref_id, title} en vez de string — el rol emisor lo declaró así porque el ítem
+  // referenciado nació en el mismo CHECKPOINT o en uno anterior de la misma tanda sin código
+  // real aún. _isPlaceholderCode y _refFields/_listFields de _assignPendingIds solo reconocen
+  // strings — nunca objetos. Se normaliza el objeto a un string sintético '[tmp:REF_ID]' AQUÍ,
+  // antes de la normalización parent→parentId existente, para reutilizar 100% el motor
+  // _findTmpMatch/slugMap ya existente sin duplicar lógica de resolución (decisión de Cael,
+  // Fase 2 — ver CHECKPOINT de especificación).
+  //
+  // Paso A: mapa refId → title declarante, construido desde tgItems ya combinado (no requiere
+  // transportar nada desde _resolveCheckpointBatch — el dato ya está completo aquí).
+  const _refIdTitleMap = new Map();
+  tgItems.forEach(it => {
+    if (it && it.refId) _refIdTitleMap.set(it.refId, it.title || '');
+  });
+
+  const _REF_OBJ_FIELDS  = ['parentId', 'triggeredBy', 'origenDisc', 'promovida_a'];
+  const _REF_OBJ_LISTS   = ['dependsOn'];
+
+  // Paso B: normalizar cada campo de referencia — un objeto {ref_id, title} se convierte en
+  // '[tmp:REF_ID]' solo si el title coincide exactamente con el declarante; si no coincide,
+  // se bloquea con null + DocLog. Si el ref_id no tiene declarante en este tgItems, también
+  // null + DocLog — mismo criterio que un [tmp:slug] sin item correspondiente.
+  function _normalizeRefIdValue(val, item, field) {
+    if (!val || typeof val !== 'object' || Array.isArray(val) || !val.ref_id) return val; // no es {ref_id,title} — dejar pasar tal cual
+    const _declaredTitle = _refIdTitleMap.get(val.ref_id);
+    if (_declaredTitle === undefined) {
+      _blogLog('ref-id-sin-declarante', item.code || '[sin-código]',
+        `ref_id ${val.ref_id} referenciado sin ítem declarante en este bloque — pegar el bloque completo.`,
+        'backlog');
+      return null;
+    }
+    if (_declaredTitle !== (val.title || '')) {
+      _blogLog('ref-id-title-mismatch', item.code || '[sin-código]',
+        `ref_id ${val.ref_id} no coincide con title declarado — resolución bloqueada.`,
+        'backlog');
+      return null;
+    }
+    return `[tmp:${val.ref_id}]`;
+  }
+
+  tgItems = tgItems.map(item => {
+    _REF_OBJ_FIELDS.forEach(field => {
+      if (item[field] !== undefined) item[field] = _normalizeRefIdValue(item[field], item, field);
+    });
+    _REF_OBJ_LISTS.forEach(field => {
+      if (Array.isArray(item[field])) {
+        item[field] = item[field].map(v => _normalizeRefIdValue(v, item, field));
+      }
+    });
+    return item;
+  });
 
   // INC-202607-004 (triggered_by TKT-202607-001): la normalización parent→parentId /
   // depends_on→dependsOn debe correr ANTES de _assignPendingIds — no después. _assignPendingIds
