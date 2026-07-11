@@ -1,4 +1,8 @@
-// [PP] mod:85 · autor:Rune · 2026-07-11 22:40 UTC-6
+// [PP] mod:86 · autor:Rune · 2026-07-11 23:20 UTC-6
+// TKT2 (REQ-[pendiente-ID] · ref: CAEL-03) — corrección tras bug reportado por Finn:
+// _spnpHandlePanelClick rama 'rechazar' no cerraba el panel ni reseteaba aria-expanded — AC
+// de Rechazar violado. Corregido con el mismo patrón que el bloque de éxito de 'aprobar'
+// (classList.add('is-hidden') + aria-expanded false).
 // TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): comportamiento del
 // panel "+ Sprint nuevo" — _spnpAttachListeners/_spnpHandleTriggerClick/_renderSpnpPanel/
 // _spnpHandlePanelClick. Toggle + foco al abrir (panel.focus() con tabindex=-1), estado vacío
@@ -236,7 +240,10 @@ function _spnpHandlePanelClick(e) {
 
   if (action === 'rechazar') {
     clearPendingSprintProposal(proj.id);
-    _renderSpnpPanel();
+    const panel = document.getElementById('spnp-panel');
+    const triggerBtn = document.getElementById('spnp-trigger-btn');
+    if (panel) panel.classList.add('is-hidden');
+    if (triggerBtn) triggerBtn.setAttribute('aria-expanded', 'false');
     return;
   }
 

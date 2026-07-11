@@ -1,4 +1,4 @@
-// [PP] mod:61 · autor:Rune · 2026-07-11 21:40 UTC-6
+// [PP] mod:62 · autor:Rune · 2026-07-11 23:12 UTC-6
 // TKT1 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): sprint_proposal
 // válido ahora también se persiste vía setPendingSprintProposal(proj.id, _validSpProposal) —
 // en paralelo a ckptMeta.sprintProposal, sin alterar el Step 0 del DIFF en este TKT.
@@ -75,7 +75,7 @@ import { render } from './locus-sesiones.js';
 
 import { _showProjRequiredInPanel, interpretHora } from './locus-session-hora.js';
 
-import { _setPhase, _tryIngestSprintProposal, _tryIngestSprintProposalFromParsed, _applySprintInheritanceToItems, parseSprintProposal, parsePaste, _buildTriggeredBySuggestion } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-020: _applySprintInheritanceToItems | T-202606-021: _buildTriggeredBySuggestion | B-202606-019: _tryIngestSprintProposalFromParsed | TKT4: parseCheckpoint + _splitCheckpointBlocks retirados — el uso se trasladó a _resolveCheckpointBatch en locus-session-parse.js, no requiere importarlos de vuelta | INC-202607-XXX: _tryIngestPlan + _tryIngestPlanFromParsed retirados del import — locus-session-parse.js mod:95 (REQ-execution-plan-deprecation) eliminó ambos exports; este archivo seguía importándolos y rompía la carga del módulo
+import { _setPhase, _tryIngestSprintProposal, parseSprintProposal, parsePaste, _buildTriggeredBySuggestion } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-021: _buildTriggeredBySuggestion | TKT3 (REQ-[pendiente-ID]): _tryIngestSprintProposalFromParsed/_applySprintInheritanceToItems retirados del import — sin consumidor en este archivo tras mover la aprobación a locus-sprint.js (TKT2). _tryIngestSprintProposal (sin FromParsed) ya estaba sin consumidor antes de este TKT — Hallazgo fuera de scope, no tocado aquí | TKT4: parseCheckpoint + _splitCheckpointBlocks retirados — el uso se trasladó a _resolveCheckpointBatch en locus-session-parse.js, no requiere importarlos de vuelta | INC-202607-XXX: _tryIngestPlan + _tryIngestPlanFromParsed retirados del import — locus-session-parse.js mod:95 (REQ-execution-plan-deprecation) eliminó ambos exports; este archivo seguía importándolos y rompía la carga del módulo
 
 import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js';
 
@@ -571,17 +571,13 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   }
   // TKT-202606-011 AC4: con draftPending, sprint_proposal tampoco se aplica — no se ofrece
   // Step 0 de aprobación. El CHECKPOINT final emitido por Finn (draft:false) sí lo activa.
+  // TKT3 (REQ-[pendiente-ID] · migración Step 0 → panel Sprint subtab): _ckptMeta.sprintProposal
+  // se mantiene — sigue siendo la fuente del gate de exclusividad §12 en showMergeDiffPanel.
+  // onApproveProposal se retira: sin consumidores tras el retiro de Step 0 en locus-backlog-merge.js
+  // (mod:50) — la aprobación ahora vive en locus-sprint.js vía _tryIngestSprintProposalFromParsed
+  // directo (TKT2, ya importado en ese módulo).
   if (_validSpProposal && !_ckptMeta.draftPending) {
     _ckptMeta.sprintProposal = _validSpProposal;
-    _ckptMeta.onApproveProposal = function(proposal) {
-      // T-202606-020 AC-1/AC-2/AC-3/AC-4: herencia automática de sprint a ítems del CHECKPOINT.
-      // B-202606-019: usar _tryIngestSprintProposalFromParsed en lugar de _tryIngestSprintProposal(raw).
-      // En path JSON puro, raw no contiene '---SPRINT-PROPOSAL---' — la variante de texto retorna
-      // false silenciosamente. La variante FromParsed opera sobre el objeto ya extraído por parseCheckpoint.
-      // Mutar _tgItemsForPanel in-place → el DIFF refleja el sprint asignado antes de que el founder confirme.
-      const _spCreated = _tryIngestSprintProposalFromParsed(_validSpProposal);
-      if (_spCreated) _applySprintInheritanceToItems(_tgItemsForPanel, _spCreated);
-    };
   }
   // T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para INC con triggered_by en sprint activo.
   // No-bloqueante: si el founder ignora, el INC se ingesta sin sprint (Q-Backlog, default).

@@ -1,5 +1,8 @@
-// [PP] mod:100 · autor:Rune · 2026-07-11 UTC-6
-// TKT-202607-005 (ignorar campo zona en REQ/TKT): extiende el DocLog de TKT3 (REQ type-safety
+// [PP] mod:101 · autor:Rune · 2026-07-11 UTC-6
+// TKT-202607-005-bis (ignorar campo zona en REQ/TKT — sufijo -bis: colisiona con el código real
+//   TKT-202607-005 de separación ITEMS/INCIDENTS, mod:89 — ver _Locus-module-contracts §4.
+//   Founder confirma nomenclatura interina 2026-07-11, Cael reemplaza -bis al asignar Locus):
+//   extiende el DocLog de TKT3 (REQ type-safety
 //   DISC status, ver comentario más abajo) de DISC a REQ y TKT — mismo criterio: ninguno de los
 //   tres tipos persiste `zona` (REQ/TKT nunca la declararon en su schema — usan `sprint` vacío/
 //   ausente para Q-Backlog), y ahora los tres emiten `_blogLog` cuando el campo llega declarado
@@ -2363,7 +2366,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
             derivedItems: item.derivedItems || [],
             resolutionType: item.resolutionType || null,
           } : {}),
-          // TKT3 (REQ type-safety DISC status) + TKT-202607-005 (ignorar campo zona en REQ/TKT):
+          // TKT3 (REQ type-safety DISC status) + TKT-202607-005-bis (ignorar campo zona en REQ/TKT):
           // regla relajada — __BR-Ecosystem §8. Ningún tipo persiste el campo zona: DISC porque
           // el invariante Q-DISC se garantiza por arquitectura (_isQDiscActive/ausencia de sprint
           // en DISC), REQ/TKT porque nunca la declararon en su schema (usan sprint vacío/ausente

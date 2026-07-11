@@ -1,3 +1,11 @@
+// [PP] mod:50 · autor:Rune · 2026-07-11 23:05 UTC-6
+// TKT3 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): retirado el bloque
+// `if (_sprintProposal && body) {...}` completo — Step 0 HTML, listeners #mdiff-step0-approve/
+// #mdiff-step0-reject, y el gate de ítems sin sprint (ex T-202606-164, relocalizado en TKT4 al
+// panel del subtab Sprints). El gate de exclusividad §12 (antes del early-return, arriba en esta
+// función) NO se toca — sigue leyendo _ckptMeta.sprintProposal directo. Condición del bloque de
+// narrativa+secciones simplificada de `body && !_sprintProposal` a solo `body` — ya no hay Step 0
+// que la gatee. Consts locales _sprintProposal/_onApproveProposal retiradas.
 // [PP] mod:49 · autor:Rune · 2026-07-10 UTC-6
 // TKT-202607-103 (REQ-202607-026 · AC1-4): _draftPending retirado del cálculo de `blocked` en
 //   _mdiffUpdateConfirmBtn — Guardar ya no se deshabilita solo por draft:true. Banner de aval
@@ -572,16 +580,16 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   const summaryChips = document.getElementById('mdiff-summary-chips');
   const pendingList  = document.getElementById('mdiff-pending-list');
 
-  // T-202606-155: Step 0 condicional — ---SPRINT-PROPOSAL--- detectado en el CHECKPOINT
-  // sprintProposal y onApproveProposal llegan via ckptMeta (campos opcionales)
-  // AC-4: Step 0 no genera estado persistente — el sprint se crea solo al aprobar aquí
-  const _sprintProposal   = _ckptMeta.sprintProposal   || null;
-  const _onApproveProposal = _ckptMeta.onApproveProposal || null;
+  // TKT3 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): _sprintProposal /
+  // _onApproveProposal locales retiradas — Step 0 ya no existe en este archivo. El gate de
+  // exclusividad §12 (arriba, antes del early-return) sigue leyendo _ckptMeta.sprintProposal
+  // directo — no dependía de esta const local. onApproveProposal se retira también de
+  // locus-session-save.js en este mismo TKT (sin consumidores).
 
   // T-202606-038: sección de campos narrativos — aparece antes de las secciones de backlog.
   // AC-4: campos vacíos no renderizan fila. AC-3: Próximo paso al final con separador visual.
   // AC-7: encabezado visualmente distinguible del encabezado de secciones de backlog.
-  // B-202606-062: movida antes de if (_sprintProposal) — const no hace hoisting, ReferenceError garantizado si se invoca antes de declaración
+  // B-202606-062: movida antes del bloque de renderizado del body — const no hace hoisting, ReferenceError garantizado si se invoca antes de declaración
   const _buildNarrativeSection = () => {
     const _rows = [
       { label: 'Resumen',     value: _metaResumen     },
@@ -679,139 +687,6 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     }
   };
 
-  if (_sprintProposal && body) {
-    // T-202606-023 AC-3: calcular estado resultante en el momento de renderizar Step 0.
-    // getActiveSprints() refleja el estado actual — si hay sprint active, el nuevo será scheduled.
-    // Nota: _tryIngestSprintProposal aplica la misma lógica al aprobar → ambos son coherentes.
-    const _existsActive = getActiveSprints().some(sp => sp.status === 'active' && !sp.isHotfix);
-    const _resultingStatusLabel = _existsActive
-      ? 'Programado — se activa al cerrar el sprint activo'
-      : 'Activo — se abre inmediatamente';
-
-    // Renderizar Step 0 antes del contenido normal — reemplaza body temporalmente
-    const _step0Html = `
-      <div class="mdiff-step0" id="mdiff-step0">
-        <div class="mdiff-step0-header">
-          <span class="mdiff-step0-badge">Step 0</span>
-          <span class="mdiff-step0-title">Apertura de sprint</span>
-        </div>
-        <div class="mdiff-step0-fields">
-          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Sprint</span><span class="mdiff-step0-value">${esc(_sprintProposal.id || _sprintProposal.sprint)}</span></div>
-          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Versión</span><span class="mdiff-step0-value">${esc(_sprintProposal.version_target)}</span></div>
-          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Tipo</span><span class="mdiff-step0-value">${esc(_sprintProposal.release_type)}</span></div>
-          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Scope</span><span class="mdiff-step0-value">${esc(_sprintProposal.scope)}</span></div>
-          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Goal</span><span class="mdiff-step0-value">${esc(_sprintProposal.goal)}</span></div>
-          ${(_sprintProposal.out_of_scope && _sprintProposal.out_of_scope.length)
-            ? `<div class="mdiff-step0-row"><span class="mdiff-step0-label">Out of scope</span><span class="mdiff-step0-value">${_sprintProposal.out_of_scope.map(s => esc(s)).join(' · ')}</span></div>`
-            : ''}
-          <div class="mdiff-step0-row"><span class="mdiff-step0-label">Estado</span><span class="mdiff-step0-value">${esc(_resultingStatusLabel)}</span></div>
-        </div>
-        <div class="mdiff-step0-actions">
-          <button class="mdiff-btn mdiff-btn--primary" id="mdiff-step0-approve">✓ Aprobar apertura</button>
-          <button class="mdiff-btn mdiff-btn--cancel" id="mdiff-step0-reject">✕ Rechazar</button>
-        </div>
-      </div>`;
-    // B-202606-003: body contiene únicamente Step 0 hasta aprobación —
-    // narrativa y sectionsHtml se inyectan en el handler de aprobación.
-    body.innerHTML = _step0Html;
-
-    // Handlers Step 0 — un solo listener por botón via getElementById post-render
-    const _approveBtn = document.getElementById('mdiff-step0-approve');
-    const _rejectBtn  = document.getElementById('mdiff-step0-reject');
-    if (_approveBtn) {
-      _approveBtn.addEventListener('click', () => {
-        // B-202606-060: wrap en try/catch — si _onApproveProposal lanza, mostrar error inline
-        // y abortar: el DIFF no avanza, el Step 0 permanece visible con el mensaje de error.
-        if (typeof _onApproveProposal === 'function') {
-          try {
-            _onApproveProposal(_sprintProposal);
-          } catch (err) {
-            const _actionsEl = document.querySelector('#mdiff-step0 .mdiff-step0-actions');
-            if (_actionsEl) {
-              const _existing = _actionsEl.querySelector('.mdiff-step0-error');
-              if (_existing) _existing.remove();
-              const _errEl = document.createElement('p');
-              _errEl.className = 'mdiff-step0-error';
-              _errEl.textContent = `Error al aprobar: ${err.message || 'error desconocido'}`;
-              _actionsEl.appendChild(_errEl);
-            }
-            return; // AC-1 + AC-2: DIFF no avanza, Step 0 permanece con estado de error
-          }
-        }
-        const step0El = document.getElementById('mdiff-step0');
-        if (step0El) step0El.remove();
-
-        // B-202606-003 AC-2: inyectar narrativa + secciones ahora que Step 0 fue aprobado
-        if (body) body.innerHTML = _buildNarrativeSection() + _buildSummaryChipsBlock() + sectionsHtml;
-        _renderTriggeredBySuggestion();
-
-        // T-202606-164 (TKT-B2): gate de revisión ítems sin sprint — prompt no-bloqueante post-aprobación
-        // AC-1: aparece al confirmar Step 0, antes de que el founder interactúe con el DIFF
-        // AC-2: no-bloqueante — el founder puede cerrarlo y el sprint ya está activo
-        // AC-3: lista ítems sin sprint cuya area aparece en el scope del sprint (case-insensitive)
-        const _scopeRaw = (_sprintProposal && _sprintProposal.scope) ? _sprintProposal.scope.toLowerCase() : '';
-        // T-202606-164 AC-4: tokenizar area por · para matching de áreas compuestas
-        // Cualquier token del area que aparezca en el scope → ítem relevante
-        const _iceboxRelated = _scopeRaw
-          ? getItems().filter(it => {
-              if (it.sprint || !it.area) return false;
-              const _areaTokens = it.area.split('·').map(t => t.trim().toLowerCase()).filter(Boolean);
-              return _areaTokens.some(token => _scopeRaw.includes(token));
-            })
-          : [];
-
-        if (_iceboxRelated.length > 0 && body) {
-          const _iceboxRows = _iceboxRelated.map(it => {
-            const _iceboxItemType = it.type || _itemKindFn({ code: it.code });
-            return `<div class="mdiff-icebox-row">
-              <span class="mdiff-type-badge ${_typeClass[_iceboxItemType] || 'mdiff-type--unknown'}">${_typeName[_iceboxItemType] || '?'}</span>
-              <span class="mdiff-icebox-code">${esc(it.code || '—')}</span>
-              <span class="mdiff-icebox-title">${esc(it.title || '—')}</span>
-              <span class="mdiff-icebox-area">${esc(it.area || '')}</span>
-            </div>`;
-          }).join('');
-
-          const _iceboxPromptHtml = `
-            <div class="mdiff-icebox-gate" id="mdiff-icebox-gate">
-              <div class="mdiff-icebox-gate-header">
-                <span class="mdiff-step0-badge">Q-Backlog</span>
-                <span class="mdiff-step0-title">Ítems relacionados sin sprint</span>
-              </div>
-              <p class="mdiff-icebox-gate-desc">Hay ${_iceboxRelated.length} ítem${_iceboxRelated.length !== 1 ? 's' : ''} sin sprint (Q-Backlog) con área relacionada al scope de este sprint. ¿Querés moverlos al sprint?</p>
-              <div class="mdiff-icebox-list">${_iceboxRows}</div>
-              <div class="mdiff-step0-actions">
-                <button class="mdiff-btn mdiff-btn--cancel" id="mdiff-icebox-gate-dismiss">Ignorar</button>
-              </div>
-            </div>`;
-
-          // Insertar el prompt al inicio del body, antes del contenido del DIFF
-          body.insertAdjacentHTML('afterbegin', _iceboxPromptHtml);
-
-          const _dismissBtn = document.getElementById('mdiff-icebox-gate-dismiss');
-          if (_dismissBtn) {
-            _dismissBtn.addEventListener('click', () => {
-              const _gateEl = document.getElementById('mdiff-icebox-gate');
-              if (_gateEl) _gateEl.remove();
-            }, { once: true });
-          }
-        }
-      }, { once: true });
-    }
-    if (_rejectBtn) {
-      // T-202606-156 AC-4: rechazar Step 0 cierra el panel completo — DIFF no se aplica.
-      // Mismo comportamiento que el botón Cancel: sin toast, sin aplicar ítems.
-      _rejectBtn.addEventListener('click', () => {
-        overlay.classList.remove('open');
-        document.removeEventListener('keydown', _mdiffKeyHandler);
-        _mdiffUpdateConfirmBtn = null;
-        _mdiffToggleSection = null;
-        _mdiffJumpTo = null;
-        _mdiffSetItemSprint = null;
-        _mdiffStepZeroActive = false; // T-202606-006
-        _itemExcludedAC.abort(); // T-202606-006 — limpiar listener
-      }, { once: true });
-    }
-  }
 
   // Header: título + contexto de paso
   if (header) {
@@ -831,7 +706,10 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
 
   // Body: sección narrativa + secciones de backlog
   // T-202606-155: si hay Step 0, body.innerHTML ya fue asignado arriba — no sobreescribir
-  if (body && !_sprintProposal) {
+  // TKT3 (REQ-[pendiente-ID]): antes de este TKT, Step 0 asignaba body.innerHTML directamente y
+  // este bloque se saltaba (`!_sprintProposal`). Sin Step 0, body siempre renderiza narrativa +
+  // secciones — condición reducida a solo `body`.
+  if (body) {
     body.innerHTML = _buildNarrativeSection() + _buildSummaryChipsBlock() + sectionsHtml;
     _renderTriggeredBySuggestion();
     _renderDraftPendingBanner();
