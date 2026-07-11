@@ -1,3 +1,16 @@
+// [PP] mod:102 · autor:Rune · 2026-07-11 UTC-6
+// TKT (REQ-[pendiente-ID] · ref_id CAEL-01/CAEL-02 · Rechazar CHECKPOINT con sprint_proposal +
+//   items REQ/TKT): parseCheckpoint gana un gate único, justo después de extraer
+//   _rawSprintProposal e items, antes del return de éxito — si _rawSprintProposal es no-null
+//   y hay al menos un item con type REQ o TKT (type:'patch' excluido), retorna el mismo shape
+//   de _jsonParseError que un JSON malformado, con el mensaje canónico de BR-Ecosystem §8/§12.
+//   Se propaga sin tocar los 3 consumidores (parsePaste L843-846, parsePasteStandalone
+//   L2075-2079, _parseBatchBlock L1936-1938) — los tres ya bloquean sobre ckpt._jsonParseError.
+//   El path sin fence reusa el path con fence vía la llamada recursiva
+//   parseCheckpoint('```\n' + _trimmed + '\n```') — hereda el gate sin código adicional.
+//   no_incluye: no modifica el schema ni mensaje de los demás _jsonParseError (JSON malformado,
+//   título ausente). No cambia parseSprintProposal (legacy ---SPRINT-PROPOSAL---, Markdown).
+//   No agrega el gate a nivel de UI — vive una sola vez en parseCheckpoint.
 // [PP] mod:101 · autor:Rune · 2026-07-11 UTC-6
 // TKT1 (REQ-202607-026 · AC1, blocked_at AC2/AC3 — asignación de código real + invisibilidad
 //   en vistas activas al ingestar REQ/TKT con draft:true): eliminados los 2 guards de bloqueo
@@ -609,6 +622,23 @@ export function parseCheckpoint(text) {
     const _rawFinnObservations = Array.isArray(_parsed.finn_observations) && _parsed.finn_observations.length
       ? _parsed.finn_observations
       : null;
+    // TKT-[pendiente-ID] (REQ-[pendiente-ID] · sprint_proposal + items REQ/TKT — BR-Ecosystem
+    //   §8/§12): un CHECKPOINT con sprint_proposal no puede convivir con ítems REQ/TKT nuevos —
+    //   el parser rechaza el bloque completo con el mismo shape de _jsonParseError ya usado para
+    //   JSON malformado, para que los 3 consumidores (parsePaste, parsePasteStandalone,
+    //   _parseBatchBlock) lo bloqueen sin cambios propios. type:'patch' no cuenta — no es un
+    //   ítem REQ/TKT nuevo para este criterio.
+    if (_rawSprintProposal && items.some(_it => _it && _it.type !== 'patch' && (_it.type === 'REQ' || _it.type === 'TKT'))) {
+      return {
+        titulo: '', proyecto: '', rol: '', resumen: '', archivos: '',
+        discItems: '', tktItems: '', reqItems: '', incItems: '',
+        estado: '', decision: '', proximoPaso: '',
+        contexto: '', bloqueantes: '', aprendizaje: '',
+        isCheckpoint: true,
+        _jsonParseError: 'sprint_proposal debe ir en CHECKPOINT independiente antes de los ítems. Separar y reemitir.',
+        rawCounts: { DISC: 0, TKT: 0, REQ: 0, INC: 0 }
+      };
+    }
     return {
       titulo:       _parsed.title        || '',
       proyecto:     _parsed.project      || '',
