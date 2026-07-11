@@ -1,3 +1,9 @@
+// [PP] mod:11 · autor:Rune · 2026-07-10 UTC-6
+// INC-[pendiente-ID]: saveBacklog agregado al import de locus-storage.js — la función existe
+// ahí (mod:106+, ver module-contracts) y locus-backlog-editor.js está documentado como uno de
+// sus 9 módulos consumidores, pero el import no la incluía. Invocada sin import en confirmItemEditor()
+// (~L500 rama editar, ~L533 rama crear) causando ReferenceError en runtime. Ambas llamadas ahora
+// con await — confirmItemEditor() ya es async y saveBacklog() hace upsert real a Supabase.
 // [PP] mod:10 · autor:Rune · 2026-07-10 UTC-6
 // TKT2 (REQ-202607-025): getItems().push(_newBacklogItem({...})) reemplaza el push literal
 //   en la rama de creación manual del IDP (~L511) — import de _newBacklogItem agregado.
@@ -16,7 +22,7 @@ import { _getNextItemCode, _undoSnapshotItems, renderStats, updateBacklogBanner,
 
 import { _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
 
-import { _blogLog, _sprintDisplay, _tplKey, save, getActiveSprints } from './locus-storage.js';
+import { _blogLog, _sprintDisplay, _tplKey, save, saveBacklog, getActiveSprints } from './locus-storage.js';
 
 import { showToast } from './locus-toast.js';
 
@@ -497,7 +503,7 @@ export async function confirmItemEditor() {
     }
     _blogLog('editado', finalCode, title, 'backlog');
     _undoSnapshotItems();
-    saveBacklog();
+    await saveBacklog();
     showToast('success', '✓ ' + finalCode + ' actualizado');
   } else {
     // AC-9: crear nuevo — código generado o ingresado manualmente
@@ -530,7 +536,7 @@ export async function confirmItemEditor() {
     }));
     _blogLog('creado', finalCode, title, 'backlog');
     _undoSnapshotItems();
-    saveBacklog();
+    await saveBacklog();
     showToast('success', '✓ ' + finalCode + ' creado');
   }
 

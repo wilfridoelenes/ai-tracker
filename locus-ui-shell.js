@@ -1,3 +1,7 @@
+// [PP] mod:42 · autor:Rune · 2026-07-10 UTC-6
+// INC-[pendiente-ID]: closeItemEditor agregado al import de locus-backlog-editor.js — la
+// función existe y está exportada ahí, pero el import previo no la incluía. Invocada sin
+// import en dos handlers de este archivo (~L1357, ~L1363), causando ReferenceError en runtime.
 // [PP] mod:41 · autor:Rune · 2026-07-07 UTC-6
 // INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados import de
 // closeArranquePanel y sus dos listeners (#arranque-btn-ver-todo, #arranque-close-btn) —
@@ -27,7 +31,7 @@ import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getStat
 import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortDir } from './locus-backlog-core.js';
 import { openPendPanel, closePendPanel } from './locus-pend.js';
 import { openCommandPalette, closeCommandPalette } from './locus-command-palette.js';
-import { confirmItemEditor } from './locus-backlog-editor.js';
+import { confirmItemEditor, closeItemEditor } from './locus-backlog-editor.js';
 import { _mgExportAllZip } from './locus-map-generator.js';
 import { closeImportDiff, confirmImport, downloadGlobalReport, exportData, importData, openCleanProjectModal } from './locus-reports.js';
 import { openChangelog } from './locus-session-save.js';
