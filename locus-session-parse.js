@@ -1,4 +1,4 @@
-// [PP] mod:100 · autor:Rune · 2026-07-10 19:35 UTC-6
+// [PP] mod:101 · autor:Rune · 2026-07-11 UTC-6
 // TKT1 (REQ-202607-026 · AC1, blocked_at AC2/AC3 — asignación de código real + invisibilidad
 //   en vistas activas al ingestar REQ/TKT con draft:true): eliminados los 2 guards de bloqueo
 //   total sobre ckpt.draft === true que quedaban en el path standalone — _parseBatchBlock
@@ -1746,6 +1746,14 @@ export function closeStandaloneCheckpoint() {
   // puede seguir bloqueando visualmente el panel diff que se abre inmediatamente después.
   if (overlay) { overlay.classList.remove('open'); overlay.classList.add('force-hidden'); }
 }
+
+// TKT-202607-090 (REQ-[pendiente-ID] · deuda técnica — disolución de locus-misc-ui.js):
+// listener del botón cancelar reubicado aquí — criterio de colocación BR-Ecosystem §7,
+// el dato/comportamiento que gestiona (standalone-ckpt-overlay) es propiedad de este módulo.
+document.addEventListener('DOMContentLoaded', () => {
+  const ckptCancelBtn = document.getElementById('standalone-ckpt-cancel-btn');
+  if (ckptCancelBtn) ckptCancelBtn.addEventListener('click', closeStandaloneCheckpoint);
+});
 // ── END T-202605-019 ─────────────────────────────────────────────────────────
 
 // B-202604-138: flujo de CHECKPOINT standalone — merge de ítems sin sesión de IA

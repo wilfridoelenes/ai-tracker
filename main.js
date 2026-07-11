@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-03 · mod:18 · autor:Rune · 2026-07-07 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-06 · mod:19 · autor:Rune · 2026-07-11 UTC-6
 // INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados imports
 // estáticos de locus-pulso.js y locus-sesiones-arranque.js — causa raíz del fallo de
 // arranque (MIME type error) que reveló que TKT-202607-042 declaró 'sin importadores' de
@@ -49,7 +49,6 @@ import './locus-tags.js';
 import './locus-session-popup.js';
 import './locus-reports.js';
 import './locus-backlog-editor.js';
-import './locus-misc-ui.js';
 import './locus-projects.js';
 import './locus-docs.js';
 import './locus-contracts.js';
