@@ -158,7 +158,7 @@ import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } 
 
 import { _setBacklogModified } from './locus-docs.js';
 
-import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js';
+import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync, state } from './locus-storage.js'; // INC-fix: 'state' faltaba en este import — renderBacklogList() lo usa (state.projects) desde antes de mod:82/83 sin que nunca se importara, ReferenceError en runtime
 
 import { showToast } from './locus-toast.js';
 
