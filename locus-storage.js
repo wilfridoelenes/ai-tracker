@@ -3546,18 +3546,24 @@ export function getActivePlan() {
 }
 
 // ── B-202606-069: openAuthModal / closeAuthModal ──────────────────────────────
-// AC1 happy path — close: #auth-modal-overlay.classList.add('is-hidden')
-// AC2 happy path — open: #auth-modal-overlay.classList.remove('is-hidden')
+// INC-fix (2026-07-11): .modal-overlay se muestra/oculta vía la clase 'open'
+// (CSS: .modal-overlay { display:none } / .modal-overlay.open { display:flex },
+// ver locus-modals-base.css) — no vía 'is-hidden'. #auth-modal-overlay nunca
+// tuvo esa clase, así que el par remove/add('is-hidden') original nunca
+// cambiaba el display real: el botón "conectar" no hacía nada visible y sin
+// error en consola, porque el elemento existía y la operación no lanzaba nada.
+// AC1 happy path — close: #auth-modal-overlay.classList.remove('open')
+// AC2 happy path — open: #auth-modal-overlay.classList.add('open')
 // AC3 estado de error: overlay ausente en DOM → sin excepción
 // AC4 cancel btn: listener en _initStorageListeners() lo invoca (typeof guard cumplido)
 export function closeAuthModal() {
   const overlay = document.getElementById('auth-modal-overlay');
-  if (overlay) overlay.classList.add('is-hidden');
+  if (overlay) overlay.classList.remove('open');
 }
 
 export function openAuthModal() {
   const overlay = document.getElementById('auth-modal-overlay');
-  if (overlay) overlay.classList.remove('is-hidden');
+  if (overlay) overlay.classList.add('open');
 }
 // ── END B-202606-069 ──────────────────────────────────────────────────────────
 
