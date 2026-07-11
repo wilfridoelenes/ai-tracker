@@ -1,4 +1,4 @@
-// [PP] mod:114 · autor:Rune · 2026-07-11 00:00 UTC-6
+// [PP] mod:115 · autor:Rune · 2026-07-11 00:15 UTC-6
 // TKT3 (REQ-202607-026): saveHistoricoItems() — columna `sprint` legacy eliminada del
 //   mapeo (mismo criterio que TKT2), sprint_id/sprint_name agregadas por primera vez —
 //   estaban ausentes desde TKT-202607-096, ítems archivados a histórico perdían ambos
@@ -1465,7 +1465,12 @@ export async function saveBacklog() {
       promovida_a:          it.promovida_a      || null,
       // DDL: columna renombrada origen_disc (Gen2) — era origin_p en Gen1
       origen_disc:          it.origenDisc       || null,
-      discard_reason:       it.discard_reason   || null,
+      // INC-[pendiente-ID]: fallback a camelCase — item.discardReason es el campo que
+      // escribe la lógica de negocio (locus-backlog-core.js, sanitize-doneat-mismatch);
+      // sin este fallback un ítem con status:'descartado' llegaba con discard_reason:null
+      // y violaba tracker_items_discard_reason_check. Mismo motivo que el fallback ya
+      // aplicado a comportamiento_actual/origin_module en _toIncidentRow (TKT-202607-INC-NAMING).
+      discard_reason:       it.discard_reason   || it.discardReason || null,
       comportamiento_actual: it.comportamiento_actual || null,
       origin_module:        it.origin_module    || null,
       // DDL: columna 'verified_by' TEXT (no 'verificado_por')
@@ -1519,7 +1524,8 @@ export async function saveBacklog() {
       sla_priority:          incSlaPriority(inc),
       incident_status:       incIncidentStatus(inc),
       resolution_type:       incResolutionType(inc),
-      discard_reason:        inc.discard_reason     || null,
+      // INC-[pendiente-ID]: mismo fallback camelCase que _toItemRow() — ver nota ahí.
+      discard_reason:        inc.discard_reason     || inc.discardReason || null,
       // Fix QA (Finn) — TKT-202607-044: sla_deadline es timestamptz en tracker_incidents
       // (confirmado vía information_schema.columns), no bigint. inc.slaDeadline vive en
       // memoria como epoch ms (ver _mapRowToIncident) — convertir a ISO string antes de
@@ -1959,7 +1965,8 @@ export async function saveHistoricoItems(items) {
       kill_criteria:         it.kill_criteria     || null,
       promovida_a:           it.promovida_a       || null,
       origen_disc:           it.origenDisc        || null,
-      discard_reason:        it.discard_reason    || null,
+      // INC-[pendiente-ID]: mismo fallback camelCase que _toItemRow() — ver nota ahí.
+      discard_reason:        it.discard_reason    || it.discardReason || null,
       comportamiento_actual: it.comportamiento_actual || null,
       origin_module:         it.origin_module     || null,
       verified_by:           it.verificado_por    || null,

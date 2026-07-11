@@ -1,4 +1,4 @@
-// [PP] mod:116 · autor:Rune · 2026-07-10 21:30 UTC-6
+// [PP] mod:117 · autor:Rune · 2026-07-11 00:15 UTC-6
 // TKT0 (REQ-202607-026): _normalizeSprintFields() — alias getter/setter item.sprint↔
 //   sprint_id reaplicado incondicionalmente en cada pasada (antes solo se aplicaba si
 //   sprint_id era undefined, dejando item.sprint desconectado tras el primer backfill).
@@ -1133,6 +1133,20 @@ function _normalizeCommonFields(item) {
   if (!item.title || item.title.trim() === '') {
     item.title = '[sin título]';
     _blogLog('normalize-warn', item.code || '(sin código)', 'title ausente → "[sin título]"', 'backlog');
+  }
+
+  // ── discard_reason ────────────────────────────────────────────────────────
+  // INC-[pendiente-ID]: item.discardReason (camelCase) es el campo que escribe la
+  // lógica de negocio in-memory (ver sanitize-doneat-mismatch más abajo en este
+  // archivo) — la persistencia a Supabase lee discard_reason (snake_case, DDL
+  // tracker_items / __BR-Ecosystem §5). Sin este puente, un ítem con
+  // status:'descartado' llegaba a saveBacklog() con discard_reason:null y violaba
+  // tracker_items_discard_reason_check (mod:114, locus-storage.js). Mismo patrón ya
+  // resuelto para comportamiento_actual/origin_module en INC (TKT-202607-INC-NAMING)
+  // — este puente cubre el caso análogo para la rama Planeada (DISC/REQ/TKT).
+  if (item.discardReason && !item.discard_reason) {
+    item.discard_reason = item.discardReason;
+    _blogLog('normalize', item.code || '(sin código)', 'discardReason → discard_reason sincronizado', 'backlog');
   }
 
   // ── id ────────────────────────────────────────────────────────────────────
