@@ -1,3 +1,15 @@
+// [PP] mod:96 · autor:Rune · 2026-07-10 19:35 UTC-6
+// TKT1 (REQ-202607-026 · AC1, blocked_at AC2/AC3 — asignación de código real + invisibilidad
+//   en vistas activas al ingestar REQ/TKT con draft:true): _newItemObj en mergeBacklogFromTG()
+//   gana campo draft — antes ausente por completo, la columna quedaba sin escribir sin
+//   importar el valor del CHECKPOINT. Lee item.draft, ya propagado desde ckpt.draft por
+//   locus-session-parse.js (ver ese header, mod:100). signature_change: false — mergeBacklogFromTG
+//   conserva firma (tgItems, sessionId, opts). contract_update: sí — nuevo campo en el shape
+//   persistido de REQ/TKT, ver CHECKPOINT de entrega para contract_detail. no_incluye: no toca
+//   applyPatchesFromTG ni verified_by — TKT2. No toca filtrado de Q-Backlog/sprint — esas
+//   funciones no viven en este archivo, blocked_at declarado en el CHECKPOINT. Reimplementado
+//   sobre el árbol real de esta entrega (mod:95) — la entrega previa (mod:93→94 sobre copia
+//   desactualizada, misma sesión) queda descartada sin efecto sobre este archivo.
 // [PP] mod:95 · autor:Rune · 2026-07-10 UTC-6
 // TKT2 (REQ-202607-025): _newBacklogItem() aplicado a los 2 call sites de este archivo —
 //   _promoteConfirm() (~L1221) y _promoteTktToReqConfirm() (~L1305) — + import agregado.
@@ -2293,6 +2305,14 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
           blockedBy: item.blockedBy || [],
           blocking: item.blocking || false,
           sessionId: sessionId || null,
+          // TKT1 (REQ-202607-026 · AC1): campo draft persistido en el ítem nuevo. `draft` es
+          // campo de nivel CHECKPOINT (§8) — no declarado por ítem en el schema — pero
+          // locus-session-parse.js propaga ckpt.draft a cada tgItem.draft antes de llegar aquí,
+          // así que item.draft en este punto ya es ese valor cascadeado, no un campo que el
+          // founder/rol declara por ítem. El gate de "draft ausente" a nivel CHECKPOINT ya existe
+          // aguas arriba en el parser. `item.draft === true` colapsa cualquier valor no
+          // estrictamente true a false. no_incluye de este TKT: no persiste verified_by — TKT2.
+          draft: item.draft === true,
           createdAt: nowTs,
           statusChangedAt: nowTs,
           doneAt: initialStatus === 'done' ? nowTs : null

@@ -1,3 +1,20 @@
+// [PP] mod:100 · autor:Rune · 2026-07-10 19:35 UTC-6
+// TKT1 (REQ-202607-026 · AC1, blocked_at AC2/AC3 — asignación de código real + invisibilidad
+//   en vistas activas al ingestar REQ/TKT con draft:true): eliminados los 2 guards de bloqueo
+//   total sobre ckpt.draft === true que quedaban en el path standalone — _parseBatchBlock
+//   (batch) y parsePasteStandalone (single) — mismo criterio ya aplicado a parsePaste
+//   (embedded) en TKT-202606-011. Corregida además la propagación de draft: es campo de nivel
+//   CHECKPOINT (ckpt.draft) que se perdía sin llegar a los tgItems en los 3 puntos de
+//   construcción del objeto en este archivo (parsePaste inline, _buildTgItemsFromParsed rama
+//   bloqueado y rama normal) — mismo patrón de pérdida ya corregido para contract_detail en
+//   TKT4 (mod:98). Sin este fix, mergeBacklogFromTG nunca veía item.draft aunque el guard de
+//   ingesta ya no bloqueara. AC2 (invisibilidad Q-Backlog) y AC3 (invisibilidad sprint)
+//   blocked_at — la lógica de filtrado de esas vistas no vive en ninguno de los 2 archivos
+//   declarados en TKT1 (locus-session-parse.js / locus-backlog-item.js); ver CHECKPOINT de
+//   entrega. AC4 (Kanban) inaplicable — vista Kanban removida del codebase en TKT-202607-027.
+//   Reimplementado sobre el árbol de código real de esta entrega (mod:99) — la entrega previa
+//   (mod:98→99 sobre copia desactualizada, misma sesión) queda descartada sin efecto sobre
+//   este archivo.
 // [PP] mod:99 · autor:Rune · 2026-07-10 UTC-6
 // TKT2 (REQ-202607-025): rama rol-no-autorizado-bloqueado (~L1801) y rama fallback general
 //   (~L1834) — ambas construían tgItems con `sprint: it.sprint` directo, sin pasar por
@@ -976,6 +993,12 @@ export function parsePaste(id) {
           intencion:     _it.intencion     || null,                            // T-202606-105
           no_incluye:    Array.isArray(_it.no_incluye) ? _it.no_incluye : [], // T-202606-105
           archivos:      Array.isArray(_it.archivos) ? _it.archivos : [],     // T-[pendiente-ID]: BR-Ecosystem v5.2 — archivos reales que el T toca, declarado por Cael en Fase 2
+          // TKT1 (REQ-202607-026 · AC1): draft es campo de nivel CHECKPOINT (ckpt.draft), no
+          // del ítem individual — se propaga aquí (path de sesión embebida) para que
+          // mergeBacklogFromTG lo persista en cada ítem nuevo del batch. Sin esta propagación,
+          // un REQ/TKT nuevo se persistía como draft:false por default independiente de lo
+          // declarado en el CHECKPOINT.
+          draft:         ckpt.draft === true,
           schema_version: _it.schema_version || null                          // T-202606-105
         });
         // R-202605-046: normalizar sprint a campo ausente si es centinela o sprint cerrado
@@ -1838,6 +1861,10 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
           // T-[pendiente-ID] (REQ-contract-rename, TKT4): contract_detail no se propagaba a
           // tgItems — se perdía entre el parseo y mergeBacklogFromTG. Alineado a BR-Execution §2.
           contract_detail: it.contract_detail || null,
+          // TKT1 (REQ-202607-026 · AC1): draft es campo de nivel CHECKPOINT (ckpt.draft), no
+          // del ítem individual — se propaga aquí para que mergeBacklogFromTG lo persista en
+          // el ítem nuevo. Mismo patrón de pérdida ya corregido para contract_detail en TKT4.
+          draft:         ckpt.draft === true,
           schema_version: it.schema_version != null ? Number(it.schema_version) : 0
         });
         _normalizeSprint(tgItems[tgItems.length - 1], tgItems);
@@ -1876,6 +1903,10 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
       // T-[pendiente-ID] (REQ-contract-rename, TKT4): contract_detail no se propagaba a
       // tgItems — se perdía entre el parseo y mergeBacklogFromTG. Alineado a BR-Execution §2.
       contract_detail: it.contract_detail || null,
+      // TKT1 (REQ-202607-026 · AC1): draft es campo de nivel CHECKPOINT (ckpt.draft), no del
+      // ítem individual — se propaga a cada tgItem para que mergeBacklogFromTG lo persista en
+      // el ítem nuevo. Mismo patrón de pérdida ya corregido para contract_detail en TKT4.
+      draft:         ckpt.draft === true,
       schema_version: it.schema_version != null ? Number(it.schema_version) : 0
     });
     if (itemKind(it) === 'DISC' && _normSt3 === 'promoted' && !it.promovida_a) {
@@ -1897,9 +1928,11 @@ function _parseBatchBlock(blockText) {
   if (ckpt._jsonParseError) {
     return { ok: false, error: ckpt._jsonParseError };
   }
-  if (ckpt.draft === true) {
-    return { ok: false, error: 'Borrador detectado — pegar CHECKPOINT final emitido por Finn' };
-  }
+  // TKT1 (REQ-202607-026 · AC1): guard de bloqueo total sobre draft:true eliminado — mismo
+  // criterio aplicado al path single (más abajo en este archivo) y a parsePaste
+  // (TKT-202606-011). Un bloque del batch con draft:true se resuelve igual que draft:false;
+  // ckpt.draftRaw sigue disponible para quien consuma el resultado del batch si necesita
+  // distinguir el estado por bloque.
   const parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
   const { tgItems, patchItems, itemError } = _buildTgItemsFromParsed(ckpt, parsedJSON);
   if (itemError) {
@@ -2037,17 +2070,13 @@ export function parsePasteStandalone() {
     return;
   }
 
-  // T-202606-013: guard draft:true — bloquear ingesta en path standalone antes de parsear ítems
-  // AC-1: _mergeBacklogWithProject nunca se llama si draft:true — tgItems/patchItems nunca se llenan
-  // AC-2: feedback visible en prev.innerHTML + btn deshabilitado
-  // AC-3: toast con mensaje canónico idéntico al path de sesión
-  // AC-4: ckpt.draft es true solo si _parsed.draft === true — undefined→false, legacy sin campo→false
-  if (ckpt.draft === true) {
-    prev.innerHTML = '<div class="paste-error">📋 Borrador detectado — pegar CHECKPOINT final emitido por Finn</div>';
-    btn.disabled = true;
-    showToast('warning', 'Borrador detectado — pegar CHECKPOINT final emitido por Finn');
-    return;
-  }
+  // TKT1 (REQ-202607-026 · AC1): guard de T-202606-013 (bloqueo total de ingesta cuando
+  // draft:true) queda eliminado en el path standalone — mismo criterio ya aplicado en
+  // parsePaste vía TKT-202606-011. tgItems se construye igual que con draft:false; el ítem
+  // recibe código real y se persiste con draft:true al aplicar (ver mergeBacklogFromTG,
+  // locus-backlog-item.js). El estado "pendiente de aval Finn" se comunica en el panel DIFF,
+  // no bloqueando el botón "Aplicar" antes de abrirlo — ckpt.draftRaw sigue siendo la fuente
+  // que consume el DIFF para ese badge.
 
   // T-202606-005: path único JSON — ítems ya están en ckpt._rawItems, no hay path legacy
   const parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
