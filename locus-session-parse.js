@@ -1,4 +1,4 @@
-// [PP] mod:103 · autor:Rune · 2026-07-11 UTC-6
+// [PP] mod:105 · autor:Rune · 2026-07-11 16:05 UTC-6
 // TKT (REQ-[pendiente-ID] · ref_id CAEL-01/CAEL-02 · Resolución de ref_id+title, parte 1/2 —
 //   propagación): los 3 puntos de construcción de tgItems (parsePaste inline ~L999,
 //   _buildTgItemsFromParsed rama rol-no-autorizado-bloqueado ~L1873 y rama normal ~L1920)
@@ -397,6 +397,21 @@ function _buildItilItem(it, ckptHeaderRole, projectName, ckptTitulo) {
     const _EXCEPCION = 'no observado directamente — síntoma reportado por founder';
     if (!_comportamiento) {
       return { error: `INC ${it.code || '[pendiente-ID]'} sin comportamiento_actual — campo obligatorio. Adjuntar CHECKPOINT corregido.` };
+    }
+  }
+
+  // TKT-202607-004 AC2/AC3: KE sin comportamiento_actual → obligatorio (workaround activo,
+  // __BR-Ecosystem §5), pero a diferencia de INC no bloquea la ingesta — solo alerta en DocLog.
+  // El KE se persiste igual, con comportamientoActual: null.
+  if (it.type === 'KE') {
+    const _comportamientoKE = (it.comportamiento_actual || '').trim();
+    if (!_comportamientoKE) {
+      _blogLog(
+        'ke-sin-comportamiento-actual',
+        it.code || '[pendiente-ID]',
+        `KE ${it.code || '[pendiente-ID]'} sin comportamiento_actual — campo obligatorio.`,
+        'backlog'
+      );
     }
   }
   const _q = _resolveItilQueue(it, projectName, ckptTitulo);
@@ -1082,12 +1097,16 @@ export function parsePaste(id) {
       }
       // TKT-202606-014 (REQ-202606-003 · TKT4 · AC1/AC2/AC4): gate de bloqueo total —
       // BR-Ecosystem §8 regla dura: draft obligatorio sin default cuando items incluye
-      // REQ/TKT/INC/CHG nuevos o con status declarado — se omite cuando items está vacío
-      // o solo contiene DISC. Usa draftRaw (AC2 de este mismo TKT, ya presente arriba) para
-      // distinguir undefined (ausente) de false (explícito, AC3).
+      // REQ/TKT nuevos o con status declarado — se omite cuando items está vacío, solo
+      // contiene DISC, o solo contiene INC/PRB/KE/CHG (rama Reactiva, sin Fase 5). Usa
+      // draftRaw (AC2 de este mismo TKT, ya presente arriba) para distinguir undefined
+      // (ausente) de false (explícito, AC3).
+      // TKT-202607-003: _draftGateTypes incluía INC y CHG por error — ambos son rama
+      // Reactiva (§4b) y nunca deben gatear sobre draft, igual que PRB y KE (ya excluidos
+      // correctamente). Solo REQ/TKT (rama Planeada) requieren draft obligatorio.
       const _draftToastKey = `_draftGateToastSeen_${id}`;
       if (!_itemError) {
-        const _draftGateTypes = ['REQ', 'TKT', 'INC', 'CHG'];
+        const _draftGateTypes = ['REQ', 'TKT'];
         const _hasDraftGatedItem = _rawItems.some(_di => _di && _di.type !== 'patch' && _draftGateTypes.includes(_di.type));
         if (_hasDraftGatedItem && ckpt.draftRaw === undefined) {
           _itemError = 'Campo "draft" ausente — CHECKPOINT no aplicado. Declarar draft: true o false.';

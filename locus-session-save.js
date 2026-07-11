@@ -1,4 +1,7 @@
-// [PP] mod:60 · autor:Rune · 2026-07-10 18:05 UTC-6
+// [PP] mod:61 · autor:Rune · 2026-07-11 21:40 UTC-6
+// TKT1 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): sprint_proposal
+// válido ahora también se persiste vía setPendingSprintProposal(proj.id, _validSpProposal) —
+// en paralelo a ckptMeta.sprintProposal, sin alterar el Step 0 del DIFF en este TKT.
 // TKT-202607-077 (REQ-[pendiente-ID] · cadena de merge async, depends_on: TKT3):
 //   _mergeBacklogWithProject() pasa a async — await mergeBacklogFromTG(tgItems, sessId) en
 //   vez de asignación síncrona, propagando la cadena async iniciada aguas abajo (mismo patrón
@@ -61,7 +64,7 @@ import { _markRadarDirty, renderGlobalRadarSidebar, toggleRadarSidebar } from '.
 import { stopSessionTimer } from './locus-sesiones-utils.js';
 import { _getLocalStorageUsage } from './locus-sprint-project.js';
 import { _generateBacklogContent, _generateBacklogMd } from './locus-backlog-generator.js';
-import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate, _mutateSessions } from './locus-storage.js'; // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js) · TKT1 REQ-sessions-mutator: _mutateSessions agregado
+import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate, _mutateSessions, setPendingSprintProposal } from './locus-storage.js'; // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js) · TKT1 REQ-sessions-mutator: _mutateSessions agregado · TKT1 REQ-[pendiente-ID] (migración Step 0 → panel Sprint): setPendingSprintProposal agregado
 
 
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
@@ -555,6 +558,17 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   const _spProposal = parsed.sprintProposal  // path JSON puro (T-202606-017)
     || ((raw && raw.includes('---SPRINT-PROPOSAL---')) ? parseSprintProposal(raw) : null);
   const _validSpProposal = (_spProposal && !_spProposal.error) ? _spProposal : null;
+  // TKT1 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): persistir la
+  // propuesta válida por proyecto, en paralelo a ckptMeta.sprintProposal — este TKT no cambia
+  // el comportamiento del Step 0 del DIFF (retiro en TKT3), solo agrega la vía de persistencia
+  // que el panel "+ Sprint nuevo" (TKT2) va a leer. AC-error: si no hay proyecto activo, no
+  // persiste — mismo criterio defensivo que el resto de accesos a getActiveProject() en este
+  // archivo (ver ai.resetTime arriba). AC-edge: sobreescribe cualquier propuesta pendiente
+  // previa del mismo proyecto — last-write-wins, mismo criterio que el resto de LOCUS_KEYS.
+  if (_validSpProposal) {
+    const _pendingProj = getActiveProject();
+    if (_pendingProj) setPendingSprintProposal(_pendingProj.id, _validSpProposal);
+  }
   // TKT-202606-011 AC4: con draftPending, sprint_proposal tampoco se aplica — no se ofrece
   // Step 0 de aprobación. El CHECKPOINT final emitido por Finn (draft:false) sí lo activa.
   if (_validSpProposal && !_ckptMeta.draftPending) {

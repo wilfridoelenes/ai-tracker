@@ -1,3 +1,8 @@
+<!-- [PP] mod:111 · autor:Rune · 2026-07-11 22:10 UTC-6 -->
+<!-- TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): agregado shell estático
+     dentro de #sprint-panel-sprints — #spnp-trigger-btn ("+ Sprint nuevo") + #spnp-panel (vacío,
+     is-hidden). Contenido del panel se puebla vía JS al abrir (locus-sprint.js) — E-01. Nova entrega
+     CSS de la familia spnp-* en locus-sprint.css en la misma sesión. -->
 <!-- [PP] mod:110 · autor:Rune · 2026-07-08 UTC-6 -->
 <!-- TKT-[tmp:tkt-update-link]: actualizado <link> de locus-sprint-plan.css a
      locus-contracts.css — rename de Nova (TKT-[tmp:tkt-rename-file]), sin cambio
@@ -785,6 +790,18 @@
       <span class="spt-context-header__icon" aria-hidden="true">⏳</span>
       <span>Sin sprint activo</span>
     </div>
+
+    <!-- TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): shell estático —
+         botón siempre presente (E-01), panel vacío hasta que JS lo puebla al abrir.
+         design_intent: sprint-nuevo-panel-v1 -->
+    <div class="spnp-trigger-row">
+      <button class="spnp-trigger-btn" type="button" id="spnp-trigger-btn"
+              aria-expanded="false" aria-controls="spnp-panel">
+        + Sprint nuevo
+      </button>
+    </div>
+    <div class="spnp-panel is-hidden" id="spnp-panel" role="region" aria-label="Aprobación de sprint pendiente"></div>
+    <!-- END TKT2 shell -->
     <!-- T-202606-034: 4 secciones canónicas del sub-tab Sprints -->
     <div id="sps-activo"></div>
     <div id="sps-programados"></div>

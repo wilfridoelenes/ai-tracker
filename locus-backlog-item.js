@@ -1,4 +1,14 @@
-// [PP] mod:99 · autor:Rune · 2026-07-11 UTC-6
+// [PP] mod:100 · autor:Rune · 2026-07-11 UTC-6
+// TKT-202607-005 (ignorar campo zona en REQ/TKT): extiende el DocLog de TKT3 (REQ type-safety
+//   DISC status, ver comentario más abajo) de DISC a REQ y TKT — mismo criterio: ninguno de los
+//   tres tipos persiste `zona` (REQ/TKT nunca la declararon en su schema — usan `sprint` vacío/
+//   ausente para Q-Backlog), y ahora los tres emiten `_blogLog` cuando el campo llega declarado
+//   con cualquier valor (`PP-Q-Backlog`, `icebox`, `n/a`, `sin-sprint`, lo que sea) — señal de
+//   spec desactualizada en quien emite, nunca bloqueo ni rechazo del ítem. El comentario de TKT3
+//   decía explícitamente "No aplica a REQ/TKT" — ese texto queda obsoleto con este cambio, no se
+//   edita para conservar el registro histórico de esa decisión previa.
+//   contract_update: no — mergeBacklogFromTG no cambia de firma ni de shape de retorno, solo
+//   gana una rama de logging sin side effect sobre el ítem persistido.
 // TKT (REQ-[pendiente-ID] · ref_id CAEL-01/CAEL-02 · Resolución de ref_id+title, parte 2/2 —
 //   normalización + guardrail): mergeBacklogFromTG gana un bloque nuevo, antes de la
 //   normalización parent→parentId existente — construye un Map refId→title a partir de
@@ -2353,14 +2363,21 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
             derivedItems: item.derivedItems || [],
             resolutionType: item.resolutionType || null,
           } : {}),
-          // TKT3 (REQ type-safety DISC status): regla relajada — __BR-Ecosystem §8. DISC nunca
-          // persiste el campo zona (el invariante Q-DISC se garantiza por arquitectura, ver
-          // _isQDiscActive/ausencia de sprint en DISC — no por validar este campo). Si llega
-          // declarado con cualquier valor, se ignora igual que siempre — el log es la única
-          // adición, señal de que quien emitió el CHECKPOINT sigue asumiendo que zona importa.
+          // TKT3 (REQ type-safety DISC status) + TKT-202607-005 (ignorar campo zona en REQ/TKT):
+          // regla relajada — __BR-Ecosystem §8. Ningún tipo persiste el campo zona: DISC porque
+          // el invariante Q-DISC se garantiza por arquitectura (_isQDiscActive/ausencia de sprint
+          // en DISC), REQ/TKT porque nunca la declararon en su schema (usan sprint vacío/ausente
+          // para Q-Backlog — __BR-Ecosystem §5). Si llega declarada con cualquier valor —
+          // 'PP-Q-Backlog', 'icebox', 'n/a', 'sin-sprint', lo que sea — se ignora igual en los
+          // tres tipos, nunca se valida ni se rechaza el ítem por su contenido. El log es la
+          // única adición: señal de que quien emitió el CHECKPOINT sigue asumiendo que zona
+          // importa para ese tipo.
           ...((() => {
-            if (_incomingType === 'DISC' && item.zona !== undefined) {
+            if (item.zona === undefined) return {};
+            if (_incomingType === 'DISC') {
               _blogLog('zona-declarada-en-disc', item.code, 'zona declarada en DISC ' + item.code + ' — campo ignorado, Q-DISC se aplica siempre por arquitectura.', 'backlog');
+            } else if (_incomingType === 'REQ' || _incomingType === 'TKT') {
+              _blogLog('zona-declarada-en-req-tkt', item.code, 'zona declarada en ' + _incomingType + ' ' + item.code + ' — campo ignorado, ' + _incomingType + ' no declara zona en su schema (usa sprint vacío/ausente para Q-Backlog).', 'backlog');
             }
             return {};
           })()),

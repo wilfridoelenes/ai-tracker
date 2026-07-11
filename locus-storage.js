@@ -1,4 +1,9 @@
-// [PP] mod:115 · autor:Rune · 2026-07-11 00:15 UTC-6
+// [PP] mod:116 · autor:Rune · 2026-07-11 21:40 UTC-6
+// TKT1 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): agregado
+// LOCUS_KEYS.SPRINT_PROPOSAL_PENDING_PREFIX + getPendingSprintProposal()/setPendingSprintProposal()/
+// clearPendingSprintProposal() — persistencia de sprint_proposal pendiente por proyecto, reusando
+// el patrón try/catch de _loadTmpIdMap/_saveTmpIdMap. clearPendingSprintProposal() no tiene
+// call sites en este TKT — lo consume TKT2 (panel "+ Sprint nuevo", pendiente).
 // TKT3 (REQ-202607-026): saveHistoricoItems() — columna `sprint` legacy eliminada del
 //   mapeo (mismo criterio que TKT2), sprint_id/sprint_name agregadas por primera vez —
 //   estaban ausentes desde TKT-202607-096, ítems archivados a histórico perdían ambos
@@ -152,6 +157,11 @@ export const LOCUS_KEYS = {
   DRAFT_KEY_PREFIX: 'draft-',
   // T-202606-032: índice de DOC-UPDATEs por sprint — persiste en state.projects[i].docUpdateIndex
   DOC_UPDATE_INDEX: 'docUpdateIndex',
+  // TKT1 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): sprint_proposal
+  // válido detectado al parsear un CHECKPOINT se persiste aquí, por proyecto, hasta que el
+  // founder lo confirme o rechace desde el panel "+ Sprint nuevo" (TKT2). Reemplaza — para este
+  // flujo — el ckptMeta.sprintProposal efímero que hoy solo vive dentro de la sesión de pegado.
+  SPRINT_PROPOSAL_PENDING_PREFIX: 'locus-sprint-proposal-pending-',
 };
 
 // R-202605-002: strings canónicos de proyecto — fuente única de verdad
@@ -443,6 +453,34 @@ function _loadTmpIdMap() {
     if (dirty) localStorage.setItem(LOCUS_KEYS.TMP_ID_MAP, JSON.stringify(map));
     return map;
   } catch(e) { return {}; }
+}
+
+// ── SPRINT PROPOSAL PENDIENTE (TKT1 · REQ-[pendiente-ID]) ──────────────────────
+// Contrato: única vía de lectura/escritura de LOCUS_KEYS.SPRINT_PROPOSAL_PENDING_PREFIX.
+// Ningún otro módulo debe llamar localStorage.getItem/setItem/removeItem sobre esta clave
+// directamente — mismo criterio que _getBacklogStorageKey (línea ~211 de este archivo).
+export function getPendingSprintProposal(projId) {
+  if (!projId) return null;
+  try {
+    const raw = localStorage.getItem(LOCUS_KEYS.SPRINT_PROPOSAL_PENDING_PREFIX + projId);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch (e) { return null; }
+}
+
+export function setPendingSprintProposal(projId, proposalObj) {
+  if (!projId || !proposalObj) return false;
+  try {
+    localStorage.setItem(LOCUS_KEYS.SPRINT_PROPOSAL_PENDING_PREFIX + projId, JSON.stringify(proposalObj));
+    return true;
+  } catch (e) { return false; }
+}
+
+// No se invoca todavía en este TKT — la usa TKT2 al confirmar/rechazar desde el panel.
+// Se declara ahora para que TKT2 no dependa de modificar locus-storage.js de nuevo.
+export function clearPendingSprintProposal(projId) {
+  if (!projId) return;
+  try { localStorage.removeItem(LOCUS_KEYS.SPRINT_PROPOSAL_PENDING_PREFIX + projId); } catch (e) {}
 }
 
 function _saveTmpIdMap(map) {

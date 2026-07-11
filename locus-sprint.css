@@ -1725,7 +1725,11 @@
    La meta "Versión" se renderiza vía .sps-meta-item/.sps-meta-value (L322). */
 
 /* ── sps-empty — Empty state sin sprint activo (AC-2) ─────────────────── */
-/* CTA visible — apunta a openNewSprintInline() o similar */
+/* Corregido mod:45 (Nova, sesión REQ-[pendiente-ID] migración panel Sprint nuevo):
+   comentario anterior ("CTA visible — apunta a openNewSprintInline() o similar") nunca
+   fue verificado contra locus-sprint.js real — _renderSpsActivo() solo renderiza
+   .sps-empty-hint (texto). .sps-empty-cta queda declarada sin consumidor — ver
+   corrección equivalente en _Locus-css-ref.md mod:49. */
 
 .sps-empty {
   display: flex;
@@ -1765,6 +1769,138 @@
   outline: var(--focus-ring, 2px solid var(--accent));
   outline-offset: 2px;
 }
+
+/* ══ TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab) ══ */
+/* design_intent: sprint-nuevo-panel-v1 — reutiliza tokens de .sps-card / .sps-btn /
+   .btn-primary (locus-layout.css) — sin componente visual nuevo, solo composición. */
+
+.spnp-trigger-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.spnp-trigger-btn {
+  font-size: var(--text-sm);
+  padding: 4px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text2);
+  cursor: pointer;
+  transition: var(--trans-color);
+}
+
+.spnp-trigger-btn:hover {
+  background: var(--surface3);
+}
+
+.spnp-trigger-btn:focus-visible {
+  outline: var(--focus-ring, 2px solid var(--accent));
+  outline-offset: 2px;
+}
+
+/* Panel — mismos tokens que .sps-card (borde + radius-lg), sin duplicar la regla:
+   composición vía clase propia porque .sps-card es overflow:hidden + flex-column
+   con semántica de "card de sprint", y este panel no es una card de sprint. */
+.spnp-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spnp-panel:focus-visible {
+  outline: var(--focus-ring, 2px solid var(--accent));
+  outline-offset: 2px;
+}
+
+.spnp-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spnp-badge {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-dim);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+}
+
+.spnp-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.spnp-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.spnp-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--text-sm);
+}
+
+.spnp-label {
+  color: var(--hint);
+  flex-shrink: 0;
+}
+
+.spnp-value {
+  color: var(--text);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.spnp-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.spnp-actions .sps-btn,
+.spnp-actions .btn-primary {
+  flex: 1;
+}
+
+.spnp-error {
+  font-size: var(--text-xs);
+  color: var(--red);
+  margin-top: 4px;
+}
+
+.spnp-empty-hint {
+  font-size: var(--text-sm);
+  color: var(--hint);
+  font-style: italic;
+  text-align: center;
+  padding: 8px 0;
+}
+
+/* Breakpoint compartido del sistema — pares label/valor colapsan a una columna (E-03) */
+@media (max-width: 640px) {
+  .spnp-row {
+    flex-direction: column;
+    gap: 2px;
+  }
+  .spnp-value {
+    text-align: left;
+  }
+}
+
+/* ══ END TKT2 ══ */
 
 /* ── sps-scheduled — Filas Sprints Programados con drag handle (AC-4) ─── */
 /* T-202606-037: .drag-handle definida en este bloque — primer consumidor del
