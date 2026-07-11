@@ -1,3 +1,19 @@
+// [PP] mod:63 · autor:Rune · 2026-07-11 UTC-6
+// TKT (INC-202607-001 · fix — guard huérfano de draft:true bloqueaba persistencia en
+//   _doApplyMergeAndFinish): eliminado el guard "defensa secundaria" (T-202606-013 AC-1) que
+//   retornaba antes de _mergeBacklogWithProject cuando parsed.draft === true — contradecía
+//   __BR-Ecosystem §8 (un ítem con draft:true debe persistirse, solo queda invisible en
+//   vistas activas hasta el aval de Finn). El guard "primario" equivalente ya había sido
+//   eliminado en la ruta standalone (locus-session-parse.js) por REQ-202607-026/TKT1 — este
+//   quedó huérfano, sin actualizar, y era el único bloqueante real: la propagación de draft
+//   a tgItems (locus-session-parse.js) y la asignación de código real (_assignPendingIds) ya
+//   funcionaban correctamente antes de este fix. Toast conservado pero resignificado: ya no
+//   es un bloqueo, es confirmación de guardado en estado borrador — mensaje y tipo ('success')
+//   ajustados para reflejar que la persistencia sí ocurrió. no_incluye: no toca el guard de
+//   "draft ausente" (BR-Ecosystem §8, campo obligatorio sin valor por defecto) — ese es un
+//   guard distinto, sigue vigente sin cambio. No modifica _resolveCheckpointBatch (bug
+//   separado, ya no llama a _assignPendingIds — registrado como deuda distinta, no parte de
+//   este INC). No modifica locus-session-parse.js — draft ya se propaga correctamente ahí.
 // [PP] mod:62 · autor:Rune · 2026-07-11 23:12 UTC-6
 // TKT1 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): sprint_proposal
 // válido ahora también se persiste vía setPendingSprintProposal(proj.id, _validSpProposal) —
@@ -645,14 +661,10 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   });
 
   const raw = (document.getElementById('ta-' + id) || {}).value || '';
-  // T-202606-013 AC-1: guard draft:true — defensa secundaria antes de mergeBacklogFromTG.
-  // La primera línea de defensa está en parsePaste (bloquea el botón Guardar).
-  // Este guard cubre el caso en que _doApplyMergeAndFinish se llama con un parsed que tiene draft:true.
-  // AC-1: retorna sin ejecutar merge · AC-3: toast visible con texto canónico
-  if (parsed.draft === true) {
-    showToast('warn', 'Borrador detectado — pegar CHECKPOINT final emitido por Finn');
-    return;
-  }
+  // INC-202607-001 fix: guard de bloqueo total sobre draft:true eliminado — ver header del
+  // archivo (mod:63). draft:true ya no impide la persistencia; solo mantiene el ítem invisible
+  // en vistas activas (Q-Backlog, sprint, Kanban) hasta que Finn emita type:patch con
+  // draft:false, comportamiento que vive en mergeBacklogFromTG/Locus, no en este guard.
   // TKT-202607-077 AC2: await obligatorio — _mergeBacklogWithProject() es async (encadena
   // el await de mergeBacklogFromTG). Si rechaza, no ejecutar ningún paso posterior que
   // dependa de mergeResult (applyPatchesFromTG, trackerRefs, CONTEXT-SECTION, y el resto
@@ -845,7 +857,12 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   if (hasMergeData) {
     showCheckpointPanel({ ...mergeResult, contextSections: mergedCtxNames, proximoPaso: _ckptProximoPaso, decision: _ckptDecision, inlineFixes: _ckptInlineFixes });
   }
-  const _baseMsg = horaResult ? `Sesión guardada · desbloquea a las ${horaResult.label}` : 'Sesión guardada';
+  // INC-202607-001 fix: distinguir guardado normal de guardado en borrador (draft:true) — el
+  // ítem sí se persistió (guard bloqueante eliminado arriba), pero queda invisible en vistas
+  // activas hasta el aval de Finn (draft:false vía type:patch). Mensaje informativo, no de error.
+  const _baseMsg = parsed.draft === true
+    ? 'Sesión guardada · CHECKPOINT en borrador — invisible en vistas activas hasta aval de Finn'
+    : (horaResult ? `Sesión guardada · desbloquea a las ${horaResult.label}` : 'Sesión guardada');
   showToast('success', _baseMsg);
 }
 

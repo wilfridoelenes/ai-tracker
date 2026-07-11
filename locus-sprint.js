@@ -1,3 +1,19 @@
+// [PP] mod:88 · autor:Rune · 2026-07-11 23:55 UTC-6
+// TKT4 fix (gap de Finn, Momento 1): _spnpQBacklogItems() ya no filtra por
+// projId/projectId de ítem — campo inexistente en el modelo de datos (ITEMS ya
+// scopeado al proyecto activo vía sufijo de storage en locus-backlog-core.js, no
+// vía campo de ítem; ver _Locus-module-contracts.md §ITEMS). Call site actualizado
+// — ya no pasa proj.id como argumento.
+// [PP] mod:87 · autor:Rune · 2026-07-11 23:45 UTC-6
+// TKT4 (REQ-[pendiente-ID] · ref: CAEL-05): gate de ítems Q-Backlog tras aprobar sprint
+// nuevo — _spnpQBacklogItems (REQ/TKT sin sprint del proyecto activo, sin filtro de
+// relación por área/scope, decisión del founder) + _spnpRenderGate (markup Nova,
+// design_intent: spnp-gate-inline-v1) + _spnpHandleGateAction (mover/omitir, mismo
+// listener de #spnp-panel vía data-spnp-gate-action). Mutación de sprint reutiliza el
+// patrón de _mdiffPersistSprint en locus-backlog-merge.js: item.sprint + item.priority
+// vía _calcPriority (import nuevo desde locus-backlog-core.js) + item.history.push tipo
+// 'sprint'. Branch 'aprobar' de _spnpHandlePanelClick ya no cierra el panel directo —
+// cierra solo si no hay ítems en Q-Backlog; si hay, renderiza el gate y retorna.
 // [PP] mod:86 · autor:Rune · 2026-07-11 23:20 UTC-6
 // TKT2 (REQ-[pendiente-ID] · ref: CAEL-03) — corrección tras bug reportado por Finn:
 // _spnpHandlePanelClick rama 'rechazar' no cerraba el panel ni reseteaba aria-expanded — AC
@@ -30,7 +46,7 @@
 // locus-sprint.js
 // Módulo: Orquestador del tab Sprint — renderSprintTab, _renderSprintItems, _renderSprintWorkers, _renderSprintScopeAdded, _sptSwitch, _renderSprintPlanificar
 
-import { _isBlocked, getItems, itemKind } from './locus-backlog-core.js';
+import { _isBlocked, getItems, itemKind, _calcPriority, _getActiveSessionAiId } from './locus-backlog-core.js'; // TKT4 (REQ-[pendiente-ID] · ref: CAEL-05): _calcPriority/_getActiveSessionAiId — mismo patrón de mutación sprint que _mdiffPersistSprint en locus-backlog-merge.js
 import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
@@ -232,6 +248,12 @@ function _renderSpnpPanel() {
 }
 
 function _spnpHandlePanelClick(e) {
+  // TKT4 (REQ-[pendiente-ID] · ref: CAEL-05): acciones del gate — mismo listener, distinto data-attribute
+  const gateBtn = e.target.closest('[data-spnp-gate-action]');
+  if (gateBtn) {
+    _spnpHandleGateAction(gateBtn);
+    return;
+  }
   const actionBtn = e.target.closest('[data-spnp-action]');
   if (!actionBtn) return;
   const action = actionBtn.dataset.spnpAction;
@@ -265,13 +287,93 @@ function _spnpHandlePanelClick(e) {
     }
 
     clearPendingSprintProposal(proj.id);
+    showToast('success', 'Sprint ' + (created.id || '') + ' creado.');
+    _renderSpsActivo();
+    _renderSpsProgramados();
+
+    // TKT4 (REQ-[pendiente-ID] · ref: CAEL-05): gate de ítems Q-Backlog tras aprobar —
+    // sin filtro de relación por área/scope, decisión del founder (código original ex
+    // T-202606-164 no recuperable). proj.id ya validado no-null arriba en este handler.
+    const _spnpQItems = _spnpQBacklogItems();
+    if (_spnpQItems.length > 0) {
+      _spnpRenderGate(created.id, _spnpQItems);
+      return; // panel permanece visible mostrando el gate — se cierra al Mover/Omitir
+    }
+
     const panel = document.getElementById('spnp-panel');
     const triggerBtn = document.getElementById('spnp-trigger-btn');
     if (panel) panel.classList.add('is-hidden');
     if (triggerBtn) triggerBtn.setAttribute('aria-expanded', 'false');
-    showToast('success', 'Sprint ' + (created.id || '') + ' creado.');
-    _renderSpsActivo();
-    _renderSpsProgramados();
+  }
+}
+
+// TKT4 (REQ-[pendiente-ID] · ref: CAEL-05): ítems Q-Backlog — REQ/TKT sin sprint
+// asignado, sin descartar. Sin filtro de proyecto: getItems() ya retorna únicamente
+// el array ITEMS del proyecto activo (hidratado por sufijo de storage en
+// locus-backlog-core.js — no existe campo projId/projectId en ítems individuales,
+// gap detectado por Finn en Momento 1, corregido aquí). Sin filtro de relación con
+// el sprint recién creado (decisión del founder).
+function _spnpQBacklogItems() {
+  if (!Array.isArray(getItems())) return [];
+  return getItems().filter(i => {
+    const kind = itemKind(i);
+    if (kind !== 'REQ' && kind !== 'TKT') return false;
+    if (_iSprint(i)) return false;
+    if (i.status === 'descartado') return false;
+    return true;
+  });
+}
+
+// TKT4: renderiza el gate dentro de #spnp-panel — markup de Nova (design_intent: spnp-gate-inline-v1)
+function _spnpRenderGate(createdSprintId, items) {
+  const panel = document.getElementById('spnp-panel');
+  if (!panel) return;
+  const rows = items.map(i =>
+    '<label class="spnp-gate-item"><input type="checkbox" class="spnp-gate-cb" value="' + _escHtml(i.code) + '">' +
+    '<span class="spnp-gate-item-label">' + _escHtml(i.code) + ' · ' + _escHtml(i.title || '') + '</span></label>'
+  ).join('');
+  panel.innerHTML =
+    '<div class="spnp-gate">' +
+      '<div class="spnp-gate-header"><span class="spnp-badge">Ítems sin sprint</span></div>' +
+      '<p class="spnp-gate-desc">' + items.length + ' ítem' + (items.length === 1 ? '' : 's') + ' en Q-Backlog — ¿mover al sprint recién creado?</p>' +
+      '<div class="spnp-gate-list">' + rows + '</div>' +
+      '<div class="spnp-gate-actions">' +
+        '<button class="btn-primary" type="button" data-spnp-gate-action="mover" data-spnp-gate-sprint="' + _escHtml(createdSprintId) + '">Mover seleccionados</button>' +
+        '<button class="sps-btn" type="button" data-spnp-gate-action="omitir">Omitir</button>' +
+      '</div>' +
+    '</div>';
+}
+
+// TKT4: acciones del gate — Mover seleccionados / Omitir
+function _spnpHandleGateAction(gateBtn) {
+  const action = gateBtn.dataset.spnpGateAction;
+  const panel = document.getElementById('spnp-panel');
+  const triggerBtn = document.getElementById('spnp-trigger-btn');
+
+  if (action === 'omitir') {
+    if (panel) panel.classList.add('is-hidden');
+    if (triggerBtn) triggerBtn.setAttribute('aria-expanded', 'false');
+    return;
+  }
+
+  if (action === 'mover') {
+    const sprintId = gateBtn.dataset.spnpGateSprint || '';
+    const checked = Array.from(document.querySelectorAll('#spnp-panel .spnp-gate-cb:checked'));
+    if (!checked.length) return; // Mover sin selección — no-op, gate permanece abierto
+
+    checked.forEach(cb => {
+      const item = getItems().find(i => i.code === cb.value);
+      if (!item) return;
+      item.sprint = sprintId;
+      item.priority = _calcPriority(item);
+      if (!item.history) item.history = [];
+      item.history.push({ type: 'sprint', ts: Date.now(), aiId: _getActiveSessionAiId() || undefined, data: { from: '', to: sprintId } });
+    });
+    save();
+
+    if (panel) panel.classList.add('is-hidden');
+    if (triggerBtn) triggerBtn.setAttribute('aria-expanded', 'false');
+    showToast('success', checked.length + ' ítem' + (checked.length === 1 ? '' : 's') + ' movido' + (checked.length === 1 ? '' : 's') + ' a ' + sprintId + '.');
   }
 }
 
