@@ -1,3 +1,7 @@
+// [PP] mod:29 · autor:Rune · 2026-07-11 UTC-6
+// TKT1 (CAEL-02 · REQ deuda técnica CSS Purity): L132 _buildSprintOption — style="width:${pct}%"
+// reemplazado por style="--sprint-option-bar-w:${pct}%". CSS (.bl-sprint-option-bar-fill,
+// locus-backlog.css mod:87) ya consume la custom property — entregable de Nova integrado.
 // [PP] mod:28 · autor:Rune · 2026-07-11 15:35 UTC-6
 // TKT2 (REQ CAEL-01 · deuda técnica auditoría): openSprints=[] hardcodeado eliminado en
 // _buildSprintSelector y _blSprintOpen — post-migración solo existe activeSprint/closedSprints,
@@ -129,7 +133,7 @@ function _buildSprintOption(sp) {
     <span class="bl-sprint-option-mark">${mark}</span>
     <span class="bl-sprint-option-name">${esc(displayName)}</span>
     <div class="bl-sprint-option-meta">
-      <div class="bl-sprint-option-bar-wrap"><div class="bl-sprint-option-bar-fill" style="width:${pct}%"></div></div>
+      <div class="bl-sprint-option-bar-wrap"><div class="bl-sprint-option-bar-fill" style="--sprint-option-bar-w:${pct}%"></div></div>
       <span class="bl-sprint-option-pct">${pct}%</span>
       <span class="bl-sprint-option-badge ${badgeCls}">${badgeTxt}</span>
       ${retroBtn}

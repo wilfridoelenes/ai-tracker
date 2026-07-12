@@ -1,3 +1,15 @@
+/* [PP] mod:87 · autor:Nova · 2026-07-11 UTC-6 */
+/* TKT1 (CAEL-02 — REQ deuda técnica CSS Purity/código muerto en locus-sprint-planificacion.js):
+   agregada .bl-sprint-option-bar-fill al final del archivo — width vía custom property
+   --sprint-option-bar-w en vez de propiedad width literal en style= inline (violación
+   CSS Purity detectada en _buildSprintOption, L129). Mismo patrón que .bl-vl-progress-fill
+   (var(--ver-bar-w)) y .sps-burndown-fill (var(--sps-burndown-pct)) — ver L5070/§sps-burndown.
+   Gap detectado: ninguna otra propiedad visual (track, color, height) tenía clase declarada
+   para este elemento antes de este TKT — cero ocurrencias de .bl-sprint-option-bar-fill en
+   el archivo (grep confirmado). Declarado solo lo que el AC de TKT1 exige (mecánica de width);
+   estilo visual completo del track/wrapper queda fuera de este TKT — ver Hallazgo fuera de
+   scope en CHECKPOINT de la sesión. Integración del cambio de style= en el JS pendiente de
+   Rune — requiere locus-sprint-planificacion.js adjunto. */
 /* [PP] mod:86 · autor:Nova · 2026-07-09 UTC-6 */
 /* TKT-202607-051: removido bloque completo .bl-vc/.bl-vc-r*/.bl-vc-t* (~204 líneas,
    L5806-6009) — código muerto verificado: cero consumidor en locus-backlog-render.js
@@ -6011,3 +6023,10 @@
 }
 
 /* ══ END proj-blocked ══ */
+
+
+/* ══ bl-sprint-option — TKT1 (CAEL-02): CSS Purity, width vía custom property ══ */
+.bl-sprint-option-bar-fill {
+  width: var(--sprint-option-bar-w, 0%);
+}
+/* ══ END bl-sprint-option ══ */
