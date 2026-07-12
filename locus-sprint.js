@@ -1,3 +1,12 @@
+// [PP] mod:95 · autor:Rune · 2026-07-12 UTC-6
+// TKT (badge sprint pausado 7+ días — Effort 1, sin módulo crítico): _renderSpsPausados()
+// agrega staleness-pill.staleness--stale junto al título de la card cuando pauseRef
+// (pausedAt || createdAt, mismo campo/fallback que ya alimentaba pausedDate) supera 7 días
+// — implementa la alerta declarada en __BR-Ecosystem §5 ("Locus alerta si un sprint lleva
+// más de 7 días en pausado") que el render existente no cubría. Umbral --stale (no --warn)
+// decidido por Nova, consistente con la semántica ya establecida en _Locus-css-ref
+// §Staleness pill (warn 4-7 días, stale >7 días) — sin excepción de color para este caso.
+// Sin CSS nuevo — reutiliza staleness-pill/staleness--stale ya declarados (mod:51 css-ref).
 // [PP] mod:94 · autor:Rune · 2026-07-12 UTC-6
 // INC-[pendiente-ID] (Hallazgo de sesión de diagnóstico Cael — tab Sprint, sin TKT de
 // origen): REQ en status "en-proceso" o "bloqueado" (__BR-Core §4) no caía en ninguna de
@@ -1834,15 +1843,28 @@ function _renderSpsPausados() {
     // INC-[pendiente-ID]: composite construido una sola vez aquí (mismo patrón que
     // _renderSpsActivo) — evita "id · id" cuando no hay label ni name propios.
     const title = s.label ? `${s.id} · ${s.label}` : (s.name ? `${s.id} · ${s.name}` : s.id);
-    const pausedDate = s.pausedAt || s.createdAt
-      ? new Date(s.pausedAt || s.createdAt).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })
+    const pauseRef = s.pausedAt || s.createdAt;
+    const pausedDate = pauseRef
+      ? new Date(pauseRef).toLocaleDateString('es-MX', { year: 'numeric', month: 'short', day: 'numeric' })
       : '—';
+
+    // TKT (badge sprint pausado 7+ días): mismo campo/fallback que pausedDate arriba —
+    // sin cálculo de fecha paralelo. __BR-Ecosystem §5 "más de 7 días" = staleness--stale
+    // (umbral ya establecido en _Locus-css-ref §Staleness pill: warn 4-7, stale >7 — Nova).
+    let stalenessHtml = '';
+    if (pauseRef) {
+      const daysPaused = Math.floor((Date.now() - new Date(pauseRef).getTime()) / 86400000);
+      if (daysPaused > 7) {
+        stalenessHtml = ' <span class="staleness-pill staleness--stale">' + daysPaused + 'd pausado</span>';
+      }
+    }
 
     return (
       '<div class="sps-card sps-card--paused" data-sprint-id="' + _escHtml(s.id || '') + '">' +
         '<div class="sps-header">' +
           '<span class="sps-title">' + _escHtml(title) + '</span>' +
           '<span class="sml-badge sml-badge--paused">PAUSADO</span>' +
+          stalenessHtml +
         '</div>' +
         '<div class="sps-pausados-meta">' +
           '<span class="sps-pausados-date">Pausado: ' + pausedDate + '</span>' +
