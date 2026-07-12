@@ -1,4 +1,7 @@
-// [PP] mod:84 · autor:Rune · 2026-07-11 UTC-6
+// [PP] mod:85 · autor:Rune · 2026-07-11 22:45 UTC-6
+// TKT2 (REQ CAEL-01): _initQIncSubTab eliminado (target inexistente tras migración a tab
+// top-level) · shell:backlog-render-dirty corregido a getCurrentTab()==='incidentes' · 3
+// comentarios actualizados (#sspanel-qinc → #tab-incidentes). Sin cambio en renderQIncPanel() interno.
 // TKT3 (REQ-refactor-item-shape-itil-scrum, parent [pendiente-ID] — confirmar código real en
 //   Locus): concat(getItems()) eliminado en renderQIncPanel() y _updateSubtabBadges() — ambos
 //   leen exclusivamente getIncidents(), alineados con _getCountableBaseForSubtab('qinc')
@@ -167,7 +170,7 @@ import { _getActiveProjectFilter, getActiveSprints, saveBacklog, refreshHistoric
 
 import { showToast } from './locus-toast.js';
 
-import { esc } from './locus-ui-shell.js';
+import { esc, getCurrentTab } from './locus-ui-shell.js';
 import { incSlaPriority } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
 import { _renderPlanningView, _attachPlanViewDelegation, _statusPills } from './locus-sprint-planificacion.js';
 import { _updateDocLogCount } from './locus-doc-log.js';
@@ -510,7 +513,7 @@ function _emptySprintHeaderHtml(sprintId, sprintObj) {
 function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _matchesQuery, _sortGroup, q, onRendered) {
   // B-202606-076 / TKT-C1: _isQBacklog/_isQDisc importadas desde locus-backlog-core.js — fuente única.
   // TKT (REQ-[pendiente-ID]): ítems ITIL (INC/PRB/KE/CHG con queue Q-INC) excluidos de #backlog-list —
-  // panel dedicado vive en #sspanel-qinc (sub-tab Q-INC). Filtro legacy por sprint string-match eliminado.
+  // panel dedicado vive en #tab-incidentes (TKT2 REQ CAEL-01: migrado de sub-tab a tab top-level). Filtro legacy por sprint string-match eliminado.
   // [tmp:tkt-isqinc-unify]: _isQInc local eliminada — usa isQIncItem() importada desde locus-backlog-core.js.
 
   // T-202606-090 AC-6 / TKT-C1: ítems sin sprint (Q-Backlog/Q-DISC) excluidos de #backlog-list —
@@ -546,7 +549,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
   // B-068: sprints 'active' o 'scheduled' (programado) sin ningún ítem visible (ni pendiente
   // ni done) no entran a sprintMap por los dos bloques anteriores — su header desaparecía de
   // la Vista Lista. Se registran aquí con array vacío para que el forEach de sprint groups los
-  // incluya siempre. Q-INC queda excluido — vive en su propio sub-tab (#sspanel-qinc), no en
+  // incluya siempre. Q-INC queda excluido — vive en su propio tab top-level (#tab-incidentes), no en
   // #backlog-list. Sprints 'closed' quedan excluidos — su visibilidad sin ítems no es parte de
   // este AC y se rige por el comportamiento ya existente.
   getActiveSprints().forEach(s => {
@@ -631,7 +634,7 @@ function _renderVistaLista(listEl, pendienteItems, doneItems, terminalItems, _ma
 
   // T-202606-090 AC-6 / TKT-C1: bloque "Icebox al final" eliminado de #backlog-list — los ítems
   // sin sprint (Q-Backlog/Q-DISC) se muestran en renderQBacklogPanel()/renderQDiscPanel() (sub-tabs).
-  // TKT (REQ-[pendiente-ID]): ítems ITIL excluidos del mismo modo — ver #sspanel-qinc.
+  // TKT (REQ-[pendiente-ID]): ítems ITIL excluidos del mismo modo — ver #tab-incidentes.
 
   // Cerradas — R/T/B descartado + P descartado + P promovida — bloque unificado
   // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado' y 'promovida')
@@ -1000,23 +1003,10 @@ export function renderBacklogList(onRendered) {
 // (motor compartido) y a locus-backlog-qbacklog.js / locus-backlog-qdisc.js (cada zona con su
 // propio módulo — side-effect import requerido en main.js, ver CHECKPOINT).
 
-// TKT (REQ-[pendiente-ID]): _initQIncSubTab — listener del sub-tab Q-INC, faltante hasta esta
-// entrega. Mismo patrón que _initQBacklogSubTab/_initQDiscSubTab: remueve .active de todos los
-// .session-subpanel y .tpl-nav-btn antes de activar el propio — sin esto, sspanel-qinc nunca
-// recibía .active y el panel previamente activo quedaba visible junto al contenido de Q-INC
-// (renderQIncPanel() puebla #qinc-panel-body independientemente del estado de .active del padre).
-(function _initQIncSubTab() {
-  const btn = document.getElementById('sstab-btn-qinc');
-  if (!btn) return;
-  btn.addEventListener('click', function () {
-    document.querySelectorAll('.tpl-nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.session-subpanel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    const panel = document.getElementById('sspanel-qinc');
-    if (panel) panel.classList.add('active');
-    renderQIncPanel();
-  });
-})();
+// TKT2 (REQ CAEL-01): _initQIncSubTab eliminado — sstab-btn-qinc/sspanel-qinc ya no existen.
+// switchTab('incidentes') en locus-ui-shell.js gestiona .tab-panel/.tab-btn (mecanismo genérico
+// de primer nivel) y despacha 'shell:render-qinc' directamente — el listener de la línea ~1250
+// sigue siendo el único punto de entrada a renderQIncPanel(), sin cambio de firma ni de lógica interna.
 
 // TKT (REQ-[pendiente-ID]): renderQIncPanel — render del panel Q-INC en #qinc-panel-body.
 // Renderiza ítems ITIL (INC/PRB/KE/CHG) cuya queue termina en '-Q-INC' del proyecto activo.
@@ -1249,10 +1239,12 @@ function _attachQIncDelegation(container) {
 // Proyecto cambiado con sub-tab Q-INC activo → re-render automático vía este evento.
 window.addEventListener('shell:render-qinc', () => { renderQIncPanel(); });
 
-// Re-render del panel Q-INC cuando el backlog cambia y el panel está activo
+// Re-render del panel Q-INC cuando el backlog cambia y el tab Incidentes está activo.
+// TKT2 (REQ CAEL-01): antes checkeaba #sspanel-qinc.active (sub-tab eliminado, el ID ya no existe
+// en el DOM) — corregido a getCurrentTab() === 'incidentes', mismo criterio que el resto del shell
+// usa para saber qué tab de primer nivel está activo (ver locus-ui-shell.js currentTab).
 window.addEventListener('shell:backlog-render-dirty', () => {
-  const panel = document.getElementById('sspanel-qinc');
-  if (panel && panel.classList.contains('active')) renderQIncPanel();
+  if (getCurrentTab() === 'incidentes') renderQIncPanel();
 });
 
 // T-202606-092: renderHistoricoPanel — render del panel Histórico en #sspanel-historico.

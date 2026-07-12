@@ -1,4 +1,6 @@
-// [PP] mod:42 · autor:Rune · 2026-07-10 UTC-6
+// [PP] mod:43 · autor:Rune · 2026-07-11 22:45 UTC-6
+// TKT2 (REQ CAEL-01): switchTab agrega caso 'incidentes' (dispatch shell:render-qinc) —
+// switchSubTab pierde el bloque/entrada 'qinc', sub-tab eliminado (ver index.html mod:112).
 // INC-[pendiente-ID]: closeItemEditor agregado al import de locus-backlog-editor.js — la
 // función existe y está exportada ahí, pero el import previo no la incluía. Invocada sin
 // import en dos handlers de este archivo (~L1357, ~L1363), causando ReferenceError en runtime.
@@ -148,6 +150,10 @@ export function switchTab(tab) {
   } else if (tab === 'proyectos') {
     // (a) event dispatch — locus-projects.js escucha 'shell:render-proyectos'
     window.dispatchEvent(new CustomEvent('shell:render-proyectos'));
+  } else if (tab === 'incidentes') {
+    // TKT2 (REQ CAEL-01): dispatch movido aquí desde switchSubTab('qinc') —
+    // mismo evento 'shell:render-qinc' que locus-backlog-render.js ya escucha, sin cambio de render.
+    window.dispatchEvent(new CustomEvent('shell:render-qinc'));
   }
 
   // B-[pendiente-ID]: cada tab-panel tiene su propio overflow-y:auto —
@@ -163,7 +169,7 @@ export function switchTab(tab) {
 
 export function switchSubTab(sub) {
   currentSubTab = sub;
-  ['backlog','qbacklog','qdisc','qinc','htmlmap','context','plan','contratos','historico'].forEach(s => {
+  ['backlog','qbacklog','qdisc','htmlmap','context','plan','contratos','historico'].forEach(s => {
     const btn = document.getElementById('sstab-btn-' + s);
     const panel = document.getElementById('sspanel-' + s);
     if (btn) btn.classList.toggle('active', s === sub);
@@ -198,11 +204,8 @@ export function switchSubTab(sub) {
     // (sstab-btn-qdisc / sspanel-qdisc) y con locus-backlog-render.js (renderQDiscPanel).
     window.dispatchEvent(new CustomEvent('shell:render-qdisc'));
   }
-  if (sub === 'qinc') {
-    // (a) event dispatch — locus-backlog-render.js escucha 'shell:render-qinc'
-    window.dispatchEvent(new CustomEvent('shell:render-qinc'));
-    // T-202606-098 T1: renderStats()/updateStatusFilterUI() eliminados — exclusivos de subtab backlog
-  }
+  // TKT2 (REQ CAEL-01): bloque 'qinc' removido de aquí — sstab-btn-qinc/sspanel-qinc
+  // ya no existen, Q-INC se activa vía switchTab('incidentes'), no switchSubTab('qinc').
   if (sub === 'context') {
     // (a) event dispatch — locus-docs.js escucha 'shell:render-context'
     window.dispatchEvent(new CustomEvent('shell:render-context'));

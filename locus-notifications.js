@@ -1,4 +1,6 @@
-// [PP] mod:9 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:10 · autor:Rune · 2026-07-11 23:10 UTC-6
+// TKT3 (REQ CAEL-01): counts extendido con 'incidentes' · notificación incHigh cambia tab de
+// 'backlog' a 'incidentes' — badge del tab Incidentes ahora independiente del de Backlog.
 // TKT-202607-INC-NAMING (INC-[pendiente-ID]): la alerta "INC high sin resolver" (__BR-Core
 //   §6) era código muerto — iteraba `items` (getItems()), que nunca contiene tipo INC desde
 //   la separación ITEMS/INCIDENTS de TKT-202607-005. Import de getIncidents() agregado,
@@ -246,7 +248,7 @@ export function _computeNotifications() {
       const id  = 'inc-high-' + item.code;
       const lbl = (item.title || '').substring(0, 40);
       notifs.push({
-        id, type: 'incHigh', tab: 'backlog', icon: '\uD83D\uDED1',
+        id, type: 'incHigh', tab: 'incidentes', icon: '\uD83D\uDED1',
         title: 'Incidente high sin resolver',
         body: item.code + (lbl ? ' \u2014 ' + lbl : '') + ' lleva ' + Math.floor(ageHours) + 'h sin resolver',
         action: function() { navigateToItem(item.code); }
@@ -323,7 +325,8 @@ export function updateTabNotifBadges(allNotifs) {
   const unseen = notifs.filter(function(n) { return !read.has(n.id); });
 
   // Contar por tab
-  const counts = { tracker: 0, backlog: 0, analytics: 0, proyectos: 0 };
+  // TKT3 (REQ CAEL-01): 'incidentes' agregado — badge del tab Incidentes independiente del de Backlog.
+  const counts = { tracker: 0, backlog: 0, analytics: 0, proyectos: 0, incidentes: 0 };
   unseen.forEach(function(n) {
     if (n.tab && counts.hasOwnProperty(n.tab)) counts[n.tab]++;
   });

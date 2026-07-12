@@ -1,4 +1,8 @@
-// [PP] mod:47 · autor:Rune · 2026-07-10 21:30 UTC-6
+// [PP] mod:48 · autor:Rune · 2026-07-11 23:10 UTC-6
+// TKT3 (REQ CAEL-01, contract_update: sí): navigateToItem() ahora distingue ítems ITIL
+// (getIncidents(), navega a 'incidentes', selector .qinc-item) de REQ/TKT/DISC (getItems(),
+// 'backlog', selector .item) — antes un código INC nunca se encontraba y el deep-link fallaba
+// en silencio. Firma sin cambio: navigateToItem(code) → void.
 // TKT1 (REQ-202607-026 · AC3 — cierre de blocked_at, archivos corregido por Cael vía patch):
 //   renderSprintItems() — spRs gana condición !i.draft. Un REQ con draft:true y sprint ya
 //   asignado (heredado del sprint que Cael declaró al especificar) no aparece en la lista del
@@ -1514,6 +1518,24 @@ export function createSprintFromGroup(id, name) {
 // R-[pendiente-ID]: navegar a un ítem del backlog por código — cambia a tab backlog, sub-tab backlog, hace scroll y pulsa highlight
 export function navigateToItem(code) {
   if (!code) return;
+  // TKT3 (REQ CAEL-01): distinguir ítems ITIL (INC/PRB/KE/CHG, viven en getIncidents()) de
+  // REQ/TKT/DISC (getItems()) — antes navigateToItem asumía siempre getItems()+'backlog', un
+  // código ITIL nunca se encontraba ahí y el deep-link fallaba en silencio (item undefined,
+  // early return implícito en el bloque de activeStatuses, pero switchTab('backlog') igual
+  // se ejecutaba y el setTimeout de scroll no encontraba .item[data-code] porque el card real
+  // usa la clase .qinc-item, no .item — ver _Locus-css-ref buildQIncItem()).
+  const incItem = getIncidents().find(i => i.code === code);
+  if (incItem) {
+    switchTab('incidentes');
+    setTimeout(() => {
+      const el = document.querySelector(`.qinc-item[data-code="${CSS.escape(code)}"]`);
+      if (!el) return;
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('bitem--nav-highlight');
+      setTimeout(() => el.classList.remove('bitem--nav-highlight'), 1400);
+    }, 120);
+    return;
+  }
   // Asegurar que el filtro de status incluye el status del ítem
   const item = getItems().find(i => i.code === code);
   if (item && !activeStatuses.has(item.status)) {
