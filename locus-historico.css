@@ -1,3 +1,14 @@
+/* [PP] mod:7 · autor:Nova · 2026-07-12 UTC-6 */
+/* Corrección de contraste — mod:6 entregó opacity:0.85 como supuesto conservador sin
+   verificar contra tokens reales (locus-base.css no estaba adjunto en esa sesión). Con
+   los hex reales (--text2 dark #8b90c0, --bg dark #0b0c10, --surface2 dark #191b28):
+   0.65 (original) ≈ 3.1–3.3:1 — ya fallaba 4.5:1 antes de cualquier cambio de esta sesión.
+   0.85 ≈ 4.4–4.9:1 según backdrop real (no confirmado — #historico-body no declara
+   background propio, ancestro usa var(--bg) por locus-layout.css) — caso más ajustado
+   queda bajo el mínimo. Subido a 0.9 ≈ 4.76:1, con margen en ambos escenarios de backdrop.
+   Cálculo por luminancia relativa WCAG sobre texto --text2 (caso is-done, el más ajustado
+   de los dos que existen en .bitem-title) — no verificado con DevTools en vivo, founder
+   puede confirmar con el contrast checker del navegador para cerrar con certeza. */
 /* [PP] mod:6 · autor:Nova · 2026-07-12 UTC-6 */
 /* Read-only treatment (#historico-body .item / :hover): opacidad subida de 0.65/0.8 a
    0.85/0.95 — founder señaló que la diferenciación fuerte perdió sentido ahora que
@@ -275,7 +286,7 @@
 /* Escopado a #historico-body — buildBacklogItem sin modificación.  */
 
 #historico-body .item {
-  opacity: 0.85;
+  opacity: 0.9;
   transition: var(--trans-color);
 }
 
