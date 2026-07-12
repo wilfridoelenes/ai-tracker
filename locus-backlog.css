@@ -1,4 +1,4 @@
-/* [PP] mod:90 · autor:Nova · 2026-07-12 UTC-6 */
+/* [PP] mod:91 · autor:Nova · 2026-07-12 UTC-6 */
 /* TKT1 (CAEL-02 — REQ deuda técnica CSS Purity/código muerto en locus-sprint-planificacion.js):
    agregada .bl-sprint-option-bar-fill al final del archivo — width vía custom property
    --sprint-option-bar-w en vez de propiedad width literal en style= inline (violación
@@ -5692,6 +5692,19 @@
   color: var(--amber);
   background: color-mix(in srgb, var(--amber) 10%, transparent);
   border-color: color-mix(in srgb, var(--amber) 28%, transparent);
+}
+
+/* Hallazgo fuera de scope resuelto en sesión (dueño presente + patch + sin bifurcación de
+   founder): aclara que #qdisc-stats-block es universo global (discovery+promoted+descartado),
+   distinto del universo de #qdisc-panel-body (solo discovery). Misma tipografía que
+   .stat-detail-label — reuso de patrón, no variable nueva. */
+.qdisc-stats-caption {
+  display: block;
+  font-size: var(--text-2xs);
+  color: var(--hint);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 4px 0 0 12px;
 }
 
 /* TKT-[pendiente-ID] (Nova — REQ-[pendiente-ID], design_intent: qdisc_stats_block_v2):

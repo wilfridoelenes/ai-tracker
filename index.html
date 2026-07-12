@@ -1,4 +1,4 @@
-<!-- [PP] mod:112 · autor:Rune · 2026-07-11 22:45 UTC-6 -->
+<!-- [PP] mod:113 · autor:Rune · 2026-07-12 UTC-6 -->
 <!-- TKT2 (REQ CAEL-01 · Q-INC tab top-level): #tab-incidentes agregado como tab de primer nivel,
      #sspanel-qinc/#sstab-btn-qinc removidos del sub-tab de Backlog. Ver locus-ui-shell.js/locus-backlog-render.js. -->
 <!-- TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): agregado shell estático
@@ -537,6 +537,32 @@
          alcanza status 'done' (__BR-Ecosystem §5), el shell quedó muerto desde REQ congruencia-qdisc.
          Ver locus-backlog-qdisc.js / locus-backlog-zone-engine.js para el resto del cleanup. -->
     <div class="session-subpanel" id="sspanel-qdisc">
+      <!-- TKT-[pendiente-ID] (REQ-[pendiente-ID]): shell estático del bloque de estadísticas
+           por status — siempre presente en el DOM, 4 celdas fijas (Total/Discovery/Promoted/
+           Descartado), contenido vía _renderQDiscStatsBlock() en locus-backlog-qdisc.js. Nunca
+           se oculta, a diferencia de #qdisc-grooming-banner — con 0 DISCs muestra 0 en las 4. -->
+      <div class="qdisc-stats-block" id="qdisc-stats-block">
+        <div class="qdisc-stat-cell">
+          <span class="qdisc-stat-label">Total</span>
+          <span class="qdisc-stat-n" id="qdisc-stat-total">0</span>
+        </div>
+        <div class="qdisc-stat-cell qdisc-stat-cell--discovery">
+          <span class="qdisc-stat-label">Discovery</span>
+          <span class="qdisc-stat-n" id="qdisc-stat-discovery">0</span>
+        </div>
+        <div class="qdisc-stat-cell qdisc-stat-cell--promoted">
+          <span class="qdisc-stat-label">Promoted</span>
+          <span class="qdisc-stat-n" id="qdisc-stat-promoted">0</span>
+        </div>
+        <div class="qdisc-stat-cell">
+          <span class="qdisc-stat-label">Descartado</span>
+          <span class="qdisc-stat-n" id="qdisc-stat-discarded">0</span>
+        </div>
+      </div>
+      <!-- Hallazgo fuera de scope resuelto en sesión (dueño presente + nivel patch + sin
+           bifurcación de founder): stats globales vs lista filtrada a discovery — caption
+           estático, sin dato dinámico, no requiere JS. -->
+      <span class="qdisc-stats-caption">Todo el proyecto — incluye promovidas y descartadas</span>
       <!-- TKT-202607-010 (TKT2 REQ-202607-006): shell estático del indicador de límite
            (15 activos máx) — siempre presente en el DOM, contenido/color vía
            renderQDiscPanel() en locus-backlog-qdisc.js. -->
