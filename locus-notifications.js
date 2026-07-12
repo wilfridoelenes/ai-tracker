@@ -1,4 +1,6 @@
-// [PP] mod:10 · autor:Rune · 2026-07-11 23:10 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-07-12 00:05 UTC-6
+// Fix DISC (bug preexistente, no relacionado a REQ CAEL-01): counts agrega 'sprint' —
+// sprintLow declaraba tab:'sprint' sin clave correspondiente en counts, badge nunca se incrementaba.
 // TKT3 (REQ CAEL-01): counts extendido con 'incidentes' · notificación incHigh cambia tab de
 // 'backlog' a 'incidentes' — badge del tab Incidentes ahora independiente del de Backlog.
 // TKT-202607-INC-NAMING (INC-[pendiente-ID]): la alerta "INC high sin resolver" (__BR-Core
@@ -326,7 +328,10 @@ export function updateTabNotifBadges(allNotifs) {
 
   // Contar por tab
   // TKT3 (REQ CAEL-01): 'incidentes' agregado — badge del tab Incidentes independiente del de Backlog.
-  const counts = { tracker: 0, backlog: 0, analytics: 0, proyectos: 0, incidentes: 0 };
+  // Fix DISC (bug preexistente): 'sprint' agregado — sprintLow (línea ~225) declara tab:'sprint'
+  // desde antes de esta sesión, pero counts no tenía la clave — el badge del tab Sprint nunca se
+  // incrementaba pese a que la notificación existía y estaba habilitada (cfg.sprintLow.enabled).
+  const counts = { tracker: 0, backlog: 0, analytics: 0, proyectos: 0, incidentes: 0, sprint: 0 };
   unseen.forEach(function(n) {
     if (n.tab && counts.hasOwnProperty(n.tab)) counts[n.tab]++;
   });
