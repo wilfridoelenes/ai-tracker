@@ -1,4 +1,7 @@
-// [PP] mod:105 · autor:Rune · 2026-07-11 16:05 UTC-6
+// [PP] mod:106 · autor:Rune · 2026-07-11 16:20 UTC-6
+// TKT-202607-009: mensaje canónico de DocLog al rechazar status:historico alineado a
+//   BR-Ecosystem §5 (punto final agregado) — corregido en ambas ramas de construcción de
+//   tgItems (parsePaste inline ~L979 y _buildTgItemsFromParsed ~L1880). Sin cambio de lógica.
 // TKT (REQ-[pendiente-ID] · ref_id CAEL-01/CAEL-02 · Resolución de ref_id+title, parte 1/2 —
 //   propagación): los 3 puntos de construcción de tgItems (parsePaste inline ~L999,
 //   _buildTgItemsFromParsed rama rol-no-autorizado-bloqueado ~L1873 y rama normal ~L1920)
@@ -976,7 +979,7 @@ export function parsePaste(id) {
           _blogLog(
             'status-historico-emitido',
             _it.code || '[pendiente-ID]',
-            `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint`,
+            `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint.`,
             'backlog'
           );
           continue; // ítem omitido — resto del CHECKPOINT continúa
@@ -1877,7 +1880,7 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
       _blogLog(
         'status-historico-emitido',
         it.code || '[pendiente-ID]',
-        `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint`,
+        `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint.`,
         'backlog'
       );
       continue;
