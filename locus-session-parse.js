@@ -1,4 +1,4 @@
-// [PP] mod:106 · autor:Rune · 2026-07-11 18:51 UTC-6
+// [PP] mod:107 · autor:Rune · 2026-07-11 UTC-6
 // TKT-202607-011 (Sprint PP-S-01): _parseBatchBlock gana gate de draft obligatorio — un bloque
 //   del batch con REQ/TKT nuevo o con cambio de status y sin draft declarado (ckpt.draftRaw
 //   undefined) se rechaza como bloque inválido (mismo tratamiento que JSON malformado), sin
@@ -1173,7 +1173,10 @@ export function parsePaste(id) {
     // T-202606-070: persistir rol y archivos del CHECKPOINT — ambos paths JSON y legacy
     rol:      ckpt ? (ckpt.rol      || '') : '',
     archivos: ckpt ? (ckpt.archivos || '') : '',
-    // T-202606-013: propagar draft a ai._parsed — necesario para guard secundario en _doApplyMergeAndFinish
+    // T-202606-013: propagar draft a ai._parsed. El guard "secundario" en _doApplyMergeAndFinish
+    //   que motivó esta propagación fue eliminado por huérfano (INC-202607-001, locus-session-save.js).
+    //   La propagación sigue siendo necesaria por otros consumidores: draftPending (locus-session-save.js:551)
+    //   y _baseMsg (locus-session-save.js:863) — DISC-202607-009.
     draft: ckpt ? (ckpt.draft === true) : false,
     // TKT-202606-014: propagar valor crudo (undefined/true/false) — ckpt.draftRaw es undefined
     // cuando ckpt es el fallback de parseCheckpoint nulo (línea ~700), igual que ausencia real del campo.
