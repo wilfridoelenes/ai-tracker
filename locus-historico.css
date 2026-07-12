@@ -1,3 +1,15 @@
+/* [PP] mod:6 · autor:Nova · 2026-07-12 UTC-6 */
+/* Read-only treatment (#historico-body .item / :hover): opacidad subida de 0.65/0.8 a
+   0.85/0.95 — founder señaló que la diferenciación fuerte perdió sentido ahora que
+   Histórico vive en su propio tab, ya no adyacente a ítems activos en la misma lista.
+   La opacidad pasa de "diferenciación en lista compartida" a affordance sutil de
+   solo-lectura. Sin cambio en controles deshabilitados (item-status-select,
+   bitem-effort-dot) — esos usan opacidad reducida para señalar no-interactividad
+   (patrón D-04, _Locus-ux-ref), no por adyacencia con activos, fuera de scope de este
+   ajuste. Contraste no re-verificado numéricamente — --text/--text2/--bg/--surface2 no
+   tienen hex declarado en _Locus-css-ref (viven en locus-base.css, no adjunto en esta
+   sesión). Valor elegido con margen conservador; founder confirma visualmente que sigue
+   siendo legible. */
 /* [PP] mod:5 · autor:Nova · 2026-07-05 UTC-6 */
 /* REQ-[pendiente-ID] Unificar vocabulario historico: rename mecánico de todos los selectores
    arch-* → historico-* (1:1, sin cambio de reglas ni valores — mismo aspecto visual).
@@ -263,12 +275,12 @@
 /* Escopado a #historico-body — buildBacklogItem sin modificación.  */
 
 #historico-body .item {
-  opacity: 0.65;
+  opacity: 0.85;
   transition: var(--trans-color);
 }
 
 #historico-body .item:hover {
-  opacity: 0.8;
+  opacity: 0.95;
 }
 
 /* Drag handle — sin sentido en archivo */
