@@ -1,3 +1,13 @@
+// [PP] mod:102 · autor:Rune · 2026-07-11 UTC-6
+// INC-[pendiente-ID] (fix — patches múltiples en un CHECKPOINT: solo el primero se aplicaba):
+//   applyPatchesFromTG() llamaba saveBacklog() dentro del forEach, una vez por patch — N
+//   upserts completos de tracker_items concurrentes sin await entre sí, capturados en
+//   instantes distintos del loop síncrono. Race condition: el upsert que completa al final
+//   no necesariamente refleja el estado más reciente, revirtiendo silenciosamente patches
+//   posteriores al primero. Fix: saveBacklog() se mueve fuera del forEach — una sola llamada
+//   tras aplicar todas las mutaciones en memoria, condicionada a patched.length > 0.
+//   no_incluye: no modifica saveBacklog() ni syncState.withSaveLock() (locus-storage.js) —
+//   el fix elimina la causa (N llamadas) sin depender del mecanismo interno del lock.
 // [PP] mod:101 · autor:Rune · 2026-07-11 UTC-6
 // TKT-202607-005-bis (ignorar campo zona en REQ/TKT — sufijo -bis: colisiona con el código real
 //   TKT-202607-005 de separación ITEMS/INCIDENTS, mod:89 — ver _Locus-module-contracts §4.
@@ -2920,12 +2930,21 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
         changes,
         change: changes.map(c => c.field).join(' · ')
       });
-
-      saveBacklog();
     } else {
       ignoredPatches.push({ code, reason: 'sin-cambios' });
     }
   });
+
+  // INC-[pendiente-ID] (fix — múltiples patches en un mismo CHECKPOINT: solo el primero
+  // se aplicaba): saveBacklog() se llamaba dentro de este forEach, una vez por patch con
+  // cambios — cada llamada disparaba un upsert completo de tracker_items (items.map(_toItemRow),
+  // locus-storage.js) capturado en un instante distinto del loop síncrono, sin await entre
+  // llamadas. N upserts concurrentes de la tabla completa, sin garantía de que el que complete
+  // al final refleje el estado más reciente — race condition que revertía silenciosamente los
+  // patches posteriores al primero. Fix: una sola llamada después de que el forEach completa
+  // todas las mutaciones en memoria — el snapshot que se persiste ya incluye todos los patches
+  // del batch, sin depender del orden de resolución de red.
+  if (patched.length) saveBacklog();
 
   _markBacklogListDirty(); renderBacklogList();
   renderStats();
