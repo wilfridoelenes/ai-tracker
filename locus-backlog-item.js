@@ -1,3 +1,26 @@
+// [PP] mod:103 · autor:Rune · 2026-07-11 UTC-6
+// TKT-202607-008: applyPatchesFromTG() migrado de modelo lista blanca (_PATCH_ALLOWED_FIELDS,
+//   Set fijo de campos habilitados) a modelo de lista negra invertido (__BR-Ecosystem §8,
+//   infra_version 33) — todo campo del patch es patcheable por default salvo que esté en
+//   _PATCH_NON_PATCHEABLE. _PATCH_NON_PATCHEABLE ganó ref_id, intencion y kill_criteria —
+//   antes solo declaraba code/type/schema_version, dejando esos tres campos sin gate explícito
+//   si alguien los hubiera agregado al whitelist anterior (nunca ejercitado en la práctica,
+//   _PATCH_ALLOWED_FIELDS tampoco los declaraba). _PATCH_ALLOWED_FIELDS eliminada — sin otro
+//   consumidor en el archivo (verificado por grep antes de eliminar). El loop de aplicación de
+//   campos itera ahora sobre Object.keys(patch) en vez del Set fijo — las ramas por campo
+//   (status/incidentStatus/ac/sprint/promovida_a/draft/discard_reason/priority-ITIL/genérico)
+//   no cambian de lógica, solo de disparador: antes "¿está en la whitelist Y presente en el
+//   patch?", ahora "¿está presente en el patch Y no está en la blacklist?". Efecto observable:
+//   un campo nuevo del schema (ej. triggered_by, archivos, comportamiento_actual) ahora se
+//   aplica sin requerir habilitación explícita en este archivo — antes quedaba silenciosamente
+//   sin aplicar aunque no hubiera razón de negocio para excluirlo. no_incluye: no toca el loop
+//   de advertencia de campos no patcheables (línea ~2712, ya iteraba Object.keys(patch) contra
+//   _PATCH_NON_PATCHEABLE desde antes de este TKT) — solo la expansión del Set que consume.
+//   Deuda detectada, no corregida en este TKT (fuera de las 3 AC declaradas): ese mismo loop de
+//   advertencia genera un DocLog "Campo no patcheable ignorado: code" en TODO patch, porque
+//   `code` es siempre una key presente en el objeto patch (es el identificador de ruteo, no un
+//   campo de datos) y también está en la blacklist — ruido preexistente al modelo whitelist
+//   anterior, no introducido por este cambio. Registrado como TKT de refactor, priority: low.
 // [PP] mod:102 · autor:Rune · 2026-07-11 UTC-6
 // INC-[pendiente-ID] (fix — patches múltiples en un CHECKPOINT: solo el primero se aplicaba):
 //   applyPatchesFromTG() llamaba saveBacklog() dentro del forEach, una vez por patch — N
@@ -2632,8 +2655,14 @@ export function _checkAndOrphanParentR(childCode, nowTs) {
 // R-202605-062: applyPatchesFromTG — aplica patches de campo individual sobre ítems existentes
 // AC-1: type: "patch" es instrucción de operación — no tipo de ítem
 // AC-2: solo requiere code + campos a patchear
-// AC-3: campos patcheables: title, status, priority, effort, area, sprint, role, ac, origin
-// AC-3b: campos no patcheables (code, type, schema_version) → advertencia DocLog, sin crash
+// AC-3 (TKT-202607-008 · modelo lista negra, __BR-Ecosystem §8 infra_version 33): todo campo
+//   del patch es patcheable por default — salvo los declarados en _PATCH_NON_PATCHEABLE. Un
+//   campo nuevo del schema (REQ/TKT) es patcheable automáticamente sin requerir habilitación
+//   explícita en este Set. Reemplaza el modelo whitelist anterior (_PATCH_ALLOWED_FIELDS,
+//   eliminada en este TKT).
+// AC-3b: campos no patcheables (code, type, schema_version, ref_id, intencion, kill_criteria)
+//   → advertencia DocLog, sin crash. Los tres últimos agregados en TKT-202607-008 — antes solo
+//   code/type/schema_version estaban en la lista.
 // AC-4: ac presente → reemplaza array completo
 // AC-5: código no existe en backlog → advertencia DocLog, sin crash
 // AC-6: código placeholder → ignorado (manejado en parsePaste antes de llegar aquí)
@@ -2641,8 +2670,7 @@ export function _checkAndOrphanParentR(childCode, nowTs) {
 // AC-8: mezcla ítems + patches en mismo ---getItems()--- → parser separa por type
 // AC-9: panel diff muestra solo campos del patch (changes array)
 // AC-11: sin regresión en mergeBacklogFromTG
-const _PATCH_ALLOWED_FIELDS = new Set(['title', 'status', 'incidentStatus', 'priority', 'effort', 'area', 'sprint', 'role', 'ac', 'origin', 'parentId', 'promovida_a', 'origenDisc', 'discard_reason', 'draft', 'verified_by']); // R-202605-004: origin patcheable · B-202605-016: parentId patcheable · T-202605-137: promovida_a + origenDisc patcheables · T-202606-025: discard_reason patcheable · INC-[pendiente-ID]: incidentStatus patcheable — antes no había campo patcheable que reparara status corrupto en ítems ITIL ya persistidos · TKT2 (REQ-202607-026): draft + verified_by patcheables — Fase 5 de Finn avala vía type:patch sobre el código ya asignado por Cael (draft:true en creación), nunca reemitiendo el ítem completo
-const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version']);
+const _PATCH_NON_PATCHEABLE = new Set(['code', 'type', 'schema_version', 'ref_id', 'intencion', 'kill_criteria']); // TKT-202607-008: ref_id/intencion/kill_criteria agregados — modelo lista negra, __BR-Ecosystem §8 infra_version 33. code/type/schema_version son identidad del ítem — no cambian sin re-emisión. ref_id es exclusivo del CHECKPOINT de creación — sin función posterior. intencion/kill_criteria requieren Pausa de Ciclo o sesión explícita con el founder, nunca patch silencioso.
 
 export function applyPatchesFromTG(patches, sessionId, opts) {
   if (!patches || !patches.length) return { patched: [], ignored: [] };
@@ -2679,9 +2707,11 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
 
   patches.forEach(patch => {
     // B-202605-016: normalizar campo parent (schema CHECKPOINT) → parentId (campo interno)
-    // T-[pendiente-ID] (REQ-unify-parent TKT2): eliminar patch.parent tras normalizar — no es
-    // campo patcheable (_PATCH_ALLOWED_FIELDS solo declara parentId), dejarlo no tenía efecto
-    // pero conservarlo en el objeto patch es ruido del campo legacy.
+    // T-[pendiente-ID] (REQ-unify-parent TKT2): eliminar patch.parent tras normalizar — el campo
+    // interno es parentId, no parent. TKT-202607-008 (modelo lista negra): sin este delete,
+    // patch.parent sobreviviría al Object.keys(patch) del loop de aplicación y se escribiría
+    // como existing.parent — campo que ningún consumidor del ítem lee. El delete sigue siendo
+    // obligatorio bajo el modelo nuevo, no solo higiene de campo legacy.
     if (patch.parent) { if (!patch.parentId) patch.parentId = patch.parent; delete patch.parent; }
 
     // B-202606-022: resolver [tmp:slug] en parentId usando slugMap post-mergeBacklogFromTG
@@ -2719,9 +2749,13 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
     const changes = [];
     const nowTs = Date.now();
 
-    // Iterar solo sobre campos patcheables presentes en el objeto patch
-    _PATCH_ALLOWED_FIELDS.forEach(field => {
-      if (!(field in patch)) return; // campo no incluido en este patch → no tocar
+    // TKT-202607-008: modelo lista negra — iterar sobre las keys del patch entrante en vez del
+    // Set fijo _PATCH_ALLOWED_FIELDS (eliminado). Un campo en _PATCH_NON_PATCHEABLE ya generó su
+    // advertencia DocLog arriba — aquí simplemente no se aplica. Cualquier otro campo presente en
+    // el patch es patcheable por default, incluidos campos nuevos del schema no listados abajo —
+    // caen en el bloque genérico al final de este forEach.
+    Object.keys(patch).forEach(field => {
+      if (_PATCH_NON_PATCHEABLE.has(field)) return; // ya advertido — no aplicar
       const incoming = patch[field];
       const current  = existing[field];
 
