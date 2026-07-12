@@ -1,4 +1,4 @@
-/* [PP] mod:88 · autor:Nova · 2026-07-11 UTC-6 */
+/* [PP] mod:89 · autor:Nova · 2026-07-11 UTC-6 */
 /* TKT1 (CAEL-02 — REQ deuda técnica CSS Purity/código muerto en locus-sprint-planificacion.js):
    agregada .bl-sprint-option-bar-fill al final del archivo — width vía custom property
    --sprint-option-bar-w en vez de propiedad width literal en style= inline (violación
@@ -5757,7 +5757,7 @@
 .stat-area-chip.active {
   background: var(--accent);
   border-color: var(--accent);
-  color: var(--bg);
+  color: var(--text-on-accent);
 }
 
 .stat-area-chip.active:hover {
