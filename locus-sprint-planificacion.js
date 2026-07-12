@@ -1,4 +1,6 @@
-// [PP] mod:26 · autor:Rune · 2026-07-11 14:53 UTC-6
+// [PP] mod:27 · autor:Rune · 2026-07-11 15:10 UTC-6
+// TKT-202607-010: código muerto _planDragOver/_planDragLeave eliminado — sin call sites reales,
+// la delegación inline en _attachPlanViewDelegation (dragenter/dragover/dragleave) ya cubre el comportamiento.
 // INC-[pendiente-ID]: fix drag&drop — currentTarget es getter-only en Event (post-ESM, strict mode).
 // Object.assign(e, {currentTarget}) lanzaba TypeError. _planDragStart/_planDragEnd/_planDrop
 // ahora reciben el elemento destino como parámetro explícito en vez de mutar el Event nativo.
@@ -504,17 +506,6 @@ function _planDragEnd(e, card) {
   _planDragCode = null;
 }
 
-function _planDragOver(e) {
-  e.preventDefault();
-  e.dataTransfer.dropEffect = 'move';
-  const col = e.currentTarget;
-  col.classList.add('bl-plan-col--over');
-}
-
-function _planDragLeave(e) {
-  e.currentTarget.classList.remove('bl-plan-col--over');
-}
-
 function _planDrop(e, col, targetCol, listEl) {
   e.preventDefault();
   // T-202605-028: limpiar en el destino exacto que recibió el drop
@@ -561,7 +552,7 @@ function _planDrop(e, col, targetCol, listEl) {
 }
 
 // T-202605-054: delegación de eventos para #backlog-list — plan view drag handlers
-// Cubre: _planDragStart · _planDragEnd · _planDragOver · _planDragLeave · _planDrop
+// Cubre: _planDragStart · _planDragEnd · dragenter/dragover/dragleave (inline) · _planDrop
 // T-202605-028: data-plan-col ahora puede ser 'left' o un sprintId real
 // B-202606-034: acepta listEl como parámetro — desde tab Sprint el container es
 // #sprint-planificar-container, no #backlog-list. Sin el parámetro los listeners
