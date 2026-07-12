@@ -1,3 +1,8 @@
+// [PP] mod:84 · autor:Rune · 2026-07-11 UTC-6
+// TKT3 (REQ-refactor-item-shape-itil-scrum, parent [pendiente-ID] — confirmar código real en
+//   Locus): concat(getItems()) eliminado en renderQIncPanel() y _updateSubtabBadges() — ambos
+//   leen exclusivamente getIncidents(), alineados con _getCountableBaseForSubtab('qinc')
+//   (locus-backlog-core.js). Ver comentarios inline en cada call site.
 // [PP] mod:83 · autor:Rune · 2026-07-10 20:05 UTC-6
 // TKT1 (REQ-202607-026 · AC3 — cierre de blocked_at, archivos corregido por Cael vía patch):
 //   _isBacklogScope (inline en _updateSubtabBadges) gana condición !i.draft — el badge del
@@ -1042,10 +1047,15 @@ export function renderQIncPanel() {
 
   // Ítems ITIL del proyecto activo — excluir descartados del conteo y del render
   // [tmp:tkt-isqinc-unify]: _isQIncItem local eliminada — usa isQIncItem() importada desde locus-backlog-core.js.
-  // TKT-202607-056: universo de datos corregido — INCIDENTS (persistencia física) vive separado
-  // de ITEMS desde REQ-202607-003/015; sin concat, incidentes con incidentStatus activo que solo
-  // existen en INCIDENTS quedaban invisibles en el panel.
-  const allQInc = getItems().concat(getIncidents()).filter(isQIncItem);
+  // TKT-202607-056 (histórico): concat(getItems()) se agregó porque el universo estaba
+  // incompleto en ese momento — ITIL vivía parcialmente en ambos arrays.
+  // TKT3 (REQ-refactor-item-shape-itil-scrum, parent [pendiente-ID] — confirmar código real en
+  // Locus): concat eliminado. _setITEMS()/_setIncidents() (locus-backlog-core.js) garantizan
+  // desde TKT2 de este mismo REQ que ningún ítem ITIL persiste en ITEMS — el universo Q-INC
+  // vive exclusivamente en INCIDENTS. Este cambio alinea renderQIncPanel() con
+  // _getCountableBaseForSubtab('qinc'), que ya leía solo INCIDENTS (TKT-202607-005) — antes de
+  // este TKT ambos módulos computaban el universo Q-INC de forma distinta.
+  const allQInc = getIncidents().filter(isQIncItem);
 
   // Badge: count de ítems activos (no closed/descartado); is-urgent si hay INC high vencido
   const badge = document.getElementById('tpl-badge-qinc');
@@ -1417,11 +1427,12 @@ export function _updateSubtabBadges() {
 
   // TKT (REQ-[pendiente-ID]): badge Q-INC — ítems ITIL no closed/descartado, is-urgent
   // si hay INC high con slaDeadline vencido. Misma lógica que el badge en renderQIncPanel.
-  // INC-202607-[pendiente-ID] (triggered_by: TKT-202607-056): mismo universo incompleto que
-  // renderQIncPanel tenía antes del fix — items.filter() sin INCIDENTS dejaba fuera incidentes
-  // que solo viven en persistencia física (tracker_incidents / INCIDENTS en memoria).
+  // TKT3 (REQ-refactor-item-shape-itil-scrum, parent [pendiente-ID] — confirmar código real en
+  // Locus): concat(items) eliminado — mismo motivo y mismo REQ que el cambio equivalente en
+  // renderQIncPanel() (ver comentario ahí). El parámetro `items` de esta función nunca
+  // contiene ITIL desde la garantía de _setITEMS(); leerlo aquí era vestigial.
   if (badgeQinc) {
-    const allQInc = items.concat(getIncidents()).filter(isQIncItem);
+    const allQInc = getIncidents().filter(isQIncItem);
     const countable = allQInc.filter(i => i.incidentStatus !== 'closed' && i.status !== 'descartado');
     if (!countable.length) {
       badgeQinc.textContent = '';

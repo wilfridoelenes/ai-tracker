@@ -1,3 +1,19 @@
+// [PP] mod:89 · autor:Rune · 2026-07-12 UTC-6
+// TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal —
+//   decisión del founder): el panel "+ Sprint nuevo" (#spnp-panel) deja de depender
+//   exclusivamente de que otro archivo (card del worker o modal standalone) haya poblado
+//   getPendingSprintProposal — gana su propio paste. _renderSpnpPanel, cuando no hay proposal
+//   pendiente, muestra textarea (#spnp-paste-ta) + botón "Parsear" en vez del hint vacío.
+//   _spnpHandlePanelClick gana rama 'parsear' → _spnpHandleParseClick(proj) (nueva): reusa
+//   parseCheckpoint (import nuevo desde locus-session-parse.js) — mismo parser que
+//   parsePaste/parsePasteStandalone, hereda el gate de exclusividad §12 (sprint_proposal +
+//   items REQ/TKT → _jsonParseError) sin código adicional. Si el parseo es válido, persiste vía
+//   setPendingSprintProposal (ya importado) y re-renderiza — reutiliza sin cambio el flujo de
+//   fields + Aprobar/Rechazar existente. _spnpShowParseError (nueva) — helper de error inline,
+//   mismo patrón visual que el error ya usado en la rama 'aprobar'. Ver mismo TKT en
+//   locus-session-save.js (retiro de setPendingSprintProposal en el flujo de card del worker) y
+//   locus-session-parse.js (retiro del Step 0 en el flujo standalone) — este archivo queda como
+//   único punto de entrada de sprint_proposal en el ecosistema.
 // [PP] mod:88 · autor:Rune · 2026-07-11 23:55 UTC-6
 // TKT4 fix (gap de Finn, Momento 1): _spnpQBacklogItems() ya no filtra por
 // projId/projectId de ítem — campo inexistente en el modelo de datos (ITEMS ya
@@ -51,8 +67,8 @@ import { openItemPanel } from './locus-backlog-panel.js';
 import { _renderPlanningView, _attachPlanCloseHandler, _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
 import { _getActiveSprint, confirmCloseSprint, createSprintFromGroup, openSprintRetroView, setSprintStatus, _getConflictingSprints } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · T-202606-105
 import { _gconfirmOpen } from './locus-modals.js';
-import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint, getHistoricoItemsSync, refreshHistoricoCache, getActiveProject, getPendingSprintProposal, clearPendingSprintProposal } from './locus-storage.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico — getHistoricoItemsSync/refreshHistoricoCache viven en locus-storage.js, no en locus-backlog-historico.js | TKT2 (REQ-[pendiente-ID]): getActiveProject/getPendingSprintProposal/clearPendingSprintProposal — panel "+ Sprint nuevo"
-import { _tryIngestSprintProposalFromParsed } from './locus-session-parse.js'; // TKT2 (REQ-[pendiente-ID]): misma función que usa Step 0 del DIFF al aprobar (ver locus-session-save.js _ckptMeta.onApproveProposal) — sin duplicar lógica de ingesta
+import { getAI, getActiveSprints, getAllSessions, save, _upsertSprint, getHistoricoItemsSync, refreshHistoricoCache, getActiveProject, getPendingSprintProposal, setPendingSprintProposal, clearPendingSprintProposal } from './locus-storage.js'; // INC-fix: contador de sprint cerrado no veía ítems migrados a historico — getHistoricoItemsSync/refreshHistoricoCache viven en locus-storage.js, no en locus-backlog-historico.js | TKT2 (REQ-[pendiente-ID]): getActiveProject/getPendingSprintProposal/clearPendingSprintProposal — panel "+ Sprint nuevo" | TKT (REQ-[pendiente-ID] · consolidación sprint_proposal): setPendingSprintProposal agregado — el panel persiste su propio paste ya parseado
+import { _tryIngestSprintProposalFromParsed, parseCheckpoint } from './locus-session-parse.js'; // TKT2 (REQ-[pendiente-ID]): misma función que usa Step 0 del DIFF al aprobar (ver locus-session-save.js _ckptMeta.onApproveProposal) — sin duplicar lógica de ingesta | TKT (REQ-[pendiente-ID] · consolidación de punto de entrada único de sprint_proposal): parseCheckpoint agregado — el panel parsea su propio paste, ya no depende de setPendingSprintProposal poblado desde otro archivo
 import { _getActiveProjectFilter } from './locus-proj-core.js';
 import { showToast, toast } from './locus-toast.js';
 
@@ -219,7 +235,17 @@ function _renderSpnpPanel() {
   const proposal = proj ? getPendingSprintProposal(proj.id) : null;
 
   if (!proposal) {
-    panel.innerHTML = '<div class="spnp-empty-hint">No hay ninguna propuesta de sprint pendiente de aprobación.</div>';
+    // TKT (REQ-[pendiente-ID] · consolidación de punto de entrada único de sprint_proposal —
+    // decisión del founder): este panel deja de depender de que otro archivo (card del worker
+    // o modal standalone) haya poblado la propuesta en storage — parsea su propio paste.
+    // design_intent: sprint-nuevo-panel-v1 (extensión — paste propio, sin borrador nuevo de Nova
+    // por tratarse de un textarea + botón, mismo patrón visual ya usado en modal standalone).
+    panel.innerHTML =
+      '<div class="spnp-empty-hint">Pegá acá el CHECKPOINT con <code>sprint_proposal</code> — debe ir en un bloque independiente, sin ítems REQ/TKT.</div>' +
+      '<textarea id="spnp-paste-ta" class="spnp-paste-ta" rows="6" placeholder="Pegar CHECKPOINT aquí..."></textarea>' +
+      '<div class="spnp-actions">' +
+        '<button class="btn-primary" type="button" data-spnp-action="parsear">Parsear</button>' +
+      '</div>';
     return;
   }
 
@@ -259,6 +285,11 @@ function _spnpHandlePanelClick(e) {
   const action = actionBtn.dataset.spnpAction;
   const proj = getActiveProject();
   if (!proj) return;
+
+  if (action === 'parsear') {
+    _spnpHandleParseClick(proj);
+    return;
+  }
 
   if (action === 'rechazar') {
     clearPendingSprintProposal(proj.id);
@@ -307,7 +338,64 @@ function _spnpHandlePanelClick(e) {
   }
 }
 
-// TKT4 (REQ-[pendiente-ID] · ref: CAEL-05): ítems Q-Backlog — REQ/TKT sin sprint
+// TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal —
+// decisión del founder): parsea el CHECKPOINT pegado directamente en el paste propio del panel
+// "+ Sprint nuevo" — única ruta de ingesta de sprint_proposal en todo el ecosistema. Reutiliza
+// parseCheckpoint (locus-session-parse.js) — mismo parser que parsePaste/parsePasteStandalone,
+// sin duplicar lógica de parseo ni el gate de exclusividad §12 (sprint_proposal + items REQ/TKT
+// → _jsonParseError, ya enforced dentro de parseCheckpoint). Si el parseo es válido, persiste
+// vía setPendingSprintProposal y re-renderiza el panel — reutiliza el flujo de fields +
+// Aprobar/Rechazar ya existente en _renderSpnpPanel, sin cambio en esa parte.
+// no_incluye: no valida rol emisor del CHECKPOINT (mismo criterio que _tryIngestSprintProposalFromParsed,
+// que tampoco lo valida — fuera de scope de este TKT). No maneja batch de múltiples CHECKPOINTs
+// en un solo paste — un paste = un sprint_proposal, mismo alcance que el panel ya tenía.
+function _spnpHandleParseClick(proj) {
+  const panel = document.getElementById('spnp-panel');
+  const ta = document.getElementById('spnp-paste-ta');
+  if (!panel || !ta) return;
+
+  const existingErr = panel.querySelector('.spnp-error');
+  if (existingErr) existingErr.remove();
+
+  const text = ta.value.trim();
+  if (!text) {
+    _spnpShowParseError(panel, 'Pegá el texto del CHECKPOINT antes de parsear.');
+    return;
+  }
+
+  const ckpt = parseCheckpoint(text);
+
+  if (!ckpt || !ckpt.isCheckpoint || !ckpt.titulo) {
+    _spnpShowParseError(panel, 'Formato inválido — se esperaba bloque JSON sin especificador de lenguaje.');
+    return;
+  }
+
+  if (ckpt._jsonParseError) {
+    _spnpShowParseError(panel, ckpt._jsonParseError);
+    return;
+  }
+
+  if (!ckpt._rawSprintProposal) {
+    _spnpShowParseError(panel, 'CHECKPOINT válido pero sin sprint_proposal detectado.');
+    return;
+  }
+
+  setPendingSprintProposal(proj.id, ckpt._rawSprintProposal);
+  _renderSpnpPanel();
+}
+
+// Helper: muestra el error inline del panel "+ Sprint nuevo" — mismo patrón visual que el
+// error de 'aprobar' en _spnpHandlePanelClick (clase .spnp-error).
+function _spnpShowParseError(panel, msg) {
+  const actions = panel.querySelector('.spnp-actions');
+  const errEl = document.createElement('div');
+  errEl.className = 'spnp-error';
+  errEl.textContent = msg;
+  if (actions) actions.insertAdjacentElement('afterend', errEl);
+  else panel.appendChild(errEl);
+}
+
+
 // asignado, sin descartar. Sin filtro de proyecto: getItems() ya retorna únicamente
 // el array ITEMS del proyecto activo (hidratado por sufijo de storage en
 // locus-backlog-core.js — no existe campo projId/projectId en ítems individuales,

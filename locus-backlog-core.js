@@ -1,3 +1,7 @@
+// [PP] mod:118 · autor:Rune · 2026-07-11 UTC-6
+// TKT2 (REQ-refactor-item-shape-itil-scrum, parent [pendiente-ID] — confirmar código real en
+//   Locus): isQIncItem() simplificada — discriminador híbrido queue+itemKind reemplazado por
+//   itemKind() únicamente. Ver comentario inline en la función (~línea 2160).
 // [PP] mod:117 · autor:Rune · 2026-07-11 00:15 UTC-6
 // TKT0 (REQ-202607-026): _normalizeSprintFields() — alias getter/setter item.sprint↔
 //   sprint_id reaplicado incondicionalmente en cada pasada (antes solo se aplicaba si
@@ -2149,8 +2153,18 @@ export const QDISC_ACTIVE_LIMIT = 15;
 // Consolida _isQInc (locus-backlog-render.js renderBacklogList) y _isQIncItem
 // (locus-backlog-render.js renderQIncPanel) — locus-backlog-render.js importa esta.
 // Patrón análogo a _isQBacklog / _isQDisc.
+// TKT2 (REQ-refactor-item-shape-itil-scrum, parent [pendiente-ID] — confirmar código real
+// en Locus): discriminador híbrido queue+itemKind eliminado. _setITEMS()/_setIncidents()
+// (líneas ~380-401) garantizan por invariant de escritura que ningún ítem ITIL persiste en
+// ITEMS — cualquier ítem con itemKind() en INCIDENT_TYPES se enruta a INCIDENTS al mutar,
+// nunca coexiste en ambos arrays. itemKind() ya es el discriminador canónico de tipo en todo
+// el módulo (ver _setITEMS, _getCountableBaseForSubtab) — el chequeo sobre `queue` era
+// redundante cuando itemKind() coincide, y una fuente de falso positivo cuando no (ítem con
+// campo `queue` residual de un tipo Scrum con dato legacy/corrupto). Ver __BR-Ecosystem §4b —
+// queue es campo exclusivo de INC/PRB/KE/CHG por schema; itemKind() ya lo respeta sin
+// necesitar leer el campo directamente.
 export function isQIncItem(i) {
-  return (i.queue || '').endsWith('-Q-INC') || ['INC', 'PRB', 'KE', 'CHG'].includes(itemKind(i));
+  return INCIDENT_TYPES.includes(itemKind(i));
 }
 
 // T-202606-100: _getCountableBase() — función canónica compartida entre renderStats() y _getCountableForBanner()

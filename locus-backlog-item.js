@@ -1,3 +1,12 @@
+// [PP] mod:105 · autor:Rune · 2026-07-11 UTC-6
+// TKT1 (REQ-refactor-item-shape-itil-scrum · AC1/AC2/AC3): _newItemObj único con campos ITIL
+//   spreadeados condicionalmente → reemplazado por _buildCommonItemFields() + buildScrumItem() +
+//   buildIncidentItem(). Sin cambio de comportamiento — mismos campos, mismos defaults, mismo
+//   orden de evaluación de zona-log y discard_reason (ambos helpers ahora factorizados y
+//   compartidos por los dos builders, antes vivían inline en el objeto único). El call site que
+//   decide destino de push (getItems() vs _pendingNewIncidents) no cambia — sigue leyendo
+//   _isIncomingIncident. no_incluye: no toca isQIncItem() (TKT2 del REQ) ni el concat de
+//   renderQIncPanel (TKT3 del REQ) — ver REQ-refactor-item-shape-itil-scrum.
 // [PP] mod:104 · autor:Rune · 2026-07-11 22:20 UTC-6
 // TKT-202607-012: fix DocLog ruidoso — el loop de advertencia de campos no patcheables
 //   (AC-3b, agregado en TKT-202607-008) disparaba 'Campo no patcheable ignorado: code' en
@@ -1881,6 +1890,109 @@ function validateIncidentTransitions(oldIncidentStatus, newIncidentStatus) {
   return { valid: true };
 }
 
+// TKT1 (REQ-refactor-item-shape-itil-scrum): campos comunes a Scrum (REQ/TKT/DISC) e ITIL
+// (INC/PRB/KE/CHG) — factorizado desde el _newItemObj único que existía antes de este TKT.
+// Extraído tal cual, sin cambio de valor ni de orden de evaluación.
+function _buildCommonItemFields(item, ctx) {
+  const { _incomingType, initialStatus, _resolvedParentId, _parentSprint, nowTs, sessionId } = ctx;
+  return {
+    id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
+    code: item.code,
+    type: _incomingType,
+    title: item.title || item.code,
+    desc: '',
+    priority: item.priority || 'medium',  // T-202606-032 / B-202606-015: tomar priority del ítem entrante — no hardcodear 'medium'
+    area: item.area || '',
+    effort: item.effort != null ? item.effort : 1, // B-202606-023: preservar effort declarado — null || 1 pisaba el valor con default
+    impact: 'Medio',
+    status: initialStatus,
+    version: 'futura',
+    sprint: item.sprint || _parentSprint,
+    ac: item.ac || [],
+    role: item.role || '',
+    origin: item.origin || null,
+    parentId: _resolvedParentId,
+    dependsOn: item.dependsOn || [],
+    triggeredBy: item.triggeredBy || null,
+    origenDisc: item.origenDisc || null,
+    promovida_a: item.promovida_a || null,
+    ..._zonaDeclaradaLogFields(item, _incomingType),
+    ..._discardReasonFields(item, initialStatus),
+    blockedBy: item.blockedBy || [],
+    blocking: item.blocking || false,
+    sessionId: sessionId || null,
+    draft: item.draft === true,
+    createdAt: nowTs,
+    statusChangedAt: nowTs,
+    doneAt: initialStatus === 'done' ? nowTs : null
+  };
+}
+
+// TKT3 (REQ type-safety DISC status) + TKT-202607-005-bis (ignorar campo zona en REQ/TKT):
+// regla relajada — __BR-Ecosystem §8. Ningún tipo persiste el campo zona: DISC porque
+// el invariante Q-DISC se garantiza por arquitectura (_isQDiscActive/ausencia de sprint
+// en DISC), REQ/TKT porque nunca la declararon en su schema (usan sprint vacío/ausente
+// para Q-Backlog — __BR-Ecosystem §5). Si llega declarada con cualquier valor —
+// 'PP-Q-Backlog', 'icebox', 'n/a', 'sin-sprint', lo que sea — se ignora igual en los
+// tres tipos, nunca se valida ni se rechaza el ítem por su contenido. El log es la
+// única adición: señal de que quien emitió el CHECKPOINT sigue asumiendo que zona
+// importa para ese tipo. Sin efecto sobre ITIL — ningún incidencia matchea DISC/REQ/TKT
+// aquí, mismo comportamiento no-op que tenía inline en el objeto único (preservado tal cual,
+// no ampliado, por TKT1 REQ-refactor-item-shape-itil-scrum).
+function _zonaDeclaradaLogFields(item, _incomingType) {
+  if (item.zona === undefined) return {};
+  if (_incomingType === 'DISC') {
+    _blogLog('zona-declarada-en-disc', item.code, 'zona declarada en DISC ' + item.code + ' — campo ignorado, Q-DISC se aplica siempre por arquitectura.', 'backlog');
+  } else if (_incomingType === 'REQ' || _incomingType === 'TKT') {
+    _blogLog('zona-declarada-en-req-tkt', item.code, 'zona declarada en ' + _incomingType + ' ' + item.code + ' — campo ignorado, ' + _incomingType + ' no declara zona en su schema (usa sprint vacío/ausente para Q-Backlog).', 'backlog');
+  }
+  return {};
+}
+
+// T-202606-025 + TKT2 (REQ type-safety DISC status): discard_reason — obligatorio en cualquier
+// tipo con status descartado (__BR-Ecosystem §5). Type-agnóstico: aplica igual a Scrum e ITIL,
+// factorizado sin cambio de comportamiento respecto al bloque inline que reemplaza.
+function _discardReasonFields(item, initialStatus) {
+  if (initialStatus !== 'descartado') return {};
+  if (item.discard_reason === undefined) {
+    _blogLog('discard-reason-ausente', item.code, 'discard_reason ausente en ' + item.code + ' con status descartado — campo obligatorio según __BR-Ecosystem §5.', 'backlog');
+    return {};
+  }
+  const _VALID_DISCARD_REASONS = new Set(['duplicado', 'fuera de alcance', 'reemplazado', 'obsoleto']);
+  if (!_VALID_DISCARD_REASONS.has(item.discard_reason)) {
+    _blogLog('discard-reason-no-canonico', item.code, 'discard_reason con valor no canónico: ' + item.discard_reason, 'backlog');
+  }
+  return { discard_reason: item.discard_reason };
+}
+
+// TKT1 (REQ-refactor-item-shape-itil-scrum · AC1): constructor exclusivo de Scrum (REQ/TKT/DISC).
+// Nunca incluye campos ITIL-only (queue/incidentStatus/slaPriority/slaDeadline/
+// comportamientoActual/originModule/derivedItems/resolutionType) — a diferencia del objeto único
+// anterior, donde su ausencia dependía de un spread condicional evaluado en cada llamada.
+function buildScrumItem(item, ctx) {
+  return _buildCommonItemFields(item, ctx);
+}
+
+// TKT1 (REQ-refactor-item-shape-itil-scrum · AC2): constructor exclusivo de ITIL (INC/PRB/KE/CHG).
+// Siempre incluye queue/slaPriority/slaDeadline/comportamientoActual/originModule/derivedItems/
+// resolutionType. incidentStatus solo si el tipo es INC/PRB/KE — CHG usa vocabulario Scrum
+// (`status`), no declara incidentStatus (__BR-Ecosystem §4b). Mismos defaults que el objeto
+// único anterior — sin cambio de comportamiento.
+function buildIncidentItem(item, ctx) {
+  const { _incomingType, initialStatus } = ctx;
+  return {
+    ..._buildCommonItemFields(item, ctx),
+    queue: item.queue || null,
+    ...(['INC', 'PRB', 'KE'].includes(_incomingType) ? { incidentStatus: item.incidentStatus || initialStatus } : {}),
+    slaPriority: item.slaPriority || null,
+    slaDeadline: item.slaDeadline || null,
+    comportamientoActual: item.comportamientoActual || '',
+    originModule: item.originModule || null,
+    derivedItems: item.derivedItems || [],
+    resolutionType: item.resolutionType || null,
+  };
+}
+
 // ── T-098: Merge TRACKER-GLOBAL → getItems() en memoria ──
 // Llamado desde saveSession(). Acumula múltiples sesiones sin exportar.
 // T-202604-121: retorna {created, updated, ignored} para super toast
@@ -2375,93 +2487,9 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
         // _setIncidents(array) al cerrar el forEach (ver flush post-loop). ITEMS conserva push
         // directo — su snapshot único ya está cubierto por _undoSnapshotItems() de arriba.
         const _isIncomingIncident = INCIDENT_TYPES.includes(_incomingType);
-        const _newItemObj = {
-          id: 'item-' + nowTs + '-' + Math.random().toString(36).slice(2,6),
-          code: item.code,
-          type: _incomingType,
-          title: item.title || item.code,
-          desc: '',
-          priority: item.priority || 'medium',  // T-202606-032 / B-202606-015: tomar priority del ítem entrante — no hardcodear 'medium'
-          area: item.area || '',
-          effort: item.effort != null ? item.effort : 1, // B-202606-023: preservar effort declarado — null || 1 pisaba el valor con default
-          impact: 'Medio',
-          status: initialStatus,
-          version: 'futura',
-          sprint: item.sprint || _parentSprint,
-          ac: item.ac || [],
-          role: item.role || '',
-          origin: item.origin || null,
-          parentId: _resolvedParentId,
-          dependsOn: item.dependsOn || [],
-          triggeredBy: item.triggeredBy || null,
-          origenDisc: item.origenDisc || null,
-          promovida_a: item.promovida_a || null,
-          // TKT-PARSER-2b (REQ-[pendiente-ID]): campos ITIL en creación — antes solo la rama de
-          // merge-sobre-existente los persistía; un INC/PRB/KE/CHG nuevo nacía sin incidentStatus,
-          // slaPriority, slaDeadline, comportamientoActual, originModule, queue, derivedItems ni
-          // resolutionType. INC/PRB/KE usan incidentStatus (mirror de status, ver parse.js); CHG
-          // no declara incidentStatus (vocabulario Scrum) pero sí vive en Q-INC → queue.
-          ...((['INC', 'PRB', 'KE', 'CHG'].includes(_incomingType)) ? {
-            queue: item.queue || null,
-            ...(['INC', 'PRB', 'KE'].includes(_incomingType) ? { incidentStatus: item.incidentStatus || initialStatus } : {}),
-            slaPriority: item.slaPriority || null,
-            slaDeadline: item.slaDeadline || null,
-            comportamientoActual: item.comportamientoActual || '',
-            originModule: item.originModule || null,
-            derivedItems: item.derivedItems || [],
-            resolutionType: item.resolutionType || null,
-          } : {}),
-          // TKT3 (REQ type-safety DISC status) + TKT-202607-005-bis (ignorar campo zona en REQ/TKT):
-          // regla relajada — __BR-Ecosystem §8. Ningún tipo persiste el campo zona: DISC porque
-          // el invariante Q-DISC se garantiza por arquitectura (_isQDiscActive/ausencia de sprint
-          // en DISC), REQ/TKT porque nunca la declararon en su schema (usan sprint vacío/ausente
-          // para Q-Backlog — __BR-Ecosystem §5). Si llega declarada con cualquier valor —
-          // 'PP-Q-Backlog', 'icebox', 'n/a', 'sin-sprint', lo que sea — se ignora igual en los
-          // tres tipos, nunca se valida ni se rechaza el ítem por su contenido. El log es la
-          // única adición: señal de que quien emitió el CHECKPOINT sigue asumiendo que zona
-          // importa para ese tipo.
-          ...((() => {
-            if (item.zona === undefined) return {};
-            if (_incomingType === 'DISC') {
-              _blogLog('zona-declarada-en-disc', item.code, 'zona declarada en DISC ' + item.code + ' — campo ignorado, Q-DISC se aplica siempre por arquitectura.', 'backlog');
-            } else if (_incomingType === 'REQ' || _incomingType === 'TKT') {
-              _blogLog('zona-declarada-en-req-tkt', item.code, 'zona declarada en ' + _incomingType + ' ' + item.code + ' — campo ignorado, ' + _incomingType + ' no declara zona en su schema (usa sprint vacío/ausente para Q-Backlog).', 'backlog');
-            }
-            return {};
-          })()),
-          // T-202606-025: persistir discard_reason en cualquier tipo con status descartado
-          ...(initialStatus === 'descartado' && item.discard_reason !== undefined
-            ? (() => {
-                const _VALID_DISCARD_REASONS = new Set(['duplicado', 'fuera de alcance', 'reemplazado', 'obsoleto']);
-                if (!_VALID_DISCARD_REASONS.has(item.discard_reason)) {
-                  _blogLog('discard-reason-no-canonico', item.code, 'discard_reason con valor no canónico: ' + item.discard_reason, 'backlog');
-                }
-                return { discard_reason: item.discard_reason };
-              })()
-            : {}),
-          // TKT2 (REQ type-safety DISC status): __BR-Ecosystem §5 declara discard_reason
-          // obligatorio en DISC/INC con status descartado — antes, si el campo llegaba
-          // ausente/undefined, el bloque de arriba no hacía nada y el gap pasaba en silencio.
-          // Paridad con comportamiento_actual en INC (que sí alerta si falta, ver __BR-Ecosystem
-          // §8). No valida contenido — solo señala ausencia. No toca status distinto de descartado.
-          ...(initialStatus === 'descartado' && item.discard_reason === undefined
-            ? (_blogLog('discard-reason-ausente', item.code, 'discard_reason ausente en ' + item.code + ' con status descartado — campo obligatorio según __BR-Ecosystem §5.', 'backlog'), {})
-            : {}),
-          blockedBy: item.blockedBy || [],
-          blocking: item.blocking || false,
-          sessionId: sessionId || null,
-          // TKT1 (REQ-202607-026 · AC1): campo draft persistido en el ítem nuevo. `draft` es
-          // campo de nivel CHECKPOINT (§8) — no declarado por ítem en el schema — pero
-          // locus-session-parse.js propaga ckpt.draft a cada tgItem.draft antes de llegar aquí,
-          // así que item.draft en este punto ya es ese valor cascadeado, no un campo que el
-          // founder/rol declara por ítem. El gate de "draft ausente" a nivel CHECKPOINT ya existe
-          // aguas arriba en el parser. `item.draft === true` colapsa cualquier valor no
-          // estrictamente true a false. no_incluye de este TKT: no persiste verified_by — TKT2.
-          draft: item.draft === true,
-          createdAt: nowTs,
-          statusChangedAt: nowTs,
-          doneAt: initialStatus === 'done' ? nowTs : null
-        };
+        const _newItemObj = _isIncomingIncident
+          ? buildIncidentItem(item, { _incomingType, initialStatus, _resolvedParentId, _parentSprint, nowTs, sessionId })
+          : buildScrumItem(item, { _incomingType, initialStatus, _resolvedParentId, _parentSprint, nowTs, sessionId });
         if (_isIncomingIncident) {
           _pendingNewIncidents.push(_newItemObj);
         } else {

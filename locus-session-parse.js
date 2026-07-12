@@ -1,3 +1,18 @@
+// [PP] mod:108 · autor:Rune · 2026-07-12 UTC-6
+// TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal —
+//   decisión del founder): retirado el manejo de sprint_proposal del flujo standalone
+//   (saveStandaloneCheckpoint) — eliminados el gate Step 0 (_spProposalSa/_validSpProposalSa/
+//   _spStep0Approved/_gatedDoApply) y onApproveProposal/onRejectProposal de _ckptMetaStandalone.
+//   showMergeDiffPanel ahora recibe _doApply directo, sin wrapper de gate. Retirado también el
+//   campo sprintProposal de _standaloneLastParsed (parsePasteStandalone) — sin consumidor tras
+//   este cambio. La única ruta de creación de sprint queda en locus-sprint.js (panel "+ Sprint
+//   nuevo", Tab Sprint), vía paste propio + _tryIngestSprintProposalFromParsed. Ver mismo TKT en
+//   locus-session-save.js (retiro de setPendingSprintProposal) y locus-sprint.js (paste nuevo).
+//   no_incluye: no toca _tryIngestSprintProposalFromParsed (exportada, consumida ahora solo por
+//   locus-sprint.js) ni _applySprintInheritanceToItems (exportada, sin consumidor conocido tras
+//   este TKT — Hallazgo fuera de scope, export no eliminado sin visibilidad de otros
+//   consumidores). No toca _tryIngestSprintProposal ni parseSprintProposal (legacy Markdown,
+//   ya sin consumidor de producción antes de este TKT — deuda preexistente, no tocada aquí).
 // [PP] mod:107 · autor:Rune · 2026-07-11 UTC-6
 // TKT-202607-011 (Sprint PP-S-01): _parseBatchBlock gana gate de draft obligatorio — un bloque
 //   del batch con REQ/TKT nuevo o con cambio de status y sin draft declarado (ckpt.draftRaw
@@ -2208,14 +2223,17 @@ export function parsePasteStandalone() {
 
   // T-202606-156: _tryIngestSprintProposal removido de parsePasteStandalone —
   // Step 0 en showMergeDiffPanel es el gate. El sprint se crea solo al aprobar en el DIFF.
+  // TKT (REQ-[pendiente-ID] · consolidación de punto de entrada único de sprint_proposal):
+  // campo sprintProposal retirado de este objeto — sin consumidor tras el retiro del Step 0
+  // en saveStandaloneCheckpoint (ver comentario junto a _ckptMetaStandalone). Un
+  // sprint_proposal presente en ckpt._rawSprintProposal simplemente no se propaga desde aquí.
 
   // Éxito — guardar parsed y habilitar botón
   // T-202606-005: path único JSON — ckpt._isJsonFormat siempre true aquí (parseCheckpoint solo retorna JSON válido)
   const _isJsonFmtSa = !!(ckpt && ckpt._isJsonFormat);
   _standaloneLastParsed = { isBatch: false, ckpt, tgItems, patchItems, raw: text,
-    // T-202606-017: doc_updates y sprint_proposal del path JSON — disponibles en saveStandaloneCheckpoint
+    // T-202606-017: doc_updates del path JSON — disponibles en saveStandaloneCheckpoint
     docUpdates:       (_isJsonFmtSa && ckpt._rawDocUpdates)     ? ckpt._rawDocUpdates     : [],
-    sprintProposal:   (_isJsonFmtSa && ckpt._rawSprintProposal) ? ckpt._rawSprintProposal : null,
     // T-202606-018: finn_observations del path JSON — disponible en saveStandaloneCheckpoint
     finnObservations: (_isJsonFmtSa && ckpt._rawFinnObservations) ? ckpt._rawFinnObservations : null,
   };
@@ -2396,44 +2414,19 @@ export function saveStandaloneCheckpoint() {
     // TKT-202606-014: valor crudo de draft — gate de "draft ausente" en showMergeDiffPanel.
     draftRaw:    ckpt.draftRaw,
   };
-  // T-202606-181: gate Step 0 — detectar ---SPRINT-PROPOSAL--- y presentarlo como Step 0
-  // antes de cualquier otro cambio del DIFF. El sprint se crea solo al aprobar Step 0.
-  // Si el founder rechaza Step 0: sprint no creado y ningún ítem aplicado (AC-3).
-  // T-202606-017 AC-2: path JSON puro — leer sprint_proposal del objeto ya extraído en _standaloneLastParsed.
-  // Fallback al path Markdown legacy: buscar ---SPRINT-PROPOSAL--- en raw.
-  const _spProposalSa = _standaloneLastParsed.sprintProposal  // path JSON puro (T-202606-017)
-    || ((raw && raw.includes('---SPRINT-PROPOSAL---')) ? parseSprintProposal(raw) : null);
-  const _validSpProposalSa = (_spProposalSa && !_spProposalSa.error) ? _spProposalSa : null;
-
-  // Gate: auto-abierto si no hay proposal — bloqueado hasta aprobación si la hay (AC-2 · AC-3)
-  let _spStep0Approved = !_validSpProposalSa;
-
-  // Wrapper: _doApply solo corre si el gate está abierto
-  const _gatedDoApply = async () => {
-    if (!_spStep0Approved) return;
-    await _doApply();
-  };
-
-  if (_validSpProposalSa) {
-    _ckptMetaStandalone.sprintProposal    = _validSpProposalSa;
-    _ckptMetaStandalone.onApproveProposal = function() {
-      // T-202606-206: atomicidad sprint + ítems — gate solo se abre si el sprint se crea con éxito.
-      // B-202606-019: usar _tryIngestSprintProposalFromParsed en lugar de _tryIngestSprintProposal(raw).
-      // En path JSON puro, raw no contiene '---SPRINT-PROPOSAL---' — la variante de texto retorna
-      // false silenciosamente. La variante FromParsed opera sobre el objeto ya extraído por parseCheckpoint.
-      const _spCreated = _tryIngestSprintProposalFromParsed(_validSpProposalSa);
-      if (_spCreated) {
-        // T-202606-020 AC-1/AC-2/AC-3/AC-4: herencia automática de sprint a ítems del CHECKPOINT.
-        // _spCreated es el id del sprint (prefijo corto, ej. "PP-S-03") — truthy siempre que el sprint se creó.
-        // Mutar tgItems in-place antes de que _doApply aplique → el DIFF refleja el sprint asignado.
-        _applySprintInheritanceToItems(tgItems, _spCreated);
-        _spStep0Approved = true; // abre el gate solo si el sprint se creó (AC-2)
-      }
-    };
-    _ckptMetaStandalone.onRejectProposal = function() {
-      _spStep0Approved = false;         // gate queda cerrado — panel cierra sin aplicar nada
-    };
-  }
+  // TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal):
+  // Gate Step 0 de sprint_proposal retirado de este flujo — decisión del founder: la única
+  // ruta de creación de sprint es el paste propio del panel "+ Sprint nuevo" en Tab Sprint
+  // (locus-sprint.js). Antes de este TKT, un sprint_proposal detectado en un CHECKPOINT pegado
+  // en el modal standalone abría un Step 0 aquí mismo con onApproveProposal/onRejectProposal
+  // que creaba el sprint vía _tryIngestSprintProposalFromParsed. Ese camino queda eliminado —
+  // un sprint_proposal en este modal ya no se detecta ni se ingiere. Si el CHECKPOINT declara
+  // sprint_proposal junto con ítems REQ/TKT, parseCheckpoint ya lo rechaza aguas arriba
+  // (_jsonParseError, __BR-Ecosystem §12) antes de llegar a este punto — sin cambio.
+  // no_incluye: no toca _tryIngestSprintProposalFromParsed (sigue siendo la función de ingesta,
+  // consumida ahora solo por locus-sprint.js) ni _applySprintInheritanceToItems (exportada,
+  // sin consumidor conocido tras este TKT — Hallazgo fuera de scope, no se elimina el export
+  // sin visibilidad de otros consumidores).
 
   // T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para B con triggered_by en sprint activo.
   // No-bloqueante: si el founder ignora, el B se ingesta sin sprint asignado (Q-INC por defecto).
@@ -2449,7 +2442,7 @@ export function saveStandaloneCheckpoint() {
   }
 
   closeStandaloneCheckpoint();
-  showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _gatedDoApply, _ckptMetaStandalone);
+  showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _doApply, _ckptMetaStandalone);
 }
 
 

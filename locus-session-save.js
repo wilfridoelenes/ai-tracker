@@ -1,3 +1,15 @@
+// [PP] mod:64 · autor:Rune · 2026-07-12 UTC-6
+// TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal —
+//   decisión del founder): revertido TKT1 (mod:62) — retirados el import de
+//   setPendingSprintProposal y el bloque que persistía _validSpProposal a storage por proyecto
+//   desde el flujo de card del worker. Pegar un CHECKPOINT con sprint_proposal en la card ya no
+//   alimenta el panel "+ Sprint nuevo" de Tab Sprint — la única ruta de creación de sprint es
+//   el paste propio de ese panel (locus-sprint.js). _ckptMeta.sprintProposal se conserva sin
+//   cambio — sigue siendo la fuente del gate de exclusividad §12 en showMergeDiffPanel (no crea
+//   sprint por sí mismo, onApproveProposal ya no existe desde TKT3/mod:63). no_incluye: no toca
+//   _ckptMeta.sprintProposal ni el resto del flujo del DIFF — solo la vía de persistencia
+//   paralela agregada en mod:62. Ver mismo TKT en locus-session-parse.js (retiro Step 0
+//   standalone) y locus-sprint.js (paste nuevo en el panel).
 // [PP] mod:63 · autor:Rune · 2026-07-11 UTC-6
 // TKT (INC-202607-001 · fix — guard huérfano de draft:true bloqueaba persistencia en
 //   _doApplyMergeAndFinish): eliminado el guard "defensa secundaria" (T-202606-013 AC-1) que
@@ -80,7 +92,7 @@ import { _markRadarDirty, renderGlobalRadarSidebar, toggleRadarSidebar } from '.
 import { stopSessionTimer } from './locus-sesiones-utils.js';
 import { _getLocalStorageUsage } from './locus-sprint-project.js';
 import { _generateBacklogContent, _generateBacklogMd } from './locus-backlog-generator.js';
-import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate, _mutateSessions, setPendingSprintProposal } from './locus-storage.js'; // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js) · TKT1 REQ-sessions-mutator: _mutateSessions agregado · TKT1 REQ-[pendiente-ID] (migración Step 0 → panel Sprint): setPendingSprintProposal agregado
+import { LOCUS_KEYS, _docPrefix, _effectiveVersion, _findSession, _tplKey, getAI, getActiveProject, getActiveSprints, getActiveTracker, saveImmediate, _mutateSessions } from './locus-storage.js'; // TKT4: _blogLog retirado — DocLog de duplicados ahora vive en _resolveCheckpointBatch (locus-session-parse.js) · TKT1 REQ-sessions-mutator: _mutateSessions agregado · TKT (REQ-[pendiente-ID] · consolidación sprint_proposal): setPendingSprintProposal retirado del import — la persistencia paralela que agregó se revierte, ver header mod nuevo
 
 
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
@@ -574,17 +586,14 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   const _spProposal = parsed.sprintProposal  // path JSON puro (T-202606-017)
     || ((raw && raw.includes('---SPRINT-PROPOSAL---')) ? parseSprintProposal(raw) : null);
   const _validSpProposal = (_spProposal && !_spProposal.error) ? _spProposal : null;
-  // TKT1 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): persistir la
-  // propuesta válida por proyecto, en paralelo a ckptMeta.sprintProposal — este TKT no cambia
-  // el comportamiento del Step 0 del DIFF (retiro en TKT3), solo agrega la vía de persistencia
-  // que el panel "+ Sprint nuevo" (TKT2) va a leer. AC-error: si no hay proyecto activo, no
-  // persiste — mismo criterio defensivo que el resto de accesos a getActiveProject() en este
-  // archivo (ver ai.resetTime arriba). AC-edge: sobreescribe cualquier propuesta pendiente
-  // previa del mismo proyecto — last-write-wins, mismo criterio que el resto de LOCUS_KEYS.
-  if (_validSpProposal) {
-    const _pendingProj = getActiveProject();
-    if (_pendingProj) setPendingSprintProposal(_pendingProj.id, _validSpProposal);
-  }
+  // TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal):
+  // persistencia paralela vía setPendingSprintProposal (TKT1 mod:62) revertida — decisión del
+  // founder: pegar un CHECKPOINT en la card del worker ya no alimenta el panel "+ Sprint nuevo"
+  // de Tab Sprint. La única ruta de creación de sprint es el paste propio de ese panel
+  // (locus-sprint.js). _ckptMeta.sprintProposal se conserva sin cambio — sigue siendo la fuente
+  // del gate de exclusividad §12 en showMergeDiffPanel (sprint_proposal no puede convivir con
+  // ítems REQ/TKT en el mismo CHECKPOINT); ese gate ya lo enforce parseCheckpoint aguas arriba
+  // (_jsonParseError) independientemente de este bloque.
   // TKT-202606-011 AC4: con draftPending, sprint_proposal tampoco se aplica — no se ofrece
   // Step 0 de aprobación. El CHECKPOINT final emitido por Finn (draft:false) sí lo activa.
   // TKT3 (REQ-[pendiente-ID] · migración Step 0 → panel Sprint subtab): _ckptMeta.sprintProposal
