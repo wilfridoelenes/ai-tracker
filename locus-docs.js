@@ -1,4 +1,15 @@
-// [PP] v0.2.0 · sprint:PP-S-03 · mod:12 · autor:Rune · 2026-07-09 UTC-6
+// [PP] mod:14 · autor:Rune · 2026-07-12 UTC-6
+// TKT-202607-007 (Sprint PP-S-01 / __OB-Strategy §5 regla dura de separador de versión):
+//   _validateDocFileNameVersionSeparator ahora existe e implementada — la entrega mod:13
+//   documentó la función en este header pero el cuerpo nunca se escribió (0 definiciones,
+//   0 invocaciones reales); Finn lo detectó en auditoría y devolvió a Rune. Valida que el
+//   segmento -vN.N.N del nombre de archivo use "." como separador, no "_". Enganchada en
+//   importHtmlMap, _importContextMdFromFile y la rama 'context' de _dropzoneHandle — únicos
+//   puntos de este archivo que reciben un objeto File real con .name disponible antes de leer
+//   el contenido. Doc Refs (css-ref, ux-ref, ui-Inventory, module-contracts) no tienen import
+//   flow en este archivo — quedan fuera del alcance por construcción: sin segmento -vN.N.N
+//   reconocible, la función retorna sin efecto (AC3 edge case). No toca _importContextMdFromText
+//   — su firma no cambia, sigue sin recibir fileName.
 // locus-docs.js
 // Última actualización: 2026-05-28 UTC-6
 // Módulo: Sub-tab Documentos — Context vivo, HTML-MAP import/export, Docs onboarding, modificación badges
@@ -15,6 +26,24 @@ import { _blogLog, _docPrefix, _effectiveVersion, _getDocUpdateIndex, _projKey, 
 import { showToast } from './locus-toast.js';
 
 import { esc, switchSubTab } from './locus-ui-shell.js';
+
+// TKT-202607-007: valida que el segmento -vN.N.N del nombre de archivo use "." como
+// separador — no "_". Sin segmento de versión reconocible (Doc Refs sin versión en el
+// nombre) retorna sin efecto — AC3 edge case. No bloquea el import — solo alerta a DocLog.
+function _validateDocFileNameVersionSeparator(fileName, category) {
+  if (!fileName) return;
+  const m = fileName.match(/-v(\d+[.\d_]*\d)\.md$/i);
+  if (!m) return; // sin segmento -vN.N.N — Doc Ref u otro nombre sin versión, no aplica
+  const versionSegment = m[1];
+  if (versionSegment.includes('_')) {
+    _blogLog(
+      'nombre-invalido',
+      fileName,
+      `Separador de versión inválido: ${fileName} usa "_" — separador canónico es "." (ver __OB-Strategy §5).`,
+      category
+    );
+  }
+}
 
 // ── T-202604-048: Sub-tabs Templates ──
 
@@ -242,6 +271,7 @@ export function importHtmlMap(event) {
   // R-202605-XXX: solo Markdown — rama JSON eliminada
   const file = event.target.files[0];
   if (!file) return;
+  _validateDocFileNameVersionSeparator(file.name, 'htmlmap');
   const reader = new FileReader();
   reader.onload = e => {
     const text = e.target.result;
@@ -487,6 +517,7 @@ function renderContextStatus() { renderContext(); }
 function _importContextMdFromFile(event) {
   const file = event?.target?.files?.[0];
   if (!file) return;
+  _validateDocFileNameVersionSeparator(file.name, 'context');
   const reader = new FileReader();
   reader.onload = e => _importContextMdFromText(e.target.result);
   reader.readAsText(file);
@@ -498,6 +529,7 @@ export function _dropzoneHandle(event, doc) {
   const file = event.dataTransfer?.files?.[0];
   if (!file) return;
   if (doc === 'context') {
+    _validateDocFileNameVersionSeparator(file.name, 'context');
     const reader = new FileReader();
     reader.onload = e => _importContextMdFromText(e.target.result);
     reader.readAsText(file);

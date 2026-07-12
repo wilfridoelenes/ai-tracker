@@ -1,4 +1,7 @@
-// [PP] mod:27 · autor:Rune · 2026-07-11 15:10 UTC-6
+// [PP] mod:28 · autor:Rune · 2026-07-11 15:35 UTC-6
+// TKT2 (REQ CAEL-01 · deuda técnica auditoría): openSprints=[] hardcodeado eliminado en
+// _buildSprintSelector y _blSprintOpen — post-migración solo existe activeSprint/closedSprints,
+// la rama muerta (else if openSprints.length / spread ...openSprints) no era alcanzable.
 // TKT-202607-010: código muerto _planDragOver/_planDragLeave eliminado — sin call sites reales,
 // la delegación inline en _attachPlanViewDelegation (dragenter/dragover/dragleave) ya cubre el comportamiento.
 // INC-[pendiente-ID]: fix drag&drop — currentTarget es getter-only en Event (post-ESM, strict mode).
@@ -140,7 +143,6 @@ function _buildSprintSelector() {
 
   // Sprint activo para el trigger
   const activeSprint = allSprints.find(s => s.status === 'active');
-  const openSprints  = []; // AC-7: post-migración no existen sprints con status distinto de 'active' o 'closed'
   const closedSprints = allSprints.filter(s => s.status === 'closed');
 
   // datos del sprint activo para la barra de progreso del trigger
@@ -152,8 +154,6 @@ function _buildSprintSelector() {
     triggerPct = total > 0 ? Math.round((done / total) * 100) : 0;
     // TKT1-[pendiente-ID]: _sprintDisplay aplica patrón id · label — fallback a solo id si no hay label propio
     triggerName = _sprintDisplay(activeSprint.id);
-  } else if (openSprints.length) {
-    triggerName = _sprintDisplay(openSprints[openSprints.length - 1].id);
   }
 
   const triggerNameHtml = triggerName
@@ -200,11 +200,10 @@ function _blSprintOpen() {
   // construir dropdown
   const allSprints = getActiveSprints() || [];
   const activeSprint = allSprints.find(s => s.status === 'active');
-  const openSprints  = []; // AC-7: post-migración no existen sprints con status distinto de 'active' o 'closed'
   const closedSprints = allSprints.filter(s => s.status === 'closed');
 
   // B-202605-058: referencia a función de módulo _buildSprintOption — elimina duplicación
-  const openOptionsHtml   = [activeSprint, ...openSprints].filter(Boolean).map(_buildSprintOption).join('');
+  const openOptionsHtml   = [activeSprint].filter(Boolean).map(_buildSprintOption).join('');
   const closedOptionsHtml = closedSprints.map(_buildSprintOption).join('');
   const closedSection = closedSprints.length ? `
     <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" data-action="bl-sprint-toggle-closed" type="button">
