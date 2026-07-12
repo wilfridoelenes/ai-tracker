@@ -1,7 +1,11 @@
-// [PP] mod:106 · autor:Rune · 2026-07-11 16:20 UTC-6
-// TKT-202607-009: mensaje canónico de DocLog al rechazar status:historico alineado a
-//   BR-Ecosystem §5 (punto final agregado) — corregido en ambas ramas de construcción de
-//   tgItems (parsePaste inline ~L979 y _buildTgItemsFromParsed ~L1880). Sin cambio de lógica.
+// [PP] mod:106 · autor:Rune · 2026-07-11 18:51 UTC-6
+// TKT-202607-011 (Sprint PP-S-01): _parseBatchBlock gana gate de draft obligatorio — un bloque
+//   del batch con REQ/TKT nuevo o con cambio de status y sin draft declarado (ckpt.draftRaw
+//   undefined) se rechaza como bloque inválido (mismo tratamiento que JSON malformado), sin
+//   abortar el resto del batch. Antes de este TKT, _resolveCheckpointBatch/_parseBatchBlock no
+//   aplicaban este gate — solo el flujo inline de parsePaste lo tenía. Mismo criterio de
+//   _draftGateTypes = ['REQ','TKT'] que parsePaste post TKT-202607-003 (INC/PRB/KE/CHG excluidos
+//   — rama Reactiva sin Fase 5).
 // TKT (REQ-[pendiente-ID] · ref_id CAEL-01/CAEL-02 · Resolución de ref_id+title, parte 1/2 —
 //   propagación): los 3 puntos de construcción de tgItems (parsePaste inline ~L999,
 //   _buildTgItemsFromParsed rama rol-no-autorizado-bloqueado ~L1873 y rama normal ~L1920)
@@ -979,7 +983,7 @@ export function parsePaste(id) {
           _blogLog(
             'status-historico-emitido',
             _it.code || '[pendiente-ID]',
-            `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint.`,
+            `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint`,
             'backlog'
           );
           continue; // ítem omitido — resto del CHECKPOINT continúa
@@ -1880,7 +1884,7 @@ function _buildTgItemsFromParsed(ckpt, parsedJSON) {
       _blogLog(
         'status-historico-emitido',
         it.code || '[pendiente-ID]',
-        `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint.`,
+        `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint`,
         'backlog'
       );
       continue;
@@ -2019,6 +2023,21 @@ function _parseBatchBlock(blockText) {
   // ckpt.draftRaw sigue disponible para quien consuma el resultado del batch si necesita
   // distinguir el estado por bloque.
   const parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
+  // TKT-202607-011 (BR-Ecosystem §8 regla dura): gate de draft obligatorio — mismo criterio
+  // que parsePaste (~L1098-1120), replicado aquí porque _buildTgItemsFromParsed (compartida
+  // entre parsePasteStandalone y este path) no lo aplica — el gate vive en el flujo inline de
+  // parsePaste, no en el helper extraído. Sin draft declarado explícitamente (true o false) en
+  // un bloque con al menos un ítem REQ/TKT nuevo o con cambio de status, el bloque se trata
+  // como inválido — mismo tratamiento que JSON malformado o título ausente (AC2 heredado de
+  // TKT3): no aborta el resto del batch, se registra en DocLog vía el caller
+  // (_resolveCheckpointBatch, Paso 1) y queda en skipped con type:'invalid'.
+  // no_incluye: no aplica a INC/PRB/KE/CHG — rama Reactiva sin Fase 5 (§4b), mismo criterio que
+  // parsePaste tras TKT-202607-003.
+  const _draftGateTypes = ['REQ', 'TKT'];
+  const _hasDraftGatedItem = parsedJSON.some(_di => _di && _di.type !== 'patch' && _draftGateTypes.includes(_di.type));
+  if (_hasDraftGatedItem && ckpt.draftRaw === undefined) {
+    return { ok: false, error: 'Campo "draft" ausente — CHECKPOINT no aplicado. Declarar draft: true o false.' };
+  }
   const { tgItems, patchItems, itemError } = _buildTgItemsFromParsed(ckpt, parsedJSON);
   if (itemError) {
     return { ok: false, error: itemError };
