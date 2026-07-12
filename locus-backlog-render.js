@@ -1,4 +1,7 @@
-// [PP] mod:85 · autor:Rune · 2026-07-11 22:45 UTC-6
+// [PP] mod:86 · autor:Rune · 2026-07-11 23:30 UTC-6
+// Fix inline (triggered_by TKT2-CAEL01): eliminada lógica muerta que escribía en #tpl-badge-qinc
+// (3 call sites: 2 en renderQIncPanel(), 1 en _updateSubtabBadges()) — elemento inexistente en
+// el DOM desde la migración a tab top-level. Sin cambio de comportamiento observable.
 // TKT2 (REQ CAEL-01): _initQIncSubTab eliminado (target inexistente tras migración a tab
 // top-level) · shell:backlog-render-dirty corregido a getCurrentTab()==='incidentes' · 3
 // comentarios actualizados (#sspanel-qinc → #tab-incidentes). Sin cambio en renderQIncPanel() interno.
@@ -1011,7 +1014,8 @@ export function renderBacklogList(onRendered) {
 // TKT (REQ-[pendiente-ID]): renderQIncPanel — render del panel Q-INC en #qinc-panel-body.
 // Renderiza ítems ITIL (INC/PRB/KE/CHG) cuya queue termina en '-Q-INC' del proyecto activo.
 // Agrupa por incidentStatus: detected/assigned/in_progress primero, resolved/closed al fondo.
-// Actualiza badge #tpl-badge-qinc con conteo y clase is-urgent si hay INC high vencido.
+// TKT2 (REQ CAEL-01): badge propio (#tpl-badge-qinc) eliminado — el badge de Incidentes vive
+// ahora en el tab top-level (tab-notif-badge-incidentes), gestionado por locus-notifications.js.
 // Reemplaza el panel legacy de incidentes por sprint — no_incluye: CSS de SLA (TKT-D3), labels/typeScores de
 // locus-backlog-core.js (TKT-C3 — ya completado en sesión previa).
 const SLA_RIESGO_WINDOW_MS = 21600000; // 6h — ventana de riesgo antes del vencimiento
@@ -1030,8 +1034,6 @@ export function renderQIncPanel() {
         <div class="empty-state-title">Selecciona un proyecto</div>
         <div class="empty-state-hint">El backlog está vinculado a un proyecto. Selecciona uno para ver y gestionar sus ítems.</div>
       </div>`;
-    const badge = document.getElementById('tpl-badge-qinc');
-    if (badge) badge.textContent = '';
     return;
   }
 
@@ -1046,27 +1048,6 @@ export function renderQIncPanel() {
   // _getCountableBaseForSubtab('qinc'), que ya leía solo INCIDENTS (TKT-202607-005) — antes de
   // este TKT ambos módulos computaban el universo Q-INC de forma distinta.
   const allQInc = getIncidents().filter(isQIncItem);
-
-  // Badge: count de ítems activos (no closed/descartado); is-urgent si hay INC high vencido
-  const badge = document.getElementById('tpl-badge-qinc');
-  if (badge) {
-    const countable = allQInc.filter(i => i.incidentStatus !== 'closed' && i.status !== 'descartado');
-    const _now = Date.now();
-    const hasUrgentVencido = countable.some(i =>
-      // TKT1 (REQ-centralizar-accesores-itil): incSlaPriority() centraliza el fallback
-      // que TKT-202607-INC-NAMING agregó inline — ítems hidratados desde Supabase
-      // (_mapRowToIncident) solo traen el campo en snake_case, no slaPriority camelCase.
-      itemKind(i) === 'INC' && incSlaPriority(i) === 'high' &&
-      typeof i.slaDeadline === 'number' && i.slaDeadline < _now
-    );
-    if (!countable.length) {
-      badge.textContent = '';
-      badge.classList.remove('is-urgent');
-    } else {
-      badge.textContent = String(countable.length);
-      badge.classList.toggle('is-urgent', hasUrgentVencido);
-    }
-  }
 
   if (!allQInc.length) {
     body.innerHTML = `
@@ -1352,11 +1333,12 @@ window.addEventListener('shell:backlog-render-dirty', async () => {
 });
 
 // T-202606-093: T4 · _updateSubtabBadges — actualización reactiva de los cuatro badges
-// (backlog, q-backlog, q-disc, qinc, histórico) independiente de cuál sub-tab/panel esté activo.
+// (backlog, q-backlog, q-disc, histórico) independiente de cuál sub-tab/panel esté activo.
 // TKT-C1: badgeIcebox (tpl-badge-icebox, Gen1) → badgeQBacklog (tpl-badge-qbacklog) +
 //   badgeQDisc (tpl-badge-qdisc) — reutiliza _isQBacklog/_isQDisc/_zoneStaleness.
-// TKT (REQ-[pendiente-ID]): badge legacy → badgeQinc — reutiliza la misma lógica de
-//   renderQIncPanel (countable por incidentStatus !== 'closed', is-urgent por INC high vencido).
+// TKT2 (REQ CAEL-01): badgeQinc (tpl-badge-qinc) eliminado — el badge de Q-INC/Incidentes
+//   ahora vive en el tab top-level (tab-notif-badge-incidentes, ver locus-notifications.js),
+//   no en un sub-tab de Backlog. tpl-badge-qinc ya no existe en el DOM (index.html mod:112).
 // Reutiliza exactamente la lógica de conteo de cada render*Panel — no reimplementa
 // criterios de staleness/urgencia/archivo, solo el cálculo de badge en aislado.
 // AC-1, AC-5, AC-6.
@@ -1364,7 +1346,6 @@ export function _updateSubtabBadges() {
   const badgeBacklog   = document.getElementById('tpl-badge-backlog');
   const badgeQBacklog  = document.getElementById('tpl-badge-qbacklog');
   const badgeQDisc     = document.getElementById('tpl-badge-qdisc');
-  const badgeQinc      = document.getElementById('tpl-badge-qinc');
   const badgeHistorico = document.getElementById('tpl-badge-historico');
 
   // AC-6: getItems() vacío → todos los badges quedan vacíos, nunca '0'
@@ -1414,30 +1395,6 @@ export function _updateSubtabBadges() {
     } else {
       const _alertCount = qdItems.filter(i => _zoneStaleness(i) !== null).length;
       badgeQDisc.textContent = (_alertCount > 0 ? '⚠ ' : '') + qdItems.length;
-    }
-  }
-
-  // TKT (REQ-[pendiente-ID]): badge Q-INC — ítems ITIL no closed/descartado, is-urgent
-  // si hay INC high con slaDeadline vencido. Misma lógica que el badge en renderQIncPanel.
-  // TKT3 (REQ-refactor-item-shape-itil-scrum, parent [pendiente-ID] — confirmar código real en
-  // Locus): concat(items) eliminado — mismo motivo y mismo REQ que el cambio equivalente en
-  // renderQIncPanel() (ver comentario ahí). El parámetro `items` de esta función nunca
-  // contiene ITIL desde la garantía de _setITEMS(); leerlo aquí era vestigial.
-  if (badgeQinc) {
-    const allQInc = getIncidents().filter(isQIncItem);
-    const countable = allQInc.filter(i => i.incidentStatus !== 'closed' && i.status !== 'descartado');
-    if (!countable.length) {
-      badgeQinc.textContent = '';
-      badgeQinc.classList.remove('is-urgent');
-    } else {
-      const _now = Date.now();
-      const hasUrgentVencido = countable.some(i =>
-        // TKT1 (REQ-centralizar-accesores-itil): mismo motivo que renderQIncPanel.
-        itemKind(i) === 'INC' && incSlaPriority(i) === 'high' &&
-        typeof i.slaDeadline === 'number' && i.slaDeadline < _now
-      );
-      badgeQinc.textContent = String(countable.length);
-      badgeQinc.classList.toggle('is-urgent', hasUrgentVencido);
     }
   }
 
