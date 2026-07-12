@@ -1,4 +1,4 @@
-// [PP] mod:4 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:5 · autor:Rune · 2026-07-12 UTC-6
 // locus-backlog-qdisc.js
 // Responsabilidad: renderQDiscPanel — render del sub-tab Q-DISC (Discoveries: DISC, único tipo
 //   aceptado — __BR-Ecosystem §5) — + su listener de sub-tab y su re-render reactivo sobre
@@ -21,7 +21,7 @@
 //   pendiente, mismo patrón de shell estático que _renderQDiscLimitIndicator (rellena/vacía un
 //   nodo que ya existe en index.html, nunca lo crea ni destruye).
 
-import { _isQDiscActive, getItems, QDISC_ACTIVE_LIMIT } from './locus-backlog-core.js';
+import { _isQDiscActive, _isQDisc, getItems, QDISC_ACTIVE_LIMIT } from './locus-backlog-core.js';
 import { _renderZonePanel, _zoneStaleness } from './locus-backlog-zone-engine.js';
 
 // TKT-202607-010: rellena #qdisc-limit-indicator (shell estático, ver index.html) con el
@@ -33,6 +33,31 @@ function _renderQDiscLimitIndicator() {
   const count = getItems().filter(_isQDiscActive).length;
   el.textContent = `${count} / ${QDISC_ACTIVE_LIMIT}`;
   el.classList.toggle('qdisc-limit--warn', count >= QDISC_ACTIVE_LIMIT);
+}
+
+// TKT-[pendiente-ID] (REQ-[pendiente-ID]): rellena #qdisc-stats-block (shell estático, ver
+// index.html) con el conteo por status. Universo: _isQDisc — todos los DISC del proyecto,
+// sin filtrar por status (a diferencia de _isQDiscActive, que excluye descartado/promoted).
+// Total es la suma exacta de los tres — no hay un cuarto status posible para DISC
+// (__BR-Ecosystem §5: discovery | promoted | descartado). Sin datos → las 4 celdas caen a 0,
+// el bloque nunca se oculta.
+function _renderQDiscStatsBlock() {
+  const totalEl = document.getElementById('qdisc-stat-total');
+  const discoveryEl = document.getElementById('qdisc-stat-discovery');
+  const promotedEl = document.getElementById('qdisc-stat-promoted');
+  const discardedEl = document.getElementById('qdisc-stat-discarded');
+  if (!totalEl || !discoveryEl || !promotedEl || !discardedEl) return;
+  const discItems = getItems().filter(_isQDisc);
+  let discoveryCount = 0, promotedCount = 0, discardedCount = 0;
+  discItems.forEach(i => {
+    if (i.status === 'discovery') discoveryCount++;
+    else if (i.status === 'promoted') promotedCount++;
+    else if (i.status === 'descartado') discardedCount++;
+  });
+  totalEl.textContent = discItems.length;
+  discoveryEl.textContent = discoveryCount;
+  promotedEl.textContent = promotedCount;
+  discardedEl.textContent = discardedCount;
 }
 
 // TKT-202607-013 (TKT5 REQ-202607-006): rellena #qdisc-grooming-banner (shell estático, ver
@@ -73,6 +98,9 @@ export function renderQDiscPanel() {
   // siempre refleja el conteo real de activos, incluso sin proyecto seleccionado (getItems()
   // ya resuelve vacío en ese caso, indicador cae a "0 / 15" sin error).
   _renderQDiscLimitIndicator();
+  // TKT-[pendiente-ID]: universo propio (_isQDisc, todos los status) — independiente del
+  // universo filtrado de _renderZonePanel y del universo activo de _renderQDiscLimitIndicator.
+  _renderQDiscStatsBlock();
   // TKT-202607-013: misma razón — señal independiente del universo filtrado por chips/búsqueda.
   _renderQDiscGroomingBanner();
 }
