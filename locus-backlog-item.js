@@ -1,3 +1,15 @@
+// [PP] mod:104 · autor:Rune · 2026-07-11 22:20 UTC-6
+// TKT-202607-012: fix DocLog ruidoso — el loop de advertencia de campos no patcheables
+//   (AC-3b, agregado en TKT-202607-008) disparaba 'Campo no patcheable ignorado: code' en
+//   TODO patch, porque `code` es el identificador de ruteo (usado en getAnyItem(code) más
+//   arriba) y siempre está presente en el objeto patch por construcción — no es un intento
+//   real de modificar un campo no patcheable. Fix: `code` se excluye explícitamente de este
+//   loop de advertencia antes de chequear contra _PATCH_NON_PATCHEABLE. Sin cambio de
+//   comportamiento en la aplicación real de campos — ese loop (línea ~2757) ya excluía
+//   `code` de aplicarse como dato, solo cambia el ruido de DocLog. Sin cambio de firma.
+//   No_incluye: no toca ningún otro campo de _PATCH_NON_PATCHEABLE (type, schema_version,
+//   ref_id, intencion, kill_criteria) — esos siguen advirtiendo normalmente si aparecen en
+//   un patch, como corresponde (AC edge case de este TKT).
 // [PP] mod:103 · autor:Rune · 2026-07-11 UTC-6
 // TKT-202607-008: applyPatchesFromTG() migrado de modelo lista blanca (_PATCH_ALLOWED_FIELDS,
 //   Set fijo de campos habilitados) a modelo de lista negra invertido (__BR-Ecosystem §8,
@@ -2740,9 +2752,15 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
     }
 
     // AC-3b: advertir sobre campos no patcheables presentes en el objeto patch
+    // TKT-202607-012: 'code' se excluye de esta advertencia — es el identificador de ruteo
+    // usado para el lookup de getAnyItem(code) más arriba, siempre presente en todo objeto
+    // patch por construcción, no un intento de modificar un campo no patcheable. Sigue en
+    // _PATCH_NON_PATCHEABLE (no se aplica como campo de datos, ver loop de aplicación abajo)
+    // pero deja de generar el ruido 'Campo no patcheable ignorado: code' en cada patch.
     Object.keys(patch).forEach(k => {
+      if (k === 'code') return;
       if (_PATCH_NON_PATCHEABLE.has(k)) {
-                  _blogLog('patch-campo-ignorado', code, 'Campo no patcheable ignorado: ' + k, 'backlog');
+        _blogLog('patch-campo-ignorado', code, 'Campo no patcheable ignorado: ' + k, 'backlog');
       }
     });
 
