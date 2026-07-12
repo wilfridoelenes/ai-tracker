@@ -1,3 +1,7 @@
+// [PP] mod:30 · autor:Rune · 2026-07-11 UTC-6
+// TKT-202607-020 (REQ CAEL-01): unassigned excluye DISC (itemKind(i) !== 'DISC') — DISC nunca
+// persiste sprint (BR-Ecosystem §5/§4b), no debe renderizarse como candidato a jalar a sprint.
+// Título de #bl-plan-col-left: "Sin sprint" → "Q-Backlog (Sin Sprint)".
 // [PP] mod:29 · autor:Rune · 2026-07-11 UTC-6
 // TKT1 (CAEL-02 · REQ deuda técnica CSS Purity): L132 _buildSprintOption — style="width:${pct}%"
 // reemplazado por style="--sprint-option-bar-w:${pct}%". CSS (.bl-sprint-option-bar-fill,
@@ -340,6 +344,7 @@ export function _renderPlanningView(listEl, closeCallback) {
   // T-202605-024: '' o ausente es el valor canónico de "sin sprint asignado" — Q-Backlog
   const unassigned = getItems().filter(i =>
     !i.sprint &&
+    itemKind(i) !== 'DISC' &&
     i.status !== 'done' &&
     i.status !== 'descartado' &&
     i.status !== 'historico'
@@ -460,7 +465,7 @@ export function _renderPlanningView(listEl, closeCallback) {
              id="bl-plan-col-left"
              data-plan-col="left">
           <div class="bl-plan-col-header">
-            <span class="bl-plan-col-title">Sin sprint</span>
+            <span class="bl-plan-col-title">Q-Backlog (Sin Sprint)</span>
             <span class="bl-plan-col-count">${unassigned.length} ítems</span>
           </div>
           <div class="bl-plan-col-body" id="bl-plan-left-body">
