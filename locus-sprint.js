@@ -1,3 +1,17 @@
+// [PP] mod:90 · autor:Rune · 2026-07-12 UTC-6
+// INC-[pendiente-ID] (Hallazgo de sesión de diagnóstico Cael — tab Sprint, sin TKT de
+// origen): REQ en status "en-proceso" o "bloqueado" (__BR-Core §4) no caía en ninguna de
+// las 4 secciones de _renderSprintItems ni se contaba en el badge de _updateSprintTabBadges
+// — ambos sitios duplicaban la misma clasificación incompleta (solo pendiente/en-revision/
+// done + heurística de _isBlocked para "pendiente sin movimiento"). Fix: _sprintItemBucket()
+// nueva — función única que enumera explícitamente todos los status válidos de REQ y TKT y
+// resuelve a un bucket, con fallback defensivo a 'pendiente' para status no contemplado (nunca
+// invisible). en-proceso se mapea al bucket 'en-revision' existente (mismo pill/CSS class
+// .spi-item-status--en-revision — sin cambio de HTML/CSS, sin entregable de Nova requerido).
+// REQ bloqueado (gap de integración real) se distingue de la heurística _isBlocked, ambos
+// caen en el bucket 'bloqueado' ya existente. orphaned se mapea a 'pendiente' — visibilidad,
+// no bloquea (§4). _renderSprintItems y _updateSprintTabBadges consumen la misma función —
+// elimina la duplicación que causó el bug original.
 // [PP] mod:89 · autor:Rune · 2026-07-12 UTC-6
 // TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal —
 //   decisión del founder): el panel "+ Sprint nuevo" (#spnp-panel) deja de depender
@@ -120,6 +134,23 @@ function _spIdBase(sprintId) {
 // _normalizeItems (T-202606-084) se pierde — solo sprint_id persiste como campo real.
 // _iSprint() lee sprint_id con fallback a sprint para cubrir ambos casos.
 function _iSprint(i) { return i.sprint_id !== undefined ? i.sprint_id : (i.sprint || ''); }
+
+// INC-[pendiente-ID]: bucket único para clasificar ítems del sprint board — enumera
+// explícitamente todos los status válidos de REQ y TKT (__BR-Core §4), evitando que un
+// status no contemplado (REQ en-proceso/bloqueado/orphaned) desaparezca silenciosamente
+// de las 4 secciones del sprint board. Consumida por _renderSprintItems y
+// _updateSprintTabBadges — antes duplicaban la misma lógica incompleta en 2 sitios
+// independientes (Hallazgo de auditoría — sesión de diagnóstico Cael, sin TKT de origen).
+function _sprintItemBucket(item) {
+  if (item.status === 'done') return 'done';
+  if (item.status === 'bloqueado') return 'bloqueado';      // REQ — gap de integración (Finn)
+  if (_sprintIsBlocked(item)) return 'bloqueado';            // pendiente sin movimiento >N días
+  if (item.status === 'en-revision') return 'en-revision';   // TKT
+  if (item.status === 'en-proceso') return 'en-revision';    // REQ — mismo bucket visual, en curso
+  if (item.status === 'pendiente') return 'pendiente';
+  if (item.status === 'orphaned') return 'pendiente';        // REQ — visibilidad, no bloquea (§4)
+  return 'pendiente'; // fallback defensivo — status no contemplado, nunca invisible
+}
 
 function _sprintItemHtml(item) {
   const isBlocked = _sprintIsBlocked(item);
@@ -1145,10 +1176,10 @@ function _renderSprintItems(sprint) {
       i.status !== 'descartado';
   });
 
-  const pendiente   = spItems.filter(i => i.status === 'pendiente' && !_sprintIsBlocked(i));
-  const enRevision  = spItems.filter(i => i.status === 'en-revision' && !_sprintIsBlocked(i));
-  const bloqueado   = spItems.filter(i => i.status !== 'done' &&  _sprintIsBlocked(i));
-  const done        = spItems.filter(i => i.status === 'done');
+  const pendiente   = spItems.filter(i => _sprintItemBucket(i) === 'pendiente');
+  const enRevision  = spItems.filter(i => _sprintItemBucket(i) === 'en-revision');
+  const bloqueado   = spItems.filter(i => _sprintItemBucket(i) === 'bloqueado');
+  const done        = spItems.filter(i => _sprintItemBucket(i) === 'done');
 
   // B-202606-006 AC-1: helper — renderiza una sección agrupando Rs con sus Ts hijos.
   // Un R se renderiza como contenedor (_sprintRGroupHtml) solo si tiene al menos un T
@@ -1588,9 +1619,7 @@ function _updateSprintTabBadges() {
         (['REQ','TKT'].includes(itemKind({type:t}))) &&
         i.status !== 'descartado';
     });
-    const activeCount = spItems.filter(i =>
-      i.status === 'pendiente' || i.status === 'en-revision' || _sprintIsBlocked(i)
-    ).length;
+    const activeCount = spItems.filter(i => _sprintItemBucket(i) !== 'done').length;
     badge.textContent = activeCount > 0 ? String(activeCount) : '';
   }
 }
