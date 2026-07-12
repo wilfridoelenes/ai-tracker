@@ -1,3 +1,17 @@
+// [PP] mod:110 · autor:Rune · 2026-07-12 UTC-6
+// TKT3 (REQ-[pendiente-ID] · Hallazgo fuera de scope de TKT1, promovido a DISC y evaluado en la
+//   misma sesión): eliminada la función _tryIngestSprintProposal (ingesta legacy Markdown de
+//   sprint_proposal, sin FromParsed) — su único importador (locus-session-save.js) fue retirado
+//   en TKT1, dejándola sin call sites en todo el repo. Se retira también del comentario de
+//   'Responsabilidad' del módulo. no_incluye: no toca parseSprintProposal ni
+//   _tryIngestSprintProposalFromParsed — ambas con consumidor activo, verificado antes de este cambio.
+// [PP] mod:109 · autor:Rune · 2026-07-12 UTC-6
+// TKT2 (REQ-[pendiente-ID] · promovida de DISC-202607-011): eliminada la función y export
+//   _applySprintInheritanceToItems — confirmado via grep exhaustivo (código real + comentarios)
+//   cero call sites en todo el repo tras la consolidación de sprint_proposal a locus-sprint.js.
+//   Se retira también el comentario de sección que la describía (T-202606-020, huérfano tras
+//   este cambio). no_incluye: no toca _tryIngestSprintProposal ni parseSprintProposal — ver TKT1
+//   (locus-session-save.js) para el import huérfano relacionado, symbol distinto sin tocar aquí.
 // [PP] mod:108 · autor:Rune · 2026-07-12 UTC-6
 // TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal —
 //   decisión del founder): retirado el manejo de sprint_proposal del flujo standalone
@@ -209,7 +223,7 @@ export function _splitCheckpointBlocks(text) {
 //   sprint_proposal (líneas ~1402, ~1489) — no tocadas, pertenecen al REQ "Limpieza final"
 //   (locus-backlog-sprints.js no declara este archivo en su campo archivos — gap a señalar a Cael).
 // locus-session-parse.js
-// Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint, _tryIngestSprintProposal,
+// Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
@@ -1587,110 +1601,6 @@ export function handleInput(id) {
   parsePaste(id);
 }
 
-// Flujo: parseSprintProposal(text) → validar rol emisor → validar campos → guard duplicado → push a proj.sprints → save()
-export function _tryIngestSprintProposal(text) {
-  if (!text || !text.includes('---SPRINT-PROPOSAL---')) return false;
-
-  // T-202606-154 AC-4: validar rol emisor — solo Cael (PO) puede proponer apertura de sprint
-  // Extraer campo Rol: del CHECKPOINT envolvente (si existe)
-  const _rolMatch = text.match(/^\s*Rol\s*:\s*(.+)$/m);
-  if (_rolMatch) {
-    const _rolRaw = _rolMatch[1].trim();
-    // Cael usa sigla PO — aceptar "PO · Cael", "PO", "Cael" como emisores válidos
-    const _esCael = /\bPO\b/i.test(_rolRaw) || /\bCael\b/i.test(_rolRaw);
-    if (!_esCael) {
-      _blogLog(
-        'sprint-proposal-ignorado',
-        '',
-        `---SPRINT-PROPOSAL--- ignorado: solo Cael puede proponer apertura de sprint. Rol detectado: "${_rolRaw}"`,
-        'parser'
-      );
-      return false;
-    }
-  }
-  // Si no hay campo Rol: en el texto (CHECKPOINT sin header de rol o texto plano)
-  // → dejar pasar sin bloquear (comportamiento conservador — no rompe flujos existentes)
-
-  const result = parseSprintProposal(text);
-
-  // AC-3: campos faltantes → toast con lista y retorno temprano sin persistir
-  if (!result) return false; // bloque ausente o sin terminador (parseSprintProposal retorna null)
-  if (result.error) {
-    const list = result.missing.join(', ');
-    showToast('error', `Campos obligatorios faltantes: ${list}`);
-    return false;
-  }
-
-  const proj = getActiveProject();
-  if (!proj) return false;
-
-  if (!proj.sprints) proj.sprints = [];
-
-  // AC-2: guard de duplicado — comparar contra prefijo corto (id) y string completo (label/name)
-  // B-202606-063: id es ahora el prefijo corto — el guard debe cubrir ambas formas
-  const _dupIdShort = result.sprint.split(/\s*·\s*/)[0].trim();
-  const exists = proj.sprints.some(sp =>
-    sp.id === _dupIdShort || sp.id === result.sprint ||
-    sp.name === result.sprint || sp.label === result.sprint
-  );
-  if (exists) {
-    showToast('error', 'Ya existe un sprint con este ID');
-    return false;
-  }
-
-  // T-202606-023 AC-1/AC-2: determinar status del nuevo sprint según existencia de sprint activo.
-  // Si existe sprint con status:'active' → nuevo sprint nace como 'scheduled' (AC-1).
-  // Si no existe sprint activo → nuevo sprint nace como 'active' (AC-2 — comportamiento anterior).
-  // AC-4: esta lógica garantiza que sprints.filter(s => s.status === 'active').length ≤ 1.
-  // TKT-PARSER-sprints: !sp.isHotfix eliminado — S-HOTFIX deprecado Gen2.
-  const _hasActiveSprint = proj.sprints.some(sp => sp.status === 'active');
-  const _newSprintStatus = _hasActiveSprint ? 'scheduled' : 'active';
-
-  // B-202606-063: extraer prefijo corto como id — el string completo va en label y name.
-  // "PP-S-06 · IDP fixes" → id: "PP-S-06", label: "PP-S-06 · IDP fixes"
-  // El gate en locus-backlog-merge.js busca por id y label — sin este split,
-  // ítems con sprint: "PP-S-06" (prefijo corto) nunca coinciden con id completo → bloqueo falso.
-  const _sprintIdFull  = result.sprint;
-  const _sprintIdShort = _sprintIdFull.split(/\s*·\s*/)[0].trim();
-  // INC-[pendiente-ID]: mismo bug que el path JSON (_tryIngestSprintProposalFromParsed) —
-  // label guardaba _sprintIdFull (id+label ya concatenados en el schema legacy), duplicando
-  // el ID cuando _sprintDisplay()/spLabel() lo recomponían como `${sp.id} · ${sp.label}`.
-  // Se extrae solo la parte descriptiva antes de guardar en label.
-  const _legacyLabelDescriptive = _sprintIdFull
-    .replace(new RegExp('^' + _sprintIdShort.replace(/[-]/g, '\\-') + '\\s*·?\\s*'), '')
-    .trim();
-  const newSprint = {
-    id:             _sprintIdShort,
-    label:          _legacyLabelDescriptive || _sprintIdShort,
-    name:           _sprintIdFull,
-    version_target: result.version_target,
-    release_type:   result.release_type,
-    scope:          result.scope,
-    goal:           result.goal,
-    out_of_scope:   result.out_of_scope || [],
-    status:         _newSprintStatus,  // T-202606-023: 'scheduled' si hay activo, 'active' si no
-    current:        false,
-    formallyOpened: true,  // B-202606-063: aprobado via Step 0 — sprint existe formalmente
-  };
-
-  proj.sprints.push(newSprint);
-  // B-202606-063: saveImmediate() — los sprints son eventos críticos.
-  // save() tiene debounce de 5s — si el founder pega el siguiente CHECKPOINT antes de que
-  // el debounce se dispare, el sprint no está en Supabase y getActiveSprints() no lo ve → bloqueo falso.
-  saveImmediate();
-
-  // T-202606-023 AC-3: toast refleja el estado resultante.
-  // 'scheduled': indica activación al cerrar sprint activo.
-  // 'active': mensaje original sin cambio.
-  const _toastMsg = _newSprintStatus === 'scheduled'
-    ? `✓ Sprint "${result.sprint}" creado como programado — se activará al cerrar el sprint activo`
-    : `✓ Sprint "${result.sprint}" creado — pendiente de aprobación`;
-  showToast('success', _toastMsg);
-  // T-202606-020: retornar el id del sprint creado (prefijo corto) en lugar de true.
-  // Los callers existentes hacen `if (_spCreated)` — un string no-vacío sigue siendo truthy.
-  // El id retornado permite que el caller aplique la herencia de sprint a los ítems del CHECKPOINT.
-  return _sprintIdShort;
-}
 
 // B-202606-019: variante de _tryIngestSprintProposal que acepta el objeto proposal ya parseado.
 // Necesaria para CHECKPOINTs en formato JSON puro — en ese path, raw no contiene
@@ -1786,33 +1696,6 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
     : `✓ Sprint "${sprint}" creado — pendiente de aprobación`;
   showToast('success', _toastMsg);
   return _sprintIdShort;
-}
-
-// T-202606-020: herencia automática de sprint al confirmar Step 0 de sprint proposal — Trigger 1.
-// Recibe el array de ítems del CHECKPOINT y el id del sprint recién creado.
-// Muta in-place los ítems REQ/TKT/INC cuyo sprint sea ausente o vacío → asigna el sprint nuevo.
-// DISC no se tocan — permanecen en Q-DISC según BR-Ecosystem §5 y §13.
-// AC-1: REQ/TKT/INC sin sprint → sprint asignado al id del sprint recién creado.
-// AC-2: DISC sin sprint → no se mueve, permanece en Q-DISC.
-// AC-3: ítem con sprint explícito → no se toca.
-// AC-4: el movimiento ocurre sobre tgItems en memoria — visible en el DIFF antes de confirmar.
-export function _applySprintInheritanceToItems(tgItems, sprintId) {
-  if (!Array.isArray(tgItems) || !sprintId) return;
-  tgItems.forEach(item => {
-    if (itemKind(item) === 'DISC') return; // AC-2: DISC permanecen en Q-DISC sin excepción
-    const _sprintRaw = item.sprint ? String(item.sprint).trim().toLowerCase() : '';
-    if (_sprintRaw === '') { // TKT-PARSE4: eliminado _sprintRaw==='icebox' (Gen1) — vacío/ausente cubre Q-Backlog/Q-DISC Gen2
-      // AC-1: asignar sprint del proposal — ítem movido automáticamente
-      item.sprint = sprintId;
-      _blogLog(
-        'sprint-heredado-trigger1',
-        item.code || '[pendiente-ID]',
-        `${item.type} ${item.code || '[pendiente-ID]'} sprint asignado via Trigger 1: ${sprintId}`,
-        'backlog'
-      );
-    }
-    // AC-3: sprint explícito → conservar sin modificar
-  });
 }
 
 // T-202605-019: Migrado desde locus-misc-ui.js — modal standalone de CHECKPOINT

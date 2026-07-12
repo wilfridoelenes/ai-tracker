@@ -1,3 +1,8 @@
+// [PP] mod:65 · autor:Rune · 2026-07-12 UTC-6
+// TKT1 (REQ-[pendiente-ID] · promovida de DISC-202607-010): eliminado el import huérfano
+//   _tryIngestSprintProposal (sin FromParsed) — cero call sites en este archivo confirmado
+//   via grep. Resto de la línea de import (_setPhase, parseSprintProposal, parsePaste,
+//   _buildTriggeredBySuggestion) sin cambio.
 // [PP] mod:64 · autor:Rune · 2026-07-12 UTC-6
 // TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal —
 //   decisión del founder): revertido TKT1 (mod:62) — retirados el import de
@@ -103,7 +108,7 @@ import { render } from './locus-sesiones.js';
 
 import { _showProjRequiredInPanel, interpretHora } from './locus-session-hora.js';
 
-import { _setPhase, _tryIngestSprintProposal, parseSprintProposal, parsePaste, _buildTriggeredBySuggestion } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-021: _buildTriggeredBySuggestion | TKT3 (REQ-[pendiente-ID]): _tryIngestSprintProposalFromParsed/_applySprintInheritanceToItems retirados del import — sin consumidor en este archivo tras mover la aprobación a locus-sprint.js (TKT2). _tryIngestSprintProposal (sin FromParsed) ya estaba sin consumidor antes de este TKT — Hallazgo fuera de scope, no tocado aquí | TKT4: parseCheckpoint + _splitCheckpointBlocks retirados — el uso se trasladó a _resolveCheckpointBatch en locus-session-parse.js, no requiere importarlos de vuelta | INC-202607-XXX: _tryIngestPlan + _tryIngestPlanFromParsed retirados del import — locus-session-parse.js mod:95 (REQ-execution-plan-deprecation) eliminó ambos exports; este archivo seguía importándolos y rompía la carga del módulo
+import { _setPhase, parseSprintProposal, parsePaste, _buildTriggeredBySuggestion } from './locus-session-parse.js'; // T-202606-032: isParseInFlight eliminado — AC-5 | T-202606-021: _buildTriggeredBySuggestion | TKT3 (REQ-[pendiente-ID]): _tryIngestSprintProposalFromParsed/_applySprintInheritanceToItems retirados del import — sin consumidor en este archivo tras mover la aprobación a locus-sprint.js (TKT2) | TKT1 (REQ-[pendiente-ID] · promovida de DISC-202607-010): _tryIngestSprintProposal (sin FromParsed) retirado del import — confirmado sin call site en este archivo (Hallazgo fuera de scope de TKT3, resuelto aquí); el símbolo en sí sigue exportado en locus-session-parse.js, ver Hallazgo fuera de scope declarado en CHECKPOINT | TKT4: parseCheckpoint + _splitCheckpointBlocks retirados — el uso se trasladó a _resolveCheckpointBatch en locus-session-parse.js, no requiere importarlos de vuelta | INC-202607-XXX: _tryIngestPlan + _tryIngestPlanFromParsed retirados del import — locus-session-parse.js mod:95 (REQ-execution-plan-deprecation) eliminó ambos exports; este archivo seguía importándolos y rompía la carga del módulo
 
 import { _getAllSessionsChron, _rebuildLogBody } from './locus-session-popup.js';
 
