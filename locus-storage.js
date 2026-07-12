@@ -1,3 +1,14 @@
+// [PP] mod:117 · autor:Rune · 2026-07-12 16:45 UTC-6
+// INC-fix (2 bugs, misma sesión de diagnóstico Sprint cerrado/histórico):
+//   Bug1 — _toItemRow(): archived_at/done_at agregados al mapeo outgoing — no existían en
+//     ningún punto del schema, el cierre de sprint nunca persistía esos timestamps.
+//   Bug1 (incoming) — _mapRowToItem(): archivedAt/doneAt agregados al mapeo de rehidratación.
+//   Bug2 — _mapRowToItem(): alias getter/setter item.sprint↔sprint_id agregado — los ítems
+//     histórico solo pasan por esta función (nunca por _normalizeSprintFields), quedaban con
+//     item.sprint undefined y _buildHistoricoPartitions() los clasificaba como legacy pese a
+//     tener sprint formalmente cerrado. Sin cambio de firma en ninguna función. Módulo crítico
+//     — activar verificación de regresiones en Finn (_mapRowToItem es la única fuente de
+//     rehidratación DDL→JS, consumida por ítems activos e histórico).
 // [PP] mod:116 · autor:Rune · 2026-07-11 21:40 UTC-6
 // TKT1 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): agregado
 // LOCUS_KEYS.SPRINT_PROPOSAL_PENDING_PREFIX + getPendingSprintProposal()/setPendingSprintProposal()/
@@ -1533,6 +1544,15 @@ export async function saveBacklog() {
       resolution_type:      incResolutionType(it),
       derived_items:        Array.isArray(it.derived_items) ? it.derived_items : null,
       queue:                it.queue             || null,
+      // INC-[pendiente-ID] fix: archived_at/done_at no estaban mapeadas en ningún punto de
+      // _toItemRow() — el cierre de sprint (migrateClosedItemsToHistorico, locus-backlog-historico.js)
+      // setea item.archivedAt en memoria pero nunca se persistía en Supabase. done_at no tenía
+      // ningún productor de escritura hacia la fila — se persiste aquí desde item.doneAt
+      // (locus-backlog-core.js ya lo popula al transicionar a status:done). Ambos epoch ms,
+      // mismo criterio != null que sla_deadline — 0 no es valor legítimo para estos campos,
+      // pero se preserva por consistencia con el resto del mapeo.
+      archived_at:          it.archivedAt != null ? it.archivedAt : null,
+      done_at:              it.doneAt     != null ? it.doneAt     : null,
       // DDL: updated_at BIGINT (epoch ms) — no ISO string
       // _updatedAtMs calculado una vez fuera de _toItemRow — todas las filas comparten el mismo valor (AC-3)
       updated_at:           _updatedAtMs
@@ -1852,6 +1872,11 @@ function _mapRowToItem(row) {
     derived_items:         Array.isArray(row.derived_items) ? row.derived_items : null,
     queue:                 row.queue           || null,
     createdAt:             row.created_at      || null,
+    // INC-[pendiente-ID] fix: archived_at/done_at no se rehidrataban — mismo gap que en
+    // _toItemRow() (outgoing). Sin esto, aunque el fix de escritura persista los timestamps,
+    // la próxima carga los perdía de vuelta al no leerlos de la fila.
+    archivedAt:            row.archived_at     || null,
+    doneAt:                row.done_at         || null,
     // TKT-A1: sla_deadline calculado al hidratar si sla_priority presente y sla_deadline ausente
     // AC: sla_priority:high → createdAt+86400000ms; medium → createdAt+259200000ms; low → null
     // Base: row.created_at (bigint epoch ms, NOT NULL en DDL de tracker_items)
@@ -1876,6 +1901,22 @@ function _mapRowToItem(row) {
   // (TKT1) leen contra la fila cruda de Supabase, no contra el ítem ya mapeado.
   item.sprint_id = typeof row.sprint_id === 'string' ? row.sprint_id : '';
   item.sprint_name = typeof row.sprint_name === 'string' ? row.sprint_name : '';
+  // INC-[pendiente-ID] fix: alias item.sprint↔sprint_id — mismo contrato getter/setter que
+  // _normalizeSprintFields() (locus-backlog-core.js). Los ítems activos lo reciben igual vía
+  // _normalizeScrumItems()/_normalizeIncidents() al cargar (loadBacklog()), pero los ítems
+  // histórico rehidratados vía getHistoricoItems()/getHistoricoItemsSync() pasan únicamente
+  // por _mapRowToItem() — nunca por esa normalización. Sin este alias, item.sprint queda
+  // undefined en todo ítem histórico y _buildHistoricoPartitions() (locus-backlog-historico.js)
+  // no puede matchear closedSprintIds.has(i.sprint) — el ítem cae en _legacyHistoricos aunque
+  // su sprint esté formalmente cerrado. No se reusa _normalizeSprintFields() directamente para
+  // no reintroducir el ciclo storage↔backlog-core que este archivo ya rompe deliberadamente
+  // (ver notas al inicio del módulo sobre lazy refs).
+  Object.defineProperty(item, 'sprint', {
+    get() { return this.sprint_id; },
+    set(v) { this.sprint_id = v; },
+    configurable: true,
+    enumerable: true,
+  });
   return item;
 }
 

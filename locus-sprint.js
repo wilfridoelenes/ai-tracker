@@ -1,4 +1,4 @@
-// [PP] mod:90 · autor:Rune · 2026-07-12 UTC-6
+// [PP] mod:94 · autor:Rune · 2026-07-12 UTC-6
 // INC-[pendiente-ID] (Hallazgo de sesión de diagnóstico Cael — tab Sprint, sin TKT de
 // origen): REQ en status "en-proceso" o "bloqueado" (__BR-Core §4) no caía en ninguna de
 // las 4 secciones de _renderSprintItems ni se contaba en el badge de _updateSprintTabBadges
@@ -153,13 +153,18 @@ function _sprintItemBucket(item) {
 }
 
 function _sprintItemHtml(item) {
-  const isBlocked = _sprintIsBlocked(item);
-  const isDone    = item.status === 'done';
+  // TKT (2026-07): usa _sprintItemBucket() como única fuente de verdad — antes
+  // isBlocked/isEnRevision se derivaban ad-hoc y no cubrían REQ en-proceso ni
+  // REQ bloqueado (status explícito, gap de integración), aunque el ítem ya
+  // caía en la sección correcta del board vía _sprintItemBucket en _renderSprintItems.
+  const bucket    = _sprintItemBucket(item);
+  const isDone    = bucket === 'done';
+  const isBlocked = bucket === 'bloqueado';
   let cls = 'spi-item';
   if (isBlocked) cls += ' spi-item--blocked';
   if (isDone)    cls += ' spi-item--done';
 
-  const isEnRevision = !isDone && !isBlocked && item.status === 'en-revision';
+  const isEnRevision = bucket === 'en-revision';
   const statusLabel = isDone ? 'Done' : isBlocked ? 'Bloqueado' : isEnRevision ? 'En revisión' : 'Pendiente';
   const statusCls   = isDone ? 'spi-item-status--done' : isBlocked ? 'spi-item-status--blocked' : isEnRevision ? 'spi-item-status--en-revision' : 'spi-item-status--pendiente';
   const blockedIcon = isBlocked ? `<span class="spi-item-blocked-icon" aria-hidden="true">⚠</span>` : '';
@@ -699,7 +704,7 @@ function _renderSpsActivo() {
   const bloqueadosCount = spItems.filter(i => i.status !== 'done' && _sprintIsBlocked(i)).length;
 
   // T-202606-003: modificador visual para sprint pausado
-  const pausadoCls = sprint.status === 'pausado' ? ' sps-card--pausado' : '';
+  const pausadoCls = sprint.status === 'paused' ? ' sps-card--pausado' : '';
 
   container.innerHTML =
     '<span class="sps-section-label">Activo</span>' +
@@ -848,7 +853,7 @@ function _spsActivoHandleClick(e) {
     const sprint = _getActiveSprint();
     if (!sprint) return;
     if (act === 'pausar') {
-      const newStatus = sprint.status === 'pausado' ? 'active' : 'pausado';
+      const newStatus = sprint.status === 'paused' ? 'active' : 'paused';
       setSprintStatus(sprint.id, newStatus);
       _renderSpsActivo();
     } else if (act === 'cerrar') {
@@ -1034,7 +1039,7 @@ function _sppHandleClick(e) {
       okLabel: 'Descartar',
       danger: true
     }, function() {
-      sprint.status = 'descartado';
+      sprint.status = 'discarded';
       try {
         save();
       } catch (err) {
@@ -1483,11 +1488,12 @@ function _renderSprintSummaryTable(allSprints) {
     // AC-2b T-202606-002: badge multi-status — programado y pausado tienen clases propias
     const statusBadgeCls = sprint.status === 'active'     ? 'sprint-badge-active'
                          : sprint.status === 'scheduled'  ? 'sprint-badge-programado'
-                         : sprint.status === 'pausado'    ? 'sprint-badge-paused'
+                         : sprint.status === 'paused'     ? 'sprint-badge-paused'
                          :                                  'sprint-badge-closed';
     const statusTxt      = sprint.status === 'active'     ? 'Activo'
                          : sprint.status === 'scheduled'  ? 'Programado'
-                         : sprint.status === 'pausado'    ? 'Pausado'
+                         : sprint.status === 'paused'     ? 'Pausado'
+                         : sprint.status === 'discarded'  ? 'Descartado' // TKT: antes caía en el fallthrough 'Cerrado'
                          :                                  'Cerrado';
 
     // Conteo R/T/B y effort — AC-2 T2
@@ -1721,7 +1727,10 @@ export function renderSprintTab() {
     if (nameEl)    nameEl.textContent    = sprint.label ? `${sprint.id} · ${sprint.label}` : (sprint.name || sprint.id || '');
     if (versionEl) versionEl.textContent = sprint.version_target ? `v${sprint.version_target}` : '';
     if (pillEl) {
-      const rt = sprint.release_type || sprint.releaseType || 'Minor';
+      // TKT: antes 'Minor' por defecto silencioso — no distinguía "declarado Minor"
+      // de "campo ausente". Fallback '—' consistente con el ya usado en L681 para
+      // el mismo campo (release_type/releaseType) en otro render.
+      const rt = sprint.release_type || sprint.releaseType || '—';
       pillEl.textContent = rt;
       pillEl.className   = `sph-release-pill ${_sprintReleaseClass(rt)}`;
     }
@@ -1796,9 +1805,11 @@ function _sphToggle() {
 // Renderiza en #sps-pausados una card por sprint con status 'pausado' e isHotfix falsy.
 // Si no hay pausados: innerHTML vacío + display:none — no ocupa espacio visual.
 // Si hay pausados tras haber estado oculto: display:'' restaura visibilidad.
-// Excluye isHotfix:true aunque tengan status 'pausado'.
-// B-202606-090: filtro usaba 'paused' (inglés) — el resto del módulo escribe/lee
-// 'pausado' (español, ver L312/460/1144/1148). La sección nunca mostraba nada.
+// Excluye isHotfix:true aunque tengan status 'paused'.
+// B-202606-090 (histórico): filtro usaba 'paused' mientras el resto del módulo
+// escribía/leía 'pausado' (español) — la sección nunca mostraba nada.
+// TKT normalización (2026-07): todo el módulo migrado a 'paused'/'discarded' —
+// consistente con scheduled/active/closed, ya en inglés. Sin path legacy.
 
 function _renderSpsPausados() {
   const container = document.getElementById('sps-pausados');
@@ -1806,7 +1817,7 @@ function _renderSpsPausados() {
 
   const allSprints = getActiveSprints();
   const paused = allSprints
-    ? allSprints.filter(s => s.status === 'pausado') // TKT-B1: isHotfix eliminado
+    ? allSprints.filter(s => s.status === 'paused') // TKT-B1: isHotfix eliminado
     : [];
 
   // AC-4/AC-5: sin pausados → ocultar contenedor sin empty state
