@@ -1,4 +1,4 @@
-// [PP] mod:1 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:2 · autor:Rune · 2026-07-13 UTC-6
 // locus-item-navigator.js
 // Responsabilidad: navigateToItem() — router transversal de navegación por código de ítem.
 // Usado por 5+ módulos (locus-analytics-render.js, locus-backlog-item.js,
@@ -8,19 +8,16 @@
 // (__BR-Ecosystem §7 — "una función va en el módulo que gestiona el dato que toca").
 // Movida verbatim, sin cambio de lógica interna ni de firma: navigateToItem(code) → void.
 //
-// Deuda heredada (no introducida ni resuelta por este TKT — no_incluye del REQ): la función
-// referencia `activeStatuses` como identificador libre, sin declararlo ni importarlo — ya era
-// así en locus-backlog-sprints.js. Resuelve en runtime contra un global (probablemente expuesto
-// como window.activeStatuses desde fuera de este módulo). La reubicación no cambia ese
-// comportamiento: la resolución de identificadores libres contra el objeto global no depende de
-// en qué archivo ES vive el código. Registrado como Hallazgo fuera de scope en el CHECKPOINT de
-// este TKT — no como INC, porque no hay evidencia de que esté roto hoy.
+// TKT1 (REQ CAEL-05): resuelta la deuda heredada de TKT1/REQ CAEL-04 — activeStatuses ya no es
+// identificador libre. _getActiveStatuses() (locus-backlog-core.js L2667) retorna la referencia
+// real del Set interno del módulo — .add()/.has() sobre el valor retornado muta el mismo estado
+// que antes, sin cambio de comportamiento.
 //
 // locus-ui-shell.js consume esta función vía import() dinámico (no import estático) — evita ciclo
 // ESM, ya que este módulo importa switchTab/switchSubTab de locus-ui-shell.js. Mismo patrón (b)
 // ya documentado en el header de locus-ui-shell.js para este tipo de caso.
 
-import { itemKind, getItems, getIncidents, updateStatusFilterUI } from './locus-backlog-core.js';
+import { itemKind, getItems, getIncidents, updateStatusFilterUI, _getActiveStatuses } from './locus-backlog-core.js'; // TKT1 (REQ CAEL-05): _getActiveStatuses agregada — reemplaza identificador libre activeStatuses
 import { switchTab, switchSubTab } from './locus-ui-shell.js';
 
 // R-[pendiente-ID]: navegar a un ítem del backlog por código — cambia a tab backlog, sub-tab backlog, hace scroll y pulsa highlight
@@ -46,8 +43,8 @@ export function navigateToItem(code) {
   }
   // Asegurar que el filtro de status incluye el status del ítem
   const item = getItems().find(i => i.code === code);
-  if (item && !activeStatuses.has(item.status)) {
-    activeStatuses.add(item.status);
+  if (item && !_getActiveStatuses().has(item.status)) {
+    _getActiveStatuses().add(item.status);
     updateStatusFilterUI();
   }
   // INC-[pendiente-ID] (triggered_by análisis de subtab Discoveries): DISC vive en
