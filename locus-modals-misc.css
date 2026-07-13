@@ -28,7 +28,7 @@
 .tag-add-btn {
   font-family: var(--mono);
   font-size: var(--text-3xs);
-  color: var(--hint);
+  color: var(--text3);
   background: none;
   border: 1px dashed var(--border2);
   border-radius: var(--radius-md-plus);
@@ -307,7 +307,7 @@
 
 .auth-modal-desc {
   font-size: var(--text-sm);
-  color: var(--hint);
+  color: var(--text3);
   margin: -4px 0 14px;
 }
 
@@ -327,7 +327,7 @@
 
 .auth-divider {
   display: flex; align-items: center; gap: 8px;
-  margin: 14px 0; color: var(--hint); font-size: var(--text-xs);
+  margin: 14px 0; color: var(--text3); font-size: var(--text-xs);
 }
 
 .auth-divider::before, .auth-divider::after {
@@ -738,7 +738,7 @@
 /* Empty state — sin proyectos creados */
 .iviz-proj-empty {
   font-size: var(--text-sm);
-  color: var(--hint);
+  color: var(--text3);
   font-style: italic;
   line-height: 1.5;
 }
@@ -1370,7 +1370,7 @@
 .qc-close-btn {
   background: none;
   border: none;
-  color: var(--hint);
+  color: var(--text3);
   cursor: pointer;
   font-size: var(--text-md);
   padding: 2px 4px;
@@ -1412,7 +1412,7 @@
 /* ── Paso 1: label ── */
 .qc-panel-label {
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -1499,7 +1499,7 @@
 }
 
 .qc-worker-chip-label {
-  color: var(--hint);
+  color: var(--text3);
 }
 
 .qc-worker-chip-name {

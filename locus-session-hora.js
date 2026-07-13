@@ -267,7 +267,6 @@ function cancelConfirmSave(id) {
       'merge-diff-overlay',
       'gconfirm-overlay',
       'proj-modal-overlay',
-      'cp-overlay',
     ];
     for (const bid of _blockers) {
       const el = document.getElementById(bid);

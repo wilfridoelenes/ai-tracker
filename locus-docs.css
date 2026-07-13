@@ -28,7 +28,7 @@
 
 .htmlmap-meta-label {
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -86,7 +86,7 @@
   padding: 8px 12px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
-  color: var(--hint);
+  color: var(--text3);
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -112,7 +112,7 @@
 .htmlmap-table td:last-child {
   font-family: var(--mono);
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
 }
 
 .htmlmap-type-badge {
@@ -144,7 +144,7 @@
 .htmlmap-empty {
   text-align: center;
   padding: 3rem 1rem;
-  color: var(--hint);
+  color: var(--text3);
 }
 
 .htmlmap-empty-icon {
@@ -268,7 +268,7 @@
 
 .hmfilter-pill:not(.active) .hmfilter-pill-count {
   background: var(--surface2);
-  color: var(--hint);
+  color: var(--text3);
 }
 
 .mm-search-wrap {
@@ -300,7 +300,7 @@
   right: 7px;
   background: none;
   border: none;
-  color: var(--hint);
+  color: var(--text3);
   cursor: pointer;
   font-size: var(--text-xs);
   padding: 0;
@@ -377,14 +377,14 @@
 
 .mm-fn-count {
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
   font-family: var(--mono);
   flex-shrink: 0;
 }
 
 .mm-arrow {
   font-size: var(--text-lg);
-  color: var(--hint);
+  color: var(--text3);
   transition: transform 0.2s var(--ease-out);
   flex-shrink: 0;
   line-height: 1;
@@ -415,7 +415,7 @@
   padding: 7px 12px;
   background: var(--surface2);
   border-bottom: 1px solid var(--border);
-  color: var(--hint);
+  color: var(--text3);
   font-size: var(--text-2xs);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -430,7 +430,7 @@
   padding: 6px 12px 4px;
   font-size: var(--text-2xs);
   font-weight: 700;
-  color: var(--hint);
+  color: var(--text3);
   text-transform: uppercase;
   letter-spacing: 0.07em;
   background: var(--surface2);
@@ -454,7 +454,7 @@
   padding: 6px 12px;
   font-family: var(--mono);
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
   width: 52px;
   white-space: nowrap;
 }
@@ -488,14 +488,14 @@
 
 .htmlmap-empty-hint {
   font-size: var(--text-sm);
-  color: var(--hint);
+  color: var(--text3);
 }
 
 /* T-202604-048: Context placeholder */
 .context-placeholder {
   text-align: center;
   padding: 4rem 1rem;
-  color: var(--hint);
+  color: var(--text3);
 }
 
 .context-placeholder-icon {
@@ -512,7 +512,7 @@
 
 .context-placeholder-hint {
   font-size: var(--text-base);
-  color: var(--hint);
+  color: var(--text3);
 }
 
 /* T-202604-102: Context vivo */
@@ -695,7 +695,7 @@
 .du-empty-state {
   text-align: center;
   padding: 3rem 1rem;
-  color: var(--hint);
+  color: var(--text3);
   font-size: var(--text-sm);
 }
 
@@ -766,7 +766,7 @@
 
 .du-meta-titulo {
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
 }
 
 /* Preview del contenido */
@@ -829,7 +829,7 @@
 .du-conflict-option-preview {
   font-family: var(--mono);
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
   line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;

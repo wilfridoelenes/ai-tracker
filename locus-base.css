@@ -236,7 +236,7 @@
   /* ── Aliases Cluster A — tokens fantasma mapeados a canónicos ── */
   --text-muted:  var(--text2);    /* 69 usos → --text2 (texto secundario) */
   --text1:       var(--text);     /* 21 usos → --text (texto primario) */
-  --text3:       var(--hint);     /* 38 usos → --hint (texto inactivo/placeholder) */
+  --text3:       #868bb8;         /* token propio — antes alias de --hint. 534 usos migrados en TKT2 (locus-analytics.css..locus-sprint.css). Contraste: 5.21:1 vs --surface2, 4.79:1 vs --surface3 (WCAG AA ≥4.5:1) */
   --bg3:         var(--surface3); /* 4 usos  → --surface3 (tercer nivel de fondo) */
   --surface1:    var(--surface);  /* 4 usos  → --surface (primer nivel) */
   --bg-card:     var(--surface);  /* 8 usos  → --surface (cards) */
@@ -412,7 +412,7 @@
   /* ── Aliases Cluster A — tokens fantasma mapeados a canónicos ── */
   --text-muted:  var(--text2);
   --text1:       var(--text);
-  --text3:       var(--hint);
+  --text3:       #5a6192;         /* token propio — antes alias de --hint. Contraste: 5.56:1 vs --surface2, 5.18:1 vs --surface3 (WCAG AA ≥4.5:1) */
   --bg3:         var(--surface3);
   --surface1:    var(--surface);
   --bg-card:     var(--surface);

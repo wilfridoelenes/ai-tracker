@@ -1,8 +1,10 @@
-// [PP] mod:2 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:3 · autor:Rune · 2026-07-13 02:15 UTC-6
 // locus-item-navigator.js
 // Responsabilidad: navigateToItem() — router transversal de navegación por código de ítem.
-// Usado por 5+ módulos (locus-analytics-render.js, locus-backlog-item.js,
-// locus-backlog-sprints.js, locus-command-palette.js, locus-notifications.js, locus-ui-shell.js).
+// Usado por 5 módulos (locus-analytics-render.js, locus-backlog-item.js,
+// locus-backlog-sprints.js, locus-notifications.js, locus-ui-shell.js).
+// Deprecación Command Palette: locus-command-palette.js (consumidor listado previamente)
+// fue eliminado del proyecto — referencia retirada de este comentario.
 // TKT1 (REQ CAEL-04 · Hallazgo fuera de scope, sesión previa): extraído de
 // locus-backlog-sprints.js — la función no gestionaba ningún dato de sprints
 // (__BR-Ecosystem §7 — "una función va en el módulo que gestiona el dato que toca").

@@ -119,7 +119,7 @@
 
 .sc-sprint-id {
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
   letter-spacing: 0.01em;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -137,7 +137,7 @@
   height: 26px;
   background: transparent;
   border: none;
-  color: var(--hint);
+  color: var(--text3);
   cursor: pointer;
   padding: 3px;
   border-radius: var(--radius-sm);
@@ -268,7 +268,7 @@
 
 .sc-stat-lbl {
   font-size: var(--text-2xs-plus);
-  color: var(--hint);
+  color: var(--text3);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin-top: 1px;
@@ -295,7 +295,7 @@
   padding: 6px 0;
   border: 0.5px solid var(--border);
   background: var(--surface2);
-  color: var(--hint);
+  color: var(--text3);
   flex: 1;
   transition: background var(--trans-fast), color var(--trans-fast), border-color var(--trans-fast);
 }
@@ -401,7 +401,7 @@
 
 .sc-success-sub {
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
 }
 
 /* ── sc-notes — toggle de notas colapsadas ── */
@@ -411,7 +411,7 @@
   align-items: center;
   gap: 4px;
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
   cursor: pointer;
   background: none;
   border: none;
@@ -435,7 +435,7 @@
 
 .sc-notes-toggle-icon {
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   flex-shrink: 0;
   transition: transform var(--trans-fast);
 }
@@ -447,7 +447,7 @@
 .sc-notes-desc {
   font-style: italic;
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
 }
 
 /* ── sc-footer ── */
@@ -472,7 +472,7 @@
 
 .sc-unlock-label {
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -522,7 +522,7 @@
 .card-hora-disp {
   flex: 1;
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
   overflow: hidden;
@@ -531,7 +531,7 @@
 
 .card-hora-disp.hora-disp--valid  { color: var(--c-low-text); }
 .card-hora-disp.hora-disp--error  { color: var(--red, #e85555); }
-.card-hora-disp.hora-disp--hint   { color: var(--hint); }
+.card-hora-disp.hora-disp--hint   { color: var(--text3); }
 
 .card-hora-btn {
   flex-shrink: 0;

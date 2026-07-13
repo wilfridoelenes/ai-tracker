@@ -83,7 +83,7 @@
 
 .historico-arrow {
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   flex-shrink: 0;
   transition: transform 0.2s;
   line-height: 1;
@@ -110,7 +110,7 @@
 
 .historico-count {
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   background: var(--surface, rgb(0 0 0 / 6%));
   padding: 2px 8px;
   border-radius: var(--radius-2xl);
@@ -120,7 +120,7 @@
 
 .historico-since {
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   opacity: 0.75;
 }
 
@@ -217,7 +217,7 @@
 
 .historico-se-arrow {
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   flex-shrink: 0;
   transition: transform 0.15s;
   line-height: 1;
@@ -247,14 +247,14 @@
 
 .historico-se-date {
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   flex-shrink: 0;
   white-space: nowrap;
 }
 
 .historico-se-count {
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   background: var(--surface, rgb(0 0 0 / 6%));
   border: 1px solid var(--border);
   padding: 1px 7px;
@@ -277,7 +277,7 @@
   padding: 20px 14px;
   text-align: center;
   font-size: var(--text-2xs-plus);
-  color: var(--hint);
+  color: var(--text3);
   font-style: italic;
 }
 
@@ -361,12 +361,12 @@
 
 .historico-sprint-entry--legacy .historico-se-id--legacy {
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   opacity: 0.7;
 }
 
 .historico-sprint-entry--legacy .historico-se-name {
-  color: var(--hint);
+  color: var(--text3);
   font-style: italic;
 }
 
@@ -427,7 +427,7 @@
 .historico-row-code {
   font-size: var(--text-2xs);
   font-family: var(--font-mono, monospace);
-  color: var(--hint);
+  color: var(--text3);
   flex-shrink: 0;
   white-space: nowrap;
 }
@@ -444,7 +444,7 @@
 
 .historico-row-effort {
   font-size: var(--text-3xs);
-  color: var(--hint);
+  color: var(--text3);
   flex-shrink: 0;
   letter-spacing: 1px;
   opacity: 0.6;
@@ -452,7 +452,7 @@
 
 .historico-row-status {
   font-size: var(--text-3xs);
-  color: var(--hint);
+  color: var(--text3);
   flex-shrink: 0;
   text-transform: lowercase;
   white-space: nowrap;
@@ -496,7 +496,7 @@
 
 .historico-legacy-title {
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
@@ -506,7 +506,7 @@
 .historico-legacy-count {
   font-size: var(--text-2xs);
   font-family: var(--mono);
-  color: var(--hint);
+  color: var(--text3);
   background: var(--surface3);
   padding: 1px 5px;
   border-radius: var(--radius-pill);

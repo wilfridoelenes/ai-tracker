@@ -25,13 +25,8 @@ import { showToast } from './locus-toast.js';
 // Reutiliza los mismos colores que chrono para consistencia visual
 export function renderProyectos() {
   // T-202605-117: Guard de tab activo — skip render si el tab Proyectos no es el visible.
-  // AC-4: Command Palette abierto no cuenta como cambio de tab — evaluar tab subyacente.
-  // AC-5: si currentTab no es detectable → fail-safe, ejecutar sin guard.
-  const _cpOpen = (() => {
-    const el = document.getElementById('cp-overlay');
-    return el && !el.classList.contains('is-hidden');
-  })();
-  if (!_cpOpen && typeof currentTab !== 'undefined' && currentTab !== 'proyectos') return;
+  // AC-4/AC-5 (excepción Command Palette) removidas — módulo deprecado, ver locus-command-palette.js.
+  if (typeof currentTab !== 'undefined' && currentTab !== 'proyectos') return;
 
   const el = document.getElementById('tab-proyectos-inner');
   if (!el) return;

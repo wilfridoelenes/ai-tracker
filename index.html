@@ -1,4 +1,4 @@
-<!-- [PP] mod:117 · autor:Rune · 2026-07-13 00:50 UTC-6 -->
+<!-- [PP] mod:118 · autor:Nova · 2026-07-13 09:15 UTC-6 -->
 <!-- TKT2 (REQ CAEL-01 · Q-INC tab top-level): #tab-incidentes agregado como tab de primer nivel,
      #sspanel-qinc/#sstab-btn-qinc removidos del sub-tab de Backlog. Ver locus-ui-shell.js/locus-backlog-render.js. -->
 <!-- TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): agregado shell estático
@@ -153,18 +153,8 @@
       </div>
     </div>
 
-    <!-- TKT-header-zonas: zona Utilidades — búsqueda + acciones agrupadas -->
+    <!-- TKT-header-zonas: zona Utilidades — acciones agrupadas -->
     <div class="header-zone header-zone--utils">
-      <div class="header-search" id="header-search-wrap">
-        <button class="hdr-search-trigger" id="hdr-search-trigger"
-                aria-label="Abrir búsqueda (⌘K)"
-                title="Buscar (⌘K)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <span class="hdr-search-trigger__label">Buscar...</span>
-          <span class="hdr-search-trigger__badge">⌘K</span>
-        </button>
-      </div>
-
       <div class="header-actions">
         <!-- Orden AC: búsqueda (en header-search) · nota rápida · menú ⋯ -->
 
@@ -437,7 +427,6 @@
         <button class="tpl-action-btn is-hidden" id="btn-import-htmlmap" title="Importar archivo AI-MAP_vX.Y.md">↑ Importar MAP</button>
         <button class="tpl-action-btn tpl-action-primary is-hidden" id="btn-generate-map" title="Generar documentos">⚙ Generar documentos</button>
         <button class="tpl-action-btn is-hidden" id="btn-export-contratos" title="Exportar Contratos.md">⬇ Exportar Contratos</button>
-        <button class="tpl-action-btn is-hidden" id="btn-view-doclog" title="Historial de acciones del doc activo">🕐 Ver DocLog<span class="doc-log-count"></span></button>
       </div>
     </div>
 
@@ -507,6 +496,7 @@
         <input class="fbar-search-input" id="backlog-search-input" type="text" placeholder="🔍 Buscar…" autocomplete="off">
         <button class="fbar-search-clear" id="backlog-search-clear" title="Limpiar búsqueda">✕</button>
       </div>
+      <button class="doc-log-btn" id="doc-log-btn-backlog" title="Historial de acciones del Backlog">🕐<span class="doc-log-count"></span></button>
     </div>
 
     <div class="active-filter-chips is-hidden" id="active-filter-chips"></div>
@@ -658,6 +648,7 @@
         <button class="htmlmap-filter-btn" id="hmfilter-html">HTML</button>
         <button class="htmlmap-filter-btn" id="hmfilter-js">JS</button>
         <div class="flex-1"></div>
+        <button class="doc-log-btn" id="doc-log-btn-htmlmap" title="Historial de acciones del MAP">🕐<span class="doc-log-count"></span></button>
       </div>
       <div id="htmlmap-content"></div>
       <input type="file" id="htmlmap-file-input" accept=".md,text/markdown,text/plain" class="is-hidden">
@@ -692,6 +683,7 @@
           <span class="htmlmap-meta-label is-hidden amber-color" id="cmeta-mod-label">✎ Modificado</span>
           <span class="htmlmap-meta-value is-hidden amber-color" id="cmeta-mod-val">—</span>
           <span class="flex-1"></span>
+          <button class="doc-log-btn" id="doc-log-btn-context" title="Historial de acciones del Context">🕐<span class="doc-log-count"></span></button>
           <button type="button" id="ctx-export-btn" class="ctx-meta-action-btn" title="Descargar CONTEXT.md actualizado">⬇ Exportar</button>
           <button type="button" class="ctx-meta-action-btn ctx-import-btn" title="Re-importar CONTEXT.md">↑ Re-importar</button>
         </div>
@@ -1373,6 +1365,32 @@
   </div>
 </div>
 
+<!-- ingest-modal-overlay — REQ[pendiente-ID] TKT1: modal de ingesta unificado (intake + diff fusionados) -->
+<div class="modal-overlay" id="ingest-modal-overlay"
+     role="dialog" aria-modal="true" aria-labelledby="ingest-modal-title">
+  <div class="modal modal--ingest">
+    <div class="ingest-modal-header">
+      <div>
+        <p class="ingest-modal-title" id="ingest-modal-title"></p>
+        <p class="ingest-modal-subtitle" id="ingest-modal-subtitle"></p>
+      </div>
+      <button class="ingest-modal-close" id="ingest-modal-close-btn" type="button" aria-label="Cerrar">&times;</button>
+    </div>
+
+    <div class="paste-ta-wrap">
+      <textarea class="paste-ta" id="ingest-ta" rows="4" placeholder="Pega el checkpoint aquí…"></textarea>
+    </div>
+
+    <div class="sc-diff-preview is-hidden" id="diff-preview-modal" aria-live="polite"></div>
+
+    <div class="sc-stepper" id="ingest-phasebar" role="list">
+      <div class="sc-step active" id="ingest-phase-paste" role="listitem" aria-current="step" data-step="1"><span class="sc-step-num" aria-hidden="true">1</span>pegar</div>
+      <div class="sc-step" id="ingest-phase-confirm" role="listitem" data-step="2"><span class="sc-step-num" aria-hidden="true">2</span>Revisar</div>
+      <div class="sc-step" id="ingest-phase-save" role="listitem" data-step="3"><span class="sc-step-num" aria-hidden="true">3</span>guardar</div>
+    </div>
+  </div>
+</div>
+
 <!-- status-confirm-overlay -->
 <div class="status-confirm-overlay" id="status-confirm-overlay">
   <div class="status-confirm-box">
@@ -1518,23 +1536,6 @@
       </div>
     </div>
     <div class="shortcuts-body" id="shortcuts-body"></div>
-  </div>
-</div>
-
-<!-- Command Palette — cp-overlay (activo) -->
-<div class="cmd-palette-overlay is-hidden" id="cp-overlay">
-  <div class="cmd-palette-panel" id="cp-container" role="dialog" aria-modal="true" aria-label="Command palette">
-    <div class="cmd-palette-input-wrap" id="cp-search-bar">
-      <span class="cmd-palette-icon" id="cp-search-icon">⌘</span>
-      <input class="cmd-palette-input" id="cp-input" type="text" placeholder="Buscar acción o comando…" autocomplete="off" autocorrect="off" spellcheck="false">
-      <div class="cmd-palette-esc-hint" id="cp-kbd-hint"><kbd>ESC</kbd></div>
-    </div>
-    <div class="cmd-palette-list" id="cp-body"></div>
-    <div class="cmd-palette-footer" id="cp-footer">
-      <span class="cp-footer-hint"><kbd>↑↓</kbd> navegar</span>
-      <span class="cp-footer-hint"><kbd>↵</kbd> ejecutar</span>
-      <span class="cp-footer-hint"><kbd>ESC</kbd> cerrar</span>
-    </div>
   </div>
 </div>
 

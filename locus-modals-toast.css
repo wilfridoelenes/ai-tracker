@@ -112,7 +112,7 @@
   flex-shrink: 0;
   background: none;
   border: none;
-  color: var(--hint);
+  color: var(--text3);
   opacity: 0.7;
   cursor: pointer;
   font-size: var(--text-md);
@@ -281,7 +281,7 @@
 
 .ckpt-header-close {
   background: none; border: none; cursor: pointer;
-  color: var(--hint); font-size: var(--text-md); padding: 0 2px; line-height: 1;
+  color: var(--text3); font-size: var(--text-md); padding: 0 2px; line-height: 1;
 }
 
 .ckpt-header-close:hover {
@@ -336,14 +336,14 @@
 
 .ckpt-section.discarded .ckpt-section-header {
   background: rgb(120 120 120 / 10%);
-  color: var(--hint);
+  color: var(--text3);
   border: 1px solid var(--border);
   border-bottom: none;
 }
 
 .ckpt-section.ignored .ckpt-section-header {
   background: var(--surface2);
-  color: var(--hint);
+  color: var(--text3);
   border: 1px solid var(--border);
   border-bottom: none;
 }
@@ -412,7 +412,7 @@
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
-  color: var(--hint);
+  color: var(--text3);
 }
 
 .ckpt-section.ignored .ckpt-section-body {
@@ -420,7 +420,7 @@
   border: 1px solid var(--border);
   border-top: none;
   border-radius: 0 0 var(--radius-md) var(--radius-md);
-  color: var(--hint);
+  color: var(--text3);
 }
 
 .ckpt-section.warning .ckpt-section-body {

@@ -1,4 +1,6 @@
-// [PP] v0.8.0 · sprint:PP-S-06 · mod:19 · autor:Rune · 2026-07-11 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-06 · mod:20 · autor:Rune · 2026-07-13 02:15 UTC-6
+// Deprecación Command Palette (cont.): removidos import + llamada de initCommandPalette() —
+// el módulo locus-command-palette.js fue eliminado del proyecto. Ver locus-ui-shell.js.
 // INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminados imports
 // estáticos de locus-pulso.js y locus-sesiones-arranque.js — causa raíz del fallo de
 // arranque (MIME type error) que reveló que TKT-202607-042 declaró 'sin importadores' de
@@ -65,7 +67,6 @@ import './locus-backlog-historico.js';
 import { renderSprintTab } from './locus-sprint.js';
 import { exportBacklogMd } from './locus-backlog-generator.js';
 import './locus-map-generator.js';
-import { initCommandPalette } from './locus-command-palette.js';
 
 // ── Funciones migradas desde inline script de index.html (T-202606-006) ──────
 
@@ -117,9 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const ver = _effectiveVersion();
     document.title = ver ? 'Locus ' + ver : 'Locus';
   } catch(e) { document.title = 'Locus'; }
-
-  // Inicializar command palette (reemplaza llamada del script inline L1429)
-  initCommandPalette();
 
   // T-202606-006: _updateBackupBadge — ejecutar 800ms post-DOMContentLoaded
   setTimeout(_updateBackupBadge, 800);

@@ -13,7 +13,7 @@
 .ie-label {
   font-size: var(--text-2xs);
   font-weight: 700;
-  color: var(--hint);
+  color: var(--text3);
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
@@ -21,7 +21,7 @@
 .ie-label-opt {
   font-size: var(--text-2xs);
   font-weight: 400;
-  color: var(--hint);
+  color: var(--text3);
   text-transform: none;
   letter-spacing: 0;
   opacity: 0.7;
@@ -140,7 +140,7 @@
   border-radius: var(--radius-md);
   border: none;
   background: transparent;
-  color: var(--hint);
+  color: var(--text3);
   cursor: pointer;
   font-size: var(--text-lg);
   transition: var(--trans-fast);
@@ -154,7 +154,7 @@
 
 .tpl-picker-hint {
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
   padding: 6px 0 2px;
 }
 
@@ -233,7 +233,7 @@
   border-radius: var(--radius-sm);
   border: none;
   background: transparent;
-  color: var(--hint);
+  color: var(--text3);
   cursor: pointer;
   font-size: var(--text-md);
   transition: var(--trans-fast);
@@ -304,7 +304,7 @@
   align-items: center;
   gap: 6px;
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
 }
 
 .cp-footer-hint kbd {

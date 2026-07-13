@@ -1648,13 +1648,8 @@ export function renderSprintTab() {
   _sprintTabActiveSprint = _sprintNow;
 
   // T-202605-117: Guard de tab activo — skip render visual si el tab Sprint no es el visible.
-  // AC-4: Command Palette abierto no cuenta como cambio de tab — evaluar tab subyacente.
-  // AC-5: si currentTab no es detectable → fail-safe, ejecutar sin guard.
-  const _cpOpen = (() => {
-    const el = document.getElementById('cp-overlay');
-    return el && !el.classList.contains('is-hidden');
-  })();
-  if (!_cpOpen && typeof currentTab !== 'undefined' && currentTab !== 'sprint') return;
+  // AC-4/AC-5 (excepción Command Palette) removidas — módulo deprecado, ver locus-command-palette.js.
+  if (typeof currentTab !== 'undefined' && currentTab !== 'sprint') return;
 
   const header    = _spEl('sprint-panel-header');
   const itemsList = _spEl('sprint-items-list');

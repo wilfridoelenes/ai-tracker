@@ -364,7 +364,7 @@
 }
 
 .scm-retro3-delta--none {
-  color: var(--hint);
+  color: var(--text3);
   background: transparent;
   font-weight: 400;
   font-size: var(--text-2xs);
@@ -835,7 +835,7 @@
 
 /* T-202606-118: valor de campo faltante en tabla de gate */
 .scm-gate-val--missing {
-  color: var(--hint);
+  color: var(--text3);
   font-style: italic;
 }
 
@@ -1058,7 +1058,7 @@
 
 .scm-du-escalar {
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   margin-top: 2px;
 }
 
@@ -1122,7 +1122,7 @@
 .scm-du-row.is-descartado .scm-du-badge {
   display: inline-flex;
   background: var(--surface);
-  color: var(--hint);
+  color: var(--text3);
   border: 1px solid var(--border);
 }
 
@@ -1133,7 +1133,7 @@
   justify-content: center;
   padding: 28px 16px;
   font-size: var(--text-sm);
-  color: var(--hint);
+  color: var(--text3);
   text-align: center;
   border: 1px dashed var(--border);
   border-radius: var(--radius-md);

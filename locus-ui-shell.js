@@ -1,4 +1,7 @@
-// [PP] mod:46 · autor:Rune · 2026-07-13 08:45 UTC-6
+// [PP] mod:47 · autor:Rune · 2026-07-13 02:15 UTC-6
+// Deprecación Command Palette (cont.): removidos import de openCommandPalette/closeCommandPalette,
+// el check de cp-overlay en _escCascade, el wiring hdr-search-trigger→openCommandPalette y el
+// wiring cp-overlay click-outside. locus-command-palette.js eliminado del proyecto.
 // TKT1 (REQ CAEL-04): navigateToItem() reubicada a locus-item-navigator.js. Este archivo no
 // la importaba estáticamente (2 call sites bare, L879/L1176) — reemplazados por import()
 // dinámico (patrón (b) ya documentado en este header) en vez de import estático, para evitar
@@ -41,7 +44,6 @@
 import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, _parseInfraLine, setInfraVersionData, _docPrefix, handleSyncPillClick } from './locus-storage.js';
 import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortDir } from './locus-backlog-core.js';
 import { openPendPanel, closePendPanel } from './locus-pend.js';
-import { openCommandPalette, closeCommandPalette } from './locus-command-palette.js';
 import { confirmItemEditor, closeItemEditor } from './locus-backlog-editor.js';
 import { _mgExportAllZip } from './locus-map-generator.js';
 import { closeImportDiff, confirmImport, downloadGlobalReport, exportData, importData, openCleanProjectModal } from './locus-reports.js';
@@ -687,7 +689,6 @@ export function _escCascade() {
     // Prioridad alta — modales de confirmación / editing
     () => { const el = document.getElementById('shortcuts-ref-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcutsRef(); return true; } },
     () => { const el = document.getElementById('shortcuts-overlay'); if (el && !el.classList.contains('is-hidden')) { closeShortcuts(); return true; } },
-    () => { const el = document.getElementById('cp-overlay'); if (el && !el.classList.contains('is-hidden')) { closeCommandPalette(); return true; } },
     // (a) event dispatch — locus-sesiones-capture.js escucha 'shell:close-quick-capture'
     () => { const el = document.getElementById('qc-modal-overlay'); if (el && el.classList.contains('open')) { window.dispatchEvent(new CustomEvent('shell:close-quick-capture')); return true; } },
     // (a) event dispatch — locus-backlog-panel.js escucha 'shell:close-item-panel'
@@ -725,8 +726,6 @@ document.addEventListener('keydown', e => {
     _escCascade();
     return;
   }
-
-  // Cmd+K / Ctrl+K → delegado a _cpGlobalKeydown en ai-tracker-command-palette.js
 
   // T-202605-442: Cmd+? → referencia de atajos (Cmd+Shift+/ y Cmd+?)
   if ((e.metaKey || e.ctrlKey) && (e.key === '?' || (e.shiftKey && e.key === '/'))) {
@@ -1205,12 +1204,6 @@ document.addEventListener('DOMContentLoaded', function () {
     openProjPanel();
   });
 
-  // hdr-search-trigger → openCommandPalette()
-  const hdrSearchTrigger = document.getElementById('hdr-search-trigger');
-  if (hdrSearchTrigger) hdrSearchTrigger.addEventListener('click', function () {
-    openCommandPalette();
-  });
-
   // header-pend-btn → openPendPanel()
   const headerPendBtn = document.getElementById('header-pend-btn');
   if (headerPendBtn) headerPendBtn.addEventListener('click', function () {
@@ -1432,12 +1425,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const shortcutsCloseBtn = document.getElementById('shortcuts-close-btn');
   if (shortcutsCloseBtn) shortcutsCloseBtn.addEventListener('click', function () {
     closeShortcuts();
-  });
-
-  // cp-overlay — click outside to close
-  const cpOverlay = document.getElementById('cp-overlay');
-  if (cpOverlay) cpOverlay.addEventListener('click', function (e) {
-    if (e.target === this) closeCommandPalette();
   });
 
   // mg-version-input

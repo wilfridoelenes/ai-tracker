@@ -35,7 +35,7 @@
 .logo-version {
   font-family: 'JetBrains Mono', monospace;
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius-xs);
@@ -71,7 +71,7 @@
 .logo-by {
   font-size: var(--text-sm);
   font-weight: 500;
-  color: var(--hint);
+  color: var(--text3);
   margin-left: 2px;
   letter-spacing: 0.01em;
 }
@@ -131,7 +131,7 @@
 }
 
 #pepe-splash .splash-version {
-  font-size: var(--text-xs); color: var(--hint);
+  font-size: var(--text-xs); color: var(--text3);
   font-family: var(--mono);
 }
 
@@ -349,7 +349,7 @@
 }
 
 .search-input::placeholder {
-  color: var(--hint);
+  color: var(--text3);
 }
 
 /* [pendiente-ID]: theme toggle — regla base completada */
@@ -538,7 +538,7 @@ button {
 
 .breadcrumb-sep {
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
   flex-shrink: 0;
   line-height: 1;
   user-select: none;
@@ -601,7 +601,7 @@ button {
 
 /* Segmento 3 — ítem: text-tertiary weight 400, overflow ellipsis */
 .breadcrumb-seg--item {
-  color: var(--hint);
+  color: var(--text3);
   font-weight: 400;
   max-width: 120px;
   overflow: hidden;
@@ -1374,7 +1374,7 @@ header {
 /* Filter active label — reemplaza cssText en backlog.js L1367 */
 .filter-active-label {
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
   font-family: var(--font-mono);
   margin-left: 4px;
   align-self: center;
@@ -1476,7 +1476,7 @@ header {
 }
 
 .code-badge--default {
-  color: var(--hint);
+  color: var(--text3);
 }
 
 .sync-pill.offline {
@@ -1713,7 +1713,7 @@ header {
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background: var(--surface2);
-  color: var(--hint);
+  color: var(--text3);
   font-size: var(--text-base);
   line-height: 1;
   cursor: pointer;
@@ -1868,7 +1868,7 @@ header {
 /* .splash-sub — subtítulo bajo el nombre */
 #pepe-splash .splash-sub {
   font-size: var(--text-sm);
-  color: var(--hint);
+  color: var(--text3);
   font-family: var(--font-sans);
 }
 
@@ -1890,7 +1890,7 @@ header {
 
 /* Separador antes del segmento sprint */
 .breadcrumb-sep--sprint {
-  color: var(--hint);
+  color: var(--text3);
   opacity: 0.5;
   margin: 0 2px;
 }
@@ -2066,7 +2066,7 @@ header {
 
 .empty-state-hint {
   font-size: var(--text-sm);
-  color: var(--hint);
+  color: var(--text3);
   line-height: 1.7;
   margin-bottom: 0.25rem;
   max-width: 300px;
@@ -2085,7 +2085,7 @@ header {
   flex-wrap: wrap;
   justify-content: center;
   font-size: var(--text-xs);
-  color: var(--hint);
+  color: var(--text3);
   line-height: 1.7;
 }
 
@@ -2174,7 +2174,7 @@ header {
   transition: all 0.12s;
   background: transparent;
   border-color: transparent;
-  color: var(--hint);
+  color: var(--text3);
 }
 
 /* .btn-primary — fuente canónica: locus-layout.css — scope: backlog · layout */
@@ -2215,7 +2215,7 @@ header {
   letter-spacing: 0.06em;
   font-weight: 500;
   font-size: var(--text-2xs);
-  color: var(--hint);
+  color: var(--text3);
   display: block;
   margin-bottom: 4px;
 }
@@ -2379,7 +2379,7 @@ textarea:hover {
   font-size: var(--text-sm);
   opacity: 0;
   cursor: grab;
-  color: var(--hint);
+  color: var(--text3);
   transition: opacity 0.1s;
   padding: 0 3px;
   flex-shrink: 0;
@@ -2389,7 +2389,7 @@ textarea:hover {
   display: none;
   font-size: var(--text-2xs-plus);
   font-weight: 500;
-  color: var(--hint);
+  color: var(--text3);
   background: none;
   border: 1px solid var(--border2);
   border-radius: var(--radius-xs);
