@@ -1,4 +1,7 @@
-// [PP] mod:48 · autor:Rune · 2026-07-11 23:10 UTC-6
+// [PP] mod:49 · autor:Rune · 2026-07-12 UTC-6
+// INC-[pendiente-ID]: navigateToItem() agrega rama DISC — switchSubTab('qdisc') en vez de
+// 'backlog' cuando itemKind(item) === 'DISC'. Selector de scroll sin cambio (.item[data-code],
+// DISC comparte shell con REQ/TKT vía buildBacklogItem()). contract_update: n/a — firma sin cambio.
 // TKT3 (REQ CAEL-01, contract_update: sí): navigateToItem() ahora distingue ítems ITIL
 // (getIncidents(), navega a 'incidentes', selector .qinc-item) de REQ/TKT/DISC (getItems(),
 // 'backlog', selector .item) — antes un código INC nunca se encontraba y el deep-link fallaba
@@ -1542,8 +1545,13 @@ export function navigateToItem(code) {
     activeStatuses.add(item.status);
     updateStatusFilterUI();
   }
+  // INC-[pendiente-ID] (triggered_by análisis de subtab Discoveries): DISC vive en
+  // #sspanel-qdisc, no en #sspanel-backlog — buildBacklogItem() (locus-backlog-qdisc.js)
+  // reutiliza el mismo shell .item que TKT/REQ, así que el selector de scroll no cambia,
+  // solo el sub-tab activo antes de buscarlo. Sin esta rama, un DISC caía en el
+  // switchSubTab('backlog') genérico y el elemento quedaba en un panel inactivo.
   switchTab('backlog');
-  switchSubTab('backlog');
+  switchSubTab(itemKind(item) === 'DISC' ? 'qdisc' : 'backlog');
   // Esperar render y hacer scroll
   setTimeout(() => {
     const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
