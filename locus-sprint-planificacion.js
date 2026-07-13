@@ -1,4 +1,4 @@
-// [PP] mod:30 · autor:Rune · 2026-07-11 UTC-6
+// [PP] mod:31 · autor:Rune · 2026-07-12 01:35 UTC-6
 // TKT-202607-020 (REQ CAEL-01): unassigned excluye DISC (itemKind(i) !== 'DISC') — DISC nunca
 // persiste sprint (BR-Ecosystem §5/§4b), no debe renderizarse como candidato a jalar a sprint.
 // Título de #bl-plan-col-left: "Sin sprint" → "Q-Backlog (Sin Sprint)".
@@ -129,11 +129,12 @@ function _buildSprintOption(sp) {
   const badgeTxt = isActive ? 'activo' : isClosed ? 'cerrado' : 'activo';
   const activeCls = isActive ? ' is-active-sprint' : '';
   const selectedCls = isSelected ? ' is-selected' : '';
+  const selectedAttr = isSelected ? ' aria-selected="true"' : '';
   // T-202604-417: botón "Ver retro" para sprints cerrados con retroDoc guardado
   const retroBtn = isClosed && sp.retroDoc
     ? `<button class="bl-sprint-retro-btn" data-action="bl-sprint-retro" data-sprint-id="${esc(id)}" title="Ver retrospectiva" type="button">retro</button>`
     : '';
-  return `<button class="bl-sprint-option${activeCls}${selectedCls}" data-action="bl-sprint-select" data-sprint-id="${esc(id)}" type="button">
+  return `<button class="bl-sprint-option${activeCls}${selectedCls}" data-action="bl-sprint-select" data-sprint-id="${esc(id)}" type="button"${selectedAttr}>
     <span class="bl-sprint-option-mark">${mark}</span>
     <span class="bl-sprint-option-name">${esc(displayName)}</span>
     <div class="bl-sprint-option-meta">
@@ -171,7 +172,7 @@ function _buildSprintSelector() {
   const progressHtml = activeSprint ? `
     <div class="bl-sprint-trigger-progress">
       <div class="bl-sprint-trigger-bar-wrap">
-        <div class="bl-sprint-trigger-bar-fill" style="--sbar-w:${triggerPct}%"></div>
+        <div class="bl-sprint-trigger-bar-fill" style="--sprint-pct:${triggerPct}%"></div>
       </div>
       <span class="bl-sprint-trigger-pct">${triggerPct}%</span>
     </div>` : '';
@@ -179,7 +180,7 @@ function _buildSprintSelector() {
   // builder de opción individual — B-202605-058: referencia a función de módulo _buildSprintOption
   const closedOptionsHtml = closedSprints.map(_buildSprintOption).join('');
   const closedSection = closedSprints.length ? `
-    <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" data-action="bl-sprint-toggle-closed" type="button">
+    <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" data-action="bl-sprint-toggle-closed" type="button" aria-expanded="false">
       <span class="bl-sprint-closed-toggle-label">Cerrados</span>
       <span class="bl-sprint-closed-toggle-count">${closedSprints.length}</span>
       <span class="bl-sprint-closed-toggle-arrow">▾</span>
@@ -188,7 +189,7 @@ function _buildSprintSelector() {
       ${closedOptionsHtml}
     </div>` : '';
 
-  return `<div class="bl-sprint-trigger" id="bl-sprint-trigger" data-action="bl-sprint-open" role="button" tabindex="0" data-keyaction="bl-sprint-open">
+  return `<div class="bl-sprint-trigger" id="bl-sprint-trigger" data-action="bl-sprint-open" role="button" tabindex="0" data-keyaction="bl-sprint-open" aria-expanded="false">
     <span class="bl-sprint-trigger-label">Sprint</span>
     ${triggerNameHtml}
     ${progressHtml}
@@ -204,6 +205,7 @@ function _blSprintOpen() {
   if (document.getElementById('bl-sprint-dropdown')) return; // ya abierto
 
   trigger.classList.add('is-open');
+  trigger.setAttribute('aria-expanded', 'true');
 
   // construir dropdown
   const allSprints = getActiveSprints() || [];
@@ -214,7 +216,7 @@ function _blSprintOpen() {
   const openOptionsHtml   = [activeSprint].filter(Boolean).map(_buildSprintOption).join('');
   const closedOptionsHtml = closedSprints.map(_buildSprintOption).join('');
   const closedSection = closedSprints.length ? `
-    <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" data-action="bl-sprint-toggle-closed" type="button">
+    <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" data-action="bl-sprint-toggle-closed" type="button" aria-expanded="false">
       <span class="bl-sprint-closed-toggle-label">Cerrados</span>
       <span class="bl-sprint-closed-toggle-count">${closedSprints.length}</span>
       <span class="bl-sprint-closed-toggle-arrow">▾</span>
@@ -232,6 +234,8 @@ function _blSprintOpen() {
     </div>
     <div class="bl-sprint-overlay" id="bl-sprint-overlay" data-action="bl-sprint-close"></div>
   `);
+  const overlayEl = document.getElementById('bl-sprint-overlay');
+  if (overlayEl) overlayEl.classList.add('open');
 }
 
 // cerrar dropdown — con animación de salida
@@ -239,11 +243,23 @@ function _blSprintClose() {
   const dropdown = document.getElementById('bl-sprint-dropdown');
   const overlay  = document.getElementById('bl-sprint-overlay');
   const trigger  = document.getElementById('bl-sprint-trigger');
-  if (trigger) trigger.classList.remove('is-open');
+  if (trigger) {
+    trigger.classList.remove('is-open');
+    trigger.setAttribute('aria-expanded', 'false');
+  }
   if (overlay) overlay.remove();
   if (dropdown) {
     dropdown.classList.add('is-closing');
-    dropdown.addEventListener('animationend', () => dropdown.remove(), { once: true });
+    let removed = false;
+    const removeOnce = () => {
+      if (removed) return;
+      removed = true;
+      dropdown.remove();
+    };
+    dropdown.addEventListener('animationend', removeOnce, { once: true });
+    // TKT1 (REQ CAEL-01): fallback — si no hay animación CSS que dispare animationend
+    // (ej. TKT3 aún no desplegado), el dropdown no debe quedar huérfano en el DOM.
+    setTimeout(removeOnce, 250);
   }
 }
 
@@ -261,7 +277,10 @@ function _blSprintToggleClosed() {
   if (!list) return;
   const isOpen = !list.classList.contains('is-hidden');
   list.classList.toggle('is-hidden', isOpen);
-  if (toggle) toggle.classList.toggle('is-open', !isOpen);
+  if (toggle) {
+    toggle.classList.toggle('is-open', !isOpen);
+    toggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
+  }
   if (arrow) arrow.textContent = isOpen ? '▾' : '▴';
 }
 
@@ -323,7 +342,10 @@ export function _renderSprintRoadmap() {
     const newToggle = document.getElementById('bl-sprint-closed-toggle');
     const newArrow  = newToggle ? newToggle.querySelector('.bl-sprint-closed-toggle-arrow') : null;
     if (newList)   newList.classList.remove('is-hidden');
-    if (newToggle) newToggle.classList.add('is-open');
+    if (newToggle) {
+      newToggle.classList.add('is-open');
+      newToggle.setAttribute('aria-expanded', 'true');
+    }
     if (newArrow)  newArrow.textContent = '▴';
   }
 }
