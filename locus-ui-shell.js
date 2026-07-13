@@ -1,3 +1,7 @@
+// [PP] mod:44 · autor:Rune · 2026-07-13 UTC-6
+// TKT1 (REQ CAEL-01): switchSubTab() cierra #item-detail-panel si está .open, antes de
+// aplicar el cambio de sub-tab — mismo patrón (event dispatch 'shell:close-item-panel')
+// ya usado en switchTab() (B-202605-207). No toca switchTab ni ningún otro handler.
 // [PP] mod:43 · autor:Rune · 2026-07-11 22:45 UTC-6
 // TKT2 (REQ CAEL-01): switchTab agrega caso 'incidentes' (dispatch shell:render-qinc) —
 // switchSubTab pierde el bloque/entrada 'qinc', sub-tab eliminado (ver index.html mod:112).
@@ -168,6 +172,13 @@ export function switchTab(tab) {
 // ── Sub-tab switching (extraído de ai-tracker-ai-notes.js) ─────────────────
 
 export function switchSubTab(sub) {
+  // TKT1 (REQ CAEL-01): cerrar panel de detalle al cambiar de sub-tab —
+  // mismo patrón que B-202605-207 en switchTab(), extendido a sub-tab.
+  // (a) event dispatch — locus-backlog-panel.js escucha 'shell:close-item-panel'
+  const _itemPanel = document.getElementById('item-detail-panel');
+  if (_itemPanel && _itemPanel.classList.contains('open')) {
+    window.dispatchEvent(new CustomEvent('shell:close-item-panel'));
+  }
   currentSubTab = sub;
   ['backlog','qbacklog','qdisc','htmlmap','context','plan','contratos','historico'].forEach(s => {
     const btn = document.getElementById('sstab-btn-' + s);
