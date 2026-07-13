@@ -1,3 +1,9 @@
+// [PP] mod:120 · autor:Rune · 2026-07-13 UTC-6
+// INC-[pendiente-ID]: isSupabaseAuthed() importada — typeof _supabase !== 'undefined' &&
+// typeof _supabaseUser !== 'undefined' en loadBacklog() nunca era true (ambas privadas de
+// locus-storage.js, sin export hasta este fix). La rama "Supabase-first" (refresh en
+// background al cambiar de proyecto activo) nunca disparaba — loadBacklog() siempre caía
+// al else (solo localStorage). Fix: isSupabaseAuthed() real, expone solo el booleano.
 // [PP] mod:119 · autor:Rune · 2026-07-13 UTC-6
 // INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true.
 // exportBtn en updateBacklogBanner() nunca se des-ocultaba vía este guard cuando tab activo era backlog.
@@ -198,7 +204,7 @@
 // T-202606-057: imports hacia módulos que importan a locus-backlog-core eliminados.
 // Funciones desacopladas via _coreCallbacks (getters/acciones controladas)
 // y shell:* events (notificaciones de render — window per B-202606-021).
-import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _sprintDisplay, _tplKey, getAI, getActiveSprints, getAllSessions, getState, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js'; // TKT1 (REQ-historico-async): refreshHistoricoCache/getHistoricoItemsSync — _getNextItemCode() incluye historico en el escaneo de colisión
+import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _sprintDisplay, _tplKey, getAI, getActiveSprints, getAllSessions, getState, isSupabaseAuthed, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js'; // TKT1 (REQ-historico-async): refreshHistoricoCache/getHistoricoItemsSync — _getNextItemCode() incluye historico en el escaneo de colisión · INC-[pendiente-ID]: isSupabaseAuthed agregado — guard typeof _supabase/_supabaseUser muerto
 import { showToast, toast } from './locus-toast.js';
 import { esc, getCurrentSubTab, getCurrentTab } from './locus-ui-shell.js';
 import { incSlaPriority, incComportamientoActual, incIncidentStatus } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil: reemplaza fallback || inline en _normalizeIncidents()
@@ -1388,8 +1394,7 @@ export function loadBacklog() {
   // Migración one-shot (founder only): si localStorage tiene datos y Supabase está
   // vacío, _loadFromSupabase detecta ITEMS.length === 0 post-carga y no sobreescribe;
   // saveBacklog() al final del flujo empuja los datos locales a Supabase.
-  if (typeof _supabase !== 'undefined' && _supabase &&
-      typeof _supabaseUser !== 'undefined' && _supabaseUser) {
+  if (isSupabaseAuthed()) {
     // Cargar localStorage como base inmediata (evita flash de backlog vacío)
     const s = localStorage.getItem(_tplKey('backlog-items'));
     if (s) { try { _setITEMS(JSON.parse(s)); } catch { _setITEMS([]); } } else { _setITEMS([]); }

@@ -1,3 +1,8 @@
+// [PP] mod:119 · autor:Rune · 2026-07-13 UTC-6
+// INC-[pendiente-ID]: isSupabaseAuthed() agregada — expone estado de auth (_supabase &&
+// _supabaseUser) sin exponer el cliente ni el user object. Consumida por loadBacklog()
+// en locus-backlog-core.js — antes typeof-guard muerto sobre variables module-privadas
+// sin import. Módulo crítico — activar verificación de regresiones en Finn.
 // [PP] mod:118 · autor:Rune · 2026-07-12 20:06 UTC-6
 // TKT4 (REQ CAEL-01 · PP-S-02): role/next_role/ac/queue/verificado_por agregados a
 //   _toIncidentRow() y _mapRowToIncident() — ALTER TABLE aplicado por el founder en
@@ -739,6 +744,15 @@ async function signInWithMagicLink(resend = false) {
 // getSupabaseUserId — user_id del founder para queries Supabase
 export function getSupabaseUserId() {
   return _supabaseUser ? _supabaseUser.id : null;
+}
+
+// isSupabaseAuthed — INC-[pendiente-ID]: accessor agregado. _supabase/_supabaseUser son
+// privadas de este módulo (let/var sin export) — loadBacklog() en locus-backlog-core.js
+// las referenciaba vía typeof _supabase !== 'undefined' sin import real, guard siempre
+// falso. La rama "Supabase-first" de loadBacklog() (refresh en background al cambiar de
+// proyecto) nunca disparaba. Expone solo el booleano — no el cliente ni el user object.
+export function isSupabaseAuthed() {
+  return !!(_supabase && _supabaseUser);
 }
 
 // TKT1b · verifyConstraintsSync — herramienta de consola, sin uso en flujo de la app.
