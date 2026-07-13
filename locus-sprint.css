@@ -1,4 +1,4 @@
-/* [PP] mod:48 · autor:Nova · 2026-07-12 01:55 UTC-6 */
+/* [PP] mod:49 · autor:Nova · 2026-07-13 09:26 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -2251,7 +2251,7 @@
   white-space: nowrap;
 }
 
-/* Verde — mismo token que .sph-bd-fill.is-complete/.sps-burndown-fill--complete */
+/* Verde — mismo token que .sph-bd-fill.is-complete */
 .sps-count-done {
   color: var(--c-low-text);
 }
@@ -2424,16 +2424,12 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 }
 
 /* .sps-card no declara padding propio — el padding horizontal vive en cada hijo directo
-   (.sps-card-header, .sps-meta, .sps-progress-wrap — los 3 hijos reales de #sps-activo .sps-card).
-   Compensación del border-left (1px base → 3px): reducir 2px de padding-left en los 3 hijos
-   dentro de #sps-activo, para mantener alineación visual con cards sin borde.
-   B-[pendiente-ID]: selector original apuntaba a .sps-header (real: .sps-card-header),
-   .sps-burndown-wrap (real: .sps-progress-wrap) y .sps-actions (0 uso, eliminado de la lista —
-   superseded por .sps-menu-wrap/.sps-dropdown en _renderSpsActivo()). Los 3 selectores muertos
-   hacían que la compensación nunca aplicara al header ni al burndown — solo a .sps-meta. */
+   (.sps-card-header, .sps-meta — los 2 hijos reales de #sps-activo .sps-card tras TKT1
+   REQ CAEL-05, que eliminó el tercero, .sps-progress-wrap — mod:96/49).
+   Compensación del border-left (1px base → 3px): reducir 2px de padding-left en los hijos
+   dentro de #sps-activo, para mantener alineación visual con cards sin borde. */
 #sps-activo .sps-card .sps-card-header,
-#sps-activo .sps-card .sps-meta,
-#sps-activo .sps-card .sps-progress-wrap {
+#sps-activo .sps-card .sps-meta {
   padding-left: 12px;
 }
 
@@ -2562,62 +2558,11 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   font-weight: 400;
 }
 
-/* B-202606-059 AC-4 + B-[pendiente-ID]: wrapper flex de fila de progreso.
-   Padding 10px 14px portado desde .sps-burndown-wrap (eliminada — 0 uso en
-   JS, _renderSpsActivo() usa .sps-progress-wrap). Sin border-bottom: es la
-   última sección visible de la card — un borde final duplicaría el borde
-   inferior de .sps-card. Si .sps-actions vuelve a usarse, reevaluar. */
-.sps-progress-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-}
-
-/* ── Burndown ── */
-
-.sps-burndown-bar {
-  height: 5px;
-  background: var(--surface3);
-  border-radius: var(--radius-pill);
-  overflow: hidden;
-}
-
-.sps-burndown-fill {
-  height: 100%;
-  width: var(--sps-burndown-pct, 0%);
-  background: var(--accent);
-  transition: width 0.3s var(--ease-out);
-}
-
-.sps-burndown-fill--complete {
-  background: var(--c-low-text);
-}
-
-.sps-card--pausado .sps-burndown-fill {
-  background: var(--hint);
-}
-
-.sps-burndown-meta {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.sps-burndown-label {
-  font-size: var(--text-xs);
-  color: var(--text3);
-}
-
-.sps-burndown-pct {
-  font-size: var(--text-xs);
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.sps-burndown-pct--complete {
-  color: var(--c-low-text);
-}
+/* ── TKT1 REQ CAEL-05: .sps-progress-wrap / .sps-burndown-* eliminadas —
+   generaban markup que Rune dejó de emitir en _renderSpsActivo() (mod:96).
+   El bloque vivía oculto por display:none desde T-202606-033 sin consumidor
+   real; el panel .sph-panel de abajo es ahora la única barra de progreso
+   de la card Activo. Ver _Locus-ux-ref §Sprint activo para el rediseño. */
 
 /* ── T-202606-033: Panel Salud del sprint — hermano de .sps-card en #sps-activo ──
    Reutiliza el prefijo sph- (Sprint panel header) declarado en _Locus-css-ref —
@@ -2701,14 +2646,6 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 
 .sph-alert-icon {
   flex-shrink: 0;
-}
-
-/* ── Remoción de barra de burndown de la card original — T-202606-033.
-   El AC del T1 exige que .sps-progress-wrap deje de mostrarse en la card;
-   _renderSpsActivo() (Rune) sigue generando el mismo innerHTML — Nova oculta
-   por CSS para no forzar un segundo punto de verdad de estructura (E-02). */
-#sps-activo .sps-card .sps-progress-wrap {
-  display: none;
 }
 
 /* ── Acciones ── */

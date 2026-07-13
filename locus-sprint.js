@@ -1,4 +1,10 @@
-// [PP] mod:95 · autor:Rune · 2026-07-12 UTC-6
+// [PP] mod:96 · autor:Rune · 2026-07-13 09:26 UTC-6
+// TKT1 (REQ CAEL-05 — rediseño sub-tab Sprints): _renderSpsActivo() deja de generar
+// .sps-progress-wrap — CSS ya lo ocultaba con display:none (T-202606-033), 0 call sites
+// de .sps-burndown-fill--complete/.sps-burndown-pct--complete verificado (BR-Execution §2
+// Criterio de señal de refactor — código roto que bloqueaba el objetivo del TKT, no refactor
+// silencioso). .sph-panel (Salud del sprint) pasa a ser la única barra de progreso — role
+// progressbar migrado a .sph-bar-track. Ver _Locus-css-ref para el CSS Purity companion.
 // TKT (badge sprint pausado 7+ días — Effort 1, sin módulo crítico): _renderSpsPausados()
 // agrega staleness-pill.staleness--stale junto al título de la card cuando pauseRef
 // (pausedAt || createdAt, mismo campo/fallback que ya alimentaba pausedDate) supera 7 días
@@ -736,17 +742,11 @@ function _renderSpsActivo() {
         '<div class="sps-meta-item"><span class="sps-meta-label">Release</span><span class="sps-meta-value sps-meta-editable" tabindex="0" title="Click para editar">' + _escHtml(rt) + '</span></div>' +
         '<div class="sps-meta-item sps-meta-item--goal"><span class="sps-meta-label">Goal</span><span class="sps-meta-value sps-meta-editable" tabindex="0" title="Click para editar">' + _escHtml(goal) + '</span></div>' +
       '</div>' +
-      '<div class="sps-progress-wrap">' +
-        '<div class="sps-burndown-bar" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso del sprint: ' + done + ' de ' + total + ' ítems done">' +
-          '<div class="sps-burndown-fill"></div>' +
-        '</div>' +
-        '<span class="sps-burndown-label">' + done + ' / ' + total + ' ítems done</span>' +
-      '</div>' +
     '</div>' +
     '<div class="sph-panel">' +
       '<span class="sph-title">Salud del sprint</span>' +
       '<div class="sph-row">' +
-        '<div class="sph-bar-track">' +
+        '<div class="sph-bar-track" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso del sprint: ' + done + ' de ' + total + ' ítems done">' +
           '<div class="sph-bar-fill"></div>' +
         '</div>' +
         '<span class="sph-pct">' + pct + '%</span>' +
@@ -758,11 +758,9 @@ function _renderSpsActivo() {
       '</div>' +
     '</div>';
 
-  // CSS Purity: variable de progreso via setProperty — un solo cálculo (pct),
-  // consumido por .sps-burndown-fill (card) y .sph-bar-fill (panel nuevo)
-  // dentro del mismo scope de container.
-  const fillEl = container.querySelector('.sps-burndown-fill');
-  if (fillEl) fillEl.style.setProperty('--sps-burndown-pct', pct + '%');
+  // CSS Purity: variable de progreso via setProperty — único cálculo (pct),
+  // único consumidor tras eliminación de .sps-progress-wrap muerto (TKT1 REQ CAEL-05,
+  // 0 call sites de .sps-burndown-fill--complete/.sps-burndown-pct--complete verificado).
   const sphFillEl = container.querySelector('.sph-bar-fill');
   if (sphFillEl) sphFillEl.style.setProperty('--sps-burndown-pct', pct + '%');
 
