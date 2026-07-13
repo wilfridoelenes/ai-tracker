@@ -1,4 +1,4 @@
-// [PP] mod:68 · autor:Rune · 2026-07-13 08:00 UTC-6
+// [PP] mod:69 · autor:Rune · 2026-07-13 08:45 UTC-6
 // TKT1 (REQ-[pendiente-ID] · promovida de DISC-202607-010): eliminado el import huérfano
 //   _tryIngestSprintProposal (sin FromParsed) — cero call sites en este archivo confirmado
 //   via grep. Resto de la línea de import (_setPhase, parseSprintProposal, parsePaste,
@@ -844,12 +844,6 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
       void card.offsetWidth;
       card.classList.add('card-flash');
       setTimeout(() => card.classList.remove('card-flash'), 650);
-      // R-202604-061 AC-1: feedback en botón guardar
-      const _sbtn = document.getElementById('sbtn-' + id);
-      if (_sbtn) {
-        _sbtn.classList.add('btn--saved');
-        setTimeout(() => _sbtn.classList.remove('btn--saved'), 1800);
-      }
       // T-202604-410: estado transitorio post-merge en card
       const _hasMergeItems = mergeResult && (
         mergeResult.created.length || mergeResult.advanced.length ||

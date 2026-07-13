@@ -1,4 +1,4 @@
-// [PP] mod:113 · autor:Rune · 2026-07-13 08:00 UTC-6
+// [PP] mod:114 · autor:Rune · 2026-07-13 08:45 UTC-6
 // TKT3 (REQ-[pendiente-ID] · Hallazgo fuera de scope de TKT1, promovido a DISC y evaluado en la
 //   misma sesión): eliminada la función _tryIngestSprintProposal (ingesta legacy Markdown de
 //   sprint_proposal, sin FromParsed) — su único importador (locus-session-save.js) fue retirado
@@ -1312,18 +1312,15 @@ export function parsePaste(id) {
     delete window[`_doneNoAcWarnSeen_${id}`];
     delete window[`_discrepancyWarnSeen_${id}`];
     delete window[`_draftGateToastSeen_${id}`];
-    // Resetear preview, botón y ta-has-items al estado inicial
+    // Resetear preview y ta-has-items al estado inicial
     const _prevEl = document.getElementById('prev-' + id);
     if (_prevEl) { _prevEl.className = 'preview'; _prevEl.innerHTML = ''; }
-    const _btnEl = document.getElementById('sbtn-' + id);
-    if (_btnEl) { _btnEl.disabled = true; _btnEl.className = 'sc-save'; }
     const _taEl = document.getElementById('ta-' + id);
     if (_taEl) _taEl.classList.remove('ta-has-items');
     ai._parsed = { title: '', summary: '', files: '', tgItems: [], isCheckpoint: false, nextStep: '', ckptProyecto: '' };
     return;
   }
 
-  const btn = document.getElementById('sbtn-' + id);
   const prev = document.getElementById('prev-' + id);
   if (text.trim()) {
     // T-202606-005: gate de validación — presencia de field 'title' + JSON válido
@@ -1342,7 +1339,6 @@ export function parsePaste(id) {
     if (failed) {
       prev.className = 'preview show';
       prev.innerHTML = `<div class="paste-error">\u26A0 Formato inv\xE1lido \u2014 ${failed.msg}</div>`;
-      if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
 
@@ -1352,7 +1348,6 @@ export function parsePaste(id) {
     if (_itemsJsonErr) {
       prev.className = 'preview show';
       prev.innerHTML = `<div class="paste-error">&#9940; Bloque de ítems inválido — ${esc(_itemsJsonErr)}.<br><span class="paste-hint">Corrige el JSON antes de procesar. El bloque debe ser un array de objetos con al menos <code>type</code>, <code>code</code> y <code>status</code>.</span></div>`;
-      if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
     // T-202606-005: path único JSON — ítems van dentro del bloque JSON (campo items: [])
@@ -1370,7 +1365,6 @@ export function parsePaste(id) {
       prev.innerHTML = `<div class="paste-error paste-warn">⚠ Falta el campo <code>Rol:</code> en el CHECKPOINT.<br><span class="paste-hint">Formato esperado: <code>Rol: FS · Mike</code>. El paste funcionará igual sin este campo.</span><br><button class="btn-ghost paste-inline-btn">Procesar de todas formas</button></div>`;
       const _rolBtn = prev.querySelector('.paste-inline-btn');
       if (_rolBtn) _rolBtn.addEventListener('click', () => { window[_rolWarnKey] = true; parsePaste(id); }, { once: true });
-      if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
     if (window[_rolWarnKey]) delete window[_rolWarnKey];
@@ -1388,7 +1382,6 @@ export function parsePaste(id) {
         prev.innerHTML = `<div class="paste-error paste-warn">⚠ ${_doneNoAc.length} ítem${_doneNoAc.length !== 1 ? 's' : ''} marcado${_doneNoAc.length !== 1 ? 's' : ''} como done sin criterios de aceptación: ${_codes}.<br><span class="paste-hint">Un ítem done sin AC no es verificable. Agrega AC antes de marcar como done, o continúa si es intencional.</span><br><button class="btn-ghost paste-inline-btn">Continuar de todas formas</button></div>`;
         const _doneBtn = prev.querySelector('.paste-inline-btn');
         if (_doneBtn) _doneBtn.addEventListener('click', () => { window[_doneWarnKey] = true; parsePaste(id); }, { once: true });
-        if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
         return;
       }
     }
@@ -1406,7 +1399,6 @@ export function parsePaste(id) {
       const _previewAlreadyShowing = prev.classList.contains('show') && prev.innerHTML.includes('paste-error');
       prev.className = 'preview show';
       prev.innerHTML = `<div class="paste-error">⛔ CHECKPOINT inválido — <code>Proyecto:</code> contiene un valor no reconocido: <strong>${esc(_proyectoRaw)}</strong>.<br><span class="paste-hint">Valores válidos (case-sensitive): ${_validList}. Corrige el campo <code>Proyecto:</code> antes de procesar.</span></div>`;
-      if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       if (!_previewAlreadyShowing) showToast('error', `⛔ Proyecto no reconocido: "${esc(_proyectoRaw)}" — corrige el campo`);
       // R-202605-063: sugerencia de string canónico por distancia de edición
       {
@@ -1442,7 +1434,6 @@ export function parsePaste(id) {
     // Toast solo en error (ver bloque de validaciones previo).
   }
 
-  if (btn) { btn.disabled = false; btn.className = title ? 'sc-save ready' : 'sc-save'; }
 
   // T-202606-034: aviso no bloqueante de discrepancia raw vs parseado
   // AC-1: si no hay discrepancia o rawTotal === 0, silencio — auto-trigger corre normalmente.
@@ -1456,7 +1447,6 @@ export function parsePaste(id) {
     prev.innerHTML = `<div class="paste-error paste-warn">⚠ ${_discrepancy.raw} línea${_discrepancy.raw !== 1 ? 's' : ''} detectada${_discrepancy.raw !== 1 ? 's' : ''} en el texto — solo ${_discrepancy.parsed} parseada${_discrepancy.parsed !== 1 ? 's' : ''} correctamente. Verifica el formato de los ítems no detectados.<br><button class="btn-ghost paste-inline-btn">Continuar de todas formas</button></div>`;
     const _discBtn = prev.querySelector('.paste-inline-btn');
     if (_discBtn) _discBtn.addEventListener('click', () => { window[_discrepancyWarnKey] = true; parsePaste(id); }, { once: true });
-    if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
     return;
   }
   if (window[_discrepancyWarnKey]) delete window[_discrepancyWarnKey];
@@ -1472,7 +1462,6 @@ export function parsePaste(id) {
       prev.innerHTML = `<div class="paste-error paste-warn">⚠ Este CHECKPOINT ya fue procesado. ¿Continuar de todas formas?<br><button class="btn-ghost paste-inline-btn">Continuar de todas formas</button></div>`;
       const _dupBtn = prev.querySelector('.paste-inline-btn');
       if (_dupBtn) _dupBtn.addEventListener('click', () => { window[_dupWarnKey] = true; parsePaste(id); }, { once: true });
-      if (btn) { btn.disabled = true; btn.className = 'sc-save'; }
       return;
     }
     if (window[_dupWarnKey]) delete window[_dupWarnKey];

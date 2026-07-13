@@ -1,4 +1,4 @@
-// [PP] mod:45 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:46 · autor:Rune · 2026-07-13 08:45 UTC-6
 // TKT1 (REQ CAEL-04): navigateToItem() reubicada a locus-item-navigator.js. Este archivo no
 // la importaba estáticamente (2 call sites bare, L879/L1176) — reemplazados por import()
 // dinámico (patrón (b) ya documentado en este header) en vez de import estático, para evitar
@@ -809,14 +809,6 @@ document.addEventListener('keydown', e => {
   // T-202604-418: S → guardar sesión activa si hay borrador pendiente
   if (_pressedKey === _sk('save-session')) {
     e.preventDefault();
-    const _activeTA = document.querySelector('.main-textarea:not([readonly])');
-    if (_activeTA && _activeTA.value.trim()) {
-      const _aiId = _activeTA.closest('[data-ai-id]') && _activeTA.closest('[data-ai-id]').dataset.aiId;
-      const _sbtn = _aiId
-        ? document.getElementById(`sbtn-${_aiId}`)
-        : document.querySelector('.sc-save');
-      if (_sbtn) _sbtn.click();
-    }
     return;
   }
 
