@@ -1,4 +1,4 @@
-/* [PP] mod:92 · autor:Nova · 2026-07-12 UTC-6 */
+/* [PP] mod:93 · autor:Nova · 2026-07-12 UTC-6 */
 /* TKT1 (CAEL-02 — REQ deuda técnica CSS Purity/código muerto en locus-sprint-planificacion.js):
    agregada .bl-sprint-option-bar-fill al final del archivo — width vía custom property
    --sprint-option-bar-w en vez de propiedad width literal en style= inline (violación
@@ -5770,6 +5770,78 @@
 
 .qdisc-stat-cell--promoted .qdisc-stat-n {
   color: var(--green);
+}
+
+/* TKT1 (REQ CAEL-01 · design_intent: QDISC-headers-3-bloques-verticales): 3 bloques verticales
+   siempre visibles agrupando Q-DISC por status — reemplazan el shell #qdisc-panel-body suelto
+   (Discovery conserva su pipeline de filtros/chips sin cambio, ver locus-backlog-qdisc.js).
+   Promoted/Descartadas son bloques nuevos, sin chips (fuera de scope de este REQ).
+   Override consciente de color — diverge del principio "nunca rojo" de .qdisc-stat-cell arriba
+   (Descartado → rojo) y del --purple ya semántico de DISC en el resto de la app
+   (Discovery → azul): decisión explícita del founder, registrada en CHECKPOINT REQ CAEL-01 —
+   no es corrección pendiente, Rune no la revierte. */
+.qdisc-status-group {
+  margin-top: 16px;
+}
+
+.qdisc-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border: 1px solid var(--border);
+  border-bottom: none;
+}
+
+.qdisc-status-title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.qdisc-status-count {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.qdisc-status-header--discovery {
+  background: var(--blue-dim);
+  border-color: var(--blue-border);
+}
+.qdisc-status-header--discovery .qdisc-status-title,
+.qdisc-status-header--discovery .qdisc-status-count {
+  color: var(--blue-text);
+}
+
+.qdisc-status-header--promoted {
+  background: var(--green-dim);
+  border-color: var(--green-border);
+}
+.qdisc-status-header--promoted .qdisc-status-title,
+.qdisc-status-header--promoted .qdisc-status-count {
+  color: var(--green);
+}
+
+.qdisc-status-header--descartadas {
+  background: var(--red-dim);
+  border-color: var(--red-border);
+}
+.qdisc-status-header--descartadas .qdisc-status-title,
+.qdisc-status-header--descartadas .qdisc-status-count {
+  color: var(--red-text);
+}
+
+/* AC estado vacío: el wrapper de contenido no colapsa a cero alto cuando el bloque no tiene
+   cards — el header con contador "0" sigue visible con su borde de cierre. Sin placeholder de
+   card (Nova, AC-2). */
+.qdisc-status-body {
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  padding: 8px;
+  min-height: 8px;
 }
 
 /* TKT-202607-014 (Nova — gap CSS Rune, TKT-202607-013/011): .qdisc-grooming-banner y

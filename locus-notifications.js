@@ -1,4 +1,9 @@
-// [PP] mod:11 · autor:Rune · 2026-07-12 00:05 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-07-12 20:06 UTC-6
+// TKT2 (REQ CAEL-01 · PP-S-02): bloque 5 reescrito — antes solo alertaba INC sla_priority:
+//   high (filtro item.type !== 'INC' explícito, config incHigh única). Ahora cubre los 4
+//   tipos de la rama Reactiva (INC/PRB/KE/CHG) y las 3 prioridades (incMedium a 48h,
+//   incLow contra sprint abierto — BR-Core §6). CHG usa item.status (vocabulario Scrum,
+//   BR-Ecosystem §4b) para el check de cerrado; INC/PRB/KE usan incIncidentStatus().
 // Fix DISC (bug preexistente, no relacionado a REQ CAEL-01): counts agrega 'sprint' —
 // sprintLow declaraba tab:'sprint' sin clave correspondiente en counts, badge nunca se incrementaba.
 // TKT3 (REQ CAEL-01): counts extendido con 'incidentes' · notificación incHigh cambia tab de
@@ -64,6 +69,13 @@ export const _NOTIF_DEFAULTS = {
   itemInactivo:  { enabled: true,  label: 'Ítem sin sesión vinculada',        threshold: 14 },
   sprintLow:     { enabled: true,  label: 'Sprint con avance bajo a mitad',   threshold: 20 },
   incHigh:       { enabled: true,  label: 'Incidente high sin resolver',      threshold: 18 },
+  // TKT2 (REQ CAEL-01): incMedium/incLow — BR-Core §6 declara SLA de reloj para los 4 tipos
+  // de la rama Reactiva (INC/PRB/KE/CHG) vía sla_priority, en las 3 prioridades — antes solo
+  // existía config para 'high'. threshold en horas para incMedium (mismo criterio que incHigh,
+  // 72h SLA / 48h alerta). incLow no usa threshold de horas — su condición es "sprint abierto"
+  // (BR-Core §6: SLA de low = "próximo sprint"), threshold:0 es placeholder sin efecto.
+  incMedium:     { enabled: true,  label: 'Incidente medium sin resolver',    threshold: 48 },
+  incLow:        { enabled: true,  label: 'Incidente low sin resolver — sprint abierto', threshold: 0 },
   aiCadencia:    { enabled: true,  label: 'IA fuera de cadencia histórica',   threshold: 0  },
 };
 
@@ -234,25 +246,55 @@ export function _computeNotifications() {
     });
   }
 
-  // 5. INC con sla_priority:high sin resolver — threshold en horas (no días)
-  if (cfg.incHigh && cfg.incHigh.enabled) {
-    const incThreshH = cfg.incHigh.threshold || 18;
-    // TKT1 (REQ-centralizar-accesores-itil): itera `incidents` (no `items`) — INC vive
-    // en INCIDENTS. Fallback centralizado en locus-inc-fields.js — items hidratados
+  // 5. Rama Reactiva (INC/PRB/KE/CHG) con sla_priority sin resolver — BR-Core §6: el SLA
+  //    "aplica uniformemente a los 4 tipos... vía sla_priority", en las 3 prioridades.
+  // TKT2 (REQ CAEL-01): antes este bloque filtraba item.type !== 'INC' y solo declaraba
+  //    threshold para 'high' — PRB/KE/CHG y las prioridades medium/low nunca generaban
+  //    notificación. Unificado en un solo loop sobre los 4 tipos y las 3 prioridades.
+  {
+    const _itilAlertTypeByPriority = { high: 'incHigh', medium: 'incMedium', low: 'incLow' };
+    const _itilThresholdH = {
+      high:   (cfg.incHigh   && cfg.incHigh.threshold)   || 18,
+      medium: (cfg.incMedium && cfg.incMedium.threshold) || 48
+      // low: sin threshold de horas — ver rama _priority === 'low' abajo
+    };
+    // BR-Core §6: SLA de low = "próximo sprint" — se evalúa contra sprint abierto, no edad en horas.
+    const _openSprintNow = getActiveSprints().some(function(s) { return s.status === 'active'; });
+    // TKT1 (REQ-centralizar-accesores-itil): itera `incidents` (no `items`) — INC/PRB/KE/CHG
+    // viven en INCIDENTS. Fallback centralizado en locus-inc-fields.js — items hidratados
     // desde Supabase solo traen el campo snake_case.
     incidents.forEach(function(item) {
-      if (item.type !== 'INC') return;
-      if (incSlaPriority(item) !== 'high') return;
-      if (['resolved', 'closed'].includes(incIncidentStatus(item))) return;
-      if (!item.createdAt) return;
-      const ageHours = (Date.now() - item.createdAt) / 3600000;
-      if (ageHours <= incThreshH) return;
-      const id  = 'inc-high-' + item.code;
+      if (!['INC', 'PRB', 'KE', 'CHG'].includes(item.type)) return;
+      const _priority = incSlaPriority(item);
+      const _notifType = _itilAlertTypeByPriority[_priority];
+      if (!_notifType) return; // sla_priority ausente o valor no reconocido — no alertar
+      if (!cfg[_notifType] || !cfg[_notifType].enabled) return;
+      // Estado resuelto no alerta — CHG usa `status` (vocabulario Scrum, BR-Ecosystem §4b),
+      // INC/PRB/KE usan incidentStatus (vocabulario ITIL).
+      const _closed = item.type === 'CHG'
+        ? ['done', 'descartado'].includes(item.status)
+        : ['resolved', 'closed', 'descartado'].includes(incIncidentStatus(item));
+      if (_closed) return;
+      let _ageHours = null;
+      let _fires;
+      if (_priority === 'low') {
+        _fires = _openSprintNow;
+      } else {
+        if (!item.createdAt) return;
+        _ageHours = (Date.now() - item.createdAt) / 3600000;
+        _fires = _ageHours > _itilThresholdH[_priority];
+      }
+      if (!_fires) return;
+      const id  = 'inc-' + _priority + '-' + item.code;
       const lbl = (item.title || '').substring(0, 40);
+      const _icon = _priority === 'high' ? '\uD83D\uDED1' : (_priority === 'medium' ? '\u23F3' : '\uD83D\uDCC5');
+      const _ageLabel = _ageHours != null
+        ? ' lleva ' + Math.floor(_ageHours) + 'h sin resolver'
+        : ' sin resolver \u2014 sprint abierto';
       notifs.push({
-        id, type: 'incHigh', tab: 'incidentes', icon: '\uD83D\uDED1',
-        title: 'Incidente high sin resolver',
-        body: item.code + (lbl ? ' \u2014 ' + lbl : '') + ' lleva ' + Math.floor(ageHours) + 'h sin resolver',
+        id, type: _notifType, tab: 'incidentes', icon: _icon,
+        title: 'Incidente ' + _priority + ' sin resolver',
+        body: item.code + (lbl ? ' \u2014 ' + lbl : '') + _ageLabel,
         action: function() { navigateToItem(item.code); }
       });
     });

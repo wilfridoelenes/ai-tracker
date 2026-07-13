@@ -1,4 +1,4 @@
-// [PP] mod:6 · autor:Rune · 2026-07-12 UTC-6
+// [PP] mod:7 · autor:Rune · 2026-07-12 UTC-6
 // locus-backlog-qdisc.js
 // Responsabilidad: renderQDiscPanel — render del sub-tab Q-DISC (Discoveries: DISC, único tipo
 //   aceptado — __BR-Ecosystem §5) — + su listener de sub-tab y su re-render reactivo sobre
@@ -23,6 +23,11 @@
 
 import { _isQDiscActive, _isQDisc, getItems, QDISC_ACTIVE_LIMIT } from './locus-backlog-core.js';
 import { _renderZonePanel, _zoneStaleness } from './locus-backlog-zone-engine.js';
+// TKT2 (REQ CAEL-01): buildBacklogItem + delegation reusados directamente — mismo import que
+// zone-engine.js usa internamente para el bloque Discovery. Promoted/Descartadas no pasan por
+// _renderZonePanel (sin chips, fuera de scope de este REQ) — necesitan su propia delegación de
+// clicks por contenedor.
+import { _attachBacklogListDelegation, _resetBacklogListDelegation, buildBacklogItem } from './locus-backlog-item.js';
 
 // TKT-202607-010: rellena #qdisc-limit-indicator (shell estático, ver index.html) con el
 // conteo de DISCs activos sobre el límite — mismo universo que _isQDiscActive (excluye
@@ -104,6 +109,35 @@ function _renderQDiscGroomingBanner() {
     `<strong>${staleCount}</strong> con más de 30 días sin movimiento`;
 }
 
+// TKT2 (REQ CAEL-01 · design_intent: QDISC-headers-3-bloques-verticales): rellena el header de
+// contador del bloque Discovery — universo idéntico a _isQDiscActive, el mismo que ya filtra
+// #qdisc-panel-body vía _renderZonePanel (isZone). No duplica el cálculo del stats block
+// (_isQDisc, sin filtrar) — este contador refleja solo lo que el bloque Discovery muestra hoy.
+function _renderQDiscDiscoveryCount() {
+  const el = document.getElementById('qdisc-discovery-count');
+  if (!el) return;
+  el.textContent = getItems().filter(_isQDiscActive).length;
+}
+
+// TKT2 (REQ CAEL-01 · design_intent: QDISC-headers-3-bloques-verticales): renderiza los bloques
+// Promoted/Descartadas — status fijo (no reciben filtro de chips, fuera de scope de este REQ,
+// ver AC de coherencia del REQ). AC-1 (happy path): cada card usa buildBacklogItem, mismo
+// render que Discovery. AC-2 (estado vacío): sin ítems, el contenedor queda con innerHTML=''
+// — el header + contador "0" sigue visible (CSS: .qdisc-status-body no colapsa, ver
+// locus-backlog.css). Delegación de eventos por contenedor — mismo patrón que
+// _renderZonePanel (zone-engine.js línea ~132), necesario porque estos dos contenedores no
+// pasan por ese motor.
+function _renderQDiscStatusGroup(status, containerId, countId) {
+  const container = document.getElementById(containerId);
+  const countEl = document.getElementById(countId);
+  if (!container || !countEl) return;
+  const items = getItems().filter(i => _isQDisc(i) && i.status === status);
+  countEl.textContent = items.length;
+  container.innerHTML = items.map(i => buildBacklogItem(i, {})).join('');
+  _resetBacklogListDelegation(containerId);
+  _attachBacklogListDelegation(containerId);
+}
+
 // B-202606-052 → TKT-C1: renderQDiscPanel — sub-tab Discoveries (Q-DISC: DISC).
 export function renderQDiscPanel() {
   _renderZonePanel({
@@ -134,6 +168,11 @@ export function renderQDiscPanel() {
   _renderQDiscStatsBlock();
   // TKT-202607-013: misma razón — señal independiente del universo filtrado por chips/búsqueda.
   _renderQDiscGroomingBanner();
+  // TKT2 (REQ CAEL-01): contador del header Discovery — mismo universo que #qdisc-panel-body.
+  _renderQDiscDiscoveryCount();
+  // TKT2 (REQ CAEL-01): bloques Promoted/Descartadas — status fijo, sin chips (fuera de scope).
+  _renderQDiscStatusGroup('promoted', 'qdisc-promoted-body', 'qdisc-promoted-count');
+  _renderQDiscStatusGroup('descartado', 'qdisc-descartadas-body', 'qdisc-descartadas-count');
 }
 
 // B-202606-052 → TKT-C1: listener sub-tab Discoveries (Q-DISC) — reemplaza al listener único

@@ -1,4 +1,4 @@
-/* [PP] mod:7 · autor:Nova · 2026-07-06 15:40 UTC-6 */
+/* [PP] mod:8 · autor:Nova · 2026-07-12 UTC-6 */
 /* locus-base.css */
 
 
@@ -187,6 +187,12 @@
   --yellow-text: var(--yellow);
   --slate-text:  #808da0;
 
+  /* ── TKT1 (REQ CAEL-01 · design_intent: QDISC-headers-3-bloques-verticales) — mismo patrón
+     Cluster B: --blue/--red ya pasan 4.5:1 en dark (7.85–9.55:1 / 4.68–5.69:1 vs
+     --surface3/--surface2/--bg2) — sin override, igual que --orange-text en este tema. ── */
+  --blue-text: var(--blue);
+  --red-text:  var(--red);
+
   --card-shadow:       0 1px 6px rgb(0 0 0 / 50%), 0 0 0 1px rgb(255 255 255 / 3%);
   --card-shadow-hover: 0 4px 20px rgb(0 0 0 / 60%), 0 0 0 1px rgb(166 226 46 / 15%);
 
@@ -350,6 +356,15 @@
   --orange-text: #995f06;
   --yellow-text: #836900;
   --slate-text:  var(--slate);
+
+  /* ── TKT1 (REQ CAEL-01 · design_intent: QDISC-headers-3-bloques-verticales) — gap cerrado:
+     --blue/--red fallan como texto en light (3.31–4.11:1 / 4.01–4.41:1 vs --surface3/--surface2/
+     --bg2 — DISC registrado en _Locus-css-ref §Cambios mod:36) — override oscurecido, mismo
+     método que --orange-text/--yellow-text arriba: --blue-text #026aa8 (4.96–5.90:1), --red-text
+     #b8253f (5.33–5.87:1). No se toca el token --blue/--red global — mismo criterio que el
+     override acotado de --green en uso de acento de card (ver tabla de tokens §1). ── */
+  --blue-text: #026aa8;
+  --red-text:  #b8253f;
 
   --card-shadow:       0 1px 4px rgb(20 22 42 / 8%);
   --card-shadow-hover: 0 4px 16px rgb(20 22 42 / 14%);

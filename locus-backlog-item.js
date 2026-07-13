@@ -1,4 +1,12 @@
-// [PP] mod:105 · autor:Rune · 2026-07-11 UTC-6
+// [PP] mod:106 · autor:Rune · 2026-07-12 20:06 UTC-6
+// TKT1 (REQ CAEL-01 · PP-S-02): validateIncidentTransitions ahora recibe itilType — antes
+//   aplicaba siempre la tabla de transiciones de INC a cualquier tipo ITIL. PRB (detected→
+//   in_progress→resolved→closed, sin 'assigned') y KE (active→resolved|descartado) tienen
+//   ciclos propios (BR-Core §6) — se agregan _VALID_PRB_TRANSITIONS/_VALID_KE_TRANSITIONS +
+//   vocabularios propios (_VALID_PRB_STATUS/_VALID_KE_STATUS, ya exportados desde
+//   locus-session-parse.js). Los dos call sites (merge y patch) pasan itemKind(existing)
+//   como tipo. TKT3 (REQ CAEL-01): gate de resolution_type obligatorio al patchear un INC a
+//   incidentStatus:'resolved' — antes se aceptaba el patch sin ese campo.
 // TKT1 (REQ-refactor-item-shape-itil-scrum · AC1/AC2/AC3): _newItemObj único con campos ITIL
 //   spreadeados condicionalmente → reemplazado por _buildCommonItemFields() + buildScrumItem() +
 //   buildIncidentItem(). Sin cambio de comportamiento — mismos campos, mismos defaults, mismo
@@ -250,7 +258,7 @@
 // Dependencias: locus-backlog-core.js · locus-backlog-sprints.js · locus-backlog-editor.js · locus-toast.js
 import { _applyDoneStatus, _getActiveEfforts, _getActiveStatuses, _getActiveTypes, _getBacklogNoAcMode, _getNextItemCode, _hasDepsBlocked, _hasRecentSession, _isBlocked, _isCountableItem, _isQDiscActive, QDISC_ACTIVE_LIMIT, _openItemEditorSafe, _setIncidents, _skelHide, _undoSnapshotItems, _undoSnapshotIncidents, buildItemRefs, effortDots, getItems, getIncidents, getAnyItem, INCIDENT_TYPES, itemKind, renderStats, setItemStatus, toggleSectionGroup, toggleVersionCollapse, updateBacklogBanner, toggleBacklogMikeMode, toggleTypeFilter, toggleStatusFilter, toggleEffortFilter, toggleItemExpand, clearAllFilters, _getBacklogSearchQuery, _getActiveSessionAiId, _GEN2_TYPES, badgeLabel, badgeClass, statusLabel, statusClass, _newBacklogItem } from './locus-backlog-core.js'; // TKT2 (REQ-202607-025): _newBacklogItem agregado // TKT-202607-045: getAnyItem agregada — lookup item.origin/promovida_a puede resolver ITIL // T-202606-089 AC-1+AC-3: 8 funciones · T-202606-099: _getBacklogSearchQuery · B-202606-012: _getActiveSessionAiId · TKT0-gen2: itemType→itemKind · TKT1: _GEN2_TYPES (REQ-[pendiente-ID]) · INC-[pendiente-ID]: _getActiveRoleFilter retirado del import — no exportada desde TKT1 REQ1 S'02 (core.js:2142) · INC-[pendiente-ID]: badgeLabel/badgeClass/statusLabel/statusClass — consolidados en core.js · [tmp:tkt-card-readonly]: setItemRole, _quickAssignEffort, _ECOSYSTEM_ROLES retirados — sin caller tras remover selects/botón del card (setItemRole permanece exportada en core.js para reuso futuro del IDP) · TKT-202607-027: _getBacklogKanbanMode retirado del import — no exportada desde core.js (Kanban deprecado) · TKT-202607-010: _isQDiscActive + QDISC_ACTIVE_LIMIT agregados — gate de límite Q-DISC en mergeBacklogFromTG
 import { _markBacklogListDirty, renderBacklogList, updateClearFilterBtn, toggleChildrenBlock, setItemParent, _updateSubtabBadges } from './locus-backlog-render.js'; // T-202606-089 AC-3 · T-202606-093: _updateSubtabBadges
-import { _normalizeSprint, _VALID_INCIDENT_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas
+import { _normalizeSprint, _VALID_INCIDENT_STATUS, _VALID_PRB_STATUS, _VALID_KE_STATUS } from './locus-session-parse.js'; // TKT-PARSER-2a: constantes ITIL exportadas · TKT1 (REQ CAEL-01): _VALID_PRB_STATUS/_VALID_KE_STATUS — vocabularios propios para transición por tipo
 import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessions, saveBacklog, getActivePlan, getState } from './locus-storage.js'; // T-202606-023: getState añadido — migración window.state → import explícito
 
 
@@ -1874,16 +1882,45 @@ const _VALID_INCIDENT_TRANSITIONS = {
   // por este AC — fuera de scope de TKT-PARSER-2a.
 };
 
+// TKT1 (REQ CAEL-01): tabla de transiciones propia de PRB — BR-Core §6.
+// PRB no tiene status 'assigned' (a diferencia de INC) — nace directamente en 'detected'.
+const _VALID_PRB_TRANSITIONS = {
+  detected:    new Set(['in_progress']),
+  in_progress: new Set(['resolved']),
+  resolved:    new Set(['closed'])
+  // closed, descartado: estados terminales — sin transiciones salientes declaradas, mismo criterio
+  // que _VALID_INCIDENT_TRANSITIONS para closed. Fuera de scope de TKT1.
+};
+
+// TKT1 (REQ CAEL-01): tabla de transiciones propia de KE — BR-Core §6.
+// KE nace en 'active' — único estado no terminal del ciclo.
+const _VALID_KE_TRANSITIONS = {
+  active: new Set(['resolved', 'descartado'])
+  // resolved, descartado: estados terminales — sin transiciones salientes declaradas.
+};
+
 // TKT-PARSER-2a (REQ-[pendiente-ID]): valida un par (oldIncidentStatus, newIncidentStatus).
 // No usa VALID_TRANSITIONS (locus-session-save.js) — esa tabla es de status Scrum por tipo,
 // no de transiciones ITIL por par origen→destino. Devuelve {valid:true} o {valid:false, reason}.
-function validateIncidentTransitions(oldIncidentStatus, newIncidentStatus) {
-  if (!_VALID_INCIDENT_STATUS.has(oldIncidentStatus) || !_VALID_INCIDENT_STATUS.has(newIncidentStatus)) {
-    // Valor fuera del vocabulario ITIL — ya debió rechazarse en _buildItilItem (locus-session-parse.js).
+// TKT1 (REQ CAEL-01): parámetro `itilType` agregado — antes esta función validaba todo par
+// contra el vocabulario y la tabla de transiciones de INC, sin distinguir tipo. PRB y KE
+// comparten mecanismo pero tienen vocabulario y tabla de transiciones propios (BR-Core §6) —
+// aplicar la tabla de INC a un PRB rechazaba transiciones válidas de su propio ciclo
+// (ej. detected→in_progress). `itilType` es opcional y por defecto 'INC' — preserva el
+// comportamiento exacto de todo caller que no fue actualizado a pasar el tipo.
+function validateIncidentTransitions(oldIncidentStatus, newIncidentStatus, itilType = 'INC') {
+  const _statusSet = itilType === 'PRB' ? _VALID_PRB_STATUS
+    : itilType === 'KE' ? _VALID_KE_STATUS
+    : _VALID_INCIDENT_STATUS;
+  const _transitions = itilType === 'PRB' ? _VALID_PRB_TRANSITIONS
+    : itilType === 'KE' ? _VALID_KE_TRANSITIONS
+    : _VALID_INCIDENT_TRANSITIONS;
+  if (!_statusSet.has(oldIncidentStatus) || !_statusSet.has(newIncidentStatus)) {
+    // Valor fuera del vocabulario ITIL del tipo — ya debió rechazarse en _buildItilItem (locus-session-parse.js).
     // Defensivo: no es una transición ITIL inválida en sí, es un valor inválido — no bloquear aquí.
     return { valid: true };
   }
-  const _allowed = _VALID_INCIDENT_TRANSITIONS[oldIncidentStatus];
+  const _allowed = _transitions[oldIncidentStatus];
   if (!_allowed || !_allowed.has(newIncidentStatus)) {
     return { valid: false, reason: `transición ITIL inválida: ${oldIncidentStatus} → ${newIncidentStatus}` };
   }
@@ -2224,7 +2261,9 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
       const _isItilExisting = ['INC', 'PRB', 'KE', 'CHG'].includes(_existingKindItil);
       let _noIncidentStatus = false;
       if (_isItilExisting && item.incidentStatus && item.incidentStatus !== existing.incidentStatus) {
-        const _itResult = validateIncidentTransitions(existing.incidentStatus, item.incidentStatus);
+        // TKT1 (REQ CAEL-01): _existingKindItil pasado como itilType — antes siempre validaba
+        // contra la tabla de INC, sin distinguir PRB/KE.
+        const _itResult = validateIncidentTransitions(existing.incidentStatus, item.incidentStatus, _existingKindItil);
         if (!_itResult.valid) {
           invalidTransition.push({ code: item.code, type: _existingKindItil, reason: _itResult.reason });
           _noIncidentStatus = true; // excluye solo incidentStatus — el resto de campos ITIL sí mergea
@@ -2851,12 +2890,30 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
 
       if (field === 'incidentStatus') {
         // INC-[pendiente-ID]: incidentStatus solo aplica a tipos ITIL — no-op silencioso en el resto
-        if (!['INC', 'PRB', 'KE'].includes(itemKind(existing))) return;
+        const _patchItilKind = itemKind(existing);
+        if (!['INC', 'PRB', 'KE'].includes(_patchItilKind)) return;
         if (incoming && incoming !== existing.incidentStatus) {
-          const _itResult = validateIncidentTransitions(existing.incidentStatus, incoming);
+          // TKT1 (REQ CAEL-01): _patchItilKind pasado como itilType — antes siempre validaba
+          // contra la tabla de INC, sin distinguir PRB/KE.
+          const _itResult = validateIncidentTransitions(existing.incidentStatus, incoming, _patchItilKind);
           if (!_itResult.valid) {
             _blogLog('patch-incidentstatus-invalido', code, 'Transición incidentStatus rechazada vía patch: ' + _itResult.reason, 'backlog');
             return;
+          }
+          // TKT3 (REQ CAEL-01): resolution_type obligatorio en INC al pasar a resolved — BR-Ecosystem §5.
+          // Se lee del objeto `patch` completo (no de `incoming`/`current` de este field) porque el
+          // orden de Object.keys(patch) no garantiza que resolutionType ya se haya procesado antes
+          // que incidentStatus. Solo aplica a INC — PRB/KE no declaran resolutionType.
+          if (_patchItilKind === 'INC' && incoming === 'resolved') {
+            const _resolutionType = patch.resolutionType || existing.resolutionType;
+            if (!_resolutionType) {
+              _blogLog('patch-incidentstatus-invalido', code, 'resolution_type obligatorio al pasar a resolved (BR-Ecosystem §5)', 'backlog');
+              // `invalidTransition` no está en scope de esta función (exclusivo de mergeBacklogFromTG,
+              // ver L2120) — se usa `ignoredPatches`, mismo patrón ya usado en esta función para
+              // el guard de rol-no-autorizado-done (L2858).
+              ignoredPatches.push({ code, reason: 'resolution-type-obligatorio' });
+              return;
+            }
           }
           changes.push({ field: 'incidentStatus', from: existing.incidentStatus || '—', to: incoming });
           // Mirror a status — mismo motivo que en mergeBacklogFromTG: sin este espejo, existing.status
@@ -2865,6 +2922,12 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
           existing.incidentStatus = incoming;
           existing.status = incoming;
           existing.statusChangedAt = nowTs;
+          // TKT3: si el patch trae resolutionType junto con incidentStatus:resolved, aplicarlo aquí —
+          // el bloque genérico de campos patcheables (abajo) también lo procesaría, pero fijarlo ya
+          // evita que un lector intermedio del mismo forEach vea el ítem resuelto sin resolutionType.
+          if (patch.resolutionType && patch.resolutionType !== existing.resolutionType) {
+            existing.resolutionType = patch.resolutionType;
+          }
         }
         return;
       }

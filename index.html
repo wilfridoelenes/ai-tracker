@@ -1,4 +1,4 @@
-<!-- [PP] mod:114 · autor:Nova · 2026-07-12 UTC-6 -->
+<!-- [PP] mod:115 · autor:Rune · 2026-07-12 UTC-6 -->
 <!-- TKT2 (REQ CAEL-01 · Q-INC tab top-level): #tab-incidentes agregado como tab de primer nivel,
      #sspanel-qinc/#sstab-btn-qinc removidos del sub-tab de Backlog. Ver locus-ui-shell.js/locus-backlog-render.js. -->
 <!-- TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): agregado shell estático
@@ -586,7 +586,32 @@
            (AC-2: cero elementos DOM se satisface a nivel de contenido renderizado, mismo patrón
            que el indicador de límite y que _renderDoneGroup). -->
       <div class="qdisc-grooming-banner" id="qdisc-grooming-banner" aria-live="polite"></div>
-      <div id="qdisc-panel-body"></div>
+      <!-- TKT2 (REQ CAEL-01 · design_intent: QDISC-headers-3-bloques-verticales): 3 bloques
+           verticales siempre visibles, sin colapsar. Discovery conserva #qdisc-panel-body
+           (mismo nodo, mismo pipeline de filtros/chips vía _renderZonePanel — sin cambio de
+           comportamiento). Promoted/Descartadas son shells nuevos, poblados por
+           _renderQDiscStatusGroup() (locus-backlog-qdisc.js) — sin chips, fuera de scope. -->
+      <div class="qdisc-status-group" id="qdisc-discovery-group">
+        <div class="qdisc-status-header qdisc-status-header--discovery">
+          <span class="qdisc-status-title">Discovery</span>
+          <span class="qdisc-status-count" id="qdisc-discovery-count">0</span>
+        </div>
+        <div class="qdisc-status-body" id="qdisc-panel-body"></div>
+      </div>
+      <div class="qdisc-status-group" id="qdisc-promoted-group">
+        <div class="qdisc-status-header qdisc-status-header--promoted">
+          <span class="qdisc-status-title">Promoted</span>
+          <span class="qdisc-status-count" id="qdisc-promoted-count">0</span>
+        </div>
+        <div class="qdisc-status-body" id="qdisc-promoted-body"></div>
+      </div>
+      <div class="qdisc-status-group" id="qdisc-descartadas-group">
+        <div class="qdisc-status-header qdisc-status-header--descartadas">
+          <span class="qdisc-status-title">Descartadas</span>
+          <span class="qdisc-status-count" id="qdisc-descartadas-count">0</span>
+        </div>
+        <div class="qdisc-status-body" id="qdisc-descartadas-body"></div>
+      </div>
     </div><!-- /sspanel-qdisc -->
 
     <!-- Sub-panel: Q-INC removido de aquí — migrado a #tab-incidentes (TKT2, REQ CAEL-01) -->
