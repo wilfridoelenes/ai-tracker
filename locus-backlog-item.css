@@ -1,4 +1,18 @@
-/* [PP] mod:53 · autor:Rune · 2026-07-13 00:47 UTC-6 */
+/* [PP] mod:54 · autor:Nova · 2026-07-13 08:40 UTC-6 */
+/* Fix directo en sesión (Auditoría Nova IDP, Hallazgo #5 — alcance IDP): --hint está
+   documentado en css-ref como "bordes sutiles de elementos secundarios", no texto —
+   contraste real ~1.7:1 (dark) / ~2.4:1 (light) contra el fondo del panel, bajo el
+   mínimo 4.5:1 (regla de conversación #6 de Nova). Swap a --text2 en .idp-code,
+   .idp-section-label, .idp-close-btn — contraste resultante 5.9:1 dark / 7.6:1 light.
+   El token --hint no se toca — sigue siendo válido para bordes. El mismo anti-pattern
+   se repite fuera del IDP (.sps-meta-label, .sc-sprint-id, .preview-tg-header-label
+   según css-ref) — fuera de alcance de esta sesión, registrado como Propuesta de mejora
+   a Vera/Nova para auditoría de token dedicada.
+   Fix directo en sesión (Hallazgo #3/#4 — accesibilidad): :focus-visible agregado a
+   .idp-title y .idp-session-chip (ahora focusable via tabindex, ver
+   locus-backlog-panel.js mod:28) — mismo tratamiento ya usado en .idp-dep-chip--origin.
+   Excepción de resolución directa (BR-Core NO DEJAR DEUDA EN SILENCIO) — dueña
+   presente, Nivel Patch, sin bifurcación, founder autorizó resolución en sesión. */
 /* Ad-hoc (sin REQ/TKT vía Cael, ítem directo de founder): fila DISC en Q-DISC rediseñada
    de card boxeada a fila flat tipo inbox — ver locus-backlog.css mod:96 para el bloque
    principal. Aquí: comentarios "DISC → púrpura"/"REQ → azul" corregidos (L135/128,
@@ -909,7 +923,7 @@
 .idp-code {
   font-family: var(--mono);
   font-size: var(--text-2xs-plus);
-  color: var(--hint);
+  color: var(--text2);
 }
 
 .idp-type-name {
@@ -923,7 +937,7 @@
 .idp-close-btn {
   background: none;
   border: none;
-  color: var(--hint);
+  color: var(--text2);
   cursor: pointer;
   font-size: var(--text-md);
   padding: 4px 6px;
@@ -987,7 +1001,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--hint);
+  color: var(--text2);
   margin-bottom: 8px;
 }
 
@@ -1061,6 +1075,11 @@
 .idp-session-chip:hover {
   border-color: var(--accent);
   background: var(--surface3);
+}
+
+.idp-session-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .idp-sess-ai {
@@ -1266,6 +1285,11 @@
 .idp-title:hover {
   border-color: var(--border2);
   background: var(--surface2);
+}
+
+.idp-title:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .idp-title-input {

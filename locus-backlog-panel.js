@@ -1,4 +1,19 @@
-// [PP] mod:27 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:28 · autor:Rune · 2026-07-13 08:40 UTC-6
+// Fix directo en sesión (Auditoría Nova IDP, Hallazgo #2): discard_reason ahora se
+//   renderiza también en el slot Reactiva (INC/PRB/KE/CHG descartado) — antes solo
+//   existía en _buildIdpDiscSlot (exclusivo DISC), pese a ser campo obligatorio en
+//   schema para los 4 tipos ITIL con status/incident_status descartado (__BR-Ecosystem
+//   §5/§8). _discardReasonOf() centraliza el fallback dual discard_reason/discardReason
+//   (mismo patrón ya usado en locus-storage.js:1526). Excepción de resolución directa
+//   (BR-Core NO DEJAR DEUDA EN SILENCIO) — dueño presente, Nivel Patch (alineación de
+//   schema, sin bifurcación), founder autorizó resolución en sesión.
+// Fix directo en sesión (Auditoría Nova IDP, Hallazgo #3/#4): tabindex="0" role="button"
+//   agregado a título editable, session-chip y todas las variantes de idp-dep-chip
+//   (parent, depends_on, bloqueado-por, bloquea-a, derived_items) — antes solo
+//   alcanzables por clic. _onIdpKeydown extiende Enter/Espacio reutilizando .click(),
+//   mismo patrón ya usado para idp-toggle-*. CSS de foco visible entregado por Nova
+//   (locus-backlog-item.css mod:54, locus-sesiones.css mod:+1). Misma excepción de
+//   resolución directa — sin bifurcación, patrón ya vigente en el mismo archivo.
 // TKT1 (ref_id CAEL-02, REQ IDP core+slots — PP-S-03): _buildIdpCore() extrae header
 //   (título editable), notas, sesiones vinculadas y timeline a función compartida.
 //   _renderItemPanel() delega en ella — markup idéntico, sin cambio de comportamiento.
@@ -378,7 +393,8 @@ function _buildIdpCore(item, type) {
     <div class="idp-title-wrap">
       <span class="idp-title" id="idp-title-display"
         data-action="idp-start-edit-title" data-code="${esc(item.code)}"
-        title="Click para editar título">${esc(item.title)}</span>
+        tabindex="0" role="button"
+        title="Click o Enter para editar título">${esc(item.title)}</span>
       <input class="idp-title-input is-hidden" id="idp-title-input"
         value="${esc(item.title)}"
         data-action="idp-title-input" data-code="${esc(item.code)}">
@@ -415,7 +431,7 @@ function _buildIdpCore(item, type) {
     const ai = getAI(s.aiId);
     const aiName = ai ? esc(ai.name) : 'IA';
     const dateLabel = s.dateShort || s.date || '';
-    return `<div class="idp-session-chip" data-action="idp-goto-session" data-ai-id="${s.aiId}" data-sess-id="${s.id}">
+    return `<div class="idp-session-chip" data-action="idp-goto-session" data-ai-id="${s.aiId}" data-sess-id="${s.id}" tabindex="0" role="button">
       <span class="idp-sess-ai">${aiName}</span>
       <span class="idp-sess-date">${esc(dateLabel)}</span>
       ${s.title ? `<span class="idp-sess-title">${esc(s.title)}</span>` : ''}
@@ -500,10 +516,11 @@ function _renderItemPanel(item) {
   // AC corregido en sesión (gap de especificación cerrado por Cael): reutiliza clases ya
   // existentes en este mismo archivo (idp-meta-value--readonly, idp-dep-chip) — no introduce
   // CSS ni componente nuevo, consistente con el no_incluye del REQ.
+  const _discardReasonOf = (it) => it.discard_reason || it.discardReason || null;
   const _buildIdpDiscSlot = (it) => {
     if (it.status === 'descartado') {
       return `<div class="idp-meta-row">
-        <span class="idp-meta-value idp-meta-value--readonly">discard_reason: ${esc(it.discard_reason || 'sin registrar')}</span>
+        <span class="idp-meta-value idp-meta-value--readonly">discard_reason: ${esc(_discardReasonOf(it) || 'sin registrar')}</span>
       </div>`;
     }
     if (it.status === 'promoted' && it.promovida_a) {
@@ -542,7 +559,7 @@ function _renderItemPanel(item) {
     }
     if (t === 'TKT') {
       const parentChip = it.parentId
-        ? `<span class="idp-dep-chip" data-action="idp-open-panel" data-item-code="${esc(it.parentId)}" title="Ir al REQ padre">↑ parent ${esc(it.parentId)}</span>`
+        ? `<span class="idp-dep-chip" data-action="idp-open-panel" data-item-code="${esc(it.parentId)}" tabindex="0" role="button" title="Ir al REQ padre">↑ parent ${esc(it.parentId)}</span>`
         : '';
       const parentHtml = parentChip ? `
         <div class="idp-section">
@@ -566,8 +583,8 @@ function _renderItemPanel(item) {
                 return `<span class="badge-missing badge-missing--dep-blocked" title="Código no encontrado en el backlog">🔗 ${esc(c)} (no encontrado)</span>`;
               }
               return dep.status === 'done'
-                ? `<span class="idp-dep-chip idp-dep-chip--done" data-action="idp-open-panel" data-item-code="${esc(c)}" title="${esc(dep.title)}">✓ ${esc(c)}</span>`
-                : `<span class="idp-dep-chip" data-action="idp-open-panel" data-item-code="${esc(c)}" title="${esc(dep.title)}">🔒 ${esc(c)}</span>`;
+                ? `<span class="idp-dep-chip idp-dep-chip--done" data-action="idp-open-panel" data-item-code="${esc(c)}" tabindex="0" role="button" title="${esc(dep.title)}">✓ ${esc(c)}</span>`
+                : `<span class="idp-dep-chip" data-action="idp-open-panel" data-item-code="${esc(c)}" tabindex="0" role="button" title="${esc(dep.title)}">🔒 ${esc(c)}</span>`;
             }).join('')}
           </div>
         </div>` : '';
@@ -619,11 +636,21 @@ function _renderItemPanel(item) {
       ? `<div class="idp-meta-value idp-meta-value--readonly">resolution_type: ${esc(resolutionType)}</div>`
       : '';
 
+    // Fix directo en sesión (Hallazgo #2 — gap de especificación cerrado en esta sesión):
+    // discard_reason es obligatorio en schema para INC/PRB/KE/CHG con status descartado
+    // (__BR-Ecosystem §5/§8), pero solo se renderizaba en _buildIdpDiscSlot (exclusivo DISC).
+    // CHG usa `status` (no incident_status, __BR-Ecosystem §4b) — is_descartado cubre ambas
+    // convenciones sin caso especial por tipo, mismo criterio ya aplicado a incidentStatusRow.
+    const _isDescartado = incidentStatus === 'descartado' || it.status === 'descartado';
+    const discardReasonRow = _isDescartado
+      ? `<div class="idp-meta-value idp-meta-value--readonly">discard_reason: ${esc(_discardReasonOf(it) || 'sin registrar')}</div>`
+      : '';
+
     const derivedItemsHtml = (Array.isArray(derivedItems) && derivedItems.length) ? `
       <div class="idp-section">
         <div class="idp-section-label">Derived items</div>
         <div class="idp-deps-chips">
-          ${derivedItems.map(c => `<span class="idp-dep-chip" data-action="idp-open-panel" data-item-code="${esc(c)}" title="Ítem derivado">➜ ${esc(c)}</span>`).join('')}
+          ${derivedItems.map(c => `<span class="idp-dep-chip" data-action="idp-open-panel" data-item-code="${esc(c)}" tabindex="0" role="button" title="Ítem derivado">➜ ${esc(c)}</span>`).join('')}
         </div>
       </div>` : '';
 
@@ -635,6 +662,7 @@ function _renderItemPanel(item) {
         ${originModuleRow}
         ${incidentStatusRow}
         ${resolutionTypeRow}
+        ${discardReasonRow}
       </div>${derivedItemsHtml}`;
   };
   const reactivaSlotHtml = INCIDENT_TYPES.includes(type) ? _buildIdpSlotReactiva(item) : '';
@@ -730,7 +758,7 @@ function _renderItemPanel(item) {
     const title = dep ? esc(dep.title) : '';
     const cls = isDone ? 'idp-dep-chip idp-dep-chip--done' : 'idp-dep-chip';
     const icon = isDone ? '✓' : '🔒';
-    return `<span class="${cls}" data-action="idp-open-panel" data-item-code="${esc(code)}" title="${title}">${icon} ${esc(code)}</span>`;
+    return `<span class="${cls}" data-action="idp-open-panel" data-item-code="${esc(code)}" tabindex="0" role="button" title="${title}">${icon} ${esc(code)}</span>`;
   };
 
   const depsHtml = (allBlockedBy.length || blockingOthers.length) ? `
@@ -749,7 +777,7 @@ function _renderItemPanel(item) {
           <span class="idp-deps-label">Bloquea a</span>
           <div class="idp-deps-chips">
             ${blockingOthers.map(i => {
-              return `<span class="idp-dep-chip idp-dep-chip--blocks" data-action="idp-open-panel" data-item-code="${esc(i.code)}" title="${esc(i.title)}">⚠ ${esc(i.code)}</span>`;
+              return `<span class="idp-dep-chip idp-dep-chip--blocks" data-action="idp-open-panel" data-item-code="${esc(i.code)}" tabindex="0" role="button" title="${esc(i.title)}">⚠ ${esc(i.code)}</span>`;
             }).join('')}
           </div>
         </div>` : ''}
@@ -1355,6 +1383,16 @@ function _toggleIdpSection(el) {
     // T-202605-108: idp-meta-input area: Enter → blur (guarda via _onIdpBlur)
     const areaInp = e.target.closest('.idp-meta-input');
     if (areaInp && e.key === 'Enter') { areaInp.blur(); }
+
+    // Fix directo en sesión (Hallazgo #3/#4 — accesibilidad): chips navegables y título
+    // editable ahora tienen tabindex+role="button" en el markup — Enter/Espacio reutiliza
+    // .click() en vez de duplicar la lógica de _onIdpClick, mismo criterio ya aplicado a
+    // idp-toggle-ac/idp-toggle-history/idp-toggle-section arriba en esta misma función.
+    const navEl = e.target.closest('[data-action="idp-open-panel"],[data-action="idp-goto-session"],[data-action="idp-start-edit-title"]');
+    if (navEl && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      navEl.click();
+    }
   }
 
   function _onIdpBlur(e) {

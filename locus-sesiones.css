@@ -1,4 +1,10 @@
-/* [PP] mod:20 · autor:Nova · 2026-07-04 UTC-6 */
+/* [PP] mod:21 · autor:Nova · 2026-07-13 08:40 UTC-6 */
+/* Fix directo en sesión (Auditoría Nova IDP, Hallazgo #3/#4): :focus-visible agregado a
+   .idp-dep-chip base — cubre por cascada las variantes parent/depends_on/blocks/
+   derived_items/bloqueado-por, ahora focusable via tabindex (locus-backlog-panel.js
+   mod:28). Mismo tratamiento que .idp-dep-chip--origin (locus-backlog-item.css).
+   Excepción de resolución directa (BR-Core NO DEJAR DEUDA EN SILENCIO) — dueña
+   presente, Nivel Patch, sin bifurcación, founder autorizó resolución en sesión. */
 /* locus-sesiones.css */
 /* Última actualización: 2026-06-26 | log-* migrado desde locus-radar.css */
 /* Gen 2 — infra_version: 5 | Migración selectores: .P/.T/.R/.B → .DISC/.TKT/.REQ/.INC en badges, pills, sess-ind, tg-type, tracker-item-type-pill, log-ref, mh-ref-tag */
@@ -4849,6 +4855,11 @@ textarea[id^="ta-"]:focus {
 .idp-dep-chip:hover {
   background: rgb(232 85 85 / 16%);
   border-color: rgb(232 85 85 / 50%);
+}
+
+.idp-dep-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .idp-dep-chip--done {
