@@ -1,10 +1,10 @@
-// [PP] v1.0.0 · sprint:PP-S-09 · mod:2 · autor:Rune · 2026-06-12 00:00 UTC-6
+// [PP] mod:3 · autor:Rune · 2026-07-13 00:50 UTC-6
 // locus-doc-log.js
 // Módulo: Doc Activity Log — openDocLog · closeDocLog · _updateDocLogCount · _renderDocLog · clearDocLog
 // Migrado desde locus-misc-ui.js (T-202605-074)
 
 import { _restoreModalFocus } from './locus-modals.js';
-import { esc } from './locus-ui-shell.js';
+import { esc, getCurrentSubTab } from './locus-ui-shell.js';
 import { _relTs } from './locus-storage.js'; // T-202606-097: ESM Pure — reemplaza fallback window._relTs
 
 const _esc = (s) => esc(s);
@@ -41,8 +41,12 @@ export function closeDocLog() {
 }
 
 export function _updateDocLogCount(doc) {
-  const btnId = { backlog: 'doc-log-btn-backlog', context: 'doc-log-btn-context', htmlmap: 'doc-log-btn-htmlmap' }[doc];
-  const btn = document.getElementById(btnId);
+  // TKT-[pendiente-ID]: botón único #btn-view-doclog (antes 3 botones por doc, ver index.html mod:117).
+  // AC3: si el doc emitido no es el sub-tab activo, no se toca el badge — evita mostrar el
+  // conteo de un doc no visible. _updateSubTabButtons vuelve a llamar a esta función al
+  // reactivar el sub-tab, así el badge siempre refleja el doc realmente visible.
+  if (doc !== getCurrentSubTab()) return;
+  const btn = document.getElementById('btn-view-doclog');
   if (!btn) return;
   const key = doc === 'context' ? 'context-log' : doc === 'htmlmap' ? 'html-map-log' : 'backlog-log';
   let log = [];

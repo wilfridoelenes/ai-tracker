@@ -1,4 +1,8 @@
-// [PP] mod:14 · autor:Rune · 2026-07-12 UTC-6
+// [PP] mod:15 · autor:Rune · 2026-07-13 00:50 UTC-6
+// TKT-[pendiente-ID] (REQ-[pendiente-ID] · sidebar DocLog): los 3 botones doc-log-btn-*
+//   (uno por sub-panel: backlog/htmlmap/context) se retiran de sus toolbars — ver index.html.
+//   Se reemplazan por un único #btn-view-doclog en Acciones del sidebar, mostrado/titulado
+//   según el sub-tab activo y abriendo openDocLog(getCurrentSubTab()) — ver _updateSubTabButtons.
 // TKT-202607-007 (Sprint PP-S-01 / __OB-Strategy §5 regla dura de separador de versión):
 //   _validateDocFileNameVersionSeparator ahora existe e implementada — la entrega mod:13
 //   documentó la función en este header pero el cuerpo nunca se escribió (0 definiciones,
@@ -25,7 +29,7 @@ import { _blogLog, _docPrefix, _effectiveVersion, _getDocUpdateIndex, _projKey, 
 
 import { showToast } from './locus-toast.js';
 
-import { esc, switchSubTab } from './locus-ui-shell.js';
+import { esc, getCurrentSubTab, switchSubTab } from './locus-ui-shell.js';
 
 // TKT-202607-007: valida que el segmento -vN.N.N del nombre de archivo use "." como
 // separador — no "_". Sin segmento de versión reconocible (Doc Refs sin versión en el
@@ -123,6 +127,18 @@ export function _updateSubTabButtons(sub) {
     btnExpContratos.disabled = !hasContratos;
     btnExpContratos.title = hasContratos ? 'Exportar Contratos.md' : 'Sin contratos definidos aún';
   }
+  // btn-view-doclog — visible solo en backlog/htmlmap/context (únicos docs con log) — TKT-[pendiente-ID]
+  const btnViewDocLog = document.getElementById('btn-view-doclog');
+  if (btnViewDocLog) {
+    const docLogTitles = { backlog: 'Historial de acciones del Backlog', htmlmap: 'Historial de acciones del MAP', context: 'Historial de acciones del Context' };
+    const hasDocLog = sub in docLogTitles;
+    btnViewDocLog.classList.toggle('is-hidden', !hasDocLog);
+    if (hasDocLog) {
+      btnViewDocLog.title = docLogTitles[sub];
+      _updateDocLogCount(sub);
+    }
+  }
+
   // AC-3 (T-202606-033): sub docupdates — renderizar al activar
   if (sub === 'docupdates') {
     renderDocUpdatesPending();
@@ -1212,21 +1228,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const ctxFileInput = document.getElementById('context-file-input');
   if (ctxFileInput) ctxFileInput.addEventListener('change', _importContextMdFromFile);
 
-  // doc-log-btn-backlog → openDocLog('backlog')
-  const dlBacklog = document.getElementById('doc-log-btn-backlog');
-  if (dlBacklog) dlBacklog.addEventListener('click', () => openDocLog('backlog'));
-
-  // doc-log-btn-htmlmap → openDocLog('htmlmap')
-  const dlHtmlmap = document.getElementById('doc-log-btn-htmlmap');
-  if (dlHtmlmap) dlHtmlmap.addEventListener('click', () => openDocLog('htmlmap'));
+  // btn-view-doclog (sidebar, único) → openDocLog(sub activo) — TKT-[pendiente-ID]
+  const dlSidebar = document.getElementById('btn-view-doclog');
+  if (dlSidebar) dlSidebar.addEventListener('click', () => openDocLog(getCurrentSubTab()));
 
   // htmlmap-file-input → importHtmlMap
   const hmFileInput = document.getElementById('htmlmap-file-input');
   if (hmFileInput) hmFileInput.addEventListener('change', importHtmlMap);
-
-  // doc-log-btn-context → openDocLog('context')
-  const dlContext = document.getElementById('doc-log-btn-context');
-  if (dlContext) dlContext.addEventListener('click', () => openDocLog('context'));
 
   // .ctx-import-btn → contextShowImport (sin ID — selector de clase)
   const ctxImportBtn = document.querySelector('.ctx-import-btn');
