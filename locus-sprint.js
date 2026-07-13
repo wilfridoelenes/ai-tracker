@@ -1,4 +1,4 @@
-// [PP] mod:98 · autor:Rune · 2026-07-13 10:05 UTC-6
+// [PP] mod:100 · autor:Rune · 2026-07-13 11:10 UTC-6
 // TKT2 (REQ CAEL-05 — rediseño sub-tab Sprints, code real TKT-202607-099): .sph-panel deja
 // de ser hermano de .sps-card en _renderSpsActivo() y pasa a ser su último hijo — fusión
 // visual en un solo bloque bordeado (mockup aprobado por founder, "redesign_subtab_sprints").
@@ -669,6 +669,35 @@ function _spsApplyDropdownFlip(menuBtn, dropdown) {
   }
 }
 
+// TKT5 (REQ-202607-100): wiring de apertura/cierre del menú ⋯ — antes
+// triplicado byte-a-byte en _renderSpsActivo (inline handler), _sppHandleClick
+// (Programados) y _spsCerradosHandleClick, difiriendo solo en el atributo
+// data-*-menu de cada sección (que el caller ya resolvió antes de invocar
+// este helper vía closest()). Encapsula: toggle de dropdown.hidden +
+// aria-expanded + _spsApplyDropdownFlip() al abrir + listener de click-fuera
+// con auto-remove. No decide el atributo data-*-menu ni hace stopPropagation
+// — eso sigue siendo responsabilidad del caller (ver Cerrados, que necesita
+// stopPropagation antes de invocar esto para no disparar el expand de fila).
+function _spsWireDropdownToggle(menuBtn) {
+  const dropdown = menuBtn.nextElementSibling;
+  if (!dropdown) return;
+  const isOpen = !dropdown.hidden;
+  dropdown.hidden = isOpen;
+  menuBtn.setAttribute('aria-expanded', String(!isOpen));
+  if (isOpen) return;
+  _spsApplyDropdownFlip(menuBtn, dropdown);
+  function _closeOnOutside(ev) {
+    if (!menuBtn.closest('.sps-menu-wrap').contains(ev.target)) {
+      dropdown.hidden = true;
+      menuBtn.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('click', _closeOnOutside, true);
+    }
+  }
+  setTimeout(function() {
+    document.addEventListener('click', _closeOnOutside, true);
+  }, 0);
+}
+
 // ── T-202606-036 / T-202606-043: _renderSpsActivo — card del sprint activo ──
 //
 // T-202606-043: rediseño — card-header con menú ··· (Pausar · sep · Cerrar rojo),
@@ -828,25 +857,7 @@ function _spsActivoHandleClick(e) {
   // Toggle menú
   const menuBtn = e.target.closest('[data-sps-activo-menu]');
   if (menuBtn) {
-    const dropdown = menuBtn.nextElementSibling;
-    if (!dropdown) return;
-    const isOpen = !dropdown.hidden;
-    dropdown.hidden = isOpen;
-    menuBtn.setAttribute('aria-expanded', String(!isOpen));
-    if (!isOpen) {
-      _spsApplyDropdownFlip(menuBtn, dropdown);
-      // Cerrar al hacer clic fuera
-      function _closeOnOutside(ev) {
-        if (!menuBtn.closest('.sps-menu-wrap').contains(ev.target)) {
-          dropdown.hidden = true;
-          menuBtn.setAttribute('aria-expanded', 'false');
-          document.removeEventListener('click', _closeOnOutside, true);
-        }
-      }
-      setTimeout(function() {
-        document.addEventListener('click', _closeOnOutside, true);
-      }, 0);
-    }
+    _spsWireDropdownToggle(menuBtn);
     return;
   }
 
@@ -912,10 +923,15 @@ function _renderSpsProgramados() {
 
   const sprints = _getProgramadosSprints();
 
-  // AC-4 (T-202606-001): sin programados → sección vacía sin encabezado — no ocupa espacio visual
+  // TKT4 (REQ-202607-100): sin programados → línea muda visible, la sección
+  // no desaparece. Reemplaza el is-hidden anterior (AC-4 de T-202606-001,
+  // superseded — el comportamiento de "ocupar cero espacio" quedaba
+  // inconsistente con Activo, que sí muestra mensaje).
   if (sprints.length === 0) {
-    container.innerHTML = '';
-    container.classList.add('is-hidden');
+    container.innerHTML =
+      '<span class="sps-section-label">Programados</span>' +
+      '<p class="sps-empty-line">Sin sprints programados</p>';
+    container.classList.remove('is-hidden');
     container.removeEventListener('click', _sppHandleClick);
     return;
   }
@@ -1020,24 +1036,7 @@ function _sppHandleClick(e) {
   // Toggle menú ···
   const menuBtn = e.target.closest('[data-spp-menu]');
   if (menuBtn) {
-    const dropdown = menuBtn.nextElementSibling;
-    if (!dropdown) return;
-    const isOpen = !dropdown.hidden;
-    dropdown.hidden = isOpen;
-    menuBtn.setAttribute('aria-expanded', String(!isOpen));
-    if (!isOpen) {
-      _spsApplyDropdownFlip(menuBtn, dropdown);
-      function _closeOnOutside(ev) {
-        if (!menuBtn.closest('.sps-menu-wrap').contains(ev.target)) {
-          dropdown.hidden = true;
-          menuBtn.setAttribute('aria-expanded', 'false');
-          document.removeEventListener('click', _closeOnOutside, true);
-        }
-      }
-      setTimeout(function() {
-        document.addEventListener('click', _closeOnOutside, true);
-      }, 0);
-    }
+    _spsWireDropdownToggle(menuBtn);
     return;
   }
 
@@ -1841,10 +1840,14 @@ function _renderSpsPausados() {
     ? allSprints.filter(s => s.status === 'paused') // TKT-B1: isHotfix eliminado
     : [];
 
-  // AC-4/AC-5: sin pausados → ocultar contenedor sin empty state
+  // TKT4 (REQ-202607-100): sin pausados → línea muda visible, mismo patrón
+  // que Programados/Cerrados — la sección no desaparece. Sin section-label:
+  // Pausados no lo usa en estado con datos (cards van directo en el
+  // container) — agregarlo solo aquí crearía un label que aparece únicamente
+  // en vacío, fuera de scope de este TKT.
   if (paused.length === 0) {
-    container.innerHTML = '';
-    container.classList.add('is-hidden');
+    container.innerHTML = '<p class="sps-empty-line">Sin sprints pausados</p>';
+    container.classList.remove('is-hidden');
     return;
   }
 
@@ -1935,7 +1938,10 @@ function _renderSpsPausados() {
 // Renderiza en #sps-cerrados todos los sprints cerrados ordenados por closedAt desc.
 // Cada fila es colapsable — clic expande retro inline (patrón 0fr→1fr).
 // Exactamente un sprint expandido en todo momento. Clic en fila ya expandida colapsa.
-// Sin ítems: muestra empty state inline — la sección no desaparece.
+// Sin ítems: muestra línea muda inline (.sps-empty-line) — la sección no
+// desaparece. TKT4 (REQ-202607-100): antes de este TKT este comentario
+// describía el comportamiento deseado, pero el código hacía is-hidden
+// igual que Programados/Pausados — hallazgo #4 de la auditoría de rediseño.
 // Retro: contenido de sprint.retroDoc (texto plano, solo lectura). Sin retroDoc → 'Retro no disponible'.
 
 let _spsCerradosExpanded = null; // ID del sprint actualmente expandido
@@ -1962,10 +1968,12 @@ async function _renderSpsCerrados() {
         })
     : [];
 
-  // AC-3 (T-202606-001): sin cerrados → sección vacía sin encabezado — no ocupa espacio visual
+  // TKT4 (REQ-202607-100): sin cerrados → línea muda visible, la sección
+  // no desaparece — comportamiento real, no solo el comentario aspiracional
+  // que tenía esta función antes de este TKT.
   if (closed.length === 0) {
-    container.innerHTML = '';
-    container.classList.add('is-hidden');
+    container.innerHTML = '<p class="sps-empty-line">Sin sprints cerrados</p>';
+    container.classList.remove('is-hidden');
     container.removeEventListener('click', _spsCerradosHandleClick);
     _spsCerradosExpanded = null;
     return;
@@ -2063,24 +2071,7 @@ function _spsCerradosHandleClick(e) {
   const menuBtn = e.target.closest('[data-sps-cerrados-menu]');
   if (menuBtn) {
     e.stopPropagation(); // no propagar al header — evita toggle de expand
-    const dropdown = menuBtn.nextElementSibling;
-    if (!dropdown) return;
-    const isOpen = !dropdown.hidden;
-    dropdown.hidden = isOpen;
-    menuBtn.setAttribute('aria-expanded', String(!isOpen));
-    if (!isOpen) {
-      _spsApplyDropdownFlip(menuBtn, dropdown);
-      function _closeOnOutside(ev) {
-        if (!menuBtn.closest('.sps-menu-wrap').contains(ev.target)) {
-          dropdown.hidden = true;
-          menuBtn.setAttribute('aria-expanded', 'false');
-          document.removeEventListener('click', _closeOnOutside, true);
-        }
-      }
-      setTimeout(function() {
-        document.addEventListener('click', _closeOnOutside, true);
-      }, 0);
-    }
+    _spsWireDropdownToggle(menuBtn);
     return;
   }
 

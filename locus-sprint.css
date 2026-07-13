@@ -1,4 +1,4 @@
-/* [PP] mod:51 · autor:Nova · 2026-07-13 10:05 UTC-6 */
+/* [PP] mod:52 · autor:Nova · 2026-07-13 10:40 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -2390,6 +2390,20 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   color: var(--text3);
   padding: 0 2px;
   margin-bottom: 6px;
+}
+
+/* TKT4 (REQ-202607-100): línea muda de empty state — Programados/Pausados/
+   Cerrados. Mismo patrón que .ssm-empty (texto atenuado, itálica) pero sin
+   el padding de card completo — vive inline dentro de una sección más
+   compacta que no ocupa espacio dedicado a card. Generada condicionalmente
+   por JS junto con el resto del innerHTML de la sección — nunca oculta por
+   CSS, la sección misma nunca recibe is-hidden mientras esté vacía. */
+.sps-empty-line {
+  font-size: var(--text-sm);
+  color: var(--text3);
+  font-style: italic;
+  padding: 8px 2px;
+  margin: 0;
 }
 
 /* ── Card base ── */
