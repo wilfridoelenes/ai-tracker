@@ -1,4 +1,8 @@
-// [PP] mod:117 · autor:Rune · 2026-07-12 16:45 UTC-6
+// [PP] mod:118 · autor:Rune · 2026-07-12 20:06 UTC-6
+// TKT4 (REQ CAEL-01 · PP-S-02): role/next_role/ac/queue/verificado_por agregados a
+//   _toIncidentRow() y _mapRowToIncident() — ALTER TABLE aplicado por el founder en
+//   tracker_incidents (confirmado en sesión). ac se persiste y rehidrata siempre como
+//   array — [] si el incidente no lo declara, nunca null.
 // INC-fix (2 bugs, misma sesión de diagnóstico Sprint cerrado/histórico):
 //   Bug1 — _toItemRow(): archived_at/done_at agregados al mapeo outgoing — no existían en
 //     ningún punto del schema, el cierre de sprint nunca persistía esos timestamps.
@@ -1561,8 +1565,12 @@ export async function saveBacklog() {
 
   // TKT-202607-044 (REQ-202607-015): _toIncidentRow() — mapeo hacia las columnas reales
   // de tracker_incidents (verificadas vía information_schema — 18 columnas, schema propio
-  // y más angosto que tracker_items: sin status/priority/effort/area/sprint/role/ac/parent/
+  // y más angosto que tracker_items: sin status/priority/effort/area/sprint/parent/
   // depends_on, que no existen en esta tabla). onConflict:code — mismo target que _toItemRow().
+  // TKT4 (REQ CAEL-01 · PP-S-02): ALTER TABLE aplicado por el founder — role, next_role, ac,
+  // queue y verificado_por agregados a tracker_incidents (BR-Ecosystem §5/§8 los declara
+  // parte del schema de INC/PRB/KE/CHG; antes se perdían al persistir). ac se envía siempre
+  // como array — nunca null ni ausente (AC-3 de TKT4: `ac:[]` si el ítem no lo declara).
   function _toIncidentRow(inc) {
     return {
       user_id:               _supabaseUser.id,
@@ -1584,6 +1592,16 @@ export async function saveBacklog() {
       resolution_type:       incResolutionType(inc),
       // INC-[pendiente-ID]: mismo fallback camelCase que _toItemRow() — ver nota ahí.
       discard_reason:        inc.discard_reason     || inc.discardReason || null,
+      // TKT4 (REQ CAEL-01): role/next_role sin transformación de nombre — mismo campo en
+      // memoria y en columna. verificado_por (snake_case en columna, sin contraparte
+      // camelCase en el modelo — BR-Core §6 Variante ligera de INC usa el literal
+      // 'verificado_por', no 'verifiedPor').
+      role:                  inc.role               || null,
+      next_role:             inc.next_role          || inc.nextRole || null,
+      // AC-3: ac se guarda como array siempre — [] si el incidente no lo declara, nunca null.
+      ac:                    Array.isArray(inc.ac) ? inc.ac : [],
+      queue:                 inc.queue              || null,
+      verificado_por:        inc.verificado_por     || inc.verificadoPor || null,
       // Fix QA (Finn) — TKT-202607-044: sla_deadline es timestamptz en tracker_incidents
       // (confirmado vía information_schema.columns), no bigint. inc.slaDeadline vive en
       // memoria como epoch ms (ver _mapRowToIncident) — convertir a ISO string antes de
@@ -1924,17 +1942,20 @@ function _mapRowToItem(row) {
 // tracker_incidents (snake_case) → campos JS canónicos de INCIDENTS (camelCase donde
 // aplica: incidentStatus, resolutionType, createdAt, slaDeadline) — mismo patrón que
 // _mapRowToItem(). tracker_incidents tiene schema propio, más angosto que tracker_items
-// (sin status/priority/effort/area/sprint/role/ac/parent — esos campos no existen en
+// (sin status/priority/effort/area/sprint/parent — esos campos no existen en
 // esta tabla, ver columnas reales verificadas: archivos, code, comportamiento_actual,
 // created_at, derived_items, discard_reason, id, incident_status, origin_module,
 // project_id, resolution_type, sla_deadline, sla_priority, title, triggered_by, type,
-// updated_at, user_id).
+// updated_at, user_id, role, next_role, ac, queue, verificado_por).
 // Fix QA (Finn) — TKT-202607-044: created_at y sla_deadline son timestamptz en
 // tracker_incidents (confirmado vía information_schema.columns) — NO bigint como en
 // tracker_items. A diferencia de _mapRowToItem, aquí normalizamos a epoch ms con
 // Date.parse/getTime al leer, para que createdAt/slaDeadline en INCIDENTS sean del mismo
 // tipo (number epoch ms) que en ITEMS — cualquier lógica compartida de SLA (__BR-Core §6)
 // no necesita discriminar por tipo de origen. Solo updated_at es bigint aquí — sin cambio.
+// TKT4 (REQ CAEL-01 · PP-S-02): role/next_role/ac/queue/verificado_por rehidratados —
+// AC-2 (sobreviven guardar+recargar) y AC-4 (regresión: filas viejas sin estas columnas,
+// NULL tras el ALTER, se hidratan sin error — role/next_role/verificado_por null, ac:[]).
 function _mapRowToIncident(row) {
   return {
     code:                  row.code,
@@ -1949,6 +1970,13 @@ function _mapRowToIncident(row) {
     incidentStatus:        row.incident_status || null,
     resolutionType:        row.resolution_type || null,
     discard_reason:        row.discard_reason,
+    // AC-4: filas pre-ALTER traen estas columnas en NULL — null/null/[] es el valor esperado,
+    // no un error de hidratación.
+    role:                  row.role               || null,
+    next_role:             row.next_role          || null,
+    ac:                    Array.isArray(row.ac) ? row.ac : [],
+    queue:                 row.queue              || null,
+    verificado_por:        row.verificado_por     || null,
     // timestamptz → epoch ms. row.created_at llega como ISO string desde Supabase.
     createdAt:             row.created_at != null ? new Date(row.created_at).getTime() : null,
     // Mismo cálculo derivado que _mapRowToItem en intención — pero con base epoch ms
