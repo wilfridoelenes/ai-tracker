@@ -228,8 +228,8 @@ export function _splitCheckpointBlocks(text) {
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
 import { renderStats, getItems, normalizeStatus, itemKind, _GEN2_TYPES } from './locus-backlog-core.js'; // TKT0-gen2: itemKind agregado · TKT1: _GEN2_TYPES (REQ-[pendiente-ID])
-import { _isPlaceholderCode, applyPatchesFromTG, _assignPendingIds } from './locus-backlog-item.js'; // T-202606-089 AC-3
-import { showMergeDiffPanel } from './locus-backlog-merge.js';
+import { _isPlaceholderCode, applyPatchesFromTG, _assignPendingIds, mergeBacklogFromTG } from './locus-backlog-item.js'; // T-202606-089 AC-3 · TKT1 (REQ CAEL-01): mergeBacklogFromTG agregado — dry-run del preview de diff en el card. Ciclo parse.js↔backlog-item.js ya existente (backlog-item.js importa _normalizeSprint de este archivo) — misma relación, sin ciclo nuevo
+import { showMergeDiffPanel, chipTonesFromDiff } from './locus-backlog-merge.js';
 import { renderBacklogList } from './locus-backlog-render.js';
 import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
@@ -1247,6 +1247,31 @@ export function parsePaste(id) {
   // (locus-session-save.js) justo antes de abrir showMergeDiffPanel — momento real en que
   // el founder empieza a revisar. Antes: _setPhase(id, (isCheckpoint && title) ? 2 : 1).
   _setPhase(id, 1);
+
+  // TKT1 (REQ CAEL-01): preview de diff en el card antes de 'Revisar cambios'. Debounced —
+  // mergeBacklogFromTG en dry-run por cada keystroke es una llamada real de merge, costosa;
+  // señal de riesgo de performance detectada antes de implementar (§2 Impacto lateral).
+  // Mismo shape (chipTonesFromDiff) que consume el header del DIFF — un solo punto de verdad.
+  clearTimeout(window['_diffPreviewTimer_' + id]);
+  const _diffPreviewEl = document.getElementById('diff-preview-' + id);
+  if (isCheckpoint && title && tgItems.length) {
+    window['_diffPreviewTimer_' + id] = setTimeout(() => {
+      mergeBacklogFromTG(tgItems, 'preview-' + id, { dryRun: true }).then(_dryDiff => {
+        if (!_diffPreviewEl) return;
+        const _tones = chipTonesFromDiff(_dryDiff);
+        if (_tones.length) {
+          _diffPreviewEl.innerHTML = `<div class="sc-diff-preview-title">Vista previa</div>` +
+            `<div class="sc-diff-preview-chips">${_tones.map(t =>
+              `<span class="diff-chip diff-chip--${t.tone}">${t.count} ${t.label}</span>`).join('')}</div>`;
+          _diffPreviewEl.classList.remove('is-hidden');
+        } else {
+          _diffPreviewEl.classList.add('is-hidden');
+        }
+      }).catch(() => { if (_diffPreviewEl) _diffPreviewEl.classList.add('is-hidden'); });
+    }, 500);
+  } else if (_diffPreviewEl) {
+    _diffPreviewEl.classList.add('is-hidden');
+  }
 
   const draftKey = LOCUS_KEYS.DRAFT_KEY_PREFIX + id;
   if (text.trim()) {

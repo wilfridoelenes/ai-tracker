@@ -1013,6 +1013,7 @@ function buildCard(ai) {
         <textarea class="paste-ta" id="ta-${ai.id}" rows="3"></textarea>
         <div class="paste-ta-hint" id="pta-hint-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el rol al cerrar sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
       </div>
+      <div class="sc-diff-preview is-hidden" id="diff-preview-${ai.id}" aria-live="polite"></div>
       <div class="char-counter" id="cc-${ai.id}"></div>
     </div>
     <div class="preview" id="prev-${ai.id}"></div>

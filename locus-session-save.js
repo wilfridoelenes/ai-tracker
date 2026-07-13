@@ -658,7 +658,7 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
       if (_calcDuration > 0) newSess.durationMs = _calcDuration;
     }
     _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, sessId, tgItems, newSess);
-  }, _ckptMeta);
+  }, _ckptMeta, () => _setPhase(id, 1)); // TKT2 (REQ CAEL-01): onClose — revierte 'Revisar' si cierra sin confirmar
 }
 
 // T-202604-201: segunda mitad de _doSaveSession — ejecutada tras confirmación del panel de diff
