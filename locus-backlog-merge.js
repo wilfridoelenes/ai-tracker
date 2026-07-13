@@ -1,4 +1,4 @@
-// [PP] mod:51 · autor:Rune · 2026-07-12 21:53 UTC-6
+// [PP] mod:52 · autor:Rune · 2026-07-13 08:30 UTC-6
 // TKT3 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): retirado el bloque
 // `if (_sprintProposal && body) {...}` completo — Step 0 HTML, listeners #mdiff-step0-approve/
 // #mdiff-step0-reject, y el gate de ítems sin sprint (ex T-202606-164, relocalizado en TKT4 al
@@ -140,7 +140,7 @@ function _renderChipTones(tones) {
 // T-202606-037: ckptMeta — campos narrativos del CHECKPOINT para sección superior del panel.
 // Objeto con campos: { resumen, aprendizaje, bloqueantes, decision, proximoPaso } — todos string, todos opcionales.
 // Si es null/undefined, todos los campos se tratan como cadena vacía (AC-5).
-export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta) {
+export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptMeta, onClose) {
   // T-202606-037 AC-1: early-return sin ítems eliminado — el panel siempre abre cuando hay CHECKPOINT válido.
   // AC-5: ckptMeta null/undefined normalizado a objeto vacío.
   const _ckptMeta = (ckptMeta && typeof ckptMeta === 'object') ? ckptMeta : {};
@@ -1235,6 +1235,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   overlay.querySelector('#mdiff-cancel-btn').addEventListener('click', () => {
     overlay.classList.remove('open');
     document.removeEventListener('keydown', _mdiffKeyHandler);
+    // TKT2 (REQ CAEL-01) Opción A: onClose — el DIFF se cerró sin confirmar, revertir fase 2→1
+    if (typeof onClose === 'function') onClose();
     // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
     _mdiffUpdateConfirmBtn = null;
     _mdiffToggleSection = null;
@@ -1309,6 +1311,8 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     } else if (e.key === 'Escape') {
       document.removeEventListener('keydown', _mdiffKeyHandler);
       overlay.classList.remove('open');
+      // TKT2 (REQ CAEL-01) Opción A: onClose — el DIFF se cerró sin confirmar, revertir fase 2→1
+      if (typeof onClose === 'function') onClose();
       // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
       _mdiffUpdateConfirmBtn = null;
       _mdiffToggleSection = null;
