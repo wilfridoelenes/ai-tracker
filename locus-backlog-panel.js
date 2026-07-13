@@ -1,5 +1,11 @@
-// [PP] mod:19 · autor:Rune · 2026-07-10 18:05 UTC-6
-// TKT-202607-045 (REQ-202607-015): chip 'Generado desde' (item.origin, ~línea 537) usa
+// [PP] mod:21 · autor:Rune · 2026-07-12 UTC-6
+// TKT1 (ref_id CAEL-02, REQ IDP core+slots — PP-S-03): _buildIdpCore() extrae header
+//   (título editable), notas, sesiones vinculadas y timeline a función compartida.
+//   _renderItemPanel() delega en ella — markup idéntico, sin cambio de comportamiento.
+// TKT2 (ref_id CAEL-03): _buildIdpDiscSlot() — discard_reason/promovida_a para DISC.
+//   Reutiliza idp-meta-value--readonly / idp-dep-chip — sin CSS nuevo. AC corregido en
+//   sesión: gap entre no_incluye del REQ y AC del TKT cerrado reutilizando clases existentes.
+// TKT-202607-045 (REQ-202607-015): chip 'Generado desde' (item.origin) usa
 //   getAnyItem() en vez de getItems().find() — item.origin puede apuntar a un código ITIL.
 // locus-backlog-panel.js
 // Responsabilidad: Panel de detalle de ítem (IDP) — navegación, renderizado,
@@ -317,21 +323,29 @@ function _itemPanelEscHandler(e) {
   }
 }
 
-function _renderItemPanel(item) {
-  const panel = document.getElementById('item-detail-panel');
-  if (!panel) return;
+// TKT1 (REQ IDP — core compartido + slots por familia): _buildIdpCore() extrae
+// título editable (header), notas, sesiones vinculadas y timeline — lo genuinamente
+// común entre los 7 tipos de ítem. _renderItemPanel() delega en esta función y
+// conserva el resto (meta grid, AC, dependencias, origen) hasta que TKT2-4
+// introduzcan los slots por familia. Markup idéntico al previo a este TKT —
+// sin cambio de comportamiento observable.
+const _IDP_TYPE_NAMES = { TKT: 'Ticket', REQ: 'Requerimiento', INC: 'Incidente', DISC: 'Discovery' };
 
-  const type = itemKind(item) || '';
-  const TYPE_NAMES = { TKT: 'Ticket', REQ: 'Requerimiento', INC: 'Incidente', DISC: 'Discovery' };
+function _buildIdpCore(item, type) {
+  // AC error: item ausente → mismo estado vacío que hoy (openItemPanel ya filtra
+  // antes de invocar _renderItemPanel; este guard cubre invocación directa del core).
+  if (!item) {
+    return { headerHtml: '', notesHtml: '', sessionsHtml: '', preCreationHtml: '', timelineHtml: '' };
+  }
 
-  // ── Header ──
+  // ── Header (título editable) ──
   const doneBtn = item.status !== 'done' ? `<button class="idp-action-btn idp-action-done" data-action="idp-mark-done" data-code="${esc(item.code)}" title="Marcar done">✓ Done</button>` : '';
   const headerHtml = `
     <div class="idp-header">
       <div class="idp-type-chip idp-type-${type}">${type}</div>
       <div class="idp-header-meta">
         <span class="idp-code">${esc(item.code)}</span>
-        <span class="idp-type-name">${TYPE_NAMES[type] || type}</span>
+        <span class="idp-type-name">${_IDP_TYPE_NAMES[type] || type}</span>
       </div>
       <button class="idp-close-btn" data-action="idp-close" title="Cerrar panel (Esc)">✕</button>
     </div>
@@ -347,100 +361,6 @@ function _renderItemPanel(item) {
       <button class="idp-action-btn" data-action="idp-copy-code" data-code="${esc(item.code)}" title="Copiar código">⎘ ${esc(item.code)}</button>
       <button class="idp-action-btn" data-action="idp-edit" data-item-code="${esc(item.code)}" title="Abrir editor completo">✎ Editar</button>
       ${doneBtn}
-    </div>`;
-
-  // ══ Metadata grid — campos editables ══
-  const sprintOptions = getActiveSprints().filter(s => s.status !== 'closed')
-    .map(s => `<option value="${esc(s.id)}"${item.sprint === s.id ? ' selected' : ''}>${esc(_sprintDisplay(s.id))}${s.status === 'active' ? ' ★' : ''}</option>`).join('');
-  const sprintOrphan = item.sprint && !getActiveSprints().find(s => s.id === item.sprint)
-    ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : '';
-  // T-202606-036 AC4: T con parent — sprint heredado no editable
-  const _isInheritedSprint = item.parentId && itemKind(item) === 'TKT';
-  const _parentItem = _isInheritedSprint ? (getItems() || []).find(i => i.code === item.parentId) : null;
-  // TKT4-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes solo .label || _parentItem.sprint
-  const _inheritedLabel = _parentItem
-    ? ((_parentItem.sprint && getActiveSprints().find(s => s.id === _parentItem.sprint))
-        ? _sprintDisplay(_parentItem.sprint)
-        : (_parentItem.sprint || '— Sin asignar'))
-    : '— Sin asignar';
-  // [tmp:tkt-panel-readonly-mode]: ítems done/descartado — selects e input del panel pasan a disabled/readonly. Declarada una sola vez, antes de su primer consumo (sprintCellHtml) — antes se repetía inline en 3 puntos del mismo scope.
-  const _isReadonlyItem = item.status === 'done' || item.status === 'descartado';
-  const _roDisabled = _isReadonlyItem ? ' disabled' : '';
-  const _roReadonly = _isReadonlyItem ? ' readonly' : '';
-
-  const sprintCellHtml = _isInheritedSprint
-    ? `<span class="idp-meta-value idp-meta-value--inherited" title="El sprint del T se hereda de su parent ${esc(item.parentId)}">${esc(_inheritedLabel)} <span class="idp-inherited-badge">heredado</span></span>`
-    : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="sprint"${_roDisabled}>
-          <option value="">— Sin asignar</option>
-          ${sprintOptions}
-          ${sprintOrphan}
-        </select>`;
-
-  // INC-[pendiente-ID] AC1: DISC — Status es badge de solo lectura (discovery|promoted|descartado, nunca pendiente/done)
-  // [tmp:tkt-panel-readonly-mode]: item.status done/descartado → status select también disabled (AC literal)
-  const _discStatusLabels = { discovery: '◆ discovery', promoted: '➜ promoted', descartado: '🗑 descartado' };
-  // [tmp:tkt4-status-guard]: solo INC/PRB/KE — badge de solo lectura, mismo patrón que DISC.
-  // CHG es la excepción dentro de INCIDENT_TYPES: usa vocabulario Scrum real
-  // (pendiente/en-revision/done/descartado, __BR-Ecosystem §5) — sigue con el <select> normal.
-  const _ITIL_SCRUM_INCOMPATIBLE = ['INC', 'PRB', 'KE'];
-  const _incidentStatusLabels = {
-    detected: '● detected', assigned: '● assigned', in_progress: '● in_progress',
-    resolved: '✓ resolved', closed: '✓ closed',
-    escalated_to_prb: '➜ escalated_to_prb', escalated_to_chg: '➜ escalated_to_chg',
-    active: '● active', descartado: '🗑 descartado'
-  };
-  const statusCellHtml = type === 'DISC'
-    ? `<span class="idp-meta-value idp-meta-value--readonly">${_discStatusLabels[item.status] || esc(item.status || '—')}</span>`
-    : _ITIL_SCRUM_INCOMPATIBLE.includes(type)
-    ? `<span class="idp-meta-value idp-meta-value--readonly">${_incidentStatusLabels[item.incident_status || item.status] || esc(item.incident_status || item.status || '—')}</span>`
-    : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="status"${_roDisabled}>
-          <option value="pendiente"${item.status === 'pendiente' ? ' selected' : ''}>⏳ pendiente</option>
-          <option value="done"${item.status === 'done' ? ' selected' : ''}>✓ done</option>
-          <option value="descartado"${item.status === 'descartado' ? ' selected' : ''}>🗑 descartado</option>
-        </select>`;
-
-  // INC-[pendiente-ID] AC2: DISC — Sprint no se renderiza (zona fija Q-DISC, sin campo sprint en schema)
-  const sprintMetaCellHtml = type === 'DISC' ? '' : `
-      <div class="idp-meta-cell">
-        <span class="idp-meta-label">Sprint</span>
-        ${sprintCellHtml}
-      </div>`;
-
-  const metaHtml = `
-    <div class="idp-meta-grid">
-      <div class="idp-meta-cell">
-        <span class="idp-meta-label">Status</span>
-        ${statusCellHtml}
-      </div>
-      <div class="idp-meta-cell">
-        <span class="idp-meta-label">Priority</span>
-        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="priority"${_roDisabled}>
-          <option value="high"${item.priority === 'high' ? ' selected' : ''}>🔴 high</option>
-          <option value="medium"${item.priority === 'medium' ? ' selected' : ''}>🟡 medium</option>
-          <option value="low"${item.priority === 'low' ? ' selected' : ''}>⚪ low</option>
-        </select>
-      </div>${sprintMetaCellHtml}
-      <div class="idp-meta-cell">
-        <span class="idp-meta-label">Effort</span>
-        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="effort"${_roDisabled}>
-          <option value=""${!item.effort ? ' selected' : ''}>—</option>
-          <option value="1"${item.effort == 1 ? ' selected' : ''}>1 · simple</option>
-          <option value="2"${item.effort == 2 ? ' selected' : ''}>2 · medio</option>
-          <option value="3"${item.effort == 3 ? ' selected' : ''}>3 · complejo</option>
-        </select>
-      </div>
-      <div class="idp-meta-cell idp-meta-cell--wide">
-        <span class="idp-meta-label">Area</span>
-        <input class="idp-meta-input" value="${esc(item.area || '')}" placeholder="—"
-          data-item-code="${esc(item.code)}" data-field="area"${_roReadonly}>
-      </div>
-      <div class="idp-meta-cell idp-meta-cell--wide">
-        <span class="idp-meta-label">Rol</span>
-        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="role"${_roDisabled}>
-          <option value="">— Sin rol —</option>
-          ${_ECOSYSTEM_ROLES.map(r => `<option value="${esc(r)}"${(item.role||'')=== r?' selected':''}>${esc(r)}</option>`).join('')}
-        </select>
-      </div>
     </div>`;
 
   // ── Notes ──
@@ -496,6 +416,133 @@ function _renderItemPanel(item) {
       </div>
     </div>` : '';
 
+  // ── Timeline ──
+  const timelineHtml = _buildPanelTimeline(item);
+
+  return { headerHtml, notesHtml, sessionsHtml, preCreationHtml, timelineHtml };
+}
+
+function _renderItemPanel(item) {
+  const panel = document.getElementById('item-detail-panel');
+  if (!panel) return;
+
+  const type = itemKind(item) || '';
+  const _core = _buildIdpCore(item, type);
+  const { headerHtml, notesHtml, sessionsHtml, preCreationHtml, timelineHtml } = _core;
+
+  // ══ Metadata grid — campos editables ══
+  const sprintOptions = getActiveSprints().filter(s => s.status !== 'closed')
+    .map(s => `<option value="${esc(s.id)}"${item.sprint === s.id ? ' selected' : ''}>${esc(_sprintDisplay(s.id))}${s.status === 'active' ? ' ★' : ''}</option>`).join('');
+  const sprintOrphan = item.sprint && !getActiveSprints().find(s => s.id === item.sprint)
+    ? `<option value="${esc(item.sprint)}" selected>${esc(item.sprint)}</option>` : '';
+  // T-202606-036 AC4: T con parent — sprint heredado no editable
+  const _isInheritedSprint = item.parentId && itemKind(item) === 'TKT';
+  const _parentItem = _isInheritedSprint ? (getItems() || []).find(i => i.code === item.parentId) : null;
+  // TKT4-[pendiente-ID]: _sprintDisplay aplica patrón id · label — antes solo .label || _parentItem.sprint
+  const _inheritedLabel = _parentItem
+    ? ((_parentItem.sprint && getActiveSprints().find(s => s.id === _parentItem.sprint))
+        ? _sprintDisplay(_parentItem.sprint)
+        : (_parentItem.sprint || '— Sin asignar'))
+    : '— Sin asignar';
+  // [tmp:tkt-panel-readonly-mode]: ítems done/descartado — selects e input del panel pasan a disabled/readonly. Declarada una sola vez, antes de su primer consumo (sprintCellHtml) — antes se repetía inline en 3 puntos del mismo scope.
+  const _isReadonlyItem = item.status === 'done' || item.status === 'descartado';
+  const _roDisabled = _isReadonlyItem ? ' disabled' : '';
+  const _roReadonly = _isReadonlyItem ? ' readonly' : '';
+
+  const sprintCellHtml = _isInheritedSprint
+    ? `<span class="idp-meta-value idp-meta-value--inherited" title="El sprint del T se hereda de su parent ${esc(item.parentId)}">${esc(_inheritedLabel)} <span class="idp-inherited-badge">heredado</span></span>`
+    : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="sprint"${_roDisabled}>
+          <option value="">— Sin asignar</option>
+          ${sprintOptions}
+          ${sprintOrphan}
+        </select>`;
+
+  // INC-[pendiente-ID] AC1: DISC — Status es badge de solo lectura (discovery|promoted|descartado, nunca pendiente/done)
+  // [tmp:tkt-panel-readonly-mode]: item.status done/descartado → status select también disabled (AC literal)
+  const _discStatusLabels = { discovery: '◆ discovery', promoted: '➜ promoted', descartado: '🗑 descartado' };
+  // [tmp:tkt4-status-guard]: solo INC/PRB/KE — badge de solo lectura, mismo patrón que DISC.
+  // CHG es la excepción dentro de INCIDENT_TYPES: usa vocabulario Scrum real
+  // (pendiente/en-revision/done/descartado, __BR-Ecosystem §5) — sigue con el <select> normal.
+  const _ITIL_SCRUM_INCOMPATIBLE = ['INC', 'PRB', 'KE'];
+  const _incidentStatusLabels = {
+    detected: '● detected', assigned: '● assigned', in_progress: '● in_progress',
+    resolved: '✓ resolved', closed: '✓ closed',
+    escalated_to_prb: '➜ escalated_to_prb', escalated_to_chg: '➜ escalated_to_chg',
+    active: '● active', descartado: '🗑 descartado'
+  };
+  // TKT2 (ref_id CAEL-03, REQ IDP core+slots): slot DISC — discard_reason y promovida_a.
+  // AC corregido en sesión (gap de especificación cerrado por Cael): reutiliza clases ya
+  // existentes en este mismo archivo (idp-meta-value--readonly, idp-dep-chip) — no introduce
+  // CSS ni componente nuevo, consistente con el no_incluye del REQ.
+  const _buildIdpDiscSlot = (it) => {
+    if (it.status === 'descartado') {
+      return `<div class="idp-meta-row">
+        <span class="idp-meta-value idp-meta-value--readonly">discard_reason: ${esc(it.discard_reason || 'sin registrar')}</span>
+      </div>`;
+    }
+    if (it.status === 'promoted' && it.promovida_a) {
+      return `<div class="idp-meta-row">
+        <span class="idp-dep-chip" data-action="idp-open-panel" data-item-code="${esc(it.promovida_a)}" title="Ítem resultante de la promoción">➜ promovida_a ${esc(it.promovida_a)}</span>
+      </div>`;
+    }
+    return '';
+  };
+  const discSlotHtml = type === 'DISC' ? _buildIdpDiscSlot(item) : '';
+
+  const statusCellHtml = type === 'DISC'
+    ? `<span class="idp-meta-value idp-meta-value--readonly">${_discStatusLabels[item.status] || esc(item.status || '—')}</span>`
+    : _ITIL_SCRUM_INCOMPATIBLE.includes(type)
+    ? `<span class="idp-meta-value idp-meta-value--readonly">${_incidentStatusLabels[item.incident_status || item.status] || esc(item.incident_status || item.status || '—')}</span>`
+    : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="status"${_roDisabled}>
+          <option value="pendiente"${item.status === 'pendiente' ? ' selected' : ''}>⏳ pendiente</option>
+          <option value="done"${item.status === 'done' ? ' selected' : ''}>✓ done</option>
+          <option value="descartado"${item.status === 'descartado' ? ' selected' : ''}>🗑 descartado</option>
+        </select>`;
+
+  // INC-[pendiente-ID] AC2: DISC — Sprint no se renderiza (zona fija Q-DISC, sin campo sprint en schema)
+  const sprintMetaCellHtml = type === 'DISC' ? '' : `
+      <div class="idp-meta-cell">
+        <span class="idp-meta-label">Sprint</span>
+        ${sprintCellHtml}
+      </div>`;
+
+  const metaHtml = `
+    <div class="idp-meta-grid">
+      <div class="idp-meta-cell">
+        <span class="idp-meta-label">Status</span>
+        ${statusCellHtml}
+      </div>
+      <div class="idp-meta-cell">
+        <span class="idp-meta-label">Priority</span>
+        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="priority"${_roDisabled}>
+          <option value="high"${item.priority === 'high' ? ' selected' : ''}>🔴 high</option>
+          <option value="medium"${item.priority === 'medium' ? ' selected' : ''}>🟡 medium</option>
+          <option value="low"${item.priority === 'low' ? ' selected' : ''}>⚪ low</option>
+        </select>
+      </div>${sprintMetaCellHtml}
+      <div class="idp-meta-cell">
+        <span class="idp-meta-label">Effort</span>
+        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="effort"${_roDisabled}>
+          <option value=""${!item.effort ? ' selected' : ''}>—</option>
+          <option value="1"${item.effort == 1 ? ' selected' : ''}>1 · simple</option>
+          <option value="2"${item.effort == 2 ? ' selected' : ''}>2 · medio</option>
+          <option value="3"${item.effort == 3 ? ' selected' : ''}>3 · complejo</option>
+        </select>
+      </div>
+      <div class="idp-meta-cell idp-meta-cell--wide">
+        <span class="idp-meta-label">Area</span>
+        <input class="idp-meta-input" value="${esc(item.area || '')}" placeholder="—"
+          data-item-code="${esc(item.code)}" data-field="area"${_roReadonly}>
+      </div>
+      <div class="idp-meta-cell idp-meta-cell--wide">
+        <span class="idp-meta-label">Rol</span>
+        <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="role"${_roDisabled}>
+          <option value="">— Sin rol —</option>
+          ${_ECOSYSTEM_ROLES.map(r => `<option value="${esc(r)}"${(item.role||'')=== r?' selected':''}>${esc(r)}</option>`).join('')}
+        </select>
+      </div>
+    </div>`;
+
   // ── AC colapsable ──
   const acHtml = item.ac && item.ac.length ? `
     <div class="idp-section">
@@ -507,9 +554,6 @@ function _renderItemPanel(item) {
         ${item.ac.map(c => `<div class="idp-ac-item"><span class="idp-ac-dot idp-type-${type}"></span>${esc(c)}</div>`).join('')}
       </div>
     </div>` : '';
-
-  // ── Timeline ──
-  const timelineHtml = _buildPanelTimeline(item);
 
   // T-202605-449: sección Dependencias — Bloqueado por / Bloquea a
   const allBlockedBy = (item.blockedBy || []);
@@ -568,6 +612,7 @@ function _renderItemPanel(item) {
     <div class="idp-inner">
       ${headerHtml}
       ${metaHtml}
+      ${discSlotHtml}
       ${originChipHtml}
       <div class="idp-divider"></div>
       ${depsHtml}
