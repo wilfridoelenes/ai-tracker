@@ -1,10 +1,20 @@
-// [PP] mod:21 · autor:Rune · 2026-07-12 UTC-6
+// [PP] mod:23 · autor:Rune · 2026-07-13 UTC-6
 // TKT1 (ref_id CAEL-02, REQ IDP core+slots — PP-S-03): _buildIdpCore() extrae header
 //   (título editable), notas, sesiones vinculadas y timeline a función compartida.
 //   _renderItemPanel() delega en ella — markup idéntico, sin cambio de comportamiento.
 // TKT2 (ref_id CAEL-03): _buildIdpDiscSlot() — discard_reason/promovida_a para DISC.
 //   Reutiliza idp-meta-value--readonly / idp-dep-chip — sin CSS nuevo. AC corregido en
 //   sesión: gap entre no_incluye del REQ y AC del TKT cerrado reutilizando clases existentes.
+// TKT3 (ref_id CAEL-04): _buildIdpSlotPlaneada() — intencion/kill_criteria (REQ),
+//   parent/depends_on/no_incluye (TKT). AC corregido en sesión: depends_on ≠ blockedBy
+//   (campos distintos, ver locus-backlog-item.js L1024/1037) — reutiliza badge-missing--
+//   dep-blocked ya existente en locus-backlog.css para referencias rotas.
+// TKT4 (ref_id CAEL-05): _buildIdpSlotReactiva() — sla_priority/comportamiento_actual/
+//   origin_module/derived_items/incident_status/resolution_type para INC·PRB·KE·CHG,
+//   leídos exclusivamente vía los 6 getters de locus-inc-fields.js (incSlaPriority,
+//   incComportamientoActual, incOriginModule, incDerivedItems, incIncidentStatus,
+//   incResolutionType) — sin acceso directo a los campos crudos del ítem. CHG omite
+//   la fila incident_status naturalmente (el getter retorna null — CHG usa status).
 // TKT-202607-045 (REQ-202607-015): chip 'Generado desde' (item.origin) usa
 //   getAnyItem() en vez de getItems().find() — item.origin puede apuntar a un código ITIL.
 // locus-backlog-panel.js
@@ -27,6 +37,7 @@ import { openDetail, scrollToLogCard } from './locus-session-popup.js'; // T-202
 
 import { esc, switchTab } from './locus-ui-shell.js';
 import { toggleMoreMenu } from './locus-ui-shell.js'; // B-202606-021: movida desde locus-reports.js
+import { incSlaPriority, incComportamientoActual, incOriginModule, incDerivedItems, incIncidentStatus, incResolutionType } from './locus-inc-fields.js'; // TKT4 (ref_id CAEL-05): slot Reactiva — punto único de lectura ITIL, sin acceso directo a campos crudos
 
 // ── T-098: Exportar Backlog.md ──
 
@@ -489,6 +500,130 @@ function _renderItemPanel(item) {
   };
   const discSlotHtml = type === 'DISC' ? _buildIdpDiscSlot(item) : '';
 
+  // TKT3 (ref_id CAEL-04, REQ IDP core+slots): slot Planeada — REQ muestra intencion +
+  // kill_criteria (si existe); TKT muestra parent + depends_on + no_incluye. AC corregido
+  // en sesión: depends_on no es blockedBy (campos distintos, ver locus-backlog-item.js
+  // L1024/1037) — reutiliza el patrón de badge ya existente para dependsOn roto
+  // (badge-missing--dep-blocked, ya cargado en index.html vía locus-backlog.css).
+  const _depPlaceholderRe = /^\[pendiente-ID\]$|^\[tmp:.+\]$|^\{"ref_id"/;
+  const _buildIdpSlotPlaneada = (it, t) => {
+    if (t === 'REQ') {
+      const _int = it.intencion || {};
+      const hasIntencion = _int.problema || _int.done_cuando || _int.no_incluye;
+      const intencionHtml = hasIntencion ? `
+        <div class="idp-section">
+          <div class="idp-section-label">Intención</div>
+          <div class="idp-meta-value idp-meta-value--readonly">Problema: ${esc(_int.problema || '—')}</div>
+          <div class="idp-meta-value idp-meta-value--readonly">Done cuando: ${esc(_int.done_cuando || '—')}</div>
+          <div class="idp-meta-value idp-meta-value--readonly">No incluye: ${esc(_int.no_incluye || '—')}</div>
+        </div>` : '';
+      // AC edge case: REQ sin kill_criteria no muestra el campo — sin bloque vacío roto
+      const killHtml = it.kill_criteria ? `
+        <div class="idp-section">
+          <div class="idp-section-label">Kill criteria</div>
+          <div class="idp-meta-value idp-meta-value--readonly">${esc(it.kill_criteria)}</div>
+        </div>` : '';
+      return `${intencionHtml}${killHtml}`;
+    }
+    if (t === 'TKT') {
+      const parentChip = it.parentId
+        ? `<span class="idp-dep-chip" data-action="idp-open-panel" data-item-code="${esc(it.parentId)}" title="Ir al REQ padre">↑ parent ${esc(it.parentId)}</span>`
+        : '';
+      const parentHtml = parentChip ? `
+        <div class="idp-section">
+          <div class="idp-section-label">Parent</div>
+          ${parentChip}
+        </div>` : '';
+
+      const dependsOnCodes = Array.isArray(it.dependsOn) ? it.dependsOn : [];
+      // AC error: depends_on no resuelto (código inexistente en backlog o placeholder sin
+      // resolver) → mismo código visible + indicador de referencia rota, sin excepción.
+      const dependsOnHtml = dependsOnCodes.length ? `
+        <div class="idp-section">
+          <div class="idp-section-label">Depends on</div>
+          <div class="idp-deps-chips">
+            ${dependsOnCodes.map(c => {
+              if (_depPlaceholderRe.test(c)) {
+                return `<span class="badge-missing badge-missing--dep-blocked" title="Referencia sin resolver — pendiente de ID real">🔗 ${esc(c)} (pendiente de ID)</span>`;
+              }
+              const dep = getItems().find(i => i.code === c);
+              if (!dep) {
+                return `<span class="badge-missing badge-missing--dep-blocked" title="Código no encontrado en el backlog">🔗 ${esc(c)} (no encontrado)</span>`;
+              }
+              return dep.status === 'done'
+                ? `<span class="idp-dep-chip idp-dep-chip--done" data-action="idp-open-panel" data-item-code="${esc(c)}" title="${esc(dep.title)}">✓ ${esc(c)}</span>`
+                : `<span class="idp-dep-chip" data-action="idp-open-panel" data-item-code="${esc(c)}" title="${esc(dep.title)}">🔒 ${esc(c)}</span>`;
+            }).join('')}
+          </div>
+        </div>` : '';
+
+      const noIncluyeList = Array.isArray(it.no_incluye) ? it.no_incluye : (it.no_incluye ? [it.no_incluye] : []);
+      const noIncluyeHtml = noIncluyeList.length ? `
+        <div class="idp-section">
+          <div class="idp-section-label">No incluye</div>
+          ${noIncluyeList.map(n => `<div class="idp-meta-value idp-meta-value--readonly">– ${esc(n)}</div>`).join('')}
+        </div>` : '';
+
+      return `${parentHtml}${dependsOnHtml}${noIncluyeHtml}`;
+    }
+    return '';
+  };
+  const planeadaSlotHtml = (type === 'REQ' || type === 'TKT') ? _buildIdpSlotPlaneada(item, type) : '';
+
+  // TKT4 (ref_id CAEL-05, REQ IDP core+slots): slot Reactiva — INC/PRB/KE/CHG.
+  // Punto único de lectura ITIL vía los 6 getters de locus-inc-fields.js — sin acceso
+  // directo a item.sla_priority ni equivalentes camelCase/snake_case. incIncidentStatus()
+  // retorna null para CHG (no declara incident_status en su schema, usa status — ya
+  // renderizado por statusCellHtml) por lo que la fila se omite naturalmente sin
+  // caso especial por tipo — AC edge case CHG cubierto por el propio contrato del getter.
+  const _buildIdpSlotReactiva = (it) => {
+    const slaPriority = incSlaPriority(it);
+    const comportamientoActual = incComportamientoActual(it);
+    const originModule = incOriginModule(it);
+    const derivedItems = incDerivedItems(it);
+    const incidentStatus = incIncidentStatus(it);
+    const resolutionType = incResolutionType(it);
+
+    const slaRow = `<div class="idp-meta-value idp-meta-value--readonly">sla_priority: ${esc(slaPriority || 'sin registrar')}</div>`;
+
+    // AC error: KE sin comportamiento_actual (obligatorio en KE/INC, opcional en PRB) →
+    // placeholder 'sin registrar' — nunca fila vacía o rota.
+    const comportamientoRow = `<div class="idp-meta-value idp-meta-value--readonly">comportamiento_actual: ${esc(comportamientoActual || 'sin registrar')}</div>`;
+
+    const originModuleRow = originModule
+      ? `<div class="idp-meta-value idp-meta-value--readonly">origin_module: ${esc(originModule)}</div>`
+      : '';
+
+    // AC edge case — CHG: incIncidentStatus() retorna null (CHG usa status, no
+    // incident_status) → fila omitida, sin mezclar vocabulario ITIL.
+    const incidentStatusRow = incidentStatus
+      ? `<div class="idp-meta-value idp-meta-value--readonly">incident_status: ${esc(incidentStatus)}</div>`
+      : '';
+
+    const resolutionTypeRow = resolutionType
+      ? `<div class="idp-meta-value idp-meta-value--readonly">resolution_type: ${esc(resolutionType)}</div>`
+      : '';
+
+    const derivedItemsHtml = (Array.isArray(derivedItems) && derivedItems.length) ? `
+      <div class="idp-section">
+        <div class="idp-section-label">Derived items</div>
+        <div class="idp-deps-chips">
+          ${derivedItems.map(c => `<span class="idp-dep-chip" data-action="idp-open-panel" data-item-code="${esc(c)}" title="Ítem derivado">➜ ${esc(c)}</span>`).join('')}
+        </div>
+      </div>` : '';
+
+    return `
+      <div class="idp-section">
+        <div class="idp-section-label">ITIL</div>
+        ${slaRow}
+        ${comportamientoRow}
+        ${originModuleRow}
+        ${incidentStatusRow}
+        ${resolutionTypeRow}
+      </div>${derivedItemsHtml}`;
+  };
+  const reactivaSlotHtml = INCIDENT_TYPES.includes(type) ? _buildIdpSlotReactiva(item) : '';
+
   const statusCellHtml = type === 'DISC'
     ? `<span class="idp-meta-value idp-meta-value--readonly">${_discStatusLabels[item.status] || esc(item.status || '—')}</span>`
     : _ITIL_SCRUM_INCOMPATIBLE.includes(type)
@@ -613,6 +748,8 @@ function _renderItemPanel(item) {
       ${headerHtml}
       ${metaHtml}
       ${discSlotHtml}
+      ${planeadaSlotHtml}
+      ${reactivaSlotHtml}
       ${originChipHtml}
       <div class="idp-divider"></div>
       ${depsHtml}

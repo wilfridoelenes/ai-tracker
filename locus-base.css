@@ -1,4 +1,4 @@
-/* [PP] mod:8 · autor:Nova · 2026-07-12 UTC-6 */
+/* [PP] mod:9 · autor:Rune · 2026-07-13 00:47 UTC-6 */
 /* locus-base.css */
 
 
@@ -192,6 +192,7 @@
      --surface3/--surface2/--bg2) — sin override, igual que --orange-text en este tema. ── */
   --blue-text: var(--blue);
   --red-text:  var(--red);
+  --green-text: var(--green);
 
   --card-shadow:       0 1px 6px rgb(0 0 0 / 50%), 0 0 0 1px rgb(255 255 255 / 3%);
   --card-shadow-hover: 0 4px 20px rgb(0 0 0 / 60%), 0 0 0 1px rgb(166 226 46 / 15%);
@@ -365,6 +366,10 @@
      override acotado de --green en uso de acento de card (ver tabla de tokens §1). ── */
   --blue-text: #026aa8;
   --red-text:  #b8253f;
+  /* ── TKT1 (REQ CAEL-01) — gap cerrado en esta sesión: --green falla como texto en light
+     (2.6–2.8:1 vs --surface3/--surface2/--bg2) — override oscurecido, mismo método que
+     --blue-text/--red-text arriba: --green-text #137a40 (≥4.5:1). No se toca --green global. ── */
+  --green-text: #137a40;
 
   --card-shadow:       0 1px 4px rgb(20 22 42 / 8%);
   --card-shadow-hover: 0 4px 16px rgb(20 22 42 / 14%);
@@ -525,3 +530,14 @@ body {
   .skel-row { animation: none; }
 }
 /* ══ END CSS-07 ══ */
+
+/* ── diff-chip — familia compartida card/DIFF (TKT1/TKT3 · REQ CAEL-01) ──
+   Entregable de Nova (mod:58 de _Locus-css-ref) integrado por Rune.
+   .diff-chip--creado usa --green-text (no --c-done-text, que es gris — ver
+   gap cerrado en esta sesión, _Locus-css-ref §Cambios). ── */
+.diff-chip{display:inline-flex;align-items:center;gap:5px;font-size:var(--text-2xs-plus,10px);font-weight:500;padding:3px 8px;border-radius:999px;border:0.5px solid transparent;white-space:nowrap;}
+.diff-chip--creado{color:var(--green-text);background:color-mix(in srgb, var(--green) 10%, transparent);border-color:color-mix(in srgb, var(--green) 28%, transparent);}
+.diff-chip--avance{color:var(--blue-text);background:color-mix(in srgb, var(--blue) 10%, transparent);border-color:color-mix(in srgb, var(--blue) 28%, transparent);}
+.diff-chip--actualizado{color:var(--text2);background:var(--surface2);border-color:var(--border);}
+.diff-chip--retroceso{color:var(--c-high-text);background:var(--c-high-bg);border-color:var(--c-high-border);}
+.diff-chip--descarte{color:var(--red-text);background:color-mix(in srgb, var(--red) 10%, transparent);border-color:color-mix(in srgb, var(--red) 28%, transparent);}

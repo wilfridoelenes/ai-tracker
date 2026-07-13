@@ -1,4 +1,4 @@
-/* [PP] mod:6 · autor:Nova · 2026-06-26 UTC-6 */
+/* [PP] mod:7 · autor:Rune · 2026-07-13 00:47 UTC-6 */
 
 /* === locus-tracker.js ===
    Funciones: buildCard · _buildCurrentSessionCard (sc-* rediseño) */
@@ -346,6 +346,13 @@
   .sc-step,
   .sc-badge-dot { animation: none; transition: none; }
 }
+
+/* ── sc-diff-preview — TKT1 (REQ CAEL-01): preview de diff real en el card,
+   entregable de Nova (_Locus-css-ref mod:58) integrado por Rune. aria-live="polite"
+   se declara en el markup (locus-sesiones.js), no aquí — ver _Locus-ux-ref §G-02. ── */
+.sc-diff-preview{border:0.5px solid var(--border);border-radius:12px;padding:12px;background:var(--surface2);margin-top:10px;display:flex;flex-direction:column;gap:10px;}
+.sc-diff-preview-title{display:flex;align-items:center;gap:6px;font-size:var(--text-xs,12px);color:var(--text);}
+.sc-diff-preview-chips{display:flex;gap:6px;flex-wrap:wrap;}
 
 /* ── sc-preview-block — paso 2: preview del CHECKPOINT ── */
 
