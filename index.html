@@ -1,4 +1,9 @@
-<!-- [PP] mod:119 · autor:Rune · 2026-07-13 UTC-6 -->
+<!-- [PP] mod:120 · autor:Rune · 2026-07-13 UTC-6 -->
+<!-- INC-[pendiente-ID] (Doc Log roto): agregado #btn-view-doclog único en .tpl-sidebar-actions
+     (#tpl-toolbar) — locus-docs.js mod:15 y locus-doc-log.js mod:3 ya esperaban este botón desde
+     su migración pero index.html nunca se actualizó. Eliminados los 3 botones obsoletos sin listener
+     (#doc-log-btn-backlog, #doc-log-btn-htmlmap, #doc-log-btn-context). Reutiliza clase .doc-log-btn
+     existente — sin cambio de CSS, Nova no interviene. -->
 <!-- TKT2 (REQ CAEL-01 · Q-INC tab top-level): #tab-incidentes agregado como tab de primer nivel,
      #sspanel-qinc/#sstab-btn-qinc removidos del sub-tab de Backlog. Ver locus-ui-shell.js/locus-backlog-render.js. -->
 <!-- TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): agregado shell estático
@@ -427,6 +432,7 @@
         <button class="tpl-action-btn is-hidden" id="btn-import-htmlmap" title="Importar archivo AI-MAP_vX.Y.md">↑ Importar MAP</button>
         <button class="tpl-action-btn tpl-action-primary is-hidden" id="btn-generate-map" title="Generar documentos">⚙ Generar documentos</button>
         <button class="tpl-action-btn is-hidden" id="btn-export-contratos" title="Exportar Contratos.md">⬇ Exportar Contratos</button>
+        <button class="doc-log-btn is-hidden" id="btn-view-doclog" title="Historial de acciones">🕐<span class="doc-log-count"></span></button>
       </div>
     </div>
 
@@ -496,7 +502,6 @@
         <input class="fbar-search-input" id="backlog-search-input" type="text" placeholder="🔍 Buscar…" autocomplete="off">
         <button class="fbar-search-clear" id="backlog-search-clear" title="Limpiar búsqueda">✕</button>
       </div>
-      <button class="doc-log-btn" id="doc-log-btn-backlog" title="Historial de acciones del Backlog">🕐<span class="doc-log-count"></span></button>
     </div>
 
     <div class="active-filter-chips is-hidden" id="active-filter-chips"></div>
@@ -650,7 +655,6 @@
         <button class="htmlmap-filter-btn" id="hmfilter-html">HTML</button>
         <button class="htmlmap-filter-btn" id="hmfilter-js">JS</button>
         <div class="flex-1"></div>
-        <button class="doc-log-btn" id="doc-log-btn-htmlmap" title="Historial de acciones del MAP">🕐<span class="doc-log-count"></span></button>
       </div>
       <div id="htmlmap-content"></div>
       <input type="file" id="htmlmap-file-input" accept=".md,text/markdown,text/plain" class="is-hidden">
@@ -685,7 +689,6 @@
           <span class="htmlmap-meta-label is-hidden amber-color" id="cmeta-mod-label">✎ Modificado</span>
           <span class="htmlmap-meta-value is-hidden amber-color" id="cmeta-mod-val">—</span>
           <span class="flex-1"></span>
-          <button class="doc-log-btn" id="doc-log-btn-context" title="Historial de acciones del Context">🕐<span class="doc-log-count"></span></button>
           <button type="button" id="ctx-export-btn" class="ctx-meta-action-btn" title="Descargar CONTEXT.md actualizado">⬇ Exportar</button>
           <button type="button" class="ctx-meta-action-btn ctx-import-btn" title="Re-importar CONTEXT.md">↑ Re-importar</button>
         </div>
