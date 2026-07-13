@@ -1,4 +1,4 @@
-/* [PP] mod:52 · autor:Nova · 2026-07-13 10:40 UTC-6 */
+/* [PP] mod:53 · autor:Nova · 2026-07-13 19:40 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -1397,6 +1397,7 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
+  padding-left: var(--subtab-gutter);
 }
 
 #sprint-panel-sprints.is-hidden {
