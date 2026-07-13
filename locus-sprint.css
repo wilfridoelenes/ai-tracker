@@ -1,4 +1,4 @@
-/* [PP] mod:53 · autor:Nova · 2026-07-13 19:40 UTC-6 */
+/* [PP] mod:54 · autor:Nova · 2026-07-13 20:05 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -2424,10 +2424,35 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 }
 
 /* ── T-202606-099: Sprint activo dominante en sub-tab Sprints ── */
+/* CAEL-01 (REQ CAEL-05, TKT4): border-left reducido 3px→2px — reemplazo
+   consciente del valor de T-202606-099, no adición nueva. Ver design_intent
+   nova_borrador_sph_jerarquia_sprint. padding-left compensatorio de los
+   hijos (abajo) evaluado y conservado en 12px — el delta de 1px no rompe
+   la alineación visual perceptible. */
 #sps-activo .sps-card {
   box-sizing: border-box;
-  border-left: 3px solid var(--accent);
+  border-left: 2px solid var(--accent);
   background: var(--surface2);
+}
+
+/* CAEL-01 (TKT4): conector decorativo estático hacia la sección siguiente
+   (Programados). Sin comportamiento — puramente visual, no depende de
+   activationOrder ni de ningún dato. Vive en #sps-activo (no en .sps-card:
+   .sps-card tiene overflow:hidden para su border-radius — línea ~2414 —
+   un ::after ahí se recortaría y nunca sería visible. #sps-activo es el
+   contenedor sin overflow, mismo eje x que el border-left de la card). */
+#sps-activo {
+  position: relative;
+}
+
+#sps-activo::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  bottom: -14px;
+  width: 1px;
+  height: 14px;
+  background: var(--border);
 }
 
 /* Pausado conserva su semántica muted (B-[pendiente-ID]) — sin esta regla,
@@ -2633,8 +2658,11 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   background: var(--hint);
 }
 
+/* CAEL-01 (REQ CAEL-05, TKT4): font-size --text-sm→--text-lg — el dato más
+   importante de la card (salud del sprint) lidera visualmente. weight y
+   color ya eran correctos (600 / --accent), sin cambio. */
 .sph-pct {
-  font-size: var(--text-sm);
+  font-size: var(--text-lg);
   font-weight: 600;
   color: var(--accent);
   min-width: 34px;
