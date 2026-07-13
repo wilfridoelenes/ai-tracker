@@ -1,4 +1,4 @@
-// [PP] mod:23 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:26 · autor:Rune · 2026-07-13 UTC-6
 // TKT1 (ref_id CAEL-02, REQ IDP core+slots — PP-S-03): _buildIdpCore() extrae header
 //   (título editable), notas, sesiones vinculadas y timeline a función compartida.
 //   _renderItemPanel() delega en ella — markup idéntico, sin cambio de comportamiento.
@@ -15,6 +15,17 @@
 //   incComportamientoActual, incOriginModule, incDerivedItems, incIncidentStatus,
 //   incResolutionType) — sin acceso directo a los campos crudos del ítem. CHG omite
 //   la fila incident_status naturalmente (el getter retorna null — CHG usa status).
+// Fix directo en sesión (Hallazgo Finn Momento 1): statusCellHtml alineado a
+//   incIncidentStatus() — ya no lee item.incident_status crudo. Excepción de resolución
+//   directa (BR-Core NO DEJAR DEUDA EN SILENCIO) — dueño presente, Nivel Patch, sin
+//   bifurcación de founder.
+// Fix directo en sesión: select genérico de status (REQ/TKT/CHG) agrega opción
+//   en-revision — faltaba pese a ser estado válido para los 3 tipos (__BR-Ecosystem §5).
+//   Ícono 🔄 reutilizado del fallback ya usado en statusIcons/statusIcons2 de este mismo
+//   archivo — sin CSS nuevo. Misma excepción de resolución directa.
+// Fix directo en sesión: _IDP_TYPE_NAMES completado con PRB/KE/CHG — antes caían al
+//   fallback de string crudo del tipo en el header del panel. Misma excepción de
+//   resolución directa.
 // TKT-202607-045 (REQ-202607-015): chip 'Generado desde' (item.origin) usa
 //   getAnyItem() en vez de getItems().find() — item.origin puede apuntar a un código ITIL.
 // locus-backlog-panel.js
@@ -340,7 +351,7 @@ function _itemPanelEscHandler(e) {
 // conserva el resto (meta grid, AC, dependencias, origen) hasta que TKT2-4
 // introduzcan los slots por familia. Markup idéntico al previo a este TKT —
 // sin cambio de comportamiento observable.
-const _IDP_TYPE_NAMES = { TKT: 'Ticket', REQ: 'Requerimiento', INC: 'Incidente', DISC: 'Discovery' };
+const _IDP_TYPE_NAMES = { TKT: 'Ticket', REQ: 'Requerimiento', INC: 'Incidente', DISC: 'Discovery', PRB: 'Problema', KE: 'Known Error', CHG: 'Cambio' };
 
 function _buildIdpCore(item, type) {
   // AC error: item ausente → mismo estado vacío que hoy (openItemPanel ya filtra
@@ -624,12 +635,19 @@ function _renderItemPanel(item) {
   };
   const reactivaSlotHtml = INCIDENT_TYPES.includes(type) ? _buildIdpSlotReactiva(item) : '';
 
+  // Fix directo en sesión (NO DEJAR DEUDA EN SILENCIO — excepción de resolución directa:
+  // dueño presente + Nivel Patch + sin bifurcación de founder): statusCellHtml leía
+  // item.incident_status || item.status directo — único acceso ITIL crudo restante fuera
+  // de _buildIdpSlotReactiva. Alineado a incIncidentStatus(), con fallback a item.status
+  // preservado (el getter retorna null para CHG, que usa status — mismo comportamiento
+  // observable, sin regresión).
   const statusCellHtml = type === 'DISC'
     ? `<span class="idp-meta-value idp-meta-value--readonly">${_discStatusLabels[item.status] || esc(item.status || '—')}</span>`
     : _ITIL_SCRUM_INCOMPATIBLE.includes(type)
-    ? `<span class="idp-meta-value idp-meta-value--readonly">${_incidentStatusLabels[item.incident_status || item.status] || esc(item.incident_status || item.status || '—')}</span>`
+    ? `<span class="idp-meta-value idp-meta-value--readonly">${_incidentStatusLabels[incIncidentStatus(item) || item.status] || esc(incIncidentStatus(item) || item.status || '—')}</span>`
     : `<select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="status"${_roDisabled}>
           <option value="pendiente"${item.status === 'pendiente' ? ' selected' : ''}>⏳ pendiente</option>
+          <option value="en-revision"${item.status === 'en-revision' ? ' selected' : ''}>🔄 en-revision</option>
           <option value="done"${item.status === 'done' ? ' selected' : ''}>✓ done</option>
           <option value="descartado"${item.status === 'descartado' ? ' selected' : ''}>🗑 descartado</option>
         </select>`;
