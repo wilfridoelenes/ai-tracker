@@ -1,4 +1,4 @@
-// [PP] mod:26 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:27 · autor:Rune · 2026-07-13 UTC-6
 // TKT1 (ref_id CAEL-02, REQ IDP core+slots — PP-S-03): _buildIdpCore() extrae header
 //   (título editable), notas, sesiones vinculadas y timeline a función compartida.
 //   _renderItemPanel() delega en ella — markup idéntico, sin cambio de comportamiento.
@@ -26,6 +26,10 @@
 // Fix directo en sesión: _IDP_TYPE_NAMES completado con PRB/KE/CHG — antes caían al
 //   fallback de string crudo del tipo en el header del panel. Misma excepción de
 //   resolución directa.
+// Fix directo en sesión: metaHtml oculta Priority/Effort/Sprint para INCIDENT_TYPES
+//   (INC/PRB/KE/CHG) — no declaran esos campos en su schema (usan sla_priority, no
+//   declaran effort, viven en Q-INC no en sprint). Extiende el patrón ya existente
+//   para DISC (INC-[pendiente-ID] AC2) vía INCIDENT_TYPES, ya importado. Sin CSS nuevo.
 // TKT-202607-045 (REQ-202607-015): chip 'Generado desde' (item.origin) usa
 //   getAnyItem() en vez de getItems().find() — item.origin puede apuntar a un código ITIL.
 // locus-backlog-panel.js
@@ -652,19 +656,17 @@ function _renderItemPanel(item) {
           <option value="descartado"${item.status === 'descartado' ? ' selected' : ''}>🗑 descartado</option>
         </select>`;
 
-  // INC-[pendiente-ID] AC2: DISC — Sprint no se renderiza (zona fija Q-DISC, sin campo sprint en schema)
-  const sprintMetaCellHtml = type === 'DISC' ? '' : `
+  // Fix directo en sesión: Sprint/Priority/Effort no aplican a INC/PRB/KE/CHG (usan
+  // sla_priority, no declaran effort, y viven en Q-INC — no en sprint). Extiende el
+  // patrón ya usado para DISC (INC-[pendiente-ID] AC2) vía INCIDENT_TYPES, ya importado.
+  const _idpHideScrumFields = type === 'DISC' || INCIDENT_TYPES.includes(type);
+  const sprintMetaCellHtml = _idpHideScrumFields ? '' : `
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Sprint</span>
         ${sprintCellHtml}
       </div>`;
 
-  const metaHtml = `
-    <div class="idp-meta-grid">
-      <div class="idp-meta-cell">
-        <span class="idp-meta-label">Status</span>
-        ${statusCellHtml}
-      </div>
+  const priorityMetaCellHtml = INCIDENT_TYPES.includes(type) ? '' : `
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Priority</span>
         <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="priority"${_roDisabled}>
@@ -672,7 +674,9 @@ function _renderItemPanel(item) {
           <option value="medium"${item.priority === 'medium' ? ' selected' : ''}>🟡 medium</option>
           <option value="low"${item.priority === 'low' ? ' selected' : ''}>⚪ low</option>
         </select>
-      </div>${sprintMetaCellHtml}
+      </div>`;
+
+  const effortMetaCellHtml = INCIDENT_TYPES.includes(type) ? '' : `
       <div class="idp-meta-cell">
         <span class="idp-meta-label">Effort</span>
         <select class="idp-meta-select" data-item-code="${esc(item.code)}" data-field="effort"${_roDisabled}>
@@ -681,7 +685,14 @@ function _renderItemPanel(item) {
           <option value="2"${item.effort == 2 ? ' selected' : ''}>2 · medio</option>
           <option value="3"${item.effort == 3 ? ' selected' : ''}>3 · complejo</option>
         </select>
-      </div>
+      </div>`;
+
+  const metaHtml = `
+    <div class="idp-meta-grid">
+      <div class="idp-meta-cell">
+        <span class="idp-meta-label">Status</span>
+        ${statusCellHtml}
+      </div>${priorityMetaCellHtml}${sprintMetaCellHtml}${effortMetaCellHtml}
       <div class="idp-meta-cell idp-meta-cell--wide">
         <span class="idp-meta-label">Area</span>
         <input class="idp-meta-input" value="${esc(item.area || '')}" placeholder="—"
