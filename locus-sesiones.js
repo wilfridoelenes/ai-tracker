@@ -1,4 +1,12 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:35 · autor:Rune · 2026-07-13 08:00 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:36 · autor:Rune · 2026-07-13 UTC-6
+// CAEL-12 (REQ CAEL-10): buildCard()/#grid retirados — código muerto desde CAEL-08 (#grid no
+// existe en el DOM). _populateWorkerHeader() reemplaza avatar/nombre/badge/menú de acciones sobre
+// .worker-header (CAEL-11). Reasigna dotmenu-${id}/dotmenu-wrap-${id}/cd-${id}/name-${id} para que
+// toggleCardMenu/closeCardMenu (locus-workers.js) y el interval de reset (locus-sesiones-utils.js)
+// sigan funcionando sin cambios — cero wiring nuevo en esos módulos. Impacto lateral fuera de este
+// archivo (dead refs a #card-${id} en locus-command-palette.js, locus-sesiones-capture.js,
+// locus-session-save.js, locus-ui-shell.js, locus-workers.js, locus-sesiones-stats.js) registrado
+// como DISC en el CHECKPOINT — no tocado aquí (fuera del archivo declarado en CAEL-12).
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -498,14 +506,6 @@ export function selectTrackerAI(aiId) {
   if (_trackerSelectedId === aiId) return;
   // DUP-05: cerrar preview de sesión al cambiar de Worker
   closePopup();
-  // T-202604-373: skeleton rows en historial al cambiar de IA
-  const _prevCard = _trackerSelectedId ? document.getElementById('card-' + _trackerSelectedId) : null;
-  if (_prevCard) {
-    const _prevList = _prevCard.querySelector('.sess-list');
-    if (_prevList) {
-      _prevList.innerHTML = '<div class="skel-row"></div><div class="skel-row"></div><div class="skel-row"></div>';
-    }
-  }
   // T-202606-012 AC-2: aiId distinto al activo — reset de _trackerHistSelectedSessId antes de render()
   // Fase 2: resetear sesión seleccionada al cambiar de IA — mini-hist auto-selecciona la más reciente
   _trackerHistSelectedSessId = null;
@@ -514,22 +514,16 @@ export function selectTrackerAI(aiId) {
   // R-202604-061 AC-5: try-catch defensivo — skeleton siempre se limpia
   try {
     _markTrackerDirty(); render();
-    // R-202604-061 AC-06: fade-in del panel de detalle al cambiar selección
+    // R-202604-061 AC-06 / CAEL-12: fade-in ahora en .worker-header (buildCard/#card-${id} retirado)
     requestAnimationFrame(() => {
-      const _newCard = document.getElementById('card-' + aiId);
-      if (_newCard) {
-        _newCard.classList.remove('detail-fade-in');
-        void _newCard.offsetWidth; // force reflow
-        _newCard.classList.add('detail-fade-in');
+      const _newHeader = document.getElementById('worker-header');
+      if (_newHeader) {
+        _newHeader.classList.remove('detail-fade-in');
+        void _newHeader.offsetWidth; // force reflow
+        _newHeader.classList.add('detail-fade-in');
       }
     });
   } catch(e) {
-    // skeleton cleanup garantizado aunque render falle
-    const _fallbackCard = _prevCard || (document.getElementById('card-' + aiId));
-    if (_fallbackCard) {
-      const _fl = _fallbackCard.querySelector('.sess-list');
-      if (_fl && _fl.querySelector('.skel-row')) _fl.innerHTML = '';
-    }
     console.error('render() error in selectTrackerAI:', e);
   }
   _scrollToCard(aiId);
@@ -560,12 +554,12 @@ export function render() {
     }
   }
   _trackerDirty = false;
-  const grid = document.getElementById('grid');
   const emptyEl = document.getElementById('tracker-detail-empty');
+  const _headerEl = document.getElementById('worker-header');
 
 
   if (!getState().ais.length) {
-    if (grid) grid.innerHTML = '';
+    if (_headerEl) _headerEl.classList.add('is-hidden');
     // R-202605-178 AC: sin workers — único CTA
     if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); emptyEl.innerHTML = `
       <div class="empty-state-icon">🤖</div>
@@ -578,7 +572,7 @@ export function render() {
   // R-202605-007 AC: con workers pero sin proyecto activo — solo CTA "Nuevo Proyecto"
   const _hasActiveProj = !!getActiveProject();
   if (!_hasActiveProj && (getState().projects || []).length === 0) {
-    if (grid) grid.innerHTML = '';
+    if (_headerEl) _headerEl.classList.add('is-hidden');
     if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); emptyEl.innerHTML = `
       <div class="empty-state-icon">🗂</div>
       <div class="empty-state-title">Sin proyecto activo</div>
@@ -599,21 +593,10 @@ export function render() {
   }
 
   if (!_trackerSelectedId) {
-    if (grid) {
-      grid.innerHTML = '';
-      const archived = getState().ais.filter(a => a.archived);
-      if (archived.length) {
-        const section = document.createElement('div');
-        section.className = 'archived-section';
-        const isOpen = localStorage.getItem('archived-open') === '1';
-        section.innerHTML = `<button class="archived-toggle">
-          ${isOpen ? '▼' : '▶'} Archivadas (${archived.length})</button>
-          <div class="archived-grid${isOpen ? ' open' : ''}" id="archived-grid"></div>`;
-        grid.appendChild(section);
-        const archGrid = section.querySelector('#archived-grid');
-        archived.forEach(a => archGrid.appendChild(buildCard(a)));
-      }
-    }
+    // CAEL-12: #grid retirado (CAEL-08) — buildCard()/archived-section aquí eran código muerto.
+    // Lista de Workers archivados sin reemplazo — ver INC registrado (CAEL-10, no_incluye).
+    const _wh = document.getElementById('worker-header');
+    if (_wh) _wh.classList.add('is-hidden');
     if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); }
     updateStats(); renderStatusBar(); return;
   }
@@ -630,56 +613,21 @@ export function render() {
     document.documentElement.style.removeProperty('--proj-color');
   }
 
-  if (grid) {
-    // R-110: sort IN-SESSION → DISPONIBLE → AGOTADA — sobre array, no manipula DOM
-    const _sortOrder = (ai) => {
-      if (ai.status !== 'exhausted' && _isInSession(ai)) return 0;
-      if (ai.status !== 'exhausted') return 1;
-      return 2;
-    };
-    const aisToRender = [...getState().ais.filter(a => !a.archived)].sort((a, b) => _sortOrder(a) - _sortOrder(b));
-    const ai = aisToRender.find(a => a.id === _trackerSelectedId) || getState().ais.find(a => a.id === _trackerSelectedId);
-    // B-202605-056: preservar valor del textarea antes de destruir el DOM
-    // grid.innerHTML = '' elimina el textarea y su valor en cada render — restaurar post-buildCard
-    const _taId = ai ? 'ta-' + ai.id : null;
-    const _taSaved = _taId ? ((document.getElementById(_taId) || {}).value || '') : '';
-    grid.innerHTML = '';
-    if (ai) {
-      const card = buildCard(ai);
-      card.dataset.aiId = ai.id;
-      grid.appendChild(card);
-      // R-202604-061 AC-04: stagger reveal — una sola card en tracker, delay 0ms
-      card.style.setProperty('--card-stagger-delay', '0ms');
-      requestAnimationFrame(() => card.classList.add('stagger-in'));
-      // B-202605-056: restaurar valor del textarea si había texto antes del render
-      if (_taSaved) {
-        const _taNew = document.getElementById(_taId);
-        if (_taNew && !_taNew.value) {
-          _taNew.value = _taSaved;
-          // R-202605-064: re-aplicar indicador visual si el textarea tiene contenido post-render
-          const _taWrap = _taNew.closest('.paste-ta-wrap');
-          if (_taWrap) _taWrap.classList.add('paste-ta-wrap--has-content');
-        }
-      }
-
-      // T-202606-050: csCard va en #tracker-ckpt-section (Col 2) — no en #grid
-      const existingCsCard = document.getElementById('current-session-card-' + ai.id);
-      if (existingCsCard) existingCsCard.remove();
-
-      // archived section below card
-      const archived = getState().ais.filter(a => a.archived);
-      if (archived.length) {
-        const section = document.createElement('div');
-        section.className = 'archived-section';
-        const isOpen = localStorage.getItem('archived-open') === '1';
-        section.innerHTML = `<button class="archived-toggle">
-          ${isOpen ? '▼' : '▶'} Archivadas (${archived.length})</button>
-          <div class="archived-grid${isOpen ? ' open' : ''}" id="archived-grid"></div>`;
-        grid.appendChild(section);
-        const archGrid = section.querySelector('#archived-grid');
-        archived.forEach(a => archGrid.appendChild(buildCard(a)));
-      }
-    }
+  // CAEL-12: buildCard()/#grid retirados — .worker-header reemplaza avatar/nombre/badge/menú.
+  // R-110: sort IN-SESSION → DISPONIBLE → AGOTADA (se conserva — determina cuál ai es la relevante
+  // cuando _trackerSelectedId coincide con más de un candidato tras filtros de archivado).
+  const _sortOrder = (ai) => {
+    if (ai.status !== 'exhausted' && _isInSession(ai)) return 0;
+    if (ai.status !== 'exhausted') return 1;
+    return 2;
+  };
+  const aisToRender = [...getState().ais.filter(a => !a.archived)].sort((a, b) => _sortOrder(a) - _sortOrder(b));
+  const ai = aisToRender.find(a => a.id === _trackerSelectedId) || getState().ais.find(a => a.id === _trackerSelectedId);
+  if (ai) {
+    _populateWorkerHeader(ai);
+    // T-202606-050: csCard va en #tracker-ckpt-section (Col 2) — no en #grid (retirado)
+    const existingCsCard = document.getElementById('current-session-card-' + ai.id);
+    if (existingCsCard) existingCsCard.remove();
   }
 
   // T-202606-050: render Col 2 — #tracker-ckpt-section + #tracker-mini-hist + empty global
@@ -872,287 +820,86 @@ export function avgBetweenSessions(ai) {
   return h > 0 ? `~${d}d ${h}h entre sesiones` : `~${d}d entre sesiones`;
 }
 
-function buildCard(ai) {
-  const el = document.createElement('div');
+// CAEL-12 (REQ CAEL-10): puebla .worker-header con el Worker seleccionado — reemplaza el
+// avatar/nombre/badge/menú que antes armaba buildCard() dentro de #grid (retirado en CAEL-08).
+// Reasigna dotmenu-${id}/cd-${id} porque toggleCardMenu/closeCardMenu (locus-workers.js:154,223)
+// y el interval de countdown (locus-sesiones-utils.js:395) buscan esos ids por convención —
+// cero wiring nuevo en esos módulos, solo mantener la convención de id sobre el nuevo contenedor.
+function _populateWorkerHeader(ai) {
+  const header = document.getElementById('worker-header');
+  if (!header) return;
+  header.classList.remove('is-hidden');
+
   const isInterrupted = !!ai.interrupted;
-  const isInSession   = !isInterrupted && _isInSession(ai);
-  el.className = 'card ' + (ai.status === 'exhausted' ? 'exhausted' : 'available') + (isInterrupted ? ' interrupted-state' : '') + (isInSession ? ' in-session-state' : '');
-  el.id = 'card-' + ai.id;
+  const isInSession = !isInterrupted && _isInSession(ai);
+  const isAvail = ai.status === 'available';
+  const aiInitial = esc(ai.name).charAt(0).toUpperCase();
 
-  const cd = ai.status === 'exhausted' ? getCD(ai.resetTime, ai.resetEpoch) : '';
-  const resetLabel = ai.resetTime ? `hasta las ${fmt12(ai.resetTime)}` : '';
-  // T-055: banner sesión interrumpida
-  const interruptedBannerHTML = ai.interrupted
-    ? `<div class="interrupted-banner visible">
-        <span class="interrupted-banner-text">⚡ Checkpoint en curso</span>
-        <button class="interrupted-banner-btn" data-action="dismiss-interrupted" data-ai-id="${ai.id}">Continuar →</button>
-       </div>`
-    : `<div class="interrupted-banner" id="intbanner-${ai.id}"></div>`;
-
-  // T-202604-203: stats bar sin countdown (countdown va en zona central)
-  const _cdInStats = false;
-
-  // v3: sesiones de esta IA en el contexto del proyecto activo
-  const aiSessions = getAISessions(ai.id);
-  const SESSIONS_DEFAULT = 3;
-  const shown = ai.showAll ? aiSessions : [...aiSessions].slice(-SESSIONS_DEFAULT);
-  const _latestSessId = aiSessions.length > 0 ? aiSessions[aiSessions.length - 1].id : null;
-
-  // v3: tracker del proyecto activo para indicadores de sesión
-  const projTracker = getActiveTracker();
-
-  // T-397: helper — build a single sess-row HTML
-  const _buildSessRow = (s, isHero) => {
-    const tagDots = (s.tags || []).map(tid => {
-      const t = getState().tags.find(x => x.id === tid);
-      return t ? `<span class="sess-tag-dot" data-tag-color="${esc(t.color)}" title="${esc(t.name)}"></span>` : '';
-    }).join('');
-    const tgItems = projTracker.items.filter(x => x.sessionId === s.id);
-    const tgCounts = {DISC:0,TKT:0,REQ:0,INC:0,PRB:0,KE:0,CHG:0};
-    tgItems.forEach(x => {
-      const t = _codeKind(x);
-      if (t && tgCounts[t] !== undefined) tgCounts[t]++;
-    });
-    const tgInds = Object.entries(tgCounts).filter(([,v]) => v > 0)
-      .map(([k, v]) => `<span class="sess-ind sess-ind-${k}" title="${TG_TYPE_NAMES[k]}"><span class="ind-short">${k}${v > 1 ? v : ''}</span><span class="ind-full">${TG_TYPE_NAMES[k]}${v > 1 ? '×'+v : ''}</span></span>`).join('');
-    const pendInd = '';
-    const noHoraTag = (!s.resetAt && !s.quickCapture) ? `<span class="sess-no-hora" title="Sin hora de reset registrada">sin hora</span>` : '';
-    const refPills = (s.trackerRefs || []).map(code => {
-      const type = _codeKind(code);
-      return `<span class="popup-ref-pill ${type} popup-ref-pill--sm" title="${esc(code)}" data-action="open-detail-stop" data-ai-id="${ai.id}" data-sess-id="${s.id}">${esc(code)}</span>`;
-    }).join('');
-    const starInd = s.starred ? `<span class="sess-ind sess-ind--starred" title="Destacada">⭐</span>` : '';
-    const quickInd = s.quickCapture ? `<span class="sess-ind sess-quick-tag" title="Captura rápida">⚡</span>` : '';
-    const isLatest = s.id === _latestSessId;
-    const reviewInd = isLatest
-      ? `<span class="sess-review-ind${s.inReview ? ' active' : ''}" title="${s.inReview ? 'En revisión — click para desactivar' : 'Marcar en revisión'}" data-action="toggle-in-review-stop" data-ai-id="${ai.id}" data-sess-id="${s.id}">${s.inReview ? '🔍 revisión' : '🔍'}</span>`
-      : '';
-    const summaryTrunc = s.summary ? (s.summary.length > 80 ? s.summary.slice(0, 80) + '…' : s.summary) : '';
-    const summaryHtml = isHero && s.summary
-      ? `<div class="sess-row-summary sess-row-summary--expanded">${esc(s.summary.slice(0, 220))}${s.summary.length > 220 ? '…' : ''}</div>`
-      : (s.summary ? `<div class="sess-row-summary">${esc(summaryTrunc)}</div>` : '');
-    const decisionHtml = isHero && s.decision
-      ? `<div class="sess-row-decision"><span class="sess-row-decision-label">→</span>${esc(s.decision.slice(0, 160))}${s.decision.length > 160 ? '…' : ''}</div>`
-      : '';
-    const extraCls = (s.starred ? ' sess-row-starred' : '') + (isHero ? ' sess-row--latest' : '');
-    return `<div class="sess-row${extraCls}" data-sess-id="${s.id}" data-action="open-detail" data-ai-id="${ai.id}">>
-      <div class="sess-row-top">
-        <div class="sess-row-title" title="${esc(s.title)}">${esc(s.title)}</div>
-        <div class="sess-row-date" title="${esc(s.date || s.dateShort || '')}">${s.date ? relDate(s.date) : (s.dateShort || '')}</div>
-      </div>
-      <div class="sess-row-bottom">
-        ${summaryHtml}
-        <div class="sess-row-indicators">${starInd}${quickInd}${pendInd}${tgInds}${noHoraTag}${reviewInd}<div class="sess-row-tags">${tagDots}</div></div>
-      </div>
-      ${decisionHtml}
-    </div>`;
-  };
-
-  // T-397: hero (latest) + horizontal strip (older)
-  const shownReversed = [...shown].reverse();
-  const latestSess = shownReversed[0] || null;
-  const olderSess = shownReversed.slice(1);
-  const heroHTML = latestSess ? _buildSessRow(latestSess, true) : '';
-  const olderHTML = olderSess.length > 0
-    ? `<div class="sess-list-horiz">${olderSess.map(s => _buildSessRow(s, false)).join('')}</div>`
-    : '';
-  const sessRows = heroHTML + olderHTML;
-
-  // B-258: emptyState inline — información de sugerencia dentro de la card, sin banner global
-  const _noSessReason = _buildSuggestionReason(ai);
-  const emptyState = `<div class="no-sess">
-    <span class="no-sess-icon">📋</span>
-    Sin checkpoints registrados
-    ${_noSessReason ? `<div class="no-sess-suggestion">${esc(_noSessReason)}</div>` : ''}
-    <div class="no-sess-hint">Pega el bloque CHECKPOINT al terminar tu sesión con la IA</div>
-  </div>`;
-
-  // v3: stats de sesiones desde proyecto activo
-  const nowYM = new Date().toISOString().slice(0,7);
-  const sessThisMonth = aiSessions.filter(s => (s.date || '').startsWith(nowYM)).length;
-  const sessTotal = aiSessions.length;
-
-  const histHTMLv2 = `
-    <div class="history">
-      <div class="history-header">
-        <div class="history-label">Historial</div>
-        <div class="history-header-right">
-          <span class="sess-pill">${sessTotal}</span>
-        </div>
-      </div>
-      ${sessTotal === 0 ? emptyState : `
-        <div class="sess-list-hero" id="sess-list-${ai.id}">${sessRows}</div>
-        ${sessTotal > SESSIONS_DEFAULT ? `<button class="show-all-btn" data-action="toggle-show-all" data-ai-id="${ai.id}">${ai.showAll ? '▲ ocultar historial' : '▾ Ver historial (' + sessTotal + ')'}</button>` : ''}
-      `}
-    </div>`;
-
-  // Selector de proyecto — inline en paste-label
-  const _activeProjects = (getState().projects || []).filter(p => p.status !== 'paused');
-  const _activeProjId = (_sesSPCallbacks.getActiveProjectFilter || (() => ''))() || '';
-  const _projOptions = _activeProjects.map(p =>
-    `<option value="${esc(p.id)}" ${p.id === _activeProjId ? 'selected' : ''}>${esc(p.icon || '📁')} ${esc(p.name)}</option>`
-  ).join('');
-  const _projInlineSelect = `<select class="paste-proj-select" id="sess-proj-${ai.id}" title="Proyecto de esta sesión"><option value="">proyecto…</option>${_projOptions}</select>`;
-
-  // T-202604-203: zona central — contenido condicional por estado
-  // Estado available: textarea + preview
-  // Estado exhausted: countdown dramático
-  // TKT-[pendiente-ID]: unlockLabel/_buildUnlockLabel eliminados — duplicaban cd + resetLabel
-  // ya visibles en countdown-dramatic (ver card-stat-countdown / card-stat-reset-lbl abajo)
-
-  const inputHTML = ai.status === 'available' ? `
-    <div class="paste-wrap">
-      <div class="paste-label">Resumen de sesión ${_projInlineSelect}</div>
-      <div class="paste-help-box is-hidden" id="paste-help-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el TL al final de cada sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
-      <div class="sc-stepper" id="phasebar-${ai.id}" role="list">
-        <div class="sc-step active" id="phase-paste-${ai.id}" role="listitem" aria-current="step" data-step="1"><span class="sc-step-num" aria-hidden="true">1</span>pegar</div>
-        <div class="sc-step" id="phase-confirm-${ai.id}" role="listitem" data-step="2"><span class="sc-step-num" aria-hidden="true">2</span>Revisar</div>
-        <div class="sc-step" id="phase-save-${ai.id}" role="listitem" data-step="3"><span class="sc-step-num" aria-hidden="true">3</span>guardar</div>
-      </div>
-      <div class="paste-ta-wrap">
-        <textarea class="paste-ta" id="ta-${ai.id}" rows="3"></textarea>
-        <div class="paste-ta-hint" id="pta-hint-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el rol al cerrar sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
-      </div>
-      <div class="sc-diff-preview is-hidden" id="diff-preview-${ai.id}" aria-live="polite"></div>
-      <div class="char-counter" id="cc-${ai.id}"></div>
-    </div>
-    <div class="preview" id="prev-${ai.id}"></div>
-  ` : ai.resetTime ? `
-    <div class="card-countdown-zone">
-      <div class="countdown-dramatic">
-        <div class="card-stat-countdown" id="cd-${ai.id}">${cd || '--:--:--'}</div>
-        <div class="card-stat-reset-lbl">${resetLabel}</div>
-      </div>
-    </div>
-  ` : `
-    <div class="card-countdown-zone card-countdown-zone--notime">
-      <div class="countdown-no-time">
-        <div class="countdown-no-time-msg">Sin hora de desbloqueo asignada</div>
-        <button class="countdown-assign-hora-btn" data-action="open-correct-hora" data-ai-id="${ai.id}">⏰ Asignar hora</button>
-      </div>
-    </div>
-  `;
-
-  // T-202604-203: footer fijo — acciones primarias siempre en la misma posición
-  const footerHTML = ai.status === 'available' ? `
-    <div class="sc-footer sc-footer--hora-widget" id="footer-${ai.id}">
-      <div class="card-hora-widget">
-        <input class="tci-hora card-hora-input" id="bexhaust-hora-${ai.id}" type="text" maxlength="4" placeholder="--:--"
-          aria-label="Hora de reset">
-        <div class="hora-parsed card-hora-disp" id="bexhaust-disp-${ai.id}">—</div>
-        <button class="card-hora-btn" id="bexhaust-confirm-${ai.id}" data-action="confirm-blind-exhaust" data-ai-id="${ai.id}" disabled aria-label="Marcar agotada">Marcar agotada</button>
-      </div>
-    </div>
-  ` : `
-    <div class="sc-footer sc-footer--exhausted">
-      <button class="card-footer-unlock-btn" data-action="open-correct-hora" data-ai-id="${ai.id}">⏰ Corregir hora</button>
-    </div>
-  `;
-
-
-  // v3: stale usa aiSessions
-  const staleLastDate = aiSessions.length > 0 ? new Date(aiSessions[aiSessions.length-1].date) : null;
-  const staleDays = staleLastDate ? Math.floor((Date.now()-staleLastDate.getTime())/86400000) : 0;
-
-  const checkpointTotal = aiSessions.length; // todos los registros
-  const sessConHora = aiSessions.filter(s => s.resetAt && !s.quickCapture).length; // con hora bloqueada
-  const avgLabel2 = avgBetweenSessions(ai);
-  const avgShort = avgLabel2 ? avgLabel2.replace(' entre sesiones','') : '—';
-  // T-202604-203: stats bar idéntica en ambos estados — solo números, sin countdown
-  const statsBarHTML = `<div class="sc-stats">
-      <div class="sc-stat"><span class="sc-stat-val">${checkpointTotal}</span><span class="sc-stat-lbl">checkpoints</span></div>
-      <div class="sc-stat"><span class="sc-stat-val">${sessConHora}</span><span class="sc-stat-lbl">sesiones</span></div>
-      <div class="sc-stat"><span class="sc-stat-val">${avgShort}</span><span class="sc-stat-lbl" title="Tiempo promedio entre sesiones de este Worker, desde apertura">desde apertura</span></div>
-    </div>`;
-
-  // Project chip — basado en la última sesión de la IA
-  const _lastSess = getLastAISession(ai.id);
-  const _cardProj = _lastSess ? (_sesSPCallbacks.getProjectById || (() => undefined))(_lastSess.projectId) : null;
-  const _projChipHTML = _cardProj
-    ? `<span class="card-proj-chip" title="${esc(_cardProj.name)}" data-action="select-project-filter-stop" data-proj-id="${_cardProj.id}">${esc(_cardProj.icon || '📁')} ${esc(_cardProj.name)}</span>`
-    : '';
-
-  // Premium card: avatar initial + status pill animado + countdown dramático
-  const _aiInitial = esc(ai.name).charAt(0).toUpperCase();
-  const _isAvail = ai.status === 'available';
-
-  // Sprint activo del proyecto de la card — para mostrar ID en header
-  const _cardActiveSprint = _cardProj && _cardProj.sprints
-    ? _cardProj.sprints.find(s => s.status === 'active')
-    : null;
-  const _cardSprintId = _cardActiveSprint ? esc(_cardActiveSprint.id || _cardActiveSprint.name || '') : '';
-  const _cardSprintHTML = _cardSprintId
-    ? `<span class="sc-sprint-id" title="${esc(_cardActiveSprint.name || _cardActiveSprint.id)}">${_cardSprintId}</span>`
-    : '';
-
-  el.innerHTML = `
-    ${interruptedBannerHTML}
-    <div class="sc-header">
-      <div class="sc-header-left">
-        <div class="sc-avatar" title="${esc(ai.name)}" data-action="dblclick-avatar" data-ai-id="${ai.id}">${ai.avatar || _aiInitial}</div>
-        <span class="sc-project" id="name-${ai.id}">${esc(ai.name)}</span>
-        ${isInSession
-          ? `<span class="sc-badge"><span class="sc-badge-dot"></span>${STATUS_LABELS.insession}</span>`
-          : _isAvail
-            ? `<span class="sc-badge sc-badge--avail">${STATUS_LABELS.available}</span>`
-            : `<span class="sc-badge sc-badge--exhausted">${STATUS_LABELS.exhausted}</span>`
-        }
-      </div>
-      <div class="sc-header-right">
-        ${_hasStaleSuggestion(ai) ? `<span class="stale-dot" title="Última sesión hace ${staleDays} días — tienes ítems en progreso pendientes"></span>` : ''}
-        ${_cardSprintHTML}
-        ${_isAvail ? `<button class="btn-quick" data-action="open-quick-capture" data-ai-id="${ai.id}" title="Registrar sesión rápida sin protocolo">⚡</button>` : ''}
-        <div class="card-dot-menu" id="dotmenu-wrap-${ai.id}">
-          <button class="sc-menu-btn" data-action="toggle-card-menu" data-ai-id="${ai.id}" title="Más opciones" aria-label="Más opciones"><i class="ti ti-dots"></i></button>
-          <div class="card-dot-dropdown" id="dotmenu-${ai.id}">
-            <button class="card-dot-item" data-action="dot-rename" data-ai-id="${ai.id}"><span class="dot-item-icon">✎</span> Renombrar</button>
-            ${_isAvail ? `<button class="card-dot-item" data-action="interrupt" data-ai-id="${ai.id}"><span class="dot-item-icon">⛓️‍💥</span> Interrumpir sesión</button>` : ''}
-            ${!_isAvail ? `<button class="card-dot-item" data-action="dot-correct-hora" data-ai-id="${ai.id}"><span class="dot-item-icon">⏰</span> Corregir hora de desbloqueo</button>` : ''}
-            <button class="card-dot-item${sessTotal < 2 ? ' disabled' : ''}" data-action="dot-download-report" data-ai-id="${ai.id}" title="${sessTotal < 2 ? 'Necesitas al menos 2 sesiones' : 'Descargar reporte markdown'}"${sessTotal < 2 ? ' disabled' : ''}><span class="dot-item-icon">📥</span> Descargar reporte</button>
-            <button class="card-dot-item" data-action="dot-avatar" data-ai-id="${ai.id}"><span class="dot-item-icon">🖼️</span> Cambiar avatar</button>
-            <hr class="card-dot-divider">
-            <div class="danger-zone">
-            <button class="card-dot-item danger" data-action="dot-archive" data-ai-id="${ai.id}"><span class="dot-item-icon">⊟</span> Archivar</button>
-            <button class="card-dot-item danger" data-action="dot-clear" data-ai-id="${ai.id}"><span class="dot-item-icon">⌫</span> Limpiar historial</button>
-            <button class="card-dot-item danger" data-action="dot-delete" data-ai-id="${ai.id}"><span class="dot-item-icon">✕</span> Eliminar IA</button>
-            </div>
-          </div>
-        </div>
-        <span class="card-drag-handle" title="Arrastrar para reordenar">⠿</span>
-      </div>
-    </div>
-    ${statsBarHTML}
-    <div class="card-body">
-      ${inputHTML}
-      
-    </div>
-    ${footerHTML}`;
-  // CSS Purity: tag dot background color calculado desde datos → setProperty post-render
-  el.querySelectorAll('[data-tag-color]').forEach(dot => {
-    dot.style.setProperty('background', dot.dataset.tagColor);
-  });
-
-  // T-202605-057: Migración on* → addEventListener post-render
-  // ── Textarea paste-ta ──
-  const taEl = el.querySelector(`#${CSS.escape('ta-' + ai.id)}`);
-  if (taEl) {
-    taEl.addEventListener('paste', () => {
-      handlePaste(ai.id);
-    });
-    taEl.addEventListener('input', function () {
-      handleInput(ai.id);
-      this.closest('.paste-ta-wrap')?.classList.toggle('paste-ta-wrap--has-content', this.value.length > 0);
-    });
+  const avatarEl = document.getElementById('worker-header-avatar');
+  if (avatarEl) {
+    avatarEl.textContent = ai.avatar || aiInitial;
+    avatarEl.title = ai.name;
+    avatarEl.dataset.aiId = ai.id;
   }
-  // ── Blind exhaust hora input ──
-  const bexhaustEl = el.querySelector(`#${CSS.escape('bexhaust-hora-' + ai.id)}`);
-  if (bexhaustEl) {
-    bexhaustEl.addEventListener('input', () => { blindExhaustHoraInput(ai.id); });
-    bexhaustEl.addEventListener('keydown', (e) => { blindExhaustHoraKey(e, ai.id); });
-  }
-  // END T-202605-057
 
-  return el;
+  // .sc-project (nombre) — id se reasigna a name-${id} (locus-session-popup.js:736 lo busca así),
+  // por eso se localiza por clase estable dentro de #worker-header, no por el id (que muta).
+  const nameEl = header.querySelector('.sc-project');
+  if (nameEl) { nameEl.textContent = ai.name; nameEl.id = 'name-' + ai.id; }
+
+  const badgeEl = document.getElementById('worker-header-badge');
+  if (badgeEl) {
+    badgeEl.className = 'sc-badge' + (isInSession ? '' : isAvail ? ' sc-badge--avail' : ' sc-badge--exhausted');
+    badgeEl.innerHTML = isInSession
+      ? `<span class="sc-badge-dot"></span>${STATUS_LABELS.insession}`
+      : (isAvail ? STATUS_LABELS.available : STATUS_LABELS.exhausted);
+  }
+
+  // Ícono de reset — reemplaza countdown-dramatic/hora-widget de footer (fuera de scope, ver CAEL-11).
+  // Localizado por clase estable — el id se reasigna a cd-${id} (interval en locus-sesiones-utils.js:395).
+  const resetIcon = header.querySelector('.worker-header-reset-icon');
+  const cdSpan = resetIcon ? resetIcon.querySelector('span') : null;
+  if (resetIcon) {
+    resetIcon.dataset.aiId = ai.id;
+    if (!isAvail) {
+      resetIcon.classList.remove('is-hidden');
+      resetIcon.id = 'cd-' + ai.id; // convención esperada por el interval de reset (locus-sesiones-utils.js:395)
+      const cd = ai.status === 'exhausted' ? getCD(ai.resetTime, ai.resetEpoch) : '';
+      const resetLabel = ai.resetTime ? `hasta las ${fmt12(ai.resetTime)}` : '';
+      if (cdSpan) cdSpan.textContent = cd || (ai.resetTime ? '--:--:--' : '');
+      resetIcon.title = ai.resetTime ? resetLabel : 'Sin hora de desbloqueo asignada';
+    } else {
+      resetIcon.classList.add('is-hidden');
+      resetIcon.removeAttribute('id');
+      resetIcon.id = 'worker-header-reset-icon';
+    }
+  }
+
+  // Dot-menu — reasigna ids esperados por toggleCardMenu/closeCardMenu + data-ai-id en cada acción
+  // .card-dot-menu — clase estable; el id se reasigna a dotmenu-wrap-${id}
+  // (_closeCardMenuPortal, locus-workers.js:211, lo busca vía dataset.wrapId).
+  const wrap = header.querySelector('.card-dot-menu');
+  if (wrap) {
+    wrap.id = 'dotmenu-wrap-' + ai.id; // _closeCardMenuPortal (locus-workers.js:211) busca este id por dataset.wrapId
+    const dropdown = wrap.querySelector('.card-dot-dropdown') || document.getElementById('dotmenu-' + ai.id);
+    if (dropdown) dropdown.id = 'dotmenu-' + ai.id;
+    wrap.querySelectorAll('[data-action]').forEach(el => { el.dataset.aiId = ai.id; });
+
+    // interrupt (disponible) vs corregir-hora (agotada) — mutuamente excluyentes, igual que buildCard
+    const interruptBtn = wrap.querySelector('[data-action="interrupt"]');
+    const correctHoraBtn = wrap.querySelector('[data-action="dot-correct-hora"]');
+    if (interruptBtn) interruptBtn.classList.toggle('is-hidden', !isAvail);
+    if (correctHoraBtn) correctHoraBtn.classList.toggle('is-hidden', isAvail);
+
+    // descargar reporte — deshabilitado con <2 sesiones, igual que buildCard
+    const sessTotal = getAISessions(ai.id).length;
+    const dlBtn = wrap.querySelector('[data-action="dot-download-report"]');
+    if (dlBtn) {
+      dlBtn.classList.toggle('disabled', sessTotal < 2);
+      dlBtn.disabled = sessTotal < 2;
+      dlBtn.title = sessTotal < 2 ? 'Necesitas al menos 2 sesiones' : 'Descargar reporte markdown';
+    }
+  }
 }
 
 // ── Vista Historial col 2 — estado ──────────────────────────────────────

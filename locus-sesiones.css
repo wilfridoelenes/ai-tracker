@@ -1,4 +1,7 @@
-/* [PP] mod:23 · autor:Nova · 2026-07-13 UTC-6 */
+/* [PP] mod:24 · autor:Nova · 2026-07-13 UTC-6 */
+/* CAEL-11 (REQ CAEL-10): .worker-header — contenedor únicamente. Reutiliza .sc-header (layout
+   flex/padding/border-bottom ya declarado en locus-sesiones-card.css) + .worker-header-reset-icon
+   nuevo (ícono compacto de reset, reemplaza countdown-dramatic/hora-widget de footer). */
 /* Base: zip mod:21 (fuente de verdad confirmada por founder — ver _PP-session-handoff-2026-07-13.md
    §1). El archivo "aparte" (mod:22) se descarta como base de grid — quedó a medio camino
    (grid-template-columns con 2 valores pero 3 hijos reales en el DOM, .tracker-col--card intacta
@@ -4271,6 +4274,29 @@
 /* ── Tab pills mobile — ocultas en desktop ── */
 .tracker-col-tabs {
   display: none;
+}
+
+/* ── .worker-header (CAEL-11) — sobre .sc-header reutilizado, solo ajustes de contexto de página ── */
+.worker-header {
+  background: var(--surface, transparent);
+}
+
+.worker-header-reset-icon {
+  font-size: var(--text-xs);
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--c-low-bg);
+  color: var(--c-low-text);
+  border: 0.5px solid var(--c-low-border);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.worker-header-reset-icon:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 /* ── Columna 3: preview sesión (Por IA) / ítems vinculados (Historial) ── */

@@ -1,4 +1,7 @@
-<!-- [PP] mod:121 · autor:Nova · 2026-07-13 UTC-6 -->
+<!-- [PP] mod:122 · autor:Nova · 2026-07-13 UTC-6 -->
+<!-- CAEL-10 · TKT1 (CAEL-11): .worker-header agregado sobre #tracker-3col — shell estático,
+     reutiliza sc-header/sc-avatar/sc-badge/card-dot-menu/danger-zone sin CSS de componente nuevo.
+     Ids vacíos, poblados por Rune en CAEL-12 (selectTrackerAI). -->
 <!-- CAEL-06 · TKT2 (CAEL-08): Col1 (#tracker-col-card) retirada — grid de 3 a 2 columnas.
      #tracker-detail-empty relocalizado a Col2. #tracker-grid-header y #grid retirados (sin
      consumidor de UI tras retiro de Col1 — locus-sesiones-stats.js:168 sigue leyendo
@@ -272,6 +275,41 @@
     </div>
   </div>
 
+
+  <!-- CAEL-11 (REQ CAEL-10): header de Worker — reemplaza avatar/nombre/badge/menú de acciones
+       que vivían en buildCard()/Col1 (retirada en CAEL-08, hoy código muerto — #grid no existe).
+       Reutiliza .sc-header/.sc-avatar/.sc-project/.sc-badge/.card-dot-menu/.card-dot-dropdown/
+       .card-dot-item/.danger-zone sin cambio — cero clases de componente nuevas (solo .worker-header
+       para el contenedor). Ids/atributos data-ai-id vacíos — poblados en selectTrackerAI (CAEL-12).
+       Sin stats bar (retirada, founder). Sin countdown-dramatic ni hora-widget de footer —
+       #worker-header-reset-icon los reemplaza con un ícono compacto. -->
+  <div class="sc-header worker-header is-hidden" id="worker-header">
+    <div class="sc-header-left">
+      <div class="sc-avatar" id="worker-header-avatar" data-action="dblclick-avatar" data-ai-id=""></div>
+      <span class="sc-project" id="worker-header-name"></span>
+      <span class="sc-badge" id="worker-header-badge"></span>
+    </div>
+    <div class="sc-header-right">
+      <button class="worker-header-reset-icon is-hidden" id="worker-header-reset-icon"
+        data-action="open-correct-hora" data-ai-id="" title="Corregir hora de desbloqueo">⏰ <span id="worker-header-cd"></span></button>
+      <div class="card-dot-menu" id="worker-header-dotmenu-wrap">
+        <button class="sc-menu-btn" data-action="toggle-card-menu" data-ai-id="" title="Más opciones" aria-label="Más opciones"><i class="ti ti-dots"></i></button>
+        <div class="card-dot-dropdown" id="worker-header-dotmenu">
+          <button class="card-dot-item" data-action="dot-rename" data-ai-id=""><span class="dot-item-icon">✎</span> Renombrar</button>
+          <button class="card-dot-item is-hidden" data-action="interrupt" data-ai-id=""><span class="dot-item-icon">⛓️‍💥</span> Interrumpir sesión</button>
+          <button class="card-dot-item is-hidden" data-action="dot-correct-hora" data-ai-id=""><span class="dot-item-icon">⏰</span> Corregir hora de desbloqueo</button>
+          <button class="card-dot-item" data-action="dot-download-report" data-ai-id=""><span class="dot-item-icon">📥</span> Descargar reporte</button>
+          <button class="card-dot-item" data-action="dot-avatar" data-ai-id=""><span class="dot-item-icon">🖼️</span> Cambiar avatar</button>
+          <hr class="card-dot-divider">
+          <div class="danger-zone">
+            <button class="card-dot-item danger" data-action="dot-archive" data-ai-id=""><span class="dot-item-icon">⊟</span> Archivar</button>
+            <button class="card-dot-item danger" data-action="dot-clear" data-ai-id=""><span class="dot-item-icon">⌫</span> Limpiar historial</button>
+            <button class="card-dot-item danger" data-action="dot-delete" data-ai-id=""><span class="dot-item-icon">✕</span> Eliminar IA</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="tracker-col-tabs" id="tracker-col-tabs">
     <button class="tracker-col-tab active" data-col="card">Sesión</button>
