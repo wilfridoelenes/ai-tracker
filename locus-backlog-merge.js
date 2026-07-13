@@ -110,6 +110,33 @@ let _mdiffUpdateConfirmBtn = null;
 export let _mdiffStepZeroActive = false;
 export function getMdiffStepZeroActive() { return _mdiffStepZeroActive; }
 
+// TKT1/TKT3 (REQ CAEL-01): helper compartido — resuelve la bifurcación de arquitectura
+// detectada al implementar (Rune, grounding pre-código): _chipDefs (más abajo en este
+// archivo) es local, no exportado, y su taxonomía de 9 categorías con tone 'green'/'blue'/
+// 'accent'/'warn'/'red'/'muted' no coincide con las 5 clases .diff-chip--* que Nova definió
+// (_Locus-css-ref mod:58). En vez de forzar _chipDefs a servir dos propósitos distintos
+// (navegación interna del DIFF vs resumen compacto), se extrae este helper nuevo, chico,
+// exportado, con el único shape que ambos consumidores (header del DIFF y preview del card)
+// necesitan. _chipDefs no se toca — sigue sirviendo exclusivamente la navegación por sección
+// dentro del panel, sin cambio de comportamiento.
+export function chipTonesFromDiff(diff) {
+  if (!diff) return [];
+  const defs = [
+    { tone: 'creado',       label: 'creados',       count: (diff.created?.length || 0) + (diff.createdAndClosed?.length || 0) },
+    { tone: 'avance',       label: 'avances',       count: diff.advanced?.length || 0 },
+    { tone: 'actualizado',  label: 'actualizados',  count: diff.updated?.length || 0 },
+    { tone: 'retroceso',    label: 'retrocesos',    count: diff.retroceso?.length || 0 },
+    { tone: 'descarte',     label: 'descartes',     count: diff.discarded?.length || 0 },
+  ];
+  return defs.filter(d => d.count > 0);
+}
+
+function _renderChipTones(tones) {
+  return tones.map(t =>
+    `<span class="diff-chip diff-chip--${t.tone}">${t.count} ${t.label}</span>`
+  ).join('');
+}
+
 // T-202606-037: ckptMeta — campos narrativos del CHECKPOINT para sección superior del panel.
 // Objeto con campos: { resumen, aprendizaje, bloqueantes, decision, proximoPaso } — todos string, todos opcionales.
 // Si es null/undefined, todos los campos se tratan como cadena vacía (AC-5).
@@ -694,11 +721,17 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
       ? getActiveProject().name : '';
     // T-202606-038 AC-2: cuando no hay ítems, el header muestra '0 ítems' sin contador distorsionado
     const totalLabel = total > 0 ? `${total} ítem${total !== 1 ? 's' : ''}` : '0 ítems';
+    // TKT3 (REQ CAEL-01): el header hereda el mismo chip que el founder ya vio en el card
+    // antes de abrir el panel — mismo dato (chipTonesFromDiff), mismo componente (.diff-chip*).
+    const _headerChipTones = chipTonesFromDiff(diff);
+    const _headerChipsHtml = _headerChipTones.length
+      ? `<div class="mdiff-header-chips">${_renderChipTones(_headerChipTones)}</div>` : '';
     header.innerHTML = `
       <div class="mdiff-header-inner">
         <div class="mdiff-header-left">
           <div class="mdiff-step-label">Guardar sesión</div>
           <div class="mdiff-header-title">Revisión de cambios${projName ? ` · <span class="mdiff-proj-name">${esc(projName)}</span>` : ''}</div>
+          ${_headerChipsHtml}
         </div>
         <div class="mdiff-header-total">${totalLabel}</div>
       </div>`;

@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:34 · autor:Rune · 2026-07-11 00:00 UTC-6
+// [PP] v0.8.0 · sprint:PP-S-10 · mod:35 · autor:Rune · 2026-07-13 08:00 UTC-6
 // locus-sesiones.js
 // Última actualización: 2026-06-06 · T-202606-058: Romper ciclo locus-sesiones ↔ locus-sprint-project
 // Módulo: Tab Sesiones — render, cards de IAs, session list, log card, detail panel, mini-hist,
@@ -1006,7 +1006,7 @@ function buildCard(ai) {
       <div class="paste-help-box is-hidden" id="paste-help-${ai.id}">Pega el bloque <code>---CHECKPOINT---</code> que genera el TL al final de cada sesión. Si no tienes el bloque, escribe el título en la primera línea y el resumen en las siguientes.</div>
       <div class="sc-stepper" id="phasebar-${ai.id}" role="list">
         <div class="sc-step active" id="phase-paste-${ai.id}" role="listitem" aria-current="step" data-step="1"><span class="sc-step-num" aria-hidden="true">1</span>pegar</div>
-        <div class="sc-step" id="phase-confirm-${ai.id}" role="listitem" data-step="2"><span class="sc-step-num" aria-hidden="true">2</span>confirmar</div>
+        <div class="sc-step" id="phase-confirm-${ai.id}" role="listitem" data-step="2"><span class="sc-step-num" aria-hidden="true">2</span>Revisar</div>
         <div class="sc-step" id="phase-save-${ai.id}" role="listitem" data-step="3"><span class="sc-step-num" aria-hidden="true">3</span>guardar</div>
       </div>
       <div class="paste-ta-wrap">

@@ -1,4 +1,4 @@
-// [PP] mod:67 · autor:Rune · 2026-07-12 22:15 UTC-6
+// [PP] mod:68 · autor:Rune · 2026-07-13 08:00 UTC-6
 // TKT1 (REQ-[pendiente-ID] · promovida de DISC-202607-010): eliminado el import huérfano
 //   _tryIngestSprintProposal (sin FromParsed) — cero call sites en este archivo confirmado
 //   via grep. Resto de la línea de import (_setPhase, parseSprintProposal, parsePaste,
@@ -640,6 +640,11 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // Si el usuario tarda >3s en confirmar, el timer se dispara y hace upsert del draft.
   // Ese upsert puede llegar por realtime DESPUÉS del delete post-confirm → restoreDrafts restaura el textarea.
   clearTimeout(window['_draftSbTimer_' + id]);
+  // TKT2 (REQ CAEL-01): fase 2 ("Revisar") se marca aquí — el momento real en que el DIFF
+  // se abre y el founder empieza a revisar. Antes se marcaba al validar el pegado (ver
+  // locus-session-parse.js). AC de edge case (revertir si se cierra sin confirmar) pendiente
+  // — showMergeDiffPanel no expone onClose/onCancel hoy, ver CHECKPOINT de esta sesión.
+  _setPhase(id, 2);
   showMergeDiffPanel(_tgItemsForPanel, sessId, activeProj.id, (horaRaw) => {
     // B-202606-037: leer horaRaw desde el input del DIFF (mdiff-duration-input).
     // interpretHora convierte HHMM → { label, hhmm, epoch }. Si vacío → null → worker disponible.

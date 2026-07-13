@@ -1,4 +1,4 @@
-// [PP] mod:112 · autor:Rune · 2026-07-12 22:15 UTC-6
+// [PP] mod:113 · autor:Rune · 2026-07-13 08:00 UTC-6
 // TKT3 (REQ-[pendiente-ID] · Hallazgo fuera de scope de TKT1, promovido a DISC y evaluado en la
 //   misma sesión): eliminada la función _tryIngestSprintProposal (ingesta legacy Markdown de
 //   sprint_proposal, sin FromParsed) — su único importador (locus-session-save.js) fue retirado
@@ -1242,8 +1242,11 @@ export function parsePaste(id) {
       wrap.classList.remove('paste-wrap--valid');
     }
   }
-  // T-202604-200: fase 2 si CHECKPOINT válido con título, fase 1 si no
-  _setPhase(id, (isCheckpoint && title) ? 2 : 1);
+  // TKT2 (REQ CAEL-01): fase 2 ("Revisar") ya no se activa al validar el pegado — solo
+  // refleja que el pegado sigue vigente (fase 1). Fase 2 se marca en _doSaveSession
+  // (locus-session-save.js) justo antes de abrir showMergeDiffPanel — momento real en que
+  // el founder empieza a revisar. Antes: _setPhase(id, (isCheckpoint && title) ? 2 : 1).
+  _setPhase(id, 1);
 
   const draftKey = LOCUS_KEYS.DRAFT_KEY_PREFIX + id;
   if (text.trim()) {
