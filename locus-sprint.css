@@ -1,4 +1,4 @@
-/* [PP] mod:49 · autor:Nova · 2026-07-13 09:26 UTC-6 */
+/* [PP] mod:50 · autor:Nova · 2026-07-13 09:26 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -2418,18 +2418,20 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 /* Pausado conserva su semántica muted (B-[pendiente-ID]) — sin esta regla,
    el border-left dominante (mayor especificidad por scope #sps-activo) sobreescribe
    el border-color: var(--hint) de .sps-card--pausado. Mismo patrón que
-   .sps-card--pausado .sps-burndown-fill { background: var(--hint) } más abajo. */
+   .sps-card--pausado .sph-panel .sph-bar-fill { background: var(--hint) } más abajo —
+   combinador descendiente desde TKT2 REQ CAEL-05 (.sph-panel pasó de hermano a hijo). */
 #sps-activo .sps-card.sps-card--pausado {
   border-left-color: var(--hint);
 }
 
 /* .sps-card no declara padding propio — el padding horizontal vive en cada hijo directo
-   (.sps-card-header, .sps-meta — los 2 hijos reales de #sps-activo .sps-card tras TKT1
-   REQ CAEL-05, que eliminó el tercero, .sps-progress-wrap — mod:96/49).
+   (.sps-card-header, .sps-meta, .sph-panel — los 3 hijos reales de #sps-activo .sps-card
+   desde TKT2 REQ CAEL-05, que fusionó .sph-panel como hijo — mod:97/50).
    Compensación del border-left (1px base → 3px): reducir 2px de padding-left en los hijos
    dentro de #sps-activo, para mantener alineación visual con cards sin borde. */
 #sps-activo .sps-card .sps-card-header,
-#sps-activo .sps-card .sps-meta {
+#sps-activo .sps-card .sps-meta,
+#sps-activo .sps-card .sph-panel {
   padding-left: 12px;
 }
 
@@ -2564,16 +2566,20 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
    real; el panel .sph-panel de abajo es ahora la única barra de progreso
    de la card Activo. Ver _Locus-ux-ref §Sprint activo para el rediseño. */
 
-/* ── T-202606-033: Panel Salud del sprint — hermano de .sps-card en #sps-activo ──
+/* ── TKT2 REQ CAEL-05 (mockup aprobado — "redesign_subtab_sprints"): .sph-panel deja
+   de ser hermano de .sps-card y pasa a ser su hijo (_renderSpsActivo() mod:97) — se
+   retiran border/border-radius/background propios y se agrega border-top como divisor,
+   para que .sps-card + .sph-panel se lean como un único bloque bordeado en vez de dos
+   cards apiladas. padding-left compensado junto con .sps-card-header/.sps-meta arriba. */
+/* ── T-202606-033: Panel "Salud del sprint" ──
    Reutiliza el prefijo sph- (Sprint panel header) declarado en _Locus-css-ref —
    sin call sites activos tras eliminación de bloque legacy en mod:13. Consume
    --sps-burndown-pct ya calculada por Rune en _renderSpsActivo() — no se
    introduce una segunda variable de progreso. */
 .sph-panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 14px;
+  border-top: 1px solid var(--border);
+  padding: 14px 14px 0;
+  margin-top: 4px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -2608,7 +2614,7 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   transition: width 0.3s var(--ease-out);
 }
 
-.sps-card--pausado ~ .sph-panel .sph-bar-fill {
+.sps-card--pausado .sph-panel .sph-bar-fill {
   background: var(--hint);
 }
 

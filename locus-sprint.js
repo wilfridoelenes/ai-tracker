@@ -1,4 +1,10 @@
-// [PP] mod:96 · autor:Rune · 2026-07-13 09:26 UTC-6
+// [PP] mod:97 · autor:Rune · 2026-07-13 09:26 UTC-6
+// TKT2 (REQ CAEL-05 — rediseño sub-tab Sprints, code real TKT-202607-099): .sph-panel deja
+// de ser hermano de .sps-card en _renderSpsActivo() y pasa a ser su último hijo — fusión
+// visual en un solo bloque bordeado (mockup aprobado por founder, "redesign_subtab_sprints").
+// Solo cambia el punto de cierre/apertura del div — ningún atributo, clase ni AC de contenido
+// interno de .sph-panel se modifica. CSS companion (Nova, mod:50) resuelve el borde/fondo
+// duplicado — ver _Locus-css-ref.
 // TKT1 (REQ CAEL-05 — rediseño sub-tab Sprints): _renderSpsActivo() deja de generar
 // .sps-progress-wrap — CSS ya lo ocultaba con display:none (T-202606-033), 0 call sites
 // de .sps-burndown-fill--complete/.sps-burndown-pct--complete verificado (BR-Execution §2
@@ -742,19 +748,19 @@ function _renderSpsActivo() {
         '<div class="sps-meta-item"><span class="sps-meta-label">Release</span><span class="sps-meta-value sps-meta-editable" tabindex="0" title="Click para editar">' + _escHtml(rt) + '</span></div>' +
         '<div class="sps-meta-item sps-meta-item--goal"><span class="sps-meta-label">Goal</span><span class="sps-meta-value sps-meta-editable" tabindex="0" title="Click para editar">' + _escHtml(goal) + '</span></div>' +
       '</div>' +
-    '</div>' +
-    '<div class="sph-panel">' +
-      '<span class="sph-title">Salud del sprint</span>' +
-      '<div class="sph-row">' +
-        '<div class="sph-bar-track" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso del sprint: ' + done + ' de ' + total + ' ítems done">' +
-          '<div class="sph-bar-fill"></div>' +
+      '<div class="sph-panel">' +
+        '<span class="sph-title">Salud del sprint</span>' +
+        '<div class="sph-row">' +
+          '<div class="sph-bar-track" role="progressbar" aria-valuenow="' + pct + '" aria-valuemin="0" aria-valuemax="100" aria-label="Progreso del sprint: ' + done + ' de ' + total + ' ítems done">' +
+            '<div class="sph-bar-fill"></div>' +
+          '</div>' +
+          '<span class="sph-pct">' + pct + '%</span>' +
         '</div>' +
-        '<span class="sph-pct">' + pct + '%</span>' +
-      '</div>' +
-      '<span class="sph-count">' + done + ' / ' + total + ' ítems</span>' +
-      '<div class="sph-alert">' +
-        '<span class="sph-alert-icon">⚠</span>' +
-        '<span class="sph-alert-text">' + bloqueadosCount + ' ítems bloqueados</span>' +
+        '<span class="sph-count">' + done + ' / ' + total + ' ítems</span>' +
+        '<div class="sph-alert">' +
+          '<span class="sph-alert-icon">⚠</span>' +
+          '<span class="sph-alert-text">' + bloqueadosCount + ' ítems bloqueados</span>' +
+        '</div>' +
       '</div>' +
     '</div>';
 
