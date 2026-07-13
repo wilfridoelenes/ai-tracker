@@ -1,4 +1,4 @@
-// [PP] mod:69 · autor:Rune · 2026-07-13 08:45 UTC-6
+// [PP] mod:70 · autor:Rune · 2026-07-13 16:10 UTC-6
 // TKT1 (REQ-[pendiente-ID] · promovida de DISC-202607-010): eliminado el import huérfano
 //   _tryIngestSprintProposal (sin FromParsed) — cero call sites en este archivo confirmado
 //   via grep. Resto de la línea de import (_setPhase, parseSprintProposal, parsePaste,
@@ -290,14 +290,15 @@ export function saveSession(id) {
     return;
   }
   const parsed = ai._parsed || {};
-  const ta = document.getElementById('ta-' + id);
+  // CAEL-22: #ingest-ta es único y global desde CAEL-07/08 — ya no hay textarea por id.
+  const ta = document.getElementById('ingest-ta');
   const raw = ta ? ta.value.trim() : '';
   // B-202604-NNN: evitar que marcas de bloque (---CHECKPOINT---, ```) queden como título
   const _rawFallbackLine = raw.split('\n').find(l => { const t = l.trim(); return t && !t.startsWith('---') && !t.startsWith('```'); }) || '';
   const title = parsed.title || _rawFallbackLine.slice(0, 80) || '';
   if (!title) {
     showToast('warning', '⚠ El textarea está vacío — pega el resumen de la sesión');
-    const ta2 = document.getElementById('ta-' + id);
+    const ta2 = document.getElementById('ingest-ta');
     if (ta2) { ta2.focus(); ta2.style.setProperty('--input-border-flash', 'var(--red)'); ta2.classList.add('input-border-error'); setTimeout(() => { ta2.classList.remove('input-border-error'); }, 2000); }
     return;
   }
@@ -489,7 +490,8 @@ function _parseFilesField(raw) {
 
 // R-202604-017 + P-202604-115: lógica central de guardado extraída para reutilización
 export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
-  const ta = document.getElementById('ta-' + id);
+  // CAEL-22: #ingest-ta es único y global — no hay textarea por id.
+  const ta = document.getElementById('ingest-ta');
   const raw = ta ? ta.value.trim() : '';
   // B-202604-NNN: evitar que marcas de bloque (---CHECKPOINT---, ```) queden como título
   const _rawFallbackLine = raw.split('\n').find(l => { const t = l.trim(); return t && !t.startsWith('---') && !t.startsWith('```'); }) || '';
@@ -694,7 +696,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     }
   });
 
-  const raw = (document.getElementById('ta-' + id) || {}).value || '';
+  const raw = (document.getElementById('ingest-ta') || {}).value || ''; // CAEL-22
   // INC-202607-001 fix: guard de bloqueo total sobre draft:true eliminado — ver header del
   // archivo (mod:63). draft:true ya no impide la persistencia; solo mantiene el ítem invisible
   // en vistas activas (Q-Backlog, sprint, Kanban) hasta que Finn emita type:patch con
@@ -799,7 +801,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     _supabase.from('tracker_docs').delete().eq('user_id', _supabaseUser.id).eq('key', 'draft-' + id)
       .then(({ error }) => { if (error) console.warn('[AI Tracker] draft delete Supabase error:', error); });
   }
-  const _taClear = document.getElementById('ta-' + id);
+  const _taClear = document.getElementById('ingest-ta'); // CAEL-22
   // B-202605-NNN: no llamar parsePaste(id) aquí — parsePaste con ta.value='' puede re-disparar
   // el debounce path y reescribir el draft si hay un oninput pendiente en la cola del browser.
   // El rAF post-render ya limpia el textarea y valida el estado final.
@@ -829,7 +831,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
     localStorage.removeItem('draft-' + id + '-ts');
     const _dotRaf = document.getElementById('draft-' + id);
     if (_dotRaf) _dotRaf.className = 'draft-dot';
-    const _taRaf = document.getElementById('ta-' + id);
+    const _taRaf = document.getElementById('ingest-ta'); // CAEL-22
     if (_taRaf && _taRaf.value.trim()) { _taRaf.value = ''; parsePaste(id); }
     const card = document.getElementById('card-' + id);
     if (card) {

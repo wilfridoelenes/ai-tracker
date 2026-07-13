@@ -1,4 +1,4 @@
-// [PP] v0.5.0 · sprint:PP-Q-Backlog · mod:23 · autor:Rune · 2026-07-07 UTC-6
+// [PP] mod:24 · autor:Rune · 2026-07-13 16:10 UTC-6
 // INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminado wiring del
 // dot #gf-pulso del footer (import openPulsoPanel + bloque gfPulso en _updateHeaderProjectLabel
 // o función equivalente de footer) — Pulso deprecado. gfProyecto/gfVersion/gfCkpt/gfSyncEl
@@ -76,7 +76,7 @@ export function navigateToCard(aiId) {
   switchTab('sesiones');
   setTimeout(() => {
     window.dispatchEvent(new CustomEvent('shell:select-tracker-ai', { detail: { aiId } }));
-    const ta = document.getElementById('ta-' + aiId);
+    const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
     if (ta) setTimeout(() => { ta.focus(); }, 80);
   }, 80);
 }

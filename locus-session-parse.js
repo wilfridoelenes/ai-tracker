@@ -1,4 +1,4 @@
-// [PP] mod:114 · autor:Rune · 2026-07-13 08:45 UTC-6
+// [PP] mod:115 · autor:Rune · 2026-07-13 16:10 UTC-6
 // TKT3 (REQ-[pendiente-ID] · Hallazgo fuera de scope de TKT1, promovido a DISC y evaluado en la
 //   misma sesión): eliminada la función _tryIngestSprintProposal (ingesta legacy Markdown de
 //   sprint_proposal, sin FromParsed) — su único importador (locus-session-save.js) fue retirado
@@ -898,7 +898,7 @@ function _resolveSprintFields(it) {
 // B-202606-022: resolver [tmp:slug] en campo parent/parentId de un patch contra tgItems del mismo CHECKPOINT.
 // Llama antes de acumular el patch en _patchItems_${id}.
 export function parsePaste(id) {
-  const ta = document.getElementById('ta-' + id);
+  const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
   const text = ta ? ta.value : '';
   const ai = getAI(id); // B-202606-017: declarado al inicio de parsePaste — disponible en todos los branches (incluido el else de texto vacío, línea ~729)
   if (!ai) return;
@@ -1315,7 +1315,7 @@ export function parsePaste(id) {
     // Resetear preview y ta-has-items al estado inicial
     const _prevEl = document.getElementById('prev-' + id);
     if (_prevEl) { _prevEl.className = 'preview'; _prevEl.innerHTML = ''; }
-    const _taEl = document.getElementById('ta-' + id);
+    const _taEl = document.getElementById('ingest-ta') /* CAEL-22 */;
     if (_taEl) _taEl.classList.remove('ta-has-items');
     ai._parsed = { title: '', summary: '', files: '', tgItems: [], isCheckpoint: false, nextStep: '', ckptProyecto: '' };
     return;
@@ -1484,7 +1484,7 @@ export function parsePaste(id) {
   }
 
   // T-409: atenuar textarea cuando hay ítems detectados en fase CONFIRMAR
-  const _ta409 = document.getElementById('ta-' + id);
+  const _ta409 = document.getElementById('ingest-ta') /* CAEL-22 */;
   if (_ta409) {
     if (tgItems.length > 0) {
       _ta409.classList.add('ta-has-items');
@@ -1584,7 +1584,7 @@ export function handlePaste(id) {
   _pasteRetry[id] = true;
   const _doParse = () => {
     delete _pasteRetry[id];
-    const ta = document.getElementById('ta-' + id);
+    const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
     if (ta && !ta.value.trim()) {
       // Texto aún no insertado — reintentar una vez más
       _pasteRetry[id] = true;

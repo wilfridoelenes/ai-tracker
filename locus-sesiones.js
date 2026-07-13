@@ -1,4 +1,4 @@
-// [PP] v0.8.0 · sprint:PP-S-10 · mod:36 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:38 · autor:Rune · 2026-07-13 15:40 UTC-6
 // CAEL-12 (REQ CAEL-10): buildCard()/#grid retirados — código muerto desde CAEL-08 (#grid no
 // existe en el DOM). _populateWorkerHeader() reemplaza avatar/nombre/badge/menú de acciones sobre
 // .worker-header (CAEL-11). Reasigna dotmenu-${id}/dotmenu-wrap-${id}/cd-${id}/name-${id} para que
@@ -531,11 +531,6 @@ export function selectTrackerAI(aiId) {
   startSessionTimer(aiId);
   // R-202605-167: actualizar segmento 3 del breadcrumb al cambiar Worker seleccionado
   _updateHeaderProjectLabel();
-  // focus textarea si disponible
-  setTimeout(() => {
-    const ta = document.getElementById('ta-' + aiId);
-    if (ta) { ta.focus(); }
-  }, 80);
 }
 
 
@@ -932,7 +927,7 @@ function _trackerHistDragEnd(e) {
 
 function _trackerHistAttachDropTargets() {
   // Attach drop zone a todos los textareas ta-{aiId} visibles
-  document.querySelectorAll('textarea[id^="ta-"]').forEach(ta => {
+  document.querySelectorAll('textarea[id^="ta-"], #ingest-ta').forEach(ta => {
     if (ta._trackerDropAttached) return;
     ta._trackerDropAttached = true;
 
@@ -972,11 +967,15 @@ function _trackerHistAttachDropTargets() {
 }
 
 // ── Tab pills mobile ─────────────────────────────────────────────────────
+// CAEL-13: 'card' ya no es una columna — Col1 fue retirada en CAEL-08/12.
+// El tab "Sesión" (data-col="card") es ahora el único entry point de apertura
+// del modal de ingesta en mobile. 'hist' sigue siendo columna real.
 function _trackerSwitchCol(col) {
+  if (col === 'card') { _openIngestModal(_trackerSelectedId); return; }
   document.querySelectorAll('.tracker-col').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tracker-col-tab').forEach(btn => btn.classList.remove('active'));
 
-  const colMap = { card: 'tracker-col-card', hist: 'tracker-col-hist' };
+  const colMap = { hist: 'tracker-col-hist' };
   const colEl = document.getElementById(colMap[col]);
   if (colEl) colEl.classList.add('active');
 
@@ -984,11 +983,17 @@ function _trackerSwitchCol(col) {
   if (tab) tab.classList.add('active');
 }
 
-// Inicializar col card como activa en mobile al cargar
-(function _trackerInitMobileCol() {
-  const cardCol = document.getElementById('tracker-col-card');
-  if (cardCol) cardCol.classList.add('active');
-})();
+// CAEL-13: apertura del modal de ingesta unificado (CAEL-07/08).
+// Mecánica del AC — sin wiring de paste/input (CAEL-20, depends_on este TKT).
+export function _openIngestModal(aiId) {
+  if (!aiId) return;
+  const overlay = document.getElementById('ingest-modal-overlay');
+  if (!overlay) return;
+  overlay.dataset.aiId = aiId;
+  overlay.classList.add('open');
+  const ta = document.getElementById('ingest-ta');
+  if (ta) { ta.value = ''; ta.focus(); }
+}
 
 
 
