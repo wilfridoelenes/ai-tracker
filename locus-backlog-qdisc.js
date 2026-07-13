@@ -1,4 +1,4 @@
-// [PP] mod:5 · autor:Rune · 2026-07-12 UTC-6
+// [PP] mod:6 · autor:Rune · 2026-07-12 UTC-6
 // locus-backlog-qdisc.js
 // Responsabilidad: renderQDiscPanel — render del sub-tab Q-DISC (Discoveries: DISC, único tipo
 //   aceptado — __BR-Ecosystem §5) — + su listener de sub-tab y su re-render reactivo sobre
@@ -27,11 +27,16 @@ import { _renderZonePanel, _zoneStaleness } from './locus-backlog-zone-engine.js
 // TKT-202607-010: rellena #qdisc-limit-indicator (shell estático, ver index.html) con el
 // conteo de DISCs activos sobre el límite — mismo universo que _isQDiscActive (excluye
 // descartado/promoted/historico). Color neutro bajo el límite, advertencia al llegar a él.
+// Mejora visual DISC (aprobada por founder): barra de progreso mini junto al texto —
+// mismo dato que ya calculaba, sin cambiar el universo ni el umbral de advertencia.
+// --fill es custom property (CSS Purity: única propiedad permitida en style= embebido).
 function _renderQDiscLimitIndicator() {
   const el = document.getElementById('qdisc-limit-indicator');
   if (!el) return;
   const count = getItems().filter(_isQDiscActive).length;
-  el.textContent = `${count} / ${QDISC_ACTIVE_LIMIT}`;
+  const pct = Math.min(100, Math.round((count / QDISC_ACTIVE_LIMIT) * 100));
+  el.innerHTML = `<span class="qdisc-limit-text">${count} / ${QDISC_ACTIVE_LIMIT}</span>` +
+    `<span class="qdisc-limit-bar"><span class="qdisc-limit-bar-fill" style="--fill:${pct}%"></span></span>`;
   el.classList.toggle('qdisc-limit--warn', count >= QDISC_ACTIVE_LIMIT);
 }
 
@@ -58,6 +63,22 @@ function _renderQDiscStatsBlock() {
   discoveryEl.textContent = discoveryCount;
   promotedEl.textContent = promotedCount;
   discardedEl.textContent = discardedCount;
+  _renderQDiscProportionBar(discItems.length, discoveryCount, promotedCount, discardedCount);
+}
+
+// Mejora visual DISC (aprobada por founder): franja de proporción bajo el stats block —
+// mismo universo y mismos tres contadores ya calculados por _renderQDiscStatsBlock, solo
+// se traducen a % de ancho. Sin DISCs (total 0) los tres segmentos quedan en 0% — la franja
+// no se oculta, queda visualmente vacía (consistente con el stats block, que nunca se oculta).
+function _renderQDiscProportionBar(total, discoveryCount, promotedCount, discardedCount) {
+  const discoveryEl = document.getElementById('qdisc-prop-discovery');
+  const promotedEl = document.getElementById('qdisc-prop-promoted');
+  const discardedEl = document.getElementById('qdisc-prop-discarded');
+  if (!discoveryEl || !promotedEl || !discardedEl) return;
+  const pct = n => total > 0 ? (n / total * 100).toFixed(2) : 0;
+  discoveryEl.style.setProperty('--w', pct(discoveryCount) + '%');
+  promotedEl.style.setProperty('--w', pct(promotedCount) + '%');
+  discardedEl.style.setProperty('--w', pct(discardedCount) + '%');
 }
 
 // TKT-202607-013 (TKT5 REQ-202607-006): rellena #qdisc-grooming-banner (shell estático, ver
@@ -73,8 +94,14 @@ function _renderQDiscGroomingBanner() {
   if (!el) return;
   const activeItems = getItems().filter(_isQDiscActive);
   const staleCount = activeItems.filter(i => _zoneStaleness(i) !== null).length;
-  if (staleCount === 0) { el.textContent = ''; return; }
-  el.textContent = `${activeItems.length} discoveries requieren grooming antes de abrir sprint — ${staleCount} con más de 30 días sin movimiento`;
+  // Mejora visual DISC (aprobada por founder): ícono + números en <strong> — el texto plano
+  // no distinguía el dato accionable (cuántas/cuántos días) del resto de la oración. Sin
+  // staleness, innerHTML vuelve a '' — :empty{display:none} sigue aplicando igual que con
+  // textContent (el elemento no diferencia el mecanismo de escritura, solo si queda vacío).
+  if (staleCount === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = `<span class="qdisc-grooming-icon" aria-hidden="true">🧹</span>` +
+    `<strong>${activeItems.length}</strong> discoveries requieren grooming antes de abrir sprint — ` +
+    `<strong>${staleCount}</strong> con más de 30 días sin movimiento`;
 }
 
 // B-202606-052 → TKT-C1: renderQDiscPanel — sub-tab Discoveries (Q-DISC: DISC).
@@ -89,6 +116,10 @@ export function renderQDiscPanel() {
     showAreaChips: true,
     emptyTitle: 'No hay discoveries pendientes',
     emptyIcon: '💡',
+    // Mejora visual DISC (aprobada por founder): hint accionable en el empty-state real (sin
+    // filtro activo) — opts.emptyHint es aditivo en _renderZonePanel, opcional, sin default;
+    // qbacklog no lo declara y no cambia su comportamiento (ver impacto lateral en zone-engine.js).
+    emptyHint: 'Registra tu primera idea en el chat con el founder — Cael la promueve a REQ o TKT cuando esté lista.',
     // TKT1 REQ hide-done-qdisc: DISC nunca alcanza status 'done' (__BR-Ecosystem §5) — bloque
     // Terminados era código muerto. DISC no tiene depends_on ni jerarquía R→hijos.
     hasDoneState: false,

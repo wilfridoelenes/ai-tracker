@@ -1,4 +1,4 @@
-/* [PP] mod:91 · autor:Nova · 2026-07-12 UTC-6 */
+/* [PP] mod:92 · autor:Nova · 2026-07-12 UTC-6 */
 /* TKT1 (CAEL-02 — REQ deuda técnica CSS Purity/código muerto en locus-sprint-planificacion.js):
    agregada .bl-sprint-option-bar-fill al final del archivo — width vía custom property
    --sprint-option-bar-w en vez de propiedad width literal en style= inline (violación
@@ -5875,6 +5875,114 @@
   font-size: var(--text-2xs);
   font-weight: 500;
   opacity: 0.85;
+}
+
+/* ══ Mejora visual DISC (aprobada por founder) — TKT-[pendiente-ID] (REQ-[pendiente-ID]) ══
+   Seis piezas, todas sobre tokens ya existentes (mismo principio que TKT-202607-014:
+   consistencia sobre novedad). Detalle de qué implementa cada regla en su comentario propio. */
+
+/* ── 1) Icono por celda de stats block — .qdisc-stat-icon ── */
+/* Ancla visual junto al color-coding ya existente — refuerza sin duplicar información
+   (mismo tamaño que el resto de metadatos compactos del bloque). */
+.qdisc-stat-icon {
+  font-size: var(--text-xs);
+  line-height: 1;
+  margin-right: 2px;
+}
+
+/* ── 2) Barra de proporción — #qdisc-proportion-bar (3 segmentos) ── */
+/* Franja delgada bajo el stats block: traduce los 4 números absolutos a una proporción
+   de un vistazo. Ancho de cada segmento vía custom property --w (CSS Purity — ver
+   _renderQDiscProportionBar, locus-backlog-qdisc.js). Track neutro (surface2) para que
+   un total en 0 se vea como "vacío", no como error. */
+.qdisc-proportion-bar {
+  display: flex;
+  width: calc(100% - 12px);
+  height: 5px;
+  margin: 6px 0 0 12px;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+
+.qdisc-proportion-seg {
+  display: block;
+  height: 100%;
+  width: var(--w, 0%);
+  transition: width 0.25s ease;
+}
+
+.qdisc-proportion-seg--discovery {
+  background: var(--purple);
+}
+
+.qdisc-proportion-seg--promoted {
+  background: var(--green);
+}
+
+.qdisc-proportion-seg--discarded {
+  background: var(--border2);
+}
+
+/* ── 3) Barra de progreso en limit indicator — .qdisc-limit-bar ── */
+/* Complementa el texto "N / 15" ya existente — no lo reemplaza. Mismo umbral de color
+   que .qdisc-limit--warn, aplicado al fill vía currentColor (hereda del texto, sin
+   duplicar el color de advertencia en una segunda variable). */
+.qdisc-limit-text {
+  white-space: nowrap;
+}
+
+.qdisc-limit-bar {
+  display: inline-block;
+  width: 34px;
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--surface3);
+  overflow: hidden;
+}
+
+.qdisc-limit-bar-fill {
+  display: block;
+  height: 100%;
+  width: var(--fill, 0%);
+  background: currentColor;
+  opacity: 0.55;
+  transition: width 0.25s ease;
+}
+
+.qdisc-limit-indicator.qdisc-limit--warn .qdisc-limit-bar-fill {
+  opacity: 0.85;
+}
+
+/* ── 4) Icono en grooming banner — .qdisc-grooming-icon ── */
+/* Refuerza el tono de aviso ya declarado por el color ámbar del contenedor — el <strong>
+   de los números lo cubre .qdisc-grooming-banner strong (peso, sin color nuevo). */
+.qdisc-grooming-icon {
+  margin-right: 4px;
+}
+
+.qdisc-grooming-banner strong {
+  font-weight: 700;
+}
+
+/* ── 5) Animación de entrada — cards del panel body de Q-DISC ── */
+/* Scopeada a #qdisc-panel-body para no afectar Q-Backlog ni Vista Lista, que comparten
+   .items-grid/buildBacklogItem. Corta (150ms) y sutil — claridad sobre efecto, ver
+   __Role-Nova §Reglas de conversación. Respeta prefers-reduced-motion. */
+@keyframes qdisc-card-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+#qdisc-panel-body .items-grid > * {
+  animation: qdisc-card-in 0.15s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #qdisc-panel-body .items-grid > * {
+    animation: none;
+  }
 }
 
 /* ── Badge de navegación Q-INC — is-urgent ── */

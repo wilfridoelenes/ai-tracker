@@ -1,4 +1,4 @@
-// [PP] mod:2 · autor:Rune · 2026-07-06 UTC-6
+// [PP] mod:3 · autor:Rune · 2026-07-12 UTC-6
 // TKT-202607-011 (TKT3 REQ-202607-006): chips de área en stats-bar — exclusivo de qdisc vía
 //   opts.showAreaChips. Conteo sobre activeZoneItems (mismo universo que chips de tipo/prioridad
 //   ya existentes). Top 6 por conteo descendente + chip estático "+N más" cuando hay más de 6
@@ -174,10 +174,16 @@ export function _renderZonePanel(opts) {
   if (hasDoneState) _renderDoneGroup(nsKey, doneZoneItems);
 
   if (!activeZoneItems.length) {
+    // Mejora visual DISC (aprobada por founder): opts.emptyHint es opcional, sin default —
+    // qbacklog no lo declara (ver locus-backlog-qbacklog.js), su empty-state no cambia.
+    const _emptyHintHtml = opts.emptyHint
+      ? `<div class="empty-state-hint">${opts.emptyHint}</div>`
+      : '';
     body.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">${_emptyIcon}</div>
         <div class="empty-state-title">${emptyTitle}</div>
+        ${_emptyHintHtml}
       </div>`;
     return;
   }

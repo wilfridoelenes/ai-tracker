@@ -1,4 +1,4 @@
-<!-- [PP] mod:113 · autor:Rune · 2026-07-12 UTC-6 -->
+<!-- [PP] mod:114 · autor:Nova · 2026-07-12 UTC-6 -->
 <!-- TKT2 (REQ CAEL-01 · Q-INC tab top-level): #tab-incidentes agregado como tab de primer nivel,
      #sspanel-qinc/#sstab-btn-qinc removidos del sub-tab de Backlog. Ver locus-ui-shell.js/locus-backlog-render.js. -->
 <!-- TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): agregado shell estático
@@ -543,21 +543,34 @@
            se oculta, a diferencia de #qdisc-grooming-banner — con 0 DISCs muestra 0 en las 4. -->
       <div class="qdisc-stats-block" id="qdisc-stats-block">
         <div class="qdisc-stat-cell">
+          <span class="qdisc-stat-icon" aria-hidden="true">📊</span>
           <span class="qdisc-stat-label">Total</span>
           <span class="qdisc-stat-n" id="qdisc-stat-total">0</span>
         </div>
         <div class="qdisc-stat-cell qdisc-stat-cell--discovery">
+          <span class="qdisc-stat-icon" aria-hidden="true">💡</span>
           <span class="qdisc-stat-label">Discovery</span>
           <span class="qdisc-stat-n" id="qdisc-stat-discovery">0</span>
         </div>
         <div class="qdisc-stat-cell qdisc-stat-cell--promoted">
+          <span class="qdisc-stat-icon" aria-hidden="true">⬆</span>
           <span class="qdisc-stat-label">Promoted</span>
           <span class="qdisc-stat-n" id="qdisc-stat-promoted">0</span>
         </div>
         <div class="qdisc-stat-cell">
+          <span class="qdisc-stat-icon" aria-hidden="true">🗑</span>
           <span class="qdisc-stat-label">Descartado</span>
           <span class="qdisc-stat-n" id="qdisc-stat-discarded">0</span>
         </div>
+      </div>
+      <!-- TKT-[pendiente-ID] (mejora visual DISC): shell estático de la barra de proporción —
+           siempre presente, 3 segmentos fijos (discovery/promoted/descartado), ancho vía
+           custom properties (--w-*) escritas por _renderQDiscStatsBlock() — CSS Purity: solo
+           custom properties en el atributo style, ninguna propiedad de presentación literal. -->
+      <div class="qdisc-proportion-bar" id="qdisc-proportion-bar" aria-hidden="true">
+        <span class="qdisc-proportion-seg qdisc-proportion-seg--discovery" id="qdisc-prop-discovery"></span>
+        <span class="qdisc-proportion-seg qdisc-proportion-seg--promoted" id="qdisc-prop-promoted"></span>
+        <span class="qdisc-proportion-seg qdisc-proportion-seg--discarded" id="qdisc-prop-discarded"></span>
       </div>
       <!-- Hallazgo fuera de scope resuelto en sesión (dueño presente + nivel patch + sin
            bifurcación de founder): stats globales vs lista filtrada a discovery — caption
