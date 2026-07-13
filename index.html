@@ -1,4 +1,4 @@
-<!-- [PP] mod:122 · autor:Nova · 2026-07-13 UTC-6 -->
+<!-- [PP] mod:123 · autor:Nova · 2026-07-13 UTC-6 -->
 <!-- CAEL-10 · TKT1 (CAEL-11): .worker-header agregado sobre #tracker-3col — shell estático,
      reutiliza sc-header/sc-avatar/sc-badge/card-dot-menu/danger-zone sin CSS de componente nuevo.
      Ids vacíos, poblados por Rune en CAEL-12 (selectTrackerAI). -->
@@ -1420,7 +1420,10 @@
   <div class="modal modal--ingest">
     <div class="ingest-modal-header">
       <div>
-        <p class="ingest-modal-title" id="ingest-modal-title"></p>
+        <div class="ingest-modal-title-row">
+          <p class="ingest-modal-title" id="ingest-modal-title"></p>
+          <span class="pill-project" id="ingest-pill-project">Locus</span>
+        </div>
         <p class="ingest-modal-subtitle" id="ingest-modal-subtitle"></p>
       </div>
       <button class="ingest-modal-close" id="ingest-modal-close-btn" type="button" aria-label="Cerrar">&times;</button>
@@ -1428,6 +1431,14 @@
 
     <div class="paste-ta-wrap">
       <textarea class="paste-ta" id="ingest-ta" rows="4" placeholder="Pega el checkpoint aquí…"></textarea>
+    </div>
+
+    <div class="ingest-modal-meta">
+      <div class="autosave-indicator">
+        <span class="autosave-dot" aria-hidden="true"></span>
+        <span>Guardado automático</span>
+      </div>
+      <span class="char-counter" id="ingest-char-counter">0 caracteres</span>
     </div>
 
     <div class="sc-diff-preview is-hidden" id="diff-preview-modal" aria-live="polite"></div>

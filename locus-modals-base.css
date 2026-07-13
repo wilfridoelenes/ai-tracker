@@ -1,4 +1,4 @@
-/* [PP] mod:3 · autor:Nova · 2026-07-13 UTC-6 */
+/* [PP] mod:4 · autor:Nova · 2026-07-13 UTC-6 */
 /* locus-modals-base.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 /* Restaurado (CAEL-06 · TKT1 CAEL-07): .modal--ingest y clases relacionadas — no persistieron en
    la entrega anterior (ver _PP-session-handoff-2026-07-13.md §1). Reconstruido contra el HTML real
@@ -400,12 +400,31 @@
   flex-shrink: 0;
 }
 
+.ingest-modal-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .ingest-modal-title {
   font-size: var(--text-base);
   font-weight: 700;
   color: var(--text);
   margin: 0;
   line-height: 1.4;
+}
+
+.pill-project {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface3);
+  color: var(--text3);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
 .ingest-modal-subtitle {
@@ -446,13 +465,45 @@
    base, que se reutilizan sin cambio en otros contextos. */
 .modal--ingest .paste-ta-wrap,
 .modal--ingest .sc-diff-preview,
-.modal--ingest .sc-stepper {
+.modal--ingest .sc-stepper,
+.modal--ingest .ingest-modal-meta {
   margin-left: 18px;
   margin-right: 18px;
 }
 
 .modal--ingest .paste-ta-wrap {
   margin-top: 12px;
+}
+
+.ingest-modal-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.autosave-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-2xs);
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+.autosave-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  flex-shrink: 0;
+}
+
+.char-counter {
+  font-size: var(--text-2xs);
+  color: var(--text3);
+  white-space: nowrap;
 }
 
 .modal--ingest .sc-diff-preview {
