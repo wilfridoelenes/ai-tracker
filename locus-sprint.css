@@ -1,4 +1,4 @@
-/* [PP] mod:47 · autor:Nova · 2026-07-12 01:20 UTC-6 */
+/* [PP] mod:48 · autor:Nova · 2026-07-12 01:55 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -3002,6 +3002,12 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   outline-offset: 2px;
 }
 
+.bl-sprint-trigger-progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 /* Barra de progreso dentro del trigger */
 
 .bl-sprint-trigger-bar-wrap {
@@ -3121,6 +3127,11 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   max-width: 320px;
   z-index: var(--z-dropdown);
   padding: 4px 0;
+}
+
+.bl-sprint-closed-list {
+  padding: 4px 0;
+  border-top: 1px solid var(--border);
 }
 
 /* ── Opción individual de sprint ── */
