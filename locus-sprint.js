@@ -1,4 +1,4 @@
-// [PP] mod:100 · autor:Rune · 2026-07-13 11:10 UTC-6
+// [PP] mod:101 · autor:Rune · 2026-07-13 19:55 UTC-6
 // TKT2 (REQ CAEL-05 — rediseño sub-tab Sprints, code real TKT-202607-099): .sph-panel deja
 // de ser hermano de .sps-card en _renderSpsActivo() y pasa a ser su último hijo — fusión
 // visual en un solo bloque bordeado (mockup aprobado por founder, "redesign_subtab_sprints").
@@ -1840,13 +1840,13 @@ function _renderSpsPausados() {
     ? allSprints.filter(s => s.status === 'paused') // TKT-B1: isHotfix eliminado
     : [];
 
-  // TKT4 (REQ-202607-100): sin pausados → línea muda visible, mismo patrón
-  // que Programados/Cerrados — la sección no desaparece. Sin section-label:
-  // Pausados no lo usa en estado con datos (cards van directo en el
-  // container) — agregarlo solo aquí crearía un label que aparece únicamente
-  // en vacío, fuera de scope de este TKT.
+  // Section-label consistente con Activo/Programados/Cerrados (gap cerrado —
+  // founder detectó ausencia vía captura, ver locus-sprint.css mod:53 INC).
+  // Empty state — línea muda, mismo patrón que Programados/Cerrados.
   if (paused.length === 0) {
-    container.innerHTML = '<p class="sps-empty-line">Sin sprints pausados</p>';
+    container.innerHTML =
+      '<span class="sps-section-label">Pausados</span>' +
+      '<p class="sps-empty-line">Sin sprints pausados</p>';
     container.classList.remove('is-hidden');
     return;
   }
@@ -1912,7 +1912,7 @@ function _renderSpsPausados() {
     );
   }).join('');
 
-  container.innerHTML = cards;
+  container.innerHTML = '<span class="sps-section-label">Pausados</span>' + cards;
 
   // T-202606-008: listeners de botones Reactivar — AC-1/AC-2/AC-3
   container.querySelectorAll('.sps-btn-reactivar').forEach(function(btn) {
