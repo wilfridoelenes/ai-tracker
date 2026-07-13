@@ -1,4 +1,4 @@
-/* [PP] mod:50 · autor:Nova · 2026-07-13 09:26 UTC-6 */
+/* [PP] mod:51 · autor:Nova · 2026-07-13 10:05 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -2651,6 +2651,25 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
 }
 
 .sph-alert-icon {
+  flex-shrink: 0;
+}
+
+/* TKT3 (REQ-202607-100): badge de bloqueados reutilizable — Programados/
+   Pausados. Mismo token --red y patrón color-mix que .sph-alert, pero
+   compacto (pill inline) para caber junto a otras pills de fila/card.
+   Generado condicionalmente por JS — ausente del DOM cuando count=0,
+   nunca oculto por CSS (mismo criterio de AC-3 del TKT). */
+.sps-blocked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--red) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--red) 28%, transparent);
+  color: var(--red);
+  font-size: var(--text-xs);
+  font-weight: 500;
   flex-shrink: 0;
 }
 

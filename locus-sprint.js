@@ -1,4 +1,4 @@
-// [PP] mod:97 · autor:Rune · 2026-07-13 09:26 UTC-6
+// [PP] mod:98 · autor:Rune · 2026-07-13 10:05 UTC-6
 // TKT2 (REQ CAEL-05 — rediseño sub-tab Sprints, code real TKT-202607-099): .sph-panel deja
 // de ser hermano de .sps-card en _renderSpsActivo() y pasa a ser su último hijo — fusión
 // visual en un solo bloque bordeado (mockup aprobado por founder, "redesign_subtab_sprints").
@@ -951,12 +951,25 @@ function _renderSpsProgramados() {
     const advClass = advDone > 0 ? 'pill-adv' : 'pill-adv-zero';
     const advText  = advDone + ' adelantados';
 
+    // TKT3 (REQ-202607-100): bloqueadosCount reutiliza _sprintIsBlocked() —
+    // mismo criterio ya usado en _renderSpsActivo (L725). Badge ausente del
+    // DOM cuando count=0 — no oculto por CSS.
+    const bloqueadosCount = spItems.filter(function(i) {
+      return i.status !== 'done' && _sprintIsBlocked(i);
+    }).length;
+    const blockedBadgeHtml = bloqueadosCount > 0
+      ? '<span class="sps-blocked-badge"><span class="sph-alert-icon">⚠</span>' +
+          bloqueadosCount + (bloqueadosCount === 1 ? ' bloqueado' : ' bloqueados') +
+        '</span>'
+      : '';
+
     return '<div class="sps-scheduled-row" draggable="false" data-sprint-id="' + _escHtml(id) + '">' +
         '<span class="drag-handle" tabindex="0" role="button" aria-label="Reordenar sprint ' + _escHtml(id) + '"></span>' +
         '<span class="sps-scheduled-id font-mono">' + _escHtml(id) + '</span>' +
         '<span class="sps-scheduled-name sps-meta-editable" tabindex="0" title="Click para editar título">' + _escHtml(label) + '</span>' +
         '<span class="pill-prog">Programado</span>' +
         '<span class="' + advClass + '">' + advText + '</span>' +
+        blockedBadgeHtml +
         '<div class="sps-menu-wrap">' +
           '<button class="sps-btn-menu" type="button" aria-label="Acciones sprint ' + _escHtml(id) + '" aria-expanded="false" aria-haspopup="true" data-spp-menu>···</button>' +
           '<div class="sps-dropdown" role="menu" aria-label="Acciones ' + _escHtml(id) + '" hidden>' +
@@ -1858,11 +1871,34 @@ function _renderSpsPausados() {
       }
     }
 
+    // TKT3 (REQ-202607-100): bloqueadosCount — Pausados no lo exponía (hallazgo
+    // #3 de la auditoría). Mismo cómputo que _renderSpsProgramados: spItems del
+    // sprint vía _iSprint()/_spIdBase(), reutiliza _sprintIsBlocked().
+    let bloqueadosCount = 0;
+    if (Array.isArray(getItems())) {
+      const _sid = _spIdBase(s.id || '');
+      const spItems = getItems().filter(function(i) {
+        const t = i.type || (i.code ? i.code.charAt(0) : '');
+        return _iSprint(i) && _iSprint(i).startsWith(_sid) &&
+          (['REQ','TKT'].includes(itemKind({type:t}))) &&
+          i.status !== 'descartado';
+      });
+      bloqueadosCount = spItems.filter(function(i) {
+        return i.status !== 'done' && _sprintIsBlocked(i);
+      }).length;
+    }
+    const blockedBadgeHtml = bloqueadosCount > 0
+      ? ' <span class="sps-blocked-badge"><span class="sph-alert-icon">⚠</span>' +
+          bloqueadosCount + (bloqueadosCount === 1 ? ' bloqueado' : ' bloqueados') +
+        '</span>'
+      : '';
+
     return (
       '<div class="sps-card sps-card--paused" data-sprint-id="' + _escHtml(s.id || '') + '">' +
         '<div class="sps-header">' +
           '<span class="sps-title">' + _escHtml(title) + '</span>' +
           '<span class="sml-badge sml-badge--paused">PAUSADO</span>' +
+          blockedBadgeHtml +
           stalenessHtml +
         '</div>' +
         '<div class="sps-pausados-meta">' +
