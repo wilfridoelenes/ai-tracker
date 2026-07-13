@@ -1,4 +1,4 @@
-/* [PP] mod:48 · autor:Nova · 2026-07-12 UTC-6 */
+/* [PP] mod:49 · autor:Nova · 2026-07-12 UTC-6 */
 /* TKT1 (CAEL-11 — REQ DISC-REQ-color-swap-locus-backlog-item, CAEL-10): swap DISC↔REQ en
    .bitem-type-DISC/.bitem-type-REQ (L70/L82) y .mdiff-queue-badge--qdisc (~L3302) — cierre
    del gap registrado al final del REQ DISC-REQ-color-swap original (locus-backlog.css
@@ -3078,26 +3078,6 @@ body {
   border-radius: var(--radius-sm);
   min-width: 16px;
   text-align: center;
-}
-
-.rsb-item-inc {
-  background: color-mix(in srgb,var(--red) 16%,transparent);
-  color:var(--red);
-}
-
-.rsb-item-req {
-  background: color-mix(in srgb,var(--blue) 16%,transparent);
-  color:var(--blue);
-}
-
-.rsb-item-tkt {
-  background: color-mix(in srgb,var(--green) 16%,transparent);
-  color:var(--green);
-}
-
-.rsb-item-disc {
-  background: color-mix(in srgb,var(--purple) 16%,transparent);
-  color:var(--purple);
 }
 
 .rsb-item-desc {
