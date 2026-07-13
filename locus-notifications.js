@@ -1,3 +1,6 @@
+// [PP] mod:13 · autor:Rune · 2026-07-13 UTC-6
+// TKT1 (REQ CAEL-04): import de navigateToItem apunta a locus-item-navigator.js — antes
+// locus-backlog-sprints.js. Sin cambio de comportamiento.
 // [PP] mod:12 · autor:Rune · 2026-07-12 20:06 UTC-6
 // TKT2 (REQ CAEL-01 · PP-S-02): bloque 5 reescrito — antes solo alertaba INC sla_priority:
 //   high (filtro item.type !== 'INC' explícito, config incHigh única). Ahora cubre los 4
@@ -23,7 +26,7 @@
 
 import { setFilter } from './locus-backlog-item.js';
 import { getItems, getIncidents, _registerCoreCallback } from './locus-backlog-core.js';
-import { navigateToItem } from './locus-backlog-sprints.js';
+import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): reubicado — antes en locus-backlog-sprints.js
 import { renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
 import { _sprintDisplay, getActiveSprints, getAllSessions } from './locus-storage.js';

@@ -1,3 +1,8 @@
+// [PP] mod:45 · autor:Rune · 2026-07-13 UTC-6
+// TKT1 (REQ CAEL-04): navigateToItem() reubicada a locus-item-navigator.js. Este archivo no
+// la importaba estáticamente (2 call sites bare, L879/L1176) — reemplazados por import()
+// dinámico (patrón (b) ya documentado en este header) en vez de import estático, para evitar
+// ciclo ESM: locus-item-navigator.js importa switchTab/switchSubTab de este mismo módulo.
 // [PP] mod:44 · autor:Rune · 2026-07-13 UTC-6
 // TKT1 (REQ CAEL-01): switchSubTab() cierra #item-detail-panel si está .open, antes de
 // aplicar el cambio de sub-tab — mismo patrón (event dispatch 'shell:close-item-panel')
@@ -876,7 +881,12 @@ document.addEventListener('keydown', e => {
     if (_selBL) {
       e.preventDefault();
       const _code = _selBL.dataset.code;
-      if (_code) navigateToItem(_code);
+      // TKT1 (REQ CAEL-04): navigateToItem() reubicada a locus-item-navigator.js. Este archivo
+      // no la importaba estáticamente (llamada bare — dependía de wiring externo no verificable
+      // en esta sesión). import() dinámico — patrón (b) ya documentado en el header de este
+      // archivo — evita ciclo ESM, ya que locus-item-navigator.js importa switchTab/switchSubTab
+      // de este mismo módulo.
+      if (_code) import('./locus-item-navigator.js').then(m => m.navigateToItem(_code));
       else {
         const _item = _selBL.dataset.id && _getItemsFn().find(i => i.id === _selBL.dataset.id); // B-202606-024: getItems() → _getItemsFn()
         if (_item) openItemPanel(_item);
@@ -1168,7 +1178,8 @@ document.addEventListener('DOMContentLoaded', function () {
         _surContratoActions[idx]();
       }
     } else if (action === 'navigateToItem') {
-      navigateToItem(row.dataset.itemCode);
+      // TKT1 (REQ CAEL-04): mismo patrón que navigateToCard (línea anterior) — import() dinámico
+      import('./locus-item-navigator.js').then(function(m) { m.navigateToItem(row.dataset.itemCode); });
     } else if (action === 'selectProjectFilter') {
       selectProjectFilter(row.dataset.projId);
     } else if (action === 'navigateToContext') {

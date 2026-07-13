@@ -1,3 +1,7 @@
+// [PP] mod:50 · autor:Rune · 2026-07-13 UTC-6
+// TKT1 (REQ CAEL-04): navigateToItem() extraída a locus-item-navigator.js — no gestionaba
+// ningún dato de sprints (__BR-Ecosystem §7). Re-importada para los 2 call sites internos.
+// Sin cambio de lógica ni de firma — navigateToItem(code) → void.
 // [PP] mod:49 · autor:Rune · 2026-07-12 UTC-6
 // INC-[pendiente-ID]: navigateToItem() agrega rama DISC — switchSubTab('qdisc') en vez de
 // 'backlog' cuando itemKind(item) === 'DISC'. Selector de scroll sin cambio (.item[data-code],
@@ -54,6 +58,7 @@ import { renderSprintTab } from './locus-sprint.js';
 import { _blogLog, _docPrefix, _effectiveVersion, getAI, getActiveProject, getActiveSprints, getAllSessions, getProjectById, save, saveBacklog, saveImmediate, saveHistoricoItems, getHistoricoItems, _invalidateHistoricoCache, _getDocUpdateIndex, _setDocUpdateIndex, _upsertSprint, _sprintDisplay } from './locus-storage.js'; // T-202606-107 · T-202606-005 · TKT1 (REQ-sprints-migration): _loadSprintsFromSupabase eliminado del import — sin call site real, solo referenciado en comentario línea ~959. Función reemplazada por _loadAllProjectsSprintsFromSupabase() en locus-storage.js, sin uso en este módulo. TKT7 (REQ-202607-015): deleteIncidentRows removida del import — su único call site (_scmExecuteClose) fue eliminado; export retirado de locus-storage.js.
 import { showToast, toast } from './locus-toast.js';
 import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
+import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): re-import — la función vivía en este archivo, ahora en módulo dedicado. Call sites internos (~L2032/L2037) sin cambio.
 
 import { _setBacklogModified } from './locus-docs.js';
 import { openMapGenerator } from './locus-map-generator.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
@@ -1518,50 +1523,10 @@ export function createSprintFromGroup(id, name) {
   showToast('success', id + ' registrado en catálogo');
 }
 
-// R-[pendiente-ID]: navegar a un ítem del backlog por código — cambia a tab backlog, sub-tab backlog, hace scroll y pulsa highlight
-export function navigateToItem(code) {
-  if (!code) return;
-  // TKT3 (REQ CAEL-01): distinguir ítems ITIL (INC/PRB/KE/CHG, viven en getIncidents()) de
-  // REQ/TKT/DISC (getItems()) — antes navigateToItem asumía siempre getItems()+'backlog', un
-  // código ITIL nunca se encontraba ahí y el deep-link fallaba en silencio (item undefined,
-  // early return implícito en el bloque de activeStatuses, pero switchTab('backlog') igual
-  // se ejecutaba y el setTimeout de scroll no encontraba .item[data-code] porque el card real
-  // usa la clase .qinc-item, no .item — ver _Locus-css-ref buildQIncItem()).
-  const incItem = getIncidents().find(i => i.code === code);
-  if (incItem) {
-    switchTab('incidentes');
-    setTimeout(() => {
-      const el = document.querySelector(`.qinc-item[data-code="${CSS.escape(code)}"]`);
-      if (!el) return;
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('bitem--nav-highlight');
-      setTimeout(() => el.classList.remove('bitem--nav-highlight'), 1400);
-    }, 120);
-    return;
-  }
-  // Asegurar que el filtro de status incluye el status del ítem
-  const item = getItems().find(i => i.code === code);
-  if (item && !activeStatuses.has(item.status)) {
-    activeStatuses.add(item.status);
-    updateStatusFilterUI();
-  }
-  // INC-[pendiente-ID] (triggered_by análisis de subtab Discoveries): DISC vive en
-  // #sspanel-qdisc, no en #sspanel-backlog — buildBacklogItem() (locus-backlog-qdisc.js)
-  // reutiliza el mismo shell .item que TKT/REQ, así que el selector de scroll no cambia,
-  // solo el sub-tab activo antes de buscarlo. Sin esta rama, un DISC caía en el
-  // switchSubTab('backlog') genérico y el elemento quedaba en un panel inactivo.
-  switchTab('backlog');
-  switchSubTab(itemKind(item) === 'DISC' ? 'qdisc' : 'backlog');
-  // Esperar render y hacer scroll
-  setTimeout(() => {
-    const el = document.querySelector(`.item[data-code="${CSS.escape(code)}"]`);
-    if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    el.classList.add('bitem--nav-highlight');
-    setTimeout(() => el.classList.remove('bitem--nav-highlight'), 1400);
-  }, 120);
-}
-
+// TKT1 (REQ CAEL-04): navigateToItem() movida a locus-item-navigator.js — este archivo no
+// gestionaba ningún dato de sprints (__BR-Ecosystem §7). Import agregado abajo, junto a los
+// demás imports de locus-ui-shell.js. Los dos call sites internos (renderSprintItems /
+// sprint-panel-items, ~L2032/L2037) siguen funcionando igual vía el import.
 
 // T-202605-058: Burndown — barra de progreso effort done vs total del sprint activo
 // T-202605-027: usa sprint con current:true — sin fallback a all[0]

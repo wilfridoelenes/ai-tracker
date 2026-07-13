@@ -1,3 +1,6 @@
+// [PP] mod:12 · autor:Rune · 2026-07-13 UTC-6
+// TKT1 (REQ CAEL-04): import de navigateToItem apunta a locus-item-navigator.js — antes
+// locus-backlog-sprints.js. Sin cambio de comportamiento.
 // [PP] mod:11 · autor:Rune · 2026-07-06 17:15 UTC-6
 // TKT-202607-001: selector de tipo de Flujo Acumulativo migrado de 4 opciones Gen1 (R/T/B/P)
 // a 7 opciones Gen2 (REQ/TKT/DISC/INC/PRB/KE/CHG) — el value ahora coincide con lo que
@@ -20,7 +23,7 @@
 import { renderCheckpointsByProject, renderHeatmap, renderHourly, renderProductivityPatterns } from './locus-analytics-charts.js';
 import { _activeAndHistoricoItems, _analyticsPeriod, _cfProjId, _cfTypeFilter, _closedItemsInRange, _compareProjectIdA, _compareProjectIdB, _delta, _getIntervalsInPeriod, _getPeriodBounds, _openedItemsInRange, _periodLabel, _posTooltip, _prevPeriodLabel, _sessInRange, clearComparison, exportWeeklySummary, getAnalyticsColor, getTooltip, hideAnalyticsTooltip, refreshAnalyticsHistoricoCache, sessionDateKey, setAnalyticsPeriod, setCfProject, setCfType, setCompareProjectA, setCompareProjectB } from './locus-analytics-core.js';
 
-import { navigateToItem } from './locus-backlog-sprints.js';
+import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): reubicado — antes en locus-backlog-sprints.js
 
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
 

@@ -1,3 +1,14 @@
+// [PP] mod:109 · autor:Rune · 2026-07-13 UTC-6
+// CHG (triggered_by INC CAEL-03): applyPatchesFromTG() — bloque field==='promovida_a' ahora
+// normaliza incoming cuando llega como {ref_id,title}, replicando el guardrail ya aplicado a
+// patch.code (L2814-2839 en versión anterior): resuelve contra _refIdTitleMap a '[tmp:REF_ID]'
+// si el title declarado coincide, o a null + _blogLog si no hay declarante o hay mismatch de
+// title. Antes, el objeto crudo pasaba _isPlaceholderCode() sin matchear (regex sobre string)
+// y se escribía tal cual en existing.promovida_a — visible sin resolver en el badge "↗ promovida".
+// TKT1 (REQ CAEL-04): import de navigateToItem separado a locus-item-navigator.js — antes
+// combinado con _getActiveSprint/openSprintRetroView/_inheritSprintToChildren en el mismo
+// import de locus-backlog-sprints.js. Ese import se conserva sin los demás cambios. Sin cambio
+// de comportamiento en ninguno de los 6 call sites de este archivo (L415,439,444,1377,1461 + import).
 // [PP] mod:108 · autor:Rune · 2026-07-12 22:10 UTC-6
 // TKT1 (REQ CAEL-01 · PP-S-02): validateIncidentTransitions ahora recibe itilType — antes
 //   aplicaba siempre la tabla de transiciones de INC a cualquier tipo ITIL. PRB (detected→
@@ -264,7 +275,8 @@ import { _blogLog, _tplKey, getAI, getActiveSprints, _sprintDisplay, getAllSessi
 
 import { _buildItemMentionedIn, _buildItemMigratedBlock, openItemPanel, _openMigrateItem, _acvToggle, _acvStartEdit, _acvConfirm } from './locus-backlog-panel.js'; // T-202606-089 AC-3
 
-import { _getActiveSprint, navigateToItem, openSprintRetroView, _inheritSprintToChildren } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · [tmp:tkt-unify-sprint-inherit]: _inheritSprintToChildren añadido · [tmp:tkt-card-readonly]: setItemSprint retirado — sin caller tras remover select de sprint del card
+import { _getActiveSprint, openSprintRetroView, _inheritSprintToChildren } from './locus-backlog-sprints.js'; // T-202606-089 AC-3 · [tmp:tkt-unify-sprint-inherit]: _inheritSprintToChildren añadido · [tmp:tkt-card-readonly]: setItemSprint retirado — sin caller tras remover select de sprint del card
+import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): reubicado — antes en locus-backlog-sprints.js
 import { openProjPanel } from './locus-sprint-project.js'; // T-202606-089 AC-1
 
 import { _setBacklogModified } from './locus-docs.js';
@@ -3007,11 +3019,33 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
       // T-202605-137: promovida_a — campo especial: al patchear en una P, escribir origenDisc en el destino
       // T-202606-019: si promovida_a es placeholder → intentar resolver contra getItems() (ítems recién ingresados)
       if (field === 'promovida_a') {
-        if (incoming !== undefined && incoming !== null && incoming !== current) {
-          let resolvedIncoming = incoming;
+        // CHG (triggered_by INC CAEL-03): normalizar incoming cuando llega como {ref_id,title} —
+        // mismo criterio de guardrail que la resolución de patch.code (L2814-2839). Sin esto, un
+        // objeto {ref_id,title} nunca matcheaba _isPlaceholderCode (regex sobre string) y quedaba
+        // crudo en existing.promovida_a — visible tal cual en el badge "↗ promovida" de la UI.
+        let _promovidaIncoming = incoming;
+        if (_promovidaIncoming && typeof _promovidaIncoming === 'object' && !Array.isArray(_promovidaIncoming) && _promovidaIncoming.ref_id) {
+          const _refId = _promovidaIncoming.ref_id;
+          const _declaredTitle = _refIdTitleMap ? _refIdTitleMap.get(_refId) : undefined;
+          if (_declaredTitle === undefined) {
+            _blogLog('ref-id-sin-declarante', existing.code,
+              `ref_id ${_refId} referenciado en promovida_a de patch sin ítem declarante en este bloque — pegar el bloque completo.`,
+              'backlog');
+            _promovidaIncoming = null;
+          } else if (_declaredTitle !== (_promovidaIncoming.title || '')) {
+            _blogLog('ref-id-title-mismatch', existing.code,
+              `ref_id ${_refId} en promovida_a de patch no coincide con title declarado — resolución bloqueada.`,
+              'backlog');
+            _promovidaIncoming = null;
+          } else {
+            _promovidaIncoming = `[tmp:${_refId}]`;
+          }
+        }
+        if (_promovidaIncoming !== undefined && _promovidaIncoming !== null && _promovidaIncoming !== current) {
+          let resolvedIncoming = _promovidaIncoming;
           // T-202606-019 AC1: resolver placeholder contra ítems ya en getItems()
           // mergeBacklogFromTG corre antes de applyPatchesFromTG — los ítems nuevos ya tienen código real
-          if (_isPlaceholderCode(incoming) && typeof getItems() !== 'undefined') {
+          if (_isPlaceholderCode(_promovidaIncoming) && typeof getItems() !== 'undefined') {
             // Buscar ítem recién creado cuyo origenDisc apunta a esta P, o cuyo código es real y fue
             // creado en este CHECKPOINT (no tiene origenDisc aún pero puede inferirse si solo hay un candidato)
             const candidates = getItems().filter(i =>
@@ -3025,7 +3059,7 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
             } else {
               // No resoluble con certeza — conservar placeholder + advertencia
               _blogLog('promovida-a-placeholder-en-patch', existing.code,
-                'promovida_a en patch contiene placeholder ' + incoming + ' — no resoluble en applyPatchesFromTG. Usar código real en el patch.',
+                'promovida_a en patch contiene placeholder ' + _promovidaIncoming + ' — no resoluble en applyPatchesFromTG. Usar código real en el patch.',
                 'backlog');
             }
           }

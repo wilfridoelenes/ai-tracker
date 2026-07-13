@@ -1,10 +1,15 @@
+// [PP] mod:5 · autor:Rune · 2026-07-13 UTC-6
+// TKT1 (REQ CAEL-04): import de navigateToItem separado a locus-item-navigator.js — antes
+// combinado con confirmCloseSprint en el mismo import de locus-backlog-sprints.js. Ese import
+// se conserva sin cambio. Sin cambio de comportamiento.
 // [PP] mod:4 · autor:Rune · 2026-06-26 18:55 UTC-6
 // locus-command-palette.js
 // Versión: 1.0.4 | Última actualización: 2026-05-23 UTC-6 | B-032 Ctrl+K bubble · B-033 switchTab prefijos · B-242 filtrar IAs archivadas · B-243 navegar a sección Contexto · T-202605-067 nav-tab-sprint
 // Renombrado de ai-tracker-command-palette.js
 
 
-import { confirmCloseSprint, navigateToItem } from './locus-backlog-sprints.js';
+import { confirmCloseSprint } from './locus-backlog-sprints.js';
+import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): reubicado — antes en locus-backlog-sprints.js
 import { openItemEditor } from './locus-backlog-editor.js';
 import { toggleRadarSidebar } from './locus-radar.js';
 import { openQuickCapture } from './locus-sesiones-capture.js';
