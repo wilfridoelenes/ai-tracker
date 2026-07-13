@@ -1,4 +1,4 @@
-/* [PP] mod:54 · autor:Nova · 2026-07-13 20:05 UTC-6 */
+/* [PP] mod:55 · autor:Nova · 2026-07-13 20:35 UTC-6 */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -2391,6 +2391,28 @@ Archivos CSS que deben estar adjuntos para integrar este entregable en T3–T6:
   color: var(--text3);
   padding: 0 2px;
   margin-bottom: 6px;
+}
+
+/* TKT6 (REQ CAEL-05): pill de conteo hijo de .sps-section-label — mismo
+   principio de diseño que .blf-badge/.blt-badge (badge de conteo compacto
+   sobre trigger/label), sin duplicar sus declaraciones exactas porque
+   viven en locus-backlog.css (no adjunto en esta sesión) — construido con
+   tokens ya confirmados en este archivo. No oculta en count=0 (AC3,
+   REQ CAEL-05) — a diferencia de .blf-badge/.blt-badge, que sí ocultan. */
+.sps-section-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 14px;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface3);
+  color: var(--text3);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 /* TKT4 (REQ-202607-100): línea muda de empty state — Programados/Pausados/

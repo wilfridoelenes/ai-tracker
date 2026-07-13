@@ -1,4 +1,7 @@
-// [PP] mod:101 · autor:Rune · 2026-07-13 19:55 UTC-6
+// [PP] mod:103 · autor:Rune · 2026-07-13 20:38 UTC-6
+// Hallazgo resuelto en sesión: _renderSpsCerrados() rama vacía sin
+// .sps-section-label — agregado junto con .sps-section-count en '0'.
+// Ver mod:102 abajo para el historial de CAEL-02 (rama con datos).
 // TKT2 (REQ CAEL-05 — rediseño sub-tab Sprints, code real TKT-202607-099): .sph-panel deja
 // de ser hermano de .sps-card en _renderSpsActivo() y pasa a ser su último hijo — fusión
 // visual en un solo bloque bordeado (mockup aprobado por founder, "redesign_subtab_sprints").
@@ -929,7 +932,9 @@ function _renderSpsProgramados() {
   // inconsistente con Activo, que sí muestra mensaje).
   if (sprints.length === 0) {
     container.innerHTML =
-      '<span class="sps-section-label">Programados</span>' +
+      '<span class="sps-section-label">Programados' +
+        '<span class="sps-section-count">0</span>' +
+      '</span>' +
       '<p class="sps-empty-line">Sin sprints programados</p>';
     container.classList.remove('is-hidden');
     container.removeEventListener('click', _sppHandleClick);
@@ -999,8 +1004,15 @@ function _renderSpsProgramados() {
       '</div>';
   }).join('');
 
+  // CAEL-02 (REQ CAEL-05, TKT5): .sps-section-count — pill de conteo hijo
+  // del label, después del texto. No oculta en 0 (ver guard de vacío arriba,
+  // que también incluye el span con valor '0') — .sps-section-label ya se
+  // renderiza en estado vacío en las 4 secciones, ocultar el pill en 0
+  // rompería esa consistencia (AC3, patch Cael sobre CAEL-02).
   container.innerHTML =
-    '<span class="sps-section-label">Programados</span>' +
+    '<span class="sps-section-label">Programados' +
+      '<span class="sps-section-count">' + sprints.length + '</span>' +
+    '</span>' +
     '<div class="sps-card">' + rows + '</div>';
 
   container.querySelectorAll('.sps-bd-mini-fill[data-sps-bd-pct]').forEach(function(fillEl) {
@@ -1971,8 +1983,16 @@ async function _renderSpsCerrados() {
   // TKT4 (REQ-202607-100): sin cerrados → línea muda visible, la sección
   // no desaparece — comportamiento real, no solo el comentario aspiracional
   // que tenía esta función antes de este TKT.
+  // Hallazgo resuelto en sesión (REQ CAEL-05): esta rama nunca renderizó
+  // .sps-section-label — mismo gap que mod:63 cerró para Pausados, aquí
+  // detectado en Cerrados durante CAEL-02. Agregado con .sps-section-count
+  // en '0', mismo criterio de no-ocultar-en-0 que la rama con datos.
   if (closed.length === 0) {
-    container.innerHTML = '<p class="sps-empty-line">Sin sprints cerrados</p>';
+    container.innerHTML =
+      '<span class="sps-section-label">Cerrados' +
+        '<span class="sps-section-count">0</span>' +
+      '</span>' +
+      '<p class="sps-empty-line">Sin sprints cerrados</p>';
     container.classList.remove('is-hidden');
     container.removeEventListener('click', _spsCerradosHandleClick);
     _spsCerradosExpanded = null;
@@ -2055,8 +2075,14 @@ async function _renderSpsCerrados() {
     );
   }).join('');
 
+  // CAEL-02 (REQ CAEL-05, TKT5): .sps-section-count — pill de conteo hijo
+  // del label. La rama de vacío (closed.length===0, arriba) también lo
+  // incluye desde esta misma sesión — hallazgo de label ausente ahí
+  // resuelto en conjunto con este TKT, no quedó como gap separado.
   container.innerHTML =
-    '<span class="sps-section-label">Cerrados</span>' +
+    '<span class="sps-section-label">Cerrados' +
+      '<span class="sps-section-count">' + closed.length + '</span>' +
+    '</span>' +
     '<div class="sps-card">' + rows + '</div>';
 
   // Event delegation — clic y teclado en headers
