@@ -1,4 +1,4 @@
-<!-- [PP] mod:118 · autor:Nova · 2026-07-13 09:15 UTC-6 -->
+<!-- [PP] mod:119 · autor:Rune · 2026-07-13 UTC-6 -->
 <!-- TKT2 (REQ CAEL-01 · Q-INC tab top-level): #tab-incidentes agregado como tab de primer nivel,
      #sspanel-qinc/#sstab-btn-qinc removidos del sub-tab de Backlog. Ver locus-ui-shell.js/locus-backlog-render.js. -->
 <!-- TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): agregado shell estático
@@ -595,8 +595,10 @@
         </div>
         <div class="qdisc-status-body" id="qdisc-panel-body"></div>
       </div>
-      <div class="qdisc-status-group" id="qdisc-promoted-group">
-        <div class="qdisc-status-header qdisc-status-header--promoted" tabindex="0" role="button" aria-expanded="true">
+      <!-- TKT2 (REQ CAEL-01, patch): is-collapsed + aria-expanded="false" por default — ver
+           locus-backlog-qdisc.js _initQDiscStatusToggles(), toggle intacto. -->
+      <div class="qdisc-status-group is-collapsed" id="qdisc-promoted-group">
+        <div class="qdisc-status-header qdisc-status-header--promoted" tabindex="0" role="button" aria-expanded="false">
           <span class="qdisc-status-title">Promoted</span>
           <span class="qdisc-status-header-meta">
             <span class="qdisc-status-count" id="qdisc-promoted-count">0</span>
@@ -605,8 +607,8 @@
         </div>
         <div class="qdisc-status-body" id="qdisc-promoted-body"></div>
       </div>
-      <div class="qdisc-status-group" id="qdisc-descartadas-group">
-        <div class="qdisc-status-header qdisc-status-header--descartadas" tabindex="0" role="button" aria-expanded="true">
+      <div class="qdisc-status-group is-collapsed" id="qdisc-descartadas-group">
+        <div class="qdisc-status-header qdisc-status-header--descartadas" tabindex="0" role="button" aria-expanded="false">
           <span class="qdisc-status-title">Descartadas</span>
           <span class="qdisc-status-header-meta">
             <span class="qdisc-status-count" id="qdisc-descartadas-count">0</span>
