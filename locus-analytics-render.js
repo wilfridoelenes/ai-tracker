@@ -1,4 +1,7 @@
-// [PP] mod:12 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:13 · autor:Rune · 2026-07-13 UTC-6
+// INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true.
+// Guard "T-202605-117: skip render si tab Analytics no es el visible" nunca ejecutaba —
+// renderAnalytics() hacía el trabajo completo aun con el tab fuera de vista (costo de performance).
 // TKT1 (REQ CAEL-04): import de navigateToItem apunta a locus-item-navigator.js — antes
 // locus-backlog-sprints.js. Sin cambio de comportamiento.
 // [PP] mod:11 · autor:Rune · 2026-07-06 17:15 UTC-6

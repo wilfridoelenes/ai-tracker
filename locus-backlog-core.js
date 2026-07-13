@@ -1,4 +1,6 @@
-// [PP] mod:118 · autor:Rune · 2026-07-11 UTC-6
+// [PP] mod:119 · autor:Rune · 2026-07-13 UTC-6
+// INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true.
+// exportBtn en updateBacklogBanner() nunca se des-ocultaba vía este guard cuando tab activo era backlog.
 // TKT2 (REQ-refactor-item-shape-itil-scrum, parent [pendiente-ID] — confirmar código real en
 //   Locus): isQIncItem() simplificada — discriminador híbrido queue+itemKind reemplazado por
 //   itemKind() únicamente. Ver comentario inline en la función (~línea 2160).
@@ -198,7 +200,7 @@
 // y shell:* events (notificaciones de render — window per B-202606-021).
 import { _blogLog, _effectiveVersion, _isInSession, _loadFromSupabase, _sprintDisplay, _tplKey, getAI, getActiveSprints, getAllSessions, getState, saveBacklog, refreshHistoricoCache, getHistoricoItemsSync } from './locus-storage.js'; // TKT1 (REQ-historico-async): refreshHistoricoCache/getHistoricoItemsSync — _getNextItemCode() incluye historico en el escaneo de colisión
 import { showToast, toast } from './locus-toast.js';
-import { esc, getCurrentSubTab } from './locus-ui-shell.js';
+import { esc, getCurrentSubTab, getCurrentTab } from './locus-ui-shell.js';
 import { incSlaPriority, incComportamientoActual, incIncidentStatus } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil: reemplaza fallback || inline en _normalizeIncidents()
 
 // ── Callback registry — T-202606-057 ─────────────────────────────────────────
@@ -1674,7 +1676,7 @@ export function updateBacklogBanner() {
   }
   if (banner) banner.classList.add('visible');
   // Mostrar botón exportar solo si estamos en tab backlog
-  if (exportBtn && typeof currentTab !== 'undefined' && currentTab === 'backlog') exportBtn.classList.remove("is-hidden")
+  if (exportBtn && getCurrentTab() === 'backlog') exportBtn.classList.remove("is-hidden")
 
   const meta = JSON.parse(localStorage.getItem(_tplKey('backlog-meta')) || '{}');
   const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };

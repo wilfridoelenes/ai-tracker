@@ -1,3 +1,7 @@
+// [PP] mod:4 · autor:Rune · 2026-07-13 UTC-6
+// INC-[pendiente-ID]: APP_VERSION exportada — locus-docs.js la consumía vía
+// typeof APP_VERSION !== 'undefined' sin import real; el guard nunca era true
+// (variable module-privada, no global) y siempre caía al fallback 'v0'/_effectiveVersion.
 // [PP] mod:3 · autor:Rune · 2026-07-11 00:00 UTC-6
 // locus-workers.js
 // Módulo: CRUD de Workers (IAs) — add, delete, archive, avatar, card menu, inline confirm.
@@ -30,7 +34,7 @@ const AVATAR_LOGOS = {
 // ── Versión de la app — fuente de verdad ──
 // R-202605-012: movida desde locus-sesiones-stats.js — locus-workers.js carga antes.
 // R-202604-086: _mgApplyBumpedVersion() en locus-map-generator.js sobreescribe via localStorage.
-const APP_VERSION = 'v3.4';
+export const APP_VERSION = 'v3.4';
 
 // ── Estado interno ──
 let avatarModalAIId = null;

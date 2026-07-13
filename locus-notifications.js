@@ -1,3 +1,9 @@
+// [PP] mod:14 · autor:Rune · 2026-07-13 UTC-6
+// INC-[pendiente-ID]: getState() importado — typeof state !== 'undefined' en
+// _computeNotifications() (bloque 6, aiCadencia) nunca era true — 'active' siempre
+// era []. La notificación "IA fuera de cadencia" nunca disparaba pese a estar
+// enabled:true por default. Fix: getState().ais, mismo patrón ya usado en el resto
+// del módulo (getActiveSprints, getAllSessions).
 // [PP] mod:13 · autor:Rune · 2026-07-13 UTC-6
 // TKT1 (REQ CAEL-04): import de navigateToItem apunta a locus-item-navigator.js — antes
 // locus-backlog-sprints.js. Sin cambio de comportamiento.
@@ -29,7 +35,7 @@ import { getItems, getIncidents, _registerCoreCallback } from './locus-backlog-c
 import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04): reubicado — antes en locus-backlog-sprints.js
 import { renderGlobalRadarSidebar, toggleRadarSidebar } from './locus-radar.js';
 import { navigateToCard } from './locus-sesiones-stats.js';
-import { _sprintDisplay, getActiveSprints, getAllSessions } from './locus-storage.js';
+import { _sprintDisplay, getActiveSprints, getAllSessions, getState } from './locus-storage.js'; // INC-[pendiente-ID]: getState agregado — guard typeof state muerto
 import { switchTab } from './locus-ui-shell.js';
 import { toast } from './locus-toast.js';
 import { getMdiffStepZeroActive } from './locus-backlog-merge.js';
@@ -305,7 +311,7 @@ export function _computeNotifications() {
 
   // 6. B-202605-238 AC: IA sin sesión vs cadencia histórica
   if (cfg.aiCadencia && cfg.aiCadencia.enabled) {
-    const active = (typeof state !== 'undefined' ? (state.ais || []) : []).filter(function(a) { return !a.archived; });
+    const active = (getState().ais || []).filter(function(a) { return !a.archived; });
     active.forEach(function(ai) {
       if (ai.status === 'exhausted') return;
       const allSess  = (getAllSessions())

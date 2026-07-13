@@ -1,7 +1,12 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:2 · autor:Rune · 2026-06-21 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-01 · mod:3 · autor:Rune · 2026-07-13 UTC-6
+// INC-[pendiente-ID]: getState() importado — typeof state !== 'undefined' en
+// _showProjRequiredInPanel nunca era true (state es var privada de locus-storage.js,
+// exportada pero no importada aquí). Lista de proyectos en el banner de "selecciona
+// proyecto" siempre estaba vacía — banner mostraba "No hay proyectos creados" aunque
+// sí los hubiera. Fix: getState().projects, mismo patrón ya usado en getProjectById.
 // locus-session-hora.js
 import { _doSaveSession, saveSession } from './locus-session-save.js';
-import { getAI } from './locus-storage.js';
+import { getAI, getState } from './locus-storage.js'; // INC-[pendiente-ID]: getState agregado — guard typeof state muerto
 
 import { esc } from './locus-ui-shell.js';
 
@@ -155,7 +160,7 @@ export function _showProjRequiredInPanel(id, parsed, horaResult) {
   if (!overlay || !confirmBtn || !body) return;
 
   // Construir lista de proyectos para el banner
-  const projects = (typeof state !== 'undefined' && state.projects) ? state.projects : [];
+  const projects = getState().projects || [];
   const projOptions = projects.map(p =>
     `<option value="${esc(p.id)}">${esc(p.name || p.id)}</option>`
   ).join('');

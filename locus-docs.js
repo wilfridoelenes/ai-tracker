@@ -1,3 +1,8 @@
+// [PP] mod:16 · autor:Rune · 2026-07-13 UTC-6
+// INC-[pendiente-ID]: import real de APP_VERSION desde locus-workers.js — guard
+// typeof APP_VERSION !== 'undefined' nunca era true (variable module-privada, sin export
+// hasta este fix). Fallback literal 'v0' retirado — resuelve siempre a un valor real ahora
+// que la cadena de fallback (_effectiveVersion → APP_VERSION) tiene ambos eslabones vivos.
 // [PP] mod:15 · autor:Rune · 2026-07-13 00:50 UTC-6
 // TKT-[pendiente-ID] (REQ-[pendiente-ID] · sidebar DocLog): los 3 botones doc-log-btn-*
 //   (uno por sub-panel: backlog/htmlmap/context) se retiran de sus toolbars — ver index.html.
@@ -24,6 +29,7 @@ import { closeDocLog, openDocLog, _updateDocLogCount } from './locus-doc-log.js'
 import { _mgGetVersion } from './locus-map-generator.js';
 import { parseHtmlMapMd, renderHtmlMap, updateHtmlMapBanner } from './locus-map-viewer.js';
 import { _blogLog, _docPrefix, _effectiveVersion, _getDocUpdateIndex, _projKey, _setDocUpdateIndex, _tplKey, getActiveProject, saveContextDocs } from './locus-storage.js';
+import { APP_VERSION } from './locus-workers.js'; // INC-[pendiente-ID]: import real — antes typeof-guard muerto sobre variable privada
 
 // T-202606-166: _docPrefix movida a locus-storage.js
 
@@ -332,7 +338,7 @@ export function _getMapContent(ver) {
   if (!raw) return null;
   const resolvedVer = ver || (typeof _effectiveVersion !== 'undefined' && _effectiveVersion
     ? _effectiveVersion
-    : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0'));
+    : APP_VERSION);
   return raw.replace(/Versi[oó]n:\s*[\d.v][\d.]*/, `Versión: ${resolvedVer}`);
 }
 
@@ -345,7 +351,7 @@ export function exportHtmlMapMd() {
     ? _mgGetVersion()
     : (typeof _effectiveVersion !== 'undefined' && _effectiveVersion)
       ? _effectiveVersion
-      : (typeof APP_VERSION !== 'undefined' ? APP_VERSION : 'v0');
+      : APP_VERSION;
   // R-202605-XXX: MAP siempre Markdown — rama JSON eliminada
   const ext = 'md';
   // B-202605-514: usar _getMapContent() — lógica de versioning centralizada

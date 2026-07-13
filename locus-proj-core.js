@@ -1,4 +1,7 @@
-// [PP] mod:10 · autor:Rune · 2026-07-05 UTC-6
+// [PP] mod:11 · autor:Rune · 2026-07-13 UTC-6
+// INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true
+// (currentTab es var privada de locus-ui-shell.js, no global). Guard "solo renderizar Analytics si
+// tab activo" nunca ejecutaba. Fix: getCurrentTab() real, mismo patrón ya usado en locus-sprint-project.js:143.
 // REQ refactor-zonas TKT5: import de renderQBacklogPanel/renderQDiscPanel actualizado — ahora
 // viven en locus-backlog-qbacklog.js / locus-backlog-qdisc.js (extraídos de
 // locus-backlog-render.js). renderBacklogList/_updateSubtabBadges siguen en locus-backlog-render.js.
@@ -20,7 +23,7 @@
 // NO importa desde locus-projects.js ni locus-sprint-project.js
 
 import { getProjectSessions, save, getProjectById, _getActiveProjectFilter } from './locus-storage.js';
-import { esc, switchSubTab, getCurrentSubTab } from './locus-ui-shell.js';
+import { esc, switchSubTab, getCurrentSubTab, getCurrentTab } from './locus-ui-shell.js';
 import { showToast } from './locus-toast.js';
 import { renderAnalytics } from './locus-analytics-render.js';
 import { loadBacklog, renderStats, _registerCoreCallback } from './locus-backlog-core.js';
@@ -114,7 +117,7 @@ export function selectProjectFilter(projId) {
   loadBacklog();
   loadHtmlMap();
   window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
-  if (typeof currentTab !== 'undefined' && currentTab === 'analytics') renderAnalytics();
+  if (getCurrentTab() === 'analytics') renderAnalytics();
   renderBacklogList();
   renderQBacklogPanel(); // TKT-C10: reemplaza renderIceboxPanel — re-render Q-Backlog al cambiar proyecto activo
   renderQDiscPanel();    // TKT-C10: re-render Q-DISC al cambiar proyecto activo

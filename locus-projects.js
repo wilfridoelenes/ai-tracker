@@ -1,4 +1,7 @@
-// [PP] v0.1.0 · sprint:PP-S-01 · mod:7 · autor:Rune · 2026-06-30 UTC-6
+// [PP] mod:8 · autor:Rune · 2026-07-13 UTC-6
+// INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true.
+// Guard "T-202605-117: skip render si tab Proyectos no es el visible" nunca ejecutaba —
+// renderProyectos() renderizaba siempre, incluso con el tab no visible.
 // locus-projects.js
 // Última actualización: 2026-05-19 UTC-6
 // Módulo: Vista Proyectos — renderProyectos, renderProject, analytics de proyecto, cronológico
@@ -10,7 +13,7 @@ import { loadHtmlMap } from './locus-map-viewer.js';
 import { relDate } from './locus-session-hora.js';
 import { _countProjSessions, _setActiveProjectFilter, _updateProjBreadcrumb, _updateProjFilterBtn, selectProjectFilter, setProjContext } from './locus-proj-core.js';
 import { openProjModal } from './locus-sprint-project.js';
-import { esc, switchSubTab, switchTab } from './locus-ui-shell.js';
+import { esc, switchSubTab, switchTab, getCurrentTab } from './locus-ui-shell.js';
 
 import { _animateCountUp, fmtMonth, getAnalyticsMonths, sessionDateKey, sessionYM } from './locus-analytics-core.js';
 
@@ -26,7 +29,7 @@ import { showToast } from './locus-toast.js';
 export function renderProyectos() {
   // T-202605-117: Guard de tab activo — skip render si el tab Proyectos no es el visible.
   // AC-4/AC-5 (excepción Command Palette) removidas — módulo deprecado, ver locus-command-palette.js.
-  if (typeof currentTab !== 'undefined' && currentTab !== 'proyectos') return;
+  if (getCurrentTab() !== 'proyectos') return;
 
   const el = document.getElementById('tab-proyectos-inner');
   if (!el) return;
