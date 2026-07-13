@@ -1,4 +1,4 @@
-// [PP] mod:106 · autor:Rune · 2026-07-12 20:06 UTC-6
+// [PP] mod:108 · autor:Rune · 2026-07-12 22:10 UTC-6
 // TKT1 (REQ CAEL-01 · PP-S-02): validateIncidentTransitions ahora recibe itilType — antes
 //   aplicaba siempre la tabla de transiciones de INC a cualquier tipo ITIL. PRB (detected→
 //   in_progress→resolved→closed, sin 'assigned') y KE (active→resolved|descartado) tienen
@@ -2037,7 +2037,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
   // TKT2 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs): slugMap: new Map() agregado al
   // resultado de items vacíos — sin esto, el orquestador de batch (_applyCheckpointBatch,
   // locus-session-save.js) pierde la cadena de seedSlugMap si un bloque del batch no trae ítems.
-  if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[], invalidTransition:[], slugMap: (opts && opts.seedSlugMap instanceof Map) ? opts.seedSlugMap : new Map() };
+  if (!tgItems || !tgItems.length) return { created:[], advanced:[], retroceso:[], discarded:[], updated:[], ignored:[], createdAndClosed:[], tmpSuggestions:[], invalidTransition:[], slugMap: (opts && opts.seedSlugMap instanceof Map) ? opts.seedSlugMap : new Map(), refIdTitleMap: new Map() }; // TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap vacío en el guard temprano — sin tgItems no hay refId que declarar, pero el campo debe existir siempre en el objeto de retorno para que los callers no necesiten un guard adicional de undefined
   const _dryRun   = !!(opts && opts.dryRun);
   const _ckptRol  = (opts && opts.ckptRol) || '';
 
@@ -2600,7 +2600,7 @@ export async function mergeBacklogFromTG(tgItems, sessionId, opts) {
     _updateSubtabBadges();
     if (getCurrentTab() === 'backlog') { _markBacklogListDirty(); renderBacklogList(); updateBacklogBanner(); }
   }
-  return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions, invalidTransition, slugMap: _slugMap }; // T-[pendiente-ID]: invalidTransition poblado pre-clasificación · B-202606-022: slugMap para resolución de [tmp:slug] en applyPatchesFromTG
+  return { created, advanced, retroceso, discarded, updated, ignored, createdAndClosed, tmpSuggestions, invalidTransition, slugMap: _slugMap, refIdTitleMap: _refIdTitleMap }; // T-[pendiente-ID]: invalidTransition poblado pre-clasificación · B-202606-022: slugMap para resolución de [tmp:slug] en applyPatchesFromTG · TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap expuesto — ya se construía internamente (L2056) para normalizar parentId/triggeredBy/origenDisc/promovida_a/dependsOn, pero nunca salía de esta función. applyPatchesFromTG lo necesita para resolver patch.code cuando llega como {ref_id,title} o [tmp:REF_ID]
 }
 
 
@@ -2757,6 +2757,12 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
   // B-202606-022: slugMap pasado desde mergeBacklogFromTG via llamador — resuelve [tmp:slug] en parentId
   const _slugMap = (opts && opts.slugMap instanceof Map) ? opts.slugMap : null;
 
+  // TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap pasado desde mergeBacklogFromTG — mismo
+  // mapa refId→title que _normalizeRefIdValue usa internamente en esa función. Ausente en
+  // callers que no lo propaguen todavía (opts.refIdTitleMap === undefined) → comportamiento
+  // idéntico al actual: patch.code con ref_id/tmp:slug no se resuelve, cae en 'no-existe'.
+  const _refIdTitleMap = (opts && opts.refIdTitleMap instanceof Map) ? opts.refIdTitleMap : null;
+
   // B-202606-100: role del header del CHECKPOINT — único contexto que autoriza
   // la transición R → done dentro de un patch. Simétrico al guard ya existente
   // para R → bloqueado en locus-session-parse.js (T-202606-080/022).
@@ -2803,6 +2809,41 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
           'parentId: ' + patch.parentId + ' no encontrado en slugMap — campo ignorado', 'backlog');
         delete patch.parentId;
       }
+    }
+
+    // TKT1 (REQ-[pendiente-ID] · CAEL-04): resolver patch.code cuando llega como {ref_id,title}
+    // (objeto) o ya normalizado a '[tmp:REF_ID]' (string) — mismo criterio de guardrail que
+    // _normalizeRefIdValue en mergeBacklogFromTG (title debe coincidir exactamente con el
+    // declarante), seguido de la misma resolución de slugMap que ya usa parentId (L2796-2806).
+    // Antes de este fix, un code objeto nunca matcheaba _isPlaceholderCode (regex sobre string)
+    // y un code '[tmp:REF_ID]' sin esta resolución nunca llegaba a slugMap — ambos caían
+    // silenciosamente en 'código no existe en el backlog' más abajo.
+    if (patch.code && typeof patch.code === 'object' && !Array.isArray(patch.code) && patch.code.ref_id) {
+      const _refId = patch.code.ref_id;
+      const _declaredTitle = _refIdTitleMap ? _refIdTitleMap.get(_refId) : undefined;
+      if (_declaredTitle === undefined) {
+        _blogLog('ref-id-sin-declarante', '[sin-código]',
+          `ref_id ${_refId} referenciado en code de patch sin ítem declarante en este bloque — pegar el bloque completo.`,
+          'backlog');
+        ignoredPatches.push({ code: patch.code, reason: 'ref-id-sin-declarante' });
+        return;
+      }
+      if (_declaredTitle !== (patch.code.title || '')) {
+        _blogLog('ref-id-title-mismatch', '[sin-código]',
+          `ref_id ${_refId} en code de patch no coincide con title declarado — resolución bloqueada.`,
+          'backlog');
+        ignoredPatches.push({ code: patch.code, reason: 'ref-id-title-mismatch' });
+        return;
+      }
+      patch.code = `[tmp:${_refId}]`;
+    }
+    if (_slugMap && patch.code && _isPlaceholderCode(patch.code)) {
+      const _resolvedCode = _slugMap.get(patch.code);
+      if (_resolvedCode && !_isPlaceholderCode(_resolvedCode)) {
+        patch.code = _resolvedCode;
+      }
+      // si no resuelve, patch.code queda como placeholder — cae en la rama 'no-existe' de abajo,
+      // mismo comportamiento que ya tenía cualquier placeholder sin slugMap disponible.
     }
 
     const code = patch.code;
@@ -3110,10 +3151,6 @@ export function buildQIncItem(item) {
   const typeLabel = TYPE_LABELS[type] || type || '—';
   const code      = item.code || item.id || '';
 
-  // Badge de tipo con color BR (colores canónicos de __BR-Ecosystem §4)
-  const typeColorMap = { INC: '#e85555', PRB: '#f59e0b', KE: '#eab308', CHG: '#64748b' };
-  const typeColor    = typeColorMap[type] || 'var(--hint)';
-
   // Badge incidentStatus — '—' si ausente, sin crash
   const incStatus    = incIncidentStatus(item) || '';
   const incStatusBadge = incStatus
@@ -3174,7 +3211,7 @@ export function buildQIncItem(item) {
   return `
 <div class="qinc-item ${slaClass}" data-code="${esc(code)}" data-type="${esc(type)}">
   <div class="qinc-item-header">
-    <span class="qinc-type-badge qinc-type-badge--${type.toLowerCase()}" style="--qinc-type-color:${typeColor}" title="${esc(typeLabel)}">${esc(type)}</span>
+    <span class="qinc-type-badge qinc-type-badge--${type.toLowerCase()}" title="${esc(typeLabel)}">${esc(type)}</span>
     ${copyCodeHtml}
     <span class="qinc-item-title">${esc(item.title || '(sin título)')}</span>
   </div>

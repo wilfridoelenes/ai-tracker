@@ -1,4 +1,4 @@
-// [PP] mod:65 · autor:Rune · 2026-07-12 UTC-6
+// [PP] mod:67 · autor:Rune · 2026-07-12 22:15 UTC-6
 // TKT1 (REQ-[pendiente-ID] · promovida de DISC-202607-010): eliminado el import huérfano
 //   _tryIngestSprintProposal (sin FromParsed) — cero call sites en este archivo confirmado
 //   via grep. Resto de la línea de import (_setPhase, parseSprintProposal, parsePaste,
@@ -398,7 +398,7 @@ function _buildPatchTgItems(patchItems, existingTgItems) {
 // ejecuta el merge, y restaura el estado anterior (filtro + getItems() del proyecto original).
 // _setActiveProjectFilter no se usa porque tiene side-effects de UI.
 export async function _mergeBacklogWithProject(tgItems, sessId, projId) {
-  if (!tgItems || !tgItems.length) return { created:[], updated:[], ignored:[], advanced:[], retroceso:[], discarded:[] };
+  if (!tgItems || !tgItems.length) return { created:[], updated:[], ignored:[], advanced:[], retroceso:[], discarded:[], slugMap: new Map(), refIdTitleMap: new Map() }; // TKT2 (REQ-[pendiente-ID] · CAEL-05): slugMap/refIdTitleMap agregados al guard — sin esto, un batch de solo patches (tgItems vacío) nunca obtenía estos mapas para resolver code de sus propios patches
   const _prevFilter = localStorage.getItem('current-project-filter') || '';
   const _filterChanged = projId && projId !== _prevFilter;
   if (_filterChanged) {
@@ -433,19 +433,34 @@ export async function _mergeBacklogWithProject(tgItems, sessId, projId) {
 //     _resolveCheckpointBatch antes de que tgItems llegara aquí.
 //   - Un único mergeBacklogFromTG → saveBacklog() atómico para todo el batch combinado, no
 //     uno por bloque (a diferencia de TKT2, que mergeaba secuencialmente bloque por bloque).
-//   - tgItems vacío → no-op, sin llamar a mergeBacklogFromTG ni a saveBacklog().
+//   - tgItems vacío → no-op, sin llamar a mergeBacklogFromTG ni a saveBacklog() — retorna undefined.
 // sideEffects:
 //   - Persiste a backlog vía saveBacklog() (dentro de _mergeBacklogWithProject) — mismo side
 //     effect que _doApply del flujo single, ahora con el array combinado del batch.
+// TKT2 (REQ-[pendiente-ID] · CAEL-05): agregado `return` del resultado de _mergeBacklogWithProject
+// — antes no retornaba nada. Cambio aditivo: ningún caller existente leía el valor de retorno
+// (era efectivamente void), así que no hay regresión sobre comportamiento previo. El caller de
+// locus-session-parse.js (_gatedDoApplyBatch) ahora lo necesita para acceder a slugMap/refIdTitleMap
+// y aplicar patchItems del batch después del merge — mismo patrón que _doApply del flujo single.
+// TKT2 (REQ-[pendiente-ID] · CAEL-05): agregado `return` del resultado de _mergeBacklogWithProject
+// — antes no retornaba nada. Cambio aditivo: ningún caller existente leía el valor de retorno
+// (era efectivamente void), así que no hay regresión sobre comportamiento previo. El caller de
+// locus-session-parse.js (_gatedDoApplyBatch) ahora lo necesita para acceder a slugMap/refIdTitleMap
+// y aplicar patchItems del batch después del merge — mismo patrón que _doApply del flujo single.
+// TKT2: guard de tgItems vacío removido del early-return — un batch de SOLO patches (tgItems
+// vacío, patchItems con contenido) debe poder llegar a _mergeBacklogWithProject para obtener
+// slugMap/refIdTitleMap (aunque sean mapas vacíos, ver guard actualizado de esa función) y así
+// permitir que el caller aplique los patches. _mergeBacklogWithProject ya es no-op seguro con
+// tgItems vacío (no llama mergeBacklogFromTG real ni saveBacklog) — delegar ahí no reintroduce
+// el side effect que este guard prevenía originalmente.
 export async function _applyCheckpointBatch(tgItems) {
-  if (!tgItems || !tgItems.length) return;
   const activeProj = getActiveProject();
   if (!activeProj) {
     showToast('warning', '⚠ Selecciona un proyecto antes de aplicar');
-    return;
+    return undefined;
   }
   const syntheticSessId = 'standalone-batch-' + Date.now();
-  await _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id);
+  return await _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id);
 }
 
 // T-202606-070: parsea el campo archivos del CHECKPOINT al formato de array estructurado.
@@ -706,7 +721,7 @@ async function _doApplyMergeAndFinish(id, ai, parsed, activeProj, horaResult, se
   // correcto en el path standalone (locus-session-parse.js:1999, _doApply). El bug original que
   // motivó la eliminación (rol nunca propagado, siempre '') se corrige aquí pasando parsed.rol.
   if (parsed.patchItems && parsed.patchItems.length) {
-    applyPatchesFromTG(parsed.patchItems, sessId, { ckptHeaderRole: parsed.rol || '', slugMap: mergeResult.slugMap });
+    applyPatchesFromTG(parsed.patchItems, sessId, { ckptHeaderRole: parsed.rol || '', slugMap: mergeResult.slugMap, refIdTitleMap: mergeResult.refIdTitleMap }); // TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap agregado
   }
 
   // B-202604-XXX: actualizar trackerRefs con códigos reales post-_assignPendingIds

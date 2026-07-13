@@ -1,4 +1,4 @@
-/* [PP] mod:49 · autor:Nova · 2026-07-12 UTC-6 */
+/* [PP] mod:51 · autor:Nova · 2026-07-12 UTC-6 */
 /* TKT1 (CAEL-11 — REQ DISC-REQ-color-swap-locus-backlog-item, CAEL-10): swap DISC↔REQ en
    .bitem-type-DISC/.bitem-type-REQ (L70/L82) y .mdiff-queue-badge--qdisc (~L3302) — cierre
    del gap registrado al final del REQ DISC-REQ-color-swap original (locus-backlog.css
@@ -132,38 +132,10 @@
   border-radius: var(--radius-md);
 }
 
-/* INC → rojo */
-.item.bitem[data-type="INC"] { border-left-color: var(--red); }
-.item.bitem[data-type="INC"] .bitem-header {
-  background: color-mix(in srgb, var(--red) 6%, transparent);
-  border-radius: var(--radius-md);
-}
-
 /* DISC → púrpura */
 .item.bitem[data-type="DISC"] { border-left-color: var(--blue); }
 .item.bitem[data-type="DISC"] .bitem-header {
   background: color-mix(in srgb, var(--blue) 5%, transparent);
-  border-radius: var(--radius-md);
-}
-
-/* PRB → naranja */
-.item.bitem[data-type="PRB"] { border-left-color: var(--orange); }
-.item.bitem[data-type="PRB"] .bitem-header {
-  background: color-mix(in srgb, var(--orange) 5%, transparent);
-  border-radius: var(--radius-md);
-}
-
-/* KE → amarillo */
-.item.bitem[data-type="KE"] { border-left-color: var(--yellow); }
-.item.bitem[data-type="KE"] .bitem-header {
-  background: color-mix(in srgb, var(--yellow) 5%, transparent);
-  border-radius: var(--radius-md);
-}
-
-/* CHG → slate */
-.item.bitem[data-type="CHG"] { border-left-color: var(--slate); }
-.item.bitem[data-type="CHG"] .bitem-header {
-  background: color-mix(in srgb, var(--slate) 5%, transparent);
   border-radius: var(--radius-md);
 }
 
@@ -400,11 +372,6 @@
   border-color: var(--purple);
 }
 
-.item.bitem[data-type="INC"] .bitem-effort-dot.on {
-  background: var(--red);
-  border-color: var(--red);
-}
-
 .item.bitem[data-type="DISC"] .bitem-effort-dot.on {
   background: var(--blue);
   border-color: var(--blue);
@@ -521,11 +488,6 @@
 .item.bitem[data-type="REQ"] .bitem-effort-dot-sm.on {
   background: var(--purple);
   border-color: var(--purple);
-}
-
-.item.bitem[data-type="INC"] .bitem-effort-dot-sm.on {
-  background: var(--red);
-  border-color: var(--red);
 }
 
 .item.bitem[data-type="DISC"] .bitem-effort-dot-sm.on {
@@ -735,10 +697,6 @@
   background: color-mix(in srgb, var(--purple) 50%, transparent);
 }
 
-.item.bitem[data-type="INC"] .bitem-ac-dot {
-  background: color-mix(in srgb, var(--red) 50%, transparent);
-}
-
 .item.bitem[data-type="DISC"] .bitem-ac-dot {
   background: color-mix(in srgb, var(--blue) 50%, transparent);
 }
@@ -902,6 +860,9 @@
 [data-theme="light"] .idp-ac-dot.idp-type-TKT { --_type-color: #16914c; } /* mismo ajuste de contraste que TKT1-diff-visual */
 .idp-type-chip.idp-type-REQ,  .idp-ac-dot.idp-type-REQ  { --_type-color: var(--purple); }
 .idp-type-chip.idp-type-DISC, .idp-ac-dot.idp-type-DISC { --_type-color: var(--blue); }
+.idp-type-chip.idp-type-PRB,  .idp-ac-dot.idp-type-PRB  { --_type-color: var(--orange); }
+.idp-type-chip.idp-type-KE,   .idp-ac-dot.idp-type-KE   { --_type-color: var(--yellow); }
+.idp-type-chip.idp-type-CHG,  .idp-ac-dot.idp-type-CHG  { --_type-color: var(--slate); }
 
 .idp-header-meta {
   flex: 1;

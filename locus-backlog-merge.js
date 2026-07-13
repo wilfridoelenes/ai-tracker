@@ -1,4 +1,4 @@
-// [PP] mod:50 · autor:Rune · 2026-07-11 23:05 UTC-6
+// [PP] mod:51 · autor:Rune · 2026-07-12 21:53 UTC-6
 // TKT3 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): retirado el bloque
 // `if (_sprintProposal && body) {...}` completo — Step 0 HTML, listeners #mdiff-step0-approve/
 // #mdiff-step0-reject, y el gate de ítems sin sprint (ex T-202606-164, relocalizado en TKT4 al
@@ -1127,7 +1127,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     // T-202606-028: propagar ckptHeaderRole — antes el guard de done en R nunca recibía
     // el rol del header y rechazaba siempre, incluso con QA · Finn. Mismo dato fuente
     // que ckptRol en mergeBacklogFromTG (línea ~130).
-    if (_patchItems.length) applyPatchesFromTG(_patchItems, null, { ckptHeaderRole: _ckptMeta.rol || '' });
+    if (_patchItems.length) applyPatchesFromTG(_patchItems, null, { ckptHeaderRole: _ckptMeta.rol || '', slugMap: diff.slugMap, refIdTitleMap: diff.refIdTitleMap }); // TKT1 (REQ-[pendiente-ID] · CAEL-04): slugMap/refIdTitleMap propagados desde el dry-run — este call site no los pasaba antes (gap preexistente sobre parentId también, no solo code; corregido aquí como consistencia directa con los otros dos call sites, sin ampliar el TKT)
 
     // B-202605-500: aplicar sprints pendientes sobre ítems nuevos (ya existen en getItems() tras onApply)
     const pendingEntries = Object.entries(_mdiffPendingSprints);

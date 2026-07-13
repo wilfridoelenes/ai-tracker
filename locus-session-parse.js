@@ -1,4 +1,4 @@
-// [PP] mod:110 · autor:Rune · 2026-07-12 UTC-6
+// [PP] mod:112 · autor:Rune · 2026-07-12 22:15 UTC-6
 // TKT3 (REQ-[pendiente-ID] · Hallazgo fuera de scope de TKT1, promovido a DISC y evaluado en la
 //   misma sesión): eliminada la función _tryIngestSprintProposal (ingesta legacy Markdown de
 //   sprint_proposal, sin FromParsed) — su único importador (locus-session-save.js) fue retirado
@@ -1967,7 +1967,7 @@ function _parseBatchBlock(blockText) {
 //     mismo comportamiento que TKT2 tenía, ahora emitido desde la resolución en vez de la
 //     persistencia.
 export function _resolveCheckpointBatch(blocks, sessionId) {
-  const _result = { tgItems: [], skipped: [] };
+  const _result = { tgItems: [], patchItems: [], skipped: [] }; // TKT2 (REQ-[pendiente-ID] · CAEL-05): patchItems agregado — antes se descartaba por completo, ningún patch se aplicaba jamás en el flujo batch
   if (!blocks || !blocks.length) return _result;
 
   // Paso 1 (AC2 heredado de TKT3): parsear cada bloque — inválido se marca, no aborta el resto.
@@ -1978,11 +1978,14 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
       _result.skipped.push({ idx, type: 'invalid', reason: r.error });
       return { idx, valid: false };
     }
-    return { idx, valid: true, tgItems: r.tgItems };
+    return { idx, valid: true, tgItems: r.tgItems, patchItems: r.patchItems || [] }; // TKT2: patchItems capturado de _parseBatchBlock — ya lo retornaba (línea 1946), solo se descartaba aquí
   });
 
   // Paso 2: gate de duplicados — [tmp:slug] como code de más de un ítem nuevo en el batch
   // completo, evaluado sobre todos los bloques válidos antes de combinar cualquiera.
+  // TKT2: el gate sigue evaluando solo tgItems — un patch nunca declara un [tmp:slug] como su
+  // propio code de creación (su code referencia un ítem existente o en creación, no se declara
+  // a sí mismo), por lo que no puede colisionar con este gate. Sin cambio de criterio aquí.
   const _slugOwners = new Map(); // slug → idx del primer bloque que lo declaró
   let _dupSlug = null;
   _parsedBlocks.forEach(b => {
@@ -1999,6 +2002,7 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
   if (_dupSlug) {
     const _reason = `${_dupSlug} declarado como código de más de un ítem nuevo en el mismo batch — batch rechazado.`;
     _result.tgItems = [];
+    _result.patchItems = []; // TKT2: rechazo atómico — ningún patch del batch se aplica cuando el batch completo se rechaza (AC del REQ)
     _result.skipped.push({ type: 'rejected', reason: _reason });
     _blogLog('checkpoint-batch-rechazado', '', _reason, 'backlog');
     return _result;
@@ -2006,7 +2010,10 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
 
   // Paso 3 (AC1/AC4): combinar — orden de bloques preserva orden de emisión.
   _parsedBlocks.forEach(b => {
-    if (b.valid) _result.tgItems.push(...b.tgItems);
+    if (b.valid) {
+      _result.tgItems.push(...b.tgItems);
+      _result.patchItems.push(...b.patchItems); // TKT2: mismo criterio de orden que tgItems
+    }
   });
 
   return _result;
@@ -2146,14 +2153,14 @@ export function saveStandaloneCheckpoint() {
     const { raw } = _standaloneLastParsed;
     const _rawBlocks = _splitCheckpointBlocks(raw);
     const syntheticSessId = 'standalone-batch-' + Date.now();
-    const { tgItems, skipped } = _resolveCheckpointBatch(_rawBlocks, syntheticSessId);
+    const { tgItems, patchItems, skipped } = _resolveCheckpointBatch(_rawBlocks, syntheticSessId); // TKT2 (REQ-[pendiente-ID] · CAEL-05): patchItems destructurado — antes se descartaba
 
     const _rejectedEntry = skipped.find(s => s.type === 'rejected');
     if (_rejectedEntry) {
       showToast('warn', `⚠ ${_rejectedEntry.reason}`);
       return;
     }
-    if (!tgItems.length) {
+    if (!tgItems.length && !(patchItems && patchItems.length)) { // TKT2: guard extendido a patchItems — mismo criterio AC-4 del flujo single (línea ~2200)
       showToast('warning', '⚠ Sin ítems para aplicar');
       return;
     }
@@ -2168,17 +2175,25 @@ export function saveStandaloneCheckpoint() {
     // efecto posterior (closeStandaloneCheckpoint/render*/showToast success) y el textarea
     // standalone no se pierde — el founder puede reintentar.
     const _gatedDoApplyBatch = async () => {
+      let _batchMergeResult;
       try {
-        await _applyCheckpointBatch(tgItems);
+        _batchMergeResult = await _applyCheckpointBatch(tgItems); // TKT2: _applyCheckpointBatch ahora retorna mergeResult (antes no retornaba nada) — ver contract_detail
       } catch (err) {
         showToast('error', '✗ No se pudo aplicar el CHECKPOINT');
         return;
+      }
+      // TKT2 (REQ-[pendiente-ID] · CAEL-05): aplicar patches del batch tras el merge — mismo
+      // patrón que _doApply del flujo single (línea ~2236). Antes de este fix, patchItems del
+      // batch se descartaba en _resolveCheckpointBatch y nunca llegaba a ningún punto de aplicación.
+      if (patchItems && patchItems.length && _batchMergeResult) {
+        applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: _batchMergeResult.slugMap, refIdTitleMap: _batchMergeResult.refIdTitleMap, ckptHeaderRole: '' });
       }
       closeStandaloneCheckpoint();
       renderBacklogList();
       renderStats();
       window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-      showToast('success', `✓ ${tgItems.length} ítem${tgItems.length !== 1 ? 's' : ''} aplicado${tgItems.length !== 1 ? 's' : ''} al backlog`);
+      const _totalApplied = tgItems.length + (patchItems ? patchItems.length : 0); // TKT2: badge de conteo incluye patches, mismo criterio ya usado en showMergeDiffPanel (línea 257/965 de locus-backlog-merge.js)
+      showToast('success', `✓ ${_totalApplied} ítem${_totalApplied !== 1 ? 's' : ''} aplicado${_totalApplied !== 1 ? 's' : ''} al backlog`);
       _standaloneLastParsed = null;
     };
 
@@ -2227,7 +2242,7 @@ export function saveStandaloneCheckpoint() {
     // CHECKPOINT. Fix: leer el rol directamente desde ckpt.rol, ya disponible en este closure
     // vía destructuring de _standaloneLastParsed (línea ~1975).
     if (patchItems && patchItems.length) {
-      const patchResult = applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: mergeResult.slugMap, ckptHeaderRole: ckpt.rol || '' });
+      const patchResult = applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: mergeResult.slugMap, refIdTitleMap: mergeResult.refIdTitleMap, ckptHeaderRole: ckpt.rol || '' }); // TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap agregado — mergeResult ya lo trae desde mergeBacklogFromTG
       // Incorporar patches al mergeResult para que el panel diff los muestre (AC-10)
       if (patchResult.patched && patchResult.patched.length) {
         mergeResult.updated = [...(mergeResult.updated || []), ...patchResult.patched];
