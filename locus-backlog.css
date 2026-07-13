@@ -1,3 +1,19 @@
+/* [PP] mod:95 · autor:Nova · 2026-07-12 UTC-6 */
+/* TKT1 (CAEL-08 — REQ DISC-REQ-color-swap, CAEL-07): swap completo de semántico de color
+   DISC↔REQ — DISC pasa de --purple a --blue, REQ pasa de --blue a --purple. Motivo: DISC
+   se reasigna a azul por decisión de founder; sin este swap, DISC y REQ quedarían con el
+   mismo color (colisión, ver auditoría en CHECKPOINT del REQ). Bloques tocados: pill
+   (.item-type-pill.DISC/.REQ, L1757/L1773), familia --idea-* light (:root, ~L3592) y dark
+   ([data-theme="dark"], ~L3671) — origen cambia de var(--purple) a var(--blue), mismas
+   fórmulas color-mix, mismos porcentajes, sin cambio de estructura ni contraste nuevo
+   (par texto/fondo ya auditado en mod:54/mod:39 — ver CHECKPOINT Fase 5 de Finn), y
+   .qdisc-stat-cell--discovery (~L5732) — mismo criterio. NO toca .qdisc-status-header--
+   discovery/--promoted/--descartadas (~L5839) — ya en var(--blue), era la excepción
+   consciente registrada en REQ CAEL-01 (ver comentario ~L5779); tras este swap deja de ser
+   excepción y pasa a ser la norma — el comentario de esa sección queda desactualizado,
+   señalado como Hallazgo fuera de scope en el CHECKPOINT de esta sesión, no corregido aquí
+   por estar fuera del AC de este TKT. TKT2 (CAEL-09, locus-analytics.css) hace el swap
+   equivalente en .ct-pill-req/.ct-pill-disc — archivo distinto, sin overlap. */
 /* [PP] mod:94 · autor:Nova · 2026-07-12 UTC-6 */
 /* TKT1 (CAEL-02 — REQ deuda técnica CSS Purity/código muerto en locus-sprint-planificacion.js):
    agregada .bl-sprint-option-bar-fill al final del archivo — width vía custom property
@@ -1755,8 +1771,8 @@
 }
 
 .item-type-pill.DISC {
-  background: rgb(124 106 247 / 15%);
-  color: var(--purple);
+  background: rgb(56 189 248 / 15%);
+  color: var(--blue);
 }
 
 .item-type-pill.INC {
@@ -1771,8 +1787,8 @@
 }
 
 .item-type-pill.REQ {
-  background: rgb(56 189 248 / 15%);
-  color: var(--blue);
+  background: rgb(124 106 247 / 15%);
+  color: var(--purple);
 }
 
 /* Tipos ITIL derivados — Gen 2 — alineados BR-Ecosystem §4 */
@@ -3584,18 +3600,19 @@
   --mm-bar-js: var(--green);
   --mm-bar-css: var(--blue);
   --mm-bar-html: var(--amber);
-  /* INC-[pendiente-ID]: --idea-hue:42 (naranja) eliminado — desconectado de --purple, causa
-     raíz del bug "DISC renderiza naranja". Todos los derivados ahora vienen de var(--purple)
-     vía color-mix — mismo token que .bitem-type-DISC (locus-backlog-item.css) y
-     .item-type-pill.DISC (locus-backlog-item.css §Colores declarados Gen2). Contraste
-     verificado: badge (idea-badge-text sobre idea-badge-bg) ≈ 5.3:1 — pasa 4.5:1 AA. */
-  --idea-color:         var(--purple);
-  --idea-color-dim:     color-mix(in srgb, var(--purple) 65%, black);
-  --idea-bg:            color-mix(in srgb, var(--purple) 6%, white);
-  --idea-bg-hover:      color-mix(in srgb, var(--purple) 10%, white);
-  --idea-border:        color-mix(in srgb, var(--purple) 30%, white);
-  --idea-badge-bg:      var(--purple);
-  --idea-badge-text:    color-mix(in srgb, var(--purple) 12%, black);
+  /* INC-[pendiente-ID] (histórico): --idea-hue:42 (naranja) eliminado — desconectado de
+     --purple, causa raíz del bug "DISC renderiza naranja". TKT1 (CAEL-08 — REQ
+     DISC-REQ-color-swap): origen reasignado de var(--purple) a var(--blue) — DISC pasa a
+     azul, mismo token que .bitem-type-DISC (locus-backlog-item.css) y .item-type-pill.DISC
+     (L1757). Mismas fórmulas color-mix, mismos porcentajes — sin combinación texto/fondo
+     nueva, par ya auditado (ver CHECKPOINT Fase 5 de Finn). */
+  --idea-color:         var(--blue);
+  --idea-color-dim:     color-mix(in srgb, var(--blue) 65%, black);
+  --idea-bg:            color-mix(in srgb, var(--blue) 6%, white);
+  --idea-bg-hover:      color-mix(in srgb, var(--blue) 10%, white);
+  --idea-border:        color-mix(in srgb, var(--blue) 30%, white);
+  --idea-badge-bg:      var(--blue);
+  --idea-badge-text:    color-mix(in srgb, var(--blue) 12%, black);
   --idea-discard-op:    0.45;
 }
 
@@ -3665,15 +3682,17 @@
 }
 
 [data-theme="dark"] {
-  /* INC-[pendiente-ID]: derivados de var(--purple), mismo criterio que el bloque :root.
-     Mezcla con black en vez de white — fondo oscuro requiere tintes oscuros, texto/label
-     claros (--idea-color-dim más luminoso que en light) para mantener contraste. */
-  --idea-bg:            color-mix(in srgb, var(--purple) 12%, black);
-  --idea-bg-hover:      color-mix(in srgb, var(--purple) 18%, black);
-  --idea-border:        color-mix(in srgb, var(--purple) 30%, black);
-  --idea-badge-bg:      var(--purple);
-  --idea-badge-text:    color-mix(in srgb, var(--purple) 8%, black);
-  --idea-color-dim:     color-mix(in srgb, var(--purple) 75%, white);
+  /* INC-[pendiente-ID] (histórico): derivados alineados al bloque :root. TKT1 (CAEL-08 —
+     REQ DISC-REQ-color-swap): origen reasignado de var(--purple) a var(--blue), mismo
+     criterio que el bloque :root de arriba. Mezcla con black en vez de white — fondo
+     oscuro requiere tintes oscuros, texto/label claros (--idea-color-dim más luminoso
+     que en light) para mantener contraste. */
+  --idea-bg:            color-mix(in srgb, var(--blue) 12%, black);
+  --idea-bg-hover:      color-mix(in srgb, var(--blue) 18%, black);
+  --idea-border:        color-mix(in srgb, var(--blue) 30%, black);
+  --idea-badge-bg:      var(--blue);
+  --idea-badge-text:    color-mix(in srgb, var(--blue) 8%, black);
+  --idea-color-dim:     color-mix(in srgb, var(--blue) 75%, white);
 }
 
 /* ── Card base — bitem--idea ───────────────────────────────── */
@@ -5730,8 +5749,8 @@
 }
 
 .qdisc-stat-cell--discovery {
-  background: rgb(124 106 247 / 12%);
-  border-color: rgb(124 106 247 / 40%);
+  background: rgb(56 189 248 / 12%);
+  border-color: rgb(56 189 248 / 40%);
 }
 
 .qdisc-stat-cell--promoted {
@@ -5748,7 +5767,7 @@
 }
 
 .qdisc-stat-cell--discovery .qdisc-stat-label {
-  color: var(--purple);
+  color: var(--blue);
 }
 
 .qdisc-stat-cell--promoted .qdisc-stat-label {
@@ -5765,7 +5784,7 @@
 }
 
 .qdisc-stat-cell--discovery .qdisc-stat-n {
-  color: var(--purple);
+  color: var(--blue);
 }
 
 .qdisc-stat-cell--promoted .qdisc-stat-n {
