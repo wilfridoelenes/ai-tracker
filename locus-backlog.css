@@ -1,4 +1,4 @@
-/* [PP] mod:93 · autor:Nova · 2026-07-12 UTC-6 */
+/* [PP] mod:94 · autor:Nova · 2026-07-12 UTC-6 */
 /* TKT1 (CAEL-02 — REQ deuda técnica CSS Purity/código muerto en locus-sprint-planificacion.js):
    agregada .bl-sprint-option-bar-fill al final del archivo — width vía custom property
    --sprint-option-bar-w en vez de propiedad width literal en style= inline (violación
@@ -5792,6 +5792,35 @@
   border-radius: var(--radius-md) var(--radius-md) 0 0;
   border: 1px solid var(--border);
   border-bottom: none;
+  cursor: pointer;
+}
+
+/* TKT1 (REQ CAEL-04 · design_intent: QDISC-headers-colapsables): foco de teclado — mismo
+   patrón ya validado en .sps-btn-menu (ver _Locus-css-ref §Accesibilidad), sin regla de color
+   propia. */
+.qdisc-status-header:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+/* TKT1 (REQ CAEL-04): grupo de contador + chevron, mismo gap que el resto de headers flex. */
+.qdisc-status-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qdisc-status-chevron {
+  transition: transform .15s;
+}
+
+.qdisc-status-group.is-collapsed .qdisc-status-chevron {
+  transform: rotate(-90deg);
+}
+
+/* TKT1 (REQ CAEL-04): colapso instantáneo — sin transition de max-height, fuera de scope
+   declarado en no_incluye del TKT. */
+.qdisc-status-group.is-collapsed .qdisc-status-body {
+  display: none;
 }
 
 .qdisc-status-title {

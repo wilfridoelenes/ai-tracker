@@ -1,4 +1,4 @@
-// [PP] mod:7 · autor:Rune · 2026-07-12 UTC-6
+// [PP] mod:8 · autor:Rune · 2026-07-12 UTC-6
 // locus-backlog-qdisc.js
 // Responsabilidad: renderQDiscPanel — render del sub-tab Q-DISC (Discoveries: DISC, único tipo
 //   aceptado — __BR-Ecosystem §5) — + su listener de sub-tab y su re-render reactivo sobre
@@ -174,6 +174,33 @@ export function renderQDiscPanel() {
   _renderQDiscStatusGroup('promoted', 'qdisc-promoted-body', 'qdisc-promoted-count');
   _renderQDiscStatusGroup('descartado', 'qdisc-descartadas-body', 'qdisc-descartadas-count');
 }
+
+// TKT2 (REQ CAEL-04 · design_intent: QDISC-headers-colapsables): toggle de colapso por header —
+// click o teclado (Enter/Space), independiente por grupo (.qdisc-status-group). Delegación única
+// sobre #sspanel-qdisc — los 3 headers existen siempre en el DOM (shell estático, ver index.html),
+// no requieren re-adjuntar en cada renderQDiscPanel() como sí hacen los contenedores de cards.
+function _initQDiscStatusToggles() {
+  const panel = document.getElementById('sspanel-qdisc');
+  if (!panel) return;
+  function toggle(header) {
+    const group = header.closest('.qdisc-status-group');
+    if (!group) return;
+    const collapsed = group.classList.toggle('is-collapsed');
+    header.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+  }
+  panel.addEventListener('click', e => {
+    const header = e.target.closest('.qdisc-status-header');
+    if (header) toggle(header);
+  });
+  panel.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const header = e.target.closest('.qdisc-status-header');
+    if (!header) return;
+    e.preventDefault();
+    toggle(header);
+  });
+}
+_initQDiscStatusToggles();
 
 // B-202606-052 → TKT-C1: listener sub-tab Discoveries (Q-DISC) — reemplaza al listener único
 // sstab-btn-icebox.

@@ -1,4 +1,4 @@
-<!-- [PP] mod:115 · autor:Rune · 2026-07-12 UTC-6 -->
+<!-- [PP] mod:116 · autor:Rune · 2026-07-12 UTC-6 -->
 <!-- TKT2 (REQ CAEL-01 · Q-INC tab top-level): #tab-incidentes agregado como tab de primer nivel,
      #sspanel-qinc/#sstab-btn-qinc removidos del sub-tab de Backlog. Ver locus-ui-shell.js/locus-backlog-render.js. -->
 <!-- TKT2 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): agregado shell estático
@@ -591,24 +591,37 @@
            (mismo nodo, mismo pipeline de filtros/chips vía _renderZonePanel — sin cambio de
            comportamiento). Promoted/Descartadas son shells nuevos, poblados por
            _renderQDiscStatusGroup() (locus-backlog-qdisc.js) — sin chips, fuera de scope. -->
+      <!-- TKT2 (REQ CAEL-04 · design_intent: QDISC-headers-colapsables): tabindex/role/
+           aria-expanded para toggle de colapso por click y teclado — ver locus-backlog-qdisc.js
+           _initQDiscStatusToggles(). Chevron con carácter unicode ▾ — mismo precedente que
+           .bl-done-arrow (sin fuente de iconos cargada en el proyecto, ver grep de header). -->
       <div class="qdisc-status-group" id="qdisc-discovery-group">
-        <div class="qdisc-status-header qdisc-status-header--discovery">
+        <div class="qdisc-status-header qdisc-status-header--discovery" tabindex="0" role="button" aria-expanded="true">
           <span class="qdisc-status-title">Discovery</span>
-          <span class="qdisc-status-count" id="qdisc-discovery-count">0</span>
+          <span class="qdisc-status-header-meta">
+            <span class="qdisc-status-count" id="qdisc-discovery-count">0</span>
+            <span class="qdisc-status-chevron" aria-hidden="true">▾</span>
+          </span>
         </div>
         <div class="qdisc-status-body" id="qdisc-panel-body"></div>
       </div>
       <div class="qdisc-status-group" id="qdisc-promoted-group">
-        <div class="qdisc-status-header qdisc-status-header--promoted">
+        <div class="qdisc-status-header qdisc-status-header--promoted" tabindex="0" role="button" aria-expanded="true">
           <span class="qdisc-status-title">Promoted</span>
-          <span class="qdisc-status-count" id="qdisc-promoted-count">0</span>
+          <span class="qdisc-status-header-meta">
+            <span class="qdisc-status-count" id="qdisc-promoted-count">0</span>
+            <span class="qdisc-status-chevron" aria-hidden="true">▾</span>
+          </span>
         </div>
         <div class="qdisc-status-body" id="qdisc-promoted-body"></div>
       </div>
       <div class="qdisc-status-group" id="qdisc-descartadas-group">
-        <div class="qdisc-status-header qdisc-status-header--descartadas">
+        <div class="qdisc-status-header qdisc-status-header--descartadas" tabindex="0" role="button" aria-expanded="true">
           <span class="qdisc-status-title">Descartadas</span>
-          <span class="qdisc-status-count" id="qdisc-descartadas-count">0</span>
+          <span class="qdisc-status-header-meta">
+            <span class="qdisc-status-count" id="qdisc-descartadas-count">0</span>
+            <span class="qdisc-status-chevron" aria-hidden="true">▾</span>
+          </span>
         </div>
         <div class="qdisc-status-body" id="qdisc-descartadas-body"></div>
       </div>
