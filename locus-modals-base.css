@@ -1,5 +1,8 @@
-/* [PP] mod:2 · autor:Nova · 2026-07-08 UTC-6 */
+/* [PP] mod:3 · autor:Nova · 2026-07-13 UTC-6 */
 /* locus-modals-base.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
+/* Restaurado (CAEL-06 · TKT1 CAEL-07): .modal--ingest y clases relacionadas — no persistieron en
+   la entrega anterior (ver _PP-session-handoff-2026-07-13.md §1). Reconstruido contra el HTML real
+   (#ingest-modal-overlay, index.html mod:120) — sin cambios de markup, solo estilos. */
 
 /* === locus-modals.js ===
    Funciones: _gconfirmOpen · closeModal · _focusFirstInteractive · _saveModalTrigger */
@@ -375,6 +378,90 @@
 .modal--standalone-ckpt {
   max-width: 680px;
   width: 100%;
+}
+
+/* ── .modal--ingest — modal de ingesta unificado (CAEL-06 TKT1) ── */
+.modal--ingest {
+  max-width: 560px;
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.ingest-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 18px 12px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.ingest-modal-title {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.ingest-modal-subtitle {
+  font-size: var(--text-xs);
+  color: var(--text3);
+  margin: 4px 0 0;
+}
+
+.ingest-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--text3);
+  cursor: pointer;
+  font-size: var(--text-lg);
+  line-height: 1;
+  transition: var(--trans-fast);
+  flex-shrink: 0;
+}
+
+.ingest-modal-close:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.ingest-modal-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Padding escopeado para componentes reutilizados dentro de .modal--ingest (padding:0 en el
+   modal para que el header quede flush) — no se toca .paste-ta-wrap/.sc-diff-preview/.sc-stepper
+   base, que se reutilizan sin cambio en otros contextos. */
+.modal--ingest .paste-ta-wrap,
+.modal--ingest .sc-diff-preview,
+.modal--ingest .sc-stepper {
+  margin-left: 18px;
+  margin-right: 18px;
+}
+
+.modal--ingest .paste-ta-wrap {
+  margin-top: 12px;
+}
+
+.modal--ingest .sc-diff-preview {
+  margin-top: 10px;
+}
+
+.modal--ingest .sc-stepper {
+  margin-top: 12px;
+  margin-bottom: 16px;
 }
 
 .modal-actions--mt {

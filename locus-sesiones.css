@@ -1,4 +1,13 @@
-/* [PP] mod:21 · autor:Nova · 2026-07-13 08:40 UTC-6 */
+/* [PP] mod:23 · autor:Nova · 2026-07-13 UTC-6 */
+/* Base: zip mod:21 (fuente de verdad confirmada por founder — ver _PP-session-handoff-2026-07-13.md
+   §1). El archivo "aparte" (mod:22) se descarta como base de grid — quedó a medio camino
+   (grid-template-columns con 2 valores pero 3 hijos reales en el DOM, .tracker-col--card intacta
+   pese al comentario que decía "Col1 retirada"). Su rename de token --text3→--hint NO se reaplica
+   aquí — sin el archivo real no hay forma de verificar el diff completo (132 usos de --text3
+   restantes en esta base); tratado como fuera de scope de este TKT, no como pérdida silenciosa.
+   mod salta de 21 a 23 (no 22) para no colisionar con el header ya estampado en "aparte". */
+/* CAEL-06 · TKT2 (CAEL-08): retiro de Col1 (.tracker-col--card) — grid de 3 a 2 columnas.
+   #log-card relocalizado como overlay propio (.log-overlay, patrón .modal-overlay/.open). */
 /* Fix directo en sesión (Auditoría Nova IDP, Hallazgo #3/#4): :focus-visible agregado a
    .idp-dep-chip base — cubre por cascada las variantes parent/depends_on/blocks/
    derived_items/bloqueado-por, ahora focusable via tabindex (locus-backlog-panel.js
@@ -87,36 +96,9 @@
 }
 
 /* Detail panel */
-
-/* R-202605-005 · consolidado desde locus-overrides.css */
-.tracker-detail {
-  padding: 0.75rem 1.5rem 5rem;
-  max-width: 1600px;
-  flex: 1;
-
-  /* B-202604-XXX: reducido de 1.5rem a 0.75rem top */
-  min-width: 0;
-  overflow-y: auto;
-
-  /* B-fix: scroll para llegar al botón Guardar cuando el card es alto */
-}
-
-/* T-202604-320: card ocupa ancho disponible */
-.tracker-detail > .card,
-.tracker-detail #grid > .card,
-/* T-202604-320-b: cuando preview abierto, card llena el espacio — sin gap muerto */
-#tab-sesiones.preview-open .tracker-detail > .card,
-#tab-sesiones.preview-open .tracker-detail #grid > .card,
-.tracker-detail-full {
-  width: 100%;
-  box-sizing: border-box;
-}
-
-#tab-sesiones.preview-open .tracker-detail-full {
-  max-width: 100%;
-  margin-left: 0;
-  margin-right: 0;
-}
+/* .tracker-detail / #grid / .tracker-detail-full retiradas (CAEL-06 TKT2) — el wrapper
+   #tracker-detail y su columna (#tracker-col-card) salen del DOM; #tracker-detail-empty
+   se relocaliza a Col2 con sus estilos propios (.tracker-detail-empty*, más abajo, sin cambio). */
 
 /* R-202604-068 AC-2: "no selection" empty state */
 .tracker-detail-empty-hint {
@@ -155,6 +137,37 @@
   font-size: var(--text-sm);
   color: var(--text3);
   opacity: 0.5;
+}
+
+/* ── .log-overlay — #log-card relocalizado como overlay propio (CAEL-06 TKT2, Opción B) ──
+   Mismo patrón que .modal-overlay/.open (ver locus-modals-base.css) — abierto por #log-open-btn
+   en el header de Col2. .log-card conserva su CSS interno sin cambio; aquí solo se ajusta su
+   comportamiento como contenido de overlay en vez de bloque inline dentro del grid. */
+.log-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: var(--z-overlay);
+  background: rgb(0 0 0 / 55%);
+  padding: 1rem;
+  box-sizing: border-box;
+}
+
+.log-overlay.open {
+  display: flex;
+}
+
+.log-overlay .log-card {
+  margin-top: 0;
+  max-width: 640px;
+  max-height: min(80vh, 720px);
+  width: 100%;
+  overflow-y: auto;
 }
 
 .log-card {
@@ -290,12 +303,7 @@
   background: var(--surface2);
   border-bottom: 1px solid var(--border);
 }
-/* Grid — kept for archived section inside detail */
-#grid {
-  display: block;
-  padding-top: 8px;
-  width: 100%;
-}
+/* #grid retirado (CAEL-06 TKT2) — el id ya no existe en el DOM, ver nota en Detail panel arriba */
 
 /* tracker-status-bar: now lives inside tracker-detail, always renderable */
 
@@ -4075,7 +4083,7 @@
 /* ── Layout base: 3 columnas en desktop ── */
 .tracker-3col {
   display: grid;
-  grid-template-columns: 40fr 60fr 0fr;
+  grid-template-columns: 100fr 0fr;
   grid-template-rows: 1fr;
   flex: 1;
   min-height: 0;
@@ -4084,9 +4092,9 @@
   transition: grid-template-columns var(--transition-base);
 }
 
-/* Layout expandido — 3 columnas al seleccionar sesión */
+/* Layout expandido — 2 columnas al seleccionar sesión (Col1/card retirada — CAEL-06 TKT2) */
 #tab-sesiones.preview-open .tracker-3col {
-  grid-template-columns: 30fr 40fr 30fr;
+  grid-template-columns: 40fr 30fr;
 }
 
 .tracker-col {
@@ -4094,12 +4102,6 @@
   flex-direction: column;
   overflow: hidden;
   min-width: 0;
-}
-
-.tracker-col--card {
-  overflow-y: auto;
-  border-right: 1px solid var(--border);
-  scrollbar-gutter: stable; /* B-202604-XXX: evita que scrollbar interrumpa el layout */
 }
 
 .tracker-col--hist {
@@ -4265,13 +4267,6 @@
 }
 
 /* ── END T-202606-052 ── */
-
-/* tracker-detail dentro de col — quitar full-width override */
-.tracker-col--card .tracker-detail--full {
-  width: 100%;
-  max-width: none;
-  margin-left: 0;
-}
 
 /* ── Tab pills mobile — ocultas en desktop ── */
 .tracker-col-tabs {
@@ -5456,6 +5451,33 @@ body.body--focus-mode::after {
   border-radius: var(--radius-md-plus);
   padding:1px 7px;
   flex-shrink:0;
+}
+
+/* ── #log-open-btn — abre .log-overlay (CAEL-06 TKT2) — mismo patrón que .log-card-close ── */
+#log-open-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--text3);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  line-height: 1;
+  transition: var(--trans-fast);
+}
+
+#log-open-btn:hover {
+  color: var(--text);
+  background: var(--surface2);
+}
+
+#log-open-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .tracker-mini-hist-list {

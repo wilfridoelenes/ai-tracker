@@ -1,4 +1,10 @@
-<!-- [PP] mod:120 · autor:Rune · 2026-07-13 UTC-6 -->
+<!-- [PP] mod:121 · autor:Nova · 2026-07-13 UTC-6 -->
+<!-- CAEL-06 · TKT2 (CAEL-08): Col1 (#tracker-col-card) retirada — grid de 3 a 2 columnas.
+     #tracker-detail-empty relocalizado a Col2. #tracker-grid-header y #grid retirados (sin
+     consumidor de UI tras retiro de Col1 — locus-sesiones-stats.js:168 sigue leyendo
+     #tracker-grid-header por getElementById; impacto lateral para Rune, ver CHECKPOINT).
+     #log-card relocalizado como overlay propio (.log-overlay) — abierto por #log-open-btn
+     en header de Col2. -->
 <!-- INC-[pendiente-ID] (Doc Log roto): agregado #btn-view-doclog único en .tpl-sidebar-actions
      (#tpl-toolbar) — locus-docs.js mod:15 y locus-doc-log.js mod:3 ya esperaban este botón desde
      su migración pero index.html nunca se actualizó. Eliminados los 3 botones obsoletos sin listener
@@ -275,24 +281,17 @@
 
   <div class="tracker-3col" id="tracker-3col">
 
-    <!-- Columna 1: card del Worker — ingesta de CHECKPOINT -->
-    <div class="tracker-col tracker-col--card" id="tracker-col-card">
-
-      <div class="tracker-detail tracker-detail--full" id="tracker-detail">
-        <div class="tracker-detail-empty" id="tracker-detail-empty">
-          <div class="tracker-detail-empty-icon">→</div>
-          <div class="tracker-detail-empty-text">Selecciona un Worker</div>
-          <div class="tracker-detail-empty-hint">Selecciona un Worker para ver su tarjeta de sesión.</div>
-        </div>
-        <div id="tracker-grid-header"></div>
-        <div id="grid"></div>
-        <div class="log-card" id="log-card"></div>
-      </div>
-
-    </div>
-
-    <!-- Columna 2: checkpoint en curso (sticky) + historial de sesiones (scrolleable) -->
+    <!-- Columna 1 (checkpoint/historial) — Col1 original (card del Worker) retirada, CAEL-06 TKT2.
+         La ingesta de CHECKPOINT vive ahora en #ingest-modal-overlay (TKT1, CAEL-07). -->
     <div class="tracker-col tracker-col--hist" id="tracker-col-hist">
+
+      <!-- #tracker-detail-empty relocalizado desde la Col1 retirada — mismo markup/clases,
+           sin cambio de comportamiento (visibilidad la sigue controlando JS). -->
+      <div class="tracker-detail-empty" id="tracker-detail-empty">
+        <div class="tracker-detail-empty-icon">→</div>
+        <div class="tracker-detail-empty-text">Selecciona un Worker</div>
+        <div class="tracker-detail-empty-hint">Selecciona un Worker para ver su tarjeta de sesión.</div>
+      </div>
 
       <!-- AC-1: sección checkpoint en curso — sticky arriba, oculta si no hay checkpoint -->
       <div class="tracker-ckpt-section is-hidden" id="tracker-ckpt-section"></div>
@@ -307,6 +306,7 @@
             <span class="tracker-mini-hist-title" id="tracker-mini-hist-title">Sesiones</span>
             <span class="tracker-mini-hist-last" id="tracker-mini-hist-last"></span>
             <span class="tracker-mini-hist-count is-hidden" id="tracker-mini-hist-count"></span>
+            <button id="log-open-btn" type="button" aria-label="Ver historial de log">📋</button>
           </div>
           <div class="tracker-mini-hist-list" id="tracker-mini-hist-list">
             <div class="tracker-mini-hist-empty" id="tracker-mini-hist-empty">
@@ -324,7 +324,7 @@
 
     </div>
 
-    <!-- Columna 3: detalle de sesión seleccionada (reutilizada sin cambios) -->
+    <!-- Columna 2 (antes Columna 3): detalle de sesión seleccionada (reutilizada sin cambios) -->
     <div class="tracker-preview" id="tracker-preview">
       <div class="tracker-preview-empty" id="tracker-preview-empty">
         <span class="tracker-preview-empty-icon">←</span>
@@ -338,6 +338,12 @@
     </div>
 
   </div><!-- /tracker-3col -->
+
+  <!-- #log-overlay — #log-card relocalizado como overlay propio (CAEL-06 TKT2, Opción B).
+       Mismo patrón que #ingest-modal-overlay/#merge-diff-overlay: .modal-overlay/.open vía JS. -->
+  <div class="log-overlay" id="log-overlay" role="dialog" aria-modal="true">
+    <div class="log-card" id="log-card"></div>
+  </div>
 
   <!-- [pendiente-ID]: aria-live="polite" + aria-atomic + role="region" + tabindex para gestión de foco -->
   <div class="item-viz-overlay is-hidden" id="item-viz-overlay"
