@@ -1,3 +1,9 @@
+// [PP] mod:14 · autor:Rune · 2026-07-13 UTC-6
+// INC-[pendiente-ID] fix real aplicado: mod:13 documentó "getCurrentTab importado" pero
+// el import y el reemplazo del guard nunca se escribieron en el código — típeo de sesión
+// interrumpida. getCurrentTab() ahora sí importado (locus-ui-shell.js) y consumido en la
+// línea del guard. Detectado en pendiente #1 (grep exhaustivo post-cierre del INC) — mismo
+// patrón de gap doc-vs-código que motivó la auditoría original.
 // [PP] mod:13 · autor:Rune · 2026-07-13 UTC-6
 // INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true.
 // Guard "T-202605-117: skip render si tab Analytics no es el visible" nunca ejecutaba —
@@ -32,7 +38,7 @@ import { navigateToItem } from './locus-item-navigator.js'; // TKT1 (REQ CAEL-04
 
 import { _getActiveProjectFilter, getAllProjectsSprints, getAllSessions, getProjectById, getState } from './locus-storage.js';
 
-import { esc, switchTab } from './locus-ui-shell.js';
+import { esc, getCurrentTab, switchTab } from './locus-ui-shell.js';
 import { itemKind } from './locus-backlog-core.js'; // TKT-D1: itemKind(item) — clasificación Gen2, no letra Gen1
 
 // locus-analytics-render.js
@@ -54,7 +60,7 @@ export async function renderAnalytics() {
   _analyticsDirty = false;
   // T-202605-117: Guard de tab activo — skip render si el tab Analytics no es el visible.
   // AC-4/AC-5 (excepción Command Palette) removidas — módulo deprecado, ver locus-command-palette.js.
-  if (typeof currentTab !== 'undefined' && currentTab !== 'analytics') return;
+  if (getCurrentTab() !== 'analytics') return;
 
   const container = document.getElementById('tab-analytics-inner');
   if (!container) return;
