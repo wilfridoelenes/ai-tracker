@@ -1,4 +1,11 @@
-/* [PP] mod:51 · autor:Nova · 2026-07-12 UTC-6 */
+/* [PP] mod:52 · autor:Nova · 2026-07-12 UTC-6 */
+/* Ad-hoc (sin REQ/TKT vía Cael, ítem directo de founder): fila DISC en Q-DISC rediseñada
+   de card boxeada a fila flat tipo inbox — ver locus-backlog.css mod:96 para el bloque
+   principal. Aquí: comentarios "DISC → púrpura"/"REQ → azul" corregidos (L135/128,
+   Patch — dueña presente, sin cambio de valor, solo de texto desfasado) + acento de
+   .bitem-type-block reducido a texto plano sin caja para [data-type="DISC"] + glow
+   legado de .item[data-type="DISC"] (locus-backlog.css L1260-1263, box-shadow púrpura,
+   especificidad 0,2,0) neutralizado vía .item.bitem[data-type="DISC"] (0,3,0). */
 /* TKT1 (CAEL-11 — REQ DISC-REQ-color-swap-locus-backlog-item, CAEL-10): swap DISC↔REQ en
    .bitem-type-DISC/.bitem-type-REQ (L70/L82) y .mdiff-queue-badge--qdisc (~L3302) — cierre
    del gap registrado al final del REQ DISC-REQ-color-swap original (locus-backlog.css
@@ -125,18 +132,45 @@
   border-radius: var(--radius-md);
 }
 
-/* REQ → azul */
+/* REQ → púrpura */
 .item.bitem[data-type="REQ"] { border-left-color: var(--purple); }
 .item.bitem[data-type="REQ"] .bitem-header {
   background: color-mix(in srgb, var(--purple) 5%, transparent);
   border-radius: var(--radius-md);
 }
 
-/* DISC → púrpura */
+/* DISC → azul */
 .item.bitem[data-type="DISC"] { border-left-color: var(--blue); }
 .item.bitem[data-type="DISC"] .bitem-header {
   background: color-mix(in srgb, var(--blue) 5%, transparent);
   border-radius: var(--radius-md);
+}
+
+/* Fila DISC — concepto de inbox, sin glow legado ni chip de tipo boxeado.
+   box-shadow:none neutraliza el glow púrpura de .item[data-type="DISC"]
+   (locus-backlog.css L1260-1263, especificidad 0,2,0) — este selector es 0,3,0. */
+.item.bitem[data-type="DISC"] {
+  box-shadow: none;
+}
+
+.item.bitem[data-type="DISC"] .bitem-type-block {
+  width: auto;
+  height: auto;
+  flex-direction: row;
+  border: none;
+  background: none;
+  gap: 0;
+}
+
+.item.bitem[data-type="DISC"] .bitem-type-letter {
+  font-size: var(--text-2xs);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--idea-color-dim);
+}
+
+.item.bitem[data-type="DISC"] .bitem-type-label {
+  display: none;
 }
 
 /* Descartados y done: anular tint — no compiten con los patrones de rayas */

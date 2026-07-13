@@ -1,4 +1,11 @@
-/* [PP] mod:95 · autor:Nova · 2026-07-12 UTC-6 */
+/* [PP] mod:96 · autor:Nova · 2026-07-12 UTC-6 */
+/* Ad-hoc (sin REQ/TKT vía Cael, ítem directo de founder): rediseño de fila DISC en Q-DISC —
+   de card boxeada (wash 4 caras, borde punteado, glow) a fila flat tipo inbox (Linear/Things).
+   Reemplaza el bloque .bitem--idea completo (mod:95, L3698-3816: card base, ::before muerto
+   sin content, type-block duplicado, quick-actions siempre visibles). El acento de tipo
+   (border-left + tint de header) ahora lo resuelve exclusivamente .item.bitem[data-type="DISC"]
+   en locus-backlog-item.css mod:52 — esta capa solo cubre lo exclusivo de la idea: hover,
+   acciones bajo hover/foco, badges no aplicables. Sin cambio HTML/JS. */
 /* TKT1 (CAEL-08 — REQ DISC-REQ-color-swap, CAEL-07): swap completo de semántico de color
    DISC↔REQ — DISC pasa de --purple a --blue, REQ pasa de --blue a --purple. Motivo: DISC
    se reasigna a azul por decisión de founder; sin este swap, DISC y REQ quedarían con el
@@ -3695,59 +3702,42 @@
   --idea-color-dim:     color-mix(in srgb, var(--blue) 75%, white);
 }
 
-/* ── Card base — bitem--idea ───────────────────────────────── */
-.bitem--idea {
-  background:    var(--idea-bg);
-  border-color:  var(--idea-border);
-  border-style:  dashed;
-  border-width:  1.5px;
-}
-
+/* ── Fila DISC — concepto de inbox (Linear/Things), sin card boxing ──────
+   El acento de tipo (border-left + tint de header) lo resuelve
+   .item.bitem[data-type="DISC"] en locus-backlog-item.css mod:52. Esta capa
+   solo cubre lo exclusivo de la idea: hover, acciones bajo hover/foco,
+   badges no aplicables al estado de menor madurez del backlog. */
 .bitem--idea:hover {
-  background:    var(--idea-bg-hover);
-  border-color:  var(--idea-color-dim);
+  background: var(--idea-bg-hover);
 }
 
-.bitem--idea::before {
-  background: var(--idea-color);
-}
-
-/* ── Badge de tipo P — más prominente que T / R / B ───────── */
-.bitem--idea .bitem-type-block {
-  border-color:  var(--idea-border);
-  background:    var(--idea-bg-hover);
-}
-
-.bitem--idea .bitem-type-letter {
-  color:        var(--idea-badge-text);
-  background:   var(--idea-badge-bg);
-  font-size: var(--text-2xs);
-  font-weight:  700;
-  padding:      3px 7px;
-  letter-spacing: 0.06em;
-}
-
-.bitem--idea .bitem-type-label {
-  font-size: var(--text-3xs);
-  font-weight:  700;
-  color:        var(--idea-color-dim);
-  letter-spacing: 0.04em;
-}
-
-/* ── Effort dots — ocultos en P (pendiente y descartado) ───── */
 .bitem--idea .bitem-effort-dots,
 .bitem--idea .bitem-effort-display {
   display: none;
 }
 
-/* ── Quick actions inline — siempre visibles en card P ─────── */
+/* Quick actions — ocultas por defecto, reveladas en hover/foco.
+   Antes: opacity/visibility forzados a 1 siempre — competían con el título
+   en reposo. Un DISC es la unidad menos madura del backlog, no debe pesar
+   visualmente más que un TKT. */
 .bitem--idea .item-quick-actions {
   display:        flex;
   align-items:    center;
   gap:            6px;
+  opacity:        0;
+  pointer-events: none;
+  transition:     opacity 0.15s var(--ease-out);
+}
+
+.bitem--idea .bitem-header:hover .item-quick-actions,
+.bitem--idea .bitem-header:focus-within .item-quick-actions,
+.bitem--idea .item-quick-actions:focus-within {
   opacity:        1;
-  visibility:     visible;
   pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bitem--idea .item-quick-actions { transition: none; }
 }
 
 .bitem--idea .btn-discard-idea {
@@ -3758,19 +3748,27 @@
   font-weight:   600;
   border-radius: var(--radius-sm);
   padding:       3px 9px;
-  border:        1px solid transparent;
+  border:        1px solid var(--idea-border);
   cursor:        pointer;
   transition:    background 0.15s var(--ease-out), color 0.15s var(--ease-out), border-color 0.15s var(--ease-out), filter 0.15s var(--ease-out);
   white-space:   nowrap;
   background:   transparent;
   color:        var(--idea-color-dim);
-  border-color: var(--idea-border);
 }
 
 .bitem--idea .btn-promote {
+  display:       inline-flex;
+  align-items:   center;
+  gap:           4px;
+  font-size: var(--text-2xs);
+  font-weight:   600;
+  border-radius: var(--radius-sm);
+  padding:       3px 9px;
+  border:        1px solid var(--idea-color);
+  cursor:        pointer;
+  white-space:   nowrap;
   background:   var(--idea-color);
   color:        var(--idea-badge-text);
-  border-color: var(--idea-color);
 }
 
 .bitem--idea .btn-promote:hover {
@@ -3791,9 +3789,8 @@
 /* ── P descartado — peso visual reducido ────────────────────── */
 .bitem--idea.bitem--discarded,
 .bitem--idea.is-discarded {
-  opacity:      var(--idea-discard-op);
-  border-style: dashed;
-  background:   transparent;
+  opacity:    var(--idea-discard-op);
+  background: transparent;
 }
 
 .bitem--idea.bitem--discarded:hover,
