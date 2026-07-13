@@ -1,3 +1,9 @@
+/* [PP] mod:10 · autor:Nova · 2026-07-12 UTC-6 */
+/* TKT2 (CAEL-09 — REQ DISC-REQ-color-swap, CAEL-07): swap .ct-pill-req ↔ .ct-pill-disc,
+   par con TKT1 (locus-backlog.css, mod:95) — .item-type-pill.REQ/.DISC. .ct-pill-req toma
+   los valores que tenía .ct-pill-disc (--purple) y viceversa (--blue), mismo formato de
+   doble fallback var(--x,var(--x)) y mismo 18% — sin cambio de estructura. No toca
+   .ct-pill-tkt/.ct-pill-inc/.ct-pill-prb/.ct-pill-ke/.ct-pill-chg. */
 /* [PP] mod:9 · autor:Nova · 2026-07-09 12:00 UTC-6 */
 /* locus-analytics.css */
 
@@ -2631,9 +2637,9 @@
 }
 
 .ct-pill-req {
-  background: rgb(56 189 248 / 18%);
-  background: color-mix(in srgb, var(--blue,var(--blue)) 18%, transparent);
-  color: var(--blue,var(--blue));
+  background: rgb(124 106 247 / 18%);
+  background: color-mix(in srgb, var(--purple,var(--purple)) 18%, transparent);
+  color: var(--purple,var(--purple));
 }
 
 .ct-pill-tkt {
@@ -2643,9 +2649,9 @@
 }
 
 .ct-pill-disc {
-  background: rgb(124 106 247 / 18%);
-  background: color-mix(in srgb, var(--purple,var(--purple)) 18%, transparent);
-  color: var(--purple,var(--purple));
+  background: rgb(56 189 248 / 18%);
+  background: color-mix(in srgb, var(--blue,var(--blue)) 18%, transparent);
+  color: var(--blue,var(--blue));
 }
 
 .ct-pill-inc {

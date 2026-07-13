@@ -1,3 +1,10 @@
+/* [PP] mod:48 · autor:Nova · 2026-07-12 UTC-6 */
+/* TKT1 (CAEL-11 — REQ DISC-REQ-color-swap-locus-backlog-item, CAEL-10): swap DISC↔REQ en
+   .bitem-type-DISC/.bitem-type-REQ (L70/L82) y .mdiff-queue-badge--qdisc (~L3302) — cierre
+   del gap registrado al final del REQ DISC-REQ-color-swap original (locus-backlog.css
+   mod:95, locus-analytics.css mod:10). DISC pasa a --blue, REQ pasa a --purple, mismas
+   fórmulas color-mix. Comentario de .mdiff-queue-badge--qdisc actualizado — sigue citando
+   los mismos dos selectores de referencia, ahora consistente con sus valores azules. */
 /* [PP] mod:46 · autor:Nova · 2026-07-10 UTC-6 */
 /* TKT-202607-027: removidas .kanban-card--dragging/.kanban-drop-indicator + @keyframes
    bl-drag-ripple (huérfano — sin consumidor en ningún archivo del scope, exclusivo del
@@ -68,9 +75,9 @@
 }
 
 .bitem-type-REQ {
-  background: color-mix(in srgb, var(--blue) 15%, transparent);
-  color: var(--blue);
-  border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
+  background: color-mix(in srgb, var(--purple) 15%, transparent);
+  color: var(--purple);
+  border: 1px solid color-mix(in srgb, var(--purple) 30%, transparent);
 }
 
 .bitem-type-INC {
@@ -80,9 +87,9 @@
 }
 
 .bitem-type-DISC {
-  background: color-mix(in srgb, var(--purple) 15%, transparent);
-  color: var(--purple);
-  border: 1px solid color-mix(in srgb, var(--purple) 30%, transparent);
+  background: color-mix(in srgb, var(--blue) 15%, transparent);
+  color: var(--blue);
+  border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
 }
 
 /* Tipos ITIL derivados — Gen 2 — alineados BR-Ecosystem §4 */
@@ -119,9 +126,9 @@
 }
 
 /* REQ → azul */
-.item.bitem[data-type="REQ"] { border-left-color: var(--blue); }
+.item.bitem[data-type="REQ"] { border-left-color: var(--purple); }
 .item.bitem[data-type="REQ"] .bitem-header {
-  background: color-mix(in srgb, var(--blue) 5%, transparent);
+  background: color-mix(in srgb, var(--purple) 5%, transparent);
   border-radius: var(--radius-md);
 }
 
@@ -133,9 +140,9 @@
 }
 
 /* DISC → púrpura */
-.item.bitem[data-type="DISC"] { border-left-color: var(--purple); }
+.item.bitem[data-type="DISC"] { border-left-color: var(--blue); }
 .item.bitem[data-type="DISC"] .bitem-header {
-  background: color-mix(in srgb, var(--purple) 5%, transparent);
+  background: color-mix(in srgb, var(--blue) 5%, transparent);
   border-radius: var(--radius-md);
 }
 
@@ -389,8 +396,8 @@
 }
 
 .item.bitem[data-type="REQ"] .bitem-effort-dot.on {
-  background: var(--blue);
-  border-color: var(--blue);
+  background: var(--purple);
+  border-color: var(--purple);
 }
 
 .item.bitem[data-type="INC"] .bitem-effort-dot.on {
@@ -399,8 +406,8 @@
 }
 
 .item.bitem[data-type="DISC"] .bitem-effort-dot.on {
-  background: var(--purple);
-  border-color: var(--purple);
+  background: var(--blue);
+  border-color: var(--blue);
 }
 
 /* Body */
@@ -512,8 +519,8 @@
 }
 
 .item.bitem[data-type="REQ"] .bitem-effort-dot-sm.on {
-  background: var(--blue);
-  border-color: var(--blue);
+  background: var(--purple);
+  border-color: var(--purple);
 }
 
 .item.bitem[data-type="INC"] .bitem-effort-dot-sm.on {
@@ -522,8 +529,8 @@
 }
 
 .item.bitem[data-type="DISC"] .bitem-effort-dot-sm.on {
-  background: var(--purple);
-  border-color: var(--purple);
+  background: var(--blue);
+  border-color: var(--blue);
 }
 
 .bitem-effort-num {
@@ -725,7 +732,7 @@
 }
 
 .item.bitem[data-type="REQ"] .bitem-ac-dot {
-  background: color-mix(in srgb, var(--blue) 50%, transparent);
+  background: color-mix(in srgb, var(--purple) 50%, transparent);
 }
 
 .item.bitem[data-type="INC"] .bitem-ac-dot {
@@ -733,7 +740,7 @@
 }
 
 .item.bitem[data-type="DISC"] .bitem-ac-dot {
-  background: color-mix(in srgb, var(--purple) 50%, transparent);
+  background: color-mix(in srgb, var(--blue) 50%, transparent);
 }
 
 /* Missing fields */
@@ -893,8 +900,8 @@
 .idp-type-chip.idp-type-TKT,  .idp-ac-dot.idp-type-TKT  { --_type-color: var(--green); }
 [data-theme="light"] .idp-type-chip.idp-type-TKT,
 [data-theme="light"] .idp-ac-dot.idp-type-TKT { --_type-color: #16914c; } /* mismo ajuste de contraste que TKT1-diff-visual */
-.idp-type-chip.idp-type-REQ,  .idp-ac-dot.idp-type-REQ  { --_type-color: var(--blue); }
-.idp-type-chip.idp-type-DISC, .idp-ac-dot.idp-type-DISC { --_type-color: var(--purple); }
+.idp-type-chip.idp-type-REQ,  .idp-ac-dot.idp-type-REQ  { --_type-color: var(--purple); }
+.idp-type-chip.idp-type-DISC, .idp-ac-dot.idp-type-DISC { --_type-color: var(--blue); }
 
 .idp-header-meta {
   flex: 1;
@@ -3179,13 +3186,13 @@ body {
 }
 
 .mdiff-card.mdiff-type--req {
-  --_type-color: var(--blue);
-  --_type-bg: color-mix(in srgb, var(--blue) 8%, transparent);
+  --_type-color: var(--purple);
+  --_type-bg: color-mix(in srgb, var(--purple) 8%, transparent);
 }
 
 .mdiff-card.mdiff-type--disc {
-  --_type-color: var(--purple);
-  --_type-bg: color-mix(in srgb, var(--purple) 8%, transparent);
+  --_type-color: var(--blue);
+  --_type-bg: color-mix(in srgb, var(--blue) 8%, transparent);
 }
 
 .mdiff-card.mdiff-type--prb {
@@ -3296,13 +3303,16 @@ body {
    en vez del neutro var(--hint)/var(--surface2). DISC vive exclusivamente en Q-DISC
    (__BR-Ecosystem §5) y nunca acepta sprint — igual que INC/PRB/KE/CHG con Q-INC, pero
    la variante --qinc nunca definió color propio (queda en el neutro base). Para --qdisc se
-   usa var(--purple) porque es el color canónico ya establecido para DISC en todo el resto
-   del sistema — ver .bitem-type-DISC (línea 70, este archivo) y .item-type-pill.DISC
-   (locus-backlog.css línea 1714). Consistencia con esos dos patrones existentes, no un color nuevo. */
+   usa var(--blue) porque es el color canónico ya establecido para DISC en todo el resto
+   del sistema — ver .bitem-type-DISC (línea 82, este archivo) y .item-type-pill.DISC
+   (locus-backlog.css línea 1773). Consistencia con esos dos patrones existentes, no un color
+   nuevo. TKT1 (CAEL-11 — REQ DISC-REQ-color-swap-locus-backlog-item): actualizado de
+   var(--purple) a var(--blue) — swap DISC↔REQ, ver locus-backlog.css mod:95/locus-analytics.css
+   mod:10 para el swap paralelo en el resto del sistema. */
 .mdiff-queue-badge--qdisc {
-  color: var(--purple);
-  background: color-mix(in srgb, var(--purple) 15%, transparent);
-  border: 1px solid color-mix(in srgb, var(--purple) 30%, transparent);
+  color: var(--blue);
+  background: color-mix(in srgb, var(--blue) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--blue) 30%, transparent);
 }
 
 /* ══ END R-202605-148 ══ */
