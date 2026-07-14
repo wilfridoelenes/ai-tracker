@@ -1,3 +1,6 @@
+// [PP] mod:120 · autor:Rune · 2026-07-14 UTC-6
+// CAEL-31 (TKT7): agregado _renderIngestResultItems() — lista de ítems en #ingest-result-items,
+//   cierra el no_incluye de CAEL-29/30. Sin cambio de HTML — shell ya existía.
 // [PP] mod:119 · autor:Rune · 2026-07-14 UTC-6
 // CAEL-30 (TKT6): agregado próximo paso + bloqueantes (3 estados: n/a / referencia a ítem /
 //   texto libre) a _showIngestValidationResult() — completa el no_incluye declarado en
@@ -1047,7 +1050,35 @@ function _renderIngestBlockers(containerEl, blockersRaw) {
   containerEl.appendChild(row);
 }
 
-function _showIngestValidationResult({ ckptProyecto, activeProjectName, title, summary, files, nextStep, blockers }) {
+// CAEL-31 (TKT7): lista de ítems — 3ª y última pieza que restablece el no_incluye original
+// de CAEL-29. Shell (.validation-result-items) ya existe en index.html desde CAEL-19/23 —
+// sin cambio de HTML en este TKT.
+function _renderIngestResultItems(containerEl, items) {
+  const _items = Array.isArray(items) ? items : [];
+  // AC3 (CAEL-31) — reset: sin ítems, ocultar y vaciar
+  if (_items.length === 0) {
+    containerEl.classList.add('is-hidden');
+    containerEl.innerHTML = '';
+    return;
+  }
+  // AC1/AC2 (CAEL-31) — happy path + status badge ('nuevo' si el ítem no declara status)
+  containerEl.innerHTML = '';
+  containerEl.classList.remove('is-hidden');
+  _items.forEach((item) => {
+    const row = document.createElement('div');
+    row.className = 'validation-result-item';
+    const desc = document.createElement('span');
+    desc.textContent = `${item.type} · ${item.title}`;
+    const status = document.createElement('span');
+    status.className = 'validation-result-item-status';
+    status.textContent = item.status || 'nuevo';
+    row.appendChild(desc);
+    row.appendChild(status);
+    containerEl.appendChild(row);
+  });
+}
+
+function _showIngestValidationResult({ ckptProyecto, activeProjectName, title, summary, files, nextStep, blockers, items }) {
   const panel = document.getElementById('ingest-validation-panel');
   const resultEl = document.getElementById('ingest-validation-result');
   const badgeProjectEl = document.getElementById('ingest-result-badge-project');
@@ -1058,9 +1089,10 @@ function _showIngestValidationResult({ ckptProyecto, activeProjectName, title, s
   const nextStepRowEl = document.getElementById('ingest-result-next-step');
   const nextStepTextEl = document.getElementById('ingest-result-next-step-text');
   const blockersRowEl = document.getElementById('ingest-result-blockers');
-  // AC guard — sin DOM: retorna sin lanzar excepción si falta cualquiera de los 9 targets.
+  const itemsEl = document.getElementById('ingest-result-items');
+  // AC guard — sin DOM: retorna sin lanzar excepción si falta cualquiera de los 10 targets.
   if (!panel || !resultEl || !badgeProjectEl || !titleEl || !summaryEl || !fileEl || !fileNameEl
-      || !nextStepRowEl || !nextStepTextEl || !blockersRowEl) return;
+      || !nextStepRowEl || !nextStepTextEl || !blockersRowEl || !itemsEl) return;
   const errEl = document.getElementById('ingest-validation-error');
   const warnEl = document.getElementById('ingest-validation-warnings');
 
@@ -1102,6 +1134,9 @@ function _showIngestValidationResult({ ckptProyecto, activeProjectName, title, s
 
   // AC3/AC4/AC5 (CAEL-30) — bloqueantes, tres estados vía _renderIngestBlockers
   _renderIngestBlockers(blockersRowEl, blockers);
+
+  // AC1/AC2/AC3 (CAEL-31) — lista de ítems
+  _renderIngestResultItems(itemsEl, items);
 
   // AC8 — mostrar panel, mismo criterio que _showIngestValidationError/_showIngestValidationWarning
   panel.classList.remove('is-hidden');
@@ -1732,12 +1767,12 @@ export function parsePaste(id) {
       summary,
       files,
       nextStep,
-      blockers: bloqueantesRaw
+      blockers: bloqueantesRaw,
+      items: tgItems
     });
-    // CAEL-30 (TKT6): próximo paso (nextStep) y bloqueantes (bloqueantesRaw) ahora se
-    // renderizan — completa el no_incluye declarado en CAEL-29. Lista de ítems (tgItems vía
-    // buildTGPreview) sigue sin renderizar en #ingest-validation-result — scope de TKT7,
-    // aún sin especificar por Cael.
+    // CAEL-31 (TKT7): lista de ítems (tgItems) ahora se renderiza — cierra el no_incluye
+    // original de CAEL-29. #ingest-validation-result queda completo: badges, título,
+    // resumen, archivo, próximo paso, bloqueantes e ítems, todos vía un solo call site.
   } else {
     const _resultElReset = document.getElementById('ingest-validation-result');
     if (_resultElReset) _resultElReset.classList.add('is-hidden');
