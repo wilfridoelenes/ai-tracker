@@ -1,4 +1,4 @@
-// [PP] mod:38 · autor:Rune · 2026-07-13 15:40 UTC-6
+// [PP] mod:39 · autor:Rune · 2026-07-14 UTC-6
 // CAEL-12 (REQ CAEL-10): buildCard()/#grid retirados — código muerto desde CAEL-08 (#grid no
 // existe en el DOM). _populateWorkerHeader() reemplaza avatar/nombre/badge/menú de acciones sobre
 // .worker-header (CAEL-11). Reasigna dotmenu-${id}/dotmenu-wrap-${id}/cd-${id}/name-${id} para que
@@ -870,6 +870,11 @@ function _populateWorkerHeader(ai) {
     }
   }
 
+  // Botón de ingesta de CHECKPOINT (CAEL-33) — bloque dedicado, localizado por id fijo
+  // (no se reasigna, a diferencia de resetIcon/dotmenu). No comparte loop con otros botones.
+  const ingestBtn = document.getElementById('worker-header-ingest-btn');
+  if (ingestBtn) ingestBtn.dataset.aiId = ai.id;
+
   // Dot-menu — reasigna ids esperados por toggleCardMenu/closeCardMenu + data-ai-id en cada acción
   // .card-dot-menu — clase estable; el id se reasigna a dotmenu-wrap-${id}
   // (_closeCardMenuPortal, locus-workers.js:211, lo busca vía dataset.wrapId).
@@ -1131,6 +1136,10 @@ document.addEventListener('DOMContentLoaded', () => {
       // Footer — assign hora / correct hora
       case 'open-correct-hora':
         openCorrectHora(aiId);
+        break;
+      // Header — abrir modal de ingesta de CHECKPOINT (CAEL-33)
+      case 'open-ingest':
+        _openIngestModal(aiId);
         break;
       // Footer — blind exhaust
       case 'confirm-blind-exhaust':
