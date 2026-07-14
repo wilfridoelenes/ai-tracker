@@ -1,4 +1,4 @@
-/* [PP] mod:5 · autor:Nova · 2026-07-13 UTC-6 */
+/* [PP] mod:6 · autor:Nova · 2026-07-14 09:40 UTC-6 */
 /* locus-modals-base.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 /* Restaurado (CAEL-06 · TKT1 CAEL-07): .modal--ingest y clases relacionadas — no persistieron en
    la entrega anterior (ver _PP-session-handoff-2026-07-13.md §1). Reconstruido contra el HTML real
@@ -656,6 +656,78 @@
 
 .validation-result-item-status {
   color: var(--text-secondary);
+}
+
+/* CAEL-30 (TKT6) — próximo paso + bloqueantes, entre archivo e ítems (design_intent:
+   wireframe_ingest_validation_result_proximo_paso_bloqueantes). Mismo patrón de fila
+   con border-top que ya separa .validation-result-items del resto del panel. */
+.validation-result-next-step {
+  border-top: 1px solid var(--border2);
+  padding-top: 8px;
+}
+
+.validation-result-next-step-label {
+  margin: 0 0 2px;
+  font-size: var(--text-xs);
+  color: var(--text3);
+  text-transform: lowercase;
+}
+
+.validation-result-next-step-text {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--text);
+}
+
+.validation-result-blockers {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--border2);
+  padding-top: 8px;
+}
+
+.validation-result-blockers-label {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text3);
+  text-transform: lowercase;
+}
+
+.blocker-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-sm);
+}
+
+.blocker-row i {
+  font-size: var(--text-base);
+}
+
+/* Estado n/a — mismo par success ya usado en .validation-badge--success */
+.blocker-row--ok {
+  color: var(--green-text);
+}
+
+/* Estado texto libre sin ID — mismo token warning ya usado en .validation-badge--warning */
+.blocker-row--warning {
+  color: var(--amber);
+}
+
+.blocker-row--ref {
+  color: var(--text);
+}
+
+/* Chip de referencia a ítem — --bg-accent/--text-accent del wireframe no existen en
+   locus-base.css. Remapeado a var(--surface3)/var(--text3), mismo par ya validado
+   WCAG AA en .pill-project (CAEL-15) para chips de dato pasivo — sin token nuevo. */
+.blocker-chip {
+  display: inline-flex;
+  border-radius: var(--radius-xs);
+  padding: 1px 6px;
+  background: var(--surface3);
+  color: var(--text3);
 }
 
 .modal--ingest .sc-diff-preview {
