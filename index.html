@@ -1,4 +1,4 @@
-<!-- [PP] mod:127 · autor:Rune · 2026-07-14 UTC-6 -->
+<!-- [PP] mod:128 · autor:Rune · 2026-07-14 UTC-6 -->
 <!-- CAEL-05 · TKT2 (CAEL-07) — reaplicado sobre base mod:126 recibida por el founder (esa base
      no traía este cambio pese a declarar el mismo mod — discrepancia señalada en CHECKPOINT):
      #header-project-label movido de .header-zone--brand a .header-zone--utils, envuelto entre
@@ -1475,6 +1475,16 @@
         <hr class="validation-divider">
         <p class="validation-result-summary" id="ingest-result-summary"></p>
         <p class="validation-result-file" id="ingest-result-file"><i class="ti ti-file" aria-hidden="true"></i> <span id="ingest-result-file-name"></span></p>
+        <!-- CAEL-30 (TKT6): shell estático próximo paso + bloqueantes, entre archivo e ítems.
+             design_intent: wireframe_ingest_validation_result_proximo_paso_bloqueantes.
+             Filas de .blocker-row son JS-generadas dentro de este contenedor estático — BR-Execution §5. -->
+        <div class="validation-result-next-step is-hidden" id="ingest-result-next-step">
+          <p class="validation-result-next-step-label">próximo paso</p>
+          <p class="validation-result-next-step-text" id="ingest-result-next-step-text"></p>
+        </div>
+        <div class="validation-result-blockers" id="ingest-result-blockers">
+          <p class="validation-result-blockers-label">bloqueantes</p>
+        </div>
         <div class="validation-result-items" id="ingest-result-items"></div>
       </div>
     </div>
