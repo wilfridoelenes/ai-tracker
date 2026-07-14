@@ -1,4 +1,4 @@
-/* [PP] mod:7 · autor:Rune · 2026-07-13 00:47 UTC-6 */
+/* [PP] mod:8 · autor:Nova · 2026-07-14 UTC-6 */
 
 /* === locus-tracker.js ===
    Funciones: buildCard · _buildCurrentSessionCard (sc-* rediseño) */
@@ -38,6 +38,7 @@
 /* ── sc-avatar ── */
 
 .sc-avatar {
+  position: relative;
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -51,6 +52,53 @@
   color: var(--accent);
   flex-shrink: 0;
   letter-spacing: 0.02em;
+}
+
+/* CAEL-02 (REQ CAEL-01): sc-avatar refleja estado del worker — mismo lenguaje de color
+   que .card-avatar (available/exhausted/interrupted) + insession nuevo (purple, sin
+   precedente previo — mismo tono que .card-status-pill.insession). */
+.sc-avatar--available {
+  color: var(--green);
+  box-shadow: 0 0 0 2px var(--green);
+}
+
+.sc-avatar--exhausted {
+  color: var(--red);
+  box-shadow: 0 0 0 2px var(--red-border);
+}
+
+.sc-avatar--interrupted {
+  color: var(--amber);
+  box-shadow: 0 0 0 2px var(--amber);
+}
+
+.sc-avatar--insession {
+  color: var(--purple);
+  box-shadow: 0 0 0 2px var(--purple);
+}
+
+/* Pulso — solo available e insession (hay actividad real o disponibilidad activa).
+   ::after evita nodo HTML nuevo — mismo criterio visual que .card-avatar-pulse. */
+.sc-avatar--available::after,
+.sc-avatar--insession::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  opacity: 0;
+  pointer-events: none;
+  animation: scAvatarRingPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes scAvatarRingPulse {
+  0%, 100% { opacity: 0; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sc-avatar--available::after,
+  .sc-avatar--insession::after { animation: none; }
 }
 
 /* ── sc-project ── */
@@ -101,6 +149,20 @@
   background: var(--c-pulido-bg);
   color: var(--c-pulido-text);
   border-color: var(--c-pulido-border);
+}
+
+/* CAEL-02 (REQ CAEL-01): completa el modificador que T-202606-074 AC-8 ya anticipaba
+   en comentario pero nunca se creó — mismo tono que .card-status-pill.insession. */
+.sc-badge--insession {
+  background: rgb(124 106 247 / 8%);
+  color: var(--purple);
+  border-color: rgb(124 106 247 / 35%);
+}
+
+.sc-badge--interrupted {
+  background: rgb(245 158 11 / 8%);
+  color: var(--amber);
+  border-color: var(--amber);
 }
 
 .sc-badge--exhausted {

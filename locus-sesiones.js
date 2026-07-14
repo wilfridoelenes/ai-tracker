@@ -1,4 +1,4 @@
-// [PP] mod:39 · autor:Rune · 2026-07-14 UTC-6
+// [PP] mod:41 · autor:Rune · 2026-07-14 UTC-6
 // CAEL-12 (REQ CAEL-10): buildCard()/#grid retirados — código muerto desde CAEL-08 (#grid no
 // existe en el DOM). _populateWorkerHeader() reemplaza avatar/nombre/badge/menú de acciones sobre
 // .worker-header (CAEL-11). Reasigna dotmenu-${id}/dotmenu-wrap-${id}/cd-${id}/name-${id} para que
@@ -361,10 +361,6 @@ function _trackerMiniHistSelect(sessId, aiId) {
   // Col3: openDetail como único renderer (T1-T3 openDetail Col3)
   openDetail(aiId, sessId);
 
-  // mobile: navegar a col 3
-  if (window.innerWidth < 900) {
-    _trackerSwitchCol('items');
-  }
 }
 
 // ── T-202606-052: Col3 preview de sesión ─────────────────────────────────
@@ -830,12 +826,21 @@ function _populateWorkerHeader(ai) {
   const isAvail = ai.status === 'available';
   const aiInitial = esc(ai.name).charAt(0).toUpperCase();
 
+  // CAEL-03 (REQ CAEL-01): estado único del worker — misma prioridad ya usada arriba
+  // (isInterrupted > isInSession > isAvail > exhausted) — fuente de verdad para
+  // avatar, acento del header y badge, evitando que se desincronicen entre sí.
+  const state = isInterrupted ? 'interrupted' : isInSession ? 'insession' : isAvail ? 'available' : 'exhausted';
+
   const avatarEl = document.getElementById('worker-header-avatar');
   if (avatarEl) {
     avatarEl.textContent = ai.avatar || aiInitial;
     avatarEl.title = ai.name;
     avatarEl.dataset.aiId = ai.id;
+    avatarEl.className = 'sc-avatar sc-avatar--' + state;
   }
+
+  // is-hidden ya se removió arriba — no re-evaluar aquí.
+  header.className = 'sc-header worker-header worker-header--' + state;
 
   // .sc-project (nombre) — id se reasigna a name-${id} (locus-session-popup.js:736 lo busca así),
   // por eso se localiza por clase estable dentro de #worker-header, no por el id (que muta).
@@ -844,10 +849,10 @@ function _populateWorkerHeader(ai) {
 
   const badgeEl = document.getElementById('worker-header-badge');
   if (badgeEl) {
-    badgeEl.className = 'sc-badge' + (isInSession ? '' : isAvail ? ' sc-badge--avail' : ' sc-badge--exhausted');
+    badgeEl.className = 'sc-badge sc-badge--' + (state === 'exhausted' ? 'exhausted' : state === 'available' ? 'avail' : state);
     badgeEl.innerHTML = isInSession
       ? `<span class="sc-badge-dot"></span>${STATUS_LABELS.insession}`
-      : (isAvail ? STATUS_LABELS.available : STATUS_LABELS.exhausted);
+      : STATUS_LABELS[state];
   }
 
   // Ícono de reset — reemplaza countdown-dramatic/hora-widget de footer (fuera de scope, ver CAEL-11).
@@ -971,23 +976,6 @@ function _trackerHistAttachDropTargets() {
   });
 }
 
-// ── Tab pills mobile ─────────────────────────────────────────────────────
-// CAEL-13: 'card' ya no es una columna — Col1 fue retirada en CAEL-08/12.
-// El tab "Sesión" (data-col="card") es ahora el único entry point de apertura
-// del modal de ingesta en mobile. 'hist' sigue siendo columna real.
-function _trackerSwitchCol(col) {
-  if (col === 'card') { _openIngestModal(_trackerSelectedId); return; }
-  document.querySelectorAll('.tracker-col').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.tracker-col-tab').forEach(btn => btn.classList.remove('active'));
-
-  const colMap = { hist: 'tracker-col-hist' };
-  const colEl = document.getElementById(colMap[col]);
-  if (colEl) colEl.classList.add('active');
-
-  const tab = document.querySelector(`.tracker-col-tab[data-col="${col}"]`);
-  if (tab) tab.classList.add('active');
-}
-
 // CAEL-13: apertura del modal de ingesta unificado (CAEL-07/08).
 // Mecánica del AC — sin wiring de paste/input (CAEL-20, depends_on este TKT).
 export function _openIngestModal(aiId) {
@@ -1033,18 +1021,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 // ── END T-202605-057 ─────────────────────────────────────────────────────
-
-// ── B-202605-019: Listeners — tracker-col-tabs ───────────────────────────────
-document.addEventListener('DOMContentLoaded', function () {
-  document.querySelectorAll('.tracker-col-tab').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      const col = btn.dataset.col;
-      if (col) _trackerSwitchCol(col);
-    });
-  });
-});
-// ── END B-202605-019 ─────────────────────────────────────────────────────────
-
 
 // ── B-202605-019: Listeners — on* migrados desde templates de locus-sesiones.js ──
 // Cubre: archived-toggle, empty-state-btn openAddAI/openProjModal.

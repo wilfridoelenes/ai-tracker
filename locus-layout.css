@@ -1,8 +1,9 @@
-/* [PP] mod:16 · autor:Nova · 2026-07-13 UTC-6 */
-/* CAEL-05 · TKT1 (CAEL-06): tabs sin pill (.tabs sin bg/border/padding, .tab-btn.active sin
-   chip — reusa ::after ya existente para el subrayado), .header-zone--nav ya no centrado
-   (queda pegado a brand), .header-zone--utils gana margin-left:auto. .breadcrumb-seg--proj
-   sin bg en reposo — chevron + hover accent-dim intactos (affordance de click preservada). */
+/* [PP] mod:17 · autor:Nova · 2026-07-14 UTC-6 */
+/* CAEL-05 · TKT1 (CAEL-06) — completo: tabs sin pill (font-size:15px, border:none,
+   .tab-btn.active sin chip — reusa ::after ya existente para el subrayado),
+   .header-zone--brand + .header-zone--nav sin separador (contiguas), .header-zone--utils
+   con margin-left:auto, .breadcrumb-seg--proj texto plano 13px/var(--text2) en reposo —
+   chevron + hover accent-dim + estado disabled intactos. */
 /* locus-layout.css */
 
 /* Versión: 2.1 | Última actualización: 2026-05-22 | Selectores compartidos consolidados — T-202605-031 */
@@ -440,14 +441,13 @@ button {
   pointer-events: none;
 }
 
-/* Segmento 1 — proyecto: text-primary weight 700. Único trigger real de la breadcrumb
-   (segmentos 2/3 son texto informativo salvo su propio hover) — affordance de interactividad
-   explícita: fondo en reposo + chevron, mismo patrón que .proj-filter-btn::after (L795) en
-   vez de crear un tratamiento nuevo. */
+/* Segmento 1 — proyecto: CAEL-06 · TKT1 (REQ CAEL-05) — texto plano 13px/text2, ya no
+   trigger primario destacado (se reubica en .header-zone--utils junto al separador, TKT2).
+   Affordance de interactividad se conserva vía chevron + hover accent-dim — ver abajo. */
 .breadcrumb-seg--proj {
-  color: var(--text);
+  color: var(--text2);
   font-weight: 500;
-  font-size: var(--text-sm);
+  font-size: 13px;
   max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -581,6 +581,13 @@ header {
 .header-zone + .header-zone {
   padding-left: 12px;
   border-left: 1px solid var(--border);
+}
+
+/* CAEL-06 · TKT1 (REQ CAEL-05): brand+nav quedan visualmente contiguas — el separador
+   genérico de zonas no aplica entre estas dos, solo entre nav/utils como antes. */
+.header-zone--brand + .header-zone--nav {
+  padding-left: 0;
+  border-left: none;
 }
 
 .header-zone--utils {
@@ -1885,13 +1892,13 @@ header {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--text-md);
+  font-size: 15px;
   padding: 5px 14px;
   transition: all 0.15s var(--ease-standard);
   font-family: var(--font-sans);
   font-weight: 500;
   border-radius: var(--radius-md);
-  border: 1px solid transparent;
+  border: none;
   background: transparent;
   color: var(--text2);
   cursor: pointer;

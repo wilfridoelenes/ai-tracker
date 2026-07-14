@@ -1,4 +1,4 @@
-/* [PP] mod:24 · autor:Nova · 2026-07-13 UTC-6 */
+/* [PP] mod:26 · autor:Nova · 2026-07-14 UTC-6 */
 /* CAEL-11 (REQ CAEL-10): .worker-header — contenedor únicamente. Reutiliza .sc-header (layout
    flex/padding/border-bottom ya declarado en locus-sesiones-card.css) + .worker-header-reset-icon
    nuevo (ícono compacto de reset, reemplaza countdown-dramatic/hora-widget de footer). */
@@ -4271,14 +4271,31 @@
 
 /* ── END T-202606-052 ── */
 
-/* ── Tab pills mobile — ocultas en desktop ── */
-.tracker-col-tabs {
-  display: none;
-}
-
 /* ── .worker-header (CAEL-11) — sobre .sc-header reutilizado, solo ajustes de contexto de página ── */
 .worker-header {
   background: var(--surface, transparent);
+}
+
+/* CAEL-02 (REQ CAEL-01): acento lateral por estado — mismo patrón que
+   .rsb-card.available / .rsb-card.interrupted-state (locus-radar.css). */
+.worker-header--available {
+  border-left: 3px solid var(--green);
+  background: linear-gradient(135deg, var(--green-dim) 0%, var(--surface, transparent) 60%);
+}
+
+.worker-header--insession {
+  border-left: 3px solid var(--purple);
+  background: linear-gradient(135deg, rgb(124 106 247 / 8%) 0%, var(--surface, transparent) 60%);
+}
+
+.worker-header--interrupted {
+  border-left: 3px solid var(--amber);
+  background: linear-gradient(135deg, rgb(245 158 11 / 8%) 0%, var(--surface, transparent) 60%);
+}
+
+.worker-header--exhausted {
+  border-left: 3px solid var(--red-border);
+  background: linear-gradient(135deg, var(--red-dim) 0%, var(--surface, transparent) 60%);
 }
 
 .worker-header-reset-icon {
@@ -6391,37 +6408,6 @@ body.radar-sb-open .tracker-sidebar {
 .d-flex {
   display: flex;
 }
-
-/* Tab individual en #tracker-col-tabs — visible en mobile (<900px)
-   .tracker-col-tabs (contenedor) ya existe en este archivo */
-.tracker-col-tab {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 5px 14px;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  border-radius: var(--radius-md);
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--text2);
-  cursor: pointer;
-  transition: var(--trans-fast);
-  white-space: nowrap;
-}
-
-.tracker-col-tab.active,
-.tracker-col-tab[aria-selected="true"] {
-  background: var(--surface2);
-  border-color: var(--border2);
-  color: var(--text);
-}
-
-.tracker-col-tab:hover:not(.active) {
-  background: var(--bg-hover);
-  color: var(--text);
-}
-
 
 /* R-202605-005 · A4-b · tracker sueltas */
 
