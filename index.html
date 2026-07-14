@@ -1,7 +1,8 @@
-<!-- [PP] mod:126 · autor:Rune · 2026-07-13 UTC-6 -->
-<!-- CAEL-05 · TKT2 (CAEL-07): #header-project-label movido de .header-zone--brand a
-     .header-zone--utils, envuelto entre dos .header-divider, antes de #more-menu-wrap.
-     Contenido interno (#breadcrumb-proj + #header-sprint-pill-wrap) sin modificar. -->
+<!-- [PP] mod:127 · autor:Rune · 2026-07-14 UTC-6 -->
+<!-- CAEL-05 · TKT2 (CAEL-07) — reaplicado sobre base mod:126 recibida por el founder (esa base
+     no traía este cambio pese a declarar el mismo mod — discrepancia señalada en CHECKPOINT):
+     #header-project-label movido de .header-zone--brand a .header-zone--utils, envuelto entre
+     dos .header-divider, antes de #more-menu-wrap. Contenido interno sin modificar. -->
 <!-- CAEL-01 · TKT2 (CAEL-03) + TKT3 (CAEL-04): 18 emojis del header (6 tabs + pend-btn + 11 menú ⋯)
      reemplazados por <svg> propio 18x18 stroke:currentColor, según mapeo de Nova en
      locus-header-icons-mapeo.md. #mm-btn-sync conserva su sync-status-dot (● vía CSS) sin cambio. -->
@@ -1047,6 +1048,11 @@
       <div class="qc-worker-chip">
         <span class="qc-worker-chip-label">Capturando para:</span>
         <span class="qc-worker-chip-name" id="qc-worker-chip-name"></span>
+      </div>
+      <!-- TKT1 (CAEL-01): banner de error de guardado — oculto por defecto, aria-live G-02 -->
+      <div class="qc-error-banner is-hidden" id="qc-error-banner" aria-live="polite">
+        <span class="qc-error-msg" id="qc-error-msg"></span>
+        <button class="qc-error-retry-btn" id="qc-error-retry-btn" type="button">Reintentar</button>
       </div>
       <!-- Campos del formulario — mantienen IDs existentes para compatibilidad con JS -->
       <div class="quick-field">

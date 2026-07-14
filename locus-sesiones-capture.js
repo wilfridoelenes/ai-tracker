@@ -1,4 +1,4 @@
-// [PP] v1.2.4 · sprint:PP-S-01 · mod:16 · autor:Rune · 2026-06-15 UTC-6
+// [PP] mod:17 · autor:Rune · 2026-07-14 UTC-6
 // locus-sesiones-capture.js
 // Responsabilidad: Quick Capture modal (stepper de 2 pasos) + Sesión interrumpida (T-055).
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
@@ -14,19 +14,55 @@ import { getAI, getActiveProject, getState, save, saveImmediate } from './locus-
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 
-import { closeCardMenu } from './locus-workers.js';
+import { closeCardMenu, openAddAI } from './locus-workers.js';
 
 // ── R-[pendiente-ID]: Quick Capture — modal unificado con stepper ──
 // Reemplaza: T-071 (quick-modal-overlay) + selectAIForQuickCapture (ai-quick-select-modal)
 // Shell HTML: #qc-modal-overlay con #qc-panel-1 (selector) y #qc-panel-2 (formulario)
-// CSS: locus-modals.css §qc-
+// CSS: locus-modals-misc.css §qc- (corregido — el nombre anterior "locus-modals.css" es el monolito pre-split, ya no existe)
 
 let _quickAIId = null;
 let _qcStep = 0; // 0 = sin inicializar · 1 = paso 1 · 2 = paso 2
+let _qcSaving = false; // TKT1 (CAEL-01): evita doble submit mientras saveImmediate() resuelve
+let _qcRetryFn = null; // TKT1 (CAEL-01): reintenta el mismo intento de guardado sin reconstruir sess
 
 // ── Helpers internos ──
 
 function _qcEl(id) { return document.getElementById(id); }
+
+// ── TKT1 (CAEL-01): estado de guardado — botón + campos ──
+function _qcSetSavingState(loading) {
+  const btn = _qcEl('qc-next-btn');
+  const title = _qcEl('quick-title');
+  const summary = _qcEl('quick-summary');
+  const hora = _qcEl('quick-hora');
+  if (!btn) return;
+  if (loading) {
+    btn.disabled = true;
+    btn.classList.add('is-loading');
+    btn.innerHTML = '<span class="qc-spinner" aria-hidden="true"></span>Guardando…';
+    [title, summary, hora].forEach(el => { if (el) el.disabled = true; });
+  } else {
+    btn.classList.remove('is-loading');
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+    [title, summary, hora].forEach(el => { if (el) el.disabled = false; });
+  }
+}
+
+// ── TKT1 (CAEL-01): banner de error de guardado ──
+function _qcShowError(msg) {
+  const banner = _qcEl('qc-error-banner');
+  const msgEl = _qcEl('qc-error-msg');
+  if (!banner || !msgEl) return;
+  msgEl.textContent = msg;
+  banner.classList.remove('is-hidden');
+}
+
+function _qcHideError() {
+  const banner = _qcEl('qc-error-banner');
+  if (banner) banner.classList.add('is-hidden');
+}
 
 // AC-10: transición entre pasos via .hidden — sin style.display (CSS Purity H-01/H-02)
 function _qcSetStep(step) {
@@ -63,10 +99,21 @@ function _qcSetStep(step) {
 }
 
 // Inyecta lista de Workers en Paso 1 — genera qc-worker-item por cada Worker activo
+// TKT2 (CAEL-01): si no hay Workers disponibles, reemplaza el contenido por el empty state
 function _qcRenderWorkerList() {
   const list = _qcEl('qc-worker-list');
   if (!list) return;
   const available = (getState().ais || []).filter(a => !a.archived);
+  if (available.length === 0) {
+    list.innerHTML = `
+      <div class="qc-empty">
+        <p class="qc-empty-title">No hay Workers registrados</p>
+        <p class="qc-empty-hint">Crea uno para poder registrar una sesión.</p>
+        <button class="btn-primary" id="qc-empty-cta" type="button">Crear Worker</button>
+      </div>
+    `;
+    return;
+  }
   list.innerHTML = available.map(ai => `
     <button class="qc-worker-item" data-worker-id="${esc(ai.id)}">
       <span class="qc-worker-avatar">${esc((ai.sigla || ai.name || '?').slice(0,2).toUpperCase())}</span>
@@ -86,6 +133,10 @@ export function openQuickCapture(id) {
   // Limpiar estado previo
   _quickAIId = null;
   _qcStep = 0;
+  _qcSaving = false;
+  _qcRetryFn = null;
+  _qcHideError();
+  _qcSetSavingState(false);
   _qcEl('quick-title').value = '';
   _qcEl('quick-summary').value = '';
   _qcEl('quick-hora').value = '';
@@ -178,6 +229,7 @@ function quickTitleKey(e) {
 }
 
 function confirmQuickCapture() {
+  if (_qcSaving) return;
   if (!_quickAIId) return;
   const title = _qcEl('quick-title').value.trim();
   if (!title) {
@@ -186,6 +238,7 @@ function confirmQuickCapture() {
     if (_qt) { _qt.classList.add('input-border-error'); setTimeout(() => _qt.classList.remove('input-border-error'), 1200); }
     return;
   }
+  _qcHideError();
   const summary = _qcEl('quick-summary').value.trim();
   const horaRaw = _qcEl('quick-hora').value.replace(/\D/g,'');
   const horaResult = horaRaw ? interpretHora(horaRaw) : null;
@@ -227,12 +280,37 @@ function confirmQuickCapture() {
     ai.resetEpoch = horaResult.epoch;
   }
 
-  closeQuickCapture();
+  // TKT1 (CAEL-01): sess ya está en activeProj.sessions — el retry reintenta saveImmediate()
+  // sobre el mismo estado, sin reconstruir ni duplicar el objeto sess.
+  _qcAttemptSave(ai);
+}
+
+// TKT1 (CAEL-01): intento de guardado real — separado de confirmQuickCapture() para que
+// Reintentar reinvoque saveImmediate() sin reconstruir sess (evita push duplicado).
+function _qcAttemptSave(ai) {
+  _qcSaving = true;
+  _qcSetSavingState(true);
   // B-202605-XXX: usar saveImmediate() para garantizar escritura en Supabase antes de
   // cualquier recarga. save() con debounce de 5s podía perder resetTime/resetEpoch/status
   // si el usuario recargaba la tab antes de que el timer disparara.
-  saveImmediate().then(() => { window.dispatchEvent(new CustomEvent('shell:render-tracker')); if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render')); });
-  showToast('success', `${ai.name} — sesión rápida guardada`);
+  saveImmediate().then(() => {
+    _qcSaving = false;
+    _qcRetryFn = null;
+    // AC edge case: si el usuario cerró el modal manualmente mientras guardaba, no reabrir
+    // ni mostrar el toast final — el guardado ya completó, solo faltaba el feedback visual.
+    const stillOpen = _qcEl('qc-modal-overlay').classList.contains('open');
+    if (stillOpen) {
+      closeQuickCapture();
+      showToast('success', `${ai.name} — sesión rápida guardada`);
+    }
+    window.dispatchEvent(new CustomEvent('shell:render-tracker'));
+    if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
+  }).catch(() => {
+    _qcSaving = false;
+    _qcSetSavingState(false);
+    _qcShowError('No se pudo guardar. Revisa tu conexión.');
+    _qcRetryFn = () => _qcAttemptSave(ai);
+  });
 }
 
 // ── END R-[pendiente-ID] Quick Capture ──
@@ -324,11 +402,18 @@ document.addEventListener('DOMContentLoaded', () => {
   if (qcCloseBtn) qcCloseBtn.addEventListener('click', () => closeQuickCapture());
 
   // qc-worker-list → delegación para qc-worker-item (generados dinámicamente)
+  // TKT2 (CAEL-01): también delega #qc-empty-cta cuando la lista renderiza el empty state
   const qcWorkerList = document.getElementById('qc-worker-list');
   if (qcWorkerList) qcWorkerList.addEventListener('click', (e) => {
     const item = e.target.closest('.qc-worker-item');
-    if (item) qcSelectWorker(item);
+    if (item) { qcSelectWorker(item); return; }
+    const cta = e.target.closest('#qc-empty-cta');
+    if (cta) { closeQuickCapture(); openAddAI(); }
   });
+
+  // qc-error-retry-btn → reintenta el mismo intento de guardado (TKT1 CAEL-01)
+  const qcErrorRetryBtn = document.getElementById('qc-error-retry-btn');
+  if (qcErrorRetryBtn) qcErrorRetryBtn.addEventListener('click', () => { if (_qcRetryFn) _qcRetryFn(); });
 
   // quick-title → quickTitleKey (onkeydown)
   const quickTitle = document.getElementById('quick-title');
