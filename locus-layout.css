@@ -1,4 +1,4 @@
-/* [PP] mod:12 · autor:Nova · 2026-07-13 09:20 UTC-6 */
+/* [PP] mod:15 · autor:Nova · 2026-07-13 22:40 UTC-6 */
 /* locus-layout.css */
 
 /* Versión: 2.1 | Última actualización: 2026-05-22 | Selectores compartidos consolidados — T-202605-031 */
@@ -328,8 +328,9 @@ body:not([data-theme]) .theme-icon-light {
 }
 
 .header-pend-btn__icon {
-  font-size: var(--text-md);
-  line-height: 1;
+  width: 18px;
+  height: 18px;
+  display: flex;
   pointer-events: none;
 }
 
@@ -439,7 +440,10 @@ button {
   pointer-events: none;
 }
 
-/* Segmento 1 — proyecto: text-primary weight 700 */
+/* Segmento 1 — proyecto: text-primary weight 700. Único trigger real de la breadcrumb
+   (segmentos 2/3 son texto informativo salvo su propio hover) — affordance de interactividad
+   explícita: fondo en reposo + chevron, mismo patrón que .proj-filter-btn::after (L795) en
+   vez de crear un tratamiento nuevo. */
 .breadcrumb-seg--proj {
   color: var(--text);
   font-weight: 700;
@@ -447,15 +451,41 @@ button {
   max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
+  position: relative;
+  background: var(--surface2);
+  padding-right: 16px;
+}
+
+.breadcrumb-seg--proj::after {
+  content: '⌄';
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: var(--text-xs);
+  line-height: 1;
+  color: var(--text3);
+  transition: color 0.15s var(--ease-out);
 }
 
 .breadcrumb-seg--proj:not(:disabled):hover {
   color: var(--accent);
+  background: var(--accent-dim);
 }
 
-/* B-202605-518: sin proyecto activo → text-secondary */
+.breadcrumb-seg--proj:not(:disabled):hover::after {
+  color: var(--accent);
+}
+
+/* B-202605-518: sin proyecto activo → text-secondary, sin affordance de trigger (nada que abrir) */
 .breadcrumb-seg--proj:disabled {
   color: var(--text2);
+  background: transparent;
+  padding-right: 4px;
+}
+
+.breadcrumb-seg--proj:disabled::after {
+  display: none;
 }
 
 /* Segmento 2 — sprint: text-secondary weight 400 */
@@ -521,6 +551,11 @@ button {
 }
 
 /* C — Header full-width · contenido con max-width alineado */
+/* P4: --header-h (locus-base.css) mide únicamente .header-inner — no incluye el
+   padding vertical de este selector (1.1rem + 0.85rem) ni el border-bottom (1px).
+   Cualquier cálculo de offset total del header debe sumar esos 1.95rem + 1px
+   sobre var(--header-h) — ver .tab-panel.active / #tab-tracker.active abajo,
+   fuente única del offset real: no duplicar el cálculo en otros selectores. */
 header {
   width: 100%;
   padding: 1.1rem 1.25rem 0.85rem;
@@ -640,8 +675,10 @@ header {
 /* ── MISC POLISH ── */
 
 .more-menu button {
-  display: block;
-    font-family: var(--font-sans);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-sans);
   font-size: var(--text-sm);
   font-weight: 500;
   padding: 7px 12px;
@@ -663,6 +700,14 @@ header {
 .more-menu button:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* TKT1 (CAEL-02, REQ CAEL-01): .mm-icon sin regla propia hasta ahora — el emoji
+   se apoyaba en flujo de texto natural. El SVG necesita flex-shrink:0 explícito
+   para no comprimirse cuando el label es largo (ej. "Sincronizar infra_version"). */
+.mm-icon {
+  display: flex;
+  flex-shrink: 0;
 }
 
 .more-menu hr.more-menu-sep {
@@ -985,12 +1030,12 @@ header {
    y persista al cambiar de tab. El patrón ya existe en #tab-tracker;
    se aplica al resto de tabs activos. */
 .tab-panel.active:not(#tab-tracker) {
-  height: calc(100vh - var(--header-h, 54px));
+  height: calc(100vh - var(--header-h) - 1.95rem - 1px);
   overflow: hidden auto;
 }
 
 #tab-tracker.active {
-  height: calc(100vh - var(--header-h, 54px));
+  height: calc(100vh - var(--header-h) - 1.95rem - 1px);
   overflow: hidden auto;
 }
 
@@ -1829,6 +1874,9 @@ header {
 
 /* .tab-btn — fuente canónica: locus-layout.css — scope: analytics · backlog · layout · modals */
 .tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: var(--text-sm);
   padding: 5px 14px;
   transition: all 0.15s var(--ease-standard);

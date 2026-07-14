@@ -1,4 +1,13 @@
-// [PP] mod:116 · autor:Rune · 2026-07-13 16:45 UTC-6
+// [PP] mod:117 · autor:Rune · 2026-07-13 18:10 UTC-6
+// CAEL-26 (TKT2): migrados los 4 warnings no bloqueantes de parsePaste() (rol ausente /
+//   done-sin-AC / discrepancia raw-vs-parseado / CHECKPOINT duplicado) del target legacy
+//   inexistente 'prev' a #ingest-validation-warnings, vía nuevo helper interno
+//   _showIngestValidationWarning() (junto a _showIngestValidationError() de CAEL-25).
+//   Botón #ingest-validation-force-btn compartido entre los 4 tipos: se clona en cada
+//   invocación del helper para no acumular listeners entre warnings consecutivos.
+//   _resetIngestValidationPanel() extendido para limpiar también #ingest-validation-warning-msg.
+//   Bloque de pills de preview (~L635, if (title||summary){...}) sigue referenciando 'prev' —
+//   fuera de scope de CAEL-26 (no_incluye), mapea a sub-vista .validation-result, TKT5 pendiente.
 // TKT3 (REQ-[pendiente-ID] · Hallazgo fuera de scope de TKT1, promovido a DISC y evaluado en la
 //   misma sesión): eliminada la función _tryIngestSprintProposal (ingesta legacy Markdown de
 //   sprint_proposal, sin FromParsed) — su único importador (locus-session-save.js) fue retirado
@@ -913,16 +922,40 @@ function _showIngestValidationError(msgHtml) {
   if (resultEl) resultEl.classList.add('is-hidden');
 }
 
+// CAEL-26: helper de warnings dinámicos — mismo shell que _showIngestValidationError,
+// target #ingest-validation-warnings. Botón compartido entre los 4 tipos de warning:
+// se clona antes de adjuntar el listener para no acumular listeners entre warnings
+// consecutivos de la misma sesión de textarea (AC de contrato interno).
+function _showIngestValidationWarning(msgHtml, onForce) {
+  const panel = document.getElementById('ingest-validation-panel');
+  const warnEl = document.getElementById('ingest-validation-warnings');
+  const warnMsgEl = document.getElementById('ingest-validation-warning-msg');
+  const forceBtn = document.getElementById('ingest-validation-force-btn');
+  const errEl = document.getElementById('ingest-validation-error');
+  const resultEl = document.getElementById('ingest-validation-result');
+  if (!panel || !warnEl || !warnMsgEl || !forceBtn) return;
+  panel.classList.remove('is-hidden');
+  warnEl.classList.remove('is-hidden');
+  warnMsgEl.innerHTML = msgHtml;
+  if (errEl) errEl.classList.add('is-hidden');
+  if (resultEl) resultEl.classList.add('is-hidden');
+  const _freshBtn = forceBtn.cloneNode(true);
+  forceBtn.parentNode.replaceChild(_freshBtn, forceBtn);
+  _freshBtn.addEventListener('click', onForce, { once: true });
+}
+
 function _resetIngestValidationPanel() {
   const panel = document.getElementById('ingest-validation-panel');
   const errEl = document.getElementById('ingest-validation-error');
   const errMsgEl = document.getElementById('ingest-validation-error-msg');
   const warnEl = document.getElementById('ingest-validation-warnings');
+  const warnMsgEl = document.getElementById('ingest-validation-warning-msg'); // CAEL-26
   const resultEl = document.getElementById('ingest-validation-result');
   if (panel) panel.classList.add('is-hidden');
   if (errEl) errEl.classList.add('is-hidden');
   if (errMsgEl) errMsgEl.innerHTML = '';
   if (warnEl) warnEl.classList.add('is-hidden');
+  if (warnMsgEl) warnMsgEl.innerHTML = ''; // CAEL-26
   if (resultEl) resultEl.classList.add('is-hidden');
 }
 
@@ -1391,13 +1424,14 @@ export function parsePaste(id) {
 
     // Base Rules V2.0.1 §11: campo Rol: obligatorio — aviso no bloqueante si ausente
     // No retroactivo: CHECKPOINTs históricos sin Rol: pasan con aviso
+    // CAEL-26: target migrado de prev-${id} (inexistente desde CAEL-22) a #ingest-validation-warnings.
     const _hasRolField = /^\s*Rol\s*:/m.test(text) || !!(ckpt && ckpt._isJsonFormat && ckpt.rol);
     const _rolWarnKey  = `_rolFieldWarnSeen_${id}`;
     if (isCheckpoint && !_hasRolField && !window[_rolWarnKey]) {
-      prev.className = 'preview show';
-      prev.innerHTML = `<div class="paste-error paste-warn">⚠ Falta el campo <code>Rol:</code> en el CHECKPOINT.<br><span class="paste-hint">Formato esperado: <code>Rol: FS · Mike</code>. El paste funcionará igual sin este campo.</span><br><button class="btn-ghost paste-inline-btn">Procesar de todas formas</button></div>`;
-      const _rolBtn = prev.querySelector('.paste-inline-btn');
-      if (_rolBtn) _rolBtn.addEventListener('click', () => { window[_rolWarnKey] = true; parsePaste(id); }, { once: true });
+      _showIngestValidationWarning(
+        '⚠ Falta el campo <code>Rol:</code> en el CHECKPOINT.<br><span class="paste-hint">Formato esperado: <code>Rol: FS · Mike</code>. El paste funcionará igual sin este campo.</span>',
+        () => { window[_rolWarnKey] = true; parsePaste(id); }
+      );
       return;
     }
     if (window[_rolWarnKey]) delete window[_rolWarnKey];
@@ -1406,15 +1440,16 @@ export function parsePaste(id) {
     // AC-1: solo ítems con status done y ac vacío o ausente
     // AC-2: aviso lista los códigos afectados — no genérico
     // AC-3: ítems pendiente o descartado sin AC no generan aviso
+    // CAEL-26: target migrado de prev-${id} (inexistente desde CAEL-22) a #ingest-validation-warnings.
     const _doneWarnKey = `_doneNoAcWarnSeen_${id}`;
     if (isCheckpoint && !window[_doneWarnKey]) {
       const _doneNoAc = tgItems.filter(it => it.status === 'done' && (!it.ac || it.ac.length === 0));
       if (_doneNoAc.length > 0) {
         const _codes = _doneNoAc.map(it => `<code>${esc(it.code)}</code>`).join(', ');
-        prev.className = 'preview show';
-        prev.innerHTML = `<div class="paste-error paste-warn">⚠ ${_doneNoAc.length} ítem${_doneNoAc.length !== 1 ? 's' : ''} marcado${_doneNoAc.length !== 1 ? 's' : ''} como done sin criterios de aceptación: ${_codes}.<br><span class="paste-hint">Un ítem done sin AC no es verificable. Agrega AC antes de marcar como done, o continúa si es intencional.</span><br><button class="btn-ghost paste-inline-btn">Continuar de todas formas</button></div>`;
-        const _doneBtn = prev.querySelector('.paste-inline-btn');
-        if (_doneBtn) _doneBtn.addEventListener('click', () => { window[_doneWarnKey] = true; parsePaste(id); }, { once: true });
+        _showIngestValidationWarning(
+          `⚠ ${_doneNoAc.length} ítem${_doneNoAc.length !== 1 ? 's' : ''} marcado${_doneNoAc.length !== 1 ? 's' : ''} como done sin criterios de aceptación: ${_codes}.<br><span class="paste-hint">Un ítem done sin AC no es verificable. Agrega AC antes de marcar como done, o continúa si es intencional.</span>`,
+          () => { window[_doneWarnKey] = true; parsePaste(id); }
+        );
         return;
       }
     }
@@ -1478,12 +1513,13 @@ export function parsePaste(id) {
   // AC-3: al hacer click en "Continuar de todas formas", marcar flag visto y re-invocar parsePaste (auto-trigger corre en esa segunda pasada).
   // AC-4: aviso usa clase CSS paste-warn — sin clase nueva.
   // AC-5: reutiliza _discrepancy ya calculado — sin duplicar lógica.
+  // CAEL-26: target migrado de prev-${id} (inexistente desde CAEL-22) a #ingest-validation-warnings.
   const _discrepancyWarnKey = `_discrepancyWarnSeen_${id}`;
   if (_discrepancy && !window[_discrepancyWarnKey]) {
-    prev.className = 'preview show';
-    prev.innerHTML = `<div class="paste-error paste-warn">⚠ ${_discrepancy.raw} línea${_discrepancy.raw !== 1 ? 's' : ''} detectada${_discrepancy.raw !== 1 ? 's' : ''} en el texto — solo ${_discrepancy.parsed} parseada${_discrepancy.parsed !== 1 ? 's' : ''} correctamente. Verifica el formato de los ítems no detectados.<br><button class="btn-ghost paste-inline-btn">Continuar de todas formas</button></div>`;
-    const _discBtn = prev.querySelector('.paste-inline-btn');
-    if (_discBtn) _discBtn.addEventListener('click', () => { window[_discrepancyWarnKey] = true; parsePaste(id); }, { once: true });
+    _showIngestValidationWarning(
+      `⚠ ${_discrepancy.raw} línea${_discrepancy.raw !== 1 ? 's' : ''} detectada${_discrepancy.raw !== 1 ? 's' : ''} en el texto — solo ${_discrepancy.parsed} parseada${_discrepancy.parsed !== 1 ? 's' : ''} correctamente. Verifica el formato de los ítems no detectados.`,
+      () => { window[_discrepancyWarnKey] = true; parsePaste(id); }
+    );
     return;
   }
   if (window[_discrepancyWarnKey]) delete window[_discrepancyWarnKey];
@@ -1491,14 +1527,15 @@ export function parsePaste(id) {
   // T-202606-210: detección de CHECKPOINT duplicado — AC-1/AC-2/AC-3
   // Hash = texto completo trimmed (coincidencia exacta según AC-1).
   // Guard usa patrón warn-key idéntico al de _discrepancyWarnKey.
+  // CAEL-26: target migrado de prev-${id} (inexistente desde CAEL-22) a #ingest-validation-warnings.
   const _dupWarnKey = `_dupCheckpointWarnSeen_${id}`;
   if (isCheckpoint && title) {
     const _ckptHash = text.trim();
     if (_processedCheckpointHashes.has(_ckptHash) && !window[_dupWarnKey]) {
-      prev.className = 'preview show';
-      prev.innerHTML = `<div class="paste-error paste-warn">⚠ Este CHECKPOINT ya fue procesado. ¿Continuar de todas formas?<br><button class="btn-ghost paste-inline-btn">Continuar de todas formas</button></div>`;
-      const _dupBtn = prev.querySelector('.paste-inline-btn');
-      if (_dupBtn) _dupBtn.addEventListener('click', () => { window[_dupWarnKey] = true; parsePaste(id); }, { once: true });
+      _showIngestValidationWarning(
+        '⚠ Este CHECKPOINT ya fue procesado. ¿Continuar de todas formas?',
+        () => { window[_dupWarnKey] = true; parsePaste(id); }
+      );
       return;
     }
     if (window[_dupWarnKey]) delete window[_dupWarnKey];
