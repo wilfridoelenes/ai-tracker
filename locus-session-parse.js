@@ -1,3 +1,17 @@
+// [PP] mod:118 · autor:Rune · 2026-07-14 UTC-6
+// CAEL-29 (TKT5): agregado _showIngestValidationResult() — migra identidad de resultado
+//   (badges de proyecto/título/resumen/archivo) del bloque roto que usaba `prev` (variable
+//   nunca declarada en el scope de parsePaste — ReferenceError en cada paste con title o
+//   summary truthy, la rama principal tras validación exitosa) a #ingest-validation-result.
+//   Fix inline (mismo archivo, sin scope nuevo, verificable por Finn junto con el TKT):
+//   el bloque también leía `state.projects` vía `sess-proj-${id}` — selector de proyecto
+//   por-Worker que no existe desde la migración a #ingest-ta global (CAEL-22). Reemplazado
+//   por getActiveProject(), ya usado como fuente única de proyecto activo en el resto de
+//   este archivo (líneas 1722/2258/2305 antes de este cambio). no_incluye: próximo paso /
+//   bloqueantes (TKT6) y lista de ítems vía buildTGPreview (TKT7) — ninguno se renderiza en
+//   #ingest-validation-result todavía; ambos TKTs sin especificar por Cael a la fecha de
+//   este entrega. `esc()` y `buildTGPreview` quedan sin consumidor en esta función tras el
+//   retiro del bloque — ambos con otros call sites en el archivo (ver imports), no huérfanos.
 // [PP] mod:117 · autor:Rune · 2026-07-13 18:10 UTC-6
 // CAEL-26 (TKT2): migrados los 4 warnings no bloqueantes de parsePaste() (rol ausente /
 //   done-sin-AC / discrepancia raw-vs-parseado / CHECKPOINT duplicado) del target legacy
@@ -959,6 +973,63 @@ function _resetIngestValidationPanel() {
   if (resultEl) resultEl.classList.add('is-hidden');
 }
 
+// CAEL-29 (TKT5): identidad de resultado — reemplaza el bloque que usaba `prev` y `state.projects`,
+// ninguno declarado en el scope de parsePaste (ReferenceError en cada paste con title o summary
+// truthy — la rama principal tras validación exitosa). Mismo patrón de referencia muerta ya
+// resuelto para prev-${id} en CAEL-25/26/27 y para sess-proj-${id} aquí (fix inline — mismo
+// archivo, sin scope nuevo, verificable por Finn junto con el TKT: la card por-Worker con
+// selector de proyecto propio no existe desde la migración a #ingest-ta global, CAEL-22;
+// getActiveProject() ya es la fuente única de proyecto activo en el resto de este archivo,
+// líneas 1722/2258/2305). Migra badges de proyecto + título + resumen + archivo a
+// #ingest-validation-result. no_incluye: próximo paso / bloqueantes (TKT6) y lista de ítems
+// (TKT7) — quedan sin renderizar hasta que esos TKTs se emitan (ver AC de CAEL-29).
+function _showIngestValidationResult({ ckptProyecto, activeProjectName, title, summary, files }) {
+  const panel = document.getElementById('ingest-validation-panel');
+  const resultEl = document.getElementById('ingest-validation-result');
+  const badgeProjectEl = document.getElementById('ingest-result-badge-project');
+  const titleEl = document.getElementById('ingest-result-title');
+  const summaryEl = document.getElementById('ingest-result-summary');
+  const fileEl = document.getElementById('ingest-result-file');
+  const fileNameEl = document.getElementById('ingest-result-file-name');
+  // AC guard — sin DOM: retorna sin lanzar excepción si falta cualquiera de los 6 targets.
+  if (!panel || !resultEl || !badgeProjectEl || !titleEl || !summaryEl || !fileEl || !fileNameEl) return;
+  const errEl = document.getElementById('ingest-validation-error');
+  const warnEl = document.getElementById('ingest-validation-warnings');
+
+  // AC1/AC2/AC3 — badge de proyecto
+  const _ckptProj = (ckptProyecto || '').trim();
+  const _activeProj = (activeProjectName || '').trim();
+  if (_ckptProj && _activeProj && _ckptProj === _activeProj) {
+    badgeProjectEl.classList.remove('validation-badge--warning');
+    badgeProjectEl.classList.add('validation-badge--success');
+    badgeProjectEl.textContent = `✓ Proyecto: ${_ckptProj}`;
+  } else if (_ckptProj) {
+    badgeProjectEl.classList.replace('validation-badge--success', 'validation-badge--warning');
+    badgeProjectEl.textContent = `⚠ Proyecto: ${_ckptProj}`;
+  } else {
+    badgeProjectEl.classList.add('validation-badge--warning');
+    badgeProjectEl.textContent = '⚠ Sin campo Proyecto';
+  }
+
+  // AC4/AC5
+  titleEl.textContent = title || '';
+  summaryEl.textContent = summary || '';
+
+  // AC6/AC7
+  if (files) {
+    fileEl.classList.remove('is-hidden');
+    fileNameEl.textContent = files;
+  } else {
+    fileEl.classList.add('is-hidden');
+  }
+
+  // AC8 — mostrar panel, mismo criterio que _showIngestValidationError/_showIngestValidationWarning
+  panel.classList.remove('is-hidden');
+  resultEl.classList.remove('is-hidden');
+  if (errEl) errEl.classList.add('is-hidden');
+  if (warnEl) warnEl.classList.add('is-hidden');
+}
+
 export function parsePaste(id) {
   const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
   const text = ta ? ta.value : '';
@@ -1568,77 +1639,25 @@ export function parsePaste(id) {
   }
 
   if (title || summary) {
-    // P-202604-115: pill de proyecto del CHECKPOINT con indicador de coincidencia
-    const _ckptProj = ckpt ? (ckpt.proyecto || '') : '';
-    const _cardProjEl = document.getElementById('sess-proj-' + id);
-    const _cardProjId = _cardProjEl ? _cardProjEl.value : '';
-    const _cardProj = _cardProjId ? (state.projects || []).find(p => p.id === _cardProjId) : null;
-    const _cardProjName = _cardProj ? _cardProj.name : '';
-    let _projPillHTML = '';
-    // TKT1 (REQ-[pendiente-ID] · Custom properties del pill de proyecto vía setProperty —
-    //   CSS Purity): _pillRuntimeVars retiene los tres valores calculados para aplicarlos
-    //   con element.style.setProperty() sobre el nodo real después de insertarlo — el
-    //   template literal ya no lleva style= embebido (ver bloque post-innerHTML abajo).
-    let _pillRuntimeVars = null;
-    if (isCheckpoint) {
-      if (_ckptProj) {
-        const _match = _cardProjName && _cardProjName.trim() === _ckptProj.trim();
-        const _pillColor = _match ? 'var(--green)' : 'var(--accent)';
-        const _pillBg = _match ? 'rgba(46,204,120,0.12)' : 'rgba(248,113,50,0.12)';
-        const _pillBorder = _match ? 'rgba(46,204,120,0.3)' : 'rgba(248,113,50,0.3)';
-        const _icon = _match ? '✓' : '⚠';
-        _pillRuntimeVars = { bg: _pillBg, color: _pillColor, border: _pillBorder };
-        _projPillHTML = `<div class="ckpt-proj-pill">${_icon} Proyecto: ${esc(_ckptProj)}</div>`;
-      } else {
-        _projPillHTML = `<div class="ckpt-pill ckpt-pill--warn">⚠ Sin campo Proyecto</div>`;
-      }
-    }
-    prev.className = 'preview show';
-    prev.innerHTML = `
-      <div class="ckpt-badges-row">
-        <div class="ckpt-pill ckpt-pill--ok">\u2713 CHECKPOINT</div>
-        ${_projPillHTML}
-      </div>
-      ${title ? `<div class="preview-title">${esc(title)}</div><hr class="preview-divider">` : ''}
-      ${summary ? `<div class="preview-summary">${esc(summary)}</div>` : ''}
-      ${files ? `<div class="preview-files">\U0001F4C4 ${esc(files)}</div>` : ''}
-      ${nextStep ? `<div class="preview-next-step"><span class="preview-next-label">Próximo paso</span> ${esc(nextStep)}</div>` : ''}
-      ${(() => {
-        if (!bloqueantesRaw) return '';
-        const _bVal = bloqueantesRaw.trim();
-        if (_bVal.toLowerCase() === 'n/a') {
-          return `<div class="preview-bloqueantes preview-bloqueantes--ok"><span class="preview-next-label">Bloqueantes</span> <span class="preview-bloqueantes-val">n/a</span></div>`;
-        }
-        // Detectar referencia a ítem: ID real (P/T/R/B-YYYYMM-NNN) o [tmp:slug] o [pendiente-ID]
-        const _itemRefRe = /([PTRB]-\d{6}-\d{3}(?:-[A-Z]+)?|\[tmp:[a-z0-9_-]+\]|\[pendiente-ID\])/gi;
-        const _refs = _bVal.match(_itemRefRe);
-        if (_refs) {
-          const _linked = _bVal.replace(_itemRefRe, m => `<span class="preview-bloqueantes-ref">${esc(m)}</span>`);
-          return `<div class="preview-bloqueantes preview-bloqueantes--ref"><span class="preview-next-label">Bloqueantes</span> <span class="preview-bloqueantes-val">${_linked}</span></div>`;
-        }
-        // Texto libre — aviso de formato esperado
-        return `<div class="preview-bloqueantes preview-bloqueantes--warn"><span class="preview-next-label">Bloqueantes</span> <span class="preview-bloqueantes-val">${esc(_bVal)}</span><span class="preview-bloqueantes-hint"> · esperado: ID de ítem o n/a</span></div>`;
-      })()}
-      ${buildTGPreview(tgItems, _discrepancy)}`;
-    // TKT1 (REQ-[pendiente-ID] · CSS Purity): custom properties del pill de proyecto
-    // aplicadas sobre el nodo real recién insertado — no en el string de innerHTML.
-    if (_pillRuntimeVars) {
-      const _pillEl = prev.querySelector('.ckpt-proj-pill');
-      if (_pillEl) {
-        _pillEl.style.setProperty('--pill-bg', _pillRuntimeVars.bg);
-        _pillEl.style.setProperty('--pill-color', _pillRuntimeVars.color);
-        _pillEl.style.setProperty('--pill-border', _pillRuntimeVars.border);
-      }
-    }
-    // T-409: scroll preview-tg into view when items detected
-    if (tgItems.length > 0) {
-      requestAnimationFrame(() => {
-        const _tgEl = prev.querySelector('.preview-tg');
-        if (_tgEl) _tgEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      });
-    }
+    // CAEL-29 (TKT5): identidad de resultado vía _showIngestValidationResult —
+    // reemplaza el bloque roto que usaba `prev`/`state.projects` (ver comentario junto
+    // a esa función). Proyecto activo vía getActiveProject() — única fuente vigente desde
+    // la migración a #ingest-ta global (CAEL-22); la card por-Worker con su propio selector
+    // de proyecto (sess-proj-${id}) no existe más.
+    const _activeProjIVR = getActiveProject();
+    _showIngestValidationResult({
+      ckptProyecto: ckpt ? (ckpt.proyecto || '') : '',
+      activeProjectName: _activeProjIVR ? (_activeProjIVR.name || '') : '',
+      title,
+      summary,
+      files
+    });
+    // no_incluye de CAEL-29: próximo paso (nextStep) / bloqueantes (bloqueantesRaw) y la
+    // lista de ítems (tgItems vía buildTGPreview) no se renderizan en #ingest-validation-result
+    // todavía — scope de TKT6 y TKT7 respectivamente, aún sin especificar por Cael.
   } else {
-    prev.className = 'preview';
+    const _resultElReset = document.getElementById('ingest-validation-result');
+    if (_resultElReset) _resultElReset.classList.add('is-hidden');
   }
 }
 // T-202606-032: _pasteInFlight (módulo) e isParseInFlight eliminados — AC-4/AC-5.
