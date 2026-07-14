@@ -1,4 +1,4 @@
-/* [PP] mod:2 · autor:Nova · 2026-07-13 UTC-6 */
+/* [PP] mod:3 · autor:Nova · 2026-07-14 UTC-6 */
 /* locus-modals-misc.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 
 /* [PP] mod:7 · autor:Nova · 2026-07-04 UTC-6 */
@@ -1591,7 +1591,6 @@
   border: 1px solid var(--red-border);
   border-radius: var(--radius-md);
   padding: 8px 12px;
-  margin: 0 18px 10px;
   color: var(--red-text);
   font-size: var(--text-xs);
 }
