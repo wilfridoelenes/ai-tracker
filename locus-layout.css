@@ -1,4 +1,8 @@
-/* [PP] mod:15 · autor:Nova · 2026-07-13 22:40 UTC-6 */
+/* [PP] mod:16 · autor:Nova · 2026-07-13 UTC-6 */
+/* CAEL-05 · TKT1 (CAEL-06): tabs sin pill (.tabs sin bg/border/padding, .tab-btn.active sin
+   chip — reusa ::after ya existente para el subrayado), .header-zone--nav ya no centrado
+   (queda pegado a brand), .header-zone--utils gana margin-left:auto. .breadcrumb-seg--proj
+   sin bg en reposo — chevron + hover accent-dim intactos (affordance de click preservada). */
 /* locus-layout.css */
 
 /* Versión: 2.1 | Última actualización: 2026-05-22 | Selectores compartidos consolidados — T-202605-031 */
@@ -192,10 +196,6 @@
   gap: 3px;
   flex-shrink: 0;
   position: relative;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md-plus);
-  padding: 3px;
 }
 
 .sync-pill.synced {
@@ -446,13 +446,13 @@ button {
    vez de crear un tratamiento nuevo. */
 .breadcrumb-seg--proj {
   color: var(--text);
-  font-weight: 700;
-  font-size: var(--text-lg);
-  max-width: 180px;
+  font-weight: 500;
+  font-size: var(--text-sm);
+  max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
   position: relative;
-  background: var(--surface2);
+  background: transparent;
   padding-right: 16px;
 }
 
@@ -583,9 +583,17 @@ header {
   border-left: 1px solid var(--border);
 }
 
-.header-zone--nav {
-  margin-inline: auto;
-  justify-content: center;
+.header-zone--utils {
+  margin-left: auto;
+}
+
+/* CAEL-06 · TKT1 (REQ CAEL-05): separador vertical para #header-project-label,
+   reubicado junto a #more-menu-wrap — mismo lenguaje visual que .header-zone + .header-zone */
+.header-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--border);
+  flex-shrink: 0;
 }
 
 .logo {
@@ -1877,7 +1885,7 @@ header {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--text-sm);
+  font-size: var(--text-md);
   padding: 5px 14px;
   transition: all 0.15s var(--ease-standard);
   font-family: var(--font-sans);
@@ -1894,15 +1902,11 @@ header {
 }
 
 .tab-btn:hover {
-  background: var(--surface3);
   color: var(--text);
 }
 
 .tab-btn.active {
-  background: var(--surface);
   color: var(--text);
-  border-color: var(--border2);
-  box-shadow: 0 1px 4px rgb(0 0 0 / 15%);
   font-weight: 600;
 }
 

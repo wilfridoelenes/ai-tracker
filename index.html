@@ -1,4 +1,7 @@
-<!-- [PP] mod:125 · autor:Rune · 2026-07-13 UTC-6 -->
+<!-- [PP] mod:126 · autor:Rune · 2026-07-13 UTC-6 -->
+<!-- CAEL-05 · TKT2 (CAEL-07): #header-project-label movido de .header-zone--brand a
+     .header-zone--utils, envuelto entre dos .header-divider, antes de #more-menu-wrap.
+     Contenido interno (#breadcrumb-proj + #header-sprint-pill-wrap) sin modificar. -->
 <!-- CAEL-01 · TKT2 (CAEL-03) + TKT3 (CAEL-04): 18 emojis del header (6 tabs + pend-btn + 11 menú ⋯)
      reemplazados por <svg> propio 18x18 stroke:currentColor, según mapeo de Nova en
      locus-header-icons-mapeo.md. #mm-btn-sync conserva su sync-status-dot (● vía CSS) sin cambio. -->
@@ -150,10 +153,6 @@
     <div class="header-zone header-zone--brand">
       <div class="logo cursor-pointer" id="logo-btn" title="Ir a Sesiones">
         <img id="pepe-logo" src="/img/logo.png" alt="Pepe" class="logo-img">
-        <div class="logo-project-label" id="header-project-label">
-          <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" >Locus</button>
-          <div id="header-sprint-pill-wrap" class="is-hidden"></div>
-        </div>
       </div>
     </div>
 
@@ -184,6 +183,12 @@
 
 
         <!-- Menú ⋯ — R-202605-012: grupos semánticos con separadores — Datos · Navegación · Configuración · Zona peligrosa -->
+      <div class="header-divider"></div>
+      <div class="logo-project-label" id="header-project-label">
+        <button class="breadcrumb-seg breadcrumb-seg--proj" id="breadcrumb-proj" title="Cambiar proyecto" >Locus</button>
+        <div id="header-sprint-pill-wrap" class="is-hidden"></div>
+      </div>
+      <div class="header-divider"></div>
       <div class="more-menu-wrap" id="more-menu-wrap">
         <button class="btn-ghost btn-icon" title="Más opciones" id="more-menu-btn">⋯</button>
         <div class="more-menu is-hidden" id="more-menu">
