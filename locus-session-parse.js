@@ -1,4 +1,4 @@
-// [PP] mod:115 · autor:Rune · 2026-07-13 16:10 UTC-6
+// [PP] mod:116 · autor:Rune · 2026-07-13 16:45 UTC-6
 // TKT3 (REQ-[pendiente-ID] · Hallazgo fuera de scope de TKT1, promovido a DISC y evaluado en la
 //   misma sesión): eliminada la función _tryIngestSprintProposal (ingesta legacy Markdown de
 //   sprint_proposal, sin FromParsed) — su único importador (locus-session-save.js) fue retirado
@@ -897,6 +897,35 @@ function _resolveSprintFields(it) {
 
 // B-202606-022: resolver [tmp:slug] en campo parent/parentId de un patch contra tgItems del mismo CHECKPOINT.
 // Llama antes de acumular el patch en _patchItems_${id}.
+// CAEL-25: helpers de #ingest-validation-panel — reemplazan el target prev-${id},
+// inexistente en el DOM desde la migración a #ingest-ta global (CAEL-22).
+function _showIngestValidationError(msgHtml) {
+  const panel = document.getElementById('ingest-validation-panel');
+  const errEl = document.getElementById('ingest-validation-error');
+  const errMsgEl = document.getElementById('ingest-validation-error-msg');
+  const warnEl = document.getElementById('ingest-validation-warnings');
+  const resultEl = document.getElementById('ingest-validation-result');
+  if (!panel || !errEl || !errMsgEl) return;
+  panel.classList.remove('is-hidden');
+  errEl.classList.remove('is-hidden');
+  errMsgEl.innerHTML = msgHtml;
+  if (warnEl) warnEl.classList.add('is-hidden');
+  if (resultEl) resultEl.classList.add('is-hidden');
+}
+
+function _resetIngestValidationPanel() {
+  const panel = document.getElementById('ingest-validation-panel');
+  const errEl = document.getElementById('ingest-validation-error');
+  const errMsgEl = document.getElementById('ingest-validation-error-msg');
+  const warnEl = document.getElementById('ingest-validation-warnings');
+  const resultEl = document.getElementById('ingest-validation-result');
+  if (panel) panel.classList.add('is-hidden');
+  if (errEl) errEl.classList.add('is-hidden');
+  if (errMsgEl) errMsgEl.innerHTML = '';
+  if (warnEl) warnEl.classList.add('is-hidden');
+  if (resultEl) resultEl.classList.add('is-hidden');
+}
+
 export function parsePaste(id) {
   const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
   const text = ta ? ta.value : '';
@@ -1313,15 +1342,17 @@ export function parsePaste(id) {
     delete window[`_discrepancyWarnSeen_${id}`];
     delete window[`_draftGateToastSeen_${id}`];
     // Resetear preview y ta-has-items al estado inicial
-    const _prevEl = document.getElementById('prev-' + id);
-    if (_prevEl) { _prevEl.className = 'preview'; _prevEl.innerHTML = ''; }
+    // CAEL-25: prev-${id} no existe en el DOM desde CAEL-22 (migración a #ingest-ta global) —
+    // target real es #ingest-validation-panel.
+    _resetIngestValidationPanel();
     const _taEl = document.getElementById('ingest-ta') /* CAEL-22 */;
     if (_taEl) _taEl.classList.remove('ta-has-items');
     ai._parsed = { title: '', summary: '', files: '', tgItems: [], isCheckpoint: false, nextStep: '', ckptProyecto: '' };
     return;
   }
 
-  const prev = document.getElementById('prev-' + id);
+  // CAEL-25: 'prev' (prev-${id}) retirado — no existe en el DOM desde CAEL-22.
+  // Target real de los checks bloqueantes: #ingest-validation-error, vía _showIngestValidationError.
   if (text.trim()) {
     // T-202606-005: gate de validación — presencia de field 'title' + JSON válido
     // ---FIN-CHECKPOINT--- no requerido · path legacy eliminado
@@ -1330,15 +1361,18 @@ export function parsePaste(id) {
     // inferir summary como 'WIP' para no bloquear la validación.
     const hasWip = /^\s*WIP\s*:/mi.test(text);
     const effectiveSummary = summary || (hasWip ? 'WIP' : '');
-    const checks = [
-      { test: !isCheckpoint,      msg: 'Formato inv\xE1lido \u2014 se esperaba bloque JSON sin especificador de lenguaje.' },
-      { test: !title,             msg: 'Falta el campo <code>title</code> dentro del bloque JSON.' },
-      { test: !effectiveSummary,  msg: 'Falta el campo <code>summary</code> dentro del bloque JSON.' },
-    ];
-    const failed = checks.find(c => c.test);
-    if (failed) {
-      prev.className = 'preview show';
-      prev.innerHTML = `<div class="paste-error">\u26A0 Formato inv\xE1lido \u2014 ${failed.msg}</div>`;
+    // CAEL-25 AC1-3: checks separados en mensajes atómicos — cada uno con su literal exacto,
+    // sin condición compuesta con 'o'.
+    if (!isCheckpoint) {
+      _showIngestValidationError('\u26A0 Formato inv\xE1lido \u2014 Formato inv\xE1lido \u2014 se esperaba bloque JSON sin especificador de lenguaje.');
+      return;
+    }
+    if (!title) {
+      _showIngestValidationError('\u26A0 Formato inv\xE1lido \u2014 Falta el campo <code>title</code> dentro del bloque JSON.');
+      return;
+    }
+    if (!effectiveSummary) {
+      _showIngestValidationError('\u26A0 Formato inv\xE1lido \u2014 Falta el campo <code>summary</code> dentro del bloque JSON.');
       return;
     }
 
@@ -1346,8 +1380,7 @@ export function parsePaste(id) {
     // AC-2: JSON inválido → error bloqueante antes de procesar cualquier otra cosa
     const _itemsJsonErr = window[`_itemsJsonError_${id}`];
     if (_itemsJsonErr) {
-      prev.className = 'preview show';
-      prev.innerHTML = `<div class="paste-error">&#9940; Bloque de ítems inválido — ${esc(_itemsJsonErr)}.<br><span class="paste-hint">Corrige el JSON antes de procesar. El bloque debe ser un array de objetos con al menos <code>type</code>, <code>code</code> y <code>status</code>.</span></div>`;
+      _showIngestValidationError(`&#9940; Bloque de ítems inválido — ${esc(_itemsJsonErr)}.<br><span class="paste-hint">Corrige el JSON antes de procesar. El bloque debe ser un array de objetos con al menos <code>type</code>, <code>code</code> y <code>status</code>.</span>`);
       return;
     }
     // T-202606-005: path único JSON — ítems van dentro del bloque JSON (campo items: [])
@@ -1395,10 +1428,14 @@ export function parsePaste(id) {
     const _proyectoRaw = isCheckpoint ? (ckpt ? (ckpt.proyecto || '').trim() : '') : '';
     if (isCheckpoint && _proyectoRaw && !CANONICAL_PROJECTS.includes(_proyectoRaw)) {
       const _validList = CANONICAL_PROJECTS.map(p => `<code>${esc(p)}</code>`).join(' · ');
-      // B-202605-078: suprimir toast si el preview inline ya muestra este mismo error
-      const _previewAlreadyShowing = prev.classList.contains('show') && prev.innerHTML.includes('paste-error');
-      prev.className = 'preview show';
-      prev.innerHTML = `<div class="paste-error">⛔ CHECKPOINT inválido — <code>Proyecto:</code> contiene un valor no reconocido: <strong>${esc(_proyectoRaw)}</strong>.<br><span class="paste-hint">Valores válidos (case-sensitive): ${_validList}. Corrige el campo <code>Proyecto:</code> antes de procesar.</span></div>`;
+      // B-202605-078: suprimir toast si el panel de validación ya muestra este mismo error.
+      // CAEL-25: target migrado de prev-${id} (inexistente) a #ingest-validation-error.
+      // CAEL-25: #ingest-validation-error solo se muestra vía _showIngestValidationError —
+      // su visibilidad ya es la señal de "error ya mostrado", sin necesidad de inspeccionar
+      // el string 'paste-error' (ausente en el nuevo target, presente solo en el prev-${id} legacy).
+      const _errEl = document.getElementById('ingest-validation-error');
+      const _previewAlreadyShowing = !!_errEl && !_errEl.classList.contains('is-hidden');
+      _showIngestValidationError(`⛔ CHECKPOINT inválido — <code>Proyecto:</code> contiene un valor no reconocido: <strong>${esc(_proyectoRaw)}</strong>.<br><span class="paste-hint">Valores válidos (case-sensitive): ${_validList}. Corrige el campo <code>Proyecto:</code> antes de procesar.</span>`);
       if (!_previewAlreadyShowing) showToast('error', `⛔ Proyecto no reconocido: "${esc(_proyectoRaw)}" — corrige el campo`);
       // R-202605-063: sugerencia de string canónico por distancia de edición
       {
