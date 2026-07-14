@@ -1,4 +1,7 @@
-<!-- [PP] mod:124 · autor:Nova · 2026-07-13 UTC-6 -->
+<!-- [PP] mod:125 · autor:Rune · 2026-07-13 UTC-6 -->
+<!-- CAEL-01 · TKT2 (CAEL-03) + TKT3 (CAEL-04): 18 emojis del header (6 tabs + pend-btn + 11 menú ⋯)
+     reemplazados por <svg> propio 18x18 stroke:currentColor, según mapeo de Nova en
+     locus-header-icons-mapeo.md. #mm-btn-sync conserva su sync-status-dot (● vía CSS) sin cambio. -->
 <!-- CAEL-10 · TKT1 (CAEL-11): .worker-header agregado sobre #tracker-3col — shell estático,
      reutiliza sc-header/sc-avatar/sc-badge/card-dot-menu/danger-zone sin CSS de componente nuevo.
      Ids vacíos, poblados por Rune en CAEL-12 (selectTrackerAI). -->
@@ -157,13 +160,13 @@
     <!-- TKT-header-zonas: zona Navegación -->
     <div class="header-zone header-zone--nav">
       <div class="tabs">
-        <button class="tab-btn" id="tab-btn-sesiones" title="Ver Sesiones">🗂 Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sesiones"></span></button>
-        <button class="tab-btn" id="tab-btn-proyectos" title="Dashboard estratégico de proyectos">📁 Proyectos<span class="tab-notif-badge is-hidden" id="tab-notif-badge-proyectos"></span></button>
-        <button class="tab-btn" id="tab-btn-backlog" title="Backlog — ítems, sprints y estado del ecosistema">🗃 Backlog<span class="tab-notif-badge is-hidden" id="tab-notif-badge-backlog"></span></button>
-        <button class="tab-btn" id="tab-btn-sprint" title="Sprint — estado y ejecución del sprint activo">🏃 Sprint<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sprint"></span></button>
-        <button class="tab-btn" id="tab-btn-analytics" title="Analytics — sesiones por mes">📊 Analytics<span class="tab-notif-badge is-hidden" id="tab-notif-badge-analytics"></span></button>
+        <button class="tab-btn" id="tab-btn-sesiones" title="Ver Sesiones"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4.5v4.5l3 2"/><circle cx="9" cy="9" r="6.5"/><path d="M4.5 3 3 4.5"/></svg>Sesiones<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sesiones"></span></button>
+        <button class="tab-btn" id="tab-btn-proyectos" title="Dashboard estratégico de proyectos"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 5.5c0-.6.4-1 1-1H7l1.5 1.8h6c.6 0 1 .4 1 1v6.2c0 .6-.4 1-1 1h-11c-.6 0-1-.4-1-1z"/></svg>Proyectos<span class="tab-notif-badge is-hidden" id="tab-notif-badge-proyectos"></span></button>
+        <button class="tab-btn" id="tab-btn-backlog" title="Backlog — ítems, sprints y estado del ecosistema"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h12M3 9h12M3 13h7"/><circle cx="14" cy="13" r="1.6"/></svg>Backlog<span class="tab-notif-badge is-hidden" id="tab-notif-badge-backlog"></span></button>
+        <button class="tab-btn" id="tab-btn-sprint" title="Sprint — estado y ejecución del sprint activo"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15 8 8l3 3 4-6"/><path d="M11 5h4v4"/></svg>Sprint<span class="tab-notif-badge is-hidden" id="tab-notif-badge-sprint"></span></button>
+        <button class="tab-btn" id="tab-btn-analytics" title="Analytics — sesiones por mes"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15V9M8 15V3M13 15v6"/></svg>Analytics<span class="tab-notif-badge is-hidden" id="tab-notif-badge-analytics"></span></button>
         <!-- TKT2 (REQ CAEL-01 · Q-INC tab top-level): nuevo tab de primer nivel, separa Rama Reactiva de Rama Planeada (Backlog) -->
-        <button class="tab-btn" id="tab-btn-incidentes" title="Incidentes — INC · PRB · KE · CHG (Rama Reactiva)">🚨 Incidentes<span class="tab-notif-badge is-hidden" id="tab-notif-badge-incidentes"></span></button>
+        <button class="tab-btn" id="tab-btn-incidentes" title="Incidentes — INC · PRB · KE · CHG (Rama Reactiva)"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3 2.5 14.5h13Z"/><path d="M9 7.5v3.2"/><circle cx="9" cy="12.6" r=".2" fill="currentColor" stroke="none"/></svg>Incidentes<span class="tab-notif-badge is-hidden" id="tab-notif-badge-incidentes"></span></button>
       </div>
     </div>
 
@@ -175,7 +178,7 @@
         <!-- [pendiente-ID]: Panel pendientes — trigger header -->
         <button class="header-pend-btn is-hidden" id="header-pend-btn"
                 aria-label="Ver pendientes">
-          <span class="header-pend-btn__icon" aria-hidden="true">⏳</span>
+          <span class="header-pend-btn__icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="9" r="6.5"/><path d="M9 5.5V9l2.5 1.5"/></svg></span>
           <span class="header-pend-btn__count" id="header-pend-count" aria-hidden="true"></span>
         </button>
 
@@ -186,24 +189,24 @@
         <div class="more-menu is-hidden" id="more-menu">
           <!-- Grupo: Datos -->
           <div class="mm-group-label">Datos</div>
-          <button type="button" id="mm-btn-backup"><span class="mm-icon">⬇</span> Backup</button>
-          <button type="button" id="mm-btn-import"><span class="mm-icon">⬆</span> Importar backup</button>
-          <button type="button" id="mm-btn-report"><span class="mm-icon">📄</span> Reporte global</button>
-          <button type="button" id="ckpt-reopen-btn" class="is-hidden"><span class="mm-icon">📋</span> Ver último CHECKPOINT</button>
+          <button type="button" id="mm-btn-backup"><span class="mm-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2.5v8.5M6 8l3 3 3-3"/><path d="M3.5 12.5v2c0 .6.4 1 1 1h9c.6 0 1-.4 1-1v-2"/></svg></span> Backup</button>
+          <button type="button" id="mm-btn-import"><span class="mm-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11.5V3M6 6l3-3 3 3"/><path d="M3.5 12.5v2c0 .6.4 1 1 1h9c.6 0 1-.4 1-1v-2"/></svg></span> Importar backup</button>
+          <button type="button" id="mm-btn-report"><span class="mm-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 2.5h6l3 3v10c0 .6-.4 1-1 1H5c-.6 0-1-.4-1-1v-12c0-.6.4-1 1-1Z"/><path d="M6.5 9.5h5M6.5 12h5"/></svg></span> Reporte global</button>
+          <button type="button" id="ckpt-reopen-btn" class="is-hidden"><span class="mm-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2.5h6c.6 0 1 .4 1 1v11c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-11c0-.6.4-1 1-1Z"/><path d="M7 2.5V2c0-.3.2-.5.5-.5h3c.3 0 .5.2.5.5v.5"/><path d="M6.5 9.5l1.3 1.3L11.5 7.5"/></svg></span> Ver último CHECKPOINT</button>
           <!-- Grupo: Configuración -->
           <hr class="mm-separator">
           <div class="mm-group-label">Configuración</div>
-          <button type="button" id="more-menu-theme"><span class="mm-icon">🌙</span> Tema oscuro</button>
-          <button type="button" data-action="open-shortcuts"><span class="mm-icon">⌨</span> Atajos de teclado</button>
-          <button type="button" id="mm-btn-changelog"><span class="mm-icon">📋</span> Changelog</button>
-          <button type="button" id="mm-btn-notif"><span class="mm-icon">🔔</span> Configurar notificaciones</button>
+          <button type="button" id="more-menu-theme"><span class="mm-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 10.2A5.5 5.5 0 1 1 7.8 4.5a4.3 4.3 0 0 0 5.7 5.7Z"/></svg></span> Tema oscuro</button>
+          <button type="button" data-action="open-shortcuts"><span class="mm-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="5" width="13" height="8" rx="1.4"/><path d="M5 8.2h.01M8 8.2h.01M11 8.2h.01M13 8.2h.01M5.5 10.8h7"/></svg></span> Atajos de teclado</button>
+          <button type="button" id="mm-btn-changelog"><span class="mm-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3.5h10v11l-2-1.4-1.5 1.4-1.5-1.4-1.5 1.4-1.5-1.4-2 1.4z"/><path d="M6.3 6.7h5.4M6.3 9.2h5.4"/></svg></span> Changelog</button>
+          <button type="button" id="mm-btn-notif"><span class="mm-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7.5a4 4 0 0 1 8 0c0 3 1.2 3.8 1.2 3.8h-10.4S5 10.5 5 7.5Z"/><path d="M7.6 13.8a1.5 1.5 0 0 0 2.8 0"/></svg></span> Configurar notificaciones</button>
           <button type="button" id="mm-btn-sync"><span class="mm-icon sync-status-dot" id="sync-status-dot">●</span> <span id="sync-status-label">Sync: local</span></button>
-          <button type="button" id="mm-btn-user" class="is-hidden"><span class="mm-icon">👤</span> <span id="mm-user-name"></span> · Cerrar sesión</button>
-          <button type="button" id="mm-btn-sync-infra" data-action="open-infra-sync"><span class="mm-icon">🧬</span> Sincronizar infra_version</button>
+          <button type="button" id="mm-btn-user" class="is-hidden"><span class="mm-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="6.3" r="2.8"/><path d="M3.5 15c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6"/></svg></span> <span id="mm-user-name"></span> · Cerrar sesión</button>
+          <button type="button" id="mm-btn-sync-infra" data-action="open-infra-sync"><span class="mm-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 5.5a5.5 5.5 0 0 0-9.7-2.3M4 12.5a5.5 5.5 0 0 0 9.7 2.3"/><path d="M4 3v3h3M14 15v-3h-3"/></svg></span> Sincronizar infra_version</button>
           <!-- Grupo: Zona peligrosa -->
           <hr class="mm-separator">
           <div class="mm-group-label mm-group-label--danger">Zona peligrosa</div>
-          <button type="button" id="mm-btn-clean" class="mm-danger"><span class="mm-icon">🗑</span> Limpiar proyecto</button>
+          <button type="button" id="mm-btn-clean" class="mm-danger"><span class="mm-icon"><svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5h10M7.3 5.5V4c0-.5.4-1 1-1h1.4c.6 0 1 .5 1 1v1.5"/><path d="M5.3 5.5 6 14.5c0 .5.4 1 1 1h4c.6 0 1-.5 1-1l.7-9"/><path d="M8 8v4.5M10 8v4.5"/></svg></span> Limpiar proyecto</button>
         </div>
       </div>
 
