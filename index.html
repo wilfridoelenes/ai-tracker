@@ -1,4 +1,4 @@
-<!-- [PP] mod:123 · autor:Nova · 2026-07-13 UTC-6 -->
+<!-- [PP] mod:124 · autor:Nova · 2026-07-13 UTC-6 -->
 <!-- CAEL-10 · TKT1 (CAEL-11): .worker-header agregado sobre #tracker-3col — shell estático,
      reutiliza sc-header/sc-avatar/sc-badge/card-dot-menu/danger-zone sin CSS de componente nuevo.
      Ids vacíos, poblados por Rune en CAEL-12 (selectTrackerAI). -->
@@ -1439,6 +1439,30 @@
         <span>Guardado automático</span>
       </div>
       <span class="char-counter" id="ingest-char-counter">0 caracteres</span>
+    </div>
+
+    <!-- ingest-validation-panel — CAEL-19 (error/warnings, recuperado — no existía en archivo real pese a status done en backlog)
+         + CAEL-23 (result). Tres sub-estados mutuamente excluyentes vía is-hidden — shell estático,
+         contenido de texto/lista lo puebla JS (Rune). -->
+    <div class="ingest-validation-panel is-hidden" id="ingest-validation-panel" aria-live="polite">
+      <div class="validation-error is-hidden" id="ingest-validation-error">
+        <p class="validation-msg" id="ingest-validation-error-msg"></p>
+      </div>
+      <div class="validation-warnings is-hidden" id="ingest-validation-warnings">
+        <p class="validation-msg" id="ingest-validation-warning-msg"></p>
+        <button class="validation-force-btn" id="ingest-validation-force-btn" type="button">Procesar de todas formas</button>
+      </div>
+      <div class="validation-result is-hidden" id="ingest-validation-result">
+        <div class="validation-result-badges">
+          <span class="validation-badge validation-badge--success" id="ingest-result-badge-checkpoint"><i class="ti ti-check" aria-hidden="true"></i> Checkpoint</span>
+          <span class="validation-badge validation-badge--success" id="ingest-result-badge-project"></span>
+        </div>
+        <p class="validation-result-title" id="ingest-result-title"></p>
+        <hr class="validation-divider">
+        <p class="validation-result-summary" id="ingest-result-summary"></p>
+        <p class="validation-result-file" id="ingest-result-file"><i class="ti ti-file" aria-hidden="true"></i> <span id="ingest-result-file-name"></span></p>
+        <div class="validation-result-items" id="ingest-result-items"></div>
+      </div>
     </div>
 
     <div class="sc-diff-preview is-hidden" id="diff-preview-modal" aria-live="polite"></div>
