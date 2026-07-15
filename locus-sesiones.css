@@ -1,3 +1,8 @@
+/* [PP] mod:29 · autor:Nova · 2026-07-14 UTC-6 */
+/* CAEL-02 (REQ CAEL-01) — fix INC: separador movido de border-top a border-bottom en
+   .worker-header-unlock (cierra el bloque exhausted completo, no entre sus dos filas) +
+   fondo alineado al mismo gradiente 135deg de .worker-header--exhausted (antes sólido,
+   generaba salto de color visible en la captura del founder). Ver comentario inline. */
 /* [PP] mod:28 · autor:Nova · 2026-07-14 UTC-6 */
 /* CAEL-02 (REQ CAEL-01): worker-header — pulso trasladado del avatar al header completo
    (solo available/insession), título del worker ampliado a text-2xl, Checkpoint/menú con
@@ -4302,10 +4307,13 @@
 .worker-header--exhausted {
   border-left: 3px solid var(--red-border);
   background: linear-gradient(135deg, var(--red-dim) 0%, var(--surface, transparent) 60%);
-  /* Fix Nova (INC — separador visual duplicado): .sc-header trae border-bottom propio.
-     En exhausted, .worker-header-unlock (hermano, ver locus-sesiones.js) ya aporta su propio
-     border-top como único separador antes de la lista de sesiones — anular el de .sc-header
-     evita la doble línea que encajonaba la fila del countdown entre header y unlock. */
+  /* Fix Nova (INC — separador visual duplicado + fondos discrepantes): .sc-header trae
+     border-bottom propio — anulado aquí para que no aparezca línea entre esta fila y
+     .worker-header-unlock (hermano). El separador real vive en el border-bottom de
+     .worker-header-unlock, cerrando el bloque completo antes de la lista de sesiones —
+     no entre las dos filas. Fondo de .worker-header-unlock alineado al mismo gradiente
+     135deg que esta fila (antes era var(--red-dim) sólido — generaba salto de color
+     donde esta fila ya se había desvanecido hacia la derecha). */
   border-bottom-color: transparent;
 }
 
@@ -4404,8 +4412,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 0.75rem 1.125rem;
-  border-top: 0.5px solid var(--border);
-  background: var(--red-dim);
+  border-bottom: 0.5px solid var(--border);
+  background: linear-gradient(135deg, var(--red-dim) 0%, var(--surface, transparent) 80%);
 }
 
 .worker-header-unlock-label {
