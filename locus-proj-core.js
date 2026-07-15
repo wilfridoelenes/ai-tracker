@@ -1,4 +1,4 @@
-// [PP] mod:11 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:12 · autor:Rune · 2026-07-15 UTC-6
 // INC-[pendiente-ID]: getCurrentTab importado — typeof currentTab !== 'undefined' nunca era true
 // (currentTab es var privada de locus-ui-shell.js, no global). Guard "solo renderizar Analytics si
 // tab activo" nunca ejecutaba. Fix: getCurrentTab() real, mismo patrón ya usado en locus-sprint-project.js:143.
@@ -31,7 +31,6 @@ import { renderBacklogList, _updateSubtabBadges } from './locus-backlog-render.j
 import { renderQBacklogPanel } from './locus-backlog-qbacklog.js';
 import { renderQDiscPanel } from './locus-backlog-qdisc.js';
 import { loadHtmlMap } from './locus-map-viewer.js';
-import { _renderTplProjBanner } from './locus-docs.js';
 import { _updateHeaderProjectLabel } from './locus-sesiones-stats.js';
 import { _syncCleanProjectBtn } from './locus-reports.js';
 
@@ -123,7 +122,6 @@ export function selectProjectFilter(projId) {
   renderQDiscPanel();    // TKT-C10: re-render Q-DISC al cambiar proyecto activo
   _updateSubtabBadges(); // T-202606-093 AC-4: mismo motivo — selectProjectFilter no dispara shell:backlog-render-dirty
   renderStats();
-  _renderTplProjBanner();
   switchSubTab(getCurrentSubTab());
   if (projId) {
     const proj = getProjectById(projId);

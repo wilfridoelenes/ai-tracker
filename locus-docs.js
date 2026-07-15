@@ -1,4 +1,4 @@
-// [PP] mod:18 · autor:Rune · 2026-07-15 12:00 UTC-6
+// [PP] mod:19 · autor:Rune · 2026-07-15 UTC-6
 // TKT-[pendiente-ID] (REQ-[pendiente-ID] · createdAt en docUpdateIndex): processDocUpdate()
 //   agrega createdAt:Date.now() a toda entrada nueva (primera entrada de una key y entradas
 //   de conflicto) — desbloquea el cómputo de vencimiento del DOC-UPDATE. resolveDocUpdate()
@@ -283,22 +283,6 @@ function _dismissDocsOnboarding() {
     setTimeout(() => banner.remove(), 350);
   }
 }
-
-// T-202604-006: Banner proyecto activo en Templates
-export function _renderTplProjBanner() {
-  const banner = document.getElementById('tpl-proj-banner');
-  if (!banner) return;
-  const proj = getActiveProject();
-  if (!proj) { banner.classList.add('d-none'); banner.classList.remove('d-flex'); return; }
-  banner.classList.remove('d-none'); banner.classList.add('d-flex');
-  const icon = document.getElementById('tpl-proj-icon');
-  const name = document.getElementById('tpl-proj-name');
-  if (icon) icon.textContent = proj.icon || '📁';
-  if (name) name.textContent = proj.name;
-}
-
-// T-202604-006: Render Tracker del proyecto activo en sub-panel Templates
-
 
 // HTML_MAP_SECTIONS y htmlMapFilter migrados a locus-map-viewer.js (AC-10)
 

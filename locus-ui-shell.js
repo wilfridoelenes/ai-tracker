@@ -1,4 +1,4 @@
-// [PP] mod:57 · autor:Rune · 2026-07-15 13:10 UTC-6
+// [PP] mod:58 · autor:Rune · 2026-07-15 UTC-6
 // TKT2 (REQ CAEL-01, ref_id CAEL-03): switchTab() resetea currentSubTab a un sub-tab válido
 // del tab destino ('backlog'|'proyectos') si el sub-tab activo pertenece al otro contexto —
 // currentSubTab es variable compartida entre ambos tabs desde que Proyectos adoptó el mismo
@@ -239,8 +239,6 @@ export function switchSubTab(sub) {
   });
   // (a) event dispatch — locus-docs.js escucha 'shell:update-subtab-buttons'
   window.dispatchEvent(new CustomEvent('shell:update-subtab-buttons', { detail: { sub } }));
-  // (a) event dispatch — locus-docs.js escucha 'shell:render-tpl-proj-banner'
-  window.dispatchEvent(new CustomEvent('shell:render-tpl-proj-banner'));
   if (sub === 'htmlmap') {
     // (a) event dispatch — locus-map-viewer.js escucha 'shell:render-html-map'
     window.dispatchEvent(new CustomEvent('shell:render-html-map'));
