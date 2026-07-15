@@ -1,4 +1,4 @@
-// [PP] mod:47 · autor:Rune · 2026-07-13 02:15 UTC-6
+// [PP] mod:48 · autor:Rune · 2026-07-14 UTC-6
 // Deprecación Command Palette (cont.): removidos import de openCommandPalette/closeCommandPalette,
 // el check de cp-overlay en _escCascade, el wiring hdr-search-trigger→openCommandPalette y el
 // wiring cp-overlay click-outside. locus-command-palette.js eliminado del proyecto.
@@ -520,8 +520,12 @@ export function onSearch() {
   });
 
   // ── Renderizar panel de resultados agrupados ──
-  const grid = document.getElementById('grid');
-  if (!grid) return;
+  // INC CAEL-11 · fix: #grid pertenecía a un layout de cards que ya no existe (la app usa
+  // tracker-3col/sidebar/tabs) — el guard cortaba en silencio después de ya haber escrito
+  // countEl.textContent, dejando "N resultados" sin panel visible. Opción C (aprobada por
+  // el founder): ancla al wrapper del input, dropdown posicionado vía CSS (locus-layout.css).
+  const searchAnchor = document.getElementById('header-search-wrap');
+  if (!searchAnchor) return;
 
   // B-202605-236: scope toggle label
   const scopeLabel = _activeProjId ? '\u{1F4C1} Proyecto activo' : '\u{1F310} Todos los proyectos';
@@ -673,7 +677,7 @@ export function onSearch() {
   panel.id = 'search-unified-results';
   panel.className = 'search-unified-results';
   panel.innerHTML = html;
-  grid.insertAdjacentElement('afterend', panel);
+  searchAnchor.insertAdjacentElement('beforeend', panel);
 }
 
 // ── SCB eliminado — REQ-[pendiente-ID] TKT1. Ver TKT3 para el dock que ocupa el slot. ──
@@ -1132,6 +1136,27 @@ document.addEventListener('DOMContentLoaded', function () {
   // #more-menu-theme → toggleTheme()
   const themeBtn = document.getElementById('more-menu-theme');
   if (themeBtn) themeBtn.addEventListener('click', function () { toggleTheme(); });
+
+  // REQ CAEL-12 · TKT1 (CAEL-13): #search-global → onSearchDispatch ya existente (línea 379).
+  // onSearch()/onSearchDispatch() estaban implementados pero sin listener que los invocara
+  // al escribir — gap real detectado en integración, no ambigüedad de AC.
+  const searchInput = document.getElementById('search-global');
+  const searchClearBtn = document.getElementById('search-global-clear');
+  if (searchInput) {
+    searchInput.addEventListener('input', function () {
+      if (searchClearBtn) searchClearBtn.classList.toggle('is-hidden', !searchInput.value);
+      onSearchDispatch();
+    });
+  }
+  if (searchClearBtn) {
+    searchClearBtn.addEventListener('click', function () {
+      if (!searchInput) return;
+      searchInput.value = '';
+      searchClearBtn.classList.add('is-hidden');
+      searchInput.focus();
+      onSearchDispatch();
+    });
+  }
 
   // Botón Shortcuts en more-menu — delegation sobre document en capture
   document.addEventListener('click', function (e) {

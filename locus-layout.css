@@ -1,4 +1,4 @@
-/* [PP] mod:18 · autor:Nova · 2026-07-14 UTC-6 */
+/* [PP] mod:19 · autor:Nova · 2026-07-14 UTC-6 */
 /* CAEL-05 · TKT1 (CAEL-06) — completo: tabs sin pill (font-size:15px, border:none,
    .tab-btn.active sin chip — reusa ::after ya existente para el subrayado),
    .header-zone--brand + .header-zone--nav sin separador (contiguas), .header-zone--utils
@@ -626,6 +626,65 @@ header {
   overflow-y: auto;
   margin: 0;
   z-index: var(--z-dropdown);
+}
+
+/* REQ CAEL-12 · TKT1 (CAEL-13) — markup real del input, faltante hasta ahora pese a TKT
+   en-revision (gap detectado en integración con Rune). Tokens reutilizados del resto del
+   archivo — sin fuente local propia visible en esta sesión (rsb-search/fbar-search viven
+   en otro archivo CSS no adjunto), consistentes con el sistema de diseño ya en uso aquí. */
+.header-search-icon {
+  position: absolute;
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  pointer-events: none;
+  display: flex;
+}
+
+#search-global {
+  background: var(--surface-1);
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 4px 8px 4px 26px;
+  font-size: 13px;
+  color: var(--text);
+  width: 180px;
+}
+
+#search-global::placeholder {
+  color: var(--text-secondary);
+}
+
+#search-global:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+#search-count {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--mono);
+  white-space: nowrap;
+}
+
+.header-search-clear {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 2px;
+}
+
+.header-search-clear:hover {
+  color: var(--text);
+}
+
+.header-search-clear:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .logo {

@@ -1,4 +1,4 @@
-<!-- [PP] mod:130 · autor:Rune · 2026-07-14 UTC-6 -->
+<!-- [PP] mod:132 · autor:Rune · 2026-07-14 UTC-6 -->
 <!-- CAEL-05 · TKT2 (CAEL-07) — reaplicado sobre base mod:126 recibida por el founder (esa base
      no traía este cambio pese a declarar el mismo mod — discrepancia señalada en CHECKPOINT):
      #header-project-label movido de .header-zone--brand a .header-zone--utils, envuelto entre
@@ -174,6 +174,30 @@
     <div class="header-zone header-zone--utils">
       <div class="header-actions">
         <!-- Orden AC: búsqueda (en header-search) · nota rápida · menú ⋯ -->
+
+        <!-- REQ CAEL-12 · TKT1 (CAEL-13), incluye fix de INC CAEL-11 (Opción C aprobada por
+             el founder): input persistente de búsqueda global. onSearch/onSearchDispatch ya
+             existían en locus-ui-shell.js (mod:47) sin listener que los invocara — reconectado
+             en mod:48. #search-unified-results es 100% dinámico (onSearch lo crea/destruye por
+             búsqueda) — no lleva shell estático aquí. Ancla #header-search-wrap reemplaza a
+             #grid (INC CAEL-11 — ese layout ya no existe). -->
+        <div id="header-search-wrap">
+          <span class="header-search-icon" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="5" cy="5" r="3.5" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M7.7 7.7 10 10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <input
+            id="search-global"
+            type="text"
+            placeholder="Buscar REQ, TKT…"
+            aria-label="Buscar en el backlog"
+            autocomplete="off"
+          >
+          <span id="search-count" aria-live="polite"></span>
+          <button class="header-search-clear is-hidden" id="search-global-clear" aria-label="Limpiar búsqueda">×</button>
+        </div>
 
         <!-- [pendiente-ID]: Panel pendientes — trigger header -->
         <button class="header-pend-btn is-hidden" id="header-pend-btn"
