@@ -1,3 +1,8 @@
+// [PP] mod:21 · autor:Rune · 2026-07-14 16:30 UTC-6
+// INC — fix: openDetail() no despachaba shell:select-tracker-ai al abrir la sesión de un
+// Worker distinto al activo — el detalle abría pero el Worker seleccionado no seguía el
+// cambio. Agregado dispatch con { detail: { aiId } }, mismo shape confirmado en
+// locus-sesiones-utils.js (startSuggestedSession) y locus-sesiones-stats.js (navigateToCard).
 // [PP] mod:20 · autor:Rune · 2026-07-11 00:00 UTC-6
 // locus-session-popup.js
 // Responsabilidad: openDetail, popup de sesión completo, notas, renombrar, edición inline, Log de Sesiones (R-202604-016).
@@ -63,6 +68,11 @@ export function openDetail(aiId, sessId) {
     if (_tabEl) _tabEl.classList.add('preview-open');
     return;
   }
+  // INC — sincroniza el Worker activo con el dueño de la sesión abierta.
+  // Mismo shape que locus-sesiones-utils.js (startSuggestedSession) y
+  // locus-sesiones-stats.js (navigateToCard).
+  window.dispatchEvent(new CustomEvent('shell:select-tracker-ai', { detail: { aiId } }));
+
   popAIId = aiId; popSessId = sessId;
 
   const aiSessAll = getAISessions(aiId);
