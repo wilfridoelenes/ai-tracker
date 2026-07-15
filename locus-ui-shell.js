@@ -1,3 +1,13 @@
+// [PP] mod:50 · autor:Rune · 2026-07-14 17:00 UTC-6
+// REQ CAEL-búsqueda-tipos, TKT único: (1) icono de resultado por tipo ahora usa itemKind(item)
+// en vez de code.charAt(0) (anti-pattern Gen1 ya documentado en module-contracts §4) — mapa
+// _TYPE_ICONS con los 7 tipos Gen2. (2) onSearch() ahora combina getItems()+getIncidents() en
+// typeMatches — INC/PRB/KE/CHG buscables por código, título y comportamiento_actual, antes
+// solo REQ/TKT/DISC. (3) Grupo "🗃 Ítems" (renombrado de "Backlog") movido al inicio de la
+// jerarquía de render — siempre primero, antes de IAs/Sesiones/Contratos/Proyectos/Contexto.
+// Helper _isDiscardedItem() unifica el criterio de descarte entre status (REQ/TKT/DISC/CHG) e
+// incident_status (INC/PRB/KE) — excepción de vocabulario de CHG ya documentada en
+// __BR-Ecosystem §4b.
 // [PP] mod:49 · autor:Rune · 2026-07-14 16:00 UTC-6
 // INC — fix: handler 'openDetail' del delegador data-action (línea ~1189) llamaba a
 // openDetail() como global directo, sin definirla ni importarla — ReferenceError en cada
@@ -49,7 +59,7 @@
 // Cada módulo consumidor es responsable de registrar listener 'shell:invoke' para sus propias funciones.
 
 import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, _parseInfraLine, setInfraVersionData, _docPrefix, handleSyncPillClick } from './locus-storage.js';
-import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortDir } from './locus-backlog-core.js';
+import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortDir, itemKind, getIncidents } from './locus-backlog-core.js';
 import { openPendPanel, closePendPanel } from './locus-pend.js';
 import { confirmItemEditor, closeItemEditor } from './locus-backlog-editor.js';
 import { _mgExportAllZip } from './locus-map-generator.js';
@@ -407,6 +417,18 @@ function _toggleSearchScope() {
   onSearch();
 }
 
+// REQ CAEL-búsqueda-tipos TKT1: descartado unificado — INC/PRB/KE usan incident_status,
+// REQ/TKT/DISC/CHG usan status (CHG es excepción de vocabulario, __BR-Ecosystem §4b).
+function _isDiscardedItem(item, kind) {
+  if (kind === 'INC' || kind === 'PRB' || kind === 'KE') return item.incident_status === 'descartado';
+  return item.status === 'descartado';
+}
+
+// REQ CAEL-búsqueda-tipos TKT1: icono canónico por tipo — itemKind(item), nunca code.charAt(0)
+// (anti-pattern Gen1 documentado en _Locus-module-contracts §4). Colores/orden según
+// __BR-Ecosystem §4 — tabla de tipos.
+const _TYPE_ICONS = { REQ: '🔵', TKT: '🟢', DISC: '🟣', INC: '🔴', PRB: '🟠', KE: '🟡', CHG: '⚪' };
+
 export function onSearch() {
   const state = getState();
   const q = (document.getElementById('search-global').value || '').toLowerCase().trim();
@@ -467,14 +489,17 @@ export function onSearch() {
   sessMatches.sort((a, b) => parseInt(b.sess.id) - parseInt(a.sess.id));
   const sessSlice = sessMatches.slice(0, 30);
 
-  // ── 3. T-202604-420: Ítems de backlog coincidentes ──
+  // ── 3. REQ CAEL-búsqueda-tipos TKT1+TKT2: Ítems de backlog + incidentes coincidentes (Planeada + Reactiva) ──
   const _items = _getItemsFn();
-  const backlogMatches = _items.filter(item => {
-    if (item.status === 'descartado') return false;
+  const _incidents = getIncidents();
+  const typeMatches = [..._items, ..._incidents].filter(item => {
+    const kind = itemKind(item);
+    if (_isDiscardedItem(item, kind)) return false;
     const titleHit = (item.title || item.desc || '').toLowerCase().includes(q);
     const codeHit = (item.code || '').toLowerCase().includes(q);
     const acHit = (item.ac || []).some(a => (typeof a === 'string' ? a : (a.text || '')).toLowerCase().includes(q));
-    return titleHit || codeHit || acHit;
+    const compHit = (item.comportamiento_actual || '').toLowerCase().includes(q);
+    return titleHit || codeHit || acHit || compHit;
   });
 
   // ── 5. T-202604-420: Proyectos coincidentes ──
@@ -503,7 +528,7 @@ export function onSearch() {
     });
   }
 
-  const totalWithContratos = total + contratoMatches.length + backlogMatches.length + projMatches.length + contextMatches.length;
+  const totalWithContratos = total + contratoMatches.length + typeMatches.length + projMatches.length + contextMatches.length;
   if (countEl) countEl.textContent = totalWithContratos
     ? `${totalWithContratos} resultado${totalWithContratos !== 1 ? 's' : ''} · IAs, sesiones, notas, backlog, proyectos, contexto`
     : 'Sin resultados';
@@ -541,6 +566,35 @@ export function onSearch() {
 
   // B-202605-236: control de scope visible en cabecera del panel
   html += `<div class="sur-scope-row"><button class="sur-scope-btn" id="search-scope-btn" data-action="toggleSearchScope">${scopeLabel}</button></div>`;
+
+  // Grupo Tipos — REQ CAEL-búsqueda-tipos: unifica rama Planeada (REQ/TKT/DISC) + Reactiva
+  // (INC/PRB/KE/CHG). Siempre primero en la jerarquía de render (TKT3).
+  if (typeMatches.length) {
+    const tSlice = typeMatches.slice(0, 25);
+    const tMore = typeMatches.length - tSlice.length;
+    html += `<div class="sur-group">
+      <div class="sur-group-label">🗃 Ítems (${typeMatches.length})</div>
+      <div class="sur-rows">`;
+    tSlice.forEach(item => {
+      const kind = itemKind(item);
+      const icon = _TYPE_ICONS[kind] || '📌';
+      const isTerminal = kind === 'KE' ? item.incident_status === 'resolved'
+        : (kind === 'INC' || kind === 'PRB') ? item.incident_status === 'closed'
+        : item.status === 'done';
+      const statusLabel = isTerminal ? ' · ✓' : '';
+      html += `<div class="sur-row" data-action="navigateToItem" data-item-code="${_esc(item.code)}">
+        <span class="sur-row-icon">${icon}</span>
+        <div class="sur-row-body">
+          <span class="sur-row-title">${hlText(item.title || item.desc || item.code, q)}</span>
+          <span class="sur-row-sub"><span class="sur-badge">${_esc(item.code)}</span>${statusLabel}</span>
+        </div>
+      </div>`;
+    });
+    if (tMore > 0) {
+      html += `<div class="sur-more">+${tMore} ítem${tMore !== 1 ? 's' : ''} más — usa filtros de Backlog para explorar</div>`;
+    }
+    html += '</div></div>';
+  }
 
   // Grupo IAs
   if (aiMatches.length) {
@@ -603,31 +657,6 @@ export function onSearch() {
     html += '</div></div>';
   }
 
-  // Grupo Backlog — T-202604-420
-  if (backlogMatches.length) {
-    const bSlice = backlogMatches.slice(0, 25);
-    const bMore = backlogMatches.length - bSlice.length;
-    html += `<div class="sur-group">
-      <div class="sur-group-label">🗃 Backlog (${backlogMatches.length})</div>
-      <div class="sur-rows">`;
-    bSlice.forEach(item => {
-      const typeIcons = { R: '🔵', T: '🟢', B: '🔴', P: '🟣' };
-      const typeChar = (item.code || '').charAt(0);
-      const icon = typeIcons[typeChar] || '📌';
-      const statusLabel = item.status === 'done' ? ' · ✓' : '';
-      html += `<div class="sur-row" data-action="navigateToItem" data-item-code="${_esc(item.code)}">
-        <span class="sur-row-icon">${icon}</span>
-        <div class="sur-row-body">
-          <span class="sur-row-title">${hlText(item.title || item.desc || item.code, q)}</span>
-          <span class="sur-row-sub"><span class="sur-badge">${_esc(item.code)}</span>${statusLabel}</span>
-        </div>
-      </div>`;
-    });
-    if (bMore > 0) {
-      html += `<div class="sur-more">+${bMore} ítem${bMore !== 1 ? 's' : ''} más — usa filtros de Backlog para explorar</div>`;
-    }
-    html += '</div></div>';
-  }
 
   // Grupo Proyectos — T-202604-420
   if (projMatches.length) {

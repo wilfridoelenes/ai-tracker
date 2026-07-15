@@ -1,4 +1,10 @@
-/* [PP] mod:26 · autor:Nova · 2026-07-14 UTC-6 */
+/* [PP] mod:27 · autor:Nova · 2026-07-14 UTC-6 */
+/* CAEL-02 (REQ CAEL-01): worker-header — pulso trasladado del avatar al header completo
+   (solo available/insession), título del worker ampliado a text-2xl, Checkpoint/menú con
+   contraste propio, countdown de agotado en formato grande (mismo lenguaje que
+   .hoy-exh-countdown). Borrador visual aprobado por el founder — render "worker_header_
+   redesign_nova". Scope acotado a #worker-header — .sc-avatar/.sc-header compartidos con
+   la AI Card de Por IA no se tocan. */
 /* CAEL-11 (REQ CAEL-10): .worker-header — contenedor únicamente. Reutiliza .sc-header (layout
    flex/padding/border-bottom ya declarado en locus-sesiones-card.css) + .worker-header-reset-icon
    nuevo (ícono compacto de reset, reemplaza countdown-dramatic/hora-widget de footer). */
@@ -4315,6 +4321,102 @@
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
+
+/* ── CAEL-02 (REQ CAEL-01): rediseño de #worker-header ── */
+
+/* Anula el pulso de avatar solo dentro de #worker-header — el resto del ecosistema
+   (AI Card, tab Por IA) conserva .sc-avatar--*::after sin cambio. */
+.worker-header .sc-avatar--available::after,
+.worker-header .sc-avatar--insession::after {
+  animation: none;
+  content: none;
+}
+
+/* Pulso trasladado al header completo — solo estados con actividad real
+   (available/insession). interrupted/exhausted quedan sin pulso, mismo criterio
+   que ya regía para el avatar. */
+.worker-header--available,
+.worker-header--insession {
+  position: relative;
+}
+
+.worker-header--available::before,
+.worker-header--insession::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: whHeaderPulse 2.4s ease-in-out infinite;
+}
+
+.worker-header--available::before {
+  box-shadow: inset 0 0 22px -4px var(--green);
+}
+
+.worker-header--insession::before {
+  box-shadow: inset 0 0 22px -4px var(--purple);
+}
+
+@keyframes whHeaderPulse {
+  0%, 100% { opacity: 0; }
+  50%       { opacity: 0.6; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .worker-header--available::before,
+  .worker-header--insession::before { animation: none; }
+}
+
+/* Nombre del worker como título principal del tab — selector acotado a
+   #worker-header para no alterar .sc-project en la grilla de AI Cards. */
+.worker-header .sc-project {
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Checkpoint y menú con contraste propio — independientes del fondo ambiente
+   del header (gradiente tenue por estado). */
+.worker-header .sc-save,
+.worker-header .sc-menu-btn {
+  background: var(--surface2);
+  border-color: var(--border2, var(--border));
+}
+
+.worker-header .sc-save {
+  color: var(--text2);
+}
+
+.worker-header .sc-menu-btn {
+  color: var(--text2);
+}
+
+/* Countdown de agotado — mismo lenguaje tipográfico que .hoy-exh-countdown
+   (Hoy panel). Reemplaza el pill .sc-badge--exhausted + contador compacto.
+   Markup nuevo — integración pendiente de Rune (TKT2, ver CHECKPOINT). */
+.worker-header-unlock {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.125rem;
+  border-top: 0.5px solid var(--border);
+  background: var(--red-dim);
+}
+
+.worker-header-unlock-label {
+  font-size: var(--text-xs);
+  color: var(--text3);
+}
+
+.worker-header-unlock-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--red);
+}
+
+/* ── END CAEL-02 ── */
 
 /* ── Columna 3: preview sesión (Por IA) / ítems vinculados (Historial) ── */
 /* Sub-paneles de col 3 */
