@@ -1,3 +1,10 @@
+// [PP] mod:49 · autor:Rune · 2026-07-14 16:00 UTC-6
+// INC — fix: handler 'openDetail' del delegador data-action (línea ~1189) llamaba a
+// openDetail() como global directo, sin definirla ni importarla — ReferenceError en cada
+// click. openDetail() vive en locus-session-popup.js (confirmado en código real). Reemplazado
+// por import() dinámico, mismo patrón que 'navigateToCard'/'navigateToItem' en el mismo
+// delegador — necesario porque locus-session-popup.js importa switchTab/switchSubTab/esc/
+// getCurrentTab de este módulo, un import estático crearía ciclo ESM.
 // [PP] mod:48 · autor:Rune · 2026-07-14 UTC-6
 // Deprecación Command Palette (cont.): removidos import de openCommandPalette/closeCommandPalette,
 // el check de cp-overlay en _escCascade, el wiring hdr-search-trigger→openCommandPalette y el
@@ -1187,7 +1194,9 @@ document.addEventListener('DOMContentLoaded', function () {
       const _aiId = row.dataset.aiId;
       import('./locus-sesiones-stats.js').then(function(m) { if (typeof m.navigateToCard === 'function') m.navigateToCard(_aiId); });
     } else if (action === 'openDetail') {
-      openDetail(row.dataset.aiId, row.dataset.sessId);
+      const _aiId = row.dataset.aiId;
+      const _sessId = row.dataset.sessId;
+      import('./locus-session-popup.js').then(function(m) { if (typeof m.openDetail === 'function') m.openDetail(_aiId, _sessId); });
     } else if (action === 'contratoAction') {
       const idx = parseInt(row.dataset.contratoIdx, 10);
       if (typeof _surContratoActions !== 'undefined' && _surContratoActions[idx]) {
