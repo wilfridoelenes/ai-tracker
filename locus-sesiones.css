@@ -1,4 +1,4 @@
-/* [PP] mod:27 · autor:Nova · 2026-07-14 UTC-6 */
+/* [PP] mod:28 · autor:Nova · 2026-07-14 UTC-6 */
 /* CAEL-02 (REQ CAEL-01): worker-header — pulso trasladado del avatar al header completo
    (solo available/insession), título del worker ampliado a text-2xl, Checkpoint/menú con
    contraste propio, countdown de agotado en formato grande (mismo lenguaje que
@@ -4302,6 +4302,11 @@
 .worker-header--exhausted {
   border-left: 3px solid var(--red-border);
   background: linear-gradient(135deg, var(--red-dim) 0%, var(--surface, transparent) 60%);
+  /* Fix Nova (INC — separador visual duplicado): .sc-header trae border-bottom propio.
+     En exhausted, .worker-header-unlock (hermano, ver locus-sesiones.js) ya aporta su propio
+     border-top como único separador antes de la lista de sesiones — anular el de .sc-header
+     evita la doble línea que encajonaba la fila del countdown entre header y unlock. */
+  border-bottom-color: transparent;
 }
 
 .worker-header-reset-icon {
