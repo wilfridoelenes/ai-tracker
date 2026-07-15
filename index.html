@@ -1,4 +1,6 @@
-<!-- [PP] mod:132 · autor:Rune · 2026-07-14 UTC-6 -->
+<!-- [PP] mod:133 · autor:Rune · 2026-07-14 19:35 UTC-6 -->
+<!-- TKT2/REQ-CAEL-01: shell .item-inline-confirm agregado junto a #shortcuts-restore-btn — ver CHECKPOINT de sesión, atajos de teclado. -->
+
 <!-- CAEL-05 · TKT2 (CAEL-07) — reaplicado sobre base mod:126 recibida por el founder (esa base
      no traía este cambio pese a declarar el mismo mod — discrepancia señalada en CHECKPOINT):
      #header-project-label movido de .header-zone--brand a .header-zone--utils, envuelto entre
@@ -1660,6 +1662,11 @@
       <span class="shortcuts-title">Atajos de teclado</span>
       <div class="shortcuts-header-actions">
         <button class="shortcuts-restore-btn" id="shortcuts-restore-btn">Restaurar defaults</button>
+        <div class="item-inline-confirm" id="shortcuts-restore-confirm">
+          <span>¿Restaurar todos los atajos a su valor default?</span>
+          <button class="item-inline-confirm__accept" id="shortcuts-restore-confirm-accept">Confirmar</button>
+          <button class="item-inline-confirm__cancel" id="shortcuts-restore-confirm-cancel">Cancelar</button>
+        </div>
         <button class="shortcuts-close-btn" id="shortcuts-close-btn">✕</button>
       </div>
     </div>

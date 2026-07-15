@@ -1,4 +1,5 @@
-// [PP] mod:50 · autor:Rune · 2026-07-14 17:00 UTC-6
+// [PP] mod:51 · autor:Rune · 2026-07-14 19:20 UTC-6
+// TKT1/CAEL-XX + INC-[pendiente-ID] (/ shadowed): ver CHECKPOINT de sesión — atajos de teclado.
 // REQ CAEL-búsqueda-tipos, TKT único: (1) icono de resultado por tipo ahora usa itemKind(item)
 // en vez de code.charAt(0) (anti-pattern Gen1 ya documentado en module-contracts §4) — mapa
 // _TYPE_ICONS con los 7 tipos Gen2. (2) onSearch() ahora combina getItems()+getIncidents() en
@@ -828,16 +829,6 @@ document.addEventListener('keydown', e => {
   // T-202605-442 + T-202604-418: dispatch por tecla configurada
   const _pressedKey = e.key.toLowerCase();
 
-  // T-202604-420: '/' → foco en búsqueda global (solo si foco no está en campo de texto)
-  if (_pressedKey === '/' && !_inInput) {
-    e.preventDefault();
-    const si = document.getElementById('search-global');
-    if (!si) return;
-    si.focus();
-    si.select();
-    return;
-  }
-
   // T-202604-418: Shift+N → nuevo ítem
   if (e.shiftKey && e.key === 'N') {
     e.preventDefault();
@@ -853,14 +844,13 @@ document.addEventListener('keydown', e => {
 
   // T-202604-418: F → toggle focus mode (deprecado — focus mode eliminado)
 
-  // T-202604-418: / → búsqueda global (cuando no está en input)
-  if (e.key === '/') {
-    e.preventDefault();
-    const si = document.getElementById('search-global');
-    if (si) { si.focus(); si.select(); }
-    return;
-  }
-
+  // INC-[pendiente-ID]: los dos bloques que interceptaban '/' con foco directo a
+  // #search-global (T-202604-420 y T-202604-418) quedan eliminados — shadowaban
+  // permanentemente el bloque siguiente (_sk('search')), la implementación real
+  // y configurable de "Búsqueda en tab activo" declarada en _SHORTCUT_DEFS. Con
+  // la tecla default ('/') ambos bloques capturaban el evento primero y el bloque
+  // de abajo nunca se alcanzaba — el comportamiento por default contradecía su
+  // propio label en el panel de shortcuts.
   if (_pressedKey === _sk('search')) {
     e.preventDefault();
     const _searches = ['backlog-search', 'search-global', 'log-search', 'context-search', 'map-search'];
@@ -960,6 +950,16 @@ const _SHORTCUT_DEFS = [
   { id: 'paste-ckpt',    label: 'Pegar CHECKPOINT',               group: 'Acciones',   default: 'p',   chord: false },
   // R-202605-065: guardar desde textarea de AI Card — no configurable (combo fijo ⌘/Ctrl+↵)
   { id: 'save-session-textarea', label: 'Guardar sesión (textarea activo)', group: 'Acciones', default: '⌘+Enter / Ctrl+Enter', chord: false, fixed: true },
+  // TKT1 (REQ CAEL-01, ciclo 2026-07-14): 5 atajos funcionales reales sin entrada en el panel —
+  // fixed:true en los cinco. No se reescriben como configurables porque sus handlers (líneas
+  // ~771/779/842/910 y _escCascade()) usan literales de tecla hardcodeados, no _sk() — declararlos
+  // editables sin rewiring de handler produciría un override cosmético que no cambia el
+  // comportamiento real, el mismo tipo de defecto que este TKT existe para cerrar, no repetir.
+  { id: 'new-item',      label: 'Nuevo ítem',                     group: 'Acciones',   default: 'Shift+N',         chord: false, fixed: true },
+  { id: 'focus-search',  label: 'Foco en búsqueda global',        group: 'Acciones',   default: 'Ctrl+F / Cmd+F',  chord: false, fixed: true },
+  { id: 'open-shortcuts-ref', label: 'Abrir referencia de atajos', group: 'Acciones',  default: 'Cmd+? / Cmd+Shift+/', chord: false, fixed: true },
+  { id: 'open-detail',   label: 'Abrir detalle de ítem seleccionado', group: 'Backlog', default: 'Enter',         chord: false, fixed: true },
+  { id: 'close-cascade', label: 'Cerrar overlay activo',          group: 'Backlog',    default: 'Esc',             chord: false, fixed: true },
   // Backlog — T-202604-418 amplía J/K a cualquier lista activa
   { id: 'nav-up',        label: 'Ítem anterior (lista activa)',   group: 'Backlog',    default: 'j',   chord: false },
   { id: 'nav-down',      label: 'Ítem siguiente (lista activa)',  group: 'Backlog',    default: 'k',   chord: false },
@@ -1129,6 +1129,10 @@ export function openShortcuts() {
   if (overlay) {
     overlay.classList.remove('is-hidden');
     _shortcutsRender();
+    // TKT2/REQ-CAEL-01: resetear confirm de "Restaurar defaults" — evita quedar
+    // visible si el panel se cerró con el confirm abierto sin cancelar
+    const _restoreConfirm = document.getElementById('shortcuts-restore-confirm');
+    if (_restoreConfirm) _restoreConfirm.classList.remove('is-visible');
     // (b) lazy import dinámico — _focusFirstInteractive requiere ejecución síncrona post-render
     import('./locus-modals.js').then(m => m._focusFirstInteractive('shortcuts-panel'));
   }
@@ -1478,10 +1482,21 @@ document.addEventListener('DOMContentLoaded', function () {
     closeShortcuts(e);
   });
 
-  // shortcuts-restore-btn
+  // shortcuts-restore-btn — TKT2/REQ-CAEL-01: confirmación inline antes de ejecutar
+  // (antes: ejecutaba restoreDefaultShortcuts() directo, sin paso de confirmación)
   const shortcutsRestoreBtn = document.getElementById('shortcuts-restore-btn');
+  const shortcutsRestoreConfirm = document.getElementById('shortcuts-restore-confirm');
   if (shortcutsRestoreBtn) shortcutsRestoreBtn.addEventListener('click', function () {
+    if (shortcutsRestoreConfirm) shortcutsRestoreConfirm.classList.add('is-visible');
+  });
+  const shortcutsRestoreConfirmAccept = document.getElementById('shortcuts-restore-confirm-accept');
+  if (shortcutsRestoreConfirmAccept) shortcutsRestoreConfirmAccept.addEventListener('click', function () {
     restoreDefaultShortcuts();
+    if (shortcutsRestoreConfirm) shortcutsRestoreConfirm.classList.remove('is-visible');
+  });
+  const shortcutsRestoreConfirmCancel = document.getElementById('shortcuts-restore-confirm-cancel');
+  if (shortcutsRestoreConfirmCancel) shortcutsRestoreConfirmCancel.addEventListener('click', function () {
+    if (shortcutsRestoreConfirm) shortcutsRestoreConfirm.classList.remove('is-visible');
   });
 
   // shortcuts-close-btn
