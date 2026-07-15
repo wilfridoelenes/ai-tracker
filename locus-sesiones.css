@@ -1,3 +1,9 @@
+/* [PP] mod:30 · autor:Nova · 2026-07-14 UTC-6 */
+/* CAEL-02 (REQ CAEL-01) — fix INC root cause: .worker-header--exhausted → compound selector
+   .worker-header.worker-header--exhausted para ganar especificidad sobre .sc-header
+   (locus-sesiones-card.css) independientemente del orden de <link> en index.html — el
+   border-bottom-color:transparent del mod:29 nunca se aplicaba, causando el separador
+   duplicado reportado por el founder. Ver comentario inline. */
 /* [PP] mod:29 · autor:Nova · 2026-07-14 UTC-6 */
 /* CAEL-02 (REQ CAEL-01) — fix INC: separador movido de border-top a border-bottom en
    .worker-header-unlock (cierra el bloque exhausted completo, no entre sus dos filas) +
@@ -4304,16 +4310,16 @@
   background: linear-gradient(135deg, rgb(245 158 11 / 8%) 0%, var(--surface, transparent) 60%);
 }
 
-.worker-header--exhausted {
+.worker-header.worker-header--exhausted {
   border-left: 3px solid var(--red-border);
   background: linear-gradient(135deg, var(--red-dim) 0%, var(--surface, transparent) 60%);
-  /* Fix Nova (INC — separador visual duplicado + fondos discrepantes): .sc-header trae
-     border-bottom propio — anulado aquí para que no aparezca línea entre esta fila y
-     .worker-header-unlock (hermano). El separador real vive en el border-bottom de
-     .worker-header-unlock, cerrando el bloque completo antes de la lista de sesiones —
-     no entre las dos filas. Fondo de .worker-header-unlock alineado al mismo gradiente
-     135deg que esta fila (antes era var(--red-dim) sólido — generaba salto de color
-     donde esta fila ya se había desvanecido hacia la derecha). */
+  /* Fix Nova (INC — separador visual duplicado, root cause): .sc-header (locus-sesiones-card.css)
+     y este selector tenían igual especificidad (una clase c/u) — locus-sesiones.css carga ANTES
+     que locus-sesiones-card.css en index.html, así que .sc-header ganaba la cascada y el
+     border-bottom original nunca se anulaba. Compound selector (.worker-header.worker-header--exhausted,
+     especificidad 0,0,2,0) gana sin depender del orden de <link> — no se toca index.html.
+     El separador real vive en el border-bottom de .worker-header-unlock (hermano), cerrando el
+     bloque completo antes de la lista de sesiones — no entre las dos filas. */
   border-bottom-color: transparent;
 }
 
