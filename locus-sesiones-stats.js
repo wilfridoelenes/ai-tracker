@@ -1,3 +1,10 @@
+// [PP] mod:26 · autor:Rune · 2026-07-14 UTC-6
+// TKT-[pendiente-ID] (TKT1+TKT3 · REQ-[pendiente-ID] DOC-UPDATE vencido en footer): agregado
+//   _docUpdateStaleness() (umbral 14d, mismo criterio que _zoneStaleness) + prioridad 4 en
+//   _getFooterAlert() → { type:'docupdate', targetTab:'backlog', targetSubTab:'docupdates' }.
+//   Click handler extendido: switchSubTab(alert.targetSubTab) opcional tras switchTab, sin
+//   regresión en inc/sprint/backlog (no declaran targetSubTab). TKT2 (Nova · clase CSS
+//   .gf-ckpt--alert-docupdate) bloqueado — falta _Locus-css-ref.md adjunto en la sesión.
 // [PP] mod:25 · autor:Rune · 2026-07-14 UTC-6
 // INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminado wiring del
 // dot #gf-pulso del footer (import openPulsoPanel + bloque gfPulso en _updateHeaderProjectLabel
@@ -17,9 +24,9 @@ import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js';
 // selectTrackerAI y _markTrackerDirty desacoplados vía shell:* events (T-202606-084)
 import { openDetail } from './locus-session-popup.js';
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
-import { _effectiveVersion, _getActiveProjectFilter, _isInSession, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getProjectById, save } from './locus-storage.js';
+import { _effectiveVersion, _getActiveProjectFilter, _getDocUpdateIndex, _isInSession, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getProjectById, save } from './locus-storage.js';
 
-import { switchTab } from './locus-ui-shell.js';
+import { switchSubTab, switchTab } from './locus-ui-shell.js';
 
 // APP_VERSION — fuente de verdad: locus-workers.js
 // R-202605-012: constante movida a locus-workers.js (carga antes). Disponible globalmente aquí.
@@ -126,6 +133,30 @@ function _getActiveSprintStats() {
   }
 }
 
+// REQ-[pendiente-ID] TKT1: umbral de días para "DOC-UPDATE vencido" — mismo criterio de
+// consistencia que _zoneStaleness (Q-Backlog usa 14d para REQ/TKT). Decisión explícita del
+// founder (opción A del análisis de raíz): días, no "2 sprints" literal de BR-Ecosystem §3 —
+// el auto-descarte a 2 sprints queda fuera de scope, requiere sprint-boundary tracking propio.
+const DOC_UPDATE_STALE_DAYS = 14;
+
+// _docUpdateStaleness — cuenta cuántas keys de docUpdateIndex llevan >=DOC_UPDATE_STALE_DAYS
+// sin resolución. Antigüedad de una key = la entrada más antigua (createdAt mínimo) entre sus
+// entries — cubre tanto la primera entrada como el caso de conflicto (createdAt propio por
+// entrada, ver locus-docs.js processDocUpdate()).
+// AC edge: keys cuyas entries no tienen createdAt (persistidas antes de este REQ) no cuentan
+// como vencidas — antigüedad desconocida, no se asume vencimiento sobre datos que no la tienen.
+function _docUpdateStaleness() {
+  const index = (typeof _getDocUpdateIndex === 'function' ? _getDocUpdateIndex() : {}) || {};
+  return Object.keys(index).filter(key => {
+    const entries = index[key] || [];
+    const timestamps = entries.map(e => e.createdAt).filter(ts => typeof ts === 'number');
+    if (!timestamps.length) return false;
+    const oldest = Math.min(...timestamps);
+    const days = Math.floor((Date.now() - oldest) / 86400000);
+    return days >= DOC_UPDATE_STALE_DAYS;
+  }).length;
+}
+
 // REQ-[pendiente-ID] TKT1 — alerta de salud del proyecto activo para #gf-ckpt.
 // AC-1 (happy path INC): INC con sla_priority:high, incident_status no en (closed,descartado)
 //   y slaDeadline vencido → { type:'inc', text, targetTab:'incidentes' }.
@@ -133,12 +164,17 @@ function _getActiveSprintStats() {
 //   en-revision/en-proceso → { type:'sprint', text, targetTab:'sprint' }.
 // AC-3 (happy path backlog): sin alerta INC ni sprint, hay al menos un REQ/TKT/DISC sin sprint
 //   con _zoneStaleness() != null → { type:'backlog', text, targetTab:'backlog' }.
-// AC-4 (estado vacío): ninguna condición activa → null — el caller aplica su propio fallback.
-// AC-5 (error): cualquier excepción interna → null, nunca propaga al caller.
-// no_incluye: no evalúa DOC-UPDATE vencido (requiere timestamp en docUpdateIndex, no existe
-//   hoy — registrado como DISC aparte) · no evalúa las señales de burndown ascendente ni
-//   "REQ sin done en 2+ sesiones" de sprint en riesgo (requieren historial de sesiones por
-//   REQ, fuera de este TKT) · no dispara notificación ni sonido, solo texto del footer.
+// AC-4 (happy path docupdate — prioridad 4, más baja): sin alerta INC/sprint/backlog, hay al
+//   menos 1 key en docUpdateIndex con antigüedad >=14d (createdAt mínimo entre sus entries) →
+//   { type:'docupdate', text, targetTab:'backlog', targetSubTab:'docupdates' }.
+// AC-5 (estado vacío): ninguna condición activa → null — el caller aplica su propio fallback.
+// AC-6 (error): cualquier excepción interna → null, nunca propaga al caller.
+// no_incluye: no implementa el auto-descarte a "2 sprints" de BR-Ecosystem §3 (decisión
+//   explícita del founder — ver REQ, requiere sprint-boundary tracking, fuera de este REQ) ·
+//   no distingue DOC-UPDATEs en conflicto vs sin conflicto en el texto · no evalúa las señales
+//   de burndown ascendente ni "REQ sin done en 2+ sesiones" de sprint en riesgo (requieren
+//   historial de sesiones por REQ, fuera de este TKT) · no dispara notificación ni sonido,
+//   solo texto del footer.
 export function _getFooterAlert() {
   try {
     const incs = (typeof getIncidents === 'function' ? getIncidents() : []) || [];
@@ -175,6 +211,16 @@ export function _getFooterAlert() {
         ? `${discCount} DISC sin grooming +30d`
         : `${otherCount} ítems sin mover +14d en Q-Backlog`;
       return { type: 'backlog', text, targetTab: 'backlog' };
+    }
+
+    // REQ-[pendiente-ID] TKT1 — AC prioridad 4 (más baja): DOC-UPDATE vencido — solo se
+    // evalúa si ninguna de las 3 alertas anteriores (inc/sprint/backlog) aplicó.
+    const docUpdateStale = _docUpdateStaleness();
+    if (docUpdateStale > 0) {
+      const text = docUpdateStale === 1
+        ? `1 DOC-UPDATE sin resolver +${DOC_UPDATE_STALE_DAYS}d`
+        : `${docUpdateStale} DOC-UPDATEs sin resolver +${DOC_UPDATE_STALE_DAYS}d`;
+      return { type: 'docupdate', text, targetTab: 'backlog', targetSubTab: 'docupdates' };
     }
 
     return null;
@@ -261,7 +307,7 @@ export function renderStatusBar() {
   if (gfCkpt) {
     try {
       // REQ-[pendiente-ID] TKT3: limpiar clases de estado de un render previo antes de decidir
-      gfCkpt.classList.remove('gf-ckpt--alert-inc', 'gf-ckpt--alert-sprint', 'gf-ckpt--alert-backlog', 'gf-ckpt--link');
+      gfCkpt.classList.remove('gf-ckpt--alert-inc', 'gf-ckpt--alert-sprint', 'gf-ckpt--alert-backlog', 'gf-ckpt--alert-docupdate', 'gf-ckpt--link');
       gfCkpt.onclick = null;
 
       const alert = _getFooterAlert();
@@ -269,7 +315,12 @@ export function renderStatusBar() {
         gfCkpt.textContent = alert.text;
         gfCkpt.classList.remove('is-hidden');
         gfCkpt.classList.add('gf-ckpt--alert-' + alert.type);
-        gfCkpt.onclick = function() { switchTab(alert.targetTab); };
+        // TKT3 (REQ-[pendiente-ID]): alert.targetSubTab es opcional — solo 'docupdate' lo declara.
+        // Los otros 3 tipos (inc/sprint/backlog) no lo tienen — comportamiento idéntico al previo.
+        gfCkpt.onclick = function() {
+          switchTab(alert.targetTab);
+          if (alert.targetSubTab) setTimeout(function() { switchSubTab(alert.targetSubTab); }, 80);
+        };
         return;
       }
 
