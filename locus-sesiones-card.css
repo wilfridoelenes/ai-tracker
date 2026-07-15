@@ -1,3 +1,11 @@
+/* [PP] mod:9 · autor:Nova · 2026-07-14 UTC-6 */
+/* Fix Nova (hallazgo del founder): .sc-badge--avail y .sc-badge--exhausted usaban tokens
+   genéricos c-pulido/c-won (semántica kanban en-curso/descartado) en vez de colores
+   semánticos del propio estado — disponible mostraba pill cian/azul en vez de verde.
+   Corregido a var(--green-*)/var(--red-*), mismo patrón que --insession/--interrupted
+   ya usaban. Impacto lateral: .sc-badge es compartido entre #worker-header y AI Card
+   (tab Por IA) — el fix aplica en ambos lugares, no solo en worker-header. Ver detalle
+   inline y CHECKPOINT. */
 /* [PP] mod:8 · autor:Nova · 2026-07-14 UTC-6 */
 
 /* === locus-tracker.js ===
@@ -143,12 +151,19 @@
 }
 
 /* ── sc-badge — modificadores de estado avail y exhausted ── */
-/* B-202606-047 · PP-S-08 */
+/* B-202606-047 · PP-S-08 — corregido CAEL-02: c-pulido/c-won eran tokens genéricos
+   heredados de semántica kanban (en-curso/descartado, ver .bl-strip-btn.active.s-*),
+   reciclados aquí sin verificar color real — c-pulido resuelve cian, no verde;
+   c-won resuelve ámbar, no rojo. .sc-avatar--available/--exhausted ya usaban
+   var(--green)/var(--red) correctamente; --insession/--interrupted (abajo) ya
+   seguían el patrón de color semántico directo. avail/exhausted alineados al
+   mismo patrón — sin tokens nuevos, reutiliza --green-dim/--red-dim ya
+   definidos y usados en locus-sesiones.css (.worker-header--available/--exhausted). */
 
 .sc-badge--avail {
-  background: var(--c-pulido-bg);
-  color: var(--c-pulido-text);
-  border-color: var(--c-pulido-border);
+  background: var(--green-dim);
+  color: var(--green);
+  border-color: var(--green-border);
 }
 
 /* CAEL-02 (REQ CAEL-01): completa el modificador que T-202606-074 AC-8 ya anticipaba
@@ -166,9 +181,9 @@
 }
 
 .sc-badge--exhausted {
-  background: var(--c-won-bg);
-  color: var(--c-won-text);
-  border-color: var(--c-won-border);
+  background: var(--red-dim);
+  color: var(--red);
+  border-color: var(--red-border);
 }
 
 /* avail y exhausted no tienen dot animado — el worker no está en sesión activa */
