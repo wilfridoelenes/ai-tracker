@@ -1,3 +1,9 @@
+/* [PP] mod:31 · autor:Nova · 2026-07-14 UTC-6 */
+/* CAEL-02 (REQ CAEL-01) — ajuste founder: .worker-header-unlock — countdown alineado a la
+   izquierda (justify-content: flex-start, antes space-between) igual que el resto de la fila;
+   border-left rojo (3px, var(--red-border)) extendido a esta fila — continúa el acento de
+   fila 1 sin corte; gradiente igualado exacto al de .worker-header--exhausted (135deg,
+   red-dim 0%, surface transparent 60% — antes 80% distinto entre ambas filas). */
 /* [PP] mod:30 · autor:Nova · 2026-07-14 UTC-6 */
 /* CAEL-02 (REQ CAEL-01) — fix INC root cause: .worker-header--exhausted → compound selector
    .worker-header.worker-header--exhausted para ganar especificidad sobre .sc-header
@@ -4416,10 +4422,12 @@
 .worker-header-unlock {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 10px;
   padding: 0.75rem 1.125rem;
+  border-left: 3px solid var(--red-border);
   border-bottom: 0.5px solid var(--border);
-  background: linear-gradient(135deg, var(--red-dim) 0%, var(--surface, transparent) 80%);
+  background: linear-gradient(135deg, var(--red-dim) 0%, var(--surface, transparent) 60%);
 }
 
 .worker-header-unlock-label {
