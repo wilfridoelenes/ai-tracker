@@ -1,4 +1,4 @@
-// [PP] mod:47 · autor:Rune · 2026-07-14 20:40 UTC-6
+// [PP] mod:48 · autor:Rune · 2026-07-15 UTC-6
 // INC-[pendiente-ID]: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
 // ai.avatar es markup SVG; con textContent se pintaba como texto crudo (path data visible
 // en pantalla, ver captura del founder). Mismo patrón ya usado en #pop-avatar.
@@ -592,6 +592,11 @@ export function render() {
     // Lista de Workers archivados sin reemplazo — ver INC registrado (CAEL-10, no_incluye).
     const _wh = document.getElementById('worker-header');
     if (_wh) _wh.classList.add('is-hidden');
+    // INC-S-dead-code AC-1: limpiar dataset.aiId del botón de ingesta en el mismo evento que
+    // oculta el header — sin esto, worker-header-ingest-btn conserva el id del último Worker
+    // seleccionado y el atajo 'S' podría abrir el modal de ingesta de un Worker ya purgado.
+    const _ingestBtn = document.getElementById('worker-header-ingest-btn');
+    if (_ingestBtn) _ingestBtn.dataset.aiId = '';
     if (emptyEl) { emptyEl.classList.remove('is-hidden'); emptyEl.classList.add('visible'); }
     updateStats(); renderStatusBar(); return;
   }
