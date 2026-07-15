@@ -1,4 +1,4 @@
-// [PP] mod:24 · autor:Rune · 2026-07-13 16:10 UTC-6
+// [PP] mod:25 · autor:Rune · 2026-07-14 UTC-6
 // INC-[pendiente-ID] (deprecación Sesiones/Pulso, founder confirmó): eliminado wiring del
 // dot #gf-pulso del footer (import openPulsoPanel + bloque gfPulso en _updateHeaderProjectLabel
 // o función equivalente de footer) — Pulso deprecado. gfProyecto/gfVersion/gfCkpt/gfSyncEl
@@ -9,7 +9,11 @@
 // TKT-202606-005: segmentos sprint/ítem del breadcrumb eliminados — #breadcrumb-sprint
 //   y #breadcrumb-item no existen en el DOM (index.html solo declara #breadcrumb-proj).
 
-import { getItems } from './locus-backlog-core.js';
+import { getItems, getIncidents, itemKind } from './locus-backlog-core.js';
+// REQ-[pendiente-ID] TKT1: _getFooterAlert() consume _zoneStaleness (mismo umbral que Q-DISC/
+// Q-Backlog, ya validado en producción) y los accessors ITIL canónicos camelCase/snake_case.
+import { _zoneStaleness } from './locus-backlog-zone-engine.js';
+import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js';
 // selectTrackerAI y _markTrackerDirty desacoplados vía shell:* events (T-202606-084)
 import { openDetail } from './locus-session-popup.js';
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
@@ -107,9 +111,9 @@ function _getActiveSprintStats() {
     if (!sp) return { sp: null, spItems: [], spDone: 0, spTotal: 0, spPct: 0, spLabel: '' };
     // B-202606-026: alinear criterio con _renderSprintItems — excluir descartados, incluir solo R·B·T
     const spItems = (typeof getItems() !== 'undefined' ? getItems() : []).filter(i => {
-      const t = i.type || (i.code ? i.code.charAt(0) : '');
+      const t = itemKind(i);
       return i.sprint && i.sprint.startsWith(sp.id) &&
-        (t === 'R' || t === 'B' || t === 'T') &&
+        (t === 'REQ' || t === 'TKT') &&
         i.status !== 'descartado';
     });
     const spDone  = spItems.filter(i => i.status === 'done').length;
@@ -119,6 +123,63 @@ function _getActiveSprintStats() {
     return { sp, spItems, spDone, spTotal, spPct, spLabel };
   } catch(e) {
     return { sp: null, spItems: [], spDone: 0, spTotal: 0, spPct: 0, spLabel: '' };
+  }
+}
+
+// REQ-[pendiente-ID] TKT1 — alerta de salud del proyecto activo para #gf-ckpt.
+// AC-1 (happy path INC): INC con sla_priority:high, incident_status no en (closed,descartado)
+//   y slaDeadline vencido → { type:'inc', text, targetTab:'incidentes' }.
+// AC-2 (happy path sprint): sin alerta INC, sprint activo con >=40% de sus REQ/TKT en
+//   en-revision/en-proceso → { type:'sprint', text, targetTab:'sprint' }.
+// AC-3 (happy path backlog): sin alerta INC ni sprint, hay al menos un REQ/TKT/DISC sin sprint
+//   con _zoneStaleness() != null → { type:'backlog', text, targetTab:'backlog' }.
+// AC-4 (estado vacío): ninguna condición activa → null — el caller aplica su propio fallback.
+// AC-5 (error): cualquier excepción interna → null, nunca propaga al caller.
+// no_incluye: no evalúa DOC-UPDATE vencido (requiere timestamp en docUpdateIndex, no existe
+//   hoy — registrado como DISC aparte) · no evalúa las señales de burndown ascendente ni
+//   "REQ sin done en 2+ sesiones" de sprint en riesgo (requieren historial de sesiones por
+//   REQ, fuera de este TKT) · no dispara notificación ni sonido, solo texto del footer.
+export function _getFooterAlert() {
+  try {
+    const incs = (typeof getIncidents === 'function' ? getIncidents() : []) || [];
+    const incAlert = incs.find(i => {
+      const st = incIncidentStatus(i);
+      if (st === 'closed' || st === 'descartado') return false;
+      if (incSlaPriority(i) !== 'high') return false;
+      return typeof i.slaDeadline === 'number' && Date.now() >= i.slaDeadline;
+    });
+    if (incAlert) {
+      const hrsVencido = Math.floor((Date.now() - incAlert.slaDeadline) / 3600000);
+      const titulo = (incAlert.title || incAlert.titulo || '').slice(0, 32);
+      return { type: 'inc', text: `${incAlert.code || 'INC'} vencido ${hrsVencido}h — ${titulo}`, targetTab: 'incidentes' };
+    }
+
+    const { spItems, spTotal } = _getActiveSprintStats();
+    if (spTotal > 0) {
+      const enRev = spItems.filter(i => i.status === 'en-revision' || i.status === 'en-proceso').length;
+      const pct = enRev / spTotal;
+      if (pct >= 0.4) {
+        return { type: 'sprint', text: `Sprint en riesgo — ${Math.round(pct * 100)}% en en-revisión`, targetTab: 'sprint' };
+      }
+    }
+
+    const stale = (typeof getItems === 'function' ? getItems() : []).filter(i =>
+      !i.sprint && i.status !== 'descartado' && i.status !== 'historico' && _zoneStaleness(i)
+    );
+    if (stale.length > 0) {
+      const discCount  = stale.filter(i => itemKind(i) === 'DISC').length;
+      const otherCount = stale.length - discCount;
+      const text = discCount && otherCount
+        ? `${stale.length} ítems vencidos en Q-DISC/Q-Backlog`
+        : discCount
+        ? `${discCount} DISC sin grooming +30d`
+        : `${otherCount} ítems sin mover +14d en Q-Backlog`;
+      return { type: 'backlog', text, targetTab: 'backlog' };
+    }
+
+    return null;
+  } catch (e) {
+    return null;
   }
 }
 
@@ -199,6 +260,19 @@ export function renderStatusBar() {
 
   if (gfCkpt) {
     try {
+      // REQ-[pendiente-ID] TKT3: limpiar clases de estado de un render previo antes de decidir
+      gfCkpt.classList.remove('gf-ckpt--alert-inc', 'gf-ckpt--alert-sprint', 'gf-ckpt--alert-backlog', 'gf-ckpt--link');
+      gfCkpt.onclick = null;
+
+      const alert = _getFooterAlert();
+      if (alert) {
+        gfCkpt.textContent = alert.text;
+        gfCkpt.classList.remove('is-hidden');
+        gfCkpt.classList.add('gf-ckpt--alert-' + alert.type);
+        gfCkpt.onclick = function() { switchTab(alert.targetTab); };
+        return;
+      }
+
       const allSess = getAllSessions().slice().sort((a, b) => {
         const ta = a.timestamp || a.endTime || a.startTime || 0;
         const tb = b.timestamp || b.endTime || b.startTime || 0;
@@ -206,8 +280,9 @@ export function renderStatusBar() {
       });
       const lastSess = allSess[0] || null;
       if (lastSess) {
-        const titulo = (lastSess.title || lastSess.nombre || '').slice(0, 28) || '—';
-        gfCkpt.textContent = '⏱ ' + titulo;
+        const nextStep = lastSess.proximoPaso || '';
+        const texto = nextStep ? nextStep.slice(0, 32) : ((lastSess.title || lastSess.nombre || '').slice(0, 28) || '—');
+        gfCkpt.textContent = (nextStep ? '→ ' : '⏱ ') + texto;
         gfCkpt.classList.remove('is-hidden');
         gfCkpt.classList.add('gf-ckpt--link');
         gfCkpt.onclick = function() {
@@ -215,7 +290,6 @@ export function renderStatusBar() {
         };
       } else {
         gfCkpt.classList.add('is-hidden');
-        gfCkpt.onclick = null;
       }
     } catch(e) { gfCkpt.classList.add('is-hidden'); }
   }

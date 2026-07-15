@@ -1,4 +1,4 @@
-/* [PP] mod:54 · autor:Nova · 2026-07-13 08:40 UTC-6 */
+/* [PP] mod:55 · autor:Nova · 2026-07-14 UTC-6 */
 /* Fix directo en sesión (Auditoría Nova IDP, Hallazgo #5 — alcance IDP): --hint está
    documentado en css-ref como "bordes sutiles de elementos secundarios", no texto —
    contraste real ~1.7:1 (dark) / ~2.4:1 (light) contra el fondo del panel, bajo el
@@ -2932,6 +2932,24 @@ body:not([data-theme]) .theme-toggle-btn::before {
 .gf-ckpt--link:hover {
   background: var(--surface3);
   color: var(--text);
+}
+
+/* REQ-[pendiente-ID] TKT2: estados de alerta de salud del proyecto — reemplazan el color
+   neutro de .gf-ckpt cuando _getFooterAlert() (locus-sesiones-stats.js) retorna una alerta
+   activa. Todas heredan pointer-events/cursor de .gf-ckpt--link (siempre clickeable). */
+.gf-ckpt--alert-inc {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.gf-ckpt--alert-sprint {
+  color: var(--amber);
+  font-weight: 600;
+}
+
+.gf-ckpt--alert-backlog {
+  color: var(--purple);
+  font-weight: 600;
 }
 
 /* T-202607-XXX (TKT5 footer redesign): degradación progresiva en viewport angosto.
