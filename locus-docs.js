@@ -1,3 +1,11 @@
+// [PP] mod:17 · autor:Rune · 2026-07-14 UTC-6
+// TKT-[pendiente-ID] (REQ-[pendiente-ID] · createdAt en docUpdateIndex): processDocUpdate()
+//   agrega createdAt:Date.now() a toda entrada nueva (primera entrada de una key y entradas
+//   de conflicto) — desbloquea el cómputo de vencimiento del DOC-UPDATE. resolveDocUpdate()
+//   no se toca: el spread {...entries[chosenIndex]} ya conserva createdAt sin cambios.
+//   Entradas persistidas antes de este cambio quedan sin createdAt — se leen sin error
+//   (ningún consumo actual del campo), antigüedad tratada como "desconocida" hasta que la
+//   entrada se resuelva o expire por ciclo normal del sprint.
 // [PP] mod:16 · autor:Rune · 2026-07-13 UTC-6
 // INC-[pendiente-ID]: import real de APP_VERSION desde locus-workers.js — guard
 // typeof APP_VERSION !== 'undefined' nunca era true (variable module-privada, sin export
@@ -821,7 +829,9 @@ export function processDocUpdate(update, checkpointTitle) {
 
   if (!index[key]) {
     // Primera entrada para esta key en el sprint — sin conflicto
-    index[key] = [{ contenido, titulo: checkpointTitle, conflicto: false }];
+    // REQ-[pendiente-ID] (TKT1): createdAt registra el momento exacto de creación de la
+    // entrada — base para el cómputo de vencimiento (footer alert prioridad 3 / BR-Ecosystem §3).
+    index[key] = [{ contenido, titulo: checkpointTitle, conflicto: false, createdAt: Date.now() }];
     _setDocUpdateIndex(index);
     _blogLog('ckpt-creado', key, checkpointTitle, 'backlog');
     return { key, conflicto: false, msg: null };
@@ -837,8 +847,9 @@ export function processDocUpdate(update, checkpointTitle) {
   }
 
   // AC-2: contenido distinto → conflicto — marcar ambas entradas existentes y la nueva
+  // createdAt de la entrada nueva es propio — no hereda el de las entradas previas de la key.
   existing.forEach(e => { e.conflicto = true; });
-  existing.push({ contenido, titulo: checkpointTitle, conflicto: true });
+  existing.push({ contenido, titulo: checkpointTitle, conflicto: true, createdAt: Date.now() });
   _setDocUpdateIndex(index);
   _blogLog('ckpt-creado', key, 'conflicto: ' + checkpointTitle, 'backlog');
 

@@ -1,3 +1,7 @@
+// [PP] mod:42 · autor:Rune · 2026-07-14 UTC-6
+// INC-[pendiente-ID]: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
+// ai.avatar es markup SVG; con textContent se pintaba como texto crudo (path data visible
+// en pantalla, ver captura del founder). Mismo patrón ya usado en #pop-avatar.
 // [PP] mod:41 · autor:Rune · 2026-07-14 UTC-6
 // CAEL-12 (REQ CAEL-10): buildCard()/#grid retirados — código muerto desde CAEL-08 (#grid no
 // existe en el DOM). _populateWorkerHeader() reemplaza avatar/nombre/badge/menú de acciones sobre
@@ -833,7 +837,7 @@ function _populateWorkerHeader(ai) {
 
   const avatarEl = document.getElementById('worker-header-avatar');
   if (avatarEl) {
-    avatarEl.textContent = ai.avatar || aiInitial;
+    avatarEl.innerHTML = ai.avatar || aiInitial; // INC-[pendiente-ID]: textContent no renderizaba el SVG — corregido a innerHTML, mismo patrón que #pop-avatar (locus-workers.js:83)
     avatarEl.title = ai.name;
     avatarEl.dataset.aiId = ai.id;
     avatarEl.className = 'sc-avatar sc-avatar--' + state;
