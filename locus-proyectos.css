@@ -1,4 +1,4 @@
-/* [PP] mod:9 · autor:Nova · 2026-07-15 14:05 UTC-6 */
+/* [PP] mod:10 · autor:Nova · 2026-07-15 14:30 UTC-6 */
 /* Housekeeping — DISC dead-code sidebar legacy (resuelta en sesión, sin pasar por Q-DISC):
    eliminadas .tpl-sidebar/.tpl-sidebar-section/.tpl-sidebar-label/.tpl-sidebar-nav/
    .tpl-nav-btn(:hover/.active)/.tpl-nav-icon/.tpl-nav-text/.tpl-nav-badge(.visible)/
@@ -2342,18 +2342,6 @@
   gap: 4px;
   max-width: 24px;
   flex-wrap: wrap;
-}
-
-.tpl-proj-icon {
-  font-size: var(--text-base);
-}
-
-.tpl-proj-name {
-  font-weight: 600;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .meta-val-bold {
