@@ -1,3 +1,13 @@
+// [PP] mod:56 · autor:Rune · 2026-07-15 12:40 UTC-6
+// TKT1 (REQ CAEL-01, ref_id CAEL-02) — AC agregado por gap detectado en auditoría propia:
+// switchSubTab() ahora sincroniza aria-selected junto con el toggle de .active, solo para
+// botones con role="tab" (guard evita tocar sstab-btn-* que no son parte de un tablist ARIA).
+// [PP] mod:55 · autor:Rune · 2026-07-15 12:30 UTC-6
+// TKT1 (REQ CAEL-01, ref_id CAEL-02) — bugfix detectado en revisión propia antes de re-entrega:
+// switchSubTab() no incluía 'docupdates' en el array de toggle .active — el sub-tab DOC-UPDATEs
+// migrado en este mismo TKT (AC-8) nunca recibía .active en botón ni panel al seleccionarse.
+// _updateSubTabButtons() en locus-docs.js sí gestionaba render/visibilidad de 'docupdates'
+// correctamente — el hueco estaba solo en este array de este archivo.
 // [PP] mod:54 · autor:Rune · 2026-07-14 20:45 UTC-6
 // TKT1/CAEL-XX + INC-[pendiente-ID] (/ shadowed): ver CHECKPOINT de sesión — atajos de teclado.
 // REQ CAEL-búsqueda-tipos, TKT único: (1) icono de resultado por tipo ahora usa itemKind(item)
@@ -202,10 +212,16 @@ export function switchSubTab(sub) {
     window.dispatchEvent(new CustomEvent('shell:close-item-panel'));
   }
   currentSubTab = sub;
-  ['backlog','qbacklog','qdisc','htmlmap','context','plan','contratos','historico'].forEach(s => {
+  // INC-[pendiente-ID]: 'docupdates' faltaba en este array — sub-tab migrado en TKT1
+  // (REQ CAEL-01, AC-8) nunca recibía .active en botón/panel al seleccionarse, pese a
+  // que _updateSubTabButtons() en locus-docs.js sí lo trata (L157/L168/L176).
+  ['backlog','qbacklog','qdisc','htmlmap','context','plan','docupdates','contratos','historico'].forEach(s => {
     const btn = document.getElementById('sstab-btn-' + s);
     const panel = document.getElementById('sspanel-' + s);
-    if (btn) btn.classList.toggle('active', s === sub);
+    if (btn) {
+      btn.classList.toggle('active', s === sub);
+      if (btn.getAttribute('role') === 'tab') btn.setAttribute('aria-selected', s === sub ? 'true' : 'false');
+    }
     if (panel) panel.classList.toggle('active', s === sub);
   });
   // (a) event dispatch — locus-docs.js escucha 'shell:update-subtab-buttons'
@@ -1174,6 +1190,25 @@ document.addEventListener('DOMContentLoaded', function () {
   document.querySelectorAll('[id^="sstab-btn-"]').forEach(function (btn) {
     const stab = btn.id.replace('sstab-btn-', '');
     btn.addEventListener('click', function () { switchSubTab(stab); });
+  });
+
+  // TKT1 (REQ CAEL-01) AC-6: navegación por flechas en cualquier [role="tablist"] —
+  // roving focus entre [role="tab"] visibles (sin .is-hidden) del mismo contenedor.
+  // Delegado a nivel documento — cubre tablists nuevos (Proyectos) y existentes (Sprint)
+  // sin requerir listener por contenedor.
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    const active = document.activeElement;
+    if (!active || active.getAttribute('role') !== 'tab') return;
+    const tablist = active.closest('[role="tablist"]');
+    if (!tablist) return;
+    const tabs = Array.from(tablist.querySelectorAll('[role="tab"]')).filter(t => !t.classList.contains('is-hidden'));
+    const idx = tabs.indexOf(active);
+    if (idx === -1) return;
+    e.preventDefault();
+    const next = e.key === 'ArrowRight' ? (idx + 1) % tabs.length : (idx - 1 + tabs.length) % tabs.length;
+    tabs[next].focus();
+    tabs[next].click();
   });
 
   // #more-menu-theme → toggleTheme()

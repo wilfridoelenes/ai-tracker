@@ -1,4 +1,5 @@
-/* [PP] mod:55 · autor:Nova · 2026-07-13 20:35 UTC-6 */
+/* [PP] mod:57 · autor:Nova · 2026-07-15 12:35 UTC-6 */
+/* TKT1 (REQ CAEL-01, ref_id CAEL-02) AC-3: overflow-x:auto en .spt-nav bajo @media (max-width: 480px) — scroll horizontal silencioso, scrollbar oculta (mismo patrón ya usado por el resto del sistema de tabs). */
 /* locus-sprint.css */
 /* Versión: 1.1 | Última actualización: 2026-05-25 | Tab Sprint — header, burndown, ítems, scope added, workers, trigger de cierre, subtab nav */
 /* Migrado desde locus-backlog.css — T-202605-065 */
@@ -695,6 +696,19 @@
   flex-shrink: 0;
 }
 
+/* TKT1 (REQ CAEL-01, ref_id CAEL-02) AC-3: scroll horizontal silencioso — nunca wrap a 2 líneas.
+   .spt-tab ya tiene white-space:nowrap; sin overflow-x aquí el contenedor no scrollea y desborda. */
+@media (max-width: 480px) {
+  .spt-nav {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .spt-nav::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 .spt-tab {
   position: relative;
   padding: 10px 16px;
@@ -725,12 +739,14 @@
   color: var(--text);
 }
 
-.spt-tab.is-active {
+.spt-tab.is-active,
+.spt-tab.active {
   color: var(--text);
   font-weight: 600;
 }
 
-.spt-tab.is-active::after {
+.spt-tab.is-active::after,
+.spt-tab.active::after {
   background: var(--accent);
 }
 

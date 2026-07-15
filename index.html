@@ -1,4 +1,4 @@
-<!-- [PP] mod:134 · autor:Rune · 2026-07-14 20:10 UTC-6 -->
+<!-- [PP] mod:135 · autor:Rune · 2026-07-15 12:00 UTC-6 -->
 <!-- INC-[pendiente-ID] (íconos Tabler no cargaban — cuadros grises transversales): agregado <link> CDN
      de @tabler/icons-webfont en <head>, aprobado por founder. Ningún archivo CSS/JS tocado — hallazgo
      era ausencia total del webfont, no error de clase ni de estilo. -->
@@ -475,29 +475,11 @@
       </div>
     </div>
 
-    <div class="tpl-sidebar-section">
-      <div class="tpl-sidebar-label">Documentos</div>
-      <div class="tpl-sidebar-nav">
-        <button class="tpl-nav-btn" id="sstab-btn-htmlmap">
-          <span class="tpl-nav-icon">🗺</span><span class="tpl-nav-text">Documentos</span>
-          <span class="tpl-nav-badge" id="tpl-badge-htmlmap"></span>
-        </button>
-        <button class="tpl-nav-btn" id="sstab-btn-context">
-          <span class="tpl-nav-icon">📄</span><span class="tpl-nav-text">Context</span>
-          <span class="tpl-nav-badge" id="tpl-badge-context"></span>
-        </button>
-        <button class="tpl-nav-btn is-hidden" id="sstab-btn-docupdates">
-          <span class="tpl-nav-icon">📝</span><span class="tpl-nav-text">DOC-UPDATEs</span>
-          <span class="tpl-nav-badge" id="tpl-badge-docupdates"></span>
-        </button>
-        <button class="tpl-nav-btn is-hidden" id="sstab-btn-contratos">
-          <span class="tpl-nav-icon">📐</span><span class="tpl-nav-text">Contratos</span>
-          <span class="tpl-nav-badge" id="tpl-badge-contratos"></span>
-        </button>
-      </div>
-    </div>
+    <!-- TKT1 (REQ CAEL-01): sección "Documentos" (sstab-btn-htmlmap/context/docupdates/contratos),
+         danger zone y acciones de MAP/Contratos migradas a #tab-proyectos. -->
 
-    <!-- Acciones contextuales -->
+    <!-- Acciones contextuales — solo Backlog. TKT1 (REQ CAEL-01): btn-import-htmlmap,
+         btn-generate-map, btn-export-contratos y btn-view-doclog migrados a #tab-proyectos. -->
     <div class="tpl-sidebar-section tpl-sidebar-actions">
       <div class="tpl-sidebar-label">Acciones</div>
       <div class="tpl-sidebar-action-list" id="tpl-toolbar">
@@ -509,21 +491,6 @@
         </div>
         <button class="tpl-action-btn is-hidden" id="btn-export-backlog" title="Descargar Backlog activo como .md">⬇ Descargar Backlog</button>
         <button class="tpl-action-btn is-hidden" id="btn-export-backlog-full" title="Descargar historial completo como .md">⬇ Historial completo</button>
-        <button class="tpl-action-btn is-hidden" id="btn-import-htmlmap" title="Importar archivo AI-MAP_vX.Y.md">↑ Importar MAP</button>
-        <button class="tpl-action-btn tpl-action-primary is-hidden" id="btn-generate-map" title="Generar documentos">⚙ Generar documentos</button>
-        <button class="tpl-action-btn is-hidden" id="btn-export-contratos" title="Exportar Contratos.md">⬇ Exportar Contratos</button>
-        <button class="doc-log-btn is-hidden" id="btn-view-doclog" title="Historial de acciones">🕐<span class="doc-log-count"></span></button>
-      </div>
-    </div>
-
-    <!-- Zona de peligro — sidebar -->
-    <div class="tpl-sidebar-danger is-hidden" id="tpl-sidebar-danger">
-      <button class="tpl-danger-toggle" id="tpl-danger-toggle-btn">⚠ Opciones avanzadas</button>
-      <div class="tpl-danger-body" id="tpl-danger-body">
-        <div class="tpl-danger-label">Zona de peligro — irreversible</div>
-        <button class="btn-danger is-hidden" id="sidebar-danger-btn-context">🗑 Resetear Context</button>
-        <button class="btn-danger is-hidden" id="sidebar-danger-btn-htmlmap">🗑 Resetear MAP</button>
-        <button class="btn-danger is-hidden" id="sidebar-danger-btn-contratos">🗑 Resetear Contratos</button>
       </div>
     </div>
 
@@ -710,105 +677,8 @@
          renderHistoricoSection() inyecta #historico-section directo en este nodo. -->
     <div class="session-subpanel" id="sspanel-historico"></div><!-- /sspanel-historico -->
 
-    <!-- Sub-panel: HTML-MAP -->
-    <div class="session-subpanel" id="sspanel-htmlmap">
-      <div class="htmlmap-meta-banner" id="htmlmap-meta-banner">
-        <span class="htmlmap-meta-label">Archivo</span>
-        <span class="htmlmap-meta-value" id="hmeta-file">—</span>
-        <span class="htmlmap-meta-sep">·</span>
-        <span class="htmlmap-meta-label">Versión</span>
-        <span class="htmlmap-meta-value meta-val-bold" id="hmeta-version">—</span>
-        <span class="htmlmap-meta-sep">·</span>
-        <span class="htmlmap-meta-label">Importado</span>
-        <span class="htmlmap-meta-value" id="hmeta-imported">—</span>
-        <span class="htmlmap-meta-sep">·</span>
-        <span class="htmlmap-meta-label">Secciones</span>
-        <span class="htmlmap-meta-value" id="hmeta-total">—</span>
-        <span class="htmlmap-meta-sep is-hidden" id="hmeta-mod-sep">·</span>
-        <span class="htmlmap-meta-label is-hidden amber-color" id="hmeta-mod-label">✎ Actualizado</span>
-        <span class="htmlmap-meta-value is-hidden amber-color" id="hmeta-mod-val">—</span>
-      </div>
-      <div class="htmlmap-filter-bar is-hidden" id="htmlmap-filter-bar">
-        <span class="toolbar-label">Tipo</span>
-        <button class="htmlmap-filter-btn active" id="hmfilter-all">Todos</button>
-        <button class="htmlmap-filter-btn" id="hmfilter-css">CSS</button>
-        <button class="htmlmap-filter-btn" id="hmfilter-html">HTML</button>
-        <button class="htmlmap-filter-btn" id="hmfilter-js">JS</button>
-        <div class="flex-1"></div>
-      </div>
-      <div id="htmlmap-content"></div>
-      <input type="file" id="htmlmap-file-input" accept=".md,text/markdown,text/plain" class="is-hidden">
-    </div><!-- /sspanel-htmlmap -->
-
-    <!-- Sub-panel: Context -->
-    <div class="session-subpanel" id="sspanel-context">
-
-      <!-- Estado vacío: importar -->
-      <div id="context-empty-state" class="is-hidden">
-        <div class="doc-dropzone" id="context-dropzone"
->
-          <div class="doc-dropzone-icon">📄</div>
-          <div class="doc-dropzone-title">Importar CONTEXT.md</div>
-          <div class="doc-dropzone-hint">Arrastra el archivo aquí o haz click para seleccionar</div>
-          <div class="doc-dropzone-badge">.md</div>
-        </div>
-      </div>
-
-      <!-- Estado cargado: navegación por secciones -->
-      <div id="context-loaded-state" class="is-hidden">
-        <!-- Meta banner -->
-        <div class="htmlmap-meta-banner" id="context-meta-banner">
-          <span class="htmlmap-meta-label">Versión</span>
-          <span class="htmlmap-meta-value meta-val-bold" id="cmeta-version">—</span>
-          <span class="htmlmap-meta-sep">·</span>
-          <span class="htmlmap-meta-label">Importado</span>
-          <span class="htmlmap-meta-value" id="cmeta-imported">—</span>
-          <span class="htmlmap-meta-sep">·</span>
-          <span class="htmlmap-meta-value hint-color" id="cmeta-section-count">—</span>
-          <span class="htmlmap-meta-sep is-hidden" id="cmeta-mod-sep">·</span>
-          <span class="htmlmap-meta-label is-hidden amber-color" id="cmeta-mod-label">✎ Modificado</span>
-          <span class="htmlmap-meta-value is-hidden amber-color" id="cmeta-mod-val">—</span>
-          <span class="flex-1"></span>
-          <button type="button" id="ctx-export-btn" class="ctx-meta-action-btn" title="Descargar CONTEXT.md actualizado">⬇ Exportar</button>
-          <button type="button" class="ctx-meta-action-btn ctx-import-btn" title="Re-importar CONTEXT.md">↑ Re-importar</button>
-        </div>
-
-        <!-- Search bar -->
-        <div class="ctx-search-bar">
-          <input type="text" id="ctx-search-input" class="ctx-search-input" placeholder="🔍 Buscar sección…" autocomplete="off">
-          <button class="ctx-search-clear" id="ctx-search-clear" title="Limpiar">✕</button>
-        </div>
-
-        <!-- Secciones navegables -->
-        <div id="context-content" class="ctx-sections-wrap"></div>
-      </div>
-
-      <div id="context-conflict-area"></div>
-
-    </div><!-- /sspanel-context -->
-
-    <!-- Sub-panel: DOC-UPDATEs pendientes — T-202606-033 -->
-    <div class="session-subpanel" id="sspanel-docupdates">
-      <div class="du-panel-header">
-        <div class="du-panel-title">DOC-UPDATEs pendientes</div>
-        <span class="du-conflict-summary is-hidden" id="du-conflict-summary"></span>
-      </div>
-      <div id="doc-updates-list" class="du-list"></div>
-    </div><!-- /sspanel-docupdates -->
-
-    <!-- Sub-panel: Contratos — R-202604-075 -->
-    <div class="session-subpanel ctr-layout" id="sspanel-contratos">
-      <div class="ctr-toolbar">
-        <div class="ctr-search">
-          <input class="ctr-search-input" id="ctr-search-input" type="text" placeholder="Buscar módulo o función..." />
-          <button class="ctr-search-clear" id="ctr-search-clear" title="Limpiar búsqueda">✕</button>
-        </div>
-      </div>
-      <div class="ctr-body">
-        <div class="ctr-list-panel" id="ctr-list-panel"></div>
-        <div class="ctr-detail-panel" id="ctr-detail-panel"><div class="ctr-detail-placeholder"><span>← Selecciona un módulo para ver sus contratos</span></div></div>
-      </div>
-    </div><!-- /sspanel-contratos -->
+    <!-- TKT1 (REQ CAEL-01): sspanel-htmlmap, sspanel-context, sspanel-docupdates y
+         sspanel-contratos migrados a #tab-proyectos — contenido intacto, ver ahí. -->
 
   </div><!-- /tpl-detail -->
 
@@ -970,7 +840,139 @@
 
 </div>
 <div class="tab-panel" id="tab-proyectos">
+
+  <!-- TKT1 (REQ CAEL-01): fila de subtabs horizontal — Documentos/Context, migrada desde
+       #tpl-sidebar de Backlog. Reutiliza .spt-nav/.spt-tab (ver locus-sprint.css / base compartida). -->
+  <div class="spt-nav" role="tablist">
+    <button class="spt-tab active" id="sstab-btn-htmlmap" role="tab" aria-selected="true">
+      Documentos<span class="spt-tab-badge" id="tpl-badge-htmlmap"></span>
+    </button>
+    <button class="spt-tab" id="sstab-btn-context" role="tab" aria-selected="false">
+      Context<span class="spt-tab-badge" id="tpl-badge-context"></span>
+    </button>
+    <button class="spt-tab is-hidden" id="sstab-btn-docupdates" role="tab" aria-selected="false">
+      DOC-UPDATEs<span class="spt-tab-badge" id="tpl-badge-docupdates"></span>
+    </button>
+    <button class="spt-tab is-hidden" id="sstab-btn-contratos" role="tab" aria-selected="false">
+      Contratos<span class="spt-tab-badge" id="tpl-badge-contratos"></span>
+    </button>
+  </div>
+
+  <!-- Acciones de Documentos — migradas desde #tpl-toolbar de Backlog -->
+  <div class="tpl-sidebar-actions" id="proj-doc-actions">
+    <button class="tpl-action-btn is-hidden" id="btn-import-htmlmap" title="Importar archivo AI-MAP_vX.Y.md">↑ Importar MAP</button>
+    <button class="tpl-action-btn tpl-action-primary is-hidden" id="btn-generate-map" title="Generar documentos">⚙ Generar documentos</button>
+    <button class="tpl-action-btn is-hidden" id="btn-export-contratos" title="Exportar Contratos.md">⬇ Exportar Contratos</button>
+    <button class="doc-log-btn is-hidden" id="btn-view-doclog" title="Historial de acciones">🕐<span class="doc-log-count"></span></button>
+  </div>
+
+  <!-- Zona de peligro — migrada desde #tpl-sidebar de Backlog -->
+  <div class="tpl-sidebar-danger is-hidden" id="tpl-sidebar-danger">
+    <button class="tpl-danger-toggle" id="tpl-danger-toggle-btn">⚠ Opciones avanzadas</button>
+    <div class="tpl-danger-body" id="tpl-danger-body">
+      <div class="tpl-danger-label">Zona de peligro — irreversible</div>
+      <button class="btn-danger is-hidden" id="sidebar-danger-btn-context">🗑 Resetear Context</button>
+      <button class="btn-danger is-hidden" id="sidebar-danger-btn-htmlmap">🗑 Resetear MAP</button>
+      <button class="btn-danger is-hidden" id="sidebar-danger-btn-contratos">🗑 Resetear Contratos</button>
+    </div>
+  </div>
+
   <div id="tab-proyectos-inner" class="tab-proyectos-content"></div>
+
+  <!-- Sub-panel: HTML-MAP — migrado desde #tab-backlog (TKT1, REQ CAEL-01) -->
+  <div class="session-subpanel" id="sspanel-htmlmap">
+    <div class="htmlmap-meta-banner" id="htmlmap-meta-banner">
+      <span class="htmlmap-meta-label">Archivo</span>
+      <span class="htmlmap-meta-value" id="hmeta-file">—</span>
+      <span class="htmlmap-meta-sep">·</span>
+      <span class="htmlmap-meta-label">Versión</span>
+      <span class="htmlmap-meta-value meta-val-bold" id="hmeta-version">—</span>
+      <span class="htmlmap-meta-sep">·</span>
+      <span class="htmlmap-meta-label">Importado</span>
+      <span class="htmlmap-meta-value" id="hmeta-imported">—</span>
+      <span class="htmlmap-meta-sep">·</span>
+      <span class="htmlmap-meta-label">Secciones</span>
+      <span class="htmlmap-meta-value" id="hmeta-total">—</span>
+      <span class="htmlmap-meta-sep is-hidden" id="hmeta-mod-sep">·</span>
+      <span class="htmlmap-meta-label is-hidden amber-color" id="hmeta-mod-label">✎ Actualizado</span>
+      <span class="htmlmap-meta-value is-hidden amber-color" id="hmeta-mod-val">—</span>
+    </div>
+    <div class="htmlmap-filter-bar is-hidden" id="htmlmap-filter-bar">
+      <span class="toolbar-label">Tipo</span>
+      <button class="htmlmap-filter-btn active" id="hmfilter-all">Todos</button>
+      <button class="htmlmap-filter-btn" id="hmfilter-css">CSS</button>
+      <button class="htmlmap-filter-btn" id="hmfilter-html">HTML</button>
+      <button class="htmlmap-filter-btn" id="hmfilter-js">JS</button>
+      <div class="flex-1"></div>
+    </div>
+    <div id="htmlmap-content"></div>
+    <input type="file" id="htmlmap-file-input" accept=".md,text/markdown,text/plain" class="is-hidden">
+  </div><!-- /sspanel-htmlmap -->
+
+  <!-- Sub-panel: Context — migrado desde #tab-backlog (TKT1, REQ CAEL-01) -->
+  <div class="session-subpanel" id="sspanel-context">
+
+    <div id="context-empty-state" class="is-hidden">
+      <div class="doc-dropzone" id="context-dropzone">
+        <div class="doc-dropzone-icon">📄</div>
+        <div class="doc-dropzone-title">Importar CONTEXT.md</div>
+        <div class="doc-dropzone-hint">Arrastra el archivo aquí o haz click para seleccionar</div>
+        <div class="doc-dropzone-badge">.md</div>
+      </div>
+    </div>
+
+    <div id="context-loaded-state" class="is-hidden">
+      <div class="htmlmap-meta-banner" id="context-meta-banner">
+        <span class="htmlmap-meta-label">Versión</span>
+        <span class="htmlmap-meta-value meta-val-bold" id="cmeta-version">—</span>
+        <span class="htmlmap-meta-sep">·</span>
+        <span class="htmlmap-meta-label">Importado</span>
+        <span class="htmlmap-meta-value" id="cmeta-imported">—</span>
+        <span class="htmlmap-meta-sep">·</span>
+        <span class="htmlmap-meta-value hint-color" id="cmeta-section-count">—</span>
+        <span class="htmlmap-meta-sep is-hidden" id="cmeta-mod-sep">·</span>
+        <span class="htmlmap-meta-label is-hidden amber-color" id="cmeta-mod-label">✎ Modificado</span>
+        <span class="htmlmap-meta-value is-hidden amber-color" id="cmeta-mod-val">—</span>
+        <span class="flex-1"></span>
+        <button type="button" id="ctx-export-btn" class="ctx-meta-action-btn" title="Descargar CONTEXT.md actualizado">⬇ Exportar</button>
+        <button type="button" class="ctx-meta-action-btn ctx-import-btn" title="Re-importar CONTEXT.md">↑ Re-importar</button>
+      </div>
+
+      <div class="ctx-search-bar">
+        <input type="text" id="ctx-search-input" class="ctx-search-input" placeholder="🔍 Buscar sección…" autocomplete="off">
+        <button class="ctx-search-clear" id="ctx-search-clear" title="Limpiar">✕</button>
+      </div>
+
+      <div id="context-content" class="ctx-sections-wrap"></div>
+    </div>
+
+    <div id="context-conflict-area"></div>
+
+  </div><!-- /sspanel-context -->
+
+  <!-- Sub-panel: DOC-UPDATEs pendientes — migrado desde #tab-backlog (TKT1, REQ CAEL-01) -->
+  <div class="session-subpanel" id="sspanel-docupdates">
+    <div class="du-panel-header">
+      <div class="du-panel-title">DOC-UPDATEs pendientes</div>
+      <span class="du-conflict-summary is-hidden" id="du-conflict-summary"></span>
+    </div>
+    <div id="doc-updates-list" class="du-list"></div>
+  </div><!-- /sspanel-docupdates -->
+
+  <!-- Sub-panel: Contratos — migrado desde #tab-backlog (TKT1, REQ CAEL-01) -->
+  <div class="session-subpanel ctr-layout" id="sspanel-contratos">
+    <div class="ctr-toolbar">
+      <div class="ctr-search">
+        <input class="ctr-search-input" id="ctr-search-input" type="text" placeholder="Buscar módulo o función..." />
+        <button class="ctr-search-clear" id="ctr-search-clear" title="Limpiar búsqueda">✕</button>
+      </div>
+    </div>
+    <div class="ctr-body">
+      <div class="ctr-list-panel" id="ctr-list-panel"></div>
+      <div class="ctr-detail-panel" id="ctr-detail-panel"><div class="ctr-detail-placeholder"><span>← Selecciona un módulo para ver sus contratos</span></div></div>
+    </div>
+  </div><!-- /sspanel-contratos -->
+
 </div>
 
 <!-- ═══ OVERLAYS / MODALES (Tracker) ═══ -->

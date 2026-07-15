@@ -1,4 +1,4 @@
-// [PP] mod:17 · autor:Rune · 2026-07-14 UTC-6
+// [PP] mod:18 · autor:Rune · 2026-07-15 12:00 UTC-6
 // TKT-[pendiente-ID] (REQ-[pendiente-ID] · createdAt en docUpdateIndex): processDocUpdate()
 //   agrega createdAt:Date.now() a toda entrada nueva (primera entrada de una key y entradas
 //   de conflicto) — desbloquea el cómputo de vencimiento del DOC-UPDATE. resolveDocUpdate()
@@ -169,7 +169,12 @@ export function _updateSubTabButtons(sub) {
     if (dangerZone) dangerZone.classList.add('is-hidden');
   }
   // Hide actions section label if no buttons visible
-  const actionsSection = document.querySelector('.tpl-sidebar-actions');
+  // TKT1 (REQ CAEL-01) inline_fix: dos contenedores comparten .tpl-sidebar-actions
+  // (#tpl-toolbar en Backlog, #proj-doc-actions en Proyectos) — resolver por ID según
+  // el dominio de `sub`, no por querySelector genérico (tomaba siempre el primer match).
+  const actionsSection = document.getElementById(
+    ['htmlmap', 'context', 'docupdates', 'contratos'].includes(sub) ? 'proj-doc-actions' : 'tpl-toolbar'
+  );
   if (actionsSection) {
     const allItems = actionsSection.querySelectorAll('button, .tpl-action-row');
     const anyVisible = Array.from(allItems).some(el => !el.classList.contains('is-hidden'));

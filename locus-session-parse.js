@@ -1,4 +1,4 @@
-// [PP] mod:120 · autor:Rune · 2026-07-14 UTC-6
+// [PP] mod:121 · autor:Rune · 2026-07-15 UTC-6
 // CAEL-31 (TKT7): agregado _renderIngestResultItems() — lista de ítems en #ingest-result-items,
 //   cierra el no_incluye de CAEL-29/30. Sin cambio de HTML — shell ya existía.
 // [PP] mod:119 · autor:Rune · 2026-07-14 UTC-6
@@ -376,8 +376,13 @@ function _prefixFromCheckpointProject(projectName) {
 }
 
 // REQ-[pendiente-ID]: resuelve queue para un ítem ITIL (INC/PRB/KE/CHG).
-// - INC siempre declara queue propio (obligatorio en schema) — se respeta si viene.
-// - PRB/KE/CHG sin queue → se asigna automáticamente a [Prefijo]-Q-INC + señal DocLog.
+// - Con queue declarado y correcto (termina en '-Q-INC') → se respeta tal cual.
+// - INC-parser-queue-no-forzado: con queue declarado pero incorrecto (no termina en '-Q-INC')
+//   → se fuerza al valor correcto + señal DocLog. Antes de este fix, solo INC/PRB/KE/CHG SIN
+//   queue declarado se autoasignaban — un valor presente pero incorrecto se respetaba tal cual,
+//   contradiciendo __BR-Ecosystem §8: "queue con valor distinto a Q-INC en INC/PRB/KE/CHG nuevo
+//   → Locus aplica el ítem con queue: [Prefijo]-Q-INC y alerta en DocLog."
+// - Sin queue declarado → autoasignación previa, sin cambio de comportamiento.
 // - REQ/TKT/DISC con queue que termina en '-Q-INC' → error bloqueante, no se autoasigna nada.
 function _resolveItilQueue(it, projectName, ckptTitulo) {
   const _rawQueue = (it.queue || '').trim();
@@ -388,11 +393,20 @@ function _resolveItilQueue(it, projectName, ckptTitulo) {
     }
     return { queue: _rawQueue || null };
   }
-  if (_rawQueue) return { queue: _rawQueue };
-  // PRB/KE/CHG sin queue — autoasignar.
+  if (_rawQueue && _isQIncQueue(_rawQueue)) return { queue: _rawQueue };
+  // Queue ausente, o presente pero incorrecto — autoasignar/forzar.
   const _prefix = _prefixFromCheckpointProject(projectName);
   if (!_prefix) return { queue: null }; // proyecto no reconocido — ya bloqueado en otra validación
   const _autoQueue = `${_prefix}-Q-INC`;
+  if (_rawQueue) {
+    _blogLog(
+      'queue-forzado-a-qinc',
+      it.code || '[pendiente-ID]',
+      `Queue asignado en ${it.type} nuevo ignorado — Q-INC aplicado.`,
+      'backlog'
+    );
+    return { queue: _autoQueue };
+  }
   _blogLog(
     'queue-autoasignada',
     it.code || '[pendiente-ID]',
@@ -1254,22 +1268,24 @@ export function parsePaste(id) {
           _itemError = `Ítem [${_i}]: faltan campos obligatorios (type, code, status). Recibido: ${JSON.stringify(_it)}`;
           break;
         }
-        // T2-parser-validaciones: status 'historico' no es emitible en CHECKPOINT — asignado exclusivamente por Locus al cerrar sprint
-        // Aplica a todos los tipos (R, T, B, P) — campo status ignorado, ítem omitido, resto del CHECKPOINT continúa
-        if (_it.status && (_it.status.trim().toLowerCase() === 'historico' || _it.status.trim().toLowerCase() === 'histórico')) {
+        // INC-parser-status-invalido-omite-item: status 'historico' o inválido para el tipo ya
+        // NO bloquea el CHECKPOINT ni omite el ítem — __BR-Ecosystem §8 declara que Locus "aplica
+        // el ítem pero ignora el campo status". _normSt cae a 'pendiente' (mismo default usado en
+        // el resto del pipeline — ver item.status || 'pendiente' en locus-backlog-item.js) y el
+        // ítem continúa su construcción normal con el resto de sus campos intactos.
+        const _isHistoricoRaw = _it.status.trim().toLowerCase() === 'historico' || _it.status.trim().toLowerCase() === 'histórico';
+        // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
+        let _normSt = _isHistoricoRaw ? null : _canonicalStatus(_it.status, _it.type);
+        if (!_normSt || (!_validStatuses.includes(_normSt) && _normSt !== 'promoted' && _normSt !== 'bloqueado' && _normSt !== 'discovery')) {
           _blogLog(
-            'status-historico-emitido',
+            _isHistoricoRaw ? 'status-historico-emitido' : 'status-invalido-ignorado',
             _it.code || '[pendiente-ID]',
-            `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint`,
+            _isHistoricoRaw
+              ? `Status "historico" no es emitible — asignado exclusivamente por Locus al cerrar sprint. Campo ignorado.`
+              : `Status "${_it.status}" inválido para tipo ${_it.type}. Campo ignorado.`,
             'backlog'
           );
-          continue; // ítem omitido — resto del CHECKPOINT continúa
-        }
-        // R-202605-023: normalizar antes de validar — acepta variantes de en-revision y otros
-        const _normSt = _canonicalStatus(_it.status, _it.type);
-        if (!_normSt || (!_validStatuses.includes(_normSt) && _normSt !== 'promoted' && _normSt !== 'bloqueado' && _normSt !== 'discovery')) {
-          _itemError = `Ítem [${_i}]: status inválido "${_it.status}". Valores válidos: done · pendiente · descartado · en-revision${itemKind(_it) === 'DISC' ? ' · discovery · promoted' : ''}${itemKind(_it) === 'REQ' ? ' · bloqueado' : ''}`;
-          break;
+          _normSt = 'pendiente';
         }
         // T-202606-035: bloqueo sin-sprint + en-revision — BR-Ecosystem §5
         // T-202606-085: leer sprint_id como fallback cuando sprint no está presente (formato nuevo)
@@ -1372,10 +1388,14 @@ export function parsePaste(id) {
           _blogLog('promoted-sin-ref', _it.code || '[pendiente-ID]', 'DISC ' + (_it.code || '[pendiente-ID]') + ' con status promoted sin campo promovida_a — trazabilidad incompleta', 'backlog');
         }
         // T-202606-014: advertencia si depends_on contiene [pendiente-ID] literal con 2+ ítems nuevos en el CHECKPOINT
+        // INC-parser-tmpslug-mensaje: mensaje recomendaba [tmp:slug] — deprecado desde infra_version 33
+        // (__BR-Ecosystem §4). El motor interno sigue resolviendo vía [tmp:slug] (ver locus-backlog-item.js
+        // L98-100, decisión aceptada de no reescribir el motor) — pero el mensaje dirigido al rol emisor
+        // debe recomendar el mecanismo vigente para declarar en CHECKPOINTs nuevos: ref_id + title.
         if (Array.isArray(_it.depends_on) && _it.depends_on.includes('[pendiente-ID]')) {
           const _newItemCount = _rawItems.filter(i => i.type !== 'patch' && _isPlaceholderCode(i.code || '')).length;
           if (_newItemCount >= 2) {
-            _blogLog('dep-placeholder-ambiguo', _it.code || '[pendiente-ID]', (_it.code || '[pendiente-ID]') + ' depends_on contiene [pendiente-ID] no resoluble — usar [tmp:slug] para referencias cruzadas.', 'backlog');
+            _blogLog('dep-placeholder-ambiguo', _it.code || '[pendiente-ID]', (_it.code || '[pendiente-ID]') + ' depends_on contiene [pendiente-ID] no resoluble — usar ref_id + title para referencias cruzadas (ver __BR-Ecosystem §4).', 'backlog');
           }
         }
       }
