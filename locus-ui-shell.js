@@ -1,4 +1,4 @@
-// [PP] mod:51 · autor:Rune · 2026-07-14 19:20 UTC-6
+// [PP] mod:52 · autor:Rune · 2026-07-14 19:45 UTC-6
 // TKT1/CAEL-XX + INC-[pendiente-ID] (/ shadowed): ver CHECKPOINT de sesión — atajos de teclado.
 // REQ CAEL-búsqueda-tipos, TKT único: (1) icono de resultado por tipo ahora usa itemKind(item)
 // en vez de code.charAt(0) (anti-pattern Gen1 ya documentado en module-contracts §4) — mapa
@@ -69,6 +69,7 @@ import { openChangelog } from './locus-session-save.js';
 import { parsePasteStandalone, saveStandaloneCheckpoint } from './locus-session-parse.js';
 import { searchContratos } from './locus-contracts.js';
 import { toggleContextSection, _dropzoneHandle } from './locus-docs.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
+import { _openIngestModal, getSelectedTrackerAiId } from './locus-sesiones.js'; // INC-S-dead-code: ciclo seguro — locus-sesiones.js importa `esc` de este archivo, pero ambos símbolos se consumen solo dentro del handler de keydown, no en top-level
 
 // ── Global utility ────────────────────────────────────────────────────────
 // esc() usada por múltiples módulos (backlog, session, toast, checkpoint)
@@ -836,9 +837,13 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // T-202604-418: S → guardar sesión activa si hay borrador pendiente
+  // INC-S-dead-code: S → abre el modal de ingesta del Worker activo (_trackerSelectedId)
+  // con foco en #ingest-ta. No auto-guarda — el usuario completa el flujo de hora existente
+  // vía confirmSave/_doSaveSession. Sin Worker activo, no ejecuta acción.
   if (_pressedKey === _sk('save-session')) {
     e.preventDefault();
+    const _activeAiId = getSelectedTrackerAiId();
+    if (_activeAiId) _openIngestModal(_activeAiId);
     return;
   }
 

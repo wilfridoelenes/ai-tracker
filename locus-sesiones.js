@@ -1,4 +1,4 @@
-// [PP] mod:44 · autor:Rune · 2026-07-14 UTC-6
+// [PP] mod:45 · autor:Rune · 2026-07-14 20:05 UTC-6
 // INC-[pendiente-ID]: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
 // ai.avatar es markup SVG; con textContent se pintaba como texto crudo (path data visible
 // en pantalla, ver captura del founder). Mismo patrón ya usado en #pop-avatar.
@@ -44,6 +44,9 @@ import { STATUS_LABELS, handlePaste, handleInput } from './locus-session-parse.j
 import { _sesSPCallbacks } from './locus-sesiones-registry.js';
 
 let _trackerSelectedId = null;
+// INC-S-dead-code: getter de solo lectura para consumidores externos (locus-ui-shell.js,
+// atajo 'S') — expone _trackerSelectedId sin permitir mutación directa desde otro módulo.
+export function getSelectedTrackerAiId() { return _trackerSelectedId; }
 // shell:sesiones-render — listener en window per B-202606-021
 window.addEventListener('shell:sesiones-render', () => { _markTrackerDirty(); render(); });
 // ── END T-202606-058 ─────────────────────────────────────────────────────────
