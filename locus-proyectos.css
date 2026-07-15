@@ -1,3 +1,8 @@
+/* [PP] mod:7 · autor:Nova · 2026-07-15 13:20 UTC-6 */
+/* TKT2 (REQ CAEL-01, ref_id CAEL-03): #tab-backlog → column (antes row) tras remover .tpl-sidebar
+   como wrapper. .tpl-sidebar-actions gana layout propio (fila horizontal, hermano de .spt-nav).
+   .tpl-detail pierde padding-left de --subtab-gutter — ya no aplica sin columna de sidebar
+   (afecta también a Proyectos, que comparte la clase y ya no tenía sidebar desde TKT1). */
 /* [PP] mod:6 · autor:Nova · 2026-07-04 UTC-6 */
 /* locus-proyectos.css */
 
@@ -2031,7 +2036,7 @@
 
 #tab-backlog {
   display: none;
-  flex-direction: row;
+  flex-direction: column;
   height: 100%;
   overflow: hidden;
 }
@@ -2040,6 +2045,10 @@
   display: flex;
 }
 
+/* TKT2 (REQ CAEL-01, ref_id CAEL-03): .tpl-sidebar ya no envuelve la navegación de Backlog —
+   la fila de tabs (.spt-nav) y .tpl-sidebar-actions son hermanos directos de .tpl-detail.
+   Regla conservada por si algún proyecto/vista antigua aún la referencia — sin selector activo
+   en el DOM de Backlog tras esta migración. */
 .tpl-sidebar {
   width: 220px;
   min-width: 180px;
@@ -2052,13 +2061,23 @@
   overflow: hidden;
 }
 
+.tpl-sidebar-actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  overflow-x: auto;
+}
+
 .tpl-detail {
   flex: 1;
   overflow: hidden auto;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding-left: var(--subtab-gutter); /* TKT1 · REQ gutter subtabs */
 }
 
 .tpl-sidebar-section {

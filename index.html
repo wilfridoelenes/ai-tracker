@@ -443,58 +443,47 @@
 <!-- ═══ TAB BACKLOG ═══ -->
 <div class="tab-panel" id="tab-backlog">
 
-  <!-- Sidebar de Templates -->
-  <div class="tpl-sidebar" id="tpl-sidebar">
+  <div id="tpl-proj-banner" class="is-hidden">
+    <span id="tpl-proj-icon" class="tpl-proj-icon"></span>
+    <span id="tpl-proj-name" class="tpl-proj-name"></span>
+  </div>
 
-    <div id="tpl-proj-banner" class="is-hidden">
-      <span id="tpl-proj-icon" class="tpl-proj-icon"></span>
-      <span id="tpl-proj-name" class="tpl-proj-name"></span>
+  <!-- TKT2 (REQ CAEL-01, ref_id CAEL-03): #tpl-sidebar reemplazado por fila horizontal
+       role="tablist" — mismo patrón .spt-nav/.spt-tab que Sprint y Proyectos (TKT1). -->
+  <div class="spt-nav" role="tablist">
+    <button class="spt-tab active" id="sstab-btn-backlog" role="tab" aria-selected="true">
+      Backlog<span class="spt-tab-badge" id="tpl-badge-backlog"></span>
+    </button>
+    <button class="spt-tab" id="sstab-btn-qbacklog" role="tab" aria-selected="false" aria-label="Q-Backlog">
+      Q-Backlog<span class="spt-tab-badge" id="tpl-badge-qbacklog"></span>
+    </button>
+    <button class="spt-tab" id="sstab-btn-qdisc" role="tab" aria-selected="false">
+      Discoveries<span class="spt-tab-badge" id="tpl-badge-qdisc"></span>
+    </button>
+    <!-- TKT2 (REQ CAEL-01): sub-tab Q-INC removido de aquí — migrado a tab top-level #tab-incidentes -->
+    <!-- T-202606-092: Sub-tab Histórico -->
+    <button class="spt-tab" id="sstab-btn-historico" role="tab" aria-selected="false">
+      Histórico<span class="spt-tab-badge" id="tpl-badge-historico"></span>
+    </button>
+  </div>
+
+  <!-- TKT1 (REQ CAEL-01): sección "Documentos" (sstab-btn-htmlmap/context/docupdates/contratos),
+       danger zone y acciones de MAP/Contratos migradas a #tab-proyectos. -->
+
+  <!-- Acciones contextuales — solo Backlog. TKT1 (REQ CAEL-01): btn-import-htmlmap,
+       btn-generate-map, btn-export-contratos y btn-view-doclog migrados a #tab-proyectos.
+       TKT2 (ref_id CAEL-03): hermano directo de .spt-nav, antes de .tpl-detail — mismo
+       patrón que #proj-doc-actions en Proyectos. -->
+  <div class="tpl-sidebar-actions" id="tpl-toolbar">
+    <button class="tpl-action-btn is-hidden" id="btn-import-backlog" title="Import deshabilitado — usar ---ITEMS--- en CHECKPOINT" disabled>↑ Importar Backlog</button>
+
+    <div class="tpl-action-row is-hidden" id="tpl-undo-row">
+      <button class="tpl-action-btn tpl-action-icon" id="btn-undo-backlog" title="Deshacer" disabled>↩</button>
+      <button class="tpl-action-btn tpl-action-icon" id="btn-redo-backlog" title="Rehacer" disabled>↪</button>
     </div>
-
-    <div class="tpl-sidebar-section">
-      <div class="tpl-sidebar-label">Ítems</div>
-      <div class="tpl-sidebar-nav">
-        <button class="tpl-nav-btn active" id="sstab-btn-backlog">
-          <span class="tpl-nav-icon">📋</span><span class="tpl-nav-text">Backlog</span>
-          <span class="tpl-nav-badge" id="tpl-badge-backlog"></span>
-        </button>
-        <button class="tpl-nav-btn" id="sstab-btn-qbacklog" aria-label="Q-Backlog">
-          <span class="tpl-nav-icon">📦</span><span class="tpl-nav-text">Q-Backlog</span>
-          <span class="tpl-nav-badge" id="tpl-badge-qbacklog"></span>
-        </button>
-        <button class="tpl-nav-btn" id="sstab-btn-qdisc">
-          <span class="tpl-nav-icon">💡</span><span class="tpl-nav-text">Discoveries</span>
-          <span class="tpl-nav-badge" id="tpl-badge-qdisc"></span>
-        </button>
-        <!-- TKT2 (REQ CAEL-01): sub-tab Q-INC removido de aquí — migrado a tab top-level #tab-incidentes -->
-        <!-- T-202606-092: Sub-tab Histórico -->
-        <button class="tpl-nav-btn" id="sstab-btn-historico">
-          <span class="tpl-nav-icon">🗄</span><span class="tpl-nav-text">Histórico</span>
-          <span class="tpl-nav-badge" id="tpl-badge-historico"></span>
-        </button>
-      </div>
-    </div>
-
-    <!-- TKT1 (REQ CAEL-01): sección "Documentos" (sstab-btn-htmlmap/context/docupdates/contratos),
-         danger zone y acciones de MAP/Contratos migradas a #tab-proyectos. -->
-
-    <!-- Acciones contextuales — solo Backlog. TKT1 (REQ CAEL-01): btn-import-htmlmap,
-         btn-generate-map, btn-export-contratos y btn-view-doclog migrados a #tab-proyectos. -->
-    <div class="tpl-sidebar-section tpl-sidebar-actions">
-      <div class="tpl-sidebar-label">Acciones</div>
-      <div class="tpl-sidebar-action-list" id="tpl-toolbar">
-        <button class="tpl-action-btn is-hidden" id="btn-import-backlog" title="Import deshabilitado — usar ---ITEMS--- en CHECKPOINT" disabled>↑ Importar Backlog</button>
-
-        <div class="tpl-action-row is-hidden" id="tpl-undo-row">
-          <button class="tpl-action-btn tpl-action-icon" id="btn-undo-backlog" title="Deshacer" disabled>↩</button>
-          <button class="tpl-action-btn tpl-action-icon" id="btn-redo-backlog" title="Rehacer" disabled>↪</button>
-        </div>
-        <button class="tpl-action-btn is-hidden" id="btn-export-backlog" title="Descargar Backlog activo como .md">⬇ Descargar Backlog</button>
-        <button class="tpl-action-btn is-hidden" id="btn-export-backlog-full" title="Descargar historial completo como .md">⬇ Historial completo</button>
-      </div>
-    </div>
-
-  </div><!-- /tpl-sidebar -->
+    <button class="tpl-action-btn is-hidden" id="btn-export-backlog" title="Descargar Backlog activo como .md">⬇ Descargar Backlog</button>
+    <button class="tpl-action-btn is-hidden" id="btn-export-backlog-full" title="Descargar historial completo como .md">⬇ Historial completo</button>
+  </div>
 
   <!-- Panel de detalle -->
   <div class="tpl-detail" id="tpl-detail">

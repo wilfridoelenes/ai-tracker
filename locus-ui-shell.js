@@ -1,3 +1,8 @@
+// [PP] mod:57 · autor:Rune · 2026-07-15 13:10 UTC-6
+// TKT2 (REQ CAEL-01, ref_id CAEL-03): switchTab() resetea currentSubTab a un sub-tab válido
+// del tab destino ('backlog'|'proyectos') si el sub-tab activo pertenece al otro contexto —
+// currentSubTab es variable compartida entre ambos tabs desde que Proyectos adoptó el mismo
+// sistema de sub-tabs en TKT1.
 // [PP] mod:56 · autor:Rune · 2026-07-15 12:40 UTC-6
 // TKT1 (REQ CAEL-01, ref_id CAEL-02) — AC agregado por gap detectado en auditoría propia:
 // switchSubTab() ahora sincroniza aria-selected junto con el toggle de .active, solo para
@@ -149,6 +154,14 @@ export function switchTab(tab) {
   // Visibility of tab-specific header buttons
   document.querySelectorAll('.tracker-only').forEach(el => el.classList.toggle('is-hidden', tab !== 'tracker'));
   document.querySelectorAll('.analytics-only').forEach(el => el.classList.toggle('is-hidden', tab !== 'analytics'));
+  // TKT2 (REQ CAEL-01, ref_id CAEL-03): currentSubTab es compartida entre tab-proyectos y
+  // tab-backlog (ambos usan switchSubTab/getCurrentSubTab) — sin este reset, navegar desde
+  // Proyectos→Context a Backlog dejaba currentSubTab='context', un sub-tab inexistente en Backlog.
+  const _backlogSubs = ['backlog', 'qbacklog', 'qdisc', 'historico'];
+  const _proyectosSubs = ['htmlmap', 'context', 'docupdates', 'contratos'];
+  if (tab === 'backlog' && !_backlogSubs.includes(currentSubTab)) currentSubTab = 'backlog';
+  if (tab === 'proyectos' && !_proyectosSubs.includes(currentSubTab)) currentSubTab = 'htmlmap';
+
   // Templates toolbar: update buttons via _updateSubTabButtons
   // (a) event dispatch — locus-docs.js escucha 'shell:update-subtab-buttons'
   if (tab === 'backlog') {
