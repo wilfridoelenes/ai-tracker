@@ -1,4 +1,4 @@
-// [PP] mod:42 · autor:Rune · 2026-07-14 UTC-6
+// [PP] mod:43 · autor:Rune · 2026-07-14 UTC-6
 // INC-[pendiente-ID]: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
 // ai.avatar es markup SVG; con textContent se pintaba como texto crudo (path data visible
 // en pantalla, ver captura del founder). Mismo patrón ya usado en #pop-avatar.
@@ -859,24 +859,51 @@ function _populateWorkerHeader(ai) {
       : STATUS_LABELS[state];
   }
 
-  // Ícono de reset — reemplaza countdown-dramatic/hora-widget de footer (fuera de scope, ver CAEL-11).
-  // Localizado por clase estable — el id se reasigna a cd-${id} (interval en locus-sesiones-utils.js:395).
+  // Ícono de reset (legado) — se conserva sin cambio para interrupted/insession, fuera de
+  // scope de CAEL-03. Para exhausted, ver bloque .worker-header-unlock más abajo — el pill
+  // deja de usarse en ese estado (AC-1/CAEL-03).
   const resetIcon = header.querySelector('.worker-header-reset-icon');
-  const cdSpan = resetIcon ? resetIcon.querySelector('span') : null;
   if (resetIcon) {
     resetIcon.dataset.aiId = ai.id;
-    if (!isAvail) {
+    if (!isAvail && state !== 'exhausted') {
       resetIcon.classList.remove('is-hidden');
-      resetIcon.id = 'cd-' + ai.id; // convención esperada por el interval de reset (locus-sesiones-utils.js:395)
-      const cd = ai.status === 'exhausted' ? getCD(ai.resetTime, ai.resetEpoch) : '';
+      resetIcon.id = 'cd-' + ai.id; // convención esperada por el interval de reset (locus-sesiones-utils.js:395) — sin conflicto: el interval ignora ais con status !== 'exhausted'
+      const cdSpan = resetIcon.querySelector('span');
       const resetLabel = ai.resetTime ? `hasta las ${fmt12(ai.resetTime)}` : '';
-      if (cdSpan) cdSpan.textContent = cd || (ai.resetTime ? '--:--:--' : '');
+      if (cdSpan) cdSpan.textContent = ai.resetTime ? '--:--:--' : '';
       resetIcon.title = ai.resetTime ? resetLabel : 'Sin hora de desbloqueo asignada';
     } else {
       resetIcon.classList.add('is-hidden');
       resetIcon.removeAttribute('id');
       resetIcon.id = 'worker-header-reset-icon';
     }
+  }
+
+  // CAEL-03 (REQ CAEL-01): countdown de agotado — bloque .worker-header-unlock (CSS: CAEL-02,
+  // locus-sesiones.css:4397) inyectado solo en estado exhausted y removido del DOM al salir de
+  // él, sin dejar el temporizador corriendo en segundo plano (AC-2/AC-3). El id cd-${id} vive en
+  // .worker-header-unlock-value como nodo hoja — coincide con getElementById('cd-'+id).textContent
+  // en locus-sesiones-utils.js:395 (a diferencia del patrón previo, que lo asignaba al contenedor).
+  let unlockEl = header.querySelector('.worker-header-unlock');
+  if (state === 'exhausted') {
+    if (!unlockEl) {
+      unlockEl = document.createElement('div');
+      unlockEl.className = 'worker-header-unlock';
+      unlockEl.innerHTML =
+        '<span class="worker-header-unlock-label">Disponible en</span>' +
+        '<span class="worker-header-unlock-value"></span>';
+      header.appendChild(unlockEl);
+    }
+    unlockEl.dataset.aiId = ai.id;
+    const valueEl = unlockEl.querySelector('.worker-header-unlock-value');
+    const cd = getCD(ai.resetTime, ai.resetEpoch);
+    if (valueEl) {
+      valueEl.id = 'cd-' + ai.id; // convención esperada por el interval de reset (locus-sesiones-utils.js:395)
+      valueEl.textContent = cd || (ai.resetTime ? '--:--:--' : '');
+    }
+    unlockEl.title = ai.resetTime ? `hasta las ${fmt12(ai.resetTime)}` : 'Sin hora de desbloqueo asignada';
+  } else if (unlockEl) {
+    unlockEl.remove();
   }
 
   // Botón de ingesta de CHECKPOINT (CAEL-33) — bloque dedicado, localizado por id fijo
