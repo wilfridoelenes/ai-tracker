@@ -1,4 +1,4 @@
-// [PP] mod:53 · autor:Rune · 2026-07-14 20:20 UTC-6
+// [PP] mod:54 · autor:Rune · 2026-07-14 20:45 UTC-6
 // TKT1/CAEL-XX + INC-[pendiente-ID] (/ shadowed): ver CHECKPOINT de sesión — atajos de teclado.
 // REQ CAEL-búsqueda-tipos, TKT único: (1) icono de resultado por tipo ahora usa itemKind(item)
 // en vez de code.charAt(0) (anti-pattern Gen1 ya documentado en module-contracts §4) — mapa
@@ -81,10 +81,6 @@ var currentSubTab = 'backlog'; // ESM-B: var para evitar TDZ en ciclo ui-shell �
 
 // ── Tab switching ──────────────────────────────────────────────────────────
 
-// R-202605-067: estado sucio del textarea de AI Card
-// El flag es escrito por locus-tracker.js cuando el textarea tiene texto no guardado.
-// Si locus-tracker.js aún no lo declara, se usa detección DOM como fallback.
-var _trackerTextareaDirty = false; // ESM-B: var para evitar TDZ en ciclo ui-shell ↔ docs
 var currentTab = localStorage.getItem('active-tab') || 'sesiones'; // ESM-B: var para evitar TDZ en ciclo ui-shell ↔ docs
 
 // B-202605-019: array module-level para acciones de contratos en panel de búsqueda
@@ -106,15 +102,16 @@ export function getCurrentTab() { return currentTab; }
 export function getCurrentSubTab() { return currentSubTab; }
 
 export function switchTab(tab) {
-  // R-202605-067: guard — confirm si hay texto sin guardar en textarea de AI Card
-  const _dirtyTextarea = document.querySelector('.note-ta[data-dirty="true"], .ai-card textarea[data-dirty="true"]');
-  const _isDirty = _trackerTextareaDirty || !!_dirtyTextarea;
+  // R-202605-067 + INC-guard-texto-sin-guardar: guard reconectado a #ingest-ta (CAEL-22) —
+  // los selectores .note-ta/.ai-card/data-dirty y _trackerTextareaDirty quedaron muertos
+  // desde la unificación del ingest a un único textarea global. Lectura directa de DOM,
+  // sin import nuevo — _isDirty ahora refleja contenido real sin guardar.
+  const _ingestTa = document.getElementById('ingest-ta');
+  const _isDirty = !!(_ingestTa && _ingestTa.value.trim());
   if (_isDirty) {
     const _proceed = window.confirm('Hay texto sin guardar. ¿Salir de todos modos?');
     if (!_proceed) {
-      // AC-3: restaurar foco al textarea que disparó el estado sucio
-      const _focusTarget = _dirtyTextarea || document.querySelector('.note-ta, .ai-card textarea');
-      if (_focusTarget) _focusTarget.focus();
+      _ingestTa.focus();
       return;
     }
   }

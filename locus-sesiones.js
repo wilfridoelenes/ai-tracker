@@ -1,4 +1,4 @@
-// [PP] mod:46 · autor:Rune · 2026-07-14 20:25 UTC-6
+// [PP] mod:47 · autor:Rune · 2026-07-14 20:40 UTC-6
 // INC-[pendiente-ID]: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
 // ai.avatar es markup SVG; con textContent se pintaba como texto crudo (path data visible
 // en pantalla, ver captura del founder). Mismo patrón ya usado en #pop-avatar.
@@ -1014,7 +1014,11 @@ function _trackerHistAttachDropTargets() {
 }
 
 // CAEL-13: apertura del modal de ingesta unificado (CAEL-07/08).
-// Mecánica del AC — sin wiring de paste/input (CAEL-20, depends_on este TKT).
+// INC-ingest-ta-unwired: wiring de paste/input agregado aquí — CAEL-20 (declarado como
+// dependencia de este TKT) nunca se implementó. Guard idempotente (_ingestWired) porque
+// #ingest-ta es global (CAEL-22) y persiste entre aperturas de distintos Workers — el
+// listener se adjunta una sola vez, pero lee overlay.dataset.aiId en cada evento, no en
+// el momento de adjuntar, para reflejar siempre el Worker activo.
 export function _openIngestModal(aiId) {
   if (!aiId) return;
   const overlay = document.getElementById('ingest-modal-overlay');
@@ -1022,7 +1026,15 @@ export function _openIngestModal(aiId) {
   overlay.dataset.aiId = aiId;
   overlay.classList.add('open');
   const ta = document.getElementById('ingest-ta');
-  if (ta) { ta.value = ''; ta.focus(); }
+  if (ta) {
+    ta.value = '';
+    ta.focus();
+    if (!ta._ingestWired) {
+      ta._ingestWired = true;
+      ta.addEventListener('paste', () => handlePaste(overlay.dataset.aiId));
+      ta.addEventListener('input', () => handleInput(overlay.dataset.aiId));
+    }
+  }
 }
 
 
