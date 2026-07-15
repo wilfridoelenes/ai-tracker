@@ -603,37 +603,13 @@ header {
   flex-shrink: 0;
 }
 
-/* CAEL-13 · TKT1 (REQ CAEL-12): input de búsqueda global — reconecta onSearch/
-   onSearchDispatch (locus-ui-shell.js) ya existentes, sin CSS propio en el header */
-#search-global {
-  background: var(--surface-1);
-  border: 0.5px solid var(--border);
-  border-radius: var(--radius);
-  padding: 4px 10px;
-  font-size: 13px;
-  color: var(--text);
-  width: 160px;
-}
-
-#search-global::placeholder {
-  color: var(--text-secondary);
-}
-
-#search-global:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-#search-count {
-  font-size: 11px;
-  color: var(--text-secondary);
-  font-family: var(--mono);
-  white-space: nowrap;
-}
-
-/* CAEL-13 · TKT1 (REQ CAEL-12) — Opción C: dropdown anclado al input, no bloque en flujo.
-   #header-search-wrap es el nuevo punto de anclaje que Rune usa en TKT2 en vez de #grid
-   (INC CAEL-11 — #grid no existe en el layout actual). */
+/* INC CAEL-11 · fix (REQ CAEL-12, TKT2 de Rune) — Opción C aprobada por el founder:
+   dropdown de resultados anclado al input, reemplaza el ancla rota #grid (layout inexistente).
+   #header-search-wrap es el nuevo punto de anclaje — envuelve #search-global + #search-count.
+   Cambio estructural en HTML: Rune debe envolver ambos elementos en este wrapper antes de
+   integrar — ver CSS dependencies block. .search-unified-results conserva su estilo base
+   de componente compartido (definido en otro archivo, reusado en otras vistas); este bloque
+   solo sobreescribe positioning para el contexto de header. */
 #header-search-wrap {
   position: relative;
   display: flex;
