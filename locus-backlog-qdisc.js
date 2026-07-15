@@ -1,3 +1,9 @@
+// [PP] mod:10 · autor:Rune · 2026-07-15 15:05 UTC-6
+// Housekeeping (Excepción de resolución directa — dueño presente, nivel Patch, sin
+// bifurcación): eliminada línea muerta querySelectorAll('.tpl-nav-btn') — clase sin
+// referencias en el DOM desde la limpieza de locus-proyectos.css (REQ CAEL-01). No-op sin
+// cambio de comportamiento — el toggle de .active real de este botón lo hace switchSubTab()
+// (locus-ui-shell.js), que dispara en el mismo click vía listener delegado independiente.
 // [PP] mod:8 · autor:Rune · 2026-07-12 UTC-6
 // locus-backlog-qdisc.js
 // Responsabilidad: renderQDiscPanel — render del sub-tab Q-DISC (Discoveries: DISC, único tipo
@@ -204,18 +210,9 @@ _initQDiscStatusToggles();
 
 // B-202606-052 → TKT-C1: listener sub-tab Discoveries (Q-DISC) — reemplaza al listener único
 // sstab-btn-icebox.
-(function _initQDiscSubTab() {
-  const btn = document.getElementById('sstab-btn-qdisc');
-  if (!btn) return;
-  btn.addEventListener('click', function () {
-    document.querySelectorAll('.tpl-nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.session-subpanel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    const panel = document.getElementById('sspanel-qdisc');
-    if (panel) panel.classList.add('active');
-    renderQDiscPanel();
-  });
-})();
+// TKT (REQ CAEL-04): listener local eliminado — mismo criterio que locus-backlog-qbacklog.js.
+// switchSubTab() ya toggle-a clases para este sub-tab y ya despacha shell:render-qdisc.
+window.addEventListener('shell:render-qdisc', renderQDiscPanel);
 
 // B-202606-052 → TKT-C1: re-render del panel Q-DISC cuando el backlog cambia y el panel
 // está activo.

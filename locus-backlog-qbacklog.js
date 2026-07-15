@@ -1,3 +1,9 @@
+// [PP] mod:3 · autor:Rune · 2026-07-15 15:05 UTC-6
+// Housekeeping (Excepción de resolución directa — dueño presente, nivel Patch, sin
+// bifurcación): eliminada línea muerta querySelectorAll('.tpl-nav-btn') — clase sin
+// referencias en el DOM desde la limpieza de locus-proyectos.css (REQ CAEL-01). No-op sin
+// cambio de comportamiento — el toggle de .active real de este botón lo hace switchSubTab()
+// (locus-ui-shell.js), que dispara en el mismo click vía listener delegado independiente.
 // [PP] mod:1 · autor:Rune · 2026-07-05 UTC-6
 // locus-backlog-qbacklog.js
 // Responsabilidad: renderQBacklogPanel — render del sub-tab Q-Backlog (REQ/TKT sin sprint
@@ -28,18 +34,11 @@ export function renderQBacklogPanel() {
 
 // B-202606-052 → TKT-C1: listener sub-tab Backlog (Q-Backlog) — reemplaza al listener único
 // sstab-btn-icebox.
-(function _initQBacklogSubTab() {
-  const btn = document.getElementById('sstab-btn-qbacklog');
-  if (!btn) return;
-  btn.addEventListener('click', function () {
-    document.querySelectorAll('.tpl-nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.session-subpanel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    const panel = document.getElementById('sspanel-qbacklog');
-    if (panel) panel.classList.add('active');
-    renderQBacklogPanel();
-  });
-})();
+// TKT (REQ CAEL-04): listener local eliminado — duplicaba el toggle de clases que
+// switchSubTab() (locus-ui-shell.js) ya hace vía su array fijo de sub-tabs, y llamaba
+// renderQBacklogPanel() directamente en vez de escuchar el evento que switchSubTab() ya
+// despacha para este sub-tab. Consolidado a un solo camino de render.
+window.addEventListener('shell:render-qbacklog', renderQBacklogPanel);
 
 // Toggle del bloque "Terminados" — adjuntado una sola vez al cargar el módulo (shell estático).
 // Único caller vivo de _attachDoneGroupToggle: qdisc no tiene #qdisc-done-group en el DOM desde

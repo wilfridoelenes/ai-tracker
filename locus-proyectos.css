@@ -1,3 +1,10 @@
+/* [PP] mod:9 · autor:Nova · 2026-07-15 14:05 UTC-6 */
+/* Housekeeping — DISC dead-code sidebar legacy (resuelta en sesión, sin pasar por Q-DISC):
+   eliminadas .tpl-sidebar/.tpl-sidebar-section/.tpl-sidebar-label/.tpl-sidebar-nav/
+   .tpl-nav-btn(:hover/.active)/.tpl-nav-icon/.tpl-nav-text/.tpl-nav-badge(.visible)/
+   .tpl-sidebar-action-list — 9 selectores sin referencia en el DOM tras REQ CAEL-01.
+   .tpl-nav-btn seguía invocado como querySelector en 2 archivos JS (no-op) — fuera de
+   scope de esta limpieza CSS, registrado como Hallazgo fuera de scope aparte. */
 /* [PP] mod:8 · autor:Nova · 2026-07-15 13:35 UTC-6 */
 /* Conflicto CSS (hallazgo de Rune, mismo TKT2 ref_id CAEL-03): .tpl-sidebar-actions estaba
    declarado dos veces — una regla legacy del sidebar vertical Gen1 (flex:1/overflow-y:auto,
@@ -2050,21 +2057,8 @@
   display: flex;
 }
 
-/* TKT2 (REQ CAEL-01, ref_id CAEL-03): .tpl-sidebar ya no envuelve la navegación de Backlog —
-   la fila de tabs (.spt-nav) y .tpl-sidebar-actions son hermanos directos de .tpl-detail.
-   Regla conservada por si algún proyecto/vista antigua aún la referencia — sin selector activo
-   en el DOM de Backlog tras esta migración. */
-.tpl-sidebar {
-  width: 220px;
-  min-width: 180px;
-  max-width: 260px;
-  flex-shrink: 0;
-  background: var(--surface2);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
+/* .tpl-sidebar (wrapper vertical Gen1) eliminado — reemplazado por .spt-nav/.spt-tab desde
+   REQ CAEL-01. Sin referencias en DOM ni JS al momento de esta limpieza. */
 
 .tpl-sidebar-actions {
   flex-shrink: 0;
@@ -2085,93 +2079,13 @@
   min-width: 0;
 }
 
-.tpl-sidebar-section {
-  padding: 10px 10px 4px;
-}
-
-.tpl-sidebar-section + .tpl-sidebar-section {
-  border-top: 1px solid var(--border);
-}
-
-.tpl-sidebar-label {
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text3);
-  padding: 0 4px 6px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.tpl-sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.tpl-nav-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  padding: 7px 10px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--text);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-  text-align: left;
-  transition: var(--trans-color);
-}
-
-.tpl-nav-btn:hover {
-  background: var(--surface);
-  border-color: var(--border);
-}
-
-.tpl-nav-btn.active {
-  background: var(--accent-dim);
-  border-color: var(--accent-border);
-  color: var(--accent);
-}
-
-.tpl-nav-icon {
-  font-size: var(--text-base);
-  flex-shrink: 0;
-  width: 16px;
-  text-align: center;
-}
-
-.tpl-nav-text {
-  flex: 1;
-}
-
-.tpl-nav-badge {
-  font-size: var(--text-2xs-plus);
-  font-weight: 700;
-  background: var(--amber);
-  color: #fff;
-  border-radius: var(--radius-md-plus);
-  padding: 1px 5px;
-  display: none;
-}
-
-.tpl-nav-badge.visible {
-  display: inline-block;
-}
-
-/* .tpl-sidebar-actions legacy (flex:1/overflow-y:auto, sidebar vertical Gen1) eliminada —
-   colisionaba por cascada con la regla de TKT2 (línea ~2064). Única declaración activa ahora
-   es la de arriba. .tpl-sidebar-action-list queda huérfana — ver Hallazgo fuera de scope. */
-.tpl-sidebar-action-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
+/* Housekeeping (DISC, resuelta en sesión — dueño Nova presente, nivel Patch, sin bifurcación):
+   .tpl-sidebar-section · .tpl-sidebar-label · .tpl-sidebar-nav · .tpl-nav-btn(:hover/.active) ·
+   .tpl-nav-icon · .tpl-nav-text · .tpl-nav-badge(.visible) · .tpl-sidebar-action-list eliminadas —
+   dead code del sidebar vertical Gen1, cero referencias en HTML tras la migración a .spt-nav.
+   Nota: .tpl-nav-btn seguía referenciado como selector en locus-backlog-qbacklog.js:35 y
+   locus-backlog-qdisc.js:211 (querySelectorAll sobre clase inexistente en el DOM — no-op
+   inofensivo). Eso es JS, fuera del scope de esta limpieza CSS — ver Hallazgo fuera de scope. */
 
 /* Acción: misma estética que tsb-add-btn del Tracker */
 .tpl-action-btn {
