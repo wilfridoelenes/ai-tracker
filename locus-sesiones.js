@@ -1,4 +1,4 @@
-// [PP] mod:43 · autor:Rune · 2026-07-14 UTC-6
+// [PP] mod:44 · autor:Rune · 2026-07-14 UTC-6
 // INC-[pendiente-ID]: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
 // ai.avatar es markup SVG; con textContent se pintaba como texto crudo (path data visible
 // en pantalla, ver captura del founder). Mismo patrón ya usado en #pop-avatar.
@@ -884,24 +884,30 @@ function _populateWorkerHeader(ai) {
   // él, sin dejar el temporizador corriendo en segundo plano (AC-2/AC-3). El id cd-${id} vive en
   // .worker-header-unlock-value como nodo hoja — coincide con getElementById('cd-'+id).textContent
   // en locus-sesiones-utils.js:395 (a diferencia del patrón previo, que lo asignaba al contenedor).
-  let unlockEl = header.querySelector('.worker-header-unlock');
+  // Se inserta como HERMANO de #worker-header, no como hijo — #worker-header es .sc-header
+  // (display:flex, fila), y .worker-header-unlock necesita renderizar como fila completa aparte
+  // con su propio border-top, igual que #wh-exh-row en worker_header_redesign_nova.html (sibling
+  // de #wh, fuera de su flex row). Insertarlo como hijo lo comprime a un ítem más de esa fila.
+  let unlockEl = header.parentElement ? header.parentElement.querySelector('.worker-header-unlock') : null;
   if (state === 'exhausted') {
-    if (!unlockEl) {
+    if (!unlockEl && header.parentElement) {
       unlockEl = document.createElement('div');
       unlockEl.className = 'worker-header-unlock';
       unlockEl.innerHTML =
         '<span class="worker-header-unlock-label">Disponible en</span>' +
         '<span class="worker-header-unlock-value"></span>';
-      header.appendChild(unlockEl);
+      header.after(unlockEl);
     }
-    unlockEl.dataset.aiId = ai.id;
-    const valueEl = unlockEl.querySelector('.worker-header-unlock-value');
-    const cd = getCD(ai.resetTime, ai.resetEpoch);
-    if (valueEl) {
-      valueEl.id = 'cd-' + ai.id; // convención esperada por el interval de reset (locus-sesiones-utils.js:395)
-      valueEl.textContent = cd || (ai.resetTime ? '--:--:--' : '');
+    if (unlockEl) {
+      unlockEl.dataset.aiId = ai.id;
+      const valueEl = unlockEl.querySelector('.worker-header-unlock-value');
+      const cd = getCD(ai.resetTime, ai.resetEpoch);
+      if (valueEl) {
+        valueEl.id = 'cd-' + ai.id; // convención esperada por el interval de reset (locus-sesiones-utils.js:395)
+        valueEl.textContent = cd || (ai.resetTime ? '--:--:--' : '');
+      }
+      unlockEl.title = ai.resetTime ? `hasta las ${fmt12(ai.resetTime)}` : 'Sin hora de desbloqueo asignada';
     }
-    unlockEl.title = ai.resetTime ? `hasta las ${fmt12(ai.resetTime)}` : 'Sin hora de desbloqueo asignada';
   } else if (unlockEl) {
     unlockEl.remove();
   }
