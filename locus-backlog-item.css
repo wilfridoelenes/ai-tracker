@@ -1,3 +1,7 @@
+/* [PP] mod:56 · autor:Nova · 2026-07-14 UTC-6 */
+/* TKT2 (REQ-[pendiente-ID] · footer DOC-UPDATE vencido): .gf-ckpt--alert-docupdate agregada —
+   var(--blue-text), mismo patrón que las 3 variantes existentes (--red/--amber/--purple).
+   Sin tokens nuevos — --blue-text ya validado WCAG AA como texto (mod:54 de css-ref). */
 /* [PP] mod:55 · autor:Nova · 2026-07-14 UTC-6 */
 /* Fix directo en sesión (Auditoría Nova IDP, Hallazgo #5 — alcance IDP): --hint está
    documentado en css-ref como "bordes sutiles de elementos secundarios", no texto —
@@ -2949,6 +2953,16 @@ body:not([data-theme]) .theme-toggle-btn::before {
 
 .gf-ckpt--alert-backlog {
   color: var(--purple);
+  font-weight: 600;
+}
+
+/* REQ-[pendiente-ID] TKT2: 4ª variante — DOC-UPDATE vencido (prioridad más baja de las 4).
+   --blue directo falla 4.5:1 en light (~3.31–4.11:1, ver css-ref §Tokens de color utilitarios)
+   — se usa --blue-text (mismo criterio ya aplicado a inc/sprint/backlog: color de texto
+   verificado, no el token base). --blue-text es "informativo", coherente con la naturaleza
+   de recordatorio (no urgente) de este estado frente a inc(rojo)/sprint(ámbar). */
+.gf-ckpt--alert-docupdate {
+  color: var(--blue-text);
   font-weight: 600;
 }
 
