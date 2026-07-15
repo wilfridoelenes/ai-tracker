@@ -1,3 +1,8 @@
+/* [PP] mod:8 · autor:Nova · 2026-07-15 13:35 UTC-6 */
+/* Conflicto CSS (hallazgo de Rune, mismo TKT2 ref_id CAEL-03): .tpl-sidebar-actions estaba
+   declarado dos veces — una regla legacy del sidebar vertical Gen1 (flex:1/overflow-y:auto,
+   ~línea 2160) se declaraba después de la regla de abajo y la pisaba por cascada, rompiendo
+   flex-shrink:0 y el padding intencionados. Regla legacy eliminada — única declaración activa. */
 /* [PP] mod:7 · autor:Nova · 2026-07-15 13:20 UTC-6 */
 /* TKT2 (REQ CAEL-01, ref_id CAEL-03): #tab-backlog → column (antes row) tras remover .tpl-sidebar
    como wrapper. .tpl-sidebar-actions gana layout propio (fila horizontal, hermano de .spt-nav).
@@ -2159,12 +2164,9 @@
   display: inline-block;
 }
 
-.tpl-sidebar-actions {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 10px 10px;
-}
-
+/* .tpl-sidebar-actions legacy (flex:1/overflow-y:auto, sidebar vertical Gen1) eliminada —
+   colisionaba por cascada con la regla de TKT2 (línea ~2064). Única declaración activa ahora
+   es la de arriba. .tpl-sidebar-action-list queda huérfana — ver Hallazgo fuera de scope. */
 .tpl-sidebar-action-list {
   display: flex;
   flex-direction: column;
