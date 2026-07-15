@@ -1,4 +1,4 @@
-/* [PP] mod:6 · autor:Nova · 2026-07-14 09:40 UTC-6 */
+/* [PP] mod:7 · autor:Nova · 2026-07-15 UTC-6 */
 /* locus-modals-base.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 /* Restaurado (CAEL-06 · TKT1 CAEL-07): .modal--ingest y clases relacionadas — no persistieron en
    la entrega anterior (ver _PP-session-handoff-2026-07-13.md §1). Reconstruido contra el HTML real
@@ -380,14 +380,69 @@
   width: 100%;
 }
 
-/* ── .modal--ingest — modal de ingesta unificado (CAEL-06 TKT1) ── */
+/* ── .modal--ingest — modal de ingesta unificado (CAEL-06 TKT1) ──
+   Full-canvas (CAEL-02, REQ CAEL-01): ocupa el máximo disponible dentro del padding
+   1rem ya declarado en .modal-overlay (equivalente al área de Col1+Col2 de Sesiones).
+   max-width/max-height evitan deformación en ultrawide (2560×1080) — mismo criterio
+   que --bp-ultrawide ya usa max-width para contener contenido en viewports grandes
+   (_Locus-ux-ref §E-03, Locus es desktop-only 1920×1080 · 2560×1080; sin breakpoint
+   de apilado — no hay viewport objetivo por debajo de desktop). */
 .modal--ingest {
-  max-width: 560px;
   width: 100%;
+  height: 100%;
+  max-width: 1800px;
+  max-height: 960px;
   padding: 0;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+}
+
+/* Dos columnas — Ingesta (izquierda) / DIFF (derecha), simultáneas, sin stepper (CAEL-02). */
+.ingest-modal-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 12px 18px 0;
+}
+
+.ingest-modal-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden auto;
+}
+
+.ingest-modal-col--left .paste-ta-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  margin-top: 0;
+}
+
+.ingest-modal-col--left .paste-ta {
+  height: 100%;
+  min-height: 200px;
+  resize: none;
+}
+
+.ingest-modal-col--right {
+  border-left: 1px solid var(--border2);
+  padding-left: 18px;
+}
+
+.ingest-diff-empty {
+  margin: 10px 0 0;
+  font-size: var(--text-xs);
+  color: var(--text3);
+}
+
+.ingest-modal-actions {
+  margin: 0;
+  padding: 12px 18px 16px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .ingest-modal-header {
@@ -461,19 +516,16 @@
 }
 
 /* Padding escopeado para componentes reutilizados dentro de .modal--ingest (padding:0 en el
-   modal para que el header quede flush) — no se toca .paste-ta-wrap/.sc-diff-preview/.sc-stepper
-   base, que se reutilizan sin cambio en otros contextos. */
-.modal--ingest .paste-ta-wrap,
-.modal--ingest .sc-diff-preview,
-.modal--ingest .sc-stepper,
+   modal para que el header quede flush) — no se toca .ingest-modal-meta/.ingest-validation-panel
+   base, que se reutilizan sin cambio en otros contextos.
+   CAEL-02 (TKT1): .paste-ta-wrap y .sc-diff-preview salieron de este selector — ya reciben
+   espaciado horizontal del padding de .ingest-modal-columns (dos columnas), no de margen propio.
+   .sc-stepper retirado — el stepper del modal (#ingest-phasebar) se removió del DOM; la clase
+   sigue viva para AI Card (locus-sesiones-card.css), sin instancia dentro de .modal--ingest. */
 .modal--ingest .ingest-modal-meta,
 .modal--ingest .ingest-validation-panel {
   margin-left: 18px;
   margin-right: 18px;
-}
-
-.modal--ingest .paste-ta-wrap {
-  margin-top: 12px;
 }
 
 .ingest-modal-meta {
@@ -728,15 +780,6 @@
   padding: 1px 6px;
   background: var(--surface3);
   color: var(--text3);
-}
-
-.modal--ingest .sc-diff-preview {
-  margin-top: 10px;
-}
-
-.modal--ingest .sc-stepper {
-  margin-top: 12px;
-  margin-bottom: 16px;
 }
 
 .modal-actions--mt {

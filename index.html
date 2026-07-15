@@ -1,4 +1,4 @@
-<!-- [PP] mod:135 · autor:Rune · 2026-07-15 12:00 UTC-6 -->
+<!-- [PP] mod:136 · autor:Nova · 2026-07-15 UTC-6 -->
 <!-- INC-[pendiente-ID] (íconos Tabler no cargaban — cuadros grises transversales): agregado <link> CDN
      de @tabler/icons-webfont en <head>, aprobado por founder. Ningún archivo CSS/JS tocado — hallazgo
      era ausencia total del webfont, no error de clase ni de estilo. -->
@@ -1446,7 +1446,10 @@
   </div>
 </div>
 
-<!-- ingest-modal-overlay — REQ[pendiente-ID] TKT1: modal de ingesta unificado (intake + diff fusionados) -->
+<!-- ingest-modal-overlay — REQ[CAEL-01] TKT1 (CAEL-02): modal de ingesta unificado, dos columnas full-canvas.
+     Stepper de 3 fases (#ingest-phasebar) removido — confirmado sin consumidor JS (grep completo,
+     _setPhase opera exclusivamente sobre ids per-card phase-paste-{id}/phase-confirm-{id}/phase-save-{id},
+     no relacionados a este modal). Batch/DIFF: TKT2/TKT3 (Rune), pendiente de implementación. -->
 <div class="modal-overlay" id="ingest-modal-overlay"
      role="dialog" aria-modal="true" aria-labelledby="ingest-modal-title">
   <div class="modal modal--ingest">
@@ -1461,58 +1464,64 @@
       <button class="ingest-modal-close" id="ingest-modal-close-btn" type="button" aria-label="Cerrar">&times;</button>
     </div>
 
-    <div class="paste-ta-wrap">
-      <textarea class="paste-ta" id="ingest-ta" rows="4" placeholder="Pega el checkpoint aquí…"></textarea>
+    <div class="ingest-modal-columns">
+      <div class="ingest-modal-col ingest-modal-col--left">
+        <div class="paste-ta-wrap">
+          <textarea class="paste-ta" id="ingest-ta" rows="4" placeholder="Pega uno o más CHECKPOINTs aquí…"></textarea>
+        </div>
+
+        <div class="ingest-modal-meta">
+          <div class="autosave-indicator">
+            <span class="autosave-dot" aria-hidden="true"></span>
+            <span>Guardado automático</span>
+          </div>
+          <span class="char-counter" id="ingest-char-counter">0 caracteres</span>
+        </div>
+
+        <!-- ingest-validation-panel — CAEL-19 (error/warnings) + CAEL-23 (result). Tres sub-estados
+             mutuamente excluyentes vía is-hidden — shell estático, contenido de texto/lista lo puebla JS (Rune). -->
+        <div class="ingest-validation-panel is-hidden" id="ingest-validation-panel" aria-live="polite">
+          <div class="validation-error is-hidden" id="ingest-validation-error">
+            <p class="validation-msg" id="ingest-validation-error-msg"></p>
+          </div>
+          <div class="validation-warnings is-hidden" id="ingest-validation-warnings">
+            <p class="validation-msg" id="ingest-validation-warning-msg"></p>
+            <button class="validation-force-btn" id="ingest-validation-force-btn" type="button">Procesar de todas formas</button>
+          </div>
+          <div class="validation-result is-hidden" id="ingest-validation-result">
+            <div class="validation-result-badges">
+              <span class="validation-badge validation-badge--success" id="ingest-result-badge-checkpoint"><i class="ti ti-check" aria-hidden="true"></i> Checkpoint</span>
+              <span class="validation-badge validation-badge--success" id="ingest-result-badge-project"></span>
+            </div>
+            <p class="validation-result-title" id="ingest-result-title"></p>
+            <hr class="validation-divider">
+            <p class="validation-result-summary" id="ingest-result-summary"></p>
+            <p class="validation-result-file" id="ingest-result-file"><i class="ti ti-file" aria-hidden="true"></i> <span id="ingest-result-file-name"></span></p>
+            <!-- CAEL-30 (TKT6): shell estático próximo paso + bloqueantes, entre archivo e ítems.
+                 design_intent: wireframe_ingest_validation_result_proximo_paso_bloqueantes.
+                 Filas de .blocker-row son JS-generadas dentro de este contenedor estático — BR-Execution §5. -->
+            <div class="validation-result-next-step is-hidden" id="ingest-result-next-step">
+              <p class="validation-result-next-step-label">próximo paso</p>
+              <p class="validation-result-next-step-text" id="ingest-result-next-step-text"></p>
+            </div>
+            <div class="validation-result-blockers" id="ingest-result-blockers">
+              <p class="validation-result-blockers-label">bloqueantes</p>
+            </div>
+            <div class="validation-result-items" id="ingest-result-items"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ingest-modal-col ingest-modal-col--right">
+        <div class="sc-diff-preview is-hidden" id="diff-preview-modal" aria-live="polite"></div>
+        <!-- Estado vacío — AC2 TKT1. Estático: existe siempre, visibilidad por clase (BR-Execution §5).
+             Rune (TKT3) alterna is-hidden entre este párrafo y #diff-preview-modal según haya batch procesado. -->
+        <p class="ingest-diff-empty" id="ingest-diff-empty">Sin batch procesado — pega CHECKPOINTs en la columna izquierda y presiona Procesar batch.</p>
+      </div>
     </div>
 
-    <div class="ingest-modal-meta">
-      <div class="autosave-indicator">
-        <span class="autosave-dot" aria-hidden="true"></span>
-        <span>Guardado automático</span>
-      </div>
-      <span class="char-counter" id="ingest-char-counter">0 caracteres</span>
-    </div>
-
-    <!-- ingest-validation-panel — CAEL-19 (error/warnings, recuperado — no existía en archivo real pese a status done en backlog)
-         + CAEL-23 (result). Tres sub-estados mutuamente excluyentes vía is-hidden — shell estático,
-         contenido de texto/lista lo puebla JS (Rune). -->
-    <div class="ingest-validation-panel is-hidden" id="ingest-validation-panel" aria-live="polite">
-      <div class="validation-error is-hidden" id="ingest-validation-error">
-        <p class="validation-msg" id="ingest-validation-error-msg"></p>
-      </div>
-      <div class="validation-warnings is-hidden" id="ingest-validation-warnings">
-        <p class="validation-msg" id="ingest-validation-warning-msg"></p>
-        <button class="validation-force-btn" id="ingest-validation-force-btn" type="button">Procesar de todas formas</button>
-      </div>
-      <div class="validation-result is-hidden" id="ingest-validation-result">
-        <div class="validation-result-badges">
-          <span class="validation-badge validation-badge--success" id="ingest-result-badge-checkpoint"><i class="ti ti-check" aria-hidden="true"></i> Checkpoint</span>
-          <span class="validation-badge validation-badge--success" id="ingest-result-badge-project"></span>
-        </div>
-        <p class="validation-result-title" id="ingest-result-title"></p>
-        <hr class="validation-divider">
-        <p class="validation-result-summary" id="ingest-result-summary"></p>
-        <p class="validation-result-file" id="ingest-result-file"><i class="ti ti-file" aria-hidden="true"></i> <span id="ingest-result-file-name"></span></p>
-        <!-- CAEL-30 (TKT6): shell estático próximo paso + bloqueantes, entre archivo e ítems.
-             design_intent: wireframe_ingest_validation_result_proximo_paso_bloqueantes.
-             Filas de .blocker-row son JS-generadas dentro de este contenedor estático — BR-Execution §5. -->
-        <div class="validation-result-next-step is-hidden" id="ingest-result-next-step">
-          <p class="validation-result-next-step-label">próximo paso</p>
-          <p class="validation-result-next-step-text" id="ingest-result-next-step-text"></p>
-        </div>
-        <div class="validation-result-blockers" id="ingest-result-blockers">
-          <p class="validation-result-blockers-label">bloqueantes</p>
-        </div>
-        <div class="validation-result-items" id="ingest-result-items"></div>
-      </div>
-    </div>
-
-    <div class="sc-diff-preview is-hidden" id="diff-preview-modal" aria-live="polite"></div>
-
-    <div class="sc-stepper" id="ingest-phasebar" role="list">
-      <div class="sc-step active" id="ingest-phase-paste" role="listitem" aria-current="step" data-step="1"><span class="sc-step-num" aria-hidden="true">1</span>pegar</div>
-      <div class="sc-step" id="ingest-phase-confirm" role="listitem" data-step="2"><span class="sc-step-num" aria-hidden="true">2</span>Revisar</div>
-      <div class="sc-step" id="ingest-phase-save" role="listitem" data-step="3"><span class="sc-step-num" aria-hidden="true">3</span>guardar</div>
+    <div class="modal-actions ingest-modal-actions">
+      <button class="btn-primary" id="ingest-process-batch-btn" type="button">Procesar batch</button>
     </div>
   </div>
 </div>
