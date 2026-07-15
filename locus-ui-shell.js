@@ -1,4 +1,4 @@
-// [PP] mod:52 · autor:Rune · 2026-07-14 19:45 UTC-6
+// [PP] mod:53 · autor:Rune · 2026-07-14 20:20 UTC-6
 // TKT1/CAEL-XX + INC-[pendiente-ID] (/ shadowed): ver CHECKPOINT de sesión — atajos de teclado.
 // REQ CAEL-búsqueda-tipos, TKT único: (1) icono de resultado por tipo ahora usa itemKind(item)
 // en vez de code.charAt(0) (anti-pattern Gen1 ya documentado en module-contracts §4) — mapa
@@ -69,7 +69,6 @@ import { openChangelog } from './locus-session-save.js';
 import { parsePasteStandalone, saveStandaloneCheckpoint } from './locus-session-parse.js';
 import { searchContratos } from './locus-contracts.js';
 import { toggleContextSection, _dropzoneHandle } from './locus-docs.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
-import { _openIngestModal, getSelectedTrackerAiId } from './locus-sesiones.js'; // INC-S-dead-code: ciclo seguro — locus-sesiones.js importa `esc` de este archivo, pero ambos símbolos se consumen solo dentro del handler de keydown, no en top-level
 
 // ── Global utility ────────────────────────────────────────────────────────
 // esc() usada por múltiples módulos (backlog, session, toast, checkpoint)
@@ -837,13 +836,15 @@ document.addEventListener('keydown', e => {
     return;
   }
 
-  // INC-S-dead-code: S → abre el modal de ingesta del Worker activo (_trackerSelectedId)
-  // con foco en #ingest-ta. No auto-guarda — el usuario completa el flujo de hora existente
-  // vía confirmSave/_doSaveSession. Sin Worker activo, no ejecuta acción.
+  // INC-S-dead-code: S → abre el modal de ingesta del Worker activo, leyendo
+  // dataset.aiId de #worker-header-ingest-btn (poblado en _populateWorkerHeader) y
+  // simulando click sobre ese botón — ya wireado al delegador data-action="open-ingest"
+  // en locus-sesiones.js. Sin import nuevo — evita el ciclo que module-contracts §3
+  // ya documenta como anti-pattern para este módulo. Sin Worker activo, no ejecuta acción.
   if (_pressedKey === _sk('save-session')) {
     e.preventDefault();
-    const _activeAiId = getSelectedTrackerAiId();
-    if (_activeAiId) _openIngestModal(_activeAiId);
+    const _ingestBtn = document.getElementById('worker-header-ingest-btn');
+    if (_ingestBtn && _ingestBtn.dataset.aiId) _ingestBtn.click();
     return;
   }
 
