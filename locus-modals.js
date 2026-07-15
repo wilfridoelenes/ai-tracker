@@ -1,4 +1,4 @@
-// [PP] v1.0.0 · sprint:PP-S-01 · mod:1 · autor:Rune · 2026-06-11 07:00 UTC-6
+// [PP] mod:2 · autor:Rune · 2026-07-14 20:55 UTC-6
 // locus-modals.js
 // Módulo: sistema de modal genérico y focus management
 // Extraído de: ai-tracker-ai-notes.js (_gconfirmCb, _gconfirmOpen, _gconfirmClose, _gconfirmOk)
@@ -86,6 +86,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   const tagModalClose = document.getElementById('tag-modal-close');
   if (tagModalClose) tagModalClose.addEventListener('click', () => closeModal('tag-modal'));
+
+  // INC-ingest-modal-close-unwired: botón × del modal de ingesta sin wiring — hallazgo
+  // colateral de la investigación de #ingest-ta, resuelto inline a pedido del founder.
+  const ingestModalClose = document.getElementById('ingest-modal-close-btn');
+  if (ingestModalClose) ingestModalClose.addEventListener('click', () => closeModal('ingest-modal-overlay'));
 
   const gconfirmOverlay = document.getElementById('gconfirm-overlay');
   if (gconfirmOverlay) {
