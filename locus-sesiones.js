@@ -1,4 +1,4 @@
-// [PP] mod:49 · autor:Rune · 2026-07-15 15:40 UTC-6
+// [PP] mod:50 · autor:Rune · 2026-07-15 16:20 UTC-6
 // INC-[pendiente-ID]: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
 // ai.avatar es markup SVG; con textContent se pintaba como texto crudo (path data visible
 // en pantalla, ver captura del founder). Mismo patrón ya usado en #pop-avatar.
@@ -38,7 +38,7 @@ import { downloadReport } from './locus-reports.js';
 
 import { openQuickCapture, confirmInterruptInline, dismissInterrupted } from './locus-sesiones-capture.js'; // T-202606-089 AC-3
 
-import { STATUS_LABELS, handlePaste, handleInput } from './locus-session-parse.js';
+import { STATUS_LABELS, handlePaste, handleInput, _processIngestBatch } from './locus-session-parse.js';
 // T-202606-058: registry extraído a locus-sesiones-registry.js (módulo sin dependencias).
 // locus-sprint-project importa _registerSesSPCallback desde registry — no desde aquí.
 import { _sesSPCallbacks } from './locus-sesiones-registry.js';
@@ -1042,6 +1042,26 @@ export function _openIngestModal(aiId) {
       ta._ingestWired = true;
       ta.addEventListener('paste', () => handlePaste(overlay.dataset.aiId));
       ta.addEventListener('input', () => handleInput(overlay.dataset.aiId));
+    }
+  }
+  // TKT3 (REQ CAEL-01): #ingest-process-batch-btn existe en el DOM desde TKT1, sin listener.
+  // Guard ta._ingestWired ya cubre paste/input — este botón usa su propio guard porque vive
+  // fuera del textarea (mismo criterio, distinto nodo).
+  const batchBtn = document.getElementById('ingest-process-batch-btn');
+  if (batchBtn && !batchBtn._ingestBatchWired) {
+    batchBtn._ingestBatchWired = true;
+    batchBtn.addEventListener('click', () => _processIngestBatch());
+  }
+  // Fix inline (TKT3): si el Worker entrante difiere del anterior (texto ya limpiado arriba),
+  // el DIFF renderizado por un batch procesado del Worker previo no debe quedar visible.
+  if (_prevAiId !== aiId) {
+    const diffEl = document.getElementById('diff-preview-modal');
+    const emptyEl = document.getElementById('ingest-diff-empty');
+    if (diffEl && emptyEl) {
+      diffEl.classList.add('is-hidden');
+      diffEl.innerHTML = '';
+      emptyEl.textContent = 'Sin batch procesado — pega CHECKPOINTs en la columna izquierda y presiona Procesar batch.';
+      emptyEl.classList.remove('is-hidden');
     }
   }
 }

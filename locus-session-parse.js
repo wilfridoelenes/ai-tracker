@@ -1,4 +1,4 @@
-// [PP] mod:122 · autor:Rune · 2026-07-15 15:40 UTC-6
+// [PP] mod:123 · autor:Rune · 2026-07-15 16:20 UTC-6
 // CAEL-31 (TKT7): agregado _renderIngestResultItems() — lista de ítems en #ingest-result-items,
 //   cierra el no_incluye de CAEL-29/30. Sin cambio de HTML — shell ya existía.
 // [PP] mod:119 · autor:Rune · 2026-07-14 UTC-6
@@ -260,7 +260,7 @@ export function _splitCheckpointBlocks(text) {
 
 import { renderStats, getItems, normalizeStatus, itemKind, _GEN2_TYPES } from './locus-backlog-core.js'; // TKT0-gen2: itemKind agregado · TKT1: _GEN2_TYPES (REQ-[pendiente-ID])
 import { _isPlaceholderCode, applyPatchesFromTG, _assignPendingIds, mergeBacklogFromTG } from './locus-backlog-item.js'; // T-202606-089 AC-3 · TKT1 (REQ CAEL-01): mergeBacklogFromTG agregado — dry-run del preview de diff en el card. Ciclo parse.js↔backlog-item.js ya existente (backlog-item.js importa _normalizeSprint de este archivo) — misma relación, sin ciclo nuevo
-import { showMergeDiffPanel } from './locus-backlog-merge.js'; // TKT2 (REQ CAEL-01) AC4: chipTonesFromDiff retirado del import — sin consumidor tras el retiro del dry-run debounced
+import { showMergeDiffPanel, chipTonesFromDiff } from './locus-backlog-merge.js'; // chipTonesFromDiff: TKT2 lo retiró (dry-run per-keystroke muerto) — TKT3 (REQ CAEL-01) lo reintroduce para el DIFF real del batch, un solo cálculo por click en #ingest-process-batch-btn, no por keystroke
 import { renderBacklogList } from './locus-backlog-render.js';
 import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
@@ -1844,6 +1844,79 @@ export function handleInput(id) {
   // parsePaste corre en cada keystroke; el auto-trigger solo se lanza cuando el parse es completo y válido.
   parsePaste(id);
   _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC2 — contador en vivo
+}
+
+// TKT3 (REQ CAEL-01): wrapper atómico sobre _resolveCheckpointBatch para el modal de ingesta
+// fusionado. No modifica _resolveCheckpointBatch ni _splitCheckpointBlocks — se consumen tal
+// cual, mismo contrato que ya usa parsePasteStandalone (sin cambio de comportamiento ahí).
+// AC2: la validación de JSON por bloque ocurre en una capa previa a _resolveCheckpointBatch —
+// esa función mantiene su criterio propio de skip-and-continue (Paso 1) para su otro consumidor.
+// no_incluye: no aplica el batch al backlog — solo renderiza el DIFF. Aplicar queda fuera de
+// scope de este TKT (sin botón "Aplicar" en el modal — solo existe #ingest-process-batch-btn).
+export async function _processIngestBatch() {
+  const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
+  const diffEl = document.getElementById('diff-preview-modal');
+  const emptyEl = document.getElementById('ingest-diff-empty');
+  if (!ta || !diffEl || !emptyEl) return;
+
+  const _showEmpty = (msg) => {
+    diffEl.classList.add('is-hidden');
+    diffEl.innerHTML = '';
+    emptyEl.textContent = msg;
+    emptyEl.classList.remove('is-hidden');
+  };
+
+  const rawBlocks = _splitCheckpointBlocks(ta.value);
+  if (!rawBlocks.length) {
+    _showEmpty('Sin batch procesado — pega CHECKPOINTs en la columna izquierda y presiona Procesar batch.');
+    return;
+  }
+
+  // AC2 — bloque malformado bloquea el batch completo antes de invocar _resolveCheckpointBatch.
+  for (let i = 0; i < rawBlocks.length; i++) {
+    try {
+      JSON.parse(rawBlocks[i]);
+    } catch (e) {
+      _showEmpty(`⚠ Bloque ${i + 1} de ${rawBlocks.length} no es JSON válido — corregilo antes de procesar el batch.`);
+      return;
+    }
+  }
+
+  const syntheticSessId = 'ingest-batch-' + Date.now();
+  const { tgItems, patchItems, skipped } = _resolveCheckpointBatch(rawBlocks, syntheticSessId);
+
+  const _rejectedEntry = skipped.find(s => s.type === 'rejected');
+  if (_rejectedEntry) {
+    _showEmpty(`⚠ ${_rejectedEntry.reason}`);
+    return;
+  }
+  if (!tgItems.length && !(patchItems && patchItems.length)) {
+    _showEmpty('Sin ítems para procesar en este batch.');
+    return;
+  }
+
+  const activeProj = getActiveProject();
+  if (!activeProj) {
+    _showEmpty('⚠ Selecciona un proyecto antes de procesar el batch.');
+    return;
+  }
+
+  let dryDiff;
+  try {
+    dryDiff = await mergeBacklogFromTG(tgItems, syntheticSessId, { dryRun: true });
+  } catch (e) {
+    _showEmpty('⚠ No se pudo calcular el DIFF del batch.');
+    return;
+  }
+
+  // AC1 — DIFF combinado en columna derecha.
+  const _tones = chipTonesFromDiff(dryDiff);
+  const _totalItems = tgItems.length + (patchItems ? patchItems.length : 0);
+  diffEl.innerHTML = `<div class="sc-diff-preview-title">${_totalItems} ítem${_totalItems !== 1 ? 's' : ''} en el batch</div>` +
+    `<div class="sc-diff-preview-chips">${_tones.map(t =>
+      `<span class="diff-chip diff-chip--${t.tone}">${t.count} ${t.label}</span>`).join('')}</div>`;
+  emptyEl.classList.add('is-hidden');
+  diffEl.classList.remove('is-hidden');
 }
 
 
