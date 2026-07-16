@@ -1,4 +1,4 @@
-// [PP] mod:121 · autor:Rune · 2026-07-15 UTC-6
+// [PP] mod:122 · autor:Rune · 2026-07-15 15:40 UTC-6
 // CAEL-31 (TKT7): agregado _renderIngestResultItems() — lista de ítems en #ingest-result-items,
 //   cierra el no_incluye de CAEL-29/30. Sin cambio de HTML — shell ya existía.
 // [PP] mod:119 · autor:Rune · 2026-07-14 UTC-6
@@ -260,7 +260,7 @@ export function _splitCheckpointBlocks(text) {
 
 import { renderStats, getItems, normalizeStatus, itemKind, _GEN2_TYPES } from './locus-backlog-core.js'; // TKT0-gen2: itemKind agregado · TKT1: _GEN2_TYPES (REQ-[pendiente-ID])
 import { _isPlaceholderCode, applyPatchesFromTG, _assignPendingIds, mergeBacklogFromTG } from './locus-backlog-item.js'; // T-202606-089 AC-3 · TKT1 (REQ CAEL-01): mergeBacklogFromTG agregado — dry-run del preview de diff en el card. Ciclo parse.js↔backlog-item.js ya existente (backlog-item.js importa _normalizeSprint de este archivo) — misma relación, sin ciclo nuevo
-import { showMergeDiffPanel, chipTonesFromDiff } from './locus-backlog-merge.js';
+import { showMergeDiffPanel } from './locus-backlog-merge.js'; // TKT2 (REQ CAEL-01) AC4: chipTonesFromDiff retirado del import — sin consumidor tras el retiro del dry-run debounced
 import { renderBacklogList } from './locus-backlog-render.js';
 import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
@@ -1516,30 +1516,11 @@ export function parsePaste(id) {
   // el founder empieza a revisar. Antes: _setPhase(id, (isCheckpoint && title) ? 2 : 1).
   _setPhase(id, 1);
 
-  // TKT1 (REQ CAEL-01): preview de diff en el card antes de 'Revisar cambios'. Debounced —
-  // mergeBacklogFromTG en dry-run por cada keystroke es una llamada real de merge, costosa;
-  // señal de riesgo de performance detectada antes de implementar (§2 Impacto lateral).
-  // Mismo shape (chipTonesFromDiff) que consume el header del DIFF — un solo punto de verdad.
-  clearTimeout(window['_diffPreviewTimer_' + id]);
-  const _diffPreviewEl = document.getElementById('diff-preview-' + id);
-  if (isCheckpoint && title && tgItems.length) {
-    window['_diffPreviewTimer_' + id] = setTimeout(() => {
-      mergeBacklogFromTG(tgItems, 'preview-' + id, { dryRun: true }).then(_dryDiff => {
-        if (!_diffPreviewEl) return;
-        const _tones = chipTonesFromDiff(_dryDiff);
-        if (_tones.length) {
-          _diffPreviewEl.innerHTML = `<div class="sc-diff-preview-title">Vista previa</div>` +
-            `<div class="sc-diff-preview-chips">${_tones.map(t =>
-              `<span class="diff-chip diff-chip--${t.tone}">${t.count} ${t.label}</span>`).join('')}</div>`;
-          _diffPreviewEl.classList.remove('is-hidden');
-        } else {
-          _diffPreviewEl.classList.add('is-hidden');
-        }
-      }).catch(() => { if (_diffPreviewEl) _diffPreviewEl.classList.add('is-hidden'); });
-    }, 500);
-  } else if (_diffPreviewEl) {
-    _diffPreviewEl.classList.add('is-hidden');
-  }
+  // TKT2 (REQ CAEL-01) AC4: dry-run debounced retirado — target real 'diff-preview-' + id
+  // no existe en ningún HTML del proyecto (grep exhaustivo, mismo criterio que el hallazgo de
+  // _setPhase en TKT1) — getElementById siempre null, el único efecto observable era el costo
+  // de un mergeBacklogFromTG(dryRun:true) real por cada keystroke sin salida visible. window
+  // timer '_diffPreviewTimer_'+id retirado junto con el bloque — sin otro consumidor del timer.
 
   const draftKey = LOCUS_KEYS.DRAFT_KEY_PREFIX + id;
   if (text.trim()) {
@@ -1806,6 +1787,19 @@ export function parsePaste(id) {
 // Solo controla el mecanismo de retry del browser (clipboard insert delay) — no es el guard de saveSession.
 const _pasteRetry = {};
 
+// TKT2 (REQ CAEL-01) AC1/AC2: contador de bloques del modal de ingesta — derivado en vivo de
+// _splitCheckpointBlocks(textarea.value), sin estado propio de acumulación (push). Función
+// separada de parsePaste — parsePaste conserva su responsabilidad de parseo single-item, ya
+// invocada también desde 4 callbacks de warning (rol ausente/done/discrepancia/duplicado,
+// ~L1639-1743) que no deben recalcular el contador del modal en cada re-intento.
+function _updateIngestBlockCount() {
+  const el = document.getElementById('ingest-block-count');
+  if (!el) return;
+  const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
+  const n = ta ? _splitCheckpointBlocks(ta.value).length : 0;
+  el.textContent = n === 1 ? '1 bloque detectado' : `${n} bloques detectados`;
+}
+
 export function handlePaste(id) {
   // Llamado desde onpaste — diferir para que el browser inserte el texto del clipboard.
   // B-202605-NNN: 150ms en lugar de 60ms — algunos browsers (Chrome) insertan
@@ -1822,6 +1816,7 @@ export function handlePaste(id) {
       setTimeout(() => {
         delete _pasteRetry[id];
         parsePaste(id);
+        _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC1
         const ai = getAI(id);
         if (ai && ai._parsed && ai._parsed.title) {
           const horaEl = document.getElementById('hora-' + id);
@@ -1832,6 +1827,7 @@ export function handlePaste(id) {
       return;
     }
     parsePaste(id);
+    _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC1
     const ai = getAI(id);
     if (ai && ai._parsed && ai._parsed.title) {
       const horaEl = document.getElementById('hora-' + id);
@@ -1847,6 +1843,7 @@ export function handleInput(id) {
   // _pasteRetry no bloquea handleInput — handlePaste y handleInput son eventos distintos.
   // parsePaste corre en cada keystroke; el auto-trigger solo se lanza cuando el parse es completo y válido.
   parsePaste(id);
+  _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC2 — contador en vivo
 }
 
 

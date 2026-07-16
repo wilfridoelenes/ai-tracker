@@ -1,4 +1,4 @@
-// [PP] mod:48 · autor:Rune · 2026-07-15 UTC-6
+// [PP] mod:49 · autor:Rune · 2026-07-15 15:40 UTC-6
 // INC-[pendiente-ID]: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
 // ai.avatar es markup SVG; con textContent se pintaba como texto crudo (path data visible
 // en pantalla, ver captura del founder). Mismo patrón ya usado en #pop-avatar.
@@ -1028,11 +1028,15 @@ export function _openIngestModal(aiId) {
   if (!aiId) return;
   const overlay = document.getElementById('ingest-modal-overlay');
   if (!overlay) return;
+  // TKT2 (REQ CAEL-01) AC3: #ingest-ta es global (CAEL-22), compartido entre Workers — limpiar
+  // incondicional filtraría el batch de un Worker a otro. Reset solo si el Worker entrante es
+  // distinto del que dejó el overlay abierto por última vez; mismo aiId conserva el batch.
+  const _prevAiId = overlay.dataset.aiId;
   overlay.dataset.aiId = aiId;
   overlay.classList.add('open');
   const ta = document.getElementById('ingest-ta');
   if (ta) {
-    ta.value = '';
+    if (_prevAiId !== aiId) ta.value = '';
     ta.focus();
     if (!ta._ingestWired) {
       ta._ingestWired = true;
