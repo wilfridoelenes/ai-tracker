@@ -1,4 +1,4 @@
-// [PP] mod:50 · autor:Rune · 2026-07-15 16:20 UTC-6
+// [PP] mod:51 · autor:Rune · 2026-07-17 11:20 UTC-6
 // INC-[pendiente-ID]: avatarEl.textContent → innerHTML en _populateWorkerHeader() (L836) —
 // ai.avatar es markup SVG; con textContent se pintaba como texto crudo (path data visible
 // en pantalla, ver captura del founder). Mismo patrón ya usado en #pop-avatar.
@@ -1018,6 +1018,62 @@ function _trackerHistAttachDropTargets() {
   });
 }
 
+// TKT2 (REQ CAEL-0716-01): puebla el header compartido del split view (#ingest-split-header,
+// shell estático de TKT1 — CAEL-0716-02 AC2/AC3) con la identidad del worker. Mismo patrón de
+// estado que _populateWorkerHeader() (L828) — cálculo de `state` duplicado deliberadamente
+// (targets propios #ingest-split-*, no el DOM singleton de #worker-header; no_incluye de TKT1
+// excluye reusar ese nodo). Estado vacío (AC3 TKT1): sin worker activo, el header gana
+// .modal-split__header--empty y .msh-empty se inyecta por JS — un empty state es contenido
+// dinámico, no shell estático (BR-Execution §5), por eso .msh-empty no vive en index.html.
+function _populateIngestModalHeader(ai) {
+  const header = document.getElementById('ingest-split-header');
+  if (!header) return;
+
+  if (!ai) {
+    header.className = 'modal-split__header modal-split__header--empty';
+    header.innerHTML = '<span class="msh-empty">Sin worker activo</span>';
+    return;
+  }
+
+  // Si el header quedó en estado vacío en la apertura anterior, su innerHTML fue reemplazado
+  // por .msh-empty — restaurar el shell de nodos (mismo markup que TKT1) antes de poblar.
+  if (!document.getElementById('ingest-split-avatar')) {
+    header.innerHTML = `<div class="sc-header-left">
+        <div class="sc-avatar" id="ingest-split-avatar"></div>
+        <span class="sc-project" id="ingest-split-project"></span>
+      </div>
+      <div class="sc-header-right">
+        <span class="sc-badge" id="ingest-split-badge"></span>
+      </div>`;
+  }
+
+  const isInterrupted = !!ai.interrupted;
+  const isInSession = !isInterrupted && _isInSession(ai);
+  const isAvail = ai.status === 'available';
+  const aiInitial = esc(ai.name).charAt(0).toUpperCase();
+  const state = isInterrupted ? 'interrupted' : isInSession ? 'insession' : isAvail ? 'available' : 'exhausted';
+
+  header.className = 'modal-split__header';
+
+  const avatarEl = document.getElementById('ingest-split-avatar');
+  if (avatarEl) {
+    avatarEl.innerHTML = ai.avatar || aiInitial; // mismo criterio que _populateWorkerHeader — innerHTML por soporte de SVG
+    avatarEl.title = ai.name;
+    avatarEl.className = 'sc-avatar sc-avatar--' + state;
+  }
+
+  const nameEl = document.getElementById('ingest-split-project');
+  if (nameEl) nameEl.textContent = ai.name;
+
+  const badgeEl = document.getElementById('ingest-split-badge');
+  if (badgeEl) {
+    badgeEl.className = 'sc-badge sc-badge--' + (state === 'exhausted' ? 'exhausted' : state === 'available' ? 'avail' : state);
+    badgeEl.innerHTML = isInSession
+      ? `<span class="sc-badge-dot"></span>${STATUS_LABELS.insession}`
+      : STATUS_LABELS[state];
+  }
+}
+
 // CAEL-13: apertura del modal de ingesta unificado (CAEL-07/08).
 // INC-ingest-ta-unwired: wiring de paste/input agregado aquí — CAEL-20 (declarado como
 // dependencia de este TKT) nunca se implementó. Guard idempotente (_ingestWired) porque
@@ -1034,6 +1090,9 @@ export function _openIngestModal(aiId) {
   const _prevAiId = overlay.dataset.aiId;
   overlay.dataset.aiId = aiId;
   overlay.classList.add('open');
+  // TKT2 (REQ CAEL-0716-01) — gap declarado por Nova en TKT1: puebla el header compartido
+  // del split view con el worker entrante en cada apertura (mismo aiId o distinto).
+  _populateIngestModalHeader(getAI(aiId));
   const ta = document.getElementById('ingest-ta');
   if (ta) {
     if (_prevAiId !== aiId) ta.value = '';

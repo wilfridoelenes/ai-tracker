@@ -1,4 +1,4 @@
-// [PP] mod:53 · autor:Rune · 2026-07-17 09:40 UTC-6
+// [PP] mod:54 · autor:Rune · 2026-07-17 11:20 UTC-6
 // TKT2 (REQ CAEL-0717-01 · AC1-4): agregada _buildFinnReleaseSection() — tarjeta de liberación
 //   de Finn (schema finn_release, BR-Ecosystem §8), leída directo de _ckptMeta.finnRelease sin
 //   const de normalización propia (a diferencia de _metaResumen/etc.) porque AC3 exige ausencia
@@ -1206,6 +1206,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     const _horaRaw = _durationInput ? (_durationInput.value.trim() || '') : '';
 
     overlay.classList.remove('open');
+    // TKT2 (REQ CAEL-0716-01): limpiar mdiff-overlay--docked en todo cierre del panel — no-op
+    // si el overlay no estaba docked (caller no-ingesta), seguro incondicional.
+    overlay.classList.remove('mdiff-overlay--docked');
     document.removeEventListener('keydown', _mdiffKeyHandler);
     // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel
     _mdiffUpdateConfirmBtn = null;
@@ -1301,6 +1304,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
 
   overlay.querySelector('#mdiff-cancel-btn').addEventListener('click', () => {
     overlay.classList.remove('open');
+    overlay.classList.remove('mdiff-overlay--docked'); // TKT2 (REQ CAEL-0716-01)
     document.removeEventListener('keydown', _mdiffKeyHandler);
     // TKT2 (REQ CAEL-01) Opción A: onClose — el DIFF se cerró sin confirmar, revertir fase 2→1
     if (typeof onClose === 'function') onClose();
@@ -1378,6 +1382,7 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     } else if (e.key === 'Escape') {
       document.removeEventListener('keydown', _mdiffKeyHandler);
       overlay.classList.remove('open');
+      overlay.classList.remove('mdiff-overlay--docked'); // TKT2 (REQ CAEL-0716-01)
       // TKT2 (REQ CAEL-01) Opción A: onClose — el DIFF se cerró sin confirmar, revertir fase 2→1
       if (typeof onClose === 'function') onClose();
       // B-202605-050: limpiar todas las referencias _mdiff* al cerrar el panel

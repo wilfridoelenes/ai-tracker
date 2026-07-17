@@ -1,4 +1,4 @@
-/* [PP] mod:8 · autor:Nova · 2026-07-16 UTC-6 */
+/* [PP] mod:9 · autor:Nova · 2026-07-17 13:10 UTC-6 */
 /* locus-modals-base.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 /* Restaurado (CAEL-06 · TKT1 CAEL-07): .modal--ingest y clases relacionadas — no persistieron en
    la entrega anterior (ver _PP-session-handoff-2026-07-13.md §1). Reconstruido contra el HTML real
@@ -375,10 +375,8 @@
   width: 100%;
 }
 
-.modal--standalone-ckpt {
-  max-width: 680px;
-  width: 100%;
-}
+/* .modal--standalone-ckpt retirado — TKT4 (REQ CAEL-0716-01). Sin consumidor: Rune eliminó
+   #standalone-ckpt-overlay de index.html (único nodo que la usaba). */
 
 /* ── .modal--ingest — modal de ingesta unificado (CAEL-06 TKT1) ──
    Sizing/posicionamiento full-canvas se movió a .modal-split__dialog (ver bloque

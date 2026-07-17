@@ -1,4 +1,4 @@
-// [PP] mod:71 · autor:Rune · 2026-07-17 10:35 UTC-6
+// [PP] mod:72 · autor:Rune · 2026-07-17 11:20 UTC-6
 // TKT2 (REQ CAEL-0717-01 · AC1-4, parte 3/3): _ckptMeta gana finnRelease: parsed.finnRelease
 //   || null — cierra la cadena de propagación de finn_release iniciada en
 //   locus-session-parse.js (mod:124, parseCheckpoint → ai._parsed.finnRelease) y consumida
@@ -663,8 +663,8 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   clearTimeout(window['_draftSbTimer_' + id]);
   // TKT2 (REQ CAEL-01): fase 2 ("Revisar") se marca aquí — el momento real en que el DIFF
   // se abre y el founder empieza a revisar. Antes se marcaba al validar el pegado (ver
-  // locus-session-parse.js). AC de edge case (revertir si se cierra sin confirmar) pendiente
-  // — showMergeDiffPanel no expone onClose/onCancel hoy, ver CHECKPOINT de esta sesión.
+  // locus-session-parse.js). Edge case (revertir si se cierra sin confirmar) resuelto vía
+  // onClose (L692) — comentario previo quedó desactualizado tras esa entrega, corregido aquí.
   _setPhase(id, 2);
   // TKT2 (REQ CAEL-0716-01): dockear #merge-diff-overlay contra #ingest-modal-overlay antes
   // de abrir — la coordinación de posición/z-index vive en CSS (mdiff-overlay--docked,

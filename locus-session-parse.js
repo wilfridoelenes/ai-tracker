@@ -1,4 +1,4 @@
-// [PP] mod:124 · autor:Rune · 2026-07-17 10:15 UTC-6
+// [PP] mod:126 · autor:Rune · 2026-07-17 12:40 UTC-6
 // TKT2 (REQ CAEL-0717-01 · AC1-4, parte 2/2 — ver locus-backlog-merge.js mod:53 para la parte
 //   de render): propagado finn_release desde el CHECKPOINT JSON parseado. parseCheckpoint()
 //   extrae _rawFinnRelease (mismo guard que _rawSprintProposal — objeto real, no array, {}
@@ -273,13 +273,16 @@ export function _splitCheckpointBlocks(text) {
 //   sprint_proposal (líneas ~1402, ~1489) — no tocadas, pertenecen al REQ "Limpieza final"
 //   (locus-backlog-sprints.js no declara este archivo en su campo archivos — gap a señalar a Cael).
 // locus-session-parse.js
-// Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, parsePasteStandalone, saveStandaloneCheckpoint,
+// Responsabilidad: parseCheckpoint, parsePaste, handlePaste/Input, _processIngestBatch,
 //   statusLabel, buildTGPreview, STATUS_LABELS, TG_PARSER_CONFIG.
+//   TKT4 (REQ CAEL-0716-01): parsePasteStandalone/saveStandaloneCheckpoint/
+//   openStandaloneCheckpoint/closeStandaloneCheckpoint eliminadas — cadena standalone-ckpt
+//   inalcanzable desde la unificación del split view (TKT1-3, mismo REQ).
 // Dependencias: locus-storage.js · locus-toast.js · locus-session-hora.js
 
 import { renderStats, getItems, normalizeStatus, itemKind, _GEN2_TYPES } from './locus-backlog-core.js'; // TKT0-gen2: itemKind agregado · TKT1: _GEN2_TYPES (REQ-[pendiente-ID])
-import { _isPlaceholderCode, applyPatchesFromTG, _assignPendingIds, mergeBacklogFromTG } from './locus-backlog-item.js'; // T-202606-089 AC-3 · TKT1 (REQ CAEL-01): mergeBacklogFromTG agregado — dry-run del preview de diff en el card. Ciclo parse.js↔backlog-item.js ya existente (backlog-item.js importa _normalizeSprint de este archivo) — misma relación, sin ciclo nuevo
-import { showMergeDiffPanel, chipTonesFromDiff } from './locus-backlog-merge.js'; // chipTonesFromDiff: TKT2 lo retiró (dry-run per-keystroke muerto) — TKT3 (REQ CAEL-01) lo reintroduce para el DIFF real del batch, un solo cálculo por click en #ingest-process-batch-btn, no por keystroke
+import { _isPlaceholderCode, applyPatchesFromTG, _assignPendingIds } from './locus-backlog-item.js'; // T-202606-089 AC-3 · TKT3 (REQ CAEL-0716-01): mergeBacklogFromTG retirado del import — sin consumidores directos en este archivo (dry-run per-keystroke ya se había removido antes; dry-run de batch removido en este TKT, ver _processIngestBatch). La persistencia real sigue viva vía _applyCheckpointBatch (locus-session-save.js), que la invoca internamente
+import { showMergeDiffPanel } from './locus-backlog-merge.js'; // TKT3 (REQ CAEL-0716-01): chipTonesFromDiff retirado — _processIngestBatch ya no renderiza resumen de chips, invoca showMergeDiffPanel real (mismo panel que el flujo single). Sigue vivo en locus-backlog-merge.js (uso interno propio, L726) — no se elimina de ese archivo
 import { renderBacklogList } from './locus-backlog-render.js';
 import { _ctrMergeFromItem } from './locus-contracts.js';
 import { extractContextSections, extractDocUpdates, extractHtmlMapSections, mergeContextSections, mergeHtmlMapSections, processDocUpdate } from './locus-docs.js';
@@ -1881,38 +1884,31 @@ export function handleInput(id) {
   _updateIngestBlockCount(); // TKT2 (REQ CAEL-01) AC2 — contador en vivo
 }
 
-// TKT3 (REQ CAEL-01): wrapper atómico sobre _resolveCheckpointBatch para el modal de ingesta
-// fusionado. No modifica _resolveCheckpointBatch ni _splitCheckpointBlocks — se consumen tal
-// cual, mismo contrato que ya usa parsePasteStandalone (sin cambio de comportamiento ahí).
-// AC2: la validación de JSON por bloque ocurre en una capa previa a _resolveCheckpointBatch —
-// esa función mantiene su criterio propio de skip-and-continue (Paso 1) para su otro consumidor.
-// no_incluye: no aplica el batch al backlog — solo renderiza el DIFF. Aplicar queda fuera de
-// scope de este TKT (sin botón "Aplicar" en el modal — solo existe #ingest-process-batch-btn).
+// TKT3 (REQ CAEL-0716-01): unifica el flujo batch sobre el mismo panel DIFF con Aplicar que
+// usa el paste único — reemplaza el resumen de chips (#diff-preview-modal/#ingest-diff-empty,
+// retirados del shell en TKT1 AC5, index.html) por showMergeDiffPanel real. Reusó el patrón que
+// probaba _gatedDoApplyBatch (saveStandaloneCheckpoint, ya eliminada por TKT4 — este comentario
+// actualizado tras esa entrega) — _applyCheckpointBatch + applyPatchesFromTG. Guard de JSON
+// malformado (AC3) conservado igual — mismo criterio que ya tenía esta función antes de este TKT.
+// no_incluye (TKT3): no modifica mergeBacklogFromTG. No agrega selección item-por-item — Aplicar
+// aplica el batch completo. No toca locus-session-save.js.
 export async function _processIngestBatch() {
   const ta = document.getElementById('ingest-ta') /* CAEL-22 */;
-  const diffEl = document.getElementById('diff-preview-modal');
-  const emptyEl = document.getElementById('ingest-diff-empty');
-  if (!ta || !diffEl || !emptyEl) return;
-
-  const _showEmpty = (msg) => {
-    diffEl.classList.add('is-hidden');
-    diffEl.innerHTML = '';
-    emptyEl.textContent = msg;
-    emptyEl.classList.remove('is-hidden');
-  };
+  if (!ta) return;
 
   const rawBlocks = _splitCheckpointBlocks(ta.value);
   if (!rawBlocks.length) {
-    _showEmpty('Sin batch procesado — pega CHECKPOINTs en la columna izquierda y presiona Procesar batch.');
+    showToast('warning', 'Sin batch procesado — pega CHECKPOINTs y presiona Procesar batch.');
     return;
   }
 
-  // AC2 — bloque malformado bloquea el batch completo antes de invocar _resolveCheckpointBatch.
+  // AC3 — bloque malformado bloquea el batch completo antes de invocar _resolveCheckpointBatch.
+  // Mismo criterio que la implementación previa a este TKT.
   for (let i = 0; i < rawBlocks.length; i++) {
     try {
       JSON.parse(rawBlocks[i]);
     } catch (e) {
-      _showEmpty(`⚠ Bloque ${i + 1} de ${rawBlocks.length} no es JSON válido — corregilo antes de procesar el batch.`);
+      showToast('warning', `⚠ Bloque ${i + 1} de ${rawBlocks.length} no es JSON válido — corregilo antes de procesar el batch.`);
       return;
     }
   }
@@ -1922,36 +1918,56 @@ export async function _processIngestBatch() {
 
   const _rejectedEntry = skipped.find(s => s.type === 'rejected');
   if (_rejectedEntry) {
-    _showEmpty(`⚠ ${_rejectedEntry.reason}`);
+    showToast('warning', `⚠ ${_rejectedEntry.reason}`);
     return;
   }
   if (!tgItems.length && !(patchItems && patchItems.length)) {
-    _showEmpty('Sin ítems para procesar en este batch.');
+    showToast('warning', 'Sin ítems para procesar en este batch.');
     return;
   }
 
   const activeProj = getActiveProject();
   if (!activeProj) {
-    _showEmpty('⚠ Selecciona un proyecto antes de procesar el batch.');
+    showToast('warning', '⚠ Selecciona un proyecto antes de procesar el batch.');
     return;
   }
 
-  let dryDiff;
-  try {
-    dryDiff = await mergeBacklogFromTG(tgItems, syntheticSessId, { dryRun: true });
-  } catch (e) {
-    _showEmpty('⚠ No se pudo calcular el DIFF del batch.');
-    return;
+  // TKT2 (REQ CAEL-0716-01) — extendido aquí: dockear #merge-diff-overlay contra
+  // #ingest-modal-overlay antes de abrir. Mismo mecanismo que _doSaveSession
+  // (locus-session-save.js) — TKT2 dejó el flujo batch fuera de su scope (no_incluye) porque
+  // no tocaba este archivo; TKT3 aplica el mismo patrón aquí para que ambos flujos converjan
+  // en el mismo panel docked.
+  const _ingestOverlayForDock = document.getElementById('ingest-modal-overlay');
+  const _mdiffOverlayForDock = document.getElementById('merge-diff-overlay');
+  if (_ingestOverlayForDock && _ingestOverlayForDock.classList.contains('open') && _mdiffOverlayForDock) {
+    _mdiffOverlayForDock.classList.add('mdiff-overlay--docked');
   }
 
-  // AC1 — DIFF combinado en columna derecha.
-  const _tones = chipTonesFromDiff(dryDiff);
-  const _totalItems = tgItems.length + (patchItems ? patchItems.length : 0);
-  diffEl.innerHTML = `<div class="sc-diff-preview-title">${_totalItems} ítem${_totalItems !== 1 ? 's' : ''} en el batch</div>` +
-    `<div class="sc-diff-preview-chips">${_tones.map(t =>
-      `<span class="diff-chip diff-chip--${t.tone}">${t.count} ${t.label}</span>`).join('')}</div>`;
-  emptyEl.classList.add('is-hidden');
-  diffEl.classList.remove('is-hidden');
+  // AC2 — Aplicar del batch: mismo patrón que probaba _gatedDoApplyBatch (saveStandaloneCheckpoint,
+  // eliminada por TKT4) — _applyCheckpointBatch persiste vía mergeBacklogFromTG(dryRun:false)
+  // internamente; los patches del batch se encadenan después usando slugMap/refIdTitleMap del
+  // mergeResult, mismo criterio que el flujo single.
+  const _onApplyBatch = async () => {
+    let _batchMergeResult;
+    try {
+      _batchMergeResult = await _applyCheckpointBatch(tgItems);
+    } catch (err) {
+      showToast('error', '✗ No se pudo aplicar el batch');
+      return;
+    }
+    if (patchItems && patchItems.length && _batchMergeResult) {
+      applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: _batchMergeResult.slugMap, refIdTitleMap: _batchMergeResult.refIdTitleMap, ckptHeaderRole: '' });
+    }
+    renderBacklogList();
+    renderStats();
+    window.dispatchEvent(new CustomEvent('shell:render-tracker'));
+    const _totalApplied = tgItems.length + (patchItems ? patchItems.length : 0);
+    showToast('success', `✓ ${_totalApplied} ítem${_totalApplied !== 1 ? 's' : ''} aplicado${_totalApplied !== 1 ? 's' : ''} al backlog`);
+    ta.value = ''; // batch consumido — mismo criterio que closeStandaloneCheckpoint() limpiaba su propio textarea
+  };
+
+  // AC1 — DIFF real (no resumen de chips) para el batch.
+  showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _onApplyBatch, {});
 }
 
 
@@ -2050,43 +2066,6 @@ export function _tryIngestSprintProposalFromParsed(proposalObj) {
   showToast('success', _toastMsg);
   return _sprintIdShort;
 }
-
-// T-202605-019: Migrado desde locus-misc-ui.js — modal standalone de CHECKPOINT
-// B-202604-138: modal standalone de CHECKPOINT — merge de ítems sin crear sesión de IA
-export function openStandaloneCheckpoint() {
-  // R-202604-047: shell estático en index.html — solo inject content + classList
-  const overlay = document.getElementById('standalone-ckpt-overlay');
-  if (!overlay) return;
-  overlay.classList.remove('force-hidden');
-  overlay.classList.add('open');
-  setTimeout(() => {
-    const ta = document.getElementById('standalone-ckpt-ta');
-    if (ta) ta.focus();
-  }, 80);
-}
-
-export function closeStandaloneCheckpoint() {
-  const overlay = document.getElementById('standalone-ckpt-overlay');
-  // B-new: forzar display:none además de quitar clase open
-  // El overlay tiene z-index:9200 > item-viz-overlay(8500) — si solo se quita .open
-  // puede seguir bloqueando visualmente el panel diff que se abre inmediatamente después.
-  if (overlay) { overlay.classList.remove('open'); overlay.classList.add('force-hidden'); }
-}
-
-// TKT-202607-090 (REQ-[pendiente-ID] · deuda técnica — disolución de locus-misc-ui.js):
-// listener del botón cancelar reubicado aquí — criterio de colocación BR-Ecosystem §7,
-// el dato/comportamiento que gestiona (standalone-ckpt-overlay) es propiedad de este módulo.
-document.addEventListener('DOMContentLoaded', () => {
-  const ckptCancelBtn = document.getElementById('standalone-ckpt-cancel-btn');
-  if (ckptCancelBtn) ckptCancelBtn.addEventListener('click', closeStandaloneCheckpoint);
-});
-// ── END T-202605-019 ─────────────────────────────────────────────────────────
-
-// B-202604-138: flujo de CHECKPOINT standalone — merge de ítems sin sesión de IA
-// AC-1: pasa por showMergeDiffPanel igual que el flujo de sesión
-// AC-2: avances de status muestran el panel antes de aplicarse
-// AC-3: retrocesos y descartes siguen requiriendo confirmación en showCheckpointPanel
-// AC-4: si no hay tgItems el panel no aparece
 
 // [PP] TKT3 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
 //   cross-CHECKPOINT): extraída de parsePasteStandalone sin cambio de comportamiento —
@@ -2371,336 +2350,6 @@ export function _resolveCheckpointBatch(blocks, sessionId) {
 
   return _result;
 }
-
-let _standaloneLastParsed = null;
-
-export function parsePasteStandalone() {
-  const ta  = document.getElementById('standalone-ckpt-ta');
-  const prev = document.getElementById('standalone-ckpt-prev');
-  const btn  = document.getElementById('standalone-ckpt-btn');
-  if (!ta || !prev || !btn) return;
-
-  const text = ta.value.trim();
-  _standaloneLastParsed = null;
-
-  if (!text) {
-    prev.innerHTML = '';
-    btn.disabled = true;
-    return;
-  }
-
-  // TKT3 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs): 2+ bloques detectados por
-  // _splitCheckpointBlocks → modo batch, preview de N pills. AC3: batch de 1 (o texto sin
-  // fences, _splitCheckpointBlocks retorna []) sigue el path single sin cambio de comportamiento.
-  // no_incluye: no maneja doc_updates/sprint_proposal/finn_observations múltiples — eso queda
-  // para TKT4. Wiring del botón "Aplicar" a _applyCheckpointBatch también queda para TKT4.
-  const _batchBlocks = _splitCheckpointBlocks(text);
-  if (_batchBlocks.length > 1) {
-    const _blockResults = _batchBlocks.map(b => _parseBatchBlock(b));
-    let _pillsHtml = '';
-    let _validCount = 0;
-    _blockResults.forEach((r, idx) => {
-      if (r.ok) {
-        _validCount += r.tgItems.length;
-        const _previewHtml = buildTGPreview(r.tgItems, null);
-        _pillsHtml += `
-          <div class="ckpt-pill ckpt-pill--ok ckpt-pill--mb">✓ CHECKPOINT ${idx + 1} · ${r.tgItems.length} ítem${r.tgItems.length !== 1 ? 's' : ''}</div>
-          <div class="sa-ckpt-desc">${esc(r.ckpt.titulo)}</div>
-          ${_previewHtml}`;
-      } else {
-        _pillsHtml += `<div class="ckpt-pill ckpt-pill--warn ckpt-pill--mb">⚠ CHECKPOINT inválido — omitido del batch</div>`;
-      }
-    });
-    prev.innerHTML = _pillsHtml;
-    btn.disabled = _validCount === 0;
-    _standaloneLastParsed = { isBatch: true, blocks: _blockResults, raw: text };
-    return;
-  }
-
-  // Reutilizar parseCheckpoint para extraer campos y validar estructura
-  const ckpt = parseCheckpoint(text);
-
-  // Validación: bloque de apertura — gate es fence JSON sin especificador + campo title
-  // T-202606-005: path único JSON — ---CHECKPOINT--- y ---FIN-CHECKPOINT--- no requeridos
-  if (!ckpt || !ckpt.isCheckpoint || !ckpt.titulo) {
-    prev.innerHTML = '<div class="paste-error">⚠ Formato inválido — se esperaba bloque JSON sin especificador de lenguaje.</div>';
-    btn.disabled = true;
-    return;
-  }
-
-  // R-202605-133: error de parseo JSON — bloqueante
-  if (ckpt._jsonParseError) {
-    prev.innerHTML = `<div class="paste-error">&#9940; Bloque <code>\`\`\`</code> inválido — ${esc(ckpt._jsonParseError)}.<br><span class="paste-hint">Corrige el JSON antes de aplicar.</span></div>`;
-    btn.disabled = true;
-    return;
-  }
-
-  // TKT1 (REQ-202607-026 · AC1): guard de T-202606-013 (bloqueo total de ingesta cuando
-  // draft:true) queda eliminado en el path standalone — mismo criterio ya aplicado en
-  // parsePaste vía TKT-202606-011. tgItems se construye igual que con draft:false; el ítem
-  // recibe código real y se persiste con draft:true al aplicar (ver mergeBacklogFromTG,
-  // locus-backlog-item.js). El estado "pendiente de aval Finn" se comunica en el panel DIFF,
-  // no bloqueando el botón "Aplicar" antes de abrirlo — ckpt.draftRaw sigue siendo la fuente
-  // que consume el DIFF para ese badge.
-
-  // T-202606-005: path único JSON — ítems ya están en ckpt._rawItems, no hay path legacy
-  const parsedJSON = Array.isArray(ckpt._rawItems) ? ckpt._rawItems : [];
-
-  // TKT3 (REQ-[pendiente-ID]): validación de ítems extraída a _buildTgItemsFromParsed —
-  // mismo comportamiento, reutilizada también por _parseBatchBlock en modo batch.
-  const { tgItems, patchItems, itemError } = _buildTgItemsFromParsed(ckpt, parsedJSON);
-
-  if (itemError) {
-    prev.innerHTML = `<div class="paste-error">⛔ ${esc(itemError)}</div>`;
-    btn.disabled = true;
-    return;
-  }
-
-  // R-202604-075: extraer campo contract_detail de cada ítem y aplicar a Contratos de Módulo
-  // T-[pendiente-ID] (REQ-contract-rename): contract_detail reemplaza a contract — alineado a
-  // BR-Execution §2. Sin retrocompatibilidad — un item con solo `contract` (campo legacy) no
-  // se aplica aquí.
-  parsedJSON.forEach(it => {
-    if (it.contract_detail) _ctrMergeFromItem(it.code || '[pendiente-ID]', it.contract_detail);
-  });
-
-  // T-202606-156: _tryIngestSprintProposal removido de parsePasteStandalone —
-  // Step 0 en showMergeDiffPanel es el gate. El sprint se crea solo al aprobar en el DIFF.
-  // TKT (REQ-[pendiente-ID] · consolidación de punto de entrada único de sprint_proposal):
-  // campo sprintProposal retirado de este objeto — sin consumidor tras el retiro del Step 0
-  // en saveStandaloneCheckpoint (ver comentario junto a _ckptMetaStandalone). Un
-  // sprint_proposal presente en ckpt._rawSprintProposal simplemente no se propaga desde aquí.
-
-  // Éxito — guardar parsed y habilitar botón
-  // T-202606-005: path único JSON — ckpt._isJsonFormat siempre true aquí (parseCheckpoint solo retorna JSON válido)
-  const _isJsonFmtSa = !!(ckpt && ckpt._isJsonFormat);
-  _standaloneLastParsed = { isBatch: false, ckpt, tgItems, patchItems, raw: text,
-    // T-202606-017: doc_updates del path JSON — disponibles en saveStandaloneCheckpoint
-    docUpdates:       (_isJsonFmtSa && ckpt._rawDocUpdates)     ? ckpt._rawDocUpdates     : [],
-    // T-202606-018: finn_observations del path JSON — disponible en saveStandaloneCheckpoint
-    finnObservations: (_isJsonFmtSa && ckpt._rawFinnObservations) ? ckpt._rawFinnObservations : null,
-  };
-
-  const _assignedIds = _assignPendingIds(tgItems);
-  const previewHtml = buildTGPreview(tgItems, null);
-  prev.innerHTML = `
-    <div class="ckpt-pill ckpt-pill--ok ckpt-pill--mb">✓ CHECKPOINT · ${tgItems.length} ítem${tgItems.length !== 1 ? 's' : ''}</div>
-    <div class="sa-ckpt-desc">${esc(ckpt.titulo)}</div>
-    ${previewHtml}`;
-  btn.disabled = tgItems.length === 0;
-}
-
-export function saveStandaloneCheckpoint() {
-  if (!_standaloneLastParsed) return;
-
-  // TKT4 (REQ-[pendiente-ID] · Ingesta batch de CHECKPOINTs con resolución de [tmp:slug]
-  //   cross-CHECKPOINT, depends_on: TKT3 done): modo batch — resuelve todos los bloques
-  //   válidos en un solo array combinado vía _resolveCheckpointBatch, sin persistir, y lo
-  //   pasa por showMergeDiffPanel igual que el flujo single (AC1). Si el batch se rechaza por
-  //   [tmp:slug] duplicado, el motivo se muestra al founder en vez de abrir un diff vacío sin
-  //   explicación (AC nuevo de Cael, Fase 5 v2 — gap señalado por Rune sobre TKT2 AC3).
-  // no_incluye: no combina doc_updates/sprint_proposal/finn_observations de múltiples bloques
-  //   en el mismo panel — cada CHECKPOINT del batch los pierde si los declara. Deuda registrada
-  //   en el CHECKPOINT de entrega de este TKT, no silenciada.
-  if (_standaloneLastParsed.isBatch) {
-    const { raw } = _standaloneLastParsed;
-    const _rawBlocks = _splitCheckpointBlocks(raw);
-    const syntheticSessId = 'standalone-batch-' + Date.now();
-    const { tgItems, patchItems, skipped } = _resolveCheckpointBatch(_rawBlocks, syntheticSessId); // TKT2 (REQ-[pendiente-ID] · CAEL-05): patchItems destructurado — antes se descartaba
-
-    const _rejectedEntry = skipped.find(s => s.type === 'rejected');
-    if (_rejectedEntry) {
-      showToast('warn', `⚠ ${_rejectedEntry.reason}`);
-      return;
-    }
-    if (!tgItems.length && !(patchItems && patchItems.length)) { // TKT2: guard extendido a patchItems — mismo criterio AC-4 del flujo single (línea ~2200)
-      showToast('warning', '⚠ Sin ítems para aplicar');
-      return;
-    }
-    const activeProj = getActiveProject();
-    if (!activeProj) {
-      showToast('warning', '⚠ Selecciona un proyecto antes de aplicar');
-      return;
-    }
-
-    // TKT-202607-078 AC · ruta batch: _applyCheckpointBatch es async — el gate debe esperar
-    // la resolución antes de cerrar el panel y renderizar. Si rechaza, no se ejecuta ningún
-    // efecto posterior (closeStandaloneCheckpoint/render*/showToast success) y el textarea
-    // standalone no se pierde — el founder puede reintentar.
-    const _gatedDoApplyBatch = async () => {
-      let _batchMergeResult;
-      try {
-        _batchMergeResult = await _applyCheckpointBatch(tgItems); // TKT2: _applyCheckpointBatch ahora retorna mergeResult (antes no retornaba nada) — ver contract_detail
-      } catch (err) {
-        showToast('error', '✗ No se pudo aplicar el CHECKPOINT');
-        return;
-      }
-      // TKT2 (REQ-[pendiente-ID] · CAEL-05): aplicar patches del batch tras el merge — mismo
-      // patrón que _doApply del flujo single (línea ~2236). Antes de este fix, patchItems del
-      // batch se descartaba en _resolveCheckpointBatch y nunca llegaba a ningún punto de aplicación.
-      if (patchItems && patchItems.length && _batchMergeResult) {
-        applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: _batchMergeResult.slugMap, refIdTitleMap: _batchMergeResult.refIdTitleMap, ckptHeaderRole: '' });
-      }
-      closeStandaloneCheckpoint();
-      renderBacklogList();
-      renderStats();
-      window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-      const _totalApplied = tgItems.length + (patchItems ? patchItems.length : 0); // TKT2: badge de conteo incluye patches, mismo criterio ya usado en showMergeDiffPanel (línea 257/965 de locus-backlog-merge.js)
-      showToast('success', `✓ ${_totalApplied} ítem${_totalApplied !== 1 ? 's' : ''} aplicado${_totalApplied !== 1 ? 's' : ''} al backlog`);
-      _standaloneLastParsed = null;
-    };
-
-    closeStandaloneCheckpoint();
-    showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _gatedDoApplyBatch, {});
-    return;
-  }
-
-  const { tgItems, patchItems, ckpt, raw } = _standaloneLastParsed;
-
-  // AC-4: si no hay ítems ni patches, no hacer nada
-  if (!tgItems.length && !(patchItems && patchItems.length)) {
-    showToast('warning', '⚠ Sin ítems para aplicar');
-    return;
-  }
-
-  // Proyecto activo
-  const activeProj = getActiveProject();
-  if (!activeProj) {
-    showToast('warning', '⚠ Selecciona un proyecto antes de aplicar');
-    return;
-  }
-
-  // sessId sintético — no crea sesión real, solo referencia para mergeBacklogFromTG
-  const syntheticSessId = 'standalone-' + Date.now();
-
-  // TKT-202607-078 AC · ruta standalone: _mergeBacklogWithProject es async — await antes de
-  // leer mergeResult.slugMap (consumido por applyPatchesFromTG más abajo). Si rechaza, el
-  // catch muestra toast de error y retorna sin ejecutar el resto de _doApply — ningún patch
-  // ni ítem se persiste sobre un mergeResult a medias.
-  const _doApply = async () => {
-    let mergeResult;
-    try {
-      mergeResult = await _mergeBacklogWithProject(tgItems, syntheticSessId, activeProj.id);
-    } catch (err) {
-      showToast('error', '✗ No se pudo aplicar el CHECKPOINT');
-      return;
-    }
-
-    // R-202605-062: aplicar patches después del merge de ítems normales
-    // B-202606-022: pasar slugMap para resolver [tmp:slug] en parentId de patches
-    // B-202606-100: pasar ckptHeaderRole para autorizar patch R→done solo si role es QA · Finn
-    // INC-[pendiente-ID]: ckptHeaderRole nunca estuvo declarado en este scope — referencia a
-    // identificador libre lanzaba ReferenceError no capturado, abortando _doApply() completo
-    // antes de saveBacklog(). Ningún patch (ni items) se persistía en el flujo Standalone
-    // CHECKPOINT. Fix: leer el rol directamente desde ckpt.rol, ya disponible en este closure
-    // vía destructuring de _standaloneLastParsed (línea ~1975).
-    if (patchItems && patchItems.length) {
-      const patchResult = applyPatchesFromTG(patchItems, syntheticSessId, { slugMap: mergeResult.slugMap, refIdTitleMap: mergeResult.refIdTitleMap, ckptHeaderRole: ckpt.rol || '' }); // TKT1 (REQ-[pendiente-ID] · CAEL-04): refIdTitleMap agregado — mergeResult ya lo trae desde mergeBacklogFromTG
-      // Incorporar patches al mergeResult para que el panel diff los muestre (AC-10)
-      if (patchResult.patched && patchResult.patched.length) {
-        mergeResult.updated = [...(mergeResult.updated || []), ...patchResult.patched];
-      }
-    }
-
-    // Merge CONTEXT-SECTION / MAP-SECTION si hay
-    {
-      const ctxSections = extractContextSections(raw);
-      if (ctxSections.length) {
-        mergeContextSections(ctxSections, activeProj.id);
-      }
-    }
-    {
-      const mapSections = extractHtmlMapSections(raw);
-      if (mapSections.length) {
-        mergeHtmlMapSections(mapSections, activeProj.id);
-      }
-    }
-    // T-202606-032: registrar DOC-UPDATEs en el índice por proyecto — detectar conflictos.
-    // Path JSON puro: usar docUpdates ya extraídos en _standaloneLastParsed.
-    // Path legacy Markdown: extraer desde el texto crudo via extractDocUpdates.
-    {
-      const _ckptTitle = ckpt.titulo || '';
-      const _isJsonFmtDoApply = !!(ckpt._isJsonFormat);
-      const _docUpdates = _isJsonFmtDoApply
-        ? (_standaloneLastParsed.docUpdates || [])
-        : extractDocUpdates(raw);
-      _docUpdates.forEach(update => {
-        const { conflicto, msg } = processDocUpdate(update, _ckptTitle);
-        if (conflicto && msg) showToast('warn', msg);
-      });
-    }
-    // ── END T-202606-032 ──
-    // T-202606-156: _tryIngestSprintProposal removido de _doApply standalone —
-    // ya se ejecutó al aprobar Step 0. Llamarlo aquí crearía un sprint duplicado.
-
-    closeStandaloneCheckpoint();
-
-    renderBacklogList();
-    renderStats();
-    window.dispatchEvent(new CustomEvent('shell:render-tracker')); // B-202605-051: actualizar estado insession del radar tras CHECKPOINT standalone
-
-    // Mostrar resultado en panel CHECKPOINT igual que el flujo sesión
-    const hasMergeData = mergeResult.created.length || mergeResult.advanced.length ||
-      mergeResult.retroceso.length || mergeResult.discarded.length ||
-      mergeResult.updated.length || mergeResult.ignored.length;
-    // B-202604-164: el panel diff (showCheckpointPanel) ya comunica el resultado —
-    // el toast adicional causaba duplicado. Si no hay merge data → toast como fallback.
-    if (hasMergeData) {
-      showCheckpointPanel(mergeResult);
-    } else {
-      const _total = tgItems.length + (patchItems ? patchItems.length : 0);
-      showToast('success', `✓ ${_total} ítem${_total !== 1 ? 's' : ''} aplicado${_total !== 1 ? 's' : ''} al backlog`);
-    }
-    _standaloneLastParsed = null;
-  };
-
-  // AC-1+2: pasar por showMergeDiffPanel — muestra panel de confirmación antes de aplicar
-  // Construir ckptMeta desde campos narrativos del CHECKPOINT parseado
-  const _ckptMetaStandalone = {
-    resumen:     ckpt.resumen      || '',
-    aprendizaje: ckpt.aprendizaje  || '',
-    bloqueantes: ckpt.bloqueantes  || '',
-    decision:    ckpt.decision     || '',
-    proximoPaso: ckpt.proximoPaso  || '',
-    // TKT-202606-014: valor crudo de draft — gate de "draft ausente" en showMergeDiffPanel.
-    draftRaw:    ckpt.draftRaw,
-    // TKT2 (REQ CAEL-0717-01 · AC1-4): finn_release del CHECKPOINT parseado — showMergeDiffPanel
-    //   ya consume _ckptMeta.finnRelease directo (locus-backlog-merge.js mod:53). null si el
-    //   CHECKPOINT standalone no lo declara — AC3, sin tarjeta, sin hueco visual.
-    finnRelease: ckpt._rawFinnRelease || null,
-  };
-  // TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal):
-  // Gate Step 0 de sprint_proposal retirado de este flujo — decisión del founder: la única
-  // ruta de creación de sprint es el paste propio del panel "+ Sprint nuevo" en Tab Sprint
-  // (locus-sprint.js). Antes de este TKT, un sprint_proposal detectado en un CHECKPOINT pegado
-  // en el modal standalone abría un Step 0 aquí mismo con onApproveProposal/onRejectProposal
-  // que creaba el sprint vía _tryIngestSprintProposalFromParsed. Ese camino queda eliminado —
-  // un sprint_proposal en este modal ya no se detecta ni se ingiere. Si el CHECKPOINT declara
-  // sprint_proposal junto con ítems REQ/TKT, parseCheckpoint ya lo rechaza aguas arriba
-  // (_jsonParseError, __BR-Ecosystem §12) antes de llegar a este punto — sin cambio.
-  // no_incluye: no toca _tryIngestSprintProposalFromParsed (sigue siendo la función de ingesta,
-  // consumida ahora solo por locus-sprint.js) ni _applySprintInheritanceToItems (exportada,
-  // sin consumidor conocido tras este TKT — Hallazgo fuera de scope, no se elimina el export
-  // sin visibilidad de otros consumidores).
-
-  // T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para B con triggered_by en sprint activo.
-  // No-bloqueante: si el founder ignora, el B se ingesta sin sprint asignado (Q-INC por defecto).
-  const _tgSuggestionSa = _buildTriggeredBySuggestion(tgItems);
-  if (_tgSuggestionSa) {
-    _ckptMetaStandalone.triggeredBySuggestion = {
-      ..._tgSuggestionSa,
-      onAccept: function() {
-        _tgSuggestionSa.b.sprint = _tgSuggestionSa.suggestedSprint;
-      },
-      // onIgnore: no-op — el B conserva sprint vacío (Q-INC, sin sprint asignado)
-    };
-  }
-
-  closeStandaloneCheckpoint();
-  showMergeDiffPanel(tgItems, syntheticSessId, activeProj.id, _doApply, _ckptMetaStandalone);
-}
-
-
 
 
 // T-202606-021: Trigger 3 — sugerencia 1-tap de sprint para B nuevo con triggered_by

@@ -1,4 +1,4 @@
-// [PP] mod:58 · autor:Rune · 2026-07-15 UTC-6
+// [PP] mod:59 · autor:Rune · 2026-07-17 12:40 UTC-6
 // TKT2 (REQ CAEL-01, ref_id CAEL-03): switchTab() resetea currentSubTab a un sub-tab válido
 // del tab destino ('backlog'|'proyectos') si el sub-tab activo pertenece al otro contexto —
 // currentSubTab es variable compartida entre ambos tabs desde que Proyectos adoptó el mismo
@@ -81,7 +81,6 @@ import { confirmItemEditor, closeItemEditor } from './locus-backlog-editor.js';
 import { _mgExportAllZip } from './locus-map-generator.js';
 import { closeImportDiff, confirmImport, downloadGlobalReport, exportData, importData, openCleanProjectModal } from './locus-reports.js';
 import { openChangelog } from './locus-session-save.js';
-import { parsePasteStandalone, saveStandaloneCheckpoint } from './locus-session-parse.js';
 import { searchContratos } from './locus-contracts.js';
 import { toggleContextSection, _dropzoneHandle } from './locus-docs.js'; // T-202606-089 AC-3 — ciclo seguro: uso solo dentro de handler
 
@@ -1497,18 +1496,6 @@ document.addEventListener('DOMContentLoaded', function () {
   const ieSaveBtn = document.getElementById('ie-save-btn');
   if (ieSaveBtn) ieSaveBtn.addEventListener('click', function () {
     confirmItemEditor();
-  });
-
-  // standalone-ckpt-ta
-  const standaloneCkptTa = document.getElementById('standalone-ckpt-ta');
-  if (standaloneCkptTa) standaloneCkptTa.addEventListener('input', function () {
-    parsePasteStandalone();
-  });
-
-  // standalone-ckpt-btn
-  const standaloneCkptBtn = document.getElementById('standalone-ckpt-btn');
-  if (standaloneCkptBtn) standaloneCkptBtn.addEventListener('click', function () {
-    saveStandaloneCheckpoint();
   });
 
   // export-confirm-cancel-btn

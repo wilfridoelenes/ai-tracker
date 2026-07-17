@@ -1,4 +1,4 @@
-<!-- [PP] mod:139 · autor:Nova · 2026-07-16 UTC-6 -->
+<!-- [PP] mod:140 · autor:Rune · 2026-07-17 12:40 UTC-6 -->
 <!-- INC-[pendiente-ID] (íconos Tabler no cargaban — cuadros grises transversales): agregado <link> CDN
      de @tabler/icons-webfont en <head>, aprobado por founder. Ningún archivo CSS/JS tocado — hallazgo
      era ausencia total del webfont, no error de clase ni de estilo. -->
@@ -1377,25 +1377,8 @@
   </div>
 </div>
 
-<!-- standalone-ckpt-overlay -->
-<div class="modal-overlay modal-overlay--top" id="standalone-ckpt-overlay">
-  <div class="modal modal--standalone-ckpt">
-    <div class="modal-title">📋 Pegar CHECKPOINT — solo ítems</div>
-    <div class="standalone-ckpt-desc">
-      Pega un CHECKPOINT para actualizar ítems del backlog <strong>sin crear una sesión de Worker</strong>.
-      Requiere bloque <code>---ITEMS---</code>.
-    </div>
-    <textarea id="standalone-ckpt-ta" rows="12"
-      class="standalone-ckpt-ta"
-      placeholder="Pega aquí el bloque ---CHECKPOINT--- completo..."
-  ></textarea>
-    <div id="standalone-ckpt-prev" class="standalone-ckpt-prev"></div>
-    <div class="modal-actions modal-actions--mt">
-      <button type="button" id="standalone-ckpt-cancel-btn">Cancelar</button>
-      <button class="btn-primary" id="standalone-ckpt-btn" disabled>Aplicar ítems</button>
-    </div>
-  </div>
-</div>
+<!-- standalone-ckpt-overlay retirado — TKT4 (REQ CAEL-0716-01). La ingesta de CHECKPOINT
+     (single y batch) vive ahora en #ingest-modal-overlay/#merge-diff-overlay (TKT1-3, mismo REQ). -->
 
 <!-- export-confirm-overlay (backlog export) -->
 <div class="modal-overlay" id="export-confirm-overlay">
