@@ -1,3 +1,9 @@
+// [PP] mod:27 · autor:Rune · 2026-07-17 13:20 UTC-6
+// TKT2 (REQ-CAEL-0717-01): renderStatusBar() ahora puebla #gf-infra-version/#gf-infra-sep
+// desde getInfraVersionData() (import agregado) — inmediatamente después de #gf-version.
+// Sin dato → is-hidden en ambos, mismo patrón que #hmeta-mod-sep. Se refresca via el evento
+// 'shell:render-statusbar' ya escuchado en este mismo archivo (línea ~371) — disparado por
+// locus-ui-shell.js al aplicar un nuevo infra_version.
 // [PP] mod:26 · autor:Rune · 2026-07-14 UTC-6
 // TKT-[pendiente-ID] (TKT1+TKT3 · REQ-[pendiente-ID] DOC-UPDATE vencido en footer): agregado
 //   _docUpdateStaleness() (umbral 14d, mismo criterio que _zoneStaleness) + prioridad 4 en
@@ -24,7 +30,7 @@ import { incSlaPriority, incIncidentStatus } from './locus-inc-fields.js';
 // selectTrackerAI y _markTrackerDirty desacoplados vía shell:* events (T-202606-084)
 import { openDetail } from './locus-session-popup.js';
 // T-202606-166: _getActiveProjectFilter y getProjectById movidas a locus-storage.js
-import { _effectiveVersion, _getActiveProjectFilter, _getDocUpdateIndex, _isInSession, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getProjectById, save } from './locus-storage.js';
+import { _effectiveVersion, _getActiveProjectFilter, _getDocUpdateIndex, _isInSession, getAISessions, getActiveProject, getActiveTracker, getAllSessions, getInfraVersionData, getProjectById, save } from './locus-storage.js';
 
 import { switchSubTab, switchTab } from './locus-ui-shell.js';
 
@@ -302,6 +308,21 @@ export function renderStatusBar() {
     const _v = _effectiveVersion();
     gfVersion.textContent = _v ? _v : '—';
     gfVersion.classList.remove('is-hidden');
+  }
+
+  // TKT2 (REQ-CAEL-0717-01): infra_version en el footer, siempre visible cuando hay dato.
+  const gfInfraSep = document.getElementById('gf-infra-sep');
+  const gfInfraVersion = document.getElementById('gf-infra-version');
+  if (gfInfraSep && gfInfraVersion) {
+    const infraData = getInfraVersionData();
+    if (infraData) {
+      gfInfraVersion.textContent = 'infra_version: ' + infraData.infraVersion;
+      gfInfraSep.classList.remove('is-hidden');
+      gfInfraVersion.classList.remove('is-hidden');
+    } else {
+      gfInfraSep.classList.add('is-hidden');
+      gfInfraVersion.classList.add('is-hidden');
+    }
   }
 
   if (gfCkpt) {

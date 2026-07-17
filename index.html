@@ -1656,6 +1656,10 @@
       <button class="modal-close" id="infra-sync-close-btn" aria-label="Cerrar">×</button>
     </div>
     <div class="modal-body">
+      <div class="hdr-menu-infra-current" id="hdr-menu-infra-current">
+        <span class="hdr-menu-infra-current__label">Actual</span>
+        <span class="hdr-menu-infra-current__value" id="hdr-menu-infra-current-value">—</span>
+      </div>
       <textarea class="hdr-menu-textarea" id="hdr-menu-infra-textarea" placeholder="infra_version"></textarea>
       <div class="hdr-menu-error-msg is-hidden" id="hdr-menu-infra-error" aria-live="polite"></div>
     </div>
@@ -1883,6 +1887,8 @@
 <footer id="global-footer">
   <span id="gf-proyecto" class="gf-proyecto is-hidden"></span>
   <span id="gf-version" class="gf-version is-hidden"></span>
+  <span id="gf-infra-sep" class="gf-infra-sep is-hidden">·</span>
+  <span id="gf-infra-version" class="gf-infra-version is-hidden"></span>
   <div class="gf-spacer"></div>
   <span id="gf-ckpt" class="gf-ckpt is-hidden"></span>
   <span id="gf-items" class="gf-items is-hidden"></span>

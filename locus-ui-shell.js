@@ -1,3 +1,9 @@
+// [PP] mod:60 · autor:Rune · 2026-07-17 13:20 UTC-6
+// TKT1 (REQ-CAEL-0717-01): _renderInfraCurrentValue() agregada — lee getInfraVersionData()
+// (import agregado desde locus-storage.js) y puebla #hdr-menu-infra-current-value al abrir
+// el modal via openInfraSync(). Sin dato → 'sin sincronizar en esta sesión', nunca vacío ni
+// 'undefined'. applyBtn ahora dispara 'shell:render-statusbar' tras aplicar (TKT2 — refresco
+// del footer sin recargar, mismo patrón que locus-sesiones.js/locus-sesiones-utils.js).
 // [PP] mod:59 · autor:Rune · 2026-07-17 12:40 UTC-6
 // TKT2 (REQ CAEL-01, ref_id CAEL-03): switchTab() resetea currentSubTab a un sub-tab válido
 // del tab destino ('backlog'|'proyectos') si el sub-tab activo pertenece al otro contexto —
@@ -74,7 +80,7 @@
 //       (locus-api.js garantiza que el contrato público está disponible post-DOMContentLoaded)
 // Cada módulo consumidor es responsable de registrar listener 'shell:invoke' para sus propias funciones.
 
-import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, _parseInfraLine, setInfraVersionData, _docPrefix, handleSyncPillClick } from './locus-storage.js';
+import { _saveUserPrefs, _shortcutsLoad, _shortcutsSave, getAllSessions, getState, save, _getActiveProjectFilter, _parseInfraLine, setInfraVersionData, getInfraVersionData, _docPrefix, handleSyncPillClick } from './locus-storage.js';
 import { _openItemEditorSafe, onBacklogSortChange, toggleDepsFilter, toggleSortDir, itemKind, getIncidents } from './locus-backlog-core.js';
 import { openPendPanel, closePendPanel } from './locus-pend.js';
 import { confirmItemEditor, closeItemEditor } from './locus-backlog-editor.js';
@@ -353,12 +359,34 @@ export function toggleMoreMenu() {
 // ── TKT-infra-sync-modal: handler de #infra-sync-overlay (reemplaza T-202606-009 — subpanel inline eliminado del DOM, ver TKT header en 3 zonas) ─────
 // Acepta la línea completa BR (<!-- **infra_version: N** | BR-Core vX ... -->).
 // Parsea con _parseInfraLine · guarda objeto completo con setInfraVersionData.
+// TKT1 (REQ-CAEL-0717-01): renderiza el valor Actual del modal desde getInfraVersionData() —
+// lectura en vivo en cada apertura, nunca vacío ni 'undefined' (AC edge case sin dato).
+function _renderInfraCurrentValue() {
+  const el = document.getElementById('hdr-menu-infra-current-value');
+  if (!el) return;
+  const data = getInfraVersionData();
+  if (!data) {
+    el.textContent = 'sin sincronizar en esta sesión';
+    return;
+  }
+  const parts = ['infra_version: ' + data.infraVersion];
+  const brParts = [];
+  if (data.brCore) brParts.push('BR-Core v' + data.brCore);
+  if (data.brEcosystem) brParts.push('BR-Ecosystem v' + data.brEcosystem);
+  if (data.brExecution) brParts.push('BR-Execution v' + data.brExecution);
+  if (data.obStrategy) brParts.push('OB-Strategy v' + data.obStrategy);
+  if (brParts.length) parts.push(brParts.join(' · '));
+  el.textContent = parts.join(' | ');
+}
+
 export function openInfraSync() {
   const overlay = document.getElementById('infra-sync-overlay');
   // INC — .modal-overlay base es display:none; solo .open fuerza display:flex.
   // 'is-hidden' tiene !important y bloquearía .open si quedara en el elemento
   // (ver limpieza de markup inicial en index.html — mismo patrón que #changelog-overlay).
   if (overlay) overlay.classList.add('open');
+  // TKT1: valor Actual en vivo cada vez que se abre el modal.
+  _renderInfraCurrentValue();
 }
 
 export function closeInfraSync() {
@@ -412,6 +440,8 @@ export function initInfraVersionHandler() {
 
     setInfraVersionData(parsed);
     closeInfraSync();
+    // TKT2: refresco del footer sin recargar — mismo patrón que locus-sesiones.js/locus-sesiones-utils.js.
+    window.dispatchEvent(new CustomEvent('shell:render-statusbar'));
   });
 }
 
