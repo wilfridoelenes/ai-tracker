@@ -1,3 +1,8 @@
+// [PP] mod:33 · autor:Rune · 2026-07-17 UTC-6
+// TKT2 (REQ CAEL-0717-01): persistencia de estado expandido/colapsado del bloque Terminados
+// a través de re-renders de _renderPlanningView() disparados por _planDrop() — nueva
+// variable de módulo _planDoneExpanded, leída por doneBlockHtml y escrita por
+// _togglePlanDoneGroup. Sin cambio de firma en ninguna función existente. contract_update: no.
 // [PP] mod:32 · autor:Rune · 2026-07-17 UTC-6
 // TKT1 (REQ CAEL-0717-01): bloque Terminados colapsable en columna Q-Backlog (Sin Sprint) de
 // Planificar — items done sin sprint ahora visibles y arrastrables ahí (antes solo visibles
@@ -48,6 +53,13 @@ let _roadmapSprintFilter = null;
 
 // R-202605-130: drag & drop handlers para vista planificación
 let _planDragCode = null;
+
+// TKT2 (REQ CAEL-0717-01): persiste el estado expandido/colapsado del bloque Terminados
+// entre invocaciones de _renderPlanningView() disparadas por _planDrop() — sin esto, cada
+// drop reconstruye doneBlockHtml y el bloque siempre nace is-hidden, perdiendo el estado
+// que el founder tenía abierto. Vive solo dentro de la misma vista viva — no persiste entre
+// recargas de página (AC no_incluye).
+let _planDoneExpanded = false;
 
 // ---------------------------------------------------------------------------
 // Status pills helper — usado en sprint bar y renderBacklogList
@@ -498,14 +510,16 @@ export function _renderPlanningView(listEl, closeCallback) {
 
   // TKT1 (REQ CAEL-0717-01): bloque Terminados — colapsable, nace colapsado (AC4), no se
   // renderiza si doneUnassigned está vacío (AC7 — sin header con contador 0).
+  // TKT2 (REQ CAEL-0717-01): lee _planDoneExpanded para que el bloque nazca en el mismo
+  // estado que tenía antes del re-render — sin esto, todo drop lo re-colapsaba (AC3/AC4).
   const doneBlockHtml = doneUnassigned.length
     ? `<div class="bl-plan-done-group">
-        <div class="bl-plan-done-header" role="button" tabindex="0" aria-expanded="false" data-action="bl-plan-done-toggle">
-          <span class="bl-plan-dest-chevron" aria-hidden="true">▸</span>
+        <div class="bl-plan-done-header" role="button" tabindex="0" aria-expanded="${_planDoneExpanded ? 'true' : 'false'}" data-action="bl-plan-done-toggle">
+          <span class="bl-plan-dest-chevron" aria-hidden="true">${_planDoneExpanded ? '▾' : '▸'}</span>
           <span class="bl-plan-col-title">Terminados</span>
           <span class="bl-plan-col-count">${doneUnassigned.length}</span>
         </div>
-        <div class="bl-plan-done-body is-hidden">
+        <div class="bl-plan-done-body${_planDoneExpanded ? '' : ' is-hidden'}">
           ${doneUnassigned.map(_planDoneCard).join('')}
         </div>
       </div>`
@@ -744,6 +758,9 @@ function _togglePlanDoneGroup(headerEl) {
   body.classList.toggle('is-hidden', !isHidden);
   headerEl.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
   if (chevron) chevron.textContent = isHidden ? '▾' : '▸';
+  // TKT2 (REQ CAEL-0717-01): persistir el nuevo estado — sobrevive al próximo re-render
+  // disparado por _planDrop().
+  _planDoneExpanded = isHidden;
 }
 
 // Handler de cierre de la vista Planificación desde el tab Sprint.

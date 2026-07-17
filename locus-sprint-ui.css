@@ -1,3 +1,8 @@
+/* [PP] mod:9 · autor:Rune · 2026-07-17 UTC-6 */
+/* TKT2 (REQ CAEL-0717-01): .bl-plan-done-header con background: var(--surface2) — distinción
+   de contraste contra #bl-plan-left-body. .bl-plan-done-group border-top var(--border) →
+   var(--border2) (token real ya usado en el archivo — var(--border-strong) no existe,
+   corregido en Fase 5 por Finn). Sin box-shadow nuevo — consistente con .bl-plan-card. */
 /* [PP] mod:8 · autor:Rune · 2026-07-17 UTC-6 */
 /* TKT1 (REQ CAEL-0717-01): .bl-plan-card--done + .bl-plan-done-group/header/body — bloque
    Terminados colapsable en columna Q-Backlog (Sin Sprint) de Planificar. Sin nuevo valor
@@ -660,7 +665,7 @@
    diseño), sin componente de header nuevo. */
 .bl-plan-done-group {
   margin-top: 8px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--border2);
   padding-top: 8px;
 }
 
@@ -669,6 +674,8 @@
   align-items: center;
   gap: 6px;
   padding: 4px 4px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
   cursor: pointer;
   user-select: none;
 }
