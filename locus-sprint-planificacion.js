@@ -1,3 +1,13 @@
+// [PP] mod:34 · autor:Rune · 2026-07-17 UTC-6
+// TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): subsistema muerto "Sprint selector
+// bar" eliminado — _roadmapSprintFilter, _statusPills, roadmapGoToSprint, _buildSprintOption,
+// _buildSprintSelector, _blSprintOpen, _blSprintClose, _blSprintSelect, _blSprintToggleClosed,
+// _attachSprintBarDelegation, _renderSprintRoadmap. Sin call sites reales fuera del propio
+// bloque (AC3, grep confirmado sobre locus-sprint-planificacion.js + locus-backlog-render.js).
+// 4 imports huérfanos reducidos (AC5): _sprintDisplay, openSprintRetroView,
+// _getActiveStatuses/updateStatusFilterUI, _markBacklogListDirty/renderBacklogList. Import de
+// _statusPills en locus-backlog-render.js retirado (AC2, ver mod:87 de ese archivo). Sin cambio
+// de firma en funciones que permanecen. contract_update: no.
 // [PP] mod:33 · autor:Rune · 2026-07-17 UTC-6
 // TKT2 (REQ CAEL-0717-01): persistencia de estado expandido/colapsado del bloque Terminados
 // a través de re-renders de _renderPlanningView() disparados por _planDrop() — nueva
@@ -37,19 +47,16 @@
 // dependía de toggleArchivoHistorico, export eliminado de locus-backlog-historico.js al quitar
 // el acordeón colapsable del subtab Histórico.
 
-import { _getActiveSprint, _getSprintById, openSprintRetroView, setItemSprint } from './locus-backlog-sprints.js';
+import { _getActiveSprint, _getSprintById, setItemSprint } from './locus-backlog-sprints.js';
 import { showToast } from './locus-toast.js';
-import { getItems, itemKind, _getActiveStatuses, updateStatusFilterUI } from './locus-backlog-core.js';
-import { getActiveSprints, _sprintDisplay } from './locus-storage.js'; // TKT1-[pendiente-ID]: _sprintDisplay para trigger del selector
+import { getItems, itemKind } from './locus-backlog-core.js';
+import { getActiveSprints } from './locus-storage.js';
 import { esc } from './locus-ui-shell.js';
-import { _calcEstimatedVelocity, _markBacklogListDirty, renderBacklogList } from './locus-backlog-render.js';
+import { _calcEstimatedVelocity } from './locus-backlog-render.js';
 
 // ---------------------------------------------------------------------------
 // Estado interno
 // ---------------------------------------------------------------------------
-
-// T-202604-284: Sprint Roadmap — filtro activo (sprintId | null)
-let _roadmapSprintFilter = null;
 
 // R-202605-130: drag & drop handlers para vista planificación
 let _planDragCode = null;
@@ -60,313 +67,6 @@ let _planDragCode = null;
 // que el founder tenía abierto. Vive solo dentro de la misma vista viva — no persiste entre
 // recargas de página (AC no_incluye).
 let _planDoneExpanded = false;
-
-// ---------------------------------------------------------------------------
-// Status pills helper — usado en sprint bar y renderBacklogList
-// ---------------------------------------------------------------------------
-
-export function _statusPills(items) {
-  const counts = { pendiente: 0, done: 0, descartado: 0 };
-  // P's (ideas) no son trabajo activo — excluir de pendiente, consistente con _isCountableItem
-  items.forEach(i => {
-    if (i.status === 'pendiente' && itemKind(i) === 'DISC') return;
-    if (counts[i.status] !== undefined) counts[i.status]++;
-  });
-  const cfg = [
-    { key: 'pendiente', label: 'pendiente', color: 'var(--accent)',  bg: 'color-mix(in srgb, var(--accent) 15%, transparent)' },
-    { key: 'done',      label: 'done',      color: 'var(--green)',   bg: 'color-mix(in srgb, var(--green) 15%, transparent)' },
-    { key: 'descartado',label: 'desc.',     color: 'var(--c-done-text)', bg: 'var(--c-done-bg)' },
-  ];
-  return cfg
-    .filter(c => counts[c.key] > 0)
-    .map(c => `<span class="status-pill status-pill--${c.key}">${counts[c.key]} ${c.label}</span>`)
-    .join('');
-}
-
-// ---------------------------------------------------------------------------
-// Sprint selector bar
-// ---------------------------------------------------------------------------
-
-// T-202604-284: navegar al grupo de un sprint en el backlog
-export function roadmapGoToSprint(sprintId) {
-  // T-202604-364: click feedback en chip
-  requestAnimationFrame(() => {
-    document.querySelectorAll('.rm-chip').forEach(el => {
-      if (el.title && el.title.startsWith(sprintId + ' ·') || el.onclick && el.getAttribute('onclick') && el.getAttribute('onclick').includes(`'${sprintId}'`)) {
-        el.classList.remove('rm-chip--clicked');
-        void el.offsetWidth;
-        el.classList.add('rm-chip--clicked');
-        el.addEventListener('animationend', () => el.classList.remove('rm-chip--clicked'), { once: true });
-      }
-    });
-  });
-  // Si se hace click sobre el sprint ya activo → limpia filtro
-  _roadmapSprintFilter = (_roadmapSprintFilter === sprintId) ? null : sprintId;
-
-  // B-202604-159: actualizar chips visuales
-  _renderSprintRoadmap();
-
-  // T-202604-424: agrupación por sprint es siempre activa — no es necesario forzar sortMode
-  // Asegurar status pendiente incluido
-  if (!_getActiveStatuses().has('pendiente')) {
-    _getActiveStatuses().add('pendiente');
-    updateStatusFilterUI();
-  }
-
-  _markBacklogListDirty(); renderBacklogList();
-
-  if (!_roadmapSprintFilter) return;
-
-  // Scroll al grupo tras render
-  requestAnimationFrame(() => {
-    const groupId = sprintId === '__unassigned__'
-      ? 'sin-asignar'
-      : sprintId.toLowerCase().replace(/[^a-z0-9]/g, '-');
-    const groupEl = document.getElementById('vbody-' + groupId)?.closest('.version-group');
-    if (!groupEl) return;
-    groupEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    groupEl.classList.add('roadmap-sprint-highlight');
-    setTimeout(() => groupEl.classList.remove('roadmap-sprint-highlight'), 1800);
-  });
-}
-
-// B-202605-058: función de módulo única — elimina duplicación verbatim en _buildSprintSelector y _blSprintOpen
-function _buildSprintOption(sp) {
-  const id = sp.id;
-  // TKT-[pendiente-ID]: patrón id · label — fallback a solo id si no hay label propio
-  const displayName = sp.label ? `${id} · ${sp.label}` : id;
-  const status = sp.status || 'active';
-  const isActive = status === 'active';
-  const isClosed = status === 'closed';
-  const isSelected = _roadmapSprintFilter === id;
-  const total = getItems().filter(i => (i.sprint || '').trim() === id).length;
-  const done  = getItems().filter(i => (i.sprint || '').trim() === id && i.status === 'done').length;
-  const pct   = total > 0 ? Math.round((done / total) * 100) : 0;
-  const mark  = isActive ? '★' : isClosed ? '·' : '○';
-  const badgeCls = isActive ? 'bl-sprint-badge--active' : isClosed ? 'bl-sprint-badge--closed' : 'bl-sprint-badge--active';
-  const badgeTxt = isActive ? 'activo' : isClosed ? 'cerrado' : 'activo';
-  const activeCls = isActive ? ' is-active-sprint' : '';
-  const selectedCls = isSelected ? ' is-selected' : '';
-  const selectedAttr = isSelected ? ' aria-selected="true"' : '';
-  // T-202604-417: botón "Ver retro" para sprints cerrados con retroDoc guardado
-  const retroBtn = isClosed && sp.retroDoc
-    ? `<button class="bl-sprint-retro-btn" data-action="bl-sprint-retro" data-sprint-id="${esc(id)}" title="Ver retrospectiva" type="button">retro</button>`
-    : '';
-  return `<button class="bl-sprint-option${activeCls}${selectedCls}" data-action="bl-sprint-select" data-sprint-id="${esc(id)}" type="button"${selectedAttr}>
-    <span class="bl-sprint-option-mark">${mark}</span>
-    <span class="bl-sprint-option-name">${esc(displayName)}</span>
-    <div class="bl-sprint-option-meta">
-      <div class="bl-sprint-option-bar-wrap"><div class="bl-sprint-option-bar-fill" style="--sprint-option-bar-w:${pct}%"></div></div>
-      <span class="bl-sprint-option-pct">${pct}%</span>
-      <span class="bl-sprint-option-badge ${badgeCls}">${badgeTxt}</span>
-      ${retroBtn}
-    </div>
-  </button>`;
-}
-
-function _buildSprintSelector() {
-  const allSprints = getActiveSprints() || [];
-  if (!allSprints.length) return '';
-
-  // Sprint activo para el trigger
-  const activeSprint = allSprints.find(s => s.status === 'active');
-  const closedSprints = allSprints.filter(s => s.status === 'closed');
-
-  // datos del sprint activo para la barra de progreso del trigger
-  let triggerName = '', triggerPct = 0;
-  if (activeSprint) {
-    const id = activeSprint.id;
-    const total = getItems().filter(i => (i.sprint || '').trim() === id).length;
-    const done  = getItems().filter(i => (i.sprint || '').trim() === id && i.status === 'done').length;
-    triggerPct = total > 0 ? Math.round((done / total) * 100) : 0;
-    // TKT1-[pendiente-ID]: _sprintDisplay aplica patrón id · label — fallback a solo id si no hay label propio
-    triggerName = _sprintDisplay(activeSprint.id);
-  }
-
-  const triggerNameHtml = triggerName
-    ? `<span class="bl-sprint-active-name">${esc(triggerName)}</span>`
-    : `<span class="bl-sprint-active-name is-empty">Sin sprint activo</span>`;
-
-  const progressHtml = activeSprint ? `
-    <div class="bl-sprint-trigger-progress">
-      <div class="bl-sprint-trigger-bar-wrap">
-        <div class="bl-sprint-trigger-bar-fill" style="--sprint-pct:${triggerPct}%"></div>
-      </div>
-      <span class="bl-sprint-trigger-pct">${triggerPct}%</span>
-    </div>` : '';
-
-  // builder de opción individual — B-202605-058: referencia a función de módulo _buildSprintOption
-  const closedOptionsHtml = closedSprints.map(_buildSprintOption).join('');
-  const closedSection = closedSprints.length ? `
-    <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" data-action="bl-sprint-toggle-closed" type="button" aria-expanded="false">
-      <span class="bl-sprint-closed-toggle-label">Cerrados</span>
-      <span class="bl-sprint-closed-toggle-count">${closedSprints.length}</span>
-      <span class="bl-sprint-closed-toggle-arrow">▾</span>
-    </button>
-    <div class="bl-sprint-closed-list is-hidden" id="bl-sprint-closed-list">
-      ${closedOptionsHtml}
-    </div>` : '';
-
-  return `<div class="bl-sprint-trigger" id="bl-sprint-trigger" data-action="bl-sprint-open" role="button" tabindex="0" data-keyaction="bl-sprint-open" aria-expanded="false">
-    <span class="bl-sprint-trigger-label">Sprint</span>
-    ${triggerNameHtml}
-    ${progressHtml}
-    <span class="bl-sprint-trigger-arrow">▾</span>
-  </div>`;
-}
-
-// abrir dropdown del sprint selector
-function _blSprintOpen() {
-  const bar = document.getElementById('bl-sprint-bar');
-  const trigger = document.getElementById('bl-sprint-trigger');
-  if (!bar || !trigger) return;
-  if (document.getElementById('bl-sprint-dropdown')) return; // ya abierto
-
-  trigger.classList.add('is-open');
-  trigger.setAttribute('aria-expanded', 'true');
-
-  // construir dropdown
-  const allSprints = getActiveSprints() || [];
-  const activeSprint = allSprints.find(s => s.status === 'active');
-  const closedSprints = allSprints.filter(s => s.status === 'closed');
-
-  // B-202605-058: referencia a función de módulo _buildSprintOption — elimina duplicación
-  const openOptionsHtml   = [activeSprint].filter(Boolean).map(_buildSprintOption).join('');
-  const closedOptionsHtml = closedSprints.map(_buildSprintOption).join('');
-  const closedSection = closedSprints.length ? `
-    <button class="bl-sprint-closed-toggle" id="bl-sprint-closed-toggle" data-action="bl-sprint-toggle-closed" type="button" aria-expanded="false">
-      <span class="bl-sprint-closed-toggle-label">Cerrados</span>
-      <span class="bl-sprint-closed-toggle-count">${closedSprints.length}</span>
-      <span class="bl-sprint-closed-toggle-arrow">▾</span>
-    </button>
-    <div class="bl-sprint-closed-list is-hidden" id="bl-sprint-closed-list">
-      ${closedOptionsHtml}
-    </div>` : '';
-
-  bar.insertAdjacentHTML('beforeend', `
-    <div class="bl-sprint-dropdown" id="bl-sprint-dropdown">
-      <div class="bl-sprint-list" id="bl-sprint-list">
-        ${openOptionsHtml}
-        ${closedSection}
-      </div>
-    </div>
-    <div class="bl-sprint-overlay" id="bl-sprint-overlay" data-action="bl-sprint-close"></div>
-  `);
-  const overlayEl = document.getElementById('bl-sprint-overlay');
-  if (overlayEl) overlayEl.classList.add('open');
-}
-
-// cerrar dropdown — con animación de salida
-function _blSprintClose() {
-  const dropdown = document.getElementById('bl-sprint-dropdown');
-  const overlay  = document.getElementById('bl-sprint-overlay');
-  const trigger  = document.getElementById('bl-sprint-trigger');
-  if (trigger) {
-    trigger.classList.remove('is-open');
-    trigger.setAttribute('aria-expanded', 'false');
-  }
-  if (overlay) overlay.remove();
-  if (dropdown) {
-    dropdown.classList.add('is-closing');
-    let removed = false;
-    const removeOnce = () => {
-      if (removed) return;
-      removed = true;
-      dropdown.remove();
-    };
-    dropdown.addEventListener('animationend', removeOnce, { once: true });
-    // TKT1 (REQ CAEL-01): fallback — si no hay animación CSS que dispare animationend
-    // (ej. TKT3 aún no desplegado), el dropdown no debe quedar huérfano en el DOM.
-    setTimeout(removeOnce, 250);
-  }
-}
-
-// seleccionar sprint — filtra la lista y cierra
-function _blSprintSelect(sprintId) {
-  _blSprintClose();
-  roadmapGoToSprint(sprintId);
-}
-
-// toggle sección cerrados dentro del dropdown
-function _blSprintToggleClosed() {
-  const toggle = document.getElementById('bl-sprint-closed-toggle');
-  const list   = document.getElementById('bl-sprint-closed-list');
-  const arrow  = toggle ? toggle.querySelector('.bl-sprint-closed-toggle-arrow') : null;
-  if (!list) return;
-  const isOpen = !list.classList.contains('is-hidden');
-  list.classList.toggle('is-hidden', isOpen);
-  if (toggle) {
-    toggle.classList.toggle('is-open', !isOpen);
-    toggle.setAttribute('aria-expanded', isOpen ? 'false' : 'true');
-  }
-  if (arrow) arrow.textContent = isOpen ? '▾' : '▴';
-}
-
-// T-202605-054: delegación de eventos para #bl-sprint-bar — reemplaza handlers inline
-// Cubre: bl-sprint-open · bl-sprint-close · bl-sprint-select · bl-sprint-toggle-closed
-export function _attachSprintBarDelegation() {
-  const bar = document.getElementById('bl-sprint-bar');
-  if (!bar || bar._delegationAttached) return;
-  bar._delegationAttached = true;
-
-  bar.addEventListener('click', function _sprintBarClick(e) {
-    const action = e.target.closest('[data-action]');
-    if (!action) return;
-    const act = action.dataset.action;
-
-    if (act === 'bl-sprint-open') {
-      _blSprintOpen();
-      return;
-    }
-    if (act === 'bl-sprint-close') {
-      _blSprintClose();
-      return;
-    }
-    if (act === 'bl-sprint-select') {
-      _blSprintSelect(action.dataset.sprintId);
-      return;
-    }
-    if (act === 'bl-sprint-toggle-closed') {
-      _blSprintToggleClosed();
-      return;
-    }
-    if (act === 'bl-sprint-retro') {
-      openSprintRetroView(action.dataset.sprintId);
-      return;
-    }
-  });
-
-  bar.addEventListener('keydown', function _sprintBarKeydown(e) {
-    const action = e.target.closest('[data-keyaction="bl-sprint-open"]');
-    if (!action) return;
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      _blSprintOpen();
-    }
-  });
-}
-
-// render/update del sprint selector en #bl-sprint-bar
-export function _renderSprintRoadmap() {
-  const bar = document.getElementById('bl-sprint-bar');
-  if (!bar) return;
-  if (document.getElementById('bl-sprint-dropdown')) return;
-  const prevClosedList = document.getElementById('bl-sprint-closed-list');
-  const closedWasOpen = prevClosedList ? !prevClosedList.classList.contains('is-hidden') : false;
-  const html = _buildSprintSelector();
-  bar.innerHTML = html;
-  if (closedWasOpen) {
-    const newList   = document.getElementById('bl-sprint-closed-list');
-    const newToggle = document.getElementById('bl-sprint-closed-toggle');
-    const newArrow  = newToggle ? newToggle.querySelector('.bl-sprint-closed-toggle-arrow') : null;
-    if (newList)   newList.classList.remove('is-hidden');
-    if (newToggle) {
-      newToggle.classList.add('is-open');
-      newToggle.setAttribute('aria-expanded', 'true');
-    }
-    if (newArrow)  newArrow.textContent = '▴';
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Vista Planificación

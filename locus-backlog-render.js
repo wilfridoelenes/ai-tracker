@@ -1,3 +1,15 @@
+// [PP] mod:88 · autor:Rune · 2026-07-17 UTC-6
+// TKT1 (REQ-[pendiente-ID] Import huérfano _renderPlanningView, ref CAEL-0717-03): import de
+// _renderPlanningView retirado (línea 184) — sin call site en este archivo, confirmado con
+// grep contra el repo completo (52 archivos). Call site real intacto en locus-sprint.js
+// líneas 105/533. _attachPlanViewDelegation conservado — call site propio en línea 731.
+// contract_update: no.
+// [PP] mod:87 · autor:Rune · 2026-07-17 UTC-6
+// TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): AC2 — import de _statusPills
+// retirado (línea 178, sin call sites reales en este archivo — solo import + comentario
+// histórico L247). _renderPlanningView y _attachPlanViewDelegation conservados, ambos con
+// call site confirmado. Hallazgo fuera de scope registrado: _renderPlanningView sin call
+// site visible en este archivo — ver CHECKPOINT. Sin cambio de firma. contract_update: no.
 // [PP] mod:86 · autor:Rune · 2026-07-11 23:30 UTC-6
 // Fix inline (triggered_by TKT2-CAEL01): eliminada lógica muerta que escribía en #tpl-badge-qinc
 // (3 call sites: 2 en renderQIncPanel(), 1 en _updateSubtabBadges()) — elemento inexistente en
@@ -175,7 +187,7 @@ import { showToast } from './locus-toast.js';
 
 import { esc, getCurrentTab } from './locus-ui-shell.js';
 import { incSlaPriority } from './locus-inc-fields.js'; // TKT1 REQ-centralizar-accesores-itil
-import { _renderPlanningView, _attachPlanViewDelegation, _statusPills } from './locus-sprint-planificacion.js';
+import { _attachPlanViewDelegation } from './locus-sprint-planificacion.js';
 import { _updateDocLogCount } from './locus-doc-log.js';
 
 // Responsabilidad: Renderizado del backlog — vista Lista (sprint groups + jerarquía R→T/B),
