@@ -89,8 +89,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // INC-ingest-modal-close-unwired: botón × del modal de ingesta sin wiring — hallazgo
   // colateral de la investigación de #ingest-ta, resuelto inline a pedido del founder.
+  // TKT2 (REQ CAEL-0716-01): closeModal('ingest-modal-overlay') solo cerraba el propio
+  // overlay — #merge-diff-overlay quedaba huérfano abierto si el DIFF estaba visible.
+  // Cascada explícita: si #merge-diff-overlay está open+docked al momento del cierre,
+  // se cierra junto con el ingest modal (AC4 TKT2 — "ambos overlays pierden open juntos").
+  // No usa onClose de showMergeDiffPanel (ese callback es para cierre iniciado DESDE el
+  // propio panel DIFF, no desde el botón × del modal de ingesta — flujo inverso).
   const ingestModalClose = document.getElementById('ingest-modal-close-btn');
-  if (ingestModalClose) ingestModalClose.addEventListener('click', () => closeModal('ingest-modal-overlay'));
+  if (ingestModalClose) {
+    ingestModalClose.addEventListener('click', () => {
+      closeModal('ingest-modal-overlay');
+      const _mdiffOverlay = document.getElementById('merge-diff-overlay');
+      if (_mdiffOverlay && _mdiffOverlay.classList.contains('mdiff-overlay--docked')) {
+        _mdiffOverlay.classList.remove('open');
+        _mdiffOverlay.classList.remove('mdiff-overlay--docked');
+      }
+    });
+  }
 
   const gconfirmOverlay = document.getElementById('gconfirm-overlay');
   if (gconfirmOverlay) {

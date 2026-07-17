@@ -1,4 +1,4 @@
-<!-- [PP] mod:138 · autor:Rune · 2026-07-15 15:40 UTC-6 -->
+<!-- [PP] mod:139 · autor:Nova · 2026-07-16 UTC-6 -->
 <!-- INC-[pendiente-ID] (íconos Tabler no cargaban — cuadros grises transversales): agregado <link> CDN
      de @tabler/icons-webfont en <head>, aprobado por founder. Ningún archivo CSS/JS tocado — hallazgo
      era ausencia total del webfont, no error de clase ni de estilo. -->
@@ -1441,13 +1441,37 @@
   </div>
 </div>
 
-<!-- ingest-modal-overlay — REQ[CAEL-01] TKT1 (CAEL-02): modal de ingesta unificado, dos columnas full-canvas.
-     Stepper de 3 fases (#ingest-phasebar) removido — confirmado sin consumidor JS (grep completo,
-     _setPhase opera exclusivamente sobre ids per-card phase-paste-{id}/phase-confirm-{id}/phase-save-{id},
-     no relacionados a este modal). Batch/DIFF: TKT2/TKT3 (Rune), pendiente de implementación. -->
-<div class="modal-overlay" id="ingest-modal-overlay"
+<!-- ingest-modal-overlay — REQ[CAEL-0716-01] TKT1 (Nova): split view coordinado con
+     #merge-diff-overlay bajo .modal-split — 1/3 ingesta, 2/3 socket DIFF (ver
+     .modal-split__col--diff, locus-modals-base.css). El DIFF real que ocupa ese
+     espacio es #merge-diff-overlay en modo .mdiff-overlay--docked (Rune, TKT2/TKT3).
+     Stepper de 3 fases (#ingest-phasebar) removido — confirmado sin consumidor JS.
+     #diff-preview-modal/#ingest-diff-empty (columna interna de resumen de batch,
+     CAEL-06/CAEL-02) retirados — su función la asume el split coordinado (AC5 TKT1).
+     Gap de impacto lateral declarado en CHECKPOINT: locus-sesiones.js (_openIngestModal)
+     referenciaba ambos IDs para resetear el DIFF stale al cambiar de worker — TKT2
+     amplía su archivos/ac para reimplementar ese reset contra #merge-diff-overlay. -->
+<div class="modal-overlay modal-split" id="ingest-modal-overlay"
      role="dialog" aria-modal="true" aria-labelledby="ingest-modal-title">
-  <div class="modal modal--ingest">
+  <div class="modal modal--ingest modal-split__dialog">
+    <!-- modal-split__header — identidad del worker, shell vacío (BR-Execution §5).
+         Vocabulario reutilizado de #worker-header/AI Card (.sc-header-left/-right,
+         .sc-avatar, .sc-project, .sc-badge) — sin clases .msh-* nuevas, corrección
+         de nomenclatura declarada en CHECKPOINT sobre el AC original de Cael.
+         Rune puebla estos nodos en _openIngestModal(aiId) (TKT2) — mismo patrón que
+         _populateWorkerHeader() ya usa para #worker-header. Estado vacío
+         (.modal-split__header--empty + .msh-empty) si el modal abre sin worker activo. -->
+    <div class="modal-split__header" id="ingest-split-header">
+      <div class="sc-header-left">
+        <div class="sc-avatar" id="ingest-split-avatar"></div>
+        <span class="sc-project" id="ingest-split-project"></span>
+      </div>
+      <div class="sc-header-right">
+        <span class="sc-badge" id="ingest-split-badge"></span>
+      </div>
+    </div>
+
+    <div class="modal-split__col--ingest">
     <div class="ingest-modal-header">
       <div>
         <div class="ingest-modal-title-row">
@@ -1507,20 +1531,21 @@
           </div>
         </div>
       </div>
-
-      <div class="ingest-modal-col ingest-modal-col--right">
-        <div class="sc-diff-preview is-hidden" id="diff-preview-modal" aria-live="polite"></div>
-        <!-- Estado vacío — AC2 TKT1. Estático: existe siempre, visibilidad por clase (BR-Execution §5).
-             Rune (TKT3) alterna is-hidden entre este párrafo y #diff-preview-modal según haya batch procesado. -->
-        <p class="ingest-diff-empty" id="ingest-diff-empty">Sin batch procesado — pega CHECKPOINTs en la columna izquierda y presiona Procesar batch.</p>
-      </div>
     </div>
 
     <div class="modal-actions ingest-modal-actions">
       <button class="btn-primary" id="ingest-process-batch-btn" type="button">Procesar batch</button>
     </div>
+    </div>
+
+    <!-- modal-split__col--diff — socket reservado, decorativo (pointer-events:none).
+         El DIFF real es #merge-diff-overlay en modo --docked, ver nota de arquitectura
+         arriba. aria-hidden: no es contenido, es reserva de layout. -->
+    <div class="modal-split__col--diff" aria-hidden="true"></div>
+    <div class="modal-split__divider" aria-hidden="true"></div>
   </div>
 </div>
+
 
 <!-- status-confirm-overlay -->
 <div class="status-confirm-overlay" id="status-confirm-overlay">

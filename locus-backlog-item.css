@@ -1,4 +1,4 @@
-/* [PP] mod:56 · autor:Nova · 2026-07-14 UTC-6 */
+/* [PP] mod:57 · autor:Nova · 2026-07-16 UTC-6 */
 /* TKT2 (REQ-[pendiente-ID] · footer DOC-UPDATE vencido): .gf-ckpt--alert-docupdate agregada —
    var(--blue-text), mismo patrón que las 3 variantes existentes (--red/--amber/--purple).
    Sin tokens nuevos — --blue-text ya validado WCAG AA como texto (mod:54 de css-ref). */
@@ -1933,7 +1933,45 @@
   }
 }
 
-/* Dialog — 92vw × 88vh */
+/* ── .mdiff-overlay--docked — REQ[CAEL-0716-01] TKT1 (Nova): modo split desde
+   #ingest-modal-overlay (TKT2, Rune, aplica/retira la clase vía JS al invocar/cerrar
+   showMergeDiffPanel desde el flujo de ingesta — single paste y batch unificado,
+   TKT2/TKT3). Sin backdrop propio — el backdrop real lo pinta #ingest-modal-overlay
+   (.modal-split, locus-modals-base.css). Posición fixed calculada contra las mismas
+   custom properties --split-total-w/-h/-gap/-header-h (declaradas en :root,
+   locus-modals-base.css) — ambos diálogos quedan visualmente contiguos sin acoplar
+   su DOM. z-index explícito ≥ --z-modal-plus: antes de esta clase, .mdiff-overlay
+   dependía del orden de <link> entre este archivo y locus-modals-base.css para
+   ganar 900 sobre su propio z-index:500 declarado abajo (ambas reglas .modal-overlay/
+   .mdiff-overlay con igual especificidad, gana la última en el cascade) — el elemento
+   #merge-diff-overlay (class="modal-overlay mdiff-overlay") ya computaba 900 hoy por
+   ese orden de carga, no por diseño explícito; frágil ante cualquier reordenamiento de
+   <link> en index.html. .mdiff-overlay--docked fija el valor explícitamente. ── */
+.mdiff-overlay--docked {
+  background: transparent;
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-top: calc((100vh - var(--split-total-h)) / 2 + var(--split-header-h));
+  padding-left: calc((100vw - var(--split-total-w)) / 2 + var(--split-total-w) * 0.333 + var(--split-gap));
+  z-index: var(--z-modal-plus);
+}
+
+.mdiff-overlay--docked .mdiff-dialog {
+  width: calc(var(--split-total-w) * 0.667 - var(--split-gap) / 2);
+  max-width: none;
+  height: calc(var(--split-total-h) - var(--split-header-h));
+  max-height: none;
+  border-radius: 0 var(--radius-xl) var(--radius-xl) 0;
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mdiff-overlay--docked .mdiff-dialog {
+    transition: none;
+  }
+}
+
+/* Dialog — 92vw × 88vh (standalone, sin .mdiff-overlay--docked) */
 .mdiff-dialog {
   background: var(--surface);
   border: 1px solid var(--border2);

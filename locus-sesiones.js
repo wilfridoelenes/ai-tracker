@@ -1052,16 +1052,17 @@ export function _openIngestModal(aiId) {
     batchBtn._ingestBatchWired = true;
     batchBtn.addEventListener('click', () => _processIngestBatch());
   }
-  // Fix inline (TKT3): si el Worker entrante difiere del anterior (texto ya limpiado arriba),
-  // el DIFF renderizado por un batch procesado del Worker previo no debe quedar visible.
+  // Fix inline (TKT3, REQ CAEL-01) + TKT2 (REQ CAEL-0716-01): si el Worker entrante difiere
+  // del anterior (texto ya limpiado arriba), el DIFF docked de un batch/paste del Worker
+  // previo no debe quedar visible para el Worker entrante. #diff-preview-modal/#ingest-diff-empty
+  // (guard original) se retiraron del shell en TKT1 (CAEL-0716-02, AC5) — el mecanismo de
+  // resumen de batch que protegían ya no existe; el equivalente hoy es #merge-diff-overlay
+  // en modo mdiff-overlay--docked, coordinado desde el flujo unificado de ingesta (TKT2/TKT3).
   if (_prevAiId !== aiId) {
-    const diffEl = document.getElementById('diff-preview-modal');
-    const emptyEl = document.getElementById('ingest-diff-empty');
-    if (diffEl && emptyEl) {
-      diffEl.classList.add('is-hidden');
-      diffEl.innerHTML = '';
-      emptyEl.textContent = 'Sin batch procesado — pega CHECKPOINTs en la columna izquierda y presiona Procesar batch.';
-      emptyEl.classList.remove('is-hidden');
+    const _mdiffOverlay = document.getElementById('merge-diff-overlay');
+    if (_mdiffOverlay && _mdiffOverlay.classList.contains('mdiff-overlay--docked')) {
+      _mdiffOverlay.classList.remove('open');
+      _mdiffOverlay.classList.remove('mdiff-overlay--docked');
     }
   }
 }

@@ -1,4 +1,4 @@
-/* [PP] mod:7 · autor:Nova · 2026-07-15 UTC-6 */
+/* [PP] mod:8 · autor:Nova · 2026-07-16 UTC-6 */
 /* locus-modals-base.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 /* Restaurado (CAEL-06 · TKT1 CAEL-07): .modal--ingest y clases relacionadas — no persistieron en
    la entrega anterior (ver _PP-session-handoff-2026-07-13.md §1). Reconstruido contra el HTML real
@@ -381,28 +381,136 @@
 }
 
 /* ── .modal--ingest — modal de ingesta unificado (CAEL-06 TKT1) ──
-   Full-canvas (CAEL-02, REQ CAEL-01): ocupa el máximo disponible dentro del padding
-   1rem ya declarado en .modal-overlay (equivalente al área de Col1+Col2 de Sesiones).
-   max-width/max-height evitan deformación en ultrawide (2560×1080) — mismo criterio
-   que --bp-ultrawide ya usa max-width para contener contenido en viewports grandes
-   (_Locus-ux-ref §E-03, Locus es desktop-only 1920×1080 · 2560×1080; sin breakpoint
-   de apilado — no hay viewport objetivo por debajo de desktop). */
+   Sizing/posicionamiento full-canvas se movió a .modal-split__dialog (ver bloque
+   .modal-split más abajo, TKT1 REQ[CAEL-0716-01]) — este selector conserva solo
+   el layout interno propio (padding/flex column) del contenido de la columna
+   de ingesta, ahora aplicado también vía .modal-split__dialog en el mismo nodo. */
 .modal--ingest {
-  width: 100%;
-  height: 100%;
-  max-width: 1800px;
-  max-height: 960px;
   padding: 0;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
-/* Dos columnas — Ingesta (izquierda) / DIFF (derecha), simultáneas, sin stepper (CAEL-02). */
+/* ══ .modal-split — REQ[CAEL-0716-01] TKT1 (Nova): split view coordinado
+   #ingest-modal-overlay (1/3, izq) + #merge-diff-overlay (2/3, der) bajo una
+   sola superficie visual, un solo backdrop real. Arquitectura: ambos overlays
+   siguen siendo nodos DOM independientes — sin restructuración de #merge-diff-overlay
+   dentro de #ingest-modal-overlay, evita blast radius sobre los 3 call sites de
+   showMergeDiffPanel (locus-session-save.js, locus-session-parse.js). Se coordinan
+   por posición fixed calculada contra las mismas custom properties — el backdrop
+   real lo pinta solo #ingest-modal-overlay (.modal-split); #merge-diff-overlay en
+   modo docked (.mdiff-overlay--docked, definida junto a .mdiff-overlay en
+   locus-backlog-item.css — mismo archivo dueño de esa clase, no se duplica aquí)
+   va sin backdrop propio. BR-Execution §5 — shell estático en HTML, contenido
+   dinámico vía JS (Rune, TKT2/TKT3). ══ */
+
+:root {
+  --split-total-w: min(1800px, 92vw);
+  --split-total-h: min(960px, 88vh);
+  --split-gap: 18px;
+  --split-header-h: 60px;
+}
+
+/* Aplicada a #ingest-modal-overlay. Ancla el diálogo al tercio izquierdo del
+   área total en vez de centrarlo solo — dos diálogos fixed comparten la misma
+   franja horizontal/vertical centrada, calculada desde el mismo --split-total-w/-h. */
+.modal-overlay.modal-split {
+  justify-content: flex-start;
+  align-items: flex-start;
+  padding-top: calc((100vh - var(--split-total-h)) / 2 + var(--split-header-h));
+  padding-left: calc((100vw - var(--split-total-w)) / 2);
+}
+
+.modal-split__dialog {
+  width: calc(var(--split-total-w) * 0.333 - var(--split-gap) / 2);
+  height: calc(var(--split-total-h) - var(--split-header-h));
+  max-width: none;
+  max-height: none;
+  overflow: visible;
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-top: none;
+  border-radius: 0 0 0 var(--radius-xl);
+  box-sizing: border-box;
+  box-shadow: 0 24px 64px rgb(0 0 0 / 50%), 0 4px 16px rgb(0 0 0 / 30%);
+}
+
+/* Header compartido — identidad del worker. Vive en el DOM de #ingest-modal-overlay
+   (único diálogo real disponible sin mover #merge-diff-overlay, ver nota arriba) y
+   se extiende visualmente sobre el ancho total (columna ingest + socket DIFF) vía
+   position:absolute + width calculado — .modal-split__dialog declara overflow:visible
+   para no recortarlo. Vocabulario reutilizado de AI Card / #worker-header
+   (_Locus-css-ref — .sc-header/.sc-avatar/.sc-project/.sc-badge), sin clases nuevas
+   .msh-* — mismo lenguaje visual que el resto del ecosistema para identidad de worker. */
+.modal-split__header {
+  position: absolute;
+  top: calc(-1 * var(--split-header-h));
+  left: 0;
+  width: calc(100% + var(--split-total-w) * 0.667 + var(--split-gap));
+  height: var(--split-header-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 18px;
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-bottom: 1px solid var(--border);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  box-sizing: border-box;
+}
+
+.modal-split__header--empty {
+  color: var(--text3);
+}
+
+.modal-split__header--empty .msh-empty {
+  font-size: var(--text-xs);
+  color: var(--text3);
+}
+
+.modal-split__col--ingest {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Socket reservado — decorativo, nunca captura clicks (pointer-events:none).
+   Establece la proporción 2/3 medible en DevTools (AC1 TKT1) sin duplicar
+   contenido: el diálogo real que ocupa ese espacio es #merge-diff-overlay en
+   modo --docked, posicionado por coordenadas fixed independientes que usan las
+   mismas custom properties declaradas arriba en este bloque. */
+.modal-split__col--diff {
+  position: absolute;
+  top: 0;
+  left: calc(100% + var(--split-gap));
+  width: calc(var(--split-total-w) * 0.667 - var(--split-gap) / 2);
+  height: 100%;
+  pointer-events: none;
+}
+
+.modal-split__divider {
+  position: absolute;
+  top: 0;
+  left: calc(100% + var(--split-gap) / 2 - 0.5px);
+  width: 1px;
+  height: 100%;
+  background: var(--border2);
+  pointer-events: none;
+}
+
+/* Ingesta — layout interno de columna única (retirada la grid de dos columnas
+   CAEL-06/CAEL-02: el socket DIFF de esta iteración es .modal-split__col--diff,
+   ya no una columna interna de .modal--ingest — #diff-preview-modal/#ingest-diff-empty
+   se retiran del shell, ver AC5 TKT1 y CHECKPOINT — gap de impacto lateral en
+   locus-sesiones.js declarado ahí). */
 .ingest-modal-columns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
+  display: flex;
+  flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
   padding: 12px 18px 0;
@@ -425,17 +533,6 @@
   height: 100%;
   min-height: 200px;
   resize: none;
-}
-
-.ingest-modal-col--right {
-  border-left: 1px solid var(--border2);
-  padding-left: 18px;
-}
-
-.ingest-diff-empty {
-  margin: 10px 0 0;
-  font-size: var(--text-xs);
-  color: var(--text3);
 }
 
 .ingest-modal-actions {

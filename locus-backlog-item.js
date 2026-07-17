@@ -1,3 +1,8 @@
+// [PP] mod:110 · autor:Rune · 2026-07-16 UTC-6
+// INC-[pendiente-ID] (triggered_by REQ-202607-003/004/005): _assignPendingIds no seedeaba
+// slugMap con [tmp:REF_ID] al asignar código real a un ítem con refId — causa raíz de
+// parent:{ref_id,title} sin resolver ("Sin parent" en DIFF pese a ref_id/title correctos).
+// Fix en las dos ramas de Sub-paso 1a (código [tmp:slug] y código [pendiente-ID] genérico).
 // [PP] mod:109 · autor:Rune · 2026-07-13 UTC-6
 // CHG (triggered_by INC CAEL-03): applyPatchesFromTG() — bloque field==='promovida_a' ahora
 // normaliza incoming cuando llega como {ref_id,title}, replicando el guardrail ya aplicado a
@@ -1750,6 +1755,12 @@ export async function _assignPendingIds(tgItems, seedSlugMap) {
       reservedCodes.add(newCode);
       slugMap.set(item.code, newCode); // tmp:slug → código real asignado
       slugMap.set(newCode, newCode);   // identidad del código asignado
+      // INC-[pendiente-ID] (triggered_by REQ-202607-003/004/005 — parent:{ref_id,title} no
+      // resolvía): un ítem con refId nunca quedaba seedeado en slugMap bajo su clave
+      // [tmp:REF_ID] — mergeBacklogFromTG normaliza parent/depends_on/triggered_by/
+      // origen_disc/promovida_a de OTROS ítems a exactamente ese string ([tmp:${ref_id}])
+      // antes de llamar aquí, pero sin esta línea el lookup en Paso 2 siempre fallaba.
+      if (item.refId) slugMap.set(`[tmp:${item.refId}]`, newCode);
       paso1.push({ ...item, code: newCode, _wasAssigned: true });
       continue;
     }
@@ -1771,6 +1782,15 @@ export async function _assignPendingIds(tgItems, seedSlugMap) {
     // como clave de identidad; la clave '[pendiente-ID]' es solo el último asignado (compat legacy).
     slugMap.set('[pendiente-ID]', newCode); // identidad de la última asignación — compat legacy bloques de un ítem
     slugMap.set(newCode, newCode);          // identidad del código asignado — para resolución directa
+    // INC-[pendiente-ID] (triggered_by REQ-202607-003/004/005 — parent:{ref_id,title} no
+    // resolvía): causa raíz. Todo ítem nuevo declarado con ref_id llega aquí con
+    // code:'[pendiente-ID]' — nunca con code:'[tmp:REF_ID]' (ese formato no es parte del
+    // schema de emisión, ver __BR-Ecosystem §4). Sin este seed, slugMap nunca tenía entrada
+    // para [tmp:${refId}] y el Paso 2 de este mismo método fallaba el lookup para todo campo
+    // de referencia normalizado por mergeBacklogFromTG contra este ítem — el síntoma exacto
+    // del INC: TKTs con parent:{ref_id,title} mostrando "Sin parent" en el DIFF pese a que
+    // ref_id y title coincidían con el REQ declarante.
+    if (item.refId) slugMap.set(`[tmp:${item.refId}]`, newCode);
     paso1.push({ ...item, code: newCode, _wasAssigned: true });
   }
 

@@ -1,3 +1,17 @@
+// [PP] mod:53 · autor:Rune · 2026-07-17 09:40 UTC-6
+// TKT2 (REQ CAEL-0717-01 · AC1-4): agregada _buildFinnReleaseSection() — tarjeta de liberación
+//   de Finn (schema finn_release, BR-Ecosystem §8), leída directo de _ckptMeta.finnRelease sin
+//   const de normalización propia (a diferencia de _metaResumen/etc.) porque AC3 exige ausencia
+//   total de hueco visual cuando el CHECKPOINT no declara finn_release — la función retorna ''
+//   y el concat no inserta nada, sin rama condicional adicional en el punto de uso. Insertada
+//   ANTES de _buildNarrativeSection() en el concat de body.innerHTML (línea ~799): el resultado
+//   liberado precede a la narrativa de cómo se produjo. Orden interno fijo por AC1: liberado →
+//   que_hace → que_no_hace → probado (AC4, cada check con texto accesible "Verificado: [AC]") →
+//   listo_para → docs_pendientes (AC2, fila condicional solo si el array tiene elementos).
+//   Clases .mdiff-finnrelease-* consumidas desde _Locus-css-ref (Nova, locus-backlog-item.css
+//   mod:57) — reusa .mdiff-narrative-row/-label/-value para las filas simples, sin tokens nuevos.
+//   no_incluye: no toca _buildNarrativeSection() ni el mapeo de _ckptMeta.finnRelease en el
+//   parser — eso vive en locus-session-parse.js, fuera de este archivo (ver CHECKPOINT de TKT2).
 // [PP] mod:52 · autor:Rune · 2026-07-13 08:30 UTC-6
 // TKT3 (REQ-[pendiente-ID] · migración Step 0 DIFF → panel Sprint subtab): retirado el bloque
 // `if (_sprintProposal && body) {...}` completo — Step 0 HTML, listeners #mdiff-step0-approve/
@@ -648,6 +662,57 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
     </div>`;
   };
 
+  // TKT2 (REQ CAEL-0717-01): tarjeta de liberación de Finn — mismo patrón funcional que
+  // _buildNarrativeSection() (misma familia visual .mdiff-narrative-row/-label/-value para
+  // que_hace/que_no_hace/listo_para), insertada ANTES de ella en el concat de body.innerHTML:
+  // el resultado liberado precede a la narrativa de la sesión que lo produjo.
+  // Fuente: _ckptMeta.finnRelease (schema finn_release, BR-Ecosystem §8) — null si el
+  // CHECKPOINT no lo declara (AC3 del TKT: sin finn_release, sin tarjeta, sin hueco visual).
+  const _buildFinnReleaseSection = () => {
+    const _fr = _ckptMeta.finnRelease;
+    if (!_fr || typeof _fr !== 'object') return '';
+
+    // AC4: cada check lleva texto accesible "Verificado: [AC]" junto al símbolo — no solo color/ícono.
+    // Entrada de schema: "AC1 — sí" → se extrae el segmento antes de " — " como label del AC.
+    const _probadoHtml = (Array.isArray(_fr.probado) && _fr.probado.length)
+      ? `<div class="mdiff-finnrelease-probado">${
+          _fr.probado.map(p => {
+            const _label = String(p).split(' — ')[0].trim();
+            return `<span class="mdiff-finnrelease-check"><span class="mdiff-finnrelease-check-icon" aria-hidden="true">✓</span>Verificado: ${esc(_label)}</span>`;
+          }).join('')
+        }</div>`
+      : '';
+
+    // AC2: fila 6 condicional — solo si docs_pendientes tiene al menos un elemento.
+    const _docsHtml = (Array.isArray(_fr.docs_pendientes) && _fr.docs_pendientes.length)
+      ? `<div class="mdiff-finnrelease-docs-wrap">
+          <div class="mdiff-finnrelease-docs-label">Docs pendientes</div>
+          <div class="mdiff-finnrelease-docs-list">${
+            _fr.docs_pendientes.map(d => `<div class="mdiff-pending-item">${esc(d)}</div>`).join('')
+          }</div>
+        </div>`
+      : '';
+
+    // AC1: orden fijo — liberado → que_hace → que_no_hace → probado → listo_para → (docs, condicional)
+    return `<div class="mdiff-finnrelease-section">
+      <div class="mdiff-finnrelease-header">Liberado: ${esc(_fr.liberado || '')}</div>
+      <div class="mdiff-narrative-row">
+        <span class="mdiff-narrative-label">Qué hace</span>
+        <span class="mdiff-narrative-value">${esc(_fr.que_hace || '')}</span>
+      </div>
+      <div class="mdiff-narrative-row">
+        <span class="mdiff-narrative-label">Qué no hace</span>
+        <span class="mdiff-narrative-value">${esc(_fr.que_no_hace || '')}</span>
+      </div>
+      ${_probadoHtml}
+      <div class="mdiff-narrative-row">
+        <span class="mdiff-narrative-label">Listo para</span>
+        <span class="mdiff-narrative-value">${esc(_fr.listo_para || '')}</span>
+      </div>
+      ${_docsHtml}
+    </div>`;
+  };
+
   // TKT2-diff-visual: created/advanced/updated se muestran como chips de resumen —
   // sin header de sección propio, colapsable-toggle ni botón de sección independiente.
   // Las cards individuales (quickRowsHtml) se listan directo debajo de los chips.
@@ -743,7 +808,9 @@ export async function showMergeDiffPanel(tgItems, sessId, projId, onApply, ckptM
   // este bloque se saltaba (`!_sprintProposal`). Sin Step 0, body siempre renderiza narrativa +
   // secciones — condición reducida a solo `body`.
   if (body) {
-    body.innerHTML = _buildNarrativeSection() + _buildSummaryChipsBlock() + sectionsHtml;
+    // TKT2 (REQ CAEL-0717-01): finn_release precede a la narrativa de sesión — es el resultado
+    // liberado, no el contexto de cómo se produjo. Orden: finnRelease → narrative → chips → secciones.
+    body.innerHTML = _buildFinnReleaseSection() + _buildNarrativeSection() + _buildSummaryChipsBlock() + sectionsHtml;
     _renderTriggeredBySuggestion();
     _renderDraftPendingBanner();
   }

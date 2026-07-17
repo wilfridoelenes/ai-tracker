@@ -1,4 +1,12 @@
-// [PP] v1.0.0 · sprint:PP-S-HOTFIX · mod:6 · autor:Rune · 2026-07-04 21:30 UTC-6
+// [PP] v1.0.0 · sprint:PP-S-03 · mod:7 · autor:Rune · 2026-07-17 UTC-6
+// TKT1 (REQ finn_release/contract_detail.file — CAEL-0717-01): _ctrMergeFromItem ahora lee
+//   fn.file por función (infra_version 38, __BR-Execution §2) — antes solo se indexaba por
+//   contract.file de nivel de bloque, ignorando silenciosamente functions[].file cuando un
+//   TKT declaraba funciones en archivos distintos entre sí. Comportamiento heredado sin
+//   cambio: función sin file propio persiste bajo el file de nivel de bloque (AC2 del TKT).
+//   Módulo indexado en contratosData sigue siendo por file — una función con file propio
+//   distinto al de bloque ahora crea/usa la entrada de su propio módulo en vez de agruparse
+//   bajo el módulo del bloque. signature_change: false — sin cambio de firma de la función.
 // TKT3 (REQ-contract-rename): empty-state de renderContratos() actualizado — referencia
 //   contract_detail (no contract) y el array items del CHECKPOINT JSON vigente (no
 //   ---getItems()---, formato Gen1). Sin cambio de lógica ni de _ctrMergeFromItem.
@@ -42,6 +50,10 @@ function _ctrSave(d)  { try { localStorage.setItem(_ctrKey(), JSON.stringify(d))
 //     functions: [
 //       {
 //         name: string,
+//         file: string,          // TKT1 (REQ CAEL-0717-01) — opcional. Ausente = la función
+//                                 //   vive en el módulo de nivel de bloque (contract.file).
+//                                 //   Presente = la función vive en un archivo distinto al
+//                                 //   file de bloque; se indexa bajo su propio módulo.
 //         signature: string,
 //         invariants: string[],
 //         sideEffects: string[],
@@ -53,21 +65,37 @@ function _ctrSave(d)  { try { localStorage.setItem(_ctrKey(), JSON.stringify(d))
 // }
 
 // Merge de contrato desde un ítem parseado
-// ítem.contract = { file, functions: [ { name, signature, invariants, sideEffects, lastTouched, riskSprints } ] }
+// ítem.contract = { file, functions: [ { name, file, signature, invariants, sideEffects, lastTouched, riskSprints } ] }
+// TKT1 (REQ CAEL-0717-01): functions[].file es opcional por función — cuando está ausente,
+//   hereda contract.file (nivel de bloque), mismo comportamiento previo a este TKT.
 export function padEnd(s, n) { return String(s).padEnd(n); }
+
+// Resuelve (crea si falta) la entrada de módulo en contratosData para un file dado.
+// Extraído para reutilizar entre el file de bloque y el file por función (TKT1, CAEL-0717-01).
+function _ctrResolveModule(data, file, itemCode, now) {
+  if (!data[file]) {
+    data[file] = { file, updatedAt: now, updatedBy: itemCode, functions: [] };
+  }
+  const mod = data[file];
+  mod.updatedAt = now;
+  mod.updatedBy = itemCode;
+  return mod;
+}
 
 export function _ctrMergeFromItem(itemCode, contract) {
   if (!contract || !contract.file) return;
   const data = _ctrLoad();
   const now = Date.now();
-  if (!data[contract.file]) {
-    data[contract.file] = { file: contract.file, updatedAt: now, updatedBy: itemCode, functions: [] };
-  }
-  const mod = data[contract.file];
-  mod.updatedAt = now;
-  mod.updatedBy = itemCode;
+  // Módulo de nivel de bloque — se resuelve siempre, incluso si todas las funciones declaran
+  // su propio file, para preservar el invariante "contract.file existe en contratosData" que
+  // otros puntos del módulo (búsqueda, listado) asumen sin verificar.
+  const blockMod = _ctrResolveModule(data, contract.file, itemCode, now);
   (contract.functions || []).forEach(fn => {
     if (!fn.name) return;
+    // TKT1 (REQ CAEL-0717-01): fn.file ausente → hereda contract.file (comportamiento previo,
+    //   AC2). fn.file presente y distinto de contract.file → función se indexa en su propio
+    //   módulo, no en blockMod.
+    const mod = fn.file ? _ctrResolveModule(data, fn.file, itemCode, now) : blockMod;
     const existing = mod.functions.find(f => f.name === fn.name);
     if (existing) {
       if (fn.signature)    existing.signature    = fn.signature;

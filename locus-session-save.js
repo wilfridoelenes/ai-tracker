@@ -1,3 +1,17 @@
+// [PP] mod:71 · autor:Rune · 2026-07-17 10:35 UTC-6
+// TKT2 (REQ CAEL-0717-01 · AC1-4, parte 3/3): _ckptMeta gana finnRelease: parsed.finnRelease
+//   || null — cierra la cadena de propagación de finn_release iniciada en
+//   locus-session-parse.js (mod:124, parseCheckpoint → ai._parsed.finnRelease) y consumida
+//   por _buildFinnReleaseSection() en locus-backlog-merge.js (mod:53). Con este cambio el
+//   flujo embebido (ruta principal de ingesta de CHECKPOINT vía card de sesión) muestra la
+//   tarjeta de liberación de Finn — el flujo standalone ya quedó completo en
+//   locus-session-parse.js mod:124. no_incluye: no toca newSess (objeto de persistencia de
+//   historial, línea ~520 de este archivo) — finn_release no se agrega ahí, mismo criterio
+//   que finnObservations, que sí persiste en newSess por ser campo informativo de historial,
+//   pero finn_release es del DIFF (_ckptMeta), no del mini-historial; ampliar newSess no fue
+//   pedido por el TKT y se deja fuera para no expandir scope. No toca el flujo batch
+//   (_gatedDoApplyBatch en locus-session-parse.js, ckptMeta:{} hardcodeado) — deuda
+//   preexistente ya señalada en ese archivo, no ampliada aquí.
 // [PP] mod:70 · autor:Rune · 2026-07-13 16:10 UTC-6
 // TKT1 (REQ-[pendiente-ID] · promovida de DISC-202607-010): eliminado el import huérfano
 //   _tryIngestSprintProposal (sin FromParsed) — cero call sites en este archivo confirmado
@@ -586,6 +600,11 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
     // TKT-202606-014: valor crudo de draft (undefined/true/false) — gate de "draft ausente"
     // en showMergeDiffPanel necesita distinguir undefined de false, draftPending ya colapsa eso.
     draftRaw: parsed.draftRaw,
+    // TKT2 (REQ CAEL-0717-01 · AC1-4, parte 3/3 — cierra la propagación iniciada en
+    //   locus-session-parse.js mod:124 y consumida en locus-backlog-merge.js mod:53):
+    //   finn_release del CHECKPOINT parseado, propagado hasta ai._parsed.finnRelease por
+    //   parseCheckpoint(). null si el CHECKPOINT no lo declara — AC3, sin tarjeta, sin hueco.
+    finnRelease: parsed.finnRelease || null,
     // B-202606-037 AC-3: resetTime del worker para pre-llenar mdiff-duration-input en el DIFF.
     // Formato "HH:MM" — el DIFF stripea el separador antes de asignarlo al input.
     // Widget card: si el founder escribió hora en bexhaust-hora-{id} antes de pegar el CHECKPOINT,
@@ -647,6 +666,16 @@ export function _doSaveSession(id, ai, parsed, activeProj, horaResult) {
   // locus-session-parse.js). AC de edge case (revertir si se cierra sin confirmar) pendiente
   // — showMergeDiffPanel no expone onClose/onCancel hoy, ver CHECKPOINT de esta sesión.
   _setPhase(id, 2);
+  // TKT2 (REQ CAEL-0716-01): dockear #merge-diff-overlay contra #ingest-modal-overlay antes
+  // de abrir — la coordinación de posición/z-index vive en CSS (mdiff-overlay--docked,
+  // locus-backlog-item.css mod:57, Nova/TKT1); aquí solo se aplica la clase. Guard sobre
+  // .classList.contains('open') — si #ingest-modal-overlay no está abierto (llamada desde otro
+  // flujo, no debería ocurrir hoy pero evita dockear contra un overlay invisible), no dockea.
+  const _ingestOverlayForDock = document.getElementById('ingest-modal-overlay');
+  const _mdiffOverlayForDock = document.getElementById('merge-diff-overlay');
+  if (_ingestOverlayForDock && _ingestOverlayForDock.classList.contains('open') && _mdiffOverlayForDock) {
+    _mdiffOverlayForDock.classList.add('mdiff-overlay--docked');
+  }
   showMergeDiffPanel(_tgItemsForPanel, sessId, activeProj.id, (horaRaw) => {
     // B-202606-037: leer horaRaw desde el input del DIFF (mdiff-duration-input).
     // interpretHora convierte HHMM → { label, hhmm, epoch }. Si vacío → null → worker disponible.

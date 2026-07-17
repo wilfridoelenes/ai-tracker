@@ -1,3 +1,22 @@
+// [PP] mod:124 · autor:Rune · 2026-07-17 10:15 UTC-6
+// TKT2 (REQ CAEL-0717-01 · AC1-4, parte 2/2 — ver locus-backlog-merge.js mod:53 para la parte
+//   de render): propagado finn_release desde el CHECKPOINT JSON parseado. parseCheckpoint()
+//   extrae _rawFinnRelease (mismo guard que _rawSprintProposal — objeto real, no array, {}
+//   vacío tratado como ausente sin advertencia DocLog). Propagado a dos consumidores dentro de
+//   este archivo: ai._parsed.finnRelease (flujo embebido) y _ckptMetaStandalone.finnRelease
+//   (flujo standalone, consumido directo por showMergeDiffPanel en la línea de este mismo
+//   archivo que lo invoca). Flujo batch (_gatedDoApplyBatch, ckptMeta:{} hardcodeado) no
+//   recibe el campo — mismo criterio ya aplicado ahí a resumen/aprendizaje/sprintProposal,
+//   deuda preexistente no ampliada por este TKT.
+//   Bloqueo detectado durante implementación: el punto donde el flujo embebido invoca
+//   showMergeDiffPanel vive en locus-session-save.js (comentario línea ~1515 de este archivo),
+//   construyendo su propio ckptMeta — probablemente desde ai._parsed. Ese archivo no está
+//   adjunto en esta sesión y no fue declarado en el campo `archivos` del TKT (solo
+//   locus-backlog-item.css / locus-backlog-merge.js / locus-session-parse.js). Sin él, el
+//   flujo embebido (la ruta más común de ingesta de CHECKPOINT) no muestra la tarjeta de
+//   finn_release aunque el dato ya llegue propagado hasta ai._parsed — el flujo standalone
+//   sí queda completo con este cambio. no_incluye: no modifica locus-session-save.js (no
+//   adjunto) ni el flujo batch (fuera del scope declarado en `archivos`).
 // [PP] mod:123 · autor:Rune · 2026-07-15 16:20 UTC-6
 // CAEL-31 (TKT7): agregado _renderIngestResultItems() — lista de ítems en #ingest-result-items,
 //   cierra el no_incluye de CAEL-29/30. Sin cambio de HTML — shell ya existía.
@@ -730,6 +749,16 @@ export function parseCheckpoint(text) {
     const _rawFinnObservations = Array.isArray(_parsed.finn_observations) && _parsed.finn_observations.length
       ? _parsed.finn_observations
       : null;
+    // TKT2 (REQ CAEL-0717-01 · AC3): extraer finn_release — objeto del schema JSON (null si
+    //   ausente). Mismo criterio de guard que sprint_proposal: objeto real, no array, con al
+    //   menos una clave — un {} vacío se trata como ausente, sin advertencia DocLog (mismo
+    //   comportamiento que T-202606-079 para sprint_proposal).
+    const _rawFinnReleaseCandidate = (_parsed.finn_release && typeof _parsed.finn_release === 'object' && !Array.isArray(_parsed.finn_release))
+      ? _parsed.finn_release
+      : null;
+    const _rawFinnRelease = (_rawFinnReleaseCandidate && Object.keys(_rawFinnReleaseCandidate).length > 0)
+      ? _rawFinnReleaseCandidate
+      : null;
     // TKT-[pendiente-ID] (REQ-[pendiente-ID] · sprint_proposal + items REQ/TKT — BR-Ecosystem
     //   §8/§12): un CHECKPOINT con sprint_proposal no puede convivir con ítems REQ/TKT nuevos —
     //   el parser rechaza el bloque completo con el mismo shape de _jsonParseError ya usado para
@@ -774,6 +803,7 @@ export function parseCheckpoint(text) {
       _rawDocUpdates,                   // T-202606-017: array de doc_updates del schema JSON
       _rawSprintProposal,               // T-202606-017: objeto sprint_proposal del schema JSON (null si ausente)
       _rawFinnObservations,             // T-202606-018: array de finn_observations del schema JSON (null si ausente)
+      _rawFinnRelease,                  // TKT2 (REQ CAEL-0717-01): objeto finn_release del schema JSON (null si ausente)
       draft: _parsed.draft === true,    // T-202606-006: exponer draft para guard en parsePaste
       // TKT-202606-014 (REQ-202606-003 · AC2/AC3): valor crudo de _parsed.draft sin colapsar —
       //   necesario para distinguir "ausente" (undefined) de "false" explícito. `draft` de arriba
@@ -1467,6 +1497,11 @@ export function parsePaste(id) {
     sprintProposal:   (ckpt && ckpt._isJsonFormat) ? (ckpt._rawSprintProposal || null) : null,
     // T-202606-018: finn_observations — path JSON puro
     finnObservations: (ckpt && ckpt._isJsonFormat) ? (ckpt._rawFinnObservations || null) : null,
+    // TKT2 (REQ CAEL-0717-01): finn_release — path JSON puro. Propagado hasta aquí; el punto
+    //   donde este flujo llama a showMergeDiffPanel vive en locus-session-save.js (no adjunto
+    //   en esta sesión, no declarado en el campo `archivos` del TKT) — ver bloqueo declarado
+    //   en el CHECKPOINT de entrega.
+    finnRelease: (ckpt && ckpt._isJsonFormat) ? (ckpt._rawFinnRelease || null) : null,
     // T-202606-070: persistir rol y archivos del CHECKPOINT — ambos paths JSON y legacy
     rol:      ckpt ? (ckpt.rol      || '') : '',
     archivos: ckpt ? (ckpt.archivos || '') : '',
@@ -2629,6 +2664,10 @@ export function saveStandaloneCheckpoint() {
     proximoPaso: ckpt.proximoPaso  || '',
     // TKT-202606-014: valor crudo de draft — gate de "draft ausente" en showMergeDiffPanel.
     draftRaw:    ckpt.draftRaw,
+    // TKT2 (REQ CAEL-0717-01 · AC1-4): finn_release del CHECKPOINT parseado — showMergeDiffPanel
+    //   ya consume _ckptMeta.finnRelease directo (locus-backlog-merge.js mod:53). null si el
+    //   CHECKPOINT standalone no lo declara — AC3, sin tarjeta, sin hueco visual.
+    finnRelease: ckpt._rawFinnRelease || null,
   };
   // TKT (REQ-[pendiente-ID] · ref: consolidación de punto de entrada único de sprint_proposal):
   // Gate Step 0 de sprint_proposal retirado de este flujo — decisión del founder: la única
