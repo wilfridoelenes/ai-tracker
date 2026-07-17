@@ -1,3 +1,9 @@
+// [PP] mod:32 · autor:Rune · 2026-07-17 UTC-6
+// TKT1 (REQ CAEL-0717-01): bloque Terminados colapsable en columna Q-Backlog (Sin Sprint) de
+// Planificar — items done sin sprint ahora visibles y arrastrables ahí (antes solo visibles
+// en la barra Terminados de Q-Backlog, tab Backlog). Nuevo: doneUnassigned, _planDoneCard,
+// doneBlockHtml, _togglePlanDoneGroup, handler data-action="bl-plan-done-toggle" (click +
+// keydown). Sin cambio de firma en _renderPlanningView/_planCard/_attachPlanViewDelegation.
 // [PP] mod:31 · autor:Rune · 2026-07-12 01:35 UTC-6
 // TKT-202607-020 (REQ CAEL-01): unassigned excluye DISC (itemKind(i) !== 'DISC') — DISC nunca
 // persiste sprint (BR-Ecosystem §5/§4b), no debe renderizarse como candidato a jalar a sprint.
@@ -378,6 +384,21 @@ export function _renderPlanningView(listEl, closeCallback) {
     return (parseInt(b.effort) || 1) - (parseInt(a.effort) || 1);
   });
 
+  // TKT1 (REQ CAEL-0717-01): ítems done sin sprint — antes invisibles en Planificar aunque
+  // ya visibles en la barra Terminados de Q-Backlog (tab Backlog). Mismo criterio de sort que
+  // unassigned. No modifica el filtro de unassigned — los done siguen excluidos de esa lista.
+  const doneUnassigned = getItems().filter(i =>
+    !i.sprint &&
+    itemKind(i) !== 'DISC' &&
+    i.status === 'done'
+  ).sort((a, b) => {
+    const prioOrder = { high: 0, medium: 1, low: 2 };
+    const pa = prioOrder[a.priority] ?? 1;
+    const pb = prioOrder[b.priority] ?? 1;
+    if (pa !== pb) return pa - pb;
+    return (parseInt(b.effort) || 1) - (parseInt(a.effort) || 1);
+  });
+
   // Velocidad promedio — para meter de cada sprint destino
   const velocityData = _calcEstimatedVelocity();
   const velocityAvg  = velocityData ? velocityData.avg : null;
@@ -405,6 +426,15 @@ export function _renderPlanningView(listEl, closeCallback) {
       </div>
       <div class="bl-plan-card-title">${esc(item.title || '')}</div>
     </div>`;
+  }
+
+  // TKT1 (REQ CAEL-0717-01): variante de _planCard para ítems done sin sprint — agrega
+  // bl-plan-card--done al string ya generado por _planCard en vez de duplicar el markup o
+  // cambiar la firma de _planCard (contract_update: no — sin cambio de firma de función
+  // existente). draggable siempre true — el AC de arrastre no distingue por status.
+  function _planDoneCard(item) {
+    return _planCard(item, true, 'left')
+      .replace('class="bl-plan-card bl-plan-card--draggable"', 'class="bl-plan-card bl-plan-card--draggable bl-plan-card--done"');
   }
 
   // Helper: meter HTML para un sprint destino
@@ -466,6 +496,21 @@ export function _renderPlanningView(listEl, closeCallback) {
   const leftCards = unassigned.map(i => _planCard(i, true, 'left')).join('') ||
     `<div class="bl-plan-empty">Sin ítems sin sprint</div>`;
 
+  // TKT1 (REQ CAEL-0717-01): bloque Terminados — colapsable, nace colapsado (AC4), no se
+  // renderiza si doneUnassigned está vacío (AC7 — sin header con contador 0).
+  const doneBlockHtml = doneUnassigned.length
+    ? `<div class="bl-plan-done-group">
+        <div class="bl-plan-done-header" role="button" tabindex="0" aria-expanded="false" data-action="bl-plan-done-toggle">
+          <span class="bl-plan-dest-chevron" aria-hidden="true">▸</span>
+          <span class="bl-plan-col-title">Terminados</span>
+          <span class="bl-plan-col-count">${doneUnassigned.length}</span>
+        </div>
+        <div class="bl-plan-done-body is-hidden">
+          ${doneUnassigned.map(_planDoneCard).join('')}
+        </div>
+      </div>`
+    : '';
+
   // Construir columna derecha — T-202605-028: N cards, uno por sprint active
   const rightColContent = openSprints.length
     ? openSprints.map(_sprintDestCard).join('')
@@ -492,6 +537,7 @@ export function _renderPlanningView(listEl, closeCallback) {
           </div>
           <div class="bl-plan-col-body" id="bl-plan-left-body">
             ${leftCards}
+            ${doneBlockHtml}
           </div>
         </div>
 
@@ -660,11 +706,44 @@ export function _attachPlanViewDelegation(listEl) {
       return;
     }
 
+    // TKT1 (REQ CAEL-0717-01): toggle del bloque Terminados en Q-Backlog (Sin Sprint) —
+    // mismo criterio que el toggle de sprint destino de arriba (AC5).
+    const doneToggle = e.target.closest('[data-action="bl-plan-done-toggle"]');
+    if (doneToggle) {
+      _togglePlanDoneGroup(doneToggle);
+      return;
+    }
+
     const btn = e.target.closest('[data-action="bl-plan-close"]');
     if (!btn) return;
     // Volver al sub-tab Ítems — event dispatch para evitar ciclo con locus-sprint.js
     window.dispatchEvent(new CustomEvent('sprint:switch-subtab', { detail: { subtab: 'items', triggerBtn: document.getElementById('spt-tab-items') || null } }));
   });
+
+  // TKT1 (REQ CAEL-0717-01) AC6: Enter/Space sobre el header Terminados (tabindex="0")
+  // produce el mismo toggle que el click — accesibilidad de teclado, mismo patrón de
+  // delegación sobre listEl que el resto de handlers de este bloque.
+  listEl.addEventListener('keydown', function _planViewKeydown(e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const doneToggle = e.target.closest('[data-action="bl-plan-done-toggle"]');
+    if (!doneToggle) return;
+    e.preventDefault();
+    _togglePlanDoneGroup(doneToggle);
+  });
+}
+
+// TKT1 (REQ CAEL-0717-01): toggle compartido entre click y keydown — evita duplicar la
+// lógica de aria-expanded/is-hidden/chevron entre los dos listeners de arriba.
+function _togglePlanDoneGroup(headerEl) {
+  const group = headerEl.closest('.bl-plan-done-group');
+  if (!group) return;
+  const body    = group.querySelector('.bl-plan-done-body');
+  const chevron = headerEl.querySelector('.bl-plan-dest-chevron');
+  if (!body) return;
+  const isHidden = body.classList.contains('is-hidden');
+  body.classList.toggle('is-hidden', !isHidden);
+  headerEl.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+  if (chevron) chevron.textContent = isHidden ? '▾' : '▸';
 }
 
 // Handler de cierre de la vista Planificación desde el tab Sprint.

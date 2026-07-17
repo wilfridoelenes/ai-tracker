@@ -1,3 +1,7 @@
+/* [PP] mod:8 · autor:Rune · 2026-07-17 UTC-6 */
+/* TKT1 (REQ CAEL-0717-01): .bl-plan-card--done + .bl-plan-done-group/header/body — bloque
+   Terminados colapsable en columna Q-Backlog (Sin Sprint) de Planificar. Sin nuevo valor
+   hexadecimal — hereda border-color/tokens ya declarados. */
 /* [PP] mod:7 · autor:Nova · 2026-07-03 10:15 UTC-6 */
 
 /* === locus-backlog-render.js ===
@@ -271,6 +275,14 @@
   opacity: 0.45;
   transform: scale(0.97);
   box-shadow: 0 6px 20px rgb(0 0 0 / 30%);
+}
+
+/* TKT1 (REQ CAEL-0717-01): ítems done sin sprint en bloque Terminados de Planificar —
+   distinción visual de "ya no candidato activo" sin ocultarla, sin nuevo valor hexadecimal
+   (hereda border-color de .bl-plan-card). */
+.bl-plan-card--done {
+  border-style: dashed;
+  opacity: 0.75;
 }
 
 /* — Header de card: tipo · código · prio · dots — */
@@ -642,3 +654,43 @@
 .sprint-conflict-btn:hover {
   opacity: 0.8;
 }
+
+/* TKT1 (REQ CAEL-0717-01): bloque Terminados dentro de #bl-plan-left-body — mismo tamaño de
+   fuente y espaciado que .bl-plan-col-header/.bl-plan-col-count (ver Nova §Dependencias de
+   diseño), sin componente de header nuevo. */
+.bl-plan-done-group {
+  margin-top: 8px;
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+.bl-plan-done-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bl-plan-done-header .bl-plan-col-title {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--text3);
+}
+
+.bl-plan-done-header .bl-plan-dest-chevron {
+  font-size: var(--text-xs);
+  color: var(--text3);
+}
+
+.bl-plan-done-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bl-plan-done-body.is-hidden {
+  display: none;
+}
+
