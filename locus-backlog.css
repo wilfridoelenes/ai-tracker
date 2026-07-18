@@ -1,4 +1,4 @@
-/* [PP] mod:100 · autor:Nova · 2026-07-18 UTC-6 */
+/* [PP] mod:101 · autor:Nova · 2026-07-18 UTC-6 */
 /* Ad-hoc (sin REQ/TKT vía Cael, ítem directo de founder): rediseño de fila DISC en Q-DISC —
    de card boxeada (wash 4 caras, borde punteado, glow) a fila flat tipo inbox (Linear/Things).
    Reemplaza el bloque .bitem--idea completo (mod:95, L3698-3816: card base, ::before muerto
@@ -338,6 +338,21 @@
   margin-inline: auto;
   width: 100%;
   padding-left: var(--subtab-gutter); /* TKT1 · REQ gutter subtabs */
+}
+
+/* REQ CAEL-0718-01 · TKT1 (Nova) — mismo patrón que #tab-backlog (ver
+   §Full-bleed dentro de contenedor con gutter heredado en css-ref), mecanismo asimétrico:
+   #tab-proyectos solo declara padding-left (--subtab-gutter, 12px) — sin padding-right — así
+   que solo se cancela margin-left. Cancelar margin-inline completo introduciría overflow a la
+   derecha, donde no hay padding que compensar. .spt-nav y #proj-doc-actions (.tpl-sidebar-actions)
+   son los mismos componentes reutilizados de Backlog (ver index.html, comentario de migración
+   TKT1/REQ CAEL-01) — conservan su padding propio como gutter de contenido, sin cambio.
+   #tab-proyectos-inner (.tab-proyectos-content) no se toca — tiene padding propio simétrico
+   (1.5rem), independiente del gutter del padre. Scope exclusivo a #tab-proyectos — no afecta
+   el fix ya aplicado a #tab-backlog .spt-nav/.tpl-sidebar-actions (mod:100). */
+#tab-proyectos .spt-nav,
+#tab-proyectos .tpl-sidebar-actions {
+  margin-left: calc(-1 * var(--subtab-gutter));
 }
 
 .session-subtabs {
