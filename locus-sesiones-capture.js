@@ -1,4 +1,4 @@
-// [PP] mod:17 · autor:Rune · 2026-07-14 UTC-6
+// [PP] mod:18 · autor:Rune · 2026-07-17 15:40 UTC-6
 // locus-sesiones-capture.js
 // Responsabilidad: Quick Capture modal (stepper de 2 pasos) + Sesión interrumpida (T-055).
 // Dependencias: locus-sesiones-stats.js · locus-storage.js · locus-toast.js
@@ -304,7 +304,13 @@ function _qcAttemptSave(ai) {
       showToast('success', `${ai.name} — sesión rápida guardada`);
     }
     window.dispatchEvent(new CustomEvent('shell:render-tracker'));
-    if (getCurrentTab() === 'sesiones') window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
+    // TKT1 [pendiente-ID]: auto-selección del Worker usado en Quick Capture si el founder
+    // está en tab Sesiones — reutiliza shell:select-tracker-ai (locus-sesiones.js), mismo
+    // patrón de evento que shell:sesiones-render, sin import directo.
+    if (getCurrentTab() === 'sesiones') {
+      window.dispatchEvent(new CustomEvent('shell:sesiones-render'));
+      window.dispatchEvent(new CustomEvent('shell:select-tracker-ai', { detail: { aiId: ai.id } }));
+    }
   }).catch(() => {
     _qcSaving = false;
     _qcSetSavingState(false);
