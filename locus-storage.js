@@ -1,4 +1,4 @@
-// [PP] mod:119 · autor:Rune · 2026-07-13 UTC-6
+// [PP] mod:120 · autor:Rune · 2026-07-18 UTC-6
 // INC-[pendiente-ID]: isSupabaseAuthed() agregada — expone estado de auth (_supabase &&
 // _supabaseUser) sin exponer el cliente ni el user object. Consumida por loadBacklog()
 // en locus-backlog-core.js — antes typeof-guard muerto sobre variables module-privadas
@@ -2960,6 +2960,12 @@ export async function _loadFromSupabase() {
     // (a) event dispatch — locus-sesiones-stats.js escucha 'shell:mark-statusbar-dirty'
     _dispatch('shell:mark-statusbar-dirty');
     _dispatch('shell:render-backlog-list');
+    // TKT1 (REQ CAEL-0718-02): 'shell:backlog-render-dirty' es el evento que Q-Backlog
+    // (locus-backlog-qbacklog.js), Discoveries (locus-backlog-qdisc.js), Histórico e Incidentes
+    // (locus-backlog-render.js) ya escuchan con guard de panel activo — _loadFromSupabase()
+    // nunca lo disparaba, dejando esas 4 zonas con DOM desalineado de ITEMS tras un merge
+    // remoto en segundo plano. shell:render-backlog-list (arriba) solo cubre #backlog-list.
+    _dispatch('shell:backlog-render-dirty');
     // B: re-render tab Sprint tras carga Supabase — evita empty state en refresh
     _renderSprintTabFn();
     setSyncStatus('synced', '✓ sincronizado');

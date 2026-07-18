@@ -1,4 +1,4 @@
-// [PP] mod:29 · autor:Rune · 2026-07-18 UTC-6
+// [PP] mod:30 · autor:Rune · 2026-07-18 UTC-6
 // INC-CAEL-0718-01: agregado window.addEventListener('shell:close-item-panel', closeItemPanel)
 // — el evento que switchTab()/switchSubTab() (locus-ui-shell.js) despachan desde mod:44 nunca
 // tuvo consumidor real. Ver detalle completo junto a closeItemPanel(). Sin cambio de firma,
@@ -361,6 +361,17 @@ export function closeItemPanel() {
 // de origen. Mismo patrón que el resto de listeners `shell:*` de este módulo del ecosistema
 // (ver locus-backlog-qbacklog.js) — registrado una sola vez al cargar el módulo.
 window.addEventListener('shell:close-item-panel', closeItemPanel);
+
+// TKT1 (REQ CAEL-0718-02): refrescar el contenido del IDP cuando el backlog cambia y el
+// panel está abierto — mismo patrón de guard que shell:backlog-render-dirty en
+// locus-backlog-qbacklog.js/locus-backlog-qdisc.js/locus-backlog-render.js. No cierra el
+// panel — solo re-renderiza con los datos post-merge del mismo code, evitando que un sync
+// remoto en segundo plano deje el IDP abierto mostrando datos obsoletos o inexistentes.
+window.addEventListener('shell:backlog-render-dirty', () => {
+  if (!_itemPanelCode) return;
+  const item = getAnyItem(_itemPanelCode);
+  if (item) _renderItemPanel(item);
+});
 
 function _itemPanelEscHandler(e) {
   if (e.key === 'Escape') {

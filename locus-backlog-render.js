@@ -1,4 +1,4 @@
-// [PP] mod:88 · autor:Rune · 2026-07-17 UTC-6
+// [PP] mod:89 · autor:Rune · 2026-07-18 UTC-6
 // TKT1 (REQ-[pendiente-ID] Import huérfano _renderPlanningView, ref CAEL-0717-03): import de
 // _renderPlanningView retirado (línea 184) — sin call site en este archivo, confirmado con
 // grep contra el repo completo (52 archivos). Call site real intacto en locus-sprint.js
@@ -890,6 +890,10 @@ export function renderBacklogList(onRendered) {
   let filtered = getItems().filter(i => {
     if (i.status === 'historico') return false;
     const type = itemKind(i);
+    // TKT2 (REQ CAEL-0718-02): DISC nunca vive en Backlog list, sin importar el chip de
+    // filtro de tipo activo — invariante de arquitectura (__BR-Ecosystem §4b), DISC vive
+    // exclusivamente en Q-DISC. Confirmado por founder: exclusión total, no solo en Cerradas.
+    if (type === 'DISC') return false;
     const typeOk = type ? _getActiveTypes().has(type) : true;
     const statusOk = _getActiveStatuses().has(i.status);
     const _rawEffort = parseInt(i.effort) || 1;
@@ -994,10 +998,15 @@ export function renderBacklogList(onRendered) {
   // Incluye: R/T/B descartado + P descartado + P promovida
   // Solo visible cuando fstatus-descartado está activo (activeStatuses incluye 'descartado')
   // T-202606-060: typeOk aplicado sobre R/T/B — Ps siempre incluidas cuando el bloque es visible
+  // TKT2 (REQ CAEL-0718-02): DISC excluida de Backlog list sin excepción de status —
+  // invariante de arquitectura, DISC vive exclusivamente en Q-DISC (__BR-Ecosystem §4b).
+  // El caso especial anterior (TKT-202606-009) mostraba DISC descartada/promoted en Cerradas
+  // — decisión de código sin registro en _ob-history-log como decisión de founder. Sobreescrita
+  // con confirmación explícita del founder en sesión REQ CAEL-0718-02.
   const terminalItems = _getActiveStatuses().has('descartado')
     ? getItems().filter(i => {
         const type = itemKind(i);
-        if (type === 'DISC') return (i.status === 'descartado' || i.status === 'promoted') && _matchesQuery(i); // TKT-202606-009: Gen2 canónico
+        if (type === 'DISC') return false;
         const typeOk = type ? _getActiveTypes().has(type) : true;
         return i.status === 'descartado' && typeOk && _matchesQuery(i);
       })
