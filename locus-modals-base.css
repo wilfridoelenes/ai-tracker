@@ -1,4 +1,4 @@
-/* [PP] mod:11 · autor:Nova · 2026-07-17 UTC-6 */
+/* [PP] mod:12 · autor:Nova · 2026-07-17 UTC-6 */
 /* locus-modals-base.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 /* Restaurado (CAEL-06 · TKT1 CAEL-07): .modal--ingest y clases relacionadas — no persistieron en
    la entrega anterior (ver _PP-session-handoff-2026-07-13.md §1). Reconstruido contra el HTML real
@@ -412,38 +412,38 @@
    #global-footer (locus-radar.css L782-801), sin JS nuevo: todo calc() que
    consume --split-total-w en este archivo y en locus-backlog-item.css hereda el
    valor nuevo automáticamente. */
-/* --split-viewport-gutter (REQ CAEL-0717-01, TKT1, Nova): margen simétrico contra
-   los bordes extremos del viewport — antes 0 (dialog flush contra el borde izquierdo,
-   socket diff flush contra el derecho). Se resta ×2 de --split-total-w (una vez por
-   lado) y se aplica como padding-left del dialog — el borde derecho queda simétrico
-   sin declaración propia, porque .modal-split__col--diff ya calcula su ancho contra
-   --split-total-w reducido. Sin JS nuevo — mismo mecanismo reactivo que el resto de
-   este bloque. */
+/* Margen simétrico contra los bordes extremos del viewport — antes 0 (dialog flush
+   contra el borde izquierdo, socket diff flush contra el derecho). Se resta ×2 de
+   --split-total-w (una vez por lado) y se aplica como padding-left del dialog — el
+   borde derecho queda simétrico sin declaración propia, porque .modal-split__col--diff
+   ya calcula su ancho contra --split-total-w reducido. Sin JS nuevo — mismo mecanismo
+   reactivo que el resto de este bloque.
+   --split-viewport-gutter retirado (REQ CAEL-0717-02, TKT1, Nova) — consolidado en
+   --gutter-shell (locus-base.css), mismo valor (24px), sin período de gracia: se
+   introdujo y se retiró en el mismo sprint (__BR-Execution §2, sin retrocompatibilidad). */
 :root {
-  --split-viewport-gutter: 24px;
-  --split-total-w: calc(100vw - var(--split-viewport-gutter) * 2);
+  --split-total-w: calc(100vw - var(--gutter-shell) * 2);
   --split-total-h: calc(100vh - var(--header-h) - 1.95rem - 1px - var(--footer-h));
   --split-gap: 18px;
   --split-header-h: 60px;
 }
 
 body.radar-sb-open {
-  --split-total-w: calc(100vw - var(--rsb-width, 340px) - var(--split-viewport-gutter) * 2);
+  --split-total-w: calc(100vw - var(--rsb-width, 340px) - var(--gutter-shell) * 2);
 }
 
 body.radar-sb-collapsed {
-  --split-total-w: calc(100vw - var(--rsb-strip, 14px) - var(--split-viewport-gutter) * 2);
+  --split-total-w: calc(100vw - var(--rsb-strip, 14px) - var(--gutter-shell) * 2);
 }
 
 /* Aplicada a #ingest-modal-overlay. Ancla el diálogo al borde superior-izquierdo
    real del área disponible — ya no centrado, dos diálogos fixed comparten la
-   misma franja calculada desde el mismo --split-total-w/-h. padding-left pasa de
-   0 a --split-viewport-gutter (TKT1, REQ CAEL-0717-01) — ver nota arriba. */
+   misma franja calculada desde el mismo --split-total-w/-h. */
 .modal-overlay.modal-split {
   justify-content: flex-start;
   align-items: flex-start;
   padding-top: calc(var(--header-h) + 1.95rem + 1px + var(--split-header-h));
-  padding-left: var(--split-viewport-gutter);
+  padding-left: var(--gutter-shell);
 }
 
 .modal-split__dialog {
@@ -585,7 +585,7 @@ body.radar-sb-collapsed {
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
-  padding: 12px 18px 0;
+  padding: 12px var(--subtab-gutter) 0;
 }
 
 .ingest-modal-col {
@@ -609,7 +609,7 @@ body.radar-sb-collapsed {
 
 .ingest-modal-actions {
   margin: 0;
-  padding: 12px 18px 16px;
+  padding: 12px var(--subtab-gutter) 16px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -619,7 +619,7 @@ body.radar-sb-collapsed {
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px 12px;
+  padding: 16px var(--subtab-gutter) 12px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -684,17 +684,20 @@ body.radar-sb-collapsed {
   outline-offset: 2px;
 }
 
-/* Padding escopeado para componentes reutilizados dentro de .modal--ingest (padding:0 en el
+/* Margen escopeado para componentes reutilizados dentro de .modal--ingest (padding:0 en el
    modal para que el header quede flush) — no se toca .ingest-modal-meta/.ingest-validation-panel
    base, que se reutilizan sin cambio en otros contextos.
    CAEL-02 (TKT1): .paste-ta-wrap y .sc-diff-preview salieron de este selector — ya reciben
    espaciado horizontal del padding de .ingest-modal-columns (dos columnas), no de margen propio.
    .sc-stepper retirado — el stepper del modal (#ingest-phasebar) se removió del DOM; la clase
-   sigue viva para AI Card (locus-sesiones-card.css), sin instancia dentro de .modal--ingest. */
+   sigue viva para AI Card (locus-sesiones-card.css), sin instancia dentro de .modal--ingest.
+   REQ CAEL-0717-02 (TKT1, Nova): 18px → var(--subtab-gutter) (12px) — mismo token que ahora
+   comparten .ingest-modal-header/.ingest-modal-columns/.ingest-modal-actions (ver arriba),
+   consolidando las 4 secciones del modal de ingesta al mismo inset horizontal. */
 .modal--ingest .ingest-modal-meta,
 .modal--ingest .ingest-validation-panel {
-  margin-left: 18px;
-  margin-right: 18px;
+  margin-left: var(--subtab-gutter);
+  margin-right: var(--subtab-gutter);
 }
 
 .ingest-modal-meta {

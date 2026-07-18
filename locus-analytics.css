@@ -1,4 +1,4 @@
-/* [PP] mod:10 · autor:Nova · 2026-07-12 UTC-6 */
+/* [PP] mod:11 · autor:Nova · 2026-07-17 UTC-6 */
 /* TKT2 (CAEL-09 — REQ DISC-REQ-color-swap, CAEL-07): swap .ct-pill-req ↔ .ct-pill-disc,
    par con TKT1 (locus-backlog.css, mod:95) — .item-type-pill.REQ/.DISC. .ct-pill-req toma
    los valores que tenía .ct-pill-disc (--purple) y viceversa (--blue), mismo formato de
@@ -2996,9 +2996,10 @@
 
 /* §2E — Tabs / Layout */
 
-/* #tab-analytics */
+/* #tab-analytics — padding horizontal consolidado a --gutter-shell (REQ CAEL-0717-02, TKT1,
+   Nova): 2rem hardcoded → var(--gutter-shell) (24px). Eje vertical (top/bottom) sin cambio. */
 #tab-analytics {
-  padding: 2rem;
+  padding: 2rem var(--gutter-shell);
   max-width: var(--bp-ultrawide);
   margin-inline: auto;
   width: 100%;

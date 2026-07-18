@@ -1,4 +1,4 @@
-/* [PP] mod:10 · autor:Nova · 2026-07-17 UTC-6 */
+/* [PP] mod:11 · autor:Nova · 2026-07-17 UTC-6 */
 /* locus-base.css */
 
 
@@ -50,8 +50,9 @@
   --radius-2xl:     20px;  /* CSS-02: valor 20px en uso — sobre --radius-xl */
   --radius-pill:    999px;
 
-  /* ── Layout — subtabs (TKT1 · REQ gutter subtabs) ── */
-  --subtab-gutter: 12px; /* gutter izquierdo unificado — #tab-backlog .tpl-detail, #tab-proyectos, #tab-sesiones, #tab-analytics */
+  /* ── Layout — gutters horizontales (TKT1 · REQ gutter subtabs; TKT1 · REQ CAEL-0717-02 consolidación) ── */
+  --subtab-gutter: 12px; /* gutter compacto — .tpl-detail, #tab-proyectos, #tab-sesiones, #sprint-panel-sprints */
+  --gutter-shell: 24px; /* gutter de shell/viewport completo — #tab-analytics, #tab-backlog, Split View de Sesión (retira --split-viewport-gutter) */
 
   /* ── Aliases de radio — retrocompatibilidad ── */
   --radius:           var(--radius-md);

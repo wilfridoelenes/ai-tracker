@@ -1,4 +1,4 @@
-/* [PP] mod:98 · autor:Nova · 2026-07-15 UTC-6 */
+/* [PP] mod:99 · autor:Nova · 2026-07-17 UTC-6 */
 /* Ad-hoc (sin REQ/TKT vía Cael, ítem directo de founder): rediseño de fila DISC en Q-DISC —
    de card boxeada (wash 4 caras, borde punteado, glow) a fila flat tipo inbox (Linear/Things).
    Reemplaza el bloque .bitem--idea completo (mod:95, L3698-3816: card base, ::before muerto
@@ -309,7 +309,7 @@
 
 /* ══ TAB-BACKLOG ══ */
 #tab-backlog {
-  padding: 0 2rem 2rem; /* INC: padding-top:0 — .spt-nav quedaba 32px separado del header (vs #tab-sprint sin padding). Right/bottom/left conservan 2rem — decisión ya documentada en css-ref §Gutter unificado de subtabs: 32px ya excede el gutter objetivo de 12px, no requiere el token */
+  padding: 0 var(--gutter-shell) 2rem; /* INC: padding-top:0 — .spt-nav quedaba 32px separado del header (vs #tab-sprint sin padding), sin cambio. Right/left consolidados a var(--gutter-shell) (24px) — REQ CAEL-0717-02, TKT1, Nova. Reemplaza la nota anterior de css-ref (32px "no requiere el token" porque ya excedía el gutter de 12px) — esa nota es de antes de que existiera --gutter-shell; queda desactualizada y se propone DOC-UPDATE a css-ref. */
   max-width: var(--bp-ultrawide);
   margin-inline: auto;
   width: 100%;
