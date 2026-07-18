@@ -1,3 +1,10 @@
+// [PP] mod:29 · autor:Rune · 2026-07-18 UTC-6
+// INC-CAEL-0718-01: agregado window.addEventListener('shell:close-item-panel', closeItemPanel)
+// — el evento que switchTab()/switchSubTab() (locus-ui-shell.js) despachan desde mod:44 nunca
+// tuvo consumidor real. Ver detalle completo junto a closeItemPanel(). Sin cambio de firma,
+// sin impacto lateral — closeItemPanel() ya existía y ya se invocaba desde otros call sites
+// de este mismo módulo (ESC handler, delegación de click). Único cambio: el ítem ahora también
+// se cierra cuando la señal llega desde afuera del módulo.
 // [PP] mod:28 · autor:Rune · 2026-07-13 08:40 UTC-6
 // Fix directo en sesión (Auditoría Nova IDP, Hallazgo #2): discard_reason ahora se
 //   renderiza también en el slot Reactiva (INC/PRB/KE/CHG descartado) — antes solo
@@ -345,6 +352,15 @@ export function closeItemPanel() {
   _itemPanelCode = null;
   document.removeEventListener('keydown', _itemPanelEscHandler);
 }
+
+// INC-CAEL-0718-01: switchTab()/switchSubTab() (locus-ui-shell.js, mod:44/B-202605-207)
+// despachan 'shell:close-item-panel' desde mod:44 — sin este listener el evento no tenía
+// consumidor real pese a que el comentario fuente en locus-ui-shell.js ya declaraba
+// "locus-backlog-panel.js escucha 'shell:close-item-panel'". El panel quedaba abierto y
+// montado al cambiar de sub-tab (ej. Discoveries → Backlog), mostrando el ítem del subtab
+// de origen. Mismo patrón que el resto de listeners `shell:*` de este módulo del ecosistema
+// (ver locus-backlog-qbacklog.js) — registrado una sola vez al cargar el módulo.
+window.addEventListener('shell:close-item-panel', closeItemPanel);
 
 function _itemPanelEscHandler(e) {
   if (e.key === 'Escape') {
