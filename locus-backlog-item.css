@@ -1,4 +1,4 @@
-/* [PP] mod:57 · autor:Nova · 2026-07-16 UTC-6 */
+/* [PP] mod:58 · autor:Nova · 2026-07-17 UTC-6 */
 /* TKT2 (REQ-[pendiente-ID] · footer DOC-UPDATE vencido): .gf-ckpt--alert-docupdate agregada —
    var(--blue-text), mismo patrón que las 3 variantes existentes (--red/--amber/--purple).
    Sin tokens nuevos — --blue-text ya validado WCAG AA como texto (mod:54 de css-ref). */
@@ -1946,8 +1946,16 @@
    .mdiff-overlay con igual especificidad, gana la última en el cascade) — el elemento
    #merge-diff-overlay (class="modal-overlay mdiff-overlay") ya computaba 900 hoy por
    ese orden de carga, no por diseño explícito; frágil ante cualquier reordenamiento de
-   <link> en index.html. .mdiff-overlay--docked fija el valor explícitamente. ── */
-.mdiff-overlay--docked {
+   <link> en index.html.
+   Fix (Hallazgo Rune, triggered_by diagnóstico modales de ingesta): el mismo problema
+   de especificidad-empatada-gana-la-última-en-cascade que motivó fijar z-index arriba
+   afectaba también background/justify-content/align-items — .modal-overlay (línea 78,
+   locus-modals-base.css, cargado después de este archivo) sobrescribía los tres,
+   dejando el panel centrado con backdrop propio en vez de dockeado. Selector calificado
+   con #merge-diff-overlay eleva la especificidad de esta regla (1,1,0) por encima de
+   .modal-overlay (0,1,0) de forma explícita — ya no depende del orden de <link>, mismo
+   criterio de raíz que z-index, aplicado ahora a las cuatro propiedades. ── */
+#merge-diff-overlay.mdiff-overlay--docked {
   background: transparent;
   justify-content: flex-start;
   align-items: flex-start;
@@ -1956,7 +1964,7 @@
   z-index: var(--z-modal-plus);
 }
 
-.mdiff-overlay--docked .mdiff-dialog {
+#merge-diff-overlay.mdiff-overlay--docked .mdiff-dialog {
   width: calc(var(--split-total-w) * 0.667 - var(--split-gap) / 2);
   max-width: none;
   height: calc(var(--split-total-h) - var(--split-header-h));
