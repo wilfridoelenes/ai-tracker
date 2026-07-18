@@ -1,4 +1,15 @@
-/* [PP] mod:5 · autor:Nova · 2026-07-17 15:05 UTC-6 */
+/* [PP] mod:6 · autor:Nova · 2026-07-17 UTC-6 */
+/* CAEL-0717-0X: swap semántico insession↔interrupted — decisión founder. Semáforo
+   verde/naranja/rojo para available/insession/exhausted; interrupted hereda el morado
+   que insession libera. Selectores migrados: .rsb-card.interrupted-state ·
+   .rsb-session-elapsed · .rsb-ckpt-direct-btn (+hover, ambas declaraciones) ·
+   .rsb-interrupted-badge · .rsb-status-interrupted · .rsb-hdr-session (+dot) ·
+   .rsb-card.in-session-state (las tres declaraciones del archivo, incluida la de
+   mayor especificidad de cascada con #a78bfa hardcoded → var(--amber)). Colisión
+   resuelta: .rsb-session-elapsed.rsb-elapsed-warn pasa de --amber a --red — con
+   insession ahora ámbar, el warning de sesión larga necesitaba un tercer tono para
+   seguir comunicando escalada de urgencia sin fundirse con el estado base. Ver
+   comentario inline en el selector + doc-update en _Locus-css-ref/_Locus-ux-ref. */
 /* locus-radar.css */
 /* Versión: 1.3 | Última actualización: 2026-05-13 | B1 fondo explícito sidebar · B2 auto-init JS (ver nota) · B3 pin icon dual SVG */
 
@@ -347,8 +358,8 @@
 }
 
 .rsb-card.interrupted-state {
-  border-left: 3px solid var(--amber);
-  background: linear-gradient(135deg, rgb(245 158 11 / 8%) 0%, var(--radar-card-bg, rgb(255 255 255 / 4%)) 60%);
+  border-left: 3px solid var(--purple);
+  background: linear-gradient(135deg, rgb(124 106 247 / 8%) 0%, var(--radar-card-bg, rgb(255 255 255 / 4%)) 60%);
 }
 
 /* ── Card internals ── */
@@ -394,7 +405,7 @@
 }
 
 /* TKT1 (CAEL-0717-01): foco visible — .rsb-card-quick ahora se usa también en
-   in-session-state (morado), además de available (verde). Mismo token que
+   in-session-state (ámbar tras CAEL-0717-0X), además de available (verde). Mismo token que
    .tsb-ai-row:focus-visible en este archivo. */
 .rsb-card-quick:focus-visible {
   opacity: 1;
@@ -429,38 +440,45 @@
 .rsb-session-elapsed {
   font-size: var(--text-2xs-plus);
   font-weight: 600;
-  color: var(--purple);
+  color: var(--amber);
   white-space: nowrap;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
 }
 
+/* CAEL-0717-0X: reasignado a --red (antes --amber) — el swap insession↔interrupted
+   dejó --amber como color base de insession (arriba), y el warning de "sesión
+   corriendo mucho tiempo" necesita seguir siendo un tono distinto del estado base
+   para comunicar algo. --red preserva la escalada de urgencia de dos niveles ya
+   existente (base tranquilo → alerta) sin introducir token nuevo ni colisionar con
+   available/insession/interrupted. No coincide con el border-left rojo de exhausted
+   porque vive en un label de texto interno, no en el acento lateral de la card. */
 .rsb-session-elapsed.rsb-elapsed-warn {
-  color: var(--amber);
+  color: var(--red);
 }
 
-/* Botón CKPT directo — un click desde card En sesión */
+/* Botón CKPT directo — un click desde card En sesión. Ámbar tras CAEL-0717-0X. */
 .rsb-ckpt-direct-btn {
   display: flex;
   align-items: center;
   gap: 4px;
   width: 100%;
   margin-top: 5px;
-  background: rgb(167 139 250 / 8%);
-  border: 1px solid rgb(167 139 250 / 20%);
+  background: rgb(245 158 11 / 8%);
+  border: 1px solid rgb(245 158 11 / 20%);
   border-radius: var(--radius-xs);
   padding: 3px 8px;
   cursor: pointer;
   font-size: var(--text-2xs-plus);
   font-weight: 600;
-  color: var(--purple);
+  color: var(--amber);
   transition: background 0.12s, border-color 0.12s;
   text-align: left;
 }
 
 .rsb-ckpt-direct-btn:hover {
-  background: rgb(167 139 250 / 14%);
-  border-color: rgb(167 139 250 / 35%);
+  background: rgb(245 158 11 / 14%);
+  border-color: rgb(245 158 11 / 35%);
 }
 
 /* ── Agotadas — compact one-liner ── */
@@ -533,14 +551,14 @@
   margin-left: 2px;
 }
 
-/* ── Interrupted badge ── */
+/* ── Interrupted badge — invertido en CAEL-0717-0X ── */
 .rsb-interrupted-badge {
   display: inline-flex;
   align-items: center;
   gap: 4px;
   font-size: var(--text-2xs);
   font-weight: 600;
-  color: var(--amber);
+  color: var(--purple);
   margin-top: 3px;
 }
 
@@ -581,8 +599,8 @@
 }
 
 .rsb-status-interrupted {
-  color: var(--amber);
-  background: rgb(240 180 41 / 10%);
+  color: var(--purple);
+  background: rgb(124 106 247 / 10%);
 }
 
 /* .rsb-status-available y .rsb-status-session retiradas — mod:5 (CAEL-0717-04).
@@ -636,14 +654,14 @@
   background: var(--red);
 }
 
-/* en sesión — pulse */
+/* en sesión — pulse. Ámbar tras CAEL-0717-0X. */
 .rsb-hdr-session {
-  background: rgb(167 139 250 / 12%);
-  color: var(--purple);
+  background: rgb(245 158 11 / 12%);
+  color: var(--amber);
 }
 
 .rsb-hdr-session .rsb-hdr-dot {
-  background: var(--purple);
+  background: var(--amber);
   animation: rsb-dot-pulse 1.5s ease-in-out infinite;
 }
 
@@ -1358,22 +1376,22 @@ body.radar-sb-collapsed #global-footer {
 }
 
 /* ── Card EN SESIÓN: jerarquía elevada ── */
-/* Fondo levemente más opaco + borde izquierdo más pronunciado */
+/* Fondo levemente más opaco + borde izquierdo más pronunciado. Ámbar tras CAEL-0717-0X. */
 .rsb-card.in-session-state {
-  background: rgb(167 139 250 / 8%);
-  border-left: 3px solid var(--purple);
+  background: rgb(245 158 11 / 8%);
+  border-left: 3px solid var(--amber);
 }
 
 /* Botón CKPT directo: más peso visual como CTA primario */
 .rsb-ckpt-direct-btn {
-  background: rgb(167 139 250 / 14%);
-  border-color: rgb(167 139 250 / 35%);
+  background: rgb(245 158 11 / 14%);
+  border-color: rgb(245 158 11 / 35%);
   padding: 4px 10px;
 }
 
 .rsb-ckpt-direct-btn:hover {
-  background: rgb(167 139 250 / 22%);
-  border-color: rgb(167 139 250 / 55%);
+  background: rgb(245 158 11 / 22%);
+  border-color: rgb(245 158 11 / 55%);
 }
 
 /* ══ END R-202605-180 ══ */
@@ -1461,11 +1479,11 @@ body.radar-sb-collapsed #global-footer {
   background: linear-gradient(135deg, var(--red-dim) 0%, var(--radar-card-bg, rgb(255 255 255 / 4%)) 60%);
 }
 
-/* .rsb-card.in-session-state */
+/* .rsb-card.in-session-state — invertido en CAEL-0717-0X, ver header del archivo */
 .rsb-card.in-session-state {
-  box-shadow: 0 0 0 1px rgb(167 139 250 / 35%), 0 2px 8px rgb(167 139 250 / 18%);
-  border-left: 3px solid #a78bfa;
-  background: linear-gradient(135deg, rgb(167 139 250 / 9%) 0%, var(--radar-card-bg, rgb(255 255 255 / 4%)) 60%);
+  box-shadow: 0 0 0 1px rgb(245 158 11 / 35%), 0 2px 8px rgb(245 158 11 / 18%);
+  border-left: 3px solid var(--amber);
+  background: linear-gradient(135deg, rgb(245 158 11 / 9%) 0%, var(--radar-card-bg, rgb(255 255 255 / 4%)) 60%);
 }
 
 /* R-202605-112: Radar Sidebar — jerarquía visual por estado de IA (Entrega 1: orden + opacidad) */

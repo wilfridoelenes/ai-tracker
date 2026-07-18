@@ -1,4 +1,10 @@
-/* [PP] mod:9 · autor:Nova · 2026-07-14 UTC-6 */
+/* [PP] mod:10 · autor:Nova · 2026-07-17 UTC-6 */
+/* CAEL-0717-0X: swap semántico insession↔interrupted (decisión founder — semáforo
+   verde/naranja/rojo para available/insession/exhausted; interrupted confirmado sin uso
+   frecuente, hereda el morado liberado por insession). --purple↔--amber invertidos en
+   .sc-avatar--insession/--interrupted y .sc-badge--insession/--interrupted. Ver
+   CHECKPOINT y _Locus-css-ref/_Locus-ux-ref (doc-update adjunto) para el detalle
+   completo de selectores migrados en los 3 archivos reales. */
 /* Fix Nova (hallazgo del founder): .sc-badge--avail y .sc-badge--exhausted usaban tokens
    genéricos c-pulido/c-won (semántica kanban en-curso/descartado) en vez de colores
    semánticos del propio estado — disponible mostraba pill cian/azul en vez de verde.
@@ -63,8 +69,9 @@
 }
 
 /* CAEL-02 (REQ CAEL-01): sc-avatar refleja estado del worker — mismo lenguaje de color
-   que .card-avatar (available/exhausted/interrupted) + insession nuevo (purple, sin
-   precedente previo — mismo tono que .card-status-pill.insession). */
+   que .card-avatar (available/exhausted/interrupted). insession/interrupted invertidos
+   en CAEL-0717-0X — insession ahora ámbar (semáforo verde/naranja/rojo), interrupted
+   hereda el morado liberado, mismo tono que .card-status-pill.insession histórico. */
 .sc-avatar--available {
   color: var(--green);
   box-shadow: 0 0 0 2px var(--green);
@@ -76,13 +83,13 @@
 }
 
 .sc-avatar--interrupted {
-  color: var(--amber);
-  box-shadow: 0 0 0 2px var(--amber);
+  color: var(--purple);
+  box-shadow: 0 0 0 2px var(--purple);
 }
 
 .sc-avatar--insession {
-  color: var(--purple);
-  box-shadow: 0 0 0 2px var(--purple);
+  color: var(--amber);
+  box-shadow: 0 0 0 2px var(--amber);
 }
 
 /* Pulso — solo available e insession (hay actividad real o disponibilidad activa).
@@ -167,17 +174,17 @@
 }
 
 /* CAEL-02 (REQ CAEL-01): completa el modificador que T-202606-074 AC-8 ya anticipaba
-   en comentario pero nunca se creó — mismo tono que .card-status-pill.insession. */
+   en comentario pero nunca se creó. Color invertido en CAEL-0717-0X — ver header. */
 .sc-badge--insession {
-  background: rgb(124 106 247 / 8%);
-  color: var(--purple);
-  border-color: rgb(124 106 247 / 35%);
+  background: rgb(245 158 11 / 8%);
+  color: var(--amber);
+  border-color: rgb(245 158 11 / 35%);
 }
 
 .sc-badge--interrupted {
-  background: rgb(245 158 11 / 8%);
-  color: var(--amber);
-  border-color: var(--amber);
+  background: rgb(124 106 247 / 8%);
+  color: var(--purple);
+  border-color: var(--purple);
 }
 
 .sc-badge--exhausted {

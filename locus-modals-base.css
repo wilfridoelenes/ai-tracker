@@ -1,4 +1,4 @@
-/* [PP] mod:10 · autor:Nova · 2026-07-17 UTC-6 */
+/* [PP] mod:11 · autor:Nova · 2026-07-17 UTC-6 */
 /* locus-modals-base.css — extraído de locus-modals.css mod:7 por REQ split (TKT1) */
 /* Restaurado (CAEL-06 · TKT1 CAEL-07): .modal--ingest y clases relacionadas — no persistieron en
    la entrega anterior (ver _PP-session-handoff-2026-07-13.md §1). Reconstruido contra el HTML real
@@ -412,29 +412,38 @@
    #global-footer (locus-radar.css L782-801), sin JS nuevo: todo calc() que
    consume --split-total-w en este archivo y en locus-backlog-item.css hereda el
    valor nuevo automáticamente. */
+/* --split-viewport-gutter (REQ CAEL-0717-01, TKT1, Nova): margen simétrico contra
+   los bordes extremos del viewport — antes 0 (dialog flush contra el borde izquierdo,
+   socket diff flush contra el derecho). Se resta ×2 de --split-total-w (una vez por
+   lado) y se aplica como padding-left del dialog — el borde derecho queda simétrico
+   sin declaración propia, porque .modal-split__col--diff ya calcula su ancho contra
+   --split-total-w reducido. Sin JS nuevo — mismo mecanismo reactivo que el resto de
+   este bloque. */
 :root {
-  --split-total-w: 100vw;
+  --split-viewport-gutter: 24px;
+  --split-total-w: calc(100vw - var(--split-viewport-gutter) * 2);
   --split-total-h: calc(100vh - var(--header-h) - 1.95rem - 1px - var(--footer-h));
   --split-gap: 18px;
   --split-header-h: 60px;
 }
 
 body.radar-sb-open {
-  --split-total-w: calc(100vw - var(--rsb-width, 340px));
+  --split-total-w: calc(100vw - var(--rsb-width, 340px) - var(--split-viewport-gutter) * 2);
 }
 
 body.radar-sb-collapsed {
-  --split-total-w: calc(100vw - var(--rsb-strip, 14px));
+  --split-total-w: calc(100vw - var(--rsb-strip, 14px) - var(--split-viewport-gutter) * 2);
 }
 
 /* Aplicada a #ingest-modal-overlay. Ancla el diálogo al borde superior-izquierdo
    real del área disponible — ya no centrado, dos diálogos fixed comparten la
-   misma franja calculada desde el mismo --split-total-w/-h. */
+   misma franja calculada desde el mismo --split-total-w/-h. padding-left pasa de
+   0 a --split-viewport-gutter (TKT1, REQ CAEL-0717-01) — ver nota arriba. */
 .modal-overlay.modal-split {
   justify-content: flex-start;
   align-items: flex-start;
   padding-top: calc(var(--header-h) + 1.95rem + 1px + var(--split-header-h));
-  padding-left: 0;
+  padding-left: var(--split-viewport-gutter);
 }
 
 .modal-split__dialog {
@@ -507,6 +516,53 @@ body.radar-sb-collapsed {
   width: calc(var(--split-total-w) * 0.667 - var(--split-gap) / 2);
   height: 100%;
   pointer-events: none;
+}
+
+/* ── .msc-diff-empty — REQ[CAEL-0717-01] TKT1 (Nova): estado vacío del socket
+   .modal-split__col--diff antes de procesar un batch/paste. Mismo patrón visual
+   que .scm-du-empty (dashed border, hint, padding 28px 16px). Nodo estático en
+   HTML (index.html, dentro de .modal-split__col--diff) — contenido invariante,
+   no depende de datos (BR-Execution §5). Visibilidad resuelta 100% por CSS via
+   selector de hermano general: sin JS nuevo, sin classList adicional sobre el
+   socket — #merge-diff-overlay.mdiff-overlay--docked ya existe como mecanismo
+   de estado en los 4 call sites reales (locus-session-save.js, locus-session-parse.js
+   ×2, locus-sesiones.js, locus-modals.js) sin que este TKT los toque. ── */
+.msc-diff-empty {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin: 18px;
+  border: 1px dashed var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 28px 16px;
+  box-sizing: border-box;
+}
+
+.msc-diff-empty-icon {
+  font-size: var(--text-display-2xl);
+  color: var(--text3);
+}
+
+.msc-diff-empty-title {
+  margin: 10px 0 4px;
+  font-size: var(--text-sm);
+  color: var(--text2);
+}
+
+.msc-diff-empty-hint {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text3);
+}
+
+/* Oculto cuando el panel de revisión está docked — #merge-diff-overlay precede a
+   #ingest-modal-overlay en el DOM (index.html), ambos hijos directos del mismo
+   contenedor raíz — el combinador ~ resuelve sin necesitar padre común explícito. */
+#merge-diff-overlay.mdiff-overlay--docked ~ #ingest-modal-overlay .msc-diff-empty {
+  display: none;
 }
 
 .modal-split__divider {

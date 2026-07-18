@@ -1,4 +1,4 @@
-<!-- [PP] mod:140 · autor:Rune · 2026-07-17 12:40 UTC-6 -->
+<!-- [PP] mod:141 · autor:Rune · 2026-07-17 UTC-6 -->
 <!-- INC-[pendiente-ID] (íconos Tabler no cargaban — cuadros grises transversales): agregado <link> CDN
      de @tabler/icons-webfont en <head>, aprobado por founder. Ningún archivo CSS/JS tocado — hallazgo
      era ausencia total del webfont, no error de clase ni de estilo. -->
@@ -1523,8 +1523,20 @@
 
     <!-- modal-split__col--diff — socket reservado, decorativo (pointer-events:none).
          El DIFF real es #merge-diff-overlay en modo --docked, ver nota de arquitectura
-         arriba. aria-hidden: no es contenido, es reserva de layout. -->
-    <div class="modal-split__col--diff" aria-hidden="true"></div>
+         arriba. aria-hidden: no es contenido, es reserva de layout.
+         .msc-diff-empty (TKT1, REQ CAEL-0717-01, Nova): estado vacío estático — texto
+         invariante, no depende de datos (BR-Execution §5). Visibilidad 100% CSS via
+         selector de hermano contra #merge-diff-overlay.mdiff-overlay--docked
+         (locus-modals-base.css) — sin JS nuevo, sin classList adicional aquí. -->
+    <div class="modal-split__col--diff" aria-hidden="true">
+      <div class="msc-diff-empty">
+        <div>
+          <i class="ti ti-git-compare msc-diff-empty-icon" aria-hidden="true"></i>
+          <p class="msc-diff-empty-title">El panel de revisión aparece aquí</p>
+          <p class="msc-diff-empty-hint">Se activa al procesar el batch</p>
+        </div>
+      </div>
+    </div>
     <div class="modal-split__divider" aria-hidden="true"></div>
   </div>
 </div>

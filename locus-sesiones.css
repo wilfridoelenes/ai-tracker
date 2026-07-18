@@ -1,4 +1,18 @@
-/* [PP] mod:31 · autor:Nova · 2026-07-14 UTC-6 */
+/* [PP] mod:32 · autor:Nova · 2026-07-17 UTC-6 */
+/* CAEL-0717-0X: swap semántico insession↔interrupted — decisión founder. Semáforo
+   verde/naranja/rojo para available/insession/exhausted; interrupted (confirmado activo
+   pero de uso infrecuente, ver _Locus-ux-ref §J-01) hereda el morado que insession libera.
+   Selectores migrados en este archivo: .card-avatar.interrupted · .card-status-pill.insession
+   (+ dot) · .card.available.in-session-state (+hover) · .hoy-mini-card.in-session-state
+   (+hover, +hoy-mini-ckpt-full/hover) · .hoy-mini-badge--insession/--interrupted ·
+   .card.interrupted-state · .hoy-mini-card.interrupted-state · .worker-header--insession/
+   --interrupted (+::before pulse) · .interrupted-banner (+text, +btn:hover) ·
+   .card.available .interrupted-banner.visible (border) · .btn-interrupt:hover.
+   Excluidos por pertenecer a otra taxonomía (severidad de notificación/entry-type/
+   doc-update/warn genérico, no estado de worker): .et-quick/.et-interrupted,
+   .log-pill--interrupted (usa --red, no toca), .mh-badge-docupdate, .rsb-notif-type--info.
+   Ver doc-update en _Locus-css-ref/_Locus-ux-ref y CHECKPOINT para el detalle completo,
+   incluida la colisión resuelta en .rsb-elapsed-warn (locus-radar.css). */
 /* CAEL-02 (REQ CAEL-01) — ajuste founder: .worker-header-unlock — countdown alineado a la
    izquierda (justify-content: flex-start, antes space-between) igual que el resto de la fila;
    border-left rojo (3px, var(--red-border)) extendido a esta fila — continúa el acento de
@@ -385,9 +399,9 @@
 }
 
 .card-avatar.interrupted {
-  background: rgb(232 168 50 / 10%);
-  color: var(--amber);
-  box-shadow: 0 0 0 2px var(--amber);
+  background: rgb(124 106 247 / 10%);
+  color: var(--purple);
+  box-shadow: 0 0 0 2px var(--purple);
 }
 
 .card-avatar-initial {
@@ -478,9 +492,9 @@
 }
 
 .card-status-pill.insession {
-  color: var(--purple);
-  border-color: rgb(124 106 247 / 35%);
-  background: rgb(124 106 247 / 8%);
+  color: var(--amber);
+  border-color: rgb(245 158 11 / 35%);
+  background: rgb(245 158 11 / 8%);
 }
 
 /* Status dot animado dentro del pill */
@@ -1727,7 +1741,7 @@
 .card.available .interrupted-banner.visible {
   display: flex;
   border-top: none;
-  border-bottom: 1px solid rgb(232 168 50 / 20%);
+  border-bottom: 1px solid rgb(124 106 247 / 20%);
   border-radius: 0;
 }
 
@@ -1736,9 +1750,9 @@
 }
 
 .btn-interrupt:hover {
-  color: var(--amber);
-  border-color: rgb(232 168 50 / 40%);
-  background: rgb(232 168 50 / 6%);
+  color: var(--purple);
+  border-color: rgb(124 106 247 / 40%);
+  background: rgb(124 106 247 / 6%);
 }
 
 /* T-054: timestamp relativo en card */
@@ -2659,14 +2673,14 @@
 }
 
 .card.available.in-session-state {
-  border-left: 4px solid var(--purple);
-  background: rgb(124 106 247 / 5%);
+  border-left: 4px solid var(--amber);
+  background: rgb(245 158 11 / 5%);
   animation: none;
 }
 
 .card.in-session-state:hover,
 .card.available.in-session-state:hover {
-  border-color: var(--purple);
+  border-color: var(--amber);
 }
 
 /* hoy-mini-card: card simplificada para Tab Hoy */
@@ -2700,16 +2714,17 @@
   box-shadow: var(--card-shadow-hover);
 }
 
-/* T-182: En curso = draft activo — morado consistente con estado del bottom bar */
+/* T-182: En curso = draft activo — ámbar consistente con estado del bottom bar.
+   Invertido en CAEL-0717-0X — era morado, ver header del archivo. */
 .hoy-mini-card.in-session-state,
 .hoy-mini-card.available.in-session-state {
-  border-left: 4px solid var(--purple);
-  background: rgb(124 106 247 / 7%);
+  border-left: 4px solid var(--amber);
+  background: rgb(245 158 11 / 7%);
 }
 
 .hoy-mini-card.in-session-state:hover,
 .hoy-mini-card.available.in-session-state:hover {
-  border-color: var(--purple);
+  border-color: var(--amber);
   box-shadow: var(--card-shadow-hover);
 }
 
@@ -2839,16 +2854,16 @@
   color: #fff;
 }
 
-/* T-182: botón + checkpoint morado para cards "En curso" */
+/* T-182: botón + checkpoint ámbar para cards "En curso" — invertido en CAEL-0717-0X */
 .hoy-mini-card.in-session-state .hoy-mini-ckpt-full {
-  color: var(--purple);
-  background: rgb(124 106 247 / 6%);
-  border-top-color: rgb(124 106 247 / 20%);
-  border-bottom-color: rgb(124 106 247 / 20%);
+  color: var(--amber);
+  background: rgb(245 158 11 / 6%);
+  border-top-color: rgb(245 158 11 / 20%);
+  border-bottom-color: rgb(245 158 11 / 20%);
 }
 
 .hoy-mini-card.in-session-state .hoy-mini-ckpt-full:hover {
-  background: rgb(124 106 247 / 14%);
+  background: rgb(245 158 11 / 14%);
   color: #fff;
 }
 
@@ -2864,15 +2879,15 @@
 }
 
 .hoy-mini-badge--interrupted {
-  color: var(--amber);
-  background: rgb(240 180 41 / 12%);
-  border: 1px solid rgb(240 180 41 / 25%);
+  color: var(--purple);
+  background: rgb(124 106 247 / 12%);
+  border: 1px solid rgb(124 106 247 / 25%);
 }
 
 .hoy-mini-badge--insession {
-  color: var(--purple);
-  background: rgb(124 106 247 / 12%);
-  border: 1px solid rgb(124 106 247 / 28%);
+  color: var(--amber);
+  background: rgb(245 158 11 / 12%);
+  border: 1px solid rgb(245 158 11 / 28%);
 }
 
 .hoy-mini-proj-row {
@@ -3779,7 +3794,7 @@
 }
 
 .card.interrupted-state {
-  border-left: 3px solid var(--amber);
+  border-left: 3px solid var(--purple);
 }
 
 .card-strip {
@@ -3888,7 +3903,7 @@
 }
 
 .hoy-mini-card.interrupted-state {
-  border-left: 3px solid var(--amber);
+  border-left: 3px solid var(--purple);
 }
 
 .hoy-mini-name {
@@ -4300,20 +4315,21 @@
 }
 
 /* CAEL-02 (REQ CAEL-01): acento lateral por estado — mismo patrón que
-   .rsb-card.available / .rsb-card.interrupted-state (locus-radar.css). */
+   .rsb-card.available / .rsb-card.interrupted-state (locus-radar.css).
+   insession/interrupted invertidos en CAEL-0717-0X — ver header del archivo. */
 .worker-header--available {
   border-left: 3px solid var(--green);
   background: linear-gradient(135deg, var(--green-dim) 0%, var(--surface, transparent) 60%);
 }
 
 .worker-header--insession {
-  border-left: 3px solid var(--purple);
-  background: linear-gradient(135deg, rgb(124 106 247 / 8%) 0%, var(--surface, transparent) 60%);
+  border-left: 3px solid var(--amber);
+  background: linear-gradient(135deg, rgb(245 158 11 / 8%) 0%, var(--surface, transparent) 60%);
 }
 
 .worker-header--interrupted {
-  border-left: 3px solid var(--amber);
-  background: linear-gradient(135deg, rgb(245 158 11 / 8%) 0%, var(--surface, transparent) 60%);
+  border-left: 3px solid var(--purple);
+  background: linear-gradient(135deg, rgb(124 106 247 / 8%) 0%, var(--surface, transparent) 60%);
 }
 
 .worker-header.worker-header--exhausted {
@@ -4379,7 +4395,7 @@
 }
 
 .worker-header--insession::before {
-  box-shadow: inset 0 0 22px -4px var(--purple);
+  box-shadow: inset 0 0 22px -4px var(--amber);
 }
 
 @keyframes whHeaderPulse {
@@ -6609,18 +6625,18 @@ body.radar-sb-open .tracker-sidebar {
   color: var(--text3);
 }
 
-/* .interrupted-banner */
+/* .interrupted-banner — invertido en CAEL-0717-0X, ver header del archivo */
 .interrupted-banner {
   display: none;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  background: rgb(232 168 50 / 8%);
-  border-bottom: 1px solid rgb(240 180 41 / 22%);
+  background: rgb(124 106 247 / 8%);
+  border-bottom: 1px solid rgb(124 106 247 / 22%);
   padding: 6px 14px;
   animation: bannerSlideIn 0.25s var(--ease-out);
   font-family: var(--font-sans);
-  border-top: 1px solid rgb(232 168 50 / 20%);
+  border-top: 1px solid rgb(124 106 247 / 20%);
   font-size: var(--text-xs);
 }
 
@@ -7328,7 +7344,7 @@ body.radar-sb-open .tracker-sidebar {
 .interrupted-banner-text {
   font-size: var(--text-xs);
   font-weight: 600;
-  color: var(--amber);
+  color: var(--purple);
 }
 
 /* .interrupted-banner-btn */
@@ -7342,7 +7358,7 @@ body.radar-sb-open .tracker-sidebar {
 
 /* .interrupted-banner-btn:hover */
 .interrupted-banner-btn:hover {
-  background: rgb(232 168 50 / 25%);
+  background: rgb(124 106 247 / 25%);
 }
 
 /* .paste-label */
