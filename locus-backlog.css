@@ -1,4 +1,4 @@
-/* [PP] mod:99 · autor:Nova · 2026-07-17 UTC-6 */
+/* [PP] mod:100 · autor:Nova · 2026-07-18 UTC-6 */
 /* Ad-hoc (sin REQ/TKT vía Cael, ítem directo de founder): rediseño de fila DISC en Q-DISC —
    de card boxeada (wash 4 caras, borde punteado, glow) a fila flat tipo inbox (Linear/Things).
    Reemplaza el bloque .bitem--idea completo (mod:95, L3698-3816: card base, ::before muerto
@@ -313,6 +313,21 @@
   max-width: var(--bp-ultrawide);
   margin-inline: auto;
   width: 100%;
+}
+
+/* REQ CAEL-0717-01 · TKT1 (Nova) — toolbar y spt-nav full-bleed dentro de #tab-backlog,
+   mismo patrón que .header-inner: fondo a los bordes, contenido con gutter propio.
+   .tpl-sidebar-actions (padding:8px 24px) y .spt-nav (padding:0 24px) ya declaran su propio
+   gutter de contenido — el negative margin-inline cancela únicamente el padding HEREDADO de
+   #tab-backlog (--gutter-shell, consolidado por REQ CAEL-0717-02), sin tocarlo. #tpl-detail
+   no se toca — conserva el gutter heredado sin cambio, único hijo de #tab-backlog que lo hace.
+   Selector corregido en sesión: el AC-1 original de Cael referenciaba "#tpl-toolbar", ID
+   inexistente en CSS — el selector real es .tpl-sidebar-actions (ver locus-proyectos.css).
+   Ambas clases solo se instancian dentro de #tab-backlog al momento de este TKT — scope
+   explícito igual para prevenir reuso futuro con otro gutter de padre. */
+#tab-backlog .tpl-sidebar-actions,
+#tab-backlog .spt-nav {
+  margin-inline: calc(-1 * var(--gutter-shell));
 }
 
 /* B-1007: Analytics tab padding — consistente con otros tabs */
