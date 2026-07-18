@@ -1,4 +1,4 @@
-// [PP] mod:110 · autor:Rune · 2026-07-16 UTC-6
+// [PP] mod:111 · autor:Rune · 2026-07-18 08:15 UTC-6
 // INC-[pendiente-ID] (triggered_by REQ-202607-003/004/005): _assignPendingIds no seedeaba
 // slugMap con [tmp:REF_ID] al asignar código real a un ítem con refId — causa raíz de
 // parent:{ref_id,title} sin resolver ("Sin parent" en DIFF pese a ref_id/title correctos).
@@ -2957,6 +2957,16 @@ export function applyPatchesFromTG(patches, sessionId, opts) {
             // cubre retroceso desde done (en-revision → en-proceso) y avance a en-revision
             _checkAndAdvanceParentR(existing.code, nowTs);
           }
+        } else if (normalized === 'done' && existing.parentId) {
+          // INC-[pendiente-ID] (fix idempotencia): un patch status:done sobre un ítem que YA
+          // estaba done no entraba nunca al bloque de arriba — _checkAndAdvanceParentR nunca se
+          // re-evaluaba para ese ingest. Si este era el último hijo pendiente de considerar
+          // (ej. re-envío del mismo patch en un CHECKPOINT posterior, o dos CHECKPOINTs
+          // distintos tocando el mismo TKT), el REQ padre se quedaba sin la transición
+          // automática pese a que todos sus hijos ya estaban done. Re-evaluar siempre que el
+          // ítem tenga parent, sin mutar nada más — mismo criterio idempotente que el resto de
+          // _checkAndAdvanceParentR (no-op si el REQ ya está en-revision/done/bloqueado).
+          _checkAndAdvanceParentR(existing.code, nowTs);
         }
         return;
       }

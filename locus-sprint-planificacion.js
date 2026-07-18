@@ -1,3 +1,8 @@
+// [PP] mod:35 · autor:Rune · 2026-07-18 01:30 UTC-6
+// Fix inline (limpieza de código muerto, DISC de mod:69 de module-contracts): comentario de
+//   módulo (L43 anterior) seguía describiendo "sprint selector bar" pese a que ese subsistema
+//   ya fue eliminado en mod:34 — verificado con grep, sin código real que limpiar, solo el
+//   comentario estaba desactualizado. Sin cambio de comportamiento. contract_update: no.
 // [PP] mod:34 · autor:Rune · 2026-07-17 UTC-6
 // TKT1 (REQ-[pendiente-ID] Consolidar wiring de Histórico): subsistema muerto "Sprint selector
 // bar" eliminado — _roadmapSprintFilter, _statusPills, roadmapGoToSprint, _buildSprintOption,
@@ -38,7 +43,7 @@
 // ahora reciben el elemento destino como parámetro explícito en vez de mutar el Event nativo.
 // TKT1 (limpieza post-rename): comentario en L9 actualizado — locus-backlog-archive.js → locus-backlog-historico.js. Sin cambio de código.
 // locus-sprint-planificacion.js
-// Módulo: Vista Planificación — sprint selector bar + drag & drop planning view
+// Módulo: Vista Planificación — drag & drop planning view
 // Migrado desde locus-backlog-render.js (T-202605-090)
 // T-202606-091: headers colapsables en sprints destino — delegación en bl-plan-col-header
 // T-202606-092: drop de R mueve Ts hijos activos al mismo sprint destino

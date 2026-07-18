@@ -1,4 +1,4 @@
-/* [PP] mod:4 · autor:Nova · 2026-07-17 14:20 UTC-6 */
+/* [PP] mod:5 · autor:Nova · 2026-07-17 15:05 UTC-6 */
 /* locus-radar.css */
 /* Versión: 1.3 | Última actualización: 2026-05-13 | B1 fondo explícito sidebar · B2 auto-init JS (ver nota) · B3 pin icon dual SVG */
 
@@ -576,10 +576,6 @@
   white-space: nowrap;
 }
 
-.rsb-status-available {
-  color: var(--green);
-}
-
 .rsb-status-exhausted {
   color: var(--red);
 }
@@ -589,10 +585,11 @@
   background: rgb(240 180 41 / 10%);
 }
 
-.rsb-status-session {
-  color: var(--purple);
-  background: rgb(167 139 250 / 10%);
-}
+/* .rsb-status-available y .rsb-status-session retiradas — mod:5 (CAEL-0717-04).
+   Sin consumidor en locus-radar.js desde TKT2 (CAEL-0717-03): available e
+   in-session-state renderizan .rsb-card-quick (+/⚡) en vez del dot/badge.
+   .rsb-status-badge base + .rsb-status-exhausted/.rsb-status-interrupted
+   siguen en uso — sin cambio. */
 
 /* Header counts — R-202605-138: contadores en fila 2 */
 .rsb-hdr-counts {
