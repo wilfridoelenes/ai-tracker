@@ -1,3 +1,11 @@
+// [PP] mod:21 · autor:Rune · 2026-07-17 UTC-6
+// TKT-202607-032 (REQ-202607-004) AC-1: renderDocUpdatesPending() ordena keys — entradas con
+// vencido:true primero (sort estable, sin alterar orden relativo dentro de cada grupo). Cierra
+// el gap que dejó TKT-CAEL-0717-02 (renderizaba el badge pero no reordenaba). AC-2/AC-4
+// reescritos por Cael (Opción B, founder confirmó): sin selector de rol — banner de bloqueo
+// pendiente de entregable de Nova (nuevo tratamiento visual amber, sin clase reutilizable
+// existente — ver CHECKPOINT de esta entrega, Bloqueo UI declarado). contract_update: n/a —
+// firma de renderDocUpdatesPending() sin cambio.
 // [PP] mod:20 · autor:Rune · 2026-07-17 UTC-6
 // TKT-CAEL-0717-02 (REQ-CAEL-0717-01): renderDocUpdatesPending() consume entries[].vencido
 // (ya calculado por _scmExecuteClose() — locus-backlog-sprints.js, fix TKT-202607-031) y
@@ -884,7 +892,14 @@ export function renderDocUpdatesPending() {
   if (!container) return;
 
   const index = _getDocUpdateIndex();
-  const keys = Object.keys(index);
+  // TKT-202607-032 AC-1: entradas con vencido:true se renderizan primero — sort estable,
+  // no altera el orden relativo entre entradas del mismo estado (vencido/no vencido).
+  const keys = Object.keys(index).sort((a, b) => {
+    const aVencido = (index[a] || []).some(e => e.vencido === true);
+    const bVencido = (index[b] || []).some(e => e.vencido === true);
+    if (aVencido === bVencido) return 0;
+    return aVencido ? -1 : 1;
+  });
 
   if (!keys.length) {
     container.innerHTML = '<div class="du-empty-state">Sin DOC-UPDATEs pendientes en este sprint.</div>';
